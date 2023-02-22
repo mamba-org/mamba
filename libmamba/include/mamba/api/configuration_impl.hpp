@@ -61,10 +61,12 @@ namespace mamba
                 return std::vector<std::string>({ "default" });
             };
 
-            static void merge(const std::map<std::string, T>& values,
-                              const std::vector<std::string>& sources,
-                              T& value,
-                              std::vector<std::string>& source);
+            static void merge(
+                const std::map<std::string, T>& values,
+                const std::vector<std::string>& sources,
+                T& value,
+                std::vector<std::string>& source
+            );
 
             static T deserialize(const std::string& value);
 
@@ -79,10 +81,12 @@ namespace mamba
                 return std::vector<std::string>(init.size(), "default");
             };
 
-            static void merge(const std::map<std::string, std::vector<T>>& values,
-                              const std::vector<std::string>& sources,
-                              std::vector<T>& value,
-                              std::vector<std::string>& source);
+            static void merge(
+                const std::map<std::string, std::vector<T>>& values,
+                const std::vector<std::string>& sources,
+                std::vector<T>& value,
+                std::vector<std::string>& source
+            );
 
             static std::vector<T> deserialize(const std::string& value);
 
@@ -94,10 +98,12 @@ namespace mamba
          *************************/
 
         template <class T>
-        void Source<T>::merge(const std::map<std::string, T>& values,
-                              const std::vector<std::string>& sources,
-                              T& value,
-                              std::vector<std::string>& source)
+        void Source<T>::merge(
+            const std::map<std::string, T>& values,
+            const std::vector<std::string>& sources,
+            T& value,
+            std::vector<std::string>& source
+        )
         {
             source = sources;
             value = values.at(sources.front());
@@ -123,10 +129,12 @@ namespace mamba
         }
 
         template <class T>
-        void Source<std::vector<T>>::merge(const std::map<std::string, std::vector<T>>& values,
-                                           const std::vector<std::string>& sources,
-                                           std::vector<T>& value,
-                                           std::vector<std::string>& source)
+        void Source<std::vector<T>>::merge(
+            const std::map<std::string, std::vector<T>>& values,
+            const std::vector<std::string>& sources,
+            std::vector<T>& value,
+            std::vector<std::string>& source
+        )
         {
             value.clear();
             source.clear();
@@ -234,7 +242,8 @@ namespace YAML
             else
             {
                 throw std::runtime_error(
-                    "Invalid 'VerificationLevel', should be in {'enabled', 'warn', 'disabled'}");
+                    "Invalid 'VerificationLevel', should be in {'enabled', 'warn', 'disabled'}"
+                );
             }
 
             return true;
@@ -318,10 +327,13 @@ namespace YAML
     struct convert<mamba::log_level>
     {
     private:
-        static inline const std::array<std::string, 7> log_level_names
-            = { "trace", "debug", "info", "warning", "error", "critical", "off" };
+
+        inline static const std::array<std::string, 7> log_level_names = {
+            "trace", "debug", "info", "warning", "error", "critical", "off"
+        };
 
     public:
+
         static Node encode(const mamba::log_level& rhs)
         {
             return Node(log_level_names[static_cast<size_t>(rhs)]);
@@ -337,9 +349,8 @@ namespace YAML
                 return true;
             }
 
-            LOG_ERROR
-                << "Invalid log level, should be in {'critical', 'error', 'warning', 'info', 'debug', 'trace', 'off'} but is '"
-                << name << "'";
+            LOG_ERROR << "Invalid log level, should be in {'critical', 'error', 'warning', 'info', 'debug', 'trace', 'off'} but is '"
+                      << name << "'";
             return false;
         }
     };

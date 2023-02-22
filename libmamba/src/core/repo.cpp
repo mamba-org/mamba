@@ -4,11 +4,12 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/context.hpp"
-#include "mamba/core/pool.hpp"
 #include "mamba/core/repo.hpp"
+
+#include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
+#include "mamba/core/pool.hpp"
 
 extern "C"
 {
@@ -30,11 +31,13 @@ namespace mamba
         return MTV;
     }
 
-    MRepo::MRepo(MPool& pool,
-                 const std::string& /*name*/,
-                 const fs::u8path& index,
-                 const RepoMetadata& metadata,
-                 const Channel& channel)
+    MRepo::MRepo(
+        MPool& pool,
+        const std::string& /*name*/,
+        const fs::u8path& index,
+        const RepoMetadata& metadata,
+        const Channel& channel
+    )
         : m_metadata(metadata)
     {
         m_url = rsplit(metadata.url, "/", 1)[0];
@@ -44,10 +47,7 @@ namespace mamba
         p_channel = &channel;
     }
 
-    MRepo::MRepo(MPool& pool,
-                 const std::string& name,
-                 const std::string& index,
-                 const std::string& url)
+    MRepo::MRepo(MPool& pool, const std::string& name, const std::string& index, const std::string& url)
         : m_url(url)
     {
         m_repo = repo_create(pool, name.c_str());
@@ -55,9 +55,7 @@ namespace mamba
         read_file(index);
     }
 
-    MRepo::MRepo(MPool& pool,
-                 const std::string& name,
-                 const std::vector<PackageInfo>& package_infos)
+    MRepo::MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& package_infos)
     {
         m_repo = repo_create(pool, name.c_str());
         m_repo->appdata = this;
@@ -154,8 +152,7 @@ namespace mamba
 
         Id handle = repo_add_solvable(m_repo);
         Solvable* s = pool_id2solvable(pool, handle);
-        repodata_set_str(
-            data, handle, SOLVABLE_BUILDVERSION, std::to_string(info.build_number).c_str());
+        repodata_set_str(data, handle, SOLVABLE_BUILDVERSION, std::to_string(info.build_number).c_str());
         repodata_add_poolstr_array(data, handle, SOLVABLE_BUILDFLAVOR, info.build_string.c_str());
         s->name = pool_str2id(pool, info.name.c_str(), 1);
         s->evr = pool_str2id(pool, info.version.c_str(), 1);
@@ -165,12 +162,13 @@ namespace mamba
         solvable_set_str(s, real_repo_key, info.url.c_str());
 
         if (!info.noarch.empty())
+        {
             solvable_set_str(s, noarch_repo_key, info.noarch.c_str());
+        }
 
         repodata_set_location(data, handle, 0, info.subdir.c_str(), info.fn.c_str());
 
-        repodata_set_checksum(
-            data, handle, SOLVABLE_CHECKSUM, REPOKEY_TYPE_SHA256, info.sha256.c_str());
+        repodata_set_checksum(data, handle, SOLVABLE_CHECKSUM, REPOKEY_TYPE_SHA256, info.sha256.c_str());
 
         if (!info.depends.empty())
         {
@@ -196,8 +194,12 @@ namespace mamba
             }
         }
 
-        s->provides
-            = repo_addid_dep(m_repo, s->provides, pool_rel2id(pool, s->name, s->evr, REL_EQ, 1), 0);
+        s->provides = repo_addid_dep(
+            m_repo,
+            s->provides,
+            pool_rel2id(pool, s->name, s->evr, REL_EQ, 1),
+            0
+        );
     }
 
     Id MRepo::id() const
@@ -261,25 +263,29 @@ namespace mamba
             }
             if (pkg_s->name == pip)
             {
-                pkg_s->requires
-                    = repo_addid_dep(m_repo, pkg_s->requires, python_dep, SOLVABLE_PREREQMARKER);
+                pkg_s->requires = repo_addid_dep(
+                    m_repo,
+                    pkg_s->requires,
+                    python_dep,
+                    SOLVABLE_PREREQMARKER
+                );
             }
         }
     }
 
-    MRepo& MRepo::create(MPool& pool,
-                         const std::string& name,
-                         const std::string& filename,
-                         const std::string& url)
+    MRepo&
+    MRepo::create(MPool& pool, const std::string& name, const std::string& filename, const std::string& url)
     {
         return pool.add_repo(MRepo(pool, name, filename, url));
     }
 
-    MRepo& MRepo::create(MPool& pool,
-                         const std::string& name,
-                         const fs::u8path& filename,
-                         const RepoMetadata& meta,
-                         const Channel& channel)
+    MRepo& MRepo::create(
+        MPool& pool,
+        const std::string& name,
+        const fs::u8path& filename,
+        const RepoMetadata& meta,
+        const Channel& channel
+    )
     {
         return pool.add_repo(MRepo(pool, name, filename, meta, channel));
     }
@@ -312,7 +318,7 @@ namespace mamba
             m_solv_file.replace_extension("solv");
         }
 
-        LOG_INFO << "Reading cache files '" << (filename.parent_path() / filename.stem()).string()
+        LOG_INFO << "Reading cache files '" << (filename.parent_path() / filename).string()
                  << ".*' for repo index '" << m_repo->name << "'";
 
         if (is_solv)
@@ -328,7 +334,7 @@ namespace mamba
                 throw std::runtime_error("Could not open repository file " + filename.string());
             }
 
-            LOG_DEBUG << "Attempt load from solv " << m_solv_file;
+            LOG_INFO << "Attempt load from solv " << m_solv_file;
 
             int ret = repo_add_solv(m_repo, fp, 0);
             if (ret != 0)
@@ -352,14 +358,24 @@ namespace mamba
 
                     static constexpr auto failure = std::numeric_limits<unsigned long long>::max();
                     const char* url = repodata_lookup_str(repodata, SOLVID_META, url_id);
-                    const auto pip_added
-                        = repodata_lookup_num(repodata, SOLVID_META, pip_added_id, failure);
+                    const auto pip_added = repodata_lookup_num(
+                        repodata,
+                        SOLVID_META,
+                        pip_added_id,
+                        failure
+                    );
                     const char* etag = repodata_lookup_str(repodata, SOLVID_META, etag_id);
                     const char* mod = repodata_lookup_str(repodata, SOLVID_META, mod_id);
-                    const char* tool_version
-                        = repodata_lookup_str(repodata, SOLVID_META, REPOSITORY_TOOLVERSION);
-                    bool metadata_valid
-                        = !(!url || !etag || !mod || !tool_version || pip_added == failure);
+                    const char* tool_version = repodata_lookup_str(
+                        repodata,
+                        SOLVID_META,
+                        REPOSITORY_TOOLVERSION
+                    );
+                    LOG_INFO << "Metadata solv file: " << url << " " << pip_added << " " << etag
+                             << " " << mod << " " << tool_version;
+                    bool metadata_valid = !(
+                        !url || !etag || !mod || !tool_version || pip_added == failure
+                    );
 
                     if (metadata_valid)
                     {
@@ -368,15 +384,14 @@ namespace mamba
                                          && (std::strcmp(tool_version, mamba_tool_version()) == 0);
                     }
 
-                    LOG_DEBUG << "Metadata from SOLV are "
-                              << (metadata_valid ? "valid" : "NOT valid");
+                    LOG_INFO << "Metadata from SOLV are " << (metadata_valid ? "valid" : "NOT valid");
 
                     if (!metadata_valid)
                     {
-                        LOG_DEBUG << "SOLV file was written with a previous version of "
-                                     "libsolv or mamba "
-                                  << (tool_version != nullptr ? tool_version : "<NULL>")
-                                  << ", updating it now!";
+                        LOG_INFO << "SOLV file was written with a previous version of "
+                                    "libsolv or mamba "
+                                 << (tool_version != nullptr ? tool_version : "<NULL>")
+                                 << ", updating it now!";
                     }
                     else
                     {
@@ -410,8 +425,10 @@ namespace mamba
         if (ret != 0)
         {
             fclose(fp);
-            throw std::runtime_error("Could not read JSON repodata file (" + m_json_file.string()
-                                     + ") " + std::string(pool_errstr(m_repo->pool)));
+            throw std::runtime_error(
+                "Could not read JSON repodata file (" + m_json_file.string() + ") "
+                + std::string(pool_errstr(m_repo->pool))
+            );
         }
 
         // TODO move this to a more structured approach for repodata patching?

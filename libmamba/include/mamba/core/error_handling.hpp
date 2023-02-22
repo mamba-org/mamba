@@ -12,7 +12,7 @@ namespace mamba
 {
 
     /*********************
-     * Mamba esxceptions *
+     * Mamba exceptions *
      *********************/
 
     enum class mamba_error_code
@@ -29,11 +29,14 @@ namespace mamba
         internal_failure,
         lockfile_failure,
         selfupdate_failure,
+        satisfiablitity_error,
+        user_interrupted,
     };
 
     class mamba_error : public std::runtime_error
     {
     public:
+
         using base_type = std::runtime_error;
 
         mamba_error(const std::string& msg, mamba_error_code ec);
@@ -45,6 +48,7 @@ namespace mamba
         const std::any& data() const noexcept;
 
     private:
+
         mamba_error_code m_error_code;
         std::any m_data;
     };
@@ -52,6 +56,7 @@ namespace mamba
     class mamba_aggregated_error : public mamba_error
     {
     public:
+
         using base_type = mamba_error;
         using error_list_t = std::vector<mamba_error>;
 
@@ -60,9 +65,10 @@ namespace mamba
         const char* what() const noexcept override;
 
     private:
+
         error_list_t m_error_list;
         mutable std::string m_aggregated_message;
-        constexpr static const char* m_base_message = "Multiple errors occured:\n";
+        static constexpr const char* m_base_message = "Multiple errors occured:\n";
     };
 
     /********************************
@@ -73,6 +79,7 @@ namespace mamba
     class expected_ref_wrapper : private tl::expected<std::reference_wrapper<T>, E>
     {
     public:
+
         using value_type = T;
         using self_type = expected_ref_wrapper<T, E>;
         using reference = std::reference_wrapper<T>;
@@ -244,8 +251,8 @@ namespace mamba
     }
 
     template <class T1, class E1, class T2, class E2>
-    constexpr bool operator==(const expected_ref_wrapper<T1, E1>& x,
-                              const expected_ref_wrapper<T2, E2>& y)
+    constexpr bool
+    operator==(const expected_ref_wrapper<T1, E1>& x, const expected_ref_wrapper<T2, E2>& y)
     {
         using base_type1 = typename expected_ref_wrapper<T1, E1>::base_type;
         using base_type2 = typename expected_ref_wrapper<T2, E2>::base_type;

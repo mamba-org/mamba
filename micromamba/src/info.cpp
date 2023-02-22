@@ -4,9 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "common_options.hpp"
-
 #include "mamba/api/info.hpp"
+
+#include "common_options.hpp"
 
 
 using namespace mamba;  // NOLINT(build/namespaces)
@@ -58,8 +58,8 @@ set_info_command(CLI::App* subcom)
                     { "libsolv", "BSD license, Copyright (c) 2019, SUSE LLC" },
                     { "nlohmann_json", "MIT license, Copyright (c) 2013-2020 Niels Lohmann" },
                     { "reproc", "MIT license, Copyright (c) Daan De Meyer" },
+                    { "fmt", "MIT license, Copyright (c) 2012-present, Victor Zverovich." },
                     { "spdlog", "MIT license, Copyright (c) 2016 Gabi Melman." },
-                    { "termcolor_cpp", "BSD license, Copyright (c) 2013, Ihor Kalnytskyi." },
                     { "zstd",
                       "BSD license, Copyright (c) 2016-present, Facebook, Inc. All rights reserved." },
                 };
@@ -74,5 +74,6 @@ set_info_command(CLI::App* subcom)
             {
                 info();
             }
-        });
+        }
+    );
 }

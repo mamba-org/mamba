@@ -12,10 +12,10 @@ mamba
 Fresh install
 *************
 
-We strongly recommend to start from ``mambaforge``, a community project of the conda-forge community.
+We strongly recommend to start from Mambaforge, a community project of the conda-forge community.
 
-| You can download `mambaforge <https://github.com/conda-forge/miniforge#mambaforge>`_ for Windows, macOS and Linux.
-| ``mambaforge`` comes with the popular ``conda-forge`` channel preconfigured, but you can modify the configuration to use any channel you like.
+| You can download `Mambaforge <https://github.com/conda-forge/miniforge#mambaforge>`_ for Windows, macOS and Linux.
+| Mambaforge comes with the popular ``conda-forge`` channel preconfigured, but you can modify the configuration to use any channel you like.
 
  | After successful installation, you can use the mamba commands as described in :ref:`mamba user guide<mamba>`.
 
@@ -23,7 +23,8 @@ We strongly recommend to start from ``mambaforge``, a community project of the c
 Existing ``conda`` install
 **************************
 
-If you are already a ``conda`` user, very good!
+.. warning::
+   This way of installing Mamba is **not recommended**. We strongly recommend to use the Mambaforge method (see above).
 
 To get ``mamba``, just install it *into the base environment* from the ``conda-forge`` channel:
 
@@ -33,7 +34,7 @@ To get ``mamba``, just install it *into the base environment* from the ``conda-f
 
 
 .. warning::
-   Installing mamba into any other environment than base can cause unexpected behavior
+   Installing mamba into any other environment than ``base`` is not supported.
 
 .. _umamba-install:
 
@@ -60,7 +61,7 @@ On macOS, you can install `micromamba` from Homebrew:
 
 .. code:: bash
 
-   brew install --cask micromamba
+   brew install micromamba
 
 Install script
 ^^^^^^^^^^^^^^
@@ -92,7 +93,7 @@ Linux and macOS
 
 Download and unzip the executable (from the official conda-forge package):
 
-Ensure that basic utilities are installed. We need ``wget`` and ``tar`` with support for ``bzip2``.
+Ensure that basic utilities are installed. We need ``curl`` and ``tar`` with support for ``bzip2``.
 Also you need a glibc based system like Ubuntu, Fedora or Centos (Alpine Linux does not work natively).
 
 The following magic URL always returns the latest available version of micromamba, and the ``bin/micromamba`` part is automatically extracted using ``tar``.
@@ -157,8 +158,7 @@ Windows
 .. code:: powershell
 
   Invoke-Webrequest -URI https://micro.mamba.pm/api/micromamba/win-64/latest -OutFile micromamba.tar.bz2
-  C:\PROGRA~1\7-Zip\7z.exe x micromamba.tar.bz2 -aoa
-  C:\PROGRA~1\7-Zip\7z.exe x micromamba.tar -ttar -aoa -r Library\bin\micromamba.exe
+  tar xf micromamba.tar.bz2
 
   MOVE -Force Library\bin\micromamba.exe micromamba.exe
   .\micromamba.exe --help
@@ -180,6 +180,16 @@ Nightly builds
 
 You can download fully statically linked builds for each commit to `master` on GitHub (scroll to the bottom of the "Summary" page):
 https://github.com/mamba-org/mamba/actions/workflows/static_build.yml?query=is%3Asuccess
+
+Docker images
+*************
+
+The `mambaorg/micromamba <https://hub.docker.com/r/mambaorg/micromamba>`_ docker
+image can be used to run ``micromamba`` without installing it:
+
+.. code:: bash
+
+  docker run -it --rm mambaorg/micromamba:latest micromamba info
 
 .. _shell_completion:
 

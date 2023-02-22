@@ -4,19 +4,16 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "mamba/api/repoquery.hpp"
+
 #include <iostream>
 
-#include "mamba/api/configuration.hpp"
 #include "mamba/api/channel_loader.hpp"
-
-#include "mamba/api/repoquery.hpp"
+#include "mamba/api/configuration.hpp"
 
 namespace mamba
 {
-    void repoquery(QueryType type,
-                   QueryResultFormat format,
-                   bool use_local,
-                   const std::string& query)
+    void repoquery(QueryType type, QueryResultFormat format, bool use_local, const std::string& query)
     {
         auto& ctx = Context::instance();
         auto& config = Configuration::instance();
@@ -76,7 +73,10 @@ namespace mamba
         }
         else if (type == QueryType::kDEPENDS)
         {
-            auto res = q.depends(query, format == QueryResultFormat::kTREE);
+            auto res = q.depends(
+                query,
+                format == QueryResultFormat::kTREE || format == QueryResultFormat::kRECURSIVETABLE
+            );
             switch (format)
             {
                 case QueryResultFormat::kTREE:
@@ -87,12 +87,16 @@ namespace mamba
                     std::cout << res.json().dump(4);
                     break;
                 case QueryResultFormat::kTABLE:
+                case QueryResultFormat::kRECURSIVETABLE:
                     res.sort("name").table(std::cout);
             }
         }
         else if (type == QueryType::kWHONEEDS)
         {
-            auto res = q.whoneeds(query, format == QueryResultFormat::kTREE);
+            auto res = q.whoneeds(
+                query,
+                format == QueryResultFormat::kTREE || format == QueryResultFormat::kRECURSIVETABLE
+            );
             switch (format)
             {
                 case QueryResultFormat::kTREE:
@@ -103,9 +107,11 @@ namespace mamba
                     std::cout << res.json().dump(4);
                     break;
                 case QueryResultFormat::kTABLE:
+                case QueryResultFormat::kRECURSIVETABLE:
                     res.sort("name").table(
                         std::cout,
-                        { "Name", "Version", "Build", concat("Depends:", query), "Channel" });
+                        { "Name", "Version", "Build", concat("Depends:", query), "Channel" }
+                    );
             }
         }
 

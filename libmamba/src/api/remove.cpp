@@ -28,8 +28,10 @@ namespace mamba
 
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
-            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_NOT_ALLOW_MISSING_PREFIX
-                       | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX | MAMBA_EXPECT_EXISTING_PREFIX);
+            .set_value(
+                MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_NOT_ALLOW_MISSING_PREFIX
+                | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX | MAMBA_EXPECT_EXISTING_PREFIX
+            );
         config.load();
 
         auto remove_specs = config.at("specs").value<std::vector<std::string>>();
@@ -90,10 +92,14 @@ namespace mamba
             auto execute_transaction = [&](MTransaction& transaction)
             {
                 if (ctx.json)
+                {
                     transaction.log_json();
+                }
 
                 if (transaction.prompt())
+                {
                     transaction.execute(prefix_data);
+                }
             };
 
             if (force)
@@ -104,27 +110,33 @@ namespace mamba
             }
             else
             {
-                MSolver solver(pool,
-                               { { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 },
-                                 { SOLVER_FLAG_ALLOW_UNINSTALL, 1 },
-                                 { SOLVER_FLAG_STRICT_REPO_PRIORITY,
-                                   ctx.channel_priority == ChannelPriority::kStrict } });
+                MSolver solver(
+                    std::move(pool),
+                    { { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 },
+                      { SOLVER_FLAG_ALLOW_UNINSTALL, 1 },
+                      { SOLVER_FLAG_STRICT_REPO_PRIORITY,
+                        ctx.channel_priority == ChannelPriority::kStrict } }
+                );
 
                 History history(ctx.target_prefix);
                 auto hist_map = history.get_requested_specs_map();
                 std::vector<std::string> keep_specs;
                 for (auto& it : hist_map)
+                {
                     keep_specs.push_back(it.second.conda_build_form());
+                }
 
                 solver.add_jobs(keep_specs, SOLVER_USERINSTALLED);
 
                 int solver_flag = SOLVER_ERASE;
 
                 if (prune)
+                {
                     solver_flag |= SOLVER_CLEANDEPS;
+                }
 
                 solver.add_jobs(specs, solver_flag);
-                solver.solve();
+                solver.must_solve();
 
                 MTransaction transaction(solver, package_caches);
                 execute_transaction(transaction);

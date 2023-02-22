@@ -1,4 +1,5 @@
 #include "mamba/core/environment.hpp"
+
 #include "mamba/core/util.hpp"
 
 #ifdef _WIN32
@@ -41,9 +42,13 @@ namespace mamba
 #else
             const char* value = std::getenv(key.c_str());
             if (value)
+            {
                 return value;
+            }
             else
+            {
                 return {};
+            }
 #endif
         }
 
@@ -146,8 +151,8 @@ namespace mamba
             {
                 std::string_view s(c);
                 auto pos = s.find("=");
-                m[std::string(s.substr(0, pos))]
-                    = (pos != s.npos) ? std::string(s.substr(pos + 1)) : "";
+                m[std::string(s.substr(0, pos))] = (pos != s.npos) ? std::string(s.substr(pos + 1))
+                                                                   : "";
                 c = *(environ + i);
             }
 #else
@@ -202,13 +207,16 @@ namespace mamba
             std::string maybe_home = env::get("USERPROFILE").value_or("");
             if (maybe_home.empty())
             {
-                maybe_home
-                    = concat(env::get("HOMEDRIVE").value_or(""), env::get("HOMEPATH").value_or(""));
+                maybe_home = concat(
+                    env::get("HOMEDRIVE").value_or(""),
+                    env::get("HOMEPATH").value_or("")
+                );
             }
             if (maybe_home.empty())
             {
                 throw std::runtime_error(
-                    "Cannot determine HOME (checked USERPROFILE, HOMEDRIVE and HOMEPATH env vars)");
+                    "Cannot determine HOME (checked USERPROFILE, HOMEDRIVE and HOMEPATH env vars)"
+                );
             }
 #else
             std::string maybe_home = env::get("HOME").value_or("");

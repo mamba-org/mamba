@@ -1,13 +1,13 @@
 if not set -q MAMBA_SHLVL
   set -gx MAMBA_SHLVL "0"
-  set -gx PATH $MAMBA_ROOT_PREFIX/condabin $PATH
+  fish_add_path --move $MAMBA_ROOT_PREFIX/condabin
 end
 
 if not set -q MAMBA_NO_PROMPT
   function __mamba_add_prompt
-    if set -q MAMBA_PROMPT_MODIFIER
+    if set -q CONDA_PROMPT_MODIFIER
       set_color -o green
-      echo -n $MAMBA_PROMPT_MODIFIER
+      echo -n $CONDA_PROMPT_MODIFIER
       set_color normal
     end
   end
@@ -62,10 +62,10 @@ function micromamba --inherit-variable MAMBA_EXE
     set -e argv[1]
     switch $cmd
       case activate deactivate
-        eval ($MAMBA_EXE shell -s fish $cmd $argv)
+        $MAMBA_EXE shell -s fish $cmd $argv | source || return $status
       case install update upgrade remove uninstall
         $MAMBA_EXE $cmd $argv || return $status
-        and eval ($MAMBA_EXE shell -s fish reactivate)
+        $MAMBA_EXE shell -s fish reactivate | source || return $status
       case '*'
         $MAMBA_EXE $cmd $argv
     end

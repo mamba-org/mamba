@@ -1,3 +1,73 @@
+mamba 1.3.1 (February 09, 2023)
+===============================
+
+A bugfix release for 1.3.0!
+
+Docs:
+
+- - add micromamba docker image by @wholtz in https://github.com/mamba-org/mamba/pull/2266
+- - added biweekly meetings information to README by @JohanMabille in https://github.com/mamba-org/mamba/pull/2275
+- - change docs to homebrew/core by @pavelzw in https://github.com/mamba-org/mamba/pull/2278
+
+mamba 1.3.0 (February 03, 2023)
+===============================
+
+
+Bug fixes:
+
+- Fix mamba / conda incompatibility by @jonashaag in https://github.com/mamba-org/mamba/pull/2249
+
+CI fixes & docs:
+
+- docs: defaults should not be used with conda-forge by @jonashaag in https://github.com/mamba-org/mamba/pull/2181
+- fix tests for pkg_cache by @wolfv in https://github.com/mamba-org/mamba/pull/2259
+- update documentation for mamba activate by @cdeepali in https://github.com/mamba-org/mamba/pull/2176
+
+mamba 1.2.0 (January 16, 2023)
+==============================
+
+This release contains some speed improvements: download repodata faster as zstd encoded files (configure using
+`repodata_use_zst: true` in your `~/.mambarc` file). Also, `.conda` file extraction is now faster, a prefix
+with spaces works better thanks to a new "shebang" style and the `micromamba package compress` and `transmute`
+commands produce better conda packages.
+
+Bug fixes:
+
+- Add Context binding for experimental_sat_error_message by @syslaila in #2143
+- Fix `custom_channels` parsing by @XuehaiPan in #2207
+- Use check_allowlist from conda by @duncanmmacleod in #2220
+
+CI fixes & docs:
+
+- - Improve build env cleanup by @jonashaag in #2213
+- - Run conda_nightly once per week by @jonashaag in #2147
+- - Update doc by @Hind-M in #2156
+- - Use Conda canary in nightly tests by @jonashaag in #2180
+- - Expliclity point to libmamba test data independently of cwd by @AntoinePrv in #2158
+- - Add bug report issue template by @jonashaag in #2182
+- - Downgrade curl to fix micromamba on macOS x64 by @wolfv in #2205
+- - Use conda-forge micromamba feedstock instead of a fork by @JohanMabille in #2206
+- - Update pre-commit versions by @jonashaag in #2178
+- - Use local meta.yaml by @wolfv in #2214
+- - Remove feedstock patches by @wolfv in #2216
+- - Fixed static dependency order by @JohanMabille in #2201
+
+mamba 1.1.0 (November 25, 2022)
+===============================
+
+Some bugfixes for 1.0 and experimental release of the new solver messages
+
+Bug fixes
+
+- Fix activate/deactivate in fish shell (thanks @psobolewskiPhD) #2081
+
+Enhancements
+
+- fix: Don't print banner in quiet mode (thanks @corneliusroemer) #2097
+- ci: Update pre-commit-config #2092
+- docs: Add warning to manual install instructions #2100
+- docs: Consistently use curl for fetching files #2126
+
 mamba 1.0.0 (November 01, 2022)
 ===============================
 

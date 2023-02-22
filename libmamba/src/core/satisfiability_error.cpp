@@ -4,25 +4,29 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <regex>
-#include <vector>
+#include "mamba/core/satisfiability_error.hpp"
+
 #include <algorithm>
-#include <map>
-#include <type_traits>
-#include <string_view>
 #include <functional>
+#include <limits>
+#include <map>
+#include <regex>
 #include <stdexcept>
+#include <string_view>
 #include <tuple>
 #include <type_traits>
+#include <vector>
 
+#include <fmt/color.h>
+#include <fmt/format.h>
+#include <fmt/ostream.h>
 #include <solv/pool.h>
 
 #include "mamba/core/output.hpp"
-#include "mamba/core/util_string.hpp"
-#include "mamba/core/satisfiability_error.hpp"
 #include "mamba/core/package_info.hpp"
-#include "mamba/core/solver.hpp"
 #include "mamba/core/pool.hpp"
+#include "mamba/core/solver.hpp"
+#include "mamba/core/util_string.hpp"
 
 namespace mamba
 {
@@ -35,7 +39,7 @@ namespace mamba
     {
         static std::regex const regexp("\\s*(\\w[\\w-]*)\\s*([^\\s]*)(?:\\s+([^\\s]+))?\\s*");
         std::smatch matches;
-        bool const matched = std::regex_match(dep, matches, regexp);
+        const bool matched = std::regex_match(dep, matches, regexp);
         // First match is the whole regex match
         if (!matched || matches.size() != 4)
         {
@@ -54,17 +58,17 @@ namespace mamba
         }
     }
 
-    std::string const& DependencyInfo::name() const
+    const std::string& DependencyInfo::name() const
     {
         return m_name;
     }
 
-    std::string const& DependencyInfo::version() const
+    const std::string& DependencyInfo::version() const
     {
         return m_version_range;
     }
 
-    std::string const& DependencyInfo::build_string() const
+    const std::string& DependencyInfo::build_string() const
     {
         return m_build_range;
     }
@@ -72,8 +76,10 @@ namespace mamba
     std::string DependencyInfo::str() const
     {
         std::string out(m_name);
-        out.reserve(m_name.size() + (m_version_range.empty() ? 0 : 1) + m_version_range.size()
-                    + (m_build_range.empty() ? 0 : 1) + m_version_range.size());
+        out.reserve(
+            m_name.size() + (m_version_range.empty() ? 0 : 1) + m_version_range.size()
+            + (m_build_range.empty() ? 0 : 1) + m_version_range.size()
+        );
         if (!m_version_range.empty())
         {
             out += ' ';
@@ -87,9 +93,9 @@ namespace mamba
         return out;
     }
 
-    bool DependencyInfo::operator==(DependencyInfo const& other) const
+    bool DependencyInfo::operator==(const DependencyInfo& other) const
     {
-        auto attrs = [](DependencyInfo const& x)
+        auto attrs = [](const DependencyInfo& x)
         { return std::tie(x.name(), x.version(), x.build_string()); };
         return attrs(*this) == attrs(other);
     }
@@ -101,7 +107,7 @@ namespace mamba
     namespace
     {
 
-        void warn_unexpected_problem(MSolverProblem const& problem)
+        void warn_unexpected_problem(const MSolverProblem& problem)
         {
             // TODO: Once the new error message are not experimental, we should consider
             // reducing this level since it is not somethig the user has control over.
@@ -112,6 +118,7 @@ namespace mamba
         class ProblemsGraphCreator
         {
         public:
+
             using SolvId = Id;  // Unscoped from libsolv
 
             using graph_t = ProblemsGraph::graph_t;
@@ -124,7 +131,7 @@ namespace mamba
             using edge_t = ProblemsGraph::edge_t;
             using conflicts_t = ProblemsGraph::conflicts_t;
 
-            ProblemsGraphCreator(MSolver const& solver, MPool const& pool)
+            ProblemsGraphCreator(const MSolver& solver, const MPool& pool)
                 : m_solver{ solver }
                 , m_pool{ pool }
             {
@@ -138,8 +145,9 @@ namespace mamba
             }
 
         private:
-            MSolver const& m_solver;
-            MPool const& m_pool;
+
+            const MSolver& m_solver;
+            const MPool& m_pool;
             graph_t m_graph;
             conflicts_t m_conflicts;
             std::map<SolvId, node_id> m_solv2node;
@@ -154,26 +162,24 @@ namespace mamba
             node_id add_solvable(SolvId solv_id, node_t&& pkg_info, bool update = true);
 
             void add_conflict(node_id n1, node_id n2);
-            [[nodiscard]] bool add_expanded_deps_edges(node_id from_id,
-                                                       SolvId dep_id,
-                                                       edge_t const& edge);
+            [[nodiscard]] bool
+            add_expanded_deps_edges(node_id from_id, SolvId dep_id, const edge_t& edge);
 
             void parse_problems();
         };
 
-        auto ProblemsGraphCreator::add_solvable(SolvId solv_id, node_t&& node, bool update)
-            -> node_id
+        auto ProblemsGraphCreator::add_solvable(SolvId solv_id, node_t&& node, bool update) -> node_id
         {
-            if (auto const iter = m_solv2node.find(solv_id); iter != m_solv2node.end())
+            if (const auto iter = m_solv2node.find(solv_id); iter != m_solv2node.end())
             {
-                node_id const id = iter->second;
+                const node_id id = iter->second;
                 if (update)
                 {
                     m_graph.node(id) = std::move(node);
                 }
                 return id;
             }
-            node_id const id = m_graph.add_node(std::move(node));
+            const node_id id = m_graph.add_node(std::move(node));
             m_solv2node[solv_id] = id;
             return id;
         };
@@ -183,9 +189,8 @@ namespace mamba
             m_conflicts.add(n1, n2);
         }
 
-        bool ProblemsGraphCreator::add_expanded_deps_edges(node_id from_id,
-                                                           SolvId dep_id,
-                                                           edge_t const& edge)
+        bool
+        ProblemsGraphCreator::add_expanded_deps_edges(node_id from_id, SolvId dep_id, const edge_t& edge)
         {
             bool added = false;
             for (const auto& solv_id : m_pool.select_solvables(dep_id))
@@ -193,7 +198,10 @@ namespace mamba
                 added = true;
                 PackageInfo pkg_info(pool_id2solvable(m_pool, solv_id));
                 node_id to_id = add_solvable(
-                    solv_id, PackageNode{ std::move(pkg_info), std::nullopt }, false);
+                    solv_id,
+                    PackageNode{ std::move(pkg_info), std::nullopt },
+                    false
+                );
                 m_graph.add_edge(from_id, to_id, edge);
             }
             return added;
@@ -201,13 +209,11 @@ namespace mamba
 
         void ProblemsGraphCreator::parse_problems()
         {
-            for (const auto& problem : m_solver.all_problems_structured())
+            for (auto& problem : m_solver.all_problems_structured())
             {
-                // These functions do not return a reference so we make sure to
-                // compute the value only once.
-                std::optional<PackageInfo> source = problem.source();
-                std::optional<PackageInfo> target = problem.target();
-                std::optional<std::string> dep = problem.dep();
+                std::optional<PackageInfo>& source = problem.source;
+                std::optional<PackageInfo>& target = problem.target;
+                std::optional<std::string>& dep = problem.dep;
                 SolverRuleinfo type = problem.type;
 
                 switch (type)
@@ -223,13 +229,15 @@ namespace mamba
                             warn_unexpected_problem(problem);
                             break;
                         }
-                        auto src_id
-                            = add_solvable(problem.source_id,
-                                           PackageNode{ std::move(source).value(), std::nullopt });
+                        auto src_id = add_solvable(
+                            problem.source_id,
+                            PackageNode{ std::move(source).value(), std::nullopt }
+                        );
                         node_id tgt_id = add_solvable(
-                            problem.target_id, PackageNode{ std::move(target).value(), { type } });
-                        node_id cons_id
-                            = add_solvable(problem.dep_id, ConstraintNode{ dep.value() });
+                            problem.target_id,
+                            PackageNode{ std::move(target).value(), { type } }
+                        );
+                        node_id cons_id = add_solvable(problem.dep_id, ConstraintNode{ dep.value() });
                         DependencyInfo edge(dep.value());
                         m_graph.add_edge(src_id, cons_id, std::move(edge));
                         add_conflict(cons_id, tgt_id);
@@ -246,9 +254,10 @@ namespace mamba
                             warn_unexpected_problem(problem);
                             break;
                         }
-                        auto src_id
-                            = add_solvable(problem.source_id,
-                                           PackageNode{ std::move(source).value(), std::nullopt });
+                        auto src_id = add_solvable(
+                            problem.source_id,
+                            PackageNode{ std::move(source).value(), std::nullopt }
+                        );
                         DependencyInfo edge(dep.value());
                         bool added = add_expanded_deps_edges(src_id, problem.dep_id, edge);
                         if (!added)
@@ -290,7 +299,8 @@ namespace mamba
                         DependencyInfo edge(dep.value());
                         node_id dep_id = add_solvable(
                             problem.dep_id,
-                            UnresolvedDependencyNode{ std::move(dep).value(), type });
+                            UnresolvedDependencyNode{ std::move(dep).value(), type }
+                        );
                         m_graph.add_edge(m_root_node, dep_id, std::move(edge));
                         break;
                     }
@@ -306,12 +316,14 @@ namespace mamba
                             break;
                         }
                         DependencyInfo edge(dep.value());
-                        node_id src_id
-                            = add_solvable(problem.source_id,
-                                           PackageNode{ std::move(source).value(), std::nullopt });
+                        node_id src_id = add_solvable(
+                            problem.source_id,
+                            PackageNode{ std::move(source).value(), std::nullopt }
+                        );
                         node_id dep_id = add_solvable(
                             problem.dep_id,
-                            UnresolvedDependencyNode{ std::move(dep).value(), type });
+                            UnresolvedDependencyNode{ std::move(dep).value(), type }
+                        );
                         m_graph.add_edge(src_id, dep_id, std::move(edge));
                         break;
                     }
@@ -328,9 +340,13 @@ namespace mamba
                             break;
                         }
                         node_id src_id = add_solvable(
-                            problem.source_id, PackageNode{ std::move(source).value(), { type } });
+                            problem.source_id,
+                            PackageNode{ std::move(source).value(), { type } }
+                        );
                         node_id tgt_id = add_solvable(
-                            problem.target_id, PackageNode{ std::move(target).value(), { type } });
+                            problem.target_id,
+                            PackageNode{ std::move(target).value(), { type } }
+                        );
                         add_conflict(src_id, tgt_id);
                         break;
                     }
@@ -343,8 +359,7 @@ namespace mamba
                     default:
                     {
                         // Many more SolverRuleinfo that heve not been encountered.
-                        LOG_WARNING << "Problem type not implemented "
-                                    << solver_ruleinfo_name(type);
+                        LOG_WARNING << "Problem type not implemented " << solver_ruleinfo_name(type);
                         break;
                     }
                 }
@@ -352,7 +367,7 @@ namespace mamba
         }
     }
 
-    auto ProblemsGraph::from_solver(MSolver const& solver, MPool const& pool) -> ProblemsGraph
+    auto ProblemsGraph::from_solver(const MSolver& solver, const MPool& pool) -> ProblemsGraph
     {
         return ProblemsGraphCreator(solver, pool);
     }
@@ -364,12 +379,12 @@ namespace mamba
     {
     }
 
-    auto ProblemsGraph::graph() const noexcept -> graph_t const&
+    auto ProblemsGraph::graph() const noexcept -> const graph_t&
     {
         return m_graph;
     }
 
-    auto ProblemsGraph::conflicts() const noexcept -> conflicts_t const&
+    auto ProblemsGraph::conflicts() const noexcept -> const conflicts_t&
     {
         return m_conflicts;
     }
@@ -400,8 +415,9 @@ namespace mamba
          */
         template <typename CompFunc>
         auto merge_node_indices_for_one_node_type(
-            std::vector<ProblemsGraph::node_id> const& node_indices, CompFunc&& merge_criteria)
-            -> std::vector<old_node_id_list>
+            const std::vector<ProblemsGraph::node_id>& node_indices,
+            CompFunc&& merge_criteria
+        ) -> std::vector<old_node_id_list>
         {
             using node_id = ProblemsGraph::node_id;
 
@@ -413,7 +429,7 @@ namespace mamba
             {
                 if (!node_added_to_a_group[i])
                 {
-                    auto const id_i = node_indices[i];
+                    const auto id_i = node_indices[i];
                     std::vector<node_id> current_group{};
                     current_group.push_back(id_i);
                     node_added_to_a_group[i] = true;
@@ -421,7 +437,7 @@ namespace mamba
                     // nodes and adding them to the current group if they match the criteria.
                     for (std::size_t j = i + 1; j < n_nodes; ++j)
                     {
-                        auto const id_j = node_indices[j];
+                        const auto id_j = node_indices[j];
                         if ((!node_added_to_a_group[j]) && merge_criteria(id_i, id_j))
                         {
                             current_group.push_back(id_j);
@@ -431,9 +447,11 @@ namespace mamba
                     groups.push_back(std::move(current_group));
                 }
             }
-            assert(std::all_of(node_added_to_a_group.begin(),
-                               node_added_to_a_group.end(),
-                               [](auto x) { return x; }));
+            assert(std::all_of(
+                node_added_to_a_group.begin(),
+                node_added_to_a_group.end(),
+                [](auto x) { return x; }
+            ));
             return groups;
         }
 
@@ -450,11 +468,11 @@ namespace mamba
          * then the output will contain ``i`` in position ``k``.
          */
         template <typename... T>
-        auto variant_by_index(std::vector<std::variant<T...>> const& vrnts)
+        auto variant_by_index(const std::vector<std::variant<T...>>& vrnts)
             -> node_type_list<std::vector<std::size_t>>
         {
             auto out = node_type_list<std::vector<std::size_t>>(sizeof...(T));
-            auto const n = vrnts.size();
+            const auto n = vrnts.size();
             for (std::size_t i = 0; i < n; ++i)
             {
                 out[vrnts[i].index()].push_back(i);
@@ -472,16 +490,18 @@ namespace mamba
          * @return For each node type, a partition of the the indices in @p of that type..
          */
         template <typename CompFunc>
-        auto merge_node_indices(ProblemsGraph::graph_t::node_list const& nodes,
-                                CompFunc&& merge_criteria)
+        auto
+        merge_node_indices(const ProblemsGraph::graph_t::node_list& nodes, CompFunc&& merge_criteria)
             -> node_type_list<std::vector<old_node_id_list>>
         {
-            auto merge_func = [&merge_criteria](auto const& node_indices_of_one_node_type)
+            auto merge_func = [&merge_criteria](const auto& node_indices_of_one_node_type)
             {
-                return merge_node_indices_for_one_node_type(node_indices_of_one_node_type,
-                                                            std::forward<CompFunc>(merge_criteria));
+                return merge_node_indices_for_one_node_type(
+                    node_indices_of_one_node_type,
+                    std::forward<CompFunc>(merge_criteria)
+                );
             };
-            auto const nodes_by_type = variant_by_index(nodes);
+            const auto nodes_by_type = variant_by_index(nodes);
             node_type_list<std::vector<old_node_id_list>> groups(nodes_by_type.size());
             std::transform(nodes_by_type.begin(), nodes_by_type.end(), groups.begin(), merge_func);
             return groups;
@@ -511,7 +531,7 @@ namespace mamba
          * ``ranges::transform(f) | ranges::to<CompressedProblemsGraph::NamedList>()``
          */
         template <typename Range, typename Func>
-        auto transform_to_list(Range const& rng, Func&& f)
+        auto transform_to_list(const Range& rng, Func&& f)
         {
             using T = typename Range::value_type;
             using O = std::invoke_result_t<Func, T>;
@@ -538,7 +558,7 @@ namespace mamba
         inline constexpr bool has_name_v = has_name<T>::value;
 
         template <typename T, typename Str>
-        decltype(auto) name_or(T const& obj, Str val)
+        decltype(auto) name_or(const T& obj, Str val)
         {
             if constexpr (has_name_v<T>)
             {
@@ -553,27 +573,38 @@ namespace mamba
         /**
          * The name of a ProblemsGraph::node_t, used to avoid merging.
          */
-        std::string_view node_name(ProblemsGraph::node_t const& node)
+        std::string_view node_name(const ProblemsGraph::node_t& node)
         {
-            return std::visit([](auto const& n) -> std::string_view { return name_or(n, ""); },
-                              node);
+            return std::visit([](const auto& n) -> std::string_view { return name_or(n, ""); }, node);
         }
 
         /**
          * The criteria for deciding whether to merge two nodes together.
          */
-        auto create_merge_criteria(ProblemsGraph const& pbs)
+        auto default_merge_criteria(
+            const ProblemsGraph& pbs,
+            ProblemsGraph::node_id n1,
+            ProblemsGraph::node_id n2
+        ) -> bool
         {
             using node_id = ProblemsGraph::node_id;
-            return [&pbs](node_id n1, node_id n2) -> bool
+            const auto& g = pbs.graph();
+            auto is_leaf = [&g](node_id n) -> bool { return g.successors(n).size() == 0; };
+            auto leaves_from = [&g](node_id n) -> vector_set<node_id>
             {
-                auto const& g = pbs.graph();
-                // TODO needs finetuning, not the same conditions
-                return (node_name(g.node(n1)) == node_name(g.node(n2)))
-                       && !(pbs.conflicts().in_conflict(n1, n2))
-                       && (g.successors(n1) == g.successors(n2))
-                       && (g.predecessors(n1) == g.predecessors(n2));
+                auto leaves = std::vector<node_id>();
+                g.for_each_leaf_from(n, [&leaves](node_id m) { leaves.push_back(m); });
+                return vector_set(std::move(leaves));
             };
+            return (node_name(g.node(n1)) == node_name(g.node(n2)))
+                   // Merging conflicts would be counter-productive in explaining problems
+                   && !(pbs.conflicts().in_conflict(n1, n2))
+                   // We don't want to use leaves_from for leaves because it resove to themselves,
+                   // preventing any merging.
+                   && ((is_leaf(n1) && is_leaf(n2)) || (leaves_from(n1) == leaves_from(n2)))
+                   // We only check the parents for non-leaves meaning parents can "inject"
+                   // themselves into a bigger problem
+                   && ((!is_leaf(n1) && !is_leaf(n2)) || (g.predecessors(n1) == g.predecessors(n2)));
         }
 
         using node_id_mapping = std::vector<CompressedProblemsGraph::node_id>;
@@ -588,10 +619,12 @@ namespace mamba
          * nodes merged.
          */
         template <typename Node>
-        void merge_nodes_for_one_node_type(ProblemsGraph::graph_t const& old_graph,
-                                           std::vector<old_node_id_list> const& old_groups,
-                                           CompressedProblemsGraph::graph_t& new_graph,
-                                           node_id_mapping& old_to_new)
+        void merge_nodes_for_one_node_type(
+            const ProblemsGraph::graph_t& old_graph,
+            const std::vector<old_node_id_list>& old_groups,
+            CompressedProblemsGraph::graph_t& new_graph,
+            node_id_mapping& old_to_new
+        )
         {
             // Check nothrow move for efficient push_back
             static_assert(std::is_nothrow_move_constructible_v<Node>);
@@ -604,10 +637,10 @@ namespace mamba
                 return std::get<Node>(std::move(node));
             };
 
-            for (auto const& old_grp : old_groups)
+            for (const auto& old_grp : old_groups)
             {
-                auto const new_id = new_graph.add_node(transform_to_list(old_grp, get_old_node));
-                for (auto const old_id : old_grp)
+                const auto new_id = new_graph.add_node(transform_to_list(old_grp, get_old_node));
+                for (const auto old_id : old_grp)
                 {
                     old_to_new[old_id] = new_id;
                 }
@@ -625,24 +658,25 @@ namespace mamba
          * and a mapping between old node ids and new node ids.
          */
         template <typename CompFunc>
-        auto merge_nodes(ProblemsGraph const& pbs, CompFunc&& merge_criteria)
-            -> std::tuple<CompressedProblemsGraph::graph_t,
-                          CompressedProblemsGraph::node_id,
-                          node_id_mapping>
+        auto merge_nodes(const ProblemsGraph& pbs, CompFunc&& merge_criteria)
+            -> std::tuple<CompressedProblemsGraph::graph_t, CompressedProblemsGraph::node_id, node_id_mapping>
         {
-            auto const& old_graph = pbs.graph();
+            const auto& old_graph = pbs.graph();
             auto new_graph = CompressedProblemsGraph::graph_t();
-            auto const new_root_node = new_graph.add_node(CompressedProblemsGraph::RootNode());
+            const auto new_root_node = new_graph.add_node(CompressedProblemsGraph::RootNode());
 
-            auto old_to_new
-                = std::vector<CompressedProblemsGraph::node_id>(old_graph.number_of_nodes());
-            auto old_ids_groups
-                = merge_node_indices(old_graph.nodes(), std::forward<CompFunc>(merge_criteria));
+            auto old_to_new = std::vector<CompressedProblemsGraph::node_id>(
+                old_graph.number_of_nodes()
+            );
+            auto old_ids_groups = merge_node_indices(
+                old_graph.nodes(),
+                std::forward<CompFunc>(merge_criteria)
+            );
 
             {
                 using Node = ProblemsGraph::RootNode;
-                [[maybe_unused]] static constexpr auto type_idx
-                    = variant_type_index<ProblemsGraph::node_t, Node>();
+                [[maybe_unused]] static constexpr auto type_idx = variant_type_index<ProblemsGraph::node_t, Node>(
+                );
                 assert(old_ids_groups[type_idx].size() == 1);
                 assert(old_ids_groups[type_idx][0].size() == 1);
                 assert(old_ids_groups[type_idx][0][0] == pbs.root_node());
@@ -652,19 +686,31 @@ namespace mamba
                 using Node = ProblemsGraph::PackageNode;
                 static constexpr auto type_idx = variant_type_index<ProblemsGraph::node_t, Node>();
                 merge_nodes_for_one_node_type<Node>(
-                    old_graph, old_ids_groups[type_idx], new_graph, old_to_new);
+                    old_graph,
+                    old_ids_groups[type_idx],
+                    new_graph,
+                    old_to_new
+                );
             }
             {
                 using Node = ProblemsGraph::UnresolvedDependencyNode;
                 static constexpr auto type_idx = variant_type_index<ProblemsGraph::node_t, Node>();
                 merge_nodes_for_one_node_type<Node>(
-                    old_graph, old_ids_groups[type_idx], new_graph, old_to_new);
+                    old_graph,
+                    old_ids_groups[type_idx],
+                    new_graph,
+                    old_to_new
+                );
             }
             {
                 using Node = ProblemsGraph::ConstraintNode;
                 static constexpr auto type_idx = variant_type_index<ProblemsGraph::node_t, Node>();
                 merge_nodes_for_one_node_type<Node>(
-                    old_graph, old_ids_groups[type_idx], new_graph, old_to_new);
+                    old_graph,
+                    old_ids_groups[type_idx],
+                    new_graph,
+                    old_to_new
+                );
             }
             return std::tuple{ std::move(new_graph), new_root_node, std::move(old_to_new) };
         }
@@ -676,9 +722,11 @@ namespace mamba
          * @param new_graph The graph with nodes already merged, modified to add new edges.
          * @param old_to_new A mapping between old node ids and new node ids.
          */
-        void merge_edges(ProblemsGraph::graph_t const& old_graph,
-                         CompressedProblemsGraph::graph_t& new_graph,
-                         node_id_mapping const& old_to_new)
+        void merge_edges(
+            const ProblemsGraph::graph_t& old_graph,
+            CompressedProblemsGraph::graph_t& new_graph,
+            const node_id_mapping& old_to_new
+        )
         {
             // Check nothrow move for efficient push_back
             static_assert(std::is_nothrow_move_constructible_v<ProblemsGraph::edge_t>);
@@ -702,15 +750,15 @@ namespace mamba
          * If two groups contain a node that are respectively in conflicts, then they are in
          * conflicts.
          */
-        auto merge_conflicts(ProblemsGraph::conflicts_t const& old_conflicts,
-                             node_id_mapping const& old_to_new)
+        auto
+        merge_conflicts(const ProblemsGraph::conflicts_t& old_conflicts, const node_id_mapping& old_to_new)
             -> CompressedProblemsGraph::conflicts_t
         {
             auto new_conflicts = CompressedProblemsGraph::conflicts_t();
-            for (auto const& [old_from, old_with] : old_conflicts)
+            for (const auto& [old_from, old_with] : old_conflicts)
             {
-                auto const new_from = old_to_new[old_from];
-                for (auto const old_to : old_with)
+                const auto new_from = old_to_new[old_from];
+                for (const auto old_to : old_with)
                 {
                     new_conflicts.add(new_from, old_to_new[old_to]);
                 }
@@ -720,30 +768,45 @@ namespace mamba
     }
 
     // TODO move graph nodes and edges.
-    auto CompressedProblemsGraph::from_problems_graph(ProblemsGraph const& pbs)
-        -> CompressedProblemsGraph
+    auto CompressedProblemsGraph::from_problems_graph(
+        const ProblemsGraph& pbs,
+        const merge_criteria_t& merge_criteria
+    ) -> CompressedProblemsGraph
     {
-        auto [graph, root_node, old_to_new] = merge_nodes(pbs, create_merge_criteria(pbs));
+        graph_t graph;
+        node_id root_node;
+        node_id_mapping old_to_new;
+        if (merge_criteria)
+        {
+            auto merge_func =
+                [&pbs, &merge_criteria](ProblemsGraph::node_id n1, ProblemsGraph::node_id n2)
+            { return merge_criteria(pbs, n1, n2); };
+            std::tie(graph, root_node, old_to_new) = merge_nodes(pbs, merge_func);
+        }
+        else
+        {
+            auto merge_func = [&pbs](ProblemsGraph::node_id n1, ProblemsGraph::node_id n2)
+            { return default_merge_criteria(pbs, n1, n2); };
+            std::tie(graph, root_node, old_to_new) = merge_nodes(pbs, merge_func);
+        }
         merge_edges(pbs.graph(), graph, old_to_new);
         auto conflicts = merge_conflicts(pbs.conflicts(), old_to_new);
         return { std::move(graph), std::move(conflicts), root_node };
     }
 
-    CompressedProblemsGraph::CompressedProblemsGraph(graph_t graph,
-                                                     conflicts_t conflicts,
-                                                     node_id root_node)
+    CompressedProblemsGraph::CompressedProblemsGraph(graph_t graph, conflicts_t conflicts, node_id root_node)
         : m_graph(std::move(graph))
         , m_conflicts(std::move(conflicts))
         , m_root_node(root_node)
     {
     }
 
-    auto CompressedProblemsGraph::graph() const noexcept -> graph_t const&
+    auto CompressedProblemsGraph::graph() const noexcept -> const graph_t&
     {
         return m_graph;
     }
 
-    auto CompressedProblemsGraph::conflicts() const noexcept -> conflicts_t const&
+    auto CompressedProblemsGraph::conflicts() const noexcept -> const conflicts_t&
     {
         return m_conflicts;
     }
@@ -759,17 +822,19 @@ namespace mamba
 
     template <>
     bool CompressedProblemsGraph::RoughCompare<ProblemsGraph::PackageNode>::operator()(
-        ProblemsGraph::PackageNode const& a, ProblemsGraph::PackageNode const& b)
+        const ProblemsGraph::PackageNode& a,
+        const ProblemsGraph::PackageNode& b
+    )
     {
-        auto attrs = [](ProblemsGraph::PackageNode const& x)
+        auto attrs = [](const ProblemsGraph::PackageNode& x)
         { return std::tie(x.name, x.version, x.build_number, x.build_string); };
         return attrs(a) < attrs(b);
     }
 
     template <typename T>
-    bool CompressedProblemsGraph::RoughCompare<T>::operator()(T const& a, T const& b)
+    bool CompressedProblemsGraph::RoughCompare<T>::operator()(const T& a, const T& b)
     {
-        auto attrs = [](DependencyInfo const& x)
+        auto attrs = [](const DependencyInfo& x)
         { return std::tie(x.name(), x.version(), x.build_string()); };
         return attrs(a) < attrs(b);
     }
@@ -803,10 +868,12 @@ namespace mamba
             {
                 if (invoke_name(*it) != invoke_name(*first))
                 {
-                    throw std::invalid_argument(concat("iterator contains different names (",
-                                                       invoke_name(*first),
-                                                       ", ",
-                                                       invoke_name(*it)));
+                    throw std::invalid_argument(concat(
+                        "iterator contains different names (",
+                        invoke_name(*first),
+                        ", ",
+                        invoke_name(*it)
+                    ));
                 }
             }
         }
@@ -814,13 +881,13 @@ namespace mamba
     }
 
     template <typename T, typename A>
-    auto CompressedProblemsGraph::NamedList<T, A>::front() const noexcept -> value_type const&
+    auto CompressedProblemsGraph::NamedList<T, A>::front() const noexcept -> const value_type&
     {
         return Base::front();
     }
 
     template <typename T, typename A>
-    auto CompressedProblemsGraph::NamedList<T, A>::back() const noexcept -> value_type const&
+    auto CompressedProblemsGraph::NamedList<T, A>::back() const noexcept -> const value_type&
     {
         return Base::back();
     }
@@ -850,7 +917,7 @@ namespace mamba
     }
 
     template <typename T, typename A>
-    auto CompressedProblemsGraph::NamedList<T, A>::name() const -> std::string const&
+    auto CompressedProblemsGraph::NamedList<T, A>::name() const -> const std::string&
     {
         if (size() == 0)
         {
@@ -861,10 +928,12 @@ namespace mamba
     }
 
     template <typename T, typename A>
-    auto CompressedProblemsGraph::NamedList<T, A>::versions_trunc(std::string_view sep,
-                                                                  std::string_view etc
-
-    ) const -> std::string
+    auto CompressedProblemsGraph::NamedList<T, A>::versions_trunc(
+        std::string_view sep,
+        std::string_view etc,
+        std::size_t threshold,
+        bool remove_duplicates
+    ) const -> std::pair<std::string, std::size_t>
     {
         auto versions = std::vector<std::string>(size());
         auto invoke_version = [](auto&& v) -> decltype(auto)
@@ -872,15 +941,22 @@ namespace mamba
             using TT = std::remove_cv_t<std::remove_reference_t<decltype(v)>>;
             return std::invoke(&TT::version, std::forward<decltype(v)>(v));
         };
-        // TODO(C++20) *this | std::ranges::transform(invoke_version)
+        // TODO(C++20) *this | std::ranges::transform(invoke_version) | ranges::unique
         std::transform(begin(), end(), versions.begin(), invoke_version);
-        return join_trunc(versions, sep, etc);
+        if (remove_duplicates)
+        {
+            versions.erase(std::unique(versions.begin(), versions.end()), versions.end());
+        }
+        return { join_trunc(versions, sep, etc, threshold), versions.size() };
     }
 
     template <typename T, typename A>
-    auto CompressedProblemsGraph::NamedList<T, A>::build_strings_trunc(std::string_view sep,
-                                                                       std::string_view etc) const
-        -> std::string
+    auto CompressedProblemsGraph::NamedList<T, A>::build_strings_trunc(
+        std::string_view sep,
+        std::string_view etc,
+        std::size_t threshold,
+        bool remove_duplicates
+    ) const -> std::pair<std::string, std::size_t>
     {
         auto builds = std::vector<std::string>(size());
         auto invoke_build_string = [](auto&& v) -> decltype(auto)
@@ -888,13 +964,47 @@ namespace mamba
             using TT = std::remove_cv_t<std::remove_reference_t<decltype(v)>>;
             return std::invoke(&TT::build_string, std::forward<decltype(v)>(v));
         };
-        // TODO(C++20) *this | std::ranges::transform(invoke_buid_string)
+        // TODO(C++20) *this | std::ranges::transform(invoke_buid_string) | ranges::unique
         std::transform(begin(), end(), builds.begin(), invoke_build_string);
-        return join_trunc(builds, sep, etc);
+        if (remove_duplicates)
+        {
+            builds.erase(std::unique(builds.begin(), builds.end()), builds.end());
+        }
+        return { join_trunc(builds, sep, etc, threshold), builds.size() };
     }
 
     template <typename T, typename A>
-    void CompressedProblemsGraph::NamedList<T, A>::insert(value_type const& e)
+    auto CompressedProblemsGraph::NamedList<T, A>::versions_and_build_strings_trunc(
+        std::string_view sep,
+        std::string_view etc,
+        std::size_t threshold,
+        bool remove_duplicates
+    ) const -> std::pair<std::string, std::size_t>
+    {
+        auto versions_builds = std::vector<std::string>(size());
+        auto invoke_version_builds = [](auto&& v) -> decltype(auto)
+        {
+            using TT = std::remove_cv_t<std::remove_reference_t<decltype(v)>>;
+            return fmt::format(
+                "{} {}",
+                std::invoke(&TT::version, std::forward<decltype(v)>(v)),
+                std::invoke(&TT::build_string, std::forward<decltype(v)>(v))
+            );
+        };
+        // TODO(C++20) *this | std::ranges::transform(invoke_version) | ranges::unique
+        std::transform(begin(), end(), versions_builds.begin(), invoke_version_builds);
+        if (remove_duplicates)
+        {
+            versions_builds.erase(
+                std::unique(versions_builds.begin(), versions_builds.end()),
+                versions_builds.end()
+            );
+        }
+        return { join_trunc(versions_builds, sep, etc, threshold), versions_builds.size() };
+    }
+
+    template <typename T, typename A>
+    void CompressedProblemsGraph::NamedList<T, A>::insert(const value_type& e)
     {
         return insert_impl(e);
     }
@@ -911,8 +1021,10 @@ namespace mamba
     {
         if ((size() > 0) && (invoke_name(e) != name()))
         {
-            throw std::invalid_argument("Name of new element (" + invoke_name(e)
-                                        + ") does not match name of list (" + name() + ')');
+            throw std::invalid_argument(
+                "Name of new element (" + invoke_name(e) + ") does not match name of list ("
+                + name() + ')'
+            );
         }
         Base::insert(std::forward<T_>(e));
     }
@@ -922,8 +1034,24 @@ namespace mamba
     template class CompressedProblemsGraph::NamedList<ProblemsGraph::ConstraintNode>;
     template class CompressedProblemsGraph::NamedList<DependencyInfo>;
 
+    /***********************************
+     *  Implementation of summary_msg  *
+     ***********************************/
+
+    std::ostream& print_problem_summary_msg(std::ostream& out, const CompressedProblemsGraph& pbs)
+    {
+        return out << "Could not solve for environment specs\n";
+    }
+
+    std::string problem_summary_msg(const CompressedProblemsGraph& pbs)
+    {
+        std::stringstream ss;
+        print_problem_summary_msg(ss, pbs);
+        return ss.str();
+    }
+
     /****************************************
-     *  Implementation of problem_tree_str  *
+     *  Implementation of problem_tree_msg  *
      ****************************************/
 
     namespace
@@ -962,12 +1090,16 @@ namespace mamba
 
             using node_id = CompressedProblemsGraph::node_id;
 
-            node_id id;
-            node_id id_from;
+            std::vector<SiblingNumber> ancestry;
+            /** Multiple node_id means that the node is "virtual".
+             *
+             * It represents a group of node, as in a split (but other types are used as well).
+             */
+            std::vector<node_id> ids;
+            std::vector<node_id> ids_from;
             Type type;
             Type type_from;
             Status status;
-            std::vector<SiblingNumber> ancestry;
 
             auto depth() const -> std::size_t
             {
@@ -1005,10 +1137,11 @@ namespace mamba
         class TreeDFS
         {
         public:
+
             /**
              * Initialize search data and capture reference to the problems.
              */
-            TreeDFS(CompressedProblemsGraph const& pbs);
+            TreeDFS(const CompressedProblemsGraph& pbs);
 
             /**
              * Execute DFS and return the vector of ``TreeNode``.
@@ -1016,6 +1149,7 @@ namespace mamba
             auto explore() -> std::vector<TreeNode>;
 
         private:
+
             using graph_t = CompressedProblemsGraph::graph_t;
             using node_id = CompressedProblemsGraph::node_id;
             using Status = TreeNode::Status;
@@ -1025,14 +1159,15 @@ namespace mamba
 
             vector_set<node_id> leaf_installables = {};
             std::vector<std::optional<Status>> m_node_visited;
-            CompressedProblemsGraph const& m_pbs;
+            const CompressedProblemsGraph& m_pbs;
 
             /**
-             * Function to decide status on leaf nodes.
+             * Function to decide if a node is uninstallable.
              *
-             * The status for other nodes is computed from the status of the sub-trees.
+             * For a leaf this sets the final status.
+             * For other nodes, a pacakge could still be uninstallable because of its children.
              */
-            auto leaf_status(node_id id) -> Status;
+            auto node_uninstallable(node_id id) -> Status;
 
             /**
              * Get the type of a node depending on the exploration.
@@ -1042,7 +1177,7 @@ namespace mamba
             /**
              * The successors of a node, grouped by same dependency name (edge data).
              */
-            auto successors_per_dep(node_id from);
+            auto successors_per_dep(node_id from, bool name_only);
 
             /**
              * Visit a "split" node.
@@ -1050,17 +1185,18 @@ namespace mamba
              * A node that aims at grouping versions and builds of a given dependency.
              * Exactly the missing information that should be added to the graph as a proper node.
              */
-            auto visit_split(std::vector<node_id> const& children_ids,
-                             SiblingNumber position,
-                             TreeNode const& from,
-                             TreeNodeIter out) -> std::pair<TreeNodeIter, Status>;
+            auto visit_split(
+                const std::vector<node_id>& children_ids,
+                SiblingNumber position,
+                const TreeNode& from,
+                TreeNodeIter out
+            ) -> std::pair<TreeNodeIter, Status>;
             /**
              * Visit a node from another node.
              */
-            auto visit_node(node_id id,
-                            SiblingNumber position,
-                            TreeNode const& from,
-                            TreeNodeIter out) -> std::pair<TreeNodeIter, Status>;
+            auto
+            visit_node(node_id id, SiblingNumber position, const TreeNode& from, TreeNodeIter out)
+                -> std::pair<TreeNodeIter, Status>;
             /**
              * Visit the first node in the graph.
              */
@@ -1068,7 +1204,7 @@ namespace mamba
             /**
              * Code reuse.
              */
-            auto visit_node_impl(node_id id, TreeNode const& ongoing, TreeNodeIter out)
+            auto visit_node_impl(node_id id, const TreeNode& ongoing, TreeNodeIter out)
                 -> std::pair<TreeNodeIter, Status>;
         };
 
@@ -1076,7 +1212,7 @@ namespace mamba
          *  Implementation of TreeDFS  *
          *******************************/
 
-        TreeDFS::TreeDFS(CompressedProblemsGraph const& pbs)
+        TreeDFS::TreeDFS(const CompressedProblemsGraph& pbs)
             : m_node_visited(pbs.graph().number_of_nodes(), std::nullopt)
             , m_pbs(pbs)
         {
@@ -1085,17 +1221,18 @@ namespace mamba
         auto TreeDFS::explore() -> std::vector<TreeNode>
         {
             // Using the number of edges as an upper bound on the number of split nodes inserted
-            auto path = std::vector<TreeNode>(m_pbs.graph().number_of_edges()
-                                              + m_pbs.graph().number_of_nodes());
+            auto path = std::vector<TreeNode>(
+                m_pbs.graph().number_of_edges() + m_pbs.graph().number_of_nodes()
+            );
             auto [out, _] = visit_node(m_pbs.root_node(), path.begin());
             path.resize(out - path.begin());
             return path;
         }
 
-        auto TreeDFS::leaf_status(node_id id) -> Status
+        auto TreeDFS::node_uninstallable(node_id id) -> Status
         {
             auto installables_contains = [&](auto&& id) { return leaf_installables.contains(id); };
-            auto const& conflicts = m_pbs.conflicts();
+            const auto& conflicts = m_pbs.conflicts();
 
             // Conflicts are tricky to handle because they are not an isolated problem, they only
             // appear in conjunction with another leaf.
@@ -1104,23 +1241,24 @@ namespace mamba
             // "installable"), we return false.
             if (conflicts.has_conflict(id))
             {
-                auto const& conflict_with = conflicts.conflicts(id);
+                const auto& conflict_with = conflicts.conflicts(id);
                 if (std::any_of(conflict_with.begin(), conflict_with.end(), installables_contains))
                 {
-                    return false;
+                    return true;
                 }
                 leaf_installables.insert(id);
-                return true;
+                return false;
             }
-            // Assuming any other type of leave is a kind of problem.
-            return false;
+
+            // Assuming any other type of leave is a kind of problem and other nodes not.
+            return m_pbs.graph().successors(id).size() == 0;
         }
 
         auto TreeDFS::node_type(node_id id) const -> TreeNode::Type
         {
-            bool const has_predecessors = m_pbs.graph().predecessors(id).size() > 0;
-            bool const has_successors = m_pbs.graph().successors(id).size() > 0;
-            bool const is_visited = m_node_visited[id].has_value();
+            const bool has_predecessors = m_pbs.graph().predecessors(id).size() > 0;
+            const bool has_successors = m_pbs.graph().successors(id).size() > 0;
+            const bool is_visited = m_node_visited[id].has_value();
             // We purposefully check if the node is a leaf before checking if it
             // is visited because showing a single  node again is more intelligible than
             // refering to another one.
@@ -1138,13 +1276,25 @@ namespace mamba
             }
         }
 
-        auto TreeDFS::successors_per_dep(node_id from)
+        auto TreeDFS::successors_per_dep(node_id from, bool name_only)
         {
             // The key are sorted by alphabetical order of the dependency name
-            auto out = std::map<std::string_view, std::vector<node_id>>();
+            auto out = std::map<std::string, std::vector<node_id>>();
             for (auto to : m_pbs.graph().successors(from))
             {
-                out[m_pbs.graph().edge(from, to).name()].push_back(to);
+                const auto& edge = m_pbs.graph().edge(from, to);
+                std::string key = edge.name();
+                if (!name_only)
+                {
+                    // Making up an arbitrary string represnetation of the edge
+                    key += edge.versions_and_build_strings_trunc(
+                                   "",
+                                   "",
+                                   std::numeric_limits<std::size_t>::max()
+                    )
+                               .first;
+                }
+                out[key].push_back(to);
             }
             return out;
         }
@@ -1153,7 +1303,7 @@ namespace mamba
          * Specific concatenation for a const vector and a value.
          */
         template <typename T, typename U>
-        auto concat(std::vector<T> const& v, U&& x) -> std::vector<T>
+        auto concat(const std::vector<T>& v, U&& x) -> std::vector<T>
         {
             auto out = std::vector<T>();
             out.reserve(v.size() + 1);
@@ -1162,56 +1312,72 @@ namespace mamba
             return out;
         }
 
-        auto TreeDFS::visit_split(std::vector<node_id> const& children_ids,
-                                  SiblingNumber position,
-                                  TreeNode const& from,
-                                  TreeNodeIter out) -> std::pair<TreeNodeIter, Status>
+        auto TreeDFS::visit_split(
+            const std::vector<node_id>& children_ids,
+            SiblingNumber position,
+            const TreeNode& from,
+            TreeNodeIter out
+        ) -> std::pair<TreeNodeIter, Status>
         {
             auto& ongoing = *(out++);
-            // There is no node_id for this dynamically created node, however we still need
-            // a node_id to later retrieve the dependency from the edge data so we put the
-            // first child id as node_id
+            // There is no single node_id for this dynamically created node, we use the vector
+            // to represent all nodes.
             assert(children_ids.size() > 0);
             ongoing = TreeNode{
-                /* id= */ children_ids[0],
-                /* id_from= */ from.id,
-                /* type= */ TreeNode::Type::split,
-                /* type_from= */ from.type,
-                /* status= */ false,  // Placeholder updated
-                /* ancestry= */ concat(from.ancestry, position),
+                /* .ancestry= */ concat(from.ancestry, position),
+                /* .ids= */ children_ids,
+                /* .ids_from= */ from.ids,
+                /* .type= */ TreeNode::Type::split,
+                /* .type_from= */ from.type,
+                /* .status= */ false,  // Placeholder updated
             };
 
+            const TreeNodeIter children_begin = out;
             // TODO(C++20) an enumerate view ``views::zip(views::iota(), children_ids)``
-            std::size_t i = 0;
-            for (node_id child_id : children_ids)
+            std::size_t const n_children = children_ids.size();
+            for (std::size_t i = 0; i < n_children; ++i)
             {
+                const bool last = (i == n_children - 1);
+                const auto child_pos = last ? SiblingNumber::last : SiblingNumber::not_last;
                 Status status;
-                auto const child_pos
-                    = i == children_ids.size() - 1 ? SiblingNumber::last : SiblingNumber::not_last;
-                std::tie(out, status) = visit_node(child_id, child_pos, ongoing, out);
+                std::tie(out, status) = visit_node(children_ids[i], child_pos, ongoing, out);
                 // If there are any valid option in the split, the split is iself valid.
                 ongoing.status |= status;
-                ++i;
             }
 
-            // // TODO
-            // All children are visited leaves, no grand-children.
-            // We dynamically delete all children and mark the whole thing as visited.
+            // All children are the same type of visited or leaves, no grand-children,
+            // and same status.
+            // We dynamically delete all children and mark the whole node as such.
+            auto all_same_split_children = [](TreeNodeIter first, TreeNodeIter last) -> bool
+            {
+                if (last <= first)
+                {
+                    return true;
+                }
+                auto same = [&first](TreeNode const& tn)
+                { return (tn.type == first->type) && (tn.status == first->status); };
+                return std::all_of(first, last, same);
+            };
+            const TreeNodeIter children_end = out;
+            if ((n_children >= 1) && all_same_split_children(children_begin, children_end))
+            {
+                ongoing.type = children_begin->type;
+                out = children_begin;
+            }
 
             return { out, ongoing.status };
         }
 
-        auto TreeDFS::visit_node(node_id root_id, TreeNodeIter out)
-            -> std::pair<TreeNodeIter, Status>
+        auto TreeDFS::visit_node(node_id root_id, TreeNodeIter out) -> std::pair<TreeNodeIter, Status>
         {
             auto& ongoing = *(out++);
             ongoing = TreeNode{
-                /* id= */ root_id,
-                /* id_from= */ root_id,
-                /* type= */ node_type(root_id),
-                /* type_from= */ node_type(root_id),
-                /* status= */ {},  // Placeholder updated
-                /* ancestry= */ {},
+                /* .ancestry= */ {},
+                /* .ids= */ { root_id },
+                /* .ids_from= */ { root_id },
+                /* .type= */ node_type(root_id),
+                /* .type_from= */ node_type(root_id),
+                /* .status= */ {},  // Placeholder updated
             };
 
             auto out_status = visit_node_impl(root_id, ongoing, out);
@@ -1219,19 +1385,18 @@ namespace mamba
             return out_status;
         }
 
-        auto TreeDFS::visit_node(node_id id,
-                                 SiblingNumber position,
-                                 TreeNode const& from,
-                                 TreeNodeIter out) -> std::pair<TreeNodeIter, Status>
+        auto
+        TreeDFS::visit_node(node_id id, SiblingNumber position, const TreeNode& from, TreeNodeIter out)
+            -> std::pair<TreeNodeIter, Status>
         {
             auto& ongoing = *(out++);
             ongoing = TreeNode{
-                /* id= */ id,
-                /* id_from= */ from.id,
-                /* type= */ node_type(id),
-                /* type_from= */ from.type,
-                /* status= */ {},  // Placeholder updated
-                /* ancestry= */ concat(from.ancestry, position),
+                /* .ancestry= */ concat(from.ancestry, position),
+                /* .ids= */ { id },
+                /* .ids_from= */ from.ids,
+                /* .type= */ node_type(id),
+                /* .type_from= */ from.type,
+                /* .status= */ {},  // Placeholder updated
             };
 
             auto out_status = visit_node_impl(id, ongoing, out);
@@ -1240,29 +1405,30 @@ namespace mamba
         }
 
 
-        auto TreeDFS::visit_node_impl(node_id id, TreeNode const& ongoing, TreeNodeIter out)
+        auto TreeDFS::visit_node_impl(node_id id, const TreeNode& ongoing, TreeNodeIter out)
             -> std::pair<TreeNodeIter, Status>
         {
-            auto const successors = successors_per_dep(id);
+            // At depth 0, we use a stric grouping of edges to avoid gathering user requirements
+            // that have the same name (e.g. a mistake "python=3.7" "python=3.8").
+            const auto successors = successors_per_dep(id, ongoing.depth() > 0);
 
-            if (auto const status = m_node_visited[id]; status.has_value())
+            if (const auto status = m_node_visited[id]; status.has_value())
             {
                 return { out, status.value() };
             }
-            if (successors.size() == 0)
+            if (node_uninstallable(id))
             {
-                auto const status = leaf_status(id);
-                m_node_visited[id] = status;
-                return { out, status };
+                m_node_visited[id] = false;
+                return { out, false };
             }
 
             Status status = true;
             // TODO(C++20) an enumerate view ``views::zip(views::iota(), children_ids)``
             std::size_t i = 0;
-            for (auto const& [_, children] : successors)
+            for (const auto& [_, children] : successors)
             {
-                auto const children_pos
-                    = i == successors.size() - 1 ? SiblingNumber::last : SiblingNumber::not_last;
+                const auto children_pos = i == successors.size() - 1 ? SiblingNumber::last
+                                                                     : SiblingNumber::not_last;
                 Status child_status;
                 if (children.size() > 1)
                 {
@@ -1270,8 +1436,7 @@ namespace mamba
                 }
                 else
                 {
-                    std::tie(out, child_status)
-                        = visit_node(children[0], children_pos, ongoing, out);
+                    std::tie(out, child_status) = visit_node(children[0], children_pos, ongoing, out);
                 }
                 // All children statuses need to be valid for a parent to be valid.
                 status &= child_status;
@@ -1288,41 +1453,64 @@ namespace mamba
         class TreeExplainer
         {
         public:
-            static auto explain(std::ostream& outs,
-                                CompressedProblemsGraph const& pbs,
-                                std::vector<TreeNode> const& path) -> std::ostream&;
+
+            static auto explain(
+                std::ostream& outs,
+                const CompressedProblemsGraph& pbs,
+                const ProblemsMessageFormat& format,
+                const std::vector<TreeNode>& path
+            ) -> std::ostream&;
 
         private:
+
             using Status = TreeNode::Status;
             using SiblingNumber = TreeNode::SiblingNumber;
-
-            static constexpr auto indents = std::array{ "│  ", "   ", "├─ ", "└─ " };
+            using node_id = CompressedProblemsGraph::node_id;
+            using node_t = CompressedProblemsGraph::node_t;
+            using edge_t = CompressedProblemsGraph::edge_t;
 
             std::ostream& m_outs;
-            CompressedProblemsGraph const& m_pbs;
+            const CompressedProblemsGraph& m_pbs;
+            const ProblemsMessageFormat& m_format;
 
-            TreeExplainer(std::ostream& outs, CompressedProblemsGraph const& pbs);
+            TreeExplainer(
+                std::ostream& outs,
+                const CompressedProblemsGraph& pbs,
+                const ProblemsMessageFormat& format
+            );
 
             template <typename... Args>
             void write(Args&&... args);
-            void write_ancestry(std::vector<SiblingNumber> const& ancestry);
-            void write_node_repr(TreeNode const& tn);
-            void write_incoming_edge_repr(TreeNode const& tn);
-            void write_root(TreeNode const& tn);
-            void write_diving(TreeNode const& tn);
-            void write_split(TreeNode const& tn);
-            void write_leaf(TreeNode const& tn);
-            void write_visited(TreeNode const& tn);
-            void write_path(std::vector<TreeNode> const& path);
+            void write_ancestry(const std::vector<SiblingNumber>& ancestry);
+            void write_pkg_list(const TreeNode& tn);
+            void write_pkg_dep(const TreeNode& tn);
+            void write_pkg_repr(const TreeNode& tn);
+            void write_root(const TreeNode& tn);
+            void write_diving(const TreeNode& tn);
+            void write_split(const TreeNode& tn);
+            void write_leaf(const TreeNode& tn);
+            void write_visited(const TreeNode& tn);
+            void write_path(const std::vector<TreeNode>& path);
+
+            template <typename Node>
+            auto concat_nodes_impl(const std::vector<node_id>& ids) -> Node;
+            auto concat_nodes(const std::vector<node_id>& ids) -> node_t;
+            auto concat_edges(const std::vector<node_id>& from, const std::vector<node_id>& to)
+                -> edge_t;
         };
 
         /*************************************
          *  Implementation of TreeExplainer  *
          *************************************/
 
-        TreeExplainer::TreeExplainer(std::ostream& outs, CompressedProblemsGraph const& pbs)
+        TreeExplainer::TreeExplainer(
+            std::ostream& outs,
+            const CompressedProblemsGraph& pbs,
+            const ProblemsMessageFormat& format
+        )
             : m_outs(outs)
             , m_pbs(pbs)
+            , m_format(format)
         {
         }
 
@@ -1332,9 +1520,10 @@ namespace mamba
             (m_outs << ... << std::forward<Args>(args));
         }
 
-        void TreeExplainer::write_ancestry(std::vector<SiblingNumber> const& ancestry)
+        void TreeExplainer::write_ancestry(const std::vector<SiblingNumber>& ancestry)
         {
             std::size_t const size = ancestry.size();
+            const auto indents = m_format.indents;
             if (size > 0)
             {
                 for (std::size_t i = 0; i < size - 1; ++i)
@@ -1345,44 +1534,51 @@ namespace mamba
             }
         }
 
-        void TreeExplainer::write_node_repr(TreeNode const& tn)
+        void TreeExplainer::write_pkg_list(const TreeNode& tn)
         {
-            auto do_write = [this](auto const& node)
+            auto do_write = [&](const auto& node)
             {
                 using Node = std::remove_cv_t<std::remove_reference_t<decltype(node)>>;
                 if constexpr (!std::is_same_v<Node, CompressedProblemsGraph::RootNode>)
                 {
-                    write(node.name(), ' ');
-                    if (node.size() == 1)
-                    {
-                        write(node.versions_trunc());  // Won't be truncated as it's size one
-                    }
-                    else
-                    {
-                        write('[', node.versions_trunc(), ']');
-                    }
+                    auto const style = tn.status ? m_format.available : m_format.unavailable;
+                    auto [versions_trunc, size] = node.versions_trunc();
+                    write(fmt::format(style, (size == 1 ? "{} {}" : "{} [{}]"), node.name(), versions_trunc)
+                    );
                 }
             };
-            std::visit(do_write, m_pbs.graph().node(tn.id));
+            std::visit(do_write, concat_nodes(tn.ids));
         }
 
-        void TreeExplainer::write_incoming_edge_repr(TreeNode const& tn)
+        void TreeExplainer::write_pkg_dep(const TreeNode& tn)
         {
-            auto const& edge = m_pbs.graph().edge(tn.id_from, tn.id);
-            write(edge.name(), ' ');
-            if (edge.size() == 1)
+            auto edges = concat_edges(tn.ids_from, tn.ids);
+            const auto style = tn.status ? m_format.available : m_format.unavailable;
+            // We show the build string in pkg_dep and not pkg_list because hand written build
+            // string are more likely to contain vital information about the variant.
+            auto [vers_builds_trunc, size] = edges.versions_and_build_strings_trunc();
+            write(fmt::format(style, (size == 1 ? "{} {}" : "{} [{}]"), edges.name(), vers_builds_trunc)
+            );
+        }
+
+        void TreeExplainer::write_pkg_repr(const TreeNode& tn)
+        {
+            if (tn.ids_from.size() > 1)
             {
-                write(edge.versions_trunc());  // Won't be truncated as it's size one
+                assert(tn.depth() > 1);
+                write_pkg_list(tn);
             }
+            // Node is virtual, represent multiple nodes (like a split)
             else
             {
-                write('[', edge.versions_trunc(), ']');
+                write_pkg_dep(tn);
             }
         }
 
-        void TreeExplainer::write_root(TreeNode const& tn)
+        void TreeExplainer::write_root(const TreeNode& tn)
         {
-            if (m_pbs.graph().successors(tn.id).size() > 1)
+            assert(tn.ids.size() == 1);  // The root is always a single node
+            if (m_pbs.graph().successors(tn.ids.front()).size() > 1)
             {
                 write("The following packages are incompatible");
             }
@@ -1392,38 +1588,33 @@ namespace mamba
             }
         }
 
-        void TreeExplainer::write_diving(TreeNode const& tn)
+        void TreeExplainer::write_diving(const TreeNode& tn)
         {
-            write_node_repr(tn);
-            if (tn.status)
+            write_pkg_repr(tn);
+            if (tn.depth() == 1)
             {
-                if (tn.depth() == 1)
+                if (tn.status)
                 {
                     write(" is installable and it requires");
                 }
                 else
                 {
-                    write(", which requires");
+                    write(" is uninstallable because it requires");
                 }
+            }
+            else if (tn.type_from == TreeNode::Type::split)
+            {
+                write(" would require");
             }
             else
             {
-                if (tn.depth() == 1)
-                {
-                    write(" is uninstallable because it requires");
-                }
-                else
-                {
-                    // TODO confirm this
-                    // write(", which requires");
-                    write(" would require");
-                }
+                write(", which requires");
             }
         }
 
-        void TreeExplainer::write_split(TreeNode const& tn)
+        void TreeExplainer::write_split(const TreeNode& tn)
         {
-            write_incoming_edge_repr(tn);
+            write_pkg_repr(tn);
             if (tn.status)
             {
                 if (tn.depth() == 1)
@@ -1448,9 +1639,9 @@ namespace mamba
             }
         }
 
-        void TreeExplainer::write_leaf(TreeNode const& tn)
+        void TreeExplainer::write_leaf(const TreeNode& tn)
         {
-            auto do_write = [&](auto const& node)
+            auto do_write = [&](const auto& node)
             {
                 using Node = std::remove_cv_t<std::remove_reference_t<decltype(node)>>;
                 using RootNode = CompressedProblemsGraph::RootNode;
@@ -1462,11 +1653,9 @@ namespace mamba
                 {
                     assert(false);
                 }
-                else if constexpr (std::is_same_v<
-                                       Node,
-                                       PackageListNode> || std::is_same_v<Node, ConstraintListNode>)
+                else if constexpr (std::is_same_v<Node, PackageListNode> || std::is_same_v<Node, ConstraintListNode>)
                 {
-                    write_node_repr(tn);
+                    write_pkg_repr(tn);
                     if (tn.status)
                     {
                         if (tn.depth() == 1)
@@ -1485,17 +1674,17 @@ namespace mamba
                         {
                             write(" is uninstallable because it");
                         }
-                        else
+                        else if (tn.type_from != TreeNode::Type::split)
                         {
                             write(", which");
                         }
-                        write(" conflicts with installable versions previously reported");
+                        write(" conflicts with any installable versions previously reported");
                     }
                 }
                 else if constexpr (std::is_same_v<Node, UnresolvedDepListNode>)
                 {
-                    write_node_repr(tn);
-                    if (tn.depth() > 1)
+                    write_pkg_repr(tn);
+                    if ((tn.depth() > 1) && (tn.type_from != TreeNode::Type::split))
                     {
                         write(", which");
                     }
@@ -1506,18 +1695,20 @@ namespace mamba
                     }
                     else
                     {
-                        write(" does not exsist (perhaps ",
-                              (tn.depth() == 1 ? "a typo or a " : "a "),
-                              "missing channel)");
+                        write(
+                            " does not exist (perhaps ",
+                            (tn.depth() == 1 ? "a typo or a " : "a "),
+                            "missing channel)"
+                        );
                     }
                 }
             };
-            std::visit(do_write, m_pbs.graph().node(tn.id));
+            std::visit(do_write, concat_nodes(tn.ids));
         }
 
-        void TreeExplainer::write_visited(TreeNode const& tn)
+        void TreeExplainer::write_visited(const TreeNode& tn)
         {
-            write_node_repr(tn);
+            write_pkg_repr(tn);
             if (tn.status)
             {
                 write(", which can be installed (as previously explained)");
@@ -1528,67 +1719,135 @@ namespace mamba
             }
         }
 
-        void TreeExplainer::write_path(std::vector<TreeNode> const& path)
+        void TreeExplainer::write_path(const std::vector<TreeNode>& path)
         {
             std::size_t const length = path.size();
             for (std::size_t i = 0; i < length; ++i)
             {
-                auto const& tn = path[i];
+                const bool last = (i == length - 1);
+                const auto& tn = path[i];
                 write_ancestry(tn.ancestry);
                 switch (tn.type)
                 {
                     case (TreeNode::Type::root):
                     {
                         write_root(tn);
+                        write(last ? "." : "\n");
                         break;
                     }
                     case (TreeNode::Type::diving):
                     {
                         write_diving(tn);
+                        write(last ? "." : "\n");
                         break;
                     }
                     case (TreeNode::Type::split):
                     {
                         write_split(tn);
+                        write(last ? "." : "\n");
                         break;
                     }
                     case (TreeNode::Type::leaf):
                     {
                         write_leaf(tn);
+                        write(last ? "." : ";\n");
                         break;
                     }
                     case (TreeNode::Type::visited):
                     {
                         write_visited(tn);
+                        write(last ? "." : ";\n");
                         break;
                     }
                 }
-                write('\n');
             }
         }
 
-        auto TreeExplainer::explain(std::ostream& outs,
-                                    CompressedProblemsGraph const& pbs,
-                                    std::vector<TreeNode> const& path) -> std::ostream&
+        auto TreeExplainer::explain(
+            std::ostream& outs,
+            const CompressedProblemsGraph& pbs,
+            const ProblemsMessageFormat& format,
+            const std::vector<TreeNode>& path
+        ) -> std::ostream&
         {
-            auto explainer = TreeExplainer(outs, pbs);
+            auto explainer = TreeExplainer(outs, pbs, format);
             explainer.write_path(path);
             return outs;
         }
+
+        template <typename Node>
+        auto TreeExplainer::concat_nodes_impl(const std::vector<node_id>& ids) -> Node
+        {
+            Node out = {};
+            for (auto id : ids)
+            {
+                const auto& node = std::get<Node>(m_pbs.graph().node(id));
+                out.insert(node.begin(), node.end());
+            }
+            return out;
+        }
+
+        auto TreeExplainer::concat_nodes(const std::vector<node_id>& ids) -> node_t
+        {
+            assert(ids.size() > 0);
+            assert(std::all_of(
+                ids.begin(),
+                ids.end(),
+                [&](auto id)
+                { return m_pbs.graph().node(ids.front()).index() == m_pbs.graph().node(id).index(); }
+            ));
+
+            return std::visit(
+                [&](const auto& node) -> node_t
+                {
+                    using Node = std::remove_cv_t<std::remove_reference_t<decltype(node)>>;
+                    if constexpr (std::is_same_v<Node, CompressedProblemsGraph::RootNode>)
+                    {
+                        return CompressedProblemsGraph::RootNode();
+                    }
+                    else
+                    {
+                        return concat_nodes_impl<Node>(ids);
+                    }
+                },
+                m_pbs.graph().node(ids.front())
+            );
+        }
+
+        auto
+        TreeExplainer::concat_edges(const std::vector<node_id>& from, const std::vector<node_id>& to)
+            -> edge_t
+        {
+            auto out = edge_t{};
+            for (auto f : from)
+            {
+                for (auto t : to)
+                {
+                    const auto& e = m_pbs.graph().edge(f, t);
+                    out.insert(e.begin(), e.end());
+                }
+            }
+            return out;
+        }
     }
 
-    std::ostream& problem_tree_str(std::ostream& out, CompressedProblemsGraph const& pbs)
+    std::ostream& print_problem_tree_msg(
+        std::ostream& out,
+        const CompressedProblemsGraph& pbs,
+        const ProblemsMessageFormat& format
+    )
     {
         auto dfs = TreeDFS(pbs);
         auto path = dfs.explore();
-        TreeExplainer::explain(out, pbs, path);
+        TreeExplainer::explain(out, pbs, format, path);
         return out;
     }
 
-    std::string problem_tree_str(CompressedProblemsGraph const& pbs)
+    std::string
+    problem_tree_msg(const CompressedProblemsGraph& pbs, const ProblemsMessageFormat& format)
     {
         std::stringstream ss;
-        problem_tree_str(ss, pbs);
+        print_problem_tree_msg(ss, pbs);
         return ss.str();
     }
 }

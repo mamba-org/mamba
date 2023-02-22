@@ -4,34 +4,36 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <stdexcept>
+
+#include <fmt/format.h>
+#include <nlohmann/json.hpp>
+#include <pybind11/functional.h>
 #include <pybind11/iostream.h>
+#include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include <nlohmann/json.hpp>
-#include <fmt/format.h>
-
 #include "mamba/api/clean.hpp"
 #include "mamba/api/configuration.hpp"
-
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/execution.hpp"
+#include "mamba/core/output.hpp"
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/query.hpp"
 #include "mamba/core/repo.hpp"
+#include "mamba/core/satisfiability_error.hpp"
 #include "mamba/core/solver.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/util_graph.hpp"
 #include "mamba/core/validate.hpp"
 #include "mamba/core/virtual_packages.hpp"
-#include "mamba/core/output.hpp"
-#include "mamba/core/execution.hpp"
-
-#include <stdexcept>
 
 namespace py = pybind11;
 
@@ -39,11 +41,75 @@ namespace query
 {
     enum RESULT_FORMAT
     {
-        JSON,
-        TREE,
-        TABLE,
-        PRETTY
+        JSON = 0,
+        TREE = 1,
+        TABLE = 2,
+        PRETTY = 3,
+        RECURSIVETABLE = 4,
     };
+}
+
+namespace PYBIND11_NAMESPACE
+{
+    namespace detail
+    {
+        template <typename Key, typename Compare, typename Allocator>
+        struct type_caster<mamba::vector_set<Key, Compare, Allocator>>
+            : set_caster<mamba::vector_set<Key, Compare, Allocator>, Key>
+        {
+        };
+    }
+}
+
+void
+deprecated(const char* message)
+{
+    const auto warnings = py::module_::import("warnings");
+    const auto builtins = py::module_::import("builtins");
+    warnings.attr("warn")(message, builtins.attr("DeprecationWarning"), py::arg("stacklevel") = 2);
+}
+
+template <typename PyClass>
+auto
+bind_NamedList(PyClass pyclass)
+{
+    using type = typename PyClass::type;
+    pyclass.def(py::init())
+        .def("__len__", [](const type& self) { return self.size(); })
+        .def("__bool__", [](const type& self) { return !self.empty(); })
+        .def(
+            "__iter__",
+            [](const type& self) { return py::make_iterator(self.begin(), self.end()); },
+            py::keep_alive<0, 1>()
+        )
+        .def("clear", [](type& self) { return self.clear(); })
+        .def("add", [](type& self, const typename type::value_type& v) { self.insert(v); })
+        .def("name", &type::name)
+        .def(
+            "versions_trunc",
+            &type::versions_trunc,
+            py::arg("sep") = "|",
+            py::arg("etc") = "...",
+            py::arg("threshold") = 5,
+            py::arg("remove_duplicates") = true
+        )
+        .def(
+            "build_strings_trunc",
+            &type::build_strings_trunc,
+            py::arg("sep") = "|",
+            py::arg("etc") = "...",
+            py::arg("threshold") = 5,
+            py::arg("remove_duplicates") = true
+        )
+        .def(
+            "versions_and_build_strings_trunc",
+            &type::versions_and_build_strings_trunc,
+            py::arg("sep") = "|",
+            py::arg("etc") = "...",
+            py::arg("threshold") = 5,
+            py::arg("remove_duplicates") = true
+        );
+    return pyclass;
 }
 
 PYBIND11_MODULE(bindings, m)
@@ -61,9 +127,11 @@ PYBIND11_MODULE(bindings, m)
     py::class_<fs::u8path>(m, "Path")
         .def(py::init<std::string>())
         .def("__str__", [](fs::u8path& self) -> std::string { return self.string(); })
-        .def("__repr__",
-             [](fs::u8path& self) -> std::string
-             { return fmt::format("fs::u8path[{}]", self.string()); });
+        .def(
+            "__repr__",
+            [](fs::u8path& self) -> std::string
+            { return fmt::format("fs::u8path[{}]", self.string()); }
+        );
     py::implicitly_convertible<std::string, fs::u8path>();
 
     py::class_<mamba::LockFile>(m, "LockFile").def(py::init<fs::u8path>());
@@ -98,39 +166,42 @@ PYBIND11_MODULE(bindings, m)
 
     py::class_<MRepo, std::unique_ptr<MRepo, py::nodelete>>(m, "Repo")
         .def(py::init(
-            [](MPool& pool,
-               const std::string& name,
-               const std::string& filename,
-               const std::string& url) {
-                return std::unique_ptr<MRepo, py::nodelete>(
-                    &MRepo::create(pool, name, filename, url));
-            }))
+            [](MPool& pool, const std::string& name, const std::string& filename, const std::string& url
+            ) {
+                return std::unique_ptr<MRepo, py::nodelete>(&MRepo::create(pool, name, filename, url));
+            }
+        ))
         .def(py::init([](MPool& pool, const PrefixData& data)
                       { return std::unique_ptr<MRepo, py::nodelete>(&MRepo::create(pool, data)); }))
-        .def("add_extra_pkg_info",
-             [](const MRepo& self, const std::map<std::string, ExtraPkgInfo>& additional_info)
-             {
-                 Id pkg_id;
-                 Solvable* pkg_s;
-                 Pool* p = self.repo()->pool;
-                 static Id noarch_repo_key = pool_str2id(p, "solvable:noarch_type", 1);
-                 static Id real_repo_url_key = pool_str2id(p, "solvable:real_repo_url", 1);
+        .def(
+            "add_extra_pkg_info",
+            [](const MRepo& self, const std::map<std::string, ExtraPkgInfo>& additional_info)
+            {
+                Id pkg_id;
+                Solvable* pkg_s;
+                Pool* p = self.repo()->pool;
+                static Id noarch_repo_key = pool_str2id(p, "solvable:noarch_type", 1);
+                static Id real_repo_url_key = pool_str2id(p, "solvable:real_repo_url", 1);
 
-                 FOR_REPO_SOLVABLES(self.repo(), pkg_id, pkg_s)
-                 {
-                     std::string name = pool_id2str(p, pkg_s->name);
-                     auto it = additional_info.find(name);
-                     if (it != additional_info.end())
-                     {
-                         if (!it->second.noarch.empty())
-                             solvable_set_str(pkg_s, noarch_repo_key, it->second.noarch.c_str());
-                         if (!it->second.repo_url.empty())
-                             solvable_set_str(
-                                 pkg_s, real_repo_url_key, it->second.repo_url.c_str());
-                     }
-                 }
-                 repo_internalize(self.repo());
-             })
+                FOR_REPO_SOLVABLES(self.repo(), pkg_id, pkg_s)
+                {
+                    std::string name = pool_id2str(p, pkg_s->name);
+                    auto it = additional_info.find(name);
+                    if (it != additional_info.end())
+                    {
+                        if (!it->second.noarch.empty())
+                        {
+                            solvable_set_str(pkg_s, noarch_repo_key, it->second.noarch.c_str());
+                        }
+                        if (!it->second.repo_url.empty())
+                        {
+                            solvable_set_str(pkg_s, real_repo_url_key, it->second.repo_url.c_str());
+                        }
+                    }
+                }
+                repo_internalize(self.repo());
+            }
+        )
         .def("set_installed", &MRepo::set_installed)
         .def("set_priority", &MRepo::set_priority)
         .def("name", &MRepo::name)
@@ -158,18 +229,112 @@ PYBIND11_MODULE(bindings, m)
         .def("is_solved", &MSolver::is_solved)
         .def("problems_to_str", &MSolver::problems_to_str)
         .def("all_problems_to_str", &MSolver::all_problems_to_str)
+        .def("explain_problems", py::overload_cast<>(&MSolver::explain_problems, py::const_))
         .def("all_problems_structured", &MSolver::all_problems_structured)
-        .def("solve", &MSolver::solve);
+        .def(
+            "solve",
+            [](MSolver& self)
+            {
+                // TODO figure out a better interface
+                return self.try_solve();
+            }
+        )
+        .def("try_solve", &MSolver::try_solve)
+        .def("must_solve", &MSolver::must_solve);
 
     py::class_<MSolverProblem>(m, "SolverProblem")
-        .def_readwrite("target_id", &MSolverProblem::target_id)
-        .def_readwrite("source_id", &MSolverProblem::source_id)
-        .def_readwrite("dep_id", &MSolverProblem::dep_id)
         .def_readwrite("type", &MSolverProblem::type)
-        .def("__str__", &MSolverProblem::to_string)
-        .def("target", &MSolverProblem::target)
-        .def("source", &MSolverProblem::source)
-        .def("dep", &MSolverProblem::dep);
+        .def_readwrite("source_id", &MSolverProblem::source_id)
+        .def_readwrite("target_id", &MSolverProblem::target_id)
+        .def_readwrite("dep_id", &MSolverProblem::dep_id)
+        .def_readwrite("source", &MSolverProblem::source)
+        .def_readwrite("target", &MSolverProblem::target)
+        .def_readwrite("dep", &MSolverProblem::dep)
+        .def_readwrite("description", &MSolverProblem::description)
+        .def("__str__", [](const MSolverProblem& self) { return self.description; });
+
+    py::class_<DependencyInfo>(m, "DependencyInfo")
+        .def(py::init<const std::string&>())
+        .def_property_readonly("name", &DependencyInfo::name)
+        .def_property_readonly("version", &DependencyInfo::version)
+        .def_property_readonly("build_string", &DependencyInfo::build_string)
+        .def("__str__", &DependencyInfo::str)
+        .def(py::self == py::self);
+
+    using PbGraph = ProblemsGraph;
+    auto pyPbGraph = py::class_<PbGraph>(m, "ProblemsGraph");
+
+    py::class_<PbGraph::RootNode>(pyPbGraph, "RootNode").def(py::init<>());
+    py::class_<PbGraph::PackageNode, PackageInfo>(pyPbGraph, "PackageNode");
+    py::class_<PbGraph::UnresolvedDependencyNode, DependencyInfo>(pyPbGraph, "UnresolvedDependencyNode")
+        .def_readwrite("problem_type", &PbGraph::UnresolvedDependencyNode::problem_type);
+    py::class_<PbGraph::ConstraintNode, DependencyInfo>(pyPbGraph, "ConstraintNode")
+        .def_readonly_static("problem_type", &PbGraph::ConstraintNode::problem_type);
+
+    py::class_<PbGraph::conflicts_t>(pyPbGraph, "ConflictMap")
+        .def(py::init([]() { return PbGraph::conflicts_t(); }))
+        .def("__len__", [](const PbGraph::conflicts_t& self) { return self.size(); })
+        .def("__bool__", [](const PbGraph::conflicts_t& self) { return !self.empty(); })
+        .def(
+            "__iter__",
+            [](const PbGraph::conflicts_t& self)
+            { return py::make_iterator(self.begin(), self.end()); },
+            py::keep_alive<0, 1>()
+        )
+        .def("has_conflict", &PbGraph::conflicts_t::has_conflict)
+        .def("__contains__", &PbGraph::conflicts_t::has_conflict)
+        .def("conflicts", &PbGraph::conflicts_t::conflicts)
+        .def("in_conflict", &PbGraph::conflicts_t::in_conflict)
+        .def("clear", [](PbGraph::conflicts_t& self) { return self.clear(); })
+        .def("add", &PbGraph::conflicts_t::add);
+
+    pyPbGraph.def_static("from_solver", &PbGraph::from_solver)
+        .def("root_node", &PbGraph::root_node)
+        .def("conflicts", &PbGraph::conflicts)
+        .def(
+            "graph",
+            [](const PbGraph& self)
+            {
+                auto const& g = self.graph();
+                return std::pair(g.nodes(), g.edges());
+            }
+        );
+
+    using CpPbGraph = CompressedProblemsGraph;
+    auto pyCpPbGraph = py::class_<CpPbGraph>(m, "CompressedProblemsGraph");
+
+    pyCpPbGraph.def_property_readonly_static(
+        "RootNode",
+        [](py::handle) { return py::type::of<PbGraph::RootNode>(); }
+    );
+    bind_NamedList(py::class_<CpPbGraph::PackageListNode>(pyCpPbGraph, "PackageListNode"));
+    bind_NamedList(
+        py::class_<CpPbGraph::UnresolvedDependencyListNode>(pyCpPbGraph, "UnresolvedDependencyListNode")
+    );
+    bind_NamedList(py::class_<CpPbGraph::ConstraintListNode>(pyCpPbGraph, "ConstraintListNode"));
+    bind_NamedList(py::class_<CpPbGraph::edge_t>(pyCpPbGraph, "DependencyListList"));
+    pyCpPbGraph.def_property_readonly_static(
+        "ConflictMap",
+        [](py::handle) { return py::type::of<PbGraph::conflicts_t>(); }
+    );
+
+    pyCpPbGraph.def_static("from_problems_graph", &CpPbGraph::from_problems_graph)
+        .def_static(
+            "from_problems_graph",
+            [](const PbGraph& pbs) { return CpPbGraph::from_problems_graph(pbs); }
+        )
+        .def("root_node", &CpPbGraph::root_node)
+        .def("conflicts", &CpPbGraph::conflicts)
+        .def(
+            "graph",
+            [](const CpPbGraph& self)
+            {
+                auto const& g = self.graph();
+                return std::pair(g.nodes(), g.edges());
+            }
+        )
+        .def("summary_message", [](const CpPbGraph& self) { return problem_summary_msg(self); })
+        .def("tree_message", [](const CpPbGraph& self) { return problem_tree_msg(self); });
 
     py::class_<History>(m, "History")
         .def(py::init<const fs::u8path&>())
@@ -191,77 +356,85 @@ PYBIND11_MODULE(bindings, m)
         .value("JSON", query::RESULT_FORMAT::JSON)
         .value("TREE", query::RESULT_FORMAT::TREE)
         .value("TABLE", query::RESULT_FORMAT::TABLE)
-        .value("PRETTY", query::RESULT_FORMAT::PRETTY);
+        .value("PRETTY", query::RESULT_FORMAT::PRETTY)
+        .value("RECURSIVETABLE", query::RESULT_FORMAT::RECURSIVETABLE);
 
     py::class_<Query>(m, "Query")
         .def(py::init<MPool&>())
-        .def("find",
-             [](const Query& q,
-                const std::string& query,
-                const query::RESULT_FORMAT format) -> std::string
-             {
-                 std::stringstream res_stream;
-                 switch (format)
-                 {
-                     case query::JSON:
-                         res_stream << q.find(query).groupby("name").json().dump(4);
-                         break;
-                     case query::TREE:
-                     case query::TABLE:
-                         q.find(query).groupby("name").table(res_stream);
-                         break;
-                     case query::PRETTY:
-                         q.find(query).groupby("name").pretty(res_stream);
-                 }
-                 return res_stream.str();
-             })
-        .def("whoneeds",
-             [](const Query& q,
-                const std::string& query,
-                const query::RESULT_FORMAT format) -> std::string
-             {
-                 // QueryResult res = q.whoneeds(query, tree);
-                 std::stringstream res_stream;
-                 query_result res = q.whoneeds(query, (format == query::TREE));
-                 switch (format)
-                 {
-                     case query::TREE:
-                     case query::PRETTY:
-                         res.tree(res_stream);
-                         break;
-                     case query::JSON:
-                         res_stream << res.json().dump(4);
-                         break;
-                     case query::TABLE:
-                         res.table(
-                             res_stream,
-                             { "Name", "Version", "Build", concat("Depends:", query), "Channel" });
-                 }
-                 return res_stream.str();
-             })
-        .def("depends",
-             [](const Query& q,
-                const std::string& query,
-                const query::RESULT_FORMAT format) -> std::string
-             {
-                 query_result res = q.depends(query, (format == query::TREE));
-                 std::stringstream res_stream;
-                 switch (format)
-                 {
-                     case query::TREE:
-                     case query::PRETTY:
-                         res.tree(res_stream);
-                         break;
-                     case query::JSON:
-                         res_stream << res.json().dump(4);
-                         break;
-                     case query::TABLE:
-                         // res.table(res_stream, {"Name", "Version", "Build", concat("Depends:",
-                         // query), "Channel"});
-                         res.table(res_stream);
-                 }
-                 return res_stream.str();
-             });
+        .def(
+            "find",
+            [](const Query& q, const std::string& query, const query::RESULT_FORMAT format) -> std::string
+            {
+                std::stringstream res_stream;
+                switch (format)
+                {
+                    case query::JSON:
+                        res_stream << q.find(query).groupby("name").json().dump(4);
+                        break;
+                    case query::TREE:
+                    case query::TABLE:
+                    case query::RECURSIVETABLE:
+                        q.find(query).groupby("name").table(res_stream);
+                        break;
+                    case query::PRETTY:
+                        q.find(query).groupby("name").pretty(res_stream);
+                }
+                return res_stream.str();
+            }
+        )
+        .def(
+            "whoneeds",
+            [](const Query& q, const std::string& query, const query::RESULT_FORMAT format) -> std::string
+            {
+                // QueryResult res = q.whoneeds(query, tree);
+                std::stringstream res_stream;
+                query_result res = q.whoneeds(query, (format == query::TREE));
+                switch (format)
+                {
+                    case query::TREE:
+                    case query::PRETTY:
+                        res.tree(res_stream);
+                        break;
+                    case query::JSON:
+                        res_stream << res.json().dump(4);
+                        break;
+                    case query::TABLE:
+                    case query::RECURSIVETABLE:
+                        res.table(
+                            res_stream,
+                            { "Name", "Version", "Build", concat("Depends:", query), "Channel" }
+                        );
+                }
+                return res_stream.str();
+            }
+        )
+        .def(
+            "depends",
+            [](const Query& q, const std::string& query, const query::RESULT_FORMAT format) -> std::string
+            {
+                query_result res = q.depends(
+                    query,
+                    (format == query::TREE || format == query::RECURSIVETABLE)
+                );
+                std::stringstream res_stream;
+                switch (format)
+                {
+                    case query::TREE:
+                    case query::PRETTY:
+                        res.tree(res_stream);
+                        break;
+                    case query::JSON:
+                        res_stream << res.json().dump(4);
+                        break;
+                    case query::TABLE:
+                    case query::RECURSIVETABLE:
+                        // res.table(res_stream, {"Name", "Version", "Build", concat("Depends:",
+                        // query), "Channel"});
+                        res.table(res_stream);
+                }
+                return res_stream.str();
+            }
+        );
 
     py::class_<MSubdirData>(m, "SubdirData")
         .def(py::init(
@@ -273,7 +446,8 @@ PYBIND11_MODULE(bindings, m)
             {
                 auto sres = MSubdirData::create(channel, platform, url, caches, repodata_fn);
                 return extract(std::move(sres));
-            }))
+            }
+        ))
         .def(
             "create_repo",
             [](MSubdirData& subdir, MPool& pool) -> MRepo&
@@ -281,18 +455,23 @@ PYBIND11_MODULE(bindings, m)
                 auto exp_res = subdir.create_repo(pool);
                 return extract(exp_res);
             },
-            py::return_value_policy::reference)
+            py::return_value_policy::reference
+        )
         .def("loaded", &MSubdirData::loaded)
-        .def("cache_path",
-             [](const MSubdirData& self) -> std::string { return extract(self.cache_path()); });
+        .def(
+            "cache_path",
+            [](const MSubdirData& self) -> std::string { return extract(self.cache_path()); }
+        );
 
     m.def("cache_fn_url", &cache_fn_url);
     m.def("create_cache_dir", &create_cache_dir);
 
     py::class_<MultiDownloadTarget>(m, "DownloadTargetList")
         .def(py::init<>())
-        .def("add",
-             [](MultiDownloadTarget& self, MSubdirData& sub) -> void { self.add(sub.target()); })
+        .def(
+            "add",
+            [](MultiDownloadTarget& self, MSubdirData& sub) -> void { self.add(sub.target()); }
+        )
         .def("download", &MultiDownloadTarget::download);
 
     py::enum_<ChannelPriority>(m, "ChannelPriority")
@@ -310,8 +489,7 @@ PYBIND11_MODULE(bindings, m)
         .value("OFF", mamba::log_level::off);
 
     py::class_<Context, std::unique_ptr<Context, py::nodelete>>(m, "Context")
-        .def(
-            py::init([]() { return std::unique_ptr<Context, py::nodelete>(&Context::instance()); }))
+        .def(py::init([]() { return std::unique_ptr<Context, py::nodelete>(&Context::instance()); }))
         .def_readwrite("verbosity", &Context::verbosity)
         .def_readwrite("quiet", &Context::quiet)
         .def_readwrite("json", &Context::json)
@@ -345,6 +523,8 @@ PYBIND11_MODULE(bindings, m)
         .def_readwrite("channel_alias", &Context::channel_alias)
         .def_readwrite("use_only_tar_bz2", &Context::use_only_tar_bz2)
         .def_readwrite("channel_priority", &Context::channel_priority)
+        .def_readwrite("experimental_sat_error_message", &Context::experimental_sat_error_message)
+        .def_readwrite("use_lockfiles", &Context::use_lockfiles)
         .def("set_verbosity", &Context::set_verbosity)
         .def("set_log_level", &Context::set_log_level);
 
@@ -361,17 +541,20 @@ PYBIND11_MODULE(bindings, m)
                 {
                     throw sres.error();
                 }
-            }))
+            }
+        ))
         .def_property_readonly("package_records", &PrefixData::records)
         .def("add_packages", &PrefixData::add_packages);
 
     pyPackageInfo.def(py::init<Solvable*>())
         .def(py::init<const std::string&>(), py::arg("name"))
-        .def(py::init<const std::string&, const std::string&, const std::string&, std::size_t>(),
-             py::arg("name"),
-             py::arg("version"),
-             py::arg("build_string"),
-             py::arg("build_number"))
+        .def(
+            py::init<const std::string&, const std::string&, const std::string&, std::size_t>(),
+            py::arg("name"),
+            py::arg("version"),
+            py::arg("build_string"),
+            py::arg("build_number")
+        )
         .def_readwrite("name", &PackageInfo::name)
         .def_readwrite("version", &PackageInfo::version)
         .def_readwrite("build_string", &PackageInfo::build_string)
@@ -400,30 +583,37 @@ PYBIND11_MODULE(bindings, m)
         {
             std::string signature;
             if (!validate::sign(data, sk, signature))
+            {
                 throw std::runtime_error("Signing failed");
+            }
             return signature;
         },
         py::arg("data"),
-        py::arg("secret_key"));
+        py::arg("secret_key")
+    );
 
     py::class_<validate::Key>(m, "Key")
         .def_readwrite("keytype", &validate::Key::keytype)
         .def_readwrite("scheme", &validate::Key::scheme)
         .def_readwrite("keyval", &validate::Key::keyval)
-        .def_property_readonly("json_str",
-                               [](const validate::Key& key)
-                               {
-                                   nlohmann::json j;
-                                   validate::to_json(j, key);
-                                   return j.dump();
-                               })
+        .def_property_readonly(
+            "json_str",
+            [](const validate::Key& key)
+            {
+                nlohmann::json j;
+                validate::to_json(j, key);
+                return j.dump();
+            }
+        )
         .def_static("from_ed25519", &validate::Key::from_ed25519);
 
     py::class_<validate::RoleFullKeys>(m, "RoleFullKeys")
         .def(py::init<>())
-        .def(py::init<const std::map<std::string, validate::Key>&, const std::size_t&>(),
-             py::arg("keys"),
-             py::arg("threshold"))
+        .def(
+            py::init<const std::map<std::string, validate::Key>&, const std::size_t&>(),
+            py::arg("keys"),
+            py::arg("threshold")
+        )
         .def_readwrite("keys", &validate::RoleFullKeys::keys)
         .def_readwrite("threshold", &validate::RoleFullKeys::threshold);
 
@@ -438,46 +628,52 @@ PYBIND11_MODULE(bindings, m)
         .def_property_readonly("expired", &validate::RoleBase::expired)
         .def("all_keys", &validate::RoleBase::all_keys);
 
-    py::class_<validate::v06::V06RoleBaseExtension,
-               std::shared_ptr<validate::v06::V06RoleBaseExtension>>(m, "RoleBaseExtension")
+    py::class_<validate::v06::V06RoleBaseExtension, std::shared_ptr<validate::v06::V06RoleBaseExtension>>(
+        m,
+        "RoleBaseExtension"
+    )
         .def_property_readonly("timestamp", &validate::v06::V06RoleBaseExtension::timestamp);
 
-    py::class_<validate::v06::SpecImpl,
-               validate::SpecBase,
-               std::shared_ptr<validate::v06::SpecImpl>>(m, "SpecImpl")
+    py::class_<validate::v06::SpecImpl, validate::SpecBase, std::shared_ptr<validate::v06::SpecImpl>>(
+        m,
+        "SpecImpl"
+    )
         .def(py::init<>());
 
-    py::class_<validate::v06::KeyMgrRole,
-               validate::RoleBase,
-               validate::v06::V06RoleBaseExtension,
-               std::shared_ptr<validate::v06::KeyMgrRole>>(m, "KeyMgr")
-        .def(py::init<const std::string&,
-                      const validate::RoleFullKeys&,
-                      const std::shared_ptr<validate::SpecBase>>());
+    py::class_<
+        validate::v06::KeyMgrRole,
+        validate::RoleBase,
+        validate::v06::V06RoleBaseExtension,
+        std::shared_ptr<validate::v06::KeyMgrRole>>(m, "KeyMgr")
+        .def(py::init<const std::string&, const validate::RoleFullKeys&, const std::shared_ptr<validate::SpecBase>>(
+        ));
 
-    py::class_<validate::v06::PkgMgrRole,
-               validate::RoleBase,
-               validate::v06::V06RoleBaseExtension,
-               std::shared_ptr<validate::v06::PkgMgrRole>>(m, "PkgMgr")
-        .def(py::init<const std::string&,
-                      const validate::RoleFullKeys&,
-                      const std::shared_ptr<validate::SpecBase>>());
+    py::class_<
+        validate::v06::PkgMgrRole,
+        validate::RoleBase,
+        validate::v06::V06RoleBaseExtension,
+        std::shared_ptr<validate::v06::PkgMgrRole>>(m, "PkgMgr")
+        .def(py::init<const std::string&, const validate::RoleFullKeys&, const std::shared_ptr<validate::SpecBase>>(
+        ));
 
-    py::class_<validate::v06::RootImpl,
-               validate::RoleBase,
-               validate::v06::V06RoleBaseExtension,
-               std::shared_ptr<validate::v06::RootImpl>>(m, "RootImpl")
+    py::class_<
+        validate::v06::RootImpl,
+        validate::RoleBase,
+        validate::v06::V06RoleBaseExtension,
+        std::shared_ptr<validate::v06::RootImpl>>(m, "RootImpl")
         .def(py::init<const std::string&>(), py::arg("json_str"))
         .def(
             "update",
             [](validate::v06::RootImpl& role, const std::string& json_str)
             { return role.update(nlohmann::json::parse(json_str)); },
-            py::arg("json_str"))
+            py::arg("json_str")
+        )
         .def(
             "create_key_mgr",
             [](validate::v06::RootImpl& role, const std::string& json_str)
             { return role.create_key_mgr(nlohmann::json::parse(json_str)); },
-            py::arg("json_str"));
+            py::arg("json_str")
+        );
 
     pyChannel
         .def(py::init([](const std::string& value)
@@ -492,42 +688,57 @@ PYBIND11_MODULE(bindings, m)
         .def_property_readonly("canonical_name", &Channel::canonical_name)
         .def("urls", &Channel::urls, py::arg("with_credentials") = true)
         .def("platform_urls", &Channel::platform_urls, py::arg("with_credentials") = true)
-        .def("platform_url",
-             &Channel::platform_url,
-             py::arg("platform"),
-             py::arg("with_credentials") = true)
-        .def("__repr__",
-             [](const Channel& c)
-             {
-                 auto s = c.name();
-                 s += "[";
-                 bool first = true;
-                 for (const auto& platform : c.platforms())
-                 {
-                     if (!first)
-                         s += ",";
-                     s += platform;
-                     first = false;
-                 }
-                 s += "]";
-                 return s;
-             });
+        .def("platform_url", &Channel::platform_url, py::arg("platform"), py::arg("with_credentials") = true)
+        .def(
+            "__repr__",
+            [](const Channel& c)
+            {
+                auto s = c.name();
+                s += "[";
+                bool first = true;
+                for (const auto& platform : c.platforms())
+                {
+                    if (!first)
+                    {
+                        s += ",";
+                    }
+                    s += platform;
+                    first = false;
+                }
+                s += "]";
+                return s;
+            }
+        );
 
     m.def("clean", &clean);
 
     py::class_<Configuration, std::unique_ptr<Configuration, py::nodelete>>(m, "Configuration")
         .def(py::init(
-            []()
-            { return std::unique_ptr<Configuration, py::nodelete>(&Configuration::instance()); }))
+            []() { return std::unique_ptr<Configuration, py::nodelete>(&Configuration::instance()); }
+        ))
         .def_property(
             "show_banner",
             []() -> bool { return Configuration::instance().at("show_banner").value<bool>(); },
-            [](py::object&, bool val)
-            { Configuration::instance().at("show_banner").set_value(val); });
+            [](py::object&, bool val) { Configuration::instance().at("show_banner").set_value(val); }
+        );
 
     m.def("get_channels", &get_channels);
 
-    m.def("transmute", &transmute);
+    m.def(
+        "transmute",
+        &transmute,
+        py::arg("source_package"),
+        py::arg("destination_package"),
+        py::arg("compression_level"),
+        py::arg("compression_threads") = 1
+    );
+
+    // fix extract from error_handling first
+    // auto package_handling_sm = m.def_submodule("package_handling");
+    // package_handling_sm.def("extract", &extract);
+    // package_handling_sm.def("create", &create_package, py::arg("directory"),
+    // py::arg("out_package"), py::arg("compression_level"), py::arg("compression_threads") = 1);
+
 
     m.def("get_virtual_packages", &get_virtual_packages);
 
@@ -606,26 +817,21 @@ PYBIND11_MODULE(bindings, m)
         .value("SOLVER_RULE_UNKNOWN", SolverRuleinfo::SOLVER_RULE_UNKNOWN)
         .value("SOLVER_RULE_PKG", SolverRuleinfo::SOLVER_RULE_PKG)
         .value("SOLVER_RULE_PKG_NOT_INSTALLABLE", SolverRuleinfo::SOLVER_RULE_PKG_NOT_INSTALLABLE)
-        .value("SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP",
-               SolverRuleinfo::SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP)
+        .value("SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP", SolverRuleinfo::SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP)
         .value("SOLVER_RULE_PKG_REQUIRES", SolverRuleinfo::SOLVER_RULE_PKG_REQUIRES)
         .value("SOLVER_RULE_PKG_SELF_CONFLICT", SolverRuleinfo::SOLVER_RULE_PKG_SELF_CONFLICT)
         .value("SOLVER_RULE_PKG_CONFLICTS", SolverRuleinfo::SOLVER_RULE_PKG_CONFLICTS)
         .value("SOLVER_RULE_PKG_SAME_NAME", SolverRuleinfo::SOLVER_RULE_PKG_SAME_NAME)
         .value("SOLVER_RULE_PKG_OBSOLETES", SolverRuleinfo::SOLVER_RULE_PKG_OBSOLETES)
-        .value("SOLVER_RULE_PKG_IMPLICIT_OBSOLETES",
-               SolverRuleinfo::SOLVER_RULE_PKG_IMPLICIT_OBSOLETES)
-        .value("SOLVER_RULE_PKG_INSTALLED_OBSOLETES",
-               SolverRuleinfo::SOLVER_RULE_PKG_INSTALLED_OBSOLETES)
+        .value("SOLVER_RULE_PKG_IMPLICIT_OBSOLETES", SolverRuleinfo::SOLVER_RULE_PKG_IMPLICIT_OBSOLETES)
+        .value("SOLVER_RULE_PKG_INSTALLED_OBSOLETES", SolverRuleinfo::SOLVER_RULE_PKG_INSTALLED_OBSOLETES)
         .value("SOLVER_RULE_PKG_RECOMMENDS", SolverRuleinfo::SOLVER_RULE_PKG_RECOMMENDS)
         .value("SOLVER_RULE_PKG_CONSTRAINS", SolverRuleinfo::SOLVER_RULE_PKG_CONSTRAINS)
         .value("SOLVER_RULE_UPDATE", SolverRuleinfo::SOLVER_RULE_UPDATE)
         .value("SOLVER_RULE_FEATURE", SolverRuleinfo::SOLVER_RULE_FEATURE)
         .value("SOLVER_RULE_JOB", SolverRuleinfo::SOLVER_RULE_JOB)
-        .value("SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP",
-               SolverRuleinfo::SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP)
-        .value("SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM",
-               SolverRuleinfo::SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM)
+        .value("SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP", SolverRuleinfo::SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP)
+        .value("SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM", SolverRuleinfo::SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM)
         .value("SOLVER_RULE_JOB_UNKNOWN_PACKAGE", SolverRuleinfo::SOLVER_RULE_JOB_UNKNOWN_PACKAGE)
         .value("SOLVER_RULE_JOB_UNSUPPORTED", SolverRuleinfo::SOLVER_RULE_JOB_UNSUPPORTED)
         .value("SOLVER_RULE_DISTUPGRADE", SolverRuleinfo::SOLVER_RULE_DISTUPGRADE)
@@ -636,8 +842,7 @@ PYBIND11_MODULE(bindings, m)
         .value("SOLVER_RULE_YUMOBS", SolverRuleinfo::SOLVER_RULE_YUMOBS)
         .value("SOLVER_RULE_RECOMMENDS", SolverRuleinfo::SOLVER_RULE_RECOMMENDS)
         .value("SOLVER_RULE_BLACK", SolverRuleinfo::SOLVER_RULE_BLACK)
-        .value("SOLVER_RULE_STRICT_REPO_PRIORITY",
-               SolverRuleinfo::SOLVER_RULE_STRICT_REPO_PRIORITY);
+        .value("SOLVER_RULE_STRICT_REPO_PRIORITY", SolverRuleinfo::SOLVER_RULE_STRICT_REPO_PRIORITY);
 
     // INSTALL FLAGS
     m.attr("MAMBA_NO_DEPS") = MAMBA_NO_DEPS;

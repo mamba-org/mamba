@@ -16,6 +16,7 @@ namespace mamba
     class MatchSpec
     {
     public:
+
         MatchSpec() = default;
         MatchSpec(const std::string& i_spec);
 

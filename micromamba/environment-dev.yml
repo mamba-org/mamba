@@ -16,7 +16,6 @@ dependencies:
   - cpp-expected
   - reproc-cpp
   - yaml-cpp
-  - termcolor-cpp
   - cli11 >=2.2
   # Pin Pytest while pytest-xprocess relies on removed features
   # https://github.com/pytest-dev/pytest-xprocess/issues/110
@@ -24,6 +23,7 @@ dependencies:
   - pytest-asyncio
   - pytest-lazy-fixture
   - pytest-xprocess
+  - conda-package-handling
   - pyyaml
   - spdlog
   - fmt

@@ -1,33 +1,41 @@
-#include <gtest/gtest.h>
+#include <string>
 
+#include <gtest/gtest.h>
+#include <reproc++/run.hpp>
+
+#include "mamba/core/context.hpp"
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/core/context.hpp"
 
-#include <reproc++/run.hpp>
 #include "spdlog/spdlog.h"
-
-#include <string>
 
 #ifdef _WIN32
 #include <io.h>
 
 extern "C"
 {
+#include <fcntl.h>
 #include <io.h>
 #include <process.h>
-#include <fcntl.h>
 }
 #endif
 
+
 namespace mamba
 {
+
+#ifndef MAMBA_TEST_LOCK_EXE
+#error "MAMBA_TEST_LOCK_EXE must be defined pointing to testing_libmamba_lock"
+#endif
+    inline static const fs::u8path testing_libmamba_lock_exe = MAMBA_TEST_LOCK_EXE;
+
     namespace testing
     {
 
         class LockDirTest : public ::testing::Test
         {
         protected:
+
             std::unique_ptr<TemporaryDirectory> p_tempdir;
             fs::u8path tempdir_path;
 
@@ -110,15 +118,9 @@ namespace mamba
 
         TEST_F(LockDirTest, different_pid)
         {
-            std::string lock_cli;
+            std::string const lock_exe = testing_libmamba_lock_exe.string();
             std::string out, err;
             std::vector<std::string> args;
-
-#ifdef _WIN32
-            lock_cli = "testing_libmamba_lock";
-#else
-            lock_cli = "./testing_libmamba_lock";
-#endif
 
             {
                 auto lock = LockFile(tempdir_path);
@@ -128,11 +130,10 @@ namespace mamba
                 EXPECT_TRUE(mamba::LockFile::is_locked(lock));
 
                 // Check lock status from another process
-                args = { lock_cli, "is-locked", lock.lockfile_path().string() };
+                args = { lock_exe, "is-locked", lock.lockfile_path().string() };
                 out.clear();
                 err.clear();
-                reproc::run(
-                    args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+                reproc::run(args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
 
                 int is_locked = 0;
                 try
@@ -146,11 +147,10 @@ namespace mamba
                 EXPECT_TRUE(is_locked);
 
                 // Try to lock from another process
-                args = { lock_cli, "lock", "--timeout=1", tempdir_path.string() };
+                args = { lock_exe, "lock", "--timeout=1", tempdir_path.string() };
                 out.clear();
                 err.clear();
-                reproc::run(
-                    args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+                reproc::run(args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
 
                 bool new_lock_created = true;
                 try
@@ -167,11 +167,10 @@ namespace mamba
             fs::u8path lock_path = tempdir_path / (tempdir_path.filename().string() + ".lock");
             EXPECT_FALSE(fs::exists(lock_path));
 
-            args = { lock_cli, "is-locked", lock_path.string() };
+            args = { lock_exe, "is-locked", lock_path.string() };
             out.clear();
             err.clear();
-            reproc::run(
-                args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+            reproc::run(args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
 
             int is_locked = 0;
             try
@@ -187,6 +186,7 @@ namespace mamba
         class LockFileTest : public ::testing::Test
         {
         protected:
+
             std::unique_ptr<TemporaryFile> p_tempfile;
             fs::u8path tempfile_path;
 
@@ -229,15 +229,9 @@ namespace mamba
 
         TEST_F(LockFileTest, different_pid)
         {
-            std::string lock_cli;
+            std::string const lock_exe = testing_libmamba_lock_exe.string();
             std::string out, err;
             std::vector<std::string> args;
-
-#ifdef _WIN32
-            lock_cli = "testing_libmamba_lock";
-#else
-            lock_cli = "./testing_libmamba_lock";
-#endif
             {
                 // Create a lock
                 auto lock = LockFile(tempfile_path);
@@ -247,11 +241,10 @@ namespace mamba
                 EXPECT_TRUE(mamba::LockFile::is_locked(lock));
 
                 // Check lock status from another process
-                args = { lock_cli, "is-locked", lock.lockfile_path().string() };
+                args = { lock_exe, "is-locked", lock.lockfile_path().string() };
                 out.clear();
                 err.clear();
-                reproc::run(
-                    args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+                reproc::run(args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
 
                 int is_locked = 0;
                 try
@@ -265,11 +258,10 @@ namespace mamba
                 EXPECT_TRUE(is_locked);
 
                 // Try to lock from another process
-                args = { lock_cli, "lock", "--timeout=1", tempfile_path.string() };
+                args = { lock_exe, "lock", "--timeout=1", tempfile_path.string() };
                 out.clear();
                 err.clear();
-                reproc::run(
-                    args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+                reproc::run(args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
 
                 bool new_lock_created = true;
                 try
@@ -286,11 +278,10 @@ namespace mamba
             fs::u8path lock_path = tempfile_path.string() + ".lock";
             EXPECT_FALSE(fs::exists(lock_path));
 
-            args = { lock_cli, "is-locked", lock_path.string() };
+            args = { lock_exe, "is-locked", lock_path.string() };
             out.clear();
             err.clear();
-            reproc::run(
-                args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+            reproc::run(args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
 
             int is_locked = 0;
             try

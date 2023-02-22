@@ -1,8 +1,8 @@
-#include <gtest/gtest.h>
-
-#include <thread>
 #include <future>
+#include <thread>
 #include <type_traits>
+
+#include <gtest/gtest.h>
 
 #include "mamba/core/tasksync.hpp"
 
@@ -110,7 +110,9 @@ namespace mamba
         void wait_condition(Predicate&& predicate)
         {
             while (!std::invoke(std::forward<Predicate>(predicate)))
+            {
                 std::this_thread::yield();
+            }
         }
     }
 
@@ -125,34 +127,39 @@ namespace mamba
         std::atomic<bool> unlocker_ready{ false };
         std::atomic<bool> unlocker_start{ false };
 
-        auto ft_task = std::async(std::launch::async,
-                                  task_sync.synchronized(
-                                      [&]
-                                      {
-                                          sequence.push_back('A');
-                                          task_started = true;
-                                          wait_condition([&] { return task_continue.load(); });
-                                          sequence.push_back('F');
-                                      }));
+        auto ft_task = std::async(
+            std::launch::async,
+            task_sync.synchronized(
+                [&]
+                {
+                    sequence.push_back('A');
+                    task_started = true;
+                    wait_condition([&] { return task_continue.load(); });
+                    sequence.push_back('F');
+                }
+            )
+        );
 
         wait_condition([&] { return task_started.load(); });
         EXPECT_EQ(sequence, "A");
 
-        auto ft_unlocker
-            = std::async(std::launch::async,
-                         task_sync.synchronized(
-                             [&]
-                             {
-                                 sequence.push_back('B');
-                                 unlocker_ready = true;
-                                 wait_condition([&] { return unlocker_start.load(); });
-                                 sequence.push_back('D');
-                                 std::this_thread::sleep_for(
-                                     unlock_duration);  // Make sure the time is long enough for
-                                                        // joining to happen only after.
-                                 sequence.push_back('E');
-                                 task_continue = true;
-                             }));
+        auto ft_unlocker = std::async(
+            std::launch::async,
+            task_sync.synchronized(
+                [&]
+                {
+                    sequence.push_back('B');
+                    unlocker_ready = true;
+                    wait_condition([&] { return unlocker_start.load(); });
+                    sequence.push_back('D');
+                    std::this_thread::sleep_for(unlock_duration);  // Make sure the time is long
+                                                                   // enough for joining to happen
+                                                                   // only after.
+                    sequence.push_back('E');
+                    task_continue = true;
+                }
+            )
+        );
 
         wait_condition([&] { return unlocker_ready.load(); });
         EXPECT_EQ(sequence, "AB");
@@ -160,14 +167,14 @@ namespace mamba
         sequence.push_back('C');
 
         const auto begin_time = std::chrono::high_resolution_clock::now();
-        std::atomic_signal_fence(
-            std::memory_order_acq_rel);  // prevents the compiler from reordering
+        std::atomic_signal_fence(std::memory_order_acq_rel);  // prevents the compiler from
+                                                              // reordering
 
         unlocker_start = true;
         task_sync.join_tasks();
 
-        std::atomic_signal_fence(
-            std::memory_order_acq_rel);  // prevents the compiler from reordering
+        std::atomic_signal_fence(std::memory_order_acq_rel);  // prevents the compiler from
+                                                              // reordering
         const auto end_time = std::chrono::high_resolution_clock::now();
 
         EXPECT_EQ(sequence, "ABCDEF");

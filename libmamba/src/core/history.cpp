@@ -4,11 +4,12 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "mamba/core/history.hpp"
+
 #include <regex>
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/fsutil.hpp"
-#include "mamba/core/history.hpp"
 #include "mamba/core/output.hpp"
 
 namespace mamba
@@ -51,7 +52,9 @@ namespace mamba
         while (getline(in_file, line))
         {
             if (line.size() == 0)
+            {
                 continue;
+            }
             std::smatch base_match;
             if (std::regex_match(line, base_match, head_re))
             {
@@ -91,7 +94,9 @@ namespace mamba
     {
         std::size_t colon_idx = line.find_first_of(':');
         if (colon_idx == std::string::npos)
+        {
             return false;
+        }
 
         std::string key(strip(line.substr(1, colon_idx - 1)));
         std::string value(strip(line.substr(colon_idx + 1)));
@@ -266,7 +271,9 @@ namespace mamba
                                    const std::vector<std::string>& specs) -> std::string
             {
                 if (specs.empty())
+                {
                     return "";
+                }
                 std::stringstream spec_ss;
                 spec_ss << "# " << action << " specs: [";
                 for (auto spec : specs)

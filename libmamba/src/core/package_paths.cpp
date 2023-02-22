@@ -4,11 +4,12 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "mamba/core/package_paths.hpp"
+
 #include <map>
 #include <set>
 #include <string>
 
-#include "mamba/core/package_paths.hpp"
 #include "mamba/core/util.hpp"
 
 namespace mamba

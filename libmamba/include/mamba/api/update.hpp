@@ -7,11 +7,11 @@
 #ifndef MAMBA_API_UPDATE_HPP
 #define MAMBA_API_UPDATE_HPP
 
-#include "mamba/core/mamba_fs.hpp"
-#include "mamba/core/query.hpp"
-
 #include <string>
 #include <vector>
+
+#include "mamba/core/mamba_fs.hpp"
+#include "mamba/core/query.hpp"
 
 
 namespace mamba

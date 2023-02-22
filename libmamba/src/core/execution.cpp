@@ -14,8 +14,10 @@ namespace mamba
         {
             const auto result = safe_invoke(handler);
             if (!result)
+            {
                 LOG_ERROR << "main executor close handler failed (ignored): "
                           << result.error().what();
+            }
         }
     }
 }

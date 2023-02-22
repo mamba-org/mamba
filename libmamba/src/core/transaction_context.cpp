@@ -10,8 +10,8 @@
 #include <reproc++/drain.hpp>
 
 #include "mamba/core/environment.hpp"
-#include "mamba/core/transaction_context.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/transaction_context.hpp"
 #include "mamba/core/util.hpp"
 
 extern const char data_compile_pyc_py[];
@@ -67,8 +67,10 @@ namespace mamba
 #endif
     }
 
-    fs::u8path get_python_noarch_target_path(const std::string& source_short_path,
-                                             const fs::u8path& target_site_packages_short_path)
+    fs::u8path get_python_noarch_target_path(
+        const std::string& source_short_path,
+        const fs::u8path& target_site_packages_short_path
+    )
     {
         if (starts_with(source_short_path, "site-packages/"))
         {
@@ -92,9 +94,11 @@ namespace mamba
         compile_pyc = Context::instance().compile_pyc;
     }
 
-    TransactionContext::TransactionContext(const fs::u8path& target_prefix,
-                                           const std::pair<std::string, std::string>& py_versions,
-                                           const std::vector<MatchSpec>& requested_specs)
+    TransactionContext::TransactionContext(
+        const fs::u8path& target_prefix,
+        const std::pair<std::string, std::string>& py_versions,
+        const std::vector<MatchSpec>& requested_specs
+    )
         : has_python(py_versions.first.size() != 0)
         , target_prefix(target_prefix)
         , python_version(py_versions.first)
@@ -167,8 +171,9 @@ namespace mamba
         std::signal(SIGPIPE, SIG_IGN);
 #endif
         const auto complete_python_path = target_prefix / python_path;
-        std::vector<std::string> command
-            = { complete_python_path.string(), "-Wi", "-m", "compileall", "-q", "-l", "-i", "-" };
+        std::vector<std::string> command = {
+            complete_python_path.string(), "-Wi", "-m", "compileall", "-q", "-l", "-i", "-"
+        };
 
         auto py_ver_split = split(python_version, ".");
 
@@ -182,15 +187,15 @@ namespace mamba
                 compile_python_sources(compileall_f);
                 compileall_f.close();
 
-                command = {
-                    complete_python_path.string(), "-Wi", "-u", m_pyc_compileall->path().string()
-                };
+                command = { complete_python_path.string(),
+                            "-Wi",
+                            "-u",
+                            m_pyc_compileall->path().string() };
             }
         }
         catch (const std::exception& e)
         {
-            LOG_ERROR << "Bad conversion of Python version '" << python_version
-                      << "': " << e.what();
+            LOG_ERROR << "Bad conversion of Python version '" << python_version << "': " << e.what();
             return false;
         }
 
@@ -260,8 +265,10 @@ namespace mamba
         {
             auto fs = f.string() + "\n";
 
-            auto [nbytes, ec]
-                = m_pyc_process->write(reinterpret_cast<const uint8_t*>(&fs[0]), fs.size());
+            auto [nbytes, ec] = m_pyc_process->write(
+                reinterpret_cast<const uint8_t*>(&fs[0]),
+                fs.size()
+            );
             if (ec)
             {
                 LOG_INFO << "writing to stdin failed " << ec.message();

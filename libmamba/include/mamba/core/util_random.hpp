@@ -8,10 +8,10 @@
 #define MAMBA_CORE_UTIL_RANDOM_HPP
 
 #include <algorithm>
+#include <cstring>
 #include <limits>
 #include <random>
 #include <string>
-#include <cstring>
 
 namespace mamba
 {
@@ -20,9 +20,8 @@ namespace mamba
     {
         using std::begin;
         using std::end;
-        auto constexpr seed_bits = sizeof(typename T::result_type) * T::state_size;
-        auto constexpr seed_len
-            = seed_bits / std::numeric_limits<std::seed_seq::result_type>::digits;
+        constexpr auto seed_bits = sizeof(typename T::result_type) * T::state_size;
+        constexpr auto seed_len = seed_bits / std::numeric_limits<std::seed_seq::result_type>::digits;
         auto seed = std::array<std::seed_seq::result_type, seed_len>{};
         auto dev = std::random_device{};
         std::generate_n(begin(seed), seed_len, std::ref(dev));

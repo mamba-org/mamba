@@ -14,7 +14,7 @@ from conda.base.constants import ChannelPriority
 from conda.base.context import context
 from conda.common.serialize import json_dump
 from conda.common.url import join_url, remove_auth, split_anaconda_token
-from conda.core.index import _supplement_index_with_system, check_whitelist
+from conda.core.index import _supplement_index_with_system, check_allowlist
 from conda.core.link import PrefixSetup, UnlinkLinkTransaction
 from conda.core.prefix_data import PrefixData
 from conda.core.solve import diff_for_unlink_link_precs
@@ -68,7 +68,7 @@ def get_index(
     all_channels.extend(channel_urls)
     if prepend:
         all_channels.extend(context.channels)
-    check_whitelist(all_channels)
+    check_allowlist(all_channels)
 
     # Remove duplicates but retain order
     all_channels = list(OrderedDict.fromkeys(all_channels))

@@ -9,13 +9,13 @@ namespace mamba
 
     TEST(vector_set, constructor)
     {
-        auto const s1 = vector_set<int>();
+        const auto s1 = vector_set<int>();
         EXPECT_EQ(s1.size(), 0);
         auto s2 = vector_set<int>({ 1, 2 });
         EXPECT_EQ(s2.size(), 2);
-        auto const s3 = vector_set<int>{ s2 };
+        const auto s3 = vector_set<int>{ s2 };
         EXPECT_EQ(s3.size(), 2);
-        auto const s4 = vector_set<int>{ std::move(s2) };
+        const auto s4 = vector_set<int>{ std::move(s2) };
         EXPECT_EQ(s4.size(), 2);
         // CTAD
         auto s5 = vector_set({ 1, 2 });
@@ -53,7 +53,7 @@ namespace mamba
 
     TEST(vector_set, contains)
     {
-        auto const s = vector_set<int>({ 1, 3, 4, 5 });
+        const auto s = vector_set<int>({ 1, 3, 4, 5 });
         EXPECT_FALSE(s.contains(0));
         EXPECT_TRUE(s.contains(1));
         EXPECT_FALSE(s.contains(2));
@@ -75,13 +75,13 @@ namespace mamba
     DiGraph<double> build_graph()
     {
         DiGraph<double> g;
-        auto const n0 = g.add_node(0.5);
-        auto const n1 = g.add_node(1.5);
-        auto const n2 = g.add_node(2.5);
-        auto const n3 = g.add_node(3.5);
-        auto const n4 = g.add_node(4.5);
-        auto const n5 = g.add_node(5.5);
-        auto const n6 = g.add_node(6.5);
+        const auto n0 = g.add_node(0.5);
+        const auto n1 = g.add_node(1.5);
+        const auto n2 = g.add_node(2.5);
+        const auto n3 = g.add_node(3.5);
+        const auto n4 = g.add_node(4.5);
+        const auto n5 = g.add_node(5.5);
+        const auto n6 = g.add_node(6.5);
 
         g.add_edge(n0, n1);
         g.add_edge(n0, n2);
@@ -97,11 +97,11 @@ namespace mamba
     DiGraph<double> build_cyclic_graph()
     {
         DiGraph<double> g;
-        auto const n0 = g.add_node(0.5);
-        auto const n1 = g.add_node(1.5);
-        auto const n2 = g.add_node(2.5);
-        auto const n3 = g.add_node(3.5);
-        auto const n4 = g.add_node(4.5);
+        const auto n0 = g.add_node(0.5);
+        const auto n1 = g.add_node(1.5);
+        const auto n2 = g.add_node(2.5);
+        const auto n3 = g.add_node(3.5);
+        const auto n4 = g.add_node(4.5);
 
         g.add_edge(n0, n1);
         g.add_edge(n0, n3);
@@ -115,9 +115,9 @@ namespace mamba
     DiGraph<double, const char*> build_edge_data_graph()
     {
         auto g = DiGraph<double, const char*>{};
-        auto const n0 = g.add_node(0.5);
-        auto const n1 = g.add_node(1.5);
-        auto const n2 = g.add_node(2.5);
+        const auto n0 = g.add_node(0.5);
+        const auto n1 = g.add_node(1.5);
+        const auto n2 = g.add_node(2.5);
         g.add_edge(n0, n1, "n0->n1");
         g.add_edge(n1, n2, "n1->n2");
         return g;
@@ -127,6 +127,7 @@ namespace mamba
     class test_visitor : private default_visitor<G>
     {
     public:
+
         using base_type = default_visitor<G>;
         using node_id = typename base_type::node_id;
         using predecessor_map = std::map<node_id, node_id>;
@@ -159,13 +160,14 @@ namespace mamba
         }
 
     private:
+
         edge_map m_back_edges;
         edge_map m_cross_edges;
     };
 
     TEST(graph, build_simple)
     {
-        auto const g = build_graph();
+        const auto g = build_graph();
         using node_list = decltype(g)::node_list;
         using node_id_list = decltype(g)::node_id_list;
         EXPECT_EQ(g.number_of_nodes(), 7ul);
@@ -183,7 +185,7 @@ namespace mamba
 
     TEST(graph, build_edge_data)
     {
-        auto const g = build_edge_data_graph();
+        const auto g = build_edge_data_graph();
         using node_list = decltype(g)::node_list;
         using node_id_list = decltype(g)::node_id_list;
         EXPECT_EQ(g.number_of_nodes(), 3ul);
@@ -202,7 +204,7 @@ namespace mamba
 
     TEST(graph, has_node_edge)
     {
-        auto const g = build_graph();
+        const auto g = build_graph();
         EXPECT_TRUE(g.has_node(1ul));
         EXPECT_TRUE(g.has_node(4ul));
         EXPECT_FALSE(g.has_node(g.number_of_nodes()));
@@ -218,12 +220,12 @@ namespace mamba
     {
         auto g = build_edge_data_graph();
 
-        auto static constexpr new_node_val = -1.5;
+        static constexpr auto new_node_val = -1.5;
         EXPECT_NE(g.node(0ul), new_node_val);
         g.node(0ul) = new_node_val;
         EXPECT_EQ(g.node(0ul), new_node_val);
 
-        auto static constexpr new_edge_val = "data";
+        static constexpr auto new_edge_val = "data";
         EXPECT_NE(g.edge(0ul, 1ul), new_edge_val);
         g.edge(0ul, 1ul) = new_edge_val;
         EXPECT_EQ(g.edge(0ul, 1ul), new_edge_val);
@@ -231,7 +233,7 @@ namespace mamba
 
     TEST(graph, degree)
     {
-        auto const g = build_graph();
+        const auto g = build_graph();
         EXPECT_EQ(g.out_degree(0), 2);
         EXPECT_EQ(g.out_degree(1), 2);
         EXPECT_EQ(g.out_degree(6), 0);
@@ -242,7 +244,7 @@ namespace mamba
 
     TEST(graph, for_each_edge)
     {
-        auto const g = build_graph();
+        const auto g = build_graph();
         using node_id = decltype(g)::node_id;
         std::size_t n_edges = 0;
         g.for_each_edge(
@@ -250,13 +252,14 @@ namespace mamba
             {
                 EXPECT_TRUE(g.has_edge(from, to));
                 ++n_edges;
-            });
+            }
+        );
         EXPECT_EQ(n_edges, g.number_of_edges());
     }
 
     TEST(graph, for_each_leaf)
     {
-        auto const g = build_graph();
+        const auto g = build_graph();
         using node_id = decltype(g)::node_id;
         using node_id_list = decltype(g)::node_id_list;
         auto leaves = node_id_list();
@@ -266,7 +269,7 @@ namespace mamba
 
     TEST(graph, for_each_leaf_from)
     {
-        auto const g = build_graph();
+        const auto g = build_graph();
         using node_id = decltype(g)::node_id;
         using node_id_list = decltype(g)::node_id_list;
         auto leaves = node_id_list();
@@ -276,7 +279,7 @@ namespace mamba
 
     TEST(graph, for_each_root)
     {
-        auto const g = build_graph();
+        const auto g = build_graph();
         using node_id = decltype(g)::node_id;
         using node_id_list = decltype(g)::node_id_list;
         auto roots = node_id_list();
@@ -286,7 +289,7 @@ namespace mamba
 
     TEST(graph, for_each_root_from)
     {
-        auto const g = build_graph();
+        const auto g = build_graph();
         using node_id = decltype(g)::node_id;
         using node_id_list = decltype(g)::node_id_list;
         auto leaves = node_id_list();
@@ -296,7 +299,7 @@ namespace mamba
 
     TEST(graph, depth_first_search)
     {
-        auto const g = build_graph();
+        const auto g = build_graph();
         test_visitor<DiGraph<double>> vis;
         g.depth_first_search(vis);
         EXPECT_TRUE(vis.get_back_edge_map().empty());
@@ -305,7 +308,7 @@ namespace mamba
 
     TEST(graph, dfs_cyclic)
     {
-        auto const g = build_cyclic_graph();
+        const auto g = build_cyclic_graph();
         test_visitor<DiGraph<double>> vis;
         g.depth_first_search(vis);
         EXPECT_EQ(vis.get_back_edge_map().find(2u)->second, 0u);

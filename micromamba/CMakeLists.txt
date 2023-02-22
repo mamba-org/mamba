@@ -53,6 +53,8 @@ set(MICROMAMBA_HEADERS
 
 add_executable(micromamba ${MICROMAMBA_SRCS} ${MICROMAMBA_HEADERS})
 
+mamba_target_add_compile_warnings(micromamba WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
+
 if(NOT (TARGET libmamba OR TARGET libmamba-static OR TARGET libmamba-full-static))
     find_package(libmamba REQUIRED)
 endif ()

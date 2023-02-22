@@ -7,16 +7,17 @@
 #ifndef MAMBA_CORE_CONTEXT_HPP
 #define MAMBA_CORE_CONTEXT_HPP
 
-#include "mamba/core/common_types.hpp"
-#include "mamba/core/mamba_fs.hpp"
-#include "mamba/core/tasksync.hpp"
-#include "mamba/version.hpp"
-
 #include <map>
-#include <string>
-#include <vector>
 #include <optional>
 #include <regex>
+#include <string>
+#include <vector>
+
+#include "mamba/core/common_types.hpp"
+#include "mamba/core/mamba_fs.hpp"
+#include "mamba/core/palette.hpp"
+#include "mamba/core/tasksync.hpp"
+#include "mamba/version.hpp"
 
 #define ROOT_ENV_NAME "base"
 
@@ -112,6 +113,7 @@ namespace mamba
     class Context
     {
     public:
+
         std::string caller_version = "";
         std::string conda_version = "3.8.0";
         std::string current_command = "mamba";
@@ -127,7 +129,7 @@ namespace mamba
         // TODO check writable and add other potential dirs
         std::vector<fs::u8path> envs_dirs;
         std::vector<fs::u8path> pkgs_dirs;
-        std::optional<fs::u8path> env_lockfile;
+        std::optional<std::string> env_lockfile;
 
         bool use_index_cache = false;
         std::size_t local_repodata_ttl = 1;  // take from header
@@ -139,6 +141,7 @@ namespace mamba
 
         std::size_t download_threads = 5;
         int extract_threads = 0;
+        bool extract_sparse = false;
 
         int verbosity = 0;
         void set_verbosity(int lvl);
@@ -148,12 +151,16 @@ namespace mamba
         std::string log_pattern = "%^%-9!l%-8n%$ %v";
         std::size_t log_backtrace = 0;
 
+        bool experimental_sat_error_message = false;
+
         bool dev = false;
         bool on_ci = false;
-        bool no_progress_bars = false;
         bool dry_run = false;
         bool download_only = false;
         bool always_yes = false;
+
+        bool no_progress_bars = false;
+        Palette palette;
 
         bool allow_softlinks = false;
         bool always_copy = false;
@@ -220,7 +227,8 @@ namespace mamba
             "https://repo.anaconda.com/pkgs/r",
             "https://repo.anaconda.com/pkgs/msys2"
 #else
-            "https://repo.anaconda.com/pkgs/main", "https://repo.anaconda.com/pkgs/r"
+            "https://repo.anaconda.com/pkgs/main",
+            "https://repo.anaconda.com/pkgs/r"
 #endif
         };
 
@@ -230,11 +238,12 @@ namespace mamba
 
         bool override_channels_enabled = true;
 
-
         std::vector<std::string> pinned_packages = {};
 
         bool use_only_tar_bz2 = false;
 
+        bool repodata_use_zst = false;
+        std::vector<std::string> repodata_has_zst = { "https://conda.anaconda.org/conda-forge" };
 
         // usernames on anaconda.org can have a underscore, which influences the
         // first two characters
@@ -254,11 +263,13 @@ namespace mamba
         void dump_backtrace_no_guards();
 
     protected:
+
         Context();
         ~Context();
 
 
     private:
+
         void load_authentication_info();
         std::map<std::string, AuthenticationInfo> m_authentication_info;
         bool m_authentication_infos_loaded = false;

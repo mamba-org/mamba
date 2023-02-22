@@ -8,10 +8,11 @@
 
 namespace mamba
 {
-    const std::vector<std::string> KNOWN_PLATFORMS
-        = { "noarch",       "linux-32",      "linux-64",    "linux-aarch64", "linux-armv6l",
-            "linux-armv7l", "linux-ppc64le", "linux-ppc64", "osx-64",        "osx-arm64",
-            "win-32",       "win-64",        "zos-z" };
+    const std::vector<std::string> KNOWN_PLATFORMS = {
+        "noarch",       "linux-32",      "linux-64",    "linux-aarch64", "linux-armv6l",
+        "linux-armv7l", "linux-ppc64le", "linux-ppc64", "osx-64",        "osx-arm64",
+        "win-32",       "win-64",        "zos-z"
+    };
 
     TEST(url, parse)
     {
@@ -222,8 +223,7 @@ namespace mamba
         EXPECT_EQ(token, "a_-12345-absdj12345-xyxyxyx");
 
 #ifdef _WIN32
-        split_scheme_auth_token(
-            "file://C:/Users/wolfv/test.json", remaining_url, scheme, auth, token);
+        split_scheme_auth_token("file://C:/Users/wolfv/test.json", remaining_url, scheme, auth, token);
         EXPECT_EQ(remaining_url, "C:/Users/wolfv/test.json");
         EXPECT_EQ(scheme, "file");
         EXPECT_EQ(auth, "");

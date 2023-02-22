@@ -11,9 +11,9 @@
 #include <string>
 #include <vector>
 
-#include "mamba/core/util_graph.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
+#include "mamba/core/util_graph.hpp"
 
 extern "C"
 {
@@ -26,19 +26,22 @@ extern "C"
 
 namespace mamba
 {
-    void print_dep_graph(std::ostream& out,
-                         Solvable* s,
-                         const std::string& solv_str,
-                         int level,
-                         int max_level,
-                         bool last,
-                         const std::string& prefix);
+    void print_dep_graph(
+        std::ostream& out,
+        Solvable* s,
+        const std::string& solv_str,
+        int level,
+        int max_level,
+        bool last,
+        const std::string& prefix
+    );
 
     class query_result;
 
     class Query
     {
     public:
+
         Query(MPool& pool);
 
         query_result find(const std::string& query) const;
@@ -46,6 +49,7 @@ namespace mamba
         query_result depends(const std::string& query, bool tree) const;
 
     private:
+
         std::reference_wrapper<MPool> m_pool;
     };
 
@@ -58,15 +62,17 @@ namespace mamba
 
     enum class QueryResultFormat
     {
-        kJSON,
-        kTREE,
-        kTABLE,
-        kPRETTY
+        kJSON = 0,
+        kTREE = 1,
+        kTABLE = 2,
+        kPRETTY = 3,
+        kRECURSIVETABLE = 4,
     };
 
     class query_result
     {
     public:
+
         using dependency_graph = DiGraph<PackageInfo>;
         using package_list = dependency_graph::node_list;
         using package_view_list = std::vector<package_list::const_iterator>;
@@ -95,6 +101,7 @@ namespace mamba
         std::ostream& pretty(std::ostream&) const;
 
     private:
+
         void reset_pkg_view_list();
         std::string get_package_repr(const PackageInfo& pkg) const;
 

@@ -3,11 +3,19 @@ import os
 import platform
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 
 import pytest
 
-from .helpers import MAMBA_NO_PREFIX_CHECK, create, get_umamba, random_string, shell
+from .helpers import (
+    MAMBA_NO_PREFIX_CHECK,
+    create,
+    get_umamba,
+    random_string,
+    shell,
+    umamba_list,
+)
 
 
 def skip_if_shell_incompat(shell_type):
@@ -42,11 +50,11 @@ class TestShell:
         os.environ["MAMBA_ROOT_PREFIX"] = TestShell.current_root_prefix
 
     @classmethod
-    def setup(cls):
+    def setup_method(cls):
         os.makedirs(TestShell.root_prefix, exist_ok=False)
 
     @classmethod
-    def teardown(cls):
+    def teardown_method(cls):
         os.environ["MAMBA_ROOT_PREFIX"] = TestShell.root_prefix
         os.environ["CONDA_PREFIX"] = TestShell.current_prefix
 
@@ -67,6 +75,10 @@ class TestShell:
 
         if shell_type == "powershell":
             assert f"$Env:MAMBA_EXE='{mamba_exe}'" in res
+            lines = res.splitlines()
+            assert not any(l.startswith("param([") for l in lines)
+            assert not any(l.startswith("## EXPORTS ##") for l in lines)
+            assert lines[2].startswith("## AFTER PARAM ####")
         elif shell_type in ("zsh", "bash", "posix"):
             assert res.count(mamba_exe) == 3
         elif shell_type == "xonsh":
@@ -258,3 +270,31 @@ class TestShell:
         skip_if_shell_incompat("dash")
         subprocess.check_call(["dash", "-c", "eval $(micromamba shell hook -s dash)"])
         subprocess.check_call(["dash", "-c", "eval $(micromamba shell hook -s posix)"])
+
+    def test_implicitly_created_environment(self):
+        """If a shell implicitly creates an environment, confirm that it's valid.
+
+        See <https://github.com/mamba-org/mamba/pull/2162>.
+        """
+        skip_if_shell_incompat("bash")
+        shutil.rmtree(TestShell.root_prefix)
+        assert shell("init", "--shell=bash")
+        assert (Path(TestShell.root_prefix) / "conda-meta").exists()
+        # Check, for example, that "list" works.
+        assert umamba_list("-p", TestShell.root_prefix)
+
+    @pytest.mark.parametrize("prefix_selector", [("-p", prefix), ("-n", env_name)])
+    def test_shell_run_SHELL(self, prefix_selector, tmp_path):
+        """ "micromamba shell -n myenv should run $SHELL in myenv."""
+        skip_if_shell_incompat("bash")
+        create(*prefix_selector)
+
+        script_path = tmp_path / "fakeshell.sh"
+        script_path.write_text("#!/bin/sh\nexit 42")
+        script_path.chmod(0o777)
+
+        ret = subprocess.run(
+            [get_umamba(), "shell", *prefix_selector],
+            env={**os.environ, "SHELL": script_path},
+        )
+        assert ret.returncode == 42

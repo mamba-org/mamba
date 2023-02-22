@@ -4,15 +4,13 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "version.hpp"
-#include "common_options.hpp"
 #include "umamba.hpp"
 
-#include "mamba/version.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/version.hpp"
 
-#include "termcolor/termcolor.hpp"
-
+#include "common_options.hpp"
+#include "version.hpp"
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
@@ -44,30 +42,31 @@ set_umamba_command(CLI::App* com)
     CLI::App* create_subcom = com->add_subcommand("create", "Create new environment");
     set_create_command(create_subcom);
 
-    CLI::App* install_subcom
-        = com->add_subcommand("install", "Install packages in active environment");
+    CLI::App* install_subcom = com->add_subcommand("install", "Install packages in active environment");
     set_install_command(install_subcom);
 
-    CLI::App* update_subcom
-        = com->add_subcommand("update", "Update packages in active environment");
+    CLI::App* update_subcom = com->add_subcommand("update", "Update packages in active environment");
     set_update_command(update_subcom);
 
     CLI::App* self_update_subcom = com->add_subcommand("self-update", "Update micromamba");
     set_self_update_command(self_update_subcom);
 
     CLI::App* repoquery_subcom = com->add_subcommand(
-        "repoquery", "Find and analyze packages in active environment or channels");
+        "repoquery",
+        "Find and analyze packages in active environment or channels"
+    );
     set_repoquery_command(repoquery_subcom);
 
-    CLI::App* remove_subcom
-        = com->add_subcommand("remove", "Remove packages from active environment");
+    CLI::App* remove_subcom = com->add_subcommand("remove", "Remove packages from active environment");
     set_remove_command(remove_subcom);
 
     CLI::App* list_subcom = com->add_subcommand("list", "List packages in active environment");
     set_list_command(list_subcom);
 
-    CLI::App* package_subcom
-        = com->add_subcommand("package", "Extract a package or bundle files into an archive");
+    CLI::App* package_subcom = com->add_subcommand(
+        "package",
+        "Extract a package or bundle files into an archive"
+    );
     set_package_command(package_subcom);
 
     CLI::App* clean_subcom = com->add_subcommand("clean", "Clean package cache");
@@ -79,8 +78,10 @@ set_umamba_command(CLI::App* com)
     CLI::App* info_subcom = com->add_subcommand("info", "Information about micromamba");
     set_info_command(info_subcom);
 
-    CLI::App* constructor_subcom
-        = com->add_subcommand("constructor", "Commands to support using micromamba in constructor");
+    CLI::App* constructor_subcom = com->add_subcommand(
+        "constructor",
+        "Commands to support using micromamba in constructor"
+    );
     set_constructor_command(constructor_subcom);
 
     CLI::App* env_subcom = com->add_subcommand("env", "List environments");
@@ -98,8 +99,10 @@ set_umamba_command(CLI::App* com)
     CLI::App* auth_subcom = com->add_subcommand("auth", "Login or logout of a given host");
     set_auth_command(auth_subcom);
 
-    CLI::App* search_subcom
-        = com->add_subcommand("search", "Find packages in active environment or channels");
+    CLI::App* search_subcom = com->add_subcommand(
+        "search",
+        "Find packages in active environment or channels"
+    );
     set_search_command(search_subcom);
 
     com->require_subcommand(/* min */ 0, /* max */ 1);

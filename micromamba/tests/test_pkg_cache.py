@@ -7,6 +7,7 @@ import stat
 import string
 import subprocess
 from pathlib import Path
+from typing import Optional
 
 import pytest
 
@@ -16,6 +17,17 @@ if platform.system() == "Windows":
     xtensor_hpp = "Library/include/xtensor/xtensor.hpp"
 else:
     xtensor_hpp = "include/xtensor/xtensor.hpp"
+
+
+def cache_file(cache: Path, pkg_name: str) -> Optional[Path]:
+    tar_bz2 = cache / (pkg_name + ".tar.bz2")
+    conda = cache / (pkg_name + ".conda")
+    print("Checking for", tar_bz2, conda)
+    if tar_bz2.exists():
+        return tar_bz2
+    elif conda.exists():
+        return conda
+    return None
 
 
 class TestPkgCache:
@@ -123,7 +135,8 @@ class TestPkgCache:
             assert old_ino == linked_file_stats.st_ino
 
     def test_tarball_deleted(self, cached_file, test_pkg, cache):
-        tarball = cache / Path(str(test_pkg) + ".tar.bz2")
+        tarball = cache_file(cache, test_pkg)
+        assert tarball.exists()
         os.remove(tarball)
 
         env = "x1"
@@ -138,7 +151,7 @@ class TestPkgCache:
         assert cached_file.stat().st_ino == linked_file_stats.st_ino
 
     def test_tarball_and_extracted_file_deleted(self, cache, test_pkg, cached_file):
-        tarball = cache / Path(str(test_pkg) + ".tar.bz2")
+        tarball = cache_file(cache, test_pkg)
         tarball_size = tarball.stat().st_size
         old_ino = cached_file.stat().st_ino
         os.remove(cached_file)
@@ -160,7 +173,7 @@ class TestPkgCache:
     def test_tarball_corrupted_and_extracted_file_deleted(
         self, cache, test_pkg, cached_file
     ):
-        tarball = cache / Path(str(test_pkg) + ".tar.bz2")
+        tarball = cache_file(cache, test_pkg)
         tarball_size = tarball.stat().st_size
         old_ino = cached_file.stat().st_ino
         os.remove(cached_file)
@@ -375,8 +388,8 @@ class TestMultiplePkgCaches:
                 assert (cache2 / "cache" / (f + "." + ext)).exists()
 
         # check tarballs
-        assert not (cache1 / Path(str(test_pkg) + ".tar.bz2")).exists()
-        assert (cache2 / Path(str(test_pkg) + ".tar.bz2")).exists()
+        assert cache_file(cache1, test_pkg) is None
+        assert cache_file(cache2, test_pkg).exists()
 
         # check extracted files
         assert not non_writable_cache_file.exists()
@@ -389,7 +402,8 @@ class TestMultiplePkgCaches:
     def test_extracted_tarball_only_in_non_writable_cache(
         self, cache1, cache2, test_pkg, repodata_files
     ):
-        tarball = cache1 / Path(str(test_pkg) + ".tar.bz2")
+
+        tarball = cache_file(cache1, test_pkg)
         rmtree(tarball)
         # this will chmod 700 the hardlinks and have to be done before chmod cache1
         rmtree(cache2)
@@ -413,8 +427,8 @@ class TestMultiplePkgCaches:
                 assert not (cache2 / "cache" / (f + "." + ext)).exists()
 
         # check tarballs
-        assert not (cache1 / Path(str(test_pkg) + ".tar.bz2")).exists()
-        assert not (cache2 / Path(str(test_pkg) + ".tar.bz2")).exists()
+        assert cache_file(cache1, test_pkg) is None
+        assert cache_file(cache2, test_pkg) is None
 
         # check extracted files
         assert non_writable_cache_file.exists()
@@ -449,8 +463,8 @@ class TestMultiplePkgCaches:
                 assert not (cache2 / "cache" / (f + "." + ext)).exists()
 
         # check tarballs
-        assert (cache1 / Path(str(test_pkg) + ".tar.bz2")).exists()
-        assert not (cache2 / Path(str(test_pkg) + ".tar.bz2")).exists()
+        assert cache_file(cache1, test_pkg).exists()
+        assert cache_file(cache2, test_pkg) is None
 
         # check extracted files
         assert not non_writable_cache_file.exists()
@@ -486,8 +500,8 @@ class TestMultiplePkgCaches:
                 assert not (cache2 / "cache" / (f + "." + ext)).exists()
 
         # check tarballs
-        assert (cache1 / Path(str(test_pkg) + ".tar.bz2")).exists()
-        assert not (cache2 / Path(str(test_pkg) + ".tar.bz2")).exists()
+        assert cache_file(cache1, test_pkg).exists()
+        assert cache_file(cache2, test_pkg) is None
 
         # check extracted dir
         assert (cache1 / test_pkg).exists()
@@ -533,8 +547,8 @@ class TestMultiplePkgCaches:
                 assert (cache2 / "cache" / (f + "." + ext)).exists()
 
         # check tarballs
-        assert (cache1 / Path(str(test_pkg) + ".tar.bz2")).exists()
-        assert not (cache2 / Path(str(test_pkg) + ".tar.bz2")).exists()
+        assert cache_file(cache1, test_pkg).exists()
+        assert cache_file(cache2, test_pkg) is None
 
         # check extracted dir
         assert (cache1 / test_pkg).exists()

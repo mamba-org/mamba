@@ -5,33 +5,33 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <array>
-#include <vector>
-#include <string>
 #include <random>
+#include <string>
+#include <vector>
 
+#include <fmt/format.h>
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
-#include <fmt/format.h>
 
-#include "mamba/core/pool.hpp"
-#include "mamba/core/solver.hpp"
-#include "mamba/core/repo.hpp"
-#include "mamba/core/prefix_data.hpp"
 #include "mamba/core/channel.hpp"
-#include "mamba/core/subdirdata.hpp"
 #include "mamba/core/mamba_fs.hpp"
-#include "mamba/core/satisfiability_error.hpp"
 #include "mamba/core/package_info.hpp"
-#include "mamba/core/util_string.hpp"
-#include "mamba/core/util_random.hpp"
+#include "mamba/core/pool.hpp"
+#include "mamba/core/prefix_data.hpp"
+#include "mamba/core/repo.hpp"
+#include "mamba/core/satisfiability_error.hpp"
+#include "mamba/core/solver.hpp"
+#include "mamba/core/subdirdata.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/util_random.hpp"
+#include "mamba/core/util_string.hpp"
 
 namespace mamba
 {
 
     TEST(dependency_info, unconstrained)
     {
-        auto const d = DependencyInfo("foo7 ");
+        const auto d = DependencyInfo("foo7 ");
         EXPECT_EQ(d.name(), "foo7");
         EXPECT_EQ(d.version(), "*");
         EXPECT_EQ(d.build_string(), "*");
@@ -40,7 +40,7 @@ namespace mamba
 
     TEST(dependency_info, version_range)
     {
-        auto const d = DependencyInfo(" foo_bar  >=4.3.0,<5.0 ");
+        const auto d = DependencyInfo(" foo_bar  >=4.3.0,<5.0 ");
         EXPECT_EQ(d.name(), "foo_bar");
         EXPECT_EQ(d.version(), ">=4.3.0,<5.0");
         EXPECT_EQ(d.build_string(), "*");
@@ -49,7 +49,7 @@ namespace mamba
 
     TEST(dependency_info, version_equality)
     {
-        auto const d = DependencyInfo("foo-bar==4.3.0");
+        const auto d = DependencyInfo("foo-bar==4.3.0");
         EXPECT_EQ(d.name(), "foo-bar");
         EXPECT_EQ(d.version(), "==4.3.0");
         EXPECT_EQ(d.build_string(), "*");
@@ -58,7 +58,7 @@ namespace mamba
 
     TEST(dependency_info, build_range)
     {
-        auto const d = DependencyInfo(" python_abi  3.10.*  *_cp310 ");
+        const auto d = DependencyInfo(" python_abi  3.10.*  *_cp310 ");
         EXPECT_EQ(d.name(), "python_abi");
         EXPECT_EQ(d.version(), "3.10.*");
         EXPECT_EQ(d.build_string(), "*_cp310");
@@ -121,12 +121,12 @@ namespace mamba
      * Create the repodata.json file containing the package information.
      */
     template <typename PkgRange>
-    auto create_repodata_json(fs::u8path dir, PkgRange const& packages) -> fs::u8path
+    auto create_repodata_json(fs::u8path dir, const PkgRange& packages) -> fs::u8path
     {
         namespace nl = nlohmann;
 
         auto packages_j = nl::json::object();
-        for (auto const& pkg : packages)
+        for (const auto& pkg : packages)
         {
             auto fname = fmt::format("{}-{}-{}.tar.bz2", pkg.name, pkg.version, pkg.build_string);
             packages_j[std::move(fname)] = pkg.json_record();
@@ -147,19 +147,22 @@ namespace mamba
      * The underlying packages do not exist, we are onl interested in the conflict.
      */
     template <typename PkgRange>
-    auto create_problem(PkgRange const& packages, std::vector<std::string> const& specs)
+    auto create_problem(const PkgRange& packages, const std::vector<std::string>& specs)
     {
-        auto const tmp_dir = dir_guard(fs::temp_directory_path() / "mamba/tests"
-                                       / generate_random_alphanumeric_string(20));
-        auto const repodata_f = create_repodata_json(tmp_dir.path, packages);
+        const auto tmp_dir = dir_guard(
+            fs::temp_directory_path() / "mamba/tests" / generate_random_alphanumeric_string(20)
+        );
+        const auto repodata_f = create_repodata_json(tmp_dir.path, packages);
 
-        auto pool = std::make_unique<MPool>();
-        MRepo::create(*pool, "some-name", repodata_f, "some-url");
+        auto pool = MPool();
+        MRepo::create(pool, "some-name", repodata_f, "some-url");
         auto solver = std::make_unique<MSolver>(
-            *pool, std::vector{ std::pair{ SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } });
+            std::move(pool),
+            std::vector{ std::pair{ SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } }
+        );
         solver->add_jobs(specs, SOLVER_INSTALL);
 
-        return std::pair{ std::move(solver), std::move(pool) };
+        return solver;
     }
 
     /**
@@ -167,21 +170,22 @@ namespace mamba
      */
     TEST(satifiability_error, create_problem)
     {
-        auto [solver, pool] = create_problem(std::array{ mkpkg("foo", "0.1.0", {}) }, { "foo" });
-        auto const solved = solver->solve();
+        auto solver = create_problem(std::array{ mkpkg("foo", "0.1.0", {}) }, { "foo" });
+        const auto solved = solver->try_solve();
         ASSERT_TRUE(solved);
     }
 
-    auto create_basic_conflict() -> std::pair<MSolver&, MPool&>
+    auto create_basic_conflict() -> MSolver&
     {
-        static auto solver_pool = create_problem(
+        static auto solver = create_problem(
             std::array{
                 mkpkg("A", "0.1.0"),
                 mkpkg("A", "0.2.0"),
                 mkpkg("A", "0.3.0"),
             },
-            { "A=0.4.0" });
-        return { *solver_pool.first, *solver_pool.second };
+            { "A=0.4.0" }
+        );
+        return *solver;
     }
 
     /**
@@ -190,9 +194,9 @@ namespace mamba
      * The example given by Natalie Weizenbaum
      * (credits https://nex3.medium.com/pubgrub-2fb6470504f).
      */
-    auto create_pubgrub() -> std::pair<MSolver&, MPool&>
+    auto create_pubgrub() -> MSolver&
     {
-        static auto solver_pool = create_problem(
+        static auto solver = create_problem(
             std::array{
                 mkpkg("menu", "1.5.0", { "dropdown=2.*" }),
                 mkpkg("menu", "1.4.0", { "dropdown=2.*" }),
@@ -211,8 +215,9 @@ namespace mamba
                 mkpkg("intl", "4.0.0"),
                 mkpkg("intl", "3.0.0"),
             },
-            { "menu", "icons=1.*", "intl=5.*" });
-        return { *solver_pool.first, *solver_pool.second };
+            { "menu", "icons=1.*", "intl=5.*" }
+        );
+        return *solver;
     }
 
     auto create_pubgrub_hard_(bool missing_package)
@@ -264,26 +269,28 @@ namespace mamba
             packages.push_back(mkpkg("dropdown", "2.9.1", { "libicons>10.0", "libnothere>1.0" }));
             packages.push_back(mkpkg("dropdown", "2.9.0", { "libicons>10.0" }));
         }
-        return create_problem(packages,
-                              { "menu", "pyicons=1.*", "intl=5.*", "intl-mod", "pretty>=1.0" });
+        return create_problem(
+            packages,
+            { "menu", "pyicons=1.*", "intl=5.*", "intl-mod", "pretty>=1.0" }
+        );
     }
 
     /**
      * A harder version of ``create_pubgrub``.
      */
-    auto create_pubgrub_hard() -> std::pair<MSolver&, MPool&>
+    auto create_pubgrub_hard() -> MSolver&
     {
-        static auto solver_pool = create_pubgrub_hard_(false);
-        return { *solver_pool.first, *solver_pool.second };
+        static auto solver = create_pubgrub_hard_(false);
+        return *solver;
     }
 
     /**
      * The hard version of the alternate PubGrub with missing packages.
      */
-    auto create_pubgrub_missing() -> std::pair<MSolver&, MPool&>
+    auto create_pubgrub_missing() -> MSolver&
     {
-        static auto solver_pool = create_pubgrub_hard_(true);
-        return { *solver_pool.first, *solver_pool.second };
+        static auto solver = create_pubgrub_hard_(true);
+        return *solver;
     }
 
     template <typename T, typename E>
@@ -296,11 +303,11 @@ namespace mamba
         return std::move(ex).value();
     }
 
-    auto make_platform_channels(std::vector<std::string>&& channels,
-                                std::vector<std::string> const& platforms)
+    auto
+    make_platform_channels(std::vector<std::string>&& channels, const std::vector<std::string>& platforms)
         -> std::vector<std::string>
     {
-        auto add_plat = [&platforms](auto const& chan)
+        auto add_plat = [&platforms](const auto& chan)
         { return fmt::format("{}[{}]", chan, fmt::join(platforms, ",")); };
         std::transform(channels.begin(), channels.end(), channels.begin(), add_plat);
         return std::move(channels);
@@ -313,12 +320,12 @@ namespace mamba
     {
         auto dlist = MultiDownloadTarget();
         auto sub_dirs = std::vector<MSubdirData>();
-        for (auto const* chan : get_channels(channels))
+        for (const auto* chan : get_channels(channels))
         {
             for (auto& [platform, url] : chan->platform_urls(true))
             {
-                auto sub_dir
-                    = expected_value_or_throw(MSubdirData::create(*chan, platform, url, cache));
+                auto sub_dir = expected_value_or_throw(MSubdirData::create(*chan, platform, url, cache)
+                );
                 dlist.add(sub_dir.target());
                 sub_dirs.push_back(std::move(sub_dir));
             }
@@ -333,31 +340,39 @@ namespace mamba
     /**
      * Create a solver and a pool of a conflict from conda-forge packages.
      */
-    auto create_conda_forge(std::vector<std::string>&& specs,
-                            std::vector<PackageInfo> const& virtual_packages
-                            = { mkpkg("__glibc", "2.17.0") },
-                            std::vector<std::string>&& channels = { "conda-forge" },
-                            std::vector<std::string> const& platforms = { "linux-64", "noarch" })
+    auto create_conda_forge(
+        std::vector<std::string>&& specs,
+        const std::vector<PackageInfo>& virtual_packages = { mkpkg("__glibc", "2.17.0") },
+        std::vector<std::string>&& channels = { "conda-forge" },
+        const std::vector<std::string>& platforms = { "linux-64", "noarch" }
+    )
     {
         // Reusing the cache for all invocation of this funciton for speedup
-        static auto const tmp_dir = dir_guard(fs::temp_directory_path() / "mamba/tests"
-                                              / generate_random_alphanumeric_string(20));
+        static const auto tmp_dir = dir_guard(
+            fs::temp_directory_path() / "mamba/tests" / generate_random_alphanumeric_string(20)
+        );
 
         auto prefix_data = expected_value_or_throw(PrefixData::create(tmp_dir.path / "prefix"));
         prefix_data.add_packages(virtual_packages);
-        auto pool = std::make_unique<MPool>();
-        auto& repo = MRepo::create(*pool, prefix_data);
+        auto pool = MPool();
+        auto& repo = MRepo::create(pool, prefix_data);
         repo.set_installed();
 
         auto cache = MultiPackageCache({ tmp_dir.path / "cache" });
         create_cache_dir(cache.first_writable_path());
-        load_channels(*pool, cache, make_platform_channels(std::move(channels), platforms));
+
+        bool prev_progress_bars_value = Context::instance().no_progress_bars;
+        Context::instance().no_progress_bars = true;
+        load_channels(pool, cache, make_platform_channels(std::move(channels), platforms));
+        Context::instance().no_progress_bars = prev_progress_bars_value;
 
         auto solver = std::make_unique<MSolver>(
-            *pool, std::vector{ std::pair{ SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } });
+            std::move(pool),
+            std::vector{ std::pair{ SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } }
+        );
         solver->add_jobs(specs, SOLVER_INSTALL);
 
-        return std::pair{ std::move(solver), std::move(pool) };
+        return solver;
     }
 
     /**
@@ -365,60 +380,65 @@ namespace mamba
      */
     TEST(satifiability_error, create_conda_forge)
     {
-        auto [solver, pool] = create_conda_forge({ "xtensor>=0.7" });
-        auto const solved = solver->solve();
+        auto solver = create_conda_forge({ "xtensor>=0.7" });
+        const auto solved = solver->try_solve();
         ASSERT_TRUE(solved);
     }
 
-    auto create_pytorch_cpu() -> std::pair<MSolver&, MPool&>
+    auto create_pytorch_cpu() -> MSolver&
     {
-        static auto solver_pool = create_conda_forge({ "python=2.7", "pytorch=1.12" });
-        return { *solver_pool.first, *solver_pool.second };
+        static auto solver = create_conda_forge({ "python=2.7", "pytorch=1.12" });
+        return *solver;
     }
 
-    auto create_pytorch_cuda() -> std::pair<MSolver&, MPool&>
+    auto create_pytorch_cuda() -> MSolver&
     {
-        static auto solver_pool
-            = create_conda_forge({ "python=2.7", "pytorch=1.12" },
-                                 { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "10.2.0") });
-        return { *solver_pool.first, *solver_pool.second };
+        static auto solver = create_conda_forge(
+            { "python=2.7", "pytorch=1.12" },
+            { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "10.2.0") }
+        );
+        return *solver;
     }
 
-    auto create_cudatoolkit() -> std::pair<MSolver&, MPool&>
+    auto create_cudatoolkit() -> MSolver&
     {
-        static auto solver_pool
-            = create_conda_forge({ "python=3.7",
-                                   "cudatoolkit=11.1",
-                                   "cudnn=8.0",
-                                   "pytorch=1.8",
-                                   "torchvision=0.9=*py37_cu111*" },
-                                 { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "11.1") });
-        return { *solver_pool.first, *solver_pool.second };
+        static auto solver = create_conda_forge(
+            { "python=3.7", "cudatoolkit=11.1", "cudnn=8.0", "pytorch=1.8", "torchvision=0.9=*py37_cu111*" },
+            { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "11.1") }
+        );
+        return *solver;
     }
 
-    auto create_jpeg9b() -> std::pair<MSolver&, MPool&>
+    auto create_jpeg9b() -> MSolver&
     {
-        static auto solver_pool = create_conda_forge({ "python=3.7", "jpeg=9b" });
-        return { *solver_pool.first, *solver_pool.second };
+        static auto solver = create_conda_forge({ "python=3.7", "jpeg=9b" });
+        return *solver;
     }
 
-    auto create_r_base() -> std::pair<MSolver&, MPool&>
+    auto create_r_base() -> MSolver&
     {
-        static auto solver_pool = create_conda_forge(
-            { "r-base=3.5.* ", "pandas=0", "numpy<1.20.0", "matplotlib=2", "r-matchit=4.*" });
-        return { *solver_pool.first, *solver_pool.second };
+        static auto solver = create_conda_forge(
+            { "r-base=3.5.* ", "pandas=0", "numpy<1.20.0", "matplotlib=2", "r-matchit=4.*" }
+        );
+        return *solver;
     }
 
-    auto create_scip() -> std::pair<MSolver&, MPool&>
+    auto create_scip() -> MSolver&
     {
-        static auto solver_pool = create_conda_forge({ "scip=8.*", "pyscipopt<4.0" });
-        return { *solver_pool.first, *solver_pool.second };
+        static auto solver = create_conda_forge({ "scip=8.*", "pyscipopt<4.0" });
+        return *solver;
     }
 
-    auto create_jupyterlab() -> std::pair<MSolver&, MPool&>
+    auto create_jupyterlab() -> MSolver&
     {
-        static auto solver_pool = create_conda_forge({ "jupyterlab=3.4", "openssl=3.0.0" });
-        return { *solver_pool.first, *solver_pool.second };
+        static auto solver = create_conda_forge({ "jupyterlab=3.4", "openssl=3.0.0" });
+        return *solver;
+    }
+
+    auto create_double_python() -> MSolver&
+    {
+        static auto solver = create_conda_forge({ "python=3.9.*", "python=3.10.*" });
+        return *solver;
     }
 
     class Problem : public testing::TestWithParam<decltype(&create_basic_conflict)>
@@ -426,10 +446,10 @@ namespace mamba
     };
 
     template <typename NodeVariant>
-    auto is_virtual_package(NodeVariant const& node) -> bool
+    auto is_virtual_package(const NodeVariant& node) -> bool
     {
         return std::visit(
-            [](auto const& n) -> bool
+            [](const auto& n) -> bool
             {
                 using Node = std::remove_const_t<std::remove_reference_t<decltype(n)>>;
                 if constexpr (!std::is_same_v<Node, ProblemsGraph::RootNode>)
@@ -438,13 +458,14 @@ namespace mamba
                 }
                 return false;
             },
-            node);
+            node
+        );
     };
 
-    auto has_problem_type(ProblemsGraph::node_t const& node) -> bool
+    auto has_problem_type(const ProblemsGraph::node_t& node) -> bool
     {
         return std::visit(
-            [](auto const& n) -> bool
+            [](const auto& n) -> bool
             {
                 using Node = std::remove_const_t<std::remove_reference_t<decltype(n)>>;
                 if constexpr (std::is_same_v<Node, ProblemsGraph::RootNode>)
@@ -457,22 +478,23 @@ namespace mamba
                 }
                 return true;
             },
-            node);
+            node
+        );
     };
 
 
     TEST_P(Problem, constructor)
     {
-        auto [solver, pool] = std::invoke(GetParam());
-        auto const solved = solver.solve();
+        auto& solver = std::invoke(GetParam());
+        const auto solved = solver.try_solve();
         ASSERT_FALSE(solved);
-        auto const pbs = ProblemsGraph::from_solver(solver, pool);
-        auto const& g = pbs.graph();
+        const auto pbs = ProblemsGraph::from_solver(solver, solver.pool());
+        const auto& g = pbs.graph();
 
         EXPECT_GE(g.number_of_nodes(), 1);
         for (std::size_t id = 0; id < g.number_of_nodes(); ++id)
         {
-            auto const& node = g.node(id);
+            const auto& node = g.node(id);
             if (is_virtual_package(node))
             {
                 // Currently we do not make assumption about virtual package since
@@ -493,17 +515,18 @@ namespace mamba
             else
             {
                 EXPECT_TRUE(std::holds_alternative<ProblemsGraph::PackageNode>(node));
-                EXPECT_FALSE(has_problem_type(node));
             }
             // All nodes reachable from the root
             EXPECT_TRUE(is_reachable(pbs.graph(), pbs.root_node(), id));
         }
 
-        auto const& conflicts = pbs.conflicts();
-        for (auto const& [n, _] : conflicts)
+        const auto& conflicts = pbs.conflicts();
+        for (const auto& [n, _] : conflicts)
         {
-            EXPECT_TRUE(std::holds_alternative<ProblemsGraph::PackageNode>(g.node(n))
-                        || std::holds_alternative<ProblemsGraph::ConstraintNode>(g.node(n)));
+            EXPECT_TRUE(
+                std::holds_alternative<ProblemsGraph::PackageNode>(g.node(n))
+                || std::holds_alternative<ProblemsGraph::ConstraintNode>(g.node(n))
+            );
         }
     }
 
@@ -517,26 +540,44 @@ namespace mamba
         }
         EXPECT_EQ(l.size(), n_packages);
         EXPECT_EQ(l.name(), "pkg");
-        EXPECT_EQ(l.versions_trunc(", ", "..."), "0.1.0, 0.2.0, ..., 0.9.0");
-        EXPECT_EQ(l.build_strings_trunc(", ", "..."), "bld, bld, ..., bld");
+        {
+            auto [str, size] = l.versions_trunc(", ", "...", 5);
+            EXPECT_EQ(size, 9);
+            EXPECT_EQ(str, "0.1.0, 0.2.0, ..., 0.9.0");
+        }
+        {
+            auto [str, size] = l.build_strings_trunc(", ", "...", 5, false);
+            EXPECT_EQ(size, 9);
+            EXPECT_EQ(str, "bld, bld, ..., bld");
+        }
+        {
+            auto [str, size] = l.build_strings_trunc(", ", "...", 5, true);
+            EXPECT_EQ(size, 1);
+            EXPECT_EQ(str, "bld");
+        }
+        {
+            auto [str, size] = l.versions_and_build_strings_trunc("|", "---", 5);
+            EXPECT_EQ(size, 9);
+            EXPECT_EQ(str, "0.1.0 bld|0.2.0 bld|---|0.9.0 bld");
+        }
     }
 
     TEST_P(Problem, compression)
     {
         using CpPbGr = CompressedProblemsGraph;
 
-        auto [solver, pool] = std::invoke(GetParam());
-        auto const solved = solver.solve();
+        auto& solver = std::invoke(GetParam());
+        const auto solved = solver.try_solve();
         ASSERT_FALSE(solved);
-        auto const pbs = ProblemsGraph::from_solver(solver, pool);
-        auto const cp_pbs = CpPbGr::from_problems_graph(pbs);
-        auto const& cp_g = cp_pbs.graph();
+        const auto pbs = ProblemsGraph::from_solver(solver, solver.pool());
+        const auto cp_pbs = CpPbGr::from_problems_graph(pbs);
+        const auto& cp_g = cp_pbs.graph();
 
         EXPECT_GE(pbs.graph().number_of_nodes(), cp_g.number_of_nodes());
         EXPECT_GE(cp_g.number_of_nodes(), 1);
         for (std::size_t id = 0; id < cp_g.number_of_nodes(); ++id)
         {
-            auto const& node = cp_g.node(id);
+            const auto& node = cp_g.node(id);
             if (is_virtual_package(node))
             {
                 // Currently we do not make assumption about virtual package since
@@ -561,24 +602,26 @@ namespace mamba
             EXPECT_TRUE(is_reachable(pbs.graph(), pbs.root_node(), id));
         }
 
-        auto const& conflicts = cp_pbs.conflicts();
-        for (auto const& [n, _] : conflicts)
+        const auto& conflicts = cp_pbs.conflicts();
+        for (const auto& [n, _] : conflicts)
         {
-            EXPECT_TRUE(std::holds_alternative<CpPbGr::PackageListNode>(cp_g.node(n))
-                        || std::holds_alternative<CpPbGr::ConstraintListNode>(cp_g.node(n)));
+            EXPECT_TRUE(
+                std::holds_alternative<CpPbGr::PackageListNode>(cp_g.node(n))
+                || std::holds_alternative<CpPbGr::ConstraintListNode>(cp_g.node(n))
+            );
         }
     }
 
     TEST_P(Problem, problem_tree_str)
     {
-        auto [solver, pool] = std::invoke(GetParam());
-        auto const solved = solver.solve();
+        auto& solver = std::invoke(GetParam());
+        const auto solved = solver.try_solve();
         ASSERT_FALSE(solved);
-        auto const pbs = ProblemsGraph::from_solver(solver, pool);
-        auto const cp_pbs = CompressedProblemsGraph::from_problems_graph(pbs);
-        auto const message = problem_tree_str(cp_pbs);
+        const auto pbs = ProblemsGraph::from_solver(solver, solver.pool());
+        const auto cp_pbs = CompressedProblemsGraph::from_problems_graph(pbs);
+        const auto message = problem_tree_msg(cp_pbs);
 
-        auto message_contains = [&](auto const& node)
+        auto message_contains = [&](const auto& node)
         {
             using Node = std::remove_cv_t<std::remove_reference_t<decltype(node)>>;
             if constexpr (!std::is_same_v<Node, CompressedProblemsGraph::RootNode>)
@@ -587,23 +630,28 @@ namespace mamba
             }
         };
 
-        for (auto const& node : cp_pbs.graph().nodes())
+        for (const auto& node : cp_pbs.graph().nodes())
         {
             std::visit(message_contains, node);
         }
     }
 
-    INSTANTIATE_TEST_SUITE_P(satifiability_error,
-                             Problem,
-                             testing::Values(create_basic_conflict,
-                                             create_pubgrub,
-                                             create_pubgrub_hard,
-                                             create_pubgrub_missing,
-                                             create_pytorch_cpu,
-                                             create_pytorch_cuda,
-                                             create_cudatoolkit,
-                                             create_jpeg9b,
-                                             create_r_base,
-                                             create_scip,
-                                             create_jupyterlab));
+    INSTANTIATE_TEST_SUITE_P(
+        satifiability_error,
+        Problem,
+        testing::Values(
+            create_basic_conflict,
+            create_pubgrub,
+            create_pubgrub_hard,
+            create_pubgrub_missing,
+            create_pytorch_cpu,
+            create_pytorch_cuda,
+            create_cudatoolkit,
+            create_jpeg9b,
+            create_r_base,
+            create_scip,
+            create_jupyterlab,
+            create_double_python
+        )
+    );
 }

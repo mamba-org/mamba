@@ -4,6 +4,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/subdirdata.hpp"
+#include "mamba/core/thread_utils.hpp"
 
 
 namespace mamba
@@ -36,9 +37,8 @@ namespace mamba
         }
     }
 
-    expected_t<void, mamba_aggregated_error> load_channels(MPool& pool,
-                                                           MultiPackageCache& package_caches,
-                                                           int is_retry)
+    expected_t<void, mamba_aggregated_error>
+    load_channels(MPool& pool, MultiPackageCache& package_caches, int is_retry)
     {
         int RETRY_SUBDIR_FETCH = 1 << 0;
 
@@ -61,15 +61,13 @@ namespace mamba
         {
             for (auto& [platform, url] : channel->platform_urls(true))
             {
-                auto sdires = MSubdirData::create(*channel, platform, url, package_caches);
+                auto sdires = MSubdirData::create(*channel, platform, url, package_caches, "repodata.json");
                 if (!sdires.has_value())
                 {
                     error_list.push_back(std::move(sdires).error());
                     continue;
                 }
                 auto sdir = std::move(sdires).value();
-
-                multi_dl.add(sdir.target());
                 subdirs.push_back(std::move(sdir));
                 if (ctx.channel_priority == ChannelPriority::kDisabled)
                 {
@@ -87,7 +85,34 @@ namespace mamba
                 }
             }
         }
-        // TODO load local channels even when offline
+
+        for (auto& subdir : subdirs)
+        {
+            for (auto& check_target : subdir.check_targets())
+            {
+                multi_dl.add(check_target.get());
+            }
+        }
+
+        multi_dl.download(MAMBA_NO_CLEAR_PROGRESS_BARS);
+        if (is_sig_interrupted())
+        {
+            error_list.push_back(mamba_error("Interrupted by user", mamba_error_code::user_interrupted)
+            );
+            return tl::unexpected(mamba_aggregated_error(std::move(error_list)));
+        }
+
+        for (auto& subdir : subdirs)
+        {
+            if (!subdir.check_targets().empty())
+            {
+                // recreate final download target in case HEAD requests succeeded
+                subdir.finalize_checks();
+            }
+            multi_dl.add(subdir.target());
+        }
+
+        // TODO load local channels even when offline if (!ctx.offline)
         if (!ctx.offline)
         {
             try
@@ -104,7 +129,9 @@ namespace mamba
         {
             LOG_INFO << "Creating repo from pkgs_dir for offline";
             for (const auto& c : ctx.pkgs_dirs)
+            {
                 detail::create_repo_from_pkgs_dir(pool, c);
+            }
         }
         std::string prev_channel;
         bool loading_failed = false;
@@ -115,8 +142,10 @@ namespace mamba
             {
                 if (!ctx.offline && mamba::ends_with(subdir.name(), "/noarch"))
                 {
-                    error_list.push_back(mamba_error("Subdir " + subdir.name() + " not loaded!",
-                                                     mamba_error_code::subdirdata_not_loaded));
+                    error_list.push_back(mamba_error(
+                        "Subdir " + subdir.name() + " not loaded!",
+                        mamba_error_code::subdirdata_not_loaded
+                    ));
                 }
                 continue;
             }
@@ -134,8 +163,7 @@ namespace mamba
                     std::stringstream ss;
                     ss << "Could not load repodata.json for " << subdir.name() << " after retry."
                        << "Please check repodata source. Exiting." << std::endl;
-                    error_list.push_back(
-                        mamba_error(ss.str(), mamba_error_code::repodata_not_loaded));
+                    error_list.push_back(mamba_error(ss.str(), mamba_error_code::repodata_not_loaded));
                 }
                 else
                 {
@@ -154,8 +182,10 @@ namespace mamba
                 LOG_WARNING << "Encountered malformed repodata.json cache. Redownloading.";
                 return load_channels(pool, package_caches, is_retry | RETRY_SUBDIR_FETCH);
             }
-            error_list.push_back(mamba_error("Could not load repodata. Cache corrupted?",
-                                             mamba_error_code::repodata_not_loaded));
+            error_list.push_back(mamba_error(
+                "Could not load repodata. Cache corrupted?",
+                mamba_error_code::repodata_not_loaded
+            ));
         }
         using return_type = expected_t<void, mamba_aggregated_error>;
         return error_list.empty() ? return_type()

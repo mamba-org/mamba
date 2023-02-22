@@ -4,33 +4,36 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-extern "C"
-{
-#include <solv/evr.h>
-}
+#include "mamba/core/query.hpp"
 
 #include <iostream>
 #include <stack>
 
-#include <spdlog/spdlog.h>
 #include <fmt/chrono.h>
+#include <fmt/color.h>
+#include <fmt/format.h>
+#include <fmt/ostream.h>
+#include <solv/evr.h>
+#include <spdlog/spdlog.h>
 
-#include "mamba/core/query.hpp"
+#include "mamba/core/context.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/queue.hpp"
-#include "mamba/core/util.hpp"
 #include "mamba/core/url.hpp"
+#include "mamba/core/util.hpp"
 
 namespace mamba
 {
-    void walk_graph(query_result::dependency_graph& dep_graph,
-                    query_result::dependency_graph::node_id parent,
-                    Solvable* s,
-                    std::map<Solvable*, size_t>& visited,
-                    std::map<std::string, size_t>& not_found,
-                    int depth = -1)
+    void walk_graph(
+        query_result::dependency_graph& dep_graph,
+        query_result::dependency_graph::node_id parent,
+        Solvable* s,
+        std::map<Solvable*, size_t>& visited,
+        std::map<std::string, size_t>& not_found,
+        int depth = -1
+    )
     {
         if (depth == 0)
         {
@@ -82,8 +85,9 @@ namespace mamba
                     auto it = not_found.find(name);
                     if (it == not_found.end())
                     {
-                        auto dep_id
-                            = dep_graph.add_node(PackageInfo(concat(name, " >>> NOT FOUND <<<")));
+                        auto dep_id = dep_graph.add_node(
+                            PackageInfo(concat(name, " >>> NOT FOUND <<<"))
+                        );
                         dep_graph.add_edge(parent, dep_id);
                         not_found.insert(std::make_pair(name, dep_id));
                     }
@@ -98,10 +102,12 @@ namespace mamba
         }
     }
 
-    void reverse_walk_graph(query_result::dependency_graph& dep_graph,
-                            query_result::dependency_graph::node_id parent,
-                            Solvable* s,
-                            std::map<Solvable*, size_t>& visited)
+    void reverse_walk_graph(
+        query_result::dependency_graph& dep_graph,
+        query_result::dependency_graph::node_id parent,
+        Solvable* s,
+        std::map<Solvable*, size_t>& visited
+    )
     {
         if (s)
         {
@@ -146,31 +152,30 @@ namespace mamba
 
     auto print_solvable = [](auto& pkg)
     {
+        auto out = Console::stream();
         std::string header = fmt::format("{} {} {}", pkg->name, pkg->version, pkg->build_string);
-        std::cout << fmt::format(
-            "{:^40}\n{}\n\n", header, std::string(header.size() > 40 ? header.size() : 40, '-'));
+        fmt::print(out, "{:^40}\n{:-^{}}\n\n", header, "", header.size() > 40 ? header.size() : 40);
 
-        constexpr const char* fmtstring = " {:<15} {}\n";
-        std::cout << fmt::format(fmtstring, "File Name", pkg->fn);
-        std::cout << fmt::format(fmtstring, "Name", pkg->name);
-        std::cout << fmt::format(fmtstring, "Version", pkg->version);
-        std::cout << fmt::format(fmtstring, "Build", pkg->build_string);
-        std::cout << fmt::format(fmtstring, "Build Number", pkg->build_number);
-        std::cout << fmt::format(" {:<15} {} Kb\n", "Size", pkg->size / 1000);
-        std::cout << fmt::format(fmtstring, "License", pkg->license);
-        std::cout << fmt::format(fmtstring, "Subdir", pkg->subdir);
+        static constexpr const char* fmtstring = " {:<15} {}\n";
+        fmt::print(out, fmtstring, "File Name", pkg->fn);
+        fmt::print(out, fmtstring, "Name", pkg->name);
+        fmt::print(out, fmtstring, "Version", pkg->version);
+        fmt::print(out, fmtstring, "Build", pkg->build_string);
+        fmt::print(out, fmtstring, "Build Number", pkg->build_number);
+        fmt::print(out, " {:<15} {} Kb\n", "Size", pkg->size / 1000);
+        fmt::print(out, fmtstring, "License", pkg->license);
+        fmt::print(out, fmtstring, "Subdir", pkg->subdir);
 
         std::string url_remaining, url_scheme, url_auth, url_token;
         split_scheme_auth_token(pkg->url, url_remaining, url_scheme, url_auth, url_token);
 
-        std::cout << fmt::format(" {:<15} {}://{}\n", "URL", url_scheme, url_remaining);
+        fmt::print(out, " {:<15} {}://{}\n", "URL", url_scheme, url_remaining);
 
-        std::cout << fmt::format(fmtstring, "MD5", pkg->md5.empty() ? "Not available" : pkg->md5);
-        std::cout << fmt::format(
-            fmtstring, "SHA256", pkg->sha256.empty() ? "Not available" : pkg->sha256);
+        fmt::print(out, fmtstring, "MD5", pkg->md5.empty() ? "Not available" : pkg->md5);
+        fmt::print(out, fmtstring, "SHA256", pkg->sha256.empty() ? "Not available" : pkg->sha256);
         if (pkg->track_features.size())
         {
-            std::cout << fmt::format(fmtstring, "Track Features", pkg->track_features);
+            fmt::print(out, fmtstring, "Track Features", pkg->track_features);
         }
 
         // std::cout << fmt::format<char>(
@@ -178,23 +183,23 @@ namespace mamba
 
         if (!pkg->depends.empty())
         {
-            std::cout << fmt::format("\n {}\n", "Dependencies:");
+            fmt::print(out, "\n Dependencies:\n");
             for (auto& d : pkg->depends)
             {
-                std::cout << fmt::format("  - {}\n", d);
+                fmt::print(out, "  - {}\n", d);
             }
         }
 
         if (!pkg->constrains.empty())
         {
-            std::cout << fmt::format("\n {}\n", "Run Constraints:");
+            fmt::print(out, "\n Run Constraints:\n");
             for (auto& c : pkg->constrains)
             {
-                std::cout << fmt::format("  - {}\n", c);
+                fmt::print(out, "  - {}\n", c);
             }
         }
 
-        std::cout << std::endl;
+        out << '\n';
     };
 
     query_result Query::find(const std::string& query) const
@@ -215,16 +220,18 @@ namespace mamba
         query_result::dependency_graph g;
 
         Pool* pool = m_pool.get();
-        std::sort(solvables.begin(),
-                  solvables.end(),
-                  [pool](Id a, Id b)
-                  {
-                      Solvable* sa;
-                      Solvable* sb;
-                      sa = pool_id2solvable(pool, a);
-                      sb = pool_id2solvable(pool, b);
-                      return (pool_evrcmp(pool, sa->evr, sb->evr, EVRCMP_COMPARE) > 0);
-                  });
+        std::sort(
+            solvables.begin(),
+            solvables.end(),
+            [pool](Id a, Id b)
+            {
+                Solvable* sa;
+                Solvable* sb;
+                sa = pool_id2solvable(pool, a);
+                sb = pool_id2solvable(pool, b);
+                return (pool_evrcmp(pool, sa->evr, sb->evr, EVRCMP_COMPARE) > 0);
+            }
+        );
 
         for (auto& el : solvables)
         {
@@ -323,9 +330,7 @@ namespace mamba
      * query_result implementation *
      *******************************/
 
-    query_result::query_result(QueryType type,
-                               const std::string& query,
-                               dependency_graph&& dep_graph)
+    query_result::query_result(QueryType type, const std::string& query, dependency_graph&& dep_graph)
         : m_type(type)
         , m_query(query)
         , m_dep_graph(std::move(dep_graph))
@@ -348,22 +353,25 @@ namespace mamba
 
         {
             package_view_list tmp(rhs.m_pkg_view_list.size());
-            std::transform(
-                rhs.m_pkg_view_list.begin(), rhs.m_pkg_view_list.end(), tmp.begin(), offset_lbd);
+            std::transform(rhs.m_pkg_view_list.begin(), rhs.m_pkg_view_list.end(), tmp.begin(), offset_lbd);
             swap(tmp, m_pkg_view_list);
         }
 
         if (!rhs.m_ordered_pkg_list.empty())
         {
             auto tmp(rhs.m_ordered_pkg_list);
-            std::for_each(tmp.begin(),
-                          tmp.end(),
-                          [offset_lbd](auto& entry) {
-                              std::transform(entry.second.begin(),
-                                             entry.second.end(),
-                                             entry.second.begin(),
-                                             offset_lbd);
-                          });
+            std::for_each(
+                tmp.begin(),
+                tmp.end(),
+                [offset_lbd](auto& entry) {
+                    std::transform(
+                        entry.second.begin(),
+                        entry.second.end(),
+                        entry.second.begin(),
+                        offset_lbd
+                    );
+                }
+            );
             swap(m_ordered_pkg_list, tmp);
         }
     }
@@ -397,16 +405,20 @@ namespace mamba
         {
             for (auto& entry : m_ordered_pkg_list)
             {
-                std::sort(entry.second.begin(),
-                          entry.second.end(),
-                          [fun](const auto& lhs, const auto& rhs) { return fun(*lhs, *rhs); });
+                std::sort(
+                    entry.second.begin(),
+                    entry.second.end(),
+                    [fun](const auto& lhs, const auto& rhs) { return fun(*lhs, *rhs); }
+                );
             }
         }
         else
         {
-            std::sort(m_pkg_view_list.begin(),
-                      m_pkg_view_list.end(),
-                      [fun](const auto& lhs, const auto& rhs) { return fun(*lhs, *rhs); });
+            std::sort(
+                m_pkg_view_list.begin(),
+                m_pkg_view_list.end(),
+                [fun](const auto& lhs, const auto& rhs) { return fun(*lhs, *rhs); }
+            );
         }
 
         return *this;
@@ -540,6 +552,7 @@ namespace mamba
     class graph_printer
     {
     public:
+
         using graph_type = query_result::dependency_graph;
         using node_id = graph_type::node_id;
 
@@ -590,7 +603,8 @@ namespace mamba
         void forward_or_cross_edge(node_id, node_id to, const graph_type& g)
         {
             print_prefix(to);
-            m_out << concat("\033[2m", g.nodes()[to].name, " already visited", "\033[00m") << '\n';
+            m_out << g.nodes()[to].name
+                  << fmt::format(Context::instance().palette.shown, " already visited\n");
         }
 
         void finish_edge(node_id /*from*/, node_id to, const graph_type& /*g*/)
@@ -602,6 +616,7 @@ namespace mamba
         }
 
     private:
+
         bool is_on_last_stack(node_id node) const
         {
             return !m_last_stack.empty() && m_last_stack.top() == node;
@@ -671,8 +686,8 @@ namespace mamba
                                      : (m_type == QueryType::kDEPENDS ? "depends" : "whoneeds");
         j["query"] = { { "query", MatchSpec(m_query).conda_build_form() }, { "type", query_type } };
 
-        std::string msg
-            = m_pkg_view_list.empty() ? "No entries matching \"" + m_query + "\" found" : "";
+        std::string msg = m_pkg_view_list.empty() ? "No entries matching \"" + m_query + "\" found"
+                                                  : "";
         j["result"] = { { "msg", msg }, { "status", "OK" } };
 
         j["result"]["pkgs"] = nlohmann::json::array();
@@ -685,8 +700,9 @@ namespace mamba
         {
             bool has_root = !m_dep_graph.successors(0).empty();
             j["result"]["graph_roots"] = nlohmann::json::array();
-            j["result"]["graph_roots"].push_back(has_root ? m_dep_graph.nodes()[0].json_record()
-                                                          : nlohmann::json(m_query));
+            j["result"]["graph_roots"].push_back(
+                has_root ? m_dep_graph.nodes()[0].json_record() : nlohmann::json(m_query)
+            );
         }
         return j;
     }

@@ -45,11 +45,11 @@ jobs:
       - name: build cache statistics
         run: sccache --show-stats
       - name: Cleanup
-        shell: bash -l {0}
+        shell: bash
         if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
-          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
+          rm -rf ~/micromamba*/envs/*/envs
 
   libmamba_cpp_tests:
     needs: [libmamba_static]
@@ -88,11 +88,11 @@ jobs:
       - name: build cache statistics
         run: sccache --show-stats
       - name: Cleanup
-        shell: bash -l {0}
+        shell: bash
         if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
-          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
+          rm -rf ~/micromamba*/envs/*/envs
 
   umamba_tests:
     needs: [libmamba_static]
@@ -146,11 +146,11 @@ jobs:
           micromamba activate build_env
           pytest -v --capture=tee-sys micromamba/tests/
       - name: Cleanup
-        shell: bash -l {0}
+        shell: bash
         if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
-          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
+          rm -rf ~/micromamba*/envs/*/envs
 
   mamba_python_tests:
     needs: [libmamba_static]
@@ -259,12 +259,18 @@ jobs:
           pip install git+https://github.com/conda/conda-content-trust.git@main
 
           ./testserver.sh
+
+      - name: Shell init
+        shell: bash -l {0} -euo pipefail -x
+        run: |
+          mamba init
+
       - name: Cleanup
-        shell: bash -l {0}
+        shell: bash
         if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
-          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
+          rm -rf ~/micromamba*/envs/*/envs
 
   libmamba_static_win:
     runs-on: ${{ matrix.os }}
@@ -304,11 +310,11 @@ jobs:
       - name: build cache statistics
         run: sccache --show-stats
       - name: Cleanup
-        shell: bash -l {0}
+        shell: bash
         if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
-          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
+          rm -rf ~/micromamba*/envs/*/envs
 
   mamba_python_tests_win:
     needs: [libmamba_static_win]
@@ -403,11 +409,11 @@ jobs:
             exit 1
           fi
       - name: Cleanup
-        shell: bash -l {0}
+        shell: bash
         if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
-          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
+          rm -rf ~/micromamba*/envs/*/envs
 
   libmamba_cpp_tests_win:
     needs: [libmamba_static_win]
@@ -454,11 +460,11 @@ jobs:
       - name: build cache statistics
         run: sccache --show-stats
       - name: Cleanup
-        shell: bash -l {0}
+        shell: bash
         if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
-          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
+          rm -rf ~/micromamba*/envs/*/envs
 
   umamba_tests_win:
     needs: [libmamba_static_win]
@@ -515,11 +521,11 @@ jobs:
           name: _internal_micromamba_binary
           path: umamba.tar
       - name: Cleanup
-        shell: bash -l {0}
+        shell: bash
         if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
-          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
+          rm -rf ~/micromamba*/envs/*/envs
 
   umamba_tests_win_cmd:
     needs: [umamba_tests_win]
@@ -582,8 +588,8 @@ jobs:
       #     pytest -v --capture=tee-sys micromamba/tests/test_shell.py
 
       - name: Cleanup
-        shell: bash -l {0}
+        shell: bash
         if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
-          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
+          rm -rf ~/micromamba*/envs/*/envs

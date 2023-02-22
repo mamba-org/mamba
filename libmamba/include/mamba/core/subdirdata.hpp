@@ -11,8 +11,6 @@
 #include <regex>
 #include <string>
 
-#include "nlohmann/json.hpp"
-
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/error_handling.hpp"
@@ -23,14 +21,54 @@
 #include "mamba/core/repo.hpp"
 #include "mamba/core/util.hpp"
 
+#include "package_handling.hpp"
 
 namespace decompress
 {
-    bool raw(const std::string& in, const std::string& out);
+    bool raw(mamba::compression_algorithm ca, const std::string& in, const std::string& out);
 }
 
 namespace mamba
 {
+    struct subdir_metadata
+    {
+        struct checked_at
+        {
+            bool value;
+            std::time_t last_checked;
+
+            bool has_expired() const
+            {
+                // difference in seconds, check every 14 days
+                return std::difftime(std::time(nullptr), last_checked) > 60 * 60 * 24 * 14;
+            }
+        };
+
+        static tl::expected<subdir_metadata, mamba_error> from_stream(std::istream& in);
+
+        std::string url;
+        std::string etag;
+        std::string mod;
+        std::string cache_control;
+#ifdef _WIN32
+        std::chrono::system_clock::time_point stored_mtime;
+#else
+        fs::file_time_type stored_mtime;
+#endif
+        std::size_t stored_file_size;
+        std::optional<checked_at> has_zst;
+        std::optional<checked_at> has_bz2;
+        std::optional<checked_at> has_jlap;
+
+        void store_file_metadata(const fs::u8path& path);
+        bool check_valid_metadata(const fs::u8path& path);
+
+        void serialize_to_stream(std::ostream& out) const;
+        void serialize_to_stream_tiny(std::ostream& out) const;
+
+        bool check_zst(const Channel* channel);
+    };
+
 
     /**
      * Represents a channel subdirectory (i.e. a platform)
@@ -40,11 +78,14 @@ namespace mamba
     class MSubdirData
     {
     public:
-        static expected_t<MSubdirData> create(const Channel& channel,
-                                              const std::string& platform,
-                                              const std::string& url,
-                                              MultiPackageCache& caches,
-                                              const std::string& repodata_fn = "repodata.json");
+
+        static expected_t<MSubdirData> create(
+            const Channel& channel,
+            const std::string& platform,
+            const std::string& url,
+            MultiPackageCache& caches,
+            const std::string& repodata_fn = "repodata.json"
+        );
 
         ~MSubdirData() = default;
 
@@ -55,8 +96,8 @@ namespace mamba
         MSubdirData& operator=(MSubdirData&&);
 
         // TODO return seconds as double
-        fs::file_time_type::duration check_cache(const fs::u8path& cache_file,
-                                                 const fs::file_time_type::clock::time_point& ref);
+        fs::file_time_type::duration
+        check_cache(const fs::u8path& cache_file, const fs::file_time_type::clock::time_point& ref) const;
         bool loaded() const;
 
         bool forbid_cache();
@@ -65,24 +106,32 @@ namespace mamba
         expected_t<std::string> cache_path() const;
         const std::string& name() const;
 
+        std::vector<std::unique_ptr<DownloadTarget>>& check_targets();
         DownloadTarget* target();
-        bool finalize_transfer();
 
+        bool finalize_check(const DownloadTarget& target);
+        bool finalize_transfer(const DownloadTarget& target);
+        void finalize_checks();
         expected_t<MRepo&> create_repo(MPool& pool);
 
     private:
-        MSubdirData(const Channel& channel,
-                    const std::string& platform,
-                    const std::string& url,
-                    MultiPackageCache& caches,
-                    const std::string& repodata_fn = "repodata.json");
+
+        MSubdirData(
+            const Channel& channel,
+            const std::string& platform,
+            const std::string& url,
+            MultiPackageCache& caches,
+            const std::string& repodata_fn = "repodata.json"
+        );
 
         bool load(MultiPackageCache& caches);
-        bool decompress();
-        void create_target(nlohmann::json& mod_etag);
+        void check_repodata_existence();
+        void create_target();
         std::size_t get_cache_control_max_age(const std::string& val);
+        void refresh_last_write_time(const fs::u8path& json_file, const fs::u8path& solv_file);
 
         std::unique_ptr<DownloadTarget> m_target = nullptr;
+        std::vector<std::unique_ptr<DownloadTarget>> m_check_targets;
 
         bool m_json_cache_valid = false;
         bool m_solv_cache_valid = false;
@@ -92,6 +141,7 @@ namespace mamba
         fs::u8path m_writable_pkgs_dir;
 
         ProgressProxy m_progress_bar;
+        ProgressProxy m_progress_bar_check;
 
         bool m_loaded;
         bool m_download_complete;
@@ -100,7 +150,7 @@ namespace mamba
         std::string m_json_fn;
         std::string m_solv_fn;
         bool m_is_noarch;
-        nlohmann::json m_mod_etag;
+        subdir_metadata m_metadata;
         std::unique_ptr<TemporaryFile> m_temp_file;
         const Channel* p_channel = nullptr;
     };

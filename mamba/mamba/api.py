@@ -88,7 +88,7 @@ class MambaSolver:
         _specs = specs
 
         api_solver.add_jobs(_specs, libmambapy.SOLVER_INSTALL)
-        success = api_solver.solve()
+        success = api_solver.try_solve()
 
         if not success:
             error_string = "Mamba failed to solve:\n"
@@ -97,10 +97,7 @@ class MambaSolver:
             error_string += "\nwith channels:\n"
             for c in self.channels:
                 error_string += f" - {c}\n"
-            pstring = api_solver.problems_to_str()
-
-            pstring = "\n".join(["- " + el for el in pstring.split("\n")])
-            error_string += f"\nThe reported errors are:\n{pstring}"
+            error_string += api_solver.explain_problems()
             print(error_string)
             raise RuntimeError("Solver could not find solution." + error_string)
 

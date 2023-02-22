@@ -217,9 +217,9 @@ def remove(args, parser):
         )
 
         solver.add_jobs(mamba_solve_specs, api.SOLVER_ERASE | api.SOLVER_CLEANDEPS)
-        success = solver.solve()
+        success = solver.try_solve()
         if not success:
-            print(solver.problems_to_str())
+            print(solver.explain_problems())
             exit_code = 1
             return exit_code
 
@@ -553,9 +553,9 @@ def install(args, parser, command="install"):
         if pinned_specs_info and not (context.quiet or context.json):
             print(f"\nPinned packages:\n{pinned_specs_info}\n")
 
-        success = solver.solve()
+        success = solver.try_solve()
         if not success:
-            print(solver.problems_to_str())
+            print(solver.explain_problems())
             exit_code = 1
             return exit_code
 
@@ -694,6 +694,8 @@ def repoquery(args, parser):
         fmt = api.QueryFormat.JSON
     elif hasattr(args, "tree") and args.tree:
         fmt = api.QueryFormat.TREE
+    elif hasattr(args, "recursive") and args.recursive:
+        fmt = api.QueryFormat.RECURSIVETABLE
     elif hasattr(args, "pretty") and args.pretty:
         fmt = api.QueryFormat.PRETTY
     else:
@@ -818,6 +820,7 @@ Examples:
 
     view_cmds = argparse.ArgumentParser(add_help=False)
     view_cmds.add_argument("-t", "--tree", action="store_true")
+    view_cmds.add_argument("--recursive", action="store_true")
 
     c1 = subsub_parser.add_parser(
         "whoneeds",
@@ -877,6 +880,7 @@ def _wrapped_main(*args, **kwargs):
     if (
         not found_no_banner
         and os.isatty(sys.stdout.fileno())
+        and not context.quiet
         and not ("MAMBA_NO_BANNER" in os.environ or parsed_args.cmd in ("list", "run"))
     ):
         print(banner, file=sys.stderr)

@@ -9,28 +9,30 @@ namespace mamba
     // are being scheduled concurrently.
     // Joins all threads before exiting.
     template <typename Func>
-    void execute_tasks_from_concurrent_threads(size_t task_count,
-                                               size_t tasks_per_thread,
-                                               Func work)
+    void
+    execute_tasks_from_concurrent_threads(std::size_t task_count, std::size_t tasks_per_thread, Func work)
     {
         std::vector<std::thread> producers;
-        size_t tasks_left_to_launch = task_count;
+        std::size_t tasks_left_to_launch = task_count;
         while (tasks_left_to_launch > 0)
         {
-            const size_t tasks_to_generate = std::min(tasks_per_thread, tasks_left_to_launch);
+            const std::size_t tasks_to_generate = std::min(tasks_per_thread, tasks_left_to_launch);
             producers.emplace_back(
                 [=]
                 {
-                    for (int i = 0; i < tasks_to_generate; ++i)
+                    for (std::size_t i = 0; i < tasks_to_generate; ++i)
                     {
                         work();
                     }
-                });
+                }
+            );
             tasks_left_to_launch -= tasks_to_generate;
         }
 
         for (auto&& t : producers)
+        {
             t.join();  // Make sure all the producers are finished before continuing.
+        }
     }
 
     TEST(execution, stop_default_always_succeeds)
@@ -57,30 +59,34 @@ namespace mamba
 
     TEST(execution, tasks_complete_before_destruction_ends)
     {
-        const size_t arbitrary_task_count = 2048;
-        const size_t arbitrary_tasks_per_generator = 24;
+        constexpr std::size_t arbitrary_task_count = 2048;
+        constexpr std::size_t arbitrary_tasks_per_generator = 24;
         std::atomic<int> counter{ 0 };
         {
             MainExecutor executor;
 
-            execute_tasks_from_concurrent_threads(arbitrary_task_count,
-                                                  arbitrary_tasks_per_generator,
-                                                  [&] { executor.schedule([&] { ++counter; }); });
+            execute_tasks_from_concurrent_threads(
+                arbitrary_task_count,
+                arbitrary_tasks_per_generator,
+                [&] { executor.schedule([&] { ++counter; }); }
+            );
         }  // All threads from the executor must have been joined here.
         EXPECT_EQ(counter, arbitrary_task_count);
     }
 
     TEST(execution, closed_prevents_more_scheduling_and_joins)
     {
-        const size_t arbitrary_task_count = 2048;
-        const size_t arbitrary_tasks_per_generator = 36;
+        constexpr std::size_t arbitrary_task_count = 2048;
+        constexpr std::size_t arbitrary_tasks_per_generator = 36;
         std::atomic<int> counter{ 0 };
         {
             MainExecutor executor;
 
-            execute_tasks_from_concurrent_threads(arbitrary_task_count,
-                                                  arbitrary_tasks_per_generator,
-                                                  [&] { executor.schedule([&] { ++counter; }); });
+            execute_tasks_from_concurrent_threads(
+                arbitrary_task_count,
+                arbitrary_tasks_per_generator,
+                [&] { executor.schedule([&] { ++counter; }); }
+            );
 
             executor.close();
             EXPECT_EQ(counter, arbitrary_task_count);
@@ -88,11 +94,14 @@ namespace mamba
             execute_tasks_from_concurrent_threads(
                 arbitrary_task_count,
                 arbitrary_tasks_per_generator,
-                [&] { executor.schedule([&] { throw "this code must never be executed"; }); });
+                [&] { executor.schedule([&] { throw "this code must never be executed"; }); }
+            );
         }
-        EXPECT_EQ(counter,
-                  arbitrary_task_count);  // We re-check to make sure no thread are executed anymore
-                                          // as soon as `.close()` was called.
+        EXPECT_EQ(
+            counter,
+            arbitrary_task_count
+        );  // We re-check to make sure no thread are executed anymore
+            // as soon as `.close()` was called.
     }
 
 }

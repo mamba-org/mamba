@@ -4,27 +4,28 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "mamba/core/match_spec.hpp"
+
 #include <regex>
 
-#include "mamba/core/match_spec.hpp"
+#include "mamba/core/channel.hpp"
+#include "mamba/core/environment.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/core/channel.hpp"
-#include "mamba/core/environment.hpp"
 
 namespace mamba
 {
     std::vector<std::string> parse_legacy_dist(std::string dist_str)
     {
-        try
+        dist_str = strip_package_extension(dist_str).string();
+        auto split_str = rsplit(dist_str, "-", 2);
+        if (split_str.size() != 3)
         {
-            dist_str = strip_package_extension(dist_str).string();
+            LOG_ERROR << "dist_str " << dist_str << " did not split into a correct version info.";
+            throw std::runtime_error("Invalid package filename");
         }
-        catch (...)
-        {
-        }
-        return rsplit(dist_str, "-", 2);
+        return split_str;
     }
 
 
@@ -50,8 +51,7 @@ namespace mamba
             {
                 std::size_t pm1 = pos - 1;
                 char d = s[pm1];
-                if (d == '=' || d == '!' || d == '|' || d == ',' || d == '<' || d == '>'
-                    || d == '~')
+                if (d == '=' || d == '!' || d == '|' || d == ',' || d == '<' || d == '>' || d == '~')
                 {
                     std::string tmp = s;
                     replace_all(tmp, " ", "");
@@ -215,7 +215,8 @@ namespace mamba
             if (version.find("[") != version.npos)
             {
                 throw std::runtime_error(
-                    "Invalid match spec: multiple bracket sections not allowed " + spec);
+                    "Invalid match spec: multiple bracket sections not allowed " + spec
+                );
             }
 
             version = std::string(strip(version));
@@ -344,8 +345,8 @@ namespace mamba
         std::vector<std::string> formatted_brackets;
         bool version_exact = false;
 
-        auto is_complex_relation
-            = [](const std::string& s) { return s.find_first_of("><$^|,") != s.npos; };
+        auto is_complex_relation = [](const std::string& s)
+        { return s.find_first_of("><$^|,") != s.npos; };
 
         if (!version.empty())
         {
@@ -415,9 +416,10 @@ namespace mamba
             }
         }
 
-        std::vector<std::string> check
-            = { "build_number", "track_features", "features",       "url",
-                "md5",          "license",        "license_family", "fn" };
+        std::vector<std::string> check = {
+            "build_number", "track_features", "features",       "url",
+            "md5",          "license",        "license_family", "fn"
+        };
 
         if (!url.empty())
         {

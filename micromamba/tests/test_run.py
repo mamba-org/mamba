@@ -99,6 +99,16 @@ class TestRun:
             )
         assert subprocess.run(test_script_path, shell=True).returncode == 0
 
+    def test_run_non_existing_env(self):
+        env_name = random_string()
+        try:
+            run_res = umamba_run("-n", env_name, "python")
+        except subprocess.CalledProcessError as e:
+            assert (
+                "critical libmamba The given prefix does not exist:"
+                in e.stderr.decode()
+            )
+
 
 @pytest.fixture()
 def temp_env_prefix():

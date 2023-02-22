@@ -151,57 +151,60 @@ namespace mamba
         m_pool.get().create_whatprovides();
     }
 
-    auto print_solvable = [](auto& pkg)
+    namespace
     {
-        auto out = Console::stream();
-        std::string header = fmt::format("{} {} {}", pkg->name, pkg->version, pkg->build_string);
-        fmt::print(out, "{:^40}\n{:-^{}}\n\n", header, "", header.size() > 40 ? header.size() : 40);
-
-        static constexpr const char* fmtstring = " {:<15} {}\n";
-        fmt::print(out, fmtstring, "File Name", pkg->fn);
-        fmt::print(out, fmtstring, "Name", pkg->name);
-        fmt::print(out, fmtstring, "Version", pkg->version);
-        fmt::print(out, fmtstring, "Build", pkg->build_string);
-        fmt::print(out, fmtstring, "Build Number", pkg->build_number);
-        fmt::print(out, " {:<15} {} Kb\n", "Size", pkg->size / 1000);
-        fmt::print(out, fmtstring, "License", pkg->license);
-        fmt::print(out, fmtstring, "Subdir", pkg->subdir);
-
-        std::string url_remaining, url_scheme, url_auth, url_token;
-        split_scheme_auth_token(pkg->url, url_remaining, url_scheme, url_auth, url_token);
-
-        fmt::print(out, " {:<15} {}://{}\n", "URL", url_scheme, url_remaining);
-
-        fmt::print(out, fmtstring, "MD5", pkg->md5.empty() ? "Not available" : pkg->md5);
-        fmt::print(out, fmtstring, "SHA256", pkg->sha256.empty() ? "Not available" : pkg->sha256);
-        if (pkg->track_features.size())
+        auto print_solvable(const PackageInfo& pkg)
         {
-            fmt::print(out, fmtstring, "Track Features", pkg->track_features);
-        }
+            auto out = Console::stream();
+            std::string header = fmt::format("{} {} {}", pkg.name, pkg.version, pkg.build_string);
+            fmt::print(out, "{:^40}\n{:-^{}}\n\n", header, "", header.size() > 40 ? header.size() : 40);
 
-        // std::cout << fmt::format<char>(
-        // " {:<15} {:%Y-%m-%d %H:%M:%S} UTC\n", "Timestamp", fmt::gmtime(pkg->timestamp));
+            static constexpr const char* fmtstring = " {:<15} {}\n";
+            fmt::print(out, fmtstring, "File Name", pkg.fn);
+            fmt::print(out, fmtstring, "Name", pkg.name);
+            fmt::print(out, fmtstring, "Version", pkg.version);
+            fmt::print(out, fmtstring, "Build", pkg.build_string);
+            fmt::print(out, fmtstring, "Build Number", pkg.build_number);
+            fmt::print(out, " {:<15} {} Kb\n", "Size", pkg.size / 1000);
+            fmt::print(out, fmtstring, "License", pkg.license);
+            fmt::print(out, fmtstring, "Subdir", pkg.subdir);
 
-        if (!pkg->depends.empty())
-        {
-            fmt::print(out, "\n Dependencies:\n");
-            for (auto& d : pkg->depends)
+            std::string url_remaining, url_scheme, url_auth, url_token;
+            split_scheme_auth_token(pkg.url, url_remaining, url_scheme, url_auth, url_token);
+
+            fmt::print(out, " {:<15} {}://{}\n", "URL", url_scheme, url_remaining);
+
+            fmt::print(out, fmtstring, "MD5", pkg.md5.empty() ? "Not available" : pkg.md5);
+            fmt::print(out, fmtstring, "SHA256", pkg.sha256.empty() ? "Not available" : pkg.sha256);
+            if (pkg.track_features.size())
             {
-                fmt::print(out, "  - {}\n", d);
+                fmt::print(out, fmtstring, "Track Features", pkg.track_features);
             }
-        }
 
-        if (!pkg->constrains.empty())
-        {
-            fmt::print(out, "\n Run Constraints:\n");
-            for (auto& c : pkg->constrains)
+            // std::cout << fmt::format<char>(
+            // " {:<15} {:%Y-%m-%d %H:%M:%S} UTC\n", "Timestamp", fmt::gmtime(pkg.timestamp));
+
+            if (!pkg.depends.empty())
             {
-                fmt::print(out, "  - {}\n", c);
+                fmt::print(out, "\n Dependencies:\n");
+                for (auto& d : pkg.depends)
+                {
+                    fmt::print(out, "  - {}\n", d);
+                }
             }
-        }
 
-        out << '\n';
-    };
+            if (!pkg.constrains.empty())
+            {
+                fmt::print(out, "\n Run Constraints:\n");
+                for (auto& c : pkg.constrains)
+                {
+                    fmt::print(out, "  - {}\n", c);
+                }
+            }
+
+            out << '\n';
+        }
+    }
 
     query_result Query::find(const std::string& query) const
     {
@@ -326,57 +329,8 @@ namespace mamba
         : m_type(type)
         , m_query(query)
         , m_dep_graph(std::move(dep_graph))
-        , m_pkg_view_list(m_dep_graph.number_of_nodes())
-        , m_ordered_pkg_list()
     {
         reset_pkg_view_list();
-    }
-
-    query_result::query_result(const query_result& rhs)
-        : m_type(rhs.m_type)
-        , m_query(rhs.m_query)
-        , m_dep_graph(rhs.m_dep_graph)
-        , m_pkg_view_list()
-        , m_ordered_pkg_list()
-    {
-        using std::swap;
-        auto offset_lbd = [&rhs, this](auto iter)
-        { return m_dep_graph.nodes().begin() + (iter - rhs.m_dep_graph.nodes().begin()); };
-
-        {
-            package_view_list tmp(rhs.m_pkg_view_list.size());
-            std::transform(rhs.m_pkg_view_list.begin(), rhs.m_pkg_view_list.end(), tmp.begin(), offset_lbd);
-            swap(tmp, m_pkg_view_list);
-        }
-
-        if (!rhs.m_ordered_pkg_list.empty())
-        {
-            auto tmp(rhs.m_ordered_pkg_list);
-            std::for_each(
-                tmp.begin(),
-                tmp.end(),
-                [offset_lbd](auto& entry) {
-                    std::transform(
-                        entry.second.begin(),
-                        entry.second.end(),
-                        entry.second.begin(),
-                        offset_lbd
-                    );
-                }
-            );
-            swap(m_ordered_pkg_list, tmp);
-        }
-    }
-
-    query_result& query_result::operator=(const query_result& rhs)
-    {
-        if (this != &rhs)
-        {
-            using std::swap;
-            query_result tmp(rhs);
-            swap(*this, tmp);
-        }
-        return *this;
     }
 
     QueryType query_result::query_type() const
@@ -391,26 +345,19 @@ namespace mamba
 
     query_result& query_result::sort(std::string field)
     {
-        auto fun = PackageInfo::less(field);
+        auto compare_ids = [&, fun = PackageInfo::less(field)](node_id lhs, node_id rhs)
+        { return fun(m_dep_graph.node(lhs), m_dep_graph.node(rhs)); };
 
-        if (!m_ordered_pkg_list.empty())
+        if (!m_ordered_pkg_id_list.empty())
         {
-            for (auto& entry : m_ordered_pkg_list)
+            for (auto& [_, pkg_id_list] : m_ordered_pkg_id_list)
             {
-                std::sort(
-                    entry.second.begin(),
-                    entry.second.end(),
-                    [fun](const auto& lhs, const auto& rhs) { return fun(*lhs, *rhs); }
-                );
+                std::sort(pkg_id_list.begin(), pkg_id_list.end(), compare_ids);
             }
         }
         else
         {
-            std::sort(
-                m_pkg_view_list.begin(),
-                m_pkg_view_list.end(),
-                [fun](const auto& lhs, const auto& rhs) { return fun(*lhs, *rhs); }
-            );
+            std::sort(m_pkg_id_list.begin(), m_pkg_id_list.end(), compare_ids);
         }
 
         return *this;
@@ -419,25 +366,25 @@ namespace mamba
     query_result& query_result::groupby(std::string field)
     {
         auto fun = PackageInfo::get_field_getter(field);
-        if (m_ordered_pkg_list.empty())
+        if (m_ordered_pkg_id_list.empty())
         {
-            for (auto& pkg : m_pkg_view_list)
+            for (auto& id : m_pkg_id_list)
             {
-                m_ordered_pkg_list[fun(*pkg)].push_back(pkg);
+                m_ordered_pkg_id_list[fun(m_dep_graph.node(id))].push_back(id);
             }
         }
         else
         {
             ordered_package_list tmp;
-            for (auto& entry : m_ordered_pkg_list)
+            for (auto& entry : m_ordered_pkg_id_list)
             {
-                for (auto& pkg : entry.second)
+                for (auto& id : entry.second)
                 {
-                    std::string key = entry.first + '/' + fun(*pkg);
-                    tmp[key].push_back(pkg);
+                    std::string key = entry.first + '/' + fun(m_dep_graph.node(id));
+                    tmp[std::move(key)].push_back(id);
                 }
             }
-            m_ordered_pkg_list = std::move(tmp);
+            m_ordered_pkg_id_list = std::move(tmp);
         }
         return *this;
     }
@@ -445,7 +392,7 @@ namespace mamba
     query_result& query_result::reset()
     {
         reset_pkg_view_list();
-        m_ordered_pkg_list.clear();
+        m_ordered_pkg_id_list.clear();
         return *this;
     }
 
@@ -456,7 +403,7 @@ namespace mamba
 
     std::ostream& query_result::table(std::ostream& out, const std::vector<std::string>& fmt) const
     {
-        if (m_pkg_view_list.empty())
+        if (m_pkg_id_list.empty())
         {
             out << "No entries matching \"" << m_query << "\" found" << std::endl;
         }
@@ -480,7 +427,7 @@ namespace mamba
             }
         }
 
-        auto format_row = [&](auto& pkg)
+        auto format_row = [&](const PackageInfo& pkg)
         {
             std::vector<mamba::printers::FormattedString> row;
             for (std::size_t i = 0; i < cmds.size(); ++i)
@@ -488,24 +435,24 @@ namespace mamba
                 const auto& cmd = cmds[i];
                 if (cmd == "Name")
                 {
-                    row.push_back(pkg->name);
+                    row.push_back(pkg.name);
                 }
                 else if (cmd == "Version")
                 {
-                    row.push_back(pkg->version);
+                    row.push_back(pkg.version);
                 }
                 else if (cmd == "Build")
                 {
-                    row.push_back(pkg->build_string);
+                    row.push_back(pkg.build_string);
                 }
                 else if (cmd == "Channel")
                 {
-                    row.push_back(cut_repo_name(pkg->channel));
+                    row.push_back(cut_repo_name(pkg.channel));
                 }
                 else if (cmd == "Depends")
                 {
                     std::string depends_qualifier;
-                    for (const auto& dep : pkg->depends)
+                    for (const auto& dep : pkg.depends)
                     {
                         if (starts_with(dep, args[i]))
                         {
@@ -521,21 +468,21 @@ namespace mamba
 
         printers::Table printer(headers);
 
-        if (!m_ordered_pkg_list.empty())
+        if (!m_ordered_pkg_id_list.empty())
         {
-            for (auto& entry : m_ordered_pkg_list)
+            for (auto& entry : m_ordered_pkg_id_list)
             {
-                for (auto& pkg : entry.second)
+                for (const auto& id : entry.second)
                 {
-                    printer.add_row(format_row(pkg));
+                    printer.add_row(format_row(m_dep_graph.node(id)));
                 }
             }
         }
         else
         {
-            for (const auto& pkg : m_pkg_view_list)
+            for (const auto& id : m_pkg_id_list)
             {
-                printer.add_row(format_row(pkg));
+                printer.add_row(format_row(m_dep_graph.node(id)));
             }
         }
         return printer.print(out);
@@ -557,7 +504,7 @@ namespace mamba
         void start_node(node_id node, const graph_type& g)
         {
             print_prefix(node);
-            m_out << get_package_repr(g.nodes()[node]) << '\n';
+            m_out << get_package_repr(g.node(node)) << '\n';
             if (node == 0u)
             {
                 m_prefix_stack.push_back("  ");
@@ -595,7 +542,7 @@ namespace mamba
         void forward_or_cross_edge(node_id, node_id to, const graph_type& g)
         {
             print_prefix(to);
-            m_out << g.nodes()[to].name
+            m_out << g.node(to).name
                   << fmt::format(Context::instance().palette.shown, " already visited\n");
         }
 
@@ -645,14 +592,14 @@ namespace mamba
             graph_printer printer(out);
             m_dep_graph.depth_first_search(printer);
         }
-        else if (!m_pkg_view_list.empty())
+        else if (!m_pkg_id_list.empty())
         {
             out << m_query << '\n';
-            for (size_t i = 0; i < m_pkg_view_list.size() - 1; ++i)
+            for (size_t i = 0; i < m_pkg_id_list.size() - 1; ++i)
             {
-                out << "  ├─ " << get_package_repr(*m_pkg_view_list[i]) << '\n';
+                out << "  ├─ " << get_package_repr(m_dep_graph.node(m_pkg_id_list[i])) << '\n';
             }
-            out << "  └─ " << get_package_repr(*m_pkg_view_list.back()) << '\n';
+            out << "  └─ " << get_package_repr(m_dep_graph.node(m_pkg_id_list.back())) << '\n';
         }
 
         return out;
@@ -666,22 +613,22 @@ namespace mamba
                                      : (m_type == QueryType::kDEPENDS ? "depends" : "whoneeds");
         j["query"] = { { "query", MatchSpec(m_query).conda_build_form() }, { "type", query_type } };
 
-        std::string msg = m_pkg_view_list.empty() ? "No entries matching \"" + m_query + "\" found"
-                                                  : "";
+        std::string msg = m_pkg_id_list.empty() ? "No entries matching \"" + m_query + "\" found"
+                                                : "";
         j["result"] = { { "msg", msg }, { "status", "OK" } };
 
         j["result"]["pkgs"] = nlohmann::json::array();
-        for (size_t i = 0; i < m_pkg_view_list.size(); ++i)
+        for (size_t i = 0; i < m_pkg_id_list.size(); ++i)
         {
-            j["result"]["pkgs"].push_back(m_pkg_view_list[i]->json_record());
+            j["result"]["pkgs"].push_back(m_dep_graph.node(m_pkg_id_list[i]).json_record());
         }
 
-        if (m_type != QueryType::kSEARCH && !m_pkg_view_list.empty())
+        if (m_type != QueryType::kSEARCH && !m_pkg_id_list.empty())
         {
             bool has_root = !m_dep_graph.successors(0).empty();
             j["result"]["graph_roots"] = nlohmann::json::array();
             j["result"]["graph_roots"].push_back(
-                has_root ? m_dep_graph.nodes()[0].json_record() : nlohmann::json(m_query)
+                has_root ? m_dep_graph.node(0).json_record() : nlohmann::json(m_query)
             );
         }
         return j;
@@ -689,11 +636,11 @@ namespace mamba
 
     std::ostream& query_result::pretty(std::ostream& out) const
     {
-        if (!m_pkg_view_list.empty())
+        if (!m_pkg_id_list.empty())
         {
-            for (const auto& pkg : m_pkg_view_list)
+            for (const auto& id : m_pkg_id_list)
             {
-                print_solvable(pkg);
+                print_solvable(m_dep_graph.node(id));
             }
         }
         return out;
@@ -706,12 +653,13 @@ namespace mamba
 
     void query_result::reset_pkg_view_list()
     {
-        auto it = m_dep_graph.nodes().begin();
-        std::generate(m_pkg_view_list.begin(), m_pkg_view_list.end(), [&it]() { return it++; });
+        m_pkg_id_list.clear();
+        m_pkg_id_list.reserve(m_dep_graph.number_of_nodes());
+        m_dep_graph.for_each_node_id([&](node_id id) { m_pkg_id_list.push_back(id); });
     }
 
     std::string query_result::get_package_repr(const PackageInfo& pkg) const
     {
-        return pkg.version.empty() ? pkg.name : pkg.name + '[' + pkg.version + ']';
+        return pkg.version.empty() ? pkg.name : fmt::format("{}[{}]", pkg.name, pkg.version);
     }
 }  // namespace mamba

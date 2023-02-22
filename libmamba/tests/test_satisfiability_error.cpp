@@ -588,10 +588,12 @@ namespace mamba
             }
         };
 
-        for (const auto& node : cp_pbs.graph().nodes())
-        {
-            std::visit(message_contains, node);
-        }
+        cp_pbs.graph().for_each_node_id(
+            [&message_contains, &g = cp_pbs.graph()](auto id)
+            {
+                std::visit(message_contains, g.node(id));  //
+            }
+        );
     }
 
     INSTANTIATE_TEST_SUITE_P(

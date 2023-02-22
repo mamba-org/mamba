@@ -281,7 +281,7 @@ namespace mamba
         const auto g = build_graph();
         using node_id = decltype(g)::node_id;
         std::size_t n_nodes = 0;
-        g.for_each_node(
+        g.for_each_node_id(
             [&](node_id id)
             {
                 EXPECT_TRUE(g.has_node(id));
@@ -296,7 +296,7 @@ namespace mamba
         const auto g = build_graph();
         using node_id = decltype(g)::node_id;
         std::size_t n_edges = 0;
-        g.for_each_edge(
+        g.for_each_edge_id(
             [&g, &n_edges](node_id from, node_id to)
             {
                 EXPECT_TRUE(g.has_edge(from, to));
@@ -312,7 +312,7 @@ namespace mamba
         using node_id = decltype(g)::node_id;
         using node_id_list = decltype(g)::node_id_list;
         auto leaves = node_id_list();
-        g.for_each_leaf([&leaves](node_id leaf) { leaves.insert(leaf); });
+        g.for_each_leaf_id([&leaves](node_id leaf) { leaves.insert(leaf); });
         EXPECT_EQ(leaves, node_id_list({ 4ul, 5ul, 6ul }));
     }
 
@@ -322,7 +322,7 @@ namespace mamba
         using node_id = decltype(g)::node_id;
         using node_id_list = decltype(g)::node_id_list;
         auto leaves = node_id_list();
-        g.for_each_leaf_from(2ul, [&leaves](node_id leaf) { leaves.insert(leaf); });
+        g.for_each_leaf_id_from(2ul, [&leaves](node_id leaf) { leaves.insert(leaf); });
         EXPECT_EQ(leaves, node_id_list({ 5ul, 6ul }));
     }
 
@@ -332,7 +332,7 @@ namespace mamba
         using node_id = decltype(g)::node_id;
         using node_id_list = decltype(g)::node_id_list;
         auto roots = node_id_list();
-        g.for_each_root([&roots](node_id root) { roots.insert(root); });
+        g.for_each_root_id([&roots](node_id root) { roots.insert(root); });
         EXPECT_EQ(roots, node_id_list({ 0ul }));
     }
 
@@ -342,7 +342,7 @@ namespace mamba
         using node_id = decltype(g)::node_id;
         using node_id_list = decltype(g)::node_id_list;
         auto leaves = node_id_list();
-        g.for_each_root_from(2ul, [&leaves](node_id leaf) { leaves.insert(leaf); });
+        g.for_each_root_id_from(2ul, [&leaves](node_id leaf) { leaves.insert(leaf); });
         EXPECT_EQ(leaves, node_id_list({ 0ul }));
     }
 

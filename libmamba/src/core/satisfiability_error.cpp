@@ -416,9 +416,10 @@ namespace mamba
          * @return For each node type, a partition of the the indices in @p of that type..
          */
         template <typename CompFunc>
-        auto
-        merge_node_indices(const ProblemsGraph::graph_t::node_list& nodes, CompFunc&& merge_criteria)
-            -> node_type_list<std::vector<old_node_id_list>>
+        auto merge_node_indices(
+            const node_type_list<std::vector<std::size_t>>& nodes_by_type,
+            CompFunc&& merge_criteria
+        ) -> node_type_list<std::vector<old_node_id_list>>
         {
             auto merge_func = [&merge_criteria](const auto& node_indices_of_one_node_type)
             {
@@ -427,7 +428,6 @@ namespace mamba
                     std::forward<CompFunc>(merge_criteria)
                 );
             };
-            const auto nodes_by_type = variant_by_index(nodes);
             node_type_list<std::vector<old_node_id_list>> groups(nodes_by_type.size());
             std::transform(nodes_by_type.begin(), nodes_by_type.end(), groups.begin(), merge_func);
             return groups;
@@ -519,7 +519,7 @@ namespace mamba
             auto leaves_from = [&g](node_id n) -> vector_set<node_id>
             {
                 auto leaves = std::vector<node_id>();
-                g.for_each_leaf_from(n, [&leaves](node_id m) { leaves.push_back(m); });
+                g.for_each_leaf_id_from(n, [&leaves](node_id m) { leaves.push_back(m); });
                 return vector_set(std::move(leaves));
             };
             return (node_name(g.node(n1)) == node_name(g.node(n2)))
@@ -594,8 +594,20 @@ namespace mamba
             auto old_to_new = std::vector<CompressedProblemsGraph::node_id>(
                 old_graph.number_of_nodes()
             );
+
+            // TODO(C++20) we needessly convert nodes to a ``std::vector`` for convenience
+            // due to a lack of range support for ``nodes()``
+            const auto old_graph_nodes = [](const ProblemsGraph::graph_t& g)
+            {
+                using node_id = ProblemsGraph::node_id;
+                using node_t = ProblemsGraph::node_t;
+                auto nodes = std::vector<node_t>{};
+                nodes.reserve(g.number_of_nodes());
+                g.for_each_node_id([&](node_id id) { nodes.push_back(g.node(id)); });
+                return nodes;
+            }(old_graph);
             auto old_ids_groups = merge_node_indices(
-                old_graph.nodes(),
+                variant_by_index(old_graph_nodes),
                 std::forward<CompFunc>(merge_criteria)
             );
 
@@ -664,7 +676,7 @@ namespace mamba
                 }
                 new_graph.edge(new_from, new_to).insert(old_graph.edge(old_from, old_to));
             };
-            old_graph.for_each_edge(add_new_edge);
+            old_graph.for_each_edge_id(add_new_edge);
         }
 
         /**

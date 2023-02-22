@@ -36,7 +36,7 @@ namespace mamba
         EXPECT_NE(vector_set<int>({ 2 }), vector_set<int>({}));
     }
 
-    TEST(vector_set, insertion)
+    TEST(vector_set, insert)
     {
         auto s = vector_set<int>();
         s.insert(33);
@@ -51,6 +51,19 @@ namespace mamba
         auto v = std::vector<int>({ 33, 22, 17, 0 });
         s.insert(v.begin(), v.end());
         EXPECT_EQ(s, vector_set<int>({ 0, 17, 22, 33 }));
+    }
+
+    TEST(vector_set, erase)
+    {
+        auto s = vector_set<int>{ 4, 3, 2, 1 };
+        EXPECT_EQ(s.erase(4), 1);
+        EXPECT_EQ(s, vector_set<int>({ 1, 2, 3 }));
+        EXPECT_EQ(s.erase(4), 0);
+        EXPECT_EQ(s, vector_set<int>({ 1, 2, 3 }));
+
+        const auto it = s.erase(s.begin());
+        EXPECT_EQ(it, s.begin());
+        EXPECT_EQ(s, vector_set<int>({ 2, 3 }));
     }
 
     TEST(vector_set, contains)

@@ -33,6 +33,7 @@ namespace mamba
         using typename Base::allocator_type;
         using typename Base::const_iterator;
         using typename Base::const_reverse_iterator;
+        using typename Base::size_type;
         using typename Base::value_type;
         using key_compare = Compare;
         using value_compare = Compare;
@@ -85,6 +86,10 @@ namespace mamba
         std::pair<const_iterator, bool> insert(const value_type& value);
         template <typename InputIterator>
         void insert(InputIterator first, InputIterator last);
+
+        const_iterator erase(const_iterator pos);
+        const_iterator erase(const_iterator first, const_iterator last);
+        size_type erase(const value_type& value);
 
     private:
 
@@ -424,11 +429,38 @@ namespace mamba
     auto vector_set<K, C, A>::insert_impl(U&& value) -> std::pair<const_iterator, bool>
     {
         auto it = std::lower_bound(begin(), end(), value, m_compare);
+        if ((it != end()) && (key_eq(*it, value)))
+        {
+            return { it, false };
+        }
+        it = Base::insert(it, std::forward<U>(value));
+        return { it, true };
+    }
+
+    template <typename K, typename C, typename A>
+    auto vector_set<K, C, A>::erase(const_iterator pos) -> const_iterator
+    {
+        // No need to sort or remove duplicates again
+        return Base::erase(pos);
+    }
+
+    template <typename K, typename C, typename A>
+    auto vector_set<K, C, A>::erase(const_iterator first, const_iterator last) -> const_iterator
+    {
+        // No need to sort or remove duplicates again
+        return Base::erase(first, last);
+    }
+
+    template <typename K, typename C, typename A>
+    auto vector_set<K, C, A>::erase(const value_type& value) -> size_type
+    {
+        auto it = std::lower_bound(begin(), end(), value, m_compare);
         if ((it == end()) || (!(key_eq(*it, value))))
         {
-            Base::insert(it, std::forward<U>(value));
+            return 0;
         }
-        return { it, false };
+        erase(it);
+        return 1;
     }
 
     template <typename K, typename C, typename A>

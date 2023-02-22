@@ -51,6 +51,7 @@ Once an environment is activated, ``mamba install`` can be used to install furth
    mamba create -n ... -c ... ...
    mamba list
 
+
 .. warning::
     The only difference is that you should still use ``conda`` for :ref:`activation<activation>` and :ref:`deactivation<deactivation>`.
 
@@ -74,7 +75,6 @@ Here are some examples:
     # will show you a list of the dependencies of xtensor.
     $ mamba repoquery depends xtensor
 
-Note that the ``depends`` sub-command requires either the specified package to be installed in you environment, or for the channel to be specified with the ``-c,--channel`` flag.
 
 With the ``-t,--tree`` flag, you can get the same information in a tree.
 
@@ -107,6 +107,7 @@ And you can ask for the inverse, which packages depend on some other package (e.
     ipykernel       6.9.1   py39haa95532_0 ipython >=7.23.1 pkgs/main
     ipywidgets      7.6.5   pyhd3eb1b0_1   ipython >=4.0.0  pkgs/main
 
+
 With the ``-t,--tree`` flag, you can get the same information in a tree.
 
 .. code::
@@ -128,3 +129,8 @@ With the ``-t,--tree`` flag, you can get the same information in a tree.
     │  └─ qtconsole[5.3.0]
     │     └─ jupyter already visited
     └─ ipywidgets already visited
+
+
+.. note::
+  ``depends`` and ``whoneeds`` sub-commands require either the specified package to be installed in you environment, or for the channel to be specified with the ``-c,--channel`` flag.
+  When ``search`` sub-command is used without specifying the **channel** explicitly (using the flag previously mentioned), the search will be performed considering the channels set during the configuration.

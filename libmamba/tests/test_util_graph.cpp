@@ -276,6 +276,21 @@ namespace mamba
         EXPECT_EQ(g.in_degree(6), 1);
     }
 
+    TEST(graph, for_each_node)
+    {
+        const auto g = build_graph();
+        using node_id = decltype(g)::node_id;
+        std::size_t n_nodes = 0;
+        g.for_each_node(
+            [&](node_id id)
+            {
+                EXPECT_TRUE(g.has_node(id));
+                ++n_nodes;
+            }
+        );
+        EXPECT_EQ(n_nodes, g.number_of_nodes());
+    }
+
     TEST(graph, for_each_edge)
     {
         const auto g = build_graph();

@@ -170,6 +170,8 @@ namespace mamba
 
         // TODO C++20 better to return a range since this search cannot be interupted from the
         // visitor
+        template <typename UnaryFunc>
+        UnaryFunc for_each_node(UnaryFunc func) const;
         template <typename BinaryFunc>
         BinaryFunc for_each_edge(BinaryFunc func) const;
         template <typename UnaryFunc>
@@ -600,17 +602,30 @@ namespace mamba
     }
 
     template <typename N, typename G>
-    template <typename BinaryFunc>
-    BinaryFunc DiGraphBase<N, G>::for_each_edge(BinaryFunc func) const
+    template <typename UnaryFunc>
+    UnaryFunc DiGraphBase<N, G>::for_each_node(UnaryFunc func) const
     {
         const auto n_nodes = number_of_nodes();
         for (node_id i = 0; i < n_nodes; ++i)
         {
-            for (node_id j : successors(i))
-            {
-                func(i, j);
-            }
+            func(i);
         }
+        return func;
+    }
+
+    template <typename N, typename G>
+    template <typename BinaryFunc>
+    BinaryFunc DiGraphBase<N, G>::for_each_edge(BinaryFunc func) const
+    {
+        for_each_node(
+            [&](node_id i)
+            {
+                for (node_id j : successors(i))
+                {
+                    func(i, j);
+                }
+            }
+        );
         return func;
     }
 
@@ -618,14 +633,15 @@ namespace mamba
     template <typename UnaryFunc>
     UnaryFunc DiGraphBase<N, G>::for_each_leaf(UnaryFunc func) const
     {
-        const auto n_nodes = number_of_nodes();
-        for (node_id i = 0; i < n_nodes; ++i)
-        {
-            if (out_degree(i) == 0)
+        for_each_node(
+            [&](node_id i)
             {
-                func(i);
+                if (out_degree(i) == 0)
+                {
+                    func(i);
+                }
             }
-        }
+        );
         return func;
     }
 
@@ -633,14 +649,15 @@ namespace mamba
     template <typename UnaryFunc>
     UnaryFunc DiGraphBase<N, G>::for_each_root(UnaryFunc func) const
     {
-        const auto n_nodes = number_of_nodes();
-        for (node_id i = 0; i < n_nodes; ++i)
-        {
-            if (in_degree(i) == 0)
+        for_each_node(
+            [&](node_id i)
             {
-                func(i);
+                if (in_degree(i) == 0)
+                {
+                    func(i);
+                }
             }
-        }
+        );
         return func;
     }
 

@@ -630,35 +630,40 @@ namespace mamba
         mamba::log_level log_level_fallback_hook()
         {
             auto& ctx = Context::instance();
-
-            if (ctx.json)
-            {
-                return mamba::log_level::off;
-            }
-            else if (Configuration::instance().at("verbose").configured())
-            {
-                switch (ctx.verbosity)
+            auto level = [&]{
+                if (ctx.json)
                 {
-                    case 0:
-                        return mamba::log_level::warn;
-                    case 1:
-                        return mamba::log_level::info;
-                    case 2:
-                        return mamba::log_level::debug;
-                    default:
-                        return mamba::log_level::trace;
+                    return mamba::log_level::off;
                 }
-            }
-            else
-            {
-                return mamba::log_level::warn;
-            }
+                else if (Configuration::instance().at("verbose").configured())
+                {
+                    switch (ctx.verbosity)
+                    {
+                        case 0:
+                            return mamba::log_level::warn;
+                        case 1:
+                            return mamba::log_level::info;
+                        case 2:
+                            return mamba::log_level::debug;
+                        default:
+                            return mamba::log_level::trace;
+                    }
+                }
+                else
+                {
+                    return mamba::log_level::warn;
+                }
+            }();
+
+            ctx.set_log_level(level);
+
+            return level;
         }
 
         void verbose_hook(int& lvl)
         {
             auto& ctx = Context::instance();
-            ctx.verbosity = lvl;
+            ctx.set_verbosity(lvl);
         }
 
         void target_prefix_checks_hook(int& options)
@@ -1771,16 +1776,14 @@ namespace mamba
             Console::instance().print(banner());
         }
 
-        auto& ctx = Context::instance();
-        ctx.set_log_level(ctx.logging_level);
-
         spdlog::apply_all([&](std::shared_ptr<spdlog::logger> l) { l->flush(); });
         spdlog::flush_on(spdlog::level::off);
 
         Context::instance().dump_backtrace_no_guards();
-        if (ctx.log_backtrace > 0)
+        const bool log_backtrace = Context::instance().log_backtrace;
+        if (log_backtrace > 0)
         {
-            spdlog::enable_backtrace(ctx.log_backtrace);
+            spdlog::enable_backtrace(log_backtrace);
         }
         else
         {

@@ -26,6 +26,7 @@
 #include "spdlog/pattern_formatter.h"
 
 #include <optional>
+#include <stdexcept>
 
 
 namespace mamba
@@ -67,7 +68,7 @@ namespace mamba
         }
     }
 
-    spdlog::level::level_enum convert_log_level(log_level l)
+    spdlog::level::level_enum to_spdlog_level(log_level l)
     {
         return static_cast<spdlog::level::level_enum>(l);
     }
@@ -144,53 +145,83 @@ namespace mamba
 
         spdlog::set_default_logger(l);
         logger = std::dynamic_pointer_cast<Logger>(l);
-        spdlog::set_level(convert_log_level(logging_level));
+        set_log_level(logging_level);
     }
 
     Context::~Context() = default;
+
+    namespace {
+        log_level to_log_level(int verbosity)
+        {
+            switch (verbosity)
+            {
+                case -3:
+                    return log_level::off;
+                case -2:
+                    return log_level::critical;
+                case -1:
+                    return log_level::err;
+                case 0:
+                    return log_level::warn;
+                case 1:
+                    return log_level::info;
+                case 2:
+                    return log_level::debug;
+                case 3:
+                    return log_level::trace;
+                default:
+                    throw std::invalid_argument(fmt::format("unknown verbosity {}", verbosity));
+            }
+        }
+
+        int to_verbosity(log_level logging_level)
+        {
+            switch (logging_level)
+            {
+            case log_level::off:
+              return -3;
+            case log_level::critical:
+              return -2;
+            case log_level::err:
+              return -1;
+            case log_level::warn:
+              return 0;
+            case log_level::info:
+              return 1;
+            case log_level::debug:
+              return 2;
+            case log_level::trace:
+              return 3;
+            }
+        }
+    }
 
     void Context::set_verbosity(int lvl)
     {
         this->verbosity = lvl;
 
-        switch (lvl)
+        // keep in sync with log level
+        const auto new_log_level = to_log_level(lvl);
+        if(this->logging_level != new_log_level) // avoids recursive calls
         {
-            case -3:
-                this->logging_level = log_level::off;
-                break;
-            case -2:
-                this->logging_level = log_level::critical;
-                break;
-            case -1:
-                this->logging_level = log_level::err;
-                break;
-            case 0:
-                this->logging_level = log_level::warn;
-                break;
-            case 1:
-                this->logging_level = log_level::info;
-                break;
-            case 2:
-                this->logging_level = log_level::debug;
-                break;
-            case 3:
-                this->logging_level = log_level::trace;
-                break;
-            default:
-                this->logging_level = log_level::info;
-                break;
+            set_log_level(new_log_level);
         }
-        const auto spdlog_level = convert_log_level(logging_level);
-        spdlog::set_level(spdlog_level);
-        plcontext.set_log_level(spdlog_level);
     }
 
     void Context::set_log_level(log_level level)
     {
         logging_level = level;
-        const auto spdlog_level = convert_log_level(level);
+
+        const auto spdlog_level = to_spdlog_level(level);
         spdlog::set_level(spdlog_level);
         plcontext.set_log_level(spdlog_level);
+
+        // keep in sync with verbosity
+        const auto new_verbosity = to_verbosity(level);
+        if(this->verbosity != new_verbosity) // avoids recursive calls
+        {
+            set_verbosity(new_verbosity);
+        }
     }
 
     std::vector<std::string> Context::platforms()

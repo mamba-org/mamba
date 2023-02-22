@@ -220,7 +220,6 @@ namespace mamba
                 }
             }
         }
-        ctx.plcontext.set_verbosity(ctx.verbosity);
         powerloader::Downloader multi_dl(ctx.plcontext);
 
         std::vector<std::pair<int, int>> priorities;

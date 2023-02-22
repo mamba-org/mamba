@@ -660,6 +660,16 @@ namespace mamba
             return level;
         }
 
+        void json_hook(bool& enable_json)
+        {
+            auto& ctx = Context::instance();
+            ctx.json = enable_json;
+            if(enable_json)
+            {
+                ctx.set_log_level(log_level::off);
+            }
+        }
+
         void verbose_hook(int& lvl)
         {
             // If we output json, we ignore logging level requests
@@ -667,6 +677,10 @@ namespace mamba
             if(!ctx.json)
             {
                 ctx.set_verbosity(lvl);
+            }
+            else
+            {
+                assert(ctx.logging_level == log_level::off);
             }
         }
 
@@ -1530,6 +1544,7 @@ namespace mamba
         insert(Configurable("json", &ctx.json)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
+                   .set_post_merge_hook(detail::json_hook)
                    .needs({ "print_config_only", "print_context_only" })
                    .set_env_var_names()
                    .description("Report all output as json"));

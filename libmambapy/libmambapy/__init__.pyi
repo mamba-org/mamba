@@ -219,7 +219,7 @@ class CompressedProblemsGraph:
         def __init__(self) -> None: ...
         def __iter__(self) -> typing.Iterator: ...
         def __len__(self) -> int: ...
-        def add(self, arg0: int, arg1: int) -> None: ...
+        def add(self, arg0: int, arg1: int) -> bool: ...
         def clear(self) -> None: ...
         def conflicts(self, arg0: int) -> typing.Set[int]: ...
         def has_conflict(self, arg0: int) -> bool: ...
@@ -257,7 +257,7 @@ class CompressedProblemsGraph:
         ) -> typing.Tuple[str, int]: ...
         pass
 
-    class DependencyListList:
+    class DependencyList:
         def __bool__(self) -> bool: ...
         def __init__(self) -> None: ...
         def __iter__(self) -> typing.Iterator: ...
@@ -365,15 +365,16 @@ class CompressedProblemsGraph:
     def graph(
         self,
     ) -> typing.Tuple[
-        typing.List[
+        typing.Dict[
+            int,
             typing.Union[
                 ProblemsGraph.RootNode,
                 CompressedProblemsGraph.PackageListNode,
                 CompressedProblemsGraph.UnresolvedDependencyListNode,
                 CompressedProblemsGraph.ConstraintListNode,
-            ]
+            ],
         ],
-        typing.Dict[typing.Tuple[int, int], CompressedProblemsGraph.DependencyListList],
+        typing.Dict[typing.Tuple[int, int], CompressedProblemsGraph.DependencyList],
     ]: ...
     def root_node(self) -> int: ...
     def summary_message(self) -> str: ...
@@ -1068,13 +1069,14 @@ class ProblemsGraph:
     def graph(
         self,
     ) -> typing.Tuple[
-        typing.List[
+        typing.Dict[
+            int,
             typing.Union[
                 ProblemsGraph.RootNode,
                 ProblemsGraph.PackageNode,
                 ProblemsGraph.UnresolvedDependencyNode,
                 ProblemsGraph.ConstraintNode,
-            ]
+            ],
         ],
         typing.Dict[typing.Tuple[int, int], MatchSpec],
     ]: ...

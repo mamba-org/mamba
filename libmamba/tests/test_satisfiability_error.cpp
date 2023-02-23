@@ -34,13 +34,40 @@ namespace mamba
         EXPECT_EQ(c.size(), 0);
         EXPECT_FALSE(c.has_conflict(0));
         EXPECT_FALSE(c.in_conflict(0, 1));
-        c.add(0, 1);
-        c.add(1, 2);
+        EXPECT_TRUE(c.add(0, 1));
+        EXPECT_TRUE(c.add(1, 2));
+        EXPECT_FALSE(c.add(1, 2));
         EXPECT_TRUE(c.has_conflict(0));
         EXPECT_TRUE(c.in_conflict(0, 1));
         EXPECT_TRUE(c.in_conflict(1, 2));
         EXPECT_TRUE(c.has_conflict(2));
         EXPECT_FALSE(c.in_conflict(0, 2));
+        // With same
+        EXPECT_TRUE(c.add(5, 5));
+        EXPECT_TRUE(c.has_conflict(5));
+        EXPECT_TRUE(c.in_conflict(5, 5));
+    }
+
+    TEST(conflict_map, remove)
+    {
+        auto c = conflict_map<std::size_t>{ { 1, 1 }, { 1, 2 }, { 1, 3 }, { 2, 4 } };
+        ASSERT_EQ(c.size(), 4);
+
+        ASSERT_TRUE(c.in_conflict(2, 4));
+        ASSERT_TRUE(c.in_conflict(4, 2));
+        EXPECT_TRUE(c.remove(2, 4));
+        EXPECT_FALSE(c.in_conflict(4, 2));
+        EXPECT_FALSE(c.in_conflict(2, 4));
+        EXPECT_TRUE(c.has_conflict(2));
+        EXPECT_FALSE(c.has_conflict(4));
+
+        EXPECT_FALSE(c.remove(2, 4));
+
+        EXPECT_TRUE(c.remove(1));
+        EXPECT_FALSE(c.has_conflict(1));
+        EXPECT_FALSE(c.in_conflict(1, 1));
+        EXPECT_FALSE(c.in_conflict(1, 2));
+        EXPECT_FALSE(c.in_conflict(3, 1));
     }
 
     /**

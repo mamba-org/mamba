@@ -9,6 +9,7 @@
 
 #include <array>
 #include <functional>
+#include <initializer_list>
 #include <optional>
 #include <ostream>
 #include <string>
@@ -42,6 +43,7 @@ namespace mamba
         using typename Base::value_type;
 
         conflict_map() = default;
+        conflict_map(std::initializer_list<std::pair<T, T>> conflicts_pairs);
 
         using Base::empty;
         using Base::size;
@@ -55,7 +57,13 @@ namespace mamba
         const_iterator end() const noexcept;
 
         using Base::clear;
-        void add(const key_type& a, const key_type& b);
+        bool add(const key_type& a, const key_type& b);
+        bool remove(const key_type& a, const key_type& b);
+        bool remove(const key_type& a);
+
+    private:
+
+        bool remove_asym(const key_type& a, const key_type& b);
     };
 
     /**
@@ -268,6 +276,15 @@ namespace mamba
      ************************************/
 
     template <typename T>
+    conflict_map<T>::conflict_map(std::initializer_list<T[2]> conflicts_pairs)
+    {
+        for (const auto& [a, b] : conflicts_pairs)
+        {
+            add(a, b);
+        }
+    }
+
+    template <typename T>
     bool conflict_map<T>::has_conflict(const key_type& a) const
     {
         return Base::find(a) != end();
@@ -298,10 +315,56 @@ namespace mamba
     }
 
     template <typename T>
-    void conflict_map<T>::add(const key_type& a, const key_type& b)
+    bool conflict_map<T>::add(const key_type& a, const key_type& b)
     {
-        Base::operator[](a).insert(b);
-        Base::operator[](b).insert(a);
+        auto [_, inserted] = Base::operator[](a).insert(b);
+        if (a != b)
+        {
+            Base::operator[](b).insert(a);
+        }
+        return inserted;
+    }
+
+    template <typename T>
+    bool conflict_map<T>::remove_asym(const key_type& a, const key_type& b)
+    {
+        auto iter = Base::find(a);
+        if (iter == Base::end())
+        {
+            return false;
+        }
+        auto& cflcts = iter->second;
+        const bool erased = cflcts.erase(b);
+        if (cflcts.empty())
+        {
+            Base::erase(a);
+        }
+        return erased;
+    };
+
+    template <typename T>
+    bool conflict_map<T>::remove(const key_type& a, const key_type& b)
+    {
+        return remove_asym(a, b) && ((a == b) || remove_asym(b, a));
+    }
+
+    template <typename T>
+    bool conflict_map<T>::remove(const key_type& a)
+    {
+        auto a_iter = Base::find(a);
+        if (a_iter == Base::end())
+        {
+            return false;
+        }
+        for (const auto& b : a_iter->second)
+        {
+            if (a != b)  // Cannot modify while we iterate on it
+            {
+                remove_asym(b, a);
+            }
+        }
+        Base::erase(a);
+        return true;
     }
 
     /*********************************

@@ -272,16 +272,42 @@ namespace mamba
     };
 
     template <typename Node, typename Edge = void>
-    class DiGraph : public DiGraphBase<Node, DiGraph<Node, Edge>>
+    class DiGraph : private DiGraphBase<Node, DiGraph<Node, Edge>>
     {
     public:
 
         using Base = DiGraphBase<Node, DiGraph<Node, Edge>>;
-        using edge_t = Edge;
+        using typename Base::adjacency_list;
         using typename Base::node_id;
+        using typename Base::node_id_list;
+        using typename Base::node_map;
+        using typename Base::node_t;
+        using edge_t = Edge;
         using edge_id = std::pair<node_id, node_id>;
         using edge_map = std::map<edge_id, edge_t>;
 
+        using Base::empty;
+        using Base::has_edge;
+        using Base::has_node;
+        using Base::in_degree;
+        using Base::node;
+        using Base::nodes;
+        using Base::number_of_edges;
+        using Base::number_of_nodes;
+        using Base::out_degree;
+        using Base::predecessors;
+        using Base::successors;
+
+        using Base::for_each_edge_id;
+        using Base::for_each_leaf_id;
+        using Base::for_each_leaf_id_from;
+        using Base::for_each_node_id;
+        using Base::for_each_root_id;
+        using Base::for_each_root_id_from;
+
+        using Base::depth_first_search;
+
+        using Base::add_node;
         void add_edge(node_id from, node_id to, const edge_t& data);
         void add_edge(node_id from, node_id to, edge_t&& data);
 
@@ -294,6 +320,8 @@ namespace mamba
         edge_t& edge(edge_id edge);
 
     private:
+
+        friend class DiGraphBase<Node, DiGraph<Node, Edge>>;  // required for private CRTP
 
         template <typename T>
         void add_edge_impl(node_id from, node_id to, T&& data);
@@ -674,8 +702,7 @@ namespace mamba
     template <typename UnaryFunc>
     UnaryFunc DiGraphBase<N, G>::for_each_leaf_id_from(node_id source, UnaryFunc func) const
     {
-        using graph_t = DiGraphBase<N, G>;
-        struct LeafVisitor : default_visitor<graph_t>
+        struct LeafVisitor : default_visitor<derived_t>
         {
             UnaryFunc& m_func;
 
@@ -684,7 +711,7 @@ namespace mamba
             {
             }
 
-            void start_node(node_id n, const graph_t& g)
+            void start_node(node_id n, const derived_t& g)
             {
                 if (g.out_degree(n) == 0)
                 {
@@ -701,8 +728,7 @@ namespace mamba
     template <typename UnaryFunc>
     UnaryFunc DiGraphBase<N, G>::for_each_root_id_from(node_id source, UnaryFunc func) const
     {
-        using graph_t = DiGraphBase<N, G>;
-        struct RootVisitor : default_visitor<graph_t>
+        struct RootVisitor : default_visitor<derived_t>
         {
             UnaryFunc& m_func;
 
@@ -711,7 +737,7 @@ namespace mamba
             {
             }
 
-            void start_node(node_id n, const graph_t& g)
+            void start_node(node_id n, const derived_t& g)
             {
                 if (g.in_degree(n) == 0)
                 {
@@ -791,22 +817,18 @@ namespace mamba
      *  Algorithms implementation  *
      *******************************/
 
-    template <typename Node, typename Derived>
-    auto is_reachable(
-        const DiGraphBase<Node, Derived>& graph,
-        typename DiGraphBase<Node, Derived>::node_id source,
-        typename DiGraphBase<Node, Derived>::node_id target
-    ) -> bool
+    template <typename Graph>
+    auto
+    is_reachable(const Graph& graph, typename Graph::node_id source, typename Graph::node_id target)
+        -> bool
     {
-        using graph_t = DiGraphBase<Node, Derived>;
-        using node_id = typename graph_t::node_id;
-
-        struct : default_visitor<graph_t>
+        struct : default_visitor<Graph>
         {
+            using node_id = typename Graph::node_id;
             node_id target;
             bool target_visited = false;
 
-            void start_node(node_id node, const graph_t&)
+            void start_node(node_id node, const Graph&)
             {
                 target_visited = target_visited || (node == target);
             }

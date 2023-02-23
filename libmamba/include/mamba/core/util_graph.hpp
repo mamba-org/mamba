@@ -143,7 +143,7 @@ namespace mamba
 
         using node_t = Node;
         using node_id = std::size_t;
-        using node_list = std::vector<node_t>;
+        using node_map = std::map<node_id, node_t>;
         using node_id_list = vector_set<node_id>;
         using adjacency_list = std::vector<node_id_list>;
 
@@ -158,7 +158,7 @@ namespace mamba
         std::size_t number_of_edges() const noexcept;
         std::size_t in_degree(node_id id) const noexcept;
         std::size_t out_degree(node_id id) const noexcept;
-        const node_list& nodes() const;
+        const node_map& nodes() const;
         const node_t& node(node_id id) const;
         node_t& node(node_id id);
         const node_id_list& successors(node_id id) const;
@@ -190,6 +190,8 @@ namespace mamba
 
     protected:
 
+        using derived_t = Derived;
+
         DiGraphBase() = default;
         DiGraphBase(const DiGraphBase&) = default;
         DiGraphBase(DiGraphBase&&) = default;
@@ -197,14 +199,10 @@ namespace mamba
         DiGraphBase& operator=(DiGraphBase&&) = default;
         ~DiGraphBase() = default;
 
-        Derived& derived_cast()
-        {
-            return static_cast<Derived&>(*this);
-        }
-        const Derived& derived_cast() const
-        {
-            return static_cast<const Derived&>(*this);
-        }
+        node_id number_of_node_id() const noexcept;
+
+        Derived& derived_cast();
+        const Derived& derived_cast() const;
 
     private:
 
@@ -228,7 +226,7 @@ namespace mamba
             const adjacency_list& successors
         ) const;
 
-        node_list m_node_list;
+        node_map m_node_map;
         adjacency_list m_predecessors;
         adjacency_list m_successors;
         std::size_t m_number_of_edges = 0;
@@ -495,7 +493,7 @@ namespace mamba
     template <typename N, typename G>
     auto DiGraphBase<N, G>::number_of_nodes() const noexcept -> std::size_t
     {
-        return m_node_list.size();
+        return m_node_map.size();
     }
 
     template <typename N, typename G>
@@ -517,21 +515,21 @@ namespace mamba
     }
 
     template <typename N, typename G>
-    auto DiGraphBase<N, G>::nodes() const -> const node_list&
+    auto DiGraphBase<N, G>::nodes() const -> const node_map&
     {
-        return m_node_list;
+        return m_node_map;
     }
 
     template <typename N, typename G>
     auto DiGraphBase<N, G>::node(node_id id) const -> const node_t&
     {
-        return m_node_list[id];
+        return m_node_map.at(id);
     }
 
     template <typename N, typename G>
     auto DiGraphBase<N, G>::node(node_id id) -> node_t&
     {
-        return m_node_list[id];
+        return m_node_map.at(id);
     }
 
     template <typename N, typename G>
@@ -561,7 +559,7 @@ namespace mamba
     template <typename N, typename G>
     auto DiGraphBase<N, G>::has_node(node_id id) const -> bool
     {
-        return id < number_of_nodes();
+        return nodes().count(id) > 0;
     }
 
     template <typename N, typename G>
@@ -580,6 +578,17 @@ namespace mamba
     auto DiGraphBase<N, G>::add_node(node_t&& value) -> node_id
     {
         return add_node_impl(std::move(value));
+    }
+
+    template <typename N, typename G>
+    template <class V>
+    auto DiGraphBase<N, G>::add_node_impl(V&& value) -> node_id
+    {
+        const node_id id = number_of_node_id();
+        m_node_map.emplace(id, std::forward<V>(value));
+        m_successors.push_back(node_id_list());
+        m_predecessors.push_back(node_id_list());
+        return id;
     }
 
     template <typename N, typename G>
@@ -721,19 +730,9 @@ namespace mamba
     {
         if (!empty())
         {
-            visited_list status(m_node_list.size(), visited::no);
+            visited_list status(number_of_node_id(), visited::no);
             depth_first_search_impl(visitor, node, status, reverse ? m_predecessors : m_successors);
         }
-    }
-
-    template <typename N, typename G>
-    template <class V>
-    auto DiGraphBase<N, G>::add_node_impl(V&& value) -> node_id
-    {
-        m_node_list.push_back(std::forward<V>(value));
-        m_successors.push_back(node_id_list());
-        m_predecessors.push_back(node_id_list());
-        return number_of_nodes() - 1u;
     }
 
     template <typename N, typename G>
@@ -767,6 +766,25 @@ namespace mamba
         }
         status[node] = visited::yes;
         visitor.finish_node(node, derived_cast());
+    }
+
+    template <typename N, typename G>
+    auto DiGraphBase<N, G>::number_of_node_id() const noexcept -> node_id
+    {
+        // Not number_of_nodes because due to remove nodes it may be larger
+        return m_successors.size();
+    }
+
+    template <typename N, typename G>
+    auto DiGraphBase<N, G>::derived_cast() -> derived_t&
+    {
+        return static_cast<derived_t&>(*this);
+    }
+
+    template <typename N, typename G>
+    auto DiGraphBase<N, G>::derived_cast() const -> const derived_t&
+    {
+        return static_cast<const derived_t&>(*this);
     }
 
     /*******************************

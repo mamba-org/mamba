@@ -309,7 +309,7 @@ PYBIND11_MODULE(bindings, m)
         py::class_<CpPbGraph::UnresolvedDependencyListNode>(pyCpPbGraph, "UnresolvedDependencyListNode")
     );
     bind_NamedList(py::class_<CpPbGraph::ConstraintListNode>(pyCpPbGraph, "ConstraintListNode"));
-    bind_NamedList(py::class_<CpPbGraph::edge_t>(pyCpPbGraph, "DependencyListList"));
+    bind_NamedList(py::class_<CpPbGraph::edge_t>(pyCpPbGraph, "DependencyList"));
     pyCpPbGraph.def_property_readonly_static(
         "ConflictMap",
         [](py::handle) { return py::type::of<PbGraph::conflicts_t>(); }

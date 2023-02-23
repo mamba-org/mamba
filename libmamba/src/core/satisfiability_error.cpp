@@ -157,7 +157,7 @@ namespace mamba
                         }
                         auto src_id = add_solvable(
                             problem.source_id,
-                            PackageNode{ std::move(source).value(), std::nullopt }
+                            PackageNode{ std::move(source).value() }
                         );
                         node_id tgt_id = add_solvable(
                             problem.target_id,
@@ -388,21 +388,20 @@ namespace mamba
         using node_type_list = std::vector<T>;
 
         /**
-         * Group indices of variants with same alternative together.
+         * Group ids of nodes with same alternative together.
          *
-         * If a variant at index ``i`` in the input @p vrnts holds alternative with index ``k``
-         * then the output will contain ``i`` in position ``k``.
+         * If a node variant at with id ``id`` in the input graph @p g holds alternative
+         * with variant index ``k`` then the output will contain ``id`` in position ``k``.
          */
-        template <typename... T>
-        auto variant_by_index(const std::vector<std::variant<T...>>& vrnts)
-            -> node_type_list<std::vector<std::size_t>>
+        auto node_id_by_type(const ProblemsGraph::graph_t& g) -> node_type_list<old_node_id_list>
         {
-            auto out = node_type_list<std::vector<std::size_t>>(sizeof...(T));
-            const auto n = vrnts.size();
-            for (std::size_t i = 0; i < n; ++i)
-            {
-                out[vrnts[i].index()].push_back(i);
-            }
+            using node_id = ProblemsGraph::node_id;
+            using node_t = ProblemsGraph::node_t;
+            static constexpr auto n_types = std::variant_size_v<node_t>;
+
+            auto out = node_type_list<old_node_id_list>(n_types);
+            g.for_each_node_id([&](node_id id) { out[g.node(id).index()].push_back(id); });
+
             return out;
         }
 
@@ -416,10 +415,9 @@ namespace mamba
          * @return For each node type, a partition of the the indices in @p of that type..
          */
         template <typename CompFunc>
-        auto merge_node_indices(
-            const node_type_list<std::vector<std::size_t>>& nodes_by_type,
-            CompFunc&& merge_criteria
-        ) -> node_type_list<std::vector<old_node_id_list>>
+        auto
+        merge_node_indices(const node_type_list<old_node_id_list>& nodes_by_type, CompFunc&& merge_criteria)
+            -> node_type_list<std::vector<old_node_id_list>>
         {
             auto merge_func = [&merge_criteria](const auto& node_indices_of_one_node_type)
             {
@@ -525,7 +523,7 @@ namespace mamba
             return (node_name(g.node(n1)) == node_name(g.node(n2)))
                    // Merging conflicts would be counter-productive in explaining problems
                    && !(pbs.conflicts().in_conflict(n1, n2))
-                   // We don't want to use leaves_from for leaves because it resove to themselves,
+                   // We don't want to use leaves_from for leaves because it resolve to themselves,
                    // preventing any merging.
                    && ((is_leaf(n1) && is_leaf(n2)) || (leaves_from(n1) == leaves_from(n2)))
                    // We only check the parents for non-leaves meaning parents can "inject"
@@ -533,7 +531,7 @@ namespace mamba
                    && ((!is_leaf(n1) && !is_leaf(n2)) || (g.predecessors(n1) == g.predecessors(n2)));
         }
 
-        using node_id_mapping = std::vector<CompressedProblemsGraph::node_id>;
+        using node_id_mapping = std::map<ProblemsGraph::node_id, CompressedProblemsGraph::node_id>;
 
         /**
          * For a given type of node, merge nodes together and add them to the new graph.
@@ -591,23 +589,10 @@ namespace mamba
             auto new_graph = CompressedProblemsGraph::graph_t();
             const auto new_root_node = new_graph.add_node(CompressedProblemsGraph::RootNode());
 
-            auto old_to_new = std::vector<CompressedProblemsGraph::node_id>(
-                old_graph.number_of_nodes()
-            );
+            auto old_to_new = node_id_mapping{};
 
-            // TODO(C++20) we needessly convert nodes to a ``std::vector`` for convenience
-            // due to a lack of range support for ``nodes()``
-            const auto old_graph_nodes = [](const ProblemsGraph::graph_t& g)
-            {
-                using node_id = ProblemsGraph::node_id;
-                using node_t = ProblemsGraph::node_t;
-                auto nodes = std::vector<node_t>{};
-                nodes.reserve(g.number_of_nodes());
-                g.for_each_node_id([&](node_id id) { nodes.push_back(g.node(id)); });
-                return nodes;
-            }(old_graph);
             auto old_ids_groups = merge_node_indices(
-                variant_by_index(old_graph_nodes),
+                node_id_by_type(pbs.graph()),
                 std::forward<CompFunc>(merge_criteria)
             );
 
@@ -668,8 +653,8 @@ namespace mamba
         {
             auto add_new_edge = [&](ProblemsGraph::node_id old_from, ProblemsGraph::node_id old_to)
             {
-                auto const new_from = old_to_new[old_from];
-                auto const new_to = old_to_new[old_to];
+                auto const new_from = old_to_new.at(old_from);
+                auto const new_to = old_to_new.at(old_to);
                 if (!new_graph.has_edge(new_from, new_to))
                 {
                     new_graph.add_edge(new_from, new_to, CompressedProblemsGraph::edge_t());
@@ -692,10 +677,10 @@ namespace mamba
             auto new_conflicts = CompressedProblemsGraph::conflicts_t();
             for (const auto& [old_from, old_with] : old_conflicts)
             {
-                const auto new_from = old_to_new[old_from];
+                const auto new_from = old_to_new.at(old_from);
                 for (const auto old_to : old_with)
                 {
-                    new_conflicts.add(new_from, old_to_new[old_to]);
+                    new_conflicts.add(new_from, old_to_new.at(old_to));
                 }
             }
             return new_conflicts;
@@ -708,9 +693,9 @@ namespace mamba
         const merge_criteria_t& merge_criteria
     ) -> CompressedProblemsGraph
     {
-        graph_t graph;
-        node_id root_node;
-        node_id_mapping old_to_new;
+        graph_t graph = {};
+        node_id root_node = {};
+        node_id_mapping old_to_new = {};
         if (merge_criteria)
         {
             auto merge_func =
@@ -1089,7 +1074,7 @@ namespace mamba
             using TreeNodeIter = typename TreeNodeList::iterator;
 
             vector_set<node_id> leaf_installables = {};
-            std::vector<std::optional<Status>> m_node_visited;
+            std::map<node_id, std::optional<Status>> m_node_visited = {};
             const CompressedProblemsGraph& m_pbs;
 
             /**
@@ -1144,9 +1129,9 @@ namespace mamba
          *******************************/
 
         TreeDFS::TreeDFS(const CompressedProblemsGraph& pbs)
-            : m_node_visited(pbs.graph().number_of_nodes(), std::nullopt)
-            , m_pbs(pbs)
+            : m_pbs(pbs)
         {
+            pbs.graph().for_each_node_id([&](auto id) { m_node_visited.emplace(id, std::nullopt); });
         }
 
         auto TreeDFS::explore() -> std::vector<TreeNode>
@@ -1189,7 +1174,7 @@ namespace mamba
         {
             const bool has_predecessors = m_pbs.graph().predecessors(id).size() > 0;
             const bool has_successors = m_pbs.graph().successors(id).size() > 0;
-            const bool is_visited = m_node_visited[id].has_value();
+            const bool is_visited = m_node_visited.at(id).has_value();
             // We purposefully check if the node is a leaf before checking if it
             // is visited because showing a single  node again is more intelligible than
             // refering to another one.

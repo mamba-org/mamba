@@ -450,33 +450,35 @@ namespace mamba
         const auto& g = pbs.graph();
 
         EXPECT_GE(g.number_of_nodes(), 1);
-        for (std::size_t id = 0; id < g.number_of_nodes(); ++id)
-        {
-            const auto& node = g.node(id);
-            if (is_virtual_package(node))
+        g.for_each_node_id(
+            [&](auto id)
             {
+                const auto& node = g.node(id);
                 // Currently we do not make assumption about virtual package since
-                // we are not sure we are including them the same way than they would be in practice
-                break;
+                // we are not sure we are including them the same way than they would be in
+                // practice
+                if (!is_virtual_package(node))
+                {
+                    if (g.in_degree(id) == 0)
+                    {
+                        // Only one root node
+                        EXPECT_EQ(id, pbs.root_node());
+                        EXPECT_TRUE(std::holds_alternative<ProblemsGraph::RootNode>(node));
+                    }
+                    else if (g.out_degree(id) == 0)
+                    {
+                        EXPECT_FALSE(std::holds_alternative<ProblemsGraph::RootNode>(node));
+                        EXPECT_TRUE(has_problem_type(node));
+                    }
+                    else
+                    {
+                        EXPECT_TRUE(std::holds_alternative<ProblemsGraph::PackageNode>(node));
+                    }
+                    // All nodes reachable from the root
+                    EXPECT_TRUE(is_reachable(pbs.graph(), pbs.root_node(), id));
+                }
             }
-            else if (g.in_degree(id) == 0)
-            {
-                // Only one root node
-                EXPECT_EQ(id, pbs.root_node());
-                EXPECT_TRUE(std::holds_alternative<ProblemsGraph::RootNode>(node));
-            }
-            else if (g.out_degree(id) == 0)
-            {
-                EXPECT_FALSE(std::holds_alternative<ProblemsGraph::RootNode>(node));
-                EXPECT_TRUE(has_problem_type(node));
-            }
-            else
-            {
-                EXPECT_TRUE(std::holds_alternative<ProblemsGraph::PackageNode>(node));
-            }
-            // All nodes reachable from the root
-            EXPECT_TRUE(is_reachable(pbs.graph(), pbs.root_node(), id));
-        }
+        );
 
         const auto& conflicts = pbs.conflicts();
         for (const auto& [n, _] : conflicts)
@@ -533,32 +535,33 @@ namespace mamba
 
         EXPECT_GE(pbs.graph().number_of_nodes(), cp_g.number_of_nodes());
         EXPECT_GE(cp_g.number_of_nodes(), 1);
-        for (std::size_t id = 0; id < cp_g.number_of_nodes(); ++id)
-        {
-            const auto& node = cp_g.node(id);
-            if (is_virtual_package(node))
+        cp_g.for_each_node_id(
+            [&](auto id)
             {
+                const auto& node = cp_g.node(id);
                 // Currently we do not make assumption about virtual package since
                 // we are not sure we are including them the same way than they would be in
-                break;
+                if (!is_virtual_package(node))
+                {
+                    if (cp_g.in_degree(id) == 0)
+                    {
+                        // Only one root node
+                        EXPECT_EQ(id, pbs.root_node());
+                        EXPECT_TRUE(std::holds_alternative<CpPbGr::RootNode>(node));
+                    }
+                    else if (cp_g.out_degree(id) == 0)
+                    {
+                        EXPECT_FALSE(std::holds_alternative<CpPbGr::RootNode>(node));
+                    }
+                    else
+                    {
+                        EXPECT_TRUE(std::holds_alternative<CpPbGr::PackageListNode>(node));
+                    }
+                    // All nodes reachable from the root
+                    EXPECT_TRUE(is_reachable(pbs.graph(), pbs.root_node(), id));
+                }
             }
-            else if (cp_g.in_degree(id) == 0)
-            {
-                // Only one root node
-                EXPECT_EQ(id, pbs.root_node());
-                EXPECT_TRUE(std::holds_alternative<CpPbGr::RootNode>(node));
-            }
-            else if (cp_g.out_degree(id) == 0)
-            {
-                EXPECT_FALSE(std::holds_alternative<CpPbGr::RootNode>(node));
-            }
-            else
-            {
-                EXPECT_TRUE(std::holds_alternative<CpPbGr::PackageListNode>(node));
-            }
-            // All nodes reachable from the root
-            EXPECT_TRUE(is_reachable(pbs.graph(), pbs.root_node(), id));
-        }
+        );
 
         const auto& conflicts = cp_pbs.conflicts();
         for (const auto& [n, _] : conflicts)

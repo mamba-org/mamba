@@ -183,11 +183,16 @@ namespace mamba
     TEST(graph, build_simple)
     {
         const auto g = build_graph();
-        using node_list = decltype(g)::node_list;
+        using node_map = decltype(g)::node_map;
         using node_id_list = decltype(g)::node_id_list;
         EXPECT_EQ(g.number_of_nodes(), 7ul);
         EXPECT_EQ(g.number_of_edges(), 7ul);
-        EXPECT_EQ(g.nodes(), node_list({ 0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5 }));
+        EXPECT_EQ(
+            g.nodes(),
+            node_map(
+                { { 0, 0.5 }, { 1, 1.5 }, { 2, 2.5 }, { 3, 3.5 }, { 4, 4.5 }, { 5, 5.5 }, { 6, 6.5 } }
+            )
+        );
         EXPECT_EQ(g.successors(0u), node_id_list({ 1u, 2u }));
         EXPECT_EQ(g.successors(1u), node_id_list({ 3u, 4u }));
         EXPECT_EQ(g.successors(2u), node_id_list({ 3u, 5u }));
@@ -201,11 +206,11 @@ namespace mamba
     TEST(graph, build_edge_data)
     {
         const auto g = build_edge_data_graph();
-        using node_list = decltype(g)::node_list;
+        using node_map = decltype(g)::node_map;
         using node_id_list = decltype(g)::node_id_list;
         EXPECT_EQ(g.number_of_nodes(), 3ul);
         EXPECT_EQ(g.number_of_edges(), 2ul);
-        EXPECT_EQ(g.nodes(), node_list({ 0.5, 1.5, 2.5 }));
+        EXPECT_EQ(g.nodes(), node_map({ { 0, 0.5 }, { 1, 1.5 }, { 2, 2.5 } }));
         EXPECT_EQ(g.successors(0ul), node_id_list({ 1ul }));
         EXPECT_EQ(g.successors(1ul), node_id_list({ 2ul }));
         EXPECT_EQ(g.successors(2ul), node_id_list());

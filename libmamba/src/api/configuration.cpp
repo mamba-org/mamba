@@ -684,6 +684,20 @@ namespace mamba
             }
         }
 
+        void logging_level_hook(log_level& lvl)
+        {
+            // If we output json, we ignore logging level requests
+            auto& ctx = Context::instance();
+            if(!ctx.json)
+            {
+                ctx.set_log_level(lvl);
+            }
+            else
+            {
+                assert(ctx.logging_level == log_level::off);
+            }
+        }
+
         void target_prefix_checks_hook(int& options)
         {
             auto& ctx = Context::instance();
@@ -1517,6 +1531,7 @@ namespace mamba
                    .set_rc_configurable()
                    .set_env_var_names()
                    .needs({ "json", "verbose" })
+                   .set_post_merge_hook(detail::logging_level_hook)
                    .description("Set the log level")
                    .set_fallback_value_hook(detail::log_level_fallback_hook)
                    .long_description(unindent(R"(

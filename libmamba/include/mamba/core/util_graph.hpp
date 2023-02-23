@@ -149,9 +149,9 @@ namespace mamba
 
         node_id add_node(const node_t& value);
         node_id add_node(node_t&& value);
-        void add_edge(node_id from, node_id to);
-
-        void remove_edge(node_id from, node_id to);
+        bool add_edge(node_id from, node_id to);
+        bool remove_edge(node_id from, node_id to);
+        bool remove_node(node_id id);
 
         bool empty() const;
         std::size_t number_of_nodes() const noexcept;
@@ -226,8 +226,11 @@ namespace mamba
             const adjacency_list& successors
         ) const;
 
+        // Source of truth for exsising nodes
         node_map m_node_map;
+        // May contains empty slots after `remove_node`
         adjacency_list m_predecessors;
+        // May contains empty slots after `remove_node`
         adjacency_list m_successors;
         std::size_t m_number_of_edges = 0;
     };
@@ -308,10 +311,10 @@ namespace mamba
         using Base::depth_first_search;
 
         using Base::add_node;
-        void add_edge(node_id from, node_id to, const edge_t& data);
-        void add_edge(node_id from, node_id to, edge_t&& data);
-
-        void remove_edge(node_id from, node_id to);
+        bool add_edge(node_id from, node_id to, const edge_t& data);
+        bool add_edge(node_id from, node_id to, edge_t&& data);
+        bool remove_edge(node_id from, node_id to);
+        bool remove_node(node_id id);
 
         const edge_map& edges() const;
         const edge_t& edge(node_id from, node_id to) const;
@@ -324,7 +327,7 @@ namespace mamba
         friend class DiGraphBase<Node, DiGraph<Node, Edge>>;  // required for private CRTP
 
         template <typename T>
-        void add_edge_impl(node_id from, node_id to, T&& data);
+        bool add_edge_impl(node_id from, node_id to, T&& data);
 
         edge_map m_edges;
     };
@@ -620,30 +623,59 @@ namespace mamba
     }
 
     template <typename N, typename G>
-    void DiGraphBase<N, G>::add_edge(node_id from, node_id to)
+    bool DiGraphBase<N, G>::remove_node(node_id id)
     {
-        m_successors[from].insert(to);
-        m_predecessors[to].insert(from);
-        ++m_number_of_edges;
+        if (!has_node(id))
+        {
+            return false;
+        }
+
+        const auto succs = successors(id);  // Cannot iterate on object being modified
+        for (const auto& to : succs)
+        {
+            remove_edge(id, to);
+        }
+        const auto preds = predecessors(id);  // Cannot iterate on object being modified
+        for (const auto& from : preds)
+        {
+            remove_edge(from, id);
+        }
+        m_node_map.erase(id);
+
+        return true;
     }
 
     template <typename N, typename G>
-    void DiGraphBase<N, G>::remove_edge(node_id from, node_id to)
+    bool DiGraphBase<N, G>::add_edge(node_id from, node_id to)
     {
-        const auto to_removed = m_successors[from].erase(to);
-        const auto from_removed = m_predecessors[to].erase(from);
-        if ((to_removed == 1) && (from_removed == 1))
+        if (has_edge(from, to))
         {
-            --m_number_of_edges;
+            return false;
         }
+        m_successors[from].insert(to);
+        m_predecessors[to].insert(from);
+        ++m_number_of_edges;
+        return true;
+    }
+
+    template <typename N, typename G>
+    bool DiGraphBase<N, G>::remove_edge(node_id from, node_id to)
+    {
+        if (!has_edge(from, to))
+        {
+            return false;
+        }
+        m_successors[from].erase(to);
+        m_predecessors[to].erase(from);
+        --m_number_of_edges;
+        return true;
     }
 
     template <typename N, typename G>
     template <typename UnaryFunc>
     UnaryFunc DiGraphBase<N, G>::for_each_node_id(UnaryFunc func) const
     {
-        const auto n_nodes = number_of_nodes();
-        for (node_id i = 0; i < n_nodes; ++i)
+        for (const auto& [i, _] : m_node_map)
         {
             func(i);
         }
@@ -843,31 +875,50 @@ namespace mamba
      *********************************/
 
     template <typename N, typename E>
-    void DiGraph<N, E>::add_edge(node_id from, node_id to, const edge_t& data)
+    bool DiGraph<N, E>::add_edge(node_id from, node_id to, const edge_t& data)
     {
-        add_edge_impl(from, to, data);
+        return add_edge_impl(from, to, data);
     }
 
     template <typename N, typename E>
-    void DiGraph<N, E>::add_edge(node_id from, node_id to, edge_t&& data)
+    bool DiGraph<N, E>::add_edge(node_id from, node_id to, edge_t&& data)
     {
-        add_edge_impl(from, to, std::move(data));
+        return add_edge_impl(from, to, std::move(data));
     }
 
     template <typename N, typename E>
     template <typename T>
-    void DiGraph<N, E>::add_edge_impl(node_id from, node_id to, T&& data)
+    bool DiGraph<N, E>::add_edge_impl(node_id from, node_id to, T&& data)
     {
-        Base::add_edge(from, to);
-        auto l_edge_id = std::pair(from, to);
-        m_edges.insert(std::pair(l_edge_id, std::forward<T>(data)));
+        if (const bool added = Base::add_edge(from, to); added)
+        {
+            auto l_edge_id = std::pair(from, to);
+            m_edges.insert(std::pair(l_edge_id, std::forward<T>(data)));
+            return true;
+        }
+        return false;
     }
 
     template <typename N, typename E>
-    void DiGraph<N, E>::remove_edge(node_id from, node_id to)
+    bool DiGraph<N, E>::remove_edge(node_id from, node_id to)
     {
-        m_edges.erase({ from, to });
-        Base::remove_edge(from, to);
+        m_edges.erase({ from, to });  // No-op if edge does not exists
+        return Base::remove_edge(from, to);
+    }
+
+    template <typename N, typename E>
+    bool DiGraph<N, E>::remove_node(node_id id)
+    {
+        // No-op if edge does not exists
+        for (const auto& to : successors(id))
+        {
+            m_edges.erase({ id, to });
+        }
+        for (const auto& from : predecessors(id))
+        {
+            m_edges.erase({ from, id });
+        }
+        return Base::remove_node(id);
     }
 
     template <typename N, typename E>

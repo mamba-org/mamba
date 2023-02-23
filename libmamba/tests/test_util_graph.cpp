@@ -258,16 +258,54 @@ namespace mamba
 
         ASSERT_FALSE(g.has_edge(1, 0));
         ASSERT_TRUE(g.has_edge(0, 1));
-        g.remove_edge(1, 0);
+        EXPECT_FALSE(g.remove_edge(1, 0));
         EXPECT_EQ(g.number_of_edges(), n_edges_init);
         EXPECT_FALSE(g.has_edge(1, 0));
         EXPECT_TRUE(g.has_edge(0, 1));
 
         ASSERT_TRUE(g.has_edge(0, 1));
-        g.remove_edge(0, 1);
+        EXPECT_TRUE(g.remove_edge(0, 1));
         EXPECT_EQ(g.number_of_edges(), n_edges_init - 1u);
         EXPECT_FALSE(g.has_edge(0, 1));
         EXPECT_EQ(g.edges().count({ 0, 1 }), 0);
+    }
+
+    TEST(graph, remove_node)
+    {
+        auto g = build_edge_data_graph();
+
+        ASSERT_TRUE(g.has_node(0));
+        ASSERT_TRUE(g.has_node(1));
+        ASSERT_TRUE(g.has_node(2));
+        ASSERT_TRUE(g.has_edge(0, 1));
+        ASSERT_TRUE(g.has_edge(1, 2));
+
+        const auto n_edges_init = g.number_of_edges();
+        const auto n_nodes_init = g.number_of_nodes();
+        const auto node_1_degree = g.in_degree(1) + g.out_degree(1);
+
+        EXPECT_TRUE(g.remove_node(1));
+        EXPECT_EQ(g.number_of_nodes(), n_nodes_init - 1u);
+        EXPECT_EQ(g.number_of_edges(), n_edges_init - node_1_degree);
+        EXPECT_EQ(g.number_of_edges(), g.edges().size());
+        EXPECT_TRUE(g.has_node(0));
+        EXPECT_FALSE(g.has_node(1));
+        EXPECT_TRUE(g.has_node(2));
+        EXPECT_EQ(g.in_degree(1), 0);
+        EXPECT_EQ(g.out_degree(1), 0);
+        EXPECT_FALSE(g.has_edge(0, 1));
+        EXPECT_FALSE(g.has_edge(1, 2));
+        g.for_each_node_id([&](auto id) { EXPECT_TRUE(g.has_node(id)); });
+
+        EXPECT_FALSE(g.remove_node(1));
+        EXPECT_EQ(g.number_of_nodes(), n_nodes_init - 1u);
+        EXPECT_EQ(g.number_of_edges(), n_edges_init - node_1_degree);
+        EXPECT_EQ(g.number_of_edges(), g.edges().size());
+
+        const auto new_id = g.add_node(.7);
+        EXPECT_EQ(new_id, n_nodes_init);  // Ids are not invalidated so new id is used
+        EXPECT_FALSE(g.has_node(1));      // Old id is not being confused
+        EXPECT_EQ(g.number_of_nodes(), n_nodes_init);
     }
 
     TEST(graph, degree)

@@ -426,6 +426,12 @@ namespace mamba
         return *solver;
     }
 
+    auto create_numba() -> MSolver&
+    {
+        static auto solver = create_conda_forge({ "python=3.11", "numba<0.56" });
+        return *solver;
+    }
+
     class Problem : public testing::TestWithParam<decltype(&create_basic_conflict)>
     {
     };
@@ -517,6 +523,32 @@ namespace mamba
         }
     }
 
+    TEST_P(Problem, simplify_conflicts)
+    {
+        auto& solver = std::invoke(GetParam());
+        const auto solved = solver.try_solve();
+        ASSERT_FALSE(solved);
+        const auto& pbs = ProblemsGraph::from_solver(solver, solver.pool());
+        const auto& pbs_simplified = simplify_conflicts(pbs);
+        const auto& graph_simplified = pbs_simplified.graph();
+
+        EXPECT_GE(graph_simplified.number_of_nodes(), 1);
+        EXPECT_LE(graph_simplified.number_of_nodes(), pbs.graph().number_of_nodes());
+
+        for (const auto& [id, _] : pbs_simplified.conflicts())
+        {
+            const auto& node = graph_simplified.node(id);
+            // Currently we do not make assumption about virtual package since
+            // we are not sure we are including them the same way than they would be in
+            // practice
+            if (!is_virtual_package(node))
+            {
+                EXPECT_TRUE(graph_simplified.has_node(id));
+                EXPECT_TRUE(is_reachable(graph_simplified, pbs_simplified.root_node(), id));
+            }
+        }
+    }
+
     TEST(satifiability_error, NamedList)
     {
         auto l = CompressedProblemsGraph::PackageListNode();
@@ -557,7 +589,7 @@ namespace mamba
         const auto solved = solver.try_solve();
         ASSERT_FALSE(solved);
         const auto pbs = ProblemsGraph::from_solver(solver, solver.pool());
-        const auto cp_pbs = CpPbGr::from_problems_graph(pbs);
+        const auto cp_pbs = CpPbGr::from_problems_graph(simplify_conflicts(pbs));
         const auto& cp_g = cp_pbs.graph();
 
         EXPECT_GE(pbs.graph().number_of_nodes(), cp_g.number_of_nodes());
@@ -585,7 +617,7 @@ namespace mamba
                         EXPECT_TRUE(std::holds_alternative<CpPbGr::PackageListNode>(node));
                     }
                     // All nodes reachable from the root
-                    EXPECT_TRUE(is_reachable(pbs.graph(), pbs.root_node(), id));
+                    EXPECT_TRUE(is_reachable(cp_g, cp_pbs.root_node(), id));
                 }
             }
         );
@@ -602,17 +634,19 @@ namespace mamba
 
     TEST_P(Problem, problem_tree_str)
     {
+        using CpPbGr = CompressedProblemsGraph;
+
         auto& solver = std::invoke(GetParam());
         const auto solved = solver.try_solve();
         ASSERT_FALSE(solved);
         const auto pbs = ProblemsGraph::from_solver(solver, solver.pool());
-        const auto cp_pbs = CompressedProblemsGraph::from_problems_graph(pbs);
+        const auto cp_pbs = CpPbGr::from_problems_graph(simplify_conflicts(pbs));
         const auto message = problem_tree_msg(cp_pbs);
 
-        auto message_contains = [&](const auto& node)
+        auto message_contains = [&message](const auto& node)
         {
             using Node = std::remove_cv_t<std::remove_reference_t<decltype(node)>>;
-            if constexpr (!std::is_same_v<Node, CompressedProblemsGraph::RootNode>)
+            if constexpr (!std::is_same_v<Node, CpPbGr::RootNode>)
             {
                 EXPECT_TRUE(contains(message, node.name()));
             }
@@ -641,7 +675,8 @@ namespace mamba
             create_r_base,
             create_scip,
             create_jupyterlab,
-            create_double_python
+            create_double_python,
+            create_numba
         )
     );
 }

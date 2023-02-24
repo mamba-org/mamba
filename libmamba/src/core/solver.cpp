@@ -669,7 +669,8 @@ namespace mamba
         const auto& ctx = Context::instance();
         out << "Could not solve for environment specs\n";
         const auto pbs = ProblemsGraph::from_solver(*this, pool());
-        const auto cp_pbs = CompressedProblemsGraph::from_problems_graph(pbs);
+        const auto pbs_simplified = simplify_conflicts(pbs);
+        const auto cp_pbs = CompressedProblemsGraph::from_problems_graph(pbs_simplified);
         print_problem_tree_msg(
             out,
             cp_pbs,

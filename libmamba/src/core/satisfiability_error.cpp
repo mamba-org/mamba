@@ -57,18 +57,9 @@ namespace mamba
             using edge_t = ProblemsGraph::edge_t;
             using conflicts_t = ProblemsGraph::conflicts_t;
 
-            ProblemsGraphCreator(const MSolver& solver, const MPool& pool)
-                : m_solver{ solver }
-                , m_pool{ pool }
-            {
-                m_root_node = m_graph.add_node(RootNode());
-                parse_problems();
-            }
+            ProblemsGraphCreator(const MSolver& solver, const MPool& pool);
 
-            operator ProblemsGraph() &&
-            {
-                return { std::move(m_graph), std::move(m_conflicts), m_root_node };
-            }
+            ProblemsGraph problem_graph() &&;
 
         private:
 
@@ -93,6 +84,19 @@ namespace mamba
 
             void parse_problems();
         };
+
+        ProblemsGraphCreator::ProblemsGraphCreator(const MSolver& solver, const MPool& pool)
+            : m_solver{ solver }
+            , m_pool{ pool }
+        {
+            m_root_node = m_graph.add_node(RootNode());
+            parse_problems();
+        }
+
+        ProblemsGraph ProblemsGraphCreator::problem_graph() &&
+        {
+            return { std::move(m_graph), std::move(m_conflicts), m_root_node };
+        }
 
         auto ProblemsGraphCreator::add_solvable(SolvId solv_id, node_t&& node, bool update) -> node_id
         {
@@ -289,13 +293,13 @@ namespace mamba
                         break;
                     }
                 }
-            };
+            }
         }
     }
 
     auto ProblemsGraph::from_solver(const MSolver& solver, const MPool& pool) -> ProblemsGraph
     {
-        return ProblemsGraphCreator(solver, pool);
+        return ProblemsGraphCreator(solver, pool).problem_graph();
     }
 
     ProblemsGraph::ProblemsGraph(graph_t graph, conflicts_t conflicts, node_id root_node)
@@ -318,6 +322,74 @@ namespace mamba
     auto ProblemsGraph::root_node() const noexcept -> node_id
     {
         return m_root_node;
+    }
+
+    /******************************************
+     *  Implementation of simplify_conflicts  *
+     ******************************************/
+
+    ProblemsGraph simplify_conflicts(const ProblemsGraph& pbs)
+    {
+        using node_id = ProblemsGraph::node_id;
+        using node_t = ProblemsGraph::node_t;
+
+        const auto& old_graph = pbs.graph();
+        const auto& old_conflicts = pbs.conflicts();
+
+        const auto is_constraint = [](const node_t& node) -> bool
+        { return std::holds_alternative<ProblemsGraph::ConstraintNode>(node); };
+
+        const auto has_constraint_child = [&](node_id n)
+        {
+            if (old_graph.out_degree(n) == 1)
+            {
+                node_id const s = old_graph.successors(n).front();
+                // If s is of constraint type, it has conflicts
+                assert(!is_constraint(old_graph.node(s)) || old_conflicts.has_conflict(s));
+                return is_constraint(old_graph.node(s));
+            }
+            return false;
+        };
+
+        // Working on a copy since we cannot safely iterate through object
+        // and modify them at the same time
+        auto graph = pbs.graph();
+        auto conflicts = pbs.conflicts();
+
+        for (const auto& [id, id_conflicts] : old_conflicts)
+        {
+            // We are trying to detect node that are in conflicts but are not leaves.
+            // This shows up in Pyhon dependencies because the constraint on ``python`` and
+            // ``python_abi`` was inversed.
+            if (has_constraint_child(id))
+            {
+                const node_id id_child = old_graph.successors(id).front();
+                for (const auto& c : id_conflicts)
+                {
+                    // Since ``id`` has a constraint node child (``id-child``) and is itself in
+                    // conflict with another constraint node ``c``, we are moving the conflict
+                    // between the ``id_child`` and the parents ``c_parent`` of the ``c``.
+                    // This is a bit hacky but the intuition is to replicate the structure of
+                    // nodes conflicting with ``id_child`` with ``c_parent``.
+                    // They likely reprensent the same thing and so we want them to be able to
+                    // merge later on.
+                    if (is_constraint(old_graph.node(c)))
+                    {
+                        for (const node_id c_parent : old_graph.predecessors(c))
+                        {
+                            conflicts.add(id_child, c_parent);
+                            graph.remove_edge(c_parent, c);
+                        }
+                        conflicts.remove(id, c);
+                        if (!conflicts.has_conflict(c))
+                        {
+                            graph.remove_node(c);
+                        }
+                    }
+                }
+            }
+        }
+        return { std::move(graph), std::move(conflicts), pbs.root_node() };
     }
 
     /***********************************************
@@ -526,7 +598,7 @@ namespace mamba
                    // We don't want to use leaves_from for leaves because it resolve to themselves,
                    // preventing any merging.
                    && ((is_leaf(n1) && is_leaf(n2)) || (leaves_from(n1) == leaves_from(n2)))
-                   // We only check the parents for non-leaves meaning parents can "inject"
+                   // We only check the parents for leaves meaning parents can "inject"
                    // themselves into a bigger problem
                    && ((!is_leaf(n1) && !is_leaf(n2)) || (g.predecessors(n1) == g.predecessors(n2)));
         }
@@ -1345,7 +1417,8 @@ namespace mamba
             {
                 const auto children_pos = i == successors.size() - 1 ? SiblingNumber::last
                                                                      : SiblingNumber::not_last;
-                Status child_status;
+                Status child_status = true;
+                assert(children.size() > 0);
                 if (children.size() > 1)
                 {
                     std::tie(out, child_status) = visit_split(children, children_pos, ongoing, out);

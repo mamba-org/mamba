@@ -126,6 +126,11 @@ namespace mamba
         node_id m_root_node;
     };
 
+    /**
+     * Hand-crafted hurisitics to simplify conflicts in messy situations.
+     */
+    ProblemsGraph simplify_conflicts(const ProblemsGraph& pbs);
+
     class CompressedProblemsGraph
     {
     public:

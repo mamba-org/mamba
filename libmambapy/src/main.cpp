@@ -297,6 +297,8 @@ PYBIND11_MODULE(bindings, m)
             }
         );
 
+    m.def("simplify_conflicts", &simplify_conflicts);
+
     using CpPbGraph = CompressedProblemsGraph;
     auto pyCpPbGraph = py::class_<CpPbGraph>(m, "CompressedProblemsGraph");
 

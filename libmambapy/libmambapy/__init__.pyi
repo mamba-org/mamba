@@ -123,6 +123,7 @@ __all__ = [
     "get_virtual_packages",
     "ostream_redirect",
     "sign",
+    "simplify_conflicts",
     "transmute",
 ]
 
@@ -1451,6 +1452,9 @@ def get_virtual_packages() -> typing.List[PackageInfo]:
     pass
 
 def sign(data: str, secret_key: str) -> str:
+    pass
+
+def simplify_conflicts(arg0: ProblemsGraph) -> ProblemsGraph:
     pass
 
 def transmute(

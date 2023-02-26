@@ -83,9 +83,14 @@ def shell_init(args):
     else:
         if hasattr(args, "no_user"):
             # this seems to be conda < 23.1.0
-            # the `no_user` flag, if set, gets erroneously set to False
-            for_user = (args.no_user != False and args.user != False and
-                        not args.system)
+            # Here, we use the old behavior even though the --no-user flag
+            # doesn't behave as desired, see:
+            # https://github.com/conda/conda/issues/11948
+            for_user = args.user
+            if not (args.install and args.user and args.system):
+                for_user = True
+            if args.no_user:
+                for_user = False
         else:
             for_user = args.user and not args.system
 

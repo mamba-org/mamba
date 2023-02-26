@@ -81,7 +81,13 @@ def shell_init(args):
         return initialize_dev(shell)
 
     else:
-        for_user = args.user and not args.system
+        if hasattr(args, "no_user"):
+            # this seems to be conda < 23.1.0
+            # the `no_user` flag, if set, gets erroneously set to False
+            for_user = (args.no_user != False and args.user != False and
+                        not args.system)
+        else:
+            for_user = args.user and not args.system
 
         anaconda_prompt = on_win and args.anaconda_prompt
         exit_code = initialize(

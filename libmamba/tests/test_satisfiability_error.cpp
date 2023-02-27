@@ -50,7 +50,7 @@ namespace mamba
 
     TEST(conflict_map, remove)
     {
-        auto c = conflict_map<std::size_t>{ { 1, 1 }, { 1, 2 }, { 1, 3 }, { 2, 4 } };
+        auto c = conflict_map<std::size_t>({ { 1, 1 }, { 1, 2 }, { 1, 3 }, { 2, 4 } });
         ASSERT_EQ(c.size(), 4);
 
         ASSERT_TRUE(c.in_conflict(2, 4));
@@ -544,6 +544,8 @@ namespace mamba
             if (!is_virtual_package(node))
             {
                 EXPECT_TRUE(graph_simplified.has_node(id));
+                // Unfortunately not all conflicts are on leaves
+                // EXPECT_EQ(graph_simplified.out_degree(id), 0);
                 EXPECT_TRUE(is_reachable(graph_simplified, pbs_simplified.root_node(), id));
             }
         }

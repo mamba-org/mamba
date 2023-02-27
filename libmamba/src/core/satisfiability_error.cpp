@@ -1404,11 +1404,6 @@ namespace mamba
             {
                 return { out, status.value() };
             }
-            if (node_uninstallable(id))
-            {
-                m_node_visited[id] = false;
-                return { out, false };
-            }
 
             Status status = true;
             // TODO(C++20) an enumerate view ``views::zip(views::iota(), children_ids)``
@@ -1431,6 +1426,15 @@ namespace mamba
                 status &= child_status;
                 ++i;
             }
+
+            // Node installability status is checked *after* visiting the children because there
+            // are cases where both non-leaf nodes and their children have conflicts so we need
+            // to visit children to exaplin conflicts.
+            // In most cases though, only leaves would have conflicts and the loop above would be
+            // empty in such case.
+            // Warning node_uninstallable has side effects and must be called unconditionally
+            // (first here).
+            status = !node_uninstallable(id) && status;
 
             m_node_visited[id] = status;
             return { out, status };

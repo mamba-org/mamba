@@ -670,36 +670,14 @@ namespace mamba
     std::ostream& MSolver::explain_problems(std::ostream& out) const
     {
         const auto& ctx = Context::instance();
-        bool sat_error_message = ctx.experimental_sat_error_message;
-        if (sat_error_message)
-        {
-            out << "Could not solve for environment specs\n";
-            fmt::print(out, "{:=^80}\n", " Experimental satisfiability error messages ");
-            out << "You are seeing this because you set `experimental_sat_error_message: true`\n"
-                   "Use the following issue to share feedback on this experimental feature\n"
-                   "   https://github.com/mamba-org/mamba/issues/2078\n\n";
-            fmt::print(out, "{:=^100}\n", " Legacy messages (old) ");
-            out << problems_to_str() << '\n'
-                << "The environment can't be solved, aborting the operation\n";
-            fmt::print(out, "{:=^100}\n", " Experimental messages (new) ");
-            const auto pbs = ProblemsGraph::from_solver(*this, pool());
-            const auto cp_pbs = CompressedProblemsGraph::from_problems_graph(pbs);
-            print_problem_tree_msg(
-                out,
-                cp_pbs,
-                {
-                    /* .unavailable= */ ctx.palette.failure,
-                    /* .available= */ ctx.palette.success,
-                }
-            );
-            fmt::print(out, "\n{:=^100}\n", "");
-        }
-        else
-        {
-            out << "Could not solve for environment specs\n"
-                << problems_to_str() << '\n'
-                << "The environment can't be solved, aborting the operation\n";
-        }
+        out << "Could not solve for environment specs\n";
+        const auto pbs = ProblemsGraph::from_solver(*this, pool());
+        const auto cp_pbs = CompressedProblemsGraph::from_problems_graph(pbs);
+        print_problem_tree_msg(
+            out,
+            cp_pbs,
+            { /* .unavailable= */ ctx.palette.failure, /* .available= */ ctx.palette.success }
+        );
         return out;
     }
 

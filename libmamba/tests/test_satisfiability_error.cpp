@@ -12,6 +12,7 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
+#include <solv/solver.h>
 
 #include "mamba/core/channel.hpp"
 #include "mamba/core/mamba_fs.hpp"
@@ -453,27 +454,6 @@ namespace mamba
         );
     };
 
-    auto has_problem_type(const ProblemsGraph::node_t& node) -> bool
-    {
-        return std::visit(
-            [](const auto& n) -> bool
-            {
-                using Node = std::remove_const_t<std::remove_reference_t<decltype(n)>>;
-                if constexpr (std::is_same_v<Node, ProblemsGraph::RootNode>)
-                {
-                    return false;
-                }
-                if constexpr (std::is_same_v<Node, ProblemsGraph::PackageNode>)
-                {
-                    return n.problem_type.has_value();
-                }
-                return true;
-            },
-            node
-        );
-    };
-
-
     TEST_P(Problem, constructor)
     {
         auto& solver = std::invoke(GetParam());
@@ -501,7 +481,6 @@ namespace mamba
                     else if (g.out_degree(id) == 0)
                     {
                         EXPECT_FALSE(std::holds_alternative<ProblemsGraph::RootNode>(node));
-                        EXPECT_TRUE(has_problem_type(node));
                     }
                     else
                     {

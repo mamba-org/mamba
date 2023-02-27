@@ -20,7 +20,6 @@
 #include <vector>
 
 #include <fmt/color.h>
-#include <solv/solver.h>
 
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/package_info.hpp"
@@ -78,31 +77,14 @@ namespace mamba
         };
         struct PackageNode : PackageInfo
         {
-            std::optional<SolverRuleinfo> problem_type = {};
-
-            PackageNode(const PackageNode&) = default;
-            PackageNode(PackageNode&&) noexcept = default;
-            PackageNode& operator=(const PackageNode&) = default;
-            PackageNode& operator=(PackageNode&&) noexcept = default;
         };
         struct UnresolvedDependencyNode : MatchSpec
         {
-            SolverRuleinfo problem_type;
-
-            UnresolvedDependencyNode(const UnresolvedDependencyNode&) = default;
-            UnresolvedDependencyNode(UnresolvedDependencyNode&&) noexcept = default;
-            UnresolvedDependencyNode& operator=(const UnresolvedDependencyNode&) = default;
-            UnresolvedDependencyNode& operator=(UnresolvedDependencyNode&&) noexcept = default;
         };
         struct ConstraintNode : MatchSpec
         {
-            static constexpr SolverRuleinfo problem_type = SOLVER_RULE_PKG_CONSTRAINS;
-
-            ConstraintNode(const ConstraintNode&) = default;
-            ConstraintNode(ConstraintNode&&) noexcept = default;
-            ConstraintNode& operator=(const ConstraintNode&) = default;
-            ConstraintNode& operator=(ConstraintNode&&) noexcept = default;
         };
+
         using node_t = std::variant<RootNode, PackageNode, UnresolvedDependencyNode, ConstraintNode>;
 
         using edge_t = MatchSpec;

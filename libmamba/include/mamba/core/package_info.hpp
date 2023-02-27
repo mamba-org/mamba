@@ -41,11 +41,6 @@ namespace mamba
             std::size_t build_number
         );
 
-        PackageInfo(const PackageInfo&) = default;
-        PackageInfo(PackageInfo&&) noexcept = default;
-        PackageInfo& operator=(const PackageInfo&) = default;
-        PackageInfo& operator=(PackageInfo&&) noexcept = default;
-
         bool operator==(const PackageInfo& other) const;
 
         nlohmann::json json_record() const;

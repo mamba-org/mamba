@@ -100,6 +100,8 @@ namespace mamba
 
         std::ostream& pretty(std::ostream&) const;
 
+        bool empty() const;
+
     private:
 
         void reset_pkg_view_list();

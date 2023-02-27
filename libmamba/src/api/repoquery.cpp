@@ -28,6 +28,7 @@ namespace mamba
         MultiPackageCache package_caches(ctx.pkgs_dirs);
         if (use_local)
         {
+            Console::stream() << "Using local repodata..." << std::endl;
             auto exp_prefix_data = PrefixData::create(ctx.target_prefix);
             if (!exp_prefix_data)
             {
@@ -40,6 +41,7 @@ namespace mamba
         }
         else
         {
+            Console::stream() << "Getting repodata from channels..." << std::endl;
             auto exp_load = load_channels(pool, package_caches, 0);
             if (!exp_load)
             {
@@ -90,6 +92,12 @@ namespace mamba
                 case QueryResultFormat::kRECURSIVETABLE:
                     res.sort("name").table(std::cout);
             }
+            if (res.empty())
+            {
+                std::cout << query
+                          << " may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery"
+                          << std::endl;
+            }
         }
         else if (type == QueryType::kWHONEEDS)
         {
@@ -112,6 +120,12 @@ namespace mamba
                         std::cout,
                         { "Name", "Version", "Build", concat("Depends:", query), "Channel" }
                     );
+            }
+            if (res.empty())
+            {
+                std::cout << query
+                          << " may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery"
+                          << std::endl;
             }
         }
 

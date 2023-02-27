@@ -52,9 +52,12 @@ namespace mamba
         Query q(pool);
         if (type == QueryType::kSEARCH)
         {
+            bool res_empty = false;
             if (ctx.json)
             {
-                std::cout << q.find(query).groupby("name").json().dump(4);
+                auto res = q.find(query);
+                res_empty = res.empty();
+                std::cout << res.groupby("name").json().dump(4);
             }
             else
             {
@@ -71,6 +74,12 @@ namespace mamba
                     default:
                         res.groupby("name").table(std::cout);
                 }
+                res_empty = res.empty();
+            }
+            if (res_empty)
+            {
+                std::cout << "Channels may not be configured. Try giving a channel with '-c,--channel' option, or use `--use-local=1` to search for installed packages."
+                          << std::endl;
             }
         }
         else if (type == QueryType::kDEPENDS)

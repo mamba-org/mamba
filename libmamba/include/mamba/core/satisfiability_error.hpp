@@ -265,9 +265,6 @@ namespace mamba
         std::array<std::string_view, 4> indents = { "│  ", "   ", "├─ ", "└─ " };
     };
 
-    std::ostream& print_problem_summary_msg(std::ostream& out, const CompressedProblemsGraph& pbs);
-    std::string problem_summary_msg(const CompressedProblemsGraph& pbs);
-
     std::ostream& print_problem_tree_msg(
         std::ostream& out,
         const CompressedProblemsGraph& pbs,
@@ -281,7 +278,7 @@ namespace mamba
      ************************************/
 
     template <typename T>
-    conflict_map<T>::conflict_map(std::initializer_list<T[2]> conflicts_pairs)
+    conflict_map<T>::conflict_map(std::initializer_list<std::pair<T, T>> conflicts_pairs)
     {
         for (const auto& [a, b] : conflicts_pairs)
         {

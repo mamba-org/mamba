@@ -332,7 +332,6 @@ PYBIND11_MODULE(bindings, m)
                 return std::pair(g.nodes(), g.edges());
             }
         )
-        .def("summary_message", [](const CpPbGraph& self) { return problem_summary_msg(self); })
         .def("tree_message", [](const CpPbGraph& self) { return problem_tree_msg(self); });
 
     py::class_<History>(m, "History")

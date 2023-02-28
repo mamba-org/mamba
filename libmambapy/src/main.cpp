@@ -523,7 +523,19 @@ PYBIND11_MODULE(bindings, m)
         .def_readwrite("channel_alias", &Context::channel_alias)
         .def_readwrite("use_only_tar_bz2", &Context::use_only_tar_bz2)
         .def_readwrite("channel_priority", &Context::channel_priority)
-        .def_readwrite("experimental_sat_error_message", &Context::experimental_sat_error_message)
+        .def_property(
+            "experimental_sat_error_message",
+            [](const Context&)
+            {
+                deprecated("The new error messages are always enabled.");
+                return true;
+            },
+            [](const Context&, bool)
+            {
+                deprecated("Setting ``Context.experimental_sat_error_message`` has no effect."
+                           " The new error messages are always enabled.");
+            }
+        )
         .def_readwrite("use_lockfiles", &Context::use_lockfiles)
         .def("set_verbosity", &Context::set_verbosity)
         .def("set_log_level", &Context::set_log_level);

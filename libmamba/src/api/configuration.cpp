@@ -1508,11 +1508,6 @@ namespace mamba
                    .long_description(unindent(R"(
                             Set the log pattern.)")));
 
-        insert(Configurable("experimental_sat_error_message", &ctx.experimental_sat_error_message)
-                   .group("Output, Prompt and Flow Control")
-                   .set_rc_configurable()
-                   .description("Enable experimental satisfiability (conflict) error messages"));
-
         insert(Configurable("json", &ctx.json)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()

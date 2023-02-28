@@ -448,9 +448,10 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
             ${LIBSOLV_LIBRARIES}
             ${LIBSOLVEXT_LIBRARIES}
             ${LibArchive_LIBRARIES}
-            $<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>
+            zstd::libzstd_shared
             ${CURL_LIBRARIES}
             ${OPENSSL_LIBRARIES}
+            zstd::libzstd_shared
             BZip2::BZip2
             yaml-cpp
             reproc++

@@ -55,6 +55,10 @@ namespace mamba
 #endif
 #elif defined(__s390x__)
         static const char MAMBA_PLATFORM[] = "linux-s390x";
+#elif defined(__riscv) && defined(__riscv_xlen) && (__riscv_xlen == 32)
+        static const char MAMBA_PLATFORM[] = "linux-riscv32";
+#elif defined(__riscv) && defined(__riscv_xlen) && (__riscv_xlen == 64)
+        static const char MAMBA_PLATFORM[] = "linux-riscv64";
 #else
 #error "Unknown Linux platform"
 #endif

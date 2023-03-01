@@ -82,7 +82,9 @@ set_search_command(CLI::App* subcom);
 void
 set_auth_command(CLI::App* subcom);
 
+#ifndef _WIN32
 void
 set_server_command(CLI::App* subcom);
+#endif
 
 #endif

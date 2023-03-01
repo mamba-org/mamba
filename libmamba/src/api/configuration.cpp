@@ -630,7 +630,8 @@ namespace mamba
         mamba::log_level log_level_fallback_hook()
         {
             auto& ctx = Context::instance();
-            auto level = [&]{
+            auto level = [&]
+            {
                 if (ctx.json)
                 {
                     return mamba::log_level::off;
@@ -664,7 +665,7 @@ namespace mamba
         {
             auto& ctx = Context::instance();
             ctx.json = enable_json;
-            if(enable_json)
+            if (enable_json)
             {
                 ctx.set_log_level(log_level::off);
             }
@@ -674,7 +675,7 @@ namespace mamba
         {
             // If we output json, we ignore logging level requests
             auto& ctx = Context::instance();
-            if(!ctx.json)
+            if (!ctx.json)
             {
                 ctx.set_verbosity(lvl);
             }
@@ -688,7 +689,7 @@ namespace mamba
         {
             // If we output json, we ignore logging level requests
             auto& ctx = Context::instance();
-            if(!ctx.json)
+            if (!ctx.json)
             {
                 ctx.set_log_level(lvl);
             }

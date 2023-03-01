@@ -14,6 +14,8 @@
 #include <tuple>
 #include <vector>
 
+#include <powerloader/download_target.hpp>
+
 #include "mamba/api/install.hpp"
 
 #include "nlohmann/json.hpp"
@@ -29,8 +31,6 @@
 #include "repo.hpp"
 #include "thread_utils.hpp"
 #include "transaction_context.hpp"
-
-#include <powerloader/download_target.hpp>
 
 extern "C"
 {

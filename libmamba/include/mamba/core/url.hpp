@@ -7,13 +7,13 @@
 #ifndef MAMBA_CORE_URL_HPP
 #define MAMBA_CORE_URL_HPP
 
-#include <powerloader/url.hpp>
-
 #include <limits>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
+
+#include <powerloader/url.hpp>
 
 // typedef enum {
 //   CURLUE_OK,

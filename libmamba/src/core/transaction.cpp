@@ -12,6 +12,7 @@
 #include <fmt/color.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
+#include <powerloader/downloader.hpp>
 #include <solv/selection.h>
 
 #include "mamba/core/channel.hpp"
@@ -26,8 +27,6 @@
 #include "mamba/core/util_scope.hpp"
 
 #include "progress_bar_impl.hpp"
-
-#include <powerloader/downloader.hpp>
 
 namespace
 {
@@ -329,7 +328,8 @@ namespace mamba
     }
 
     bool PackageDownloadExtractTarget::finalize_callback(
-        const std::shared_ptr<powerloader::DownloadTarget>& target)
+        const std::shared_ptr<powerloader::DownloadTarget>& target
+    )
     {
         if (m_has_progress_bars)
         {
@@ -383,8 +383,8 @@ namespace mamba
     }
 
     // todo remove cache from this interface
-    std::shared_ptr<powerloader::DownloadTarget> PackageDownloadExtractTarget::target(
-        MultiPackageCache& caches)
+    std::shared_ptr<powerloader::DownloadTarget>
+    PackageDownloadExtractTarget::target(MultiPackageCache& caches)
     {
         // tarball can be removed, it's fine if only the correct dest dir exists
         // 1. If there is extracted cache, use it, otherwise next.
@@ -431,12 +431,12 @@ namespace mamba
                 m_tarball_path = m_cache_path / m_filename;
 
                 auto& plcontext = Context::instance().plcontext;
-                m_target = powerloader::DownloadTarget::from_url(
-                    plcontext, m_url, m_tarball_path, {}, "");
+                m_target = powerloader::DownloadTarget::from_url(plcontext, m_url, m_tarball_path, {}, "");
 
-                auto end_callback
-                    = [this](powerloader::TransferStatus status,
-                             const powerloader::Response& response) -> powerloader::CbReturnCode
+                auto end_callback = [this](
+                                        powerloader::TransferStatus status,
+                                        const powerloader::Response& response
+                                    ) -> powerloader::CbReturnCode
                 {
                     if (status == powerloader::TransferStatus::kSUCCESSFUL)
                     {
@@ -467,11 +467,11 @@ namespace mamba
                         {
                             this->m_download_bar.set_progress(done, total);
                             return 0;
-                        });
+                        }
+                    );
 
                     // m_target->set_progress_bar(m_download_bar);
-                    Console::instance().progress_bar_manager().add_label("Download",
-                                                                         m_download_bar);
+                    Console::instance().progress_bar_manager().add_label("Download", m_download_bar);
                 }
                 return m_target;
             }
@@ -1247,8 +1247,9 @@ namespace mamba
             }
 
             targets.emplace_back(std::make_unique<PackageDownloadExtractTarget>(s));
-            std::shared_ptr<powerloader::DownloadTarget> download_target
-                = targets.back()->target(m_multi_cache);
+            std::shared_ptr<powerloader::DownloadTarget> download_target = targets.back()->target(
+                m_multi_cache
+            );
             if (download_target != nullptr)
             {
                 multi_dl.add(download_target);
@@ -1285,12 +1286,18 @@ namespace mamba
                         else
                         {
                             repr.prefix.set_value(fmt::format(
-                                "{:<11} {:>4}", "Downloading", fmt::format("({})", active_tasks)));
+                                "{:<11} {:>4}",
+                                "Downloading",
+                                fmt::format("({})", active_tasks)
+                            ));
                             repr.postfix.set_value(
-                                fmt::format("{:<25}", repr.progress_bar().last_active_task()));
+                                fmt::format("{:<25}", repr.progress_bar().last_active_task())
+                            );
                         }
                         repr.current.set_value(fmt::format(
-                            "{:>7}", to_human_readable_filesize(repr.progress_bar().current(), 1)));
+                            "{:>7}",
+                            to_human_readable_filesize(repr.progress_bar().current(), 1)
+                        ));
                         repr.separator.set_value("/");
 
                         std::string total_str;

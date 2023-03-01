@@ -11,6 +11,9 @@
 #include <regex>
 #include <string>
 
+#include <powerloader/download_target.hpp>
+#include <powerloader/downloader.hpp>
+
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/error_handling.hpp"
@@ -22,9 +25,6 @@
 #include "mamba/core/util.hpp"
 
 #include "package_handling.hpp"
-
-#include <powerloader/download_target.hpp>
-#include <powerloader/downloader.hpp>
 
 namespace decompress
 {
@@ -117,8 +117,8 @@ namespace mamba
             return m_check_targets;
         }
 
-        powerloader::CbReturnCode finalize_check(powerloader::TransferStatus status,
-                                                 const powerloader::Response& msg);
+        powerloader::CbReturnCode
+        finalize_check(powerloader::TransferStatus status, const powerloader::Response& msg);
         bool finalize_transfer(const powerloader::Response& response);
         void finalize_checks();
         expected_t<MRepo&> create_repo(MPool& pool);
@@ -149,8 +149,8 @@ namespace mamba
         fs::u8path m_expired_cache_path;
         fs::u8path m_writable_pkgs_dir;
 
-        powerloader::CbReturnCode end_callback(powerloader::TransferStatus status,
-                                               const powerloader::Response& msg);
+        powerloader::CbReturnCode
+        end_callback(powerloader::TransferStatus status, const powerloader::Response& msg);
         int progress_callback(curl_off_t total, curl_off_t done);
         ProgressProxy m_progress_bar;
         ProgressProxy m_progress_bar_check;

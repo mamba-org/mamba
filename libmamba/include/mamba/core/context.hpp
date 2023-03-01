@@ -6,8 +6,6 @@
 
 #ifndef MAMBA_CORE_CONTEXT_HPP
 #define MAMBA_CORE_CONTEXT_HPP
-#include "powerloader/context.hpp"
-
 #include <map>
 #include <optional>
 #include <regex>
@@ -19,6 +17,8 @@
 #include "mamba/core/palette.hpp"
 #include "mamba/core/tasksync.hpp"
 #include "mamba/version.hpp"
+
+#include "powerloader/context.hpp"
 
 #define ROOT_ENV_NAME "base"
 

@@ -467,7 +467,6 @@ PYBIND11_MODULE(bindings, m)
     m.def("create_cache_dir", &create_cache_dir);
 
 
-
     py::enum_<ChannelPriority>(m, "ChannelPriority")
         .value("kFlexible", ChannelPriority::kFlexible)
         .value("kStrict", ChannelPriority::kStrict)
@@ -536,19 +535,22 @@ PYBIND11_MODULE(bindings, m)
 
     py::class_<powerloader::DownloadOptions>(m, "DownloadOptions")
         .def(py::init<>())
-        .def_readwrite("extract_zchunk_files", &powerloader::DownloadOptions::extract_zchunk_files);
+        .def_readwrite("extract_zchunk_files", &powerloader::DownloadOptions::extract_zchunk_files)
+        .def_readwrite("failfast", &powerloader::DownloadOptions::failfast)
+        .def_readwrite("allow_failure", &powerloader::DownloadOptions::allow_failure);
 
     py::class_<powerloader::Downloader, std::unique_ptr<powerloader::Downloader>>(m, "DownloadTargetList")
         .def(py::init<>([](Context& context)
                         { return new powerloader::Downloader(context.plcontext); }))
-        .def(py::init<>(
-            []() { return new powerloader::Downloader(mamba::Context::instance().plcontext); }))
-        .def("add",
-             [](powerloader::Downloader& self, MSubdirData& sub) -> void
-             { self.add(sub.target()); })
+        .def(py::init<>([]()
+                        { return new powerloader::Downloader(mamba::Context::instance().plcontext); }))
+        .def(
+            "add",
+            [](powerloader::Downloader& self, MSubdirData& sub) -> void { self.add(sub.target()); }
+        )
         .def("download", &powerloader::Downloader::download)
         .def("download", [](powerloader::Downloader& downloader) { return downloader.download({}); });
-    
+
     pyPrefixData
         .def(py::init(
             [](const fs::u8path& prefix_path) -> PrefixData

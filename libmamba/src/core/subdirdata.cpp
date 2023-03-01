@@ -6,9 +6,9 @@
 
 #include "mamba/core/subdirdata.hpp"
 
-#include <powerloader/download_target.hpp>
-
 #include <stdexcept>
+
+#include <powerloader/download_target.hpp>
 
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/output.hpp"
@@ -374,8 +374,7 @@ namespace mamba
         }
         if (m_progress_bar && m_target)
         {
-            m_target->set_progress_callback(
-                std::bind(&MSubdirData::progress_callback, this, _1, _2));
+            m_target->set_progress_callback(std::bind(&MSubdirData::progress_callback, this, _1, _2));
         }
 
         for (auto& t : m_check_targets)
@@ -414,7 +413,8 @@ namespace mamba
             if (m_target->progress_callback())
             {
                 m_target->set_progress_callback(
-                    std::bind(&MSubdirData::progress_callback, this, _1, _2));
+                    std::bind(&MSubdirData::progress_callback, this, _1, _2)
+                );
             }
 
             // m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
@@ -426,7 +426,8 @@ namespace mamba
             if (rhs.m_target->progress_callback())
             {
                 rhs.m_target->set_progress_callback(
-                    std::bind(&MSubdirData::progress_callback, &rhs, _1, _2));
+                    std::bind(&MSubdirData::progress_callback, &rhs, _1, _2)
+                );
             }
 
             // m_target->cbdata = &rhs;
@@ -478,8 +479,8 @@ namespace mamba
         create_target();
     }
 
-    powerloader::CbReturnCode MSubdirData::finalize_check(powerloader::TransferStatus status,
-                                                          const powerloader::Response& response)
+    powerloader::CbReturnCode
+    MSubdirData::finalize_check(powerloader::TransferStatus status, const powerloader::Response& response)
     {
         LOG_INFO << "Checked: " << response.effective_url << " [" << response.http_status << "]";
         if (m_progress_bar_check)
@@ -621,10 +622,14 @@ namespace mamba
                         auto target_url = url_handler.path();
 
                         m_check_targets.push_back(std::make_shared<powerloader::DownloadTarget>(
-                            target_url + ".zst", p_channel->canonical_name(), ""));
+                            target_url + ".zst",
+                            p_channel->canonical_name(),
+                            ""
+                        ));
                         m_check_targets.back()->set_head_only(true);
                         m_check_targets.back()->set_end_callback(
-                            std::bind(&MSubdirData::finalize_check, this, _1, _2));
+                            std::bind(&MSubdirData::finalize_check, this, _1, _2)
+                        );
                         // m_check_targets.back()->set_ignore_failure(true);
                         if (!(ctx.no_progress_bars || ctx.quiet || ctx.json))
                         {
@@ -725,8 +730,10 @@ namespace mamba
         else
         {
             LOG_WARNING << "HTTP response code indicates error, retrying.";
-            throw mamba_error("Unhandled HTTP code: " + std::to_string(response.http_status),
-                              mamba_error_code::subdirdata_not_loaded);
+            throw mamba_error(
+                "Unhandled HTTP code: " + std::to_string(response.http_status),
+                mamba_error_code::subdirdata_not_loaded
+            );
         }
 
         fs::u8path json_file, solv_file;
@@ -929,20 +936,28 @@ namespace mamba
 
     int MSubdirData::progress_callback(curl_off_t total, curl_off_t done)
     {
-        //auto now = std::chrono::steady_clock::now();
-        // if (now - target->progress_throttle_time() < std::chrono::milliseconds(50))
-        //     return 0;
-        // else
-        //     target->set_progress_throttle_time(now);
-        if (!total)  // && !target->expected_size())
+        // auto now = std::chrono::steady_clock::now();
+        //  if (now - target->progress_throttle_time() < std::chrono::milliseconds(50))
+        //      return 0;
+        //  else
+        //      target->set_progress_throttle_time(now);
+        if (!total)
+        {  // && !target->expected_size())
             m_progress_bar.activate_spinner();
+        }
         else
+        {
             m_progress_bar.deactivate_spinner();
+        }
 
-        if (!total)  // && target->expected_size())
+        if (!total)
+        {  // && target->expected_size())
             m_progress_bar.update_current(done);
+        }
         else
+        {
             m_progress_bar.update_progress(done, total);
+        }
 
         m_progress_bar.set_speed(40);
 
@@ -968,7 +983,7 @@ namespace mamba
             pbar_manager.start();
             pbar_manager.watch_print();
         }
-        multi_downloader.download();
+        multi_downloader.download({});
 
         if (!(ctx.no_progress_bars || ctx.json || ctx.quiet || pbar_manager_started))
         {
@@ -977,8 +992,8 @@ namespace mamba
         }
     }
 
-    powerloader::CbReturnCode MSubdirData::end_callback(powerloader::TransferStatus status,
-                                                        const powerloader::Response& response)
+    powerloader::CbReturnCode
+    MSubdirData::end_callback(powerloader::TransferStatus status, const powerloader::Response& response)
     {
         if (status == powerloader::TransferStatus::kSUCCESSFUL)
         {
@@ -997,7 +1012,12 @@ namespace mamba
         //     m_name, m_repodata_url + (use_zst ? ".zst" : ""), m_temp_file->path().string());
 
         m_target = powerloader::DownloadTarget::from_url(
-            ctx.plcontext, m_repodata_url, m_temp_file->path(), {}, p_channel->canonical_name());
+            ctx.plcontext,
+            m_repodata_url,
+            m_temp_file->path(),
+            {},
+            p_channel->canonical_name()
+        );
 
         powerloader::CacheControl cache_control_values;
         cache_control_values.cache_control = m_metadata.cache_control;
@@ -1012,28 +1032,33 @@ namespace mamba
             m_progress_bar = Console::instance().add_progress_bar(m_name);
             auto download_repr = [](ProgressBarRepr& r) -> void
             {
-                r.current.set_value(fmt::format(
-                    "{:>7}", to_human_readable_filesize(r.progress_bar().current(), 1)));
+                r.current.set_value(
+                    fmt::format("{:>7}", to_human_readable_filesize(r.progress_bar().current(), 1))
+                );
 
                 std::string total_str;
                 if (!r.progress_bar().total()
                     || (r.progress_bar().total() == std::numeric_limits<std::size_t>::max()))
+                {
                     total_str = "??.?MB";
+                }
                 else
+                {
                     total_str = to_human_readable_filesize(r.progress_bar().total(), 1);
+                }
                 r.total.set_value(fmt::format("{:>7}", total_str));
 
                 auto speed = r.progress_bar().speed();
-                r.speed.set_value(fmt::format(
-                    "@ {:>7}/s", speed ? to_human_readable_filesize(speed, 1) : "??.?MB"));
+                r.speed.set_value(
+                    fmt::format("@ {:>7}/s", speed ? to_human_readable_filesize(speed, 1) : "??.?MB")
+                );
 
                 r.separator.set_value("/");
             };
 
             m_progress_bar.set_repr_hook(download_repr);
 
-            m_target->set_progress_callback(
-                std::bind(&MSubdirData::progress_callback, this, _1, _2));
+            m_target->set_progress_callback(std::bind(&MSubdirData::progress_callback, this, _1, _2));
         }
         // OLD CODE
         // if we get something _other_ than the noarch, we DO NOT throw if the file can't be

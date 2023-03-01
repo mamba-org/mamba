@@ -39,10 +39,8 @@ requirements:
     - spdlog
     - fmt
     - yaml-cpp-static              # [unix]
-    - libcurl >=7.87               # [linux]
-    - libcurl-static >=7.87        # [linux]
-    - libcurl 7.86                 # [osx]
-    - libcurl-static 7.86          # [osx]
+    - libcurl >=7.88.1
+    - libcurl-static >=7.88.1
     - xz-static                    # [unix]
     - libssh2-static               # [unix]
     - libarchive-minimal-static    # [unix]
@@ -58,7 +56,7 @@ requirements:
     - reproc-cpp                   # [unix]
     - reproc-cpp-static            # [unix]
     - winreg                       # [win]
-    - powerloader-dev >=0.5.5
+    - powerloader-dev >=0.6.0
 
 test:
   commands:

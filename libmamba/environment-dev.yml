@@ -9,8 +9,7 @@ dependencies:
   - libsolv >=0.7.18
   - libarchive
   - libsodium
-  - libcurl >=7.86
-  - sel(osx): libcurl 7.86
+  - libcurl >=7.88.1
   - gtest
   - gmock
   - cpp-expected
@@ -20,4 +19,4 @@ dependencies:
   - spdlog
   - fmt
   - sel(win): winreg
-  - powerloader-dev >=0.5.5
+  - powerloader-dev >=0.6.0

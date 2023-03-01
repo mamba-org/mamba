@@ -1,13 +1,13 @@
 #include "mamba/api/channel_loader.hpp"
 
+#include <powerloader/downloader.hpp>
+#include <powerloader/mirrors/oci.hpp>
+
 #include "mamba/core/channel.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/thread_utils.hpp"
-
-#include <powerloader/downloader.hpp>
-#include <powerloader/mirrors/oci.hpp>
 
 namespace mamba
 {
@@ -45,7 +45,9 @@ namespace mamba
         std::pair<std::string, std::string> oci_fn_split_tag(const std::string& fn)
         {
             if (ends_with(fn, ".json"))
+            {
                 return { fn, "latest" };
+            }
             // for OCI, if we have a filename like "xtensor-0.23.10-h2acdbc0_0.tar.bz2"
             // we want to split it to `xtensor:0.23.10-h2acdbc0-0`
             std::pair<std::string, std::string> result;
@@ -146,9 +148,8 @@ namespace mamba
         }
     }
 
-    expected_t<void, mamba_aggregated_error> load_channels(MPool& pool,
-                                                           MultiPackageCache& package_caches,
-                                                           int is_retry)
+    expected_t<void, mamba_aggregated_error>
+    load_channels(MPool& pool, MultiPackageCache& package_caches, int is_retry)
     {
         int RETRY_SUBDIR_FETCH = 1 << 0;
 
@@ -174,7 +175,10 @@ namespace mamba
                         if (starts_with(m, "http"))
                         {
                             ctx.plcontext.mirror_map.create_unique_mirror<powerloader::HTTPMirror>(
-                                mname, ctx.plcontext, m);
+                                mname,
+                                ctx.plcontext,
+                                m
+                            );
                         }
                         else if (starts_with(m, "oci://"))
                         {
@@ -188,7 +192,8 @@ namespace mamba
                                                "channel-mirrors",
                                                "pull",
                                                username,
-                                               password);
+                                               password
+                                           );
                             plm->set_fn_tag_split_function(oci_detail::oci_fn_split_tag);
                         }
                     }
@@ -207,9 +212,11 @@ namespace mamba
                     {
                         base_url = base_url.substr(0, base_url.size() - name.size() - 1);
                     }
-                    auto mirror
-                        = ctx.plcontext.mirror_map.create_unique_mirror<powerloader::HTTPMirror>(
-                            name, ctx.plcontext, base_url);
+                    auto mirror = ctx.plcontext.mirror_map.create_unique_mirror<powerloader::HTTPMirror>(
+                        name,
+                        ctx.plcontext,
+                        base_url
+                    );
                     if (channel->auth().has_value())
                     {
                         auto& val = channel->auth().value();
@@ -268,7 +275,7 @@ namespace mamba
         }
 
         // multi_dl.download(MAMBA_NO_CLEAR_PROGRESS_BARS);
-        multi_dl.download();
+        multi_dl.download({ false, false, true });  // Yiha
         if (is_sig_interrupted())
         {
             error_list.push_back(mamba_error("Interrupted by user", mamba_error_code::user_interrupted)

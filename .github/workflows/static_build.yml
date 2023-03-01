@@ -148,7 +148,7 @@ jobs:
           call micromamba activate build_env
           git clone https://github.com/mamba-org/powerloader
           cd powerloader
-          git checkout 0.5.5
+          git checkout 0.6.0
           cmake -D CMAKE_INSTALL_PREFIX=%VCPKG_ROOT%\installed\x64-windows-static ^
             -D CMAKE_PREFIX_PATH="%VCPKG_ROOT%\installed\x64-windows-static;%CMAKE_PREFIX_PATH%" ^
             -D WITH_ZCHUNK=ON ^

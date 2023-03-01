@@ -7,9 +7,10 @@
 #include "mamba/core/context.hpp"
 
 #include <iostream>
+#include <optional>
+#include <stdexcept>
 
 #include <powerloader/curl.hpp>
-
 #include <spdlog/pattern_formatter.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
@@ -21,12 +22,8 @@
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
-#include "mamba/core/url.hpp"
-#include "mamba/core/execution.hpp"
-#include "spdlog/pattern_formatter.h"
 
-#include <optional>
-#include <stdexcept>
+#include "spdlog/pattern_formatter.h"
 
 
 namespace mamba
@@ -150,7 +147,8 @@ namespace mamba
 
     Context::~Context() = default;
 
-    namespace {
+    namespace
+    {
         log_level to_log_level(int verbosity)
         {
             switch (verbosity)
@@ -178,20 +176,20 @@ namespace mamba
         {
             switch (logging_level)
             {
-            case log_level::off:
-              return -3;
-            case log_level::critical:
-              return -2;
-            case log_level::err:
-              return -1;
-            case log_level::warn:
-              return 0;
-            case log_level::info:
-              return 1;
-            case log_level::debug:
-              return 2;
-            case log_level::trace:
-              return 3;
+                case log_level::off:
+                    return -3;
+                case log_level::critical:
+                    return -2;
+                case log_level::err:
+                    return -1;
+                case log_level::warn:
+                    return 0;
+                case log_level::info:
+                    return 1;
+                case log_level::debug:
+                    return 2;
+                case log_level::trace:
+                    return 3;
             }
         }
     }
@@ -202,7 +200,7 @@ namespace mamba
 
         // keep in sync with log level
         const auto new_log_level = to_log_level(lvl);
-        if(this->logging_level != new_log_level) // avoids recursive calls
+        if (this->logging_level != new_log_level)  // avoids recursive calls
         {
             set_log_level(new_log_level);
         }
@@ -218,7 +216,7 @@ namespace mamba
 
         // keep in sync with verbosity
         const auto new_verbosity = to_verbosity(level);
-        if(this->verbosity != new_verbosity) // avoids recursive calls
+        if (this->verbosity != new_verbosity)  // avoids recursive calls
         {
             set_verbosity(new_verbosity);
         }

@@ -107,7 +107,9 @@ def get_index(
             )
             dlist.add(sd)
 
-    is_downloaded = dlist.download()
+    dlopt = api.DownloadOptions()
+    dlopt.allow_failure = True
+    is_downloaded = dlist.download(dlopt)
 
     if not is_downloaded:
         raise RuntimeError("Error downloading repodata.")
@@ -205,7 +207,7 @@ def init_api_context(use_mamba_experimental=False):
             context.json = False
 
     api_ctx.verbosity = context.verbosity
-    if (context.json):
+    if context.json:
         api_ctx.set_log_level(api.LogLevel.OFF)
     else:
         api_ctx.set_verbosity(context.verbosity)

@@ -125,16 +125,15 @@ __all__ = [
     "get_virtual_packages",
     "ostream_redirect",
     "sign",
-    "transmute",
+    "transmute"
 ]
 
-class Channel:
+
+class Channel():
     def __init__(self, arg0: str) -> None: ...
     def __repr__(self) -> str: ...
     def platform_url(self, platform: str, with_credentials: bool = True) -> str: ...
-    def platform_urls(
-        self, with_credentials: bool = True
-    ) -> typing.List[typing.Tuple[str, str]]: ...
+    def platform_urls(self, with_credentials: bool = True) -> typing.List[typing.Tuple[str, str]]: ...
     def urls(self, with_credentials: bool = True) -> typing.List[str]: ...
     @property
     def auth(self) -> typing.Optional[str]:
@@ -177,8 +176,7 @@ class Channel:
         :type: typing.Optional[str]
         """
     pass
-
-class ChannelPriority:
+class ChannelPriority():
     """
     Members:
 
@@ -188,7 +186,6 @@ class ChannelPriority:
 
       kDisabled
     """
-
     def __eq__(self, other: object) -> bool: ...
     def __getstate__(self) -> int: ...
     def __hash__(self) -> int: ...
@@ -208,14 +205,13 @@ class ChannelPriority:
         """
         :type: int
         """
-    __members__: dict  # value = {'kFlexible': <ChannelPriority.kFlexible: 1>, 'kStrict': <ChannelPriority.kStrict: 2>, 'kDisabled': <ChannelPriority.kDisabled: 0>}
-    kDisabled: libmambapy.bindings.ChannelPriority  # value = <ChannelPriority.kDisabled: 0>
-    kFlexible: libmambapy.bindings.ChannelPriority  # value = <ChannelPriority.kFlexible: 1>
-    kStrict: libmambapy.bindings.ChannelPriority  # value = <ChannelPriority.kStrict: 2>
+    __members__: dict # value = {'kFlexible': <ChannelPriority.kFlexible: 1>, 'kStrict': <ChannelPriority.kStrict: 2>, 'kDisabled': <ChannelPriority.kDisabled: 0>}
+    kDisabled: libmambapy.bindings.ChannelPriority # value = <ChannelPriority.kDisabled: 0>
+    kFlexible: libmambapy.bindings.ChannelPriority # value = <ChannelPriority.kFlexible: 1>
+    kStrict: libmambapy.bindings.ChannelPriority # value = <ChannelPriority.kStrict: 2>
     pass
-
-class CompressedProblemsGraph:
-    class ConflictMap:
+class CompressedProblemsGraph():
+    class ConflictMap():
         def __bool__(self) -> bool: ...
         def __contains__(self, arg0: int) -> bool: ...
         def __init__(self) -> None: ...
@@ -227,133 +223,56 @@ class CompressedProblemsGraph:
         def has_conflict(self, arg0: int) -> bool: ...
         def in_conflict(self, arg0: int, arg1: int) -> bool: ...
         pass
-
-    class ConstraintListNode:
+    class ConstraintListNode():
         def __bool__(self) -> bool: ...
         def __init__(self) -> None: ...
         def __iter__(self) -> typing.Iterator: ...
         def __len__(self) -> int: ...
         def add(self, arg0: ProblemsGraph.ConstraintNode) -> None: ...
-        def build_strings_trunc(
-            self,
-            sep: str = "|",
-            etc: str = "...",
-            threshold: int = 5,
-            remove_duplicates: bool = True,
-        ) -> typing.Tuple[str, int]: ...
+        def build_strings_trunc(self, sep: str = '|', etc: str = '...', threshold: int = 5, remove_duplicates: bool = True) -> typing.Tuple[str, int]: ...
         def clear(self) -> None: ...
         def name(self) -> str: ...
-        def versions_and_build_strings_trunc(
-            self,
-            sep: str = "|",
-            etc: str = "...",
-            threshold: int = 5,
-            remove_duplicates: bool = True,
-        ) -> typing.Tuple[str, int]: ...
-        def versions_trunc(
-            self,
-            sep: str = "|",
-            etc: str = "...",
-            threshold: int = 5,
-            remove_duplicates: bool = True,
-        ) -> typing.Tuple[str, int]: ...
+        def versions_and_build_strings_trunc(self, sep: str = '|', etc: str = '...', threshold: int = 5, remove_duplicates: bool = True) -> typing.Tuple[str, int]: ...
+        def versions_trunc(self, sep: str = '|', etc: str = '...', threshold: int = 5, remove_duplicates: bool = True) -> typing.Tuple[str, int]: ...
         pass
-
-    class DependencyListList:
+    class DependencyListList():
         def __bool__(self) -> bool: ...
         def __init__(self) -> None: ...
         def __iter__(self) -> typing.Iterator: ...
         def __len__(self) -> int: ...
         def add(self, arg0: DependencyInfo) -> None: ...
-        def build_strings_trunc(
-            self,
-            sep: str = "|",
-            etc: str = "...",
-            threshold: int = 5,
-            remove_duplicates: bool = True,
-        ) -> typing.Tuple[str, int]: ...
+        def build_strings_trunc(self, sep: str = '|', etc: str = '...', threshold: int = 5, remove_duplicates: bool = True) -> typing.Tuple[str, int]: ...
         def clear(self) -> None: ...
         def name(self) -> str: ...
-        def versions_and_build_strings_trunc(
-            self,
-            sep: str = "|",
-            etc: str = "...",
-            threshold: int = 5,
-            remove_duplicates: bool = True,
-        ) -> typing.Tuple[str, int]: ...
-        def versions_trunc(
-            self,
-            sep: str = "|",
-            etc: str = "...",
-            threshold: int = 5,
-            remove_duplicates: bool = True,
-        ) -> typing.Tuple[str, int]: ...
+        def versions_and_build_strings_trunc(self, sep: str = '|', etc: str = '...', threshold: int = 5, remove_duplicates: bool = True) -> typing.Tuple[str, int]: ...
+        def versions_trunc(self, sep: str = '|', etc: str = '...', threshold: int = 5, remove_duplicates: bool = True) -> typing.Tuple[str, int]: ...
         pass
-
-    class PackageListNode:
+    class PackageListNode():
         def __bool__(self) -> bool: ...
         def __init__(self) -> None: ...
         def __iter__(self) -> typing.Iterator: ...
         def __len__(self) -> int: ...
         def add(self, arg0: ProblemsGraph.PackageNode) -> None: ...
-        def build_strings_trunc(
-            self,
-            sep: str = "|",
-            etc: str = "...",
-            threshold: int = 5,
-            remove_duplicates: bool = True,
-        ) -> typing.Tuple[str, int]: ...
+        def build_strings_trunc(self, sep: str = '|', etc: str = '...', threshold: int = 5, remove_duplicates: bool = True) -> typing.Tuple[str, int]: ...
         def clear(self) -> None: ...
         def name(self) -> str: ...
-        def versions_and_build_strings_trunc(
-            self,
-            sep: str = "|",
-            etc: str = "...",
-            threshold: int = 5,
-            remove_duplicates: bool = True,
-        ) -> typing.Tuple[str, int]: ...
-        def versions_trunc(
-            self,
-            sep: str = "|",
-            etc: str = "...",
-            threshold: int = 5,
-            remove_duplicates: bool = True,
-        ) -> typing.Tuple[str, int]: ...
+        def versions_and_build_strings_trunc(self, sep: str = '|', etc: str = '...', threshold: int = 5, remove_duplicates: bool = True) -> typing.Tuple[str, int]: ...
+        def versions_trunc(self, sep: str = '|', etc: str = '...', threshold: int = 5, remove_duplicates: bool = True) -> typing.Tuple[str, int]: ...
         pass
-
-    class RootNode:
+    class RootNode():
         def __init__(self) -> None: ...
         pass
-
-    class UnresolvedDependencyListNode:
+    class UnresolvedDependencyListNode():
         def __bool__(self) -> bool: ...
         def __init__(self) -> None: ...
         def __iter__(self) -> typing.Iterator: ...
         def __len__(self) -> int: ...
         def add(self, arg0: ProblemsGraph.UnresolvedDependencyNode) -> None: ...
-        def build_strings_trunc(
-            self,
-            sep: str = "|",
-            etc: str = "...",
-            threshold: int = 5,
-            remove_duplicates: bool = True,
-        ) -> typing.Tuple[str, int]: ...
+        def build_strings_trunc(self, sep: str = '|', etc: str = '...', threshold: int = 5, remove_duplicates: bool = True) -> typing.Tuple[str, int]: ...
         def clear(self) -> None: ...
         def name(self) -> str: ...
-        def versions_and_build_strings_trunc(
-            self,
-            sep: str = "|",
-            etc: str = "...",
-            threshold: int = 5,
-            remove_duplicates: bool = True,
-        ) -> typing.Tuple[str, int]: ...
-        def versions_trunc(
-            self,
-            sep: str = "|",
-            etc: str = "...",
-            threshold: int = 5,
-            remove_duplicates: bool = True,
-        ) -> typing.Tuple[str, int]: ...
+        def versions_and_build_strings_trunc(self, sep: str = '|', etc: str = '...', threshold: int = 5, remove_duplicates: bool = True) -> typing.Tuple[str, int]: ...
+        def versions_trunc(self, sep: str = '|', etc: str = '...', threshold: int = 5, remove_duplicates: bool = True) -> typing.Tuple[str, int]: ...
         pass
     def conflicts(self) -> ProblemsGraph.ConflictMap: ...
     @staticmethod
@@ -361,28 +280,13 @@ class CompressedProblemsGraph:
     def from_problems_graph(arg0: ProblemsGraph) -> CompressedProblemsGraph: ...
     @staticmethod
     @typing.overload
-    def from_problems_graph(
-        arg0: ProblemsGraph, arg1: typing.Callable[[ProblemsGraph, int, int], bool]
-    ) -> CompressedProblemsGraph: ...
-    def graph(
-        self,
-    ) -> typing.Tuple[
-        typing.List[
-            typing.Union[
-                ProblemsGraph.RootNode,
-                CompressedProblemsGraph.PackageListNode,
-                CompressedProblemsGraph.UnresolvedDependencyListNode,
-                CompressedProblemsGraph.ConstraintListNode,
-            ]
-        ],
-        typing.Dict[typing.Tuple[int, int], CompressedProblemsGraph.DependencyListList],
-    ]: ...
+    def from_problems_graph(arg0: ProblemsGraph, arg1: typing.Callable[[ProblemsGraph, int, int], bool]) -> CompressedProblemsGraph: ...
+    def graph(self) -> typing.Tuple[typing.List[typing.Union[ProblemsGraph.RootNode, CompressedProblemsGraph.PackageListNode, CompressedProblemsGraph.UnresolvedDependencyListNode, CompressedProblemsGraph.ConstraintListNode]], typing.Dict[typing.Tuple[int, int], CompressedProblemsGraph.DependencyListList]]: ...
     def root_node(self) -> int: ...
     def summary_message(self) -> str: ...
     def tree_message(self) -> str: ...
     pass
-
-class Configuration:
+class Configuration():
     def __init__(self) -> None: ...
     @property
     def show_banner(self) -> bool:
@@ -393,8 +297,7 @@ class Configuration:
     def show_banner(self, arg1: bool) -> None:
         pass
     pass
-
-class Context:
+class Context():
     def __init__(self) -> None: ...
     def set_log_level(self, arg0: LogLevel) -> None: ...
     def set_verbosity(self, arg0: int) -> None: ...
@@ -516,7 +419,7 @@ class Context:
         :type: bool
         """
     @experimental_sat_error_message.setter
-    def experimental_sat_error_message(self, arg1: bool) -> None:
+    def experimental_sat_error_message(self, arg0: bool) -> None:
         pass
     @property
     def extract_threads(self) -> int:
@@ -671,8 +574,7 @@ class Context:
     def verbosity(self, arg0: int) -> None:
         pass
     pass
-
-class DependencyInfo:
+class DependencyInfo():
     def __eq__(self, arg0: DependencyInfo) -> bool: ...
     def __init__(self, arg0: str) -> None: ...
     def __str__(self) -> str: ...
@@ -693,9 +595,16 @@ class DependencyInfo:
         """
     __hash__ = None
     pass
-
-class DownloadOptions:
+class DownloadOptions():
     def __init__(self) -> None: ...
+    @property
+    def allow_failure(self) -> bool:
+        """
+        :type: bool
+        """
+    @allow_failure.setter
+    def allow_failure(self, arg0: bool) -> None:
+        pass
     @property
     def extract_zchunk_files(self) -> bool:
         """
@@ -704,9 +613,16 @@ class DownloadOptions:
     @extract_zchunk_files.setter
     def extract_zchunk_files(self, arg0: bool) -> None:
         pass
+    @property
+    def failfast(self) -> bool:
+        """
+        :type: bool
+        """
+    @failfast.setter
+    def failfast(self, arg0: bool) -> None:
+        pass
     pass
-
-class DownloadTargetList:
+class DownloadTargetList():
     @typing.overload
     def __init__(self) -> None: ...
     @typing.overload
@@ -717,8 +633,7 @@ class DownloadTargetList:
     @typing.overload
     def download(self, arg0: DownloadOptions) -> bool: ...
     pass
-
-class ExtraPkgInfo:
+class ExtraPkgInfo():
     def __init__(self) -> None: ...
     @property
     def noarch(self) -> str:
@@ -737,13 +652,11 @@ class ExtraPkgInfo:
     def repo_url(self, arg0: str) -> None:
         pass
     pass
-
-class History:
+class History():
     def __init__(self, arg0: Path) -> None: ...
     def get_requested_specs_map(self) -> typing.Dict[str, mamba::MatchSpec]: ...
     pass
-
-class Key:
+class Key():
     @staticmethod
     def from_ed25519(arg0: str) -> Key: ...
     @property
@@ -776,8 +689,7 @@ class Key:
     def scheme(self, arg0: str) -> None:
         pass
     pass
-
-class RoleBase:
+class RoleBase():
     def all_keys(self) -> typing.Dict[str, RoleFullKeys]: ...
     @property
     def expired(self) -> bool:
@@ -810,12 +722,10 @@ class RoleBase:
         :type: int
         """
     pass
-
-class LockFile:
+class LockFile():
     def __init__(self, arg0: Path) -> None: ...
     pass
-
-class LogLevel:
+class LogLevel():
     """
     Members:
 
@@ -833,7 +743,6 @@ class LogLevel:
 
       OFF
     """
-
     def __eq__(self, other: object) -> bool: ...
     def __getstate__(self) -> int: ...
     def __hash__(self) -> int: ...
@@ -853,28 +762,25 @@ class LogLevel:
         """
         :type: int
         """
-    CRITICAL: libmambapy.bindings.LogLevel  # value = <LogLevel.CRITICAL: 5>
-    DEBUG: libmambapy.bindings.LogLevel  # value = <LogLevel.DEBUG: 1>
-    ERROR: libmambapy.bindings.LogLevel  # value = <LogLevel.ERROR: 4>
-    INFO: libmambapy.bindings.LogLevel  # value = <LogLevel.INFO: 2>
-    OFF: libmambapy.bindings.LogLevel  # value = <LogLevel.OFF: 6>
-    TRACE: libmambapy.bindings.LogLevel  # value = <LogLevel.TRACE: 0>
-    WARNING: libmambapy.bindings.LogLevel  # value = <LogLevel.WARNING: 3>
-    __members__: dict  # value = {'TRACE': <LogLevel.TRACE: 0>, 'DEBUG': <LogLevel.DEBUG: 1>, 'INFO': <LogLevel.INFO: 2>, 'WARNING': <LogLevel.WARNING: 3>, 'ERROR': <LogLevel.ERROR: 4>, 'CRITICAL': <LogLevel.CRITICAL: 5>, 'OFF': <LogLevel.OFF: 6>}
+    CRITICAL: libmambapy.bindings.LogLevel # value = <LogLevel.CRITICAL: 5>
+    DEBUG: libmambapy.bindings.LogLevel # value = <LogLevel.DEBUG: 1>
+    ERROR: libmambapy.bindings.LogLevel # value = <LogLevel.ERROR: 4>
+    INFO: libmambapy.bindings.LogLevel # value = <LogLevel.INFO: 2>
+    OFF: libmambapy.bindings.LogLevel # value = <LogLevel.OFF: 6>
+    TRACE: libmambapy.bindings.LogLevel # value = <LogLevel.TRACE: 0>
+    WARNING: libmambapy.bindings.LogLevel # value = <LogLevel.WARNING: 3>
+    __members__: dict # value = {'TRACE': <LogLevel.TRACE: 0>, 'DEBUG': <LogLevel.DEBUG: 1>, 'INFO': <LogLevel.INFO: 2>, 'WARNING': <LogLevel.WARNING: 3>, 'ERROR': <LogLevel.ERROR: 4>, 'CRITICAL': <LogLevel.CRITICAL: 5>, 'OFF': <LogLevel.OFF: 6>}
     pass
-
 class MambaNativeException(Exception, BaseException):
     pass
-
-class MatchSpec:
+class MatchSpec():
     @typing.overload
     def __init__(self) -> None: ...
     @typing.overload
     def __init__(self, arg0: str) -> None: ...
     def conda_build_form(self) -> str: ...
     pass
-
-class MultiPackageCache:
+class MultiPackageCache():
     def __init__(self, arg0: typing.List[Path]) -> None: ...
     def get_tarball_path(self, arg0: PackageInfo, arg1: bool) -> Path: ...
     @property
@@ -883,16 +789,13 @@ class MultiPackageCache:
         :type: Path
         """
     pass
-
-class PackageInfo:
+class PackageInfo():
     @typing.overload
     def __init__(self, arg0: s_Solvable) -> None: ...
     @typing.overload
     def __init__(self, name: str) -> None: ...
     @typing.overload
-    def __init__(
-        self, name: str, version: str, build_string: str, build_number: int
-    ) -> None: ...
+    def __init__(self, name: str, version: str, build_string: str, build_number: int) -> None: ...
     @property
     def build_number(self) -> int:
         """
@@ -1046,22 +949,19 @@ class PackageInfo:
     def version(self, arg0: str) -> None:
         pass
     pass
-
-class Path:
+class Path():
     def __init__(self, arg0: str) -> None: ...
     def __repr__(self) -> str: ...
     def __str__(self) -> str: ...
     pass
-
-class RoleBaseExtension:
+class RoleBaseExtension():
     @property
     def timestamp(self) -> str:
         """
         :type: str
         """
     pass
-
-class Pool:
+class Pool():
     def __init__(self) -> None: ...
     def create_whatprovides(self) -> None: ...
     def id2pkginfo(self, id: int) -> typing.Optional[PackageInfo]: ...
@@ -1069,8 +969,7 @@ class Pool:
     def select_solvables(self, id: int, sorted: bool = False) -> typing.List[int]: ...
     def set_debuglevel(self) -> None: ...
     pass
-
-class PrefixData:
+class PrefixData():
     def __init__(self, arg0: Path) -> None: ...
     def add_packages(self, arg0: typing.List[PackageInfo]) -> None: ...
     @property
@@ -1079,21 +978,16 @@ class PrefixData:
         :type: typing.Dict[str, PackageInfo]
         """
     pass
-
-class ProblemsGraph:
-    class ConflictMap:
+class ProblemsGraph():
+    class ConflictMap():
         pass
-
     class ConstraintNode(DependencyInfo):
-        problem_type: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_CONSTRAINS: 267>
+        problem_type: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_PKG_CONSTRAINS: 267>
         pass
-
     class PackageNode(PackageInfo):
         pass
-
-    class RootNode:
+    class RootNode():
         pass
-
     class UnresolvedDependencyNode(DependencyInfo):
         @property
         def problem_type(self) -> SolverRuleinfo:
@@ -1107,30 +1001,16 @@ class ProblemsGraph:
     def conflicts(self) -> ProblemsGraph.ConflictMap: ...
     @staticmethod
     def from_solver(arg0: Solver, arg1: Pool) -> ProblemsGraph: ...
-    def graph(
-        self,
-    ) -> typing.Tuple[
-        typing.List[
-            typing.Union[
-                ProblemsGraph.RootNode,
-                ProblemsGraph.PackageNode,
-                ProblemsGraph.UnresolvedDependencyNode,
-                ProblemsGraph.ConstraintNode,
-            ]
-        ],
-        typing.Dict[typing.Tuple[int, int], DependencyInfo],
-    ]: ...
+    def graph(self) -> typing.Tuple[typing.List[typing.Union[ProblemsGraph.RootNode, ProblemsGraph.PackageNode, ProblemsGraph.UnresolvedDependencyNode, ProblemsGraph.ConstraintNode]], typing.Dict[typing.Tuple[int, int], DependencyInfo]]: ...
     def root_node(self) -> int: ...
     pass
-
-class Query:
+class Query():
     def __init__(self, arg0: Pool) -> None: ...
     def depends(self, arg0: str, arg1: QueryFormat) -> str: ...
     def find(self, arg0: str, arg1: QueryFormat) -> str: ...
     def whoneeds(self, arg0: str, arg1: QueryFormat) -> str: ...
     pass
-
-class QueryFormat:
+class QueryFormat():
     """
     Members:
 
@@ -1144,7 +1024,6 @@ class QueryFormat:
 
       RECURSIVETABLE
     """
-
     def __eq__(self, other: object) -> bool: ...
     def __getstate__(self) -> int: ...
     def __hash__(self) -> int: ...
@@ -1164,15 +1043,14 @@ class QueryFormat:
         """
         :type: int
         """
-    JSON: libmambapy.bindings.QueryFormat  # value = <QueryFormat.JSON: 0>
-    PRETTY: libmambapy.bindings.QueryFormat  # value = <QueryFormat.PRETTY: 3>
-    RECURSIVETABLE: libmambapy.bindings.QueryFormat  # value = <QueryFormat.RECURSIVETABLE: 4>
-    TABLE: libmambapy.bindings.QueryFormat  # value = <QueryFormat.TABLE: 2>
-    TREE: libmambapy.bindings.QueryFormat  # value = <QueryFormat.TREE: 1>
-    __members__: dict  # value = {'JSON': <QueryFormat.JSON: 0>, 'TREE': <QueryFormat.TREE: 1>, 'TABLE': <QueryFormat.TABLE: 2>, 'PRETTY': <QueryFormat.PRETTY: 3>, 'RECURSIVETABLE': <QueryFormat.RECURSIVETABLE: 4>}
+    JSON: libmambapy.bindings.QueryFormat # value = <QueryFormat.JSON: 0>
+    PRETTY: libmambapy.bindings.QueryFormat # value = <QueryFormat.PRETTY: 3>
+    RECURSIVETABLE: libmambapy.bindings.QueryFormat # value = <QueryFormat.RECURSIVETABLE: 4>
+    TABLE: libmambapy.bindings.QueryFormat # value = <QueryFormat.TABLE: 2>
+    TREE: libmambapy.bindings.QueryFormat # value = <QueryFormat.TREE: 1>
+    __members__: dict # value = {'JSON': <QueryFormat.JSON: 0>, 'TREE': <QueryFormat.TREE: 1>, 'TABLE': <QueryFormat.TABLE: 2>, 'PRETTY': <QueryFormat.PRETTY: 3>, 'RECURSIVETABLE': <QueryFormat.RECURSIVETABLE: 4>}
     pass
-
-class Repo:
+class Repo():
     @typing.overload
     def __init__(self, arg0: Pool, arg1: PrefixData) -> None: ...
     @typing.overload
@@ -1185,16 +1063,13 @@ class Repo:
     def set_priority(self, arg0: int, arg1: int) -> None: ...
     def size(self) -> int: ...
     pass
-
 class KeyMgr(RoleBase, RoleBaseExtension):
     def __init__(self, arg0: str, arg1: RoleFullKeys, arg2: SpecBase) -> None: ...
     pass
-
 class PkgMgr(RoleBase, RoleBaseExtension):
     def __init__(self, arg0: str, arg1: RoleFullKeys, arg2: SpecBase) -> None: ...
     pass
-
-class RoleFullKeys:
+class RoleFullKeys():
     @typing.overload
     def __init__(self) -> None: ...
     @typing.overload
@@ -1216,20 +1091,15 @@ class RoleFullKeys:
     def threshold(self, arg0: int) -> None:
         pass
     pass
-
 class RootImpl(RoleBase, RoleBaseExtension):
     def __init__(self, json_str: str) -> None: ...
     def create_key_mgr(self, json_str: str) -> KeyMgr: ...
     def update(self, json_str: str) -> RootRole: ...
     pass
-
-class RootRole:
+class RootRole():
     pass
-
-class Solver:
-    def __init__(
-        self, arg0: Pool, arg1: typing.List[typing.Tuple[int, int]]
-    ) -> None: ...
+class Solver():
+    def __init__(self, arg0: Pool, arg1: typing.List[typing.Tuple[int, int]]) -> None: ...
     def add_constraint(self, arg0: str) -> None: ...
     def add_global_job(self, arg0: int) -> None: ...
     def add_jobs(self, arg0: typing.List[str], arg1: int) -> None: ...
@@ -1241,14 +1111,11 @@ class Solver:
     def must_solve(self) -> None: ...
     def problems_to_str(self) -> str: ...
     def set_flags(self, arg0: typing.List[typing.Tuple[int, int]]) -> None: ...
-    def set_postsolve_flags(
-        self, arg0: typing.List[typing.Tuple[int, int]]
-    ) -> None: ...
+    def set_postsolve_flags(self, arg0: typing.List[typing.Tuple[int, int]]) -> None: ...
     def solve(self) -> bool: ...
     def try_solve(self) -> bool: ...
     pass
-
-class SolverProblem:
+class SolverProblem():
     def __str__(self) -> str: ...
     @property
     def dep(self) -> typing.Optional[str]:
@@ -1315,8 +1182,7 @@ class SolverProblem:
     def type(self, arg0: SolverRuleinfo) -> None:
         pass
     pass
-
-class SolverRuleinfo:
+class SolverRuleinfo():
     """
     Members:
 
@@ -1378,7 +1244,6 @@ class SolverRuleinfo:
 
       SOLVER_RULE_STRICT_REPO_PRIORITY
     """
-
     def __eq__(self, other: object) -> bool: ...
     def __getstate__(self) -> int: ...
     def __hash__(self) -> int: ...
@@ -1398,55 +1263,49 @@ class SolverRuleinfo:
         """
         :type: int
         """
-    SOLVER_RULE_BEST: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_BEST: 2304>
-    SOLVER_RULE_BLACK: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_BLACK: 3072>
-    SOLVER_RULE_CHOICE: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_CHOICE: 1792>
-    SOLVER_RULE_DISTUPGRADE: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_DISTUPGRADE: 1280>
-    SOLVER_RULE_FEATURE: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_FEATURE: 768>
-    SOLVER_RULE_INFARCH: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_INFARCH: 1536>
-    SOLVER_RULE_JOB: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_JOB: 1024>
-    SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP: 1025>
-    SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM: 1026>
-    SOLVER_RULE_JOB_UNKNOWN_PACKAGE: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_JOB_UNKNOWN_PACKAGE: 1027>
-    SOLVER_RULE_JOB_UNSUPPORTED: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_JOB_UNSUPPORTED: 1028>
-    SOLVER_RULE_LEARNT: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_LEARNT: 2048>
-    SOLVER_RULE_PKG: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG: 256>
-    SOLVER_RULE_PKG_CONFLICTS: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_CONFLICTS: 261>
-    SOLVER_RULE_PKG_CONSTRAINS: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_CONSTRAINS: 267>
-    SOLVER_RULE_PKG_IMPLICIT_OBSOLETES: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_IMPLICIT_OBSOLETES: 264>
-    SOLVER_RULE_PKG_INSTALLED_OBSOLETES: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_INSTALLED_OBSOLETES: 265>
-    SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP: 258>
-    SOLVER_RULE_PKG_NOT_INSTALLABLE: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_NOT_INSTALLABLE: 257>
-    SOLVER_RULE_PKG_OBSOLETES: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_OBSOLETES: 263>
-    SOLVER_RULE_PKG_RECOMMENDS: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_RECOMMENDS: 266>
-    SOLVER_RULE_PKG_REQUIRES: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_REQUIRES: 259>
-    SOLVER_RULE_PKG_SAME_NAME: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_SAME_NAME: 262>
-    SOLVER_RULE_PKG_SELF_CONFLICT: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_SELF_CONFLICT: 260>
-    SOLVER_RULE_RECOMMENDS: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_RECOMMENDS: 2816>
-    SOLVER_RULE_STRICT_REPO_PRIORITY: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_STRICT_REPO_PRIORITY: 3328>
-    SOLVER_RULE_UNKNOWN: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_UNKNOWN: 0>
-    SOLVER_RULE_UPDATE: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_UPDATE: 512>
-    SOLVER_RULE_YUMOBS: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_YUMOBS: 2560>
-    __members__: dict  # value = {'SOLVER_RULE_UNKNOWN': <SolverRuleinfo.SOLVER_RULE_UNKNOWN: 0>, 'SOLVER_RULE_PKG': <SolverRuleinfo.SOLVER_RULE_PKG: 256>, 'SOLVER_RULE_PKG_NOT_INSTALLABLE': <SolverRuleinfo.SOLVER_RULE_PKG_NOT_INSTALLABLE: 257>, 'SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP': <SolverRuleinfo.SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP: 258>, 'SOLVER_RULE_PKG_REQUIRES': <SolverRuleinfo.SOLVER_RULE_PKG_REQUIRES: 259>, 'SOLVER_RULE_PKG_SELF_CONFLICT': <SolverRuleinfo.SOLVER_RULE_PKG_SELF_CONFLICT: 260>, 'SOLVER_RULE_PKG_CONFLICTS': <SolverRuleinfo.SOLVER_RULE_PKG_CONFLICTS: 261>, 'SOLVER_RULE_PKG_SAME_NAME': <SolverRuleinfo.SOLVER_RULE_PKG_SAME_NAME: 262>, 'SOLVER_RULE_PKG_OBSOLETES': <SolverRuleinfo.SOLVER_RULE_PKG_OBSOLETES: 263>, 'SOLVER_RULE_PKG_IMPLICIT_OBSOLETES': <SolverRuleinfo.SOLVER_RULE_PKG_IMPLICIT_OBSOLETES: 264>, 'SOLVER_RULE_PKG_INSTALLED_OBSOLETES': <SolverRuleinfo.SOLVER_RULE_PKG_INSTALLED_OBSOLETES: 265>, 'SOLVER_RULE_PKG_RECOMMENDS': <SolverRuleinfo.SOLVER_RULE_PKG_RECOMMENDS: 266>, 'SOLVER_RULE_PKG_CONSTRAINS': <SolverRuleinfo.SOLVER_RULE_PKG_CONSTRAINS: 267>, 'SOLVER_RULE_UPDATE': <SolverRuleinfo.SOLVER_RULE_UPDATE: 512>, 'SOLVER_RULE_FEATURE': <SolverRuleinfo.SOLVER_RULE_FEATURE: 768>, 'SOLVER_RULE_JOB': <SolverRuleinfo.SOLVER_RULE_JOB: 1024>, 'SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP': <SolverRuleinfo.SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP: 1025>, 'SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM': <SolverRuleinfo.SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM: 1026>, 'SOLVER_RULE_JOB_UNKNOWN_PACKAGE': <SolverRuleinfo.SOLVER_RULE_JOB_UNKNOWN_PACKAGE: 1027>, 'SOLVER_RULE_JOB_UNSUPPORTED': <SolverRuleinfo.SOLVER_RULE_JOB_UNSUPPORTED: 1028>, 'SOLVER_RULE_DISTUPGRADE': <SolverRuleinfo.SOLVER_RULE_DISTUPGRADE: 1280>, 'SOLVER_RULE_INFARCH': <SolverRuleinfo.SOLVER_RULE_INFARCH: 1536>, 'SOLVER_RULE_CHOICE': <SolverRuleinfo.SOLVER_RULE_CHOICE: 1792>, 'SOLVER_RULE_LEARNT': <SolverRuleinfo.SOLVER_RULE_LEARNT: 2048>, 'SOLVER_RULE_BEST': <SolverRuleinfo.SOLVER_RULE_BEST: 2304>, 'SOLVER_RULE_YUMOBS': <SolverRuleinfo.SOLVER_RULE_YUMOBS: 2560>, 'SOLVER_RULE_RECOMMENDS': <SolverRuleinfo.SOLVER_RULE_RECOMMENDS: 2816>, 'SOLVER_RULE_BLACK': <SolverRuleinfo.SOLVER_RULE_BLACK: 3072>, 'SOLVER_RULE_STRICT_REPO_PRIORITY': <SolverRuleinfo.SOLVER_RULE_STRICT_REPO_PRIORITY: 3328>}
+    SOLVER_RULE_BEST: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_BEST: 2304>
+    SOLVER_RULE_BLACK: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_BLACK: 3072>
+    SOLVER_RULE_CHOICE: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_CHOICE: 1792>
+    SOLVER_RULE_DISTUPGRADE: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_DISTUPGRADE: 1280>
+    SOLVER_RULE_FEATURE: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_FEATURE: 768>
+    SOLVER_RULE_INFARCH: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_INFARCH: 1536>
+    SOLVER_RULE_JOB: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_JOB: 1024>
+    SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP: 1025>
+    SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM: 1026>
+    SOLVER_RULE_JOB_UNKNOWN_PACKAGE: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_JOB_UNKNOWN_PACKAGE: 1027>
+    SOLVER_RULE_JOB_UNSUPPORTED: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_JOB_UNSUPPORTED: 1028>
+    SOLVER_RULE_LEARNT: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_LEARNT: 2048>
+    SOLVER_RULE_PKG: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_PKG: 256>
+    SOLVER_RULE_PKG_CONFLICTS: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_PKG_CONFLICTS: 261>
+    SOLVER_RULE_PKG_CONSTRAINS: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_PKG_CONSTRAINS: 267>
+    SOLVER_RULE_PKG_IMPLICIT_OBSOLETES: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_PKG_IMPLICIT_OBSOLETES: 264>
+    SOLVER_RULE_PKG_INSTALLED_OBSOLETES: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_PKG_INSTALLED_OBSOLETES: 265>
+    SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP: 258>
+    SOLVER_RULE_PKG_NOT_INSTALLABLE: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_PKG_NOT_INSTALLABLE: 257>
+    SOLVER_RULE_PKG_OBSOLETES: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_PKG_OBSOLETES: 263>
+    SOLVER_RULE_PKG_RECOMMENDS: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_PKG_RECOMMENDS: 266>
+    SOLVER_RULE_PKG_REQUIRES: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_PKG_REQUIRES: 259>
+    SOLVER_RULE_PKG_SAME_NAME: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_PKG_SAME_NAME: 262>
+    SOLVER_RULE_PKG_SELF_CONFLICT: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_PKG_SELF_CONFLICT: 260>
+    SOLVER_RULE_RECOMMENDS: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_RECOMMENDS: 2816>
+    SOLVER_RULE_STRICT_REPO_PRIORITY: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_STRICT_REPO_PRIORITY: 3328>
+    SOLVER_RULE_UNKNOWN: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_UNKNOWN: 0>
+    SOLVER_RULE_UPDATE: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_UPDATE: 512>
+    SOLVER_RULE_YUMOBS: libmambapy.bindings.SolverRuleinfo # value = <SolverRuleinfo.SOLVER_RULE_YUMOBS: 2560>
+    __members__: dict # value = {'SOLVER_RULE_UNKNOWN': <SolverRuleinfo.SOLVER_RULE_UNKNOWN: 0>, 'SOLVER_RULE_PKG': <SolverRuleinfo.SOLVER_RULE_PKG: 256>, 'SOLVER_RULE_PKG_NOT_INSTALLABLE': <SolverRuleinfo.SOLVER_RULE_PKG_NOT_INSTALLABLE: 257>, 'SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP': <SolverRuleinfo.SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP: 258>, 'SOLVER_RULE_PKG_REQUIRES': <SolverRuleinfo.SOLVER_RULE_PKG_REQUIRES: 259>, 'SOLVER_RULE_PKG_SELF_CONFLICT': <SolverRuleinfo.SOLVER_RULE_PKG_SELF_CONFLICT: 260>, 'SOLVER_RULE_PKG_CONFLICTS': <SolverRuleinfo.SOLVER_RULE_PKG_CONFLICTS: 261>, 'SOLVER_RULE_PKG_SAME_NAME': <SolverRuleinfo.SOLVER_RULE_PKG_SAME_NAME: 262>, 'SOLVER_RULE_PKG_OBSOLETES': <SolverRuleinfo.SOLVER_RULE_PKG_OBSOLETES: 263>, 'SOLVER_RULE_PKG_IMPLICIT_OBSOLETES': <SolverRuleinfo.SOLVER_RULE_PKG_IMPLICIT_OBSOLETES: 264>, 'SOLVER_RULE_PKG_INSTALLED_OBSOLETES': <SolverRuleinfo.SOLVER_RULE_PKG_INSTALLED_OBSOLETES: 265>, 'SOLVER_RULE_PKG_RECOMMENDS': <SolverRuleinfo.SOLVER_RULE_PKG_RECOMMENDS: 266>, 'SOLVER_RULE_PKG_CONSTRAINS': <SolverRuleinfo.SOLVER_RULE_PKG_CONSTRAINS: 267>, 'SOLVER_RULE_UPDATE': <SolverRuleinfo.SOLVER_RULE_UPDATE: 512>, 'SOLVER_RULE_FEATURE': <SolverRuleinfo.SOLVER_RULE_FEATURE: 768>, 'SOLVER_RULE_JOB': <SolverRuleinfo.SOLVER_RULE_JOB: 1024>, 'SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP': <SolverRuleinfo.SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP: 1025>, 'SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM': <SolverRuleinfo.SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM: 1026>, 'SOLVER_RULE_JOB_UNKNOWN_PACKAGE': <SolverRuleinfo.SOLVER_RULE_JOB_UNKNOWN_PACKAGE: 1027>, 'SOLVER_RULE_JOB_UNSUPPORTED': <SolverRuleinfo.SOLVER_RULE_JOB_UNSUPPORTED: 1028>, 'SOLVER_RULE_DISTUPGRADE': <SolverRuleinfo.SOLVER_RULE_DISTUPGRADE: 1280>, 'SOLVER_RULE_INFARCH': <SolverRuleinfo.SOLVER_RULE_INFARCH: 1536>, 'SOLVER_RULE_CHOICE': <SolverRuleinfo.SOLVER_RULE_CHOICE: 1792>, 'SOLVER_RULE_LEARNT': <SolverRuleinfo.SOLVER_RULE_LEARNT: 2048>, 'SOLVER_RULE_BEST': <SolverRuleinfo.SOLVER_RULE_BEST: 2304>, 'SOLVER_RULE_YUMOBS': <SolverRuleinfo.SOLVER_RULE_YUMOBS: 2560>, 'SOLVER_RULE_RECOMMENDS': <SolverRuleinfo.SOLVER_RULE_RECOMMENDS: 2816>, 'SOLVER_RULE_BLACK': <SolverRuleinfo.SOLVER_RULE_BLACK: 3072>, 'SOLVER_RULE_STRICT_REPO_PRIORITY': <SolverRuleinfo.SOLVER_RULE_STRICT_REPO_PRIORITY: 3328>}
     pass
-
-class SpecBase:
+class SpecBase():
     pass
-
 class SpecImpl(SpecBase):
     def __init__(self) -> None: ...
     pass
-
-class SubdirData:
-    def __init__(
-        self, arg0: Channel, arg1: str, arg2: str, arg3: MultiPackageCache, arg4: str
-    ) -> None: ...
+class SubdirData():
+    def __init__(self, arg0: Channel, arg1: str, arg2: str, arg3: MultiPackageCache, arg4: str) -> None: ...
     def cache_path(self) -> str: ...
     def create_repo(self, arg0: Pool) -> Repo: ...
     def loaded(self) -> bool: ...
     pass
-
-class Transaction:
+class Transaction():
     def __init__(self, arg0: Solver, arg1: MultiPackageCache) -> None: ...
     def execute(self, arg0: PrefixData) -> bool: ...
     def fetch_extract_packages(self) -> bool: ...
@@ -1454,53 +1313,31 @@ class Transaction:
     def log_json(self) -> None: ...
     def print(self) -> None: ...
     def prompt(self) -> bool: ...
-    def to_conda(
-        self,
-    ) -> typing.Tuple[
-        typing.Tuple[typing.List[str], typing.List[str]],
-        typing.List[typing.Tuple[str, str, str]],
-        typing.List[typing.Tuple[str, str]],
-    ]: ...
+    def to_conda(self) -> typing.Tuple[typing.Tuple[typing.List[str], typing.List[str]], typing.List[typing.Tuple[str, str, str]], typing.List[typing.Tuple[str, str]]]: ...
     pass
-
-class ostream_redirect:
+class ostream_redirect():
     def __enter__(self) -> None: ...
     def __exit__(self, *args) -> None: ...
     def __init__(self, stdout: bool = True, stderr: bool = True) -> None: ...
     pass
-
 def cache_fn_url(arg0: str) -> str:
     pass
-
 def cancel_json_output() -> None:
     pass
-
 def clean(arg0: int) -> None:
     pass
-
 def create_cache_dir(arg0: Path) -> str:
     pass
-
 def generate_ed25519_keypair() -> typing.Tuple[str, str]:
     pass
-
 def get_channels(arg0: typing.List[str]) -> typing.List[Channel]:
     pass
-
 def get_virtual_packages() -> typing.List[PackageInfo]:
     pass
-
 def sign(data: str, secret_key: str) -> str:
     pass
-
-def transmute(
-    source_package: Path,
-    destination_package: Path,
-    compression_level: int,
-    compression_threads: int = 1,
-) -> bool:
+def transmute(source_package: Path, destination_package: Path, compression_level: int, compression_threads: int = 1) -> bool:
     pass
-
 MAMBA_CLEAN_ALL = 1
 MAMBA_CLEAN_INDEX = 2
 MAMBA_CLEAN_LOCKS = 16

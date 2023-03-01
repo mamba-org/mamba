@@ -516,7 +516,7 @@ class Context:
         :type: bool
         """
     @experimental_sat_error_message.setter
-    def experimental_sat_error_message(self, arg0: bool) -> None:
+    def experimental_sat_error_message(self, arg1: bool) -> None:
         pass
     @property
     def extract_threads(self) -> int:

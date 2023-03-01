@@ -330,7 +330,9 @@ def install(args, parser, command="install"):
             if default_pkg_name not in args_packages_names:
                 args_packages.append(default_pkg)
 
-    num_cp = sum(s.endswith(".tar.bz2") for s in args_packages)
+    num_cp = sum(
+        (s.endswith(".tar.bz2") or s.endswith(".conda")) for s in args_packages
+    )
     if num_cp:
         if num_cp == len(args_packages):
             explicit(args_packages, prefix, verbose=not (context.quiet or context.json))

@@ -12,7 +12,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/url.hpp"
-#include "mamba/core/util.hpp"
+#include "mamba/core/util_string.hpp"
 
 #include "progress_bar_impl.hpp"
 
@@ -474,6 +474,17 @@ namespace mamba
         return m_check_targets;
     }
 
+    namespace
+    {
+
+        template <typename T>
+        std::vector<T> without_duplicates(std::vector<T>&& values)
+        {
+            const auto end_it = std::unique(values.begin(), values.end());
+            values.erase(end_it, values.end());
+            return values;
+        }
+    }
 
     bool MSubdirData::load(MultiPackageCache& caches)
     {

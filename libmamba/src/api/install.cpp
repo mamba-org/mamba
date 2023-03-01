@@ -24,7 +24,7 @@
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/pinning.hpp"
 #include "mamba/core/transaction.hpp"
-#include "mamba/core/util.hpp"
+#include "mamba/core/util_string.hpp"
 #include "mamba/core/virtual_packages.hpp"
 
 namespace mamba

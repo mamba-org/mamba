@@ -20,7 +20,6 @@
 
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/mamba_fs.hpp"
-#include "mamba/core/util_string.hpp"
 
 #include "nlohmann/json.hpp"
 #include "tl/expected.hpp"
@@ -328,10 +327,7 @@ namespace mamba
 
     /// Returns `true` if the filename matches names of files which should be interpreted as YAML.
     /// NOTE: this does not check if the file exists.
-    inline bool is_yaml_file_name(const std::string_view filename)
-    {
-        return ends_with(filename, ".yml") || ends_with(filename, ".yaml");
-    }
+    bool is_yaml_file_name(std::string_view filename);
 
     std::optional<std::string> proxy_match(const std::string& url);
 

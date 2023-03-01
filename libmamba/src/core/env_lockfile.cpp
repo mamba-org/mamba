@@ -9,8 +9,10 @@
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/yaml.h>
 
+#include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/util_string.hpp"
 
 namespace mamba
 {
@@ -246,5 +248,10 @@ namespace mamba
         }
 
         return results;
+    }
+
+    bool is_env_lockfile_name(std::string_view filename)
+    {
+        return ends_with(filename, "-lock.yml") || ends_with(filename, "-lock.yaml");
     }
 }

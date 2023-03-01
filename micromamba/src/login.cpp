@@ -3,10 +3,14 @@
 // Distributed under the terms of the BSD 3-Clause License.
 //
 // The full license is in the file LICENSE, distributed with this software.
-#include "mamba/api/configuration.hpp"
+
+#include <string>
+
 #include "mamba/api/list.hpp"
+#include "mamba/core/environment.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/util_string.hpp"
 
 #include "common_options.hpp"
 

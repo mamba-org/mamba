@@ -7,8 +7,6 @@
 
 #include <fmt/format.h>
 
-#include "mamba/core/util_string.hpp"
-
 #if !defined(_WIN32)
 #include <fcntl.h>
 #include <sys/stat.h>

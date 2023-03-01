@@ -8,10 +8,11 @@
 
 #include <regex>
 
+#include <openssl/evp.h>
+
 #include "mamba/core/context.hpp"
 #include "mamba/core/util.hpp"
-
-#include "openssl/evp.h"
+#include "mamba/core/util_string.hpp"
 
 namespace mamba
 {

@@ -10,6 +10,7 @@
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
+#include "mamba/core/util_string.hpp"
 
 namespace mamba
 {

@@ -6,6 +6,7 @@
 #include <thread>
 
 #include <fmt/color.h>
+#include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <nlohmann/json.hpp>
 #include <reproc++/run.hpp>
@@ -17,6 +18,7 @@
 #include "mamba/core/execution.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_random.hpp"
+#include "mamba/core/util_string.hpp"
 
 #ifndef _WIN32
 extern "C"
@@ -290,7 +292,7 @@ namespace mamba
         }
 
         LOG_DEBUG << "Currently running processes: " << get_all_running_processes_info();
-        LOG_DEBUG << "Remaining args to run as command: " << join(" ", command);
+        fmt::print(LOG_DEBUG, "Remaining args to run as command: {}", fmt::join(command, " "));
 
         // replace the wrapping bash with new process entirely
 #ifndef _WIN32
@@ -305,7 +307,7 @@ namespace mamba
             command
         );
 
-        LOG_DEBUG << "Running wrapped script: " << join(" ", command);
+        fmt::print(LOG_DEBUG, "Running wrapped script: {}", fmt::join(command, " "));
 
         bool sinkout = stream_options & (int) STREAM_OPTIONS::SINKOUT;
         bool sinkerr = stream_options & (int) STREAM_OPTIONS::SINKERR;

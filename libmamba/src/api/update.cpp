@@ -11,8 +11,8 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/pinning.hpp"
 #include "mamba/core/transaction.hpp"
+#include "mamba/core/util_string.hpp"
 #include "mamba/core/virtual_packages.hpp"
-
 
 namespace mamba
 {

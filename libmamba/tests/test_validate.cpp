@@ -14,7 +14,7 @@
 
 #include "mamba/core/environment.hpp"
 #include "mamba/core/fsutil.hpp"
-#include "mamba/core/util.hpp"
+#include "mamba/core/util_string.hpp"
 #include "mamba/core/validate.hpp"
 
 #include "test_data.hpp"
@@ -1840,7 +1840,7 @@ namespace validate
                     ])"_json;
 
                 const RootImpl root(create_root_update("2.root.json", patch));
-                bool mirrors_role_found = contains(root.roles(), "mirrors");
+                const bool mirrors_role_found = root.roles().find("mirrors") != root.roles().cend();
                 EXPECT_TRUE(mirrors_role_found);
             }
 

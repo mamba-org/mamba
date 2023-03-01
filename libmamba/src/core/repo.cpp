@@ -18,6 +18,7 @@ extern "C"  // Incomplete header
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/repo.hpp"
+#include "mamba/core/util_string.hpp"
 
 
 #define MAMBA_TOOL_VERSION "1.1"

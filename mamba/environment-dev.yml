@@ -25,3 +25,4 @@ dependencies:
   - conda
   - sel(win): winreg
   - powerloader-dev >=0.6.0
+  - pre-commit

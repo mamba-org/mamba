@@ -17,6 +17,8 @@ namespace mamba
     {
         auto& ctx = Context::instance();
         auto& config = Configuration::instance();
+
+        config.at("show_banner").set_value(false);
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
             .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX);
@@ -28,7 +30,10 @@ namespace mamba
         MultiPackageCache package_caches(ctx.pkgs_dirs);
         if (use_local)
         {
-            Console::stream() << "Using local repodata..." << std::endl;
+            if (format != QueryResultFormat::kJSON)
+            {
+                Console::stream() << "Using local repodata..." << std::endl;
+            }
             auto exp_prefix_data = PrefixData::create(ctx.target_prefix);
             if (!exp_prefix_data)
             {
@@ -37,11 +42,18 @@ namespace mamba
             }
             PrefixData& prefix_data = exp_prefix_data.value();
             MRepo::create(pool, prefix_data);
-            Console::stream() << "Loaded current active prefix: " << ctx.target_prefix << std::endl;
+            if (format != QueryResultFormat::kJSON)
+            {
+                Console::stream() << "Loaded current active prefix: " << ctx.target_prefix
+                                  << std::endl;
+            }
         }
         else
         {
-            Console::stream() << "Getting repodata from channels..." << std::endl;
+            if (format != QueryResultFormat::kJSON)
+            {
+                Console::stream() << "Getting repodata from channels..." << std::endl;
+            }
             auto exp_load = load_channels(pool, package_caches, 0);
             if (!exp_load)
             {
@@ -52,12 +64,9 @@ namespace mamba
         Query q(pool);
         if (type == QueryType::kSEARCH)
         {
-            bool res_empty = false;
             if (ctx.json)
             {
-                auto res = q.find(query);
-                res_empty = res.empty();
-                std::cout << res.groupby("name").json().dump(4);
+                std::cout << q.find(query).groupby("name").json().dump(4);
             }
             else
             {
@@ -74,12 +83,11 @@ namespace mamba
                     default:
                         res.groupby("name").table(std::cout);
                 }
-                res_empty = res.empty();
-            }
-            if (res_empty)
-            {
-                std::cout << "Channels may not be configured. Try giving a channel with '-c,--channel' option, or use `--use-local=1` to search for installed packages."
-                          << std::endl;
+                if (res.empty())
+                {
+                    std::cout << "Channels may not be configured. Try giving a channel with '-c,--channel' option, or use `--use-local=1` to search for installed packages."
+                              << std::endl;
+                }
             }
         }
         else if (type == QueryType::kDEPENDS)
@@ -101,7 +109,7 @@ namespace mamba
                 case QueryResultFormat::kRECURSIVETABLE:
                     res.sort("name").table(std::cout);
             }
-            if (res.empty())
+            if (res.empty() && format != QueryResultFormat::kJSON)
             {
                 std::cout << query
                           << " may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery"
@@ -130,7 +138,7 @@ namespace mamba
                         { "Name", "Version", "Build", concat("Depends:", query), "Channel" }
                     );
             }
-            if (res.empty())
+            if (res.empty() && format != QueryResultFormat::kJSON)
             {
                 std::cout << query
                           << " may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery"

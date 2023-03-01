@@ -307,6 +307,19 @@ def umamba_run(*args, **kwargs):
     return res.decode()
 
 
+def umamba_repoquery(*args, **kwargs):
+    umamba = get_umamba()
+
+    cmd = [umamba, "repoquery"] + [arg for arg in args if arg]
+    res = subprocess_run(*cmd, **kwargs)
+
+    if "--json" in args:
+        j = json.loads(res)
+        return j
+
+    return res.decode()
+
+
 def get_concrete_pkg(t, needle):
     pkgs = t["actions"]["LINK"]
     for p in pkgs:

@@ -60,7 +60,7 @@ set_common_search(CLI::App* subcom, bool is_repoquery)
     subcom->add_flag(
         "--recursive",
         recursive,
-        "Show dependencies recursively (i.e. transitive dependencies)."
+        "Show dependencies recursively, i.e. transitive dependencies (only for `depends`)."
     );
 
     static bool pretty_print = false;
@@ -116,8 +116,11 @@ set_common_search(CLI::App* subcom, bool is_repoquery)
                 format = QueryResultFormat::kPRETTY;
             }
 
-            // if (ctx.json)
-            //     format = QueryResultFormat::kJSON;
+            if (config.at("json").compute().value<bool>())
+            {
+                format = QueryResultFormat::kJSON;
+            }
+
             auto& channels = config.at("channels").compute().value<std::vector<std::string>>();
             if (!channels.empty())
             {

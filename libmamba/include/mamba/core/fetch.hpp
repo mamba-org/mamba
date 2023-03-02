@@ -9,7 +9,6 @@
 
 extern "C"
 {
-#include <archive.h>
 #include <curl/curl.h>
 }
 

@@ -60,7 +60,7 @@ set_common_search(CLI::App* subcom, bool is_repoquery)
     subcom->add_flag(
         "--recursive",
         recursive,
-        "Show dependencies recursively, i.e. transitive dependencies (only for `depends`)."
+        "Show dependencies recursively, i.e. transitive dependencies (only for `depends`)"
     );
 
     static bool pretty_print = false;
@@ -73,7 +73,7 @@ set_common_search(CLI::App* subcom, bool is_repoquery)
     subcom->add_option(
         "--use-local",
         local,
-        "Use installed data (--use-local=1, default for `depends` and `whoneeds`) or remote repositories (--use-local=0, default for `search`)"
+        "Use installed data (--use-local=1, default for `depends` and `whoneeds`) or remote repositories (--use-local=0, default for `search`).\nIf the `-c,--channel` option is set, it has the priority and --use-local is set to 0"
     );
 
     auto& platform = config.at("platform");

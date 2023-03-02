@@ -618,9 +618,6 @@ namespace mamba
             node_id_mapping& old_to_new
         )
         {
-            // Check nothrow move for efficient push_back
-            static_assert(std::is_nothrow_move_constructible_v<Node>);
-
             auto get_old_node = [&old_graph](ProblemsGraph::node_id id)
             {
                 auto node = old_graph.node(id);

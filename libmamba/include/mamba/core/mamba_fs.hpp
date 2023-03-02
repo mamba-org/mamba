@@ -1,3 +1,9 @@
+// Copyright (c) 2019, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
+
 #ifndef MAMBA_CORE_FS_HPP
 #define MAMBA_CORE_FS_HPP
 
@@ -80,45 +86,14 @@ namespace fs
     {
     };
 
-
-#if defined(_WIN32)
     // Maintain `\` on Windows, `/` on other platforms
-    inline std::filesystem::path normalized_separators(std::filesystem::path path)
-    {
-        auto native_string = path.native();
-        static constexpr auto platform_separator = L"\\";
-        static constexpr auto other_separator = L"/";
-        mamba::replace_all(native_string, other_separator, platform_separator);
-        path = std::move(native_string);
-        return path;
-    }
-#else
-    // noop on non-Windows platforms
-    inline std::filesystem::path normalized_separators(std::filesystem::path path)
-    {
-        return path;
-    }
-#endif
+    std::filesystem::path normalized_separators(std::filesystem::path path);
 
     // Returns an utf-8 string given a standard path.
-    inline std::string to_utf8(const std::filesystem::path& path)
-    {
-#if __cplusplus == 201703L
-        return normalized_separators(path).u8string();
-#else
-#error This function implementation is specific to C++17, using another version requires a different implementation here.
-#endif
-    }
+    std::string to_utf8(const std::filesystem::path& path);
 
     // Returns standard path given an utf-8 string.
-    inline std::filesystem::path from_utf8(std::string_view u8string)
-    {
-#if __cplusplus == 201703L
-        return normalized_separators(std::filesystem::u8path(u8string));
-#else
-#error This function implementation is specific to C++17, using another version requires a different implementation here.
-#endif
-    }
+    std::filesystem::path from_utf8(std::string_view u8string);
 
     // Same as std::filesystem::path except we only accept and output UTF-8 paths
     class u8path

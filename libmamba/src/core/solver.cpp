@@ -4,13 +4,17 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/solver.hpp"
-
 #include <sstream>
 #include <stdexcept>
 
 #include <fmt/format.h>
 #include <fmt/ostream.h>
+#include <solv/pool.h>
+#include <solv/solver.h>
+extern "C"  // Incomplete header
+{
+#include <solv/conda.h>
+}
 
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
@@ -18,10 +22,12 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
-#include "mamba/core/queue.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/satisfiability_error.hpp"
+#include "mamba/core/solver.hpp"
 #include "mamba/core/util.hpp"
+
+#include "solv-cpp/queue.hpp"
 
 namespace mamba
 {
@@ -215,10 +221,12 @@ namespace mamba
         , m_is_solved(false)
         , m_pool(std::move(pool))
         , m_solver(nullptr, &delete_libsolve_solver)
+        , m_jobs(std::make_unique<solv::ObjQueue>())
     {
-        queue_init(&m_jobs);
         pool_createwhatprovides(m_pool);
     }
+
+    MSolver::~MSolver() = default;
 
     inline bool channel_match(Solvable* s, const Channel& needle)
     {
@@ -254,13 +262,13 @@ namespace mamba
 
     void MSolver::add_global_job(int job_flag)
     {
-        queue_push2(&m_jobs, job_flag, 0);
+        m_jobs->push_back(job_flag, 0);
     }
 
     void MSolver::add_channel_specific_job(const MatchSpec& ms, int job_flag)
     {
         Pool* pool = m_pool;
-        MQueue selected_pkgs;
+        solv::ObjQueue selected_pkgs;
 
         // conda_build_form does **NOT** contain the channel info
         Id match = pool_conda_matchspec(pool, ms.conda_build_form().c_str());
@@ -270,22 +278,22 @@ namespace mamba
         {
             if (channel_match(pool_id2solvable(pool, *wp), c))
             {
-                selected_pkgs.push(*wp);
+                selected_pkgs.push_back(*wp);
             }
         }
-        if (selected_pkgs.count() == 0)
+        if (selected_pkgs.size() == 0)
         {
             LOG_ERROR << "Selected channel specific (or force-reinstall) job, but "
                          "package is not available from channel. Solve job will fail.";
         }
-        Id offset = pool_queuetowhatprovides(pool, selected_pkgs);
+        Id offset = pool_queuetowhatprovides(pool, selected_pkgs.raw());
         // Poor man's ms repr to match waht the user provided
         std::string const repr = fmt::format("{}::{}", ms.channel, ms.conda_build_form());
         Id repr_id = pool_str2id(pool, repr.c_str(), 1);
         // We add a new entry into the whatprovides to reflect the channel specific job
         pool_set_whatprovides(pool, repr_id, offset);
-        // We ask to isntall that new entry
-        queue_push2(&m_jobs, job_flag, repr_id);
+        // We ask to install that new entry
+        m_jobs->push_back(job_flag, repr_id);
     }
 
     void MSolver::add_reinstall_job(MatchSpec& ms, int job_flag)
@@ -348,7 +356,7 @@ namespace mamba
             }
         }
         Id inst_id = pool_conda_matchspec(m_pool, ms.conda_build_form().c_str());
-        queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, inst_id);
+        m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, inst_id);
     }
 
     void MSolver::add_jobs(const std::vector<std::string>& jobs, int job_flag)
@@ -379,12 +387,12 @@ namespace mamba
                 if (!ms.is_simple())
                 {
                     Id inst_id = pool_conda_matchspec(m_pool, ms.conda_build_form().c_str());
-                    queue_push2(&m_jobs, SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, inst_id);
+                    m_jobs->push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, inst_id);
                 }
                 if (ms.channel.empty())
                 {
                     Id update_id = pool_conda_matchspec(m_pool, ms.name.c_str());
-                    queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, update_id);
+                    m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, update_id);
                 }
                 else
                 {
@@ -411,7 +419,7 @@ namespace mamba
                 // Todo remove double parsing?
                 LOG_INFO << "Adding job: " << ms.conda_build_form();
                 Id inst_id = pool_conda_matchspec(m_pool, ms.conda_build_form().c_str());
-                queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, inst_id);
+                m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, inst_id);
             }
         }
     }
@@ -420,7 +428,7 @@ namespace mamba
     {
         MatchSpec ms(job);
         Id inst_id = pool_conda_matchspec(m_pool, ms.conda_build_form().c_str());
-        queue_push2(&m_jobs, SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, inst_id);
+        m_jobs->push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, inst_id);
     }
 
     void MSolver::add_pin(const std::string& pin)
@@ -483,8 +491,7 @@ namespace mamba
         }
         m_pinned_specs.push_back(ms);
 
-        Queue selected_pkgs;
-        queue_init(&selected_pkgs);
+        solv::ObjQueue selected_pkgs;
 
         for (auto& id : all_solvables)
         {
@@ -492,13 +499,12 @@ namespace mamba
             {
                 // the solvable is _NOT_ matched by our pinning expression! So we have to
                 // lock it to make it un-installable
-                queue_push(&selected_pkgs, id);
+                selected_pkgs.push_back(id);
             }
         }
 
-        Id d = pool_queuetowhatprovides(pool, &selected_pkgs);
-        queue_push2(&m_jobs, SOLVER_LOCK | SOLVER_SOLVABLE_ONE_OF, d);
-        queue_free(&selected_pkgs);
+        Id d = pool_queuetowhatprovides(pool, selected_pkgs.raw());
+        m_jobs->push_back(SOLVER_LOCK | SOLVER_SOLVABLE_ONE_OF, d);
     }
 
     void MSolver::add_pins(const std::vector<std::string>& pins)
@@ -581,7 +587,7 @@ namespace mamba
         m_solver.reset(solver_create(m_pool));
         set_flags(m_flags);
 
-        solver_solve(m_solver.get(), &m_jobs);
+        solver_solve(m_solver.get(), m_jobs->raw());
         m_is_solved = true;
         LOG_INFO << "Problem count: " << solver_problem_count(m_solver.get());
         const bool success = solver_problem_count(m_solver.get()) == 0;
@@ -605,21 +611,20 @@ namespace mamba
     std::vector<MSolverProblem> MSolver::all_problems_structured() const
     {
         std::vector<MSolverProblem> res;
-        Queue problem_rules;
-        queue_init(&problem_rules);
-        Id count = solver_problem_count(m_solver.get());
+        solv::ObjQueue problem_rules;
+        const Id count = solver_problem_count(m_solver.get());
         for (Id i = 1; i <= count; ++i)
         {
-            solver_findallproblemrules(m_solver.get(), i, &problem_rules);
-            for (Id j = 0; j < problem_rules.count; ++j)
+            solver_findallproblemrules(m_solver.get(), i, problem_rules.raw());
+            for (const Id r : problem_rules)
             {
-                if (const Id r = problem_rules.elements[j]; r)
+                if (r != 0)
                 {
                     Id source, target, dep;
-                    const Id type = solver_ruleinfo(m_solver.get(), r, &source, &target, &dep);
+                    const SolverRuleinfo type = solver_ruleinfo(m_solver.get(), r, &source, &target, &dep);
                     res.push_back(make_solver_problem(
                         /* solver= */ m_solver.get(),
-                        /* type= */ static_cast<SolverRuleinfo>(type),
+                        /* type= */ type,
                         /* source_id= */ source,
                         /* target_id= */ target,
                         /* dep_id= */ dep
@@ -627,7 +632,6 @@ namespace mamba
                 }
             }
         }
-        queue_free(&problem_rules);
         return res;
     }
 
@@ -636,36 +640,27 @@ namespace mamba
     {
         std::stringstream problems;
 
-        Queue problem_rules;
-        queue_init(&problem_rules);
+        solv::ObjQueue problem_rules;
         Id count = solver_problem_count(m_solver.get());
         for (Id i = 1; i <= count; ++i)
         {
-            solver_findallproblemrules(m_solver.get(), i, &problem_rules);
-            for (Id j = 0; j < problem_rules.count; ++j)
+            solver_findallproblemrules(m_solver.get(), i, problem_rules.raw());
+            for (const Id r : problem_rules)
             {
-                Id type, source, target, dep;
-                Id r = problem_rules.elements[j];
+                Id source, target, dep;
                 if (!r)
                 {
                     problems << "- [SKIP] no problem rule?\n";
                 }
                 else
                 {
-                    type = solver_ruleinfo(m_solver.get(), r, &source, &target, &dep);
+                    const SolverRuleinfo type = solver_ruleinfo(m_solver.get(), r, &source, &target, &dep);
                     problems << "  - "
-                             << solver_problemruleinfo2str(
-                                    m_solver.get(),
-                                    (SolverRuleinfo) type,
-                                    source,
-                                    target,
-                                    dep
-                                )
+                             << solver_problemruleinfo2str(m_solver.get(), type, source, target, dep)
                              << "\n";
                 }
             }
         }
-        queue_free(&problem_rules);
         return problems.str();
     }
 
@@ -692,31 +687,27 @@ namespace mamba
 
     std::string MSolver::problems_to_str() const
     {
-        Queue problem_queue;
-        queue_init(&problem_queue);
+        solv::ObjQueue problem_queue;
         int count = solver_problem_count(m_solver.get());
         std::stringstream problems;
         for (int i = 1; i <= count; i++)
         {
-            queue_push(&problem_queue, i);
+            problem_queue.push_back(i);
             problems << "  - " << solver_problem2str(m_solver.get(), i) << "\n";
         }
-        queue_free(&problem_queue);
         return "Encountered problems while solving:\n" + problems.str();
     }
 
     std::vector<std::string> MSolver::all_problems() const
     {
         std::vector<std::string> problems;
-        Queue problem_queue;
-        queue_init(&problem_queue);
+        solv::ObjQueue problem_queue;
         int count = static_cast<int>(solver_problem_count(m_solver.get()));
         for (int i = 1; i <= count; i++)
         {
-            queue_push(&problem_queue, i);
+            problem_queue.push_back(i);
             problems.emplace_back(solver_problem2str(m_solver.get(), i));
         }
-        queue_free(&problem_queue);
 
         return problems;
     }

@@ -4,8 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/transaction.hpp"
-
 #include <iostream>
 #include <stack>
 
@@ -13,6 +11,10 @@
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <solv/selection.h>
+extern "C"  // Incomplete header
+{
+#include <solv/conda.h>
+}
 
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
@@ -21,9 +23,10 @@
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
-#include "mamba/core/queue.hpp"
 #include "mamba/core/thread_utils.hpp"
-#include "mamba/core/util_scope.hpp"
+#include "mamba/core/transaction.hpp"
+
+#include "solv-cpp/queue.hpp"
 
 #include "progress_bar_impl.hpp"
 
@@ -499,7 +502,7 @@ namespace mamba
         pool.create_whatprovides();
 
         // Just add the packages we want to remove directly to the transaction
-        MQueue q, job, decision;
+        solv::ObjQueue q, job, decision;
 
         std::vector<std::string> not_found;
         for (auto& s : specs_to_remove)
@@ -507,21 +510,21 @@ namespace mamba
             job.clear();
             q.clear();
 
-            Id id = pool_conda_matchspec((Pool*) pool, s.conda_build_form().c_str());
+            const Id id = pool_conda_matchspec((Pool*) pool, s.conda_build_form().c_str());
             if (id)
             {
-                job.push(SOLVER_SOLVABLE_PROVIDES, id);
+                job.push_back(SOLVER_SOLVABLE_PROVIDES, id);
             }
-            selection_solvables(pool, job, q);
+            selection_solvables(pool, job.raw(), q.raw());
 
-            if (q.count() == 0)
+            if (q.size() == 0)
             {
                 not_found.push_back("\n - " + s.str());
             }
             for (auto& el : q)
             {
                 // To remove, these have to be negative
-                decision.push(-el);
+                decision.push_back(-el);
             }
         }
 
@@ -531,8 +534,8 @@ namespace mamba
             throw std::runtime_error("Could not find packages to remove:" + join("", not_found));
         }
 
-        selection_solvables(pool, job, q);
-        bool remove_success = size_t(q.count()) >= specs_to_remove.size();
+        selection_solvables(pool, job.raw(), q.raw());
+        const bool remove_success = size_t(q.size()) >= specs_to_remove.size();
         Console::instance().json_write({ { "success", remove_success } });
         Id pkg_id;
         Solvable* solvable;
@@ -540,10 +543,10 @@ namespace mamba
         // find repo __explicit_specs__ and install all packages from it
         FOR_REPO_SOLVABLES(mrepo.repo(), pkg_id, solvable)
         {
-            decision.push(pkg_id);
+            decision.push_back(pkg_id);
         }
 
-        m_transaction = transaction_create_decisionq(pool, decision, nullptr);
+        m_transaction = transaction_create_decisionq(pool, decision.raw(), nullptr);
         init();
 
         m_history_entry = History::UserRequest::prefilled();
@@ -603,12 +606,11 @@ namespace mamba
 
             if (solver.only_deps)
             {
-                Queue q;
-                queue_init(&q);
-                transaction_installedresult(m_transaction, &q);
-                for (int i = 0; i < q.count; ++i)
+                solv::ObjQueue q = {};
+                transaction_installedresult(m_transaction, q.raw());
+                for (const Id r : q)
                 {
-                    Solvable* s = pool_id2solvable(pool, q.elements[i]);
+                    Solvable* s = pool_id2solvable(pool, r);
                     if (m_filter_name_ids.count(s->name))
                     {
                         // add the dependencies of this selected package to the added specs
@@ -631,7 +633,6 @@ namespace mamba
                         }
                     }
                 }
-                queue_free(&q);
             }
         }
 
@@ -669,14 +670,11 @@ namespace mamba
 
         if (m_transaction_context.relink_noarch && pool->installed != nullptr)
         {
-            Id p;
-            Solvable* s;
-            Queue job, q, decision;
-            queue_init(&job);
-            queue_init(&q);
-            queue_init(&decision);
+            Id p = 0;
+            Solvable* s = nullptr;
+            solv::ObjQueue job, q, decision;
 
-            solver_get_decisionqueue(solver, &decision);
+            solver_get_decisionqueue(solver, decision.raw());
 
             const Id noarch_repo_key = pool_str2id(pool, "solvable:noarch_type", 1);
 
@@ -692,15 +690,15 @@ namespace mamba
                 if (strcmp(noarch_type, "python") == 0)
                 {
                     bool skip_relink = false;
-                    for (int x = 0; x < decision.count; ++x)
+                    for (auto iter = decision.begin(); iter != decision.end(); ++iter)
                     {
                         // if the installed package is kept, delete decision
-                        if (decision.elements[x] == p)
+                        if (*iter == p)
                         {
-                            queue_delete(&decision, x);
+                            iter = decision.erase(iter);
                             break;
                         }
-                        else if (decision.elements[x] == -p)
+                        else if (*iter == -p)
                         {
                             // package is _already_ getting delete
                             // in this case, we do not need to manually relink
@@ -716,25 +714,25 @@ namespace mamba
 
                     PackageInfo pi(s);
 
-                    Id id = pool_conda_matchspec(
-                        (Pool*) pool,
+                    const Id id = pool_conda_matchspec(
+                        pool,
                         fmt::format("{} {} {}", pi.name, pi.version, pi.build_string).c_str()
                     );
 
                     if (id)
                     {
-                        queue_push2(&job, SOLVER_SOLVABLE_PROVIDES, id);
+                        job.push_back(SOLVER_SOLVABLE_PROVIDES, id);
                     }
 
-                    selection_solvables(pool, &job, &q);
+                    selection_solvables(pool, job.raw(), q.raw());
 
                     Id reinstall_id = -1;
-                    for (int xi = 0; xi < q.count; ++xi)
+                    for (const Id r : q)
                     {
-                        auto* xid = pool_id2solvable(pool, q.elements[xi]);
+                        auto* xid = pool_id2solvable(pool, r);
                         if (xid->repo != pool->installed)
                         {
-                            reinstall_id = q.elements[xi];
+                            reinstall_id = r;
                             break;
                         }
                     }
@@ -754,21 +752,17 @@ namespace mamba
                         continue;
                     }
 
-                    queue_push(&decision, reinstall_id);
-                    queue_push(&decision, -p);
+                    decision.push_back(reinstall_id);
+                    decision.push_back(-p);
 
-                    queue_empty(&q);
-                    queue_empty(&job);
+                    q.clear();
+                    job.clear();
                 }
             }
 
             transaction_free(m_transaction);
-            m_transaction = transaction_create_decisionq((Pool*) pool, &decision, nullptr);
+            m_transaction = transaction_create_decisionq(pool, decision.raw(), nullptr);
             transaction_order(m_transaction, 0);
-
-            queue_free(&decision);
-            queue_free(&job);
-            queue_free(&q);
 
             // init everything again...
             init();
@@ -786,23 +780,17 @@ namespace mamba
         MRepo& mrepo = MRepo::create(pool, "__explicit_specs__", packages);
         pool.create_whatprovides();
 
-        Queue job;
-        queue_init(&job);
-        const on_scope_exit _job_release{ [&] { queue_free(&job); } };
-
-        Queue decision;
-        queue_init(&decision);
-        const on_scope_exit _decision_release{ [&] { queue_free(&decision); } };
+        solv::ObjQueue decision = {};
 
         Id pkg_id = {};
         Solvable* solvable = nullptr;
 
         FOR_REPO_SOLVABLES(mrepo.repo(), pkg_id, solvable)
         {
-            queue_push(&decision, pkg_id);
+            decision.push_back(pkg_id);
         }
 
-        m_transaction = transaction_create_decisionq((Pool*) pool, &decision, nullptr);
+        m_transaction = transaction_create_decisionq(pool, decision.raw(), nullptr);
         transaction_order(m_transaction, 0);
 
         init();
@@ -1450,10 +1438,8 @@ namespace mamba
                           printers::alignment::left,
                           printers::alignment::right });
         t.set_padding({ 2, 2, 2, 2, 5 });
-        Queue classes, pkgs;
-
-        queue_init(&classes);
-        queue_init(&pkgs);
+        solv::ObjQueue classes = {};
+        solv::ObjQueue pkgs = {};
 
         using rows = std::vector<std::vector<printers::FormattedString>>;
 
@@ -1545,23 +1531,21 @@ namespace mamba
         };
 
         int mode = SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE;
-        transaction_classify(m_transaction, mode, &classes);
-        Id cls;
-        for (int i = 0; i < classes.count; i += 4)
+        transaction_classify(m_transaction, mode, classes.raw());
+        for (std::size_t n_classes = classes.size(), i = 0; i < n_classes; i += 4)
         {
-            cls = classes.elements[i];
+            const Id cls = classes.at(i);
             transaction_classify_pkgs(
                 m_transaction,
                 mode,
                 cls,
-                classes.elements[i + 2],
-                classes.elements[i + 3],
-                &pkgs
+                classes.at(i + 2),
+                classes.at(i + 3),
+                pkgs.raw()
             );
 
-            for (int j = 0; j < pkgs.count; j++)
+            for (const Id p : pkgs)
             {
-                Id p = pkgs.elements[j];
                 Solvable* s = m_transaction->pool->solvables + p;
 
                 if (filter(s))
@@ -1617,9 +1601,6 @@ namespace mamba
                 }
             }
         }
-
-        queue_free(&classes);
-        queue_free(&pkgs);
 
         std::stringstream summary;
         summary << "Summary:\n\n";

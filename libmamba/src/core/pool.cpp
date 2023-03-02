@@ -4,19 +4,23 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/pool.hpp"
-
 #include <list>
 
 #include <solv/evr.h>
 #include <solv/pool.h>
 #include <solv/selection.h>
 #include <solv/solver.h>
+extern "C"  // Incomplete header
+{
+#include <solv/conda.h>
+}
 #include <spdlog/spdlog.h>
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/queue.hpp"
+#include "mamba/core/pool.hpp"
+
+#include "solv-cpp/queue.hpp"
 
 namespace mamba
 {
@@ -116,9 +120,9 @@ namespace mamba
 
     std::vector<Id> MPool::select_solvables(Id matchspec, bool sorted) const
     {
-        MQueue job, solvables;
-        job.push(SOLVER_SOLVABLE_PROVIDES, matchspec);
-        selection_solvables(const_cast<Pool*>(pool()), job, solvables);
+        solv::ObjQueue job = { SOLVER_SOLVABLE_PROVIDES, matchspec };
+        solv::ObjQueue solvables = {};
+        selection_solvables(const_cast<Pool*>(pool()), job.raw(), solvables.raw());
 
         if (sorted)
         {

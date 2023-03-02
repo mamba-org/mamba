@@ -4,10 +4,9 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 
-cmake_minimum_required(VERSION 3.18.2)
-cmake_policy(SET CMP0025 NEW)
-cmake_policy(SET CMP0077 NEW)
-
+cmake_minimum_required (VERSION 3.16)
+cmake_policy(SET CMP0025 NEW) # Introduced in cmake 3.0
+cmake_policy(SET CMP0077 NEW) # Introduced in cmake 3.13
 project(libmamba)
 
 set(LIBMAMBA_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -48,19 +47,15 @@ message(STATUS "libmamba binary version: v${LIBMAMBA_BINARY_VERSION}")
 
 option(BUILD_TESTS "Build libmamba C++ tests" OFF)
 option(BUILD_SHARED "Build shared libmamba library" OFF)
-option(BUILD_STATIC "Build static libmamba library" OFF)
-option(BUILD_STATIC_DEPS "Build static libmamba library with static linkage to its dependencies" OFF)
+option(BUILD_STATIC "Build static libmamba library with static linkage to its dependencies" OFF)
 set(BUILD_LOG_LEVEL "TRACE" CACHE STRING "Logger active level at compile time")
 
 if (NOT ${BUILD_LOG_LEVEL} MATCHES "^(TRACE|DEBUG|INFO|WARN|ERROR|CRITICAL|OFF)$")
     message(FATAL_ERROR "Invalid log level: ${BUILD_LOG_LEVEL}, should be one of { TRACE, DEBUG, INFO, WARN, ERROR, CRITICAL, OFF }")
 endif ()
 
-if (BUILD_STATIC_DEPS)
+if (BUILD_STATIC)
     add_definitions("-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${BUILD_LOG_LEVEL}")
-endif ()
-
-if (BUILD_STATIC_DEPS)
     add_definitions(-DLIBMAMBA_STATIC_DEPS)
 endif ()
 
@@ -261,15 +256,10 @@ set(LIBMAMBA_PRIVATE_HEADERS
 # Targets and link
 # ================
 
-macro(libmamba_create_target target_name linkage deps_linkage output_name)
+macro(libmamba_create_target target_name linkage output_name)
     string(TOUPPER "${linkage}" linkage_upper)
     if (NOT ${linkage_upper} MATCHES "^(SHARED|STATIC)$")
         message(FATAL_ERROR "Invalid library linkage: ${linkage}")
-    endif ()
-
-    string(TOUPPER "${deps_linkage}" deps_linkage_upper)
-    if (NOT ${deps_linkage_upper} MATCHES "^(SHARED|STATIC)$")
-        message(FATAL_ERROR "Invalid library dependencies linkage: ${deps_linkage_upper}")
     endif ()
 
     # Output
@@ -286,7 +276,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
         WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR}
     )
 
-    if (${deps_linkage_upper} STREQUAL "STATIC")
+    if (${linkage_upper} STREQUAL "STATIC")
         message("   -> Statically linking against libmamba (static) dependencies")
         if (UNIX)
 
@@ -354,18 +344,19 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
 
             if (APPLE)
                 set (MAMBA_FORCE_DYNAMIC_LIBS resolv c++abi)
-                target_link_options(libmamba-full-static PRIVATE -static-libstdc++)
+                target_link_options(${target_name} PRIVATE -static-libstdc++)
             elseif (UNIX)
                 set(MAMBA_FORCE_DYNAMIC_LIBS rt dl resolv)
-                target_link_options(libmamba-full-static PUBLIC -static-libstdc++ -static-libgcc)
+                target_link_options(${target_name} PUBLIC -static-libstdc++ -static-libgcc)
             endif()
 
             find_package(fmt REQUIRED)
             find_package(spdlog CONFIG REQUIRED)
+            find_package(tl-expected REQUIRED)
 
             add_compile_definitions(SPDLOG_FMT_EXTERNAL)
             target_link_libraries(
-              libmamba-full-static
+              ${target_name}
               PUBLIC
                 ${STATIC_DEPS}
                 ${MAMBA_FORCE_DYNAMIC_LIBS}
@@ -376,6 +367,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
         elseif (WIN32)
 
             set(CMAKE_PREFIX_PATH "$ENV{VCPKG_ROOT}/installed/x64-windows-static/")
+            set_target_properties(${target_name} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
             # For Windows we have a vcpkg based build system right now.
             find_package(LibArchive REQUIRED)
@@ -434,7 +426,6 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
               CURL_STATICLIB
               SOLV_BUILD_STATIC
             )
-            set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
             include_directories($ENV{CONDA_PREFIX}/Library/include/)
             include_directories($ENV{VCPKG_ROOT}/installed/x64-windows-static/include/)
         endif()
@@ -505,7 +496,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
         set_target_properties(
             ${target_name}
             PROPERTIES
-            PUBLIC_HEADER "${LIBMAMBA_PUBLIC_HEADERS}"
+            #PUBLIC_HEADER "${LIBMAMBA_PUBLIC_HEADERS}"
             COMPILE_DEFINITIONS "LIBMAMBA_EXPORTS"
             PREFIX ""
             VERSION "${LIBMAMBA_BINARY_COMPATIBLE}.${LIBMAMBA_BINARY_REVISION}.${LIBMAMBA_BINARY_AGE}"
@@ -516,7 +507,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
         set_target_properties(
             ${target_name}
             PROPERTIES
-            PUBLIC_HEADER "${LIBMAMBA_PUBLIC_HEADERS}"
+            #PUBLIC_HEADER "${LIBMAMBA_PUBLIC_HEADERS}"
             COMPILE_DEFINITIONS "LIBMAMBA_EXPORTS"
             PREFIX ""
             VERSION ${LIBMAMBA_BINARY_VERSION}
@@ -543,7 +534,7 @@ set(libmamba_targets "")
 
 if (BUILD_SHARED)
     message(STATUS "Adding shared libmamba target")
-    libmamba_create_target(libmamba SHARED SHARED libmamba)
+    libmamba_create_target(libmamba SHARED libmamba)
 endif ()
 
 if (BUILD_STATIC)
@@ -552,23 +543,13 @@ if (BUILD_STATIC)
     # On Windows, a static library should use a different output name
     # to avoid the conflict with the import library of a shared one.
     if (CMAKE_HOST_WIN32)
-        libmamba_create_target(libmamba-static STATIC SHARED libmamba_static)
+        libmamba_create_target(libmamba-static STATIC libmamba_static)
     else ()
-        libmamba_create_target(libmamba-static STATIC SHARED libmamba)
+        libmamba_create_target(libmamba-static STATIC libmamba)
     endif ()
 endif ()
 
-if (BUILD_STATIC_DEPS)
-    message(STATUS "Adding full-static libmamba target")
-
-    if (CMAKE_HOST_WIN32)
-        libmamba_create_target(libmamba-full-static STATIC STATIC libmamba_full_static)
-    else ()
-        libmamba_create_target(libmamba-full-static STATIC STATIC libmamba_full_static)
-    endif ()
-endif ()
-
-if (NOT (BUILD_SHARED OR BUILD_STATIC OR BUILD_STATIC_DEPS))
+if (NOT (BUILD_SHARED OR BUILD_STATIC))
     message(FATAL_ERROR "Select at least a build variant for libmamba")
 endif ()
 

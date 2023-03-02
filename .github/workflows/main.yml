@@ -23,7 +23,7 @@ jobs:
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
-          environment-file: ./libmamba/environment-dev.yml
+          environment-file: ./libmamba/environment-static-dev.yml
           environment-name: build_env
           cache-env: true
       - uses: hendrikmuhs/ccache-action@main
@@ -283,9 +283,53 @@ jobs:
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
-          environment-file: ./libmamba/environment-dev.yml
+          environment-file: ./libmamba/environment-static-dev-win.yml
           environment-name: build_env
           cache-env: true
+      - name: fix up vcpkg recipes
+        shell: python
+        run: |
+          # See https://github.com/microsoft/vcpkg/pull/28919
+
+          import os
+          from pathlib import Path
+
+          vcpkg_root = Path(os.environ["MAMBA_ROOT_PREFIX"]) / "envs" / "build_env" / "Library" / "share" / "vcpkg"
+          f = vcpkg_root / "scripts" / "cmake" / "vcpkg_acquire_msys.cmake"
+
+          text = f.read_text()
+
+          text = text.replace("b309799e5a9d248ef66eaf11a0bd21bf4e8b9bd5c677c627ec83fa760ce9f0b54ddf1b62cbb436e641fbbde71e3b61cb71ff541d866f8ca7717a3a0dbeb00ebf",
+                       "a202ddaefa93d8a4b15431dc514e3a6200c47275c5a0027c09cc32b28bc079b1b9a93d5ef65adafdc9aba5f76a42f3303b1492106ddf72e67f1801ebfe6d02cc")
+          text = text.replace("https://repo.msys2.org/msys/x86_64/libtool-2.4.6-9-x86_64.pkg.tar.xz", "https://repo.msys2.org/msys/x86_64/libtool-2.4.7-3-x86_64.pkg.tar.zst")
+
+          f.write_text(text)
+      - name: build static windows dependencies with vcpkg
+        shell: cmd /C CALL {0}
+        run: |
+          call micromamba activate build_env
+          if %errorlevel% neq 0 exit /b %errorlevel%
+          mkdir build
+          if %errorlevel% neq 0 exit /b %errorlevel%
+          cd build
+          if %errorlevel% neq 0 exit /b %errorlevel%
+          git clone https://github.com/conda-forge/micromamba-feedstock.git
+          if %errorlevel% neq 0 exit /b %errorlevel%
+          ROBOCOPY micromamba-feedstock/recipe/libsolv %VCPKG_ROOT%/ports/libsolv
+          @rem ROBOCOPY has 0 and 1 as successfull exit codes
+          if %errorlevel% neq 0 if %errorlevel% neq 1 exit /b %errorlevel%
+          SET VCPKG_BUILD_TYPE=release && vcpkg install libsolv[conda] --triplet x64-windows-static
+          if %errorlevel% neq 0 exit /b %errorlevel%
+          vcpkg install "libarchive[bzip2,lz4,lzma,lzo,openssl,zstd]" --triplet x64-windows-static
+          if %errorlevel% neq 0 exit /b %errorlevel%
+          vcpkg install curl --triplet x64-windows-static
+          if %errorlevel% neq 0 exit /b %errorlevel%
+          vcpkg install yaml-cpp --triplet x64-windows-static
+          if %errorlevel% neq 0 exit /b %errorlevel%
+          vcpkg install reproc --triplet x64-windows-static
+          if %errorlevel% neq 0 exit /b %errorlevel%
+          set CMAKE_PREFIX_PATH=%VCPKG_ROOT%\installed\x64-windows-static\;%CMAKE_PREFIX_PATH%
+          if %errorlevel% neq 0 exit /b %errorlevel%
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -294,8 +338,6 @@ jobs:
         shell: cmd /C call {0}
         run: |
           call micromamba activate build_env
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          mkdir build
           if %errorlevel% neq 0 exit /b %errorlevel%
           cd build
           if %errorlevel% neq 0 exit /b %errorlevel%
@@ -499,9 +541,8 @@ jobs:
           if %errorlevel% neq 0 exit /b %errorlevel%
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
                    -DBUILD_MICROMAMBA=ON ^
-                   -DMICROMAMBA_LINKAGE=STATIC ^
                    -DBUILD_LIBMAMBA=ON ^
-                   -DBUILD_STATIC=ON ^
+                   -DBUILD_SHARED=ON ^
                    -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
                    -DCMAKE_C_COMPILER_LAUNCHER=sccache ^
                    -GNinja
@@ -515,7 +556,10 @@ jobs:
       - name: build cache statistics
         run: sccache --show-stats
       - name: tar micromamba artifact
-        run: tar -cvf umamba.tar build/micromamba/micromamba.exe
+        shell: cmd /C call {0}
+        run: |
+          cp build/libmamba/libmamba.dll build/micromamba/
+          tar -cvf umamba.tar build/micromamba/micromamba.exe build/micromamba/libmamba.dll
       - uses: actions/upload-artifact@v3
         with:
           name: _internal_micromamba_binary

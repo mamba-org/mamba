@@ -10,11 +10,12 @@
 #include <algorithm>
 #include <cstring>
 #include <iomanip>
-#include <ostream>
+#include <iterator>
 #include <sstream>
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "mamba/core/util_compare.hpp"
@@ -26,8 +27,32 @@ namespace mamba
      */
     const char* raw_str_or_empty(const char* ptr);
 
+    /**
+     * Safe non utf-8 wrapping of <cctype> (see its doc).
+     */
+    char is_control(char c);
+    wchar_t is_control(wchar_t c);
+    char is_print(char c);
+    wchar_t is_print(wchar_t c);
+    char is_space(char c);
+    wchar_t is_space(wchar_t c);
+    char is_blank(char c);
+    wchar_t is_blank(wchar_t c);
+    char is_graphic(char c);
+    wchar_t is_graphic(wchar_t c);
+    char is_digit(char c);
+    wchar_t is_digit(wchar_t c);
+    char is_alpha(char c);
+    wchar_t is_alpha(wchar_t c);
+    char is_alphanum(char c);
+    wchar_t is_alphanum(wchar_t c);
+    char is_lower(char c);
+    wchar_t is_lower(wchar_t c);
+    char is_upper(char c);
+    wchar_t is_upper(wchar_t c);
     char to_lower(char c);
     wchar_t to_lower(wchar_t c);
+
     std::string to_lower(std::string_view str);
     std::wstring to_lower(std::wstring_view str);
     // The use of a template here serves to exclude the overload for const Char*

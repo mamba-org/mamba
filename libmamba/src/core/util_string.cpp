@@ -7,15 +7,117 @@
 #include "mamba/core/util_string.hpp"
 
 #include <cctype>
+#include <cwchar>
 #include <cwctype>
-#include <exception>
-#include <type_traits>
+#include <stdexcept>
+
+#include <stddef.h>
 
 namespace mamba
 {
-    /***************************************************
-     *  Implementation of to_lower to_upper functions  *
-     ***************************************************/
+    /****************************************
+     *  Implementation of cctype functions  *
+     ****************************************/
+
+    char is_control(char c)
+    {
+        return std::iscntrl(static_cast<unsigned char>(c)) != 0;
+    }
+
+    wchar_t is_control(wchar_t c)
+    {
+        return std::iswcntrl(static_cast<wint_t>(c)) != 0;
+    }
+
+    char is_print(char c)
+    {
+        return std::isprint(static_cast<unsigned char>(c)) != 0;
+    }
+
+    wchar_t is_print(wchar_t c)
+    {
+        return std::iswprint(static_cast<wint_t>(c)) != 0;
+    }
+
+    char is_space(char c)
+    {
+        return std::isspace(static_cast<unsigned char>(c)) != 0;
+    }
+
+    wchar_t is_space(wchar_t c)
+    {
+        return std::iswspace(static_cast<wint_t>(c)) != 0;
+    }
+
+    char is_blank(char c)
+    {
+        return std::isblank(static_cast<unsigned char>(c)) != 0;
+    }
+
+    wchar_t is_blank(wchar_t c)
+    {
+        return std::iswblank(static_cast<wint_t>(c)) != 0;
+    }
+
+    char is_graphic(char c)
+    {
+        return std::isgraph(static_cast<unsigned char>(c)) != 0;
+    }
+
+    wchar_t is_graphic(wchar_t c)
+    {
+        return std::iswgraph(static_cast<wint_t>(c)) != 0;
+    }
+
+    char is_digit(char c)
+    {
+        return std::isdigit(static_cast<unsigned char>(c)) != 0;
+    }
+
+    wchar_t is_digit(wchar_t c)
+    {
+        return std::iswdigit(static_cast<wint_t>(c)) != 0;
+    }
+
+    char is_alpha(char c)
+    {
+        return std::isalpha(static_cast<unsigned char>(c)) != 0;
+    }
+
+    wchar_t is_alpha(wchar_t c)
+    {
+        return std::iswalpha(static_cast<wint_t>(c)) != 0;
+    }
+
+    char is_alphanum(char c)
+    {
+        return std::isalnum(static_cast<unsigned char>(c)) != 0;
+    }
+
+    wchar_t is_alphanum(wchar_t c)
+    {
+        return std::iswalnum(static_cast<wint_t>(c)) != 0;
+    }
+
+    char is_lower(char c)
+    {
+        return std::islower(static_cast<unsigned char>(c)) != 0;
+    }
+
+    wchar_t is_lower(wchar_t c)
+    {
+        return std::iswlower(static_cast<wint_t>(c)) != 0;
+    }
+
+    char is_upper(char c)
+    {
+        return std::isupper(static_cast<unsigned char>(c)) != 0;
+    }
+
+    wchar_t is_upper(wchar_t c)
+    {
+        return std::iswupper(static_cast<wint_t>(c)) != 0;
+    }
 
     char to_lower(char c)
     {
@@ -26,6 +128,10 @@ namespace mamba
     {
         return static_cast<wchar_t>(std::tolower(static_cast<wchar_t>(c)));
     }
+
+    /***************************************************
+     *  Implementation of to_lower to_upper functions  *
+     ***************************************************/
 
     namespace
     {

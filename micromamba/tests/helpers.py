@@ -307,11 +307,15 @@ def umamba_run(*args, **kwargs):
     return res.decode()
 
 
-def umamba_repoquery(*args, **kwargs):
+def umamba_repoquery(*args, no_rc=True):
     umamba = get_umamba()
 
     cmd = [umamba, "repoquery"] + [arg for arg in args if arg]
-    res = subprocess_run(*cmd, **kwargs)
+
+    if no_rc:
+        cmd += ["--no-rc"]
+
+    res = subprocess_run(*cmd)
 
     if "--json" in args:
         j = json.loads(res)

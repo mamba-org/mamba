@@ -1044,7 +1044,6 @@ class ProblemsGraph:
         pass
 
     class ConstraintNode(MatchSpec):
-        problem_type: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_CONSTRAINS: 267>
         pass
 
     class PackageNode(PackageInfo):
@@ -1054,14 +1053,6 @@ class ProblemsGraph:
         pass
 
     class UnresolvedDependencyNode(MatchSpec):
-        @property
-        def problem_type(self) -> SolverRuleinfo:
-            """
-            :type: SolverRuleinfo
-            """
-        @problem_type.setter
-        def problem_type(self, arg0: SolverRuleinfo) -> None:
-            pass
         pass
     def conflicts(self) -> ProblemsGraph.ConflictMap: ...
     @staticmethod

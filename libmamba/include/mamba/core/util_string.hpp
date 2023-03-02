@@ -100,6 +100,11 @@ namespace mamba
     std::string_view lstrip(std::string_view input);
     std::wstring_view lstrip(std::wstring_view input);
 
+    template <typename UnaryFunc>
+    std::string_view lstrip_if(std::string_view input, UnaryFunc should_strip);
+    template <typename UnaryFunc>
+    std::wstring_view lstrip_if(std::wstring_view input, UnaryFunc should_strip);
+
     std::string_view rstrip(std::string_view input, char c);
     std::wstring_view rstrip(std::wstring_view input, wchar_t c);
     std::string_view rstrip(std::string_view input, std::string_view chars);
@@ -107,12 +112,22 @@ namespace mamba
     std::string_view rstrip(std::string_view input);
     std::wstring_view rstrip(std::wstring_view input);
 
+    template <typename UnaryFunc>
+    std::string_view rstrip_if(std::string_view input, UnaryFunc should_strip);
+    template <typename UnaryFunc>
+    std::wstring_view rstrip_if(std::wstring_view input, UnaryFunc should_strip);
+
     std::string_view strip(std::string_view input, char c);
     std::wstring_view strip(std::wstring_view input, wchar_t c);
     std::string_view strip(std::string_view input, std::string_view chars);
     std::wstring_view strip(std::wstring_view input, std::wstring_view chars);
     std::string_view strip(std::string_view input);
     std::wstring_view strip(std::wstring_view input);
+
+    template <typename UnaryFunc>
+    std::string_view strip_if(std::string_view input, UnaryFunc should_strip);
+    template <typename UnaryFunc>
+    std::wstring_view strip_if(std::wstring_view input, UnaryFunc should_strip);
 
     std::vector<std::string>
     split(std::string_view input, std::string_view sep, std::size_t max_split = SIZE_MAX);
@@ -275,6 +290,78 @@ namespace mamba
 
     extern template bool starts_with_any(std::string_view, const std::vector<std::string>&);
     extern template bool starts_with_any(std::string_view, const std::vector<std::string_view>&);
+
+    /***************************************
+     *  Implementation of strip functions  *
+     ***************************************/
+
+    namespace detail
+    {
+        template <typename Char, typename UnaryFunc>
+        std::basic_string_view<Char>
+        lstrip_if_impl(std::basic_string_view<Char> input, UnaryFunc should_strip)
+        {
+            const auto start_iter = std::find_if(
+                input.cbegin(),
+                input.cend(),
+                [&should_strip](Char c) -> bool { return !should_strip(c); }
+            );
+            const auto start_idx = static_cast<std::size_t>(start_iter - input.cbegin());
+            return input.substr(start_idx);
+        }
+    }
+
+    template <typename UnaryFunc>
+    std::string_view lstrip_if(std::string_view input, UnaryFunc should_strip)
+    {
+        return detail::lstrip_if_impl(input, std::move(should_strip));
+    }
+
+    template <typename UnaryFunc>
+    std::wstring_view lstrip_if(std::wstring_view input, UnaryFunc should_strip)
+    {
+        return detail::lstrip_if_impl(input, std::move(should_strip));
+    }
+
+    namespace detail
+    {
+        template <typename Char, typename UnaryFunc>
+        std::basic_string_view<Char>
+        rstrip_if_impl(std::basic_string_view<Char> input, UnaryFunc should_strip)
+        {
+            const auto rstart_iter = std::find_if(
+                input.crbegin(),
+                input.crend(),
+                [&should_strip](Char c) -> bool { return !should_strip(c); }
+            );
+            const auto past_end_idx = static_cast<std::size_t>(input.crend() - rstart_iter);
+            return input.substr(0, past_end_idx);
+        }
+    }
+
+    template <typename UnaryFunc>
+    std::string_view rstrip_if(std::string_view input, UnaryFunc should_strip)
+    {
+        return detail::rstrip_if_impl(input, std::move(should_strip));
+    }
+
+    template <typename UnaryFunc>
+    std::wstring_view rstrip_if(std::wstring_view input, UnaryFunc should_strip)
+    {
+        return detail::rstrip_if_impl(input, std::move(should_strip));
+    }
+
+    template <typename UnaryFunc>
+    std::string_view strip_if(std::string_view input, UnaryFunc should_strip)
+    {
+        return rstrip_if(lstrip_if(input, should_strip), should_strip);
+    }
+
+    template <typename UnaryFunc>
+    std::wstring_view strip_if(std::wstring_view input, UnaryFunc should_strip)
+    {
+        return rstrip_if(lstrip_if(input, should_strip), should_strip);
+    }
 
     /**************************************
      *  Implementation of join functions  *

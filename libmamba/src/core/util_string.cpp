@@ -254,9 +254,6 @@ namespace mamba
 
     namespace
     {
-        constexpr const char* WHITESPACES(" \r\n\t\f\v");
-        constexpr const wchar_t* WHITESPACES_WSTR(L" \r\n\t\f\v");
-
         template <typename Char, typename CharOrStrView>
         std::basic_string_view<Char>
         lstrip_impl(std::basic_string_view<Char> input, CharOrStrView chars)
@@ -285,11 +282,13 @@ namespace mamba
     }
     std::string_view lstrip(std::string_view input)
     {
-        return lstrip(input, WHITESPACES);
+        using Char = decltype(input)::value_type;
+        return lstrip_if(input, [](Char c) { return !is_graphic(c); });
     }
     std::wstring_view lstrip(std::wstring_view input)
     {
-        return lstrip(input, WHITESPACES_WSTR);
+        using Char = decltype(input)::value_type;
+        return lstrip_if(input, [](Char c) { return !is_graphic(c); });
     }
 
     namespace
@@ -322,11 +321,13 @@ namespace mamba
     }
     std::string_view rstrip(std::string_view input)
     {
-        return rstrip(input, WHITESPACES);
+        using Char = decltype(input)::value_type;
+        return rstrip_if(input, [](Char c) { return !is_graphic(c); });
     }
     std::wstring_view rstrip(std::wstring_view input)
     {
-        return rstrip(input, WHITESPACES_WSTR);
+        using Char = decltype(input)::value_type;
+        return rstrip_if(input, [](Char c) { return !is_graphic(c); });
     }
 
     namespace
@@ -364,11 +365,13 @@ namespace mamba
     }
     std::string_view strip(std::string_view input)
     {
-        return strip(input, WHITESPACES);
+        using Char = decltype(input)::value_type;
+        return strip_if(input, [](Char c) { return !is_graphic(c); });
     }
     std::wstring_view strip(std::wstring_view input)
     {
-        return strip(input, WHITESPACES_WSTR);
+        using Char = decltype(input)::value_type;
+        return strip_if(input, [](Char c) { return !is_graphic(c); });
     }
 
     /***************************************

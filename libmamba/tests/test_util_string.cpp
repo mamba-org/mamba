@@ -4,6 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <cstddef>
+#include <string>
+#include <string_view>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -80,28 +83,37 @@ namespace mamba
         EXPECT_TRUE(starts_with_any("áäáœ©gþhëb®hüghœ©®xb", StrVec{ "áäáœ©gþhëb", "®hüghœ©®xb" }));
     }
 
-    TEST(util_string, strip)
-    {
-        EXPECT_EQ(strip("  hello \t\n"), "hello");
-        EXPECT_EQ(strip(":::hello%:%", ":%"), "hello");
-        EXPECT_EQ(strip(":::hello%:%", ":"), "hello%:%");
-        EXPECT_EQ(strip(":::hello%:%", ":"), "hello%:%");
-    }
-
     TEST(util_string, lstrip)
     {
         EXPECT_EQ(lstrip("\n \thello \t\n"), "hello \t\n");
         EXPECT_EQ(lstrip(":::hello%:%", ":%"), "hello%:%");
-        EXPECT_EQ(lstrip(":::hello%:%", ":"), "hello%:%");
-        EXPECT_EQ(lstrip(":::hello%:%", "%"), ":::hello%:%");
+        EXPECT_EQ(lstrip(":::hello%:%", ':'), "hello%:%");
+        EXPECT_EQ(lstrip(":::hello%:%", '%'), ":::hello%:%");
+        EXPECT_EQ(lstrip("", '%'), "");
+        EXPECT_EQ(lstrip("aaa", 'a'), "");
+        EXPECT_EQ(lstrip("aaa", 'b'), "aaa");
     }
 
     TEST(util_string, rstrip)
     {
         EXPECT_EQ(rstrip("\n \thello \t\n"), "\n \thello");
-        EXPECT_EQ(rstrip(":::hello%:%", "%"), ":::hello%:");
+        EXPECT_EQ(rstrip(":::hello%:%", '%'), ":::hello%:");
         EXPECT_EQ(rstrip(":::hello%:%", ":%"), ":::hello");
-        EXPECT_EQ(rstrip(":::hello%:%", ":"), ":::hello%:%");
+        EXPECT_EQ(rstrip(":::hello%:%", ':'), ":::hello%:%");
+        EXPECT_EQ(rstrip("", '%'), "");
+        EXPECT_EQ(rstrip("aaa", 'a'), "");
+        EXPECT_EQ(rstrip("aaa", 'b'), "aaa");
+    }
+
+    TEST(util_string, strip)
+    {
+        EXPECT_EQ(strip("  hello \t\n"), "hello");
+        EXPECT_EQ(strip(":::hello%:%", ":%"), "hello");
+        EXPECT_EQ(strip(":::hello%:%", ':'), "hello%:%");
+        EXPECT_EQ(strip(":::hello%:%", ':'), "hello%:%");
+        EXPECT_EQ(strip("", '%'), "");
+        EXPECT_EQ(strip("aaa", 'a'), "");
+        EXPECT_EQ(strip("aaa", 'b'), "aaa");
     }
 
     TEST(utils, strip_whitespaces)
@@ -162,6 +174,33 @@ namespace mamba
             std::string z(lstrip("  \r \t  \n testwhitespacestrip \r \t  \n "));
             EXPECT_EQ(z, "testwhitespacestrip \r \t  \n ");
         }
+    }
+
+    TEST(util_string, lstrip_if)
+    {
+        EXPECT_EQ(lstrip_if("", [](auto) { return true; }), "");
+        EXPECT_EQ(lstrip_if("hello", [](auto) { return true; }), "");
+        EXPECT_EQ(lstrip_if("hello", [](auto) { return false; }), "hello");
+        EXPECT_EQ(lstrip_if("\n \thello \t\n", [](auto c) { return !is_alphanum(c); }), "hello \t\n");
+        EXPECT_EQ(lstrip_if("123hello456", [](auto c) { return is_digit(c); }), "hello456");
+    }
+
+    TEST(util_string, rstrip_if)
+    {
+        EXPECT_EQ(rstrip_if("", [](auto) { return true; }), "");
+        EXPECT_EQ(rstrip_if("hello", [](auto) { return true; }), "");
+        EXPECT_EQ(rstrip_if("hello", [](auto) { return false; }), "hello");
+        EXPECT_EQ(rstrip_if("\n \thello \t\n", [](auto c) { return !is_alphanum(c); }), "\n \thello");
+        EXPECT_EQ(rstrip_if("123hello456", [](auto c) { return is_digit(c); }), "123hello");
+    }
+
+    TEST(util_string, strip_if)
+    {
+        EXPECT_EQ(strip_if("", [](auto) { return true; }), "");
+        EXPECT_EQ(strip_if("hello", [](auto) { return true; }), "");
+        EXPECT_EQ(strip_if("hello", [](auto) { return false; }), "hello");
+        EXPECT_EQ(strip_if("\n \thello \t\n", [](auto c) { return !is_alphanum(c); }), "hello");
+        EXPECT_EQ(strip_if("123hello456", [](auto c) { return is_digit(c); }), "hello");
     }
 
     TEST(util_string, split)

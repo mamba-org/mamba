@@ -204,12 +204,12 @@ namespace mamba
             // "_cache_control": "public, max-age=1200"
             auto extract_subjson = [](std::ifstream& s) -> std::string
             {
-                char next;
-                std::string result;
+                char next = {};
+                std::string result = {};
                 bool escaped = false;
                 int i = 0, N = 4;
                 std::size_t idx = 0;
-                std::size_t prev_keystart;
+                std::size_t prev_keystart = 0;
                 bool in_key = false;
                 std::string key = "";
 
@@ -675,7 +675,7 @@ namespace mamba
         }
     }
 
-    bool MSubdirData::finalize_transfer(const DownloadTarget& target)
+    bool MSubdirData::finalize_transfer(const DownloadTarget&)
     {
         if (m_target->result != 0 || m_target->http_status >= 400)
         {

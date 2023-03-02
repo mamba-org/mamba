@@ -957,7 +957,7 @@ namespace mamba
      *  Implementation of summary_msg  *
      ***********************************/
 
-    std::ostream& print_problem_summary_msg(std::ostream& out, const CompressedProblemsGraph& pbs)
+    std::ostream& print_problem_summary_msg(std::ostream& out, const CompressedProblemsGraph&)
     {
         return out << "Could not solve for environment specs\n";
     }
@@ -1766,7 +1766,7 @@ namespace mamba
     problem_tree_msg(const CompressedProblemsGraph& pbs, const ProblemsMessageFormat& format)
     {
         std::stringstream ss;
-        print_problem_tree_msg(ss, pbs);
+        print_problem_tree_msg(ss, pbs, format);
         return ss.str();
     }
 }

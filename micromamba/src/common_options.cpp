@@ -274,7 +274,7 @@ override_channels_hook(bool& value)
 }
 
 void
-strict_channel_priority_hook(bool& value)
+strict_channel_priority_hook(bool&)
 {
     auto& config = Configuration::instance();
     auto& channel_priority = config.at("channel_priority");
@@ -304,7 +304,7 @@ strict_channel_priority_hook(bool& value)
 }
 
 void
-no_channel_priority_hook(bool& value)
+no_channel_priority_hook(bool&)
 {
     auto& config = Configuration::instance();
     auto& channel_priority = config.at("channel_priority");

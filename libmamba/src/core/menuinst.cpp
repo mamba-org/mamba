@@ -265,12 +265,12 @@ namespace mamba
         }
     }
 
-    namespace detail
+    namespace
     {
         void create_remove_shortcut_impl(
             const fs::u8path& json_file,
             TransactionContext* transaction_context,
-            bool remove
+            [[maybe_unused]] bool remove
         )
         {
             std::string json_content = mamba::read_contents(json_file);
@@ -452,7 +452,7 @@ namespace mamba
     {
         try
         {
-            detail::create_remove_shortcut_impl(json_file, context, true);
+            create_remove_shortcut_impl(json_file, context, true);
         }
         catch (const std::exception& e)
         {
@@ -464,7 +464,7 @@ namespace mamba
     {
         try
         {
-            detail::create_remove_shortcut_impl(json_file, context, false);
+            create_remove_shortcut_impl(json_file, context, false);
         }
         catch (const std::exception& e)
         {

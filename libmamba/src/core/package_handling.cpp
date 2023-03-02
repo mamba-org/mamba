@@ -584,7 +584,7 @@ namespace mamba
     }
 
 
-    static la_ssize_t file_read(archive* a, void* client_data, const void** buff)
+    static la_ssize_t file_read(archive*, void* client_data, const void** buff)
     {
         conda_extract_context* mine = static_cast<conda_extract_context*>(client_data);
         *buff = mine->buffer.data();

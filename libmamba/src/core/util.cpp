@@ -1364,7 +1364,7 @@ namespace mamba
     std::time_t parse_utc_timestamp(const std::string& timestamp, int& error_code) noexcept
     {
         error_code = 0;
-        struct std::tm tt = { 0 };
+        std::tm tt = {};
 
         if (sscanf(
                 timestamp.data(),

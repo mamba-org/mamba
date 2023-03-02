@@ -326,7 +326,7 @@ namespace mamba
         return result;
     }
 
-    bool PackageDownloadExtractTarget::finalize_callback(const DownloadTarget& target)
+    bool PackageDownloadExtractTarget::finalize_callback(const DownloadTarget&)
     {
         if (m_has_progress_bars)
         {
@@ -1667,12 +1667,8 @@ namespace mamba
         t.print(out);
     }
 
-    MTransaction create_explicit_transaction_from_urls(
-        MPool& pool,
-        const std::vector<std::string>& urls,
-        MultiPackageCache& package_caches,
-        std::vector<detail::other_pkg_mgr_spec>& other_specs
-    )
+    MTransaction
+    create_explicit_transaction_from_urls(MPool& pool, const std::vector<std::string>& urls, MultiPackageCache& package_caches, std::vector<detail::other_pkg_mgr_spec>&)
     {
         std::vector<MatchSpec> specs_to_install;
         for (auto& u : urls)

@@ -261,7 +261,7 @@ namespace mamba
         Context(Context&&) = delete;
         Context& operator=(Context&&) = delete;
 
-        const void debug_print();
+        void debug_print() const;
         void dump_backtrace_no_guards();
 
     protected:

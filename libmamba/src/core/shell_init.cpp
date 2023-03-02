@@ -471,8 +471,7 @@ namespace mamba
         }
     }
 
-    void
-    reset_rc_file(const fs::u8path& file_path, const std::string& shell, const fs::u8path& mamba_exe)
+    void reset_rc_file(const fs::u8path& file_path, const std::string&, const fs::u8path&)
     {
         Console::stream() << "Resetting RC file " << file_path << "\nDeleting config for root prefix "
                           << "\nClearing mamba executable environment variable";
@@ -913,7 +912,7 @@ namespace mamba
         return;
     }
 
-    void deinit_powershell(const fs::u8path& profile_path, const fs::u8path& conda_prefix)
+    void deinit_powershell(const fs::u8path& profile_path, const fs::u8path&)
     {
         if (!fs::exists(profile_path))
         {
@@ -924,13 +923,18 @@ namespace mamba
         std::string profile_content = read_contents(profile_path);
         LOG_DEBUG << "Original profile content:\n" << profile_content;
 
-        auto out = Console::stream();
-        fmt::print(
-            out,
-            "Removing the following in your {} file\n{}",
-            fmt::streamed(profile_path),
-            fmt::styled("#region mamba initialize\n...\n#endregion\n", Context::instance().palette.success)
-        );
+        {
+            auto out = Console::stream();
+            fmt::print(
+                out,
+                "Removing the following in your {} file\n{}",
+                fmt::streamed(profile_path),
+                fmt::styled(
+                    "#region mamba initialize\n...\n#endregion\n",
+                    Context::instance().palette.success
+                )
+            );
+        }
 
         profile_content = std::regex_replace(profile_content, MAMBA_INITIALIZE_PS_RE_BLOCK, "");
         LOG_DEBUG << "Profile content:\n" << profile_content;

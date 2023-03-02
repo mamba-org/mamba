@@ -30,80 +30,6 @@
 
 namespace mamba
 {
-
-    /**************************************
-     *  Implementation of DependencyInfo  *
-     **************************************/
-
-    DependencyInfo::DependencyInfo(const std::string& dep)
-    {
-        static std::regex const regexp("\\s*(\\w[\\w-]*)\\s*([^\\s]*)(?:\\s+([^\\s]+))?\\s*");
-        std::smatch matches;
-        const bool matched = std::regex_match(dep, matches, regexp);
-        // First match is the whole regex match
-        if (!matched || matches.size() != 4)
-        {
-            throw std::runtime_error("Invalid dependency info: " + dep);
-        }
-        m_name = matches.str(1);
-        m_version_range = matches.str(2);
-        if (m_version_range.empty())
-        {
-            m_version_range = "*";
-        }
-        m_build_range = matches.str(3);
-        if (m_build_range.empty())
-        {
-            m_build_range = "*";
-        }
-    }
-
-    const std::string& DependencyInfo::name() const
-    {
-        return m_name;
-    }
-
-    const std::string& DependencyInfo::version() const
-    {
-        return m_version_range;
-    }
-
-    const std::string& DependencyInfo::build_string() const
-    {
-        return m_build_range;
-    }
-
-    std::string DependencyInfo::str() const
-    {
-        std::string out(m_name);
-        out.reserve(
-            m_name.size() + (m_version_range.empty() ? 0 : 1) + m_version_range.size()
-            + (m_build_range.empty() ? 0 : 1) + m_version_range.size()
-        );
-        if (!m_version_range.empty())
-        {
-            out += ' ';
-            out += m_version_range;
-        }
-        if (!m_build_range.empty())
-        {
-            out += ' ';
-            out += m_build_range;
-        }
-        return out;
-    }
-
-    bool DependencyInfo::operator==(const DependencyInfo& other) const
-    {
-        auto attrs = [](const DependencyInfo& x)
-        { return std::tie(x.name(), x.version(), x.build_string()); };
-        return attrs(*this) == attrs(other);
-    }
-
-    /*************************************
-     *  Implementation of ProblemsGraph  *
-     *************************************/
-
     namespace
     {
 
@@ -238,7 +164,7 @@ namespace mamba
                             PackageNode{ std::move(target).value(), { type } }
                         );
                         node_id cons_id = add_solvable(problem.dep_id, ConstraintNode{ dep.value() });
-                        DependencyInfo edge(dep.value());
+                        MatchSpec edge(dep.value());
                         m_graph.add_edge(src_id, cons_id, std::move(edge));
                         add_conflict(cons_id, tgt_id);
                         break;
@@ -258,7 +184,7 @@ namespace mamba
                             problem.source_id,
                             PackageNode{ std::move(source).value(), std::nullopt }
                         );
-                        DependencyInfo edge(dep.value());
+                        MatchSpec edge(dep.value());
                         bool added = add_expanded_deps_edges(src_id, problem.dep_id, edge);
                         if (!added)
                         {
@@ -277,7 +203,7 @@ namespace mamba
                             warn_unexpected_problem(problem);
                             break;
                         }
-                        DependencyInfo edge(dep.value());
+                        MatchSpec edge(dep.value());
                         bool added = add_expanded_deps_edges(m_root_node, problem.dep_id, edge);
                         if (!added)
                         {
@@ -296,7 +222,7 @@ namespace mamba
                             warn_unexpected_problem(problem);
                             break;
                         }
-                        DependencyInfo edge(dep.value());
+                        MatchSpec edge(dep.value());
                         node_id dep_id = add_solvable(
                             problem.dep_id,
                             UnresolvedDependencyNode{ std::move(dep).value(), type }
@@ -315,7 +241,7 @@ namespace mamba
                             warn_unexpected_problem(problem);
                             break;
                         }
-                        DependencyInfo edge(dep.value());
+                        MatchSpec edge(dep.value());
                         node_id src_id = add_solvable(
                             problem.source_id,
                             PackageNode{ std::move(source).value(), std::nullopt }
@@ -728,9 +654,6 @@ namespace mamba
             const node_id_mapping& old_to_new
         )
         {
-            // Check nothrow move for efficient push_back
-            static_assert(std::is_nothrow_move_constructible_v<ProblemsGraph::edge_t>);
-
             auto add_new_edge = [&](ProblemsGraph::node_id old_from, ProblemsGraph::node_id old_to)
             {
                 auto const new_from = old_to_new[old_from];
@@ -820,29 +743,25 @@ namespace mamba
      *  Implementation of CompressedProblemsGraph::RoughCompare  *
      *************************************************************/
 
-    template <>
-    bool CompressedProblemsGraph::RoughCompare<ProblemsGraph::PackageNode>::operator()(
-        const ProblemsGraph::PackageNode& a,
-        const ProblemsGraph::PackageNode& b
-    )
-    {
-        auto attrs = [](const ProblemsGraph::PackageNode& x)
-        { return std::tie(x.name, x.version, x.build_number, x.build_string); };
-        return attrs(a) < attrs(b);
-    }
-
     template <typename T>
-    bool CompressedProblemsGraph::RoughCompare<T>::operator()(const T& a, const T& b)
+    bool CompressedProblemsGraph::RoughCompare<T>::operator()(const T& a, const T& b) const
     {
-        auto attrs = [](const DependencyInfo& x)
-        { return std::tie(x.name(), x.version(), x.build_string()); };
+        auto attrs = [](const auto& x)
+        {
+            return std::tie(
+                std::invoke(&T::name, x),
+                std::invoke(&T::version, x),
+                std::invoke(&T::build_number, x),
+                std::invoke(&T::build_string, x)
+            );
+        };
         return attrs(a) < attrs(b);
     }
 
     template struct CompressedProblemsGraph::RoughCompare<ProblemsGraph::PackageNode>;
     template struct CompressedProblemsGraph::RoughCompare<ProblemsGraph::UnresolvedDependencyNode>;
     template struct CompressedProblemsGraph::RoughCompare<ProblemsGraph::ConstraintNode>;
-    template struct CompressedProblemsGraph::RoughCompare<DependencyInfo>;
+    template struct CompressedProblemsGraph::RoughCompare<MatchSpec>;
 
     /**********************************************************
      *  Implementation of CompressedProblemsGraph::NamedList  *
@@ -1032,7 +951,7 @@ namespace mamba
     template class CompressedProblemsGraph::NamedList<ProblemsGraph::PackageNode>;
     template class CompressedProblemsGraph::NamedList<ProblemsGraph::UnresolvedDependencyNode>;
     template class CompressedProblemsGraph::NamedList<ProblemsGraph::ConstraintNode>;
-    template class CompressedProblemsGraph::NamedList<DependencyInfo>;
+    template class CompressedProblemsGraph::NamedList<MatchSpec>;
 
     /***********************************
      *  Implementation of summary_msg  *

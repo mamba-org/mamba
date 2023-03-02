@@ -21,6 +21,7 @@
 #include <fmt/color.h>
 #include <solv/solver.h>
 
+#include "mamba/core/match_spec.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/util_graph.hpp"
 
@@ -29,34 +30,6 @@ namespace mamba
 
     class MSolver;
     class MPool;
-
-    /**
-     * Separate a dependency spec into a package name and the version range.
-     */
-    class DependencyInfo
-    {
-    public:
-
-        DependencyInfo(const std::string& dependency);
-
-        DependencyInfo(const DependencyInfo&) = default;
-        DependencyInfo(DependencyInfo&&) noexcept = default;
-        DependencyInfo& operator=(const DependencyInfo&) = default;
-        DependencyInfo& operator=(DependencyInfo&&) noexcept = default;
-
-        const std::string& name() const;
-        const std::string& version() const;
-        const std::string& build_string() const;
-        std::string str() const;
-
-        bool operator==(const DependencyInfo& other) const;
-
-    private:
-
-        std::string m_name;
-        std::string m_version_range;
-        std::string m_build_range;
-    };
 
     template <typename T>
     class conflict_map : private std::unordered_map<T, vector_set<T>>
@@ -104,7 +77,7 @@ namespace mamba
             PackageNode& operator=(const PackageNode&) = default;
             PackageNode& operator=(PackageNode&&) noexcept = default;
         };
-        struct UnresolvedDependencyNode : DependencyInfo
+        struct UnresolvedDependencyNode : MatchSpec
         {
             SolverRuleinfo problem_type;
 
@@ -113,7 +86,7 @@ namespace mamba
             UnresolvedDependencyNode& operator=(const UnresolvedDependencyNode&) = default;
             UnresolvedDependencyNode& operator=(UnresolvedDependencyNode&&) noexcept = default;
         };
-        struct ConstraintNode : DependencyInfo
+        struct ConstraintNode : MatchSpec
         {
             static constexpr SolverRuleinfo problem_type = SOLVER_RULE_PKG_CONSTRAINS;
 
@@ -124,7 +97,7 @@ namespace mamba
         };
         using node_t = std::variant<RootNode, PackageNode, UnresolvedDependencyNode, ConstraintNode>;
 
-        using edge_t = DependencyInfo;
+        using edge_t = MatchSpec;
 
         using graph_t = DiGraph<node_t, edge_t>;
         using node_id = graph_t::node_id;
@@ -164,7 +137,7 @@ namespace mamba
         template <typename T>
         struct RoughCompare
         {
-            bool operator()(const T& a, const T& b);
+            bool operator()(const T& a, const T& b) const;
         };
 
         /**
@@ -243,7 +216,7 @@ namespace mamba
             UnresolvedDependencyListNode,
             ConstraintListNode>;
 
-        using edge_t = NamedList<DependencyInfo>;
+        using edge_t = NamedList<MatchSpec>;
 
         using graph_t = DiGraph<node_t, edge_t>;
         using node_id = graph_t::node_id;

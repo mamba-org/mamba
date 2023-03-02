@@ -253,22 +253,19 @@ PYBIND11_MODULE(bindings, m)
         .def_readwrite("description", &MSolverProblem::description)
         .def("__str__", [](const MSolverProblem& self) { return self.description; });
 
-    py::class_<DependencyInfo>(m, "DependencyInfo")
+    py::class_<MatchSpec>(m, "MatchSpec")
+        .def(py::init<>())
         .def(py::init<const std::string&>())
-        .def_property_readonly("name", &DependencyInfo::name)
-        .def_property_readonly("version", &DependencyInfo::version)
-        .def_property_readonly("build_string", &DependencyInfo::build_string)
-        .def("__str__", &DependencyInfo::str)
-        .def(py::self == py::self);
+        .def("conda_build_form", &MatchSpec::conda_build_form);
 
     using PbGraph = ProblemsGraph;
     auto pyPbGraph = py::class_<PbGraph>(m, "ProblemsGraph");
 
     py::class_<PbGraph::RootNode>(pyPbGraph, "RootNode").def(py::init<>());
     py::class_<PbGraph::PackageNode, PackageInfo>(pyPbGraph, "PackageNode");
-    py::class_<PbGraph::UnresolvedDependencyNode, DependencyInfo>(pyPbGraph, "UnresolvedDependencyNode")
+    py::class_<PbGraph::UnresolvedDependencyNode, MatchSpec>(pyPbGraph, "UnresolvedDependencyNode")
         .def_readwrite("problem_type", &PbGraph::UnresolvedDependencyNode::problem_type);
-    py::class_<PbGraph::ConstraintNode, DependencyInfo>(pyPbGraph, "ConstraintNode")
+    py::class_<PbGraph::ConstraintNode, MatchSpec>(pyPbGraph, "ConstraintNode")
         .def_readonly_static("problem_type", &PbGraph::ConstraintNode::problem_type);
 
     py::class_<PbGraph::conflicts_t>(pyPbGraph, "ConflictMap")
@@ -339,11 +336,6 @@ PYBIND11_MODULE(bindings, m)
     py::class_<History>(m, "History")
         .def(py::init<const fs::u8path&>())
         .def("get_requested_specs_map", &History::get_requested_specs_map);
-
-    py::class_<MatchSpec>(m, "MatchSpec")
-        .def(py::init<>())
-        .def(py::init<const std::string&>())
-        .def("conda_build_form", &MatchSpec::conda_build_form);
 
     /*py::class_<Query>(m, "Query")
         .def(py::init<MPool&>())

@@ -32,6 +32,8 @@ namespace mamba
         EXPECT_EQ(vector_set<int>({ 1, 2 }), vector_set<int>({ 1, 2 }));
         EXPECT_EQ(vector_set<int>({ 1, 2 }), vector_set<int>({ 2, 1 }));
         EXPECT_EQ(vector_set<int>({ 1, 2, 1 }), vector_set<int>({ 2, 2, 1 }));
+        EXPECT_NE(vector_set<int>({ 1, 2 }), vector_set<int>({ 1, 2, 3 }));
+        EXPECT_NE(vector_set<int>({ 2 }), vector_set<int>({}));
     }
 
     TEST(vector_set, insertion)

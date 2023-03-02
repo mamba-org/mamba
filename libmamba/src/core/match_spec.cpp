@@ -94,7 +94,7 @@ namespace mamba
 
                 name = dist[0];
                 version = dist[1];
-                build = dist[2];
+                build_string = dist[2];
 
                 channel = parsed_channel.canonical_name();
                 // TODO how to handle this with multiple platforms?
@@ -223,20 +223,20 @@ namespace mamba
             auto [pv, pb] = parse_version_and_build(std::string(strip(version)));
 
             version = pv;
-            build = pb;
+            build_string = pb;
 
             // translate version '=1.2.3' to '1.2.3*'
             // is it a simple version starting with '='? i.e. '=1.2.3'
             if (version.size() >= 2 && version[0] == '=')
             {
                 auto rest = version.substr(1);
-                if (version[1] == '=' && build.empty())
+                if (version[1] == '=' && build_string.empty())
                 {
                     version = version.substr(2);
                 }
                 else if (rest.find_first_of("=,|") == rest.npos)
                 {
-                    if (build.empty() && version.back() != '*')
+                    if (build_string.empty() && version.back() != '*')
                     {
                         version = concat(version, "*");
                     }
@@ -250,7 +250,7 @@ namespace mamba
         else
         {
             version = "";
-            build = "";
+            build_string = "";
         }
 
         // TODO think about using a hash function here, (and elsewhere), like:
@@ -263,7 +263,7 @@ namespace mamba
             }
             else if (k == "build")
             {
-                build = v;
+                build_string = v;
             }
             else if (k == "version")
             {
@@ -299,9 +299,9 @@ namespace mamba
         {
             res << " " << version;
             // if (!build.empty() && (build != "*"))
-            if (!build.empty())
+            if (!build_string.empty())
             {
-                res << " " << build;
+                res << " " << build_string;
             }
         }
         return res.str();
@@ -356,7 +356,7 @@ namespace mamba
             }
             else if (starts_with(version, "!=") || starts_with(version, "~="))
             {
-                if (!build.empty())
+                if (!build_string.empty())
                 {
                     formatted_brackets.push_back(concat("version='", version, "'"));
                 }
@@ -396,23 +396,23 @@ namespace mamba
             }
         }
 
-        if (!build.empty())
+        if (!build_string.empty())
         {
-            if (is_complex_relation(build))
+            if (is_complex_relation(build_string))
             {
-                formatted_brackets.push_back(concat("build='", build, "'"));
+                formatted_brackets.push_back(concat("build='", build_string, "'"));
             }
-            else if (build.find("*") != build.npos)
+            else if (build_string.find("*") != build_string.npos)
             {
-                formatted_brackets.push_back(concat("build=", build));
+                formatted_brackets.push_back(concat("build=", build_string));
             }
             else if (version_exact)
             {
-                res << "=" << build;
+                res << "=" << build_string;
             }
             else
             {
-                formatted_brackets.push_back(concat("build=", build));
+                formatted_brackets.push_back(concat("build=", build_string));
             }
         }
 
@@ -461,6 +461,6 @@ namespace mamba
 
     bool MatchSpec::is_simple() const
     {
-        return version.empty() && build.empty() && build_number.empty();
+        return version.empty() && build_string.empty() && build_number.empty();
     }
 }  // namespace mamba

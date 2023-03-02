@@ -326,19 +326,21 @@ namespace mamba
                     selected_channel = make_channel(selected_channel).name();
 
                     MatchSpec modified_spec(ms);
-                    if (!ms.channel.empty() || !ms.version.empty() || !ms.build.empty())
+                    if (!ms.channel.empty() || !ms.version.empty() || !ms.build_string.empty())
                     {
                         Console::stream() << ms.conda_build_form()
                                           << ": overriding channel, version and build from "
                                              "installed packages due to --force-reinstall.";
                         ms.channel = "";
                         ms.version = "";
-                        ms.build = "";
+                        ms.build_string = "";
                     }
 
                     modified_spec.channel = selected_channel;
                     modified_spec.version = check_char(pool_id2str(pool, s->evr));
-                    modified_spec.build = check_char(solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR));
+                    modified_spec.build_string = check_char(
+                        solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR)
+                    );
                     LOG_INFO << "Reinstall " << modified_spec.conda_build_form() << " from channel "
                              << selected_channel;
                     return add_channel_specific_job(modified_spec, job_flag);

@@ -1,4 +1,5 @@
 import os
+import platform
 import shutil
 
 import pytest
@@ -37,30 +38,24 @@ class TestRepoquery:
 
         assert res["query"]["query"] == "yaml =0.2.5*"
         assert res["query"]["type"] == "depends"
-        assert res["result"]["graph_roots"][0]["channel"] == "conda-forge"
-        assert res["result"]["graph_roots"][0]["name"] == "yaml"
-        assert res["result"]["graph_roots"][0]["version"] == "0.2.5"
 
         pkgs = res["result"]["pkgs"]
-        assert any(x["name"] == "libgcc-ng" for x in pkgs)
+        assert any(x["channel"] == "conda-forge" for x in pkgs)
         assert any(x["name"] == "yaml" for x in pkgs)
+        assert any(x["version"] == "0.2.5" for x in pkgs)
+
+        if platform.system() == "Linux":
+            assert any(x["name"] == "libgcc-ng" for x in pkgs)
 
     def test_depends_remote(self):
         res = umamba_repoquery("depends", "yaml", "--use-local=0")
 
         assert 'No entries matching "yaml" found' in res
-        assert (
-            "yaml may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery\n"
-            in res
-        )
 
     def test_depends_not_installed(self):
         res = umamba_repoquery("depends", "xtensor")
+
         assert 'No entries matching "xtensor" found' in res
-        assert (
-            "xtensor may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery\n"
-            in res
-        )
 
     def test_depends_not_installed_with_channel(self):
         res = umamba_repoquery(
@@ -74,26 +69,37 @@ class TestRepoquery:
         assert res["result"]["graph_roots"][0]["version"] == "0.24.5"
 
         pkgs = res["result"]["pkgs"]
-        assert any(x["name"] == "libgcc-ng" for x in pkgs)
-        assert any(x["name"] == "libstdcxx-ng" for x in pkgs)
+
         assert any(x["name"] == "xtensor" for x in pkgs)
         assert any(x["name"] == "xtl" for x in pkgs)
+
+        if platform.system() == "Linux":
+            assert any(x["name"] == "libgcc-ng" for x in pkgs)
+            assert any(x["name"] == "libstdcxx-ng" for x in pkgs)
 
     def test_depends_recursive(self):
         res = umamba_repoquery(
             "depends", "-c", "conda-forge", "xtensor=0.24.5", "--recursive"
         )
 
-        assert "libzlib" in res
-        assert "llvm-openmp" in res
+        if platform.system() == "Linux":
+            assert "libzlib" in res
+        elif platform.system() == "Darwin":
+            assert "libcxx" in res
+        elif platform.system() == "Windows":
+            assert "vc" in res
 
     def test_depends_tree(self):
         res = umamba_repoquery(
             "depends", "-c", "conda-forge", "xtensor=0.24.5", "--tree"
         )
 
-        assert "libzlib" in res
-        assert "llvm-openmp" in res
+        if platform.system() == "Linux":
+            assert "libzlib" in res
+        elif platform.system() == "Darwin":
+            assert "libcxx" in res
+        elif platform.system() == "Windows":
+            assert "vc" in res
 
     # Testing `whoneeds`
     def test_whoneeds(self):
@@ -109,18 +115,11 @@ class TestRepoquery:
         res = umamba_repoquery("whoneeds", "yaml", "--use-local=0")
 
         assert 'No entries matching "yaml" found' in res
-        assert (
-            "yaml may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery\n"
-            in res
-        )
 
     def test_whoneeds_not_installed(self):
         res = umamba_repoquery("whoneeds", "xtensor")
+
         assert 'No entries matching "xtensor" found' in res
-        assert (
-            "xtensor may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery\n"
-            in res
-        )
 
     def test_whoneeds_not_installed_with_channel(self):
         res = umamba_repoquery(

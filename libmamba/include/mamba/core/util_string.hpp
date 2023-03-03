@@ -398,7 +398,7 @@ namespace mamba
         }
     }
 
-    // TODO(C++20) Take an input range and return a range
+    // TODO(C++20) This is a range
     template <typename InputIt, typename UnaryFunction, typename Value>
     UnaryFunction join_for_each(InputIt first, InputIt last, UnaryFunction func, const Value& sep)
     {

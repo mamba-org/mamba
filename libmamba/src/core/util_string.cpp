@@ -254,6 +254,8 @@ namespace mamba
 
     namespace
     {
+        // string_view has a different overload for ``find(char)`` and ``find(string_view)``
+        // so we want to leverage that.
         template <typename Char, typename CharOrStrView>
         std::basic_string_view<Char>
         lstrip_impl(std::basic_string_view<Char> input, CharOrStrView chars)
@@ -293,6 +295,8 @@ namespace mamba
 
     namespace
     {
+        // string_view has a different overload for ``find(char)`` and ``find(string_view)``
+        // so we want to leverage that.
         template <typename Char, typename CharOrStrView>
         std::basic_string_view<Char>
         rstrip_impl(std::basic_string_view<Char> input, CharOrStrView chars)
@@ -332,6 +336,8 @@ namespace mamba
 
     namespace
     {
+        // string_view has a different overload for ``find(char)`` and ``find(string_view)``
+        // so we want to leverage that.
         template <typename Char, typename CharOrStrView>
         std::basic_string_view<Char>
         strip_impl(std::basic_string_view<Char> input, CharOrStrView chars)
@@ -465,24 +471,28 @@ namespace mamba
         }
     }
 
+    // TODO(C++20) lazy_split_view is a range
     std::vector<std::string>
     split(std::string_view input, std::string_view sep, std::size_t max_split)
     {
         return split<decltype(input)::value_type>(input, sep, max_split);
     }
 
+    // TODO(C++20) lazy_split_view is a range
     std::vector<std::wstring>
     split(std::wstring_view input, std::wstring_view sep, std::size_t max_split)
     {
         return split<decltype(input)::value_type>(input, sep, max_split);
     }
 
+    // TODO(C++20) lazy_split_view is a range
     std::vector<std::string>
     rsplit(std::string_view input, std::string_view sep, std::size_t max_split)
     {
         return rsplit<decltype(input)::value_type>(input, sep, max_split);
     }
 
+    // TODO(C++20) lazy_split_view is a range
     std::vector<std::wstring>
     rsplit(std::wstring_view input, std::wstring_view sep, std::size_t max_split)
     {

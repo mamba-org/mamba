@@ -30,19 +30,21 @@ namespace mamba
     wchar_t to_lower(wchar_t c);
     std::string to_lower(std::string_view str);
     std::wstring to_lower(std::wstring_view str);
+    // The use of a template here serves to exclude the overload for const Char*
     template <typename Char>
     std::basic_string<Char> to_lower(std::basic_string<Char>&& str);
-    template <typename Char, typename Iter>
-    void to_lower_tranform(std::basic_string_view<Char> str, Iter out);
+    extern template std::string to_lower(std::string&& str);
+    extern template std::wstring to_lower(std::wstring&& str);
 
     char to_upper(char c);
     wchar_t to_upper(wchar_t c);
     std::string to_upper(std::string_view str);
     std::wstring to_upper(std::wstring_view str);
+    // The use of a template here serves to exclude the overload for const Char*
     template <typename Char>
     std::basic_string<Char> to_upper(std::basic_string<Char>&& str);
-    template <typename Char, typename Iter>
-    void to_upper_tranform(std::basic_string_view<Char> str, Iter out);
+    extern template std::string to_upper(std::string&& str);
+    extern template std::wstring to_upper(std::wstring&& str);
 
     bool starts_with(std::string_view str, std::string_view prefix);
 
@@ -193,37 +195,6 @@ namespace mamba
     inline const char* raw_str_or_empty(const char* ptr)
     {
         return ptr ? ptr : "";
-    }
-
-    /***************************************************
-     *  Implementation of to_lower to_upper functions  *
-     ***************************************************/
-
-    template <typename Char, typename Iter>
-    void to_lower_tranform(std::basic_string_view<Char> str, Iter out)
-    {
-        std::transform(str.cbegin(), str.cend(), out, [](auto c) { return to_lower(c); });
-    }
-
-
-    template <typename Char>
-    std::basic_string<Char> to_lower(std::basic_string<Char>&& str)
-    {
-        to_lower_tranform<Char>(str, str.begin());
-        return str;
-    }
-
-    template <typename Char, typename Iter>
-    void to_upper_tranform(std::basic_string_view<Char> str, Iter out)
-    {
-        std::transform(str.cbegin(), str.cend(), out, [](auto c) { return to_upper(c); });
-    }
-
-    template <typename Char>
-    std::basic_string<Char> to_upper(std::basic_string<Char>&& str)
-    {
-        to_upper_tranform<Char>(str, str.begin());
-        return str;
     }
 
     /********************************************

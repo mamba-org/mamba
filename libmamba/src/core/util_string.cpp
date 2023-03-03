@@ -33,7 +33,12 @@ namespace mamba
         std::basic_string<Char> to_lower_impl(std::basic_string_view<Char> str)
         {
             auto out = std::basic_string<Char>();
-            to_lower_tranform<Char>(str, std::back_inserter(out));
+            std::transform(
+                str.cbegin(),
+                str.cend(),
+                std::back_inserter(out),
+                [](auto c) { return to_lower(c); }
+            );
             return out;
         }
     }
@@ -47,6 +52,16 @@ namespace mamba
     {
         return to_lower_impl(str);
     }
+
+    template <typename Char>
+    std::basic_string<Char> to_lower(std::basic_string<Char>&& str)
+    {
+        std::transform(str.cbegin(), str.cend(), str.begin(), [](auto c) { return to_lower(c); });
+        return str;
+    }
+
+    template std::string to_lower(std::string&& str);
+    template std::wstring to_lower(std::wstring&& str);
 
     char to_upper(char c)
     {
@@ -64,7 +79,12 @@ namespace mamba
         std::basic_string<Char> to_upper_impl(std::basic_string_view<Char> str)
         {
             auto out = std::basic_string<Char>();
-            to_upper_tranform<Char>(str, std::back_inserter(out));
+            std::transform(
+                str.cbegin(),
+                str.cend(),
+                std::back_inserter(out),
+                [](auto c) { return to_upper(c); }
+            );
             return out;
         }
     }
@@ -79,8 +99,18 @@ namespace mamba
         return to_upper_impl(str);
     }
 
+    template <typename Char>
+    std::basic_string<Char> to_upper(std::basic_string<Char>&& str)
+    {
+        std::transform(str.cbegin(), str.cend(), str.begin(), [](auto c) { return to_upper(c); });
+        return str;
+    }
+
+    template std::string to_upper(std::string&& str);
+    template std::wstring to_upper(std::wstring&& str);
+
     /*******************************************
-     *  Implementaion of start_with functions  *
+     *  Implementation of start_with functions  *
      *******************************************/
 
     // TODO(C++20) This is a method of string_view

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.16)
 
 
 add_executable(testing_libmamba_lock testing/lock.cpp)

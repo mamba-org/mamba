@@ -81,33 +81,17 @@ Static library
     cmake --build build/
 
 .. note::
-    ``libmamba-static`` ``cmake`` target represents the static library without any dependency linkage
-
-Fully static library
-********************
-
-``BUILD_STATIC_DEPS`` option needs to be activated:
-
-.. code:: bash
-
-    cmake -B build/ \
-        -DBUILD_LIBMAMBA=ON \
-        -DBUILD_STATIC_DEPS=ON
-    cmake --build build/
-
-.. note::
-    ``libmamba-full-static`` ``cmake`` target represents the static library with static dependencies linkage
+    ``libmamba-static`` ``cmake`` target represents the static library with static dependencies linkage
 
 .. note::
     The ``libmamba`` static library does not embed the dependencies but the ``cmake`` target will expose those dependencies to any executable linking on it
 
 .. note::
-    The fully statically lib still has few symbols required from system shared libraries (``glibc`` for instance)
+    The ``libmamba`` static lib still has few symbols required from system shared libraries (``glibc`` for instance)
 
 .. warning::
-    This version of the library has a small difference versus the static and shared ones, on the way the SSL backend of cURL is set
+    This version of the library has a small difference versus the shared one, on the way the SSL backend of cURL is set
     See `libmamba/src/core/fetch.cpp` for more information
-
 
 Tests
 *****
@@ -215,7 +199,7 @@ To build ``micromamba``, activate the ``BUILD_MICROMAMBA`` flag in ``cmake`` com
 
     cmake -B build/ \
         -DBUILD_MICROMAMBA=ON \
-        -DMICROMAMBA_LINKAGE=DYNAMIC
+        -DBULD_SHARED=ON
     cmake --build build/
 
 or rebuild ``libmamba`` in the same time:
@@ -227,8 +211,7 @@ or rebuild ``libmamba`` in the same time:
         -DBUILD_SHARED=ON \
         -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
         -DCMAKE_PREFIX_PATH=$CONDA_PREFIX \
-        -DBUILD_MICROMAMBA=ON \
-        -DMICROMAMBA_LINKAGE=DYNAMIC
+        -DBUILD_MICROMAMBA=ON
     cmake --build build/
 
 .. note::
@@ -251,13 +234,21 @@ or rebuild ``libmamba`` in the same time:
 Statically linked
 *****************
 
-You can also build ``micromamba`` statically linked against ``libmamba``:
+You can also build ``micromamba`` as a fully statically linked executable. For that, you need to install extra requirements:
+
+.. code::
+
+    micromamba install --name <env_name> --file ./libmamba/environment-static-dev.yml
+
+It will install the development version of dependencies, including static libraries.
+
+Now you can run ``cmake``:
 
 .. code:: bash
 
     cmake -B build/ \
         -DBUILD_MICROMAMBA=ON \
-        -DMICROMAMBA_LINKAGE=STATIC
+        -DBUILD_STATIC=ON
     cmake --build build/
 
 or with ``libmamba``:
@@ -269,46 +260,12 @@ or with ``libmamba``:
         -DBUILD_STATIC=ON \
         -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
         -DCMAKE_PREFIX_PATH=$CONDA_PREFIX \
-        -DBUILD_MICROMAMBA=ON \
-        -DMICROMAMBA_LINKAGE=STATIC
+        -DBUILD_MICROMAMBA=ON
     cmake --build build/
 
 .. note::
-    ``MICROMAMBA_LINKAGE`` default value is ``DYNAMIC``
-
-.. note::
-    ``micromamba`` will be then statically linked against ``libmamba`` but still dynamically linked against all its dependencies (``libsolv``, ``libarchive``, etc.)
-
-Fully statically linked
-***********************
-
-``micromamba`` can be built as a fully statically linked executable. For that, you need to install extra requirements:
-
-.. code::
-
-    micromamba install --name <env_name> --file ./libmamba/environment-static-dev.yml
-
-It will install the development version of dependencies, including static libraries.
-
-Now you can run ``cmake`` with the additional flag ``MICROMAMBA_STATIC_DEPS`` turned on:
-
-.. code:: bash
-
-    cmake -B build/ \
-        -DBUILD_MICROMAMBA=ON \
-        -DMICROMAMBA_LINKAGE=FULL_STATIC
-    cmake --build build/
-
-or with ``libmamba``:
-
-.. code:: bash
-
-    cmake -B build/ \
-        -DBUILD_LIBMAMBA=ON \
-        -DBUILD_STATIC_DEPS=ON \
-        -DBUILD_MICROMAMBA=ON \
-        -DMICROMAMBA_LINKAGE=FULL_STATIC
-    cmake --build build/
+    If you decide to build both the static and shared libraries, ``micromamba`` will link with the shared one. To link
+    with the static library, pass the additional build option ``-DMICROMAMBA_LINKAGE=STATIC``
 
 Tests
 *****

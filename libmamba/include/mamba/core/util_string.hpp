@@ -8,6 +8,7 @@
 #define MAMBA_CORE_UTIL_STRING_HPP
 
 #include <algorithm>
+#include <array>
 #include <cstring>
 #include <iomanip>
 #include <iterator>
@@ -128,6 +129,16 @@ namespace mamba
     std::string_view strip_if(std::string_view input, UnaryFunc should_strip);
     template <typename UnaryFunc>
     std::wstring_view strip_if(std::wstring_view input, UnaryFunc should_strip);
+
+    std::array<std::string_view, 2> split_once(std::string_view input, char sep);
+    std::array<std::wstring_view, 2> split_once(std::wstring_view input, wchar_t sep);
+    std::array<std::string_view, 2> split_once(std::string_view input, std::string_view sep);
+    std::array<std::wstring_view, 2> split_once(std::wstring_view input, std::wstring_view sep);
+
+    std::array<std::string_view, 2> rsplit_once(std::string_view input, char sep);
+    std::array<std::wstring_view, 2> rsplit_once(std::wstring_view input, wchar_t sep);
+    std::array<std::string_view, 2> rsplit_once(std::string_view input, std::string_view sep);
+    std::array<std::wstring_view, 2> rsplit_once(std::wstring_view input, std::wstring_view sep);
 
     std::vector<std::string>
     split(std::string_view input, std::string_view sep, std::size_t max_split = SIZE_MAX);
@@ -390,6 +401,7 @@ namespace mamba
         std::size_t size(const char* s);
         std::size_t size(const wchar_t* s);
         std::size_t size(const char c);
+        std::size_t size(const wchar_t c);
         template <class T>
         std::size_t size(const T& s)
         {

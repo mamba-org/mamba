@@ -381,6 +381,84 @@ namespace mamba
         return strip_if(input, [](Char c) { return !is_graphic(c); });
     }
 
+    /********************************************
+     *  Implementation of split_once functions  *
+     ********************************************/
+
+    namespace
+    {
+        // string_view has a different overload for ``find(char)`` and ``find(string_view)``
+        // so we want to leverage that.
+        template <typename Char, typename CharOrStrView>
+        std::array<std::basic_string_view<Char>, 2>
+        split_once_impl(std::basic_string_view<Char> input, CharOrStrView sep)
+        {
+            const auto sep_pos = input.find(sep);
+            if (sep_pos == std::basic_string_view<Char>::npos)
+            {
+                return { input, std::basic_string_view<Char>{} };
+            }
+            return { input.substr(0, sep_pos), input.substr(sep_pos + detail::size(sep)) };
+        }
+    }
+
+    std::array<std::string_view, 2> split_once(std::string_view input, char sep)
+    {
+        return split_once_impl(input, sep);
+    }
+
+    std::array<std::wstring_view, 2> split_once(std::wstring_view input, wchar_t sep)
+    {
+        return split_once_impl(input, sep);
+    }
+
+    std::array<std::string_view, 2> split_once(std::string_view input, std::string_view sep)
+    {
+        return split_once_impl(input, sep);
+    }
+
+    std::array<std::wstring_view, 2> split_once(std::wstring_view input, std::wstring_view sep)
+    {
+        return split_once_impl(input, sep);
+    }
+
+    namespace
+    {
+        // string_view has a different overload for ``find(char)`` and ``find(string_view)``
+        // so we want to leverage that.
+        template <typename Char, typename CharOrStrView>
+        std::array<std::basic_string_view<Char>, 2>
+        rsplit_once_impl(std::basic_string_view<Char> input, CharOrStrView sep)
+        {
+            const auto sep_pos = input.rfind(sep);
+            if (sep_pos == std::basic_string_view<Char>::npos)
+            {
+                return { std::basic_string_view<Char>{}, input };
+            }
+            return { input.substr(0, sep_pos), input.substr(sep_pos + detail::size(sep)) };
+        }
+    }
+
+    std::array<std::string_view, 2> rsplit_once(std::string_view input, char sep)
+    {
+        return rsplit_once_impl(input, sep);
+    }
+
+    std::array<std::wstring_view, 2> rsplit_once(std::wstring_view input, wchar_t sep)
+    {
+        return rsplit_once_impl(input, sep);
+    }
+
+    std::array<std::string_view, 2> rsplit_once(std::string_view input, std::string_view sep)
+    {
+        return rsplit_once_impl(input, sep);
+    }
+
+    std::array<std::wstring_view, 2> rsplit_once(std::wstring_view input, std::wstring_view sep)
+    {
+        return rsplit_once_impl(input, sep);
+    }
+
     /***************************************
      *  Implementation of split functions  *
      ***************************************/
@@ -554,5 +632,10 @@ namespace mamba
         {
             return 1;
         }
+        std::size_t size(const wchar_t c)
+        {
+            return 1;
+        }
+
     }
 }

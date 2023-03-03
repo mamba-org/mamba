@@ -236,6 +236,54 @@ namespace mamba
         EXPECT_EQ(rsplit("conda-forge/linux64::xtensor==0.12.3", ":", 1), v21);
     }
 
+    TEST(util_string, split_once)
+    {
+        {
+            auto [head, tail] = split_once("", ' ');
+            EXPECT_EQ(head, "");
+            EXPECT_EQ(tail, "");
+        }
+        {
+            auto [head, tail] = split_once("hello brave new world", ' ');
+            EXPECT_EQ(head, "hello");
+            EXPECT_EQ(tail, "brave new world");
+        }
+        {
+            auto [head, tail] = split_once("mamba::util::function", "::");
+            EXPECT_EQ(head, "mamba");
+            EXPECT_EQ(tail, "util::function");
+        }
+        {
+            auto [head, tail] = split_once("hello<>world", "><");
+            EXPECT_EQ(head, "hello<>world");
+            EXPECT_EQ(tail, "");
+        }
+    }
+
+    TEST(util_string, rsplit_once)
+    {
+        {
+            auto [head, tail] = rsplit_once("", ' ');
+            EXPECT_EQ(head, "");
+            EXPECT_EQ(tail, "");
+        }
+        {
+            auto [head, tail] = rsplit_once("hello brave new world", ' ');
+            EXPECT_EQ(head, "hello brave new");
+            EXPECT_EQ(tail, "world");
+        }
+        {
+            auto [head, tail] = rsplit_once("mamba::util::function", "::");
+            EXPECT_EQ(head, "mamba::util");
+            EXPECT_EQ(tail, "function");
+        }
+        {
+            auto [head, tail] = rsplit_once("hello<>world", "><");
+            EXPECT_EQ(head, "");
+            EXPECT_EQ(tail, "hello<>world");
+        }
+    }
+
     TEST(util_string, join)
     {
         {

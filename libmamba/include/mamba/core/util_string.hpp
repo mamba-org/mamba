@@ -233,14 +233,11 @@ namespace mamba
     template <typename StrRange, typename Char>
     bool any_starts_with(const StrRange& strs, std::basic_string_view<Char> prefix)
     {
-        for (auto& s : strs)
-        {
-            if (starts_with(s, prefix))
-            {
-                return true;
-            }
-        }
-        return false;
+        return std::any_of(
+            strs.cbegin(),
+            strs.cend(),
+            [&prefix](const auto& s) { return starts_with(s, prefix); }
+        );
     }
 
     template <typename StrRange>
@@ -261,14 +258,11 @@ namespace mamba
     template <typename StrRange, typename Char>
     bool starts_with_any(std::basic_string_view<Char> str, const StrRange& prefix)
     {
-        for (auto& p : prefix)
-        {
-            if (starts_with(str, p))
-            {
-                return true;
-            }
-        }
-        return false;
+        return std::any_of(
+            prefix.cbegin(),
+            prefix.cend(),
+            [&str](const auto& p) { return starts_with(str, p); }
+        );
     }
 
     template <typename StrRange>

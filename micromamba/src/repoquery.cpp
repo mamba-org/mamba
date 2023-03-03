@@ -89,16 +89,15 @@ set_common_search(CLI::App* subcom, bool is_repoquery)
             {
                 case QueryType::kSEARCH:
                     format = QueryResultFormat::kTABLE;
-                    use_local = (local == -1) ? false : (local > 0);  // use remote repodata by
-                                                                      // default for `search`
+                    use_local = local > 0;  // use remote repodata by default for `search`
                     break;
                 case QueryType::kDEPENDS:
                     format = QueryResultFormat::kTABLE;
-                    use_local = (local == -1) ? true : (local > 0);
+                    use_local = (local == -1) || (local > 0);
                     break;
                 case QueryType::kWHONEEDS:
                     format = QueryResultFormat::kTABLE;
-                    use_local = (local == -1) ? true : (local > 0);
+                    use_local = (local == -1) || (local > 0);
                     break;
             }
             if (qtype == QueryType::kDEPENDS && recursive)
@@ -122,10 +121,8 @@ set_common_search(CLI::App* subcom, bool is_repoquery)
             }
 
             auto& channels = config.at("channels").compute().value<std::vector<std::string>>();
-            if (!channels.empty())
-            {
-                use_local = false;
-            }
+            use_local = use_local && channels.empty();
+
             repoquery(qtype, format, use_local, specs[0]);
         }
     );

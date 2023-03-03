@@ -8,6 +8,7 @@
 #define MAMBA_CORE_UTIL_STRING_HPP
 
 #include <algorithm>
+#include <array>
 #include <cstring>
 #include <iomanip>
 #include <iterator>
@@ -100,10 +101,20 @@ namespace mamba
     std::string_view lstrip(std::string_view input);
     std::wstring_view lstrip(std::wstring_view input);
 
+    std::array<std::string_view, 2> lstrip_parts(std::string_view input, char c);
+    std::array<std::wstring_view, 2> lstrip_parts(std::wstring_view input, wchar_t c);
+    std::array<std::string_view, 2> lstrip_parts(std::string_view input, std::string_view chars);
+    std::array<std::wstring_view, 2> lstrip_parts(std::wstring_view input, std::wstring_view chars);
+
     template <typename UnaryFunc>
     std::string_view lstrip_if(std::string_view input, UnaryFunc should_strip);
     template <typename UnaryFunc>
     std::wstring_view lstrip_if(std::wstring_view input, UnaryFunc should_strip);
+
+    template <typename UnaryFunc>
+    std::array<std::string_view, 2> lstrip_if_parts(std::string_view input, UnaryFunc should_strip);
+    template <typename UnaryFunc>
+    std::array<std::wstring_view, 2> lstrip_if_parts(std::wstring_view input, UnaryFunc should_strip);
 
     std::string_view rstrip(std::string_view input, char c);
     std::wstring_view rstrip(std::wstring_view input, wchar_t c);
@@ -112,10 +123,20 @@ namespace mamba
     std::string_view rstrip(std::string_view input);
     std::wstring_view rstrip(std::wstring_view input);
 
+    std::array<std::string_view, 2> rstrip_parts(std::string_view input, char c);
+    std::array<std::wstring_view, 2> rstrip_parts(std::wstring_view input, wchar_t c);
+    std::array<std::string_view, 2> rstrip_parts(std::string_view input, std::string_view chars);
+    std::array<std::wstring_view, 2> rstrip_parts(std::wstring_view input, std::wstring_view chars);
+
     template <typename UnaryFunc>
     std::string_view rstrip_if(std::string_view input, UnaryFunc should_strip);
     template <typename UnaryFunc>
     std::wstring_view rstrip_if(std::wstring_view input, UnaryFunc should_strip);
+
+    template <typename UnaryFunc>
+    std::array<std::string_view, 2> rstrip_if_parts(std::string_view input, UnaryFunc should_strip);
+    template <typename UnaryFunc>
+    std::array<std::wstring_view, 2> rstrip_if_parts(std::wstring_view input, UnaryFunc should_strip);
 
     std::string_view strip(std::string_view input, char c);
     std::wstring_view strip(std::wstring_view input, wchar_t c);
@@ -124,10 +145,20 @@ namespace mamba
     std::string_view strip(std::string_view input);
     std::wstring_view strip(std::wstring_view input);
 
+    std::array<std::string_view, 3> strip_parts(std::string_view input, char c);
+    std::array<std::wstring_view, 3> strip_parts(std::wstring_view input, wchar_t c);
+    std::array<std::string_view, 3> strip_parts(std::string_view input, std::string_view chars);
+    std::array<std::wstring_view, 3> strip_parts(std::wstring_view input, std::wstring_view chars);
+
     template <typename UnaryFunc>
     std::string_view strip_if(std::string_view input, UnaryFunc should_strip);
     template <typename UnaryFunc>
     std::wstring_view strip_if(std::wstring_view input, UnaryFunc should_strip);
+
+    template <typename UnaryFunc>
+    std::array<std::string_view, 3> strip_if_parts(std::string_view input, UnaryFunc should_strip);
+    template <typename UnaryFunc>
+    std::array<std::wstring_view, 3> strip_if_parts(std::wstring_view input, UnaryFunc should_strip);
 
     std::vector<std::string>
     split(std::string_view input, std::string_view sep, std::size_t max_split = SIZE_MAX);
@@ -298,8 +329,8 @@ namespace mamba
     namespace detail
     {
         template <typename Char, typename UnaryFunc>
-        std::basic_string_view<Char>
-        lstrip_if_impl(std::basic_string_view<Char> input, UnaryFunc should_strip)
+        std::array<std::basic_string_view<Char>, 2>
+        lstrip_if_parts_impl(std::basic_string_view<Char> input, UnaryFunc should_strip)
         {
             const auto start_iter = std::find_if(
                 input.cbegin(),
@@ -307,27 +338,39 @@ namespace mamba
                 [&should_strip](Char c) -> bool { return !should_strip(c); }
             );
             const auto start_idx = static_cast<std::size_t>(start_iter - input.cbegin());
-            return input.substr(start_idx);
+            return { input.substr(0, start_idx), input.substr(start_idx) };
         }
     }
 
     template <typename UnaryFunc>
     std::string_view lstrip_if(std::string_view input, UnaryFunc should_strip)
     {
-        return detail::lstrip_if_impl(input, std::move(should_strip));
+        return lstrip_if_parts(input, std::move(should_strip))[1];
     }
 
     template <typename UnaryFunc>
     std::wstring_view lstrip_if(std::wstring_view input, UnaryFunc should_strip)
     {
-        return detail::lstrip_if_impl(input, std::move(should_strip));
+        return lstrip_if_parts(input, std::move(should_strip))[1];
+    }
+
+    template <typename UnaryFunc>
+    std::array<std::string_view, 2> lstrip_if_parts(std::string_view input, UnaryFunc should_strip)
+    {
+        return detail::lstrip_if_parts_impl(input, std::move(should_strip));
+    }
+
+    template <typename UnaryFunc>
+    std::array<std::wstring_view, 2> lstrip_if_parts(std::wstring_view input, UnaryFunc should_strip)
+    {
+        return detail::lstrip_if_parts_impl(input, std::move(should_strip));
     }
 
     namespace detail
     {
         template <typename Char, typename UnaryFunc>
-        std::basic_string_view<Char>
-        rstrip_if_impl(std::basic_string_view<Char> input, UnaryFunc should_strip)
+        std::array<std::basic_string_view<Char>, 2>
+        rstrip_if_parts_impl(std::basic_string_view<Char> input, UnaryFunc should_strip)
         {
             const auto rstart_iter = std::find_if(
                 input.crbegin(),
@@ -335,32 +378,68 @@ namespace mamba
                 [&should_strip](Char c) -> bool { return !should_strip(c); }
             );
             const auto past_end_idx = static_cast<std::size_t>(input.crend() - rstart_iter);
-            return input.substr(0, past_end_idx);
+            return { input.substr(0, past_end_idx), input.substr(past_end_idx) };
         }
     }
 
     template <typename UnaryFunc>
     std::string_view rstrip_if(std::string_view input, UnaryFunc should_strip)
     {
-        return detail::rstrip_if_impl(input, std::move(should_strip));
+        return rstrip_if_parts(input, std::move(should_strip))[0];
     }
 
     template <typename UnaryFunc>
     std::wstring_view rstrip_if(std::wstring_view input, UnaryFunc should_strip)
     {
-        return detail::rstrip_if_impl(input, std::move(should_strip));
+        return rstrip_if_parts(input, std::move(should_strip))[0];
+    }
+
+    template <typename UnaryFunc>
+    std::array<std::string_view, 2> rstrip_if_parts(std::string_view input, UnaryFunc should_strip)
+    {
+        return detail::rstrip_if_parts_impl(input, std::move(should_strip));
+    }
+
+    template <typename UnaryFunc>
+    std::array<std::wstring_view, 2> rstrip_if_parts(std::wstring_view input, UnaryFunc should_strip)
+    {
+        return detail::rstrip_if_parts_impl(input, std::move(should_strip));
+    }
+
+    namespace detail
+    {
+        template <typename Char, typename UnaryFunc>
+        std::array<std::basic_string_view<Char>, 3>
+        strip_if_parts_impl(std::basic_string_view<Char> input, UnaryFunc should_strip)
+        {
+            const auto [head, not_head] = lstrip_if_parts(input, should_strip);
+            const auto [body, tail] = rstrip_if_parts(not_head, std::move(should_strip));
+            return { head, body, tail };
+        }
     }
 
     template <typename UnaryFunc>
     std::string_view strip_if(std::string_view input, UnaryFunc should_strip)
     {
-        return rstrip_if(lstrip_if(input, should_strip), should_strip);
+        return strip_if_parts(input, std::move(should_strip))[1];
     }
 
     template <typename UnaryFunc>
     std::wstring_view strip_if(std::wstring_view input, UnaryFunc should_strip)
     {
-        return rstrip_if(lstrip_if(input, should_strip), should_strip);
+        return strip_if_parts(input, std::move(should_strip))[1];
+    }
+
+    template <typename UnaryFunc>
+    std::array<std::string_view, 3> strip_if_parts(std::string_view input, UnaryFunc should_strip)
+    {
+        return detail::strip_if_parts_impl(input, std::move(should_strip));
+    }
+
+    template <typename UnaryFunc>
+    std::array<std::wstring_view, 3> strip_if_parts(std::wstring_view input, UnaryFunc should_strip)
+    {
+        return detail::strip_if_parts_impl(input, std::move(should_strip));
     }
 
     /**************************************
@@ -390,6 +469,7 @@ namespace mamba
         std::size_t size(const char* s);
         std::size_t size(const wchar_t* s);
         std::size_t size(const char c);
+        std::size_t size(const wchar_t c);
         template <class T>
         std::size_t size(const T& s)
         {

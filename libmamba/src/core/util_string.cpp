@@ -253,77 +253,58 @@ namespace mamba
      *  Implementation of strip functions  *
      ***************************************/
 
-    namespace
-    {
-        // string_view has a different overload for ``find(char)`` and ``find(string_view)``
-        // so we want to leverage that.
-        template <typename Char, typename CharOrStrView>
-        std::basic_string_view<Char>
-        lstrip_impl(std::basic_string_view<Char> input, CharOrStrView chars)
-        {
-            std::size_t const start = input.find_first_not_of(chars);
-            return (start == std::string::npos) ? std::basic_string_view<Char>{}
-                                                : input.substr(start);
-        }
-    }
-
     std::string_view lstrip(std::string_view input, char c)
     {
-        return lstrip_impl(input, c);
+        return lstrip_parts(input, c)[1];
     }
+
     std::wstring_view lstrip(std::wstring_view input, wchar_t c)
     {
-        return lstrip_impl(input, c);
+        return lstrip_parts(input, c)[1];
     }
+
     std::string_view lstrip(std::string_view input, std::string_view chars)
     {
-        return lstrip_impl(input, chars);
+        return lstrip_parts(input, chars)[1];
     }
+
     std::wstring_view lstrip(std::wstring_view input, std::wstring_view chars)
     {
-        return lstrip_impl(input, chars);
+        return lstrip_parts(input, chars)[1];
     }
+
     std::string_view lstrip(std::string_view input)
     {
         using Char = decltype(input)::value_type;
         return lstrip_if(input, [](Char c) { return !is_graphic(c); });
     }
+
     std::wstring_view lstrip(std::wstring_view input)
     {
         using Char = decltype(input)::value_type;
         return lstrip_if(input, [](Char c) { return !is_graphic(c); });
     }
 
-    namespace
-    {
-        // string_view has a different overload for ``find(char)`` and ``find(string_view)``
-        // so we want to leverage that.
-        template <typename Char, typename CharOrStrView>
-        std::basic_string_view<Char>
-        rstrip_impl(std::basic_string_view<Char> input, CharOrStrView chars)
-        {
-            std::size_t const end = input.find_last_not_of(chars);
-            return (end == std::string::npos) ? std::basic_string_view<Char>{}
-                                              : input.substr(0, end + 1);
-        }
-    }
-
     std::string_view rstrip(std::string_view input, char c)
     {
-        return rstrip_impl(input, c);
+        return rstrip_parts(input, c)[0];
     }
+
     std::wstring_view rstrip(std::wstring_view input, wchar_t c)
     {
-        return rstrip_impl(input, c);
+        return rstrip_parts(input, c)[0];
     }
+
     std::string_view rstrip(std::string_view input, std::string_view chars)
     {
-        return rstrip_impl(input, chars);
+        return rstrip_parts(input, chars)[0];
     }
+
     std::wstring_view rstrip(std::wstring_view input, std::wstring_view chars)
     {
-        return rstrip_impl(input, chars);
+        return rstrip_parts(input, chars)[0];
     }
+
     std::string_view rstrip(std::string_view input)
     {
         using Char = decltype(input)::value_type;
@@ -335,50 +316,150 @@ namespace mamba
         return rstrip_if(input, [](Char c) { return !is_graphic(c); });
     }
 
-    namespace
-    {
-        // string_view has a different overload for ``find(char)`` and ``find(string_view)``
-        // so we want to leverage that.
-        template <typename Char, typename CharOrStrView>
-        std::basic_string_view<Char>
-        strip_impl(std::basic_string_view<Char> input, CharOrStrView chars)
-        {
-            std::size_t const start = input.find_first_not_of(chars);
-            if (start == std::basic_string_view<Char>::npos)
-            {
-                return {};
-            }
-            std::size_t const stop = input.find_last_not_of(chars) + 1;
-            std::size_t const length = stop - start;
-            return (length == 0) ? std::basic_string_view<Char>{} : input.substr(start, length);
-        }
-    }
-
     std::string_view strip(std::string_view input, char c)
     {
-        return strip_impl(input, c);
+        return strip_parts(input, c)[1];
     }
+
     std::wstring_view strip(std::wstring_view input, wchar_t c)
     {
-        return strip_impl(input, c);
+        return strip_parts(input, c)[1];
     }
+
     std::string_view strip(std::string_view input, std::string_view chars)
     {
-        return strip_impl(input, chars);
+        return strip_parts(input, chars)[1];
     }
+
     std::wstring_view strip(std::wstring_view input, std::wstring_view chars)
     {
-        return strip_impl(input, chars);
+        return strip_parts(input, chars)[1];
     }
+
     std::string_view strip(std::string_view input)
     {
         using Char = decltype(input)::value_type;
         return strip_if(input, [](Char c) { return !is_graphic(c); });
     }
+
     std::wstring_view strip(std::wstring_view input)
     {
         using Char = decltype(input)::value_type;
         return strip_if(input, [](Char c) { return !is_graphic(c); });
+    }
+
+    /*********************************************
+     *  Implementation of strip_parts functions  *
+     *********************************************/
+
+    namespace
+    {
+        // string_view has a different overload for ``find(char)`` and ``find(string_view)``
+        // so we want to leverage that.
+        template <typename Char, typename CharOrStrView>
+        std::array<std::basic_string_view<Char>, 2>
+        lstrip_parts_impl(std::basic_string_view<Char> input, CharOrStrView chars)
+        {
+            std::size_t const start = input.find_first_not_of(chars);
+            if (start == std::basic_string_view<Char>::npos)
+            {
+                return { input, std::basic_string_view<Char>{} };
+            }
+            return { input.substr(0, start), input.substr(start) };
+        }
+    }
+
+    std::array<std::string_view, 2> lstrip_parts(std::string_view input, char c)
+    {
+        return lstrip_parts_impl(input, c);
+    }
+
+    std::array<std::wstring_view, 2> lstrip_parts(std::wstring_view input, wchar_t c)
+    {
+        return lstrip_parts_impl(input, c);
+    }
+
+    std::array<std::string_view, 2> lstrip_parts(std::string_view input, std::string_view chars)
+    {
+        return lstrip_parts_impl(input, chars);
+    }
+
+    std::array<std::wstring_view, 2> lstrip_parts(std::wstring_view input, std::wstring_view chars)
+    {
+        return lstrip_parts_impl(input, chars);
+    }
+
+    namespace
+    {
+        // string_view has a different overload for ``find(char)`` and ``find(string_view)``
+        // so we want to leverage that.
+        template <typename Char, typename CharOrStrView>
+        std::array<std::basic_string_view<Char>, 2>
+        rstrip_parts_impl(std::basic_string_view<Char> input, CharOrStrView chars)
+        {
+            std::size_t const end = input.find_last_not_of(chars);
+            if (end == std::basic_string_view<Char>::npos)
+            {
+                return { std::basic_string_view<Char>{}, input };
+            }
+            return { input.substr(0, end + 1), input.substr(end + 1) };
+        }
+    }
+
+    std::array<std::string_view, 2> rstrip_parts(std::string_view input, char c)
+    {
+        return rstrip_parts_impl(input, c);
+    }
+
+    std::array<std::wstring_view, 2> rstrip_parts(std::wstring_view input, wchar_t c)
+    {
+        return rstrip_parts_impl(input, c);
+    }
+
+    std::array<std::string_view, 2> rstrip_parts(std::string_view input, std::string_view chars)
+    {
+        return rstrip_parts_impl(input, chars);
+    }
+
+    std::array<std::wstring_view, 2> rstrip_parts(std::wstring_view input, std::wstring_view chars)
+    {
+        return rstrip_parts_impl(input, chars);
+    }
+
+    namespace
+    {
+        // string_view has a different overload for ``find(char)`` and ``find(string_view)``
+        // so we want to leverage that.
+        template <typename Char, typename CharOrStrView>
+        std::array<std::basic_string_view<Char>, 3>
+        strip_parts_impl(std::basic_string_view<Char> input, CharOrStrView chars)
+        {
+            std::size_t const start = input.find_first_not_of(chars);
+            if (start == std::basic_string_view<Char>::npos)
+            {
+                return { input, {}, {} };
+            }
+            std::size_t const end = input.find_last_not_of(chars) + 1;
+            std::size_t const length = end - start;
+            return { input.substr(0, start), input.substr(start, length), input.substr(end) };
+        }
+    }
+
+    std::array<std::string_view, 3> strip_parts(std::string_view input, char c)
+    {
+        return strip_parts_impl(input, c);
+    }
+    std::array<std::wstring_view, 3> strip_parts(std::wstring_view input, wchar_t c)
+    {
+        return strip_parts_impl(input, c);
+    }
+    std::array<std::string_view, 3> strip_parts(std::string_view input, std::string_view chars)
+    {
+        return strip_parts_impl(input, chars);
+    }
+    std::array<std::wstring_view, 3> strip_parts(std::wstring_view input, std::wstring_view chars)
+    {
+        return strip_parts_impl(input, chars);
     }
 
     /***************************************
@@ -554,5 +635,10 @@ namespace mamba
         {
             return 1;
         }
+        std::size_t size(const wchar_t c)
+        {
+            return 1;
+        }
+
     }
 }

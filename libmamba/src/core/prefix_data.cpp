@@ -11,6 +11,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/repo.hpp"
+#include "mamba/core/util_string.hpp"
 
 #include "solv-cpp/queue.hpp"
 

@@ -7,7 +7,7 @@
 #include "package.hpp"
 
 #include "mamba/core/package_handling.hpp"
-#include "mamba/core/util.hpp"
+#include "mamba/core/util_string.hpp"
 
 using namespace mamba;  // NOLINT(build/namespaces)
 

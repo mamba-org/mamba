@@ -1,6 +1,12 @@
+// Copyright (c) 2019, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
+
 #include "mamba/core/environment.hpp"
 
-#include "mamba/core/util.hpp"
+#include "mamba/core/util_string.hpp"
 
 #ifdef _WIN32
 #include "mamba/core/output.hpp"
@@ -86,7 +92,7 @@ namespace mamba
             if (env_path)
             {
                 std::string path = env_path.value();
-                const auto parts = mamba::split(path, pathsep());
+                const auto parts = split(path, pathsep());
                 const std::vector<fs::u8path> search_paths(parts.begin(), parts.end());
                 return which(exe, search_paths);
             }

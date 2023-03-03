@@ -25,7 +25,7 @@ extern "C"  // Incomplete header
 #include "mamba/core/repo.hpp"
 #include "mamba/core/satisfiability_error.hpp"
 #include "mamba/core/solver.hpp"
-#include "mamba/core/util.hpp"
+#include "mamba/core/util_string.hpp"
 
 #include "solv-cpp/queue.hpp"
 
@@ -345,8 +345,8 @@ namespace mamba
                     }
 
                     modified_spec.channel = selected_channel;
-                    modified_spec.version = check_char(pool_id2str(pool, s->evr));
-                    modified_spec.build_string = check_char(
+                    modified_spec.version = raw_str_or_empty(pool_id2str(pool, s->evr));
+                    modified_spec.build_string = raw_str_or_empty(
                         solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR)
                     );
                     LOG_INFO << "Reinstall " << modified_spec.conda_build_form() << " from channel "

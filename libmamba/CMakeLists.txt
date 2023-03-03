@@ -137,6 +137,7 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/transaction_context.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/link.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/history.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/mamba_fs.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/match_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/menuinst.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/url.cpp
@@ -160,6 +161,8 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/thread_utils.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/transaction.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/util.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/fsutil.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/util_string.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/util_os.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/validate.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/virtual_packages.cpp
@@ -197,7 +200,6 @@ set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/environments_manager.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/error_handling.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/fetch.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/fsutil.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/satisfiability_error.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/history.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/link.hpp
@@ -224,6 +226,7 @@ set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/transaction_context.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/url.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/fsutil.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_graph.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_os.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_random.hpp

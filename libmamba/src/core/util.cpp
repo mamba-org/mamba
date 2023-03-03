@@ -54,6 +54,7 @@ extern "C"
 #include "mamba/core/util_compare.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_random.hpp"
+#include "mamba/core/util_string.hpp"
 
 namespace mamba
 {
@@ -219,187 +220,6 @@ namespace mamba
     TemporaryFile::operator fs::u8path()
     {
         return m_path;
-    }
-
-    /********************
-     * utils for string *
-     ********************/
-
-    bool ends_with(const std::string_view& str, const std::string_view& suffix)
-    {
-        return str.size() >= suffix.size()
-               && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
-    }
-
-    bool starts_with(const std::string_view& str, const std::string_view& prefix)
-    {
-        return str.size() >= prefix.size() && 0 == str.compare(0, prefix.size(), prefix);
-    }
-
-    bool any_starts_with(const std::vector<std::string_view>& str, const std::string_view& prefix)
-    {
-        for (auto& s : str)
-        {
-            if (starts_with(s, prefix))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    bool starts_with_any(const std::string_view& str, const std::vector<std::string_view>& prefix)
-    {
-        for (auto& p : prefix)
-        {
-            if (starts_with(str, p))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    bool contains(const std::string_view& str, const std::string_view& sub_str)
-    {
-        return str.find(sub_str) != std::string::npos;
-    }
-
-    std::string_view strip(const std::string_view& input)
-    {
-        return strip(input, WHITESPACES);
-    }
-
-    // todo one could deduplicate this code with the one in strip() by using C++ 20 with concepts
-    std::wstring_view strip(const std::wstring_view& input)
-    {
-        return strip<wchar_t>(input, WHITESPACES_WSTR);
-    }
-
-    std::string_view strip(const std::string_view& input, const std::string_view& chars)
-    {
-        return strip<char>(input, chars);
-    }
-
-    std::string_view lstrip(const std::string_view& input)
-    {
-        return lstrip(input, WHITESPACES);
-    }
-
-    std::string_view rstrip(const std::string_view& input)
-    {
-        return rstrip(input, WHITESPACES);
-    }
-
-    std::string_view lstrip(const std::string_view& input, const std::string_view& chars)
-    {
-        size_t start = input.find_first_not_of(chars);
-        return start == std::string::npos ? "" : input.substr(start);
-    }
-
-    std::string_view rstrip(const std::string_view& input, const std::string_view& chars)
-    {
-        size_t end = input.find_last_not_of(chars);
-        return end == std::string::npos ? "" : input.substr(0, end + 1);
-    }
-
-    std::vector<std::string>
-    rsplit(const std::string_view& input, const std::string_view& sep, std::size_t max_split)
-    {
-        if (max_split == SIZE_MAX)
-        {
-            return split(input, sep, max_split);
-        }
-
-        std::vector<std::string> result;
-
-        std::ptrdiff_t i, j, len = static_cast<std::ptrdiff_t>(input.size()),
-                             n = static_cast<std::ptrdiff_t>(sep.size());
-        i = j = len;
-
-        while (i >= n)
-        {
-            if (input[i - 1] == sep[n - 1] && input.substr(i - n, n) == sep)
-            {
-                if (max_split-- <= 0)
-                {
-                    break;
-                }
-                result.emplace_back(input.substr(i, j - i));
-                i = j = i - n;
-            }
-            else
-            {
-                i--;
-            }
-        }
-        result.emplace_back(input.substr(0, j));
-        std::reverse(result.begin(), result.end());
-
-        return result;
-    }
-
-    namespace details
-    {
-        std::size_t size(const char* s)
-        {
-            return std::strlen(s);
-        }
-        std::size_t size(const wchar_t* s)
-        {
-            return std::wcslen(s);
-        }
-        std::size_t size(const char /*c*/)
-        {
-            return 1;
-        }
-    }
-
-    template <class S>
-    void replace_all_impl(S& data, const S& search, const S& replace)
-    {
-        if (search.empty())
-        {
-            return;
-        }
-        std::size_t pos = data.find(search);
-        while (pos != std::string::npos)
-        {
-            data.replace(pos, search.size(), replace);
-            pos = data.find(search, pos + replace.size());
-        }
-    }
-
-    void replace_all(std::string& data, const std::string& search, const std::string& replace)
-    {
-        replace_all_impl<std::string>(data, search, replace);
-    }
-
-    void replace_all(std::wstring& data, const std::wstring& search, const std::wstring& replace)
-    {
-        replace_all_impl<std::wstring>(data, search, replace);
-    }
-
-    std::string string_transform(const std::string_view& input, int (*functor)(int))
-    {
-        std::string res(input);
-        std::transform(
-            res.begin(),
-            res.end(),
-            res.begin(),
-            [&](unsigned char c) { return functor(c); }
-        );
-        return res;
-    }
-
-    std::string to_upper(const std::string_view& input)
-    {
-        return string_transform(input, std::toupper);
-    }
-
-    std::string to_lower(const std::string_view& input)
-    {
-        return string_transform(input, std::tolower);
     }
 
     std::string read_contents(const fs::u8path& file_path, std::ios::openmode mode)
@@ -1651,6 +1471,11 @@ namespace mamba
             command_args.push_back(script_file->path().string());
         }
         return std::make_tuple(command_args, std::move(script_file));
+    }
+
+    bool is_yaml_file_name(std::string_view filename)
+    {
+        return ends_with(filename, ".yml") || ends_with(filename, ".yaml");
     }
 
     tl::expected<std::string, mamba_error> encode_base64(const std::string_view& input)

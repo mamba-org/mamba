@@ -13,18 +13,16 @@
 #include <string>
 #include <vector>
 
+#include <openssl/evp.h>
+
 #include "mamba/core/fetch.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/url.hpp"
-#include "mamba/core/util.hpp"
-
-#include "openssl/evp.h"
+#include "mamba/core/util_string.hpp"
 
 namespace mamba
 {
-
-
     template <class B>
     std::vector<unsigned char> hex_to_bytes(const B& buffer, std::size_t size) noexcept
     {
@@ -666,7 +664,7 @@ namespace validate
         std::vector<std::string_view> possible_upgrades;
         for (auto& s : upgrade_prefixes)
         {
-            s += ".";
+            s += '.';
             possible_upgrades.push_back(s);
         }
 

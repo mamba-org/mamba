@@ -11,7 +11,7 @@
 #include <cstdlib>
 #include <map>
 #include <optional>
-#include <string_view>
+#include <vector>
 
 #include "mamba_fs.hpp"
 

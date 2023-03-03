@@ -115,13 +115,6 @@ namespace mamba
 
     /// Returns `true` if the filename matches names of files which should be interpreted as conda
     /// environment lockfile. NOTE: this does not check if the file exists.
-    inline bool is_env_lockfile_name(const std::string_view filename)
-    {
-        return ends_with(filename, "-lock.yml") || ends_with(filename, "-lock.yaml");
-    }
-
-
+    bool is_env_lockfile_name(std::string_view filename);
 }
-
-
 #endif

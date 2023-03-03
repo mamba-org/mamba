@@ -8,6 +8,7 @@
 #define MAMBA_CORE_SHELL_INIT
 
 #include <string>
+#include <vector>
 
 #include "mamba_fs.hpp"
 

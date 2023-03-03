@@ -12,6 +12,7 @@
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/fsutil.hpp"
+#include "mamba/core/util.hpp"
 
 #include "common_options.hpp"
 

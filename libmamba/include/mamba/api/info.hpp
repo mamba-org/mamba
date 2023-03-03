@@ -11,7 +11,7 @@
 #include <vector>
 
 #include "mamba/core/mamba_fs.hpp"
-#include "mamba/core/util.hpp"
+#include "mamba/core/util_string.hpp"
 
 
 namespace mamba
@@ -29,7 +29,7 @@ namespace mamba
            / / / / / / /_/ / / / / / / /_/ / /_/ /
           /_/ /_/ /_/\__,_/_/ /_/ /_/_.___/\__,_/
     )MAMBARAW",
-        "\n"
+        '\n'
     ));
 
     namespace detail

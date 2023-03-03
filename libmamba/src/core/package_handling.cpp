@@ -18,8 +18,8 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_paths.hpp"
 #include "mamba/core/thread_utils.hpp"
-#include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/core/util_string.hpp"
 #include "mamba/core/validate.hpp"
 
 #include "nlohmann/json.hpp"

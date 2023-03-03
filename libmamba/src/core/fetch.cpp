@@ -12,7 +12,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/url.hpp"
-#include "mamba/core/util.hpp"
+#include "mamba/core/util_string.hpp"
 #include "mamba/version.hpp"
 
 #include "spdlog/spdlog.h"

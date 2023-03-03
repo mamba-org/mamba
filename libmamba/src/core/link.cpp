@@ -20,8 +20,8 @@
 #include "mamba/core/menuinst.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/transaction_context.hpp"
-#include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/core/util_string.hpp"
 #include "mamba/core/validate.hpp"
 
 #if _WIN32

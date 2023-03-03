@@ -1,3 +1,9 @@
+// Copyright (c) 2019, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
+
 #include "mamba/api/channel_loader.hpp"
 
 #include "mamba/core/channel.hpp"
@@ -5,7 +11,7 @@
 #include "mamba/core/repo.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/thread_utils.hpp"
-
+#include "mamba/core/util_string.hpp"
 
 namespace mamba
 {
@@ -140,7 +146,7 @@ namespace mamba
             auto& subdir = subdirs[i];
             if (!subdir.loaded())
             {
-                if (!ctx.offline && mamba::ends_with(subdir.name(), "/noarch"))
+                if (!ctx.offline && ends_with(subdir.name(), "/noarch"))
                 {
                     error_list.push_back(mamba_error(
                         "Subdir " + subdir.name() + " not loaded!",

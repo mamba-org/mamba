@@ -9,6 +9,7 @@
 #include <thread>
 
 #include <fmt/color.h>
+#include <fmt/format.h>
 #include <nlohmann/json.hpp>
 #include <reproc++/run.hpp>
 #include <spdlog/spdlog.h>
@@ -68,10 +69,12 @@ set_ps_command(CLI::App* subcom)
                 prefix = env_name(prefix);
             }
 
-            table.add_row({ el["pid"].get<std::string>(),
-                            el["name"].get<std::string>(),
-                            prefix,
-                            join(" ", el["command"].get<std::vector<std::string>>()) });
+            table.add_row({
+                el["pid"].get<std::string>(),
+                el["name"].get<std::string>(),
+                prefix,
+                fmt::format("{}", fmt::join(el["command"].get<std::vector<std::string>>(), " ")),
+            });
         }
 
         table.print(std::cout);

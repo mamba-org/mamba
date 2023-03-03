@@ -12,6 +12,8 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/package_cache.hpp"
+#include "mamba/core/util.hpp"
+#include "mamba/core/util_string.hpp"
 
 #include "../core/progress_bar_impl.hpp"
 

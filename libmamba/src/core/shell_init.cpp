@@ -22,6 +22,7 @@
 #include "mamba/core/shell_init.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/core/util_string.hpp"
 
 #include "progress_bar_impl.hpp"
 

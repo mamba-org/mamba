@@ -8,6 +8,8 @@
 
 #include <iostream>
 
+#include <fmt/format.h>
+#include <fmt/ostream.h>
 #include <spdlog/pattern_formatter.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
@@ -19,6 +21,7 @@
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/core/util_string.hpp"
 
 namespace mamba
 {
@@ -314,45 +317,43 @@ namespace mamba
 
     void Context::debug_print() const
     {
-#define PRINT_CTX(xname) << #xname ": " << xname << '\n'
+#define PRINT_CTX(xout, xname) fmt::print(xout, "{}: {}\n", #xname, xname)
 
-#define PRINT_CTX_VEC(xname) << #xname ": [" << join(", ", xname) << ']' << '\n'
+#define PRINT_CTX_VEC(xout, xname) fmt::print(xout, "{}: [{}]\n", #xname, fmt::join(xname, ", "))
 
-        // clang-format off
-        Console::stream() << std::boolalpha
-                  << ">>> MAMBA CONTEXT <<< \n"
-                  PRINT_CTX(target_prefix)
-                  PRINT_CTX(root_prefix)
-                  PRINT_CTX(dry_run)
-                  PRINT_CTX(always_yes)
-                  PRINT_CTX(allow_softlinks)
-                  PRINT_CTX(offline)
-                  PRINT_CTX(quiet)
-                  PRINT_CTX(no_rc)
-                  PRINT_CTX(no_env)
-                  PRINT_CTX(ssl_no_revoke)
-                  PRINT_CTX(ssl_verify)
-                  PRINT_CTX(retry_timeout)
-                  PRINT_CTX(retry_backoff)
-                  PRINT_CTX(max_retries)
-                  PRINT_CTX(connect_timeout_secs)
-                  PRINT_CTX(add_pip_as_python_dependency)
-                  PRINT_CTX(override_channels_enabled)
-                  PRINT_CTX(use_only_tar_bz2)
-                  PRINT_CTX(auto_activate_base)
-                  PRINT_CTX(extra_safety_checks)
-                  PRINT_CTX(download_threads)
-                  PRINT_CTX(verbosity)
-                  PRINT_CTX(channel_alias)
-                  << "channel_priority: " << (int) channel_priority << '\n'
-                  PRINT_CTX_VEC(default_channels)
-                  PRINT_CTX_VEC(channels)
-                  PRINT_CTX_VEC(pinned_packages)
-                  PRINT_CTX(platform)
-                  << ">>> END MAMBA CONTEXT <<< \n"
-                  << std::endl;
-        // clang-format on
+        auto out = Console::stream();
+        out << std::boolalpha << ">>> MAMBA CONTEXT <<< \n";
+        PRINT_CTX(out, target_prefix);
+        PRINT_CTX(out, root_prefix);
+        PRINT_CTX(out, dry_run);
+        PRINT_CTX(out, always_yes);
+        PRINT_CTX(out, allow_softlinks);
+        PRINT_CTX(out, offline);
+        PRINT_CTX(out, quiet);
+        PRINT_CTX(out, no_rc);
+        PRINT_CTX(out, no_env);
+        PRINT_CTX(out, ssl_no_revoke);
+        PRINT_CTX(out, ssl_verify);
+        PRINT_CTX(out, retry_timeout);
+        PRINT_CTX(out, retry_backoff);
+        PRINT_CTX(out, max_retries);
+        PRINT_CTX(out, connect_timeout_secs);
+        PRINT_CTX(out, add_pip_as_python_dependency);
+        PRINT_CTX(out, override_channels_enabled);
+        PRINT_CTX(out, use_only_tar_bz2);
+        PRINT_CTX(out, auto_activate_base);
+        PRINT_CTX(out, extra_safety_checks);
+        PRINT_CTX(out, download_threads);
+        PRINT_CTX(out, verbosity);
+        PRINT_CTX(out, channel_alias);
+        out << "channel_priority: " << (int) channel_priority << '\n';
+        PRINT_CTX_VEC(out, default_channels);
+        PRINT_CTX_VEC(out, channels);
+        PRINT_CTX_VEC(out, pinned_packages);
+        PRINT_CTX(out, platform);
+        out << ">>> END MAMBA CONTEXT <<< \n" << std::endl;
 #undef PRINT_CTX
+#undef PRINT_CTX_VEC
     }
 
     void Context::dump_backtrace_no_guards()

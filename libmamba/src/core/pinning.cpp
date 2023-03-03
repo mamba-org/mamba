@@ -9,7 +9,7 @@
 #include <fstream>
 
 #include "mamba/core/output.hpp"
-#include "mamba/core/util.hpp"
+#include "mamba/core/util_string.hpp"
 
 
 namespace mamba

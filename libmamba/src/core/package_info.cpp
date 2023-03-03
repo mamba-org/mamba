@@ -13,7 +13,7 @@
 #include <tuple>
 
 #include "mamba/core/channel.hpp"
-#include "mamba/core/util.hpp"
+#include "mamba/core/util_string.hpp"
 
 #include "solv-cpp/queue.hpp"
 
@@ -129,13 +129,13 @@ namespace mamba
             {
                 channel = s->repo->name;  // note this can and should be <unknown> when e.g.
                                           // installing from a tarball
-                url = channel + "/" + check_char(solvable_lookup_str(s, SOLVABLE_MEDIAFILE));
+                url = channel + "/" + raw_str_or_empty(solvable_lookup_str(s, SOLVABLE_MEDIAFILE));
             }
         }
 
-        subdir = check_char(solvable_lookup_str(s, SOLVABLE_MEDIADIR));
-        fn = check_char(solvable_lookup_str(s, SOLVABLE_MEDIAFILE));
-        str = check_char(solvable_lookup_str(s, SOLVABLE_LICENSE));
+        subdir = raw_str_or_empty(solvable_lookup_str(s, SOLVABLE_MEDIADIR));
+        fn = raw_str_or_empty(solvable_lookup_str(s, SOLVABLE_MEDIAFILE));
+        str = raw_str_or_empty(solvable_lookup_str(s, SOLVABLE_LICENSE));
         if (str)
         {
             license = str;
@@ -152,7 +152,7 @@ namespace mamba
         {
             sha256 = str;
         }
-        signatures = check_char(solvable_lookup_str(s, SIGNATURE_DATA));
+        signatures = raw_str_or_empty(solvable_lookup_str(s, SIGNATURE_DATA));
         if (signatures.empty())
         {
             signatures = "{}";

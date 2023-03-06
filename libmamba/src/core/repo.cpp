@@ -136,6 +136,11 @@ namespace mamba
         return *this;
     }
 
+    void MRepo::set_channel(const Channel& channel)
+    {
+        p_channel = &channel;
+    }
+
     void MRepo::set_installed()
     {
         pool_set_installed(m_repo->pool, m_repo);

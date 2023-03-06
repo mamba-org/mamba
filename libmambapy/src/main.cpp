@@ -202,9 +202,11 @@ PYBIND11_MODULE(bindings, m)
                 repo_internalize(self.repo());
             }
         )
+        .def("set_channel", &MRepo::set_channel)
         .def("set_installed", &MRepo::set_installed)
         .def("set_priority", &MRepo::set_priority)
         .def("name", &MRepo::name)
+        .def("channel", &MRepo::channel)
         .def("priority", &MRepo::priority)
         .def("size", &MRepo::size)
         .def("clear", &MRepo::clear);

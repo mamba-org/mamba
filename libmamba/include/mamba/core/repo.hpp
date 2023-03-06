@@ -61,6 +61,7 @@ namespace mamba
         MRepo(MRepo&&);
         MRepo& operator=(MRepo&&);
 
+        void set_channel(const Channel& channel);
         void set_installed();
         void set_priority(int priority, int subpriority);
         void add_package_info(Repodata*, const PackageInfo& pkg_info);

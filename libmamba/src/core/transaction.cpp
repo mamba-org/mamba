@@ -512,7 +512,7 @@ namespace mamba
             job.clear();
             q.clear();
 
-            const Id id = pool_conda_matchspec((Pool*) pool, s.conda_build_form().c_str());
+            const Id id = pool_conda_matchspec(pool, s.conda_build_form().c_str());
             if (id)
             {
                 job.push_back(SOLVER_SOLVABLE_PROVIDES, id);
@@ -537,7 +537,7 @@ namespace mamba
         }
 
         selection_solvables(pool, job.raw(), q.raw());
-        const bool remove_success = size_t(q.size()) >= specs_to_remove.size();
+        const bool remove_success = q.size() >= specs_to_remove.size();
         Console::instance().json_write({ { "success", remove_success } });
         Id pkg_id;
         Solvable* solvable;
@@ -1239,9 +1239,10 @@ namespace mamba
                             ));
                             repr.postfix.set_value(fmt::format("{:<25}", dl_bar->last_active_task()));
                         }
-                        repr.current.set_value(
-                            fmt::format("{:>7}", to_human_readable_filesize(dl_bar->current(), 1))
-                        );
+                        repr.current.set_value(fmt::format(
+                            "{:>7}",
+                            to_human_readable_filesize(double(dl_bar->current()), 1)
+                        ));
                         repr.separator.set_value("/");
 
                         std::string total_str;
@@ -1251,13 +1252,15 @@ namespace mamba
                         }
                         else
                         {
-                            total_str = to_human_readable_filesize(dl_bar->total(), 1);
+                            total_str = to_human_readable_filesize(double(dl_bar->total()), 1);
                         }
                         repr.total.set_value(fmt::format("{:>7}", total_str));
 
                         auto speed = dl_bar->avg_speed(std::chrono::milliseconds(500));
                         repr.speed.set_value(
-                            speed ? fmt::format("@ {:>7}/s", to_human_readable_filesize(speed, 1)) : ""
+                            speed
+                                ? fmt::format("@ {:>7}/s", to_human_readable_filesize(double(speed), 1))
+                                : ""
                         );
                     }
                 );
@@ -1458,9 +1461,9 @@ namespace mamba
         auto format_row =
             [this, &ctx, pool, &total_size](rows& r, Solvable* s, Status status, std::string diff)
         {
-            std::ptrdiff_t dlsize = solvable_lookup_num(s, SOLVABLE_DOWNLOADSIZE, -1);
+            std::size_t dlsize = solvable_lookup_num(s, SOLVABLE_DOWNLOADSIZE, SIZE_MAX);
             printers::FormattedString dlsize_s;
-            if (dlsize != -1)
+            if (dlsize != SIZE_MAX)
             {
                 if (status == Status::ignore)
                 {
@@ -1476,7 +1479,7 @@ namespace mamba
                     else
                     {
                         std::stringstream ss;
-                        to_human_readable_filesize(ss, dlsize);
+                        to_human_readable_filesize(ss, double(dlsize));
                         dlsize_s.s = ss.str();
                         // Hacky hacky
                         if (status == Status::install)
@@ -1643,7 +1646,7 @@ namespace mamba
         }
 
         summary << "\n  Total download: ";
-        to_human_readable_filesize(summary, total_size);
+        to_human_readable_filesize(summary, double(total_size));
         summary << "\n";
         t.add_row({ summary.str() });
         auto out = Console::stream();

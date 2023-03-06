@@ -24,7 +24,7 @@ namespace mamba
 
     wchar_t to_lower(wchar_t c)
     {
-        return static_cast<wchar_t>(std::tolower(static_cast<wchar_t>(c)));
+        return static_cast<wchar_t>(std::tolower(c));
     }
 
     namespace
@@ -70,7 +70,7 @@ namespace mamba
 
     wchar_t to_upper(wchar_t c)
     {
-        return static_cast<wchar_t>(std::toupper(static_cast<wchar_t>(c)));
+        return static_cast<wchar_t>(std::toupper(c));
     }
 
     namespace

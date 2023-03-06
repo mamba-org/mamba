@@ -981,8 +981,8 @@ namespace mamba
         {
             auto group_title = name + " Configuration";
             auto blk_size = 52 - group_title.size();
-            int prepend_blk = blk_size / 2;
-            int append_blk = blk_size - prepend_blk;
+            auto prepend_blk = blk_size / 2;
+            auto append_blk = blk_size - prepend_blk;
 
             out << YAML::Comment(std::string(54, '#')) << YAML::Newline;
             out << YAML::Comment(
@@ -1598,7 +1598,7 @@ namespace mamba
                    .needs({ "json", "print_config_only", "print_context_only" })
                    .description("Set quiet mode (print less output)"));
 
-        insert(Configurable("verbose", int(0))
+        insert(Configurable("verbose", 0)
                    .group("Output, Prompt and Flow Control")
                    .set_post_merge_hook(detail::verbose_hook)
                    .description("Set the verbosity")

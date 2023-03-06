@@ -612,7 +612,7 @@ namespace mamba
     {
         std::vector<MSolverProblem> res;
         solv::ObjQueue problem_rules;
-        const Id count = solver_problem_count(m_solver.get());
+        const auto count = static_cast<Id>(solver_problem_count(m_solver.get()));
         for (Id i = 1; i <= count; ++i)
         {
             solver_findallproblemrules(m_solver.get(), i, problem_rules.raw());
@@ -641,7 +641,7 @@ namespace mamba
         std::stringstream problems;
 
         solv::ObjQueue problem_rules;
-        Id count = solver_problem_count(m_solver.get());
+        auto count = static_cast<Id>(solver_problem_count(m_solver.get()));
         for (Id i = 1; i <= count; ++i)
         {
             solver_findallproblemrules(m_solver.get(), i, problem_rules.raw());
@@ -688,7 +688,7 @@ namespace mamba
     std::string MSolver::problems_to_str() const
     {
         solv::ObjQueue problem_queue;
-        int count = solver_problem_count(m_solver.get());
+        auto count = static_cast<int>(solver_problem_count(m_solver.get()));
         std::stringstream problems;
         for (int i = 1; i <= count; i++)
         {

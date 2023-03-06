@@ -229,7 +229,7 @@ namespace mamba
         std::string distribution_name = root_prefix.filename().string();
         if (distribution_name.size() > 1)
         {
-            distribution_name[0] = std::toupper(distribution_name[0]);
+            distribution_name[0] = to_upper(distribution_name[0]);
         }
 
         auto to_forward_slash = [](const fs::u8path& p)

@@ -28,7 +28,7 @@ namespace mamba
     {
         void libsolv_debug_callback(Pool* /*pool*/, void* userptr, int type, const char* str)
         {
-            auto* dbg = (std::pair<spdlog::logger*, std::string>*) (userptr);
+            auto* dbg = reinterpret_cast<std::pair<spdlog::logger*, std::string>*>(userptr);
             dbg->second += str;
             if (dbg->second.size() == 0 || dbg->second.back() != '\n')
             {

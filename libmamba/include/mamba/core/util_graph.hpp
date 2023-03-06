@@ -755,8 +755,8 @@ namespace mamba
     void DiGraph<N, E>::add_edge_impl(node_id from, node_id to, T&& data)
     {
         Base::add_edge(from, to);
-        auto edge_id = std::make_pair(from, to);
-        m_edges.insert(std::make_pair(edge_id, std::forward<T>(data)));
+        auto ledge_id = std::make_pair(from, to);
+        m_edges.insert(std::make_pair(ledge_id, std::forward<T>(data)));
     }
 
     template <typename N, typename E>

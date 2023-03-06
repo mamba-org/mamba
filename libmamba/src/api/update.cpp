@@ -126,8 +126,6 @@ namespace mamba
 
         solver.must_solve();
 
-        MTransaction transaction(solver, package_caches);
-
         auto execute_transaction = [&](MTransaction& transaction)
         {
             if (ctx.json)
@@ -142,6 +140,7 @@ namespace mamba
             }
         };
 
+        MTransaction transaction(solver, package_caches);
         execute_transaction(transaction);
 
         config.operation_teardown();

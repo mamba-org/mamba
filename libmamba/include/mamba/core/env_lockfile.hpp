@@ -83,8 +83,8 @@ namespace mamba
         };
 
         EnvironmentLockFile(Meta metadata, std::vector<Package> packages)
-            : metadata(std::move(metadata))
-            , packages(std::move(packages))
+            : m_metadata(std::move(metadata))
+            , m_packages(std::move(packages))
         {
         }
 
@@ -94,17 +94,17 @@ namespace mamba
 
         const std::vector<Package>& get_all_packages() const
         {
-            return packages;
+            return m_packages;
         }
         const Meta& get_metadata() const
         {
-            return metadata;
+            return m_metadata;
         }
 
     private:
 
-        Meta metadata;
-        std::vector<Package> packages;
+        Meta m_metadata;
+        std::vector<Package> m_packages;
     };
 
     /// Read an environment lock YAML file and returns it's structured content or an error if

@@ -154,6 +154,7 @@ namespace cursor
 
 namespace mamba
 {
+    // TODO: bytes sould be size_t and the implementation is wrong
     void to_human_readable_filesize(std::ostream& o, double bytes, std::size_t precision)
     {
         static constexpr const char* sizes[] = { " B", "kB", "MB", "GB", "TB", "PB" };
@@ -161,9 +162,9 @@ namespace mamba
         while (bytes >= 1000 && order < (6 - 1))
         {
             order++;
-            bytes = bytes / 1000;
+            bytes = bytes / 1000;  // TODO: Should be divided by 1024
         }
-        o << std::fixed << std::setprecision(precision) << bytes << sizes[order];
+        o << std::fixed << std::setprecision(static_cast<int>(precision)) << bytes << sizes[order];
     }
 
     std::string to_human_readable_filesize(double bytes, std::size_t precision)
@@ -689,10 +690,10 @@ namespace mamba
 
         std::string ProgressScaleWriter::repr(std::size_t progress, std::size_t in_progress) const
         {
-            auto current_pos = static_cast<std::size_t>(progress * m_bar_width / 100.0);
-            auto in_progress_pos = static_cast<std::size_t>(
-                (progress + in_progress) * m_bar_width / 100.0
-            );
+            double progress_width = static_cast<double>(progress * m_bar_width);
+            double in_progress_width = static_cast<double>(in_progress * m_bar_width);
+            auto current_pos = static_cast<std::size_t>(progress_width / 100.0);
+            auto in_progress_pos = static_cast<std::size_t>(in_progress_width / 100.0);
 
             current_pos = std::clamp(current_pos, std::size_t(0), m_bar_width);
             in_progress_pos = std::clamp(in_progress_pos, std::size_t(0), m_bar_width);
@@ -741,7 +742,7 @@ namespace mamba
             int console_width = get_console_width();
             if (console_width != -1)
             {
-                max_width = console_width;
+                max_width = static_cast<std::size_t>(console_width);
             }
             else
             {
@@ -893,7 +894,10 @@ namespace mamba
                                          p_progress_bar->current() + p_progress_bar->in_progress()
                                      )
                                      / static_cast<double>(p_progress_bar->total()) * 100.;
-                sstream << w.repr(p_progress_bar->progress(), in_progress);
+                sstream << w.repr(
+                    static_cast<std::size_t>(p_progress_bar->progress()),
+                    static_cast<std::size_t>(in_progress)
+                );
             }
         }
         else
@@ -911,35 +915,30 @@ namespace mamba
                 }
 
                 constexpr int spinner_rounds = 2;
-                auto pos = static_cast<std::size_t>(
-                               std::round(progress * ((spinner_rounds * spinner.size()) / 100.0))
-                           )
+                auto pos = static_cast<std::size_t>(std::round(
+                               progress * (double(spinner_rounds * spinner.size()) / 100.0)
+                           ))
                            % spinner.size();
                 sstream << fmt::format("{:^4}", spinner[pos]);
             }
             else
             {
-                int pos = static_cast<int>(std::round(p_progress_bar->progress() * (width - 1) / 100.0)
-                );
-
                 std::size_t current_pos = 0, in_progress_pos = 0;
 
                 if (p_progress_bar->total())
                 {
-                    current_pos = static_cast<int>(std::floor(
+                    current_pos = static_cast<std::size_t>(std::floor(
                         static_cast<double>(p_progress_bar->current())
-                        / static_cast<double>(p_progress_bar->total()) * width
+                        / static_cast<double>(p_progress_bar->total()) * double(width)
                     ));
-                    in_progress_pos = static_cast<int>(std::ceil(
+                    in_progress_pos = static_cast<std::size_t>(std::ceil(
                         static_cast<double>(p_progress_bar->current() + p_progress_bar->in_progress())
-                        / static_cast<double>(p_progress_bar->total()) * width
+                        / static_cast<double>(p_progress_bar->total()) * double(width)
                     ));
 
                     current_pos = std::clamp(current_pos, std::size_t(0), width);
                     in_progress_pos = std::clamp(in_progress_pos, std::size_t(0), width);
                 }
-
-                auto spinner_width = 8;
 
                 if (current_pos)
                 {
@@ -970,12 +969,19 @@ namespace mamba
                 }
                 else
                 {
-                    std::size_t spinner_start, spinner_length, rest;
+                    auto pos = static_cast<std::size_t>(
+                        std::round(p_progress_bar->progress() * (double(width) - 1.) / 100.0)
+                    );
+                    std::size_t spinner_width = 8;
 
-                    spinner_start = util::cmp_greater(pos, spinner_width) ? pos - spinner_width : 0;
-                    spinner_length = (util::cmp_less(pos + spinner_width, width) ? pos + spinner_width
-                                                                                 : width)
-                                     - spinner_start;
+
+                    std::size_t spinner_start = util::cmp_greater(pos, spinner_width)
+                                                    ? pos - spinner_width
+                                                    : 0;
+                    std::size_t spinner_length = (util::cmp_less(pos + spinner_width, width)
+                                                      ? pos + spinner_width
+                                                      : width)
+                                                 - spinner_start;
 
                     ProgressScaleWriter::format_progress(
                         sstream,
@@ -993,7 +999,7 @@ namespace mamba
                     );
                     if (spinner_length + spinner_start < width)
                     {
-                        rest = width - spinner_start - spinner_length;
+                        std::size_t rest = width - spinner_start - spinner_length;
                         ProgressScaleWriter::format_progress(sstream, m_style_none, rest, true, m_ascii_only);
                     }
                 }
@@ -1122,7 +1128,7 @@ namespace mamba
 
             ostream << "[+] " << std::fixed << std::setprecision(1) << duration_str(duration) << "\n";
             previously_printed = std::max(
-                print(ostream, 0, get_console_height() - 1, false),
+                print(ostream, 0, static_cast<std::size_t>(get_console_height() - 1), false),
                 std::size_t(1)
             );
             std::cout << ostream.str() << std::flush;
@@ -1325,7 +1331,7 @@ namespace mamba
     ProgressBar& ProgressBar::set_progress(double progress)
     {
         m_progress = progress;
-        m_current = m_total * progress / 100.;
+        m_current = static_cast<std::size_t>(double(m_total) * progress / 100.);
         set_current(m_current);
         return *this;
     }
@@ -1379,7 +1385,9 @@ namespace mamba
     {
         if (!m_is_spinner)
         {
-            unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+            auto seed = static_cast<std::size_t>(
+                std::chrono::system_clock::now().time_since_epoch().count()
+            );
             std::default_random_engine generator(seed);
             std::uniform_int_distribution<int> distribution(0, 100);
             m_progress = distribution(generator);
@@ -1436,11 +1444,12 @@ namespace mamba
             {
                 if (total_elapsed < ref_duration && total_elapsed.count())
                 {
-                    m_avg_speed = m_current / total_elapsed.count() * 1000;
+                    m_avg_speed = m_current / static_cast<std::size_t>(total_elapsed.count()) * 1000;
                 }
                 else
                 {
-                    m_avg_speed = (m_current - m_current_avg) / elapsed_since_last_avg.count() * 1000;
+                    m_avg_speed = (m_current - m_current_avg)
+                                  / static_cast<std::size_t>(elapsed_since_last_avg.count()) * 1000;
                 }
                 m_avg_speed_time = now;
                 m_current_avg = m_current;
@@ -1547,10 +1556,10 @@ namespace mamba
         if (delay.count())
         {
             MainExecutor::instance().schedule(
-                [&](const time_point_t& stop_time_point)
+                [&](const time_point_t& lstop_time_point)
                 {
                     std::lock_guard<std::mutex> lock(m_mutex);
-                    while (now() < stop_time_point && status() < ChronoState::stopped)
+                    while (now() < lstop_time_point && status() < ChronoState::stopped)
                     {
                         std::this_thread::sleep_for(std::chrono::milliseconds(100));
                     }
@@ -1659,7 +1668,7 @@ namespace mamba
     {
         if (!width && m_width)
         {
-            width = m_width;
+            width = static_cast<std::size_t>(m_width);
         }
 
         print_formatted_bar_repr(ostream, m_repr, width, with_endl);
@@ -2104,7 +2113,7 @@ namespace mamba
         }
         else
         {
-            ms_rounded = std::round(static_cast<double>(ms.count()) / 100.);
+            ms_rounded = static_cast<int>(std::round(static_cast<double>(ms.count()) / 100.));
         }
 
         if (d.count() > 0)

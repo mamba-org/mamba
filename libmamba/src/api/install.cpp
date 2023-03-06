@@ -808,7 +808,8 @@ namespace mamba
                             LOG_INFO << "Installing explicit specs for platform " << platform;
 
                             std::vector<std::string> explicit_specs;
-                            for (auto f = file_contents.begin() + i + 1; f != file_contents.end();
+                            for (auto f = file_contents.begin() + static_cast<std::ptrdiff_t>(i) + 1;
+                                 f != file_contents.end();
                                  ++f)
                             {
                                 std::string_view spec = strip((*f));

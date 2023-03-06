@@ -346,7 +346,7 @@ namespace mamba
         PRINT_CTX(out, download_threads);
         PRINT_CTX(out, verbosity);
         PRINT_CTX(out, channel_alias);
-        out << "channel_priority: " << (int) channel_priority << '\n';
+        out << "channel_priority: " << static_cast<int>(channel_priority) << '\n';
         PRINT_CTX_VEC(out, default_channels);
         PRINT_CTX_VEC(out, channels);
         PRINT_CTX_VEC(out, pinned_packages);

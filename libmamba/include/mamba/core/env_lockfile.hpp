@@ -82,9 +82,9 @@ namespace mamba
             std::string platform;
         };
 
-        EnvironmentLockFile(Meta metadata, std::vector<Package> packages)
-            : metadata(std::move(metadata))
-            , packages(std::move(packages))
+        EnvironmentLockFile(Meta rhs_metadata, std::vector<Package> rhs_packages)
+            : metadata(std::move(rhs_metadata))
+            , packages(std::move(rhs_packages))
         {
         }
 

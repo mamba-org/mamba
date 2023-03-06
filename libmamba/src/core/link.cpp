@@ -726,11 +726,11 @@ namespace mamba
             fo << buffer;
             fo.close();
 
-            std::error_code ec;
-            fs::permissions(dst, fs::status(src).permissions(), ec);
-            if (ec)
+            std::error_code ec_perm;
+            fs::permissions(dst, fs::status(src).permissions(), ec_perm);
+            if (ec_perm)
             {
-                LOG_WARNING << "Could not set permissions on [" << dst << "]: " << ec.message();
+                LOG_WARNING << "Could not set permissions on [" << dst << "]: " << ec_perm.message();
             }
 
 #if defined(__APPLE__)
@@ -749,10 +749,10 @@ namespace mamba
 
             if (!copy && !softlink)
             {
-                std::error_code ec;
-                fs::create_hard_link(src, dst, ec);
+                std::error_code internal_ec;
+                fs::create_hard_link(src, dst, internal_ec);
 
-                if (ec)
+                if (internal_ec)
                 {
                     softlink = m_context->allow_softlinks;
                     copy = !softlink;
@@ -765,9 +765,9 @@ namespace mamba
             }
             if (softlink)
             {
-                std::error_code ec;
-                fs::create_symlink(src, dst, ec);
-                if (ec)
+                std::error_code internal_ec;
+                fs::create_symlink(src, dst, internal_ec);
+                if (internal_ec)
                 {
                     copy = true;
                 }

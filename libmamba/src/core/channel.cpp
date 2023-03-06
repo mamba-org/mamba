@@ -288,9 +288,9 @@ namespace mamba
                 name = name.substr(0, platform_spec_ind);
             }
 
-            auto add_channel = [&](const std::string& name)
+            auto add_channel = [&](const std::string& chan_name)
             {
-                auto channel = &make_channel(name + platform_spec);
+                auto channel = &make_channel(chan_name + platform_spec);
                 if (added.insert(channel).second)
                 {
                     result.push_back(channel);
@@ -668,7 +668,8 @@ namespace mamba
     {
         platform = "";
 
-        auto check_platform_position = [&url](std::size_t pos, const std::string& platform) -> bool
+        auto check_platform_position =
+            [&url](std::size_t pos, const std::string& platform_to_check) -> bool
         {
             if (pos == std::string::npos)
             {
@@ -678,7 +679,8 @@ namespace mamba
             {
                 return false;
             }
-            if ((pos + platform.size()) < url.size() && url[pos + platform.size()] != '/')
+            if ((pos + platform_to_check.size()) < url.size()
+                && url[pos + platform_to_check.size()] != '/')
             {
                 return false;
             }

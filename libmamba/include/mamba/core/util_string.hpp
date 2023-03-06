@@ -30,26 +30,26 @@ namespace mamba
     /**
      * Safe non utf-8 wrapping of <cctype> (see its doc).
      */
-    char is_control(char c);
-    wchar_t is_control(wchar_t c);
-    char is_print(char c);
-    wchar_t is_print(wchar_t c);
-    char is_space(char c);
-    wchar_t is_space(wchar_t c);
-    char is_blank(char c);
-    wchar_t is_blank(wchar_t c);
-    char is_graphic(char c);
-    wchar_t is_graphic(wchar_t c);
-    char is_digit(char c);
-    wchar_t is_digit(wchar_t c);
-    char is_alpha(char c);
-    wchar_t is_alpha(wchar_t c);
-    char is_alphanum(char c);
-    wchar_t is_alphanum(wchar_t c);
-    char is_lower(char c);
-    wchar_t is_lower(wchar_t c);
-    char is_upper(char c);
-    wchar_t is_upper(wchar_t c);
+    bool is_control(char c);
+    bool is_control(wchar_t c);
+    bool is_print(char c);
+    bool is_print(wchar_t c);
+    bool is_space(char c);
+    bool is_space(wchar_t c);
+    bool is_blank(char c);
+    bool is_blank(wchar_t c);
+    bool is_graphic(char c);
+    bool is_graphic(wchar_t c);
+    bool is_digit(char c);
+    bool is_digit(wchar_t c);
+    bool is_alpha(char c);
+    bool is_alpha(wchar_t c);
+    bool is_alphanum(char c);
+    bool is_alphanum(wchar_t c);
+    bool is_lower(char c);
+    bool is_lower(wchar_t c);
+    bool is_upper(char c);
+    bool is_upper(wchar_t c);
     char to_lower(char c);
     wchar_t to_lower(wchar_t c);
 
@@ -398,7 +398,7 @@ namespace mamba
         }
     }
 
-    // TODO(C++20) This is a range
+    // TODO(C++20) Use ``std::ranges::join_view`` (or ``std::ranges::join``)
     template <typename InputIt, typename UnaryFunction, typename Value>
     UnaryFunction join_for_each(InputIt first, InputIt last, UnaryFunction func, const Value& sep)
     {

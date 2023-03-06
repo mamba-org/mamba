@@ -210,6 +210,13 @@ PYBIND11_MODULE(bindings, m)
         .def("clear", &MRepo::clear);
 
     py::class_<MTransaction>(m, "Transaction")
+        .def(py::init<>(
+            [](MSolver& solver, MultiPackageCache& mpc)
+            {
+                deprecated("Use Transaction(Pool, Solver, MultiPackageCache) instead");
+                return std::make_unique<MTransaction>(solver.pool(), solver, mpc);
+            }
+        ))
         .def(py::init<MPool&, MSolver&, MultiPackageCache&>())
         .def("to_conda", &MTransaction::to_conda)
         .def("log_json", &MTransaction::log_json)

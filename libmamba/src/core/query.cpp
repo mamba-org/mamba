@@ -658,18 +658,6 @@ namespace mamba
         return out;
     }
 
-    std::ostream& query_result::pretty(std::ostream& out) const
-    {
-        if (!m_pkg_view_list.empty())
-        {
-            for (const auto& pkg : m_pkg_view_list)
-            {
-                print_solvable(pkg);
-            }
-        }
-        return out;
-    }
-
     nlohmann::json query_result::json() const
     {
         nlohmann::json j;
@@ -697,6 +685,23 @@ namespace mamba
             );
         }
         return j;
+    }
+
+    std::ostream& query_result::pretty(std::ostream& out) const
+    {
+        if (!m_pkg_view_list.empty())
+        {
+            for (const auto& pkg : m_pkg_view_list)
+            {
+                print_solvable(pkg);
+            }
+        }
+        return out;
+    }
+
+    bool query_result::empty() const
+    {
+        return m_dep_graph.empty();
     }
 
     void query_result::reset_pkg_view_list()

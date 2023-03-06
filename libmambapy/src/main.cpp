@@ -357,19 +357,25 @@ PYBIND11_MODULE(bindings, m)
             "find",
             [](const Query& q, const std::string& query, const query::RESULT_FORMAT format) -> std::string
             {
+                query_result res = q.find(query);
                 std::stringstream res_stream;
                 switch (format)
                 {
                     case query::JSON:
-                        res_stream << q.find(query).groupby("name").json().dump(4);
+                        res_stream << res.groupby("name").json().dump(4);
                         break;
                     case query::TREE:
                     case query::TABLE:
                     case query::RECURSIVETABLE:
-                        q.find(query).groupby("name").table(res_stream);
+                        res.groupby("name").table(res_stream);
                         break;
                     case query::PRETTY:
-                        q.find(query).groupby("name").pretty(res_stream);
+                        res.groupby("name").pretty(res_stream);
+                }
+                if (res.empty())
+                {
+                    res_stream << query
+                               << " may not be installed. Try specifying a channel with '-c,--channel' option\n";
                 }
                 return res_stream.str();
             }
@@ -397,6 +403,11 @@ PYBIND11_MODULE(bindings, m)
                             { "Name", "Version", "Build", concat("Depends:", query), "Channel" }
                         );
                 }
+                if (res.empty())
+                {
+                    res_stream << query
+                               << " may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery\n";
+                }
                 return res_stream.str();
             }
         )
@@ -423,6 +434,11 @@ PYBIND11_MODULE(bindings, m)
                         // res.table(res_stream, {"Name", "Version", "Build", concat("Depends:",
                         // query), "Channel"});
                         res.table(res_stream);
+                }
+                if (res.empty())
+                {
+                    res_stream << query
+                               << " may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery\n";
                 }
                 return res_stream.str();
             }

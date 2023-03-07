@@ -372,7 +372,7 @@ PYBIND11_MODULE(bindings, m)
                     case query::PRETTY:
                         res.groupby("name").pretty(res_stream);
                 }
-                if (res.empty())
+                if (res.empty() && format != query::JSON)
                 {
                     res_stream << query
                                << " may not be installed. Try specifying a channel with '-c,--channel' option\n";
@@ -403,7 +403,7 @@ PYBIND11_MODULE(bindings, m)
                             { "Name", "Version", "Build", concat("Depends:", query), "Channel" }
                         );
                 }
-                if (res.empty())
+                if (res.empty() && format != query::JSON)
                 {
                     res_stream << query
                                << " may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery\n";
@@ -435,7 +435,7 @@ PYBIND11_MODULE(bindings, m)
                         // query), "Channel"});
                         res.table(res_stream);
                 }
-                if (res.empty())
+                if (res.empty() && format != query::JSON)
                 {
                     res_stream << query
                                << " may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery\n";

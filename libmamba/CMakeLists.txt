@@ -124,6 +124,8 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/curl.cpp
     # C++ wrapping of compression libs (zstd and bzlib)
     ${LIBMAMBA_SOURCE_DIR}/core/compression.cpp
+    # Implementation of version and matching specs
+    ${LIBMAMBA_SOURCE_DIR}/specs/version.cpp
     # Core API (low-level)
     ${LIBMAMBA_SOURCE_DIR}/core/singletons.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/activation.cpp
@@ -189,6 +191,8 @@ endforeach()
 
 set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/version.hpp
+    # Implementation of version and matching specs
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version.hpp
     # Core API (low-level)
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/activation.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/channel.hpp

@@ -587,12 +587,12 @@ namespace mamba
         replace_all(
             mamba_bat_contents,
             std::string("__MAMBA_INSERT_ROOT_PREFIX__"),
-            std::string("@SET \"MAMBA_ROOT_PREFIX=" + root_prefix.string() + "\"")
+            "@SET \"MAMBA_ROOT_PREFIX=" + root_prefix.string() + "\""
         );
         replace_all(
             mamba_bat_contents,
             std::string("__MAMBA_INSERT_MAMBA_EXE__"),
-            std::string("@SET \"MAMBA_EXE=" + exe.string() + "\"")
+            "@SET \"MAMBA_EXE=" + exe.string() + "\""
         );
 
         mamba_bat_f << mamba_bat_contents;
@@ -606,12 +606,12 @@ namespace mamba
         replace_all(
             activate_bat_contents,
             std::string("__MAMBA_INSERT_ROOT_PREFIX__"),
-            std::string("@SET \"MAMBA_ROOT_PREFIX=" + root_prefix.string() + "\"")
+            "@SET \"MAMBA_ROOT_PREFIX=" + root_prefix.string() + "\""
         );
         replace_all(
             activate_bat_contents,
             std::string("__MAMBA_INSERT_MAMBA_EXE__"),
-            std::string("@SET \"MAMBA_EXE=" + exe.string() + "\"")
+            "@SET \"MAMBA_EXE=" + exe.string() + "\""
         );
 
 
@@ -627,7 +627,7 @@ namespace mamba
         replace_all(
             hook_content,
             std::string("__MAMBA_INSERT_MAMBA_EXE__"),
-            std::string("@SET \"MAMBA_EXE=" + exe.string() + "\"")
+            "@SET \"MAMBA_EXE=" + exe.string() + "\""
         );
 
         std::ofstream mamba_hook_bat_f = open_ofstream(root_prefix / "condabin" / "mamba_hook.bat");
@@ -899,13 +899,13 @@ namespace mamba
 
             if (!found_mamba_initialize)
             {
-                std::ofstream out = open_ofstream(profile_path, std::ios::app | std::ios::binary);
-                out << conda_init_content;
+                std::ofstream lout = open_ofstream(profile_path, std::ios::app | std::ios::binary);
+                lout << conda_init_content;
             }
             else
             {
-                std::ofstream out = open_ofstream(profile_path, std::ios::out | std::ios::binary);
-                out << profile_content;
+                std::ofstream lout = open_ofstream(profile_path, std::ios::out | std::ios::binary);
+                lout << profile_content;
             }
 
             return;

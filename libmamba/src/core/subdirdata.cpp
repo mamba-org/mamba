@@ -526,12 +526,13 @@ namespace mamba
                     int max_age = 0;
                     if (Context::instance().local_repodata_ttl > 1)
                     {
-                        max_age = Context::instance().local_repodata_ttl;
+                        max_age = static_cast<int>(Context::instance().local_repodata_ttl);
                     }
                     else if (Context::instance().local_repodata_ttl == 1)
                     {
                         // TODO error handling if _cache_control key does not exist!
-                        max_age = get_cache_control_max_age(m_metadata.cache_control);
+                        max_age = static_cast<int>(get_cache_control_max_age(m_metadata.cache_control)
+                        );
                     }
 
                     auto cache_age_seconds = std::chrono::duration_cast<std::chrono::seconds>(cache_age)
@@ -937,7 +938,7 @@ namespace mamba
         {
             return 0;
         }
-        return std::stoi(max_age_match[1]);
+        return static_cast<std::size_t>(std::stoi(max_age_match[1]));
     }
 
     std::string cache_fn_url(const std::string& url)

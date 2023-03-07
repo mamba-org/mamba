@@ -215,7 +215,7 @@ namespace mamba
         // Returns 0 if `is_locked() == false`.
         std::size_t count_lock_owners() const
         {
-            return impl.has_value() ? impl.value().use_count() : 0;
+            return std::size_t(impl.has_value() ? impl.value().use_count() : 0);
         }
 
 #ifdef _WIN32

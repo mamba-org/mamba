@@ -158,7 +158,7 @@ namespace mamba
         auto get_file_size = [](const auto& s) -> std::string
         {
             std::stringstream ss;
-            to_human_readable_filesize(ss, s);
+            to_human_readable_filesize(ss, double(s));
             return ss.str();
         };
 

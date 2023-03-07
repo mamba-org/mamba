@@ -292,10 +292,10 @@ namespace mamba
 
         int depth = tree ? -1 : 1;
 
-        auto find_latest_in_non_empty = [&](solv::ObjQueue& solvables) -> Solvable*
+        auto find_latest_in_non_empty = [&](solv::ObjQueue& lsolvables) -> Solvable*
         {
-            Solvable* latest = pool_id2solvable(m_pool.get(), solvables.front());
-            for (Id const solv : solvables)
+            Solvable* latest = pool_id2solvable(m_pool.get(), lsolvables.front());
+            for (Id const solv : lsolvables)
             {
                 Solvable* s = pool_id2solvable(m_pool.get(), solv);
                 if (pool_evrcmp(m_pool.get(), s->evr, latest->evr, 0) > 0)

@@ -119,9 +119,9 @@ namespace mamba
         else if (action == "reinit")
         {
             // re-initialize all the shell scripts after update
-            for (auto& shell_type : find_initialized_shells())
+            for (auto& lshell_type : find_initialized_shells())
             {
-                shell("init", shell_type, prefix, false);
+                shell("init", lshell_type, prefix, false);
             }
         }
         else if (action == "hook")

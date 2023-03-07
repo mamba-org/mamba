@@ -356,14 +356,14 @@ namespace mamba
         const auto [show_head, show_tail] = show;
         if (show_head > 0)
         {
-            join_for_each_func(first, first + show_head, sep);
+            join_for_each_func(first, first + static_cast<std::ptrdiff_t>(show_head), sep);
             func(sep);
         }
         func(etc);
         if (show_tail)
         {
             func(sep);
-            join_for_each_func(last - show_tail, last, sep);
+            join_for_each_func(last - static_cast<std::ptrdiff_t>(show_tail), last, sep);
         }
         return func;
     }

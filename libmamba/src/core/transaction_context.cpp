@@ -95,15 +95,15 @@ namespace mamba
     }
 
     TransactionContext::TransactionContext(
-        const fs::u8path& target_prefix,
+        const fs::u8path& ltarget_prefix,
         const std::pair<std::string, std::string>& py_versions,
-        const std::vector<MatchSpec>& requested_specs
+        const std::vector<MatchSpec>& lrequested_specs
     )
         : has_python(py_versions.first.size() != 0)
-        , target_prefix(target_prefix)
+        , target_prefix(ltarget_prefix)
         , python_version(py_versions.first)
         , old_python_version(py_versions.second)
-        , requested_specs(requested_specs)
+        , requested_specs(lrequested_specs)
     {
         auto& ctx = Context::instance();
         compile_pyc = ctx.compile_pyc;
@@ -179,8 +179,7 @@ namespace mamba
 
         try
         {
-            if (std::stoull(std::string(py_ver_split[0])) >= 3
-                && std::stoull(std::string(py_ver_split[1])) > 5)
+            if (std::stoull(py_ver_split[0]) >= 3 && std::stoull(py_ver_split[1]) > 5)
             {
                 m_pyc_compileall = std::make_unique<TemporaryFile>();
                 std::ofstream compileall_f = open_ofstream(m_pyc_compileall->path());

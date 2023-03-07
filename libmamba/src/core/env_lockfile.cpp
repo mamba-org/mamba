@@ -239,7 +239,7 @@ namespace mamba
             return package.platform == platform && package.category == category
                    && package.manager == manager;
         };
-        for (const auto& package : packages)
+        for (const auto& package : m_packages)
         {
             if (package_predicate(package))
             {

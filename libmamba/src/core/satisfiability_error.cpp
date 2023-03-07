@@ -840,8 +840,8 @@ namespace mamba
     {
         if (size() == 0)
         {
-            static const std::string empty = "";
-            return empty;
+            static const std::string lempty = "";
+            return lempty;
         }
         return invoke_name(front());
     }
@@ -1144,13 +1144,13 @@ namespace mamba
                 m_pbs.graph().number_of_edges() + m_pbs.graph().number_of_nodes()
             );
             auto [out, _] = visit_node(m_pbs.root_node(), path.begin());
-            path.resize(out - path.begin());
+            path.resize(static_cast<std::size_t>(out - path.begin()));
             return path;
         }
 
         auto TreeDFS::node_uninstallable(node_id id) -> Status
         {
-            auto installables_contains = [&](auto&& id) { return leaf_installables.contains(id); };
+            auto installables_contains = [&](auto&& lid) { return leaf_installables.contains(lid); };
             const auto& conflicts = m_pbs.conflicts();
 
             // Conflicts are tricky to handle because they are not an isolated problem, they only

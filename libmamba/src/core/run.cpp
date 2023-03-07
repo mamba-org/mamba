@@ -65,7 +65,10 @@ namespace mamba
             {
                 // Pick a random prefix from our bag of prefixes.
                 const auto selected_prefix_idx = random_int<std::size_t>(0, prefixes_bag.size() - 1);
-                const auto selected_prefix_it = std::next(prefixes_bag.begin(), selected_prefix_idx);
+                const auto selected_prefix_it = std::next(
+                    prefixes_bag.begin(),
+                    static_cast<std::ptrdiff_t>(selected_prefix_idx)
+                );
                 selected_prefix = *selected_prefix_it;
                 prefixes_bag.erase(selected_prefix_it);
             }
@@ -73,7 +76,10 @@ namespace mamba
             {
                 // No more prefixes: we retry the same prefixes but with a different program name.
                 const auto selected_name_idx = random_int<std::size_t>(0, alt_names.size() - 1);
-                const auto selected_name_it = std::next(alt_names.begin(), selected_name_idx);
+                const auto selected_name_it = std::next(
+                    alt_names.begin(),
+                    static_cast<std::ptrdiff_t>(selected_name_idx)
+                );
                 selected_name = *selected_name_it;
                 alt_names.erase(selected_name_it);
                 prefixes_bag = prefixes;  // Re-fill the prefix bag.
@@ -309,9 +315,9 @@ namespace mamba
 
         fmt::print(LOG_DEBUG, "Running wrapped script: {}", fmt::join(command, " "));
 
-        bool sinkout = stream_options & (int) STREAM_OPTIONS::SINKOUT;
-        bool sinkerr = stream_options & (int) STREAM_OPTIONS::SINKERR;
-        bool sinkin = stream_options & (int) STREAM_OPTIONS::SINKIN;
+        bool sinkout = stream_options & static_cast<int>(STREAM_OPTIONS::SINKOUT);
+        bool sinkerr = stream_options & static_cast<int>(STREAM_OPTIONS::SINKERR);
+        bool sinkin = stream_options & static_cast<int>(STREAM_OPTIONS::SINKIN);
 
         reproc::options opt;
         if (cwd != "")
@@ -412,14 +418,14 @@ namespace mamba
             }
 #endif
             PID pid;
-            std::error_code ec;
+            std::error_code lec;
             static reproc::process proc;
 
-            ec = proc.start(wrapped_command, opt);
+            lec = proc.start(wrapped_command, opt);
 
-            std::tie(pid, ec) = proc.pid();
+            std::tie(pid, lec) = proc.pid();
 
-            if (ec)
+            if (lec)
             {
                 std::cerr << ec.message() << '\n';
                 return 1;

@@ -49,7 +49,7 @@ namespace mamba
 
     ProgressProxy& ProgressProxy::set_current(std::size_t current)
     {
-        p_bar->set_progress(current);
+        p_bar->set_progress(static_cast<double>(current));
         return *this;
     }
 

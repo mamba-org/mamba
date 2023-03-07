@@ -411,7 +411,7 @@ namespace mamba
             out,
             "Modifying RC file {}\n"
             "Generating config for root prefix {}\n"
-            "Setting mamba executable to: {}",
+            "Setting mamba executable to: {}\n",
             fmt::streamed(file_path),
             fmt::styled(fmt::streamed(conda_prefix), fmt::emphasis::bold),
             fmt::styled(fmt::streamed(mamba_exe), fmt::emphasis::bold)

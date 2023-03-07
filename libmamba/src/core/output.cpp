@@ -233,7 +233,7 @@ namespace mamba
             for (const auto& d : sorted_data)
             {
                 // p is positive by construction of block_width
-                size_t p = block_width - d.size();
+                std::size_t p = block_width - d.size();
 
                 if ((pos + d.size()) < max_width)
                 {

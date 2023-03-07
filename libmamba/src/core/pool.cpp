@@ -161,55 +161,56 @@ namespace mamba
 
     namespace
     {
-        auto make_package_info(::Solvable* s) -> PackageInfo
+        auto make_package_info(::Solvable& s) -> PackageInfo
         {
             // Note: this function (especially the checksum part) is NOT YET threadsafe!
-            Pool* pool = s->repo->pool;
+            Pool* pool = s.repo->pool;
             Id check_type;
 
             PackageInfo out = {};
 
-            out.name = pool_id2str(pool, s->name);
-            out.version = pool_id2str(pool, s->evr);
-            out.build_string = raw_str_or_empty(solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR));
-            if (const char* str = solvable_lookup_str(s, SOLVABLE_BUILDVERSION); str != nullptr)
+            out.name = pool_id2str(pool, s.name);
+            out.version = pool_id2str(pool, s.evr);
+            out.build_string = raw_str_or_empty(solvable_lookup_str(&s, SOLVABLE_BUILDFLAVOR));
+            if (const char* str = solvable_lookup_str(&s, SOLVABLE_BUILDVERSION); str != nullptr)
             {
                 out.build_number = std::stoull(str);
             }
 
             static ::Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
-            if (const char* str = solvable_lookup_str(s, real_repo_key); str != nullptr)
+            if (const char* str = solvable_lookup_str(&s, real_repo_key); str != nullptr)
             {
                 out.url = str;
                 out.channel = make_channel(out.url).canonical_name();
             }
             else
             {
-                if (!s->repo || strcmp(s->repo->name, "__explicit_specs__") == 0)
+                if (!s.repo || strcmp(s.repo->name, "__explicit_specs__") == 0)
                 {
-                    out.url = solvable_lookup_location(s, 0);
+                    out.url = solvable_lookup_location(&s, 0);
                     out.channel = make_channel(out.url).canonical_name();
                 }
                 else
                 {
-                    out.channel = s->repo->name;  // note this can and should be <unknown> when e.g.
-                                                  // installing from a tarball
+                    out.channel = s.repo->name;  // note this can and should be <unknown> when e.g.
+                                                 // installing from a tarball
                     out.url = fmt::format(
                         "{}/{}",
                         out.channel,
-                        raw_str_or_empty(solvable_lookup_str(s, SOLVABLE_MEDIAFILE))
+                        raw_str_or_empty(solvable_lookup_str(&s, SOLVABLE_MEDIAFILE))
                     );
                 }
             }
 
-            out.subdir = raw_str_or_empty(solvable_lookup_str(s, SOLVABLE_MEDIADIR));
-            out.fn = raw_str_or_empty(solvable_lookup_str(s, SOLVABLE_MEDIAFILE));
-            out.license = raw_str_or_empty(solvable_lookup_str(s, SOLVABLE_LICENSE));
-            out.size = solvable_lookup_num(s, SOLVABLE_DOWNLOADSIZE, 0);
-            out.timestamp = solvable_lookup_num(s, SOLVABLE_BUILDTIME, 0);
-            out.md5 = raw_str_or_empty(solvable_lookup_checksum(s, SOLVABLE_PKGID, &check_type));
-            out.sha256 = raw_str_or_empty(solvable_lookup_checksum(s, SOLVABLE_CHECKSUM, &check_type));
-            out.signatures = raw_str_or_empty(solvable_lookup_str(s, SIGNATURE_DATA));
+            out.subdir = raw_str_or_empty(solvable_lookup_str(&s, SOLVABLE_MEDIADIR));
+            out.fn = raw_str_or_empty(solvable_lookup_str(&s, SOLVABLE_MEDIAFILE));
+            out.license = raw_str_or_empty(solvable_lookup_str(&s, SOLVABLE_LICENSE));
+            out.size = solvable_lookup_num(&s, SOLVABLE_DOWNLOADSIZE, 0);
+            out.timestamp = solvable_lookup_num(&s, SOLVABLE_BUILDTIME, 0);
+            out.md5 = raw_str_or_empty(solvable_lookup_checksum(&s, SOLVABLE_PKGID, &check_type));
+            out.sha256 = raw_str_or_empty(solvable_lookup_checksum(&s, SOLVABLE_CHECKSUM, &check_type)
+            );
+            out.signatures = raw_str_or_empty(solvable_lookup_str(&s, SIGNATURE_DATA));
             if (out.signatures.empty())
             {
                 out.signatures = "{}";
@@ -217,7 +218,7 @@ namespace mamba
 
             solv::ObjQueue q = {};
             auto dep2str = [&pool](Id id) { return pool_dep2str(pool, id); };
-            if (!solvable_lookup_deparray(s, SOLVABLE_REQUIRES, q.raw(), -1))
+            if (!solvable_lookup_deparray(&s, SOLVABLE_REQUIRES, q.raw(), -1))
             {
                 out.defaulted_keys.insert("depends");
             }
@@ -225,7 +226,7 @@ namespace mamba
             std::transform(q.begin(), q.end(), std::back_inserter(out.depends), dep2str);
 
             q.clear();
-            if (!solvable_lookup_deparray(s, SOLVABLE_CONSTRAINS, q.raw(), -1))
+            if (!solvable_lookup_deparray(&s, SOLVABLE_CONSTRAINS, q.raw(), -1))
             {
                 out.defaulted_keys.insert("constrains");
             }
@@ -233,7 +234,7 @@ namespace mamba
             std::transform(q.begin(), q.end(), std::back_inserter(out.constrains), dep2str);
 
             q.clear();
-            solvable_lookup_idarray(s, SOLVABLE_TRACK_FEATURES, q.raw());
+            solvable_lookup_idarray(&s, SOLVABLE_TRACK_FEATURES, q.raw());
             for (::Id const id : q)
             {
                 out.track_features += pool_id2str(pool, id);
@@ -250,14 +251,14 @@ namespace mamba
             {
                 // Get extra signed keys
                 q.clear();
-                solvable_lookup_idarray(s, extra_keys_id, q.raw());
+                solvable_lookup_idarray(&s, extra_keys_id, q.raw());
                 std::vector<std::string> extra_keys = {};
                 extra_keys.reserve(q.size());
                 std::transform(q.begin(), q.end(), std::back_inserter(extra_keys), dep2str);
 
                 // Get extra signed values
                 q.clear();
-                solvable_lookup_idarray(s, extra_values_id, q.raw());
+                solvable_lookup_idarray(&s, extra_values_id, q.raw());
                 std::vector<std::string> extra_values = {};
                 extra_values.reserve(q.size());
                 std::transform(q.begin(), q.end(), std::back_inserter(extra_values), dep2str);
@@ -288,7 +289,7 @@ namespace mamba
         {
             return std::nullopt;
         }
-        return { make_package_info(pool_id2solvable(pool(), solv_id)) };
+        return { make_package_info(*pool_id2solvable(pool(), solv_id)) };
     }
 
     std::optional<std::string> MPool::dep2str(Id dep_id) const

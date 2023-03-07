@@ -674,7 +674,7 @@ namespace mamba
             solver.install_specs()
         );
 
-        ::Pool* const pool_ptr = m_pool;
+        ::Pool* const pool_ptr = static_cast<::Pool* const>(m_pool);
         if (m_transaction_context.relink_noarch && pool_ptr->installed != nullptr)
         {
             Id p = 0;

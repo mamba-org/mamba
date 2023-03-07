@@ -12,6 +12,7 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
+#include <solv/solver.h>
 
 #include "mamba/core/channel.hpp"
 #include "mamba/core/mamba_fs.hpp"
@@ -34,13 +35,40 @@ namespace mamba
         EXPECT_EQ(c.size(), 0);
         EXPECT_FALSE(c.has_conflict(0));
         EXPECT_FALSE(c.in_conflict(0, 1));
-        c.add(0, 1);
-        c.add(1, 2);
+        EXPECT_TRUE(c.add(0, 1));
+        EXPECT_TRUE(c.add(1, 2));
+        EXPECT_FALSE(c.add(1, 2));
         EXPECT_TRUE(c.has_conflict(0));
         EXPECT_TRUE(c.in_conflict(0, 1));
         EXPECT_TRUE(c.in_conflict(1, 2));
         EXPECT_TRUE(c.has_conflict(2));
         EXPECT_FALSE(c.in_conflict(0, 2));
+        // With same
+        EXPECT_TRUE(c.add(5, 5));
+        EXPECT_TRUE(c.has_conflict(5));
+        EXPECT_TRUE(c.in_conflict(5, 5));
+    }
+
+    TEST(conflict_map, remove)
+    {
+        auto c = conflict_map<std::size_t>({ { 1, 1 }, { 1, 2 }, { 1, 3 }, { 2, 4 } });
+        ASSERT_EQ(c.size(), 4);
+
+        ASSERT_TRUE(c.in_conflict(2, 4));
+        ASSERT_TRUE(c.in_conflict(4, 2));
+        EXPECT_TRUE(c.remove(2, 4));
+        EXPECT_FALSE(c.in_conflict(4, 2));
+        EXPECT_FALSE(c.in_conflict(2, 4));
+        EXPECT_TRUE(c.has_conflict(2));
+        EXPECT_FALSE(c.has_conflict(4));
+
+        EXPECT_FALSE(c.remove(2, 4));
+
+        EXPECT_TRUE(c.remove(1));
+        EXPECT_FALSE(c.has_conflict(1));
+        EXPECT_FALSE(c.in_conflict(1, 1));
+        EXPECT_FALSE(c.in_conflict(1, 2));
+        EXPECT_FALSE(c.in_conflict(3, 1));
     }
 
     /**
@@ -399,6 +427,12 @@ namespace mamba
         return *solver;
     }
 
+    auto create_numba() -> MSolver&
+    {
+        static auto solver = create_conda_forge({ "python=3.11", "numba<0.56" });
+        return *solver;
+    }
+
     class Problem : public testing::TestWithParam<decltype(&create_basic_conflict)>
     {
     };
@@ -420,27 +454,6 @@ namespace mamba
         );
     };
 
-    auto has_problem_type(const ProblemsGraph::node_t& node) -> bool
-    {
-        return std::visit(
-            [](const auto& n) -> bool
-            {
-                using Node = std::remove_const_t<std::remove_reference_t<decltype(n)>>;
-                if constexpr (std::is_same_v<Node, ProblemsGraph::RootNode>)
-                {
-                    return false;
-                }
-                if constexpr (std::is_same_v<Node, ProblemsGraph::PackageNode>)
-                {
-                    return n.problem_type.has_value();
-                }
-                return true;
-            },
-            node
-        );
-    };
-
-
     TEST_P(Problem, constructor)
     {
         auto& solver = std::invoke(GetParam());
@@ -450,33 +463,34 @@ namespace mamba
         const auto& g = pbs.graph();
 
         EXPECT_GE(g.number_of_nodes(), 1);
-        for (std::size_t id = 0; id < g.number_of_nodes(); ++id)
-        {
-            const auto& node = g.node(id);
-            if (is_virtual_package(node))
+        g.for_each_node_id(
+            [&](auto id)
             {
+                const auto& node = g.node(id);
                 // Currently we do not make assumption about virtual package since
-                // we are not sure we are including them the same way than they would be in practice
-                break;
+                // we are not sure we are including them the same way than they would be in
+                // practice
+                if (!is_virtual_package(node))
+                {
+                    if (g.in_degree(id) == 0)
+                    {
+                        // Only one root node
+                        EXPECT_EQ(id, pbs.root_node());
+                        EXPECT_TRUE(std::holds_alternative<ProblemsGraph::RootNode>(node));
+                    }
+                    else if (g.out_degree(id) == 0)
+                    {
+                        EXPECT_FALSE(std::holds_alternative<ProblemsGraph::RootNode>(node));
+                    }
+                    else
+                    {
+                        EXPECT_TRUE(std::holds_alternative<ProblemsGraph::PackageNode>(node));
+                    }
+                    // All nodes reachable from the root
+                    EXPECT_TRUE(is_reachable(pbs.graph(), pbs.root_node(), id));
+                }
             }
-            else if (g.in_degree(id) == 0)
-            {
-                // Only one root node
-                EXPECT_EQ(id, pbs.root_node());
-                EXPECT_TRUE(std::holds_alternative<ProblemsGraph::RootNode>(node));
-            }
-            else if (g.out_degree(id) == 0)
-            {
-                EXPECT_FALSE(std::holds_alternative<ProblemsGraph::RootNode>(node));
-                EXPECT_TRUE(has_problem_type(node));
-            }
-            else
-            {
-                EXPECT_TRUE(std::holds_alternative<ProblemsGraph::PackageNode>(node));
-            }
-            // All nodes reachable from the root
-            EXPECT_TRUE(is_reachable(pbs.graph(), pbs.root_node(), id));
-        }
+        );
 
         const auto& conflicts = pbs.conflicts();
         for (const auto& [n, _] : conflicts)
@@ -485,6 +499,34 @@ namespace mamba
                 std::holds_alternative<ProblemsGraph::PackageNode>(g.node(n))
                 || std::holds_alternative<ProblemsGraph::ConstraintNode>(g.node(n))
             );
+        }
+    }
+
+    TEST_P(Problem, simplify_conflicts)
+    {
+        auto& solver = std::invoke(GetParam());
+        const auto solved = solver.try_solve();
+        ASSERT_FALSE(solved);
+        const auto& pbs = ProblemsGraph::from_solver(solver, solver.pool());
+        const auto& pbs_simplified = simplify_conflicts(pbs);
+        const auto& graph_simplified = pbs_simplified.graph();
+
+        EXPECT_GE(graph_simplified.number_of_nodes(), 1);
+        EXPECT_LE(graph_simplified.number_of_nodes(), pbs.graph().number_of_nodes());
+
+        for (const auto& [id, _] : pbs_simplified.conflicts())
+        {
+            const auto& node = graph_simplified.node(id);
+            // Currently we do not make assumption about virtual package since
+            // we are not sure we are including them the same way than they would be in
+            // practice
+            if (!is_virtual_package(node))
+            {
+                EXPECT_TRUE(graph_simplified.has_node(id));
+                // Unfortunately not all conflicts are on leaves
+                // EXPECT_EQ(graph_simplified.out_degree(id), 0);
+                EXPECT_TRUE(is_reachable(graph_simplified, pbs_simplified.root_node(), id));
+            }
         }
     }
 
@@ -528,37 +570,38 @@ namespace mamba
         const auto solved = solver.try_solve();
         ASSERT_FALSE(solved);
         const auto pbs = ProblemsGraph::from_solver(solver, solver.pool());
-        const auto cp_pbs = CpPbGr::from_problems_graph(pbs);
+        const auto cp_pbs = CpPbGr::from_problems_graph(simplify_conflicts(pbs));
         const auto& cp_g = cp_pbs.graph();
 
         EXPECT_GE(pbs.graph().number_of_nodes(), cp_g.number_of_nodes());
         EXPECT_GE(cp_g.number_of_nodes(), 1);
-        for (std::size_t id = 0; id < cp_g.number_of_nodes(); ++id)
-        {
-            const auto& node = cp_g.node(id);
-            if (is_virtual_package(node))
+        cp_g.for_each_node_id(
+            [&](auto id)
             {
+                const auto& node = cp_g.node(id);
                 // Currently we do not make assumption about virtual package since
                 // we are not sure we are including them the same way than they would be in
-                break;
+                if (!is_virtual_package(node))
+                {
+                    if (cp_g.in_degree(id) == 0)
+                    {
+                        // Only one root node
+                        EXPECT_EQ(id, pbs.root_node());
+                        EXPECT_TRUE(std::holds_alternative<CpPbGr::RootNode>(node));
+                    }
+                    else if (cp_g.out_degree(id) == 0)
+                    {
+                        EXPECT_FALSE(std::holds_alternative<CpPbGr::RootNode>(node));
+                    }
+                    else
+                    {
+                        EXPECT_TRUE(std::holds_alternative<CpPbGr::PackageListNode>(node));
+                    }
+                    // All nodes reachable from the root
+                    EXPECT_TRUE(is_reachable(cp_g, cp_pbs.root_node(), id));
+                }
             }
-            else if (cp_g.in_degree(id) == 0)
-            {
-                // Only one root node
-                EXPECT_EQ(id, pbs.root_node());
-                EXPECT_TRUE(std::holds_alternative<CpPbGr::RootNode>(node));
-            }
-            else if (cp_g.out_degree(id) == 0)
-            {
-                EXPECT_FALSE(std::holds_alternative<CpPbGr::RootNode>(node));
-            }
-            else
-            {
-                EXPECT_TRUE(std::holds_alternative<CpPbGr::PackageListNode>(node));
-            }
-            // All nodes reachable from the root
-            EXPECT_TRUE(is_reachable(pbs.graph(), pbs.root_node(), id));
-        }
+        );
 
         const auto& conflicts = cp_pbs.conflicts();
         for (const auto& [n, _] : conflicts)
@@ -572,26 +615,30 @@ namespace mamba
 
     TEST_P(Problem, problem_tree_str)
     {
+        using CpPbGr = CompressedProblemsGraph;
+
         auto& solver = std::invoke(GetParam());
         const auto solved = solver.try_solve();
         ASSERT_FALSE(solved);
         const auto pbs = ProblemsGraph::from_solver(solver, solver.pool());
-        const auto cp_pbs = CompressedProblemsGraph::from_problems_graph(pbs);
+        const auto cp_pbs = CpPbGr::from_problems_graph(simplify_conflicts(pbs));
         const auto message = problem_tree_msg(cp_pbs);
 
-        auto message_contains = [&](const auto& node)
+        auto message_contains = [&message](const auto& node)
         {
             using Node = std::remove_cv_t<std::remove_reference_t<decltype(node)>>;
-            if constexpr (!std::is_same_v<Node, CompressedProblemsGraph::RootNode>)
+            if constexpr (!std::is_same_v<Node, CpPbGr::RootNode>)
             {
                 EXPECT_TRUE(contains(message, node.name()));
             }
         };
 
-        for (const auto& node : cp_pbs.graph().nodes())
-        {
-            std::visit(message_contains, node);
-        }
+        cp_pbs.graph().for_each_node_id(
+            [&message_contains, &g = cp_pbs.graph()](auto id)
+            {
+                std::visit(message_contains, g.node(id));  //
+            }
+        );
     }
 
     INSTANTIATE_TEST_SUITE_P(
@@ -609,7 +656,8 @@ namespace mamba
             create_r_base,
             create_scip,
             create_jupyterlab,
-            create_double_python
+            create_double_python,
+            create_numba
         )
     );
 }

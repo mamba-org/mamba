@@ -9,6 +9,7 @@
 
 #include <array>
 #include <functional>
+#include <initializer_list>
 #include <optional>
 #include <ostream>
 #include <string>
@@ -19,7 +20,6 @@
 #include <vector>
 
 #include <fmt/color.h>
-#include <solv/solver.h>
 
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/package_info.hpp"
@@ -42,6 +42,7 @@ namespace mamba
         using typename Base::value_type;
 
         conflict_map() = default;
+        conflict_map(std::initializer_list<std::pair<T, T>> conflicts_pairs);
 
         using Base::empty;
         using Base::size;
@@ -55,7 +56,13 @@ namespace mamba
         const_iterator end() const noexcept;
 
         using Base::clear;
-        void add(const key_type& a, const key_type& b);
+        bool add(const key_type& a, const key_type& b);
+        bool remove(const key_type& a, const key_type& b);
+        bool remove(const key_type& a);
+
+    private:
+
+        bool remove_asym(const key_type& a, const key_type& b);
     };
 
     /**
@@ -70,31 +77,14 @@ namespace mamba
         };
         struct PackageNode : PackageInfo
         {
-            std::optional<SolverRuleinfo> problem_type = {};
-
-            PackageNode(const PackageNode&) = default;
-            PackageNode(PackageNode&&) noexcept = default;
-            PackageNode& operator=(const PackageNode&) = default;
-            PackageNode& operator=(PackageNode&&) noexcept = default;
         };
         struct UnresolvedDependencyNode : MatchSpec
         {
-            SolverRuleinfo problem_type;
-
-            UnresolvedDependencyNode(const UnresolvedDependencyNode&) = default;
-            UnresolvedDependencyNode(UnresolvedDependencyNode&&) noexcept = default;
-            UnresolvedDependencyNode& operator=(const UnresolvedDependencyNode&) = default;
-            UnresolvedDependencyNode& operator=(UnresolvedDependencyNode&&) noexcept = default;
         };
         struct ConstraintNode : MatchSpec
         {
-            static constexpr SolverRuleinfo problem_type = SOLVER_RULE_PKG_CONSTRAINS;
-
-            ConstraintNode(const ConstraintNode&) = default;
-            ConstraintNode(ConstraintNode&&) noexcept = default;
-            ConstraintNode& operator=(const ConstraintNode&) = default;
-            ConstraintNode& operator=(ConstraintNode&&) noexcept = default;
         };
+
         using node_t = std::variant<RootNode, PackageNode, UnresolvedDependencyNode, ConstraintNode>;
 
         using edge_t = MatchSpec;
@@ -117,6 +107,11 @@ namespace mamba
         conflicts_t m_conflicts;
         node_id m_root_node;
     };
+
+    /**
+     * Hand-crafted hurisitics to simplify conflicts in messy situations.
+     */
+    ProblemsGraph simplify_conflicts(const ProblemsGraph& pbs);
 
     class CompressedProblemsGraph
     {
@@ -252,9 +247,6 @@ namespace mamba
         std::array<std::string_view, 4> indents = { "│  ", "   ", "├─ ", "└─ " };
     };
 
-    std::ostream& print_problem_summary_msg(std::ostream& out, const CompressedProblemsGraph& pbs);
-    std::string problem_summary_msg(const CompressedProblemsGraph& pbs);
-
     std::ostream& print_problem_tree_msg(
         std::ostream& out,
         const CompressedProblemsGraph& pbs,
@@ -266,6 +258,15 @@ namespace mamba
     /************************************
      *  Implementation of conflict_map  *
      ************************************/
+
+    template <typename T>
+    conflict_map<T>::conflict_map(std::initializer_list<std::pair<T, T>> conflicts_pairs)
+    {
+        for (const auto& [a, b] : conflicts_pairs)
+        {
+            add(a, b);
+        }
+    }
 
     template <typename T>
     bool conflict_map<T>::has_conflict(const key_type& a) const
@@ -298,10 +299,56 @@ namespace mamba
     }
 
     template <typename T>
-    void conflict_map<T>::add(const key_type& a, const key_type& b)
+    bool conflict_map<T>::add(const key_type& a, const key_type& b)
     {
-        Base::operator[](a).insert(b);
-        Base::operator[](b).insert(a);
+        auto [_, inserted] = Base::operator[](a).insert(b);
+        if (a != b)
+        {
+            Base::operator[](b).insert(a);
+        }
+        return inserted;
+    }
+
+    template <typename T>
+    bool conflict_map<T>::remove_asym(const key_type& a, const key_type& b)
+    {
+        auto iter = Base::find(a);
+        if (iter == Base::end())
+        {
+            return false;
+        }
+        auto& cflcts = iter->second;
+        const bool erased = cflcts.erase(b);
+        if (cflcts.empty())
+        {
+            Base::erase(a);
+        }
+        return erased;
+    };
+
+    template <typename T>
+    bool conflict_map<T>::remove(const key_type& a, const key_type& b)
+    {
+        return remove_asym(a, b) && ((a == b) || remove_asym(b, a));
+    }
+
+    template <typename T>
+    bool conflict_map<T>::remove(const key_type& a)
+    {
+        auto a_iter = Base::find(a);
+        if (a_iter == Base::end())
+        {
+            return false;
+        }
+        for (const auto& b : a_iter->second)
+        {
+            if (a != b)  // Cannot modify while we iterate on it
+            {
+                remove_asym(b, a);
+            }
+        }
+        Base::erase(a);
+        return true;
     }
 
     /*********************************

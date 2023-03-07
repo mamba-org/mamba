@@ -113,7 +113,7 @@ namespace microserver
         void post(std::string, callback_function_t);
         void all(std::string, callback_function_t);
 
-        bool start(int port = 80, const std::string& host = "0.0.0.0");
+        bool start(int port = 80);
 
     private:
 
@@ -152,7 +152,7 @@ namespace microserver
         return std::make_pair(std::string(), std::string(header));
     }
 
-    void Server::parse_headers(const std::string& headers, Request& req, Response& res)
+    void Server::parse_headers(const std::string& headers, Request& req, Response&)
     {
         // Parse request headers
         int i = 0;
@@ -207,19 +207,19 @@ namespace microserver
 
     void Server::get(std::string path, callback_function_t callback)
     {
-        Route r = { path, "GET", callback };
+        Route r = { path, "GET", callback, "" };
         m_routes.push_back(r);
     }
 
     void Server::post(std::string path, callback_function_t callback)
     {
-        Route r = { path, "POST", callback };
+        Route r = { path, "POST", callback, "" };
         m_routes.push_back(r);
     }
 
     void Server::all(std::string path, callback_function_t callback)
     {
-        Route r = { path, "ALL", callback };
+        Route r = { path, "ALL", callback, "" };
         m_routes.push_back(r);
     }
 
@@ -289,7 +289,7 @@ namespace microserver
         int optval = 1;
         setsockopt(sc, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 
-        if (::bind(sc, (struct sockaddr*) &serv_addr, sizeof(serv_addr)) != 0)
+        if (::bind(sc, reinterpret_cast<struct sockaddr*>(&serv_addr), sizeof(serv_addr)) != 0)
         {
             throw microserver::server_exception("ERROR on binding");
         }
@@ -306,7 +306,7 @@ namespace microserver
             if (have_data)
             {
                 std::chrono::time_point request_start = std::chrono::high_resolution_clock::now();
-                newsc = accept(sc, (struct sockaddr*) &cli_addr, &clilen);
+                newsc = accept(sc, reinterpret_cast<struct sockaddr*>(&cli_addr), &clilen);
 
                 if (newsc < 0)
                 {
@@ -319,8 +319,9 @@ namespace microserver
 
                 static char buf[BUFSIZE + 1];
                 std::string content;
-                long ret = read(newsc, buf, BUFSIZE);
-                content = std::string(buf, ret);
+                std::streamsize ret = read(newsc, buf, BUFSIZE);
+                assert(ret >= 0);
+                content = std::string(buf, static_cast<std::size_t>(ret));
 
                 std::size_t header_end = content.find("\r\n\r\n");
                 if (header_end == std::string::npos)
@@ -333,16 +334,17 @@ namespace microserver
                 if (req.method == "POST")
                 {
                     std::string body = content.substr(header_end + 4, BUFSIZE - header_end - 4);
-                    int64_t content_length = stoll(req.headers["content-length"]);
-                    if (content_length - int64_t(body.size()) > 0)
+                    std::streamsize content_length = stoll(req.headers["content-length"]);
+                    if (content_length - static_cast<std::streamsize>(body.size()) > 0)
                     {
                         // read the rest of the data and add to body
-                        int64_t remainder = content_length - int64_t(body.size());
+                        std::streamsize remainder = content_length
+                                                    - static_cast<std::streamsize>(body.size());
                         while (ret && remainder > 0)
                         {
-                            int64_t ret = read(newsc, buf, BUFSIZE);
-                            body += std::string(buf, ret);
-                            remainder -= ret;
+                            std::streamsize read_ret = read(newsc, buf, BUFSIZE);
+                            body += std::string(buf, static_cast<std::size_t>(read_ret));
+                            remainder -= read_ret;
                         }
                     }
                     req.body = body;
@@ -371,13 +373,13 @@ namespace microserver
 
                 char addrbuf[INET_ADDRSTRLEN];
                 inet_ntop(AF_INET, &cli_addr.sin_addr, addrbuf, sizeof(addrbuf));
-                uint16_t port = htons(cli_addr.sin_port);
+                uint16_t used_port = htons(cli_addr.sin_port);
                 std::chrono::time_point request_end = std::chrono::high_resolution_clock::now();
 
                 m_logger.info(
                     "{}:{} - {} {} {} (took {} ms)",
                     addrbuf,
-                    port,
+                    used_port,
                     req.method,
                     req.path,
                     fmt::styled(
@@ -390,13 +392,13 @@ namespace microserver
 
                 std::string header_buffer = buffer.str();
                 auto written = write(newsc, header_buffer.c_str(), header_buffer.size());
-                if (written != header_buffer.size())
+                if (written != static_cast<std::streamsize>(header_buffer.size()))
                 {
                     LOG_ERROR << "Could not write to socket " << strerror(errno);
                     continue;
                 }
                 written = write(newsc, body.c_str(), body_len);
-                if (body_len != written)
+                if (written != static_cast<std::streamsize>(body_len))
                 {
                     LOG_ERROR << "Could not write to socket " << strerror(errno);
                     continue;
@@ -405,7 +407,7 @@ namespace microserver
         }
     }
 
-    bool Server::start(int port, const std::string& host)
+    bool Server::start(int port)
     {
         this->main_loop(port);
         return true;

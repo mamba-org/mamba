@@ -158,11 +158,11 @@ run_server(int port)
     microserver::Server xserver(logger);
     xserver.get(
         "/hello",
-        [](const microserver::Request& req, microserver::Response& res) { res.send("Hello World!"); }
+        [](const microserver::Request&, microserver::Response& res) { res.send("Hello World!"); }
     );
     xserver.get(
         "/",
-        [](const microserver::Request& req, microserver::Response& res)
+        [](const microserver::Request&, microserver::Response& res)
         {
             res.type = "text/plain";
             std::stringstream ss;

@@ -59,7 +59,9 @@ def create_pool(
 
 def search(query, pool=None):
     if not pool:
-        pool = create_pool(["conda-forge"], "linux-64", False)
+        pool = create_pool(
+            ["https://conda.anaconda.org/conda-forge"], "linux-64", False
+        )
     res = _repoquery("search", query, pool)
     return json.loads(res)
 

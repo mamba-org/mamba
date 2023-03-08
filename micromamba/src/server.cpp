@@ -126,7 +126,7 @@ handle_solve_request(const microserver::Request& req, microserver::Response& res
     }
     else
     {
-        MTransaction trans(solver, package_caches);
+        MTransaction trans(cache_entry.pool, solver, package_caches);
         auto to_install = std::get<1>(trans.to_conda());
         std::vector<nlohmann::json> packages;
         for (auto& p : to_install)

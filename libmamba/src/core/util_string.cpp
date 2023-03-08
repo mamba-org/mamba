@@ -126,7 +126,7 @@ namespace mamba
 
     wchar_t to_lower(wchar_t c)
     {
-        return static_cast<wchar_t>(std::tolower(static_cast<wchar_t>(c)));
+        return static_cast<wchar_t>(std::towlower(static_cast<wchar_t>(c)));
     }
 
     /***************************************************

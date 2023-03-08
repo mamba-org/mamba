@@ -126,8 +126,19 @@ namespace mamba
 
     wchar_t to_lower(wchar_t c)
     {
-        return static_cast<wchar_t>(std::tolower(c));
+        return static_cast<wchar_t>(std::towlower(static_cast<wint_t>(c)));
     }
+
+    char to_upper(char c)
+    {
+        return static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+    }
+
+    wchar_t to_upper(wchar_t c)
+    {
+        return static_cast<wchar_t>(std::towupper(static_cast<wint_t>(c)));
+    }
+
 
     /***************************************************
      *  Implementation of to_lower to_upper functions  *
@@ -168,16 +179,6 @@ namespace mamba
 
     template std::string to_lower(std::string&& str);
     template std::wstring to_lower(std::wstring&& str);
-
-    char to_upper(char c)
-    {
-        return static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
-    }
-
-    wchar_t to_upper(wchar_t c)
-    {
-        return static_cast<wchar_t>(std::toupper(c));
-    }
 
     namespace
     {

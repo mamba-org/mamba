@@ -35,14 +35,10 @@
 
 namespace mamba
 {
-    void try_add(nlohmann::json& j, const char* key, const char* val);
-    nlohmann::json solvable_to_json(Solvable* s);
-
     class PackageDownloadExtractTarget
     {
     public:
 
-        PackageDownloadExtractTarget(Solvable* solvable);
         PackageDownloadExtractTarget(const PackageInfo& pkg_info);
 
         void write_repodata_record(const fs::u8path& base_path);
@@ -126,7 +122,7 @@ namespace mamba
             const std::vector<MatchSpec>& specs_to_install,
             MultiPackageCache& caches
         );
-        MTransaction(MSolver& solver, MultiPackageCache& caches);
+        MTransaction(MPool& pool, MSolver& solver, MultiPackageCache& caches);
 
         // Only use if the packages have been solved previously already.
         MTransaction(MPool& pool, const std::vector<PackageInfo>& packages, MultiPackageCache& caches);
@@ -156,6 +152,8 @@ namespace mamba
         std::pair<std::string, std::string> find_python_version();
 
     private:
+
+        MPool m_pool;
 
         FilterType m_filter_type = FilterType::none;
         std::set<Id> m_filter_name_ids;

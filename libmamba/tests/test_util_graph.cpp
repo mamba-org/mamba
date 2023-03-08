@@ -36,7 +36,7 @@ namespace mamba
         EXPECT_NE(vector_set<int>({ 2 }), vector_set<int>({}));
     }
 
-    TEST(vector_set, insertion)
+    TEST(vector_set, insert)
     {
         auto s = vector_set<int>();
         s.insert(33);
@@ -51,6 +51,19 @@ namespace mamba
         auto v = std::vector<int>({ 33, 22, 17, 0 });
         s.insert(v.begin(), v.end());
         EXPECT_EQ(s, vector_set<int>({ 0, 17, 22, 33 }));
+    }
+
+    TEST(vector_set, erase)
+    {
+        auto s = vector_set<int>{ 4, 3, 2, 1 };
+        EXPECT_EQ(s.erase(4), 1);
+        EXPECT_EQ(s, vector_set<int>({ 1, 2, 3 }));
+        EXPECT_EQ(s.erase(4), 0);
+        EXPECT_EQ(s, vector_set<int>({ 1, 2, 3 }));
+
+        const auto it = s.erase(s.begin());
+        EXPECT_EQ(it, s.begin());
+        EXPECT_EQ(s, vector_set<int>({ 2, 3 }));
     }
 
     TEST(vector_set, contains)
@@ -170,11 +183,16 @@ namespace mamba
     TEST(graph, build_simple)
     {
         const auto g = build_graph();
-        using node_list = decltype(g)::node_list;
+        using node_map = decltype(g)::node_map;
         using node_id_list = decltype(g)::node_id_list;
         EXPECT_EQ(g.number_of_nodes(), 7ul);
         EXPECT_EQ(g.number_of_edges(), 7ul);
-        EXPECT_EQ(g.nodes(), node_list({ 0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5 }));
+        EXPECT_EQ(
+            g.nodes(),
+            node_map(
+                { { 0, 0.5 }, { 1, 1.5 }, { 2, 2.5 }, { 3, 3.5 }, { 4, 4.5 }, { 5, 5.5 }, { 6, 6.5 } }
+            )
+        );
         EXPECT_EQ(g.successors(0u), node_id_list({ 1u, 2u }));
         EXPECT_EQ(g.successors(1u), node_id_list({ 3u, 4u }));
         EXPECT_EQ(g.successors(2u), node_id_list({ 3u, 5u }));
@@ -188,11 +206,11 @@ namespace mamba
     TEST(graph, build_edge_data)
     {
         const auto g = build_edge_data_graph();
-        using node_list = decltype(g)::node_list;
+        using node_map = decltype(g)::node_map;
         using node_id_list = decltype(g)::node_id_list;
         EXPECT_EQ(g.number_of_nodes(), 3ul);
         EXPECT_EQ(g.number_of_edges(), 2ul);
-        EXPECT_EQ(g.nodes(), node_list({ 0.5, 1.5, 2.5 }));
+        EXPECT_EQ(g.nodes(), node_map({ { 0, 0.5 }, { 1, 1.5 }, { 2, 2.5 } }));
         EXPECT_EQ(g.successors(0ul), node_id_list({ 1ul }));
         EXPECT_EQ(g.successors(1ul), node_id_list({ 2ul }));
         EXPECT_EQ(g.successors(2ul), node_id_list());
@@ -233,6 +251,63 @@ namespace mamba
         EXPECT_EQ(g.edge(0ul, 1ul), new_edge_val);
     }
 
+    TEST(graph, remove_edge)
+    {
+        auto g = build_edge_data_graph();
+        const auto n_edges_init = g.number_of_edges();
+
+        ASSERT_FALSE(g.has_edge(1, 0));
+        ASSERT_TRUE(g.has_edge(0, 1));
+        EXPECT_FALSE(g.remove_edge(1, 0));
+        EXPECT_EQ(g.number_of_edges(), n_edges_init);
+        EXPECT_FALSE(g.has_edge(1, 0));
+        EXPECT_TRUE(g.has_edge(0, 1));
+
+        ASSERT_TRUE(g.has_edge(0, 1));
+        EXPECT_TRUE(g.remove_edge(0, 1));
+        EXPECT_EQ(g.number_of_edges(), n_edges_init - 1u);
+        EXPECT_FALSE(g.has_edge(0, 1));
+        EXPECT_EQ(g.edges().count({ 0, 1 }), 0);
+    }
+
+    TEST(graph, remove_node)
+    {
+        auto g = build_edge_data_graph();
+
+        ASSERT_TRUE(g.has_node(0));
+        ASSERT_TRUE(g.has_node(1));
+        ASSERT_TRUE(g.has_node(2));
+        ASSERT_TRUE(g.has_edge(0, 1));
+        ASSERT_TRUE(g.has_edge(1, 2));
+
+        const auto n_edges_init = g.number_of_edges();
+        const auto n_nodes_init = g.number_of_nodes();
+        const auto node_1_degree = g.in_degree(1) + g.out_degree(1);
+
+        EXPECT_TRUE(g.remove_node(1));
+        EXPECT_EQ(g.number_of_nodes(), n_nodes_init - 1u);
+        EXPECT_EQ(g.number_of_edges(), n_edges_init - node_1_degree);
+        EXPECT_EQ(g.number_of_edges(), g.edges().size());
+        EXPECT_TRUE(g.has_node(0));
+        EXPECT_FALSE(g.has_node(1));
+        EXPECT_TRUE(g.has_node(2));
+        EXPECT_EQ(g.in_degree(1), 0);
+        EXPECT_EQ(g.out_degree(1), 0);
+        EXPECT_FALSE(g.has_edge(0, 1));
+        EXPECT_FALSE(g.has_edge(1, 2));
+        g.for_each_node_id([&](auto id) { EXPECT_TRUE(g.has_node(id)); });
+
+        EXPECT_FALSE(g.remove_node(1));
+        EXPECT_EQ(g.number_of_nodes(), n_nodes_init - 1u);
+        EXPECT_EQ(g.number_of_edges(), n_edges_init - node_1_degree);
+        EXPECT_EQ(g.number_of_edges(), g.edges().size());
+
+        const auto new_id = g.add_node(.7);
+        EXPECT_EQ(new_id, n_nodes_init);  // Ids are not invalidated so new id is used
+        EXPECT_FALSE(g.has_node(1));      // Old id is not being confused
+        EXPECT_EQ(g.number_of_nodes(), n_nodes_init);
+    }
+
     TEST(graph, degree)
     {
         const auto g = build_graph();
@@ -244,12 +319,27 @@ namespace mamba
         EXPECT_EQ(g.in_degree(6), 1);
     }
 
+    TEST(graph, for_each_node)
+    {
+        const auto g = build_graph();
+        using node_id = decltype(g)::node_id;
+        std::size_t n_nodes = 0;
+        g.for_each_node_id(
+            [&](node_id id)
+            {
+                EXPECT_TRUE(g.has_node(id));
+                ++n_nodes;
+            }
+        );
+        EXPECT_EQ(n_nodes, g.number_of_nodes());
+    }
+
     TEST(graph, for_each_edge)
     {
         const auto g = build_graph();
         using node_id = decltype(g)::node_id;
         std::size_t n_edges = 0;
-        g.for_each_edge(
+        g.for_each_edge_id(
             [&g, &n_edges](node_id from, node_id to)
             {
                 EXPECT_TRUE(g.has_edge(from, to));
@@ -265,7 +355,7 @@ namespace mamba
         using node_id = decltype(g)::node_id;
         using node_id_list = decltype(g)::node_id_list;
         auto leaves = node_id_list();
-        g.for_each_leaf([&leaves](node_id leaf) { leaves.insert(leaf); });
+        g.for_each_leaf_id([&leaves](node_id leaf) { leaves.insert(leaf); });
         EXPECT_EQ(leaves, node_id_list({ 4ul, 5ul, 6ul }));
     }
 
@@ -275,7 +365,7 @@ namespace mamba
         using node_id = decltype(g)::node_id;
         using node_id_list = decltype(g)::node_id_list;
         auto leaves = node_id_list();
-        g.for_each_leaf_from(2ul, [&leaves](node_id leaf) { leaves.insert(leaf); });
+        g.for_each_leaf_id_from(2ul, [&leaves](node_id leaf) { leaves.insert(leaf); });
         EXPECT_EQ(leaves, node_id_list({ 5ul, 6ul }));
     }
 
@@ -285,7 +375,7 @@ namespace mamba
         using node_id = decltype(g)::node_id;
         using node_id_list = decltype(g)::node_id_list;
         auto roots = node_id_list();
-        g.for_each_root([&roots](node_id root) { roots.insert(root); });
+        g.for_each_root_id([&roots](node_id root) { roots.insert(root); });
         EXPECT_EQ(roots, node_id_list({ 0ul }));
     }
 
@@ -295,7 +385,7 @@ namespace mamba
         using node_id = decltype(g)::node_id;
         using node_id_list = decltype(g)::node_id_list;
         auto leaves = node_id_list();
-        g.for_each_root_from(2ul, [&leaves](node_id leaf) { leaves.insert(leaf); });
+        g.for_each_root_id_from(2ul, [&leaves](node_id leaf) { leaves.insert(leaf); });
         EXPECT_EQ(leaves, node_id_list({ 0ul }));
     }
 

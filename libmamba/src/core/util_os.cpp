@@ -552,13 +552,13 @@ namespace mamba
      * */
     bool is_atty(const std::ostream& stream)
     {
-        FILE* const std_stream = [](const std::ostream& stream) -> FILE*
+        FILE* const std_stream = [](const std::ostream& lstream) -> FILE*
         {
-            if (&stream == &std::cout)
+            if (&lstream == &std::cout)
             {
                 return stdout;
             }
-            else if ((&stream == &std::cerr) || (&stream == &std::clog))
+            else if ((&lstream == &std::cerr) || (&lstream == &std::clog))
             {
                 return stderr;
             }

@@ -33,6 +33,7 @@ namespace mamba
         using typename Base::allocator_type;
         using typename Base::const_iterator;
         using typename Base::const_reverse_iterator;
+        using typename Base::size_type;
         using typename Base::value_type;
         using key_compare = Compare;
         using value_compare = Compare;
@@ -86,6 +87,10 @@ namespace mamba
         template <typename InputIterator>
         void insert(InputIterator first, InputIterator last);
 
+        const_iterator erase(const_iterator pos);
+        const_iterator erase(const_iterator first, const_iterator last);
+        size_type erase(const value_type& value);
+
     private:
 
         key_compare m_compare;
@@ -138,20 +143,22 @@ namespace mamba
 
         using node_t = Node;
         using node_id = std::size_t;
-        using node_list = std::vector<node_t>;
+        using node_map = std::map<node_id, node_t>;
         using node_id_list = vector_set<node_id>;
         using adjacency_list = std::vector<node_id_list>;
 
         node_id add_node(const node_t& value);
         node_id add_node(node_t&& value);
-        void add_edge(node_id from, node_id to);
+        bool add_edge(node_id from, node_id to);
+        bool remove_edge(node_id from, node_id to);
+        bool remove_node(node_id id);
 
         bool empty() const;
-        std::size_t number_of_nodes() const;
-        std::size_t number_of_edges() const;
+        std::size_t number_of_nodes() const noexcept;
+        std::size_t number_of_edges() const noexcept;
         std::size_t in_degree(node_id id) const noexcept;
         std::size_t out_degree(node_id id) const noexcept;
-        const node_list& nodes() const;
+        const node_map& nodes() const;
         const node_t& node(node_id id) const;
         node_t& node(node_id id);
         const node_id_list& successors(node_id id) const;
@@ -163,16 +170,18 @@ namespace mamba
 
         // TODO C++20 better to return a range since this search cannot be interupted from the
         // visitor
+        template <typename UnaryFunc>
+        UnaryFunc for_each_node_id(UnaryFunc func) const;
         template <typename BinaryFunc>
-        BinaryFunc for_each_edge(BinaryFunc func) const;
+        BinaryFunc for_each_edge_id(BinaryFunc func) const;
         template <typename UnaryFunc>
-        UnaryFunc for_each_leaf(UnaryFunc func) const;
+        UnaryFunc for_each_leaf_id(UnaryFunc func) const;
         template <typename UnaryFunc>
-        UnaryFunc for_each_leaf_from(node_id source, UnaryFunc func) const;
+        UnaryFunc for_each_leaf_id_from(node_id source, UnaryFunc func) const;
         template <typename UnaryFunc>
-        UnaryFunc for_each_root(UnaryFunc func) const;
+        UnaryFunc for_each_root_id(UnaryFunc func) const;
         template <typename UnaryFunc>
-        UnaryFunc for_each_root_from(node_id source, UnaryFunc func) const;
+        UnaryFunc for_each_root_id_from(node_id source, UnaryFunc func) const;
 
         // TODO C++20 better to return a range since this search cannot be interupted from the
         // visitor
@@ -181,6 +190,8 @@ namespace mamba
 
     protected:
 
+        using derived_t = Derived;
+
         DiGraphBase() = default;
         DiGraphBase(const DiGraphBase&) = default;
         DiGraphBase(DiGraphBase&&) = default;
@@ -188,14 +199,10 @@ namespace mamba
         DiGraphBase& operator=(DiGraphBase&&) = default;
         ~DiGraphBase() = default;
 
-        Derived& derived_cast()
-        {
-            return static_cast<Derived&>(*this);
-        }
-        const Derived& derived_cast() const
-        {
-            return static_cast<const Derived&>(*this);
-        }
+        node_id number_of_node_id() const noexcept;
+
+        Derived& derived_cast();
+        const Derived& derived_cast() const;
 
     private:
 
@@ -219,8 +226,11 @@ namespace mamba
             const adjacency_list& successors
         ) const;
 
-        node_list m_node_list;
+        // Source of truth for exsising nodes
+        node_map m_node_map;
+        // May contains empty slots after `remove_node`
         adjacency_list m_predecessors;
+        // May contains empty slots after `remove_node`
         adjacency_list m_successors;
         std::size_t m_number_of_edges = 0;
     };
@@ -265,18 +275,46 @@ namespace mamba
     };
 
     template <typename Node, typename Edge = void>
-    class DiGraph : public DiGraphBase<Node, DiGraph<Node, Edge>>
+    class DiGraph : private DiGraphBase<Node, DiGraph<Node, Edge>>
     {
     public:
 
         using Base = DiGraphBase<Node, DiGraph<Node, Edge>>;
-        using edge_t = Edge;
+        using typename Base::adjacency_list;
         using typename Base::node_id;
+        using typename Base::node_id_list;
+        using typename Base::node_map;
+        using typename Base::node_t;
+        using edge_t = Edge;
         using edge_id = std::pair<node_id, node_id>;
         using edge_map = std::map<edge_id, edge_t>;
 
-        void add_edge(node_id from, node_id to, const edge_t& data);
-        void add_edge(node_id from, node_id to, edge_t&& data);
+        using Base::empty;
+        using Base::has_edge;
+        using Base::has_node;
+        using Base::in_degree;
+        using Base::node;
+        using Base::nodes;
+        using Base::number_of_edges;
+        using Base::number_of_nodes;
+        using Base::out_degree;
+        using Base::predecessors;
+        using Base::successors;
+
+        using Base::for_each_edge_id;
+        using Base::for_each_leaf_id;
+        using Base::for_each_leaf_id_from;
+        using Base::for_each_node_id;
+        using Base::for_each_root_id;
+        using Base::for_each_root_id_from;
+
+        using Base::depth_first_search;
+
+        using Base::add_node;
+        bool add_edge(node_id from, node_id to, const edge_t& data);
+        bool add_edge(node_id from, node_id to, edge_t&& data);
+        bool remove_edge(node_id from, node_id to);
+        bool remove_node(node_id id);
 
         const edge_map& edges() const;
         const edge_t& edge(node_id from, node_id to) const;
@@ -286,8 +324,10 @@ namespace mamba
 
     private:
 
+        friend class DiGraphBase<Node, DiGraph<Node, Edge>>;  // required for private CRTP
+
         template <typename T>
-        void add_edge_impl(node_id from, node_id to, T&& data);
+        bool add_edge_impl(node_id from, node_id to, T&& data);
 
         edge_map m_edges;
     };
@@ -424,11 +464,38 @@ namespace mamba
     auto vector_set<K, C, A>::insert_impl(U&& value) -> std::pair<const_iterator, bool>
     {
         auto it = std::lower_bound(begin(), end(), value, m_compare);
+        if ((it != end()) && (key_eq(*it, value)))
+        {
+            return { it, false };
+        }
+        it = Base::insert(it, std::forward<U>(value));
+        return { it, true };
+    }
+
+    template <typename K, typename C, typename A>
+    auto vector_set<K, C, A>::erase(const_iterator pos) -> const_iterator
+    {
+        // No need to sort or remove duplicates again
+        return Base::erase(pos);
+    }
+
+    template <typename K, typename C, typename A>
+    auto vector_set<K, C, A>::erase(const_iterator first, const_iterator last) -> const_iterator
+    {
+        // No need to sort or remove duplicates again
+        return Base::erase(first, last);
+    }
+
+    template <typename K, typename C, typename A>
+    auto vector_set<K, C, A>::erase(const value_type& value) -> size_type
+    {
+        auto it = std::lower_bound(begin(), end(), value, m_compare);
         if ((it == end()) || (!(key_eq(*it, value))))
         {
-            Base::insert(it, std::forward<U>(value));
+            return 0;
         }
-        return { it, false };
+        erase(it);
+        return 1;
     }
 
     template <typename K, typename C, typename A>
@@ -455,13 +522,13 @@ namespace mamba
     }
 
     template <typename N, typename G>
-    auto DiGraphBase<N, G>::number_of_nodes() const -> std::size_t
+    auto DiGraphBase<N, G>::number_of_nodes() const noexcept -> std::size_t
     {
-        return m_node_list.size();
+        return m_node_map.size();
     }
 
     template <typename N, typename G>
-    auto DiGraphBase<N, G>::number_of_edges() const -> std::size_t
+    auto DiGraphBase<N, G>::number_of_edges() const noexcept -> std::size_t
     {
         return m_number_of_edges;
     }
@@ -479,21 +546,21 @@ namespace mamba
     }
 
     template <typename N, typename G>
-    auto DiGraphBase<N, G>::nodes() const -> const node_list&
+    auto DiGraphBase<N, G>::nodes() const -> const node_map&
     {
-        return m_node_list;
+        return m_node_map;
     }
 
     template <typename N, typename G>
     auto DiGraphBase<N, G>::node(node_id id) const -> const node_t&
     {
-        return m_node_list[id];
+        return m_node_map.at(id);
     }
 
     template <typename N, typename G>
     auto DiGraphBase<N, G>::node(node_id id) -> node_t&
     {
-        return m_node_list[id];
+        return m_node_map.at(id);
     }
 
     template <typename N, typename G>
@@ -523,7 +590,7 @@ namespace mamba
     template <typename N, typename G>
     auto DiGraphBase<N, G>::has_node(node_id id) const -> bool
     {
-        return id < number_of_nodes();
+        return nodes().count(id) > 0;
     }
 
     template <typename N, typename G>
@@ -545,64 +612,129 @@ namespace mamba
     }
 
     template <typename N, typename G>
-    void DiGraphBase<N, G>::add_edge(node_id from, node_id to)
+    template <class V>
+    auto DiGraphBase<N, G>::add_node_impl(V&& value) -> node_id
     {
+        const node_id id = number_of_node_id();
+        m_node_map.emplace(id, std::forward<V>(value));
+        m_successors.push_back(node_id_list());
+        m_predecessors.push_back(node_id_list());
+        return id;
+    }
+
+    template <typename N, typename G>
+    bool DiGraphBase<N, G>::remove_node(node_id id)
+    {
+        if (!has_node(id))
+        {
+            return false;
+        }
+
+        const auto succs = successors(id);  // Cannot iterate on object being modified
+        for (const auto& to : succs)
+        {
+            remove_edge(id, to);
+        }
+        const auto preds = predecessors(id);  // Cannot iterate on object being modified
+        for (const auto& from : preds)
+        {
+            remove_edge(from, id);
+        }
+        m_node_map.erase(id);
+
+        return true;
+    }
+
+    template <typename N, typename G>
+    bool DiGraphBase<N, G>::add_edge(node_id from, node_id to)
+    {
+        if (has_edge(from, to))
+        {
+            return false;
+        }
         m_successors[from].insert(to);
         m_predecessors[to].insert(from);
         ++m_number_of_edges;
+        return true;
+    }
+
+    template <typename N, typename G>
+    bool DiGraphBase<N, G>::remove_edge(node_id from, node_id to)
+    {
+        if (!has_edge(from, to))
+        {
+            return false;
+        }
+        m_successors[from].erase(to);
+        m_predecessors[to].erase(from);
+        --m_number_of_edges;
+        return true;
+    }
+
+    template <typename N, typename G>
+    template <typename UnaryFunc>
+    UnaryFunc DiGraphBase<N, G>::for_each_node_id(UnaryFunc func) const
+    {
+        for (const auto& [i, _] : m_node_map)
+        {
+            func(i);
+        }
+        return func;
     }
 
     template <typename N, typename G>
     template <typename BinaryFunc>
-    BinaryFunc DiGraphBase<N, G>::for_each_edge(BinaryFunc func) const
+    BinaryFunc DiGraphBase<N, G>::for_each_edge_id(BinaryFunc func) const
     {
-        const auto n_nodes = number_of_nodes();
-        for (node_id i = 0; i < n_nodes; ++i)
-        {
-            for (node_id j : successors(i))
+        for_each_node_id(
+            [&](node_id i)
             {
-                func(i, j);
+                for (node_id j : successors(i))
+                {
+                    func(i, j);
+                }
             }
-        }
+        );
         return func;
     }
 
     template <typename N, typename G>
     template <typename UnaryFunc>
-    UnaryFunc DiGraphBase<N, G>::for_each_leaf(UnaryFunc func) const
+    UnaryFunc DiGraphBase<N, G>::for_each_leaf_id(UnaryFunc func) const
     {
-        const auto n_nodes = number_of_nodes();
-        for (node_id i = 0; i < n_nodes; ++i)
-        {
-            if (out_degree(i) == 0)
+        for_each_node_id(
+            [&](node_id i)
             {
-                func(i);
+                if (out_degree(i) == 0)
+                {
+                    func(i);
+                }
             }
-        }
+        );
         return func;
     }
 
     template <typename N, typename G>
     template <typename UnaryFunc>
-    UnaryFunc DiGraphBase<N, G>::for_each_root(UnaryFunc func) const
+    UnaryFunc DiGraphBase<N, G>::for_each_root_id(UnaryFunc func) const
     {
-        const auto n_nodes = number_of_nodes();
-        for (node_id i = 0; i < n_nodes; ++i)
-        {
-            if (in_degree(i) == 0)
+        for_each_node_id(
+            [&](node_id i)
             {
-                func(i);
+                if (in_degree(i) == 0)
+                {
+                    func(i);
+                }
             }
-        }
+        );
         return func;
     }
 
     template <typename N, typename G>
     template <typename UnaryFunc>
-    UnaryFunc DiGraphBase<N, G>::for_each_leaf_from(node_id source, UnaryFunc func) const
+    UnaryFunc DiGraphBase<N, G>::for_each_leaf_id_from(node_id source, UnaryFunc func) const
     {
-        using graph_t = DiGraphBase<N, G>;
-        struct LeafVisitor : default_visitor<graph_t>
+        struct LeafVisitor : default_visitor<derived_t>
         {
             UnaryFunc& m_func;
 
@@ -611,7 +743,7 @@ namespace mamba
             {
             }
 
-            void start_node(node_id n, const graph_t& g)
+            void start_node(node_id n, const derived_t& g)
             {
                 if (g.out_degree(n) == 0)
                 {
@@ -626,10 +758,9 @@ namespace mamba
 
     template <typename N, typename G>
     template <typename UnaryFunc>
-    UnaryFunc DiGraphBase<N, G>::for_each_root_from(node_id source, UnaryFunc func) const
+    UnaryFunc DiGraphBase<N, G>::for_each_root_id_from(node_id source, UnaryFunc func) const
     {
-        using graph_t = DiGraphBase<N, G>;
-        struct RootVisitor : default_visitor<graph_t>
+        struct RootVisitor : default_visitor<derived_t>
         {
             UnaryFunc& m_func;
 
@@ -638,7 +769,7 @@ namespace mamba
             {
             }
 
-            void start_node(node_id n, const graph_t& g)
+            void start_node(node_id n, const derived_t& g)
             {
                 if (g.in_degree(n) == 0)
                 {
@@ -657,19 +788,9 @@ namespace mamba
     {
         if (!empty())
         {
-            visited_list status(m_node_list.size(), visited::no);
+            visited_list status(number_of_node_id(), visited::no);
             depth_first_search_impl(visitor, node, status, reverse ? m_predecessors : m_successors);
         }
-    }
-
-    template <typename N, typename G>
-    template <class V>
-    auto DiGraphBase<N, G>::add_node_impl(V&& value) -> node_id
-    {
-        m_node_list.push_back(std::forward<V>(value));
-        m_successors.push_back(node_id_list());
-        m_predecessors.push_back(node_id_list());
-        return m_node_list.size() - 1u;
     }
 
     template <typename N, typename G>
@@ -705,26 +826,41 @@ namespace mamba
         visitor.finish_node(node, derived_cast());
     }
 
+    template <typename N, typename G>
+    auto DiGraphBase<N, G>::number_of_node_id() const noexcept -> node_id
+    {
+        // Not number_of_nodes because due to remove nodes it may be larger
+        return m_successors.size();
+    }
+
+    template <typename N, typename G>
+    auto DiGraphBase<N, G>::derived_cast() -> derived_t&
+    {
+        return static_cast<derived_t&>(*this);
+    }
+
+    template <typename N, typename G>
+    auto DiGraphBase<N, G>::derived_cast() const -> const derived_t&
+    {
+        return static_cast<const derived_t&>(*this);
+    }
+
     /*******************************
      *  Algorithms implementation  *
      *******************************/
 
-    template <typename Node, typename Derived>
-    auto is_reachable(
-        const DiGraphBase<Node, Derived>& graph,
-        typename DiGraphBase<Node, Derived>::node_id source,
-        typename DiGraphBase<Node, Derived>::node_id target
-    ) -> bool
+    template <typename Graph>
+    auto
+    is_reachable(const Graph& graph, typename Graph::node_id source, typename Graph::node_id target)
+        -> bool
     {
-        using graph_t = DiGraphBase<Node, Derived>;
-        using node_id = typename graph_t::node_id;
-
-        struct : default_visitor<graph_t>
+        struct : default_visitor<Graph>
         {
+            using node_id = typename Graph::node_id;
             node_id target;
             bool target_visited = false;
 
-            void start_node(node_id node, const graph_t&)
+            void start_node(node_id node, const Graph&)
             {
                 target_visited = target_visited || (node == target);
             }
@@ -739,24 +875,50 @@ namespace mamba
      *********************************/
 
     template <typename N, typename E>
-    void DiGraph<N, E>::add_edge(node_id from, node_id to, const edge_t& data)
+    bool DiGraph<N, E>::add_edge(node_id from, node_id to, const edge_t& data)
     {
-        add_edge_impl(from, to, data);
+        return add_edge_impl(from, to, data);
     }
 
     template <typename N, typename E>
-    void DiGraph<N, E>::add_edge(node_id from, node_id to, edge_t&& data)
+    bool DiGraph<N, E>::add_edge(node_id from, node_id to, edge_t&& data)
     {
-        add_edge_impl(from, to, std::move(data));
+        return add_edge_impl(from, to, std::move(data));
     }
 
     template <typename N, typename E>
     template <typename T>
-    void DiGraph<N, E>::add_edge_impl(node_id from, node_id to, T&& data)
+    bool DiGraph<N, E>::add_edge_impl(node_id from, node_id to, T&& data)
     {
-        Base::add_edge(from, to);
-        auto edge_id = std::make_pair(from, to);
-        m_edges.insert(std::make_pair(edge_id, std::forward<T>(data)));
+        if (const bool added = Base::add_edge(from, to); added)
+        {
+            auto l_edge_id = std::pair(from, to);
+            m_edges.insert(std::pair(l_edge_id, std::forward<T>(data)));
+            return true;
+        }
+        return false;
+    }
+
+    template <typename N, typename E>
+    bool DiGraph<N, E>::remove_edge(node_id from, node_id to)
+    {
+        m_edges.erase({ from, to });  // No-op if edge does not exists
+        return Base::remove_edge(from, to);
+    }
+
+    template <typename N, typename E>
+    bool DiGraph<N, E>::remove_node(node_id id)
+    {
+        // No-op if edge does not exists
+        for (const auto& to : successors(id))
+        {
+            m_edges.erase({ id, to });
+        }
+        for (const auto& from : predecessors(id))
+        {
+            m_edges.erase({ from, id });
+        }
+        return Base::remove_node(id);
     }
 
     template <typename N, typename E>

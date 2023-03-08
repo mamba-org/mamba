@@ -210,7 +210,14 @@ PYBIND11_MODULE(bindings, m)
         .def("clear", &MRepo::clear);
 
     py::class_<MTransaction>(m, "Transaction")
-        .def(py::init<MSolver&, MultiPackageCache&>())
+        .def(py::init<>(
+            [](MSolver& solver, MultiPackageCache& mpc)
+            {
+                deprecated("Use Transaction(Pool, Solver, MultiPackageCache) instead");
+                return std::make_unique<MTransaction>(solver.pool(), solver, mpc);
+            }
+        ))
+        .def(py::init<MPool&, MSolver&, MultiPackageCache&>())
         .def("to_conda", &MTransaction::to_conda)
         .def("log_json", &MTransaction::log_json)
         .def("print", &MTransaction::print)
@@ -263,10 +270,8 @@ PYBIND11_MODULE(bindings, m)
 
     py::class_<PbGraph::RootNode>(pyPbGraph, "RootNode").def(py::init<>());
     py::class_<PbGraph::PackageNode, PackageInfo>(pyPbGraph, "PackageNode");
-    py::class_<PbGraph::UnresolvedDependencyNode, MatchSpec>(pyPbGraph, "UnresolvedDependencyNode")
-        .def_readwrite("problem_type", &PbGraph::UnresolvedDependencyNode::problem_type);
-    py::class_<PbGraph::ConstraintNode, MatchSpec>(pyPbGraph, "ConstraintNode")
-        .def_readonly_static("problem_type", &PbGraph::ConstraintNode::problem_type);
+    py::class_<PbGraph::UnresolvedDependencyNode, MatchSpec>(pyPbGraph, "UnresolvedDependencyNode");
+    py::class_<PbGraph::ConstraintNode, MatchSpec>(pyPbGraph, "ConstraintNode");
 
     py::class_<PbGraph::conflicts_t>(pyPbGraph, "ConflictMap")
         .def(py::init([]() { return PbGraph::conflicts_t(); }))
@@ -297,6 +302,8 @@ PYBIND11_MODULE(bindings, m)
             }
         );
 
+    m.def("simplify_conflicts", &simplify_conflicts);
+
     using CpPbGraph = CompressedProblemsGraph;
     auto pyCpPbGraph = py::class_<CpPbGraph>(m, "CompressedProblemsGraph");
 
@@ -309,7 +316,7 @@ PYBIND11_MODULE(bindings, m)
         py::class_<CpPbGraph::UnresolvedDependencyListNode>(pyCpPbGraph, "UnresolvedDependencyListNode")
     );
     bind_NamedList(py::class_<CpPbGraph::ConstraintListNode>(pyCpPbGraph, "ConstraintListNode"));
-    bind_NamedList(py::class_<CpPbGraph::edge_t>(pyCpPbGraph, "DependencyListList"));
+    bind_NamedList(py::class_<CpPbGraph::edge_t>(pyCpPbGraph, "DependencyList"));
     pyCpPbGraph.def_property_readonly_static(
         "ConflictMap",
         [](py::handle) { return py::type::of<PbGraph::conflicts_t>(); }
@@ -330,7 +337,6 @@ PYBIND11_MODULE(bindings, m)
                 return std::pair(g.nodes(), g.edges());
             }
         )
-        .def("summary_message", [](const CpPbGraph& self) { return problem_summary_msg(self); })
         .def("tree_message", [](const CpPbGraph& self) { return problem_tree_msg(self); });
 
     py::class_<History>(m, "History")
@@ -357,19 +363,25 @@ PYBIND11_MODULE(bindings, m)
             "find",
             [](const Query& q, const std::string& query, const query::RESULT_FORMAT format) -> std::string
             {
+                query_result res = q.find(query);
                 std::stringstream res_stream;
                 switch (format)
                 {
                     case query::JSON:
-                        res_stream << q.find(query).groupby("name").json().dump(4);
+                        res_stream << res.groupby("name").json().dump(4);
                         break;
                     case query::TREE:
                     case query::TABLE:
                     case query::RECURSIVETABLE:
-                        q.find(query).groupby("name").table(res_stream);
+                        res.groupby("name").table(res_stream);
                         break;
                     case query::PRETTY:
-                        q.find(query).groupby("name").pretty(res_stream);
+                        res.groupby("name").pretty(res_stream);
+                }
+                if (res.empty() && format != query::JSON)
+                {
+                    res_stream << query
+                               << " may not be installed. Try specifying a channel with '-c,--channel' option\n";
                 }
                 return res_stream.str();
             }
@@ -397,6 +409,11 @@ PYBIND11_MODULE(bindings, m)
                             { "Name", "Version", "Build", concat("Depends:", query), "Channel" }
                         );
                 }
+                if (res.empty() && format != query::JSON)
+                {
+                    res_stream << query
+                               << " may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery\n";
+                }
                 return res_stream.str();
             }
         )
@@ -423,6 +440,11 @@ PYBIND11_MODULE(bindings, m)
                         // res.table(res_stream, {"Name", "Version", "Build", concat("Depends:",
                         // query), "Channel"});
                         res.table(res_stream);
+                }
+                if (res.empty() && format != query::JSON)
+                {
+                    res_stream << query
+                               << " may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery\n";
                 }
                 return res_stream.str();
             }
@@ -550,7 +572,7 @@ PYBIND11_MODULE(bindings, m)
         .def_property_readonly("package_records", &PrefixData::records)
         .def("add_packages", &PrefixData::add_packages);
 
-    pyPackageInfo.def(py::init<Solvable*>())
+    pyPackageInfo  //
         .def(py::init<const std::string&>(), py::arg("name"))
         .def(
             py::init<const std::string&, const std::string&, const std::string&, std::size_t>(),

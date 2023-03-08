@@ -51,7 +51,7 @@ namespace mamba
     {
         bz_stream* stream = static_cast<bz_stream*>(m_write_callback_data);
         stream->next_in = in;
-        stream->avail_in = size;
+        stream->avail_in = static_cast<unsigned int>(size);
 
         while (stream->avail_in > 0)
         {
@@ -247,7 +247,7 @@ namespace mamba
 
     std::size_t DownloadTarget::get_default_retry_timeout()
     {
-        return Context::instance().retry_timeout;
+        return static_cast<std::size_t>(Context::instance().retry_timeout);
     }
 
     void DownloadTarget::init_curl_handle(CURL* handle, const std::string& url)
@@ -341,7 +341,7 @@ namespace mamba
     int
     curl_debug_callback(CURL* /* handle */, curl_infotype type, char* data, size_t size, void* userptr)
     {
-        auto* logger = (spdlog::logger*) (userptr);
+        auto* logger = reinterpret_cast<spdlog::logger*>(userptr);
         auto log = Console::hide_secrets(std::string_view(data, size));
         switch (type)
         {
@@ -468,7 +468,8 @@ namespace mamba
                 curl_easy_setopt(m_handle, CURLOPT_XFERINFOFUNCTION, &DownloadTarget::progress_callback);
                 curl_easy_setopt(m_handle, CURLOPT_XFERINFODATA, this);
             }
-            m_retry_wait_seconds = m_retry_wait_seconds * Context::instance().retry_backoff;
+            m_retry_wait_seconds = m_retry_wait_seconds
+                                   * static_cast<std::size_t>(Context::instance().retry_backoff);
             m_next_retry = now + std::chrono::seconds(m_retry_wait_seconds);
             m_retries++;
             return m_handle;
@@ -495,7 +496,7 @@ namespace mamba
             }
         }
 
-        s->m_file.write(ptr, expected_write_size);
+        s->m_file.write(ptr, static_cast<std::streamsize>(expected_write_size));
 
         if (!s->m_file)
         {
@@ -549,9 +550,10 @@ namespace mamba
     {
         return [&](ProgressBarRepr& r) -> void
         {
-            r.current.set_value(
-                fmt::format("{:>7}", to_human_readable_filesize(m_progress_bar.current(), 1))
-            );
+            r.current.set_value(fmt::format(
+                "{:>7}",
+                to_human_readable_filesize(static_cast<double>(m_progress_bar.current()), 1)
+            ));
 
             std::string total_str;
             if (!m_progress_bar.total()
@@ -561,14 +563,15 @@ namespace mamba
             }
             else
             {
-                total_str = to_human_readable_filesize(m_progress_bar.total(), 1);
+                total_str = to_human_readable_filesize(static_cast<double>(m_progress_bar.total()), 1);
             }
             r.total.set_value(fmt::format("{:>7}", total_str));
 
             auto speed = m_progress_bar.speed();
-            r.speed.set_value(
-                fmt::format("@ {:>7}/s", speed ? to_human_readable_filesize(speed, 1) : "??.?MB")
-            );
+            r.speed.set_value(fmt::format(
+                "@ {:>7}/s",
+                speed ? to_human_readable_filesize(static_cast<double>(speed), 1) : "??.?MB"
+            ));
 
             r.separator.set_value("/");
         };
@@ -615,30 +618,33 @@ namespace mamba
 
         if (!total_to_download && target->expected_size())
         {
-            target->m_progress_bar.update_current(now_downloaded);
+            target->m_progress_bar.update_current(static_cast<std::size_t>(now_downloaded));
         }
         else
         {
-            target->m_progress_bar.update_progress(now_downloaded, total_to_download);
+            target->m_progress_bar.update_progress(
+                static_cast<std::size_t>(now_downloaded),
+                static_cast<std::size_t>(total_to_download)
+            );
         }
 
-        target->m_progress_bar.set_speed(target->get_speed());
+        target->m_progress_bar.set_speed(static_cast<std::size_t>(target->get_speed()));
 
         return 0;
     }
 
-    void DownloadTarget::set_mod_etag_headers(const std::string& mod, const std::string& etag)
+    void DownloadTarget::set_mod_etag_headers(const std::string& lmod, const std::string& letag)
     {
         auto to_header = [](const std::string& key, const std::string& value)
-        { return std::string(key + ": " + value); };
+        { return key + ": " + value; };
 
-        if (!etag.empty())
+        if (!letag.empty())
         {
-            m_headers = curl_slist_append(m_headers, to_header("If-None-Match", etag).c_str());
+            m_headers = curl_slist_append(m_headers, to_header("If-None-Match", letag).c_str());
         }
-        if (!mod.empty())
+        if (!lmod.empty())
         {
-            m_headers = curl_slist_append(m_headers, to_header("If-Modified-Since", mod).c_str());
+            m_headers = curl_slist_append(m_headers, to_header("If-Modified-Since", lmod).c_str());
         }
     }
 
@@ -731,7 +737,7 @@ namespace mamba
         {
             if (m_has_progress_bar)
             {
-                speed = m_progress_bar.avg_speed();
+                speed = static_cast<curl_off_t>(m_progress_bar.avg_speed());
             }
             else
             {
@@ -746,12 +752,12 @@ namespace mamba
         result = r;
         if (r != CURLE_OK)
         {
-            char* effective_url = nullptr;
-            curl_easy_getinfo(m_handle, CURLINFO_EFFECTIVE_URL, &effective_url);
+            char* leffective_url = nullptr;
+            curl_easy_getinfo(m_handle, CURLINFO_EFFECTIVE_URL, &leffective_url);
 
             std::stringstream err;
             err << "Download error (" << result << ") " << curl_easy_strerror(result) << " ["
-                << effective_url << "]\n";
+                << leffective_url << "]\n";
             if (m_errbuf[0] != '\0')
             {
                 err << m_errbuf;
@@ -800,7 +806,7 @@ namespace mamba
             msg << "Failed (" << http_status << "), retry in " << m_retry_wait_seconds << "s";
             if (m_has_progress_bar)
             {
-                m_progress_bar.update_progress(0, downloaded_size);
+                m_progress_bar.update_progress(0, static_cast<std::size_t>(downloaded_size));
                 m_progress_bar.set_postfix(msg.str());
             }
             return false;
@@ -811,8 +817,8 @@ namespace mamba
 
         if (m_has_progress_bar)
         {
-            m_progress_bar.set_speed(avg_speed);
-            m_progress_bar.set_total(downloaded_size);
+            m_progress_bar.set_speed(static_cast<std::size_t>(avg_speed));
+            m_progress_bar.set_total(static_cast<std::size_t>(downloaded_size));
             m_progress_bar.set_full();
             m_progress_bar.set_postfix("Downloaded");
         }
@@ -1040,7 +1046,7 @@ namespace mamba
             }
 
             int numfds;
-            code = curl_multi_wait(m_handle, NULL, 0, curl_timeout, &numfds);
+            code = curl_multi_wait(m_handle, NULL, 0, static_cast<int>(curl_timeout), &numfds);
             if (code != CURLM_OK)
             {
                 throw std::runtime_error(curl_multi_strerror(code));

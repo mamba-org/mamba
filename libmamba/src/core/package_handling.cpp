@@ -182,7 +182,7 @@ namespace mamba
             {
                 throw std::runtime_error(archive_error_string(ar));
             }
-            r = archive_write_data_block(aw, buff, size, offset);
+            r = static_cast<int>(archive_write_data_block(aw, buff, size, offset));
             if (r < ARCHIVE_OK)
             {
                 throw std::runtime_error(archive_error_string(aw));
@@ -383,7 +383,7 @@ namespace mamba
                 {
                     fin.read(buffer.data(), buffer.size());
                     std::streamsize len = fin.gcount();
-                    archive_write_data(a, buffer.data(), len);
+                    archive_write_data(a, buffer.data(), static_cast<std::size_t>(len));
                 }
             }
 
@@ -491,8 +491,8 @@ namespace mamba
     {
         struct conda_extract_context : non_copyable_base
         {
-            conda_extract_context(scoped_archive_read& source)
-                : source(source)
+            conda_extract_context(scoped_archive_read& lsource)
+                : source(lsource)
                 , buffer(ZSTD_DStreamOutSize())
             {
             }
@@ -669,7 +669,7 @@ namespace mamba
             }
             else if (p.filename() == "metadata.json")
             {
-                std::size_t json_size = archive_entry_size(entry);
+                std::size_t json_size = static_cast<std::size_t>(archive_entry_size(entry));
                 if (json_size == 0)
                 {
                     LOG_INFO << "Package contains empty metadata.json file (" << file << ")";

@@ -124,7 +124,7 @@ namespace mamba
         CURL* curl = curl_easy_init();
         if (curl)
         {
-            char* output = curl_easy_escape(curl, url.c_str(), url.size());
+            char* output = curl_easy_escape(curl, url.c_str(), static_cast<int>(url.size()));
             if (output)
             {
                 std::string result(output);
@@ -142,10 +142,10 @@ namespace mamba
         if (curl)
         {
             int out_length;
-            char* output = curl_easy_unescape(curl, url.c_str(), url.size(), &out_length);
+            char* output = curl_easy_unescape(curl, url.c_str(), static_cast<int>(url.size()), &out_length);
             if (output)
             {
-                std::string result(output, out_length);
+                std::string result(output, static_cast<std::size_t>(out_length));
                 curl_free(output);
                 curl_easy_cleanup(curl);
                 return result;
@@ -211,7 +211,12 @@ namespace mamba
             CURLUcode uc;
             auto curl_flags = m_has_scheme ? CURLU_NON_SUPPORT_SCHEME : CURLU_DEFAULT_SCHEME;
             std::string c_url = unc_url(url);
-            uc = curl_url_set(m_handle, CURLUPART_URL, c_url.c_str(), curl_flags);
+            uc = curl_url_set(
+                m_handle,
+                CURLUPART_URL,
+                c_url.c_str(),
+                static_cast<unsigned int>(curl_flags)
+            );
             if (uc)
             {
                 throw std::runtime_error(

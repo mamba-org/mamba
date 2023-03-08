@@ -123,6 +123,7 @@ __all__ = [
     "get_virtual_packages",
     "ostream_redirect",
     "sign",
+    "simplify_conflicts",
     "transmute",
 ]
 
@@ -219,7 +220,7 @@ class CompressedProblemsGraph:
         def __init__(self) -> None: ...
         def __iter__(self) -> typing.Iterator: ...
         def __len__(self) -> int: ...
-        def add(self, arg0: int, arg1: int) -> None: ...
+        def add(self, arg0: int, arg1: int) -> bool: ...
         def clear(self) -> None: ...
         def conflicts(self, arg0: int) -> typing.Set[int]: ...
         def has_conflict(self, arg0: int) -> bool: ...
@@ -257,7 +258,7 @@ class CompressedProblemsGraph:
         ) -> typing.Tuple[str, int]: ...
         pass
 
-    class DependencyListList:
+    class DependencyList:
         def __bool__(self) -> bool: ...
         def __init__(self) -> None: ...
         def __iter__(self) -> typing.Iterator: ...
@@ -365,18 +366,18 @@ class CompressedProblemsGraph:
     def graph(
         self,
     ) -> typing.Tuple[
-        typing.List[
+        typing.Dict[
+            int,
             typing.Union[
                 ProblemsGraph.RootNode,
                 CompressedProblemsGraph.PackageListNode,
                 CompressedProblemsGraph.UnresolvedDependencyListNode,
                 CompressedProblemsGraph.ConstraintListNode,
-            ]
+            ],
         ],
-        typing.Dict[typing.Tuple[int, int], CompressedProblemsGraph.DependencyListList],
+        typing.Dict[typing.Tuple[int, int], CompressedProblemsGraph.DependencyList],
     ]: ...
     def root_node(self) -> int: ...
-    def summary_message(self) -> str: ...
     def tree_message(self) -> str: ...
     pass
 
@@ -844,8 +845,6 @@ class MultiPackageCache:
 
 class PackageInfo:
     @typing.overload
-    def __init__(self, arg0: s_Solvable) -> None: ...
-    @typing.overload
     def __init__(self, name: str) -> None: ...
     @typing.overload
     def __init__(
@@ -1043,7 +1042,6 @@ class ProblemsGraph:
         pass
 
     class ConstraintNode(MatchSpec):
-        problem_type: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_CONSTRAINS: 267>
         pass
 
     class PackageNode(PackageInfo):
@@ -1053,14 +1051,6 @@ class ProblemsGraph:
         pass
 
     class UnresolvedDependencyNode(MatchSpec):
-        @property
-        def problem_type(self) -> SolverRuleinfo:
-            """
-            :type: SolverRuleinfo
-            """
-        @problem_type.setter
-        def problem_type(self, arg0: SolverRuleinfo) -> None:
-            pass
         pass
     def conflicts(self) -> ProblemsGraph.ConflictMap: ...
     @staticmethod
@@ -1068,13 +1058,14 @@ class ProblemsGraph:
     def graph(
         self,
     ) -> typing.Tuple[
-        typing.List[
+        typing.Dict[
+            int,
             typing.Union[
                 ProblemsGraph.RootNode,
                 ProblemsGraph.PackageNode,
                 ProblemsGraph.UnresolvedDependencyNode,
                 ProblemsGraph.ConstraintNode,
-            ]
+            ],
         ],
         typing.Dict[typing.Tuple[int, int], MatchSpec],
     ]: ...
@@ -1405,6 +1396,9 @@ class SubdirData:
     pass
 
 class Transaction:
+    @typing.overload
+    def __init__(self, arg0: Pool, arg1: Solver, arg2: MultiPackageCache) -> None: ...
+    @typing.overload
     def __init__(self, arg0: Solver, arg1: MultiPackageCache) -> None: ...
     def execute(self, arg0: PrefixData) -> bool: ...
     def fetch_extract_packages(self) -> bool: ...
@@ -1449,6 +1443,9 @@ def get_virtual_packages() -> typing.List[PackageInfo]:
     pass
 
 def sign(data: str, secret_key: str) -> str:
+    pass
+
+def simplify_conflicts(arg0: ProblemsGraph) -> ProblemsGraph:
     pass
 
 def transmute(

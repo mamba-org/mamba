@@ -32,13 +32,16 @@ namespace mamba
         MPool();
         ~MPool();
 
+        std::size_t n_solvables() const;
+
         void set_debuglevel();
         void create_whatprovides();
 
         std::vector<Id> select_solvables(Id id, bool sorted = false) const;
         Id matchspec2id(const std::string& ms);
 
-        std::optional<PackageInfo> id2pkginfo(Id id);
+        std::optional<PackageInfo> id2pkginfo(Id solv_id) const;
+        std::optional<std::string> dep2str(Id dep_id) const;
 
         operator Pool*();
         operator const Pool*() const;

@@ -57,18 +57,9 @@ namespace mamba
             using edge_t = ProblemsGraph::edge_t;
             using conflicts_t = ProblemsGraph::conflicts_t;
 
-            ProblemsGraphCreator(const MSolver& solver, const MPool& pool)
-                : m_solver{ solver }
-                , m_pool{ pool }
-            {
-                m_root_node = m_graph.add_node(RootNode());
-                parse_problems();
-            }
+            ProblemsGraphCreator(const MSolver& solver, const MPool& pool);
 
-            operator ProblemsGraph() &&
-            {
-                return { std::move(m_graph), std::move(m_conflicts), m_root_node };
-            }
+            ProblemsGraph problem_graph() &&;
 
         private:
 
@@ -93,6 +84,19 @@ namespace mamba
 
             void parse_problems();
         };
+
+        ProblemsGraphCreator::ProblemsGraphCreator(const MSolver& solver, const MPool& pool)
+            : m_solver{ solver }
+            , m_pool{ pool }
+        {
+            m_root_node = m_graph.add_node(RootNode());
+            parse_problems();
+        }
+
+        ProblemsGraph ProblemsGraphCreator::problem_graph() &&
+        {
+            return { std::move(m_graph), std::move(m_conflicts), m_root_node };
+        }
 
         auto ProblemsGraphCreator::add_solvable(SolvId solv_id, node_t&& node, bool update) -> node_id
         {
@@ -122,12 +126,9 @@ namespace mamba
             for (const auto& solv_id : m_pool.select_solvables(dep_id))
             {
                 added = true;
-                PackageInfo pkg_info(pool_id2solvable(m_pool, solv_id));
-                node_id to_id = add_solvable(
-                    solv_id,
-                    PackageNode{ std::move(pkg_info), std::nullopt },
-                    false
-                );
+                auto pkg_info = m_pool.id2pkginfo(solv_id);
+                assert(pkg_info.has_value());
+                node_id to_id = add_solvable(solv_id, PackageNode{ std::move(pkg_info).value() }, false);
                 m_graph.add_edge(from_id, to_id, edge);
             }
             return added;
@@ -157,11 +158,11 @@ namespace mamba
                         }
                         auto src_id = add_solvable(
                             problem.source_id,
-                            PackageNode{ std::move(source).value(), std::nullopt }
+                            PackageNode{ std::move(source).value() }
                         );
                         node_id tgt_id = add_solvable(
                             problem.target_id,
-                            PackageNode{ std::move(target).value(), { type } }
+                            PackageNode{ std::move(target).value() }
                         );
                         node_id cons_id = add_solvable(problem.dep_id, ConstraintNode{ dep.value() });
                         MatchSpec edge(dep.value());
@@ -182,7 +183,7 @@ namespace mamba
                         }
                         auto src_id = add_solvable(
                             problem.source_id,
-                            PackageNode{ std::move(source).value(), std::nullopt }
+                            PackageNode{ std::move(source).value() }
                         );
                         MatchSpec edge(dep.value());
                         bool added = add_expanded_deps_edges(src_id, problem.dep_id, edge);
@@ -225,7 +226,7 @@ namespace mamba
                         MatchSpec edge(dep.value());
                         node_id dep_id = add_solvable(
                             problem.dep_id,
-                            UnresolvedDependencyNode{ std::move(dep).value(), type }
+                            UnresolvedDependencyNode{ std::move(dep).value() }
                         );
                         m_graph.add_edge(m_root_node, dep_id, std::move(edge));
                         break;
@@ -244,11 +245,11 @@ namespace mamba
                         MatchSpec edge(dep.value());
                         node_id src_id = add_solvable(
                             problem.source_id,
-                            PackageNode{ std::move(source).value(), std::nullopt }
+                            PackageNode{ std::move(source).value() }
                         );
                         node_id dep_id = add_solvable(
                             problem.dep_id,
-                            UnresolvedDependencyNode{ std::move(dep).value(), type }
+                            UnresolvedDependencyNode{ std::move(dep).value() }
                         );
                         m_graph.add_edge(src_id, dep_id, std::move(edge));
                         break;
@@ -267,11 +268,11 @@ namespace mamba
                         }
                         node_id src_id = add_solvable(
                             problem.source_id,
-                            PackageNode{ std::move(source).value(), { type } }
+                            PackageNode{ std::move(source).value() }
                         );
                         node_id tgt_id = add_solvable(
                             problem.target_id,
-                            PackageNode{ std::move(target).value(), { type } }
+                            PackageNode{ std::move(target).value() }
                         );
                         add_conflict(src_id, tgt_id);
                         break;
@@ -289,13 +290,13 @@ namespace mamba
                         break;
                     }
                 }
-            };
+            }
         }
     }
 
     auto ProblemsGraph::from_solver(const MSolver& solver, const MPool& pool) -> ProblemsGraph
     {
-        return ProblemsGraphCreator(solver, pool);
+        return ProblemsGraphCreator(solver, pool).problem_graph();
     }
 
     ProblemsGraph::ProblemsGraph(graph_t graph, conflicts_t conflicts, node_id root_node)
@@ -318,6 +319,74 @@ namespace mamba
     auto ProblemsGraph::root_node() const noexcept -> node_id
     {
         return m_root_node;
+    }
+
+    /******************************************
+     *  Implementation of simplify_conflicts  *
+     ******************************************/
+
+    ProblemsGraph simplify_conflicts(const ProblemsGraph& pbs)
+    {
+        using node_id = ProblemsGraph::node_id;
+        using node_t = ProblemsGraph::node_t;
+
+        const auto& old_graph = pbs.graph();
+        const auto& old_conflicts = pbs.conflicts();
+
+        const auto is_constraint = [](const node_t& node) -> bool
+        { return std::holds_alternative<ProblemsGraph::ConstraintNode>(node); };
+
+        const auto has_constraint_child = [&](node_id n)
+        {
+            if (old_graph.out_degree(n) == 1)
+            {
+                node_id const s = old_graph.successors(n).front();
+                // If s is of constraint type, it has conflicts
+                assert(!is_constraint(old_graph.node(s)) || old_conflicts.has_conflict(s));
+                return is_constraint(old_graph.node(s));
+            }
+            return false;
+        };
+
+        // Working on a copy since we cannot safely iterate through object
+        // and modify them at the same time
+        auto graph = pbs.graph();
+        auto conflicts = pbs.conflicts();
+
+        for (const auto& [id, id_conflicts] : old_conflicts)
+        {
+            // We are trying to detect node that are in conflicts but are not leaves.
+            // This shows up in Pyhon dependencies because the constraint on ``python`` and
+            // ``python_abi`` was inversed.
+            if (has_constraint_child(id))
+            {
+                const node_id id_child = old_graph.successors(id).front();
+                for (const auto& c : id_conflicts)
+                {
+                    // Since ``id`` has a constraint node child (``id-child``) and is itself in
+                    // conflict with another constraint node ``c``, we are moving the conflict
+                    // between the ``id_child`` and the parents ``c_parent`` of the ``c``.
+                    // This is a bit hacky but the intuition is to replicate the structure of
+                    // nodes conflicting with ``id_child`` with ``c_parent``.
+                    // They likely reprensent the same thing and so we want them to be able to
+                    // merge later on.
+                    if (is_constraint(old_graph.node(c)))
+                    {
+                        for (const node_id c_parent : old_graph.predecessors(c))
+                        {
+                            conflicts.add(id_child, c_parent);
+                            graph.remove_edge(c_parent, c);
+                        }
+                        conflicts.remove(id, c);
+                        if (!conflicts.has_conflict(c))
+                        {
+                            graph.remove_node(c);
+                        }
+                    }
+                }
+            }
+        }
+        return { std::move(graph), std::move(conflicts), pbs.root_node() };
     }
 
     /***********************************************
@@ -388,21 +457,20 @@ namespace mamba
         using node_type_list = std::vector<T>;
 
         /**
-         * Group indices of variants with same alternative together.
+         * Group ids of nodes with same alternative together.
          *
-         * If a variant at index ``i`` in the input @p vrnts holds alternative with index ``k``
-         * then the output will contain ``i`` in position ``k``.
+         * If a node variant at with id ``id`` in the input graph @p g holds alternative
+         * with variant index ``k`` then the output will contain ``id`` in position ``k``.
          */
-        template <typename... T>
-        auto variant_by_index(const std::vector<std::variant<T...>>& vrnts)
-            -> node_type_list<std::vector<std::size_t>>
+        auto node_id_by_type(const ProblemsGraph::graph_t& g) -> node_type_list<old_node_id_list>
         {
-            auto out = node_type_list<std::vector<std::size_t>>(sizeof...(T));
-            const auto n = vrnts.size();
-            for (std::size_t i = 0; i < n; ++i)
-            {
-                out[vrnts[i].index()].push_back(i);
-            }
+            using node_id = ProblemsGraph::node_id;
+            using node_t = ProblemsGraph::node_t;
+            static constexpr auto n_types = std::variant_size_v<node_t>;
+
+            auto out = node_type_list<old_node_id_list>(n_types);
+            g.for_each_node_id([&](node_id id) { out[g.node(id).index()].push_back(id); });
+
             return out;
         }
 
@@ -417,7 +485,7 @@ namespace mamba
          */
         template <typename CompFunc>
         auto
-        merge_node_indices(const ProblemsGraph::graph_t::node_list& nodes, CompFunc&& merge_criteria)
+        merge_node_indices(const node_type_list<old_node_id_list>& nodes_by_type, CompFunc&& merge_criteria)
             -> node_type_list<std::vector<old_node_id_list>>
         {
             auto merge_func = [&merge_criteria](const auto& node_indices_of_one_node_type)
@@ -427,7 +495,6 @@ namespace mamba
                     std::forward<CompFunc>(merge_criteria)
                 );
             };
-            const auto nodes_by_type = variant_by_index(nodes);
             node_type_list<std::vector<old_node_id_list>> groups(nodes_by_type.size());
             std::transform(nodes_by_type.begin(), nodes_by_type.end(), groups.begin(), merge_func);
             return groups;
@@ -519,21 +586,21 @@ namespace mamba
             auto leaves_from = [&g](node_id n) -> vector_set<node_id>
             {
                 auto leaves = std::vector<node_id>();
-                g.for_each_leaf_from(n, [&leaves](node_id m) { leaves.push_back(m); });
+                g.for_each_leaf_id_from(n, [&leaves](node_id m) { leaves.push_back(m); });
                 return vector_set(std::move(leaves));
             };
             return (node_name(g.node(n1)) == node_name(g.node(n2)))
                    // Merging conflicts would be counter-productive in explaining problems
                    && !(pbs.conflicts().in_conflict(n1, n2))
-                   // We don't want to use leaves_from for leaves because it resove to themselves,
+                   // We don't want to use leaves_from for leaves because it resolve to themselves,
                    // preventing any merging.
                    && ((is_leaf(n1) && is_leaf(n2)) || (leaves_from(n1) == leaves_from(n2)))
-                   // We only check the parents for non-leaves meaning parents can "inject"
+                   // We only check the parents for leaves meaning parents can "inject"
                    // themselves into a bigger problem
                    && ((!is_leaf(n1) && !is_leaf(n2)) || (g.predecessors(n1) == g.predecessors(n2)));
         }
 
-        using node_id_mapping = std::vector<CompressedProblemsGraph::node_id>;
+        using node_id_mapping = std::map<ProblemsGraph::node_id, CompressedProblemsGraph::node_id>;
 
         /**
          * For a given type of node, merge nodes together and add them to the new graph.
@@ -552,9 +619,6 @@ namespace mamba
             node_id_mapping& old_to_new
         )
         {
-            // Check nothrow move for efficient push_back
-            static_assert(std::is_nothrow_move_constructible_v<Node>);
-
             auto get_old_node = [&old_graph](ProblemsGraph::node_id id)
             {
                 auto node = old_graph.node(id);
@@ -591,11 +655,10 @@ namespace mamba
             auto new_graph = CompressedProblemsGraph::graph_t();
             const auto new_root_node = new_graph.add_node(CompressedProblemsGraph::RootNode());
 
-            auto old_to_new = std::vector<CompressedProblemsGraph::node_id>(
-                old_graph.number_of_nodes()
-            );
+            auto old_to_new = node_id_mapping{};
+
             auto old_ids_groups = merge_node_indices(
-                old_graph.nodes(),
+                node_id_by_type(pbs.graph()),
                 std::forward<CompFunc>(merge_criteria)
             );
 
@@ -656,15 +719,15 @@ namespace mamba
         {
             auto add_new_edge = [&](ProblemsGraph::node_id old_from, ProblemsGraph::node_id old_to)
             {
-                auto const new_from = old_to_new[old_from];
-                auto const new_to = old_to_new[old_to];
+                auto const new_from = old_to_new.at(old_from);
+                auto const new_to = old_to_new.at(old_to);
                 if (!new_graph.has_edge(new_from, new_to))
                 {
                     new_graph.add_edge(new_from, new_to, CompressedProblemsGraph::edge_t());
                 }
                 new_graph.edge(new_from, new_to).insert(old_graph.edge(old_from, old_to));
             };
-            old_graph.for_each_edge(add_new_edge);
+            old_graph.for_each_edge_id(add_new_edge);
         }
 
         /**
@@ -680,10 +743,10 @@ namespace mamba
             auto new_conflicts = CompressedProblemsGraph::conflicts_t();
             for (const auto& [old_from, old_with] : old_conflicts)
             {
-                const auto new_from = old_to_new[old_from];
+                const auto new_from = old_to_new.at(old_from);
                 for (const auto old_to : old_with)
                 {
-                    new_conflicts.add(new_from, old_to_new[old_to]);
+                    new_conflicts.add(new_from, old_to_new.at(old_to));
                 }
             }
             return new_conflicts;
@@ -696,9 +759,9 @@ namespace mamba
         const merge_criteria_t& merge_criteria
     ) -> CompressedProblemsGraph
     {
-        graph_t graph;
-        node_id root_node;
-        node_id_mapping old_to_new;
+        graph_t graph = {};
+        node_id root_node = {};
+        node_id_mapping old_to_new = {};
         if (merge_criteria)
         {
             auto merge_func =
@@ -840,8 +903,8 @@ namespace mamba
     {
         if (size() == 0)
         {
-            static const std::string empty = "";
-            return empty;
+            static const std::string lempty = "";
+            return lempty;
         }
         return invoke_name(front());
     }
@@ -957,18 +1020,6 @@ namespace mamba
      *  Implementation of summary_msg  *
      ***********************************/
 
-    std::ostream& print_problem_summary_msg(std::ostream& out, const CompressedProblemsGraph&)
-    {
-        return out << "Could not solve for environment specs\n";
-    }
-
-    std::string problem_summary_msg(const CompressedProblemsGraph& pbs)
-    {
-        std::stringstream ss;
-        print_problem_summary_msg(ss, pbs);
-        return ss.str();
-    }
-
     /****************************************
      *  Implementation of problem_tree_msg  *
      ****************************************/
@@ -1077,7 +1128,7 @@ namespace mamba
             using TreeNodeIter = typename TreeNodeList::iterator;
 
             vector_set<node_id> leaf_installables = {};
-            std::vector<std::optional<Status>> m_node_visited;
+            std::map<node_id, std::optional<Status>> m_node_visited = {};
             const CompressedProblemsGraph& m_pbs;
 
             /**
@@ -1132,9 +1183,9 @@ namespace mamba
          *******************************/
 
         TreeDFS::TreeDFS(const CompressedProblemsGraph& pbs)
-            : m_node_visited(pbs.graph().number_of_nodes(), std::nullopt)
-            , m_pbs(pbs)
+            : m_pbs(pbs)
         {
+            pbs.graph().for_each_node_id([&](auto id) { m_node_visited.emplace(id, std::nullopt); });
         }
 
         auto TreeDFS::explore() -> std::vector<TreeNode>
@@ -1144,13 +1195,13 @@ namespace mamba
                 m_pbs.graph().number_of_edges() + m_pbs.graph().number_of_nodes()
             );
             auto [out, _] = visit_node(m_pbs.root_node(), path.begin());
-            path.resize(out - path.begin());
+            path.resize(static_cast<std::size_t>(out - path.begin()));
             return path;
         }
 
         auto TreeDFS::node_uninstallable(node_id id) -> Status
         {
-            auto installables_contains = [&](auto&& id) { return leaf_installables.contains(id); };
+            auto installables_contains = [&](auto&& lid) { return leaf_installables.contains(lid); };
             const auto& conflicts = m_pbs.conflicts();
 
             // Conflicts are tricky to handle because they are not an isolated problem, they only
@@ -1177,7 +1228,7 @@ namespace mamba
         {
             const bool has_predecessors = m_pbs.graph().predecessors(id).size() > 0;
             const bool has_successors = m_pbs.graph().successors(id).size() > 0;
-            const bool is_visited = m_node_visited[id].has_value();
+            const bool is_visited = m_node_visited.at(id).has_value();
             // We purposefully check if the node is a leaf before checking if it
             // is visited because showing a single  node again is more intelligible than
             // refering to another one.
@@ -1335,11 +1386,6 @@ namespace mamba
             {
                 return { out, status.value() };
             }
-            if (node_uninstallable(id))
-            {
-                m_node_visited[id] = false;
-                return { out, false };
-            }
 
             Status status = true;
             // TODO(C++20) an enumerate view ``views::zip(views::iota(), children_ids)``
@@ -1348,7 +1394,8 @@ namespace mamba
             {
                 const auto children_pos = i == successors.size() - 1 ? SiblingNumber::last
                                                                      : SiblingNumber::not_last;
-                Status child_status;
+                Status child_status = true;
+                assert(children.size() > 0);
                 if (children.size() > 1)
                 {
                     std::tie(out, child_status) = visit_split(children, children_pos, ongoing, out);
@@ -1361,6 +1408,15 @@ namespace mamba
                 status &= child_status;
                 ++i;
             }
+
+            // Node installability status is checked *after* visiting the children because there
+            // are cases where both non-leaf nodes and their children have conflicts so we need
+            // to visit children to exaplin conflicts.
+            // In most cases though, only leaves would have conflicts and the loop above would be
+            // empty in such case.
+            // Warning node_uninstallable has side effects and must be called unconditionally
+            // (first here).
+            status = !node_uninstallable(id) && status;
 
             m_node_visited[id] = status;
             return { out, status };

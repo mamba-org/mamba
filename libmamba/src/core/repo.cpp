@@ -239,7 +239,7 @@ namespace mamba
 
     std::size_t MRepo::size() const
     {
-        return m_repo->nsolvables;
+        return static_cast<std::size_t>(m_repo->nsolvables);
     }
 
     const fs::u8path& MRepo::index_file()

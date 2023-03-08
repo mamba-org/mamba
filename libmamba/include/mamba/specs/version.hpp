@@ -10,6 +10,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace mamba::specs
 {
@@ -51,5 +52,65 @@ namespace mamba::specs
     };
 
     extern template VersionPartAtom::VersionPartAtom(std::size_t, std::string&&);
+
+    /**
+     * A sequence of VersionPartAtom meant to represent a part of a version (e.g. major, minor).
+     *
+     * Version parts can have a arbitrary number of atoms, such as {0, "post"} {1, "dev"}
+     * in 0post1dev
+     *
+     * @see  Version::parse for how this is computed from strings.
+     * @todo Use a small vector of expected size 1 if performance ar not good enough.
+     */
+    using VersionPart = std::vector<VersionPartAtom>;
+
+    /**
+     * A sequence of VersionPart meant to represent all parts of a version.
+     *
+     * CommonVersion are composed of an aribtrary postive number parts, such as major, minor.
+     * They are typically separated by dots, for instance the three parts in 3.0post1dev.4 are
+     * {{3, ""}}, {{0, "post"}, {1, "dev"}}, and {{4, ""}}.
+     *
+     * @see  Version::parse for how this is computed from strings.
+     * @todo Use a small vector of expected size 4 if performance ar not good enough.
+     */
+    using CommonVersion = std::vector<VersionPart>;
+
+    /**
+     * A version according to Conda specifications.
+     *
+     * A verison is composed of
+     * - A epoch number, usually 0;
+     * - A regular version,
+     * - An optional local.
+     * These elements are used to lexicographicaly compare two versions.
+     *
+     * @see https://github.com/conda/conda/blob/main/conda/models/version.py
+     */
+    class Version
+    {
+    public:
+
+        Version(std::size_t epoch, CommonVersion&& version, CommonVersion&& local = {}) noexcept;
+
+        auto epoch() const noexcept -> std::size_t;
+        auto version() const noexcept -> const CommonVersion&;
+        auto local() const noexcept -> const CommonVersion&;
+
+        auto operator==(const Version& other) const -> bool;
+        auto operator!=(const Version& other) const -> bool;
+        auto operator<(const Version& other) const -> bool;
+        auto operator<=(const Version& other) const -> bool;
+        auto operator>(const Version& other) const -> bool;
+        auto operator>=(const Version& other) const -> bool;
+
+    private:
+
+        // Stored in decreasing size order for performance
+        CommonVersion m_version = {};
+        CommonVersion m_local = {};
+        std::size_t m_epoch = 0;
+    };
+
 }
 #endif

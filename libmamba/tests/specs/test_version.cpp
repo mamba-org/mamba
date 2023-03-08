@@ -55,4 +55,36 @@ namespace mamba::specs
         // None compare equal (given the is_sorted assumption)
         EXPECT_EQ(std::adjacent_find(sorted_atoms.cbegin(), sorted_atoms.cend()), sorted_atoms.cend());
     }
+
+    TEST(version, version_comparison)
+    {
+        auto v = Version(0, { { { 1, "post" } } });
+        ASSERT_EQ(v.version().size(), 1);
+        ASSERT_EQ(v.version().front().size(), 1);
+        ASSERT_EQ(v.version().front().front(), VersionPartAtom(1, "post"));
+
+        // Same empty 0!1post version
+        EXPECT_EQ(Version(0, { { { 1, "post" } } }), Version(0, { { { 1, "post" } } }));
+        // Empty trailing atom 0!1a == 0!1a0""
+        EXPECT_EQ(Version(0, { { { 1, "a" } } }), Version(0, { { { 1, "a" }, {} } }));
+        // Empty trailing part 0!1a == 0!1a.0""
+        EXPECT_EQ(Version(0, { { { 1, "a" } } }), Version(0, { { { 1, "a" } }, { {} } }));
+        // Mixed 0!1a0""0"" == 0!1a.0""
+        EXPECT_EQ(Version(0, { { { 1, "a" }, {}, {} } }), Version(0, { { { 1, "a" } }, { {} } }));
+
+        // Different epoch 0!2post < 1!1dev
+        EXPECT_LT(Version(0, { { { 2, "post" } } }), Version(1, { { { 1, "dev" } } }));
+        EXPECT_GE(Version(1, { { { 1, "dev" } } }), Version(0, { { { 2, "post" } } }));
+        // Different lenght with dev
+        EXPECT_LT(Version(0, { { { 1 } }, { { 0, "dev" } } }), Version(0, { { { 1 } } }));
+        EXPECT_LT(Version(0, { { { 1 } }, { { 0 } }, { { 0, "dev" } } }), Version(0, { { { 1 } } }));
+        // Different major 0!1post < 0!2dev
+        EXPECT_LT(Version(0, { { { 1, "post" } } }), Version(0, { { { 2, "dev" } } }));
+        // Different length 0!2"".0"" < 0!11"".0"".0post all operator
+        EXPECT_NE(Version(0, { { { 2 }, { 0 } } }), Version(0, { { { 11 }, { 0 }, { 0, "post" } } }));
+        EXPECT_LT(Version(0, { { { 2 }, { 0 } } }), Version(0, { { { 11 }, { 0 }, { 0, "post" } } }));
+        EXPECT_LE(Version(0, { { { 2 }, { 0 } } }), Version(0, { { { 11 }, { 0 }, { 0, "post" } } }));
+        EXPECT_GT(Version(0, { { { 11 }, { 0 }, { 0, "post" } } }), Version(0, { { { 2 }, { 0 } } }));
+        EXPECT_GE(Version(0, { { { 11 }, { 0 }, { 0, "post" } } }), Version(0, { { { 2 }, { 0 } } }));
+    }
 }

@@ -56,6 +56,12 @@ namespace mamba::specs
         EXPECT_EQ(std::adjacent_find(sorted_atoms.cbegin(), sorted_atoms.cend()), sorted_atoms.cend());
     }
 
+    TEST(version, atom_format)
+    {
+        EXPECT_EQ(VersionPartAtom(1, "dev").str(), "1dev");
+        EXPECT_EQ(VersionPartAtom(2).str(), "2");
+    }
+
     TEST(version, version_comparison)
     {
         auto v = Version(0, { { { 1, "post" } } });
@@ -86,5 +92,23 @@ namespace mamba::specs
         EXPECT_LE(Version(0, { { { 2 }, { 0 } } }), Version(0, { { { 11 }, { 0 }, { 0, "post" } } }));
         EXPECT_GT(Version(0, { { { 11 }, { 0 }, { 0, "post" } } }), Version(0, { { { 2 }, { 0 } } }));
         EXPECT_GE(Version(0, { { { 11 }, { 0 }, { 0, "post" } } }), Version(0, { { { 2 }, { 0 } } }));
+    }
+
+    TEST(version, version_format)
+    {
+        // clang-format off
+        EXPECT_EQ(
+            Version(0, {{{11, "a"}, {0, "post"}}, {{3}}, {{4, "dev"}}}).str(),
+            "11a0post.3.4dev"
+        );
+        EXPECT_EQ(
+            Version(1, {{{11, "a"}, {0}}, {{3}}, {{4, "dev"}}}).str(),
+            "1!11a0.3.4dev"
+        );
+        EXPECT_EQ(
+            Version(1, {{{11, "a"}, {0}}, {{3}}, {{4, "dev"}}}, {{{1}}, {{2}}}).str(),
+            "1!11a0.3.4dev+1.2"
+        );
+        // clang-format on
     }
 }

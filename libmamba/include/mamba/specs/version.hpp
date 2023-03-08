@@ -12,6 +12,8 @@
 #include <utility>
 #include <vector>
 
+#include <fmt/format.h>
+
 namespace mamba::specs
 {
 
@@ -36,6 +38,8 @@ namespace mamba::specs
         auto numeral() const noexcept -> std::size_t;
         auto litteral() const& noexcept -> const std::string&;
         auto litteral() && noexcept -> std::string;
+
+        auto str() const -> std::string;
 
         auto operator==(const VersionPartAtom& other) const -> bool;
         auto operator!=(const VersionPartAtom& other) const -> bool;
@@ -97,6 +101,8 @@ namespace mamba::specs
         auto version() const noexcept -> const CommonVersion&;
         auto local() const noexcept -> const CommonVersion&;
 
+        auto str() const -> std::string;
+
         auto operator==(const Version& other) const -> bool;
         auto operator!=(const Version& other) const -> bool;
         auto operator<(const Version& other) const -> bool;
@@ -111,6 +117,78 @@ namespace mamba::specs
         CommonVersion m_local = {};
         std::size_t m_epoch = 0;
     };
-
 }
+
+template <>
+struct ::fmt::formatter<::mamba::specs::VersionPartAtom>
+{
+    constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin())
+    {
+        // make sure that range is empty
+        if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
+        {
+            throw fmt::format_error("Invalid format");
+        }
+        return ctx.begin();
+    }
+
+    template <class FormatContext>
+    auto format(const ::mamba::specs::VersionPartAtom atom, FormatContext& ctx)
+    {
+        return fmt::format_to(ctx.out(), "{}{}", atom.numeral(), atom.litteral());
+    }
+};
+
+template <>
+struct ::fmt::formatter<::mamba::specs::Version>
+{
+    constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin())
+    {
+        // make sure that range is empty
+        if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
+        {
+            throw fmt::format_error("Invalid format");
+        }
+        return ctx.begin();
+    }
+
+    template <class FormatContext>
+    auto format(const ::mamba::specs::Version v, FormatContext& ctx)
+    {
+        auto out = ctx.out();
+        if (v.epoch() != 0)
+        {
+            out = fmt::format_to(ctx.out(), "{}!", v.epoch());
+        }
+
+        auto format_version_to = [](auto out, const auto& version)
+        {
+            bool first = true;
+            for (const auto& part : version)
+            {
+                if (first)
+                {
+                    first = false;
+                }
+                else
+                {
+                    out = fmt::format_to(out, ".");
+                }
+                for (const auto& atom : part)
+                {
+                    out = fmt::format_to(out, "{}", atom);
+                }
+            }
+            return out;
+        };
+        out = format_version_to(out, v.version());
+        if (!v.local().empty())
+        {
+            out = fmt::format_to(out, "+");
+            out = format_version_to(out, v.local());
+        }
+        return out;
+    }
+};
+
 #endif

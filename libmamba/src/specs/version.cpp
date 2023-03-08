@@ -54,6 +54,11 @@ namespace mamba::specs
         return std::move(m_litteral);
     }
 
+    auto VersionPartAtom::str() const -> std::string
+    {
+        return fmt::format("{}", *this);
+    }
+
     // TODO(C++20) use operator<=>
     auto VersionPartAtom::operator==(const VersionPartAtom& other) const -> bool
     {
@@ -155,6 +160,11 @@ namespace mamba::specs
     auto Version::local() const noexcept -> const CommonVersion&
     {
         return m_local;
+    }
+
+    auto Version::str() const -> std::string
+    {
+        return fmt::format("{}", *this);
     }
 
     namespace

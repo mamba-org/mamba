@@ -82,9 +82,4 @@ set_search_command(CLI::App* subcom);
 void
 set_auth_command(CLI::App* subcom);
 
-#if !defined(_WIN32) && defined(MICROMAMBA_SERVER)
-void
-set_server_command(CLI::App* subcom);
-#endif
-
 #endif

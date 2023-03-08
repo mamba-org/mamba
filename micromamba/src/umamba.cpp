@@ -105,10 +105,5 @@ set_umamba_command(CLI::App* com)
     );
     set_search_command(search_subcom);
 
-#if !defined(_WIN32) && defined(MICROMAMBA_SERVER)
-    CLI::App* server_subcom = com->add_subcommand("server", "Run micromamba server");
-    set_server_command(server_subcom);
-#endif
-
     com->require_subcommand(/* min */ 0, /* max */ 1);
 }

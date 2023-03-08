@@ -121,7 +121,6 @@ jobs:
           mkdir build
           cd build
           cmake .. -DBUILD_MICROMAMBA=ON \
-                   -DBUILD_MICROMAMBA_SERVER=ON \
                    -DBUILD_LIBMAMBA=ON \
                    -DBUILD_SHARED=ON \
                    -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \

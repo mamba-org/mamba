@@ -11,7 +11,6 @@ project(micromamba)
 
 # Build options
 # =============
-option(BUILD_MICROMAMBA_SERVER "Build the micromamba server" OFF)
 
 if (BUILD_STATIC AND NOT BUILD_SHARED)
     set(MICROMAMBA_LINKAGE "STATIC" CACHE STRING "micromamba linkage against libraries")
@@ -52,13 +51,6 @@ set(MICROMAMBA_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/umamba.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/version.hpp
 )
-
-if(UNIX AND BUILD_MICROMAMBA_SERVER)
-    list(APPEND MICROMAMBA_SRCS
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/server.cpp
-    )
-    add_definitions(-DMICROMAMBA_SERVER)
-endif()
 
 add_executable(micromamba ${MICROMAMBA_SRCS} ${MICROMAMBA_HEADERS})
 

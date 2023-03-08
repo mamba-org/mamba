@@ -95,6 +95,14 @@ namespace mamba::specs
     {
     public:
 
+        static constexpr char epoch_delim = '!';
+        static constexpr char local_delim = '+';
+        static constexpr char part_delim = '.';
+        static constexpr char part_delim_alt = '-';
+        static constexpr char part_delim_special = '_';
+
+        static auto parse(std::string_view str) -> Version;
+
         Version(std::size_t epoch, CommonVersion&& version, CommonVersion&& local = {}) noexcept;
 
         auto epoch() const noexcept -> std::size_t;

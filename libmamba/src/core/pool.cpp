@@ -6,6 +6,7 @@
 
 #include <list>
 
+#include <fmt/format.h>
 #include <solv/evr.h>
 #include <solv/pool.h>
 #include <solv/selection.h>
@@ -19,6 +20,9 @@ extern "C"  // Incomplete header
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
+#include "mamba/core/util_cast.hpp"
+#include "mamba/core/util_compare.hpp"
+#include "mamba/core/util_string.hpp"
 
 #include "solv-cpp/queue.hpp"
 
@@ -90,6 +94,11 @@ namespace mamba
         return m_data->pool.get();
     }
 
+    std::size_t MPool::n_solvables() const
+    {
+        return util::safe_num_cast<std::size_t>(pool()->nsolvables);
+    }
+
     void MPool::set_debuglevel()
     {
         // ensure that debug logging goes to stderr as to not interfere with stdout json output
@@ -150,13 +159,147 @@ namespace mamba
         return id;
     }
 
-    std::optional<PackageInfo> MPool::id2pkginfo(Id id)
+    namespace
     {
-        if (id == 0 || id >= pool()->nsolvables)
+        auto make_package_info(::Solvable& s) -> PackageInfo
+        {
+            // Note: this function (especially the checksum part) is NOT YET threadsafe!
+            Pool* pool = s.repo->pool;
+            Id check_type;
+
+            PackageInfo out = {};
+
+            out.name = pool_id2str(pool, s.name);
+            out.version = pool_id2str(pool, s.evr);
+            out.build_string = raw_str_or_empty(solvable_lookup_str(&s, SOLVABLE_BUILDFLAVOR));
+            if (const char* str = solvable_lookup_str(&s, SOLVABLE_BUILDVERSION); str != nullptr)
+            {
+                out.build_number = std::stoull(str);
+            }
+
+            static ::Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
+            if (const char* str = solvable_lookup_str(&s, real_repo_key); str != nullptr)
+            {
+                out.url = str;
+                out.channel = make_channel(out.url).canonical_name();
+            }
+            else
+            {
+                if (!s.repo || strcmp(s.repo->name, "__explicit_specs__") == 0)
+                {
+                    out.url = solvable_lookup_location(&s, 0);
+                    out.channel = make_channel(out.url).canonical_name();
+                }
+                else
+                {
+                    out.channel = s.repo->name;  // note this can and should be <unknown> when e.g.
+                                                 // installing from a tarball
+                    out.url = fmt::format(
+                        "{}/{}",
+                        out.channel,
+                        raw_str_or_empty(solvable_lookup_str(&s, SOLVABLE_MEDIAFILE))
+                    );
+                }
+            }
+
+            out.subdir = raw_str_or_empty(solvable_lookup_str(&s, SOLVABLE_MEDIADIR));
+            out.fn = raw_str_or_empty(solvable_lookup_str(&s, SOLVABLE_MEDIAFILE));
+            out.license = raw_str_or_empty(solvable_lookup_str(&s, SOLVABLE_LICENSE));
+            out.size = solvable_lookup_num(&s, SOLVABLE_DOWNLOADSIZE, 0);
+            out.timestamp = solvable_lookup_num(&s, SOLVABLE_BUILDTIME, 0);
+            out.md5 = raw_str_or_empty(solvable_lookup_checksum(&s, SOLVABLE_PKGID, &check_type));
+            out.sha256 = raw_str_or_empty(solvable_lookup_checksum(&s, SOLVABLE_CHECKSUM, &check_type)
+            );
+            out.signatures = raw_str_or_empty(solvable_lookup_str(&s, SIGNATURE_DATA));
+            if (out.signatures.empty())
+            {
+                out.signatures = "{}";
+            }
+
+            solv::ObjQueue q = {};
+            auto dep2str = [&pool](Id id) { return pool_dep2str(pool, id); };
+            if (!solvable_lookup_deparray(&s, SOLVABLE_REQUIRES, q.raw(), -1))
+            {
+                out.defaulted_keys.insert("depends");
+            }
+            out.depends.reserve(q.size());
+            std::transform(q.begin(), q.end(), std::back_inserter(out.depends), dep2str);
+
+            q.clear();
+            if (!solvable_lookup_deparray(&s, SOLVABLE_CONSTRAINS, q.raw(), -1))
+            {
+                out.defaulted_keys.insert("constrains");
+            }
+            out.constrains.reserve(q.size());
+            std::transform(q.begin(), q.end(), std::back_inserter(out.constrains), dep2str);
+
+            q.clear();
+            solvable_lookup_idarray(&s, SOLVABLE_TRACK_FEATURES, q.raw());
+            for (::Id const id : q)
+            {
+                out.track_features += pool_id2str(pool, id);
+                out.track_features += ',';
+            }
+            if (!out.track_features.empty())
+            {
+                out.track_features.pop_back();
+            }
+
+            const ::Id extra_keys_id = pool_str2id(pool, "solvable:extra_keys", 0);
+            const ::Id extra_values_id = pool_str2id(pool, "solvable:extra_values", 0);
+            if (extra_keys_id && extra_values_id)
+            {
+                // Get extra signed keys
+                q.clear();
+                solvable_lookup_idarray(&s, extra_keys_id, q.raw());
+                std::vector<std::string> extra_keys = {};
+                extra_keys.reserve(q.size());
+                std::transform(q.begin(), q.end(), std::back_inserter(extra_keys), dep2str);
+
+                // Get extra signed values
+                q.clear();
+                solvable_lookup_idarray(&s, extra_values_id, q.raw());
+                std::vector<std::string> extra_values = {};
+                extra_values.reserve(q.size());
+                std::transform(q.begin(), q.end(), std::back_inserter(extra_values), dep2str);
+
+                // Build a JSON string for extra signed metadata
+                if (!extra_keys.empty() && (extra_keys.size() == extra_values.size()))
+                {
+                    std::vector<std::string> extra = {};
+                    extra.reserve(extra_keys.size());
+                    for (std::size_t i = 0; i < extra_keys.size(); ++i)
+                    {
+                        extra.push_back(fmt::format(R"("{}":{})", extra_keys[i], extra_values[i]));
+                    }
+                    out.extra_metadata = fmt::format("{{{}}}", fmt::join(extra, ","));
+                }
+            }
+            else
+            {
+                out.extra_metadata = "{}";
+            }
+            return out;
+        }
+    }
+
+    std::optional<PackageInfo> MPool::id2pkginfo(Id solv_id) const
+    {
+        if (solv_id == 0 || util::cmp_greater_equal(solv_id, n_solvables()))
         {
             return std::nullopt;
         }
-        return pool_id2solvable(pool(), id);
+        return { make_package_info(*pool_id2solvable(pool(), solv_id)) };
+    }
+
+    std::optional<std::string> MPool::dep2str(Id dep_id) const
+    {
+        if (!dep_id)
+        {
+            return std::nullopt;
+        }
+        // Not const because might alloctmp space
+        return pool_dep2str(const_cast<::Pool*>(pool()), dep_id);
     }
 
     MRepo& MPool::add_repo(MRepo&& repo)

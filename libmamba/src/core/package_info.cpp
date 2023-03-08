@@ -15,8 +15,6 @@
 #include "mamba/core/channel.hpp"
 #include "mamba/core/util_string.hpp"
 
-#include "solv-cpp/queue.hpp"
-
 namespace mamba
 {
     namespace
@@ -43,7 +41,7 @@ namespace mamba
             return std::bind(get_package_info_field<T>, std::placeholders::_1, field);
         }
 
-        using field_getter_map = std::map<std::string, PackageInfo::field_getter>;
+        using field_getter_map = std::map<std::string_view, PackageInfo::field_getter>;
 
         field_getter_map build_field_getter_map()
         {
@@ -62,16 +60,16 @@ namespace mamba
             return res;
         }
 
-        field_getter_map& get_field_getter_map()
+        const field_getter_map& get_field_getter_map()
         {
             static field_getter_map m = build_field_getter_map();
             return m;
         }
     }  // namespace
 
-    PackageInfo::field_getter PackageInfo::get_field_getter(const std::string& name)
+    PackageInfo::field_getter PackageInfo::get_field_getter(std::string_view field_name)
     {
-        auto it = get_field_getter_map().find(name);
+        auto it = get_field_getter_map().find(field_name);
         if (it == get_field_getter_map().end())
         {
             throw std::runtime_error("field_getter function not found");
@@ -79,167 +77,18 @@ namespace mamba
         return it->second;
     }
 
-    PackageInfo::compare_fun PackageInfo::less(const std::string& member)
+    PackageInfo::compare_fun PackageInfo::less(std::string_view member)
     {
         auto getter = get_field_getter(member);
         return [getter](const PackageInfo& lhs, const PackageInfo& rhs)
         { return getter(lhs) < getter(rhs); };
     }
 
-    PackageInfo::compare_fun PackageInfo::equal(const std::string& member)
+    PackageInfo::compare_fun PackageInfo::equal(std::string_view member)
     {
         auto getter = get_field_getter(member);
         return [getter](const PackageInfo& lhs, const PackageInfo& rhs)
         { return getter(lhs) == getter(rhs); };
-    }
-
-    PackageInfo::PackageInfo(Solvable* s)
-    {
-        // Note: this function (especially the checksum part) is NOT YET threadsafe!
-        Pool* pool = s->repo->pool;
-        Id check_type;
-
-        name = pool_id2str(pool, s->name);
-        version = pool_id2str(pool, s->evr);
-        const char* str = solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
-        if (str)
-        {
-            build_string = str;
-        }
-        str = solvable_lookup_str(s, SOLVABLE_BUILDVERSION);
-        if (str)
-        {
-            build_number = std::stoull(str);
-        }
-
-        static Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
-        if (solvable_lookup_str(s, real_repo_key))
-        {
-            url = solvable_lookup_str(s, real_repo_key);
-            channel = make_channel(url).canonical_name();
-        }
-        else
-        {
-            if (!s->repo || strcmp(s->repo->name, "__explicit_specs__") == 0)
-            {
-                url = solvable_lookup_location(s, 0);
-                channel = make_channel(url).canonical_name();
-            }
-            else
-            {
-                channel = s->repo->name;  // note this can and should be <unknown> when e.g.
-                                          // installing from a tarball
-                url = channel + "/" + raw_str_or_empty(solvable_lookup_str(s, SOLVABLE_MEDIAFILE));
-            }
-        }
-
-        subdir = raw_str_or_empty(solvable_lookup_str(s, SOLVABLE_MEDIADIR));
-        fn = raw_str_or_empty(solvable_lookup_str(s, SOLVABLE_MEDIAFILE));
-        str = raw_str_or_empty(solvable_lookup_str(s, SOLVABLE_LICENSE));
-        if (str)
-        {
-            license = str;
-        }
-        size = solvable_lookup_num(s, SOLVABLE_DOWNLOADSIZE, 0);
-        timestamp = solvable_lookup_num(s, SOLVABLE_BUILDTIME, 0);
-        str = solvable_lookup_checksum(s, SOLVABLE_PKGID, &check_type);
-        if (str)
-        {
-            md5 = str;
-        }
-        str = solvable_lookup_checksum(s, SOLVABLE_CHECKSUM, &check_type);
-        if (str)
-        {
-            sha256 = str;
-        }
-        signatures = raw_str_or_empty(solvable_lookup_str(s, SIGNATURE_DATA));
-        if (signatures.empty())
-        {
-            signatures = "{}";
-        }
-
-        solv::ObjQueue q = {};
-
-        if (!solvable_lookup_deparray(s, SOLVABLE_REQUIRES, q.raw(), -1))
-        {
-            defaulted_keys.insert("depends");
-        }
-        depends.reserve(q.size());
-        std::transform(
-            q.begin(),
-            q.end(),
-            std::back_inserter(depends),
-            [&pool](Id id) { return pool_dep2str(pool, id); }
-        );
-
-        q.clear();
-        if (!solvable_lookup_deparray(s, SOLVABLE_CONSTRAINS, q.raw(), -1))
-        {
-            defaulted_keys.insert("constrains");
-        }
-        constrains.reserve(q.size());
-        std::transform(
-            q.begin(),
-            q.end(),
-            std::back_inserter(constrains),
-            [&pool](Id id) { return pool_dep2str(pool, id); }
-        );
-
-        q.clear();
-        solvable_lookup_idarray(s, SOLVABLE_TRACK_FEATURES, q.raw());
-        for (auto iter = q.begin(), end = q.end(); iter < end; ++iter)
-        {
-            track_features += pool_id2str(pool, *iter);
-            if (iter < end - 1)
-            {
-                track_features += ",";
-            }
-        }
-
-        Id extra_keys_id = pool_str2id(pool, "solvable:extra_keys", 0);
-        Id extra_values_id = pool_str2id(pool, "solvable:extra_values", 0);
-
-        if (extra_keys_id && extra_values_id)
-        {
-            // Get extra signed keys
-            q.clear();
-            solvable_lookup_idarray(s, extra_keys_id, q.raw());
-            std::vector<std::string> extra_keys = {};
-            extra_keys.reserve(q.size());
-            std::transform(
-                q.begin(),
-                q.end(),
-                std::back_inserter(extra_keys),
-                [&pool](Id id) { return pool_dep2str(pool, id); }
-            );
-
-            // Get extra signed values
-            q.clear();
-            solvable_lookup_idarray(s, extra_values_id, q.raw());
-            std::vector<std::string> extra_values = {};
-            extra_values.reserve(q.size());
-            std::transform(
-                q.begin(),
-                q.end(),
-                std::back_inserter(extra_values),
-                [&pool](Id id) { return pool_dep2str(pool, id); }
-            );
-
-            // Build a JSON string for extra signed metadata
-            if (!extra_keys.empty() && (extra_keys.size() == extra_values.size()))
-            {
-                std::vector<std::string> extra;
-                for (std::size_t i = 0; i < extra_keys.size(); ++i)
-                {
-                    extra.push_back("\"" + extra_keys[i] + "\":" + extra_values[i]);
-                }
-                extra_metadata = "{" + join(",", extra) + "}";
-            }
-        }
-        else
-        {
-            extra_metadata = "{}";
-        }
     }
 
     PackageInfo::PackageInfo(nlohmann::json&& j)
@@ -289,21 +138,16 @@ namespace mamba
         }
     }
 
-    PackageInfo::PackageInfo(const std::string& n)
-        : name(n)
-    {
-    }
-
-    PackageInfo::PackageInfo(std::string&& n)
+    PackageInfo::PackageInfo(std::string n)
         : name(std::move(n))
     {
     }
 
-    PackageInfo::PackageInfo(const std::string& n, const std::string& v, const std::string b, std::size_t bn)
-        : name(n)
-        , version(v)
-        , build_string(b)
-        , build_number(bn)
+    PackageInfo::PackageInfo(std::string n, std::string v, std::string b, std::size_t bn)
+        : name(std::move(n))
+        , version(std::move(v))
+        , build_string(std::move(b))
+        , build_number(std::move(bn))
     {
     }
 

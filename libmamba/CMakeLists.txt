@@ -69,6 +69,11 @@ if(ENABLE_ASAN)
     message(WARNING "Address-Sanitizer instrumentation will be injected into binaries - do not release these binaries")
     add_compile_options(-fno-omit-frame-pointer  -fsanitize=address)
     add_link_options(-fno-omit-frame-pointer  -fsanitize=address)
+    if(BUILD_STATIC)
+        # This is necessary because add_link_options() only pass flags to linker, not static cases
+        set(STATIC_LIBRARY_FLAGS ${STATIC_LIBRARY_FLAGS} -fsanitize=address)
+    endif()
+
 endif()
 
 if(ENABLE_TSAN)

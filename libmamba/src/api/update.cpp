@@ -70,10 +70,12 @@ namespace mamba
         MRepo::create(pool, prefix_data);
 
         MSolver solver(
-            std::move(pool),
-            { { SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade },
-              { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },
-              { SOLVER_FLAG_STRICT_REPO_PRIORITY, ctx.channel_priority == ChannelPriority::kStrict } }
+            pool,
+            {
+                { SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade },
+                { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },
+                { SOLVER_FLAG_STRICT_REPO_PRIORITY, ctx.channel_priority == ChannelPriority::kStrict },
+            }
         );
 
         if (update_all)
@@ -140,7 +142,7 @@ namespace mamba
             }
         };
 
-        MTransaction transaction(solver, package_caches);
+        MTransaction transaction(pool, solver, package_caches);
         execute_transaction(transaction);
 
         config.operation_teardown();

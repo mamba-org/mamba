@@ -27,114 +27,119 @@
 
 namespace mamba
 {
-    void walk_graph(
-        query_result::dependency_graph& dep_graph,
-        query_result::dependency_graph::node_id parent,
-        Solvable* s,
-        std::map<Solvable*, size_t>& visited,
-        std::map<std::string, size_t>& not_found,
-        int depth = -1
-    )
+    namespace
     {
-        if (depth == 0)
+        void walk_graph(
+            MPool pool,
+            query_result::dependency_graph& dep_graph,
+            query_result::dependency_graph::node_id parent,
+            Solvable* s,
+            std::map<Solvable*, size_t>& visited,
+            std::map<std::string, size_t>& not_found,
+            int depth = -1
+        )
         {
-            return;
-        }
-        depth -= 1;
-
-        if (s && s->requires)
-        {
-            auto* pool = s->repo->pool;
-
-            Id* reqp = s->repo->idarraydata + s->requires;
-            Id req = *reqp;
-
-            while (req != 0)
+            if (depth == 0)
             {
-                solv::ObjQueue rec_solvables = {};
-                // the following prints the requested version
-                solv::ObjQueue job = { SOLVER_SOLVABLE_PROVIDES, req };
-                selection_solvables(pool, job.raw(), rec_solvables.raw());
+                return;
+            }
+            depth -= 1;
 
-                if (rec_solvables.size() != 0)
+            if (s && s->requires)
+            {
+                Id* reqp = s->repo->idarraydata + s->requires;
+                Id req = *reqp;
+
+                while (req != 0)
                 {
-                    Solvable* rs = nullptr;
-                    for (auto& el : rec_solvables)
+                    solv::ObjQueue rec_solvables = {};
+                    // the following prints the requested version
+                    solv::ObjQueue job = { SOLVER_SOLVABLE_PROVIDES, req };
+                    selection_solvables(pool, job.raw(), rec_solvables.raw());
+
+                    if (rec_solvables.size() != 0)
                     {
-                        rs = pool_id2solvable(pool, el);
-                        if (rs->name == req)
+                        Solvable* rs = nullptr;
+                        for (auto& el : rec_solvables)
                         {
-                            break;
+                            rs = pool_id2solvable(pool, el);
+                            if (rs->name == req)
+                            {
+                                break;
+                            }
+                        }
+                        auto it = visited.find(rs);
+                        if (it == visited.end())
+                        {
+                            auto pkg_info = pool.id2pkginfo(pool_solvable2id(pool, rs));
+                            assert(pkg_info.has_value());
+                            auto dep_id = dep_graph.add_node(std::move(pkg_info).value());
+                            dep_graph.add_edge(parent, dep_id);
+                            visited.insert(std::make_pair(rs, dep_id));
+                            walk_graph(pool, dep_graph, dep_id, rs, visited, not_found, depth);
+                        }
+                        else
+                        {
+                            dep_graph.add_edge(parent, it->second);
                         }
                     }
-                    auto it = visited.find(rs);
-                    if (it == visited.end())
-                    {
-                        auto dep_id = dep_graph.add_node(PackageInfo(rs));
-                        dep_graph.add_edge(parent, dep_id);
-                        visited.insert(std::make_pair(rs, dep_id));
-                        walk_graph(dep_graph, dep_id, rs, visited, not_found, depth);
-                    }
                     else
                     {
-                        dep_graph.add_edge(parent, it->second);
+                        std::string name = pool_id2str(pool, req);
+                        auto it = not_found.find(name);
+                        if (it == not_found.end())
+                        {
+                            auto dep_id = dep_graph.add_node(
+                                PackageInfo(concat(name, " >>> NOT FOUND <<<"))
+                            );
+                            dep_graph.add_edge(parent, dep_id);
+                            not_found.insert(std::make_pair(name, dep_id));
+                        }
+                        else
+                        {
+                            dep_graph.add_edge(parent, it->second);
+                        }
                     }
+                    ++reqp;
+                    req = *reqp;
                 }
-                else
-                {
-                    std::string name = pool_id2str(pool, req);
-                    auto it = not_found.find(name);
-                    if (it == not_found.end())
-                    {
-                        auto dep_id = dep_graph.add_node(
-                            PackageInfo(concat(name, " >>> NOT FOUND <<<"))
-                        );
-                        dep_graph.add_edge(parent, dep_id);
-                        not_found.insert(std::make_pair(name, dep_id));
-                    }
-                    else
-                    {
-                        dep_graph.add_edge(parent, it->second);
-                    }
-                }
-                ++reqp;
-                req = *reqp;
             }
         }
-    }
 
-    void reverse_walk_graph(
-        query_result::dependency_graph& dep_graph,
-        query_result::dependency_graph::node_id parent,
-        Solvable* s,
-        std::map<Solvable*, size_t>& visited
-    )
-    {
-        if (s)
+        void reverse_walk_graph(
+            MPool& pool,
+            query_result::dependency_graph& dep_graph,
+            query_result::dependency_graph::node_id parent,
+            Solvable* s,
+            std::map<Solvable*, size_t>& visited
+        )
         {
-            auto* pool = s->repo->pool;
-            // figure out who requires `s`
-            solv::ObjQueue solvables = {};
-
-            pool_whatmatchesdep(pool, SOLVABLE_REQUIRES, s->name, solvables.raw(), -1);
-
-            if (solvables.size() != 0)
+            if (s)
             {
-                Solvable* rs;
-                for (auto& el : solvables)
+                // figure out who requires `s`
+                solv::ObjQueue solvables = {};
+
+                pool_whatmatchesdep(pool, SOLVABLE_REQUIRES, s->name, solvables.raw(), -1);
+
+                if (solvables.size() != 0)
                 {
-                    rs = pool_id2solvable(pool, el);
-                    auto it = visited.find(rs);
-                    if (it == visited.end())
+                    for (auto& el : solvables)
                     {
-                        auto dep_id = dep_graph.add_node(PackageInfo(rs));
-                        dep_graph.add_edge(parent, dep_id);
-                        visited.insert(std::make_pair(rs, dep_id));
-                        reverse_walk_graph(dep_graph, dep_id, rs, visited);
-                    }
-                    else
-                    {
-                        dep_graph.add_edge(parent, it->second);
+                        ::Solvable* rs = pool_id2solvable(pool, el);
+                        auto it = visited.find(rs);
+                        if (it == visited.end())
+                        {
+                            auto pkg_info = pool.id2pkginfo(el);
+                            assert(pkg_info.has_value());
+                            auto dep_id = dep_graph.add_node(std::move(pkg_info).value());
+                            dep_graph.add_edge(parent, dep_id);
+                            visited.insert(std::make_pair(rs, dep_id));
+                            reverse_walk_graph(pool, dep_graph, dep_id, rs, visited);
+                        }
+                        else
+                        {
+                            dep_graph.add_edge(parent, it->second);
+                        }
                     }
                 }
             }
@@ -236,8 +241,9 @@ namespace mamba
 
         for (auto& el : solvables)
         {
-            Solvable* s = pool_id2solvable(m_pool.get(), el);
-            g.add_node(PackageInfo(s));
+            auto pkg_info = m_pool.get().id2pkginfo(el);
+            assert(pkg_info.has_value());
+            g.add_node(std::move(pkg_info).value());
         }
 
         return query_result(QueryType::kSEARCH, query, std::move(g));
@@ -245,35 +251,38 @@ namespace mamba
 
     query_result Query::whoneeds(const std::string& query, bool tree) const
     {
-        solv::ObjQueue job, solvables;
-
         const Id id = pool_conda_matchspec(m_pool.get(), query.c_str());
         if (!id)
         {
             throw std::runtime_error("Could not generate query for " + query);
         }
-        job.push_back(SOLVER_SOLVABLE_PROVIDES, id);
 
+        solv::ObjQueue job = { SOLVER_SOLVABLE_PROVIDES, id };
         query_result::dependency_graph g;
 
         if (tree)
         {
+            solv::ObjQueue solvables = {};
             selection_solvables(m_pool.get(), job.raw(), solvables.raw());
-            if (solvables.size() > 0)
+            if (!solvables.empty())
             {
-                Solvable* latest = pool_id2solvable(m_pool.get(), solvables[0]);
-                const auto node_id = g.add_node(PackageInfo(latest));
+                auto pkg_info = m_pool.get().id2pkginfo(solvables.front());
+                assert(pkg_info.has_value());
+                const auto node_id = g.add_node(std::move(pkg_info).value());
+                Solvable* const latest = pool_id2solvable(m_pool.get(), solvables.front());
                 std::map<Solvable*, size_t> visited = { { latest, node_id } };
-                reverse_walk_graph(g, node_id, latest, visited);
+                reverse_walk_graph(m_pool, g, node_id, latest, visited);
             }
         }
         else
         {
+            solv::ObjQueue solvables = {};
             pool_whatmatchesdep(m_pool.get(), SOLVABLE_REQUIRES, id, solvables.raw(), -1);
             for (auto& el : solvables)
             {
-                Solvable* s = pool_id2solvable(m_pool.get(), el);
-                g.add_node(PackageInfo(s));
+                auto pkg_info = m_pool.get().id2pkginfo(el);
+                assert(pkg_info.has_value());
+                g.add_node(std::move(pkg_info).value());
             }
         }
         return query_result(QueryType::kWHONEEDS, query, std::move(g));
@@ -297,8 +306,8 @@ namespace mamba
 
         auto find_latest_in_non_empty = [&](solv::ObjQueue& lsolvables) -> Solvable*
         {
-            Solvable* latest = pool_id2solvable(m_pool.get(), lsolvables.front());
-            for (Id const solv : lsolvables)
+            ::Solvable* latest = pool_id2solvable(m_pool.get(), lsolvables.front());
+            for (Id const solv : solvables)
             {
                 Solvable* s = pool_id2solvable(m_pool.get(), solv);
                 if (pool_evrcmp(m_pool.get(), s->evr, latest->evr, 0) > 0)
@@ -309,13 +318,16 @@ namespace mamba
             return latest;
         };
 
-        if (solvables.size() > 0)
+        if (!solvables.empty())
         {
-            Solvable* latest = find_latest_in_non_empty(solvables);
-            const auto node_id = g.add_node(PackageInfo(latest));
+            ::Solvable* const latest = find_latest_in_non_empty(solvables);
+            auto pkg_info = m_pool.get().id2pkginfo(pool_solvable2id(m_pool.get(), latest));
+            assert(pkg_info.has_value());
+            const auto node_id = g.add_node(std::move(pkg_info).value());
+
             std::map<Solvable*, size_t> visited = { { latest, node_id } };
             std::map<std::string, size_t> not_found;
-            walk_graph(g, node_id, latest, visited, not_found, depth);
+            walk_graph(m_pool, g, node_id, latest, visited, not_found, depth);
         }
 
         return query_result(QueryType::kDEPENDS, query, std::move(g));

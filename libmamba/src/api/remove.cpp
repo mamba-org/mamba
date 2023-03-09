@@ -111,11 +111,13 @@ namespace mamba
             else
             {
                 MSolver solver(
-                    std::move(pool),
-                    { { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 },
-                      { SOLVER_FLAG_ALLOW_UNINSTALL, 1 },
-                      { SOLVER_FLAG_STRICT_REPO_PRIORITY,
-                        ctx.channel_priority == ChannelPriority::kStrict } }
+                    pool,
+                    {
+                        { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 },
+                        { SOLVER_FLAG_ALLOW_UNINSTALL, 1 },
+                        { SOLVER_FLAG_STRICT_REPO_PRIORITY,
+                          ctx.channel_priority == ChannelPriority::kStrict },
+                    }
                 );
 
                 History history(ctx.target_prefix);
@@ -138,7 +140,7 @@ namespace mamba
                 solver.add_jobs(specs, solver_flag);
                 solver.must_solve();
 
-                MTransaction transaction(solver, package_caches);
+                MTransaction transaction(pool, solver, package_caches);
                 execute_transaction(transaction);
             }
         }

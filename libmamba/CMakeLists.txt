@@ -120,6 +120,8 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/version.cpp
     # C++ wrapping of libsolv
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.cpp
+    # C++ wrapping of libcurl
+    ${LIBMAMBA_SOURCE_DIR}/core/curl.cpp
     # Core API (low-level)
     ${LIBMAMBA_SOURCE_DIR}/core/singletons.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/activation.cpp
@@ -254,6 +256,7 @@ set(LIBMAMBA_PUBLIC_HEADERS
 
 set(LIBMAMBA_PRIVATE_HEADERS
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.hpp
+    ${LIBMAMBA_SOURCE_DIR}/core/curl.hpp
 )
 
 # Targets and link

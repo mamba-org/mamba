@@ -7,95 +7,27 @@
 #ifndef MAMBA_CORE_FETCH_HPP
 #define MAMBA_CORE_FETCH_HPP
 
+#include <string>
+#include <vector>
+
+///////////////////////////////////////
+// TODO to remove, kept here until not needed anymore/complete libcurl isolation is done
 extern "C"
 {
 #include <curl/curl.h>
 }
 
-#include <string>
-#include <vector>
-
-#include <bzlib.h>
-#include <zstd.h>
+////////////////////////////////////
 
 #include "progress_bar.hpp"
 #include "validate.hpp"
 
 namespace mamba
 {
+    struct ZstdStream;
+    struct Bzip2Stream;
+
     void init_curl_ssl();
-
-    struct ZstdStream
-    {
-        static constexpr size_t BUFFER_SIZE = 256000;
-        ZstdStream(curl_write_callback lwrite_callback, void* write_callback_data)
-            : stream(ZSTD_createDCtx())
-            , m_write_callback(lwrite_callback)
-            , m_write_callback_data(write_callback_data)
-        {
-            ZSTD_initDStream(stream);
-        }
-
-        ~ZstdStream()
-        {
-            ZSTD_freeDCtx(stream);
-        }
-
-        size_t write(char* in, size_t size);
-
-        static size_t write_callback(char* ptr, size_t size, size_t nmemb, void* self)
-        {
-            return static_cast<ZstdStream*>(self)->write(ptr, size * nmemb);
-        }
-
-        ZSTD_DCtx* stream;
-        char buffer[BUFFER_SIZE];
-
-        // original curl callback
-        curl_write_callback m_write_callback;
-        void* m_write_callback_data;
-    };
-
-    struct Bzip2Stream
-    {
-        static constexpr size_t BUFFER_SIZE = 256000;
-
-        Bzip2Stream(curl_write_callback lwrite_callback, void* write_callback_data)
-            : m_write_callback(lwrite_callback)
-            , m_write_callback_data(write_callback_data)
-        {
-            m_stream.bzalloc = nullptr;
-            m_stream.bzfree = nullptr;
-            m_stream.opaque = nullptr;
-
-            error = BZ2_bzDecompressInit(&m_stream, 0, false);
-            if (error != BZ_OK)
-            {
-                throw std::runtime_error("BZ2_bzDecompressInit failed");
-            }
-        }
-
-        size_t write(char* in, size_t size);
-
-        static size_t write_callback(char* ptr, size_t size, size_t nmemb, void* self)
-        {
-            return static_cast<Bzip2Stream*>(self)->write(ptr, size * nmemb);
-        }
-
-        ~Bzip2Stream()
-        {
-            BZ2_bzDecompressEnd(&m_stream);
-        }
-
-        int error;
-        bz_stream m_stream;
-        char buffer[BUFFER_SIZE];
-
-        // original curl callback
-        curl_write_callback m_write_callback;
-        void* m_write_callback_data;
-    };
-
 
     class DownloadTarget
     {
@@ -147,12 +79,12 @@ namespace mamba
             m_finalize_callback = std::bind(cb, data, std::placeholders::_1);
         }
 
-        inline void set_ignore_failure(bool yes)
+        void set_ignore_failure(bool yes)
         {
             m_ignore_failure = yes;
         }
 
-        inline bool ignore_failure() const
+        bool ignore_failure() const
         {
             return m_ignore_failure;
         }

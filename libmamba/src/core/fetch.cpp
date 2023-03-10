@@ -17,6 +17,7 @@
 
 #include "spdlog/spdlog.h"
 
+#include "compression.hpp"
 #include "curl.hpp"
 #include "progress_bar_impl.hpp"
 
@@ -39,17 +40,17 @@ namespace mamba
             auto init_res = init_curl_ssl_session();
             switch (init_res.second)
             {
-                case INFO:
+                case CurlLogLevel::kInfo:
                 {
                     LOG_INFO << init_res.first;
                     break;
                 }
-                case WARNING:
+                case CurlLogLevel::kWarning:
                 {
                     LOG_WARNING << init_res.first;
                     break;
                 }
-                case ERROR:
+                case CurlLogLevel::kError:
                 {
                     LOG_ERROR << init_res.first;
                     break;

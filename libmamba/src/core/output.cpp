@@ -122,7 +122,11 @@ namespace mamba
                 m_padding = std::vector<int>(n_col, 1);
             }
 
-            std::size_t total_length = std::accumulate(cell_sizes.begin(), cell_sizes.end(), 0);
+            std::size_t total_length = std::accumulate(
+                cell_sizes.begin(),
+                cell_sizes.end(),
+                static_cast<std::size_t>(0)
+            );
             total_length = std::accumulate(m_padding.begin(), m_padding.end(), total_length);
 
             auto print_row = [this, &cell_sizes, &out](const std::vector<FormattedString>& row)
@@ -146,7 +150,7 @@ namespace mamba
                             out,
                             "{: >{}}",
                             fmt::styled(row[j].s, row[j].style),
-                            cell_sizes[j] + m_padding[j]
+                            cell_sizes[j] + static_cast<std::size_t>(m_padding[j])
                         );
                     }
                 }
@@ -161,7 +165,7 @@ namespace mamba
 #endif
 
             out << "\n";
-            for (size_t i = 0; i < total_length + m_padding[0]; ++i)
+            for (size_t i = 0; i < total_length + static_cast<std::size_t>(m_padding[0]); ++i)
             {
                 out << MAMBA_TABLE_DELIM;
             }
@@ -184,7 +188,8 @@ namespace mamba
                     out << m_table[i][0].s;
 
                     out << "\n";
-                    for (size_t idx = 0; idx < total_length + m_padding[0]; ++idx)
+                    for (size_t idx = 0; idx < total_length + static_cast<std::size_t>(m_padding[0]);
+                         ++idx)
                     {
                         out << MAMBA_TABLE_DELIM;
                     }
@@ -207,8 +212,8 @@ namespace mamba
 
         std::ostringstream table_like(const std::vector<std::string>& data, std::size_t max_width)
         {
-            int pos = 0;
-            int padding = 3;
+            std::size_t pos = 0;
+            std::size_t padding = 3;
             std::size_t data_max_width = 0;
             std::ostringstream out;
 
@@ -221,13 +226,14 @@ namespace mamba
             }
 
             max_width -= max_width % (data_max_width + padding);
-            int block_width = padding + data_max_width;
+            std::size_t block_width = padding + data_max_width;
 
             auto sorted_data = data;
             std::sort(sorted_data.begin(), sorted_data.end(), string_comparison);
             for (const auto& d : sorted_data)
             {
-                int p = block_width - d.size();
+                // p is positive by construction of block_width
+                std::size_t p = block_width - d.size();
 
                 if ((pos + d.size()) < max_width)
                 {

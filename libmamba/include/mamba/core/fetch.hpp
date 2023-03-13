@@ -28,9 +28,9 @@ namespace mamba
     struct ZstdStream
     {
         static constexpr size_t BUFFER_SIZE = 256000;
-        ZstdStream(curl_write_callback write_callback, void* write_callback_data)
+        ZstdStream(curl_write_callback lwrite_callback, void* write_callback_data)
             : stream(ZSTD_createDCtx())
-            , m_write_callback(write_callback)
+            , m_write_callback(lwrite_callback)
             , m_write_callback_data(write_callback_data)
         {
             ZSTD_initDStream(stream);
@@ -60,15 +60,15 @@ namespace mamba
     {
         static constexpr size_t BUFFER_SIZE = 256000;
 
-        Bzip2Stream(curl_write_callback write_callback, void* write_callback_data)
-            : m_write_callback(write_callback)
+        Bzip2Stream(curl_write_callback lwrite_callback, void* write_callback_data)
+            : m_write_callback(lwrite_callback)
             , m_write_callback_data(write_callback_data)
         {
-            stream.bzalloc = nullptr;
-            stream.bzfree = nullptr;
-            stream.opaque = nullptr;
+            m_stream.bzalloc = nullptr;
+            m_stream.bzfree = nullptr;
+            m_stream.opaque = nullptr;
 
-            error = BZ2_bzDecompressInit(&stream, 0, false);
+            error = BZ2_bzDecompressInit(&m_stream, 0, false);
             if (error != BZ_OK)
             {
                 throw std::runtime_error("BZ2_bzDecompressInit failed");
@@ -84,11 +84,11 @@ namespace mamba
 
         ~Bzip2Stream()
         {
-            BZ2_bzDecompressEnd(&stream);
+            BZ2_bzDecompressEnd(&m_stream);
         }
 
         int error;
-        bz_stream stream;
+        bz_stream m_stream;
         char buffer[BUFFER_SIZE];
 
         // original curl callback

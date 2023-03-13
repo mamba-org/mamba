@@ -171,47 +171,32 @@ namespace mamba
             }
         }
 
-        std::optional<PackageInfo> make_solver_problem_source(::Pool* pool, Id source_id)
+        MSolverProblem make_solver_problem(
+            const MSolver& solver,
+            const MPool& pool,
+            SolverRuleinfo type,
+            Id source_id,
+            Id target_id,
+            Id dep_id
+        )
         {
-            if (source_id == 0 || source_id >= pool->nsolvables)
-            {
-                return std::nullopt;
-            }
-            return pool_id2solvable(pool, source_id);
-        }
-
-        std::optional<PackageInfo> make_solver_problem_target(::Pool* pool, Id target_id)
-        {
-            if (target_id == 0 || target_id >= pool->nsolvables)
-            {
-                return std::nullopt;
-            }
-            return pool_id2solvable(pool, target_id);
-        }
-
-
-        std::optional<std::string> make_solver_problem_dep(::Pool* pool, Id dep_id)
-        {
-            if (!dep_id)
-            {
-                return std::nullopt;
-            }
-            return pool_dep2str(pool, dep_id);
-        }
-
-        MSolverProblem
-        make_solver_problem(::Solver* solver, SolverRuleinfo type, Id source_id, Id target_id, Id dep_id)
-        {
+            const ::Solver* const solver_ptr = solver;
             return {
                 /* .type= */ type,
                 /* .source_id= */ source_id,
                 /* .target_id= */ target_id,
                 /* .dep_id= */ dep_id,
-                /* .source= */ make_solver_problem_source(solver->pool, source_id),
-                /* .target= */ make_solver_problem_target(solver->pool, target_id),
-                /* .dep= */ make_solver_problem_dep(solver->pool, dep_id),
+                /* .source= */ pool.id2pkginfo(source_id),
+                /* .target= */ pool.id2pkginfo(target_id),
+                /* .dep= */ pool.dep2str(dep_id),
                 /* .description= */
-                solver_problemruleinfo2str(solver, type, source_id, target_id, dep_id),
+                solver_problemruleinfo2str(
+                    const_cast<::Solver*>(solver_ptr),  // Not const because might alloctmp space
+                    type,
+                    source_id,
+                    target_id,
+                    dep_id
+                ),
             };
         }
     }
@@ -612,7 +597,7 @@ namespace mamba
     {
         std::vector<MSolverProblem> res;
         solv::ObjQueue problem_rules;
-        const Id count = solver_problem_count(m_solver.get());
+        const auto count = static_cast<Id>(solver_problem_count(m_solver.get()));
         for (Id i = 1; i <= count; ++i)
         {
             solver_findallproblemrules(m_solver.get(), i, problem_rules.raw());
@@ -623,7 +608,8 @@ namespace mamba
                     Id source, target, dep;
                     const SolverRuleinfo type = solver_ruleinfo(m_solver.get(), r, &source, &target, &dep);
                     res.push_back(make_solver_problem(
-                        /* solver= */ m_solver.get(),
+                        /* solver= */ *this,
+                        /* pool= */ m_pool,
                         /* type= */ type,
                         /* source_id= */ source,
                         /* target_id= */ target,
@@ -641,7 +627,7 @@ namespace mamba
         std::stringstream problems;
 
         solv::ObjQueue problem_rules;
-        Id count = solver_problem_count(m_solver.get());
+        auto count = static_cast<Id>(solver_problem_count(m_solver.get()));
         for (Id i = 1; i <= count; ++i)
         {
             solver_findallproblemrules(m_solver.get(), i, problem_rules.raw());
@@ -669,7 +655,8 @@ namespace mamba
         const auto& ctx = Context::instance();
         out << "Could not solve for environment specs\n";
         const auto pbs = ProblemsGraph::from_solver(*this, pool());
-        const auto cp_pbs = CompressedProblemsGraph::from_problems_graph(pbs);
+        const auto pbs_simplified = simplify_conflicts(pbs);
+        const auto cp_pbs = CompressedProblemsGraph::from_problems_graph(pbs_simplified);
         print_problem_tree_msg(
             out,
             cp_pbs,
@@ -688,7 +675,7 @@ namespace mamba
     std::string MSolver::problems_to_str() const
     {
         solv::ObjQueue problem_queue;
-        int count = solver_problem_count(m_solver.get());
+        auto count = static_cast<int>(solver_problem_count(m_solver.get()));
         std::stringstream problems;
         for (int i = 1; i <= count; i++)
         {
@@ -710,6 +697,11 @@ namespace mamba
         }
 
         return problems;
+    }
+
+    MSolver::operator const Solver*() const
+    {
+        return m_solver.get();
     }
 
     MSolver::operator Solver*()

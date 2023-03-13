@@ -124,7 +124,7 @@ namespace mamba::solv
 
         if constexpr (std::is_same_v<InputIt, iterator> || std::is_same_v<InputIt, const_iterator>)
         {
-            insert_n(offset, first, n);
+            insert_n(offset, first, static_cast<size_type>(n));
         }
         else
         {

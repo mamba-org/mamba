@@ -981,8 +981,8 @@ namespace mamba
         {
             auto group_title = name + " Configuration";
             auto blk_size = 52 - group_title.size();
-            int prepend_blk = blk_size / 2;
-            int append_blk = blk_size - prepend_blk;
+            auto prepend_blk = blk_size / 2;
+            auto append_blk = blk_size - prepend_blk;
 
             out << YAML::Comment(std::string(54, '#')) << YAML::Newline;
             out << YAML::Comment(
@@ -1242,6 +1242,28 @@ namespace mamba
                         scheme://hostname or just a scheme for which the proxy server should be used and
                         the value is the url of the proxy server, optionally with username and password
                         in the form of scheme://username:password@hostname.)")));
+
+        insert(Configurable("remote_connect_timeout_secs", &ctx.connect_timeout_secs)
+                   .group("Network")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description(
+                       "The number seconds conda will wait for your client to establish a connection to a remote url resource."
+                   ));
+
+        insert(Configurable("remote_backoff_factor", &ctx.retry_backoff)
+                   .group("Network")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description("The factor determines the time HTTP connection should wait for attempt."
+                   ));
+
+        insert(Configurable("remote_max_retries", &ctx.max_retries)
+                   .group("Network")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description("The maximum number of retries each HTTP connection should attempt."));
+
 
         // Solver
         insert(Configurable("channel_priority", &ctx.channel_priority)
@@ -1598,7 +1620,7 @@ namespace mamba
                    .needs({ "json", "print_config_only", "print_context_only" })
                    .description("Set quiet mode (print less output)"));
 
-        insert(Configurable("verbose", int(0))
+        insert(Configurable("verbose", 0)
                    .group("Output, Prompt and Flow Control")
                    .set_post_merge_hook(detail::verbose_hook)
                    .description("Set the verbosity")

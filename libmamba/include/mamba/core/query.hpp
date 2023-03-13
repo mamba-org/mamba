@@ -74,15 +74,13 @@ namespace mamba
     public:
 
         using dependency_graph = DiGraph<PackageInfo>;
-        using package_list = dependency_graph::node_list;
-        using package_view_list = std::vector<package_list::const_iterator>;
 
         query_result(QueryType type, const std::string& query, dependency_graph&& dep_graph);
 
         ~query_result() = default;
 
-        query_result(const query_result&);
-        query_result& operator=(const query_result&);
+        query_result(const query_result&) = default;
+        query_result& operator=(const query_result&) = default;
         query_result(query_result&&) = default;
         query_result& operator=(query_result&&) = default;
 
@@ -104,15 +102,18 @@ namespace mamba
 
     private:
 
+        using node_id = dependency_graph::node_id;
+        using package_id_list = std::vector<node_id>;
+        using ordered_package_list = std::map<std::string, package_id_list>;
+
         void reset_pkg_view_list();
         std::string get_package_repr(const PackageInfo& pkg) const;
 
         QueryType m_type;
         std::string m_query;
         dependency_graph m_dep_graph;
-        package_view_list m_pkg_view_list;
-        using ordered_package_list = std::map<std::string, package_view_list>;
-        ordered_package_list m_ordered_pkg_list;
+        package_id_list m_pkg_id_list = {};
+        ordered_package_list m_ordered_pkg_id_list = {};
     };
 }  // namespace mamba
 

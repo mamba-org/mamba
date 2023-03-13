@@ -137,8 +137,8 @@ namespace mamba::path
             {
                 if (is_directory)
                 {
-                    std::error_code ec;
-                    fs::remove(test_file_path, ec);
+                    std::error_code lec;
+                    fs::remove(test_file_path, lec);
                 }
             }
         );

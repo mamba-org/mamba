@@ -12,10 +12,6 @@
 #include <vector>
 
 #include <nlohmann/json.hpp>
-#include <solv/pool.h>
-#include <solv/poolid.h>
-#include <solv/repo.h>
-#include <solv/solvable.h>
 
 namespace mamba
 {
@@ -26,25 +22,14 @@ namespace mamba
         using field_getter = std::function<std::string(const PackageInfo&)>;
         using compare_fun = std::function<bool(const PackageInfo&, const PackageInfo&)>;
 
-        static field_getter get_field_getter(const std::string& name);
-        static compare_fun less(const std::string& member);
-        static compare_fun equal(const std::string& member);
+        static field_getter get_field_getter(std::string_view field_name);
+        static compare_fun less(std::string_view member);
+        static compare_fun equal(std::string_view member);
 
-        PackageInfo(Solvable* s);
-        PackageInfo(nlohmann::json&& j);
-        PackageInfo(const std::string& name);
-        PackageInfo(std::string&& name);
-        PackageInfo(
-            const std::string& name,
-            const std::string& version,
-            const std::string build_string,
-            std::size_t build_number
-        );
-
-        PackageInfo(const PackageInfo&) = default;
-        PackageInfo(PackageInfo&&) noexcept = default;
-        PackageInfo& operator=(const PackageInfo&) = default;
-        PackageInfo& operator=(PackageInfo&&) noexcept = default;
+        PackageInfo() = default;
+        explicit PackageInfo(nlohmann::json&& j);
+        explicit PackageInfo(std::string name);
+        PackageInfo(std::string name, std::string version, std::string build_string, std::size_t build_number);
 
         bool operator==(const PackageInfo& other) const;
 
@@ -53,26 +38,26 @@ namespace mamba
         std::string str() const;
         std::string long_str() const;
 
-        std::string name;
-        std::string version;
-        std::string build_string;
-        std::string noarch;
+        std::string name = {};
+        std::string version = {};
+        std::string build_string = {};
+        std::string noarch = {};
         std::size_t build_number = 0;
-        std::string channel;
-        std::string url;
-        std::string subdir;
-        std::string fn;
-        std::string license;
+        std::string channel = {};
+        std::string url = {};
+        std::string subdir = {};
+        std::string fn = {};
+        std::string license = {};
         std::size_t size = 0;
         std::size_t timestamp = 0;
-        std::string md5;
-        std::string sha256;
-        std::string track_features;
-        std::vector<std::string> depends;
-        std::vector<std::string> constrains;
-        std::string signatures;
-        std::string extra_metadata;
-        std::set<std::string> defaulted_keys;
+        std::string md5 = {};
+        std::string sha256 = {};
+        std::string track_features = {};
+        std::vector<std::string> depends = {};
+        std::vector<std::string> constrains = {};
+        std::string signatures = {};
+        std::string extra_metadata = {};
+        std::set<std::string> defaulted_keys = {};
     };
 }  // namespace mamba
 

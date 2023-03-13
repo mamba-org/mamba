@@ -19,6 +19,7 @@
 extern "C"
 {
     typedef struct s_Repo Repo;
+    typedef struct s_Repodata Repodata;
 }
 
 namespace mamba

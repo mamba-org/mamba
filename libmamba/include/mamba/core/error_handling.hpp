@@ -256,21 +256,21 @@ namespace mamba
     {
         using base_type1 = typename expected_ref_wrapper<T1, E1>::base_type;
         using base_type2 = typename expected_ref_wrapper<T2, E2>::base_type;
-        return operator==((const base_type1&) x, (const base_type2&) y);
+        return operator==(static_cast<const base_type1&>(x), static_cast<const base_type2&>(y));
     }
 
     template <class T1, class E1, class T2>
     constexpr bool operator==(const expected_ref_wrapper<T1, E1>& x, const T2& y)
     {
         using base_type1 = typename expected_ref_wrapper<T1, E1>::base_type;
-        return operator==((const base_type1&) x, y);
+        return operator==(static_cast<const base_type1&>(x), y);
     }
 
     template <class T1, class E1, class E2>
     constexpr bool operator==(const expected_ref_wrapper<T1, E1>& x, const tl::unexpected<E2>& y)
     {
         using base_type1 = typename expected_ref_wrapper<T1, E1>::base_type;
-        return operator==((const base_type1&) x, y);
+        return operator==(static_cast<const base_type1&>(x), y);
     }
 
     /***********************************

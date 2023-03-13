@@ -493,10 +493,12 @@ namespace mamba
         MRepo::create(pool, prefix_data);
 
         MSolver solver(
-            std::move(pool),
-            { { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },
-              { SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade },
-              { SOLVER_FLAG_STRICT_REPO_PRIORITY, ctx.channel_priority == ChannelPriority::kStrict } }
+            pool,
+            {
+                { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },
+                { SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade },
+                { SOLVER_FLAG_STRICT_REPO_PRIORITY, ctx.channel_priority == ChannelPriority::kStrict },
+            }
         );
 
         solver.set_postsolve_flags({ { MAMBA_NO_DEPS, no_deps },
@@ -560,7 +562,7 @@ namespace mamba
             );
         }
 
-        MTransaction trans(solver, package_caches);
+        MTransaction trans(pool, solver, package_caches);
 
         if (ctx.json)
         {
@@ -808,7 +810,8 @@ namespace mamba
                             LOG_INFO << "Installing explicit specs for platform " << platform;
 
                             std::vector<std::string> explicit_specs;
-                            for (auto f = file_contents.begin() + i + 1; f != file_contents.end();
+                            for (auto f = file_contents.begin() + static_cast<std::ptrdiff_t>(i) + 1;
+                                 f != file_contents.end();
                                  ++f)
                             {
                                 std::string_view spec = strip((*f));

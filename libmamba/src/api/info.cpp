@@ -53,11 +53,11 @@ namespace mamba
                 return;
             }
 
-            int key_max_length = 0;
+            std::size_t key_max_length = 0;
             for (auto& item : items)
             {
-                int key_length = std::get<0>(item).size();
-                key_max_length = key_length < key_max_length ? key_max_length : key_length;
+                std::size_t key_length = std::get<0>(item).size();
+                key_max_length = std::max(key_length, key_max_length);
             }
             ++key_max_length;
 
@@ -67,7 +67,7 @@ namespace mamba
             {
                 auto key = std::get<0>(item);
                 auto val = std::get<1>(item);
-                int blk_size = key_max_length - std::get<0>(item).size();
+                auto blk_size = key_max_length - std::get<0>(item).size();
 
                 stream << "\n" << std::string(blk_size, ' ') << key << " : ";
                 for (auto v = val.begin(); v != val.end(); ++v)

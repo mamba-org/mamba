@@ -230,9 +230,9 @@ namespace mamba
         {
             std::string contents;
             in.seekg(0, std::ios::end);
-            contents.resize(in.tellg());
+            contents.resize(static_cast<std::size_t>(in.tellg()));
             in.seekg(0, std::ios::beg);
-            in.read(&contents[0], contents.size());
+            in.read(&contents[0], static_cast<std::streamsize>(contents.size()));
             in.close();
             return (contents);
         }
@@ -591,13 +591,13 @@ namespace mamba
         {
             ++p;
         }
-        size_t leading_len = p - p_leading;
+        std::size_t leading_len = static_cast<std::size_t>(p - p_leading);
         while (*p)
         {
             result += *p;
             if (*p++ == '\n')
             {
-                for (size_t i = 0; i < leading_len; ++i)
+                for (std::size_t i = 0; i < leading_len; ++i)
                 {
                     if (p[i] != p_leading[i])
                     {
@@ -1484,8 +1484,8 @@ namespace mamba
         std::vector<unsigned char> output(pl + 1);
         const auto ol = EVP_EncodeBlock(
             output.data(),
-            (const unsigned char*) input.data(),
-            input.size()
+            reinterpret_cast<const unsigned char*>(input.data()),
+            static_cast<int>(input.size())
         );
 
         if (util::cmp_not_equal(pl, ol))
@@ -1493,7 +1493,7 @@ namespace mamba
             return make_unexpected("Could not encode base64 string", mamba_error_code::openssl_failed);
         }
 
-        return std::string((const char*) output.data());
+        return std::string(reinterpret_cast<const char*>(output.data()));
     }
 
     tl::expected<std::string, mamba_error> decode_base64(const std::string_view& input)
@@ -1503,15 +1503,15 @@ namespace mamba
         std::vector<unsigned char> output(pl + 1);
         const auto ol = EVP_DecodeBlock(
             output.data(),
-            (const unsigned char*) input.data(),
-            input.size()
+            reinterpret_cast<const unsigned char*>(input.data()),
+            static_cast<int>(input.size())
         );
         if (util::cmp_not_equal(pl, ol))
         {
             return make_unexpected("Could not decode base64 string", mamba_error_code::openssl_failed);
         }
 
-        return std::string((const char*) output.data());
+        return std::string(reinterpret_cast<const char*>(output.data()));
     }
 
     std::optional<std::string> proxy_match(const std::string& url)

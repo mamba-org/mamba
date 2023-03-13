@@ -7,15 +7,117 @@
 #include "mamba/core/util_string.hpp"
 
 #include <cctype>
+#include <cwchar>
 #include <cwctype>
-#include <exception>
-#include <type_traits>
+#include <stdexcept>
+
+#include <stddef.h>
 
 namespace mamba
 {
-    /***************************************************
-     *  Implementation of to_lower to_upper functions  *
-     ***************************************************/
+    /****************************************
+     *  Implementation of cctype functions  *
+     ****************************************/
+
+    bool is_control(char c)
+    {
+        return std::iscntrl(static_cast<unsigned char>(c)) != 0;
+    }
+
+    bool is_control(wchar_t c)
+    {
+        return std::iswcntrl(static_cast<wint_t>(c)) != 0;
+    }
+
+    bool is_print(char c)
+    {
+        return std::isprint(static_cast<unsigned char>(c)) != 0;
+    }
+
+    bool is_print(wchar_t c)
+    {
+        return std::iswprint(static_cast<wint_t>(c)) != 0;
+    }
+
+    bool is_space(char c)
+    {
+        return std::isspace(static_cast<unsigned char>(c)) != 0;
+    }
+
+    bool is_space(wchar_t c)
+    {
+        return std::iswspace(static_cast<wint_t>(c)) != 0;
+    }
+
+    bool is_blank(char c)
+    {
+        return std::isblank(static_cast<unsigned char>(c)) != 0;
+    }
+
+    bool is_blank(wchar_t c)
+    {
+        return std::iswblank(static_cast<wint_t>(c)) != 0;
+    }
+
+    bool is_graphic(char c)
+    {
+        return std::isgraph(static_cast<unsigned char>(c)) != 0;
+    }
+
+    bool is_graphic(wchar_t c)
+    {
+        return std::iswgraph(static_cast<wint_t>(c)) != 0;
+    }
+
+    bool is_digit(char c)
+    {
+        return std::isdigit(static_cast<unsigned char>(c)) != 0;
+    }
+
+    bool is_digit(wchar_t c)
+    {
+        return std::iswdigit(static_cast<wint_t>(c)) != 0;
+    }
+
+    bool is_alpha(char c)
+    {
+        return std::isalpha(static_cast<unsigned char>(c)) != 0;
+    }
+
+    bool is_alpha(wchar_t c)
+    {
+        return std::iswalpha(static_cast<wint_t>(c)) != 0;
+    }
+
+    bool is_alphanum(char c)
+    {
+        return std::isalnum(static_cast<unsigned char>(c)) != 0;
+    }
+
+    bool is_alphanum(wchar_t c)
+    {
+        return std::iswalnum(static_cast<wint_t>(c)) != 0;
+    }
+
+    bool is_lower(char c)
+    {
+        return std::islower(static_cast<unsigned char>(c)) != 0;
+    }
+
+    bool is_lower(wchar_t c)
+    {
+        return std::iswlower(static_cast<wint_t>(c)) != 0;
+    }
+
+    bool is_upper(char c)
+    {
+        return std::isupper(static_cast<unsigned char>(c)) != 0;
+    }
+
+    bool is_upper(wchar_t c)
+    {
+        return std::iswupper(static_cast<wint_t>(c)) != 0;
+    }
 
     char to_lower(char c)
     {
@@ -24,8 +126,23 @@ namespace mamba
 
     wchar_t to_lower(wchar_t c)
     {
-        return static_cast<wchar_t>(std::tolower(static_cast<wchar_t>(c)));
+        return static_cast<wchar_t>(std::towlower(static_cast<wint_t>(c)));
     }
+
+    char to_upper(char c)
+    {
+        return static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+    }
+
+    wchar_t to_upper(wchar_t c)
+    {
+        return static_cast<wchar_t>(std::towupper(static_cast<wint_t>(c)));
+    }
+
+
+    /***************************************************
+     *  Implementation of to_lower to_upper functions  *
+     ***************************************************/
 
     namespace
     {
@@ -62,16 +179,6 @@ namespace mamba
 
     template std::string to_lower(std::string&& str);
     template std::wstring to_lower(std::wstring&& str);
-
-    char to_upper(char c)
-    {
-        return static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
-    }
-
-    wchar_t to_upper(wchar_t c)
-    {
-        return static_cast<wchar_t>(std::toupper(static_cast<wchar_t>(c)));
-    }
 
     namespace
     {
@@ -148,9 +255,8 @@ namespace mamba
 
     namespace
     {
-        constexpr const char* WHITESPACES(" \r\n\t\f\v");
-        constexpr const wchar_t* WHITESPACES_WSTR(L" \r\n\t\f\v");
-
+        // string_view has a different overload for ``find(char)`` and ``find(string_view)``
+        // so we want to leverage that.
         template <typename Char, typename CharOrStrView>
         std::basic_string_view<Char>
         lstrip_impl(std::basic_string_view<Char> input, CharOrStrView chars)
@@ -179,15 +285,19 @@ namespace mamba
     }
     std::string_view lstrip(std::string_view input)
     {
-        return lstrip(input, WHITESPACES);
+        using Char = decltype(input)::value_type;
+        return lstrip_if(input, [](Char c) { return !is_graphic(c); });
     }
     std::wstring_view lstrip(std::wstring_view input)
     {
-        return lstrip(input, WHITESPACES_WSTR);
+        using Char = decltype(input)::value_type;
+        return lstrip_if(input, [](Char c) { return !is_graphic(c); });
     }
 
     namespace
     {
+        // string_view has a different overload for ``find(char)`` and ``find(string_view)``
+        // so we want to leverage that.
         template <typename Char, typename CharOrStrView>
         std::basic_string_view<Char>
         rstrip_impl(std::basic_string_view<Char> input, CharOrStrView chars)
@@ -216,15 +326,19 @@ namespace mamba
     }
     std::string_view rstrip(std::string_view input)
     {
-        return rstrip(input, WHITESPACES);
+        using Char = decltype(input)::value_type;
+        return rstrip_if(input, [](Char c) { return !is_graphic(c); });
     }
     std::wstring_view rstrip(std::wstring_view input)
     {
-        return rstrip(input, WHITESPACES_WSTR);
+        using Char = decltype(input)::value_type;
+        return rstrip_if(input, [](Char c) { return !is_graphic(c); });
     }
 
     namespace
     {
+        // string_view has a different overload for ``find(char)`` and ``find(string_view)``
+        // so we want to leverage that.
         template <typename Char, typename CharOrStrView>
         std::basic_string_view<Char>
         strip_impl(std::basic_string_view<Char> input, CharOrStrView chars)
@@ -258,11 +372,13 @@ namespace mamba
     }
     std::string_view strip(std::string_view input)
     {
-        return strip(input, WHITESPACES);
+        using Char = decltype(input)::value_type;
+        return strip_if(input, [](Char c) { return !is_graphic(c); });
     }
     std::wstring_view strip(std::wstring_view input)
     {
-        return strip(input, WHITESPACES_WSTR);
+        using Char = decltype(input)::value_type;
+        return strip_if(input, [](Char c) { return !is_graphic(c); });
     }
 
     /***************************************
@@ -356,24 +472,28 @@ namespace mamba
         }
     }
 
+    // TODO(C++20) lazy_split_view is a range
     std::vector<std::string>
     split(std::string_view input, std::string_view sep, std::size_t max_split)
     {
         return split<decltype(input)::value_type>(input, sep, max_split);
     }
 
+    // TODO(C++20) lazy_split_view is a range
     std::vector<std::wstring>
     split(std::wstring_view input, std::wstring_view sep, std::size_t max_split)
     {
         return split<decltype(input)::value_type>(input, sep, max_split);
     }
 
+    // TODO(C++20) lazy_split_view is a range
     std::vector<std::string>
     rsplit(std::string_view input, std::string_view sep, std::size_t max_split)
     {
         return rsplit<decltype(input)::value_type>(input, sep, max_split);
     }
 
+    // TODO(C++20) lazy_split_view is a range
     std::vector<std::wstring>
     rsplit(std::wstring_view input, std::wstring_view sep, std::size_t max_split)
     {

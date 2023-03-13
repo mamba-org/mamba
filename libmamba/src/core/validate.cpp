@@ -36,7 +36,7 @@ namespace mamba
         for (auto pos = buffer.cbegin(); pos < buffer.cend(); pos += 2)
         {
             extract.assign(pos, pos + 2);
-            res.push_back(std::stoi(extract, nullptr, 16));
+            res.push_back(static_cast<unsigned char>(std::stoi(extract, nullptr, 16)));
         }
         return res;
     }
@@ -64,7 +64,7 @@ namespace mamba
         for (auto pos = buffer.cbegin(); pos < buffer.cend(); pos += 2)
         {
             extract.assign(pos, pos + 2);
-            res[i] = std::stoi(extract, nullptr, 16);
+            res[i] = static_cast<unsigned char>(std::stoi(extract, nullptr, 16));
             ++i;
         }
         return res;
@@ -155,7 +155,7 @@ namespace validate
         while (infile)
         {
             infile.read(buffer.data(), BUFSIZE);
-            size_t count = infile.gcount();
+            auto count = static_cast<std::size_t>(infile.gcount());
             if (!count)
             {
                 break;
@@ -184,7 +184,7 @@ namespace validate
         while (infile)
         {
             infile.read(buffer.data(), BUFSIZE);
-            size_t count = infile.gcount();
+            auto count = static_cast<std::size_t>(infile.gcount());
             if (!count)
             {
                 break;
@@ -307,7 +307,7 @@ namespace validate
     {
         std::size_t msg_len = data.size();
         std::size_t sig_len = MAMBA_ED25519_SIGSIZE_BYTES;
-        auto msg = (const unsigned char*) data.c_str();
+        auto msg = reinterpret_cast<const unsigned char*>(data.c_str());
 
         EVP_PKEY* ed_key = EVP_PKEY_new_raw_private_key(
             EVP_PKEY_ED25519,
@@ -406,7 +406,7 @@ namespace validate
     int verify(const std::string& data, const unsigned char* pk, const unsigned char* signature)
     {
         unsigned long long data_len = data.size();
-        auto raw_data = (const unsigned char*) data.c_str();
+        auto raw_data = reinterpret_cast<const unsigned char*>(data.c_str());
 
         return verify(raw_data, data_len, pk, signature);
     }
@@ -463,7 +463,7 @@ namespace validate
     )
     {
         unsigned long long data_len = data.size();
-        auto data_bin = (const unsigned char*) data.c_str();
+        auto data_bin = reinterpret_cast<const unsigned char*>(data.c_str());
 
         auto signature_bin = ed25519_sig_hex_to_bytes(signature);
         auto pk_bin = ed25519_key_hex_to_bytes(pk);
@@ -478,7 +478,7 @@ namespace validate
         auto pgp_trailer_bin = ::mamba::hex_to_bytes(pgp_v4_trailer);
         auto final_trailer_bin = ::mamba::hex_to_bytes<2>(std::string("04ff"));
 
-        uint32_t trailer_bin_len_big_endian = pgp_trailer_bin.size();
+        uint32_t trailer_bin_len_big_endian = static_cast<uint32_t>(pgp_trailer_bin.size());
 
 #ifdef _WIN32
         trailer_bin_len_big_endian = _byteswap_ulong(trailer_bin_len_big_endian);
@@ -495,7 +495,7 @@ namespace validate
         EVP_DigestUpdate(mdctx, data_bin, data_len);
         EVP_DigestUpdate(mdctx, pgp_trailer_bin.data(), pgp_trailer_bin.size());
         EVP_DigestUpdate(mdctx, final_trailer_bin.data(), final_trailer_bin.size());
-        EVP_DigestUpdate(mdctx, (unsigned char*) &trailer_bin_len_big_endian, 4);
+        EVP_DigestUpdate(mdctx, reinterpret_cast<unsigned char*>(&trailer_bin_len_big_endian), 4);
 
         EVP_DigestFinal_ex(mdctx, hash.data(), nullptr);
         EVP_MD_CTX_destroy(mdctx);

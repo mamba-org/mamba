@@ -134,7 +134,10 @@ namespace mamba
             auto brackets_str = match[1].str();
             brackets_str = brackets_str.substr(1, brackets_str.size() - 2);
             extract_kv(brackets_str, brackets);
-            spec_str.erase(match.position(1), match.length(1));
+            spec_str.erase(
+                static_cast<std::size_t>(match.position(1)),
+                static_cast<std::size_t>(match.length(1))
+            );
         }
 
         // Step 4. strip off parens portion
@@ -148,7 +151,10 @@ namespace mamba
             {
                 optional = true;
             }
-            spec_str.erase(match.position(1), match.length(1));
+            spec_str.erase(
+                static_cast<std::size_t>(match.position(1)),
+                static_cast<std::size_t>(match.length(1))
+            );
         }
 
         auto m5 = rsplit(spec_str, ":", 2);

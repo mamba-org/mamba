@@ -102,8 +102,8 @@ namespace mamba
             if (override_path == "")
             {
                 char* pathbuf;
-                size_t n = confstr(_CS_PATH, NULL, (size_t) 0);
-                pathbuf = (char*) malloc(n);
+                size_t n = confstr(_CS_PATH, NULL, static_cast<size_t>(0));
+                pathbuf = static_cast<char*>(malloc(n));
                 if (pathbuf != NULL)
                 {
                     confstr(_CS_PATH, pathbuf, n);

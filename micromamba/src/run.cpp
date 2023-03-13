@@ -206,9 +206,9 @@ set_run_command(CLI::App* subcom)
             int stream_options = 0;
             if (!all_streams)
             {
-                stream_options = (sinkout ? 0 : (int) STREAM_OPTIONS::SINKOUT);
-                stream_options |= (sinkerr ? 0 : (int) STREAM_OPTIONS::SINKERR);
-                stream_options |= (sinkin ? 0 : (int) STREAM_OPTIONS::SINKIN);
+                stream_options = (sinkout ? 0 : static_cast<int>(STREAM_OPTIONS::SINKOUT));
+                stream_options |= (sinkerr ? 0 : static_cast<int>(STREAM_OPTIONS::SINKERR));
+                stream_options |= (sinkin ? 0 : static_cast<int>(STREAM_OPTIONS::SINKIN));
             }
 
             int exit_code = mamba::run_in_environment(

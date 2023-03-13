@@ -44,7 +44,7 @@ namespace mamba
             const char* version = "";
 #ifdef __linux__
             std::vector<char> ver;
-            const size_t n = confstr(_CS_GNU_LIBC_VERSION, NULL, (size_t) 0);
+            const size_t n = confstr(_CS_GNU_LIBC_VERSION, NULL, size_t{ 0 });
 
             if (n > 0)
             {

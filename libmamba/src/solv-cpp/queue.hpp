@@ -128,7 +128,7 @@ namespace mamba::solv
         }
         else
         {
-            reserve(size() + n);  // invalidates `pos` iterator
+            reserve(size() + static_cast<size_type>(n));  // invalidates `pos` iterator
             for (auto o = offset; first != last; ++first, ++o)
             {
                 insert(o, *first);

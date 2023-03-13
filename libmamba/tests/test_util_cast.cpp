@@ -61,8 +61,8 @@ namespace mamba::util
     template <typename T>
     struct cast_overflow_lowest : ::testing::Test
     {
-        using From = typename T::first_type;
-        using To = typename T::second_type;
+        using First = typename T::first_type;
+        using Second = typename T::second_type;
     };
     using OverflowLowestTypes = ::testing::Types<
         // integers
@@ -79,8 +79,8 @@ namespace mamba::util
 
     TYPED_TEST(cast_overflow_lowest, checked_exact_num_cast)
     {
-        using From = typename TestFixture::From;
-        using To = typename TestFixture::To;
+        using From = typename TestFixture::First;
+        using To = typename TestFixture::Second;
         static constexpr auto from_lowest = std::numeric_limits<From>::lowest();
 
         EXPECT_THROW(safe_num_cast<To>(from_lowest), std::overflow_error);

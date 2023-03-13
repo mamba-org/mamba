@@ -389,8 +389,9 @@ namespace mamba::specs
         auto to_int(std::string_view str) -> std::optional<Int>
         {
             Int val = 0;
-            const auto [ptr, ec] = std::from_chars(str.cbegin(), str.cend(), val);
-            if ((ec != std::errc()) || (ptr != str.cend()))  // TODO(C++20) [[unlikely]]
+            const auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), val);
+            if ((ec != std::errc()) || (ptr != (str.data() + str.size())))  // TODO(C++20)
+                                                                            // [[unlikely]]
             {
                 return {};
             }
@@ -517,7 +518,7 @@ namespace mamba::specs
                 Version::part_delim_alt,
                 Version::part_delim_special,
             };
-            static constexpr auto delims = std::string_view(delims_buf.begin(), delims_buf.size());
+            static constexpr auto delims = std::string_view{ delims_buf.data(), delims_buf.size() };
 
             CommonVersion parts = {};
             auto tail = str;

@@ -128,7 +128,7 @@ namespace mamba::specs
 }
 
 template <>
-struct ::fmt::formatter<::mamba::specs::VersionPartAtom>
+struct fmt::formatter<mamba::specs::VersionPartAtom>
 {
     constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin())
     {
@@ -148,7 +148,7 @@ struct ::fmt::formatter<::mamba::specs::VersionPartAtom>
 };
 
 template <>
-struct ::fmt::formatter<::mamba::specs::Version>
+struct fmt::formatter<mamba::specs::Version>
 {
     constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin())
     {
@@ -169,7 +169,7 @@ struct ::fmt::formatter<::mamba::specs::Version>
             out = fmt::format_to(ctx.out(), "{}!", v.epoch());
         }
 
-        auto format_version_to = [](auto out, const auto& version)
+        auto format_version_to = [](auto l_out, const auto& version)
         {
             bool first = true;
             for (const auto& part : version)
@@ -180,14 +180,14 @@ struct ::fmt::formatter<::mamba::specs::Version>
                 }
                 else
                 {
-                    out = fmt::format_to(out, ".");
+                    l_out = fmt::format_to(l_out, ".");
                 }
                 for (const auto& atom : part)
                 {
-                    out = fmt::format_to(out, "{}", atom);
+                    l_out = fmt::format_to(l_out, "{}", atom);
                 }
             }
-            return out;
+            return l_out;
         };
         out = format_version_to(out, v.version());
         if (!v.local().empty())

@@ -212,7 +212,7 @@ namespace mamba::specs
                 b.cbegin(),
                 b.cend(),
                 std::equal_to<>{},
-                [empty_a = VersionPartAtom{}](const auto& a) -> bool { return a == empty_a; }
+                [empty_at = VersionPartAtom{}](const auto& at) -> bool { return at == empty_at; }
             );
         }
 
@@ -223,9 +223,9 @@ namespace mamba::specs
                 a.cend(),
                 b.cbegin(),
                 b.cend(),
-                [](const VersionPart& a, const VersionPart& b) -> bool { return equal(a, b); },
-                [empty_a = VersionPartAtom{}](const auto& p) -> bool
-                { return p.empty() || ((p.size() == 1) && (p.front() == empty_a)); }
+                [](const VersionPart& x, const VersionPart& y) -> bool { return equal(x, y); },
+                [empty_at = VersionPartAtom{}](const auto& p) -> bool
+                { return p.empty() || ((p.size() == 1) && (p.front() == empty_at)); }
             );
         }
 
@@ -309,8 +309,8 @@ namespace mamba::specs
                 a.cend(),
                 b.cbegin(),
                 b.cend(),
-                [](const VersionPart& a, const VersionPart& b) -> bool { return less(a, b); },
-                [](const VersionPart& a, const VersionPart& b) -> bool { return equal(a, b); },
+                [](const VersionPart& x, const VersionPart& y) -> bool { return less(x, y); },
+                [](const VersionPart& x, const VersionPart& y) -> bool { return equal(x, y); },
                 VersionPart{}
             );
         }

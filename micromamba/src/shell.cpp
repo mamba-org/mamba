@@ -116,7 +116,7 @@ set_shell_command(CLI::App* subcom)
                 exit(mamba::run_in_environment(
                     { env_shell },
                     ".",
-                    (int) STREAM_OPTIONS::ALL_STREAMS,
+                    static_cast<int>(STREAM_OPTIONS::ALL_STREAMS),
                     false,
                     false,
                     {},

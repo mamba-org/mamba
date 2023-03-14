@@ -542,7 +542,7 @@ namespace mamba
         }
 
         selection_solvables(m_pool, job.raw(), q.raw());
-        const bool remove_success = size_t(q.size()) >= specs_to_remove.size();
+        const bool remove_success = q.size() >= specs_to_remove.size();
         Console::instance().json_write({ { "success", remove_success } });
         Id pkg_id;
         Solvable* solvable;
@@ -674,7 +674,7 @@ namespace mamba
             solver.install_specs()
         );
 
-        ::Pool* const pool_ptr = static_cast<::Pool* const>(m_pool);
+        ::Pool* const pool_ptr = static_cast<::Pool*>(m_pool);
         if (m_transaction_context.relink_noarch && pool_ptr->installed != nullptr)
         {
             Id p = 0;

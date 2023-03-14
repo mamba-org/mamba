@@ -560,7 +560,7 @@ namespace mamba
     {
         bool old_value = Context::instance().repodata_use_zst;
         Context::instance().repodata_use_zst = true;
-        fs::u8path cache_folder = fs::u8path(test_data_dir / "repodata_json_cache");
+        fs::u8path cache_folder = fs::u8path{ test_data_dir / "repodata_json_cache" };
         auto mq = detail::read_metadata(cache_folder / "test_1.json");
         EXPECT_TRUE(mq.has_value());
         auto j = mq.value();

@@ -18,6 +18,38 @@
 
 namespace mamba::specs
 {
+    namespace
+    {
+        // TODO(C++20) use operator<=>
+        enum strong_ordering
+        {
+            less,
+            equal,
+            greater
+        };
+
+        template <typename T>
+        auto compare_three_way(const T& a, const T& b) -> strong_ordering
+        {
+            if (a < b)
+            {
+                return strong_ordering::less;
+            }
+            if (a == b)
+            {
+                return strong_ordering::equal;
+            }
+            return strong_ordering::greater;
+        }
+
+        template <>
+        auto compare_three_way(const std::string& a, const std::string& b) -> strong_ordering
+        {
+            return compare_three_way(std::strcmp(a.c_str(), b.c_str()), 0);
+        }
+
+    }
+
     /***************************************
      *  Implementation of VersionPartAtom  *
      ***************************************/
@@ -62,9 +94,57 @@ namespace mamba::specs
         return fmt::format("{}", *this);
     }
 
-    // TODO(C++20) use operator<=>
+    namespace
+    {
+        template <>
+        auto compare_three_way(const VersionPartAtom& a, const VersionPartAtom& b) -> strong_ordering
+        {
+            const auto num_ord = compare_three_way(a.numeral(), b.numeral());
+            if (num_ord != strong_ordering::equal)
+            {
+                return num_ord;
+            }
+
+            // Certain litterals have sepcial meaning we map then to a priority
+            // 0 meaning regular string
+            auto lit_priority = [](const auto& l) -> int
+            {
+                if (l == "*")
+                {
+                    return -3;
+                }
+                if (l == "dev")
+                {
+                    return -2;
+                }
+                if (l == "_")
+                {
+                    return -1;
+                }
+                if (l == "")
+                {
+                    return 1;
+                }
+                if (l == "post")
+                {
+                    return 2;
+                }
+                return 0;
+            };
+            const auto a_lit_val = lit_priority(a.litteral());
+            const auto b_lit_val = lit_priority(b.litteral());
+            // If two regular string, we need to use string comparison
+            if ((a_lit_val == 0) && (b_lit_val == 0))
+            {
+                return compare_three_way<std::string>(a.litteral(), b.litteral());
+            }
+            return compare_three_way(a_lit_val, b_lit_val);
+        }
+    }
+
     auto VersionPartAtom::operator==(const VersionPartAtom& other) const -> bool
     {
+        // More efficient thatn three way comparison because of edge cases
         auto attrs = [](const VersionPartAtom& a) -> std::tuple<std::size_t, const std::string&> {
             return { a.numeral(), a.litteral() };
         };
@@ -73,70 +153,28 @@ namespace mamba::specs
 
     auto VersionPartAtom::operator!=(const VersionPartAtom& other) const -> bool
     {
+        // More efficient thatn three way comparison
         return !(*this == other);
     }
 
     auto VersionPartAtom::operator<(const VersionPartAtom& other) const -> bool
     {
-        // Numeral has priority in comparison
-        if (numeral() < other.numeral())
-        {
-            return true;
-        }
-        if (numeral() > other.numeral())
-        {
-            return false;
-        }
-
-        // Certain litterals have sepcial meaning we map then to a priority
-        // 0 meaning regular string
-        auto lit_priority = [](const auto& l) -> int
-        {
-            if (l == "*")
-            {
-                return -3;
-            }
-            if (l == "dev")
-            {
-                return -2;
-            }
-            if (l == "_")
-            {
-                return -1;
-            }
-            if (l == "")
-            {
-                return 1;
-            }
-            if (l == "post")
-            {
-                return 2;
-            }
-            return 0;
-        };
-        const auto this_lit_val = lit_priority(litteral());
-        const auto other_lit_val = lit_priority(other.litteral());
-        // If two regular string, we need to use string comparison
-        if ((this_lit_val == 0) && (other_lit_val == 0))
-        {
-            return litteral() < other.litteral();
-        }
-        return this_lit_val < other_lit_val;
+        return compare_three_way(*this, other) == strong_ordering::less;
     }
 
     auto VersionPartAtom::operator<=(const VersionPartAtom& other) const -> bool
     {
-        return (*this < other) || (*this == other);
+        return compare_three_way(*this, other) != strong_ordering::greater;
     }
 
     auto VersionPartAtom::operator>(const VersionPartAtom& other) const -> bool
     {
-        return !(*this <= other);
+        return compare_three_way(*this, other) == strong_ordering::greater;
     }
 
     auto VersionPartAtom::operator>=(const VersionPartAtom& other) const -> bool
     {
-        return !(*this < other);
+        return compare_three_way(*this, other) != strong_ordering::less;
     }
 
     /*******************************
@@ -177,150 +215,101 @@ namespace mamba::specs
          *
          * If ``0`` is considered "empty" then all the ranges ``[1, 2] and ``[1, 2, 0]``,
          * ``[1, 2, 0, 0]`` are considered equal, however ``[1, 2]`` and ``[1, 0, 2]`` are not.
+         * Similarily ``[1, 1] is less than ``[1, 2, 0]`` but more than ``[1, 1, -1]``
+         * because ``-1 < 0``.
          */
-        template <typename Iter1, typename Iter2, typename BinaryPred, typename UnaryPred>
-        auto equal_trailing(
-            const Iter1 first1,
-            Iter1 last1,
-            Iter2 first2,
-            Iter2 last2,
-            BinaryPred equal,
-            UnaryPred empty
-        ) -> bool
-        {
-            const auto rfirst1 = std::find_if_not(
-                std::reverse_iterator{ last1 },
-                std::reverse_iterator{ first1 },
-                empty
-            );
-            const auto rfirst2 = std::find_if_not(
-                std::reverse_iterator{ last2 },
-                std::reverse_iterator{ first2 },
-                empty
-            );
-            // TODO(C++20) use std::lexicographical_compare_three_way to share implementation
-            return std::equal(first1, rfirst1.base(), first2, rfirst2.base(), equal);
-        }
-
-        // Since VersionPart is weakly typed (an alias for std::vector), it not good
-        // to expose this function as an operator==
-        auto equal(const VersionPart& a, const VersionPart b) -> bool
-        {
-            return equal_trailing(
-                a.cbegin(),
-                a.cend(),
-                b.cbegin(),
-                b.cend(),
-                std::equal_to<>{},
-                [empty_at = VersionPartAtom{}](const auto& at) -> bool { return at == empty_at; }
-            );
-        }
-
-        auto equal(const CommonVersion& a, const CommonVersion b) -> bool
-        {
-            return equal_trailing(
-                a.cbegin(),
-                a.cend(),
-                b.cbegin(),
-                b.cend(),
-                [](const VersionPart& x, const VersionPart& y) -> bool { return equal(x, y); },
-                [empty_at = VersionPartAtom{}](const auto& p) -> bool
-                { return p.empty() || ((p.size() == 1) && (p.front() == empty_at)); }
-            );
-        }
-
-        /**
-         * Compare two range where some trailing elements can be considered as empty.
-         *
-         * If ``0`` is considered "empty" then all the ranges ``[1, 1] is less than ``[1, 2, 0]``
-         * but more than ``[1, 1, -1]`` because ``-1 < 0``.
-         */
-        template <typename Iter1, typename Iter2, typename Compare, typename Equal, typename T>
-        auto lexicographical_compare_trailing(
+        template <typename Iter1, typename Iter2, typename T, typename Cmp>
+        constexpr auto lexicographical_compare_three_way_trailing(
             Iter1 first1,
             Iter1 last1,
             Iter2 first2,
             Iter2 last2,
-            Compare comp,
-            Equal equal,
-            T empty
-        ) -> bool
+            T empty,
+            Cmp comp
+        ) -> strong_ordering
         {
-            auto [it1, it2] = std::mismatch(first1, last1, first2, last2, std::move(equal));
-            // There is a mismatching element we use it for comparison
-            if ((it1 != last1) && (it2 != last2))
+            for (; (first1 != last1) && (first2 != last2); ++first1, ++first2)
             {
-                return comp(*it1, *it2);
+                if (auto c = comp(*first1, *first2); c != strong_ordering::equal)
+                {
+                    return c;
+                }
             }
+
             // They have the same leading elements but 1 has more elements
             // We do a lexicographic compare with an infite sequence of empties
-            if ((it1 != last1))
+            if ((first1 != last1))
             {
-                for (; it1 != last1; ++it1)
+                for (; first1 != last1; ++first1)
                 {
-                    if (comp(*it1, empty))
+                    if (auto c = comp(*first1, empty); c != strong_ordering::equal)
                     {
-                        return true;
-                    }
-                    if (comp(empty, *it1))
-                    {
-                        return false;
+                        return c;
                     }
                 }
-                // Equal
-                return false;
             }
-            // it2 != last2
+            // first2 != last2
             // They have the same leading elements but 2 has more elements
             // We do a lexicographic compare with an infite sequence of empties
-            for (; it2 != last2; ++it2)
+            if ((first2 != last2))
             {
-                if (comp(*it2, empty))
+                for (; first2 != last2; ++first2)
                 {
-                    return false;
-                }
-                if (comp(empty, *it2))
-                {
-                    return true;
+                    if (auto c = comp(empty, *first2); c != strong_ordering::equal)
+                    {
+                        return c;
+                    }
                 }
             }
-            return false;
+            // They have the same elements
+            return strong_ordering::equal;
         }
 
-        // Since VersionPart is weakly typed (an alias for std::vector), it not good
-        // to expose this function as an operator==
-        auto less(const VersionPart& a, const VersionPart b) -> bool
+        template <>
+        auto compare_three_way(const VersionPart& a, const VersionPart& b) -> strong_ordering
         {
-            return lexicographical_compare_trailing(
+            return lexicographical_compare_three_way_trailing(
                 a.cbegin(),
                 a.cend(),
                 b.cbegin(),
                 b.cend(),
-                std::less<>{},
-                std::equal_to<>{},
-                VersionPartAtom{}
+                VersionPartAtom{},
+                [](const auto& x, const auto& y) { return compare_three_way(x, y); }
             );
         }
 
-        auto less(const CommonVersion& a, const CommonVersion b) -> bool
+        template <>
+        auto compare_three_way(const CommonVersion& a, const CommonVersion& b) -> strong_ordering
         {
-            return lexicographical_compare_trailing(
+            return lexicographical_compare_three_way_trailing(
                 a.cbegin(),
                 a.cend(),
                 b.cbegin(),
                 b.cend(),
-                [](const VersionPart& x, const VersionPart& y) -> bool { return less(x, y); },
-                [](const VersionPart& x, const VersionPart& y) -> bool { return equal(x, y); },
-                VersionPart{}
+                VersionPart{},
+                [](const auto& x, const auto& y) { return compare_three_way(x, y); }
             );
+        }
+
+        template <>
+        auto compare_three_way(const Version& a, const Version& b) -> strong_ordering
+        {
+            if (auto c = compare_three_way(a.epoch(), b.epoch()); c != strong_ordering::equal)
+            {
+                return c;
+            }
+            if (auto c = compare_three_way(a.version(), b.version()); c != strong_ordering::equal)
+            {
+                return c;
+            }
+            return compare_three_way(a.local(), b.local());
         }
     }
 
     // TODO(C++20) use operator<=> to simplify code and improve operator<=
     auto Version::operator==(const Version& other) const -> bool
     {
-        return (epoch() == other.epoch()) && equal(version(), other.version())
-               && equal(local(), other.local());
+        return compare_three_way(*this, other) == strong_ordering::equal;
     }
 
     auto Version::operator!=(const Version& other) const -> bool
@@ -330,49 +319,22 @@ namespace mamba::specs
 
     auto Version::operator<(const Version& other) const -> bool
     {
-        if (epoch() < other.epoch())
-        {
-            return true;
-        }
-        if (other.epoch() < epoch())
-        {
-            return false;
-        }
-
-        if (less(version(), other.version()))
-        {
-            return true;
-        }
-        if (less(other.version(), version()))
-        {
-            return false;
-        }
-
-        if (less(local(), other.local()))
-        {
-            return true;
-        }
-        if (less(other.local(), local()))
-        {
-            return false;
-        }
-
-        return false;
+        return compare_three_way(*this, other) == strong_ordering::less;
     }
 
     auto Version::operator<=(const Version& other) const -> bool
     {
-        return (*this < other) || (*this == other);
+        return compare_three_way(*this, other) != strong_ordering::greater;
     }
 
     auto Version::operator>(const Version& other) const -> bool
     {
-        return !(*this <= other);
+        return compare_three_way(*this, other) == strong_ordering::greater;
     }
 
     auto Version::operator>=(const Version& other) const -> bool
     {
-        return !(*this < other);
+        return compare_three_way(*this, other) != strong_ordering::less;
     }
 
     namespace

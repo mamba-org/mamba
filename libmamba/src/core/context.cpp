@@ -4,8 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/context.hpp"
-
 #include <iostream>
 
 #include <fmt/format.h>
@@ -14,6 +12,7 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
+#include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"

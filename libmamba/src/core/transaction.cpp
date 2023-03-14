@@ -27,7 +27,6 @@ extern "C"  // Incomplete header
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_scope.hpp"
 #include "mamba/core/util_string.hpp"
-
 #include "solv-cpp/queue.hpp"
 
 #include "progress_bar_impl.hpp"

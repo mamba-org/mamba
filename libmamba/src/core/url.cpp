@@ -4,13 +4,12 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/url.hpp"
-
 #include <regex>
 
 #include <openssl/evp.h>
 
 #include "mamba/core/context.hpp"
+#include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_string.hpp"
 

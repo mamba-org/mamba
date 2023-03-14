@@ -4,11 +4,10 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/mamba_fs.hpp"
-
 #include <filesystem>
 #include <string>
 
+#include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/util_string.hpp"
 
 namespace fs

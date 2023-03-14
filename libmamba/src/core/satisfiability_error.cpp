@@ -4,8 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/satisfiability_error.hpp"
-
 #include <algorithm>
 #include <functional>
 #include <limits>
@@ -25,6 +23,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
+#include "mamba/core/satisfiability_error.hpp"
 #include "mamba/core/solver.hpp"
 #include "mamba/core/util_string.hpp"
 

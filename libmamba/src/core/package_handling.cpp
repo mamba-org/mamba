@@ -5,8 +5,6 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 
-#include "mamba/core/package_handling.hpp"
-
 #include <sstream>
 
 #include <archive.h>
@@ -16,6 +14,7 @@
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/package_handling.hpp"
 #include "mamba/core/package_paths.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util_os.hpp"

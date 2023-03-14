@@ -4,13 +4,12 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/fsutil.hpp"
-
 #include <fstream>
 #include <string>
 #include <system_error>
 
 #include "mamba/core/environment.hpp"
+#include "mamba/core/fsutil.hpp"
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"

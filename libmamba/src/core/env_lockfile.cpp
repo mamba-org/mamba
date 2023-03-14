@@ -4,11 +4,10 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/env_lockfile.hpp"
-
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/yaml.h>
 
+#include "mamba/core/env_lockfile.hpp"
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"

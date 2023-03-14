@@ -4,8 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/link.hpp"
-
 #include <iostream>
 #include <regex>
 #include <string>
@@ -16,6 +14,7 @@
 #include <reproc++/run.hpp>
 
 #include "mamba/core/environment.hpp"
+#include "mamba/core/link.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/menuinst.hpp"
 #include "mamba/core/output.hpp"

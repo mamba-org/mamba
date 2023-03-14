@@ -4,8 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/package_info.hpp"
-
 #include <algorithm>
 #include <functional>
 #include <iterator>
@@ -13,6 +11,7 @@
 #include <tuple>
 
 #include "mamba/core/channel.hpp"
+#include "mamba/core/package_info.hpp"
 #include "mamba/core/util_string.hpp"
 
 namespace mamba

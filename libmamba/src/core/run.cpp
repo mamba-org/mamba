@@ -1,5 +1,3 @@
-#include "mamba/core/run.hpp"
-
 #include <csignal>
 #include <exception>
 #include <iostream>
@@ -16,6 +14,7 @@
 #include "mamba/api/install.hpp"
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/execution.hpp"
+#include "mamba/core/run.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_random.hpp"
 #include "mamba/core/util_string.hpp"

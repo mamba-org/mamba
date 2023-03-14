@@ -4,12 +4,11 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/history.hpp"
-
 #include <regex>
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/fsutil.hpp"
+#include "mamba/core/history.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_string.hpp"

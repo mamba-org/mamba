@@ -4,8 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/validate.hpp"
-
 #include <iostream>
 #include <regex>
 #include <set>
@@ -20,6 +18,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util_string.hpp"
+#include "mamba/core/validate.hpp"
 
 namespace mamba
 {

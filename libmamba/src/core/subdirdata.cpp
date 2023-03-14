@@ -4,13 +4,12 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/subdirdata.hpp"
-
 #include <stdexcept>
 
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
+#include "mamba/core/subdirdata.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util_string.hpp"
 

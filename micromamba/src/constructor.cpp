@@ -5,7 +5,6 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "constructor.hpp"
-
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
 #include "mamba/core/package_handling.hpp"

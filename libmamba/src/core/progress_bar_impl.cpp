@@ -1,5 +1,3 @@
-#include "progress_bar_impl.hpp"
-
 #include <algorithm>
 #include <cmath>
 #include <iomanip>
@@ -12,6 +10,8 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/util_compare.hpp"
+
+#include "progress_bar_impl.hpp"
 
 namespace cursor
 {

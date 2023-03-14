@@ -4,17 +4,15 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/prefix_data.hpp"
-
 #include <solv/pool.h>
 #include <solv/repo.h>
 #include <solv/transaction.h>
 
 #include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
+#include "mamba/core/prefix_data.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/util_string.hpp"
-
 #include "solv-cpp/queue.hpp"
 
 namespace mamba

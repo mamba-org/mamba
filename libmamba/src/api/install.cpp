@@ -4,8 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/api/install.hpp"
-
 #include <stdexcept>
 
 #include <fmt/color.h>
@@ -16,6 +14,7 @@
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
+#include "mamba/api/install.hpp"
 #include "mamba/core/activation.hpp"
 #include "mamba/core/env_lockfile.hpp"
 #include "mamba/core/environments_manager.hpp"

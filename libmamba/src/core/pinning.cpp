@@ -4,11 +4,10 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/pinning.hpp"
-
 #include <fstream>
 
 #include "mamba/core/output.hpp"
+#include "mamba/core/pinning.hpp"
 #include "mamba/core/util_string.hpp"
 
 

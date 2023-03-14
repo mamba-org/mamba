@@ -23,7 +23,6 @@ extern "C"  // Incomplete header
 #include "mamba/core/util_cast.hpp"
 #include "mamba/core/util_compare.hpp"
 #include "mamba/core/util_string.hpp"
-
 #include "solv-cpp/queue.hpp"
 
 namespace mamba

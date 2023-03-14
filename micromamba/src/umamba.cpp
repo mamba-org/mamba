@@ -4,12 +4,11 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "umamba.hpp"
-
 #include "mamba/core/context.hpp"
 #include "mamba/version.hpp"
 
 #include "common_options.hpp"
+#include "umamba.hpp"
 #include "version.hpp"
 
 using namespace mamba;  // NOLINT(build/namespaces)

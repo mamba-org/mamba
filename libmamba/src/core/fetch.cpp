@@ -4,11 +4,10 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/fetch.hpp"
-
 #include <string_view>
 
 #include "mamba/core/context.hpp"
+#include "mamba/core/fetch.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/url.hpp"

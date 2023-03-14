@@ -4,14 +4,14 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/util_string.hpp"
-
 #include <cctype>
 #include <cwchar>
 #include <cwctype>
 #include <stdexcept>
 
 #include <stddef.h>
+
+#include "mamba/core/util_string.hpp"
 
 namespace mamba
 {

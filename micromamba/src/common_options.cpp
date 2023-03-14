@@ -5,7 +5,6 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "common_options.hpp"
-
 #include "mamba/api/configuration.hpp"
 
 

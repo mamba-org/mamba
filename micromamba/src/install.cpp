@@ -1,6 +1,5 @@
-#include "mamba/api/install.hpp"
-
 #include "mamba/api/configuration.hpp"
+#include "mamba/api/install.hpp"
 
 #include "common_options.hpp"
 

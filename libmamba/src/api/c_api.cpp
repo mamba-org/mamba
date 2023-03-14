@@ -4,10 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/api/c_api.h"
-
 #include <string>
 
+#include "mamba/api/c_api.h"
 #include "mamba/api/config.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/create.hpp"

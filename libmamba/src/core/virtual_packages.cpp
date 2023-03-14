@@ -4,14 +4,13 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/virtual_packages.hpp"
-
 #include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_string.hpp"
+#include "mamba/core/virtual_packages.hpp"
 
 #ifdef _WIN32
 #include <windows.h>

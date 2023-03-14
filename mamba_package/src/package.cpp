@@ -4,10 +4,10 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "package.hpp"
-
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/util_string.hpp"
+
+#include "package.hpp"
 
 using namespace mamba;  // NOLINT(build/namespaces)
 

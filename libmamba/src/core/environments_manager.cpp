@@ -3,14 +3,13 @@
 // Distributed under the terms of the BSD 3-Clause License.
 //
 // The full license is in the file LICENSE, distributed with this software.
-#include "mamba/core/environments_manager.hpp"
-
 #include <set>
 #include <string>
 #include <vector>
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
+#include "mamba/core/environments_manager.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"

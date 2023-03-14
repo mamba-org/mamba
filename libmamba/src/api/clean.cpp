@@ -4,10 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/api/clean.hpp"
-
 #include <iostream>
 
+#include "mamba/api/clean.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/mamba_fs.hpp"

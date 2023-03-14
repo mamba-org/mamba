@@ -5,14 +5,14 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 
-#include "solv-cpp/queue.hpp"
-
 #include <cassert>
 #include <exception>
 #include <limits>
 #include <sstream>
 
 #include <solv/queue.h>
+
+#include "solv-cpp/queue.hpp"
 
 namespace mamba::solv
 {

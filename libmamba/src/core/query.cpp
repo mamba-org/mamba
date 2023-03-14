@@ -4,8 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/query.hpp"
-
 #include <iostream>
 #include <stack>
 
@@ -20,9 +18,9 @@
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
+#include "mamba/core/query.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util_string.hpp"
-
 #include "solv-cpp/queue.hpp"
 
 namespace mamba

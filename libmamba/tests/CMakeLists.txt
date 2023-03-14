@@ -14,6 +14,7 @@ set(LIBMAMBA_TEST_SRCS
     src/test_main.cpp
     # C++ wrapping of libsolv
     src/solv-cpp/test_queue.cpp
+    src/solv-cpp/test_pool.cpp
     # Utility library
     src/util/test_flat_set.cpp
     src/util/test_graph.cpp

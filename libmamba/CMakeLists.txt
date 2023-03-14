@@ -120,6 +120,7 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/version.cpp
     # C++ wrapping of libsolv
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/pool.cpp
     # C++ wrapping of libcurl
     ${LIBMAMBA_SOURCE_DIR}/core/curl.cpp
     # C++ wrapping of compression libs (zstd and bzlib)
@@ -268,10 +269,13 @@ set(LIBMAMBA_PUBLIC_HEADERS
 )
 
 set(LIBMAMBA_PRIVATE_HEADERS
+    # C++ wrapping of libsolv
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.hpp
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/ids.hpp
-    # C++ wrapping of libcurl
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/pool.hpp
+    # C++ wrapping of compression libs (zstd and bzlib)
     ${LIBMAMBA_SOURCE_DIR}/core/compression.hpp
+    # C++ wrapping of libcurl
     ${LIBMAMBA_SOURCE_DIR}/core/curl.hpp
 )
 

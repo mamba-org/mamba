@@ -33,17 +33,19 @@ ExperimentalAutoDetectBinPacking: 'true'
 IncludeBlocks: Regroup
 IncludeCategories:
 - Regex: <[^.]+>
-  Priority: 1
+  Priority: -3
 - Regex: <mamba/.+>
-  Priority: 3
+  Priority: -1
 - Regex: <.+>
-  Priority: 2
+  Priority: -2
 - Regex: '"mamba/.+"'
-  Priority: 4
+  Priority: 0
+- Regex: '"solv-cpp/.+"'
+  Priority: 0
 - Regex: '".+/.+"'
-  Priority: 5
+  Priority: 1
 - Regex: '".+"'
-  Priority: 6
+  Priority: 2
 IndentCaseLabels: 'true'
 IndentWidth: '4'
 IndentWrappedFunctionNames: 'false'

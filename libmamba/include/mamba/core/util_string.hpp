@@ -466,15 +466,14 @@ namespace mamba
         template <typename T>
         inline constexpr bool has_reserve_v = has_reserve<T>::value;
 
-        std::size_t size(const char* s);
-        std::size_t size(const wchar_t* s);
-        std::size_t size(const char c);
-        std::size_t size(const wchar_t c);
+        std::size_t length(const char* s);
+        std::size_t length(const wchar_t* s);
+        std::size_t length(const char c);
+        std::size_t length(const wchar_t c);
         template <class T>
-        std::size_t size(const T& s)
+        std::size_t length(const T& s)
         {
-            using std::size;
-            return size(s);
+            return s.length();
         }
     }
 
@@ -502,7 +501,7 @@ namespace mamba
         if constexpr (detail::has_reserve_v<Result>)
         {
             std::size_t final_size = 0;
-            auto inc_size = [&final_size](const auto& val) { final_size += detail::size(val); };
+            auto inc_size = [&final_size](const auto& val) { final_size += detail::length(val); };
             join_for_each(container.begin(), container.end(), inc_size, sep);
             out.reserve(final_size);
         }
@@ -575,7 +574,7 @@ namespace mamba
         if constexpr (detail::has_reserve_v<Result>)
         {
             std::size_t final_size = 0;
-            auto inc_size = [&final_size](const auto& val) { final_size += detail::size(val); };
+            auto inc_size = [&final_size](const auto& val) { final_size += detail::length(val); };
             join_trunc_for_each(range.begin(), range.end(), inc_size, sep, etc, threshold, show);
             out.reserve(final_size);
         }
@@ -589,7 +588,7 @@ namespace mamba
     std::string concat(const Args&... args)
     {
         std::string result;
-        result.reserve((detail::size(args) + ...));
+        result.reserve((detail::length(args) + ...));
         ((result += args), ...);
         return result;
     }

@@ -623,19 +623,19 @@ namespace mamba
 
     namespace detail
     {
-        std::size_t size(const char* s)
+        std::size_t length(const char* s)
         {
             return std::strlen(s);
         }
-        std::size_t size(const wchar_t* s)
+        std::size_t length(const wchar_t* s)
         {
             return std::wcslen(s);
         }
-        std::size_t size(const char /*c*/)
+        std::size_t length(const char /*c*/)
         {
             return 1;
         }
-        std::size_t size(const wchar_t c)
+        std::size_t length(const wchar_t /*c*/)
         {
             return 1;
         }

@@ -118,6 +118,10 @@ init_prefix_options(CLI::App* subcom)
     subcom->add_option("-p,--prefix", prefix.get_cli_config<fs::u8path>(), prefix.description())
         ->group(cli_group);
 
+    auto& relocate_prefix = config.at("relocate_prefix");
+    subcom->add_option("--relocate-prefix", relocate_prefix.get_cli_config<fs::u8path>(), relocate_prefix.description())
+        ->group(cli_group);
+
     auto& name = config.at("env_name");
     subcom->add_option("-n,--name", name.get_cli_config<std::string>(), name.description())
         ->group(cli_group);

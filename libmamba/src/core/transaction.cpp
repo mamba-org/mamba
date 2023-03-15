@@ -576,6 +576,7 @@ namespace mamba
 
         m_transaction_context = TransactionContext(
             Context::instance().target_prefix,
+            Context::instance().relocate_prefix,
             find_python_version(),
             specs_to_install
         );
@@ -669,6 +670,7 @@ namespace mamba
 
         m_transaction_context = TransactionContext(
             Context::instance().target_prefix,
+            Context::instance().relocate_prefix,
             find_python_version(),
             solver.install_specs()
         );
@@ -815,6 +817,7 @@ namespace mamba
 
         m_transaction_context = TransactionContext(
             Context::instance().target_prefix,
+            Context::instance().relocate_prefix,
             find_python_version(),
             specs_to_install
         );

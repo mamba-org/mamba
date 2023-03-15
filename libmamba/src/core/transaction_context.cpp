@@ -142,7 +142,7 @@ namespace mamba
         TransactionContext(ltarget_prefix, py_versions, lrequested_specs){
 
         relocate_prefix = lrelocate_prefix;
-        relocate = true;
+        relocate = !lrelocate_prefix.empty();
 
     } 
 
@@ -333,5 +333,9 @@ namespace mamba
             }
             m_pyc_process = nullptr;
         }
+    }
+
+    const fs::u8path & TransactionContext::get_relocated_prefix() const {
+        return relocate ? relocate_prefix : target_prefix;
     }
 }

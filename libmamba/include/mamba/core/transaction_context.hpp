@@ -50,6 +50,8 @@ namespace mamba
         bool try_pyc_compilation(const std::vector<fs::u8path>& py_files);
         void wait_for_pyc_compilation();
 
+        const fs::u8path & get_relocated_prefix()const;
+
         bool has_python;
         fs::u8path target_prefix;
         fs::u8path site_packages_path;

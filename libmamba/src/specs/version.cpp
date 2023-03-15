@@ -393,7 +393,7 @@ namespace mamba::specs
         auto parse_leading_integer(std::string_view str) -> std::pair<Int, std::string_view>
         {
             const auto [integer_str, rest] = lstrip_if_parts(str, [](char c) { return is_digit(c); });
-            auto maybe_integer = to_int<int>(integer_str);
+            auto maybe_integer = to_int<Int>(integer_str);
             assert(maybe_integer.has_value());
             return { maybe_integer.value(), rest };
         }

@@ -52,12 +52,20 @@ if(ENABLE_TSAN)
     message(WARNING "Thread-Sanitizer instrumentation will be injected into binaries - do not release these binaries")
     add_compile_options(-fno-omit-frame-pointer  -fsanitize=thread)
     add_link_options(-fno-omit-frame-pointer  -fsanitize=thread)
+    if(BUILD_STATIC)
+        # This is necessary because add_link_options() only pass flags to linker, not static cases
+        set(STATIC_LIBRARY_FLAGS ${STATIC_LIBRARY_FLAGS} -fno-omit-frame-pointer -fsanitize=thread)
+    endif()
 endif()
 
-if(ENABLE_USAN)
+if(ENABLE_UBSAN)
     message(WARNING "Undefined-Sanitizer instrumentation will be injected into binaries - do not release these binaries")
-    add_compile_options(-fno-omit-frame-pointer  -fsanitize=undefined)
-    add_link_options(-fno-omit-frame-pointer  -fsanitize=undefined)
+    add_compile_options(-fno-omit-frame-pointer  -fsanitize=undefined -fno-sanitize-recover=all)
+    add_link_options(-fno-omit-frame-pointer  -fsanitize=undefined -fno-sanitize-recover=all)
+    if(BUILD_STATIC)
+        # This is necessary because add_link_options() only pass flags to linker, not static cases
+        set(STATIC_LIBRARY_FLAGS ${STATIC_LIBRARY_FLAGS} -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover=all)
+    endif()
 endif()
 
 

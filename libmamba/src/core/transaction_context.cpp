@@ -164,6 +164,9 @@ namespace mamba
             python_path = other.python_path;
             site_packages_path = other.site_packages_path;
             relink_noarch = other.relink_noarch;
+
+            relocate = other.relocate;
+            relocate_prefix = other.relocate_prefix;
         }
         return *this;
     }

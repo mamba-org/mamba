@@ -16,69 +16,12 @@
 
 #include "spdlog/spdlog.h"
 
+#include "compression.hpp"
+#include "curl.hpp"
 #include "progress_bar_impl.hpp"
 
 namespace mamba
 {
-    size_t ZstdStream::write(char* in, size_t size)
-    {
-        ZSTD_inBuffer input = { in, size, 0 };
-        ZSTD_outBuffer output = { buffer, BUFFER_SIZE, 0 };
-
-        while (input.pos < input.size)
-        {
-            auto ret = ZSTD_decompressStream(stream, &output, &input);
-            if (ZSTD_isError(ret))
-            {
-                LOG_ERROR << "ZSTD decompression error: " << ZSTD_getErrorName(ret);
-                return size + 1;
-            }
-            if (output.pos > 0)
-            {
-                size_t wcb_res = m_write_callback(buffer, 1, output.pos, m_write_callback_data);
-                if (wcb_res != output.pos)
-                {
-                    return size + 1;
-                }
-                output.pos = 0;
-            }
-        }
-        return size;
-    }
-
-    size_t Bzip2Stream::write(char* in, size_t size)
-    {
-        bz_stream* stream = static_cast<bz_stream*>(m_write_callback_data);
-        stream->next_in = in;
-        stream->avail_in = static_cast<unsigned int>(size);
-
-        while (stream->avail_in > 0)
-        {
-            stream->next_out = buffer;
-            stream->avail_out = Bzip2Stream::BUFFER_SIZE;
-
-            int ret = BZ2_bzDecompress(stream);
-            if (ret != BZ_OK && ret != BZ_STREAM_END)
-            {
-                LOG_ERROR << "Bzip2 decompression error: " << ret;
-                return size + 1;
-            }
-
-            size_t wcb_res = m_write_callback(
-                buffer,
-                1,
-                BUFFER_SIZE - stream->avail_out,
-                m_write_callback_data
-            );
-            if (wcb_res != BUFFER_SIZE - stream->avail_out)
-            {
-                return size + 1;
-            }
-        }
-        return size;
-    }
-
-
     void init_curl_ssl()
     {
         auto& ctx = Context::instance();
@@ -93,36 +36,24 @@ namespace mamba
             }
 
 #ifdef LIBMAMBA_STATIC_DEPS
-            CURL* handle = curl_easy_init();
-            if (handle)
+            auto init_res = init_curl_ssl_session();
+            switch (init_res.second)
             {
-                const struct curl_tlssessioninfo* info = NULL;
-                CURLcode res = curl_easy_getinfo(handle, CURLINFO_TLS_SSL_PTR, &info);
-                if (info && !res)
+                case CurlLogLevel::kInfo:
                 {
-                    if (info->backend == CURLSSLBACKEND_OPENSSL)
-                    {
-                        LOG_INFO << "Using OpenSSL backend";
-                    }
-                    else if (info->backend == CURLSSLBACKEND_SECURETRANSPORT)
-                    {
-                        LOG_INFO << "Using macOS SecureTransport backend";
-                    }
-                    else if (info->backend == CURLSSLBACKEND_SCHANNEL)
-                    {
-                        LOG_INFO << "Using Windows Schannel backend";
-                    }
-                    else if (info->backend != CURLSSLBACKEND_NONE)
-                    {
-                        LOG_INFO << "Using an unknown (to mamba) SSL backend";
-                    }
-                    else if (info->backend == CURLSSLBACKEND_NONE)
-                    {
-                        LOG_WARNING
-                            << "No SSL backend found! Please check how your cURL library is configured.";
-                    }
+                    LOG_INFO << init_res.first;
+                    break;
                 }
-                curl_easy_cleanup(handle);
+                case CurlLogLevel::kWarning:
+                {
+                    LOG_WARNING << init_res.first;
+                    break;
+                }
+                case CurlLogLevel::kError:
+                {
+                    LOG_ERROR << init_res.first;
+                    break;
+                }
             }
 #endif
 

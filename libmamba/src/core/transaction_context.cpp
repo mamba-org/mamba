@@ -133,6 +133,19 @@ namespace mamba
         }
     }
 
+    TransactionContext::TransactionContext(
+        const fs::u8path& ltarget_prefix,
+        const fs::u8path& lrelocate_prefix,
+        const std::pair<std::string, std::string>& py_versions,
+        const std::vector<MatchSpec>& lrequested_specs
+    ) :
+        TransactionContext(ltarget_prefix, py_versions, lrequested_specs){
+
+        relocate_prefix = lrelocate_prefix;
+        relocate = true;
+
+    } 
+
     TransactionContext& TransactionContext::operator=(const TransactionContext& other)
     {
         if (this != &other)

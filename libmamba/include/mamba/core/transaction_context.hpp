@@ -50,6 +50,10 @@ namespace mamba
         std::string python_version;
         std::string old_python_version;
         std::string short_python_version;
+
+        fs::u8path relocate_prefix;
+        bool relocate = false;
+
         bool allow_softlinks = false;
         bool always_copy = false;
         bool always_softlink = false;

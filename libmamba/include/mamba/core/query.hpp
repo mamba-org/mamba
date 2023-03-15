@@ -22,7 +22,7 @@ extern "C"  // Incomplete header
 
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
-#include "mamba/core/util_graph.hpp"
+#include "mamba/util/graph.hpp"
 
 namespace mamba
 {
@@ -73,7 +73,7 @@ namespace mamba
     {
     public:
 
-        using dependency_graph = DiGraph<PackageInfo>;
+        using dependency_graph = util::DiGraph<PackageInfo>;
 
         query_result(QueryType type, const std::string& query, dependency_graph&& dep_graph);
 

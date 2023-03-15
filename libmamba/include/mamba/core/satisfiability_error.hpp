@@ -23,7 +23,8 @@
 
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/package_info.hpp"
-#include "mamba/core/util_graph.hpp"
+#include "mamba/util/flat_set.hpp"
+#include "mamba/util/graph.hpp"
 
 namespace mamba
 {
@@ -32,11 +33,11 @@ namespace mamba
     class MPool;
 
     template <typename T>
-    class conflict_map : private std::unordered_map<T, vector_set<T>>
+    class conflict_map : private std::unordered_map<T, util::flat_set<T>>
     {
     public:
 
-        using Base = std::unordered_map<T, vector_set<T>>;
+        using Base = std::unordered_map<T, util::flat_set<T>>;
         using typename Base::const_iterator;
         using typename Base::key_type;
         using typename Base::value_type;
@@ -47,7 +48,7 @@ namespace mamba
         using Base::empty;
         using Base::size;
         bool has_conflict(const key_type& a) const;
-        auto conflicts(const key_type& a) const -> const vector_set<T>&;
+        auto conflicts(const key_type& a) const -> const util::flat_set<T>&;
         bool in_conflict(const key_type& a, const key_type& b) const;
 
         using Base::cbegin;
@@ -89,7 +90,7 @@ namespace mamba
 
         using edge_t = MatchSpec;
 
-        using graph_t = DiGraph<node_t, edge_t>;
+        using graph_t = util::DiGraph<node_t, edge_t>;
         using node_id = graph_t::node_id;
         using conflicts_t = conflict_map<node_id>;
 
@@ -142,11 +143,11 @@ namespace mamba
          * specialization for needed types.
          */
         template <typename T, typename Allocator = std::allocator<T>>
-        class NamedList : private vector_set<T, RoughCompare<T>, Allocator>
+        class NamedList : private util::flat_set<T, RoughCompare<T>, Allocator>
         {
         public:
 
-            using Base = vector_set<T, RoughCompare<T>, Allocator>;
+            using Base = util::flat_set<T, RoughCompare<T>, Allocator>;
             using typename Base::allocator_type;
             using typename Base::const_iterator;
             using typename Base::const_reverse_iterator;
@@ -213,7 +214,7 @@ namespace mamba
 
         using edge_t = NamedList<MatchSpec>;
 
-        using graph_t = DiGraph<node_t, edge_t>;
+        using graph_t = util::DiGraph<node_t, edge_t>;
         using node_id = graph_t::node_id;
         using conflicts_t = conflict_map<node_id>;
 
@@ -275,7 +276,7 @@ namespace mamba
     }
 
     template <typename T>
-    auto conflict_map<T>::conflicts(const key_type& a) const -> const vector_set<T>&
+    auto conflict_map<T>::conflicts(const key_type& a) const -> const util::flat_set<T>&
     {
         return Base::at(a);
     }

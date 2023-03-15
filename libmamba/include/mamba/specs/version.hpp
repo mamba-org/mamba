@@ -18,11 +18,11 @@ namespace mamba::specs
 {
 
     /**
-     * A succession of a number and a  lowercase litteral.
+     * A succession of a number and a lowercase literal.
      *
-     * Comparison is done lexicographically, with the number first and the litteral second.
-     * Certain litterals have special meaning:
-     * "*" < "dev" < "_"< any other litteral < "" < "post"
+     * Comparison is done lexicographically, with the number first and the literal second.
+     * Certain literals have special meaning:
+     * "*" < "dev" < "_"< any other literal < "" < "post"
      */
     class VersionPartAtom
     {
@@ -30,14 +30,14 @@ namespace mamba::specs
 
         VersionPartAtom() noexcept = default;
         VersionPartAtom(std::size_t numeral) noexcept;
-        VersionPartAtom(std::size_t numeral, std::string_view litteral);
+        VersionPartAtom(std::size_t numeral, std::string_view literal);
         // The use of a template is only meant to prevent ambiguous conversions
         template <typename Char>
-        VersionPartAtom(std::size_t numeral, std::basic_string<Char>&& litteral);
+        VersionPartAtom(std::size_t numeral, std::basic_string<Char>&& literal);
 
         auto numeral() const noexcept -> std::size_t;
-        auto litteral() const& noexcept -> const std::string&;
-        auto litteral() && noexcept -> std::string;
+        auto literal() const& noexcept -> const std::string&;
+        auto literal() && noexcept -> std::string;
 
         auto str() const -> std::string;
 
@@ -51,7 +51,7 @@ namespace mamba::specs
     private:
 
         // Stored in decreasing size order for performance
-        std::string m_litteral = "";
+        std::string m_literal = "";
         std::size_t m_numeral = 0;
     };
 
@@ -143,7 +143,7 @@ struct fmt::formatter<mamba::specs::VersionPartAtom>
     template <class FormatContext>
     auto format(const ::mamba::specs::VersionPartAtom atom, FormatContext& ctx)
     {
-        return fmt::format_to(ctx.out(), "{}{}", atom.numeral(), atom.litteral());
+        return fmt::format_to(ctx.out(), "{}{}", atom.numeral(), atom.literal());
     }
 };
 

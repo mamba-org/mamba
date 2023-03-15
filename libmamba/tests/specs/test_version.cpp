@@ -17,7 +17,7 @@ namespace mamba::specs
 
     TEST(version, atom_comparison)
     {
-        // No litteral
+        // No literal
         EXPECT_EQ(VersionPartAtom(1), VersionPartAtom(1, ""));
         // lowercase
         EXPECT_EQ(VersionPartAtom(1, "dev"), VersionPartAtom(1, "DEV"));
@@ -27,7 +27,7 @@ namespace mamba::specs
         EXPECT_LE(VersionPartAtom(1), VersionPartAtom(2, "dev"));
         EXPECT_GT(VersionPartAtom(2, "dev"), VersionPartAtom(1));
         EXPECT_GE(VersionPartAtom(2, "dev"), VersionPartAtom(1));
-        // All operator comparison for litterals
+        // All operator comparison for literals
         EXPECT_NE(VersionPartAtom(1, "dev"), VersionPartAtom(1, "a"));
         EXPECT_LT(VersionPartAtom(1, "dev"), VersionPartAtom(1, "a"));
         EXPECT_LE(VersionPartAtom(1, "dev"), VersionPartAtom(1, "a"));

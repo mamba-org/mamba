@@ -59,15 +59,15 @@ namespace mamba::specs
     {
     }
 
-    VersionPartAtom::VersionPartAtom(std::size_t numeral, std::string_view litteral)
-        : m_litteral{ to_lower(litteral) }
+    VersionPartAtom::VersionPartAtom(std::size_t numeral, std::string_view literal)
+        : m_literal{ to_lower(literal) }
         , m_numeral{ numeral }
     {
     }
 
     template <typename Char>
-    VersionPartAtom::VersionPartAtom(std::size_t numeral, std::basic_string<Char>&& litteral)
-        : m_litteral{ to_lower(std::move(litteral)) }
+    VersionPartAtom::VersionPartAtom(std::size_t numeral, std::basic_string<Char>&& literal)
+        : m_literal{ to_lower(std::move(literal)) }
         , m_numeral{ numeral }
     {
     }
@@ -79,14 +79,14 @@ namespace mamba::specs
         return m_numeral;
     }
 
-    auto VersionPartAtom::litteral() const& noexcept -> const std::string&
+    auto VersionPartAtom::literal() const& noexcept -> const std::string&
     {
-        return m_litteral;
+        return m_literal;
     }
 
-    auto VersionPartAtom::litteral() && noexcept -> std::string
+    auto VersionPartAtom::literal() && noexcept -> std::string
     {
-        return std::move(m_litteral);
+        return std::move(m_literal);
     }
 
     auto VersionPartAtom::str() const -> std::string
@@ -105,7 +105,7 @@ namespace mamba::specs
                 return num_ord;
             }
 
-            // Certain litterals have sepcial meaning we map then to a priority
+            // Certain literals have sepcial meaning we map then to a priority
             // 0 meaning regular string
             auto lit_priority = [](const auto& l) -> int
             {
@@ -131,12 +131,12 @@ namespace mamba::specs
                 }
                 return 0;
             };
-            const auto a_lit_val = lit_priority(a.litteral());
-            const auto b_lit_val = lit_priority(b.litteral());
+            const auto a_lit_val = lit_priority(a.literal());
+            const auto b_lit_val = lit_priority(b.literal());
             // If two regular string, we need to use string comparison
             if ((a_lit_val == 0) && (b_lit_val == 0))
             {
-                return compare_three_way<std::string>(a.litteral(), b.litteral());
+                return compare_three_way<std::string>(a.literal(), b.literal());
             }
             return compare_three_way(a_lit_val, b_lit_val);
         }
@@ -146,7 +146,7 @@ namespace mamba::specs
     {
         // More efficient thatn three way comparison because of edge cases
         auto attrs = [](const VersionPartAtom& a) -> std::tuple<std::size_t, const std::string&> {
-            return { a.numeral(), a.litteral() };
+            return { a.numeral(), a.literal() };
         };
         return attrs(*this) == attrs(other);
     }
@@ -398,11 +398,11 @@ namespace mamba::specs
             return { maybe_integer.value(), rest };
         }
 
-        auto parse_leading_litteral(std::string_view str)
+        auto parse_leading_literal(std::string_view str)
             -> std::pair<std::string_view, std::string_view>
         {
-            const auto [litteral, rest] = lstrip_if_parts(str, [](char c) { return !is_digit(c); });
-            return { litteral, rest };
+            const auto [literal, rest] = lstrip_if_parts(str, [](char c) { return !is_digit(c); });
+            return { literal, rest };
         }
 
         auto parse_leading_part_atom(std::string_view str)
@@ -411,7 +411,7 @@ namespace mamba::specs
             assert(!str.empty());
 
             std::size_t numeral = 0;
-            std::string_view litteral = {};
+            std::string_view literal = {};
             auto tail = std::string_view{};
             if (is_digit(str.front()))
             {
@@ -421,8 +421,8 @@ namespace mamba::specs
             {
                 tail = str;
             }
-            std::tie(litteral, tail) = parse_leading_litteral(tail);
-            return { { numeral, litteral }, tail };
+            std::tie(literal, tail) = parse_leading_literal(tail);
+            return { { numeral, literal }, tail };
         }
 
         auto parse_part(std::string_view str) -> VersionPart
@@ -485,7 +485,7 @@ namespace mamba::specs
             CommonVersion parts = {};
             auto tail = str;
             std::size_t tail_delim_pos = 0;
-            for (;;)
+            while (true)
             {
                 tail_delim_pos = tail.find_first_of(delims);
                 // `_` is both a delimiter and has sepcial meaning.

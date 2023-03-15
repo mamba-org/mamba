@@ -94,6 +94,42 @@ namespace mamba
         EXPECT_EQ(lstrip("aaa", 'b'), "aaa");
     }
 
+    TEST(util_string, lstrip_parts)
+    {
+        using StrPair = std::array<std::string_view, 2>;
+        EXPECT_EQ(lstrip_parts(":::hello%:%", ":%"), StrPair({ ":::", "hello%:%" }));
+        EXPECT_EQ(lstrip_parts(":::hello%:%", ':'), StrPair({ ":::", "hello%:%" }));
+        EXPECT_EQ(lstrip_parts(":::hello%:%", '%'), StrPair({ "", ":::hello%:%" }));
+        EXPECT_EQ(lstrip_parts("", '%'), StrPair({ "", "" }));
+        EXPECT_EQ(lstrip_parts("aaa", 'a'), StrPair({ "aaa", "" }));
+        EXPECT_EQ(lstrip_parts("aaa", 'b'), StrPair({ "", "aaa" }));
+    }
+
+    TEST(util_string, lstrip_if)
+    {
+        EXPECT_EQ(lstrip_if("", [](auto) { return true; }), "");
+        EXPECT_EQ(lstrip_if("hello", [](auto) { return true; }), "");
+        EXPECT_EQ(lstrip_if("hello", [](auto) { return false; }), "hello");
+        EXPECT_EQ(lstrip_if("\n \thello \t\n", [](auto c) { return !is_alphanum(c); }), "hello \t\n");
+        EXPECT_EQ(lstrip_if("123hello456", [](auto c) { return is_digit(c); }), "hello456");
+    }
+
+    TEST(util_string, lstrip_if_parts)
+    {
+        using StrPair = std::array<std::string_view, 2>;
+        EXPECT_EQ(lstrip_if_parts("", [](auto) { return true; }), StrPair({ "", "" }));
+        EXPECT_EQ(lstrip_if_parts("hello", [](auto) { return true; }), StrPair({ "hello", "" }));
+        EXPECT_EQ(lstrip_if_parts("hello", [](auto) { return false; }), StrPair({ "", "hello" }));
+        EXPECT_EQ(
+            lstrip_if_parts("\n \thello \t\n", [](auto c) { return !is_alphanum(c); }),
+            StrPair({ "\n \t", "hello \t\n" })
+        );
+        EXPECT_EQ(
+            lstrip_if_parts("123hello456", [](auto c) { return is_digit(c); }),
+            StrPair({ "123", "hello456" })
+        );
+    }
+
     TEST(util_string, rstrip)
     {
         EXPECT_EQ(rstrip("\n \thello \t\n"), "\n \thello");
@@ -105,15 +141,85 @@ namespace mamba
         EXPECT_EQ(rstrip("aaa", 'b'), "aaa");
     }
 
+    TEST(util_string, rstrip_parts)
+    {
+        using StrPair = std::array<std::string_view, 2>;
+        EXPECT_EQ(rstrip_parts(":::hello%:%", '%'), StrPair({ ":::hello%:", "%" }));
+        EXPECT_EQ(rstrip_parts(":::hello%:%", ":%"), StrPair({ ":::hello", "%:%" }));
+        EXPECT_EQ(rstrip_parts(":::hello%:%", ':'), StrPair({ ":::hello%:%", "" }));
+        EXPECT_EQ(rstrip_parts("", '%'), StrPair({ "", "" }));
+        EXPECT_EQ(rstrip_parts("aaa", 'a'), StrPair({ "", "aaa" }));
+        EXPECT_EQ(rstrip_parts("aaa", 'b'), StrPair({ "aaa", "" }));
+    }
+
+    TEST(util_string, rstrip_if)
+    {
+        EXPECT_EQ(rstrip_if("", [](auto) { return true; }), "");
+        EXPECT_EQ(rstrip_if("hello", [](auto) { return true; }), "");
+        EXPECT_EQ(rstrip_if("hello", [](auto) { return false; }), "hello");
+        EXPECT_EQ(rstrip_if("\n \thello \t\n", [](auto c) { return !is_alphanum(c); }), "\n \thello");
+        EXPECT_EQ(rstrip_if("123hello456", [](auto c) { return is_digit(c); }), "123hello");
+    }
+
+    TEST(util_string, rstrip_if_parts)
+    {
+        using StrPair = std::array<std::string_view, 2>;
+        EXPECT_EQ(rstrip_if_parts("", [](auto) { return true; }), StrPair({ "", "" }));
+        EXPECT_EQ(rstrip_if_parts("hello", [](auto) { return true; }), StrPair({ "", "hello" }));
+        EXPECT_EQ(rstrip_if_parts("hello", [](auto) { return false; }), StrPair({ "hello", "" }));
+        EXPECT_EQ(
+            rstrip_if_parts("\n \thello \t\n", [](auto c) { return !is_alphanum(c); }),
+            StrPair({ "\n \thello", " \t\n" })
+        );
+        EXPECT_EQ(
+            rstrip_if_parts("123hello456", [](auto c) { return is_digit(c); }),
+            StrPair({ "123hello", "456" })
+        );
+    }
+
     TEST(util_string, strip)
     {
         EXPECT_EQ(strip("  hello \t\n"), "hello");
         EXPECT_EQ(strip(":::hello%:%", ":%"), "hello");
         EXPECT_EQ(strip(":::hello%:%", ':'), "hello%:%");
-        EXPECT_EQ(strip(":::hello%:%", ':'), "hello%:%");
         EXPECT_EQ(strip("", '%'), "");
         EXPECT_EQ(strip("aaa", 'a'), "");
         EXPECT_EQ(strip("aaa", 'b'), "aaa");
+    }
+
+    TEST(util_string, strip_parts)
+    {
+        using StrTrio = std::array<std::string_view, 3>;
+        EXPECT_EQ(strip_parts(":::hello%:%", ":%"), StrTrio({ ":::", "hello", "%:%" }));
+        EXPECT_EQ(strip_parts(":::hello%:%", ':'), StrTrio({ ":::", "hello%:%", "" }));
+        EXPECT_EQ(strip_parts("", '%'), StrTrio({ "", "", "" }));
+        EXPECT_EQ(strip_parts("aaa", 'a'), StrTrio({ "aaa", "", "" }));
+        EXPECT_EQ(strip_parts("aaa", 'b'), StrTrio({ "", "aaa", "" }));
+    }
+
+    TEST(util_string, strip_if)
+    {
+        EXPECT_EQ(strip_if("", [](auto) { return true; }), "");
+        EXPECT_EQ(strip_if("hello", [](auto) { return true; }), "");
+        EXPECT_EQ(strip_if("hello", [](auto) { return false; }), "hello");
+        EXPECT_EQ(strip_if("\n \thello \t\n", [](auto c) { return !is_alphanum(c); }), "hello");
+        EXPECT_EQ(strip_if("123hello456", [](auto c) { return is_digit(c); }), "hello");
+    }
+
+    TEST(util_string, strip_if_parts)
+    {
+        using StrTrio = std::array<std::string_view, 3>;
+        EXPECT_EQ(strip_if_parts("", [](auto) { return true; }), StrTrio({ "", "", "" }));
+        EXPECT_EQ(strip_if_parts("hello", [](auto) { return true; }), StrTrio({ "hello", "", "" }));
+        EXPECT_EQ(strip_if_parts("hello", [](auto) { return false; }), StrTrio({ "", "hello", "" }));
+        EXPECT_EQ(
+            strip_if_parts("\n \thello \t\n", [](auto c) { return !is_alphanum(c); }),
+            StrTrio({ "\n \t", "hello", " \t\n" })
+        );
+        EXPECT_EQ(
+            strip_if_parts("123hello456", [](auto c) { return is_digit(c); }),
+            StrTrio({ "123", "hello", "456" })
+        );
     }
 
     TEST(utils, strip_whitespaces)
@@ -174,33 +280,6 @@ namespace mamba
             std::string z(lstrip("  \r \t  \n testwhitespacestrip \r \t  \n "));
             EXPECT_EQ(z, "testwhitespacestrip \r \t  \n ");
         }
-    }
-
-    TEST(util_string, lstrip_if)
-    {
-        EXPECT_EQ(lstrip_if("", [](auto) { return true; }), "");
-        EXPECT_EQ(lstrip_if("hello", [](auto) { return true; }), "");
-        EXPECT_EQ(lstrip_if("hello", [](auto) { return false; }), "hello");
-        EXPECT_EQ(lstrip_if("\n \thello \t\n", [](auto c) { return !is_alphanum(c); }), "hello \t\n");
-        EXPECT_EQ(lstrip_if("123hello456", [](auto c) { return is_digit(c); }), "hello456");
-    }
-
-    TEST(util_string, rstrip_if)
-    {
-        EXPECT_EQ(rstrip_if("", [](auto) { return true; }), "");
-        EXPECT_EQ(rstrip_if("hello", [](auto) { return true; }), "");
-        EXPECT_EQ(rstrip_if("hello", [](auto) { return false; }), "hello");
-        EXPECT_EQ(rstrip_if("\n \thello \t\n", [](auto c) { return !is_alphanum(c); }), "\n \thello");
-        EXPECT_EQ(rstrip_if("123hello456", [](auto c) { return is_digit(c); }), "123hello");
-    }
-
-    TEST(util_string, strip_if)
-    {
-        EXPECT_EQ(strip_if("", [](auto) { return true; }), "");
-        EXPECT_EQ(strip_if("hello", [](auto) { return true; }), "");
-        EXPECT_EQ(strip_if("hello", [](auto) { return false; }), "hello");
-        EXPECT_EQ(strip_if("\n \thello \t\n", [](auto c) { return !is_alphanum(c); }), "hello");
-        EXPECT_EQ(strip_if("123hello456", [](auto c) { return is_digit(c); }), "hello");
     }
 
     TEST(util_string, split)

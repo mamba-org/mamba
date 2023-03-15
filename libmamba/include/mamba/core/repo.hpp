@@ -33,7 +33,7 @@ namespace mamba
     struct RepoMetadata
     {
         std::string url;
-        bool pip_added;
+        bool pip_added = false;
         std::string etag;
         std::string mod;
     };

@@ -22,29 +22,29 @@ set(LIBMAMBA_TEST_SRCS
     src/core/test_configuration.cpp
     src/core/test_cpp.cpp
     src/core/test_env_file_reading.cpp
-    src/core/test_env_lockfile.cpp
     src/core/test_environments_manager.cpp
-    src/core/test_execution.cpp
-    src/core/test_filesystem.cpp
     src/core/test_history.cpp
-    src/core/test_invoke.cpp
     src/core/test_lockfile.cpp
-    src/core/test_output.cpp
     src/core/test_pinning.cpp
+    src/core/test_output.cpp
     src/core/test_progress_bar.cpp
-    src/core/test_satisfiability_error.cpp
     src/core/test_shell_init.cpp
-    src/core/test_tasksync.cpp
     src/core/test_thread_utils.cpp
     src/core/test_transfer.cpp
     src/core/test_url.cpp
+    src/core/test_validate.cpp
+    src/core/test_virtual_packages.cpp
     src/core/test_util.cpp
     src/core/test_util_cast.cpp
     src/core/test_util_compare.cpp
-    src/core/test_util_graph.cpp
     src/core/test_util_string.cpp
-    src/core/test_validate.cpp
-    src/core/test_virtual_packages.cpp
+    src/core/test_util_graph.cpp
+    src/core/test_env_lockfile.cpp
+    src/core/test_execution.cpp
+    src/core/test_invoke.cpp
+    src/core/test_tasksync.cpp
+    src/core/test_filesystem.cpp
+    src/core/test_satisfiability_error.cpp
 )
 
 message(STATUS "Building libmamba C++ tests")
@@ -66,10 +66,13 @@ target_link_libraries(
     PRIVATE GTest::GTest GTest::Main Threads::Threads
 )
 
+# Copy data directory into binary dir to avoid modifications
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/data" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+
 target_compile_definitions(
     test_libmamba
     PRIVATE
-        MAMBA_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data"
+        MAMBA_TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}/data"
         MAMBA_TEST_LOCK_EXE="$<TARGET_FILE:testing_libmamba_lock>"
 )
 

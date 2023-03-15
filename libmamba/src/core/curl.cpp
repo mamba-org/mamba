@@ -4,9 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "curl.hpp"
-
 #include <spdlog/spdlog.h>
+
+#include "curl.hpp"
 
 namespace mamba
 {

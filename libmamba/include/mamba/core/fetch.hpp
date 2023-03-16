@@ -99,7 +99,7 @@ namespace mamba
         std::chrono::steady_clock::time_point progress_throttle_time() const;
         void set_progress_throttle_time(const std::chrono::steady_clock::time_point& time);
 
-        CURLcode result;
+        CURLcode result = CURLE_OK;
         bool failed = false;
         int http_status = 10000;
         char* effective_url = nullptr;

@@ -1041,8 +1041,7 @@ namespace mamba
                    .set_env_var_names()
                    .needs({ "target_prefix" })
                    .set_single_op_lifetime()
-                   .description("Path to the relocation prefix")
-        );
+                   .description("Path to the relocation prefix"));
 
         insert(Configurable("use_target_prefix_fallback", true)
                    .group("Basic")

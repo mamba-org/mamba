@@ -101,6 +101,7 @@ namespace mamba
     )
         : has_python(py_versions.first.size() != 0)
         , target_prefix(ltarget_prefix)
+        , relocate_prefix(ltarget_prefix)
         , python_version(py_versions.first)
         , old_python_version(py_versions.second)
         , requested_specs(lrequested_specs)
@@ -138,13 +139,18 @@ namespace mamba
         const fs::u8path& lrelocate_prefix,
         const std::pair<std::string, std::string>& py_versions,
         const std::vector<MatchSpec>& lrequested_specs
-    ) :
-        TransactionContext(ltarget_prefix, py_versions, lrequested_specs){
-
-        relocate_prefix = lrelocate_prefix;
-        relocate = !lrelocate_prefix.empty();
-
-    } 
+    )
+        : TransactionContext(ltarget_prefix, py_versions, lrequested_specs)
+    {
+        if (lrelocate_prefix.empty())
+        {
+            relocate_prefix = ltarget_prefix;
+        }
+        else
+        {
+            relocate_prefix = lrelocate_prefix;
+        }
+    }
 
     TransactionContext& TransactionContext::operator=(const TransactionContext& other)
     {
@@ -152,6 +158,7 @@ namespace mamba
         {
             has_python = other.has_python;
             target_prefix = other.target_prefix;
+            relocate_prefix = other.relocate_prefix;
             python_version = other.python_version;
             old_python_version = other.old_python_version;
             requested_specs = other.requested_specs;
@@ -164,9 +171,6 @@ namespace mamba
             python_path = other.python_path;
             site_packages_path = other.site_packages_path;
             relink_noarch = other.relink_noarch;
-
-            relocate = other.relocate;
-            relocate_prefix = other.relocate_prefix;
         }
         return *this;
     }
@@ -333,9 +337,5 @@ namespace mamba
             }
             m_pyc_process = nullptr;
         }
-    }
-
-    const fs::u8path & TransactionContext::get_relocated_prefix() const {
-        return relocate ? relocate_prefix : target_prefix;
     }
 }

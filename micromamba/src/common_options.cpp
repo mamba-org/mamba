@@ -119,7 +119,12 @@ init_prefix_options(CLI::App* subcom)
         ->group(cli_group);
 
     auto& relocate_prefix = config.at("relocate_prefix");
-    subcom->add_option("--relocate-prefix", relocate_prefix.get_cli_config<fs::u8path>(), relocate_prefix.description())
+    subcom
+        ->add_option(
+            "--relocate-prefix",
+            relocate_prefix.get_cli_config<fs::u8path>(),
+            relocate_prefix.description()
+        )
         ->group(cli_group);
 
     auto& name = config.at("env_name");

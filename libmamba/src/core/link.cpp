@@ -157,7 +157,7 @@ namespace mamba
         fs::u8path python_path;
         if (m_context->has_python)
         {
-            python_path = m_context->get_relocated_prefix() / m_context->python_path;
+            python_path = m_context->relocate_prefix / m_context->python_path;
         }
         if (!python_path.empty())
         {
@@ -614,8 +614,7 @@ namespace mamba
         {
             // we have to replace the PREFIX stuff in the data
             // and copy the file
-            const std::string new_prefix = m_context->get_relocated_prefix().string();
-
+            const std::string new_prefix = m_context->relocate_prefix.string();
 #ifdef _WIN32
             replace_all(new_prefix, "\\", "/");
 #endif

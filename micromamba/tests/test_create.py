@@ -31,7 +31,6 @@ test_envs = [
 
 
 class TestCreate:
-
     current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
     current_prefix = os.environ["CONDA_PREFIX"]
 
@@ -475,7 +474,6 @@ class TestCreate:
     @pytest.mark.parametrize("prefix_selector", [None, "prefix", "name"])
     @pytest.mark.parametrize("create_cmd", ["create", "env create"])
     def test_create_empty(self, prefix_selector, existing_cache, create_cmd):
-
         if prefix_selector == "name":
             cmd = ("-n", TestCreate.env_name, "--json")
         elif prefix_selector == "prefix":
@@ -492,6 +490,26 @@ class TestCreate:
         assert res["success"]
 
         assert Path(os.path.join(TestCreate.prefix, "conda-meta", "history")).exists()
+
+    @pytest.mark.skipif(
+        dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"
+    )
+    def test_create_with_relocate_prefix(self, existing_cache):
+        relocate_prefix = "/home/bob/env"
+        res = create(
+            "-p",
+            TestCreate.prefix,
+            "--relocate-prefix",
+            relocate_prefix,
+            "python=3.11",
+            "--json",
+            no_dry_run=True,
+        )
+        assert res["success"]
+        if platform.system() != "Windows":
+            with open(Path(TestCreate.prefix) / "bin" / "2to3") as f:
+                firstline = f.readline()
+                assert firstline == f"#!{relocate_prefix}/bin/python3.11\n"
 
     @pytest.mark.skipif(
         dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"

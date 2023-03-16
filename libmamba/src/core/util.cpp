@@ -51,10 +51,10 @@ extern "C"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/core/util_compare.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_random.hpp"
 #include "mamba/core/util_string.hpp"
+#include "mamba/util/compare.hpp"
 
 namespace mamba
 {

@@ -19,7 +19,7 @@
 #include <utility>
 #include <vector>
 
-#include "mamba/core/util_compare.hpp"
+#include "mamba/util/compare.hpp"
 
 namespace mamba
 {

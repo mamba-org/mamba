@@ -21,8 +21,8 @@ extern "C"  // Incomplete header
 #include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/util_cast.hpp"
-#include "mamba/core/util_compare.hpp"
 #include "mamba/core/util_string.hpp"
+#include "mamba/util/compare.hpp"
 #include "solv-cpp/queue.hpp"
 
 namespace mamba

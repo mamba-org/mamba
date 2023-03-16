@@ -9,7 +9,7 @@
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/execution.hpp"
-#include "mamba/core/util_compare.hpp"
+#include "mamba/util/compare.hpp"
 
 #include "progress_bar_impl.hpp"
 

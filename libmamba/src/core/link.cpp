@@ -614,7 +614,7 @@ namespace mamba
         {
             // we have to replace the PREFIX stuff in the data
             // and copy the file
-            const std::string new_prefix = m_context->relocate_prefix.string();
+            std::string new_prefix = m_context->relocate_prefix.string();
 #ifdef _WIN32
             replace_all(new_prefix, "\\", "/");
 #endif

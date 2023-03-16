@@ -31,7 +31,7 @@ namespace mamba
     TEST(env_lockfile, invalid_version_fails)
     {
         const fs::u8path invalid_version_lockfile_path{ test_data_dir
-                                                        / "env_lockfile_test/bad_version-lock.yaml" };
+                                                        / "env_lockfile/bad_version-lock.yaml" };
         const auto maybe_lockfile = read_environment_lockfile(invalid_version_lockfile_path);
         ASSERT_FALSE(maybe_lockfile);
         const auto error = maybe_lockfile.error();
@@ -42,8 +42,7 @@ namespace mamba
 
     TEST(env_lockfile, valid_no_package_succeed)
     {
-        const fs::u8path lockfile_path{ test_data_dir
-                                        / "env_lockfile_test/good_no_package-lock.yaml" };
+        const fs::u8path lockfile_path{ test_data_dir / "env_lockfile/good_no_package-lock.yaml" };
         const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
         ASSERT_TRUE(maybe_lockfile) << maybe_lockfile.error().what();
         const auto lockfile = maybe_lockfile.value();
@@ -52,7 +51,7 @@ namespace mamba
 
     TEST(env_lockfile, invalid_package_fails)
     {
-        const fs::u8path lockfile_path{ test_data_dir / "env_lockfile_test/bad_package-lock.yaml" };
+        const fs::u8path lockfile_path{ test_data_dir / "env_lockfile/bad_package-lock.yaml" };
         const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
         ASSERT_FALSE(maybe_lockfile);
         const auto error = maybe_lockfile.error();
@@ -63,8 +62,7 @@ namespace mamba
 
     TEST(env_lockfile, valid_one_package_succeed)
     {
-        const fs::u8path lockfile_path{ test_data_dir
-                                        / "env_lockfile_test/good_one_package-lock.yaml" };
+        const fs::u8path lockfile_path{ test_data_dir / "env_lockfile/good_one_package-lock.yaml" };
         const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
         ASSERT_TRUE(maybe_lockfile) << maybe_lockfile.error().what();
         const auto lockfile = maybe_lockfile.value();
@@ -74,7 +72,7 @@ namespace mamba
     TEST(env_lockfile, valid_one_package_implicit_category)
     {
         const fs::u8path lockfile_path{
-            test_data_dir / "env_lockfile_test/good_one_package_missing_category-lock.yaml"
+            test_data_dir / "env_lockfile/good_one_package_missing_category-lock.yaml"
         };
         const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
         ASSERT_TRUE(maybe_lockfile) << maybe_lockfile.error().what();
@@ -85,7 +83,7 @@ namespace mamba
     TEST(env_lockfile, valid_multiple_packages_succeed)
     {
         const fs::u8path lockfile_path{ test_data_dir
-                                        / "env_lockfile_test/good_multiple_packages-lock.yaml" };
+                                        / "env_lockfile/good_multiple_packages-lock.yaml" };
         const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
         ASSERT_TRUE(maybe_lockfile) << maybe_lockfile.error().what();
         const auto lockfile = maybe_lockfile.value();
@@ -95,7 +93,7 @@ namespace mamba
     TEST(env_lockfile, get_specific_packages)
     {
         const fs::u8path lockfile_path{ test_data_dir
-                                        / "env_lockfile_test/good_multiple_packages-lock.yaml" };
+                                        / "env_lockfile/good_multiple_packages-lock.yaml" };
         const auto lockfile = read_environment_lockfile(lockfile_path).value();
         EXPECT_TRUE(lockfile.get_packages_for("", "", "").empty());
         {
@@ -113,7 +111,7 @@ namespace mamba
     TEST(env_lockfile, create_transaction_with_categories)
     {
         const fs::u8path lockfile_path{ test_data_dir
-                                        / "env_lockfile_test/good_multiple_categories-lock.yaml" };
+                                        / "env_lockfile/good_multiple_categories-lock.yaml" };
         MPool pool;
         mamba::MultiPackageCache pkg_cache({ "/tmp/" });
 

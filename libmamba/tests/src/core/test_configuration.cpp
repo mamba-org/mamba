@@ -1049,13 +1049,13 @@ namespace mamba
         {
             using namespace detail;
 
-            fs::u8path p = test_data_dir / "config_test/.condarc";
+            fs::u8path p = test_data_dir / "config/.condarc";
 
             std::vector<fs::u8path> wrong_paths = {
-                test_data_dir / "config_test",
-                test_data_dir / "conf_test",
-                test_data_dir / "config_test/condarc",
-                test_data_dir / "history_test/conda-meta/history",
+                test_data_dir / "config",
+                test_data_dir / "conf",
+                test_data_dir / "config/condarc",
+                test_data_dir / "history/conda-meta/history",
             };
 
             EXPECT_TRUE(is_config_file(p));

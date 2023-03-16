@@ -339,7 +339,7 @@ namespace validate
 
             protected:
 
-                fs::u8path root1_pgp = test_data_dir / "validation_data/1.sv0.6.root.json";
+                fs::u8path root1_pgp = test_data_dir / "validation/1.sv0.6.root.json";
                 json root1_json, root1_pgp_json;
 
                 secrets_type secrets;
@@ -1561,7 +1561,7 @@ namespace validate
 
             protected:
 
-                fs::u8path root1 = test_data_dir / "validation_data/root.json";
+                fs::u8path root1 = test_data_dir / "validation/root.json";
                 json root1_json;
 
                 std::unique_ptr<TemporaryDirectory> channel_dir;

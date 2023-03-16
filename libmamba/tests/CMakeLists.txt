@@ -14,6 +14,8 @@ find_package(Threads REQUIRED)
 set(LIBMAMBA_TEST_SRCS
     # C++ wrapping of libsolv
     solv-cpp/test_queue.cpp
+    # Implementation of version and matching specs
+    specs/test_version.cpp
 
     ../longpath.manifest
     test_activation.cpp

@@ -494,8 +494,8 @@ class TestCreate:
     @pytest.mark.skipif(
         dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"
     )
-    def test_create_with_relocate_prefix(self, existing_cache):
-        relocate_prefix = "/home/bob/env"
+    @pytest.mark.parametrize("relocate_prefix", ["/home/bob/env", "/"])
+    def test_create_with_relocate_prefix(self, relocate_prefix, existing_cache):
         res = create(
             "-p",
             TestCreate.prefix,

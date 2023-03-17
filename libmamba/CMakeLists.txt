@@ -191,6 +191,11 @@ endforeach()
 
 set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/version.hpp
+    # Utility library
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/flat_set.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/graph.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/compare.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cast.hpp
     # Implementation of version and matching specs
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version.hpp
     # Core API (low-level)
@@ -230,13 +235,10 @@ set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/url.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/fsutil.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_graph.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_os.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_random.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_scope.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_string.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_cast.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_compare.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/validate.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/virtual_packages.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/env_lockfile.hpp

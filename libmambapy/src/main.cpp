@@ -30,10 +30,10 @@
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/url.hpp"
-#include "mamba/core/util_graph.hpp"
 #include "mamba/core/util_string.hpp"
 #include "mamba/core/validate.hpp"
 #include "mamba/core/virtual_packages.hpp"
+#include "mamba/util/flat_set.hpp"
 
 namespace py = pybind11;
 
@@ -54,8 +54,8 @@ namespace PYBIND11_NAMESPACE
     namespace detail
     {
         template <typename Key, typename Compare, typename Allocator>
-        struct type_caster<mamba::vector_set<Key, Compare, Allocator>>
-            : set_caster<mamba::vector_set<Key, Compare, Allocator>, Key>
+        struct type_caster<mamba::util::flat_set<Key, Compare, Allocator>>
+            : set_caster<mamba::util::flat_set<Key, Compare, Allocator>, Key>
         {
         };
     }

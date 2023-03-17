@@ -12,9 +12,9 @@
 #include <tuple>
 
 #include "mamba/core/error_handling.hpp"
-#include "mamba/core/util_cast.hpp"
 #include "mamba/core/util_string.hpp"
 #include "mamba/specs/version.hpp"
+#include "mamba/util/cast.hpp"
 
 namespace mamba::specs
 {

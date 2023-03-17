@@ -13,6 +13,11 @@ mamba_target_add_compile_warnings(testing_libmamba_lock WARNING_AS_ERROR ${MAMBA
 set(LIBMAMBA_TEST_SRCS
     # C++ wrapping of libsolv
     src/solv-cpp/test_queue.cpp
+    # Utility library
+    src/util/test_flat_set.cpp
+    src/util/test_graph.cpp
+    src/util/test_compare.cpp
+    src/util/test_cast.cpp
     # Implementation of version and matching specs
     src/specs/test_version.cpp
 
@@ -35,10 +40,7 @@ set(LIBMAMBA_TEST_SRCS
     src/core/test_validate.cpp
     src/core/test_virtual_packages.cpp
     src/core/test_util.cpp
-    src/core/test_util_cast.cpp
-    src/core/test_util_compare.cpp
     src/core/test_util_string.cpp
-    src/core/test_util_graph.cpp
     src/core/test_env_lockfile.cpp
     src/core/test_execution.cpp
     src/core/test_invoke.cpp

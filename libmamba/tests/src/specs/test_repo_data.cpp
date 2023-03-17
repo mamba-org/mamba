@@ -1,0 +1,80 @@
+// Copyright (c) 2023, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
+
+#include <gtest/gtest.h>
+#include <nlohmann/json.hpp>
+
+#include "mamba/specs/repo_data.hpp"
+
+using namespace mamba::specs;
+namespace nl = nlohmann;
+
+TEST(repo_data, PackageRecord_to_json)
+{
+    auto p = PackageRecord();
+    p.name = "mamba";
+    p.version = Version::parse("1.0.0");
+    p.build = "bld";
+    p.build_number = 3;
+    p.subdir = "folder";
+    p.md5 = "ffsd";
+    p.noarch = NoArchType::Python;
+
+    nl::json const j = p;
+    EXPECT_EQ(j.at("name"), p.name);
+    EXPECT_EQ(j.at("version"), p.version.str());
+    EXPECT_EQ(j.at("build"), p.build);
+    EXPECT_EQ(j.at("build_number"), p.build_number);
+    EXPECT_EQ(j.at("subdir"), p.subdir);
+    EXPECT_EQ(j.at("md5"), p.md5);
+    EXPECT_TRUE(j.at("sha256").is_null());
+    EXPECT_EQ(j.at("noarch"), "python");
+}
+
+TEST(repo_data, PackageRecord_from_json)
+{
+    auto j = nl::json::object();
+    j["name"] = "mamba";
+    j["version"] = "1.1.0";
+    j["build"] = "foo1";
+    j["build_number"] = 2;
+    j["subdir"] = "folder";
+    j["platform"] = nullptr;
+    j["depends"] = nl::json::array({ "libsolv>=1.0" });
+    j["constrains"] = nl::json::array();
+    j["track_features"] = nl::json::array();
+    {
+        const auto p = j.get<PackageRecord>();
+        EXPECT_EQ(p.name, j.at("name"));
+        // Note Version::parse is not injective
+        EXPECT_EQ(p.version.str(), j.at("version"));
+        EXPECT_EQ(p.build, j.at("build"));
+        EXPECT_EQ(p.build_number, j.at("build_number"));
+        EXPECT_EQ(p.subdir, j.at("subdir"));
+        EXPECT_FALSE(p.md5.has_value());
+        EXPECT_FALSE(p.platform.has_value());
+        EXPECT_EQ(p.depends, decltype(p.depends){ "libsolv>=1.0" });
+        EXPECT_TRUE(p.constrains.empty());
+        EXPECT_TRUE(p.track_features.empty());
+        EXPECT_FALSE(p.noarch.has_value());
+    }
+    j["noarch"] = "python";
+    {
+        const auto p = j.get<PackageRecord>();
+        EXPECT_EQ(p.noarch, NoArchType::Python);
+    }
+    // Old beahiour
+    j["noarch"] = true;
+    {
+        const auto p = j.get<PackageRecord>();
+        EXPECT_EQ(p.noarch, NoArchType::Generic);
+    }
+    j["noarch"] = false;
+    {
+        const auto p = j.get<PackageRecord>();
+        EXPECT_FALSE(p.noarch.has_value());
+    }
+}

@@ -20,6 +20,7 @@ set(LIBMAMBA_TEST_SRCS
     src/util/test_cast.cpp
     # Implementation of version and matching specs
     src/specs/test_version.cpp
+    src/specs/test_repo_data.cpp
 
     ../longpath.manifest
     src/core/test_activation.cpp

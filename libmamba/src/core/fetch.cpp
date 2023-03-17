@@ -6,6 +6,8 @@
 
 #include <string_view>
 
+#include <spdlog/spdlog.h>
+
 #include "mamba/core/context.hpp"
 #include "mamba/core/fetch.hpp"
 #include "mamba/core/output.hpp"
@@ -13,8 +15,6 @@
 #include "mamba/core/url.hpp"
 #include "mamba/core/util_string.hpp"
 #include "mamba/version.hpp"
-
-#include "spdlog/spdlog.h"
 
 #include "compression.hpp"
 #include "curl.hpp"
@@ -334,7 +334,7 @@ namespace mamba
             {
                 fs::remove(m_filename);
             }
-            // init_curl_target(m_url); // Not sure this is needed, TODO to remove
+            init_curl_target(m_url);  // Not sure this is needed, TODO to remove?
             if (m_has_progress_bar)
             {
                 curl_easy_setopt(
@@ -571,24 +571,29 @@ namespace mamba
 
     bool DownloadTarget::resource_exists()
     {
-        curl_easy_setopt(m_curl_handle->handle(), CURLOPT_FAILONERROR, 1L);
-        curl_easy_setopt(m_curl_handle->handle(), CURLOPT_NOBODY, 1L);
-        if (curl_easy_perform(m_curl_handle->handle()) == CURLE_OK)
+        init_curl_ssl();
+        auto handle = curl_easy_init();
+        init_curl_handle(handle, m_url);
+
+        curl_easy_setopt(handle, CURLOPT_FAILONERROR, 1L);
+        curl_easy_setopt(handle, CURLOPT_NOBODY, 1L);
+
+        if (curl_easy_perform(handle) == CURLE_OK)
         {
             return true;
         }
 
         long response_code;
-        curl_easy_getinfo(m_curl_handle->handle(), CURLINFO_RESPONSE_CODE, &response_code);
+        curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
 
         if (response_code == 405)
         {
             // Method not allowed
             // Some servers don't support HEAD, try a GET if the HEAD fails
-            curl_easy_setopt(m_curl_handle->handle(), CURLOPT_NOBODY, 0L);
+            curl_easy_setopt(handle, CURLOPT_NOBODY, 0L);
             // Prevent output of data
-            curl_easy_setopt(m_curl_handle->handle(), CURLOPT_WRITEFUNCTION, &discard);
-            return curl_easy_perform(m_curl_handle->handle()) == CURLE_OK;
+            curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, &discard);
+            return curl_easy_perform(handle) == CURLE_OK;
         }
         else
         {

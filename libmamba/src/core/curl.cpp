@@ -253,11 +253,40 @@ namespace mamba
         return val;
     }
 
+    // WARNING curl_easy_getinfo MUST have its third argument pointing to long, char*, curl_slist*
+    // or double
     template tl::expected<long, CURLcode> CURLHandle::getinfo(CURLINFO option);
     template tl::expected<char*, CURLcode> CURLHandle::getinfo(CURLINFO option);
     template tl::expected<double, CURLcode> CURLHandle::getinfo(CURLINFO option);
     template tl::expected<curl_slist*, CURLcode> CURLHandle::getinfo(CURLINFO option);
-    template tl::expected<long long, CURLcode> CURLHandle::getinfo(CURLINFO option);
+
+    template <>
+    tl::expected<std::size_t, CURLcode> CURLHandle::getinfo(CURLINFO option)
+    {
+        auto res = getinfo<long>(option);
+        if (res)
+        {
+            return static_cast<std::size_t>(res.value());
+        }
+        else
+        {
+            return tl::unexpected(res.error());
+        }
+    }
+
+    template <>
+    tl::expected<int, CURLcode> CURLHandle::getinfo(CURLINFO option)
+    {
+        auto res = getinfo<long>(option);
+        if (res)
+        {
+            return static_cast<int>(res.value());
+        }
+        else
+        {
+            return tl::unexpected(res.error());
+        }
+    }
 
     template <>
     tl::expected<std::string, CURLcode> CURLHandle::getinfo(CURLINFO option)

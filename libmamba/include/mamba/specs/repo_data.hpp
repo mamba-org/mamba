@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
@@ -164,4 +165,74 @@ namespace mamba::specs
      */
     void from_json(const nlohmann::json& j, PackageRecord& p);
     void from_json(nlohmann::json&& j, PackageRecord& p);
+
+
+    /** Information about subdirectory of channel in the Conda RepoData. */
+    struct ChannelInfo
+    {
+        /** The channel's subdirectory. */
+        std::string subdir = {};
+    };
+
+    /** Serialize to JSON. */
+    void to_json(nlohmann::json& j, const ChannelInfo& info);
+    void to_json(nlohmann::json& j, ChannelInfo&& info);
+
+    /** Deserialize from JSON. */
+    void from_json(const nlohmann::json& j, ChannelInfo& info);
+    void from_json(nlohmann::json&& j, ChannelInfo& info);
+
+    /**
+     * The repository data structure.
+     *
+     * This schema maps to the repository ``repodata.json``.
+     **/
+    struct RepoData
+    {
+        /** The version of the repodata format. */
+        std::optional<std::size_t> version = {};
+
+        /** The channel information contained in the repodata.json file.
+         */
+        std::optional<ChannelInfo> info = {};
+
+        /**
+         * The tar.bz2 packages contained in the repodata.json file.
+         *
+         * Maps a filename sucha as ``libmamba-0.13.0-h3a044de_0.tar.bz2`` to its PackageRecord.
+         **/
+        std::map<std::string, PackageRecord> packages = {};
+
+        /**
+         * The conda packages contained in the repodata.json file.
+         *
+         * Maps a filename sucha as ``libmamba-1.3.0-hcea66bb_1.conda`` to its PackageRecord.
+         * This is put under a different key for backwards compatibility with previous conda
+         * versions.
+         */
+        std::map<std::string, PackageRecord> conda_packages = {};
+
+        /**
+         * Removed packages
+         *
+         * These files are still accessible, but they are not installable like regular packages.
+         */
+        std::vector<std::string> removed = {};
+    };
+
+    /**
+     * Serialize to JSON.
+     *
+     * Optional members are omitted from json.
+     */
+    void to_json(nlohmann::json& j, const RepoData& data);
+    void to_json(nlohmann::json& j, RepoData&& data);
+
+    /**
+     * Deserialize from JSON
+     *
+     * Missing json entries fill optionals with a null values and collections as empty.
+     */
+    void from_json(const nlohmann::json& j, RepoData& data);
+    void from_json(nlohmann::json&& j, RepoData& data);
 }

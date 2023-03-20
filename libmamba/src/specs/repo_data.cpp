@@ -190,4 +190,88 @@ namespace mamba::specs
     {
         return from_json_PackageRecord_impl(std::move(j), p);
     }
+
+    namespace
+    {
+        template <typename ChanInfo>
+        void to_json_ChannelInfo_impl(nlohmann::json& j, ChanInfo&& info)
+        {
+            j["subdir"] = std::forward<ChanInfo>(info).subdir;
+        }
+    }
+
+    void to_json(nlohmann::json& j, const ChannelInfo& info)
+    {
+        return to_json_ChannelInfo_impl(j, info);
+    }
+
+    void to_json(nlohmann::json& j, ChannelInfo&& info)
+    {
+        return to_json_ChannelInfo_impl(j, std::move(info));
+    }
+
+    namespace
+    {
+        template <typename Json>
+        void from_json_ChannelInfo_impl(Json&& j, ChannelInfo& info)
+        {
+            info.subdir = std::forward<Json>(j)["subdir"];
+        }
+    }
+
+    void from_json(const nlohmann::json& j, ChannelInfo& info)
+    {
+        return from_json_ChannelInfo_impl(j, info);
+    }
+
+    void from_json(nlohmann::json&& j, ChannelInfo& info)
+    {
+        return from_json_ChannelInfo_impl(std::move(j), info);
+    }
+
+    namespace
+    {
+        template <typename ReData>
+        void to_json_RepoData_impl(nlohmann::json& j, ReData&& data)
+        {
+            j["version"] = std::forward<ReData>(data).version;
+            j["info"] = std::forward<ReData>(data).info;
+            j["packages"] = std::forward<ReData>(data).packages;
+            j["conda_packages"] = std::forward<ReData>(data).conda_packages;
+            j["removed"] = std::forward<ReData>(data).removed;
+        }
+    }
+
+    void to_json(nlohmann::json& j, const RepoData& data)
+    {
+        return to_json_RepoData_impl(j, data);
+    }
+
+    void to_json(nlohmann::json& j, RepoData&& data)
+    {
+        return to_json_RepoData_impl(j, std::move(data));
+    }
+
+    namespace
+    {
+        template <typename Json>
+        void from_json_RepoData_impl(Json&& j, RepoData& data)
+        {
+            deserialize_maybe_missing(std::forward<Json>(j), "version", data.version);
+            deserialize_maybe_missing(std::forward<Json>(j), "info", data.info);
+            deserialize_maybe_missing(std::forward<Json>(j), "packages", data.packages);
+            deserialize_maybe_missing(std::forward<Json>(j), "conda_packages", data.conda_packages);
+            deserialize_maybe_missing(std::forward<Json>(j), "removed", data.removed);
+        }
+    }
+
+    void from_json(const nlohmann::json& j, RepoData& data)
+    {
+        return from_json_RepoData_impl(j, data);
+    }
+
+    void from_json(nlohmann::json&& j, RepoData& data)
+    {
+        return from_json_RepoData_impl(std::move(j), data);
+    }
 }

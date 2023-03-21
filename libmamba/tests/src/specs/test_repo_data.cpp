@@ -19,7 +19,7 @@ TEST(repo_data, RepoDataPackage_to_json)
     auto p = RepoDataPackage();
     p.name = "mamba";
     p.version = Version::parse("1.0.0");
-    p.build = "bld";
+    p.build_string = "bld";
     p.build_number = 3;
     p.subdir = "folder";
     p.md5 = "ffsd";
@@ -28,7 +28,7 @@ TEST(repo_data, RepoDataPackage_to_json)
     nl::json const j = p;
     EXPECT_EQ(j.at("name"), p.name);
     EXPECT_EQ(j.at("version"), p.version.str());
-    EXPECT_EQ(j.at("build"), p.build);
+    EXPECT_EQ(j.at("build"), p.build_string);
     EXPECT_EQ(j.at("build_number"), p.build_number);
     EXPECT_EQ(j.at("subdir"), p.subdir);
     EXPECT_EQ(j.at("md5"), p.md5);
@@ -53,7 +53,7 @@ TEST(repo_data, RepoDataPackage_from_json)
         EXPECT_EQ(p.name, j.at("name"));
         // Note Version::parse is not injective
         EXPECT_EQ(p.version.str(), j.at("version"));
-        EXPECT_EQ(p.build, j.at("build"));
+        EXPECT_EQ(p.build_string, j.at("build"));
         EXPECT_EQ(p.build_number, j.at("build_number"));
         EXPECT_EQ(p.subdir, j.at("subdir"));
         EXPECT_FALSE(p.md5.has_value());

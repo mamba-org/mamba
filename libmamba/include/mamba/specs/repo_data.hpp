@@ -71,7 +71,7 @@ namespace mamba::specs
         Version version = Version(0, { { { 0 } } });
 
         /** The build string of the package. */
-        std::string build = {};
+        std::string build_string = {};
 
         /** The build number of the package. */
         std::size_t build_number = {};

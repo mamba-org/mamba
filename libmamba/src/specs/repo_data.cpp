@@ -81,7 +81,7 @@ namespace mamba::specs
         {
             j["name"] = std::forward<PackRec>(p).name;
             j["version"] = p.version.str();
-            j["build"] = std::forward<PackRec>(p).build;
+            j["build"] = std::forward<PackRec>(p).build_string;
             j["build_number"] = std::forward<PackRec>(p).build_number;
             j["subdir"] = std::forward<PackRec>(p).subdir;
             j["md5"] = std::forward<PackRec>(p).md5;
@@ -132,7 +132,7 @@ namespace mamba::specs
         {
             p.name = std::forward<Json>(j).at("name");
             p.version = Version::parse(j.at("version").template get<std::string_view>());
-            p.build = std::forward<Json>(j).at("build");
+            p.build_string = std::forward<Json>(j).at("build");
             p.build_number = std::forward<Json>(j).at("build_number");
             p.subdir = std::forward<Json>(j).at("subdir");
             deserialize_maybe_missing(std::forward<Json>(j), "md5", p.md5);

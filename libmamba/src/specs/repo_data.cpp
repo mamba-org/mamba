@@ -77,7 +77,7 @@ namespace mamba::specs
     namespace
     {
         template <typename PackRec>
-        void to_json_PackageRecord_impl(nlohmann::json& j, PackRec&& p)
+        void to_json_RepoDataPackage_impl(nlohmann::json& j, PackRec&& p)
         {
             j["name"] = std::forward<PackRec>(p).name;
             j["version"] = p.version.str();
@@ -102,14 +102,14 @@ namespace mamba::specs
         }
     }
 
-    void to_json(nlohmann::json& j, const PackageRecord& p)
+    void to_json(nlohmann::json& j, const RepoDataPackage& p)
     {
-        return to_json_PackageRecord_impl(j, p);
+        return to_json_RepoDataPackage_impl(j, p);
     }
 
-    void to_json(nlohmann::json& j, PackageRecord&& p)
+    void to_json(nlohmann::json& j, RepoDataPackage&& p)
     {
-        return to_json_PackageRecord_impl(j, std::move(p));
+        return to_json_RepoDataPackage_impl(j, std::move(p));
     }
 
     namespace
@@ -128,7 +128,7 @@ namespace mamba::specs
         }
 
         template <typename Json>
-        void from_json_PackageRecord_impl(Json&& j, PackageRecord& p)
+        void from_json_RepoDataPackage_impl(Json&& j, RepoDataPackage& p)
         {
             p.name = std::forward<Json>(j).at("name");
             p.version = Version::parse(j.at("version").template get<std::string_view>());
@@ -181,14 +181,14 @@ namespace mamba::specs
         }
     }
 
-    void from_json(const nlohmann::json& j, PackageRecord& p)
+    void from_json(const nlohmann::json& j, RepoDataPackage& p)
     {
-        return from_json_PackageRecord_impl(j, p);
+        return from_json_RepoDataPackage_impl(j, p);
     }
 
-    void from_json(nlohmann::json&& j, PackageRecord& p)
+    void from_json(nlohmann::json&& j, RepoDataPackage& p)
     {
-        return from_json_PackageRecord_impl(std::move(j), p);
+        return from_json_RepoDataPackage_impl(std::move(j), p);
     }
 
     namespace

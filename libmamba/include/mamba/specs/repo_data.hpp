@@ -44,11 +44,11 @@ namespace mamba::specs
     };
 
     /**
-     * A single record in the Conda repodata.
+     * A single record in the Conda ``repodata.json``.
      *
      * A single record refers to a single binary distribution of a package on a Conda channel.
      *
-     * Looking at the `PackageRecord` class in the Conda source code a record can also include
+     * Looking at the `RepoDataPackage` class in the Conda source code a record can also include
      * the following fields but it is unclear what they do.
      *  - std::optional<std::string> preferred_env;
      *  - std::optional<std::string> date;
@@ -62,7 +62,7 @@ namespace mamba::specs
      * @see rattler_conda_types::repo_data::pacakgeRecord
      *      https://github.com/mamba-org/rattler/blob/main/crates/rattler_conda_types/src/repo_data/mod.rs
      */
-    struct PackageRecord
+    struct RepoDataPackage
     {
         /** The name of the package. */
         std::string name = {};
@@ -150,8 +150,8 @@ namespace mamba::specs
      *
      * Optional members are omitted from json.
      */
-    void to_json(nlohmann::json& j, const PackageRecord& p);
-    void to_json(nlohmann::json& j, PackageRecord&& p);
+    void to_json(nlohmann::json& j, const RepoDataPackage& p);
+    void to_json(nlohmann::json& j, RepoDataPackage&& p);
 
     /**
      * Deserialize from JSON
@@ -163,8 +163,8 @@ namespace mamba::specs
      * - ``"track_features"`` can be a string or list of string. In the former case, it is
      *   considered as a single element list.
      */
-    void from_json(const nlohmann::json& j, PackageRecord& p);
-    void from_json(nlohmann::json&& j, PackageRecord& p);
+    void from_json(const nlohmann::json& j, RepoDataPackage& p);
+    void from_json(nlohmann::json&& j, RepoDataPackage& p);
 
 
     /** Information about subdirectory of channel in the Conda RepoData. */
@@ -199,18 +199,18 @@ namespace mamba::specs
         /**
          * The tar.bz2 packages contained in the repodata.json file.
          *
-         * Maps a filename sucha as ``libmamba-0.13.0-h3a044de_0.tar.bz2`` to its PackageRecord.
+         * Maps a filename sucha as ``libmamba-0.13.0-h3a044de_0.tar.bz2`` to its RepoDataPackage.
          **/
-        std::map<std::string, PackageRecord> packages = {};
+        std::map<std::string, RepoDataPackage> packages = {};
 
         /**
          * The conda packages contained in the repodata.json file.
          *
-         * Maps a filename sucha as ``libmamba-1.3.0-hcea66bb_1.conda`` to its PackageRecord.
+         * Maps a filename sucha as ``libmamba-1.3.0-hcea66bb_1.conda`` to its RepoDataPackage.
          * This is put under a different key for backwards compatibility with previous conda
          * versions.
          */
-        std::map<std::string, PackageRecord> conda_packages = {};
+        std::map<std::string, RepoDataPackage> conda_packages = {};
 
         /**
          * Removed packages

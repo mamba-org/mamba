@@ -14,9 +14,9 @@
 using namespace mamba::specs;
 namespace nl = nlohmann;
 
-TEST(repo_data, PackageRecord_to_json)
+TEST(repo_data, RepoDataPackage_to_json)
 {
-    auto p = PackageRecord();
+    auto p = RepoDataPackage();
     p.name = "mamba";
     p.version = Version::parse("1.0.0");
     p.build = "bld";
@@ -36,7 +36,7 @@ TEST(repo_data, PackageRecord_to_json)
     EXPECT_EQ(j.at("noarch"), "python");
 }
 
-TEST(repo_data, PackageRecord_from_json)
+TEST(repo_data, RepoDataPackage_from_json)
 {
     auto j = nl::json::object();
     j["name"] = "mamba";
@@ -49,7 +49,7 @@ TEST(repo_data, PackageRecord_from_json)
     j["constrains"] = nl::json::array();
     j["track_features"] = nl::json::array();
     {
-        const auto p = j.get<PackageRecord>();
+        const auto p = j.get<RepoDataPackage>();
         EXPECT_EQ(p.name, j.at("name"));
         // Note Version::parse is not injective
         EXPECT_EQ(p.version.str(), j.at("version"));
@@ -65,18 +65,18 @@ TEST(repo_data, PackageRecord_from_json)
     }
     j["noarch"] = "python";
     {
-        const auto p = j.get<PackageRecord>();
+        const auto p = j.get<RepoDataPackage>();
         EXPECT_EQ(p.noarch, NoArchType::Python);
     }
     // Old beahiour
     j["noarch"] = true;
     {
-        const auto p = j.get<PackageRecord>();
+        const auto p = j.get<RepoDataPackage>();
         EXPECT_EQ(p.noarch, NoArchType::Generic);
     }
     j["noarch"] = false;
     {
-        const auto p = j.get<PackageRecord>();
+        const auto p = j.get<RepoDataPackage>();
         EXPECT_FALSE(p.noarch.has_value());
     }
 }
@@ -87,8 +87,8 @@ TEST(repo_data, RepoData_to_json)
     data.version = 1;
     data.info = ChannelInfo{ "subdir" };
     data.packages = {
-        { "mamba-1", PackageRecord{ "mamba" } },
-        { "conda-1", PackageRecord{ "conda" } },
+        { "mamba-1", RepoDataPackage{ "mamba" } },
+        { "conda-1", RepoDataPackage{ "conda" } },
     };
     data.removed = { "bad-package-1" };
 

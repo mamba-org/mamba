@@ -128,7 +128,7 @@ TEST(repo_data, RepoData_from_json)
 
 TEST(repo_data, repodata_json)
 {
-    // Mybe not the best way to set this test.
+    // Maybe not the best way to set this test.
     // ``repodata.json`` of interest are very large files. Should we check them in in VCS?
     // Download them in CMake? Do a specific integration test?
     // Could be downloaded in the tests, but we would like to keep these tests Context-free.
@@ -139,7 +139,7 @@ TEST(repo_data, repodata_json)
     }
     auto repodata_file = std::ifstream(repodata_file_path);
     // Deserialize
-    const auto data = nl::json::parse(repodata_file).get<RepoData>();
+    auto data = nl::json::parse(repodata_file).get<RepoData>();
     // Serialize
-    const nl::json json = data;
+    const nl::json json = std::move(data);
 }

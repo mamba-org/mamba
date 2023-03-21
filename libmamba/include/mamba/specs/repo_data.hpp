@@ -59,7 +59,7 @@ namespace mamba::specs
      *
      * @see conda.models.records
      *      https://github.com/conda/conda/blob/main/conda/models/records.py
-     * @see rattler_conda_types::repo_data::pacakgeRecord
+     * @see rattler_conda_types::repo_data::PackageRecord
      *      https://github.com/mamba-org/rattler/blob/main/crates/rattler_conda_types/src/repo_data/mod.rs
      */
     struct RepoDataPackage
@@ -206,7 +206,7 @@ namespace mamba::specs
         /**
          * The conda packages contained in the repodata.json file.
          *
-         * Maps a filename sucha as ``libmamba-1.3.0-hcea66bb_1.conda`` to its RepoDataPackage.
+         * Maps a filename such as ``libmamba-1.3.0-hcea66bb_1.conda`` to its RepoDataPackage.
          * This is put under a different key for backwards compatibility with previous conda
          * versions.
          */

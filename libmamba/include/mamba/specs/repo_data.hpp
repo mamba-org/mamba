@@ -4,6 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#ifndef MAMBA_SPECS_REPODATA_HPP
+#define MAMBA_SPECS_REPODATA_HPP
+
 #include <map>
 #include <optional>
 #include <string>
@@ -230,3 +233,5 @@ namespace mamba::specs
      */
     void from_json(const nlohmann::json& j, RepoData& data);
 }
+
+#endif

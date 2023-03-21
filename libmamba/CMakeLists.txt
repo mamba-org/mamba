@@ -209,6 +209,7 @@ set(LIBMAMBA_PUBLIC_HEADERS
     # Implementation of version and matching specs
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/repo_data.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/package_info.hpp
     # Core API (low-level)
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/activation.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/channel.hpp

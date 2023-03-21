@@ -40,7 +40,7 @@ namespace mamba
 
         // Set error buffer
         m_errorbuffer[0] = '\0';
-        setopt(CURLOPT_ERRORBUFFER, m_errorbuffer);
+        set_opt(CURLOPT_ERRORBUFFER, m_errorbuffer);
     }
 
     CURLHandle::CURLHandle(CURLHandle&& rhs)
@@ -121,30 +121,30 @@ namespace mamba
     }
     //     void CURLHandle::init_handle(const Context& ctx)
     //     {
-    //         setopt(CURLOPT_FOLLOWLOCATION, 1);
-    //         setopt(CURLOPT_NETRC, CURL_NETRC_OPTIONAL);
-    //         setopt(CURLOPT_MAXREDIRS, 6);
-    //         setopt(CURLOPT_CONNECTTIMEOUT, ctx.connect_timeout);
-    //         setopt(CURLOPT_LOW_SPEED_TIME, ctx.low_speed_time);
-    //         setopt(CURLOPT_LOW_SPEED_LIMIT, ctx.low_speed_limit);
-    //         setopt(CURLOPT_BUFFERSIZE, ctx.transfer_buffersize);
+    //         set_opt(CURLOPT_FOLLOWLOCATION, 1);
+    //         set_opt(CURLOPT_NETRC, CURL_NETRC_OPTIONAL);
+    //         set_opt(CURLOPT_MAXREDIRS, 6);
+    //         set_opt(CURLOPT_CONNECTTIMEOUT, ctx.connect_timeout);
+    //         set_opt(CURLOPT_LOW_SPEED_TIME, ctx.low_speed_time);
+    //         set_opt(CURLOPT_LOW_SPEED_LIMIT, ctx.low_speed_limit);
+    //         set_opt(CURLOPT_BUFFERSIZE, ctx.transfer_buffersize);
     //
     //         if (ctx.disable_ssl)
     //         {
     //             spdlog::warn("SSL verification is disabled");
-    //             setopt(CURLOPT_SSL_VERIFYHOST, 0);
-    //             setopt(CURLOPT_SSL_VERIFYPEER, 0);
+    //             set_opt(CURLOPT_SSL_VERIFYHOST, 0);
+    //             set_opt(CURLOPT_SSL_VERIFYPEER, 0);
     //
     //             // also disable proxy SSL verification
-    //             setopt(CURLOPT_PROXY_SSL_VERIFYPEER, 0L);
-    //             setopt(CURLOPT_PROXY_SSL_VERIFYHOST, 0L);
+    //             set_opt(CURLOPT_PROXY_SSL_VERIFYPEER, 0L);
+    //             set_opt(CURLOPT_PROXY_SSL_VERIFYHOST, 0L);
     //         }
     //         else
     //         {
     //             spdlog::warn("SSL verification is ENABLED");
     //
-    //             setopt(CURLOPT_SSL_VERIFYHOST, 2);
-    //             setopt(CURLOPT_SSL_VERIFYPEER, 1);
+    //             set_opt(CURLOPT_SSL_VERIFYHOST, 2);
+    //             set_opt(CURLOPT_SSL_VERIFYPEER, 1);
     //
     //             // Windows SSL backend doesn't support this
     //             CURLcode verifystatus = curl_easy_setopt(m_handle, CURLOPT_SSL_VERIFYSTATUS, 0);
@@ -153,25 +153,25 @@ namespace mamba
     //
     //             if (ctx.ssl_no_default_ca_info)
     //             {
-    //                 setopt<char*>(CURLOPT_CAINFO, nullptr);
+    //                 set_opt<char*>(CURLOPT_CAINFO, nullptr);
     //             }
     //
     //             if (!ctx.ssl_ca_info.empty())
     //             {
-    //                 setopt(CURLOPT_CAINFO, ctx.ssl_ca_info.c_str());
+    //                 set_opt(CURLOPT_CAINFO, ctx.ssl_ca_info.c_str());
     //             }
     //
     //             if (ctx.ssl_no_revoke)
     //             {
-    //                 setopt(CURLOPT_SSL_OPTIONS, ctx.ssl_no_revoke);
+    //                 set_opt(CURLOPT_SSL_OPTIONS, ctx.ssl_no_revoke);
     //             }
     //         }
     //
-    //         setopt(CURLOPT_FTP_USE_EPSV, (long) ctx.ftp_use_seepsv);
-    //         setopt(CURLOPT_FILETIME, (long) ctx.preserve_filetime);
+    //         set_opt(CURLOPT_FTP_USE_EPSV, (long) ctx.ftp_use_seepsv);
+    //         set_opt(CURLOPT_FILETIME, (long) ctx.preserve_filetime);
     //
     //         if (ctx.verbosity > 0)
-    //             setopt(CURLOPT_VERBOSE, (long) 1L);
+    //             set_opt(CURLOPT_VERBOSE, (long) 1L);
     //     }
 
     //     CURLHandle::CURLHandle(const Context& ctx, const std::string& url)
@@ -183,22 +183,22 @@ namespace mamba
 
     //     CURLHandle& CURLHandle::url(const std::string& url, const proxy_map_type& proxies)
     //     {
-    //         setopt(CURLOPT_URL, url.c_str());
+    //         set_opt(CURLOPT_URL, url.c_str());
     //         const auto match = proxy_match(proxies, url);
     //         if (match)
     //         {
-    //             setopt(CURLOPT_PROXY, match.value().c_str());
+    //             set_opt(CURLOPT_PROXY, match.value().c_str());
     //         }
     //         else
     //         {
-    //             setopt(CURLOPT_PROXY, nullptr);
+    //             set_opt(CURLOPT_PROXY, nullptr);
     //         }
     //         return *this;
     //     }
 
     //     CURLHandle& CURLHandle::accept_encoding()
     //     {
-    //         setopt(CURLOPT_ACCEPT_ENCODING, "");
+    //         set_opt(CURLOPT_ACCEPT_ENCODING, "");
     //         return *this;
     //     }
 
@@ -242,7 +242,7 @@ namespace mamba
     //     }
 
     template <class T>
-    tl::expected<T, CURLcode> CURLHandle::getinfo(CURLINFO option)
+    tl::expected<T, CURLcode> CURLHandle::get_info(CURLINFO option)
     {
         T val;
         CURLcode result = curl_easy_getinfo(m_handle, option, &val);
@@ -255,15 +255,15 @@ namespace mamba
 
     // WARNING curl_easy_getinfo MUST have its third argument pointing to long, char*, curl_slist*
     // or double
-    template tl::expected<long, CURLcode> CURLHandle::getinfo(CURLINFO option);
-    template tl::expected<char*, CURLcode> CURLHandle::getinfo(CURLINFO option);
-    template tl::expected<double, CURLcode> CURLHandle::getinfo(CURLINFO option);
-    template tl::expected<curl_slist*, CURLcode> CURLHandle::getinfo(CURLINFO option);
+    template tl::expected<long, CURLcode> CURLHandle::get_info(CURLINFO option);
+    template tl::expected<char*, CURLcode> CURLHandle::get_info(CURLINFO option);
+    template tl::expected<double, CURLcode> CURLHandle::get_info(CURLINFO option);
+    template tl::expected<curl_slist*, CURLcode> CURLHandle::get_info(CURLINFO option);
 
     template <>
-    tl::expected<std::size_t, CURLcode> CURLHandle::getinfo(CURLINFO option)
+    tl::expected<std::size_t, CURLcode> CURLHandle::get_info(CURLINFO option)
     {
-        auto res = getinfo<long>(option);
+        auto res = get_info<long>(option);
         if (res)
         {
             return static_cast<std::size_t>(res.value());
@@ -275,9 +275,9 @@ namespace mamba
     }
 
     template <>
-    tl::expected<int, CURLcode> CURLHandle::getinfo(CURLINFO option)
+    tl::expected<int, CURLcode> CURLHandle::get_info(CURLINFO option)
     {
-        auto res = getinfo<long>(option);
+        auto res = get_info<long>(option);
         if (res)
         {
             return static_cast<int>(res.value());
@@ -289,9 +289,9 @@ namespace mamba
     }
 
     template <>
-    tl::expected<std::string, CURLcode> CURLHandle::getinfo(CURLINFO option)
+    tl::expected<std::string, CURLcode> CURLHandle::get_info(CURLINFO option)
     {
-        auto res = getinfo<char*>(option);
+        auto res = get_info<char*>(option);
         if (res)
         {
             return std::string(res.value());
@@ -333,9 +333,9 @@ namespace mamba
         return *this;
     }
 
-    CURLHandle& CURLHandle::setopt_header()
+    CURLHandle& CURLHandle::set_opt_header()
     {
-        setopt(CURLOPT_HTTPHEADER, p_headers);
+        set_opt(CURLOPT_HTTPHEADER, p_headers);
         return *this;
     }
 
@@ -376,12 +376,12 @@ namespace mamba
     //     {
     //         response.reset(new Response);
     //         // check if there is something set already for these values
-    //         setopt(CURLOPT_HEADERFUNCTION, header_map_callback<std::map<std::string,
-    //         std::string>>); setopt(CURLOPT_HEADERDATA, &response->headers);
+    //         set_opt(CURLOPT_HEADERFUNCTION, header_map_callback<std::map<std::string,
+    //         std::string>>); set_opt(CURLOPT_HEADERDATA, &response->headers);
     //
-    //         setopt(CURLOPT_WRITEFUNCTION, string_callback<std::string>);
+    //         set_opt(CURLOPT_WRITEFUNCTION, string_callback<std::string>);
     //         response->content = std::string();
-    //         setopt(CURLOPT_WRITEDATA, &response->content.value());
+    //         set_opt(CURLOPT_WRITEDATA, &response->content.value());
     //     }
 
     //     CURLHandle& CURLHandle::set_end_callback(end_callback_type func)
@@ -410,12 +410,12 @@ namespace mamba
     //
     //             if (fsize != -1)
     //             {
-    //                 curl.setopt(CURLOPT_INFILESIZE_LARGE, fsize);
+    //                 curl.set_opt(CURLOPT_INFILESIZE_LARGE, fsize);
     //             }
     //
-    //             curl.setopt(CURLOPT_UPLOAD, 1L);
-    //             curl.setopt(CURLOPT_READFUNCTION, read_callback<S>);
-    //             curl.setopt(CURLOPT_READDATA, &stream);
+    //             curl.set_opt(CURLOPT_UPLOAD, 1L);
+    //             curl.set_opt(CURLOPT_READFUNCTION, read_callback<S>);
+    //             curl.set_opt(CURLOPT_READDATA, &stream);
     //             return curl;
     //         }
     //     }

@@ -231,8 +231,8 @@ namespace mamba
     {
         init_curl_handle(m_curl_handle->handle(), url);
 
-        m_curl_handle->setopt(CURLOPT_HEADERFUNCTION, &DownloadTarget::header_callback);
-        m_curl_handle->setopt(CURLOPT_HEADERDATA, this);
+        m_curl_handle->set_opt(CURLOPT_HEADERFUNCTION, &DownloadTarget::header_callback);
+        m_curl_handle->set_opt(CURLOPT_HEADERDATA, this);
 
         if (ends_with(url, ".json.zst"))
         {
@@ -241,8 +241,8 @@ namespace mamba
             {
                 m_filename = m_filename.substr(0, m_filename.size() - 4);
             }
-            m_curl_handle->setopt(CURLOPT_WRITEFUNCTION, ZstdStream::write_callback);
-            m_curl_handle->setopt(CURLOPT_WRITEDATA, m_zstd_stream.get());
+            m_curl_handle->set_opt(CURLOPT_WRITEFUNCTION, ZstdStream::write_callback);
+            m_curl_handle->set_opt(CURLOPT_WRITEDATA, m_zstd_stream.get());
         }
         else if (ends_with(url, ".json.bz2"))
         {
@@ -251,19 +251,19 @@ namespace mamba
             {
                 m_filename = m_filename.substr(0, m_filename.size() - 4);
             }
-            m_curl_handle->setopt(CURLOPT_WRITEFUNCTION, Bzip2Stream::write_callback);
-            m_curl_handle->setopt(CURLOPT_WRITEDATA, m_bzip2_stream.get());
+            m_curl_handle->set_opt(CURLOPT_WRITEFUNCTION, Bzip2Stream::write_callback);
+            m_curl_handle->set_opt(CURLOPT_WRITEDATA, m_bzip2_stream.get());
         }
         else
         {
-            m_curl_handle->setopt(CURLOPT_WRITEFUNCTION, &DownloadTarget::write_callback);
-            m_curl_handle->setopt(CURLOPT_WRITEDATA, this);
+            m_curl_handle->set_opt(CURLOPT_WRITEFUNCTION, &DownloadTarget::write_callback);
+            m_curl_handle->set_opt(CURLOPT_WRITEDATA, this);
         }
 
         if (ends_with(url, ".json"))
         {
             // accept all encodings supported by the libcurl build
-            m_curl_handle->setopt(CURLOPT_ACCEPT_ENCODING, "");
+            m_curl_handle->set_opt(CURLOPT_ACCEPT_ENCODING, "");
             m_curl_handle->add_header("Content-Type: application/json");
         }
 
@@ -274,12 +274,12 @@ namespace mamba
         );
 
         m_curl_handle->add_header(user_agent);
-        m_curl_handle->setopt_header();
-        m_curl_handle->setopt(CURLOPT_VERBOSE, Context::instance().verbosity >= 2);
+        m_curl_handle->set_opt_header();
+        m_curl_handle->set_opt(CURLOPT_VERBOSE, Context::instance().verbosity >= 2);
 
         auto logger = spdlog::get("libcurl");
-        m_curl_handle->setopt(CURLOPT_DEBUGFUNCTION, curl_debug_callback);
-        m_curl_handle->setopt(CURLOPT_DEBUGDATA, logger.get());
+        m_curl_handle->set_opt(CURLOPT_DEBUGFUNCTION, curl_debug_callback);
+        m_curl_handle->set_opt(CURLOPT_DEBUGDATA, logger.get());
     }
 
     bool DownloadTarget::can_retry()
@@ -329,8 +329,8 @@ namespace mamba
             init_curl_target(m_url);  // Not sure this is needed, TODO to remove?
             if (m_has_progress_bar)
             {
-                m_curl_handle->setopt(CURLOPT_XFERINFOFUNCTION, &DownloadTarget::progress_callback);
-                m_curl_handle->setopt(CURLOPT_XFERINFODATA, this);
+                m_curl_handle->set_opt(CURLOPT_XFERINFOFUNCTION, &DownloadTarget::progress_callback);
+                m_curl_handle->set_opt(CURLOPT_XFERINFODATA, this);
             }
             m_retry_wait_seconds = m_retry_wait_seconds
                                    * static_cast<std::size_t>(Context::instance().retry_backoff);
@@ -518,9 +518,9 @@ namespace mamba
         m_progress_bar = progress_proxy;
         m_progress_bar.set_repr_hook(download_repr());
 
-        m_curl_handle->setopt(CURLOPT_XFERINFOFUNCTION, &DownloadTarget::progress_callback);
-        m_curl_handle->setopt(CURLOPT_XFERINFODATA, this);
-        m_curl_handle->setopt(CURLOPT_NOPROGRESS, 0L);
+        m_curl_handle->set_opt(CURLOPT_XFERINFOFUNCTION, &DownloadTarget::progress_callback);
+        m_curl_handle->set_opt(CURLOPT_XFERINFODATA, this);
+        m_curl_handle->set_opt(CURLOPT_NOPROGRESS, 0L);
     }
 
     void DownloadTarget::set_expected_size(std::size_t size)
@@ -530,7 +530,7 @@ namespace mamba
 
     void DownloadTarget::set_head_only(bool yes)
     {
-        m_curl_handle->setopt(CURLOPT_NOBODY, yes);
+        m_curl_handle->set_opt(CURLOPT_NOBODY, yes);
     }
 
     const std::string& DownloadTarget::name() const
@@ -601,8 +601,8 @@ namespace mamba
 
     curl_off_t DownloadTarget::get_speed()
     {
-        auto speed = m_curl_handle->getinfo<long>(CURLINFO_SPEED_DOWNLOAD_T);
-        // TODO Should we just drop all code below with progress_bar and use value_or(0) in getinfo
+        auto speed = m_curl_handle->get_info<long>(CURLINFO_SPEED_DOWNLOAD_T);
+        // TODO Should we just drop all code below with progress_bar and use value_or(0) in get_info
         // above instead?
         if (!speed.has_value())
         {
@@ -623,7 +623,7 @@ namespace mamba
         result = r;
         if (r != CURLE_OK)
         {
-            auto leffective_url = m_curl_handle->getinfo<char*>(CURLINFO_EFFECTIVE_URL).value();
+            auto leffective_url = m_curl_handle->get_info<char*>(CURLINFO_EFFECTIVE_URL).value();
 
             std::stringstream err;
             err << "Download error (" << result << ") " << curl_easy_strerror(result) << " ["
@@ -653,9 +653,9 @@ namespace mamba
     bool DownloadTarget::finalize()
     {
         avg_speed = get_speed();
-        http_status = m_curl_handle->getinfo<int>(CURLINFO_RESPONSE_CODE).value_or(10000);
-        effective_url = m_curl_handle->getinfo<char*>(CURLINFO_EFFECTIVE_URL).value();
-        downloaded_size = m_curl_handle->getinfo<long>(CURLINFO_SIZE_DOWNLOAD_T).value_or(0);
+        http_status = m_curl_handle->get_info<int>(CURLINFO_RESPONSE_CODE).value_or(10000);
+        effective_url = m_curl_handle->get_info<char*>(CURLINFO_EFFECTIVE_URL).value();
+        downloaded_size = m_curl_handle->get_info<long>(CURLINFO_SIZE_DOWNLOAD_T).value_or(0);
 
         LOG_INFO << get_transfer_msg();
 
@@ -664,7 +664,8 @@ namespace mamba
             // this request didn't work!
 
             // respect Retry-After header if present, otherwise use default timeout
-            m_retry_wait_seconds = m_curl_handle->getinfo<std::size_t>(CURLINFO_RETRY_AFTER).value_or(0);
+            m_retry_wait_seconds = m_curl_handle->get_info<std::size_t>(CURLINFO_RETRY_AFTER)
+                                       .value_or(0);
             if (!m_retry_wait_seconds)
             {
                 m_retry_wait_seconds = get_default_retry_timeout();

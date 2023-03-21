@@ -64,7 +64,7 @@ namespace mamba
         //         void finalize_transfer();
 
         template <class T>
-        tl::expected<T, CURLcode> getinfo(CURLINFO option);
+        tl::expected<T, CURLcode> get_info(CURLINFO option);
 
         // This is made public because it is used internally in quite some files
         CURL* handle();
@@ -74,9 +74,9 @@ namespace mamba
         CURLHandle& reset_headers();
 
         template <class T>
-        CURLHandle& setopt(CURLoption opt, const T& val);
+        CURLHandle& set_opt(CURLoption opt, const T& val);
 
-        CURLHandle& setopt_header();
+        CURLHandle& set_opt_header();
 
         // TODO Make this private after more wrapping...
         char m_errorbuffer[CURL_ERROR_SIZE];
@@ -100,7 +100,7 @@ namespace mamba
 
     // TODO: restrict the possible implementations in the cpp file
     template <class T>
-    CURLHandle& CURLHandle::setopt(CURLoption opt, const T& val)
+    CURLHandle& CURLHandle::set_opt(CURLoption opt, const T& val)
     {
         CURLcode ok;
         if constexpr (std::is_same<T, std::string>())

@@ -1,3 +1,21 @@
+libmambapy 1.4.0 (March 22, 2023)
+=================================
+
+Enchancements:
+
+- Implemented recursive dependency printout in repoquery  by @timostrunk in https://github.com/mamba-org/mamba/pull/2283
+- Agressive compilation warnings by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2304
+- Fine tune clang-format by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2290
+- Activated SAT error messages by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2325
+- Removed redundant `DependencyInfo` by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2314
+- Only full shared or full static builds by @JohanMabille in https://github.com/mamba-org/mamba/pull/2342
+- Fixed repoquery commands working with installed packages only by @Hind-M in https://github.com/mamba-org/mamba/pull/2330
+- Isolate `PackageInfo` from libsolv from @AntoinePrv in https://github.com/mamba-org/mamba/pull/2340
+
+Bug fixes:
+
+- Fixed repoquery output of mamba when query format is JSON by @JohanMabille in https://github.com/mamba-org/mamba/pull/2353
+
 libmambapy 1.3.1 (February 09, 2023)
 ====================================
 

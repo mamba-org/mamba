@@ -7,8 +7,6 @@
 #ifndef MAMBA_CURL_HPP
 #define MAMBA_CURL_HPP
 
-// #include <map>
-// #include <optional>
 #include <stdexcept>
 #include <string_view>
 #include <utility>
@@ -46,22 +44,12 @@ namespace mamba
     {
     public:
 
-        //         using end_callback_type = std::function<CbReturnCode(const Response&)>;
-        //         explicit CURLHandle(const Context& ctx);
-        //         CURLHandle(const Context& ctx, const std::string& url);
         CURLHandle();
         CURLHandle(CURLHandle&& rhs);
         CURLHandle& operator=(CURLHandle&& rhs);
         ~CURLHandle();
 
         const std::pair<std::string_view, CurlLogLevel> init_curl_ssl_session();
-
-        //         CURLHandle& url(const std::string& url, const proxy_map_type& proxies);
-        //         CURLHandle& accept_encoding();
-        //         CURLHandle& user_agent(const std::string& user_agent);
-        //
-        //         Response perform();
-        //         void finalize_transfer();
 
         template <class T>
         tl::expected<T, CURLcode> get_info(CURLINFO option);
@@ -80,25 +68,13 @@ namespace mamba
 
         // TODO Make this private after more wrapping...
         char m_errorbuffer[CURL_ERROR_SIZE];
-        //         void set_default_callbacks();
-        //         CURLHandle& set_end_callback(end_callback_type func);
-        //
-        //         CURLHandle& upload(std::ifstream& stream);
-        //         CURLHandle& upload(std::istringstream& stream);
 
     private:
 
-        //         void init_handle(const Context& ctx);
-        //         void finalize_transfer(Response& response);
-
         CURL* m_handle;
         curl_slist* p_headers = nullptr;
-
-        //         std::unique_ptr<Response> response;
-        //         end_callback_type end_callback;
     };
 
-    // TODO: restrict the possible implementations in the cpp file
     template <class T>
     CURLHandle& CURLHandle::set_opt(CURLoption opt, const T& val)
     {

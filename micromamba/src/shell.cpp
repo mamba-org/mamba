@@ -60,16 +60,30 @@ init_shell_parser(CLI::App* subcom)
 #endif
         })));
 
-    auto& prefix = config.insert(
-        Configurable("shell_prefix", std::string(""))
+    auto& prefix_path = config.insert(
+        Configurable("shell_prefix_path", std::string(""))
             .group("cli")
-            .description("The root prefix to configure (for init and hook), and the prefix "
-                         "to activate for activate, either by name or by path")
+            .description("The root prefix path to configure (for init and hook), and the prefix "
+                         "path to activate (for activate)")
     );
+
+    auto& prefix_name = config.insert(
+        Configurable("shell_prefix_name", std::string(""))
+            .group("cli")
+            .description("The root prefix name to configure (for init and hook), and the prefix "
+                         "name to activate (for activate)")
+    );
+
     subcom->add_option(
-        "prefix,-p,--prefix,-n,--name",
-        prefix.get_cli_config<std::string>(),
-        prefix.description()
+        "-p,--prefix",
+        prefix_path.get_cli_config<std::string>(),
+        prefix_path.description()
+    );
+
+    subcom->add_option(
+        "-n,--name",
+        prefix_name.get_cli_config<std::string>(),
+        prefix_name.description()
     );
 }
 
@@ -84,10 +98,33 @@ set_shell_command(CLI::App* subcom)
         {
             auto& config = Configuration::instance();
 
-            auto& prefix = config.at("shell_prefix").compute().value<std::string>();
+            auto& prefix_path = config.at("shell_prefix_path").compute().value<std::string>();
+            auto& prefix_name = config.at("shell_prefix_name").compute().value<std::string>();
             auto& action = config.at("shell_action").compute().value<std::string>();
             auto& shell = config.at("shell_type").compute().value<std::string>();
             auto& stack = config.at("shell_stack").compute().value<bool>();
+
+            std::string prefix;
+            if (!prefix_path.empty() && !prefix_name.empty())
+            {
+                LOG_ERROR << "Cannot set both prefix and env name";
+                throw std::runtime_error("Aborting.");
+            }
+            else if (!prefix_path.empty())
+            {
+                prefix = prefix_path;
+            }
+            else if (!prefix_name.empty())
+            {
+                if (prefix_name.empty() || prefix_name == "base")
+                {
+                    prefix = prefix_name;
+                }
+                else
+                {
+                    prefix = Context::instance().root_prefix / "envs" / prefix_name;
+                }
+            }
 
             if (action.empty())
             {
@@ -97,8 +134,7 @@ set_shell_command(CLI::App* subcom)
                 }
                 else
                 {
-                    Context::instance().target_prefix = Context::instance().root_prefix / "envs"
-                                                        / prefix;
+                    Context::instance().target_prefix = prefix;
                 }
 
                 std::string default_shell = "bash";

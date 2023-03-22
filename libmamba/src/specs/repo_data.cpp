@@ -16,12 +16,11 @@ NLOHMANN_JSON_NAMESPACE_BEGIN
 template <typename T>
 struct adl_serializer<std::optional<T>>
 {
-    template <typename Opt>
-    static void to_json_impl(json& j, Opt&& opt)
+    static void to_json(json& j, const std::optional<T>& opt)
     {
         if (opt.has_value())
         {
-            j = std::forward<Opt>(opt).value();
+            j = opt.value();
         }
         else
         {
@@ -29,37 +28,16 @@ struct adl_serializer<std::optional<T>>
         }
     }
 
-    static void to_json(json& j, const std::optional<T>& opt)
-    {
-        return to_json_impl(j, opt);
-    }
-
-    static void to_json(json& j, std::optional<T>&& opt)
-    {
-        return to_json_impl(j, std::move(opt));
-    }
-
-    template <typename Json>
-    static void from_json_impl(Json&& j, std::optional<T>& opt)
+    static void from_json(const json& j, std::optional<T>& opt)
     {
         if (!j.is_null())
         {
-            opt = std::forward<Json>(j).template get<T>();
+            opt = j.template get<T>();
         }
         else
         {
             opt = std::nullopt;
         }
-    }
-
-    static void from_json(const json& j, std::optional<T>& opt)
-    {
-        return from_json_impl(j, opt);
-    }
-
-    static void from_json(json&& j, std::optional<T>& opt)
-    {
-        return from_json_impl(std::move(j), opt);
     }
 };
 NLOHMANN_JSON_NAMESPACE_END
@@ -74,42 +52,28 @@ namespace mamba::specs
         }
     )
 
-    namespace
-    {
-        template <typename PackRec>
-        void to_json_RepoDataPackage_impl(nlohmann::json& j, PackRec&& p)
-        {
-            j["name"] = std::forward<PackRec>(p).name;
-            j["version"] = p.version.str();
-            j["build"] = std::forward<PackRec>(p).build_string;
-            j["build_number"] = std::forward<PackRec>(p).build_number;
-            j["subdir"] = std::forward<PackRec>(p).subdir;
-            j["md5"] = std::forward<PackRec>(p).md5;
-            j["sha256"] = std::forward<PackRec>(p).sha256;
-            j["legacy_bz2_md5"] = std::forward<PackRec>(p).legacy_bz2_md5;
-            j["legacy_bz2_size"] = std::forward<PackRec>(p).legacy_bz2_size;
-            j["size"] = std::forward<PackRec>(p).size;
-            j["arch"] = std::forward<PackRec>(p).arch;
-            j["platform"] = std::forward<PackRec>(p).platform;
-            j["depends"] = std::forward<PackRec>(p).depends;
-            j["constrains"] = std::forward<PackRec>(p).constrains;
-            j["track_features"] = std::forward<PackRec>(p).track_features;
-            j["features"] = std::forward<PackRec>(p).features;
-            j["noarch"] = std::forward<PackRec>(p).noarch;
-            j["license"] = std::forward<PackRec>(p).license;
-            j["license_family"] = std::forward<PackRec>(p).license_family;
-            j["timestamp"] = std::forward<PackRec>(p).timestamp;
-        }
-    }
-
     void to_json(nlohmann::json& j, const RepoDataPackage& p)
     {
-        return to_json_RepoDataPackage_impl(j, p);
-    }
-
-    void to_json(nlohmann::json& j, RepoDataPackage&& p)
-    {
-        return to_json_RepoDataPackage_impl(j, std::move(p));
+        j["name"] = p.name;
+        j["version"] = p.version.str();
+        j["build"] = p.build_string;
+        j["build_number"] = p.build_number;
+        j["subdir"] = p.subdir;
+        j["md5"] = p.md5;
+        j["sha256"] = p.sha256;
+        j["legacy_bz2_md5"] = p.legacy_bz2_md5;
+        j["legacy_bz2_size"] = p.legacy_bz2_size;
+        j["size"] = p.size;
+        j["arch"] = p.arch;
+        j["platform"] = p.platform;
+        j["depends"] = p.depends;
+        j["constrains"] = p.constrains;
+        j["track_features"] = p.track_features;
+        j["features"] = p.features;
+        j["noarch"] = p.noarch;
+        j["license"] = p.license;
+        j["license_family"] = p.license_family;
+        j["timestamp"] = p.timestamp;
     }
 
     namespace
@@ -126,152 +90,85 @@ namespace mamba::specs
                 t = {};
             }
         }
-
-        template <typename Json>
-        void from_json_RepoDataPackage_impl(Json&& j, RepoDataPackage& p)
-        {
-            p.name = std::forward<Json>(j).at("name");
-            p.version = Version::parse(j.at("version").template get<std::string_view>());
-            p.build_string = std::forward<Json>(j).at("build");
-            p.build_number = std::forward<Json>(j).at("build_number");
-            p.subdir = std::forward<Json>(j).at("subdir");
-            deserialize_maybe_missing(std::forward<Json>(j), "md5", p.md5);
-            deserialize_maybe_missing(std::forward<Json>(j), "sha256", p.sha256);
-            deserialize_maybe_missing(std::forward<Json>(j), "legacy_bz2_md5", p.legacy_bz2_md5);
-            deserialize_maybe_missing(std::forward<Json>(j), "legacy_bz2_size", p.legacy_bz2_size);
-            deserialize_maybe_missing(std::forward<Json>(j), "size", p.size);
-            deserialize_maybe_missing(std::forward<Json>(j), "arch", p.arch);
-            deserialize_maybe_missing(std::forward<Json>(j), "platform", p.platform);
-            deserialize_maybe_missing(std::forward<Json>(j), "depends", p.depends);
-            deserialize_maybe_missing(std::forward<Json>(j), "constrains", p.constrains);
-            if (j.contains("track_features"))
-            {
-                auto&& track_features = std::forward<Json>(j)["track_features"];
-                if (track_features.is_array())
-                {
-                    p.track_features = std::forward<decltype(track_features)>(track_features);
-                }
-                // Consider a single element
-                else if (track_features.is_string())
-                {
-                    p.track_features.push_back(std::forward<decltype(track_features)>(track_features));
-                }
-            }
-            deserialize_maybe_missing(std::forward<Json>(j), "features", p.features);
-            if (j.contains("noarch") && !j["noarch"].is_null())
-            {
-                auto&& noarch = j["noarch"];
-                // old behaviour
-                if (noarch.is_boolean())
-                {
-                    if (noarch.template get<bool>())
-                    {
-                        p.noarch = NoArchType::Generic;
-                    }
-                }
-                else
-                {
-                    // Regular enum deserialization
-                    p.noarch = std::forward<decltype(noarch)>(noarch);
-                }
-            }
-            deserialize_maybe_missing(std::forward<Json>(j), "license", p.license);
-            deserialize_maybe_missing(std::forward<Json>(j), "license_family", p.license_family);
-            deserialize_maybe_missing(std::forward<Json>(j), "timestamp", p.timestamp);
-        }
     }
 
     void from_json(const nlohmann::json& j, RepoDataPackage& p)
     {
-        return from_json_RepoDataPackage_impl(j, p);
-    }
-
-    void from_json(nlohmann::json&& j, RepoDataPackage& p)
-    {
-        return from_json_RepoDataPackage_impl(std::move(j), p);
-    }
-
-    namespace
-    {
-        template <typename ChanInfo>
-        void to_json_ChannelInfo_impl(nlohmann::json& j, ChanInfo&& info)
+        p.name = j.at("name");
+        p.version = Version::parse(j.at("version").template get<std::string_view>());
+        p.build_string = j.at("build");
+        p.build_number = j.at("build_number");
+        p.subdir = j.at("subdir");
+        deserialize_maybe_missing(j, "md5", p.md5);
+        deserialize_maybe_missing(j, "sha256", p.sha256);
+        deserialize_maybe_missing(j, "legacy_bz2_md5", p.legacy_bz2_md5);
+        deserialize_maybe_missing(j, "legacy_bz2_size", p.legacy_bz2_size);
+        deserialize_maybe_missing(j, "size", p.size);
+        deserialize_maybe_missing(j, "arch", p.arch);
+        deserialize_maybe_missing(j, "platform", p.platform);
+        deserialize_maybe_missing(j, "depends", p.depends);
+        deserialize_maybe_missing(j, "constrains", p.constrains);
+        if (j.contains("track_features"))
         {
-            j["subdir"] = std::forward<ChanInfo>(info).subdir;
+            auto&& track_features = j["track_features"];
+            if (track_features.is_array())
+            {
+                p.track_features = std::forward<decltype(track_features)>(track_features);
+            }
+            // Consider a single element
+            else if (track_features.is_string())
+            {
+                p.track_features.push_back(std::forward<decltype(track_features)>(track_features));
+            }
         }
+        deserialize_maybe_missing(j, "features", p.features);
+        if (j.contains("noarch") && !j["noarch"].is_null())
+        {
+            auto&& noarch = j["noarch"];
+            // old behaviour
+            if (noarch.is_boolean())
+            {
+                if (noarch.template get<bool>())
+                {
+                    p.noarch = NoArchType::Generic;
+                }
+            }
+            else
+            {
+                // Regular enum deserialization
+                p.noarch = std::forward<decltype(noarch)>(noarch);
+            }
+        }
+        deserialize_maybe_missing(j, "license", p.license);
+        deserialize_maybe_missing(j, "license_family", p.license_family);
+        deserialize_maybe_missing(j, "timestamp", p.timestamp);
     }
 
     void to_json(nlohmann::json& j, const ChannelInfo& info)
     {
-        return to_json_ChannelInfo_impl(j, info);
-    }
-
-    void to_json(nlohmann::json& j, ChannelInfo&& info)
-    {
-        return to_json_ChannelInfo_impl(j, std::move(info));
-    }
-
-    namespace
-    {
-        template <typename Json>
-        void from_json_ChannelInfo_impl(Json&& j, ChannelInfo& info)
-        {
-            info.subdir = std::forward<Json>(j)["subdir"];
-        }
+        j["subdir"] = info.subdir;
     }
 
     void from_json(const nlohmann::json& j, ChannelInfo& info)
     {
-        return from_json_ChannelInfo_impl(j, info);
-    }
-
-    void from_json(nlohmann::json&& j, ChannelInfo& info)
-    {
-        return from_json_ChannelInfo_impl(std::move(j), info);
-    }
-
-    namespace
-    {
-        template <typename ReData>
-        void to_json_RepoData_impl(nlohmann::json& j, ReData&& data)
-        {
-            j["version"] = std::forward<ReData>(data).version;
-            j["info"] = std::forward<ReData>(data).info;
-            j["packages"] = std::forward<ReData>(data).packages;
-            j["conda_packages"] = std::forward<ReData>(data).conda_packages;
-            j["removed"] = std::forward<ReData>(data).removed;
-        }
+        info.subdir = j["subdir"];
     }
 
     void to_json(nlohmann::json& j, const RepoData& data)
     {
-        return to_json_RepoData_impl(j, data);
-    }
-
-    void to_json(nlohmann::json& j, RepoData&& data)
-    {
-        return to_json_RepoData_impl(j, std::move(data));
-    }
-
-    namespace
-    {
-        template <typename Json>
-        void from_json_RepoData_impl(Json&& j, RepoData& data)
-        {
-            deserialize_maybe_missing(std::forward<Json>(j), "version", data.version);
-            deserialize_maybe_missing(std::forward<Json>(j), "info", data.info);
-            deserialize_maybe_missing(std::forward<Json>(j), "packages", data.packages);
-            deserialize_maybe_missing(std::forward<Json>(j), "conda_packages", data.conda_packages);
-            deserialize_maybe_missing(std::forward<Json>(j), "removed", data.removed);
-        }
+        j["version"] = data.version;
+        j["info"] = data.info;
+        j["packages"] = data.packages;
+        j["conda_packages"] = data.conda_packages;
+        j["removed"] = data.removed;
     }
 
     void from_json(const nlohmann::json& j, RepoData& data)
     {
-        return from_json_RepoData_impl(j, data);
-    }
-
-    void from_json(nlohmann::json&& j, RepoData& data)
-    {
-        return from_json_RepoData_impl(std::move(j), data);
+        deserialize_maybe_missing(j, "version", data.version);
+        deserialize_maybe_missing(j, "info", data.info);
+        deserialize_maybe_missing(j, "packages", data.packages);
+        deserialize_maybe_missing(j, "conda_packages", data.conda_packages);
+        deserialize_maybe_missing(j, "removed", data.removed);
     }
 }

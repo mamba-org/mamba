@@ -151,7 +151,6 @@ namespace mamba::specs
      * Optional members are omitted from json.
      */
     void to_json(nlohmann::json& j, const RepoDataPackage& p);
-    void to_json(nlohmann::json& j, RepoDataPackage&& p);
 
     /**
      * Deserialize from JSON
@@ -164,7 +163,6 @@ namespace mamba::specs
      *   considered as a single element list.
      */
     void from_json(const nlohmann::json& j, RepoDataPackage& p);
-    void from_json(nlohmann::json&& j, RepoDataPackage& p);
 
 
     /** Information about subdirectory of channel in the Conda RepoData. */
@@ -176,11 +174,9 @@ namespace mamba::specs
 
     /** Serialize to JSON. */
     void to_json(nlohmann::json& j, const ChannelInfo& info);
-    void to_json(nlohmann::json& j, ChannelInfo&& info);
 
     /** Deserialize from JSON. */
     void from_json(const nlohmann::json& j, ChannelInfo& info);
-    void from_json(nlohmann::json&& j, ChannelInfo& info);
 
     /**
      * The repository data structure.
@@ -226,7 +222,6 @@ namespace mamba::specs
      * Optional members are omitted from json.
      */
     void to_json(nlohmann::json& j, const RepoData& data);
-    void to_json(nlohmann::json& j, RepoData&& data);
 
     /**
      * Deserialize from JSON
@@ -234,5 +229,4 @@ namespace mamba::specs
      * Missing json entries fill optionals with a null values and collections as empty.
      */
     void from_json(const nlohmann::json& j, RepoData& data);
-    void from_json(nlohmann::json&& j, RepoData& data);
 }

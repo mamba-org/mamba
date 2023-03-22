@@ -14,6 +14,7 @@
 
 #include "solv-cpp/ids.hpp"
 #include "solv-cpp/queue.hpp"
+#include "solv-cpp/repo.hpp"
 
 namespace mamba::solv
 {
@@ -49,6 +50,11 @@ namespace mamba::solv
         void create_whatprovides();
 
         auto select_solvables(const ObjQueue& job) const -> ObjQueue;
+
+        auto add_repo(std::string_view name) -> RepoId;
+        auto get_repo(RepoId id) -> ObjRepoView;
+        auto get_repo(RepoId id) const -> ObjRepoViewConst;
+        void remove_repo(RepoId id, bool reuse_ids);
 
     private:
 

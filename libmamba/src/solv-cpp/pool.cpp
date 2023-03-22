@@ -4,15 +4,16 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "solv-cpp/pool.hpp"
-
 #include <cassert>
 #include <limits>
 
 #include <solv/pool.h>
 #include <solv/poolid.h>
 #include <solv/pooltypes.h>
+#include <solv/repo.h>
 #include <solv/selection.h>
+
+#include "solv-cpp/pool.hpp"
 
 namespace mamba::solv
 {
@@ -143,5 +144,32 @@ namespace mamba::solv
     void ObjPool::create_whatprovides()
     {
         pool_createwhatprovides(raw());
+    }
+
+    auto ObjPool::add_repo(std::string_view name) -> RepoId
+    {
+        const auto* repo_ptr = repo_create(
+            raw(),
+            pool_id2str(raw(), add_string(name))  // Shenanigan to make it string_view compatible
+        );
+        // No function exists to create a repo id
+        assert(raw()->repos[raw()->nrepos - 1] == repo_ptr);
+        return raw()->nrepos - 1;
+    }
+
+    auto ObjPool::get_repo(RepoId id) -> ObjRepoView
+    {
+        return ObjRepoView{ pool_id2repo(raw(), id) };
+    }
+
+    auto ObjPool::get_repo(RepoId id) const -> ObjRepoViewConst
+    {
+        // Safe because we make the Repo deep const
+        return ObjRepoViewConst{ pool_id2repo(const_cast<::Pool*>(raw()), id) };
+    }
+
+    void ObjPool::remove_repo(RepoId id, bool reuse_ids)
+    {
+        repo_free(get_repo(id).raw(), static_cast<int>(reuse_ids));
     }
 }

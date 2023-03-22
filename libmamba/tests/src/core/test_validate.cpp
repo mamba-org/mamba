@@ -711,11 +711,11 @@ namespace validate
                 RootImpl root(root1_json);
 
                 // expiration is set to now+3600s in 'sign_root'
-                TimeRef::instance().set(utc_time_now());
-                EXPECT_FALSE(root.expired());
+                auto time_ref = TimeRef{ utc_time_now() };
+                EXPECT_FALSE(root.expired(time_ref));
 
-                TimeRef::instance().set(utc_time_now() + 7200);
-                EXPECT_TRUE(root.expired());
+                time_ref.set(utc_time_now() + 7200);
+                EXPECT_TRUE(root.expired(time_ref));
 
                 json patch = json::parse(
                     R"([
@@ -727,7 +727,7 @@ namespace validate
                 auto updated_root = root.update(create_root_update("2.root.json", patch));
 
                 auto testing_root = static_cast<RootImpl*>(updated_root.get());
-                EXPECT_FALSE(testing_root->expired());
+                EXPECT_FALSE(testing_root->expired(time_ref));
             }
 
             TEST_F(RootImplT_v06, timestamp)
@@ -1089,13 +1089,13 @@ namespace validate
                 auto key_mgr = root.create_key_mgr(key_mgr_json);
 
                 // expiration is set to now+3600s in 'sign_key_mgr'
-                TimeRef::instance().set(utc_time_now());
-                EXPECT_FALSE(key_mgr.expired());
-                EXPECT_FALSE(root.expired());
+                auto time_ref = TimeRef(utc_time_now());
+                EXPECT_FALSE(key_mgr.expired(time_ref));
+                EXPECT_FALSE(root.expired(time_ref));
 
-                TimeRef::instance().set(utc_time_now() + 7200);
-                EXPECT_TRUE(key_mgr.expired());
-                EXPECT_TRUE(root.expired());
+                time_ref.set(utc_time_now() + 7200);
+                EXPECT_TRUE(key_mgr.expired(time_ref));
+                EXPECT_TRUE(root.expired(time_ref));
 
                 json patch = json::parse(
                     R"([
@@ -1105,8 +1105,8 @@ namespace validate
                 );
 
                 key_mgr = root.create_key_mgr(patched_key_mgr_json(patch));
-                EXPECT_FALSE(key_mgr.expired());
-                EXPECT_TRUE(root.expired());
+                EXPECT_FALSE(key_mgr.expired(time_ref));
+                EXPECT_TRUE(root.expired(time_ref));
             }
 
             TEST_F(KeyMgrT_v06, timestamp)
@@ -1863,11 +1863,11 @@ namespace validate
                 RootImpl root(root1_json);
 
                 // expiration is set to now+3600s in 'sign_root'
-                TimeRef::instance().set(utc_time_now());
-                EXPECT_FALSE(root.expired());
+                auto time_ref = TimeRef(utc_time_now());
+                EXPECT_FALSE(root.expired(time_ref));
 
-                TimeRef::instance().set(utc_time_now() + 7200);
-                EXPECT_TRUE(root.expired());
+                time_ref.set(utc_time_now() + 7200);
+                EXPECT_TRUE(root.expired(time_ref));
 
                 json patch = json::parse(
                     R"([
@@ -1879,7 +1879,7 @@ namespace validate
                 auto updated_root = root.update(create_root_update("2.root.json", patch));
 
                 auto testing_root = static_cast<RootImpl*>(updated_root.get());
-                EXPECT_FALSE(testing_root->expired());
+                EXPECT_FALSE(testing_root->expired(time_ref));
 
                 patch = json::parse(R"([
                     { "op": "replace", "path": "/signed/expires", "value": "2051-10-08T07:07:09+0030" },

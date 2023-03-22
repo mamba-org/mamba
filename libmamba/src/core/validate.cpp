@@ -531,28 +531,6 @@ namespace validate
         return { keyids, threshold };
     }
 
-    TimeRef::TimeRef()
-        : m_time_ref(mamba::utc_time_now())
-    {
-    }
-
-    TimeRef::~TimeRef() = default;
-
-    void TimeRef::set(const std::time_t& time)
-    {
-        m_time_ref = time;
-    }
-
-    void TimeRef::set_now()
-    {
-        m_time_ref = mamba::utc_time_now();
-    }
-
-    std::string TimeRef::timestamp()
-    {
-        return mamba::timestamp(m_time_ref);
-    }
-
     void check_timestamp_metadata_format(const std::string& ts)
     {
         std::regex timestamp_re("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$");
@@ -755,9 +733,9 @@ namespace validate
         return p_spec;
     }
 
-    bool RoleBase::expired() const
+    bool RoleBase::expired(const TimeRef& time_reference) const
     {
-        return TimeRef::instance().timestamp().compare(m_expires) < 0 ? false : true;
+        return time_reference.timestamp().compare(m_expires) < 0 ? false : true;
     }
 
     std::string RoleBase::canonicalize(const json& j) const
@@ -1234,8 +1212,11 @@ namespace validate
             }
         }
 
-        std::unique_ptr<RepoIndexChecker>
-        RootImpl::build_index_checker(const std::string& /*url*/, const fs::u8path& /*cache_path*/) const
+        std::unique_ptr<RepoIndexChecker> RootImpl::build_index_checker(
+            const TimeRef& /*time_reference*/,
+            const std::string& /*url*/,
+            const fs::u8path& /*cache_path*/
+        ) const
         {
             std::unique_ptr<RepoIndexChecker> ptr;
             return ptr;
@@ -1449,8 +1430,11 @@ namespace validate
             }
         }
 
-        std::unique_ptr<RepoIndexChecker>
-        RootImpl::build_index_checker(const std::string& base_url, const fs::u8path& cache_path) const
+        std::unique_ptr<RepoIndexChecker> RootImpl::build_index_checker(
+            const TimeRef& time_reference,
+            const std::string& base_url,
+            const fs::u8path& cache_path
+        ) const
         {
             fs::u8path metadata_path = cache_path / "key_mgr.json";
 
@@ -1477,7 +1461,7 @@ namespace validate
                     // TUF spec 5.6.5 - Check for a freeze attack
                     // 'key_mgr' (equivalent of 'targets') role should not be expired
                     // https://theupdateframework.github.io/specification/latest/#update-targets
-                    if (key_mgr.expired())
+                    if (key_mgr.expired(time_reference))
                     {
                         LOG_ERROR << "Possible freeze attack of 'key_mgr' metadata.\nExpired: "
                                   << key_mgr.expires();
@@ -1494,7 +1478,7 @@ namespace validate
                         fs::copy(tmp_metadata_path, metadata_path);
                     }
 
-                    return key_mgr.build_index_checker(base_url, cache_path);
+                    return key_mgr.build_index_checker(time_reference, base_url, cache_path);
                 }
             }
 
@@ -1502,7 +1486,7 @@ namespace validate
             if (fs::exists(metadata_path))
             {
                 KeyMgrRole key_mgr = create_key_mgr(metadata_path);
-                return key_mgr.build_index_checker(base_url, cache_path);
+                return key_mgr.build_index_checker(time_reference, base_url, cache_path);
             }
 
             LOG_ERROR << "Error while fetching 'key_mgr' metadata";
@@ -1612,8 +1596,11 @@ namespace validate
             return PkgMgrRole(j, all_keys()["pkg_mgr"], spec_impl());
         }
 
-        std::unique_ptr<RepoIndexChecker>
-        KeyMgrRole::build_index_checker(const std::string& base_url, const fs::u8path& cache_path) const
+        std::unique_ptr<RepoIndexChecker> KeyMgrRole::build_index_checker(
+            const TimeRef& time_reference,
+            const std::string& base_url,
+            const fs::u8path& cache_path
+        ) const
         {
             fs::u8path metadata_path = cache_path / "pkg_mgr.json";
 
@@ -1640,7 +1627,7 @@ namespace validate
                     // TUF spec 5.6.5 - Check for a freeze attack
                     // 'pkg_mgr' (equivalent of delegated 'targets') role should not be expired
                     // https://theupdateframework.github.io/specification/latest/#update-targets
-                    if (pkg_mgr.expired())
+                    if (pkg_mgr.expired(time_reference))
                     {
                         LOG_ERROR << "Possible freeze attack of 'pkg_mgr' metadata.\nExpired: "
                                   << pkg_mgr.expires();
@@ -2044,10 +2031,10 @@ namespace validate
             // Expiration computations will be done against
             // this reference
             // https://theupdateframework.github.io/specification/latest/#fix-time
-            TimeRef::instance().set_now();
+            const TimeRef time_reference;
 
-            auto root = get_root_role();
-            p_index_checker = root->build_index_checker(m_base_url, cache_path());
+            auto root = get_root_role(time_reference);
+            p_index_checker = root->build_index_checker(time_reference, m_base_url, cache_path());
 
             LOG_INFO << "Index checker successfully generated for '" << m_base_url << "'";
         }
@@ -2122,7 +2109,7 @@ namespace validate
         }
     }
 
-    std::unique_ptr<RootRole> RepoChecker::get_root_role()
+    std::unique_ptr<RootRole> RepoChecker::get_root_role(const TimeRef& time_reference)
     {
         // TUF spec 5.3 - Update the root role
         // https://theupdateframework.github.io/specification/latest/#update-root
@@ -2209,7 +2196,7 @@ namespace validate
         // TUF spec 5.3.10 - Check for a freeze attack
         // Updated 'root' role should not be expired
         // https://theupdateframework.github.io/specification/latest/#update-root
-        if (updated_root->expired())
+        if (updated_root->expired(time_reference))
         {
             LOG_ERROR << "Possible freeze attack of 'root' metadata.\nExpired: "
                       << updated_root->expires();

@@ -7,6 +7,7 @@
 #include <solv/repo.h>
 #include <solv/repo_solv.h>
 #include <solv/repo_write.h>
+#include <solv/solvable.h>
 extern "C"  // Incomplete header
 {
 #include <solv/conda.h>
@@ -154,16 +155,17 @@ namespace mamba
         LOG_INFO << "Adding package record to repo " << info.name;
         Pool* pool = m_repo->pool;
 
-        static Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
-        static Id noarch_repo_key = pool_str2id(pool, "solvable:noarch_type", 1);
+        Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
+        Id noarch_repo_key = pool_str2id(pool, "solvable:noarch_type", 1);
 
         Id handle = repo_add_solvable(m_repo);
         Solvable* s = pool_id2solvable(pool, handle);
-        repodata_set_str(data, handle, SOLVABLE_BUILDVERSION, std::to_string(info.build_number).c_str());
-        repodata_add_poolstr_array(data, handle, SOLVABLE_BUILDFLAVOR, info.build_string.c_str());
-        s->name = pool_str2id(pool, info.name.c_str(), 1);
-        s->evr = pool_str2id(pool, info.version.c_str(), 1);
-        repodata_set_num(data, handle, SOLVABLE_DOWNLOADSIZE, info.size);
+        solvable_set_str(s, SOLVABLE_BUILDVERSION, std::to_string(info.build_number).c_str());
+        solvable_add_poolstr_array(s, SOLVABLE_BUILDFLAVOR, info.build_string.c_str());
+        solvable_set_str(s, SOLVABLE_NAME, info.name.c_str());
+        solvable_set_str(s, SOLVABLE_EVR, info.version.c_str());
+        solvable_set_num(s, SOLVABLE_DOWNLOADSIZE, info.size);
+        // No ``solvable_xxx`` equivalent
         repodata_set_checksum(data, handle, SOLVABLE_PKGID, REPOKEY_TYPE_MD5, info.md5.c_str());
 
         solvable_set_str(s, real_repo_key, info.url.c_str());
@@ -173,8 +175,8 @@ namespace mamba
             solvable_set_str(s, noarch_repo_key, info.noarch.c_str());
         }
 
+        // No ``solvable_xxx`` equivalent
         repodata_set_location(data, handle, 0, info.subdir.c_str(), info.fn.c_str());
-
         repodata_set_checksum(data, handle, SOLVABLE_CHECKSUM, REPOKEY_TYPE_SHA256, info.sha256.c_str());
 
         if (!info.depends.empty())
@@ -196,7 +198,7 @@ namespace mamba
                 Id constrains_id = pool_conda_matchspec(pool, cst.c_str());
                 if (constrains_id)
                 {
-                    repodata_add_idarray(data, handle, SOLVABLE_CONSTRAINS, constrains_id);
+                    solvable_add_idarray(s, SOLVABLE_CONSTRAINS, constrains_id);
                 }
             }
         }

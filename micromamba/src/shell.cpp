@@ -105,8 +105,6 @@ set_shell_command(CLI::App* subcom)
             auto& stack = config.at("shell_stack").compute().value<bool>();
 
             std::string prefix;
-            std::cout << "WE ARE IN SHELL, prefix_path is: " << prefix_path
-                      << " AND prefix_name: " << prefix_name << std::endl;
             if (!prefix_path.empty() && !prefix_name.empty())
             {
                 LOG_ERROR << "Cannot set both prefix and env name";

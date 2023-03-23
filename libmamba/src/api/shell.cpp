@@ -45,8 +45,6 @@ namespace mamba
     void
     shell(const std::string& action, std::string& shell_type, const std::string& prefix, bool stack)
     {
-        std::cout << "We are in SHELL" << std::endl;
-        std::cout << "PREFIX IS:" << prefix << std::endl;
         auto& ctx = Context::instance();
         auto& config = Configuration::instance();
 

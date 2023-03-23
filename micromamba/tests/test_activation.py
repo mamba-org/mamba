@@ -613,12 +613,6 @@ class TestActivation:
             ] + evars
             stdout, stderr = call(s)
             res = TestActivation.to_dict(stdout)
-            print("RES PATH: ")
-            print(res["PATH"])
-            print("tmp_root_prefix")
-            print(tmp_root_prefix)
-            print("tmp_root_prefix / condabin")
-            print(str(tmp_root_prefix / "condabin"))
             assert find_path_in_str(tmp_root_prefix / "condabin", res["PATH"])
             assert not find_path_in_str(tmp_root_prefix / "bin", res["PATH"])
             assert find_path_in_str(tmp_root_prefix / "envs" / "xyz", res["PATH"])

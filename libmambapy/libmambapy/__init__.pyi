@@ -590,6 +590,14 @@ class Context:
     def quiet(self, arg0: bool) -> None:
         pass
     @property
+    def repodata_use_zst(self) -> bool:
+        """
+        :type: bool
+        """
+    @repodata_use_zst.setter
+    def repodata_use_zst(self, arg0: bool) -> None:
+        pass
+    @property
     def retry_backoff(self) -> int:
         """
         :type: int

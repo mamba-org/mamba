@@ -45,7 +45,7 @@ namespace mamba
         : m_handle(std::move(rhs.m_handle))
         , p_headers(std::move(rhs.p_headers))
     {
-        std::copy(&rhs.m_errorbuffer[0], &rhs.m_errorbuffer[CURL_ERROR_SIZE], &m_errorbuffer[0]);
+        std::swap(m_errorbuffer, rhs.m_errorbuffer);
     }
 
     CURLHandle& CURLHandle::operator=(CURLHandle&& rhs)
@@ -59,17 +59,12 @@ namespace mamba
 
     CURLHandle::~CURLHandle()
     {
-        if (m_handle)
-        {
-            curl_easy_cleanup(m_handle);
-        }
-        if (p_headers)
-        {
-            curl_slist_free_all(p_headers);
-        }
+        curl_easy_cleanup(m_handle);
+        curl_slist_free_all(p_headers);
     }
 
-    const std::pair<std::string_view, CurlLogLevel> CURLHandle::init_curl_ssl_session()
+    // TODO Rework this after a logging solution is established in the mamba project
+    const std::pair<std::string_view, CurlLogLevel> CURLHandle::get_ssl_backend_info()
     {
         std::pair<std::string_view, CurlLogLevel> log;
         const struct curl_tlssessioninfo* info = NULL;
@@ -133,13 +128,13 @@ namespace mamba
     template tl::expected<double, CURLcode> CURLHandle::get_info(CURLINFO option);
     template tl::expected<curl_slist*, CURLcode> CURLHandle::get_info(CURLINFO option);
 
-    template <>
-    tl::expected<std::size_t, CURLcode> CURLHandle::get_info(CURLINFO option)
+    template <class I>
+    tl::expected<I, CURLcode> CURLHandle::get_integer_info(CURLINFO option)
     {
         auto res = get_info<long>(option);
         if (res)
         {
-            return static_cast<std::size_t>(res.value());
+            return static_cast<I>(res.value());
         }
         else
         {
@@ -148,17 +143,15 @@ namespace mamba
     }
 
     template <>
+    tl::expected<std::size_t, CURLcode> CURLHandle::get_info(CURLINFO option)
+    {
+        return get_integer_info<std::size_t>(option);
+    }
+
+    template <>
     tl::expected<int, CURLcode> CURLHandle::get_info(CURLINFO option)
     {
-        auto res = get_info<long>(option);
-        if (res)
-        {
-            return static_cast<int>(res.value());
-        }
-        else
-        {
-            return tl::unexpected(res.error());
-        }
+        return get_integer_info<int>(option);
     }
 
     template <>
@@ -175,6 +168,7 @@ namespace mamba
         }
     }
 
+    // TODO to be removed from the API
     CURL* CURLHandle::handle()
     {
         return m_handle;

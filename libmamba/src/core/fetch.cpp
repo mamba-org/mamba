@@ -169,7 +169,7 @@ namespace mamba
             }
 
 #ifdef LIBMAMBA_STATIC_DEPS
-            auto init_res = m_curl_handle->init_curl_ssl_session();
+            auto init_res = m_curl_handle->get_ssl_backend_info();
             switch (init_res.second)
             {
                 case CurlLogLevel::kInfo:

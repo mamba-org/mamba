@@ -11,6 +11,7 @@
 #include <string_view>
 #include <utility>
 
+// TODO to be removed later and forward declare specific curl structs
 extern "C"
 {
 #include <curl/curl.h>
@@ -49,10 +50,13 @@ namespace mamba
         CURLHandle& operator=(CURLHandle&& rhs);
         ~CURLHandle();
 
-        const std::pair<std::string_view, CurlLogLevel> init_curl_ssl_session();
+        const std::pair<std::string_view, CurlLogLevel> get_ssl_backend_info();
 
         template <class T>
         tl::expected<T, CURLcode> get_info(CURLINFO option);
+
+        template <class I>
+        tl::expected<I, CURLcode> get_integer_info(CURLINFO option);
 
         // This is made public because it is used internally in quite some files
         CURL* handle();

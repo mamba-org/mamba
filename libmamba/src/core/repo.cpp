@@ -13,13 +13,13 @@ extern "C"  // Incomplete header
 #include <solv/repo_conda.h>
 }
 
+#include "mamba/core/channel_builder.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/util_string.hpp"
-#include "mamba/core/channel_builder.hpp"
 
 
 #define MAMBA_TOOL_VERSION "1.1"

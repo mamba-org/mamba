@@ -27,21 +27,19 @@ namespace mamba
     struct ZstdStream;
     struct Bzip2Stream;
 
-    void init_curl_ssl();
+    class CURLHandle;
 
     class DownloadTarget
     {
     public:
 
-        DownloadTarget() = default;
         DownloadTarget(const std::string& name, const std::string& url, const std::string& filename);
         ~DownloadTarget();
 
         DownloadTarget(const DownloadTarget&) = delete;
         DownloadTarget& operator=(const DownloadTarget&) = delete;
-
-        DownloadTarget(DownloadTarget&&);
-        DownloadTarget& operator=(DownloadTarget&&);
+        DownloadTarget(DownloadTarget&&) = delete;
+        DownloadTarget& operator=(DownloadTarget&&) = delete;
 
         static size_t write_callback(char* ptr, size_t size, size_t nmemb, void* self);
         static size_t header_callback(char* buffer, size_t size, size_t nitems, void* self);
@@ -56,15 +54,13 @@ namespace mamba
         void set_mod_etag_headers(const std::string& mod, const std::string& etag);
         void set_progress_bar(ProgressProxy progress_proxy);
         void set_expected_size(std::size_t size);
-        void set_head_only(bool yes)
-        {
-            curl_easy_setopt(m_handle, CURLOPT_NOBODY, yes);
-        }
+        void set_head_only(bool yes);
 
         const std::string& name() const;
         const std::string& url() const;
         std::size_t expected_size() const;
 
+        void init_curl_ssl();
         void init_curl_target(const std::string& url);
 
         bool resource_exists();
@@ -113,6 +109,7 @@ namespace mamba
 
         std::unique_ptr<ZstdStream> m_zstd_stream;
         std::unique_ptr<Bzip2Stream> m_bzip2_stream;
+        std::unique_ptr<CURLHandle> m_curl_handle;
         std::function<bool(const DownloadTarget&)> m_finalize_callback;
 
         std::string m_name, m_filename, m_url;
@@ -125,15 +122,11 @@ namespace mamba
         std::size_t m_retry_wait_seconds = get_default_retry_timeout();
         std::size_t m_retries = 0;
 
-        CURL* m_handle;
-        curl_slist* m_headers;
-
         bool m_has_progress_bar = false;
         bool m_ignore_failure = false;
 
         ProgressProxy m_progress_bar;
 
-        char m_errbuf[CURL_ERROR_SIZE];
         std::ofstream m_file;
 
         static std::size_t get_default_retry_timeout();

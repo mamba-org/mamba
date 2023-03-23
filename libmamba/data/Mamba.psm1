@@ -115,9 +115,9 @@ function Invoke-Mamba() {
                 # reactivate environment
                 if (@("install", "update", "remove").contains($Command))
                 {
-                    $activateCommand = (& $Env:MAMBA_EXE shell reactivate -s powershell $Args | Out-String);
-                    Write-Verbose "[micromamba shell reactivate --shell powershell $Args]`n$activateCommand";
-                    Invoke-Expression -Command $activateCommand;
+                    $currentEnv = $Env:CONDA_DEFAULT_ENV;
+                    Exit-MambaEnvironment;
+                    Enter-MambaEnvironment $currentEnv;
                 }
             }
         }

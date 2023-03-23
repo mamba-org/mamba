@@ -19,6 +19,7 @@ extern "C"  // Incomplete header
 #include "mamba/core/pool.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/util_string.hpp"
+#include "mamba/core/channel_builder.hpp"
 
 
 #define MAMBA_TOOL_VERSION "1.1"
@@ -58,6 +59,7 @@ namespace mamba
         m_repo = repo_create(pool, name.c_str());
         m_repo->appdata = this;
         read_file(index);
+        p_channel = &ChannelBuilder::make_cached_channel(url);
     }
 
     MRepo::MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& package_infos)

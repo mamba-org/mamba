@@ -85,18 +85,24 @@ TEST(repo_data, RepoData_to_json)
 {
     auto data = RepoData();
     data.version = 1;
-    data.info = ChannelInfo{ "subdir" };
+    data.info = ChannelInfo{ /* .subdir= */ "linux-64" };
     data.packages = {
-        { "mamba-1", RepoDataPackage{ "mamba" } },
-        { "conda-1", RepoDataPackage{ "conda" } },
+        { "mamba-1.0-h12345.tar.bz2", RepoDataPackage{ "mamba" } },
+        { "conda-1.0-h54321.tar.bz2", RepoDataPackage{ "conda" } },
     };
     data.removed = { "bad-package-1" };
 
     const nl::json j = data;
     EXPECT_EQ(j.at("version"), data.version);
     EXPECT_EQ(j.at("info").at("subdir"), data.info.value().subdir);
-    EXPECT_EQ(j.at("packages").at("mamba-1"), data.packages.at("mamba-1"));
-    EXPECT_EQ(j.at("packages").at("conda-1"), data.packages.at("conda-1"));
+    EXPECT_EQ(
+        j.at("packages").at("mamba-1.0-h12345.tar.bz2"),
+        data.packages.at("mamba-1.0-h12345.tar.bz2")
+    );
+    EXPECT_EQ(
+        j.at("packages").at("conda-1.0-h54321.tar.bz2"),
+        data.packages.at("conda-1.0-h54321.tar.bz2")
+    );
     EXPECT_EQ(j.at("removed"), std::vector{ "bad-package-1" });
 }
 
@@ -105,14 +111,14 @@ TEST(repo_data, RepoData_from_json)
     auto j = nl::json::object();
     j["version"] = 1;
     j["info"]["subdir"] = "somedir";
-    j["packages"]["mamba-1.0.tar.gz"]["name"] = "mamba";
-    j["packages"]["mamba-1.0.tar.gz"]["version"] = "1.1.0";
-    j["packages"]["mamba-1.0.tar.gz"]["build"] = "foo1";
-    j["packages"]["mamba-1.0.tar.gz"]["build_number"] = 2;
-    j["packages"]["mamba-1.0.tar.gz"]["subdir"] = "folder";
-    j["packages"]["mamba-1.0.tar.gz"]["depends"] = nl::json::array({ "libsolv>=1.0" });
-    j["packages"]["mamba-1.0.tar.gz"]["constrains"] = nl::json::array();
-    j["packages"]["mamba-1.0.tar.gz"]["track_features"] = nl::json::array();
+    j["packages"]["mamba-1.0-h12345.tar.bz2"]["name"] = "mamba";
+    j["packages"]["mamba-1.0-h12345.tar.bz2"]["version"] = "1.1.0";
+    j["packages"]["mamba-1.0-h12345.tar.bz2"]["build"] = "foo1";
+    j["packages"]["mamba-1.0-h12345.tar.bz2"]["build_number"] = 2;
+    j["packages"]["mamba-1.0-h12345.tar.bz2"]["subdir"] = "folder";
+    j["packages"]["mamba-1.0-h12345.tar.bz2"]["depends"] = nl::json::array({ "libsolv>=1.0" });
+    j["packages"]["mamba-1.0-h12345.tar.bz2"]["constrains"] = nl::json::array();
+    j["packages"]["mamba-1.0-h12345.tar.bz2"]["track_features"] = nl::json::array();
     j["conda_packages"] = nl::json::object();
     j["removed"][0] = "bad-package.tar.gz";
 
@@ -121,7 +127,10 @@ TEST(repo_data, RepoData_from_json)
     EXPECT_EQ(data.version, j["version"]);
     ASSERT_TRUE(data.info.has_value());
     EXPECT_EQ(data.info.value().subdir, j["info"]["subdir"]);
-    EXPECT_EQ(data.packages.at("mamba-1.0.tar.gz").name, j["packages"]["mamba-1.0.tar.gz"]["name"]);
+    EXPECT_EQ(
+        data.packages.at("mamba-1.0-h12345.tar.bz2").name,
+        j["packages"]["mamba-1.0-h12345.tar.bz2"]["name"]
+    );
     EXPECT_TRUE(data.conda_packages.empty());
     EXPECT_EQ(data.removed, j["removed"]);
 }

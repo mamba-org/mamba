@@ -443,6 +443,16 @@ namespace mamba
                 + std::string(pool_errstr(m_repo->pool))
             );
         }
+        {
+            // Setting the channel url on where the solvable so that we can retrace
+            // where it came from
+            Id id;
+            Solvable* s;
+            FOR_REPO_SOLVABLES(m_repo, id, s)
+            {
+                solvable_set_str(s, m_real_repo_key, url().c_str());
+            }
+        }
 
         // TODO move this to a more structured approach for repodata patching?
         if (Context::instance().add_pip_as_python_dependency)

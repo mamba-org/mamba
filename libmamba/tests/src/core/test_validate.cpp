@@ -19,7 +19,7 @@
 
 #include "test_data.hpp"
 
-namespace validate
+namespace mamba::validation
 {
     namespace testing
     {

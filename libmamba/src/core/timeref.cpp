@@ -1,7 +1,7 @@
 #include <mamba/core/timeref.hpp>
 #include <mamba/core/util.hpp>
 
-namespace validate
+namespace mamba::validation
 {
 
     TimeRef::TimeRef(const std::time_t& time)

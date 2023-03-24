@@ -18,7 +18,7 @@
 #include "mamba/core/timeref.hpp"
 #include "mamba/core/util.hpp"
 
-namespace validate
+namespace mamba::validation
 {
     using nlohmann::json;
 

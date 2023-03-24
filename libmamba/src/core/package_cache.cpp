@@ -128,14 +128,14 @@ namespace mamba
             fs::u8path tarball_path = m_path / s.fn;
             // validate that this tarball has the right size and MD5 sum
             // we handle the case where s.size == 0 (explicit packages) or md5 is unknown
-            valid = s.size == 0 || validate::file_size(tarball_path, s.size);
+            valid = s.size == 0 || validation::file_size(tarball_path, s.size);
             if (!s.md5.empty())
             {
-                valid = valid && validate::md5(tarball_path, s.md5);
+                valid = valid && validation::md5(tarball_path, s.md5);
             }
             else if (!s.sha256.empty())
             {
-                valid = valid && validate::sha256(tarball_path, s.md5);
+                valid = valid && validation::sha256(tarball_path, s.md5);
             }
             else
             {

@@ -30,7 +30,7 @@ namespace mamba
         const std::optional<std::string>& token() const;
         const std::optional<std::string>& package_filename() const;
         const std::string& canonical_name() const;
-        const validate::RepoChecker& repo_checker(MultiPackageCache& caches) const;
+        const validation::RepoChecker& repo_checker(MultiPackageCache& caches) const;
 
         std::string base_url() const;
         std::string platform_url(std::string platform, bool with_credential = true) const;
@@ -59,7 +59,7 @@ namespace mamba
         std::optional<std::string> m_token;
         std::optional<std::string> m_package_filename;
         mutable std::optional<std::string> m_canonical_name;
-        mutable std::unique_ptr<validate::RepoChecker> p_repo_checker;
+        mutable std::unique_ptr<validation::RepoChecker> p_repo_checker;
 
         friend class ChannelBuilder;
     };

@@ -149,7 +149,7 @@ namespace mamba
 
         if (!m_sha256.empty())
         {
-            auto sha256sum = validate::sha256sum(m_tarball_path);
+            auto sha256sum = validation::sha256sum(m_tarball_path);
             if (m_sha256 != sha256sum)
             {
                 m_validation_result = SHA256_ERROR;
@@ -166,7 +166,7 @@ namespace mamba
         }
         if (!m_md5.empty())
         {
-            auto md5sum = validate::md5sum(m_tarball_path);
+            auto md5sum = validation::md5sum(m_tarball_path);
             if (m_md5 != md5sum)
             {
                 m_validation_result = MD5SUM_ERROR;

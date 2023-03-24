@@ -4,7 +4,7 @@
 #include <chrono>
 #include <string>
 
-namespace validate
+namespace mamba::validation
 {
 
     /** Define a time reference.

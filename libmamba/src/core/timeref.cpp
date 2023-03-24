@@ -14,8 +14,6 @@ namespace validate
     {
     }
 
-    TimeRef::~TimeRef() = default;
-
     void TimeRef::set(const std::time_t& time)
     {
         m_time_ref = time;

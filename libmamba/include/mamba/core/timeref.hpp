@@ -21,7 +21,7 @@ namespace validate
 
         TimeRef(const std::time_t& time);
         TimeRef();
-        ~TimeRef();
+        ~TimeRef() = default;
 
     private:
 

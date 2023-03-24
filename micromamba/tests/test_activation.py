@@ -896,19 +896,19 @@ class TestActivation:
             pytest.skip(f"{interpreter} not available")
 
         # Activate env name
-        res = shell("activate", tmp_env_name, "-s", interpreter)
+        res = shell("activate", "-n", tmp_env_name, "-s", interpreter)
         dict_res = self.to_dict(res, interpreter)
 
         assert any([str(tmp_empty_env) in p for p in dict_res.values()])
 
         # Activate path
-        res = shell("activate", str(tmp_empty_env), "-s", interpreter)
+        res = shell("activate", "-n", str(tmp_empty_env), "-s", interpreter)
         dict_res = self.to_dict(res, interpreter)
         assert any([str(tmp_empty_env) in p for p in dict_res.values()])
 
         # Activate path with home
         prefix_short = str(tmp_empty_env).replace(os.path.expanduser("~"), "~")
-        res = shell("activate", prefix_short, "-s", interpreter)
+        res = shell("activate", "-p", prefix_short, "-s", interpreter)
         dict_res = self.to_dict(res, interpreter)
         assert any([str(tmp_empty_env) in p for p in dict_res.values()])
 

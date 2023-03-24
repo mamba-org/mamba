@@ -711,7 +711,7 @@ namespace validate
                 RootImpl root(root1_json);
 
                 // expiration is set to now+3600s in 'sign_root'
-                auto time_ref = TimeRef{ utc_time_now() };
+                TimeRef time_ref;
                 EXPECT_FALSE(root.expired(time_ref));
 
                 time_ref.set(utc_time_now() + 7200);
@@ -1089,7 +1089,7 @@ namespace validate
                 auto key_mgr = root.create_key_mgr(key_mgr_json);
 
                 // expiration is set to now+3600s in 'sign_key_mgr'
-                auto time_ref = TimeRef(utc_time_now());
+                TimeRef time_ref;
                 EXPECT_FALSE(key_mgr.expired(time_ref));
                 EXPECT_FALSE(root.expired(time_ref));
 
@@ -1863,7 +1863,7 @@ namespace validate
                 RootImpl root(root1_json);
 
                 // expiration is set to now+3600s in 'sign_root'
-                auto time_ref = TimeRef(utc_time_now());
+                TimeRef time_ref;
                 EXPECT_FALSE(root.expired(time_ref));
 
                 time_ref.set(utc_time_now() + 7200);

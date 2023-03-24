@@ -872,6 +872,7 @@ namespace mamba
                     break;
             }
         }
+        m_real_repo_key = pool_str2id(m_pool, "solvable:real_repo_url", 1);
     }
 
     // TODO rewrite this in terms of `m_transaction`
@@ -1195,18 +1196,18 @@ namespace mamba
 
         for (auto& s : m_to_install)
         {
-            MRepo* mamba_repo = reinterpret_cast<MRepo*>(s->repo->appdata);
+            std::string const s_url = solvable_lookup_str(s, m_real_repo_key);
 
             if (ctx.experimental && ctx.verify_artifacts)
             {
-                const auto& repo_checker = make_channel(mamba_repo->url()).repo_checker(m_multi_cache);
+                const auto& repo_checker = make_channel(s_url).repo_checker(m_multi_cache);
                 const auto pkg_info = mk_pkginfo(m_pool, s);
                 repo_checker.verify_package(
                     pkg_info.json_signable(),
                     nlohmann::json::parse(pkg_info.signatures)
                 );
 
-                LOG_DEBUG << "'" << pkg_info.name << "' trusted from '" << mamba_repo->url() << "'";
+                LOG_DEBUG << "'" << pkg_info.name << "' trusted from '" << s_url << "'";
             }
 
             targets.emplace_back(std::make_unique<PackageDownloadExtractTarget>(mk_pkginfo(m_pool, s))

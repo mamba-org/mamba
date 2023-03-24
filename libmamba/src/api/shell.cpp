@@ -8,7 +8,6 @@
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/shell.hpp"
-
 #include "mamba/core/activation.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
@@ -43,10 +42,8 @@ namespace mamba
         }
     }
 
-    void shell(const std::string& action,
-               std::string& shell_type,
-               const std::string& prefix,
-               bool stack)
+    void
+    shell(const std::string& action, std::string& shell_type, const std::string& prefix, bool stack)
     {
         auto& ctx = Context::instance();
         auto& config = Configuration::instance();
@@ -95,27 +92,35 @@ namespace mamba
         if (action == "init")
         {
             if (prefix.empty() || prefix == "base")
+            {
                 shell_prefix = ctx.root_prefix.string();
+            }
             else
+            {
                 shell_prefix = fs::weakly_canonical(env::expand_user(prefix)).string();
+            }
 
             init_shell(shell_type, shell_prefix);
         }
         else if (action == "deinit")
         {
             if (prefix.empty() || prefix == "base")
+            {
                 shell_prefix = ctx.root_prefix.string();
+            }
             else
+            {
                 shell_prefix = fs::weakly_canonical(env::expand_user(prefix)).string();
+            }
 
             deinit_shell(shell_type, shell_prefix);
         }
         else if (action == "reinit")
         {
             // re-initialize all the shell scripts after update
-            for (auto& shell_type : find_initialized_shells())
+            for (auto& lshell_type : find_initialized_shells())
             {
-                shell("init", shell_type, prefix, false);
+                shell("init", lshell_type, prefix, false);
             }
         }
         else if (action == "hook")
@@ -127,7 +132,8 @@ namespace mamba
                     { { "success", true },
                       { "operation", "shell_hook" },
                       { "context", { { "shell_type", shell_type } } },
-                      { "actions", { { "print", { activator->hook(shell_type) } } } } });
+                      { "actions", { { "print", { activator->hook(shell_type) } } } } }
+                );
             }
             else
             {
@@ -137,15 +143,22 @@ namespace mamba
         else if (action == "activate")
         {
             if (prefix.empty() || prefix == "base")
+            {
                 shell_prefix = ctx.root_prefix.string();
+            }
             else if (prefix.find_first_of("/\\") == std::string::npos)
+            {
                 shell_prefix = (ctx.root_prefix / "envs" / prefix).string();
+            }
             else
+            {
                 shell_prefix = fs::weakly_canonical(env::expand_user(prefix)).string();
+            }
 
             if (!fs::exists(shell_prefix))
-                throw std::runtime_error("Cannot activate, prefix does not exist at: "
-                                         + shell_prefix);
+            {
+                throw std::runtime_error("Cannot activate, prefix does not exist at: " + shell_prefix);
+            }
 
             std::cout << activator->activate(shell_prefix, stack);
         }
@@ -168,8 +181,7 @@ namespace mamba
 #endif
         else
         {
-            throw std::runtime_error(
-                "Need an action {init, hook, activate, deactivate, reactivate}");
+            throw std::runtime_error("Need an action {init, hook, activate, deactivate, reactivate}");
         }
 
         config.operation_teardown();

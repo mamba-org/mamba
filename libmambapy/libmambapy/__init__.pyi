@@ -8,7 +8,6 @@ __all__ = [
     "CompressedProblemsGraph",
     "Configuration",
     "Context",
-    "DependencyInfo",
     "DownloadTargetList",
     "ExtraPkgInfo",
     "History",
@@ -124,6 +123,7 @@ __all__ = [
     "get_virtual_packages",
     "ostream_redirect",
     "sign",
+    "simplify_conflicts",
     "transmute",
 ]
 
@@ -220,7 +220,7 @@ class CompressedProblemsGraph:
         def __init__(self) -> None: ...
         def __iter__(self) -> typing.Iterator: ...
         def __len__(self) -> int: ...
-        def add(self, arg0: int, arg1: int) -> None: ...
+        def add(self, arg0: int, arg1: int) -> bool: ...
         def clear(self) -> None: ...
         def conflicts(self, arg0: int) -> typing.Set[int]: ...
         def has_conflict(self, arg0: int) -> bool: ...
@@ -258,12 +258,12 @@ class CompressedProblemsGraph:
         ) -> typing.Tuple[str, int]: ...
         pass
 
-    class DependencyListList:
+    class DependencyList:
         def __bool__(self) -> bool: ...
         def __init__(self) -> None: ...
         def __iter__(self) -> typing.Iterator: ...
         def __len__(self) -> int: ...
-        def add(self, arg0: DependencyInfo) -> None: ...
+        def add(self, arg0: MatchSpec) -> None: ...
         def build_strings_trunc(
             self,
             sep: str = "|",
@@ -366,18 +366,18 @@ class CompressedProblemsGraph:
     def graph(
         self,
     ) -> typing.Tuple[
-        typing.List[
+        typing.Dict[
+            int,
             typing.Union[
                 ProblemsGraph.RootNode,
                 CompressedProblemsGraph.PackageListNode,
                 CompressedProblemsGraph.UnresolvedDependencyListNode,
                 CompressedProblemsGraph.ConstraintListNode,
-            ]
+            ],
         ],
-        typing.Dict[typing.Tuple[int, int], CompressedProblemsGraph.DependencyListList],
+        typing.Dict[typing.Tuple[int, int], CompressedProblemsGraph.DependencyList],
     ]: ...
     def root_node(self) -> int: ...
-    def summary_message(self) -> str: ...
     def tree_message(self) -> str: ...
     pass
 
@@ -515,7 +515,7 @@ class Context:
         :type: bool
         """
     @experimental_sat_error_message.setter
-    def experimental_sat_error_message(self, arg0: bool) -> None:
+    def experimental_sat_error_message(self, arg1: bool) -> None:
         pass
     @property
     def extract_threads(self) -> int:
@@ -671,28 +671,6 @@ class Context:
         pass
     pass
 
-class DependencyInfo:
-    def __eq__(self, arg0: DependencyInfo) -> bool: ...
-    def __init__(self, arg0: str) -> None: ...
-    def __str__(self) -> str: ...
-    @property
-    def build_string(self) -> str:
-        """
-        :type: str
-        """
-    @property
-    def name(self) -> str:
-        """
-        :type: str
-        """
-    @property
-    def version(self) -> str:
-        """
-        :type: str
-        """
-    __hash__ = None
-    pass
-
 class DownloadTargetList:
     def __init__(self) -> None: ...
     def add(self, arg0: SubdirData) -> None: ...
@@ -721,7 +699,7 @@ class ExtraPkgInfo:
 
 class History:
     def __init__(self, arg0: Path) -> None: ...
-    def get_requested_specs_map(self) -> typing.Dict[str, mamba::MatchSpec]: ...
+    def get_requested_specs_map(self) -> typing.Dict[str, MatchSpec]: ...
     pass
 
 class Key:
@@ -866,8 +844,6 @@ class MultiPackageCache:
     pass
 
 class PackageInfo:
-    @typing.overload
-    def __init__(self, arg0: s_Solvable) -> None: ...
     @typing.overload
     def __init__(self, name: str) -> None: ...
     @typing.overload
@@ -1065,8 +1041,7 @@ class ProblemsGraph:
     class ConflictMap:
         pass
 
-    class ConstraintNode(DependencyInfo):
-        problem_type: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_CONSTRAINS: 267>
+    class ConstraintNode(MatchSpec):
         pass
 
     class PackageNode(PackageInfo):
@@ -1075,15 +1050,7 @@ class ProblemsGraph:
     class RootNode:
         pass
 
-    class UnresolvedDependencyNode(DependencyInfo):
-        @property
-        def problem_type(self) -> SolverRuleinfo:
-            """
-            :type: SolverRuleinfo
-            """
-        @problem_type.setter
-        def problem_type(self, arg0: SolverRuleinfo) -> None:
-            pass
+    class UnresolvedDependencyNode(MatchSpec):
         pass
     def conflicts(self) -> ProblemsGraph.ConflictMap: ...
     @staticmethod
@@ -1091,15 +1058,16 @@ class ProblemsGraph:
     def graph(
         self,
     ) -> typing.Tuple[
-        typing.List[
+        typing.Dict[
+            int,
             typing.Union[
                 ProblemsGraph.RootNode,
                 ProblemsGraph.PackageNode,
                 ProblemsGraph.UnresolvedDependencyNode,
                 ProblemsGraph.ConstraintNode,
-            ]
+            ],
         ],
-        typing.Dict[typing.Tuple[int, int], DependencyInfo],
+        typing.Dict[typing.Tuple[int, int], MatchSpec],
     ]: ...
     def root_node(self) -> int: ...
     pass
@@ -1428,6 +1396,9 @@ class SubdirData:
     pass
 
 class Transaction:
+    @typing.overload
+    def __init__(self, arg0: Pool, arg1: Solver, arg2: MultiPackageCache) -> None: ...
+    @typing.overload
     def __init__(self, arg0: Solver, arg1: MultiPackageCache) -> None: ...
     def execute(self, arg0: PrefixData) -> bool: ...
     def fetch_extract_packages(self) -> bool: ...
@@ -1472,6 +1443,9 @@ def get_virtual_packages() -> typing.List[PackageInfo]:
     pass
 
 def sign(data: str, secret_key: str) -> str:
+    pass
+
+def simplify_conflicts(arg0: ProblemsGraph) -> ProblemsGraph:
     pass
 
 def transmute(

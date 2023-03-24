@@ -23,6 +23,8 @@ pybind11_add_module(bindings
     longpath.manifest
 )
 
+mamba_target_add_compile_warnings(bindings WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
+
 target_link_libraries(bindings PUBLIC pybind11::pybind11 libmamba)
 set_property(TARGET bindings PROPERTY CXX_STANDARD 17)
 

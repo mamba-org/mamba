@@ -81,12 +81,18 @@ def shell_init(args):
         return initialize_dev(shell)
 
     else:
-        for_user = args.user
-        if not (args.install and args.user and args.system):
-            for_user = True
-        # no_user removed in Conda 23.1.0, see https://github.com/mamba-org/mamba/issues/2248
-        if hasattr(args, "no_user") and args.no_user:
-            for_user = False
+        if hasattr(args, "no_user"):
+            # this seems to be conda < 23.1.0
+            # Here, we use the old behavior even though the --no-user flag
+            # doesn't behave as desired, see:
+            # https://github.com/conda/conda/issues/11948
+            for_user = args.user
+            if not (args.install and args.user and args.system):
+                for_user = True
+            if args.no_user:
+                for_user = False
+        else:
+            for_user = args.user and not args.system
 
         anaconda_prompt = on_win and args.anaconda_prompt
         exit_code = initialize(

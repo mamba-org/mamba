@@ -10,22 +10,23 @@
 #include <map>
 #include <string>
 
-#include <fmt/format.h>
 #include <fmt/color.h>
+#include <fmt/format.h>
 #include <fmt/ostream.h>
-#include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
 #ifdef _WIN32
 #include <windows.h>
 #endif
 
 #include "mamba/core/context.hpp"
+#include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/tasksync.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/core/execution.hpp"
-#include "mamba/core/tasksync.hpp"
+#include "mamba/core/util_string.hpp"
 
 #include "progress_bar_impl.hpp"
 
@@ -74,34 +75,46 @@ namespace mamba
             m_table.push_back(r);
         }
 
-        void Table::add_rows(const std::string& header,
-                             const std::vector<std::vector<FormattedString>>& rs)
+        void
+        Table::add_rows(const std::string& header, const std::vector<std::vector<FormattedString>>& rs)
         {
             m_table.push_back({ header });
 
             for (auto& r : rs)
+            {
                 m_table.push_back(r);
+            }
         }
 
         std::ostream& Table::print(std::ostream& out)
         {
             if (m_table.size() == 0)
+            {
                 return out;
+            }
             std::size_t n_col = m_header.size();
 
             if (m_align.size() == 0)
+            {
                 m_align = std::vector<alignment>(n_col, alignment::left);
+            }
 
             std::vector<std::size_t> cell_sizes(n_col);
             for (size_t i = 0; i < n_col; ++i)
+            {
                 cell_sizes[i] = m_header[i].size();
+            }
 
             for (size_t i = 0; i < m_table.size(); ++i)
             {
                 if (m_table[i].size() == 1)
+                {
                     continue;
+                }
                 for (size_t j = 0; j < m_table[i].size(); ++j)
+                {
                     cell_sizes[j] = std::max(cell_sizes[j], m_table[i][j].size());
+                }
             }
 
             if (m_padding.empty())
@@ -109,7 +122,11 @@ namespace mamba
                 m_padding = std::vector<int>(n_col, 1);
             }
 
-            std::size_t total_length = std::accumulate(cell_sizes.begin(), cell_sizes.end(), 0);
+            std::size_t total_length = std::accumulate(
+                cell_sizes.begin(),
+                cell_sizes.end(),
+                static_cast<std::size_t>(0)
+            );
             total_length = std::accumulate(m_padding.begin(), m_padding.end(), total_length);
 
             auto print_row = [this, &cell_sizes, &out](const std::vector<FormattedString>& row)
@@ -118,19 +135,23 @@ namespace mamba
                 {
                     if (this->m_align[j] == alignment::left)
                     {
-                        fmt::print(out,
-                                   "{: ^{}}{: <{}}",
-                                   "",
-                                   this->m_padding[j],
-                                   fmt::styled(row[j].s, row[j].style),
-                                   cell_sizes[j]);
+                        fmt::print(
+                            out,
+                            "{: ^{}}{: <{}}",
+                            "",
+                            this->m_padding[j],
+                            fmt::styled(row[j].s, row[j].style),
+                            cell_sizes[j]
+                        );
                     }
                     else
                     {
-                        fmt::print(out,
-                                   "{: >{}}",
-                                   fmt::styled(row[j].s, row[j].style),
-                                   cell_sizes[j] + m_padding[j]);
+                        fmt::print(
+                            out,
+                            "{: >{}}",
+                            fmt::styled(row[j].s, row[j].style),
+                            cell_sizes[j] + static_cast<std::size_t>(m_padding[j])
+                        );
                     }
                 }
             };
@@ -144,7 +165,7 @@ namespace mamba
 #endif
 
             out << "\n";
-            for (size_t i = 0; i < total_length + m_padding[0]; ++i)
+            for (size_t i = 0; i < total_length + static_cast<std::size_t>(m_padding[0]); ++i)
             {
                 out << MAMBA_TABLE_DELIM;
             }
@@ -156,7 +177,9 @@ namespace mamba
                 {
                     // print header
                     if (i != 0)
+                    {
                         out << "\n";
+                    }
 
                     for (int x = 0; x < m_padding[0]; ++x)
                     {
@@ -165,7 +188,8 @@ namespace mamba
                     out << m_table[i][0].s;
 
                     out << "\n";
-                    for (size_t idx = 0; idx < total_length + m_padding[0]; ++idx)
+                    for (size_t idx = 0; idx < total_length + static_cast<std::size_t>(m_padding[0]);
+                         ++idx)
                     {
                         out << MAMBA_TABLE_DELIM;
                     }
@@ -188,23 +212,28 @@ namespace mamba
 
         std::ostringstream table_like(const std::vector<std::string>& data, std::size_t max_width)
         {
-            int pos = 0;
-            int padding = 3;
+            std::size_t pos = 0;
+            std::size_t padding = 3;
             std::size_t data_max_width = 0;
             std::ostringstream out;
 
             for (const auto& d : data)
+            {
                 if (d.size() > data_max_width)
+                {
                     data_max_width = d.size();
+                }
+            }
 
             max_width -= max_width % (data_max_width + padding);
-            int block_width = padding + data_max_width;
+            std::size_t block_width = padding + data_max_width;
 
             auto sorted_data = data;
             std::sort(sorted_data.begin(), sorted_data.end(), string_comparison);
             for (const auto& d : sorted_data)
             {
-                int p = block_width - d.size();
+                // p is positive by construction of block_width
+                std::size_t p = block_width - d.size();
 
                 if ((pos + d.size()) < max_width)
                 {
@@ -237,6 +266,7 @@ namespace mamba
     class ConsoleData
     {
     public:
+
         std::mutex m_mutex;
         std::unique_ptr<ProgressBarManager> p_progress_bar_manager;
 
@@ -255,7 +285,8 @@ namespace mamba
     {
         init_progress_bar_manager(ProgressBarMode::multi);
         MainExecutor::instance().on_close(
-            p_data->tasksync.synchronized([this] { terminate_progress_bar_manager(); }));
+            p_data->tasksync.synchronized([this] { terminate_progress_bar_manager(); })
+        );
 #ifdef _WIN32
         // initialize ANSI codes on Win terminals
         auto hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -265,9 +296,11 @@ namespace mamba
 
     Console::~Console()
     {
-        if (!p_data->is_json_print_cancelled
-            && !p_data->json_log.is_null())  // Note: we cannot rely on Context::instance() to still
-                                             // be valid at this point.
+        if (!p_data->is_json_print_cancelled && !p_data->json_log.is_null())  // Note: we cannot
+                                                                              // rely on
+                                                                              // Context::instance()
+                                                                              // to still be valid
+                                                                              // at this point.
         {
             this->json_print();
         }
@@ -310,7 +343,9 @@ namespace mamba
     {
         auto& data = instance().p_data;
         for (auto& message : data->m_buffer)
+        {
             ostream << message << '\n';
+        }
 
         const std::lock_guard<std::mutex> lock(data->m_mutex);
         data->m_buffer.clear();
@@ -372,9 +407,13 @@ namespace mamba
     ProgressProxy Console::add_progress_bar(const std::string& name, size_t expected_total)
     {
         if (Context::instance().no_progress_bars)
+        {
             return ProgressProxy();
+        }
         else
+        {
             return p_data->p_progress_bar_manager->add_progress_bar(name, expected_total);
+        }
     }
 
     void Console::clear_progress_bars()
@@ -430,7 +469,9 @@ namespace mamba
         {
             nlohmann::json tmp = j.flatten();
             for (auto it = tmp.begin(); it != tmp.end(); ++it)
+            {
                 p_data->json_log[p_data->json_hier + it.key()] = it.value();
+            }
         }
     }
 
@@ -451,9 +492,10 @@ namespace mamba
         {
             nlohmann::json tmp = j.flatten();
             for (auto it = tmp.begin(); it != tmp.end(); ++it)
-                p_data->json_log[p_data->json_hier + '/' + std::to_string(p_data->json_index)
-                                 + it.key()]
-                    = it.value();
+            {
+                p_data->json_log[p_data->json_hier + '/' + std::to_string(p_data->json_index) + it.key()] = it.value(
+                );
+            }
             p_data->json_index += 1;
         }
     }
@@ -472,7 +514,9 @@ namespace mamba
     void Console::json_up()
     {
         if (Context::instance().json && !p_data->json_hier.empty())
+        {
             p_data->json_hier.erase(p_data->json_hier.rfind('/'));
+        }
     }
 
     /*****************
@@ -497,7 +541,9 @@ namespace mamba
     MessageLogger::~MessageLogger()
     {
         if (!MessageLoggerData::use_buffer)
+        {
             emit(m_stream.str(), m_level);
+        }
         else
         {
             const std::lock_guard<std::mutex> lock(MessageLoggerData::m_mutex);
@@ -513,7 +559,9 @@ namespace mamba
             case log_level::critical:
                 SPDLOG_CRITICAL(prepend(str, "", std::string(4, ' ').c_str()));
                 if (Context::instance().logging_level != log_level::off)
+                {
                     spdlog::dump_backtrace();
+                }
                 break;
             case log_level::err:
                 SPDLOG_ERROR(prepend(str, "", std::string(4, ' ').c_str()));
@@ -553,7 +601,9 @@ namespace mamba
     void MessageLogger::print_buffer(std::ostream& /*ostream*/)
     {
         for (auto& [msg, level] : MessageLoggerData::m_buffer)
+        {
             emit(msg, level);
+        }
 
         spdlog::apply_all([&](std::shared_ptr<spdlog::logger> l) { l->flush(); });
 

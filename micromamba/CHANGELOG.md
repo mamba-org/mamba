@@ -1,3 +1,24 @@
+micromamba 1.4.0 (March 22, 2023)
+=================================
+
+Enchancements:
+
+- Implemented recursive dependency printout in repoquery  by @timostrunk in https://github.com/mamba-org/mamba/pull/2283
+- Agressive compilation warnings by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2304
+- Fine tune clang-format by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2290
+- Only full shared or full static builds by @JohanMabille in https://github.com/mamba-org/mamba/pull/2342
+- Fixed repoquery commands working with installed packages only by @Hind-M in https://github.com/mamba-org/mamba/pull/2330
+- Added micromamba server by @wolfv in https://github.com/mamba-org/mamba/pull/2185
+
+Bug fixes:
+
+- Fixed `micromamba env export` to get channel name instead of full url by @Hind-M in https://github.com/mamba-org/mamba/pull/2260
+
+CI fixes & docs:
+
+- Added missing dependency in local recipe by @wolfv in https://github.com/mamba-org/mamba/pull/2334
+- Fixed Conda Lock Path by @funtion in https://github.com/mamba-org/mamba/pull/2393
+
 micromamba 1.3.1 (February 09, 2023)
 ====================================
 

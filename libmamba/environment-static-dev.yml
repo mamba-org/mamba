@@ -2,6 +2,9 @@ name: mamba-dev
 channels:
   - conda-forge
 dependencies:
+  - cxx-compiler
+  - cmake
+  - ninja
   - yaml-cpp-static
   - spdlog
   - fmt
@@ -20,3 +23,5 @@ dependencies:
   - reproc-cpp-static
   - openssl
   - libopenssl-static
+  - nlohmann_json
+  - cpp-expected

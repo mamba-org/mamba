@@ -1,14 +1,21 @@
+// Copyright (c) 2019, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
+
 #include <string>
+
+#ifdef _WIN32
+#include <shlobj.h>
+#include <windows.h>
+#endif
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/transaction_context.hpp"
-#include "mamba/core/util.hpp"
+#include "mamba/core/util_string.hpp"
 
-#ifdef _WIN32
-#include <windows.h>
-#include <shlobj.h>
-#endif
 
 namespace mamba
 {
@@ -42,13 +49,15 @@ namespace mamba
          *   icon_path: path to an .ico file
          *   icon_index: index for icon
          */
-        void create_shortcut(const fs::u8path& path,
-                             const std::string& description,
-                             const fs::u8path& filename,
-                             const std::string& arguments,
-                             const fs::u8path& work_dir,
-                             const fs::u8path& icon_path,
-                             int icon_index)
+        void create_shortcut(
+            const fs::u8path& path,
+            const std::string& description,
+            const fs::u8path& filename,
+            const std::string& arguments,
+            const fs::u8path& work_dir,
+            const fs::u8path& icon_path,
+            int icon_index
+        )
         {
             IShellLink* pShellLink = nullptr;
             IPersistFile* pPersistFile = nullptr;
@@ -66,11 +75,13 @@ namespace mamba
                 {
                     throw std::runtime_error("Could not initialize COM");
                 }
-                hres = CoCreateInstance(CLSID_ShellLink,
-                                        nullptr,
-                                        CLSCTX_INPROC_SERVER,
-                                        IID_IShellLink,
-                                        (void**) &pShellLink);
+                hres = CoCreateInstance(
+                    CLSID_ShellLink,
+                    nullptr,
+                    CLSCTX_INPROC_SERVER,
+                    IID_IShellLink,
+                    (void**) &pShellLink
+                );
                 if (FAILED(hres))
                 {
                     throw std::runtime_error("CoCreateInstance failed.");
@@ -79,8 +90,9 @@ namespace mamba
                 hres = pShellLink->QueryInterface(IID_IPersistFile, (void**) &pPersistFile);
                 if (FAILED(hres))
                 {
-                    throw std::runtime_error("QueryInterface(IPersistFile) error 0x"
-                                             + std::to_string(hres));
+                    throw std::runtime_error(
+                        "QueryInterface(IPersistFile) error 0x" + std::to_string(hres)
+                    );
                 }
 
                 hres = pShellLink->SetPath(path.string().c_str());
@@ -92,8 +104,9 @@ namespace mamba
                 hres = pShellLink->SetDescription(description.c_str());
                 if (FAILED(hres))
                 {
-                    throw std::runtime_error("SetDescription() failed, error 0x"
-                                             + std::to_string(hres));
+                    throw std::runtime_error(
+                        "SetDescription() failed, error 0x" + std::to_string(hres)
+                    );
                 }
 
                 if (!arguments.empty())
@@ -110,8 +123,7 @@ namespace mamba
                     hres = pShellLink->SetIconLocation(icon_path.string().c_str(), icon_index);
                     if (FAILED(hres))
                     {
-                        throw std::runtime_error("SetIconLocation() error 0x"
-                                                 + std::to_string(hres));
+                        throw std::runtime_error("SetIconLocation() error 0x" + std::to_string(hres));
                     }
                 }
 
@@ -120,16 +132,18 @@ namespace mamba
                     hres = pShellLink->SetWorkingDirectory(work_dir.string().c_str());
                     if (FAILED(hres))
                     {
-                        throw std::runtime_error("SetWorkingDirectory() error 0x"
-                                                 + std::to_string(hres));
+                        throw std::runtime_error(
+                            "SetWorkingDirectory() error 0x" + std::to_string(hres)
+                        );
                     }
                 }
 
                 hres = pPersistFile->Save(filename.wstring().c_str(), true);
                 if (FAILED(hres))
                 {
-                    throw std::runtime_error(concat(
-                        "Failed to create shortcut: ", filename.string(), std::to_string(hres)));
+                    throw std::runtime_error(
+                        concat("Failed to create shortcut: ", filename.string(), std::to_string(hres))
+                    );
                 }
             }
             catch (const std::runtime_error& e)
@@ -164,8 +178,7 @@ namespace mamba
             wchar_t* localAppData;
             HRESULT hres;
 
-            hres = SHGetKnownFolderPath(
-                knownfolders.at(id), KF_FLAG_DONT_VERIFY, nullptr, &localAppData);
+            hres = SHGetKnownFolderPath(knownfolders.at(id), KF_FLAG_DONT_VERIFY, nullptr, &localAppData);
 
             if (FAILED(hres))
             {
@@ -216,7 +229,7 @@ namespace mamba
         std::string distribution_name = root_prefix.filename().string();
         if (distribution_name.size() > 1)
         {
-            distribution_name[0] = std::toupper(distribution_name[0]);
+            distribution_name[0] = to_upper(distribution_name[0]);
         }
 
         auto to_forward_slash = [](const fs::u8path& p)
@@ -259,11 +272,13 @@ namespace mamba
         }
     }
 
-    namespace detail
+    namespace
     {
-        void create_remove_shortcut_impl(const fs::u8path& json_file,
-                                         TransactionContext* transaction_context,
-                                         bool remove)
+        void create_remove_shortcut_impl(
+            const fs::u8path& json_file,
+            TransactionContext* transaction_context,
+            [[maybe_unused]] bool remove
+        )
         {
             std::string json_content = mamba::read_contents(json_file);
             replace_variables(json_content, transaction_context);
@@ -305,9 +320,11 @@ namespace mamba
             const fs::u8path env_pyw = target_prefix / "pythonw.exe";
             const auto cwp_path = root_prefix / "cwp.py";
             std::vector<std::string> cwp_py_args(
-                { cwp_path.string(), target_prefix.string(), env_py.string() });
+                { cwp_path.string(), target_prefix.string(), env_py.string() }
+            );
             std::vector<std::string> cwp_pyw_args(
-                { cwp_path.string(), target_prefix.string(), env_pyw.string() });
+                { cwp_path.string(), target_prefix.string(), env_pyw.string() }
+            );
 
             fs::u8path target_dir = win::get_folder("programs") / menu_name;
             if (!fs::exists(target_dir))
@@ -427,8 +444,7 @@ namespace mamba
                         workdir = "%HOMEPATH%";
                     }
 
-                    mamba::win::create_shortcut(
-                        script, full_name, dst, argstring, workdir, iconpath, 0);
+                    mamba::win::create_shortcut(script, full_name, dst, argstring, workdir, iconpath, 0);
                 }
                 else
                 {
@@ -443,7 +459,7 @@ namespace mamba
     {
         try
         {
-            detail::create_remove_shortcut_impl(json_file, context, true);
+            create_remove_shortcut_impl(json_file, context, true);
         }
         catch (const std::exception& e)
         {
@@ -455,7 +471,7 @@ namespace mamba
     {
         try
         {
-            detail::create_remove_shortcut_impl(json_file, context, false);
+            create_remove_shortcut_impl(json_file, context, false);
         }
         catch (const std::exception& e)
         {

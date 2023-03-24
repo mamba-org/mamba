@@ -7,10 +7,10 @@
 #ifndef MAMBA_CORE_VIRTUAL_PACKAGES_HPP
 #define MAMBA_CORE_VIRTUAL_PACKAGES_HPP
 
-#include "mamba/core/package_info.hpp"
-
-#include <vector>
 #include <string>
+#include <vector>
+
+#include "mamba/core/package_info.hpp"
 
 namespace mamba
 {
@@ -21,9 +21,11 @@ namespace mamba
         std::string cuda_version();
         std::string get_arch();
 
-        PackageInfo make_virtual_package(const std::string& name,
-                                         const std::string& version = "",
-                                         const std::string& build_string = "");
+        PackageInfo make_virtual_package(
+            const std::string& name,
+            const std::string& version = "",
+            const std::string& build_string = ""
+        );
 
         std::vector<PackageInfo> dist_packages();
     }

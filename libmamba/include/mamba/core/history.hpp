@@ -20,6 +20,7 @@ namespace mamba
     class History
     {
     public:
+
         History(const fs::u8path& prefix);
 
         struct ParseResult

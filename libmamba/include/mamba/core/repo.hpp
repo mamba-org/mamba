@@ -9,16 +9,17 @@
 
 #include <string>
 #include <tuple>
+#include <utility>
+
+#include <solv/pooltypes.h>
 
 #include "channel.hpp"
 #include "prefix_data.hpp"
 
 extern "C"
 {
-#include "solv/conda.h"
-#include "solv/repo.h"
-#include "solv/repo_conda.h"
-#include "solv/repo_solv.h"
+    typedef struct s_Repo Repo;
+    typedef struct s_Repodata Repodata;
 }
 
 namespace mamba
@@ -32,7 +33,7 @@ namespace mamba
     struct RepoMetadata
     {
         std::string url;
-        bool pip_added;
+        bool pip_added = false;
         std::string etag;
         std::string mod;
     };
@@ -52,6 +53,7 @@ namespace mamba
     class MRepo
     {
     public:
+
         ~MRepo();
 
         MRepo(const MRepo&) = delete;
@@ -85,10 +87,8 @@ namespace mamba
          * @param filename Name of the index file
          * @param url Subdirectory URL
          */
-        static MRepo& create(MPool& pool,
-                             const std::string& name,
-                             const std::string& filename,
-                             const std::string& url);
+        static MRepo&
+        create(MPool& pool, const std::string& name, const std::string& filename, const std::string& url);
 
         /**
          * Static constructor.
@@ -98,11 +98,13 @@ namespace mamba
          * @param meta Metadata of the repo
          * @param channel Channel of the repo
          */
-        static MRepo& create(MPool& pool,
-                             const std::string& name,
-                             const fs::u8path& filename,
-                             const RepoMetadata& meta,
-                             const Channel& channel);
+        static MRepo& create(
+            MPool& pool,
+            const std::string& name,
+            const fs::u8path& filename,
+            const RepoMetadata& meta,
+            const Channel& channel
+        );
 
         /**
          * Static constructor.
@@ -117,21 +119,20 @@ namespace mamba
          * @param name Name
          * @param uris Matchspecs pointing to unique resources (URL or files)
          */
-        static MRepo& create(MPool& pool,
-                             const std::string& name,
-                             const std::vector<PackageInfo>& uris);
+        static MRepo&
+        create(MPool& pool, const std::string& name, const std::vector<PackageInfo>& uris);
 
     private:
-        MRepo(MPool& pool,
-              const std::string& name,
-              const std::string& filename,
-              const std::string& url);
 
-        MRepo(MPool& pool,
-              const std::string& name,
-              const fs::u8path& filename,
-              const RepoMetadata& meta,
-              const Channel& channel);
+        MRepo(MPool& pool, const std::string& name, const std::string& filename, const std::string& url);
+
+        MRepo(
+            MPool& pool,
+            const std::string& name,
+            const fs::u8path& filename,
+            const RepoMetadata& meta,
+            const Channel& channel
+        );
 
         MRepo(MPool& pool, const PrefixData& prefix_data);
 

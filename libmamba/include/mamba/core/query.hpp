@@ -11,34 +11,37 @@
 #include <string>
 #include <vector>
 
-#include "mamba/core/util_graph.hpp"
-#include "mamba/core/package_info.hpp"
-#include "mamba/core/pool.hpp"
-
-extern "C"
+#include <solv/pool.h>
+#include <solv/repo.h>
+#include <solv/selection.h>
+#include <solv/solver.h>
+extern "C"  // Incomplete header
 {
-#include "solv/conda.h"
-#include "solv/repo.h"
-#include "solv/selection.h"
-#include "solv/solver.h"
+#include <solv/conda.h>
 }
 
+#include "mamba/core/package_info.hpp"
+#include "mamba/core/pool.hpp"
+#include "mamba/util/graph.hpp"
 
 namespace mamba
 {
-    void print_dep_graph(std::ostream& out,
-                         Solvable* s,
-                         const std::string& solv_str,
-                         int level,
-                         int max_level,
-                         bool last,
-                         const std::string& prefix);
+    void print_dep_graph(
+        std::ostream& out,
+        Solvable* s,
+        const std::string& solv_str,
+        int level,
+        int max_level,
+        bool last,
+        const std::string& prefix
+    );
 
     class query_result;
 
     class Query
     {
     public:
+
         Query(MPool& pool);
 
         query_result find(const std::string& query) const;
@@ -46,6 +49,7 @@ namespace mamba
         query_result depends(const std::string& query, bool tree) const;
 
     private:
+
         std::reference_wrapper<MPool> m_pool;
     };
 
@@ -68,16 +72,15 @@ namespace mamba
     class query_result
     {
     public:
-        using dependency_graph = DiGraph<PackageInfo>;
-        using package_list = dependency_graph::node_list;
-        using package_view_list = std::vector<package_list::const_iterator>;
+
+        using dependency_graph = util::DiGraph<PackageInfo>;
 
         query_result(QueryType type, const std::string& query, dependency_graph&& dep_graph);
 
         ~query_result() = default;
 
-        query_result(const query_result&);
-        query_result& operator=(const query_result&);
+        query_result(const query_result&) = default;
+        query_result& operator=(const query_result&) = default;
         query_result(query_result&&) = default;
         query_result& operator=(query_result&&) = default;
 
@@ -95,16 +98,22 @@ namespace mamba
 
         std::ostream& pretty(std::ostream&) const;
 
+        bool empty() const;
+
     private:
+
+        using node_id = dependency_graph::node_id;
+        using package_id_list = std::vector<node_id>;
+        using ordered_package_list = std::map<std::string, package_id_list>;
+
         void reset_pkg_view_list();
         std::string get_package_repr(const PackageInfo& pkg) const;
 
         QueryType m_type;
         std::string m_query;
         dependency_graph m_dep_graph;
-        package_view_list m_pkg_view_list;
-        using ordered_package_list = std::map<std::string, package_view_list>;
-        ordered_package_list m_ordered_pkg_list;
+        package_id_list m_pkg_id_list = {};
+        ordered_package_list m_ordered_pkg_id_list = {};
     };
 }  // namespace mamba
 

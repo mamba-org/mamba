@@ -7,22 +7,22 @@
 #ifndef MAMBA_CORE_UTIL_HPP
 #define MAMBA_CORE_UTIL_HPP
 
-#include "mamba/core/mamba_fs.hpp"
-#include "mamba/core/error_handling.hpp"
-#include "mamba/core/util_string.hpp"
-
-#include "nlohmann/json.hpp"
-#include "tl/expected.hpp"
-
 #include <array>
+#include <chrono>
 #include <limits>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <string_view>
-#include <time.h>
 #include <vector>
-#include <chrono>
-#include <optional>
+
+#include <time.h>
+
+#include "mamba/core/error_handling.hpp"
+#include "mamba/core/mamba_fs.hpp"
+
+#include "nlohmann/json.hpp"
+#include "tl/expected.hpp"
 
 #if defined(__PPC64__) || defined(__ppc64__) || defined(_ARCH_PPC64)
 #include <iomanip>
@@ -63,20 +63,22 @@ namespace mamba
     std::vector<fs::u8path> filter_dir(const fs::u8path& dir, const std::string& suffix);
     bool paths_equal(const fs::u8path& lhs, const fs::u8path& rhs);
 
-    std::string read_contents(const fs::u8path& path,
-                              std::ios::openmode mode = std::ios::in | std::ios::binary);
+    std::string
+    read_contents(const fs::u8path& path, std::ios::openmode mode = std::ios::in | std::ios::binary);
     std::vector<std::string> read_lines(const fs::u8path& path);
 
     inline void make_executable(const fs::u8path& p)
     {
-        fs::permissions(p,
-                        fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read
-                            | fs::perms::others_exec);
+        fs::permissions(
+            p,
+            fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read | fs::perms::others_exec
+        );
     }
 
     class TemporaryDirectory
     {
     public:
+
         TemporaryDirectory();
         ~TemporaryDirectory();
 
@@ -88,15 +90,19 @@ namespace mamba
         operator fs::u8path();
 
     private:
+
         fs::u8path m_path;
     };
 
     class TemporaryFile
     {
     public:
-        TemporaryFile(const std::string& prefix = "mambaf",
-                      const std::string& suffix = "",
-                      const std::optional<fs::u8path>& dir = std::nullopt);
+
+        TemporaryFile(
+            const std::string& prefix = "mambaf",
+            const std::string& suffix = "",
+            const std::optional<fs::u8path>& dir = std::nullopt
+        );
         ~TemporaryFile();
 
         TemporaryFile(const TemporaryFile&) = delete;
@@ -107,6 +113,7 @@ namespace mamba
         operator fs::u8path();
 
     private:
+
         fs::u8path m_path;
     };
 
@@ -160,6 +167,7 @@ namespace mamba
     class LockFile
     {
     public:
+
         // Non-throwing constructors, attempting lock on the provided path, file or directory.
         // In case of a directory, a lock-file will be created, located at `this->lockfile_path()`
         // and `this->is_locked()` (and `if(*this))` will always return true (unless this instance
@@ -207,7 +215,7 @@ namespace mamba
         // Returns 0 if `is_locked() == false`.
         std::size_t count_lock_owners() const
         {
-            return impl.has_value() ? impl.value().use_count() : 0;
+            return std::size_t(impl.has_value() ? impl.value().use_count() : 0);
         }
 
 #ifdef _WIN32
@@ -232,19 +240,22 @@ namespace mamba
         std::optional<mamba_error> error() const
         {
             if (impl.has_value())
+            {
                 return {};
+            }
             else
+            {
                 return impl.error();
+            }
         }
 
     private:
+
         tl::expected<std::shared_ptr<LockFileOwner>, mamba_error> impl;
     };
 
 
-    void split_package_extension(const std::string& file,
-                                 std::string& name,
-                                 std::string& extension);
+    void split_package_extension(const std::string& file, std::string& name, std::string& extension);
     fs::u8path strip_package_extension(const std::string& file);
 
     template <class T>
@@ -264,13 +275,17 @@ namespace mamba
     void assign_or(const nlohmann::json& j, const char* key, T& target, T default_value)
     {
         if (j.contains(key))
+        {
             target = j[key];
+        }
         else
+        {
             target = default_value;
+        }
     }
 
-    std::string quote_for_shell(const std::vector<std::string>& arguments,
-                                const std::string& shell = "");
+    std::string
+    quote_for_shell(const std::vector<std::string>& arguments, const std::string& shell = "");
 
     std::size_t clean_trash_files(const fs::u8path& prefix, bool deep_clean);
     std::size_t remove_or_rename(const fs::u8path& path);
@@ -292,39 +307,40 @@ namespace mamba
 
     std::time_t parse_utc_timestamp(const std::string& timestamp);
 
-    std::ofstream open_ofstream(const fs::u8path& path,
-                                std::ios::openmode mode = std::ios::out | std::ios::binary);
+    std::ofstream
+    open_ofstream(const fs::u8path& path, std::ios::openmode mode = std::ios::out | std::ios::binary);
 
-    std::ifstream open_ifstream(const fs::u8path& path,
-                                std::ios::openmode mode = std::ios::in | std::ios::binary);
+    std::ifstream
+    open_ifstream(const fs::u8path& path, std::ios::openmode mode = std::ios::in | std::ios::binary);
 
     bool ensure_comspec_set();
-    std::unique_ptr<TemporaryFile> wrap_call(const fs::u8path& root_prefix,
-                                             const fs::u8path& prefix,
-                                             bool dev_mode,
-                                             bool debug_wrapper_scripts,
-                                             const std::vector<std::string>& arguments);
+    std::unique_ptr<TemporaryFile> wrap_call(
+        const fs::u8path& root_prefix,
+        const fs::u8path& prefix,
+        bool dev_mode,
+        bool debug_wrapper_scripts,
+        const std::vector<std::string>& arguments
+    );
 
-    std::tuple<std::vector<std::string>, std::unique_ptr<TemporaryFile>> prepare_wrapped_call(
-        const fs::u8path& prefix, const std::vector<std::string>& cmd);
+    std::tuple<std::vector<std::string>, std::unique_ptr<TemporaryFile>>
+    prepare_wrapped_call(const fs::u8path& prefix, const std::vector<std::string>& cmd);
 
     /// Returns `true` if the filename matches names of files which should be interpreted as YAML.
     /// NOTE: this does not check if the file exists.
-    inline bool is_yaml_file_name(const std::string_view filename)
-    {
-        return ends_with(filename, ".yml") || ends_with(filename, ".yaml");
-    }
+    bool is_yaml_file_name(std::string_view filename);
 
     std::optional<std::string> proxy_match(const std::string& url);
 
     class non_copyable_base
     {
     public:
+
         non_copyable_base()
         {
         }
 
     private:
+
         non_copyable_base(const non_copyable_base&);
         non_copyable_base& operator=(const non_copyable_base&);
     };

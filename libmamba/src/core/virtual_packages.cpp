@@ -1,9 +1,16 @@
-#include "mamba/core/virtual_packages.hpp"
-#include "mamba/core/environment.hpp"
+// Copyright (c) 2019, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
+
 #include "mamba/core/context.hpp"
-#include "mamba/core/util.hpp"
+#include "mamba/core/environment.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/core/util_string.hpp"
+#include "mamba/core/virtual_packages.hpp"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -11,8 +18,8 @@
 #include <unistd.h>
 #endif
 
-#include <vector>
 #include <regex>
+#include <vector>
 
 #include <reproc++/run.hpp>
 
@@ -36,7 +43,7 @@ namespace mamba
             const char* version = "";
 #ifdef __linux__
             std::vector<char> ver;
-            const size_t n = confstr(_CS_GNU_LIBC_VERSION, NULL, (size_t) 0);
+            const size_t n = confstr(_CS_GNU_LIBC_VERSION, NULL, size_t{ 0 });
 
             if (n > 0)
             {
@@ -61,7 +68,11 @@ namespace mamba
             std::string out, err;
             std::vector<std::string> args = { "nvidia-smi", "--query", "-u", "-x" };
             auto [status, ec] = reproc::run(
-                args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+                args,
+                reproc::options{},
+                reproc::sink::string(out),
+                reproc::sink::string(err)
+            );
 
             if (ec)
             {
@@ -95,11 +106,12 @@ namespace mamba
                             std::string f = (p.path() / "nvidia-smi.exe").string();
                             LOG_DEBUG << "Found nvidia-smi in: " << f;
                             std::vector<std::string> command = { f, "--query", "-u", "-x" };
-                            auto [_ /*cmd_status*/, cmd_ec]
-                                = reproc::run(command,
-                                              reproc::options{},
-                                              reproc::sink::string(out),
-                                              reproc::sink::string(err));
+                            auto [_ /*cmd_status*/, cmd_ec] = reproc::run(
+                                command,
+                                reproc::options{},
+                                reproc::sink::string(out),
+                                reproc::sink::string(err)
+                            );
 
                             if (!cmd_ec)
                             {
@@ -133,9 +145,11 @@ namespace mamba
             return "";
         }
 
-        PackageInfo make_virtual_package(const std::string& name,
-                                         const std::string& version,
-                                         const std::string& build_string)
+        PackageInfo make_virtual_package(
+            const std::string& name,
+            const std::string& version,
+            const std::string& build_string
+        )
         {
             PackageInfo res(name);
             res.version = version.size() ? version : "0";

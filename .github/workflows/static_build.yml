@@ -160,9 +160,8 @@ jobs:
               -D CMAKE_C_COMPILER_LAUNCHER=sccache ^
               -D CMAKE_BUILD_TYPE="Release" ^
               -D BUILD_LIBMAMBA=ON ^
-              -D BUILD_STATIC_DEPS=ON ^
+              -D BUILD_STATIC=ON ^
               -D BUILD_MICROMAMBA=ON ^
-              -D MICROMAMBA_LINKAGE=FULL_STATIC ^
               -G "Ninja"
           if %errorlevel% neq 0 exit /b %errorlevel%
           ninja install

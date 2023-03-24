@@ -4,39 +4,38 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <iostream>
+#include <regex>
+#include <set>
+#include <stdexcept>
+#include <string>
+#include <vector>
+
+#include <openssl/evp.h>
+
 #include "mamba/core/fetch.hpp"
 #include "mamba/core/fsutil.hpp"
-#include "mamba/core/validate.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/url.hpp"
-#include "mamba/core/util.hpp"
-
-#include "openssl/evp.h"
-
-
-#include <vector>
-#include <stdexcept>
-#include <iostream>
-#include <string>
-#include <set>
-#include <regex>
+#include "mamba/core/util_string.hpp"
+#include "mamba/core/validate.hpp"
 
 namespace mamba
 {
-
-
     template <class B>
     std::vector<unsigned char> hex_to_bytes(const B& buffer, std::size_t size) noexcept
     {
         std::vector<unsigned char> res;
         if (size % 2 != 0)
+        {
             return res;
+        }
 
         std::string extract;
         for (auto pos = buffer.cbegin(); pos < buffer.cend(); pos += 2)
         {
             extract.assign(pos, pos + 2);
-            res.push_back(std::stoi(extract, nullptr, 16));
+            res.push_back(static_cast<unsigned char>(std::stoi(extract, nullptr, 16)));
         }
         return res;
     }
@@ -64,7 +63,7 @@ namespace mamba
         for (auto pos = buffer.cbegin(); pos < buffer.cend(); pos += 2)
         {
             extract.assign(pos, pos + 2);
-            res[i] = std::stoi(extract, nullptr, 16);
+            res[i] = static_cast<unsigned char>(std::stoi(extract, nullptr, 16));
             ++i;
         }
         return res;
@@ -155,9 +154,11 @@ namespace validate
         while (infile)
         {
             infile.read(buffer.data(), BUFSIZE);
-            size_t count = infile.gcount();
+            auto count = static_cast<std::size_t>(infile.gcount());
             if (!count)
+            {
                 break;
+            }
             EVP_DigestUpdate(mdctx, buffer.data(), count);
         }
 
@@ -182,9 +183,11 @@ namespace validate
         while (infile)
         {
             infile.read(buffer.data(), BUFSIZE);
-            size_t count = infile.gcount();
+            auto count = static_cast<std::size_t>(infile.gcount());
             if (!count)
+            {
                 break;
+            }
             EVP_DigestUpdate(mdctx, buffer.data(), count);
         }
 
@@ -209,29 +212,29 @@ namespace validate
         return fs::file_size(path) == validation;
     }
 
-    std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> ed25519_sig_hex_to_bytes(
-        const std::string& sig_hex) noexcept
+    std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES>
+    ed25519_sig_hex_to_bytes(const std::string& sig_hex) noexcept
 
     {
         return ::mamba::hex_to_bytes<MAMBA_ED25519_SIGSIZE_BYTES>(sig_hex);
     }
 
-    std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> ed25519_sig_hex_to_bytes(
-        const std::string& sig_hex, int& error_code) noexcept
+    std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES>
+    ed25519_sig_hex_to_bytes(const std::string& sig_hex, int& error_code) noexcept
 
     {
         return ::mamba::hex_to_bytes<MAMBA_ED25519_SIGSIZE_BYTES>(sig_hex, error_code);
     }
 
-    std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> ed25519_key_hex_to_bytes(
-        const std::string& key_hex) noexcept
+    std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>
+    ed25519_key_hex_to_bytes(const std::string& key_hex) noexcept
 
     {
         return ::mamba::hex_to_bytes<MAMBA_ED25519_KEYSIZE_BYTES>(key_hex);
     }
 
-    std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> ed25519_key_hex_to_bytes(
-        const std::string& key_hex, int& error_code) noexcept
+    std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>
+    ed25519_key_hex_to_bytes(const std::string& key_hex, int& error_code) noexcept
 
     {
         return ::mamba::hex_to_bytes<MAMBA_ED25519_KEYSIZE_BYTES>(key_hex, error_code);
@@ -283,8 +286,9 @@ namespace validate
         return 1;
     }
 
-    std::pair<std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>,
-              std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>>
+    std::pair<
+        std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>,
+        std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>>
     generate_ed25519_keypair()
     {
         std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> pk, sk;
@@ -302,10 +306,14 @@ namespace validate
     {
         std::size_t msg_len = data.size();
         std::size_t sig_len = MAMBA_ED25519_SIGSIZE_BYTES;
-        auto msg = (const unsigned char*) data.c_str();
+        auto msg = reinterpret_cast<const unsigned char*>(data.c_str());
 
-        EVP_PKEY* ed_key
-            = EVP_PKEY_new_raw_private_key(EVP_PKEY_ED25519, NULL, sk, MAMBA_ED25519_KEYSIZE_BYTES);
+        EVP_PKEY* ed_key = EVP_PKEY_new_raw_private_key(
+            EVP_PKEY_ED25519,
+            NULL,
+            sk,
+            MAMBA_ED25519_KEYSIZE_BYTES
+        );
         EVP_MD_CTX* md_ctx = EVP_MD_CTX_new();
 
         if (ed_key == nullptr)
@@ -352,15 +360,21 @@ namespace validate
         return error_code;
     }
 
-    int verify(const unsigned char* data,
-               std::size_t data_len,
-               const unsigned char* pk,
-               const unsigned char* signature)
+    int verify(
+        const unsigned char* data,
+        std::size_t data_len,
+        const unsigned char* pk,
+        const unsigned char* signature
+    )
     {
         std::size_t sig_len = MAMBA_ED25519_SIGSIZE_BYTES;
 
-        EVP_PKEY* ed_key
-            = EVP_PKEY_new_raw_public_key(EVP_PKEY_ED25519, NULL, pk, MAMBA_ED25519_KEYSIZE_BYTES);
+        EVP_PKEY* ed_key = EVP_PKEY_new_raw_public_key(
+            EVP_PKEY_ED25519,
+            NULL,
+            pk,
+            MAMBA_ED25519_KEYSIZE_BYTES
+        );
         EVP_MD_CTX* md_ctx = EVP_MD_CTX_new();
 
         if (ed_key == nullptr)
@@ -391,7 +405,7 @@ namespace validate
     int verify(const std::string& data, const unsigned char* pk, const unsigned char* signature)
     {
         unsigned long long data_len = data.size();
-        auto raw_data = (const unsigned char*) data.c_str();
+        auto raw_data = reinterpret_cast<const unsigned char*>(data.c_str());
 
         return verify(raw_data, data_len, pk, signature);
     }
@@ -416,26 +430,23 @@ namespace validate
         return verify(data, bin_pk.data(), bin_signature.data());
     }
 
-    int verify_gpg_hashed_msg(const unsigned char* data,
-                              const unsigned char* pk,
-                              const unsigned char* signature)
+    int
+    verify_gpg_hashed_msg(const unsigned char* data, const unsigned char* pk, const unsigned char* signature)
     {
         return verify(data, MAMBA_SHA256_SIZE_BYTES, pk, signature);
     }
 
 
-    int verify_gpg_hashed_msg(const std::string& data,
-                              const unsigned char* pk,
-                              const unsigned char* signature)
+    int
+    verify_gpg_hashed_msg(const std::string& data, const unsigned char* pk, const unsigned char* signature)
     {
         auto data_bin = ::mamba::hex_to_bytes<MAMBA_SHA256_SIZE_BYTES>(data);
 
         return verify(data_bin.data(), MAMBA_SHA256_SIZE_BYTES, pk, signature);
     }
 
-    int verify_gpg_hashed_msg(const std::string& data,
-                              const std::string& pk,
-                              const std::string& signature)
+    int
+    verify_gpg_hashed_msg(const std::string& data, const std::string& pk, const std::string& signature)
     {
         auto signature_bin = ed25519_sig_hex_to_bytes(signature);
         auto pk_bin = ed25519_key_hex_to_bytes(pk);
@@ -443,13 +454,15 @@ namespace validate
         return verify_gpg_hashed_msg(data, pk_bin.data(), signature_bin.data());
     }
 
-    int verify_gpg(const std::string& data,
-                   const std::string& pgp_v4_trailer,
-                   const std::string& pk,
-                   const std::string& signature)
+    int verify_gpg(
+        const std::string& data,
+        const std::string& pgp_v4_trailer,
+        const std::string& pk,
+        const std::string& signature
+    )
     {
         unsigned long long data_len = data.size();
-        auto data_bin = (const unsigned char*) data.c_str();
+        auto data_bin = reinterpret_cast<const unsigned char*>(data.c_str());
 
         auto signature_bin = ed25519_sig_hex_to_bytes(signature);
         auto pk_bin = ed25519_key_hex_to_bytes(pk);
@@ -464,7 +477,7 @@ namespace validate
         auto pgp_trailer_bin = ::mamba::hex_to_bytes(pgp_v4_trailer);
         auto final_trailer_bin = ::mamba::hex_to_bytes<2>(std::string("04ff"));
 
-        uint32_t trailer_bin_len_big_endian = pgp_trailer_bin.size();
+        uint32_t trailer_bin_len_big_endian = static_cast<uint32_t>(pgp_trailer_bin.size());
 
 #ifdef _WIN32
         trailer_bin_len_big_endian = _byteswap_ulong(trailer_bin_len_big_endian);
@@ -481,7 +494,7 @@ namespace validate
         EVP_DigestUpdate(mdctx, data_bin, data_len);
         EVP_DigestUpdate(mdctx, pgp_trailer_bin.data(), pgp_trailer_bin.size());
         EVP_DigestUpdate(mdctx, final_trailer_bin.data(), final_trailer_bin.size());
-        EVP_DigestUpdate(mdctx, (unsigned char*) &trailer_bin_len_big_endian, 4);
+        EVP_DigestUpdate(mdctx, reinterpret_cast<unsigned char*>(&trailer_bin_len_big_endian), 4);
 
         EVP_DigestFinal_ex(mdctx, hash.data(), nullptr);
         EVP_MD_CTX_destroy(mdctx);
@@ -499,8 +512,7 @@ namespace validate
         return { pubkeys, threshold };
     }
 
-    RoleFullKeys::RoleFullKeys(const std::map<std::string, Key>& keys_,
-                               const std::size_t& threshold_)
+    RoleFullKeys::RoleFullKeys(const std::map<std::string, Key>& keys_, const std::size_t& threshold_)
         : keys(keys_)
         , threshold(threshold_){};
 
@@ -651,7 +663,7 @@ namespace validate
         std::vector<std::string_view> possible_upgrades;
         for (auto& s : upgrade_prefixes)
         {
-            s += ".";
+            s += '.';
             possible_upgrades.push_back(s);
         }
 
@@ -791,28 +803,33 @@ namespace validate
         all_roles.insert(optional_roles.cbegin(), optional_roles.cend());
 
         if (!allow_any)
+        {
             for (const auto& r : roles())
             {
                 if (all_roles.find(r) == all_roles.end())
                 {
-                    LOG_ERROR << "Invalid role defined in '" << type() << "' metadata: '" << r
-                              << "'";
+                    LOG_ERROR << "Invalid role defined in '" << type() << "' metadata: '" << r << "'";
                     throw role_metadata_error();
                 }
             }
+        }
 
         auto current_roles = roles();
-        if (!std::includes(current_roles.begin(),
-                           current_roles.end(),
-                           mandatory_roles.begin(),
-                           mandatory_roles.end()))
+        if (!std::includes(
+                current_roles.begin(),
+                current_roles.end(),
+                mandatory_roles.begin(),
+                mandatory_roles.end()
+            ))
         {
             std::vector<std::string> diff;
-            std::set_difference(mandatory_roles.begin(),
-                                mandatory_roles.end(),
-                                current_roles.begin(),
-                                current_roles.end(),
-                                std::inserter(diff, diff.end()));
+            std::set_difference(
+                mandatory_roles.begin(),
+                mandatory_roles.end(),
+                current_roles.begin(),
+                current_roles.end(),
+                std::inserter(diff, diff.end())
+            );
             LOG_ERROR << "Missing roles while loading '" << type() << "' metadata: '"
                       << mamba::join(", ", diff) << "'";
             throw role_metadata_error();
@@ -902,13 +919,17 @@ namespace validate
             auto match_size = matches.size();
 
             if (update)
+            {
                 f_version_str = matches[1].str();
+            }
 
             f_type = matches[match_size - 2].str();
             f_ext = matches[match_size - 1].str();
 
             if ((min_match_size + 1) == match_size)
+            {
                 f_spec_version_str = matches[match_size - 3].str();
+            }
         }
         else
         {
@@ -918,8 +939,7 @@ namespace validate
 
         if (f_ext != file_ext())
         {
-            LOG_ERROR << "'root' metadata file should have 'json' extension, not: '" << f_ext
-                      << "'";
+            LOG_ERROR << "'root' metadata file should have 'json' extension, not: '" << f_ext << "'";
             throw role_file_error();
         }
         if (f_type != type())
@@ -993,9 +1013,11 @@ namespace validate
         }
     }
 
-    void RoleBase::check_signatures(const std::string& signed_data,
-                                    const std::set<RoleSignature>& signatures,
-                                    const RoleFullKeys& keyring) const
+    void RoleBase::check_signatures(
+        const std::string& signed_data,
+        const std::set<RoleSignature>& signatures,
+        const RoleFullKeys& keyring
+    ) const
     {
         std::size_t valid_sig = 0;
 
@@ -1030,7 +1052,9 @@ namespace validate
                 LOG_WARNING << "Invalid keyid: " << s.keyid;
             }
             if (valid_sig >= keyring.threshold)
+            {
                 break;
+            }
         }
 
         if (valid_sig < keyring.threshold)
@@ -1057,11 +1081,13 @@ namespace validate
         for (auto& s : upgrade_spec)
         {
             files.push_back(
-                mamba::join(".", std::vector<std::string>({ new_v, "sv" + s, "root.json" })));
+                mamba::join(".", std::vector<std::string>({ new_v, "sv" + s, "root.json" }))
+            );
         }
         // compatible next
         files.push_back(
-            mamba::join(".", std::vector<std::string>({ new_v, "sv" + compat_spec, "root.json" })));
+            mamba::join(".", std::vector<std::string>({ new_v, "sv" + compat_spec, "root.json" }))
+        );
         // then finally undefined spec
         files.push_back(mamba::join(".", std::vector<std::string>({ new_v, "root.json" })));
 
@@ -1183,8 +1209,8 @@ namespace validate
             return { "mirrors" };
         }
 
-        void RootImpl::set_defined_roles(std::map<std::string, Key> keys,
-                                         std::map<std::string, RoleKeys> roles)
+        void
+        RootImpl::set_defined_roles(std::map<std::string, Key> keys, std::map<std::string, RoleKeys> roles)
         {
             m_defined_roles.clear();
 
@@ -1208,8 +1234,8 @@ namespace validate
             }
         }
 
-        std::unique_ptr<RepoIndexChecker> RootImpl::build_index_checker(
-            const std::string& /*url*/, const fs::u8path& /*cache_path*/) const
+        std::unique_ptr<RepoIndexChecker>
+        RootImpl::build_index_checker(const std::string& /*url*/, const fs::u8path& /*cache_path*/) const
         {
             std::unique_ptr<RepoIndexChecker> ptr;
             return ptr;
@@ -1236,7 +1262,8 @@ namespace validate
                 }
 
                 role.set_spec_version(
-                    std::make_shared<SpecImpl>(j_signed.at("spec_version").get<std::string>()));
+                    std::make_shared<SpecImpl>(j_signed.at("spec_version").get<std::string>())
+                );
 
                 auto keys = j_signed.at("keys").get<std::map<std::string, Key>>();
                 auto roles = j_signed.at("roles").get<std::map<std::string, RoleKeys>>();
@@ -1281,10 +1308,11 @@ namespace validate
             {
                 std::string pgp_trailer = "";
                 if (s.second.find("other_headers") != s.second.end())
+                {
                     pgp_trailer = s.second["other_headers"];
+                }
 
-                unique_sigs.insert(
-                    RoleSignature({ s.first, s.second.at("signature"), pgp_trailer }));
+                unique_sigs.insert(RoleSignature({ s.first, s.second.at("signature"), pgp_trailer }));
             }
 
             return unique_sigs;
@@ -1382,9 +1410,8 @@ namespace validate
             return v1_equivalent_root;
         }
 
-        RoleSignature RootImpl::upgraded_signature(const json& j,
-                                                   const std::string& pk,
-                                                   const unsigned char* sk) const
+        RoleSignature
+        RootImpl::upgraded_signature(const json& j, const std::string& pk, const unsigned char* sk) const
         {
             std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> sig_bin;
             sign(j.dump(), sk, sig_bin.data());
@@ -1422,8 +1449,8 @@ namespace validate
             }
         }
 
-        std::unique_ptr<RepoIndexChecker> RootImpl::build_index_checker(
-            const std::string& base_url, const fs::u8path& cache_path) const
+        std::unique_ptr<RepoIndexChecker>
+        RootImpl::build_index_checker(const std::string& base_url, const fs::u8path& cache_path) const
         {
             fs::u8path metadata_path = cache_path / "key_mgr.json";
 
@@ -1433,7 +1460,10 @@ namespace validate
             mamba::URLHandler url(base_url + "/key_mgr.json");
 
             auto dl_target = std::make_unique<mamba::DownloadTarget>(
-                "key_mgr.json", url.url(), tmp_metadata_path.string());
+                "key_mgr.json",
+                url.url(),
+                tmp_metadata_path.string()
+            );
 
             if (dl_target->resource_exists())
             {
@@ -1458,7 +1488,9 @@ namespace validate
                     if (!cache_path.empty())
                     {
                         if (fs::exists(metadata_path))
+                        {
                             fs::remove(metadata_path);
+                        }
                         fs::copy(tmp_metadata_path, metadata_path);
                     }
 
@@ -1510,10 +1542,12 @@ namespace validate
                 }
 
                 role.set_spec_version(std::make_shared<SpecImpl>(
-                    j_signed.at("metadata_spec_version").get<std::string>()));
+                    j_signed.at("metadata_spec_version").get<std::string>()
+                ));
 
                 role.set_defined_roles(
-                    j_signed.at("delegations").get<std::map<std::string, RolePubKeys>>());
+                    j_signed.at("delegations").get<std::map<std::string, RolePubKeys>>()
+                );
             }
             catch (const json::exception& e)
             {
@@ -1526,9 +1560,11 @@ namespace validate
             role.check_defined_roles();
         }
 
-        KeyMgrRole::KeyMgrRole(const fs::u8path& p,
-                               const RoleFullKeys& keys,
-                               const std::shared_ptr<SpecBase> spec)
+        KeyMgrRole::KeyMgrRole(
+            const fs::u8path& p,
+            const RoleFullKeys& keys,
+            const std::shared_ptr<SpecBase> spec
+        )
             : RoleBase("key_mgr", spec)
             , m_keys(keys)
         {
@@ -1536,18 +1572,18 @@ namespace validate
             load_from_json(j);
         }
 
-        KeyMgrRole::KeyMgrRole(const json& j,
-                               const RoleFullKeys& keys,
-                               const std::shared_ptr<SpecBase> spec)
+        KeyMgrRole::KeyMgrRole(const json& j, const RoleFullKeys& keys, const std::shared_ptr<SpecBase> spec)
             : RoleBase("key_mgr", spec)
             , m_keys(keys)
         {
             load_from_json(j);
         }
 
-        KeyMgrRole::KeyMgrRole(const std::string& json_str,
-                               const RoleFullKeys& keys,
-                               const std::shared_ptr<SpecBase> spec)
+        KeyMgrRole::KeyMgrRole(
+            const std::string& json_str,
+            const RoleFullKeys& keys,
+            const std::shared_ptr<SpecBase> spec
+        )
             : RoleBase("key_mgr", spec)
             , m_keys(keys)
         {
@@ -1576,8 +1612,8 @@ namespace validate
             return PkgMgrRole(j, all_keys()["pkg_mgr"], spec_impl());
         }
 
-        std::unique_ptr<RepoIndexChecker> KeyMgrRole::build_index_checker(
-            const std::string& base_url, const fs::u8path& cache_path) const
+        std::unique_ptr<RepoIndexChecker>
+        KeyMgrRole::build_index_checker(const std::string& base_url, const fs::u8path& cache_path) const
         {
             fs::u8path metadata_path = cache_path / "pkg_mgr.json";
 
@@ -1587,7 +1623,10 @@ namespace validate
             mamba::URLHandler url(base_url + "/pkg_mgr.json");
 
             auto dl_target = std::make_unique<mamba::DownloadTarget>(
-                "pkg_mgr.json", url.url(), tmp_metadata_path.string());
+                "pkg_mgr.json",
+                url.url(),
+                tmp_metadata_path.string()
+            );
 
             if (dl_target->resource_exists())
             {
@@ -1612,7 +1651,9 @@ namespace validate
                     if (!cache_path.empty())
                     {
                         if (fs::exists(metadata_path))
+                        {
                             fs::remove(metadata_path);
+                        }
                         fs::copy(tmp_metadata_path, metadata_path);
                     }
 
@@ -1676,19 +1717,18 @@ namespace validate
                     throw role_metadata_error();
                 }
 
-                auto new_spec_version
-                    = j_signed.at(role.spec_version().json_key()).get<std::string>();
+                auto new_spec_version = j_signed.at(role.spec_version().json_key()).get<std::string>();
                 if (role.spec_version() != SpecImpl(new_spec_version))
                 {
-                    LOG_ERROR
-                        << "Invalid spec version '" << new_spec_version
-                        << "' in 'key_mgr' metadata, it should match exactly 'root' spec version: '"
-                        << role.spec_version().version_str() << "'";
+                    LOG_ERROR << "Invalid spec version '" << new_spec_version
+                              << "' in 'key_mgr' metadata, it should match exactly 'root' spec version: '"
+                              << role.spec_version().version_str() << "'";
                     throw spec_version_error();
                 }
 
                 role.set_defined_roles(
-                    j_signed.at("delegations").get<std::map<std::string, RolePubKeys>>());
+                    j_signed.at("delegations").get<std::map<std::string, RolePubKeys>>()
+                );
             }
             catch (const json::exception& e)
             {
@@ -1707,9 +1747,11 @@ namespace validate
         {
         }
 
-        PkgMgrRole::PkgMgrRole(const fs::u8path& p,
-                               const RoleFullKeys& keys,
-                               const std::shared_ptr<SpecBase> spec)
+        PkgMgrRole::PkgMgrRole(
+            const fs::u8path& p,
+            const RoleFullKeys& keys,
+            const std::shared_ptr<SpecBase> spec
+        )
             : RoleBase("pkg_mgr", spec)
             , m_keys(keys)
         {
@@ -1717,18 +1759,18 @@ namespace validate
             load_from_json(j);
         }
 
-        PkgMgrRole::PkgMgrRole(const json& j,
-                               const RoleFullKeys& keys,
-                               const std::shared_ptr<SpecBase> spec)
+        PkgMgrRole::PkgMgrRole(const json& j, const RoleFullKeys& keys, const std::shared_ptr<SpecBase> spec)
             : RoleBase("pkg_mgr", spec)
             , m_keys(keys)
         {
             load_from_json(j);
         }
 
-        PkgMgrRole::PkgMgrRole(const std::string& json_str,
-                               const RoleFullKeys& keys,
-                               const std::shared_ptr<SpecBase> spec)
+        PkgMgrRole::PkgMgrRole(
+            const std::string& json_str,
+            const RoleFullKeys& keys,
+            const std::shared_ptr<SpecBase> spec
+        )
             : RoleBase("pkg_mgr", spec)
             , m_keys(keys)
         {
@@ -1778,19 +1820,18 @@ namespace validate
                     throw role_metadata_error();
                 }
 
-                auto new_spec_version
-                    = j_signed.at(role.spec_version().json_key()).get<std::string>();
+                auto new_spec_version = j_signed.at(role.spec_version().json_key()).get<std::string>();
                 if (role.spec_version() != SpecImpl(new_spec_version))
                 {
-                    LOG_ERROR
-                        << "Invalid spec version '" << new_spec_version
-                        << "' in 'pkg_mgr' metadata, it should match exactly 'root' spec version: '"
-                        << role.spec_version().version_str() << "'";
+                    LOG_ERROR << "Invalid spec version '" << new_spec_version
+                              << "' in 'pkg_mgr' metadata, it should match exactly 'root' spec version: '"
+                              << role.spec_version().version_str() << "'";
                     throw spec_version_error();
                 }
 
                 role.set_defined_roles(
-                    j_signed.at("delegations").get<std::map<std::string, RolePubKeys>>());
+                    j_signed.at("delegations").get<std::map<std::string, RolePubKeys>>()
+                );
             }
             catch (const json::exception& e)
             {
@@ -1817,10 +1858,11 @@ namespace validate
             {
                 std::string pgp_trailer = "";
                 if (s.second.find("other_headers") != s.second.end())
+                {
                     pgp_trailer = s.second["other_headers"];
+                }
 
-                unique_sigs.insert(
-                    RoleSignature({ s.first, s.second.at("signature"), pgp_trailer }));
+                unique_sigs.insert(RoleSignature({ s.first, s.second.at("signature"), pgp_trailer }));
             }
 
             return unique_sigs;
@@ -1929,7 +1971,9 @@ namespace validate
     {
         j = json{ { "keyid", role_sig.keyid }, { "sig", role_sig.sig } };
         if (!role_sig.pgp_trailer.empty())
+        {
             j["other_headers"] = role_sig.pgp_trailer;
+        }
     }
 
     void to_json(json& j, const RoleBase* role)
@@ -1967,7 +2011,9 @@ namespace validate
         j.at("keyid").get_to(role_sig.keyid);
         j.at("sig").get_to(role_sig.sig);
         if (j.find("other_headers") != j.end())
+        {
             j.at("other_headers").get_to(role_sig.pgp_trailer);
+        }
     }
 
     void from_json(const json& j, RoleBase* role)
@@ -1976,9 +2022,11 @@ namespace validate
         role->set_expiration(j.at(role->spec_version().expiration_json_key()));
     }
 
-    RepoChecker::RepoChecker(const std::string& base_url,
-                             const fs::u8path& ref_path,
-                             const fs::u8path& cache_path)
+    RepoChecker::RepoChecker(
+        const std::string& base_url,
+        const fs::u8path& ref_path,
+        const fs::u8path& cache_path
+    )
         : m_base_url(base_url)
         , m_ref_path(ref_path)
         , m_cache_path(cache_path){};
@@ -2045,9 +2093,13 @@ namespace validate
     void RepoChecker::persist_file(const fs::u8path& file_path)
     {
         if (fs::exists(cached_root()))
+        {
             fs::remove(cached_root());
+        }
         if (!cached_root().empty())
+        {
             fs::copy(file_path, cached_root());
+        }
     }
 
     fs::u8path RepoChecker::initial_trusted_root()
@@ -2096,7 +2148,9 @@ namespace validate
         }
 
         if (trusted_root != cached_root())
+        {
             persist_file(trusted_root);
+        }
 
         auto update_files = updated_root->possible_update_files();
         auto tmp_dir = std::make_unique<mamba::TemporaryDirectory>();
@@ -2115,7 +2169,10 @@ namespace validate
                 tmp_file_path = tmp_dir_path / f;
 
                 auto dl_target = std::make_unique<mamba::DownloadTarget>(
-                    f.string(), url, tmp_file_path.string());
+                    f.string(),
+                    url,
+                    tmp_file_path.string()
+                );
 
                 if (dl_target->resource_exists())
                 {
@@ -2131,7 +2188,9 @@ namespace validate
             }
 
             if (tmp_file_path.empty())
+            {
                 break;
+            }
 
             updated_root = updated_root->update(tmp_file_path);
             // TUF spec 5.3.8 - Persist root metadata

@@ -8,15 +8,15 @@
 #define MAMBA_CORE_CONTEXT_HPP
 
 #include <map>
-#include <string>
-#include <vector>
 #include <optional>
 #include <regex>
+#include <string>
+#include <vector>
 
 #include "mamba/core/common_types.hpp"
 #include "mamba/core/mamba_fs.hpp"
-#include "mamba/core/tasksync.hpp"
 #include "mamba/core/palette.hpp"
+#include "mamba/core/tasksync.hpp"
 #include "mamba/version.hpp"
 
 #define ROOT_ENV_NAME "base"
@@ -55,6 +55,10 @@ namespace mamba
 #endif
 #elif defined(__s390x__)
         static const char MAMBA_PLATFORM[] = "linux-s390x";
+#elif defined(__riscv) && defined(__riscv_xlen) && (__riscv_xlen == 32)
+        static const char MAMBA_PLATFORM[] = "linux-riscv32";
+#elif defined(__riscv) && defined(__riscv_xlen) && (__riscv_xlen == 64)
+        static const char MAMBA_PLATFORM[] = "linux-riscv64";
 #else
 #error "Unknown Linux platform"
 #endif
@@ -113,6 +117,7 @@ namespace mamba
     class Context
     {
     public:
+
         std::string caller_version = "";
         std::string conda_version = "3.8.0";
         std::string current_command = "mamba";
@@ -149,8 +154,6 @@ namespace mamba
         log_level logging_level = log_level::warn;
         std::string log_pattern = "%^%-9!l%-8n%$ %v";
         std::size_t log_backtrace = 0;
-
-        bool experimental_sat_error_message = false;
 
         bool dev = false;
         bool on_ci = false;
@@ -226,7 +229,8 @@ namespace mamba
             "https://repo.anaconda.com/pkgs/r",
             "https://repo.anaconda.com/pkgs/msys2"
 #else
-            "https://repo.anaconda.com/pkgs/main", "https://repo.anaconda.com/pkgs/r"
+            "https://repo.anaconda.com/pkgs/main",
+            "https://repo.anaconda.com/pkgs/r"
 #endif
         };
 
@@ -257,15 +261,17 @@ namespace mamba
         Context(Context&&) = delete;
         Context& operator=(Context&&) = delete;
 
-        const void debug_print();
+        void debug_print() const;
         void dump_backtrace_no_guards();
 
     protected:
+
         Context();
         ~Context();
 
 
     private:
+
         void load_authentication_info();
         std::map<std::string, AuthenticationInfo> m_authentication_info;
         bool m_authentication_infos_loaded = false;

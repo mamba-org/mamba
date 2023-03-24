@@ -224,7 +224,7 @@ def remove(args, parser):
             return exit_code
 
         package_cache = api.MultiPackageCache(context.pkgs_dirs)
-        transaction = api.Transaction(solver, package_cache)
+        transaction = api.Transaction(pool, solver, package_cache)
 
         if not transaction.prompt():
             exit(0)
@@ -330,7 +330,9 @@ def install(args, parser, command="install"):
             if default_pkg_name not in args_packages_names:
                 args_packages.append(default_pkg)
 
-    num_cp = sum(s.endswith(".tar.bz2") for s in args_packages)
+    num_cp = sum(
+        (s.endswith(".tar.bz2") or s.endswith(".conda")) for s in args_packages
+    )
     if num_cp:
         if num_cp == len(args_packages):
             explicit(args_packages, prefix, verbose=not (context.quiet or context.json))
@@ -560,7 +562,7 @@ def install(args, parser, command="install"):
             return exit_code
 
         package_cache = api.MultiPackageCache(context.pkgs_dirs)
-        transaction = api.Transaction(solver, package_cache)
+        transaction = api.Transaction(pool, solver, package_cache)
         mmb_specs, to_link, to_unlink = transaction.to_conda()
 
         specs_to_add = [MatchSpec(m) for m in mmb_specs[0]]

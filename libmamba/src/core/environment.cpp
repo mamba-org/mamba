@@ -1,5 +1,11 @@
+// Copyright (c) 2019, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
+
 #include "mamba/core/environment.hpp"
-#include "mamba/core/util.hpp"
+#include "mamba/core/util_string.hpp"
 
 #ifdef _WIN32
 #include "mamba/core/output.hpp"
@@ -41,9 +47,13 @@ namespace mamba
 #else
             const char* value = std::getenv(key.c_str());
             if (value)
+            {
                 return value;
+            }
             else
+            {
                 return {};
+            }
 #endif
         }
 
@@ -81,7 +91,7 @@ namespace mamba
             if (env_path)
             {
                 std::string path = env_path.value();
-                const auto parts = mamba::split(path, pathsep());
+                const auto parts = split(path, pathsep());
                 const std::vector<fs::u8path> search_paths(parts.begin(), parts.end());
                 return which(exe, search_paths);
             }
@@ -91,8 +101,8 @@ namespace mamba
             if (override_path == "")
             {
                 char* pathbuf;
-                size_t n = confstr(_CS_PATH, NULL, (size_t) 0);
-                pathbuf = (char*) malloc(n);
+                size_t n = confstr(_CS_PATH, NULL, static_cast<size_t>(0));
+                pathbuf = static_cast<char*>(malloc(n));
                 if (pathbuf != NULL)
                 {
                     confstr(_CS_PATH, pathbuf, n);
@@ -146,8 +156,8 @@ namespace mamba
             {
                 std::string_view s(c);
                 auto pos = s.find("=");
-                m[std::string(s.substr(0, pos))]
-                    = (pos != s.npos) ? std::string(s.substr(pos + 1)) : "";
+                m[std::string(s.substr(0, pos))] = (pos != s.npos) ? std::string(s.substr(pos + 1))
+                                                                   : "";
                 c = *(environ + i);
             }
 #else
@@ -202,13 +212,16 @@ namespace mamba
             std::string maybe_home = env::get("USERPROFILE").value_or("");
             if (maybe_home.empty())
             {
-                maybe_home
-                    = concat(env::get("HOMEDRIVE").value_or(""), env::get("HOMEPATH").value_or(""));
+                maybe_home = concat(
+                    env::get("HOMEDRIVE").value_or(""),
+                    env::get("HOMEPATH").value_or("")
+                );
             }
             if (maybe_home.empty())
             {
                 throw std::runtime_error(
-                    "Cannot determine HOME (checked USERPROFILE, HOMEDRIVE and HOMEPATH env vars)");
+                    "Cannot determine HOME (checked USERPROFILE, HOMEDRIVE and HOMEPATH env vars)"
+                );
             }
 #else
             std::string maybe_home = env::get("HOME").value_or("");

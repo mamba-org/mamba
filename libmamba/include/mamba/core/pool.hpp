@@ -7,13 +7,13 @@
 #ifndef MAMBA_CORE_POOL_HPP
 #define MAMBA_CORE_POOL_HPP
 
-#include <optional>
 #include <memory>
+#include <optional>
 
 #include <solv/pooltypes.h>
 
-#include "mamba/core/repo.hpp"
 #include "mamba/core/package_info.hpp"
+#include "mamba/core/repo.hpp"
 
 namespace mamba
 {
@@ -28,8 +28,11 @@ namespace mamba
     class MPool
     {
     public:
+
         MPool();
         ~MPool();
+
+        std::size_t n_solvables() const;
 
         void set_debuglevel();
         void create_whatprovides();
@@ -37,19 +40,21 @@ namespace mamba
         std::vector<Id> select_solvables(Id id, bool sorted = false) const;
         Id matchspec2id(const std::string& ms);
 
-        std::optional<PackageInfo> id2pkginfo(Id id);
+        std::optional<PackageInfo> id2pkginfo(Id solv_id) const;
+        std::optional<std::string> dep2str(Id dep_id) const;
 
         operator Pool*();
-        operator Pool const*() const;
+        operator const Pool*() const;
 
         MRepo& add_repo(MRepo&& repo);
         void remove_repo(Id repo_id);
 
     private:
+
         struct MPoolData;
 
         Pool* pool();
-        Pool const* pool() const;
+        const Pool* pool() const;
 
         /**
          * Make MPool behave like a shared_ptr (with move and copy).

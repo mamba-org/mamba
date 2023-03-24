@@ -4,17 +4,16 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-extern "C"
-{
+#include <solv/pool.h>
+#include <solv/repo.h>
 #include <solv/transaction.h>
-}
 
-#include "mamba/core/prefix_data.hpp"
 #include "mamba/core/output.hpp"
-
 #include "mamba/core/pool.hpp"
-#include "mamba/core/queue.hpp"
+#include "mamba/core/prefix_data.hpp"
 #include "mamba/core/repo.hpp"
+#include "mamba/core/util_string.hpp"
+#include "solv-cpp/queue.hpp"
 
 namespace mamba
 {
@@ -26,14 +25,15 @@ namespace mamba
         }
         catch (std::exception& e)
         {
-            return tl::make_unexpected(
-                mamba_error(e.what(), mamba_error_code::prefix_data_not_loaded));
+            return tl::make_unexpected(mamba_error(e.what(), mamba_error_code::prefix_data_not_loaded)
+            );
         }
         catch (...)
         {
-            return tl::make_unexpected(
-                mamba_error("Unknown error when trying to load prefix data " + prefix_path.string(),
-                            mamba_error_code::unknown));
+            return tl::make_unexpected(mamba_error(
+                "Unknown error when trying to load prefix data " + prefix_path.string(),
+                mamba_error_code::unknown
+            ));
         }
     }
 
@@ -79,7 +79,7 @@ namespace mamba
         std::vector<PackageInfo> result;
         MPool pool;
 
-        MQueue q;
+        solv::ObjQueue q;
         {
             // TODO check prereq marker to `pip` if it's part of the installed packages
             // so that it gets installed after Python.
@@ -91,14 +91,14 @@ namespace mamba
 
             FOR_REPO_SOLVABLES(repo.repo(), pkg_id, s)
             {
-                q.push(pkg_id);
+                q.push_back(pkg_id);
             }
         }
 
         Pool* pp = pool;
         pp->installed = nullptr;
 
-        Transaction* t = transaction_create_decisionq(pool, q, nullptr);
+        Transaction* t = transaction_create_decisionq(pool, q.raw(), nullptr);
         transaction_order(t, 0);
 
         for (int i = 0; i < t->steps.count; i++)
@@ -107,19 +107,22 @@ namespace mamba
             Id ttype = transaction_type(t, p, SOLVER_TRANSACTION_SHOW_ALL);
             Solvable* s = pool_id2solvable(t->pool, p);
 
-            package_map::const_iterator it, end = m_package_records.end();
             switch (ttype)
             {
                 case SOLVER_TRANSACTION_INSTALL:
-                    it = m_package_records.find(pool_id2str(pool, s->name));
-                    if (it != end)
+                {
+                    const auto it = m_package_records.find(pool_id2str(pool, s->name));
+                    if (it != m_package_records.end())
                     {
                         result.push_back(it->second);
                         break;
                     }
+                    [[fallthrough]];
+                }
                 default:
                     throw std::runtime_error(
-                        "Package not found in prefix records or other unexpected condition");
+                        "Package not found in prefix records or other unexpected condition"
+                    );
             }
         }
         return result;

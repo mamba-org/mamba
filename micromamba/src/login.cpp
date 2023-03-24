@@ -3,12 +3,16 @@
 // Distributed under the terms of the BSD 3-Clause License.
 //
 // The full license is in the file LICENSE, distributed with this software.
-#include "common_options.hpp"
 
-#include "mamba/api/configuration.hpp"
+#include <string>
+
 #include "mamba/api/list.hpp"
-#include "mamba/core/util.hpp"
+#include "mamba/core/environment.hpp"
 #include "mamba/core/url.hpp"
+#include "mamba/core/util.hpp"
+#include "mamba/core/util_string.hpp"
+
+#include "common_options.hpp"
 
 std::string
 read_stdin()
@@ -67,7 +71,9 @@ set_logout_command(CLI::App* subcom)
             if (all)
             {
                 if (fs::exists(auth_file))
+                {
                     fs::remove(auth_file);
+                }
                 return 0;
             }
 
@@ -103,7 +109,8 @@ set_logout_command(CLI::App* subcom)
             auto fo = mamba::open_ofstream(auth_file);
             fo << auth_info;
             return 0;
-        });
+        }
+    );
 }
 
 void
@@ -117,10 +124,12 @@ set_login_command(CLI::App* subcom)
     subcom->add_option("-t,--token", token, "Token for the account");
     subcom->add_flag("--password-stdin", pass_stdin, "Read password from stdin");
     subcom->add_flag("--token-stdin", token_stdin, "Read token from stdin");
-    subcom->add_option("host",
-                       host,
-                       "Host for the account. The scheme (e.g. https://) is ignored\n"
-                       "but not the port (optional) nor the channel (optional).");
+    subcom->add_option(
+        "host",
+        host,
+        "Host for the account. The scheme (e.g. https://) is ignored\n"
+        "but not the port (optional) nor the channel (optional)."
+    );
 
     subcom->callback(
         []()
@@ -133,10 +142,14 @@ set_login_command(CLI::App* subcom)
             auto token_base = get_token_base(host);
 
             if (pass_stdin)
+            {
                 pass = read_stdin();
+            }
 
             if (token_stdin)
+            {
                 token = read_stdin();
+            }
 
             static auto path = mamba::env::home_directory() / ".mamba" / "auth";
             fs::create_directories(path);
@@ -169,7 +182,9 @@ set_login_command(CLI::App* subcom)
 
                     auto pass_encoded = mamba::encode_base64(mamba::strip(pass));
                     if (!pass_encoded)
+                    {
                         throw pass_encoded.error();
+                    }
 
                     auth_object["password"] = pass_encoded.value();
                     auth_object["user"] = user;
@@ -193,17 +208,19 @@ set_login_command(CLI::App* subcom)
             out << auth_info.dump(4);
             std::cout << "Successfully stored login information" << std::endl;
             return 0;
-        });
+        }
+    );
 }
 
 void
 set_auth_command(CLI::App* subcom)
 {
-    CLI::App* login_cmd
-        = subcom->add_subcommand("login", "Store login information for a specific host");
+    CLI::App* login_cmd = subcom->add_subcommand("login", "Store login information for a specific host");
     set_login_command(login_cmd);
 
-    CLI::App* logout_cmd
-        = subcom->add_subcommand("logout", "Erase login information for a specific host");
+    CLI::App* logout_cmd = subcom->add_subcommand(
+        "logout",
+        "Erase login information for a specific host"
+    );
     set_logout_command(logout_cmd);
 }

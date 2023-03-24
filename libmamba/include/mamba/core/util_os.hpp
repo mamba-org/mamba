@@ -7,8 +7,8 @@
 #ifndef MAMBA_CORE_UTIL_OS_HPP
 #define MAMBA_CORE_UTIL_OS_HPP
 
-#include <string>
 #include <iosfwd>
+#include <string>
 
 #include "mamba/core/fsutil.hpp"
 
@@ -42,7 +42,7 @@ namespace mamba
 #ifdef _WIN32
     std::string to_utf8(const wchar_t* w, size_t s);
     std::string to_utf8(const wchar_t* w);
-    std::string to_utf8(std::wstring const& s);
+    std::string to_utf8(const std::wstring& s);
 #endif
 
     /* Test whether a given `std::ostream` object refers to a terminal. */

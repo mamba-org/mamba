@@ -475,7 +475,20 @@ PYBIND11_MODULE(bindings, m)
         .def(
             "cache_path",
             [](const MSubdirData& self) -> std::string { return extract(self.cache_path()); }
-        );
+        )
+        .def(
+            "download_and_check_targets",
+            [](MSubdirData& self, MultiDownloadTarget& multi_download) -> bool
+            {
+                for (auto& check_target : self.check_targets())
+                {
+                    multi_download.add(check_target.get());
+                }
+                multi_download.download(MAMBA_NO_CLEAR_PROGRESS_BARS);
+                return self.check_targets().size();
+            }
+        )
+        .def("finalize_checks", &MSubdirData::finalize_checks);
 
     m.def("cache_fn_url", &cache_fn_url);
     m.def("create_cache_dir", &create_cache_dir);

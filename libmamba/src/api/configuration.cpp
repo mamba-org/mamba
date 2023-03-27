@@ -1036,6 +1036,13 @@ namespace mamba
                    .set_post_merge_hook(detail::target_prefix_hook)
                    .set_post_context_hook(detail::post_target_prefix_rc_loading));
 
+        insert(Configurable("relocate_prefix", &ctx.relocate_prefix)
+                   .group("Basic")
+                   .set_env_var_names()
+                   .needs({ "target_prefix" })
+                   .set_single_op_lifetime()
+                   .description("Path to the relocation prefix"));
+
         insert(Configurable("use_target_prefix_fallback", true)
                    .group("Basic")
                    .set_single_op_lifetime()

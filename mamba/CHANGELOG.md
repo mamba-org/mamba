@@ -1,3 +1,21 @@
+mamba 1.4.0 (March 22, 2023)
+============================
+
+Enchancements:
+
+- Implemented recursive dependency printout in repoquery  by @timostrunk in https://github.com/mamba-org/mamba/pull/2283
+- Fine tune clang-format by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2290
+- Allow the direct installation of both .tar.bz2 and .conda packages by @romain-intel in https://github.com/mamba-org/mamba/pull/2333
+- Isolate `PackageInfo` from libsolv from @AntoinePrv in https://github.com/mamba-org/mamba/pull/2340
+
+Bug fixes:
+
+- Fixed `mamba init --no-user` by @xylar in https://github.com/mamba-org/mamba/pull/2324
+
+CI fixes & docs:
+
+- `repoquery depends` requires the package to be installed or to specify a channel by @samtygier in https://github.com/mamba-org/mamba/pull/2098
+
 mamba 1.3.1 (February 09, 2023)
 ===============================
 

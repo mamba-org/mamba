@@ -339,7 +339,7 @@ namespace validate
 
             protected:
 
-                fs::u8path root1_pgp = test_data_dir / "validation_data/1.sv0.6.root.json";
+                fs::u8path root1_pgp = test_data_dir / "validation/1.sv0.6.root.json";
                 json root1_json, root1_pgp_json;
 
                 secrets_type secrets;
@@ -475,7 +475,7 @@ namespace validate
 
             TEST_F(RootImplT_v06, upgraded_spec_version)
             {
-                RootImpl root(root1_json);
+                v06::RootImpl root(root1_json);
 
                 json patch = R"([
                     { "op": "replace", "path": "/signed/version", "value": 2 },
@@ -496,7 +496,8 @@ namespace validate
                 );
                 auto updated_root = root.update(upgrade_to_v1(root, signable_patch));
 
-                auto testing_root = static_cast<RootImpl*>(updated_root.get());
+                auto testing_root = dynamic_cast<v1::RootImpl*>(updated_root.get());
+                ASSERT_NE(testing_root, nullptr);
                 EXPECT_EQ(testing_root->spec_version(), SpecImpl("1.0.17"));
                 EXPECT_EQ(testing_root->version(), 2);
                 EXPECT_LT(testing_root->expires(), root.expires());
@@ -552,7 +553,7 @@ namespace validate
 
             TEST_F(RootImplT_v06, wrong_filename_spec_version)
             {
-                RootImpl root(root1_json);
+                v06::RootImpl root(root1_json);
 
                 // "2.sv1.root.json" is upgradable spec version (spec version N+1)
                 json signable_patch = R"([
@@ -563,7 +564,8 @@ namespace validate
                     { "op": "add", "path": "/roles/timestamp/keyids", "value": ["dummy_value"] }
                     ])"_json;
                 auto updated_root = root.update(upgrade_to_v1(root, signable_patch));
-                auto testing_root = static_cast<RootImpl*>(updated_root.get());
+                auto testing_root = dynamic_cast<v1::RootImpl*>(updated_root.get());
+                ASSERT_NE(testing_root, nullptr);
                 EXPECT_EQ(testing_root->spec_version(), SpecImpl("1.0.0"));
 
                 // "2.sv2.root.json" is not upgradable spec version (spec version N+1)
@@ -1559,7 +1561,7 @@ namespace validate
 
             protected:
 
-                fs::u8path root1 = test_data_dir / "validation_data/root.json";
+                fs::u8path root1 = test_data_dir / "validation/root.json";
                 json root1_json;
 
                 std::unique_ptr<TemporaryDirectory> channel_dir;

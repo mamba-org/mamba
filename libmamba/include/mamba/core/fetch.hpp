@@ -7,109 +7,39 @@
 #ifndef MAMBA_CORE_FETCH_HPP
 #define MAMBA_CORE_FETCH_HPP
 
+#include <string>
+#include <vector>
+
+///////////////////////////////////////
+// TODO to remove, kept here until not needed anymore/complete libcurl isolation is done
 extern "C"
 {
 #include <curl/curl.h>
 }
 
-#include <string>
-#include <vector>
-
-#include <bzlib.h>
-#include <zstd.h>
+////////////////////////////////////
 
 #include "progress_bar.hpp"
 #include "validate.hpp"
 
 namespace mamba
 {
-    void init_curl_ssl();
+    struct ZstdStream;
+    struct Bzip2Stream;
 
-    struct ZstdStream
-    {
-        static constexpr size_t BUFFER_SIZE = 256000;
-        ZstdStream(curl_write_callback lwrite_callback, void* write_callback_data)
-            : stream(ZSTD_createDCtx())
-            , m_write_callback(lwrite_callback)
-            , m_write_callback_data(write_callback_data)
-        {
-            ZSTD_initDStream(stream);
-        }
-
-        ~ZstdStream()
-        {
-            ZSTD_freeDCtx(stream);
-        }
-
-        size_t write(char* in, size_t size);
-
-        static size_t write_callback(char* ptr, size_t size, size_t nmemb, void* self)
-        {
-            return static_cast<ZstdStream*>(self)->write(ptr, size * nmemb);
-        }
-
-        ZSTD_DCtx* stream;
-        char buffer[BUFFER_SIZE];
-
-        // original curl callback
-        curl_write_callback m_write_callback;
-        void* m_write_callback_data;
-    };
-
-    struct Bzip2Stream
-    {
-        static constexpr size_t BUFFER_SIZE = 256000;
-
-        Bzip2Stream(curl_write_callback lwrite_callback, void* write_callback_data)
-            : m_write_callback(lwrite_callback)
-            , m_write_callback_data(write_callback_data)
-        {
-            m_stream.bzalloc = nullptr;
-            m_stream.bzfree = nullptr;
-            m_stream.opaque = nullptr;
-
-            error = BZ2_bzDecompressInit(&m_stream, 0, false);
-            if (error != BZ_OK)
-            {
-                throw std::runtime_error("BZ2_bzDecompressInit failed");
-            }
-        }
-
-        size_t write(char* in, size_t size);
-
-        static size_t write_callback(char* ptr, size_t size, size_t nmemb, void* self)
-        {
-            return static_cast<Bzip2Stream*>(self)->write(ptr, size * nmemb);
-        }
-
-        ~Bzip2Stream()
-        {
-            BZ2_bzDecompressEnd(&m_stream);
-        }
-
-        int error;
-        bz_stream m_stream;
-        char buffer[BUFFER_SIZE];
-
-        // original curl callback
-        curl_write_callback m_write_callback;
-        void* m_write_callback_data;
-    };
-
+    class CURLHandle;
 
     class DownloadTarget
     {
     public:
 
-        DownloadTarget() = default;
         DownloadTarget(const std::string& name, const std::string& url, const std::string& filename);
         ~DownloadTarget();
 
         DownloadTarget(const DownloadTarget&) = delete;
         DownloadTarget& operator=(const DownloadTarget&) = delete;
-
-        DownloadTarget(DownloadTarget&&);
-        DownloadTarget& operator=(DownloadTarget&&);
+        DownloadTarget(DownloadTarget&&) = delete;
+        DownloadTarget& operator=(DownloadTarget&&) = delete;
 
         static size_t write_callback(char* ptr, size_t size, size_t nmemb, void* self);
         static size_t header_callback(char* buffer, size_t size, size_t nitems, void* self);
@@ -124,15 +54,13 @@ namespace mamba
         void set_mod_etag_headers(const std::string& mod, const std::string& etag);
         void set_progress_bar(ProgressProxy progress_proxy);
         void set_expected_size(std::size_t size);
-        void set_head_only(bool yes)
-        {
-            curl_easy_setopt(m_handle, CURLOPT_NOBODY, yes);
-        }
+        void set_head_only(bool yes);
 
         const std::string& name() const;
         const std::string& url() const;
         std::size_t expected_size() const;
 
+        void init_curl_ssl();
         void init_curl_target(const std::string& url);
 
         bool resource_exists();
@@ -147,12 +75,12 @@ namespace mamba
             m_finalize_callback = std::bind(cb, data, std::placeholders::_1);
         }
 
-        inline void set_ignore_failure(bool yes)
+        void set_ignore_failure(bool yes)
         {
             m_ignore_failure = yes;
         }
 
-        inline bool ignore_failure() const
+        bool ignore_failure() const
         {
             return m_ignore_failure;
         }
@@ -167,7 +95,7 @@ namespace mamba
         std::chrono::steady_clock::time_point progress_throttle_time() const;
         void set_progress_throttle_time(const std::chrono::steady_clock::time_point& time);
 
-        CURLcode result;
+        CURLcode result = CURLE_OK;
         bool failed = false;
         int http_status = 10000;
         char* effective_url = nullptr;
@@ -181,6 +109,7 @@ namespace mamba
 
         std::unique_ptr<ZstdStream> m_zstd_stream;
         std::unique_ptr<Bzip2Stream> m_bzip2_stream;
+        std::unique_ptr<CURLHandle> m_curl_handle;
         std::function<bool(const DownloadTarget&)> m_finalize_callback;
 
         std::string m_name, m_filename, m_url;
@@ -193,15 +122,11 @@ namespace mamba
         std::size_t m_retry_wait_seconds = get_default_retry_timeout();
         std::size_t m_retries = 0;
 
-        CURL* m_handle;
-        curl_slist* m_headers;
-
         bool m_has_progress_bar = false;
         bool m_ignore_failure = false;
 
         ProgressProxy m_progress_bar;
 
-        char m_errbuf[CURL_ERROR_SIZE];
         std::ofstream m_file;
 
         static std::size_t get_default_retry_timeout();

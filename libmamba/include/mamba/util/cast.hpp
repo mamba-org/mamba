@@ -13,7 +13,7 @@
 
 #include <fmt/format.h>
 
-#include "util_compare.hpp"
+#include "mamba/util/compare.hpp"
 
 namespace mamba::util
 {

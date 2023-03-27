@@ -160,7 +160,7 @@ namespace mamba::solv
             if (pos >= size)
             {
                 // TODO(C++20) std::format
-                std::stringstream ss = {};
+                auto ss = std::stringstream{};
                 ss << "Index " << pos << " is greater that the number of elements (" << size << ')';
                 throw std::out_of_range(std::move(ss).str());
             }

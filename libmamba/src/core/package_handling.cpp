@@ -10,7 +10,6 @@
 #include <archive.h>
 #include <archive_entry.h>
 #include <reproc++/run.hpp>
-#include <zstd.h>
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
@@ -22,6 +21,8 @@
 #include "mamba/core/validate.hpp"
 
 #include "nlohmann/json.hpp"
+
+#include "compression.hpp"
 
 namespace mamba
 {
@@ -492,7 +493,7 @@ namespace mamba
         {
             conda_extract_context(scoped_archive_read& lsource)
                 : source(lsource)
-                , buffer(ZSTD_DStreamOutSize())
+                , buffer(get_zstd_buff_out_size())
             {
             }
 

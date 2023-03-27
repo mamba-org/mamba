@@ -120,6 +120,13 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/version.cpp
     # C++ wrapping of libsolv
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.cpp
+    # C++ wrapping of libcurl
+    ${LIBMAMBA_SOURCE_DIR}/core/curl.cpp
+    # C++ wrapping of compression libs (zstd and bzlib)
+    ${LIBMAMBA_SOURCE_DIR}/core/compression.cpp
+    # Implementation of version and matching specs
+    ${LIBMAMBA_SOURCE_DIR}/specs/version.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/repo_data.cpp
     # Core API (low-level)
     ${LIBMAMBA_SOURCE_DIR}/core/singletons.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/activation.cpp
@@ -185,6 +192,14 @@ endforeach()
 
 set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/version.hpp
+    # Utility library
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/flat_set.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/graph.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/compare.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cast.hpp
+    # Implementation of version and matching specs
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/repo_data.hpp
     # Core API (low-level)
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/activation.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/channel.hpp
@@ -222,13 +237,10 @@ set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/url.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/fsutil.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_graph.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_os.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_random.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_scope.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_string.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_cast.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_compare.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/validate.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/virtual_packages.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/env_lockfile.hpp
@@ -254,6 +266,8 @@ set(LIBMAMBA_PUBLIC_HEADERS
 
 set(LIBMAMBA_PRIVATE_HEADERS
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.hpp
+    ${LIBMAMBA_SOURCE_DIR}/core/compression.hpp
+    ${LIBMAMBA_SOURCE_DIR}/core/curl.hpp
 )
 
 # Targets and link

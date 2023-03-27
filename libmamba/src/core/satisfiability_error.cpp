@@ -582,11 +582,11 @@ namespace mamba
             using node_id = ProblemsGraph::node_id;
             const auto& g = pbs.graph();
             auto is_leaf = [&g](node_id n) -> bool { return g.successors(n).size() == 0; };
-            auto leaves_from = [&g](node_id n) -> vector_set<node_id>
+            auto leaves_from = [&g](node_id n) -> util::flat_set<node_id>
             {
                 auto leaves = std::vector<node_id>();
                 g.for_each_leaf_id_from(n, [&leaves](node_id m) { leaves.push_back(m); });
-                return vector_set(std::move(leaves));
+                return util::flat_set(std::move(leaves));
             };
             return (node_name(g.node(n1)) == node_name(g.node(n2)))
                    // Merging conflicts would be counter-productive in explaining problems
@@ -1126,7 +1126,7 @@ namespace mamba
             using TreeNodeList = std::vector<TreeNode>;
             using TreeNodeIter = typename TreeNodeList::iterator;
 
-            vector_set<node_id> leaf_installables = {};
+            util::flat_set<node_id> leaf_installables = {};
             std::map<node_id, std::optional<Status>> m_node_visited = {};
             const CompressedProblemsGraph& m_pbs;
 

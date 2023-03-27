@@ -6,6 +6,8 @@
 
 #include <string_view>
 
+#include <spdlog/spdlog.h>
+
 #include "mamba/core/context.hpp"
 #include "mamba/core/fetch.hpp"
 #include "mamba/core/output.hpp"
@@ -14,155 +16,12 @@
 #include "mamba/core/util_string.hpp"
 #include "mamba/version.hpp"
 
-#include "spdlog/spdlog.h"
-
+#include "compression.hpp"
+#include "curl.hpp"
 #include "progress_bar_impl.hpp"
 
 namespace mamba
 {
-    size_t ZstdStream::write(char* in, size_t size)
-    {
-        ZSTD_inBuffer input = { in, size, 0 };
-        ZSTD_outBuffer output = { buffer, BUFFER_SIZE, 0 };
-
-        while (input.pos < input.size)
-        {
-            auto ret = ZSTD_decompressStream(stream, &output, &input);
-            if (ZSTD_isError(ret))
-            {
-                LOG_ERROR << "ZSTD decompression error: " << ZSTD_getErrorName(ret);
-                return size + 1;
-            }
-            if (output.pos > 0)
-            {
-                size_t wcb_res = m_write_callback(buffer, 1, output.pos, m_write_callback_data);
-                if (wcb_res != output.pos)
-                {
-                    return size + 1;
-                }
-                output.pos = 0;
-            }
-        }
-        return size;
-    }
-
-    size_t Bzip2Stream::write(char* in, size_t size)
-    {
-        bz_stream* stream = static_cast<bz_stream*>(m_write_callback_data);
-        stream->next_in = in;
-        stream->avail_in = static_cast<unsigned int>(size);
-
-        while (stream->avail_in > 0)
-        {
-            stream->next_out = buffer;
-            stream->avail_out = Bzip2Stream::BUFFER_SIZE;
-
-            int ret = BZ2_bzDecompress(stream);
-            if (ret != BZ_OK && ret != BZ_STREAM_END)
-            {
-                LOG_ERROR << "Bzip2 decompression error: " << ret;
-                return size + 1;
-            }
-
-            size_t wcb_res = m_write_callback(
-                buffer,
-                1,
-                BUFFER_SIZE - stream->avail_out,
-                m_write_callback_data
-            );
-            if (wcb_res != BUFFER_SIZE - stream->avail_out)
-            {
-                return size + 1;
-            }
-        }
-        return size;
-    }
-
-
-    void init_curl_ssl()
-    {
-        auto& ctx = Context::instance();
-
-        if (!ctx.curl_initialized)
-        {
-            if (ctx.ssl_verify == "<false>")
-            {
-                LOG_DEBUG << "'ssl_verify' not activated, skipping cURL SSL init";
-                ctx.curl_initialized = true;
-                return;
-            }
-
-#ifdef LIBMAMBA_STATIC_DEPS
-            CURL* handle = curl_easy_init();
-            if (handle)
-            {
-                const struct curl_tlssessioninfo* info = NULL;
-                CURLcode res = curl_easy_getinfo(handle, CURLINFO_TLS_SSL_PTR, &info);
-                if (info && !res)
-                {
-                    if (info->backend == CURLSSLBACKEND_OPENSSL)
-                    {
-                        LOG_INFO << "Using OpenSSL backend";
-                    }
-                    else if (info->backend == CURLSSLBACKEND_SECURETRANSPORT)
-                    {
-                        LOG_INFO << "Using macOS SecureTransport backend";
-                    }
-                    else if (info->backend == CURLSSLBACKEND_SCHANNEL)
-                    {
-                        LOG_INFO << "Using Windows Schannel backend";
-                    }
-                    else if (info->backend != CURLSSLBACKEND_NONE)
-                    {
-                        LOG_INFO << "Using an unknown (to mamba) SSL backend";
-                    }
-                    else if (info->backend == CURLSSLBACKEND_NONE)
-                    {
-                        LOG_WARNING
-                            << "No SSL backend found! Please check how your cURL library is configured.";
-                    }
-                }
-                curl_easy_cleanup(handle);
-            }
-#endif
-
-            if (!ctx.ssl_verify.size() && std::getenv("REQUESTS_CA_BUNDLE") != nullptr)
-            {
-                ctx.ssl_verify = std::getenv("REQUESTS_CA_BUNDLE");
-                LOG_INFO << "Using REQUESTS_CA_BUNDLE " << ctx.ssl_verify;
-            }
-            else if (ctx.ssl_verify == "<system>" && on_linux)
-            {
-                std::array<std::string, 6> cert_locations{
-                    "/etc/ssl/certs/ca-certificates.crt",  // Debian/Ubuntu/Gentoo etc.
-                    "/etc/pki/tls/certs/ca-bundle.crt",    // Fedora/RHEL 6
-                    "/etc/ssl/ca-bundle.pem",              // OpenSUSE
-                    "/etc/pki/tls/cacert.pem",             // OpenELEC
-                    "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",  // CentOS/RHEL 7
-                    "/etc/ssl/cert.pem",                                  // Alpine Linux
-                };
-                bool found = false;
-
-                for (const auto& loc : cert_locations)
-                {
-                    if (fs::exists(loc))
-                    {
-                        ctx.ssl_verify = loc;
-                        found = true;
-                    }
-                }
-
-                if (!found)
-                {
-                    LOG_ERROR << "No CA certificates found on system";
-                    throw std::runtime_error("Aborting.");
-                }
-            }
-
-            ctx.curl_initialized = true;
-        }
-    }
-
     /*********************************
      * DownloadTarget implementation *
      *********************************/
@@ -172,76 +31,13 @@ namespace mamba
         , m_filename(filename)
         , m_url(unc_url(url))
     {
+        m_curl_handle = std::make_unique<CURLHandle>();
         init_curl_ssl();
-        m_handle = curl_easy_init();
-
         init_curl_target(m_url);
     }
 
     DownloadTarget::~DownloadTarget()
     {
-        curl_easy_cleanup(m_handle);
-        curl_slist_free_all(m_headers);
-    }
-
-    DownloadTarget::DownloadTarget(DownloadTarget&& rhs)
-        : result(std::move(rhs.result))
-        , failed(std::move(rhs.failed))
-        , http_status(std::move(rhs.http_status))
-        , downloaded_size(std::move(rhs.downloaded_size))
-        , avg_speed(std::move(rhs.avg_speed))
-        , final_url(std::move(rhs.final_url))
-        , etag(std::move(rhs.etag))
-        , mod(std::move(rhs.mod))
-        , cache_control(std::move(rhs.cache_control))
-        , m_finalize_callback(std::move(rhs.m_finalize_callback))
-        , m_name(std::move(rhs.m_name))
-        , m_filename(std::move(rhs.m_filename))
-        , m_url(std::move(rhs.m_url))
-        , m_expected_size(std::move(rhs.m_expected_size))
-        , m_next_retry(std::move(rhs.m_next_retry))
-        , m_retry_wait_seconds(std::move(rhs.m_retry_wait_seconds))
-        , m_retries(std::move(rhs.m_retries))
-        , m_handle(std::move(rhs.m_handle))
-        , m_headers(std::move(rhs.m_headers))
-        , m_has_progress_bar(std::move(rhs.m_has_progress_bar))
-        , m_ignore_failure(std::move(rhs.m_ignore_failure))
-        , m_progress_bar(std::move(rhs.m_progress_bar))
-        , m_file(std::move(rhs.m_file))
-    {
-        rhs.m_handle = nullptr;
-        rhs.m_headers = nullptr;
-        std::copy(rhs.m_errbuf, rhs.m_errbuf + CURL_ERROR_SIZE, m_errbuf);
-    }
-
-    DownloadTarget& DownloadTarget::operator=(DownloadTarget&& rhs)
-    {
-        using std::swap;
-        swap(result, rhs.result);
-        swap(failed, rhs.failed);
-        swap(http_status, rhs.http_status);
-        swap(downloaded_size, rhs.downloaded_size);
-        swap(avg_speed, rhs.avg_speed);
-        swap(final_url, rhs.final_url);
-        swap(etag, rhs.etag);
-        swap(mod, rhs.mod);
-        swap(cache_control, rhs.cache_control);
-        swap(m_finalize_callback, m_finalize_callback);
-        swap(m_name, rhs.m_name);
-        swap(m_filename, rhs.m_filename);
-        swap(m_url, rhs.m_url);
-        swap(m_expected_size, rhs.m_expected_size);
-        swap(m_next_retry, rhs.m_next_retry);
-        swap(m_retry_wait_seconds, rhs.m_retry_wait_seconds);
-        swap(m_retries, rhs.m_retries);
-        swap(m_handle, rhs.m_handle);
-        swap(m_headers, rhs.m_headers);
-        swap(m_has_progress_bar, rhs.m_has_progress_bar);
-        swap(m_ignore_failure, rhs.m_ignore_failure);
-        swap(m_progress_bar, rhs.m_progress_bar);
-        swap(m_errbuf, rhs.m_errbuf);
-        swap(m_file, rhs.m_file);
-        return *this;
     }
 
     std::size_t DownloadTarget::get_default_retry_timeout()
@@ -359,14 +155,84 @@ namespace mamba
         return 0;
     }
 
+    void DownloadTarget::init_curl_ssl()
+    {
+        auto& ctx = Context::instance();
+
+        if (!ctx.curl_initialized)
+        {
+            if (ctx.ssl_verify == "<false>")
+            {
+                LOG_DEBUG << "'ssl_verify' not activated, skipping cURL SSL init";
+                ctx.curl_initialized = true;
+                return;
+            }
+
+#ifdef LIBMAMBA_STATIC_DEPS
+            auto init_res = m_curl_handle->get_ssl_backend_info();
+            switch (init_res.second)
+            {
+                case CurlLogLevel::kInfo:
+                {
+                    LOG_INFO << init_res.first;
+                    break;
+                }
+                case CurlLogLevel::kWarning:
+                {
+                    LOG_WARNING << init_res.first;
+                    break;
+                }
+                case CurlLogLevel::kError:
+                {
+                    LOG_ERROR << init_res.first;
+                    break;
+                }
+            }
+#endif
+
+            if (!ctx.ssl_verify.size() && std::getenv("REQUESTS_CA_BUNDLE") != nullptr)
+            {
+                ctx.ssl_verify = std::getenv("REQUESTS_CA_BUNDLE");
+                LOG_INFO << "Using REQUESTS_CA_BUNDLE " << ctx.ssl_verify;
+            }
+            else if (ctx.ssl_verify == "<system>" && on_linux)
+            {
+                std::array<std::string, 6> cert_locations{
+                    "/etc/ssl/certs/ca-certificates.crt",  // Debian/Ubuntu/Gentoo etc.
+                    "/etc/pki/tls/certs/ca-bundle.crt",    // Fedora/RHEL 6
+                    "/etc/ssl/ca-bundle.pem",              // OpenSUSE
+                    "/etc/pki/tls/cacert.pem",             // OpenELEC
+                    "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",  // CentOS/RHEL 7
+                    "/etc/ssl/cert.pem",                                  // Alpine Linux
+                };
+                bool found = false;
+
+                for (const auto& loc : cert_locations)
+                {
+                    if (fs::exists(loc))
+                    {
+                        ctx.ssl_verify = loc;
+                        found = true;
+                    }
+                }
+
+                if (!found)
+                {
+                    LOG_ERROR << "No CA certificates found on system";
+                    throw std::runtime_error("Aborting.");
+                }
+            }
+
+            ctx.curl_initialized = true;
+        }
+    }
+
     void DownloadTarget::init_curl_target(const std::string& url)
     {
-        init_curl_handle(m_handle, url);
+        init_curl_handle(m_curl_handle->handle(), url);
 
-        curl_easy_setopt(m_handle, CURLOPT_ERRORBUFFER, m_errbuf);
-
-        curl_easy_setopt(m_handle, CURLOPT_HEADERFUNCTION, &DownloadTarget::header_callback);
-        curl_easy_setopt(m_handle, CURLOPT_HEADERDATA, this);
+        m_curl_handle->set_opt(CURLOPT_HEADERFUNCTION, &DownloadTarget::header_callback);
+        m_curl_handle->set_opt(CURLOPT_HEADERDATA, this);
 
         if (ends_with(url, ".json.zst"))
         {
@@ -375,8 +241,8 @@ namespace mamba
             {
                 m_filename = m_filename.substr(0, m_filename.size() - 4);
             }
-            curl_easy_setopt(m_handle, CURLOPT_WRITEFUNCTION, ZstdStream::write_callback);
-            curl_easy_setopt(m_handle, CURLOPT_WRITEDATA, m_zstd_stream.get());
+            m_curl_handle->set_opt(CURLOPT_WRITEFUNCTION, ZstdStream::write_callback);
+            m_curl_handle->set_opt(CURLOPT_WRITEDATA, m_zstd_stream.get());
         }
         else if (ends_with(url, ".json.bz2"))
         {
@@ -385,21 +251,20 @@ namespace mamba
             {
                 m_filename = m_filename.substr(0, m_filename.size() - 4);
             }
-            curl_easy_setopt(m_handle, CURLOPT_WRITEFUNCTION, Bzip2Stream::write_callback);
-            curl_easy_setopt(m_handle, CURLOPT_WRITEDATA, m_bzip2_stream.get());
+            m_curl_handle->set_opt(CURLOPT_WRITEFUNCTION, Bzip2Stream::write_callback);
+            m_curl_handle->set_opt(CURLOPT_WRITEDATA, m_bzip2_stream.get());
         }
         else
         {
-            curl_easy_setopt(m_handle, CURLOPT_WRITEFUNCTION, &DownloadTarget::write_callback);
-            curl_easy_setopt(m_handle, CURLOPT_WRITEDATA, this);
+            m_curl_handle->set_opt(CURLOPT_WRITEFUNCTION, &DownloadTarget::write_callback);
+            m_curl_handle->set_opt(CURLOPT_WRITEDATA, this);
         }
 
-        m_headers = nullptr;
         if (ends_with(url, ".json"))
         {
             // accept all encodings supported by the libcurl build
-            curl_easy_setopt(m_handle, CURLOPT_ACCEPT_ENCODING, "");
-            m_headers = curl_slist_append(m_headers, "Content-Type: application/json");
+            m_curl_handle->set_opt(CURLOPT_ACCEPT_ENCODING, "");
+            m_curl_handle->add_header("Content-Type: application/json");
         }
 
         std::string user_agent = fmt::format(
@@ -408,13 +273,13 @@ namespace mamba
             curl_version()
         );
 
-        m_headers = curl_slist_append(m_headers, user_agent.c_str());
-        curl_easy_setopt(m_handle, CURLOPT_HTTPHEADER, m_headers);
-        curl_easy_setopt(m_handle, CURLOPT_VERBOSE, Context::instance().verbosity >= 2);
+        m_curl_handle->add_header(user_agent);
+        m_curl_handle->set_opt_header();
+        m_curl_handle->set_opt(CURLOPT_VERBOSE, Context::instance().verbosity >= 2);
 
         auto logger = spdlog::get("libcurl");
-        curl_easy_setopt(m_handle, CURLOPT_DEBUGFUNCTION, curl_debug_callback);
-        curl_easy_setopt(m_handle, CURLOPT_DEBUGDATA, logger.get());
+        m_curl_handle->set_opt(CURLOPT_DEBUGFUNCTION, curl_debug_callback);
+        m_curl_handle->set_opt(CURLOPT_DEBUGDATA, logger.get());
     }
 
     bool DownloadTarget::can_retry()
@@ -461,17 +326,17 @@ namespace mamba
             {
                 fs::remove(m_filename);
             }
-            init_curl_target(m_url);
+            init_curl_target(m_url);  // Not sure this is needed, TODO to remove?
             if (m_has_progress_bar)
             {
-                curl_easy_setopt(m_handle, CURLOPT_XFERINFOFUNCTION, &DownloadTarget::progress_callback);
-                curl_easy_setopt(m_handle, CURLOPT_XFERINFODATA, this);
+                m_curl_handle->set_opt(CURLOPT_XFERINFOFUNCTION, &DownloadTarget::progress_callback);
+                m_curl_handle->set_opt(CURLOPT_XFERINFODATA, this);
             }
             m_retry_wait_seconds = m_retry_wait_seconds
                                    * static_cast<std::size_t>(Context::instance().retry_backoff);
             m_next_retry = now + std::chrono::seconds(m_retry_wait_seconds);
             m_retries++;
-            return m_handle;
+            return m_curl_handle->handle();
         }
         else
         {
@@ -639,11 +504,11 @@ namespace mamba
 
         if (!letag.empty())
         {
-            m_headers = curl_slist_append(m_headers, to_header("If-None-Match", letag).c_str());
+            m_curl_handle->add_header(to_header("If-None-Match", letag));
         }
         if (!lmod.empty())
         {
-            m_headers = curl_slist_append(m_headers, to_header("If-Modified-Since", lmod).c_str());
+            m_curl_handle->add_header(to_header("If-Modified-Since", lmod));
         }
     }
 
@@ -653,14 +518,19 @@ namespace mamba
         m_progress_bar = progress_proxy;
         m_progress_bar.set_repr_hook(download_repr());
 
-        curl_easy_setopt(m_handle, CURLOPT_XFERINFOFUNCTION, &DownloadTarget::progress_callback);
-        curl_easy_setopt(m_handle, CURLOPT_XFERINFODATA, this);
-        curl_easy_setopt(m_handle, CURLOPT_NOPROGRESS, 0L);
+        m_curl_handle->set_opt(CURLOPT_XFERINFOFUNCTION, &DownloadTarget::progress_callback);
+        m_curl_handle->set_opt(CURLOPT_XFERINFODATA, this);
+        m_curl_handle->set_opt(CURLOPT_NOPROGRESS, 0L);
     }
 
     void DownloadTarget::set_expected_size(std::size_t size)
     {
         m_expected_size = size;
+    }
+
+    void DownloadTarget::set_head_only(bool yes)
+    {
+        m_curl_handle->set_opt(CURLOPT_NOBODY, yes);
     }
 
     const std::string& DownloadTarget::name() const
@@ -691,6 +561,7 @@ namespace mamba
 
         curl_easy_setopt(handle, CURLOPT_FAILONERROR, 1L);
         curl_easy_setopt(handle, CURLOPT_NOBODY, 1L);
+
         if (curl_easy_perform(handle) == CURLE_OK)
         {
             return true;
@@ -718,32 +589,33 @@ namespace mamba
     {
         LOG_INFO << "Downloading to filename: " << m_filename;
 
-        result = curl_easy_perform(m_handle);
+        result = curl_easy_perform(m_curl_handle->handle());
         set_result(result);
         return finalize();
     }
 
     CURL* DownloadTarget::handle()
     {
-        return m_handle;
+        return m_curl_handle->handle();
     }
 
     curl_off_t DownloadTarget::get_speed()
     {
-        curl_off_t speed;
-        CURLcode res = curl_easy_getinfo(m_handle, CURLINFO_SPEED_DOWNLOAD_T, &speed);
-        if (res != CURLE_OK)
+        auto speed = m_curl_handle->get_info<long>(CURLINFO_SPEED_DOWNLOAD_T);
+        // TODO Should we just drop all code below with progress_bar and use value_or(0) in get_info
+        // above instead?
+        if (!speed.has_value())
         {
             if (m_has_progress_bar)
             {
-                speed = static_cast<curl_off_t>(m_progress_bar.avg_speed());
+                return static_cast<curl_off_t>(m_progress_bar.avg_speed());
             }
             else
             {
-                speed = 0;
+                return 0;
             }
         }
-        return speed;
+        return speed.value();
     }
 
     void DownloadTarget::set_result(CURLcode r)
@@ -751,15 +623,14 @@ namespace mamba
         result = r;
         if (r != CURLE_OK)
         {
-            char* leffective_url = nullptr;
-            curl_easy_getinfo(m_handle, CURLINFO_EFFECTIVE_URL, &leffective_url);
+            auto leffective_url = m_curl_handle->get_info<char*>(CURLINFO_EFFECTIVE_URL).value();
 
             std::stringstream err;
             err << "Download error (" << result << ") " << curl_easy_strerror(result) << " ["
                 << leffective_url << "]\n";
-            if (m_errbuf[0] != '\0')
+            if (m_curl_handle->m_errorbuffer[0] != '\0')
             {
-                err << m_errbuf;
+                err << m_curl_handle->m_errorbuffer;
             }
             LOG_INFO << err.str();
 
@@ -782,9 +653,9 @@ namespace mamba
     bool DownloadTarget::finalize()
     {
         avg_speed = get_speed();
-        curl_easy_getinfo(m_handle, CURLINFO_RESPONSE_CODE, &http_status);
-        curl_easy_getinfo(m_handle, CURLINFO_EFFECTIVE_URL, &effective_url);
-        curl_easy_getinfo(m_handle, CURLINFO_SIZE_DOWNLOAD_T, &downloaded_size);
+        http_status = m_curl_handle->get_info<int>(CURLINFO_RESPONSE_CODE).value_or(10000);
+        effective_url = m_curl_handle->get_info<char*>(CURLINFO_EFFECTIVE_URL).value();
+        downloaded_size = m_curl_handle->get_info<long>(CURLINFO_SIZE_DOWNLOAD_T).value_or(0);
 
         LOG_INFO << get_transfer_msg();
 
@@ -793,7 +664,8 @@ namespace mamba
             // this request didn't work!
 
             // respect Retry-After header if present, otherwise use default timeout
-            curl_easy_getinfo(m_handle, CURLINFO_RETRY_AFTER, &m_retry_wait_seconds);
+            m_retry_wait_seconds = m_curl_handle->get_info<std::size_t>(CURLINFO_RETRY_AFTER)
+                                       .value_or(0);
             if (!m_retry_wait_seconds)
             {
                 m_retry_wait_seconds = get_default_retry_timeout();

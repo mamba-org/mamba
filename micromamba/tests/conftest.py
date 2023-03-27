@@ -8,6 +8,25 @@ import pytest
 
 from . import helpers
 
+####################
+#  Config options  #
+####################
+
+
+def pytest_addoption(parser):
+    """Add pkgs-dir command line argument to pytest."""
+    parser.addoption(
+        "--mamba-pkgs-dir",
+        action="store",
+        default=None,
+        help="Package cache to resuse between tests",
+    )
+
+
+##################
+#  Test fixture  #
+##################
+
 
 @pytest.fixture
 def tmp_home(tmp_path: pathlib.Path) -> Generator[pathlib.Path, None, None]:
@@ -32,11 +51,15 @@ def tmp_home(tmp_path: pathlib.Path) -> Generator[pathlib.Path, None, None]:
 
 
 @pytest.fixture(scope="session")
-def tmp_pkgs_dirs(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+def tmp_pkgs_dirs(tmp_path_factory: pytest.TempPathFactory, request) -> pathlib.Path:
     """A common package cache for mamba downloads.
 
     The directory is not used automatically when calling this fixture.
     """
+    if (p := request.config.getoption("--mamba-pkgs-dir")) is not None:
+        p = pathlib.Path(p)
+        p.mkdir(parents=True, exist_ok=True)
+        return p
     return tmp_path_factory.mktemp("pkgs_dirs")
 
 

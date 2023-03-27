@@ -77,7 +77,7 @@ namespace mamba
     }
 }
 
-namespace validate
+namespace mamba::validation
 {
     trust_error::trust_error(const std::string& message) noexcept
         : m_message("Content trust error. " + message + ". Aborting.")

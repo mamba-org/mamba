@@ -831,7 +831,7 @@ namespace mamba
                 {
                     bool is_invalid = false;
                     if (p.path_type != PathType::SOFTLINK
-                        && !validate::file_size(full_path, p.size_in_bytes))
+                        && !validation::file_size(full_path, p.size_in_bytes))
                     {
                         LOG_WARNING << "Invalid package cache, file '" << full_path.string()
                                     << "' has incorrect size";
@@ -842,7 +842,7 @@ namespace mamba
                         }
                     }
                     if (full_validation && !is_invalid && p.path_type != PathType::SOFTLINK
-                        && !validate::sha256(full_path, p.sha256))
+                        && !validation::sha256(full_path, p.sha256))
                     {
                         LOG_WARNING << "Invalid package cache, file '" << full_path.string()
                                     << "' has incorrect SHA-256 checksum";

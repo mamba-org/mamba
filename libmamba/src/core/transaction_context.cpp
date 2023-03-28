@@ -101,6 +101,7 @@ namespace mamba
     )
         : has_python(py_versions.first.size() != 0)
         , target_prefix(ltarget_prefix)
+        , relocate_prefix(ltarget_prefix)
         , python_version(py_versions.first)
         , old_python_version(py_versions.second)
         , requested_specs(lrequested_specs)
@@ -133,12 +134,31 @@ namespace mamba
         }
     }
 
+    TransactionContext::TransactionContext(
+        const fs::u8path& ltarget_prefix,
+        const fs::u8path& lrelocate_prefix,
+        const std::pair<std::string, std::string>& py_versions,
+        const std::vector<MatchSpec>& lrequested_specs
+    )
+        : TransactionContext(ltarget_prefix, py_versions, lrequested_specs)
+    {
+        if (lrelocate_prefix.empty())
+        {
+            relocate_prefix = ltarget_prefix;
+        }
+        else
+        {
+            relocate_prefix = lrelocate_prefix;
+        }
+    }
+
     TransactionContext& TransactionContext::operator=(const TransactionContext& other)
     {
         if (this != &other)
         {
             has_python = other.has_python;
             target_prefix = other.target_prefix;
+            relocate_prefix = other.relocate_prefix;
             python_version = other.python_version;
             old_python_version = other.old_python_version;
             requested_specs = other.requested_specs;

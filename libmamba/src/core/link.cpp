@@ -157,7 +157,7 @@ namespace mamba
         fs::u8path python_path;
         if (m_context->has_python)
         {
-            python_path = m_context->target_prefix / m_context->python_path;
+            python_path = m_context->relocate_prefix / m_context->python_path;
         }
         if (!python_path.empty())
         {
@@ -597,7 +597,7 @@ namespace mamba
             // Sometimes we might want to raise here ...
             m_clobber_warnings.push_back(rel_dst.string());
 #ifdef _WIN32
-            return std::make_tuple(validate::sha256sum(dst), rel_dst.string());
+            return std::make_tuple(validation::sha256sum(dst), rel_dst.string());
 #endif
             fs::remove(dst);
         }
@@ -614,7 +614,7 @@ namespace mamba
         {
             // we have to replace the PREFIX stuff in the data
             // and copy the file
-            std::string new_prefix = m_context->target_prefix.string();
+            std::string new_prefix = m_context->relocate_prefix.string();
 #ifdef _WIN32
             replace_all(new_prefix, "\\", "/");
 #endif
@@ -689,7 +689,7 @@ namespace mamba
                         fo << launcher << shebang << (buffer.c_str() + arc_pos);
                         fo.close();
                     }
-                    return std::make_tuple(validate::sha256sum(dst), rel_dst.string());
+                    return std::make_tuple(validation::sha256sum(dst), rel_dst.string());
                 }
 #else
                 std::size_t padding_size = (path_data.prefix_placeholder.size() > new_prefix.size())
@@ -738,7 +738,7 @@ namespace mamba
                 codesign(dst, Context::instance().verbosity > 1);
             }
 #endif
-            return std::make_tuple(validate::sha256sum(dst), rel_dst.string());
+            return std::make_tuple(validation::sha256sum(dst), rel_dst.string());
         }
 
         if ((path_data.path_type == PathType::HARDLINK) || path_data.no_link)
@@ -800,7 +800,7 @@ namespace mamba
             );
         }
         return std::make_tuple(
-            path_data.sha256.empty() ? validate::sha256sum(dst) : path_data.sha256,
+            path_data.sha256.empty() ? validation::sha256sum(dst) : path_data.sha256,
             rel_dst.string()
         );
     }
@@ -956,7 +956,7 @@ namespace mamba
 
                     if (exists)
                     {
-                        paths_json["paths"][i]["sha256_in_prefix"] = validate::sha256sum(
+                        paths_json["paths"][i]["sha256_in_prefix"] = validation::sha256sum(
                             m_context->target_prefix / files_record[i]
                         );
                     }

@@ -182,7 +182,6 @@ namespace mamba
         static std::unique_ptr<Singleton<Configuration>> config;
         static std::unique_ptr<Singleton<ChannelCache>> channel_cache;
         static std::unique_ptr<Singleton<ChannelContext>> channel_context;
-        static std::unique_ptr<Singleton<validate::TimeRef>> time_ref;
     }
 
 
@@ -211,12 +210,4 @@ namespace mamba
         return singletons::init_once(singletons::channel_cache);
     }
 
-}
-
-namespace validate
-{
-    TimeRef& TimeRef::instance()
-    {
-        return mamba::singletons::init_once(mamba::singletons::time_ref);
-    }
 }

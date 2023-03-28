@@ -145,11 +145,11 @@ namespace mamba
         return m_package_filename;
     }
 
-    const validate::RepoChecker& Channel::repo_checker(MultiPackageCache& caches) const
+    const validation::RepoChecker& Channel::repo_checker(MultiPackageCache& caches) const
     {
         if (p_repo_checker == nullptr)
         {
-            p_repo_checker = std::make_unique<validate::RepoChecker>(
+            p_repo_checker = std::make_unique<validation::RepoChecker>(
                 rsplit(base_url(), "/", 1).front(),
                 Context::instance().root_prefix / "etc" / "trusted-repos"
                     / cache_name_from_url(base_url()),

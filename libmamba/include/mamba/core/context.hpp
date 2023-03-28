@@ -129,6 +129,7 @@ namespace mamba
         fs::u8path target_prefix;
         fs::u8path root_prefix;
         fs::u8path conda_prefix;
+        fs::u8path relocate_prefix;
 
         // TODO check writable and add other potential dirs
         std::vector<fs::u8path> envs_dirs;

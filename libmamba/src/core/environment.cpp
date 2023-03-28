@@ -9,6 +9,7 @@
 
 #ifdef _WIN32
 #include "mamba/core/output.hpp"
+#include "mamba/core/util_os.hpp"
 #endif
 
 namespace mamba
@@ -18,31 +19,10 @@ namespace mamba
         std::optional<std::string> get(const std::string& key)
         {
 #ifdef _WIN32
-            const size_t initial_size = 1024;
-            std::unique_ptr<char[]> temp_small = std::make_unique<char[]>(initial_size);
-            std::size_t size = GetEnvironmentVariableA(key.c_str(), temp_small.get(), initial_size);
-            if (size == 0)  // Error or empty/missing
+            const std::wstring unicode_key(key.begin(), key.end());
+            if (const auto value = _wgetenv(unicode_key.c_str()))
             {
-                // Note that on Windows environment variables can never be empty,
-                // only missing. See https://stackoverflow.com/a/39095782
-                auto last_err = GetLastError();
-                if (last_err != ERROR_ENVVAR_NOT_FOUND)
-                {
-                    LOG_ERROR << "Could not get environment variable: " << last_err;
-                }
-                return {};
-            }
-            else if (size > initial_size)  // Buffer too small
-            {
-                std::unique_ptr<char[]> temp_large = std::make_unique<char[]>(size);
-                GetEnvironmentVariableA(key.c_str(), temp_large.get(), size);
-                std::string res(temp_large.get());
-                return res;
-            }
-            else  // Success
-            {
-                std::string res(temp_small.get());
-                return res;
+                return mamba::to_utf8(value);
             }
 #else
             const char* value = std::getenv(key.c_str());
@@ -50,11 +30,8 @@ namespace mamba
             {
                 return value;
             }
-            else
-            {
-                return {};
-            }
 #endif
+            return {};
         }
 
         bool set(const std::string& key, const std::string& value)

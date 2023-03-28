@@ -135,7 +135,7 @@ You can either rely on ``libmamba`` package already installed in your environmen
         -DBUILD_LIBMAMBAPY=ON
     cmake --build build/
 
-or rebuild ``libmamba`` in the same time:
+or rebuild ``libmamba`` at the same time:
 
 .. code:: bash
 
@@ -202,7 +202,7 @@ To build ``micromamba``, activate the ``BUILD_MICROMAMBA`` flag in ``cmake`` com
         -DBUILD_SHARED=ON
     cmake --build build/
 
-or rebuild ``libmamba`` in the same time:
+or rebuild ``libmamba`` at the same time:
 
 .. code:: bash
 

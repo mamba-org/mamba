@@ -199,7 +199,7 @@ To build ``micromamba``, activate the ``BUILD_MICROMAMBA`` flag in ``cmake`` com
 
     cmake -B build/ \
         -DBUILD_MICROMAMBA=ON \
-        -DBULD_SHARED=ON
+        -DBUILD_SHARED=ON
     cmake --build build/
 
 or rebuild ``libmamba`` in the same time:

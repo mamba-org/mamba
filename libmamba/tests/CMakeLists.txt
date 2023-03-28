@@ -11,6 +11,7 @@ mamba_target_add_compile_warnings(testing_libmamba_lock WARNING_AS_ERROR ${MAMBA
 
 
 set(LIBMAMBA_TEST_SRCS
+    src/test_main.cpp
     # C++ wrapping of libsolv
     src/solv-cpp/test_queue.cpp
     # Utility library
@@ -62,13 +63,13 @@ target_include_directories(
     PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/libmamba/src"
 )
 
-find_package(GTest REQUIRED)
+find_package(doctest REQUIRED)
 find_package(Threads REQUIRED)
 
 target_link_libraries(
     test_libmamba
     PUBLIC libmamba
-    PRIVATE GTest::GTest GTest::Main Threads::Threads
+    PRIVATE doctest::doctest Threads::Threads
 )
 
 # Copy data directory into binary dir to avoid modifications

@@ -1,6 +1,12 @@
-#include <gtest/gtest.h>
+// Copyright (c) 2019, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
 
-#include <mamba/core/execution.hpp>
+#include <doctest/doctest.h>
+
+#include "mamba/core/execution.hpp"
 
 namespace mamba
 {
@@ -35,73 +41,75 @@ namespace mamba
         }
     }
 
-    TEST(execution, stop_default_always_succeeds)
+    TEST_SUITE("execution")
     {
-        MainExecutor::stop_default();  // Make sure no other default main executor is running.
-        MainExecutor::instance();      // Make sure we use the defaut main executor.
-        MainExecutor::stop_default();  // Stop the default main executor and make sure it's not
-                                       // enabled for the following tests.
-        MainExecutor::stop_default();  // However the number of time we call it it should never
-                                       // fail.
-    }
-
-
-    TEST(execution, manual_executor_construction_destruction)
-    {
-        MainExecutor executor;
-    }
-
-    TEST(execution, two_main_executors_fails)
-    {
-        MainExecutor executor;
-        ASSERT_THROW(MainExecutor{}, MainExecutorError);
-    }
-
-    TEST(execution, tasks_complete_before_destruction_ends)
-    {
-        constexpr std::size_t arbitrary_task_count = 2048;
-        constexpr std::size_t arbitrary_tasks_per_generator = 24;
-        std::atomic<int> counter{ 0 };
+        TEST_CASE("stop_default_always_succeeds")
         {
-            MainExecutor executor;
-
-            execute_tasks_from_concurrent_threads(
-                arbitrary_task_count,
-                arbitrary_tasks_per_generator,
-                [&] { executor.schedule([&] { ++counter; }); }
-            );
-        }  // All threads from the executor must have been joined here.
-        EXPECT_EQ(counter, arbitrary_task_count);
-    }
-
-    TEST(execution, closed_prevents_more_scheduling_and_joins)
-    {
-        constexpr std::size_t arbitrary_task_count = 2048;
-        constexpr std::size_t arbitrary_tasks_per_generator = 36;
-        std::atomic<int> counter{ 0 };
-        {
-            MainExecutor executor;
-
-            execute_tasks_from_concurrent_threads(
-                arbitrary_task_count,
-                arbitrary_tasks_per_generator,
-                [&] { executor.schedule([&] { ++counter; }); }
-            );
-
-            executor.close();
-            EXPECT_EQ(counter, arbitrary_task_count);
-
-            execute_tasks_from_concurrent_threads(
-                arbitrary_task_count,
-                arbitrary_tasks_per_generator,
-                [&] { executor.schedule([&] { throw "this code must never be executed"; }); }
-            );
+            MainExecutor::stop_default();  // Make sure no other default main executor is running.
+            MainExecutor::instance();      // Make sure we use the defaut main executor.
+            MainExecutor::stop_default();  // Stop the default main executor and make sure it's not
+                                           // enabled for the following tests.
+            MainExecutor::stop_default();  // However the number of time we call it it should never
+                                           // fail.
         }
-        EXPECT_EQ(
-            counter,
-            arbitrary_task_count
-        );  // We re-check to make sure no thread are executed anymore
-            // as soon as `.close()` was called.
+
+        TEST_CASE("manual_executor_construction_destruction")
+        {
+            MainExecutor executor;
+        }
+
+        TEST_CASE("two_main_executors_fails")
+        {
+            MainExecutor executor;
+            REQUIRE_THROWS_AS(MainExecutor{}, MainExecutorError);
+        }
+
+        TEST_CASE("tasks_complete_before_destruction_ends")
+        {
+            constexpr std::size_t arbitrary_task_count = 2048;
+            constexpr std::size_t arbitrary_tasks_per_generator = 24;
+            std::atomic<int> counter{ 0 };
+            {
+                MainExecutor executor;
+
+                execute_tasks_from_concurrent_threads(
+                    arbitrary_task_count,
+                    arbitrary_tasks_per_generator,
+                    [&] { executor.schedule([&] { ++counter; }); }
+                );
+            }  // All threads from the executor must have been joined here.
+            CHECK_EQ(counter, arbitrary_task_count);
+        }
+
+        TEST_CASE("closed_prevents_more_scheduling_and_joins")
+        {
+            constexpr std::size_t arbitrary_task_count = 2048;
+            constexpr std::size_t arbitrary_tasks_per_generator = 36;
+            std::atomic<int> counter{ 0 };
+            {
+                MainExecutor executor;
+
+                execute_tasks_from_concurrent_threads(
+                    arbitrary_task_count,
+                    arbitrary_tasks_per_generator,
+                    [&] { executor.schedule([&] { ++counter; }); }
+                );
+
+                executor.close();
+                CHECK_EQ(counter, arbitrary_task_count);
+
+                execute_tasks_from_concurrent_threads(
+                    arbitrary_task_count,
+                    arbitrary_tasks_per_generator,
+                    [&] { executor.schedule([&] { throw "this code must never be executed"; }); }
+                );
+            }
+            CHECK_EQ(
+                counter,
+                arbitrary_task_count
+            );  // We re-check to make sure no thread are executed anymore
+                // as soon as `.close()` was called.
+        }
     }
 
 }

@@ -6,10 +6,9 @@
 
 #include <string>
 
-#include <gtest/gtest.h>
+#include <doctest/doctest.h>
 
 #include "mamba/core/util_os.hpp"
-
 
 #ifdef _WIN32
 
@@ -19,16 +18,19 @@ namespace
     const std::string text_utf8 = u8"Hello, I am Joël. 私のにほんごわへたです";
 }
 
-TEST(to_utf8, basic_unicode_conversion)
+TEST_SUITE("basic_unicode_conversion")
 {
-    auto result = mamba::to_utf8(text_utf16);
-    EXPECT_EQ(text_utf8, result);
-}
+    TEST_CASE("to_utf8")
+    {
+        auto result = mamba::to_utf8(text_utf16);
+        CHECK_EQ(text_utf8, result);
+    }
 
-TEST(to_windows_unicode, basic_unicode_conversion)
-{
-    auto result = mamba::to_windows_unicode(text_utf8);
-    EXPECT_EQ(text_utf16, result);
+    TEST_CASE("to_windows_unicode")
+    {
+        auto result = mamba::to_windows_unicode(text_utf8);
+        CHECK_EQ(text_utf16, result);
+    }
 }
 
 #endif

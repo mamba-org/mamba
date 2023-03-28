@@ -1,3 +1,19 @@
+libmamba 1.4.1 (March 28, 2023)
+===============================
+
+Enhancements:
+
+- First version/steps of unraveling fetch code and wrapping libcurl by @Hind-M in https://github.com/mamba-org/mamba/pull/2376
+- Parse repodata.json by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2391
+- TimeRef is not a singleton anymore by @Klaim in https://github.com/mamba-org/mamba/pull/2396
+- Handle url via ChannelBuilder in Repo constructor by @jaimergp in https://github.com/mamba-org/mamba/pull/2398
+- add option to relocate prefix by @DerThorsten in https://github.com/mamba-org/mamba/pull/2385
+- Renamed validate namespace to `mamba::validation by @Klaim in https://github.com/mamba-org/mamba/pull/2411
+
+Bug fixes:
+
+- Fixed build with older Clang by @ZhongRuoyu in https://github.com/mamba-org/mamba/pull/2397
+
 libmamba 1.4.0 (March 22, 2023)
 ===============================
 

@@ -138,20 +138,12 @@ def tmp_empty_env(
 ) -> Generator[pathlib.Path, None, None]:
     """An empty envirnment created under a temporary root prefix."""
     helpers.create("-n", tmp_env_name, no_dry_run=True)
-    yield tmp_root_prefix
+    yield tmp_root_prefix / "envs" / tmp_env_name
 
 
 @pytest.fixture
-def tmp_prefix(
-    tmp_root_prefix: pathlib.Path, tmp_env_name: str
-) -> Generator[pathlib.Path, None, None]:
+def tmp_prefix(tmp_empty_env: pathlib.Path) -> Generator[pathlib.Path, None, None]:
     """Change the conda prefix to a tmp folder for the duration of a test."""
-    old_prefix = os.environ.get("CONDA_PREFIX")
-    new_prefix = tmp_root_prefix / "envs" / tmp_env_name
-    new_prefix.mkdir(parents=True, exist_ok=True)
-    os.environ["CONDA_PREFIX"] = str(new_prefix)
-    yield new_prefix
-    if old_prefix is not None:
-        os.environ["CONDA_PREFIX"] = old_prefix
-    else:
-        del os.environ["CONDA_PREFIX"]
+    os.environ["CONDA_PREFIX"] = str(tmp_empty_env)
+    yield tmp_empty_env
+    # os.environ restored by tmp_environ through tmp_root_prefix

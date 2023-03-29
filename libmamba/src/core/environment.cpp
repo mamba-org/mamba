@@ -22,7 +22,9 @@ namespace mamba
 #ifdef _WIN32
             // See: https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/getenv-s-wgetenv-s?view=msvc-170
             static std::mutex call_mutex;
-            std::scoped_lock ready_to_execute{ call_mutex }; // Calls to getenv_s kinds of functions are not thread-safe, this is to prevent related issues.
+            std::scoped_lock ready_to_execute{ call_mutex };  // Calls to getenv_s kinds of
+                                                              // functions are not thread-safe, this
+                                                              // is to prevent related issues.
 
             const auto on_failed = [&](errno_t error_code){
                 LOG_ERROR << fmt::format(
@@ -32,7 +34,7 @@ namespace mamba
                 );
             };
 
-            const std::wstring unicode_key(key.begin(), key.end());
+            const std::wstring unicode_key = to_windows_unicode(key);
             size_t required_size = 0;
             if (auto error_code = _wgetenv_s(&required_size, nullptr, 0, unicode_key.c_str());
                 error_code == 0)
@@ -42,11 +44,13 @@ namespace mamba
                     return {};
                 }
 
-                std::wstring value(required_size, L'?'); // Note: The required size implies a `\0` but basic_string doesn't.
+                std::wstring value(required_size, L'?');  // Note: The required size implies a `\0`
+                                                          // but basic_string doesn't.
                 if (error_code = _wgetenv_s(&required_size, value.data(), value.size(), unicode_key.c_str());
                     error_code == 0)
                 {
-                    value.pop_back(); // Remove the `\0` that was written in, otherwise any future concatenation will fail.
+                    value.pop_back();  // Remove the `\0` that was written in, otherwise any future
+                                       // concatenation will fail.
                     return mamba::to_utf8(value);
                 }
                 else
@@ -71,11 +75,24 @@ namespace mamba
         bool set(const std::string& key, const std::string& value)
         {
 #ifdef _WIN32
-            //_setenv_s
-            auto res = SetEnvironmentVariableA(key.c_str(), value.c_str());
+            // See:
+            // https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/getenv-s-wgetenv-s?view=msvc-170
+            static std::mutex call_mutex;
+            std::scoped_lock ready_to_execute{ call_mutex };  // Calls to getenv_s kinds of
+                                                              // functions are not thread-safe, this
+                                                              // is to prevent related issues.
+
+            const std::wstring unicode_key = to_windows_unicode(key);
+            const std::wstring unicode_value = to_windows_unicode(value);
+            auto res = _wputenv_s(unicode_key.c_str(), unicode_value.c_str());
             if (!res)
             {
-                LOG_ERROR << "Could not set environment variable: " << GetLastError();
+                LOG_ERROR << fmt::format(
+                    "Could not set environment variable '{}' to '{}' : {}",
+                    key,
+                    value,
+                    GetLastError()
+                );
             }
             return res;
 #else
@@ -86,11 +103,7 @@ namespace mamba
         void unset(const std::string& key)
         {
 #ifdef _WIN32
-            auto res = SetEnvironmentVariableA(key.c_str(), NULL);
-            if (!res)
-            {
-                LOG_ERROR << "Could not unset environment variable: " << GetLastError();
-            }
+            set(key, "");
 #else
             unsetenv(key.c_str());
 #endif

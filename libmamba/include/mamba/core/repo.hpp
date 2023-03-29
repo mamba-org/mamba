@@ -138,6 +138,8 @@ namespace mamba
 
         MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& uris);
 
+        void init(MPool& pool);
+
         bool read_file(const fs::u8path& filename);
 
         fs::u8path m_json_file, m_solv_file;
@@ -146,6 +148,8 @@ namespace mamba
         RepoMetadata m_metadata;
 
         Repo* m_repo;
+        ::Id m_real_repo_key = 0;
+        ::Id m_noarch_repo_key = 0;
         const Channel* p_channel = nullptr;
     };
 

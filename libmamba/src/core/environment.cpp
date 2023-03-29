@@ -9,6 +9,7 @@
 
 #ifdef _WIN32
 #include <mutex>
+
 #include "mamba/core/output.hpp"
 #include "mamba/core/util_os.hpp"
 #endif
@@ -20,13 +21,15 @@ namespace mamba
         std::optional<std::string> get(const std::string& key)
         {
 #ifdef _WIN32
-            // See: https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/getenv-s-wgetenv-s?view=msvc-170
+            // See:
+            // https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/getenv-s-wgetenv-s?view=msvc-170
             static std::mutex call_mutex;
             std::scoped_lock ready_to_execute{ call_mutex };  // Calls to getenv_s kinds of
                                                               // functions are not thread-safe, this
                                                               // is to prevent related issues.
 
-            const auto on_failed = [&](errno_t error_code){
+            const auto on_failed = [&](errno_t error_code)
+            {
                 LOG_ERROR << fmt::format(
                     "Failed to acquire environment variable '{}' : errcode = {}",
                     key,
@@ -39,14 +42,19 @@ namespace mamba
             if (auto error_code = _wgetenv_s(&required_size, nullptr, 0, unicode_key.c_str());
                 error_code == 0)
             {
-                if (required_size == 0) // The value doesn't exist.
+                if (required_size == 0)  // The value doesn't exist.
                 {
                     return {};
                 }
 
                 std::wstring value(required_size, L'?');  // Note: The required size implies a `\0`
                                                           // but basic_string doesn't.
-                if (error_code = _wgetenv_s(&required_size, value.data(), value.size(), unicode_key.c_str());
+                if (error_code = _wgetenv_s(
+                        &required_size,
+                        value.data(),
+                        value.size(),
+                        unicode_key.c_str()
+                    );
                     error_code == 0)
                 {
                     value.pop_back();  // Remove the `\0` that was written in, otherwise any future

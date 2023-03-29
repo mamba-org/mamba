@@ -4,12 +4,108 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+// TODO remove all these includes later?
 #include <spdlog/spdlog.h>
+
+#include "mamba/core/mamba_fs.hpp"  // for fs::exists
+#include "mamba/core/util.hpp"      // for hide_secrets
 
 #include "curl.hpp"
 
 namespace mamba
 {
+    namespace curl
+    {
+        void set_curl_handle(
+            CURL* handle,
+            const std::string& url,
+            const bool set_low_speed_opt,
+            const long& connect_timeout_secs,
+            const bool ssl_no_revoke,
+            const std::optional<std::string> proxy,
+            const std::string& ssl_verify
+        )
+        {
+            curl_easy_setopt(handle, CURLOPT_URL, url.c_str());
+            curl_easy_setopt(handle, CURLOPT_NETRC, CURL_NETRC_OPTIONAL);
+            curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
+
+            // This can improve throughput significantly, see
+            // https://github.com/curl/curl/issues/9601
+            curl_easy_setopt(handle, CURLOPT_BUFFERSIZE, 100 * 1024);
+
+            // DO NOT SET TIMEOUT as it will also take into account multi-start time and
+            // it's just wrong curl_easy_setopt(m_handle, CURLOPT_TIMEOUT,
+            // Context::instance().read_timeout_secs);
+
+            // TODO while libcurl in conda now _has_ http2 support we need to fix mamba to
+            // work properly with it this includes:
+            // - setting the cache stuff correctly
+            // - fixing how the progress bar works
+            curl_easy_setopt(handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+
+            if (set_low_speed_opt)
+            {
+                curl_easy_setopt(handle, CURLOPT_LOW_SPEED_TIME, 60L);
+                curl_easy_setopt(handle, CURLOPT_LOW_SPEED_LIMIT, 30L);
+            }
+
+            curl_easy_setopt(handle, CURLOPT_CONNECTTIMEOUT, connect_timeout_secs);
+
+            if (ssl_no_revoke)
+            {
+                curl_easy_setopt(handle, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NO_REVOKE);
+            }
+
+            if (proxy)
+            {
+                curl_easy_setopt(handle, CURLOPT_PROXY, proxy->c_str());
+                // TODO LOG_INFO was used here instead; to be modified later following the new log
+                // procedure (TBD)
+                spdlog::info("Using Proxy {}", hide_secrets(*proxy));
+            }
+
+            if (ssl_verify.size())
+            {
+                if (ssl_verify == "<false>")
+                {
+                    curl_easy_setopt(handle, CURLOPT_SSL_VERIFYPEER, 0L);
+                    curl_easy_setopt(handle, CURLOPT_SSL_VERIFYHOST, 0L);
+                    if (proxy)
+                    {
+                        curl_easy_setopt(handle, CURLOPT_PROXY_SSL_VERIFYPEER, 0L);
+                        curl_easy_setopt(handle, CURLOPT_PROXY_SSL_VERIFYHOST, 0L);
+                    }
+                }
+                else if (ssl_verify == "<system>")
+                {
+#ifdef LIBMAMBA_STATIC_DEPS
+                    curl_easy_setopt(handle, CURLOPT_CAINFO, nullptr);
+                    if (proxy)
+                    {
+                        curl_easy_setopt(handle, CURLOPT_PROXY_CAINFO, nullptr);
+                    }
+#endif
+                }
+                else
+                {
+                    if (!fs::exists(ssl_verify))
+                    {
+                        throw std::runtime_error("ssl_verify does not contain a valid file path.");
+                    }
+                    else
+                    {
+                        curl_easy_setopt(handle, CURLOPT_CAINFO, ssl_verify.c_str());
+                        if (proxy)
+                        {
+                            curl_easy_setopt(handle, CURLOPT_PROXY_CAINFO, ssl_verify.c_str());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     /**************
      * curl_error *
      **************/
@@ -205,4 +301,10 @@ namespace mamba
         set_opt(CURLOPT_HTTPHEADER, p_headers);
         return *this;
     }
+
+    const char* CURLHandle::get_error_buffer() const
+    {
+        return m_errorbuffer;
+    }
+
 }  // namespace mamba

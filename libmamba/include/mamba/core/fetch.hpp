@@ -129,6 +129,8 @@ namespace mamba
 
         std::ofstream m_file;
 
+        bool m_curl_initialized;
+
         static std::size_t get_default_retry_timeout();
         static void init_curl_handle(CURL* handle, const std::string& url);
         std::function<void(ProgressBarRepr&)> download_repr();

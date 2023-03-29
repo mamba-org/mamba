@@ -8,6 +8,7 @@
 #include "mamba/core/util_string.hpp"
 
 #ifdef _WIN32
+#include <mutex>
 #include "mamba/core/output.hpp"
 #include "mamba/core/util_os.hpp"
 #endif
@@ -19,10 +20,43 @@ namespace mamba
         std::optional<std::string> get(const std::string& key)
         {
 #ifdef _WIN32
+            // See: https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/getenv-s-wgetenv-s?view=msvc-170
+            static std::mutex call_mutex;
+            std::scoped_lock ready_to_execute{ call_mutex }; // Calls to getenv_s kinds of functions are not thread-safe, this is to prevent related issues.
+
+            const auto on_failed = [&](errno_t error_code){
+                LOG_ERROR << fmt::format(
+                    "Failed to acquire environment variable '{}' : errcode = {}",
+                    key,
+                    error_code
+                );
+            };
+
             const std::wstring unicode_key(key.begin(), key.end());
-            if (const auto value = _wgetenv(unicode_key.c_str()))
+            size_t required_size = 0;
+            if (auto error_code = _wgetenv_s(&required_size, nullptr, 0, unicode_key.c_str());
+                error_code == 0)
             {
-                return mamba::to_utf8(value);
+                if (required_size == 0) // The value doesn't exist.
+                {
+                    return {};
+                }
+
+                std::wstring value(required_size, L'?'); // Note: The required size implies a `\0` but basic_string doesn't.
+                if (error_code = _wgetenv_s(&required_size, value.data(), value.size(), unicode_key.c_str());
+                    error_code == 0)
+                {
+                    value.pop_back(); // Remove the `\0` that was written in, otherwise any future concatenation will fail.
+                    return mamba::to_utf8(value);
+                }
+                else
+                {
+                    on_failed(error_code);
+                }
+            }
+            else
+            {
+                on_failed(error_code);
             }
 #else
             const char* value = std::getenv(key.c_str());
@@ -37,6 +71,7 @@ namespace mamba
         bool set(const std::string& key, const std::string& value)
         {
 #ifdef _WIN32
+            //_setenv_s
             auto res = SetEnvironmentVariableA(key.c_str(), value.c_str());
             if (!res)
             {

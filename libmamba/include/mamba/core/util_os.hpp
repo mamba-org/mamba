@@ -40,9 +40,10 @@ namespace mamba
     void reset_console();
 
 #ifdef _WIN32
-    std::string to_utf8(const wchar_t* w, size_t s);
-    std::string to_utf8(const wchar_t* w);
-    std::string to_utf8(const std::wstring& s);
+    std::string to_utf8(const wchar_t* windows_unicode_text, size_t size);
+    std::string to_utf8(const wchar_t* windows_unicode_text);
+    std::string to_utf8(const std::wstring& windows_unicode_text);
+    std::wstring to_windows_unicode(const std::string_view utf8_text);
 #endif
 
     /* Test whether a given `std::ostream` object refers to a terminal. */

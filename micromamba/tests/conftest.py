@@ -1,11 +1,31 @@
+import copy
 import os
 import pathlib
 import platform
-from typing import Generator
+from typing import Any, Generator, Mapping
 
 import pytest
 
 from . import helpers
+
+####################
+#  Config options  #
+####################
+
+
+def pytest_addoption(parser):
+    """Add pkgs-dir command line argument to pytest."""
+    parser.addoption(
+        "--mamba-pkgs-dir",
+        action="store",
+        default=None,
+        help="Package cache to resuse between tests",
+    )
+
+
+##################
+#  Test fixture  #
+##################
 
 
 @pytest.fixture
@@ -31,11 +51,15 @@ def tmp_home(tmp_path: pathlib.Path) -> Generator[pathlib.Path, None, None]:
 
 
 @pytest.fixture(scope="session")
-def tmp_pkgs_dirs(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+def tmp_pkgs_dirs(tmp_path_factory: pytest.TempPathFactory, request) -> pathlib.Path:
     """A common package cache for mamba downloads.
 
     The directory is not used automatically when calling this fixture.
     """
+    if (p := request.config.getoption("--mamba-pkgs-dir")) is not None:
+        p = pathlib.Path(p)
+        p.mkdir(parents=True, exist_ok=True)
+        return p
     return tmp_path_factory.mktemp("pkgs_dirs")
 
 
@@ -46,18 +70,28 @@ def shared_pkgs_dirs(request) -> bool:
 
 
 @pytest.fixture
+def tmp_environ() -> Generator[Mapping[str, Any], None, None]:
+    """Saves and restore environment variables.
+
+    This is used for test that need to modify ``os.environ``
+    """
+    old_environ = copy.deepcopy(os.environ)
+    yield old_environ
+    os.environ.clear()
+    os.environ.update(old_environ)
+
+
+@pytest.fixture
 def tmp_clean_env(
-    tmp_pkgs_dirs: pathlib.Path, shared_pkgs_dirs: bool
+    tmp_pkgs_dirs: pathlib.Path, shared_pkgs_dirs: bool, tmp_environ: None
 ) -> Generator[None, None, None]:
     """Remove all Conda/Mamba activation artifacts from environment."""
-    saved_environ = {}
     for k, v in os.environ.items():
         if k.startswith(("CONDA", "_CONDA", "MAMBA", "_MAMBA")):
-            saved_environ[k] = v
             del os.environ[k]
 
     def keep_in_path(
-        p: str, prefix: str | None = saved_environ.get("CONDA_PREFIX")
+        p: str, prefix: str | None = tmp_environ.get("CONDA_PREFIX")
     ) -> bool:
         if "condabin" in p:
             return False
@@ -77,8 +111,6 @@ def tmp_clean_env(
 
     yield None
 
-    os.environ.update(saved_environ)
-
 
 @pytest.fixture(params=[helpers.random_string, "long_prefix_" * 20])
 def tmp_env_name(request) -> str:
@@ -93,15 +125,11 @@ def tmp_root_prefix(
     tmp_path: pathlib.Path, tmp_clean_env: None
 ) -> Generator[pathlib.Path, None, None]:
     """Change the micromamba root directory to a tmp folder for the duration of a test."""
-    old_root_prefix = os.environ.get("MAMBA_ROOT_PREFIX")
     new_root_prefix = tmp_path / "mamba"
     new_root_prefix.mkdir(parents=True, exist_ok=True)
     os.environ["MAMBA_ROOT_PREFIX"] = str(new_root_prefix)
     yield new_root_prefix
-    if old_root_prefix is not None:
-        os.environ["MAMBA_ROOT_PREFIX"] = old_root_prefix
-    else:
-        del os.environ["MAMBA_ROOT_PREFIX"]
+    # os.environ restored by tmp_clean_env and tmp_environ
 
 
 @pytest.fixture
@@ -110,20 +138,12 @@ def tmp_empty_env(
 ) -> Generator[pathlib.Path, None, None]:
     """An empty envirnment created under a temporary root prefix."""
     helpers.create("-n", tmp_env_name, no_dry_run=True)
-    yield tmp_root_prefix
+    yield tmp_root_prefix / "envs" / tmp_env_name
 
 
 @pytest.fixture
-def tmp_prefix(
-    tmp_root_prefix: pathlib.Path, tmp_env_name: str
-) -> Generator[pathlib.Path, None, None]:
+def tmp_prefix(tmp_empty_env: pathlib.Path) -> Generator[pathlib.Path, None, None]:
     """Change the conda prefix to a tmp folder for the duration of a test."""
-    old_prefix = os.environ.get("CONDA_PREFIX")
-    new_prefix = tmp_root_prefix / "envs" / tmp_env_name
-    new_prefix.mkdir(parents=True, exist_ok=True)
-    os.environ["CONDA_PREFIX"] = str(new_prefix)
-    yield new_prefix
-    if old_prefix is not None:
-        os.environ["CONDA_PREFIX"] = old_prefix
-    else:
-        del os.environ["CONDA_PREFIX"]
+    os.environ["CONDA_PREFIX"] = str(tmp_empty_env)
+    yield tmp_empty_env
+    # os.environ restored by tmp_environ through tmp_root_prefix

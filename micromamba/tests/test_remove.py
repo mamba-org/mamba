@@ -12,6 +12,8 @@ import pytest
 
 from .helpers import *
 
+__this_dir__ = Path(__file__).parent.resolve()
+
 
 @pytest.mark.skipif(dry_run_tests == DryRun.ULTRA_DRY, reason="Running ultra dry tests")
 class TestRemove:
@@ -185,7 +187,6 @@ class TestRemove:
 
 
 class TestRemoveConfig:
-
     current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
     current_prefix = os.environ["CONDA_PREFIX"]
 
@@ -243,12 +244,9 @@ class TestRemoveConfig:
         assert res["specs"] == specs
 
     def test_remove_then_clean(self, env_created):
-        from .test_create import test_env_requires_pip_install_path
-
+        env_file = __this_dir__ / "env-requires-pip-install.yaml"
         env_name = "env_to_clean"
-        create(
-            "-n", env_name, "-f", test_env_requires_pip_install_path, no_dry_run=True
-        )
+        create("-n", env_name, "-f", env_file, no_dry_run=True)
         remove("-n", env_name, "pip", no_dry_run=True)
         clean("-ay", no_dry_run=True)
 

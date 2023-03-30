@@ -1,3 +1,10 @@
+micromamba 1.4.1 (March 28, 2023)
+=================================
+
+Enhancements:
+
+- add option to relocate prefix by @DerThorsten in https://github.com/mamba-org/mamba/pull/2385
+
 micromamba 1.4.0 (March 22, 2023)
 =================================
 

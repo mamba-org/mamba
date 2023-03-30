@@ -39,12 +39,20 @@ namespace mamba
             const std::pair<std::string, std::string>& py_versions,
             const std::vector<MatchSpec>& requested_specs
         );
+
+        TransactionContext(
+            const fs::u8path& target_prefix,
+            const fs::u8path& relocate_prefix,
+            const std::pair<std::string, std::string>& py_versions,
+            const std::vector<MatchSpec>& requested_specs
+        );
         ~TransactionContext();
         bool try_pyc_compilation(const std::vector<fs::u8path>& py_files);
         void wait_for_pyc_compilation();
 
         bool has_python;
         fs::u8path target_prefix;
+        fs::u8path relocate_prefix;
         fs::u8path site_packages_path;
         fs::u8path python_path;
         std::string python_version;

@@ -44,3 +44,25 @@ TEST(system_env, set_get_unset_variables_unicode)
 
     test_set_get_unset_env_variables(key, value);
 }
+
+#ifdef _WIN32
+
+TEST(system_env, get_predefined_env_variable)
+{
+    // We check that normal pre-defined variables are accessible and do not fail access even if some
+    // of these values have unicode.
+    const std::vector<std::string> predefined_keys{ "PATH",        "OS",           "PATHEXT",
+                                                    "ProgramData", "SystemRoot",   "windir",
+                                                    "APPDATA",     "COMPUTERNAME", "TEMP",
+                                                    "UserName",    "USERPROFILE" };
+
+    for (const auto& key : predefined_keys)
+    {
+        const auto maybe_value = mamba::env::get(key);
+        ASSERT_TRUE(maybe_value.has_value()) << "key = " + key;
+        const auto value = *maybe_value;
+        EXPECT_FALSE(value.empty()) << "key = " + key;
+    }
+}
+
+#endif

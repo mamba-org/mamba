@@ -4,9 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <gtest/gtest.h>
-
 #include <string>
+
+#include <gtest/gtest.h>
 
 #include "mamba/core/util_os.hpp"
 
@@ -32,4 +32,3 @@ TEST(to_windows_unicode, basic_unicode_conversion)
 }
 
 #endif
-

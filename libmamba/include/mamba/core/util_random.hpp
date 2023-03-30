@@ -8,11 +8,11 @@
 #define MAMBA_CORE_UTIL_RANDOM_HPP
 
 #include <algorithm>
+#include <array>
 #include <cstring>
 #include <limits>
 #include <random>
 #include <string>
-#include <array>
 
 namespace mamba
 {

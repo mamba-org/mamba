@@ -13,8 +13,8 @@
 #include "mamba/core/fsutil.hpp"
 
 #ifdef _WIN32
-#   define WIN32_LEAN_AND_MEAN
-#   include <Windows.h>
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 #endif
 
 namespace mamba

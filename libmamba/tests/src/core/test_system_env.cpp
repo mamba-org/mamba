@@ -4,9 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <gtest/gtest.h>
-
 #include <string>
+
+#include <gtest/gtest.h>
 
 #include "mamba/core/environment.hpp"
 #include "mamba/core/util_random.hpp"
@@ -26,7 +26,6 @@ namespace
         mamba::env::unset(key);
         const auto result_empty = mamba::env::get(key);
         ASSERT_FALSE(result_empty.has_value());
-
     }
 }
 

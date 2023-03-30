@@ -93,7 +93,7 @@ namespace mamba
             const std::wstring unicode_key = to_windows_unicode(key);
             const std::wstring unicode_value = to_windows_unicode(value);
             auto res = _wputenv_s(unicode_key.c_str(), unicode_value.c_str());
-            if (!res)
+            if (res != 0)
             {
                 LOG_ERROR << fmt::format(
                     "Could not set environment variable '{}' to '{}' : {}",
@@ -102,7 +102,7 @@ namespace mamba
                     GetLastError()
                 );
             }
-            return res;
+            return res == 0;
 #else
             return setenv(key.c_str(), value.c_str(), 1) == 0;
 #endif

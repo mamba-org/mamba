@@ -12,6 +12,7 @@
 #include <limits>
 #include <random>
 #include <string>
+#include <array>
 
 namespace mamba
 {

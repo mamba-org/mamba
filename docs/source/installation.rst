@@ -41,14 +41,6 @@ To get ``mamba``, just install it *into the base environment* from the ``conda-f
 micromamba
 ==========
 
-``micromamba`` is a tiny version of the ``mamba`` package manager.
-It is a pure C++ package with a separate command line interface.
-It is very tiny, does not need a ``base`` environment and does not come with a default version of Python.
-It is completely statically linked, which allows you to drop it in some place and just execute it.
-It can be used to bootstrap environments (as an alternative to miniconda).
-
-Note: ``micromamba`` is currently experimental and it's advised to use it in containers & CI only.
-
 .. _umamba-install-automatic-installation:
 
 Automatic installation

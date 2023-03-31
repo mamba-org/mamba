@@ -17,7 +17,7 @@ namespace mamba
         TEST_CASE("file_not_exist")
         {
 #ifdef __linux__
-            Context::instance().quiet = true;
+            Context::instance().output_info.quiet = true;
             {
                 const mamba::Channel& c = mamba::make_channel("conda-forge");
                 mamba::MultiDownloadTarget multi_dl;
@@ -53,7 +53,7 @@ namespace mamba
                 multi_dl.add(cf.target());
                 CHECK_THROWS_AS(multi_dl.download(MAMBA_DOWNLOAD_FAILFAST), std::runtime_error);
             }
-            Context::instance().quiet = false;
+            Context::instance().output_info.quiet = false;
 #endif
         }
     }

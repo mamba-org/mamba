@@ -118,6 +118,32 @@ namespace mamba
     {
     public:
 
+        struct RemoteFetchInfo
+        {
+            // ssl_verify can be either an empty string (regular SSL verification),
+            // the string "<false>" to indicate no SSL verification, or a path to
+            // a directory with cert files, or a cert file.
+            std::string ssl_verify{ "" };
+            bool ssl_no_revoke{ false };
+
+            std::string user_agent{ "mamba/" LIBMAMBA_VERSION_STRING };
+
+            int connect_timeout_secs{ 10 };
+            // int read_timeout_secs { 60 };
+            int retry_timeout{ 2 };  // seconds
+            int retry_backoff{ 3 };  // retry_timeout * retry_backoff
+            int max_retries{ 3 };    // max number of retries
+        };
+
+        struct OutputInfo
+        {
+            int verbosity{ 0 };
+            log_level logging_level{ log_level::warn };
+
+            bool json{ false };
+            bool quiet{ false };
+        };
+
         std::string caller_version = "";
         std::string conda_version = "3.8.0";
         std::string current_command = "mamba";
@@ -139,8 +165,7 @@ namespace mamba
         bool use_index_cache = false;
         std::size_t local_repodata_ttl = 1;  // take from header
         bool offline = false;
-        bool quiet = false;
-        bool json = false;
+
         ChannelPriority channel_priority = ChannelPriority::kFlexible;
         bool auto_activate_base = false;
 
@@ -148,11 +173,6 @@ namespace mamba
         int extract_threads = 0;
         bool extract_sparse = false;
 
-        int verbosity = 0;
-        void set_verbosity(int lvl);
-        void set_log_level(log_level level);
-
-        log_level logging_level = log_level::warn;
         std::string log_pattern = "%^%-9!l%-8n%$ %v";
         std::size_t log_backtrace = 0;
 
@@ -190,20 +210,12 @@ namespace mamba
         // micromamba only
         bool shell_completion = true;
 
-        std::string user_agent = "mamba/" LIBMAMBA_VERSION_STRING;
+        RemoteFetchInfo remote_fetch_info;
+        OutputInfo output_info;
+
         bool curl_initialized = false;
-        int connect_timeout_secs = 10;
-        // int read_timeout_secs = 60;
-        int retry_timeout = 2;  // seconds
-        int retry_backoff = 3;  // retry_timeout * retry_backoff
-        int max_retries = 3;    // max number of retries
 
         std::map<std::string, std::string> proxy_servers;
-        // ssl verify can be either an empty string (regular SSL verification),
-        // the string "<false>" to indicate no SSL verification, or a path to
-        // a directory with cert files, or a cert file.
-        std::string ssl_verify = "";
-        bool ssl_no_revoke = false;
 
         bool no_rc = false;
         bool no_env = false;
@@ -264,6 +276,9 @@ namespace mamba
 
         void debug_print() const;
         void dump_backtrace_no_guards();
+
+        void set_verbosity(int lvl);
+        void set_log_level(log_level level);
 
     protected:
 

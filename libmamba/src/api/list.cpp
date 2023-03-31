@@ -59,7 +59,7 @@ namespace mamba
 
             std::regex spec_pat(regex);
 
-            if (ctx.json)
+            if (ctx.output_info.json)
             {
                 auto jout = nlohmann::json::array();
                 std::vector<std::string> keys;

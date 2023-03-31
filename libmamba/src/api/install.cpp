@@ -553,7 +553,7 @@ namespace mamba
                 Console::instance().print("Possible hints:\n  - 'freeze_installed' is turned on\n");
             }
 
-            if (ctx.json)
+            if (ctx.output_info.json)
             {
                 Console::instance().json_write({ { "success", false },
                                                  { "solver_problems", solver.all_problems() } });
@@ -566,7 +566,7 @@ namespace mamba
 
         MTransaction trans(pool, solver, package_caches);
 
-        if (ctx.json)
+        if (ctx.output_info.json)
         {
             trans.log_json();
         }
@@ -616,7 +616,7 @@ namespace mamba
             // so they must have been ready in the pool before this line
             auto transaction = create_transaction(pool, pkg_caches, others);
 
-            if (ctx.json)
+            if (ctx.output_info.json)
             {
                 transaction.log_json();
             }

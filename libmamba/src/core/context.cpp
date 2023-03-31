@@ -116,48 +116,48 @@ namespace mamba
 
         spdlog::set_default_logger(l);
         logger = std::dynamic_pointer_cast<Logger>(l);
-        spdlog::set_level(convert_log_level(logging_level));
+        spdlog::set_level(convert_log_level(output_info.logging_level));
     }
 
     Context::~Context() = default;
 
     void Context::set_verbosity(int lvl)
     {
-        this->verbosity = lvl;
+        this->output_info.verbosity = lvl;
 
         switch (lvl)
         {
             case -3:
-                this->logging_level = log_level::off;
+                this->output_info.logging_level = log_level::off;
                 break;
             case -2:
-                this->logging_level = log_level::critical;
+                this->output_info.logging_level = log_level::critical;
                 break;
             case -1:
-                this->logging_level = log_level::err;
+                this->output_info.logging_level = log_level::err;
                 break;
             case 0:
-                this->logging_level = log_level::warn;
+                this->output_info.logging_level = log_level::warn;
                 break;
             case 1:
-                this->logging_level = log_level::info;
+                this->output_info.logging_level = log_level::info;
                 break;
             case 2:
-                this->logging_level = log_level::debug;
+                this->output_info.logging_level = log_level::debug;
                 break;
             case 3:
-                this->logging_level = log_level::trace;
+                this->output_info.logging_level = log_level::trace;
                 break;
             default:
-                this->logging_level = log_level::info;
+                this->output_info.logging_level = log_level::info;
                 break;
         }
-        spdlog::set_level(convert_log_level(logging_level));
+        spdlog::set_level(convert_log_level(output_info.logging_level));
     }
 
     void Context::set_log_level(log_level level)
     {
-        logging_level = level;
+        output_info.logging_level = level;
         spdlog::set_level(convert_log_level(level));
     }
 
@@ -328,22 +328,22 @@ namespace mamba
         PRINT_CTX(out, always_yes);
         PRINT_CTX(out, allow_softlinks);
         PRINT_CTX(out, offline);
-        PRINT_CTX(out, quiet);
+        PRINT_CTX(out, output_info.quiet);
         PRINT_CTX(out, no_rc);
         PRINT_CTX(out, no_env);
-        PRINT_CTX(out, ssl_no_revoke);
-        PRINT_CTX(out, ssl_verify);
-        PRINT_CTX(out, retry_timeout);
-        PRINT_CTX(out, retry_backoff);
-        PRINT_CTX(out, max_retries);
-        PRINT_CTX(out, connect_timeout_secs);
+        PRINT_CTX(out, remote_fetch_info.ssl_no_revoke);
+        PRINT_CTX(out, remote_fetch_info.ssl_verify);
+        PRINT_CTX(out, remote_fetch_info.retry_timeout);
+        PRINT_CTX(out, remote_fetch_info.retry_backoff);
+        PRINT_CTX(out, remote_fetch_info.max_retries);
+        PRINT_CTX(out, remote_fetch_info.connect_timeout_secs);
         PRINT_CTX(out, add_pip_as_python_dependency);
         PRINT_CTX(out, override_channels_enabled);
         PRINT_CTX(out, use_only_tar_bz2);
         PRINT_CTX(out, auto_activate_base);
         PRINT_CTX(out, extra_safety_checks);
         PRINT_CTX(out, download_threads);
-        PRINT_CTX(out, verbosity);
+        PRINT_CTX(out, output_info.verbosity);
         PRINT_CTX(out, channel_alias);
         out << "channel_priority: " << static_cast<int>(channel_priority) << '\n';
         PRINT_CTX_VEC(out, default_channels);

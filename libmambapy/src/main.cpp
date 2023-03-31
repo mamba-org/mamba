@@ -507,11 +507,8 @@ PYBIND11_MODULE(bindings, m)
         .value("CRITICAL", mamba::log_level::critical)
         .value("OFF", mamba::log_level::off);
 
-    py::class_<Context, std::unique_ptr<Context, py::nodelete>>(m, "Context")
-        .def(py::init([]() { return std::unique_ptr<Context, py::nodelete>(&Context::instance()); }))
-        .def_readwrite("verbosity", &Context::verbosity)
-        .def_readwrite("quiet", &Context::quiet)
-        .def_readwrite("json", &Context::json)
+    py::class_<Context, std::unique_ptr<Context, py::nodelete>> ctx(m, "Context");
+    ctx.def(py::init([]() { return std::unique_ptr<Context, py::nodelete>(&Context::instance()); }))
         .def_readwrite("offline", &Context::offline)
         .def_readwrite("local_repodata_ttl", &Context::local_repodata_ttl)
         .def_readwrite("use_index_cache", &Context::use_index_cache)
@@ -520,14 +517,7 @@ PYBIND11_MODULE(bindings, m)
         .def_readwrite("always_yes", &Context::always_yes)
         .def_readwrite("dry_run", &Context::dry_run)
         .def_readwrite("download_only", &Context::download_only)
-        .def_readwrite("ssl_verify", &Context::ssl_verify)
         .def_readwrite("proxy_servers", &Context::proxy_servers)
-        .def_readwrite("max_retries", &Context::max_retries)
-        .def_readwrite("retry_timeout", &Context::retry_timeout)
-        .def_readwrite("retry_backoff", &Context::retry_backoff)
-        .def_readwrite("user_agent", &Context::user_agent)
-        // .def_readwrite("read_timeout_secs", &Context::read_timeout_secs)
-        .def_readwrite("connect_timeout_secs", &Context::connect_timeout_secs)
         .def_readwrite("add_pip_as_python_dependency", &Context::add_pip_as_python_dependency)
         .def_readwrite("target_prefix", &Context::target_prefix)
         .def_readwrite("conda_prefix", &Context::conda_prefix)
@@ -558,6 +548,25 @@ PYBIND11_MODULE(bindings, m)
         .def_readwrite("use_lockfiles", &Context::use_lockfiles)
         .def("set_verbosity", &Context::set_verbosity)
         .def("set_log_level", &Context::set_log_level);
+
+    py::class_<Context::RemoteFetchInfo>(ctx, "RemoteFetchInfo")
+        .def(py::init<>())
+        .def_readwrite("ssl_verify", &Context::RemoteFetchInfo::ssl_verify)
+        .def_readwrite("max_retries", &Context::RemoteFetchInfo::max_retries)
+        .def_readwrite("retry_timeout", &Context::RemoteFetchInfo::retry_timeout)
+        .def_readwrite("retry_backoff", &Context::RemoteFetchInfo::retry_backoff)
+        .def_readwrite("user_agent", &Context::RemoteFetchInfo::user_agent)
+        // .def_readwrite("read_timeout_secs", &Context::RemoteFetchInfo::read_timeout_secs)
+        .def_readwrite("connect_timeout_secs", &Context::RemoteFetchInfo::connect_timeout_secs);
+
+    py::class_<Context::OutputInfo>(ctx, "OutputInfo")
+        .def(py::init<>())
+        .def_readwrite("verbosity", &Context::OutputInfo::verbosity)
+        .def_readwrite("json", &Context::OutputInfo::json)
+        .def_readwrite("quiet", &Context::OutputInfo::quiet);
+
+    ctx.def_readwrite("remote_fetch_info", &Context::remote_fetch_info)
+        .def_readwrite("output_info", &Context::output_info);
 
     pyPrefixData
         .def(py::init(

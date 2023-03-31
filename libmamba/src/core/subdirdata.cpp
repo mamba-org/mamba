@@ -614,7 +614,7 @@ namespace mamba
                         m_check_targets.back()->set_head_only(true);
                         m_check_targets.back()->set_finalize_callback(&MSubdirData::finalize_check, this);
                         m_check_targets.back()->set_ignore_failure(true);
-                        if (!(ctx.no_progress_bars || ctx.quiet || ctx.json))
+                        if (!(ctx.no_progress_bars || ctx.output_info.quiet || ctx.output_info.json))
                         {
                             m_progress_bar_check = Console::instance().add_progress_bar(
                                 m_name + " (check zst)"
@@ -913,7 +913,7 @@ namespace mamba
             m_repodata_url + (use_zst ? ".zst" : ""),
             m_temp_file->path().string()
         );
-        if (!(ctx.no_progress_bars || ctx.quiet || ctx.json))
+        if (!(ctx.no_progress_bars || ctx.output_info.quiet || ctx.output_info.json))
         {
             m_progress_bar = Console::instance().add_progress_bar(m_name);
             m_target->set_progress_bar(m_progress_bar);

@@ -630,13 +630,13 @@ namespace mamba
         {
             auto& ctx = Context::instance();
 
-            if (ctx.json)
+            if (ctx.output_info.json)
             {
                 return mamba::log_level::off;
             }
             else if (Configuration::instance().at("verbose").configured())
             {
-                switch (ctx.verbosity)
+                switch (ctx.output_info.verbosity)
                 {
                     case 0:
                         return mamba::log_level::warn;
@@ -657,7 +657,7 @@ namespace mamba
         void verbose_hook(int& lvl)
         {
             auto& ctx = Context::instance();
-            ctx.verbosity = lvl;
+            ctx.output_info.verbosity = lvl;
         }
 
         void target_prefix_checks_hook(int& options)
@@ -1217,7 +1217,7 @@ namespace mamba
                    .set_env_var_names()
                    .description("Force use cached repodata"));
 
-        insert(Configurable("ssl_no_revoke", &ctx.ssl_no_revoke)
+        insert(Configurable("ssl_no_revoke", &ctx.remote_fetch_info.ssl_no_revoke)
                    .group("Network")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1227,7 +1227,7 @@ namespace mamba
                         It's only working for Windows back-end.
                         WARNING: this option loosens the SSL security.)")));
 
-        insert(Configurable("ssl_verify", &ctx.ssl_verify)
+        insert(Configurable("ssl_verify", &ctx.remote_fetch_info.ssl_verify)
                    .group("Network")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1249,7 +1249,7 @@ namespace mamba
                         the value is the url of the proxy server, optionally with username and password
                         in the form of scheme://username:password@hostname.)")));
 
-        insert(Configurable("remote_connect_timeout_secs", &ctx.connect_timeout_secs)
+        insert(Configurable("remote_connect_timeout_secs", &ctx.remote_fetch_info.connect_timeout_secs)
                    .group("Network")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1257,14 +1257,14 @@ namespace mamba
                        "The number seconds conda will wait for your client to establish a connection to a remote url resource."
                    ));
 
-        insert(Configurable("remote_backoff_factor", &ctx.retry_backoff)
+        insert(Configurable("remote_backoff_factor", &ctx.remote_fetch_info.retry_backoff)
                    .group("Network")
                    .set_rc_configurable()
                    .set_env_var_names()
                    .description("The factor determines the time HTTP connection should wait for attempt."
                    ));
 
-        insert(Configurable("remote_max_retries", &ctx.max_retries)
+        insert(Configurable("remote_max_retries", &ctx.remote_fetch_info.max_retries)
                    .group("Network")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1507,7 +1507,7 @@ namespace mamba
                    .description("Only download and extract packages, do not link them into environment."
                    ));
 
-        insert(Configurable("log_level", &ctx.logging_level)
+        insert(Configurable("log_level", &ctx.output_info.logging_level)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1536,7 +1536,7 @@ namespace mamba
                    .long_description(unindent(R"(
                             Set the log pattern.)")));
 
-        insert(Configurable("json", &ctx.json)
+        insert(Configurable("json", &ctx.output_info.json)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .needs({ "print_config_only", "print_context_only" })
@@ -1619,7 +1619,7 @@ namespace mamba
                    .group("Output, Prompt and Flow Control")
                    .description("Display configs values"));
 
-        insert(Configurable("quiet", &ctx.quiet)
+        insert(Configurable("quiet", &ctx.output_info.quiet)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1790,7 +1790,7 @@ namespace mamba
         }
 
         auto& ctx = Context::instance();
-        ctx.set_log_level(ctx.logging_level);
+        ctx.set_log_level(ctx.output_info.logging_level);
 
         spdlog::apply_all([&](std::shared_ptr<spdlog::logger> l) { l->flush(); });
         spdlog::flush_on(spdlog::level::off);

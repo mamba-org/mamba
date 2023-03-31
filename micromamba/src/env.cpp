@@ -160,7 +160,7 @@ set_env_command(CLI::App* com)
 
             EnvironmentsManager env_manager;
 
-            if (ctx.json)
+            if (ctx.output_info.json)
             {
                 nlohmann::json res;
                 const auto pfxs = env_manager.list_all_known_prefixes();

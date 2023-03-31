@@ -35,7 +35,7 @@ namespace mamba
             Configuration()
             {
                 m_channel_alias_bu = ctx.channel_alias;
-                m_ssl_verify = ctx.ssl_verify;
+                m_ssl_verify = ctx.remote_fetch_info.ssl_verify;
                 m_proxy_servers = ctx.proxy_servers;
                 mamba::Configuration::instance().at("show_banner").set_default_value(false);
             }
@@ -44,7 +44,7 @@ namespace mamba
             {
                 config.reset_configurables();
                 ctx.channel_alias = m_channel_alias_bu;
-                ctx.ssl_verify = m_ssl_verify;
+                ctx.remote_fetch_info.ssl_verify = m_ssl_verify;
                 ctx.proxy_servers = m_proxy_servers;
             }
 
@@ -594,52 +594,52 @@ namespace mamba
             TEST_CASE_FIXTURE(Configuration, "ssl_verify")
             {
                 // Default empty string value
-                ctx.ssl_verify = "";
+                ctx.remote_fetch_info.ssl_verify = "";
                 std::string rc = "";
                 load_test_config(rc);
-                CHECK_EQ(ctx.ssl_verify, "<system>");
+                CHECK_EQ(ctx.remote_fetch_info.ssl_verify, "<system>");
 
                 rc = "ssl_verify: true";
                 load_test_config(rc);
-                CHECK_EQ(ctx.ssl_verify, "<system>");
+                CHECK_EQ(ctx.remote_fetch_info.ssl_verify, "<system>");
 
                 rc = "ssl_verify: <true>";
                 load_test_config(rc);
-                CHECK_EQ(ctx.ssl_verify, "<system>");
+                CHECK_EQ(ctx.remote_fetch_info.ssl_verify, "<system>");
 
                 rc = "ssl_verify: 1";
                 load_test_config(rc);
-                CHECK_EQ(ctx.ssl_verify, "<system>");
+                CHECK_EQ(ctx.remote_fetch_info.ssl_verify, "<system>");
 
                 rc = "ssl_verify: 10";
                 load_test_config(rc);
-                CHECK_EQ(ctx.ssl_verify, "10");
+                CHECK_EQ(ctx.remote_fetch_info.ssl_verify, "10");
 
                 rc = "ssl_verify: false";
                 load_test_config(rc);
-                CHECK_EQ(ctx.ssl_verify, "<false>");
+                CHECK_EQ(ctx.remote_fetch_info.ssl_verify, "<false>");
 
                 rc = "ssl_verify: <false>";
                 load_test_config(rc);
-                CHECK_EQ(ctx.ssl_verify, "<false>");
+                CHECK_EQ(ctx.remote_fetch_info.ssl_verify, "<false>");
 
                 rc = "ssl_verify: 0";
                 load_test_config(rc);
-                CHECK_EQ(ctx.ssl_verify, "<false>");
+                CHECK_EQ(ctx.remote_fetch_info.ssl_verify, "<false>");
 
                 rc = "ssl_verify: /foo/bar/baz";
                 load_test_config(rc);
-                CHECK_EQ(ctx.ssl_verify, "/foo/bar/baz");
+                CHECK_EQ(ctx.remote_fetch_info.ssl_verify, "/foo/bar/baz");
 
                 std::string rc1 = "ssl_verify: true";
                 std::string rc2 = "ssl_verify: false";
                 load_test_config({ rc1, rc2 });
                 CHECK_EQ(config.at("ssl_verify").value<std::string>(), "<system>");
-                CHECK_EQ(ctx.ssl_verify, "<system>");
+                CHECK_EQ(ctx.remote_fetch_info.ssl_verify, "<system>");
 
                 load_test_config({ rc2, rc1 });
                 CHECK_EQ(config.at("ssl_verify").value<std::string>(), "<false>");
-                CHECK_EQ(ctx.ssl_verify, "<false>");
+                CHECK_EQ(ctx.remote_fetch_info.ssl_verify, "<false>");
 
                 env::set("MAMBA_SSL_VERIFY", "/env/bar/baz");
                 load_test_config(rc1);
@@ -669,7 +669,7 @@ namespace mamba
                 load_test_config(rc);
                 CHECK_EQ(config.at("ssl_verify").value<std::string>(), "/other/foo/bar/baz");
                 CHECK_EQ(config.at("cacert_path").value<std::string>(), "/other/foo/bar/baz");
-                CHECK_EQ(ctx.ssl_verify, "/other/foo/bar/baz");
+                CHECK_EQ(ctx.remote_fetch_info.ssl_verify, "/other/foo/bar/baz");
 
                 env::set("MAMBA_CACERT_PATH", "/env/ca/baz");
                 load_test_config(rc);
@@ -687,7 +687,7 @@ namespace mamba
                               + src + "'")
                                  .c_str())
                 );
-                CHECK_EQ(ctx.ssl_verify, "/env/ca/baz");
+                CHECK_EQ(ctx.remote_fetch_info.ssl_verify, "/env/ca/baz");
 
                 config.at("cacert_path").set_yaml_value("/new/test").compute();
                 CHECK_EQ(
@@ -699,7 +699,7 @@ namespace mamba
                               + src + "'")
                                  .c_str())
                 );
-                CHECK_EQ(ctx.ssl_verify, "/env/ca/baz");
+                CHECK_EQ(ctx.remote_fetch_info.ssl_verify, "/env/ca/baz");
 
                 config.at("ssl_verify").compute();
                 CHECK_EQ(
@@ -711,7 +711,7 @@ namespace mamba
                               + src + "'")
                                  .c_str())
                 );
-                CHECK_EQ(ctx.ssl_verify, "/new/test");
+                CHECK_EQ(ctx.remote_fetch_info.ssl_verify, "/new/test");
 
                 env::unset("MAMBA_CACERT_PATH");
                 load_test_config("cacert_path:\nssl_verify: true");  // reset ssl verify to default
@@ -827,7 +827,7 @@ namespace mamba
         load_test_config(rc2);                                                                      \
     }
 
-            TEST_BOOL_CONFIGURABLE(ssl_no_revoke, ctx.ssl_no_revoke);
+            TEST_BOOL_CONFIGURABLE(ssl_no_revoke, ctx.remote_fetch_info.ssl_no_revoke);
 
             TEST_BOOL_CONFIGURABLE(override_channels_enabled, ctx.override_channels_enabled);
 

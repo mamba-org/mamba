@@ -95,7 +95,7 @@ namespace mamba
         m_md5 = pkg_info.md5;
 
         auto& ctx = Context::instance();
-        m_has_progress_bars = !(ctx.no_progress_bars || ctx.quiet || ctx.json);
+        m_has_progress_bars = !(ctx.no_progress_bars || ctx.output_info.quiet || ctx.output_info.json);
     }
 
     void PackageDownloadExtractTarget::write_repodata_record(const fs::u8path& base_path)
@@ -1229,7 +1229,7 @@ namespace mamba
             LOG_INFO << "All package(s) are trusted";
         }
 
-        if (!(ctx.no_progress_bars || ctx.json || ctx.quiet))
+        if (!(ctx.no_progress_bars || ctx.output_info.json || ctx.output_info.quiet))
         {
             interruption_guard g([]() { Console::instance().progress_bar_manager().terminate(); });
 
@@ -1352,7 +1352,7 @@ namespace mamba
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
 
-        if (!(ctx.no_progress_bars || ctx.json || ctx.quiet))
+        if (!(ctx.no_progress_bars || ctx.output_info.json || ctx.output_info.quiet))
         {
             pbar_manager.terminate();
             pbar_manager.clear_progress_bars();
@@ -1395,7 +1395,7 @@ namespace mamba
     {
         const auto& ctx = Context::instance();
 
-        if (ctx.json)
+        if (ctx.output_info.json)
         {
             return;
         }

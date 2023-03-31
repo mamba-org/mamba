@@ -64,7 +64,7 @@ namespace mamba
         Query q(pool);
         if (type == QueryType::kSEARCH)
         {
-            if (ctx.json)
+            if (ctx.output_info.json)
             {
                 std::cout << q.find(query).groupby("name").json().dump(4);
             }

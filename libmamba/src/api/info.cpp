@@ -47,7 +47,7 @@ namespace mamba
     {
         void info_pretty_print(std::vector<std::tuple<std::string, nlohmann::json>> items)
         {
-            if (Context::instance().json)
+            if (Context::instance().output_info.json)
             {
                 return;
             }

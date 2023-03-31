@@ -11,10 +11,6 @@
 #include <fmt/ostream.h>
 #include <solv/pool.h>
 #include <solv/solver.h>
-extern "C"  // Incomplete header
-{
-#include <solv/conda.h>
-}
 
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
@@ -212,72 +208,9 @@ namespace mamba
 
     MSolver::~MSolver() = default;
 
-    inline bool channel_match(Solvable* s, const Channel& needle)
-    {
-        MRepo* mrepo = reinterpret_cast<MRepo*>(s->repo->appdata);
-        const Channel* chan = mrepo->channel();
-
-        if (!chan)
-        {
-            return false;
-        }
-
-        if ((*chan) == needle)
-        {
-            return true;
-        }
-
-        auto& custom_multichannels = Context::instance().custom_multichannels;
-        auto x = custom_multichannels.find(needle.name());
-        if (x != custom_multichannels.end())
-        {
-            for (auto el : (x->second))
-            {
-                const Channel& inner = make_channel(el);
-                if ((*chan) == inner)
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
     void MSolver::add_global_job(int job_flag)
     {
         m_jobs->push_back(job_flag, 0);
-    }
-
-    void MSolver::add_channel_specific_job(const MatchSpec& ms, int job_flag)
-    {
-        Pool* pool = m_pool;
-        solv::ObjQueue selected_pkgs;
-
-        // conda_build_form does **NOT** contain the channel info
-        Id match = pool_conda_matchspec(pool, ms.conda_build_form().c_str());
-
-        const Channel& c = make_channel(ms.channel);
-        for (Id* wp = pool_whatprovides_ptr(pool, match); *wp; wp++)
-        {
-            if (channel_match(pool_id2solvable(pool, *wp), c))
-            {
-                selected_pkgs.push_back(*wp);
-            }
-        }
-        if (selected_pkgs.size() == 0)
-        {
-            LOG_ERROR << "Selected channel specific (or force-reinstall) job, but "
-                         "package is not available from channel. Solve job will fail.";
-        }
-        Id offset = pool_queuetowhatprovides(pool, selected_pkgs.raw());
-        // Poor man's ms repr to match waht the user provided
-        std::string const repr = fmt::format("{}::{}", ms.channel, ms.conda_build_form());
-        Id repr_id = pool_str2id(pool, repr.c_str(), 1);
-        // We add a new entry into the whatprovides to reflect the channel specific job
-        pool_set_whatprovides(pool, repr_id, offset);
-        // We ask to install that new entry
-        m_jobs->push_back(job_flag, repr_id);
     }
 
     void MSolver::add_reinstall_job(MatchSpec& ms, int job_flag)
@@ -335,12 +268,15 @@ namespace mamba
                     );
                     LOG_INFO << "Reinstall " << modified_spec.conda_build_form() << " from channel "
                              << selected_channel;
-                    return add_channel_specific_job(modified_spec, job_flag);
+                    m_jobs->push_back(
+                        job_flag | SOLVER_SOLVABLE_PROVIDES,
+                        m_pool.matchspec2id(modified_spec)
+                    );
+                    return;
                 }
             }
         }
-        Id inst_id = pool_conda_matchspec(m_pool, ms.conda_build_form().c_str());
-        m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, inst_id);
+        m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, m_pool.matchspec2id(ms));
     }
 
     void MSolver::add_jobs(const std::vector<std::string>& jobs, int job_flag)
@@ -363,56 +299,34 @@ namespace mamba
                 m_neuter_specs.emplace_back(job);  // not used for the moment
             }
 
+            ::Id const job_id = m_pool.matchspec2id(ms);
+
             // This is checking if SOLVER_ERASE and SOLVER_INSTALL are set
             // which are the flags for SOLVER_UPDATE
-            if (((job_flag & SOLVER_UPDATE) ^ SOLVER_UPDATE) == 0)
+            if ((job_flag & SOLVER_UPDATE) == SOLVER_UPDATE)
             {
                 // ignoring update specs here for now
                 if (!ms.is_simple())
                 {
-                    Id inst_id = pool_conda_matchspec(m_pool, ms.conda_build_form().c_str());
-                    m_jobs->push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, inst_id);
+                    m_jobs->push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, job_id);
                 }
-                if (ms.channel.empty())
-                {
-                    Id update_id = pool_conda_matchspec(m_pool, ms.name.c_str());
-                    m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, update_id);
-                }
-                else
-                {
-                    add_channel_specific_job(ms, job_flag);
-                }
-
-                continue;
+                m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, job_id);
             }
-
-            if (!ms.channel.empty())
-            {
-                if (job_type == SOLVER_ERASE)
-                {
-                    throw std::runtime_error("Cannot remove channel-specific spec '" + job + "'");
-                }
-                add_channel_specific_job(ms, job_flag);
-            }
-            else if (job_flag & SOLVER_INSTALL && force_reinstall)
+            else if ((job_flag & SOLVER_INSTALL) && force_reinstall)
             {
                 add_reinstall_job(ms, job_flag);
             }
             else
             {
-                // Todo remove double parsing?
-                LOG_INFO << "Adding job: " << ms.conda_build_form();
-                Id inst_id = pool_conda_matchspec(m_pool, ms.conda_build_form().c_str());
-                m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, inst_id);
+                LOG_INFO << "Adding job: " << ms.str();
+                m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, job_id);
             }
         }
     }
 
     void MSolver::add_constraint(const std::string& job)
     {
-        MatchSpec ms(job);
-        Id inst_id = pool_conda_matchspec(m_pool, ms.conda_build_form().c_str());
-        m_jobs->push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, inst_id);
+        m_jobs->push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, m_pool.matchspec2id({ job }));
     }
 
     void MSolver::add_pin(const std::string& pin)
@@ -445,20 +359,11 @@ namespace mamba
         //     }
         // }
 
-        Id match = pool_conda_matchspec(pool, ms.conda_build_form().c_str());
-
+        Id match = m_pool.matchspec2id(ms);
         std::set<Id> matching_solvables;
-        const Channel& c = make_channel(ms.channel);
 
         for (Id* wp = pool_whatprovides_ptr(pool, match); *wp; wp++)
         {
-            if (!ms.channel.empty())
-            {
-                if (!channel_match(pool_id2solvable(pool, *wp), c))
-                {
-                    continue;
-                }
-            }
             matching_solvables.insert(*wp);
         }
 

@@ -8,6 +8,7 @@
 #define MAMBA_CORE_MATCH_SPEC
 
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <unordered_map>
 
@@ -18,7 +19,7 @@ namespace mamba
     public:
 
         MatchSpec() = default;
-        MatchSpec(const std::string& i_spec);
+        MatchSpec(std::string_view i_spec);
 
         void parse();
         std::string conda_build_form() const;

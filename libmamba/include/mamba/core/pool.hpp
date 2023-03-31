@@ -17,6 +17,8 @@
 
 namespace mamba
 {
+    class MatchSpec;
+
     /**
      * Pool of solvable involved in resolving en environment.
      *
@@ -38,7 +40,7 @@ namespace mamba
         void create_whatprovides();
 
         std::vector<Id> select_solvables(Id id, bool sorted = false) const;
-        Id matchspec2id(const std::string& ms);
+        Id matchspec2id(const MatchSpec& ms);
 
         std::optional<PackageInfo> id2pkginfo(Id solv_id) const;
         std::optional<std::string> dep2str(Id dep_id) const;

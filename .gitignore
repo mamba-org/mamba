@@ -29,11 +29,6 @@ cmake_install.cmake
 install_manifest.txt
 CTestTestfile.cmake
 _deps
-libmamba/Makefile
-libmamba/libmambaConfig.cmake
-libmamba/libmambaConfigVersion.cmake
-libmamba/libmambaTargets.cmake
-sometestfile.txt
 
 # Clang tools
 .cache/

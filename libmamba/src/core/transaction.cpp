@@ -1086,12 +1086,11 @@ namespace mamba
             // TODO: add environment name/prefix
             LOG_INFO << "Waiting for pyc compilation to finish";
             m_transaction_context.wait_for_pyc_compilation();
-            Console::stream()
-                << "\nTransaction finished\n\n"
-                << "To activate this environment, use:\n\n"
-                << "    $ [micro]mamba activate <environment>\n\n"
-                << "Or to execute a single command in this environment, use:\n\n"
-                << "    $ [micro]mamba run -n <environment> mycommand\n";
+            Console::stream() << "\nTransaction finished\n\n"
+                              << "To activate this environment, use:\n\n"
+                              << "    $ [micro]mamba activate <environment>\n\n"
+                              << "Or to execute a single command in this environment, use:\n\n"
+                              << "    $ [micro]mamba run -n <environment> mycommand\n";
 
             prefix.history().add_entry(m_history_entry);
         }

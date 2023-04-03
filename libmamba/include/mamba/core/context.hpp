@@ -144,6 +144,12 @@ namespace mamba
             bool quiet{ false };
         };
 
+        struct InternalDesignInfo
+        {
+            bool no_progress_bars{ false };
+            Palette palette;
+        };
+
         std::string caller_version = "";
         std::string conda_version = "3.8.0";
         std::string current_command = "mamba";
@@ -182,9 +188,6 @@ namespace mamba
         bool download_only = false;
         bool always_yes = false;
 
-        bool no_progress_bars = false;
-        Palette palette;
-
         bool allow_softlinks = false;
         bool always_copy = false;
         bool always_softlink = false;
@@ -212,6 +215,7 @@ namespace mamba
 
         RemoteFetchInfo remote_fetch_info;
         OutputInfo output_info;
+        InternalDesignInfo internal_design_info;
 
         bool curl_initialized = false;
 

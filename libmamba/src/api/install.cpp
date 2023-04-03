@@ -143,7 +143,7 @@ namespace mamba
         options.working_directory = cwd.c_str();
 
         Console::stream() << fmt::format(
-            Context::instance().palette.external,
+            Context::instance().internal_design_info.palette.external,
             "\nInstalling {} packages: {}",
             pkg_mgr,
             fmt::join(deps, ", ")

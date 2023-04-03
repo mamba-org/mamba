@@ -801,8 +801,8 @@ namespace mamba
         // be sure the progress bar manager was not already started
         // it would mean this code is part of a larger process using progress bars
         bool pbar_manager_started = pbar_manager.started();
-        if (!(ctx.no_progress_bars || ctx.output_info.json || ctx.output_info.quiet
-              || pbar_manager_started))
+        if (!(ctx.internal_design_info.no_progress_bars || ctx.output_info.json
+              || ctx.output_info.quiet || pbar_manager_started))
         {
             pbar_manager.watch_print();
         }
@@ -882,8 +882,8 @@ namespace mamba
             return false;
         }
 
-        if (!(ctx.no_progress_bars || ctx.output_info.json || ctx.output_info.quiet
-              || pbar_manager_started))
+        if (!(ctx.internal_design_info.no_progress_bars || ctx.output_info.json
+              || ctx.output_info.quiet || pbar_manager_started))
         {
             pbar_manager.terminate();
             if (!no_clear_progress_bars)

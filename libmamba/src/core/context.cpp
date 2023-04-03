@@ -88,8 +88,8 @@ namespace mamba
 
         {
             const bool cout_is_atty = is_atty(std::cout);
-            no_progress_bars = (on_ci || !cout_is_atty);
-            palette = cout_is_atty ? Palette::terminal() : Palette::no_color();
+            internal_design_info.no_progress_bars = (on_ci || !cout_is_atty);
+            internal_design_info.palette = cout_is_atty ? Palette::terminal() : Palette::no_color();
         }
 
 #ifdef _WIN32

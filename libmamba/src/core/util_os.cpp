@@ -167,7 +167,7 @@ namespace mamba
                 "{}",
                 fmt::styled(
                     "Windows long-path support already enabled.",
-                    Context::instance().palette.ignored
+                    Context::instance().internal_design_info.palette.ignored
                 )
             );
             return true;
@@ -207,7 +207,10 @@ namespace mamba
             fmt::print(
                 out,
                 "{}",
-                fmt::styled("Windows long-path support enabled.", Context::instance().palette.success)
+                fmt::styled(
+                    "Windows long-path support enabled.",
+                    Context::instance().internal_design_info.palette.success
+                )
             );
             return true;
         }

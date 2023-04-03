@@ -569,7 +569,8 @@ namespace mamba
         print_problem_tree_msg(
             out,
             cp_pbs,
-            { /* .unavailable= */ ctx.palette.failure, /* .available= */ ctx.palette.success }
+            { /* .unavailable= */ ctx.internal_design_info.palette.failure,
+              /* .available= */ ctx.internal_design_info.palette.success }
         );
         return out;
     }

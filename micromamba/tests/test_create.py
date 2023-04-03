@@ -642,20 +642,22 @@ def test_channel_nodefaults(tmp_home, tmp_root_prefix, tmp_path):
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_pin_applicable(tmp_home, tmp_root_prefix, tmp_path):
-    pkg_name = "xtensor"
-    pkg_max_pin = "0.20"
+    pin_name = "xtensor"
+    pin_max_version = "0.20"
+    # We add the channel to test a fragile behavior of ``MPool``
+    spec_name = "conda-forge::xtensor"
     rc_file = tmp_path / "rc.yaml"
 
     with open(rc_file, "w+") as f:
-        f.write(f"""pinned_packages: ["{pkg_name}<={pkg_max_pin}"]""")
+        f.write(f"""pinned_packages: ["{pin_name}<={pin_max_version}"]""")
 
     res = helpers.create(
-        "-n", "myenv", f"--rc-file={rc_file}", "--json", pkg_name, no_rc=False
+        "-n", "myenv", f"--rc-file={rc_file}", "--json", spec_name, no_rc=False
     )
 
     install_pkg = None
     for p in res["actions"]["LINK"]:
-        if p["name"] == pkg_name:
+        if p["name"] == pin_name:
             install_pkg = p
 
     # Should do proper version comparison

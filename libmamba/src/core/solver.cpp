@@ -478,8 +478,6 @@ namespace mamba
 
     bool MSolver::try_solve()
     {
-        m_pool.create_whatprovides();
-
         m_solver.reset(solver_create(m_pool));
         set_flags(m_flags);
 

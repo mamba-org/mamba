@@ -19,6 +19,7 @@ namespace mamba
     public:
 
         MatchSpec() = default;
+        // TODO make explicit
         MatchSpec(std::string_view i_spec);
 
         void parse();

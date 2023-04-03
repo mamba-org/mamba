@@ -42,6 +42,8 @@ set(LIBMAMBA_TEST_SRCS
     src/core/test_virtual_packages.cpp
     src/core/test_util.cpp
     src/core/test_util_string.cpp
+    src/core/test_util_os.cpp
+    src/core/test_system_env.cpp
     src/core/test_env_lockfile.cpp
     src/core/test_execution.cpp
     src/core/test_invoke.cpp

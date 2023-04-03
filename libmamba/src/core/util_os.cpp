@@ -36,6 +36,10 @@
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_string.hpp"
 
+#ifdef _WIN32
+static_assert(std::is_same_v<mamba::DWORD, ::DWORD>);
+#endif
+
 namespace mamba
 {
     // Heavily inspired by https://github.com/gpakosz/whereami/

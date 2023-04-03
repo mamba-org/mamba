@@ -140,12 +140,22 @@ PYBIND11_MODULE(bindings, m)
 
     py::add_ostream_redirect(m, "ostream_redirect");
 
+    py::class_<MatchSpec>(m, "MatchSpec")
+        .def(py::init<>())
+        .def(py::init<const std::string&>())
+        .def("conda_build_form", &MatchSpec::conda_build_form);
+
     py::class_<MPool>(m, "Pool")
         .def(py::init<>())
         .def("set_debuglevel", &MPool::set_debuglevel)
         .def("create_whatprovides", &MPool::create_whatprovides)
         .def("select_solvables", &MPool::select_solvables, py::arg("id"), py::arg("sorted") = false)
         .def("matchspec2id", &MPool::matchspec2id, py::arg("ms"))
+        .def(
+            "matchspec2id",
+            [](MPool& self, std::string_view ms) { return self.matchspec2id({ ms }); },
+            py::arg("ms")
+        )
         .def("id2pkginfo", &MPool::id2pkginfo, py::arg("id"));
 
     py::class_<MultiPackageCache>(m, "MultiPackageCache")
@@ -259,11 +269,6 @@ PYBIND11_MODULE(bindings, m)
         .def_readwrite("dep", &MSolverProblem::dep)
         .def_readwrite("description", &MSolverProblem::description)
         .def("__str__", [](const MSolverProblem& self) { return self.description; });
-
-    py::class_<MatchSpec>(m, "MatchSpec")
-        .def(py::init<>())
-        .def(py::init<const std::string&>())
-        .def("conda_build_form", &MatchSpec::conda_build_form);
 
     using PbGraph = ProblemsGraph;
     auto pyPbGraph = py::class_<PbGraph>(m, "ProblemsGraph");

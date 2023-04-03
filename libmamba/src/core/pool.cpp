@@ -18,6 +18,7 @@ extern "C"  // Incomplete header
 #include <spdlog/spdlog.h>
 
 #include "mamba/core/context.hpp"
+#include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/util_string.hpp"
@@ -148,10 +149,85 @@ namespace mamba
         return solvables.as<std::vector>();
     }
 
-    Id MPool::matchspec2id(const std::string& ms)
+    namespace
     {
-        Id id = pool_conda_matchspec(pool(), ms.c_str());
-        if (!id)
+        bool channel_match(Solvable* s, const Channel& needle)
+        {
+            MRepo* mrepo = reinterpret_cast<MRepo*>(s->repo->appdata);
+            const Channel* chan = mrepo->channel();
+
+            if (!chan)
+            {
+                return false;
+            }
+
+            if ((*chan) == needle)
+            {
+                return true;
+            }
+
+            auto& custom_multichannels = Context::instance().custom_multichannels;
+            auto x = custom_multichannels.find(needle.name());
+            if (x != custom_multichannels.end())
+            {
+                for (auto el : (x->second))
+                {
+                    const Channel& inner = make_channel(el);
+                    if ((*chan) == inner)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        ::Id add_channel_specific_matchspec(::Pool* pool, const MatchSpec& ms)
+        {
+            // Poor man's ms repr to match waht the user provided
+            std::string const repr = fmt::format("{}::{}", ms.channel, ms.conda_build_form());
+
+            // Already added, return that id
+            if (::Id repr_id = pool_str2id(pool, repr.c_str(), /* .create= */ false); repr_id != 0)
+            {
+                return repr_id;
+            }
+
+            solv::ObjQueue selected_pkgs;
+
+            // conda_build_form does **NOT** contain the channel info
+            ::Id match = pool_conda_matchspec(pool, ms.conda_build_form().c_str());
+
+            const Channel& c = make_channel(ms.channel);
+            for (Id* wp = pool_whatprovides_ptr(pool, match); *wp; wp++)
+            {
+                if (channel_match(pool_id2solvable(pool, *wp), c))
+                {
+                    selected_pkgs.push_back(*wp);
+                }
+            }
+            ::Id const repr_id = pool_str2id(pool, repr.c_str(), /* .create= */ true);
+            ::Id const offset = pool_queuetowhatprovides(pool, selected_pkgs.raw());
+            pool_set_whatprovides(pool, repr_id, offset);
+            return repr_id;
+        }
+    }
+
+    ::Id MPool::matchspec2id(const MatchSpec& ms)
+    {
+        ::Id id = 0;
+        if (ms.channel.empty())
+        {
+            id = pool_conda_matchspec(pool(), ms.conda_build_form().c_str());
+        }
+        else
+        {
+            // Working around shortcomings of ``pool_conda_matchspec``
+            // The channels are not processed.
+            id = add_channel_specific_matchspec(pool(), ms);
+        }
+        if (id == 0)
         {
             throw std::runtime_error("libsolv error: could not create matchspec from string");
         }

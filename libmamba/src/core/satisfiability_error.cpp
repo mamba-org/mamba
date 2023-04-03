@@ -163,7 +163,10 @@ namespace mamba
                             problem.target_id,
                             PackageNode{ std::move(target).value() }
                         );
-                        node_id cons_id = add_solvable(problem.dep_id, ConstraintNode{ dep.value() });
+                        node_id cons_id = add_solvable(
+                            problem.dep_id,
+                            ConstraintNode{ { dep.value() } }
+                        );
                         MatchSpec edge(dep.value());
                         m_graph.add_edge(src_id, cons_id, std::move(edge));
                         add_conflict(cons_id, tgt_id);
@@ -225,7 +228,7 @@ namespace mamba
                         MatchSpec edge(dep.value());
                         node_id dep_id = add_solvable(
                             problem.dep_id,
-                            UnresolvedDependencyNode{ std::move(dep).value() }
+                            UnresolvedDependencyNode{ { std::move(dep).value() } }
                         );
                         m_graph.add_edge(m_root_node, dep_id, std::move(edge));
                         break;
@@ -248,7 +251,7 @@ namespace mamba
                         );
                         node_id dep_id = add_solvable(
                             problem.dep_id,
-                            UnresolvedDependencyNode{ std::move(dep).value() }
+                            UnresolvedDependencyNode{ { std::move(dep).value() } }
                         );
                         m_graph.add_edge(src_id, dep_id, std::move(edge));
                         break;

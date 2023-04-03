@@ -641,6 +641,44 @@ def test_channel_nodefaults(tmp_home, tmp_root_prefix, tmp_path):
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_pin_applicable(tmp_home, tmp_root_prefix, tmp_path):
+    pkg_name = "xtensor"
+    pkg_max_pin = "0.20"
+    rc_file = tmp_path / "rc.yaml"
+
+    with open(rc_file, "w+") as f:
+        f.write(f"""pinned_packages: ["{pkg_name}<={pkg_max_pin}"]""")
+
+    res = helpers.create(
+        "-n", "myenv", f"--rc-file={rc_file}", "--json", pkg_name, no_rc=False
+    )
+
+    install_pkg = None
+    for p in res["actions"]["LINK"]:
+        if p["name"] == pkg_name:
+            install_pkg = p
+
+    # Should do proper version comparison
+    assert install_pkg["version"] == "0.20.0"
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_pin_not_applicable(tmp_home, tmp_root_prefix, tmp_path):
+    pin_name = "package-that-does-not-exists"
+    spec_name = "xtensor"
+    rc_file = tmp_path / "rc.yaml"
+
+    with open(rc_file, "w+") as f:
+        f.write(f"""pinned_packages: ["{pin_name}"]""")
+
+    res = helpers.create(
+        "-n", "myenv", f"--rc-file={rc_file}", "--json", spec_name, no_rc=False
+    )
+    assert res["success"] is True
+    helpers.get_concrete_pkg(res, spec_name)  # Not trowing
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_set_platform(tmp_home, tmp_root_prefix):
     env_name = "myenv"
     # test a dummy platform/arch

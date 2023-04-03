@@ -12,13 +12,13 @@
 
 #include "mamba/core/fsutil.hpp"
 
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-#endif
-
 namespace mamba
 {
+#ifdef _WIN32
+    // Intention is to avoid including `Windows.h`, while still using the basic Windows API types.
+    using DWORD = unsigned long;
+#endif
+
     bool is_admin();
     fs::u8path get_self_exe_path();
 

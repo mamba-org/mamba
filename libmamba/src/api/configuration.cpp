@@ -33,7 +33,7 @@ namespace mamba
     {
         bool ConfigurableImplBase::env_var_configured() const
         {
-            if (Context::instance().no_env)
+            if (Context::instance().config_src_info.no_env)
             {
                 return false;
             }
@@ -50,12 +50,12 @@ namespace mamba
 
         bool ConfigurableImplBase::env_var_active() const
         {
-            return !Context::instance().no_env || (m_name == "no_env");
+            return !Context::instance().config_src_info.no_env || (m_name == "no_env");
         }
 
         bool ConfigurableImplBase::rc_configured() const
         {
-            return m_rc_configured && !Context::instance().no_rc;
+            return m_rc_configured && !Context::instance().config_src_info.no_rc;
         }
     }
 
@@ -609,7 +609,7 @@ namespace mamba
         void post_root_prefix_rc_loading()
         {
             auto& config = Configuration::instance();
-            if (!Context::instance().no_rc)
+            if (!Context::instance().config_src_info.no_rc)
             {
                 rc_loading_hook(RCConfigLevel::kHomeDir);
                 config.at("no_env").compute(MAMBA_CONF_FORCE_COMPUTE);
@@ -619,7 +619,7 @@ namespace mamba
         void post_target_prefix_rc_loading()
         {
             auto& config = Configuration::instance();
-            if (!Context::instance().no_rc)
+            if (!Context::instance().config_src_info.no_rc)
             {
                 rc_loading_hook(RCConfigLevel::kTargetPrefix);
                 config.at("no_env").compute(MAMBA_CONF_FORCE_COMPUTE);
@@ -717,7 +717,7 @@ namespace mamba
 
             if (!files.empty())
             {
-                if (ctx.no_rc)
+                if (ctx.config_src_info.no_rc)
                 {
                     LOG_ERROR << "Configuration files disabled by 'no_rc'";
                     throw std::runtime_error("Incompatible configuration. Aborting.");
@@ -1519,7 +1519,7 @@ namespace mamba
                             be one of {'off', 'fatal', 'error', 'warning', 'info',
                             'debug', 'trace'}.)")));
 
-        insert(Configurable("log_backtrace", &ctx.log_backtrace)
+        insert(Configurable("log_backtrace", &ctx.output_info.log_backtrace)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1528,7 +1528,7 @@ namespace mamba
                             Set the log backtrace size. It will replay the n last
                             logs if an error is thrown during the execution.)")));
 
-        insert(Configurable("log_pattern", &ctx.log_pattern)
+        insert(Configurable("log_pattern", &ctx.output_info.log_pattern)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1650,12 +1650,12 @@ namespace mamba
                    .set_env_var_names()
                    .description("Whether to override rc files by highest precedence"));
 
-        insert(Configurable("no_rc", &ctx.no_rc)
+        insert(Configurable("no_rc", &ctx.config_src_info.no_rc)
                    .group("Config sources")
                    .set_env_var_names()
                    .description("Disable the use of configuration files"));
 
-        insert(Configurable("no_env", &ctx.no_env)
+        insert(Configurable("no_env", &ctx.config_src_info.no_env)
                    .group("Config sources")
                    .set_env_var_names()
                    .description("Disable the use of environment variables"));
@@ -1796,9 +1796,9 @@ namespace mamba
         spdlog::flush_on(spdlog::level::off);
 
         Context::instance().dump_backtrace_no_guards();
-        if (ctx.log_backtrace > 0)
+        if (ctx.output_info.log_backtrace > 0)
         {
-            spdlog::enable_backtrace(ctx.log_backtrace);
+            spdlog::enable_backtrace(ctx.output_info.log_backtrace);
         }
         else
         {

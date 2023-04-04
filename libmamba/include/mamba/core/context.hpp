@@ -118,6 +118,7 @@ namespace mamba
     {
     public:
 
+        // TODO separate later between configurables and internal variables
         struct RemoteFetchInfo
         {
             // ssl_verify can be either an empty string (regular SSL verification),
@@ -142,12 +143,21 @@ namespace mamba
 
             bool json{ false };
             bool quiet{ false };
+
+            std::string log_pattern{ "%^%-9!l%-8n%$ %v" };
+            std::size_t log_backtrace{ 0 };
         };
 
-        struct InternalDesignInfo
+        struct InternalDesignInfo  // Non configurable
         {
             bool no_progress_bars{ false };
             Palette palette;
+        };
+
+        struct ConfigSrcInfo  // Configurable
+        {
+            bool no_rc{ false };
+            bool no_env{ false };
         };
 
         std::string caller_version = "";
@@ -179,11 +189,8 @@ namespace mamba
         int extract_threads = 0;
         bool extract_sparse = false;
 
-        std::string log_pattern = "%^%-9!l%-8n%$ %v";
-        std::size_t log_backtrace = 0;
-
-        bool dev = false;
-        bool on_ci = false;
+        bool dev = false;  // TODO this is always used as default=false and isn't set anywhere => to
+                           // be removed if this is the case...
         bool dry_run = false;
         bool download_only = false;
         bool always_yes = false;
@@ -216,13 +223,11 @@ namespace mamba
         RemoteFetchInfo remote_fetch_info;
         OutputInfo output_info;
         InternalDesignInfo internal_design_info;
+        ConfigSrcInfo config_src_info;
 
         bool curl_initialized = false;
 
         std::map<std::string, std::string> proxy_servers;
-
-        bool no_rc = false;
-        bool no_env = false;
 
         std::size_t lock_timeout = 0;
         bool use_lockfiles = true;
@@ -291,6 +296,9 @@ namespace mamba
 
 
     private:
+
+        // Used internally
+        bool on_ci = false;
 
         void load_authentication_info();
         std::map<std::string, AuthenticationInfo> m_authentication_info;

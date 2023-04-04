@@ -100,15 +100,19 @@ namespace mamba
 
         set_default_signal_handler();
 
-        std::shared_ptr<spdlog::logger> l = std::make_shared<Logger>("libmamba", log_pattern, "\n");
+        std::shared_ptr<spdlog::logger> l = std::make_shared<Logger>(
+            "libmamba",
+            output_info.log_pattern,
+            "\n"
+        );
         std::shared_ptr<spdlog::logger> libcurl_logger = std::make_shared<Logger>(
             "libcurl",
-            log_pattern,
+            output_info.log_pattern,
             ""
         );
         std::shared_ptr<spdlog::logger> libsolv_logger = std::make_shared<Logger>(
             "libsolv",
-            log_pattern,
+            output_info.log_pattern,
             ""
         );
         spdlog::register_logger(libcurl_logger);
@@ -329,8 +333,8 @@ namespace mamba
         PRINT_CTX(out, allow_softlinks);
         PRINT_CTX(out, offline);
         PRINT_CTX(out, output_info.quiet);
-        PRINT_CTX(out, no_rc);
-        PRINT_CTX(out, no_env);
+        PRINT_CTX(out, config_src_info.no_rc);
+        PRINT_CTX(out, config_src_info.no_env);
         PRINT_CTX(out, remote_fetch_info.ssl_no_revoke);
         PRINT_CTX(out, remote_fetch_info.ssl_verify);
         PRINT_CTX(out, remote_fetch_info.retry_timeout);

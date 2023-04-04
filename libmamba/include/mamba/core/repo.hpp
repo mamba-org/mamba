@@ -24,7 +24,6 @@ extern "C"
 
 namespace mamba
 {
-    class Channel;
     class MPool;
     class PackageInfo;
     class PrefixData;
@@ -98,15 +97,9 @@ namespace mamba
          * @param name Name of the subdirectory (<channel>/<subdir>)
          * @param index Path to the index file
          * @param meta Metadata of the repo
-         * @param channel Channel of the repo
          */
-        static MRepo& create(
-            MPool& pool,
-            const std::string& name,
-            const fs::u8path& filename,
-            const RepoMetadata& meta,
-            const Channel& channel
-        );
+        static MRepo&
+        create(MPool& pool, const std::string& name, const fs::u8path& filename, const RepoMetadata& meta);
 
         /**
          * Static constructor.
@@ -128,13 +121,7 @@ namespace mamba
 
         MRepo(MPool& pool, const std::string& name, const std::string& filename, const std::string& url);
 
-        MRepo(
-            MPool& pool,
-            const std::string& name,
-            const fs::u8path& filename,
-            const RepoMetadata& meta,
-            const Channel& channel
-        );
+        MRepo(MPool& pool, const std::string& name, const fs::u8path& filename, const RepoMetadata& meta);
 
         MRepo(MPool& pool, const PrefixData& prefix_data);
 

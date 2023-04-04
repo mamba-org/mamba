@@ -14,7 +14,7 @@ extern "C"  // Incomplete header
 #include <solv/repo_conda.h>
 }
 
-#include "mamba/core/channel_builder.hpp"
+#include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
@@ -39,13 +39,7 @@ namespace mamba
         return MTV;
     }
 
-    MRepo::MRepo(
-        MPool& pool,
-        const std::string& /*name*/,
-        const fs::u8path& index,
-        const RepoMetadata& metadata,
-        const Channel& channel
-    )
+    MRepo::MRepo(MPool& pool, const std::string& /*name*/, const fs::u8path& index, const RepoMetadata& metadata)
         : m_url(rsplit(metadata.url, "/", 1)[0])
         , m_metadata(metadata)
     {
@@ -302,15 +296,10 @@ namespace mamba
         return pool.add_repo(MRepo(pool, name, filename, url));
     }
 
-    MRepo& MRepo::create(
-        MPool& pool,
-        const std::string& name,
-        const fs::u8path& filename,
-        const RepoMetadata& meta,
-        const Channel& channel
-    )
+    MRepo&
+    MRepo::create(MPool& pool, const std::string& name, const fs::u8path& filename, const RepoMetadata& meta)
     {
-        return pool.add_repo(MRepo(pool, name, filename, meta, channel));
+        return pool.add_repo(MRepo(pool, name, filename, meta));
     }
 
     MRepo& MRepo::create(MPool& pool, const PrefixData& prefix_data)

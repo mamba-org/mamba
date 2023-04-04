@@ -103,6 +103,7 @@ namespace mamba
     {
         m_repo->appdata = this;
         m_real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
+        m_mrepo_key = pool_str2id(pool, "solvable:mrepo_url", 1);
         m_noarch_repo_key = pool_str2id(pool, "solvable:noarch_type", 1);
     }
 
@@ -173,6 +174,7 @@ namespace mamba
         repodata_set_checksum(data, handle, SOLVABLE_PKGID, REPOKEY_TYPE_MD5, info.md5.c_str());
 
         solvable_set_str(s, m_real_repo_key, info.url.c_str());
+        solvable_set_str(s, m_mrepo_key, url().c_str());
 
         if (!info.noarch.empty())
         {
@@ -446,11 +448,11 @@ namespace mamba
         {
             // Setting the channel url on where the solvable so that we can retrace
             // where it came from
-            Id id;
-            Solvable* s;
+            Id id = 0;
+            Solvable* s = nullptr;
             FOR_REPO_SOLVABLES(m_repo, id, s)
             {
-                solvable_set_str(s, m_real_repo_key, url().c_str());
+                solvable_set_str(s, m_mrepo_key, url().c_str());
             }
         }
 

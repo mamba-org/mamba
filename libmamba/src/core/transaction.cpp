@@ -873,6 +873,7 @@ namespace mamba
             }
         }
         m_real_repo_key = pool_str2id(m_pool, "solvable:real_repo_url", 1);
+        m_mrepo_key = pool_str2id(m_pool, "solvable:mrepo_url", 1);
     }
 
     // TODO rewrite this in terms of `m_transaction`
@@ -1196,7 +1197,7 @@ namespace mamba
 
         for (auto& s : m_to_install)
         {
-            std::string const s_url = solvable_lookup_str(s, m_real_repo_key);
+            std::string const s_url = raw_str_or_empty(solvable_lookup_str(s, m_mrepo_key));
 
             if (ctx.experimental && ctx.verify_artifacts)
             {

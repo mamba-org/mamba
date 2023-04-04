@@ -149,6 +149,7 @@ namespace mamba
 
         Repo* m_repo;
         ::Id m_real_repo_key = 0;
+        ::Id m_mrepo_key = 0;
         ::Id m_noarch_repo_key = 0;
         const Channel* p_channel = nullptr;
     };

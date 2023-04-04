@@ -74,7 +74,6 @@ namespace mamba
         bool write() const;
         const std::string& url() const;
         Repo* repo() const;
-        const Channel* channel() const;
         std::tuple<int, int> priority() const;
         std::size_t size() const;
 
@@ -152,7 +151,6 @@ namespace mamba
         ::Id m_real_repo_key = 0;
         ::Id m_mrepo_key = 0;
         ::Id m_noarch_repo_key = 0;
-        const Channel* p_channel = nullptr;
     };
 
 }  // namespace mamba

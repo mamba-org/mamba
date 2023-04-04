@@ -51,7 +51,6 @@ namespace mamba
         m_repo = repo_create(pool, m_url.c_str());
         init(pool);
         read_file(index);
-        p_channel = &channel;
     }
 
     MRepo::MRepo(MPool& pool, const std::string& name, const std::string& index, const std::string& url)
@@ -60,7 +59,6 @@ namespace mamba
     {
         init(pool);
         read_file(index);
-        p_channel = &ChannelBuilder::make_cached_channel(m_url);
     }
 
     MRepo::MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& package_infos)
@@ -101,7 +99,6 @@ namespace mamba
 
     void MRepo::init(MPool& pool)
     {
-        m_repo->appdata = this;
         m_real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
         m_mrepo_key = pool_str2id(pool, "solvable:mrepo_url", 1);
         m_noarch_repo_key = pool_str2id(pool, "solvable:noarch_type", 1);
@@ -142,11 +139,8 @@ namespace mamba
         , m_real_repo_key(rhs.m_real_repo_key)
         , m_mrepo_key(rhs.m_mrepo_key)
         , m_noarch_repo_key(rhs.m_noarch_repo_key)
-        , p_channel(rhs.p_channel)
     {
         rhs.m_repo = nullptr;
-        rhs.p_channel = nullptr;
-        m_repo->appdata = this;
     }
 
     MRepo& MRepo::operator=(MRepo&& rhs)
@@ -157,8 +151,6 @@ namespace mamba
         swap(m_url, rhs.m_url);
         swap(m_metadata, rhs.m_metadata);
         swap(m_repo, rhs.m_repo);
-        swap(p_channel, rhs.p_channel);
-        m_repo->appdata = this;
         swap(m_real_repo_key, rhs.m_real_repo_key);
         swap(m_mrepo_key, rhs.m_mrepo_key);
         swap(m_noarch_repo_key, rhs.m_noarch_repo_key);
@@ -255,11 +247,6 @@ namespace mamba
     Repo* MRepo::repo() const
     {
         return m_repo;
-    }
-
-    const Channel* MRepo::channel() const
-    {
-        return p_channel;
     }
 
     std::tuple<int, int> MRepo::priority() const

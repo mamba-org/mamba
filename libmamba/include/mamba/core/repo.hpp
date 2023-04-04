@@ -10,11 +10,11 @@
 #include <string>
 #include <tuple>
 #include <utility>
+#include <vector>
 
 #include <solv/pooltypes.h>
 
-#include "channel.hpp"
-#include "prefix_data.hpp"
+#include "mamba_fs.hpp"
 
 extern "C"
 {
@@ -24,7 +24,10 @@ extern "C"
 
 namespace mamba
 {
+    class Channel;
     class MPool;
+    class PackageInfo;
+    class PrefixData;
 
     /**
      * Represents a channel subdirectory

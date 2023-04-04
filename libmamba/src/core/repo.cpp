@@ -19,6 +19,7 @@ extern "C"  // Incomplete header
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
+#include "mamba/core/prefix_data.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/util_string.hpp"
 

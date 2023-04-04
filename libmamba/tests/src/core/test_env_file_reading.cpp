@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "mamba/api/install.hpp"
+#include "mamba/core/util.hpp"
 
 #include "test_data.hpp"
 

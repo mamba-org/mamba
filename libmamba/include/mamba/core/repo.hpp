@@ -141,6 +141,7 @@ namespace mamba
         void init(MPool& pool);
 
         bool read_file(const fs::u8path& filename);
+        void set_solvables_url();
 
         fs::u8path m_json_file, m_solv_file;
         std::string m_url;

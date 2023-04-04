@@ -58,9 +58,9 @@ namespace mamba
         : m_url(url)
         , m_repo(repo_create(pool, name.c_str()))
     {
+        init(pool);
         read_file(index);
         p_channel = &ChannelBuilder::make_cached_channel(m_url);
-        init(pool);
     }
 
     MRepo::MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& package_infos)
@@ -107,6 +107,18 @@ namespace mamba
         m_noarch_repo_key = pool_str2id(pool, "solvable:noarch_type", 1);
     }
 
+    void MRepo::set_solvables_url()
+    {
+        // Setting the channel url on where the solvable so that we can retrace
+        // where it came from
+        Id id = 0;
+        Solvable* s = nullptr;
+        FOR_REPO_SOLVABLES(m_repo, id, s)
+        {
+            solvable_set_str(s, m_mrepo_key, this->url().c_str());
+        }
+    }
+
     MRepo::~MRepo()
     {
         if (m_repo)
@@ -127,6 +139,9 @@ namespace mamba
         , m_url(std::move(rhs.m_url))
         , m_metadata(std::move(rhs.m_metadata))
         , m_repo(rhs.m_repo)
+        , m_real_repo_key(rhs.m_real_repo_key)
+        , m_mrepo_key(rhs.m_mrepo_key)
+        , m_noarch_repo_key(rhs.m_noarch_repo_key)
         , p_channel(rhs.p_channel)
     {
         rhs.m_repo = nullptr;
@@ -144,6 +159,9 @@ namespace mamba
         swap(m_repo, rhs.m_repo);
         swap(p_channel, rhs.p_channel);
         m_repo->appdata = this;
+        swap(m_real_repo_key, rhs.m_real_repo_key);
+        swap(m_mrepo_key, rhs.m_mrepo_key);
+        swap(m_noarch_repo_key, rhs.m_noarch_repo_key);
         return *this;
     }
 
@@ -215,6 +233,8 @@ namespace mamba
             pool_rel2id(pool, s->name, s->evr, REL_EQ, 1),
             0
         );
+
+        repo_internalize(m_repo);
     }
 
     Id MRepo::id() const
@@ -411,6 +431,7 @@ namespace mamba
                     else
                     {
                         LOG_DEBUG << "Loaded from SOLV " << m_solv_file;
+                        set_solvables_url();
                         repo_internalize(m_repo);
                         fclose(fp);
                         return true;
@@ -445,16 +466,6 @@ namespace mamba
                 + std::string(pool_errstr(m_repo->pool))
             );
         }
-        {
-            // Setting the channel url on where the solvable so that we can retrace
-            // where it came from
-            Id id = 0;
-            Solvable* s = nullptr;
-            FOR_REPO_SOLVABLES(m_repo, id, s)
-            {
-                solvable_set_str(s, m_mrepo_key, url().c_str());
-            }
-        }
 
         // TODO move this to a more structured approach for repodata patching?
         if (Context::instance().add_pip_as_python_dependency)
@@ -462,6 +473,7 @@ namespace mamba
             add_pip_as_python_dependency();
         }
 
+        set_solvables_url();
         repo_internalize(m_repo);
 
         if (name() != "installed")

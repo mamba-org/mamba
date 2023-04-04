@@ -1553,7 +1553,7 @@ namespace mamba
         return std::nullopt;
     }
 
-    std::string hide_secrets(const std::string_view& str)
+    std::string hide_secrets(std::string_view str)
     {
         std::string copy(str);
 

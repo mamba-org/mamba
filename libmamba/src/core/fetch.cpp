@@ -58,7 +58,7 @@ namespace mamba
                                             : "0";
         bool set_ssl_no_revoke = (Context::instance().ssl_no_revoke || ssl_no_revoke_env != "0");
 
-        curl::set_curl_handle(
+        curl::configure_curl_handle(
             handle,
             url,
             (no_low_speed_limit == "0"),

@@ -25,13 +25,13 @@ namespace mamba
 {
     namespace curl
     {
-        void set_curl_handle(
+        void configure_curl_handle(
             CURL* handle,
             const std::string& url,
             const bool set_low_speed_opt,
-            const long& connect_timeout_secs,
+            const long connect_timeout_secs,
             const bool ssl_no_revoke,
-            const std::optional<std::string> proxy,
+            const std::optional<std::string>& proxy,
             const std::string& ssl_verify
         );
     }

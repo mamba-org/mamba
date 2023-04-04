@@ -331,7 +331,7 @@ namespace mamba
 
     std::optional<std::string> proxy_match(const std::string& url);
 
-    std::string hide_secrets(const std::string_view& str);
+    std::string hide_secrets(std::string_view str);
 
     class non_copyable_base
     {

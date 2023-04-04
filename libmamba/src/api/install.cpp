@@ -510,8 +510,6 @@ namespace mamba
             solver.add_jobs(prefix_pkgs, SOLVER_LOCK);
         }
 
-        solver.add_jobs(specs, solver_flag);
-
         if (!no_pin)
         {
             solver.add_pins(file_pins(prefix_data.path() / "conda-meta" / "pinned"));
@@ -535,6 +533,11 @@ namespace mamba
             }
             Console::instance().print("\nPinned packages:\n" + join("", pinned_str));
         }
+
+        // FRAGILE this must be called after pins be before jobs in current ``MPool``
+        pool.create_whatprovides();
+
+        solver.add_jobs(specs, solver_flag);
 
         bool success = solver.try_solve();
         if (!success)

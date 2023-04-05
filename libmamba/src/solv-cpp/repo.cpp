@@ -58,6 +58,11 @@ namespace mamba::solv
         return false;
     }
 
+    auto ObjRepoViewConst::get_solvable(SolvableId id) const -> ObjSolvableViewConst
+    {
+        return ObjSolvableViewConst{ pool_id2solvable(raw()->pool, id) };
+    }
+
     void ObjRepoViewConst::write(std::filesystem::path solv_file) const
     {
         auto* fp = std::fopen(solv_file.string().c_str(), "wb");
@@ -131,5 +136,20 @@ namespace mamba::solv
     auto ObjRepoView::add_solvable() const -> SolvableId
     {
         return repo_add_solvable(raw());
+    }
+
+    auto ObjRepoView::get_solvable(SolvableId id) const -> ObjSolvableView
+    {
+        return ObjSolvableView{ pool_id2solvable(raw()->pool, id) };
+    }
+
+    void ObjRepoView::remove_solvable(SolvableId id, bool reuse_id) const
+    {
+        repo_free_solvable(raw(), id, reuse_id);
+    }
+
+    void ObjRepoView::internalize()
+    {
+        repo_internalize(raw());
     }
 }

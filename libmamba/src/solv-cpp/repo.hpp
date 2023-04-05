@@ -31,6 +31,8 @@ namespace mamba::solv
         auto n_solvables() const -> std::size_t;
         auto contains_solvable(SolvableId id) const -> bool;
 
+        auto get_solvable(SolvableId id) const -> ObjSolvableViewConst;
+
         template <typename UnaryFunc>
         void for_each_solvable_id(UnaryFunc func) const;
 
@@ -64,6 +66,17 @@ namespace mamba::solv
         void read(std::filesystem::path solv_file) const;
 
         auto add_solvable() const -> SolvableId;
+        auto get_solvable(SolvableId id) const -> ObjSolvableView;
+        void remove_solvable(SolvableId id, bool reuse_id) const;
+
+        /**
+         * Internalize added data.
+         *
+         * Data must be internalized before it is available for lookup.
+         * This concerns data added on solvable too.
+         * This is a costly operation.
+         */
+        void internalize();
     };
 }
 

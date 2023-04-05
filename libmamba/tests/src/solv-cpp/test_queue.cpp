@@ -190,4 +190,19 @@ TEST_SUITE("ObjQueue")
         CHECK_EQ(q.size(), 0);
         CHECK_GE(q.capacity(), 10);
     }
+
+    TEST_CASE("comparison")
+    {
+        CHECK_EQ(ObjQueue{}, ObjQueue{});
+
+        auto q1 = ObjQueue{ 1, 2, 3 };
+
+        CHECK_EQ(q1, q1);
+        CHECK_NE(q1, ObjQueue{});
+
+        auto q2 = q1;
+        CHECK_EQ(q1, q2);
+        q2.reserve(10);
+        CHECK_EQ(q1, q2);
+    }
 }

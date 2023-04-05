@@ -48,6 +48,9 @@ namespace mamba::solv
         auto operator=(ObjQueue&& other) -> ObjQueue&;
         auto operator=(const ObjQueue& other) -> ObjQueue&;
 
+        auto operator==(const ObjQueue& other) const -> bool;
+        auto operator!=(const ObjQueue& other) const -> bool;
+
         auto size() const -> size_type;
         auto capacity() const -> size_type;
         auto empty() const -> bool;

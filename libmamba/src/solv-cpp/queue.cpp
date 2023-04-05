@@ -66,6 +66,16 @@ namespace mamba::solv
         return *this;
     }
 
+    auto ObjQueue::operator==(const ObjQueue& other) const -> bool
+    {
+        return std::equal(cbegin(), cend(), other.cbegin(), other.cend());
+    }
+
+    auto ObjQueue::operator!=(const ObjQueue& other) const -> bool
+    {
+        return !(*this == other);
+    }
+
     void ObjQueue::push_back(value_type id)
     {
         queue_push(raw(), id);

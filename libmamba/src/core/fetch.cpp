@@ -30,7 +30,6 @@ namespace mamba
         : m_name(name)
         , m_filename(filename)
         , m_url(unc_url(url))
-        , m_curl_initialized(false)
     {
         m_curl_handle = std::make_unique<CURLHandle>();
         init_curl_ssl();
@@ -95,12 +94,12 @@ namespace mamba
     {
         auto& ctx = Context::instance();
 
-        if (!m_curl_initialized)
+        if (!ctx.curl_initialized)
         {
             if (ctx.ssl_verify == "<false>")
             {
                 LOG_DEBUG << "'ssl_verify' not activated, skipping cURL SSL init";
-                m_curl_initialized = true;
+                ctx.curl_initialized = true;
                 return;
             }
 
@@ -159,7 +158,7 @@ namespace mamba
                 }
             }
 
-            m_curl_initialized = true;
+            ctx.curl_initialized = true;
         }
     }
 

@@ -317,12 +317,12 @@ namespace mamba
         p_data->is_json_print_cancelled = true;
     }
 
-    std::string Console::hide_secrets(const std::string_view& str)
+    std::string Console::hide_secrets(std::string_view str)
     {
         return mamba::hide_secrets(str);
     }
 
-    void Console::print(const std::string_view& str, bool force_print)
+    void Console::print(std::string_view str, bool force_print)
     {
         if (force_print || !(Context::instance().quiet || Context::instance().json))
         {
@@ -353,12 +353,12 @@ namespace mamba
 
     // We use an overload instead of a default argument to avoid exposing std::cin
     // in the header (this would require to include iostream)
-    bool Console::prompt(const std::string_view& message, char fallback)
+    bool Console::prompt(std::string_view message, char fallback)
     {
         return Console::prompt(message, fallback, std::cin);
     }
 
-    bool Console::prompt(const std::string_view& message, char fallback, std::istream& input_stream)
+    bool Console::prompt(std::string_view message, char fallback, std::istream& input_stream)
     {
         if (Context::instance().always_yes)
         {

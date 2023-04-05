@@ -4,9 +4,9 @@
 Micromamba
 ==========
 
-``micromamba`` is a small, pure-C++ executable with enough functionalities to *bootstrap* fully functional conda-environments.
-
-Still at early stage, it's main usage is in continous integration pipelines: since it's a single executable, it reduces dramatically bandwidth usage and provide *fast* operations.
+``micromamba`` is a tiny version of the ``mamba`` package manager.
+It is a statically linked C++ executable with a separate command line interface.
+It does not need a ``base`` environment and does not come with a default version of Python.
 
 
 Quickstarts

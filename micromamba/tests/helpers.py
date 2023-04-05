@@ -166,7 +166,7 @@ def create(
     create_cmd="create",
 ):
     umamba = get_umamba()
-    cmd = [umamba] + create_cmd.split() + [arg for arg in args if arg]
+    cmd = [umamba] + create_cmd.split() + [str(arg) for arg in args if arg]
 
     if "--print-config-only" in args:
         cmd += ["--debug"]
@@ -270,7 +270,7 @@ def update(*args, default_channel=True, no_rc=True, no_dry_run=False):
 
 def run_env(*args, f=None):
     umamba = get_umamba()
-    cmd = [umamba, "env"] + [arg for arg in args if arg]
+    cmd = [umamba, "env"] + [str(arg) for arg in args if arg]
 
     res = subprocess_run(*cmd)
 
@@ -284,7 +284,7 @@ def run_env(*args, f=None):
 def umamba_list(*args):
     umamba = get_umamba()
 
-    cmd = [umamba, "list"] + [arg for arg in args if arg]
+    cmd = [umamba, "list"] + [str(arg) for arg in args if arg]
     res = subprocess_run(*cmd)
 
     if "--json" in args:
@@ -297,7 +297,7 @@ def umamba_list(*args):
 def umamba_run(*args, **kwargs):
     umamba = get_umamba()
 
-    cmd = [umamba, "run"] + [arg for arg in args if arg]
+    cmd = [umamba, "run"] + [str(arg) for arg in args if arg]
     res = subprocess_run(*cmd, **kwargs)
 
     if "--json" in args:
@@ -310,7 +310,7 @@ def umamba_run(*args, **kwargs):
 def umamba_repoquery(*args, no_rc=True):
     umamba = get_umamba()
 
-    cmd = [umamba, "repoquery"] + [arg for arg in args if arg]
+    cmd = [umamba, "repoquery"] + [str(arg) for arg in args if arg]
 
     if no_rc:
         cmd += ["--no-rc"]

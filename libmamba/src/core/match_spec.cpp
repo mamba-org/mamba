@@ -27,8 +27,7 @@ namespace mamba
         return split_str;
     }
 
-
-    MatchSpec::MatchSpec(const std::string& i_spec)
+    MatchSpec::MatchSpec(std::string_view i_spec)
         : spec(i_spec)
     {
         parse();

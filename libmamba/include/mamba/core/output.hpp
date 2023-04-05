@@ -104,9 +104,8 @@ namespace mamba
 
         static Console& instance();
         static ConsoleStream stream();
-        static bool prompt(const std::string_view& message, char fallback = '_');
-        static bool
-        prompt(const std::string_view& message, char fallback, std::istream& input_stream);
+        static bool prompt(std::string_view message, char fallback = '_');
+        static bool prompt(std::string_view message, char fallback, std::istream& input_stream);
 
         ProgressProxy add_progress_bar(const std::string& name, size_t expected_total = 0);
         void clear_progress_bars();
@@ -114,9 +113,9 @@ namespace mamba
         void terminate_progress_bar_manager();
         ProgressBarManager& progress_bar_manager();
 
-        static std::string hide_secrets(const std::string_view& str);
+        static std::string hide_secrets(std::string_view str);
 
-        void print(const std::string_view& str, bool force_print = false);
+        void print(std::string_view str, bool force_print = false);
         void json_write(const nlohmann::json& j);
         void json_append(const std::string& value);
         void json_append(const nlohmann::json& j);
@@ -135,7 +134,7 @@ namespace mamba
     private:
 
         void json_print();
-        void deactivate_progress_bar(std::size_t idx, const std::string_view& msg = "");
+        void deactivate_progress_bar(std::size_t idx, std::string_view msg = "");
 
         std::unique_ptr<ConsoleData> p_data;
 

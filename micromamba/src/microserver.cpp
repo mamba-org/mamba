@@ -80,7 +80,7 @@ namespace microserver
         std::string date;
         std::stringstream body;
 
-        void send(const std::string_view& str)
+        void send(std::string_view str)
         {
             body << str;
         }
@@ -118,14 +118,14 @@ namespace microserver
     private:
 
         void main_loop(int port);
-        std::pair<std::string, std::string> parse_header(const std::string_view&);
+        std::pair<std::string, std::string> parse_header(std::string_view);
         void parse_headers(const std::string&, Request&, Response&);
         bool match_route(Request&, Response&);
         std::vector<Route> m_routes;
         spdlog::logger m_logger;
     };
 
-    std::pair<std::string, std::string> Server::parse_header(const std::string_view& header)
+    std::pair<std::string, std::string> Server::parse_header(std::string_view header)
     {
         assert(header.size() >= 2);
         assert(header[header.size() - 1] == '\n' && header[header.size() - 2] == '\r');

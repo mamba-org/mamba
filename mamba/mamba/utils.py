@@ -365,11 +365,18 @@ def compute_final_precs(
             entry["channel"].platform_url(entry["platform"], with_credentials=False)
         ] = entry
 
+    i_rec: PackageRecord
     for _, pkg in to_unlink:
         for i_rec in installed_pkg_recs:
             if i_rec.fn == pkg:
-                final_precs.remove(i_rec)
-                to_unlink_records.append(i_rec)
+                try:
+                    final_precs.remove(i_rec)
+                    to_unlink_records.append(i_rec)
+                except KeyError:
+                    # virtual packages cannot be unlinked as they do not exist
+                    if i_rec.package_type == "virtual_system":
+                        continue
+                    raise
                 break
         else:
             print("No package record found!")
@@ -390,6 +397,10 @@ def compute_final_precs(
         for ipkg in installed_pkg_recs:
             if ipkg.name == rec.name:
                 rec.noarch = ipkg.noarch
+
+        # virtual packages cannot be linked as they do not exist
+        if rec.package_type == "virtual_system":
+            continue
 
         final_precs.add(rec)
         to_link_records.append(rec)

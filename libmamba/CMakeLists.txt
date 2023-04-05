@@ -269,6 +269,8 @@ set(LIBMAMBA_PUBLIC_HEADERS
 
 set(LIBMAMBA_PRIVATE_HEADERS
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.hpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/ids.hpp
+    # C++ wrapping of libcurl
     ${LIBMAMBA_SOURCE_DIR}/core/compression.hpp
     ${LIBMAMBA_SOURCE_DIR}/core/curl.hpp
 )

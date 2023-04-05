@@ -1553,4 +1553,18 @@ namespace mamba
         return std::nullopt;
     }
 
+    std::string hide_secrets(std::string_view str)
+    {
+        std::string copy(str);
+
+        if (contains(str, "/t/"))
+        {
+            copy = std::regex_replace(copy, Context::instance().token_regex, "/t/*****");
+        }
+
+        copy = std::regex_replace(copy, Context::instance().http_basicauth_regex, "$1$2:*****@");
+
+        return copy;
+    }
+
 }  // namespace mamba

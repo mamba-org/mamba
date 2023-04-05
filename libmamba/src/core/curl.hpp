@@ -7,6 +7,7 @@
 #ifndef MAMBA_CURL_HPP
 #define MAMBA_CURL_HPP
 
+#include <optional>
 #include <stdexcept>
 #include <string_view>
 #include <utility>
@@ -22,6 +23,19 @@ extern "C"
 
 namespace mamba
 {
+    namespace curl
+    {
+        void configure_curl_handle(
+            CURL* handle,
+            const std::string& url,
+            const bool set_low_speed_opt,
+            const long connect_timeout_secs,
+            const bool ssl_no_revoke,
+            const std::optional<std::string>& proxy,
+            const std::string& ssl_verify
+        );
+    }
+
     enum class CurlLogLevel
     {
         kInfo,
@@ -70,13 +84,13 @@ namespace mamba
 
         CURLHandle& set_opt_header();
 
-        // TODO Make this private after more wrapping...
-        char m_errorbuffer[CURL_ERROR_SIZE];
+        const char* get_error_buffer() const;
 
     private:
 
         CURL* m_handle;
         curl_slist* p_headers = nullptr;
+        char m_errorbuffer[CURL_ERROR_SIZE];
     };
 
     template <class T>

@@ -181,20 +181,6 @@ namespace mamba
         return hex_digest.substr(0u, 8u);
     }
 
-    std::string hide_secrets(const std::string_view& str)
-    {
-        std::string copy(str);
-
-        if (contains(str, "/t/"))
-        {
-            copy = std::regex_replace(copy, Context::instance().token_regex, "/t/*****");
-        }
-
-        copy = std::regex_replace(copy, Context::instance().http_basicauth_regex, "$1$2:*****@");
-
-        return copy;
-    }
-
     URLHandler::URLHandler(const std::string& url)
         : m_url(url)
         , m_has_scheme(has_scheme(url))

@@ -79,7 +79,7 @@ namespace mamba
         m_filename = pkg_info.fn;
 
         // only do this for micromamba for now
-        if (Context::instance().is_micromamba)
+        if (Context::instance().internal_command_info.is_micromamba)
         {
             m_url = make_channel(pkg_info.url).urls(true)[0];
         }

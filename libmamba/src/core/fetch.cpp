@@ -94,12 +94,12 @@ namespace mamba
     {
         auto& ctx = Context::instance();
 
-        if (!ctx.curl_initialized)
+        if (!ctx.remote_fetch_info.curl_initialized)
         {
             if (ctx.remote_fetch_info.ssl_verify == "<false>")
             {
                 LOG_DEBUG << "'ssl_verify' not activated, skipping cURL SSL init";
-                ctx.curl_initialized = true;
+                ctx.remote_fetch_info.curl_initialized = true;
                 return;
             }
 
@@ -159,7 +159,7 @@ namespace mamba
                 }
             }
 
-            ctx.curl_initialized = true;
+            ctx.remote_fetch_info.curl_initialized = true;
         }
     }
 

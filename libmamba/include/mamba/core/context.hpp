@@ -126,6 +126,7 @@ namespace mamba
             // a directory with cert files, or a cert file.
             std::string ssl_verify{ "" };
             bool ssl_no_revoke{ false };
+            bool curl_initialized{ false };  // non configurable, used in fetch only
 
             std::string user_agent{ "mamba/" LIBMAMBA_VERSION_STRING };
 
@@ -136,7 +137,7 @@ namespace mamba
             int max_retries{ 3 };    // max number of retries
         };
 
-        struct OutputInfo
+        struct OutputInfo  // Configurable, TODO change name of struct?
         {
             int verbosity{ 0 };
             log_level logging_level{ log_level::warn };
@@ -160,11 +161,16 @@ namespace mamba
             bool no_env{ false };
         };
 
-        std::string caller_version = "";
-        std::string conda_version = "3.8.0";
-        std::string current_command = "mamba";
-        std::string custom_banner = "";
-        bool is_micromamba = false;
+        struct InternalCommandInfo  // Non configurable
+        {
+            std::string caller_version{ "" };
+            std::string conda_version{ "3.8.0" };
+            std::string current_command{ "mamba" };
+            std::string custom_banner{ "" };
+            bool is_micromamba{ false };
+        };
+
+        // Configurable
         bool experimental = false;
         bool debug = false;
 
@@ -224,8 +230,7 @@ namespace mamba
         OutputInfo output_info;
         InternalDesignInfo internal_design_info;
         ConfigSrcInfo config_src_info;
-
-        bool curl_initialized = false;
+        InternalCommandInfo internal_command_info;
 
         std::map<std::string, std::string> proxy_servers;
 

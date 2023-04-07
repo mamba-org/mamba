@@ -39,6 +39,8 @@ namespace mamba::solv
 
         template <typename UnaryFunc>
         void for_each_solvable_id(UnaryFunc func) const;
+        template <typename UnaryFunc>
+        void for_each_solvable(UnaryFunc func) const;
 
         /**
          * Write repository information to file.
@@ -83,6 +85,9 @@ namespace mamba::solv
         auto get_solvable(SolvableId id) const -> ObjSolvableView;
         void remove_solvable(SolvableId id, bool reuse_id) const;
 
+        template <typename UnaryFunc>
+        void for_each_solvable(UnaryFunc func) const;
+
         /**
          * Internalize added data.
          *
@@ -113,5 +118,30 @@ namespace mamba::solv
             func(id);
         }
     }
+
+    template <typename UnaryFunc>
+    void ObjRepoViewConst::for_each_solvable(UnaryFunc func) const
+    {
+        const ::Repo* const repo = raw();
+        SolvableId id = 0;
+        const ::Solvable* s = nullptr;
+        FOR_REPO_SOLVABLES(repo, id, s)
+        {
+            func(ObjSolvableViewConst(s));
+        }
+    }
+
+    template <typename UnaryFunc>
+    void ObjRepoView::for_each_solvable(UnaryFunc func) const
+    {
+        const ::Repo* const repo = raw();
+        SolvableId id = 0;
+        ::Solvable* s = nullptr;
+        FOR_REPO_SOLVABLES(repo, id, s)
+        {
+            func(ObjSolvableView(s));
+        }
+    }
+
 }
 #endif

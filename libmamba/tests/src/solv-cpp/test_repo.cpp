@@ -65,14 +65,15 @@ TEST_SUITE("ObjRepo")
 
         SUBCASE("Add solvables")
         {
-            // Adding solvable
             CHECK_EQ(repo.n_solvables(), 0);
-            const auto id1 = repo.add_solvable();
+            const auto [id1, s1] = repo.add_solvable();
+            REQUIRE(repo.get_solvable(id1).has_value());
+            CHECK_EQ(repo.get_solvable(id1)->raw(), s1.raw());
             CHECK_EQ(repo.n_solvables(), 1);
-            CHECK(repo.contains_solvable(id1));
-            const auto id2 = repo.add_solvable();
+            CHECK(repo.has_solvable(id1));
+            const auto [id2, s2] = repo.add_solvable();
             CHECK_EQ(repo.n_solvables(), 2);
-            CHECK(repo.contains_solvable(id2));
+            CHECK(repo.has_solvable(id2));
 
             SUBCASE("Iterate through solvables")
             {
@@ -88,10 +89,36 @@ TEST_SUITE("ObjRepo")
                 CHECK_EQ(n_solvables, repo.n_solvables());
             }
 
+            SUBCASE("Get inexisting solvable")
+            {
+                CHECK_FALSE(repo.has_solvable(1234));
+                CHECK_FALSE(repo.get_solvable(1234).has_value());
+            }
+
+            SUBCASE("Remove solvable")
+            {
+                CHECK(repo.remove_solvable(id2, true));
+                CHECK_FALSE(repo.has_solvable(id2));
+                CHECK(repo.has_solvable(id1));
+                CHECK_EQ(repo.n_solvables(), 1);
+            }
+
+            SUBCASE("Confuse ids from another repo")
+            {
+                auto [other_repo_id, other_repo] = pool.add_repo("other-repo");
+                auto [other_id, other_s] = other_repo.add_solvable();
+
+                CHECK_FALSE(repo.has_solvable(other_id));
+                CHECK_FALSE(repo.get_solvable(other_id).has_value());
+                CHECK_FALSE(repo.remove_solvable(other_id, true));
+            }
+
             SUBCASE("Clear solvables")
             {
                 repo.clear(true);
                 CHECK_EQ(repo.n_solvables(), 0);
+                CHECK_FALSE(repo.has_solvable(id1));
+                CHECK_FALSE(repo.get_solvable(id1).has_value());
             }
 
             SUBCASE("Write repo to file")
@@ -112,8 +139,8 @@ TEST_SUITE("ObjRepo")
 
                     CHECK_EQ(repo2.n_solvables(), n_solvables);
                     // True because we reused ids
-                    CHECK(repo2.contains_solvable(id1));
-                    CHECK(repo2.contains_solvable(id2));
+                    CHECK(repo2.has_solvable(id1));
+                    CHECK(repo2.has_solvable(id2));
                 }
             }
         }

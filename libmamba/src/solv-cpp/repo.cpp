@@ -56,24 +56,36 @@ namespace mamba::solv
         return static_cast<std::size_t>(raw()->nsolvables);
     }
 
-    auto ObjRepoViewConst::contains_solvable(SolvableId id) const -> bool
+    namespace
     {
-        const ::Repo* const repo = raw();
-        SolvableId other_id = 0;
-        const ::Solvable* s = nullptr;
-        FOR_REPO_SOLVABLES(repo, other_id, s)
+        auto get_solvable_ptr(const ::Repo* repo, SolvableId id) -> ::Solvable*
         {
-            if (other_id == id)
+            if ((id >= repo->start) && (id < repo->end))
             {
-                return true;
+                if (Solvable* const s = ::pool_id2solvable(repo->pool, id); s != nullptr)
+                {
+                    if (s->repo == repo)
+                    {
+                        return s;
+                    }
+                }
             }
+            return nullptr;
         }
-        return false;
     }
 
-    auto ObjRepoViewConst::get_solvable(SolvableId id) const -> ObjSolvableViewConst
+    auto ObjRepoViewConst::has_solvable(SolvableId id) const -> bool
     {
-        return ObjSolvableViewConst{ ::pool_id2solvable(raw()->pool, id) };
+        return get_solvable_ptr(raw(), id) != nullptr;
+    }
+
+    auto ObjRepoViewConst::get_solvable(SolvableId id) const -> std::optional<ObjSolvableViewConst>
+    {
+        if (const ::Solvable* s = get_solvable_ptr(raw(), id); s != nullptr)
+        {
+            return { ObjSolvableViewConst{ s } };
+        }
+        return std::nullopt;
     }
 
     void ObjRepoViewConst::write(std::filesystem::path solv_file) const
@@ -146,19 +158,32 @@ namespace mamba::solv
         }
     }
 
-    auto ObjRepoView::add_solvable() const -> SolvableId
+    auto ObjRepoView::add_solvable() const -> std::pair<SolvableId, ObjSolvableView>
     {
-        return ::repo_add_solvable(raw());
+        const SolvableId id = ::repo_add_solvable(raw());
+        return {
+            id,
+            get_solvable(id).value()  // Safe because we just added the solvable
+        };
     }
 
-    auto ObjRepoView::get_solvable(SolvableId id) const -> ObjSolvableView
+    auto ObjRepoView::get_solvable(SolvableId id) const -> std::optional<ObjSolvableView>
     {
-        return ObjSolvableView{ ::pool_id2solvable(raw()->pool, id) };
+        if (::Solvable* s = get_solvable_ptr(raw(), id); s != nullptr)
+        {
+            return { ObjSolvableView{ s } };
+        }
+        return std::nullopt;
     }
 
-    void ObjRepoView::remove_solvable(SolvableId id, bool reuse_id) const
+    auto ObjRepoView::remove_solvable(SolvableId id, bool reuse_id) const -> bool
     {
-        ::repo_free_solvable(raw(), id, reuse_id);
+        if (has_solvable(id))
+        {
+            ::repo_free_solvable(raw(), id, reuse_id);
+            return true;
+        }
+        return false;
     }
 
     void ObjRepoView::internalize()

@@ -8,6 +8,7 @@
 #define MAMBA_SOLV_REPO_HPP
 
 #include <filesystem>
+#include <optional>
 #include <string_view>
 #include <utility>
 
@@ -35,9 +36,8 @@ namespace mamba::solv
         auto subdir() const -> std::string_view;
 
         auto n_solvables() const -> std::size_t;
-        auto contains_solvable(SolvableId id) const -> bool;
-
-        auto get_solvable(SolvableId id) const -> ObjSolvableViewConst;
+        auto has_solvable(SolvableId id) const -> bool;
+        auto get_solvable(SolvableId id) const -> std::optional<ObjSolvableViewConst>;
 
         template <typename UnaryFunc>
         void for_each_solvable_id(UnaryFunc func) const;
@@ -83,9 +83,9 @@ namespace mamba::solv
          */
         void read(std::filesystem::path solv_file) const;
 
-        auto add_solvable() const -> SolvableId;
-        auto get_solvable(SolvableId id) const -> ObjSolvableView;
-        void remove_solvable(SolvableId id, bool reuse_id) const;
+        auto add_solvable() const -> std::pair<SolvableId, ObjSolvableView>;
+        auto get_solvable(SolvableId id) const -> std::optional<ObjSolvableView>;
+        auto remove_solvable(SolvableId id, bool reuse_id) const -> bool;
 
         template <typename UnaryFunc>
         void for_each_solvable(UnaryFunc func) const;

@@ -28,6 +28,8 @@ namespace mamba::solv
 
         auto raw() const -> const ::Solvable*;
 
+        auto id() const -> SolvableId;
+
         auto name() const -> std::string_view;
         auto version() const -> std::string_view;
 

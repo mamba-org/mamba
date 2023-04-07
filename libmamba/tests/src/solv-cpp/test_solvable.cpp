@@ -21,6 +21,7 @@ TEST_SUITE("ObjSolvable")
         auto repo = pool.get_repo(repo_id);
         const auto solv_id = repo.add_solvable();
         auto solv = repo.get_solvable(solv_id);
+        CHECK_EQ(solv_id, solv.id());
 
         SUBCASE("Set name and version")
         {

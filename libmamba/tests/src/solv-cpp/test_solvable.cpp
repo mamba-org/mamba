@@ -17,8 +17,7 @@ TEST_SUITE("ObjSolvable")
     TEST_CASE("Create a solvable")
     {
         auto pool = ObjPool();
-        auto repo_id = pool.add_repo("test-forge");
-        auto repo = pool.get_repo(repo_id);
+        auto [repo_id, repo] = pool.add_repo("test-forge");
         const auto solv_id = repo.add_solvable();
         auto solv = repo.get_solvable(solv_id);
         CHECK_EQ(solv_id, solv.id());

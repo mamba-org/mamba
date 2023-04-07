@@ -20,14 +20,14 @@ TEST_SUITE("ObjRepo")
     TEST_CASE("Construct a repo")
     {
         auto pool = ObjPool();
-        auto repo_id = pool.add_repo("test-forge");
-        auto repo = pool.get_repo(repo_id);
+        auto [repo_id, repo] = pool.add_repo("test-forge");
         CHECK_EQ(repo.id(), repo_id);
         CHECK_EQ(repo.name(), "test-forge");
 
         SUBCASE("Fetch the repo")
         {
-            auto repo_alt = pool.get_repo(repo_id);
+            REQUIRE(pool.has_repo(repo_id));
+            auto repo_alt = pool.get_repo(repo_id).value();
             CHECK_EQ(repo_alt.name(), repo.name());
             CHECK_EQ(repo_alt.id(), repo.id());
         }
@@ -76,7 +76,6 @@ TEST_SUITE("ObjRepo")
 
             SUBCASE("Iterate through solvables")
             {
-                // Iterating through solvables
                 const auto ids = std::array{ id1, id2 };
                 std::size_t n_solvables = 0;
                 repo.for_each_solvable_id(
@@ -108,8 +107,7 @@ TEST_SUITE("ObjRepo")
                     pool.remove_repo(repo_id, true);
 
                     // Create new repo from file
-                    auto repo_id2 = pool.add_repo("test-forge");
-                    auto repo2 = pool.get_repo(repo_id2);
+                    auto [repo_id2, repo2] = pool.add_repo("test-forge");
                     repo2.read(solv_file);
 
                     CHECK_EQ(repo2.n_solvables(), n_solvables);

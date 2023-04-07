@@ -11,6 +11,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 
 #include "solv-cpp/ids.hpp"
 #include "solv-cpp/queue.hpp"
@@ -58,11 +59,12 @@ namespace mamba::solv
 
         auto select_solvables(const ObjQueue& job) const -> ObjQueue;
 
-        auto add_repo(std::string_view name) -> RepoId;
-        auto get_repo(RepoId id) -> ObjRepoView;
-        auto get_repo(RepoId id) const -> ObjRepoViewConst;
+        auto add_repo(std::string_view name) -> std::pair<RepoId, ObjRepoView>;
+        auto has_repo(RepoId id) const -> bool;
+        auto get_repo(RepoId id) -> std::optional<ObjRepoView>;
+        auto get_repo(RepoId id) const -> std::optional<ObjRepoViewConst>;
         auto n_repos() const -> std::size_t;
-        void remove_repo(RepoId id, bool reuse_ids);
+        auto remove_repo(RepoId id, bool reuse_ids) -> bool;
         template <typename UnaryFunc>
         void for_each_repo_id(UnaryFunc func) const;
         template <typename UnaryFunc>

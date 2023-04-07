@@ -67,15 +67,15 @@ TEST_SUITE("ObjPool")
 
         SUBCASE("Add repo")
         {
-            RepoId repo1_id = pool.add_repo("repo1");
-            CHECK_EQ(pool.get_repo(repo1_id).id(), repo1_id);
+            auto [repo1_id, repo1] = pool.add_repo("repo1");
+            CHECK_EQ(repo1.id(), repo1_id);
+            REQUIRE(pool.has_repo(repo1_id));
+            REQUIRE(pool.get_repo(repo1_id).has_value());
+            CHECK_EQ(pool.get_repo(repo1_id).value().id(), repo1_id);
             CHECK_EQ(pool.n_repos(), 1);
 
-            RepoId repo2_id = pool.add_repo("repo2");
-            CHECK_EQ(pool.get_repo(repo2_id).id(), repo2_id);
-            CHECK_EQ(pool.n_repos(), 2);
-            RepoId repo3_id = pool.add_repo("repo2");
-            CHECK_EQ(pool.get_repo(repo3_id).id(), repo3_id);
+            auto [repo2_id, repo2] = pool.add_repo("repo2");
+            auto [repo3_id, repo3] = pool.add_repo("repo3");
             CHECK_EQ(pool.n_repos(), 3);
 
             SUBCASE("Iterate over repos")
@@ -90,6 +90,23 @@ TEST_SUITE("ObjPool")
                     }
                 );
                 CHECK_EQ(n_repos, pool.n_repos());
+            }
+
+            SUBCASE("Get inexisting repo")
+            {
+                CHECK_FALSE(pool.has_repo(1234));
+                CHECK_FALSE(pool.get_repo(1234).has_value());
+            }
+
+            SUBCASE("Remove repo")
+            {
+                CHECK(pool.remove_repo(repo2_id, true));
+                CHECK_FALSE(pool.has_repo(repo2_id));
+                CHECK(pool.get_repo(repo1_id).has_value());
+                CHECK_EQ(pool.n_repos(), 2);
+
+                // Remove invalid repo is a noop
+                CHECK_FALSE(pool.remove_repo(1234, true));
             }
         }
     }

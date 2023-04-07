@@ -146,38 +146,56 @@ namespace mamba::solv
         ::pool_createwhatprovides(raw());
     }
 
-    auto ObjPool::add_repo(std::string_view name) -> RepoId
+    auto ObjPool::add_repo(std::string_view name) -> std::pair<RepoId, ObjRepoView>
     {
-        const auto* repo_ptr = repo_create(
+        auto* repo_ptr = ::repo_create(
             raw(),
             ::pool_id2str(raw(), add_string(name))  // Shenanigan to make it string_view compatible
         );
         // No function exists to create a repo id
         assert(raw()->repos[raw()->nrepos - 1] == repo_ptr);
-        return raw()->nrepos - 1;
+        return { raw()->nrepos - 1, ObjRepoView{ repo_ptr } };
     }
 
-    auto ObjPool::get_repo(RepoId id) -> ObjRepoView
+    auto ObjPool::has_repo(RepoId id) const -> bool
     {
-        return ObjRepoView{ ::pool_id2repo(raw(), id) };
+        return (id > 0) && (id < raw()->nrepos) && (raw()->repos[id] != nullptr);
     }
 
-    auto ObjPool::get_repo(RepoId id) const -> ObjRepoViewConst
+    auto ObjPool::get_repo(RepoId id) -> std::optional<ObjRepoView>
     {
+        if (!has_repo(id))
+        {
+            return std::nullopt;
+        }
+        return { ObjRepoView{ ::pool_id2repo(raw(), id) } };
+    }
+
+    auto ObjPool::get_repo(RepoId id) const -> std::optional<ObjRepoViewConst>
+    {
+        if (!has_repo(id))
+        {
+            return std::nullopt;
+        }
         // Safe because we make the Repo deep const
-        return ObjRepoViewConst{ ::pool_id2repo(const_cast<::Pool*>(raw()), id) };
+        return { ObjRepoViewConst{ ::pool_id2repo(const_cast<::Pool*>(raw()), id) } };
     }
 
     auto ObjPool::n_repos() const -> std::size_t
     {
         // Id 0 is special
-        assert(raw()->nrepos >= 1);
-        return static_cast<std::size_t>(raw()->nrepos - 1);
+        assert(raw()->urepos >= 0);
+        return static_cast<std::size_t>(raw()->urepos);
     }
 
-    void ObjPool::remove_repo(RepoId id, bool reuse_ids)
+    auto ObjPool::remove_repo(RepoId id, bool reuse_ids) -> bool
     {
-        repo_free(get_repo(id).raw(), static_cast<int>(reuse_ids));
+        if (has_repo(id))
+        {
+            ::repo_free(get_repo(id).value().raw(), static_cast<int>(reuse_ids));
+            return true;
+        }
+        return false;
     }
 
     auto ObjPool::get_solvable(SolvableId id) const -> ObjSolvableViewConst

@@ -15,6 +15,7 @@
 #include "solv-cpp/ids.hpp"
 #include "solv-cpp/queue.hpp"
 #include "solv-cpp/repo.hpp"
+#include "solv-cpp/solvable.hpp"
 
 namespace mamba::solv
 {
@@ -48,13 +49,35 @@ namespace mamba::solv
         auto dependency_to_string(DependencyId id) const -> std::string;
 
         void create_whatprovides();
+        template <typename UnaryFunc>
+        void for_each_whatprovides_id(DependencyId dep, UnaryFunc func) const;
+        template <typename UnaryFunc>
+        void for_each_whatprovides(DependencyId dep, UnaryFunc func) const;
+        template <typename UnaryFunc>
+        void for_each_whatprovides(DependencyId dep, UnaryFunc func);
 
         auto select_solvables(const ObjQueue& job) const -> ObjQueue;
 
         auto add_repo(std::string_view name) -> RepoId;
         auto get_repo(RepoId id) -> ObjRepoView;
         auto get_repo(RepoId id) const -> ObjRepoViewConst;
+        auto n_repos() const -> std::size_t;
         void remove_repo(RepoId id, bool reuse_ids);
+        template <typename UnaryFunc>
+        void for_each_repo_id(UnaryFunc func) const;
+        template <typename UnaryFunc>
+        void for_each_repo(UnaryFunc func);
+        template <typename UnaryFunc>
+        void for_each_repo(UnaryFunc func) const;
+
+        auto get_solvable(SolvableId id) const -> ObjSolvableViewConst;
+        auto get_solvable(SolvableId id) -> ObjSolvableView;
+        template <typename UnaryFunc>
+        void for_each_solvable_id(UnaryFunc func) const;
+        template <typename UnaryFunc>
+        void for_each_solvable(UnaryFunc func) const;
+        template <typename UnaryFunc>
+        void for_each_solvable(UnaryFunc func);
 
     private:
 
@@ -65,5 +88,86 @@ namespace mamba::solv
 
         std::unique_ptr<::Pool, ObjPool::PoolDeleter> m_pool;
     };
+}
+
+/*******************************
+ *  Implementation of ObjPool  *
+ *******************************/
+
+#include <solv/pool.h>
+
+namespace mamba::solv
+{
+
+    template <typename UnaryFunc>
+    void ObjPool::for_each_repo_id(UnaryFunc func) const
+    {
+        const ::Pool* const pool = raw();
+        const ::Repo* repo = nullptr;
+        RepoId repo_id = 0;
+        FOR_REPOS(repo_id, repo)
+        {
+            func(repo_id);
+        }
+    }
+
+    template <typename UnaryFunc>
+    void ObjPool::for_each_repo(UnaryFunc func) const
+    {
+        return for_each_repo_id([this, func](RepoId id) { func(get_repo(id)); });
+    }
+
+    template <typename UnaryFunc>
+    void ObjPool::for_each_repo(UnaryFunc func)
+    {
+        return for_each_repo_id([this, func](RepoId id) { func(get_repo(id)); });
+    }
+
+    template <typename UnaryFunc>
+    void ObjPool::for_each_whatprovides_id(DependencyId dep, UnaryFunc func) const
+    {
+        auto* const pool = const_cast<::Pool*>(raw());
+        SolvableId id = 0;
+        ::Id offset = 0;  // Not really an Id
+        FOR_PROVIDES(id, offset, dep)
+        {
+            func(id);
+        }
+    }
+
+    template <typename UnaryFunc>
+    void ObjPool::for_each_whatprovides(DependencyId dep, UnaryFunc func) const
+    {
+        return for_each_whatprovides_id(dep, [this, func](SolvableId id) { func(get_solvable(id)); });
+    }
+
+    template <typename UnaryFunc>
+    void ObjPool::for_each_whatprovides(DependencyId dep, UnaryFunc func)
+    {
+        return for_each_whatprovides_id(dep, [this, func](SolvableId id) { func(get_solvable(id)); });
+    }
+
+    template <typename UnaryFunc>
+    void ObjPool::for_each_solvable_id(UnaryFunc func) const
+    {
+        const ::Pool* const pool = raw();
+        SolvableId id = 0;
+        FOR_POOL_SOLVABLES(id)
+        {
+            func(id);
+        }
+    }
+
+    template <typename UnaryFunc>
+    void ObjPool::for_each_solvable(UnaryFunc func) const
+    {
+        return for_each_solvable_id([this, func](SolvableId id) { func(get_solvable(id)); });
+    }
+
+    template <typename UnaryFunc>
+    void ObjPool::for_each_solvable(UnaryFunc func)
+    {
+        return for_each_solvable_id([this, func](SolvableId id) { func(get_solvable(id)); });
+    }
 }
 #endif

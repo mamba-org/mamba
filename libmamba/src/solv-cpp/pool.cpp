@@ -42,7 +42,7 @@ namespace mamba::solv
     auto ObjPool::find_string(std::string_view str) const -> std::optional<StringId>
     {
         assert(str.size() <= std::numeric_limits<unsigned int>::max());
-        ::Id const id = pool_strn2id(
+        ::Id const id = ::pool_strn2id(
             const_cast<::Pool*>(raw()),  // Safe because we do not create
             str.data(),
             static_cast<unsigned int>(str.size()),
@@ -55,7 +55,7 @@ namespace mamba::solv
     {
         assert(str.size() <= std::numeric_limits<unsigned int>::max());
         // Note: libsolv cannot report failure to allocate
-        ::Id const id = pool_strn2id(
+        ::Id const id = ::pool_strn2id(
             raw(),
             str.data(),
             static_cast<unsigned int>(str.size()),
@@ -68,13 +68,13 @@ namespace mamba::solv
     auto ObjPool::get_string(StringId id) const -> std::string_view
     {
         assert(!ISRELDEP(id));
-        return pool_id2str(raw(), id);
+        return ::pool_id2str(raw(), id);
     }
 
     auto ObjPool::find_dependency(StringId name_id, RelationFlag flag, StringId version_id) const
         -> std::optional<DependencyId>
     {
-        ::Id const id = pool_rel2id(
+        ::Id const id = ::pool_rel2id(
             const_cast<::Pool*>(raw()),  // Safe because we do not create
             name_id,
             version_id,
@@ -88,7 +88,7 @@ namespace mamba::solv
         -> DependencyId
     {
         // Note: libsolv cannot report failure to allocate
-        ::Id const id = pool_rel2id(
+        ::Id const id = ::pool_rel2id(
             raw(),
             name_id,
             version_id,
@@ -103,25 +103,25 @@ namespace mamba::solv
     auto ObjPool::get_dependency_name(DependencyId id) const -> std::string_view
     {
         assert(ISRELDEP(id));
-        return pool_id2str(raw(), id);
+        return ::pool_id2str(raw(), id);
     }
 
     auto ObjPool::get_dependency_version(DependencyId id) const -> std::string_view
     {
         assert(ISRELDEP(id));
-        return pool_id2evr(raw(), id);
+        return ::pool_id2evr(raw(), id);
     }
 
     auto ObjPool::get_dependency_relation(DependencyId id) const -> std::string_view
     {
         assert(ISRELDEP(id));
-        return pool_id2rel(raw(), id);
+        return ::pool_id2rel(raw(), id);
     }
 
     auto ObjPool::dependency_to_string(DependencyId id) const -> std::string
     {
         assert(ISRELDEP(id));
-        return pool_dep2str(
+        return ::pool_dep2str(
             // Not const in because function may allocate in pool tmp alloc space
             const_cast<::Pool*>(raw()),
             id
@@ -143,14 +143,14 @@ namespace mamba::solv
 
     void ObjPool::create_whatprovides()
     {
-        pool_createwhatprovides(raw());
+        ::pool_createwhatprovides(raw());
     }
 
     auto ObjPool::add_repo(std::string_view name) -> RepoId
     {
         const auto* repo_ptr = repo_create(
             raw(),
-            pool_id2str(raw(), add_string(name))  // Shenanigan to make it string_view compatible
+            ::pool_id2str(raw(), add_string(name))  // Shenanigan to make it string_view compatible
         );
         // No function exists to create a repo id
         assert(raw()->repos[raw()->nrepos - 1] == repo_ptr);
@@ -159,17 +159,34 @@ namespace mamba::solv
 
     auto ObjPool::get_repo(RepoId id) -> ObjRepoView
     {
-        return ObjRepoView{ pool_id2repo(raw(), id) };
+        return ObjRepoView{ ::pool_id2repo(raw(), id) };
     }
 
     auto ObjPool::get_repo(RepoId id) const -> ObjRepoViewConst
     {
         // Safe because we make the Repo deep const
-        return ObjRepoViewConst{ pool_id2repo(const_cast<::Pool*>(raw()), id) };
+        return ObjRepoViewConst{ ::pool_id2repo(const_cast<::Pool*>(raw()), id) };
+    }
+
+    auto ObjPool::n_repos() const -> std::size_t
+    {
+        // Id 0 is special
+        assert(raw()->nrepos >= 1);
+        return static_cast<std::size_t>(raw()->nrepos - 1);
     }
 
     void ObjPool::remove_repo(RepoId id, bool reuse_ids)
     {
         repo_free(get_repo(id).raw(), static_cast<int>(reuse_ids));
+    }
+
+    auto ObjPool::get_solvable(SolvableId id) const -> ObjSolvableViewConst
+    {
+        return ObjSolvableViewConst{ ::pool_id2solvable(raw(), id) };
+    }
+
+    auto ObjPool::get_solvable(SolvableId id) -> ObjSolvableView
+    {
+        return ObjSolvableView{ ::pool_id2solvable(raw(), id) };
     }
 }

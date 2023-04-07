@@ -116,13 +116,15 @@ namespace mamba::solv
     template <typename UnaryFunc>
     void ObjPool::for_each_repo(UnaryFunc func) const
     {
-        return for_each_repo_id([this, func](RepoId id) { func(get_repo(id)); });
+        // Safe optional unchecked because we iterate over available values
+        return for_each_repo_id([this, func](RepoId id) { func(get_repo(id).value()); });
     }
 
     template <typename UnaryFunc>
     void ObjPool::for_each_repo(UnaryFunc func)
     {
-        return for_each_repo_id([this, func](RepoId id) { func(get_repo(id)); });
+        // Safe optional unchecked because we iterate over available values
+        return for_each_repo_id([this, func](RepoId id) { func(get_repo(id).value()); });
     }
 
     template <typename UnaryFunc>

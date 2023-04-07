@@ -72,8 +72,8 @@ namespace mamba::solv
         template <typename UnaryFunc>
         void for_each_repo(UnaryFunc func) const;
 
-        auto get_solvable(SolvableId id) const -> ObjSolvableViewConst;
-        auto get_solvable(SolvableId id) -> ObjSolvableView;
+        auto get_solvable(SolvableId id) const -> std::optional<ObjSolvableViewConst>;
+        auto get_solvable(SolvableId id) -> std::optional<ObjSolvableView>;
         template <typename UnaryFunc>
         void for_each_solvable_id(UnaryFunc func) const;
         template <typename UnaryFunc>
@@ -142,13 +142,21 @@ namespace mamba::solv
     template <typename UnaryFunc>
     void ObjPool::for_each_whatprovides(DependencyId dep, UnaryFunc func) const
     {
-        return for_each_whatprovides_id(dep, [this, func](SolvableId id) { func(get_solvable(id)); });
+        // Safe optional unchecked because we iterate over available values
+        return for_each_whatprovides_id(
+            dep,
+            [this, func](SolvableId id) { func(get_solvable(id)).value(); }
+        );
     }
 
     template <typename UnaryFunc>
     void ObjPool::for_each_whatprovides(DependencyId dep, UnaryFunc func)
     {
-        return for_each_whatprovides_id(dep, [this, func](SolvableId id) { func(get_solvable(id)); });
+        // Safe optional unchecked because we iterate over available values
+        return for_each_whatprovides_id(
+            dep,
+            [this, func](SolvableId id) { func(get_solvable(id).value()); }
+        );
     }
 
     template <typename UnaryFunc>
@@ -165,13 +173,15 @@ namespace mamba::solv
     template <typename UnaryFunc>
     void ObjPool::for_each_solvable(UnaryFunc func) const
     {
-        return for_each_solvable_id([this, func](SolvableId id) { func(get_solvable(id)); });
+        // Safe optional unchecked because we iterate over available values
+        return for_each_solvable_id([this, func](SolvableId id) { func(get_solvable(id).value()); });
     }
 
     template <typename UnaryFunc>
     void ObjPool::for_each_solvable(UnaryFunc func)
     {
-        return for_each_solvable_id([this, func](SolvableId id) { func(get_solvable(id)); });
+        // Safe optional unchecked because we iterate over available values
+        return for_each_solvable_id([this, func](SolvableId id) { func(get_solvable(id).value()); });
     }
 }
 #endif

@@ -89,17 +89,17 @@ namespace mamba::solv
         void set_dependencies(const ObjQueue& q) const;
         void add_dependency(DependencyId dep) const;
         template <typename Iter>
-        void add_dependencies(Iter first, Iter last);
+        void add_dependencies(Iter first, Iter last) const;
         template <typename Range>
-        void add_dependencies(const Range& deps);
+        void add_dependencies(const Range& deps) const;
 
         void set_provides(const ObjQueue& q) const;
         void add_provide(DependencyId dep) const;
         void add_self_provide() const;
         template <typename Iter>
-        void add_provides(Iter first, Iter last);
+        void add_provides(Iter first, Iter last) const;
         template <typename Range>
-        void add_provides(const Range& deps);
+        void add_provides(const Range& deps) const;
 
         /**
          * Set all constraints.
@@ -119,9 +119,9 @@ namespace mamba::solv
          */
         void add_constraint(DependencyId dep) const;
         template <typename Iter>
-        void add_constraints(Iter first, Iter last);
+        void add_constraints(Iter first, Iter last) const;
         template <typename Range>
-        void add_constraints(const Range& deps);
+        void add_constraints(const Range& deps) const;
 
         /**
          * Set all track features.
@@ -154,9 +154,9 @@ namespace mamba::solv
          */
         auto add_track_feature(std::string_view feat) const -> StringId;
         template <typename Iter>
-        void add_track_features(Iter first, Iter last);
+        void add_track_features(Iter first, Iter last) const;
         template <typename Range>
-        void add_track_features(const Range& features);
+        void add_track_features(const Range& features) const;
     };
 
     /***************************************
@@ -164,7 +164,7 @@ namespace mamba::solv
      ***************************************/
 
     template <typename Iter>
-    void ObjSolvableView::add_dependencies(Iter first, Iter last)
+    void ObjSolvableView::add_dependencies(Iter first, Iter last) const
     {
         for (; first != last; ++first)
         {
@@ -173,13 +173,13 @@ namespace mamba::solv
     }
 
     template <typename Range>
-    void ObjSolvableView::add_dependencies(const Range& deps)
+    void ObjSolvableView::add_dependencies(const Range& deps) const
     {
         return add_dependencies(deps.cbegin(), deps.cend());
     }
 
     template <typename Iter>
-    void ObjSolvableView::add_provides(Iter first, Iter last)
+    void ObjSolvableView::add_provides(Iter first, Iter last) const
     {
         for (; first != last; ++first)
         {
@@ -188,13 +188,13 @@ namespace mamba::solv
     }
 
     template <typename Range>
-    void ObjSolvableView::add_provides(const Range& deps)
+    void ObjSolvableView::add_provides(const Range& deps) const
     {
         return add_provides(deps.cbegin(), deps.cend());
     }
 
     template <typename Iter>
-    void ObjSolvableView::add_constraints(Iter first, Iter last)
+    void ObjSolvableView::add_constraints(Iter first, Iter last) const
     {
         for (; first != last; ++first)
         {
@@ -203,13 +203,13 @@ namespace mamba::solv
     }
 
     template <typename Range>
-    void ObjSolvableView::add_constraints(const Range& deps)
+    void ObjSolvableView::add_constraints(const Range& deps) const
     {
         return add_constraints(deps.cbegin(), deps.cend());
     }
 
     template <typename Iter>
-    void ObjSolvableView::add_track_features(Iter first, Iter last)
+    void ObjSolvableView::add_track_features(Iter first, Iter last) const
     {
         for (; first != last; ++first)
         {
@@ -218,7 +218,7 @@ namespace mamba::solv
     }
 
     template <typename Range>
-    void ObjSolvableView::add_track_features(const Range& feats)
+    void ObjSolvableView::add_track_features(const Range& feats) const
     {
         return add_track_features(feats.cbegin(), feats.cend());
     }

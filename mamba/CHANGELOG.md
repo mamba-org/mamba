@@ -1,3 +1,15 @@
+mamba 1.4.2 (April 06, 2023)
+============================
+
+
+Bug fixes:
+
+- Safely ignores virtual packages in `compute_final_precs` function by @mariusvniekerk in https://github.com/mamba-org/mamba/pull/2424
+
+CI fixes and doc:
+
+- Migrated to doctest by @JohanMabille in https://github.com/mamba-org/mamba/pull/2436
+
 mamba 1.4.1 (March 28, 2023)
 ============================
 

@@ -46,7 +46,7 @@ namespace mamba
         out << "    sys.exit(" << p.func << "())\n";
     }
 
-    void application_entry_point_template(std::ostream& out, const std::string_view& source_full_path)
+    void application_entry_point_template(std::ostream& out, std::string_view source_full_path)
     {
         out << "# -*- coding: utf-8 -*-\n";
         out << "if __name__ == '__main__':\n";

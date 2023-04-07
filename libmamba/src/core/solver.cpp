@@ -10,6 +10,7 @@
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <solv/pool.h>
+#include <solv/solvable.h>
 #include <solv/solver.h>
 
 #include "mamba/core/channel.hpp"
@@ -331,69 +332,73 @@ namespace mamba
 
     void MSolver::add_pin(const std::string& pin)
     {
-        // if we pin a package, we need to remove all packages that don't match the
-        // pin from being available for installation! This is done by adding
-        // SOLVER_LOCK to the packages, so that they are prevented from being
-        // installed A lock basically says: keep the state of the package. I.e.
-        // uninstalled packages stay uninstalled, installed packages stay installed.
-        // A lock is a hard requirement, we could also use SOLVER_FAVOR for soft
-        // requirements
+        // In libsolv, locking means that a package keeps the same state: if it is installed,
+        // it remains installed, if not it remains uninstalled.
+        // Locking on a spec applies the lock to all packages matching the spec.
+        // In mamba, we do not want to lock the package because we want to allow other variants
+        // (matching the same spec) to unlock more solutions.
+        // For instance we may pin ``libfmt=8.*`` but allow it to be swaped with a version built
+        // by a more recent compiler.
+        //
+        // A previous version of this function would use ``SOLVER_LOCK`` to lock all packages not
+        // matching the pin.
+        // That played poorly with ``all_problems_structured`` because we could not interpret
+        // the ids that were returned (since they were not associated with a single reldep).
+        //
+        // Another wrong idea is to add the pin as an install job.
+        // This is not what is expected of pins, as they must not be installed if they were not
+        // in the environement.
+        // They can be configure in ``.condarc`` for generally specifying what versions are wanted.
+        //
+        // The idea behind the current version is to add the pin/spec as a constraint that must be
+        // fullfield only if the package is installed.
+        // This is not supported on solver jobs but it is on ``Solvable`` with
+        // ``disttype == DISTYPE_CONDA``.
+        // Therefore, we add a dummy solvable marked as already installed, and add the pin/spec
+        // as one of its constrains.
+        // Then we lock this solvable and force the re-checking of its dependencies.
 
-        // First we need to check if the pin is OK given the currently installed
-        // packages
-        Pool* pool = m_pool;
-        MatchSpec ms(pin);
+        const auto pin_ms = MatchSpec(pin);
+        m_pinned_specs.push_back(pin_ms);
 
-        // TODO
-        // if (m_prefix_data)
-        // {
-        //     for (auto& [name, record] : m_prefix_data->records())
-        //     {
-        //         LOG_ERROR << "NAME " << name;
-        //         if (name == ms.name)
-        //         {
-        //             LOG_ERROR << "Found pinned package in installed packages, need
-        //             to check pin now."; LOG_ERROR << record.version << " vs " <<
-        //             ms.version;
-        //         }
-        //     }
-        // }
+        ::Pool* pool = m_pool;
+        ::Repo* const installed_repo = pool->installed;
 
-        Id match = m_pool.matchspec2id(ms);
-        std::set<Id> matching_solvables;
-
-        for (Id* wp = pool_whatprovides_ptr(pool, match); *wp; wp++)
+        if (pool->disttype != DISTTYPE_CONDA)
         {
-            matching_solvables.insert(*wp);
+            throw std::runtime_error("Cannot add pin to a pool that is not of Conda distype");
+        }
+        if (installed_repo == nullptr)
+        {
+            throw std::runtime_error("Cannot add pin without a repo of installed packages");
         }
 
-        std::set<Id> all_solvables;
-        Id name_id = pool_str2id(pool, ms.name.c_str(), 1);
-        for (Id* wp = pool_whatprovides_ptr(pool, name_id); *wp; wp++)
-        {
-            all_solvables.insert(*wp);
-        }
+        // Add dummy solvable with a constraint on the pin (not installed if not present)
+        ::Id const cons_solv_id = repo_add_solvable(installed_repo);
+        ::Solvable* const cons_solv = pool_id2solvable(pool, cons_solv_id);
+        // TODO set some "pin" key on the solvable so that we can retrieve it during error messages
+        std::string const cons_solv_name = fmt::format("pin-{}", m_pinned_specs.size());
+        solvable_set_str(cons_solv, SOLVABLE_NAME, cons_solv_name.c_str());
+        solvable_set_str(cons_solv, SOLVABLE_EVR, "1");
+        ::Id const pin_ms_id = m_pool.matchspec2id(pin_ms);
+        solv::ObjQueue q = { pin_ms_id };
+        solvable_add_idarray(cons_solv, SOLVABLE_CONSTRAINS, pin_ms_id);
+        // Solvable need to provide itself
+        cons_solv->provides = repo_addid_dep(
+            installed_repo,
+            cons_solv->provides,
+            pool_rel2id(pool, cons_solv->name, cons_solv->evr, REL_EQ, 1),
+            0
+        );
 
-        if (all_solvables.size() != 0 && matching_solvables.size() == 0)
-        {
-            throw std::runtime_error(fmt::format("No package can be installed for pin: {}", pin));
-        }
-        m_pinned_specs.push_back(ms);
+        // Necessary for attributes to be properly stored
+        repo_internalize(installed_repo);
 
-        solv::ObjQueue selected_pkgs;
-
-        for (auto& id : all_solvables)
-        {
-            if (matching_solvables.find(id) == matching_solvables.end())
-            {
-                // the solvable is _NOT_ matched by our pinning expression! So we have to
-                // lock it to make it un-installable
-                selected_pkgs.push_back(id);
-            }
-        }
-
-        Id d = pool_queuetowhatprovides(pool, selected_pkgs.raw());
-        m_jobs->push_back(SOLVER_LOCK | SOLVER_SOLVABLE_ONE_OF, d);
+        // Lock the dummy solvable so that it stays install.
+        add_jobs({ cons_solv_name }, SOLVER_LOCK);
+        // Force check the dummy solvable dependencies, as this is not the default for
+        // installed packges.
+        add_jobs({ cons_solv_name }, SOLVER_VERIFY);
     }
 
     void MSolver::add_pins(const std::vector<std::string>& pins)

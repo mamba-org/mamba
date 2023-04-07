@@ -206,6 +206,9 @@ namespace mamba
             }
             ::Id const repr_id = pool_str2id(pool, repr.c_str(), /* .create= */ true);
             ::Id const offset = pool_queuetowhatprovides(pool, selected_pkgs.raw());
+            // FRAGILE This get deleted when calling ``pool_createwhatprovides`` so care
+            // must be taken to do it before
+            // TODO investigate namespace providers
             pool_set_whatprovides(pool, repr_id, offset);
             return repr_id;
         }

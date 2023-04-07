@@ -58,7 +58,7 @@ extern "C"
 
 namespace mamba
 {
-    bool is_package_file(const std::string_view& fn)
+    bool is_package_file(std::string_view fn)
     {
         return ends_with(fn, ".tar.bz2") || ends_with(fn, ".conda");
     }
@@ -1478,7 +1478,7 @@ namespace mamba
         return ends_with(filename, ".yml") || ends_with(filename, ".yaml");
     }
 
-    tl::expected<std::string, mamba_error> encode_base64(const std::string_view& input)
+    tl::expected<std::string, mamba_error> encode_base64(std::string_view input)
     {
         const auto pl = 4 * ((input.size() + 2) / 3);
         std::vector<unsigned char> output(pl + 1);
@@ -1496,7 +1496,7 @@ namespace mamba
         return std::string(reinterpret_cast<const char*>(output.data()));
     }
 
-    tl::expected<std::string, mamba_error> decode_base64(const std::string_view& input)
+    tl::expected<std::string, mamba_error> decode_base64(std::string_view input)
     {
         const auto pl = 3 * input.size() / 4;
 
@@ -1551,6 +1551,20 @@ namespace mamba
         }
 
         return std::nullopt;
+    }
+
+    std::string hide_secrets(std::string_view str)
+    {
+        std::string copy(str);
+
+        if (contains(str, "/t/"))
+        {
+            copy = std::regex_replace(copy, Context::instance().token_regex, "/t/*****");
+        }
+
+        copy = std::regex_replace(copy, Context::instance().http_basicauth_regex, "$1$2:*****@");
+
+        return copy;
     }
 
 }  // namespace mamba

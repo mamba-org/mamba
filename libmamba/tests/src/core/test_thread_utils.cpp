@@ -1,4 +1,12 @@
-#include <gtest/gtest.h>
+// Copyright (c) 2022, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
+
+#include <iostream>
+
+#include <doctest/doctest.h>
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/execution.hpp"
@@ -17,7 +25,7 @@ namespace mamba
         int res = 0;
         // Ensures the compiler doe snot optimize away Context::instance()
         std::string current_command = Context::instance().current_command;
-        EXPECT_EQ(current_command, "mamba");
+        CHECK_EQ(current_command, "mamba");
         Console::instance().init_progress_bar_manager(ProgressBarMode::multi);
         {
             interruption_guard g(
@@ -55,32 +63,35 @@ namespace mamba
         return res;
     }
 
-    TEST(thread_utils, interrupt)
+    TEST_SUITE("thread_utils")
     {
-        int res = test_interruption_guard(true);
-        EXPECT_EQ(res, -95);
-    }
+        TEST_CASE("interrupt")
+        {
+            int res = test_interruption_guard(true);
+            CHECK_EQ(res, -95);
+        }
 
-    TEST(thread_utils, no_interrupt)
-    {
-        int res = test_interruption_guard(false);
-        EXPECT_EQ(res, 5);
-    }
+        TEST_CASE("no_interrupt")
+        {
+            int res = test_interruption_guard(false);
+            CHECK_EQ(res, 5);
+        }
 
-    TEST(thread_utils, no_interrupt_then_interrupt)
-    {
-        int res = test_interruption_guard(false);
-        EXPECT_EQ(res, 5);
-        int res2 = test_interruption_guard(true);
-        EXPECT_EQ(res2, -95);
-    }
+        TEST_CASE("no_interrupt_then_interrupt")
+        {
+            int res = test_interruption_guard(false);
+            CHECK_EQ(res, 5);
+            int res2 = test_interruption_guard(true);
+            CHECK_EQ(res2, -95);
+        }
 
-    TEST(thread_utils, no_interrupt_sequence)
-    {
-        int res = test_interruption_guard(false);
-        EXPECT_EQ(res, 5);
-        int res2 = test_interruption_guard(false);
-        EXPECT_EQ(res2, 5);
+        TEST_CASE("no_interrupt_sequence")
+        {
+            int res = test_interruption_guard(false);
+            CHECK_EQ(res, 5);
+            int res2 = test_interruption_guard(false);
+            CHECK_EQ(res2, 5);
+        }
     }
 #endif
 }  // namespace mamba

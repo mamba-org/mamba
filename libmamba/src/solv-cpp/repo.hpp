@@ -28,6 +28,10 @@ namespace mamba::solv
         auto raw() const -> const ::Repo*;
 
         auto name() const -> std::string_view;
+        auto url() const -> std::string_view;
+        auto channel() const -> std::string_view;
+        auto subdir() const -> std::string_view;
+
         auto n_solvables() const -> std::size_t;
         auto contains_solvable(SolvableId id) const -> bool;
 
@@ -52,9 +56,19 @@ namespace mamba::solv
     {
     public:
 
+        using raw_str_view = const char*;
+
         explicit ObjRepoView(::Repo* repo) noexcept;
 
         auto raw() const -> ::Repo*;
+
+        /** The following attributes need a call to @ref internalize to be available. */
+        void set_url(raw_str_view str) const;
+        void set_url(const std::string& str) const;
+        void set_channel(raw_str_view str) const;
+        void set_channel(const std::string& str) const;
+        void set_subdir(raw_str_view str) const;
+        void set_subdir(const std::string& str) const;
 
         void clear(bool reuse_ids) const;
 

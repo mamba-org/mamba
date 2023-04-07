@@ -28,6 +28,37 @@ TEST_SUITE("ObjRepo")
             CHECK_EQ(pool.get_repo(repo_id).name(), "test-forge");
         }
 
+        SUBCASE("Set attributes")
+        {
+            repo.set_url("https://repo.mamba.pm/conda-forge");
+            repo.set_channel("conda-forge");
+            repo.set_subdir("noarch");
+
+            SUBCASE("Empty without internalize")
+            {
+                CHECK_EQ(repo.url(), "");
+                CHECK_EQ(repo.channel(), "");
+                CHECK_EQ(repo.subdir(), "");
+            }
+
+            SUBCASE("Internalize and get attributes")
+            {
+                repo.internalize();
+
+                CHECK_EQ(repo.url(), "https://repo.mamba.pm/conda-forge");
+                CHECK_EQ(repo.channel(), "conda-forge");
+                CHECK_EQ(repo.subdir(), "noarch");
+
+                SUBCASE("Override attribute")
+                {
+                    repo.set_subdir("linux-64");
+                    CHECK_EQ(repo.subdir(), "noarch");
+                    repo.internalize();
+                    CHECK_EQ(repo.subdir(), "linux-64");
+                }
+            }
+        }
+
         SUBCASE("Add solvables")
         {
             // Adding solvable

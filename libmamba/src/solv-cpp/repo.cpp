@@ -32,11 +32,6 @@ namespace mamba::solv
         return m_repo;
     }
 
-    auto ObjRepoViewConst::name() const -> std::string_view
-    {
-        return repo_name(raw());
-    }
-
     auto ObjRepoViewConst::n_solvables() const -> std::size_t
     {
         assert(raw()->nsolvables >= 0);
@@ -151,5 +146,90 @@ namespace mamba::solv
     void ObjRepoView::internalize()
     {
         repo_internalize(raw());
+    }
+
+    /****************************************
+     *  Implementation of getter & setters  *
+     ****************************************/
+
+    auto ObjRepoViewConst::name() const -> std::string_view
+    {
+        return repo_name(raw());
+    }
+
+    namespace
+    {
+        auto ptr_to_strview(const char* ptr) -> std::string_view
+        {
+            static constexpr std::string_view null = "<NULL>";
+            if ((ptr == nullptr) || (ptr == null))
+            {
+                return "";
+            }
+            return { ptr };
+        }
+
+        auto repo_lookup_str(const ::Repo* repo, ::Id key) -> std::string_view
+        {
+            // Can only read key/value on solvable, but the special SOLVID_META is used for a fake
+            // solvable representing the repo.
+            // The key used does not really matter so we can (ab)use any key that does not have
+            // special meaning
+            return ptr_to_strview(repo_lookup_str(const_cast<::Repo*>(repo), SOLVID_META, key));
+        }
+
+        void repo_set_str(::Repo* repo, ::Id key, const char* str)
+        {
+            // Can only read key/value on solvable, but the special SOLVID_META is used for a fake
+            // solvable representing the repo.
+            // The key used does not really matter so we can (ab)use any key that does not have
+            // special meaning
+            repo_set_str(repo, SOLVID_META, key, str);
+        }
+    }
+
+    auto ObjRepoViewConst::url() const -> std::string_view
+    {
+        return repo_lookup_str(raw(), SOLVABLE_URL);
+    }
+
+    void ObjRepoView::set_url(raw_str_view str) const
+    {
+        return repo_set_str(raw(), SOLVABLE_URL, str);
+    }
+
+    void ObjRepoView::set_url(const std::string& str) const
+    {
+        return set_url(str.c_str());
+    }
+
+    auto ObjRepoViewConst::channel() const -> std::string_view
+    {
+        return repo_lookup_str(raw(), SOLVABLE_MEDIABASE);
+    }
+
+    void ObjRepoView::set_channel(raw_str_view str) const
+    {
+        return repo_set_str(raw(), SOLVABLE_MEDIABASE, str);
+    }
+
+    void ObjRepoView::set_channel(const std::string& str) const
+    {
+        return set_channel(str.c_str());
+    }
+
+    auto ObjRepoViewConst::subdir() const -> std::string_view
+    {
+        return repo_lookup_str(raw(), SOLVABLE_MEDIADIR);
+    }
+
+    void ObjRepoView::set_subdir(raw_str_view str) const
+    {
+        return repo_set_str(raw(), SOLVABLE_MEDIADIR, str);
+    }
+
+    void ObjRepoView::set_subdir(const std::string& str) const
+    {
+        return set_subdir(str.c_str());
     }
 }

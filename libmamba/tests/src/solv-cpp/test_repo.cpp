@@ -22,10 +22,14 @@ TEST_SUITE("ObjRepo")
         auto pool = ObjPool();
         auto repo_id = pool.add_repo("test-forge");
         auto repo = pool.get_repo(repo_id);
+        CHECK_EQ(repo.id(), repo_id);
+        CHECK_EQ(repo.name(), "test-forge");
 
         SUBCASE("Fetch the repo")
         {
-            CHECK_EQ(pool.get_repo(repo_id).name(), "test-forge");
+            auto repo_alt = pool.get_repo(repo_id);
+            CHECK_EQ(repo_alt.name(), repo.name());
+            CHECK_EQ(repo_alt.id(), repo.id());
         }
 
         SUBCASE("Set attributes")

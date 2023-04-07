@@ -27,6 +27,8 @@ namespace mamba::solv
 
         auto raw() const -> const ::Repo*;
 
+        auto id() const -> RepoId;
+
         auto name() const -> std::string_view;
         auto url() const -> std::string_view;
         auto channel() const -> std::string_view;

@@ -1642,11 +1642,11 @@ namespace mamba
                     {
                         if (tn.depth() == 1)
                         {
-                            write(" is requested and can be installed");
+                            write(" is requested and can not be installed");
                         }
                         else
                         {
-                            write(", which can be installed");
+                            write(", which can not be installed");
                         }
                     }
                     else

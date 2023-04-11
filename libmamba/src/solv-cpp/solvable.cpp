@@ -92,9 +92,14 @@ namespace mamba::solv
         return ptr_to_strview(::solvable_lookup_str(const_cast<::Solvable*>(raw()), SOLVABLE_NAME));
     }
 
+    void ObjSolvableView::set_name(StringId id) const
+    {
+        ::solvable_set_id(raw(), SOLVABLE_NAME, id);
+    }
+
     void ObjSolvableView::set_name(std::string_view str) const
     {
-        ::solvable_set_id(raw(), SOLVABLE_NAME, solvable_add_pool_str(raw()->repo->pool, str));
+        return set_name(solvable_add_pool_str(raw()->repo->pool, str));
     }
 
     auto ObjSolvableViewConst::version() const -> std::string_view
@@ -102,9 +107,14 @@ namespace mamba::solv
         return ptr_to_strview(::solvable_lookup_str(const_cast<::Solvable*>(raw()), SOLVABLE_EVR));
     }
 
+    void ObjSolvableView::set_version(StringId id) const
+    {
+        ::solvable_set_id(raw(), SOLVABLE_EVR, id);
+    }
+
     void ObjSolvableView::set_version(std::string_view str) const
     {
-        ::solvable_set_id(raw(), SOLVABLE_EVR, solvable_add_pool_str(raw()->repo->pool, str));
+        return set_version(solvable_add_pool_str(raw()->repo->pool, str));
     }
 
     auto ObjSolvableViewConst::build_number() const -> std::size_t

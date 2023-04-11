@@ -67,7 +67,9 @@ namespace mamba::solv
 
         auto raw() const -> ::Solvable*;
 
+        void set_name(StringId id) const;
         void set_name(std::string_view str) const;
+        void set_version(StringId id) const;
         void set_version(std::string_view str) const;
 
         /** The following attributes need a call to @ref ObjRepoView::internalize. */

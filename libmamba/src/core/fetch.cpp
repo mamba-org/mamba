@@ -529,7 +529,7 @@ namespace mamba
 
         result = curl_easy_perform(m_curl_handle->handle());
         set_result(result);
-        return finalize();
+        return ((result == CURLE_OK) && finalize());
     }
 
     CURL* DownloadTarget::handle()

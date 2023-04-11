@@ -9,6 +9,8 @@
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/repoquery.hpp"
+#include "mamba/core/package_cache.hpp"
+#include "mamba/core/prefix_data.hpp"
 #include "mamba/core/util_string.hpp"
 
 namespace mamba

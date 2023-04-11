@@ -12,6 +12,7 @@
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/repo.hpp"
+#include "mamba/core/util.hpp"
 #include "mamba/core/util_string.hpp"
 #include "solv-cpp/queue.hpp"
 

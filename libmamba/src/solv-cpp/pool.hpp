@@ -107,6 +107,8 @@ namespace mamba::solv
  *  Implementation of ObjPool  *
  *******************************/
 
+#include <stdexcept>
+
 #include <solv/pool.h>
 
 namespace mamba::solv
@@ -141,6 +143,10 @@ namespace mamba::solv
     template <typename UnaryFunc>
     void ObjPool::for_each_whatprovides_id(DependencyId dep, UnaryFunc func) const
     {
+        if (raw()->whatprovides == nullptr)
+        {
+            throw std::runtime_error("Whatprovides index is not created");
+        }
         auto* const pool = const_cast<::Pool*>(raw());
         SolvableId id = 0;
         ::Id offset = 0;  // Not really an Id

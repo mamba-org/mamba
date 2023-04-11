@@ -122,6 +122,43 @@ TEST_SUITE("ObjPool")
                 // Remove invalid repo is a noop
                 CHECK_FALSE(pool.remove_repo(1234, true));
             }
+
+            SUBCASE("Iterate through whatprovides")
+            {
+                auto [id1, s1] = repo1.add_solvable();
+                const auto pkg_name_id = pool.add_string("mamba");
+                const auto pkg_version_id = pool.add_string("1.0.0");
+                s1.set_name(pkg_name_id);
+                s1.set_version(pkg_version_id);
+                s1.add_self_provide();
+
+                auto [id2, s2] = repo2.add_solvable();
+                s2.set_name(pkg_name_id);
+                s2.set_version("2.0.0");
+                s2.add_self_provide();
+
+                const auto dep_id = pool.add_dependency(pkg_name_id, REL_EQ, pkg_version_id);
+
+                SUBCASE("Without creating the whatprovides index is an error")
+                {
+                    CHECK_THROWS_AS(
+                        pool.for_each_whatprovides_id(dep_id, [&](auto) {}),
+                        std::runtime_error
+                    );
+                }
+
+                SUBCASE("With creation of whatprovides index")
+                {
+                    pool.create_whatprovides();
+                    auto whatprovides_ids = std::vector<SolvableId>();
+                    pool.for_each_whatprovides_id(
+                        dep_id,
+                        [&](auto id) { whatprovides_ids.push_back(id); }
+                    );
+                    // Only one solvable matches
+                    CHECK_EQ(whatprovides_ids, std::vector{ id1 });
+                }
+            }
         }
 
         SUBCASE("Add a debug callback")

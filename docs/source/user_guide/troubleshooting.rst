@@ -36,14 +36,18 @@ Please disable the default channels in your install command::
 
   mamba create -c nodefaults ...
 
-Or your :file`environment.yml` file::
+Or your :file`environment.yml` file:
+
+.. code-block:: yaml
 
   name: ...
   channels:
     - ...
     - nodefaults
 
-Or in your :file:`~/.condarc` file::
+Or in your :file:`~/.condarc` file:
+
+.. code-block:: yaml
 
   ...
   channels:

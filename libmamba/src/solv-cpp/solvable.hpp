@@ -31,7 +31,10 @@ namespace mamba::solv
 
         auto id() const -> SolvableId;
 
+        /** The package name of the solvable. */
         auto name() const -> std::string_view;
+
+        /** The package version of the solvable. */
         auto version() const -> std::string_view;
 
         auto build_number() const -> std::size_t;
@@ -46,10 +49,13 @@ namespace mamba::solv
 
         /** Queue of ``DependencyId``. */
         auto dependencies() const -> ObjQueue;
+
         /** Queue of ``DependencyId``. */
         auto provides() const -> ObjQueue;
+
         /** Queue of ``DependencyId``. */
         auto constraints() const -> ObjQueue;
+
         /** Queue of ``StringId``. */
         auto track_features() const -> ObjQueue;
 
@@ -73,32 +79,142 @@ namespace mamba::solv
         void set_version(StringId id) const;
         void set_version(std::string_view str) const;
 
-        /** The following attributes need a call to @ref ObjRepoView::internalize. */
+        /**
+         * Set the build number of the solvable.
+         *
+         * @warning The pool must be of type conda for this to have an impact in during solving
+         *          @ref ``ObjPool::set_disttype``.
+         * @note A call to @ref ObjRepoView::internalize is required for this attribute to
+         *       be available for lookup.
+         */
         void set_build_number(std::size_t n) const;
+
+        /**
+         * Set the build string of the solvable.
+         *
+         * This is not used by libsolv and is purely for data storing.
+         *
+         * @note A call to @ref ObjRepoView::internalize is required for this attribute to
+         *       be available for lookup.
+         */
         void set_build_string(std::string_view bld) const;
+
+        /**
+         * Set the file name of the solvable.
+         *
+         * This is not used by libsolv and is purely for data storing.
+         *
+         * @note A call to @ref ObjRepoView::internalize is required for this attribute to
+         *       be available for lookup.
+         */
         void set_file_name(raw_str_view fn) const;
         void set_file_name(const std::string& fn) const;
+
+        /**
+         * Set the license of the solvable.
+         *
+         * This is not used by libsolv and is purely for data storing.
+         *
+         * @note A call to @ref ObjRepoView::internalize is required for this attribute to
+         *       be available for lookup.
+         */
         void set_license(raw_str_view str) const;
         void set_license(const std::string& str) const;
+
+        /**
+         * Set the md5 hash of the solvable file.
+         *
+         * This is not used by libsolv and is purely for data storing.
+         *
+         * @note A call to @ref ObjRepoView::internalize is required for this attribute to
+         *       be available for lookup.
+         */
         void set_md5(raw_str_view str) const;
         void set_md5(const std::string& str) const;
+
+        /**
+         * Set the noarch type of the solvable.
+         *
+         * This is not used by libsolv and is purely for data storing.
+         *
+         * @note A call to @ref ObjRepoView::internalize is required for this attribute to
+         *       be available for lookup.
+         */
         void set_noarch(raw_str_view str) const;
         void set_noarch(const std::string& str) const;
+
+        /**
+         * Set the sha256 has of the solvable file..
+         *
+         * This is not used by libsolv and is purely for data storing.
+         *
+         * @note A call to @ref ObjRepoView::internalize is required for this attribute to
+         *       be available for lookup.
+         */
         void set_sha256(raw_str_view str) const;
         void set_sha256(const std::string& str) const;
+
+        /**
+         * Set the size of the solvable size.
+         *
+         * This is not used by libsolv and is purely for data storing.
+         *
+         * @note A call to @ref ObjRepoView::internalize is required for this attribute to
+         *       be available for lookup.
+         */
         void set_size(std::size_t n) const;
+
+        /**
+         * Set the timestamp of the solvable.
+         *
+         * This is not used by libsolv and is purely for data storing.
+         *
+         * @note A call to @ref ObjRepoView::internalize is required for this attribute to
+         *       be available for lookup.
+         */
         void set_timestamp(std::size_t n) const;
 
+        /** Set the dependencies of the solvable. */
         void set_dependencies(const ObjQueue& q) const;
+
+        /** Add a additional dependency to the solvable. */
         void add_dependency(DependencyId dep) const;
+
+        /** Add multiple additional dependencies to the solvable. */
         template <typename Iter>
         void add_dependencies(Iter first, Iter last) const;
         template <typename Range>
         void add_dependencies(const Range& deps) const;
 
+        /**
+         * Set the provides list of a solvable.
+         *
+         * In libsolv, a dependency is not match against a solvable name but against its
+         * ``provides``.
+         * A package can provide multiple names, for instance an ``openblas 1.0.0`` package
+         * could provide ```openblas==1.0.0`` and ``blas<=1.5``.
+         * This is not possible in conda, hence we always use the
+         * @ref ObjSolvableView::add_self_provide function.
+         */
         void set_provides(const ObjQueue& q) const;
+
+        /**
+         * Add an additional provide to the sovable.
+         *
+         * @see ObjSolvableView::set_provides.
+         */
         void add_provide(DependencyId dep) const;
+
+        /**
+         * Add an additional provide to the sovable stating the solvable provides itself.
+         *
+         * Namely the solvable ``s`` provides ``s.name() == s.version()``.
+         *
+         * @see ObjSolvableView::set_provides.
+         */
         void add_self_provide() const;
+
+        /** Add multiple provides to the solvable. */
         template <typename Iter>
         void add_provides(Iter first, Iter last) const;
         template <typename Range>
@@ -107,21 +223,42 @@ namespace mamba::solv
         /**
          * Set all constraints.
          *
-         * Setting this attribute requires a call to @ref ObjRepoView::internalize before it
-         * can be used.
+         * A constraint is like a dependency that is not part of the solving outcome.
+         * In other words, if a solvable has a constraint, it is activated ony if another solvable
+         * in the solving requires that package as a dependencyl
+         *
+         * @warning The pool must be of type conda for this to have an impact in during solving
+         *          @ref ``ObjPool::set_disttype``.
+         * @note A call to @ref ObjRepoView::internalize is required for this attribute to
+         *       be available for lookup.
          **/
         void set_constraints(const ObjQueue& q) const;
+
         /**
          * Add a constraint.
          *
          * This function can be used to add constraints one by one.
-         * After all constraints have been added (or at a later time), a call to
-         * @ref ObjRepoView::internalize is required before the constraints can be used.
-         * If some constraints were already internalized, the effect of this function is to start
-         * a new set of constraints that will replace the old one rather than add to it.
+
+         * @warning The pool must be of type conda for this to have an impact in during solving
+         *          @ref ``ObjPool::set_disttype``.
+         * @note A call to @ref ObjRepoView::internalize is required for this attribute to
+         *       be available for lookup.
+         *       If some constraints were already internalized, the effect of this function is to
+         *       start a new set of constraints that will replace the old ones rather than add
+         *       to it.
          */
         void add_constraint(DependencyId dep) const;
         template <typename Iter>
+
+        /**
+         * Add multiple constraints to the solvable.
+         *
+         * @warning The pool must be of type conda for this to have an impact in during solving
+         *          @ref ``ObjPool::set_disttype``.
+         * @note A call to @ref ObjRepoView::internalize is required for this attribute to
+         *       be available for lookup.
+         * @see ObjSolvableView::add_constraint.
+         */
         void add_constraints(Iter first, Iter last) const;
         template <typename Range>
         void add_constraints(const Range& deps) const;
@@ -129,25 +266,34 @@ namespace mamba::solv
         /**
          * Set all track features.
          *
-         * Setting this attribute requires a call to @ref ObjRepoView::internalize before it
-         * can be used.
+         * The number of track features is used to de-prioritize solvable during solving.
          *
+         * @warning The pool must be of type conda for this to have an impact in during solving
+         *          @ref ``ObjPool::set_disttype``.
+         * @note A call to @ref ObjRepoView::internalize is required for this attribute to
+         *       be available for lookup.
          * @param q A queue of of pool @ref StringId
          **/
         void set_track_features(const ObjQueue& q) const;
+
         /**
          * Add a tracked feature.
          *
          * This function can be used to add tracked feature one by one.
-         * After all tracked features have been added (or at a later time), a call to
-         * @ref ObjRepoView::internalize is required before the tracked features can be used.
-         * If some tracked feature were already internalized, the effect of this function is
-         * to start a new set of constraints that will replace the old one rather than add to it.
          *
+         * @warning The pool must be of type conda for this to have an impact in during solving
+         *          @ref ``ObjPool::set_disttype``.
+         * @note A call to @ref ObjRepoView::internalize is required for this attribute to
+         *       be available for lookup.
+         *       If some constraints were already internalized, the effect of this function is to
+         *       start a new set of constraints that will replace the old ones rather than add
+         *       to it.
+         * @see ObjSolvableView::add_track_feature
          * @param feat A pool @ref StringId of the feature string.
          * @return The same id as @p feat.
          */
         auto add_track_feature(StringId feat) const -> StringId;
+
         /**
          * Add a tracked feature from a string.
          *
@@ -156,6 +302,14 @@ namespace mamba::solv
          * @return The pool @ref StringId associated with @p feat.
          */
         auto add_track_feature(std::string_view feat) const -> StringId;
+
+        /**
+         * Add multiple track features to the solvable.
+         *
+         * The range can contain strings or StringId.
+         *
+         * @see add_track_feature
+         */
         template <typename Iter>
         void add_track_features(Iter first, Iter last) const;
         template <typename Range>

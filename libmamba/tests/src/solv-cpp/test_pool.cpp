@@ -84,6 +84,14 @@ TEST_SUITE("ObjPool")
             auto [repo3_id, repo3] = pool.add_repo("repo3");
             CHECK_EQ(pool.n_repos(), 3);
 
+            SUBCASE("Set installed repo")
+            {
+                CHECK_FALSE(pool.installed_repo().has_value());
+                pool.set_installed_repo(repo2_id);
+                REQUIRE(pool.installed_repo().has_value());
+                CHECK_EQ(pool.installed_repo()->id(), repo2_id);
+            }
+
             SUBCASE("Iterate over repos")
             {
                 const auto repo_ids = std::array{ repo1_id, repo2_id, repo3_id };

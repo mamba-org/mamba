@@ -209,6 +209,31 @@ namespace mamba::solv
         return false;
     }
 
+    auto ObjPool::installed_repo() const -> std::optional<ObjRepoViewConst>
+    {
+        if (const auto* const installed_ptr = raw()->installed; installed_ptr != nullptr)
+        {
+            return ObjRepoViewConst(installed_ptr);
+        }
+        return std::nullopt;
+    }
+
+    auto ObjPool::installed_repo() -> std::optional<ObjRepoView>
+    {
+        if (auto* const installed_ptr = raw()->installed; installed_ptr != nullptr)
+        {
+            return ObjRepoView(installed_ptr);
+        }
+        return std::nullopt;
+    }
+
+    void ObjPool::set_installed_repo(RepoId id)
+    {
+        const auto must_repo = get_repo(id);
+        assert(must_repo.has_value());
+        pool_set_installed(raw(), must_repo->raw());
+    }
+
     auto ObjPool::get_solvable(SolvableId id) const -> std::optional<ObjSolvableViewConst>
     {
         if (const ::Solvable* s = ::pool_id2solvable(raw(), id); s != nullptr)

@@ -74,6 +74,9 @@ namespace mamba::solv
         void for_each_repo(UnaryFunc func);
         template <typename UnaryFunc>
         void for_each_repo(UnaryFunc func) const;
+        auto installed_repo() const -> std::optional<ObjRepoViewConst>;
+        auto installed_repo() -> std::optional<ObjRepoView>;
+        void set_installed_repo(RepoId id);
 
         auto get_solvable(SolvableId id) const -> std::optional<ObjSolvableViewConst>;
         auto get_solvable(SolvableId id) -> std::optional<ObjSolvableView>;

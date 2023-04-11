@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 
+#include <algorithm>
 #include <cassert>
 #include <exception>
 #include <limits>
@@ -64,16 +65,6 @@ namespace mamba::solv
         auto other_copy = ObjQueue(other);
         swap(*this, other_copy);
         return *this;
-    }
-
-    auto ObjQueue::operator==(const ObjQueue& other) const -> bool
-    {
-        return std::equal(cbegin(), cend(), other.cbegin(), other.cend());
-    }
-
-    auto ObjQueue::operator!=(const ObjQueue& other) const -> bool
-    {
-        return !(*this == other);
     }
 
     void ObjQueue::push_back(value_type id)
@@ -294,5 +285,16 @@ namespace mamba::solv
         using std::swap;
         swap(a.m_queue, b.m_queue);
     }
+
+    auto operator==(const ObjQueue& a, const ObjQueue& b) -> bool
+    {
+        return std::equal(a.cbegin(), a.cend(), b.cbegin(), b.cend());
+    }
+
+    auto operator!=(const ObjQueue& a, const ObjQueue& b) -> bool
+    {
+        return !(a == b);
+    }
+
 
 }  // namespace mamba

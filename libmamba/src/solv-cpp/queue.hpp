@@ -48,9 +48,6 @@ namespace mamba::solv
         auto operator=(ObjQueue&& other) -> ObjQueue&;
         auto operator=(const ObjQueue& other) -> ObjQueue&;
 
-        auto operator==(const ObjQueue& other) const -> bool;
-        auto operator!=(const ObjQueue& other) const -> bool;
-
         auto size() const -> size_type;
         auto capacity() const -> size_type;
         auto empty() const -> bool;
@@ -107,6 +104,9 @@ namespace mamba::solv
     };
 
     void swap(ObjQueue& a, ObjQueue& b) noexcept;
+
+    auto operator==(const ObjQueue& a, const ObjQueue& b) -> bool;
+    auto operator!=(const ObjQueue& a, const ObjQueue& b) -> bool;
 
     /********************************
      *  Implementation of ObjQueue  *

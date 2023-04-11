@@ -16,7 +16,7 @@
 #include "solv-cpp/ids.hpp"
 #include "solv-cpp/queue.hpp"
 
-typedef struct s_Solvable Solvable;
+using Solvable = struct s_Solvable;
 
 namespace mamba::solv
 {
@@ -25,6 +25,7 @@ namespace mamba::solv
     public:
 
         explicit ObjSolvableViewConst(const ::Solvable* solvable) noexcept;
+        ~ObjSolvableViewConst() noexcept;
 
         auto raw() const -> const ::Solvable*;
 

@@ -25,6 +25,11 @@ namespace mamba::solv
     {
     }
 
+    ObjSolvableViewConst::~ObjSolvableViewConst() noexcept
+    {
+        m_solvable = nullptr;
+    }
+
     auto ObjSolvableViewConst::raw() const -> const ::Solvable*
     {
         return m_solvable;
@@ -62,7 +67,7 @@ namespace mamba::solv
             static constexpr std::string_view null = "<NULL>";
             if ((ptr == nullptr) || (ptr == null))
             {
-                return "";
+                return {};
             }
             return { ptr };
         }
@@ -76,7 +81,7 @@ namespace mamba::solv
         auto solvable_add_pool_str(::Pool* pool, std::string_view value)
         {
             assert(value.size() <= std::numeric_limits<unsigned int>::max());
-            ::Id const id = ::pool_strn2id(
+            const ::Id id = ::pool_strn2id(
                 pool,
                 value.data(),
                 static_cast<unsigned int>(value.size()),

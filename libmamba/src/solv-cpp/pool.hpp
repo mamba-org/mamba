@@ -18,6 +18,8 @@
 #include "solv-cpp/repo.hpp"
 #include "solv-cpp/solvable.hpp"
 
+using Pool = struct s_Pool;
+
 namespace mamba::solv
 {
     /**
@@ -54,11 +56,11 @@ namespace mamba::solv
 
         void create_whatprovides();
         template <typename UnaryFunc>
-        void for_each_whatprovides_id(DependencyId dep, UnaryFunc func) const;
+        void for_each_whatprovides_id(DependencyId dep, UnaryFunc&& func) const;
         template <typename UnaryFunc>
-        void for_each_whatprovides(DependencyId dep, UnaryFunc func) const;
+        void for_each_whatprovides(DependencyId dep, UnaryFunc&& func) const;
         template <typename UnaryFunc>
-        void for_each_whatprovides(DependencyId dep, UnaryFunc func);
+        void for_each_whatprovides(DependencyId dep, UnaryFunc&& func);
 
         auto select_solvables(const ObjQueue& job) const -> ObjQueue;
 
@@ -66,14 +68,14 @@ namespace mamba::solv
         auto has_repo(RepoId id) const -> bool;
         auto get_repo(RepoId id) -> std::optional<ObjRepoView>;
         auto get_repo(RepoId id) const -> std::optional<ObjRepoViewConst>;
-        auto n_repos() const -> std::size_t;
+        auto repo_count() const -> std::size_t;
         auto remove_repo(RepoId id, bool reuse_ids) -> bool;
         template <typename UnaryFunc>
-        void for_each_repo_id(UnaryFunc func) const;
+        void for_each_repo_id(UnaryFunc&& func) const;
         template <typename UnaryFunc>
-        void for_each_repo(UnaryFunc func);
+        void for_each_repo(UnaryFunc&& func);
         template <typename UnaryFunc>
-        void for_each_repo(UnaryFunc func) const;
+        void for_each_repo(UnaryFunc&& func) const;
         auto installed_repo() const -> std::optional<ObjRepoViewConst>;
         auto installed_repo() -> std::optional<ObjRepoView>;
         void set_installed_repo(RepoId id);
@@ -81,14 +83,14 @@ namespace mamba::solv
         auto get_solvable(SolvableId id) const -> std::optional<ObjSolvableViewConst>;
         auto get_solvable(SolvableId id) -> std::optional<ObjSolvableView>;
         template <typename UnaryFunc>
-        void for_each_solvable_id(UnaryFunc func) const;
+        void for_each_solvable_id(UnaryFunc&& func) const;
         template <typename UnaryFunc>
-        void for_each_solvable(UnaryFunc func) const;
+        void for_each_solvable(UnaryFunc&& func) const;
         template <typename UnaryFunc>
-        void for_each_solvable(UnaryFunc func);
+        void for_each_solvable(UnaryFunc&& func);
 
         template <typename Func>
-        void set_debug_callback(Func callback);
+        void set_debug_callback(Func&& callback);
 
     private:
 
@@ -115,7 +117,7 @@ namespace mamba::solv
 {
 
     template <typename UnaryFunc>
-    void ObjPool::for_each_repo_id(UnaryFunc func) const
+    void ObjPool::for_each_repo_id(UnaryFunc&& func) const
     {
         const ::Pool* const pool = raw();
         const ::Repo* repo = nullptr;
@@ -127,21 +129,21 @@ namespace mamba::solv
     }
 
     template <typename UnaryFunc>
-    void ObjPool::for_each_repo(UnaryFunc func) const
+    void ObjPool::for_each_repo(UnaryFunc&& func) const
     {
         // Safe optional unchecked because we iterate over available values
         return for_each_repo_id([this, func](RepoId id) { func(get_repo(id).value()); });
     }
 
     template <typename UnaryFunc>
-    void ObjPool::for_each_repo(UnaryFunc func)
+    void ObjPool::for_each_repo(UnaryFunc&& func)
     {
         // Safe optional unchecked because we iterate over available values
         return for_each_repo_id([this, func](RepoId id) { func(get_repo(id).value()); });
     }
 
     template <typename UnaryFunc>
-    void ObjPool::for_each_whatprovides_id(DependencyId dep, UnaryFunc func) const
+    void ObjPool::for_each_whatprovides_id(DependencyId dep, UnaryFunc&& func) const
     {
         if (raw()->whatprovides == nullptr)
         {
@@ -157,7 +159,7 @@ namespace mamba::solv
     }
 
     template <typename UnaryFunc>
-    void ObjPool::for_each_whatprovides(DependencyId dep, UnaryFunc func) const
+    void ObjPool::for_each_whatprovides(DependencyId dep, UnaryFunc&& func) const
     {
         // Safe optional unchecked because we iterate over available values
         return for_each_whatprovides_id(
@@ -167,7 +169,7 @@ namespace mamba::solv
     }
 
     template <typename UnaryFunc>
-    void ObjPool::for_each_whatprovides(DependencyId dep, UnaryFunc func)
+    void ObjPool::for_each_whatprovides(DependencyId dep, UnaryFunc&& func)
     {
         // Safe optional unchecked because we iterate over available values
         return for_each_whatprovides_id(
@@ -177,7 +179,7 @@ namespace mamba::solv
     }
 
     template <typename UnaryFunc>
-    void ObjPool::for_each_solvable_id(UnaryFunc func) const
+    void ObjPool::for_each_solvable_id(UnaryFunc&& func) const
     {
         const ::Pool* const pool = raw();
         SolvableId id = 0;
@@ -188,30 +190,35 @@ namespace mamba::solv
     }
 
     template <typename UnaryFunc>
-    void ObjPool::for_each_solvable(UnaryFunc func) const
+    void ObjPool::for_each_solvable(UnaryFunc&& func) const
     {
         // Safe optional unchecked because we iterate over available values
         return for_each_solvable_id([this, func](SolvableId id) { func(get_solvable(id).value()); });
     }
 
     template <typename UnaryFunc>
-    void ObjPool::for_each_solvable(UnaryFunc func)
+    void ObjPool::for_each_solvable(UnaryFunc&& func)
     {
         // Safe optional unchecked because we iterate over available values
         return for_each_solvable_id([this, func](SolvableId id) { func(get_solvable(id).value()); });
     }
 
     template <typename Func>
-    void ObjPool::set_debug_callback(Func callback)
+    void ObjPool::set_debug_callback(Func&& callback)
     {
-        m_user_debug_callback.reset(new Func(std::move(callback)));
+        static_assert(
+            std::is_nothrow_invocable_v<Func, Pool*, int, std::string_view>,
+            "User callback must be marked noexcept."
+        );
+
+        m_user_debug_callback.reset(new Func(std::forward<Func>(callback)));
         m_user_debug_callback.get_deleter() = [](void* ptr) { delete reinterpret_cast<Func*>(ptr); };
 
         // Wrap the user callback in the libsolv function type that must cast the callback ptr
-        auto debug_callback = [](Pool* pool, void* user_data, int type, const char* msg)
+        auto debug_callback = [](Pool* pool, void* user_data, int type, const char* msg) noexcept
         {
             auto* user_debug_callback = reinterpret_cast<Func*>(user_data);
-            (*user_debug_callback)(pool, type, std::string_view(msg));
+            (*user_debug_callback)(pool, type, std::string_view(msg));  // noexcept
         };
 
         pool_setdebugcallback(raw(), debug_callback, m_user_debug_callback.get());

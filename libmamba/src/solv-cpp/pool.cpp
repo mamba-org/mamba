@@ -54,7 +54,7 @@ namespace mamba::solv
     auto ObjPool::find_string(std::string_view str) const -> std::optional<StringId>
     {
         assert(str.size() <= std::numeric_limits<unsigned int>::max());
-        ::Id const id = ::pool_strn2id(
+        const ::Id id = ::pool_strn2id(
             const_cast<::Pool*>(raw()),  // Safe because we do not create
             str.data(),
             static_cast<unsigned int>(str.size()),
@@ -67,7 +67,7 @@ namespace mamba::solv
     {
         assert(str.size() <= std::numeric_limits<unsigned int>::max());
         // Note: libsolv cannot report failure to allocate
-        ::Id const id = ::pool_strn2id(
+        const ::Id id = ::pool_strn2id(
             raw(),
             str.data(),
             static_cast<unsigned int>(str.size()),
@@ -86,7 +86,7 @@ namespace mamba::solv
     auto ObjPool::find_dependency(StringId name_id, RelationFlag flag, StringId version_id) const
         -> std::optional<DependencyId>
     {
-        ::Id const id = ::pool_rel2id(
+        const ::Id id = ::pool_rel2id(
             const_cast<::Pool*>(raw()),  // Safe because we do not create
             name_id,
             version_id,
@@ -100,7 +100,7 @@ namespace mamba::solv
         -> DependencyId
     {
         // Note: libsolv cannot report failure to allocate
-        ::Id const id = ::pool_rel2id(
+        const ::Id id = ::pool_rel2id(
             raw(),
             name_id,
             version_id,
@@ -193,7 +193,7 @@ namespace mamba::solv
         return { ObjRepoViewConst{ ::pool_id2repo(const_cast<::Pool*>(raw()), id) } };
     }
 
-    auto ObjPool::n_repos() const -> std::size_t
+    auto ObjPool::repo_count() const -> std::size_t
     {
         // Id 0 is special
         assert(raw()->urepos >= 0);

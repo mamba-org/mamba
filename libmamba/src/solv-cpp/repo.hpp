@@ -15,7 +15,7 @@
 #include "solv-cpp/ids.hpp"
 #include "solv-cpp/solvable.hpp"
 
-typedef struct s_Repo Repo;
+using Repo = struct s_Repo;
 
 namespace mamba::solv
 {
@@ -25,6 +25,7 @@ namespace mamba::solv
     public:
 
         explicit ObjRepoViewConst(const ::Repo* repo) noexcept;
+        ~ObjRepoViewConst() noexcept;
 
         auto raw() const -> const ::Repo*;
 
@@ -35,14 +36,14 @@ namespace mamba::solv
         auto channel() const -> std::string_view;
         auto subdir() const -> std::string_view;
 
-        auto n_solvables() const -> std::size_t;
+        auto solvable_count() const -> std::size_t;
         auto has_solvable(SolvableId id) const -> bool;
         auto get_solvable(SolvableId id) const -> std::optional<ObjSolvableViewConst>;
 
         template <typename UnaryFunc>
-        void for_each_solvable_id(UnaryFunc func) const;
+        void for_each_solvable_id(UnaryFunc&& func) const;
         template <typename UnaryFunc>
-        void for_each_solvable(UnaryFunc func) const;
+        void for_each_solvable(UnaryFunc&& func) const;
 
         /**
          * Write repository information to file.
@@ -88,7 +89,7 @@ namespace mamba::solv
         auto remove_solvable(SolvableId id, bool reuse_id) const -> bool;
 
         template <typename UnaryFunc>
-        void for_each_solvable(UnaryFunc func) const;
+        void for_each_solvable(UnaryFunc&& func) const;
 
         /**
          * Internalize added data.
@@ -110,7 +111,7 @@ namespace mamba::solv
      ****************************************/
 
     template <typename UnaryFunc>
-    void ObjRepoViewConst::for_each_solvable_id(UnaryFunc func) const
+    void ObjRepoViewConst::for_each_solvable_id(UnaryFunc&& func) const
     {
         const ::Repo* const repo = raw();
         SolvableId id = 0;
@@ -122,7 +123,7 @@ namespace mamba::solv
     }
 
     template <typename UnaryFunc>
-    void ObjRepoViewConst::for_each_solvable(UnaryFunc func) const
+    void ObjRepoViewConst::for_each_solvable(UnaryFunc&& func) const
     {
         const ::Repo* const repo = raw();
         SolvableId id = 0;
@@ -134,7 +135,7 @@ namespace mamba::solv
     }
 
     template <typename UnaryFunc>
-    void ObjRepoView::for_each_solvable(UnaryFunc func) const
+    void ObjRepoView::for_each_solvable(UnaryFunc&& func) const
     {
         const ::Repo* const repo = raw();
         SolvableId id = 0;

@@ -65,14 +65,14 @@ TEST_SUITE("ObjRepo")
 
         SUBCASE("Add solvables")
         {
-            CHECK_EQ(repo.n_solvables(), 0);
+            CHECK_EQ(repo.solvable_count(), 0);
             const auto [id1, s1] = repo.add_solvable();
             REQUIRE(repo.get_solvable(id1).has_value());
             CHECK_EQ(repo.get_solvable(id1)->raw(), s1.raw());
-            CHECK_EQ(repo.n_solvables(), 1);
+            CHECK_EQ(repo.solvable_count(), 1);
             CHECK(repo.has_solvable(id1));
             const auto [id2, s2] = repo.add_solvable();
-            CHECK_EQ(repo.n_solvables(), 2);
+            CHECK_EQ(repo.solvable_count(), 2);
             CHECK(repo.has_solvable(id2));
 
             SUBCASE("Iterate through solvables")
@@ -86,7 +86,7 @@ TEST_SUITE("ObjRepo")
                         n_solvables++;
                     }
                 );
-                CHECK_EQ(n_solvables, repo.n_solvables());
+                CHECK_EQ(n_solvables, repo.solvable_count());
             }
 
             SUBCASE("Get inexisting solvable")
@@ -100,7 +100,7 @@ TEST_SUITE("ObjRepo")
                 CHECK(repo.remove_solvable(id2, true));
                 CHECK_FALSE(repo.has_solvable(id2));
                 CHECK(repo.has_solvable(id1));
-                CHECK_EQ(repo.n_solvables(), 1);
+                CHECK_EQ(repo.solvable_count(), 1);
             }
 
             SUBCASE("Confuse ids from another repo")
@@ -116,7 +116,7 @@ TEST_SUITE("ObjRepo")
             SUBCASE("Clear solvables")
             {
                 repo.clear(true);
-                CHECK_EQ(repo.n_solvables(), 0);
+                CHECK_EQ(repo.solvable_count(), 0);
                 CHECK_FALSE(repo.has_solvable(id1));
                 CHECK_FALSE(repo.get_solvable(id1).has_value());
             }
@@ -130,14 +130,14 @@ TEST_SUITE("ObjRepo")
                 SUBCASE("Read repo from file")
                 {
                     // Delete repo
-                    const auto n_solvables = repo.n_solvables();
+                    const auto n_solvables = repo.solvable_count();
                     pool.remove_repo(repo_id, true);
 
                     // Create new repo from file
                     auto [repo_id2, repo2] = pool.add_repo("test-forge");
                     repo2.read(solv_file);
 
-                    CHECK_EQ(repo2.n_solvables(), n_solvables);
+                    CHECK_EQ(repo2.solvable_count(), n_solvables);
                     // True because we reused ids
                     CHECK(repo2.has_solvable(id1));
                     CHECK(repo2.has_solvable(id2));

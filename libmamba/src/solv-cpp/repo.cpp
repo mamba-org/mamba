@@ -28,6 +28,11 @@ namespace mamba::solv
     {
     }
 
+    ObjRepoViewConst::~ObjRepoViewConst() noexcept
+    {
+        m_repo = nullptr;
+    }
+
     auto ObjRepoViewConst::raw() const -> const ::Repo*
     {
         return m_repo;
@@ -50,7 +55,7 @@ namespace mamba::solv
         return 0;
     }
 
-    auto ObjRepoViewConst::n_solvables() const -> std::size_t
+    auto ObjRepoViewConst::solvable_count() const -> std::size_t
     {
         assert(raw()->nsolvables >= 0);
         return static_cast<std::size_t>(raw()->nsolvables);
@@ -88,27 +93,41 @@ namespace mamba::solv
         return std::nullopt;
     }
 
+    namespace
+    {
+        struct FilePtr
+        {
+            std::FILE* ptr = nullptr;
+            std::string_view name = {};
+
+            ~FilePtr() noexcept(false)
+            {
+                const auto close_res = std::fclose(ptr);  // This flush too
+                if (close_res != 0)
+                {
+                    // TODO(C++20) fmt::format
+                    auto ss = std::stringstream();
+                    ss << "Unable to close file " << name;
+                    throw std::runtime_error(ss.str());
+                }
+            }
+        };
+    }
+
     void ObjRepoViewConst::write(std::filesystem::path solv_file) const
     {
-        auto* fp = std::fopen(solv_file.string().c_str(), "wb");
-        if (!fp)
+        const auto file_name = solv_file.string();
+        FilePtr file = { std::fopen(file_name.c_str(), "wb"), file_name };
+        if (file.ptr == nullptr)
         {
             throw std::system_error(errno, std::generic_category());
         }
-        const auto write_res = ::repo_write(const_cast<::Repo*>(raw()), fp);
-        const auto close_res = std::fclose(fp);
+        const auto write_res = ::repo_write(const_cast<::Repo*>(raw()), file.ptr);
         if (write_res != 0)
         {
             // TODO(C++20) fmt::format
             auto ss = std::stringstream();
             ss << "Unable to write repo '" << name() << "' to file";
-            throw std::runtime_error(ss.str());
-        }
-        if (close_res != 0)
-        {
-            // TODO(C++20) fmt::format
-            auto ss = std::stringstream();
-            ss << "Unable to write file '" << solv_file << '\'';
             throw std::runtime_error(ss.str());
         }
     }
@@ -135,25 +154,18 @@ namespace mamba::solv
 
     void ObjRepoView::read(std::filesystem::path solv_file) const
     {
-        auto* fp = std::fopen(solv_file.string().c_str(), "rb");
-        if (!fp)
+        const auto file_name = solv_file.string();
+        FilePtr file = { std::fopen(file_name.c_str(), "rb"), file_name };
+        if (file.ptr == nullptr)
         {
             throw std::system_error(errno, std::generic_category());
         }
-        const auto read_res = ::repo_add_solv(raw(), fp, 0);
-        const auto close_res = std::fclose(fp);
+        const auto read_res = ::repo_add_solv(raw(), file.ptr, 0);
         if (read_res != 0)
         {
             // TODO(C++20) fmt::format
             auto ss = std::stringstream();
             ss << "Unable to read repo solv file '" << name() << '\'';
-            throw std::runtime_error(ss.str());
-        }
-        if (close_res != 0)
-        {
-            // TODO(C++20) fmt::format
-            auto ss = std::stringstream();
-            ss << "Unable to read from file '" << solv_file << '\'';
             throw std::runtime_error(ss.str());
         }
     }
@@ -207,7 +219,7 @@ namespace mamba::solv
             static constexpr std::string_view null = "<NULL>";
             if ((ptr == nullptr) || (ptr == null))
             {
-                return "";
+                return {};
             }
             return { ptr };
         }

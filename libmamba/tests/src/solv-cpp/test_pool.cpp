@@ -78,11 +78,11 @@ TEST_SUITE("ObjPool")
             REQUIRE(pool.has_repo(repo1_id));
             REQUIRE(pool.get_repo(repo1_id).has_value());
             CHECK_EQ(pool.get_repo(repo1_id).value().id(), repo1_id);
-            CHECK_EQ(pool.n_repos(), 1);
+            CHECK_EQ(pool.repo_count(), 1);
 
             auto [repo2_id, repo2] = pool.add_repo("repo2");
             auto [repo3_id, repo3] = pool.add_repo("repo3");
-            CHECK_EQ(pool.n_repos(), 3);
+            CHECK_EQ(pool.repo_count(), 3);
 
             SUBCASE("Set installed repo")
             {
@@ -103,7 +103,7 @@ TEST_SUITE("ObjPool")
                         n_repos++;
                     }
                 );
-                CHECK_EQ(n_repos, pool.n_repos());
+                CHECK_EQ(n_repos, pool.repo_count());
             }
 
             SUBCASE("Get inexisting repo")
@@ -117,7 +117,7 @@ TEST_SUITE("ObjPool")
                 CHECK(pool.remove_repo(repo2_id, true));
                 CHECK_FALSE(pool.has_repo(repo2_id));
                 CHECK(pool.get_repo(repo1_id).has_value());
-                CHECK_EQ(pool.n_repos(), 2);
+                CHECK_EQ(pool.repo_count(), 2);
 
                 // Remove invalid repo is a noop
                 CHECK_FALSE(pool.remove_repo(1234, true));
@@ -166,7 +166,7 @@ TEST_SUITE("ObjPool")
             std::string_view message = "";
             int type = 0;
             pool.set_debug_callback(
-                [&](auto* /* pool */, auto t, auto msg)
+                [&](auto* /* pool */, auto t, auto msg) noexcept
                 {
                     message = msg;
                     type = t;

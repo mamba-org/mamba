@@ -553,10 +553,7 @@ namespace mamba
         {
             print_prefix(to);
             m_out << g.node(to).name
-                  << fmt::format(
-                         Context::instance().internal_design_info.palette.shown,
-                         " already visited\n"
-                     );
+                  << fmt::format(Context::instance().design_info.palette.shown, " already visited\n");
         }
 
         void finish_edge(node_id /*from*/, node_id to, const graph_type& /*g*/)

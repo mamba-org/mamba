@@ -79,7 +79,7 @@ namespace mamba
         m_filename = pkg_info.fn;
 
         // only do this for micromamba for now
-        if (Context::instance().internal_command_info.is_micromamba)
+        if (Context::instance().command_info.is_micromamba)
         {
             m_url = make_channel(pkg_info.url).urls(true)[0];
         }
@@ -96,7 +96,7 @@ namespace mamba
 
         auto& ctx = Context::instance();
         m_has_progress_bars = !(
-            ctx.internal_design_info.no_progress_bars || ctx.output_info.quiet || ctx.output_info.json
+            ctx.design_info.no_progress_bars || ctx.output_info.quiet || ctx.output_info.json
         );
     }
 
@@ -1226,16 +1226,12 @@ namespace mamba
             fmt::print(
                 out,
                 "Content trust verifications successful, {} ",
-                fmt::styled(
-                    "package(s) are trusted",
-                    Context::instance().internal_design_info.palette.safe
-                )
+                fmt::styled("package(s) are trusted", Context::instance().design_info.palette.safe)
             );
             LOG_INFO << "All package(s) are trusted";
         }
 
-        if (!(ctx.internal_design_info.no_progress_bars || ctx.output_info.json
-              || ctx.output_info.quiet))
+        if (!(ctx.design_info.no_progress_bars || ctx.output_info.json || ctx.output_info.quiet))
         {
             interruption_guard g([]() { Console::instance().progress_bar_manager().terminate(); });
 
@@ -1358,8 +1354,7 @@ namespace mamba
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
 
-        if (!(ctx.internal_design_info.no_progress_bars || ctx.output_info.json
-              || ctx.output_info.quiet))
+        if (!(ctx.design_info.no_progress_bars || ctx.output_info.json || ctx.output_info.quiet))
         {
             pbar_manager.terminate();
             pbar_manager.clear_progress_bars();
@@ -1495,7 +1490,7 @@ namespace mamba
                     if (!need_pkg_download(mk_pkginfo(m_pool, s), m_multi_cache))
                     {
                         dlsize_s.s = "Cached";
-                        dlsize_s.style = ctx.internal_design_info.palette.addition;
+                        dlsize_s.style = ctx.design_info.palette.addition;
                     }
                     else
                     {
@@ -1514,15 +1509,15 @@ namespace mamba
             name.s = fmt::format("{} {}", diff, pool_id2str(m_pool, s->name));
             if (status == Status::install)
             {
-                name.style = ctx.internal_design_info.palette.addition;
+                name.style = ctx.design_info.palette.addition;
             }
             else if (status == Status::ignore)
             {
-                name.style = ctx.internal_design_info.palette.ignored;
+                name.style = ctx.design_info.palette.ignored;
             }
             else if (status == Status::remove)
             {
-                name.style = ctx.internal_design_info.palette.deletion;
+                name.style = ctx.design_info.palette.deletion;
             }
             const char* build_string = solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
 

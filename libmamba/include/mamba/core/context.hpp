@@ -118,7 +118,6 @@ namespace mamba
     {
     public:
 
-        // TODO separate later between configurables and internal variables
         struct RemoteFetchInfo
         {
             // ssl_verify can be either an empty string (regular SSL verification),
@@ -137,7 +136,7 @@ namespace mamba
             int max_retries{ 3 };    // max number of retries
         };
 
-        struct OutputInfo  // Configurable, TODO change name of struct?
+        struct OutputInfo
         {
             int verbosity{ 0 };
             log_level logging_level{ log_level::warn };
@@ -149,19 +148,19 @@ namespace mamba
             std::size_t log_backtrace{ 0 };
         };
 
-        struct InternalDesignInfo  // Non configurable
+        struct DesignInfo
         {
             bool no_progress_bars{ false };
             Palette palette;
         };
 
-        struct ConfigSrcInfo  // Configurable
+        struct SrcInfo
         {
             bool no_rc{ false };
             bool no_env{ false };
         };
 
-        struct InternalCommandInfo  // Non configurable
+        struct CommandInfo
         {
             std::string caller_version{ "" };
             std::string conda_version{ "3.8.0" };
@@ -228,9 +227,9 @@ namespace mamba
 
         RemoteFetchInfo remote_fetch_info;
         OutputInfo output_info;
-        InternalDesignInfo internal_design_info;
-        ConfigSrcInfo config_src_info;
-        InternalCommandInfo internal_command_info;
+        DesignInfo design_info;
+        SrcInfo src_info;
+        CommandInfo command_info;
 
         std::map<std::string, std::string> proxy_servers;
 

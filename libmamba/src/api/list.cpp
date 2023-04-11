@@ -137,7 +137,7 @@ namespace mamba
                 if (requested_specs.find(p.name) != requested_specs.end())
                 {
                     formatted_name = printers::FormattedString(p.name);
-                    formatted_name.style = ctx.internal_design_info.palette.user;
+                    formatted_name.style = ctx.design_info.palette.user;
                 }
                 t.add_row({ formatted_name, p.version, p.build, p.channel });
             }

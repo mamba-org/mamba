@@ -407,7 +407,7 @@ namespace mamba
 
     ProgressProxy Console::add_progress_bar(const std::string& name, size_t expected_total)
     {
-        if (Context::instance().internal_design_info.no_progress_bars)
+        if (Context::instance().design_info.no_progress_bars)
         {
             return ProgressProxy();
         }

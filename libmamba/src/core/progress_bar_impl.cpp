@@ -522,9 +522,9 @@ namespace mamba
      *******************/
 
     ProgressBarRepr::ProgressBarRepr()
-        : m_style_none(Context::instance().internal_design_info.palette.progress_bar_none)
-        , m_style_downloaded(Context::instance().internal_design_info.palette.progress_bar_downloaded)
-        , m_style_extracted(Context::instance().internal_design_info.palette.progress_bar_extracted)
+        : m_style_none(Context::instance().design_info.palette.progress_bar_none)
+        , m_style_downloaded(Context::instance().design_info.palette.progress_bar_downloaded)
+        , m_style_extracted(Context::instance().design_info.palette.progress_bar_extracted)
         , m_ascii_only(Context::instance().ascii_only)
     {
     }

@@ -708,7 +708,7 @@ namespace mamba
                 }
             }
 
-            if (rc_configured() && !ctx.config_src_info.no_rc && (level >= ConfigurationLevel::kFile))
+            if (rc_configured() && !ctx.src_info.no_rc && (level >= ConfigurationLevel::kFile))
             {
                 m_sources.insert(m_sources.end(), m_rc_sources.begin(), m_rc_sources.end());
                 m_values.insert(m_rc_values.begin(), m_rc_values.end());

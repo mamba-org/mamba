@@ -40,9 +40,7 @@ namespace mamba
     std::string banner()
     {
         auto& ctx = Context::instance();
-        return ctx.internal_command_info.custom_banner.empty()
-                   ? mamba_banner
-                   : ctx.internal_command_info.custom_banner;
+        return ctx.command_info.custom_banner.empty() ? mamba_banner : ctx.command_info.custom_banner;
     }
 
     namespace detail
@@ -144,10 +142,9 @@ namespace mamba
 
             items.push_back({ "libmamba version", version() });
 
-            if (ctx.internal_command_info.is_micromamba
-                && !ctx.internal_command_info.caller_version.empty())
+            if (ctx.command_info.is_micromamba && !ctx.command_info.caller_version.empty())
             {
-                items.push_back({ "micromamba version", ctx.internal_command_info.caller_version });
+                items.push_back({ "micromamba version", ctx.command_info.caller_version });
             }
 
             items.push_back({ "curl version", curl_version() });

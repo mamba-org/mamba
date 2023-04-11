@@ -1286,9 +1286,8 @@ namespace mamba
         // TODO
         std::string CONDA_PACKAGE_ROOT = "";
 
-        std::string bat_name = Context::instance().internal_command_info.is_micromamba
-                                   ? "micromamba.bat"
-                                   : "conda.bat";
+        std::string bat_name = Context::instance().command_info.is_micromamba ? "micromamba.bat"
+                                                                              : "conda.bat";
 
         if (dev_mode)
         {
@@ -1299,7 +1298,7 @@ namespace mamba
             conda_bat = env::get("CONDA_BAT")
                             .value_or((fs::absolute(root_prefix) / "condabin" / bat_name).string());
         }
-        if (!fs::exists(conda_bat) && Context::instance().internal_command_info.is_micromamba)
+        if (!fs::exists(conda_bat) && Context::instance().command_info.is_micromamba)
         {
             // this adds in the needed .bat files for activation
             init_root_prefix_cmdexe(Context::instance().root_prefix);
@@ -1355,7 +1354,7 @@ namespace mamba
 
         std::string shebang, dev_arg;
 
-        if (!Context::instance().internal_command_info.is_micromamba)
+        if (!Context::instance().command_info.is_micromamba)
         {
             // During tests, we sometimes like to have a temp env with e.g. an old python
             // in it and have it run tests against the very latest development sources.
@@ -1402,7 +1401,7 @@ namespace mamba
         }
         out << "eval \"$(" << hook_quoted.str() << ")\"\n";
 
-        if (!Context::instance().internal_command_info.is_micromamba)
+        if (!Context::instance().command_info.is_micromamba)
         {
             out << "conda activate " << dev_arg << " " << std::quoted(prefix.string()) << "\n";
         }

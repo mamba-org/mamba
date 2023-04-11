@@ -115,7 +115,7 @@ namespace mamba
         fmt::print(
             out,
             "Setting cmd.exe AUTORUN to: {}",
-            fmt::styled(to_utf8(value), Context::instance().internal_design_info.palette.success)
+            fmt::styled(to_utf8(value), Context::instance().design_info.palette.success)
         );
 
         winreg::RegKey key{ HKEY_CURRENT_USER, reg_path };
@@ -172,10 +172,7 @@ namespace mamba
             fmt::print(
                 out,
                 "{}",
-                fmt::styled(
-                    "cmd.exe already initialized.",
-                    Context::instance().internal_design_info.palette.success
-                )
+                fmt::styled("cmd.exe already initialized.", Context::instance().design_info.palette.success)
             );
         }
     }
@@ -217,10 +214,7 @@ namespace mamba
             fmt::print(
                 out,
                 "{}",
-                fmt::styled(
-                    "cmd.exe not initialized yet.",
-                    Context::instance().internal_design_info.palette.success
-                )
+                fmt::styled("cmd.exe not initialized yet.", Context::instance().design_info.palette.success)
             );
         }
     }
@@ -456,7 +450,7 @@ namespace mamba
             out,
             "Adding (or replacing) the following in your {} file\n{}",
             fmt::streamed(file_path),
-            fmt::styled(conda_init_content, Context::instance().internal_design_info.palette.success)
+            fmt::styled(conda_init_content, Context::instance().design_info.palette.success)
         );
 
         if (Context::instance().dry_run)
@@ -502,7 +496,7 @@ namespace mamba
             fmt::streamed(file_path),
             fmt::styled(
                 "# >>> mamba initialize >>>\n...\n# <<< mamba initialize <<<",
-                Context::instance().internal_design_info.palette.success
+                Context::instance().design_info.palette.success
             )
         );
 
@@ -874,7 +868,7 @@ namespace mamba
             out,
             "Adding (or replacing) the following in your {} file\n{}",
             fmt::streamed(profile_path),
-            fmt::styled(conda_init_content, Context::instance().internal_design_info.palette.success)
+            fmt::styled(conda_init_content, Context::instance().design_info.palette.success)
         );
 
         if (found_mamba_initialize)
@@ -938,7 +932,7 @@ namespace mamba
                 fmt::streamed(profile_path),
                 fmt::styled(
                     "#region mamba initialize\n...\n#endregion\n",
-                    Context::instance().internal_design_info.palette.success
+                    Context::instance().design_info.palette.success
                 )
             );
         }

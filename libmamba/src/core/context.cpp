@@ -88,8 +88,8 @@ namespace mamba
 
         {
             const bool cout_is_atty = is_atty(std::cout);
-            internal_design_info.no_progress_bars = (on_ci || !cout_is_atty);
-            internal_design_info.palette = cout_is_atty ? Palette::terminal() : Palette::no_color();
+            design_info.no_progress_bars = (on_ci || !cout_is_atty);
+            design_info.palette = cout_is_atty ? Palette::terminal() : Palette::no_color();
         }
 
 #ifdef _WIN32
@@ -333,8 +333,8 @@ namespace mamba
         PRINT_CTX(out, allow_softlinks);
         PRINT_CTX(out, offline);
         PRINT_CTX(out, output_info.quiet);
-        PRINT_CTX(out, config_src_info.no_rc);
-        PRINT_CTX(out, config_src_info.no_env);
+        PRINT_CTX(out, src_info.no_rc);
+        PRINT_CTX(out, src_info.no_env);
         PRINT_CTX(out, remote_fetch_info.ssl_no_revoke);
         PRINT_CTX(out, remote_fetch_info.ssl_verify);
         PRINT_CTX(out, remote_fetch_info.retry_timeout);

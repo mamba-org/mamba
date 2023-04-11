@@ -33,7 +33,7 @@ namespace mamba
     {
         bool ConfigurableImplBase::env_var_configured() const
         {
-            if (Context::instance().config_src_info.no_env)
+            if (Context::instance().src_info.no_env)
             {
                 return false;
             }
@@ -50,12 +50,12 @@ namespace mamba
 
         bool ConfigurableImplBase::env_var_active() const
         {
-            return !Context::instance().config_src_info.no_env || (m_name == "no_env");
+            return !Context::instance().src_info.no_env || (m_name == "no_env");
         }
 
         bool ConfigurableImplBase::rc_configured() const
         {
-            return m_rc_configured && !Context::instance().config_src_info.no_rc;
+            return m_rc_configured && !Context::instance().src_info.no_rc;
         }
     }
 
@@ -609,7 +609,7 @@ namespace mamba
         void post_root_prefix_rc_loading()
         {
             auto& config = Configuration::instance();
-            if (!Context::instance().config_src_info.no_rc)
+            if (!Context::instance().src_info.no_rc)
             {
                 rc_loading_hook(RCConfigLevel::kHomeDir);
                 config.at("no_env").compute(MAMBA_CONF_FORCE_COMPUTE);
@@ -619,7 +619,7 @@ namespace mamba
         void post_target_prefix_rc_loading()
         {
             auto& config = Configuration::instance();
-            if (!Context::instance().config_src_info.no_rc)
+            if (!Context::instance().src_info.no_rc)
             {
                 rc_loading_hook(RCConfigLevel::kTargetPrefix);
                 config.at("no_env").compute(MAMBA_CONF_FORCE_COMPUTE);
@@ -717,7 +717,7 @@ namespace mamba
 
             if (!files.empty())
             {
-                if (ctx.config_src_info.no_rc)
+                if (ctx.src_info.no_rc)
                 {
                     LOG_ERROR << "Configuration files disabled by 'no_rc'";
                     throw std::runtime_error("Incompatible configuration. Aborting.");
@@ -1650,12 +1650,12 @@ namespace mamba
                    .set_env_var_names()
                    .description("Whether to override rc files by highest precedence"));
 
-        insert(Configurable("no_rc", &ctx.config_src_info.no_rc)
+        insert(Configurable("no_rc", &ctx.src_info.no_rc)
                    .group("Config sources")
                    .set_env_var_names()
                    .description("Disable the use of configuration files"));
 
-        insert(Configurable("no_env", &ctx.config_src_info.no_env)
+        insert(Configurable("no_env", &ctx.src_info.no_env)
                    .group("Config sources")
                    .set_env_var_names()
                    .description("Disable the use of environment variables"));

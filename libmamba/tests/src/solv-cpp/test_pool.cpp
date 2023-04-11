@@ -123,5 +123,21 @@ TEST_SUITE("ObjPool")
                 CHECK_FALSE(pool.remove_repo(1234, true));
             }
         }
+
+        SUBCASE("Add a debug callback")
+        {
+            std::string_view message = "";
+            int type = 0;
+            pool.set_debug_callback(
+                [&](auto* /* pool */, auto t, auto msg)
+                {
+                    message = msg;
+                    type = t;
+                }
+            );
+            pool_debug(pool.raw(), SOLV_DEBUG_RESULT, "Ho no!");
+            CHECK_EQ(message, "Ho no!");
+            CHECK_EQ(type, SOLV_DEBUG_RESULT);
+        }
     }
 }

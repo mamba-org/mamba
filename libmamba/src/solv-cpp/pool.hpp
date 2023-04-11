@@ -87,6 +87,9 @@ namespace mamba::solv
         template <typename UnaryFunc>
         void for_each_solvable(UnaryFunc func);
 
+        template <typename Func>
+        void set_debug_callback(Func callback);
+
     private:
 
         struct PoolDeleter
@@ -94,7 +97,9 @@ namespace mamba::solv
             void operator()(::Pool* ptr);
         };
 
-        std::unique_ptr<::Pool, ObjPool::PoolDeleter> m_pool;
+        std::unique_ptr<void, void (*)(void*)> m_user_debug_callback;
+        // Must be deleted before the debug callback
+        std::unique_ptr<::Pool, ObjPool::PoolDeleter> m_pool = nullptr;
     };
 }
 
@@ -188,6 +193,22 @@ namespace mamba::solv
     {
         // Safe optional unchecked because we iterate over available values
         return for_each_solvable_id([this, func](SolvableId id) { func(get_solvable(id).value()); });
+    }
+
+    template <typename Func>
+    void ObjPool::set_debug_callback(Func callback)
+    {
+        m_user_debug_callback.reset(new Func(std::move(callback)));
+        m_user_debug_callback.get_deleter() = [](void* ptr) { delete reinterpret_cast<Func*>(ptr); };
+
+        // Wrap the user callback in the libsolv function type that must cast the callback ptr
+        auto debug_callback = [](Pool* pool, void* user_data, int type, const char* msg)
+        {
+            auto* user_debug_callback = reinterpret_cast<Func*>(user_data);
+            (*user_debug_callback)(pool, type, std::string_view(msg));
+        };
+
+        pool_setdebugcallback(raw(), debug_callback, m_user_debug_callback.get());
     }
 }
 #endif

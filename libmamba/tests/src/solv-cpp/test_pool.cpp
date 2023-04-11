@@ -20,6 +20,12 @@ TEST_SUITE("ObjPool")
     {
         auto pool = ObjPool();
 
+        SUBCASE("Change distribution type")
+        {
+            pool.set_disttype(DISTTYPE_CONDA);
+            CHECK_EQ(pool.disttype(), DISTTYPE_CONDA);
+        }
+
         SUBCASE("Add strings")
         {
             const auto id_hello = pool.add_string("Hello");

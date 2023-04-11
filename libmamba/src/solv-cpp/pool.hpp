@@ -37,6 +37,9 @@ namespace mamba::solv
         auto raw() -> ::Pool*;
         auto raw() const -> const ::Pool*;
 
+        auto disttype() const -> DistType;
+        void set_disttype(DistType dt);
+
         auto find_string(std::string_view str) const -> std::optional<StringId>;
         auto add_string(std::string_view str) -> StringId;
         auto get_string(StringId id) const -> std::string_view;

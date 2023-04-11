@@ -17,6 +17,7 @@ namespace mamba::solv
     using SolvableId = ::Id;
 
     using RelationFlag = int;
+    using DistType = int;
 }
 
 #endif

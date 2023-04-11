@@ -39,6 +39,17 @@ namespace mamba::solv
         return m_pool.get();
     }
 
+
+    auto ObjPool::disttype() const -> DistType
+    {
+        return raw()->disttype;
+    }
+
+    void ObjPool::set_disttype(DistType dt)
+    {
+        pool_setdisttype(raw(), dt);
+    }
+
     auto ObjPool::find_string(std::string_view str) const -> std::optional<StringId>
     {
         assert(str.size() <= std::numeric_limits<unsigned int>::max());

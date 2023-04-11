@@ -14,11 +14,12 @@ body:
     attributes:
       label: How did you install Mamba?
       description: |
-        Note that Mamba installation methods other than [Mambaforge](https://mamba.readthedocs.io/en/latest/installation.html#fresh-install) are **NOT SUPPORTED**.
+        If you use Mamba, please install it via [Mambaforge](https://mamba.readthedocs.io/en/latest/installation.html#fresh-install).
 
-        If this issue is about Micromamba, please select "Other".
+        If you use Micromamba, please select "Micromamba" below.
       options:
         - "Mambaforge"
+        - "Micromamba"
         - "Other (please describe)"
     validations:
       required: true

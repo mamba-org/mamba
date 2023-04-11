@@ -39,56 +39,196 @@ namespace mamba::solv
         auto raw() -> ::Pool*;
         auto raw() const -> const ::Pool*;
 
+        /**
+         * Get the current distribution type of the pool.
+         *
+         * @see ObjPool::set_disttype
+         */
         auto disttype() const -> DistType;
+
+        /**
+         * Set the distribution type of the pool.
+         *
+         * The distribution type has subtle implications.
+         * For instance the distribution must be of type conda for ``track_feature``,
+         * ``constrains`` and ``build_number`` to be taken into account.
+         */
         void set_disttype(DistType dt);
 
+        /**
+         * Find a string id in the pool if it exists.
+         *
+         * @see ObjPool::add_string
+         */
         auto find_string(std::string_view str) const -> std::optional<StringId>;
+
+        /**
+         * Add a string to the pool.
+         *
+         * The pool hold a set of strings, indexed with an id, to avoid duplicating entries.
+         * It is safe to call this function regardless of whether the string was already added.
+         */
         auto add_string(std::string_view str) -> StringId;
+
+        /**
+         * Get the string associated with an id.
+         *
+         * @see ObjPool::add_string
+         */
         auto get_string(StringId id) const -> std::string_view;
 
+        /**
+         * Find a dependency in the pool, if it exists.
+         *
+         * @see ObjPool::add_dependency
+         */
         auto find_dependency(StringId name_id, RelationFlag flag, StringId version_id) const
             -> std::optional<DependencyId>;
+
+        /**
+         * Add a dependency in the pool.
+         *
+         * A dependency represents a set of packages.
+         * The flag can be used to create complex dependencies. In that case, for instance with
+         * the "or" operator, the name and version ids are (ab)used with other dependency ids.
+         * Handling of complex dependencies in libsolv is quite complex and not used in mamba.
+         */
         auto add_dependency(StringId name_id, RelationFlag flag, StringId version_id) -> DependencyId;
+
+        /** Get the registered name of a dependency. */
         auto get_dependency_name(DependencyId id) const -> std::string_view;
+
+        /** Get the registered version of a dependency. */
         auto get_dependency_version(DependencyId id) const -> std::string_view;
+
+        /** Get the registered realtion between a dependency name and version. */
         auto get_dependency_relation(DependencyId id) const -> std::string_view;
+
+        /** Compute the string representation of a dependency. */
         auto dependency_to_string(DependencyId id) const -> std::string;
 
+        /**
+         * Create an indexed lookup of dependencies.
+         *
+         * Create an index to retrieve the list of solvables satisfying a given dependency.
+         * This is an expensive operation.
+         * The index is also computed over regular ``StringId``, in which case they reprensent
+         * all packages that provide that name (without restriction on version).
+         */
         void create_whatprovides();
         template <typename UnaryFunc>
+
+        /**
+         * Execute function for each solvable id that provides the given dependency.
+         *
+         * @pre ObjPool::create_whatprovides must have been called before.
+         */
         void for_each_whatprovides_id(DependencyId dep, UnaryFunc&& func) const;
         template <typename UnaryFunc>
+
+        /**
+         * Execute function for each solvable that provides the given dependency.
+         *
+         * @pre ObjPool::create_whatprovides must have been called before.
+         */
         void for_each_whatprovides(DependencyId dep, UnaryFunc&& func) const;
         template <typename UnaryFunc>
         void for_each_whatprovides(DependencyId dep, UnaryFunc&& func);
 
+        /**
+         * General purpose query of solvables with given attributes.
+         *
+         * @return A Queue of SolvableId
+         */
         auto select_solvables(const ObjQueue& job) const -> ObjQueue;
 
+        /**
+         * Add a repository with a given name.
+         *
+         * Solvable belong to a repository, although they are stored in the pool.
+         */
         auto add_repo(std::string_view name) -> std::pair<RepoId, ObjRepoView>;
+
+        /** Check if a given repoitory id exists. */
         auto has_repo(RepoId id) const -> bool;
+
+        /** Get the repository associated with the given id, if it exists. */
         auto get_repo(RepoId id) -> std::optional<ObjRepoView>;
+
+        /** Get the repository associated with the given id, if it exists. */
         auto get_repo(RepoId id) const -> std::optional<ObjRepoViewConst>;
+
+        /** Return the number of repository in the pool. */
         auto repo_count() const -> std::size_t;
+
+        /**
+         * Remove a repository.
+         *
+         * Repo ids are not invalidated.
+         * If @p reuse_ids is true, the solvable ids used in the pool can be reused for future
+         * solvables.
+         */
         auto remove_repo(RepoId id, bool reuse_ids) -> bool;
+
+        /** Execute function for each repository id in the pool. */
         template <typename UnaryFunc>
         void for_each_repo_id(UnaryFunc&& func) const;
+
+        /** Execute function for each repository in the pool. */
         template <typename UnaryFunc>
         void for_each_repo(UnaryFunc&& func);
+
+        /** Execute function for each repository in the pool. */
         template <typename UnaryFunc>
         void for_each_repo(UnaryFunc&& func) const;
+
+        /**
+         * Get the repository of installed packages, if it exists.
+         *
+         * @see ObjPool::set_installed_repository
+         */
         auto installed_repo() const -> std::optional<ObjRepoViewConst>;
+
+        /**
+         * Get the repository of installed packages, if it exists.
+         *
+         * @see ObjPool::set_installed_repository
+         */
         auto installed_repo() -> std::optional<ObjRepoView>;
+
+        /**
+         * Set the installed repository.
+         *
+         * The installed repository represents package already installed.
+         * For instance, it is used to filter out the solvable that are alrady available after
+         * a solve.
+         */
         void set_installed_repo(RepoId id);
 
+        /** Get a solvable from its id, if it exisists and regardless of its repository. */
         auto get_solvable(SolvableId id) const -> std::optional<ObjSolvableViewConst>;
+
+        /** Get a solvable from its id, if it exisists and regardless of its repository. */
         auto get_solvable(SolvableId id) -> std::optional<ObjSolvableView>;
+
+        /** Execute function for each solvable id in the pool (in all repositories). */
         template <typename UnaryFunc>
         void for_each_solvable_id(UnaryFunc&& func) const;
+
+        /** Execute function for each solvable in the pool (in all repositories). */
         template <typename UnaryFunc>
         void for_each_solvable(UnaryFunc&& func) const;
+
+        /** Execute function for each solvable in the pool (in all repositories). */
         template <typename UnaryFunc>
         void for_each_solvable(UnaryFunc&& func);
 
+        /** Set the callback to handle libsolv messages.
+         *
+         * The callback takes a ``Pool*``, the type of message as ``int``, and the message
+         * as a ``std::string_view``.
+         * The callback must be marked ``noexcept``.
+         */
         template <typename Func>
         void set_debug_callback(Func&& callback);
 

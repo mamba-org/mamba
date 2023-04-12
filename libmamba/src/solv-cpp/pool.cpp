@@ -166,7 +166,8 @@ namespace mamba::solv
         );
         // No function exists to create a repo id
         assert(raw()->repos[raw()->nrepos - 1] == repo_ptr);
-        return { raw()->nrepos - 1, ObjRepoView{ repo_ptr } };
+        assert(repo_ptr != nullptr);
+        return { raw()->nrepos - 1, ObjRepoView{ *repo_ptr } };
     }
 
     auto ObjPool::has_repo(RepoId id) const -> bool
@@ -180,7 +181,9 @@ namespace mamba::solv
         {
             return std::nullopt;
         }
-        return { ObjRepoView{ ::pool_id2repo(raw(), id) } };
+        auto* repo_ptr = ::pool_id2repo(raw(), id);
+        assert(repo_ptr != nullptr);
+        return { ObjRepoView{ *repo_ptr } };
     }
 
     auto ObjPool::get_repo(RepoId id) const -> std::optional<ObjRepoViewConst>
@@ -189,8 +192,10 @@ namespace mamba::solv
         {
             return std::nullopt;
         }
-        // Safe because we make the Repo deep const
-        return { ObjRepoViewConst{ ::pool_id2repo(const_cast<::Pool*>(raw()), id) } };
+        // Safe const_cast because we make the Repo deep const
+        const auto* repo_ptr = ::pool_id2repo(const_cast<::Pool*>(raw()), id);
+        assert(repo_ptr != nullptr);
+        return { ObjRepoViewConst{ *repo_ptr } };
     }
 
     auto ObjPool::repo_count() const -> std::size_t
@@ -212,18 +217,18 @@ namespace mamba::solv
 
     auto ObjPool::installed_repo() const -> std::optional<ObjRepoViewConst>
     {
-        if (const auto* const installed_ptr = raw()->installed; installed_ptr != nullptr)
+        if (const auto* const installed_ptr = raw()->installed)
         {
-            return ObjRepoViewConst(installed_ptr);
+            return ObjRepoViewConst{ *installed_ptr };
         }
         return std::nullopt;
     }
 
     auto ObjPool::installed_repo() -> std::optional<ObjRepoView>
     {
-        if (auto* const installed_ptr = raw()->installed; installed_ptr != nullptr)
+        if (auto* const installed_ptr = raw()->installed)
         {
-            return ObjRepoView(installed_ptr);
+            return ObjRepoView{ *installed_ptr };
         }
         return std::nullopt;
     }

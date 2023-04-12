@@ -23,8 +23,8 @@ namespace mamba::solv
      *  Implementation of ConstObjRepoView  *
      ****************************************/
 
-    ObjRepoViewConst::ObjRepoViewConst(const ::Repo* repo) noexcept
-        : m_repo{ repo }
+    ObjRepoViewConst::ObjRepoViewConst(const ::Repo& repo) noexcept
+        : m_repo{ &repo }
     {
     }
 
@@ -124,7 +124,7 @@ namespace mamba::solv
      *  Implementation of ObjRepoView  *
      ***********************************/
 
-    ObjRepoView::ObjRepoView(::Repo* repo) noexcept
+    ObjRepoView::ObjRepoView(::Repo& repo) noexcept
         : ObjRepoViewConst{ repo }
     {
     }

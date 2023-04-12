@@ -24,7 +24,7 @@ namespace mamba::solv
     {
     public:
 
-        explicit ObjRepoViewConst(const ::Repo* repo) noexcept;
+        explicit ObjRepoViewConst(const ::Repo& repo) noexcept;
         ~ObjRepoViewConst() noexcept;
 
         auto raw() const -> const ::Repo*;
@@ -92,7 +92,7 @@ namespace mamba::solv
 
         using raw_str_view = const char*;
 
-        explicit ObjRepoView(::Repo* repo) noexcept;
+        explicit ObjRepoView(::Repo& repo) noexcept;
 
         auto raw() const -> ::Repo*;
 

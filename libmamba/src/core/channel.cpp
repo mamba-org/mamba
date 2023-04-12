@@ -91,6 +91,7 @@ namespace mamba
     }
 
     Channel::Channel(
+        ChannelContext& channel_context,
         const std::string& scheme,
         const std::string& location,
         const std::string& name,
@@ -107,6 +108,7 @@ namespace mamba
         , m_token(token)
         , m_package_filename(package_filename)
         , m_canonical_name(canonical_name)
+        , m_channel_context(channel_context)
     {
     }
 
@@ -167,12 +169,12 @@ namespace mamba
     {
         if (!m_canonical_name)
         {
-            auto it = ChannelContext::instance().get_custom_channels().find(m_name);
-            if (it != ChannelContext::instance().get_custom_channels().end())
+            auto it = m_channel_context.get_custom_channels().find(m_name);
+            if (it != m_channel_context.get_custom_channels().end())
             {
                 m_canonical_name = it->first;
             }
-            else if (m_location == ChannelContext::instance().get_channel_alias().location())
+            else if (m_location == m_channel_context.get_channel_alias().location())
             {
                 m_canonical_name = m_name;
             }
@@ -265,91 +267,7 @@ namespace mamba
         return !(lhs == rhs);
     }
 
-    /************************************
-     * utility functions implementation *
-     ************************************/
-
-    const Channel& make_channel(const std::string& value)
-    {
-        return ChannelBuilder::make_cached_channel(value);
-    }
-
-    std::vector<const Channel*> get_channels(const std::vector<std::string>& channel_names)
-    {
-        std::set<const Channel*> added;
-        std::vector<const Channel*> result;
-        for (auto name : channel_names)
-        {
-            std::string platform_spec;
-            auto platform_spec_ind = name.find("[");
-            if (platform_spec_ind != std::string::npos)
-            {
-                platform_spec = name.substr(platform_spec_ind);
-                name = name.substr(0, platform_spec_ind);
-            }
-
-            auto add_channel = [&](const std::string& lname)
-            {
-                auto channel = &make_channel(lname + platform_spec);
-                if (added.insert(channel).second)
-                {
-                    result.push_back(channel);
-                }
-            };
-            auto multi_iter = ChannelContext::instance().get_custom_multichannels().find(name);
-            if (multi_iter != ChannelContext::instance().get_custom_multichannels().end())
-            {
-                for (const auto& n : multi_iter->second)
-                {
-                    add_channel(n);
-                }
-            }
-            else
-            {
-                add_channel(name);
-            }
-        }
-        return result;
-    }
-
-    void check_whitelist(const std::vector<std::string>& urls)
-    {
-        const auto& whitelist = ChannelContext::instance().get_whitelist_channels();
-        if (whitelist.size())
-        {
-            std::vector<std::string> accepted_urls(whitelist.size());
-            std::transform(
-                whitelist.begin(),
-                whitelist.end(),
-                accepted_urls.begin(),
-                [](const std::string& url) { return make_channel(url).base_url(); }
-            );
-            std::for_each(
-                urls.begin(),
-                urls.end(),
-                [&accepted_urls](const std::string& s)
-                {
-                    auto it = std::find(
-                        accepted_urls.begin(),
-                        accepted_urls.end(),
-                        make_channel(s).base_url()
-                    );
-                    if (it == accepted_urls.end())
-                    {
-                        std::ostringstream str;
-                        str << "Channel " << s << " not allowed";
-                        throw std::runtime_error(str.str().c_str());
-                    }
-                }
-            );
-        }
-    }
-
-    /*********************************
-     * ChannelBuilder implementation *
-     *********************************/
-
-    Channel ChannelBuilder::make_simple_channel(
+    Channel ChannelContext::make_simple_channel(
         const Channel& channel_alias,
         const std::string& channel_url,
         const std::string& channel_name,
@@ -397,14 +315,14 @@ namespace mamba
         );
     }
 
-    const Channel& ChannelBuilder::make_cached_channel(const std::string& value)
+    const Channel& ChannelContext::make_cached_channel(const std::string& value)
     {
         auto res = get_cache().find(value);
         if (res == get_cache().end())
         {
             auto& ctx = Context::instance();
 
-            auto chan = ChannelBuilder::from_value(value);
+            auto chan = from_value(value);
             if (!chan.token())
             {
                 const auto& with_channel = join_url(
@@ -433,9 +351,9 @@ namespace mamba
         return res->second;
     }
 
-    void ChannelBuilder::clear_cache()
+    void ChannelContext::clear_cache()
     {
-        get_cache().clear();
+        m_channel_cache.clear();
     }
 
     namespace
@@ -499,6 +417,7 @@ namespace mamba
         };
 
         channel_configuration read_channel_configuration(
+            ChannelContext& channel_context,
             const std::string& scheme,
             const std::string& host,
             const std::string& port,
@@ -525,7 +444,7 @@ namespace mamba
             // Case 3: migrated_channel_aliases not implemented yet
 
             // Case 4: custom_channels matches
-            const auto& custom_channels = ChannelContext::instance().get_custom_channels();
+            const auto& custom_channels = channel_context.get_custom_channels();
             for (const auto& ca : custom_channels)
             {
                 const Channel& channel = ca.second;
@@ -545,7 +464,7 @@ namespace mamba
             }
 
             // Case 5: channel_alias match
-            const Channel& ca = ChannelContext::instance().get_channel_alias();
+            const Channel& ca = channel_context.get_channel_alias();
             if (ca.location() != "" && starts_with(url, ca.location()))
             {
                 auto name = std::string(strip(url.replace(0u, ca.location().size(), ""), "/"));
@@ -572,12 +491,12 @@ namespace mamba
         }
     }
 
-    Channel ChannelBuilder::from_url(const std::string& url)
+    Channel ChannelContext::from_url(const std::string& url)
     {
         std::string scheme, host, port, path, auth, token, package_name;
         split_conda_url(url, scheme, host, port, path, auth, token, package_name);
 
-        auto config = read_channel_configuration(scheme, host, port, path);
+        auto config = read_channel_configuration(*this, scheme, host, port, path);
 
         return Channel(
             config.m_scheme.size() ? config.m_scheme : "https",
@@ -589,10 +508,10 @@ namespace mamba
         );
     }
 
-    Channel ChannelBuilder::from_name(const std::string& name)
+    Channel ChannelContext::from_name(const std::string& name)
     {
         std::string tmp_stripped = name;
-        const auto& custom_channels = ChannelContext::instance().get_custom_channels();
+        const auto& custom_channels = get_custom_channels();
         auto it_end = custom_channels.end();
         auto it = custom_channels.find(tmp_stripped);
         while (it == it_end)
@@ -635,7 +554,7 @@ namespace mamba
         }
         else
         {
-            const Channel& alias = ChannelContext::instance().get_channel_alias();
+            const Channel& alias = get_channel_alias();
             return Channel(alias.scheme(), alias.location(), name, alias.auth(), alias.token());
         }
     }
@@ -762,7 +681,7 @@ namespace mamba
         }
     }
 
-    Channel ChannelBuilder::from_value(const std::string& in_value)
+    Channel ChannelContext::from_value(const std::string& in_value)
     {
         if (INVALID_CHANNELS.count(in_value) > 0)
         {
@@ -772,38 +691,101 @@ namespace mamba
         std::string value = in_value;
         auto platforms = take_platforms(value);
 
-        auto chan = has_scheme(value)        ? ChannelBuilder::from_url(fix_win_path(value))
-                    : is_path(value)         ? ChannelBuilder::from_url(path_to_url(value))
-                    : is_package_file(value) ? ChannelBuilder::from_url(fix_win_path(value))
-                                             : ChannelBuilder::from_name(value);
+        auto chan = has_scheme(value)        ? from_url(fix_win_path(value))
+                    : is_path(value)         ? from_url(path_to_url(value))
+                    : is_package_file(value) ? from_url(fix_win_path(value))
+                                             : from_name(value);
 
         chan.m_platforms = std::move(platforms);
 
         return chan;
     }
 
-    Channel ChannelBuilder::from_alias(
+    Channel ChannelContext::from_alias(
         const std::string& scheme,
         const std::string& location,
         const std::optional<std::string>& auth,
         const std::optional<std::string>& token
     )
     {
-        return Channel(scheme, location, "<alias>", auth, token);
+        return Channel(*this, scheme, location, "<alias>", auth, token);
     }
 
-    /*********************************
-     * ChannelContext implementation *
-     *********************************/
 
-    void ChannelContext::reset()
+    const Channel& ChannelContext::make_channel(const std::string& value)
     {
-        m_channel_alias = build_channel_alias();
-        m_custom_channels.clear();
-        m_custom_multichannels.clear();
-        m_whitelist_channels.clear();
-        init_custom_channels();
-        ChannelBuilder::clear_cache();
+        return make_cached_channel(value);
+    }
+
+    std::vector<const Channel*> ChannelContext::get_channels(const std::vector<std::string>& channel_names)
+    {
+        std::set<const Channel*> added;
+        std::vector<const Channel*> result;
+        for (auto name : channel_names)
+        {
+            std::string platform_spec;
+            auto platform_spec_ind = name.find("[");
+            if (platform_spec_ind != std::string::npos)
+            {
+                platform_spec = name.substr(platform_spec_ind);
+                name = name.substr(0, platform_spec_ind);
+            }
+
+            auto add_channel = [&](const std::string& lname)
+            {
+                auto channel = &make_channel(lname + platform_spec);
+                if (added.insert(channel).second)
+                {
+                    result.push_back(channel);
+                }
+            };
+            auto multi_iter = get_custom_multichannels().find(name);
+            if (multi_iter != get_custom_multichannels().end())
+            {
+                for (const auto& n : multi_iter->second)
+                {
+                    add_channel(n);
+                }
+            }
+            else
+            {
+                add_channel(name);
+            }
+        }
+        return result;
+    }
+
+    void ChannelContext::check_whitelist(const std::vector<std::string>& urls)
+    {
+        const auto& whitelist = get_whitelist_channels();
+        if (whitelist.size())
+        {
+            std::vector<std::string> accepted_urls(whitelist.size());
+            std::transform(
+                whitelist.begin(),
+                whitelist.end(),
+                accepted_urls.begin(),
+                [](const std::string& url) { return make_channel(url).base_url(); }
+            );
+            std::for_each(
+                urls.begin(),
+                urls.end(),
+                [&accepted_urls](const std::string& s)
+                {
+                    auto it = std::find(
+                        accepted_urls.begin(),
+                        accepted_urls.end(),
+                        make_channel(s).base_url()
+                    );
+                    if (it == accepted_urls.end())
+                    {
+                        std::ostringstream str;
+                        str << "Channel " << s << " not allowed";
+                        throw std::runtime_error(str.str().c_str());
+                    }
+                }
+            );
+        }
     }
 
     const Channel& ChannelContext::get_channel_alias() const
@@ -843,7 +825,7 @@ namespace mamba
         std::string alias = ctx.channel_alias;
         std::string location, scheme, auth, token;
         split_scheme_auth_token(alias, location, scheme, auth, token);
-        return ChannelBuilder::from_alias(
+        return from_alias(
             scheme,
             location,
             nonempty_str(std::move(auth)),
@@ -863,7 +845,7 @@ namespace mamba
         auto default_name_iter = default_names.begin();
         for (auto& url : default_channels)
         {
-            auto channel = ChannelBuilder::make_simple_channel(
+            auto channel = make_simple_channel(
                 m_channel_alias,
                 url,
                 "",
@@ -889,7 +871,7 @@ namespace mamba
             if (fs::is_directory(p))
             {
                 std::string url = path_to_url(p);
-                auto channel = ChannelBuilder::make_simple_channel(
+                auto channel = make_simple_channel(
                     m_channel_alias,
                     url,
                     "",
@@ -911,7 +893,7 @@ namespace mamba
                 url = path_to_url(url);
             }
 
-            auto channel = ChannelBuilder::make_simple_channel(m_channel_alias, url, n, "");
+            auto channel = make_simple_channel(m_channel_alias, url, n, "");
             m_custom_channels.emplace(n, std::move(channel));
         }
 
@@ -922,7 +904,7 @@ namespace mamba
             auto name_iter = names.begin();
             for (auto& url : urllist)
             {
-                auto channel = ChannelBuilder::make_simple_channel(
+                auto channel = make_simple_channel(
                     m_channel_alias,
                     url,
                     "",
@@ -944,7 +926,7 @@ namespace mamba
         {
             m_custom_channels.emplace(
                 ch.first,
-                ChannelBuilder::make_simple_channel(m_channel_alias, ch.second, ch.first)
+                make_simple_channel(m_channel_alias, ch.second, ch.first)
             );
         }
     }

@@ -180,19 +180,12 @@ namespace mamba
         static std::unique_ptr<Singleton<Context>> context;
         static std::unique_ptr<Singleton<Console>> console;
         static std::unique_ptr<Singleton<Configuration>> config;
-        static std::unique_ptr<Singleton<ChannelCache>> channel_cache;
-        static std::unique_ptr<Singleton<ChannelContext>> channel_context;
     }
 
 
     Configuration& Configuration::instance()
     {
         return singletons::init_once(singletons::config);
-    }
-
-    ChannelContext& ChannelContext::instance()
-    {
-        return singletons::init_once(singletons::channel_context);
     }
 
     Context& Context::instance()
@@ -203,11 +196,6 @@ namespace mamba
     Console& Console::instance()
     {
         return singletons::init_once(singletons::console);
-    }
-
-    auto ChannelBuilder::get_cache() -> ChannelCache&
-    {
-        return singletons::init_once(singletons::channel_cache);
     }
 
 }

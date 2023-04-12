@@ -41,7 +41,7 @@ namespace mamba
     MPool::MPool()
         : m_data(std::make_shared<MPoolData>())
     {
-        pool_setdisttype(pool().raw(), DISTTYPE_CONDA);
+        pool().set_disttype(DISTTYPE_CONDA);
         set_debuglevel();
     }
 
@@ -99,7 +99,7 @@ namespace mamba
 
     void MPool::create_whatprovides()
     {
-        m_data->pool.create_whatprovides();
+        pool().create_whatprovides();
     }
 
     MPool::operator Pool*()

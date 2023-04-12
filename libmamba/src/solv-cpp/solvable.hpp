@@ -24,7 +24,7 @@ namespace mamba::solv
     {
     public:
 
-        explicit ObjSolvableViewConst(const ::Solvable* solvable) noexcept;
+        explicit ObjSolvableViewConst(const ::Solvable& solvable) noexcept;
         ~ObjSolvableViewConst() noexcept;
 
         auto raw() const -> const ::Solvable*;
@@ -70,7 +70,7 @@ namespace mamba::solv
 
         using raw_str_view = const char*;
 
-        explicit ObjSolvableView(::Solvable* repo) noexcept;
+        explicit ObjSolvableView(::Solvable& repo) noexcept;
 
         auto raw() const -> ::Solvable*;
 

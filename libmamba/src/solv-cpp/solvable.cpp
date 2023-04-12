@@ -20,8 +20,8 @@ namespace mamba::solv
      *  Implementation of ConstObjSolvableView  *
      ********************************************/
 
-    ObjSolvableViewConst::ObjSolvableViewConst(const ::Solvable* solvable) noexcept
-        : m_solvable{ solvable }
+    ObjSolvableViewConst::ObjSolvableViewConst(const ::Solvable& solvable) noexcept
+        : m_solvable{ &solvable }
     {
     }
 
@@ -44,7 +44,7 @@ namespace mamba::solv
      *  Implementation of ObjSolvableView  *
      ***************************************/
 
-    ObjSolvableView::ObjSolvableView(::Solvable* solvable) noexcept
+    ObjSolvableView::ObjSolvableView(::Solvable& solvable) noexcept
         : ObjSolvableViewConst{ solvable }
     {
     }

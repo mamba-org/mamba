@@ -206,7 +206,7 @@ namespace mamba::solv
         const ::Solvable* s = nullptr;
         FOR_REPO_SOLVABLES(repo, id, s)
         {
-            func(ObjSolvableViewConst(s));
+            func(ObjSolvableViewConst{ *s });
         }
     }
 
@@ -218,7 +218,7 @@ namespace mamba::solv
         ::Solvable* s = nullptr;
         FOR_REPO_SOLVABLES(repo, id, s)
         {
-            func(ObjSolvableView(s));
+            func(ObjSolvableView{ *s });
         }
     }
 

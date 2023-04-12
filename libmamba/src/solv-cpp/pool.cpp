@@ -242,18 +242,18 @@ namespace mamba::solv
 
     auto ObjPool::get_solvable(SolvableId id) const -> std::optional<ObjSolvableViewConst>
     {
-        if (const ::Solvable* s = ::pool_id2solvable(raw(), id); s != nullptr)
+        if (const ::Solvable* s = ::pool_id2solvable(raw(), id))
         {
-            return ObjSolvableViewConst{ s };
+            return ObjSolvableViewConst{ *s };
         }
         return std::nullopt;
     }
 
     auto ObjPool::get_solvable(SolvableId id) -> std::optional<ObjSolvableView>
     {
-        if (::Solvable* s = ::pool_id2solvable(raw(), id); s != nullptr)
+        if (::Solvable* s = ::pool_id2solvable(raw(), id))
         {
-            return ObjSolvableView{ s };
+            return ObjSolvableView{ *s };
         }
         return std::nullopt;
     }

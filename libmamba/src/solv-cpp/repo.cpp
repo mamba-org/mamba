@@ -74,9 +74,9 @@ namespace mamba::solv
 
     auto ObjRepoViewConst::get_solvable(SolvableId id) const -> std::optional<ObjSolvableViewConst>
     {
-        if (const ::Solvable* s = get_solvable_ptr(raw(), id); s != nullptr)
+        if (const ::Solvable* s = get_solvable_ptr(raw(), id))
         {
-            return { ObjSolvableViewConst{ s } };
+            return { ObjSolvableViewConst{ *s } };
         }
         return std::nullopt;
     }
@@ -169,9 +169,9 @@ namespace mamba::solv
 
     auto ObjRepoView::get_solvable(SolvableId id) const -> std::optional<ObjSolvableView>
     {
-        if (::Solvable* s = get_solvable_ptr(raw(), id); s != nullptr)
+        if (::Solvable* s = get_solvable_ptr(raw(), id))
         {
-            return { ObjSolvableView{ s } };
+            return { ObjSolvableView{ *s } };
         }
         return std::nullopt;
     }

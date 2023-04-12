@@ -320,40 +320,6 @@ namespace mamba
                 out.track_features.pop_back();
             }
 
-            const ::Id extra_keys_id = pool_str2id(pool, "solvable:extra_keys", 0);
-            const ::Id extra_values_id = pool_str2id(pool, "solvable:extra_values", 0);
-            if (extra_keys_id && extra_values_id)
-            {
-                // Get extra signed keys
-                q.clear();
-                solvable_lookup_idarray(&s, extra_keys_id, q.raw());
-                std::vector<std::string> extra_keys = {};
-                extra_keys.reserve(q.size());
-                std::transform(q.begin(), q.end(), std::back_inserter(extra_keys), dep2str);
-
-                // Get extra signed values
-                q.clear();
-                solvable_lookup_idarray(&s, extra_values_id, q.raw());
-                std::vector<std::string> extra_values = {};
-                extra_values.reserve(q.size());
-                std::transform(q.begin(), q.end(), std::back_inserter(extra_values), dep2str);
-
-                // Build a JSON string for extra signed metadata
-                if (!extra_keys.empty() && (extra_keys.size() == extra_values.size()))
-                {
-                    std::vector<std::string> extra = {};
-                    extra.reserve(extra_keys.size());
-                    for (std::size_t i = 0; i < extra_keys.size(); ++i)
-                    {
-                        extra.push_back(fmt::format(R"("{}":{})", extra_keys[i], extra_values[i]));
-                    }
-                    out.extra_metadata = fmt::format("{{{}}}", fmt::join(extra, ","));
-                }
-            }
-            else
-            {
-                out.extra_metadata = "{}";
-            }
             return out;
         }
     }

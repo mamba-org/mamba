@@ -56,7 +56,6 @@ namespace mamba
         std::vector<std::string> depends = {};
         std::vector<std::string> constrains = {};
         std::string signatures = {};
-        std::string extra_metadata = {};
         std::set<std::string> defaulted_keys = {};
     };
 }  // namespace mamba

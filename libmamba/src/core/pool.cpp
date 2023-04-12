@@ -17,6 +17,7 @@ extern "C"  // Incomplete header
 }
 #include <spdlog/spdlog.h>
 
+#include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
@@ -151,17 +152,9 @@ namespace mamba
 
     namespace
     {
-        bool channel_match(Solvable* s, const Channel& needle)
+        bool channel_match(const Channel& chan, const Channel& needle)
         {
-            MRepo* mrepo = reinterpret_cast<MRepo*>(s->repo->appdata);
-            const Channel* chan = mrepo->channel();
-
-            if (!chan)
-            {
-                return false;
-            }
-
-            if ((*chan) == needle)
+            if ((chan) == needle)
             {
                 return true;
             }
@@ -173,7 +166,7 @@ namespace mamba
                 for (auto el : (x->second))
                 {
                     const Channel& inner = make_channel(el);
-                    if ((*chan) == inner)
+                    if ((chan) == inner)
                     {
                         return true;
                     }
@@ -200,9 +193,13 @@ namespace mamba
             ::Id match = pool_conda_matchspec(pool, ms.conda_build_form().c_str());
 
             const Channel& c = make_channel(ms.channel);
+            ::Id const m_mrepo_key = pool_str2id(pool, "solvable:mrepo_url", 1);
             for (Id* wp = pool_whatprovides_ptr(pool, match); *wp; wp++)
             {
-                if (channel_match(pool_id2solvable(pool, *wp), c))
+                auto* const s = pool_id2solvable(pool, *wp);
+
+                const char* s_url = solvable_lookup_str(s, m_mrepo_key);
+                if ((s_url != nullptr) && channel_match(make_channel(s_url), c))
                 {
                     selected_pkgs.push_back(*wp);
                 }
@@ -323,40 +320,6 @@ namespace mamba
                 out.track_features.pop_back();
             }
 
-            const ::Id extra_keys_id = pool_str2id(pool, "solvable:extra_keys", 0);
-            const ::Id extra_values_id = pool_str2id(pool, "solvable:extra_values", 0);
-            if (extra_keys_id && extra_values_id)
-            {
-                // Get extra signed keys
-                q.clear();
-                solvable_lookup_idarray(&s, extra_keys_id, q.raw());
-                std::vector<std::string> extra_keys = {};
-                extra_keys.reserve(q.size());
-                std::transform(q.begin(), q.end(), std::back_inserter(extra_keys), dep2str);
-
-                // Get extra signed values
-                q.clear();
-                solvable_lookup_idarray(&s, extra_values_id, q.raw());
-                std::vector<std::string> extra_values = {};
-                extra_values.reserve(q.size());
-                std::transform(q.begin(), q.end(), std::back_inserter(extra_values), dep2str);
-
-                // Build a JSON string for extra signed metadata
-                if (!extra_keys.empty() && (extra_keys.size() == extra_values.size()))
-                {
-                    std::vector<std::string> extra = {};
-                    extra.reserve(extra_keys.size());
-                    for (std::size_t i = 0; i < extra_keys.size(); ++i)
-                    {
-                        extra.push_back(fmt::format(R"("{}":{})", extra_keys[i], extra_values[i]));
-                    }
-                    out.extra_metadata = fmt::format("{{{}}}", fmt::join(extra, ","));
-                }
-            }
-            else
-            {
-                out.extra_metadata = "{}";
-            }
             return out;
         }
     }

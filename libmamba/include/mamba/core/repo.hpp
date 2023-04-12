@@ -10,11 +10,11 @@
 #include <string>
 #include <tuple>
 #include <utility>
+#include <vector>
 
 #include <solv/pooltypes.h>
 
-#include "channel.hpp"
-#include "prefix_data.hpp"
+#include "mamba_fs.hpp"
 
 extern "C"
 {
@@ -25,6 +25,8 @@ extern "C"
 namespace mamba
 {
     class MPool;
+    class PackageInfo;
+    class PrefixData;
 
     /**
      * Represents a channel subdirectory
@@ -74,7 +76,6 @@ namespace mamba
         bool write() const;
         const std::string& url() const;
         Repo* repo() const;
-        const Channel* channel() const;
         std::tuple<int, int> priority() const;
         std::size_t size() const;
 
@@ -96,15 +97,9 @@ namespace mamba
          * @param name Name of the subdirectory (<channel>/<subdir>)
          * @param index Path to the index file
          * @param meta Metadata of the repo
-         * @param channel Channel of the repo
          */
-        static MRepo& create(
-            MPool& pool,
-            const std::string& name,
-            const fs::u8path& filename,
-            const RepoMetadata& meta,
-            const Channel& channel
-        );
+        static MRepo&
+        create(MPool& pool, const std::string& name, const fs::u8path& filename, const RepoMetadata& meta);
 
         /**
          * Static constructor.
@@ -126,13 +121,7 @@ namespace mamba
 
         MRepo(MPool& pool, const std::string& name, const std::string& filename, const std::string& url);
 
-        MRepo(
-            MPool& pool,
-            const std::string& name,
-            const fs::u8path& filename,
-            const RepoMetadata& meta,
-            const Channel& channel
-        );
+        MRepo(MPool& pool, const std::string& name, const fs::u8path& filename, const RepoMetadata& meta);
 
         MRepo(MPool& pool, const PrefixData& prefix_data);
 
@@ -141,6 +130,7 @@ namespace mamba
         void init(MPool& pool);
 
         bool read_file(const fs::u8path& filename);
+        void set_solvables_url();
 
         fs::u8path m_json_file, m_solv_file;
         std::string m_url;
@@ -149,8 +139,8 @@ namespace mamba
 
         Repo* m_repo;
         ::Id m_real_repo_key = 0;
+        ::Id m_mrepo_key = 0;
         ::Id m_noarch_repo_key = 0;
-        const Channel* p_channel = nullptr;
     };
 
 }  // namespace mamba

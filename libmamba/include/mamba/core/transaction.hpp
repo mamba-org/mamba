@@ -165,6 +165,8 @@ namespace mamba
 
         History::UserRequest m_history_entry;
         Transaction* m_transaction;
+        ::Id m_real_repo_key = 0;  // Must match that in ``MRepo``
+        ::Id m_mrepo_key = 0;      // Must match that in ``MRepo``
 
         std::vector<MatchSpec> m_requested_specs;
 

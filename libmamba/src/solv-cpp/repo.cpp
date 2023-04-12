@@ -40,19 +40,7 @@ namespace mamba::solv
 
     auto ObjRepoViewConst::id() const -> RepoId
     {
-        // No function exists to get a repo id
-        const ::Pool* pool = raw()->pool;
-        const ::Repo* repo = nullptr;
-        int repoid = 0;
-        FOR_REPOS(repoid, repo)
-        {
-            if (repo == raw())
-            {
-                return repoid;
-            }
-        }
-        assert(false);
-        return 0;
+        return raw()->repoid;
     }
 
     auto ObjRepoViewConst::solvable_count() const -> std::size_t

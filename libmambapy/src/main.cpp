@@ -612,7 +612,6 @@ PYBIND11_MODULE(bindings, m)
         .def_readwrite("depends", &PackageInfo::depends)
         .def_readwrite("constrains", &PackageInfo::constrains)
         .def_readwrite("signatures", &PackageInfo::signatures)
-        .def_readwrite("extra_metadata", &PackageInfo::extra_metadata)
         .def_readwrite("defaulted_keys", &PackageInfo::defaulted_keys);
 
     // Content trust - Package signature and verification

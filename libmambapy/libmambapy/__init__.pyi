@@ -922,14 +922,6 @@ class PackageInfo:
     def depends(self, arg0: typing.List[str]) -> None:
         pass
     @property
-    def extra_metadata(self) -> str:
-        """
-        :type: str
-        """
-    @extra_metadata.setter
-    def extra_metadata(self, arg0: str) -> None:
-        pass
-    @property
     def fn(self) -> str:
         """
         :type: str

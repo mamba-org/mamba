@@ -7,6 +7,7 @@
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/core/channel.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/prefix_data.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/thread_utils.hpp"

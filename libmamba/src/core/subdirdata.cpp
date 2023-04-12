@@ -965,7 +965,7 @@ namespace mamba
                            m_metadata.mod };
 
         auto cache = cache_path();
-        return cache ? return_type(MRepo::create(pool, m_name, *cache, meta, *p_channel))
+        return cache ? return_type(MRepo::create(pool, m_name, *cache, meta))
                      : return_type(forward_error(cache));
     }
 

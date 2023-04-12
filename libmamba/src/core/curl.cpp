@@ -124,6 +124,7 @@ namespace mamba
     /**************
      * CURLHandle *
      **************/
+
     CURLHandle::CURLHandle()  //(const Context& ctx)
         : m_handle(curl_easy_init())
     {
@@ -305,6 +306,179 @@ namespace mamba
     const char* CURLHandle::get_error_buffer() const
     {
         return m_errorbuffer;
+    }
+
+    CURL* unwrap(const CURLHandle& h)
+    {
+        return h.m_handle;
+    }
+
+    bool operator==(const CURLHandle& lhs, const CURLHandle& rhs)
+    {
+        return unwrap(lhs) == unwrap(rhs);
+    }
+
+    bool operator!=(const CURLHandle& lhs, const CURLHandle& rhs)
+    {
+        return !(lhs == rhs);
+    }
+
+    /*****************
+     * CURLReference *
+     *****************/
+
+    CURLReference::CURLReference(CURL* handle)
+        : p_handle(handle)
+    {
+    }
+
+    CURL* unwrap(const CURLReference& h)
+    {
+        return h.p_handle;
+    }
+
+    bool operator==(const CURLReference& lhs, const CURLReference& rhs)
+    {
+        return unwrap(lhs) == unwrap(rhs);
+    }
+
+    bool operator==(const CURLReference& lhs, const CURLHandle& rhs)
+    {
+        return unwrap(lhs) == unwrap(rhs);
+    }
+
+    bool operator==(const CURLHandle& lhs, const CURLReference& rhs)
+    {
+        return unwrap(lhs) == unwrap(rhs);
+    }
+
+    bool operator!=(const CURLReference& lhs, const CURLReference& rhs)
+    {
+        return !(lhs == rhs);
+    }
+
+    bool operator!=(const CURLReference& lhs, const CURLHandle& rhs)
+    {
+        return !(lhs == rhs);
+    }
+
+    bool operator!=(const CURLHandle& lhs, const CURLReference& rhs)
+    {
+        return !(lhs == rhs);
+    }
+
+    /*******************
+     * CURLMultiHandle *
+     *******************/
+
+    CURLMultiHandle::CURLMultiHandle(std::size_t max_parallel_downloads)
+        : p_handle(curl_multi_init())
+        , m_max_parallel_downloads(max_parallel_downloads)
+    {
+        if (p_handle == nullptr)
+        {
+            throw curl_error("Could not initialize CURL multi handle");
+        }
+        else
+        {
+            curl_multi_setopt(
+                p_handle,
+                CURLMOPT_MAX_TOTAL_CONNECTIONS,
+                static_cast<int>(max_parallel_downloads)
+            );
+        }
+    }
+
+    CURLMultiHandle::~CURLMultiHandle()
+    {
+        curl_multi_cleanup(p_handle);
+        p_handle = nullptr;
+    }
+
+
+    CURLMultiHandle::CURLMultiHandle(CURLMultiHandle&& rhs)
+        : p_handle(rhs.p_handle)
+        , m_max_parallel_downloads(rhs.m_max_parallel_downloads)
+    {
+        rhs.p_handle = nullptr;
+        rhs.m_max_parallel_downloads = 0u;
+    }
+
+    CURLMultiHandle& CURLMultiHandle::operator=(CURLMultiHandle&& rhs)
+    {
+        std::swap(p_handle, rhs.p_handle);
+        std::swap(m_max_parallel_downloads, rhs.m_max_parallel_downloads);
+        return *this;
+    }
+
+    void CURLMultiHandle::add_handle(const CURLHandle& h)
+    {
+        CURLMcode code = curl_multi_add_handle(p_handle, unwrap(h));
+        if (code != CURLM_CALL_MULTI_PERFORM)
+        {
+            if (code != CURLM_OK)
+            {
+                throw std::runtime_error(curl_multi_strerror(code));
+            }
+        }
+    }
+
+    void CURLMultiHandle::remove_handle(const CURLHandle& h)
+    {
+        curl_multi_remove_handle(p_handle, unwrap(h));
+    }
+
+    std::size_t CURLMultiHandle::perform()
+    {
+        int still_running;
+        CURLMcode code = curl_multi_perform(p_handle, &still_running);
+        if (code != CURLM_OK)
+        {
+            throw std::runtime_error(curl_multi_strerror(code));
+        }
+        return static_cast<std::size_t>(still_running);
+    }
+
+    CURLMultiHandle::response_type CURLMultiHandle::pop_message()
+    {
+        int msgs_in_queue;
+        CURLMsg* msg = curl_multi_info_read(p_handle, &msgs_in_queue);
+        if (msg != nullptr)
+        {
+            return CURLMultiResponse{ msg->easy_handle, msg->data.result, msg->msg == CURLMSG_DONE };
+        }
+        else
+        {
+            return std::nullopt;
+        }
+    }
+
+    std::size_t CURLMultiHandle::get_timeout(std::size_t max_timeout) const
+    {
+        long lmax_timeout = static_cast<long>(max_timeout);
+        long curl_timeout = -1;  // NOLINT(runtime/int)
+        CURLMcode code = curl_multi_timeout(p_handle, &curl_timeout);
+        if (code != CURLM_OK)
+        {
+            throw std::runtime_error(curl_multi_strerror(code));
+        }
+
+        if (curl_timeout < 0 || curl_timeout > lmax_timeout)
+        {
+            curl_timeout = lmax_timeout;
+        }
+        return static_cast<std::size_t>(curl_timeout);
+    }
+
+    std::size_t CURLMultiHandle::wait(size_t timeout)
+    {
+        int numfds = 0;
+        CURLMcode code = curl_multi_wait(p_handle, NULL, 0, static_cast<int>(timeout), &numfds);
+        if (code != CURLM_OK)
+        {
+            throw std::runtime_error(curl_multi_strerror(code));
+        }
+        return static_cast<std::size_t>(numfds);
     }
 
 }  // namespace mamba

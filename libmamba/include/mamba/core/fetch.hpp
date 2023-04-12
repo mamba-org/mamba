@@ -28,6 +28,7 @@ namespace mamba
     struct Bzip2Stream;
 
     class CURLHandle;
+    class CURLMultiHandle;
 
     class DownloadTarget
     {
@@ -99,10 +100,12 @@ namespace mamba
         std::string get_transfer_msg();
 
         bool can_retry();
-        CURL* retry();
+        bool retry();
 
         std::chrono::steady_clock::time_point progress_throttle_time() const;
         void set_progress_throttle_time(const std::chrono::steady_clock::time_point& time);
+
+        const CURLHandle& get_curl_handle() const;
 
     private:
 
@@ -151,14 +154,15 @@ namespace mamba
         ~MultiDownloadTarget();
 
         void add(DownloadTarget* target);
-        bool check_msgs(bool failfast);
         bool download(int options);
 
     private:
 
+        bool check_msgs(bool failfast);
+
         std::vector<DownloadTarget*> m_targets;
         std::vector<DownloadTarget*> m_retry_targets;
-        CURLM* m_handle;
+        std::unique_ptr<CURLMultiHandle> p_curl_handle;
     };
 
     const int MAMBA_DOWNLOAD_FAILFAST = 1 << 0;

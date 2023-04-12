@@ -37,7 +37,7 @@ namespace mamba
                 multi_dl.download(MAMBA_DOWNLOAD_FAILFAST);
 
                 // File does not exist
-                CHECK_EQ(cf.target()->result, 37);
+                CHECK_EQ(cf.target()->get_result(), 37);
             }
             {
                 const mamba::Channel& c = mamba::make_channel("conda-forge");

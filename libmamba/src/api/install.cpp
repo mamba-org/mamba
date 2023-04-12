@@ -662,7 +662,7 @@ namespace mamba
             tmp_lock_file = std::make_unique<TemporaryFile>();
             DownloadTarget dt("Environment Lockfile", lockfile, tmp_lock_file->path());
             bool success = dt.perform();
-            if (!success || dt.http_status != 200)
+            if (!success || dt.get_http_status() != 200)
             {
                 throw std::runtime_error(
                     fmt::format("Could not download environment lockfile from {}", lockfile)

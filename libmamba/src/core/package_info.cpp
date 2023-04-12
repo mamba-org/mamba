@@ -173,7 +173,6 @@ namespace mamba
                 p.depends,
                 p.constrains,
                 p.signatures,
-                p.extra_metadata,
                 p.defaulted_keys
             );
         };
@@ -263,9 +262,6 @@ namespace mamba
         {
             j["constrains"] = constrains;
         }
-
-        // Optional keys that may be part of signed metadata
-        j.merge_patch(nlohmann::json::parse(extra_metadata));
 
         return j;
     }

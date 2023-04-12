@@ -320,7 +320,6 @@ namespace mamba
                 out.track_features.pop_back();
             }
 
-            out.extra_metadata = "{}";
             return out;
         }
     }

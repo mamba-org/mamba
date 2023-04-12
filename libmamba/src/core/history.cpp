@@ -30,8 +30,8 @@ namespace mamba
         {
             ur.date = mbstr;
         }
-        ur.cmd = Context::instance().current_command;
-        ur.conda_version = Context::instance().conda_version;
+        ur.cmd = Context::instance().command_params.current_command;
+        ur.conda_version = Context::instance().command_params.conda_version;
         return ur;
     }
 

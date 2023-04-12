@@ -196,7 +196,7 @@ def log_level_from_verbosity(verbosity: int):
 def init_api_context(use_mamba_experimental=False):
     api_ctx = api.Context()
 
-    api_ctx.json = context.json
+    api_ctx.output_params.json = context.json
     api_ctx.dry_run = context.dry_run
     if context.json:
         context.always_yes = True
@@ -204,9 +204,9 @@ def init_api_context(use_mamba_experimental=False):
         if use_mamba_experimental:
             context.json = False
 
-    api_ctx.verbosity = context.verbosity
+    api_ctx.output_params.verbosity = context.verbosity
     api_ctx.set_verbosity(context.verbosity)
-    api_ctx.quiet = context.quiet
+    api_ctx.output_params.quiet = context.quiet
     api_ctx.offline = context.offline
     api_ctx.local_repodata_ttl = context.local_repodata_ttl
     api_ctx.use_index_cache = context.use_index_cache
@@ -260,18 +260,20 @@ def init_api_context(use_mamba_experimental=False):
     ]
 
     if context.ssl_verify is False:
-        api_ctx.ssl_verify = "<false>"
+        api_ctx.remote_fetch_params.ssl_verify = "<false>"
     elif context.ssl_verify is not True:
-        api_ctx.ssl_verify = context.ssl_verify
+        api_ctx.remote_fetch_params.ssl_verify = context.ssl_verify
     api_ctx.target_prefix = context.target_prefix
     api_ctx.root_prefix = context.root_prefix
     api_ctx.conda_prefix = context.conda_prefix
     api_ctx.pkgs_dirs = context.pkgs_dirs
     api_ctx.envs_dirs = context.envs_dirs
 
-    api_ctx.connect_timeout_secs = int(round(context.remote_connect_timeout_secs))
-    api_ctx.max_retries = context.remote_max_retries
-    api_ctx.retry_backoff = context.remote_backoff_factor
+    api_ctx.remote_fetch_params.connect_timeout_secs = int(
+        round(context.remote_connect_timeout_secs)
+    )
+    api_ctx.remote_fetch_params.max_retries = context.remote_max_retries
+    api_ctx.remote_fetch_params.retry_backoff = context.remote_backoff_factor
     api_ctx.add_pip_as_python_dependency = context.add_pip_as_python_dependency
     api_ctx.use_only_tar_bz2 = context.use_only_tar_bz2
 

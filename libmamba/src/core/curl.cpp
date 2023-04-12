@@ -36,7 +36,7 @@ namespace mamba
 
             // DO NOT SET TIMEOUT as it will also take into account multi-start time and
             // it's just wrong curl_easy_setopt(m_handle, CURLOPT_TIMEOUT,
-            // Context::instance().read_timeout_secs);
+            // Context::instance().remote_fetch_params.read_timeout_secs);
 
             // TODO while libcurl in conda now _has_ http2 support we need to fix mamba to
             // work properly with it this includes:

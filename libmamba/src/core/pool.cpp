@@ -49,7 +49,7 @@ namespace mamba
             {
                 dbg->first->warn(log);
             }
-            else if (Context::instance().verbosity > 2)
+            else if (Context::instance().output_params.verbosity > 2)
             {
                 dbg->first->info(log);
             }
@@ -104,9 +104,9 @@ namespace mamba
     {
         // ensure that debug logging goes to stderr as to not interfere with stdout json output
         pool()->debugmask |= SOLV_DEBUG_TO_STDERR;
-        if (Context::instance().verbosity > 2)
+        if (Context::instance().output_params.verbosity > 2)
         {
-            pool_setdebuglevel(pool(), Context::instance().verbosity - 1);
+            pool_setdebuglevel(pool(), Context::instance().output_params.verbosity - 1);
             auto logger = spdlog::get("libsolv");
             m_data->debug_logger.first = logger.get();
             pool_setdebugcallback(pool(), &libsolv_debug_callback, &(m_data->debug_logger));

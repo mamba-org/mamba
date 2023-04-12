@@ -24,7 +24,7 @@ namespace mamba
     {
         int res = 0;
         // Ensures the compiler doe snot optimize away Context::instance()
-        std::string current_command = Context::instance().current_command;
+        std::string current_command = Context::instance().command_params.current_command;
         CHECK_EQ(current_command, "mamba");
         Console::instance().init_progress_bar_manager(ProgressBarMode::multi);
         {

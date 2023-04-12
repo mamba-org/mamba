@@ -437,7 +437,7 @@ namespace mamba
         auto [status, ec] = reproc::run(command_args, options);
 
         auto msg = get_prefix_messages(envmap["PREFIX"]);
-        if (Context::instance().json)
+        if (Context::instance().output_params.json)
         {
             // TODO implement cerr also on Console?
             std::cerr << msg;
@@ -733,7 +733,7 @@ namespace mamba
 #if defined(__APPLE__)
             if (binary_changed && m_pkg_info.subdir == "osx-arm64")
             {
-                codesign(dst, Context::instance().verbosity > 1);
+                codesign(dst, Context::instance().output_params.verbosity > 1);
             }
 #endif
             return std::make_tuple(validation::sha256sum(dst), rel_dst.string());

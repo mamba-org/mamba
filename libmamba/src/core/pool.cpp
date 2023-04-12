@@ -34,7 +34,6 @@ namespace mamba
     struct MPool::MPoolData
     {
         solv::ObjPool pool = {};
-        std::shared_ptr<spdlog::logger> debug_logger = {};
         std::list<MRepo> repo_list = {};
     };
 
@@ -57,34 +56,6 @@ namespace mamba
         return m_data->pool;
     }
 
-    namespace
-    {
-        void libsolv_debug_callback(Pool* /*pool*/, void* userptr, int type, const char* str)
-        {
-            auto* dbg = reinterpret_cast<spdlog::logger*>(userptr);
-            auto str_v = std::string_view(str);
-            if (str_v.size() == 0 || str_v.back() != '\n')
-            {
-                return;
-            }
-
-            auto log = Console::hide_secrets(str_v);
-            if (type & SOLV_FATAL || type & SOLV_ERROR)
-            {
-                dbg->error(log);
-            }
-            else if (type & SOLV_WARN)
-            {
-                dbg->warn(log);
-            }
-            else if (Context::instance().output_params.verbosity > 2)
-            {
-                dbg->info(log);
-            }
-        }
-    }
-
-
     void MPool::set_debuglevel()
     {
         // ensure that debug logging goes to stderr as to not interfere with stdout json output
@@ -92,8 +63,29 @@ namespace mamba
         if (Context::instance().output_params.verbosity > 2)
         {
             pool_setdebuglevel(pool().raw(), Context::instance().output_params.verbosity - 1);
-            m_data->debug_logger = spdlog::get("libsolv");
-            pool_setdebugcallback(pool().raw(), &libsolv_debug_callback, m_data->debug_logger.get());
+            pool().set_debug_callback(
+                [logger = spdlog::get("libsolv")](::Pool*, int type, std::string_view msg) noexcept
+                {
+                    if (msg.size() == 0 || msg.back() != '\n')
+                    {
+                        return;
+                    }
+
+                    auto log = Console::hide_secrets(msg);
+                    if (type & SOLV_FATAL || type & SOLV_ERROR)
+                    {
+                        logger->error(log);
+                    }
+                    else if (type & SOLV_WARN)
+                    {
+                        logger->warn(log);
+                    }
+                    else if (Context::instance().output_params.verbosity > 2)
+                    {
+                        logger->info(log);
+                    }
+                }
+            );
         }
     }
 

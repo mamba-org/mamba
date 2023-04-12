@@ -394,7 +394,7 @@ class Configuration:
     pass
 
 class Context:
-    class OutputInfo:
+    class OutputParams:
         def __init__(self) -> None: ...
         @property
         def json(self) -> bool:
@@ -422,7 +422,7 @@ class Context:
             pass
         pass
 
-    class RemoteFetchInfo:
+    class RemoteFetchParams:
         def __init__(self) -> None: ...
         @property
         def connect_timeout_secs(self) -> int:
@@ -613,12 +613,12 @@ class Context:
     def offline(self, arg0: bool) -> None:
         pass
     @property
-    def output_info(self) -> Context.OutputInfo:
+    def output_params(self) -> Context.OutputParams:
         """
-        :type: Context.OutputInfo
+        :type: Context.OutputParams
         """
-    @output_info.setter
-    def output_info(self, arg0: Context.OutputInfo) -> None:
+    @output_params.setter
+    def output_params(self, arg0: Context.OutputParams) -> None:
         pass
     @property
     def pkgs_dirs(self) -> typing.List[Path]:
@@ -645,12 +645,12 @@ class Context:
     def proxy_servers(self, arg0: typing.Dict[str, str]) -> None:
         pass
     @property
-    def remote_fetch_info(self) -> Context.RemoteFetchInfo:
+    def remote_fetch_params(self) -> Context.RemoteFetchParams:
         """
-        :type: Context.RemoteFetchInfo
+        :type: Context.RemoteFetchParams
         """
-    @remote_fetch_info.setter
-    def remote_fetch_info(self, arg0: Context.RemoteFetchInfo) -> None:
+    @remote_fetch_params.setter
+    def remote_fetch_params(self, arg0: Context.RemoteFetchParams) -> None:
         pass
     @property
     def root_prefix(self) -> Path:

@@ -15,12 +15,12 @@ namespace mamba
     {
         TEST_CASE("no_progress_bars")
         {
-            Context::instance().design_info.no_progress_bars = true;
+            Context::instance().graphics_params.no_progress_bars = true;
             auto proxy = Console::instance().add_progress_bar("conda-forge");
             CHECK_FALSE(proxy.defined());
             CHECK_FALSE(proxy);
 
-            Context::instance().design_info.no_progress_bars = false;
+            Context::instance().graphics_params.no_progress_bars = false;
             proxy = Console::instance().add_progress_bar("conda-forge");
             CHECK(proxy.defined());
             CHECK(proxy);

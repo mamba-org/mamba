@@ -33,7 +33,7 @@ namespace mamba
     {
         bool ConfigurableImplBase::env_var_configured() const
         {
-            if (Context::instance().src_info.no_env)
+            if (Context::instance().src_params.no_env)
             {
                 return false;
             }
@@ -50,12 +50,12 @@ namespace mamba
 
         bool ConfigurableImplBase::env_var_active() const
         {
-            return !Context::instance().src_info.no_env || (m_name == "no_env");
+            return !Context::instance().src_params.no_env || (m_name == "no_env");
         }
 
         bool ConfigurableImplBase::rc_configured() const
         {
-            return m_rc_configured && !Context::instance().src_info.no_rc;
+            return m_rc_configured && !Context::instance().src_params.no_rc;
         }
     }
 
@@ -609,7 +609,7 @@ namespace mamba
         void post_root_prefix_rc_loading()
         {
             auto& config = Configuration::instance();
-            if (!Context::instance().src_info.no_rc)
+            if (!Context::instance().src_params.no_rc)
             {
                 rc_loading_hook(RCConfigLevel::kHomeDir);
                 config.at("no_env").compute(MAMBA_CONF_FORCE_COMPUTE);
@@ -619,7 +619,7 @@ namespace mamba
         void post_target_prefix_rc_loading()
         {
             auto& config = Configuration::instance();
-            if (!Context::instance().src_info.no_rc)
+            if (!Context::instance().src_params.no_rc)
             {
                 rc_loading_hook(RCConfigLevel::kTargetPrefix);
                 config.at("no_env").compute(MAMBA_CONF_FORCE_COMPUTE);
@@ -630,13 +630,13 @@ namespace mamba
         {
             auto& ctx = Context::instance();
 
-            if (ctx.output_info.json)
+            if (ctx.output_params.json)
             {
                 return mamba::log_level::off;
             }
             else if (Configuration::instance().at("verbose").configured())
             {
-                switch (ctx.output_info.verbosity)
+                switch (ctx.output_params.verbosity)
                 {
                     case 0:
                         return mamba::log_level::warn;
@@ -657,7 +657,7 @@ namespace mamba
         void verbose_hook(int& lvl)
         {
             auto& ctx = Context::instance();
-            ctx.output_info.verbosity = lvl;
+            ctx.output_params.verbosity = lvl;
         }
 
         void target_prefix_checks_hook(int& options)
@@ -717,7 +717,7 @@ namespace mamba
 
             if (!files.empty())
             {
-                if (ctx.src_info.no_rc)
+                if (ctx.src_params.no_rc)
                 {
                     LOG_ERROR << "Configuration files disabled by 'no_rc'";
                     throw std::runtime_error("Incompatible configuration. Aborting.");
@@ -1217,7 +1217,7 @@ namespace mamba
                    .set_env_var_names()
                    .description("Force use cached repodata"));
 
-        insert(Configurable("ssl_no_revoke", &ctx.remote_fetch_info.ssl_no_revoke)
+        insert(Configurable("ssl_no_revoke", &ctx.remote_fetch_params.ssl_no_revoke)
                    .group("Network")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1227,7 +1227,7 @@ namespace mamba
                         It's only working for Windows back-end.
                         WARNING: this option loosens the SSL security.)")));
 
-        insert(Configurable("ssl_verify", &ctx.remote_fetch_info.ssl_verify)
+        insert(Configurable("ssl_verify", &ctx.remote_fetch_params.ssl_verify)
                    .group("Network")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1249,7 +1249,7 @@ namespace mamba
                         the value is the url of the proxy server, optionally with username and password
                         in the form of scheme://username:password@hostname.)")));
 
-        insert(Configurable("remote_connect_timeout_secs", &ctx.remote_fetch_info.connect_timeout_secs)
+        insert(Configurable("remote_connect_timeout_secs", &ctx.remote_fetch_params.connect_timeout_secs)
                    .group("Network")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1257,14 +1257,14 @@ namespace mamba
                        "The number seconds conda will wait for your client to establish a connection to a remote url resource."
                    ));
 
-        insert(Configurable("remote_backoff_factor", &ctx.remote_fetch_info.retry_backoff)
+        insert(Configurable("remote_backoff_factor", &ctx.remote_fetch_params.retry_backoff)
                    .group("Network")
                    .set_rc_configurable()
                    .set_env_var_names()
                    .description("The factor determines the time HTTP connection should wait for attempt."
                    ));
 
-        insert(Configurable("remote_max_retries", &ctx.remote_fetch_info.max_retries)
+        insert(Configurable("remote_max_retries", &ctx.remote_fetch_params.max_retries)
                    .group("Network")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1507,7 +1507,7 @@ namespace mamba
                    .description("Only download and extract packages, do not link them into environment."
                    ));
 
-        insert(Configurable("log_level", &ctx.output_info.logging_level)
+        insert(Configurable("log_level", &ctx.output_params.logging_level)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1519,7 +1519,7 @@ namespace mamba
                             be one of {'off', 'fatal', 'error', 'warning', 'info',
                             'debug', 'trace'}.)")));
 
-        insert(Configurable("log_backtrace", &ctx.output_info.log_backtrace)
+        insert(Configurable("log_backtrace", &ctx.output_params.log_backtrace)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1528,7 +1528,7 @@ namespace mamba
                             Set the log backtrace size. It will replay the n last
                             logs if an error is thrown during the execution.)")));
 
-        insert(Configurable("log_pattern", &ctx.output_info.log_pattern)
+        insert(Configurable("log_pattern", &ctx.output_params.log_pattern)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1536,7 +1536,7 @@ namespace mamba
                    .long_description(unindent(R"(
                             Set the log pattern.)")));
 
-        insert(Configurable("json", &ctx.output_info.json)
+        insert(Configurable("json", &ctx.output_params.json)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .needs({ "print_config_only", "print_context_only" })
@@ -1619,7 +1619,7 @@ namespace mamba
                    .group("Output, Prompt and Flow Control")
                    .description("Display configs values"));
 
-        insert(Configurable("quiet", &ctx.output_info.quiet)
+        insert(Configurable("quiet", &ctx.output_params.quiet)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1650,12 +1650,12 @@ namespace mamba
                    .set_env_var_names()
                    .description("Whether to override rc files by highest precedence"));
 
-        insert(Configurable("no_rc", &ctx.src_info.no_rc)
+        insert(Configurable("no_rc", &ctx.src_params.no_rc)
                    .group("Config sources")
                    .set_env_var_names()
                    .description("Disable the use of configuration files"));
 
-        insert(Configurable("no_env", &ctx.src_info.no_env)
+        insert(Configurable("no_env", &ctx.src_params.no_env)
                    .group("Config sources")
                    .set_env_var_names()
                    .description("Disable the use of environment variables"));
@@ -1790,15 +1790,15 @@ namespace mamba
         }
 
         auto& ctx = Context::instance();
-        ctx.set_log_level(ctx.output_info.logging_level);
+        ctx.set_log_level(ctx.output_params.logging_level);
 
         spdlog::apply_all([&](std::shared_ptr<spdlog::logger> l) { l->flush(); });
         spdlog::flush_on(spdlog::level::off);
 
         Context::instance().dump_backtrace_no_guards();
-        if (ctx.output_info.log_backtrace > 0)
+        if (ctx.output_params.log_backtrace > 0)
         {
-            spdlog::enable_backtrace(ctx.output_info.log_backtrace);
+            spdlog::enable_backtrace(ctx.output_params.log_backtrace);
         }
         else
         {

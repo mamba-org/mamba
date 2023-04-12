@@ -90,7 +90,7 @@ namespace mamba
 
             auto execute_transaction = [&](MTransaction& transaction)
             {
-                if (ctx.output_info.json)
+                if (ctx.output_params.json)
                 {
                     transaction.log_json();
                 }

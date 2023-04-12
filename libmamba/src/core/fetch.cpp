@@ -42,7 +42,7 @@ namespace mamba
 
     std::size_t DownloadTarget::get_default_retry_timeout()
     {
-        return static_cast<std::size_t>(Context::instance().remote_fetch_info.retry_timeout);
+        return static_cast<std::size_t>(Context::instance().remote_fetch_params.retry_timeout);
     }
 
     void DownloadTarget::init_curl_handle(CURL* handle, const std::string& url)
@@ -55,16 +55,16 @@ namespace mamba
         std::string ssl_no_revoke_env = std::getenv("MAMBA_SSL_NO_REVOKE")
                                             ? std::getenv("MAMBA_SSL_NO_REVOKE")
                                             : "0";
-        bool set_ssl_no_revoke = (Context::instance().remote_fetch_info.ssl_no_revoke || ssl_no_revoke_env != "0");
+        bool set_ssl_no_revoke = (Context::instance().remote_fetch_params.ssl_no_revoke || ssl_no_revoke_env != "0");
 
         curl::configure_curl_handle(
             handle,
             url,
             (no_low_speed_limit == "0"),
-            Context::instance().remote_fetch_info.connect_timeout_secs,
+            Context::instance().remote_fetch_params.connect_timeout_secs,
             set_ssl_no_revoke,
             proxy_match(url),
-            Context::instance().remote_fetch_info.ssl_verify
+            Context::instance().remote_fetch_params.ssl_verify
         );
     }
 
@@ -94,12 +94,12 @@ namespace mamba
     {
         auto& ctx = Context::instance();
 
-        if (!ctx.remote_fetch_info.curl_initialized)
+        if (!ctx.remote_fetch_params.curl_initialized)
         {
-            if (ctx.remote_fetch_info.ssl_verify == "<false>")
+            if (ctx.remote_fetch_params.ssl_verify == "<false>")
             {
                 LOG_DEBUG << "'ssl_verify' not activated, skipping cURL SSL init";
-                ctx.remote_fetch_info.curl_initialized = true;
+                ctx.remote_fetch_params.curl_initialized = true;
                 return;
             }
 
@@ -125,13 +125,13 @@ namespace mamba
             }
 #endif
 
-            if (!ctx.remote_fetch_info.ssl_verify.size()
+            if (!ctx.remote_fetch_params.ssl_verify.size()
                 && std::getenv("REQUESTS_CA_BUNDLE") != nullptr)
             {
-                ctx.remote_fetch_info.ssl_verify = std::getenv("REQUESTS_CA_BUNDLE");
-                LOG_INFO << "Using REQUESTS_CA_BUNDLE " << ctx.remote_fetch_info.ssl_verify;
+                ctx.remote_fetch_params.ssl_verify = std::getenv("REQUESTS_CA_BUNDLE");
+                LOG_INFO << "Using REQUESTS_CA_BUNDLE " << ctx.remote_fetch_params.ssl_verify;
             }
-            else if (ctx.remote_fetch_info.ssl_verify == "<system>" && on_linux)
+            else if (ctx.remote_fetch_params.ssl_verify == "<system>" && on_linux)
             {
                 std::array<std::string, 6> cert_locations{
                     "/etc/ssl/certs/ca-certificates.crt",  // Debian/Ubuntu/Gentoo etc.
@@ -147,7 +147,7 @@ namespace mamba
                 {
                     if (fs::exists(loc))
                     {
-                        ctx.remote_fetch_info.ssl_verify = loc;
+                        ctx.remote_fetch_params.ssl_verify = loc;
                         found = true;
                     }
                 }
@@ -159,7 +159,7 @@ namespace mamba
                 }
             }
 
-            ctx.remote_fetch_info.curl_initialized = true;
+            ctx.remote_fetch_params.curl_initialized = true;
         }
     }
 
@@ -205,13 +205,13 @@ namespace mamba
 
         std::string user_agent = fmt::format(
             "User-Agent: {} {}",
-            Context::instance().remote_fetch_info.user_agent,
+            Context::instance().remote_fetch_params.user_agent,
             curl_version()
         );
 
         m_curl_handle->add_header(user_agent);
         m_curl_handle->set_opt_header();
-        m_curl_handle->set_opt(CURLOPT_VERBOSE, Context::instance().output_info.verbosity >= 2);
+        m_curl_handle->set_opt(CURLOPT_VERBOSE, Context::instance().output_params.verbosity >= 2);
 
         auto logger = spdlog::get("libcurl");
         m_curl_handle->set_opt(CURLOPT_DEBUGFUNCTION, curl_debug_callback);
@@ -244,7 +244,7 @@ namespace mamba
                 break;
         }
 
-        return m_retries < size_t(Context::instance().remote_fetch_info.max_retries)
+        return m_retries < size_t(Context::instance().remote_fetch_params.max_retries)
                && (http_status == 413 || http_status == 429 || http_status >= 500)
                && !starts_with(m_url, "file://");
     }
@@ -270,7 +270,7 @@ namespace mamba
             }
             m_retry_wait_seconds = m_retry_wait_seconds
                                    * static_cast<std::size_t>(
-                                       Context::instance().remote_fetch_info.retry_backoff
+                                       Context::instance().remote_fetch_params.retry_backoff
                                    );
             m_next_retry = now + std::chrono::seconds(m_retry_wait_seconds);
             m_retries++;
@@ -801,8 +801,8 @@ namespace mamba
         // be sure the progress bar manager was not already started
         // it would mean this code is part of a larger process using progress bars
         bool pbar_manager_started = pbar_manager.started();
-        if (!(ctx.design_info.no_progress_bars || ctx.output_info.json || ctx.output_info.quiet
-              || pbar_manager_started))
+        if (!(ctx.graphics_params.no_progress_bars || ctx.output_params.json
+              || ctx.output_params.quiet || pbar_manager_started))
         {
             pbar_manager.watch_print();
         }
@@ -882,8 +882,8 @@ namespace mamba
             return false;
         }
 
-        if (!(ctx.design_info.no_progress_bars || ctx.output_info.json || ctx.output_info.quiet
-              || pbar_manager_started))
+        if (!(ctx.graphics_params.no_progress_bars || ctx.output_params.json
+              || ctx.output_params.quiet || pbar_manager_started))
         {
             pbar_manager.terminate();
             if (!no_clear_progress_bars)

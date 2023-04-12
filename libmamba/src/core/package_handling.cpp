@@ -738,7 +738,7 @@ namespace mamba
     void extract_subproc(const fs::u8path& file, const fs::u8path& dest)
     {
         std::vector<std::string> args;
-        if (Context::instance().command_info.is_micromamba)
+        if (Context::instance().command_params.is_micromamba)
         {
             args = { get_self_exe_path().string(), "package", "extract", file.string(), dest.string() };
         }

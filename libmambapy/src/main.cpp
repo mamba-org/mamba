@@ -549,24 +549,24 @@ PYBIND11_MODULE(bindings, m)
         .def("set_verbosity", &Context::set_verbosity)
         .def("set_log_level", &Context::set_log_level);
 
-    py::class_<Context::RemoteFetchInfo>(ctx, "RemoteFetchInfo")
+    py::class_<Context::RemoteFetchParams>(ctx, "RemoteFetchParams")
         .def(py::init<>())
-        .def_readwrite("ssl_verify", &Context::RemoteFetchInfo::ssl_verify)
-        .def_readwrite("max_retries", &Context::RemoteFetchInfo::max_retries)
-        .def_readwrite("retry_timeout", &Context::RemoteFetchInfo::retry_timeout)
-        .def_readwrite("retry_backoff", &Context::RemoteFetchInfo::retry_backoff)
-        .def_readwrite("user_agent", &Context::RemoteFetchInfo::user_agent)
-        // .def_readwrite("read_timeout_secs", &Context::RemoteFetchInfo::read_timeout_secs)
-        .def_readwrite("connect_timeout_secs", &Context::RemoteFetchInfo::connect_timeout_secs);
+        .def_readwrite("ssl_verify", &Context::RemoteFetchParams::ssl_verify)
+        .def_readwrite("max_retries", &Context::RemoteFetchParams::max_retries)
+        .def_readwrite("retry_timeout", &Context::RemoteFetchParams::retry_timeout)
+        .def_readwrite("retry_backoff", &Context::RemoteFetchParams::retry_backoff)
+        .def_readwrite("user_agent", &Context::RemoteFetchParams::user_agent)
+        // .def_readwrite("read_timeout_secs", &Context::RemoteFetchParams::read_timeout_secs)
+        .def_readwrite("connect_timeout_secs", &Context::RemoteFetchParams::connect_timeout_secs);
 
-    py::class_<Context::OutputInfo>(ctx, "OutputInfo")
+    py::class_<Context::OutputParams>(ctx, "OutputParams")
         .def(py::init<>())
-        .def_readwrite("verbosity", &Context::OutputInfo::verbosity)
-        .def_readwrite("json", &Context::OutputInfo::json)
-        .def_readwrite("quiet", &Context::OutputInfo::quiet);
+        .def_readwrite("verbosity", &Context::OutputParams::verbosity)
+        .def_readwrite("json", &Context::OutputParams::json)
+        .def_readwrite("quiet", &Context::OutputParams::quiet);
 
-    ctx.def_readwrite("remote_fetch_info", &Context::remote_fetch_info)
-        .def_readwrite("output_info", &Context::output_info);
+    ctx.def_readwrite("remote_fetch_params", &Context::remote_fetch_params)
+        .def_readwrite("output_params", &Context::output_params);
 
     pyPrefixData
         .def(py::init(

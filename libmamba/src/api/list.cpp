@@ -59,7 +59,7 @@ namespace mamba
 
             std::regex spec_pat(regex);
 
-            if (ctx.output_info.json)
+            if (ctx.output_params.json)
             {
                 auto jout = nlohmann::json::array();
                 std::vector<std::string> keys;
@@ -137,7 +137,7 @@ namespace mamba
                 if (requested_specs.find(p.name) != requested_specs.end())
                 {
                     formatted_name = printers::FormattedString(p.name);
-                    formatted_name.style = ctx.design_info.palette.user;
+                    formatted_name.style = ctx.graphics_params.palette.user;
                 }
                 t.add_row({ formatted_name, p.version, p.build, p.channel });
             }

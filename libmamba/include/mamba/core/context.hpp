@@ -118,7 +118,7 @@ namespace mamba
     {
     public:
 
-        struct RemoteFetchInfo
+        struct RemoteFetchParams
         {
             // ssl_verify can be either an empty string (regular SSL verification),
             // the string "<false>" to indicate no SSL verification, or a path to
@@ -136,7 +136,7 @@ namespace mamba
             int max_retries{ 3 };    // max number of retries
         };
 
-        struct OutputInfo
+        struct OutputParams
         {
             int verbosity{ 0 };
             log_level logging_level{ log_level::warn };
@@ -148,19 +148,19 @@ namespace mamba
             std::size_t log_backtrace{ 0 };
         };
 
-        struct DesignInfo
+        struct GraphicsParams
         {
             bool no_progress_bars{ false };
             Palette palette;
         };
 
-        struct SrcInfo
+        struct SrcParams
         {
             bool no_rc{ false };
             bool no_env{ false };
         };
 
-        struct CommandInfo
+        struct CommandParams
         {
             std::string caller_version{ "" };
             std::string conda_version{ "3.8.0" };
@@ -225,11 +225,11 @@ namespace mamba
         // micromamba only
         bool shell_completion = true;
 
-        RemoteFetchInfo remote_fetch_info;
-        OutputInfo output_info;
-        DesignInfo design_info;
-        SrcInfo src_info;
-        CommandInfo command_info;
+        RemoteFetchParams remote_fetch_params;
+        OutputParams output_params;
+        GraphicsParams graphics_params;
+        SrcParams src_params;
+        CommandParams command_params;
 
         std::map<std::string, std::string> proxy_servers;
 

@@ -88,8 +88,8 @@ namespace mamba
 
         {
             const bool cout_is_atty = is_atty(std::cout);
-            design_info.no_progress_bars = (on_ci || !cout_is_atty);
-            design_info.palette = cout_is_atty ? Palette::terminal() : Palette::no_color();
+            graphics_params.no_progress_bars = (on_ci || !cout_is_atty);
+            graphics_params.palette = cout_is_atty ? Palette::terminal() : Palette::no_color();
         }
 
 #ifdef _WIN32
@@ -102,17 +102,17 @@ namespace mamba
 
         std::shared_ptr<spdlog::logger> l = std::make_shared<Logger>(
             "libmamba",
-            output_info.log_pattern,
+            output_params.log_pattern,
             "\n"
         );
         std::shared_ptr<spdlog::logger> libcurl_logger = std::make_shared<Logger>(
             "libcurl",
-            output_info.log_pattern,
+            output_params.log_pattern,
             ""
         );
         std::shared_ptr<spdlog::logger> libsolv_logger = std::make_shared<Logger>(
             "libsolv",
-            output_info.log_pattern,
+            output_params.log_pattern,
             ""
         );
         spdlog::register_logger(libcurl_logger);
@@ -120,48 +120,48 @@ namespace mamba
 
         spdlog::set_default_logger(l);
         logger = std::dynamic_pointer_cast<Logger>(l);
-        spdlog::set_level(convert_log_level(output_info.logging_level));
+        spdlog::set_level(convert_log_level(output_params.logging_level));
     }
 
     Context::~Context() = default;
 
     void Context::set_verbosity(int lvl)
     {
-        this->output_info.verbosity = lvl;
+        this->output_params.verbosity = lvl;
 
         switch (lvl)
         {
             case -3:
-                this->output_info.logging_level = log_level::off;
+                this->output_params.logging_level = log_level::off;
                 break;
             case -2:
-                this->output_info.logging_level = log_level::critical;
+                this->output_params.logging_level = log_level::critical;
                 break;
             case -1:
-                this->output_info.logging_level = log_level::err;
+                this->output_params.logging_level = log_level::err;
                 break;
             case 0:
-                this->output_info.logging_level = log_level::warn;
+                this->output_params.logging_level = log_level::warn;
                 break;
             case 1:
-                this->output_info.logging_level = log_level::info;
+                this->output_params.logging_level = log_level::info;
                 break;
             case 2:
-                this->output_info.logging_level = log_level::debug;
+                this->output_params.logging_level = log_level::debug;
                 break;
             case 3:
-                this->output_info.logging_level = log_level::trace;
+                this->output_params.logging_level = log_level::trace;
                 break;
             default:
-                this->output_info.logging_level = log_level::info;
+                this->output_params.logging_level = log_level::info;
                 break;
         }
-        spdlog::set_level(convert_log_level(output_info.logging_level));
+        spdlog::set_level(convert_log_level(output_params.logging_level));
     }
 
     void Context::set_log_level(log_level level)
     {
-        output_info.logging_level = level;
+        output_params.logging_level = level;
         spdlog::set_level(convert_log_level(level));
     }
 
@@ -332,22 +332,22 @@ namespace mamba
         PRINT_CTX(out, always_yes);
         PRINT_CTX(out, allow_softlinks);
         PRINT_CTX(out, offline);
-        PRINT_CTX(out, output_info.quiet);
-        PRINT_CTX(out, src_info.no_rc);
-        PRINT_CTX(out, src_info.no_env);
-        PRINT_CTX(out, remote_fetch_info.ssl_no_revoke);
-        PRINT_CTX(out, remote_fetch_info.ssl_verify);
-        PRINT_CTX(out, remote_fetch_info.retry_timeout);
-        PRINT_CTX(out, remote_fetch_info.retry_backoff);
-        PRINT_CTX(out, remote_fetch_info.max_retries);
-        PRINT_CTX(out, remote_fetch_info.connect_timeout_secs);
+        PRINT_CTX(out, output_params.quiet);
+        PRINT_CTX(out, src_params.no_rc);
+        PRINT_CTX(out, src_params.no_env);
+        PRINT_CTX(out, remote_fetch_params.ssl_no_revoke);
+        PRINT_CTX(out, remote_fetch_params.ssl_verify);
+        PRINT_CTX(out, remote_fetch_params.retry_timeout);
+        PRINT_CTX(out, remote_fetch_params.retry_backoff);
+        PRINT_CTX(out, remote_fetch_params.max_retries);
+        PRINT_CTX(out, remote_fetch_params.connect_timeout_secs);
         PRINT_CTX(out, add_pip_as_python_dependency);
         PRINT_CTX(out, override_channels_enabled);
         PRINT_CTX(out, use_only_tar_bz2);
         PRINT_CTX(out, auto_activate_base);
         PRINT_CTX(out, extra_safety_checks);
         PRINT_CTX(out, download_threads);
-        PRINT_CTX(out, output_info.verbosity);
+        PRINT_CTX(out, output_params.verbosity);
         PRINT_CTX(out, channel_alias);
         out << "channel_priority: " << static_cast<int>(channel_priority) << '\n';
         PRINT_CTX_VEC(out, default_channels);

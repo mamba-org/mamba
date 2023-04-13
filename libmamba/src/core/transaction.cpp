@@ -1116,8 +1116,6 @@ namespace mamba
 
     auto MTransaction::to_conda() -> to_conda_type
     {
-        const Id real_repo_key = pool_str2id(m_pool, "solvable:real_repo_url", 1);
-
         to_install_type to_install_structured;
         to_remove_type to_remove_structured;
 
@@ -1133,9 +1131,9 @@ namespace mamba
             std::string s_json = solvable_to_json(m_pool, s).dump(4);
 
             std::string channel;
-            if (solvable_lookup_str(s, real_repo_key))
+            if (solvable_lookup_str(s, m_real_repo_key))
             {
-                channel = solvable_lookup_str(s, real_repo_key);
+                channel = solvable_lookup_str(s, m_real_repo_key);
             }
             else
             {
@@ -1539,10 +1537,9 @@ namespace mamba
             const char* build_string = solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
 
             std::string channel;
-            Id real_repo_key = pool_str2id(m_pool, "solvable:real_repo_url", 1);
-            if (solvable_lookup_str(s, real_repo_key))
+            if (solvable_lookup_str(s, m_real_repo_key))
             {
-                std::string repo_key = solvable_lookup_str(s, real_repo_key);
+                std::string repo_key = solvable_lookup_str(s, m_real_repo_key);
 
                 if (repo_key == "explicit_specs")
                 {

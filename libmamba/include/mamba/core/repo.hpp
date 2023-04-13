@@ -66,7 +66,6 @@ namespace mamba
 
         void set_installed();
         void set_priority(int priority, int subpriority);
-        void add_package_info(Repodata*, const PackageInfo& pkg_info);
         void add_pip_as_python_dependency();
 
         const fs::u8path& index_file();
@@ -118,6 +117,8 @@ namespace mamba
         create(MPool& pool, const std::string& name, const std::vector<PackageInfo>& uris);
 
     private:
+
+        void add_package_info(Repodata*, const PackageInfo& pkg_info);
 
         MRepo(MPool& pool, const std::string& name, const std::string& filename, const std::string& url);
 

@@ -48,6 +48,9 @@ TEST_SUITE("ObjSolvable")
             solv.set_noarch(std::string("python"));
             solv.set_size(2345);
             solv.set_timestamp(4110596167);
+            solv.set_url("https://conda.anaconda.org/conda-forge/linux-64");
+            solv.set_channel("conda-forge");
+            solv.set_subdir("linux-64");
 
             SUBCASE("Empty without internalize")
             {
@@ -60,6 +63,9 @@ TEST_SUITE("ObjSolvable")
                 CHECK_EQ(solv.noarch(), "");
                 CHECK_EQ(solv.size(), 0);
                 CHECK_EQ(solv.timestamp(), 0);
+                CHECK_EQ(solv.url(), "");
+                CHECK_EQ(solv.channel(), "");
+                CHECK_EQ(solv.subdir(), "");
             }
 
             SUBCASE("Internalize and get attributes")
@@ -79,6 +85,9 @@ TEST_SUITE("ObjSolvable")
                 CHECK_EQ(solv.noarch(), "python");
                 CHECK_EQ(solv.size(), 2345);
                 CHECK_EQ(solv.timestamp(), 4110596167);
+                CHECK_EQ(solv.url(), "https://conda.anaconda.org/conda-forge/linux-64");
+                CHECK_EQ(solv.channel(), "conda-forge");
+                CHECK_EQ(solv.subdir(), "linux-64");
 
                 SUBCASE("Override attribute")
                 {
@@ -103,6 +112,9 @@ TEST_SUITE("ObjSolvable")
             CHECK_EQ(solv.noarch(), "");
             CHECK_EQ(solv.size(), 0);
             CHECK_EQ(solv.timestamp(), 0);
+            CHECK_EQ(solv.url(), "");
+            CHECK_EQ(solv.channel(), "");
+            CHECK_EQ(solv.subdir(), "");
         }
 
         SUBCASE("Add dependency")

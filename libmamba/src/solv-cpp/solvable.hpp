@@ -47,6 +47,27 @@ namespace mamba::solv
         auto size() const -> std::size_t;
         auto timestamp() const -> std::size_t;
 
+        /**
+         * The url of the solvable.
+         *
+         * @see ObjSolvableView::set_url
+         **/
+        auto url() const -> std::string_view;
+
+        /**
+         * The channel of the solvable.
+         *
+         * @see ObjSolvableView::set_channel
+         **/
+        auto channel() const -> std::string_view;
+
+        /**
+         * The sub-directory of the solvable.
+         *
+         * @see ObjSolvableView::set_subdir
+         **/
+        auto subdir() const -> std::string_view;
+
         /** Queue of ``DependencyId``. */
         auto dependencies() const -> ObjQueue;
 
@@ -173,6 +194,45 @@ namespace mamba::solv
          *       be available for lookup.
          */
         void set_timestamp(std::size_t n) const;
+
+        /**
+         * Set the url of the solvable.
+         *
+         * This has no effect for libsolv and is purely for data storing.
+         * This may not be the same as @ref ObjRepoViewConst::url, for instance the install
+         * repository may have no url but its packages do.
+         *
+         * @note A call to @ref ObjRepoView::internalize is required for this attribute to
+         *       be available for lookup.
+         */
+        void set_url(raw_str_view str) const;
+        void set_url(const std::string& str) const;
+
+        /**
+         * Set the channel of the solvable.
+         *
+         * This has no effect for libsolv and is purely for data storing.
+         * This may not be the same as @ref ObjRepoViewConst::channel, for instance the install
+         * repository may have no channel but its packages do.
+         *
+         * @note A call to @ref ObjRepoView::internalize is required for this attribute to
+         *       be available for lookup.
+         */
+        void set_channel(raw_str_view str) const;
+        void set_channel(const std::string& str) const;
+
+        /**
+         * Set the sub-directory of the solvable.
+         *
+         * This has no effect for libsolv and is purely for data storing.
+         * This may not be the same as @ref ObjRepoViewConst::channel, for instance the install
+         * repository may have no subdir but its packages do.
+         *
+         * @note A call to @ref ObjRepoView::internalize is required for this attribute to
+         *       be available for lookup.
+         */
+        void set_subdir(raw_str_view str) const;
+        void set_subdir(const std::string& str) const;
 
         /** Set the dependencies of the solvable. */
         void set_dependencies(const ObjQueue& q) const;

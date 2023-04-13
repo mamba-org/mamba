@@ -271,6 +271,54 @@ namespace mamba::solv
         ::solvable_set_num(raw(), SOLVABLE_BUILDTIME, n);
     }
 
+    auto ObjSolvableViewConst::url() const -> std::string_view
+    {
+        return ptr_to_strview(::solvable_lookup_str(const_cast<::Solvable*>(raw()), SOLVABLE_URL));
+    }
+
+    void ObjSolvableView::set_url(raw_str_view str) const
+    {
+        ::solvable_set_str(raw(), SOLVABLE_URL, str);
+    }
+
+    void ObjSolvableView::set_url(const std::string& str) const
+    {
+        return set_url(str.c_str());
+    }
+
+    auto ObjSolvableViewConst::channel() const -> std::string_view
+    {
+        // (Ab)using the REPOSITORY_REPOID key since it won't have any side effect
+        return ptr_to_strview(::solvable_lookup_str(const_cast<::Solvable*>(raw()), REPOSITORY_REPOID)
+        );
+    }
+
+    void ObjSolvableView::set_channel(raw_str_view str) const
+    {
+        ::solvable_set_str(raw(), REPOSITORY_REPOID, str);
+    }
+
+    void ObjSolvableView::set_channel(const std::string& str) const
+    {
+        return set_channel(str.c_str());
+    }
+
+    auto ObjSolvableViewConst::subdir() const -> std::string_view
+    {
+        return ptr_to_strview(::solvable_lookup_str(const_cast<::Solvable*>(raw()), SOLVABLE_MEDIADIR)
+        );
+    }
+
+    void ObjSolvableView::set_subdir(raw_str_view str) const
+    {
+        ::solvable_set_str(raw(), SOLVABLE_MEDIADIR, str);
+    }
+
+    void ObjSolvableView::set_subdir(const std::string& str) const
+    {
+        return set_subdir(str.c_str());
+    }
+
     auto ObjSolvableViewConst::dependencies() const -> ObjQueue
     {
         auto q = ObjQueue{};

@@ -359,7 +359,7 @@ namespace mamba
             if (activate)
             {
                 script_file = wrap_call(
-                    Context::instance().root_prefix,
+                    Context::instance().prefix_params.root_prefix,
                     prefix,
                     Context::instance().dev,
                     false,
@@ -387,7 +387,7 @@ namespace mamba
             {
                 // std::string caller
                 script_file = wrap_call(
-                    Context::instance().root_prefix.string(),
+                    Context::instance().prefix_params.root_prefix.string(),
                     prefix,
                     Context::instance().dev,
                     false,
@@ -404,7 +404,7 @@ namespace mamba
             }
         }
 
-        envmap["ROOT_PREFIX"] = Context::instance().root_prefix.string();
+        envmap["ROOT_PREFIX"] = Context::instance().prefix_params.root_prefix.string();
         envmap["PREFIX"] = env_prefix.size() ? env_prefix : prefix.string();
         envmap["PKG_NAME"] = pkg_info.name;
         envmap["PKG_VERSION"] = pkg_info.version;

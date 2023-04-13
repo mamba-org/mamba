@@ -71,11 +71,11 @@ namespace mamba
         MainExecutor::instance().on_close(tasksync.synchronized([this] { logger->flush(); }));
 
         on_ci = bool(env::get("CI"));
-        root_prefix = env::get("MAMBA_ROOT_PREFIX").value_or("");
-        conda_prefix = root_prefix;
+        prefix_params.root_prefix = env::get("MAMBA_ROOT_PREFIX").value_or("");
+        prefix_params.conda_prefix = prefix_params.root_prefix;
 
-        envs_dirs = { root_prefix / "envs" };
-        pkgs_dirs = { root_prefix / "pkgs",
+        envs_dirs = { prefix_params.root_prefix / "envs" };
+        pkgs_dirs = { prefix_params.root_prefix / "pkgs",
                       fs::u8path("~") / ".mamba" / "pkgs"
 #ifdef _WIN32
                       ,
@@ -278,7 +278,7 @@ namespace mamba
         {
             throw std::runtime_error("Empty path");
         }
-        if (paths_equal(prefix, Context::instance().root_prefix))
+        if (paths_equal(prefix, Context::instance().prefix_params.root_prefix))
         {
             return ROOT_ENV_NAME;
         }
@@ -300,7 +300,7 @@ namespace mamba
         assert(!name.empty());
         if (name == ROOT_ENV_NAME)
         {
-            return Context::instance().root_prefix;
+            return Context::instance().prefix_params.root_prefix;
         }
         for (auto& d : Context::instance().envs_dirs)
         {
@@ -326,8 +326,8 @@ namespace mamba
 
         auto out = Console::stream();
         out << std::boolalpha << ">>> MAMBA CONTEXT <<< \n";
-        PRINT_CTX(out, target_prefix);
-        PRINT_CTX(out, root_prefix);
+        PRINT_CTX(out, prefix_params.target_prefix);
+        PRINT_CTX(out, prefix_params.root_prefix);
         PRINT_CTX(out, dry_run);
         PRINT_CTX(out, always_yes);
         PRINT_CTX(out, allow_softlinks);
@@ -346,7 +346,7 @@ namespace mamba
         PRINT_CTX(out, use_only_tar_bz2);
         PRINT_CTX(out, auto_activate_base);
         PRINT_CTX(out, extra_safety_checks);
-        PRINT_CTX(out, download_threads);
+        PRINT_CTX(out, threads_params.download_threads);
         PRINT_CTX(out, output_params.verbosity);
         PRINT_CTX(out, channel_alias);
         out << "channel_priority: " << static_cast<int>(channel_priority) << '\n';

@@ -49,7 +49,7 @@ namespace mamba
         {
             auto& ctx = Context::instance();
 
-            auto sprefix_data = PrefixData::create(ctx.target_prefix);
+            auto sprefix_data = PrefixData::create(ctx.prefix_params.target_prefix);
             if (!sprefix_data)
             {
                 // TODO: propagate tl::expected mechanism
@@ -93,7 +93,8 @@ namespace mamba
                 return;
             }
 
-            std::cout << "List of packages in environment: " << ctx.target_prefix << "\n\n";
+            std::cout << "List of packages in environment: " << ctx.prefix_params.target_prefix
+                      << "\n\n";
 
             formatted_pkg formatted_pkgs;
 

@@ -93,12 +93,14 @@ set_shell_command(CLI::App* subcom)
             {
                 if (prefix.empty() || prefix == "base")
                 {
-                    Context::instance().target_prefix = Context::instance().root_prefix;
+                    Context::instance().prefix_params.target_prefix = Context::instance()
+                                                                          .prefix_params.root_prefix;
                 }
                 else
                 {
-                    Context::instance().target_prefix = Context::instance().root_prefix / "envs"
-                                                        / prefix;
+                    Context::instance().prefix_params.target_prefix = Context::instance()
+                                                                          .prefix_params.root_prefix
+                                                                      / "envs" / prefix;
                 }
 
                 std::string default_shell = "bash";

@@ -555,13 +555,16 @@ namespace mamba
                 {
                     // The conda-meta directory is locked by transaction execute
                     auto trash_index = open_ofstream(
-                        Context::instance().target_prefix / "conda-meta" / "mamba_trash.txt",
+                        Context::instance().prefix_params.target_prefix / "conda-meta"
+                            / "mamba_trash.txt",
                         std::ios::app | std::ios::binary
                     );
 
                     // TODO add some unicode tests here?
-                    trash_index << fs::relative(trash_file, Context::instance().target_prefix).string()
-                                << "\n";
+                    trash_index
+                        << fs::relative(trash_file, Context::instance().prefix_params.target_prefix)
+                               .string()
+                        << "\n";
                     return 1;
                 }
 
@@ -1301,7 +1304,7 @@ namespace mamba
         if (!fs::exists(conda_bat) && Context::instance().command_params.is_micromamba)
         {
             // this adds in the needed .bat files for activation
-            init_root_prefix_cmdexe(Context::instance().root_prefix);
+            init_root_prefix_cmdexe(Context::instance().prefix_params.root_prefix);
         }
 
         auto tf = std::make_unique<TemporaryFile>("mamba_bat_", ".bat");
@@ -1390,7 +1393,7 @@ namespace mamba
             // Micromamba hook
             out << "export MAMBA_EXE=" << std::quoted(get_self_exe_path().string(), '\'') << "\n";
             hook_quoted << "$MAMBA_EXE 'shell' 'hook' '-s' 'bash' '-p' "
-                        << std::quoted(Context::instance().root_prefix.string(), '\'');
+                        << std::quoted(Context::instance().prefix_params.root_prefix.string(), '\'');
         }
         if (debug_wrapper_scripts)
         {
@@ -1438,7 +1441,7 @@ namespace mamba
             }
 
             script_file = wrap_call(
-                Context::instance().root_prefix,
+                Context::instance().prefix_params.root_prefix,
                 prefix,
                 Context::instance().dev,
                 false,
@@ -1462,7 +1465,7 @@ namespace mamba
             }
 
             script_file = wrap_call(
-                Context::instance().root_prefix,
+                Context::instance().prefix_params.root_prefix,
                 prefix,
                 Context::instance().dev,
                 false,

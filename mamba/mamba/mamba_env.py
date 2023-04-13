@@ -32,7 +32,7 @@ from mamba.utils import (
 def mamba_install(prefix, specs, args, env, dry_run=False, *_, **kwargs):
     # TODO: support all various ways this happens
     init_api_context()
-    api.Context().target_prefix = prefix
+    api.Context().prefix_params.target_prefix = prefix
     # conda doesn't ask for confirmation with env
     api.Context().always_yes = True
 

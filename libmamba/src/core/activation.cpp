@@ -49,7 +49,7 @@ namespace mamba
 
     std::string Activator::get_default_env(const fs::u8path& prefix)
     {
-        if (paths_equal(prefix, Context::instance().root_prefix))
+        if (paths_equal(prefix, Context::instance().prefix_params.root_prefix))
         {
             return "base";
         }
@@ -284,7 +284,7 @@ namespace mamba
             );
             if (no_condabin)
             {
-                auto condabin_dir = Context::instance().root_prefix / "condabin";
+                auto condabin_dir = Context::instance().prefix_params.root_prefix / "condabin";
                 path_list.insert(path_list.begin(), condabin_dir);
             }
         }
@@ -557,7 +557,7 @@ namespace mamba
         //         from .exceptions import EnvironmentLocationNotFound
         //         raise EnvironmentLocationNotFound(prefix)
         // elif env_name_or_prefix in (ROOT_ENV_NAME, 'root'):
-        //     prefix = context.root_prefix
+        //     prefix = context.prefix_params.root_prefix
         // else:
         //     prefix = locate_prefix_by_name(env_name_or_prefix)
 
@@ -873,7 +873,7 @@ namespace mamba
 
     fs::u8path PosixActivator::hook_source_path()
     {
-        return Context::instance().root_prefix / "etc" / "profile.d" / "micromamba.sh";
+        return Context::instance().prefix_params.root_prefix / "etc" / "profile.d" / "micromamba.sh";
     }
 
     /*********************************
@@ -972,7 +972,7 @@ namespace mamba
 
     fs::u8path CshActivator::hook_source_path()
     {
-        return Context::instance().root_prefix / "etc" / "profile.d" / "micromamba.csh";
+        return Context::instance().prefix_params.root_prefix / "etc" / "profile.d" / "micromamba.csh";
     }
 
 
@@ -1074,7 +1074,7 @@ namespace mamba
 
     fs::u8path PowerShellActivator::hook_source_path()
     {
-        return Context::instance().root_prefix / "condabin" / "mamba_hook.ps1";
+        return Context::instance().prefix_params.root_prefix / "condabin" / "mamba_hook.ps1";
     }
 
     std::pair<std::string, std::string>
@@ -1142,7 +1142,7 @@ namespace mamba
 
     fs::u8path XonshActivator::hook_source_path()
     {
-        return Context::instance().root_prefix / "etc" / "profile.d" / "mamba.xsh";
+        return Context::instance().prefix_params.root_prefix / "etc" / "profile.d" / "mamba.xsh";
     }
 
     std::pair<std::string, std::string>
@@ -1210,7 +1210,8 @@ namespace mamba
 
     fs::u8path FishActivator::hook_source_path()
     {
-        return Context::instance().root_prefix / "etc" / "fish" / "conf.d" / "mamba.fish";
+        return Context::instance().prefix_params.root_prefix / "etc" / "fish" / "conf.d"
+               / "mamba.fish";
     }
 
     std::pair<std::string, std::string>

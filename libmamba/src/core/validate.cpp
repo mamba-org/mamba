@@ -1451,10 +1451,7 @@ namespace mamba::validation
 
             if (dl_target->resource_exists())
             {
-                auto result = curl_easy_perform(dl_target->handle());
-                dl_target->set_result(result);
-
-                if ((result == CURLE_OK) && dl_target->finalize())
+                if (dl_target->perform())
                 {
                     KeyMgrRole key_mgr = create_key_mgr(tmp_metadata_path);
 
@@ -1617,10 +1614,7 @@ namespace mamba::validation
 
             if (dl_target->resource_exists())
             {
-                auto result = curl_easy_perform(dl_target->handle());
-                dl_target->set_result(result);
-
-                if ((result == CURLE_OK) && dl_target->finalize())
+                if (dl_target->perform())
                 {
                     PkgMgrRole pkg_mgr = create_pkg_mgr(tmp_metadata_path);
 
@@ -2163,10 +2157,7 @@ namespace mamba::validation
 
                 if (dl_target->resource_exists())
                 {
-                    auto result = curl_easy_perform(dl_target->handle());
-                    dl_target->set_result(result);
-
-                    if ((result == CURLE_OK) && dl_target->finalize())
+                    if (dl_target->perform())
                     {
                         break;
                     }

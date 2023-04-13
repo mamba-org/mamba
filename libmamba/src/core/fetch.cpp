@@ -30,6 +30,15 @@ namespace mamba
         : m_name(name)
         , m_filename(filename)
         , m_url(unc_url(url))
+        , m_http_status(10000)
+        , m_downloaded_size(0)
+        , m_effective_url(nullptr)
+        , m_result(CURLE_OK)
+        , m_expected_size(0)
+        , m_retry_wait_seconds(get_default_retry_timeout())
+        , m_retries(0)
+        , m_has_progress_bar(false)
+        , m_ignore_failure(false)
     {
         m_curl_handle = std::make_unique<CURLHandle>();
         init_curl_ssl();
@@ -220,7 +229,8 @@ namespace mamba
 
     bool DownloadTarget::can_retry()
     {
-        switch (result)
+        // TODO add a function here to wrap the switch and returning a bool
+        switch (m_result)
         {
             case CURLE_ABORTED_BY_CALLBACK:
             case CURLE_BAD_FUNCTION_ARGUMENT:
@@ -245,7 +255,7 @@ namespace mamba
         }
 
         return m_retries < size_t(Context::instance().remote_fetch_params.max_retries)
-               && (http_status == 413 || http_status == 429 || http_status >= 500)
+               && (m_http_status == 413 || m_http_status == 429 || m_http_status >= 500)
                && !starts_with(m_url, "file://");
     }
 
@@ -334,15 +344,15 @@ namespace mamba
             std::string lkey = to_lower(key);
             if (lkey == "etag")
             {
-                s->etag = value;
+                s->m_etag = value;
             }
             else if (lkey == "cache-control")
             {
-                s->cache_control = value;
+                s->m_cache_control = value;
             }
             else if (lkey == "last-modified")
             {
-                s->mod = value;
+                s->m_mod = value;
             }
         }
         return nitems * size;
@@ -409,7 +419,7 @@ namespace mamba
             target->set_progress_throttle_time(now);
         }
 
-        if (!total_to_download && !target->expected_size())
+        if (!total_to_download && !target->get_expected_size())
         {
             target->m_progress_bar.activate_spinner();
         }
@@ -418,7 +428,7 @@ namespace mamba
             target->m_progress_bar.deactivate_spinner();
         }
 
-        if (!total_to_download && target->expected_size())
+        if (!total_to_download && target->get_expected_size())
         {
             target->m_progress_bar.update_current(static_cast<std::size_t>(now_downloaded));
         }
@@ -430,7 +440,7 @@ namespace mamba
             );
         }
 
-        target->m_progress_bar.set_speed(static_cast<std::size_t>(target->get_speed()));
+        target->m_progress_bar.set_speed(target->get_speed());
 
         return 0;
     }
@@ -471,19 +481,63 @@ namespace mamba
         m_curl_handle->set_opt(CURLOPT_NOBODY, yes);
     }
 
-    const std::string& DownloadTarget::name() const
+    const std::string& DownloadTarget::get_name() const
     {
         return m_name;
     }
 
-    const std::string& DownloadTarget::url() const
+    const std::string& DownloadTarget::get_url() const
     {
         return m_url;
     }
 
-    std::size_t DownloadTarget::expected_size() const
+    const std::string& DownloadTarget::get_etag() const
+    {
+        return m_etag;
+    }
+
+    const std::string& DownloadTarget::get_mod() const
+    {
+        return m_mod;
+    }
+
+    const std::string& DownloadTarget::get_cache_control() const
+    {
+        return m_cache_control;
+    }
+
+    std::size_t DownloadTarget::get_expected_size() const
     {
         return m_expected_size;
+    }
+
+    int DownloadTarget::get_http_status() const
+    {
+        return m_http_status;
+    }
+
+    std::size_t DownloadTarget::get_downloaded_size() const
+    {
+        return m_downloaded_size;
+    }
+
+    std::size_t DownloadTarget::get_speed()
+    {
+        auto speed = m_curl_handle->get_info<std::size_t>(CURLINFO_SPEED_DOWNLOAD_T);
+        // TODO Should we just drop all code below with progress_bar and use value_or(0) in get_info
+        // above instead?
+        if (!speed.has_value())
+        {
+            if (m_has_progress_bar)
+            {
+                return m_progress_bar.avg_speed();
+            }
+            else
+            {
+                return 0;
+            }
+        }
+        return speed.value();
     }
 
     static size_t discard(char*, size_t size, size_t nmemb, void*)
@@ -527,9 +581,9 @@ namespace mamba
     {
         LOG_INFO << "Downloading to filename: " << m_filename;
 
-        result = curl_easy_perform(m_curl_handle->handle());
-        set_result(result);
-        return finalize();
+        m_result = curl_easy_perform(m_curl_handle->handle());
+        set_result(m_result);
+        return ((m_result == CURLE_OK) && finalize());
     }
 
     CURL* DownloadTarget::handle()
@@ -537,34 +591,15 @@ namespace mamba
         return m_curl_handle->handle();
     }
 
-    curl_off_t DownloadTarget::get_speed()
-    {
-        auto speed = m_curl_handle->get_info<long>(CURLINFO_SPEED_DOWNLOAD_T);
-        // TODO Should we just drop all code below with progress_bar and use value_or(0) in get_info
-        // above instead?
-        if (!speed.has_value())
-        {
-            if (m_has_progress_bar)
-            {
-                return static_cast<curl_off_t>(m_progress_bar.avg_speed());
-            }
-            else
-            {
-                return 0;
-            }
-        }
-        return speed.value();
-    }
-
     void DownloadTarget::set_result(CURLcode r)
     {
-        result = r;
+        m_result = r;
         if (r != CURLE_OK)
         {
             auto leffective_url = m_curl_handle->get_info<char*>(CURLINFO_EFFECTIVE_URL).value();
 
             std::stringstream err;
-            err << "Download error (" << result << ") " << curl_easy_strerror(result) << " ["
+            err << "Download error (" << m_result << ") " << curl_easy_strerror(m_result) << " ["
                 << leffective_url << "]\n";
             if (m_curl_handle->get_error_buffer()[0] != '\0')
             {
@@ -579,7 +614,7 @@ namespace mamba
             {
                 m_progress_bar.update_progress(0, 1);
                 // m_progress_bar.set_elapsed_time();
-                m_progress_bar.set_postfix(curl_easy_strerror(result));
+                m_progress_bar.set_postfix(curl_easy_strerror(m_result));
             }
             if (!m_ignore_failure && !can_retry())
             {
@@ -588,12 +623,17 @@ namespace mamba
         }
     }
 
+    std::size_t DownloadTarget::get_result() const
+    {
+        return static_cast<std::size_t>(m_result);
+    }
+
     bool DownloadTarget::finalize()
     {
-        avg_speed = get_speed();
-        http_status = m_curl_handle->get_info<int>(CURLINFO_RESPONSE_CODE).value_or(10000);
-        effective_url = m_curl_handle->get_info<char*>(CURLINFO_EFFECTIVE_URL).value();
-        downloaded_size = m_curl_handle->get_info<long>(CURLINFO_SIZE_DOWNLOAD_T).value_or(0);
+        auto avg_speed = get_speed();
+        m_http_status = m_curl_handle->get_info<int>(CURLINFO_RESPONSE_CODE).value_or(10000);
+        m_effective_url = m_curl_handle->get_info<char*>(CURLINFO_EFFECTIVE_URL).value();
+        m_downloaded_size = m_curl_handle->get_info<std::size_t>(CURLINFO_SIZE_DOWNLOAD_T).value_or(0);
 
         LOG_INFO << get_transfer_msg();
 
@@ -612,22 +652,21 @@ namespace mamba
             m_next_retry = std::chrono::steady_clock::now()
                            + std::chrono::seconds(m_retry_wait_seconds);
             std::stringstream msg;
-            msg << "Failed (" << http_status << "), retry in " << m_retry_wait_seconds << "s";
+            msg << "Failed (" << m_http_status << "), retry in " << m_retry_wait_seconds << "s";
             if (m_has_progress_bar)
             {
-                m_progress_bar.update_progress(0, static_cast<std::size_t>(downloaded_size));
+                m_progress_bar.update_progress(0, m_downloaded_size);
                 m_progress_bar.set_postfix(msg.str());
             }
             return false;
         }
 
         m_file.close();
-        final_url = effective_url;
 
         if (m_has_progress_bar)
         {
-            m_progress_bar.set_speed(static_cast<std::size_t>(avg_speed));
-            m_progress_bar.set_total(static_cast<std::size_t>(downloaded_size));
+            m_progress_bar.set_speed(avg_speed);
+            m_progress_bar.set_total(m_downloaded_size);
             m_progress_bar.set_full();
             m_progress_bar.set_postfix("Downloaded");
         }
@@ -645,7 +684,7 @@ namespace mamba
             }
             else
             {
-                Console::instance().print(name() + " completed");
+                Console::instance().print(m_name + " completed");
             }
         }
 
@@ -671,8 +710,8 @@ namespace mamba
     std::string DownloadTarget::get_transfer_msg()
     {
         std::stringstream ss;
-        ss << "Transfer finalized, status: " << http_status << " [" << effective_url << "] "
-           << downloaded_size << " bytes";
+        ss << "Transfer finalized, status: " << m_http_status << " [" << m_effective_url << "] "
+           << m_downloaded_size << " bytes";
         return ss.str();
     }
 
@@ -741,7 +780,7 @@ namespace mamba
 
             if (msg->msg == CURLMSG_DONE)
             {
-                LOG_INFO << "Transfer done for '" << current_target->name() << "'";
+                LOG_INFO << "Transfer done for '" << current_target->get_name() << "'";
                 // We are only interested in messages about finished transfers
                 curl_multi_remove_handle(m_handle, current_target->handle());
 
@@ -751,12 +790,12 @@ namespace mamba
                     // transfer did not work! can we retry?
                     if (current_target->can_retry())
                     {
-                        LOG_INFO << "Setting retry for '" << current_target->name() << "'";
+                        LOG_INFO << "Setting retry for '" << current_target->get_name() << "'";
                         m_retry_targets.push_back(current_target);
                     }
                     else
                     {
-                        if (failfast && current_target->ignore_failure() == false)
+                        if (failfast && current_target->get_ignore_failure() == false)
                         {
                             throw std::runtime_error(
                                 "Multi-download failed. Reason: " + current_target->get_transfer_msg()
@@ -789,7 +828,7 @@ namespace mamba
                 m_targets.begin(),
                 m_targets.end(),
                 [](DownloadTarget* a, DownloadTarget* b) -> bool
-                { return a->expected_size() > b->expected_size(); }
+                { return a->get_expected_size() > b->get_expected_size(); }
             );
         }
 

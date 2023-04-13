@@ -133,11 +133,11 @@ namespace mamba
     void PackageDownloadExtractTarget::validate()
     {
         m_validation_result = VALIDATION_RESULT::VALID;
-        if (m_expected_size && size_t(m_target->downloaded_size) != m_expected_size)
+        if (m_expected_size && (m_target->get_downloaded_size() != m_expected_size))
         {
             LOG_ERROR << "File not valid: file size doesn't match expectation " << m_tarball_path
                       << "\nExpected: " << m_expected_size
-                      << "\nActual: " << size_t(m_target->downloaded_size) << "\n";
+                      << "\nActual: " << m_target->get_downloaded_size() << "\n";
             if (m_has_progress_bars)
             {
                 m_download_bar.set_postfix("validation failed");
@@ -344,10 +344,10 @@ namespace mamba
             m_download_bar.mark_as_completed();
         }
 
-        if (m_target->http_status >= 400)
+        if (m_target->get_http_status() >= 400)
         {
             LOG_ERROR << "Failed to download package from " << m_url << " (status "
-                      << m_target->http_status << ")";
+                      << m_target->get_http_status() << ")";
             m_validation_result = VALIDATION_RESULT::UNDEFINED;
             return false;
         }

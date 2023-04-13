@@ -451,7 +451,7 @@ namespace mamba
 
     bool MSubdirData::finalize_check(const DownloadTarget& target)
     {
-        LOG_INFO << "Checked: " << target.url() << " [" << target.http_status << "]";
+        LOG_INFO << "Checked: " << target.get_url() << " [" << target.get_http_status() << "]";
         if (m_progress_bar_check)
         {
             m_progress_bar_check.repr().postfix.set_value("Checked");
@@ -460,9 +460,9 @@ namespace mamba
             m_progress_bar_check.mark_as_completed();
         }
 
-        if (ends_with(target.url(), ".zst"))
+        if (ends_with(target.get_url(), ".zst"))
         {
-            this->m_metadata.has_zst = { target.http_status == 200, utc_time_now() };
+            this->m_metadata.has_zst = { target.get_http_status() == 200, utc_time_now() };
         }
         return true;
     }
@@ -689,14 +689,14 @@ namespace mamba
 
     bool MSubdirData::finalize_transfer(const DownloadTarget&)
     {
-        if (m_target->result != 0 || m_target->http_status >= 400)
+        if (m_target->get_result() != 0 || m_target->get_http_status() >= 400)
         {
-            LOG_INFO << "Unable to retrieve repodata (response: " << m_target->http_status
-                     << ") for '" << m_target->url() << "'";
+            LOG_INFO << "Unable to retrieve repodata (response: " << m_target->get_http_status()
+                     << ") for '" << m_target->get_url() << "'";
 
             if (m_progress_bar)
             {
-                m_progress_bar.set_postfix(std::to_string(m_target->http_status) + " failed");
+                m_progress_bar.set_postfix(std::to_string(m_target->get_http_status()) + " failed");
                 m_progress_bar.set_full();
                 m_progress_bar.mark_as_completed();
             }
@@ -704,9 +704,10 @@ namespace mamba
             return false;
         }
 
-        LOG_DEBUG << "HTTP response code: " << m_target->http_status;
+        LOG_DEBUG << "HTTP response code: " << m_target->get_http_status();
         // Note HTTP status == 0 for files
-        if (m_target->http_status == 0 || m_target->http_status == 200 || m_target->http_status == 304)
+        if (m_target->get_http_status() == 0 || m_target->get_http_status() == 200
+            || m_target->get_http_status() == 304)
         {
             m_download_complete = true;
         }
@@ -714,14 +715,14 @@ namespace mamba
         {
             LOG_WARNING << "HTTP response code indicates error, retrying.";
             throw mamba_error(
-                "Unhandled HTTP code: " + std::to_string(m_target->http_status),
+                "Unhandled HTTP code: " + std::to_string(m_target->get_http_status()),
                 mamba_error_code::subdirdata_not_loaded
             );
         }
 
         fs::u8path json_file, solv_file;
 
-        if (m_target->http_status == 304)
+        if (m_target->get_http_status() == 304)
         {
             // cache still valid
             LOG_INFO << "Cache is still valid";
@@ -802,7 +803,7 @@ namespace mamba
             }
         }
 
-        LOG_DEBUG << "Finalized transfer of '" << m_target->url() << "'";
+        LOG_DEBUG << "Finalized transfer of '" << m_target->get_url() << "'";
 
         fs::u8path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
         json_file = writable_cache_dir / m_json_fn;
@@ -810,10 +811,10 @@ namespace mamba
 
         auto file_size = fs::file_size(m_temp_file->path());
 
-        m_metadata.url = m_target->url();
-        m_metadata.etag = m_target->etag;
-        m_metadata.mod = m_target->mod;
-        m_metadata.cache_control = m_target->cache_control;
+        m_metadata.url = m_target->get_url();
+        m_metadata.etag = m_target->get_etag();
+        m_metadata.mod = m_target->get_mod();
+        m_metadata.cache_control = m_target->get_cache_control();
         m_metadata.stored_file_size = file_size;
 
         if (!Context::instance().repodata_use_zst)

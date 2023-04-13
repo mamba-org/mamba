@@ -56,18 +56,21 @@ namespace mamba
         void set_expected_size(std::size_t size);
         void set_head_only(bool yes);
 
-        const std::string& name() const;
-        const std::string& url() const;
-        std::size_t expected_size() const;
+        const std::string& get_name() const;
+        const std::string& get_url() const;
+
+        const std::string& get_etag() const;
+        const std::string& get_mod() const;
+        const std::string& get_cache_control() const;
+
+        std::size_t get_expected_size() const;
+        int get_http_status() const;
+        std::size_t get_downloaded_size() const;
+
+        std::size_t get_speed();
 
         void init_curl_ssl();
         void init_curl_target(const std::string& url);
-
-        bool resource_exists();
-        bool perform();
-        CURL* handle();
-
-        curl_off_t get_speed();
 
         template <class C>
         inline void set_finalize_callback(bool (C::*cb)(const DownloadTarget&), C* data)
@@ -80,12 +83,18 @@ namespace mamba
             m_ignore_failure = yes;
         }
 
-        bool ignore_failure() const
+        bool get_ignore_failure() const
         {
             return m_ignore_failure;
         }
 
         void set_result(CURLcode r);
+        std::size_t get_result() const;
+
+        bool resource_exists();
+        bool perform();
+        CURL* handle();
+
         bool finalize();
         std::string get_transfer_msg();
 
@@ -94,16 +103,6 @@ namespace mamba
 
         std::chrono::steady_clock::time_point progress_throttle_time() const;
         void set_progress_throttle_time(const std::chrono::steady_clock::time_point& time);
-
-        CURLcode result = CURLE_OK;
-        bool failed = false;
-        int http_status = 10000;
-        char* effective_url = nullptr;
-        curl_off_t downloaded_size = 0;
-        curl_off_t avg_speed = 0;
-        std::string final_url;
-
-        std::string etag, mod, cache_control;
 
     private:
 
@@ -114,16 +113,24 @@ namespace mamba
 
         std::string m_name, m_filename, m_url;
 
+        int m_http_status;
+        std::size_t m_downloaded_size;
+        char* m_effective_url;
+
+        CURLcode m_result;  // Enum range from 0 to 99
+
+        std::string m_etag, m_mod, m_cache_control;
+
         // validation
-        std::size_t m_expected_size = 0;
+        std::size_t m_expected_size;
 
         // retry & backoff
         std::chrono::steady_clock::time_point m_next_retry;
-        std::size_t m_retry_wait_seconds = get_default_retry_timeout();
-        std::size_t m_retries = 0;
+        std::size_t m_retry_wait_seconds;
+        std::size_t m_retries;
 
-        bool m_has_progress_bar = false;
-        bool m_ignore_failure = false;
+        bool m_has_progress_bar;
+        bool m_ignore_failure;
 
         ProgressProxy m_progress_bar;
 

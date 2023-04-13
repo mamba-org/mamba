@@ -259,7 +259,7 @@ namespace mamba
                && !starts_with(m_url, "file://");
     }
 
-    CURL* DownloadTarget::retry()
+    bool DownloadTarget::retry()
     {
         auto now = std::chrono::steady_clock::now();
         if (now >= m_next_retry)
@@ -284,11 +284,11 @@ namespace mamba
                                    );
             m_next_retry = now + std::chrono::seconds(m_retry_wait_seconds);
             m_retries++;
-            return m_curl_handle->handle();
+            return true;
         }
         else
         {
-            return nullptr;
+            return false;
         }
     }
 
@@ -715,19 +715,22 @@ namespace mamba
         return ss.str();
     }
 
+    const CURLHandle& DownloadTarget::get_curl_handle() const
+    {
+        return *m_curl_handle;
+    }
+
     /**************************************
      * MultiDownloadTarget implementation *
      **************************************/
 
     MultiDownloadTarget::MultiDownloadTarget()
     {
-        m_handle = curl_multi_init();
-        curl_multi_setopt(m_handle, CURLMOPT_MAX_TOTAL_CONNECTIONS, Context::instance().download_threads);
+        p_curl_handle = std::make_unique<CURLMultiHandle>(Context::instance().download_threads);
     }
 
     MultiDownloadTarget::~MultiDownloadTarget()
     {
-        curl_multi_cleanup(m_handle);
     }
 
     void MultiDownloadTarget::add(DownloadTarget* target)
@@ -736,29 +739,25 @@ namespace mamba
         {
             return;
         }
-        CURLMcode code = curl_multi_add_handle(m_handle, target->handle());
-        if (code != CURLM_CALL_MULTI_PERFORM)
-        {
-            if (code != CURLM_OK)
-            {
-                throw std::runtime_error(curl_multi_strerror(code));
-            }
-        }
+        p_curl_handle->add_handle(target->get_curl_handle());
         m_targets.push_back(target);
     }
 
     bool MultiDownloadTarget::check_msgs(bool failfast)
     {
-        int msgs_in_queue;
-        CURLMsg* msg;
-
-        while ((msg = curl_multi_info_read(m_handle, &msgs_in_queue)) != nullptr)
+        while (auto resp = p_curl_handle->pop_message())
         {
-            // TODO maybe refactor so that `msg` is passed to current target?
+            const auto& msg = resp.value();
+            if (!msg.m_transfer_done)
+            {
+                // We are only interested in messages about finished transfers
+                continue;
+            }
+
             DownloadTarget* current_target = nullptr;
             for (const auto& target : m_targets)
             {
-                if (target->handle() == msg->easy_handle)
+                if (target->get_curl_handle() == msg.m_handle_ref)
                 {
                     current_target = target;
                     break;
@@ -770,19 +769,17 @@ namespace mamba
                 throw std::runtime_error("Could not find target associated with multi request");
             }
 
-            current_target->set_result(msg->data.result);
-            if (msg->data.result != CURLE_OK && current_target->can_retry())
+            current_target->set_result(msg.m_transfer_result);
+            if (msg.m_transfer_result != CURLE_OK && current_target->can_retry())
             {
-                curl_multi_remove_handle(m_handle, current_target->handle());
+                p_curl_handle->remove_handle(current_target->get_curl_handle());
                 m_retry_targets.push_back(current_target);
-                continue;
             }
-
-            if (msg->msg == CURLMSG_DONE)
+            else
             {
                 LOG_INFO << "Transfer done for '" << current_target->get_name() << "'";
                 // We are only interested in messages about finished transfers
-                curl_multi_remove_handle(m_handle, current_target->handle());
+                p_curl_handle->remove_handle(current_target->get_curl_handle());
 
                 // flush file & finalize transfer
                 if (!current_target->finalize())
@@ -846,16 +843,11 @@ namespace mamba
             pbar_manager.watch_print();
         }
 
-        int still_running, repeats = 0;
-        const long max_wait_msecs = 1000;
+        std::size_t still_running = size_t(0);
+        std::size_t repeats = 0;
         do
         {
-            CURLMcode code = curl_multi_perform(m_handle, &still_running);
-
-            if (code != CURLM_OK)
-            {
-                throw std::runtime_error(curl_multi_strerror(code));
-            }
+            still_running = p_curl_handle->perform();
             check_msgs(failfast);
 
             if (!m_retry_targets.empty())
@@ -863,10 +855,9 @@ namespace mamba
                 auto it = m_retry_targets.begin();
                 while (it != m_retry_targets.end())
                 {
-                    CURL* curl_handle = (*it)->retry();
-                    if (curl_handle != nullptr)
+                    if ((*it)->retry())
                     {
-                        curl_multi_add_handle(m_handle, curl_handle);
+                        p_curl_handle->add_handle((*it)->get_curl_handle());
                         it = m_retry_targets.erase(it);
                         still_running = 1;
                     }
@@ -877,41 +868,28 @@ namespace mamba
                 }
             }
 
-            long curl_timeout = -1;  // NOLINT(runtime/int)
-            code = curl_multi_timeout(m_handle, &curl_timeout);
-            if (code != CURLM_OK)
+            std::size_t timeout = p_curl_handle->get_timeout();
+            if (timeout == 0u)
             {
-                throw std::runtime_error(curl_multi_strerror(code));
-            }
-
-            if (curl_timeout == 0)
-            {  // No wait
                 continue;
             }
+            std::size_t numfds = p_curl_handle->wait(timeout);
 
-            if (curl_timeout < 0 || curl_timeout > max_wait_msecs)
-            {  // Wait no more than 1s
-                curl_timeout = max_wait_msecs;
-            }
-
-            int numfds;
-            code = curl_multi_wait(m_handle, NULL, 0, static_cast<int>(curl_timeout), &numfds);
-            if (code != CURLM_OK)
-            {
-                throw std::runtime_error(curl_multi_strerror(code));
-            }
-
+            // 'numfds' being zero means either a timeout or no file descriptors to
+            // wait for. Try timeout on first occurrence, then assume no file
+            // descriptors and no file descriptors to wait for means wait for 100
+            // milliseconds.
             if (!numfds)
             {
-                repeats++;  // count number of repeated zero numfds
+                repeats++;
                 if (repeats > 1)
                 {
                     std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 }
-            }
-            else
-            {
-                repeats = 0;
+                else
+                {
+                    repeats = 0;
+                }
             }
         } while ((still_running || !m_retry_targets.empty()) && !is_sig_interrupted());
 

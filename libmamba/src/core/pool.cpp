@@ -4,7 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <list>
 #include <string_view>
 
 #include <fmt/format.h>
@@ -34,7 +33,6 @@ namespace mamba
     struct MPool::MPoolData
     {
         solv::ObjPool pool = {};
-        std::list<MRepo> repo_list = {};
     };
 
     MPool::MPool()
@@ -310,15 +308,8 @@ namespace mamba
         return pool_dep2str(const_cast<::Pool*>(pool().raw()), dep_id);
     }
 
-    MRepo& MPool::add_repo(MRepo&& repo)
+    void MPool::remove_repo(::Id repo_id, bool reuse_ids)
     {
-        m_data->repo_list.push_back(std::move(repo));
-        return m_data->repo_list.back();
+        pool().remove_repo(repo_id, reuse_ids);
     }
-
-    void MPool::remove_repo(Id repo_id)
-    {
-        m_data->repo_list.remove_if([repo_id](const MRepo& repo) { return repo_id == repo.id(); });
-    }
-
 }  // namespace mamba

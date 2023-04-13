@@ -15,6 +15,7 @@
 #include <solv/pooltypes.h>
 
 #include "mamba_fs.hpp"
+#include "pool.hpp"
 
 extern "C"
 {
@@ -24,7 +25,6 @@ extern "C"
 
 namespace mamba
 {
-    class MPool;
     class PackageInfo;
     class PrefixData;
 
@@ -56,7 +56,10 @@ namespace mamba
     {
     public:
 
-        ~MRepo();
+        MRepo(MPool& pool, const std::string& name, const std::string& filename, const std::string& url);
+        MRepo(MPool& pool, const std::string& name, const fs::u8path& filename, const RepoMetadata& meta);
+        MRepo(MPool& pool, const PrefixData& prefix_data);
+        MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& uris);
 
         MRepo(const MRepo&) = delete;
         MRepo& operator=(const MRepo&) = delete;
@@ -80,65 +83,21 @@ namespace mamba
 
         bool clear(bool reuse_ids);
 
-        /**
-         * Static constructor.
-         * @param pool ``libsolv`` pool wrapper
-         * @param name Name of the subdirectory (<channel>/<subdir>)
-         * @param filename Name of the index file
-         * @param url Subdirectory URL
-         */
-        static MRepo&
-        create(MPool& pool, const std::string& name, const std::string& filename, const std::string& url);
-
-        /**
-         * Static constructor.
-         * @param pool ``libsolv`` pool wrapper
-         * @param name Name of the subdirectory (<channel>/<subdir>)
-         * @param index Path to the index file
-         * @param meta Metadata of the repo
-         */
-        static MRepo&
-        create(MPool& pool, const std::string& name, const fs::u8path& filename, const RepoMetadata& meta);
-
-        /**
-         * Static constructor.
-         * @param pool ``libsolv`` pool wrapper
-         * @param prefix_data prefix data
-         */
-        static MRepo& create(MPool& pool, const PrefixData& prefix_data);
-
-        /**
-         * Static constructor.
-         * @param pool ``libsolv`` pool wrapper
-         * @param name Name
-         * @param uris Matchspecs pointing to unique resources (URL or files)
-         */
-        static MRepo&
-        create(MPool& pool, const std::string& name, const std::vector<PackageInfo>& uris);
-
     private:
 
-        void add_package_info(Repodata*, const PackageInfo& pkg_info);
-
-        MRepo(MPool& pool, const std::string& name, const std::string& filename, const std::string& url);
-
-        MRepo(MPool& pool, const std::string& name, const fs::u8path& filename, const RepoMetadata& meta);
-
-        MRepo(MPool& pool, const PrefixData& prefix_data);
-
-        MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& uris);
-
         void init(MPool& pool);
-
         bool read_file(const fs::u8path& filename);
+        void add_package_info(Repodata*, const PackageInfo& pkg_info);
         void set_solvables_url();
 
-        fs::u8path m_json_file, m_solv_file;
-        std::string m_url;
+        MPool m_pool;
+        fs::u8path m_json_file = {};
+        fs::u8path m_solv_file = {};
+        std::string m_url = {};
 
-        RepoMetadata m_metadata;
+        RepoMetadata m_metadata = {};
 
-        Repo* m_repo;
+        Repo* m_repo = nullptr;  // This is a view managed by libsolv pool
         ::Id m_real_repo_key = 0;
         ::Id m_mrepo_key = 0;
         ::Id m_noarch_repo_key = 0;

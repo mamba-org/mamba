@@ -505,7 +505,7 @@ namespace mamba
             pi_result.push_back(p);
         }
 
-        MRepo& mrepo = MRepo::create(m_pool, "__explicit_specs__", pi_result);
+        MRepo mrepo = MRepo(m_pool, "__explicit_specs__", pi_result);
 
         m_pool.create_whatprovides();
 
@@ -791,7 +791,7 @@ namespace mamba
         , m_multi_cache(caches)
     {
         LOG_INFO << "MTransaction::MTransaction - packages already resolved (lockfile)";
-        MRepo& mrepo = MRepo::create(m_pool, "__explicit_specs__", packages);
+        MRepo mrepo = MRepo(m_pool, "__explicit_specs__", packages);
         m_pool.create_whatprovides();
 
         solv::ObjQueue decision = {};

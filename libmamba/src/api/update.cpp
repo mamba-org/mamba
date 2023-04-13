@@ -66,7 +66,7 @@ namespace mamba
 
         prefix_data.add_packages(get_virtual_packages());
 
-        MRepo::create(pool, prefix_data);
+        MRepo(pool, prefix_data);
 
         MSolver solver(
             pool,

@@ -144,7 +144,7 @@ namespace mamba
         const auto repodata_f = create_repodata_json(tmp_dir.path, packages);
 
         auto pool = MPool();
-        MRepo::create(pool, "some-name", repodata_f, "some-url");
+        MRepo(pool, "some-name", repodata_f, "some-url");
         auto solver = std::make_unique<MSolver>(
             std::move(pool),
             std::vector{ std::pair{ SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } }
@@ -347,7 +347,7 @@ namespace mamba
         auto prefix_data = expected_value_or_throw(PrefixData::create(tmp_dir.path / "prefix"));
         prefix_data.add_packages(virtual_packages);
         auto pool = MPool();
-        auto& repo = MRepo::create(pool, prefix_data);
+        auto repo = MRepo(pool, prefix_data);
         repo.set_installed();
 
         auto cache = MultiPackageCache({ tmp_dir.path / "cache" });

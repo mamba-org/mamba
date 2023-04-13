@@ -40,7 +40,8 @@ namespace mamba
     }
 
     MRepo::MRepo(MPool& pool, const std::string& /*name*/, const fs::u8path& index, const RepoMetadata& metadata)
-        : m_url(rsplit(metadata.url, "/", 1)[0])
+        : m_pool(pool)
+        , m_url(rsplit(metadata.url, "/", 1)[0])
         , m_metadata(metadata)
     {
         m_repo = repo_create(pool, m_url.c_str());
@@ -49,7 +50,8 @@ namespace mamba
     }
 
     MRepo::MRepo(MPool& pool, const std::string& name, const std::string& index, const std::string& url)
-        : m_url(url)
+        : m_pool(pool)
+        , m_url(url)
         , m_repo(repo_create(pool, name.c_str()))
     {
         init(pool);
@@ -57,7 +59,8 @@ namespace mamba
     }
 
     MRepo::MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& package_infos)
-        : m_repo(repo_create(pool, name.c_str()))
+        : m_pool(pool)
+        , m_repo(repo_create(pool, name.c_str()))
     {
         init(pool);
         int flags = 0;
@@ -71,7 +74,8 @@ namespace mamba
     }
 
     MRepo::MRepo(MPool& pool, const PrefixData& prefix_data)
-        : m_repo(repo_create(pool, "installed"))
+        : m_pool(pool)
+        , m_repo(repo_create(pool, "installed"))
     {
         init(pool);
         int flags = 0;
@@ -109,20 +113,6 @@ namespace mamba
         {
             solvable_set_str(s, m_mrepo_key, this->url().c_str());
         }
-    }
-
-    MRepo::~MRepo()
-    {
-        if (m_repo)
-        {
-            repo_free(m_repo, 1);
-        }
-        // not sure if reuse_ids is useful here
-        // repo will be freed with pool as well though
-        // maybe explicitly free pool for faster repo deletion as well
-        // TODO this is actually freed with the pool, and calling it here will cause
-        // segfaults. need to find a more clever way to do this. repo_free(m_repo,
-        // /*reuse_ids*/1);
     }
 
     MRepo::MRepo(MRepo&& rhs)
@@ -289,28 +279,6 @@ namespace mamba
                 );
             }
         }
-    }
-
-    MRepo&
-    MRepo::create(MPool& pool, const std::string& name, const std::string& filename, const std::string& url)
-    {
-        return pool.add_repo(MRepo(pool, name, filename, url));
-    }
-
-    MRepo&
-    MRepo::create(MPool& pool, const std::string& name, const fs::u8path& filename, const RepoMetadata& meta)
-    {
-        return pool.add_repo(MRepo(pool, name, filename, meta));
-    }
-
-    MRepo& MRepo::create(MPool& pool, const PrefixData& prefix_data)
-    {
-        return pool.add_repo(MRepo(pool, prefix_data));
-    }
-
-    MRepo& MRepo::create(MPool& pool, const std::string& name, const std::vector<PackageInfo>& uris)
-    {
-        return pool.add_repo(MRepo(pool, name, uris));
     }
 
     bool MRepo::read_file(const fs::u8path& filename)

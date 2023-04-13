@@ -174,15 +174,9 @@ PYBIND11_MODULE(bindings, m)
         .def_readwrite("noarch", &ExtraPkgInfo::noarch)
         .def_readwrite("repo_url", &ExtraPkgInfo::repo_url);
 
-    py::class_<MRepo, std::unique_ptr<MRepo, py::nodelete>>(m, "Repo")
-        .def(py::init(
-            [](MPool& pool, const std::string& name, const std::string& filename, const std::string& url
-            ) {
-                return std::unique_ptr<MRepo, py::nodelete>(&MRepo::create(pool, name, filename, url));
-            }
-        ))
-        .def(py::init([](MPool& pool, const PrefixData& data)
-                      { return std::unique_ptr<MRepo, py::nodelete>(&MRepo::create(pool, data)); }))
+    py::class_<MRepo>(m, "Repo")
+        .def(py::init<MPool&, const std::string&, const std::string&, const std::string&>())
+        .def(py::init<MPool&, const PrefixData&>())
         .def(
             "add_extra_pkg_info",
             [](const MRepo& self, const std::map<std::string, ExtraPkgInfo>& additional_info)
@@ -469,12 +463,8 @@ PYBIND11_MODULE(bindings, m)
         ))
         .def(
             "create_repo",
-            [](MSubdirData& subdir, MPool& pool) -> MRepo&
-            {
-                auto exp_res = subdir.create_repo(pool);
-                return extract(exp_res);
-            },
-            py::return_value_policy::reference
+            [](MSubdirData& subdir, MPool& pool) -> MRepo
+            { return extract(subdir.create_repo(pool)); }
         )
         .def("loaded", &MSubdirData::loaded)
         .def(

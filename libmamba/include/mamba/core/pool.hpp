@@ -13,7 +13,6 @@
 #include <solv/pooltypes.h>
 
 #include "mamba/core/package_info.hpp"
-#include "mamba/core/repo.hpp"
 
 namespace mamba
 {
@@ -48,9 +47,6 @@ namespace mamba
         std::optional<PackageInfo> id2pkginfo(Id solv_id) const;
         std::optional<std::string> dep2str(Id dep_id) const;
 
-        MRepo& add_repo(MRepo&& repo);
-        void remove_repo(Id repo_id);
-
         // TODO: (TMP) This is not meant to exist but is needed for a transition period
         operator ::Pool*();
         operator const ::Pool*() const;
@@ -58,6 +54,8 @@ namespace mamba
         // TODO: (TMP) This is not meant to be public but is needed for a transition period
         solv::ObjPool& pool();
         const solv::ObjPool& pool() const;
+
+        void remove_repo(::Id repo_id, bool reuse_ids);
 
     private:
 

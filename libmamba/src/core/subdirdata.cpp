@@ -958,16 +958,16 @@ namespace mamba
         return cache_dir.string();
     }
 
-    expected_t<MRepo&> MSubdirData::create_repo(MPool& pool)
+    expected_t<MRepo> MSubdirData::create_repo(MPool& pool)
     {
-        using return_type = expected_t<MRepo&>;
+        using return_type = expected_t<MRepo>;
         RepoMetadata meta{ m_repodata_url,
                            Context::instance().add_pip_as_python_dependency,
                            m_metadata.etag,
                            m_metadata.mod };
 
         auto cache = cache_path();
-        return cache ? return_type(MRepo::create(pool, m_name, *cache, meta))
+        return cache ? return_type(MRepo(pool, m_name, *cache, meta))
                      : return_type(forward_error(cache));
     }
 

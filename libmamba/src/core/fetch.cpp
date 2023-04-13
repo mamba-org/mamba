@@ -481,27 +481,27 @@ namespace mamba
         m_curl_handle->set_opt(CURLOPT_NOBODY, yes);
     }
 
-    std::string DownloadTarget::get_name() const
+    const std::string& DownloadTarget::get_name() const
     {
         return m_name;
     }
 
-    std::string DownloadTarget::get_url() const
+    const std::string& DownloadTarget::get_url() const
     {
         return m_url;
     }
 
-    std::string DownloadTarget::get_etag() const
+    const std::string& DownloadTarget::get_etag() const
     {
         return m_etag;
     }
 
-    std::string DownloadTarget::get_mod() const
+    const std::string& DownloadTarget::get_mod() const
     {
         return m_mod;
     }
 
-    std::string DownloadTarget::get_cache_control() const
+    const std::string& DownloadTarget::get_cache_control() const
     {
         return m_cache_control;
     }

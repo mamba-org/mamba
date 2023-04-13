@@ -56,12 +56,12 @@ namespace mamba
         void set_expected_size(std::size_t size);
         void set_head_only(bool yes);
 
-        std::string get_name() const;
-        std::string get_url() const;
+        const std::string& get_name() const;
+        const std::string& get_url() const;
 
-        std::string get_etag() const;
-        std::string get_mod() const;
-        std::string get_cache_control() const;
+        const std::string& get_etag() const;
+        const std::string& get_mod() const;
+        const std::string& get_cache_control() const;
 
         std::size_t get_expected_size() const;
         int get_http_status() const;

@@ -84,6 +84,13 @@ TEST_SUITE("ObjPool")
             auto [repo3_id, repo3] = pool.add_repo("repo3");
             CHECK_EQ(pool.repo_count(), 3);
 
+            SUBCASE("Add repo with same name")
+            {
+                auto [repo1_bis_id, repo1_bis] = pool.add_repo("repo1");
+                CHECK_EQ(pool.repo_count(), 4);
+                CHECK_NE(repo1_bis_id, repo1_id);
+            }
+
             SUBCASE("Set installed repo")
             {
                 CHECK_FALSE(pool.installed_repo().has_value());

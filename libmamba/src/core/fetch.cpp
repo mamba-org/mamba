@@ -22,6 +22,39 @@
 
 namespace mamba
 {
+    /*****************************
+     * Config and Context params *
+     *****************************/
+
+    void get_config(
+        bool& set_low_speed_opt,
+        bool& set_ssl_no_revoke,
+        long& connect_timeout_secs,
+        std::string& ssl_verify
+    )
+    {
+        // Don't know if it's better to store these...
+        // for now only called twice, and if modified during execution we better not...
+
+        // if the request is slower than 30b/s for 60 seconds, cancel.
+        std::string no_low_speed_limit = std::getenv("MAMBA_NO_LOW_SPEED_LIMIT")
+                                             ? std::getenv("MAMBA_NO_LOW_SPEED_LIMIT")
+                                             : "0";
+        set_low_speed_opt = (no_low_speed_limit == "0");
+
+        std::string ssl_no_revoke_env = std::getenv("MAMBA_SSL_NO_REVOKE")
+                                            ? std::getenv("MAMBA_SSL_NO_REVOKE")
+                                            : "0";
+        set_ssl_no_revoke = (Context::instance().remote_fetch_params.ssl_no_revoke || (ssl_no_revoke_env != "0"));
+        connect_timeout_secs = Context::instance().remote_fetch_params.connect_timeout_secs;
+        ssl_verify = Context::instance().remote_fetch_params.ssl_verify;
+    }
+
+    std::size_t get_default_retry_timeout()
+    {
+        return static_cast<std::size_t>(Context::instance().remote_fetch_params.retry_timeout);
+    }
+
     /*********************************
      * DownloadTarget implementation *
      *********************************/
@@ -47,34 +80,6 @@ namespace mamba
 
     DownloadTarget::~DownloadTarget()
     {
-    }
-
-    std::size_t DownloadTarget::get_default_retry_timeout()
-    {
-        return static_cast<std::size_t>(Context::instance().remote_fetch_params.retry_timeout);
-    }
-
-    void DownloadTarget::init_curl_handle(CURL* handle, const std::string& url)
-    {
-        // if the request is slower than 30b/s for 60 seconds, cancel.
-        std::string no_low_speed_limit = std::getenv("MAMBA_NO_LOW_SPEED_LIMIT")
-                                             ? std::getenv("MAMBA_NO_LOW_SPEED_LIMIT")
-                                             : "0";
-
-        std::string ssl_no_revoke_env = std::getenv("MAMBA_SSL_NO_REVOKE")
-                                            ? std::getenv("MAMBA_SSL_NO_REVOKE")
-                                            : "0";
-        bool set_ssl_no_revoke = (Context::instance().remote_fetch_params.ssl_no_revoke || ssl_no_revoke_env != "0");
-
-        curl::configure_curl_handle(
-            handle,
-            url,
-            (no_low_speed_limit == "0"),
-            Context::instance().remote_fetch_params.connect_timeout_secs,
-            set_ssl_no_revoke,
-            proxy_match(url),
-            Context::instance().remote_fetch_params.ssl_verify
-        );
     }
 
     int
@@ -174,7 +179,21 @@ namespace mamba
 
     void DownloadTarget::init_curl_target(const std::string& url)
     {
-        init_curl_handle(m_curl_handle->handle(), url);
+        // Get config
+        bool set_low_speed_opt, set_ssl_no_revoke;
+        long connect_timeout_secs;
+        std::string ssl_verify;
+        get_config(set_low_speed_opt, set_ssl_no_revoke, connect_timeout_secs, ssl_verify);
+
+        // Configure curl handle
+        m_curl_handle->configure_handle(
+            url,
+            set_low_speed_opt,
+            connect_timeout_secs,
+            set_ssl_no_revoke,
+            proxy_match(url),
+            ssl_verify
+        );
 
         m_curl_handle->set_opt(CURLOPT_HEADERFUNCTION, &DownloadTarget::header_callback);
         m_curl_handle->set_opt(CURLOPT_HEADERDATA, this);
@@ -272,7 +291,7 @@ namespace mamba
             {
                 fs::remove(m_filename);
             }
-            init_curl_target(m_url);  // Not sure this is needed, TODO to remove?
+            init_curl_target(m_url);
             if (m_has_progress_bar)
             {
                 m_curl_handle->set_opt(CURLOPT_XFERINFOFUNCTION, &DownloadTarget::progress_callback);
@@ -540,41 +559,23 @@ namespace mamba
         return speed.value();
     }
 
-    static size_t discard(char*, size_t size, size_t nmemb, void*)
-    {
-        return size * nmemb;
-    }
-
     bool DownloadTarget::resource_exists()
     {
         init_curl_ssl();
-        auto handle = curl_easy_init();
-        init_curl_handle(handle, m_url);
 
-        curl_easy_setopt(handle, CURLOPT_FAILONERROR, 1L);
-        curl_easy_setopt(handle, CURLOPT_NOBODY, 1L);
+        bool set_low_speed_opt, set_ssl_no_revoke;
+        long connect_timeout_secs;
+        std::string ssl_verify;
+        get_config(set_low_speed_opt, set_ssl_no_revoke, connect_timeout_secs, ssl_verify);
 
-        if (curl_easy_perform(handle) == CURLE_OK)
-        {
-            return true;
-        }
-
-        long response_code;
-        curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
-
-        if (response_code == 405)
-        {
-            // Method not allowed
-            // Some servers don't support HEAD, try a GET if the HEAD fails
-            curl_easy_setopt(handle, CURLOPT_NOBODY, 0L);
-            // Prevent output of data
-            curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, &discard);
-            return curl_easy_perform(handle) == CURLE_OK;
-        }
-        else
-        {
-            return false;
-        }
+        return curl::check_resource_exists(
+            m_url,
+            set_low_speed_opt,
+            connect_timeout_secs,
+            set_ssl_no_revoke,
+            proxy_match(m_url),
+            ssl_verify
+        );
     }
 
     bool DownloadTarget::perform()
@@ -584,11 +585,6 @@ namespace mamba
         m_result = curl_easy_perform(m_curl_handle->handle());
         set_result(m_result);
         return ((m_result == CURLE_OK) && finalize());
-    }
-
-    CURL* DownloadTarget::handle()
-    {
-        return m_curl_handle->handle();
     }
 
     void DownloadTarget::set_result(CURLcode r)

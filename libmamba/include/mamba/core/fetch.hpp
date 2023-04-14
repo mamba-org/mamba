@@ -30,6 +30,23 @@ namespace mamba
     class CURLHandle;
     class CURLMultiHandle;
 
+    /******************************
+     * Config and Context params  *
+     ******************************/
+
+    void get_config(
+        bool& set_low_speed_opt,
+        bool& set_ssl_no_revoke,
+        long& connect_timeout_secs,
+        std::string& ssl_verify
+    );
+
+    std::size_t get_default_retry_timeout();
+
+    /*******************
+     * DownloadTarget  *
+     *******************/
+
     class DownloadTarget
     {
     public:
@@ -94,7 +111,6 @@ namespace mamba
 
         bool resource_exists();
         bool perform();
-        CURL* handle();
 
         bool finalize();
         std::string get_transfer_msg();
@@ -139,8 +155,6 @@ namespace mamba
 
         std::ofstream m_file;
 
-        static std::size_t get_default_retry_timeout();
-        static void init_curl_handle(CURL* handle, const std::string& url);
         std::function<void(ProgressBarRepr&)> download_repr();
 
         std::chrono::steady_clock::time_point m_progress_throttle_time;

@@ -21,7 +21,7 @@ namespace mamba
             const std::string& url,
             const bool set_low_speed_opt,
             const long connect_timeout_secs,
-            const bool ssl_no_revoke,
+            const bool set_ssl_no_revoke,
             const std::optional<std::string>& proxy,
             const std::string& ssl_verify
         )
@@ -52,7 +52,7 @@ namespace mamba
 
             curl_easy_setopt(handle, CURLOPT_CONNECTTIMEOUT, connect_timeout_secs);
 
-            if (ssl_no_revoke)
+            if (set_ssl_no_revoke)
             {
                 curl_easy_setopt(handle, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NO_REVOKE);
             }
@@ -102,6 +102,58 @@ namespace mamba
                         }
                     }
                 }
+            }
+        }
+
+        static size_t discard(char*, size_t size, size_t nmemb, void*)
+        {
+            return size * nmemb;
+        }
+
+        bool check_resource_exists(
+            const std::string& url,
+            const bool set_low_speed_opt,
+            const long connect_timeout_secs,
+            const bool set_ssl_no_revoke,
+            const std::optional<std::string>& proxy,
+            const std::string& ssl_verify
+        )
+        {
+            auto handle = curl_easy_init();
+
+            configure_curl_handle(
+                handle,
+                url,
+                set_low_speed_opt,
+                connect_timeout_secs,
+                set_ssl_no_revoke,
+                proxy,
+                ssl_verify
+            );
+
+            curl_easy_setopt(handle, CURLOPT_FAILONERROR, 1L);
+            curl_easy_setopt(handle, CURLOPT_NOBODY, 1L);
+
+            if (curl_easy_perform(handle) == CURLE_OK)
+            {
+                return true;
+            }
+
+            long response_code;
+            curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
+
+            if (response_code == 405)
+            {
+                // Method not allowed
+                // Some servers don't support HEAD, try a GET if the HEAD fails
+                curl_easy_setopt(handle, CURLOPT_NOBODY, 0L);
+                // Prevent output of data
+                curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, &discard);
+                return curl_easy_perform(handle) == CURLE_OK;
+            }
+            else
+            {
+                return false;
             }
         }
     }
@@ -269,6 +321,26 @@ namespace mamba
     CURL* CURLHandle::handle()
     {
         return m_handle;
+    }
+
+    void CURLHandle::configure_handle(
+        const std::string& url,
+        const bool set_low_speed_opt,
+        const long connect_timeout_secs,
+        const bool set_ssl_no_revoke,
+        const std::optional<std::string>& proxy,
+        const std::string& ssl_verify
+    )
+    {
+        curl::configure_curl_handle(
+            m_handle,
+            url,
+            set_low_speed_opt,
+            connect_timeout_secs,
+            set_ssl_no_revoke,
+            proxy,
+            ssl_verify
+        );
     }
 
     CURLHandle& CURLHandle::add_header(const std::string& header)

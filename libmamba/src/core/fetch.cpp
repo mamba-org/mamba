@@ -726,7 +726,9 @@ namespace mamba
 
     MultiDownloadTarget::MultiDownloadTarget()
     {
-        p_curl_handle = std::make_unique<CURLMultiHandle>(Context::instance().threads_params.download_threads);
+        p_curl_handle = std::make_unique<CURLMultiHandle>(
+            Context::instance().threads_params.download_threads
+        );
     }
 
     MultiDownloadTarget::~MultiDownloadTarget()

@@ -47,6 +47,8 @@ namespace mamba
         m_repo = repo_create(pool, m_url.c_str());
         init(pool);
         read_file(index);
+        set_solvables_url();
+        repo_internalize(m_repo);
     }
 
     MRepo::MRepo(MPool& pool, const std::string& name, const std::string& index, const std::string& url)
@@ -56,6 +58,8 @@ namespace mamba
     {
         init(pool);
         read_file(index);
+        set_solvables_url();
+        repo_internalize(m_repo);
     }
 
     MRepo::MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& package_infos)
@@ -377,8 +381,6 @@ namespace mamba
                     else
                     {
                         LOG_DEBUG << "Loaded from SOLV " << m_solv_file;
-                        set_solvables_url();
-                        repo_internalize(m_repo);
                         fclose(fp);
                         return true;
                     }
@@ -418,9 +420,6 @@ namespace mamba
         {
             add_pip_as_python_dependency();
         }
-
-        set_solvables_url();
-        repo_internalize(m_repo);
 
         if (name() != "installed")
         {

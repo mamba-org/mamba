@@ -422,6 +422,34 @@ class Context:
             pass
         pass
 
+    class PrefixParams:
+        def __init__(self) -> None: ...
+        @property
+        def conda_prefix(self) -> Path:
+            """
+            :type: Path
+            """
+        @conda_prefix.setter
+        def conda_prefix(self, arg0: Path) -> None:
+            pass
+        @property
+        def root_prefix(self) -> Path:
+            """
+            :type: Path
+            """
+        @root_prefix.setter
+        def root_prefix(self, arg0: Path) -> None:
+            pass
+        @property
+        def target_prefix(self) -> Path:
+            """
+            :type: Path
+            """
+        @target_prefix.setter
+        def target_prefix(self, arg0: Path) -> None:
+            pass
+        pass
+
     class RemoteFetchParams:
         def __init__(self) -> None: ...
         @property
@@ -473,6 +501,26 @@ class Context:
         def user_agent(self, arg0: str) -> None:
             pass
         pass
+
+    class ThreadsParams:
+        def __init__(self) -> None: ...
+        @property
+        def download_threads(self) -> int:
+            """
+            :type: int
+            """
+        @download_threads.setter
+        def download_threads(self, arg0: int) -> None:
+            pass
+        @property
+        def extract_threads(self) -> int:
+            """
+            :type: int
+            """
+        @extract_threads.setter
+        def extract_threads(self, arg0: int) -> None:
+            pass
+        pass
     def __init__(self) -> None: ...
     def set_log_level(self, arg0: LogLevel) -> None: ...
     def set_verbosity(self, arg0: int) -> None: ...
@@ -517,14 +565,6 @@ class Context:
     def channels(self, arg0: typing.List[str]) -> None:
         pass
     @property
-    def conda_prefix(self) -> Path:
-        """
-        :type: Path
-        """
-    @conda_prefix.setter
-    def conda_prefix(self, arg0: Path) -> None:
-        pass
-    @property
     def custom_channels(self) -> typing.Dict[str, str]:
         """
         :type: typing.Dict[str, str]
@@ -557,14 +597,6 @@ class Context:
     def download_only(self, arg0: bool) -> None:
         pass
     @property
-    def download_threads(self) -> int:
-        """
-        :type: int
-        """
-    @download_threads.setter
-    def download_threads(self, arg0: int) -> None:
-        pass
-    @property
     def dry_run(self) -> bool:
         """
         :type: bool
@@ -587,14 +619,6 @@ class Context:
         """
     @experimental_sat_error_message.setter
     def experimental_sat_error_message(self, arg1: bool) -> None:
-        pass
-    @property
-    def extract_threads(self) -> int:
-        """
-        :type: int
-        """
-    @extract_threads.setter
-    def extract_threads(self, arg0: int) -> None:
         pass
     @property
     def local_repodata_ttl(self) -> int:
@@ -637,6 +661,14 @@ class Context:
     def platform(self, arg0: str) -> None:
         pass
     @property
+    def prefix_params(self) -> Context.PrefixParams:
+        """
+        :type: Context.PrefixParams
+        """
+    @prefix_params.setter
+    def prefix_params(self, arg0: Context.PrefixParams) -> None:
+        pass
+    @property
     def proxy_servers(self) -> typing.Dict[str, str]:
         """
         :type: typing.Dict[str, str]
@@ -653,20 +685,12 @@ class Context:
     def remote_fetch_params(self, arg0: Context.RemoteFetchParams) -> None:
         pass
     @property
-    def root_prefix(self) -> Path:
+    def threads_params(self) -> Context.ThreadsParams:
         """
-        :type: Path
+        :type: Context.ThreadsParams
         """
-    @root_prefix.setter
-    def root_prefix(self, arg0: Path) -> None:
-        pass
-    @property
-    def target_prefix(self) -> Path:
-        """
-        :type: Path
-        """
-    @target_prefix.setter
-    def target_prefix(self, arg0: Path) -> None:
+    @threads_params.setter
+    def threads_params(self, arg0: Context.ThreadsParams) -> None:
         pass
     @property
     def use_index_cache(self) -> bool:

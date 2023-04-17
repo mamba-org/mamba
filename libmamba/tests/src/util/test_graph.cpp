@@ -71,14 +71,23 @@ public:
 
     using base_type = EmptyVisitor<Graph>;
     using node_id = typename base_type::node_id;
+    using node_id_list = std::vector<node_id>;
     using predecessor_map = std::map<node_id, node_id>;
     using edge_map = std::map<node_id, node_id>;
 
     using base_type::finish_edge;
-    using base_type::finish_node;
     using base_type::start_edge;
-    using base_type::start_node;
     using base_type::tree_edge;
+
+    void start_node(node_id n, const Graph&)
+    {
+        m_start_nodes.push_back(n);
+    }
+
+    void finish_node(node_id n, const Graph&)
+    {
+        m_finish_nodes.push_back(n);
+    }
 
     void back_edge(node_id from, node_id to, const Graph&)
     {
@@ -88,6 +97,16 @@ public:
     void forward_or_cross_edge(node_id from, node_id to, const Graph&)
     {
         m_cross_edges[from] = to;
+    }
+
+    auto get_start_node_list() const -> const node_id_list&
+    {
+        return m_start_nodes;
+    }
+
+    auto get_finish_node_list() const -> const node_id_list&
+    {
+        return m_finish_nodes;
     }
 
     auto get_back_edge_map() const -> const edge_map&
@@ -104,6 +123,8 @@ private:
 
     edge_map m_back_edges;
     edge_map m_cross_edges;
+    node_id_list m_start_nodes;
+    node_id_list m_finish_nodes;
 };
 
 TEST_SUITE("graph")
@@ -324,6 +345,16 @@ TEST_SUITE("graph")
         dfs_raw(g, vis, 0);
         CHECK(vis.get_back_edge_map().empty());
         CHECK_EQ(vis.get_cross_edge_map().find(2u)->second, 3u);
+
+        const auto& start_node_list = vis.get_start_node_list();
+        const auto& finish_node_list = vis.get_finish_node_list();
+        CHECK_FALSE(start_node_list.empty());
+        CHECK_FALSE(finish_node_list.empty());
+        const auto start_node_set = std::set(start_node_list.begin(), start_node_list.end());
+        CHECK_EQ(start_node_list.size(), start_node_set.size());  // uniqueness
+        const auto finish_node_set = std::set(finish_node_list.begin(), finish_node_list.end());
+        CHECK_EQ(finish_node_list.size(), finish_node_set.size());  // uniqueness
+        CHECK_EQ(start_node_set, finish_node_set);
     }
 
     TEST_CASE("dfs_cyclic")

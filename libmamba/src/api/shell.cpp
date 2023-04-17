@@ -126,7 +126,7 @@ namespace mamba
         else if (action == "hook")
         {
             // TODO do we need to do something wtih `shell_prefix -> root_prefix?`?
-            if (ctx.json)
+            if (ctx.output_params.json)
             {
                 Console::instance().json_write(
                     { { "success", true },

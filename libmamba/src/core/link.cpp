@@ -46,7 +46,7 @@ namespace mamba
         out << "    sys.exit(" << p.func << "())\n";
     }
 
-    void application_entry_point_template(std::ostream& out, const std::string_view& source_full_path)
+    void application_entry_point_template(std::ostream& out, std::string_view source_full_path)
     {
         out << "# -*- coding: utf-8 -*-\n";
         out << "if __name__ == '__main__':\n";
@@ -408,9 +408,7 @@ namespace mamba
         envmap["PREFIX"] = env_prefix.size() ? env_prefix : prefix.string();
         envmap["PKG_NAME"] = pkg_info.name;
         envmap["PKG_VERSION"] = pkg_info.version;
-        envmap["PKG_BUILDNUM"] = pkg_info.build_string.empty()
-                                     ? std::to_string(pkg_info.build_number)
-                                     : pkg_info.build_string;
+        envmap["PKG_BUILDNUM"] = std::to_string(pkg_info.build_number);
 
         std::string PATH = env::get("PATH").value_or("");
         envmap["PATH"] = concat(path.parent_path().string(), env::pathsep(), PATH);
@@ -439,7 +437,7 @@ namespace mamba
         auto [status, ec] = reproc::run(command_args, options);
 
         auto msg = get_prefix_messages(envmap["PREFIX"]);
-        if (Context::instance().json)
+        if (Context::instance().output_params.json)
         {
             // TODO implement cerr also on Console?
             std::cerr << msg;
@@ -735,7 +733,7 @@ namespace mamba
 #if defined(__APPLE__)
             if (binary_changed && m_pkg_info.subdir == "osx-arm64")
             {
-                codesign(dst, Context::instance().verbosity > 1);
+                codesign(dst, Context::instance().output_params.verbosity > 1);
             }
 #endif
             return std::make_tuple(validation::sha256sum(dst), rel_dst.string());

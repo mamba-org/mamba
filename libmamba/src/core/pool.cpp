@@ -17,7 +17,9 @@ extern "C"  // Incomplete header
 }
 #include <spdlog/spdlog.h>
 
+#include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/util_string.hpp"
@@ -47,7 +49,7 @@ namespace mamba
             {
                 dbg->first->warn(log);
             }
-            else if (Context::instance().verbosity > 2)
+            else if (Context::instance().output_params.verbosity > 2)
             {
                 dbg->first->info(log);
             }
@@ -102,9 +104,9 @@ namespace mamba
     {
         // ensure that debug logging goes to stderr as to not interfere with stdout json output
         pool()->debugmask |= SOLV_DEBUG_TO_STDERR;
-        if (Context::instance().verbosity > 2)
+        if (Context::instance().output_params.verbosity > 2)
         {
-            pool_setdebuglevel(pool(), Context::instance().verbosity - 1);
+            pool_setdebuglevel(pool(), Context::instance().output_params.verbosity - 1);
             auto logger = spdlog::get("libsolv");
             m_data->debug_logger.first = logger.get();
             pool_setdebugcallback(pool(), &libsolv_debug_callback, &(m_data->debug_logger));
@@ -148,10 +150,84 @@ namespace mamba
         return solvables.as<std::vector>();
     }
 
-    Id MPool::matchspec2id(const std::string& ms)
+    namespace
     {
-        Id id = pool_conda_matchspec(pool(), ms.c_str());
-        if (!id)
+        bool channel_match(const Channel& chan, const Channel& needle)
+        {
+            if ((chan) == needle)
+            {
+                return true;
+            }
+
+            auto& custom_multichannels = Context::instance().custom_multichannels;
+            auto x = custom_multichannels.find(needle.name());
+            if (x != custom_multichannels.end())
+            {
+                for (auto el : (x->second))
+                {
+                    const Channel& inner = make_channel(el);
+                    if ((chan) == inner)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        ::Id add_channel_specific_matchspec(::Pool* pool, const MatchSpec& ms)
+        {
+            // Poor man's ms repr to match waht the user provided
+            std::string const repr = fmt::format("{}::{}", ms.channel, ms.conda_build_form());
+
+            // Already added, return that id
+            if (::Id repr_id = pool_str2id(pool, repr.c_str(), /* .create= */ false); repr_id != 0)
+            {
+                return repr_id;
+            }
+
+            solv::ObjQueue selected_pkgs;
+
+            // conda_build_form does **NOT** contain the channel info
+            ::Id match = pool_conda_matchspec(pool, ms.conda_build_form().c_str());
+
+            const Channel& c = make_channel(ms.channel);
+            ::Id const m_mrepo_key = pool_str2id(pool, "solvable:mrepo_url", 1);
+            for (Id* wp = pool_whatprovides_ptr(pool, match); *wp; wp++)
+            {
+                auto* const s = pool_id2solvable(pool, *wp);
+
+                const char* s_url = solvable_lookup_str(s, m_mrepo_key);
+                if ((s_url != nullptr) && channel_match(make_channel(s_url), c))
+                {
+                    selected_pkgs.push_back(*wp);
+                }
+            }
+            ::Id const repr_id = pool_str2id(pool, repr.c_str(), /* .create= */ true);
+            ::Id const offset = pool_queuetowhatprovides(pool, selected_pkgs.raw());
+            // FRAGILE This get deleted when calling ``pool_createwhatprovides`` so care
+            // must be taken to do it before
+            // TODO investigate namespace providers
+            pool_set_whatprovides(pool, repr_id, offset);
+            return repr_id;
+        }
+    }
+
+    ::Id MPool::matchspec2id(const MatchSpec& ms)
+    {
+        ::Id id = 0;
+        if (ms.channel.empty())
+        {
+            id = pool_conda_matchspec(pool(), ms.conda_build_form().c_str());
+        }
+        else
+        {
+            // Working around shortcomings of ``pool_conda_matchspec``
+            // The channels are not processed.
+            id = add_channel_specific_matchspec(pool(), ms);
+        }
+        if (id == 0)
         {
             throw std::runtime_error("libsolv error: could not create matchspec from string");
         }
@@ -244,40 +320,6 @@ namespace mamba
                 out.track_features.pop_back();
             }
 
-            const ::Id extra_keys_id = pool_str2id(pool, "solvable:extra_keys", 0);
-            const ::Id extra_values_id = pool_str2id(pool, "solvable:extra_values", 0);
-            if (extra_keys_id && extra_values_id)
-            {
-                // Get extra signed keys
-                q.clear();
-                solvable_lookup_idarray(&s, extra_keys_id, q.raw());
-                std::vector<std::string> extra_keys = {};
-                extra_keys.reserve(q.size());
-                std::transform(q.begin(), q.end(), std::back_inserter(extra_keys), dep2str);
-
-                // Get extra signed values
-                q.clear();
-                solvable_lookup_idarray(&s, extra_values_id, q.raw());
-                std::vector<std::string> extra_values = {};
-                extra_values.reserve(q.size());
-                std::transform(q.begin(), q.end(), std::back_inserter(extra_values), dep2str);
-
-                // Build a JSON string for extra signed metadata
-                if (!extra_keys.empty() && (extra_keys.size() == extra_values.size()))
-                {
-                    std::vector<std::string> extra = {};
-                    extra.reserve(extra_keys.size());
-                    for (std::size_t i = 0; i < extra_keys.size(); ++i)
-                    {
-                        extra.push_back(fmt::format(R"("{}":{})", extra_keys[i], extra_values[i]));
-                    }
-                    out.extra_metadata = fmt::format("{{{}}}", fmt::join(extra, ","));
-                }
-            }
-            else
-            {
-                out.extra_metadata = "{}";
-            }
             return out;
         }
     }

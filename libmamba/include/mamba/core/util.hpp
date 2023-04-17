@@ -56,7 +56,7 @@ namespace mamba
         }
     };
 
-    bool is_package_file(const std::string_view& fn);
+    bool is_package_file(std::string_view fn);
 
     bool lexists(const fs::u8path& p);
     bool lexists(const fs::u8path& p, std::error_code& ec);
@@ -265,8 +265,8 @@ namespace mamba
                && prefix.end() == std::mismatch(prefix.begin(), prefix.end(), vec.begin()).first;
     }
 
-    tl::expected<std::string, mamba_error> encode_base64(const std::string_view& input);
-    tl::expected<std::string, mamba_error> decode_base64(const std::string_view& input);
+    tl::expected<std::string, mamba_error> encode_base64(std::string_view input);
+    tl::expected<std::string, mamba_error> decode_base64(std::string_view input);
 
 
     // get the value corresponding to a key in a JSON object and assign it to target
@@ -330,6 +330,8 @@ namespace mamba
     bool is_yaml_file_name(std::string_view filename);
 
     std::optional<std::string> proxy_match(const std::string& url);
+
+    std::string hide_secrets(std::string_view str);
 
     class non_copyable_base
     {

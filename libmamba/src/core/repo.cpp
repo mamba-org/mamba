@@ -7,17 +7,19 @@
 #include <solv/repo.h>
 #include <solv/repo_solv.h>
 #include <solv/repo_write.h>
+#include <solv/solvable.h>
 extern "C"  // Incomplete header
 {
 #include <solv/conda.h>
 #include <solv/repo_conda.h>
 }
 
-#include "mamba/core/channel_builder.hpp"
+#include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
+#include "mamba/core/prefix_data.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/util_string.hpp"
 
@@ -37,35 +39,27 @@ namespace mamba
         return MTV;
     }
 
-    MRepo::MRepo(
-        MPool& pool,
-        const std::string& /*name*/,
-        const fs::u8path& index,
-        const RepoMetadata& metadata,
-        const Channel& channel
-    )
-        : m_metadata(metadata)
+    MRepo::MRepo(MPool& pool, const std::string& /*name*/, const fs::u8path& index, const RepoMetadata& metadata)
+        : m_url(rsplit(metadata.url, "/", 1)[0])
+        , m_metadata(metadata)
     {
-        m_url = rsplit(metadata.url, "/", 1)[0];
         m_repo = repo_create(pool, m_url.c_str());
-        m_repo->appdata = this;
+        init(pool);
         read_file(index);
-        p_channel = &channel;
     }
 
     MRepo::MRepo(MPool& pool, const std::string& name, const std::string& index, const std::string& url)
         : m_url(url)
+        , m_repo(repo_create(pool, name.c_str()))
     {
-        m_repo = repo_create(pool, name.c_str());
-        m_repo->appdata = this;
+        init(pool);
         read_file(index);
-        p_channel = &ChannelBuilder::make_cached_channel(url);
     }
 
     MRepo::MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& package_infos)
+        : m_repo(repo_create(pool, name.c_str()))
     {
-        m_repo = repo_create(pool, name.c_str());
-        m_repo->appdata = this;
+        init(pool);
         int flags = 0;
         Repodata* data;
         data = repo_add_repodata(m_repo, flags);
@@ -77,9 +71,9 @@ namespace mamba
     }
 
     MRepo::MRepo(MPool& pool, const PrefixData& prefix_data)
+        : m_repo(repo_create(pool, "installed"))
     {
-        m_repo = repo_create(pool, "installed");
-        m_repo->appdata = this;
+        init(pool);
         int flags = 0;
         Repodata* data;
         data = repo_add_repodata(m_repo, flags);
@@ -96,6 +90,25 @@ namespace mamba
 
         repodata_internalize(data);
         set_installed();
+    }
+
+    void MRepo::init(MPool& pool)
+    {
+        m_real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
+        m_mrepo_key = pool_str2id(pool, "solvable:mrepo_url", 1);
+        m_noarch_repo_key = pool_str2id(pool, "solvable:noarch_type", 1);
+    }
+
+    void MRepo::set_solvables_url()
+    {
+        // Setting the channel url on where the solvable so that we can retrace
+        // where it came from
+        Id id = 0;
+        Solvable* s = nullptr;
+        FOR_REPO_SOLVABLES(m_repo, id, s)
+        {
+            solvable_set_str(s, m_mrepo_key, this->url().c_str());
+        }
     }
 
     MRepo::~MRepo()
@@ -118,11 +131,11 @@ namespace mamba
         , m_url(std::move(rhs.m_url))
         , m_metadata(std::move(rhs.m_metadata))
         , m_repo(rhs.m_repo)
-        , p_channel(rhs.p_channel)
+        , m_real_repo_key(rhs.m_real_repo_key)
+        , m_mrepo_key(rhs.m_mrepo_key)
+        , m_noarch_repo_key(rhs.m_noarch_repo_key)
     {
         rhs.m_repo = nullptr;
-        rhs.p_channel = nullptr;
-        m_repo->appdata = this;
     }
 
     MRepo& MRepo::operator=(MRepo&& rhs)
@@ -133,8 +146,9 @@ namespace mamba
         swap(m_url, rhs.m_url);
         swap(m_metadata, rhs.m_metadata);
         swap(m_repo, rhs.m_repo);
-        swap(p_channel, rhs.p_channel);
-        m_repo->appdata = this;
+        swap(m_real_repo_key, rhs.m_real_repo_key);
+        swap(m_mrepo_key, rhs.m_mrepo_key);
+        swap(m_noarch_repo_key, rhs.m_noarch_repo_key);
         return *this;
     }
 
@@ -154,27 +168,26 @@ namespace mamba
         LOG_INFO << "Adding package record to repo " << info.name;
         Pool* pool = m_repo->pool;
 
-        static Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
-        static Id noarch_repo_key = pool_str2id(pool, "solvable:noarch_type", 1);
-
         Id handle = repo_add_solvable(m_repo);
         Solvable* s = pool_id2solvable(pool, handle);
-        repodata_set_str(data, handle, SOLVABLE_BUILDVERSION, std::to_string(info.build_number).c_str());
-        repodata_add_poolstr_array(data, handle, SOLVABLE_BUILDFLAVOR, info.build_string.c_str());
-        s->name = pool_str2id(pool, info.name.c_str(), 1);
-        s->evr = pool_str2id(pool, info.version.c_str(), 1);
-        repodata_set_num(data, handle, SOLVABLE_DOWNLOADSIZE, info.size);
+        solvable_set_str(s, SOLVABLE_BUILDVERSION, std::to_string(info.build_number).c_str());
+        solvable_add_poolstr_array(s, SOLVABLE_BUILDFLAVOR, info.build_string.c_str());
+        solvable_set_str(s, SOLVABLE_NAME, info.name.c_str());
+        solvable_set_str(s, SOLVABLE_EVR, info.version.c_str());
+        solvable_set_num(s, SOLVABLE_DOWNLOADSIZE, info.size);
+        // No ``solvable_xxx`` equivalent
         repodata_set_checksum(data, handle, SOLVABLE_PKGID, REPOKEY_TYPE_MD5, info.md5.c_str());
 
-        solvable_set_str(s, real_repo_key, info.url.c_str());
+        solvable_set_str(s, m_real_repo_key, info.url.c_str());
+        solvable_set_str(s, m_mrepo_key, url().c_str());
 
         if (!info.noarch.empty())
         {
-            solvable_set_str(s, noarch_repo_key, info.noarch.c_str());
+            solvable_set_str(s, m_noarch_repo_key, info.noarch.c_str());
         }
 
+        // No ``solvable_xxx`` equivalent
         repodata_set_location(data, handle, 0, info.subdir.c_str(), info.fn.c_str());
-
         repodata_set_checksum(data, handle, SOLVABLE_CHECKSUM, REPOKEY_TYPE_SHA256, info.sha256.c_str());
 
         if (!info.depends.empty())
@@ -196,7 +209,7 @@ namespace mamba
                 Id constrains_id = pool_conda_matchspec(pool, cst.c_str());
                 if (constrains_id)
                 {
-                    repodata_add_idarray(data, handle, SOLVABLE_CONSTRAINS, constrains_id);
+                    solvable_add_idarray(s, SOLVABLE_CONSTRAINS, constrains_id);
                 }
             }
         }
@@ -207,6 +220,8 @@ namespace mamba
             pool_rel2id(pool, s->name, s->evr, REL_EQ, 1),
             0
         );
+
+        repo_internalize(m_repo);
     }
 
     Id MRepo::id() const
@@ -227,11 +242,6 @@ namespace mamba
     Repo* MRepo::repo() const
     {
         return m_repo;
-    }
-
-    const Channel* MRepo::channel() const
-    {
-        return p_channel;
     }
 
     std::tuple<int, int> MRepo::priority() const
@@ -286,15 +296,10 @@ namespace mamba
         return pool.add_repo(MRepo(pool, name, filename, url));
     }
 
-    MRepo& MRepo::create(
-        MPool& pool,
-        const std::string& name,
-        const fs::u8path& filename,
-        const RepoMetadata& meta,
-        const Channel& channel
-    )
+    MRepo&
+    MRepo::create(MPool& pool, const std::string& name, const fs::u8path& filename, const RepoMetadata& meta)
     {
-        return pool.add_repo(MRepo(pool, name, filename, meta, channel));
+        return pool.add_repo(MRepo(pool, name, filename, meta));
     }
 
     MRepo& MRepo::create(MPool& pool, const PrefixData& prefix_data)
@@ -403,6 +408,7 @@ namespace mamba
                     else
                     {
                         LOG_DEBUG << "Loaded from SOLV " << m_solv_file;
+                        set_solvables_url();
                         repo_internalize(m_repo);
                         fclose(fp);
                         return true;
@@ -444,6 +450,7 @@ namespace mamba
             add_pip_as_python_dependency();
         }
 
+        set_solvables_url();
         repo_internalize(m_repo);
 
         if (name() != "installed")

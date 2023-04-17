@@ -8,19 +8,13 @@
 #include <limits>
 #include <utility>
 
-#include <gtest/gtest.h>
+#include <doctest/doctest.h>
 
 #include "mamba/util/cast.hpp"
 
 using namespace mamba::util;
 
-template <typename T>
-struct cast_valid : ::testing::Test
-{
-    using First = typename T::first_type;
-    using Second = typename T::second_type;
-};
-using WidenTypes = ::testing::Types<
+using WidenTypes = std::tuple<
     // integers
     std::pair<char, int>,
     std::pair<unsigned char, int>,
@@ -35,36 +29,8 @@ using WidenTypes = ::testing::Types<
     std::pair<unsigned char, float>,
     std::pair<int, double>,
     std::pair<unsigned int, double>>;
-TYPED_TEST_SUITE(cast_valid, WidenTypes);
 
-TYPED_TEST(cast_valid, checked_exact_num_cast_widen)
-{
-    using From = typename TestFixture::First;
-    using To = typename TestFixture::Second;
-    static constexpr auto from_lowest = std::numeric_limits<From>::lowest();
-    static constexpr auto from_max = std::numeric_limits<From>::max();
-
-    EXPECT_EQ(safe_num_cast<To>(From(0)), To(0));
-    EXPECT_EQ(safe_num_cast<To>(From(1)), To(1));
-    EXPECT_EQ(safe_num_cast<To>(from_lowest), static_cast<To>(from_lowest));
-    EXPECT_EQ(safe_num_cast<To>(from_max), static_cast<To>(from_max));
-}
-
-TYPED_TEST(cast_valid, checked_exact_num_cast_narrow)
-{
-    using From = typename TestFixture::Second;  // inversed
-    using To = typename TestFixture::First;     // inversed
-    EXPECT_EQ(safe_num_cast<To>(From(0)), To(0));
-    EXPECT_EQ(safe_num_cast<To>(From(1)), To(1));
-}
-
-template <typename T>
-struct cast_overflow_lowest : ::testing::Test
-{
-    using First = typename T::first_type;
-    using Second = typename T::second_type;
-};
-using OverflowLowestTypes = ::testing::Types<
+using OverflowLowestTypes = std::tuple<
     // integers
     std::pair<char, unsigned char>,
     std::pair<char, unsigned int>,
@@ -75,19 +41,45 @@ using OverflowLowestTypes = ::testing::Types<
     // mixed
     std::pair<double, int>,
     std::pair<float, char>>;
-TYPED_TEST_SUITE(cast_overflow_lowest, OverflowLowestTypes);
 
-TYPED_TEST(cast_overflow_lowest, checked_exact_num_cast)
+TEST_SUITE("cast")
 {
-    using From = typename TestFixture::First;
-    using To = typename TestFixture::Second;
-    static constexpr auto from_lowest = std::numeric_limits<From>::lowest();
+    TEST_CASE_TEMPLATE_DEFINE("checked_exact_num_cast_widen", T, cast_widen)
+    {
+        using From = typename T::first_type;
+        using To = typename T::second_type;
+        static constexpr auto from_lowest = std::numeric_limits<From>::lowest();
+        static constexpr auto from_max = std::numeric_limits<From>::max();
 
-    EXPECT_THROW(safe_num_cast<To>(from_lowest), std::overflow_error);
-}
+        CHECK_EQ(safe_num_cast<To>(From(0)), To(0));
+        CHECK_EQ(safe_num_cast<To>(From(1)), To(1));
+        CHECK_EQ(safe_num_cast<To>(from_lowest), static_cast<To>(from_lowest));
+        CHECK_EQ(safe_num_cast<To>(from_max), static_cast<To>(from_max));
+    }
+    TEST_CASE_TEMPLATE_APPLY(cast_widen, WidenTypes);
 
-TEST(cast, precision)
-{
-    EXPECT_THROW(safe_num_cast<int>(1.1), std::runtime_error);
-    EXPECT_THROW(safe_num_cast<float>(std::nextafter(double(1), 2)), std::runtime_error);
+    TEST_CASE_TEMPLATE_DEFINE("checked_exact_num_cast_narrow", T, cast_narrow)
+    {
+        using From = typename T::second_type;  // inversed
+        using To = typename T::first_type;     // inversed
+        CHECK_EQ(safe_num_cast<To>(From(0)), To(0));
+        CHECK_EQ(safe_num_cast<To>(From(1)), To(1));
+    }
+    TEST_CASE_TEMPLATE_APPLY(cast_narrow, WidenTypes);
+
+    TEST_CASE_TEMPLATE_DEFINE("checked_exact_num_cast_overflow", T, cast_overflow)
+    {
+        using From = typename T::first_type;
+        using To = typename T::second_type;
+        static constexpr auto from_lowest = std::numeric_limits<From>::lowest();
+
+        CHECK_THROWS_AS(safe_num_cast<To>(from_lowest), std::overflow_error);
+    }
+    TEST_CASE_TEMPLATE_APPLY(cast_overflow, OverflowLowestTypes);
+
+    TEST_CASE("precision")
+    {
+        CHECK_THROWS_AS(safe_num_cast<int>(1.1), std::runtime_error);
+        CHECK_THROWS_AS(safe_num_cast<float>(std::nextafter(double(1), 2)), std::runtime_error);
+    }
 }

@@ -143,7 +143,7 @@ namespace mamba
         options.working_directory = cwd.c_str();
 
         Console::stream() << fmt::format(
-            Context::instance().palette.external,
+            Context::instance().graphics_params.palette.external,
             "\nInstalling {} packages: {}",
             pkg_mgr,
             fmt::join(deps, ", ")
@@ -510,8 +510,6 @@ namespace mamba
             solver.add_jobs(prefix_pkgs, SOLVER_LOCK);
         }
 
-        solver.add_jobs(specs, solver_flag);
-
         if (!no_pin)
         {
             solver.add_pins(file_pins(prefix_data.path() / "conda-meta" / "pinned"));
@@ -536,6 +534,11 @@ namespace mamba
             Console::instance().print("\nPinned packages:\n" + join("", pinned_str));
         }
 
+        // FRAGILE this must be called after pins be before jobs in current ``MPool``
+        pool.create_whatprovides();
+
+        solver.add_jobs(specs, solver_flag);
+
         bool success = solver.try_solve();
         if (!success)
         {
@@ -550,7 +553,7 @@ namespace mamba
                 Console::instance().print("Possible hints:\n  - 'freeze_installed' is turned on\n");
             }
 
-            if (ctx.json)
+            if (ctx.output_params.json)
             {
                 Console::instance().json_write({ { "success", false },
                                                  { "solver_problems", solver.all_problems() } });
@@ -563,7 +566,7 @@ namespace mamba
 
         MTransaction trans(pool, solver, package_caches);
 
-        if (ctx.json)
+        if (ctx.output_params.json)
         {
             trans.log_json();
         }
@@ -613,7 +616,7 @@ namespace mamba
             // so they must have been ready in the pool before this line
             auto transaction = create_transaction(pool, pkg_caches, others);
 
-            if (ctx.json)
+            if (ctx.output_params.json)
             {
                 transaction.log_json();
             }
@@ -659,7 +662,7 @@ namespace mamba
             tmp_lock_file = std::make_unique<TemporaryFile>();
             DownloadTarget dt("Environment Lockfile", lockfile, tmp_lock_file->path());
             bool success = dt.perform();
-            if (!success || dt.http_status != 200)
+            if (!success || dt.get_http_status() != 200)
             {
                 throw std::runtime_error(
                     fmt::format("Could not download environment lockfile from {}", lockfile)

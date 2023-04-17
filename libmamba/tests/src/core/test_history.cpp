@@ -1,6 +1,20 @@
+// Copyright (c) 2019, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
+
+#include <iostream>
+#include <sstream>
 #include <string>
 
-#include <gtest/gtest.h>
+#include <doctest/doctest.h>
+
+#ifndef _WIN32
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#endif
 
 #include "mamba/core/history.hpp"
 
@@ -8,84 +22,87 @@
 
 namespace mamba
 {
-    TEST(history, parse)
+    TEST_SUITE("history")
     {
-        static const auto history_file_path = fs::absolute(
-            test_data_dir / "history/parse/conda-meta/history"
-        );
-        static const auto aux_file_path = fs::absolute(
-            test_data_dir / "history/parse/conda-meta/aux_file"
-        );
-
-        // Backup history file and restore it at the end of the test, whatever the output.
-        struct ScopedHistoryFileBackup
+        TEST_CASE("parse")
         {
-            ScopedHistoryFileBackup()
+            static const auto history_file_path = fs::absolute(
+                test_data_dir / "history/parse/conda-meta/history"
+            );
+            static const auto aux_file_path = fs::absolute(
+                test_data_dir / "history/parse/conda-meta/aux_file"
+            );
+
+            // Backup history file and restore it at the end of the test, whatever the output.
+            struct ScopedHistoryFileBackup
             {
-                fs::remove(aux_file_path);
-                fs::copy(history_file_path, aux_file_path);
-            }
-            ~ScopedHistoryFileBackup()
+                ScopedHistoryFileBackup()
+                {
+                    fs::remove(aux_file_path);
+                    fs::copy(history_file_path, aux_file_path);
+                }
+                ~ScopedHistoryFileBackup()
+                {
+                    fs::remove(history_file_path);
+                    fs::copy(aux_file_path, history_file_path);
+                }
+            } scoped_history_file_backup;
+
+            // Gather history from current history file.
+            History history_instance(test_data_dir / "history/parse");
+            std::vector<History::UserRequest> user_reqs = history_instance.get_user_requests();
+
+            // Extract raw history file content into buffer.
+            std::ifstream history_file(history_file_path.std_path());
+            std::stringstream original_history_buffer;
+            std::string line;
+            while (getline(history_file, line))
             {
-                fs::remove(history_file_path);
-                fs::copy(aux_file_path, history_file_path);
+                original_history_buffer << line;
             }
-        } scoped_history_file_backup;
+            history_file.close();
 
-        // Gather history from current history file.
-        History history_instance(test_data_dir / "history/parse");
-        std::vector<History::UserRequest> user_reqs = history_instance.get_user_requests();
+            // Generate a history buffer with duplicate history.
+            std::stringstream check_buffer;
+            check_buffer << original_history_buffer.str() << original_history_buffer.str();
 
-        // Extract raw history file content into buffer.
-        std::ifstream history_file(history_file_path.std_path());
-        std::stringstream original_history_buffer;
-        std::string line;
-        while (getline(history_file, line))
-        {
-            original_history_buffer << line;
+            std::cout << check_buffer.str() << '\n';
+
+            // Re-inject history into history file: history file should then have the same duplicate
+            // content as the buffer.
+            for (const auto& req : user_reqs)
+            {
+                history_instance.add_entry(req);
+            }
+
+            history_file.open(history_file_path.std_path());
+            std::stringstream updated_history_buffer;
+            while (getline(history_file, line))
+            {
+                updated_history_buffer << line;
+            }
+            history_file.close();
+
+            REQUIRE_EQ(updated_history_buffer.str(), check_buffer.str());
         }
-        history_file.close();
-
-        // Generate a history buffer with duplicate history.
-        std::stringstream check_buffer;
-        check_buffer << original_history_buffer.str() << original_history_buffer.str();
-
-        std::cout << check_buffer.str() << '\n';
-
-        // Re-inject history into history file: history file should then have the same duplicate
-        // content as the buffer.
-        for (const auto& req : user_reqs)
-        {
-            history_instance.add_entry(req);
-        }
-
-        history_file.open(history_file_path.std_path());
-        std::stringstream updated_history_buffer;
-        while (getline(history_file, line))
-        {
-            updated_history_buffer << line;
-        }
-        history_file.close();
-
-        ASSERT_EQ(updated_history_buffer.str(), check_buffer.str());
-    }
 
 #ifndef _WIN32
-    TEST(history, parse_segfault)
-    {
-        pid_t child = fork();
-        if (child)
+        TEST_CASE("parse_segfault")
         {
-            int wstatus;
-            waitpid(child, &wstatus, 0);
-            ASSERT_TRUE(WIFEXITED(wstatus));
+            pid_t child = fork();
+            if (child)
+            {
+                int wstatus;
+                waitpid(child, &wstatus, 0);
+                REQUIRE(WIFEXITED(wstatus));
+            }
+            else
+            {
+                History history_instance("history_test/parse_segfault");
+                history_instance.get_user_requests();
+                exit(EXIT_SUCCESS);
+            }
         }
-        else
-        {
-            History history_instance("history_test/parse_segfault");
-            history_instance.get_user_requests();
-            exit(EXIT_SUCCESS);
-        }
-    }
 #endif
+    }
 }  // namespace mamba

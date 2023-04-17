@@ -79,7 +79,7 @@ namespace mamba
         m_filename = pkg_info.fn;
 
         // only do this for micromamba for now
-        if (Context::instance().is_micromamba)
+        if (Context::instance().command_params.is_micromamba)
         {
             m_url = make_channel(pkg_info.url).urls(true)[0];
         }
@@ -95,7 +95,9 @@ namespace mamba
         m_md5 = pkg_info.md5;
 
         auto& ctx = Context::instance();
-        m_has_progress_bars = !(ctx.no_progress_bars || ctx.quiet || ctx.json);
+        m_has_progress_bars = !(
+            ctx.graphics_params.no_progress_bars || ctx.output_params.quiet || ctx.output_params.json
+        );
     }
 
     void PackageDownloadExtractTarget::write_repodata_record(const fs::u8path& base_path)
@@ -131,11 +133,11 @@ namespace mamba
     void PackageDownloadExtractTarget::validate()
     {
         m_validation_result = VALIDATION_RESULT::VALID;
-        if (m_expected_size && size_t(m_target->downloaded_size) != m_expected_size)
+        if (m_expected_size && (m_target->get_downloaded_size() != m_expected_size))
         {
             LOG_ERROR << "File not valid: file size doesn't match expectation " << m_tarball_path
                       << "\nExpected: " << m_expected_size
-                      << "\nActual: " << size_t(m_target->downloaded_size) << "\n";
+                      << "\nActual: " << m_target->get_downloaded_size() << "\n";
             if (m_has_progress_bars)
             {
                 m_download_bar.set_postfix("validation failed");
@@ -342,10 +344,10 @@ namespace mamba
             m_download_bar.mark_as_completed();
         }
 
-        if (m_target->http_status >= 400)
+        if (m_target->get_http_status() >= 400)
         {
             LOG_ERROR << "Failed to download package from " << m_url << " (status "
-                      << m_target->http_status << ")";
+                      << m_target->get_http_status() << ")";
             m_validation_result = VALIDATION_RESULT::UNDEFINED;
             return false;
         }
@@ -872,6 +874,8 @@ namespace mamba
                     break;
             }
         }
+        m_real_repo_key = pool_str2id(m_pool, "solvable:real_repo_url", 1);
+        m_mrepo_key = pool_str2id(m_pool, "solvable:mrepo_url", 1);
     }
 
     // TODO rewrite this in terms of `m_transaction`
@@ -1082,9 +1086,16 @@ namespace mamba
         }
         else
         {
+            // TODO: add executable name
+            // TODO: add environment name/prefix
             LOG_INFO << "Waiting for pyc compilation to finish";
             m_transaction_context.wait_for_pyc_compilation();
-            Console::stream() << "Transaction finished";
+            Console::stream() << "\nTransaction finished\n\n"
+                              << "To activate this environment, use:\n\n"
+                              << "    $ [micro]mamba activate <environment>\n\n"
+                              << "Or to execute a single command in this environment, use:\n\n"
+                              << "    $ [micro]mamba run -n <environment> mycommand\n";
+
             prefix.history().add_entry(m_history_entry);
         }
         return !interrupted;
@@ -1188,18 +1199,18 @@ namespace mamba
 
         for (auto& s : m_to_install)
         {
-            MRepo* mamba_repo = reinterpret_cast<MRepo*>(s->repo->appdata);
+            std::string const s_url = raw_str_or_empty(solvable_lookup_str(s, m_mrepo_key));
 
             if (ctx.experimental && ctx.verify_artifacts)
             {
-                const auto& repo_checker = make_channel(mamba_repo->url()).repo_checker(m_multi_cache);
+                const auto& repo_checker = make_channel(s_url).repo_checker(m_multi_cache);
                 const auto pkg_info = mk_pkginfo(m_pool, s);
                 repo_checker.verify_package(
                     pkg_info.json_signable(),
                     nlohmann::json::parse(pkg_info.signatures)
                 );
 
-                LOG_DEBUG << "'" << pkg_info.name << "' trusted from '" << mamba_repo->url() << "'";
+                LOG_DEBUG << "'" << pkg_info.name << "' trusted from '" << s_url << "'";
             }
 
             targets.emplace_back(std::make_unique<PackageDownloadExtractTarget>(mk_pkginfo(m_pool, s))
@@ -1217,12 +1228,13 @@ namespace mamba
             fmt::print(
                 out,
                 "Content trust verifications successful, {} ",
-                fmt::styled("package(s) are trusted", Context::instance().palette.safe)
+                fmt::styled("package(s) are trusted", Context::instance().graphics_params.palette.safe)
             );
             LOG_INFO << "All package(s) are trusted";
         }
 
-        if (!(ctx.no_progress_bars || ctx.json || ctx.quiet))
+        if (!(ctx.graphics_params.no_progress_bars || ctx.output_params.json
+              || ctx.output_params.quiet))
         {
             interruption_guard g([]() { Console::instance().progress_bar_manager().terminate(); });
 
@@ -1345,7 +1357,8 @@ namespace mamba
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
 
-        if (!(ctx.no_progress_bars || ctx.json || ctx.quiet))
+        if (!(ctx.graphics_params.no_progress_bars || ctx.output_params.json
+              || ctx.output_params.quiet))
         {
             pbar_manager.terminate();
             pbar_manager.clear_progress_bars();
@@ -1388,7 +1401,7 @@ namespace mamba
     {
         const auto& ctx = Context::instance();
 
-        if (ctx.json)
+        if (ctx.output_params.json)
         {
             return;
         }
@@ -1481,7 +1494,7 @@ namespace mamba
                     if (!need_pkg_download(mk_pkginfo(m_pool, s), m_multi_cache))
                     {
                         dlsize_s.s = "Cached";
-                        dlsize_s.style = ctx.palette.addition;
+                        dlsize_s.style = ctx.graphics_params.palette.addition;
                     }
                     else
                     {
@@ -1500,15 +1513,15 @@ namespace mamba
             name.s = fmt::format("{} {}", diff, pool_id2str(m_pool, s->name));
             if (status == Status::install)
             {
-                name.style = ctx.palette.addition;
+                name.style = ctx.graphics_params.palette.addition;
             }
             else if (status == Status::ignore)
             {
-                name.style = ctx.palette.ignored;
+                name.style = ctx.graphics_params.palette.ignored;
             }
             else if (status == Status::remove)
             {
-                name.style = ctx.palette.deletion;
+                name.style = ctx.graphics_params.palette.deletion;
             }
             const char* build_string = solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
 

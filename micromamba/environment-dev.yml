@@ -3,7 +3,7 @@ channels:
   - conda-forge
 dependencies:
   - cxx-compiler
-  - cmake
+  - cmake >=3.16
   - ninja
   - nlohmann_json
   - mitmproxy

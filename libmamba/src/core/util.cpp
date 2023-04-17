@@ -58,7 +58,7 @@ extern "C"
 
 namespace mamba
 {
-    bool is_package_file(const std::string_view& fn)
+    bool is_package_file(std::string_view fn)
     {
         return ends_with(fn, ".tar.bz2") || ends_with(fn, ".conda");
     }
@@ -1286,7 +1286,8 @@ namespace mamba
         // TODO
         std::string CONDA_PACKAGE_ROOT = "";
 
-        std::string bat_name = Context::instance().is_micromamba ? "micromamba.bat" : "conda.bat";
+        std::string bat_name = Context::instance().command_params.is_micromamba ? "micromamba.bat"
+                                                                                : "conda.bat";
 
         if (dev_mode)
         {
@@ -1297,7 +1298,7 @@ namespace mamba
             conda_bat = env::get("CONDA_BAT")
                             .value_or((fs::absolute(root_prefix) / "condabin" / bat_name).string());
         }
-        if (!fs::exists(conda_bat) && Context::instance().is_micromamba)
+        if (!fs::exists(conda_bat) && Context::instance().command_params.is_micromamba)
         {
             // this adds in the needed .bat files for activation
             init_root_prefix_cmdexe(Context::instance().root_prefix);
@@ -1353,7 +1354,7 @@ namespace mamba
 
         std::string shebang, dev_arg;
 
-        if (!Context::instance().is_micromamba)
+        if (!Context::instance().command_params.is_micromamba)
         {
             // During tests, we sometimes like to have a temp env with e.g. an old python
             // in it and have it run tests against the very latest development sources.
@@ -1400,7 +1401,7 @@ namespace mamba
         }
         out << "eval \"$(" << hook_quoted.str() << ")\"\n";
 
-        if (!Context::instance().is_micromamba)
+        if (!Context::instance().command_params.is_micromamba)
         {
             out << "conda activate " << dev_arg << " " << std::quoted(prefix.string()) << "\n";
         }
@@ -1478,7 +1479,7 @@ namespace mamba
         return ends_with(filename, ".yml") || ends_with(filename, ".yaml");
     }
 
-    tl::expected<std::string, mamba_error> encode_base64(const std::string_view& input)
+    tl::expected<std::string, mamba_error> encode_base64(std::string_view input)
     {
         const auto pl = 4 * ((input.size() + 2) / 3);
         std::vector<unsigned char> output(pl + 1);
@@ -1496,7 +1497,7 @@ namespace mamba
         return std::string(reinterpret_cast<const char*>(output.data()));
     }
 
-    tl::expected<std::string, mamba_error> decode_base64(const std::string_view& input)
+    tl::expected<std::string, mamba_error> decode_base64(std::string_view input)
     {
         const auto pl = 3 * input.size() / 4;
 
@@ -1551,6 +1552,20 @@ namespace mamba
         }
 
         return std::nullopt;
+    }
+
+    std::string hide_secrets(std::string_view str)
+    {
+        std::string copy(str);
+
+        if (contains(str, "/t/"))
+        {
+            copy = std::regex_replace(copy, Context::instance().token_regex, "/t/*****");
+        }
+
+        copy = std::regex_replace(copy, Context::instance().http_basicauth_regex, "$1$2:*****@");
+
+        return copy;
     }
 
 }  // namespace mamba

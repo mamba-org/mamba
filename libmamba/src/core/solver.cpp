@@ -10,11 +10,8 @@
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <solv/pool.h>
+#include <solv/solvable.h>
 #include <solv/solver.h>
-extern "C"  // Incomplete header
-{
-#include <solv/conda.h>
-}
 
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
@@ -212,72 +209,9 @@ namespace mamba
 
     MSolver::~MSolver() = default;
 
-    inline bool channel_match(Solvable* s, const Channel& needle)
-    {
-        MRepo* mrepo = reinterpret_cast<MRepo*>(s->repo->appdata);
-        const Channel* chan = mrepo->channel();
-
-        if (!chan)
-        {
-            return false;
-        }
-
-        if ((*chan) == needle)
-        {
-            return true;
-        }
-
-        auto& custom_multichannels = Context::instance().custom_multichannels;
-        auto x = custom_multichannels.find(needle.name());
-        if (x != custom_multichannels.end())
-        {
-            for (auto el : (x->second))
-            {
-                const Channel& inner = make_channel(el);
-                if ((*chan) == inner)
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
     void MSolver::add_global_job(int job_flag)
     {
         m_jobs->push_back(job_flag, 0);
-    }
-
-    void MSolver::add_channel_specific_job(const MatchSpec& ms, int job_flag)
-    {
-        Pool* pool = m_pool;
-        solv::ObjQueue selected_pkgs;
-
-        // conda_build_form does **NOT** contain the channel info
-        Id match = pool_conda_matchspec(pool, ms.conda_build_form().c_str());
-
-        const Channel& c = make_channel(ms.channel);
-        for (Id* wp = pool_whatprovides_ptr(pool, match); *wp; wp++)
-        {
-            if (channel_match(pool_id2solvable(pool, *wp), c))
-            {
-                selected_pkgs.push_back(*wp);
-            }
-        }
-        if (selected_pkgs.size() == 0)
-        {
-            LOG_ERROR << "Selected channel specific (or force-reinstall) job, but "
-                         "package is not available from channel. Solve job will fail.";
-        }
-        Id offset = pool_queuetowhatprovides(pool, selected_pkgs.raw());
-        // Poor man's ms repr to match waht the user provided
-        std::string const repr = fmt::format("{}::{}", ms.channel, ms.conda_build_form());
-        Id repr_id = pool_str2id(pool, repr.c_str(), 1);
-        // We add a new entry into the whatprovides to reflect the channel specific job
-        pool_set_whatprovides(pool, repr_id, offset);
-        // We ask to install that new entry
-        m_jobs->push_back(job_flag, repr_id);
     }
 
     void MSolver::add_reinstall_job(MatchSpec& ms, int job_flag)
@@ -335,12 +269,15 @@ namespace mamba
                     );
                     LOG_INFO << "Reinstall " << modified_spec.conda_build_form() << " from channel "
                              << selected_channel;
-                    return add_channel_specific_job(modified_spec, job_flag);
+                    m_jobs->push_back(
+                        job_flag | SOLVER_SOLVABLE_PROVIDES,
+                        m_pool.matchspec2id(modified_spec)
+                    );
+                    return;
                 }
             }
         }
-        Id inst_id = pool_conda_matchspec(m_pool, ms.conda_build_form().c_str());
-        m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, inst_id);
+        m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, m_pool.matchspec2id(ms));
     }
 
     void MSolver::add_jobs(const std::vector<std::string>& jobs, int job_flag)
@@ -363,132 +300,105 @@ namespace mamba
                 m_neuter_specs.emplace_back(job);  // not used for the moment
             }
 
+            ::Id const job_id = m_pool.matchspec2id(ms);
+
             // This is checking if SOLVER_ERASE and SOLVER_INSTALL are set
             // which are the flags for SOLVER_UPDATE
-            if (((job_flag & SOLVER_UPDATE) ^ SOLVER_UPDATE) == 0)
+            if ((job_flag & SOLVER_UPDATE) == SOLVER_UPDATE)
             {
                 // ignoring update specs here for now
                 if (!ms.is_simple())
                 {
-                    Id inst_id = pool_conda_matchspec(m_pool, ms.conda_build_form().c_str());
-                    m_jobs->push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, inst_id);
+                    m_jobs->push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, job_id);
                 }
-                if (ms.channel.empty())
-                {
-                    Id update_id = pool_conda_matchspec(m_pool, ms.name.c_str());
-                    m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, update_id);
-                }
-                else
-                {
-                    add_channel_specific_job(ms, job_flag);
-                }
-
-                continue;
+                m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, job_id);
             }
-
-            if (!ms.channel.empty())
-            {
-                if (job_type == SOLVER_ERASE)
-                {
-                    throw std::runtime_error("Cannot remove channel-specific spec '" + job + "'");
-                }
-                add_channel_specific_job(ms, job_flag);
-            }
-            else if (job_flag & SOLVER_INSTALL && force_reinstall)
+            else if ((job_flag & SOLVER_INSTALL) && force_reinstall)
             {
                 add_reinstall_job(ms, job_flag);
             }
             else
             {
-                // Todo remove double parsing?
-                LOG_INFO << "Adding job: " << ms.conda_build_form();
-                Id inst_id = pool_conda_matchspec(m_pool, ms.conda_build_form().c_str());
-                m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, inst_id);
+                LOG_INFO << "Adding job: " << ms.str();
+                m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, job_id);
             }
         }
     }
 
     void MSolver::add_constraint(const std::string& job)
     {
-        MatchSpec ms(job);
-        Id inst_id = pool_conda_matchspec(m_pool, ms.conda_build_form().c_str());
-        m_jobs->push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, inst_id);
+        m_jobs->push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, m_pool.matchspec2id({ job }));
     }
 
     void MSolver::add_pin(const std::string& pin)
     {
-        // if we pin a package, we need to remove all packages that don't match the
-        // pin from being available for installation! This is done by adding
-        // SOLVER_LOCK to the packages, so that they are prevented from being
-        // installed A lock basically says: keep the state of the package. I.e.
-        // uninstalled packages stay uninstalled, installed packages stay installed.
-        // A lock is a hard requirement, we could also use SOLVER_FAVOR for soft
-        // requirements
+        // In libsolv, locking means that a package keeps the same state: if it is installed,
+        // it remains installed, if not it remains uninstalled.
+        // Locking on a spec applies the lock to all packages matching the spec.
+        // In mamba, we do not want to lock the package because we want to allow other variants
+        // (matching the same spec) to unlock more solutions.
+        // For instance we may pin ``libfmt=8.*`` but allow it to be swaped with a version built
+        // by a more recent compiler.
+        //
+        // A previous version of this function would use ``SOLVER_LOCK`` to lock all packages not
+        // matching the pin.
+        // That played poorly with ``all_problems_structured`` because we could not interpret
+        // the ids that were returned (since they were not associated with a single reldep).
+        //
+        // Another wrong idea is to add the pin as an install job.
+        // This is not what is expected of pins, as they must not be installed if they were not
+        // in the environement.
+        // They can be configure in ``.condarc`` for generally specifying what versions are wanted.
+        //
+        // The idea behind the current version is to add the pin/spec as a constraint that must be
+        // fullfield only if the package is installed.
+        // This is not supported on solver jobs but it is on ``Solvable`` with
+        // ``disttype == DISTYPE_CONDA``.
+        // Therefore, we add a dummy solvable marked as already installed, and add the pin/spec
+        // as one of its constrains.
+        // Then we lock this solvable and force the re-checking of its dependencies.
 
-        // First we need to check if the pin is OK given the currently installed
-        // packages
-        Pool* pool = m_pool;
-        MatchSpec ms(pin);
+        const auto pin_ms = MatchSpec(pin);
+        m_pinned_specs.push_back(pin_ms);
 
-        // TODO
-        // if (m_prefix_data)
-        // {
-        //     for (auto& [name, record] : m_prefix_data->records())
-        //     {
-        //         LOG_ERROR << "NAME " << name;
-        //         if (name == ms.name)
-        //         {
-        //             LOG_ERROR << "Found pinned package in installed packages, need
-        //             to check pin now."; LOG_ERROR << record.version << " vs " <<
-        //             ms.version;
-        //         }
-        //     }
-        // }
+        ::Pool* pool = m_pool;
+        ::Repo* const installed_repo = pool->installed;
 
-        Id match = pool_conda_matchspec(pool, ms.conda_build_form().c_str());
-
-        std::set<Id> matching_solvables;
-        const Channel& c = make_channel(ms.channel);
-
-        for (Id* wp = pool_whatprovides_ptr(pool, match); *wp; wp++)
+        if (pool->disttype != DISTTYPE_CONDA)
         {
-            if (!ms.channel.empty())
-            {
-                if (!channel_match(pool_id2solvable(pool, *wp), c))
-                {
-                    continue;
-                }
-            }
-            matching_solvables.insert(*wp);
+            throw std::runtime_error("Cannot add pin to a pool that is not of Conda distype");
+        }
+        if (installed_repo == nullptr)
+        {
+            throw std::runtime_error("Cannot add pin without a repo of installed packages");
         }
 
-        std::set<Id> all_solvables;
-        Id name_id = pool_str2id(pool, ms.name.c_str(), 1);
-        for (Id* wp = pool_whatprovides_ptr(pool, name_id); *wp; wp++)
-        {
-            all_solvables.insert(*wp);
-        }
+        // Add dummy solvable with a constraint on the pin (not installed if not present)
+        ::Id const cons_solv_id = repo_add_solvable(installed_repo);
+        ::Solvable* const cons_solv = pool_id2solvable(pool, cons_solv_id);
+        // TODO set some "pin" key on the solvable so that we can retrieve it during error messages
+        std::string const cons_solv_name = fmt::format("pin-{}", m_pinned_specs.size());
+        solvable_set_str(cons_solv, SOLVABLE_NAME, cons_solv_name.c_str());
+        solvable_set_str(cons_solv, SOLVABLE_EVR, "1");
+        ::Id const pin_ms_id = m_pool.matchspec2id(pin_ms);
+        solv::ObjQueue q = { pin_ms_id };
+        solvable_add_idarray(cons_solv, SOLVABLE_CONSTRAINS, pin_ms_id);
+        // Solvable need to provide itself
+        cons_solv->provides = repo_addid_dep(
+            installed_repo,
+            cons_solv->provides,
+            pool_rel2id(pool, cons_solv->name, cons_solv->evr, REL_EQ, 1),
+            0
+        );
 
-        if (all_solvables.size() != 0 && matching_solvables.size() == 0)
-        {
-            throw std::runtime_error(fmt::format("No package can be installed for pin: {}", pin));
-        }
-        m_pinned_specs.push_back(ms);
+        // Necessary for attributes to be properly stored
+        repo_internalize(installed_repo);
 
-        solv::ObjQueue selected_pkgs;
-
-        for (auto& id : all_solvables)
-        {
-            if (matching_solvables.find(id) == matching_solvables.end())
-            {
-                // the solvable is _NOT_ matched by our pinning expression! So we have to
-                // lock it to make it un-installable
-                selected_pkgs.push_back(id);
-            }
-        }
-
-        Id d = pool_queuetowhatprovides(pool, selected_pkgs.raw());
-        m_jobs->push_back(SOLVER_LOCK | SOLVER_SOLVABLE_ONE_OF, d);
+        // Lock the dummy solvable so that it stays install.
+        add_jobs({ cons_solv_name }, SOLVER_LOCK);
+        // Force check the dummy solvable dependencies, as this is not the default for
+        // installed packges.
+        add_jobs({ cons_solv_name }, SOLVER_VERIFY);
     }
 
     void MSolver::add_pins(const std::vector<std::string>& pins)
@@ -659,7 +569,8 @@ namespace mamba
         print_problem_tree_msg(
             out,
             cp_pbs,
-            { /* .unavailable= */ ctx.palette.failure, /* .available= */ ctx.palette.success }
+            { /* .unavailable= */ ctx.graphics_params.palette.failure,
+              /* .available= */ ctx.graphics_params.palette.success }
         );
         return out;
     }

@@ -363,7 +363,7 @@ namespace mamba
         if (detach)
         {
             Console::stream() << fmt::format(
-                Context::instance().palette.success,
+                Context::instance().graphics_params.palette.success,
                 "Running wrapped script {} in the background\n",
                 fmt::join(command, " ")
             );

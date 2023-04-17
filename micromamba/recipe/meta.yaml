@@ -26,7 +26,7 @@ requirements:
   build:
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
-    - cmake        # [unix]
+    - cmake >=3.16 # [unix]
     - ninja
     - vcpkg        # [win]
     - python       # [win]

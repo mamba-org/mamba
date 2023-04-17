@@ -7,6 +7,7 @@
 #ifndef MAMBA_CURL_HPP
 #define MAMBA_CURL_HPP
 
+#include <optional>
 #include <stdexcept>
 #include <string_view>
 #include <utility>
@@ -22,6 +23,19 @@ extern "C"
 
 namespace mamba
 {
+    namespace curl
+    {
+        void configure_curl_handle(
+            CURL* handle,
+            const std::string& url,
+            const bool set_low_speed_opt,
+            const long connect_timeout_secs,
+            const bool ssl_no_revoke,
+            const std::optional<std::string>& proxy,
+            const std::string& ssl_verify
+        );
+    }
+
     enum class CurlLogLevel
     {
         kInfo,
@@ -70,13 +84,71 @@ namespace mamba
 
         CURLHandle& set_opt_header();
 
-        // TODO Make this private after more wrapping...
-        char m_errorbuffer[CURL_ERROR_SIZE];
+        const char* get_error_buffer() const;
 
     private:
 
         CURL* m_handle;
         curl_slist* p_headers = nullptr;
+        char m_errorbuffer[CURL_ERROR_SIZE];
+
+        friend CURL* unwrap(const CURLHandle&);
+    };
+
+    bool operator==(const CURLHandle& lhs, const CURLHandle& rhs);
+    bool operator!=(const CURLHandle& lhs, const CURLHandle& rhs);
+
+    class CURLReference
+    {
+    public:
+
+        CURLReference(CURL* handle);
+
+    private:
+
+        CURL* p_handle;
+
+        friend CURL* unwrap(const CURLReference&);
+    };
+
+    bool operator==(const CURLHandle& lhs, const CURLReference& rhs);
+    bool operator==(const CURLReference& lhs, const CURLHandle& rhs);
+    bool operator==(const CURLReference& lhs, const CURLReference& rhs);
+    bool operator!=(const CURLHandle& lhs, const CURLReference& rhs);
+    bool operator!=(const CURLReference& lhs, const CURLHandle& rhs);
+    bool operator!=(const CURLReference& lhs, const CURLReference& rhs);
+
+    struct CURLMultiResponse
+    {
+        CURLReference m_handle_ref;
+        CURLcode m_transfer_result;
+        bool m_transfer_done;
+    };
+
+    class CURLMultiHandle
+    {
+    public:
+
+        using response_type = std::optional<CURLMultiResponse>;
+
+        explicit CURLMultiHandle(std::size_t max_parallel_downloads);
+        ~CURLMultiHandle();
+
+        CURLMultiHandle(CURLMultiHandle&&);
+        CURLMultiHandle& operator=(CURLMultiHandle&&);
+
+        void add_handle(const CURLHandle&);
+        void remove_handle(const CURLHandle&);
+
+        std::size_t perform();
+        response_type pop_message();
+        std::size_t get_timeout(std::size_t max_timeout = 1000u) const;
+        std::size_t wait(std::size_t timeout);
+
+    private:
+
+        CURLM* p_handle;
+        std::size_t m_max_parallel_downloads = 5;
     };
 
     template <class T>

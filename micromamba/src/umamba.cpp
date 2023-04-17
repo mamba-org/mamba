@@ -25,7 +25,7 @@ set_umamba_command(CLI::App* com)
 {
     init_umamba_options(com);
 
-    Context::instance().caller_version = umamba::version();
+    Context::instance().command_params.caller_version = umamba::version();
 
     auto print_version = [](int /*count*/)
     {

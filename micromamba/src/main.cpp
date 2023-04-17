@@ -38,8 +38,8 @@ main(int argc, char** argv)
     init_console();
     auto& ctx = Context::instance();
 
-    ctx.is_micromamba = true;
-    ctx.custom_banner = banner;
+    ctx.command_params.is_micromamba = true;
+    ctx.command_params.custom_banner = banner;
 
     CLI::App app{ "Version: " + version() + "\n" };
     set_umamba_command(&app);
@@ -81,7 +81,7 @@ main(int argc, char** argv)
             full_command << " ";
         }
     }
-    ctx.current_command = full_command.str();
+    ctx.command_params.current_command = full_command.str();
 
     std::optional<std::string> error_to_report;
     try

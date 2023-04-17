@@ -81,9 +81,6 @@ namespace mamba
         template <class I>
         tl::expected<I, CURLcode> get_integer_info(CURLINFO option);
 
-        // This is made public because it is used internally in quite some files
-        CURL* handle();
-
         void configure_handle(
             const std::string& url,
             const bool set_low_speed_opt,
@@ -103,10 +100,22 @@ namespace mamba
         CURLHandle& set_opt_header();
 
         const char* get_error_buffer() const;
+        std::string get_curl_effective_url();
+
+        std::size_t get_result() const;
+        bool is_curl_res_ok() const;
+
+        void set_result(CURLcode res);
+
+        std::string get_res_error() const;
+
+        bool can_proceed();
+        void perform();
 
     private:
 
         CURL* m_handle;
+        CURLcode m_result;  // Enum range from 0 to 99
         curl_slist* p_headers = nullptr;
         char m_errorbuffer[CURL_ERROR_SIZE];
 

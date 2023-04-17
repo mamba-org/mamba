@@ -11,7 +11,8 @@
 #include <vector>
 
 ///////////////////////////////////////
-// TODO to remove, kept here until not needed anymore/complete libcurl isolation is done
+// TODO to remove
+// For now used for curl_off_t in progress_callback and for CURLcode in set_result
 extern "C"
 {
 #include <curl/curl.h>
@@ -106,11 +107,14 @@ namespace mamba
             return m_ignore_failure;
         }
 
-        void set_result(CURLcode r);
         std::size_t get_result() const;
+
+        // TODO find a way to move this from the API
+        void set_result(CURLcode res);
 
         bool resource_exists();
         bool perform();
+        bool check_result();
 
         bool finalize();
         std::string get_transfer_msg();
@@ -135,8 +139,6 @@ namespace mamba
         int m_http_status;
         std::size_t m_downloaded_size;
         char* m_effective_url;
-
-        CURLcode m_result;  // Enum range from 0 to 99
 
         std::string m_etag, m_mod, m_cache_control;
 

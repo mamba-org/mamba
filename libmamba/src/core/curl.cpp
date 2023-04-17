@@ -179,6 +179,7 @@ namespace mamba
 
     CURLHandle::CURLHandle()  //(const Context& ctx)
         : m_handle(curl_easy_init())
+        , m_result(CURLE_OK)
     {
         if (m_handle == nullptr)
         {
@@ -195,12 +196,14 @@ namespace mamba
         , p_headers(std::move(rhs.p_headers))
     {
         std::swap(m_errorbuffer, rhs.m_errorbuffer);
+        std::swap(m_result, rhs.m_result);
     }
 
     CURLHandle& CURLHandle::operator=(CURLHandle&& rhs)
     {
         using std::swap;
         swap(m_handle, rhs.m_handle);
+        swap(m_result, rhs.m_result);
         swap(p_headers, rhs.p_headers);
         swap(m_errorbuffer, rhs.m_errorbuffer);
         return *this;
@@ -317,12 +320,6 @@ namespace mamba
         }
     }
 
-    // TODO to be removed from the API
-    CURL* CURLHandle::handle()
-    {
-        return m_handle;
-    }
-
     void CURLHandle::configure_handle(
         const std::string& url,
         const bool set_low_speed_opt,
@@ -378,6 +375,64 @@ namespace mamba
     const char* CURLHandle::get_error_buffer() const
     {
         return m_errorbuffer;
+    }
+
+    std::string CURLHandle::get_curl_effective_url()
+    {
+        return get_info<std::string>(CURLINFO_EFFECTIVE_URL).value();
+    }
+
+    std::size_t CURLHandle::get_result() const
+    {
+        return static_cast<std::size_t>(m_result);
+    }
+
+    bool CURLHandle::is_curl_res_ok() const
+    {
+        return (m_result == CURLE_OK);
+    }
+
+    void CURLHandle::set_result(CURLcode res)
+    {
+        m_result = res;
+    }
+
+    std::string CURLHandle::get_res_error() const
+    {
+        return static_cast<std::string>(curl_easy_strerror(m_result));
+    }
+
+    bool CURLHandle::can_proceed()
+    {
+        switch (m_result)
+        {
+            case CURLE_ABORTED_BY_CALLBACK:
+            case CURLE_BAD_FUNCTION_ARGUMENT:
+            case CURLE_CONV_REQD:
+            case CURLE_COULDNT_RESOLVE_PROXY:
+            case CURLE_FILESIZE_EXCEEDED:
+            case CURLE_INTERFACE_FAILED:
+            case CURLE_NOT_BUILT_IN:
+            case CURLE_OUT_OF_MEMORY:
+            // See RhBug: 1219817
+            // case CURLE_RECV_ERROR:
+            // case CURLE_SEND_ERROR:
+            case CURLE_SSL_CACERT_BADFILE:
+            case CURLE_SSL_CRL_BADFILE:
+            case CURLE_WRITE_ERROR:
+            case CURLE_OPERATION_TIMEDOUT:
+                return false;
+                break;
+            default:
+                // Other errors are not considered fatal
+                return true;
+                break;
+        }
+    }
+
+    void CURLHandle::perform()
+    {
+        m_result = curl_easy_perform(m_handle);
     }
 
     CURL* unwrap(const CURLHandle& h)

@@ -66,7 +66,6 @@ namespace mamba
         , m_http_status(10000)
         , m_downloaded_size(0)
         , m_effective_url(nullptr)
-        , m_result(CURLE_OK)
         , m_expected_size(0)
         , m_retry_wait_seconds(get_default_retry_timeout())
         , m_retries(0)
@@ -248,29 +247,9 @@ namespace mamba
 
     bool DownloadTarget::can_retry()
     {
-        // TODO add a function here to wrap the switch and returning a bool
-        switch (m_result)
+        if (!m_curl_handle->can_proceed())
         {
-            case CURLE_ABORTED_BY_CALLBACK:
-            case CURLE_BAD_FUNCTION_ARGUMENT:
-            case CURLE_CONV_REQD:
-            case CURLE_COULDNT_RESOLVE_PROXY:
-            case CURLE_FILESIZE_EXCEEDED:
-            case CURLE_INTERFACE_FAILED:
-            case CURLE_NOT_BUILT_IN:
-            case CURLE_OUT_OF_MEMORY:
-            // See RhBug: 1219817
-            // case CURLE_RECV_ERROR:
-            // case CURLE_SEND_ERROR:
-            case CURLE_SSL_CACERT_BADFILE:
-            case CURLE_SSL_CRL_BADFILE:
-            case CURLE_WRITE_ERROR:
-            case CURLE_OPERATION_TIMEDOUT:
-                return false;
-                break;
-            default:
-                // Other error are not considered fatal
-                break;
+            return false;
         }
 
         return m_retries < size_t(Context::instance().remote_fetch_params.max_retries)
@@ -581,22 +560,18 @@ namespace mamba
     bool DownloadTarget::perform()
     {
         LOG_INFO << "Downloading to filename: " << m_filename;
-
-        m_result = curl_easy_perform(m_curl_handle->handle());
-        set_result(m_result);
-        return ((m_result == CURLE_OK) && finalize());
+        m_curl_handle->perform();
+        return (check_result() && finalize());
     }
 
-    void DownloadTarget::set_result(CURLcode r)
+    bool DownloadTarget::check_result()
     {
-        m_result = r;
-        if (r != CURLE_OK)
+        if (!m_curl_handle->is_curl_res_ok())
         {
-            auto leffective_url = m_curl_handle->get_info<char*>(CURLINFO_EFFECTIVE_URL).value();
-
             std::stringstream err;
-            err << "Download error (" << m_result << ") " << curl_easy_strerror(m_result) << " ["
-                << leffective_url << "]\n";
+            err << "Download error (" << m_curl_handle->get_result() << ") "
+                << m_curl_handle->get_res_error() << " [" << m_curl_handle->get_curl_effective_url()
+                << "]\n";
             if (m_curl_handle->get_error_buffer()[0] != '\0')
             {
                 err << m_curl_handle->get_error_buffer();
@@ -610,18 +585,28 @@ namespace mamba
             {
                 m_progress_bar.update_progress(0, 1);
                 // m_progress_bar.set_elapsed_time();
-                m_progress_bar.set_postfix(curl_easy_strerror(m_result));
+                m_progress_bar.set_postfix(m_curl_handle->get_res_error());
             }
             if (!m_ignore_failure && !can_retry())
             {
                 throw std::runtime_error(err.str());
             }
+            return false;
+        }
+        else
+        {
+            return true;
         }
     }
 
     std::size_t DownloadTarget::get_result() const
     {
-        return static_cast<std::size_t>(m_result);
+        return m_curl_handle->get_result();
+    }
+
+    void DownloadTarget::set_result(CURLcode res)
+    {
+        m_curl_handle->set_result(res);
     }
 
     bool DownloadTarget::finalize()
@@ -768,7 +753,7 @@ namespace mamba
             }
 
             current_target->set_result(msg.m_transfer_result);
-            if (msg.m_transfer_result != CURLE_OK && current_target->can_retry())
+            if (current_target->check_result() && current_target->can_retry())
             {
                 p_curl_handle->remove_handle(current_target->get_curl_handle());
                 m_retry_targets.push_back(current_target);

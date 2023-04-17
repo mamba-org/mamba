@@ -118,12 +118,10 @@ namespace mamba::util
         std::size_t m_number_of_edges = 0;
     };
 
-    template <typename Node, typename Derived>
-    auto is_reachable(
-        const DiGraphBase<Node, Derived>& graph,
-        typename DiGraphBase<Node, Derived>::node_id source,
-        typename DiGraphBase<Node, Derived>::node_id target
-    ) -> bool;
+    template <typename Graph>
+    auto
+    is_reachable(const Graph& graph, typename Graph::node_id source, typename Graph::node_id target)
+        -> bool;
 
     template <class G>
     class default_visitor

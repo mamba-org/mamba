@@ -83,34 +83,74 @@ namespace mamba::solv
 
     namespace
     {
-        struct FilePtr
+        class FilePtr
         {
-            std::FILE* ptr = nullptr;
-            std::string_view name = {};
+        public:
 
-            ~FilePtr() noexcept(false)
-            {
-                const auto close_res = std::fclose(ptr);  // This flush too
-                if (close_res != 0)
-                {
-                    // TODO(C++20) fmt::format
-                    auto ss = std::stringstream();
-                    ss << "Unable to close file " << name;
-                    throw std::runtime_error(ss.str());
-                }
-            }
+            /**
+             * Open a file with C API.
+             *
+             * @param path must hae filesystem default encoding.
+             */
+            static auto open(std::filesystem::path path, const char* mode) -> FilePtr;
+
+            ~FilePtr() noexcept(false);
+
+            auto raw() noexcept -> std::FILE*;
+            auto raw() const noexcept -> const std::FILE*;
+
+        private:
+
+            FilePtr(std::FILE* ptr, std::string name);
+
+            std::FILE* m_ptr = nullptr;
+            std::string m_name = {};
         };
+
+        FilePtr::FilePtr(std::FILE* ptr, std::string name)
+            : m_ptr{ ptr }
+            , m_name{ name }
+        {
+        }
+
+        auto FilePtr::open(std::filesystem::path path, const char* mode) -> FilePtr
+        {
+            std::string name = path;
+            std::FILE* ptr = std::fopen(name.c_str(), mode);
+            if (ptr == nullptr)
+            {
+                throw std::system_error(errno, std::generic_category());
+            }
+            return { ptr, std::move(name) };
+        }
+
+        FilePtr::~FilePtr() noexcept(false)
+        {
+            const auto close_res = std::fclose(m_ptr);  // This flush too
+            if (close_res != 0)
+            {
+                // TODO(C++20) fmt::format
+                auto ss = std::stringstream();
+                ss << "Unable to close file " << m_name;
+                throw std::runtime_error(ss.str());
+            }
+        }
+
+        auto FilePtr::raw() noexcept -> std::FILE*
+        {
+            return m_ptr;
+        }
+
+        auto FilePtr::raw() const noexcept -> const std::FILE*
+        {
+            return m_ptr;
+        }
     }
 
     void ObjRepoViewConst::write(std::filesystem::path solv_file) const
     {
-        const auto file_name = solv_file.string();
-        FilePtr file = { std::fopen(file_name.c_str(), "wb"), file_name };
-        if (file.ptr == nullptr)
-        {
-            throw std::system_error(errno, std::generic_category());
-        }
-        const auto write_res = ::repo_write(const_cast<::Repo*>(raw()), file.ptr);
+        auto file = FilePtr::open(solv_file, "wb");
+        const auto write_res = ::repo_write(const_cast<::Repo*>(raw()), file.raw());
         if (write_res != 0)
         {
             // TODO(C++20) fmt::format
@@ -142,13 +182,8 @@ namespace mamba::solv
 
     void ObjRepoView::read(std::filesystem::path solv_file) const
     {
-        const auto file_name = solv_file.string();
-        FilePtr file = { std::fopen(file_name.c_str(), "rb"), file_name };
-        if (file.ptr == nullptr)
-        {
-            throw std::system_error(errno, std::generic_category());
-        }
-        const auto read_res = ::repo_add_solv(raw(), file.ptr, 0);
+        auto file = FilePtr::open(solv_file, "rb");
+        const auto read_res = ::repo_add_solv(raw(), file.raw(), 0);
         if (read_res != 0)
         {
             // TODO(C++20) fmt::format

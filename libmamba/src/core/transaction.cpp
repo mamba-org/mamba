@@ -876,7 +876,6 @@ namespace mamba
                     break;
             }
         }
-        m_real_repo_key = pool_str2id(m_pool, "solvable:real_repo_url", 1);
         m_mrepo_key = pool_str2id(m_pool, "solvable:mrepo_url", 1);
     }
 
@@ -1131,9 +1130,9 @@ namespace mamba
             std::string s_json = solvable_to_json(m_pool, s).dump(4);
 
             std::string channel;
-            if (solvable_lookup_str(s, m_real_repo_key))
+            if (const char* str = solvable_lookup_str(s, SOLVABLE_URL))
             {
-                channel = solvable_lookup_str(s, m_real_repo_key);
+                channel = str;
             }
             else
             {
@@ -1537,9 +1536,9 @@ namespace mamba
             const char* build_string = solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
 
             std::string channel;
-            if (solvable_lookup_str(s, m_real_repo_key))
+            if (const char* str = solvable_lookup_str(s, SOLVABLE_URL))
             {
-                std::string repo_key = solvable_lookup_str(s, m_real_repo_key);
+                std::string repo_key = str;
 
                 if (repo_key == "explicit_specs")
                 {

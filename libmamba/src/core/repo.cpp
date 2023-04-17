@@ -102,7 +102,6 @@ namespace mamba
 
     void MRepo::init(MPool& pool)
     {
-        m_real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
         m_mrepo_key = pool_str2id(pool, "solvable:mrepo_url", 1);
         m_noarch_repo_key = pool_str2id(pool, "solvable:noarch_type", 1);
     }
@@ -125,7 +124,6 @@ namespace mamba
         , m_url(std::move(rhs.m_url))
         , m_metadata(std::move(rhs.m_metadata))
         , m_repo(rhs.m_repo)
-        , m_real_repo_key(rhs.m_real_repo_key)
         , m_mrepo_key(rhs.m_mrepo_key)
         , m_noarch_repo_key(rhs.m_noarch_repo_key)
     {
@@ -140,7 +138,6 @@ namespace mamba
         swap(m_url, rhs.m_url);
         swap(m_metadata, rhs.m_metadata);
         swap(m_repo, rhs.m_repo);
-        swap(m_real_repo_key, rhs.m_real_repo_key);
         swap(m_mrepo_key, rhs.m_mrepo_key);
         swap(m_noarch_repo_key, rhs.m_noarch_repo_key);
         return *this;
@@ -173,7 +170,7 @@ namespace mamba
         // No ``solvable_xxx`` equivalent
         repodata_set_checksum(data, handle, SOLVABLE_PKGID, REPOKEY_TYPE_MD5, info.md5.c_str());
 
-        solvable_set_str(s, m_real_repo_key, info.url.c_str());
+        solvable_set_str(s, SOLVABLE_URL, info.url.c_str());
         solvable_set_str(s, m_mrepo_key, url().c_str());
 
         if (!info.noarch.empty())

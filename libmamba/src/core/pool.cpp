@@ -224,8 +224,7 @@ namespace mamba
                 out.build_number = std::stoull(str);
             }
 
-            static ::Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
-            if (const char* str = solvable_lookup_str(&s, real_repo_key); str != nullptr)
+            if (const char* str = solvable_lookup_str(&s, SOLVABLE_URL))
             {
                 out.url = str;
                 out.channel = make_channel(out.url).canonical_name();

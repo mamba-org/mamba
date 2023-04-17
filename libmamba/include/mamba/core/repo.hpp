@@ -98,7 +98,6 @@ namespace mamba
         RepoMetadata m_metadata = {};
 
         Repo* m_repo = nullptr;  // This is a view managed by libsolv pool
-        ::Id m_real_repo_key = 0;
         ::Id m_mrepo_key = 0;
         ::Id m_noarch_repo_key = 0;
     };

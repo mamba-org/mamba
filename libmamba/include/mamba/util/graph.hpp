@@ -102,6 +102,9 @@ namespace mamba::util
     void
     dfs_raw(const Graph& graph, Visitor&& visitor, typename Graph::node_id start, bool reverse = false);
 
+    template <typename Graph, typename Visitor>
+    void dfs_raw(const Graph& graph, Visitor&& visitor, bool reverse = false);
+
     // TODO C++20 rather than providing an empty visitor, use a concept to detect the presence
     // of member function.
     // @warning Inheriting publicly from this class risks calling into the empty overloaded
@@ -549,6 +552,32 @@ namespace mamba::util
             auto& adjacency = reverse ? graph.predecessors() : graph.successors();
             auto status = std::vector<detail::Visited>(adjacency.size(), detail::Visited::no);
             detail::dfs_raw_impl(graph, std::forward<Visitor>(visitor), start, status, adjacency);
+        }
+    }
+
+    template <typename Graph, typename Visitor>
+    void dfs_raw(const Graph& graph, Visitor&& visitor, bool reverse)
+    {
+        if (graph.empty())
+        {
+            return;
+        }
+
+        using node_id = typename Graph::node_id;
+
+        auto& adjacency = reverse ? graph.predecessors() : graph.successors();
+        const auto max_node_id = adjacency.size();
+        auto status = std::vector<detail::Visited>(max_node_id, detail::Visited::no);
+
+        // Iterating over all ids, which may be a super set of the valid ids since some ids
+        // could have been removed.
+        // Hence we need to check ``graph.has_node``.
+        for (node_id n = 0; n < max_node_id; ++n)
+        {
+            if (graph.has_node(n) && (status[n] == detail::Visited::no))
+            {
+                detail::dfs_raw_impl(graph, std::forward<Visitor>(visitor), n, status, adjacency);
+            }
         }
     }
 

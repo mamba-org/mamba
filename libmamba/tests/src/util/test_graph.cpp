@@ -4,6 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <set>
+#include <vector>
+
 #include <doctest/doctest.h>
 
 #include "mamba/util/graph.hpp"
@@ -373,6 +376,26 @@ TEST_SUITE("graph")
         dfs_raw(g, vis, 0);
         CHECK(vis.get_back_edge_map().empty());
         CHECK(vis.get_cross_edge_map().empty());
+    }
+
+    TEST_CASE("dfs_all")
+    {
+        DiGraph<double> g;
+        const auto n0 = g.add_node(0);
+        const auto n1 = g.add_node(1);
+        const auto n2 = g.add_node(2);
+        g.add_edge(n0, n1);
+        g.add_edge(n2, n1);
+
+        test_visitor<decltype(g)> vis = {};
+        dfs_raw(g, vis);
+
+        const auto& start_node_list = vis.get_start_node_list();
+        const auto& finish_node_list = vis.get_finish_node_list();
+        const auto start_node_set = std::set(start_node_list.begin(), start_node_list.end());
+        const auto finish_node_set = std::set(finish_node_list.begin(), finish_node_list.end());
+        CHECK_EQ(start_node_set, finish_node_set);
+        CHECK_EQ(start_node_set.size(), 3);
     }
 
     TEST_CASE("is_reachable")

@@ -398,6 +398,54 @@ TEST_SUITE("graph")
         CHECK_EQ(start_node_set.size(), 3);
     }
 
+    TEST_CASE("dfs_preorder & dfs_postorder")
+    {
+        DiGraph<double> g;
+        const auto n0 = g.add_node(0);
+        const auto n1 = g.add_node(1);
+        const auto n2 = g.add_node(2);
+        g.add_edge(n0, n1);
+        g.add_edge(n2, n1);
+
+        using node_id = typename decltype(g)::node_id;
+        auto nodes = std::vector<node_id>();
+
+        SUBCASE("dfs_preorder starting on a given node")
+        {
+            dfs_preorder_nodes_for_each_id(
+                g,
+                [&nodes](node_id n) { nodes.push_back(n); },
+                n0
+            );
+            CHECK_EQ(nodes, std::vector<node_id>{ n0, n1 });
+        }
+
+        SUBCASE("dfs_preorder on all nodes")
+        {
+            REQUIRE(g.has_node(n0));
+            REQUIRE(g.has_node(n1));
+            REQUIRE(g.has_node(n2));
+            dfs_preorder_nodes_for_each_id(g, [&nodes](node_id n) { nodes.push_back(n); });
+            CHECK_EQ(nodes, std::vector<node_id>{ n0, n1, n2 });
+        }
+
+        SUBCASE("dfs_postorder starting on a given node")
+        {
+            dfs_postorder_nodes_for_each_id(
+                g,
+                [&nodes](node_id n) { nodes.push_back(n); },
+                n0
+            );
+            CHECK_EQ(nodes, std::vector<node_id>{ n1, n0 });
+        }
+
+        SUBCASE("dfs_postorder on all nodes")
+        {
+            dfs_postorder_nodes_for_each_id(g, [&nodes](node_id n) { nodes.push_back(n); });
+            CHECK_EQ(nodes, std::vector<node_id>{ n1, n0, n2 });
+        }
+    }
+
     TEST_CASE("is_reachable")
     {
         auto graph = build_graph();

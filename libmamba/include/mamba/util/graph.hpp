@@ -98,12 +98,35 @@ namespace mamba::util
 
     // TODO C++20 better to return a range since this search cannot be interupted from the
     // visitor
+    // TODO should let user implement reverse with a reverse view when available
     template <typename Graph, typename Visitor>
     void
     dfs_raw(const Graph& graph, Visitor&& visitor, typename Graph::node_id start, bool reverse = false);
 
     template <typename Graph, typename Visitor>
     void dfs_raw(const Graph& graph, Visitor&& visitor, bool reverse = false);
+
+    template <typename Graph, typename UnaryFunc>
+    void dfs_preorder_nodes_for_each_id(
+        const Graph& graph,
+        UnaryFunc&& func,
+        typename Graph::node_id start,
+        bool reverse = false
+    );
+
+    template <typename Graph, typename UnaryFunc>
+    void dfs_preorder_nodes_for_each_id(const Graph& graph, UnaryFunc&& func, bool reverse = false);
+
+    template <typename Graph, typename UnaryFunc>
+    void dfs_postorder_nodes_for_each_id(
+        const Graph& graph,
+        UnaryFunc&& func,
+        typename Graph::node_id start,
+        bool reverse = false
+    );
+
+    template <typename Graph, typename UnaryFunc>
+    void dfs_postorder_nodes_for_each_id(const Graph& graph, UnaryFunc&& func, bool reverse = false);
 
     // TODO C++20 rather than providing an empty visitor, use a concept to detect the presence
     // of member function.
@@ -145,6 +168,9 @@ namespace mamba::util
     auto
     is_reachable(const Graph& graph, typename Graph::node_id source, typename Graph::node_id target)
         -> bool;
+
+    template <typename Graph, typename UnaryFunc>
+    void topological_sort_for_each_node_id(const Graph& graph, UnaryFunc&& func);
 
     template <typename Node, typename Edge = void>
     class DiGraph : private DiGraphBase<Node, DiGraph<Node, Edge>>
@@ -579,6 +605,99 @@ namespace mamba::util
                 detail::dfs_raw_impl(graph, std::forward<Visitor>(visitor), n, status, adjacency);
             }
         }
+    }
+
+    namespace detail
+    {
+        template <typename Graph, typename UnaryFunc>
+        class PreorderVisitor : public EmptyVisitor<Graph>
+        {
+        public:
+
+            using node_id = typename Graph::node_id;
+
+            template <typename UnaryFuncU>
+            PreorderVisitor(UnaryFuncU&& func)
+                : m_func{ std::forward<UnaryFuncU>(func) }
+            {
+            }
+
+            void start_node(node_id n, const Graph&)
+            {
+                m_func(n);
+            }
+
+        private:
+
+            UnaryFunc m_func;
+        };
+
+        template <typename Graph, typename UnaryFunc>
+        class PostorderVisitor : public EmptyVisitor<Graph>
+        {
+        public:
+
+            using node_id = typename Graph::node_id;
+
+            template <typename UnaryFuncU>
+            PostorderVisitor(UnaryFuncU&& func)
+                : m_func{ std::forward<UnaryFuncU>(func) }
+            {
+            }
+
+            void finish_node(node_id n, const Graph&)
+            {
+                m_func(n);
+            }
+
+        private:
+
+            UnaryFunc m_func;
+        };
+    }
+
+    template <typename Graph, typename UnaryFunc>
+    void dfs_preorder_nodes_for_each_id(
+        const Graph& graph,
+        UnaryFunc&& func,
+        typename Graph::node_id start,
+        bool reverse
+    )
+    {
+        dfs_raw(
+            graph,
+            detail::PreorderVisitor<Graph, UnaryFunc>(std::forward<UnaryFunc>(func)),
+            start,
+            reverse
+        );
+    }
+
+    template <typename Graph, typename UnaryFunc>
+    void dfs_preorder_nodes_for_each_id(const Graph& graph, UnaryFunc&& func, bool reverse)
+    {
+        dfs_raw(graph, detail::PreorderVisitor<Graph, UnaryFunc>(std::forward<UnaryFunc>(func)), reverse);
+    }
+
+    template <typename Graph, typename UnaryFunc>
+    void dfs_postorder_nodes_for_each_id(
+        const Graph& graph,
+        UnaryFunc&& func,
+        typename Graph::node_id start,
+        bool reverse
+    )
+    {
+        dfs_raw(
+            graph,
+            detail::PostorderVisitor<Graph, UnaryFunc>(std::forward<UnaryFunc>(func)),
+            start,
+            reverse
+        );
+    }
+
+    template <typename Graph, typename UnaryFunc>
+    void dfs_postorder_nodes_for_each_id(const Graph& graph, UnaryFunc&& func, bool reverse)
+    {
+        dfs_raw(graph, detail::PostorderVisitor<Graph, UnaryFunc>(std::forward<UnaryFunc>(func)), reverse);
     }
 
     template <typename Graph>

@@ -1538,21 +1538,20 @@ namespace mamba
             std::string channel;
             if (const char* str = solvable_lookup_str(s, SOLVABLE_URL))
             {
-                std::string repo_key = str;
-
-                if (repo_key == "explicit_specs")
+                if (std::string_view(str) == "explicit_specs")
                 {
                     channel = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
                 }
                 else
                 {
-                    channel = make_channel(repo_key).canonical_name();
+                    channel = make_channel(str).canonical_name();
                 }
             }
             else
             {
                 // note this can and should be <unknown> when
                 // e.g. installing from a tarball
+                assert(s->repo != nullptr);
                 channel = s->repo->name;
                 assert(channel != "__explicit_specs__");
             }

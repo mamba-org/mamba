@@ -224,28 +224,27 @@ namespace mamba
                 out.build_number = std::stoull(str);
             }
 
+            assert(s.repo != nullptr);
             if (const char* str = solvable_lookup_str(&s, SOLVABLE_URL))
             {
                 out.url = str;
+                // note this can and should be <unknown> when e.g. installing from a tarball
+                out.channel = s.repo->name;
+            }
+            else if (std::string_view(s.repo->name) == "__explicit_specs__")
+            {
+                out.url = solvable_lookup_location(&s, 0);
                 out.channel = make_channel(out.url).canonical_name();
             }
             else
             {
-                if (!s.repo || strcmp(s.repo->name, "__explicit_specs__") == 0)
-                {
-                    out.url = solvable_lookup_location(&s, 0);
-                    out.channel = make_channel(out.url).canonical_name();
-                }
-                else
-                {
-                    out.channel = s.repo->name;  // note this can and should be <unknown> when e.g.
-                                                 // installing from a tarball
-                    out.url = fmt::format(
-                        "{}/{}",
-                        out.channel,
-                        raw_str_or_empty(solvable_lookup_str(&s, SOLVABLE_MEDIAFILE))
-                    );
-                }
+                out.channel = s.repo->name;  // note this can and should be <unknown> when e.g.
+                                             // installing from a tarball
+                out.url = fmt::format(
+                    "{}/{}",
+                    out.channel,
+                    raw_str_or_empty(solvable_lookup_str(&s, SOLVABLE_MEDIAFILE))
+                );
             }
 
             out.subdir = raw_str_or_empty(solvable_lookup_str(&s, SOLVABLE_MEDIADIR));

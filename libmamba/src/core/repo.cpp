@@ -114,7 +114,15 @@ namespace mamba
         Solvable* s = nullptr;
         FOR_REPO_SOLVABLES(m_repo, id, s)
         {
+            // The repository url
             solvable_set_str(s, m_mrepo_key, this->url().c_str());
+            // The solvable url, this is not set in libsolv parsing so we set it manually
+            // while we still rely on libsolv for parsing
+            solvable_set_str(
+                s,
+                SOLVABLE_URL,
+                fmt::format("{}/{}", url(), solvable_lookup_str(s, SOLVABLE_MEDIAFILE)).c_str()
+            );
         }
     }
 

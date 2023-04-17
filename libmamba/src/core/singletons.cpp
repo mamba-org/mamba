@@ -4,11 +4,6 @@
 #include <mutex>
 #include <regex>
 
-extern "C"
-{
-#include <curl/urlapi.h>
-}
-
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/channel_builder.hpp"
 #include "mamba/core/context.hpp"
@@ -34,61 +29,6 @@ namespace mamba
 
     //--- Dependencie's singletons
     //----------------------------------------------------------------------
-
-
-    class CURLSetup final
-    {
-    public:
-
-        CURLSetup()
-        {
-#ifdef LIBMAMBA_STATIC_DEPS
-            CURLsslset sslset_res;
-            const curl_ssl_backend** available_backends;
-
-            if (on_linux)
-            {
-                sslset_res = curl_global_sslset(CURLSSLBACKEND_OPENSSL, nullptr, &available_backends);
-            }
-            else if (on_mac)
-            {
-                sslset_res = curl_global_sslset(
-                    CURLSSLBACKEND_SECURETRANSPORT,
-                    nullptr,
-                    &available_backends
-                );
-            }
-            else if (on_win)
-            {
-                sslset_res = curl_global_sslset(CURLSSLBACKEND_SCHANNEL, nullptr, &available_backends);
-            }
-
-            if (sslset_res == CURLSSLSET_TOO_LATE)
-            {
-                LOG_ERROR << "cURL SSL init called too late, that is a bug.";
-            }
-            else if (sslset_res == CURLSSLSET_UNKNOWN_BACKEND || sslset_res == CURLSSLSET_NO_BACKENDS)
-            {
-                LOG_WARNING << "Could not use preferred SSL backend (Linux: OpenSSL, OS X: SecureTransport, Win: SChannel)"
-                            << std::endl;
-                LOG_WARNING << "Please check the cURL library configuration that you are using."
-                            << std::endl;
-            }
-#endif
-
-            if (curl_global_init(CURL_GLOBAL_ALL) != 0)
-            {
-                throw std::runtime_error("failed to initialize curl");
-            }
-        }
-
-        ~CURLSetup()
-        {
-            curl_global_cleanup();
-        }
-    };
-
-    static CURLSetup curl_setup;
 
     struct MessageLoggerData
     {

@@ -64,12 +64,12 @@ build_edge_data_graph() -> DiGraph<double, const char*>
     return g;
 }
 
-template <class G>
-class test_visitor : private default_visitor<G>
+template <typename Graph>
+class test_visitor : private EmptyVisitor<Graph>
 {
 public:
 
-    using base_type = default_visitor<G>;
+    using base_type = EmptyVisitor<Graph>;
     using node_id = typename base_type::node_id;
     using predecessor_map = std::map<node_id, node_id>;
     using edge_map = std::map<node_id, node_id>;
@@ -80,12 +80,12 @@ public:
     using base_type::start_node;
     using base_type::tree_edge;
 
-    void back_edge(node_id from, node_id to, const G&)
+    void back_edge(node_id from, node_id to, const Graph&)
     {
         m_back_edges[from] = to;
     }
 
-    void forward_or_cross_edge(node_id from, node_id to, const G&)
+    void forward_or_cross_edge(node_id from, node_id to, const Graph&)
     {
         m_cross_edges[from] = to;
     }
@@ -321,7 +321,7 @@ TEST_SUITE("graph")
     {
         const auto g = build_graph();
         test_visitor<DiGraph<double>> vis;
-        g.depth_first_search(vis);
+        dfs_raw(g, vis, 0);
         CHECK(vis.get_back_edge_map().empty());
         CHECK_EQ(vis.get_cross_edge_map().find(2u)->second, 3u);
     }
@@ -330,7 +330,7 @@ TEST_SUITE("graph")
     {
         const auto g = build_cyclic_graph();
         test_visitor<DiGraph<double>> vis;
-        g.depth_first_search(vis);
+        dfs_raw(g, vis, 0);
         CHECK_EQ(vis.get_back_edge_map().find(2u)->second, 0u);
         CHECK(vis.get_cross_edge_map().empty());
     }
@@ -339,7 +339,7 @@ TEST_SUITE("graph")
     {
         DiGraph<int> g;
         test_visitor<DiGraph<int>> vis;
-        g.depth_first_search(vis);
+        dfs_raw(g, vis, 0);
         CHECK(vis.get_back_edge_map().empty());
         CHECK(vis.get_cross_edge_map().empty());
     }

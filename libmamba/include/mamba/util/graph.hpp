@@ -456,25 +456,17 @@ namespace mamba::util
     template <typename UnaryFunc>
     UnaryFunc DiGraphBase<N, G>::for_each_leaf_id_from(node_id source, UnaryFunc func) const
     {
-        struct LeafVisitor : EmptyVisitor<derived_t>
-        {
-            UnaryFunc& m_func;
-
-            LeafVisitor(UnaryFunc& func)
-                : m_func{ func }
+        dfs_preorder_nodes_for_each_id(
+            derived_cast(),
+            [&](node_id n)
             {
-            }
-
-            void start_node(node_id n, const derived_t& g)
-            {
-                if (g.out_degree(n) == 0)
+                if (out_degree(n) == 0)
                 {
-                    m_func(n);
+                    func(n);
                 }
-            }
-        };
-        auto visitor = LeafVisitor(func);
-        dfs_raw(derived_cast(), visitor, source);
+            },
+            source
+        );
         return func;
     }
 
@@ -482,25 +474,18 @@ namespace mamba::util
     template <typename UnaryFunc>
     UnaryFunc DiGraphBase<N, G>::for_each_root_id_from(node_id source, UnaryFunc func) const
     {
-        struct RootVisitor : EmptyVisitor<derived_t>
-        {
-            UnaryFunc& m_func;
-
-            RootVisitor(UnaryFunc& func)
-                : m_func{ func }
+        dfs_preorder_nodes_for_each_id(
+            derived_cast(),
+            [&](node_id n)
             {
-            }
-
-            void start_node(node_id n, const derived_t& g)
-            {
-                if (g.in_degree(n) == 0)
+                if (in_degree(n) == 0)
                 {
-                    m_func(n);
+                    func(n);
                 }
-            }
-        };
-        auto visitor = RootVisitor(func);
-        dfs_raw(derived_cast(), visitor, source, /* reverse= */ true);
+            },
+            source,
+            /* reverse= */ true
+        );
         return func;
     }
 

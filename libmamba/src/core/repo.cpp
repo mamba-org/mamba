@@ -121,6 +121,9 @@ namespace mamba
                 SOLVABLE_URL,
                 fmt::format("{}/{}", url(), solvable_lookup_str(s, SOLVABLE_MEDIAFILE)).c_str()
             );
+            // The name of the channel where it came from, may be different from repo name
+            // for instance with the installed repo
+            solvable_set_str(s, SOLVABLE_PACKAGER, url().c_str());
         }
     }
 
@@ -175,6 +178,9 @@ namespace mamba
         repodata_set_checksum(data, handle, SOLVABLE_PKGID, REPOKEY_TYPE_MD5, info.md5.c_str());
 
         solvable_set_str(s, SOLVABLE_URL, info.url.c_str());
+        // The name of the channel where it came from, may be different from repo name
+        // for instance with the installed repo
+        solvable_set_str(s, SOLVABLE_PACKAGER, info.channel.c_str());
 
         if (!info.noarch.empty())
         {

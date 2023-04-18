@@ -223,28 +223,13 @@ namespace mamba
                 out.build_number = std::stoull(str);
             }
 
-            assert(s.repo != nullptr);
-            if (const char* str = solvable_lookup_str(&s, SOLVABLE_URL))
-            {
-                out.url = str;
-                // note this can and should be <unknown> when e.g. installing from a tarball
-                out.channel = s.repo->name;
-            }
-            else if (std::string_view(s.repo->name) == "__explicit_specs__")
-            {
-                out.url = solvable_lookup_location(&s, 0);
-                out.channel = make_channel(out.url).canonical_name();
-            }
-            else
-            {
-                out.channel = s.repo->name;  // note this can and should be <unknown> when e.g.
-                                             // installing from a tarball
-                out.url = fmt::format(
-                    "{}/{}",
-                    out.channel,
-                    raw_str_or_empty(solvable_lookup_str(&s, SOLVABLE_MEDIAFILE))
-                );
-            }
+            assert(solvable_lookup_str(&s, SOLVABLE_URL) != nullptr);
+            out.url = solvable_lookup_str(&s, SOLVABLE_URL);
+            // note this can and should be <unknown> when e.g. installing from a tarball
+            // The name of the channel where it came from, may be different from repo name
+            // for instance with the installed repo
+            assert(solvable_lookup_str(&s, SOLVABLE_PACKAGER) != nullptr);
+            out.channel = solvable_lookup_str(&s, SOLVABLE_PACKAGER);
 
             out.subdir = raw_str_or_empty(solvable_lookup_str(&s, SOLVABLE_MEDIADIR));
             out.fn = raw_str_or_empty(solvable_lookup_str(&s, SOLVABLE_MEDIAFILE));

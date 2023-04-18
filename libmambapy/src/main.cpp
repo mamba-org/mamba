@@ -184,7 +184,6 @@ PYBIND11_MODULE(bindings, m)
                 Id pkg_id;
                 Solvable* pkg_s;
                 Pool* p = self.repo()->pool;
-                static Id real_repo_url_key = pool_str2id(p, "solvable:real_repo_url", 1);
 
                 FOR_REPO_SOLVABLES(self.repo(), pkg_id, pkg_s)
                 {
@@ -198,7 +197,7 @@ PYBIND11_MODULE(bindings, m)
                         }
                         if (!it->second.repo_url.empty())
                         {
-                            solvable_set_str(pkg_s, real_repo_url_key, it->second.repo_url.c_str());
+                            solvable_set_str(pkg_s, SOLVABLE_URL, it->second.repo_url.c_str());
                         }
                     }
                 }

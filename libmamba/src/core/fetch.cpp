@@ -753,7 +753,7 @@ namespace mamba
             }
 
             current_target->set_result(msg.m_transfer_result);
-            if (current_target->check_result() && current_target->can_retry())
+            if (!current_target->check_result() && current_target->can_retry())
             {
                 p_curl_handle->remove_handle(current_target->get_curl_handle());
                 m_retry_targets.push_back(current_target);

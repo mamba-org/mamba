@@ -706,6 +706,12 @@ namespace mamba::util
         return visitor.target_visited;
     }
 
+    template <typename Graph, typename UnaryFunc>
+    void topological_sort_for_each_node_id(const Graph& graph, UnaryFunc&& func)
+    {
+        dfs_postorder_nodes_for_each_id(graph, func, /* reverse= */ true);
+    }
+
     /*********************************
      *  DiGraph Edge Implementation  *
      *********************************/

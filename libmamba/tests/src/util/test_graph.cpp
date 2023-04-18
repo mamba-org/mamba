@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <set>
+#include <string>
 #include <vector>
 
 #include <doctest/doctest.h>
@@ -456,8 +457,55 @@ TEST_SUITE("graph")
         SUBCASE("dfs_postorder on all nodes")
         {
             dfs_postorder_nodes_for_each_id(g, [&nodes](node_id n) { nodes.push_back(n); });
+            CHECK(is_node_id_permutation(g, nodes.cbegin(), nodes.cend()));
             CHECK_EQ(nodes, std::vector<node_id>{ n1, n0, n2 });
         }
+    }
+
+    TEST_CASE("Topological sort")
+    {
+        // How to dress yourself in the morning
+        // Introduction to Algorithms, Cormen et al.
+        auto g = DiGraph<std::string>();
+        const auto undershorts = g.add_node("undershorts");
+        const auto pants = g.add_node("pants");
+        const auto belt = g.add_node("belt");
+        const auto shirt = g.add_node("shirt");
+        const auto tie = g.add_node("tie");
+        const auto jacket = g.add_node("jacket");
+        const auto socks = g.add_node("socks");
+        const auto shoes = g.add_node("shoes");
+        /* const auto watch = */ g.add_node("watch");
+        g.add_edge(undershorts, pants);
+        g.add_edge(undershorts, shoes);
+        g.add_edge(socks, shoes);
+        g.add_edge(pants, shoes);
+        g.add_edge(pants, belt);
+        g.add_edge(belt, jacket);
+        g.add_edge(shirt, belt);
+        g.add_edge(shirt, tie);
+        g.add_edge(tie, jacket);
+
+        using node_id = typename decltype(g)::node_id;
+        auto sorted = std::vector<node_id>();
+        topological_sort_for_each_node_id(g, [&sorted](node_id n) { sorted.push_back(n); });
+
+        CHECK(is_node_id_permutation(g, sorted.cbegin(), sorted.cend()));
+
+        g.for_each_edge_id(
+            [&](node_id from, node_id to)
+            {
+                CAPTURE(std::pair(g.node(from), g.node(to)));
+                auto const from_pos = std::find(sorted.cbegin(), sorted.cend(), from);
+                // Must be true given the permuation assumption
+                REQUIRE_LT(from_pos, sorted.cend());
+                auto const to_pos = std::find(sorted.cbegin(), sorted.cend(), to);
+                // Must be true given the permuation assumption
+                REQUIRE_LT(to_pos, sorted.cend());
+                // The topological sort property
+                CHECK_LT(from_pos, to_pos);
+            }
+        );
     }
 
     TEST_CASE("is_reachable")

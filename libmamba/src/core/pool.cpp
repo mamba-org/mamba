@@ -239,6 +239,8 @@ namespace mamba
             out.md5 = raw_str_or_empty(solvable_lookup_checksum(&s, SOLVABLE_PKGID, &check_type));
             out.sha256 = raw_str_or_empty(solvable_lookup_checksum(&s, SOLVABLE_CHECKSUM, &check_type)
             );
+            // Not set by libsolv repodata parsing
+            out.noarch = raw_str_or_empty(solvable_lookup_str(&s, SOLVABLE_SOURCEARCH));
             out.signatures = raw_str_or_empty(solvable_lookup_str(&s, SIGNATURE_DATA));
             if (out.signatures.empty())
             {

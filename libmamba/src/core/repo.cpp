@@ -103,7 +103,6 @@ namespace mamba
     void MRepo::init(MPool& pool)
     {
         ::repo_set_str(m_repo, SOLVID_META, SOLVABLE_URL, url().c_str());
-        m_noarch_repo_key = pool_str2id(pool, "solvable:noarch_type", 1);
     }
 
     void MRepo::set_solvables_url()
@@ -133,7 +132,6 @@ namespace mamba
         , m_url(std::move(rhs.m_url))
         , m_metadata(std::move(rhs.m_metadata))
         , m_repo(rhs.m_repo)
-        , m_noarch_repo_key(rhs.m_noarch_repo_key)
     {
         rhs.m_repo = nullptr;
     }
@@ -146,7 +144,6 @@ namespace mamba
         swap(m_url, rhs.m_url);
         swap(m_metadata, rhs.m_metadata);
         swap(m_repo, rhs.m_repo);
-        swap(m_noarch_repo_key, rhs.m_noarch_repo_key);
         return *this;
     }
 
@@ -182,10 +179,7 @@ namespace mamba
         // for instance with the installed repo
         solvable_set_str(s, SOLVABLE_PACKAGER, info.channel.c_str());
 
-        if (!info.noarch.empty())
-        {
-            solvable_set_str(s, m_noarch_repo_key, info.noarch.c_str());
-        }
+        solvable_set_str(s, SOLVABLE_SOURCEARCH, info.noarch.c_str());
 
         // No ``solvable_xxx`` equivalent
         repodata_set_location(data, handle, 0, info.subdir.c_str(), info.fn.c_str());

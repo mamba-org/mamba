@@ -184,7 +184,6 @@ PYBIND11_MODULE(bindings, m)
                 Id pkg_id;
                 Solvable* pkg_s;
                 Pool* p = self.repo()->pool;
-                static Id noarch_repo_key = pool_str2id(p, "solvable:noarch_type", 1);
                 static Id real_repo_url_key = pool_str2id(p, "solvable:real_repo_url", 1);
 
                 FOR_REPO_SOLVABLES(self.repo(), pkg_id, pkg_s)
@@ -195,7 +194,7 @@ PYBIND11_MODULE(bindings, m)
                     {
                         if (!it->second.noarch.empty())
                         {
-                            solvable_set_str(pkg_s, noarch_repo_key, it->second.noarch.c_str());
+                            solvable_set_str(pkg_s, SOLVABLE_SOURCEARCH, it->second.noarch.c_str());
                         }
                         if (!it->second.repo_url.empty())
                         {

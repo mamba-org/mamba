@@ -688,11 +688,9 @@ namespace mamba
 
             solver_get_decisionqueue(solver, decision.raw());
 
-            const Id noarch_repo_key = pool_str2id(m_pool, "solvable:noarch_type", 1);
-
             FOR_REPO_SOLVABLES(pool_ptr->installed, p, s)
             {
-                const char* noarch_type = solvable_lookup_str(s, noarch_repo_key);
+                const char* noarch_type = solvable_lookup_str(s, SOLVABLE_SOURCEARCH);
 
                 if (noarch_type == nullptr)
                 {

@@ -24,7 +24,7 @@ extern "C"  // Incomplete header
 #include "mamba/core/util_string.hpp"
 
 
-#define MAMBA_TOOL_VERSION "1.1"
+#define MAMBA_TOOL_VERSION "1.2"
 
 #define MAMBA_SOLV_VERSION MAMBA_TOOL_VERSION "_" LIBSOLV_VERSION_STRING
 

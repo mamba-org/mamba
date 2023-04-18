@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
 #include <set>
 #include <vector>
 
@@ -378,6 +379,15 @@ TEST_SUITE("graph")
         CHECK(vis.get_cross_edge_map().empty());
     }
 
+    template <typename Graph, typename Iter>
+    auto is_node_id_permutation(const Graph& g, Iter first, Iter last)->bool
+    {
+        using node_id = typename Graph::node_id;
+        auto node_ids = std::vector<node_id>();
+        g.for_each_node_id([&node_ids](node_id n) { node_ids.push_back(n); });
+        return std::is_permutation(first, last, node_ids.cbegin(), node_ids.cend());
+    }
+
     TEST_CASE("dfs_all")
     {
         DiGraph<double> g;
@@ -390,8 +400,11 @@ TEST_SUITE("graph")
         test_visitor<decltype(g)> vis = {};
         dfs_raw(g, vis);
 
+
         const auto& start_node_list = vis.get_start_node_list();
+        CHECK(is_node_id_permutation(g, start_node_list.cbegin(), start_node_list.cend()));
         const auto& finish_node_list = vis.get_finish_node_list();
+        CHECK(is_node_id_permutation(g, finish_node_list.cbegin(), finish_node_list.cend()));
         const auto start_node_set = std::set(start_node_list.begin(), start_node_list.end());
         const auto finish_node_set = std::set(finish_node_list.begin(), finish_node_list.end());
         CHECK_EQ(start_node_set, finish_node_set);
@@ -426,6 +439,7 @@ TEST_SUITE("graph")
             REQUIRE(g.has_node(n1));
             REQUIRE(g.has_node(n2));
             dfs_preorder_nodes_for_each_id(g, [&nodes](node_id n) { nodes.push_back(n); });
+            CHECK(is_node_id_permutation(g, nodes.cbegin(), nodes.cend()));
             CHECK_EQ(nodes, std::vector<node_id>{ n0, n1, n2 });
         }
 

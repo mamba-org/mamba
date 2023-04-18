@@ -80,7 +80,7 @@ set_shell_command(CLI::App* subcom)
     init_shell_parser(subcom);
 
     subcom->callback(
-        [&]()
+        []
         {
             auto& config = Configuration::instance();
 

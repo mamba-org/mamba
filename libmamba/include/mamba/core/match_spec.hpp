@@ -14,15 +14,17 @@
 
 namespace mamba
 {
+    class ChannelContext;
+
     class MatchSpec
     {
     public:
 
         MatchSpec() = default;
-        // TODO make explicit
-        MatchSpec(std::string_view i_spec);
 
-        void parse();
+        MatchSpec(std::string_view i_spec, ChannelContext& channel_context);
+
+        void parse(ChannelContext& channel_context);
         std::string conda_build_form() const;
         std::string str() const;
 

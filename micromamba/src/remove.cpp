@@ -38,7 +38,7 @@ set_remove_command(CLI::App* subcom)
     subcom->add_flag("--prune,!--no-prune", prune, "Prune dependencies (default)");
 
     subcom->callback(
-        [&]()
+        []
         {
             int flags = 0;
             if (prune)

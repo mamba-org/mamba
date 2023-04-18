@@ -16,5 +16,5 @@ set_create_command(CLI::App* subcom)
 {
     init_install_options(subcom);
 
-    subcom->callback([&]() { create(); });
+    subcom->callback(mamba::create);
 }

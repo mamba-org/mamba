@@ -14,7 +14,6 @@
 #endif
 
 #include "mamba/core/channel.hpp"
-#include "mamba/core/channel_builder.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/output.hpp"
@@ -108,7 +107,7 @@ namespace mamba
         , m_token(token)
         , m_package_filename(package_filename)
         , m_canonical_name(canonical_name)
-        , m_channel_context(channel_context)
+        , m_channel_context(&channel_context)
     {
     }
 
@@ -169,12 +168,12 @@ namespace mamba
     {
         if (!m_canonical_name)
         {
-            auto it = m_channel_context.get_custom_channels().find(m_name);
-            if (it != m_channel_context.get_custom_channels().end())
+            auto it = m_channel_context->get_custom_channels().find(m_name);
+            if (it != m_channel_context->get_custom_channels().end())
             {
                 m_canonical_name = it->first;
             }
-            else if (m_location == m_channel_context.get_channel_alias().location())
+            else if (m_location == m_channel_context->get_channel_alias().location())
             {
                 m_canonical_name = m_name;
             }
@@ -305,6 +304,7 @@ namespace mamba
         }
         name = name != "" ? strip(name, "/") : strip(channel_url, "/");
         return Channel(
+            *this,
             scheme,
             location,
             name,
@@ -317,8 +317,8 @@ namespace mamba
 
     const Channel& ChannelContext::make_cached_channel(const std::string& value)
     {
-        auto res = get_cache().find(value);
-        if (res == get_cache().end())
+        auto res = m_channel_cache.find(value);
+        if (res == m_channel_cache.end())
         {
             auto& ctx = Context::instance();
 
@@ -346,7 +346,7 @@ namespace mamba
                     }
                 }
             }
-            res = get_cache().insert(std::make_pair(value, std::move(chan))).first;
+            res = m_channel_cache.insert(std::make_pair(value, std::move(chan))).first;
         }
         return res->second;
     }
@@ -499,6 +499,7 @@ namespace mamba
         auto config = read_channel_configuration(*this, scheme, host, port, path);
 
         return Channel(
+            *this,
             config.m_scheme.size() ? config.m_scheme : "https",
             config.m_location,
             config.m_name,
@@ -543,6 +544,7 @@ namespace mamba
             }
 
             return Channel(
+                *this,
                 it->second.scheme(),
                 it->second.location(),
                 combined_name,
@@ -555,7 +557,7 @@ namespace mamba
         else
         {
             const Channel& alias = get_channel_alias();
-            return Channel(alias.scheme(), alias.location(), name, alias.auth(), alias.token());
+            return Channel(*this, alias.scheme(), alias.location(), name, alias.auth(), alias.token());
         }
     }
 
@@ -685,7 +687,7 @@ namespace mamba
     {
         if (INVALID_CHANNELS.count(in_value) > 0)
         {
-            return Channel("", "", UNKNOWN_CHANNEL, "");
+            return Channel(*this, "", "", UNKNOWN_CHANNEL, "");
         }
 
         std::string value = in_value;
@@ -717,7 +719,8 @@ namespace mamba
         return make_cached_channel(value);
     }
 
-    std::vector<const Channel*> ChannelContext::get_channels(const std::vector<std::string>& channel_names)
+    std::vector<const Channel*>
+    ChannelContext::get_channels(const std::vector<std::string>& channel_names)
     {
         std::set<const Channel*> added;
         std::vector<const Channel*> result;
@@ -733,7 +736,7 @@ namespace mamba
 
             auto add_channel = [&](const std::string& lname)
             {
-                auto channel = &make_channel(lname + platform_spec);
+                auto* channel = &make_channel(lname + platform_spec);
                 if (added.insert(channel).second)
                 {
                     result.push_back(channel);
@@ -765,12 +768,12 @@ namespace mamba
                 whitelist.begin(),
                 whitelist.end(),
                 accepted_urls.begin(),
-                [](const std::string& url) { return make_channel(url).base_url(); }
+                [&](const std::string& url) { return make_channel(url).base_url(); }
             );
             std::for_each(
                 urls.begin(),
                 urls.end(),
-                [&accepted_urls](const std::string& s)
+                [&](const std::string& s)
                 {
                     auto it = std::find(
                         accepted_urls.begin(),
@@ -810,9 +813,6 @@ namespace mamba
 
     ChannelContext::ChannelContext()
         : m_channel_alias(build_channel_alias())
-        , m_custom_channels()
-        , m_custom_multichannels()
-        , m_whitelist_channels()
     {
         init_custom_channels();
     }
@@ -845,12 +845,7 @@ namespace mamba
         auto default_name_iter = default_names.begin();
         for (auto& url : default_channels)
         {
-            auto channel = make_simple_channel(
-                m_channel_alias,
-                url,
-                "",
-                DEFAULT_CHANNELS_NAME
-            );
+            auto channel = make_simple_channel(m_channel_alias, url, "", DEFAULT_CHANNELS_NAME);
             std::string name = channel.name();
             auto res = m_custom_channels.emplace(std::move(name), std::move(channel));
             *default_name_iter++ = res.first->first;
@@ -871,12 +866,7 @@ namespace mamba
             if (fs::is_directory(p))
             {
                 std::string url = path_to_url(p);
-                auto channel = make_simple_channel(
-                    m_channel_alias,
-                    url,
-                    "",
-                    LOCAL_CHANNELS_NAME
-                );
+                auto channel = make_simple_channel(m_channel_alias, url, "", LOCAL_CHANNELS_NAME);
                 std::string name = channel.name();
                 auto res = m_custom_channels.emplace(std::move(name), std::move(channel));
                 local_names.push_back(res.first->first);
@@ -904,12 +894,7 @@ namespace mamba
             auto name_iter = names.begin();
             for (auto& url : urllist)
             {
-                auto channel = make_simple_channel(
-                    m_channel_alias,
-                    url,
-                    "",
-                    multichannelname
-                );
+                auto channel = make_simple_channel(m_channel_alias, url, "", multichannelname);
                 std::string name = channel.name();
                 m_custom_channels.emplace(std::move(name), std::move(channel));
                 *name_iter++ = url;

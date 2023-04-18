@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "mamba/api/info.hpp"
+#include "mamba/core/context.hpp"
 
 #include "common_options.hpp"
 
@@ -27,7 +28,7 @@ set_info_command(CLI::App* subcom)
     subcom->add_flag("--licenses", print_licenses, "Print licenses");
 
     subcom->callback(
-        [&]()
+        []
         {
             // TODO: Print full license texts.
             if (print_licenses)

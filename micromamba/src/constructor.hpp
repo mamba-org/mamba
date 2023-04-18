@@ -9,6 +9,10 @@
 
 #include "mamba/core/mamba_fs.hpp"
 
+namespace mamba
+{
+    class ChannelContext;
+}
 
 void
 construct(const fs::u8path& prefix, bool extract_conda_pkgs, bool extract_tarball);

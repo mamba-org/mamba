@@ -16,6 +16,7 @@
 #include <unistd.h>
 #endif
 
+#include "mamba/core/channel.hpp"
 #include "mamba/core/history.hpp"
 
 #include "test_data.hpp"
@@ -48,8 +49,10 @@ namespace mamba
                 }
             } scoped_history_file_backup;
 
+            ChannelContext channel_context;
+
             // Gather history from current history file.
-            History history_instance(test_data_dir / "history/parse");
+            History history_instance(test_data_dir / "history/parse", channel_context);
             std::vector<History::UserRequest> user_reqs = history_instance.get_user_requests();
 
             // Extract raw history file content into buffer.
@@ -90,6 +93,7 @@ namespace mamba
         TEST_CASE("parse_segfault")
         {
             pid_t child = fork();
+            ChannelContext channel_context;
             if (child)
             {
                 int wstatus;
@@ -98,7 +102,7 @@ namespace mamba
             }
             else
             {
-                History history_instance("history_test/parse_segfault");
+                History history_instance("history_test/parse_segfault", channel_context);
                 history_instance.get_user_requests();
                 exit(EXIT_SUCCESS);
             }

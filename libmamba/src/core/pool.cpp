@@ -32,17 +32,28 @@ namespace mamba
 {
     struct MPool::MPoolData
     {
+        MPoolData(ChannelContext& cc)
+            : channel_context(cc)
+        {
+        }
+
         solv::ObjPool pool = {};
+        ChannelContext& channel_context;
     };
 
-    MPool::MPool()
-        : m_data(std::make_shared<MPoolData>())
+    MPool::MPool(ChannelContext& channel_context)
+        : m_data(std::make_shared<MPoolData>(channel_context))
     {
         pool().set_disttype(DISTTYPE_CONDA);
         set_debuglevel();
     }
 
     MPool::~MPool() = default;
+
+    ChannelContext& MPool::channel_context() const
+    {
+        return m_data->channel_context;
+    }
 
     solv::ObjPool& MPool::pool()
     {
@@ -124,7 +135,8 @@ namespace mamba
 
     namespace
     {
-        bool channel_match(const Channel& chan, const Channel& needle)
+        bool
+        channel_match(ChannelContext& channel_context, const Channel& chan, const Channel& needle)
         {
             if ((chan) == needle)
             {
@@ -137,7 +149,7 @@ namespace mamba
             {
                 for (auto el : (x->second))
                 {
-                    const Channel& inner = make_channel(el);
+                    const Channel& inner = channel_context.make_channel(el);
                     if ((chan) == inner)
                     {
                         return true;
@@ -151,7 +163,7 @@ namespace mamba
         /**
          * Add function to handle matchspec while parsing is done by libsolv.
          */
-        auto add_channel_specific_matchspec(solv::ObjPool& pool, const MatchSpec& ms)
+        auto add_channel_specific_matchspec(ChannelContext& channel_context, solv::ObjPool& pool, const MatchSpec& ms)
             -> solv::DependencyId
         {
             // Poor man's ms repr to match waht the user provided
@@ -169,7 +181,7 @@ namespace mamba
                 ms.conda_build_form().c_str()
             );
 
-            const Channel& c = make_channel(ms.channel);
+            const Channel& c = channel_context.make_channel(ms.channel);
             solv::ObjQueue selected_pkgs = {};
             pool.for_each_whatprovides(
                 match,
@@ -180,7 +192,7 @@ namespace mamba
                     auto repo = solv::ObjRepoView(*s.raw()->repo);
                     // TODO make_channel should disapear avoiding conflict here
                     auto const url = std::string(repo.url());
-                    if (channel_match(make_channel(url), c))
+                    if (channel_match(channel_context, channel_context.make_channel(url), c))
                     {
                         selected_pkgs.push_back(s.id());
                     }
@@ -207,7 +219,7 @@ namespace mamba
         {
             // Working around shortcomings of ``pool_conda_matchspec``
             // The channels are not processed.
-            id = add_channel_specific_matchspec(pool(), ms);
+            id = add_channel_specific_matchspec(channel_context(), pool(), ms);
         }
         if (id == 0)
         {

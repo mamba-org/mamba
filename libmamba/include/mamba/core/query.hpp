@@ -94,7 +94,7 @@ namespace mamba
         std::ostream& table(std::ostream&) const;
         std::ostream& table(std::ostream&, const std::vector<std::string>& fmt) const;
         std::ostream& tree(std::ostream&) const;
-        nlohmann::json json() const;
+        nlohmann::json json(ChannelContext& channel_context) const;
 
         std::ostream& pretty(std::ostream&) const;
 

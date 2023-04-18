@@ -1,7 +1,8 @@
+#include <type_traits>
+
 #include <doctest/doctest.h>
 
 #include "mamba/core/channel.hpp"
-#include "mamba/core/channel_builder.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 
@@ -41,6 +42,9 @@ namespace mamba
         }
     }
 #endif
+
+    static_assert(std::is_move_constructible_v<mamba::Channel>);
+    static_assert(std::is_move_assignable_v<mamba::Channel>);
 
     TEST_SUITE("ChannelContext")
     {
@@ -100,7 +104,7 @@ namespace mamba
             CHECK_EQ(it->second.canonical_name(), "defaults");
 
             std::string value = "conda-forge";
-            const Channel& c = make_channel(value);
+            const Channel& c = channel_context.make_channel(value);
             CHECK_EQ(c.scheme(), "https");
             CHECK_EQ(c.location(), "mydomain.com/channels");
             CHECK_EQ(c.name(), "conda-forge");
@@ -464,6 +468,7 @@ namespace mamba
         TEST_CASE("urls")
         {
             std::string value = "https://conda.anaconda.org/conda-forge[noarch,win-64,arbitrary]";
+            ChannelContext channel_context;
             const Channel& c = channel_context.make_channel(value);
             CHECK_EQ(
                 c.urls(),
@@ -472,7 +477,7 @@ namespace mamba
                                            "https://conda.anaconda.org/conda-forge/arbitrary" })
             );
 
-            const Channel& c1 = make_channel("https://conda.anaconda.org/conda-forge");
+            const Channel& c1 = channel_context.make_channel("https://conda.anaconda.org/conda-forge");
             CHECK_EQ(
                 c1.urls(),
                 std::vector<std::string>({ "https://conda.anaconda.org/conda-forge/" + platform,

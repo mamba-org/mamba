@@ -86,30 +86,31 @@ namespace mamba
 
         TEST_CASE("parse")
         {
+            ChannelContext channel_context;
             {
-                MatchSpec ms("xtensor==0.12.3");
+                MatchSpec ms("xtensor==0.12.3", channel_context);
                 CHECK_EQ(ms.version, "0.12.3");
                 CHECK_EQ(ms.name, "xtensor");
             }
             {
-                MatchSpec ms("ipykernel");
+                MatchSpec ms("ipykernel", channel_context);
                 CHECK_EQ(ms.version, "");
                 CHECK_EQ(ms.name, "ipykernel");
             }
             {
-                MatchSpec ms("ipykernel ");
+                MatchSpec ms("ipykernel ", channel_context);
                 CHECK_EQ(ms.version, "");
                 CHECK_EQ(ms.name, "ipykernel");
             }
             {
-                MatchSpec ms("numpy 1.7*");
+                MatchSpec ms("numpy 1.7*", channel_context);
                 CHECK_EQ(ms.version, "1.7*");
                 CHECK_EQ(ms.name, "numpy");
                 CHECK_EQ(ms.conda_build_form(), "numpy 1.7*");
                 CHECK_EQ(ms.str(), "numpy=1.7");
             }
             {
-                MatchSpec ms("numpy[version='1.7|1.8']");
+                MatchSpec ms("numpy[version='1.7|1.8']", channel_context);
                 // TODO!
                 // CHECK_EQ(ms.version, "1.7|1.8");
                 CHECK_EQ(ms.name, "numpy");
@@ -117,14 +118,14 @@ namespace mamba
                 CHECK_EQ(ms.str(), "numpy[version='1.7|1.8']");
             }
             {
-                MatchSpec ms("conda-forge/linux64::xtensor==0.12.3");
+                MatchSpec ms("conda-forge/linux64::xtensor==0.12.3", channel_context);
                 CHECK_EQ(ms.version, "0.12.3");
                 CHECK_EQ(ms.name, "xtensor");
                 CHECK_EQ(ms.channel, "conda-forge/linux64");
                 CHECK_EQ(ms.optional, false);
             }
             {
-                MatchSpec ms("conda-forge::foo[build=3](target=blarg,optional)");
+                MatchSpec ms("conda-forge::foo[build=3](target=blarg,optional)", channel_context);
                 CHECK_EQ(ms.version, "");
                 CHECK_EQ(ms.name, "foo");
                 CHECK_EQ(ms.channel, "conda-forge");
@@ -133,20 +134,21 @@ namespace mamba
                 CHECK_EQ(ms.optional, true);
             }
             {
-                MatchSpec ms("python[build_number=3]");
+                MatchSpec ms("python[build_number=3]", channel_context);
                 CHECK_EQ(ms.name, "python");
                 CHECK_EQ(ms.brackets["build_number"], "3");
                 CHECK_EQ(ms.build_number, "3");
             }
             {
-                MatchSpec ms("python[build_number='<=3']");
+                MatchSpec ms("python[build_number='<=3']", channel_context);
                 CHECK_EQ(ms.name, "python");
                 CHECK_EQ(ms.brackets["build_number"], "<=3");
                 CHECK_EQ(ms.build_number, "<=3");
             }
             {
                 MatchSpec ms(
-                    "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
+                    "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2",
+                    channel_context
                 );
                 CHECK_EQ(ms.name, "_libgcc_mutex");
                 CHECK_EQ(ms.version, "0.1");
@@ -158,7 +160,9 @@ namespace mamba
                 CHECK_EQ(ms.fn, "_libgcc_mutex-0.1-conda_forge.tar.bz2");
             }
             {
-                MatchSpec ms("/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
+                MatchSpec ms(
+                    "/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2",
+                    channel_context
                 );
                 CHECK_EQ(ms.name, "_libgcc_mutex");
                 CHECK_EQ(ms.version, "0.1");
@@ -179,8 +183,11 @@ namespace mamba
                 CHECK_EQ(ms.fn, "_libgcc_mutex-0.1-conda_forge.tar.bz2");
             }
             {
-                MatchSpec ms("xtensor[url=file:///home/wolfv/Downloads/"
-                             "xtensor-0.21.4-hc9558a2_0.tar.bz2]");
+                MatchSpec ms(
+                    "xtensor[url=file:///home/wolfv/Downloads/"
+                    "xtensor-0.21.4-hc9558a2_0.tar.bz2]",
+                    channel_context
+                );
                 CHECK_EQ(ms.name, "xtensor");
                 CHECK_EQ(
                     ms.brackets["url"],
@@ -189,62 +196,67 @@ namespace mamba
                 CHECK_EQ(ms.url, "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2");
             }
             {
-                MatchSpec ms("foo=1.0=2");
+                MatchSpec ms("foo=1.0=2", channel_context);
                 CHECK_EQ(ms.conda_build_form(), "foo 1.0 2");
                 CHECK_EQ(ms.str(), "foo==1.0=2");
             }
             {
-                MatchSpec ms("foo=1.0=2[md5=123123123, license=BSD-3, fn='test 123.tar.bz2']");
+                MatchSpec ms(
+                    "foo=1.0=2[md5=123123123, license=BSD-3, fn='test 123.tar.bz2']",
+                    channel_context
+                );
                 CHECK_EQ(ms.conda_build_form(), "foo 1.0 2");
                 CHECK_EQ(ms.str(), "foo==1.0=2[md5=123123123,license=BSD-3,fn='test 123.tar.bz2']");
             }
             {
                 MatchSpec ms(
-                    "foo=1.0=2[md5=123123123, license=BSD-3, fn='test 123.tar.bz2', url='abcdef']"
+                    "foo=1.0=2[md5=123123123, license=BSD-3, fn='test 123.tar.bz2', url='abcdef']",
+                    channel_context
                 );
                 CHECK_EQ(ms.conda_build_form(), "foo 1.0 2");
                 CHECK_EQ(ms.str(), "foo==1.0=2[url=abcdef,md5=123123123,license=BSD-3]");
             }
             {
-                MatchSpec ms("libblas=*=*mkl");
+                MatchSpec ms("libblas=*=*mkl", channel_context);
                 CHECK_EQ(ms.conda_build_form(), "libblas * *mkl");
                 // CHECK_EQ(ms.str(), "foo==1.0=2");
             }
             {
-                MatchSpec ms("libblas=0.15*");
+                MatchSpec ms("libblas=0.15*", channel_context);
                 CHECK_EQ(ms.conda_build_form(), "libblas 0.15*");
             }
             {
-                MatchSpec ms("xtensor =0.15*");
+                MatchSpec ms("xtensor =0.15*", channel_context);
                 CHECK_EQ(ms.conda_build_form(), "xtensor 0.15*");
                 CHECK_EQ(ms.str(), "xtensor=0.15");
             }
             {
-                MatchSpec ms("numpy=1.20");
+                MatchSpec ms("numpy=1.20", channel_context);
                 CHECK_EQ(ms.str(), "numpy=1.20");
             }
         }
 
         TEST_CASE("is_simple")
         {
+            ChannelContext channel_context;
             {
-                MatchSpec ms("libblas");
+                MatchSpec ms("libblas", channel_context);
                 CHECK(ms.is_simple());
             }
             {
-                MatchSpec ms("libblas=12.9=abcdef");
+                MatchSpec ms("libblas=12.9=abcdef", channel_context);
                 CHECK_FALSE(ms.is_simple());
             }
             {
-                MatchSpec ms("libblas=0.15*");
+                MatchSpec ms("libblas=0.15*", channel_context);
                 CHECK_FALSE(ms.is_simple());
             }
             {
-                MatchSpec ms("libblas[version=12.2]");
+                MatchSpec ms("libblas[version=12.2]", channel_context);
                 CHECK_FALSE(ms.is_simple());
             }
             {
-                MatchSpec ms("xtensor =0.15*");
+                MatchSpec ms("xtensor =0.15*", channel_context);
                 CHECK_FALSE(ms.is_simple());
             }
         }

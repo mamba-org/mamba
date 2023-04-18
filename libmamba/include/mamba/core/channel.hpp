@@ -25,6 +25,11 @@ namespace mamba
     {
     public:
 
+        Channel(const Channel&) = delete;
+        Channel& operator=(const Channel&) = delete;
+        Channel(Channel&&) noexcept = default;
+        Channel& operator=(Channel&&) noexcept = default;
+
         const std::string& scheme() const;
         const std::string& location() const;
         const std::string& name() const;
@@ -41,6 +46,11 @@ namespace mamba
         std::vector<std::pair<std::string, std::string>>
         platform_urls(bool with_credential = true) const;
         std::vector<std::string> urls(bool with_credential = true) const;
+
+        ChannelContext& channel_context() const
+        {
+            return *m_channel_context;
+        }
 
     private:
 
@@ -64,7 +74,7 @@ namespace mamba
         std::optional<std::string> m_package_filename;
         mutable std::optional<std::string> m_canonical_name;
         mutable std::unique_ptr<validation::RepoChecker> p_repo_checker;
-        ChannelContext& m_channel_context;
+        ChannelContext* m_channel_context = nullptr;
 
         friend class ChannelContext;
     };

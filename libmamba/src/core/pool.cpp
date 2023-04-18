@@ -165,12 +165,11 @@ namespace mamba
             ::Id match = pool_conda_matchspec(pool, ms.conda_build_form().c_str());
 
             const Channel& c = make_channel(ms.channel);
-            ::Id const m_mrepo_key = pool_str2id(pool, "solvable:mrepo_url", 1);
             for (Id* wp = pool_whatprovides_ptr(pool, match); *wp; wp++)
             {
                 auto* const s = pool_id2solvable(pool, *wp);
 
-                const char* s_url = solvable_lookup_str(s, m_mrepo_key);
+                const char* s_url = repo_lookup_str(s->repo, SOLVID_META, SOLVABLE_URL);
                 if ((s_url != nullptr) && channel_match(make_channel(s_url), c))
                 {
                     selected_pkgs.push_back(*wp);

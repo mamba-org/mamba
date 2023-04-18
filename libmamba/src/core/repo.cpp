@@ -102,7 +102,7 @@ namespace mamba
 
     void MRepo::init(MPool& pool)
     {
-        m_mrepo_key = pool_str2id(pool, "solvable:mrepo_url", 1);
+        ::repo_set_str(m_repo, SOLVID_META, SOLVABLE_URL, url().c_str());
         m_noarch_repo_key = pool_str2id(pool, "solvable:noarch_type", 1);
     }
 
@@ -114,8 +114,6 @@ namespace mamba
         Solvable* s = nullptr;
         FOR_REPO_SOLVABLES(m_repo, id, s)
         {
-            // The repository url
-            solvable_set_str(s, m_mrepo_key, this->url().c_str());
             // The solvable url, this is not set in libsolv parsing so we set it manually
             // while we still rely on libsolv for parsing
             solvable_set_str(
@@ -132,7 +130,6 @@ namespace mamba
         , m_url(std::move(rhs.m_url))
         , m_metadata(std::move(rhs.m_metadata))
         , m_repo(rhs.m_repo)
-        , m_mrepo_key(rhs.m_mrepo_key)
         , m_noarch_repo_key(rhs.m_noarch_repo_key)
     {
         rhs.m_repo = nullptr;
@@ -146,7 +143,6 @@ namespace mamba
         swap(m_url, rhs.m_url);
         swap(m_metadata, rhs.m_metadata);
         swap(m_repo, rhs.m_repo);
-        swap(m_mrepo_key, rhs.m_mrepo_key);
         swap(m_noarch_repo_key, rhs.m_noarch_repo_key);
         return *this;
     }
@@ -179,7 +175,6 @@ namespace mamba
         repodata_set_checksum(data, handle, SOLVABLE_PKGID, REPOKEY_TYPE_MD5, info.md5.c_str());
 
         solvable_set_str(s, SOLVABLE_URL, info.url.c_str());
-        solvable_set_str(s, m_mrepo_key, url().c_str());
 
         if (!info.noarch.empty())
         {

@@ -197,7 +197,7 @@ PYBIND11_MODULE(bindings, m)
                         }
                         if (!it->second.repo_url.empty())
                         {
-                            solvable_set_str(pkg_s, SOLVABLE_URL, it->second.repo_url.c_str());
+                            solvable_set_str(pkg_s, SOLVABLE_PACKAGER, it->second.repo_url.c_str());
                         }
                     }
                 }

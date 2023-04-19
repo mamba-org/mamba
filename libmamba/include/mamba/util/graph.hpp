@@ -456,6 +456,10 @@ namespace mamba::util
     template <typename UnaryFunc>
     UnaryFunc DiGraphBase<N, G>::for_each_leaf_id_from(node_id source, UnaryFunc func) const
     {
+        // Explore the directed graph starting with the given source node.
+        // When we explore a node with no outgoing edge, we know it is a leaf that is also a
+        // descendent of source.
+        // The pre or post order used in the node has no importance.
         dfs_preorder_nodes_for_each_id(
             derived_cast(),
             [&](node_id n)
@@ -474,6 +478,11 @@ namespace mamba::util
     template <typename UnaryFunc>
     UnaryFunc DiGraphBase<N, G>::for_each_root_id_from(node_id source, UnaryFunc func) const
     {
+        // Explore in reverse (going in the opposite direction of the edges the directed graph
+        // starting with the given source node.
+        // When we explore a node with no incoming edge, we know it is a root that is also an
+        // ascendent of source.
+        // The pre or post order used in the node has no importance.
         dfs_preorder_nodes_for_each_id(
             derived_cast(),
             [&](node_id n)

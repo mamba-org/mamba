@@ -467,7 +467,8 @@ namespace mamba
                 }
                 else if (cmd == "Channel")
                 {
-                    row.push_back(std::string(cut_subdir(cut_repo_name(pkg.channel))));
+                    auto rn = cut_repo_name(pkg.channel);
+                    row.push_back(std::string(cut_subdir(rn)));
                 }
                 else if (cmd == "Depends")
                 {
@@ -644,7 +645,8 @@ namespace mamba
             // We want the cannonical channel name here.
             // We do not know what is in the `channel` field so we need to make sure.
             // This is most likely legacy and should be updated on the next major release.
-            pkg_info_json["channel"] = cut_subdir(cut_repo_name(pkg_info_json["channel"]));
+            auto rn = cut_repo_name(pkg_info_json["channel"]);
+            pkg_info_json["channel"] = cut_subdir(rn);
             j["result"]["pkgs"].push_back(std::move(pkg_info_json));
         }
 
@@ -657,7 +659,8 @@ namespace mamba
                 // We want the cannonical channel name here.
                 // We do not know what is in the `channel` field so we need to make sure.
                 // This is most likely legacy and should be updated on the next major release.
-                pkg_info_json["channel"] = cut_subdir(cut_repo_name(pkg_info_json["channel"]));
+                auto rn = cut_repo_name(pkg_info_json["channel"]);
+                pkg_info_json["channel"] = cut_subdir(rn);
                 j["result"]["graph_roots"].push_back(std::move(pkg_info_json));
             }
             else

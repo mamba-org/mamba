@@ -1086,15 +1086,26 @@ namespace mamba
         }
         else
         {
-            // TODO: add executable name
-            // TODO: add environment name/prefix
             LOG_INFO << "Waiting for pyc compilation to finish";
             m_transaction_context.wait_for_pyc_compilation();
+
+            // Get the name of the executable used directly from the command.
+            std::istringstream iss(ctx.command_params.current_command);
+            std::string executable;
+            std::getline(iss, executable, ' ');
+
+            // Get the name of the environment
+            const auto environment = env_name(ctx.target_prefix);
+
             Console::stream() << "\nTransaction finished\n\n"
                               << "To activate this environment, use:\n\n"
-                              << "    $ [micro]mamba activate <environment>\n\n"
+                              << "    " << executable << " activate " << environment << "\n\n"
                               << "Or to execute a single command in this environment, use:\n\n"
-                              << "    $ [micro]mamba run -n <environment> mycommand\n";
+                              << "    " << executable << " run "
+                              // Use -n or -p depending on if the env_name is a full prefix or just a name.
+                              << (environment == ctx.target_prefix ? "-p " : "-n ") << environment
+                              << " mycommand\n";
+
 
             prefix.history().add_entry(m_history_entry);
         }

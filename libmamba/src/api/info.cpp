@@ -175,6 +175,20 @@ namespace mamba
 
             items.push_back({ "base environment", ctx.prefix_params.root_prefix.string() });
 
+            std::vector<std::string> envs_dirs;
+            for (auto env_dir : ctx.envs_dirs)
+            {
+                envs_dirs.push_back(env_dir);
+            }
+            items.push_back({ "envs_dirs", envs_dirs });
+
+            std::vector<std::string> pkgs_dirs;
+            for (auto pkg_dir : ctx.pkgs_dirs)
+            {
+                pkgs_dirs.push_back(pkg_dir);
+            }
+            items.push_back({ "pkgs_dirs", pkgs_dirs });
+
             items.push_back({ "platform", ctx.platform });
 
             info_json_print(items);

@@ -1127,7 +1127,7 @@ namespace mamba
             std::string s_json = solvable_to_json(m_pool, s).dump(4);
 
             std::string channel;
-            if (const char* str = solvable_lookup_str(s, SOLVABLE_URL))
+            if (const char* str = solvable_lookup_str(s, SOLVABLE_PACKAGER))
             {
                 channel = str;
             }
@@ -1535,7 +1535,7 @@ namespace mamba
             const char* build_string = solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
 
             std::string channel;
-            if (const char* str = solvable_lookup_str(s, SOLVABLE_URL))
+            if (const char* str = solvable_lookup_str(s, SOLVABLE_PACKAGER))
             {
                 if (std::string_view(str) == "explicit_specs")
                 {

@@ -6,10 +6,13 @@
 
 #include <algorithm>
 #include <array>
+#include <string_view>
+#include <vector>
 
 #include <doctest/doctest.h>
 #include <solv/pool.h>
 
+#include "solv-cpp/ids.hpp"
 #include "solv-cpp/pool.hpp"
 
 using namespace mamba::solv;

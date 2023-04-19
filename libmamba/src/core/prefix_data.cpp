@@ -4,6 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <string_view>
+#include <unordered_map>
+
 #include "mamba/core/output.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/util.hpp"
@@ -77,7 +80,7 @@ namespace mamba
         using node_id = typename decltype(dep_graph)::node_id;
 
         {
-            auto name_to_node_id = std::map<std::string_view, node_id>();
+            auto name_to_node_id = std::unordered_map<std::string_view, node_id>();
 
             // Add all nodes
             for (const auto& [name, record] : records())

@@ -8,6 +8,7 @@
 #define MAMBA_UTIL_GRAPH_HPP
 
 #include <algorithm>
+#include <cassert>
 #include <functional>
 #include <iterator>
 #include <map>
@@ -539,6 +540,9 @@ namespace mamba::util
             const typename Graph::adjacency_list& adjacency
         )
         {
+            assert(status.size() == graph.successors().size());
+            assert(adjacency.size() == graph.successors().size());
+            assert(start <= status.size());
             status[start] = Visited::ongoing;
             visitor.start_node(start, graph);
             for (auto child : adjacency[start])

@@ -1101,8 +1101,10 @@ namespace mamba
                               << "To activate this environment, use:\n\n"
                               << "    " << executable << " activate " << environment << "\n\n"
                               << "Or to execute a single command in this environment, use:\n\n"
-                              << "    " << executable << " run "
-                              // Use -n or -p depending on if the env_name is a full prefix or just a name.
+                              << "    " << executable
+                              << " run "
+                              // Use -n or -p depending on if the env_name is a full prefix or just
+                              // a name.
                               << (environment == ctx.target_prefix ? "-p " : "-n ") << environment
                               << " mycommand\n";
 

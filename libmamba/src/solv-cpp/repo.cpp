@@ -8,13 +8,19 @@
 #include <cerrno>
 #include <cstdio>
 #include <exception>
+#include <iostream>
 #include <sstream>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 #include <solv/pool.h>
 #include <solv/repo.h>
 #include <solv/repo_solv.h>
 #include <solv/repo_write.h>
 
+#include "mamba/core/mamba_fs.hpp"
 #include "solv-cpp/repo.hpp"
 
 namespace mamba::solv
@@ -83,7 +89,7 @@ namespace mamba::solv
 
     namespace
     {
-        class FilePtr
+        class CFile
         {
         public:
 
@@ -92,39 +98,73 @@ namespace mamba::solv
              *
              * @param path must hae filesystem default encoding.
              */
-            static auto open(std::filesystem::path path, const char* mode) -> FilePtr;
+            static auto open(const fs::u8path& path, const char* mode) -> CFile;
 
-            ~FilePtr() noexcept(false);
+            /**
+             * The destructor will flush and close the file descriptor.
+             *
+             * Like ``std::fstream``, exceptions are ignored.
+             * Explicitly call @ref close to get the exception.
+             */
+            ~CFile();
+
+            void close();
 
             auto raw() noexcept -> std::FILE*;
             auto raw() const noexcept -> const std::FILE*;
 
         private:
 
-            FilePtr(std::FILE* ptr, std::string name);
+            CFile(std::FILE* ptr, std::string name);
 
             std::FILE* m_ptr = nullptr;
             std::string m_name = {};
         };
 
-        FilePtr::FilePtr(std::FILE* ptr, std::string name)
+        CFile::CFile(std::FILE* ptr, std::string name)
             : m_ptr{ ptr }
             , m_name{ name }
         {
         }
 
-        auto FilePtr::open(std::filesystem::path path, const char* mode) -> FilePtr
+        CFile::~CFile()
         {
-            std::string name = path;
+            try
+            {
+                close();
+            }
+            catch (const std::exception& e)
+            {
+                std::cerr << "Developer error: "
+                             "uncaught exception in CFile::~CFile, "
+                             "explicitly call CFile::close to handle exception.\n"
+                          << e.what();
+            }
+        }
+
+        auto CFile::open(const fs::u8path& path, const char* mode) -> CFile
+        {
+#ifdef _WIN32
+            // Mode MUST be an ASCII string
+            const auto wmode = std::wstring(mode, mode + std::strlen(mode));
+            auto ptr = ::_wfsopen(path.wstring().c_str(), wmode.c_str(), _SH_DENYNO);
+            if (ptr == nullptr)
+            {
+                throw std::system_error(GetLastError(), std::generic_category());
+            }
+            return { ptr, path.string() };
+#else
+            std::string name = path.string();
             std::FILE* ptr = std::fopen(name.c_str(), mode);
             if (ptr == nullptr)
             {
                 throw std::system_error(errno, std::generic_category());
             }
             return { ptr, std::move(name) };
+#endif
         }
 
-        FilePtr::~FilePtr() noexcept(false)
+        void CFile::close()
         {
             const auto close_res = std::fclose(m_ptr);  // This flush too
             if (close_res != 0)
@@ -136,20 +176,20 @@ namespace mamba::solv
             }
         }
 
-        auto FilePtr::raw() noexcept -> std::FILE*
+        auto CFile::raw() noexcept -> std::FILE*
         {
             return m_ptr;
         }
 
-        auto FilePtr::raw() const noexcept -> const std::FILE*
+        auto CFile::raw() const noexcept -> const std::FILE*
         {
             return m_ptr;
         }
     }
 
-    void ObjRepoViewConst::write(std::filesystem::path solv_file) const
+    void ObjRepoViewConst::write(const fs::u8path& solv_file) const
     {
-        auto file = FilePtr::open(solv_file, "wb");
+        auto file = CFile::open(solv_file, "wb");
         const auto write_res = ::repo_write(const_cast<::Repo*>(raw()), file.raw());
         if (write_res != 0)
         {
@@ -180,9 +220,9 @@ namespace mamba::solv
         ::repo_empty(raw(), static_cast<int>(reuse_ids));
     }
 
-    void ObjRepoView::read(std::filesystem::path solv_file) const
+    void ObjRepoView::read(const fs::u8path& solv_file) const
     {
-        auto file = FilePtr::open(solv_file, "rb");
+        auto file = CFile::open(solv_file, "rb");
         const auto read_res = ::repo_add_solv(raw(), file.raw(), 0);
         if (read_res != 0)
         {

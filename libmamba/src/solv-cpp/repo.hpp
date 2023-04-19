@@ -7,7 +7,6 @@
 #ifndef MAMBA_SOLV_REPO_HPP
 #define MAMBA_SOLV_REPO_HPP
 
-#include <filesystem>
 #include <optional>
 #include <string_view>
 #include <utility>
@@ -16,6 +15,11 @@
 #include "solv-cpp/solvable.hpp"
 
 using Repo = struct s_Repo;
+
+namespace fs
+{
+    class u8path;
+}
 
 namespace mamba::solv
 {
@@ -79,7 +83,7 @@ namespace mamba::solv
          * @warning This is a binary file that is not portable and may not even remain valid among
          *          different libsolv build, let alone versions.
          */
-        void write(std::filesystem::path solv_file) const;
+        void write(const fs::u8path& solv_file) const;
 
     private:
 
@@ -146,7 +150,7 @@ namespace mamba::solv
          * @param solv_file A standard path with system encoding.
          * @see ObjRepoViewConst::write
          */
-        void read(std::filesystem::path solv_file) const;
+        void read(const fs::u8path& solv_file) const;
 
         /** Add an empty solvable to the repository. */
         auto add_solvable() const -> std::pair<SolvableId, ObjSolvableView>;

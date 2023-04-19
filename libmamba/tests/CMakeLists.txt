@@ -81,6 +81,7 @@ file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/data" DESTINATION "${CMAKE_CURRENT_BINARY
 target_compile_definitions(
     test_libmamba
     PRIVATE
+        DOCTEST_CONFIG_USE_STD_HEADERS
         MAMBA_TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}/data"
         MAMBA_TEST_LOCK_EXE="$<TARGET_FILE:testing_libmamba_lock>"
 )

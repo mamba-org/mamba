@@ -347,7 +347,8 @@ TEST_SUITE("graph")
     {
         const auto g = build_graph();
         test_visitor<DiGraph<double>> vis;
-        dfs_raw(g, vis, 0);
+        using node_id = typename decltype(g)::node_id;
+        dfs_raw(g, vis, /* start= */ node_id(0));
         CHECK(vis.get_back_edge_map().empty());
         CHECK_EQ(vis.get_cross_edge_map().find(2u)->second, 3u);
 
@@ -366,7 +367,8 @@ TEST_SUITE("graph")
     {
         const auto g = build_cyclic_graph();
         test_visitor<DiGraph<double>> vis;
-        dfs_raw(g, vis, 0);
+        using node_id = typename decltype(g)::node_id;
+        dfs_raw(g, vis, /* start= */ node_id(0));
         CHECK_EQ(vis.get_back_edge_map().find(2u)->second, 0u);
         CHECK(vis.get_cross_edge_map().empty());
     }
@@ -375,7 +377,8 @@ TEST_SUITE("graph")
     {
         DiGraph<int> g;
         test_visitor<DiGraph<int>> vis;
-        dfs_raw(g, vis, 0);
+        using node_id = typename decltype(g)::node_id;
+        dfs_raw(g, vis, /* start= */ node_id(0));
         CHECK(vis.get_back_edge_map().empty());
         CHECK(vis.get_cross_edge_map().empty());
     }

@@ -600,7 +600,7 @@ namespace mamba
         if (use_graph)
         {
             graph_printer printer(out);
-            dfs_raw(m_dep_graph, printer, 0);
+            dfs_raw(m_dep_graph, printer, /* start= */ node_id(0));
         }
         else if (!m_pkg_id_list.empty())
         {

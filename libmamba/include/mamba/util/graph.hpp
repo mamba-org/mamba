@@ -542,7 +542,7 @@ namespace mamba::util
         {
             assert(status.size() == graph.successors().size());
             assert(adjacency.size() == graph.successors().size());
-            assert(start <= status.size());
+            assert(start < status.size());
             status[start] = Visited::ongoing;
             visitor.start_node(start, graph);
             for (auto child : adjacency[start])

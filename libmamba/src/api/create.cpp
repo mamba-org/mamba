@@ -31,7 +31,7 @@ namespace mamba
         fs::u8path target_prefix = ctx.prefix_params.target_prefix;
         for (auto& env_dir : ctx.envs_dirs)
         {
-            if (mamba::path::is_writable(env_dir))
+            if (fs::exists(env_dir) && fs::is_directory(env_dir) && mamba::path::is_writable(env_dir))
             {
                 target_prefix = env_dir / target_prefix.filename();
             }

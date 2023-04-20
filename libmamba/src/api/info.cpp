@@ -175,19 +175,13 @@ namespace mamba
 
             items.push_back({ "base environment", ctx.prefix_params.root_prefix.string() });
 
-            std::vector<std::string> envs_dirs;
-            for (auto env_dir : ctx.envs_dirs)
-            {
-                envs_dirs.push_back(env_dir);
-            }
-            items.push_back({ "envs_dirs", envs_dirs });
+            auto envs_dirs = nlohmann::json::array();
+            std::copy(ctx.envs_dirs.begin(), ctx.envs_dirs.end(), std::back_inserter(envs_dirs));
+            items.push_back({ "envs_dirs", std::move(envs_dirs) });
 
-            std::vector<std::string> pkgs_dirs;
-            for (auto pkg_dir : ctx.pkgs_dirs)
-            {
-                pkgs_dirs.push_back(pkg_dir);
-            }
-            items.push_back({ "pkgs_dirs", pkgs_dirs });
+            auto pkgs_dirs = nlohmann::json::array();
+            std::copy(ctx.pkgs_dirs.begin(), ctx.pkgs_dirs.end(), std::back_inserter(pkgs_dirs));
+            items.push_back({ "pkgs_dirs", std::move(pkgs_dirs) });
 
             items.push_back({ "platform", ctx.platform });
 

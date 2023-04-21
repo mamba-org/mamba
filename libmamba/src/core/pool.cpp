@@ -148,39 +148,50 @@ namespace mamba
             return false;
         }
 
-        ::Id add_channel_specific_matchspec(::Pool* pool, const MatchSpec& ms)
+        /**
+         * Add function to handle matchspec while parsing is done by libsolv.
+         */
+        auto add_channel_specific_matchspec(solv::ObjPool& pool, const MatchSpec& ms)
+            -> solv::DependencyId
         {
             // Poor man's ms repr to match waht the user provided
             std::string const repr = fmt::format("{}::{}", ms.channel, ms.conda_build_form());
 
             // Already added, return that id
-            if (::Id repr_id = pool_str2id(pool, repr.c_str(), /* .create= */ false); repr_id != 0)
+            if (const auto maybe_id = pool.find_string(repr))
             {
-                return repr_id;
+                return maybe_id.value();
             }
-
-            solv::ObjQueue selected_pkgs;
 
             // conda_build_form does **NOT** contain the channel info
-            ::Id match = pool_conda_matchspec(pool, ms.conda_build_form().c_str());
+            solv::DependencyId const match = pool_conda_matchspec(
+                pool.raw(),
+                ms.conda_build_form().c_str()
+            );
 
             const Channel& c = make_channel(ms.channel);
-            for (Id* wp = pool_whatprovides_ptr(pool, match); *wp; wp++)
-            {
-                auto* const s = pool_id2solvable(pool, *wp);
-
-                const char* s_url = repo_lookup_str(s->repo, SOLVID_META, SOLVABLE_URL);
-                if ((s_url != nullptr) && channel_match(make_channel(s_url), c))
+            solv::ObjQueue selected_pkgs = {};
+            pool.for_each_whatprovides(
+                match,
+                [&](solv::ObjSolvableViewConst s)
                 {
-                    selected_pkgs.push_back(*wp);
+                    // TODO this does not work with s.url(), we need to proper channel class
+                    // to properly manage this.
+                    auto repo = solv::ObjRepoView(*s.raw()->repo);
+                    // TODO make_channel should disapear avoiding conflict here
+                    auto const url = std::string(repo.url());
+                    if (channel_match(make_channel(url), c))
+                    {
+                        selected_pkgs.push_back(s.id());
+                    }
                 }
-            }
-            ::Id const repr_id = pool_str2id(pool, repr.c_str(), /* .create= */ true);
-            ::Id const offset = pool_queuetowhatprovides(pool, selected_pkgs.raw());
+            );
+            solv::StringId const repr_id = pool.add_string(repr);
+            ::Id const offset = pool_queuetowhatprovides(pool.raw(), selected_pkgs.raw());
             // FRAGILE This get deleted when calling ``pool_createwhatprovides`` so care
             // must be taken to do it before
             // TODO investigate namespace providers
-            pool_set_whatprovides(pool, repr_id, offset);
+            pool_set_whatprovides(pool.raw(), repr_id, offset);
             return repr_id;
         }
     }
@@ -196,7 +207,7 @@ namespace mamba
         {
             // Working around shortcomings of ``pool_conda_matchspec``
             // The channels are not processed.
-            id = add_channel_specific_matchspec(pool().raw(), ms);
+            id = add_channel_specific_matchspec(pool(), ms);
         }
         if (id == 0)
         {

@@ -752,6 +752,8 @@ namespace mamba
                 p_post_ctx_hook();
             }
         }
+
+        bool is_fallback_envs_dirs(fs::u8path& dir);
     }
 
     /*******************************

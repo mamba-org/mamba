@@ -29,13 +29,35 @@ namespace mamba
         auto& use_explicit = config.at("explicit_install").value<bool>();
 
         fs::u8path target_prefix = ctx.prefix_params.target_prefix;
-        for (auto& env_dir : ctx.envs_dirs)
+        for (auto& env_dir : config.at("envs_dirs").value<std::vector<fs::u8path>>())
         {
+            if (mamba::detail::is_fallback_envs_dirs(env_dir))
+            {
+                continue;
+            }
+
+            if (fs::exists(env_dir) == false)
+            {
+                // Try creating the env directory if it doesn't exist
+                try
+                {
+                    path::create_directories_sudo_safe(env_dir);
+                }
+                catch (const fs::filesystem_error& ex)
+                {
+                    LOG_WARNING << "Could not create directory: " << env_dir;
+                }
+            }
+
             if (fs::exists(env_dir) && fs::is_directory(env_dir) && mamba::path::is_writable(env_dir))
             {
+                // If there is a writable directory in the envs_dirs
+                // it overrides the root prefix
                 target_prefix = env_dir / target_prefix.filename();
+                break;
             }
         }
+        ctx.prefix_params.target_prefix = target_prefix;
 
         if (!ctx.dry_run)
         {

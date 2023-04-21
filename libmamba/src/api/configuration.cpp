@@ -488,6 +488,21 @@ namespace mamba
             }
         }
 
+        fs::u8path fallback_envs_dir()
+        {
+            return Context::instance().prefix_params.root_prefix / "envs";
+        }
+
+        bool is_fallback_envs_dirs(fs::u8path& dir)
+        {
+            return dir == fallback_envs_dir();
+        }
+
+        std::vector<fs::u8path> fallback_envs_dirs_hook()
+        {
+            return { fallback_envs_dir() };
+        }
+
         void target_prefix_hook(fs::u8path& prefix)
         {
             auto& config = Configuration::instance();
@@ -776,21 +791,16 @@ namespace mamba
                 Configuration::instance().at("quiet").set_value(true);
                 Configuration::instance().at("json").set_value(false);
             }
-        }
-
-        std::vector<fs::u8path> fallback_envs_dirs_hook()
-        {
-            return { Context::instance().prefix_params.root_prefix / "envs" };
-        }
+        }        
 
         void envs_dirs_hook(std::vector<fs::u8path>& dirs)
         {
-            for (auto& d : dirs)
+            for (auto& dir : dirs)
             {
-                d = fs::weakly_canonical(env::expand_user(d)).string();
-                if (fs::exists(d) && !fs::is_directory(d))
+                dir = fs::weakly_canonical(env::expand_user(dir));
+                if (fs::exists(dir) && !fs::is_directory(dir))
                 {
-                    LOG_ERROR << "Env dir specified is not a directory: " << d.string();
+                    LOG_ERROR << "Env dir specified is not a directory: " << dir.string();
                     throw std::runtime_error("Aborting.");
                 }
             }

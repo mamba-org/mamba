@@ -138,7 +138,8 @@ namespace mamba::path
             [&]
             {
                 // If it is a directory we created a subitem in that directory and need to delete it
-                // If the path didn't exist before we created a file that needs to be removed as well
+                // If the path didn't exist before, we created a file that needs to be removed 
+                // as well
                 if (is_directory || path_exists == false)
                 {
                     std::error_code lec;

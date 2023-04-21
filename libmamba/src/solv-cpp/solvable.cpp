@@ -288,14 +288,13 @@ namespace mamba::solv
 
     auto ObjSolvableViewConst::channel() const -> std::string_view
     {
-        // (Ab)using the REPOSITORY_REPOID key since it won't have any side effect
-        return ptr_to_strview(::solvable_lookup_str(const_cast<::Solvable*>(raw()), REPOSITORY_REPOID)
+        return ptr_to_strview(::solvable_lookup_str(const_cast<::Solvable*>(raw()), SOLVABLE_PACKAGER)
         );
     }
 
     void ObjSolvableView::set_channel(raw_str_view str) const
     {
-        ::solvable_set_str(raw(), REPOSITORY_REPOID, str);
+        ::solvable_set_str(raw(), SOLVABLE_PACKAGER, str);
     }
 
     void ObjSolvableView::set_channel(const std::string& str) const

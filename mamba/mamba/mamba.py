@@ -768,7 +768,7 @@ def do_call(args, parser):
                 def format_param(nm, val):
                     return f"{nm:>23} : {val}"  # To match conda's format
 
-                print(format_param("mamba version", mamba.__version__))
+                print("\n" + format_param("mamba version", mamba.__version__))
                 print(output.lstrip("\n"))
         else:
             exit_code = getattr(module, func_name)(args, parser)

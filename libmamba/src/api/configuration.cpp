@@ -791,7 +791,7 @@ namespace mamba
                 Configuration::instance().at("quiet").set_value(true);
                 Configuration::instance().at("json").set_value(false);
             }
-        }        
+        }
 
         void envs_dirs_hook(std::vector<fs::u8path>& dirs)
         {

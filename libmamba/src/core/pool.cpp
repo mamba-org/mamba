@@ -218,67 +218,49 @@ namespace mamba
 
     namespace
     {
-        auto make_package_info(::Solvable& s) -> PackageInfo
+        auto make_package_info(const solv::ObjPool& pool, solv::ObjSolvableViewConst s) -> PackageInfo
         {
-            // Note: this function (especially the checksum part) is NOT YET threadsafe!
-            Pool* pool = s.repo->pool;
-            Id check_type;
-
             PackageInfo out = {};
 
-            out.name = pool_id2str(pool, s.name);
-            out.version = pool_id2str(pool, s.evr);
-            out.build_string = raw_str_or_empty(solvable_lookup_str(&s, SOLVABLE_BUILDFLAVOR));
-            if (const char* str = solvable_lookup_str(&s, SOLVABLE_BUILDVERSION); str != nullptr)
+            out.name = s.name();
+            out.version = s.version();
+            out.build_string = s.build_string();
+            out.noarch = s.noarch();
+            out.build_number = s.build_number();
+            out.channel = s.channel();
+            out.url = s.url();
+            out.subdir = s.subdir();
+            out.fn = s.file_name();
+            out.license = s.license();
+            out.size = s.size();
+            out.timestamp = s.timestamp();
+            out.md5 = s.md5();
+            out.sha256 = s.sha256();
+
+            const auto dep_to_str = [&pool](solv::DependencyId id)
+            { return pool.dependency_to_string(id); };
             {
-                out.build_number = std::stoull(str);
+                const auto deps = s.dependencies();
+                out.depends.reserve(deps.size());
+                std::transform(deps.cbegin(), deps.cend(), std::back_inserter(out.depends), dep_to_str);
             }
-
-            assert(solvable_lookup_str(&s, SOLVABLE_URL) != nullptr);
-            out.url = solvable_lookup_str(&s, SOLVABLE_URL);
-            // note this can and should be <unknown> when e.g. installing from a tarball
-            // The name of the channel where it came from, may be different from repo name
-            // for instance with the installed repo
-            assert(solvable_lookup_str(&s, SOLVABLE_PACKAGER) != nullptr);
-            out.channel = solvable_lookup_str(&s, SOLVABLE_PACKAGER);
-
-            out.subdir = raw_str_or_empty(solvable_lookup_str(&s, SOLVABLE_MEDIADIR));
-            out.fn = raw_str_or_empty(solvable_lookup_str(&s, SOLVABLE_MEDIAFILE));
-            out.license = raw_str_or_empty(solvable_lookup_str(&s, SOLVABLE_LICENSE));
-            out.size = solvable_lookup_num(&s, SOLVABLE_DOWNLOADSIZE, 0);
-            out.timestamp = solvable_lookup_num(&s, SOLVABLE_BUILDTIME, 0);
-            out.md5 = raw_str_or_empty(solvable_lookup_checksum(&s, SOLVABLE_PKGID, &check_type));
-            out.sha256 = raw_str_or_empty(solvable_lookup_checksum(&s, SOLVABLE_CHECKSUM, &check_type)
-            );
-            // Not set by libsolv repodata parsing
-            out.noarch = raw_str_or_empty(solvable_lookup_str(&s, SOLVABLE_SOURCEARCH));
-            out.signatures = raw_str_or_empty(solvable_lookup_str(&s, SIGNATURE_DATA));
-            if (out.signatures.empty())
             {
-                out.signatures = "{}";
+                const auto cons = s.constraints();
+                out.constrains.reserve(cons.size());
+                std::transform(cons.cbegin(), cons.cend(), std::back_inserter(out.constrains), dep_to_str);
             }
-
-            solv::ObjQueue q = {};
-            auto dep2str = [&pool](Id id) { return pool_dep2str(pool, id); };
-            if (!solvable_lookup_deparray(&s, SOLVABLE_REQUIRES, q.raw(), -1))
             {
-                out.defaulted_keys.insert("depends");
+                const auto id_to_str = [&pool](solv::StringId id)
+                { return std::string(pool.get_string(id)); };
+                auto feats = s.track_features();
+                out.track_features.reserve(feats.size());
+                std::transform(
+                    feats.begin(),
+                    feats.end(),
+                    std::back_inserter(out.track_features),
+                    id_to_str
+                );
             }
-            out.depends.reserve(q.size());
-            std::transform(q.begin(), q.end(), std::back_inserter(out.depends), dep2str);
-
-            q.clear();
-            if (!solvable_lookup_deparray(&s, SOLVABLE_CONSTRAINS, q.raw(), -1))
-            {
-                out.defaulted_keys.insert("constrains");
-            }
-            out.constrains.reserve(q.size());
-            std::transform(q.begin(), q.end(), std::back_inserter(out.constrains), dep2str);
-
-            q.clear();
-            auto id2str = [&pool](Id id) { return pool_id2str(pool, id); };
-            solvable_lookup_idarray(&s, SOLVABLE_TRACK_FEATURES, q.raw());
-            std::transform(q.begin(), q.end(), std::back_inserter(out.track_features), id2str);
 
             return out;
         }
@@ -286,11 +268,11 @@ namespace mamba
 
     std::optional<PackageInfo> MPool::id2pkginfo(Id solv_id) const
     {
-        if (solv_id == 0 || util::cmp_greater_equal(solv_id, pool().raw()->nsolvables))
+        if (const auto solv = pool().get_solvable(solv_id))
         {
-            return std::nullopt;
+            return { make_package_info(pool(), solv.value()) };
         }
-        return { make_package_info(*pool_id2solvable(pool().raw(), solv_id)) };
+        return std::nullopt;
     }
 
     std::optional<std::string> MPool::dep2str(Id dep_id) const

@@ -22,6 +22,8 @@ extern "C"  // Incomplete header
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/util_string.hpp"
+#include "solv-cpp/pool.hpp"
+#include "solv-cpp/repo.hpp"
 
 
 #define MAMBA_TOOL_VERSION "1.2"
@@ -39,13 +41,27 @@ namespace mamba
         return MTV;
     }
 
+    namespace
+    {
+        // Keeping the solv-cpp header private
+        auto srepo(const MRepo& r) -> solv::ObjRepoViewConst
+        {
+            return solv::ObjRepoViewConst{ *const_cast<const ::Repo*>(r.repo()) };
+        }
+
+        auto srepo(MRepo& r) -> solv::ObjRepoView
+        {
+            return solv::ObjRepoView{ *r.repo() };
+        }
+    }
+
     MRepo::MRepo(MPool& pool, const std::string& /*name*/, const fs::u8path& index, const RepoMetadata& metadata)
         : m_pool(pool)
         , m_url(rsplit(metadata.url, "/", 1)[0])
         , m_metadata(metadata)
     {
         m_repo = repo_create(pool, m_url.c_str());
-        init(pool);
+        init();
         read_file(index);
         set_solvables_url();
         repo_internalize(m_repo);
@@ -56,7 +72,7 @@ namespace mamba
         , m_url(url)
         , m_repo(repo_create(pool, name.c_str()))
     {
-        init(pool);
+        init();
         read_file(index);
         set_solvables_url();
         repo_internalize(m_repo);
@@ -66,29 +82,23 @@ namespace mamba
         : m_pool(pool)
         , m_repo(repo_create(pool, name.c_str()))
     {
-        init(pool);
-        int flags = 0;
-        Repodata* data;
-        data = repo_add_repodata(m_repo, flags);
+        init();
         for (auto& info : package_infos)
         {
-            add_package_info(data, info);
+            add_package_info(info);
         }
-        repodata_internalize(data);
+        srepo(*this).internalize();
     }
 
     MRepo::MRepo(MPool& pool, const PrefixData& prefix_data)
         : m_pool(pool)
         , m_repo(repo_create(pool, "installed"))
     {
-        init(pool);
-        int flags = 0;
-        Repodata* data;
-        data = repo_add_repodata(m_repo, flags);
+        init();
 
         for (auto& [name, record] : prefix_data.records())
         {
-            add_package_info(data, record);
+            add_package_info(record);
         }
 
         if (Context::instance().add_pip_as_python_dependency)
@@ -96,34 +106,30 @@ namespace mamba
             add_pip_as_python_dependency();
         }
 
-        repodata_internalize(data);
+        srepo(*this).internalize();
         set_installed();
     }
 
-    void MRepo::init(MPool& pool)
+    void MRepo::init()
     {
-        ::repo_set_str(m_repo, SOLVID_META, SOLVABLE_URL, url().c_str());
+        srepo(*this).set_url(url());
     }
 
     void MRepo::set_solvables_url()
     {
         // Setting the channel url on where the solvable so that we can retrace
         // where it came from
-        Id id = 0;
-        Solvable* s = nullptr;
-        FOR_REPO_SOLVABLES(m_repo, id, s)
-        {
-            // The solvable url, this is not set in libsolv parsing so we set it manually
-            // while we still rely on libsolv for parsing
-            solvable_set_str(
-                s,
-                SOLVABLE_URL,
-                fmt::format("{}/{}", url(), solvable_lookup_str(s, SOLVABLE_MEDIAFILE)).c_str()
-            );
-            // The name of the channel where it came from, may be different from repo name
-            // for instance with the installed repo
-            solvable_set_str(s, SOLVABLE_PACKAGER, url().c_str());
-        }
+        srepo(*this).for_each_solvable(
+            [&](solv::ObjSolvableView s)
+            {
+                // The solvable url, this is not set in libsolv parsing so we set it manually
+                // while we still rely on libsolv for parsing
+                s.set_url(fmt::format("{}/{}", url(), s.file_name()));
+                // The name of the channel where it came from, may be different from repo name
+                // for instance with the installed repo
+                s.set_channel(url());
+            }
+        );
     }
 
     MRepo::MRepo(MRepo&& rhs)
@@ -149,7 +155,7 @@ namespace mamba
 
     void MRepo::set_installed()
     {
-        pool_set_installed(m_repo->pool, m_repo);
+        m_pool.pool().set_installed_repo(srepo(*this).id());
     }
 
     void MRepo::set_priority(int priority, int subpriority)
@@ -158,65 +164,51 @@ namespace mamba
         m_repo->subpriority = subpriority;
     }
 
-    void MRepo::add_package_info(Repodata* data, const PackageInfo& info)
+    void MRepo::add_package_info(const PackageInfo& info)
     {
-        // TODO missing track_feature
         LOG_INFO << "Adding package record to repo " << info.name;
-        Pool* pool = m_repo->pool;
 
-        Id handle = repo_add_solvable(m_repo);
-        Solvable* s = pool_id2solvable(pool, handle);
-        solvable_set_str(s, SOLVABLE_BUILDVERSION, std::to_string(info.build_number).c_str());
-        solvable_add_poolstr_array(s, SOLVABLE_BUILDFLAVOR, info.build_string.c_str());
-        solvable_set_str(s, SOLVABLE_NAME, info.name.c_str());
-        solvable_set_str(s, SOLVABLE_EVR, info.version.c_str());
-        solvable_set_num(s, SOLVABLE_DOWNLOADSIZE, info.size);
-        // No ``solvable_xxx`` equivalent
-        repodata_set_checksum(data, handle, SOLVABLE_PKGID, REPOKEY_TYPE_MD5, info.md5.c_str());
+        auto [id, solv] = srepo(*this).add_solvable();
 
-        solvable_set_str(s, SOLVABLE_URL, info.url.c_str());
-        // The name of the channel where it came from, may be different from repo name
-        // for instance with the installed repo
-        solvable_set_str(s, SOLVABLE_PACKAGER, info.channel.c_str());
-
-        solvable_set_str(s, SOLVABLE_SOURCEARCH, info.noarch.c_str());
-
-        // No ``solvable_xxx`` equivalent
-        repodata_set_location(data, handle, 0, info.subdir.c_str(), info.fn.c_str());
-        repodata_set_checksum(data, handle, SOLVABLE_CHECKSUM, REPOKEY_TYPE_SHA256, info.sha256.c_str());
-
-        if (!info.depends.empty())
-        {
-            for (std::string dep : info.depends)
-            {
-                Id dep_id = pool_conda_matchspec(pool, dep.c_str());
-                if (dep_id)
-                {
-                    s->requires = repo_addid_dep(m_repo, s->requires, dep_id, 0);
-                }
-            }
-        }
-
-        if (!info.constrains.empty())
-        {
-            for (std::string cst : info.constrains)
-            {
-                Id constrains_id = pool_conda_matchspec(pool, cst.c_str());
-                if (constrains_id)
-                {
-                    solvable_add_idarray(s, SOLVABLE_CONSTRAINS, constrains_id);
-                }
-            }
-        }
-
-        s->provides = repo_addid_dep(
-            m_repo,
-            s->provides,
-            pool_rel2id(pool, s->name, s->evr, REL_EQ, /* create= */ 1),
-            0
+        solv.set_name(info.name);
+        solv.set_version(info.version);
+        solv.set_build_string(info.build_string);
+        solv.set_noarch(info.noarch);
+        solv.set_build_number(info.build_number);
+        solv.set_channel(info.channel);
+        solv.set_url(info.url);
+        solv.set_subdir(info.subdir);
+        solv.set_file_name(info.fn);
+        solv.set_license(info.license);
+        solv.set_size(info.size);
+        // TODO conda timestamp are not Unix timestamp.
+        // Libsolv normalize them this way, we need to do the same here otherwise the current
+        // package may get arbitrary priority.
+        solv.set_timestamp(
+            (info.timestamp > 253402300799ULL) ? (info.timestamp / 1000) : info.timestamp
         );
+        solv.set_md5(info.md5);
+        solv.set_sha256(info.sha256);
 
-        repo_internalize(m_repo);
+        for (const auto& dep : info.depends)
+        {
+            // TODO pool's matchspec2id
+            solv::DependencyId const dep_id = pool_conda_matchspec(m_pool, dep.c_str());
+            assert(dep_id);
+            solv.add_dependency(dep_id);
+        }
+
+        for (const auto& cons : info.constrains)
+        {
+            // TODO pool's matchspec2id
+            solv::DependencyId const dep_id = pool_conda_matchspec(m_pool, cons.c_str());
+            assert(dep_id);
+            solv.add_constraint(dep_id);
+        }
+
+        solv.add_track_features(info.track_features);
+
+        solv.add_self_provide();
     }
 
     Id MRepo::id() const
@@ -256,33 +248,26 @@ namespace mamba
 
     void MRepo::add_pip_as_python_dependency()
     {
-        Id pkg_id;
-        Solvable* pkg_s;
-        Id python = pool_str2id(m_repo->pool, "python", 0);
-        Id pip_dep = pool_conda_matchspec(m_repo->pool, "pip");
-        Id pip = pool_str2id(m_repo->pool, "pip", 0);
-        Id python_dep = pool_conda_matchspec(m_repo->pool, "python");
-
-        FOR_REPO_SOLVABLES(m_repo, pkg_id, pkg_s)
-        {
-            if (pkg_s->name == python)
+        solv::DependencyId const python_id = pool_conda_matchspec(m_pool, "python");
+        solv::DependencyId const pip_id = pool_conda_matchspec(m_pool, "pip");
+        srepo(*this).for_each_solvable(
+            [&](solv::ObjSolvableView s)
             {
-                const char* version = pool_id2str(m_repo->pool, pkg_s->evr);
-                if (version && version[0] >= '2')
+                if (s.name() == "python")
                 {
-                    pkg_s->requires = repo_addid_dep(m_repo, pkg_s->requires, pip_dep, 0);
+                    if (!s.version().empty() && (s.version()[0] >= '2'))
+                    {
+                        s.add_dependency(pip_id);
+                    }
+                }
+                if (s.name() == "pip")
+                {
+                    auto deps = s.dependencies();
+                    deps.insert(deps.begin(), python_id);  // TODO is this right?
+                    s.set_dependencies(std::move(deps));
                 }
             }
-            if (pkg_s->name == pip)
-            {
-                pkg_s->requires = repo_addid_dep(
-                    m_repo,
-                    pkg_s->requires,
-                    python_dep,
-                    SOLVABLE_PREREQMARKER
-                );
-            }
-        }
+        );
     }
 
     bool MRepo::read_file(const fs::u8path& filename)

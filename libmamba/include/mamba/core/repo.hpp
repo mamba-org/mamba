@@ -85,9 +85,9 @@ namespace mamba
 
     private:
 
-        void init(MPool& pool);
+        void init();
         bool read_file(const fs::u8path& filename);
-        void add_package_info(Repodata*, const PackageInfo& pkg_info);
+        void add_package_info(const PackageInfo& pkg_info);
         void set_solvables_url();
 
         MPool m_pool;

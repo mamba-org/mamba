@@ -205,6 +205,9 @@ namespace mamba::solv
          */
         void set_installed_repo(RepoId id);
 
+        /** Get the number of solvable in the pool, all repo combined. */
+        auto solvable_count() const -> std::size_t;
+
         /** Get a solvable from its id, if it exisists and regardless of its repository. */
         auto get_solvable(SolvableId id) const -> std::optional<ObjSolvableViewConst>;
 

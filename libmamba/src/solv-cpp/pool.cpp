@@ -114,25 +114,21 @@ namespace mamba::solv
 
     auto ObjPool::get_dependency_name(DependencyId id) const -> std::string_view
     {
-        assert(ISRELDEP(id));
         return ::pool_id2str(raw(), id);
     }
 
     auto ObjPool::get_dependency_version(DependencyId id) const -> std::string_view
     {
-        assert(ISRELDEP(id));
         return ::pool_id2evr(raw(), id);
     }
 
     auto ObjPool::get_dependency_relation(DependencyId id) const -> std::string_view
     {
-        assert(ISRELDEP(id));
         return ::pool_id2rel(raw(), id);
     }
 
     auto ObjPool::dependency_to_string(DependencyId id) const -> std::string
     {
-        assert(ISRELDEP(id));
         return ::pool_dep2str(
             // Not const in because function may allocate in pool tmp alloc space
             const_cast<::Pool*>(raw()),
@@ -240,20 +236,34 @@ namespace mamba::solv
         pool_set_installed(raw(), must_repo->raw());
     }
 
+    inline static constexpr int solvable_id_start = 2;
+
+    auto ObjPool::solvable_count() const -> std::size_t
+    {
+        assert(raw()->nsolvables >= solvable_id_start);
+        return static_cast<std::size_t>(raw()->nsolvables - solvable_id_start);
+    }
+
     auto ObjPool::get_solvable(SolvableId id) const -> std::optional<ObjSolvableViewConst>
     {
-        if (const ::Solvable* s = ::pool_id2solvable(raw(), id))
+        if ((solvable_id_start <= id) && (id < raw()->nsolvables))
         {
-            return ObjSolvableViewConst{ *s };
+            if (const ::Solvable* s = ::pool_id2solvable(raw(), id))
+            {
+                return ObjSolvableViewConst{ *s };
+            }
         }
         return std::nullopt;
     }
 
     auto ObjPool::get_solvable(SolvableId id) -> std::optional<ObjSolvableView>
     {
-        if (::Solvable* s = ::pool_id2solvable(raw(), id))
+        if ((solvable_id_start <= id) && (id < raw()->nsolvables))
         {
-            return ObjSolvableView{ *s };
+            if (::Solvable* s = ::pool_id2solvable(raw(), id))
+            {
+                return ObjSolvableView{ *s };
+            }
         }
         return std::nullopt;
     }

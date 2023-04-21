@@ -179,9 +179,9 @@ namespace mamba
 
             fmt::print(out, fmtstring, "MD5", pkg.md5.empty() ? "Not available" : pkg.md5);
             fmt::print(out, fmtstring, "SHA256", pkg.sha256.empty() ? "Not available" : pkg.sha256);
-            if (pkg.track_features.size())
+            if (!pkg.track_features.empty())
             {
-                fmt::print(out, fmtstring, "Track Features", pkg.track_features);
+                fmt::print(out, fmtstring, "Track Features", fmt::join(pkg.track_features, ","));
             }
 
             // std::cout << fmt::format<char>(

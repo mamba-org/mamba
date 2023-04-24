@@ -1023,7 +1023,7 @@ class PackageInfo:
         :type: str
         """
     @track_features.setter
-    def track_features(self, arg0: str) -> None:
+    def track_features(self, arg1: str) -> None:
         pass
     @property
     def url(self) -> str:

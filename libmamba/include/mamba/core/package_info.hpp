@@ -52,7 +52,7 @@ namespace mamba
         std::size_t timestamp = 0;
         std::string md5 = {};
         std::string sha256 = {};
-        std::string track_features = {};
+        std::vector<std::string> track_features = {};
         std::vector<std::string> depends = {};
         std::vector<std::string> constrains = {};
         std::string signatures = {};

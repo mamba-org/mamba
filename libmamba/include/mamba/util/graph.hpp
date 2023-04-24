@@ -8,6 +8,7 @@
 #define MAMBA_UTIL_GRAPH_HPP
 
 #include <algorithm>
+#include <cassert>
 #include <functional>
 #include <iterator>
 #include <map>
@@ -66,11 +67,6 @@ namespace mamba::util
         template <typename UnaryFunc>
         UnaryFunc for_each_root_id_from(node_id source, UnaryFunc func) const;
 
-        // TODO C++20 better to return a range since this search cannot be interupted from the
-        // visitor
-        template <class V>
-        void depth_first_search(V& visitor, node_id start = node_id(0), bool reverse = false) const;
-
     protected:
 
         using derived_t = Derived;
@@ -89,25 +85,8 @@ namespace mamba::util
 
     private:
 
-        enum class visited
-        {
-            no,
-            ongoing,
-            yes
-        };
-
-        using visited_list = std::vector<visited>;
-
         template <class V>
         node_id add_node_impl(V&& value);
-
-        template <class V>
-        void depth_first_search_impl(
-            V& visitor,
-            node_id node,
-            visited_list& status,
-            const adjacency_list& successors
-        ) const;
 
         // Source of truth for exsising nodes
         node_map m_node_map;
@@ -118,19 +97,48 @@ namespace mamba::util
         std::size_t m_number_of_edges = 0;
     };
 
-    template <typename Node, typename Derived>
-    auto is_reachable(
-        const DiGraphBase<Node, Derived>& graph,
-        typename DiGraphBase<Node, Derived>::node_id source,
-        typename DiGraphBase<Node, Derived>::node_id target
-    ) -> bool;
+    // TODO C++20 better to return a range since this search cannot be interupted from the
+    // visitor
+    // TODO should let user implement reverse with a reverse view when available
+    template <typename Graph, typename Visitor>
+    void
+    dfs_raw(const Graph& graph, Visitor&& visitor, typename Graph::node_id start, bool reverse = false);
 
-    template <class G>
-    class default_visitor
+    template <typename Graph, typename Visitor>
+    void dfs_raw(const Graph& graph, Visitor&& visitor, bool reverse = false);
+
+    template <typename Graph, typename UnaryFunc>
+    void dfs_preorder_nodes_for_each_id(
+        const Graph& graph,
+        UnaryFunc&& func,
+        typename Graph::node_id start,
+        bool reverse = false
+    );
+
+    template <typename Graph, typename UnaryFunc>
+    void dfs_preorder_nodes_for_each_id(const Graph& graph, UnaryFunc&& func, bool reverse = false);
+
+    template <typename Graph, typename UnaryFunc>
+    void dfs_postorder_nodes_for_each_id(
+        const Graph& graph,
+        UnaryFunc&& func,
+        typename Graph::node_id start,
+        bool reverse = false
+    );
+
+    template <typename Graph, typename UnaryFunc>
+    void dfs_postorder_nodes_for_each_id(const Graph& graph, UnaryFunc&& func, bool reverse = false);
+
+    // TODO C++20 rather than providing an empty visitor, use a concept to detect the presence
+    // of member function.
+    // @warning Inheriting publicly from this class risks calling into the empty overloaded
+    // function.
+    template <typename Graph>
+    class EmptyVisitor
     {
     public:
 
-        using graph_t = G;
+        using graph_t = Graph;
         using node_id = typename graph_t::node_id;
 
         void start_node(node_id, const graph_t&)
@@ -156,6 +164,14 @@ namespace mamba::util
         {
         }
     };
+
+    template <typename Graph>
+    auto
+    is_reachable(const Graph& graph, typename Graph::node_id source, typename Graph::node_id target)
+        -> bool;
+
+    template <typename Graph, typename UnaryFunc>
+    void topological_sort_for_each_node_id(const Graph& graph, UnaryFunc&& func);
 
     template <typename Node, typename Edge = void>
     class DiGraph : private DiGraphBase<Node, DiGraph<Node, Edge>>
@@ -190,8 +206,6 @@ namespace mamba::util
         using Base::for_each_node_id;
         using Base::for_each_root_id;
         using Base::for_each_root_id_from;
-
-        using Base::depth_first_search;
 
         using Base::add_node;
         bool add_edge(node_id from, node_id to, const edge_t& data);
@@ -443,25 +457,21 @@ namespace mamba::util
     template <typename UnaryFunc>
     UnaryFunc DiGraphBase<N, G>::for_each_leaf_id_from(node_id source, UnaryFunc func) const
     {
-        struct LeafVisitor : default_visitor<derived_t>
-        {
-            UnaryFunc& m_func;
-
-            LeafVisitor(UnaryFunc& func)
-                : m_func{ func }
+        // Explore the directed graph starting with the given source node.
+        // When we explore a node with no outgoing edge, we know it is a leaf that is also a
+        // descendent of source.
+        // The pre or post order used in the node has no importance.
+        dfs_preorder_nodes_for_each_id(
+            derived_cast(),
+            [&](node_id n)
             {
-            }
-
-            void start_node(node_id n, const derived_t& g)
-            {
-                if (g.out_degree(n) == 0)
+                if (out_degree(n) == 0)
                 {
-                    m_func(n);
+                    func(n);
                 }
-            }
-        };
-        auto visitor = LeafVisitor(func);
-        depth_first_search(visitor, source);
+            },
+            source
+        );
         return func;
     }
 
@@ -469,70 +479,24 @@ namespace mamba::util
     template <typename UnaryFunc>
     UnaryFunc DiGraphBase<N, G>::for_each_root_id_from(node_id source, UnaryFunc func) const
     {
-        struct RootVisitor : default_visitor<derived_t>
-        {
-            UnaryFunc& m_func;
-
-            RootVisitor(UnaryFunc& func)
-                : m_func{ func }
+        // Explore in reverse (going in the opposite direction of the edges the directed graph
+        // starting with the given source node.
+        // When we explore a node with no incoming edge, we know it is a root that is also an
+        // ascendent of source.
+        // The pre or post order used in the node has no importance.
+        dfs_preorder_nodes_for_each_id(
+            derived_cast(),
+            [&](node_id n)
             {
-            }
-
-            void start_node(node_id n, const derived_t& g)
-            {
-                if (g.in_degree(n) == 0)
+                if (in_degree(n) == 0)
                 {
-                    m_func(n);
+                    func(n);
                 }
-            }
-        };
-        auto visitor = RootVisitor(func);
-        depth_first_search(visitor, source, /*reverse*/ true);
+            },
+            source,
+            /* reverse= */ true
+        );
         return func;
-    }
-
-    template <typename N, typename G>
-    template <class V>
-    void DiGraphBase<N, G>::depth_first_search(V& visitor, node_id node, bool reverse) const
-    {
-        if (!empty())
-        {
-            visited_list status(number_of_node_id(), visited::no);
-            depth_first_search_impl(visitor, node, status, reverse ? m_predecessors : m_successors);
-        }
-    }
-
-    template <typename N, typename G>
-    template <class V>
-    void DiGraphBase<N, G>::depth_first_search_impl(
-        V& visitor,
-        node_id node,
-        visited_list& status,
-        const adjacency_list& successors
-    ) const
-    {
-        status[node] = visited::ongoing;
-        visitor.start_node(node, derived_cast());
-        for (auto child : successors[node])
-        {
-            visitor.start_edge(node, child, derived_cast());
-            if (status[child] == visited::no)
-            {
-                visitor.tree_edge(node, child, derived_cast());
-                depth_first_search_impl(visitor, child, status, successors);
-            }
-            else if (status[child] == visited::ongoing)
-            {
-                visitor.back_edge(node, child, derived_cast());
-            }
-            else
-            {
-                visitor.forward_or_cross_edge(node, child, derived_cast());
-            }
-            visitor.finish_edge(node, child, derived_cast());
-        }
-        status[node] = visited::yes;
-        visitor.finish_node(node, derived_cast());
     }
 
     template <typename N, typename G>
@@ -558,12 +522,188 @@ namespace mamba::util
      *  Algorithms implementation  *
      *******************************/
 
+    namespace detail
+    {
+        enum struct Visited
+        {
+            yes,
+            ongoing,
+            no
+        };
+
+        template <typename Graph, typename Visitor>
+        void dfs_raw_impl(
+            const Graph& graph,
+            Visitor&& visitor,
+            typename Graph::node_id start,
+            std::vector<Visited>& status,
+            const typename Graph::adjacency_list& adjacency
+        )
+        {
+            assert(status.size() == graph.successors().size());
+            assert(adjacency.size() == graph.successors().size());
+            assert(start < status.size());
+            status[start] = Visited::ongoing;
+            visitor.start_node(start, graph);
+            for (auto child : adjacency[start])
+            {
+                visitor.start_edge(start, child, graph);
+                if (status[child] == Visited::no)
+                {
+                    visitor.tree_edge(start, child, graph);
+                    dfs_raw_impl(graph, visitor, child, status, adjacency);
+                }
+                else if (status[child] == Visited::ongoing)
+                {
+                    visitor.back_edge(start, child, graph);
+                }
+                else
+                {
+                    visitor.forward_or_cross_edge(start, child, graph);
+                }
+                visitor.finish_edge(start, child, graph);
+            }
+            status[start] = Visited::yes;
+            visitor.finish_node(start, graph);
+        }
+    }
+
+    template <typename Graph, typename Visitor>
+    void dfs_raw(const Graph& graph, Visitor&& visitor, typename Graph::node_id start, bool reverse)
+    {
+        if (!graph.empty())
+        {
+            auto& adjacency = reverse ? graph.predecessors() : graph.successors();
+            auto status = std::vector<detail::Visited>(adjacency.size(), detail::Visited::no);
+            detail::dfs_raw_impl(graph, std::forward<Visitor>(visitor), start, status, adjacency);
+        }
+    }
+
+    template <typename Graph, typename Visitor>
+    void dfs_raw(const Graph& graph, Visitor&& visitor, bool reverse)
+    {
+        if (graph.empty())
+        {
+            return;
+        }
+
+        using node_id = typename Graph::node_id;
+
+        auto& adjacency = reverse ? graph.predecessors() : graph.successors();
+        const auto max_node_id = adjacency.size();
+        auto status = std::vector<detail::Visited>(max_node_id, detail::Visited::no);
+
+        // Iterating over all ids, which may be a super set of the valid ids since some ids
+        // could have been removed.
+        // Hence we need to check ``graph.has_node``.
+        for (node_id n = 0; n < max_node_id; ++n)
+        {
+            if (graph.has_node(n) && (status[n] == detail::Visited::no))
+            {
+                detail::dfs_raw_impl(graph, std::forward<Visitor>(visitor), n, status, adjacency);
+            }
+        }
+    }
+
+    namespace detail
+    {
+        template <typename Graph, typename UnaryFunc>
+        class PreorderVisitor : public EmptyVisitor<Graph>
+        {
+        public:
+
+            using node_id = typename Graph::node_id;
+
+            template <typename UnaryFuncU>
+            PreorderVisitor(UnaryFuncU&& func)
+                : m_func{ std::forward<UnaryFuncU>(func) }
+            {
+            }
+
+            void start_node(node_id n, const Graph&)
+            {
+                m_func(n);
+            }
+
+        private:
+
+            UnaryFunc m_func;
+        };
+
+        template <typename Graph, typename UnaryFunc>
+        class PostorderVisitor : public EmptyVisitor<Graph>
+        {
+        public:
+
+            using node_id = typename Graph::node_id;
+
+            template <typename UnaryFuncU>
+            PostorderVisitor(UnaryFuncU&& func)
+                : m_func{ std::forward<UnaryFuncU>(func) }
+            {
+            }
+
+            void finish_node(node_id n, const Graph&)
+            {
+                m_func(n);
+            }
+
+        private:
+
+            UnaryFunc m_func;
+        };
+    }
+
+    template <typename Graph, typename UnaryFunc>
+    void dfs_preorder_nodes_for_each_id(
+        const Graph& graph,
+        UnaryFunc&& func,
+        typename Graph::node_id start,
+        bool reverse
+    )
+    {
+        dfs_raw(
+            graph,
+            detail::PreorderVisitor<Graph, UnaryFunc>(std::forward<UnaryFunc>(func)),
+            start,
+            reverse
+        );
+    }
+
+    template <typename Graph, typename UnaryFunc>
+    void dfs_preorder_nodes_for_each_id(const Graph& graph, UnaryFunc&& func, bool reverse)
+    {
+        dfs_raw(graph, detail::PreorderVisitor<Graph, UnaryFunc>(std::forward<UnaryFunc>(func)), reverse);
+    }
+
+    template <typename Graph, typename UnaryFunc>
+    void dfs_postorder_nodes_for_each_id(
+        const Graph& graph,
+        UnaryFunc&& func,
+        typename Graph::node_id start,
+        bool reverse
+    )
+    {
+        dfs_raw(
+            graph,
+            detail::PostorderVisitor<Graph, UnaryFunc>(std::forward<UnaryFunc>(func)),
+            start,
+            reverse
+        );
+    }
+
+    template <typename Graph, typename UnaryFunc>
+    void dfs_postorder_nodes_for_each_id(const Graph& graph, UnaryFunc&& func, bool reverse)
+    {
+        dfs_raw(graph, detail::PostorderVisitor<Graph, UnaryFunc>(std::forward<UnaryFunc>(func)), reverse);
+    }
+
     template <typename Graph>
     auto
     is_reachable(const Graph& graph, typename Graph::node_id source, typename Graph::node_id target)
         -> bool
     {
-        struct : default_visitor<Graph>
+        struct : EmptyVisitor<Graph>
         {
             using node_id = typename Graph::node_id;
             node_id target;
@@ -575,8 +715,14 @@ namespace mamba::util
             }
         } visitor{ {}, target };
 
-        graph.depth_first_search(visitor, source);
+        dfs_raw(graph, visitor, source);
         return visitor.target_visited;
+    }
+
+    template <typename Graph, typename UnaryFunc>
+    void topological_sort_for_each_node_id(const Graph& graph, UnaryFunc&& func)
+    {
+        dfs_postorder_nodes_for_each_id(graph, func, /* reverse= */ true);
     }
 
     /*********************************

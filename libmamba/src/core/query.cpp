@@ -179,9 +179,9 @@ namespace mamba
 
             fmt::print(out, fmtstring, "MD5", pkg.md5.empty() ? "Not available" : pkg.md5);
             fmt::print(out, fmtstring, "SHA256", pkg.sha256.empty() ? "Not available" : pkg.sha256);
-            if (pkg.track_features.size())
+            if (!pkg.track_features.empty())
             {
-                fmt::print(out, fmtstring, "Track Features", pkg.track_features);
+                fmt::print(out, fmtstring, "Track Features", fmt::join(pkg.track_features, ","));
             }
 
             // std::cout << fmt::format<char>(
@@ -600,7 +600,7 @@ namespace mamba
         if (use_graph)
         {
             graph_printer printer(out);
-            m_dep_graph.depth_first_search(printer);
+            dfs_raw(m_dep_graph, printer, /* start= */ node_id(0));
         }
         else if (!m_pkg_id_list.empty())
         {

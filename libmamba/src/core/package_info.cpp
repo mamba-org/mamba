@@ -112,7 +112,10 @@ namespace mamba
         assign_or(j, "license", license, ""s);
         assign_or(j, "md5", md5, ""s);
         assign_or(j, "sha256", sha256, ""s);
-        assign_or(j, "track_features", track_features, ""s);
+        if (j.contains("track_features"))
+        {
+            track_features = split(j["track_features"].get<std::string_view>(), ",");
+        }
 
         // add the noarch type if we know it (only known for installed packages)
         if (j.contains("noarch"))
@@ -194,7 +197,7 @@ namespace mamba
         j["build_string"] = build_string;
         j["build_number"] = build_number;
         j["license"] = license;
-        j["track_features"] = track_features;
+        j["track_features"] = fmt::format("{}", fmt::join(track_features, ","));
         if (!md5.empty())
         {
             j["md5"] = md5;

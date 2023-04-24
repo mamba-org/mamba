@@ -309,16 +309,9 @@ namespace mamba
             std::transform(q.begin(), q.end(), std::back_inserter(out.constrains), dep2str);
 
             q.clear();
+            auto id2str = [&pool](Id id) { return pool_id2str(pool, id); };
             solvable_lookup_idarray(&s, SOLVABLE_TRACK_FEATURES, q.raw());
-            for (::Id const id : q)
-            {
-                out.track_features += pool_id2str(pool, id);
-                out.track_features += ',';
-            }
-            if (!out.track_features.empty())
-            {
-                out.track_features.pop_back();
-            }
+            std::transform(q.begin(), q.end(), std::back_inserter(out.track_features), id2str);
 
             return out;
         }

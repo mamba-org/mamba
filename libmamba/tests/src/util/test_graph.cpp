@@ -4,6 +4,11 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
+#include <set>
+#include <string>
+#include <vector>
+
 #include <doctest/doctest.h>
 
 #include "mamba/util/graph.hpp"
@@ -64,30 +69,49 @@ build_edge_data_graph() -> DiGraph<double, const char*>
     return g;
 }
 
-template <class G>
-class test_visitor : private default_visitor<G>
+template <typename Graph>
+class test_visitor : private EmptyVisitor<Graph>
 {
 public:
 
-    using base_type = default_visitor<G>;
+    using base_type = EmptyVisitor<Graph>;
     using node_id = typename base_type::node_id;
+    using node_id_list = std::vector<node_id>;
     using predecessor_map = std::map<node_id, node_id>;
     using edge_map = std::map<node_id, node_id>;
 
     using base_type::finish_edge;
-    using base_type::finish_node;
     using base_type::start_edge;
-    using base_type::start_node;
     using base_type::tree_edge;
 
-    void back_edge(node_id from, node_id to, const G&)
+    void start_node(node_id n, const Graph&)
+    {
+        m_start_nodes.push_back(n);
+    }
+
+    void finish_node(node_id n, const Graph&)
+    {
+        m_finish_nodes.push_back(n);
+    }
+
+    void back_edge(node_id from, node_id to, const Graph&)
     {
         m_back_edges[from] = to;
     }
 
-    void forward_or_cross_edge(node_id from, node_id to, const G&)
+    void forward_or_cross_edge(node_id from, node_id to, const Graph&)
     {
         m_cross_edges[from] = to;
+    }
+
+    auto get_start_node_list() const -> const node_id_list&
+    {
+        return m_start_nodes;
+    }
+
+    auto get_finish_node_list() const -> const node_id_list&
+    {
+        return m_finish_nodes;
     }
 
     auto get_back_edge_map() const -> const edge_map&
@@ -104,6 +128,8 @@ private:
 
     edge_map m_back_edges;
     edge_map m_cross_edges;
+    node_id_list m_start_nodes;
+    node_id_list m_finish_nodes;
 };
 
 TEST_SUITE("graph")
@@ -321,16 +347,28 @@ TEST_SUITE("graph")
     {
         const auto g = build_graph();
         test_visitor<DiGraph<double>> vis;
-        g.depth_first_search(vis);
+        using node_id = typename decltype(g)::node_id;
+        dfs_raw(g, vis, /* start= */ node_id(0));
         CHECK(vis.get_back_edge_map().empty());
         CHECK_EQ(vis.get_cross_edge_map().find(2u)->second, 3u);
+
+        const auto& start_node_list = vis.get_start_node_list();
+        const auto& finish_node_list = vis.get_finish_node_list();
+        CHECK_FALSE(start_node_list.empty());
+        CHECK_FALSE(finish_node_list.empty());
+        const auto start_node_set = std::set(start_node_list.begin(), start_node_list.end());
+        CHECK_EQ(start_node_list.size(), start_node_set.size());  // uniqueness
+        const auto finish_node_set = std::set(finish_node_list.begin(), finish_node_list.end());
+        CHECK_EQ(finish_node_list.size(), finish_node_set.size());  // uniqueness
+        CHECK_EQ(start_node_set, finish_node_set);
     }
 
     TEST_CASE("dfs_cyclic")
     {
         const auto g = build_cyclic_graph();
         test_visitor<DiGraph<double>> vis;
-        g.depth_first_search(vis);
+        using node_id = typename decltype(g)::node_id;
+        dfs_raw(g, vis, /* start= */ node_id(0));
         CHECK_EQ(vis.get_back_edge_map().find(2u)->second, 0u);
         CHECK(vis.get_cross_edge_map().empty());
     }
@@ -339,9 +377,138 @@ TEST_SUITE("graph")
     {
         DiGraph<int> g;
         test_visitor<DiGraph<int>> vis;
-        g.depth_first_search(vis);
+        using node_id = typename decltype(g)::node_id;
+        dfs_raw(g, vis, /* start= */ node_id(0));
         CHECK(vis.get_back_edge_map().empty());
         CHECK(vis.get_cross_edge_map().empty());
+    }
+
+    template <typename Graph, typename Iter>
+    auto is_node_id_permutation(const Graph& g, Iter first, Iter last)->bool
+    {
+        using node_id = typename Graph::node_id;
+        auto node_ids = std::vector<node_id>();
+        g.for_each_node_id([&node_ids](node_id n) { node_ids.push_back(n); });
+        return std::is_permutation(first, last, node_ids.cbegin(), node_ids.cend());
+    }
+
+    TEST_CASE("dfs_all")
+    {
+        DiGraph<double> g;
+        const auto n0 = g.add_node(0);
+        const auto n1 = g.add_node(1);
+        const auto n2 = g.add_node(2);
+        g.add_edge(n0, n1);
+        g.add_edge(n2, n1);
+
+        test_visitor<decltype(g)> vis = {};
+        dfs_raw(g, vis);
+
+
+        const auto& start_node_list = vis.get_start_node_list();
+        CHECK(is_node_id_permutation(g, start_node_list.cbegin(), start_node_list.cend()));
+        const auto& finish_node_list = vis.get_finish_node_list();
+        CHECK(is_node_id_permutation(g, finish_node_list.cbegin(), finish_node_list.cend()));
+        const auto start_node_set = std::set(start_node_list.begin(), start_node_list.end());
+        const auto finish_node_set = std::set(finish_node_list.begin(), finish_node_list.end());
+        CHECK_EQ(start_node_set, finish_node_set);
+        CHECK_EQ(start_node_set.size(), 3);
+    }
+
+    TEST_CASE("dfs_preorder & dfs_postorder")
+    {
+        DiGraph<double> g;
+        const auto n0 = g.add_node(0);
+        const auto n1 = g.add_node(1);
+        const auto n2 = g.add_node(2);
+        g.add_edge(n0, n1);
+        g.add_edge(n2, n1);
+
+        using node_id = typename decltype(g)::node_id;
+        auto nodes = std::vector<node_id>();
+
+        SUBCASE("dfs_preorder starting on a given node")
+        {
+            dfs_preorder_nodes_for_each_id(
+                g,
+                [&nodes](node_id n) { nodes.push_back(n); },
+                n0
+            );
+            CHECK_EQ(nodes, std::vector<node_id>{ n0, n1 });
+        }
+
+        SUBCASE("dfs_preorder on all nodes")
+        {
+            REQUIRE(g.has_node(n0));
+            REQUIRE(g.has_node(n1));
+            REQUIRE(g.has_node(n2));
+            dfs_preorder_nodes_for_each_id(g, [&nodes](node_id n) { nodes.push_back(n); });
+            CHECK(is_node_id_permutation(g, nodes.cbegin(), nodes.cend()));
+            CHECK_EQ(nodes, std::vector<node_id>{ n0, n1, n2 });
+        }
+
+        SUBCASE("dfs_postorder starting on a given node")
+        {
+            dfs_postorder_nodes_for_each_id(
+                g,
+                [&nodes](node_id n) { nodes.push_back(n); },
+                n0
+            );
+            CHECK_EQ(nodes, std::vector<node_id>{ n1, n0 });
+        }
+
+        SUBCASE("dfs_postorder on all nodes")
+        {
+            dfs_postorder_nodes_for_each_id(g, [&nodes](node_id n) { nodes.push_back(n); });
+            CHECK(is_node_id_permutation(g, nodes.cbegin(), nodes.cend()));
+            CHECK_EQ(nodes, std::vector<node_id>{ n1, n0, n2 });
+        }
+    }
+
+    TEST_CASE("Topological sort")
+    {
+        // How to dress yourself in the morning
+        // Introduction to Algorithms, Cormen et al.
+        auto g = DiGraph<std::string>();
+        const auto undershorts = g.add_node("undershorts");
+        const auto pants = g.add_node("pants");
+        const auto belt = g.add_node("belt");
+        const auto shirt = g.add_node("shirt");
+        const auto tie = g.add_node("tie");
+        const auto jacket = g.add_node("jacket");
+        const auto socks = g.add_node("socks");
+        const auto shoes = g.add_node("shoes");
+        /* const auto watch = */ g.add_node("watch");
+        g.add_edge(undershorts, pants);
+        g.add_edge(undershorts, shoes);
+        g.add_edge(socks, shoes);
+        g.add_edge(pants, shoes);
+        g.add_edge(pants, belt);
+        g.add_edge(belt, jacket);
+        g.add_edge(shirt, belt);
+        g.add_edge(shirt, tie);
+        g.add_edge(tie, jacket);
+
+        using node_id = typename decltype(g)::node_id;
+        auto sorted = std::vector<node_id>();
+        topological_sort_for_each_node_id(g, [&sorted](node_id n) { sorted.push_back(n); });
+
+        CHECK(is_node_id_permutation(g, sorted.cbegin(), sorted.cend()));
+
+        g.for_each_edge_id(
+            [&](node_id from, node_id to)
+            {
+                CAPTURE(std::pair(g.node(from), g.node(to)));
+                auto const from_pos = std::find(sorted.cbegin(), sorted.cend(), from);
+                // Must be true given the permuation assumption
+                REQUIRE_LT(from_pos, sorted.cend());
+                auto const to_pos = std::find(sorted.cbegin(), sorted.cend(), to);
+                // Must be true given the permuation assumption
+                REQUIRE_LT(to_pos, sorted.cend());
+                // The topological sort property
+                CHECK_LT(from_pos, to_pos);
+            }
+        );
     }
 
     TEST_CASE("is_reachable")

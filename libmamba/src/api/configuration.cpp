@@ -11,6 +11,7 @@
 
 #include <nlohmann/json.hpp>
 #include <reproc++/run.hpp>
+#include <spdlog/spdlog.h>
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/info.hpp"
@@ -20,8 +21,6 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/url.hpp"
-
-#include "spdlog/spdlog.h"
 
 namespace mamba
 {
@@ -632,7 +631,7 @@ namespace mamba
 
             if (ctx.output_params.json)
             {
-                return mamba::log_level::off;
+                return mamba::log_level::critical;
             }
             else if (Configuration::instance().at("verbose").configured())
             {

@@ -4,7 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <array>
 #include <cassert>
+#include <charconv>
 #include <limits>
 
 #include <solv/knownid.h>
@@ -122,14 +124,41 @@ namespace mamba::solv
         return set_version(solvable_add_pool_str(raw()->repo->pool, str));
     }
 
+    namespace
+    {
+        template <typename Int>
+        auto to_int_or(std::string_view str, Int val) -> Int
+        {
+            std::from_chars(str.data(), str.data() + str.size(), val);
+            return val;
+        }
+    }
+
     auto ObjSolvableViewConst::build_number() const -> std::size_t
     {
-        return ::solvable_lookup_num(const_cast<::Solvable*>(raw()), SOLVABLE_BUILDVERSION, 0);
+        return to_int_or<std::size_t>(
+            ptr_to_strview(::solvable_lookup_str(const_cast<::Solvable*>(raw()), SOLVABLE_BUILDVERSION)
+            ),
+            0
+        );
     }
 
     void ObjSolvableView::set_build_number(std::size_t n) const
     {
-        ::solvable_set_num(raw(), SOLVABLE_BUILDVERSION, n);
+        // SOLVABLE_BUILDVERSION must be set as a string for libsolv to understand it.
+
+        // No easy way to compute the number of digits needed for a 64 bit unsigned integer
+        // at compile time
+        static_assert(
+            std::numeric_limits<decltype(n)>::max() <= std::numeric_limits<std::uint64_t>::max()
+        );
+        static constexpr auto n_digits = 20;
+
+        auto str = std::array<char, n_digits + 1>{};  // +1 for null termination
+        [[maybe_unused]] const auto [ptr, ec] = std::to_chars(str.data(), str.data() + str.size(), n);
+        assert(ec == std::errc());
+        assert(ptr != nullptr);
+        ::solvable_set_str(raw(), SOLVABLE_BUILDVERSION, str.data());
     }
 
     auto ObjSolvableViewConst::build_string() const -> std::string_view

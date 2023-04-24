@@ -114,7 +114,11 @@ namespace mamba
         assign_or(j, "sha256", sha256, ""s);
         if (j.contains("track_features"))
         {
-            track_features = split(j["track_features"].get<std::string_view>(), ",");
+            auto j_track_features = j["track_features"].get<std::string_view>();
+            if (!j_track_features.empty())  // Split empty string would have an empty element
+            {
+                track_features = split(j_track_features, ",");
+            }
         }
 
         // add the noarch type if we know it (only known for installed packages)

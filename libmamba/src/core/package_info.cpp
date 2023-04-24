@@ -113,7 +113,7 @@ namespace mamba
         license = j.value("license", "");
         md5 = j.value("md5", "");
         sha256 = j.value("sha256", "");
-        if (std::string feat = j.value("track_features", ""); !j.empty())
+        if (std::string feat = j.value("track_features", ""); !feat.empty())
         {
             // Split empty string would have an empty element
             track_features = split(feat, ",");

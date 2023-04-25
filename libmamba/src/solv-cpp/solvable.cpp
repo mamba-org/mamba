@@ -155,6 +155,7 @@ namespace mamba::solv
         static constexpr auto n_digits = 20;
 
         auto str = std::array<char, n_digits + 1>{};  // +1 for null termination
+        str.fill('\0');
         [[maybe_unused]] const auto [ptr, ec] = std::to_chars(str.data(), str.data() + str.size(), n);
         assert(ec == std::errc());
         assert(ptr != nullptr);

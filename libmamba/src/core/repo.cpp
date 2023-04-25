@@ -165,6 +165,7 @@ namespace mamba
 
     void MRepo::add_package_info(Repodata* data, const PackageInfo& info)
     {
+        // TODO missing track_feature
         LOG_INFO << "Adding package record to repo " << info.name;
         Pool* pool = m_repo->pool;
 
@@ -217,7 +218,7 @@ namespace mamba
         s->provides = repo_addid_dep(
             m_repo,
             s->provides,
-            pool_rel2id(pool, s->name, s->evr, REL_EQ, 1),
+            pool_rel2id(pool, s->name, s->evr, REL_EQ, /* create= */ 1),
             0
         );
 

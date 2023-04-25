@@ -105,6 +105,9 @@ namespace mamba::solv
 
     void swap(ObjQueue& a, ObjQueue& b) noexcept;
 
+    auto operator==(const ObjQueue& a, const ObjQueue& b) -> bool;
+    auto operator!=(const ObjQueue& a, const ObjQueue& b) -> bool;
+
     /********************************
      *  Implementation of ObjQueue  *
      ********************************/

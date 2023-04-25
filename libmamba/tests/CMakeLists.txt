@@ -14,6 +14,9 @@ set(LIBMAMBA_TEST_SRCS
     src/test_main.cpp
     # C++ wrapping of libsolv
     src/solv-cpp/test_queue.cpp
+    src/solv-cpp/test_pool.cpp
+    src/solv-cpp/test_repo.cpp
+    src/solv-cpp/test_solvable.cpp
     # Utility library
     src/util/test_flat_set.cpp
     src/util/test_graph.cpp
@@ -78,6 +81,7 @@ file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/data" DESTINATION "${CMAKE_CURRENT_BINARY
 target_compile_definitions(
     test_libmamba
     PRIVATE
+        DOCTEST_CONFIG_USE_STD_HEADERS
         MAMBA_TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}/data"
         MAMBA_TEST_LOCK_EXE="$<TARGET_FILE:testing_libmamba_lock>"
 )

@@ -23,11 +23,6 @@
 
 #include "package_handling.hpp"
 
-namespace decompress
-{
-    bool raw(mamba::compression_algorithm ca, const std::string& in, const std::string& out);
-}
-
 namespace mamba
 {
     struct subdir_metadata

@@ -961,10 +961,12 @@ namespace mamba
     expected_t<MRepo> MSubdirData::create_repo(MPool& pool)
     {
         using return_type = expected_t<MRepo>;
-        RepoMetadata meta{ m_repodata_url,
-                           Context::instance().add_pip_as_python_dependency,
-                           m_metadata.etag,
-                           m_metadata.mod };
+        RepoMetadata meta{
+            /* .url= */ m_repodata_url,
+            /* .etag= */ m_metadata.etag,
+            /* .mod= */ m_metadata.mod,
+            /* .pip_added= */ Context::instance().add_pip_as_python_dependency,
+        };
 
         auto cache = cache_path();
         return cache ? return_type(MRepo(pool, m_name, *cache, meta))

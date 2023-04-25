@@ -6,7 +6,9 @@
 
 #include <algorithm>
 #include <array>
+#include <tuple>
 
+#include <nlohmann/json.hpp>
 #include <solv/repo.h>
 #include <solv/repo_solv.h>
 #include <solv/repo_write.h>
@@ -29,19 +31,45 @@ extern "C"  // Incomplete header
 #include "solv-cpp/repo.hpp"
 
 
-#define MAMBA_TOOL_VERSION "1.2"
+#define MAMBA_TOOL_VERSION "1.3"
 
 #define MAMBA_SOLV_VERSION MAMBA_TOOL_VERSION "_" LIBSOLV_VERSION_STRING
 
 namespace mamba
 {
-    const char* mamba_tool_version()
+
+    namespace
     {
-        const size_t bufferSize = 30;
-        static char MTV[bufferSize];
-        MTV[0] = '\0';
-        snprintf(MTV, bufferSize, MAMBA_SOLV_VERSION);
-        return MTV;
+        auto attrs(const RepoMetadata& m)
+        {
+            return std::tie(m.url, m.etag, m.mod, m.pip_added);
+        }
+    }
+
+    auto operator==(const RepoMetadata& lhs, const RepoMetadata& rhs) -> bool
+    {
+        return attrs(lhs) == attrs(rhs);
+    }
+
+    auto operator!=(const RepoMetadata& lhs, const RepoMetadata& rhs) -> bool
+    {
+        return !(lhs == rhs);
+    }
+
+    void to_json(nlohmann::json& j, const RepoMetadata& m)
+    {
+        j["url"] = m.url;
+        j["etag"] = m.etag;
+        j["mod"] = m.mod;
+        j["pip_added"] = m.pip_added;
+    }
+
+    void from_json(const nlohmann::json& j, RepoMetadata& m)
+    {
+        m.url = j.value("url", m.url);
+        m.etag = j.value("etag", m.etag);
+        m.mod = j.value("mod", m.mod);
+        m.pip_added = j.value("pip_added", m.pip_added);
     }
 
     namespace
@@ -65,7 +93,7 @@ namespace mamba
     {
         m_repo = repo_create(pool, m_url.c_str());
         init();
-        read_file(index);
+        load_file(index);
         set_solvables_url();
         repo_internalize(m_repo);
     }
@@ -76,7 +104,7 @@ namespace mamba
         , m_repo(repo_create(pool, name.c_str()))
     {
         init();
-        read_file(index);
+        load_file(index);
         set_solvables_url();
         repo_internalize(m_repo);
     }
@@ -273,8 +301,78 @@ namespace mamba
         );
     }
 
-    bool MRepo::read_file(const fs::u8path& filename)
+    bool MRepo::read_json(const fs::u8path& filename)
     {
+#ifdef _WIN32
+        auto fp = ::_wfopen(m_json_file.wstring().c_str(), L"r");
+#else
+        auto fp = std::fopen(filename.string().c_str(), "r");
+#endif
+        if (!fp)
+        {
+            throw std::runtime_error("Could not open repository file " + filename.string());
+        }
+
+        LOG_DEBUG << "Loading JSON file '" << filename.string() << "'";
+        int flags = Context::instance().use_only_tar_bz2 ? CONDA_ADD_USE_ONLY_TAR_BZ2 : 0;
+        int ret = repo_add_conda(m_repo, fp, flags);
+        if (ret != 0)
+        {
+            fclose(fp);
+            throw std::runtime_error(
+                "Could not read JSON repodata file (" + filename.string() + ") "
+                + std::string(pool_errstr(m_repo->pool))
+            );
+            return false;
+        }
+
+        fclose(fp);
+        return true;
+    }
+
+    bool MRepo::read_solv(const fs::u8path& filename)
+    {
+        LOG_INFO << "Attempting to read libsolv solv file " << filename << " for repo " << name();
+
+        auto repo = srepo(*this);
+
+        auto lock = LockFile(filename);
+        repo.read(filename);
+
+        const auto read_metadata = RepoMetadata{
+            /* .url= */ std::string(repo.url()),
+            /* .etag= */ std::string(repo.etag()),
+            /* .mod= */ std::string(repo.mod()),
+            /* .pip_added= */ repo.pip_added(),
+        };
+        const auto tool_version = repo.tool_version();
+
+        {
+            auto j = nlohmann::json(m_metadata);
+            j["tool_version"] = tool_version;
+            LOG_INFO << "Expecting solv metadata : " << j.dump();
+        }
+        {
+            auto j = nlohmann::json(read_metadata);
+            j["tool_version"] = tool_version;
+            LOG_INFO << "Loaded solv metadata : " << j.dump();
+        }
+
+        if ((tool_version != std::string_view(MAMBA_SOLV_VERSION))
+            || (read_metadata == RepoMetadata{}) || (read_metadata != m_metadata))
+        {
+            LOG_INFO << "Metadata from solv are NOT valid, canceling solv file load";
+            repo.clear(/* reuse_ids= */ false);
+            return false;
+        }
+
+        LOG_INFO << "Metadata from solv are valid, loading successful";
+        return true;
+    }
+
+    bool MRepo::load_file(const fs::u8path& filename)
+    {
+        auto repo = srepo(*this);
         bool is_solv = filename.extension() == ".solv";
 
         fs::u8path filename_wo_extension;
@@ -292,115 +390,23 @@ namespace mamba
         }
 
         LOG_INFO << "Reading cache files '" << (filename.parent_path() / filename).string()
-                 << ".*' for repo index '" << m_repo->name << "'";
+                 << ".*' for repo index '" << name() << "'";
 
         if (is_solv)
         {
-            auto lock = LockFile(m_solv_file);
-#ifdef _WIN32
-            auto fp = _wfopen(m_solv_file.wstring().c_str(), L"rb");
-#else
-            auto fp = fopen(m_solv_file.string().c_str(), "rb");
-#endif
-            if (!fp)
+            const auto lock = LockFile(m_solv_file);
+            const bool read = read_solv(m_solv_file);
+            if (read)
             {
-                throw std::runtime_error("Could not open repository file " + filename.string());
+                return true;
             }
-
-            LOG_INFO << "Attempt load from solv " << m_solv_file;
-
-            int ret = repo_add_solv(m_repo, fp, 0);
-            if (ret != 0)
-            {
-                LOG_ERROR << "Could not load SOLV file, falling back to JSON ("
-                          << pool_errstr(m_repo->pool) << ")";
-            }
-            else
-            {
-                auto* repodata = repo_last_repodata(m_repo);
-                if (!repodata)
-                {
-                    LOG_ERROR << "Could not find valid repodata attached to solv file";
-                }
-                else
-                {
-                    Id url_id = pool_str2id(m_repo->pool, "mamba:url", 1);
-                    Id etag_id = pool_str2id(m_repo->pool, "mamba:etag", 1);
-                    Id mod_id = pool_str2id(m_repo->pool, "mamba:mod", 1);
-                    Id pip_added_id = pool_str2id(m_repo->pool, "mamba:pip_added", 1);
-
-                    static constexpr auto failure = std::numeric_limits<unsigned long long>::max();
-                    const char* url = repodata_lookup_str(repodata, SOLVID_META, url_id);
-                    const auto pip_added = repodata_lookup_num(
-                        repodata,
-                        SOLVID_META,
-                        pip_added_id,
-                        failure
-                    );
-                    const char* etag = repodata_lookup_str(repodata, SOLVID_META, etag_id);
-                    const char* mod = repodata_lookup_str(repodata, SOLVID_META, mod_id);
-                    const char* tool_version = repodata_lookup_str(
-                        repodata,
-                        SOLVID_META,
-                        REPOSITORY_TOOLVERSION
-                    );
-                    LOG_INFO << "Metadata solv file: " << url << " " << pip_added << " " << etag
-                             << " " << mod << " " << tool_version;
-                    bool metadata_valid = !(
-                        !url || !etag || !mod || !tool_version || pip_added == failure
-                    );
-
-                    if (metadata_valid)
-                    {
-                        RepoMetadata read_metadata{ url, pip_added == 1, etag, mod };
-                        metadata_valid = (read_metadata == m_metadata)
-                                         && (std::strcmp(tool_version, mamba_tool_version()) == 0);
-                    }
-
-                    LOG_INFO << "Metadata from SOLV are " << (metadata_valid ? "valid" : "NOT valid");
-
-                    if (!metadata_valid)
-                    {
-                        LOG_INFO << "SOLV file was written with a previous version of "
-                                    "libsolv or mamba "
-                                 << (tool_version != nullptr ? tool_version : "<NULL>")
-                                 << ", updating it now!";
-                    }
-                    else
-                    {
-                        LOG_DEBUG << "Loaded from SOLV " << m_solv_file;
-                        fclose(fp);
-                        return true;
-                    }
-                }
-            }
-
-            // fallback to JSON file
-            repo_empty(m_repo, /*reuseids*/ 0);
-            fclose(fp);
         }
 
         auto lock = LockFile(m_json_file);
-#ifdef _WIN32
-        auto fp = _wfopen(m_json_file.wstring().c_str(), L"r");
-#else
-        auto fp = fopen(m_json_file.string().c_str(), "r");
-#endif
-        if (!fp)
+        const bool read = read_json(m_json_file);
+        if (!read)
         {
-            throw std::runtime_error("Could not open repository file " + m_json_file.string());
-        }
-
-        LOG_DEBUG << "Loading JSON file '" << m_json_file.string() << "'";
-        int flags = Context::instance().use_only_tar_bz2 ? CONDA_ADD_USE_ONLY_TAR_BZ2 : 0;
-        int ret = repo_add_conda(m_repo, fp, flags);
-        if (ret != 0)
-        {
-            fclose(fp);
-            throw std::runtime_error(
-                "Could not read JSON repodata file (" + m_json_file.string() + ") "
-                + std::string(pool_errstr(m_repo->pool))
-            );
+            return false;
         }
 
         // TODO move this to a more structured approach for repodata patching?
@@ -411,62 +417,25 @@ namespace mamba
 
         if (name() != "installed")
         {
-            write();
+            write_solv(m_solv_file);
         }
 
-        fclose(fp);
         return true;
     }
 
-    bool MRepo::write() const
+    void MRepo::write_solv(fs::u8path filename)
     {
-        Repodata* info;
+        LOG_INFO << "Writing libsolv solv file " << filename << " for repo " << name();
 
-        LOG_INFO << "Writing SOLV file '" << m_solv_file.filename().string() << "'";
+        auto repo = srepo(*this);
+        repo.set_url(m_metadata.url);
+        repo.set_etag(m_metadata.etag);
+        repo.set_mod(m_metadata.mod);
+        repo.set_pip_added(m_metadata.pip_added);
+        repo.set_tool_version(MAMBA_SOLV_VERSION);
+        repo.internalize();
 
-        info = repo_add_repodata(m_repo, 0);  // add new repodata for our meta info
-        repodata_set_str(info, SOLVID_META, REPOSITORY_TOOLVERSION, mamba_tool_version());
-
-        Id url_id = pool_str2id(m_repo->pool, "mamba:url", 1);
-        Id pip_added_id = pool_str2id(m_repo->pool, "mamba:pip_added", 1);
-        Id etag_id = pool_str2id(m_repo->pool, "mamba:etag", 1);
-        Id mod_id = pool_str2id(m_repo->pool, "mamba:mod", 1);
-
-        repodata_set_str(info, SOLVID_META, url_id, m_metadata.url.c_str());
-        repodata_set_num(info, SOLVID_META, pip_added_id, m_metadata.pip_added);
-        repodata_set_str(info, SOLVID_META, etag_id, m_metadata.etag.c_str());
-        repodata_set_str(info, SOLVID_META, mod_id, m_metadata.mod.c_str());
-
-        repodata_internalize(info);
-
-#ifdef _WIN32
-        auto solv_f = _wfopen(m_solv_file.wstring().c_str(), L"wb");
-#else
-        auto solv_f = fopen(m_solv_file.string().c_str(), "wb");
-#endif
-        if (!solv_f)
-        {
-            LOG_ERROR << "Failed to open .solv file";
-            return false;
-        }
-
-        if (repo_write(m_repo, solv_f) != 0)
-        {
-            LOG_ERROR << "Failed to write .solv:" << pool_errstr(m_repo->pool);
-            fclose(solv_f);
-            return false;
-        }
-
-        if (fflush(solv_f))
-        {
-            LOG_ERROR << "Failed to flush .solv file.";
-            fclose(solv_f);
-            return false;
-        }
-
-        fclose(solv_f);
-        repodata_free(info);  // delete meta info repodata again
-        return true;
+        repo.write(filename);
     }
 
     bool MRepo::clear(bool reuse_ids)

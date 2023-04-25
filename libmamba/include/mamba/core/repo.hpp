@@ -13,6 +13,7 @@
 #include <utility>
 #include <vector>
 
+#include <nlohmann/json_fwd.hpp>
 #include <solv/pooltypes.h>
 
 #include "mamba_fs.hpp"
@@ -35,17 +36,17 @@ namespace mamba
      */
     struct RepoMetadata
     {
-        std::string url;
+        std::string url = {};
+        std::string etag = {};
+        std::string mod = {};
         bool pip_added = false;
-        std::string etag;
-        std::string mod;
     };
 
-    inline bool operator==(const RepoMetadata& lhs, const RepoMetadata& rhs)
-    {
-        return lhs.url == rhs.url && lhs.pip_added == rhs.pip_added && lhs.etag == rhs.etag
-               && lhs.mod == rhs.mod;
-    }
+    auto operator==(const RepoMetadata& lhs, const RepoMetadata& rhs) -> bool;
+    auto operator!=(const RepoMetadata& lhs, const RepoMetadata& rhs) -> bool;
+
+    void to_json(nlohmann::json& j, const RepoMetadata& m);
+    void from_json(const nlohmann::json& j, RepoMetadata& p);
 
     /**
      * A wrapper class of libsolv Repo.
@@ -76,7 +77,6 @@ namespace mamba
 
         Id id() const;
         std::string_view name() const;
-        bool write() const;
         const std::string& url() const;
         Repo* repo() const;
         std::tuple<int, int> priority() const;
@@ -87,7 +87,10 @@ namespace mamba
     private:
 
         void init();
-        bool read_file(const fs::u8path& filename);
+        bool load_file(const fs::u8path& filename);
+        bool read_json(const fs::u8path& filename);
+        bool read_solv(const fs::u8path& filename);
+        void write_solv(fs::u8path path);
         void add_package_info(const PackageInfo& pkg_info);
         void set_solvables_url();
 

@@ -29,7 +29,8 @@ namespace mamba
         }
 
         template <>
-        std::string get_package_info_field<size_t>(const PackageInfo& pkg, size_t PackageInfo::*field)
+        std::string
+        get_package_info_field<std::size_t>(const PackageInfo& pkg, std::size_t PackageInfo::*field)
         {
             return std::to_string(pkg.*field);
         }
@@ -92,29 +93,30 @@ namespace mamba
 
     PackageInfo::PackageInfo(nlohmann::json&& j)
     {
-        using namespace std::string_literals;  // NOLINT(build/namespaces)
-        assign_or(j, "name", name, ""s);
-        assign_or(j, "version", version, ""s);
-        assign_or(j, "channel", channel, ""s);
-        assign_or(j, "url", url, ""s);
-        assign_or(j, "subdir", subdir, ""s);
-        assign_or(j, "fn", fn, ""s);
-        assign_or(j, "size", size, size_t(0));
-        assign_or(j, "timestamp", timestamp, size_t(0));
-        std::string bs;
-        assign_or(j, "build", bs, "<UNKNOWN>"s);
-        if (bs == "<UNKNOWN>")
+        name = j.value("name", "");
+        version = j.value("version", "");
+        channel = j.value("channel", "");
+        url = j.value("url", "");
+        subdir = j.value("subdir", "");
+        fn = j.value("fn", "");
+        size = j.value("size", std::size_t(0));
+        timestamp = j.value("timestamp", std::size_t(0));
+        if (std::string build = j.value("build", "<UNKNOWN>"); build != "<UNKNOWN>")
         {
-            assign_or(j, "build_string", bs, ""s);
+            build_string = std::move(build);
         }
-        build_string = bs;
-        assign_or(j, "build_number", build_number, size_t(0));
-        assign_or(j, "license", license, ""s);
-        assign_or(j, "md5", md5, ""s);
-        assign_or(j, "sha256", sha256, ""s);
-        if (j.contains("track_features"))
+        else
         {
-            track_features = split(j["track_features"].get<std::string_view>(), ",");
+            build_string = j.value("build_string", "");
+        }
+        build_number = j.value("build_number", std::size_t(0));
+        license = j.value("license", "");
+        md5 = j.value("md5", "");
+        sha256 = j.value("sha256", "");
+        if (std::string feat = j.value("track_features", ""); !feat.empty())
+        {
+            // Split empty string would have an empty element
+            track_features = split(feat, ",");
         }
 
         // add the noarch type if we know it (only known for installed packages)
@@ -126,18 +128,12 @@ namespace mamba
             }
             else
             {
-                assign_or(j, "noarch", noarch, ""s);
+                noarch = j.value("noarch", "");
             }
         }
 
-        if (j.contains("depends"))
-        {
-            depends = j["depends"].get<std::vector<std::string>>();
-        }
-        if (j.contains("constrains"))
-        {
-            constrains = j["constrains"].get<std::vector<std::string>>();
-        }
+        depends = j.value("depends", std::vector<std::string>());
+        constrains = j.value("constrains", std::vector<std::string>());
     }
 
     PackageInfo::PackageInfo(std::string n)

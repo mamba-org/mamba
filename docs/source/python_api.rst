@@ -31,9 +31,9 @@ The mamba_api exposes the following objects:
 .. code::
 
    from mamba import mamba_api
-   mamba_api.Context().conda_prefix = "/home/wolfv/conda"
+   mamba_api.Context().prefix_params.conda_prefix = "/home/wolfv/conda"
    ctx = mamba_api.Context()
-   print(ctx.root_prefix)
+   print(ctx.prefix_params.root_prefix)
 
 
 Here is an example usage of the mamba_api:
@@ -84,7 +84,7 @@ Here is an example usage of the mamba_api:
         def __init__(self, prefix, channels, platform):
 
             api_ctx = mamba_api.Context()
-            api_ctx.conda_prefix = prefix
+            api_ctx.prefix_params.conda_prefix = prefix
 
             self.channels = channels
             self.platform = platform

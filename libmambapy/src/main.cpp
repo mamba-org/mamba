@@ -512,16 +512,11 @@ PYBIND11_MODULE(bindings, m)
         .def_readwrite("offline", &Context::offline)
         .def_readwrite("local_repodata_ttl", &Context::local_repodata_ttl)
         .def_readwrite("use_index_cache", &Context::use_index_cache)
-        .def_readwrite("download_threads", &Context::download_threads)
-        .def_readwrite("extract_threads", &Context::extract_threads)
         .def_readwrite("always_yes", &Context::always_yes)
         .def_readwrite("dry_run", &Context::dry_run)
         .def_readwrite("download_only", &Context::download_only)
         .def_readwrite("proxy_servers", &Context::proxy_servers)
         .def_readwrite("add_pip_as_python_dependency", &Context::add_pip_as_python_dependency)
-        .def_readwrite("target_prefix", &Context::target_prefix)
-        .def_readwrite("conda_prefix", &Context::conda_prefix)
-        .def_readwrite("root_prefix", &Context::root_prefix)
         .def_readwrite("envs_dirs", &Context::envs_dirs)
         .def_readwrite("pkgs_dirs", &Context::pkgs_dirs)
         .def_readwrite("platform", &Context::platform)
@@ -565,8 +560,21 @@ PYBIND11_MODULE(bindings, m)
         .def_readwrite("json", &Context::OutputParams::json)
         .def_readwrite("quiet", &Context::OutputParams::quiet);
 
+    py::class_<Context::ThreadsParams>(ctx, "ThreadsParams")
+        .def(py::init<>())
+        .def_readwrite("download_threads", &Context::ThreadsParams::download_threads)
+        .def_readwrite("extract_threads", &Context::ThreadsParams::extract_threads);
+
+    py::class_<Context::PrefixParams>(ctx, "PrefixParams")
+        .def(py::init<>())
+        .def_readwrite("target_prefix", &Context::PrefixParams::target_prefix)
+        .def_readwrite("conda_prefix", &Context::PrefixParams::conda_prefix)
+        .def_readwrite("root_prefix", &Context::PrefixParams::root_prefix);
+
     ctx.def_readwrite("remote_fetch_params", &Context::remote_fetch_params)
-        .def_readwrite("output_params", &Context::output_params);
+        .def_readwrite("output_params", &Context::output_params)
+        .def_readwrite("threads_params", &Context::threads_params)
+        .def_readwrite("prefix_params", &Context::prefix_params);
 
     pyPrefixData
         .def(py::init(

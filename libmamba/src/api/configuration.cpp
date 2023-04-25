@@ -663,7 +663,7 @@ namespace mamba
         void target_prefix_checks_hook(int& options)
         {
             auto& ctx = Context::instance();
-            auto& prefix = ctx.target_prefix;
+            auto& prefix = ctx.prefix_params.target_prefix;
 
             bool no_checks = options & MAMBA_NO_PREFIX_CHECK;
             bool allow_missing = options & MAMBA_ALLOW_MISSING_PREFIX;
@@ -781,7 +781,7 @@ namespace mamba
 
         std::vector<fs::u8path> fallback_envs_dirs_hook()
         {
-            return { Context::instance().root_prefix / "envs" };
+            return { Context::instance().prefix_params.root_prefix / "envs" };
         }
 
         void envs_dirs_hook(std::vector<fs::u8path>& dirs)
@@ -799,7 +799,7 @@ namespace mamba
 
         std::vector<fs::u8path> fallback_pkgs_dirs_hook()
         {
-            std::vector<fs::u8path> paths = { Context::instance().root_prefix / "pkgs",
+            std::vector<fs::u8path> paths = { Context::instance().prefix_params.root_prefix / "pkgs",
                                               env::home_directory() / ".mamba" / "pkgs" };
 #ifdef _WIN32
             auto appdata = env::get("APPDATA");
@@ -837,7 +837,7 @@ namespace mamba
 
         void extract_threads_hook()
         {
-            DownloadExtractSemaphore::set_max(Context::instance().extract_threads);
+            DownloadExtractSemaphore::set_max(Context::instance().threads_params.extract_threads);
         }
     }
 
@@ -1010,7 +1010,7 @@ namespace mamba
         auto& ctx = Context::instance();
 
         // Basic
-        insert(Configurable("root_prefix", &ctx.root_prefix)
+        insert(Configurable("root_prefix", &ctx.prefix_params.root_prefix)
                    .group("Basic")
                    .set_env_var_names()
                    .needs({ "create_base", "rc_files" })
@@ -1023,7 +1023,7 @@ namespace mamba
                    .set_single_op_lifetime()
                    .description("Define if base environment will be initialized empty"));
 
-        insert(Configurable("target_prefix", &ctx.target_prefix)
+        insert(Configurable("target_prefix", &ctx.prefix_params.target_prefix)
                    .group("Basic")
                    .set_env_var_names()
                    .needs({ "root_prefix",
@@ -1036,7 +1036,7 @@ namespace mamba
                    .set_post_merge_hook(detail::target_prefix_hook)
                    .set_post_context_hook(detail::post_target_prefix_rc_loading));
 
-        insert(Configurable("relocate_prefix", &ctx.relocate_prefix)
+        insert(Configurable("relocate_prefix", &ctx.prefix_params.relocate_prefix)
                    .group("Basic")
                    .set_env_var_names()
                    .needs({ "target_prefix" })
@@ -1364,7 +1364,7 @@ namespace mamba
                    .description("Allow downgrade when installing packages. Default is false."));
 
         // Extract, Link & Install
-        insert(Configurable("download_threads", &ctx.download_threads)
+        insert(Configurable("download_threads", &ctx.threads_params.download_threads)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1374,7 +1374,7 @@ namespace mamba
                         Defines the number of threads for package download.
                         It has to be strictly positive.)")));
 
-        insert(Configurable("extract_threads", &ctx.extract_threads)
+        insert(Configurable("extract_threads", &ctx.threads_params.extract_threads)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1715,10 +1715,10 @@ namespace mamba
                        "C:\\ProgramData\\conda\\.mambarc" };
         }
 
-        std::vector<fs::u8path> root = { ctx.root_prefix / ".condarc",
-                                         ctx.root_prefix / "condarc",
-                                         ctx.root_prefix / "condarc.d",
-                                         ctx.root_prefix / ".mambarc" };
+        std::vector<fs::u8path> root = { ctx.prefix_params.root_prefix / ".condarc",
+                                         ctx.prefix_params.root_prefix / "condarc",
+                                         ctx.prefix_params.root_prefix / "condarc.d",
+                                         ctx.prefix_params.root_prefix / ".mambarc" };
 
         std::vector<fs::u8path> home = { env::home_directory() / ".conda/.condarc",
                                          env::home_directory() / ".conda/condarc",
@@ -1726,10 +1726,10 @@ namespace mamba
                                          env::home_directory() / ".condarc",
                                          env::home_directory() / ".mambarc" };
 
-        std::vector<fs::u8path> prefix = { ctx.target_prefix / ".condarc",
-                                           ctx.target_prefix / "condarc",
-                                           ctx.target_prefix / "condarc.d",
-                                           ctx.target_prefix / ".mambarc" };
+        std::vector<fs::u8path> prefix = { ctx.prefix_params.target_prefix / ".condarc",
+                                           ctx.prefix_params.target_prefix / "condarc",
+                                           ctx.prefix_params.target_prefix / "condarc.d",
+                                           ctx.prefix_params.target_prefix / ".mambarc" };
 
         std::vector<fs::u8path> sources;
 
@@ -1737,7 +1737,7 @@ namespace mamba
         {
             sources.insert(sources.end(), system.begin(), system.end());
         }
-        if ((level >= RCConfigLevel::kRootPrefix) && !ctx.root_prefix.empty())
+        if ((level >= RCConfigLevel::kRootPrefix) && !ctx.prefix_params.root_prefix.empty())
         {
             sources.insert(sources.end(), root.begin(), root.end());
         }
@@ -1745,7 +1745,7 @@ namespace mamba
         {
             sources.insert(sources.end(), home.begin(), home.end());
         }
-        if ((level >= RCConfigLevel::kTargetPrefix) && !ctx.target_prefix.empty())
+        if ((level >= RCConfigLevel::kTargetPrefix) && !ctx.prefix_params.target_prefix.empty())
         {
             sources.insert(sources.end(), prefix.begin(), prefix.end());
         }

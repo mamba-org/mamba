@@ -219,7 +219,7 @@ def init_api_context(use_mamba_experimental=False):
     if "MAMBA_EXTRACT_THREADS" in os.environ:
         try:
             max_threads = int(os.environ["MAMBA_EXTRACT_THREADS"])
-            api_ctx.extract_threads = max_threads
+            api_ctx.threads_params.extract_threads = max_threads
         except ValueError:
             v = os.environ["MAMBA_EXTRACT_THREADS"]
             raise ValueError(
@@ -263,9 +263,9 @@ def init_api_context(use_mamba_experimental=False):
         api_ctx.remote_fetch_params.ssl_verify = "<false>"
     elif context.ssl_verify is not True:
         api_ctx.remote_fetch_params.ssl_verify = context.ssl_verify
-    api_ctx.target_prefix = context.target_prefix
-    api_ctx.root_prefix = context.root_prefix
-    api_ctx.conda_prefix = context.conda_prefix
+    api_ctx.prefix_params.target_prefix = context.target_prefix
+    api_ctx.prefix_params.root_prefix = context.root_prefix
+    api_ctx.prefix_params.conda_prefix = context.conda_prefix
     api_ctx.pkgs_dirs = context.pkgs_dirs
     api_ctx.envs_dirs = context.envs_dirs
 

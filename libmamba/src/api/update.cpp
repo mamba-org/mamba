@@ -50,7 +50,7 @@ namespace mamba
             throw std::runtime_error(exp_loaded.error().what());
         }
 
-        auto exp_prefix_data = PrefixData::create(ctx.target_prefix);
+        auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix);
         if (!exp_prefix_data)
         {
             // TODO: propagate tl::expected mechanism

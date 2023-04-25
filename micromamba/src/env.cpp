@@ -25,7 +25,7 @@ get_env_name(const fs::u8path& px)
 {
     const auto& ctx = Context::instance();
     auto& ed = ctx.envs_dirs[0];
-    if (px == ctx.root_prefix)
+    if (px == ctx.prefix_params.root_prefix)
     {
         return "base";
     }
@@ -85,7 +85,7 @@ set_env_command(CLI::App* com)
             if (explicit_format)
             {
                 // TODO: handle error
-                auto pd = PrefixData::create(ctx.target_prefix).value();
+                auto pd = PrefixData::create(ctx.prefix_params.target_prefix).value();
                 auto records = pd.sorted_records();
                 std::cout << "# This file may be used to create an environment using:\n"
                           << "# $ conda create --name <env> --file <this file>\n"
@@ -106,12 +106,12 @@ set_env_command(CLI::App* com)
             }
             else
             {
-                auto pd = PrefixData::create(ctx.target_prefix).value();
+                auto pd = PrefixData::create(ctx.prefix_params.target_prefix).value();
                 History& hist = pd.history();
 
                 const auto& versions_map = pd.records();
 
-                std::cout << "name: " << get_env_name(ctx.target_prefix) << "\n";
+                std::cout << "name: " << get_env_name(ctx.prefix_params.target_prefix) << "\n";
                 std::cout << "channels:\n";
 
                 auto requested_specs_map = hist.get_requested_specs_map();
@@ -185,7 +185,7 @@ set_env_command(CLI::App* com)
 
             for (auto& env : env_manager.list_all_known_prefixes())
             {
-                bool is_active = (env == ctx.target_prefix);
+                bool is_active = (env == ctx.prefix_params.target_prefix);
                 t.add_row({ get_env_name(env), is_active ? "*" : "", env.string() });
             }
             t.print(std::cout);
@@ -207,7 +207,7 @@ set_env_command(CLI::App* com)
             const auto& ctx = Context::instance();
             if (!ctx.dry_run)
             {
-                const auto& prefix = ctx.target_prefix;
+                const auto& prefix = ctx.prefix_params.target_prefix;
                 // Remove env directory or rename it (e.g. if used)
                 remove_or_rename(env::expand_user(prefix));
 

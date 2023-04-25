@@ -169,14 +169,23 @@ namespace mamba
             bool is_micromamba{ false };
         };
 
+        struct ThreadsParams
+        {
+            std::size_t download_threads{ 5 };
+            int extract_threads{ 0 };
+        };
+
+        struct PrefixParams
+        {
+            fs::u8path target_prefix;
+            fs::u8path root_prefix;
+            fs::u8path conda_prefix;
+            fs::u8path relocate_prefix;
+        };
+
         // Configurable
         bool experimental = false;
         bool debug = false;
-
-        fs::u8path target_prefix;
-        fs::u8path root_prefix;
-        fs::u8path conda_prefix;
-        fs::u8path relocate_prefix;
 
         // TODO check writable and add other potential dirs
         std::vector<fs::u8path> envs_dirs;
@@ -190,8 +199,6 @@ namespace mamba
         ChannelPriority channel_priority = ChannelPriority::kFlexible;
         bool auto_activate_base = false;
 
-        std::size_t download_threads = 5;
-        int extract_threads = 0;
         bool extract_sparse = false;
 
         bool dev = false;  // TODO this is always used as default=false and isn't set anywhere => to
@@ -230,6 +237,8 @@ namespace mamba
         GraphicsParams graphics_params;
         SrcParams src_params;
         CommandParams command_params;
+        ThreadsParams threads_params;
+        PrefixParams prefix_params;
 
         std::map<std::string, std::string> proxy_servers;
 

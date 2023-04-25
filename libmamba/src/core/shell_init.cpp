@@ -558,12 +558,12 @@ namespace mamba
         }
         else if (shell == "cmd.exe")
         {
-            init_root_prefix_cmdexe(Context::instance().root_prefix);
+            init_root_prefix_cmdexe(Context::instance().prefix_params.root_prefix);
             LOG_WARNING << "Hook installed, now 'manually' execute:";
             LOG_WARNING << "       CALL "
-                        << std::quoted(
-                               (Context::instance().root_prefix / "condabin" / "mamba_hook.bat").string()
-                           );
+                        << std::quoted((Context::instance().prefix_params.root_prefix / "condabin"
+                                        / "mamba_hook.bat")
+                                           .string());
         }
         else if (shell == "fish")
         {
@@ -685,7 +685,7 @@ namespace mamba
 
     void init_root_prefix(const std::string& shell, const fs::u8path& root_prefix)
     {
-        Context::instance().root_prefix = root_prefix;
+        Context::instance().prefix_params.root_prefix = root_prefix;
 
         if (!fs::exists(root_prefix))
         {
@@ -780,7 +780,7 @@ namespace mamba
             return;
         }
 
-        Context::instance().root_prefix = root_prefix;
+        Context::instance().prefix_params.root_prefix = root_prefix;
 
         if (shell == "zsh" || shell == "bash" || shell == "posix")
         {

@@ -226,7 +226,7 @@ namespace mamba
 #endif
         std::map<std::string, std::string> envmap;
         auto& ctx = Context::instance();
-        envmap["MAMBA_EXTRACT_THREADS"] = std::to_string(ctx.extract_threads);
+        envmap["MAMBA_EXTRACT_THREADS"] = std::to_string(ctx.threads_params.extract_threads);
         auto qemu_ld_prefix = env::get("QEMU_LD_PREFIX");
         if (qemu_ld_prefix)
         {

@@ -216,7 +216,7 @@ namespace mamba
     void replace_variables(std::string& text, TransactionContext* transaction_context)
     {
         auto& ctx = mamba::Context::instance();
-        fs::u8path root_prefix = ctx.root_prefix;
+        fs::u8path root_prefix = ctx.prefix_params.root_prefix;
 
         fs::u8path target_prefix;
         std::string py_ver;
@@ -310,8 +310,8 @@ namespace mamba
             // }
 
             auto& ctx = mamba::Context::instance();
-            const fs::u8path root_prefix = ctx.root_prefix;
-            const fs::u8path target_prefix = ctx.target_prefix;
+            const fs::u8path root_prefix = ctx.prefix_params.root_prefix;
+            const fs::u8path target_prefix = ctx.prefix_params.target_prefix;
 
             // using legacy stuff here
             const fs::u8path root_py = root_prefix / "python.exe";

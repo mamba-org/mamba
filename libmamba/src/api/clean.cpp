@@ -117,14 +117,14 @@ namespace mamba
             }
         }
 
-        if (fs::exists(ctx.root_prefix / "conda-meta"))
+        if (fs::exists(ctx.prefix_params.root_prefix / "conda-meta"))
         {
-            envs.push_back(ctx.root_prefix);
+            envs.push_back(ctx.prefix_params.root_prefix);
         }
 
-        if (fs::exists(ctx.root_prefix / "envs"))
+        if (fs::exists(ctx.prefix_params.root_prefix / "envs"))
         {
-            for (auto& p : fs::directory_iterator(ctx.root_prefix / "envs"))
+            for (auto& p : fs::directory_iterator(ctx.prefix_params.root_prefix / "envs"))
             {
                 if (p.is_directory() && fs::exists(p.path() / "conda-meta"))
                 {
@@ -137,7 +137,7 @@ namespace mamba
         if (clean_trash)
         {
             Console::stream() << "Cleaning *.mamba_trash files" << std::endl;
-            clean_trash_files(ctx.root_prefix, true);
+            clean_trash_files(ctx.prefix_params.root_prefix, true);
         }
 
         // globally, collect installed packages

@@ -714,8 +714,10 @@ def clean(args, parser):
         init_api_context()
 
         root_prefix = os.environ.get("MAMBA_ROOT_PREFIX")
-        if api.Context().root_prefix != root_prefix:
-            os.environ["MAMBA_ROOT_PREFIX"] = str(api.Context().root_prefix)
+        if api.Context().prefix_params.root_prefix != root_prefix:
+            os.environ["MAMBA_ROOT_PREFIX"] = str(
+                api.Context().prefix_params.root_prefix
+            )
 
         api.Configuration().show_banner = False
         api.clean(api.MAMBA_CLEAN_LOCKS)

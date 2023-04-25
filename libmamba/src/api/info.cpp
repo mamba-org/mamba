@@ -98,10 +98,10 @@ namespace mamba
             std::vector<std::tuple<std::string, nlohmann::json>> items;
 
             std::string name, location;
-            if (!ctx.target_prefix.empty())
+            if (!ctx.prefix_params.target_prefix.empty())
             {
-                name = env_name(ctx.target_prefix);
-                location = ctx.target_prefix.string();
+                name = env_name(ctx.prefix_params.target_prefix);
+                location = ctx.prefix_params.target_prefix.string();
             }
             else
             {
@@ -109,14 +109,15 @@ namespace mamba
                 location = "-";
             }
 
-            if (std::getenv("CONDA_PREFIX") && (std::getenv("CONDA_PREFIX") == ctx.target_prefix))
+            if (std::getenv("CONDA_PREFIX")
+                && (std::getenv("CONDA_PREFIX") == ctx.prefix_params.target_prefix))
             {
                 name += " (active)";
             }
-            else if (fs::exists(ctx.target_prefix))
+            else if (fs::exists(ctx.prefix_params.target_prefix))
             {
-                if (!(fs::exists(ctx.target_prefix / "conda-meta")
-                      || (ctx.target_prefix == ctx.root_prefix)))
+                if (!(fs::exists(ctx.prefix_params.target_prefix / "conda-meta")
+                      || (ctx.prefix_params.target_prefix == ctx.prefix_params.root_prefix)))
                 {
                     name += " (not env)";
                 }
@@ -172,7 +173,7 @@ namespace mamba
             }
             items.push_back({ "channels", channel_urls });
 
-            items.push_back({ "base environment", ctx.root_prefix.string() });
+            items.push_back({ "base environment", ctx.prefix_params.root_prefix.string() });
 
             items.push_back({ "platform", ctx.platform });
 

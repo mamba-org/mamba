@@ -150,7 +150,7 @@ namespace mamba
                 }
             }
         }
-        all_env_paths.insert(Context::instance().root_prefix);
+        all_env_paths.insert(Context::instance().prefix_params.root_prefix);
         return all_env_paths;
     }
 

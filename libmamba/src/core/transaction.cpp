@@ -572,13 +572,14 @@ namespace mamba
         if (!empty())
         {
             Console::instance().json_down("actions");
-            Console::instance().json_write({ { "PREFIX",
-                                               Context::instance().target_prefix.string() } });
+            Console::instance().json_write(
+                { { "PREFIX", Context::instance().prefix_params.target_prefix.string() } }
+            );
         }
 
         m_transaction_context = TransactionContext(
-            Context::instance().target_prefix,
-            Context::instance().relocate_prefix,
+            Context::instance().prefix_params.target_prefix,
+            Context::instance().prefix_params.relocate_prefix,
             find_python_version(),
             specs_to_install
         );
@@ -666,13 +667,14 @@ namespace mamba
         if (!empty())
         {
             Console::instance().json_down("actions");
-            Console::instance().json_write({ { "PREFIX",
-                                               Context::instance().target_prefix.string() } });
+            Console::instance().json_write(
+                { { "PREFIX", Context::instance().prefix_params.target_prefix.string() } }
+            );
         }
 
         m_transaction_context = TransactionContext(
-            Context::instance().target_prefix,
-            Context::instance().relocate_prefix,
+            Context::instance().prefix_params.target_prefix,
+            Context::instance().prefix_params.relocate_prefix,
             find_python_version(),
             solver.install_specs()
         );
@@ -818,8 +820,8 @@ namespace mamba
         }
 
         m_transaction_context = TransactionContext(
-            Context::instance().target_prefix,
-            Context::instance().relocate_prefix,
+            Context::instance().prefix_params.target_prefix,
+            Context::instance().prefix_params.relocate_prefix,
             find_python_version(),
             specs_to_install
         );
@@ -968,7 +970,7 @@ namespace mamba
             Console::instance().json_up();
         }
         Console::instance().json_write({ { "dry_run", ctx.dry_run },
-                                         { "prefix", ctx.target_prefix.string() } });
+                                         { "prefix", ctx.prefix_params.target_prefix.string() } });
         if (empty())
         {
             Console::instance().json_write({ { "message",
@@ -981,8 +983,8 @@ namespace mamba
             return true;
         }
 
-        auto lf = LockFile(ctx.target_prefix / "conda-meta");
-        clean_trash_files(ctx.target_prefix, false);
+        auto lf = LockFile(ctx.prefix_params.target_prefix / "conda-meta");
+        clean_trash_files(ctx.prefix_params.target_prefix, false);
 
         Console::stream() << "\nTransaction starting";
         fetch_extract_packages();
@@ -1190,7 +1192,7 @@ namespace mamba
         auto& aggregated_pbar_manager = dynamic_cast<AggregatedBarManager&>(pbar_manager);
 
         auto& ctx = Context::instance();
-        DownloadExtractSemaphore::set_max(ctx.extract_threads);
+        DownloadExtractSemaphore::set_max(ctx.threads_params.extract_threads);
 
         if (ctx.experimental && ctx.verify_artifacts)
         {
@@ -1407,7 +1409,7 @@ namespace mamba
         }
 
         Console::instance().print("Transaction\n");
-        Console::stream() << "  Prefix: " << ctx.target_prefix.string() << "\n";
+        Console::stream() << "  Prefix: " << ctx.prefix_params.target_prefix.string() << "\n";
 
         // check size of transaction
         if (empty())

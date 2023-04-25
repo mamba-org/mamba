@@ -93,7 +93,7 @@ namespace mamba
         {
             if (prefix.empty() || prefix == "base")
             {
-                shell_prefix = ctx.root_prefix.string();
+                shell_prefix = ctx.prefix_params.root_prefix.string();
             }
             else
             {
@@ -106,7 +106,7 @@ namespace mamba
         {
             if (prefix.empty() || prefix == "base")
             {
-                shell_prefix = ctx.root_prefix.string();
+                shell_prefix = ctx.prefix_params.root_prefix.string();
             }
             else
             {
@@ -144,11 +144,11 @@ namespace mamba
         {
             if (prefix.empty() || prefix == "base")
             {
-                shell_prefix = ctx.root_prefix.string();
+                shell_prefix = ctx.prefix_params.root_prefix.string();
             }
             else if (prefix.find_first_of("/\\") == std::string::npos)
             {
-                shell_prefix = (ctx.root_prefix / "envs" / prefix).string();
+                shell_prefix = (ctx.prefix_params.root_prefix / "envs" / prefix).string();
             }
             else
             {

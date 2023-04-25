@@ -144,7 +144,7 @@ def install(
     (base_prefix / "pkgs").mkdir(parents=True, exist_ok=True)
 
     context = libmambapy.Context()
-    context.target_prefix = str(prefix)
+    context.prefix_params.target_prefix = str(prefix)
     context.pkgs_dirs = [str(base_prefix / "pkgs")]
 
     solver = MambaSolver(channels, target_platform, context)

@@ -123,7 +123,7 @@ namespace mamba
         {
             const auto maybe_instructions = get_other_pkg_mgr_install_instructions(
                 pkg_mgr,
-                ctx.target_prefix.string(),
+                ctx.prefix_params.target_prefix.string(),
                 specs.path()
             );
             if (maybe_instructions)
@@ -136,7 +136,10 @@ namespace mamba
             }
         }();
 
-        auto [wrapped_command, tmpfile] = prepare_wrapped_call(ctx.target_prefix, install_instructions);
+        auto [wrapped_command, tmpfile] = prepare_wrapped_call(
+            ctx.prefix_params.target_prefix,
+            install_instructions
+        );
 
         reproc::options options;
         options.redirect.parent = true;
@@ -433,14 +436,14 @@ namespace mamba
         auto& only_deps = config.at("only_deps").value<bool>();
         auto& retry_clean_cache = config.at("retry_clean_cache").value<bool>();
 
-        if (ctx.target_prefix.empty())
+        if (ctx.prefix_params.target_prefix.empty())
         {
             throw std::runtime_error("No active target prefix");
         }
-        if (!fs::exists(ctx.target_prefix) && create_env == false)
+        if (!fs::exists(ctx.prefix_params.target_prefix) && create_env == false)
         {
             throw std::runtime_error(
-                fmt::format("Prefix does not exist at: {}", ctx.target_prefix.string())
+                fmt::format("Prefix does not exist at: {}", ctx.prefix_params.target_prefix.string())
             );
         }
 
@@ -465,8 +468,8 @@ namespace mamba
         // which limits this syntax
         /*auto exp_prefix_data = load_channels(pool, package_caches, is_retry)
                                .and_then([&ctx](const auto&) { return
-           PrefixData::create(ctx.target_prefix); } ) .map_error([](const mamba_error& err) { throw
-           std::runtime_error(err.what());
+           PrefixData::create(ctx.prefix_params.target_prefix); } ) .map_error([](const mamba_error&
+           err) { throw std::runtime_error(err.what());
                                 });*/
         auto exp_load = load_channels(pool, package_caches, is_retry);
         if (!exp_load)
@@ -474,7 +477,7 @@ namespace mamba
             throw std::runtime_error(exp_load.error().what());
         }
 
-        auto exp_prefix_data = PrefixData::create(ctx.target_prefix);
+        auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix);
         if (!exp_prefix_data)
         {
             throw std::runtime_error(exp_prefix_data.error().what());
@@ -577,7 +580,7 @@ namespace mamba
         {
             if (create_env && !Context::instance().dry_run)
             {
-                detail::create_target_directory(ctx.target_prefix);
+                detail::create_target_directory(ctx.prefix_params.target_prefix);
             }
 
             trans.execute(prefix_data);
@@ -598,7 +601,7 @@ namespace mamba
         {
             MPool pool;
             auto& ctx = Context::instance();
-            auto exp_prefix_data = PrefixData::create(ctx.target_prefix);
+            auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix);
             if (!exp_prefix_data)
             {
                 // TODO: propagate tl::expected mechanism
@@ -625,7 +628,7 @@ namespace mamba
             {
                 if (create_env && !Context::instance().dry_run)
                 {
-                    detail::create_target_directory(ctx.target_prefix);
+                    detail::create_target_directory(ctx.prefix_params.target_prefix);
                 }
 
                 transaction.execute(prefix_data);

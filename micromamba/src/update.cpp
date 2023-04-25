@@ -29,7 +29,7 @@ update_self(const std::optional<std::string>& version)
 
     // set target_prefix to root_prefix (irrelevant, but transaction tries to lock
     // the conda-meta folder of the target_prefix)
-    ctx.target_prefix = ctx.root_prefix;
+    ctx.prefix_params.target_prefix = ctx.prefix_params.root_prefix;
 
     mamba::MPool pool;
     mamba::MultiPackageCache package_caches(ctx.pkgs_dirs);
@@ -85,7 +85,7 @@ update_self(const std::optional<std::string>& version)
 
     ctx.download_only = true;
     MTransaction t(pool, { latest_micromamba.value() }, package_caches);
-    auto exp_prefix_data = PrefixData::create(ctx.root_prefix);
+    auto exp_prefix_data = PrefixData::create(ctx.prefix_params.root_prefix);
     if (!exp_prefix_data)
     {
         throw exp_prefix_data.error();
@@ -137,7 +137,7 @@ update_self(const std::optional<std::string>& version)
 
     Console::instance().print("\nReinitializing all previously initialized shells\n");
     std::string shell_type = "";
-    mamba::shell("reinit", shell_type, ctx.root_prefix, false);
+    mamba::shell("reinit", shell_type, ctx.prefix_params.root_prefix, false);
 
     return 0;
 }

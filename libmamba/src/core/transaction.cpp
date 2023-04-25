@@ -1095,7 +1095,7 @@ namespace mamba
             const auto executable = ctx.command_params.is_micromamba ? "micromamba" : "mamba";
 
             // Get the name of the environment
-            const auto environment = env_name(ctx.target_prefix);
+            const auto environment = env_name(ctx.prefix_params.target_prefix);
 
             Console::stream() << "\nTransaction finished\n\n"
                               << "To activate this environment, use:\n\n"
@@ -1105,8 +1105,8 @@ namespace mamba
                               << " run "
                               // Use -n or -p depending on if the env_name is a full prefix or just
                               // a name.
-                              << (environment == ctx.target_prefix ? "-p " : "-n ") << environment
-                              << " mycommand\n";
+                              << (environment == ctx.prefix_params.target_prefix ? "-p " : "-n ")
+                              << environment << " mycommand\n";
 
 
             prefix.history().add_entry(m_history_entry);

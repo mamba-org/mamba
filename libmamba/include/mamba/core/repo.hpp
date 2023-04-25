@@ -8,6 +8,7 @@
 #define MAMBA_CORE_REPO_HPP
 
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -74,14 +75,14 @@ namespace mamba
         const fs::u8path& index_file();
 
         Id id() const;
-        std::string name() const;
+        std::string_view name() const;
         bool write() const;
         const std::string& url() const;
         Repo* repo() const;
         std::tuple<int, int> priority() const;
         std::size_t size() const;
 
-        bool clear(bool reuse_ids);
+        bool clear(bool reuse_ids = true);
 
     private:
 

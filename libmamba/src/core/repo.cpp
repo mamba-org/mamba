@@ -4,6 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
+#include <array>
+
 #include <solv/repo.h>
 #include <solv/repo_solv.h>
 #include <solv/repo_write.h>
@@ -213,12 +216,12 @@ namespace mamba
 
     Id MRepo::id() const
     {
-        return m_repo->repoid;
+        return srepo(*this).id();
     }
 
-    std::string MRepo::name() const
+    std::string_view MRepo::name() const
     {
-        return m_repo->name ? m_repo->name : "";
+        return srepo(*this).name();
     }
 
     const std::string& MRepo::url() const
@@ -238,7 +241,7 @@ namespace mamba
 
     std::size_t MRepo::size() const
     {
-        return static_cast<std::size_t>(m_repo->nsolvables);
+        return srepo(*this).solvable_count();
     }
 
     const fs::u8path& MRepo::index_file()
@@ -466,10 +469,9 @@ namespace mamba
         return true;
     }
 
-    bool MRepo::clear(bool reuse_ids = 1)
+    bool MRepo::clear(bool reuse_ids)
     {
-        repo_free(m_repo, static_cast<int>(reuse_ids));
-        m_repo = nullptr;
+        m_pool.remove_repo(id(), reuse_ids);
         return true;
     }
 }  // namespace mamba

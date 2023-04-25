@@ -39,7 +39,7 @@ class TestLinking:
             rmtree(TestLinking.root_prefix)
 
     @classmethod
-    def teardown(cls):
+    def teardown_method(cls):
         if Path(TestLinking.prefix).exists():
             rmtree(TestLinking.prefix)
 

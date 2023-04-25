@@ -84,7 +84,7 @@ class TestPkgCache:
             rmtree(TestPkgCache.root_prefix)
 
     @classmethod
-    def teardown(cls):
+    def teardown_method(cls):
         envs_dir = os.path.join(TestPkgCache.root_prefix, "envs")
         if Path(envs_dir).exists():
             rmtree(envs_dir)
@@ -288,7 +288,7 @@ class TestMultiplePkgCaches:
             rmtree(TestMultiplePkgCaches.root_prefix)
 
     @classmethod
-    def teardown(cls):
+    def teardown_method(cls):
         if "CONDA_PKGS_DIRS" in os.environ:
             os.environ.pop("CONDA_PKGS_DIRS")
 

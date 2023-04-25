@@ -23,7 +23,7 @@ class TestInstall:
         os.environ["CONDA_PREFIX"] = TestInstall.prefix
 
     @classmethod
-    def setup(cls):
+    def setup_method(cls):
         create("-n", TestInstall.env_name, "--offline", no_dry_run=True)
 
     @classmethod
@@ -33,7 +33,7 @@ class TestInstall:
         shutil.rmtree(TestInstall.root_prefix)
 
     @classmethod
-    def teardown(cls):
+    def teardown_method(cls):
         os.environ["MAMBA_ROOT_PREFIX"] = TestInstall.root_prefix
         os.environ["CONDA_PREFIX"] = TestInstall.prefix
         for v in ("CONDA_CHANNELS", "MAMBA_TARGET_PREFIX"):

@@ -243,11 +243,6 @@ namespace mamba
         return std::make_tuple(m_repo->priority, m_repo->subpriority);
     }
 
-    std::size_t MRepo::size() const
-    {
-        return srepo(*this).solvable_count();
-    }
-
     const fs::u8path& MRepo::index_file()
     {
         return m_json_file;
@@ -414,9 +409,51 @@ namespace mamba
         repo.write(filename);
     }
 
-    bool MRepo::clear(bool reuse_ids)
+    void MRepo::clear(bool reuse_ids)
     {
         m_pool.remove_repo(id(), reuse_ids);
+    }
+}
+
+#include <map>
+
+namespace mamba
+{
+
+    auto MRepo::py_clear(bool reuse_ids) -> bool
+    {
+        clear(reuse_ids);
         return true;
+    }
+
+    auto MRepo::py_size() const -> std::size_t
+    {
+        return srepo(*this).solvable_count();
+    }
+
+    void MRepo::py_add_extra_pkg_info(const std::map<std::string, PyExtraPkgInfo>& extra)
+    {
+        auto repo = srepo(*this);
+
+        repo.for_each_solvable(
+            [&](solv::ObjSolvableView s)
+            {
+                if (auto const it = extra.find(std::string(s.name())); it != extra.cend())
+                {
+                    if (auto const& noarch = it->second.noarch; !noarch.empty())
+                    {
+                        s.set_noarch(noarch);
+                    }
+                    if (auto const& repo_url = it->second.noarch; !repo_url.empty())
+                    {
+                        if (!it->second.repo_url.empty())
+                        {
+                            s.set_channel(repo_url);
+                        }
+                    }
+                }
+            }
+        );
+        repo.internalize();
     }
 }  // namespace mamba

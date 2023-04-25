@@ -79,12 +79,21 @@ namespace mamba
         std::string_view url() const;
         Repo* repo() const;
         std::tuple<int, int> priority() const;
-        std::size_t size() const;
 
-        bool clear(bool reuse_ids = true);
+        struct [[deprecated]] PyExtraPkgInfo
+        {
+            std::string noarch;
+            std::string repo_url;
+        };
+
+        [[deprecated]] auto py_clear(bool reuse_ids) -> bool;
+        [[deprecated]] auto py_size() const -> std::size_t;
+        [[deprecated]] void
+        py_add_extra_pkg_info(const std::map<std::string, PyExtraPkgInfo>& additional_info);
 
     private:
 
+        void clear(bool reuse_ids = true);
         bool load_file(const fs::u8path& filename);
         bool read_json(const fs::u8path& filename);
         bool read_solv(const fs::u8path& filename);

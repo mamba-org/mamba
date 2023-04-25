@@ -163,53 +163,21 @@ PYBIND11_MODULE(bindings, m)
         .def("get_tarball_path", &MultiPackageCache::get_tarball_path)
         .def_property_readonly("first_writable_path", &MultiPackageCache::first_writable_path);
 
-    struct ExtraPkgInfo
-    {
-        std::string noarch;
-        std::string repo_url;
-    };
-
-    py::class_<ExtraPkgInfo>(m, "ExtraPkgInfo")
+    py::class_<MRepo::PyExtraPkgInfo>(m, "ExtraPkgInfo")
         .def(py::init<>())
-        .def_readwrite("noarch", &ExtraPkgInfo::noarch)
-        .def_readwrite("repo_url", &ExtraPkgInfo::repo_url);
+        .def_readwrite("noarch", &MRepo::PyExtraPkgInfo::noarch)
+        .def_readwrite("repo_url", &MRepo::PyExtraPkgInfo::repo_url);
 
     py::class_<MRepo>(m, "Repo")
         .def(py::init<MPool&, const std::string&, const std::string&, const std::string&>())
         .def(py::init<MPool&, const PrefixData&>())
-        .def(
-            "add_extra_pkg_info",
-            [](const MRepo& self, const std::map<std::string, ExtraPkgInfo>& additional_info)
-            {
-                Id pkg_id;
-                Solvable* pkg_s;
-                Pool* p = self.repo()->pool;
-
-                FOR_REPO_SOLVABLES(self.repo(), pkg_id, pkg_s)
-                {
-                    std::string name = pool_id2str(p, pkg_s->name);
-                    auto it = additional_info.find(name);
-                    if (it != additional_info.end())
-                    {
-                        if (!it->second.noarch.empty())
-                        {
-                            solvable_set_str(pkg_s, SOLVABLE_SOURCEARCH, it->second.noarch.c_str());
-                        }
-                        if (!it->second.repo_url.empty())
-                        {
-                            solvable_set_str(pkg_s, SOLVABLE_PACKAGER, it->second.repo_url.c_str());
-                        }
-                    }
-                }
-                repo_internalize(self.repo());
-            }
-        )
+        .def("add_extra_pkg_info", &MRepo::py_add_extra_pkg_info)
         .def("set_installed", &MRepo::set_installed)
         .def("set_priority", &MRepo::set_priority)
         .def("name", &MRepo::name)
         .def("priority", &MRepo::priority)
-        .def("size", &MRepo::size)
-        .def("clear", &MRepo::clear);
+        .def("size", &MRepo::py_size)
+        .def("clear", &MRepo::py_clear);
 
     py::class_<MTransaction>(m, "Transaction")
         .def(py::init<>(

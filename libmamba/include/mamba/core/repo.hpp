@@ -64,10 +64,9 @@ namespace mamba
         MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& uris);
 
         MRepo(const MRepo&) = delete;
+        MRepo(MRepo&&) = default;
         MRepo& operator=(const MRepo&) = delete;
-
-        MRepo(MRepo&&);
-        MRepo& operator=(MRepo&&);
+        MRepo& operator=(MRepo&&) = default;
 
         void set_installed();
         void set_priority(int priority, int subpriority);
@@ -77,7 +76,7 @@ namespace mamba
 
         Id id() const;
         std::string_view name() const;
-        const std::string& url() const;
+        std::string_view url() const;
         Repo* repo() const;
         std::tuple<int, int> priority() const;
         std::size_t size() const;
@@ -86,18 +85,16 @@ namespace mamba
 
     private:
 
-        void init();
         bool load_file(const fs::u8path& filename);
         bool read_json(const fs::u8path& filename);
         bool read_solv(const fs::u8path& filename);
         void write_solv(fs::u8path path);
         void add_package_info(const PackageInfo& pkg_info);
-        void set_solvables_url();
+        void set_solvables_url(const std::string& repo_url);
 
         MPool m_pool;
         fs::u8path m_json_file = {};
         fs::u8path m_solv_file = {};
-        std::string m_url = {};
 
         RepoMetadata m_metadata = {};
 

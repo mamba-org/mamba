@@ -314,12 +314,12 @@ namespace mamba::solv
 
         auto repo_lookup_bool(const ::Repo* repo, ::Id key) -> bool
         {
-            return ::repo_lookup_num(const_cast<::Repo*>(repo), SOLVID_META, key, 0) != 0;
+            return repo_lookup_num(repo, key) != 0;
         }
 
         void repo_set_bool(::Repo* repo, ::Id key, bool b)
         {
-            ::repo_set_num(repo, SOLVID_META, key, b);
+            repo_set_num(repo, key, b);
         }
     }
 

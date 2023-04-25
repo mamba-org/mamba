@@ -88,44 +88,45 @@ namespace mamba
 
     MRepo::MRepo(MPool& pool, const std::string& /*name*/, const fs::u8path& index, const RepoMetadata& metadata)
         : m_pool(pool)
-        , m_url(rsplit(metadata.url, "/", 1)[0])
         , m_metadata(metadata)
     {
-        m_repo = repo_create(pool, m_url.c_str());
-        init();
+        const auto url = rsplit(metadata.url, "/", 1).front();
+        auto [_, repo] = pool.pool().add_repo(url);
+        m_repo = repo.raw();
+        repo.set_url(url);
         load_file(index);
-        set_solvables_url();
-        repo_internalize(m_repo);
+        set_solvables_url(url);
+        repo.internalize();
     }
 
     MRepo::MRepo(MPool& pool, const std::string& name, const std::string& index, const std::string& url)
         : m_pool(pool)
-        , m_url(url)
-        , m_repo(repo_create(pool, name.c_str()))
     {
-        init();
+        auto [_, repo] = pool.pool().add_repo(name);
+        m_repo = repo.raw();
+        repo.set_url(url);
         load_file(index);
-        set_solvables_url();
-        repo_internalize(m_repo);
+        set_solvables_url(url);
+        repo.internalize();
     }
 
     MRepo::MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& package_infos)
         : m_pool(pool)
-        , m_repo(repo_create(pool, name.c_str()))
     {
-        init();
+        auto [_, repo] = pool.pool().add_repo(name);
+        m_repo = repo.raw();
         for (auto& info : package_infos)
         {
             add_package_info(info);
         }
-        srepo(*this).internalize();
+        repo.internalize();
     }
 
     MRepo::MRepo(MPool& pool, const PrefixData& prefix_data)
         : m_pool(pool)
-        , m_repo(repo_create(pool, "installed"))
     {
-        init();
+        auto [repo_id, repo] = pool.pool().add_repo("installed");
+        m_repo = repo.raw();
 
         for (auto& [name, record] : prefix_data.records())
         {
@@ -137,17 +138,13 @@ namespace mamba
             add_pip_as_python_dependency();
         }
 
-        srepo(*this).internalize();
-        set_installed();
+        repo.internalize();
+        pool.pool().set_installed_repo(repo_id);
     }
 
-    void MRepo::init()
+    void MRepo::set_solvables_url(const std::string& repo_url)
     {
-        srepo(*this).set_url(url());
-    }
-
-    void MRepo::set_solvables_url()
-    {
+        // WARNING cannot call ``url()`` at this point because it has not been internalized.
         // Setting the channel url on where the solvable so that we can retrace
         // where it came from
         srepo(*this).for_each_solvable(
@@ -155,33 +152,12 @@ namespace mamba
             {
                 // The solvable url, this is not set in libsolv parsing so we set it manually
                 // while we still rely on libsolv for parsing
-                s.set_url(fmt::format("{}/{}", url(), s.file_name()));
+                s.set_url(fmt::format("{}/{}", repo_url, s.file_name()));
                 // The name of the channel where it came from, may be different from repo name
                 // for instance with the installed repo
-                s.set_channel(url());
+                s.set_channel(repo_url);
             }
         );
-    }
-
-    MRepo::MRepo(MRepo&& rhs)
-        : m_json_file(std::move(rhs.m_json_file))
-        , m_solv_file(std::move(rhs.m_solv_file))
-        , m_url(std::move(rhs.m_url))
-        , m_metadata(std::move(rhs.m_metadata))
-        , m_repo(rhs.m_repo)
-    {
-        rhs.m_repo = nullptr;
-    }
-
-    MRepo& MRepo::operator=(MRepo&& rhs)
-    {
-        using std::swap;
-        swap(m_json_file, rhs.m_json_file);
-        swap(m_solv_file, rhs.m_solv_file);
-        swap(m_url, rhs.m_url);
-        swap(m_metadata, rhs.m_metadata);
-        swap(m_repo, rhs.m_repo);
-        return *this;
     }
 
     void MRepo::set_installed()
@@ -252,9 +228,9 @@ namespace mamba
         return srepo(*this).name();
     }
 
-    const std::string& MRepo::url() const
+    std::string_view MRepo::url() const
     {
-        return m_url;
+        return srepo(*this).url();
     }
 
     Repo* MRepo::repo() const
@@ -318,15 +294,15 @@ namespace mamba
         int ret = repo_add_conda(m_repo, fp, flags);
         if (ret != 0)
         {
-            fclose(fp);
+            std::fclose(fp);
             throw std::runtime_error(
                 "Could not read JSON repodata file (" + filename.string() + ") "
-                + std::string(pool_errstr(m_repo->pool))
+                + std::string(::pool_errstr(m_repo->pool))
             );
             return false;
         }
 
-        fclose(fp);
+        std::fclose(fp);
         return true;
     }
 

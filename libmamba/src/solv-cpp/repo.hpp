@@ -46,6 +46,20 @@ namespace mamba::solv
         auto url() const -> std::string_view;
 
         /**
+         * The etag header associated with the url.
+         *
+         * @see ObjRepoView::set_etag
+         */
+        auto etag() const -> std::string_view;
+
+        /**
+         * The mod header associated with the url.
+         *
+         * @see ObjRepoView::set_mod
+         */
+        auto mod() const -> std::string_view;
+
+        /**
          * The channel of the repository.
          *
          * @see ObjRepoView::set_url
@@ -58,6 +72,20 @@ namespace mamba::solv
          * @see ObjRepoView::set_url
          **/
         auto subdir() const -> std::string_view;
+
+        /**
+         * Whether pip was added to Python dependencies and vis versa.
+         *
+         * @see ObjRepoView::set_pip_added
+         */
+        auto pip_added() const -> bool;
+
+        /**
+         * The version used for writing solv files.
+         *
+         * @see ObjRepoView::set_too_version.
+         */
+        auto tool_version() const -> std::string_view;
 
         /** The number of solvables in this repository. */
         auto solvable_count() const -> std::size_t;
@@ -114,6 +142,28 @@ namespace mamba::solv
         void set_url(const std::string& str) const;
 
         /**
+         * Set the etag associated with the url header.
+         *
+         * This has no effect for libsolv and is purely for data storing.
+         *
+         * @note A call to @ref ObjRepoView::internalize is required for this attribute to
+         *       be available for lookup.
+         */
+        void set_etag(raw_str_view str) const;
+        void set_etag(const std::string& str) const;
+
+        /**
+         * Set the mod associated with the url header.
+         *
+         * This has no effect for libsolv and is purely for data storing.
+         *
+         * @note A call to @ref ObjRepoView::internalize is required for this attribute to
+         *       be available for lookup.
+         */
+        void set_mod(raw_str_view str) const;
+        void set_mod(const std::string& str) const;
+
+        /**
          * Set the channel of the repository.
          *
          * This has no effect for libsolv and is purely for data storing.
@@ -135,6 +185,27 @@ namespace mamba::solv
         void set_subdir(raw_str_view str) const;
         void set_subdir(const std::string& str) const;
 
+        /**
+         * Set whether pip was added as a Python dependency and vice versa.
+         *
+         * This has no effect for libsolv and is purely for data storing.
+         *
+         * @note A call to @ref ObjRepoView::internalize is required for this attribute to
+         *       be available for lookup.
+         */
+        void set_pip_added(bool b) const;
+
+        /**
+         * Set the version used for writing solv files.
+         *
+         * This has no effect for libsolv and is purely for data storing.
+         * It is up to the user to make comparsions with this attribute.
+         *
+         * @note A call to @ref ObjRepoView::internalize is required for this attribute to
+         *       be available for lookup.
+         */
+        void set_tool_version(raw_str_view str) const;
+        void set_tool_version(const std::string& str) const;
 
         /**
          * Clear all solvables from the repository.

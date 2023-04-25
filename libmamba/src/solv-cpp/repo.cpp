@@ -287,22 +287,39 @@ namespace mamba::solv
             return { ptr };
         }
 
+        // Can only read key/value on solvable, but the special SOLVID_META is used for a fake
+        // solvable representing the repo.
+        // The key used does not really matter so we can (ab)use any key that does not have
+        // special meaning
+
         auto repo_lookup_str(const ::Repo* repo, ::Id key) -> std::string_view
         {
-            // Can only read key/value on solvable, but the special SOLVID_META is used for a fake
-            // solvable representing the repo.
-            // The key used does not really matter so we can (ab)use any key that does not have
-            // special meaning
             return ptr_to_strview(::repo_lookup_str(const_cast<::Repo*>(repo), SOLVID_META, key));
         }
 
         void repo_set_str(::Repo* repo, ::Id key, const char* str)
         {
-            // Can only read key/value on solvable, but the special SOLVID_META is used for a fake
-            // solvable representing the repo.
-            // The key used does not really matter so we can (ab)use any key that does not have
-            // special meaning
             ::repo_set_str(repo, SOLVID_META, key, str);
+        }
+
+        auto repo_lookup_num(const ::Repo* repo, ::Id key) -> std::size_t
+        {
+            return ::repo_lookup_num(const_cast<::Repo*>(repo), SOLVID_META, key, 0);
+        }
+
+        void repo_set_num(::Repo* repo, ::Id key, std::size_t n)
+        {
+            ::repo_set_num(repo, SOLVID_META, key, n);
+        }
+
+        auto repo_lookup_bool(const ::Repo* repo, ::Id key) -> bool
+        {
+            return ::repo_lookup_num(const_cast<::Repo*>(repo), SOLVID_META, key, 0) != 0;
+        }
+
+        void repo_set_bool(::Repo* repo, ::Id key, bool b)
+        {
+            ::repo_set_num(repo, SOLVID_META, key, b);
         }
     }
 
@@ -319,6 +336,54 @@ namespace mamba::solv
     void ObjRepoView::set_url(const std::string& str) const
     {
         return set_url(str.c_str());
+    }
+
+    namespace
+    {
+        // This does modify the pool but does not impact our use
+        auto etag_key(const ::Repo* repo) -> StringId
+        {
+            return ::pool_str2id(repo->pool, "repository:etag", /* create= */ true);
+        }
+    }
+
+    auto ObjRepoViewConst::etag() const -> std::string_view
+    {
+        return repo_lookup_str(raw(), etag_key(raw()));
+    }
+
+    void ObjRepoView::set_etag(raw_str_view str) const
+    {
+        return repo_set_str(raw(), etag_key(raw()), str);
+    }
+
+    void ObjRepoView::set_etag(const std::string& str) const
+    {
+        return set_etag(str.c_str());
+    }
+
+    namespace
+    {
+        // This does modify the pool but does not impact our use
+        auto mod_key(const ::Repo* repo) -> StringId
+        {
+            return ::pool_str2id(repo->pool, "repository:mod", /* create= */ true);
+        }
+    }
+
+    auto ObjRepoViewConst::mod() const -> std::string_view
+    {
+        return repo_lookup_str(raw(), mod_key(raw()));
+    }
+
+    void ObjRepoView::set_mod(raw_str_view str) const
+    {
+        return repo_set_str(raw(), mod_key(raw()), str);
+    }
+
+    void ObjRepoView::set_mod(const std::string& str) const
+    {
+        return set_mod(str.c_str());
     }
 
     auto ObjRepoViewConst::channel() const -> std::string_view
@@ -339,6 +404,40 @@ namespace mamba::solv
     auto ObjRepoViewConst::subdir() const -> std::string_view
     {
         return repo_lookup_str(raw(), SOLVABLE_MEDIADIR);
+    }
+
+    namespace
+    {
+        // This does modify the pool but does not impact our use
+        auto pip_added_key(const ::Repo* repo) -> StringId
+        {
+            return ::pool_str2id(repo->pool, "repository:pip_added", /* create= */ true);
+        }
+    }
+
+    auto ObjRepoViewConst::pip_added() const -> bool
+    {
+        return repo_lookup_bool(raw(), pip_added_key(raw()));
+    }
+
+    void ObjRepoView::set_pip_added(bool b) const
+    {
+        return repo_set_bool(raw(), pip_added_key(raw()), b);
+    }
+
+    auto ObjRepoViewConst::tool_version() const -> std::string_view
+    {
+        return repo_lookup_str(raw(), REPOSITORY_TOOLVERSION);
+    }
+
+    void ObjRepoView::set_tool_version(raw_str_view str) const
+    {
+        return repo_set_str(raw(), REPOSITORY_TOOLVERSION, str);
+    }
+
+    void ObjRepoView::set_tool_version(const std::string& str) const
+    {
+        return set_tool_version(str.c_str());
     }
 
     void ObjRepoView::set_subdir(raw_str_view str) const

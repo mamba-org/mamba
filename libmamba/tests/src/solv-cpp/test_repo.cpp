@@ -35,14 +35,22 @@ TEST_SUITE("ObjRepo")
         SUBCASE("Set attributes")
         {
             repo.set_url("https://repo.mamba.pm/conda-forge");
+            repo.set_etag(R"(etag)W/"8eea3023872b68ef71fd930472a15599"(etag)");
+            repo.set_mod("Tue, 25 Apr 2023 11:48:37 GMT");
             repo.set_channel("conda-forge");
             repo.set_subdir("noarch");
+            repo.set_pip_added(true);
+            repo.set_tool_version("1.2.3.4");
 
             SUBCASE("Empty without internalize")
             {
                 CHECK_EQ(repo.url(), "");
+                CHECK_EQ(repo.etag(), "");
+                CHECK_EQ(repo.mod(), "");
                 CHECK_EQ(repo.channel(), "");
                 CHECK_EQ(repo.subdir(), "");
+                CHECK_EQ(repo.pip_added(), false);
+                CHECK_EQ(repo.tool_version(), "");
             }
 
             SUBCASE("Internalize and get attributes")
@@ -52,6 +60,10 @@ TEST_SUITE("ObjRepo")
                 CHECK_EQ(repo.url(), "https://repo.mamba.pm/conda-forge");
                 CHECK_EQ(repo.channel(), "conda-forge");
                 CHECK_EQ(repo.subdir(), "noarch");
+                CHECK_EQ(repo.etag(), R"(etag)W/"8eea3023872b68ef71fd930472a15599"(etag)");
+                CHECK_EQ(repo.mod(), "Tue, 25 Apr 2023 11:48:37 GMT");
+                CHECK_EQ(repo.pip_added(), true);
+                CHECK_EQ(repo.tool_version(), "1.2.3.4");
 
                 SUBCASE("Override attribute")
                 {

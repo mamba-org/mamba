@@ -272,33 +272,12 @@ namespace mamba
         );
     }
 
-    bool MRepo::read_json(const fs::u8path& filename)
+    void MRepo::read_json(const fs::u8path& filename)
     {
-#ifdef _WIN32
-        auto fp = ::_wfopen(m_json_file.wstring().c_str(), L"r");
-#else
-        auto fp = std::fopen(filename.string().c_str(), "r");
-#endif
-        if (!fp)
-        {
-            throw std::runtime_error("Could not open repository file " + filename.string());
-        }
-
-        LOG_DEBUG << "Loading JSON file '" << filename.string() << "'";
-        int flags = Context::instance().use_only_tar_bz2 ? CONDA_ADD_USE_ONLY_TAR_BZ2 : 0;
-        int ret = repo_add_conda(m_repo, fp, flags);
-        if (ret != 0)
-        {
-            std::fclose(fp);
-            throw std::runtime_error(
-                "Could not read JSON repodata file (" + filename.string() + ") "
-                + std::string(::pool_errstr(m_repo->pool))
-            );
-            return false;
-        }
-
-        std::fclose(fp);
-        return true;
+        LOG_INFO << "Reading repodata.json file " << filename << " for repo " << name();
+        // TODO make this as part of options of the repo/pool
+        const int flags = Context::instance().use_only_tar_bz2 ? CONDA_ADD_USE_ONLY_TAR_BZ2 : 0;
+        srepo(*this).legacy_read_conda_repodata(filename, flags);
     }
 
     bool MRepo::read_solv(const fs::u8path& filename)
@@ -341,7 +320,7 @@ namespace mamba
         return true;
     }
 
-    bool MRepo::load_file(const fs::u8path& filename)
+    void MRepo::load_file(const fs::u8path& filename)
     {
         auto repo = srepo(*this);
         bool is_solv = filename.extension() == ".solv";
@@ -369,16 +348,12 @@ namespace mamba
             const bool read = read_solv(m_solv_file);
             if (read)
             {
-                return true;
+                return;
             }
         }
 
         auto lock = LockFile(m_json_file);
-        const bool read = read_json(m_json_file);
-        if (!read)
-        {
-            return false;
-        }
+        read_json(m_json_file);
 
         // TODO move this to a more structured approach for repodata patching?
         if (Context::instance().add_pip_as_python_dependency)
@@ -390,8 +365,6 @@ namespace mamba
         {
             write_solv(m_solv_file);
         }
-
-        return true;
     }
 
     void MRepo::write_solv(fs::u8path filename)

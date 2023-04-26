@@ -94,8 +94,8 @@ namespace mamba
     private:
 
         void clear(bool reuse_ids = true);
-        bool load_file(const fs::u8path& filename);
-        bool read_json(const fs::u8path& filename);
+        void load_file(const fs::u8path& filename);
+        void read_json(const fs::u8path& filename);
         bool read_solv(const fs::u8path& filename);
         void write_solv(fs::u8path path);
         void add_package_info(const PackageInfo& pkg_info);

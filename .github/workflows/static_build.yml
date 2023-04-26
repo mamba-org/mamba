@@ -124,7 +124,7 @@ jobs:
 
           f.write_text(text)
         env:
-          MAMBA_ROOT_PREFIX: ~/micromamba
+          MAMBA_ROOT_PREFIX: C:\Users\runneradmin\micromamba
       - name: build static windows dependencies with vcpkg
         shell: cmd /C CALL {0}
         run: |

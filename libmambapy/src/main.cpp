@@ -174,8 +174,8 @@ PYBIND11_MODULE(bindings, m)
         .def("add_extra_pkg_info", &MRepo::py_add_extra_pkg_info)
         .def("set_installed", &MRepo::set_installed)
         .def("set_priority", &MRepo::set_priority)
-        .def("name", &MRepo::name)
-        .def("priority", &MRepo::priority)
+        .def("name", &MRepo::py_name)
+        .def("priority", &MRepo::py_priority)
         .def("size", &MRepo::py_size)
         .def("clear", &MRepo::py_clear);
 

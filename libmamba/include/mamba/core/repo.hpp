@@ -70,15 +70,9 @@ namespace mamba
 
         void set_installed();
         void set_priority(int priority, int subpriority);
-        void add_pip_as_python_dependency();
-
-        const fs::u8path& index_file();
 
         Id id() const;
-        std::string_view name() const;
-        std::string_view url() const;
         Repo* repo() const;
-        std::tuple<int, int> priority() const;
 
         struct [[deprecated]] PyExtraPkgInfo
         {
@@ -86,6 +80,8 @@ namespace mamba
             std::string repo_url;
         };
 
+        [[deprecated]] auto py_name() const -> std::string_view;
+        [[deprecated]] auto py_priority() const -> std::tuple<int, int>;
         [[deprecated]] auto py_clear(bool reuse_ids) -> bool;
         [[deprecated]] auto py_size() const -> std::size_t;
         [[deprecated]] void
@@ -93,6 +89,9 @@ namespace mamba
 
     private:
 
+        auto name() const -> std::string_view;
+
+        void add_pip_as_python_dependency();
         void clear(bool reuse_ids = true);
         void load_file(const fs::u8path& filename);
         void read_json(const fs::u8path& filename);

@@ -218,34 +218,19 @@ namespace mamba
         solv.add_self_provide();
     }
 
+    auto MRepo::name() const -> std::string_view
+    {
+        return srepo(*this).name();
+    }
+
     Id MRepo::id() const
     {
         return srepo(*this).id();
     }
 
-    std::string_view MRepo::name() const
-    {
-        return srepo(*this).name();
-    }
-
-    std::string_view MRepo::url() const
-    {
-        return srepo(*this).url();
-    }
-
     Repo* MRepo::repo() const
     {
         return m_repo;
-    }
-
-    std::tuple<int, int> MRepo::priority() const
-    {
-        return std::make_tuple(m_repo->priority, m_repo->subpriority);
-    }
-
-    const fs::u8path& MRepo::index_file()
-    {
-        return m_json_file;
     }
 
     void MRepo::add_pip_as_python_dependency()
@@ -392,6 +377,16 @@ namespace mamba
 
 namespace mamba
 {
+
+    auto MRepo::py_name() const -> std::string_view
+    {
+        return name();
+    }
+
+    auto MRepo::py_priority() const -> std::tuple<int, int>
+    {
+        return std::make_tuple(m_repo->priority, m_repo->subpriority);
+    }
 
     auto MRepo::py_clear(bool reuse_ids) -> bool
     {

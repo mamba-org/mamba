@@ -21,11 +21,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+        uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: ./libmamba/environment-static-dev.yml
           environment-name: build_env
-          cache-env: true
+          cache-environment: true
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -60,11 +60,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+        uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: ./libmamba/environment-dev.yml
           environment-name: build_env
-          cache-env: true
+          cache-environment: true
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -103,11 +103,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+        uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
-          cache-env: true
+          cache-environment: true
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -164,12 +164,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+        uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: ./mamba/environment-dev.yml
           environment-name: build_env
-          cache-env: true
-          extra-specs: |
+          cache-environment: true
+          create-args: |
             conda-build
             python=${{ matrix.python_version }}
       - uses: hendrikmuhs/ccache-action@main
@@ -282,11 +282,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+        uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: ./libmamba/environment-static-dev-win.yml
           environment-name: build_env
-          cache-env: true
+          cache-environment: true
+          init-shell: cmd.exe
       - name: fix up vcpkg recipes
         shell: python
         run: |
@@ -374,14 +375,17 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+        uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: ./mamba/environment-dev.yml
           environment-name: build_env
-          cache-env: true
-          extra-specs: |
+          cache-environment: true
+          create-args: |
             conda-build
             curl
+          init-shell: >-
+            bash
+            cmd.exe
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -473,11 +477,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+        uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: ./libmamba/environment-dev.yml
           environment-name: build_env
-          cache-env: true
+          cache-environment: true
+          init-shell: cmd.exe
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -524,11 +529,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+        uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
-          cache-env: true
+          cache-environment: true
+          init-shell: cmd.exe
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -596,11 +602,12 @@ jobs:
           tar -xvf umamba.tar
 
       - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+        uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
-          extra-specs: menuinst
+          create-args: menuinst
+          init-shell: powershell
 
       - name: micromamba python based tests with pwsh
         shell: powershell

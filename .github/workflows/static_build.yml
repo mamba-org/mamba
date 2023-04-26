@@ -37,12 +37,11 @@ jobs:
       - name: Patch micromamba-feedstock
         run: |
           cp ./micromamba/recipe/* micromamba-feedstock/recipe/
-      - uses: mamba-org/provision-with-micromamba@main
+      - uses: mamba-org/setup-micromamba@v1
         with:
-          channels: conda-forge
           environment-file: false
           environment-name: mambabuild
-          extra-specs: boa
+          create-args: boa
       - name: Build conda package
         shell: bash -l {0}
         run: |
@@ -93,11 +92,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+        uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: ./libmamba/environment-static-dev-win.yml
           environment-name: build_env
-          cache-env: true  # this also caches the vcpkg builds
+          cache-environment: true  # this also caches the vcpkg builds
+          init-shell: cmd.exe
       - name: fix up vcpkg recipes
         shell: python
         run: |

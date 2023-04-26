@@ -576,6 +576,201 @@ PYBIND11_MODULE(bindings, m)
         .def_readwrite("threads_params", &Context::threads_params)
         .def_readwrite("prefix_params", &Context::prefix_params);
 
+    ////////////////////////////////////////////
+    //    Support the old deprecated API     ///
+    ////////////////////////////////////////////
+    // RemoteFetchParams
+    ctx.def_property(
+           "ssl_verify",
+           [](const Context& self)
+           {
+               deprecated("Use `remote_fetch_params.ssl_verify` instead.");
+               return self.remote_fetch_params.ssl_verify;
+           },
+           [](Context& self, std::string sv)
+           {
+               deprecated("Use `remote_fetch_params.ssl_verify` instead.");
+               self.remote_fetch_params.ssl_verify = sv;
+           }
+    )
+        .def_property(
+            "max_retries",
+            [](const Context& self)
+            {
+                deprecated("Use `remote_fetch_params.max_retries` instead.");
+                return self.remote_fetch_params.max_retries;
+            },
+            [](Context& self, int mr)
+            {
+                deprecated("Use `remote_fetch_params.max_retries` instead.");
+                self.remote_fetch_params.max_retries = mr;
+            }
+        )
+        .def_property(
+            "retry_timeout",
+            [](const Context& self)
+            {
+                deprecated("Use `remote_fetch_params.retry_timeout` instead.");
+                return self.remote_fetch_params.retry_timeout;
+            },
+            [](Context& self, int rt)
+            {
+                deprecated("Use `remote_fetch_params.retry_timeout` instead.");
+                self.remote_fetch_params.retry_timeout = rt;
+            }
+        )
+        .def_property(
+            "retry_backoff",
+            [](const Context& self)
+            {
+                deprecated("Use `remote_fetch_params.retry_backoff` instead.");
+                return self.remote_fetch_params.retry_backoff;
+            },
+            [](Context& self, int rb)
+            {
+                deprecated("Use `remote_fetch_params.retry_backoff` instead.");
+                self.remote_fetch_params.retry_backoff = rb;
+            }
+        )
+        .def_property(
+            "user_agent",
+            [](const Context& self)
+            {
+                deprecated("Use `remote_fetch_params.user_agent` instead.");
+                return self.remote_fetch_params.user_agent;
+            },
+            [](Context& self, std::string ua)
+            {
+                deprecated("Use `remote_fetch_params.user_agent` instead.");
+                self.remote_fetch_params.user_agent = ua;
+            }
+        )
+        .def_property(
+            "connect_timeout_secs",
+            [](const Context& self)
+            {
+                deprecated("Use `remote_fetch_params.connect_timeout_secs` instead.");
+                return self.remote_fetch_params.connect_timeout_secs;
+            },
+            [](Context& self, int cts)
+            {
+                deprecated("Use `remote_fetch_params.connect_timeout_secs` instead.");
+                self.remote_fetch_params.connect_timeout_secs = cts;
+            }
+        );
+
+    // OutputParams
+    ctx.def_property(
+           "verbosity",
+           [](const Context& self)
+           {
+               deprecated("Use `output_params.verbosity` instead.");
+               return self.output_params.verbosity;
+           },
+           [](Context& self, int v)
+           {
+               deprecated("Use `output_params.verbosity` instead.");
+               self.output_params.verbosity = v;
+           }
+    )
+        .def_property(
+            "json",
+            [](const Context& self)
+            {
+                deprecated("Use `output_params.json` instead.");
+                return self.output_params.json;
+            },
+            [](Context& self, bool j)
+            {
+                deprecated("Use `output_params.json` instead.");
+                self.output_params.json = j;
+            }
+        )
+        .def_property(
+            "quiet",
+            [](const Context& self)
+            {
+                deprecated("Use `output_params.quiet` instead.");
+                return self.output_params.quiet;
+            },
+            [](Context& self, bool q)
+            {
+                deprecated("Use `output_params.quiet` instead.");
+                self.output_params.quiet = q;
+            }
+        );
+
+    // ThreadsParams
+    ctx.def_property(
+           "download_threads",
+           [](const Context& self)
+           {
+               deprecated("Use `threads_params.download_threads` instead.");
+               return self.threads_params.download_threads;
+           },
+           [](Context& self, std::size_t dt)
+           {
+               deprecated("Use `threads_params.download_threads` instead.");
+               self.threads_params.download_threads = dt;
+           }
+    )
+        .def_property(
+            "extract_threads",
+            [](const Context& self)
+            {
+                deprecated("Use `threads_params.extract_threads` instead.");
+                return self.threads_params.extract_threads;
+            },
+            [](Context& self, int et)
+            {
+                deprecated("Use `threads_params.extract_threads` instead.");
+                self.threads_params.extract_threads = et;
+            }
+        );
+
+    // PrefixParams
+    ctx.def_property(
+           "target_prefix",
+           [](const Context& self)
+           {
+               deprecated("Use `prefix_params.target_prefix` instead.");
+               return self.prefix_params.target_prefix;
+           },
+           [](Context& self, fs::u8path tp)
+           {
+               deprecated("Use `prefix_params.target_prefix` instead.");
+               self.prefix_params.target_prefix = tp;
+           }
+    )
+        .def_property(
+            "conda_prefix",
+            [](const Context& self)
+            {
+                deprecated("Use `prefix_params.conda_prefix` instead.");
+                return self.prefix_params.conda_prefix;
+            },
+            [](Context& self, fs::u8path cp)
+            {
+                deprecated("Use `prefix_params.conda_prefix` instead.");
+                self.prefix_params.conda_prefix = cp;
+            }
+        )
+        .def_property(
+            "root_prefix",
+            [](const Context& self)
+            {
+                deprecated("Use `prefix_params.root_prefix` instead.");
+                return self.prefix_params.root_prefix;
+            },
+            [](Context& self, fs::u8path rp)
+            {
+                deprecated("Use `prefix_params.root_prefix` instead.");
+                self.prefix_params.root_prefix = rp;
+            }
+        );
+
+    ////////////////////////////////////////////
+
     pyPrefixData
         .def(py::init(
             [](const fs::u8path& prefix_path) -> PrefixData

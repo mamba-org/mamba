@@ -169,7 +169,7 @@ jobs:
           environment-file: ./mamba/environment-dev.yml
           environment-name: build_env
           cache-environment: true
-          create-args: |
+          create-args: >-
             conda-build
             python=${{ matrix.python_version }}
       - uses: hendrikmuhs/ccache-action@main
@@ -380,7 +380,7 @@ jobs:
           environment-file: ./mamba/environment-dev.yml
           environment-name: build_env
           cache-environment: true
-          create-args: |
+          create-args: >-
             conda-build
             curl
           init-shell: >-

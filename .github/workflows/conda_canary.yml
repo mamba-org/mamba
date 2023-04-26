@@ -34,7 +34,7 @@ jobs:
               - conda-forge
               - conda-canary/label/dev
             channel_priority: flexible
-          create-args: |
+          create-args: >-
             python=3.10
             conda =*+*
 

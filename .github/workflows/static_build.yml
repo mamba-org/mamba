@@ -46,6 +46,8 @@ jobs:
         run: |
           conda mambabuild -m micromamba-feedstock/.ci_support/${{ matrix.platform }}_${{ matrix.arch }}_.yaml \
                               micromamba-feedstock/recipe ${{ matrix.arch != '64' && '--no-test' || '' }}
+        env:
+          CONDARC: ~/micromamba-bin/.condarc
       - name: Unpack micromamba package
         shell: micromamba-shell {0}
         run: |
@@ -53,6 +55,8 @@ jobs:
           tar -xvf micromamba-*.tar.bz2
           mkdir -p ${{ github.workspace }}/artifacts
           cp bin/micromamba ${{ github.workspace }}/artifacts
+        env:
+          CONDARC: ~/micromamba-bin/.condarc
       - name: Test micromamba on emulated target architecture
         if: ${{ matrix.arch != '64' && matrix.platform == 'linux' }}
         uses: uraimo/run-on-arch-action@v2

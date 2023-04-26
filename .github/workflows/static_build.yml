@@ -39,7 +39,6 @@ jobs:
           cp ./micromamba/recipe/* micromamba-feedstock/recipe/
       - uses: mamba-org/setup-micromamba@v1
         with:
-          environment-file: false
           environment-name: mambabuild
           create-args: boa
       - name: Build conda package

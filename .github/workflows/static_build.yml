@@ -42,12 +42,12 @@ jobs:
           environment-name: mambabuild
           create-args: boa
       - name: Build conda package
-        shell: bash -l {0}
+        shell: micromamba-shell {0}
         run: |
           conda mambabuild -m micromamba-feedstock/.ci_support/${{ matrix.platform }}_${{ matrix.arch }}_.yaml \
                               micromamba-feedstock/recipe ${{ matrix.arch != '64' && '--no-test' || '' }}
       - name: Unpack micromamba package
-        shell: bash -l {0}
+        shell: micromamba-shell {0}
         run: |
           cd $MAMBA_ROOT_PREFIX/envs/mambabuild/conda-bld/${{ matrix.platform }}-${{ matrix.arch }}
           tar -xvf micromamba-*.tar.bz2

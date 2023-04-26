@@ -7,8 +7,9 @@
 // TODO remove all these includes later?
 #include <spdlog/spdlog.h>
 
-#include "mamba/core/mamba_fs.hpp"  // for fs::exists
-#include "mamba/core/util.hpp"      // for hide_secrets
+#include "mamba/core/environment.hpp"  // for NETRC env var
+#include "mamba/core/mamba_fs.hpp"     // for fs::exists
+#include "mamba/core/util.hpp"         // for hide_secrets
 
 #include "curl.hpp"
 
@@ -29,6 +30,13 @@ namespace mamba
             curl_easy_setopt(handle, CURLOPT_URL, url.c_str());
             curl_easy_setopt(handle, CURLOPT_NETRC, CURL_NETRC_OPTIONAL);
             curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
+
+            // if NETRC is exported in ENV, we forward it to curl
+            std::string netrc_file = env::get("NETRC").value_or("");
+            if (netrc_file != "")
+            {
+                curl_easy_setopt(handle, CURLOPT_NETRC_FILE, netrc_file.c_str());
+            }
 
             // This can improve throughput significantly, see
             // https://github.com/curl/curl/issues/9601

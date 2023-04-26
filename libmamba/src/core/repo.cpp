@@ -21,6 +21,7 @@ extern "C"  // Incomplete header
 
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
@@ -310,18 +311,16 @@ namespace mamba
         auto repo = srepo(*this);
         bool is_solv = filename.extension() == ".solv";
 
-        fs::u8path filename_wo_extension;
+        fs::u8path solv_file = filename;
+        fs::u8path json_file = filename;
+
         if (is_solv)
         {
-            m_solv_file = filename;
-            m_json_file = filename;
-            m_json_file.replace_extension("json");
+            json_file.replace_extension("json");
         }
         else
         {
-            m_json_file = filename;
-            m_solv_file = filename;
-            m_solv_file.replace_extension("solv");
+            solv_file.replace_extension("solv");
         }
 
         LOG_INFO << "Reading cache files '" << (filename.parent_path() / filename).string()
@@ -329,16 +328,16 @@ namespace mamba
 
         if (is_solv)
         {
-            const auto lock = LockFile(m_solv_file);
-            const bool read = read_solv(m_solv_file);
+            const auto lock = LockFile(solv_file);
+            const bool read = read_solv(solv_file);
             if (read)
             {
                 return;
             }
         }
 
-        auto lock = LockFile(m_json_file);
-        read_json(m_json_file);
+        auto lock = LockFile(json_file);
+        read_json(json_file);
 
         // TODO move this to a more structured approach for repodata patching?
         if (Context::instance().add_pip_as_python_dependency)
@@ -348,7 +347,7 @@ namespace mamba
 
         if (name() != "installed")
         {
-            write_solv(m_solv_file);
+            write_solv(solv_file);
         }
     }
 

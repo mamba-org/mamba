@@ -16,13 +16,17 @@
 #include <nlohmann/json_fwd.hpp>
 #include <solv/pooltypes.h>
 
-#include "mamba_fs.hpp"
 #include "pool.hpp"
 
 extern "C"
 {
     typedef struct s_Repo Repo;
     typedef struct s_Repodata Repodata;
+}
+
+namespace fs
+{
+    class u8path;
 }
 
 namespace mamba
@@ -101,8 +105,6 @@ namespace mamba
         void set_solvables_url(const std::string& repo_url);
 
         MPool m_pool;
-        fs::u8path m_json_file = {};
-        fs::u8path m_solv_file = {};
 
         RepoMetadata m_metadata = {};
 

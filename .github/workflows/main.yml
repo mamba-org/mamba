@@ -310,6 +310,8 @@ jobs:
           text = text.replace("https://repo.msys2.org/msys/x86_64/libtool-2.4.6-9-x86_64.pkg.tar.xz", "https://repo.msys2.org/msys/x86_64/libtool-2.4.7-3-x86_64.pkg.tar.zst")
 
           f.write_text(text)
+        env:
+          MAMBA_ROOT_PREFIX: ~/micromamba
       - name: build static windows dependencies with vcpkg
         shell: cmd /C CALL {0}
         run: |

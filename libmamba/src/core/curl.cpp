@@ -4,7 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-// TODO remove all these includes later?
+#include <functional>
 #include <spdlog/spdlog.h>
 
 #include "mamba/core/environment.hpp"  // for NETRC env var
@@ -179,6 +179,51 @@ namespace mamba
     bool curl_error::is_serious() const
     {
         return m_serious;
+    }
+
+    /**********
+     * CURLId *
+     **********/
+
+    CURLId::CURLId(CURL* handle)
+        : p_handle(handle)
+    {
+    }
+
+    bool CURLId::operator==(const CURLId& rhs) const
+    {
+        return p_handle == rhs.p_handle;
+    }
+
+    bool CURLId::operator!=(const CURLId& rhs) const
+    {
+        return !(*this == rhs);
+    }
+
+    bool CURLId::operator<(const CURLId& rhs) const
+    {
+        return p_handle < rhs.p_handle;
+    }
+
+    bool CURLId::operator<=(const CURLId& rhs) const
+    {
+        return !(*this > rhs);
+    }
+
+    bool CURLId::operator>(const CURLId& rhs) const
+    {
+        return rhs < *this;
+    }
+
+    bool CURLId::operator>=(const CURLId& rhs) const
+    {
+        return rhs <= *this;
+    }
+
+    std::size_t CURLId::hash() const noexcept
+    {
+        std::hash<CURL*> h;
+        return h(p_handle);
     }
 
     /**************
@@ -362,6 +407,11 @@ namespace mamba
         );
     }
 
+    void CURLHandle::reset_handle()
+    {
+        curl_easy_reset(m_handle);
+    }
+
     CURLHandle& CURLHandle::add_header(const std::string& header)
     {
         p_headers = curl_slist_append(p_headers, header.c_str());
@@ -411,7 +461,7 @@ namespace mamba
 
     bool CURLHandle::is_curl_res_ok() const
     {
-        return (m_result == CURLE_OK);
+        return is_curl_res_ok(m_result);
     }
 
     void CURLHandle::set_result(CURLcode res)
@@ -421,12 +471,37 @@ namespace mamba
 
     std::string CURLHandle::get_res_error() const
     {
-        return static_cast<std::string>(curl_easy_strerror(m_result));
+        return get_res_error(m_result);
     }
 
     bool CURLHandle::can_proceed()
     {
-        switch (m_result)
+        return can_retry(m_result);
+    }
+
+    void CURLHandle::perform()
+    {
+        m_result = curl_easy_perform(m_handle);
+    }
+
+    CURLId CURLHandle::get_id() const
+    {
+        return CURLId(m_handle);
+    }
+
+    bool CURLHandle::is_curl_res_ok(CURLcode res)
+    {
+        return res == CURLE_OK;
+    }
+
+    std::string CURLHandle::get_res_error(CURLcode res)
+    {
+        return static_cast<std::string>(curl_easy_strerror(res));
+    }
+
+    bool CURLHandle::can_retry(CURLcode res)
+    {
+        switch (res)
         {
             case CURLE_ABORTED_BY_CALLBACK:
             case CURLE_BAD_FUNCTION_ARGUMENT:
@@ -451,12 +526,7 @@ namespace mamba
                 break;
         }
     }
-
-    void CURLHandle::perform()
-    {
-        m_result = curl_easy_perform(m_handle);
-    }
-
+    
     CURL* unwrap(const CURLHandle& h)
     {
         return h.m_handle;
@@ -468,50 +538,6 @@ namespace mamba
     }
 
     bool operator!=(const CURLHandle& lhs, const CURLHandle& rhs)
-    {
-        return !(lhs == rhs);
-    }
-
-    /*****************
-     * CURLReference *
-     *****************/
-
-    CURLReference::CURLReference(CURL* handle)
-        : p_handle(handle)
-    {
-    }
-
-    CURL* unwrap(const CURLReference& h)
-    {
-        return h.p_handle;
-    }
-
-    bool operator==(const CURLReference& lhs, const CURLReference& rhs)
-    {
-        return unwrap(lhs) == unwrap(rhs);
-    }
-
-    bool operator==(const CURLReference& lhs, const CURLHandle& rhs)
-    {
-        return unwrap(lhs) == unwrap(rhs);
-    }
-
-    bool operator==(const CURLHandle& lhs, const CURLReference& rhs)
-    {
-        return unwrap(lhs) == unwrap(rhs);
-    }
-
-    bool operator!=(const CURLReference& lhs, const CURLReference& rhs)
-    {
-        return !(lhs == rhs);
-    }
-
-    bool operator!=(const CURLReference& lhs, const CURLHandle& rhs)
-    {
-        return !(lhs == rhs);
-    }
-
-    bool operator!=(const CURLHandle& lhs, const CURLReference& rhs)
     {
         return !(lhs == rhs);
     }
@@ -594,7 +620,7 @@ namespace mamba
         CURLMsg* msg = curl_multi_info_read(p_handle, &msgs_in_queue);
         if (msg != nullptr)
         {
-            return CURLMultiResponse{ msg->easy_handle, msg->data.result, msg->msg == CURLMSG_DONE };
+            return CURLMultiResponse{ CURLId(msg->easy_handle), msg->data.result, msg->msg == CURLMSG_DONE };
         }
         else
         {

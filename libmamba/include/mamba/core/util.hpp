@@ -338,6 +338,10 @@ namespace mamba
     /// NOTE: this does not check if the file exists.
     bool is_yaml_file_name(std::string_view filename);
 
+    std::optional<std::string> proxy_match(
+        const std::string& url,
+        const std::map<std::string, std::string>& proxy_servers
+    );
     std::optional<std::string> proxy_match(const std::string& url);
 
     std::string hide_secrets(std::string_view str);

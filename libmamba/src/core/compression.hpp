@@ -14,6 +14,42 @@
 
 namespace mamba
 {
+
+    class CompressionStream
+    {
+    public:
+
+        using writer = std::function<size_t(char*, size_t)>;
+
+        virtual ~CompressionStream() = default;
+
+        CompressionStream(const CompressionStream&) = delete;
+        CompressionStream& operator=(const CompressionStream&) = delete;
+        CompressionStream(CompressionStream&&) = delete;
+        CompressionStream& operator=(CompressionStream&&) = delete;
+        
+        size_t write(char* in, size_t size);
+
+    protected:
+
+        CompressionStream(writer&& func);
+
+        size_t invoke_writer(char* in, size_t size);
+
+    private:
+
+        virtual size_t write_impl(char* in, size_t size) = 0;
+
+        writer m_writer;
+    };
+
+    std::unique_ptr<CompressionStream> make_compression_stream(
+        const std::string& url,
+        CompressionStream::writer&& func
+    );
+
+    // TODO: remove the following when switching to new CompressionStream
+
     struct ZstdStream
     {
         static constexpr size_t BUFFER_SIZE = 256000;
@@ -89,6 +125,8 @@ namespace mamba
     {
         return ZSTD_DStreamOutSize();
     }
+
+
 }  // namespace mamba
 
 #endif  // MAMBA_COMPRESSION_HPP

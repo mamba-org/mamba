@@ -64,6 +64,38 @@ namespace mamba
         bool m_serious;
     };
 
+    class CURLId
+    {
+    public:
+
+        explicit CURLId(CURL* handle = nullptr);
+
+        bool operator==(const CURLId& rhs) const;
+        bool operator!=(const CURLId& rhs) const;
+        bool operator<(const CURLId& rhs) const;
+        bool operator<=(const CURLId& rhs) const;
+        bool operator>(const CURLId& rhs) const;
+        bool operator>=(const CURLId& rhs) const;
+
+        std::size_t hash() const noexcept;
+
+    private:
+
+        CURL* p_handle;
+    };
+}
+
+template <>
+struct std::hash<mamba::CURLId>
+{
+    std::size_t operator()(const mamba::CURLId& arg) const noexcept
+    {
+        return arg.hash();
+    }
+};
+
+namespace mamba
+{
     class CURLHandle
     {
     public:
@@ -87,6 +119,8 @@ namespace mamba
             const std::string& ssl_verify
         );
 
+        void reset_handle();
+
         CURLHandle& add_header(const std::string& header);
         CURLHandle& add_headers(const std::vector<std::string>& headers);
         CURLHandle& reset_headers();
@@ -99,15 +133,23 @@ namespace mamba
         const char* get_error_buffer() const;
         std::string get_curl_effective_url();
 
-        std::size_t get_result() const;
-        bool is_curl_res_ok() const;
+        [[deprecated]] std::size_t get_result() const;
+        [[deprecated]] bool is_curl_res_ok() const;
 
-        void set_result(CURLcode res);
+        [[deprecated]] void set_result(CURLcode res);
 
-        std::string get_res_error() const;
+        [[deprecated]] std::string get_res_error() const;
 
-        bool can_proceed();
+        // Side-effect programming, to remove
+        [[deprecated]] bool can_proceed();
         void perform();
+
+        CURLId get_id() const;
+
+        // New API to avoid storing result
+        static bool is_curl_res_ok(CURLcode res);
+        static std::string get_res_error(CURLcode res);
+        static bool can_retry(CURLcode res);
 
     private:
 
@@ -122,29 +164,9 @@ namespace mamba
     bool operator==(const CURLHandle& lhs, const CURLHandle& rhs);
     bool operator!=(const CURLHandle& lhs, const CURLHandle& rhs);
 
-    class CURLReference
-    {
-    public:
-
-        CURLReference(CURL* handle);
-
-    private:
-
-        CURL* p_handle;
-
-        friend CURL* unwrap(const CURLReference&);
-    };
-
-    bool operator==(const CURLHandle& lhs, const CURLReference& rhs);
-    bool operator==(const CURLReference& lhs, const CURLHandle& rhs);
-    bool operator==(const CURLReference& lhs, const CURLReference& rhs);
-    bool operator!=(const CURLHandle& lhs, const CURLReference& rhs);
-    bool operator!=(const CURLReference& lhs, const CURLHandle& rhs);
-    bool operator!=(const CURLReference& lhs, const CURLReference& rhs);
-
     struct CURLMultiResponse
     {
-        CURLReference m_handle_ref;
+        CURLId m_handle_id;
         CURLcode m_transfer_result;
         bool m_transfer_done;
     };

@@ -1304,7 +1304,7 @@ namespace mamba
                        [this](auto&... args) { return detail::ssl_verify_hook(*this, args...); }
                    ));
 
-        insert(Configurable("proxy_servers", &ctx.proxy_servers)
+        insert(Configurable("proxy_servers", &ctx.remote_fetch_params.proxy_servers)
                    .group("Network")
                    .set_rc_configurable()
                    .description("Use a proxy server for network connections")

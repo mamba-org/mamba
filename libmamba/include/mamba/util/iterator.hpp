@@ -256,6 +256,36 @@ namespace mamba::util
             next_valid_iterator();
         }
 
+        ~filter_iterator() = default;
+        filter_iterator(const filter_iterator&) = default;
+        filter_iterator(filter_iterator&&) = default;
+
+        self_type& operator=(const self_type& rhs)
+        {
+            m_pred.reset();
+            if (rhs.m_pred)
+            {
+                m_pred.emplace(*(rhs.m_pred));
+            }
+            m_iter = rhs.m_iter;
+            m_begin_limit = rhs.m_begin_limit;
+            m_end = rhs.m_end;
+            return *this;
+        }
+
+        self_type& operator=(self_type&& rhs)
+        {
+            m_pred.reset();
+            if (rhs.m_pred)
+            {
+                m_pred.emplace(*std::move(rhs.m_pred));
+            }
+            m_iter = std::move(rhs.m_iter);
+            m_begin_limit = std::move(rhs.m_begin_limit);
+            m_end = std::move(rhs.m_end);
+            return *this;
+        }
+
         self_type& operator++()
         {
             ++m_iter;
@@ -267,7 +297,7 @@ namespace mamba::util
         enable_bidirectional_iterator<It, self_type&> operator--()
         {
             --m_iter;
-            while (m_iter != m_begin_limit && !m_pred(*m_iter))
+            while (m_iter != m_begin_limit && !(m_pred.value()(*m_iter)))
             {
                 --m_iter;
             }
@@ -340,13 +370,17 @@ namespace mamba::util
 
         void next_valid_iterator()
         {
-            while (m_iter != m_end && !m_pred(*m_iter))
+            while (m_iter != m_end && !(m_pred.value()(*m_iter)))
             {
                 ++m_iter;
             }
         }
 
-        Predicate m_pred;
+        // Trick to enable move and copy assignment: since lambdas are
+        // not assignable, we encpsulate them in an std::optional and
+        // rely on it to implement assignment operators. The optional
+        // should be replaced with a dedicated wrapper.
+        std::optional<Predicate> m_pred;
         Iterator m_iter;
         Iterator m_begin_limit;
         Iterator m_end;

@@ -71,7 +71,7 @@ jobs:
           restore-keys: |
             libmamba_static-${{ matrix.os }}
       - name: build and run libmamba C++ tests
-        shell: bash -l {0}
+        shell: bash -el {0}
         run: |
           mkdir build
           cd build
@@ -113,9 +113,8 @@ jobs:
           restore-keys: |
             libmamba_static-${{ matrix.os }}
       - name: build micromamba
-        shell: bash -l {0}
+        shell: bash -el {0}
         run: |
-          micromamba activate build_env
           mkdir build
           cd build
           cmake .. -DBUILD_MICROMAMBA=ON \
@@ -142,7 +141,6 @@ jobs:
         shell: bash -l -eo pipefail {0}
         run: |
           export TEST_MAMBA_EXE=$(pwd)/build/micromamba/micromamba
-          micromamba activate build_env
           pytest -v --capture=tee-sys micromamba/tests/
       - name: Cleanup
         shell: bash

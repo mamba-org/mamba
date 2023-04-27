@@ -22,12 +22,6 @@ jobs:
       with:
         environment-name: linters
         create-args: pre-commit
-    - name: Micromamba info
-      shell: bash -el {0}
-      run: |
-        micromamba info
-        micromamba list
     - name: Run all linters
-      shell: bash -el {0}
-      run: |
-        pre-commit run --all-files --verbose --show-diff-on-failure
+      shell: micromamba-shell {0}
+      run: pre-commit run --all-files --verbose --show-diff-on-failure

@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   conda-build:
-    name: "micromamba - ${{ matrix.platform }}-${{ matrix.arch }}"
+    name: micromamba - ${{ matrix.platform }}-${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -47,9 +47,8 @@ jobs:
           conda mambabuild -m micromamba-feedstock/.ci_support/${{ matrix.platform }}_${{ matrix.arch }}_.yaml \
                               micromamba-feedstock/recipe ${{ matrix.arch != '64' && '--no-test' || '' }}
       - name: Unpack micromamba package
-        shell: micromamba-shell {0}
         run: |
-          cd $MAMBA_ROOT_PREFIX/envs/mambabuild/conda-bld/${{ matrix.platform }}-${{ matrix.arch }}
+          cd "$MAMBA_ROOT_PREFIX/envs/mambabuild/conda-bld/${{ matrix.platform }}-${{ matrix.arch }}"
           tar -xvf micromamba-*.tar.bz2
           mkdir -p ${{ github.workspace }}/artifacts
           cp bin/micromamba ${{ github.workspace }}/artifacts
@@ -86,7 +85,7 @@ jobs:
 
   micromamba_full_static_win:
     # These build instructions are based on https://github.com/conda-forge/micromamba-feedstock
-    name: "micromamba - win-64"
+    name: micromamba - win-64
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v3

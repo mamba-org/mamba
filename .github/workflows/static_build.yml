@@ -122,8 +122,6 @@ jobs:
       - name: build static windows dependencies with vcpkg
         shell: cmd /C CALL {0}
         run: |
-          call micromamba activate build_env
-          if %errorlevel% neq 0 exit /b %errorlevel%
           mkdir build
           if %errorlevel% neq 0 exit /b %errorlevel%
           cd build
@@ -152,8 +150,6 @@ jobs:
       - name: build micromamba
         shell: cmd /C CALL {0}
         run: |
-          call micromamba activate build_env
-          if %errorlevel% neq 0 exit /b %errorlevel%
           cd build
           if %errorlevel% neq 0 exit /b %errorlevel%
           cmake .. ^

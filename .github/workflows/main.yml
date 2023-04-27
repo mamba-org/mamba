@@ -33,7 +33,6 @@ jobs:
       - name: build libmamba-static
         shell: bash -l {0}
         run: |
-          micromamba activate build_env
           mkdir build
           cd build
           cmake .. -DBUILD_LIBMAMBA=ON \
@@ -48,7 +47,7 @@ jobs:
         shell: bash
         if: always()
         run: |
-          # Do not cache temporary envs with 'cache-env: true'
+          # Do not cache temporary envs with 'cache-environment: true'
           rm -rf ~/micromamba*/envs/*/envs
 
   libmamba_cpp_tests:
@@ -74,7 +73,6 @@ jobs:
       - name: build and run libmamba C++ tests
         shell: bash -l {0}
         run: |
-          micromamba activate build_env
           mkdir build
           cd build
           cmake .. -DBUILD_LIBMAMBA=ON \
@@ -91,7 +89,7 @@ jobs:
         shell: bash
         if: always()
         run: |
-          # Do not cache temporary envs with 'cache-env: true'
+          # Do not cache temporary envs with 'cache-environment: true'
           rm -rf ~/micromamba*/envs/*/envs
 
   umamba_tests:
@@ -150,7 +148,7 @@ jobs:
         shell: bash
         if: always()
         run: |
-          # Do not cache temporary envs with 'cache-env: true'
+          # Do not cache temporary envs with 'cache-environment: true'
           rm -rf ~/micromamba*/envs/*/envs
 
   mamba_python_tests:
@@ -178,13 +176,9 @@ jobs:
           key: ${{ github.job }}-${{ matrix.os }}
           restore-keys: |
             libmamba_static-${{ matrix.os }}
-      - name: run conda init
-        shell: bash -l {0}
-        run: conda init
       - name: build libmamba Python bindings
-        shell: bash -l {0}
+        shell: bash -el {0}
         run: |
-          micromamba activate build_env
           mkdir build
           cd build
           cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
@@ -198,38 +192,31 @@ jobs:
           ninja
           ninja install
       - name: install libmambapy
-        shell: bash -l {0}
+        shell: bash -el {0}
         run: |
-          micromamba activate build_env
           pip install -e ./libmambapy/ --no-deps
       - name: check libmambapy stubs
-        shell: bash -l {0}
+        shell: bash -el {0}
         run: |
           pybind11-stubgen libmambapy.bindings
           python compare_stubs.py libmambapy/libmambapy/__init__.pyi stubs/libmambapy/bindings-stubs/__init__.pyi
       - name: build cache statistics
         run: sccache --show-stats
       - name: install mamba
-        shell: bash -l {0}
-        run: |
-          micromamba activate build_env
-          pip install ./mamba[test] --no-deps
+        shell: bash -el {0}
+        run: pip install ./mamba[test] --no-deps
       - name: run mamba tests suite
-        shell: bash -l {0}
-        run: |
-          micromamba activate build_env
-          pytest -v --capture=tee-sys mamba/tests
+        shell: bash -el {0}
+        run: pytest -v --capture=tee-sys mamba/tests
       - name: run mamba create/update tests
-        shell: bash -l {0}
+        shell: bash -el {0}
         run: |
-          micromamba activate build_env
           mamba create -n test_env xtensor -c conda-forge -y
           mamba env create -f mamba/tests/test_env.yml
           mamba env update -f mamba/tests/update_env.yml
       - name: run mamba local channel test
-        shell: bash -l {0}
+        shell: bash -el {0}
         run: |
-          micromamba activate build_env
           if [ "$RUNNER_OS" == "Linux" ]; then
             mkdir -p $CONDA_PREFIX/conda-bld/linux-64
             wget -P $CONDA_PREFIX/conda-bld/linux-64 https://anaconda.org/conda-forge/xtensor/0.21.8/download/linux-64/xtensor-0.21.8-hc9558a2_0.tar.bz2
@@ -248,9 +235,8 @@ jobs:
             exit 1
           fi
       - name: Run server auth tests
-        shell: bash -l {0} -euo pipefail -x
+        shell: bash -euox -l {0} pipefail
         run: |
-          micromamba activate build_env
           cd mamba/tests
 
           if [[ "$(uname -s)" == "Linux" ]]; then
@@ -260,17 +246,15 @@ jobs:
           pip install git+https://github.com/conda/conda-content-trust.git@main
 
           ./testserver.sh
-
       - name: Shell init
-        shell: bash -l {0} -euo pipefail -x
-        run: |
-          mamba init
+        shell: bash -el {0} -euo pipefail -x
+        run: mamba init
 
       - name: Cleanup
         shell: bash
         if: always()
         run: |
-          # Do not cache temporary envs with 'cache-env: true'
+          # Do not cache temporary envs with 'cache-environment: true'
           rm -rf ~/micromamba*/envs/*/envs
 
   libmamba_static_win:
@@ -313,8 +297,6 @@ jobs:
       - name: build static windows dependencies with vcpkg
         shell: cmd /C CALL {0}
         run: |
-          call micromamba activate build_env
-          if %errorlevel% neq 0 exit /b %errorlevel%
           mkdir build
           if %errorlevel% neq 0 exit /b %errorlevel%
           cd build
@@ -343,8 +325,6 @@ jobs:
       - name: build libmamba-static
         shell: cmd /C call {0}
         run: |
-          call micromamba activate build_env
-          if %errorlevel% neq 0 exit /b %errorlevel%
           cd build
           if %errorlevel% neq 0 exit /b %errorlevel%
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
@@ -361,7 +341,7 @@ jobs:
         shell: bash
         if: always()
         run: |
-          # Do not cache temporary envs with 'cache-env: true'
+          # Do not cache temporary envs with 'cache-environment: true'
           rm -rf ~/micromamba*/envs/*/envs
 
   mamba_python_tests_win:
@@ -392,14 +372,9 @@ jobs:
           key: ${{ github.job }}-${{ matrix.os }}
           restore-keys: |
             libmamba_static_win-${{ matrix.os }}
-      - name: run conda init
-        shell: bash -l {0}
-        run: conda init
       - name: build libmamba Python bindings
         shell: cmd /C call {0}
         run: |
-          call micromamba activate build_env
-          if %errorlevel% neq 0 exit /b %errorlevel%
           mkdir build
           if %errorlevel% neq 0 exit /b %errorlevel%
           cd build
@@ -418,35 +393,33 @@ jobs:
           ninja install
       - name: install libmambapy
         shell: cmd /C call {0}
-        run: |
-          call micromamba activate build_env
-          pip install -e .\libmambapy\ --no-deps
+        run: pip install -e .\libmambapy\ --no-deps
       - name: build cache statistics
         run: sccache --show-stats
       - name: install mamba
-        shell: bash -l {0}
+        shell: bash -el {0}
         run: |
           python --version
           pip install ./mamba[test] --no-deps
       - name: run mamba tests suite
-        shell: bash -l {0}
+        shell: bash -el {0}
         run: pytest -v --capture=tee-sys mamba/tests
       - name: Run create command
-        shell: bash -l {0}
+        shell: bash -el {0}
         run: mamba create -n test_env xtensor -c conda-forge -y
       - name: Run env create command
-        shell: bash -l {0}
+        shell: bash -el {0}
         run: mamba env create -f mamba/tests/test_env.yml
       - name: Run env update command
-        shell: bash -l {0}
+        shell: bash -el {0}
         run: mamba env update -f mamba/tests/update_env.yml
       - name: Run local channel checks
-        shell: bash -l {0}
-        run: |
+        shell: bash -el {0}
+        run: | # this tests the created micromamba binary
           mkdir -p $CONDA_PREFIX/conda-bld/win-64
           echo $PATH
-          micromamba list
-          micromamba info
+          ./micromamba list
+          ./micromamba info
           curl --version
           curl https://anaconda.org/conda-forge/xtensor/0.21.7/download/win-64/xtensor-0.21.7-h7ef1ec2_0.tar.bz2 -L -o $CONDA_PREFIX/conda-bld/win-64/xtensor-0.21.7-h7ef1ec2_0.tar.bz2
           curl https://anaconda.org/conda-forge/xtl/0.6.21/download/win-64/xtl-0.6.21-h5362a0b_0.tar.bz2 -L -o $CONDA_PREFIX/conda-bld/win-64/xtl-0.6.21-h5362a0b_0.tar.bz2
@@ -463,7 +436,7 @@ jobs:
         shell: bash
         if: always()
         run: |
-          # Do not cache temporary envs with 'cache-env: true'
+          # Do not cache temporary envs with 'cache-environment: true'
           rm -rf ~/micromamba*/envs/*/envs
 
   libmamba_cpp_tests_win:
@@ -492,8 +465,6 @@ jobs:
       - name: build and run libmamba C++ tests
         shell: cmd /C call {0}
         run: |
-          call micromamba activate build_env
-          if %errorlevel% neq 0 exit /b %errorlevel%
           mkdir build
           if %errorlevel% neq 0 exit /b %errorlevel%
           cd build
@@ -515,7 +486,7 @@ jobs:
         shell: bash
         if: always()
         run: |
-          # Do not cache temporary envs with 'cache-env: true'
+          # Do not cache temporary envs with 'cache-environment: true'
           rm -rf ~/micromamba*/envs/*/envs
 
   umamba_tests_win:
@@ -534,7 +505,7 @@ jobs:
           environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
           cache-environment: true
-          init-shell: cmd.exe
+          init-shell: cmd.eexe
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -544,8 +515,6 @@ jobs:
       - name: build micromamba
         shell: cmd /C call {0}
         run: |
-          call micromamba activate build_env
-          if %errorlevel% neq 0 exit /b %errorlevel%
           mkdir build
           if %errorlevel% neq 0 exit /b %errorlevel%
           cd build
@@ -561,9 +530,7 @@ jobs:
           ninja install
       - name: check that micromamba runs
         shell: cmd /C call {0}
-        run: |
-          call micromamba activate build_env
-          .\build\micromamba\micromamba.exe --help
+        run: .\build\micromamba\micromamba.exe --help
       - name: build cache statistics
         run: sccache --show-stats
       - name: tar micromamba artifact
@@ -579,7 +546,7 @@ jobs:
         shell: bash
         if: always()
         run: |
-          # Do not cache temporary envs with 'cache-env: true'
+          # Do not cache temporary envs with 'cache-environment: true'
           rm -rf ~/micromamba*/envs/*/envs
 
   umamba_tests_win_cmd:
@@ -598,8 +565,7 @@ jobs:
 
       - name: untar micromamba artifact
         shell: bash -l -eo pipefail {0}
-        run: |
-          tar -xvf umamba.tar
+        run: tar -xvf umamba.tar
 
       - name: create build environment
         uses: mamba-org/setup-micromamba@v1
@@ -647,5 +613,5 @@ jobs:
         shell: bash
         if: always()
         run: |
-          # Do not cache temporary envs with 'cache-env: true'
+          # Do not cache temporary envs with 'cache-environment: true'
           rm -rf ~/micromamba*/envs/*/envs

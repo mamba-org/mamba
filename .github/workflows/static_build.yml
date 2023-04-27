@@ -46,8 +46,6 @@ jobs:
         run: |
           conda mambabuild -m micromamba-feedstock/.ci_support/${{ matrix.platform }}_${{ matrix.arch }}_.yaml \
                               micromamba-feedstock/recipe ${{ matrix.arch != '64' && '--no-test' || '' }}
-        env:
-          CONDARC: ~/micromamba-bin/.condarc
       - name: Unpack micromamba package
         shell: micromamba-shell {0}
         run: |
@@ -55,8 +53,6 @@ jobs:
           tar -xvf micromamba-*.tar.bz2
           mkdir -p ${{ github.workspace }}/artifacts
           cp bin/micromamba ${{ github.workspace }}/artifacts
-        env:
-          CONDARC: ~/micromamba-bin/.condarc
       - name: Test micromamba on emulated target architecture
         if: ${{ matrix.arch != '64' && matrix.platform == 'linux' }}
         uses: uraimo/run-on-arch-action@v2
@@ -123,8 +119,6 @@ jobs:
           text = text.replace("https://repo.msys2.org/msys/x86_64/libtool-2.4.6-9-x86_64.pkg.tar.xz", "https://repo.msys2.org/msys/x86_64/libtool-2.4.7-3-x86_64.pkg.tar.zst")
 
           f.write_text(text)
-        env:
-          MAMBA_ROOT_PREFIX: C:\Users\runneradmin\micromamba
       - name: build static windows dependencies with vcpkg
         shell: cmd /C CALL {0}
         run: |

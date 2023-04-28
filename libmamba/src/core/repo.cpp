@@ -411,12 +411,9 @@ namespace mamba
                     {
                         s.set_noarch(noarch);
                     }
-                    if (auto const& repo_url = it->second.noarch; !repo_url.empty())
+                    if (auto const& repo_url = it->second.repo_url; !repo_url.empty())
                     {
-                        if (!it->second.repo_url.empty())
-                        {
-                            s.set_channel(repo_url);
-                        }
+                        s.set_channel(repo_url);
                     }
                 }
             }

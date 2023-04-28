@@ -18,6 +18,7 @@ namespace mamba::solv
 
     using RelationFlag = int;
     using DistType = int;
+    using SolverFlag = int;
 }
 
 #endif

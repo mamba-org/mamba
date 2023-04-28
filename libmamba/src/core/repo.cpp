@@ -87,12 +87,12 @@ namespace mamba
         }
     }
 
-    MRepo::MRepo(MPool& pool, const std::string& /*name*/, const fs::u8path& index, const RepoMetadata& metadata)
+    MRepo::MRepo(MPool& pool, const std::string& name, const fs::u8path& index, const RepoMetadata& metadata)
         : m_pool(pool)
         , m_metadata(metadata)
     {
         const auto url = rsplit(metadata.url, "/", 1).front();
-        auto [_, repo] = pool.pool().add_repo(url);
+        auto [_, repo] = pool.pool().add_repo(name);
         m_repo = repo.raw();
         repo.set_url(url);
         load_file(index);

@@ -144,7 +144,7 @@ namespace mamba
         const auto repodata_f = create_repodata_json(tmp_dir.path, packages);
 
         auto pool = MPool();
-        MRepo(pool, "some-name", repodata_f, "some-url");
+        MRepo(pool, "some-name", repodata_f, RepoMetadata{ /* .url= */ "some-url" });
         auto solver = std::make_unique<MSolver>(
             std::move(pool),
             std::vector{ std::pair{ SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } }

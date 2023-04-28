@@ -27,7 +27,6 @@ extern "C"  // Incomplete header
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/repo.hpp"
-#include "mamba/core/util_string.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/repo.hpp"
 
@@ -91,12 +90,11 @@ namespace mamba
         : m_pool(pool)
         , m_metadata(metadata)
     {
-        const auto url = rsplit(metadata.url, "/", 1).front();
         auto [_, repo] = pool.pool().add_repo(name);
         m_repo = repo.raw();
-        repo.set_url(url);
+        repo.set_url(m_metadata.url);
         load_file(index);
-        set_solvables_url(url);
+        set_solvables_url(m_metadata.url);
         repo.internalize();
     }
 

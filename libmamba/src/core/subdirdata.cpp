@@ -962,7 +962,7 @@ namespace mamba
     {
         using return_type = expected_t<MRepo>;
         RepoMetadata meta{
-            /* .url= */ m_repodata_url,
+            /* .url= */ rsplit(m_metadata.url, "/", 1).front(),
             /* .etag= */ m_metadata.etag,
             /* .mod= */ m_metadata.mod,
             /* .pip_added= */ Context::instance().add_pip_as_python_dependency,

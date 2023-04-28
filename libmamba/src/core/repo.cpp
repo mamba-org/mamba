@@ -98,17 +98,6 @@ namespace mamba
         repo.internalize();
     }
 
-    MRepo::MRepo(MPool& pool, const std::string& name, const std::string& index, const std::string& url)
-        : m_pool(pool)
-    {
-        auto [_, repo] = pool.pool().add_repo(name);
-        m_repo = repo.raw();
-        repo.set_url(url);
-        load_file(index);
-        set_solvables_url(url);
-        repo.internalize();
-    }
-
     MRepo::MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& package_infos)
         : m_pool(pool)
     {

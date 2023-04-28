@@ -63,7 +63,6 @@ namespace mamba
     public:
 
         MRepo(MPool& pool, const std::string& name, const fs::u8path& filename, const RepoMetadata& meta);
-        MRepo(MPool& pool, const std::string& name, const std::string& filename, const std::string& url);
         MRepo(MPool& pool, const PrefixData& prefix_data);
         MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& uris);
 

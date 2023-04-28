@@ -169,7 +169,10 @@ PYBIND11_MODULE(bindings, m)
         .def_readwrite("repo_url", &MRepo::PyExtraPkgInfo::repo_url);
 
     py::class_<MRepo>(m, "Repo")
-        .def(py::init<MPool&, const std::string&, const std::string&, const std::string&>())
+        .def(py::init(
+            [](MPool& pool, const std::string& name, const std::string& filename, const std::string& url
+            ) { return MRepo(pool, name, filename, RepoMetadata{ /* .url=*/url }); }
+        ))
         .def(py::init<MPool&, const PrefixData&>())
         .def("add_extra_pkg_info", &MRepo::py_add_extra_pkg_info)
         .def("set_installed", &MRepo::set_installed)

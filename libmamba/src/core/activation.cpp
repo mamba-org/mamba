@@ -1235,7 +1235,7 @@ namespace mamba
 
         for (const std::string& uvar : env_transform.unset_vars)
         {
-            out << "set -e " << uvar << "\n";
+            out << "set -e " << uvar << " || true\n";
         }
 
         for (const auto& [skey, svar] : env_transform.set_vars)

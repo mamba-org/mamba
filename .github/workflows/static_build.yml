@@ -148,6 +148,8 @@ jobs:
           if %errorlevel% neq 0 exit /b %errorlevel%
           set CMAKE_PREFIX_PATH=%VCPKG_ROOT%\installed\x64-windows-static\;%CMAKE_PREFIX_PATH%
           if %errorlevel% neq 0 exit /b %errorlevel%
+      - uses: mxschmitt/action-tmate@v3
+        if: failure()
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache

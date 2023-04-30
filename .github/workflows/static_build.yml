@@ -90,13 +90,19 @@ jobs:
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v3
+      - uses: mamba-org/provision-with-micromamba@main
+        if: true
+        with:
+          environment-file: ./libmamba/environment-static-dev.yml
+          environment-name: build_env
       - name: create build environment
         uses: mamba-org/setup-micromamba@v1
+        if: false
         with:
           environment-file: ./libmamba/environment-static-dev-win.yml
           environment-name: build_env
           # cache-environment: true  # this also caches the vcpkg builds
-          init-shell: >- # bash is used in the vcpkg part
+          init-shell: >-
             cmd.exe
             bash
             powershell

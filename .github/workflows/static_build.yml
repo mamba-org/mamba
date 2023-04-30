@@ -95,7 +95,9 @@ jobs:
           environment-file: ./libmamba/environment-static-dev-win.yml
           environment-name: build_env
           cache-environment: true  # this also caches the vcpkg builds
-          init-shell: cmd.exe
+          init-shell: >- # bash is used in the vcpkg part
+            cmd.exe
+            bash
       - name: fix up vcpkg recipes
         shell: python
         run: |

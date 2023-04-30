@@ -99,6 +99,7 @@ jobs:
           init-shell: >- # bash is used in the vcpkg part
             cmd.exe
             bash
+            powershell
       - name: fix up vcpkg recipes
         shell: python
         run: |

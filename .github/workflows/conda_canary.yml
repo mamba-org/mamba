@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '0 10 * * 0'
-  push: # TODO remove
+  # push: # TODO remove
 
 permissions:
   contents: read

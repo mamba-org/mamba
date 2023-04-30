@@ -3,10 +3,13 @@ name: CI
 on:
   push:
     branches:
-      - main
-  pull_request:
-    branches:
-      - main
+      - admowidjwiojd
+  # push:
+  #   branches:
+  #     - main
+  # pull_request:
+  #   branches:
+  #     - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

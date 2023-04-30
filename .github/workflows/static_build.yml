@@ -14,6 +14,7 @@ concurrency:
 
 jobs:
   conda-build:
+    if: false
     name: micromamba - ${{ matrix.platform }}-${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
     strategy:

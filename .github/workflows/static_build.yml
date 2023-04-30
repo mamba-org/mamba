@@ -128,9 +128,6 @@ jobs:
           text = text.replace("https://repo.msys2.org/msys/x86_64/libtool-2.4.6-9-x86_64.pkg.tar.xz", "https://repo.msys2.org/msys/x86_64/libtool-2.4.7-3-x86_64.pkg.tar.zst")
 
           f.write_text(text)
-      - run: |
-          bash.exe -c "echo hallo"
-        shell: cmd /C CALL {0}
       - name: build static windows dependencies with vcpkg
         shell: cmd /C CALL {0}
         run: |
@@ -156,7 +153,8 @@ jobs:
           set CMAKE_PREFIX_PATH=%VCPKG_ROOT%\installed\x64-windows-static\;%CMAKE_PREFIX_PATH%
           if %errorlevel% neq 0 exit /b %errorlevel%
       - uses: mxschmitt/action-tmate@v3
-        if: failure()
+        if: false
+        # if: failure()
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache

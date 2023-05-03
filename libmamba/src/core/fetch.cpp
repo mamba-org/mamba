@@ -240,6 +240,19 @@ namespace mamba
         m_curl_handle->set_opt_header();
         m_curl_handle->set_opt(CURLOPT_VERBOSE, Context::instance().output_params.verbosity >= 2);
 
+        // get url host
+        const auto host = URLHandler(url).host();
+        LOG_WARNING << "Adding token to request header for " << host << std::endl;
+        if (Context::instance().authentication_info().count(host))
+        {
+            LOG_WARNING << "Adding token to request header!" << std::endl;
+            const auto& auth = Context::instance().authentication_info().at(host);
+            if (auth.type == AuthenticationType::kBearerToken)
+            {
+                m_curl_handle->add_header(fmt::format("Authorization: Bearer {}", auth.value));
+            }
+        }
+
         auto logger = spdlog::get("libcurl");
         m_curl_handle->set_opt(CURLOPT_DEBUGFUNCTION, curl_debug_callback);
         m_curl_handle->set_opt(CURLOPT_DEBUGDATA, logger.get());

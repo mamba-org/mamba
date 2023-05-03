@@ -242,10 +242,8 @@ namespace mamba
 
         // get url host
         const auto host = URLHandler(url).host();
-        LOG_WARNING << "Adding token to request header for " << host << std::endl;
         if (Context::instance().authentication_info().count(host))
         {
-            LOG_WARNING << "Adding token to request header!" << std::endl;
             const auto& auth = Context::instance().authentication_info().at(host);
             if (auth.type == AuthenticationType::kBearerToken)
             {

@@ -8,16 +8,41 @@
 #define MAMBA_SOLV_SOLVER_HPP
 
 #include <memory>
+#include <optional>
 #include <string>
 
-#include "solv-cpp/ids.hpp"
+// START Only required for broken header <solv/rule.h>
+#include <solv/poolid.h>
+extern "C"
+{
+    typedef struct s_Solvable Solvable;
+    typedef struct s_Map Map;
+    typedef struct s_Queue Queue;
+}
+// END
+#include <solv/rules.h>
 
-using Solver = struct s_Solver;
+#include "solv-cpp/ids.hpp"
+#include "solv-cpp/queue.hpp"
+
+extern "C"
+{
+    using Solver = struct s_Solver;
+}
 
 namespace mamba::solv
 {
     class ObjPool;
     class ObjQueue;
+
+    struct ObjRuleInfo
+    {
+        std::optional<SolvableId> from_id;
+        std::optional<SolvableId> to_id;
+        std::optional<DependencyId> dep_id;
+        ::SolverRuleinfo type;
+        ::SolverRuleinfo klass;
+    };
 
     class ObjSolver
     {
@@ -38,6 +63,14 @@ namespace mamba::solv
         [[nodiscard]] auto problem_to_string(const ObjPool& pool, ProblemId id) const -> std::string;
         template <typename UnaryFunc>
         void for_each_problem_id(UnaryFunc&& func) const;
+
+        /**
+         * Return an @ref ObjQueue of @ref RuleId with all rules involved in a current problem.
+         */
+        [[nodiscard]] auto problem_rules(ProblemId id) const -> ObjQueue;
+        [[nodiscard]] auto get_rule_info(const ObjPool& pool, RuleId id) const -> ObjRuleInfo;
+        [[nodiscard]] auto rule_info_to_string(const ObjPool& pool, ObjRuleInfo id) const
+            -> std::string;
 
     private:
 

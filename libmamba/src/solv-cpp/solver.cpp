@@ -52,6 +52,13 @@ namespace mamba::solv
         return m_solver.get();
     }
 
+    auto ObjSolver::solve(const ObjPool& /* pool */, const ObjQueue& jobs) -> bool
+    {
+        // pool is captured inside solver so we take it as a parameter to be explicit.
+        const auto n_pbs = ::solver_solve(raw(), const_cast<::Queue*>(jobs.raw()));
+        return n_pbs == 0;
+    }
+
     auto ObjSolver::problem_count() const -> std::size_t
     {
         return ::solver_problem_count(const_cast<::Solver*>(raw()));
@@ -68,10 +75,40 @@ namespace mamba::solv
         return ::solver_next_problem(const_cast<::Solver*>(raw()), id);
     }
 
-    auto ObjSolver::solve(const ObjPool& /* pool */, const ObjQueue& jobs) -> bool
+    auto ObjSolver::problem_rules(ProblemId id) const -> ObjQueue
+    {
+        ObjQueue rules = {};
+        ::solver_findallproblemrules(const_cast<::Solver*>(raw()), id, rules.raw());
+        return rules;
+    }
+
+    auto ObjSolver::get_rule_info(const ObjPool& /* pool */, RuleId id) const -> ObjRuleInfo
     {
         // pool is captured inside solver so we take it as a parameter to be explicit.
-        const auto n_pbs = ::solver_solve(raw(), const_cast<::Queue*>(jobs.raw()));
-        return n_pbs == 0;
+        SolvableId from_id = 0;
+        SolvableId to_id = 0;
+        DependencyId dep_id = 0;
+        const auto type = ::solver_ruleinfo(const_cast<::Solver*>(raw()), id, &from_id, &to_id, &dep_id);
+
+        return {
+            /* .from_id= */ (from_id != 0) ? std::optional{ from_id } : std::nullopt,
+            /* .to_id= */ (to_id != 0) ? std::optional{ to_id } : std::nullopt,
+            /* .dep_id= */ (dep_id != 0) ? std::optional{ dep_id } : std::nullopt,
+            /* .type= */ type,
+            /* .klass= */ ::solver_ruleclass(const_cast<::Solver*>(raw()), id),
+        };
     }
+
+    auto ObjSolver::rule_info_to_string(const ObjPool& /* pool */, ObjRuleInfo ri) const -> std::string
+    {
+        // pool is captured inside solver so we take it as a parameter to be explicit.
+        return ::solver_ruleinfo2str(
+            const_cast<::Solver*>(raw()),
+            ri.type,
+            ri.from_id.value_or(0),
+            ri.to_id.value_or(0),
+            ri.dep_id.value_or(0)
+        );
+    }
+
 }

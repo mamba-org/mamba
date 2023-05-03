@@ -18,7 +18,10 @@
 #include "solv-cpp/repo.hpp"
 #include "solv-cpp/solvable.hpp"
 
-using Pool = struct s_Pool;
+extern "C"
+{
+    using Pool = struct s_Pool;
+}
 
 namespace mamba::solv
 {

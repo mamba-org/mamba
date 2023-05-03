@@ -907,7 +907,9 @@ namespace mamba
     void MSubdirData::create_target()
     {
         auto& ctx = Context::instance();
-        m_temp_file = std::make_unique<TemporaryFile>();
+        fs::u8path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
+        auto lock = LockFile(writable_cache_dir);
+        m_temp_file = std::make_unique<TemporaryFile>("mambaf", "", writable_cache_dir);
 
         bool use_zst = m_metadata.has_zst.has_value() && m_metadata.has_zst.value().value;
         m_target = std::make_unique<DownloadTarget>(

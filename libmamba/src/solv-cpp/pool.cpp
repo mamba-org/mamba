@@ -12,6 +12,10 @@
 #include <solv/pooltypes.h>
 #include <solv/repo.h>
 #include <solv/selection.h>
+extern "C"  // Incomplete header
+{
+#include <solv/conda.h>
+}
 
 #include "solv-cpp/pool.hpp"
 
@@ -110,6 +114,16 @@ namespace mamba::solv
         assert(id != 0);
         assert(ISRELDEP(id));
         return id;
+    }
+
+    auto ObjPool::add_conda_dependency(raw_str_view dep) -> DependencyId
+    {
+        return ::pool_conda_matchspec(raw(), dep);
+    }
+
+    auto ObjPool::add_conda_dependency(const std::string& dep) -> DependencyId
+    {
+        return add_conda_dependency(dep.c_str());
     }
 
     auto ObjPool::get_dependency_name(DependencyId id) const -> std::string_view

@@ -36,6 +36,8 @@ namespace mamba::solv
     {
     public:
 
+        using raw_str_view = const char*;
+
         ObjPool();
         ~ObjPool();
 
@@ -97,6 +99,12 @@ namespace mamba::solv
          * Handling of complex dependencies in libsolv is quite complex and not used in mamba.
          */
         auto add_dependency(StringId name_id, RelationFlag flag, StringId version_id) -> DependencyId;
+
+        /**
+         * Parse a dependency from string and add it to the pool.
+         */
+        auto add_conda_dependency(raw_str_view dep) -> DependencyId;
+        auto add_conda_dependency(const std::string& dep) -> DependencyId;
 
         /** Get the registered name of a dependency. */
         auto get_dependency_name(DependencyId id) const -> std::string_view;

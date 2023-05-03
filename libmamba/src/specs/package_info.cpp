@@ -17,7 +17,7 @@ namespace mamba::specs
     {
         to_json(j, p.pkg);
         j["fn"] = p.file_name;
-        j["url"] = p.url;
+        j["url"] = p.file_url;
         j["channel"] = p.channel;
     }
 
@@ -28,7 +28,7 @@ namespace mamba::specs
     {
         from_json(j, p.pkg);
         p.file_name = j.at("fn");
-        p.url = j.at("url");
+        p.file_url = j.at("url");
         p.channel = j.at("channel");
     }
 }

@@ -34,7 +34,7 @@ namespace mamba::specs
          *
          * @todo Use a proper class for representing a Url if/when available.
          */
-        std::string url = {};
+        std::string file_url = {};
 
         /**
          * String representation of the channel where the package comes from.

@@ -23,13 +23,13 @@ TEST_SUITE("package_info")
         auto p = PackageInfo{};
         p.pkg.name = "mamba";
         p.file_name = "mamba-1.0.0-bld.tgz";
-        p.url = "https://conda.anaconda.org/conda-forge/linux-64/mamba-1.0.0-bld.tgz";
+        p.file_url = "https://conda.anaconda.org/conda-forge/linux-64/mamba-1.0.0-bld.tgz";
         p.channel = "https://conda.anaconda.org/conda-forge/linux-64";
 
         nl::json const j = p;
         CHECK_EQ(j.at("name"), p.pkg.name);
         CHECK_EQ(j.at("fn"), p.file_name);
-        CHECK_EQ(j.at("url"), p.url);
+        CHECK_EQ(j.at("url"), p.file_url);
         CHECK_EQ(j.at("channel"), p.channel);
     }
 
@@ -52,7 +52,7 @@ TEST_SUITE("package_info")
         const auto p = j.get<PackageInfo>();
         CHECK_EQ(p.pkg.name, j["name"]);
         CHECK_EQ(p.file_name, j["fn"]);
-        CHECK_EQ(p.url, j["url"]);
+        CHECK_EQ(p.file_url, j["url"]);
         CHECK_EQ(p.channel, j["channel"]);
     }
 

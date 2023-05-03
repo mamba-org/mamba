@@ -7,7 +7,10 @@
 #include <cassert>
 
 #include <solv/poolid.h>
+#include <solv/solvable.h>
 #include <solv/solver.h>
+// broken headers go last
+#include <solv/problems.h>
 
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
@@ -52,6 +55,17 @@ namespace mamba::solv
     auto ObjSolver::problem_count() const -> std::size_t
     {
         return ::solver_problem_count(const_cast<::Solver*>(raw()));
+    }
+
+    auto ObjSolver::problem_to_string(const ObjPool& /* pool */, ProblemId id) const -> std::string
+    {
+        // pool is captured inside solver so we take it as a parameter to be explicit.
+        return ::solver_problem2str(const_cast<::Solver*>(raw()), id);
+    }
+
+    auto ObjSolver::next_problem(ProblemId id) const -> ProblemId
+    {
+        return ::solver_next_problem(const_cast<::Solver*>(raw()), id);
     }
 
     auto ObjSolver::solve(const ObjPool& /* pool */, const ObjQueue& jobs) -> bool

@@ -8,6 +8,7 @@
 #define MAMBA_SOLV_SOLVER_HPP
 
 #include <memory>
+#include <string>
 
 #include "solv-cpp/ids.hpp"
 
@@ -32,7 +33,11 @@ namespace mamba::solv
         [[nodiscard]] auto get_flag(SolverFlag flag) const -> bool;
 
         [[nodiscard]] auto solve(const ObjPool& pool, const ObjQueue& jobs) -> bool;
+
         [[nodiscard]] auto problem_count() const -> std::size_t;
+        [[nodiscard]] auto problem_to_string(const ObjPool& pool, ProblemId id) const -> std::string;
+        template <typename UnaryFunc>
+        void for_each_problem_id(UnaryFunc&& func) const;
 
     private:
 
@@ -42,7 +47,22 @@ namespace mamba::solv
         };
 
         std::unique_ptr<::Solver, ObjSolver::SolverDeleter> m_solver = nullptr;
-    };
-}
 
+        auto next_problem(ProblemId id = 0) const -> ProblemId;
+    };
+
+    /*********************************
+     *  Implementation of ObjSolver  *
+     *********************************/
+
+    template <typename UnaryFunc>
+    void ObjSolver::for_each_problem_id(UnaryFunc&& func) const
+    {
+        for (ProblemId id = next_problem(); id != 0; id = next_problem(id))
+        {
+            func(id);
+        }
+    }
+
+}
 #endif

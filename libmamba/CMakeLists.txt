@@ -132,6 +132,7 @@ set(LIBMAMBA_SOURCES
     # Implementation of version and matching specs
     ${LIBMAMBA_SOURCE_DIR}/specs/version.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/repo_data.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/package_info.cpp
     # Core API (low-level)
     ${LIBMAMBA_SOURCE_DIR}/core/singletons.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/activation.cpp

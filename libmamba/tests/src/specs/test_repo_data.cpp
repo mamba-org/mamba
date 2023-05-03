@@ -16,7 +16,7 @@ namespace nl = nlohmann;
 
 TEST_SUITE("repo_data")
 {
-    TEST_CASE("RepoDataPackage_to_json")
+    TEST_CASE("RepoDataPackage to JSON")
     {
         auto p = RepoDataPackage();
         p.name = "mamba";
@@ -38,7 +38,7 @@ TEST_SUITE("repo_data")
         CHECK_EQ(j.at("noarch"), "python");
     }
 
-    TEST_CASE("RepoDataPackage_from_json")
+    TEST_CASE("RepoDataPackage from JSON")
     {
         auto j = nl::json::object();
         j["name"] = "mamba";
@@ -83,7 +83,7 @@ TEST_SUITE("repo_data")
         }
     }
 
-    TEST_CASE("RepoData_to_json")
+    TEST_CASE("RepoData to JSON")
     {
         auto data = RepoData();
         data.version = 1;
@@ -108,7 +108,7 @@ TEST_SUITE("repo_data")
         CHECK_EQ(j.at("removed"), std::vector{ "bad-package-1" });
     }
 
-    TEST_CASE("RepoData_from_json")
+    TEST_CASE("RepoData from JSON")
     {
         auto j = nl::json::object();
         j["version"] = 1;
@@ -137,13 +137,13 @@ TEST_SUITE("repo_data")
         CHECK_EQ(data.removed, j["removed"]);
     }
 
-    TEST_CASE("repodata_json")
+    TEST_CASE("repodata.json")
     {
         // Maybe not the best way to set this test.
         // ``repodata.json`` of interest are very large files. Should we check them in in VCS?
         // Download them in CMake? Do a specific integration test?
         // Could be downloaded in the tests, but we would like to keep these tests Context-free.
-        const char* repodata_file_path = std::getenv("MAMBA_REPODATA_JSON");
+        const char* repodata_file_path = std::getenv("TEST_MAMBA_REPODATA_JSON");
         if (repodata_file_path == nullptr)
         {
             return;

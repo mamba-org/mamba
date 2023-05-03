@@ -9,6 +9,8 @@
 
 #include <string>
 
+#include <nlohmann/json_fwd.hpp>
+
 #include "mamba/specs/repo_data.hpp"
 
 namespace mamba::specs
@@ -43,6 +45,16 @@ namespace mamba::specs
          */
         std::string channel = {};
     };
-}
 
+    /**
+     * Serialize to JSON accroding to the "repodata_record.json" format.
+     */
+    void to_json(nlohmann::json& j, const PackageInfo& p);
+
+    /**
+     * Deserialize to JSON accroding to the "repodata_record.json" format.
+     */
+    void from_json(const nlohmann::json& j, PackageInfo& p);
+
+}
 #endif

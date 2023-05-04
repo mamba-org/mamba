@@ -11,6 +11,7 @@
 #include <solv/solver.h>
 // broken headers go last
 #include <solv/problems.h>
+#include <solv/rules.h>
 
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"

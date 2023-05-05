@@ -136,7 +136,7 @@ def tmp_root_prefix(
 def tmp_empty_env(
     tmp_root_prefix: pathlib.Path, tmp_env_name: str
 ) -> Generator[pathlib.Path, None, None]:
-    """An empty envirnment created under a temporary root prefix."""
+    """An empty environment created under a temporary root prefix."""
     helpers.create("-n", tmp_env_name, no_dry_run=True)
     yield tmp_root_prefix / "envs" / tmp_env_name
 

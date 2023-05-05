@@ -69,7 +69,7 @@ def shared_pkgs_dirs(request) -> bool:
     return request.param
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def tmp_environ() -> Generator[Mapping[str, Any], None, None]:
     """Saves and restore environment variables.
 

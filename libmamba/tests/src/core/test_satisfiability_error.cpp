@@ -27,53 +27,57 @@
 #include "mamba/core/util_random.hpp"
 #include "mamba/core/util_string.hpp"
 
-namespace mamba
+using namespace mamba;
+
+TEST_SUITE("conflict_map")
 {
-    TEST_SUITE("conflict_map")
+    TEST_CASE("symetric")
     {
-        TEST_CASE("symetric")
-        {
-            auto c = conflict_map<std::size_t>();
-            CHECK_EQ(c.size(), 0);
-            CHECK_FALSE(c.has_conflict(0));
-            CHECK_FALSE(c.in_conflict(0, 1));
-            CHECK(c.add(0, 1));
-            CHECK(c.add(1, 2));
-            CHECK_FALSE(c.add(1, 2));
-            CHECK(c.has_conflict(0));
-            CHECK(c.in_conflict(0, 1));
-            CHECK(c.in_conflict(1, 2));
-            CHECK(c.has_conflict(2));
-            CHECK_FALSE(c.in_conflict(0, 2));
-            // With same
-            CHECK(c.add(5, 5));
-            CHECK(c.has_conflict(5));
-            CHECK(c.in_conflict(5, 5));
-        }
-
-        TEST_CASE("remove")
-        {
-            auto c = conflict_map<std::size_t>({ { 1, 1 }, { 1, 2 }, { 1, 3 }, { 2, 4 } });
-            REQUIRE_EQ(c.size(), 4);
-
-            REQUIRE(c.in_conflict(2, 4));
-            REQUIRE(c.in_conflict(4, 2));
-            CHECK(c.remove(2, 4));
-            CHECK_FALSE(c.in_conflict(4, 2));
-            CHECK_FALSE(c.in_conflict(2, 4));
-            CHECK(c.has_conflict(2));
-            CHECK_FALSE(c.has_conflict(4));
-
-            CHECK_FALSE(c.remove(2, 4));
-
-            CHECK(c.remove(1));
-            CHECK_FALSE(c.has_conflict(1));
-            CHECK_FALSE(c.in_conflict(1, 1));
-            CHECK_FALSE(c.in_conflict(1, 2));
-            CHECK_FALSE(c.in_conflict(3, 1));
-        }
+        auto c = conflict_map<std::size_t>();
+        CHECK_EQ(c.size(), 0);
+        CHECK_FALSE(c.has_conflict(0));
+        CHECK_FALSE(c.in_conflict(0, 1));
+        CHECK(c.add(0, 1));
+        CHECK(c.add(1, 2));
+        CHECK_FALSE(c.add(1, 2));
+        CHECK(c.has_conflict(0));
+        CHECK(c.in_conflict(0, 1));
+        CHECK(c.in_conflict(1, 2));
+        CHECK(c.has_conflict(2));
+        CHECK_FALSE(c.in_conflict(0, 2));
+        // With same
+        CHECK(c.add(5, 5));
+        CHECK(c.has_conflict(5));
+        CHECK(c.in_conflict(5, 5));
     }
 
+    TEST_CASE("remove")
+    {
+        auto c = conflict_map<std::size_t>({ { 1, 1 }, { 1, 2 }, { 1, 3 }, { 2, 4 } });
+        REQUIRE_EQ(c.size(), 4);
+
+        REQUIRE(c.in_conflict(2, 4));
+        REQUIRE(c.in_conflict(4, 2));
+        CHECK(c.remove(2, 4));
+        CHECK_FALSE(c.in_conflict(4, 2));
+        CHECK_FALSE(c.in_conflict(2, 4));
+        CHECK(c.has_conflict(2));
+        CHECK_FALSE(c.has_conflict(4));
+
+        CHECK_FALSE(c.remove(2, 4));
+
+        CHECK(c.remove(1));
+        CHECK_FALSE(c.has_conflict(1));
+        CHECK_FALSE(c.in_conflict(1, 1));
+        CHECK_FALSE(c.in_conflict(1, 2));
+        CHECK_FALSE(c.in_conflict(3, 1));
+    }
+}
+
+TEST_SUITE_BEGIN("satifiability_error");
+
+namespace
+{
     /**
      * A RAII object to ensure a path exists only for the lifetime of the guard.
      */
@@ -154,20 +158,17 @@ namespace mamba
 
         return solver;
     }
+}
 
-    /**
-     * Test the test utility function.
-     */
-    TEST_SUITE("satifiability_error")
-    {
-        TEST_CASE("create_problem")
-        {
-            auto solver = create_problem(std::array{ mkpkg("foo", "0.1.0", {}) }, { "foo" });
-            const auto solved = solver.try_solve();
-            REQUIRE(solved);
-        }
-    }
+TEST_CASE("Test create_problem utility")
+{
+    auto solver = create_problem(std::array{ mkpkg("foo", "0.1.0", {}) }, { "foo" });
+    const auto solved = solver.try_solve();
+    REQUIRE(solved);
+}
 
+namespace
+{
     auto create_basic_conflict() -> MSolver
     {
         return create_problem(
@@ -366,20 +367,17 @@ namespace mamba
 
         return solver;
     }
+}
 
-    /**
-     * Test the test utility function.
-     */
-    TEST_SUITE("satifiability_error")
-    {
-        TEST_CASE("create_conda_forge")
-        {
-            auto solver = create_conda_forge({ "xtensor>=0.7" });
-            const auto solved = solver.try_solve();
-            REQUIRE(solved);
-        }
-    }
+TEST_CASE("Test create_conda_forge utility ")
+{
+    auto solver = create_conda_forge({ "xtensor>=0.7" });
+    const auto solved = solver.try_solve();
+    REQUIRE(solved);
+}
 
+namespace
+{
     auto create_pytorch_cpu() -> MSolver
     {
         return create_conda_forge({ "python=2.7", "pytorch=1.12" });
@@ -450,10 +448,6 @@ namespace mamba
         );
     };
 }
-
-using namespace mamba;
-
-TEST_SUITE_BEGIN("satifiability_error");
 
 TEST_CASE("NamedList")
 {

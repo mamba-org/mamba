@@ -2,6 +2,7 @@ name: mamba-dev
 channels:
   - conda-forge
 dependencies:
+  # Invalidating the cache on 2022-05-05
   - vs2019_win-64
   - ninja
   - vcpkg

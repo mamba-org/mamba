@@ -210,6 +210,10 @@ namespace mamba
 
     MSolver::~MSolver() = default;
 
+    MSolver::MSolver(MSolver&&) = default;
+
+    MSolver& MSolver::operator=(MSolver&&) = default;
+
     MSolver::operator const Solver*() const
     {
         return m_solver.get();

@@ -413,8 +413,8 @@ macro(libmamba_create_target target_name linkage output_name)
             find_library(BZIP2_LIBRARIES NAMES bz2)
             find_library(CRYPTO_LIBRARIES NAMES libcrypto)
 
-            find_library(LIBSOLV_BUILD_STATICRARIES NAMES solv_static)
-            find_library(LIBSOLVEXT_BUILD_STATICRARIES NAMES solvext_static)
+            find_library(LIBSOLV_BUILD_STATICRARIES NAMES solv)
+            find_library(LIBSOLVEXT_BUILD_STATICRARIES NAMES solvext)
             find_package(reproc++ CONFIG REQUIRED)
             find_package(tl-expected REQUIRED)
 
@@ -511,7 +511,7 @@ macro(libmamba_create_target target_name linkage output_name)
     )
 
     if (WIN32)
-        find_path(WINREG_INCLUDE_DIR NAMES WinReg.hpp)
+        find_path(WINREG_INCLUDE_DIR NAMES "winreg/WinReg.hpp")
     endif()
 
     target_include_directories(

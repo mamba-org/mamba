@@ -136,12 +136,9 @@ namespace mamba
      * The underlying packages do not exist, we are onl interested in the conflict.
      */
     template <typename PkgRange>
-    auto create_problem(
-        const PkgRange& packages,
-        const std::vector<std::string>& specs,
-        ChannelContext& channel_context
-    )
+    auto create_problem(const PkgRange& packages, const std::vector<std::string>& specs)
     {
+        ChannelContext channel_context = {};
         const auto tmp_dir = dir_guard(
             fs::temp_directory_path() / "mamba/tests" / generate_random_alphanumeric_string(20)
         );
@@ -149,11 +146,11 @@ namespace mamba
 
         auto pool = MPool{ channel_context };
         MRepo(pool, "some-name", repodata_f, RepoMetadata{ /* .url= */ "some-url" });
-        auto solver = std::make_unique<MSolver>(
+        auto solver = MSolver(
             std::move(pool),
             std::vector{ std::pair{ SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } }
         );
-        solver->add_jobs(specs, SOLVER_INSTALL);
+        solver.add_jobs(specs, SOLVER_INSTALL);
 
         return solver;
     }
@@ -165,30 +162,22 @@ namespace mamba
     {
         TEST_CASE("create_problem")
         {
-            ChannelContext channel_context;
-            auto solver = create_problem(
-                std::array{ mkpkg("foo", "0.1.0", {}) },
-                { "foo" },
-                channel_context
-            );
-            const auto solved = solver->try_solve();
+            auto solver = create_problem(std::array{ mkpkg("foo", "0.1.0", {}) }, { "foo" });
+            const auto solved = solver.try_solve();
             REQUIRE(solved);
         }
     }
 
-    auto create_basic_conflict() -> MSolver&
+    auto create_basic_conflict() -> MSolver
     {
-        ChannelContext channel_context;
-        static auto solver = create_problem(
+        return create_problem(
             std::array{
                 mkpkg("A", "0.1.0"),
                 mkpkg("A", "0.2.0"),
                 mkpkg("A", "0.3.0"),
             },
-            { "A=0.4.0" },
-            channel_context
+            { "A=0.4.0" }
         );
-        return *solver;
     }
 
     /**
@@ -197,10 +186,9 @@ namespace mamba
      * The example given by Natalie Weizenbaum
      * (credits https://nex3.medium.com/pubgrub-2fb6470504f).
      */
-    auto create_pubgrub() -> MSolver&
+    auto create_pubgrub() -> MSolver
     {
-        ChannelContext channel_context;
-        static auto solver = create_problem(
+        return create_problem(
             std::array{
                 mkpkg("menu", "1.5.0", { "dropdown=2.*" }),
                 mkpkg("menu", "1.4.0", { "dropdown=2.*" }),
@@ -219,13 +207,11 @@ namespace mamba
                 mkpkg("intl", "4.0.0"),
                 mkpkg("intl", "3.0.0"),
             },
-            { "menu", "icons=1.*", "intl=5.*" },
-            channel_context
+            { "menu", "icons=1.*", "intl=5.*" }
         );
-        return *solver;
     }
 
-    auto create_pubgrub_hard_(bool missing_package, mamba::ChannelContext& channel_context)
+    auto create_pubgrub_hard_(bool missing_package) -> MSolver
     {
         auto packages = std::vector{
             mkpkg("menu", "2.1.0", { "dropdown>=2.1", "emoji" }),
@@ -276,29 +262,24 @@ namespace mamba
         }
         return create_problem(
             packages,
-            { "menu", "pyicons=1.*", "intl=5.*", "intl-mod", "pretty>=1.0" },
-            channel_context
+            { "menu", "pyicons=1.*", "intl=5.*", "intl-mod", "pretty>=1.0" }
         );
     }
 
     /**
      * A harder version of ``create_pubgrub``.
      */
-    auto create_pubgrub_hard() -> MSolver&
+    auto create_pubgrub_hard() -> MSolver
     {
-        static auto channel_context = mamba::ChannelContext{};
-        static auto solver = create_pubgrub_hard_(false, channel_context);
-        return *solver;
+        return create_pubgrub_hard_(false);
     }
 
     /**
      * The hard version of the alternate PubGrub with missing packages.
      */
-    auto create_pubgrub_missing() -> MSolver&
+    auto create_pubgrub_missing() -> MSolver
     {
-        static auto channel_context = mamba::ChannelContext{};
-        static auto solver = create_pubgrub_hard_(true, channel_context);
-        return *solver;
+        return create_pubgrub_hard_(true);
     }
 
     template <typename T, typename E>
@@ -349,13 +330,13 @@ namespace mamba
      * Create a solver and a pool of a conflict from conda-forge packages.
      */
     auto create_conda_forge(
-        ChannelContext& channel_context,
         std::vector<std::string>&& specs,
         const std::vector<PackageInfo>& virtual_packages = { mkpkg("__glibc", "2.17.0") },
         std::vector<std::string>&& channels = { "conda-forge" },
         const std::vector<std::string>& platforms = { "linux-64", "noarch" }
-    )
+    ) -> MSolver
     {
+        ChannelContext channel_context = {};
         // Reusing the cache for all invocation of this funciton for speedup
         static const auto tmp_dir = dir_guard(
             fs::temp_directory_path() / "mamba/tests" / generate_random_alphanumeric_string(20)
@@ -377,11 +358,11 @@ namespace mamba
         load_channels(pool, cache, make_platform_channels(std::move(channels), platforms));
         Context::instance().graphics_params.no_progress_bars = prev_progress_bars_value;
 
-        auto solver = std::make_unique<MSolver>(
+        auto solver = MSolver(
             std::move(pool),
             std::vector{ std::pair{ SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } }
         );
-        solver->add_jobs(specs, SOLVER_INSTALL);
+        solver.add_jobs(specs, SOLVER_INSTALL);
 
         return solver;
     }
@@ -393,85 +374,63 @@ namespace mamba
     {
         TEST_CASE("create_conda_forge")
         {
-            ChannelContext channel_context;
-            auto solver = create_conda_forge(channel_context, { "xtensor>=0.7" });
-            const auto solved = solver->try_solve();
+            auto solver = create_conda_forge({ "xtensor>=0.7" });
+            const auto solved = solver.try_solve();
             REQUIRE(solved);
         }
     }
 
-    auto create_pytorch_cpu() -> MSolver&
+    auto create_pytorch_cpu() -> MSolver
     {
-        static ChannelContext channel_context;
-        static auto solver = create_conda_forge(channel_context, { "python=2.7", "pytorch=1.12" });
-        return *solver;
+        return create_conda_forge({ "python=2.7", "pytorch=1.12" });
     }
 
-    auto create_pytorch_cuda() -> MSolver&
+    auto create_pytorch_cuda() -> MSolver
     {
-        static ChannelContext channel_context;
-        static auto solver = create_conda_forge(
-            channel_context,
+        return create_conda_forge(
             { "python=2.7", "pytorch=1.12" },
             { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "10.2.0") }
         );
-        return *solver;
     }
 
-    auto create_cudatoolkit() -> MSolver&
+    auto create_cudatoolkit() -> MSolver
     {
-        static ChannelContext channel_context;
-        static auto solver = create_conda_forge(
-            channel_context,
+        return create_conda_forge(
             { "python=3.7", "cudatoolkit=11.1", "cudnn=8.0", "pytorch=1.8", "torchvision=0.9=*py37_cu111*" },
             { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "11.1") }
         );
-        return *solver;
     }
 
-    auto create_jpeg9b() -> MSolver&
+    auto create_jpeg9b() -> MSolver
     {
-        static ChannelContext channel_context;
-        static auto solver = create_conda_forge(channel_context, { "python=3.7", "jpeg=9b" });
-        return *solver;
+        return create_conda_forge({ "python=3.7", "jpeg=9b" });
     }
 
-    auto create_r_base() -> MSolver&
+    auto create_r_base() -> MSolver
     {
-        static ChannelContext channel_context;
-        static auto solver = create_conda_forge(
-            channel_context,
+        return create_conda_forge(
             { "r-base=3.5.* ", "pandas=0", "numpy<1.20.0", "matplotlib=2", "r-matchit=4.*" }
         );
-        return *solver;
     }
 
-    auto create_scip() -> MSolver&
+    auto create_scip() -> MSolver
     {
-        static ChannelContext channel_context;
-        static auto solver = create_conda_forge(channel_context, { "scip=8.*", "pyscipopt<4.0" });
-        return *solver;
+        return create_conda_forge({ "scip=8.*", "pyscipopt<4.0" });
     }
 
-    auto create_jupyterlab() -> MSolver&
+    auto create_jupyterlab() -> MSolver
     {
-        static ChannelContext channel_context;
-        static auto solver = create_conda_forge(channel_context, { "jupyterlab=3.4", "openssl=3.0.0" });
-        return *solver;
+        return create_conda_forge({ "jupyterlab=3.4", "openssl=3.0.0" });
     }
 
-    auto create_double_python() -> MSolver&
+    auto create_double_python() -> MSolver
     {
-        static ChannelContext channel_context;
-        static auto solver = create_conda_forge(channel_context, { "python=3.9.*", "python=3.10.*" });
-        return *solver;
+        return create_conda_forge({ "python=3.9.*", "python=3.10.*" });
     }
 
-    auto create_numba() -> MSolver&
+    auto create_numba() -> MSolver
     {
-        static ChannelContext channel_context;
-        static auto solver = create_conda_forge(channel_context, { "python=3.11", "numba<0.56" });
-        return *solver;
+        return create_conda_forge({ "python=3.11", "numba<0.56" });
     }
 
     template <typename NodeVariant>
@@ -490,16 +449,6 @@ namespace mamba
             node
         );
     };
-
-    namespace
-    {
-        std::vector<decltype(&create_basic_conflict)> pb_values = {
-            create_basic_conflict, create_pubgrub,      create_pubgrub_hard, create_pubgrub_missing,
-            create_pytorch_cpu,    create_pytorch_cuda, create_cudatoolkit,  create_jpeg9b,
-            create_r_base,         create_scip,         create_jupyterlab,   create_double_python,
-            create_numba
-        };
-    }
 }
 
 using namespace mamba;
@@ -543,10 +492,28 @@ TEST_CASE("Create problem graph")
     using PbGr = ProblemsGraph;
     using CpPbGr = CompressedProblemsGraph;
 
-    for (auto& p : pb_values)
+    const auto issues = std::array{
+        std::pair{ "Basic conflict", &create_basic_conflict },
+        std::pair{ "PubGrub example", &create_pubgrub },
+        std::pair{ "Harder PubGrub example", &create_pubgrub_hard },
+        std::pair{ "PubGrub example with missing packages", &create_pubgrub_missing },
+        std::pair{ "PyTorch CPU", &create_pytorch_cpu },
+        std::pair{ "PyTorch Cuda", &create_pytorch_cuda },
+        std::pair{ "Cuda Toolkit", &create_cudatoolkit },
+        std::pair{ "Jpeg", &create_jpeg9b },
+        std::pair{ "R base", &create_r_base },
+        std::pair{ "SCIP", &create_scip },
+        std::pair{ "Jupyter Lab", &create_jupyterlab },
+        std::pair{ "Two different Python", &create_double_python },
+        std::pair{ "Numba", &create_numba },
+    };
+
+    for (const auto& [name, factory] : issues)
     {
-        CAPTURE(p);
-        auto& solver = p();
+        // Somehow the capture does not work directly on ``name``
+        std::string_view name_copy = name;
+        CAPTURE(name_copy);
+        auto solver = factory();
         const auto solved = solver.try_solve();
         REQUIRE_FALSE(solved);
         const auto pbs_init = solver.problems_graph();

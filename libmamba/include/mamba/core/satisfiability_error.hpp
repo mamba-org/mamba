@@ -94,8 +94,6 @@ namespace mamba
         using node_id = graph_t::node_id;
         using conflicts_t = conflict_map<node_id>;
 
-        static ProblemsGraph from_solver(const MSolver& solver, const MPool& pool);
-
         ProblemsGraph(graph_t graph, conflicts_t conflicts, node_id root_node);
 
         const graph_t& graph() const noexcept;

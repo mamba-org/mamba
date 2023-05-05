@@ -543,7 +543,7 @@ namespace mamba
                 auto& solver = p();
                 const auto solved = solver.try_solve();
                 REQUIRE_FALSE(solved);
-                const auto pbs = ProblemsGraph::from_solver(solver, solver.pool());
+                const auto pbs = solver.problems_graph();
                 const auto& g = pbs.graph();
 
                 REQUIRE_GE(g.number_of_nodes(), 1);
@@ -594,7 +594,7 @@ namespace mamba
                 auto& solver = p();
                 const auto solved = solver.try_solve();
                 REQUIRE_FALSE(solved);
-                const auto& pbs = ProblemsGraph::from_solver(solver, solver.pool());
+                const auto pbs = solver.problems_graph();
                 const auto& pbs_simplified = simplify_conflicts(pbs);
                 const auto& graph_simplified = pbs_simplified.graph();
 
@@ -628,7 +628,7 @@ namespace mamba
                 auto& solver = p();
                 const auto solved = solver.try_solve();
                 REQUIRE_FALSE(solved);
-                const auto pbs = ProblemsGraph::from_solver(solver, solver.pool());
+                const auto pbs = solver.problems_graph();
                 const auto cp_pbs = CpPbGr::from_problems_graph(simplify_conflicts(pbs));
                 const auto& cp_g = cp_pbs.graph();
 
@@ -682,7 +682,7 @@ namespace mamba
                 auto& solver = p();
                 const auto solved = solver.try_solve();
                 REQUIRE_FALSE(solved);
-                const auto pbs = ProblemsGraph::from_solver(solver, solver.pool());
+                const auto pbs = solver.problems_graph();
                 const auto cp_pbs = CpPbGr::from_problems_graph(simplify_conflicts(pbs));
                 const auto message = problem_tree_msg(cp_pbs);
 

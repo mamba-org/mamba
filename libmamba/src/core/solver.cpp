@@ -210,6 +210,16 @@ namespace mamba
 
     MSolver::~MSolver() = default;
 
+    MSolver::operator const Solver*() const
+    {
+        return m_solver.get();
+    }
+
+    MSolver::operator Solver*()
+    {
+        return m_solver.get();
+    }
+
     void MSolver::add_global_job(int job_flag)
     {
         m_jobs->push_back(job_flag, 0);
@@ -568,7 +578,7 @@ namespace mamba
     {
         const auto& ctx = Context::instance();
         out << "Could not solve for environment specs\n";
-        const auto pbs = ProblemsGraph::from_solver(*this, pool());
+        const auto pbs = problems_graph();
         const auto pbs_simplified = simplify_conflicts(pbs);
         const auto cp_pbs = CompressedProblemsGraph::from_problems_graph(pbs_simplified);
         print_problem_tree_msg(
@@ -614,13 +624,277 @@ namespace mamba
         return problems;
     }
 
-    MSolver::operator const Solver*() const
+    namespace
     {
-        return m_solver.get();
+
+        void warn_unexpected_problem(const MSolverProblem& problem)
+        {
+            // TODO: Once the new error message are not experimental, we should consider
+            // reducing this level since it is not somethig the user has control over.
+            LOG_WARNING << "Unexpected empty optionals for problem type "
+                        << solver_ruleinfo_name(problem.type);
+        }
+
+        class ProblemsGraphCreator
+        {
+        public:
+
+            using SolvId = Id;  // Unscoped from libsolv
+
+            using graph_t = ProblemsGraph::graph_t;
+            using RootNode = ProblemsGraph::RootNode;
+            using PackageNode = ProblemsGraph::PackageNode;
+            using UnresolvedDependencyNode = ProblemsGraph::UnresolvedDependencyNode;
+            using ConstraintNode = ProblemsGraph::ConstraintNode;
+            using node_t = ProblemsGraph::node_t;
+            using node_id = ProblemsGraph::node_id;
+            using edge_t = ProblemsGraph::edge_t;
+            using conflicts_t = ProblemsGraph::conflicts_t;
+
+            ProblemsGraphCreator(const MSolver& solver, const MPool& pool);
+
+            ProblemsGraph problem_graph() &&;
+
+        private:
+
+            const MSolver& m_solver;
+            const MPool& m_pool;
+            graph_t m_graph;
+            conflicts_t m_conflicts;
+            std::map<SolvId, node_id> m_solv2node;
+            node_id m_root_node;
+
+            /**
+             * Add a node and return the node id.
+             *
+             * If the node is already present and ``update`` is false then the current
+             * node is left as it is, otherwise the new value is inserted.
+             */
+            node_id add_solvable(SolvId solv_id, node_t&& pkg_info, bool update = true);
+
+            void add_conflict(node_id n1, node_id n2);
+            [[nodiscard]] bool
+            add_expanded_deps_edges(node_id from_id, SolvId dep_id, const edge_t& edge);
+
+            void parse_problems();
+        };
+
+        ProblemsGraphCreator::ProblemsGraphCreator(const MSolver& solver, const MPool& pool)
+            : m_solver{ solver }
+            , m_pool{ pool }
+        {
+            m_root_node = m_graph.add_node(RootNode());
+            parse_problems();
+        }
+
+        ProblemsGraph ProblemsGraphCreator::problem_graph() &&
+        {
+            return { std::move(m_graph), std::move(m_conflicts), m_root_node };
+        }
+
+        auto ProblemsGraphCreator::add_solvable(SolvId solv_id, node_t&& node, bool update) -> node_id
+        {
+            if (const auto iter = m_solv2node.find(solv_id); iter != m_solv2node.end())
+            {
+                const node_id id = iter->second;
+                if (update)
+                {
+                    m_graph.node(id) = std::move(node);
+                }
+                return id;
+            }
+            const node_id id = m_graph.add_node(std::move(node));
+            m_solv2node[solv_id] = id;
+            return id;
+        };
+
+        void ProblemsGraphCreator::add_conflict(node_id n1, node_id n2)
+        {
+            m_conflicts.add(n1, n2);
+        }
+
+        bool
+        ProblemsGraphCreator::add_expanded_deps_edges(node_id from_id, SolvId dep_id, const edge_t& edge)
+        {
+            bool added = false;
+            for (const auto& solv_id : m_pool.select_solvables(dep_id))
+            {
+                added = true;
+                auto pkg_info = m_pool.id2pkginfo(solv_id);
+                assert(pkg_info.has_value());
+                node_id to_id = add_solvable(solv_id, PackageNode{ std::move(pkg_info).value() }, false);
+                m_graph.add_edge(from_id, to_id, edge);
+            }
+            return added;
+        }
+
+        void ProblemsGraphCreator::parse_problems()
+        {
+            auto& channel_context = m_pool.channel_context();
+            for (auto& problem : m_solver.all_problems_structured())
+            {
+                std::optional<PackageInfo>& source = problem.source;
+                std::optional<PackageInfo>& target = problem.target;
+                std::optional<std::string>& dep = problem.dep;
+                SolverRuleinfo type = problem.type;
+
+                switch (type)
+                {
+                    case SOLVER_RULE_PKG_CONSTRAINS:
+                    {
+                        // A constraint (run_constrained) on source is conflicting with target.
+                        // SOLVER_RULE_PKG_CONSTRAINS has a dep, but it can resolve to nothing.
+                        // The constraint conflict is actually expressed between the target and
+                        // a constrains node child of the source.
+                        if (!source || !target || !dep)
+                        {
+                            warn_unexpected_problem(problem);
+                            break;
+                        }
+                        auto src_id = add_solvable(
+                            problem.source_id,
+                            PackageNode{ std::move(source).value() }
+                        );
+                        node_id tgt_id = add_solvable(
+                            problem.target_id,
+                            PackageNode{ std::move(target).value() }
+                        );
+                        node_id cons_id = add_solvable(
+                            problem.dep_id,
+                            ConstraintNode{ { dep.value(), channel_context } }
+                        );
+                        MatchSpec edge(dep.value(), channel_context);
+                        m_graph.add_edge(src_id, cons_id, std::move(edge));
+                        add_conflict(cons_id, tgt_id);
+                        break;
+                    }
+                    case SOLVER_RULE_PKG_REQUIRES:
+                    {
+                        // Express a dependency on source that is involved in explaining the
+                        // problem.
+                        // Not all dependency of package will appear, only enough to explain the
+                        // problem. It is not a problem in itself, only a part of the graph.
+                        if (!dep || !source)
+                        {
+                            warn_unexpected_problem(problem);
+                            break;
+                        }
+                        auto src_id = add_solvable(
+                            problem.source_id,
+                            PackageNode{ std::move(source).value() }
+                        );
+                        MatchSpec edge(dep.value(), channel_context);
+                        bool added = add_expanded_deps_edges(src_id, problem.dep_id, edge);
+                        if (!added)
+                        {
+                            LOG_WARNING << "Added empty dependency for problem type "
+                                        << solver_ruleinfo_name(type);
+                        }
+                        break;
+                    }
+                    case SOLVER_RULE_JOB:
+                    case SOLVER_RULE_PKG:
+                    {
+                        // A top level requirement.
+                        // The difference between JOB and PKG is unknown (possibly unused).
+                        if (!dep)
+                        {
+                            warn_unexpected_problem(problem);
+                            break;
+                        }
+                        MatchSpec edge(dep.value(), channel_context);
+                        bool added = add_expanded_deps_edges(m_root_node, problem.dep_id, edge);
+                        if (!added)
+                        {
+                            LOG_WARNING << "Added empty dependency for problem type "
+                                        << solver_ruleinfo_name(type);
+                        }
+                        break;
+                    }
+                    case SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP:
+                    case SOLVER_RULE_JOB_UNKNOWN_PACKAGE:
+                    {
+                        // A top level dependency does not exist.
+                        // Could be a wrong name or missing channel.
+                        if (!dep)
+                        {
+                            warn_unexpected_problem(problem);
+                            break;
+                        }
+                        MatchSpec edge(dep.value(), channel_context);
+                        node_id dep_id = add_solvable(
+                            problem.dep_id,
+                            UnresolvedDependencyNode{ { std::move(dep).value(), channel_context } }
+                        );
+                        m_graph.add_edge(m_root_node, dep_id, std::move(edge));
+                        break;
+                    }
+                    case SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP:
+                    {
+                        // A package dependency does not exist.
+                        // Could be a wrong name or missing channel.
+                        // This is a partial exaplanation of why a specific solvable (could be any
+                        // of the parent) cannot be installed.
+                        if (!source || !dep)
+                        {
+                            warn_unexpected_problem(problem);
+                            break;
+                        }
+                        MatchSpec edge(dep.value(), channel_context);
+                        node_id src_id = add_solvable(
+                            problem.source_id,
+                            PackageNode{ std::move(source).value() }
+                        );
+                        node_id dep_id = add_solvable(
+                            problem.dep_id,
+                            UnresolvedDependencyNode{ { std::move(dep).value(), channel_context } }
+                        );
+                        m_graph.add_edge(src_id, dep_id, std::move(edge));
+                        break;
+                    }
+                    case SOLVER_RULE_PKG_CONFLICTS:
+                    case SOLVER_RULE_PKG_SAME_NAME:
+                    {
+                        // Looking for a valid solution to the installation satisfiability expand to
+                        // two solvables of same package that cannot be installed together. This is
+                        // a partial exaplanation of why one of the solvables (could be any of the
+                        // parent) cannot be installed.
+                        if (!source || !target)
+                        {
+                            warn_unexpected_problem(problem);
+                            break;
+                        }
+                        node_id src_id = add_solvable(
+                            problem.source_id,
+                            PackageNode{ std::move(source).value() }
+                        );
+                        node_id tgt_id = add_solvable(
+                            problem.target_id,
+                            PackageNode{ std::move(target).value() }
+                        );
+                        add_conflict(src_id, tgt_id);
+                        break;
+                    }
+                    case SOLVER_RULE_UPDATE:
+                    {
+                        // Encounterd in the problems list from libsolv but unknown.
+                        // Explicitly ignored until we do something with it.
+                        break;
+                    }
+                    default:
+                    {
+                        // Many more SolverRuleinfo that heve not been encountered.
+                        LOG_WARNING << "Problem type not implemented " << solver_ruleinfo_name(type);
+                        break;
+                    }
+                }
+            }
+        }
     }
 
-    MSolver::operator Solver*()
+    auto MSolver::problems_graph() const -> ProblemsGraph
     {
-        return m_solver.get();
+        return ProblemsGraphCreator(*this, m_pool).problem_graph();
     }
+
 }  // namespace mamba

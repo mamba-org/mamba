@@ -105,7 +105,7 @@ handle_solve_request(const microserver::Request& req, microserver::Response& res
     }
     prefix_data.add_packages(vpacks);
 
-    auto& installed_repo = MRepo::create(cache_entry.pool, prefix_data);
+    auto installed_repo = MRepo(cache_entry.pool, prefix_data);
 
     MSolver solver(
         cache_entry.pool,
@@ -138,7 +138,7 @@ handle_solve_request(const microserver::Request& req, microserver::Response& res
         res.send(jout.dump());
     }
 
-    cache_entry.pool.remove_repo(installed_repo.id());
+    cache_entry.pool.remove_repo(installed_repo.id(), /* reuse_ids= */ true);
     pool_set_installed(cache_entry.pool, nullptr);
 }
 

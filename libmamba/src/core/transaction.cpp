@@ -505,7 +505,7 @@ namespace mamba
             pi_result.push_back(p);
         }
 
-        MRepo& mrepo = MRepo::create(m_pool, "__explicit_specs__", pi_result);
+        MRepo mrepo = MRepo(m_pool, "__explicit_specs__", pi_result);
 
         m_pool.create_whatprovides();
 
@@ -688,11 +688,9 @@ namespace mamba
 
             solver_get_decisionqueue(solver, decision.raw());
 
-            const Id noarch_repo_key = pool_str2id(m_pool, "solvable:noarch_type", 1);
-
             FOR_REPO_SOLVABLES(pool_ptr->installed, p, s)
             {
-                const char* noarch_type = solvable_lookup_str(s, noarch_repo_key);
+                const char* noarch_type = solvable_lookup_str(s, SOLVABLE_SOURCEARCH);
 
                 if (noarch_type == nullptr)
                 {
@@ -791,7 +789,7 @@ namespace mamba
         , m_multi_cache(caches)
     {
         LOG_INFO << "MTransaction::MTransaction - packages already resolved (lockfile)";
-        MRepo& mrepo = MRepo::create(m_pool, "__explicit_specs__", packages);
+        MRepo mrepo = MRepo(m_pool, "__explicit_specs__", packages);
         m_pool.create_whatprovides();
 
         solv::ObjQueue decision = {};
@@ -876,8 +874,6 @@ namespace mamba
                     break;
             }
         }
-        m_real_repo_key = pool_str2id(m_pool, "solvable:real_repo_url", 1);
-        m_mrepo_key = pool_str2id(m_pool, "solvable:mrepo_url", 1);
     }
 
     // TODO rewrite this in terms of `m_transaction`
@@ -1116,8 +1112,6 @@ namespace mamba
 
     auto MTransaction::to_conda() -> to_conda_type
     {
-        const Id real_repo_key = pool_str2id(m_pool, "solvable:real_repo_url", 1);
-
         to_install_type to_install_structured;
         to_remove_type to_remove_structured;
 
@@ -1133,9 +1127,9 @@ namespace mamba
             std::string s_json = solvable_to_json(m_pool, s).dump(4);
 
             std::string channel;
-            if (solvable_lookup_str(s, real_repo_key))
+            if (const char* str = solvable_lookup_str(s, SOLVABLE_PACKAGER))
             {
-                channel = solvable_lookup_str(s, real_repo_key);
+                channel = str;
             }
             else
             {
@@ -1212,7 +1206,9 @@ namespace mamba
 
         for (auto& s : m_to_install)
         {
-            std::string const s_url = raw_str_or_empty(solvable_lookup_str(s, m_mrepo_key));
+            std::string const s_url = raw_str_or_empty(
+                repo_lookup_str(s->repo, SOLVID_META, SOLVABLE_URL)
+            );
 
             if (ctx.experimental && ctx.verify_artifacts)
             {
@@ -1539,24 +1535,22 @@ namespace mamba
             const char* build_string = solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
 
             std::string channel;
-            Id real_repo_key = pool_str2id(m_pool, "solvable:real_repo_url", 1);
-            if (solvable_lookup_str(s, real_repo_key))
+            if (const char* str = solvable_lookup_str(s, SOLVABLE_PACKAGER))
             {
-                std::string repo_key = solvable_lookup_str(s, real_repo_key);
-
-                if (repo_key == "explicit_specs")
+                if (std::string_view(str) == "explicit_specs")
                 {
                     channel = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
                 }
                 else
                 {
-                    channel = make_channel(repo_key).canonical_name();
+                    channel = make_channel(str).canonical_name();
                 }
             }
             else
             {
                 // note this can and should be <unknown> when
                 // e.g. installing from a tarball
+                assert(s->repo != nullptr);
                 channel = s->repo->name;
                 assert(channel != "__explicit_specs__");
             }

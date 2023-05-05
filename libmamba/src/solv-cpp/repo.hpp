@@ -223,6 +223,16 @@ namespace mamba::solv
          */
         void read(const fs::u8path& solv_file) const;
 
+        /**
+         * Read repository information from a conda repodata.json.
+         *
+         * This function is part of libsolv and does not read all attributes of the repodata.
+         * It is meant to be replaced. Parsing should be done by the user and solvables
+         * added through the API.
+         * @param repodata_file A standard path with system encoding.
+         */
+        void legacy_read_conda_repodata(const fs::u8path& repodata_file, int flags = 0) const;
+
         /** Add an empty solvable to the repository. */
         auto add_solvable() const -> std::pair<SolvableId, ObjSolvableView>;
 

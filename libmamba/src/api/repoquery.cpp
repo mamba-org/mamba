@@ -11,6 +11,7 @@
 #include "mamba/api/repoquery.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/prefix_data.hpp"
+#include "mamba/core/repo.hpp"
 #include "mamba/core/util_string.hpp"
 
 namespace mamba
@@ -43,7 +44,7 @@ namespace mamba
                 throw std::runtime_error(exp_prefix_data.error().what());
             }
             PrefixData& prefix_data = exp_prefix_data.value();
-            MRepo::create(pool, prefix_data);
+            MRepo(pool, prefix_data);
             if (format != QueryResultFormat::kJSON)
             {
                 Console::stream() << "Loaded current active prefix: "

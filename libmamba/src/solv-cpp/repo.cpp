@@ -19,6 +19,12 @@
 #include <solv/repo.h>
 #include <solv/repo_solv.h>
 #include <solv/repo_write.h>
+#include <solv/solvable.h>
+extern "C"  // Incomplete header in libsolv 0.7.23
+{
+#include <solv/conda.h>
+#include <solv/repo_conda.h>
+}
 
 #include "mamba/core/mamba_fs.hpp"
 #include "solv-cpp/repo.hpp"
@@ -229,6 +235,27 @@ namespace mamba::solv
             // TODO(C++20) fmt::format
             auto ss = std::stringstream();
             ss << "Unable to read repo solv file '" << name() << '\'';
+            if (const char* str = ::pool_errstr(raw()->pool))
+            {
+                ss << ", error was: " << str;
+            }
+            throw std::runtime_error(ss.str());
+        }
+    }
+
+    void ObjRepoView::legacy_read_conda_repodata(const fs::u8path& repodata_file, int flags) const
+    {
+        auto file = CFile::open(repodata_file, "rb");
+        const auto res = ::repo_add_conda(raw(), file.raw(), flags);
+        if (res != 0)
+        {
+            // TODO(C++20) fmt::format
+            auto ss = std::stringstream();
+            ss << "Unable to read repodata JSON file '" << name() << '\'';
+            if (const char* str = ::pool_errstr(raw()->pool))
+            {
+                ss << ", error was: " << str;
+            }
             throw std::runtime_error(ss.str());
         }
     }
@@ -314,12 +341,12 @@ namespace mamba::solv
 
         auto repo_lookup_bool(const ::Repo* repo, ::Id key) -> bool
         {
-            return ::repo_lookup_num(const_cast<::Repo*>(repo), SOLVID_META, key, 0) != 0;
+            return repo_lookup_num(repo, key) != 0;
         }
 
         void repo_set_bool(::Repo* repo, ::Id key, bool b)
         {
-            ::repo_set_num(repo, SOLVID_META, key, b);
+            repo_set_num(repo, key, b);
         }
     }
 

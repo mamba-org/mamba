@@ -314,10 +314,6 @@ jobs:
         run: |
           call micromamba activate build_env
           if %errorlevel% neq 0 exit /b %errorlevel%
-          mkdir build
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          cd build
-          if %errorlevel% neq 0 exit /b %errorlevel%
           ROBOCOPY .\ports\libsolv %VCPKG_ROOT%\ports\libsolv
           @rem ROBOCOPY has 0 and 1 as successfull exit codes
           if %errorlevel% neq 0 if %errorlevel% neq 1 exit /b %errorlevel%
@@ -341,6 +337,8 @@ jobs:
         shell: cmd /C call {0}
         run: |
           call micromamba activate build_env
+          if %errorlevel% neq 0 exit /b %errorlevel%
+          mkdir build
           if %errorlevel% neq 0 exit /b %errorlevel%
           cd build
           if %errorlevel% neq 0 exit /b %errorlevel%

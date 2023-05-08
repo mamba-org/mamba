@@ -318,9 +318,7 @@ jobs:
           if %errorlevel% neq 0 exit /b %errorlevel%
           cd build
           if %errorlevel% neq 0 exit /b %errorlevel%
-          git clone https://github.com/conda-forge/micromamba-feedstock.git
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          ROBOCOPY micromamba-feedstock/recipe/libsolv %VCPKG_ROOT%/ports/libsolv
+          ROBOCOPY .\ports\libsolv %VCPKG_ROOT%\ports\libsolv
           @rem ROBOCOPY has 0 and 1 as successfull exit codes
           if %errorlevel% neq 0 if %errorlevel% neq 1 exit /b %errorlevel%
           SET VCPKG_BUILD_TYPE=release && vcpkg install libsolv[conda] --triplet x64-windows-static

@@ -137,7 +137,7 @@ TEST_SUITE("repo_data")
         CHECK_EQ(data.removed, j["removed"]);
     }
 
-    TEST_CASE("repodata.json")
+    TEST_CASE("Can parse repodata.json")
     {
         // Maybe not the best way to set this test.
         // ``repodata.json`` of interest are very large files. Should we check them in in VCS?

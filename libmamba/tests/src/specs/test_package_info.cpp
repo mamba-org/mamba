@@ -56,7 +56,7 @@ TEST_SUITE("package_info")
         CHECK_EQ(p.channel, j["channel"]);
     }
 
-    TEST_CASE("repodata_record.json")
+    TEST_CASE("Can parse repodata_record.json")
     {
         // Maybe not the best way to set this test.
         const char* cache_dir_path = std::getenv("TEST_MAMBA_CACHE");

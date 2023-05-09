@@ -28,47 +28,6 @@ def pytest_addoption(parser):
 ##################
 
 
-@pytest.fixture
-def tmp_home(tmp_path: pathlib.Path) -> Generator[pathlib.Path, None, None]:
-    """Change the home directory to a tmp folder for the duration of a test."""
-    # Try multiple combination for Unix/Windows
-    home_envs = ["HOME", "USERPROFILE"]
-    old_homes = {name: os.environ.get(name) for name in home_envs}
-
-    if len(home_envs) > 0:
-        new_home = tmp_path / "home"
-        new_home.mkdir(parents=True, exist_ok=True)
-        for env in home_envs:
-            os.environ[env] = str(new_home)
-        yield new_home
-        for env, home in old_homes.items():
-            if old_homes[env] is None:
-                del os.environ[env]
-            else:
-                os.environ[env] = home
-    else:
-        yield pathlib.Path.home()
-
-
-@pytest.fixture(scope="session")
-def tmp_pkgs_dirs(tmp_path_factory: pytest.TempPathFactory, request) -> pathlib.Path:
-    """A common package cache for mamba downloads.
-
-    The directory is not used automatically when calling this fixture.
-    """
-    if (p := request.config.getoption("--mamba-pkgs-dir")) is not None:
-        p = pathlib.Path(p)
-        p.mkdir(parents=True, exist_ok=True)
-        return p
-    return tmp_path_factory.mktemp("pkgs_dirs")
-
-
-@pytest.fixture(params=[False])
-def shared_pkgs_dirs(request) -> bool:
-    """A dummy fixture to control the use of shared package dir."""
-    return request.param
-
-
 @pytest.fixture(autouse=True)
 def tmp_environ() -> Generator[Mapping[str, Any], None, None]:
     """Saves and restore environment variables.
@@ -82,9 +41,26 @@ def tmp_environ() -> Generator[Mapping[str, Any], None, None]:
 
 
 @pytest.fixture
-def tmp_clean_env(
-    tmp_pkgs_dirs: pathlib.Path, shared_pkgs_dirs: bool, tmp_environ: None
-) -> Generator[None, None, None]:
+def tmp_home(
+    tmp_environ, tmp_path: pathlib.Path
+) -> Generator[pathlib.Path, None, None]:
+    """Change the home directory to a tmp folder for the duration of a test."""
+    # Try multiple combination for Unix/Windows
+    home_envs = ["HOME", "USERPROFILE"]
+    used_homes = [env for env in home_envs if env in os.environ]
+
+    if len(used_homes) > 0:
+        new_home = tmp_path / "home"
+        new_home.mkdir(parents=True, exist_ok=True)
+        for env in used_homes:
+            os.environ[env] = str(new_home)
+        return new_home
+    else:
+        return pathlib.Path.home()
+
+
+@pytest.fixture
+def tmp_clean_env(tmp_environ: None) -> None:
     """Remove all Conda/Mamba activation artifacts from environment."""
     for k, v in os.environ.items():
         if k.startswith(("CONDA", "_CONDA", "MAMBA", "_MAMBA")):
@@ -105,11 +81,59 @@ def tmp_clean_env(
     path_list = os.environ["PATH"].split(os.pathsep)
     path_list = [p for p in path_list if keep_in_path(p)]
     os.environ["PATH"] = os.pathsep.join(path_list)
+    # os.environ restored by tmp_clean_env and tmp_environ
 
+
+@pytest.fixture(scope="session")
+def tmp_pkgs_dirs(tmp_path_factory: pytest.TempPathFactory, request) -> pathlib.Path:
+    """A common package cache for mamba downloads.
+
+    The directory is not used automatically when calling this fixture.
+    """
+    if (p := request.config.getoption("--mamba-pkgs-dir")) is not None:
+        p = pathlib.Path(p)
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+
+    return tmp_path_factory.mktemp("pkgs_dirs")
+
+
+@pytest.fixture(params=[False])
+def shared_pkgs_dirs(request) -> bool:
+    """A dummy fixture to control the use of shared package dir."""
+    return request.param
+
+
+@pytest.fixture(params=[False])
+def shared_repodata(request) -> bool:
+    """A dummy fixture to control the use of shared repodata caches."""
+    return request.param
+
+
+@pytest.fixture
+def tmp_root_prefix(
+    tmp_path: pathlib.Path,
+    tmp_clean_env: None,
+    tmp_pkgs_dirs: pathlib.Path,
+    shared_pkgs_dirs: bool,
+    shared_repodata: bool,
+) -> Generator[pathlib.Path, None, None]:
+    """Change the micromamba root directory to a tmp folder for the duration of a test."""
+    new_root_prefix = tmp_path / "mamba"
+    new_root_prefix.mkdir(parents=True, exist_ok=True)
+    os.environ["MAMBA_ROOT_PREFIX"] = str(new_root_prefix)
+
+    repodata_cache = None
     if shared_pkgs_dirs:
         os.environ["CONDA_PKGS_DIRS"] = str(tmp_pkgs_dirs)
+    elif shared_repodata:
+        cache = new_root_prefix / "pkgs"
+        cache.mkdir()
+        repodata_cache = cache / "cache"
+        repodata_cache.symlink_to(tmp_pkgs_dirs / "cache", target_is_directory=True)
 
-    yield None
+    return new_root_prefix
+    # os.environ restored by tmp_clean_env and tmp_environ
 
 
 @pytest.fixture(params=[helpers.random_string, "long_prefix_" * 20])
@@ -118,18 +142,6 @@ def tmp_env_name(request) -> str:
     if callable(request.param):
         return request.param()
     return request.param
-
-
-@pytest.fixture
-def tmp_root_prefix(
-    tmp_path: pathlib.Path, tmp_clean_env: None
-) -> Generator[pathlib.Path, None, None]:
-    """Change the micromamba root directory to a tmp folder for the duration of a test."""
-    new_root_prefix = tmp_path / "mamba"
-    new_root_prefix.mkdir(parents=True, exist_ok=True)
-    os.environ["MAMBA_ROOT_PREFIX"] = str(new_root_prefix)
-    yield new_root_prefix
-    # os.environ restored by tmp_clean_env and tmp_environ
 
 
 @pytest.fixture
@@ -147,3 +159,10 @@ def tmp_prefix(tmp_empty_env: pathlib.Path) -> Generator[pathlib.Path, None, Non
     os.environ["CONDA_PREFIX"] = str(tmp_empty_env)
     yield tmp_empty_env
     # os.environ restored by tmp_environ through tmp_root_prefix
+
+
+@pytest.fixture
+def tmp_xtensor_env(tmp_prefix: pathlib.Path) -> Generator[pathlib.Path, None, None]:
+    """An activated environment with Xtensor installed."""
+    helpers.install("-c", "conda-forge", "--json", "xtensor", no_dry_run=True)
+    yield tmp_prefix

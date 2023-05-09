@@ -288,6 +288,7 @@ jobs:
           environment-name: build_env
           cache-env: true
       - name: Fix winreg imports
+        # remove as soon as https://github.com/conda-forge/winreg-feedstock/pull/7 is merged
         run: git apply .github/winreg.patch
       - name: fix up vcpkg recipes
         shell: python
@@ -381,6 +382,7 @@ jobs:
             conda-build
             curl
       - name: Fix winreg imports
+        # remove as soon as https://github.com/conda-forge/winreg-feedstock/pull/7 is merged
         run: git apply .github/winreg.patch
       - uses: hendrikmuhs/ccache-action@main
         with:
@@ -479,6 +481,7 @@ jobs:
           environment-name: build_env
           cache-env: true
       - name: Fix winreg imports
+        # remove as soon as https://github.com/conda-forge/winreg-feedstock/pull/7 is merged
         run: git apply .github/winreg.patch
       - uses: hendrikmuhs/ccache-action@main
         with:
@@ -532,6 +535,7 @@ jobs:
           environment-name: build_env
           cache-env: true
       - name: Fix winreg imports
+        # remove as soon as https://github.com/conda-forge/winreg-feedstock/pull/7 is merged
         run: git apply .github/winreg.patch
       - uses: hendrikmuhs/ccache-action@main
         with:

@@ -287,6 +287,8 @@ jobs:
           environment-file: ./libmamba/environment-static-dev-win.yml
           environment-name: build_env
           cache-env: true
+      - name: Fix winreg imports
+        run: git apply .github/winreg.patch
       - name: fix up vcpkg recipes
         shell: python
         run: |

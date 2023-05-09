@@ -519,7 +519,6 @@ jobs:
           rm -rf ~/micromamba*/envs/*/envs
 
   umamba_tests_win:
-    needs: [libmamba_static_win]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:

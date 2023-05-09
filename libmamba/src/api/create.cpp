@@ -10,6 +10,7 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/util.hpp"
 
+
 namespace mamba
 {
     void create()
@@ -28,54 +29,24 @@ namespace mamba
         auto& create_specs = config.at("specs").value<std::vector<std::string>>();
         auto& use_explicit = config.at("explicit_install").value<bool>();
 
-        fs::u8path target_prefix = ctx.prefix_params.target_prefix;
-        for (auto& env_dir : config.at("envs_dirs").value<std::vector<fs::u8path>>())
-        {
-            if (mamba::detail::is_fallback_envs_dirs(env_dir))
-            {
-                continue;
-            }
-
-            if (fs::exists(env_dir) == false)
-            {
-                // Try creating the env directory if it doesn't exist
-                try
-                {
-                    path::create_directories_sudo_safe(env_dir);
-                }
-                catch (const fs::filesystem_error& ex)
-                {
-                    LOG_WARNING << "Could not create directory: " << env_dir;
-                }
-            }
-
-            if (fs::exists(env_dir) && fs::is_directory(env_dir) && mamba::path::is_writable(env_dir))
-            {
-                // If there is a writable directory in the envs_dirs
-                // it overrides the root prefix
-                target_prefix = env_dir / target_prefix.filename();
-                break;
-            }
-        }
-        ctx.prefix_params.target_prefix = target_prefix;
-
         if (!ctx.dry_run)
         {
-            if (fs::exists(target_prefix))
+            if (fs::exists(ctx.prefix_params.target_prefix))
             {
-                if (target_prefix == ctx.prefix_params.root_prefix)
+                if (ctx.prefix_params.target_prefix == ctx.prefix_params.root_prefix)
                 {
                     LOG_ERROR << "Overwriting root prefix is not permitted";
                     throw std::runtime_error("Aborting.");
                 }
-                else if (fs::exists(target_prefix / "conda-meta"))
+                else if (fs::exists(ctx.prefix_params.target_prefix / "conda-meta"))
                 {
                     if (Console::prompt(
-                            "Found conda-prefix at '" + target_prefix.string() + "'. Overwrite?",
+                            "Found conda-prefix at '" + ctx.prefix_params.target_prefix.string()
+                                + "'. Overwrite?",
                             'n'
                         ))
                     {
-                        fs::remove_all(target_prefix);
+                        fs::remove_all(ctx.prefix_params.target_prefix);
                     }
                     else
                     {
@@ -90,12 +61,12 @@ namespace mamba
             }
             if (create_specs.empty())
             {
-                detail::create_empty_target(target_prefix);
+                detail::create_empty_target(ctx.prefix_params.target_prefix);
             }
 
             if (config.at("platform").configured() && !config.at("platform").rc_configured())
             {
-                detail::store_platform_config(target_prefix, ctx.platform);
+                detail::store_platform_config(ctx.prefix_params.target_prefix, ctx.platform);
             }
         }
 

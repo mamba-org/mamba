@@ -4,12 +4,12 @@ index 42cb1670..3be90987 100644
 +++ b/libmamba/CMakeLists.txt
 @@ -511,7 +511,7 @@ macro(libmamba_create_target target_name linkage output_name)
      )
-
+ 
      if (WIN32)
 -        find_path(WINREG_INCLUDE_DIR NAMES "winreg/WinReg.hpp")
 +        find_path(WINREG_INCLUDE_DIR NAMES WinReg.hpp)
      endif()
-
+ 
      target_include_directories(
 diff --git a/libmamba/src/core/shell_init.cpp b/libmamba/src/core/shell_init.cpp
 index 83854582..3e7c920f 100644

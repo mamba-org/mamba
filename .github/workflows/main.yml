@@ -380,6 +380,8 @@ jobs:
           extra-specs: |
             conda-build
             curl
+      - name: Fix winreg imports
+        run: git apply .github/winreg.patch
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -476,6 +478,8 @@ jobs:
           environment-file: ./libmamba/environment-dev.yml
           environment-name: build_env
           cache-env: true
+      - name: Fix winreg imports
+        run: git apply .github/winreg.patch
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -527,6 +531,8 @@ jobs:
           environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
           cache-env: true
+      - name: Fix winreg imports
+        run: git apply .github/winreg.patch
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache

@@ -287,9 +287,6 @@ jobs:
           environment-file: ./libmamba/environment-static-dev-win.yml
           environment-name: build_env
           cache-env: true
-      - name: Fix winreg imports
-        # remove as soon as https://github.com/conda-forge/winreg-feedstock/pull/7 is merged
-        run: git apply .github/winreg.patch
       - name: fix up vcpkg recipes
         shell: python
         run: |
@@ -381,9 +378,6 @@ jobs:
           extra-specs: |
             conda-build
             curl
-      - name: Fix winreg imports
-        # remove as soon as https://github.com/conda-forge/winreg-feedstock/pull/7 is merged
-        run: git apply .github/winreg.patch
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -480,9 +474,6 @@ jobs:
           environment-file: ./libmamba/environment-dev.yml
           environment-name: build_env
           cache-env: true
-      - name: Fix winreg imports
-        # remove as soon as https://github.com/conda-forge/winreg-feedstock/pull/7 is merged
-        run: git apply .github/winreg.patch
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -533,9 +524,6 @@ jobs:
           environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
           cache-env: true
-      - name: Fix winreg imports
-        # remove as soon as https://github.com/conda-forge/winreg-feedstock/pull/7 is merged
-        run: git apply .github/winreg.patch
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache

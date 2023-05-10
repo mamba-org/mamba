@@ -14,8 +14,6 @@ repos:
     rev: v4.4.0
     hooks:
     -   id: trailing-whitespace
-        # todo: remove once patch is gone
-        exclude: .github/winreg.patch
     -   id: end-of-file-fixer
     -   id: fix-encoding-pragma
         args: [--remove]

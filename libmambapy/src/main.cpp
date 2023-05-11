@@ -122,7 +122,7 @@ namespace mambapy
     std::shared_ptr<Singletons> singletons()
     {
         static std::weak_ptr<Singletons> maybe_singletons = std::make_shared<Singletons>();
-        if(auto existing_singletons = maybe_singletons.lock())
+        if (auto existing_singletons = maybe_singletons.lock())
         {
             return existing_singletons;
         }
@@ -132,7 +132,7 @@ namespace mambapy
             std::scoped_lock lock{ mutex };
             // We double check in case multiple threads reached this point,
             // to avoid creating the singletons twice.
-            if(existing_singletons = maybe_singletons.lock())
+            if (existing_singletons = maybe_singletons.lock())
             {
                 return existing_singletons;
             }
@@ -176,18 +176,25 @@ PYBIND11_MODULE(bindings, m)
 
     py::class_<MatchSpec>(m, "MatchSpec")
         .def(py::init<>())
-        .def(py::init<>([singletons = mambapy::singletons()](const std::string& name){ return MatchSpec{ name, singletons->channel_context }; }))
+        .def(py::init<>(
+            [singletons = mambapy::singletons()](const std::string& name) {
+                return MatchSpec{ name, singletons->channel_context };
+            }
+        ))
         .def("conda_build_form", &MatchSpec::conda_build_form);
 
     py::class_<MPool>(m, "Pool")
-        .def(py::init<>([singletons = mambapy::singletons()]{ return MPool{ singletons->channel_context }; }))
+        .def(py::init<>([singletons = mambapy::singletons()]
+                        { return MPool{ singletons->channel_context }; }))
         .def("set_debuglevel", &MPool::set_debuglevel)
         .def("create_whatprovides", &MPool::create_whatprovides)
         .def("select_solvables", &MPool::select_solvables, py::arg("id"), py::arg("sorted") = false)
         .def("matchspec2id", &MPool::matchspec2id, py::arg("ms"))
         .def(
             "matchspec2id",
-            [singletons = mambapy::singletons()](MPool& self, std::string_view ms) { return self.matchspec2id({ ms, singletons->channel_context }); },
+            [singletons = mambapy::singletons()](MPool& self, std::string_view ms) {
+                return self.matchspec2id({ ms, singletons->channel_context });
+            },
             py::arg("ms")
         )
         .def("id2pkginfo", &MPool::id2pkginfo, py::arg("id"));
@@ -342,9 +349,11 @@ PYBIND11_MODULE(bindings, m)
         .def("tree_message", [](const CpPbGraph& self) { return problem_tree_msg(self); });
 
     py::class_<History>(m, "History")
-        .def(py::init([singletons = mambapy::singletons()](const fs::u8path& path){
-            return History{ path, singletons->channel_context };
-        }))
+        .def(py::init(
+            [singletons = mambapy::singletons()](const fs::u8path& path) {
+                return History{ path, singletons->channel_context };
+            }
+        ))
         .def("get_requested_specs_map", &History::get_requested_specs_map);
 
     /*py::class_<Query>(m, "Query")
@@ -365,7 +374,9 @@ PYBIND11_MODULE(bindings, m)
         .def(py::init<MPool&>())
         .def(
             "find",
-            [singletons = mambapy::singletons()](const Query& q, const std::string& query, const query::RESULT_FORMAT format) -> std::string
+            [singletons = mambapy::singletons(
+             )](const Query& q, const std::string& query, const query::RESULT_FORMAT format
+            ) -> std::string
             {
                 query_result res = q.find(query);
                 std::stringstream res_stream;
@@ -392,7 +403,9 @@ PYBIND11_MODULE(bindings, m)
         )
         .def(
             "whoneeds",
-            [singletons = mambapy::singletons()](const Query& q, const std::string& query, const query::RESULT_FORMAT format) -> std::string
+            [singletons = mambapy::singletons(
+             )](const Query& q, const std::string& query, const query::RESULT_FORMAT format
+            ) -> std::string
             {
                 // QueryResult res = q.whoneeds(query, tree);
                 std::stringstream res_stream;
@@ -423,7 +436,9 @@ PYBIND11_MODULE(bindings, m)
         )
         .def(
             "depends",
-            [singletons = mambapy::singletons()](const Query& q, const std::string& query, const query::RESULT_FORMAT format) -> std::string
+            [singletons = mambapy::singletons(
+             )](const Query& q, const std::string& query, const query::RESULT_FORMAT format
+            ) -> std::string
             {
                 query_result res = q.depends(
                     query,
@@ -925,8 +940,10 @@ PYBIND11_MODULE(bindings, m)
         );
 
     pyChannel
-        .def(py::init([singletons = mambapy::singletons()](const std::string& value)
-                      { return const_cast<Channel*>(&singletons->channel_context.make_channel(value)); }))
+        .def(py::init(
+            [singletons = mambapy::singletons()](const std::string& value)
+            { return const_cast<Channel*>(&singletons->channel_context.make_channel(value)); }
+        ))
         .def_property_readonly("scheme", &Channel::scheme)
         .def_property_readonly("location", &Channel::location)
         .def_property_readonly("name", &Channel::name)
@@ -971,9 +988,11 @@ PYBIND11_MODULE(bindings, m)
             [](py::object&, bool val) { Configuration::instance().at("show_banner").set_value(val); }
         );
 
-    m.def("get_channels", [singletons = mambapy::singletons()](const std::vector<std::string>& channel_names){
-        return singletons->channel_context.get_channels(channel_names);
-    });
+    m.def(
+        "get_channels",
+        [singletons = mambapy::singletons()](const std::vector<std::string>& channel_names)
+        { return singletons->channel_context.get_channels(channel_names); }
+    );
 
     m.def(
         "transmute",

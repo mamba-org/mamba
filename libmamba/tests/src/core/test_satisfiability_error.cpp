@@ -365,8 +365,8 @@ namespace mamba
             PrefixData::create(tmp_dir.path / "prefix", channel_context)
         );
         prefix_data.add_packages(virtual_packages);
-        auto pool = MPool{channel_context};
-        auto repo = MRepo{pool, prefix_data};
+        auto pool = MPool{ channel_context };
+        auto repo = MRepo{ pool, prefix_data };
         repo.set_installed();
 
         auto cache = MultiPackageCache({ tmp_dir.path / "cache" });

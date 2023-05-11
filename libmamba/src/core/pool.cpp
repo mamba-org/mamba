@@ -163,8 +163,11 @@ namespace mamba
         /**
          * Add function to handle matchspec while parsing is done by libsolv.
          */
-        auto add_channel_specific_matchspec(ChannelContext& channel_context, solv::ObjPool& pool, const MatchSpec& ms)
-            -> solv::DependencyId
+        auto add_channel_specific_matchspec(
+            ChannelContext& channel_context,
+            solv::ObjPool& pool,
+            const MatchSpec& ms
+        ) -> solv::DependencyId
         {
             // Poor man's ms repr to match waht the user provided
             std::string const repr = fmt::format("{}::{}", ms.channel, ms.conda_build_form());

@@ -15,8 +15,6 @@
 
 namespace mamba
 {
-    void detect_shell(std::string& shell_type);
-
     void shell(
         const std::string& action,
         std::string& shell_type,

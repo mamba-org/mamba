@@ -119,30 +119,10 @@ namespace mambapy
         mamba::ChannelContext channel_context;
     };
 
-    std::shared_ptr<Singletons> singletons()
+    Singletons& singletons()
     {
-        static std::weak_ptr<Singletons> maybe_singletons = std::make_shared<Singletons>();
-        if (auto existing_singletons = maybe_singletons.lock())
-        {
-            return existing_singletons;
-        }
-        else
-        {
-            static std::mutex mutex;
-            std::scoped_lock lock{ mutex };
-            // We double check in case multiple threads reached this point,
-            // to avoid creating the singletons twice.
-            if (existing_singletons = maybe_singletons.lock())
-            {
-                return existing_singletons;
-            }
-            else
-            {
-                auto new_singletons = std::make_shared<Singletons>();
-                maybe_singletons = new_singletons;
-                return new_singletons;
-            }
-        }
+        static Singletons singletons;
+        return singletons;
     }
 }
 
@@ -177,23 +157,22 @@ PYBIND11_MODULE(bindings, m)
     py::class_<MatchSpec>(m, "MatchSpec")
         .def(py::init<>())
         .def(py::init<>(
-            [singletons = mambapy::singletons()](const std::string& name) {
-                return MatchSpec{ name, singletons->channel_context };
+            [](const std::string& name) {
+                return MatchSpec{ name, mambapy::singletons().channel_context };
             }
         ))
         .def("conda_build_form", &MatchSpec::conda_build_form);
 
     py::class_<MPool>(m, "Pool")
-        .def(py::init<>([singletons = mambapy::singletons()]
-                        { return MPool{ singletons->channel_context }; }))
+        .def(py::init<>([] { return MPool{ mambapy::singletons().channel_context }; }))
         .def("set_debuglevel", &MPool::set_debuglevel)
         .def("create_whatprovides", &MPool::create_whatprovides)
         .def("select_solvables", &MPool::select_solvables, py::arg("id"), py::arg("sorted") = false)
         .def("matchspec2id", &MPool::matchspec2id, py::arg("ms"))
         .def(
             "matchspec2id",
-            [singletons = mambapy::singletons()](MPool& self, std::string_view ms) {
-                return self.matchspec2id({ ms, singletons->channel_context });
+            [](MPool& self, std::string_view ms) {
+                return self.matchspec2id({ ms, mambapy::singletons().channel_context });
             },
             py::arg("ms")
         )
@@ -350,8 +329,8 @@ PYBIND11_MODULE(bindings, m)
 
     py::class_<History>(m, "History")
         .def(py::init(
-            [singletons = mambapy::singletons()](const fs::u8path& path) {
-                return History{ path, singletons->channel_context };
+            [](const fs::u8path& path) {
+                return History{ path, mambapy::singletons().channel_context };
             }
         ))
         .def("get_requested_specs_map", &History::get_requested_specs_map);
@@ -374,8 +353,7 @@ PYBIND11_MODULE(bindings, m)
         .def(py::init<MPool&>())
         .def(
             "find",
-            [singletons = mambapy::singletons(
-             )](const Query& q, const std::string& query, const query::RESULT_FORMAT format
+            [](const Query& q, const std::string& query, const query::RESULT_FORMAT format
             ) -> std::string
             {
                 query_result res = q.find(query);
@@ -383,7 +361,7 @@ PYBIND11_MODULE(bindings, m)
                 switch (format)
                 {
                     case query::JSON:
-                        res_stream << res.groupby("name").json(singletons->channel_context).dump(4);
+                        res_stream << res.groupby("name").json(mambapy::singletons().channel_context).dump(4);
                         break;
                     case query::TREE:
                     case query::TABLE:
@@ -403,8 +381,7 @@ PYBIND11_MODULE(bindings, m)
         )
         .def(
             "whoneeds",
-            [singletons = mambapy::singletons(
-             )](const Query& q, const std::string& query, const query::RESULT_FORMAT format
+            [](const Query& q, const std::string& query, const query::RESULT_FORMAT format
             ) -> std::string
             {
                 // QueryResult res = q.whoneeds(query, tree);
@@ -417,7 +394,7 @@ PYBIND11_MODULE(bindings, m)
                         res.tree(res_stream);
                         break;
                     case query::JSON:
-                        res_stream << res.json(singletons->channel_context).dump(4);
+                        res_stream << res.json(mambapy::singletons().channel_context).dump(4);
                         break;
                     case query::TABLE:
                     case query::RECURSIVETABLE:
@@ -436,8 +413,7 @@ PYBIND11_MODULE(bindings, m)
         )
         .def(
             "depends",
-            [singletons = mambapy::singletons(
-             )](const Query& q, const std::string& query, const query::RESULT_FORMAT format
+            [](const Query& q, const std::string& query, const query::RESULT_FORMAT format
             ) -> std::string
             {
                 query_result res = q.depends(
@@ -452,7 +428,7 @@ PYBIND11_MODULE(bindings, m)
                         res.tree(res_stream);
                         break;
                     case query::JSON:
-                        res_stream << res.json(singletons->channel_context).dump(4);
+                        res_stream << res.json(mambapy::singletons().channel_context).dump(4);
                         break;
                     case query::TABLE:
                     case query::RECURSIVETABLE:
@@ -783,9 +759,9 @@ PYBIND11_MODULE(bindings, m)
 
     pyPrefixData
         .def(py::init(
-            [singletons = mambapy::singletons()](const fs::u8path& prefix_path) -> PrefixData
+            [](const fs::u8path& prefix_path) -> PrefixData
             {
-                auto sres = PrefixData::create(prefix_path, singletons->channel_context);
+                auto sres = PrefixData::create(prefix_path, mambapy::singletons().channel_context);
                 if (sres.has_value())
                 {
                     return std::move(sres.value());
@@ -941,8 +917,8 @@ PYBIND11_MODULE(bindings, m)
 
     pyChannel
         .def(py::init(
-            [singletons = mambapy::singletons()](const std::string& value)
-            { return const_cast<Channel*>(&singletons->channel_context.make_channel(value)); }
+            [](const std::string& value)
+            { return const_cast<Channel*>(&mambapy::singletons().channel_context.make_channel(value)); }
         ))
         .def_property_readonly("scheme", &Channel::scheme)
         .def_property_readonly("location", &Channel::location)
@@ -990,8 +966,8 @@ PYBIND11_MODULE(bindings, m)
 
     m.def(
         "get_channels",
-        [singletons = mambapy::singletons()](const std::vector<std::string>& channel_names)
-        { return singletons->channel_context.get_channels(channel_names); }
+        [](const std::vector<std::string>& channel_names)
+        { return mambapy::singletons().channel_context.get_channels(channel_names); }
     );
 
     m.def(

@@ -353,15 +353,15 @@ PYBIND11_MODULE(bindings, m)
         .def(py::init<MPool&>())
         .def(
             "find",
-            [](const Query& q, const std::string& query, const query::RESULT_FORMAT format
-            ) -> std::string
+            [](const Query& q, const std::string& query, const query::RESULT_FORMAT format) -> std::string
             {
                 query_result res = q.find(query);
                 std::stringstream res_stream;
                 switch (format)
                 {
                     case query::JSON:
-                        res_stream << res.groupby("name").json(mambapy::singletons().channel_context).dump(4);
+                        res_stream
+                            << res.groupby("name").json(mambapy::singletons().channel_context).dump(4);
                         break;
                     case query::TREE:
                     case query::TABLE:
@@ -381,8 +381,7 @@ PYBIND11_MODULE(bindings, m)
         )
         .def(
             "whoneeds",
-            [](const Query& q, const std::string& query, const query::RESULT_FORMAT format
-            ) -> std::string
+            [](const Query& q, const std::string& query, const query::RESULT_FORMAT format) -> std::string
             {
                 // QueryResult res = q.whoneeds(query, tree);
                 std::stringstream res_stream;
@@ -413,8 +412,7 @@ PYBIND11_MODULE(bindings, m)
         )
         .def(
             "depends",
-            [](const Query& q, const std::string& query, const query::RESULT_FORMAT format
-            ) -> std::string
+            [](const Query& q, const std::string& query, const query::RESULT_FORMAT format) -> std::string
             {
                 query_result res = q.depends(
                     query,
@@ -917,8 +915,10 @@ PYBIND11_MODULE(bindings, m)
 
     pyChannel
         .def(py::init(
-            [](const std::string& value)
-            { return const_cast<Channel*>(&mambapy::singletons().channel_context.make_channel(value)); }
+            [](const std::string& value) {
+                return const_cast<Channel*>(&mambapy::singletons().channel_context.make_channel(value)
+                );
+            }
         ))
         .def_property_readonly("scheme", &Channel::scheme)
         .def_property_readonly("location", &Channel::location)

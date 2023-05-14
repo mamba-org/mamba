@@ -55,7 +55,6 @@ def get_index(
     platform=None,
     use_local=False,
     use_cache=False,
-    use_zst=True,
     unknown=None,
     prefix=None,
     repodata_fn="repodata.json",

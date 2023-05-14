@@ -685,14 +685,6 @@ class Context:
     def remote_fetch_params(self, arg0: Context.RemoteFetchParams) -> None:
         pass
     @property
-    def repodata_use_zst(self) -> bool:
-        """
-        :type: bool
-        """
-    @repodata_use_zst.setter
-    def repodata_use_zst(self, arg0: bool) -> None:
-        pass
-    @property
     def threads_params(self) -> Context.ThreadsParams:
         """
         :type: Context.ThreadsParams

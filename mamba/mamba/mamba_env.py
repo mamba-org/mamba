@@ -57,7 +57,6 @@ def mamba_install(prefix, specs, args, env, dry_run=False, *_, **kwargs):
         channel_urls,
         repos,
         prepend=False,
-        use_zst=api.Context().repodata_use_zst,
     )
 
     if not (context.quiet or context.json):

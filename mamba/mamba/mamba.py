@@ -496,7 +496,7 @@ def install(args, parser, command="install"):
         installed_pkg_recs = []
         transaction = None
     else:
-        index = load_channels(pool, channels, repos, use_zst=context.repodata_use_zst)
+        index = load_channels(pool, channels, repos)
 
         solver = api.Solver(pool, solver_options)
 

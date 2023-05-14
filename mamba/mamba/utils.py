@@ -137,7 +137,6 @@ def load_channels(
     platform=None,
     use_local=False,
     use_cache=True,
-    use_zst=False,
     repodata_fn="repodata.json",
 ):
     index = get_index(
@@ -147,7 +146,6 @@ def load_channels(
         use_local=use_local,
         repodata_fn=repodata_fn,
         use_cache=use_cache,
-        use_zst=use_zst,
     )
 
     if has_priority is None:
@@ -291,7 +289,6 @@ def init_api_context(use_mamba_experimental=False):
     api_ctx.remote_fetch_params.retry_backoff = context.remote_backoff_factor
     api_ctx.add_pip_as_python_dependency = context.add_pip_as_python_dependency
     api_ctx.use_only_tar_bz2 = context.use_only_tar_bz2
-    api_ctx.repodata_use_zst = context.repodata_use_zst
 
     if context.channel_priority is ChannelPriority.STRICT:
         api_ctx.channel_priority = api.ChannelPriority.kStrict

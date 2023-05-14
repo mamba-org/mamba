@@ -52,7 +52,6 @@ def create_pool(
             use_cache=use_cache,
             repodata_fn=repodata_fn,
             use_local=use_local,
-            use_zst=context.repodata_use_zst,
         )
 
     return pool

@@ -22,7 +22,6 @@ class MambaSolver:
             self.channels,
             self.repos,
             platform=platform,
-            use_zst=context.repodata_use_zst,
         )
 
         self.local_index = []

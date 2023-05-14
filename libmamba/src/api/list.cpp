@@ -49,7 +49,7 @@ namespace mamba
         {
             auto& ctx = Context::instance();
 
-            auto sprefix_data = PrefixData::create(ctx.target_prefix);
+            auto sprefix_data = PrefixData::create(ctx.prefix_params.target_prefix);
             if (!sprefix_data)
             {
                 // TODO: propagate tl::expected mechanism
@@ -59,7 +59,7 @@ namespace mamba
 
             std::regex spec_pat(regex);
 
-            if (ctx.json)
+            if (ctx.output_params.json)
             {
                 auto jout = nlohmann::json::array();
                 std::vector<std::string> keys;
@@ -93,7 +93,8 @@ namespace mamba
                 return;
             }
 
-            std::cout << "List of packages in environment: " << ctx.target_prefix << "\n\n";
+            std::cout << "List of packages in environment: " << ctx.prefix_params.target_prefix
+                      << "\n\n";
 
             formatted_pkg formatted_pkgs;
 
@@ -137,7 +138,7 @@ namespace mamba
                 if (requested_specs.find(p.name) != requested_specs.end())
                 {
                     formatted_name = printers::FormattedString(p.name);
-                    formatted_name.style = ctx.palette.user;
+                    formatted_name.style = ctx.graphics_params.palette.user;
                 }
                 t.add_row({ formatted_name, p.version, p.build, p.channel });
             }

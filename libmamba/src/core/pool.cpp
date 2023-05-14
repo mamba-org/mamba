@@ -4,7 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <list>
+#include <string_view>
 
 #include <fmt/format.h>
 #include <solv/evr.h>
@@ -17,141 +17,199 @@ extern "C"  // Incomplete header
 }
 #include <spdlog/spdlog.h>
 
+#include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/util_string.hpp"
 #include "mamba/util/cast.hpp"
 #include "mamba/util/compare.hpp"
+#include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
 
 namespace mamba
 {
-    namespace
-    {
-        void libsolv_debug_callback(Pool* /*pool*/, void* userptr, int type, const char* str)
-        {
-            auto* dbg = reinterpret_cast<std::pair<spdlog::logger*, std::string>*>(userptr);
-            dbg->second += str;
-            if (dbg->second.size() == 0 || dbg->second.back() != '\n')
-            {
-                return;
-            }
-
-            auto log = Console::hide_secrets(dbg->second);
-            if (type & SOLV_FATAL || type & SOLV_ERROR)
-            {
-                dbg->first->error(log);
-            }
-            else if (type & SOLV_WARN)
-            {
-                dbg->first->warn(log);
-            }
-            else if (Context::instance().verbosity > 2)
-            {
-                dbg->first->info(log);
-            }
-            dbg->second.clear();
-        }
-
-        void libsolv_delete_pool(::Pool* pool)
-        {
-            LOG_INFO << "Freeing pool.";
-            pool_free(pool);
-        }
-
-    }
-
     struct MPool::MPoolData
     {
-        MPoolData()
-            : pool(pool_create(), &libsolv_delete_pool)
-        {
-        }
-
-        std::unique_ptr<Pool, decltype(&libsolv_delete_pool)> pool;
-        std::pair<spdlog::logger*, std::string> debug_logger = {};
-        std::list<MRepo> repo_list = {};
+        solv::ObjPool pool = {};
     };
 
     MPool::MPool()
         : m_data(std::make_shared<MPoolData>())
     {
-        pool_setdisttype(pool(), DISTTYPE_CONDA);
+        pool().set_disttype(DISTTYPE_CONDA);
         set_debuglevel();
     }
 
     MPool::~MPool() = default;
 
-    Pool* MPool::pool()
+    solv::ObjPool& MPool::pool()
     {
-        return m_data->pool.get();
+        return m_data->pool;
     }
 
-    const Pool* MPool::pool() const
+    const solv::ObjPool& MPool::pool() const
     {
-        return m_data->pool.get();
-    }
-
-    std::size_t MPool::n_solvables() const
-    {
-        return util::safe_num_cast<std::size_t>(pool()->nsolvables);
+        return m_data->pool;
     }
 
     void MPool::set_debuglevel()
     {
         // ensure that debug logging goes to stderr as to not interfere with stdout json output
-        pool()->debugmask |= SOLV_DEBUG_TO_STDERR;
-        if (Context::instance().verbosity > 2)
+        pool().raw()->debugmask |= SOLV_DEBUG_TO_STDERR;
+        if (Context::instance().output_params.verbosity > 2)
         {
-            pool_setdebuglevel(pool(), Context::instance().verbosity - 1);
-            auto logger = spdlog::get("libsolv");
-            m_data->debug_logger.first = logger.get();
-            pool_setdebugcallback(pool(), &libsolv_debug_callback, &(m_data->debug_logger));
+            pool_setdebuglevel(pool().raw(), Context::instance().output_params.verbosity - 1);
+            pool().set_debug_callback(
+                [logger = spdlog::get("libsolv")](::Pool*, int type, std::string_view msg) noexcept
+                {
+                    if (msg.size() == 0 || msg.back() != '\n')
+                    {
+                        return;
+                    }
+
+                    auto log = Console::hide_secrets(msg);
+                    if (type & SOLV_FATAL || type & SOLV_ERROR)
+                    {
+                        logger->error(log);
+                    }
+                    else if (type & SOLV_WARN)
+                    {
+                        logger->warn(log);
+                    }
+                    else if (Context::instance().output_params.verbosity > 2)
+                    {
+                        logger->info(log);
+                    }
+                }
+            );
         }
     }
 
     void MPool::create_whatprovides()
     {
-        pool_createwhatprovides(pool());
+        pool().create_whatprovides();
     }
 
     MPool::operator Pool*()
     {
-        return pool();
+        return pool().raw();
     }
 
     MPool::operator const Pool*() const
     {
-        return pool();
+        return pool().raw();
     }
 
     std::vector<Id> MPool::select_solvables(Id matchspec, bool sorted) const
     {
-        solv::ObjQueue job = { SOLVER_SOLVABLE_PROVIDES, matchspec };
-        solv::ObjQueue solvables = {};
-        selection_solvables(const_cast<Pool*>(pool()), job.raw(), solvables.raw());
+        auto solvables = pool().select_solvables({ SOLVER_SOLVABLE_PROVIDES, matchspec });
 
         if (sorted)
         {
             std::sort(
                 solvables.begin(),
                 solvables.end(),
-                [this](Id a, Id b)
+                [pool_ptr = pool().raw()](Id a, Id b)
                 {
-                    Solvable* sa = pool_id2solvable(pool(), a);
-                    Solvable* sb = pool_id2solvable(pool(), b);
-                    return (pool_evrcmp(this->pool(), sa->evr, sb->evr, EVRCMP_COMPARE) > 0);
+                    Solvable* sa = pool_id2solvable(pool_ptr, a);
+                    Solvable* sb = pool_id2solvable(pool_ptr, b);
+                    return (pool_evrcmp(pool_ptr, sa->evr, sb->evr, EVRCMP_COMPARE) > 0);
                 }
             );
         }
         return solvables.as<std::vector>();
     }
 
-    Id MPool::matchspec2id(const std::string& ms)
+    namespace
     {
-        Id id = pool_conda_matchspec(pool(), ms.c_str());
-        if (!id)
+        bool channel_match(const Channel& chan, const Channel& needle)
+        {
+            if ((chan) == needle)
+            {
+                return true;
+            }
+
+            auto& custom_multichannels = Context::instance().custom_multichannels;
+            auto x = custom_multichannels.find(needle.name());
+            if (x != custom_multichannels.end())
+            {
+                for (auto el : (x->second))
+                {
+                    const Channel& inner = make_channel(el);
+                    if ((chan) == inner)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /**
+         * Add function to handle matchspec while parsing is done by libsolv.
+         */
+        auto add_channel_specific_matchspec(solv::ObjPool& pool, const MatchSpec& ms)
+            -> solv::DependencyId
+        {
+            // Poor man's ms repr to match waht the user provided
+            std::string const repr = fmt::format("{}::{}", ms.channel, ms.conda_build_form());
+
+            // Already added, return that id
+            if (const auto maybe_id = pool.find_string(repr))
+            {
+                return maybe_id.value();
+            }
+
+            // conda_build_form does **NOT** contain the channel info
+            solv::DependencyId const match = pool_conda_matchspec(
+                pool.raw(),
+                ms.conda_build_form().c_str()
+            );
+
+            const Channel& c = make_channel(ms.channel);
+            solv::ObjQueue selected_pkgs = {};
+            pool.for_each_whatprovides(
+                match,
+                [&](solv::ObjSolvableViewConst s)
+                {
+                    // TODO this does not work with s.url(), we need to proper channel class
+                    // to properly manage this.
+                    auto repo = solv::ObjRepoView(*s.raw()->repo);
+                    // TODO make_channel should disapear avoiding conflict here
+                    auto const url = std::string(repo.url());
+                    if (channel_match(make_channel(url), c))
+                    {
+                        selected_pkgs.push_back(s.id());
+                    }
+                }
+            );
+            solv::StringId const repr_id = pool.add_string(repr);
+            ::Id const offset = pool_queuetowhatprovides(pool.raw(), selected_pkgs.raw());
+            // FRAGILE This get deleted when calling ``pool_createwhatprovides`` so care
+            // must be taken to do it before
+            // TODO investigate namespace providers
+            pool_set_whatprovides(pool.raw(), repr_id, offset);
+            return repr_id;
+        }
+    }
+
+    ::Id MPool::matchspec2id(const MatchSpec& ms)
+    {
+        ::Id id = 0;
+        if (ms.channel.empty())
+        {
+            id = pool_conda_matchspec(pool().raw(), ms.conda_build_form().c_str());
+        }
+        else
+        {
+            // Working around shortcomings of ``pool_conda_matchspec``
+            // The channels are not processed.
+            id = add_channel_specific_matchspec(pool(), ms);
+        }
+        if (id == 0)
         {
             throw std::runtime_error("libsolv error: could not create matchspec from string");
         }
@@ -160,135 +218,61 @@ namespace mamba
 
     namespace
     {
-        auto make_package_info(::Solvable& s) -> PackageInfo
+        auto make_package_info(const solv::ObjPool& pool, solv::ObjSolvableViewConst s) -> PackageInfo
         {
-            // Note: this function (especially the checksum part) is NOT YET threadsafe!
-            Pool* pool = s.repo->pool;
-            Id check_type;
-
             PackageInfo out = {};
 
-            out.name = pool_id2str(pool, s.name);
-            out.version = pool_id2str(pool, s.evr);
-            out.build_string = raw_str_or_empty(solvable_lookup_str(&s, SOLVABLE_BUILDFLAVOR));
-            if (const char* str = solvable_lookup_str(&s, SOLVABLE_BUILDVERSION); str != nullptr)
+            out.name = s.name();
+            out.version = s.version();
+            out.build_string = s.build_string();
+            out.noarch = s.noarch();
+            out.build_number = s.build_number();
+            out.channel = s.channel();
+            out.url = s.url();
+            out.subdir = s.subdir();
+            out.fn = s.file_name();
+            out.license = s.license();
+            out.size = s.size();
+            out.timestamp = s.timestamp();
+            out.md5 = s.md5();
+            out.sha256 = s.sha256();
+
+            const auto dep_to_str = [&pool](solv::DependencyId id)
+            { return pool.dependency_to_string(id); };
             {
-                out.build_number = std::stoull(str);
+                const auto deps = s.dependencies();
+                out.depends.reserve(deps.size());
+                std::transform(deps.cbegin(), deps.cend(), std::back_inserter(out.depends), dep_to_str);
+            }
+            {
+                const auto cons = s.constraints();
+                out.constrains.reserve(cons.size());
+                std::transform(cons.cbegin(), cons.cend(), std::back_inserter(out.constrains), dep_to_str);
+            }
+            {
+                const auto id_to_str = [&pool](solv::StringId id)
+                { return std::string(pool.get_string(id)); };
+                auto feats = s.track_features();
+                out.track_features.reserve(feats.size());
+                std::transform(
+                    feats.begin(),
+                    feats.end(),
+                    std::back_inserter(out.track_features),
+                    id_to_str
+                );
             }
 
-            static ::Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
-            if (const char* str = solvable_lookup_str(&s, real_repo_key); str != nullptr)
-            {
-                out.url = str;
-                out.channel = make_channel(out.url).canonical_name();
-            }
-            else
-            {
-                if (!s.repo || strcmp(s.repo->name, "__explicit_specs__") == 0)
-                {
-                    out.url = solvable_lookup_location(&s, 0);
-                    out.channel = make_channel(out.url).canonical_name();
-                }
-                else
-                {
-                    out.channel = s.repo->name;  // note this can and should be <unknown> when e.g.
-                                                 // installing from a tarball
-                    out.url = fmt::format(
-                        "{}/{}",
-                        out.channel,
-                        raw_str_or_empty(solvable_lookup_str(&s, SOLVABLE_MEDIAFILE))
-                    );
-                }
-            }
-
-            out.subdir = raw_str_or_empty(solvable_lookup_str(&s, SOLVABLE_MEDIADIR));
-            out.fn = raw_str_or_empty(solvable_lookup_str(&s, SOLVABLE_MEDIAFILE));
-            out.license = raw_str_or_empty(solvable_lookup_str(&s, SOLVABLE_LICENSE));
-            out.size = solvable_lookup_num(&s, SOLVABLE_DOWNLOADSIZE, 0);
-            out.timestamp = solvable_lookup_num(&s, SOLVABLE_BUILDTIME, 0);
-            out.md5 = raw_str_or_empty(solvable_lookup_checksum(&s, SOLVABLE_PKGID, &check_type));
-            out.sha256 = raw_str_or_empty(solvable_lookup_checksum(&s, SOLVABLE_CHECKSUM, &check_type)
-            );
-            out.signatures = raw_str_or_empty(solvable_lookup_str(&s, SIGNATURE_DATA));
-            if (out.signatures.empty())
-            {
-                out.signatures = "{}";
-            }
-
-            solv::ObjQueue q = {};
-            auto dep2str = [&pool](Id id) { return pool_dep2str(pool, id); };
-            if (!solvable_lookup_deparray(&s, SOLVABLE_REQUIRES, q.raw(), -1))
-            {
-                out.defaulted_keys.insert("depends");
-            }
-            out.depends.reserve(q.size());
-            std::transform(q.begin(), q.end(), std::back_inserter(out.depends), dep2str);
-
-            q.clear();
-            if (!solvable_lookup_deparray(&s, SOLVABLE_CONSTRAINS, q.raw(), -1))
-            {
-                out.defaulted_keys.insert("constrains");
-            }
-            out.constrains.reserve(q.size());
-            std::transform(q.begin(), q.end(), std::back_inserter(out.constrains), dep2str);
-
-            q.clear();
-            solvable_lookup_idarray(&s, SOLVABLE_TRACK_FEATURES, q.raw());
-            for (::Id const id : q)
-            {
-                out.track_features += pool_id2str(pool, id);
-                out.track_features += ',';
-            }
-            if (!out.track_features.empty())
-            {
-                out.track_features.pop_back();
-            }
-
-            const ::Id extra_keys_id = pool_str2id(pool, "solvable:extra_keys", 0);
-            const ::Id extra_values_id = pool_str2id(pool, "solvable:extra_values", 0);
-            if (extra_keys_id && extra_values_id)
-            {
-                // Get extra signed keys
-                q.clear();
-                solvable_lookup_idarray(&s, extra_keys_id, q.raw());
-                std::vector<std::string> extra_keys = {};
-                extra_keys.reserve(q.size());
-                std::transform(q.begin(), q.end(), std::back_inserter(extra_keys), dep2str);
-
-                // Get extra signed values
-                q.clear();
-                solvable_lookup_idarray(&s, extra_values_id, q.raw());
-                std::vector<std::string> extra_values = {};
-                extra_values.reserve(q.size());
-                std::transform(q.begin(), q.end(), std::back_inserter(extra_values), dep2str);
-
-                // Build a JSON string for extra signed metadata
-                if (!extra_keys.empty() && (extra_keys.size() == extra_values.size()))
-                {
-                    std::vector<std::string> extra = {};
-                    extra.reserve(extra_keys.size());
-                    for (std::size_t i = 0; i < extra_keys.size(); ++i)
-                    {
-                        extra.push_back(fmt::format(R"("{}":{})", extra_keys[i], extra_values[i]));
-                    }
-                    out.extra_metadata = fmt::format("{{{}}}", fmt::join(extra, ","));
-                }
-            }
-            else
-            {
-                out.extra_metadata = "{}";
-            }
             return out;
         }
     }
 
     std::optional<PackageInfo> MPool::id2pkginfo(Id solv_id) const
     {
-        if (solv_id == 0 || util::cmp_greater_equal(solv_id, n_solvables()))
+        if (const auto solv = pool().get_solvable(solv_id))
         {
-            return std::nullopt;
+            return { make_package_info(pool(), solv.value()) };
         }
-        return { make_package_info(*pool_id2solvable(pool(), solv_id)) };
+        return std::nullopt;
     }
 
     std::optional<std::string> MPool::dep2str(Id dep_id) const
@@ -298,18 +282,11 @@ namespace mamba
             return std::nullopt;
         }
         // Not const because might alloctmp space
-        return pool_dep2str(const_cast<::Pool*>(pool()), dep_id);
+        return pool_dep2str(const_cast<::Pool*>(pool().raw()), dep_id);
     }
 
-    MRepo& MPool::add_repo(MRepo&& repo)
+    void MPool::remove_repo(::Id repo_id, bool reuse_ids)
     {
-        m_data->repo_list.push_back(std::move(repo));
-        return m_data->repo_list.back();
+        pool().remove_repo(repo_id, reuse_ids);
     }
-
-    void MPool::remove_repo(Id repo_id)
-    {
-        m_data->repo_list.remove_if([repo_id](const MRepo& repo) { return repo_id == repo.id(); });
-    }
-
 }  // namespace mamba

@@ -317,14 +317,15 @@ namespace mamba
         p_data->is_json_print_cancelled = true;
     }
 
-    std::string Console::hide_secrets(const std::string_view& str)
+    std::string Console::hide_secrets(std::string_view str)
     {
         return mamba::hide_secrets(str);
     }
 
-    void Console::print(const std::string_view& str, bool force_print)
+    void Console::print(std::string_view str, bool force_print)
     {
-        if (force_print || !(Context::instance().quiet || Context::instance().json))
+        if (force_print
+            || !(Context::instance().output_params.quiet || Context::instance().output_params.json))
         {
             const std::lock_guard<std::mutex> lock(p_data->m_mutex);
 
@@ -353,12 +354,12 @@ namespace mamba
 
     // We use an overload instead of a default argument to avoid exposing std::cin
     // in the header (this would require to include iostream)
-    bool Console::prompt(const std::string_view& message, char fallback)
+    bool Console::prompt(std::string_view message, char fallback)
     {
         return Console::prompt(message, fallback, std::cin);
     }
 
-    bool Console::prompt(const std::string_view& message, char fallback, std::istream& input_stream)
+    bool Console::prompt(std::string_view message, char fallback, std::istream& input_stream)
     {
         if (Context::instance().always_yes)
         {
@@ -406,7 +407,7 @@ namespace mamba
 
     ProgressProxy Console::add_progress_bar(const std::string& name, size_t expected_total)
     {
-        if (Context::instance().no_progress_bars)
+        if (Context::instance().graphics_params.no_progress_bars)
         {
             return ProgressProxy();
         }
@@ -465,7 +466,7 @@ namespace mamba
     // is then a JSON object
     void Console::json_write(const nlohmann::json& j)
     {
-        if (Context::instance().json)
+        if (Context::instance().output_params.json)
         {
             nlohmann::json tmp = j.flatten();
             for (auto it = tmp.begin(); it != tmp.end(); ++it)
@@ -478,7 +479,7 @@ namespace mamba
     // append a value to the current entry, which is then a list
     void Console::json_append(const std::string& value)
     {
-        if (Context::instance().json)
+        if (Context::instance().output_params.json)
         {
             p_data->json_log[p_data->json_hier + '/' + std::to_string(p_data->json_index)] = value;
             p_data->json_index += 1;
@@ -488,7 +489,7 @@ namespace mamba
     // append a JSON object to the current entry, which is then a list
     void Console::json_append(const nlohmann::json& j)
     {
-        if (Context::instance().json)
+        if (Context::instance().output_params.json)
         {
             nlohmann::json tmp = j.flatten();
             for (auto it = tmp.begin(); it != tmp.end(); ++it)
@@ -503,7 +504,7 @@ namespace mamba
     // go down in the hierarchy in the "key" entry, create it if it doesn't exist
     void Console::json_down(const std::string& key)
     {
-        if (Context::instance().json)
+        if (Context::instance().output_params.json)
         {
             p_data->json_hier += '/' + key;
             p_data->json_index = 0;
@@ -513,7 +514,7 @@ namespace mamba
     // go up in the hierarchy
     void Console::json_up()
     {
-        if (Context::instance().json && !p_data->json_hier.empty())
+        if (Context::instance().output_params.json && !p_data->json_hier.empty())
         {
             p_data->json_hier.erase(p_data->json_hier.rfind('/'));
         }
@@ -558,7 +559,7 @@ namespace mamba
         {
             case log_level::critical:
                 SPDLOG_CRITICAL(prepend(str, "", std::string(4, ' ').c_str()));
-                if (Context::instance().logging_level != log_level::off)
+                if (Context::instance().output_params.logging_level != log_level::off)
                 {
                     spdlog::dump_backtrace();
                 }

@@ -11,6 +11,7 @@
 
 #include <nlohmann/json.hpp>
 #include <reproc++/run.hpp>
+#include <spdlog/spdlog.h>
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/info.hpp"
@@ -20,8 +21,6 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/url.hpp"
-
-#include "spdlog/spdlog.h"
 
 namespace mamba
 {
@@ -33,7 +32,7 @@ namespace mamba
     {
         bool ConfigurableImplBase::env_var_configured() const
         {
-            if (Context::instance().no_env)
+            if (Context::instance().src_params.no_env)
             {
                 return false;
             }
@@ -50,12 +49,12 @@ namespace mamba
 
         bool ConfigurableImplBase::env_var_active() const
         {
-            return !Context::instance().no_env || (m_name == "no_env");
+            return !Context::instance().src_params.no_env || (m_name == "no_env");
         }
 
         bool ConfigurableImplBase::rc_configured() const
         {
-            return m_rc_configured && !Context::instance().no_rc;
+            return m_rc_configured && !Context::instance().src_params.no_rc;
         }
     }
 
@@ -609,7 +608,7 @@ namespace mamba
         void post_root_prefix_rc_loading()
         {
             auto& config = Configuration::instance();
-            if (!Context::instance().no_rc)
+            if (!Context::instance().src_params.no_rc)
             {
                 rc_loading_hook(RCConfigLevel::kHomeDir);
                 config.at("no_env").compute(MAMBA_CONF_FORCE_COMPUTE);
@@ -619,7 +618,7 @@ namespace mamba
         void post_target_prefix_rc_loading()
         {
             auto& config = Configuration::instance();
-            if (!Context::instance().no_rc)
+            if (!Context::instance().src_params.no_rc)
             {
                 rc_loading_hook(RCConfigLevel::kTargetPrefix);
                 config.at("no_env").compute(MAMBA_CONF_FORCE_COMPUTE);
@@ -630,13 +629,13 @@ namespace mamba
         {
             auto& ctx = Context::instance();
 
-            if (ctx.json)
+            if (ctx.output_params.json)
             {
-                return mamba::log_level::off;
+                return mamba::log_level::critical;
             }
             else if (Configuration::instance().at("verbose").configured())
             {
-                switch (ctx.verbosity)
+                switch (ctx.output_params.verbosity)
                 {
                     case 0:
                         return mamba::log_level::warn;
@@ -657,13 +656,13 @@ namespace mamba
         void verbose_hook(int& lvl)
         {
             auto& ctx = Context::instance();
-            ctx.verbosity = lvl;
+            ctx.output_params.verbosity = lvl;
         }
 
         void target_prefix_checks_hook(int& options)
         {
             auto& ctx = Context::instance();
-            auto& prefix = ctx.target_prefix;
+            auto& prefix = ctx.prefix_params.target_prefix;
 
             bool no_checks = options & MAMBA_NO_PREFIX_CHECK;
             bool allow_missing = options & MAMBA_ALLOW_MISSING_PREFIX;
@@ -717,7 +716,7 @@ namespace mamba
 
             if (!files.empty())
             {
-                if (ctx.no_rc)
+                if (ctx.src_params.no_rc)
                 {
                     LOG_ERROR << "Configuration files disabled by 'no_rc'";
                     throw std::runtime_error("Incompatible configuration. Aborting.");
@@ -781,7 +780,7 @@ namespace mamba
 
         std::vector<fs::u8path> fallback_envs_dirs_hook()
         {
-            return { Context::instance().root_prefix / "envs" };
+            return { Context::instance().prefix_params.root_prefix / "envs" };
         }
 
         void envs_dirs_hook(std::vector<fs::u8path>& dirs)
@@ -799,7 +798,7 @@ namespace mamba
 
         std::vector<fs::u8path> fallback_pkgs_dirs_hook()
         {
-            std::vector<fs::u8path> paths = { Context::instance().root_prefix / "pkgs",
+            std::vector<fs::u8path> paths = { Context::instance().prefix_params.root_prefix / "pkgs",
                                               env::home_directory() / ".mamba" / "pkgs" };
 #ifdef _WIN32
             auto appdata = env::get("APPDATA");
@@ -837,7 +836,7 @@ namespace mamba
 
         void extract_threads_hook()
         {
-            DownloadExtractSemaphore::set_max(Context::instance().extract_threads);
+            DownloadExtractSemaphore::set_max(Context::instance().threads_params.extract_threads);
         }
     }
 
@@ -1010,7 +1009,7 @@ namespace mamba
         auto& ctx = Context::instance();
 
         // Basic
-        insert(Configurable("root_prefix", &ctx.root_prefix)
+        insert(Configurable("root_prefix", &ctx.prefix_params.root_prefix)
                    .group("Basic")
                    .set_env_var_names()
                    .needs({ "create_base", "rc_files" })
@@ -1023,7 +1022,7 @@ namespace mamba
                    .set_single_op_lifetime()
                    .description("Define if base environment will be initialized empty"));
 
-        insert(Configurable("target_prefix", &ctx.target_prefix)
+        insert(Configurable("target_prefix", &ctx.prefix_params.target_prefix)
                    .group("Basic")
                    .set_env_var_names()
                    .needs({ "root_prefix",
@@ -1035,6 +1034,13 @@ namespace mamba
                    .description("Path to the target prefix")
                    .set_post_merge_hook(detail::target_prefix_hook)
                    .set_post_context_hook(detail::post_target_prefix_rc_loading));
+
+        insert(Configurable("relocate_prefix", &ctx.prefix_params.relocate_prefix)
+                   .group("Basic")
+                   .set_env_var_names()
+                   .needs({ "target_prefix" })
+                   .set_single_op_lifetime()
+                   .description("Path to the relocation prefix"));
 
         insert(Configurable("use_target_prefix_fallback", true)
                    .group("Basic")
@@ -1210,7 +1216,7 @@ namespace mamba
                    .set_env_var_names()
                    .description("Force use cached repodata"));
 
-        insert(Configurable("ssl_no_revoke", &ctx.ssl_no_revoke)
+        insert(Configurable("ssl_no_revoke", &ctx.remote_fetch_params.ssl_no_revoke)
                    .group("Network")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1220,7 +1226,7 @@ namespace mamba
                         It's only working for Windows back-end.
                         WARNING: this option loosens the SSL security.)")));
 
-        insert(Configurable("ssl_verify", &ctx.ssl_verify)
+        insert(Configurable("ssl_verify", &ctx.remote_fetch_params.ssl_verify)
                    .group("Network")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1242,7 +1248,7 @@ namespace mamba
                         the value is the url of the proxy server, optionally with username and password
                         in the form of scheme://username:password@hostname.)")));
 
-        insert(Configurable("remote_connect_timeout_secs", &ctx.connect_timeout_secs)
+        insert(Configurable("remote_connect_timeout_secs", &ctx.remote_fetch_params.connect_timeout_secs)
                    .group("Network")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1250,14 +1256,14 @@ namespace mamba
                        "The number seconds conda will wait for your client to establish a connection to a remote url resource."
                    ));
 
-        insert(Configurable("remote_backoff_factor", &ctx.retry_backoff)
+        insert(Configurable("remote_backoff_factor", &ctx.remote_fetch_params.retry_backoff)
                    .group("Network")
                    .set_rc_configurable()
                    .set_env_var_names()
                    .description("The factor determines the time HTTP connection should wait for attempt."
                    ));
 
-        insert(Configurable("remote_max_retries", &ctx.max_retries)
+        insert(Configurable("remote_max_retries", &ctx.remote_fetch_params.max_retries)
                    .group("Network")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1357,7 +1363,7 @@ namespace mamba
                    .description("Allow downgrade when installing packages. Default is false."));
 
         // Extract, Link & Install
-        insert(Configurable("download_threads", &ctx.download_threads)
+        insert(Configurable("download_threads", &ctx.threads_params.download_threads)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1367,7 +1373,7 @@ namespace mamba
                         Defines the number of threads for package download.
                         It has to be strictly positive.)")));
 
-        insert(Configurable("extract_threads", &ctx.extract_threads)
+        insert(Configurable("extract_threads", &ctx.threads_params.extract_threads)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1500,7 +1506,7 @@ namespace mamba
                    .description("Only download and extract packages, do not link them into environment."
                    ));
 
-        insert(Configurable("log_level", &ctx.logging_level)
+        insert(Configurable("log_level", &ctx.output_params.logging_level)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1512,7 +1518,7 @@ namespace mamba
                             be one of {'off', 'fatal', 'error', 'warning', 'info',
                             'debug', 'trace'}.)")));
 
-        insert(Configurable("log_backtrace", &ctx.log_backtrace)
+        insert(Configurable("log_backtrace", &ctx.output_params.log_backtrace)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1521,7 +1527,7 @@ namespace mamba
                             Set the log backtrace size. It will replay the n last
                             logs if an error is thrown during the execution.)")));
 
-        insert(Configurable("log_pattern", &ctx.log_pattern)
+        insert(Configurable("log_pattern", &ctx.output_params.log_pattern)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1529,7 +1535,7 @@ namespace mamba
                    .long_description(unindent(R"(
                             Set the log pattern.)")));
 
-        insert(Configurable("json", &ctx.json)
+        insert(Configurable("json", &ctx.output_params.json)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .needs({ "print_config_only", "print_context_only" })
@@ -1612,7 +1618,7 @@ namespace mamba
                    .group("Output, Prompt and Flow Control")
                    .description("Display configs values"));
 
-        insert(Configurable("quiet", &ctx.quiet)
+        insert(Configurable("quiet", &ctx.output_params.quiet)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1643,12 +1649,12 @@ namespace mamba
                    .set_env_var_names()
                    .description("Whether to override rc files by highest precedence"));
 
-        insert(Configurable("no_rc", &ctx.no_rc)
+        insert(Configurable("no_rc", &ctx.src_params.no_rc)
                    .group("Config sources")
                    .set_env_var_names()
                    .description("Disable the use of configuration files"));
 
-        insert(Configurable("no_env", &ctx.no_env)
+        insert(Configurable("no_env", &ctx.src_params.no_env)
                    .group("Config sources")
                    .set_env_var_names()
                    .description("Disable the use of environment variables"));
@@ -1708,10 +1714,10 @@ namespace mamba
                        "C:\\ProgramData\\conda\\.mambarc" };
         }
 
-        std::vector<fs::u8path> root = { ctx.root_prefix / ".condarc",
-                                         ctx.root_prefix / "condarc",
-                                         ctx.root_prefix / "condarc.d",
-                                         ctx.root_prefix / ".mambarc" };
+        std::vector<fs::u8path> root = { ctx.prefix_params.root_prefix / ".condarc",
+                                         ctx.prefix_params.root_prefix / "condarc",
+                                         ctx.prefix_params.root_prefix / "condarc.d",
+                                         ctx.prefix_params.root_prefix / ".mambarc" };
 
         std::vector<fs::u8path> home = { env::home_directory() / ".conda/.condarc",
                                          env::home_directory() / ".conda/condarc",
@@ -1719,10 +1725,10 @@ namespace mamba
                                          env::home_directory() / ".condarc",
                                          env::home_directory() / ".mambarc" };
 
-        std::vector<fs::u8path> prefix = { ctx.target_prefix / ".condarc",
-                                           ctx.target_prefix / "condarc",
-                                           ctx.target_prefix / "condarc.d",
-                                           ctx.target_prefix / ".mambarc" };
+        std::vector<fs::u8path> prefix = { ctx.prefix_params.target_prefix / ".condarc",
+                                           ctx.prefix_params.target_prefix / "condarc",
+                                           ctx.prefix_params.target_prefix / "condarc.d",
+                                           ctx.prefix_params.target_prefix / ".mambarc" };
 
         std::vector<fs::u8path> sources;
 
@@ -1730,7 +1736,7 @@ namespace mamba
         {
             sources.insert(sources.end(), system.begin(), system.end());
         }
-        if ((level >= RCConfigLevel::kRootPrefix) && !ctx.root_prefix.empty())
+        if ((level >= RCConfigLevel::kRootPrefix) && !ctx.prefix_params.root_prefix.empty())
         {
             sources.insert(sources.end(), root.begin(), root.end());
         }
@@ -1738,7 +1744,7 @@ namespace mamba
         {
             sources.insert(sources.end(), home.begin(), home.end());
         }
-        if ((level >= RCConfigLevel::kTargetPrefix) && !ctx.target_prefix.empty())
+        if ((level >= RCConfigLevel::kTargetPrefix) && !ctx.prefix_params.target_prefix.empty())
         {
             sources.insert(sources.end(), prefix.begin(), prefix.end());
         }
@@ -1783,15 +1789,15 @@ namespace mamba
         }
 
         auto& ctx = Context::instance();
-        ctx.set_log_level(ctx.logging_level);
+        ctx.set_log_level(ctx.output_params.logging_level);
 
         spdlog::apply_all([&](std::shared_ptr<spdlog::logger> l) { l->flush(); });
         spdlog::flush_on(spdlog::level::off);
 
         Context::instance().dump_backtrace_no_guards();
-        if (ctx.log_backtrace > 0)
+        if (ctx.output_params.log_backtrace > 0)
         {
-            spdlog::enable_backtrace(ctx.log_backtrace);
+            spdlog::enable_backtrace(ctx.output_params.log_backtrace);
         }
         else
         {

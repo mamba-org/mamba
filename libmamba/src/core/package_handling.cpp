@@ -738,7 +738,7 @@ namespace mamba
     void extract_subproc(const fs::u8path& file, const fs::u8path& dest)
     {
         std::vector<std::string> args;
-        if (Context::instance().is_micromamba)
+        if (Context::instance().command_params.is_micromamba)
         {
             args = { get_self_exe_path().string(), "package", "extract", file.string(), dest.string() };
         }
@@ -831,7 +831,7 @@ namespace mamba
                 {
                     bool is_invalid = false;
                     if (p.path_type != PathType::SOFTLINK
-                        && !validate::file_size(full_path, p.size_in_bytes))
+                        && !validation::file_size(full_path, p.size_in_bytes))
                     {
                         LOG_WARNING << "Invalid package cache, file '" << full_path.string()
                                     << "' has incorrect size";
@@ -842,7 +842,7 @@ namespace mamba
                         }
                     }
                     if (full_validation && !is_invalid && p.path_type != PathType::SOFTLINK
-                        && !validate::sha256(full_path, p.sha256))
+                        && !validation::sha256(full_path, p.sha256))
                     {
                         LOG_WARNING << "Invalid package cache, file '" << full_path.string()
                                     << "' has incorrect SHA-256 checksum";

@@ -123,7 +123,7 @@ namespace mamba
         {
             const auto maybe_instructions = get_other_pkg_mgr_install_instructions(
                 pkg_mgr,
-                ctx.target_prefix.string(),
+                ctx.prefix_params.target_prefix.string(),
                 specs.path()
             );
             if (maybe_instructions)
@@ -136,14 +136,17 @@ namespace mamba
             }
         }();
 
-        auto [wrapped_command, tmpfile] = prepare_wrapped_call(ctx.target_prefix, install_instructions);
+        auto [wrapped_command, tmpfile] = prepare_wrapped_call(
+            ctx.prefix_params.target_prefix,
+            install_instructions
+        );
 
         reproc::options options;
         options.redirect.parent = true;
         options.working_directory = cwd.c_str();
 
         Console::stream() << fmt::format(
-            Context::instance().palette.external,
+            Context::instance().graphics_params.palette.external,
             "\nInstalling {} packages: {}",
             pkg_mgr,
             fmt::join(deps, ", ")
@@ -433,14 +436,14 @@ namespace mamba
         auto& only_deps = config.at("only_deps").value<bool>();
         auto& retry_clean_cache = config.at("retry_clean_cache").value<bool>();
 
-        if (ctx.target_prefix.empty())
+        if (ctx.prefix_params.target_prefix.empty())
         {
             throw std::runtime_error("No active target prefix");
         }
-        if (!fs::exists(ctx.target_prefix) && create_env == false)
+        if (!fs::exists(ctx.prefix_params.target_prefix) && create_env == false)
         {
             throw std::runtime_error(
-                fmt::format("Prefix does not exist at: {}", ctx.target_prefix.string())
+                fmt::format("Prefix does not exist at: {}", ctx.prefix_params.target_prefix.string())
             );
         }
 
@@ -465,8 +468,8 @@ namespace mamba
         // which limits this syntax
         /*auto exp_prefix_data = load_channels(pool, package_caches, is_retry)
                                .and_then([&ctx](const auto&) { return
-           PrefixData::create(ctx.target_prefix); } ) .map_error([](const mamba_error& err) { throw
-           std::runtime_error(err.what());
+           PrefixData::create(ctx.prefix_params.target_prefix); } ) .map_error([](const mamba_error&
+           err) { throw std::runtime_error(err.what());
                                 });*/
         auto exp_load = load_channels(pool, package_caches, is_retry);
         if (!exp_load)
@@ -474,7 +477,7 @@ namespace mamba
             throw std::runtime_error(exp_load.error().what());
         }
 
-        auto exp_prefix_data = PrefixData::create(ctx.target_prefix);
+        auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix);
         if (!exp_prefix_data)
         {
             throw std::runtime_error(exp_prefix_data.error().what());
@@ -489,7 +492,7 @@ namespace mamba
 
         prefix_data.add_packages(get_virtual_packages());
 
-        MRepo::create(pool, prefix_data);
+        MRepo(pool, prefix_data);
 
         MSolver solver(
             pool,
@@ -509,8 +512,6 @@ namespace mamba
             LOG_INFO << "Locking environment: " << prefix_pkgs.size() << " packages freezed";
             solver.add_jobs(prefix_pkgs, SOLVER_LOCK);
         }
-
-        solver.add_jobs(specs, solver_flag);
 
         if (!no_pin)
         {
@@ -536,6 +537,11 @@ namespace mamba
             Console::instance().print("\nPinned packages:\n" + join("", pinned_str));
         }
 
+        // FRAGILE this must be called after pins be before jobs in current ``MPool``
+        pool.create_whatprovides();
+
+        solver.add_jobs(specs, solver_flag);
+
         bool success = solver.try_solve();
         if (!success)
         {
@@ -550,7 +556,7 @@ namespace mamba
                 Console::instance().print("Possible hints:\n  - 'freeze_installed' is turned on\n");
             }
 
-            if (ctx.json)
+            if (ctx.output_params.json)
             {
                 Console::instance().json_write({ { "success", false },
                                                  { "solver_problems", solver.all_problems() } });
@@ -563,7 +569,7 @@ namespace mamba
 
         MTransaction trans(pool, solver, package_caches);
 
-        if (ctx.json)
+        if (ctx.output_params.json)
         {
             trans.log_json();
         }
@@ -574,7 +580,7 @@ namespace mamba
         {
             if (create_env && !Context::instance().dry_run)
             {
-                detail::create_target_directory(ctx.target_prefix);
+                detail::create_target_directory(ctx.prefix_params.target_prefix);
             }
 
             trans.execute(prefix_data);
@@ -595,7 +601,7 @@ namespace mamba
         {
             MPool pool;
             auto& ctx = Context::instance();
-            auto exp_prefix_data = PrefixData::create(ctx.target_prefix);
+            auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix);
             if (!exp_prefix_data)
             {
                 // TODO: propagate tl::expected mechanism
@@ -605,15 +611,15 @@ namespace mamba
 
             MultiPackageCache pkg_caches(ctx.pkgs_dirs);
             prefix_data.add_packages(get_virtual_packages());
-            MRepo::create(pool, prefix_data);  // Potentially re-alloc (moves in memory) Solvables
-                                               // in the pool
+            MRepo(pool, prefix_data);  // Potentially re-alloc (moves in memory) Solvables
+                                       // in the pool
 
             std::vector<detail::other_pkg_mgr_spec> others;
             // Note that the Transaction will gather the Solvables,
             // so they must have been ready in the pool before this line
             auto transaction = create_transaction(pool, pkg_caches, others);
 
-            if (ctx.json)
+            if (ctx.output_params.json)
             {
                 transaction.log_json();
             }
@@ -622,7 +628,7 @@ namespace mamba
             {
                 if (create_env && !Context::instance().dry_run)
                 {
-                    detail::create_target_directory(ctx.target_prefix);
+                    detail::create_target_directory(ctx.prefix_params.target_prefix);
                 }
 
                 transaction.execute(prefix_data);
@@ -659,7 +665,7 @@ namespace mamba
             tmp_lock_file = std::make_unique<TemporaryFile>();
             DownloadTarget dt("Environment Lockfile", lockfile, tmp_lock_file->path());
             bool success = dt.perform();
-            if (!success || dt.http_status != 200)
+            if (!success || dt.get_http_status() != 200)
             {
                 throw std::runtime_error(
                     fmt::format("Could not download environment lockfile from {}", lockfile)

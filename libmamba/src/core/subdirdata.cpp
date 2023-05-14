@@ -451,7 +451,7 @@ namespace mamba
 
     bool MSubdirData::finalize_check(const DownloadTarget& target)
     {
-        LOG_INFO << "Checked: " << target.url() << " [" << target.http_status << "]";
+        LOG_INFO << "Checked: " << target.get_url() << " [" << target.get_http_status() << "]";
         if (m_progress_bar_check)
         {
             m_progress_bar_check.repr().postfix.set_value("Checked");
@@ -460,9 +460,9 @@ namespace mamba
             m_progress_bar_check.mark_as_completed();
         }
 
-        if (ends_with(target.url(), ".zst"))
+        if (ends_with(target.get_url(), ".zst"))
         {
-            this->m_metadata.has_zst = { target.http_status == 200, utc_time_now() };
+            this->m_metadata.has_zst = { target.get_http_status() == 200, utc_time_now() };
         }
         return true;
     }
@@ -614,7 +614,8 @@ namespace mamba
                         m_check_targets.back()->set_head_only(true);
                         m_check_targets.back()->set_finalize_callback(&MSubdirData::finalize_check, this);
                         m_check_targets.back()->set_ignore_failure(true);
-                        if (!(ctx.no_progress_bars || ctx.quiet || ctx.json))
+                        if (!(ctx.graphics_params.no_progress_bars || ctx.output_params.quiet
+                              || ctx.output_params.json))
                         {
                             m_progress_bar_check = Console::instance().add_progress_bar(
                                 m_name + " (check zst)"
@@ -688,14 +689,14 @@ namespace mamba
 
     bool MSubdirData::finalize_transfer(const DownloadTarget&)
     {
-        if (m_target->result != 0 || m_target->http_status >= 400)
+        if (m_target->get_result() != 0 || m_target->get_http_status() >= 400)
         {
-            LOG_INFO << "Unable to retrieve repodata (response: " << m_target->http_status
-                     << ") for '" << m_target->url() << "'";
+            LOG_INFO << "Unable to retrieve repodata (response: " << m_target->get_http_status()
+                     << ") for '" << m_target->get_url() << "'";
 
             if (m_progress_bar)
             {
-                m_progress_bar.set_postfix(std::to_string(m_target->http_status) + " failed");
+                m_progress_bar.set_postfix(std::to_string(m_target->get_http_status()) + " failed");
                 m_progress_bar.set_full();
                 m_progress_bar.mark_as_completed();
             }
@@ -703,9 +704,10 @@ namespace mamba
             return false;
         }
 
-        LOG_DEBUG << "HTTP response code: " << m_target->http_status;
+        LOG_DEBUG << "HTTP response code: " << m_target->get_http_status();
         // Note HTTP status == 0 for files
-        if (m_target->http_status == 0 || m_target->http_status == 200 || m_target->http_status == 304)
+        if (m_target->get_http_status() == 0 || m_target->get_http_status() == 200
+            || m_target->get_http_status() == 304)
         {
             m_download_complete = true;
         }
@@ -713,14 +715,14 @@ namespace mamba
         {
             LOG_WARNING << "HTTP response code indicates error, retrying.";
             throw mamba_error(
-                "Unhandled HTTP code: " + std::to_string(m_target->http_status),
+                "Unhandled HTTP code: " + std::to_string(m_target->get_http_status()),
                 mamba_error_code::subdirdata_not_loaded
             );
         }
 
         fs::u8path json_file, solv_file;
 
-        if (m_target->http_status == 304)
+        if (m_target->get_http_status() == 304)
         {
             // cache still valid
             LOG_INFO << "Cache is still valid";
@@ -801,7 +803,7 @@ namespace mamba
             }
         }
 
-        LOG_DEBUG << "Finalized transfer of '" << m_target->url() << "'";
+        LOG_DEBUG << "Finalized transfer of '" << m_target->get_url() << "'";
 
         fs::u8path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
         json_file = writable_cache_dir / m_json_fn;
@@ -809,10 +811,10 @@ namespace mamba
 
         auto file_size = fs::file_size(m_temp_file->path());
 
-        m_metadata.url = m_target->url();
-        m_metadata.etag = m_target->etag;
-        m_metadata.mod = m_target->mod;
-        m_metadata.cache_control = m_target->cache_control;
+        m_metadata.url = m_target->get_url();
+        m_metadata.etag = m_target->get_etag();
+        m_metadata.mod = m_target->get_mod();
+        m_metadata.cache_control = m_target->get_cache_control();
         m_metadata.stored_file_size = file_size;
 
         if (!Context::instance().repodata_use_zst)
@@ -905,7 +907,9 @@ namespace mamba
     void MSubdirData::create_target()
     {
         auto& ctx = Context::instance();
-        m_temp_file = std::make_unique<TemporaryFile>();
+        fs::u8path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
+        auto lock = LockFile(writable_cache_dir);
+        m_temp_file = std::make_unique<TemporaryFile>("mambaf", "", writable_cache_dir);
 
         bool use_zst = m_metadata.has_zst.has_value() && m_metadata.has_zst.value().value;
         m_target = std::make_unique<DownloadTarget>(
@@ -913,7 +917,8 @@ namespace mamba
             m_repodata_url + (use_zst ? ".zst" : ""),
             m_temp_file->path().string()
         );
-        if (!(ctx.no_progress_bars || ctx.quiet || ctx.json))
+        if (!(ctx.graphics_params.no_progress_bars || ctx.output_params.quiet
+              || ctx.output_params.json))
         {
             m_progress_bar = Console::instance().add_progress_bar(m_name);
             m_target->set_progress_bar(m_progress_bar);
@@ -955,16 +960,18 @@ namespace mamba
         return cache_dir.string();
     }
 
-    expected_t<MRepo&> MSubdirData::create_repo(MPool& pool)
+    expected_t<MRepo> MSubdirData::create_repo(MPool& pool)
     {
-        using return_type = expected_t<MRepo&>;
-        RepoMetadata meta{ m_repodata_url,
-                           Context::instance().add_pip_as_python_dependency,
-                           m_metadata.etag,
-                           m_metadata.mod };
+        using return_type = expected_t<MRepo>;
+        RepoMetadata meta{
+            /* .url= */ rsplit(m_metadata.url, "/", 1).front(),
+            /* .etag= */ m_metadata.etag,
+            /* .mod= */ m_metadata.mod,
+            /* .pip_added= */ Context::instance().add_pip_as_python_dependency,
+        };
 
         auto cache = cache_path();
-        return cache ? return_type(MRepo::create(pool, m_name, *cache, meta, *p_channel))
+        return cache ? return_type(MRepo(pool, m_name, *cache, meta))
                      : return_type(forward_error(cache));
     }
 

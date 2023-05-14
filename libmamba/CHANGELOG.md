@@ -1,3 +1,42 @@
+libmamba 1.4.2 (April 06, 2023)
+===============================
+
+Enhancements:
+
+- Small libsolv improvements by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2399
+- Improve message after the env creating with micromamba by @xmnlab in https://github.com/mamba-org/mamba/pull/2425
+- Use custom function to properly parse matchspec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2433
+- Remove const ref to string\_view in codebase by @Hind-M in https://github.com/mamba-org/mamba/pull/2440
+- Wrap more libcurl calls by @Hind-M in https://github.com/mamba-org/mamba/pull/2421
+
+Bug fixes:
+
+- Fix PKG\_BUILDNUM env variable for post-link scripts by nsoranzo in https://github.com/mamba-org/mamba/pull/2420
+- Solve a corner case in the SAT error messages by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2423
+- Windows: Fixed environment variables not read as unicode by @Klaim in https://github.com/mamba-org/mamba/pull/2417
+- Fix segfault in add\_pin/all\_problems\_structured by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2428
+
+CI fixes and doc:
+
+- Replaced libtool 2.4.6\_9 with libtool 2.4.7-3 in vcpkg builds by @JohanMabille in https://github.com/mamba-org/mamba/pull/2439
+- Migrated to doctest by @JohanMabille in https://github.com/mamba-org/mamba/pull/2436
+
+libmamba 1.4.1 (March 28, 2023)
+===============================
+
+Enhancements:
+
+- First version/steps of unraveling fetch code and wrapping libcurl by @Hind-M in https://github.com/mamba-org/mamba/pull/2376
+- Parse repodata.json by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2391
+- TimeRef is not a singleton anymore by @Klaim in https://github.com/mamba-org/mamba/pull/2396
+- Handle url via ChannelBuilder in Repo constructor by @jaimergp in https://github.com/mamba-org/mamba/pull/2398
+- add option to relocate prefix by @DerThorsten in https://github.com/mamba-org/mamba/pull/2385
+- Renamed validate namespace to `mamba::validation by @Klaim in https://github.com/mamba-org/mamba/pull/2411
+
+Bug fixes:
+
+- Fixed build with older Clang by @ZhongRuoyu in https://github.com/mamba-org/mamba/pull/2397
+
 libmamba 1.4.0 (March 22, 2023)
 ===============================
 

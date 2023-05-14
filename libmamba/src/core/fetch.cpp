@@ -22,6 +22,39 @@
 
 namespace mamba
 {
+    /*****************************
+     * Config and Context params *
+     *****************************/
+
+    void get_config(
+        bool& set_low_speed_opt,
+        bool& set_ssl_no_revoke,
+        long& connect_timeout_secs,
+        std::string& ssl_verify
+    )
+    {
+        // Don't know if it's better to store these...
+        // for now only called twice, and if modified during execution we better not...
+
+        // if the request is slower than 30b/s for 60 seconds, cancel.
+        std::string no_low_speed_limit = std::getenv("MAMBA_NO_LOW_SPEED_LIMIT")
+                                             ? std::getenv("MAMBA_NO_LOW_SPEED_LIMIT")
+                                             : "0";
+        set_low_speed_opt = (no_low_speed_limit == "0");
+
+        std::string ssl_no_revoke_env = std::getenv("MAMBA_SSL_NO_REVOKE")
+                                            ? std::getenv("MAMBA_SSL_NO_REVOKE")
+                                            : "0";
+        set_ssl_no_revoke = (Context::instance().remote_fetch_params.ssl_no_revoke || (ssl_no_revoke_env != "0"));
+        connect_timeout_secs = Context::instance().remote_fetch_params.connect_timeout_secs;
+        ssl_verify = Context::instance().remote_fetch_params.ssl_verify;
+    }
+
+    std::size_t get_default_retry_timeout()
+    {
+        return static_cast<std::size_t>(Context::instance().remote_fetch_params.retry_timeout);
+    }
+
     /*********************************
      * DownloadTarget implementation *
      *********************************/
@@ -30,6 +63,14 @@ namespace mamba
         : m_name(name)
         , m_filename(filename)
         , m_url(unc_url(url))
+        , m_http_status(10000)
+        , m_downloaded_size(0)
+        , m_effective_url(nullptr)
+        , m_expected_size(0)
+        , m_retry_wait_seconds(get_default_retry_timeout())
+        , m_retries(0)
+        , m_has_progress_bar(false)
+        , m_ignore_failure(false)
     {
         m_curl_handle = std::make_unique<CURLHandle>();
         init_curl_ssl();
@@ -38,99 +79,6 @@ namespace mamba
 
     DownloadTarget::~DownloadTarget()
     {
-    }
-
-    std::size_t DownloadTarget::get_default_retry_timeout()
-    {
-        return static_cast<std::size_t>(Context::instance().retry_timeout);
-    }
-
-    void DownloadTarget::init_curl_handle(CURL* handle, const std::string& url)
-    {
-        curl_easy_setopt(handle, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(handle, CURLOPT_NETRC, CURL_NETRC_OPTIONAL);
-        curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
-
-        // This can improve throughput significantly, see
-        // https://github.com/curl/curl/issues/9601
-        curl_easy_setopt(handle, CURLOPT_BUFFERSIZE, 100 * 1024);
-
-        // DO NOT SET TIMEOUT as it will also take into account multi-start time and
-        // it's just wrong curl_easy_setopt(m_handle, CURLOPT_TIMEOUT,
-        // Context::instance().read_timeout_secs);
-
-        // TODO while libcurl in conda now _has_ http2 support we need to fix mamba to
-        // work properly with it this includes:
-        // - setting the cache stuff correctly
-        // - fixing how the progress bar works
-        curl_easy_setopt(handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
-
-        // if the request is slower than 30b/s for 60 seconds, cancel.
-        std::string no_low_speed_limit = std::getenv("MAMBA_NO_LOW_SPEED_LIMIT")
-                                             ? std::getenv("MAMBA_NO_LOW_SPEED_LIMIT")
-                                             : "0";
-        if (no_low_speed_limit == "0")
-        {
-            curl_easy_setopt(handle, CURLOPT_LOW_SPEED_TIME, 60L);
-            curl_easy_setopt(handle, CURLOPT_LOW_SPEED_LIMIT, 30L);
-        }
-
-        curl_easy_setopt(handle, CURLOPT_CONNECTTIMEOUT, Context::instance().connect_timeout_secs);
-
-        std::string ssl_no_revoke_env = std::getenv("MAMBA_SSL_NO_REVOKE")
-                                            ? std::getenv("MAMBA_SSL_NO_REVOKE")
-                                            : "0";
-        if (Context::instance().ssl_no_revoke || ssl_no_revoke_env != "0")
-        {
-            curl_easy_setopt(handle, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NO_REVOKE);
-        }
-
-        std::optional<std::string> proxy = proxy_match(url);
-        if (proxy)
-        {
-            curl_easy_setopt(handle, CURLOPT_PROXY, proxy->c_str());
-            LOG_INFO << "Using Proxy " << hide_secrets(*proxy);
-        }
-
-        std::string& ssl_verify = Context::instance().ssl_verify;
-        if (ssl_verify.size())
-        {
-            if (ssl_verify == "<false>")
-            {
-                curl_easy_setopt(handle, CURLOPT_SSL_VERIFYPEER, 0L);
-                curl_easy_setopt(handle, CURLOPT_SSL_VERIFYHOST, 0L);
-                if (proxy)
-                {
-                    curl_easy_setopt(handle, CURLOPT_PROXY_SSL_VERIFYPEER, 0L);
-                    curl_easy_setopt(handle, CURLOPT_PROXY_SSL_VERIFYHOST, 0L);
-                }
-            }
-            else if (ssl_verify == "<system>")
-            {
-#ifdef LIBMAMBA_STATIC_DEPS
-                curl_easy_setopt(handle, CURLOPT_CAINFO, nullptr);
-                if (proxy)
-                {
-                    curl_easy_setopt(handle, CURLOPT_PROXY_CAINFO, nullptr);
-                }
-#endif
-            }
-            else
-            {
-                if (!fs::exists(ssl_verify))
-                {
-                    throw std::runtime_error("ssl_verify does not contain a valid file path.");
-                }
-                else
-                {
-                    curl_easy_setopt(handle, CURLOPT_CAINFO, ssl_verify.c_str());
-                    if (proxy)
-                    {
-                        curl_easy_setopt(handle, CURLOPT_PROXY_CAINFO, ssl_verify.c_str());
-                    }
-                }
-            }
-        }
     }
 
     int
@@ -159,12 +107,12 @@ namespace mamba
     {
         auto& ctx = Context::instance();
 
-        if (!ctx.curl_initialized)
+        if (!ctx.remote_fetch_params.curl_initialized)
         {
-            if (ctx.ssl_verify == "<false>")
+            if (ctx.remote_fetch_params.ssl_verify == "<false>")
             {
                 LOG_DEBUG << "'ssl_verify' not activated, skipping cURL SSL init";
-                ctx.curl_initialized = true;
+                ctx.remote_fetch_params.curl_initialized = true;
                 return;
             }
 
@@ -190,12 +138,13 @@ namespace mamba
             }
 #endif
 
-            if (!ctx.ssl_verify.size() && std::getenv("REQUESTS_CA_BUNDLE") != nullptr)
+            if (!ctx.remote_fetch_params.ssl_verify.size()
+                && std::getenv("REQUESTS_CA_BUNDLE") != nullptr)
             {
-                ctx.ssl_verify = std::getenv("REQUESTS_CA_BUNDLE");
-                LOG_INFO << "Using REQUESTS_CA_BUNDLE " << ctx.ssl_verify;
+                ctx.remote_fetch_params.ssl_verify = std::getenv("REQUESTS_CA_BUNDLE");
+                LOG_INFO << "Using REQUESTS_CA_BUNDLE " << ctx.remote_fetch_params.ssl_verify;
             }
-            else if (ctx.ssl_verify == "<system>" && on_linux)
+            else if (ctx.remote_fetch_params.ssl_verify == "<system>" && on_linux)
             {
                 std::array<std::string, 6> cert_locations{
                     "/etc/ssl/certs/ca-certificates.crt",  // Debian/Ubuntu/Gentoo etc.
@@ -211,7 +160,7 @@ namespace mamba
                 {
                     if (fs::exists(loc))
                     {
-                        ctx.ssl_verify = loc;
+                        ctx.remote_fetch_params.ssl_verify = loc;
                         found = true;
                     }
                 }
@@ -223,13 +172,27 @@ namespace mamba
                 }
             }
 
-            ctx.curl_initialized = true;
+            ctx.remote_fetch_params.curl_initialized = true;
         }
     }
 
     void DownloadTarget::init_curl_target(const std::string& url)
     {
-        init_curl_handle(m_curl_handle->handle(), url);
+        // Get config
+        bool set_low_speed_opt, set_ssl_no_revoke;
+        long connect_timeout_secs;
+        std::string ssl_verify;
+        get_config(set_low_speed_opt, set_ssl_no_revoke, connect_timeout_secs, ssl_verify);
+
+        // Configure curl handle
+        m_curl_handle->configure_handle(
+            url,
+            set_low_speed_opt,
+            connect_timeout_secs,
+            set_ssl_no_revoke,
+            proxy_match(url),
+            ssl_verify
+        );
 
         m_curl_handle->set_opt(CURLOPT_HEADERFUNCTION, &DownloadTarget::header_callback);
         m_curl_handle->set_opt(CURLOPT_HEADERDATA, this);
@@ -269,13 +232,13 @@ namespace mamba
 
         std::string user_agent = fmt::format(
             "User-Agent: {} {}",
-            Context::instance().user_agent,
+            Context::instance().remote_fetch_params.user_agent,
             curl_version()
         );
 
         m_curl_handle->add_header(user_agent);
         m_curl_handle->set_opt_header();
-        m_curl_handle->set_opt(CURLOPT_VERBOSE, Context::instance().verbosity >= 2);
+        m_curl_handle->set_opt(CURLOPT_VERBOSE, Context::instance().output_params.verbosity >= 2);
 
         auto logger = spdlog::get("libcurl");
         m_curl_handle->set_opt(CURLOPT_DEBUGFUNCTION, curl_debug_callback);
@@ -284,36 +247,17 @@ namespace mamba
 
     bool DownloadTarget::can_retry()
     {
-        switch (result)
+        if (!m_curl_handle->can_proceed())
         {
-            case CURLE_ABORTED_BY_CALLBACK:
-            case CURLE_BAD_FUNCTION_ARGUMENT:
-            case CURLE_CONV_REQD:
-            case CURLE_COULDNT_RESOLVE_PROXY:
-            case CURLE_FILESIZE_EXCEEDED:
-            case CURLE_INTERFACE_FAILED:
-            case CURLE_NOT_BUILT_IN:
-            case CURLE_OUT_OF_MEMORY:
-            // See RhBug: 1219817
-            // case CURLE_RECV_ERROR:
-            // case CURLE_SEND_ERROR:
-            case CURLE_SSL_CACERT_BADFILE:
-            case CURLE_SSL_CRL_BADFILE:
-            case CURLE_WRITE_ERROR:
-            case CURLE_OPERATION_TIMEDOUT:
-                return false;
-                break;
-            default:
-                // Other error are not considered fatal
-                break;
+            return false;
         }
 
-        return m_retries < size_t(Context::instance().max_retries)
-               && (http_status == 413 || http_status == 429 || http_status >= 500)
+        return m_retries < size_t(Context::instance().remote_fetch_params.max_retries)
+               && (m_http_status == 413 || m_http_status == 429 || m_http_status >= 500)
                && !starts_with(m_url, "file://");
     }
 
-    CURL* DownloadTarget::retry()
+    bool DownloadTarget::retry()
     {
         auto now = std::chrono::steady_clock::now();
         if (now >= m_next_retry)
@@ -326,21 +270,23 @@ namespace mamba
             {
                 fs::remove(m_filename);
             }
-            init_curl_target(m_url);  // Not sure this is needed, TODO to remove?
+            init_curl_target(m_url);
             if (m_has_progress_bar)
             {
                 m_curl_handle->set_opt(CURLOPT_XFERINFOFUNCTION, &DownloadTarget::progress_callback);
                 m_curl_handle->set_opt(CURLOPT_XFERINFODATA, this);
             }
             m_retry_wait_seconds = m_retry_wait_seconds
-                                   * static_cast<std::size_t>(Context::instance().retry_backoff);
+                                   * static_cast<std::size_t>(
+                                       Context::instance().remote_fetch_params.retry_backoff
+                                   );
             m_next_retry = now + std::chrono::seconds(m_retry_wait_seconds);
             m_retries++;
-            return m_curl_handle->handle();
+            return true;
         }
         else
         {
-            return nullptr;
+            return false;
         }
     }
 
@@ -396,15 +342,15 @@ namespace mamba
             std::string lkey = to_lower(key);
             if (lkey == "etag")
             {
-                s->etag = value;
+                s->m_etag = value;
             }
             else if (lkey == "cache-control")
             {
-                s->cache_control = value;
+                s->m_cache_control = value;
             }
             else if (lkey == "last-modified")
             {
-                s->mod = value;
+                s->m_mod = value;
             }
         }
         return nitems * size;
@@ -471,7 +417,7 @@ namespace mamba
             target->set_progress_throttle_time(now);
         }
 
-        if (!total_to_download && !target->expected_size())
+        if (!total_to_download && !target->get_expected_size())
         {
             target->m_progress_bar.activate_spinner();
         }
@@ -480,7 +426,7 @@ namespace mamba
             target->m_progress_bar.deactivate_spinner();
         }
 
-        if (!total_to_download && target->expected_size())
+        if (!total_to_download && target->get_expected_size())
         {
             target->m_progress_bar.update_current(static_cast<std::size_t>(now_downloaded));
         }
@@ -492,7 +438,7 @@ namespace mamba
             );
         }
 
-        target->m_progress_bar.set_speed(static_cast<std::size_t>(target->get_speed()));
+        target->m_progress_bar.set_speed(target->get_speed());
 
         return 0;
     }
@@ -533,82 +479,56 @@ namespace mamba
         m_curl_handle->set_opt(CURLOPT_NOBODY, yes);
     }
 
-    const std::string& DownloadTarget::name() const
+    const std::string& DownloadTarget::get_name() const
     {
         return m_name;
     }
 
-    const std::string& DownloadTarget::url() const
+    const std::string& DownloadTarget::get_url() const
     {
         return m_url;
     }
 
-    std::size_t DownloadTarget::expected_size() const
+    const std::string& DownloadTarget::get_etag() const
+    {
+        return m_etag;
+    }
+
+    const std::string& DownloadTarget::get_mod() const
+    {
+        return m_mod;
+    }
+
+    const std::string& DownloadTarget::get_cache_control() const
+    {
+        return m_cache_control;
+    }
+
+    std::size_t DownloadTarget::get_expected_size() const
     {
         return m_expected_size;
     }
 
-    static size_t discard(char*, size_t size, size_t nmemb, void*)
+    int DownloadTarget::get_http_status() const
     {
-        return size * nmemb;
+        return m_http_status;
     }
 
-    bool DownloadTarget::resource_exists()
+    std::size_t DownloadTarget::get_downloaded_size() const
     {
-        init_curl_ssl();
-        auto handle = curl_easy_init();
-        init_curl_handle(handle, m_url);
-
-        curl_easy_setopt(handle, CURLOPT_FAILONERROR, 1L);
-        curl_easy_setopt(handle, CURLOPT_NOBODY, 1L);
-
-        if (curl_easy_perform(handle) == CURLE_OK)
-        {
-            return true;
-        }
-
-        long response_code;
-        curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
-
-        if (response_code == 405)
-        {
-            // Method not allowed
-            // Some servers don't support HEAD, try a GET if the HEAD fails
-            curl_easy_setopt(handle, CURLOPT_NOBODY, 0L);
-            // Prevent output of data
-            curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, &discard);
-            return curl_easy_perform(handle) == CURLE_OK;
-        }
-        else
-        {
-            return false;
-        }
+        return m_downloaded_size;
     }
 
-    bool DownloadTarget::perform()
+    std::size_t DownloadTarget::get_speed()
     {
-        LOG_INFO << "Downloading to filename: " << m_filename;
-
-        result = curl_easy_perform(m_curl_handle->handle());
-        set_result(result);
-        return finalize();
-    }
-
-    CURL* DownloadTarget::handle()
-    {
-        return m_curl_handle->handle();
-    }
-
-    curl_off_t DownloadTarget::get_speed()
-    {
-        auto speed = m_curl_handle->get_info<long>(CURLINFO_SPEED_DOWNLOAD_T);
+        auto speed = m_curl_handle->get_info<std::size_t>(CURLINFO_SPEED_DOWNLOAD_T);
         // TODO Should we just drop all code below with progress_bar and use value_or(0) in get_info
         // above instead?
         if (!speed.has_value())
         {
             if (m_has_progress_bar)
             {
-                return static_cast<curl_off_t>(m_progress_bar.avg_speed());
+                return m_progress_bar.avg_speed();
             }
             else
             {
@@ -618,19 +538,43 @@ namespace mamba
         return speed.value();
     }
 
-    void DownloadTarget::set_result(CURLcode r)
+    bool DownloadTarget::resource_exists()
     {
-        result = r;
-        if (r != CURLE_OK)
-        {
-            auto leffective_url = m_curl_handle->get_info<char*>(CURLINFO_EFFECTIVE_URL).value();
+        init_curl_ssl();
 
+        bool set_low_speed_opt, set_ssl_no_revoke;
+        long connect_timeout_secs;
+        std::string ssl_verify;
+        get_config(set_low_speed_opt, set_ssl_no_revoke, connect_timeout_secs, ssl_verify);
+
+        return curl::check_resource_exists(
+            m_url,
+            set_low_speed_opt,
+            connect_timeout_secs,
+            set_ssl_no_revoke,
+            proxy_match(m_url),
+            ssl_verify
+        );
+    }
+
+    bool DownloadTarget::perform()
+    {
+        LOG_INFO << "Downloading to filename: " << m_filename;
+        m_curl_handle->perform();
+        return (check_result() && finalize());
+    }
+
+    bool DownloadTarget::check_result()
+    {
+        if (!m_curl_handle->is_curl_res_ok())
+        {
             std::stringstream err;
-            err << "Download error (" << result << ") " << curl_easy_strerror(result) << " ["
-                << leffective_url << "]\n";
-            if (m_curl_handle->m_errorbuffer[0] != '\0')
+            err << "Download error (" << m_curl_handle->get_result() << ") "
+                << m_curl_handle->get_res_error() << " [" << m_curl_handle->get_curl_effective_url()
+                << "]\n";
+            if (m_curl_handle->get_error_buffer()[0] != '\0')
             {
-                err << m_curl_handle->m_errorbuffer;
+                err << m_curl_handle->get_error_buffer();
             }
             LOG_INFO << err.str();
 
@@ -641,21 +585,36 @@ namespace mamba
             {
                 m_progress_bar.update_progress(0, 1);
                 // m_progress_bar.set_elapsed_time();
-                m_progress_bar.set_postfix(curl_easy_strerror(result));
+                m_progress_bar.set_postfix(m_curl_handle->get_res_error());
             }
             if (!m_ignore_failure && !can_retry())
             {
                 throw std::runtime_error(err.str());
             }
+            return false;
         }
+        else
+        {
+            return true;
+        }
+    }
+
+    std::size_t DownloadTarget::get_result() const
+    {
+        return m_curl_handle->get_result();
+    }
+
+    void DownloadTarget::set_result(CURLcode res)
+    {
+        m_curl_handle->set_result(res);
     }
 
     bool DownloadTarget::finalize()
     {
-        avg_speed = get_speed();
-        http_status = m_curl_handle->get_info<int>(CURLINFO_RESPONSE_CODE).value_or(10000);
-        effective_url = m_curl_handle->get_info<char*>(CURLINFO_EFFECTIVE_URL).value();
-        downloaded_size = m_curl_handle->get_info<long>(CURLINFO_SIZE_DOWNLOAD_T).value_or(0);
+        auto avg_speed = get_speed();
+        m_http_status = m_curl_handle->get_info<int>(CURLINFO_RESPONSE_CODE).value_or(10000);
+        m_effective_url = m_curl_handle->get_info<char*>(CURLINFO_EFFECTIVE_URL).value();
+        m_downloaded_size = m_curl_handle->get_info<std::size_t>(CURLINFO_SIZE_DOWNLOAD_T).value_or(0);
 
         LOG_INFO << get_transfer_msg();
 
@@ -674,22 +633,21 @@ namespace mamba
             m_next_retry = std::chrono::steady_clock::now()
                            + std::chrono::seconds(m_retry_wait_seconds);
             std::stringstream msg;
-            msg << "Failed (" << http_status << "), retry in " << m_retry_wait_seconds << "s";
+            msg << "Failed (" << m_http_status << "), retry in " << m_retry_wait_seconds << "s";
             if (m_has_progress_bar)
             {
-                m_progress_bar.update_progress(0, static_cast<std::size_t>(downloaded_size));
+                m_progress_bar.update_progress(0, m_downloaded_size);
                 m_progress_bar.set_postfix(msg.str());
             }
             return false;
         }
 
         m_file.close();
-        final_url = effective_url;
 
         if (m_has_progress_bar)
         {
-            m_progress_bar.set_speed(static_cast<std::size_t>(avg_speed));
-            m_progress_bar.set_total(static_cast<std::size_t>(downloaded_size));
+            m_progress_bar.set_speed(avg_speed);
+            m_progress_bar.set_total(m_downloaded_size);
             m_progress_bar.set_full();
             m_progress_bar.set_postfix("Downloaded");
         }
@@ -707,7 +665,7 @@ namespace mamba
             }
             else
             {
-                Console::instance().print(name() + " completed");
+                Console::instance().print(m_name + " completed");
             }
         }
 
@@ -733,9 +691,14 @@ namespace mamba
     std::string DownloadTarget::get_transfer_msg()
     {
         std::stringstream ss;
-        ss << "Transfer finalized, status: " << http_status << " [" << effective_url << "] "
-           << downloaded_size << " bytes";
+        ss << "Transfer finalized, status: " << m_http_status << " [" << m_effective_url << "] "
+           << m_downloaded_size << " bytes";
         return ss.str();
+    }
+
+    const CURLHandle& DownloadTarget::get_curl_handle() const
+    {
+        return *m_curl_handle;
     }
 
     /**************************************
@@ -744,13 +707,13 @@ namespace mamba
 
     MultiDownloadTarget::MultiDownloadTarget()
     {
-        m_handle = curl_multi_init();
-        curl_multi_setopt(m_handle, CURLMOPT_MAX_TOTAL_CONNECTIONS, Context::instance().download_threads);
+        p_curl_handle = std::make_unique<CURLMultiHandle>(
+            Context::instance().threads_params.download_threads
+        );
     }
 
     MultiDownloadTarget::~MultiDownloadTarget()
     {
-        curl_multi_cleanup(m_handle);
     }
 
     void MultiDownloadTarget::add(DownloadTarget* target)
@@ -759,29 +722,25 @@ namespace mamba
         {
             return;
         }
-        CURLMcode code = curl_multi_add_handle(m_handle, target->handle());
-        if (code != CURLM_CALL_MULTI_PERFORM)
-        {
-            if (code != CURLM_OK)
-            {
-                throw std::runtime_error(curl_multi_strerror(code));
-            }
-        }
+        p_curl_handle->add_handle(target->get_curl_handle());
         m_targets.push_back(target);
     }
 
     bool MultiDownloadTarget::check_msgs(bool failfast)
     {
-        int msgs_in_queue;
-        CURLMsg* msg;
-
-        while ((msg = curl_multi_info_read(m_handle, &msgs_in_queue)) != nullptr)
+        while (auto resp = p_curl_handle->pop_message())
         {
-            // TODO maybe refactor so that `msg` is passed to current target?
+            const auto& msg = resp.value();
+            if (!msg.m_transfer_done)
+            {
+                // We are only interested in messages about finished transfers
+                continue;
+            }
+
             DownloadTarget* current_target = nullptr;
             for (const auto& target : m_targets)
             {
-                if (target->handle() == msg->easy_handle)
+                if (target->get_curl_handle() == msg.m_handle_ref)
                 {
                     current_target = target;
                     break;
@@ -793,19 +752,17 @@ namespace mamba
                 throw std::runtime_error("Could not find target associated with multi request");
             }
 
-            current_target->set_result(msg->data.result);
-            if (msg->data.result != CURLE_OK && current_target->can_retry())
+            current_target->set_result(msg.m_transfer_result);
+            if (!current_target->check_result() && current_target->can_retry())
             {
-                curl_multi_remove_handle(m_handle, current_target->handle());
+                p_curl_handle->remove_handle(current_target->get_curl_handle());
                 m_retry_targets.push_back(current_target);
-                continue;
             }
-
-            if (msg->msg == CURLMSG_DONE)
+            else
             {
-                LOG_INFO << "Transfer done for '" << current_target->name() << "'";
+                LOG_INFO << "Transfer done for '" << current_target->get_name() << "'";
                 // We are only interested in messages about finished transfers
-                curl_multi_remove_handle(m_handle, current_target->handle());
+                p_curl_handle->remove_handle(current_target->get_curl_handle());
 
                 // flush file & finalize transfer
                 if (!current_target->finalize())
@@ -813,12 +770,12 @@ namespace mamba
                     // transfer did not work! can we retry?
                     if (current_target->can_retry())
                     {
-                        LOG_INFO << "Setting retry for '" << current_target->name() << "'";
+                        LOG_INFO << "Setting retry for '" << current_target->get_name() << "'";
                         m_retry_targets.push_back(current_target);
                     }
                     else
                     {
-                        if (failfast && current_target->ignore_failure() == false)
+                        if (failfast && current_target->get_ignore_failure() == false)
                         {
                             throw std::runtime_error(
                                 "Multi-download failed. Reason: " + current_target->get_transfer_msg()
@@ -851,7 +808,7 @@ namespace mamba
                 m_targets.begin(),
                 m_targets.end(),
                 [](DownloadTarget* a, DownloadTarget* b) -> bool
-                { return a->expected_size() > b->expected_size(); }
+                { return a->get_expected_size() > b->get_expected_size(); }
             );
         }
 
@@ -863,21 +820,17 @@ namespace mamba
         // be sure the progress bar manager was not already started
         // it would mean this code is part of a larger process using progress bars
         bool pbar_manager_started = pbar_manager.started();
-        if (!(ctx.no_progress_bars || ctx.json || ctx.quiet || pbar_manager_started))
+        if (!(ctx.graphics_params.no_progress_bars || ctx.output_params.json
+              || ctx.output_params.quiet || pbar_manager_started))
         {
             pbar_manager.watch_print();
         }
 
-        int still_running, repeats = 0;
-        const long max_wait_msecs = 1000;
+        std::size_t still_running = size_t(0);
+        std::size_t repeats = 0;
         do
         {
-            CURLMcode code = curl_multi_perform(m_handle, &still_running);
-
-            if (code != CURLM_OK)
-            {
-                throw std::runtime_error(curl_multi_strerror(code));
-            }
+            still_running = p_curl_handle->perform();
             check_msgs(failfast);
 
             if (!m_retry_targets.empty())
@@ -885,10 +838,9 @@ namespace mamba
                 auto it = m_retry_targets.begin();
                 while (it != m_retry_targets.end())
                 {
-                    CURL* curl_handle = (*it)->retry();
-                    if (curl_handle != nullptr)
+                    if ((*it)->retry())
                     {
-                        curl_multi_add_handle(m_handle, curl_handle);
+                        p_curl_handle->add_handle((*it)->get_curl_handle());
                         it = m_retry_targets.erase(it);
                         still_running = 1;
                     }
@@ -899,41 +851,28 @@ namespace mamba
                 }
             }
 
-            long curl_timeout = -1;  // NOLINT(runtime/int)
-            code = curl_multi_timeout(m_handle, &curl_timeout);
-            if (code != CURLM_OK)
+            std::size_t timeout = p_curl_handle->get_timeout();
+            if (timeout == 0u)
             {
-                throw std::runtime_error(curl_multi_strerror(code));
-            }
-
-            if (curl_timeout == 0)
-            {  // No wait
                 continue;
             }
+            std::size_t numfds = p_curl_handle->wait(timeout);
 
-            if (curl_timeout < 0 || curl_timeout > max_wait_msecs)
-            {  // Wait no more than 1s
-                curl_timeout = max_wait_msecs;
-            }
-
-            int numfds;
-            code = curl_multi_wait(m_handle, NULL, 0, static_cast<int>(curl_timeout), &numfds);
-            if (code != CURLM_OK)
-            {
-                throw std::runtime_error(curl_multi_strerror(code));
-            }
-
+            // 'numfds' being zero means either a timeout or no file descriptors to
+            // wait for. Try timeout on first occurrence, then assume no file
+            // descriptors and no file descriptors to wait for means wait for 100
+            // milliseconds.
             if (!numfds)
             {
-                repeats++;  // count number of repeated zero numfds
+                repeats++;
                 if (repeats > 1)
                 {
                     std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 }
-            }
-            else
-            {
-                repeats = 0;
+                else
+                {
+                    repeats = 0;
+                }
             }
         } while ((still_running || !m_retry_targets.empty()) && !is_sig_interrupted());
 
@@ -943,7 +882,8 @@ namespace mamba
             return false;
         }
 
-        if (!(ctx.no_progress_bars || ctx.json || ctx.quiet || pbar_manager_started))
+        if (!(ctx.graphics_params.no_progress_bars || ctx.output_params.json
+              || ctx.output_params.quiet || pbar_manager_started))
         {
             pbar_manager.terminate();
             if (!no_clear_progress_bars)

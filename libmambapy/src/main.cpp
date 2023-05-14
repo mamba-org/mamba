@@ -123,7 +123,7 @@ PYBIND11_MODULE(bindings, m)
     auto pySolver = py::class_<MSolver>(m, "Solver");
     auto pyMultiDownloadTarget = py::class_<MultiDownloadTarget>(m, "DownloadTargetList");
     // only used in a return type; does it belong in the module?
-    auto pyRootRole = py::class_<validate::RootRole>(m, "RootRole");
+    auto pyRootRole = py::class_<validation::RootRole>(m, "RootRole");
 
     py::class_<fs::u8path>(m, "Path")
         .def(py::init<std::string>())
@@ -141,12 +141,22 @@ PYBIND11_MODULE(bindings, m)
 
     py::add_ostream_redirect(m, "ostream_redirect");
 
+    py::class_<MatchSpec>(m, "MatchSpec")
+        .def(py::init<>())
+        .def(py::init<const std::string&>())
+        .def("conda_build_form", &MatchSpec::conda_build_form);
+
     py::class_<MPool>(m, "Pool")
         .def(py::init<>())
         .def("set_debuglevel", &MPool::set_debuglevel)
         .def("create_whatprovides", &MPool::create_whatprovides)
         .def("select_solvables", &MPool::select_solvables, py::arg("id"), py::arg("sorted") = false)
         .def("matchspec2id", &MPool::matchspec2id, py::arg("ms"))
+        .def(
+            "matchspec2id",
+            [](MPool& self, std::string_view ms) { return self.matchspec2id({ ms }); },
+            py::arg("ms")
+        )
         .def("id2pkginfo", &MPool::id2pkginfo, py::arg("id"));
 
     py::class_<MultiPackageCache>(m, "MultiPackageCache")
@@ -154,61 +164,24 @@ PYBIND11_MODULE(bindings, m)
         .def("get_tarball_path", &MultiPackageCache::get_tarball_path)
         .def_property_readonly("first_writable_path", &MultiPackageCache::first_writable_path);
 
-    struct ExtraPkgInfo
-    {
-        std::string noarch;
-        std::string repo_url;
-    };
-
-    py::class_<ExtraPkgInfo>(m, "ExtraPkgInfo")
+    py::class_<MRepo::PyExtraPkgInfo>(m, "ExtraPkgInfo")
         .def(py::init<>())
-        .def_readwrite("noarch", &ExtraPkgInfo::noarch)
-        .def_readwrite("repo_url", &ExtraPkgInfo::repo_url);
+        .def_readwrite("noarch", &MRepo::PyExtraPkgInfo::noarch)
+        .def_readwrite("repo_url", &MRepo::PyExtraPkgInfo::repo_url);
 
-    py::class_<MRepo, std::unique_ptr<MRepo, py::nodelete>>(m, "Repo")
+    py::class_<MRepo>(m, "Repo")
         .def(py::init(
             [](MPool& pool, const std::string& name, const std::string& filename, const std::string& url
-            ) {
-                return std::unique_ptr<MRepo, py::nodelete>(&MRepo::create(pool, name, filename, url));
-            }
+            ) { return MRepo(pool, name, filename, RepoMetadata{ /* .url=*/url }); }
         ))
-        .def(py::init([](MPool& pool, const PrefixData& data)
-                      { return std::unique_ptr<MRepo, py::nodelete>(&MRepo::create(pool, data)); }))
-        .def(
-            "add_extra_pkg_info",
-            [](const MRepo& self, const std::map<std::string, ExtraPkgInfo>& additional_info)
-            {
-                Id pkg_id;
-                Solvable* pkg_s;
-                Pool* p = self.repo()->pool;
-                static Id noarch_repo_key = pool_str2id(p, "solvable:noarch_type", 1);
-                static Id real_repo_url_key = pool_str2id(p, "solvable:real_repo_url", 1);
-
-                FOR_REPO_SOLVABLES(self.repo(), pkg_id, pkg_s)
-                {
-                    std::string name = pool_id2str(p, pkg_s->name);
-                    auto it = additional_info.find(name);
-                    if (it != additional_info.end())
-                    {
-                        if (!it->second.noarch.empty())
-                        {
-                            solvable_set_str(pkg_s, noarch_repo_key, it->second.noarch.c_str());
-                        }
-                        if (!it->second.repo_url.empty())
-                        {
-                            solvable_set_str(pkg_s, real_repo_url_key, it->second.repo_url.c_str());
-                        }
-                    }
-                }
-                repo_internalize(self.repo());
-            }
-        )
+        .def(py::init<MPool&, const PrefixData&>())
+        .def("add_extra_pkg_info", &MRepo::py_add_extra_pkg_info)
         .def("set_installed", &MRepo::set_installed)
         .def("set_priority", &MRepo::set_priority)
-        .def("name", &MRepo::name)
-        .def("priority", &MRepo::priority)
-        .def("size", &MRepo::size)
-        .def("clear", &MRepo::clear);
+        .def("name", &MRepo::py_name)
+        .def("priority", &MRepo::py_priority)
+        .def("size", &MRepo::py_size)
+        .def("clear", &MRepo::py_clear);
 
     py::class_<MTransaction>(m, "Transaction")
         .def(py::init<>(
@@ -260,11 +233,6 @@ PYBIND11_MODULE(bindings, m)
         .def_readwrite("dep", &MSolverProblem::dep)
         .def_readwrite("description", &MSolverProblem::description)
         .def("__str__", [](const MSolverProblem& self) { return self.description; });
-
-    py::class_<MatchSpec>(m, "MatchSpec")
-        .def(py::init<>())
-        .def(py::init<const std::string&>())
-        .def("conda_build_form", &MatchSpec::conda_build_form);
 
     using PbGraph = ProblemsGraph;
     auto pyPbGraph = py::class_<PbGraph>(m, "ProblemsGraph");
@@ -465,12 +433,8 @@ PYBIND11_MODULE(bindings, m)
         ))
         .def(
             "create_repo",
-            [](MSubdirData& subdir, MPool& pool) -> MRepo&
-            {
-                auto exp_res = subdir.create_repo(pool);
-                return extract(exp_res);
-            },
-            py::return_value_policy::reference
+            [](MSubdirData& subdir, MPool& pool) -> MRepo
+            { return extract(subdir.create_repo(pool)); }
         )
         .def("loaded", &MSubdirData::loaded)
         .def(
@@ -516,31 +480,16 @@ PYBIND11_MODULE(bindings, m)
         .value("CRITICAL", mamba::log_level::critical)
         .value("OFF", mamba::log_level::off);
 
-    py::class_<Context, std::unique_ptr<Context, py::nodelete>>(m, "Context")
-        .def(py::init([]() { return std::unique_ptr<Context, py::nodelete>(&Context::instance()); }))
-        .def_readwrite("verbosity", &Context::verbosity)
-        .def_readwrite("quiet", &Context::quiet)
-        .def_readwrite("json", &Context::json)
+    py::class_<Context, std::unique_ptr<Context, py::nodelete>> ctx(m, "Context");
+    ctx.def(py::init([]() { return std::unique_ptr<Context, py::nodelete>(&Context::instance()); }))
         .def_readwrite("offline", &Context::offline)
         .def_readwrite("local_repodata_ttl", &Context::local_repodata_ttl)
         .def_readwrite("use_index_cache", &Context::use_index_cache)
-        .def_readwrite("download_threads", &Context::download_threads)
-        .def_readwrite("extract_threads", &Context::extract_threads)
         .def_readwrite("always_yes", &Context::always_yes)
         .def_readwrite("dry_run", &Context::dry_run)
         .def_readwrite("download_only", &Context::download_only)
-        .def_readwrite("ssl_verify", &Context::ssl_verify)
         .def_readwrite("proxy_servers", &Context::proxy_servers)
-        .def_readwrite("max_retries", &Context::max_retries)
-        .def_readwrite("retry_timeout", &Context::retry_timeout)
-        .def_readwrite("retry_backoff", &Context::retry_backoff)
-        .def_readwrite("user_agent", &Context::user_agent)
-        // .def_readwrite("read_timeout_secs", &Context::read_timeout_secs)
-        .def_readwrite("connect_timeout_secs", &Context::connect_timeout_secs)
         .def_readwrite("add_pip_as_python_dependency", &Context::add_pip_as_python_dependency)
-        .def_readwrite("target_prefix", &Context::target_prefix)
-        .def_readwrite("conda_prefix", &Context::conda_prefix)
-        .def_readwrite("root_prefix", &Context::root_prefix)
         .def_readwrite("envs_dirs", &Context::envs_dirs)
         .def_readwrite("pkgs_dirs", &Context::pkgs_dirs)
         .def_readwrite("platform", &Context::platform)
@@ -568,6 +517,38 @@ PYBIND11_MODULE(bindings, m)
         .def_readwrite("use_lockfiles", &Context::use_lockfiles)
         .def("set_verbosity", &Context::set_verbosity)
         .def("set_log_level", &Context::set_log_level);
+
+    py::class_<Context::RemoteFetchParams>(ctx, "RemoteFetchParams")
+        .def(py::init<>())
+        .def_readwrite("ssl_verify", &Context::RemoteFetchParams::ssl_verify)
+        .def_readwrite("max_retries", &Context::RemoteFetchParams::max_retries)
+        .def_readwrite("retry_timeout", &Context::RemoteFetchParams::retry_timeout)
+        .def_readwrite("retry_backoff", &Context::RemoteFetchParams::retry_backoff)
+        .def_readwrite("user_agent", &Context::RemoteFetchParams::user_agent)
+        // .def_readwrite("read_timeout_secs", &Context::RemoteFetchParams::read_timeout_secs)
+        .def_readwrite("connect_timeout_secs", &Context::RemoteFetchParams::connect_timeout_secs);
+
+    py::class_<Context::OutputParams>(ctx, "OutputParams")
+        .def(py::init<>())
+        .def_readwrite("verbosity", &Context::OutputParams::verbosity)
+        .def_readwrite("json", &Context::OutputParams::json)
+        .def_readwrite("quiet", &Context::OutputParams::quiet);
+
+    py::class_<Context::ThreadsParams>(ctx, "ThreadsParams")
+        .def(py::init<>())
+        .def_readwrite("download_threads", &Context::ThreadsParams::download_threads)
+        .def_readwrite("extract_threads", &Context::ThreadsParams::extract_threads);
+
+    py::class_<Context::PrefixParams>(ctx, "PrefixParams")
+        .def(py::init<>())
+        .def_readwrite("target_prefix", &Context::PrefixParams::target_prefix)
+        .def_readwrite("conda_prefix", &Context::PrefixParams::conda_prefix)
+        .def_readwrite("root_prefix", &Context::PrefixParams::root_prefix);
+
+    ctx.def_readwrite("remote_fetch_params", &Context::remote_fetch_params)
+        .def_readwrite("output_params", &Context::output_params)
+        .def_readwrite("threads_params", &Context::threads_params)
+        .def_readwrite("prefix_params", &Context::prefix_params);
 
     pyPrefixData
         .def(py::init(
@@ -609,21 +590,28 @@ PYBIND11_MODULE(bindings, m)
         .def_readwrite("timestamp", &PackageInfo::timestamp)
         .def_readwrite("md5", &PackageInfo::md5)
         .def_readwrite("sha256", &PackageInfo::sha256)
-        .def_readwrite("track_features", &PackageInfo::track_features)
+        .def_property(
+            "track_features",
+            [](const PackageInfo& self)
+            {
+                static_assert(LIBMAMBA_VERSION_MAJOR == 1, "Version 1 compatibility.");
+                return fmt::format("{}", fmt::join(self.track_features, ","));
+            },
+            [](PackageInfo& self, std::string_view val) { self.track_features = split(val, ","); }
+        )
         .def_readwrite("depends", &PackageInfo::depends)
         .def_readwrite("constrains", &PackageInfo::constrains)
         .def_readwrite("signatures", &PackageInfo::signatures)
-        .def_readwrite("extra_metadata", &PackageInfo::extra_metadata)
         .def_readwrite("defaulted_keys", &PackageInfo::defaulted_keys);
 
     // Content trust - Package signature and verification
-    m.def("generate_ed25519_keypair", &validate::generate_ed25519_keypair_hex);
+    m.def("generate_ed25519_keypair", &validation::generate_ed25519_keypair_hex);
     m.def(
         "sign",
         [](const std::string& data, const std::string& sk)
         {
             std::string signature;
-            if (!validate::sign(data, sk, signature))
+            if (!validation::sign(data, sk, signature))
             {
                 throw std::runtime_error("Signing failed");
             }
@@ -633,85 +621,89 @@ PYBIND11_MODULE(bindings, m)
         py::arg("secret_key")
     );
 
-    py::class_<validate::Key>(m, "Key")
-        .def_readwrite("keytype", &validate::Key::keytype)
-        .def_readwrite("scheme", &validate::Key::scheme)
-        .def_readwrite("keyval", &validate::Key::keyval)
+    py::class_<validation::Key>(m, "Key")
+        .def_readwrite("keytype", &validation::Key::keytype)
+        .def_readwrite("scheme", &validation::Key::scheme)
+        .def_readwrite("keyval", &validation::Key::keyval)
         .def_property_readonly(
             "json_str",
-            [](const validate::Key& key)
+            [](const validation::Key& key)
             {
                 nlohmann::json j;
-                validate::to_json(j, key);
+                validation::to_json(j, key);
                 return j.dump();
             }
         )
-        .def_static("from_ed25519", &validate::Key::from_ed25519);
+        .def_static("from_ed25519", &validation::Key::from_ed25519);
 
-    py::class_<validate::RoleFullKeys>(m, "RoleFullKeys")
+    py::class_<validation::RoleFullKeys>(m, "RoleFullKeys")
         .def(py::init<>())
         .def(
-            py::init<const std::map<std::string, validate::Key>&, const std::size_t&>(),
+            py::init<const std::map<std::string, validation::Key>&, const std::size_t&>(),
             py::arg("keys"),
             py::arg("threshold")
         )
-        .def_readwrite("keys", &validate::RoleFullKeys::keys)
-        .def_readwrite("threshold", &validate::RoleFullKeys::threshold);
+        .def_readwrite("keys", &validation::RoleFullKeys::keys)
+        .def_readwrite("threshold", &validation::RoleFullKeys::threshold);
 
-    py::class_<validate::SpecBase, std::shared_ptr<validate::SpecBase>>(m, "SpecBase");
+    py::class_<validation::SpecBase, std::shared_ptr<validation::SpecBase>>(m, "SpecBase");
 
-    py::class_<validate::RoleBase, std::shared_ptr<validate::RoleBase>>(m, "RoleBase")
-        .def_property_readonly("type", &validate::RoleBase::type)
-        .def_property_readonly("version", &validate::RoleBase::version)
-        .def_property_readonly("spec_version", &validate::RoleBase::spec_version)
-        .def_property_readonly("file_ext", &validate::RoleBase::file_ext)
-        .def_property_readonly("expires", &validate::RoleBase::expires)
-        .def_property_readonly("expired", &validate::RoleBase::expired)
-        .def("all_keys", &validate::RoleBase::all_keys);
+    py::class_<validation::RoleBase, std::shared_ptr<validation::RoleBase>>(m, "RoleBase")
+        .def_property_readonly("type", &validation::RoleBase::type)
+        .def_property_readonly("version", &validation::RoleBase::version)
+        .def_property_readonly("spec_version", &validation::RoleBase::spec_version)
+        .def_property_readonly("file_ext", &validation::RoleBase::file_ext)
+        .def_property_readonly("expires", &validation::RoleBase::expires)
+        .def_property_readonly("expired", &validation::RoleBase::expired)
+        .def("all_keys", &validation::RoleBase::all_keys);
 
-    py::class_<validate::v06::V06RoleBaseExtension, std::shared_ptr<validate::v06::V06RoleBaseExtension>>(
+    py::class_<validation::v06::V06RoleBaseExtension, std::shared_ptr<validation::v06::V06RoleBaseExtension>>(
         m,
         "RoleBaseExtension"
     )
-        .def_property_readonly("timestamp", &validate::v06::V06RoleBaseExtension::timestamp);
+        .def_property_readonly("timestamp", &validation::v06::V06RoleBaseExtension::timestamp);
 
-    py::class_<validate::v06::SpecImpl, validate::SpecBase, std::shared_ptr<validate::v06::SpecImpl>>(
+    py::class_<validation::v06::SpecImpl, validation::SpecBase, std::shared_ptr<validation::v06::SpecImpl>>(
         m,
         "SpecImpl"
     )
         .def(py::init<>());
 
     py::class_<
-        validate::v06::KeyMgrRole,
-        validate::RoleBase,
-        validate::v06::V06RoleBaseExtension,
-        std::shared_ptr<validate::v06::KeyMgrRole>>(m, "KeyMgr")
-        .def(py::init<const std::string&, const validate::RoleFullKeys&, const std::shared_ptr<validate::SpecBase>>(
-        ));
+        validation::v06::KeyMgrRole,
+        validation::RoleBase,
+        validation::v06::V06RoleBaseExtension,
+        std::shared_ptr<validation::v06::KeyMgrRole>>(m, "KeyMgr")
+        .def(py::init<
+             const std::string&,
+             const validation::RoleFullKeys&,
+             const std::shared_ptr<validation::SpecBase>>());
 
     py::class_<
-        validate::v06::PkgMgrRole,
-        validate::RoleBase,
-        validate::v06::V06RoleBaseExtension,
-        std::shared_ptr<validate::v06::PkgMgrRole>>(m, "PkgMgr")
-        .def(py::init<const std::string&, const validate::RoleFullKeys&, const std::shared_ptr<validate::SpecBase>>(
-        ));
+        validation::v06::PkgMgrRole,
+        validation::RoleBase,
+        validation::v06::V06RoleBaseExtension,
+        std::shared_ptr<validation::v06::PkgMgrRole>>(m, "PkgMgr")
+        .def(py::init<
+             const std::string&,
+             const validation::RoleFullKeys&,
+             const std::shared_ptr<validation::SpecBase>>());
 
     py::class_<
-        validate::v06::RootImpl,
-        validate::RoleBase,
-        validate::v06::V06RoleBaseExtension,
-        std::shared_ptr<validate::v06::RootImpl>>(m, "RootImpl")
+        validation::v06::RootImpl,
+        validation::RoleBase,
+        validation::v06::V06RoleBaseExtension,
+        std::shared_ptr<validation::v06::RootImpl>>(m, "RootImpl")
         .def(py::init<const std::string&>(), py::arg("json_str"))
         .def(
             "update",
-            [](validate::v06::RootImpl& role, const std::string& json_str)
+            [](validation::v06::RootImpl& role, const std::string& json_str)
             { return role.update(nlohmann::json::parse(json_str)); },
             py::arg("json_str")
         )
         .def(
             "create_key_mgr",
-            [](validate::v06::RootImpl& role, const std::string& json_str)
+            [](validation::v06::RootImpl& role, const std::string& json_str)
             { return role.create_key_mgr(nlohmann::json::parse(json_str)); },
             py::arg("json_str")
         );

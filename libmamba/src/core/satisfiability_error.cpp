@@ -163,7 +163,10 @@ namespace mamba
                             problem.target_id,
                             PackageNode{ std::move(target).value() }
                         );
-                        node_id cons_id = add_solvable(problem.dep_id, ConstraintNode{ dep.value() });
+                        node_id cons_id = add_solvable(
+                            problem.dep_id,
+                            ConstraintNode{ { dep.value() } }
+                        );
                         MatchSpec edge(dep.value());
                         m_graph.add_edge(src_id, cons_id, std::move(edge));
                         add_conflict(cons_id, tgt_id);
@@ -225,7 +228,7 @@ namespace mamba
                         MatchSpec edge(dep.value());
                         node_id dep_id = add_solvable(
                             problem.dep_id,
-                            UnresolvedDependencyNode{ std::move(dep).value() }
+                            UnresolvedDependencyNode{ { std::move(dep).value() } }
                         );
                         m_graph.add_edge(m_root_node, dep_id, std::move(edge));
                         break;
@@ -248,7 +251,7 @@ namespace mamba
                         );
                         node_id dep_id = add_solvable(
                             problem.dep_id,
-                            UnresolvedDependencyNode{ std::move(dep).value() }
+                            UnresolvedDependencyNode{ { std::move(dep).value() } }
                         );
                         m_graph.add_edge(src_id, dep_id, std::move(edge));
                         break;
@@ -356,9 +359,10 @@ namespace mamba
         {
             // We are trying to detect node that are in conflicts but are not leaves.
             // This shows up in Pyhon dependencies because the constraint on ``python`` and
-            // ``python_abi`` was inversed.
+            // ``python_abi`` was reversed.
             if (has_constraint_child(id))
             {
+                assert(old_graph.out_degree(id) == 1);
                 const node_id id_child = old_graph.successors(id).front();
                 for (const auto& c : id_conflicts)
                 {
@@ -369,10 +373,14 @@ namespace mamba
                     // nodes conflicting with ``id_child`` with ``c_parent``.
                     // They likely reprensent the same thing and so we want them to be able to
                     // merge later on.
-                    if (is_constraint(old_graph.node(c)))
+
+                    // id_child may alrady have been removed through a preivous iteration
+                    if (graph.has_node(id_child) && is_constraint(old_graph.node(c)))
                     {
                         for (const node_id c_parent : old_graph.predecessors(c))
                         {
+                            assert(graph.has_node(id_child));
+                            assert(graph.has_node(c_parent));
                             conflicts.add(id_child, c_parent);
                             graph.remove_edge(c_parent, c);
                         }

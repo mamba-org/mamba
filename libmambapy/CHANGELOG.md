@@ -1,3 +1,16 @@
+libmambapy 1.4.2 (April 06, 2023)
+=================================
+
+
+CI fixes and doc:
+
+- Fixes typos by @nsoranzo in https://github.com/mamba-org/mamba/pull/2419
+- Migrated to doctest by @JohanMabille in https://github.com/mamba-org/mamba/pull/2436
+
+libmambapy 1.4.1 (March 28, 2023)
+=================================
+
+
 libmambapy 1.4.0 (March 22, 2023)
 =================================
 

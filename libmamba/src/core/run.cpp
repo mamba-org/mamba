@@ -200,7 +200,7 @@ namespace mamba
         nlohmann::json file_json;
         file_json["name"] = name;
         file_json["command"] = command;
-        file_json["prefix"] = Context::instance().target_prefix.string();
+        file_json["prefix"] = Context::instance().prefix_params.target_prefix.string();
         // TODO: add other info here if necessary
         pid_file << file_json;
     }
@@ -282,9 +282,10 @@ namespace mamba
         const std::string& specific_process_name
     )
     {
-        if (!fs::exists(Context::instance().target_prefix))
+        if (!fs::exists(Context::instance().prefix_params.target_prefix))
         {
-            LOG_CRITICAL << "The given prefix does not exist: " << Context::instance().target_prefix;
+            LOG_CRITICAL << "The given prefix does not exist: "
+                         << Context::instance().prefix_params.target_prefix;
             return 1;
         }
         std::vector<std::string> raw_command = command;
@@ -308,7 +309,7 @@ namespace mamba
 #endif
 
         auto [wrapped_command, script_file] = prepare_wrapped_call(
-            Context::instance().target_prefix,
+            Context::instance().prefix_params.target_prefix,
             command
         );
 
@@ -363,7 +364,7 @@ namespace mamba
         if (detach)
         {
             Console::stream() << fmt::format(
-                Context::instance().palette.success,
+                Context::instance().graphics_params.palette.success,
                 "Running wrapped script {} in the background\n",
                 fmt::join(command, " ")
             );

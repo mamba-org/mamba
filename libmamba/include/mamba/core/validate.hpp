@@ -15,9 +15,10 @@
 #include <nlohmann/json.hpp>
 
 #include "mamba/core/mamba_fs.hpp"
+#include "mamba/core/timeref.hpp"
 #include "mamba/core/util.hpp"
 
-namespace validate
+namespace mamba::validation
 {
     using nlohmann::json;
 
@@ -332,32 +333,6 @@ namespace validate
 
 
     /**
-     * Singleton class to define a time reference.
-     * TUF 5.1 'Record fixed update start time'
-     * https://theupdateframework.github.io/specification/latest/#fix-time
-     */
-    class TimeRef
-    {
-    public:
-
-        static TimeRef& instance();
-
-        void set(const std::time_t& time);
-        void set_now();
-        std::string timestamp();
-
-    protected:
-
-        TimeRef();
-        ~TimeRef();
-
-    private:
-
-        std::time_t m_time_ref;
-    };
-
-
-    /**
      * Base class for spec implementations.
      */
     class SpecBase
@@ -420,7 +395,7 @@ namespace validate
         std::string file_ext() const;
         std::string expires() const;
 
-        bool expired() const;
+        bool expired(const TimeRef& time_reference) const;
 
         std::set<std::string> roles() const;
         std::set<RoleSignature> signatures(const json& j) const;
@@ -500,7 +475,7 @@ namespace validate
         std::vector<fs::u8path> possible_update_files();
 
         virtual std::unique_ptr<RepoIndexChecker>
-        build_index_checker(const std::string& url, const fs::u8path& cache_path) const = 0;
+        build_index_checker(const TimeRef& time_reference, const std::string& url, const fs::u8path& cache_path) const = 0;
 
     protected:
 
@@ -578,7 +553,7 @@ namespace validate
 
         std::unique_ptr<RepoIndexChecker> p_index_checker;
 
-        std::unique_ptr<RootRole> get_root_role();
+        std::unique_ptr<RootRole> get_root_role(const TimeRef& time_reference);
     };
 
 
@@ -614,8 +589,11 @@ namespace validate
 
             RoleFullKeys self_keys() const override;
 
-            std::unique_ptr<RepoIndexChecker>
-            build_index_checker(const std::string& url, const fs::u8path& cache_path) const override;
+            std::unique_ptr<RepoIndexChecker> build_index_checker(
+                const TimeRef& time_reference,
+                const std::string& url,
+                const fs::u8path& cache_path
+            ) const override;
 
             friend void to_json(json& j, const RootImpl& r);
             friend void from_json(const json& j, RootImpl& r);
@@ -693,8 +671,11 @@ namespace validate
              * Return a ``RepoIndexChecker`` implementation (derived class)
              * from repository base URL.
              */
-            std::unique_ptr<RepoIndexChecker>
-            build_index_checker(const std::string& url, const fs::u8path& cache_path) const override;
+            std::unique_ptr<RepoIndexChecker> build_index_checker(
+                const TimeRef& time_reference,
+                const std::string& url,
+                const fs::u8path& cache_path
+            ) const override;
 
             RoleFullKeys self_keys() const override;
 
@@ -753,8 +734,11 @@ namespace validate
              * Return a ``RepoIndexChecker`` implementation (derived class)
              * from repository base URL.
              */
-            std::unique_ptr<RepoIndexChecker>
-            build_index_checker(const std::string& url, const fs::u8path& cache_path) const;
+            std::unique_ptr<RepoIndexChecker> build_index_checker(
+                const TimeRef& time_reference,
+                const std::string& url,
+                const fs::u8path& cache_path
+            ) const;
 
             friend void to_json(json& j, const KeyMgrRole& r);
             friend void from_json(const json& j, KeyMgrRole& r);

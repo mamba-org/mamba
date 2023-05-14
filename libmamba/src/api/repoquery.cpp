@@ -9,6 +9,9 @@
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/repoquery.hpp"
+#include "mamba/core/package_cache.hpp"
+#include "mamba/core/prefix_data.hpp"
+#include "mamba/core/repo.hpp"
 #include "mamba/core/util_string.hpp"
 
 namespace mamba
@@ -34,18 +37,18 @@ namespace mamba
             {
                 Console::stream() << "Using local repodata..." << std::endl;
             }
-            auto exp_prefix_data = PrefixData::create(ctx.target_prefix);
+            auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix);
             if (!exp_prefix_data)
             {
                 // TODO: propagate tl::expected mechanism
                 throw std::runtime_error(exp_prefix_data.error().what());
             }
             PrefixData& prefix_data = exp_prefix_data.value();
-            MRepo::create(pool, prefix_data);
+            MRepo(pool, prefix_data);
             if (format != QueryResultFormat::kJSON)
             {
-                Console::stream() << "Loaded current active prefix: " << ctx.target_prefix
-                                  << std::endl;
+                Console::stream() << "Loaded current active prefix: "
+                                  << ctx.prefix_params.target_prefix << std::endl;
             }
         }
         else
@@ -64,7 +67,7 @@ namespace mamba
         Query q(pool);
         if (type == QueryType::kSEARCH)
         {
-            if (ctx.json)
+            if (ctx.output_params.json)
             {
                 std::cout << q.find(query).groupby("name").json().dump(4);
             }

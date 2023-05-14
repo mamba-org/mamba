@@ -118,17 +118,74 @@ namespace mamba
     {
     public:
 
-        std::string caller_version = "";
-        std::string conda_version = "3.8.0";
-        std::string current_command = "mamba";
-        std::string custom_banner = "";
-        bool is_micromamba = false;
+        struct RemoteFetchParams
+        {
+            // ssl_verify can be either an empty string (regular SSL verification),
+            // the string "<false>" to indicate no SSL verification, or a path to
+            // a directory with cert files, or a cert file.
+            std::string ssl_verify{ "" };
+            bool ssl_no_revoke{ false };
+            bool curl_initialized{ false };  // non configurable, used in fetch only
+
+            std::string user_agent{ "mamba/" LIBMAMBA_VERSION_STRING };
+
+            int connect_timeout_secs{ 10 };
+            // int read_timeout_secs { 60 };
+            int retry_timeout{ 2 };  // seconds
+            int retry_backoff{ 3 };  // retry_timeout * retry_backoff
+            int max_retries{ 3 };    // max number of retries
+        };
+
+        struct OutputParams
+        {
+            int verbosity{ 0 };
+            log_level logging_level{ log_level::warn };
+
+            bool json{ false };
+            bool quiet{ false };
+
+            std::string log_pattern{ "%^%-9!l%-8n%$ %v" };
+            std::size_t log_backtrace{ 0 };
+        };
+
+        struct GraphicsParams
+        {
+            bool no_progress_bars{ false };
+            Palette palette;
+        };
+
+        struct SrcParams
+        {
+            bool no_rc{ false };
+            bool no_env{ false };
+        };
+
+        struct CommandParams
+        {
+            std::string caller_version{ "" };
+            std::string conda_version{ "3.8.0" };
+            std::string current_command{ "mamba" };
+            std::string custom_banner{ "" };
+            bool is_micromamba{ false };
+        };
+
+        struct ThreadsParams
+        {
+            std::size_t download_threads{ 5 };
+            int extract_threads{ 0 };
+        };
+
+        struct PrefixParams
+        {
+            fs::u8path target_prefix;
+            fs::u8path root_prefix;
+            fs::u8path conda_prefix;
+            fs::u8path relocate_prefix;
+        };
+
+        // Configurable
         bool experimental = false;
         bool debug = false;
-
-        fs::u8path target_prefix;
-        fs::u8path root_prefix;
-        fs::u8path conda_prefix;
 
         // TODO check writable and add other potential dirs
         std::vector<fs::u8path> envs_dirs;
@@ -138,31 +195,17 @@ namespace mamba
         bool use_index_cache = false;
         std::size_t local_repodata_ttl = 1;  // take from header
         bool offline = false;
-        bool quiet = false;
-        bool json = false;
+
         ChannelPriority channel_priority = ChannelPriority::kFlexible;
         bool auto_activate_base = false;
 
-        std::size_t download_threads = 5;
-        int extract_threads = 0;
         bool extract_sparse = false;
 
-        int verbosity = 0;
-        void set_verbosity(int lvl);
-        void set_log_level(log_level level);
-
-        log_level logging_level = log_level::warn;
-        std::string log_pattern = "%^%-9!l%-8n%$ %v";
-        std::size_t log_backtrace = 0;
-
-        bool dev = false;
-        bool on_ci = false;
+        bool dev = false;  // TODO this is always used as default=false and isn't set anywhere => to
+                           // be removed if this is the case...
         bool dry_run = false;
         bool download_only = false;
         bool always_yes = false;
-
-        bool no_progress_bars = false;
-        Palette palette;
 
         bool allow_softlinks = false;
         bool always_copy = false;
@@ -189,23 +232,15 @@ namespace mamba
         // micromamba only
         bool shell_completion = true;
 
-        std::string user_agent = "mamba/" LIBMAMBA_VERSION_STRING;
-        bool curl_initialized = false;
-        int connect_timeout_secs = 10;
-        // int read_timeout_secs = 60;
-        int retry_timeout = 2;  // seconds
-        int retry_backoff = 3;  // retry_timeout * retry_backoff
-        int max_retries = 3;    // max number of retries
+        RemoteFetchParams remote_fetch_params;
+        OutputParams output_params;
+        GraphicsParams graphics_params;
+        SrcParams src_params;
+        CommandParams command_params;
+        ThreadsParams threads_params;
+        PrefixParams prefix_params;
 
         std::map<std::string, std::string> proxy_servers;
-        // ssl verify can be either an empty string (regular SSL verification),
-        // the string "<false>" to indicate no SSL verification, or a path to
-        // a directory with cert files, or a cert file.
-        std::string ssl_verify = "";
-        bool ssl_no_revoke = false;
-
-        bool no_rc = false;
-        bool no_env = false;
 
         std::size_t lock_timeout = 0;
         bool use_lockfiles = true;
@@ -264,6 +299,9 @@ namespace mamba
         void debug_print() const;
         void dump_backtrace_no_guards();
 
+        void set_verbosity(int lvl);
+        void set_log_level(log_level level);
+
     protected:
 
         Context();
@@ -271,6 +309,9 @@ namespace mamba
 
 
     private:
+
+        // Used internally
+        bool on_ci = false;
 
         void load_authentication_info();
         std::map<std::string, AuthenticationInfo> m_authentication_info;

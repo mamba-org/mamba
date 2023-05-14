@@ -11,8 +11,12 @@ mamba_target_add_compile_warnings(testing_libmamba_lock WARNING_AS_ERROR ${MAMBA
 
 
 set(LIBMAMBA_TEST_SRCS
+    src/test_main.cpp
     # C++ wrapping of libsolv
     src/solv-cpp/test_queue.cpp
+    src/solv-cpp/test_pool.cpp
+    src/solv-cpp/test_repo.cpp
+    src/solv-cpp/test_solvable.cpp
     # Utility library
     src/util/test_flat_set.cpp
     src/util/test_graph.cpp
@@ -20,6 +24,7 @@ set(LIBMAMBA_TEST_SRCS
     src/util/test_cast.cpp
     # Implementation of version and matching specs
     src/specs/test_version.cpp
+    src/specs/test_repo_data.cpp
 
     ../longpath.manifest
     src/core/test_activation.cpp
@@ -41,6 +46,8 @@ set(LIBMAMBA_TEST_SRCS
     src/core/test_virtual_packages.cpp
     src/core/test_util.cpp
     src/core/test_util_string.cpp
+    src/core/test_util_os.cpp
+    src/core/test_system_env.cpp
     src/core/test_env_lockfile.cpp
     src/core/test_execution.cpp
     src/core/test_invoke.cpp
@@ -59,13 +66,13 @@ target_include_directories(
     PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/libmamba/src"
 )
 
-find_package(GTest REQUIRED)
+find_package(doctest REQUIRED)
 find_package(Threads REQUIRED)
 
 target_link_libraries(
     test_libmamba
     PUBLIC libmamba
-    PRIVATE GTest::GTest GTest::Main Threads::Threads
+    PRIVATE doctest::doctest Threads::Threads
 )
 
 # Copy data directory into binary dir to avoid modifications
@@ -74,6 +81,7 @@ file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/data" DESTINATION "${CMAKE_CURRENT_BINARY
 target_compile_definitions(
     test_libmamba
     PRIVATE
+        DOCTEST_CONFIG_USE_STD_HEADERS
         MAMBA_TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}/data"
         MAMBA_TEST_LOCK_EXE="$<TARGET_FILE:testing_libmamba_lock>"
 )

@@ -50,7 +50,7 @@ namespace mamba
             throw std::runtime_error(exp_loaded.error().what());
         }
 
-        auto exp_prefix_data = PrefixData::create(ctx.target_prefix);
+        auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix);
         if (!exp_prefix_data)
         {
             // TODO: propagate tl::expected mechanism
@@ -66,7 +66,7 @@ namespace mamba
 
         prefix_data.add_packages(get_virtual_packages());
 
-        MRepo::create(pool, prefix_data);
+        MRepo(pool, prefix_data);
 
         MSolver solver(
             pool,
@@ -76,27 +76,6 @@ namespace mamba
                 { SOLVER_FLAG_STRICT_REPO_PRIORITY, ctx.channel_priority == ChannelPriority::kStrict },
             }
         );
-
-        if (update_all)
-        {
-            auto hist_map = prefix_data.history().get_requested_specs_map();
-            std::vector<std::string> keep_specs;
-            for (auto& it : hist_map)
-            {
-                keep_specs.push_back(it.second.name);
-            }
-            solver_flag |= SOLVER_SOLVABLE_ALL;
-            if (prune)
-            {
-                solver_flag |= SOLVER_CLEANDEPS;
-            }
-            solver.add_jobs(keep_specs, SOLVER_USERINSTALLED);
-            solver.add_global_job(solver_flag);
-        }
-        else
-        {
-            solver.add_jobs(update_specs, solver_flag);
-        }
 
         auto& no_pin = config.at("no_pin").value<bool>();
         auto& no_py_pin = config.at("no_py_pin").value<bool>();
@@ -125,11 +104,36 @@ namespace mamba
             Console::instance().print("\nPinned packages:\n" + join("", pinned_str));
         }
 
+        // FRAGILE this must be called after pins be before jobs in current ``MPool``
+        pool.create_whatprovides();
+
+        if (update_all)
+        {
+            auto hist_map = prefix_data.history().get_requested_specs_map();
+            std::vector<std::string> keep_specs;
+            for (auto& it : hist_map)
+            {
+                keep_specs.push_back(it.second.name);
+            }
+            solver_flag |= SOLVER_SOLVABLE_ALL;
+            if (prune)
+            {
+                solver_flag |= SOLVER_CLEANDEPS;
+            }
+            solver.add_jobs(keep_specs, SOLVER_USERINSTALLED);
+            solver.add_global_job(solver_flag);
+        }
+        else
+        {
+            solver.add_jobs(update_specs, solver_flag);
+        }
+
+
         solver.must_solve();
 
         auto execute_transaction = [&](MTransaction& transaction)
         {
-            if (ctx.json)
+            if (ctx.output_params.json)
             {
                 transaction.log_json();
             }

@@ -31,21 +31,22 @@ namespace mamba
 
         if (!ctx.dry_run)
         {
-            if (fs::exists(ctx.target_prefix))
+            if (fs::exists(ctx.prefix_params.target_prefix))
             {
-                if (ctx.target_prefix == ctx.root_prefix)
+                if (ctx.prefix_params.target_prefix == ctx.prefix_params.root_prefix)
                 {
                     LOG_ERROR << "Overwriting root prefix is not permitted";
                     throw std::runtime_error("Aborting.");
                 }
-                else if (fs::exists(ctx.target_prefix / "conda-meta"))
+                else if (fs::exists(ctx.prefix_params.target_prefix / "conda-meta"))
                 {
                     if (Console::prompt(
-                            "Found conda-prefix at '" + ctx.target_prefix.string() + "'. Overwrite?",
+                            "Found conda-prefix at '" + ctx.prefix_params.target_prefix.string()
+                                + "'. Overwrite?",
                             'n'
                         ))
                     {
-                        fs::remove_all(ctx.target_prefix);
+                        fs::remove_all(ctx.prefix_params.target_prefix);
                     }
                     else
                     {
@@ -60,12 +61,12 @@ namespace mamba
             }
             if (create_specs.empty())
             {
-                detail::create_empty_target(ctx.target_prefix);
+                detail::create_empty_target(ctx.prefix_params.target_prefix);
             }
 
             if (config.at("platform").configured() && !config.at("platform").rc_configured())
             {
-                detail::store_platform_config(ctx.target_prefix, ctx.platform);
+                detail::store_platform_config(ctx.prefix_params.target_prefix, ctx.platform);
             }
         }
 

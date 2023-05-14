@@ -43,6 +43,11 @@ namespace mamba
         std::string build_string = {};
         std::string noarch = {};
         std::size_t build_number = 0;
+        /**
+         * Could contain "conda-forge", "conda-forge/linux-64", or a url.
+         *
+         * @todo need to use a proper type for channels
+         */
         std::string channel = {};
         std::string url = {};
         std::string subdir = {};
@@ -52,11 +57,10 @@ namespace mamba
         std::size_t timestamp = 0;
         std::string md5 = {};
         std::string sha256 = {};
-        std::string track_features = {};
+        std::vector<std::string> track_features = {};
         std::vector<std::string> depends = {};
         std::vector<std::string> constrains = {};
         std::string signatures = {};
-        std::string extra_metadata = {};
         std::set<std::string> defaulted_keys = {};
     };
 }  // namespace mamba

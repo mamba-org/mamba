@@ -9,8 +9,8 @@
 #include <string>
 #include <vector>
 
+#include <doctest/doctest.h>
 #include <fmt/format.h>
-#include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 #include <solv/solver.h>
 
@@ -29,46 +29,49 @@
 
 namespace mamba
 {
-    TEST(conflict_map, symetric)
+    TEST_SUITE("conflict_map")
     {
-        auto c = conflict_map<std::size_t>();
-        EXPECT_EQ(c.size(), 0);
-        EXPECT_FALSE(c.has_conflict(0));
-        EXPECT_FALSE(c.in_conflict(0, 1));
-        EXPECT_TRUE(c.add(0, 1));
-        EXPECT_TRUE(c.add(1, 2));
-        EXPECT_FALSE(c.add(1, 2));
-        EXPECT_TRUE(c.has_conflict(0));
-        EXPECT_TRUE(c.in_conflict(0, 1));
-        EXPECT_TRUE(c.in_conflict(1, 2));
-        EXPECT_TRUE(c.has_conflict(2));
-        EXPECT_FALSE(c.in_conflict(0, 2));
-        // With same
-        EXPECT_TRUE(c.add(5, 5));
-        EXPECT_TRUE(c.has_conflict(5));
-        EXPECT_TRUE(c.in_conflict(5, 5));
-    }
+        TEST_CASE("symetric")
+        {
+            auto c = conflict_map<std::size_t>();
+            CHECK_EQ(c.size(), 0);
+            CHECK_FALSE(c.has_conflict(0));
+            CHECK_FALSE(c.in_conflict(0, 1));
+            CHECK(c.add(0, 1));
+            CHECK(c.add(1, 2));
+            CHECK_FALSE(c.add(1, 2));
+            CHECK(c.has_conflict(0));
+            CHECK(c.in_conflict(0, 1));
+            CHECK(c.in_conflict(1, 2));
+            CHECK(c.has_conflict(2));
+            CHECK_FALSE(c.in_conflict(0, 2));
+            // With same
+            CHECK(c.add(5, 5));
+            CHECK(c.has_conflict(5));
+            CHECK(c.in_conflict(5, 5));
+        }
 
-    TEST(conflict_map, remove)
-    {
-        auto c = conflict_map<std::size_t>({ { 1, 1 }, { 1, 2 }, { 1, 3 }, { 2, 4 } });
-        ASSERT_EQ(c.size(), 4);
+        TEST_CASE("remove")
+        {
+            auto c = conflict_map<std::size_t>({ { 1, 1 }, { 1, 2 }, { 1, 3 }, { 2, 4 } });
+            REQUIRE_EQ(c.size(), 4);
 
-        ASSERT_TRUE(c.in_conflict(2, 4));
-        ASSERT_TRUE(c.in_conflict(4, 2));
-        EXPECT_TRUE(c.remove(2, 4));
-        EXPECT_FALSE(c.in_conflict(4, 2));
-        EXPECT_FALSE(c.in_conflict(2, 4));
-        EXPECT_TRUE(c.has_conflict(2));
-        EXPECT_FALSE(c.has_conflict(4));
+            REQUIRE(c.in_conflict(2, 4));
+            REQUIRE(c.in_conflict(4, 2));
+            CHECK(c.remove(2, 4));
+            CHECK_FALSE(c.in_conflict(4, 2));
+            CHECK_FALSE(c.in_conflict(2, 4));
+            CHECK(c.has_conflict(2));
+            CHECK_FALSE(c.has_conflict(4));
 
-        EXPECT_FALSE(c.remove(2, 4));
+            CHECK_FALSE(c.remove(2, 4));
 
-        EXPECT_TRUE(c.remove(1));
-        EXPECT_FALSE(c.has_conflict(1));
-        EXPECT_FALSE(c.in_conflict(1, 1));
-        EXPECT_FALSE(c.in_conflict(1, 2));
-        EXPECT_FALSE(c.in_conflict(3, 1));
+            CHECK(c.remove(1));
+            CHECK_FALSE(c.has_conflict(1));
+            CHECK_FALSE(c.in_conflict(1, 1));
+            CHECK_FALSE(c.in_conflict(1, 2));
+            CHECK_FALSE(c.in_conflict(3, 1));
+        }
     }
 
     /**
@@ -141,7 +144,7 @@ namespace mamba
         const auto repodata_f = create_repodata_json(tmp_dir.path, packages);
 
         auto pool = MPool();
-        MRepo::create(pool, "some-name", repodata_f, "some-url");
+        MRepo(pool, "some-name", repodata_f, RepoMetadata{ /* .url= */ "some-url" });
         auto solver = std::make_unique<MSolver>(
             std::move(pool),
             std::vector{ std::pair{ SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } }
@@ -154,11 +157,14 @@ namespace mamba
     /**
      * Test the test utility function.
      */
-    TEST(satifiability_error, create_problem)
+    TEST_SUITE("satifiability_error")
     {
-        auto solver = create_problem(std::array{ mkpkg("foo", "0.1.0", {}) }, { "foo" });
-        const auto solved = solver->try_solve();
-        ASSERT_TRUE(solved);
+        TEST_CASE("create_problem")
+        {
+            auto solver = create_problem(std::array{ mkpkg("foo", "0.1.0", {}) }, { "foo" });
+            const auto solved = solver->try_solve();
+            REQUIRE(solved);
+        }
     }
 
     auto create_basic_conflict() -> MSolver&
@@ -341,16 +347,16 @@ namespace mamba
         auto prefix_data = expected_value_or_throw(PrefixData::create(tmp_dir.path / "prefix"));
         prefix_data.add_packages(virtual_packages);
         auto pool = MPool();
-        auto& repo = MRepo::create(pool, prefix_data);
+        auto repo = MRepo(pool, prefix_data);
         repo.set_installed();
 
         auto cache = MultiPackageCache({ tmp_dir.path / "cache" });
         create_cache_dir(cache.first_writable_path());
 
-        bool prev_progress_bars_value = Context::instance().no_progress_bars;
-        Context::instance().no_progress_bars = true;
+        bool prev_progress_bars_value = Context::instance().graphics_params.no_progress_bars;
+        Context::instance().graphics_params.no_progress_bars = true;
         load_channels(pool, cache, make_platform_channels(std::move(channels), platforms));
-        Context::instance().no_progress_bars = prev_progress_bars_value;
+        Context::instance().graphics_params.no_progress_bars = prev_progress_bars_value;
 
         auto solver = std::make_unique<MSolver>(
             std::move(pool),
@@ -364,11 +370,14 @@ namespace mamba
     /**
      * Test the test utility function.
      */
-    TEST(satifiability_error, create_conda_forge)
+    TEST_SUITE("satifiability_error")
     {
-        auto solver = create_conda_forge({ "xtensor>=0.7" });
-        const auto solved = solver->try_solve();
-        ASSERT_TRUE(solved);
+        TEST_CASE("create_conda_forge")
+        {
+            auto solver = create_conda_forge({ "xtensor>=0.7" });
+            const auto solved = solver->try_solve();
+            REQUIRE(solved);
+        }
     }
 
     auto create_pytorch_cpu() -> MSolver&
@@ -433,10 +442,6 @@ namespace mamba
         return *solver;
     }
 
-    class Problem : public testing::TestWithParam<decltype(&create_basic_conflict)>
-    {
-    };
-
     template <typename NodeVariant>
     auto is_virtual_package(const NodeVariant& node) -> bool
     {
@@ -454,210 +459,217 @@ namespace mamba
         );
     };
 
-    TEST_P(Problem, constructor)
+    namespace
     {
-        auto& solver = std::invoke(GetParam());
-        const auto solved = solver.try_solve();
-        ASSERT_FALSE(solved);
-        const auto pbs = ProblemsGraph::from_solver(solver, solver.pool());
-        const auto& g = pbs.graph();
-
-        EXPECT_GE(g.number_of_nodes(), 1);
-        g.for_each_node_id(
-            [&](auto id)
-            {
-                const auto& node = g.node(id);
-                // Currently we do not make assumption about virtual package since
-                // we are not sure we are including them the same way than they would be in
-                // practice
-                if (!is_virtual_package(node))
-                {
-                    if (g.in_degree(id) == 0)
-                    {
-                        // Only one root node
-                        EXPECT_EQ(id, pbs.root_node());
-                        EXPECT_TRUE(std::holds_alternative<ProblemsGraph::RootNode>(node));
-                    }
-                    else if (g.out_degree(id) == 0)
-                    {
-                        EXPECT_FALSE(std::holds_alternative<ProblemsGraph::RootNode>(node));
-                    }
-                    else
-                    {
-                        EXPECT_TRUE(std::holds_alternative<ProblemsGraph::PackageNode>(node));
-                    }
-                    // All nodes reachable from the root
-                    EXPECT_TRUE(is_reachable(pbs.graph(), pbs.root_node(), id));
-                }
-            }
-        );
-
-        const auto& conflicts = pbs.conflicts();
-        for (const auto& [n, _] : conflicts)
-        {
-            EXPECT_TRUE(
-                std::holds_alternative<ProblemsGraph::PackageNode>(g.node(n))
-                || std::holds_alternative<ProblemsGraph::ConstraintNode>(g.node(n))
-            );
-        }
-    }
-
-    TEST_P(Problem, simplify_conflicts)
-    {
-        auto& solver = std::invoke(GetParam());
-        const auto solved = solver.try_solve();
-        ASSERT_FALSE(solved);
-        const auto& pbs = ProblemsGraph::from_solver(solver, solver.pool());
-        const auto& pbs_simplified = simplify_conflicts(pbs);
-        const auto& graph_simplified = pbs_simplified.graph();
-
-        EXPECT_GE(graph_simplified.number_of_nodes(), 1);
-        EXPECT_LE(graph_simplified.number_of_nodes(), pbs.graph().number_of_nodes());
-
-        for (const auto& [id, _] : pbs_simplified.conflicts())
-        {
-            const auto& node = graph_simplified.node(id);
-            // Currently we do not make assumption about virtual package since
-            // we are not sure we are including them the same way than they would be in
-            // practice
-            if (!is_virtual_package(node))
-            {
-                EXPECT_TRUE(graph_simplified.has_node(id));
-                // Unfortunately not all conflicts are on leaves
-                // EXPECT_EQ(graph_simplified.out_degree(id), 0);
-                EXPECT_TRUE(is_reachable(graph_simplified, pbs_simplified.root_node(), id));
-            }
-        }
-    }
-
-    TEST(satifiability_error, NamedList)
-    {
-        auto l = CompressedProblemsGraph::PackageListNode();
-        static constexpr std::size_t n_packages = 9;
-        for (std::size_t minor = 1; minor <= n_packages; ++minor)
-        {
-            l.insert({ mkpkg("pkg", fmt::format("0.{}.0", minor)) });
-        }
-        EXPECT_EQ(l.size(), n_packages);
-        EXPECT_EQ(l.name(), "pkg");
-        {
-            auto [str, size] = l.versions_trunc(", ", "...", 5);
-            EXPECT_EQ(size, 9);
-            EXPECT_EQ(str, "0.1.0, 0.2.0, ..., 0.9.0");
-        }
-        {
-            auto [str, size] = l.build_strings_trunc(", ", "...", 5, false);
-            EXPECT_EQ(size, 9);
-            EXPECT_EQ(str, "bld, bld, ..., bld");
-        }
-        {
-            auto [str, size] = l.build_strings_trunc(", ", "...", 5, true);
-            EXPECT_EQ(size, 1);
-            EXPECT_EQ(str, "bld");
-        }
-        {
-            auto [str, size] = l.versions_and_build_strings_trunc("|", "---", 5);
-            EXPECT_EQ(size, 9);
-            EXPECT_EQ(str, "0.1.0 bld|0.2.0 bld|---|0.9.0 bld");
-        }
-    }
-
-    TEST_P(Problem, compression)
-    {
-        using CpPbGr = CompressedProblemsGraph;
-
-        auto& solver = std::invoke(GetParam());
-        const auto solved = solver.try_solve();
-        ASSERT_FALSE(solved);
-        const auto pbs = ProblemsGraph::from_solver(solver, solver.pool());
-        const auto cp_pbs = CpPbGr::from_problems_graph(simplify_conflicts(pbs));
-        const auto& cp_g = cp_pbs.graph();
-
-        EXPECT_GE(pbs.graph().number_of_nodes(), cp_g.number_of_nodes());
-        EXPECT_GE(cp_g.number_of_nodes(), 1);
-        cp_g.for_each_node_id(
-            [&](auto id)
-            {
-                const auto& node = cp_g.node(id);
-                // Currently we do not make assumption about virtual package since
-                // we are not sure we are including them the same way than they would be in
-                if (!is_virtual_package(node))
-                {
-                    if (cp_g.in_degree(id) == 0)
-                    {
-                        // Only one root node
-                        EXPECT_EQ(id, pbs.root_node());
-                        EXPECT_TRUE(std::holds_alternative<CpPbGr::RootNode>(node));
-                    }
-                    else if (cp_g.out_degree(id) == 0)
-                    {
-                        EXPECT_FALSE(std::holds_alternative<CpPbGr::RootNode>(node));
-                    }
-                    else
-                    {
-                        EXPECT_TRUE(std::holds_alternative<CpPbGr::PackageListNode>(node));
-                    }
-                    // All nodes reachable from the root
-                    EXPECT_TRUE(is_reachable(cp_g, cp_pbs.root_node(), id));
-                }
-            }
-        );
-
-        const auto& conflicts = cp_pbs.conflicts();
-        for (const auto& [n, _] : conflicts)
-        {
-            EXPECT_TRUE(
-                std::holds_alternative<CpPbGr::PackageListNode>(cp_g.node(n))
-                || std::holds_alternative<CpPbGr::ConstraintListNode>(cp_g.node(n))
-            );
-        }
-    }
-
-    TEST_P(Problem, problem_tree_str)
-    {
-        using CpPbGr = CompressedProblemsGraph;
-
-        auto& solver = std::invoke(GetParam());
-        const auto solved = solver.try_solve();
-        ASSERT_FALSE(solved);
-        const auto pbs = ProblemsGraph::from_solver(solver, solver.pool());
-        const auto cp_pbs = CpPbGr::from_problems_graph(simplify_conflicts(pbs));
-        const auto message = problem_tree_msg(cp_pbs);
-
-        auto message_contains = [&message](const auto& node)
-        {
-            using Node = std::remove_cv_t<std::remove_reference_t<decltype(node)>>;
-            if constexpr (!std::is_same_v<Node, CpPbGr::RootNode>)
-            {
-                EXPECT_TRUE(contains(message, node.name()));
-            }
-        };
-
-        cp_pbs.graph().for_each_node_id(
-            [&message_contains, &g = cp_pbs.graph()](auto id)
-            {
-                std::visit(message_contains, g.node(id));  //
-            }
-        );
-    }
-
-    INSTANTIATE_TEST_SUITE_P(
-        satifiability_error,
-        Problem,
-        testing::Values(
-            create_basic_conflict,
-            create_pubgrub,
-            create_pubgrub_hard,
-            create_pubgrub_missing,
-            create_pytorch_cpu,
-            create_pytorch_cuda,
-            create_cudatoolkit,
-            create_jpeg9b,
-            create_r_base,
-            create_scip,
-            create_jupyterlab,
-            create_double_python,
+        std::vector<decltype(&create_basic_conflict)> pb_values = {
+            create_basic_conflict, create_pubgrub,      create_pubgrub_hard, create_pubgrub_missing,
+            create_pytorch_cpu,    create_pytorch_cuda, create_cudatoolkit,  create_jpeg9b,
+            create_r_base,         create_scip,         create_jupyterlab,   create_double_python,
             create_numba
-        )
-    );
+        };
+    }
+
+    TEST_SUITE("satifiability_error")
+    {
+        TEST_CASE("NamedList")
+        {
+            auto l = CompressedProblemsGraph::PackageListNode();
+            static constexpr std::size_t n_packages = 9;
+            for (std::size_t minor = 1; minor <= n_packages; ++minor)
+            {
+                l.insert({ mkpkg("pkg", fmt::format("0.{}.0", minor)) });
+            }
+            CHECK_EQ(l.size(), n_packages);
+            CHECK_EQ(l.name(), "pkg");
+            {
+                auto [str, size] = l.versions_trunc(", ", "...", 5);
+                CHECK_EQ(size, 9);
+                CHECK_EQ(str, "0.1.0, 0.2.0, ..., 0.9.0");
+            }
+            {
+                auto [str, size] = l.build_strings_trunc(", ", "...", 5, false);
+                CHECK_EQ(size, 9);
+                CHECK_EQ(str, "bld, bld, ..., bld");
+            }
+            {
+                auto [str, size] = l.build_strings_trunc(", ", "...", 5, true);
+                CHECK_EQ(size, 1);
+                CHECK_EQ(str, "bld");
+            }
+            {
+                auto [str, size] = l.versions_and_build_strings_trunc("|", "---", 5);
+                CHECK_EQ(size, 9);
+                CHECK_EQ(str, "0.1.0 bld|0.2.0 bld|---|0.9.0 bld");
+            }
+        }
+
+        TEST_CASE("constructor")
+        {
+            for (auto& p : pb_values)
+            {
+                CAPTURE(p);
+                auto& solver = p();
+                const auto solved = solver.try_solve();
+                REQUIRE_FALSE(solved);
+                const auto pbs = ProblemsGraph::from_solver(solver, solver.pool());
+                const auto& g = pbs.graph();
+
+                REQUIRE_GE(g.number_of_nodes(), 1);
+                g.for_each_node_id(
+                    [&](auto id)
+                    {
+                        const auto& node = g.node(id);
+                        // Currently we do not make assumption about virtual package since
+                        // we are not sure we are including them the same way than they would be in
+                        // practice
+                        if (!is_virtual_package(node))
+                        {
+                            if (g.in_degree(id) == 0)
+                            {
+                                // Only one root node
+                                CHECK_EQ(id, pbs.root_node());
+                                CHECK(std::holds_alternative<ProblemsGraph::RootNode>(node));
+                            }
+                            else if (g.out_degree(id) == 0)
+                            {
+                                CHECK_FALSE(std::holds_alternative<ProblemsGraph::RootNode>(node));
+                            }
+                            else
+                            {
+                                CHECK(std::holds_alternative<ProblemsGraph::PackageNode>(node));
+                            }
+                            // All nodes reachable from the root
+                            CHECK(is_reachable(pbs.graph(), pbs.root_node(), id));
+                        }
+                    }
+                );
+
+                const auto& conflicts = pbs.conflicts();
+                for (const auto& [n, _] : conflicts)
+                {
+                    bool tmp = std::holds_alternative<ProblemsGraph::PackageNode>(g.node(n))
+                               || std::holds_alternative<ProblemsGraph::ConstraintNode>(g.node(n));
+                    CHECK(tmp);
+                }
+            }
+        }
+
+        TEST_CASE("simplify_conflicts")
+        {
+            for (auto& p : pb_values)
+            {
+                CAPTURE(p);
+                auto& solver = p();
+                const auto solved = solver.try_solve();
+                REQUIRE_FALSE(solved);
+                const auto& pbs = ProblemsGraph::from_solver(solver, solver.pool());
+                const auto& pbs_simplified = simplify_conflicts(pbs);
+                const auto& graph_simplified = pbs_simplified.graph();
+
+                REQUIRE_GE(graph_simplified.number_of_nodes(), 1);
+                REQUIRE_LE(graph_simplified.number_of_nodes(), pbs.graph().number_of_nodes());
+
+                for (const auto& [id, _] : pbs_simplified.conflicts())
+                {
+                    const auto& node = graph_simplified.node(id);
+                    // Currently we do not make assumption about virtual package since
+                    // we are not sure we are including them the same way than they would be in
+                    // practice
+                    if (!is_virtual_package(node))
+                    {
+                        CHECK(graph_simplified.has_node(id));
+                        // Unfortunately not all conflicts are on leaves
+                        // CHECK_EQ(graph_simplified.out_degree(id), 0);
+                        CHECK(is_reachable(graph_simplified, pbs_simplified.root_node(), id));
+                    }
+                }
+            }
+        }
+
+        TEST_CASE("compression")
+        {
+            using CpPbGr = CompressedProblemsGraph;
+
+            for (auto& p : pb_values)
+            {
+                CAPTURE(p);
+                auto& solver = p();
+                const auto solved = solver.try_solve();
+                REQUIRE_FALSE(solved);
+                const auto pbs = ProblemsGraph::from_solver(solver, solver.pool());
+                const auto cp_pbs = CpPbGr::from_problems_graph(simplify_conflicts(pbs));
+                const auto& cp_g = cp_pbs.graph();
+
+                REQUIRE_GE(pbs.graph().number_of_nodes(), cp_g.number_of_nodes());
+                REQUIRE_GE(cp_g.number_of_nodes(), 1);
+                cp_g.for_each_node_id(
+                    [&](auto id)
+                    {
+                        const auto& node = cp_g.node(id);
+                        // Currently we do not make assumption about virtual package since
+                        // we are not sure we are including them the same way than they would be in
+                        if (!is_virtual_package(node))
+                        {
+                            if (cp_g.in_degree(id) == 0)
+                            {
+                                // Only one root node
+                                CHECK_EQ(id, pbs.root_node());
+                                CHECK(std::holds_alternative<CpPbGr::RootNode>(node));
+                            }
+                            else if (cp_g.out_degree(id) == 0)
+                            {
+                                CHECK_FALSE(std::holds_alternative<CpPbGr::RootNode>(node));
+                            }
+                            else
+                            {
+                                CHECK(std::holds_alternative<CpPbGr::PackageListNode>(node));
+                            }
+                            // All nodes reachable from the root
+                            CHECK(is_reachable(cp_g, cp_pbs.root_node(), id));
+                        }
+                    }
+                );
+
+                const auto& conflicts = cp_pbs.conflicts();
+                for (const auto& [n, _] : conflicts)
+                {
+                    bool tmp = std::holds_alternative<CpPbGr::PackageListNode>(cp_g.node(n))
+                               || std::holds_alternative<CpPbGr::ConstraintListNode>(cp_g.node(n));
+                    CHECK(tmp);
+                }
+            }
+        }
+
+        TEST_CASE("problem_tree_str")
+        {
+            using CpPbGr = CompressedProblemsGraph;
+
+            for (auto& p : pb_values)
+            {
+                CAPTURE(p);
+                auto& solver = p();
+                const auto solved = solver.try_solve();
+                REQUIRE_FALSE(solved);
+                const auto pbs = ProblemsGraph::from_solver(solver, solver.pool());
+                const auto cp_pbs = CpPbGr::from_problems_graph(simplify_conflicts(pbs));
+                const auto message = problem_tree_msg(cp_pbs);
+
+                auto message_contains = [&message](const auto& node)
+                {
+                    using Node = std::remove_cv_t<std::remove_reference_t<decltype(node)>>;
+                    if constexpr (!std::is_same_v<Node, CpPbGr::RootNode>)
+                    {
+                        CHECK(contains(message, node.name()));
+                    }
+                };
+
+                cp_pbs.graph().for_each_node_id(
+                    [&message_contains, &g = cp_pbs.graph()](auto id)
+                    {
+                        std::visit(message_contains, g.node(id));  //
+                    }
+                );
+            }
+        }
+    }
 }

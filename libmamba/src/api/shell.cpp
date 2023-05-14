@@ -93,7 +93,7 @@ namespace mamba
         {
             if (prefix.empty() || prefix == "base")
             {
-                shell_prefix = ctx.root_prefix.string();
+                shell_prefix = ctx.prefix_params.root_prefix.string();
             }
             else
             {
@@ -106,7 +106,7 @@ namespace mamba
         {
             if (prefix.empty() || prefix == "base")
             {
-                shell_prefix = ctx.root_prefix.string();
+                shell_prefix = ctx.prefix_params.root_prefix.string();
             }
             else
             {
@@ -126,7 +126,7 @@ namespace mamba
         else if (action == "hook")
         {
             // TODO do we need to do something wtih `shell_prefix -> root_prefix?`?
-            if (ctx.json)
+            if (ctx.output_params.json)
             {
                 Console::instance().json_write(
                     { { "success", true },
@@ -144,11 +144,11 @@ namespace mamba
         {
             if (prefix.empty() || prefix == "base")
             {
-                shell_prefix = ctx.root_prefix.string();
+                shell_prefix = ctx.prefix_params.root_prefix.string();
             }
             else if (prefix.find_first_of("/\\") == std::string::npos)
             {
-                shell_prefix = (ctx.root_prefix / "envs" / prefix).string();
+                shell_prefix = (ctx.prefix_params.root_prefix / "envs" / prefix).string();
             }
             else
             {

@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 
+#include <algorithm>
 #include <cassert>
 #include <exception>
 #include <limits>
@@ -284,5 +285,16 @@ namespace mamba::solv
         using std::swap;
         swap(a.m_queue, b.m_queue);
     }
+
+    auto operator==(const ObjQueue& a, const ObjQueue& b) -> bool
+    {
+        return std::equal(a.cbegin(), a.cend(), b.cbegin(), b.cend());
+    }
+
+    auto operator!=(const ObjQueue& a, const ObjQueue& b) -> bool
+    {
+        return !(a == b);
+    }
+
 
 }  // namespace mamba

@@ -133,7 +133,7 @@ namespace mamba
 
                 if (p.path_type != PathType::SOFTLINK)
                 {
-                    assign_or(jpath, "sha256", p.sha256, std::string(""));
+                    p.sha256 = jpath.value("sha256", "");
                 }
 
                 if (jpath.find("no_link") != jpath.end())

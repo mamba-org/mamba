@@ -23,11 +23,6 @@
 
 #include "package_handling.hpp"
 
-namespace decompress
-{
-    bool raw(mamba::compression_algorithm ca, const std::string& in, const std::string& out);
-}
-
 namespace mamba
 {
     struct subdir_metadata
@@ -112,7 +107,7 @@ namespace mamba
         bool finalize_check(const DownloadTarget& target);
         bool finalize_transfer(const DownloadTarget& target);
         void finalize_checks();
-        expected_t<MRepo&> create_repo(MPool& pool);
+        expected_t<MRepo> create_repo(MPool& pool);
 
     private:
 

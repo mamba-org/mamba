@@ -3,15 +3,14 @@ channels:
   - conda-forge
 dependencies:
   - cxx-compiler
-  - cmake
+  - cmake >=3.16
   - ninja
   - nlohmann_json
   - libsolv >=0.7.18
   - libarchive
   - libsodium
   - libcurl >=7.86
-  - gtest
-  - gmock
+  - doctest
   - cpp-expected
   - reproc-cpp
   - yaml-cpp

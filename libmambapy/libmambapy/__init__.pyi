@@ -394,6 +394,133 @@ class Configuration:
     pass
 
 class Context:
+    class OutputParams:
+        def __init__(self) -> None: ...
+        @property
+        def json(self) -> bool:
+            """
+            :type: bool
+            """
+        @json.setter
+        def json(self, arg0: bool) -> None:
+            pass
+        @property
+        def quiet(self) -> bool:
+            """
+            :type: bool
+            """
+        @quiet.setter
+        def quiet(self, arg0: bool) -> None:
+            pass
+        @property
+        def verbosity(self) -> int:
+            """
+            :type: int
+            """
+        @verbosity.setter
+        def verbosity(self, arg0: int) -> None:
+            pass
+        pass
+
+    class PrefixParams:
+        def __init__(self) -> None: ...
+        @property
+        def conda_prefix(self) -> Path:
+            """
+            :type: Path
+            """
+        @conda_prefix.setter
+        def conda_prefix(self, arg0: Path) -> None:
+            pass
+        @property
+        def root_prefix(self) -> Path:
+            """
+            :type: Path
+            """
+        @root_prefix.setter
+        def root_prefix(self, arg0: Path) -> None:
+            pass
+        @property
+        def target_prefix(self) -> Path:
+            """
+            :type: Path
+            """
+        @target_prefix.setter
+        def target_prefix(self, arg0: Path) -> None:
+            pass
+        pass
+
+    class RemoteFetchParams:
+        def __init__(self) -> None: ...
+        @property
+        def connect_timeout_secs(self) -> int:
+            """
+            :type: int
+            """
+        @connect_timeout_secs.setter
+        def connect_timeout_secs(self, arg0: int) -> None:
+            pass
+        @property
+        def max_retries(self) -> int:
+            """
+            :type: int
+            """
+        @max_retries.setter
+        def max_retries(self, arg0: int) -> None:
+            pass
+        @property
+        def retry_backoff(self) -> int:
+            """
+            :type: int
+            """
+        @retry_backoff.setter
+        def retry_backoff(self, arg0: int) -> None:
+            pass
+        @property
+        def retry_timeout(self) -> int:
+            """
+            :type: int
+            """
+        @retry_timeout.setter
+        def retry_timeout(self, arg0: int) -> None:
+            pass
+        @property
+        def ssl_verify(self) -> str:
+            """
+            :type: str
+            """
+        @ssl_verify.setter
+        def ssl_verify(self, arg0: str) -> None:
+            pass
+        @property
+        def user_agent(self) -> str:
+            """
+            :type: str
+            """
+        @user_agent.setter
+        def user_agent(self, arg0: str) -> None:
+            pass
+        pass
+
+    class ThreadsParams:
+        def __init__(self) -> None: ...
+        @property
+        def download_threads(self) -> int:
+            """
+            :type: int
+            """
+        @download_threads.setter
+        def download_threads(self, arg0: int) -> None:
+            pass
+        @property
+        def extract_threads(self) -> int:
+            """
+            :type: int
+            """
+        @extract_threads.setter
+        def extract_threads(self, arg0: int) -> None:
+            pass
+        pass
     def __init__(self) -> None: ...
     def set_log_level(self, arg0: LogLevel) -> None: ...
     def set_verbosity(self, arg0: int) -> None: ...
@@ -438,22 +565,6 @@ class Context:
     def channels(self, arg0: typing.List[str]) -> None:
         pass
     @property
-    def conda_prefix(self) -> Path:
-        """
-        :type: Path
-        """
-    @conda_prefix.setter
-    def conda_prefix(self, arg0: Path) -> None:
-        pass
-    @property
-    def connect_timeout_secs(self) -> int:
-        """
-        :type: int
-        """
-    @connect_timeout_secs.setter
-    def connect_timeout_secs(self, arg0: int) -> None:
-        pass
-    @property
     def custom_channels(self) -> typing.Dict[str, str]:
         """
         :type: typing.Dict[str, str]
@@ -478,20 +589,20 @@ class Context:
     def default_channels(self, arg0: typing.List[str]) -> None:
         pass
     @property
+    def repodata_use_zst(self) -> bool:
+        """
+        :type: bool
+        """
+    @repodata_use_zst.setter
+    def repodata_use_zst(self, arg0: bool) -> None:
+        pass
+    @property
     def download_only(self) -> bool:
         """
         :type: bool
         """
     @download_only.setter
     def download_only(self, arg0: bool) -> None:
-        pass
-    @property
-    def download_threads(self) -> int:
-        """
-        :type: int
-        """
-    @download_threads.setter
-    def download_threads(self, arg0: int) -> None:
         pass
     @property
     def dry_run(self) -> bool:
@@ -518,22 +629,6 @@ class Context:
     def experimental_sat_error_message(self, arg1: bool) -> None:
         pass
     @property
-    def extract_threads(self) -> int:
-        """
-        :type: int
-        """
-    @extract_threads.setter
-    def extract_threads(self, arg0: int) -> None:
-        pass
-    @property
-    def json(self) -> bool:
-        """
-        :type: bool
-        """
-    @json.setter
-    def json(self, arg0: bool) -> None:
-        pass
-    @property
     def local_repodata_ttl(self) -> int:
         """
         :type: int
@@ -542,20 +637,20 @@ class Context:
     def local_repodata_ttl(self, arg0: int) -> None:
         pass
     @property
-    def max_retries(self) -> int:
-        """
-        :type: int
-        """
-    @max_retries.setter
-    def max_retries(self, arg0: int) -> None:
-        pass
-    @property
     def offline(self) -> bool:
         """
         :type: bool
         """
     @offline.setter
     def offline(self, arg0: bool) -> None:
+        pass
+    @property
+    def output_params(self) -> Context.OutputParams:
+        """
+        :type: Context.OutputParams
+        """
+    @output_params.setter
+    def output_params(self, arg0: Context.OutputParams) -> None:
         pass
     @property
     def pkgs_dirs(self) -> typing.List[Path]:
@@ -574,6 +669,14 @@ class Context:
     def platform(self, arg0: str) -> None:
         pass
     @property
+    def prefix_params(self) -> Context.PrefixParams:
+        """
+        :type: Context.PrefixParams
+        """
+    @prefix_params.setter
+    def prefix_params(self, arg0: Context.PrefixParams) -> None:
+        pass
+    @property
     def proxy_servers(self) -> typing.Dict[str, str]:
         """
         :type: typing.Dict[str, str]
@@ -582,60 +685,20 @@ class Context:
     def proxy_servers(self, arg0: typing.Dict[str, str]) -> None:
         pass
     @property
-    def quiet(self) -> bool:
+    def remote_fetch_params(self) -> Context.RemoteFetchParams:
         """
-        :type: bool
+        :type: Context.RemoteFetchParams
         """
-    @quiet.setter
-    def quiet(self, arg0: bool) -> None:
+    @remote_fetch_params.setter
+    def remote_fetch_params(self, arg0: Context.RemoteFetchParams) -> None:
         pass
     @property
-    def repodata_use_zst(self) -> bool:
+    def threads_params(self) -> Context.ThreadsParams:
         """
-        :type: bool
+        :type: Context.ThreadsParams
         """
-    @repodata_use_zst.setter
-    def repodata_use_zst(self, arg0: bool) -> None:
-        pass
-    @property
-    def retry_backoff(self) -> int:
-        """
-        :type: int
-        """
-    @retry_backoff.setter
-    def retry_backoff(self, arg0: int) -> None:
-        pass
-    @property
-    def retry_timeout(self) -> int:
-        """
-        :type: int
-        """
-    @retry_timeout.setter
-    def retry_timeout(self, arg0: int) -> None:
-        pass
-    @property
-    def root_prefix(self) -> Path:
-        """
-        :type: Path
-        """
-    @root_prefix.setter
-    def root_prefix(self, arg0: Path) -> None:
-        pass
-    @property
-    def ssl_verify(self) -> str:
-        """
-        :type: str
-        """
-    @ssl_verify.setter
-    def ssl_verify(self, arg0: str) -> None:
-        pass
-    @property
-    def target_prefix(self) -> Path:
-        """
-        :type: Path
-        """
-    @target_prefix.setter
-    def target_prefix(self, arg0: Path) -> None:
+    @threads_params.setter
+    def threads_params(self, arg0: Context.ThreadsParams) -> None:
         pass
     @property
     def use_index_cache(self) -> bool:
@@ -660,22 +723,6 @@ class Context:
         """
     @use_only_tar_bz2.setter
     def use_only_tar_bz2(self, arg0: bool) -> None:
-        pass
-    @property
-    def user_agent(self) -> str:
-        """
-        :type: str
-        """
-    @user_agent.setter
-    def user_agent(self, arg0: str) -> None:
-        pass
-    @property
-    def verbosity(self) -> int:
-        """
-        :type: int
-        """
-    @verbosity.setter
-    def verbosity(self, arg0: int) -> None:
         pass
     pass
 
@@ -907,14 +954,6 @@ class PackageInfo:
     def depends(self, arg0: typing.List[str]) -> None:
         pass
     @property
-    def extra_metadata(self) -> str:
-        """
-        :type: str
-        """
-    @extra_metadata.setter
-    def extra_metadata(self, arg0: str) -> None:
-        pass
-    @property
     def fn(self) -> str:
         """
         :type: str
@@ -992,7 +1031,7 @@ class PackageInfo:
         :type: str
         """
     @track_features.setter
-    def track_features(self, arg0: str) -> None:
+    def track_features(self, arg1: str) -> None:
         pass
     @property
     def url(self) -> str:
@@ -1030,6 +1069,9 @@ class Pool:
     def __init__(self) -> None: ...
     def create_whatprovides(self) -> None: ...
     def id2pkginfo(self, id: int) -> typing.Optional[PackageInfo]: ...
+    @typing.overload
+    def matchspec2id(self, ms: MatchSpec) -> int: ...
+    @typing.overload
     def matchspec2id(self, ms: str) -> int: ...
     def select_solvables(self, id: int, sorted: bool = False) -> typing.List[int]: ...
     def set_debuglevel(self) -> None: ...

@@ -1,3 +1,24 @@
+micromamba 1.4.2 (April 06, 2023)
+=================================
+
+Enhancements:
+
+- Refactor test\_create, test\_proxy, and test\_env for test isolation by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2416
+- Remove const ref to string\_view in codebase by @Hind-M in https://github.com/mamba-org/mamba/pull/2440
+
+CI fixes and doc:
+
+- Fixes typos by @nsoranzo in https://github.com/mamba-org/mamba/pull/2419
+- Remove outdated micromamba experimental warning by @jonashaag in https://github.com/mamba-org/mamba/pull/2430
+- Migrated to doctest by @JohanMabille in https://github.com/mamba-org/mamba/pull/2436
+
+micromamba 1.4.1 (March 28, 2023)
+=================================
+
+Enhancements:
+
+- add option to relocate prefix by @DerThorsten in https://github.com/mamba-org/mamba/pull/2385
+
 micromamba 1.4.0 (March 22, 2023)
 =================================
 

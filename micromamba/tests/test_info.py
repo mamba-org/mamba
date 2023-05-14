@@ -38,7 +38,7 @@ class TestInfo:
         shutil.rmtree(TestInfo.root_prefix)
 
     @classmethod
-    def teardown(cls):
+    def teardown_method(cls):
         os.environ["CONDA_PREFIX"] = TestInfo.prefix
 
     @pytest.mark.parametrize("prefix_selection", [None, "prefix", "name"])

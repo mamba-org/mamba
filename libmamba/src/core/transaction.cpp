@@ -79,7 +79,7 @@ namespace mamba
         m_filename = pkg_info.fn;
 
         // only do this for micromamba for now
-        if (Context::instance().is_micromamba)
+        if (Context::instance().command_params.is_micromamba)
         {
             m_url = make_channel(pkg_info.url).urls(true)[0];
         }
@@ -95,7 +95,9 @@ namespace mamba
         m_md5 = pkg_info.md5;
 
         auto& ctx = Context::instance();
-        m_has_progress_bars = !(ctx.no_progress_bars || ctx.quiet || ctx.json);
+        m_has_progress_bars = !(
+            ctx.graphics_params.no_progress_bars || ctx.output_params.quiet || ctx.output_params.json
+        );
     }
 
     void PackageDownloadExtractTarget::write_repodata_record(const fs::u8path& base_path)
@@ -131,11 +133,11 @@ namespace mamba
     void PackageDownloadExtractTarget::validate()
     {
         m_validation_result = VALIDATION_RESULT::VALID;
-        if (m_expected_size && size_t(m_target->downloaded_size) != m_expected_size)
+        if (m_expected_size && (m_target->get_downloaded_size() != m_expected_size))
         {
             LOG_ERROR << "File not valid: file size doesn't match expectation " << m_tarball_path
                       << "\nExpected: " << m_expected_size
-                      << "\nActual: " << size_t(m_target->downloaded_size) << "\n";
+                      << "\nActual: " << m_target->get_downloaded_size() << "\n";
             if (m_has_progress_bars)
             {
                 m_download_bar.set_postfix("validation failed");
@@ -149,7 +151,7 @@ namespace mamba
 
         if (!m_sha256.empty())
         {
-            auto sha256sum = validate::sha256sum(m_tarball_path);
+            auto sha256sum = validation::sha256sum(m_tarball_path);
             if (m_sha256 != sha256sum)
             {
                 m_validation_result = SHA256_ERROR;
@@ -166,7 +168,7 @@ namespace mamba
         }
         if (!m_md5.empty())
         {
-            auto md5sum = validate::md5sum(m_tarball_path);
+            auto md5sum = validation::md5sum(m_tarball_path);
             if (m_md5 != md5sum)
             {
                 m_validation_result = MD5SUM_ERROR;
@@ -342,10 +344,10 @@ namespace mamba
             m_download_bar.mark_as_completed();
         }
 
-        if (m_target->http_status >= 400)
+        if (m_target->get_http_status() >= 400)
         {
             LOG_ERROR << "Failed to download package from " << m_url << " (status "
-                      << m_target->http_status << ")";
+                      << m_target->get_http_status() << ")";
             m_validation_result = VALIDATION_RESULT::UNDEFINED;
             return false;
         }
@@ -503,7 +505,7 @@ namespace mamba
             pi_result.push_back(p);
         }
 
-        MRepo& mrepo = MRepo::create(m_pool, "__explicit_specs__", pi_result);
+        MRepo mrepo = MRepo(m_pool, "__explicit_specs__", pi_result);
 
         m_pool.create_whatprovides();
 
@@ -570,12 +572,14 @@ namespace mamba
         if (!empty())
         {
             Console::instance().json_down("actions");
-            Console::instance().json_write({ { "PREFIX",
-                                               Context::instance().target_prefix.string() } });
+            Console::instance().json_write(
+                { { "PREFIX", Context::instance().prefix_params.target_prefix.string() } }
+            );
         }
 
         m_transaction_context = TransactionContext(
-            Context::instance().target_prefix,
+            Context::instance().prefix_params.target_prefix,
+            Context::instance().prefix_params.relocate_prefix,
             find_python_version(),
             specs_to_install
         );
@@ -663,12 +667,14 @@ namespace mamba
         if (!empty())
         {
             Console::instance().json_down("actions");
-            Console::instance().json_write({ { "PREFIX",
-                                               Context::instance().target_prefix.string() } });
+            Console::instance().json_write(
+                { { "PREFIX", Context::instance().prefix_params.target_prefix.string() } }
+            );
         }
 
         m_transaction_context = TransactionContext(
-            Context::instance().target_prefix,
+            Context::instance().prefix_params.target_prefix,
+            Context::instance().prefix_params.relocate_prefix,
             find_python_version(),
             solver.install_specs()
         );
@@ -682,11 +688,9 @@ namespace mamba
 
             solver_get_decisionqueue(solver, decision.raw());
 
-            const Id noarch_repo_key = pool_str2id(m_pool, "solvable:noarch_type", 1);
-
             FOR_REPO_SOLVABLES(pool_ptr->installed, p, s)
             {
-                const char* noarch_type = solvable_lookup_str(s, noarch_repo_key);
+                const char* noarch_type = solvable_lookup_str(s, SOLVABLE_SOURCEARCH);
 
                 if (noarch_type == nullptr)
                 {
@@ -785,7 +789,7 @@ namespace mamba
         , m_multi_cache(caches)
     {
         LOG_INFO << "MTransaction::MTransaction - packages already resolved (lockfile)";
-        MRepo& mrepo = MRepo::create(m_pool, "__explicit_specs__", packages);
+        MRepo mrepo = MRepo(m_pool, "__explicit_specs__", packages);
         m_pool.create_whatprovides();
 
         solv::ObjQueue decision = {};
@@ -814,7 +818,8 @@ namespace mamba
         }
 
         m_transaction_context = TransactionContext(
-            Context::instance().target_prefix,
+            Context::instance().prefix_params.target_prefix,
+            Context::instance().prefix_params.relocate_prefix,
             find_python_version(),
             specs_to_install
         );
@@ -961,7 +966,7 @@ namespace mamba
             Console::instance().json_up();
         }
         Console::instance().json_write({ { "dry_run", ctx.dry_run },
-                                         { "prefix", ctx.target_prefix.string() } });
+                                         { "prefix", ctx.prefix_params.target_prefix.string() } });
         if (empty())
         {
             Console::instance().json_write({ { "message",
@@ -974,8 +979,8 @@ namespace mamba
             return true;
         }
 
-        auto lf = LockFile(ctx.target_prefix / "conda-meta");
-        clean_trash_files(ctx.target_prefix, false);
+        auto lf = LockFile(ctx.prefix_params.target_prefix / "conda-meta");
+        clean_trash_files(ctx.prefix_params.target_prefix, false);
 
         Console::stream() << "\nTransaction starting";
         fetch_extract_packages();
@@ -1081,7 +1086,25 @@ namespace mamba
         {
             LOG_INFO << "Waiting for pyc compilation to finish";
             m_transaction_context.wait_for_pyc_compilation();
-            Console::stream() << "Transaction finished";
+
+            // Get the name of the executable used directly from the command.
+            const auto executable = ctx.command_params.is_micromamba ? "micromamba" : "mamba";
+
+            // Get the name of the environment
+            const auto environment = env_name(ctx.prefix_params.target_prefix);
+
+            Console::stream() << "\nTransaction finished\n\n"
+                              << "To activate this environment, use:\n\n"
+                              << "    " << executable << " activate " << environment << "\n\n"
+                              << "Or to execute a single command in this environment, use:\n\n"
+                              << "    " << executable
+                              << " run "
+                              // Use -n or -p depending on if the env_name is a full prefix or just
+                              // a name.
+                              << (environment == ctx.prefix_params.target_prefix ? "-p " : "-n ")
+                              << environment << " mycommand\n";
+
+
             prefix.history().add_entry(m_history_entry);
         }
         return !interrupted;
@@ -1089,8 +1112,6 @@ namespace mamba
 
     auto MTransaction::to_conda() -> to_conda_type
     {
-        const Id real_repo_key = pool_str2id(m_pool, "solvable:real_repo_url", 1);
-
         to_install_type to_install_structured;
         to_remove_type to_remove_structured;
 
@@ -1106,9 +1127,9 @@ namespace mamba
             std::string s_json = solvable_to_json(m_pool, s).dump(4);
 
             std::string channel;
-            if (solvable_lookup_str(s, real_repo_key))
+            if (const char* str = solvable_lookup_str(s, SOLVABLE_PACKAGER))
             {
-                channel = solvable_lookup_str(s, real_repo_key);
+                channel = str;
             }
             else
             {
@@ -1176,7 +1197,7 @@ namespace mamba
         auto& aggregated_pbar_manager = dynamic_cast<AggregatedBarManager&>(pbar_manager);
 
         auto& ctx = Context::instance();
-        DownloadExtractSemaphore::set_max(ctx.extract_threads);
+        DownloadExtractSemaphore::set_max(ctx.threads_params.extract_threads);
 
         if (ctx.experimental && ctx.verify_artifacts)
         {
@@ -1185,18 +1206,20 @@ namespace mamba
 
         for (auto& s : m_to_install)
         {
-            MRepo* mamba_repo = reinterpret_cast<MRepo*>(s->repo->appdata);
+            std::string const s_url = raw_str_or_empty(
+                repo_lookup_str(s->repo, SOLVID_META, SOLVABLE_URL)
+            );
 
             if (ctx.experimental && ctx.verify_artifacts)
             {
-                const auto& repo_checker = make_channel(mamba_repo->url()).repo_checker(m_multi_cache);
+                const auto& repo_checker = make_channel(s_url).repo_checker(m_multi_cache);
                 const auto pkg_info = mk_pkginfo(m_pool, s);
                 repo_checker.verify_package(
                     pkg_info.json_signable(),
                     nlohmann::json::parse(pkg_info.signatures)
                 );
 
-                LOG_DEBUG << "'" << pkg_info.name << "' trusted from '" << mamba_repo->url() << "'";
+                LOG_DEBUG << "'" << pkg_info.name << "' trusted from '" << s_url << "'";
             }
 
             targets.emplace_back(std::make_unique<PackageDownloadExtractTarget>(mk_pkginfo(m_pool, s))
@@ -1214,12 +1237,13 @@ namespace mamba
             fmt::print(
                 out,
                 "Content trust verifications successful, {} ",
-                fmt::styled("package(s) are trusted", Context::instance().palette.safe)
+                fmt::styled("package(s) are trusted", Context::instance().graphics_params.palette.safe)
             );
             LOG_INFO << "All package(s) are trusted";
         }
 
-        if (!(ctx.no_progress_bars || ctx.json || ctx.quiet))
+        if (!(ctx.graphics_params.no_progress_bars || ctx.output_params.json
+              || ctx.output_params.quiet))
         {
             interruption_guard g([]() { Console::instance().progress_bar_manager().terminate(); });
 
@@ -1342,7 +1366,8 @@ namespace mamba
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
 
-        if (!(ctx.no_progress_bars || ctx.json || ctx.quiet))
+        if (!(ctx.graphics_params.no_progress_bars || ctx.output_params.json
+              || ctx.output_params.quiet))
         {
             pbar_manager.terminate();
             pbar_manager.clear_progress_bars();
@@ -1385,13 +1410,13 @@ namespace mamba
     {
         const auto& ctx = Context::instance();
 
-        if (ctx.json)
+        if (ctx.output_params.json)
         {
             return;
         }
 
         Console::instance().print("Transaction\n");
-        Console::stream() << "  Prefix: " << ctx.target_prefix.string() << "\n";
+        Console::stream() << "  Prefix: " << ctx.prefix_params.target_prefix.string() << "\n";
 
         // check size of transaction
         if (empty())
@@ -1478,7 +1503,7 @@ namespace mamba
                     if (!need_pkg_download(mk_pkginfo(m_pool, s), m_multi_cache))
                     {
                         dlsize_s.s = "Cached";
-                        dlsize_s.style = ctx.palette.addition;
+                        dlsize_s.style = ctx.graphics_params.palette.addition;
                     }
                     else
                     {
@@ -1497,37 +1522,35 @@ namespace mamba
             name.s = fmt::format("{} {}", diff, pool_id2str(m_pool, s->name));
             if (status == Status::install)
             {
-                name.style = ctx.palette.addition;
+                name.style = ctx.graphics_params.palette.addition;
             }
             else if (status == Status::ignore)
             {
-                name.style = ctx.palette.ignored;
+                name.style = ctx.graphics_params.palette.ignored;
             }
             else if (status == Status::remove)
             {
-                name.style = ctx.palette.deletion;
+                name.style = ctx.graphics_params.palette.deletion;
             }
             const char* build_string = solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
 
             std::string channel;
-            Id real_repo_key = pool_str2id(m_pool, "solvable:real_repo_url", 1);
-            if (solvable_lookup_str(s, real_repo_key))
+            if (const char* str = solvable_lookup_str(s, SOLVABLE_PACKAGER))
             {
-                std::string repo_key = solvable_lookup_str(s, real_repo_key);
-
-                if (repo_key == "explicit_specs")
+                if (std::string_view(str) == "explicit_specs")
                 {
                     channel = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
                 }
                 else
                 {
-                    channel = make_channel(repo_key).canonical_name();
+                    channel = make_channel(str).canonical_name();
                 }
             }
             else
             {
                 // note this can and should be <unknown> when
                 // e.g. installing from a tarball
+                assert(s->repo != nullptr);
                 channel = s->repo->name;
                 assert(channel != "__explicit_specs__");
             }

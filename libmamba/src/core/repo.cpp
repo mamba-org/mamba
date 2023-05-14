@@ -4,87 +4,121 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
+#include <array>
+#include <tuple>
+
+#include <nlohmann/json.hpp>
 #include <solv/repo.h>
 #include <solv/repo_solv.h>
 #include <solv/repo_write.h>
+#include <solv/solvable.h>
 extern "C"  // Incomplete header
 {
 #include <solv/conda.h>
 #include <solv/repo_conda.h>
 }
 
+#include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
+#include "mamba/core/prefix_data.hpp"
 #include "mamba/core/repo.hpp"
-#include "mamba/core/util_string.hpp"
+#include "solv-cpp/pool.hpp"
+#include "solv-cpp/repo.hpp"
 
 
-#define MAMBA_TOOL_VERSION "1.1"
+#define MAMBA_TOOL_VERSION "1.3"
 
 #define MAMBA_SOLV_VERSION MAMBA_TOOL_VERSION "_" LIBSOLV_VERSION_STRING
 
 namespace mamba
 {
-    const char* mamba_tool_version()
+
+    namespace
     {
-        const size_t bufferSize = 30;
-        static char MTV[bufferSize];
-        MTV[0] = '\0';
-        snprintf(MTV, bufferSize, MAMBA_SOLV_VERSION);
-        return MTV;
+        auto attrs(const RepoMetadata& m)
+        {
+            return std::tie(m.url, m.etag, m.mod, m.pip_added);
+        }
     }
 
-    MRepo::MRepo(
-        MPool& pool,
-        const std::string& /*name*/,
-        const fs::u8path& index,
-        const RepoMetadata& metadata,
-        const Channel& channel
-    )
-        : m_metadata(metadata)
+    auto operator==(const RepoMetadata& lhs, const RepoMetadata& rhs) -> bool
     {
-        m_url = rsplit(metadata.url, "/", 1)[0];
-        m_repo = repo_create(pool, m_url.c_str());
-        m_repo->appdata = this;
-        read_file(index);
-        p_channel = &channel;
+        return attrs(lhs) == attrs(rhs);
     }
 
-    MRepo::MRepo(MPool& pool, const std::string& name, const std::string& index, const std::string& url)
-        : m_url(url)
+    auto operator!=(const RepoMetadata& lhs, const RepoMetadata& rhs) -> bool
     {
-        m_repo = repo_create(pool, name.c_str());
-        m_repo->appdata = this;
-        read_file(index);
+        return !(lhs == rhs);
+    }
+
+    void to_json(nlohmann::json& j, const RepoMetadata& m)
+    {
+        j["url"] = m.url;
+        j["etag"] = m.etag;
+        j["mod"] = m.mod;
+        j["pip_added"] = m.pip_added;
+    }
+
+    void from_json(const nlohmann::json& j, RepoMetadata& m)
+    {
+        m.url = j.value("url", m.url);
+        m.etag = j.value("etag", m.etag);
+        m.mod = j.value("mod", m.mod);
+        m.pip_added = j.value("pip_added", m.pip_added);
+    }
+
+    namespace
+    {
+        // Keeping the solv-cpp header private
+        auto srepo(const MRepo& r) -> solv::ObjRepoViewConst
+        {
+            return solv::ObjRepoViewConst{ *const_cast<const ::Repo*>(r.repo()) };
+        }
+
+        auto srepo(MRepo& r) -> solv::ObjRepoView
+        {
+            return solv::ObjRepoView{ *r.repo() };
+        }
+    }
+
+    MRepo::MRepo(MPool& pool, const std::string& name, const fs::u8path& index, const RepoMetadata& metadata)
+        : m_pool(pool)
+        , m_metadata(metadata)
+    {
+        auto [_, repo] = pool.pool().add_repo(name);
+        m_repo = repo.raw();
+        repo.set_url(m_metadata.url);
+        load_file(index);
+        set_solvables_url(m_metadata.url);
+        repo.internalize();
     }
 
     MRepo::MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& package_infos)
+        : m_pool(pool)
     {
-        m_repo = repo_create(pool, name.c_str());
-        m_repo->appdata = this;
-        int flags = 0;
-        Repodata* data;
-        data = repo_add_repodata(m_repo, flags);
+        auto [_, repo] = pool.pool().add_repo(name);
+        m_repo = repo.raw();
         for (auto& info : package_infos)
         {
-            add_package_info(data, info);
+            add_package_info(info);
         }
-        repodata_internalize(data);
+        repo.internalize();
     }
 
     MRepo::MRepo(MPool& pool, const PrefixData& prefix_data)
+        : m_pool(pool)
     {
-        m_repo = repo_create(pool, "installed");
-        m_repo->appdata = this;
-        int flags = 0;
-        Repodata* data;
-        data = repo_add_repodata(m_repo, flags);
+        auto [repo_id, repo] = pool.pool().add_repo("installed");
+        m_repo = repo.raw();
 
         for (auto& [name, record] : prefix_data.records())
         {
-            add_package_info(data, record);
+            add_package_info(record);
         }
 
         if (Context::instance().add_pip_as_python_dependency)
@@ -92,53 +126,31 @@ namespace mamba
             add_pip_as_python_dependency();
         }
 
-        repodata_internalize(data);
-        set_installed();
+        repo.internalize();
+        pool.pool().set_installed_repo(repo_id);
     }
 
-    MRepo::~MRepo()
+    void MRepo::set_solvables_url(const std::string& repo_url)
     {
-        if (m_repo)
-        {
-            repo_free(m_repo, 1);
-        }
-        // not sure if reuse_ids is useful here
-        // repo will be freed with pool as well though
-        // maybe explicitly free pool for faster repo deletion as well
-        // TODO this is actually freed with the pool, and calling it here will cause
-        // segfaults. need to find a more clever way to do this. repo_free(m_repo,
-        // /*reuse_ids*/1);
-    }
-
-    MRepo::MRepo(MRepo&& rhs)
-        : m_json_file(std::move(rhs.m_json_file))
-        , m_solv_file(std::move(rhs.m_solv_file))
-        , m_url(std::move(rhs.m_url))
-        , m_metadata(std::move(rhs.m_metadata))
-        , m_repo(rhs.m_repo)
-        , p_channel(rhs.p_channel)
-    {
-        rhs.m_repo = nullptr;
-        rhs.p_channel = nullptr;
-        m_repo->appdata = this;
-    }
-
-    MRepo& MRepo::operator=(MRepo&& rhs)
-    {
-        using std::swap;
-        swap(m_json_file, rhs.m_json_file);
-        swap(m_solv_file, rhs.m_solv_file);
-        swap(m_url, rhs.m_url);
-        swap(m_metadata, rhs.m_metadata);
-        swap(m_repo, rhs.m_repo);
-        swap(p_channel, rhs.p_channel);
-        m_repo->appdata = this;
-        return *this;
+        // WARNING cannot call ``url()`` at this point because it has not been internalized.
+        // Setting the channel url on where the solvable so that we can retrace
+        // where it came from
+        srepo(*this).for_each_solvable(
+            [&](solv::ObjSolvableView s)
+            {
+                // The solvable url, this is not set in libsolv parsing so we set it manually
+                // while we still rely on libsolv for parsing
+                s.set_url(fmt::format("{}/{}", repo_url, s.file_name()));
+                // The name of the channel where it came from, may be different from repo name
+                // for instance with the installed repo
+                s.set_channel(repo_url);
+            }
+        );
     }
 
     void MRepo::set_installed()
     {
-        pool_set_installed(m_repo->pool, m_repo);
+        m_pool.pool().set_installed_repo(srepo(*this).id());
     }
 
     void MRepo::set_priority(int priority, int subpriority)
@@ -147,79 +159,61 @@ namespace mamba
         m_repo->subpriority = subpriority;
     }
 
-    void MRepo::add_package_info(Repodata* data, const PackageInfo& info)
+    void MRepo::add_package_info(const PackageInfo& info)
     {
         LOG_INFO << "Adding package record to repo " << info.name;
-        Pool* pool = m_repo->pool;
 
-        static Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
-        static Id noarch_repo_key = pool_str2id(pool, "solvable:noarch_type", 1);
+        auto [id, solv] = srepo(*this).add_solvable();
 
-        Id handle = repo_add_solvable(m_repo);
-        Solvable* s = pool_id2solvable(pool, handle);
-        repodata_set_str(data, handle, SOLVABLE_BUILDVERSION, std::to_string(info.build_number).c_str());
-        repodata_add_poolstr_array(data, handle, SOLVABLE_BUILDFLAVOR, info.build_string.c_str());
-        s->name = pool_str2id(pool, info.name.c_str(), 1);
-        s->evr = pool_str2id(pool, info.version.c_str(), 1);
-        repodata_set_num(data, handle, SOLVABLE_DOWNLOADSIZE, info.size);
-        repodata_set_checksum(data, handle, SOLVABLE_PKGID, REPOKEY_TYPE_MD5, info.md5.c_str());
-
-        solvable_set_str(s, real_repo_key, info.url.c_str());
-
-        if (!info.noarch.empty())
-        {
-            solvable_set_str(s, noarch_repo_key, info.noarch.c_str());
-        }
-
-        repodata_set_location(data, handle, 0, info.subdir.c_str(), info.fn.c_str());
-
-        repodata_set_checksum(data, handle, SOLVABLE_CHECKSUM, REPOKEY_TYPE_SHA256, info.sha256.c_str());
-
-        if (!info.depends.empty())
-        {
-            for (std::string dep : info.depends)
-            {
-                Id dep_id = pool_conda_matchspec(pool, dep.c_str());
-                if (dep_id)
-                {
-                    s->requires = repo_addid_dep(m_repo, s->requires, dep_id, 0);
-                }
-            }
-        }
-
-        if (!info.constrains.empty())
-        {
-            for (std::string cst : info.constrains)
-            {
-                Id constrains_id = pool_conda_matchspec(pool, cst.c_str());
-                if (constrains_id)
-                {
-                    repodata_add_idarray(data, handle, SOLVABLE_CONSTRAINS, constrains_id);
-                }
-            }
-        }
-
-        s->provides = repo_addid_dep(
-            m_repo,
-            s->provides,
-            pool_rel2id(pool, s->name, s->evr, REL_EQ, 1),
-            0
+        solv.set_name(info.name);
+        solv.set_version(info.version);
+        solv.set_build_string(info.build_string);
+        solv.set_noarch(info.noarch);
+        solv.set_build_number(info.build_number);
+        solv.set_channel(info.channel);
+        solv.set_url(info.url);
+        solv.set_subdir(info.subdir);
+        solv.set_file_name(info.fn);
+        solv.set_license(info.license);
+        solv.set_size(info.size);
+        // TODO conda timestamp are not Unix timestamp.
+        // Libsolv normalize them this way, we need to do the same here otherwise the current
+        // package may get arbitrary priority.
+        solv.set_timestamp(
+            (info.timestamp > 253402300799ULL) ? (info.timestamp / 1000) : info.timestamp
         );
+        solv.set_md5(info.md5);
+        solv.set_sha256(info.sha256);
+
+        for (const auto& dep : info.depends)
+        {
+            // TODO pool's matchspec2id
+            solv::DependencyId const dep_id = pool_conda_matchspec(m_pool, dep.c_str());
+            assert(dep_id);
+            solv.add_dependency(dep_id);
+        }
+
+        for (const auto& cons : info.constrains)
+        {
+            // TODO pool's matchspec2id
+            solv::DependencyId const dep_id = pool_conda_matchspec(m_pool, cons.c_str());
+            assert(dep_id);
+            solv.add_constraint(dep_id);
+        }
+
+        solv.add_track_features(info.track_features);
+
+        solv.add_self_provide();
+    }
+
+    auto MRepo::name() const -> std::string_view
+    {
+        return srepo(*this).name();
     }
 
     Id MRepo::id() const
     {
-        return m_repo->repoid;
-    }
-
-    std::string MRepo::name() const
-    {
-        return m_repo->name ? m_repo->name : "";
-    }
-
-    const std::string& MRepo::url() const
-    {
-        return m_url;
+        return srepo(*this).id();
     }
 
     Repo* MRepo::repo() const
@@ -227,214 +221,110 @@ namespace mamba
         return m_repo;
     }
 
-    const Channel* MRepo::channel() const
-    {
-        return p_channel;
-    }
-
-    std::tuple<int, int> MRepo::priority() const
-    {
-        return std::make_tuple(m_repo->priority, m_repo->subpriority);
-    }
-
-    std::size_t MRepo::size() const
-    {
-        return static_cast<std::size_t>(m_repo->nsolvables);
-    }
-
-    const fs::u8path& MRepo::index_file()
-    {
-        return m_json_file;
-    }
-
     void MRepo::add_pip_as_python_dependency()
     {
-        Id pkg_id;
-        Solvable* pkg_s;
-        Id python = pool_str2id(m_repo->pool, "python", 0);
-        Id pip_dep = pool_conda_matchspec(m_repo->pool, "pip");
-        Id pip = pool_str2id(m_repo->pool, "pip", 0);
-        Id python_dep = pool_conda_matchspec(m_repo->pool, "python");
-
-        FOR_REPO_SOLVABLES(m_repo, pkg_id, pkg_s)
-        {
-            if (pkg_s->name == python)
+        solv::DependencyId const python_id = pool_conda_matchspec(m_pool, "python");
+        solv::DependencyId const pip_id = pool_conda_matchspec(m_pool, "pip");
+        srepo(*this).for_each_solvable(
+            [&](solv::ObjSolvableView s)
             {
-                const char* version = pool_id2str(m_repo->pool, pkg_s->evr);
-                if (version && version[0] >= '2')
+                if (s.name() == "python")
                 {
-                    pkg_s->requires = repo_addid_dep(m_repo, pkg_s->requires, pip_dep, 0);
+                    if (!s.version().empty() && (s.version()[0] >= '2'))
+                    {
+                        s.add_dependency(pip_id);
+                    }
+                }
+                if (s.name() == "pip")
+                {
+                    auto deps = s.dependencies();
+                    deps.insert(deps.begin(), python_id);  // TODO is this right?
+                    s.set_dependencies(std::move(deps));
                 }
             }
-            if (pkg_s->name == pip)
-            {
-                pkg_s->requires = repo_addid_dep(
-                    m_repo,
-                    pkg_s->requires,
-                    python_dep,
-                    SOLVABLE_PREREQMARKER
-                );
-            }
+        );
+    }
+
+    void MRepo::read_json(const fs::u8path& filename)
+    {
+        LOG_INFO << "Reading repodata.json file " << filename << " for repo " << name();
+        // TODO make this as part of options of the repo/pool
+        const int flags = Context::instance().use_only_tar_bz2 ? CONDA_ADD_USE_ONLY_TAR_BZ2 : 0;
+        srepo(*this).legacy_read_conda_repodata(filename, flags);
+    }
+
+    bool MRepo::read_solv(const fs::u8path& filename)
+    {
+        LOG_INFO << "Attempting to read libsolv solv file " << filename << " for repo " << name();
+
+        auto repo = srepo(*this);
+
+        auto lock = LockFile(filename);
+        repo.read(filename);
+
+        const auto read_metadata = RepoMetadata{
+            /* .url= */ std::string(repo.url()),
+            /* .etag= */ std::string(repo.etag()),
+            /* .mod= */ std::string(repo.mod()),
+            /* .pip_added= */ repo.pip_added(),
+        };
+        const auto tool_version = repo.tool_version();
+
+        {
+            auto j = nlohmann::json(m_metadata);
+            j["tool_version"] = tool_version;
+            LOG_INFO << "Expecting solv metadata : " << j.dump();
         }
+        {
+            auto j = nlohmann::json(read_metadata);
+            j["tool_version"] = tool_version;
+            LOG_INFO << "Loaded solv metadata : " << j.dump();
+        }
+
+        if ((tool_version != std::string_view(MAMBA_SOLV_VERSION))
+            || (read_metadata == RepoMetadata{}) || (read_metadata != m_metadata))
+        {
+            LOG_INFO << "Metadata from solv are NOT valid, canceling solv file load";
+            repo.clear(/* reuse_ids= */ false);
+            return false;
+        }
+
+        LOG_INFO << "Metadata from solv are valid, loading successful";
+        return true;
     }
 
-    MRepo&
-    MRepo::create(MPool& pool, const std::string& name, const std::string& filename, const std::string& url)
+    void MRepo::load_file(const fs::u8path& filename)
     {
-        return pool.add_repo(MRepo(pool, name, filename, url));
-    }
-
-    MRepo& MRepo::create(
-        MPool& pool,
-        const std::string& name,
-        const fs::u8path& filename,
-        const RepoMetadata& meta,
-        const Channel& channel
-    )
-    {
-        return pool.add_repo(MRepo(pool, name, filename, meta, channel));
-    }
-
-    MRepo& MRepo::create(MPool& pool, const PrefixData& prefix_data)
-    {
-        return pool.add_repo(MRepo(pool, prefix_data));
-    }
-
-    MRepo& MRepo::create(MPool& pool, const std::string& name, const std::vector<PackageInfo>& uris)
-    {
-        return pool.add_repo(MRepo(pool, name, uris));
-    }
-
-    bool MRepo::read_file(const fs::u8path& filename)
-    {
+        auto repo = srepo(*this);
         bool is_solv = filename.extension() == ".solv";
 
-        fs::u8path filename_wo_extension;
+        fs::u8path solv_file = filename;
+        fs::u8path json_file = filename;
+
         if (is_solv)
         {
-            m_solv_file = filename;
-            m_json_file = filename;
-            m_json_file.replace_extension("json");
+            json_file.replace_extension("json");
         }
         else
         {
-            m_json_file = filename;
-            m_solv_file = filename;
-            m_solv_file.replace_extension("solv");
+            solv_file.replace_extension("solv");
         }
 
         LOG_INFO << "Reading cache files '" << (filename.parent_path() / filename).string()
-                 << ".*' for repo index '" << m_repo->name << "'";
+                 << ".*' for repo index '" << name() << "'";
 
         if (is_solv)
         {
-            auto lock = LockFile(m_solv_file);
-#ifdef _WIN32
-            auto fp = _wfopen(m_solv_file.wstring().c_str(), L"rb");
-#else
-            auto fp = fopen(m_solv_file.string().c_str(), "rb");
-#endif
-            if (!fp)
+            const auto lock = LockFile(solv_file);
+            const bool read = read_solv(solv_file);
+            if (read)
             {
-                throw std::runtime_error("Could not open repository file " + filename.string());
+                return;
             }
-
-            LOG_INFO << "Attempt load from solv " << m_solv_file;
-
-            int ret = repo_add_solv(m_repo, fp, 0);
-            if (ret != 0)
-            {
-                LOG_ERROR << "Could not load SOLV file, falling back to JSON ("
-                          << pool_errstr(m_repo->pool) << ")";
-            }
-            else
-            {
-                auto* repodata = repo_last_repodata(m_repo);
-                if (!repodata)
-                {
-                    LOG_ERROR << "Could not find valid repodata attached to solv file";
-                }
-                else
-                {
-                    Id url_id = pool_str2id(m_repo->pool, "mamba:url", 1);
-                    Id etag_id = pool_str2id(m_repo->pool, "mamba:etag", 1);
-                    Id mod_id = pool_str2id(m_repo->pool, "mamba:mod", 1);
-                    Id pip_added_id = pool_str2id(m_repo->pool, "mamba:pip_added", 1);
-
-                    static constexpr auto failure = std::numeric_limits<unsigned long long>::max();
-                    const char* url = repodata_lookup_str(repodata, SOLVID_META, url_id);
-                    const auto pip_added = repodata_lookup_num(
-                        repodata,
-                        SOLVID_META,
-                        pip_added_id,
-                        failure
-                    );
-                    const char* etag = repodata_lookup_str(repodata, SOLVID_META, etag_id);
-                    const char* mod = repodata_lookup_str(repodata, SOLVID_META, mod_id);
-                    const char* tool_version = repodata_lookup_str(
-                        repodata,
-                        SOLVID_META,
-                        REPOSITORY_TOOLVERSION
-                    );
-                    LOG_INFO << "Metadata solv file: " << url << " " << pip_added << " " << etag
-                             << " " << mod << " " << tool_version;
-                    bool metadata_valid = !(
-                        !url || !etag || !mod || !tool_version || pip_added == failure
-                    );
-
-                    if (metadata_valid)
-                    {
-                        RepoMetadata read_metadata{ url, pip_added == 1, etag, mod };
-                        metadata_valid = (read_metadata == m_metadata)
-                                         && (std::strcmp(tool_version, mamba_tool_version()) == 0);
-                    }
-
-                    LOG_INFO << "Metadata from SOLV are " << (metadata_valid ? "valid" : "NOT valid");
-
-                    if (!metadata_valid)
-                    {
-                        LOG_INFO << "SOLV file was written with a previous version of "
-                                    "libsolv or mamba "
-                                 << (tool_version != nullptr ? tool_version : "<NULL>")
-                                 << ", updating it now!";
-                    }
-                    else
-                    {
-                        LOG_DEBUG << "Loaded from SOLV " << m_solv_file;
-                        repo_internalize(m_repo);
-                        fclose(fp);
-                        return true;
-                    }
-                }
-            }
-
-            // fallback to JSON file
-            repo_empty(m_repo, /*reuseids*/ 0);
-            fclose(fp);
         }
 
-        auto lock = LockFile(m_json_file);
-#ifdef _WIN32
-        auto fp = _wfopen(m_json_file.wstring().c_str(), L"r");
-#else
-        auto fp = fopen(m_json_file.string().c_str(), "r");
-#endif
-        if (!fp)
-        {
-            throw std::runtime_error("Could not open repository file " + m_json_file.string());
-        }
-
-        LOG_DEBUG << "Loading JSON file '" << m_json_file.string() << "'";
-        int flags = Context::instance().use_only_tar_bz2 ? CONDA_ADD_USE_ONLY_TAR_BZ2 : 0;
-        int ret = repo_add_conda(m_repo, fp, flags);
-        if (ret != 0)
-        {
-            fclose(fp);
-            throw std::runtime_error(
-                "Could not read JSON repodata file (" + m_json_file.string() + ") "
-                + std::string(pool_errstr(m_repo->pool))
-            );
-        }
+        auto lock = LockFile(json_file);
+        read_json(json_file);
 
         // TODO move this to a more structured approach for repodata patching?
         if (Context::instance().add_pip_as_python_dependency)
@@ -442,72 +332,79 @@ namespace mamba
             add_pip_as_python_dependency();
         }
 
-        repo_internalize(m_repo);
-
         if (name() != "installed")
         {
-            write();
+            write_solv(solv_file);
         }
+    }
 
-        fclose(fp);
+    void MRepo::write_solv(fs::u8path filename)
+    {
+        LOG_INFO << "Writing libsolv solv file " << filename << " for repo " << name();
+
+        auto repo = srepo(*this);
+        repo.set_url(m_metadata.url);
+        repo.set_etag(m_metadata.etag);
+        repo.set_mod(m_metadata.mod);
+        repo.set_pip_added(m_metadata.pip_added);
+        repo.set_tool_version(MAMBA_SOLV_VERSION);
+        repo.internalize();
+
+        repo.write(filename);
+    }
+
+    void MRepo::clear(bool reuse_ids)
+    {
+        m_pool.remove_repo(id(), reuse_ids);
+    }
+}
+
+#include <map>
+
+namespace mamba
+{
+
+    auto MRepo::py_name() const -> std::string_view
+    {
+        return name();
+    }
+
+    auto MRepo::py_priority() const -> std::tuple<int, int>
+    {
+        return std::make_tuple(m_repo->priority, m_repo->subpriority);
+    }
+
+    auto MRepo::py_clear(bool reuse_ids) -> bool
+    {
+        clear(reuse_ids);
         return true;
     }
 
-    bool MRepo::write() const
+    auto MRepo::py_size() const -> std::size_t
     {
-        Repodata* info;
-
-        LOG_INFO << "Writing SOLV file '" << m_solv_file.filename().string() << "'";
-
-        info = repo_add_repodata(m_repo, 0);  // add new repodata for our meta info
-        repodata_set_str(info, SOLVID_META, REPOSITORY_TOOLVERSION, mamba_tool_version());
-
-        Id url_id = pool_str2id(m_repo->pool, "mamba:url", 1);
-        Id pip_added_id = pool_str2id(m_repo->pool, "mamba:pip_added", 1);
-        Id etag_id = pool_str2id(m_repo->pool, "mamba:etag", 1);
-        Id mod_id = pool_str2id(m_repo->pool, "mamba:mod", 1);
-
-        repodata_set_str(info, SOLVID_META, url_id, m_metadata.url.c_str());
-        repodata_set_num(info, SOLVID_META, pip_added_id, m_metadata.pip_added);
-        repodata_set_str(info, SOLVID_META, etag_id, m_metadata.etag.c_str());
-        repodata_set_str(info, SOLVID_META, mod_id, m_metadata.mod.c_str());
-
-        repodata_internalize(info);
-
-#ifdef _WIN32
-        auto solv_f = _wfopen(m_solv_file.wstring().c_str(), L"wb");
-#else
-        auto solv_f = fopen(m_solv_file.string().c_str(), "wb");
-#endif
-        if (!solv_f)
-        {
-            LOG_ERROR << "Failed to open .solv file";
-            return false;
-        }
-
-        if (repo_write(m_repo, solv_f) != 0)
-        {
-            LOG_ERROR << "Failed to write .solv:" << pool_errstr(m_repo->pool);
-            fclose(solv_f);
-            return false;
-        }
-
-        if (fflush(solv_f))
-        {
-            LOG_ERROR << "Failed to flush .solv file.";
-            fclose(solv_f);
-            return false;
-        }
-
-        fclose(solv_f);
-        repodata_free(info);  // delete meta info repodata again
-        return true;
+        return srepo(*this).solvable_count();
     }
 
-    bool MRepo::clear(bool reuse_ids = 1)
+    void MRepo::py_add_extra_pkg_info(const std::map<std::string, PyExtraPkgInfo>& extra)
     {
-        repo_free(m_repo, static_cast<int>(reuse_ids));
-        m_repo = nullptr;
-        return true;
+        auto repo = srepo(*this);
+
+        repo.for_each_solvable(
+            [&](solv::ObjSolvableView s)
+            {
+                if (auto const it = extra.find(std::string(s.name())); it != extra.cend())
+                {
+                    if (auto const& noarch = it->second.noarch; !noarch.empty())
+                    {
+                        s.set_noarch(noarch);
+                    }
+                    if (auto const& repo_url = it->second.repo_url; !repo_url.empty())
+                    {
+                        s.set_channel(repo_url);
+                    }
+                }
+            }
+        );
+        repo.internalize();
     }
 }  // namespace mamba

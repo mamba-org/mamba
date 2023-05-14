@@ -4,12 +4,168 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+// TODO remove all these includes later?
 #include <spdlog/spdlog.h>
+
+#include "mamba/core/environment.hpp"  // for NETRC env var
+#include "mamba/core/mamba_fs.hpp"     // for fs::exists
+#include "mamba/core/util.hpp"         // for hide_secrets
 
 #include "curl.hpp"
 
 namespace mamba
 {
+    namespace curl
+    {
+        void configure_curl_handle(
+            CURL* handle,
+            const std::string& url,
+            const bool set_low_speed_opt,
+            const long connect_timeout_secs,
+            const bool set_ssl_no_revoke,
+            const std::optional<std::string>& proxy,
+            const std::string& ssl_verify
+        )
+        {
+            curl_easy_setopt(handle, CURLOPT_URL, url.c_str());
+            curl_easy_setopt(handle, CURLOPT_NETRC, CURL_NETRC_OPTIONAL);
+            curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
+
+            // if NETRC is exported in ENV, we forward it to curl
+            std::string netrc_file = env::get("NETRC").value_or("");
+            if (netrc_file != "")
+            {
+                curl_easy_setopt(handle, CURLOPT_NETRC_FILE, netrc_file.c_str());
+            }
+
+            // This can improve throughput significantly, see
+            // https://github.com/curl/curl/issues/9601
+            curl_easy_setopt(handle, CURLOPT_BUFFERSIZE, 100 * 1024);
+
+            // DO NOT SET TIMEOUT as it will also take into account multi-start time and
+            // it's just wrong curl_easy_setopt(m_handle, CURLOPT_TIMEOUT,
+            // Context::instance().remote_fetch_params.read_timeout_secs);
+
+            // TODO while libcurl in conda now _has_ http2 support we need to fix mamba to
+            // work properly with it this includes:
+            // - setting the cache stuff correctly
+            // - fixing how the progress bar works
+            curl_easy_setopt(handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+
+            if (set_low_speed_opt)
+            {
+                curl_easy_setopt(handle, CURLOPT_LOW_SPEED_TIME, 60L);
+                curl_easy_setopt(handle, CURLOPT_LOW_SPEED_LIMIT, 30L);
+            }
+
+            curl_easy_setopt(handle, CURLOPT_CONNECTTIMEOUT, connect_timeout_secs);
+
+            if (set_ssl_no_revoke)
+            {
+                curl_easy_setopt(handle, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NO_REVOKE);
+            }
+
+            if (proxy)
+            {
+                curl_easy_setopt(handle, CURLOPT_PROXY, proxy->c_str());
+                // TODO LOG_INFO was used here instead; to be modified later following the new log
+                // procedure (TBD)
+                spdlog::info("Using Proxy {}", hide_secrets(*proxy));
+            }
+
+            if (ssl_verify.size())
+            {
+                if (ssl_verify == "<false>")
+                {
+                    curl_easy_setopt(handle, CURLOPT_SSL_VERIFYPEER, 0L);
+                    curl_easy_setopt(handle, CURLOPT_SSL_VERIFYHOST, 0L);
+                    if (proxy)
+                    {
+                        curl_easy_setopt(handle, CURLOPT_PROXY_SSL_VERIFYPEER, 0L);
+                        curl_easy_setopt(handle, CURLOPT_PROXY_SSL_VERIFYHOST, 0L);
+                    }
+                }
+                else if (ssl_verify == "<system>")
+                {
+#ifdef LIBMAMBA_STATIC_DEPS
+                    curl_easy_setopt(handle, CURLOPT_CAINFO, nullptr);
+                    if (proxy)
+                    {
+                        curl_easy_setopt(handle, CURLOPT_PROXY_CAINFO, nullptr);
+                    }
+#endif
+                }
+                else
+                {
+                    if (!fs::exists(ssl_verify))
+                    {
+                        throw std::runtime_error("ssl_verify does not contain a valid file path.");
+                    }
+                    else
+                    {
+                        curl_easy_setopt(handle, CURLOPT_CAINFO, ssl_verify.c_str());
+                        if (proxy)
+                        {
+                            curl_easy_setopt(handle, CURLOPT_PROXY_CAINFO, ssl_verify.c_str());
+                        }
+                    }
+                }
+            }
+        }
+
+        static size_t discard(char*, size_t size, size_t nmemb, void*)
+        {
+            return size * nmemb;
+        }
+
+        bool check_resource_exists(
+            const std::string& url,
+            const bool set_low_speed_opt,
+            const long connect_timeout_secs,
+            const bool set_ssl_no_revoke,
+            const std::optional<std::string>& proxy,
+            const std::string& ssl_verify
+        )
+        {
+            auto handle = curl_easy_init();
+
+            configure_curl_handle(
+                handle,
+                url,
+                set_low_speed_opt,
+                connect_timeout_secs,
+                set_ssl_no_revoke,
+                proxy,
+                ssl_verify
+            );
+
+            curl_easy_setopt(handle, CURLOPT_FAILONERROR, 1L);
+            curl_easy_setopt(handle, CURLOPT_NOBODY, 1L);
+
+            if (curl_easy_perform(handle) == CURLE_OK)
+            {
+                return true;
+            }
+
+            long response_code;
+            curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
+
+            if (response_code == 405)
+            {
+                // Method not allowed
+                // Some servers don't support HEAD, try a GET if the HEAD fails
+                curl_easy_setopt(handle, CURLOPT_NOBODY, 0L);
+                // Prevent output of data
+                curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, &discard);
+                return curl_easy_perform(handle) == CURLE_OK;
+            }
+            else
+            {
+                return false;
+            }
+        }
+    }
+
     /**************
      * curl_error *
      **************/
@@ -28,8 +184,10 @@ namespace mamba
     /**************
      * CURLHandle *
      **************/
+
     CURLHandle::CURLHandle()  //(const Context& ctx)
         : m_handle(curl_easy_init())
+        , m_result(CURLE_OK)
     {
         if (m_handle == nullptr)
         {
@@ -46,12 +204,14 @@ namespace mamba
         , p_headers(std::move(rhs.p_headers))
     {
         std::swap(m_errorbuffer, rhs.m_errorbuffer);
+        std::swap(m_result, rhs.m_result);
     }
 
     CURLHandle& CURLHandle::operator=(CURLHandle&& rhs)
     {
         using std::swap;
         swap(m_handle, rhs.m_handle);
+        swap(m_result, rhs.m_result);
         swap(p_headers, rhs.p_headers);
         swap(m_errorbuffer, rhs.m_errorbuffer);
         return *this;
@@ -168,10 +328,24 @@ namespace mamba
         }
     }
 
-    // TODO to be removed from the API
-    CURL* CURLHandle::handle()
+    void CURLHandle::configure_handle(
+        const std::string& url,
+        const bool set_low_speed_opt,
+        const long connect_timeout_secs,
+        const bool set_ssl_no_revoke,
+        const std::optional<std::string>& proxy,
+        const std::string& ssl_verify
+    )
     {
-        return m_handle;
+        curl::configure_curl_handle(
+            m_handle,
+            url,
+            set_low_speed_opt,
+            connect_timeout_secs,
+            set_ssl_no_revoke,
+            proxy,
+            ssl_verify
+        );
     }
 
     CURLHandle& CURLHandle::add_header(const std::string& header)
@@ -205,4 +379,241 @@ namespace mamba
         set_opt(CURLOPT_HTTPHEADER, p_headers);
         return *this;
     }
+
+    const char* CURLHandle::get_error_buffer() const
+    {
+        return m_errorbuffer;
+    }
+
+    std::string CURLHandle::get_curl_effective_url()
+    {
+        return get_info<std::string>(CURLINFO_EFFECTIVE_URL).value();
+    }
+
+    std::size_t CURLHandle::get_result() const
+    {
+        return static_cast<std::size_t>(m_result);
+    }
+
+    bool CURLHandle::is_curl_res_ok() const
+    {
+        return (m_result == CURLE_OK);
+    }
+
+    void CURLHandle::set_result(CURLcode res)
+    {
+        m_result = res;
+    }
+
+    std::string CURLHandle::get_res_error() const
+    {
+        return static_cast<std::string>(curl_easy_strerror(m_result));
+    }
+
+    bool CURLHandle::can_proceed()
+    {
+        switch (m_result)
+        {
+            case CURLE_ABORTED_BY_CALLBACK:
+            case CURLE_BAD_FUNCTION_ARGUMENT:
+            case CURLE_CONV_REQD:
+            case CURLE_COULDNT_RESOLVE_PROXY:
+            case CURLE_FILESIZE_EXCEEDED:
+            case CURLE_INTERFACE_FAILED:
+            case CURLE_NOT_BUILT_IN:
+            case CURLE_OUT_OF_MEMORY:
+            // See RhBug: 1219817
+            // case CURLE_RECV_ERROR:
+            // case CURLE_SEND_ERROR:
+            case CURLE_SSL_CACERT_BADFILE:
+            case CURLE_SSL_CRL_BADFILE:
+            case CURLE_WRITE_ERROR:
+            case CURLE_OPERATION_TIMEDOUT:
+                return false;
+                break;
+            default:
+                // Other errors are not considered fatal
+                return true;
+                break;
+        }
+    }
+
+    void CURLHandle::perform()
+    {
+        m_result = curl_easy_perform(m_handle);
+    }
+
+    CURL* unwrap(const CURLHandle& h)
+    {
+        return h.m_handle;
+    }
+
+    bool operator==(const CURLHandle& lhs, const CURLHandle& rhs)
+    {
+        return unwrap(lhs) == unwrap(rhs);
+    }
+
+    bool operator!=(const CURLHandle& lhs, const CURLHandle& rhs)
+    {
+        return !(lhs == rhs);
+    }
+
+    /*****************
+     * CURLReference *
+     *****************/
+
+    CURLReference::CURLReference(CURL* handle)
+        : p_handle(handle)
+    {
+    }
+
+    CURL* unwrap(const CURLReference& h)
+    {
+        return h.p_handle;
+    }
+
+    bool operator==(const CURLReference& lhs, const CURLReference& rhs)
+    {
+        return unwrap(lhs) == unwrap(rhs);
+    }
+
+    bool operator==(const CURLReference& lhs, const CURLHandle& rhs)
+    {
+        return unwrap(lhs) == unwrap(rhs);
+    }
+
+    bool operator==(const CURLHandle& lhs, const CURLReference& rhs)
+    {
+        return unwrap(lhs) == unwrap(rhs);
+    }
+
+    bool operator!=(const CURLReference& lhs, const CURLReference& rhs)
+    {
+        return !(lhs == rhs);
+    }
+
+    bool operator!=(const CURLReference& lhs, const CURLHandle& rhs)
+    {
+        return !(lhs == rhs);
+    }
+
+    bool operator!=(const CURLHandle& lhs, const CURLReference& rhs)
+    {
+        return !(lhs == rhs);
+    }
+
+    /*******************
+     * CURLMultiHandle *
+     *******************/
+
+    CURLMultiHandle::CURLMultiHandle(std::size_t max_parallel_downloads)
+        : p_handle(curl_multi_init())
+        , m_max_parallel_downloads(max_parallel_downloads)
+    {
+        if (p_handle == nullptr)
+        {
+            throw curl_error("Could not initialize CURL multi handle");
+        }
+        else
+        {
+            curl_multi_setopt(
+                p_handle,
+                CURLMOPT_MAX_TOTAL_CONNECTIONS,
+                static_cast<int>(max_parallel_downloads)
+            );
+        }
+    }
+
+    CURLMultiHandle::~CURLMultiHandle()
+    {
+        curl_multi_cleanup(p_handle);
+        p_handle = nullptr;
+    }
+
+
+    CURLMultiHandle::CURLMultiHandle(CURLMultiHandle&& rhs)
+        : p_handle(rhs.p_handle)
+        , m_max_parallel_downloads(rhs.m_max_parallel_downloads)
+    {
+        rhs.p_handle = nullptr;
+        rhs.m_max_parallel_downloads = 0u;
+    }
+
+    CURLMultiHandle& CURLMultiHandle::operator=(CURLMultiHandle&& rhs)
+    {
+        std::swap(p_handle, rhs.p_handle);
+        std::swap(m_max_parallel_downloads, rhs.m_max_parallel_downloads);
+        return *this;
+    }
+
+    void CURLMultiHandle::add_handle(const CURLHandle& h)
+    {
+        CURLMcode code = curl_multi_add_handle(p_handle, unwrap(h));
+        if (code != CURLM_CALL_MULTI_PERFORM)
+        {
+            if (code != CURLM_OK)
+            {
+                throw std::runtime_error(curl_multi_strerror(code));
+            }
+        }
+    }
+
+    void CURLMultiHandle::remove_handle(const CURLHandle& h)
+    {
+        curl_multi_remove_handle(p_handle, unwrap(h));
+    }
+
+    std::size_t CURLMultiHandle::perform()
+    {
+        int still_running;
+        CURLMcode code = curl_multi_perform(p_handle, &still_running);
+        if (code != CURLM_OK)
+        {
+            throw std::runtime_error(curl_multi_strerror(code));
+        }
+        return static_cast<std::size_t>(still_running);
+    }
+
+    CURLMultiHandle::response_type CURLMultiHandle::pop_message()
+    {
+        int msgs_in_queue;
+        CURLMsg* msg = curl_multi_info_read(p_handle, &msgs_in_queue);
+        if (msg != nullptr)
+        {
+            return CURLMultiResponse{ msg->easy_handle, msg->data.result, msg->msg == CURLMSG_DONE };
+        }
+        else
+        {
+            return std::nullopt;
+        }
+    }
+
+    std::size_t CURLMultiHandle::get_timeout(std::size_t max_timeout) const
+    {
+        long lmax_timeout = static_cast<long>(max_timeout);
+        long curl_timeout = -1;  // NOLINT(runtime/int)
+        CURLMcode code = curl_multi_timeout(p_handle, &curl_timeout);
+        if (code != CURLM_OK)
+        {
+            throw std::runtime_error(curl_multi_strerror(code));
+        }
+
+        if (curl_timeout < 0 || curl_timeout > lmax_timeout)
+        {
+            curl_timeout = lmax_timeout;
+        }
+        return static_cast<std::size_t>(curl_timeout);
+    }
+
+    std::size_t CURLMultiHandle::wait(size_t timeout)
+    {
+        int numfds = 0;
+        CURLMcode code = curl_multi_wait(p_handle, NULL, 0, static_cast<int>(timeout), &numfds);
+        if (code != CURLM_OK)
+        {
+            throw std::runtime_error(curl_multi_strerror(code));
+        }
+        return static_cast<std::size_t>(numfds);
+    }
+
 }  // namespace mamba

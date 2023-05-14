@@ -40,14 +40,15 @@ namespace mamba
     std::string banner()
     {
         auto& ctx = Context::instance();
-        return ctx.custom_banner.empty() ? mamba_banner : ctx.custom_banner;
+        return ctx.command_params.custom_banner.empty() ? mamba_banner
+                                                        : ctx.command_params.custom_banner;
     }
 
     namespace detail
     {
         void info_pretty_print(std::vector<std::tuple<std::string, nlohmann::json>> items)
         {
-            if (Context::instance().json)
+            if (Context::instance().output_params.json)
             {
                 return;
             }
@@ -97,10 +98,10 @@ namespace mamba
             std::vector<std::tuple<std::string, nlohmann::json>> items;
 
             std::string name, location;
-            if (!ctx.target_prefix.empty())
+            if (!ctx.prefix_params.target_prefix.empty())
             {
-                name = env_name(ctx.target_prefix);
-                location = ctx.target_prefix.string();
+                name = env_name(ctx.prefix_params.target_prefix);
+                location = ctx.prefix_params.target_prefix.string();
             }
             else
             {
@@ -108,14 +109,15 @@ namespace mamba
                 location = "-";
             }
 
-            if (std::getenv("CONDA_PREFIX") && (std::getenv("CONDA_PREFIX") == ctx.target_prefix))
+            if (std::getenv("CONDA_PREFIX")
+                && (std::getenv("CONDA_PREFIX") == ctx.prefix_params.target_prefix))
             {
                 name += " (active)";
             }
-            else if (fs::exists(ctx.target_prefix))
+            else if (fs::exists(ctx.prefix_params.target_prefix))
             {
-                if (!(fs::exists(ctx.target_prefix / "conda-meta")
-                      || (ctx.target_prefix == ctx.root_prefix)))
+                if (!(fs::exists(ctx.prefix_params.target_prefix / "conda-meta")
+                      || (ctx.prefix_params.target_prefix == ctx.prefix_params.root_prefix)))
                 {
                     name += " (not env)";
                 }
@@ -142,9 +144,9 @@ namespace mamba
 
             items.push_back({ "libmamba version", version() });
 
-            if (ctx.is_micromamba && !ctx.caller_version.empty())
+            if (ctx.command_params.is_micromamba && !ctx.command_params.caller_version.empty())
             {
-                items.push_back({ "micromamba version", ctx.caller_version });
+                items.push_back({ "micromamba version", ctx.command_params.caller_version });
             }
 
             items.push_back({ "curl version", curl_version() });
@@ -171,7 +173,7 @@ namespace mamba
             }
             items.push_back({ "channels", channel_urls });
 
-            items.push_back({ "base environment", ctx.root_prefix.string() });
+            items.push_back({ "base environment", ctx.prefix_params.root_prefix.string() });
 
             items.push_back({ "platform", ctx.platform });
 

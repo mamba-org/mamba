@@ -58,7 +58,7 @@ extern "C"
 
 namespace mamba
 {
-    bool is_package_file(const std::string_view& fn)
+    bool is_package_file(std::string_view fn)
     {
         return ends_with(fn, ".tar.bz2") || ends_with(fn, ".conda");
     }
@@ -555,13 +555,16 @@ namespace mamba
                 {
                     // The conda-meta directory is locked by transaction execute
                     auto trash_index = open_ofstream(
-                        Context::instance().target_prefix / "conda-meta" / "mamba_trash.txt",
+                        Context::instance().prefix_params.target_prefix / "conda-meta"
+                            / "mamba_trash.txt",
                         std::ios::app | std::ios::binary
                     );
 
                     // TODO add some unicode tests here?
-                    trash_index << fs::relative(trash_file, Context::instance().target_prefix).string()
-                                << "\n";
+                    trash_index
+                        << fs::relative(trash_file, Context::instance().prefix_params.target_prefix)
+                               .string()
+                        << "\n";
                     return 1;
                 }
 
@@ -1286,7 +1289,8 @@ namespace mamba
         // TODO
         std::string CONDA_PACKAGE_ROOT = "";
 
-        std::string bat_name = Context::instance().is_micromamba ? "micromamba.bat" : "conda.bat";
+        std::string bat_name = Context::instance().command_params.is_micromamba ? "micromamba.bat"
+                                                                                : "conda.bat";
 
         if (dev_mode)
         {
@@ -1297,10 +1301,10 @@ namespace mamba
             conda_bat = env::get("CONDA_BAT")
                             .value_or((fs::absolute(root_prefix) / "condabin" / bat_name).string());
         }
-        if (!fs::exists(conda_bat) && Context::instance().is_micromamba)
+        if (!fs::exists(conda_bat) && Context::instance().command_params.is_micromamba)
         {
             // this adds in the needed .bat files for activation
-            init_root_prefix_cmdexe(Context::instance().root_prefix);
+            init_root_prefix_cmdexe(Context::instance().prefix_params.root_prefix);
         }
 
         auto tf = std::make_unique<TemporaryFile>("mamba_bat_", ".bat");
@@ -1353,7 +1357,7 @@ namespace mamba
 
         std::string shebang, dev_arg;
 
-        if (!Context::instance().is_micromamba)
+        if (!Context::instance().command_params.is_micromamba)
         {
             // During tests, we sometimes like to have a temp env with e.g. an old python
             // in it and have it run tests against the very latest development sources.
@@ -1389,7 +1393,7 @@ namespace mamba
             // Micromamba hook
             out << "export MAMBA_EXE=" << std::quoted(get_self_exe_path().string(), '\'') << "\n";
             hook_quoted << "$MAMBA_EXE 'shell' 'hook' '-s' 'bash' '-p' "
-                        << std::quoted(Context::instance().root_prefix.string(), '\'');
+                        << std::quoted(Context::instance().prefix_params.root_prefix.string(), '\'');
         }
         if (debug_wrapper_scripts)
         {
@@ -1400,7 +1404,7 @@ namespace mamba
         }
         out << "eval \"$(" << hook_quoted.str() << ")\"\n";
 
-        if (!Context::instance().is_micromamba)
+        if (!Context::instance().command_params.is_micromamba)
         {
             out << "conda activate " << dev_arg << " " << std::quoted(prefix.string()) << "\n";
         }
@@ -1437,7 +1441,7 @@ namespace mamba
             }
 
             script_file = wrap_call(
-                Context::instance().root_prefix,
+                Context::instance().prefix_params.root_prefix,
                 prefix,
                 Context::instance().dev,
                 false,
@@ -1461,7 +1465,7 @@ namespace mamba
             }
 
             script_file = wrap_call(
-                Context::instance().root_prefix,
+                Context::instance().prefix_params.root_prefix,
                 prefix,
                 Context::instance().dev,
                 false,
@@ -1478,7 +1482,7 @@ namespace mamba
         return ends_with(filename, ".yml") || ends_with(filename, ".yaml");
     }
 
-    tl::expected<std::string, mamba_error> encode_base64(const std::string_view& input)
+    tl::expected<std::string, mamba_error> encode_base64(std::string_view input)
     {
         const auto pl = 4 * ((input.size() + 2) / 3);
         std::vector<unsigned char> output(pl + 1);
@@ -1496,7 +1500,7 @@ namespace mamba
         return std::string(reinterpret_cast<const char*>(output.data()));
     }
 
-    tl::expected<std::string, mamba_error> decode_base64(const std::string_view& input)
+    tl::expected<std::string, mamba_error> decode_base64(std::string_view input)
     {
         const auto pl = 3 * input.size() / 4;
 
@@ -1551,6 +1555,20 @@ namespace mamba
         }
 
         return std::nullopt;
+    }
+
+    std::string hide_secrets(std::string_view str)
+    {
+        std::string copy(str);
+
+        if (contains(str, "/t/"))
+        {
+            copy = std::regex_replace(copy, Context::instance().token_regex, "/t/*****");
+        }
+
+        copy = std::regex_replace(copy, Context::instance().http_basicauth_regex, "$1$2:*****@");
+
+        return copy;
     }
 
 }  // namespace mamba

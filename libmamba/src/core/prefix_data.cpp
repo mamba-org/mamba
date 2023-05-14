@@ -4,16 +4,14 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <solv/pool.h>
-#include <solv/repo.h>
-#include <solv/transaction.h>
+#include <string_view>
+#include <unordered_map>
 
 #include "mamba/core/output.hpp"
-#include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
-#include "mamba/core/repo.hpp"
+#include "mamba/core/util.hpp"
 #include "mamba/core/util_string.hpp"
-#include "solv-cpp/queue.hpp"
+#include "mamba/util/graph.hpp"
 
 namespace mamba
 {
@@ -76,56 +74,47 @@ namespace mamba
 
     std::vector<PackageInfo> PrefixData::sorted_records() const
     {
-        std::vector<PackageInfo> result;
-        MPool pool;
+        // TODO add_pip_as_python_dependency
 
-        solv::ObjQueue q;
+        auto dep_graph = util::DiGraph<const PackageInfo*>();
+        using node_id = typename decltype(dep_graph)::node_id;
+
         {
-            // TODO check prereq marker to `pip` if it's part of the installed packages
-            // so that it gets installed after Python.
-            auto& repo = MRepo::create(pool, *this);
+            auto name_to_node_id = std::unordered_map<std::string_view, node_id>();
 
-            Solvable* s;
-            Id pkg_id;
-            pool_createwhatprovides(pool);
-
-            FOR_REPO_SOLVABLES(repo.repo(), pkg_id, s)
+            // Add all nodes
+            for (const auto& [name, record] : records())
             {
-                q.push_back(pkg_id);
+                name_to_node_id[name] = dep_graph.add_node(&record);
             }
-        }
-
-        Pool* pp = pool;
-        pp->installed = nullptr;
-
-        Transaction* t = transaction_create_decisionq(pool, q.raw(), nullptr);
-        transaction_order(t, 0);
-
-        for (int i = 0; i < t->steps.count; i++)
-        {
-            Id p = t->steps.elements[i];
-            Id ttype = transaction_type(t, p, SOLVER_TRANSACTION_SHOW_ALL);
-            Solvable* s = pool_id2solvable(t->pool, p);
-
-            switch (ttype)
+            // Add all inverse dependency edges.
+            // Since there must be only one package with a given name, we assume that the dependency
+            // version are matched properly and that only names must be checked.
+            for (const auto& [to_id, record] : dep_graph.nodes())
             {
-                case SOLVER_TRANSACTION_INSTALL:
+                for (const auto& dep : record->depends)
                 {
-                    const auto it = m_package_records.find(pool_id2str(pool, s->name));
-                    if (it != m_package_records.end())
+                    // Creating a matchspec to parse the name (there may be a channel)
+                    auto ms = MatchSpec(dep);
+                    // Ignoring unmatched dependencies, the environment could be broken
+                    // or it could be a matchspec
+                    const auto from_iter = name_to_node_id.find(ms.name);
+                    if (from_iter != name_to_node_id.cend())
                     {
-                        result.push_back(it->second);
-                        break;
+                        dep_graph.add_edge(to_id, from_iter->second);
                     }
-                    [[fallthrough]];
                 }
-                default:
-                    throw std::runtime_error(
-                        "Package not found in prefix records or other unexpected condition"
-                    );
             }
         }
-        return result;
+
+        auto sorted = std::vector<PackageInfo>();
+        sorted.reserve(dep_graph.number_of_nodes());
+        util::topological_sort_for_each_node_id(
+            dep_graph,
+            [&](node_id id) { sorted.push_back(*dep_graph.node(id)); }
+        );
+
+        return sorted;
     }
 
     History& PrefixData::history()

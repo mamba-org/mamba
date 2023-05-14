@@ -37,7 +37,7 @@ namespace mamba
 
         if (remove_all)
         {
-            auto sprefix_data = PrefixData::create(ctx.target_prefix);
+            auto sprefix_data = PrefixData::create(ctx.prefix_params.target_prefix);
             if (!sprefix_data)
             {
                 // TODO: propagate tl::expected mechanism
@@ -68,13 +68,13 @@ namespace mamba
         {
             auto& ctx = Context::instance();
 
-            if (ctx.target_prefix.empty())
+            if (ctx.prefix_params.target_prefix.empty())
             {
                 LOG_ERROR << "No active target prefix.";
                 throw std::runtime_error("Aborted.");
             }
 
-            auto exp_prefix_data = PrefixData::create(ctx.target_prefix);
+            auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix);
             if (!exp_prefix_data)
             {
                 // TODO: propagate tl::expected mechanism
@@ -83,14 +83,14 @@ namespace mamba
             PrefixData& prefix_data = exp_prefix_data.value();
 
             MPool pool;
-            MRepo::create(pool, prefix_data);
+            MRepo(pool, prefix_data);
 
-            const fs::u8path pkgs_dirs(ctx.root_prefix / "pkgs");
+            const fs::u8path pkgs_dirs(ctx.prefix_params.root_prefix / "pkgs");
             MultiPackageCache package_caches({ pkgs_dirs });
 
             auto execute_transaction = [&](MTransaction& transaction)
             {
-                if (ctx.json)
+                if (ctx.output_params.json)
                 {
                     transaction.log_json();
                 }
@@ -119,7 +119,7 @@ namespace mamba
                     }
                 );
 
-                History history(ctx.target_prefix);
+                History history(ctx.prefix_params.target_prefix);
                 auto hist_map = history.get_requested_specs_map();
                 std::vector<std::string> keep_specs;
                 for (auto& it : hist_map)

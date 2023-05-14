@@ -179,9 +179,9 @@ namespace mamba
 
             fmt::print(out, fmtstring, "MD5", pkg.md5.empty() ? "Not available" : pkg.md5);
             fmt::print(out, fmtstring, "SHA256", pkg.sha256.empty() ? "Not available" : pkg.sha256);
-            if (pkg.track_features.size())
+            if (!pkg.track_features.empty())
             {
-                fmt::print(out, fmtstring, "Track Features", pkg.track_features);
+                fmt::print(out, fmtstring, "Track Features", fmt::join(pkg.track_features, ","));
             }
 
             // std::cout << fmt::format<char>(
@@ -411,6 +411,16 @@ namespace mamba
         return table(out, { "Name", "Version", "Build", "Channel" });
     }
 
+    namespace
+    {
+        /** Remove potential subdir from channel name (not url!). */
+        auto cut_subdir(std::string_view str) -> std::string
+        {
+            return split(str, "/", 1).front();  // Has at least one element
+        }
+
+    }
+
     std::ostream& query_result::table(std::ostream& out, const std::vector<std::string>& fmt) const
     {
         if (m_pkg_id_list.empty())
@@ -457,7 +467,7 @@ namespace mamba
                 }
                 else if (cmd == "Channel")
                 {
-                    row.push_back(cut_repo_name(pkg.channel));
+                    row.push_back(cut_subdir(cut_repo_name(pkg.channel)));
                 }
                 else if (cmd == "Depends")
                 {
@@ -553,7 +563,7 @@ namespace mamba
         {
             print_prefix(to);
             m_out << g.node(to).name
-                  << fmt::format(Context::instance().palette.shown, " already visited\n");
+                  << fmt::format(Context::instance().graphics_params.palette.shown, " already visited\n");
         }
 
         void finish_edge(node_id /*from*/, node_id to, const graph_type& /*g*/)
@@ -600,7 +610,7 @@ namespace mamba
         if (use_graph)
         {
             graph_printer printer(out);
-            m_dep_graph.depth_first_search(printer);
+            dfs_raw(m_dep_graph, printer, /* start= */ node_id(0));
         }
         else if (!m_pkg_id_list.empty())
         {
@@ -630,16 +640,30 @@ namespace mamba
         j["result"]["pkgs"] = nlohmann::json::array();
         for (size_t i = 0; i < m_pkg_id_list.size(); ++i)
         {
-            j["result"]["pkgs"].push_back(m_dep_graph.node(m_pkg_id_list[i]).json_record());
+            auto pkg_info_json = m_dep_graph.node(m_pkg_id_list[i]).json_record();
+            // We want the cannonical channel name here.
+            // We do not know what is in the `channel` field so we need to make sure.
+            // This is most likely legacy and should be updated on the next major release.
+            pkg_info_json["channel"] = cut_subdir(cut_repo_name(pkg_info_json["channel"]));
+            j["result"]["pkgs"].push_back(std::move(pkg_info_json));
         }
 
         if (m_type != QueryType::kSEARCH && !m_pkg_id_list.empty())
         {
-            bool has_root = !m_dep_graph.successors(0).empty();
             j["result"]["graph_roots"] = nlohmann::json::array();
-            j["result"]["graph_roots"].push_back(
-                has_root ? m_dep_graph.node(0).json_record() : nlohmann::json(m_query)
-            );
+            if (!m_dep_graph.successors(0).empty())
+            {
+                auto pkg_info_json = m_dep_graph.node(0).json_record();
+                // We want the cannonical channel name here.
+                // We do not know what is in the `channel` field so we need to make sure.
+                // This is most likely legacy and should be updated on the next major release.
+                pkg_info_json["channel"] = cut_subdir(cut_repo_name(pkg_info_json["channel"]));
+                j["result"]["graph_roots"].push_back(std::move(pkg_info_json));
+            }
+            else
+            {
+                j["result"]["graph_roots"].push_back(nlohmann::json(m_query));
+            }
         }
         return j;
     }

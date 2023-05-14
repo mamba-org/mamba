@@ -120,12 +120,16 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/version.cpp
     # C++ wrapping of libsolv
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/pool.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/repo.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solvable.cpp
     # C++ wrapping of libcurl
     ${LIBMAMBA_SOURCE_DIR}/core/curl.cpp
     # C++ wrapping of compression libs (zstd and bzlib)
     ${LIBMAMBA_SOURCE_DIR}/core/compression.cpp
     # Implementation of version and matching specs
     ${LIBMAMBA_SOURCE_DIR}/specs/version.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/repo_data.cpp
     # Core API (low-level)
     ${LIBMAMBA_SOURCE_DIR}/core/singletons.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/activation.cpp
@@ -169,6 +173,8 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/virtual_packages.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/env_lockfile.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/execution.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/timeref.cpp
+
     # API (high-level)
     ${LIBMAMBA_SOURCE_DIR}/api/c_api.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/channel_loader.cpp
@@ -198,6 +204,7 @@ set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cast.hpp
     # Implementation of version and matching specs
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/repo_data.hpp
     # Core API (low-level)
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/activation.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/channel.hpp
@@ -244,6 +251,7 @@ set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/env_lockfile.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/tasksync.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/invoke.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/timeref.hpp
     # API (high-level)
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/c_api.h
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/channel_loader.hpp
@@ -263,8 +271,15 @@ set(LIBMAMBA_PUBLIC_HEADERS
 )
 
 set(LIBMAMBA_PRIVATE_HEADERS
+    # C++ wrapping of libsolv
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.hpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/ids.hpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/pool.hpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solvable.hpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/repo.hpp
+    # C++ wrapping of compression libs (zstd and bzlib)
     ${LIBMAMBA_SOURCE_DIR}/core/compression.hpp
+    # C++ wrapping of libcurl
     ${LIBMAMBA_SOURCE_DIR}/core/curl.hpp
 )
 

@@ -714,8 +714,10 @@ def clean(args, parser):
         init_api_context()
 
         root_prefix = os.environ.get("MAMBA_ROOT_PREFIX")
-        if api.Context().root_prefix != root_prefix:
-            os.environ["MAMBA_ROOT_PREFIX"] = str(api.Context().root_prefix)
+        if api.Context().prefix_params.root_prefix != root_prefix:
+            os.environ["MAMBA_ROOT_PREFIX"] = str(
+                api.Context().prefix_params.root_prefix
+            )
 
         api.Configuration().show_banner = False
         api.clean(api.MAMBA_CLEAN_LOCKS)
@@ -747,7 +749,31 @@ def do_call(args, parser):
         from importlib import import_module
 
         module = import_module("conda.cli" + relative_mod, __name__.rsplit(".", 1)[0])
-        exit_code = getattr(module, func_name)(args, parser)
+        if relative_mod == ".main_info":
+            import io
+            from contextlib import redirect_stdout
+
+            with io.StringIO() as buf, redirect_stdout(buf):
+                exit_code = getattr(module, func_name)(args, parser)
+                output = buf.getvalue()
+            # Append mamba version to output before printing/serializing
+            if context.json:
+                from json import loads
+
+                from conda.common.serialize import json_dump
+
+                json_obj = loads(output)
+                json_obj["mamba_version"] = mamba.__version__
+                print(json_dump(json_obj))  # To match conda's format
+            else:
+
+                def format_param(nm, val):
+                    return f"{nm:>23} : {val}"  # To match conda's format
+
+                print("\n" + format_param("mamba version", mamba.__version__))
+                print(output.lstrip("\n"))
+        else:
+            exit_code = getattr(module, func_name)(args, parser)
     elif relative_mod == ".main_clean":
         exit_code = clean(args, parser)
     elif relative_mod == ".main_install":
@@ -765,7 +791,8 @@ def do_call(args, parser):
     else:
         print(
             "Currently, only install, create, list, search, run,"
-            " info, clean, activate and deactivate are supported through mamba."
+            " info, clean, remove, update, repoquery, activate and"
+            " deactivate are supported through mamba."
         )
 
         return 0

@@ -292,7 +292,7 @@ def init_api_context(use_mamba_experimental=False):
     api_ctx.remote_fetch_params.retry_backoff = context.remote_backoff_factor
     api_ctx.add_pip_as_python_dependency = context.add_pip_as_python_dependency
     api_ctx.use_only_tar_bz2 = context.use_only_tar_bz2
-    api_ctx.repodata_use_zst = True
+    api_ctx.repodata_use_zst = context.repodata_use_zst
 
     if context.channel_priority is ChannelPriority.STRICT:
         api_ctx.channel_priority = api.ChannelPriority.kStrict

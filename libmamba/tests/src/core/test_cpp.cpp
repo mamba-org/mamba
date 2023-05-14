@@ -575,8 +575,6 @@ namespace mamba
     {
         TEST_CASE("parse_mod_etag")
         {
-            bool old_value = Context::instance().repodata_use_zst;
-            Context::instance().repodata_use_zst = true;
             fs::u8path cache_folder = fs::u8path{ test_data_dir / "repodata_json_cache" };
             auto mq = detail::read_metadata(cache_folder / "test_1.json");
             CHECK(mq.has_value());
@@ -653,8 +651,6 @@ namespace mamba
             CHECK_EQ(j.url, "https://conda.anaconda.org/conda-forge/noarch/repodata.json.zst");
             CHECK_EQ(j.has_zst.value().value, true);
             CHECK_EQ(j.has_zst.value().last_checked, parse_utc_timestamp("2023-01-06T16:33:06Z"));
-
-            Context::instance().repodata_use_zst = old_value;
         }
     }
 }  // namespace mamba

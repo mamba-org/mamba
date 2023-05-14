@@ -458,8 +458,7 @@ PYBIND11_MODULE(bindings, m)
     m.def("cache_fn_url", &cache_fn_url);
     m.def("create_cache_dir", &create_cache_dir);
 
-    pyMultiDownloadTarget
-        .def(py::init<>())
+    pyMultiDownloadTarget.def(py::init<>())
         .def(
             "add",
             [](MultiDownloadTarget& self, MSubdirData& sub) -> void { self.add(sub.target()); }

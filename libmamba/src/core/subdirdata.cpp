@@ -811,53 +811,27 @@ namespace mamba
         m_metadata.cache_control = m_target->get_cache_control();
         m_metadata.stored_file_size = file_size;
 
-
-        LOG_DEBUG << "Opening '" << json_file.string() << "'";
-        path::touch(json_file, true);
-        std::ofstream final_file = open_ofstream(json_file);
-
-        if (!final_file.is_open())
+        fs::u8path state_file = json_file;
+        state_file.replace_extension(".state.json");
+        std::error_code ec;
+        mamba_fs::rename_or_move(m_temp_file->path(), json_file, ec);
+        if (ec)
         {
             throw mamba_error(
-                fmt::format("Could not open file '{}'", json_file.string()),
-                mamba_error_code::subdirdata_not_loaded
-            );
-        }
-
-        if (m_progress_bar)
-        {
-            m_progress_bar.set_postfix("Finalizing");
-        }
-
-        std::ifstream temp_file = open_ifstream(m_temp_file->path());
-        std::stringstream temp_json;
-        m_metadata.serialize_to_stream_tiny(temp_json);
-
-        // replace `}` with `,`
-        temp_json.seekp(-1, temp_json.cur);
-        temp_json << ',';
-        final_file << temp_json.str();
-        temp_file.seekg(1);
-        std::copy(
-            std::istreambuf_iterator<char>(temp_file),
-            std::istreambuf_iterator<char>(),
-            std::ostreambuf_iterator<char>(final_file)
-        );
-
-        if (!temp_file)
-        {
-            std::error_code ec;
-            fs::remove(json_file, ec);
-            if (ec)
-            {
-                LOG_ERROR << "Could not remove file " << json_file << ": " << ec.message();
-            }
-            throw mamba_error(
-                fmt::format("Could not write out repodata file {}: {}", json_file, strerror(errno)),
+                fmt::format(
+                    "Could not move repodata file from {} to {}: {}",
+                    m_temp_file->path(),
+                    json_file,
+                    strerror(errno)
+                ),
                 mamba_error_code::subdirdata_not_loaded
             );
         }
         fs::last_write_time(json_file, fs::now());
+
+        m_metadata.store_file_metadata(json_file);
+        std::ofstream state_file_stream = open_ofstream(state_file);
+        m_metadata.serialize_to_stream(state_file_stream);
 
         if (m_progress_bar)
         {

@@ -18,10 +18,7 @@ class MambaSolver:
         self.pool = libmambapy.Pool()
         self.repos = []
         self.index = load_channels(
-            self.pool,
-            self.channels,
-            self.repos,
-            platform=platform,
+            self.pool, self.channels, self.repos, platform=platform
         )
 
         self.local_index = []

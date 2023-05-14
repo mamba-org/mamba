@@ -52,12 +52,7 @@ def mamba_install(prefix, specs, args, env, dry_run=False, *_, **kwargs):
 
     pool = api.Pool()
     repos = []
-    index = load_channels(
-        pool,
-        channel_urls,
-        repos,
-        prepend=False,
-    )
+    index = load_channels(pool, channel_urls, repos, prepend=False)
 
     if not (context.quiet or context.json):
         print("\n\nLooking for: {}\n\n".format(specs))

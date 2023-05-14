@@ -105,7 +105,15 @@ def get_index(
 
             needs_finalising = sd.download_and_check_targets(dlist)
             index.append(
-                (sd, {"platform": channel_platform, "url": url, "channel": channel, "needs_finalising": needs_finalising})
+                (
+                    sd,
+                    {
+                        "platform": channel_platform,
+                        "url": url,
+                        "channel": channel,
+                        "needs_finalising": needs_finalising,
+                    },
+                )
             )
 
     for (sd, info) in index:

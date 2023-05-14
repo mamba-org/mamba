@@ -600,7 +600,7 @@ namespace mamba
             {
                 bool has_value = m_metadata.has_zst.has_value();
                 bool is_expired = m_metadata.has_zst.has_value()
-                                    && m_metadata.has_zst.value().has_expired();
+                                  && m_metadata.has_zst.value().has_expired();
                 bool has_zst = m_metadata.check_zst(p_channel);
                 if (!has_zst && (is_expired || !has_value))
                 {
@@ -613,7 +613,7 @@ namespace mamba
                     m_check_targets.back()->set_finalize_callback(&MSubdirData::finalize_check, this);
                     m_check_targets.back()->set_ignore_failure(true);
                     if (!(ctx.graphics_params.no_progress_bars || ctx.output_params.quiet
-                            || ctx.output_params.json))
+                          || ctx.output_params.json))
                     {
                         m_progress_bar_check = Console::instance().add_progress_bar(
                             m_name + " (check zst)"

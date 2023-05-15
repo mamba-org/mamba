@@ -8,7 +8,6 @@
 
 #include <fmt/format.h>
 
-#include "mamba/api/configuration.hpp"
 #include "mamba/api/shell.hpp"
 #include "mamba/core/activation.hpp"
 #include "mamba/core/context.hpp"
@@ -24,28 +23,6 @@ namespace mamba
 {
     namespace
     {
-        void detect_shell(std::string& shell_type)
-        {
-            if (shell_type.empty())
-            {
-                LOG_DEBUG << "No shell type provided";
-
-                std::string guessed_shell = guess_shell();
-                if (!guessed_shell.empty())
-                {
-                    LOG_DEBUG << "Guessed shell: '" << guessed_shell << "'";
-                    shell_type = guessed_shell;
-                }
-
-                if (shell_type.empty())
-                {
-                    LOG_ERROR << "Please provide a shell type." << std::endl
-                              << "Run with --help for more information." << std::endl;
-                    throw std::runtime_error("Unknown shell type. Aborting.");
-                }
-            }
-        }
-
         auto make_activator(std::string_view name) -> std::unique_ptr<Activator>
         {
             if (name == "bash" || name == "zsh" || name == "dash" || name == "posix")
@@ -111,8 +88,9 @@ namespace mamba
         }
     }
 
-    void shell_hook(const std::string& shell_type, Activator& activator)
+    void shell_hook(const std::string& shell_type)
     {
+        auto activator = make_activator(shell_type);
         auto& ctx = Context::instance();
         // TODO do we need to do something wtih `shell_prefix -> root_prefix?`?
         if (ctx.output_params.json)
@@ -121,16 +99,17 @@ namespace mamba
                                              { "operation", "shell_hook" },
                                              { "context", { { "shell_type", shell_type } } },
                                              { "actions",
-                                               { { "print", { activator.hook(shell_type) } } } } });
+                                               { { "print", { activator->hook(shell_type) } } } } });
         }
         else
         {
-            std::cout << activator.hook(shell_type);
+            std::cout << activator->hook(shell_type);
         }
     }
 
-    void shell_activate(std::string_view prefix, Activator& activator, bool stack)
+    void shell_activate(std::string_view prefix, const std::string& shell_type, bool stack)
     {
+        auto activator = make_activator(shell_type);
         auto& ctx = Context::instance();
         fs::u8path shell_prefix;
         if (prefix.empty() || prefix == "base")
@@ -153,18 +132,21 @@ namespace mamba
             );
         }
 
-        std::cout << activator.activate(shell_prefix, stack);
+        std::cout << activator->activate(shell_prefix, stack);
     }
 
-    void shell_reactivate(Activator& activator)
+    void shell_reactivate(const std::string& shell_type)
     {
-        std::cout << activator.deactivate();
+        auto activator = make_activator(shell_type);
+        std::cout << activator->deactivate();
     }
 
-    void shell_deactivate(Activator& activator)
+    void shell_deactivate(const std::string& shell_type)
     {
-        std::cout << activator.deactivate();
+        auto activator = make_activator(shell_type);
+        std::cout << activator->deactivate();
     }
+
     void shell_enable_long_path_support()
     {
 #ifdef _WIN32
@@ -176,60 +158,4 @@ namespace mamba
         throw std::invalid_argument("Long path support is a Windows only option");
 #endif
     }
-
-    void
-    shell(const std::string& action, std::string& shell_type, const std::string& prefix, bool stack)
-    {
-        auto& config = Configuration::instance();
-
-        config.at("show_banner").set_value(false);
-        config.at("use_target_prefix_fallback").set_value(false);
-        config.at("target_prefix_checks").set_value(MAMBA_NO_PREFIX_CHECK);
-        config.load();
-
-        detect_shell(shell_type);
-
-        auto activator = make_activator(shell_type);
-
-        std::string shell_prefix;
-
-        if (action == "init")
-        {
-            shell_init(shell_type, prefix);
-        }
-        else if (action == "deinit")
-        {
-            shell_deinit(shell_type, prefix);
-        }
-        else if (action == "reinit")
-        {
-            shell_reinit(prefix);
-        }
-        else if (action == "hook")
-        {
-            shell_hook(shell_type, *activator);
-        }
-        else if (action == "activate")
-        {
-            shell_activate(prefix, *activator, stack);
-        }
-        else if (action == "reactivate")
-        {
-            shell_reactivate(*activator);
-        }
-        else if (action == "deactivate")
-        {
-            shell_deactivate(*activator);
-        }
-        else if (action == "enable-long-paths-support")
-        {
-            shell_enable_long_path_support();
-        }
-        else
-        {
-            throw std::runtime_error("Need an action {init, hook, activate, deactivate, reactivate}");
-        }
-
-        config.operation_teardown();
-    }
-}  // mamba
+}

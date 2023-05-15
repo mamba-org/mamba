@@ -8,6 +8,7 @@
 #include "mamba/api/shell.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/run.hpp"
+#include "mamba/core/shell_init.hpp"
 
 #include "common_options.hpp"
 #include "umamba.hpp"
@@ -73,6 +74,81 @@ init_shell_parser(CLI::App* subcom)
     );
 }
 
+namespace
+{
+    auto consolidate_shell(std::string_view shell_type) -> std::string
+    {
+        if (!shell_type.empty())
+        {
+            return std::string{ shell_type };
+        }
+
+        LOG_DEBUG << "No shell type provided";
+
+        if (std::string guessed_shell = guess_shell(); !guessed_shell.empty())
+        {
+            LOG_DEBUG << "Guessed shell: '" << guessed_shell << "'";
+            return guessed_shell;
+        }
+
+        LOG_ERROR << "Please provide a shell type.\n"
+                     "Run with --help for more information.\n";
+        throw std::runtime_error("Unknown shell type. Aborting.");
+    }
+
+    void
+    shell(const std::string& action, std::string shell_type, const std::string& prefix, bool stack)
+    {
+        auto& config = Configuration::instance();
+
+        config.at("show_banner").set_value(false);
+        config.at("use_target_prefix_fallback").set_value(false);
+        config.at("target_prefix_checks").set_value(MAMBA_NO_PREFIX_CHECK);
+        config.load();
+
+        shell_type = consolidate_shell(shell_type);
+
+        if (action == "init")
+        {
+            shell_init(shell_type, prefix);
+        }
+        else if (action == "deinit")
+        {
+            shell_deinit(shell_type, prefix);
+        }
+        else if (action == "reinit")
+        {
+            shell_reinit(prefix);
+        }
+        else if (action == "hook")
+        {
+            shell_hook(shell_type);
+        }
+        else if (action == "activate")
+        {
+            shell_activate(prefix, shell_type, stack);
+        }
+        else if (action == "reactivate")
+        {
+            shell_reactivate(shell_type);
+        }
+        else if (action == "deactivate")
+        {
+            shell_deactivate(shell_type);
+        }
+        else if (action == "enable-long-paths-support")
+        {
+            shell_enable_long_path_support();
+        }
+        else
+        {
+            throw std::runtime_error("Need an action {init, hook, activate, deactivate, reactivate}");
+        }
+
+        config.operation_teardown();
+    }
+}
+
 
 void
 set_shell_command(CLI::App* subcom)
@@ -126,7 +202,7 @@ set_shell_command(CLI::App* subcom)
             }
             else
             {
-                mamba::shell(action, shell, prefix, stack);
+                ::shell(action, shell, prefix, stack);
                 return 0;
             }
         }

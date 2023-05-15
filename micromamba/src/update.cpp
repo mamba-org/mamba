@@ -137,7 +137,7 @@ update_self(const std::optional<std::string>& version)
 
     Console::instance().print("\nReinitializing all previously initialized shells\n");
     std::string shell_type = "";
-    mamba::shell("reinit", shell_type, ctx.prefix_params.root_prefix, false);
+    mamba::shell_reinit(ctx.prefix_params.root_prefix.string());
 
     return 0;
 }

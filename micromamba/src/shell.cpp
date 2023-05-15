@@ -211,6 +211,8 @@ set_shell_command(CLI::App* shell_subcmd)
     // ``micromamba shell init --shell bash`` and ``micromamba shell --shell bash init`` were
     // allowed.
     // We want to move everything to the first one, but keeping this for compatibility so far.
+    // TODO micromamba 2.0 deprecate `micromamba shell --shell bash cmd` and remove the following
+    // line
     init_shell_parser(shell_subcmd);
 
     set_shell_init_command(

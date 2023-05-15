@@ -286,6 +286,7 @@ namespace mamba
     template tl::expected<long, CURLcode> CURLHandle::get_info(CURLINFO option);
     template tl::expected<char*, CURLcode> CURLHandle::get_info(CURLINFO option);
     template tl::expected<double, CURLcode> CURLHandle::get_info(CURLINFO option);
+    template tl::expected<curl_off_t, CURLcode> CURLHandle::get_info(CURLINFO option);
     template tl::expected<curl_slist*, CURLcode> CURLHandle::get_info(CURLINFO option);
 
     template <class I>

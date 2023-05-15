@@ -138,7 +138,7 @@ namespace mamba
     void shell_reactivate(const std::string& shell_type)
     {
         auto activator = make_activator(shell_type);
-        std::cout << activator->deactivate();
+        std::cout << activator->reactivate();
     }
 
     void shell_deactivate(const std::string& shell_type)

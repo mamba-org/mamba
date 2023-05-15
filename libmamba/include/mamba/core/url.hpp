@@ -82,19 +82,19 @@ namespace mamba
 
         std::string url(bool strip_scheme = false);
 
-        std::string scheme();
-        std::string host();
-        std::string path();
-        std::string port();
+        std::string scheme() const;
+        std::string host() const;
+        std::string path() const;
+        std::string port() const;
 
-        std::string query();
-        std::string fragment();
-        std::string options();
+        std::string query() const;
+        std::string fragment() const;
+        std::string options() const;
 
-        std::string auth();
-        std::string user();
-        std::string password();
-        std::string zoneid();
+        std::string auth() const;
+        std::string user() const;
+        std::string password() const;
+        std::string zoneid() const;
 
         URLHandler& set_scheme(const std::string& scheme);
         URLHandler& set_host(const std::string& host);
@@ -111,7 +111,7 @@ namespace mamba
 
     private:
 
-        std::string get_part(CURLUPart part);
+        std::string get_part(CURLUPart part) const;
         void set_part(CURLUPart part, const std::string& s);
 
         std::string m_url;

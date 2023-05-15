@@ -264,59 +264,59 @@ namespace mamba
         return res;
     }
 
-    std::string URLHandler::scheme()
+    std::string URLHandler::scheme() const
     {
         return m_has_scheme ? get_part(CURLUPART_SCHEME) : "";
     }
 
-    std::string URLHandler::host()
+    std::string URLHandler::host() const
     {
         return get_part(CURLUPART_HOST);
     }
 
-    std::string URLHandler::path()
+    std::string URLHandler::path() const
     {
         return get_part(CURLUPART_PATH);
     }
 
-    std::string URLHandler::port()
+    std::string URLHandler::port() const
     {
         return get_part(CURLUPART_PORT);
     }
 
-    std::string URLHandler::query()
+    std::string URLHandler::query() const
     {
         return get_part(CURLUPART_QUERY);
     }
 
-    std::string URLHandler::fragment()
+    std::string URLHandler::fragment() const
     {
         return get_part(CURLUPART_FRAGMENT);
     }
 
-    std::string URLHandler::options()
+    std::string URLHandler::options() const
     {
         return get_part(CURLUPART_OPTIONS);
     }
 
-    std::string URLHandler::auth()
+    std::string URLHandler::auth() const
     {
         std::string u = user();
         std::string p = password();
         return p != "" ? u + ':' + p : u;
     }
 
-    std::string URLHandler::user()
+    std::string URLHandler::user() const
     {
         return get_part(CURLUPART_USER);
     }
 
-    std::string URLHandler::password()
+    std::string URLHandler::password() const
     {
         return get_part(CURLUPART_PASSWORD);
     }
 
-    std::string URLHandler::zoneid()
+    std::string URLHandler::zoneid() const
     {
         return get_part(CURLUPART_ZONEID);
     }
@@ -393,7 +393,7 @@ namespace mamba
                                                            "fragment", "zoneid" };
     }
 
-    std::string URLHandler::get_part(CURLUPart part)
+    std::string URLHandler::get_part(CURLUPart part) const
     {
         char* scheme;
         auto rc = curl_url_get(m_handle, part, &scheme, m_has_scheme ? 0 : CURLU_DEFAULT_SCHEME);

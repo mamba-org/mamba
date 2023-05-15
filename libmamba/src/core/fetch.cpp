@@ -241,7 +241,14 @@ namespace mamba
         m_curl_handle->set_opt(CURLOPT_VERBOSE, Context::instance().output_params.verbosity >= 2);
 
         // get url host
-        const auto host = URLHandler(url).host();
+        const auto url_handler = URLHandler(url);
+        auto host = url_handler.host();
+        const auto port = url_handler.port();
+        if (port.size())
+        {
+            host += ":" + port;
+        }
+
         if (Context::instance().authentication_info().count(host))
         {
             const auto& auth = Context::instance().authentication_info().at(host);

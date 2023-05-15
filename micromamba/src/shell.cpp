@@ -207,9 +207,13 @@ set_shell_command(CLI::App* shell_subcmd)
     config.at("target_prefix_checks").set_value(MAMBA_NO_PREFIX_CHECK);
     config.load();
 
-    set_shell_deinit_command(
-        shell_subcmd->add_subcommand("deinit", "Remove activation script from rc files")
-    );
+    // The initial parser had the subcmdmand as an action so both
+    // ``micromamba shell init --shell bash`` and ``micromamba shell --shell bash init`` were
+    // allowed.
+    // We want to move everything to the first one, but keeping this for compatibility so far.
+    // TODO micromamba 2.0 deprecate `micromamba shell --shell bash cmd` and remove the following
+    // line
+    init_shell_parser(shell_subcmd);
 
     set_shell_init_command(
         shell_subcmd->add_subcommand("init", "Add initialization in script to rc files")

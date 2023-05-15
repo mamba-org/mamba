@@ -10,14 +10,14 @@ if ("`alias micromamba`" == "") then
 else
     switch ( "${1}" )
         case "activate":
-            set ask_conda="`(setenv prompt '${prompt}' ; '${MAMBA_EXE}' shell -s csh activate '${2}' ${argv[3-]})`"
+            set ask_conda="`(setenv prompt '${prompt}' ; '${MAMBA_EXE}' shell activate --shell csh '${2}' ${argv[3-]})`"
             set conda_tmp_status=$status
             if( $conda_tmp_status != 0 ) exit ${conda_tmp_status}
             eval "${ask_conda}"
             rehash
             breaksw
         case "deactivate":
-            set ask_conda="`(setenv prompt '${prompt}' ; '${MAMBA_EXE}' shell -s csh deactivate '${2}' ${argv[3-]})`"
+            set ask_conda="`(setenv prompt '${prompt}' ; '${MAMBA_EXE}' shell deactivate --shell csh '${2}' ${argv[3-]})`"
             set conda_tmp_status=$status
             if( $conda_tmp_status != 0 ) exit ${conda_tmp_status}
             eval "${ask_conda}"
@@ -25,7 +25,7 @@ else
             breaksw
         case "install" | "update" | "upgrade" | "remove" | "uninstall":
             $MAMBA_EXE $argv[1-]
-            set ask_conda="`(setenv prompt '${prompt}' ; '${MAMBA_EXE}' shell -s csh reactivate)`"
+            set ask_conda="`(setenv prompt '${prompt}' ; '${MAMBA_EXE}' shell reactivate --shell csh)`"
             set conda_tmp_status=$status
             if( $conda_tmp_status != 0 ) exit ${conda_tmp_status}
             eval "${ask_conda}"

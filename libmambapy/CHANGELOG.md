@@ -1,3 +1,18 @@
+libmambapy 1.4.3 (May 15, 2023)
+===============================
+
+Enhancements:
+
+- Remove dead code / attribute by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2454
+- Context structuring by @Hind-M in https://github.com/mamba-org/mamba/pull/2432
+- Store PackageInfo::track\_features as a vector by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2478
+- Resume Context structuring by @Hind-M in https://github.com/mamba-org/mamba/pull/2460
+- Use libsolv wrappers in MPool and MRepo by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2453
+
+CI fixes and doc:
+
+- Extend issue template by @jonashaag in https://github.com/mamba-org/mamba/pull/2310
+
 libmambapy 1.4.2 (April 06, 2023)
 =================================
 

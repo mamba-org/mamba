@@ -116,14 +116,17 @@ set_logout_command(CLI::App* subcom)
 void
 set_login_command(CLI::App* subcom)
 {
-    static std::string user, pass, token, host;
+    static std::string user, pass, token, bearer, host;
     static bool pass_stdin = false;
     static bool token_stdin = false;
+    static bool bearer_stdin = false;
     subcom->add_option("-p,--password", pass, "Password for account");
     subcom->add_option("-u,--username", user, "User name for the account");
     subcom->add_option("-t,--token", token, "Token for the account");
+    subcom->add_option("-b,--bearer", bearer, "Bearer token for the account");
     subcom->add_flag("--password-stdin", pass_stdin, "Read password from stdin");
     subcom->add_flag("--token-stdin", token_stdin, "Read token from stdin");
+    subcom->add_flag("--bearer-stdin", bearer_stdin, "Read bearer token from stdin");
     subcom->add_option(
         "host",
         host,
@@ -151,6 +154,11 @@ set_login_command(CLI::App* subcom)
                 token = read_stdin();
             }
 
+            if (bearer_stdin)
+            {
+                bearer = read_stdin();
+            }
+
             static auto path = mamba::env::home_directory() / ".mamba" / "auth";
             fs::create_directories(path);
 
@@ -171,7 +179,7 @@ set_login_command(CLI::App* subcom)
                 }
                 nlohmann::json auth_object = nlohmann::json::object();
 
-                if (pass.empty() && token.empty())
+                if (pass.empty() && token.empty() && bearer.empty())
                 {
                     throw std::runtime_error("No password or token given.");
                 }
@@ -193,6 +201,11 @@ set_login_command(CLI::App* subcom)
                 {
                     auth_object["type"] = "CondaToken";
                     auth_object["token"] = mamba::strip(token);
+                }
+                else if (!bearer.empty())
+                {
+                    auth_object["type"] = "BearerToken";
+                    auth_object["token"] = mamba::strip(bearer);
                 }
 
                 auth_info[token_base] = auth_object;

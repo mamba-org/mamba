@@ -258,6 +258,13 @@ namespace mamba
                                 << std::endl;
                         }
                     }
+                    else if (type == "BearerToken")
+                    {
+                        info.type = AuthenticationType::kBearerToken;
+                        info.value = el["token"].get<std::string>();
+                        LOG_INFO << "Found bearer token for host " << host
+                                 << " in ~/.mamba/auth/authentication.json";
+                    }
                     m_authentication_info[host] = info;
                 }
             }

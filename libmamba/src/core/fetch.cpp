@@ -521,7 +521,7 @@ namespace mamba
 
     std::size_t DownloadTarget::get_speed()
     {
-        auto speed = m_curl_handle->get_info<curl_off_t>(CURLINFO_SPEED_DOWNLOAD_T);
+        auto speed = m_curl_handle->get_info<std::size_t>(CURLINFO_SPEED_DOWNLOAD_T);
         // TODO Should we just drop all code below with progress_bar and use value_or(0) in get_info
         // above instead?
         if (!speed.has_value())
@@ -535,7 +535,7 @@ namespace mamba
                 return 0;
             }
         }
-        return static_cast<std::size_t>(speed.value());
+        return speed.value();
     }
 
     bool DownloadTarget::resource_exists()
@@ -614,7 +614,7 @@ namespace mamba
         auto avg_speed = get_speed();
         m_http_status = m_curl_handle->get_info<int>(CURLINFO_RESPONSE_CODE).value_or(10000);
         m_effective_url = m_curl_handle->get_info<char*>(CURLINFO_EFFECTIVE_URL).value();
-        m_downloaded_size = m_curl_handle->get_info<curl_off_t>(CURLINFO_SIZE_DOWNLOAD_T).value_or(0);
+        m_downloaded_size = m_curl_handle->get_info<std::size_t>(CURLINFO_SIZE_DOWNLOAD_T).value_or(0);
 
         LOG_INFO << get_transfer_msg();
 
@@ -623,7 +623,7 @@ namespace mamba
             // this request didn't work!
 
             // respect Retry-After header if present, otherwise use default timeout
-            m_retry_wait_seconds = m_curl_handle->get_info<curl_off_t>(CURLINFO_RETRY_AFTER)
+            m_retry_wait_seconds = m_curl_handle->get_info<std::size_t>(CURLINFO_RETRY_AFTER)
                                        .value_or(0);
             if (!m_retry_wait_seconds)
             {

@@ -286,7 +286,7 @@ namespace mamba
     template tl::expected<long, CURLcode> CURLHandle::get_info(CURLINFO option);
     template tl::expected<char*, CURLcode> CURLHandle::get_info(CURLINFO option);
     template tl::expected<double, CURLcode> CURLHandle::get_info(CURLINFO option);
-    template tl::expected<curl_off_t, CURLcode> CURLHandle::get_info(CURLINFO option);
+    template tl::expected<long long, CURLcode> CURLHandle::get_info(CURLINFO option);
     template tl::expected<curl_slist*, CURLcode> CURLHandle::get_info(CURLINFO option);
 
     template <class I>
@@ -306,7 +306,15 @@ namespace mamba
     template <>
     tl::expected<std::size_t, CURLcode> CURLHandle::get_info(CURLINFO option)
     {
-        return get_integer_info<std::size_t>(option);
+        auto res = get_info<curl_off_t>(option);
+        if (res)
+        {
+            return static_cast<std::size_t>(res.value());
+        }
+        else
+        {
+            return tl::unexpected(res.error());
+        }
     }
 
     template <>

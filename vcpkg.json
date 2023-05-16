@@ -21,6 +21,17 @@
       "platform": "windows"
     },
     {
+      "features": [
+        "bzip2",
+        "lz4",
+        "lzma",
+        "lzo",
+        "openssl",
+        "zstd"
+      ],
+      "name": "libarchive"
+    },
+    {
       "host": true,
       "name": "vcpkg-cmake"
     },

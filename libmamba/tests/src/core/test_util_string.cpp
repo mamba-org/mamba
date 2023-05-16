@@ -60,6 +60,8 @@ namespace mamba
             CHECK(contains(":hello&", "ll"));
             CHECK_FALSE(contains(":hello&", "eo"));
             CHECK(contains("áäáœ©gþhëb®hüghœ©®xb", "ëb®"));
+            CHECK_FALSE(contains("", "ab"));
+            CHECK(contains("", ""));  // same as Python ``"" in ""``
         }
 
         TEST_CASE("any_starts_with")

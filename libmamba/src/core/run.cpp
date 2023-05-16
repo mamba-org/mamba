@@ -283,6 +283,7 @@ namespace mamba
 #endif
 
     int run_in_environment(
+        const fs::u8path& prefix,
         std::vector<std::string> command,
         const std::string& cwd,
         int stream_options,
@@ -292,10 +293,9 @@ namespace mamba
         const std::string& specific_process_name
     )
     {
-        if (!fs::exists(Context::instance().prefix_params.target_prefix))
+        if (!fs::exists(prefix))
         {
-            LOG_CRITICAL << "The given prefix does not exist: "
-                         << Context::instance().prefix_params.target_prefix;
+            LOG_CRITICAL << "The given prefix does not exist: " << prefix;
             return 1;
         }
         std::vector<std::string> raw_command = command;
@@ -318,10 +318,7 @@ namespace mamba
         }
 #endif
 
-        auto [wrapped_command, script_file] = prepare_wrapped_call(
-            Context::instance().prefix_params.target_prefix,
-            command
-        );
+        auto [wrapped_command, script_file] = prepare_wrapped_call(prefix, command);
 
         fmt::print(LOG_DEBUG, "Running wrapped script: {}", fmt::join(command, " "));
 

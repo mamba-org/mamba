@@ -216,6 +216,7 @@ namespace
         subcmd->callback(
             [all_subsubcmds]()
             {
+                auto& ctx = Context::instance();
                 auto& config = Configuration::instance();
                 config.load();
 
@@ -224,34 +225,35 @@ namespace
                     all_subsubcmds.cend(),
                     [](auto* subsubcmd) -> bool { return subsubcmd->parsed(); }
                 );
-                auto& prefix = config.at("shell_prefix").compute().value<std::string>();
                 if (!got_subsubcmd)
                 {
-                    if (prefix.empty() || prefix == "base")
+                    auto const get_prefix = [&]() -> fs::u8path
                     {
-                        Context::instance().prefix_params.target_prefix = Context::instance()
-                                                                              .prefix_params.root_prefix;
-                    }
-                    else
-                    {
-                        Context::instance().prefix_params.target_prefix = Context::instance()
-                                                                              .prefix_params.root_prefix
-                                                                          / "envs" / prefix;
-                    }
+                        auto prefix = config.at("shell_prefix").compute().value<std::string>();
+                        if (prefix.empty() || prefix == "base")
+                        {
+                            return ctx.prefix_params.root_prefix;
+                        }
+                        // `env_name` case
+                        return ctx.prefix_params.root_prefix / "envs" / std::move(prefix);
+                    };
 
-                    std::string default_shell = "bash";
-                    if (on_win)
+                    auto const get_shell = []() -> std::string
                     {
-                        default_shell = "cmd.exe";
-                    }
-                    else if (on_mac)
-                    {
-                        default_shell = "zsh";
-                    }
+                        if constexpr (on_win)
+                        {
+                            return env::get("SHELL").value_or("cmd.exe");
+                        }
+                        else if constexpr (on_mac)
+                        {
+                            return env::get("SHELL").value_or("zsh");
+                        }
+                        return env::get("SHELL").value_or("bash");
+                    };
 
-                    auto env_shell = env::get("SHELL").value_or(default_shell);
                     exit(mamba::run_in_environment(
-                        { env_shell },
+                        get_prefix(),
+                        { get_shell() },
                         ".",
                         static_cast<int>(STREAM_OPTIONS::ALL_STREAMS),
                         false,

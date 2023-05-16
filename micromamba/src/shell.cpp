@@ -75,6 +75,7 @@ namespace
             []()
             {
                 auto& config = Configuration::instance();
+                config.load();
                 shell_init(
                     consolidate_shell(config.at("shell_type").compute().value<std::string>()),
                     config.at("shell_prefix").compute().value<std::string>()
@@ -91,6 +92,7 @@ namespace
             []()
             {
                 auto& config = Configuration::instance();
+                config.load();
                 shell_deinit(
                     consolidate_shell(config.at("shell_type").compute().value<std::string>()),
                     config.at("shell_prefix").compute().value<std::string>()
@@ -107,6 +109,7 @@ namespace
             []()
             {
                 auto& config = Configuration::instance();
+                config.load();
                 shell_reinit(config.at("shell_prefix").compute().value<std::string>());
                 config.operation_teardown();
             }
@@ -120,6 +123,7 @@ namespace
             []()
             {
                 auto& config = Configuration::instance();
+                config.load();
                 shell_hook(consolidate_shell(config.at("shell_type").compute().value<std::string>()));
                 config.operation_teardown();
             }
@@ -146,6 +150,7 @@ namespace
             []()
             {
                 auto& config = Configuration::instance();
+                config.load();
                 shell_activate(
                     config.at("shell_prefix").compute().value<std::string>(),
                     consolidate_shell(config.at("shell_type").compute().value<std::string>()),
@@ -163,6 +168,7 @@ namespace
             []()
             {
                 auto& config = Configuration::instance();
+                config.load();
                 shell_reactivate(
                     consolidate_shell(config.at("shell_type").compute().value<std::string>())
                 );
@@ -178,6 +184,7 @@ namespace
             []()
             {
                 auto& config = Configuration::instance();
+                config.load();
                 shell_deactivate(config.at("shell_type").compute().value<std::string>());
                 config.operation_teardown();
             }
@@ -191,6 +198,7 @@ namespace
             []()
             {
                 auto& config = Configuration::instance();
+                config.load();
                 shell_enable_long_path_support();
                 config.operation_teardown();
             }
@@ -205,14 +213,10 @@ set_shell_command(CLI::App* shell_subcmd)
     config.at("show_banner").set_value(false);
     config.at("use_target_prefix_fallback").set_value(false);
     config.at("target_prefix_checks").set_value(MAMBA_NO_PREFIX_CHECK);
-    config.load();
 
     // The initial parser had the subcmdmand as an action so both
     // ``micromamba shell init --shell bash`` and ``micromamba shell --shell bash init`` were
     // allowed.
-    // We want to move everything to the first one, but keeping this for compatibility so far.
-    // TODO micromamba 2.0 deprecate `micromamba shell --shell bash cmd` and remove the following
-    // line
     init_shell_parser(shell_subcmd);
 
     set_shell_init_command(

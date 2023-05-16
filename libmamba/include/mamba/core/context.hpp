@@ -99,6 +99,7 @@ namespace mamba
     enum class AuthenticationType
     {
         kBasicHTTPAuthentication,
+        kBearerToken,
         kCondaToken
     };
 

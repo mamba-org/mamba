@@ -1,3 +1,20 @@
+mamba 1.4.3 (May 15, 2023)
+==========================
+
+Enhancements:
+
+- Context structuring by @Hind-M in https://github.com/mamba-org/mamba/pull/2432
+- Add mamba version to mamba info output by @Hind-M in https://github.com/mamba-org/mamba/pull/2477
+- Resume Context structuring by @Hind-M in https://github.com/mamba-org/mamba/pull/2460
+
+Bug fixes:
+
+- Move repoquery python test from libmamba (not run) to mamba by @Hind-M in https://github.com/mamba-org/mamba/pull/2489
+
+CI fixes and doc:
+
+- Extend issue template by @jonashaag in https://github.com/mamba-org/mamba/pull/2310
+
 mamba 1.4.2 (April 06, 2023)
 ============================
 

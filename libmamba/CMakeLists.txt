@@ -512,6 +512,11 @@ macro(libmamba_create_target target_name linkage output_name)
 
     if (WIN32)
         find_path(WINREG_INCLUDE_DIR NAMES "winreg/WinReg.hpp")
+        find_path(
+            WINREG_INCLUDE_DIR
+            NAMES WinReg.hpp
+            PATH_SUFFIXES winreg
+        )
     endif()
 
     target_include_directories(

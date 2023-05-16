@@ -1,3 +1,10 @@
+libmamba 1.4.4 (May 16, 2023)
+=============================
+
+Bug fixes:
+
+- Fix CURLHandle::get_info on 32bit platform by e8035669 in https://github.com/mamba-org/mamba/pull/2528
+
 libmamba 1.4.3 (May 15, 2023)
 =============================
 

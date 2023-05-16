@@ -1,3 +1,10 @@
+libmambapy 1.4.4 (May 16, 2023)
+===============================
+
+Bug fixes:
+
+- Support future deprecated API for Context by @Hind-M in https://github.com/mamba-org/mamba/pull/2494
+
 libmambapy 1.4.3 (May 15, 2023)
 ===============================
 

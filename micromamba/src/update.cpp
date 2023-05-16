@@ -6,6 +6,7 @@
 
 #include <fmt/color.h>
 #include <fmt/format.h>
+#include <reproc++/run.hpp>
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
@@ -135,11 +136,28 @@ update_self(const std::optional<std::string>& version)
         throw;
     }
 
-    Console::instance().print("\nReinitializing all previously initialized shells\n");
-    std::string shell_type = "";
-    mamba::shell("reinit", shell_type, ctx.prefix_params.root_prefix, false);
+    // Command to reinit shell from the new executable.
+    // Adding bash as the shell but this is just a placeholder as the find_initialized_shells()
+    // deals with the reinit.
+    std::vector<std::string> command = { mamba_exe, "shell", "reinit",          "-s",
+                                         "bash",    "-p",    prefix_data.path() };
 
-    return 0;
+    // The options for the process
+    reproc::options options;
+    options.redirect.parent = true;  // Redirect output
+    options.deadline = reproc::milliseconds(5000);
+
+    // Run the command in a redirected process
+    int status = -1;
+    std::error_code ec;
+    std::tie(status, ec) = reproc::run(command, options);
+
+    if (ec)
+    {
+        std::cerr << "error: " << ec.message() << std::endl;
+    }
+
+    return ec ? ec.value() : status;
 }
 
 

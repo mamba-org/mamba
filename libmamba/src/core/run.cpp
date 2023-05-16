@@ -1,7 +1,16 @@
+// Copyright (c) 2020, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
+
+#include <array>
 #include <csignal>
 #include <exception>
 #include <iostream>
+#include <string>
 #include <thread>
+#include <vector>
 
 #include <fmt/color.h>
 #include <fmt/format.h>
@@ -41,7 +50,7 @@ namespace mamba
     {
         assert(!program_name.empty());
 
-        static const std::vector prefixes = {
+        static constexpr std::array prefixes = {
             "curious",   "gentle",   "happy",      "stubborn",   "boring",  "interesting",
             "funny",     "weird",    "surprising", "serious",    "tender",  "obvious",
             "great",     "proud",    "silent",     "loud",       "vacuous", "focused",
@@ -55,7 +64,7 @@ namespace mamba
             "program", "application", "app", "code", "blob", "binary", "script",
         };
 
-        static std::vector prefixes_bag = prefixes;
+        static std::vector prefixes_bag(prefixes.cbegin(), prefixes.cend());
         std::string selected_name{ program_name };
         while (true)
         {
@@ -81,8 +90,9 @@ namespace mamba
                 );
                 selected_name = *selected_name_it;
                 alt_names.erase(selected_name_it);
-                prefixes_bag = prefixes;  // Re-fill the prefix bag.
-                continue;                 // Re-try with new prefix + new name.
+                // Re-fill the prefix bag.
+                prefixes_bag = decltype(prefixes_bag)(prefixes.cbegin(), prefixes.cend());
+                continue;  // Re-try with new prefix + new name.
             }
             else
             {
@@ -103,7 +113,7 @@ namespace mamba
 
     const fs::u8path& proc_dir()
     {
-        static auto path = env::home_directory() / ".mamba" / "proc";
+        static const auto path = env::home_directory() / ".mamba" / "proc";
         return path;
     }
 

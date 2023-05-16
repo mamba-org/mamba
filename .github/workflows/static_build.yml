@@ -96,38 +96,13 @@ jobs:
         with:
           # The installed packages are in %VCPKG_INSTALLATION_ROOT%\installed\x64-windows-static
           # and the info which packages are installed is in %VCPKG_INSTALLATION_ROOT%\installed\vcpkg
-          path: C:\vcpkg\installed
-          key: vcpkg-win-64
+          path: C:\vcpkg\packages
+          key: vcpkg-win-64-packages
       - name: Install dependencies with vcpkg
         shell: cmd
-        # remove libsolv port once https://github.com/microsoft/vcpkg/pull/31275 is released
+        # remove libsolv overlay-ports once https://github.com/microsoft/vcpkg/pull/31275 is released
         run: |
-          ROBOCOPY .\ports\libsolv %VCPKG_INSTALLATION_ROOT%\ports\libsolv
-          @rem ROBOCOPY has 0 and 1 as successfull exit codes
-          if %errorlevel% neq 0 if %errorlevel% neq 1 exit /b %errorlevel%
-          SET VCPKG_BUILD_TYPE=release
-          vcpkg install libsolv[conda] --triplet x64-windows-static
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          vcpkg install libarchive[bzip2,lz4,lzma,lzo,openssl,zstd] --triplet x64-windows-static
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          vcpkg install nlohmann-json --triplet x64-windows-static
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          vcpkg install tl-expected --triplet x64-windows-static
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          vcpkg install curl --triplet x64-windows-static
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          vcpkg install yaml-cpp --triplet x64-windows-static
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          vcpkg install reproc --triplet x64-windows-static
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          vcpkg install fmt --triplet x64-windows-static
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          vcpkg install spdlog --triplet x64-windows-static
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          vcpkg install cli11 --triplet x64-windows-static
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          vcpkg install winreg --triplet x64-windows-static
-          if %errorlevel% neq 0 exit /b %errorlevel%
+          vcpkg install --overlay-ports=.\ports\libsolv --triplet x64-windows-static
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -137,7 +112,7 @@ jobs:
       - name: build micromamba
         shell: cmd
         run: |
-          set CMAKE_PREFIX_PATH=%VCPKG_INSTALLATION_ROOT%\installed\x64-windows-static
+          set CMAKE_PREFIX_PATH=.\vcpkg_installed\x64-windows-static
           cmake -S . ^
             -B build ^
             -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^

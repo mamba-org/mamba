@@ -83,7 +83,7 @@ namespace mamba
             PrefixData& prefix_data = exp_prefix_data.value();
 
             MPool pool;
-            MRepo::create(pool, prefix_data);
+            MRepo(pool, prefix_data);
 
             const fs::u8path pkgs_dirs(ctx.prefix_params.root_prefix / "pkgs");
             MultiPackageCache package_caches({ pkgs_dirs });

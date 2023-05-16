@@ -907,7 +907,9 @@ namespace mamba
     void MSubdirData::create_target()
     {
         auto& ctx = Context::instance();
-        m_temp_file = std::make_unique<TemporaryFile>();
+        fs::u8path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
+        auto lock = LockFile(writable_cache_dir);
+        m_temp_file = std::make_unique<TemporaryFile>("mambaf", "", writable_cache_dir);
 
         bool use_zst = m_metadata.has_zst.has_value() && m_metadata.has_zst.value().value;
         m_target = std::make_unique<DownloadTarget>(
@@ -958,16 +960,18 @@ namespace mamba
         return cache_dir.string();
     }
 
-    expected_t<MRepo&> MSubdirData::create_repo(MPool& pool)
+    expected_t<MRepo> MSubdirData::create_repo(MPool& pool)
     {
-        using return_type = expected_t<MRepo&>;
-        RepoMetadata meta{ m_repodata_url,
-                           Context::instance().add_pip_as_python_dependency,
-                           m_metadata.etag,
-                           m_metadata.mod };
+        using return_type = expected_t<MRepo>;
+        RepoMetadata meta{
+            /* .url= */ rsplit(m_metadata.url, "/", 1).front(),
+            /* .etag= */ m_metadata.etag,
+            /* .mod= */ m_metadata.mod,
+            /* .pip_added= */ Context::instance().add_pip_as_python_dependency,
+        };
 
         auto cache = cache_path();
-        return cache ? return_type(MRepo::create(pool, m_name, *cache, meta))
+        return cache ? return_type(MRepo(pool, m_name, *cache, meta))
                      : return_type(forward_error(cache));
     }
 

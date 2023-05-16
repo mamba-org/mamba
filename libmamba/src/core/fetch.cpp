@@ -22,6 +22,39 @@
 
 namespace mamba
 {
+    /*****************************
+     * Config and Context params *
+     *****************************/
+
+    void get_config(
+        bool& set_low_speed_opt,
+        bool& set_ssl_no_revoke,
+        long& connect_timeout_secs,
+        std::string& ssl_verify
+    )
+    {
+        // Don't know if it's better to store these...
+        // for now only called twice, and if modified during execution we better not...
+
+        // if the request is slower than 30b/s for 60 seconds, cancel.
+        std::string no_low_speed_limit = std::getenv("MAMBA_NO_LOW_SPEED_LIMIT")
+                                             ? std::getenv("MAMBA_NO_LOW_SPEED_LIMIT")
+                                             : "0";
+        set_low_speed_opt = (no_low_speed_limit == "0");
+
+        std::string ssl_no_revoke_env = std::getenv("MAMBA_SSL_NO_REVOKE")
+                                            ? std::getenv("MAMBA_SSL_NO_REVOKE")
+                                            : "0";
+        set_ssl_no_revoke = (Context::instance().remote_fetch_params.ssl_no_revoke || (ssl_no_revoke_env != "0"));
+        connect_timeout_secs = Context::instance().remote_fetch_params.connect_timeout_secs;
+        ssl_verify = Context::instance().remote_fetch_params.ssl_verify;
+    }
+
+    std::size_t get_default_retry_timeout()
+    {
+        return static_cast<std::size_t>(Context::instance().remote_fetch_params.retry_timeout);
+    }
+
     /*********************************
      * DownloadTarget implementation *
      *********************************/
@@ -33,7 +66,6 @@ namespace mamba
         , m_http_status(10000)
         , m_downloaded_size(0)
         , m_effective_url(nullptr)
-        , m_result(CURLE_OK)
         , m_expected_size(0)
         , m_retry_wait_seconds(get_default_retry_timeout())
         , m_retries(0)
@@ -47,34 +79,6 @@ namespace mamba
 
     DownloadTarget::~DownloadTarget()
     {
-    }
-
-    std::size_t DownloadTarget::get_default_retry_timeout()
-    {
-        return static_cast<std::size_t>(Context::instance().remote_fetch_params.retry_timeout);
-    }
-
-    void DownloadTarget::init_curl_handle(CURL* handle, const std::string& url)
-    {
-        // if the request is slower than 30b/s for 60 seconds, cancel.
-        std::string no_low_speed_limit = std::getenv("MAMBA_NO_LOW_SPEED_LIMIT")
-                                             ? std::getenv("MAMBA_NO_LOW_SPEED_LIMIT")
-                                             : "0";
-
-        std::string ssl_no_revoke_env = std::getenv("MAMBA_SSL_NO_REVOKE")
-                                            ? std::getenv("MAMBA_SSL_NO_REVOKE")
-                                            : "0";
-        bool set_ssl_no_revoke = (Context::instance().remote_fetch_params.ssl_no_revoke || ssl_no_revoke_env != "0");
-
-        curl::configure_curl_handle(
-            handle,
-            url,
-            (no_low_speed_limit == "0"),
-            Context::instance().remote_fetch_params.connect_timeout_secs,
-            set_ssl_no_revoke,
-            proxy_match(url),
-            Context::instance().remote_fetch_params.ssl_verify
-        );
     }
 
     int
@@ -174,7 +178,21 @@ namespace mamba
 
     void DownloadTarget::init_curl_target(const std::string& url)
     {
-        init_curl_handle(m_curl_handle->handle(), url);
+        // Get config
+        bool set_low_speed_opt, set_ssl_no_revoke;
+        long connect_timeout_secs;
+        std::string ssl_verify;
+        get_config(set_low_speed_opt, set_ssl_no_revoke, connect_timeout_secs, ssl_verify);
+
+        // Configure curl handle
+        m_curl_handle->configure_handle(
+            url,
+            set_low_speed_opt,
+            connect_timeout_secs,
+            set_ssl_no_revoke,
+            proxy_match(url),
+            ssl_verify
+        );
 
         m_curl_handle->set_opt(CURLOPT_HEADERFUNCTION, &DownloadTarget::header_callback);
         m_curl_handle->set_opt(CURLOPT_HEADERDATA, this);
@@ -222,6 +240,24 @@ namespace mamba
         m_curl_handle->set_opt_header();
         m_curl_handle->set_opt(CURLOPT_VERBOSE, Context::instance().output_params.verbosity >= 2);
 
+        // get url host
+        const auto url_handler = URLHandler(url);
+        auto host = url_handler.host();
+        const auto port = url_handler.port();
+        if (port.size())
+        {
+            host += ":" + port;
+        }
+
+        if (Context::instance().authentication_info().count(host))
+        {
+            const auto& auth = Context::instance().authentication_info().at(host);
+            if (auth.type == AuthenticationType::kBearerToken)
+            {
+                m_curl_handle->add_header(fmt::format("Authorization: Bearer {}", auth.value));
+            }
+        }
+
         auto logger = spdlog::get("libcurl");
         m_curl_handle->set_opt(CURLOPT_DEBUGFUNCTION, curl_debug_callback);
         m_curl_handle->set_opt(CURLOPT_DEBUGDATA, logger.get());
@@ -229,29 +265,9 @@ namespace mamba
 
     bool DownloadTarget::can_retry()
     {
-        // TODO add a function here to wrap the switch and returning a bool
-        switch (m_result)
+        if (!m_curl_handle->can_proceed())
         {
-            case CURLE_ABORTED_BY_CALLBACK:
-            case CURLE_BAD_FUNCTION_ARGUMENT:
-            case CURLE_CONV_REQD:
-            case CURLE_COULDNT_RESOLVE_PROXY:
-            case CURLE_FILESIZE_EXCEEDED:
-            case CURLE_INTERFACE_FAILED:
-            case CURLE_NOT_BUILT_IN:
-            case CURLE_OUT_OF_MEMORY:
-            // See RhBug: 1219817
-            // case CURLE_RECV_ERROR:
-            // case CURLE_SEND_ERROR:
-            case CURLE_SSL_CACERT_BADFILE:
-            case CURLE_SSL_CRL_BADFILE:
-            case CURLE_WRITE_ERROR:
-            case CURLE_OPERATION_TIMEDOUT:
-                return false;
-                break;
-            default:
-                // Other error are not considered fatal
-                break;
+            return false;
         }
 
         return m_retries < size_t(Context::instance().remote_fetch_params.max_retries)
@@ -272,7 +288,7 @@ namespace mamba
             {
                 fs::remove(m_filename);
             }
-            init_curl_target(m_url);  // Not sure this is needed, TODO to remove?
+            init_curl_target(m_url);
             if (m_has_progress_bar)
             {
                 m_curl_handle->set_opt(CURLOPT_XFERINFOFUNCTION, &DownloadTarget::progress_callback);
@@ -540,67 +556,40 @@ namespace mamba
         return speed.value();
     }
 
-    static size_t discard(char*, size_t size, size_t nmemb, void*)
-    {
-        return size * nmemb;
-    }
-
     bool DownloadTarget::resource_exists()
     {
         init_curl_ssl();
-        auto handle = curl_easy_init();
-        init_curl_handle(handle, m_url);
 
-        curl_easy_setopt(handle, CURLOPT_FAILONERROR, 1L);
-        curl_easy_setopt(handle, CURLOPT_NOBODY, 1L);
+        bool set_low_speed_opt, set_ssl_no_revoke;
+        long connect_timeout_secs;
+        std::string ssl_verify;
+        get_config(set_low_speed_opt, set_ssl_no_revoke, connect_timeout_secs, ssl_verify);
 
-        if (curl_easy_perform(handle) == CURLE_OK)
-        {
-            return true;
-        }
-
-        long response_code;
-        curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
-
-        if (response_code == 405)
-        {
-            // Method not allowed
-            // Some servers don't support HEAD, try a GET if the HEAD fails
-            curl_easy_setopt(handle, CURLOPT_NOBODY, 0L);
-            // Prevent output of data
-            curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, &discard);
-            return curl_easy_perform(handle) == CURLE_OK;
-        }
-        else
-        {
-            return false;
-        }
+        return curl::check_resource_exists(
+            m_url,
+            set_low_speed_opt,
+            connect_timeout_secs,
+            set_ssl_no_revoke,
+            proxy_match(m_url),
+            ssl_verify
+        );
     }
 
     bool DownloadTarget::perform()
     {
         LOG_INFO << "Downloading to filename: " << m_filename;
-
-        m_result = curl_easy_perform(m_curl_handle->handle());
-        set_result(m_result);
-        return ((m_result == CURLE_OK) && finalize());
+        m_curl_handle->perform();
+        return (check_result() && finalize());
     }
 
-    CURL* DownloadTarget::handle()
+    bool DownloadTarget::check_result()
     {
-        return m_curl_handle->handle();
-    }
-
-    void DownloadTarget::set_result(CURLcode r)
-    {
-        m_result = r;
-        if (r != CURLE_OK)
+        if (!m_curl_handle->is_curl_res_ok())
         {
-            auto leffective_url = m_curl_handle->get_info<char*>(CURLINFO_EFFECTIVE_URL).value();
-
             std::stringstream err;
-            err << "Download error (" << m_result << ") " << curl_easy_strerror(m_result) << " ["
-                << leffective_url << "]\n";
+            err << "Download error (" << m_curl_handle->get_result() << ") "
+                << m_curl_handle->get_res_error() << " [" << m_curl_handle->get_curl_effective_url()
+                << "]\n";
             if (m_curl_handle->get_error_buffer()[0] != '\0')
             {
                 err << m_curl_handle->get_error_buffer();
@@ -614,18 +603,28 @@ namespace mamba
             {
                 m_progress_bar.update_progress(0, 1);
                 // m_progress_bar.set_elapsed_time();
-                m_progress_bar.set_postfix(curl_easy_strerror(m_result));
+                m_progress_bar.set_postfix(m_curl_handle->get_res_error());
             }
             if (!m_ignore_failure && !can_retry())
             {
                 throw std::runtime_error(err.str());
             }
+            return false;
+        }
+        else
+        {
+            return true;
         }
     }
 
     std::size_t DownloadTarget::get_result() const
     {
-        return static_cast<std::size_t>(m_result);
+        return m_curl_handle->get_result();
+    }
+
+    void DownloadTarget::set_result(CURLcode res)
+    {
+        m_curl_handle->set_result(res);
     }
 
     bool DownloadTarget::finalize()
@@ -772,7 +771,7 @@ namespace mamba
             }
 
             current_target->set_result(msg.m_transfer_result);
-            if (msg.m_transfer_result != CURLE_OK && current_target->can_retry())
+            if (!current_target->check_result() && current_target->can_retry())
             {
                 p_curl_handle->remove_handle(current_target->get_curl_handle());
                 m_retry_targets.push_back(current_target);

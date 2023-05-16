@@ -411,6 +411,16 @@ namespace mamba
         return table(out, { "Name", "Version", "Build", "Channel" });
     }
 
+    namespace
+    {
+        /** Remove potential subdir from channel name (not url!). */
+        auto cut_subdir(std::string_view str) -> std::string
+        {
+            return split(str, "/", 1).front();  // Has at least one element
+        }
+
+    }
+
     std::ostream& query_result::table(std::ostream& out, const std::vector<std::string>& fmt) const
     {
         if (m_pkg_id_list.empty())
@@ -457,7 +467,7 @@ namespace mamba
                 }
                 else if (cmd == "Channel")
                 {
-                    row.push_back(cut_repo_name(pkg.channel));
+                    row.push_back(cut_subdir(cut_repo_name(pkg.channel)));
                 }
                 else if (cmd == "Depends")
                 {
@@ -630,16 +640,30 @@ namespace mamba
         j["result"]["pkgs"] = nlohmann::json::array();
         for (size_t i = 0; i < m_pkg_id_list.size(); ++i)
         {
-            j["result"]["pkgs"].push_back(m_dep_graph.node(m_pkg_id_list[i]).json_record());
+            auto pkg_info_json = m_dep_graph.node(m_pkg_id_list[i]).json_record();
+            // We want the cannonical channel name here.
+            // We do not know what is in the `channel` field so we need to make sure.
+            // This is most likely legacy and should be updated on the next major release.
+            pkg_info_json["channel"] = cut_subdir(cut_repo_name(pkg_info_json["channel"]));
+            j["result"]["pkgs"].push_back(std::move(pkg_info_json));
         }
 
         if (m_type != QueryType::kSEARCH && !m_pkg_id_list.empty())
         {
-            bool has_root = !m_dep_graph.successors(0).empty();
             j["result"]["graph_roots"] = nlohmann::json::array();
-            j["result"]["graph_roots"].push_back(
-                has_root ? m_dep_graph.node(0).json_record() : nlohmann::json(m_query)
-            );
+            if (!m_dep_graph.successors(0).empty())
+            {
+                auto pkg_info_json = m_dep_graph.node(0).json_record();
+                // We want the cannonical channel name here.
+                // We do not know what is in the `channel` field so we need to make sure.
+                // This is most likely legacy and should be updated on the next major release.
+                pkg_info_json["channel"] = cut_subdir(cut_repo_name(pkg_info_json["channel"]));
+                j["result"]["graph_roots"].push_back(std::move(pkg_info_json));
+            }
+            else
+            {
+                j["result"]["graph_roots"].push_back(nlohmann::json(m_query));
+            }
         }
         return j;
     }

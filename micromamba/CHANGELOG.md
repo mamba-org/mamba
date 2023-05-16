@@ -1,3 +1,18 @@
+micromamba 1.4.3 (May 15, 2023)
+===============================
+
+Enhancements:
+
+- Context structuring by @Hind-M in https://github.com/mamba-org/mamba/pull/2432
+- Resume Context structuring by @Hind-M in https://github.com/mamba-org/mamba/pull/2460
+- cleanup: fix pytest warnings by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2490
+- Use libsolv wrappers in MPool and MRepo by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2453
+- add bearer token authentication by @wolfv in https://github.com/mamba-org/mamba/pull/2512
+
+CI fixes and doc:
+
+- Extend issue template by @jonashaag in https://github.com/mamba-org/mamba/pull/2310
+
 micromamba 1.4.2 (April 06, 2023)
 =================================
 

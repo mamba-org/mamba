@@ -565,6 +565,22 @@ class Context:
     def channels(self, arg0: typing.List[str]) -> None:
         pass
     @property
+    def conda_prefix(self) -> Path:
+        """
+        :type: Path
+        """
+    @conda_prefix.setter
+    def conda_prefix(self, arg1: Path) -> None:
+        pass
+    @property
+    def connect_timeout_secs(self) -> int:
+        """
+        :type: int
+        """
+    @connect_timeout_secs.setter
+    def connect_timeout_secs(self, arg1: int) -> None:
+        pass
+    @property
     def custom_channels(self) -> typing.Dict[str, str]:
         """
         :type: typing.Dict[str, str]
@@ -597,6 +613,14 @@ class Context:
     def download_only(self, arg0: bool) -> None:
         pass
     @property
+    def download_threads(self) -> int:
+        """
+        :type: int
+        """
+    @download_threads.setter
+    def download_threads(self, arg1: int) -> None:
+        pass
+    @property
     def dry_run(self) -> bool:
         """
         :type: bool
@@ -621,12 +645,36 @@ class Context:
     def experimental_sat_error_message(self, arg1: bool) -> None:
         pass
     @property
+    def extract_threads(self) -> int:
+        """
+        :type: int
+        """
+    @extract_threads.setter
+    def extract_threads(self, arg1: int) -> None:
+        pass
+    @property
+    def json(self) -> bool:
+        """
+        :type: bool
+        """
+    @json.setter
+    def json(self, arg1: bool) -> None:
+        pass
+    @property
     def local_repodata_ttl(self) -> int:
         """
         :type: int
         """
     @local_repodata_ttl.setter
     def local_repodata_ttl(self, arg0: int) -> None:
+        pass
+    @property
+    def max_retries(self) -> int:
+        """
+        :type: int
+        """
+    @max_retries.setter
+    def max_retries(self, arg1: int) -> None:
         pass
     @property
     def offline(self) -> bool:
@@ -677,12 +725,60 @@ class Context:
     def proxy_servers(self, arg0: typing.Dict[str, str]) -> None:
         pass
     @property
+    def quiet(self) -> bool:
+        """
+        :type: bool
+        """
+    @quiet.setter
+    def quiet(self, arg1: bool) -> None:
+        pass
+    @property
     def remote_fetch_params(self) -> Context.RemoteFetchParams:
         """
         :type: Context.RemoteFetchParams
         """
     @remote_fetch_params.setter
     def remote_fetch_params(self, arg0: Context.RemoteFetchParams) -> None:
+        pass
+    @property
+    def retry_backoff(self) -> int:
+        """
+        :type: int
+        """
+    @retry_backoff.setter
+    def retry_backoff(self, arg1: int) -> None:
+        pass
+    @property
+    def retry_timeout(self) -> int:
+        """
+        :type: int
+        """
+    @retry_timeout.setter
+    def retry_timeout(self, arg1: int) -> None:
+        pass
+    @property
+    def root_prefix(self) -> Path:
+        """
+        :type: Path
+        """
+    @root_prefix.setter
+    def root_prefix(self, arg1: Path) -> None:
+        pass
+    @property
+    def ssl_verify(self) -> str:
+        """
+        :type: str
+        """
+    @ssl_verify.setter
+    def ssl_verify(self, arg1: str) -> None:
+        pass
+    @property
+    def target_prefix(self) -> Path:
+        """
+        :type: Path
+        """
+    @target_prefix.setter
+    def target_prefix(self, arg1: Path) -> None:
         pass
     @property
     def threads_params(self) -> Context.ThreadsParams:
@@ -715,6 +811,22 @@ class Context:
         """
     @use_only_tar_bz2.setter
     def use_only_tar_bz2(self, arg0: bool) -> None:
+        pass
+    @property
+    def user_agent(self) -> str:
+        """
+        :type: str
+        """
+    @user_agent.setter
+    def user_agent(self, arg1: str) -> None:
+        pass
+    @property
+    def verbosity(self) -> int:
+        """
+        :type: int
+        """
+    @verbosity.setter
+    def verbosity(self, arg1: int) -> None:
         pass
     pass
 

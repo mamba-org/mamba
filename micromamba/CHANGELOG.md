@@ -1,3 +1,10 @@
+micromamba 1.4.4 (May 16, 2023)
+===============================
+
+Bug fixes:
+
+- fix: let the new executable run the shell init script by @ruben-arts in https://github.com/mamba-org/mamba/pull/2529
+
 micromamba 1.4.3 (May 15, 2023)
 ===============================
 

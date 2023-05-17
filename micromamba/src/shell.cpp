@@ -216,17 +216,19 @@ namespace
         subcmd->callback(
             [all_subsubcmds]()
             {
-                auto& ctx = Context::instance();
-                auto& config = Configuration::instance();
-                config.load();
-
                 bool const got_subsubcmd = std::any_of(
                     all_subsubcmds.cbegin(),
                     all_subsubcmds.cend(),
                     [](auto* subsubcmd) -> bool { return subsubcmd->parsed(); }
                 );
+                // It is important to not do anything before that (not even loading the config)
+                // because this callback may be greedily executed, even with a sub sub command.
                 if (!got_subsubcmd)
                 {
+                    auto& ctx = Context::instance();
+                    auto& config = Configuration::instance();
+                    config.load();
+
                     auto const get_prefix = [&]() -> fs::u8path
                     {
                         auto prefix = config.at("shell_prefix").compute().value<std::string>();

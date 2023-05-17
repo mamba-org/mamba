@@ -281,27 +281,22 @@ namespace mamba
         return val;
     }
 
-    // WARNING curl_easy_getinfo MUST have its third argument pointing to long, char*, curl_slist*
-    // or double
+    // WARNING curl_easy_getinfo MUST have its third argument pointing to long,
+    // curl_off_t, char*, double, curl_slist*, curl_certinfo*, curl_tlssessioninfo*
+    // or curl_socket_t depending on the used option.
+    // cf. each option man page for more details.
+    // https://curl.se/libcurl/c/curl_easy_getinfo.html
+
+    // Note that `curl_off_t` can be either `long` or `long long` depending on the platform.
+    // Since `long` specialization is needed for some options (e.g CURLINFO_RESPONSE_CODE),
+    // defining `long long` is needed to handle `curl_off_t` is `long long` case without
+    // causing duplication.
+
     template tl::expected<long, CURLcode> CURLHandle::get_info(CURLINFO option);
     template tl::expected<char*, CURLcode> CURLHandle::get_info(CURLINFO option);
     template tl::expected<double, CURLcode> CURLHandle::get_info(CURLINFO option);
     template tl::expected<long long, CURLcode> CURLHandle::get_info(CURLINFO option);
     template tl::expected<curl_slist*, CURLcode> CURLHandle::get_info(CURLINFO option);
-
-    template <class I>
-    tl::expected<I, CURLcode> CURLHandle::get_integer_info(CURLINFO option)
-    {
-        auto res = get_info<long>(option);
-        if (res)
-        {
-            return static_cast<I>(res.value());
-        }
-        else
-        {
-            return tl::unexpected(res.error());
-        }
-    }
 
     template <>
     tl::expected<std::size_t, CURLcode> CURLHandle::get_info(CURLINFO option)
@@ -320,7 +315,15 @@ namespace mamba
     template <>
     tl::expected<int, CURLcode> CURLHandle::get_info(CURLINFO option)
     {
-        return get_integer_info<int>(option);
+        auto res = get_info<long>(option);
+        if (res)
+        {
+            return static_cast<int>(res.value());
+        }
+        else
+        {
+            return tl::unexpected(res.error());
+        }
     }
 
     template <>

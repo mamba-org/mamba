@@ -78,9 +78,6 @@ namespace mamba
         template <class T>
         tl::expected<T, CURLcode> get_info(CURLINFO option);
 
-        template <class I>
-        tl::expected<I, CURLcode> get_integer_info(CURLINFO option);
-
         void configure_handle(
             const std::string& url,
             const bool set_low_speed_opt,

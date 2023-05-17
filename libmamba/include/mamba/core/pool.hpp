@@ -17,6 +17,7 @@
 namespace mamba
 {
     class MatchSpec;
+    class ChannelContext;
 
     namespace solv
     {
@@ -35,7 +36,7 @@ namespace mamba
     {
     public:
 
-        MPool();
+        MPool(ChannelContext& channel_context);
         ~MPool();
 
         void set_debuglevel();
@@ -56,6 +57,8 @@ namespace mamba
         const solv::ObjPool& pool() const;
 
         void remove_repo(::Id repo_id, bool reuse_ids);
+
+        ChannelContext& channel_context() const;
 
     private:
 

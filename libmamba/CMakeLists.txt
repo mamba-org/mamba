@@ -208,7 +208,6 @@ set(LIBMAMBA_PUBLIC_HEADERS
     # Core API (low-level)
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/activation.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/channel.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/channel_builder.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/palette.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/context.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/environment.hpp

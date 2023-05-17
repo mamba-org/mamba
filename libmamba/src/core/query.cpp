@@ -625,13 +625,14 @@ namespace mamba
         return out;
     }
 
-    nlohmann::json query_result::json() const
+    nlohmann::json query_result::json(ChannelContext& channel_context) const
     {
         nlohmann::json j;
         std::string query_type = m_type == QueryType::kSEARCH
                                      ? "search"
                                      : (m_type == QueryType::kDEPENDS ? "depends" : "whoneeds");
-        j["query"] = { { "query", MatchSpec(m_query).conda_build_form() }, { "type", query_type } };
+        j["query"] = { { "query", MatchSpec{ m_query, channel_context }.conda_build_form() },
+                       { "type", query_type } };
 
         std::string msg = m_pkg_id_list.empty() ? "No entries matching \"" + m_query + "\" found"
                                                 : "";

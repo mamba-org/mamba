@@ -35,11 +35,13 @@
 
 namespace mamba
 {
+    class ChannelContext;
+
     class PackageDownloadExtractTarget
     {
     public:
 
-        PackageDownloadExtractTarget(const PackageInfo& pkg_info);
+        PackageDownloadExtractTarget(const PackageInfo& pkg_info, ChannelContext& channel_context);
 
         void write_repodata_record(const fs::u8path& base_path);
         void add_url();

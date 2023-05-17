@@ -24,7 +24,7 @@ namespace mamba
                 // TODO : us tl::expected mechanis
                 throw std::runtime_error("Specified pkgs_dir does not exist\n");
             }
-            auto sprefix_data = PrefixData::create(pkgs_dir);
+            auto sprefix_data = PrefixData::create(pkgs_dir, pool.channel_context());
             if (!sprefix_data)
             {
                 throw std::runtime_error("Specified pkgs_dir does not exist\n");
@@ -63,7 +63,7 @@ namespace mamba
 
         std::vector<mamba_error> error_list;
 
-        for (auto channel : get_channels(channel_urls))
+        for (auto channel : pool.channel_context().get_channels(channel_urls))
         {
             for (auto& [platform, url] : channel->platform_urls(true))
             {

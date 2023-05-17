@@ -6,6 +6,7 @@
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/remove.hpp"
+#include "mamba/core/channel.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/pool.hpp"
@@ -35,9 +36,11 @@ namespace mamba
 
         auto remove_specs = config.at("specs").value<std::vector<std::string>>();
 
+        ChannelContext channel_context;
+
         if (remove_all)
         {
-            auto sprefix_data = PrefixData::create(ctx.prefix_params.target_prefix);
+            auto sprefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!sprefix_data)
             {
                 // TODO: propagate tl::expected mechanism
@@ -52,7 +55,7 @@ namespace mamba
 
         if (!remove_specs.empty())
         {
-            detail::remove_specs(remove_specs, prune, force);
+            detail::remove_specs(channel_context, remove_specs, prune, force);
         }
         else
         {
@@ -64,7 +67,12 @@ namespace mamba
 
     namespace detail
     {
-        void remove_specs(const std::vector<std::string>& specs, bool prune, bool force)
+        void remove_specs(
+            ChannelContext& channel_context,
+            const std::vector<std::string>& specs,
+            bool prune,
+            bool force
+        )
         {
             auto& ctx = Context::instance();
 
@@ -74,7 +82,7 @@ namespace mamba
                 throw std::runtime_error("Aborted.");
             }
 
-            auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix);
+            auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!exp_prefix_data)
             {
                 // TODO: propagate tl::expected mechanism
@@ -82,7 +90,7 @@ namespace mamba
             }
             PrefixData& prefix_data = exp_prefix_data.value();
 
-            MPool pool;
+            MPool pool{ channel_context };
             MRepo(pool, prefix_data);
 
             const fs::u8path pkgs_dirs(ctx.prefix_params.root_prefix / "pkgs");
@@ -103,7 +111,16 @@ namespace mamba
 
             if (force)
             {
-                std::vector<MatchSpec> mspecs(specs.begin(), specs.end());
+                std::vector<MatchSpec> mspecs;
+                mspecs.reserve(specs.size());
+                std::transform(
+                    specs.begin(),
+                    specs.end(),
+                    std::back_inserter(mspecs),
+                    [&](const auto& spec_str) {
+                        return MatchSpec{ spec_str, channel_context };
+                    }
+                );
                 auto transaction = MTransaction(pool, mspecs, {}, package_caches);
                 execute_transaction(transaction);
             }
@@ -119,7 +136,7 @@ namespace mamba
                     }
                 );
 
-                History history(ctx.prefix_params.target_prefix);
+                History history(ctx.prefix_params.target_prefix, channel_context);
                 auto hist_map = history.get_requested_specs_map();
                 std::vector<std::string> keep_specs;
                 for (auto& it : hist_map)

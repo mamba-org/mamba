@@ -32,7 +32,8 @@ namespace mamba
             );
         config.load();
 
-        detail::print_info();
+        ChannelContext channel_context;
+        detail::print_info(channel_context);
 
         config.operation_teardown();
     }
@@ -92,7 +93,7 @@ namespace mamba
             Console::instance().json_write(items_map);
         }
 
-        void print_info()
+        void print_info(ChannelContext& channel_context)
         {
             auto& ctx = Context::instance();
             std::vector<std::tuple<std::string, nlohmann::json>> items;
@@ -164,7 +165,7 @@ namespace mamba
             auto& ctx_channels = Context::instance().channels;
             std::copy(ctx_channels.begin(), ctx_channels.end(), std::back_inserter(channels));
             std::vector<std::string> channel_urls;
-            for (auto channel : get_channels(channels))
+            for (auto channel : channel_context.get_channels(channels))
             {
                 for (auto url : channel->urls(true))
                 {

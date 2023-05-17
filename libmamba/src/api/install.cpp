@@ -16,6 +16,7 @@
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
 #include "mamba/core/activation.hpp"
+#include "mamba/core/channel.hpp"
 #include "mamba/core/env_lockfile.hpp"
 #include "mamba/core/environments_manager.hpp"
 #include "mamba/core/mamba_fs.hpp"
@@ -338,7 +339,7 @@ namespace mamba
         }
 
         std::tuple<std::vector<PackageInfo>, std::vector<MatchSpec>>
-        parse_urls_to_package_info(const std::vector<std::string>& urls)
+        parse_urls_to_package_info(const std::vector<std::string>& urls, ChannelContext& channel_context)
         {
             std::vector<PackageInfo> pi_result;
             std::vector<MatchSpec> ms_result;
@@ -349,7 +350,7 @@ namespace mamba
                     continue;
                 }
                 std::size_t hash = u.find_first_of('#');
-                MatchSpec ms(u.substr(0, hash));
+                MatchSpec ms(u.substr(0, hash), channel_context);
                 PackageInfo p(ms.name);
                 p.url = ms.url;
                 p.build_string = ms.build_string;
@@ -390,11 +391,14 @@ namespace mamba
         auto& install_specs = config.at("specs").value<std::vector<std::string>>();
         auto& use_explicit = config.at("explicit_install").value<bool>();
 
+        ChannelContext channel_context;
+
         if (Context::instance().env_lockfile)
         {
             const auto lockfile_path = Context::instance().env_lockfile.value();
             LOG_DEBUG << "Lockfile: " << lockfile_path;
             install_lockfile_specs(
+                channel_context,
                 lockfile_path,
                 Configuration::instance().at("categories").value<std::vector<std::string>>(),
                 false
@@ -404,11 +408,11 @@ namespace mamba
         {
             if (use_explicit)
             {
-                install_explicit_specs(install_specs, false);
+                install_explicit_specs(channel_context, install_specs, false);
             }
             else
             {
-                mamba::install_specs(install_specs, false);
+                mamba::install_specs(channel_context, install_specs, false);
             }
         }
         else
@@ -422,8 +426,13 @@ namespace mamba
     int RETRY_SUBDIR_FETCH = 1 << 0;
     int RETRY_SOLVE_ERROR = 1 << 1;
 
-    void
-    install_specs(const std::vector<std::string>& specs, bool create_env, int solver_flag, int is_retry)
+    void install_specs(
+        ChannelContext& channel_context,
+        const std::vector<std::string>& specs,
+        bool create_env,
+        int solver_flag,
+        int is_retry
+    )
     {
         auto& ctx = Context::instance();
         auto& config = Configuration::instance();
@@ -452,7 +461,7 @@ namespace mamba
         // add channels from specs
         for (const auto& s : specs)
         {
-            if (auto m = MatchSpec{ s }; !m.channel.empty())
+            if (auto m = MatchSpec{ s, channel_context }; !m.channel.empty())
             {
                 ctx.channels.push_back(m.channel);
             }
@@ -463,7 +472,7 @@ namespace mamba
             LOG_WARNING << "No 'channels' specified";
         }
 
-        MPool pool;
+        MPool pool{ channel_context };
         // functions implied in 'and_then' coding-styles must return the same type
         // which limits this syntax
         /*auto exp_prefix_data = load_channels(pool, package_caches, is_retry)
@@ -477,7 +486,10 @@ namespace mamba
             throw std::runtime_error(exp_load.error().what());
         }
 
-        auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix);
+        auto exp_prefix_data = PrefixData::create(
+            ctx.prefix_params.target_prefix,
+            pool.channel_context()
+        );
         if (!exp_prefix_data)
         {
             throw std::runtime_error(exp_prefix_data.error().what());
@@ -549,7 +561,13 @@ namespace mamba
             if (retry_clean_cache && !(is_retry & RETRY_SOLVE_ERROR))
             {
                 ctx.local_repodata_ttl = 2;
-                return install_specs(specs, create_env, solver_flag, is_retry | RETRY_SOLVE_ERROR);
+                return install_specs(
+                    channel_context,
+                    specs,
+                    create_env,
+                    solver_flag,
+                    is_retry | RETRY_SOLVE_ERROR
+                );
             }
             if (freeze_installed)
             {
@@ -597,11 +615,15 @@ namespace mamba
     {
         // TransactionFunc: (MPool& pool, MultiPackageCache& package_caches) -> MTransaction
         template <typename TransactionFunc>
-        void install_explicit_with_transaction(TransactionFunc create_transaction, bool create_env)
+        void install_explicit_with_transaction(
+            ChannelContext& channel_context,
+            TransactionFunc create_transaction,
+            bool create_env
+        )
         {
-            MPool pool;
+            MPool pool{ channel_context };
             auto& ctx = Context::instance();
-            auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix);
+            auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!exp_prefix_data)
             {
                 // TODO: propagate tl::expected mechanism
@@ -641,9 +663,14 @@ namespace mamba
         }
     }
 
-    void install_explicit_specs(const std::vector<std::string>& specs, bool create_env)
+    void install_explicit_specs(
+        ChannelContext& channel_context,
+        const std::vector<std::string>& specs,
+        bool create_env
+    )
     {
         detail::install_explicit_with_transaction(
+            channel_context,
             [&](auto& pool, auto& pkg_caches, auto& others)
             { return create_explicit_transaction_from_urls(pool, specs, pkg_caches, others); },
             create_env
@@ -651,6 +678,7 @@ namespace mamba
     }
 
     void install_lockfile_specs(
+        ChannelContext& channel_context,
         const std::string& lockfile,
         const std::vector<std::string>& categories,
         bool create_env
@@ -680,6 +708,7 @@ namespace mamba
         }
 
         detail::install_explicit_with_transaction(
+            channel_context,
             [&](auto& pool, auto& pkg_caches, auto& others) {
                 return create_explicit_transaction_from_lockfile(pool, file, categories, pkg_caches, others);
             },

@@ -13,7 +13,7 @@
 
 namespace mamba
 {
-    std::string python_pin(const PrefixData& prefix_data, const std::vector<std::string>& specs)
+    std::string python_pin(PrefixData& prefix_data, const std::vector<std::string>& specs)
     {
         std::string pin = "";
         std::string py_version;
@@ -30,7 +30,7 @@ namespace mamba
 
         for (const auto& spec : specs)
         {
-            MatchSpec ms(spec);
+            MatchSpec ms{ spec, prefix_data.channel_context() };
             if (ms.name == "python")
             {
                 return "";

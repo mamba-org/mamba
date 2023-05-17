@@ -75,17 +75,19 @@ set_env_command(CLI::App* com)
     );
 
     export_subcom->callback(
-        []()
+        [&]
         {
             auto const& ctx = Context::instance();
             auto& config = Configuration::instance();
             config.at("show_banner").set_value(false);
             config.load();
 
+
+            mamba::ChannelContext channel_context;
             if (explicit_format)
             {
                 // TODO: handle error
-                auto pd = PrefixData::create(ctx.prefix_params.target_prefix).value();
+                auto pd = PrefixData::create(ctx.prefix_params.target_prefix, channel_context).value();
                 auto records = pd.sorted_records();
                 std::cout << "# This file may be used to create an environment using:\n"
                           << "# $ conda create --name <env> --file <this file>\n"
@@ -106,7 +108,7 @@ set_env_command(CLI::App* com)
             }
             else
             {
-                auto pd = PrefixData::create(ctx.prefix_params.target_prefix).value();
+                auto pd = PrefixData::create(ctx.prefix_params.target_prefix, channel_context).value();
                 History& hist = pd.history();
 
                 const auto& versions_map = pd.records();
@@ -138,7 +140,7 @@ set_env_command(CLI::App* com)
                         dependencies << "\n";
                     }
 
-                    channels.insert(make_channel(v.url).name());
+                    channels.insert(channel_context.make_channel(v.url).name());
                 }
 
                 for (const auto& c : channels)
@@ -152,7 +154,7 @@ set_env_command(CLI::App* com)
     );
 
     list_subcom->callback(
-        []()
+        []
         {
             const auto& ctx = Context::instance();
             auto& config = Configuration::instance();
@@ -196,10 +198,10 @@ set_env_command(CLI::App* com)
     init_general_options(remove_subcom);
     init_prefix_options(remove_subcom);
 
-    create_subcom->callback([&]() { create(); });
+    create_subcom->callback(mamba::create);
 
     remove_subcom->callback(
-        []()
+        []
         {
             // Remove specs if exist
             remove(MAMBA_REMOVE_ALL);

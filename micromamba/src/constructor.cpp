@@ -7,6 +7,7 @@
 #include "constructor.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
+#include "mamba/core/channel.hpp"
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/url.hpp"
@@ -55,14 +56,13 @@ set_constructor_command(CLI::App* subcom)
     init_constructor_parser(subcom);
 
     subcom->callback(
-        [&]()
+        []
         {
             auto& c = Configuration::instance();
 
             auto& prefix = c.at("constructor_prefix").compute().value<fs::u8path>();
             auto& extract_conda_pkgs = c.at("constructor_extract_conda_pkgs").compute().value<bool>();
             auto& extract_tarball = c.at("constructor_extract_tarball").compute().value<bool>();
-
             construct(prefix, extract_conda_pkgs, extract_tarball);
         }
     );
@@ -83,6 +83,8 @@ construct(const fs::u8path& prefix, bool extract_conda_pkgs, bool extract_tarbal
     config.load();
 
     std::map<std::string, nlohmann::json> repodatas;
+
+    mamba::ChannelContext channel_context;
 
     if (extract_conda_pkgs)
     {
@@ -108,7 +110,10 @@ construct(const fs::u8path& prefix, bool extract_conda_pkgs, bool extract_tarbal
         fs::u8path pkgs_dir = prefix / "pkgs";
         fs::u8path urls_file = pkgs_dir / "urls";
 
-        auto [package_details, _] = detail::parse_urls_to_package_info(read_lines(urls_file));
+        auto [package_details, _] = detail::parse_urls_to_package_info(
+            read_lines(urls_file),
+            channel_context
+        );
 
         for (const auto& pkg_info : package_details)
         {

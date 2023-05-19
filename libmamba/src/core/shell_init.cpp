@@ -12,7 +12,7 @@
 #include <fmt/ostream.h>
 #include <reproc++/run.hpp>
 #ifdef _WIN32
-#include "winreg/WinReg.hpp"
+#include <WinReg.hpp>
 #endif
 
 #include "mamba/core/activation.hpp"

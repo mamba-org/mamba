@@ -720,18 +720,18 @@ namespace mamba
         {
             std::string s_json = solvable_to_json(m_pool, s).dump(4);
 
-            std::string channel;
+            std::string chan_name;
             if (auto str = s.channel(); !str.empty())
             {
-                channel = str;
+                chan_name = str;
             }
             else
             {
                 // note this can and should be <unknown> when e.g. installing from a tarball
-                channel = solv::ObjRepoViewConst::of_solvable(s).name();
+                chan_name = solv::ObjRepoViewConst::of_solvable(s).name();
             }
 
-            to_install_structured.emplace_back(channel, s.file_name(), s_json);
+            to_install_structured.emplace_back(chan_name, s.file_name(), s_json);
         }
 
         to_specs_type specs;
@@ -804,9 +804,8 @@ namespace mamba
 
             if (ctx.experimental && ctx.verify_artifacts)
             {
-                const auto& repo_checker = m_pool.channel_context()
-                                               .make_channel(std::string(s_url))
-                                               .repo_checker(m_multi_cache);
+                const Channel& chan = m_pool.channel_context().make_channel(std::string(s_url));
+                const auto& repo_checker = chan.repo_checker(m_multi_cache);
                 const auto pkg_info = mk_pkginfo(m_pool, s);
                 repo_checker.verify_package(
                     pkg_info.json_signable(),
@@ -1131,29 +1130,30 @@ namespace mamba
                 name.style = ctx.graphics_params.palette.deletion;
             }
 
-            std::string channel;
+            std::string chan_name;
             if (auto str = s.channel(); !str.empty())
             {
                 if (str == "explicit_specs")
                 {
-                    channel = s.file_name();
+                    chan_name = s.file_name();
                 }
                 else
                 {
-                    channel = m_pool.channel_context().make_channel(std::string(str)).canonical_name();
+                    const Channel& chan = m_pool.channel_context().make_channel(std::string(str));
+                    chan_name = chan.canonical_name();
                 }
             }
             else
             {
                 // note this can and should be <unknown> when e.g. installing from a tarball
-                channel = solv::ObjRepoViewConst::of_solvable(s).name();
-                assert(channel != "__explicit_specs__");
+                chan_name = solv::ObjRepoViewConst::of_solvable(s).name();
+                assert(chan_name != "__explicit_specs__");
             }
 
             r.push_back({ name,
                           printers::FormattedString(std::string(s.version())),
                           printers::FormattedString(std::string(s.build_string())),
-                          printers::FormattedString(cut_repo_name(channel)),
+                          printers::FormattedString(cut_repo_name(chan_name)),
                           dlsize_s });
         };
 

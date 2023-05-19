@@ -51,10 +51,6 @@ namespace mamba
         };
     }  // namespace
 
-    /**************************
-     * Channel implementation *
-     **************************/
-
     namespace
     {
         // proper file scheme on Windows is `file:///C:/blabla`
@@ -87,7 +83,12 @@ namespace mamba
         {
             return s.empty() ? std::optional<std::string>() : std::make_optional(s);
         }
-    }
+    }  // namespace
+
+
+    /**************************
+     * Channel implementation *
+     **************************/
 
     Channel::Channel(
         ChannelContext& channel_context,
@@ -265,6 +266,10 @@ namespace mamba
     {
         return !(lhs == rhs);
     }
+
+    /*********************************
+     * ChannelContext implementation *
+     *********************************/
 
     Channel ChannelContext::make_simple_channel(
         const Channel& channel_alias,

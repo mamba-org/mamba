@@ -106,7 +106,8 @@ namespace mamba
                         );
                     }
 
-                    selected_channel = m_pool.channel_context().make_channel(selected_channel).name();
+                    const Channel& channel = m_pool.channel_context().make_channel(selected_channel);
+                    selected_channel = channel.name();
 
                     MatchSpec modified_spec(ms);
                     if (!ms.channel.empty() || !ms.version.empty() || !ms.build_string.empty())

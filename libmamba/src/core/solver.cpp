@@ -250,7 +250,7 @@ namespace mamba
                         );
                     }
 
-                    selected_channel = make_channel(selected_channel).name();
+                    selected_channel = m_pool.channel_context().make_channel(selected_channel).name();
 
                     MatchSpec modified_spec(ms);
                     if (!ms.channel.empty() || !ms.version.empty() || !ms.build_string.empty())
@@ -285,20 +285,21 @@ namespace mamba
     {
         for (const auto& job : jobs)
         {
-            MatchSpec ms(job);
+            MatchSpec ms{ job, m_pool.channel_context() };
             int job_type = job_flag & SOLVER_JOBMASK;
 
             if (job_type & SOLVER_INSTALL)
             {
-                m_install_specs.emplace_back(job);
+                m_install_specs.emplace_back(job, m_pool.channel_context());
             }
             else if (job_type == SOLVER_ERASE)
             {
-                m_remove_specs.emplace_back(job);
+                m_remove_specs.emplace_back(job, m_pool.channel_context());
             }
             else if (job_type == SOLVER_LOCK)
             {
-                m_neuter_specs.emplace_back(job);  // not used for the moment
+                m_neuter_specs.emplace_back(job, m_pool.channel_context());  // not used for the
+                                                                             // moment
             }
 
             ::Id const job_id = m_pool.matchspec2id(ms);
@@ -328,7 +329,10 @@ namespace mamba
 
     void MSolver::add_constraint(const std::string& job)
     {
-        m_jobs->push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, m_pool.matchspec2id({ job }));
+        m_jobs->push_back(
+            SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
+            m_pool.matchspec2id({ job, m_pool.channel_context() })
+        );
     }
 
     void MSolver::add_pin(const std::string& pin)
@@ -359,7 +363,7 @@ namespace mamba
         // as one of its constrains.
         // Then we lock this solvable and force the re-checking of its dependencies.
 
-        const auto pin_ms = MatchSpec(pin);
+        const auto pin_ms = MatchSpec{ pin, m_pool.channel_context() };
         m_pinned_specs.push_back(pin_ms);
 
         ::Pool* pool = m_pool;

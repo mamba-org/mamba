@@ -28,7 +28,8 @@ namespace mamba
             );
         config.load();
 
-        detail::list_packages(regex);
+        ChannelContext channel_context;
+        detail::list_packages(regex, channel_context);
 
         config.operation_teardown();
     }
@@ -45,11 +46,11 @@ namespace mamba
             return a.name < b.name;
         }
 
-        void list_packages(std::string regex)
+        void list_packages(std::string regex, ChannelContext& channel_context)
         {
             auto& ctx = Context::instance();
 
-            auto sprefix_data = PrefixData::create(ctx.prefix_params.target_prefix);
+            auto sprefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!sprefix_data)
             {
                 // TODO: propagate tl::expected mechanism
@@ -77,7 +78,7 @@ namespace mamba
 
                     if (regex.empty() || std::regex_search(pkg_info.name, spec_pat))
                     {
-                        auto& channel = make_channel(pkg_info.url);
+                        auto& channel = channel_context.make_channel(pkg_info.url);
                         obj["base_url"] = channel.base_url();
                         obj["build_number"] = pkg_info.build_number;
                         obj["build_string"] = pkg_info.build_string;
@@ -115,7 +116,7 @@ namespace mamba
                     }
                     else
                     {
-                        const Channel& channel = make_channel(package.second.url);
+                        const Channel& channel = channel_context.make_channel(package.second.url);
                         formatted_pkgs.channel = channel.name();
                     }
                     packages.push_back(formatted_pkgs);

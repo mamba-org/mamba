@@ -79,7 +79,7 @@ set_common_search(CLI::App* subcom, bool is_repoquery)
     subcom->add_option("--platform", platform.get_cli_config<std::string>(), platform.description());
 
     subcom->callback(
-        [&]()
+        [&]
         {
             auto qtype = str_to_qtype(query_type);
             QueryResultFormat format = QueryResultFormat::kTABLE;

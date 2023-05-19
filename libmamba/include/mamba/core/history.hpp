@@ -21,7 +21,7 @@ namespace mamba
     {
     public:
 
-        History(const fs::u8path& prefix);
+        History(const fs::u8path& prefix, ChannelContext& channel_context);
 
         struct ParseResult
         {
@@ -54,6 +54,7 @@ namespace mamba
 
         fs::u8path m_prefix;
         fs::u8path m_history_file_path;
+        ChannelContext& m_channel_context;
     };
 
 }  // namespace mamba

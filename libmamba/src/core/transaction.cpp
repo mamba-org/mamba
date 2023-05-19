@@ -72,7 +72,10 @@ namespace mamba
         DownloadExtractSemaphore::semaphore.set_max(value);
     }
 
-    PackageDownloadExtractTarget::PackageDownloadExtractTarget(const PackageInfo& pkg_info)
+    PackageDownloadExtractTarget::PackageDownloadExtractTarget(
+        const PackageInfo& pkg_info,
+        ChannelContext& channel_context
+    )
         : m_finished(false)
         , m_package_info(pkg_info)
     {
@@ -81,7 +84,7 @@ namespace mamba
         // only do this for micromamba for now
         if (Context::instance().command_params.is_micromamba)
         {
-            m_url = make_channel(pkg_info.url).urls(true)[0];
+            m_url = channel_context.make_channel(pkg_info.url).urls(true)[0];
         }
         else
         {
@@ -638,7 +641,9 @@ namespace mamba
                                     add_spec += depevr;
                                 }
                             }
-                            m_history_entry.update.push_back(MatchSpec(add_spec).str());
+                            m_history_entry.update.push_back(
+                                MatchSpec{ add_spec, pool.channel_context() }.str()
+                            );
                         }
                     }
                 }
@@ -813,7 +818,8 @@ namespace mamba
         for (const auto& pkginfo : packages)
         {
             specs_to_install.push_back(MatchSpec(
-                fmt::format("{}=={}={}", pkginfo.name, pkginfo.version, pkginfo.build_string)
+                fmt::format("{}=={}={}", pkginfo.name, pkginfo.version, pkginfo.build_string),
+                m_pool.channel_context()
             ));
         }
 
@@ -1212,7 +1218,9 @@ namespace mamba
 
             if (ctx.experimental && ctx.verify_artifacts)
             {
-                const auto& repo_checker = make_channel(s_url).repo_checker(m_multi_cache);
+                const auto& repo_checker = m_pool.channel_context().make_channel(s_url).repo_checker(
+                    m_multi_cache
+                );
                 const auto pkg_info = mk_pkginfo(m_pool, s);
                 repo_checker.verify_package(
                     pkg_info.json_signable(),
@@ -1222,8 +1230,10 @@ namespace mamba
                 LOG_DEBUG << "'" << pkg_info.name << "' trusted from '" << s_url << "'";
             }
 
-            targets.emplace_back(std::make_unique<PackageDownloadExtractTarget>(mk_pkginfo(m_pool, s))
-            );
+            targets.emplace_back(std::make_unique<PackageDownloadExtractTarget>(
+                mk_pkginfo(m_pool, s),
+                m_pool.channel_context()
+            ));
             DownloadTarget* download_target = targets.back()->target(m_multi_cache);
             if (download_target != nullptr)
             {
@@ -1543,7 +1553,7 @@ namespace mamba
                 }
                 else
                 {
-                    channel = make_channel(str).canonical_name();
+                    channel = m_pool.channel_context().make_channel(str).canonical_name();
                 }
             }
             else
@@ -1695,7 +1705,7 @@ namespace mamba
             }
 
             std::size_t hash = u.find_first_of('#');
-            MatchSpec ms(u.substr(0, hash));
+            MatchSpec ms(u.substr(0, hash), pool.channel_context());
 
             if (hash != std::string::npos)
             {
@@ -1722,7 +1732,7 @@ namespace mamba
         std::vector<detail::other_pkg_mgr_spec>& other_specs
     )
     {
-        const auto maybe_lockfile = read_environment_lockfile(env_lockfile_path);
+        const auto maybe_lockfile = read_environment_lockfile(pool.channel_context(), env_lockfile_path);
         if (!maybe_lockfile)
         {
             throw maybe_lockfile.error();  // NOTE: we cannot return an `un/expected` because

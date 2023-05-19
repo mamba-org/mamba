@@ -15,9 +15,10 @@
 
 namespace mamba
 {
-    History::History(const fs::u8path& prefix)
+    History::History(const fs::u8path& prefix, ChannelContext& channel_context)
         : m_prefix(prefix)
         , m_history_file_path(fs::absolute(m_prefix / "conda-meta" / "history"))
+        , m_channel_context(channel_context)
     {
     }
 
@@ -193,13 +194,13 @@ namespace mamba
     {
         std::unordered_map<std::string, MatchSpec> map;
 
-        auto to_specs = [](const std::vector<std::string>& sv)
+        auto to_specs = [&](const std::vector<std::string>& sv)
         {
             std::vector<MatchSpec> v;
             v.reserve(sv.size());
             for (const auto& el : sv)
             {
-                v.emplace_back(el);
+                v.emplace_back(el, m_channel_context);
             }
             return v;
         };

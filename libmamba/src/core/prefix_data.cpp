@@ -15,11 +15,12 @@
 
 namespace mamba
 {
-    auto PrefixData::create(const fs::u8path& prefix_path) -> expected_t<PrefixData>
+    auto PrefixData::create(const fs::u8path& prefix_path, ChannelContext& channel_context)
+        -> expected_t<PrefixData>
     {
         try
         {
-            return PrefixData(prefix_path);
+            return PrefixData(prefix_path, channel_context);
         }
         catch (std::exception& e)
         {
@@ -35,9 +36,10 @@ namespace mamba
         }
     }
 
-    PrefixData::PrefixData(const fs::u8path& prefix_path)
-        : m_history(prefix_path)
+    PrefixData::PrefixData(const fs::u8path& prefix_path, ChannelContext& channel_context)
+        : m_history(prefix_path, channel_context)
         , m_prefix_path(prefix_path)
+        , m_channel_context(channel_context)
     {
         load();
     }
@@ -95,7 +97,7 @@ namespace mamba
                 for (const auto& dep : record->depends)
                 {
                     // Creating a matchspec to parse the name (there may be a channel)
-                    auto ms = MatchSpec(dep);
+                    auto ms = MatchSpec{ dep, m_channel_context };
                     // Ignoring unmatched dependencies, the environment could be broken
                     // or it could be a matchspec
                     const auto from_iter = name_to_node_id.find(ms.name);

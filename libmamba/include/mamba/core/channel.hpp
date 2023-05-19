@@ -18,9 +18,17 @@
 
 namespace mamba
 {
+    class ChannelContext;
+
+    // Note: Channels can only be created using ChannelContext.
     class Channel
     {
     public:
+
+        Channel(const Channel&) = delete;
+        Channel& operator=(const Channel&) = delete;
+        Channel(Channel&&) noexcept = default;
+        Channel& operator=(Channel&&) noexcept = default;
 
         const std::string& scheme() const;
         const std::string& location() const;
@@ -39,9 +47,15 @@ namespace mamba
         platform_urls(bool with_credential = true) const;
         std::vector<std::string> urls(bool with_credential = true) const;
 
+        ChannelContext& channel_context() const
+        {
+            return *m_channel_context;
+        }
+
     private:
 
         Channel(
+            ChannelContext& channel_context,
             const std::string& scheme,
             const std::string& location,
             const std::string& name,
@@ -60,17 +74,79 @@ namespace mamba
         std::optional<std::string> m_package_filename;
         mutable std::optional<std::string> m_canonical_name;
         mutable std::unique_ptr<validation::RepoChecker> p_repo_checker;
+        ChannelContext* m_channel_context = nullptr;
 
-        friend class ChannelBuilder;
+        friend class ChannelContext;
     };
 
     bool operator==(const Channel& lhs, const Channel& rhs);
     bool operator!=(const Channel& lhs, const Channel& rhs);
 
-    const Channel& make_channel(const std::string& value);
-    std::vector<const Channel*> get_channels(const std::vector<std::string>& channel_names);
 
-    void check_whitelist(const std::vector<std::string>& urls);
+    using ChannelCache = std::map<std::string, Channel>;
+
+    class ChannelContext
+    {
+    public:
+
+        using channel_list = std::vector<std::string>;
+        using channel_map = std::map<std::string, Channel>;
+        using multichannel_map = std::map<std::string, std::vector<std::string>>;
+
+        ChannelContext();
+        ~ChannelContext();
+
+        ChannelContext(const ChannelContext&) = delete;
+        ChannelContext& operator=(const ChannelContext&) = delete;
+        ChannelContext(ChannelContext&&) = delete;
+        ChannelContext& operator=(ChannelContext&&) = delete;
+
+        const Channel& make_channel(const std::string& value);
+        std::vector<const Channel*> get_channels(const std::vector<std::string>& channel_names);
+
+        void clear_cache();
+
+        void check_whitelist(const std::vector<std::string>& urls);
+
+        // internal
+        const Channel& get_channel_alias() const;
+        const channel_map& get_custom_channels() const;
+        const multichannel_map& get_custom_multichannels() const;
+
+        const channel_list& get_whitelist_channels() const;
+
+    private:
+
+        ChannelCache m_channel_cache;
+        Channel m_channel_alias;
+        channel_map m_custom_channels;
+        multichannel_map m_custom_multichannels;
+        channel_list m_whitelist_channels;
+
+        Channel build_channel_alias();
+        void init_custom_channels();
+
+
+        Channel make_simple_channel(
+            const Channel& channel_alias,
+            const std::string& channel_url,
+            const std::string& channel_name = "",
+            const std::string& multi_name = ""
+        );
+
+        const Channel& make_cached_channel(const std::string& value);
+
+        Channel from_url(const std::string& url);
+        Channel from_name(const std::string& name);
+        Channel from_value(const std::string& value);
+        Channel from_alias(
+            const std::string& scheme,
+            const std::string& location,
+            const std::optional<std::string>& auth = {},
+            const std::optional<std::string>& token = {}
+        );
+    };
+
 }  // namespace mamba
 
 #endif

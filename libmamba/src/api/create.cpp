@@ -7,6 +7,7 @@
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/create.hpp"
 #include "mamba/api/install.hpp"
+#include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/util.hpp"
 
@@ -28,6 +29,8 @@ namespace mamba
 
         auto& create_specs = config.at("specs").value<std::vector<std::string>>();
         auto& use_explicit = config.at("explicit_install").value<bool>();
+
+        ChannelContext channel_context;
 
         if (!ctx.dry_run)
         {
@@ -74,6 +77,7 @@ namespace mamba
         {
             const auto lockfile_path = Context::instance().env_lockfile.value();
             install_lockfile_specs(
+                channel_context,
                 lockfile_path,
                 Configuration::instance().at("categories").value<std::vector<std::string>>(),
                 true
@@ -83,11 +87,11 @@ namespace mamba
         {
             if (use_explicit)
             {
-                install_explicit_specs(create_specs, true);
+                install_explicit_specs(channel_context, create_specs, true);
             }
             else
             {
-                install_specs(create_specs, true);
+                install_specs(channel_context, create_specs, true);
             }
         }
 

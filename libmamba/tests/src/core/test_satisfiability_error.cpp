@@ -136,14 +136,18 @@ namespace mamba
      * The underlying packages do not exist, we are onl interested in the conflict.
      */
     template <typename PkgRange>
-    auto create_problem(const PkgRange& packages, const std::vector<std::string>& specs)
+    auto create_problem(
+        const PkgRange& packages,
+        const std::vector<std::string>& specs,
+        ChannelContext& channel_context
+    )
     {
         const auto tmp_dir = dir_guard(
             fs::temp_directory_path() / "mamba/tests" / generate_random_alphanumeric_string(20)
         );
         const auto repodata_f = create_repodata_json(tmp_dir.path, packages);
 
-        auto pool = MPool();
+        auto pool = MPool{ channel_context };
         MRepo(pool, "some-name", repodata_f, RepoMetadata{ /* .url= */ "some-url" });
         auto solver = std::make_unique<MSolver>(
             std::move(pool),
@@ -161,7 +165,12 @@ namespace mamba
     {
         TEST_CASE("create_problem")
         {
-            auto solver = create_problem(std::array{ mkpkg("foo", "0.1.0", {}) }, { "foo" });
+            ChannelContext channel_context;
+            auto solver = create_problem(
+                std::array{ mkpkg("foo", "0.1.0", {}) },
+                { "foo" },
+                channel_context
+            );
             const auto solved = solver->try_solve();
             REQUIRE(solved);
         }
@@ -169,13 +178,15 @@ namespace mamba
 
     auto create_basic_conflict() -> MSolver&
     {
+        ChannelContext channel_context;
         static auto solver = create_problem(
             std::array{
                 mkpkg("A", "0.1.0"),
                 mkpkg("A", "0.2.0"),
                 mkpkg("A", "0.3.0"),
             },
-            { "A=0.4.0" }
+            { "A=0.4.0" },
+            channel_context
         );
         return *solver;
     }
@@ -188,6 +199,7 @@ namespace mamba
      */
     auto create_pubgrub() -> MSolver&
     {
+        ChannelContext channel_context;
         static auto solver = create_problem(
             std::array{
                 mkpkg("menu", "1.5.0", { "dropdown=2.*" }),
@@ -207,12 +219,13 @@ namespace mamba
                 mkpkg("intl", "4.0.0"),
                 mkpkg("intl", "3.0.0"),
             },
-            { "menu", "icons=1.*", "intl=5.*" }
+            { "menu", "icons=1.*", "intl=5.*" },
+            channel_context
         );
         return *solver;
     }
 
-    auto create_pubgrub_hard_(bool missing_package)
+    auto create_pubgrub_hard_(bool missing_package, mamba::ChannelContext& channel_context)
     {
         auto packages = std::vector{
             mkpkg("menu", "2.1.0", { "dropdown>=2.1", "emoji" }),
@@ -263,7 +276,8 @@ namespace mamba
         }
         return create_problem(
             packages,
-            { "menu", "pyicons=1.*", "intl=5.*", "intl-mod", "pretty>=1.0" }
+            { "menu", "pyicons=1.*", "intl=5.*", "intl-mod", "pretty>=1.0" },
+            channel_context
         );
     }
 
@@ -272,7 +286,8 @@ namespace mamba
      */
     auto create_pubgrub_hard() -> MSolver&
     {
-        static auto solver = create_pubgrub_hard_(false);
+        static auto channel_context = mamba::ChannelContext{};
+        static auto solver = create_pubgrub_hard_(false, channel_context);
         return *solver;
     }
 
@@ -281,7 +296,8 @@ namespace mamba
      */
     auto create_pubgrub_missing() -> MSolver&
     {
-        static auto solver = create_pubgrub_hard_(true);
+        static auto channel_context = mamba::ChannelContext{};
+        static auto solver = create_pubgrub_hard_(true, channel_context);
         return *solver;
     }
 
@@ -312,7 +328,7 @@ namespace mamba
     {
         auto dlist = MultiDownloadTarget();
         auto sub_dirs = std::vector<MSubdirData>();
-        for (const auto* chan : get_channels(channels))
+        for (const auto* chan : pool.channel_context().get_channels(channels))
         {
             for (auto& [platform, url] : chan->platform_urls(true))
             {
@@ -333,6 +349,7 @@ namespace mamba
      * Create a solver and a pool of a conflict from conda-forge packages.
      */
     auto create_conda_forge(
+        ChannelContext& channel_context,
         std::vector<std::string>&& specs,
         const std::vector<PackageInfo>& virtual_packages = { mkpkg("__glibc", "2.17.0") },
         std::vector<std::string>&& channels = { "conda-forge" },
@@ -344,10 +361,12 @@ namespace mamba
             fs::temp_directory_path() / "mamba/tests" / generate_random_alphanumeric_string(20)
         );
 
-        auto prefix_data = expected_value_or_throw(PrefixData::create(tmp_dir.path / "prefix"));
+        auto prefix_data = expected_value_or_throw(
+            PrefixData::create(tmp_dir.path / "prefix", channel_context)
+        );
         prefix_data.add_packages(virtual_packages);
-        auto pool = MPool();
-        auto repo = MRepo(pool, prefix_data);
+        auto pool = MPool{ channel_context };
+        auto repo = MRepo{ pool, prefix_data };
         repo.set_installed();
 
         auto cache = MultiPackageCache({ tmp_dir.path / "cache" });
@@ -374,7 +393,8 @@ namespace mamba
     {
         TEST_CASE("create_conda_forge")
         {
-            auto solver = create_conda_forge({ "xtensor>=0.7" });
+            ChannelContext channel_context;
+            auto solver = create_conda_forge(channel_context, { "xtensor>=0.7" });
             const auto solved = solver->try_solve();
             REQUIRE(solved);
         }
@@ -382,13 +402,16 @@ namespace mamba
 
     auto create_pytorch_cpu() -> MSolver&
     {
-        static auto solver = create_conda_forge({ "python=2.7", "pytorch=1.12" });
+        static ChannelContext channel_context;
+        static auto solver = create_conda_forge(channel_context, { "python=2.7", "pytorch=1.12" });
         return *solver;
     }
 
     auto create_pytorch_cuda() -> MSolver&
     {
+        static ChannelContext channel_context;
         static auto solver = create_conda_forge(
+            channel_context,
             { "python=2.7", "pytorch=1.12" },
             { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "10.2.0") }
         );
@@ -397,7 +420,9 @@ namespace mamba
 
     auto create_cudatoolkit() -> MSolver&
     {
+        static ChannelContext channel_context;
         static auto solver = create_conda_forge(
+            channel_context,
             { "python=3.7", "cudatoolkit=11.1", "cudnn=8.0", "pytorch=1.8", "torchvision=0.9=*py37_cu111*" },
             { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "11.1") }
         );
@@ -406,13 +431,16 @@ namespace mamba
 
     auto create_jpeg9b() -> MSolver&
     {
-        static auto solver = create_conda_forge({ "python=3.7", "jpeg=9b" });
+        static ChannelContext channel_context;
+        static auto solver = create_conda_forge(channel_context, { "python=3.7", "jpeg=9b" });
         return *solver;
     }
 
     auto create_r_base() -> MSolver&
     {
+        static ChannelContext channel_context;
         static auto solver = create_conda_forge(
+            channel_context,
             { "r-base=3.5.* ", "pandas=0", "numpy<1.20.0", "matplotlib=2", "r-matchit=4.*" }
         );
         return *solver;
@@ -420,25 +448,29 @@ namespace mamba
 
     auto create_scip() -> MSolver&
     {
-        static auto solver = create_conda_forge({ "scip=8.*", "pyscipopt<4.0" });
+        static ChannelContext channel_context;
+        static auto solver = create_conda_forge(channel_context, { "scip=8.*", "pyscipopt<4.0" });
         return *solver;
     }
 
     auto create_jupyterlab() -> MSolver&
     {
-        static auto solver = create_conda_forge({ "jupyterlab=3.4", "openssl=3.0.0" });
+        static ChannelContext channel_context;
+        static auto solver = create_conda_forge(channel_context, { "jupyterlab=3.4", "openssl=3.0.0" });
         return *solver;
     }
 
     auto create_double_python() -> MSolver&
     {
-        static auto solver = create_conda_forge({ "python=3.9.*", "python=3.10.*" });
+        static ChannelContext channel_context;
+        static auto solver = create_conda_forge(channel_context, { "python=3.9.*", "python=3.10.*" });
         return *solver;
     }
 
     auto create_numba() -> MSolver&
     {
-        static auto solver = create_conda_forge({ "python=3.11", "numba<0.56" });
+        static ChannelContext channel_context;
+        static auto solver = create_conda_forge(channel_context, { "python=3.11", "numba<0.56" });
         return *solver;
     }
 

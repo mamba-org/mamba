@@ -12,6 +12,7 @@
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/shell.hpp"
 #include "mamba/api/update.hpp"
+#include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
@@ -32,7 +33,8 @@ update_self(const std::optional<std::string>& version)
     // the conda-meta folder of the target_prefix)
     ctx.prefix_params.target_prefix = ctx.prefix_params.root_prefix;
 
-    mamba::MPool pool;
+    mamba::ChannelContext channel_context;
+    mamba::MPool pool{ channel_context };
     mamba::MultiPackageCache package_caches(ctx.pkgs_dirs);
 
     auto exp_loaded = load_channels(pool, package_caches, 0);
@@ -45,11 +47,11 @@ update_self(const std::optional<std::string>& version)
     std::string matchspec = version ? fmt::format("micromamba={}", version.value())
                                     : fmt::format("micromamba>{}", umamba::version());
 
-    auto solvable_ids = pool.select_solvables(pool.matchspec2id({ matchspec }), true);
+    auto solvable_ids = pool.select_solvables(pool.matchspec2id({ matchspec, channel_context }), true);
 
     if (solvable_ids.empty())
     {
-        if (pool.select_solvables(pool.matchspec2id({ "micromamba" })).empty())
+        if (pool.select_solvables(pool.matchspec2id({ "micromamba", channel_context })).empty())
         {
             throw mamba::mamba_error(
                 "No micromamba found in the loaded channels. Add 'conda-forge' to your config file.",
@@ -86,7 +88,7 @@ update_self(const std::optional<std::string>& version)
 
     ctx.download_only = true;
     MTransaction t(pool, { latest_micromamba.value() }, package_caches);
-    auto exp_prefix_data = PrefixData::create(ctx.prefix_params.root_prefix);
+    auto exp_prefix_data = PrefixData::create(ctx.prefix_params.root_prefix, channel_context);
     if (!exp_prefix_data)
     {
         throw exp_prefix_data.error();
@@ -175,7 +177,7 @@ set_update_command(CLI::App* subcom)
     subcom->get_option("specs")->description("Specs to update in the environment");
     subcom->add_flag("-a,--all", update_all, "Update all packages in the environment");
 
-    subcom->callback([&]() { update(update_all, prune); });
+    subcom->callback([&] { return update(update_all, prune); });
 }
 
 void
@@ -188,5 +190,5 @@ set_self_update_command(CLI::App* subcom)
     static std::optional<std::string> version;
     subcom->add_option("--version", version, "Install specific micromamba version");
 
-    subcom->callback([&]() { return update_self(version); });
+    subcom->callback([&] { return update_self(version); });
 }

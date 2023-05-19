@@ -27,10 +27,10 @@ namespace mamba
         return split_str;
     }
 
-    MatchSpec::MatchSpec(std::string_view i_spec)
+    MatchSpec::MatchSpec(std::string_view i_spec, ChannelContext& channel_context)
         : spec(i_spec)
     {
-        parse();
+        parse(channel_context);
     }
 
     std::tuple<std::string, std::string> MatchSpec::parse_version_and_build(const std::string& s)
@@ -65,7 +65,7 @@ namespace mamba
         }
     }
 
-    void MatchSpec::parse()
+    void MatchSpec::parse(ChannelContext& channel_context)
     {
         LOG_INFO << "Parsing MatchSpec " << spec;
         std::string spec_str = spec;
@@ -84,7 +84,7 @@ namespace mamba
                 LOG_INFO << "need to expand path!";
                 spec_str = path_to_url(fs::absolute(env::expand_user(spec_str)).string());
             }
-            auto& parsed_channel = make_channel(spec_str);
+            auto& parsed_channel = channel_context.make_channel(spec_str);
 
             if (parsed_channel.package_filename())
             {

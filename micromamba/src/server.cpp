@@ -8,11 +8,15 @@
 #include <unistd.h>
 #define PORT 8080
 
+#include <optional>
+#include <unordered_map>
+
 #include <CLI/CLI.hpp>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
+#include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/solver.hpp"
 #include "mamba/core/transaction.hpp"
@@ -23,20 +27,19 @@
 #include "umamba.hpp"
 #include "version.hpp"
 
-struct cache
-{
-    mamba::MPool pool;
-    std::chrono::time_point<std::chrono::system_clock> last_update;
-};
 
 using namespace mamba;
 
 MPool
-load_pool(const std::vector<std::string>& channels, MultiPackageCache& package_caches)
+load_pool(
+    const std::vector<std::string>& channels,
+    MultiPackageCache& package_caches,
+    mamba::ChannelContext& channel_context
+)
 {
     auto& ctx = Context::instance();
     ctx.channels = channels;
-    mamba::MPool pool;
+    mamba::MPool pool{ channel_context };
     auto exp_load = load_channels(pool, package_caches, false);
     if (!exp_load)
     {
@@ -46,10 +49,21 @@ load_pool(const std::vector<std::string>& channels, MultiPackageCache& package_c
 }
 
 void
-handle_solve_request(const microserver::Request& req, microserver::Response& res)
+handle_solve_request(
+    const microserver::Request& req,
+    microserver::Response& res,
+    mamba::ChannelContext& channel_context
+)
 {
     auto& ctx = Context::instance();
-    static std::map<std::string, cache> cache_map;
+
+    struct cache
+    {
+        std::optional<mamba::MPool> pool;
+        std::chrono::time_point<std::chrono::system_clock> last_update;
+    };
+
+    static std::unordered_map<std::string, cache> cache_map;
 
     auto j = nlohmann::json::parse(req.body);
     std::vector<std::string> specs = j["specs"].get<std::vector<std::string>>();
@@ -61,7 +75,7 @@ handle_solve_request(const microserver::Request& req, microserver::Response& res
 
     for (const auto& s : specs)
     {
-        if (auto m = MatchSpec{ s }; !m.channel.empty())
+        if (auto m = MatchSpec{ s, channel_context }; !m.channel.empty())
         {
             channels.push_back(m.channel);
         }
@@ -72,22 +86,33 @@ handle_solve_request(const microserver::Request& req, microserver::Response& res
 
     if (cache_map.find(cache_key) == cache_map.end())
     {
-        cache_map[cache_key] = cache{ load_pool(channels, package_caches),
-                                      std::chrono::system_clock::now() };
+        cache_map.insert_or_assign(
+            cache_key,
+            cache{ load_pool(channels, package_caches, channel_context),
+                   std::chrono::system_clock::now() }
+        );
     }
     else
     {
         cache& c = cache_map[cache_key];
         if (std::chrono::system_clock::now() - c.last_update > std::chrono::minutes(30))
         {
-            cache_map[cache_key] = cache{ load_pool(channels, package_caches),
-                                          std::chrono::system_clock::now() };
+            cache_map.insert_or_assign(
+                cache_key,
+                cache{ load_pool(channels, package_caches, channel_context),
+                       std::chrono::system_clock::now() }
+            );
         }
     }
-    cache cache_entry = cache_map[cache_key];
+    auto entry_it = cache_map.find(cache_key);
+    if (entry_it == cache_map.end())
+    {
+        throw std::runtime_error("invalid cache state");
+    }
+    cache cache_entry = entry_it->second;
 
     TemporaryDirectory tmp_dir;
-    auto exp_prefix_data = PrefixData::create(tmp_dir.path());
+    auto exp_prefix_data = PrefixData::create(tmp_dir.path(), channel_context);
     // if (!exp_prefix_data)
     // {
     // 	throw std::runtime_error(exp_prefix_data.error().what());
@@ -105,10 +130,10 @@ handle_solve_request(const microserver::Request& req, microserver::Response& res
     }
     prefix_data.add_packages(vpacks);
 
-    auto installed_repo = MRepo(cache_entry.pool, prefix_data);
+    auto installed_repo = MRepo(*cache_entry.pool, prefix_data);
 
     MSolver solver(
-        cache_entry.pool,
+        *cache_entry.pool,
         { { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },
           { SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade },
           { SOLVER_FLAG_STRICT_REPO_PRIORITY, ctx.channel_priority == ChannelPriority::kStrict } }
@@ -126,7 +151,7 @@ handle_solve_request(const microserver::Request& req, microserver::Response& res
     }
     else
     {
-        MTransaction trans(cache_entry.pool, solver, package_caches);
+        MTransaction trans{ *cache_entry.pool, solver, package_caches };
         auto to_install = std::get<1>(trans.to_conda());
         std::vector<nlohmann::json> packages;
         for (auto& p : to_install)
@@ -138,13 +163,13 @@ handle_solve_request(const microserver::Request& req, microserver::Response& res
         res.send(jout.dump());
     }
 
-    cache_entry.pool.remove_repo(installed_repo.id(), /* reuse_ids= */ true);
-    pool_set_installed(cache_entry.pool, nullptr);
+    cache_entry.pool->remove_repo(installed_repo.id(), /* reuse_ids= */ true);
+    pool_set_installed(*cache_entry.pool, nullptr);
 }
 
 
 int
-run_server(int port)
+run_server(int port, mamba::ChannelContext& channel_context)
 {
     auto& config = mamba::Configuration::instance();
     config.load();
@@ -171,7 +196,11 @@ run_server(int port)
             res.send(ss.str());
         }
     );
-    xserver.post("/solve", handle_solve_request);
+    xserver.post(
+        "/solve",
+        [&](const microserver::Request& req, microserver::Response& res)
+        { return handle_solve_request(req, res, channel_context); }
+    );
 
     Console::stream() << "Starting server on port http://localhost:" << port << std::endl;
 
@@ -187,5 +216,11 @@ set_server_command(CLI::App* subcom)
     static int port = 1234;
     subcom->add_option("--port,-p", port, "The port to use for the server");
 
-    subcom->callback([&]() { return run_server(port); });
+    subcom->callback(
+        []
+        {
+            mamba::ChannelContext channel_context;
+            return run_server(port, channel_context);
+        }
+    );
 }

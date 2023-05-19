@@ -112,6 +112,20 @@ bind_NamedList(PyClass pyclass)
     return pyclass;
 }
 
+namespace mambapy
+{
+    struct Singletons
+    {
+        mamba::ChannelContext channel_context;
+    };
+
+    Singletons& singletons()
+    {
+        static Singletons singletons;
+        return singletons;
+    }
+}
+
 PYBIND11_MODULE(bindings, m)
 {
     using namespace mamba;
@@ -142,18 +156,24 @@ PYBIND11_MODULE(bindings, m)
 
     py::class_<MatchSpec>(m, "MatchSpec")
         .def(py::init<>())
-        .def(py::init<const std::string&>())
+        .def(py::init<>(
+            [](const std::string& name) {
+                return MatchSpec{ name, mambapy::singletons().channel_context };
+            }
+        ))
         .def("conda_build_form", &MatchSpec::conda_build_form);
 
     py::class_<MPool>(m, "Pool")
-        .def(py::init<>())
+        .def(py::init<>([] { return MPool{ mambapy::singletons().channel_context }; }))
         .def("set_debuglevel", &MPool::set_debuglevel)
         .def("create_whatprovides", &MPool::create_whatprovides)
         .def("select_solvables", &MPool::select_solvables, py::arg("id"), py::arg("sorted") = false)
         .def("matchspec2id", &MPool::matchspec2id, py::arg("ms"))
         .def(
             "matchspec2id",
-            [](MPool& self, std::string_view ms) { return self.matchspec2id({ ms }); },
+            [](MPool& self, std::string_view ms) {
+                return self.matchspec2id({ ms, mambapy::singletons().channel_context });
+            },
             py::arg("ms")
         )
         .def("id2pkginfo", &MPool::id2pkginfo, py::arg("id"));
@@ -308,7 +328,11 @@ PYBIND11_MODULE(bindings, m)
         .def("tree_message", [](const CpPbGraph& self) { return problem_tree_msg(self); });
 
     py::class_<History>(m, "History")
-        .def(py::init<const fs::u8path&>())
+        .def(py::init(
+            [](const fs::u8path& path) {
+                return History{ path, mambapy::singletons().channel_context };
+            }
+        ))
         .def("get_requested_specs_map", &History::get_requested_specs_map);
 
     /*py::class_<Query>(m, "Query")
@@ -336,7 +360,8 @@ PYBIND11_MODULE(bindings, m)
                 switch (format)
                 {
                     case query::JSON:
-                        res_stream << res.groupby("name").json().dump(4);
+                        res_stream
+                            << res.groupby("name").json(mambapy::singletons().channel_context).dump(4);
                         break;
                     case query::TREE:
                     case query::TABLE:
@@ -368,7 +393,7 @@ PYBIND11_MODULE(bindings, m)
                         res.tree(res_stream);
                         break;
                     case query::JSON:
-                        res_stream << res.json().dump(4);
+                        res_stream << res.json(mambapy::singletons().channel_context).dump(4);
                         break;
                     case query::TABLE:
                     case query::RECURSIVETABLE:
@@ -401,7 +426,7 @@ PYBIND11_MODULE(bindings, m)
                         res.tree(res_stream);
                         break;
                     case query::JSON:
-                        res_stream << res.json().dump(4);
+                        res_stream << res.json(mambapy::singletons().channel_context).dump(4);
                         break;
                     case query::TABLE:
                     case query::RECURSIVETABLE:
@@ -734,7 +759,7 @@ PYBIND11_MODULE(bindings, m)
         .def(py::init(
             [](const fs::u8path& prefix_path) -> PrefixData
             {
-                auto sres = PrefixData::create(prefix_path);
+                auto sres = PrefixData::create(prefix_path, mambapy::singletons().channel_context);
                 if (sres.has_value())
                 {
                     return std::move(sres.value());
@@ -889,8 +914,12 @@ PYBIND11_MODULE(bindings, m)
         );
 
     pyChannel
-        .def(py::init([](const std::string& value)
-                      { return const_cast<Channel*>(&make_channel(value)); }))
+        .def(py::init(
+            [](const std::string& value) {
+                return const_cast<Channel*>(&mambapy::singletons().channel_context.make_channel(value)
+                );
+            }
+        ))
         .def_property_readonly("scheme", &Channel::scheme)
         .def_property_readonly("location", &Channel::location)
         .def_property_readonly("name", &Channel::name)
@@ -935,7 +964,11 @@ PYBIND11_MODULE(bindings, m)
             [](py::object&, bool val) { Configuration::instance().at("show_banner").set_value(val); }
         );
 
-    m.def("get_channels", &get_channels);
+    m.def(
+        "get_channels",
+        [](const std::vector<std::string>& channel_names)
+        { return mambapy::singletons().channel_context.get_channels(channel_names); }
+    );
 
     m.def(
         "transmute",

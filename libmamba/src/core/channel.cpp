@@ -351,11 +351,6 @@ namespace mamba
         return res->second;
     }
 
-    void ChannelContext::clear_cache()
-    {
-        m_channel_cache.clear();
-    }
-
     namespace
     {
         void split_conda_url(
@@ -758,39 +753,6 @@ namespace mamba
         return result;
     }
 
-    void ChannelContext::check_whitelist(const std::vector<std::string>& urls)
-    {
-        const auto& whitelist = get_whitelist_channels();
-        if (whitelist.size())
-        {
-            std::vector<std::string> accepted_urls(whitelist.size());
-            std::transform(
-                whitelist.begin(),
-                whitelist.end(),
-                accepted_urls.begin(),
-                [&](const std::string& url) { return make_channel(url).base_url(); }
-            );
-            std::for_each(
-                urls.begin(),
-                urls.end(),
-                [&](const std::string& s)
-                {
-                    auto it = std::find(
-                        accepted_urls.begin(),
-                        accepted_urls.end(),
-                        make_channel(s).base_url()
-                    );
-                    if (it == accepted_urls.end())
-                    {
-                        std::ostringstream str;
-                        str << "Channel " << s << " not allowed";
-                        throw std::runtime_error(str.str().c_str());
-                    }
-                }
-            );
-        }
-    }
-
     const Channel& ChannelContext::get_channel_alias() const
     {
         return m_channel_alias;
@@ -804,11 +766,6 @@ namespace mamba
     auto ChannelContext::get_custom_multichannels() const -> const multichannel_map&
     {
         return m_custom_multichannels;
-    }
-
-    auto ChannelContext::get_whitelist_channels() const -> const channel_list&
-    {
-        return m_whitelist_channels;
     }
 
     ChannelContext::ChannelContext()

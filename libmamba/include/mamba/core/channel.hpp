@@ -104,16 +104,10 @@ namespace mamba
         const Channel& make_channel(const std::string& value);
         std::vector<const Channel*> get_channels(const std::vector<std::string>& channel_names);
 
-        void clear_cache();
-
-        void check_whitelist(const std::vector<std::string>& urls);
-
         // internal
         const Channel& get_channel_alias() const;
         const channel_map& get_custom_channels() const;
         const multichannel_map& get_custom_multichannels() const;
-
-        const channel_list& get_whitelist_channels() const;
 
     private:
 
@@ -121,7 +115,6 @@ namespace mamba
         Channel m_channel_alias;
         channel_map m_custom_channels;
         multichannel_map m_custom_multichannels;
-        channel_list m_whitelist_channels;
 
         Channel build_channel_alias();
         void init_custom_channels();

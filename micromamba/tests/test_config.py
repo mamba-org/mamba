@@ -685,8 +685,6 @@ class TestConfigExpandVars:
         for attr in [
             "channels",
             "default_channels",
-            # Not supported by Micromamba
-            # "whitelist_channels",
         ]:
             value = _expandvars(attr, "['${TEST_VAR}']", "foo")
             assert value == ["foo"]

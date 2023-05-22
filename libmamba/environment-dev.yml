@@ -2,15 +2,16 @@ name: mamba-dev
 channels:
   - conda-forge
 dependencies:
+  # Build dependencies
   - cxx-compiler
   - cmake >=3.16
+  # Dependencies
   - ninja
   - nlohmann_json
   - libsolv >=0.7.18
   - libarchive
   - libsodium
   - libcurl >=7.86
-  - doctest
   - cpp-expected
   - reproc-cpp
   - yaml-cpp
@@ -18,3 +19,7 @@ dependencies:
   - spdlog
   - fmt
   - sel(win): winreg
+  # Test dependencies
+  - doctest
+  # Dev dependencies
+  - sccache

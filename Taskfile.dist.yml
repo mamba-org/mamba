@@ -1,0 +1,169 @@
+version: '3'
+
+vars:
+  BUILD_DIR: 'build'
+  ENV_DIR: '{{.BUILD_DIR}}/envs'
+  DEV_ENV_DIR: '{{.ENV_DIR}}/dev'
+  DEV_RUN: 'micromamba run --prefix {{.DEV_ENV_DIR}}'
+  TEST_ENV_DIR: '{{.ENV_DIR}}/test'
+  TEST_RUN: 'micromamba run --prefix {{.TEST_ENV_DIR}}'
+  CMAKE_BUILD_DIR: '{{.BUILD_DIR}}/cmake'
+  CMAKE_PRESET: 'mamba-shared-debug'
+  CPU_PERCENTAGE: 75
+  CPU_COUNT:
+    sh: >-
+      {{- if eq OS "linux" -}}
+        echo $(($(cat /proc/cpuinfo | grep processor | wc -l) * {{.CPU_PERCENTAGE}} / 100))
+      {{- else -}}
+        echo 1
+      {{- end -}}
+
+tasks:
+  _create-env:
+    run: 'when_changed'
+    internal: true
+    cmds:
+      - 'micromamba create --yes --prefix "{{.prefix}}" python=3.10'
+      - 'micromamba install --yes --prefix "{{.prefix}}" --file ./libmamba/environment-dev.yml'
+      - 'micromamba install --yes --prefix "{{.prefix}}" --file ./mamba/environment-dev.yml'
+      - 'micromamba install --yes --prefix "{{.prefix}}" --file ./libmambapy/environment-dev.yml'
+      - 'micromamba install --yes --prefix "{{.prefix}}" --file ./micromamba/environment-dev.yml'
+    sources:
+      - './**/environment-dev.yml'
+    generates:
+      - '{{.prefix}}/conda-meta/**/*'
+
+  _copy-env:
+    internal: true
+    cmds:
+      - 'micromamba env export --explicit --prefix "{{.source_prefix}}" > "{{.BUILD_DIR}}/env.tmp.lock"'
+      - defer: 'rm "{{.BUILD_DIR}}/env.tmp.lock"'
+      - 'micromamba create --yes --prefix "{{.prefix}}" --offline --file "{{.BUILD_DIR}}/env.tmp.lock"'
+    sources:
+      - '{{.source_prefix}}/conda-meta/**/*'
+    generates:
+      - '{{.prefix}}/conda-meta/**/*'
+
+  create-dev-env:
+    summary: 'Create a local development mamba environment with all needed dependencies'
+    cmds: [{task: '_create-env', vars: {prefix: '{{.DEV_ENV_DIR}}'}}]
+
+  create-test-env:
+    summary: 'Copy the development environment'
+    deps: [create-dev-env]
+    cmds:
+      - task: '_copy-env'
+        vars: {source_prefix: '{{.DEV_ENV_DIR}}', prefix: '{{.TEST_ENV_DIR}}'}
+
+  _pre-commit:
+    internal: true
+    summary: 'Run pre-commit hooks inside the development environment'
+    deps: [create-dev-env]
+    cmds:
+      - cmd: '{{.DEV_RUN}} pre-commit run {{.args}}'
+        ignore_error: true
+  pre-commit:
+    cmds: [{task: _pre-commit, vars: {args: '{{.CLI_ARGS | default "--all-files"}}'}}]
+
+
+  _configure:
+    internal: true
+    deps: ['create-dev-env', 'create-test-env']
+    cmds:
+      - >-
+        {{.DEV_RUN}} cmake -B "{{.CMAKE_BUILD_DIR}}"
+        --preset {{.CMAKE_PRESET}} -D CMAKE_INSTALL_PREFIX="{{.TEST_ENV_DIR}}" {{.args}}
+      - 'ln -sf "{{.CMAKE_BUILD_DIR}}/compile_commands.json"'
+    # CMake knows when and how it needs to reconfigure itself, so we set that task to
+    # only run for the first configuration
+    status:
+      - test -f '{{.CMAKE_BUILD_DIR}}/CMakeCache.txt'
+  configure:
+    summary: 'Run pre-commit hooks inside the development environment'
+    cmds: [{task: _configure, vars: {args: '{{.CLI_ARGS}}'}}]
+  reconfigure:
+    cmds:
+      - 'rm -rf "{{.CMAKE_BUILD_DIR}}/CMakeCache.txt"'
+      - {task: _configure, vars: {args: '{{.CLI_ARGS}}'}}
+
+  _build:
+    internal: true
+    deps: ['_configure']
+    cmds:
+      - '{{.DEV_RUN}} cmake --build "{{.CMAKE_BUILD_DIR}}" {{.args}}'
+    vars:
+      cpu_count: '{{.cpu_count | default .CPU_COUNT}}'
+      target: '{{.target | default "all"}}'
+      args: '{{.args | default (printf "--parallel %s --target %s" .cpu_count .target)}}'
+    # Again, CMake knows what to rebuild so we always rerun the task
+  build:
+    cmds: [{task: '_build', vars: {args: '{{.CLI_ARGS}}'}}]
+
+  _test-libmamba:
+    internal: true
+    deps: [{task: _build, vars: {target: 'test_libmamba'}}]
+    dir: '{{.CMAKE_BUILD_DIR}}/libmamba/tests/'
+    cmds:
+      - './test_libmamba {{.args}}'
+  test-libmamba:
+    cmds: [{task: '_test-libmamba', vars: {args: '{{.CLI_ARGS}}'}}]
+
+  _test-micromamba:
+    internal: true
+    deps: [{task: '_build', vars: {target: 'micromamba'}}]
+    env:
+      TEST_MAMBA_EXE: '{{.CMAKE_BUILD_DIR}}/micromamba/micromamba'
+    cmds:
+      - >-
+        {{.DEV_RUN}} python -m pytest micromamba/tests/
+        --mamba-pkgs-dir="${CONDA_PKGS_DIRS}" {{.args}}
+  test-micromamba:
+    cmds: [{task: _test-micromamba, vars: {args: '{{.CLI_ARGS}}'}}]
+
+  micromamba:
+    deps: [{task: '_build', vars: {target: 'micromamba'}}]
+    cmds:
+      - '{{.CMAKE_BUILD_DIR}}/micromamba/micromamba {{.CLI_ARGS}}'
+
+  install-cpp:
+    deps: [build]
+    cmds:
+      - '{{.DEV_RUN}} cmake --install "{{.CMAKE_BUILD_DIR}}" --prefix "{{.TEST_ENV_DIR}}"'
+
+  install-py:
+    deps: [install-cpp]
+    cmds:
+      - >-
+        {{.TEST_RUN}} python -m pip install
+        --no-deps --no-build-isolation --ignore-installed
+        --editable libmambapy/ mamba/
+
+  _test-reposerver:
+    internal: true
+    deps: [install-py]
+    env:
+      GNUPGHOME: { sh: 'mktemp -d' }
+    cmds:
+      - defer: 'rm -rf "{{.GNUPGHOME}}"'
+      - '{{.DEV_RUN}} ./mamba/tests/generate_gpg_keys.sh'
+      - '{{.TEST_RUN}} ./mamba/tests/testserver.sh {{.args}}'
+  test-reposerver:
+    cmds: [{task: _test-reposerver, vars: {args: '{{.CLI_ARGS}}'}}]
+
+  _test-mamba:
+    internal: true
+    deps: [install-py]
+    cmds:
+      - '{{.TEST_RUN}} python -m pytest mamba/tests/ {{.args}}'
+  test-mamba:
+    cmds: [{task: _test-mamba, vars: {args: '{{.CLI_ARGS}}'}}]
+
+  stubgen:
+    deps: [install-py]
+    cmds:
+      - '{{.TEST_RUN}} pybind11-stubgen -o "{{.CMAKE_BUILD_DIR}}" libmambapy.bindings'
+      - 'cp "{{.CMAKE_BUILD_DIR}}/libmambapy/bindings-stubs/__init__.pyi" "libmambapy/libmambapy"'
+      - task: '_pre-commit'
+        vars: {args: '--files libmambapy/libmambapy/__init__.pyi'}
+
+  clean: 'rm -rf {{.BUILD_DIR}}'

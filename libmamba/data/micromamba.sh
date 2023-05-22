@@ -17,14 +17,14 @@ __mamba_hashr() {
 
 __mamba_activate() {
     \local ask_conda
-    ask_conda="$(PS1="${PS1:-}" __mamba_exe shell --shell bash "$@")" || \return
+    ask_conda="$(PS1="${PS1:-}" __mamba_exe shell "$@" --shell bash)" || \return
     \eval "$ask_conda"
     __mamba_hashr
 }
 
 __mamba_reactivate() {
     \local ask_conda
-    ask_conda="$(PS1="${PS1:-}" __mamba_exe shell --shell bash reactivate)" || \return
+    ask_conda="$(PS1="${PS1:-}" __mamba_exe shell reactivate --shell bash)" || \return
     \eval "$ask_conda"
     __mamba_hashr
 }

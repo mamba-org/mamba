@@ -6,7 +6,8 @@
 
 #include <iostream>
 
-#include "mamba/api/configuration.hpp"
+#include <fmt/format.h>
+
 #include "mamba/api/shell.hpp"
 #include "mamba/core/activation.hpp"
 #include "mamba/core/context.hpp"
@@ -20,170 +21,141 @@
 
 namespace mamba
 {
-    void detect_shell(std::string& shell_type)
+    namespace
     {
-        if (shell_type.empty())
+        auto make_activator(std::string_view name) -> std::unique_ptr<Activator>
         {
-            LOG_DEBUG << "No shell type provided";
-
-            std::string guessed_shell = guess_shell();
-            if (!guessed_shell.empty())
+            if (name == "bash" || name == "zsh" || name == "dash" || name == "posix")
             {
-                LOG_DEBUG << "Guessed shell: '" << guessed_shell << "'";
-                shell_type = guessed_shell;
+                return std::make_unique<mamba::PosixActivator>();
             }
-
-            if (shell_type.empty())
+            if (name == "csh" || name == "tcsh")
             {
-                LOG_ERROR << "Please provide a shell type." << std::endl
-                          << "Run with --help for more information." << std::endl;
-                throw std::runtime_error("Unknown shell type. Aborting.");
+                return std::make_unique<mamba::CshActivator>();
             }
+            if (name == "cmd.exe")
+            {
+                return std::make_unique<mamba::CmdExeActivator>();
+            }
+            if (name == "powershell")
+            {
+                return std::make_unique<mamba::PowerShellActivator>();
+            }
+            if (name == "xonsh")
+            {
+                return std::make_unique<mamba::XonshActivator>();
+            }
+            if (name == "fish")
+            {
+                return std::make_unique<mamba::FishActivator>();
+            }
+            throw std::invalid_argument(fmt::format("Shell type not handled: {}", name));
         }
     }
 
-    void
-    shell(const std::string& action, std::string& shell_type, const std::string& prefix, bool stack)
+    void shell_init(const std::string& shell_type, std::string_view prefix)
     {
         auto& ctx = Context::instance();
-        auto& config = Configuration::instance();
-
-        config.at("show_banner").set_value(false);
-        config.at("use_target_prefix_fallback").set_value(false);
-        config.at("target_prefix_checks").set_value(MAMBA_NO_PREFIX_CHECK);
-        config.load();
-
-        detect_shell(shell_type);
-
-        std::unique_ptr<Activator> activator;
-        std::string shell_prefix;
-
-        if (shell_type == "bash" || shell_type == "zsh" || shell_type == "dash"
-            || shell_type == "posix")
+        if (prefix.empty() || prefix == "base")
         {
-            activator = std::make_unique<mamba::PosixActivator>();
-        }
-        else if (shell_type == "csh" || shell_type == "tcsh")
-        {
-            activator = std::make_unique<mamba::CshActivator>();
-        }
-        else if (shell_type == "cmd.exe")
-        {
-            activator = std::make_unique<mamba::CmdExeActivator>();
-        }
-        else if (shell_type == "powershell")
-        {
-            activator = std::make_unique<mamba::PowerShellActivator>();
-        }
-        else if (shell_type == "xonsh")
-        {
-            activator = std::make_unique<mamba::XonshActivator>();
-        }
-        else if (shell_type == "fish")
-        {
-            activator = std::make_unique<mamba::FishActivator>();
+            init_shell(shell_type, ctx.prefix_params.root_prefix);
         }
         else
         {
-            LOG_ERROR << "Not handled 'shell_type': " << shell_type;
-            return;
+            init_shell(shell_type, fs::weakly_canonical(env::expand_user(prefix)));
         }
-
-        if (action == "init")
-        {
-            if (prefix.empty() || prefix == "base")
-            {
-                shell_prefix = ctx.prefix_params.root_prefix.string();
-            }
-            else
-            {
-                shell_prefix = fs::weakly_canonical(env::expand_user(prefix)).string();
-            }
-
-            init_shell(shell_type, shell_prefix);
-        }
-        else if (action == "deinit")
-        {
-            if (prefix.empty() || prefix == "base")
-            {
-                shell_prefix = ctx.prefix_params.root_prefix.string();
-            }
-            else
-            {
-                shell_prefix = fs::weakly_canonical(env::expand_user(prefix)).string();
-            }
-
-            deinit_shell(shell_type, shell_prefix);
-        }
-        else if (action == "reinit")
-        {
-            // re-initialize all the shell scripts after update
-            for (auto& lshell_type : find_initialized_shells())
-            {
-                shell("init", lshell_type, prefix, false);
-            }
-        }
-        else if (action == "hook")
-        {
-            // TODO do we need to do something wtih `shell_prefix -> root_prefix?`?
-            if (ctx.output_params.json)
-            {
-                Console::instance().json_write(
-                    { { "success", true },
-                      { "operation", "shell_hook" },
-                      { "context", { { "shell_type", shell_type } } },
-                      { "actions", { { "print", { activator->hook(shell_type) } } } } }
-                );
-            }
-            else
-            {
-                std::cout << activator->hook(shell_type);
-            }
-        }
-        else if (action == "activate")
-        {
-            if (prefix.empty() || prefix == "base")
-            {
-                shell_prefix = ctx.prefix_params.root_prefix.string();
-            }
-            else if (prefix.find_first_of("/\\") == std::string::npos)
-            {
-                shell_prefix = (ctx.prefix_params.root_prefix / "envs" / prefix).string();
-            }
-            else
-            {
-                shell_prefix = fs::weakly_canonical(env::expand_user(prefix)).string();
-            }
-
-            if (!fs::exists(shell_prefix))
-            {
-                throw std::runtime_error("Cannot activate, prefix does not exist at: " + shell_prefix);
-            }
-
-            std::cout << activator->activate(shell_prefix, stack);
-        }
-        else if (action == "reactivate")
-        {
-            std::cout << activator->reactivate();
-        }
-        else if (action == "deactivate")
-        {
-            std::cout << activator->deactivate();
-        }
-#ifdef _WIN32
-        else if (action == "enable-long-paths-support")
-        {
-            if (!enable_long_paths_support(true))
-            {
-                throw std::runtime_error("Error enabling Windows long-path support");
-            }
-        }
-#endif
-        else
-        {
-            throw std::runtime_error("Need an action {init, hook, activate, deactivate, reactivate}");
-        }
-
-        config.operation_teardown();
     }
-}  // mamba
+
+    void shell_deinit(const std::string& shell_type, std::string_view prefix)
+    {
+        auto& ctx = Context::instance();
+        if (prefix.empty() || prefix == "base")
+        {
+            deinit_shell(shell_type, ctx.prefix_params.root_prefix);
+        }
+        else
+        {
+            deinit_shell(shell_type, fs::weakly_canonical(env::expand_user(prefix)));
+        }
+    }
+
+    void shell_reinit(std::string_view prefix)
+    {
+        // re-initialize all the shell scripts after update
+        for (const auto& shell_type : find_initialized_shells())
+        {
+            shell_init(shell_type, prefix);
+        }
+    }
+
+    void shell_hook(const std::string& shell_type)
+    {
+        auto activator = make_activator(shell_type);
+        auto& ctx = Context::instance();
+        // TODO do we need to do something wtih `shell_prefix -> root_prefix?`?
+        if (ctx.output_params.json)
+        {
+            Console::instance().json_write({ { "success", true },
+                                             { "operation", "shell_hook" },
+                                             { "context", { { "shell_type", shell_type } } },
+                                             { "actions",
+                                               { { "print", { activator->hook(shell_type) } } } } });
+        }
+        else
+        {
+            std::cout << activator->hook(shell_type);
+        }
+    }
+
+    void shell_activate(std::string_view prefix, const std::string& shell_type, bool stack)
+    {
+        auto activator = make_activator(shell_type);
+        auto& ctx = Context::instance();
+        fs::u8path shell_prefix;
+        if (prefix.empty() || prefix == "base")
+        {
+            shell_prefix = ctx.prefix_params.root_prefix;
+        }
+        else if (prefix.find_first_of("/\\") == std::string::npos)
+        {
+            shell_prefix = ctx.prefix_params.root_prefix / "envs" / prefix;
+        }
+        else
+        {
+            shell_prefix = fs::weakly_canonical(env::expand_user(prefix));
+        }
+
+        if (!fs::exists(shell_prefix))
+        {
+            throw std::runtime_error(
+                fmt::format("Cannot activate, prefix does not exist at: {}", shell_prefix)
+            );
+        }
+
+        std::cout << activator->activate(shell_prefix, stack);
+    }
+
+    void shell_reactivate(const std::string& shell_type)
+    {
+        auto activator = make_activator(shell_type);
+        std::cout << activator->reactivate();
+    }
+
+    void shell_deactivate(const std::string& shell_type)
+    {
+        auto activator = make_activator(shell_type);
+        std::cout << activator->deactivate();
+    }
+
+    void shell_enable_long_path_support()
+    {
+#ifdef _WIN32
+        if (const bool success = enable_long_paths_support(/* force= */ true); !success)
+        {
+            throw std::runtime_error("Error enabling Windows long-path support");
+        }
+#else
+        throw std::invalid_argument("Long path support is a Windows only option");
+#endif
+    }
+}

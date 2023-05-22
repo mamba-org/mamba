@@ -43,6 +43,7 @@ namespace mamba
     };
 
     int run_in_environment(
+        const fs::u8path& prefix,
         std::vector<std::string> command,
         const std::string& cwd,
         int stream_options,

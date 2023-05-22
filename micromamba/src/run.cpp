@@ -211,7 +211,18 @@ set_run_command(CLI::App* subcom)
                 stream_options |= (sinkin ? 0 : static_cast<int>(STREAM_OPTIONS::SINKIN));
             }
 
+            auto const get_prefix = [&]()
+            {
+                auto& ctx = Context::instance();
+                if (auto prefix = ctx.prefix_params.target_prefix; !prefix.empty())
+                {
+                    return prefix;
+                }
+                return ctx.prefix_params.root_prefix;
+            };
+
             int exit_code = mamba::run_in_environment(
+                get_prefix(),
                 command,
                 cwd,
                 stream_options,

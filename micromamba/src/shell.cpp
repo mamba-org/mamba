@@ -6,7 +6,6 @@
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/shell.hpp"
-#include "mamba/core/fsutil.hpp"
 #include "mamba/core/run.hpp"
 #include "mamba/core/shell_init.hpp"
 
@@ -18,12 +17,12 @@ using namespace mamba;  // NOLINT(build/namespaces)
 
 namespace
 {
-    void init_shell_parser(CLI::App* subcmd)
+    /*****************
+     *  CLI Options  *
+     *****************/
+
+    void init_shell_option(CLI::App* subcmd, Configuration& config)
     {
-        init_general_options(subcmd);
-
-        auto& config = Configuration::instance();
-
         auto& shell_type = config.insert(
             Configurable("shell_type", std::string("")).group("cli").description("A shell type"),
             true
@@ -33,19 +32,78 @@ namespace
             ->check(CLI::IsMember(std::set<std::string>(
                 { "bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish", "tcsh", "dash" }
             )));
+    }
 
-        auto& prefix = config.insert(
-            Configurable("shell_prefix", std::string(""))
-                .group("cli")
-                .description("The root prefix to configure (for init and hook), and the prefix "
-                             "to activate for activate, either by name or by path"),
-            true
-        );
+    void init_root_prefix_option(CLI::App* subcmd, Configuration& config)
+    {
+        auto& root = config.at("root_prefix");
         subcmd->add_option(
-            "prefix,-p,--prefix,-n,--name",
-            prefix.get_cli_config<std::string>(),
+            "root_prefix,-r,--root-prefix",
+            root.get_cli_config<fs::u8path>(),
+            root.description()
+        );
+    }
+
+    void init_prefix_options(CLI::App* subcmd, Configuration& config)
+    {
+        auto& prefix = config.at("target_prefix");
+        auto* prefix_cli = subcmd->add_option(
+            "-p,--prefix",
+            prefix.get_cli_config<fs::u8path>(),
             prefix.description()
         );
+
+        auto& name = config.at("env_name");
+        auto* name_cli = subcmd
+                             ->add_option(
+                                 "-n,--name",
+                                 name.get_cli_config<std::string>(),
+                                 name.description()
+                             )
+                             ->excludes(prefix_cli);
+
+        auto& prefix_or_name = config.insert(
+            Configurable("prefix_or_name", std::string(""))
+                .group("cli")
+                .description("The prefix to activate, either by name or by path"),
+            true
+        );
+
+        subcmd
+            ->add_option(
+                "prefix_or_name",
+                prefix_or_name.get_cli_config<std::string>(),
+                prefix_or_name.description()
+            )
+            ->excludes(prefix_cli)
+            ->excludes(name_cli);
+    }
+
+    void init_stack_option(CLI::App* subcmd, Configuration& config)
+    {
+        auto& stack = config.insert(
+            Configurable("shell_stack", false)
+                .group("cli")
+                .description("Stack the environment being activated")
+                .long_description(
+                    "Stack the environment being activated on top of the previous active"
+                    " environment, rather replacing the current active environment with a new one."
+                    " Currently, only the PATH environment variable is stacked."
+                    " This may be enabled implicitly by the 'auto_stack' configuration variable."
+                )
+        );
+        subcmd->add_flag("--stack", stack.get_cli_config<bool>(), stack.description());
+    }
+
+    /***************
+     *  Utilities  *
+     ***************/
+
+    void set_default_config_options(Configuration& config)
+    {
+        config.at("show_banner").set_value(false);
+        config.at("use_target_prefix_fallback").set_value(false);
+        config.at("target_prefix_checks").set_value(MAMBA_NO_PREFIX_CHECK);
     }
 
     auto consolidate_shell(std::string_view shell_type) -> std::string
@@ -68,16 +126,41 @@ namespace
         throw std::runtime_error("Unknown shell type. Aborting.");
     }
 
-    void set_default_config_options(Configuration& config)
+    void consolidate_prefix_options(Configuration& config)
     {
-        config.at("show_banner").set_value(false);
-        config.at("use_target_prefix_fallback").set_value(false);
-        config.at("target_prefix_checks").set_value(MAMBA_NO_PREFIX_CHECK);
+        auto& p_opt = config.at("target_prefix");
+        auto& n_opt = config.at("env_name");
+        auto& pn_opt = config.at("prefix_or_name");
+
+        // The prefix or name was passed without an explicit `-n` or `-p`, we make an assumption
+        if (pn_opt.cli_configured())
+        {
+            auto prefix_or_name = pn_opt.compute().value<std::string>();
+            if (prefix_or_name.find_first_of("/\\") != std::string::npos)
+            {
+                config.at("target_prefix").set_cli_value(fs::u8path(std::move(prefix_or_name)));
+            }
+            else if (!prefix_or_name.empty())
+            {
+                config.at("env_name").set_cli_value(std::move(prefix_or_name));
+            }
+        }
+        // Nothing was given, `micromamba activate` means `mircomamba activate -n base`
+        else if (!p_opt.configured() && !n_opt.configured())
+        {
+            config.at("env_name").set_cli_value(std::string("base"));
+        }
     }
 
-    void set_shell_init_command(CLI::App* subsubcmd)
+    /****************************
+     *  Shell sub sub commands  *
+     ****************************/
+
+    void set_shell_init_command(CLI::App* subsubcmd, Configuration& config)
     {
-        init_shell_parser(subsubcmd);
+        init_general_options(subsubcmd);
+        init_shell_option(subsubcmd, config);
+        init_root_prefix_option(subsubcmd, config);
         subsubcmd->callback(
             []()
             {
@@ -86,16 +169,18 @@ namespace
                 config.load();
                 shell_init(
                     consolidate_shell(config.at("shell_type").compute().value<std::string>()),
-                    config.at("shell_prefix").compute().value<std::string>()
+                    Context::instance().prefix_params.root_prefix
                 );
                 config.operation_teardown();
             }
         );
     }
 
-    void set_shell_deinit_command(CLI::App* subsubcmd)
+    void set_shell_deinit_command(CLI::App* subsubcmd, Configuration& config)
     {
-        init_shell_parser(subsubcmd);
+        init_general_options(subsubcmd);
+        init_shell_option(subsubcmd, config);
+        init_root_prefix_option(subsubcmd, config);
         subsubcmd->callback(
             []()
             {
@@ -104,31 +189,34 @@ namespace
                 config.load();
                 shell_deinit(
                     consolidate_shell(config.at("shell_type").compute().value<std::string>()),
-                    config.at("shell_prefix").compute().value<std::string>()
+                    Context::instance().prefix_params.root_prefix
                 );
                 config.operation_teardown();
             }
         );
     }
 
-    void set_shell_reinit_command(CLI::App* subsubcmd)
+    void set_shell_reinit_command(CLI::App* subsubcmd, Configuration& config)
     {
-        init_shell_parser(subsubcmd);
+        init_general_options(subsubcmd);
+        init_shell_option(subsubcmd, config);
         subsubcmd->callback(
             []()
             {
                 auto& config = Configuration::instance();
                 set_default_config_options(config);
                 config.load();
-                shell_reinit(config.at("shell_prefix").compute().value<std::string>());
+                shell_reinit(Context::instance().prefix_params.root_prefix);
                 config.operation_teardown();
             }
         );
     }
 
-    void set_shell_hook_command(CLI::App* subsubcmd)
+    void set_shell_hook_command(CLI::App* subsubcmd, Configuration& config)
     {
-        init_shell_parser(subsubcmd);
+        init_general_options(subsubcmd);
+        init_shell_option(subsubcmd, config);
+        init_root_prefix_option(subsubcmd, config);  // FIXME not used here set in CLI scripts
         subsubcmd->callback(
             []()
             {
@@ -141,30 +229,22 @@ namespace
         );
     }
 
-    void set_shell_activate_command(CLI::App* subsubcmd)
+    void set_shell_activate_command(CLI::App* subsubcmd, Configuration& config)
     {
-        auto& config = Configuration::instance();
-        init_shell_parser(subsubcmd);
-        auto& stack = config.insert(Configurable("shell_stack", false)
-                                        .group("cli")
-                                        .description("Stack the environment being activated")
-                                        .long_description(unindent(R"(
-                       Stack the environment being activated on top of the
-                       previous active environment, rather replacing the
-                       current active environment with a new one.
-                       Currently, only the PATH environment variable is stacked.
-                       This may be enabled implicitly by the 'auto_stack'
-                       configuration variable.)")));
-        subsubcmd->add_flag("--stack", stack.get_cli_config<bool>(), stack.description());
+        init_general_options(subsubcmd);
+        init_shell_option(subsubcmd, config);
+        init_prefix_options(subsubcmd, config);
+        init_stack_option(subsubcmd, config);
 
         subsubcmd->callback(
             []()
             {
                 auto& config = Configuration::instance();
                 set_default_config_options(config);
+                consolidate_prefix_options(config);
                 config.load();
                 shell_activate(
-                    config.at("shell_prefix").compute().value<std::string>(),
+                    Context::instance().prefix_params.target_prefix,
                     consolidate_shell(config.at("shell_type").compute().value<std::string>()),
                     config.at("shell_stack").compute().value<bool>()
                 );
@@ -173,9 +253,10 @@ namespace
         );
     }
 
-    void set_shell_reactivate_command(CLI::App* subsubcmd)
+    void set_shell_reactivate_command(CLI::App* subsubcmd, Configuration& config)
     {
-        init_shell_parser(subsubcmd);
+        init_general_options(subsubcmd);
+        init_shell_option(subsubcmd, config);
         subsubcmd->callback(
             []()
             {
@@ -190,9 +271,10 @@ namespace
         );
     }
 
-    void set_shell_deactivate_command(CLI::App* subsubcmd)
+    void set_shell_deactivate_command(CLI::App* subsubcmd, Configuration& config)
     {
-        init_shell_parser(subsubcmd);
+        init_general_options(subsubcmd);
+        init_shell_option(subsubcmd, config);
         subsubcmd->callback(
             []()
             {
@@ -207,7 +289,7 @@ namespace
 
     void set_shell_long_path_command(CLI::App* subsubcmd)
     {
-        init_shell_parser(subsubcmd);
+        init_general_options(subsubcmd);
         subsubcmd->callback(
             []()
             {
@@ -220,13 +302,18 @@ namespace
         );
     }
 
+    /***********************
+     *  Shell sub command  *
+     ***********************/
+
     template <typename Arr>
-    void set_shell_launch_command(CLI::App* subcmd, const Arr& all_subsubcmds)
+    void set_shell_launch_command(CLI::App* subcmd, const Arr& all_subsubcmds, Configuration& config)
     {
         // The initial parser had the subcmdmand as an action so both
         // ``micromamba shell init --shell bash`` and ``micromamba shell --shell bash init`` were
         // allowed.
-        init_shell_parser(subcmd);
+        init_general_options(subcmd);
+        init_prefix_options(subcmd, config);
 
         subcmd->callback(
             [all_subsubcmds]()
@@ -240,21 +327,10 @@ namespace
                 // because this callback may be greedily executed, even with a sub sub command.
                 if (!got_subsubcmd)
                 {
-                    auto& ctx = Context::instance();
                     auto& config = Configuration::instance();
                     set_default_config_options(config);
+                    consolidate_prefix_options(config);
                     config.load();
-
-                    auto const get_prefix = [&]() -> fs::u8path
-                    {
-                        auto prefix = config.at("shell_prefix").compute().value<std::string>();
-                        if (prefix.empty() || prefix == "base")
-                        {
-                            return ctx.prefix_params.root_prefix;
-                        }
-                        // `env_name` case
-                        return ctx.prefix_params.root_prefix / "envs" / std::move(prefix);
-                    };
 
                     auto const get_shell = []() -> std::string
                     {
@@ -270,7 +346,7 @@ namespace
                     };
 
                     exit(mamba::run_in_environment(
-                        get_prefix(),
+                        Context::instance().prefix_params.root_prefix,
                         { get_shell() },
                         ".",
                         static_cast<int>(STREAM_OPTIONS::ALL_STREAMS),
@@ -288,44 +364,46 @@ namespace
 void
 set_shell_command(CLI::App* shell_subcmd)
 {
+    auto& config = Configuration::instance();
+
     auto* init_subsubcmd = shell_subcmd->add_subcommand(
         "init",
         "Add initialization in script to rc files"
     );
-    set_shell_init_command(init_subsubcmd);
+    set_shell_init_command(init_subsubcmd, config);
 
     auto* deinit_subsubcmd = shell_subcmd->add_subcommand(
         "deinit",
         "Remove activation script from rc files"
     );
-    set_shell_deinit_command(deinit_subsubcmd);
+    set_shell_deinit_command(deinit_subsubcmd, config);
 
     auto* reinit_subsubcmd = shell_subcmd->add_subcommand(
         "reinit",
         "Restore activation script from rc files"
     );
-    set_shell_reinit_command(reinit_subsubcmd);
+    set_shell_reinit_command(reinit_subsubcmd, config);
 
     auto* hook_subsubcmd = shell_subcmd->add_subcommand("hook", "Micromamba hook scripts ");
-    set_shell_hook_command(hook_subsubcmd);
+    set_shell_hook_command(hook_subsubcmd, config);
 
     auto* acti_subsubcmd = shell_subcmd->add_subcommand(
         "activate",
         "Output activation code for the given shell"
     );
-    set_shell_activate_command(acti_subsubcmd);
+    set_shell_activate_command(acti_subsubcmd, config);
 
     auto* reacti_subsubcmd = shell_subcmd->add_subcommand(
         "reactivate",
         "Output reactivateion code for the given shell"
     );
-    set_shell_reactivate_command(reacti_subsubcmd);
+    set_shell_reactivate_command(reacti_subsubcmd, config);
 
     auto* deacti_subsubcmd = shell_subcmd->add_subcommand(
         "deactivate",
         "Output deactivation code for the given shell"
     );
-    set_shell_deactivate_command(deacti_subsubcmd);
+    set_shell_deactivate_command(deacti_subsubcmd, config);
 
     auto* long_path_subsubcmd = shell_subcmd->add_subcommand(
         "enable_long_path_support",
@@ -340,5 +418,5 @@ set_shell_command(CLI::App* shell_subcmd)
         init_subsubcmd, deinit_subsubcmd, reinit_subsubcmd, hook_subsubcmd,
         acti_subsubcmd, reacti_subsubcmd, deacti_subsubcmd, long_path_subsubcmd,
     };
-    set_shell_launch_command(shell_subcmd, all_subsubcmds);
+    set_shell_launch_command(shell_subcmd, all_subsubcmds, config);
 }

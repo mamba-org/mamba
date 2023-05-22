@@ -1392,7 +1392,7 @@ namespace mamba
         {
             // Micromamba hook
             out << "export MAMBA_EXE=" << std::quoted(get_self_exe_path().string(), '\'') << "\n";
-            hook_quoted << "$MAMBA_EXE 'shell' 'hook' '-s' 'bash' '-p' "
+            hook_quoted << "$MAMBA_EXE 'shell' 'hook' '-s' 'bash' '-r' "
                         << std::quoted(Context::instance().prefix_params.root_prefix.string(), '\'');
         }
         if (debug_wrapper_scripts)

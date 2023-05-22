@@ -20,8 +20,7 @@
 #include <windows.h>
 // Incomplete header included last
 #include <tlhelp32.h>
-
-#include "WinReg.hpp"
+#include <WinReg.hpp>
 #endif
 
 #include <fmt/color.h>

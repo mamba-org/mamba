@@ -2,11 +2,11 @@ name: Linters (Python, C++)
 
 on:
   push:
-   branches:
-     - main
+    branches:
+      - main
   pull_request:
     branches:
-     - main
+      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

@@ -436,6 +436,60 @@ namespace mamba
             }
         }
 
+        namespace
+        {
+            /** Find the first directory containing the given subdirectory. */
+            auto find_env_in_dirs(std::string_view name, const std::vector<fs::u8path>& dirs)
+                -> std::optional<fs::u8path>
+            {
+                for (const auto& dir : dirs)
+                {
+                    const auto candidate = dir / name;
+                    if (fs::exists(candidate) && fs::is_directory(candidate))
+                    {
+                        return candidate;
+                    }
+                }
+                return std::nullopt;
+            }
+
+            /** Find the first directory that can create the given subdirectory. */
+            auto find_writable_env_in_dirs(std::string_view name, const std::vector<fs::u8path>& dirs)
+                -> std::optional<fs::u8path>
+            {
+                for (const auto& dir : dirs)
+                {
+                    const auto candidate = dir / name;
+                    if (mamba::path::is_writable(candidate))
+                    {
+                        return candidate;
+                    }
+                }
+                return std::nullopt;
+            }
+
+            auto compute_prefix_from_name(
+                const fs::u8path& root_prefix,
+                const std::vector<fs::u8path>& envs_dirs,
+                std::string_view name
+            ) -> fs::u8path
+            {
+                if (name == "base")
+                {
+                    return root_prefix;
+                }
+                if (auto dir = find_env_in_dirs(name, envs_dirs); dir.has_value())
+                {
+                    return std::move(dir).value();
+                }
+                if (auto dir = find_writable_env_in_dirs(name, envs_dirs); dir.has_value())
+                {
+                    return std::move(dir).value();
+                }
+                return root_prefix / "envs" / name;
+            }
+        }
+
         void env_name_hook(std::string& name)
         {
             file_spec_env_name_hook(name);
@@ -464,15 +518,8 @@ namespace mamba
 
             if (!name.empty())
             {
-                fs::u8path prefix;
-                if (name == "base")
-                {
-                    prefix = root_prefix;
-                }
-                else
-                {
-                    prefix = root_prefix / "envs" / name;
-                }
+                const auto& envs_dirs = config.at("envs_dirs").value<std::vector<fs::u8path>>();
+                fs::u8path prefix = compute_prefix_from_name(root_prefix, envs_dirs, name);
 
                 if (!config.at("target_prefix").cli_configured()
                     && config.at("env_name").cli_configured())
@@ -1056,7 +1103,7 @@ namespace mamba
 
         insert(Configurable("env_name", std::string(""))
                    .group("Basic")
-                   .needs({ "root_prefix", "spec_file_env_name" })
+                   .needs({ "root_prefix", "spec_file_env_name", "envs_dirs" })
                    .set_single_op_lifetime()
                    .set_post_merge_hook(detail::env_name_hook)
                    .description("Name of the target prefix"));

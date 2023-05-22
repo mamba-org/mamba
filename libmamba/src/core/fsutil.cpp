@@ -103,7 +103,9 @@ namespace mamba::path
 
     bool is_writable(const fs::u8path& path) noexcept
     {
-        const auto& path_to_write_in = fs::exists(path) ? path : path.parent_path();
+        const bool path_exists = fs::exists(path);
+
+        const auto& path_to_write_in = path_exists ? path : path.parent_path();
 
         static constexpr auto writable_flags = fs::perms::owner_write | fs::perms::group_write
                                                | fs::perms::others_write;
@@ -120,10 +122,11 @@ namespace mamba::path
         }
 
         // If it should be, check that it's true by creating or editing a file.
-        const bool is_directory = fs::exists(path) && fs::is_directory(path, ec);  // fs::is_directory
-                                                                                   // fails if
-                                                                                   // path does
-                                                                                   // not exist
+        const bool is_directory = path_exists && fs::is_directory(path, ec);  // fs::is_directory
+                                                                              // fails if
+                                                                              // path does
+                                                                              // not exist
+
         if (ec)
         {
             return false;
@@ -134,7 +137,10 @@ namespace mamba::path
         const auto _ = on_scope_exit(
             [&]
             {
-                if (is_directory)
+                // If it is a directory we created a subitem in that directory and need to delete it
+                // If the path didn't exist before, we created a file that needs to be removed
+                // as well
+                if (is_directory || path_exists == false)
                 {
                     std::error_code lec;
                     fs::remove(test_file_path, lec);

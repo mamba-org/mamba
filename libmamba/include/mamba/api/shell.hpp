@@ -8,21 +8,18 @@
 #define MAMBA_API_SHELL_HPP
 
 #include <string>
-#include <vector>
-
-#include "mamba/core/mamba_fs.hpp"
-
+#include <string_view>
 
 namespace mamba
 {
-    void detect_shell(std::string& shell_type);
-
-    void shell(
-        const std::string& action,
-        std::string& shell_type,
-        const std::string& prefix = "",
-        bool stack = false
-    );
+    void shell_init(const std::string& shell_type, std::string_view prefix);
+    void shell_deinit(const std::string& shell_type, std::string_view prefix);
+    void shell_reinit(std::string_view prefix);
+    void shell_hook(const std::string& shell_type);
+    void shell_activate(std::string_view prefix, const std::string& shell_type, bool stack);
+    void shell_reactivate(const std::string& shell_type);
+    void shell_deactivate(const std::string& shell_type);
+    void shell_enable_long_path_support();
 }
 
 #endif

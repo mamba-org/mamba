@@ -58,7 +58,7 @@ function Exit-MambaEnvironment {
         if ($deactivateCommand.Trim().Length -eq 0) {
             return;
         }
-        Write-Verbose "[micromamba shell deactivate -s powershell]`n$deactivateCommand";
+        Write-Verbose "[micromamba shell deactivate --shell powershell]`n$deactivateCommand";
         Invoke-Expression -Command $deactivateCommand;
     }
     process {}

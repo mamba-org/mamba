@@ -278,7 +278,15 @@ PYBIND11_MODULE(bindings, m)
         .def("clear", [](PbGraph::conflicts_t& self) { return self.clear(); })
         .def("add", &PbGraph::conflicts_t::add);
 
-    pyPbGraph.def_static("from_solver", &PbGraph::from_solver)
+    pyPbGraph
+        .def_static(
+            "from_solver",
+            [](const MSolver& solver, const MPool& /* pool */)
+            {
+                deprecated("Use Solver.problems_graph() instead");
+                return solver.problems_graph();
+            }
+        )
         .def("root_node", &PbGraph::root_node)
         .def("conflicts", &PbGraph::conflicts)
         .def(

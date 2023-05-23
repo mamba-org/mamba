@@ -21,6 +21,7 @@
 
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
+#include "mamba/core/satisfiability_error.hpp"
 
 #include "match_spec.hpp"
 
@@ -65,8 +66,8 @@ namespace mamba
 
         MSolver(const MSolver&) = delete;
         MSolver& operator=(const MSolver&) = delete;
-        MSolver(MSolver&&) = delete;
-        MSolver& operator=(MSolver&&) = delete;
+        MSolver(MSolver&&);
+        MSolver& operator=(MSolver&&);
 
         void add_global_job(int job_flag);
         void add_jobs(const std::vector<std::string>& jobs, int job_flag);
@@ -82,6 +83,7 @@ namespace mamba
         [[nodiscard]] std::string problems_to_str() const;
         [[nodiscard]] std::vector<std::string> all_problems() const;
         [[nodiscard]] std::vector<MSolverProblem> all_problems_structured() const;
+        [[nodiscard]] ProblemsGraph problems_graph() const;
         [[nodiscard]] std::string all_problems_to_str() const;
         std::ostream& explain_problems(std::ostream& out) const;
         [[nodiscard]] std::string explain_problems() const;

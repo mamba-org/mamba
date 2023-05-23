@@ -942,7 +942,7 @@ def main(*args, **kwargs):
     if not args:
         args = sys.argv
 
-    if len(args) == 2 and args[1] == "--version":
+    if len(args) == 2 and args[1] in ("--version", "-V"):
         from mamba._version import __version__
 
         print("mamba {}".format(__version__))

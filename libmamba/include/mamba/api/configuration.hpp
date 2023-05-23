@@ -19,20 +19,6 @@
 #include "mamba/core/output.hpp"
 
 
-#define CONTEXT_DEBUGGING                                                                          \
-    if (Configuration::instance().at("print_context_only").value<bool>())                          \
-    {                                                                                              \
-        Context::instance().debug_print();                                                         \
-        exit(0);                                                                                   \
-    }
-#define CONFIG_DEBUGGING                                                                            \
-    if (Configuration::instance().at("print_config_only").value<bool>())                            \
-    {                                                                                               \
-        int dump_opts = MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS | MAMBA_SHOW_ALL_CONFIGS; \
-        std::cout << Configuration::instance().dump(dump_opts) << std::endl;                        \
-        exit(0);                                                                                    \
-    }
-
 namespace mamba
 {
     enum class ConfigurationLevel

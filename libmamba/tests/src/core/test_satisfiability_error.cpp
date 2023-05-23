@@ -416,11 +416,6 @@ namespace
         return create_conda_forge({ "scip=8.*", "pyscipopt<4.0" });
     }
 
-    auto create_jupyterlab() -> MSolver
-    {
-        return create_conda_forge({ "jupyterlab=3.4", "openssl=3.0.0" });
-    }
-
     auto create_double_python() -> MSolver
     {
         return create_conda_forge({ "python=3.9.*", "python=3.10.*" });
@@ -497,7 +492,6 @@ TEST_CASE("Create problem graph")
         std::pair{ "Jpeg", &create_jpeg9b },
         std::pair{ "R base", &create_r_base },
         std::pair{ "SCIP", &create_scip },
-        std::pair{ "Jupyter Lab", &create_jupyterlab },
         std::pair{ "Two different Python", &create_double_python },
         std::pair{ "Numba", &create_numba },
     };

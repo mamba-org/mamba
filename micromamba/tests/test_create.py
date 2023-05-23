@@ -467,6 +467,14 @@ def test_create_empty(tmp_home, tmp_root_prefix, tmp_path, prefix_selector, crea
     assert (effective_prefix / "conda-meta" / "history").exists()
 
 
+def test_create_envs_dirs(tmp_root_prefix: Path, tmp_path: Path):
+    """Create an environment when the first env dir is not writable."""
+    os.environ["CONDA_ENVS_DIRS"] = f"{Path('/noperm')},{tmp_path}"
+    env_name = "myenv"
+    helpers.create("-n", env_name, "--offline", "--no-rc", no_dry_run=True)
+    assert (tmp_path / env_name / "conda-meta" / "history").exists()
+
+
 @pytest.mark.skipif(
     helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
     reason="Running only ultra-dry tests",

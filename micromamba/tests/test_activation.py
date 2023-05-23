@@ -4,7 +4,7 @@ import platform
 import shutil
 import subprocess
 import tempfile
-from pathlib import PurePosixPath, PureWindowsPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 import pytest
 
@@ -911,6 +911,18 @@ class TestActivation:
         res = shell("activate", prefix_short, "-s", interpreter)
         dict_res = self.to_dict(res, interpreter)
         assert any([str(tmp_empty_env) in p for p in dict_res.values()])
+
+    @pytest.mark.parametrize("interpreter", get_interpreters())
+    def test_activate_envs_dirs(
+        self, tmp_root_prefix: Path, interpreter, tmp_path: Path
+    ):
+        """Activate an environemt as the non leading entry in ``envs_dirs``."""
+        env_name = "myenv"
+        create("-p", tmp_path / env_name, "--offline", "--no-rc", no_dry_run=True)
+        os.environ["CONDA_ENVS_DIRS"] = f"{Path('/noperm')},{tmp_path}"
+        res = shell("activate", env_name, "-s", interpreter)
+        dict_res = self.to_dict(res, interpreter)
+        assert any([env_name in p for p in dict_res.values()])
 
     @pytest.mark.parametrize("interpreter", get_self_update_interpreters())
     def test_self_update(

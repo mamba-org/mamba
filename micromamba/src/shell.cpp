@@ -38,7 +38,9 @@ namespace
     {
         auto& root = config.at("root_prefix");
         subcmd->add_option(
-            "root_prefix,-r,--root-prefix",
+            "root_prefix,-r,--root-prefix"
+            // TODO deprecated, remove in 2.0.0
+            ",--prefix,-p,--name,-n",
             root.get_cli_config<fs::u8path>(),
             root.description()
         );

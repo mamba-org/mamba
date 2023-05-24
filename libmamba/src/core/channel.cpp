@@ -479,7 +479,18 @@ namespace mamba
         auto config = read_channel_configuration(*this, scheme, host, port, path);
 
         auto res_scheme = !config.m_scheme.empty() ? config.m_scheme : "https";
-        auto canonical_name = concat_scheme_url(res_scheme, join_url(config.m_location, config.m_name));
+        std::string canonical_name;
+
+        const auto& custom_channels = get_custom_channels();
+        if ((custom_channels.find(config.m_name) != custom_channels.end())
+            || (config.m_location == get_channel_alias().location()))
+        {
+            canonical_name = config.m_name;
+        }
+        else
+        {
+            canonical_name = concat_scheme_url(res_scheme, join_url(config.m_location, config.m_name));
+        }
 
         return Channel(
             *this,

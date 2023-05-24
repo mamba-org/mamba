@@ -33,11 +33,11 @@ namespace mamba
         const std::string& scheme() const;
         const std::string& location() const;
         const std::string& name() const;
+        const std::string& canonical_name() const;
         const std::vector<std::string>& platforms() const;
         const std::optional<std::string>& auth() const;
         const std::optional<std::string>& token() const;
         const std::optional<std::string>& package_filename() const;
-        const std::string& canonical_name() const;
         const validation::RepoChecker& repo_checker(MultiPackageCache& caches) const;
 
         std::string base_url() const;
@@ -59,20 +59,20 @@ namespace mamba
             const std::string& scheme,
             const std::string& location,
             const std::string& name,
+            const std::string& canonical_name,
             const std::optional<std::string>& auth = {},
             const std::optional<std::string>& token = {},
-            const std::optional<std::string>& package_filename = {},
-            const std::optional<std::string>& canonical_name = {}
+            const std::optional<std::string>& package_filename = {}
         );
 
         std::string m_scheme;
         std::string m_location;
         std::string m_name;
+        std::string m_canonical_name;
         std::vector<std::string> m_platforms;
         std::optional<std::string> m_auth;
         std::optional<std::string> m_token;
         std::optional<std::string> m_package_filename;
-        mutable std::optional<std::string> m_canonical_name;
         mutable std::unique_ptr<validation::RepoChecker> p_repo_checker;
         ChannelContext* m_channel_context = nullptr;
 

@@ -95,20 +95,20 @@ namespace mamba
         const std::string& scheme,
         const std::string& location,
         const std::string& name,
+        const std::string& canonical_name,
         const std::optional<std::string>& auth,
         const std::optional<std::string>& token,
-        const std::optional<std::string>& package_filename,
-        const std::optional<std::string>& canonical_name
+        const std::optional<std::string>& package_filename
     )
-        : m_scheme(scheme)
+        : m_channel_context(&channel_context)
+        , m_scheme(scheme)
         , m_location(location)
         , m_name(name)
+        , m_canonical_name(canonical_name)
         , m_platforms()
         , m_auth(auth)
         , m_token(token)
         , m_package_filename(package_filename)
-        , m_canonical_name(canonical_name)
-        , m_channel_context(&channel_context)
     {
     }
 
@@ -167,27 +167,7 @@ namespace mamba
 
     const std::string& Channel::canonical_name() const
     {
-        if (!m_canonical_name)
-        {
-            auto it = m_channel_context->get_custom_channels().find(m_name);
-            if (it != m_channel_context->get_custom_channels().end())
-            {
-                m_canonical_name = it->first;
-            }
-            else if (m_location == m_channel_context->get_channel_alias().location())
-            {
-                m_canonical_name = m_name;
-            }
-            else if (m_scheme != "")
-            {
-                m_canonical_name = concat_scheme_url(m_scheme, join_url(m_location, m_name));
-            }
-            else
-            {
-                m_canonical_name = lstrip(m_location + '/' + m_name, "/");
-            }
-        }
-        return *m_canonical_name;
+        return m_canonical_name;
     }
 
     std::string Channel::base_url() const
@@ -313,10 +293,10 @@ namespace mamba
             scheme,
             location,
             name,
+            multi_name,
             nonempty_str(std::move(auth)),
             nonempty_str(std::move(token)),
-            {},
-            nonempty_str(std::string(multi_name))
+            {}
         );
     }
 
@@ -498,11 +478,15 @@ namespace mamba
 
         auto config = read_channel_configuration(*this, scheme, host, port, path);
 
+        auto res_scheme = !config.m_scheme.empty() ? config.m_scheme : "https";
+        auto canonical_name = concat_scheme_url(res_scheme, join_url(config.m_location, config.m_name));
+
         return Channel(
             *this,
-            config.m_scheme.size() ? config.m_scheme : "https",
+            res_scheme,
             config.m_location,
             config.m_name,
+            canonical_name,
             auth.size() ? std::make_optional(auth) : nonempty_str(std::move(config.m_auth)),
             token.size() ? std::make_optional(token) : nonempty_str(std::move(config.m_token)),
             nonempty_str(std::move(package_name))
@@ -548,16 +532,16 @@ namespace mamba
                 it->second.scheme(),
                 it->second.location(),
                 combined_name,
+                name,
                 it->second.auth(),
                 it->second.token(),
-                it->second.package_filename(),
-                name
+                it->second.package_filename()
             );
         }
         else
         {
             const Channel& alias = get_channel_alias();
-            return Channel(*this, alias.scheme(), alias.location(), name, alias.auth(), alias.token());
+            return Channel(*this, alias.scheme(), alias.location(), name, name, alias.auth(), alias.token());
         }
     }
 
@@ -687,7 +671,7 @@ namespace mamba
     {
         if (INVALID_CHANNELS.count(in_value) > 0)
         {
-            return Channel(*this, "", "", UNKNOWN_CHANNEL, "");
+            return Channel(*this, "", "", UNKNOWN_CHANNEL, "", "");
         }
 
         std::string value = in_value;
@@ -710,7 +694,7 @@ namespace mamba
         const std::optional<std::string>& token
     )
     {
-        return Channel(*this, scheme, location, "<alias>", auth, token);
+        return Channel(*this, scheme, location, "<alias>", "<alias>", auth, token);
     }
 
 

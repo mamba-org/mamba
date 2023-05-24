@@ -65,6 +65,8 @@ namespace mamba
             const std::optional<std::string>& package_filename = {}
         );
 
+        ChannelContext* m_channel_context = nullptr;
+
         std::string m_scheme;
         std::string m_location;
         std::string m_name;
@@ -74,7 +76,6 @@ namespace mamba
         std::optional<std::string> m_token;
         std::optional<std::string> m_package_filename;
         mutable std::unique_ptr<validation::RepoChecker> p_repo_checker;
-        ChannelContext* m_channel_context = nullptr;
 
         friend class ChannelContext;
     };
@@ -123,8 +124,8 @@ namespace mamba
         Channel make_simple_channel(
             const Channel& channel_alias,
             const std::string& channel_url,
-            const std::string& channel_name = "",
-            const std::string& multi_name = ""
+            const std::string& channel_name,
+            const std::string& channel_canonical_name
         );
 
         const Channel& make_cached_channel(const std::string& value);

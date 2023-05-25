@@ -69,7 +69,7 @@ namespace mamba::solv
          */
         [[nodiscard]] auto problem_rules(ProblemId id) const -> ObjQueue;
         [[nodiscard]] auto get_rule_info(const ObjPool& pool, RuleId id) const -> ObjRuleInfo;
-        [[nodiscard]] auto rule_info_to_string(const ObjPool& pool, ObjRuleInfo id) const
+        [[nodiscard]] auto rule_info_to_string(const ObjPool& pool, const ObjRuleInfo& id) const
             -> std::string;
 
     private:

@@ -100,7 +100,8 @@ namespace mamba::solv
         };
     }
 
-    auto ObjSolver::rule_info_to_string(const ObjPool& /* pool */, ObjRuleInfo ri) const -> std::string
+    auto ObjSolver::rule_info_to_string(const ObjPool& /* pool */, const ObjRuleInfo& ri) const
+        -> std::string
     {
         // pool is captured inside solver so we take it as a parameter to be explicit.
         return ::solver_ruleinfo2str(

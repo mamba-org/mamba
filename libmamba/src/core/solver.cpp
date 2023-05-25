@@ -25,6 +25,7 @@
 #include "mamba/core/util_string.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
+#include "solv-cpp/solver.hpp"
 
 namespace mamba
 {
@@ -157,55 +158,15 @@ namespace mamba
         }
     }
 
-    namespace
-    {
-        void delete_libsolve_solver(::Solver* solver)
-        {
-            LOG_INFO << "Freeing solver.";
-            if (solver != nullptr)
-            {
-                solver_free(solver);
-            }
-        }
-
-        MSolverProblem make_solver_problem(
-            const MSolver& solver,
-            const MPool& pool,
-            SolverRuleinfo type,
-            Id source_id,
-            Id target_id,
-            Id dep_id
-        )
-        {
-            const ::Solver* const solver_ptr = solver;
-            return {
-                /* .type= */ type,
-                /* .source_id= */ source_id,
-                /* .target_id= */ target_id,
-                /* .dep_id= */ dep_id,
-                /* .source= */ pool.id2pkginfo(source_id),
-                /* .target= */ pool.id2pkginfo(target_id),
-                /* .dep= */ pool.dep2str(dep_id),
-                /* .description= */
-                solver_problemruleinfo2str(
-                    const_cast<::Solver*>(solver_ptr),  // Not const because might alloctmp space
-                    type,
-                    source_id,
-                    target_id,
-                    dep_id
-                ),
-            };
-        }
-    }
-
     MSolver::MSolver(MPool pool, const std::vector<std::pair<int, int>> flags)
         : m_flags(std::move(flags))
         , m_is_solved(false)
         , m_pool(std::move(pool))
-        , m_solver(nullptr, &delete_libsolve_solver)
+        , m_solver(nullptr)
         , m_jobs(std::make_unique<solv::ObjQueue>())
     {
-        pool_createwhatprovides(m_pool);
+        // TODO should we lazyly create solver here? Should we what provides?
+        m_pool.create_whatprovides();
     }
 
     MSolver::~MSolver() = default;
@@ -216,12 +177,22 @@ namespace mamba
 
     MSolver::operator const Solver*() const
     {
-        return m_solver.get();
+        return solver().raw();
     }
 
     MSolver::operator Solver*()
     {
-        return m_solver.get();
+        return solver().raw();
+    }
+
+    auto MSolver::solver() -> solv::ObjSolver&
+    {
+        return *m_solver;
+    }
+
+    auto MSolver::solver() const -> const solv::ObjSolver&
+    {
+        return *m_solver;
     }
 
     void MSolver::add_global_job(int job_flag)
@@ -449,9 +420,10 @@ namespace mamba
 
     void MSolver::set_flags(const std::vector<std::pair<int, int>>& flags)
     {
+        // TODO use new API
         for (const auto& option : flags)
         {
-            solver_set_flag(m_solver.get(), option.first, option.second);
+            solver_set_flag(*this, option.first, option.second);
         }
     }
 
@@ -497,13 +469,12 @@ namespace mamba
 
     bool MSolver::try_solve()
     {
-        m_solver.reset(solver_create(m_pool));
+        m_solver = std::make_unique<solv::ObjSolver>(m_pool.pool());
         set_flags(m_flags);
 
-        solver_solve(m_solver.get(), m_jobs->raw());
+        const bool success = solver().solve(m_pool.pool(), *m_jobs);
         m_is_solved = true;
-        LOG_INFO << "Problem count: " << solver_problem_count(m_solver.get());
-        const bool success = solver_problem_count(m_solver.get()) == 0;
+        LOG_INFO << "Problem count: " << solver().problem_count();
         Console::instance().json_write({ { "success", success } });
         return success;
     }
@@ -521,31 +492,60 @@ namespace mamba
         }
     }
 
+    namespace
+    {
+        // TODO change MSolver problem
+        MSolverProblem make_solver_problem(
+            const MSolver& solver,
+            const MPool& pool,
+            SolverRuleinfo type,
+            Id source_id,
+            Id target_id,
+            Id dep_id
+        )
+        {
+            const ::Solver* const solver_ptr = solver;
+            return {
+                /* .type= */ type,
+                /* .source_id= */ source_id,
+                /* .target_id= */ target_id,
+                /* .dep_id= */ dep_id,
+                /* .source= */ pool.id2pkginfo(source_id),
+                /* .target= */ pool.id2pkginfo(target_id),
+                /* .dep= */ pool.dep2str(dep_id),
+                /* .description= */
+                solver_problemruleinfo2str(
+                    const_cast<::Solver*>(solver_ptr),  // Not const because might alloctmp space
+                    type,
+                    source_id,
+                    target_id,
+                    dep_id
+                ),
+            };
+        }
+    }
+
     std::vector<MSolverProblem> MSolver::all_problems_structured() const
     {
-        std::vector<MSolverProblem> res;
-        solv::ObjQueue problem_rules;
-        const auto count = static_cast<Id>(solver_problem_count(m_solver.get()));
-        for (Id i = 1; i <= count; ++i)
-        {
-            solver_findallproblemrules(m_solver.get(), i, problem_rules.raw());
-            for (const Id r : problem_rules)
+        std::vector<MSolverProblem> res = {};
+        res.reserve(solver().problem_count());  // Lower bound
+        solver().for_each_problem_id(
+            [&](solv::ProblemId pb)
             {
-                if (r != 0)
+                for (solv::RuleId const rule : solver().problem_rules(pb))
                 {
-                    Id source, target, dep;
-                    const SolverRuleinfo type = solver_ruleinfo(m_solver.get(), r, &source, &target, &dep);
+                    auto info = solver().get_rule_info(m_pool.pool(), rule);
                     res.push_back(make_solver_problem(
                         /* solver= */ *this,
                         /* pool= */ m_pool,
-                        /* type= */ type,
-                        /* source_id= */ source,
-                        /* target_id= */ target,
-                        /* dep_id= */ dep
+                        /* type= */ info.type,
+                        /* source_id= */ info.from_id.value_or(0),
+                        /* target_id= */ info.to_id.value_or(0),
+                        /* dep_id= */ info.dep_id.value_or(0)
                     ));
                 }
             }
-        }
+        );
         return res;
     }
 
@@ -553,28 +553,16 @@ namespace mamba
     std::string MSolver::all_problems_to_str() const
     {
         std::stringstream problems;
-
-        solv::ObjQueue problem_rules;
-        auto count = static_cast<Id>(solver_problem_count(m_solver.get()));
-        for (Id i = 1; i <= count; ++i)
-        {
-            solver_findallproblemrules(m_solver.get(), i, problem_rules.raw());
-            for (const Id r : problem_rules)
+        solver().for_each_problem_id(
+            [&](solv::ProblemId pb)
             {
-                Id source, target, dep;
-                if (!r)
+                for (solv::RuleId const rule : solver().problem_rules(pb))
                 {
-                    problems << "- [SKIP] no problem rule?\n";
-                }
-                else
-                {
-                    const SolverRuleinfo type = solver_ruleinfo(m_solver.get(), r, &source, &target, &dep);
-                    problems << "  - "
-                             << solver_problemruleinfo2str(m_solver.get(), type, source, target, dep)
-                             << "\n";
+                    auto const info = solver().get_rule_info(m_pool.pool(), rule);
+                    problems << "  - " << solver().rule_info_to_string(m_pool.pool(), info) << "\n";
                 }
             }
-        }
+        );
         return problems.str();
     }
 
@@ -603,28 +591,21 @@ namespace mamba
 
     std::string MSolver::problems_to_str() const
     {
-        solv::ObjQueue problem_queue;
-        auto count = static_cast<int>(solver_problem_count(m_solver.get()));
         std::stringstream problems;
-        for (int i = 1; i <= count; i++)
-        {
-            problem_queue.push_back(i);
-            problems << "  - " << solver_problem2str(m_solver.get(), i) << "\n";
-        }
+        solver().for_each_problem_id(
+            [&](solv::ProblemId pb)
+            { problems << "  - " << solver().problem_to_string(m_pool.pool(), pb); }
+        );
         return "Encountered problems while solving:\n" + problems.str();
     }
 
     std::vector<std::string> MSolver::all_problems() const
     {
         std::vector<std::string> problems;
-        solv::ObjQueue problem_queue;
-        int count = static_cast<int>(solver_problem_count(m_solver.get()));
-        for (int i = 1; i <= count; i++)
-        {
-            problem_queue.push_back(i);
-            problems.emplace_back(solver_problem2str(m_solver.get(), i));
-        }
-
+        solver().for_each_problem_id(
+            [&](solv::ProblemId pb)
+            { problems.emplace_back(solver().problem_to_string(m_pool.pool(), pb)); }
+        );
         return problems;
     }
 

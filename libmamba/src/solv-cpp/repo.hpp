@@ -14,7 +14,10 @@
 #include "solv-cpp/ids.hpp"
 #include "solv-cpp/solvable.hpp"
 
-using Repo = struct s_Repo;
+extern "C"
+{
+    using Repo = struct s_Repo;
+}
 
 namespace fs
 {

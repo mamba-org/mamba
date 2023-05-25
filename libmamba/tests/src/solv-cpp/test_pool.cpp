@@ -72,6 +72,13 @@ TEST_SUITE("ObjPool")
             CHECK_EQ(pool.get_dependency_relation(id_rel), " > ");
             CHECK_EQ(pool.get_dependency_version(id_rel), "1.0.0");
             CHECK_EQ(pool.dependency_to_string(id_rel), "mamba > 1.0.0");
+
+            SUBCASE("Parse a conda dependency")
+            {
+                const auto id_conda = pool.add_conda_dependency("rattler < 0.1");
+                CHECK_EQ(pool.get_dependency_name(id_conda), "rattler");
+                CHECK_EQ(pool.get_dependency_version(id_conda), "<0.1");
+            }
         }
 
         SUBCASE("Add repo")

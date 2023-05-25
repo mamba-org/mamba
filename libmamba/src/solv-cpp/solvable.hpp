@@ -16,7 +16,10 @@
 #include "solv-cpp/ids.hpp"
 #include "solv-cpp/queue.hpp"
 
-using Solvable = struct s_Solvable;
+extern "C"
+{
+    using Solvable = struct s_Solvable;
+}
 
 namespace mamba::solv
 {

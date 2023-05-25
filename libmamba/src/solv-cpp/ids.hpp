@@ -15,9 +15,12 @@ namespace mamba::solv
     using DependencyId = ::Id;
     using RepoId = ::Id;
     using SolvableId = ::Id;
+    using RuleId = ::Id;
+    using ProblemId = ::Id;
 
     using RelationFlag = int;
     using DistType = int;
+    using SolverFlag = int;
 }
 
 #endif

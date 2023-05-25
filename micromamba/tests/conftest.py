@@ -14,12 +14,24 @@ from . import helpers
 
 
 def pytest_addoption(parser):
-    """Add pkgs-dir command line argument to pytest."""
+    """Add command line argument to pytest."""
     parser.addoption(
         "--mamba-pkgs-dir",
         action="store",
         default=None,
-        help="Package cache to resuse between tests",
+        help="Package cache to reuse between tests",
+    )
+    parser.addoption(
+        "--no-eager-clean",
+        action="store_true",
+        default=False,
+        help=(
+            "Do not eagerly delete temporary folders such as HOME and MAMBA_ROOT_PREFIX"
+            "created during tests."
+            "These folders take a lot of disk space so we delete them eagerly."
+            "For debugging, it can be convenient to keep them."
+            "With this option, cleaning will fallback on the default pytest policy."
+        ),
     )
 
 
@@ -42,21 +54,26 @@ def tmp_environ() -> Generator[Mapping[str, Any], None, None]:
 
 @pytest.fixture
 def tmp_home(
-    tmp_environ, tmp_path: pathlib.Path
+    request, tmp_environ, tmp_path_factory: pytest.TempPathFactory
 ) -> Generator[pathlib.Path, None, None]:
     """Change the home directory to a tmp folder for the duration of a test."""
     # Try multiple combination for Unix/Windows
     home_envs = ["HOME", "USERPROFILE"]
     used_homes = [env for env in home_envs if env in os.environ]
 
+    new_home = pathlib.Path.home()
     if len(used_homes) > 0:
-        new_home = tmp_path / "home"
+        new_home = tmp_path_factory.mktemp("home")
         new_home.mkdir(parents=True, exist_ok=True)
         for env in used_homes:
             os.environ[env] = str(new_home)
-        return new_home
-    else:
-        return pathlib.Path.home()
+
+    yield new_home
+
+    # Pytest would clean it automatically but this can be large (0.5 Gb for repodata)
+    # We clean it explicitly
+    if not request.config.getoption("--no-eager-clean"):
+        helpers.rmtree(new_home)
 
 
 @pytest.fixture
@@ -104,35 +121,28 @@ def shared_pkgs_dirs(request) -> bool:
     return request.param
 
 
-@pytest.fixture(params=[False])
-def shared_repodata(request) -> bool:
-    """A dummy fixture to control the use of shared repodata caches."""
-    return request.param
-
-
 @pytest.fixture
 def tmp_root_prefix(
-    tmp_path: pathlib.Path,
+    request,
+    tmp_path_factory: pytest.TempPathFactory,
     tmp_clean_env: None,
     tmp_pkgs_dirs: pathlib.Path,
     shared_pkgs_dirs: bool,
-    shared_repodata: bool,
 ) -> Generator[pathlib.Path, None, None]:
     """Change the micromamba root directory to a tmp folder for the duration of a test."""
-    new_root_prefix = tmp_path / "mamba"
+    new_root_prefix = tmp_path_factory.mktemp("mamba")
     new_root_prefix.mkdir(parents=True, exist_ok=True)
     os.environ["MAMBA_ROOT_PREFIX"] = str(new_root_prefix)
 
-    repodata_cache = None
     if shared_pkgs_dirs:
         os.environ["CONDA_PKGS_DIRS"] = str(tmp_pkgs_dirs)
-    elif shared_repodata:
-        cache = new_root_prefix / "pkgs"
-        cache.mkdir()
-        repodata_cache = cache / "cache"
-        repodata_cache.symlink_to(tmp_pkgs_dirs / "cache", target_is_directory=True)
 
-    return new_root_prefix
+    yield new_root_prefix
+
+    # Pytest would clean it automatically but this can be large (0.5 Gb for repodata)
+    # We clean it explicitly
+    if not request.config.getoption("--no-eager-clean"):
+        helpers.rmtree(new_root_prefix)
     # os.environ restored by tmp_clean_env and tmp_environ
 
 

@@ -5,7 +5,10 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <regex>
+#include <set>
 #include <stdexcept>
+#include <string>
+#include <vector>
 
 #include <fmt/color.h>
 #include <fmt/format.h>
@@ -23,8 +26,6 @@
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_string.hpp"
-
-#include "progress_bar_impl.hpp"
 
 namespace mamba
 {
@@ -292,7 +293,7 @@ namespace mamba
         content << "export MAMBA_EXE=" << std::quoted(cyg_mamba_exe, '\'') << ";\n";
         content << "export MAMBA_ROOT_PREFIX=" << std::quoted(cyg_env_prefix, '\'') << ";\n";
         content << "eval \"$(\"$MAMBA_EXE\" shell hook --shell " << shell
-                << " --prefix \"$MAMBA_ROOT_PREFIX\")\"\n";
+                << " --root-prefix \"$MAMBA_ROOT_PREFIX\")\"\n";
         content << "# <<< mamba initialize <<<\n";
         return content.str();
 
@@ -305,7 +306,7 @@ namespace mamba
         content << "export MAMBA_EXE=" << mamba_exe << ";\n";
         content << "export MAMBA_ROOT_PREFIX=" << env_prefix << ";\n";
         content << "__mamba_setup=\"$(\"$MAMBA_EXE\" shell hook --shell " << shell
-                << " --prefix \"$MAMBA_ROOT_PREFIX\" 2> /dev/null)\"\n";
+                << " --root-prefix \"$MAMBA_ROOT_PREFIX\" 2> /dev/null)\"\n";
         content << "if [ $? -eq 0 ]; then\n";
         content << "    eval \"$__mamba_setup\"\n";
         content << "else\n";
@@ -376,7 +377,7 @@ namespace mamba
         content << "# !! Contents within this block are managed by 'mamba init' !!\n";
         content << "set -gx MAMBA_EXE " << mamba_exe << "\n";
         content << "set -gx MAMBA_ROOT_PREFIX " << env_prefix << "\n";
-        content << "$MAMBA_EXE shell hook --shell fish --prefix $MAMBA_ROOT_PREFIX | source\n";
+        content << "$MAMBA_EXE shell hook --shell fish --root-prefix $MAMBA_ROOT_PREFIX | source\n";
         content << "# <<< mamba initialize <<<\n";
         return content.str();
     }

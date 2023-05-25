@@ -4,7 +4,7 @@ import platform
 import shutil
 import subprocess
 import tempfile
-from pathlib import PurePosixPath, PureWindowsPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 import pytest
 
@@ -330,7 +330,7 @@ class TestActivation:
         stdout, stderr = call(s)
         assert stdout == str(tmp_root_prefix)
 
-        s = [f"{umamba} shell init -p {rpv} {xonsh_shell_args(interpreter)}"]
+        s = [f"{umamba} shell init -r {rpv} {xonsh_shell_args(interpreter)}"]
         stdout, stderr = call(s)
 
         if interpreter == "cmd.exe":
@@ -346,7 +346,7 @@ class TestActivation:
                 assert find_path_in_str(tmp_root_prefix, x)
                 prev_text = x
 
-        s = [f"{umamba} shell init -p {rpv} {xonsh_shell_args(interpreter)}"]
+        s = [f"{umamba} shell init -r {rpv} {xonsh_shell_args(interpreter)}"]
         stdout, stderr = call(s)
 
         if interpreter == "cmd.exe":
@@ -363,7 +363,7 @@ class TestActivation:
 
         if interpreter == "cmd.exe":
             write_windows_registry(regkey, "echo 'test'", winreg_value[1])
-            s = [f"{umamba} shell init -p {rpv}"]
+            s = [f"{umamba} shell init -r {rpv}"]
             stdout, stderr = call(s)
 
             value = read_windows_registry(regkey)
@@ -384,7 +384,7 @@ class TestActivation:
                 )
                 fo.write(text)
 
-            s = [f"{umamba} shell init -p {rpv}"]
+            s = [f"{umamba} shell init -r {rpv}"]
             stdout, stderr = call(s)
             with open(path) as fi:
                 x = fi.read()
@@ -394,7 +394,7 @@ class TestActivation:
         other_root_prefix = tmp_path / "prefix"
         other_root_prefix.mkdir()
         s = [
-            f"{umamba} shell init -p {other_root_prefix} {xonsh_shell_args(interpreter)}"
+            f"{umamba} shell init -r {other_root_prefix} {xonsh_shell_args(interpreter)}"
         ]
         stdout, stderr = call(s)
 
@@ -452,7 +452,7 @@ class TestActivation:
             return call_interpreter(command, tmp_path, interpreter)
 
         s = [
-            f"{umamba} shell init -p {tmp_root_prefix} {xonsh_shell_args(interpreter)}"
+            f"{umamba} shell init -r {tmp_root_prefix} {xonsh_shell_args(interpreter)}"
         ]
         call(s)
 
@@ -460,7 +460,7 @@ class TestActivation:
             assert file.exists()
 
         s = [
-            f"{umamba} shell deinit -p {tmp_root_prefix} {xonsh_shell_args(interpreter)}"
+            f"{umamba} shell deinit -r {tmp_root_prefix} {xonsh_shell_args(interpreter)}"
         ]
         call(s)
 
@@ -488,7 +488,7 @@ class TestActivation:
         assert not find_path_in_str(tmp_root_prefix, prev_value[0])
 
         s = [
-            f"{umamba} shell init -p {tmp_root_prefix} {xonsh_shell_args(interpreter)}"
+            f"{umamba} shell init -r {tmp_root_prefix} {xonsh_shell_args(interpreter)}"
         ]
         call(s)
 
@@ -497,7 +497,7 @@ class TestActivation:
         assert find_path_in_str(tmp_root_prefix, value_after_init[0])
 
         s = [
-            f"{umamba} shell deinit -p {tmp_root_prefix} {xonsh_shell_args(interpreter)}"
+            f"{umamba} shell deinit -r {tmp_root_prefix} {xonsh_shell_args(interpreter)}"
         ]
         call(s)
 
@@ -536,7 +536,7 @@ class TestActivation:
         assert not find_path_in_str(tmp_root_prefix, prev_rc_contents)
 
         s = [
-            f"{umamba} shell init -p {tmp_root_prefix} {xonsh_shell_args(interpreter)}"
+            f"{umamba} shell init -r {tmp_root_prefix} {xonsh_shell_args(interpreter)}"
         ]
         call(s)
 
@@ -549,7 +549,7 @@ class TestActivation:
             assert find_path_in_str(tmp_root_prefix, rc_contents_after_init)
 
         s = [
-            f"{umamba} shell deinit -p {tmp_root_prefix} {xonsh_shell_args(interpreter)}"
+            f"{umamba} shell deinit -r {tmp_root_prefix} {xonsh_shell_args(interpreter)}"
         ]
         call(s)
 
@@ -571,7 +571,7 @@ class TestActivation:
 
         umamba = get_umamba()
 
-        s = [f"{umamba} shell init -p {tmp_root_prefix}"]
+        s = [f"{umamba} shell init -r {tmp_root_prefix}"]
         stdout, stderr = call_interpreter(s, tmp_path, interpreter)
 
         call = lambda s: call_interpreter(s, tmp_path, interpreter, interactive=True)
@@ -670,7 +670,7 @@ class TestActivation:
 
         umamba = get_umamba()
 
-        s = [f"{umamba} shell init -p {tmp_root_prefix}"]
+        s = [f"{umamba} shell init -r {tmp_root_prefix}"]
         stdout, stderr = call_interpreter(s, tmp_path, interpreter)
 
         call = lambda s: call_interpreter(s, tmp_path, interpreter, interactive=True)
@@ -793,7 +793,7 @@ class TestActivation:
 
         umamba = get_umamba()
 
-        s = [f"{umamba} shell init -p {tmp_root_prefix}"]
+        s = [f"{umamba} shell init -r {tmp_root_prefix}"]
         stdout, stderr = call_interpreter(s, tmp_path, interpreter)
 
         call = lambda s: call_interpreter(s, tmp_path, interpreter, interactive=True)
@@ -912,6 +912,18 @@ class TestActivation:
         dict_res = self.to_dict(res, interpreter)
         assert any([str(tmp_empty_env) in p for p in dict_res.values()])
 
+    @pytest.mark.parametrize("interpreter", get_interpreters())
+    def test_activate_envs_dirs(
+        self, tmp_root_prefix: Path, interpreter, tmp_path: Path
+    ):
+        """Activate an environemt as the non leading entry in ``envs_dirs``."""
+        env_name = "myenv"
+        create("-p", tmp_path / env_name, "--offline", "--no-rc", no_dry_run=True)
+        os.environ["CONDA_ENVS_DIRS"] = f"{Path('/noperm')},{tmp_path}"
+        res = shell("activate", env_name, "-s", interpreter)
+        dict_res = self.to_dict(res, interpreter)
+        assert any([env_name in p for p in dict_res.values()])
+
     @pytest.mark.parametrize("interpreter", get_self_update_interpreters())
     def test_self_update(
         self,
@@ -925,7 +937,7 @@ class TestActivation:
         mamba_exe = backup_umamba
 
         shell_init = [
-            f"{format_path(mamba_exe, interpreter)} shell init -s {interpreter} -p {format_path(tmp_root_prefix, interpreter)}"
+            f"{format_path(mamba_exe, interpreter)} shell init -s {interpreter} -r {format_path(tmp_root_prefix, interpreter)}"
         ]
         call_interpreter(shell_init, tmp_path, interpreter)
 

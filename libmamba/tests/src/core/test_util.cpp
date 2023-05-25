@@ -151,6 +151,9 @@ namespace mamba
                 env::expand_user("~/.libmamba-non-existing-writable-test-delete-me.txt")
             ));
 
+            CHECK(path::is_writable(test_dir_path / "non-existing-subfolder"));
+            CHECK_FALSE(fs::exists(test_dir_path / "non-existing-subfolder"));
+
             {
                 const auto existing_file_path = test_dir_path
                                                 / "existing-writable-test-delete-me.txt";

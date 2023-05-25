@@ -53,7 +53,7 @@ namespace mamba
         }
     }
 
-    void shell_init(const std::string& shell_type, std::string_view prefix)
+    void shell_init(const std::string& shell_type, const fs::u8path& prefix)
     {
         auto& ctx = Context::instance();
         if (prefix.empty() || prefix == "base")
@@ -66,7 +66,7 @@ namespace mamba
         }
     }
 
-    void shell_deinit(const std::string& shell_type, std::string_view prefix)
+    void shell_deinit(const std::string& shell_type, const fs::u8path& prefix)
     {
         auto& ctx = Context::instance();
         if (prefix.empty() || prefix == "base")
@@ -79,7 +79,7 @@ namespace mamba
         }
     }
 
-    void shell_reinit(std::string_view prefix)
+    void shell_reinit(const fs::u8path& prefix)
     {
         // re-initialize all the shell scripts after update
         for (const auto& shell_type : find_initialized_shells())
@@ -107,32 +107,17 @@ namespace mamba
         }
     }
 
-    void shell_activate(std::string_view prefix, const std::string& shell_type, bool stack)
+    void shell_activate(const fs::u8path& prefix, const std::string& shell_type, bool stack)
     {
-        auto activator = make_activator(shell_type);
-        auto& ctx = Context::instance();
-        fs::u8path shell_prefix;
-        if (prefix.empty() || prefix == "base")
-        {
-            shell_prefix = ctx.prefix_params.root_prefix;
-        }
-        else if (prefix.find_first_of("/\\") == std::string::npos)
-        {
-            shell_prefix = ctx.prefix_params.root_prefix / "envs" / prefix;
-        }
-        else
-        {
-            shell_prefix = fs::weakly_canonical(env::expand_user(prefix));
-        }
-
-        if (!fs::exists(shell_prefix))
+        if (!fs::exists(prefix))
         {
             throw std::runtime_error(
-                fmt::format("Cannot activate, prefix does not exist at: {}", shell_prefix)
+                fmt::format("Cannot activate, prefix does not exist at: {}", prefix)
             );
         }
 
-        std::cout << activator->activate(shell_prefix, stack);
+        auto activator = make_activator(shell_type);
+        std::cout << activator->activate(prefix, stack);
     }
 
     void shell_reactivate(const std::string& shell_type)

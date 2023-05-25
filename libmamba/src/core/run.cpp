@@ -19,10 +19,11 @@
 #include <reproc++/run.hpp>
 #include <spdlog/spdlog.h>
 
-#include "mamba/api/configuration.hpp"
-#include "mamba/api/install.hpp"
+#include "mamba/core/context.hpp"
+#include "mamba/core/environment.hpp"
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/execution.hpp"
+#include "mamba/core/output.hpp"
 #include "mamba/core/run.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_random.hpp"

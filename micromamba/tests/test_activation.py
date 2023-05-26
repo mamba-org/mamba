@@ -960,7 +960,7 @@ class TestActivation:
             else:
                 print(mamba_exe)
                 extra_start_code = [
-                    "source ~/.bash_profile",
+                    f"source {PurePosixPath(tmp_home)}/.bash_profile",  # HOME from os.environ not acknowledged
                     "micromamba info",
                     "echo $MAMBA_ROOT_PREFIX",
                     "echo $HOME",

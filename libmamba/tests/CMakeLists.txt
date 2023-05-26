@@ -18,6 +18,7 @@ set(LIBMAMBA_TEST_SRCS
     src/solv-cpp/test_repo.cpp
     src/solv-cpp/test_solvable.cpp
     src/solv-cpp/test_solver.cpp
+    src/solv-cpp/test_transaction.cpp
     # Utility library
     src/util/test_flat_set.cpp
     src/util/test_graph.cpp

@@ -8,6 +8,9 @@
 #define MAMBA_SOLV_TRANSACTION_HPP
 
 #include <memory>
+#include <utility>
+
+#include "solv-cpp/ids.hpp"
 
 extern "C"
 {
@@ -30,10 +33,18 @@ namespace mamba::solv
             -> ObjTransaction;
 
         ObjTransaction(const ObjPool& pool);
+        ObjTransaction(ObjTransaction&&) noexcept = default;
+        ObjTransaction(const ObjTransaction&);
         ~ObjTransaction();
+        auto operator=(ObjTransaction&&) noexcept -> ObjTransaction& = default;
+        auto operator=(const ObjTransaction&) -> ObjTransaction&;
 
         [[nodiscard]] auto raw() -> ::Transaction*;
         [[nodiscard]] auto raw() const -> const ::Transaction*;
+
+        // TODO C++20 We can simply return a ``span<solv::SolvableId>``
+        template <typename UnaryFunc>
+        void for_each_step_id(UnaryFunc&& func) const;
 
     private:
 
@@ -47,4 +58,21 @@ namespace mamba::solv
         explicit ObjTransaction(::Transaction* ptr) noexcept;
     };
 }
+
+#include <solv/transaction.h>
+
+namespace mamba::solv
+{
+    template <typename UnaryFunc>
+    void ObjTransaction::for_each_step_id(UnaryFunc&& func) const
+    {
+        const auto& steps = raw()->steps;
+        const auto count = static_cast<std::size_t>(steps.count);
+        for (std::size_t i = 0; i < count; ++i)
+        {
+            func(steps.elements[i]);
+        }
+    }
+}
+
 #endif

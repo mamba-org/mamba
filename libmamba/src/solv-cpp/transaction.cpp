@@ -28,7 +28,18 @@ namespace mamba::solv
     {
     }
 
+    ObjTransaction::ObjTransaction(const ObjTransaction& other)
+        : ObjTransaction(::transaction_create_clone(const_cast<::Transaction*>(other.raw())))
+    {
+    }
+
     ObjTransaction::~ObjTransaction() = default;
+
+    auto ObjTransaction::operator=(const ObjTransaction& other) -> ObjTransaction&
+    {
+        *this = ObjTransaction(other);
+        return *this;
+    }
 
     auto ObjTransaction::from_solvables(const ObjPool& pool, const ObjQueue& solvables)
         -> ObjTransaction

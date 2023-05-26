@@ -11,40 +11,12 @@
 #include <solv/solver.h>
 
 #include "solv-cpp/pool.hpp"
+#include "solv-cpp/repo.hpp"
 #include "solv-cpp/solver.hpp"
 
+#include "pool-data.hpp"
+
 using namespace mamba::solv;
-
-struct SimplePkg
-{
-    std::string name;
-    std::string version;
-    std::vector<std::string> dependencies = {};
-};
-
-auto
-make_simple_packages() -> std::vector<SimplePkg>
-{
-    return {
-        { "menu", "1.5.0", { "dropdown=2.*" } },
-        { "menu", "1.4.0", { "dropdown=2.*" } },
-        { "menu", "1.3.0", { "dropdown=2.*" } },
-        { "menu", "1.2.0", { "dropdown=2.*" } },
-        { "menu", "1.1.0", { "dropdown=2.*" } },
-        { "menu", "1.0.0", { "dropdown=1.*" } },
-        { "dropdown", "2.3.0", { "icons=2.*" } },
-        { "dropdown", "2.2.0", { "icons=2.*" } },
-        { "dropdown", "2.1.0", { "icons=2.*" } },
-        { "dropdown", "2.0.0", { "icons=2.*" } },
-        { "dropdown", "1.8.0", { "icons=1.*", "intl=3.*" } },
-        { "icons", "2.0.0" },
-        { "icons", "1.0.0" },
-        { "intl", "5.0.0" },
-        { "intl", "4.0.0" },
-        { "intl", "3.0.0" },
-    };
-}
-
 
 TEST_SUITE("ObjSolver")
 {
@@ -52,18 +24,7 @@ TEST_SUITE("ObjSolver")
     {
         auto pool = ObjPool();
         auto [repo_id, repo] = pool.add_repo("forge");
-
-        for (const auto& pkg : make_simple_packages())
-        {
-            auto [solv_id, solv] = repo.add_solvable();
-            solv.set_name(pkg.name);
-            solv.set_version(pkg.version);
-            for (const auto& dep : pkg.dependencies)
-            {
-                solv.add_dependency(pool.add_conda_dependency(dep));
-            }
-            solv.add_self_provide();
-        }
+        mamba::test::add_simple_packages(pool, repo);
         repo.internalize();
 
         auto solver = ObjSolver(pool);

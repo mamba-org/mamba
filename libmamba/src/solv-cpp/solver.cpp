@@ -19,6 +19,134 @@
 
 namespace mamba::solv
 {
+    auto enum_name(::SolverRuleinfo rule) -> std::string_view
+    {
+        switch (rule)
+        {
+            case (SOLVER_RULE_UNKNOWN):
+            {
+                return "SOLVER_RULE_UNKNOWN";
+            }
+            case (SOLVER_RULE_PKG):
+            {
+                return "SOLVER_RULE_PKG";
+            }
+            case (SOLVER_RULE_PKG_NOT_INSTALLABLE):
+            {
+                return "SOLVER_RULE_PKG_NOT_INSTALLABLE";
+            }
+            case (SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP):
+            {
+                return "SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP";
+            }
+            case (SOLVER_RULE_PKG_REQUIRES):
+            {
+                return "SOLVER_RULE_PKG_REQUIRES";
+            }
+            case (SOLVER_RULE_PKG_SELF_CONFLICT):
+            {
+                return "SOLVER_RULE_PKG_SELF_CONFLICT";
+            }
+            case (SOLVER_RULE_PKG_CONFLICTS):
+            {
+                return "SOLVER_RULE_PKG_CONFLICTS";
+            }
+            case (SOLVER_RULE_PKG_SAME_NAME):
+            {
+                return "SOLVER_RULE_PKG_SAME_NAME";
+            }
+            case (SOLVER_RULE_PKG_OBSOLETES):
+            {
+                return "SOLVER_RULE_PKG_OBSOLETES";
+            }
+            case (SOLVER_RULE_PKG_IMPLICIT_OBSOLETES):
+            {
+                return "SOLVER_RULE_PKG_IMPLICIT_OBSOLETES";
+            }
+            case (SOLVER_RULE_PKG_INSTALLED_OBSOLETES):
+            {
+                return "SOLVER_RULE_PKG_INSTALLED_OBSOLETES";
+            }
+            case (SOLVER_RULE_PKG_RECOMMENDS):
+            {
+                return "SOLVER_RULE_PKG_RECOMMENDS";
+            }
+            case (SOLVER_RULE_PKG_CONSTRAINS):
+            {
+                return "SOLVER_RULE_PKG_CONSTRAINS";
+            }
+            case (SOLVER_RULE_UPDATE):
+            {
+                return "SOLVER_RULE_UPDATE";
+            }
+            case (SOLVER_RULE_FEATURE):
+            {
+                return "SOLVER_RULE_FEATURE";
+            }
+            case (SOLVER_RULE_JOB):
+            {
+                return "SOLVER_RULE_JOB";
+            }
+            case (SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP):
+            {
+                return "SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP";
+            }
+            case (SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM):
+            {
+                return "SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM";
+            }
+            case (SOLVER_RULE_JOB_UNKNOWN_PACKAGE):
+            {
+                return "SOLVER_RULE_JOB_UNKNOWN_PACKAGE";
+            }
+            case (SOLVER_RULE_JOB_UNSUPPORTED):
+            {
+                return "SOLVER_RULE_JOB_UNSUPPORTED";
+            }
+            case (SOLVER_RULE_DISTUPGRADE):
+            {
+                return "SOLVER_RULE_DISTUPGRADE";
+            }
+            case (SOLVER_RULE_INFARCH):
+            {
+                return "SOLVER_RULE_INFARCH";
+            }
+            case (SOLVER_RULE_CHOICE):
+            {
+                return "SOLVER_RULE_CHOICE";
+            }
+            case (SOLVER_RULE_LEARNT):
+            {
+                return "SOLVER_RULE_LEARNT";
+            }
+            case (SOLVER_RULE_BEST):
+            {
+                return "SOLVER_RULE_BEST";
+            }
+            case (SOLVER_RULE_YUMOBS):
+            {
+                return "SOLVER_RULE_YUMOBS";
+            }
+            case (SOLVER_RULE_RECOMMENDS):
+            {
+                return "SOLVER_RULE_RECOMMENDS";
+            }
+            case (SOLVER_RULE_BLACK):
+            {
+                return "SOLVER_RULE_BLACK";
+            }
+            case (SOLVER_RULE_STRICT_REPO_PRIORITY):
+            {
+                return "SOLVER_RULE_STRICT_REPO_PRIORITY";
+            }
+            default:
+            {
+                throw std::runtime_error("Invalid SolverRuleinfo: " + std::to_string(rule));
+            }
+        }
+    }
+
+
     void ObjSolver::SolverDeleter::operator()(::Solver* ptr)
     {
         ::solver_free(ptr);

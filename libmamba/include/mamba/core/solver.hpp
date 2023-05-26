@@ -43,8 +43,6 @@ namespace mamba::solv
 namespace mamba
 {
 
-    const char* solver_ruleinfo_name(SolverRuleinfo rule);
-
     struct MSolverProblem
     {
         SolverRuleinfo type;

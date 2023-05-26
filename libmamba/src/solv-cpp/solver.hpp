@@ -35,6 +35,8 @@ namespace mamba::solv
     class ObjPool;
     class ObjQueue;
 
+    auto enum_name(::SolverRuleinfo e) -> std::string_view;
+
     struct ObjRuleInfo
     {
         std::optional<SolvableId> from_id;

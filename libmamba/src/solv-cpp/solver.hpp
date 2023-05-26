@@ -53,8 +53,8 @@ namespace mamba::solv
         ObjSolver(const ObjPool& pool);
         ~ObjSolver();
 
-        auto raw() -> ::Solver*;
-        auto raw() const -> const ::Solver*;
+        [[nodiscard]] auto raw() -> ::Solver*;
+        [[nodiscard]] auto raw() const -> const ::Solver*;
 
         void set_flag(SolverFlag flag, bool value);
         [[nodiscard]] auto get_flag(SolverFlag flag) const -> bool;
@@ -83,7 +83,7 @@ namespace mamba::solv
 
         std::unique_ptr<::Solver, ObjSolver::SolverDeleter> m_solver = nullptr;
 
-        auto next_problem(ProblemId id = 0) const -> ProblemId;
+        [[nodiscard]] auto next_problem(ProblemId id = 0) const -> ProblemId;
     };
 
     /*********************************

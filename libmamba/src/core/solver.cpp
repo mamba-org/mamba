@@ -495,8 +495,6 @@ namespace mamba
         {
         public:
 
-            using SolvId = Id;  // Unscoped from libsolv
-
             using graph_t = ProblemsGraph::graph_t;
             using RootNode = ProblemsGraph::RootNode;
             using PackageNode = ProblemsGraph::PackageNode;
@@ -517,7 +515,7 @@ namespace mamba
             const MPool& m_pool;
             graph_t m_graph;
             conflicts_t m_conflicts;
-            std::map<SolvId, node_id> m_solv2node;
+            std::map<solv::SolvableId, node_id> m_solv2node;
             node_id m_root_node;
 
             /**
@@ -526,11 +524,11 @@ namespace mamba
              * If the node is already present and ``update`` is false then the current
              * node is left as it is, otherwise the new value is inserted.
              */
-            node_id add_solvable(SolvId solv_id, node_t&& pkg_info, bool update = true);
+            node_id add_solvable(solv::SolvableId solv_id, node_t&& pkg_info, bool update = true);
 
             void add_conflict(node_id n1, node_id n2);
             [[nodiscard]] bool
-            add_expanded_deps_edges(node_id from_id, SolvId dep_id, const edge_t& edge);
+            add_expanded_deps_edges(node_id from_id, solv::SolvableId dep_id, const edge_t& edge);
 
             void parse_problems();
         };
@@ -548,7 +546,8 @@ namespace mamba
             return { std::move(m_graph), std::move(m_conflicts), m_root_node };
         }
 
-        auto ProblemsGraphCreator::add_solvable(SolvId solv_id, node_t&& node, bool update) -> node_id
+        auto ProblemsGraphCreator::add_solvable(solv::SolvableId solv_id, node_t&& node, bool update)
+            -> node_id
         {
             if (const auto iter = m_solv2node.find(solv_id); iter != m_solv2node.end())
             {
@@ -569,8 +568,11 @@ namespace mamba
             m_conflicts.add(n1, n2);
         }
 
-        bool
-        ProblemsGraphCreator::add_expanded_deps_edges(node_id from_id, SolvId dep_id, const edge_t& edge)
+        bool ProblemsGraphCreator::add_expanded_deps_edges(
+            node_id from_id,
+            solv::SolvableId dep_id,
+            const edge_t& edge
+        )
         {
             bool added = false;
             for (const auto& solv_id : m_pool.select_solvables(dep_id))

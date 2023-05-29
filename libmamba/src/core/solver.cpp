@@ -25,187 +25,19 @@
 #include "mamba/core/util_string.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
+#include "solv-cpp/solver.hpp"
 
 namespace mamba
 {
-
-    // TODO this should belong in libsolv.
-    const char* solver_ruleinfo_name(SolverRuleinfo rule)
-    {
-        switch (rule)
-        {
-            case (SOLVER_RULE_UNKNOWN):
-            {
-                return "SOLVER_RULE_UNKNOWN";
-            }
-            case (SOLVER_RULE_PKG):
-            {
-                return "SOLVER_RULE_PKG";
-            }
-            case (SOLVER_RULE_PKG_NOT_INSTALLABLE):
-            {
-                return "SOLVER_RULE_PKG_NOT_INSTALLABLE";
-            }
-            case (SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP):
-            {
-                return "SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP";
-            }
-            case (SOLVER_RULE_PKG_REQUIRES):
-            {
-                return "SOLVER_RULE_PKG_REQUIRES";
-            }
-            case (SOLVER_RULE_PKG_SELF_CONFLICT):
-            {
-                return "SOLVER_RULE_PKG_SELF_CONFLICT";
-            }
-            case (SOLVER_RULE_PKG_CONFLICTS):
-            {
-                return "SOLVER_RULE_PKG_CONFLICTS";
-            }
-            case (SOLVER_RULE_PKG_SAME_NAME):
-            {
-                return "SOLVER_RULE_PKG_SAME_NAME";
-            }
-            case (SOLVER_RULE_PKG_OBSOLETES):
-            {
-                return "SOLVER_RULE_PKG_OBSOLETES";
-            }
-            case (SOLVER_RULE_PKG_IMPLICIT_OBSOLETES):
-            {
-                return "SOLVER_RULE_PKG_IMPLICIT_OBSOLETES";
-            }
-            case (SOLVER_RULE_PKG_INSTALLED_OBSOLETES):
-            {
-                return "SOLVER_RULE_PKG_INSTALLED_OBSOLETES";
-            }
-            case (SOLVER_RULE_PKG_RECOMMENDS):
-            {
-                return "SOLVER_RULE_PKG_RECOMMENDS";
-            }
-            case (SOLVER_RULE_PKG_CONSTRAINS):
-            {
-                return "SOLVER_RULE_PKG_CONSTRAINS";
-            }
-            case (SOLVER_RULE_UPDATE):
-            {
-                return "SOLVER_RULE_UPDATE";
-            }
-            case (SOLVER_RULE_FEATURE):
-            {
-                return "SOLVER_RULE_FEATURE";
-            }
-            case (SOLVER_RULE_JOB):
-            {
-                return "SOLVER_RULE_JOB";
-            }
-            case (SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP):
-            {
-                return "SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP";
-            }
-            case (SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM):
-            {
-                return "SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM";
-            }
-            case (SOLVER_RULE_JOB_UNKNOWN_PACKAGE):
-            {
-                return "SOLVER_RULE_JOB_UNKNOWN_PACKAGE";
-            }
-            case (SOLVER_RULE_JOB_UNSUPPORTED):
-            {
-                return "SOLVER_RULE_JOB_UNSUPPORTED";
-            }
-            case (SOLVER_RULE_DISTUPGRADE):
-            {
-                return "SOLVER_RULE_DISTUPGRADE";
-            }
-            case (SOLVER_RULE_INFARCH):
-            {
-                return "SOLVER_RULE_INFARCH";
-            }
-            case (SOLVER_RULE_CHOICE):
-            {
-                return "SOLVER_RULE_CHOICE";
-            }
-            case (SOLVER_RULE_LEARNT):
-            {
-                return "SOLVER_RULE_LEARNT";
-            }
-            case (SOLVER_RULE_BEST):
-            {
-                return "SOLVER_RULE_BEST";
-            }
-            case (SOLVER_RULE_YUMOBS):
-            {
-                return "SOLVER_RULE_YUMOBS";
-            }
-            case (SOLVER_RULE_RECOMMENDS):
-            {
-                return "SOLVER_RULE_RECOMMENDS";
-            }
-            case (SOLVER_RULE_BLACK):
-            {
-                return "SOLVER_RULE_BLACK";
-            }
-            case (SOLVER_RULE_STRICT_REPO_PRIORITY):
-            {
-                return "SOLVER_RULE_STRICT_REPO_PRIORITY";
-            }
-            default:
-            {
-                throw std::runtime_error("Invalid SolverRuleinfo: " + std::to_string(rule));
-            }
-        }
-    }
-
-    namespace
-    {
-        void delete_libsolve_solver(::Solver* solver)
-        {
-            LOG_INFO << "Freeing solver.";
-            if (solver != nullptr)
-            {
-                solver_free(solver);
-            }
-        }
-
-        MSolverProblem make_solver_problem(
-            const MSolver& solver,
-            const MPool& pool,
-            SolverRuleinfo type,
-            Id source_id,
-            Id target_id,
-            Id dep_id
-        )
-        {
-            const ::Solver* const solver_ptr = solver;
-            return {
-                /* .type= */ type,
-                /* .source_id= */ source_id,
-                /* .target_id= */ target_id,
-                /* .dep_id= */ dep_id,
-                /* .source= */ pool.id2pkginfo(source_id),
-                /* .target= */ pool.id2pkginfo(target_id),
-                /* .dep= */ pool.dep2str(dep_id),
-                /* .description= */
-                solver_problemruleinfo2str(
-                    const_cast<::Solver*>(solver_ptr),  // Not const because might alloctmp space
-                    type,
-                    source_id,
-                    target_id,
-                    dep_id
-                ),
-            };
-        }
-    }
-
     MSolver::MSolver(MPool pool, const std::vector<std::pair<int, int>> flags)
         : m_flags(std::move(flags))
         , m_is_solved(false)
         , m_pool(std::move(pool))
-        , m_solver(nullptr, &delete_libsolve_solver)
+        , m_solver(nullptr)
         , m_jobs(std::make_unique<solv::ObjQueue>())
     {
-        pool_createwhatprovides(m_pool);
+        // TODO should we lazyly create solver here? Should we what provides?
+        m_pool.create_whatprovides();
     }
 
     MSolver::~MSolver() = default;
@@ -216,12 +48,22 @@ namespace mamba
 
     MSolver::operator const Solver*() const
     {
-        return m_solver.get();
+        return solver().raw();
     }
 
     MSolver::operator Solver*()
     {
-        return m_solver.get();
+        return solver().raw();
+    }
+
+    auto MSolver::solver() -> solv::ObjSolver&
+    {
+        return *m_solver;
+    }
+
+    auto MSolver::solver() const -> const solv::ObjSolver&
+    {
+        return *m_solver;
     }
 
     void MSolver::add_global_job(int job_flag)
@@ -449,9 +291,10 @@ namespace mamba
 
     void MSolver::set_flags(const std::vector<std::pair<int, int>>& flags)
     {
+        // TODO use new API
         for (const auto& option : flags)
         {
-            solver_set_flag(m_solver.get(), option.first, option.second);
+            solver_set_flag(*this, option.first, option.second);
         }
     }
 
@@ -497,13 +340,12 @@ namespace mamba
 
     bool MSolver::try_solve()
     {
-        m_solver.reset(solver_create(m_pool));
+        m_solver = std::make_unique<solv::ObjSolver>(m_pool.pool());
         set_flags(m_flags);
 
-        solver_solve(m_solver.get(), m_jobs->raw());
+        const bool success = solver().solve(m_pool.pool(), *m_jobs);
         m_is_solved = true;
-        LOG_INFO << "Problem count: " << solver_problem_count(m_solver.get());
-        const bool success = solver_problem_count(m_solver.get()) == 0;
+        LOG_INFO << "Problem count: " << solver().problem_count();
         Console::instance().json_write({ { "success", success } });
         return success;
     }
@@ -521,31 +363,60 @@ namespace mamba
         }
     }
 
+    namespace
+    {
+        // TODO change MSolver problem
+        MSolverProblem make_solver_problem(
+            const MSolver& solver,
+            const MPool& pool,
+            SolverRuleinfo type,
+            Id source_id,
+            Id target_id,
+            Id dep_id
+        )
+        {
+            const ::Solver* const solver_ptr = solver;
+            return {
+                /* .type= */ type,
+                /* .source_id= */ source_id,
+                /* .target_id= */ target_id,
+                /* .dep_id= */ dep_id,
+                /* .source= */ pool.id2pkginfo(source_id),
+                /* .target= */ pool.id2pkginfo(target_id),
+                /* .dep= */ pool.dep2str(dep_id),
+                /* .description= */
+                solver_problemruleinfo2str(
+                    const_cast<::Solver*>(solver_ptr),  // Not const because might alloctmp space
+                    type,
+                    source_id,
+                    target_id,
+                    dep_id
+                ),
+            };
+        }
+    }
+
     std::vector<MSolverProblem> MSolver::all_problems_structured() const
     {
-        std::vector<MSolverProblem> res;
-        solv::ObjQueue problem_rules;
-        const auto count = static_cast<Id>(solver_problem_count(m_solver.get()));
-        for (Id i = 1; i <= count; ++i)
-        {
-            solver_findallproblemrules(m_solver.get(), i, problem_rules.raw());
-            for (const Id r : problem_rules)
+        std::vector<MSolverProblem> res = {};
+        res.reserve(solver().problem_count());  // Lower bound
+        solver().for_each_problem_id(
+            [&](solv::ProblemId pb)
             {
-                if (r != 0)
+                for (solv::RuleId const rule : solver().problem_rules(pb))
                 {
-                    Id source, target, dep;
-                    const SolverRuleinfo type = solver_ruleinfo(m_solver.get(), r, &source, &target, &dep);
+                    auto info = solver().get_rule_info(m_pool.pool(), rule);
                     res.push_back(make_solver_problem(
                         /* solver= */ *this,
                         /* pool= */ m_pool,
-                        /* type= */ type,
-                        /* source_id= */ source,
-                        /* target_id= */ target,
-                        /* dep_id= */ dep
+                        /* type= */ info.type,
+                        /* source_id= */ info.from_id.value_or(0),
+                        /* target_id= */ info.to_id.value_or(0),
+                        /* dep_id= */ info.dep_id.value_or(0)
                     ));
                 }
             }
-        }
+        );
         return res;
     }
 
@@ -553,28 +424,16 @@ namespace mamba
     std::string MSolver::all_problems_to_str() const
     {
         std::stringstream problems;
-
-        solv::ObjQueue problem_rules;
-        auto count = static_cast<Id>(solver_problem_count(m_solver.get()));
-        for (Id i = 1; i <= count; ++i)
-        {
-            solver_findallproblemrules(m_solver.get(), i, problem_rules.raw());
-            for (const Id r : problem_rules)
+        solver().for_each_problem_id(
+            [&](solv::ProblemId pb)
             {
-                Id source, target, dep;
-                if (!r)
+                for (solv::RuleId const rule : solver().problem_rules(pb))
                 {
-                    problems << "- [SKIP] no problem rule?\n";
-                }
-                else
-                {
-                    const SolverRuleinfo type = solver_ruleinfo(m_solver.get(), r, &source, &target, &dep);
-                    problems << "  - "
-                             << solver_problemruleinfo2str(m_solver.get(), type, source, target, dep)
-                             << "\n";
+                    auto const info = solver().get_rule_info(m_pool.pool(), rule);
+                    problems << "  - " << solver().rule_info_to_string(m_pool.pool(), info) << "\n";
                 }
             }
-        }
+        );
         return problems.str();
     }
 
@@ -603,28 +462,21 @@ namespace mamba
 
     std::string MSolver::problems_to_str() const
     {
-        solv::ObjQueue problem_queue;
-        auto count = static_cast<int>(solver_problem_count(m_solver.get()));
         std::stringstream problems;
-        for (int i = 1; i <= count; i++)
-        {
-            problem_queue.push_back(i);
-            problems << "  - " << solver_problem2str(m_solver.get(), i) << "\n";
-        }
+        solver().for_each_problem_id(
+            [&](solv::ProblemId pb)
+            { problems << "  - " << solver().problem_to_string(m_pool.pool(), pb); }
+        );
         return "Encountered problems while solving:\n" + problems.str();
     }
 
     std::vector<std::string> MSolver::all_problems() const
     {
         std::vector<std::string> problems;
-        solv::ObjQueue problem_queue;
-        int count = static_cast<int>(solver_problem_count(m_solver.get()));
-        for (int i = 1; i <= count; i++)
-        {
-            problem_queue.push_back(i);
-            problems.emplace_back(solver_problem2str(m_solver.get(), i));
-        }
-
+        solver().for_each_problem_id(
+            [&](solv::ProblemId pb)
+            { problems.emplace_back(solver().problem_to_string(m_pool.pool(), pb)); }
+        );
         return problems;
     }
 
@@ -636,14 +488,12 @@ namespace mamba
             // TODO: Once the new error message are not experimental, we should consider
             // reducing this level since it is not somethig the user has control over.
             LOG_WARNING << "Unexpected empty optionals for problem type "
-                        << solver_ruleinfo_name(problem.type);
+                        << solv::enum_name(problem.type);
         }
 
         class ProblemsGraphCreator
         {
         public:
-
-            using SolvId = Id;  // Unscoped from libsolv
 
             using graph_t = ProblemsGraph::graph_t;
             using RootNode = ProblemsGraph::RootNode;
@@ -665,7 +515,7 @@ namespace mamba
             const MPool& m_pool;
             graph_t m_graph;
             conflicts_t m_conflicts;
-            std::map<SolvId, node_id> m_solv2node;
+            std::map<solv::SolvableId, node_id> m_solv2node;
             node_id m_root_node;
 
             /**
@@ -674,11 +524,11 @@ namespace mamba
              * If the node is already present and ``update`` is false then the current
              * node is left as it is, otherwise the new value is inserted.
              */
-            node_id add_solvable(SolvId solv_id, node_t&& pkg_info, bool update = true);
+            node_id add_solvable(solv::SolvableId solv_id, node_t&& pkg_info, bool update = true);
 
             void add_conflict(node_id n1, node_id n2);
             [[nodiscard]] bool
-            add_expanded_deps_edges(node_id from_id, SolvId dep_id, const edge_t& edge);
+            add_expanded_deps_edges(node_id from_id, solv::SolvableId dep_id, const edge_t& edge);
 
             void parse_problems();
         };
@@ -696,7 +546,8 @@ namespace mamba
             return { std::move(m_graph), std::move(m_conflicts), m_root_node };
         }
 
-        auto ProblemsGraphCreator::add_solvable(SolvId solv_id, node_t&& node, bool update) -> node_id
+        auto ProblemsGraphCreator::add_solvable(solv::SolvableId solv_id, node_t&& node, bool update)
+            -> node_id
         {
             if (const auto iter = m_solv2node.find(solv_id); iter != m_solv2node.end())
             {
@@ -717,8 +568,11 @@ namespace mamba
             m_conflicts.add(n1, n2);
         }
 
-        bool
-        ProblemsGraphCreator::add_expanded_deps_edges(node_id from_id, SolvId dep_id, const edge_t& edge)
+        bool ProblemsGraphCreator::add_expanded_deps_edges(
+            node_id from_id,
+            solv::SolvableId dep_id,
+            const edge_t& edge
+        )
         {
             bool added = false;
             for (const auto& solv_id : m_pool.select_solvables(dep_id))
@@ -792,7 +646,7 @@ namespace mamba
                         if (!added)
                         {
                             LOG_WARNING << "Added empty dependency for problem type "
-                                        << solver_ruleinfo_name(type);
+                                        << solv::enum_name(type);
                         }
                         break;
                     }
@@ -811,7 +665,7 @@ namespace mamba
                         if (!added)
                         {
                             LOG_WARNING << "Added empty dependency for problem type "
-                                        << solver_ruleinfo_name(type);
+                                        << solv::enum_name(type);
                         }
                         break;
                     }
@@ -888,7 +742,7 @@ namespace mamba
                     default:
                     {
                         // Many more SolverRuleinfo that heve not been encountered.
-                        LOG_WARNING << "Problem type not implemented " << solver_ruleinfo_name(type);
+                        LOG_WARNING << "Problem type not implemented " << solv::enum_name(type);
                         break;
                     }
                 }

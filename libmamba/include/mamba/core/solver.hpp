@@ -37,12 +37,11 @@ extern "C"
 namespace mamba::solv
 {
     class ObjQueue;
+    class ObjSolver;
 }
 
 namespace mamba
 {
-
-    const char* solver_ruleinfo_name(SolverRuleinfo rule);
 
     struct MSolverProblem
     {
@@ -106,8 +105,6 @@ namespace mamba
 
     private:
 
-        void add_reinstall_job(MatchSpec& ms, int job_flag);
-
         std::vector<std::pair<int, int>> m_flags;
         std::vector<MatchSpec> m_install_specs;
         std::vector<MatchSpec> m_remove_specs;
@@ -116,8 +113,14 @@ namespace mamba
         bool m_is_solved;
         // Order of m_pool and m_solver is critical since m_pool must outlive m_solver.
         MPool m_pool;
-        std::unique_ptr<::Solver, void (*)(::Solver*)> m_solver;
+        // Temporary Pimpl all libsolv to keep it private
+        std::unique_ptr<solv::ObjSolver> m_solver;
         std::unique_ptr<solv::ObjQueue> m_jobs;
+
+        auto solver() -> solv::ObjSolver&;
+        auto solver() const -> const solv::ObjSolver&;
+
+        void add_reinstall_job(MatchSpec& ms, int job_flag);
     };
 }  // namespace mamba
 

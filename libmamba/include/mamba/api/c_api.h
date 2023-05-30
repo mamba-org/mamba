@@ -7,32 +7,40 @@
 #ifndef MAMBA_API_C_API_H
 #define MAMBA_API_C_API_H
 
+namespace mamba
+{
+    class Configuration;
+}
+
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-    int mamba_create();
+    mamba::Configuration* mamba_new_configuration();
+    void mamba_delete_configuration(mamba::Configuration* config);
 
-    int mamba_install();
+    int mamba_create(mamba::Configuration* config);
 
-    int mamba_update(int update_all = 0);
+    int mamba_install(mamba::Configuration* config);
 
-    int mamba_remove(int remove_all = 0);
+    int mamba_update(mamba::Configuration* config, int update_all = 0);
 
-    int mamba_list(const char* regex = "");
+    int mamba_remove(mamba::Configuration* config, int remove_all = 0);
 
-    int mamba_info();
+    int mamba_list(mamba::Configuration* config, const char* regex = "");
 
-    int mamba_config_list();
+    int mamba_info(mamba::Configuration* config);
 
-    int mamba_set_cli_config(const char* name, const char* value);
+    int mamba_config_list(mamba::Configuration* config);
 
-    int mamba_set_config(const char* name, const char* value);
+    int mamba_set_cli_config(mamba::Configuration* config, const char* name, const char* value);
 
-    int mamba_clear_config(const char* name);
+    int mamba_set_config(mamba::Configuration* config, const char* name, const char* value);
 
-    int mamba_use_conda_root_prefix(int force = 0);
+    int mamba_clear_config(mamba::Configuration* config, const char* name);
+
+    int mamba_use_conda_root_prefix(mamba::Configuration* config, int force = 0);
 
 #ifdef __cplusplus
 }

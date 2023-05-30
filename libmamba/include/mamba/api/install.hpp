@@ -25,11 +25,13 @@
 namespace mamba
 {
     class ChannelContext;
+    class Configuration;
 
-    void install();
+    void install(Configuration& config);
 
     void install_specs(
         ChannelContext& channel_context,
+        const Configuration& config,
         const std::vector<std::string>& specs,
         bool create_env = false,
         int solver_flag = SOLVER_INSTALL,
@@ -54,9 +56,9 @@ namespace mamba
 
         void create_empty_target(const fs::u8path& prefix);
 
-        void file_specs_hook(std::vector<std::string>& file_specs);
+        void file_specs_hook(std::vector<std::string>& file_specs, Configuration& config);
 
-        void channels_hook(std::vector<std::string>& channels);
+        void channels_hook(Configuration& config, std::vector<std::string>& channels);
 
         bool download_explicit(const std::vector<PackageInfo>& pkgs, MultiPackageCache& pkg_caches);
 

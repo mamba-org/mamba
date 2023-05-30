@@ -17,14 +17,13 @@
 
 namespace mamba
 {
-    void remove(int flags)
+    void remove(Configuration& config, int flags)
     {
         bool prune = flags & MAMBA_REMOVE_PRUNE;
         bool force = flags & MAMBA_REMOVE_FORCE;
         bool remove_all = flags & MAMBA_REMOVE_ALL;
 
         auto& ctx = Context::instance();
-        auto& config = Configuration::instance();
 
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
@@ -61,8 +60,6 @@ namespace mamba
         {
             Console::instance().print("Nothing to do.");
         }
-
-        config.operation_teardown();
     }
 
     namespace detail

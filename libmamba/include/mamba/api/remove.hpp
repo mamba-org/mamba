@@ -16,7 +16,7 @@ namespace mamba
 {
     class ChannelContext;
 
-    void remove(int flags = MAMBA_REMOVE_PRUNE);
+    void remove(Configuration& config, int flags = MAMBA_REMOVE_PRUNE);
 
     namespace detail
     {

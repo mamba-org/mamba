@@ -14,9 +14,10 @@
 #include "solv-cpp/repo.hpp"
 #include "solv-cpp/solver.hpp"
 
-#include "pool-data.hpp"
+#include "pool_data.hpp"
 
 using namespace mamba::solv;
+using namespace mamba::test;
 
 TEST_SUITE("ObjSolver")
 {
@@ -24,7 +25,7 @@ TEST_SUITE("ObjSolver")
     {
         auto pool = ObjPool();
         auto [repo_id, repo] = pool.add_repo("forge");
-        mamba::test::add_simple_packages(pool, repo);
+        add_simple_packages(pool, repo, make_packages());
         repo.internalize();
 
         auto solver = ObjSolver(pool);

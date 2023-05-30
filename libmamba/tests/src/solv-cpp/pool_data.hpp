@@ -7,6 +7,7 @@
 #ifndef TEST_MAMBA_SOLV_POOL_DATA_HPP
 #define TEST_MAMBA_SOLV_POOL_DATA_HPP
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -22,7 +23,14 @@ namespace mamba::test
         std::vector<std::string> dependencies = {};
     };
 
-    inline auto make_simple_packages()
+    auto operator==(const SimplePkg& a, const SimplePkg& b) -> bool;
+    auto operator!=(const SimplePkg& a, const SimplePkg& b) -> bool;
+    auto operator<(const SimplePkg& a, const SimplePkg& b) -> bool;
+    auto operator<=(const SimplePkg& a, const SimplePkg& b) -> bool;
+    auto operator>(const SimplePkg& a, const SimplePkg& b) -> bool;
+    auto operator>=(const SimplePkg& a, const SimplePkg& b) -> bool;
+
+    inline auto make_packages()
     {
         return std::array{
             SimplePkg{ "menu", "1.5.0", { "dropdown=2.*" } },
@@ -44,19 +52,21 @@ namespace mamba::test
         };
     }
 
-    inline void add_simple_packages(solv::ObjPool& pool, solv::ObjRepoView& repo)
+    auto add_simple_package(solv::ObjPool& pool, solv::ObjRepoView& repo, const SimplePkg& pkg)
+        -> solv::SolvableId;
+
+    template <typename Range>
+    auto add_simple_packages(solv::ObjPool& pool, solv::ObjRepoView& repo, const Range& pkgs)
+        -> std::map<SimplePkg, solv::SolvableId>
     {
-        for (const auto& pkg : make_simple_packages())
+        auto out = std::map<SimplePkg, solv::SolvableId>();
+        for (const auto& pkg : pkgs)
         {
-            auto [solv_id, solv] = repo.add_solvable();
-            solv.set_name(pkg.name);
-            solv.set_version(pkg.version);
-            for (const auto& dep : pkg.dependencies)
-            {
-                solv.add_dependency(pool.add_conda_dependency(dep));
-            }
-            solv.add_self_provide();
+            out[pkg] = add_simple_package(pool, repo, pkg);
         }
+        return out;
     }
+
+
 }
 #endif

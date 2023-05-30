@@ -10,9 +10,10 @@
 #include "solv-cpp/queue.hpp"
 #include "solv-cpp/transaction.hpp"
 
-#include "pool-data.hpp"
+#include "pool_data.hpp"
 
 using namespace mamba::solv;
+using namespace mamba::test;
 
 TEST_SUITE("ObjTransaction")
 {
@@ -20,7 +21,7 @@ TEST_SUITE("ObjTransaction")
     {
         auto pool = ObjPool();
         auto [repo_id, repo] = pool.add_repo("forge");
-        mamba::test::add_simple_packages(pool, repo);
+        const auto pkg_to_id = add_simple_packages(pool, repo, make_packages());
         repo.internalize();
         pool.create_whatprovides();
 

@@ -13,6 +13,7 @@ mamba_target_add_compile_warnings(testing_libmamba_lock WARNING_AS_ERROR ${MAMBA
 set(LIBMAMBA_TEST_SRCS
     src/test_main.cpp
     # C++ wrapping of libsolv
+    src/solv-cpp/pool_data.cpp
     src/solv-cpp/test_queue.cpp
     src/solv-cpp/test_pool.cpp
     src/solv-cpp/test_repo.cpp

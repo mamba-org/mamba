@@ -363,7 +363,7 @@ namespace mamba::solv
     void ObjSolvableView::set_dependencies(const ObjQueue& q) const
     {
         ::solvable_set_deparray(
-            const_cast<::Solvable*>(raw()),
+            raw(),
             SOLVABLE_REQUIRES,
             const_cast<::Queue*>(q.raw()),
             /* marker= */ 0
@@ -385,7 +385,7 @@ namespace mamba::solv
     void ObjSolvableView::set_provides(const ObjQueue& q) const
     {
         ::solvable_set_deparray(
-            const_cast<::Solvable*>(raw()),
+            raw(),
             SOLVABLE_PROVIDES,
             const_cast<::Queue*>(q.raw()),
             /* marker= */ 0
@@ -421,7 +421,7 @@ namespace mamba::solv
         else
         {
             ::solvable_set_deparray(
-                const_cast<::Solvable*>(raw()),
+                raw(),
                 SOLVABLE_CONSTRAINS,
                 const_cast<::Queue*>(q.raw()),
                 /* marker= */ -1

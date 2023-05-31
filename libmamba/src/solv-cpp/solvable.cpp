@@ -464,4 +464,10 @@ namespace mamba::solv
     {
         return add_track_feature(solvable_add_pool_str(raw()->repo->pool, feat));
     }
+
+    auto ObjSolvableViewConst::installed() const -> bool
+    {
+        const auto* const repo = raw()->repo;
+        return (repo != nullptr) && (repo == repo->pool->installed);
+    }
 }

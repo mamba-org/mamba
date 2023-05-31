@@ -65,7 +65,6 @@ tasks:
   pre-commit:
     cmds: [{task: _pre-commit, vars: {args: '{{.CLI_ARGS | default "--all-files"}}'}}]
 
-
   _configure:
     internal: true
     deps: ['create-dev-env', 'create-test-env']
@@ -99,6 +98,11 @@ tasks:
   build:
     cmds: [{task: '_build', vars: {args: '{{.CLI_ARGS}}'}}]
 
+  micromamba:
+    deps: [{task: '_build', vars: {target: 'micromamba'}}]
+    cmds:
+      - '"{{.CMAKE_BUILD_DIR}}/micromamba/micromamba" {{.CLI_ARGS}}'
+
   _test-libmamba:
     internal: true
     deps: [{task: _build, vars: {target: 'test_libmamba'}}]
@@ -119,11 +123,6 @@ tasks:
         --mamba-pkgs-dir="${CONDA_PKGS_DIRS}" {{.args}}
   test-micromamba:
     cmds: [{task: _test-micromamba, vars: {args: '{{.CLI_ARGS}}'}}]
-
-  micromamba:
-    deps: [{task: '_build', vars: {target: 'micromamba'}}]
-    cmds:
-      - '{{.CMAKE_BUILD_DIR}}/micromamba/micromamba {{.CLI_ARGS}}'
 
   install-cpp:
     deps: [build]

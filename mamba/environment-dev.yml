@@ -18,6 +18,8 @@ dependencies:
   - cli11 >=2.2
   - spdlog
   - fmt
+  - python
+  - pip
   - pybind11
   - pybind11-stubgen
   - pytest

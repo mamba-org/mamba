@@ -9,9 +9,12 @@ readonly reposerver="${__DIR__}/reposerver.py"
 # Conda mock repository
 readonly repo="${__DIR__}/repo/"
 
+# Default value "mamba" for executable under test
+export TEST_MAMBA_EXE="${TEST_MAMBA_EXE:-micromamba}"
+
 # Set up a temporary space for Conda environment and packages
 readonly test_dir="$(mktemp -d -t mamba-test-reposerver-XXXXXXXXXX)"
-export CONDA_ENVS_PATH="${test_dir}/envs"
+export CONDA_ENVS_DIRS="${test_dir}/envs"
 export CONDA_PKGS_DIRS="${test_dir}/pkgs"
 readonly this_pid="$$"
 # On exit, kill all subprocess and cleanup test directory.
@@ -25,14 +28,14 @@ start_server() {
 test_install() {
 	local tmp=$(mktemp -d)
 	local condarc="${tmp}/condarc"
-	${MAMBA_EXE} create -y -p "${tmp}/env1" --override-channels -c $1/mychannel test-package --json
+	"${TEST_MAMBA_EXE}" create -y -p "${tmp}/env1" --override-channels -c $1/mychannel test-package --json
 	cat > "${condarc}" <<EOF
 override_channels: true
 channels: [mychannel]
 channel_alias: "$1"
 EOF
         cat "${condarc}" >&2
-	${MAMBA_EXE} create -y -p "${tmp}/env2" test-package --json --rc-file "${condarc}" >&2
+	"${TEST_MAMBA_EXE}" create -y -p "${tmp}/env2" test-package --json --rc-file "${condarc}" >&2
 }
 
 

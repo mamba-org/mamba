@@ -255,9 +255,7 @@ jobs:
 
           if [[ "$(uname -s)" == "Linux" ]]; then
             ./generate_gpg_keys.sh
-            pip install securesystemslib
           fi
-          pip install git+https://github.com/conda/conda-content-trust.git@main
 
           ./testserver.sh
 

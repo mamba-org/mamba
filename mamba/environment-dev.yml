@@ -18,9 +18,15 @@ dependencies:
   - cli11 >=2.2
   - spdlog
   - fmt
+  - python
+  - pip
   - pybind11
   - pybind11-stubgen
   - pytest
   - pyyaml
   - conda
+  - conda-content-trust
+  - cryptography<40.0  # Or breaks conda-content-trust
+  - pip:
+    - securesystemslib
   - sel(win): winreg

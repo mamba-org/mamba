@@ -34,6 +34,36 @@ if (MSVC)
     # add_definitions("-DUNICODE -D_UNICODE")
 endif()
 
+
+option(ENABLE_ASAN "Enable Address-Sanitizer (currently only supported on GCC and Clang)" OFF)
+option(ENABLE_TSAN "Enable Thread-Sanitizer (currently only supported on GCC and Clang)" OFF)
+option(ENABLE_UBSAN "Enable Undefined-Behavior-Sanitizer (currently only supported on GCC and Clang)" OFF)
+
+if(ENABLE_ASAN)
+    message(WARNING "Address-Sanitizer instrumentation will be injected into binaries - do not release these binaries")
+    set(SANITIZER_FLAGS ${SANITIZER_FLAGS} -fno-omit-frame-pointer  -fsanitize=address)
+endif()
+
+if(ENABLE_TSAN)
+    message(WARNING "Thread-Sanitizer instrumentation will be injected into binaries - do not release these binaries")
+    set(SANITIZER_FLAGS ${SANITIZER_FLAGS} -fno-omit-frame-pointer  -fsanitize=thread)
+endif()
+
+if(ENABLE_UBSAN)
+    message(WARNING "Undefined-Sanitizer instrumentation will be injected into binaries - do not release these binaries")
+    set(SANITIZER_FLAGS ${SANITIZER_FLAGS} -fno-omit-frame-pointer  -fsanitize=undefined -fno-sanitize-recover=all)
+endif()
+
+if(SANITIZER_FLAGS)
+    add_compile_options(${SANITIZER_FLAGS})
+    add_link_options(${SANITIZER_FLAGS})
+    if(BUILD_STATIC)
+        # This is necessary because add_link_options() only pass flags to linker, not static cases
+        set(STATIC_LIBRARY_FLAGS ${STATIC_LIBRARY_FLAGS} ${SANITIZER_FLAGS})
+    endif()
+endif()
+
+
 # Variants
 # ========
 

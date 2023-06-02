@@ -15,9 +15,11 @@ concurrency:
 jobs:
   libmamba_static:
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.sanitizer != 'no_sanitizer' }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
+        sanitizer: [ no_sanitizer, asan, ubsan, tsan ]
     steps:
       - uses: actions/checkout@v3
       - name: create build environment
@@ -40,6 +42,9 @@ jobs:
                    -DBUILD_STATIC=ON \
                    -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
                    -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+                   -DENABLE_ASAN=${{ matrix.sanitizer == 'asan' && 'ON' || 'OFF' }} \
+                   -DENABLE_TSAN=${{ matrix.sanitizer == 'tsan' && 'ON' || 'OFF' }} \
+                   -DENABLE_UBSAN=${{ matrix.sanitizer == 'ubsan' && 'ON' || 'OFF' }} \
                    -GNinja
           ninja
       - name: build cache statistics
@@ -54,9 +59,11 @@ jobs:
   libmamba_cpp_tests:
     needs: [libmamba_static]
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.sanitizer != 'no_sanitizer' }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
+        sanitizer: [ no_sanitizer, asan, ubsan, tsan ]
     steps:
       - uses: actions/checkout@v3
       - name: create build environment
@@ -82,6 +89,9 @@ jobs:
                    -DBUILD_LIBMAMBA_TESTS=ON \
                    -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
                    -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+                   -DENABLE_ASAN=${{ matrix.sanitizer == 'asan' && 'ON' || 'OFF' }} \
+                   -DENABLE_TSAN=${{ matrix.sanitizer == 'tsan' && 'ON' || 'OFF' }} \
+                   -DENABLE_UBSAN=${{ matrix.sanitizer == 'ubsan' && 'ON' || 'OFF' }} \
                    -GNinja
           ninja testing_libmamba_lock
           ninja test
@@ -97,9 +107,11 @@ jobs:
   umamba_tests:
     needs: [libmamba_static]
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.sanitizer != 'no_sanitizer' }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
+        sanitizer: [ no_sanitizer, asan, ubsan, tsan ]
     steps:
       - uses: actions/checkout@v3
       - name: create build environment
@@ -126,6 +138,9 @@ jobs:
                    -DBUILD_SHARED=ON \
                    -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
                    -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+                   -DENABLE_ASAN=${{ matrix.sanitizer == 'asan' && 'ON' || 'OFF' }} \
+                   -DENABLE_TSAN=${{ matrix.sanitizer == 'tsan' && 'ON' || 'OFF' }} \
+                   -DENABLE_UBSAN=${{ matrix.sanitizer == 'ubsan' && 'ON' || 'OFF' }} \
                    -GNinja
           ninja
       - name: build cache statistics
@@ -156,9 +171,11 @@ jobs:
   mamba_python_tests:
     needs: [libmamba_static]
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.sanitizer != 'no_sanitizer' }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
+        sanitizer: [ no_sanitizer, asan, ubsan, tsan ]
         python_version: ["3.8"]
 
     steps:
@@ -194,6 +211,9 @@ jobs:
                    -DBUILD_MAMBA_PACKAGE=ON \
                    -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
                    -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+                   -DENABLE_ASAN=${{ matrix.sanitizer == 'asan' && 'ON' || 'OFF' }} \
+                   -DENABLE_TSAN=${{ matrix.sanitizer == 'tsan' && 'ON' || 'OFF' }} \
+                   -DENABLE_UBSAN=${{ matrix.sanitizer == 'ubsan' && 'ON' || 'OFF' }} \
                    -GNinja
           ninja
           ninja install

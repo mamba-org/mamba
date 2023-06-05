@@ -25,6 +25,7 @@
 namespace mamba::solv
 {
     class ObjTransaction;
+    class ObjSolvableViewConst;
 }
 
 namespace mamba
@@ -85,7 +86,8 @@ namespace mamba
         TransactionContext m_transaction_context;
         MultiPackageCache m_multi_cache;
         const fs::u8path m_cache_path;
-        std::vector<Solvable*> m_to_install, m_to_remove;
+        std::vector<solv::ObjSolvableViewConst> m_to_install;
+        std::vector<solv::ObjSolvableViewConst> m_to_remove;
 
         History::UserRequest m_history_entry = History::UserRequest::prefilled();
         // Temporarily using Pimpl for encapsulation
@@ -96,7 +98,7 @@ namespace mamba
         bool m_force_reinstall = false;
 
         void init();
-        bool filter(Solvable* s);
+        bool filter(const solv::ObjSolvableViewConst& s);
 
         auto trans() -> solv::ObjTransaction&;
         auto trans() const -> const solv::ObjTransaction&;

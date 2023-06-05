@@ -6,6 +6,9 @@
 
 #include <iostream>
 #include <stack>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include <fmt/color.h>
 #include <fmt/format.h>
@@ -49,11 +52,10 @@ namespace mamba
             return std::move(pkginfo).value();
         };
 
-    }
-
-    nlohmann::json solvable_to_json(const MPool& pool, Solvable* s)
-    {
-        return mk_pkginfo(pool, s).json_record();
+        nlohmann::json solvable_to_json(const MPool& pool, Solvable* s)
+        {
+            return mk_pkginfo(pool, s).json_record();
+        }
     }
 
     bool MTransaction::filter(Solvable* s)

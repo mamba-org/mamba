@@ -62,7 +62,6 @@ namespace mamba
         using to_specs_type = std::tuple<std::vector<std::string>, std::vector<std::string>>;
         using to_conda_type = std::tuple<to_specs_type, to_install_type, to_remove_type>;
 
-        void init();
         to_conda_type to_conda();
         void log_json();
         bool fetch_extract_packages();
@@ -70,7 +69,6 @@ namespace mamba
         bool prompt();
         void print();
         bool execute(PrefixData& prefix);
-        bool filter(Solvable* s);
 
         std::pair<std::string, std::string> find_python_version();
 
@@ -92,6 +90,9 @@ namespace mamba
         std::vector<MatchSpec> m_requested_specs;
 
         bool m_force_reinstall = false;
+
+        void init();
+        bool filter(Solvable* s);
     };
 
     MTransaction create_explicit_transaction_from_urls(

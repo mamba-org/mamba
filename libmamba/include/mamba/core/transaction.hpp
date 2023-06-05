@@ -13,8 +13,6 @@
 #include <tuple>
 #include <vector>
 
-#include <solv/transaction.h>
-
 #include "mamba/api/install.hpp"
 
 #include "mamba_fs.hpp"
@@ -23,6 +21,11 @@
 #include "prefix_data.hpp"
 #include "solver.hpp"
 #include "transaction_context.hpp"
+
+namespace mamba::solv
+{
+    class ObjTransaction;
+}
 
 namespace mamba
 {
@@ -85,7 +88,8 @@ namespace mamba
         std::vector<Solvable*> m_to_install, m_to_remove;
 
         History::UserRequest m_history_entry;
-        Transaction* m_transaction;
+        // Temporarily using Pimpl for encapsulation
+        std::unique_ptr<solv::ObjTransaction> m_transaction;
 
         std::vector<MatchSpec> m_requested_specs;
 
@@ -93,6 +97,9 @@ namespace mamba
 
         void init();
         bool filter(Solvable* s);
+
+        auto trans() -> solv::ObjTransaction&;
+        auto trans() const -> const solv::ObjTransaction&;
     };
 
     MTransaction create_explicit_transaction_from_urls(

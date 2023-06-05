@@ -30,7 +30,10 @@ extern "C"  // Incomplete header
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_string.hpp"
+#include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
+#include "solv-cpp/repo.hpp"
+#include "solv-cpp/transaction.hpp"
 
 #include "progress_bar_impl.hpp"
 
@@ -157,7 +160,9 @@ namespace mamba
             decision.push_back(pkg_id);
         }
 
-        m_transaction = transaction_create_decisionq(m_pool, decision.raw(), nullptr);
+        m_transaction = std::make_unique<solv::ObjTransaction>(
+            solv::ObjTransaction::from_solvables(m_pool.pool(), decision)
+        );
         init();
 
         m_history_entry = History::UserRequest::prefilled();
@@ -199,10 +204,10 @@ namespace mamba
             );
         }
 
-        m_transaction = solver_create_transaction(solver);
-        transaction_order(m_transaction, 0);
-
-        m_history_entry = History::UserRequest::prefilled();
+        m_transaction = std::make_unique<solv::ObjTransaction>(
+            solv::ObjTransaction::from_solver(m_pool.pool(), solver.solver())
+        );
+        trans().order(m_pool.pool());
 
         if (solver.no_deps || solver.only_deps)
         {
@@ -219,7 +224,7 @@ namespace mamba
             if (solver.only_deps)
             {
                 solv::ObjQueue q = {};
-                transaction_installedresult(m_transaction, q.raw());
+                transaction_installedresult(trans().raw(), q.raw());
                 for (const Id r : q)
                 {
                     Solvable* s = pool_id2solvable(m_pool, r);
@@ -376,9 +381,10 @@ namespace mamba
                 }
             }
 
-            transaction_free(m_transaction);
-            m_transaction = transaction_create_decisionq(m_pool, decision.raw(), nullptr);
-            transaction_order(m_transaction, 0);
+            m_transaction = std::make_unique<solv::ObjTransaction>(
+                solv::ObjTransaction::from_solvables(m_pool.pool(), decision)
+            );
+            trans().order(m_pool.pool());
 
             // init everything again...
             init();
@@ -407,8 +413,10 @@ namespace mamba
             decision.push_back(pkg_id);
         }
 
-        m_transaction = transaction_create_decisionq(m_pool, decision.raw(), nullptr);
-        transaction_order(m_transaction, 0);
+        m_transaction = std::make_unique<solv::ObjTransaction>(
+            solv::ObjTransaction::from_solvables(m_pool.pool(), decision)
+        );
+        trans().order(m_pool.pool());
 
         init();
 
@@ -431,20 +439,29 @@ namespace mamba
         );
     }
 
-    MTransaction::~MTransaction()
+    MTransaction::~MTransaction() = default;
+
+    auto MTransaction::trans() -> solv::ObjTransaction&
     {
-        LOG_INFO << "Freeing transaction.";
-        transaction_free(m_transaction);
+        assert(m_transaction != nullptr);
+        return *m_transaction;
+    }
+
+    auto MTransaction::trans() const -> const solv::ObjTransaction&
+    {
+        assert(m_transaction != nullptr);
+        return *m_transaction;
     }
 
     void MTransaction::init()
     {
         m_to_remove.clear();
         m_to_install.clear();
-        for (int i = 0; i < m_transaction->steps.count && !is_sig_interrupted(); i++)
+        auto transaction = trans().raw();
+        for (int i = 0; i < transaction->steps.count && !is_sig_interrupted(); i++)
         {
-            Id p = m_transaction->steps.elements[i];
-            Id ttype = transaction_type(m_transaction, p, SOLVER_TRANSACTION_SHOW_ALL);
+            Id p = transaction->steps.elements[i];
+            Id ttype = transaction_type(transaction, p, SOLVER_TRANSACTION_SHOW_ALL);
             Solvable* s = pool_id2solvable(m_pool, p);
             if (filter(s))
             {
@@ -459,7 +476,7 @@ namespace mamba
                 {
                     m_to_remove.push_back(s);
                     m_to_install.push_back(
-                        static_cast<::Pool*>(m_pool)->solvables + transaction_obs_pkg(m_transaction, p)
+                        static_cast<::Pool*>(m_pool)->solvables + transaction_obs_pkg(transaction, p)
                     );
                     break;
                 }
@@ -602,10 +619,11 @@ namespace mamba
 
         TransactionRollback rollback;
 
-        for (int i = 0; i < m_transaction->steps.count && !is_sig_interrupted(); i++)
+        auto transaction = m_transaction->raw();
+        for (int i = 0; i < transaction->steps.count && !is_sig_interrupted(); i++)
         {
-            Id p = m_transaction->steps.elements[i];
-            Id ttype = transaction_type(m_transaction, p, SOLVER_TRANSACTION_SHOW_ALL);
+            Id p = transaction->steps.elements[i];
+            Id ttype = transaction_type(transaction, p, SOLVER_TRANSACTION_SHOW_ALL);
             Solvable* s = pool_id2solvable(m_pool, p);
 
             if (filter(s))
@@ -621,7 +639,7 @@ namespace mamba
                 case SOLVER_TRANSACTION_REINSTALLED:
                 {
                     Solvable* s2 = static_cast<::Pool*>(m_pool)->solvables
-                                   + transaction_obs_pkg(m_transaction, p);
+                                   + transaction_obs_pkg(transaction, p);
 
                     const PackageInfo package_to_unlink = mk_pkginfo(m_pool, s);
                     const PackageInfo package_to_link = mk_pkginfo(m_pool, s2);
@@ -1175,12 +1193,13 @@ namespace mamba
 
         ::Solvable* const solvables = static_cast<::Pool*>(m_pool)->solvables;
         int mode = SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE;
-        transaction_classify(m_transaction, mode, classes.raw());
+        auto transaction = m_transaction->raw();
+        transaction_classify(transaction, mode, classes.raw());
         for (std::size_t n_classes = classes.size(), i = 0; i < n_classes; i += 4)
         {
             const Id cls = classes.at(i);
             transaction_classify_pkgs(
-                m_transaction,
+                transaction,
                 mode,
                 cls,
                 classes.at(i + 2),
@@ -1203,7 +1222,7 @@ namespace mamba
                         format_row(upgraded, s, Status::remove, "-");
                         format_row(
                             upgraded,
-                            solvables + transaction_obs_pkg(m_transaction, p),
+                            solvables + transaction_obs_pkg(transaction, p),
                             Status::install,
                             "+"
                         );
@@ -1212,7 +1231,7 @@ namespace mamba
                         format_row(changed, s, Status::remove, "-");
                         format_row(
                             changed,
-                            solvables + transaction_obs_pkg(m_transaction, p),
+                            solvables + transaction_obs_pkg(transaction, p),
                             Status::install,
                             "+"
                         );
@@ -1224,7 +1243,7 @@ namespace mamba
                         format_row(downgraded, s, Status::remove, "-");
                         format_row(
                             downgraded,
-                            solvables + transaction_obs_pkg(m_transaction, p),
+                            solvables + transaction_obs_pkg(transaction, p),
                             Status::install,
                             "+"
                         );

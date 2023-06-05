@@ -87,7 +87,7 @@ namespace mamba
         const fs::u8path m_cache_path;
         std::vector<Solvable*> m_to_install, m_to_remove;
 
-        History::UserRequest m_history_entry;
+        History::UserRequest m_history_entry = History::UserRequest::prefilled();
         // Temporarily using Pimpl for encapsulation
         std::unique_ptr<solv::ObjTransaction> m_transaction;
 

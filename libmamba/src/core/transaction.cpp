@@ -165,7 +165,6 @@ namespace mamba
         );
         init();
 
-        m_history_entry = History::UserRequest::prefilled();
 
         for (auto& s : specs_to_remove)
         {
@@ -420,8 +419,6 @@ namespace mamba
 
         init();
 
-        m_history_entry = History::UserRequest::prefilled();
-
         std::vector<MatchSpec> specs_to_install;
         for (const auto& pkginfo : packages)
         {
@@ -614,8 +611,6 @@ namespace mamba
             ) << "Download only - packages are downloaded and extracted. Skipping the linking phase.";
             return true;
         }
-
-        History::UserRequest ur = History::UserRequest::prefilled();
 
         TransactionRollback rollback;
 

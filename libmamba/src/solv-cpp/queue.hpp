@@ -48,9 +48,9 @@ namespace mamba::solv
         auto operator=(ObjQueue&& other) -> ObjQueue&;
         auto operator=(const ObjQueue& other) -> ObjQueue&;
 
-        auto size() const -> size_type;
-        auto capacity() const -> size_type;
-        auto empty() const -> bool;
+        [[nodiscard]] auto size() const -> size_type;
+        [[nodiscard]] auto capacity() const -> size_type;
+        [[nodiscard]] auto empty() const -> bool;
 
         auto insert(const_iterator pos, value_type id) -> iterator;
         template <typename InputIt>
@@ -61,36 +61,36 @@ namespace mamba::solv
         void reserve(size_type new_cap);
         void clear();
 
-        auto front() -> reference;
-        auto front() const -> const_reference;
-        auto back() -> reference;
-        auto back() const -> const_reference;
-        auto operator[](size_type pos) -> reference;
-        auto operator[](size_type pos) const -> const_reference;
-        auto at(size_type pos) -> reference;
-        auto at(size_type pos) const -> const_reference;
-        auto begin() -> iterator;
-        auto begin() const -> const_iterator;
-        auto cbegin() const -> const_iterator;
-        auto end() -> iterator;
-        auto end() const -> const_iterator;
-        auto cend() const -> const_iterator;
-        auto rbegin() -> reverse_iterator;
-        auto rbegin() const -> const_reverse_iterator;
-        auto crbegin() const -> const_reverse_iterator;
-        auto rend() -> reverse_iterator;
-        auto rend() const -> const_reverse_iterator;
-        auto crend() const -> const_reverse_iterator;
-        auto data() -> pointer;
-        auto data() const -> const_pointer;
+        [[nodiscard]] auto front() -> reference;
+        [[nodiscard]] auto front() const -> const_reference;
+        [[nodiscard]] auto back() -> reference;
+        [[nodiscard]] auto back() const -> const_reference;
+        [[nodiscard]] auto operator[](size_type pos) -> reference;
+        [[nodiscard]] auto operator[](size_type pos) const -> const_reference;
+        [[nodiscard]] auto at(size_type pos) -> reference;
+        [[nodiscard]] auto at(size_type pos) const -> const_reference;
+        [[nodiscard]] auto begin() -> iterator;
+        [[nodiscard]] auto begin() const -> const_iterator;
+        [[nodiscard]] auto cbegin() const -> const_iterator;
+        [[nodiscard]] auto end() -> iterator;
+        [[nodiscard]] auto end() const -> const_iterator;
+        [[nodiscard]] auto cend() const -> const_iterator;
+        [[nodiscard]] auto rbegin() -> reverse_iterator;
+        [[nodiscard]] auto rbegin() const -> const_reverse_iterator;
+        [[nodiscard]] auto crbegin() const -> const_reverse_iterator;
+        [[nodiscard]] auto rend() -> reverse_iterator;
+        [[nodiscard]] auto rend() const -> const_reverse_iterator;
+        [[nodiscard]] auto crend() const -> const_reverse_iterator;
+        [[nodiscard]] auto data() -> pointer;
+        [[nodiscard]] auto data() const -> const_pointer;
 
-        auto contains(value_type id) const -> bool;
+        [[nodiscard]] auto contains(value_type id) const -> bool;
 
         template <template <typename, typename...> class C>
         auto as() -> C<value_type>;
 
-        auto raw() -> ::Queue*;
-        auto raw() const -> const ::Queue*;
+        [[nodiscard]] auto raw() -> ::Queue*;
+        [[nodiscard]] auto raw() const -> const ::Queue*;
 
     private:
 

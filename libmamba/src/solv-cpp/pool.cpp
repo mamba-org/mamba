@@ -6,6 +6,8 @@
 
 #include <cassert>
 #include <limits>
+#include <sstream>
+#include <stdexcept>
 
 #include <solv/pool.h>
 #include <solv/poolid.h>
@@ -118,7 +120,13 @@ namespace mamba::solv
 
     auto ObjPool::add_conda_dependency(raw_str_view dep) -> DependencyId
     {
-        return ::pool_conda_matchspec(raw(), dep);
+        if (const auto id = ::pool_conda_matchspec(raw(), dep); id != 0)
+        {
+            return id;
+        }
+        std::stringstream msg = {};
+        msg << R"(Invalid conda dependency: ")" << dep << '"';
+        throw std::invalid_argument(msg.str());
     }
 
     auto ObjPool::add_conda_dependency(const std::string& dep) -> DependencyId

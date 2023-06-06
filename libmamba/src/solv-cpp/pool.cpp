@@ -83,9 +83,17 @@ namespace mamba::solv
         return id;
     }
 
+    namespace
+    {
+        auto is_reldep(::Id id) -> bool
+        {
+            return ISRELDEP(static_cast<std::make_unsigned_t<::Id>>(id)) != 0;
+        }
+    }
+
     auto ObjPool::get_string(StringId id) const -> std::string_view
     {
-        assert(!ISRELDEP(id));
+        assert(!is_reldep(id));
         return ::pool_id2str(raw(), id);
     }
 
@@ -114,7 +122,7 @@ namespace mamba::solv
             /* .create= */ 1
         );
         assert(id != 0);
-        assert(ISRELDEP(id));
+        assert(is_reldep(id));
         return id;
     }
 

@@ -31,6 +31,8 @@ namespace mamba::solv
     {
     public:
 
+        static auto of_solvable(ObjSolvableViewConst s) -> ObjRepoViewConst;
+
         explicit ObjRepoViewConst(const ::Repo& repo) noexcept;
         ~ObjRepoViewConst() noexcept;
 

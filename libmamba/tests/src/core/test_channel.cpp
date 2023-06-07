@@ -396,6 +396,7 @@ namespace mamba
             CHECK_EQ(c.scheme(), "https");
             CHECK_EQ(c.location(), "repo.mamba.pm");
             CHECK_EQ(c.name(), "conda-forge");
+            CHECK_EQ(c.canonical_name(), "https://repo.mamba.pm/conda-forge");
             CHECK_EQ(c.platforms(), std::vector<std::string>({ platform, "noarch" }));
         }
 
@@ -407,6 +408,7 @@ namespace mamba
             CHECK_EQ(c.scheme(), "https");
             CHECK_EQ(c.location(), "conda.anaconda.org");
             CHECK_EQ(c.name(), "conda-forge");
+            CHECK_EQ(c.canonical_name(), "conda-forge");
             CHECK_EQ(c.platforms(), std::vector<std::string>({ platform, "noarch" }));
 
             std::string value2 = "https://repo.anaconda.com/pkgs/main[" + platform + "]";
@@ -414,6 +416,7 @@ namespace mamba
             CHECK_EQ(c2.scheme(), "https");
             CHECK_EQ(c2.location(), "repo.anaconda.com");
             CHECK_EQ(c2.name(), "pkgs/main");
+            CHECK_EQ(c2.canonical_name(), "pkgs/main");
             CHECK_EQ(c2.platforms(), std::vector<std::string>({ platform }));
 
             std::string value3 = "https://conda.anaconda.org/conda-forge[" + platform + "]";
@@ -421,6 +424,7 @@ namespace mamba
             CHECK_EQ(c3.scheme(), c.scheme());
             CHECK_EQ(c3.location(), c.location());
             CHECK_EQ(c3.name(), c.name());
+            CHECK_EQ(c3.canonical_name(), c.canonical_name());
             CHECK_EQ(c3.platforms(), std::vector<std::string>({ platform }));
 
             std::string value4 = "/home/mamba/test/channel_b";
@@ -433,6 +437,7 @@ namespace mamba
             CHECK_EQ(c4.location(), "/home/mamba/test");
 #endif
             CHECK_EQ(c4.name(), "channel_b");
+            CHECK_EQ(c4.canonical_name(), "file:///home/mamba/test/channel_b");
             CHECK_EQ(c4.platforms(), std::vector<std::string>({ platform, "noarch" }));
 
             std::string value5 = "/home/mamba/test/channel_b[" + platform + "]";
@@ -444,6 +449,7 @@ namespace mamba
             CHECK_EQ(c5.location(), "/home/mamba/test");
 #endif
             CHECK_EQ(c5.name(), "channel_b");
+            CHECK_EQ(c5.canonical_name(), "file:///home/mamba/test/channel_b");
             CHECK_EQ(c5.platforms(), std::vector<std::string>({ platform }));
 
             std::string value6a = "http://localhost:8000/conda-forge[noarch]";

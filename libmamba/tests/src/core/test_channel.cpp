@@ -416,7 +416,7 @@ namespace mamba
             CHECK_EQ(c2.scheme(), "https");
             CHECK_EQ(c2.location(), "repo.anaconda.com");
             CHECK_EQ(c2.name(), "pkgs/main");
-            CHECK_EQ(c2.canonical_name(), "pkgs/main");
+            CHECK_EQ(c2.canonical_name(), "https://repo.anaconda.com/pkgs/main");
             CHECK_EQ(c2.platforms(), std::vector<std::string>({ platform }));
 
             std::string value3 = "https://conda.anaconda.org/conda-forge[" + platform + "]";

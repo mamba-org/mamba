@@ -38,13 +38,6 @@ namespace mamba
         config.operation_teardown();
     }
 
-    std::string banner()
-    {
-        auto& ctx = Context::instance();
-        return ctx.command_params.custom_banner.empty() ? mamba_banner
-                                                        : ctx.command_params.custom_banner;
-    }
-
     namespace detail
     {
         void info_pretty_print(std::vector<std::tuple<std::string, nlohmann::json>> items)

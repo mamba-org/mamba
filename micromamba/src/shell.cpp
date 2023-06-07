@@ -103,7 +103,6 @@ namespace
 
     void set_default_config_options(Configuration& config)
     {
-        config.at("show_banner").set_value(false);
         config.at("use_target_prefix_fallback").set_value(false);
         config.at("target_prefix_checks").set_value(MAMBA_NO_PREFIX_CHECK);
     }

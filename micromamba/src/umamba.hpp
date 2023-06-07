@@ -10,15 +10,6 @@
 #include <CLI/CLI.hpp>
 
 
-const char banner[] = R"MAMBARAW(
-                                           __
-          __  ______ ___  ____ _____ ___  / /_  ____ _
-         / / / / __ `__ \/ __ `/ __ `__ \/ __ \/ __ `/
-        / /_/ / / / / / / /_/ / / / / / / /_/ / /_/ /
-       / .___/_/ /_/ /_/\__,_/_/ /_/ /_/_.___/\__,_/
-      /_/
-)MAMBARAW";
-
 void
 set_clean_command(CLI::App* subcom);
 

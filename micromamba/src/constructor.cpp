@@ -74,7 +74,6 @@ construct(const fs::u8path& prefix, bool extract_conda_pkgs, bool extract_tarbal
 {
     auto& config = Configuration::instance();
 
-    config.at("show_banner").set_value(false);
     config.at("use_target_prefix_fallback").set_value(true);
     config.at("target_prefix_checks")
         .set_value(

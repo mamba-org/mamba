@@ -29,7 +29,6 @@ complete_options(CLI::App* app, const std::vector<std::string>& last_args, bool&
     if (last_args[0] == "-n" && last_args.size() == 2)
     {
         auto& config = mamba::Configuration::instance();
-        config.at("show_banner").set_value(false);
         config.load();
 
         auto root_prefix = config.at("root_prefix").value<fs::u8path>();

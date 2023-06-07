@@ -37,7 +37,6 @@ namespace mamba
                 m_channel_alias_bu = ctx.channel_alias;
                 m_ssl_verify = ctx.remote_fetch_params.ssl_verify;
                 m_proxy_servers = ctx.proxy_servers;
-                mamba::Configuration::instance().at("show_banner").set_default_value(false);
             }
 
             ~Configuration()
@@ -64,7 +63,6 @@ namespace mamba
                 mamba::Configuration::instance()
                     .at("rc_files")
                     .set_value<std::vector<fs::u8path>>({ unique_location });
-                mamba::Configuration::instance().at("show_banner").set_default_value(false);
                 mamba::Configuration::instance().load();
             }
 
@@ -87,7 +85,6 @@ namespace mamba
 
                 mamba::Configuration::instance().reset_configurables();
                 mamba::Configuration::instance().at("rc_files").set_value(sources);
-                mamba::Configuration::instance().at("show_banner").set_default_value(false);
                 mamba::Configuration::instance().load();
             }
 

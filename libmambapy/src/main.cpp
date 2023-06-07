@@ -962,16 +962,6 @@ PYBIND11_MODULE(bindings, m)
 
     m.def("clean", &clean);
 
-    py::class_<Configuration, std::unique_ptr<Configuration, py::nodelete>>(m, "Configuration")
-        .def(py::init(
-            []() { return std::unique_ptr<Configuration, py::nodelete>(&Configuration::instance()); }
-        ))
-        .def_property(
-            "show_banner",
-            []() -> bool { return Configuration::instance().at("show_banner").value<bool>(); },
-            [](py::object&, bool val) { Configuration::instance().at("show_banner").set_value(val); }
-        );
-
     m.def(
         "get_channels",
         [](const std::vector<std::string>& channel_names)

@@ -79,7 +79,6 @@ set_env_command(CLI::App* com)
         {
             auto const& ctx = Context::instance();
             auto& config = Configuration::instance();
-            config.at("show_banner").set_value(false);
             config.load();
 
 

@@ -381,18 +381,6 @@ class CompressedProblemsGraph:
     def tree_message(self) -> str: ...
     pass
 
-class Configuration:
-    def __init__(self) -> None: ...
-    @property
-    def show_banner(self) -> bool:
-        """
-        :type: bool
-        """
-    @show_banner.setter
-    def show_banner(self, arg1: bool) -> None:
-        pass
-    pass
-
 class Context:
     class OutputParams:
         def __init__(self) -> None: ...

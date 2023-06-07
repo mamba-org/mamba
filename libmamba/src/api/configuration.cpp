@@ -1630,11 +1630,8 @@ namespace mamba
 
         insert(Configurable("show_banner", true)
                    .group("Output, Prompt and Flow Control")
-                   .set_rc_configurable()
-                   .set_env_var_names()
-                   .needs({ "quiet", "json" })
                    .set_single_op_lifetime()
-                   .description("Show the banner"));
+                   .description("(Unused)"));
 
         insert(Configurable("show_all_configs", false)
                    .group("Output, Prompt and Flow Control")
@@ -1828,11 +1825,6 @@ namespace mamba
         LOG_DEBUG << m_config.size() << " configurables computed";
 
         CONFIG_DEBUGGING;
-
-        if (at("show_banner").value<bool>())
-        {
-            Console::instance().print(banner());
-        }
 
         auto& ctx = Context::instance();
         ctx.set_log_level(ctx.output_params.logging_level);

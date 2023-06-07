@@ -39,7 +39,6 @@ main(int argc, char** argv)
     auto& ctx = Context::instance();
 
     ctx.command_params.is_micromamba = true;
-    ctx.command_params.custom_banner = banner;
 
     CLI::App app{ "Version: " + version() + "\n" };
     set_umamba_command(&app);

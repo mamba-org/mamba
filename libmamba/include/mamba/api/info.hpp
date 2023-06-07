@@ -21,18 +21,6 @@ namespace mamba
     void info();
 
     std::string version();
-    std::string banner();
-
-    const std::string mamba_banner = std::string(strip(
-        R"MAMBARAW(
-                                        __
-            _____ ___  ____ _____ ___  / /_  ____ _
-            / __ `__ \/ __ `/ __ `__ \/ __ \/ __ `/
-           / / / / / / /_/ / / / / / / /_/ / /_/ /
-          /_/ /_/ /_/\__,_/_/ /_/ /_/_.___/\__,_/
-    )MAMBARAW",
-        '\n'
-    ));
 
     namespace detail
     {

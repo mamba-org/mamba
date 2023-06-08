@@ -4,7 +4,7 @@ channels:
 dependencies:
   - vs2019_win-64
   - ninja
-  - vcpkg
+  - vcpkg >=2023.04.15
   - python
   - curl
   - cli11 >=2.2,<3

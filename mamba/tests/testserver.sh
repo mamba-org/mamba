@@ -12,6 +12,9 @@ readonly repo="${__DIR__}/repo/"
 # Default value "mamba" for executable under test
 export TEST_MAMBA_EXE="${TEST_MAMBA_EXE:-micromamba}"
 
+# Avoid externally configured .condarc file
+unset CONDARC
+
 # Set up a temporary space for Conda environment and packages
 readonly test_dir="$(mktemp -d -t mamba-test-reposerver-XXXXXXXXXX)"
 export CONDA_ENVS_DIRS="${test_dir}/envs"

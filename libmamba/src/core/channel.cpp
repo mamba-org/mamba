@@ -300,42 +300,6 @@ namespace mamba
         );
     }
 
-    const Channel& ChannelContext::make_cached_channel(const std::string& value)
-    {
-        auto res = m_channel_cache.find(value);
-        if (res == m_channel_cache.end())
-        {
-            auto& ctx = Context::instance();
-
-            auto chan = from_value(value);
-            if (!chan.token())
-            {
-                const auto& with_channel = join_url(
-                    chan.location(),
-                    chan.name() == UNKNOWN_CHANNEL ? "" : chan.name()
-                );
-                const auto& without_channel = chan.location();
-                for (const auto& auth : { with_channel, without_channel })
-                {
-                    auto it = ctx.authentication_info().find(auth);
-                    if (it != ctx.authentication_info().end()
-                        && it->second.type == AuthenticationType::kCondaToken)
-                    {
-                        chan.m_token = it->second.value;
-                        break;
-                    }
-                    else if (it != ctx.authentication_info().end() && it->second.type == AuthenticationType::kBasicHTTPAuthentication)
-                    {
-                        chan.m_auth = it->second.value;
-                        break;
-                    }
-                }
-            }
-            res = m_channel_cache.insert(std::make_pair(value, std::move(chan))).first;
-        }
-        return res->second;
-    }
-
     namespace
     {
         void split_conda_url(
@@ -711,7 +675,38 @@ namespace mamba
 
     const Channel& ChannelContext::make_channel(const std::string& value)
     {
-        return make_cached_channel(value);
+        auto res = m_channel_cache.find(value);
+        if (res == m_channel_cache.end())
+        {
+            auto& ctx = Context::instance();
+
+            auto chan = from_value(value);
+            if (!chan.token())
+            {
+                const auto& with_channel = join_url(
+                    chan.location(),
+                    chan.name() == UNKNOWN_CHANNEL ? "" : chan.name()
+                );
+                const auto& without_channel = chan.location();
+                for (const auto& auth : { with_channel, without_channel })
+                {
+                    auto it = ctx.authentication_info().find(auth);
+                    if (it != ctx.authentication_info().end()
+                        && it->second.type == AuthenticationType::kCondaToken)
+                    {
+                        chan.m_token = it->second.value;
+                        break;
+                    }
+                    else if (it != ctx.authentication_info().end() && it->second.type == AuthenticationType::kBasicHTTPAuthentication)
+                    {
+                        chan.m_auth = it->second.value;
+                        break;
+                    }
+                }
+            }
+            res = m_channel_cache.insert(std::make_pair(value, std::move(chan))).first;
+        }
+        return res->second;
     }
 
     std::vector<const Channel*>

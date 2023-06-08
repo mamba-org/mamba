@@ -128,8 +128,6 @@ namespace mamba
             const std::string& channel_canonical_name
         );
 
-        const Channel& make_cached_channel(const std::string& value);
-
         Channel from_url(const std::string& url);
         Channel from_name(const std::string& name);
         Channel from_value(const std::string& value);

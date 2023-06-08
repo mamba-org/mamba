@@ -166,14 +166,14 @@ namespace
         subsubcmd->callback(
             []()
             {
-                auto& config = Configuration::instance();
-                set_default_config_options(config);
-                config.load();
+                auto& l_config = Configuration::instance();
+                set_default_config_options(l_config);
+                l_config.load();
                 shell_init(
-                    consolidate_shell(config.at("shell_type").compute().value<std::string>()),
+                    consolidate_shell(l_config.at("shell_type").compute().value<std::string>()),
                     Context::instance().prefix_params.root_prefix
                 );
-                config.operation_teardown();
+                l_config.operation_teardown();
             }
         );
     }
@@ -186,14 +186,14 @@ namespace
         subsubcmd->callback(
             []()
             {
-                auto& config = Configuration::instance();
-                set_default_config_options(config);
-                config.load();
+                auto& l_config = Configuration::instance();
+                set_default_config_options(l_config);
+                l_config.load();
                 shell_deinit(
-                    consolidate_shell(config.at("shell_type").compute().value<std::string>()),
+                    consolidate_shell(l_config.at("shell_type").compute().value<std::string>()),
                     Context::instance().prefix_params.root_prefix
                 );
-                config.operation_teardown();
+                l_config.operation_teardown();
             }
         );
     }
@@ -205,11 +205,11 @@ namespace
         subsubcmd->callback(
             []()
             {
-                auto& config = Configuration::instance();
-                set_default_config_options(config);
-                config.load();
+                auto& l_config = Configuration::instance();
+                set_default_config_options(l_config);
+                l_config.load();
                 shell_reinit(Context::instance().prefix_params.root_prefix);
-                config.operation_teardown();
+                l_config.operation_teardown();
             }
         );
     }
@@ -222,11 +222,12 @@ namespace
         subsubcmd->callback(
             []()
             {
-                auto& config = Configuration::instance();
-                set_default_config_options(config);
-                config.load();
-                shell_hook(consolidate_shell(config.at("shell_type").compute().value<std::string>()));
-                config.operation_teardown();
+                auto& l_config = Configuration::instance();
+                set_default_config_options(l_config);
+                l_config.load();
+                shell_hook(consolidate_shell(l_config.at("shell_type").compute().value<std::string>())
+                );
+                l_config.operation_teardown();
             }
         );
     }
@@ -241,16 +242,16 @@ namespace
         subsubcmd->callback(
             []()
             {
-                auto& config = Configuration::instance();
-                set_default_config_options(config);
-                consolidate_prefix_options(config);
-                config.load();
+                auto& l_config = Configuration::instance();
+                set_default_config_options(l_config);
+                consolidate_prefix_options(l_config);
+                l_config.load();
                 shell_activate(
                     Context::instance().prefix_params.target_prefix,
-                    consolidate_shell(config.at("shell_type").compute().value<std::string>()),
-                    config.at("shell_stack").compute().value<bool>()
+                    consolidate_shell(l_config.at("shell_type").compute().value<std::string>()),
+                    l_config.at("shell_stack").compute().value<bool>()
                 );
-                config.operation_teardown();
+                l_config.operation_teardown();
             }
         );
     }
@@ -262,13 +263,13 @@ namespace
         subsubcmd->callback(
             []()
             {
-                auto& config = Configuration::instance();
-                set_default_config_options(config);
-                config.load();
+                auto& l_config = Configuration::instance();
+                set_default_config_options(l_config);
+                l_config.load();
                 shell_reactivate(
-                    consolidate_shell(config.at("shell_type").compute().value<std::string>())
+                    consolidate_shell(l_config.at("shell_type").compute().value<std::string>())
                 );
-                config.operation_teardown();
+                l_config.operation_teardown();
             }
         );
     }
@@ -280,11 +281,11 @@ namespace
         subsubcmd->callback(
             []()
             {
-                auto& config = Configuration::instance();
-                set_default_config_options(config);
-                config.load();
-                shell_deactivate(config.at("shell_type").compute().value<std::string>());
-                config.operation_teardown();
+                auto& l_config = Configuration::instance();
+                set_default_config_options(l_config);
+                l_config.load();
+                shell_deactivate(l_config.at("shell_type").compute().value<std::string>());
+                l_config.operation_teardown();
             }
         );
     }
@@ -329,10 +330,10 @@ namespace
                 // because this callback may be greedily executed, even with a sub sub command.
                 if (!got_subsubcmd)
                 {
-                    auto& config = Configuration::instance();
-                    set_default_config_options(config);
-                    consolidate_prefix_options(config);
-                    config.load();
+                    auto& l_config = Configuration::instance();
+                    set_default_config_options(l_config);
+                    consolidate_prefix_options(l_config);
+                    l_config.load();
 
                     auto const get_shell = []() -> std::string
                     {

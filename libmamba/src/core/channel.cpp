@@ -91,7 +91,6 @@ namespace mamba
      **************************/
 
     Channel::Channel(
-        ChannelContext& channel_context,
         const std::string& scheme,
         const std::string& location,
         const std::string& name,
@@ -100,8 +99,7 @@ namespace mamba
         const std::optional<std::string>& token,
         const std::optional<std::string>& package_filename
     )
-        : m_channel_context(&channel_context)
-        , m_scheme(scheme)
+        : m_scheme(scheme)
         , m_location(location)
         , m_name(name)
         , m_canonical_name(canonical_name)
@@ -289,7 +287,6 @@ namespace mamba
         }
         name = name != "" ? strip(name, "/") : strip(channel_url, "/");
         return Channel(
-            *this,
             scheme,
             location,
             name,
@@ -457,7 +454,6 @@ namespace mamba
         }
 
         return Channel(
-            *this,
             res_scheme,
             config.m_location,
             config.m_name,
@@ -503,7 +499,6 @@ namespace mamba
             }
 
             return Channel(
-                *this,
                 it->second.scheme(),
                 it->second.location(),
                 combined_name,
@@ -516,7 +511,7 @@ namespace mamba
         else
         {
             const Channel& alias = get_channel_alias();
-            return Channel(*this, alias.scheme(), alias.location(), name, name, alias.auth(), alias.token());
+            return Channel(alias.scheme(), alias.location(), name, name, alias.auth(), alias.token());
         }
     }
 
@@ -646,7 +641,7 @@ namespace mamba
     {
         if (INVALID_CHANNELS.count(in_value) > 0)
         {
-            return Channel(*this, "", "", UNKNOWN_CHANNEL, "", "");
+            return Channel("", "", UNKNOWN_CHANNEL, "", "");
         }
 
         std::string value = in_value;
@@ -669,7 +664,7 @@ namespace mamba
         const std::optional<std::string>& token
     )
     {
-        return Channel(*this, scheme, location, "<alias>", "<alias>", auth, token);
+        return Channel(scheme, location, "<alias>", "<alias>", auth, token);
     }
 
 

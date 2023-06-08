@@ -61,7 +61,7 @@ namespace mamba
 
         for (const auto& c : Context::instance().repodata_has_zst)
         {
-            if (channel->channel_context().make_channel(c) == *channel)
+            if (contains(c, channel->location()) && contains(c, channel->name()))
             {
                 has_zst = { true,
                             std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) };

@@ -18,8 +18,6 @@
 
 namespace mamba
 {
-    class ChannelContext;
-
     // Note: Channels can only be created using ChannelContext.
     class Channel
     {
@@ -47,15 +45,9 @@ namespace mamba
         platform_urls(bool with_credential = true) const;
         std::vector<std::string> urls(bool with_credential = true) const;
 
-        ChannelContext& channel_context() const
-        {
-            return *m_channel_context;
-        }
-
     private:
 
         Channel(
-            ChannelContext& channel_context,
             const std::string& scheme,
             const std::string& location,
             const std::string& name,
@@ -64,8 +56,6 @@ namespace mamba
             const std::optional<std::string>& token = {},
             const std::optional<std::string>& package_filename = {}
         );
-
-        ChannelContext* m_channel_context = nullptr;
 
         std::string m_scheme;
         std::string m_location;

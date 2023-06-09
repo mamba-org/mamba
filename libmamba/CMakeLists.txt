@@ -167,6 +167,7 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/subdirdata.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/thread_utils.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/transaction.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/package_download.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/util.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/fsutil.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/util_string.cpp
@@ -238,6 +239,7 @@ set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/solver.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/subdirdata.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/thread_utils.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_download.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/transaction.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/transaction_context.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/url.hpp

@@ -22,6 +22,7 @@
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
+#include "mamba/core/package_download.hpp"
 #include "mamba/core/pinning.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_string.hpp"

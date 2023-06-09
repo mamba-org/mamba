@@ -19,8 +19,7 @@
 #include "mamba/core/environment.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/transaction.hpp"
-#include "mamba/core/url.hpp"
+#include "mamba/core/package_download.hpp"
 
 namespace mamba
 {

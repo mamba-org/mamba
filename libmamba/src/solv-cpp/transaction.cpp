@@ -35,8 +35,6 @@ namespace mamba::solv
     {
     }
 
-    ObjTransaction::~ObjTransaction() = default;
-
     auto ObjTransaction::operator=(const ObjTransaction& other) -> ObjTransaction&
     {
         *this = ObjTransaction(other);

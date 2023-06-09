@@ -21,6 +21,9 @@ namespace mamba::solv
     using RelationFlag = int;
     using DistType = int;
     using SolverFlag = int;
+    using TransactionOrderFlag = int;
+    using TransactionStepType = int;
+    using TransactionMode = int;
 }
 
 #endif

@@ -84,6 +84,8 @@ namespace mamba::solv
         auto data() -> pointer;
         auto data() const -> const_pointer;
 
+        auto contains(value_type id) const -> bool;
+
         template <template <typename, typename...> class C>
         auto as() -> C<value_type>;
 

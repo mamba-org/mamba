@@ -250,6 +250,11 @@ namespace mamba::solv
         return m_queue.elements;
     }
 
+    auto ObjQueue::contains(value_type id) const -> bool
+    {
+        return std::find(cbegin(), cend(), id) != cend();
+    }
+
     auto ObjQueue::raw() const -> const ::Queue*
     {
         return &m_queue;

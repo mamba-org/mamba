@@ -124,6 +124,7 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/repo.cpp
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solvable.cpp
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solver.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/transaction.cpp
     # C++ wrapping of libcurl
     ${LIBMAMBA_SOURCE_DIR}/core/curl.cpp
     # C++ wrapping of compression libs (zstd and bzlib)
@@ -166,6 +167,7 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/subdirdata.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/thread_utils.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/transaction.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/package_download.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/util.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/fsutil.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/util_string.cpp
@@ -237,6 +239,7 @@ set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/solver.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/subdirdata.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/thread_utils.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_download.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/transaction.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/transaction_context.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/url.hpp
@@ -278,6 +281,7 @@ set(LIBMAMBA_PRIVATE_HEADERS
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solvable.hpp
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solver.hpp
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/repo.hpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/transaction.hpp
     # C++ wrapping of compression libs (zstd and bzlib)
     ${LIBMAMBA_SOURCE_DIR}/core/compression.hpp
     # C++ wrapping of libcurl

@@ -205,4 +205,11 @@ TEST_SUITE("ObjQueue")
         q2.reserve(10);
         CHECK_EQ(q1, q2);
     }
+
+    TEST_CASE("contains")
+    {
+        const auto q = ObjQueue{ 1, 9, 3 };
+        CHECK(q.contains(3));
+        CHECK_FALSE(q.contains(0));
+    }
 }

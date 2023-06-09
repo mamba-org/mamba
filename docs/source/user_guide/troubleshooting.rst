@@ -18,6 +18,8 @@ No other packages should be installed to ``base``
 
 Installing packages other than Conda and Mamba into the ``base`` environment is not supported. Mamba must live in the same environment as Conda, and Conda does not support having packages other than Conda itself and its dependencies in ``base``.
 
+.. _defaults_channels:
+
 Mixing the ``defaults`` and ``conda-forge`` channels
 ----------------------------------------------------
 
@@ -41,7 +43,7 @@ Please disable the default channels in your install command::
 
   mamba create -c nodefaults ...
 
-Or your :file`environment.yml` file:
+Or your :file:`environment.yml` file:
 
 .. code-block:: yaml
 
@@ -63,6 +65,11 @@ Mamba broken after Conda update
 -------------------------------
 
 Mamba sometimes stops working if you update to a very recent version of Conda. Please downgrade to the latest working a version and file a bug report in the Mamba bug tracker if the problem has not been reported yet.
+
+libmamba.so.2: undefined symbol ...
+-----------------------------------
+
+See ref:`defaults_channels`.
 
 Windows long paths
 ------------------

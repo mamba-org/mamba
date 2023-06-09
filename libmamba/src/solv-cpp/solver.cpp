@@ -164,6 +164,11 @@ namespace mamba::solv
         return m_solver.get();
     }
 
+    auto ObjSolver::raw() const -> const ::Solver*
+    {
+        return m_solver.get();
+    }
+
     void ObjSolver::set_flag(SolverFlag flag, bool value)
     {
         ::solver_set_flag(raw(), flag, value);
@@ -174,11 +179,6 @@ namespace mamba::solv
         const auto val = ::solver_get_flag(const_cast<::Solver*>(raw()), flag);
         assert((val == 0) || (val == 1));
         return val != 0;
-    }
-
-    auto ObjSolver::raw() const -> const ::Solver*
-    {
-        return m_solver.get();
     }
 
     auto ObjSolver::solve(const ObjPool& /* pool */, const ObjQueue& jobs) -> bool

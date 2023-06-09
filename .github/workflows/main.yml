@@ -312,6 +312,7 @@ jobs:
         run: rm vcpkg.json
       - name: build static windows dependencies with vcpkg
         shell: cmd /C CALL {0}
+        # Latest VCPKG is from GHA because releases are not up to date with VCPKG server
         run: |
           call micromamba activate build_env
           if %errorlevel% neq 0 exit /b %errorlevel%

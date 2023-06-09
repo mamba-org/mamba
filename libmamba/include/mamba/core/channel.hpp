@@ -65,6 +65,8 @@ namespace mamba
         std::optional<std::string> m_auth;
         std::optional<std::string> m_token;
         std::optional<std::string> m_package_filename;
+
+        // This is used to make sure that there is a unique repo for every channel
         mutable std::unique_ptr<validation::RepoChecker> p_repo_checker;
 
         friend class ChannelContext;
@@ -95,10 +97,8 @@ namespace mamba
         const Channel& make_channel(const std::string& value);
         std::vector<const Channel*> get_channels(const std::vector<std::string>& channel_names);
 
-        // internal
         const Channel& get_channel_alias() const;
         const channel_map& get_custom_channels() const;
-        const multichannel_map& get_custom_multichannels() const;
 
     private:
 
@@ -110,6 +110,7 @@ namespace mamba
         Channel build_channel_alias();
         void init_custom_channels();
 
+        const multichannel_map& get_custom_multichannels() const;
 
         Channel make_simple_channel(
             const Channel& channel_alias,

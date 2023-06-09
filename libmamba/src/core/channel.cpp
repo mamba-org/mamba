@@ -19,7 +19,9 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/url.hpp"
+#include "mamba/core/util_os.hpp"
 #include "mamba/core/util_string.hpp"
+#include "mamba/core/util_url.hpp"
 #include "mamba/core/validate.hpp"
 
 
@@ -51,40 +53,200 @@ namespace mamba
         };
     }  // namespace
 
+    // Specific functions, used only in this file
     namespace
     {
-        // proper file scheme on Windows is `file:///C:/blabla`
-        // https://blogs.msdn.microsoft.com/ie/2006/12/06/file-uris-in-windows/
-        std::string concat_scheme_url(const std::string& scheme, const std::string& location)
-        {
-            if (scheme == "file" && location.size() > 1 && location[1] == ':')
-            {
-                return concat("file:///", location);
-            }
-            else
-            {
-                return concat(scheme, "://", location);
-            }
-        }
-
-        std::string build_url(const Channel& c, const std::string& base, bool with_credential)
-        {
-            if (with_credential && c.auth())
-            {
-                return concat_scheme_url(c.scheme(), concat(*c.auth(), "@", base));
-            }
-            else
-            {
-                return concat_scheme_url(c.scheme(), base);
-            }
-        }
-
         std::optional<std::string> nonempty_str(std::string&& s)
         {
             return s.empty() ? std::optional<std::string>() : std::make_optional(s);
         }
-    }  // namespace
 
+        void split_conda_url(
+            const std::string& url,
+            std::string& scheme,
+            std::string& host,
+            std::string& port,
+            std::string& path,
+            std::string& auth,
+            std::string& token,
+            std::string& package_name
+        )
+        {
+            std::string cleaned_url, extension;
+            split_anaconda_token(url, cleaned_url, token);
+            split_package_extension(cleaned_url, cleaned_url, extension);
+
+            if (extension != "")
+            {
+                auto sp = rsplit(cleaned_url, "/", 1);
+                cleaned_url = sp[0];
+                package_name = sp[1] + extension;
+            }
+            else
+            {
+                package_name = "";
+            }
+
+            URLHandler handler(cleaned_url);
+            scheme = handler.scheme();
+            host = handler.host();
+            port = handler.port();
+            path = handler.path();
+            auth = handler.auth();
+        }
+
+        // Channel configuration
+        struct channel_configuration
+        {
+            channel_configuration(
+                const std::string& location,
+                const std::string& name,
+                const std::string& scheme,
+                const std::string& auth,
+                const std::string& token
+            )
+                : m_location(location)
+                , m_name(name)
+                , m_scheme(scheme)
+                , m_auth(auth)
+                , m_token(token)
+            {
+            }
+
+            std::string m_location;
+            std::string m_name;
+            std::string m_scheme;
+            std::string m_auth;
+            std::string m_token;
+        };
+
+        channel_configuration read_channel_configuration(
+            ChannelContext& channel_context,
+            const std::string& scheme,
+            const std::string& host,
+            const std::string& port,
+            const std::string& path
+        )
+        {
+            std::string spath = std::string(rstrip(path, "/"));
+            std::string url = URLHandler()
+                                  .set_scheme(scheme)
+                                  .set_host(host)
+                                  .set_port(port)
+                                  .set_path(spath)
+                                  .url(true);
+
+            // Case 1: No path given, channel name is ""
+            if (spath == "")
+            {
+                URLHandler handler;
+                handler.set_host(host).set_port(port);
+                return channel_configuration(std::string(rstrip(handler.url(), "/")), "", scheme, "", "");
+            }
+
+            // Case 2: migrated_custom_channels not implemented yet
+            // Case 3: migrated_channel_aliases not implemented yet
+
+            // Case 4: custom_channels matches
+            const auto& custom_channels = channel_context.get_custom_channels();
+            for (const auto& ca : custom_channels)
+            {
+                const Channel& channel = ca.second;
+                std::string test_url = join_url(channel.location(), channel.name());
+                if (vector_is_prefix(split(test_url, "/"), split(url, "/")))
+                {
+                    auto subname = std::string(strip(url.replace(0u, test_url.size(), ""), "/"));
+
+                    return channel_configuration(
+                        channel.location(),
+                        join_url(channel.name(), subname),
+                        scheme,
+                        channel.auth().value_or(""),
+                        channel.token().value_or("")
+                    );
+                }
+            }
+
+            // Case 5: channel_alias match
+            const Channel& ca = channel_context.get_channel_alias();
+            if (ca.location() != "" && starts_with(url, ca.location()))
+            {
+                auto name = std::string(strip(url.replace(0u, ca.location().size(), ""), "/"));
+                return channel_configuration(
+                    ca.location(),
+                    name,
+                    scheme,
+                    ca.auth().value_or(""),
+                    ca.token().value_or("")
+                );
+            }
+
+            // Case 6: not-otherwise-specified file://-type urls
+            if (host == "")
+            {
+                auto sp = rsplit(url, "/", 1);
+                return channel_configuration(sp[0].size() ? sp[0] : "/", sp[1], "file", "", "");
+            }
+
+            // Case 7: fallback, channel_location = host:port and channel_name = path
+            spath = lstrip(spath, "/");
+            std::string location = URLHandler().set_host(host).set_port(port).url();
+            return channel_configuration(std::string(strip(location, "/")), spath, scheme, "", "");
+        }
+
+        std::vector<std::string> take_platforms(std::string& value)
+        {
+            std::vector<std::string> platforms;
+            if (!value.empty())
+            {
+                if (value[value.size() - 1] == ']')
+                {
+                    const auto end_value = value.find_last_of('[');
+                    if (end_value != std::string::npos)
+                    {
+                        auto ind = end_value + 1;
+                        while (ind < value.size() - 1)
+                        {
+                            auto end = value.find_first_of(", ]", ind);
+                            assert(end != std::string::npos);
+                            platforms.emplace_back(value.substr(ind, end - ind));
+                            ind = end;
+                            while (value[ind] == ',' || value[ind] == ' ')
+                            {
+                                ind++;
+                            }
+                        }
+
+                        value.resize(end_value);
+                    }
+                }
+                // This is required because a channel can be instantiated from an URL
+                // that already contains the platform
+                else
+                {
+                    std::string cleaned_url = "", platform = "";
+                    split_platform(
+                        KNOWN_PLATFORMS,
+                        value,
+                        Context::instance().platform,
+                        cleaned_url,
+                        platform
+                    );
+                    if (!platform.empty())
+                    {
+                        platforms.push_back(std::move(platform));
+                        value = cleaned_url;
+                    }
+                }
+            }
+
+            if (platforms.empty())
+            {
+                platforms = Context::instance().platforms();
+            }
+            return platforms;
+        }
+    }  // namespace
 
     /**************************
      * Channel implementation *
@@ -191,9 +353,12 @@ namespace mamba
             }
 
             std::string platform = m_platforms[0];
-            return {
-                { build_url(*this, join_url(base, name(), platform, *package_filename()), with_credential) }
-            };
+            return { { build_url(
+                auth(),
+                scheme(),
+                join_url(base, name(), platform, *package_filename()),
+                with_credential
+            ) } };
         }
         else
         {
@@ -219,7 +384,7 @@ namespace mamba
         {
             ret.emplace_back(
                 platform,
-                build_url(*this, join_url(base, name(), platform), with_credential)
+                build_url(auth(), scheme(), join_url(base, name(), platform), with_credential)
             );
         }
         return ret;
@@ -232,7 +397,7 @@ namespace mamba
         {
             base = join_url(base, "t", *token());
         }
-        return build_url(*this, join_url(base, name(), platform), with_credential);
+        return build_url(auth(), scheme(), join_url(base, name(), platform), with_credential);
     }
 
     bool operator==(const Channel& lhs, const Channel& rhs)
@@ -295,141 +460,6 @@ namespace mamba
             nonempty_str(std::move(token)),
             {}
         );
-    }
-
-    namespace
-    {
-        void split_conda_url(
-            const std::string& url,
-            std::string& scheme,
-            std::string& host,
-            std::string& port,
-            std::string& path,
-            std::string& auth,
-            std::string& token,
-            std::string& package_name
-        )
-        {
-            std::string cleaned_url, extension;
-            split_anaconda_token(url, cleaned_url, token);
-            split_package_extension(cleaned_url, cleaned_url, extension);
-
-            if (extension != "")
-            {
-                auto sp = rsplit(cleaned_url, "/", 1);
-                cleaned_url = sp[0];
-                package_name = sp[1] + extension;
-            }
-            else
-            {
-                package_name = "";
-            }
-
-            URLHandler handler(cleaned_url);
-            scheme = handler.scheme();
-            host = handler.host();
-            port = handler.port();
-            path = handler.path();
-            auth = handler.auth();
-        }
-
-        struct channel_configuration
-        {
-            channel_configuration(
-                const std::string& location,
-                const std::string& name,
-                const std::string& scheme,
-                const std::string& auth,
-                const std::string& token
-            )
-                : m_location(location)
-                , m_name(name)
-                , m_scheme(scheme)
-                , m_auth(auth)
-                , m_token(token)
-            {
-            }
-
-            std::string m_location;
-            std::string m_name;
-            std::string m_scheme;
-            std::string m_auth;
-            std::string m_token;
-        };
-
-        channel_configuration read_channel_configuration(
-            ChannelContext& channel_context,
-            const std::string& scheme,
-            const std::string& host,
-            const std::string& port,
-            const std::string& path
-        )
-        {
-            std::string spath = std::string(rstrip(path, "/"));
-            std::string url = URLHandler()
-                                  .set_scheme(scheme)
-                                  .set_host(host)
-                                  .set_port(port)
-                                  .set_path(spath)
-                                  .url(true);
-
-            // Case 1: No path given, channel name is ""
-            if (spath == "")
-            {
-                URLHandler handler;
-                handler.set_host(host).set_port(port);
-                return channel_configuration(std::string(rstrip(handler.url(), "/")), "", scheme, "", "");
-            }
-
-            // Case 2: migrated_custom_channels not implemented yet
-            // Case 3: migrated_channel_aliases not implemented yet
-
-            // Case 4: custom_channels matches
-            const auto& custom_channels = channel_context.get_custom_channels();
-            for (const auto& ca : custom_channels)
-            {
-                const Channel& channel = ca.second;
-                std::string test_url = join_url(channel.location(), channel.name());
-                if (vector_is_prefix(split(test_url, "/"), split(url, "/")))
-                {
-                    auto subname = std::string(strip(url.replace(0u, test_url.size(), ""), "/"));
-
-                    return channel_configuration(
-                        channel.location(),
-                        join_url(channel.name(), subname),
-                        scheme,
-                        channel.auth().value_or(""),
-                        channel.token().value_or("")
-                    );
-                }
-            }
-
-            // Case 5: channel_alias match
-            const Channel& ca = channel_context.get_channel_alias();
-            if (ca.location() != "" && starts_with(url, ca.location()))
-            {
-                auto name = std::string(strip(url.replace(0u, ca.location().size(), ""), "/"));
-                return channel_configuration(
-                    ca.location(),
-                    name,
-                    scheme,
-                    ca.auth().value_or(""),
-                    ca.token().value_or("")
-                );
-            }
-
-            // Case 6: not-otherwise-specified file://-type urls
-            if (host == "")
-            {
-                auto sp = rsplit(url, "/", 1);
-                return channel_configuration(sp[0].size() ? sp[0] : "/", sp[1], "file", "", "");
-            }
-
-            // Case 7: fallback, channel_location = host:port and channel_name = path
-            spath = lstrip(spath, "/");
-            std::string location = URLHandler().set_host(host).set_port(port).url();
-            return channel_configuration(std::string(strip(location, "/")), spath, scheme, "", "");
-        }
     }
 
     Channel ChannelContext::from_url(const std::string& url)
@@ -512,128 +542,6 @@ namespace mamba
         {
             const Channel& alias = get_channel_alias();
             return Channel(alias.scheme(), alias.location(), name, name, alias.auth(), alias.token());
-        }
-    }
-
-    std::string fix_win_path(const std::string& path)
-    {
-#ifdef _WIN32
-        if (starts_with(path, "file:"))
-        {
-            std::regex re(R"(\\(?! ))");
-            std::string res = std::regex_replace(path, re, R"(/)");
-            replace_all(res, ":////", "://");
-            return res;
-        }
-        else
-        {
-            return path;
-        }
-#else
-        return path;
-#endif
-    }
-
-    void split_platform(
-        const std::vector<std::string>& known_platforms,
-        const std::string& url,
-        std::string& cleaned_url,
-        std::string& platform
-    )
-    {
-        platform = "";
-
-        auto check_platform_position = [&url](std::size_t pos, const std::string& lplatform) -> bool
-        {
-            if (pos == std::string::npos)
-            {
-                return false;
-            }
-            if (pos > 0 && url[pos - 1] != '/')
-            {
-                return false;
-            }
-            if ((pos + lplatform.size()) < url.size() && url[pos + lplatform.size()] != '/')
-            {
-                return false;
-            }
-
-            return true;
-        };
-
-        std::size_t pos = url.find(Context::instance().platform);
-        if (check_platform_position(pos, Context::instance().platform))
-        {
-            platform = Context::instance().platform;
-        }
-        else
-        {
-            for (auto it = known_platforms.begin(); it != known_platforms.end(); ++it)
-            {
-                pos = url.find(*it);
-                if (check_platform_position(pos, *it))
-                {
-                    platform = *it;
-                    break;
-                }
-            }
-        }
-
-        cleaned_url = url;
-        if (pos != std::string::npos)
-        {
-            cleaned_url.replace(pos - 1, platform.size() + 1, "");
-        }
-        cleaned_url = rstrip(cleaned_url, "/");
-    }
-
-    namespace
-    {
-        std::vector<std::string> take_platforms(std::string& value)
-        {
-            std::vector<std::string> platforms;
-            if (!value.empty())
-            {
-                if (value[value.size() - 1] == ']')
-                {
-                    const auto end_value = value.find_last_of('[');
-                    if (end_value != std::string::npos)
-                    {
-                        auto ind = end_value + 1;
-                        while (ind < value.size() - 1)
-                        {
-                            auto end = value.find_first_of(", ]", ind);
-                            assert(end != std::string::npos);
-                            platforms.emplace_back(value.substr(ind, end - ind));
-                            ind = end;
-                            while (value[ind] == ',' || value[ind] == ' ')
-                            {
-                                ind++;
-                            }
-                        }
-
-                        value.resize(end_value);
-                    }
-                }
-                // This is required because a channel can be instantiated from an URL
-                // that already contains the platform
-                else
-                {
-                    std::string cleaned_url = "", platform = "";
-                    split_platform(KNOWN_PLATFORMS, value, cleaned_url, platform);
-                    if (!platform.empty())
-                    {
-                        platforms.push_back(std::move(platform));
-                        value = cleaned_url;
-                    }
-                }
-            }
-
-            if (platforms.empty())
-            {
-                platforms = Context::instance().platforms();
-            }
-            return platforms;
         }
     }
 

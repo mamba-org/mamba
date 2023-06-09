@@ -172,6 +172,7 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/fsutil.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/util_string.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/util_os.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/util_url.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/validate.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/virtual_packages.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/env_lockfile.cpp
@@ -249,6 +250,7 @@ set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_random.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_scope.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_string.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_url.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/validate.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/virtual_packages.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/env_lockfile.hpp

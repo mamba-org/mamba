@@ -363,7 +363,7 @@ namespace mamba::solv
     void ObjSolvableView::set_dependencies(const ObjQueue& q) const
     {
         ::solvable_set_deparray(
-            const_cast<::Solvable*>(raw()),
+            raw(),
             SOLVABLE_REQUIRES,
             const_cast<::Queue*>(q.raw()),
             /* marker= */ 0
@@ -385,7 +385,7 @@ namespace mamba::solv
     void ObjSolvableView::set_provides(const ObjQueue& q) const
     {
         ::solvable_set_deparray(
-            const_cast<::Solvable*>(raw()),
+            raw(),
             SOLVABLE_PROVIDES,
             const_cast<::Queue*>(q.raw()),
             /* marker= */ 0
@@ -421,7 +421,7 @@ namespace mamba::solv
         else
         {
             ::solvable_set_deparray(
-                const_cast<::Solvable*>(raw()),
+                raw(),
                 SOLVABLE_CONSTRAINS,
                 const_cast<::Queue*>(q.raw()),
                 /* marker= */ -1
@@ -463,5 +463,11 @@ namespace mamba::solv
     auto ObjSolvableView::add_track_feature(std::string_view feat) const -> StringId
     {
         return add_track_feature(solvable_add_pool_str(raw()->repo->pool, feat));
+    }
+
+    auto ObjSolvableViewConst::installed() const -> bool
+    {
+        const auto* const repo = raw()->repo;
+        return (repo != nullptr) && (repo == repo->pool->installed);
     }
 }

@@ -83,6 +83,9 @@ namespace mamba::solv
         /** Queue of ``StringId``. */
         auto track_features() const -> ObjQueue;
 
+        /** Whether the solvable is in the installed repo. */
+        auto installed() const -> bool;
+
     private:
 
         const ::Solvable* m_solvable = nullptr;

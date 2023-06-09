@@ -124,6 +124,7 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/repo.cpp
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solvable.cpp
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solver.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/transaction.cpp
     # C++ wrapping of libcurl
     ${LIBMAMBA_SOURCE_DIR}/core/curl.cpp
     # C++ wrapping of compression libs (zstd and bzlib)
@@ -278,6 +279,7 @@ set(LIBMAMBA_PRIVATE_HEADERS
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solvable.hpp
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solver.hpp
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/repo.hpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/transaction.hpp
     # C++ wrapping of compression libs (zstd and bzlib)
     ${LIBMAMBA_SOURCE_DIR}/core/compression.hpp
     # C++ wrapping of libcurl

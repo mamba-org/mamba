@@ -6,50 +6,59 @@
 
 
 #if defined(__APPLE__) || defined(__linux__)
-#include <stdio.h>
-#include <unistd.h>
+#include <csignal>
+
 #include <fcntl.h>
 #include <pthread.h>
-
-#include <csignal>
+#include <stdio.h>
+#include <unistd.h>
 #endif
 
 #ifdef _WIN32
-#include <io.h>
-
 #include <cassert>
+
+#include <io.h>
 
 extern "C"
 {
+#include <fcntl.h>
 #include <io.h>
 #include <process.h>
 #include <sys/locking.h>
-#include <fcntl.h>
 }
-
-#include "mamba/core/shell_init.hpp"
 
 #endif
 
 #include <cerrno>
-#include <iomanip>
-#include <mutex>
 #include <condition_variable>
+#include <cstring>
+#include <cwchar>
+#include <iomanip>
+#include <memory>
+#include <mutex>
+#include <optional>
+#include <unordered_map>
+
 #include <openssl/evp.h>
 
-#include "mamba/core/environment.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/core/util.hpp"
-#include "mamba/core/output.hpp"
-#include "mamba/core/thread_utils.hpp"
+#include "mamba/core/environment.hpp"
 #include "mamba/core/execution.hpp"
+#include "mamba/core/fsutil.hpp"
+#include "mamba/core/invoke.hpp"
+#include "mamba/core/output.hpp"
+#include "mamba/core/shell_init.hpp"
+#include "mamba/core/thread_utils.hpp"
+#include "mamba/core/url.hpp"
+#include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_random.hpp"
-#include "mamba/core/fsutil.hpp"
+#include "mamba/core/util_string.hpp"
+#include "mamba/util/compare.hpp"
 
 namespace mamba
 {
-    bool is_package_file(const std::string_view& fn)
+    bool is_package_file(std::string_view fn)
     {
         return ends_with(fn, ".tar.bz2") || ends_with(fn, ".conda");
     }
@@ -61,8 +70,13 @@ namespace mamba
     // lexists(emptylink) == true
     bool lexists(const fs::u8path& path, std::error_code& ec)
     {
-        auto status = fs::symlink_status(path, ec);
-        return status.type() != fs::file_type::not_found || status.type() == fs::file_type::symlink;
+        auto status = fs::symlink_status(path, ec).type();
+        if (status != fs::file_type::none)
+        {
+            ec.clear();
+            return status != fs::file_type::not_found || status == fs::file_type::symlink;
+        }
+        return false;
     }
 
     bool lexists(const fs::u8path& path)
@@ -114,8 +128,10 @@ namespace mamba
 #else
         const std::string template_path = (fs::temp_directory_path() / "mambadXXXXXX").string();
         // include \0 terminator
-        auto err [[maybe_unused]]
-        = _mktemp_s(const_cast<char*>(template_path.c_str()), template_path.size() + 1);
+        auto err [[maybe_unused]] = _mktemp_s(
+            const_cast<char*>(template_path.c_str()),
+            template_path.size() + 1
+        );
         assert(err == 0);
         success = fs::create_directory(template_path);
 #endif
@@ -147,12 +163,17 @@ namespace mamba
         return m_path;
     }
 
-    TemporaryFile::TemporaryFile(const std::string& prefix, const std::string& suffix)
+    TemporaryFile::TemporaryFile(
+        const std::string& prefix,
+        const std::string& suffix,
+        const std::optional<fs::u8path>& dir
+    )
     {
         static std::mutex file_creation_mutex;
 
         bool success = false;
-        fs::u8path temp_path = fs::temp_directory_path(), final_path;
+        fs::u8path final_path;
+        fs::u8path temp_path = dir.value_or(fs::temp_directory_path());
 
         std::lock_guard<std::mutex> file_creation_lock(file_creation_mutex);
 
@@ -201,158 +222,6 @@ namespace mamba
         return m_path;
     }
 
-    /********************
-     * utils for string *
-     ********************/
-
-    bool ends_with(const std::string_view& str, const std::string_view& suffix)
-    {
-        return str.size() >= suffix.size()
-               && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
-    }
-
-    bool starts_with(const std::string_view& str, const std::string_view& prefix)
-    {
-        return str.size() >= prefix.size() && 0 == str.compare(0, prefix.size(), prefix);
-    }
-
-    bool any_starts_with(const std::vector<std::string_view>& str, const std::string_view& prefix)
-    {
-        for (auto& s : str)
-        {
-            if (starts_with(s, prefix))
-                return true;
-        }
-        return false;
-    }
-
-    bool starts_with_any(const std::string_view& str, const std::vector<std::string_view>& prefix)
-    {
-        for (auto& p : prefix)
-        {
-            if (starts_with(str, p))
-                return true;
-        }
-        return false;
-    }
-
-    bool contains(const std::string_view& str, const std::string_view& sub_str)
-    {
-        return str.find(sub_str) != std::string::npos;
-    }
-
-    std::string_view strip(const std::string_view& input)
-    {
-        return strip(input, WHITESPACES);
-    }
-
-    // todo one could deduplicate this code with the one in strip() by using C++ 20 with concepts
-    std::wstring_view strip(const std::wstring_view& input)
-    {
-        return strip<wchar_t>(input, WHITESPACES_WSTR);
-    }
-
-    std::string_view strip(const std::string_view& input, const std::string_view& chars)
-    {
-        return strip<char>(input, chars);
-    }
-
-    std::string_view lstrip(const std::string_view& input)
-    {
-        return lstrip(input, WHITESPACES);
-    }
-
-    std::string_view rstrip(const std::string_view& input)
-    {
-        return rstrip(input, WHITESPACES);
-    }
-
-    std::string_view lstrip(const std::string_view& input, const std::string_view& chars)
-    {
-        size_t start = input.find_first_not_of(chars);
-        return start == std::string::npos ? "" : input.substr(start);
-    }
-
-    std::string_view rstrip(const std::string_view& input, const std::string_view& chars)
-    {
-        size_t end = input.find_last_not_of(chars);
-        return end == std::string::npos ? "" : input.substr(0, end + 1);
-    }
-
-    std::vector<std::string> rsplit(const std::string_view& input,
-                                    const std::string_view& sep,
-                                    std::size_t max_split)
-    {
-        if (max_split == SIZE_MAX)
-            return split(input, sep, max_split);
-
-        std::vector<std::string> result;
-
-        std::ptrdiff_t i, j, len = static_cast<std::ptrdiff_t>(input.size()),
-                             n = static_cast<std::ptrdiff_t>(sep.size());
-        i = j = len;
-
-        while (i >= n)
-        {
-            if (input[i - 1] == sep[n - 1] && input.substr(i - n, n) == sep)
-            {
-                if (max_split-- <= 0)
-                {
-                    break;
-                }
-                result.emplace_back(input.substr(i, j - i));
-                i = j = i - n;
-            }
-            else
-            {
-                i--;
-            }
-        }
-        result.emplace_back(input.substr(0, j));
-        std::reverse(result.begin(), result.end());
-
-        return result;
-    }
-
-    template <class S>
-    void replace_all_impl(S& data, const S& search, const S& replace)
-    {
-        std::size_t pos = data.find(search);
-        while (pos != std::string::npos)
-        {
-            data.replace(pos, search.size(), replace);
-            pos = data.find(search, pos + replace.size());
-        }
-    }
-
-    void replace_all(std::string& data, const std::string& search, const std::string& replace)
-    {
-        replace_all_impl<std::string>(data, search, replace);
-    }
-
-    void replace_all(std::wstring& data, const std::wstring& search, const std::wstring& replace)
-    {
-        replace_all_impl<std::wstring>(data, search, replace);
-    }
-
-    std::string string_transform(const std::string_view& input, int (*functor)(int))
-    {
-        std::string res(input);
-        std::transform(
-            res.begin(), res.end(), res.begin(), [&](unsigned char c) { return functor(c); });
-        return res;
-    }
-
-    std::string to_upper(const std::string_view& input)
-    {
-        return string_transform(input, std::toupper);
-    }
-
-    std::string to_lower(const std::string_view& input)
-    {
-        return string_transform(input, std::tolower);
-    }
-
     std::string read_contents(const fs::u8path& file_path, std::ios::openmode mode)
     {
         std::ifstream in(file_path.std_path(), std::ios::in | mode);
@@ -361,16 +230,19 @@ namespace mamba
         {
             std::string contents;
             in.seekg(0, std::ios::end);
-            contents.resize(in.tellg());
+            contents.resize(static_cast<std::size_t>(in.tellg()));
             in.seekg(0, std::ios::beg);
-            in.read(&contents[0], contents.size());
+            in.read(&contents[0], static_cast<std::streamsize>(contents.size()));
             in.close();
             return (contents);
         }
         else
         {
             throw std::system_error(
-                errno, std::system_category(), "failed to open " + file_path.string());
+                errno,
+                std::system_category(),
+                "failed to open " + file_path.string()
+            );
         }
     }
 
@@ -380,7 +252,10 @@ namespace mamba
         if (file_stream.fail())
         {
             throw std::system_error(
-                errno, std::system_category(), "failed to open " + file_path.string());
+                errno,
+                std::system_category(),
+                "failed to open " + file_path.string()
+            );
         }
 
         std::vector<std::string> output;
@@ -389,7 +264,9 @@ namespace mamba
         {
             // Remove the trailing \r to accomodate Windows line endings.
             if ((!line.empty()) && (line.back() == '\r'))
+            {
                 line.pop_back();
+            }
 
             output.push_back(line);
         }
@@ -515,30 +392,30 @@ namespace mamba
         }
         else
         {
+            // Identical to Python's shlex.quote.
             auto quote_arg = [](const std::string& s)
             {
-                char quote_char;
-                if (s.find('"') != s.npos)
+                if (s.size() == 0)
                 {
-                    quote_char = '\'';
+                    return std::string("''");
                 }
-                else if (s.find('\'') != s.npos)
+                std::regex unsafe("[^\\w@%+=:,./-]");
+                if (std::regex_search(s, unsafe))
                 {
-                    quote_char = '\"';
-                }
-                else if (s.find_first_of(" \n") == s.npos)
-                {
-                    return s;
+                    std::string s2 = s;
+                    replace_all(s2, "'", "'\"'\"'");
+                    return concat("'", s2, "'");
                 }
                 else
                 {
-                    quote_char = '"';
+                    return s;
                 }
-                return concat(quote_char, s, quote_char);
             };
 
             if (arguments.empty())
+            {
                 return "";
+            }
 
             std::string argstring;
             argstring += quote_arg(arguments[0]);
@@ -612,8 +489,10 @@ namespace mamba
         }
         else
         {
-            auto trash_out_file
-                = open_ofstream(trash_txt, std::ios::out | std::ios::binary | std::ios::trunc);
+            auto trash_out_file = open_ofstream(
+                trash_txt,
+                std::ios::out | std::ios::binary | std::ios::trunc
+            );
             for (auto& rf : remaining_files)
             {
                 trash_out_file << rf.string() << "\n";
@@ -658,31 +537,33 @@ namespace mamba
                 fs::u8path trash_file = path;
                 std::size_t fcounter = 0;
 
-                trash_file.replace_extension(
-                    concat(trash_file.extension().string(), ".mamba_trash"));
+                trash_file.replace_extension(concat(trash_file.extension().string(), ".mamba_trash"));
                 while (lexists(trash_file))
                 {
                     trash_file = path;
-                    trash_file.replace_extension(concat(
-                        trash_file.extension().string(), std::to_string(fcounter), ".mamba_trash"));
+                    trash_file.replace_extension(
+                        concat(trash_file.extension().string(), std::to_string(fcounter), ".mamba_trash")
+                    );
                     fcounter += 1;
                     if (fcounter > 100)
                     {
-                        throw std::runtime_error(
-                            "Too many existing trash files. Please force clean");
+                        throw std::runtime_error("Too many existing trash files. Please force clean");
                     }
                 }
                 fs::rename(path, trash_file, ec);
                 if (!ec)
                 {
                     // The conda-meta directory is locked by transaction execute
-                    auto trash_index = open_ofstream(Context::instance().target_prefix
-                                                         / "conda-meta" / "mamba_trash.txt",
-                                                     std::ios::app | std::ios::binary);
+                    auto trash_index = open_ofstream(
+                        Context::instance().prefix_params.target_prefix / "conda-meta"
+                            / "mamba_trash.txt",
+                        std::ios::app | std::ios::binary
+                    );
 
                     // TODO add some unicode tests here?
                     trash_index
-                        << fs::relative(trash_file, Context::instance().target_prefix).string()
+                        << fs::relative(trash_file, Context::instance().prefix_params.target_prefix)
+                               .string()
                         << "\n";
                     return 1;
                 }
@@ -692,7 +573,9 @@ namespace mamba
                 LOG_ERROR << "Trying to remove " << path << ": " << ec.message()
                           << " (file in use?). Sleeping for " << counter * 2 << "s";
                 if (counter > 3)
+                {
                     throw std::runtime_error(concat("Could not delete file ", path.string()));
+                }
                 std::this_thread::sleep_for(std::chrono::seconds(counter * 2));
             }
         }
@@ -703,19 +586,27 @@ namespace mamba
     {
         std::string result;
         if (*p == '\n')
+        {
             ++p;
+        }
         const char* p_leading = p;
         while (std::isspace(*p) && *p != '\n')
+        {
             ++p;
-        size_t leading_len = p - p_leading;
+        }
+        std::size_t leading_len = static_cast<std::size_t>(p - p_leading);
         while (*p)
         {
             result += *p;
             if (*p++ == '\n')
             {
-                for (size_t i = 0; i < leading_len; ++i)
+                for (std::size_t i = 0; i < leading_len; ++i)
+                {
                     if (p[i] != p_leading[i])
+                    {
                         goto dont_skip_leading;
+                    }
+                }
                 p += leading_len;
             }
         dont_skip_leading:;
@@ -744,7 +635,68 @@ namespace mamba
         return prepend(p.c_str(), start, newline);
     }
 
-    LockFile::LockFile(const fs::u8path& path, const std::chrono::seconds& timeout)
+
+    class LockFileOwner
+    {
+    public:
+
+        explicit LockFileOwner(const fs::u8path& file_path, const std::chrono::seconds timeout);
+        ~LockFileOwner();
+
+        LockFileOwner(const LockFileOwner&) = delete;
+        LockFileOwner& operator=(const LockFileOwner&) = delete;
+        LockFileOwner(LockFileOwner&&) = delete;
+        LockFileOwner& operator=(LockFileOwner&&) = delete;
+
+        bool set_fd_lock(bool blocking) const;
+        bool lock_non_blocking();
+        bool lock_blocking();
+        bool lock(bool blocking) const;
+
+        void remove_lockfile() noexcept;
+        int close_fd();
+        bool unlock();
+
+        int fd() const
+        {
+            return m_fd;
+        }
+
+        fs::u8path path() const
+        {
+            return m_path;
+        }
+
+        fs::u8path lockfile_path() const
+        {
+            return m_lockfile_path;
+        }
+
+    private:
+
+        fs::u8path m_path;
+        fs::u8path m_lockfile_path;
+        std::chrono::seconds m_timeout;
+        int m_fd = -1;
+        bool m_locked;
+        bool m_lockfile_existed;
+
+        template <typename Func = no_op>
+        void throw_lock_error(std::string error_message, Func before_throw_task = no_op{}) const
+        {
+            auto complete_error_message = fmt::format(
+                "LockFile acquisition failed, aborting: {}",
+                std::move(error_message)
+            );
+            LOG_ERROR << error_message;
+            safe_invoke(before_throw_task)
+                .map_error([](const auto& error)
+                           { LOG_ERROR << "While handling LockFile failure: " << error.what(); });
+            throw mamba_error(complete_error_message, mamba_error_code::lockfile_failure);
+        }
+    };
+
+    LockFileOwner::LockFileOwner(const fs::u8path& path, const std::chrono::seconds timeout)
         : m_path(path)
         , m_timeout(timeout)
         , m_locked(false)
@@ -752,36 +704,35 @@ namespace mamba
         std::error_code ec;
         if (!fs::exists(path, ec))
         {
-            LOG_ERROR << "Could not lock non-existing path '" << path.string() << "'";
-            throw std::runtime_error("LockFile error. Aborting.");
+            throw_lock_error(fmt::format("Could not lock non-existing path '{}'", path.string()));
         }
 
         if (fs::is_directory(path))
         {
             LOG_DEBUG << "Locking directory '" << path.string() << "'";
-            m_lock = m_path / (m_path.filename().string() + ".lock");
+            m_lockfile_path = m_path / (m_path.filename().string() + ".lock");
         }
         else
         {
             LOG_DEBUG << "Locking file '" << path.string() << "'";
-            m_lock = m_path.string() + ".lock";
+            m_lockfile_path = m_path.string() + ".lock";
         }
 
-        m_lockfile_existed = fs::exists(m_lock, ec);
+        m_lockfile_existed = fs::exists(m_lockfile_path, ec);
 #ifdef _WIN32
-        m_fd = _wopen(m_lock.wstring().c_str(), O_RDWR | O_CREAT, 0666);
+        m_fd = _wopen(m_lockfile_path.wstring().c_str(), O_RDWR | O_CREAT, 0666);
 #else
-        m_fd = open(m_lock.string().c_str(), O_RDWR | O_CREAT, 0666);
+        m_fd = open(m_lockfile_path.string().c_str(), O_RDWR | O_CREAT, 0666);
 #endif
         if (m_fd <= 0)
         {
-            LOG_ERROR << "Could not open lockfile '" << m_lock.string() << "'";
-            unlock();
-            throw std::runtime_error("LockFile error. Aborting.");
+            throw_lock_error(
+                fmt::format("Could not open lockfile '{}'", m_lockfile_path.string()),
+                [this] { unlock(); }
+            );
         }
         else
         {
-            m_pid = getpid();
             if ((m_locked = lock_non_blocking()) == false)
             {
                 LOG_WARNING << "Cannot lock '" << m_path.string() << "'"
@@ -792,50 +743,49 @@ namespace mamba
 
             if (m_locked)
             {
-                LOG_TRACE << "Lockfile created at '" << m_lock.string() << "'";
+                LOG_TRACE << "Lockfile created at '" << m_lockfile_path.string() << "'";
                 LOG_DEBUG << "Successfully locked";
             }
             else
             {
-                LOG_ERROR << "LockFile can't be set at '" << m_path.string() << "'\n"
-                          << "This could be fixed by changing the locks' timeout or "
-                          << "cleaning your environment from previous runs";
-                unlock();
-                throw std::runtime_error("LockFile error. Aborting.");
+                throw_lock_error(
+                    fmt::format(
+                        "LockFile can't be set at '{}'\n"
+                        "This could be fixed by changing the locks' timeout or "
+                        "cleaning your environment from previous runs",
+                        m_path.string()
+                    ),
+                    [this] { unlock(); }
+                );
             }
         }
     }
 
-    LockFile::LockFile(const fs::u8path& path)
-        : LockFile(path, std::chrono::seconds(Context::instance().lock_timeout))
-    {
-    }
-
-    LockFile::~LockFile()
+    LockFileOwner::~LockFileOwner()
     {
         LOG_DEBUG << "Unlocking '" << m_path.string() << "'";
         unlock();
     }
 
-    void LockFile::remove_lockfile() noexcept
+    void LockFileOwner::remove_lockfile() noexcept
     {
         close_fd();
 
         if (!m_lockfile_existed)
         {
             std::error_code ec;
-            LOG_TRACE << "Removing file '" << m_lock.string() << "'";
-            fs::remove(m_lock, ec);
+            LOG_TRACE << "Removing file '" << m_lockfile_path.string() << "'";
+            fs::remove(m_lockfile_path, ec);
 
             if (ec)
             {
-                LOG_ERROR << "Removing lock file '" << m_lock.string() << "' failed\n"
+                LOG_ERROR << "Removing lock file '" << m_lockfile_path.string() << "' failed\n"
                           << "You may need to remove it manually";
             }
         }
     }
 
-    int LockFile::close_fd()
+    int LockFileOwner::close_fd()
     {
         int ret = 0;
         if (m_fd > -1)
@@ -846,59 +796,303 @@ namespace mamba
         return ret;
     }
 
-    bool LockFile::unlock()
+    bool LockFileOwner::unlock()
     {
         int ret = 0;
 
         // POSIX systems automatically remove locks when closing any file
         // descriptor related to the file
 #ifdef _WIN32
-        LOG_TRACE << "Removing lock on '" << m_lock.string() << "'";
+        LOG_TRACE << "Removing lock on '" << m_lockfile_path.string() << "'";
         _lseek(m_fd, MAMBA_LOCK_POS, SEEK_SET);
         ret = _locking(m_fd, LK_UNLCK, 1 /*lock_file_contents_length()*/);
 #endif
         remove_lockfile();
-
         return ret == 0;
     }
 
-    int LockFile::read_pid(int fd)
+#ifndef _WIN32
+    int timedout_set_fd_lock(int fd, struct flock& lock, const std::chrono::seconds timeout)
     {
-        char pid_buffer[20] = "";
+        int ret;
+        std::mutex m;
+        std::condition_variable cv;
 
-#ifdef _WIN32
-        _lseek(fd, 0, SEEK_SET);
-        int read_res = _read(fd, pid_buffer, 20);
-#else
-        lseek(fd, 0, SEEK_SET);
-        int read_res = read(fd, pid_buffer, 20);
+        thread t(
+            [&cv, &ret, &fd, &lock]()
+            {
+                ret = fcntl(fd, F_SETLKW, &lock);
+                cv.notify_one();
+            }
+        );
+
+        auto th = t.native_handle();
+
+        int err = 0;
+        set_signal_handler(
+            [&th, &cv, &ret, &err](sigset_t sigset) -> int
+            {
+                int signum = 0;
+                sigwait(&sigset, &signum);
+                pthread_cancel(th);
+                err = EINTR;
+                ret = -1;
+                cv.notify_one();
+                return signum;
+            }
+        );
+
+        MainExecutor::instance().take_ownership(t.extract());
+
+        {
+            std::unique_lock<std::mutex> l(m);
+            if (cv.wait_for(l, timeout) == std::cv_status::timeout)
+            {
+                pthread_cancel(th);
+                kill_receiver_thread();
+                err = EINTR;
+                ret = -1;
+            }
+        }
+        set_default_signal_handler();
+        errno = err;
+
+        return ret;
+    }
 #endif
-        if (read_res == -1 && errno != EBADF)
+
+    bool LockFileOwner::set_fd_lock(bool blocking) const
+    {
+        int ret = 0;
+#ifdef _WIN32
+        _lseek(m_fd, MAMBA_LOCK_POS, SEEK_SET);
+
+        if (blocking)
         {
-            LOG_ERROR << "Could not read lockfile (" << strerror(errno) << ")";
-            return -1;
+            static constexpr auto default_timeout = std::chrono::seconds(30);
+            const auto timeout = m_timeout > std::chrono::seconds::zero() ? m_timeout
+                                                                          : default_timeout;
+            const auto begin_time = std::chrono::system_clock::now();
+            while ((std::chrono::system_clock::now() - begin_time) < timeout)
+            {
+                ret = _locking(m_fd, LK_NBLCK, 1 /*lock_file_contents_length()*/);
+                if (ret == 0)
+                {
+                    break;
+                }
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+            }
+
+            if (ret != 0)
+            {
+                errno = EINTR;
+            }
         }
-
-        if (strlen(pid_buffer) == 0)
-            return -1;
-
-        int pid;
-        try
+        else
         {
-            pid = std::stoi(pid_buffer);
+            ret = _locking(m_fd, LK_NBLCK, 1 /*lock_file_contents_length()*/);
         }
-        catch (...)
-        {
-            LOG_ERROR << "Could not parse lockfile";
-            return -1;
-        };
+#else
+        struct flock lock;
+        lock.l_type = F_WRLCK;
+        lock.l_whence = SEEK_SET;
+        lock.l_start = MAMBA_LOCK_POS;
+        lock.l_len = 1;
 
-        return pid;
+        if (blocking)
+        {
+            if (m_timeout.count())
+            {
+                ret = timedout_set_fd_lock(m_fd, lock, m_timeout);
+            }
+            else
+            {
+                ret = fcntl(m_fd, F_SETLKW, &lock);
+            }
+        }
+        else
+        {
+            ret = fcntl(m_fd, F_SETLK, &lock);
+        }
+#endif
+        return ret == 0;
     }
 
-    int LockFile::read_pid() const
+    bool LockFileOwner::lock(bool blocking) const
     {
-        return read_pid(m_fd);
+        if (!set_fd_lock(blocking))
+        {
+            LOG_ERROR << "Could not set lock (" << strerror(errno) << ")";
+            return false;
+        }
+        return true;
+    }
+
+    bool LockFileOwner::lock_blocking()
+    {
+        return lock(true);
+    }
+
+    namespace
+    {
+
+        void log_duplicate_lockfile_in_process(const fs::u8path& path)
+        {
+            LOG_DEBUG << "Path already locked by the same process: '" << fs::absolute(path).string()
+                      << "'";
+        }
+
+        bool is_lockfile_locked(const LockFileOwner& lockfile)
+        {
+#ifdef _WIN32
+            return LockFile::is_locked(lockfile.lockfile_path());
+#else
+            // Opening a new file descriptor on Unix would clear locks
+            return LockFile::is_locked(lockfile.fd());
+#endif
+        }
+
+        class LockedFilesRegistry
+        {
+        public:
+
+            LockedFilesRegistry() = default;
+            LockedFilesRegistry(LockedFilesRegistry&&) = delete;
+            LockedFilesRegistry(const LockedFilesRegistry&) = delete;
+            LockedFilesRegistry& operator=(LockedFilesRegistry&&) = delete;
+            LockedFilesRegistry& operator=(const LockedFilesRegistry&) = delete;
+
+
+            tl::expected<std::shared_ptr<LockFileOwner>, mamba_error>
+            acquire_lock(const fs::u8path& file_path, const std::chrono::seconds timeout)
+            {
+                if (!Context::instance().use_lockfiles)
+                {
+                    // No locking allowed, so do nothing.
+                    return std::shared_ptr<LockFileOwner>{};
+                }
+
+                const auto absolute_file_path = fs::absolute(file_path);
+                std::scoped_lock lock{ mutex };
+
+                const auto it = locked_files.find(absolute_file_path);
+                if (it != locked_files.end())
+                {
+                    if (auto lockedfile = it->second.lock())
+                    {
+                        log_duplicate_lockfile_in_process(absolute_file_path);
+                        return lockedfile;
+                    }
+                }
+
+                // At this point, we didn't find a lockfile alive, so we create one.
+                return safe_invoke(
+                    [&]
+                    {
+                        auto lockedfile = std::make_shared<LockFileOwner>(absolute_file_path, timeout);
+                        auto tracker = std::weak_ptr{ lockedfile };
+                        locked_files.insert_or_assign(absolute_file_path, std::move(tracker));
+                        fd_to_locked_path.insert_or_assign(lockedfile->fd(), absolute_file_path);
+                        assert(is_lockfile_locked(*lockedfile));
+                        return lockedfile;
+                    }
+                );
+            }
+
+            // note: the resulting value will be obsolete before returning.
+            bool is_locked(const fs::u8path& file_path) const
+            {
+                const auto absolute_file_path = fs::absolute(file_path);
+                std::scoped_lock lock{ mutex };
+                auto it = locked_files.find(file_path);
+                if (it != locked_files.end())
+                {
+                    return !it->second.expired();
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            // note: the resulting value will be obsolete before returning.
+            bool is_locked(int fd) const
+            {
+                std::scoped_lock lock{ mutex };
+                const auto it = fd_to_locked_path.find(fd);
+                if (it != fd_to_locked_path.end())
+                {
+                    return is_locked(it->second);
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+        private:
+
+            // TODO: replace by something like boost::multiindex or equivalent to avoid having to
+            // handle 2 hashmaps
+            std::unordered_map<fs::u8path, std::weak_ptr<LockFileOwner>> locked_files;  // TODO:
+                                                                                        // consider
+                                                                                        // replacing
+                                                                                        // by real
+                                                                                        // concurrent
+                                                                                        // set to
+                                                                                        // avoid
+                                                                                        // having to
+                                                                                        // lock the
+                                                                                        // whole
+                                                                                        // container
+
+            std::unordered_map<int, fs::u8path> fd_to_locked_path;  // this is a workaround the
+                                                                    // usage of file descriptors on
+                                                                    // linux instead of paths
+            mutable std::recursive_mutex mutex;  // TODO: replace by synchronized_value once
+                                                 // available
+        };
+
+        static LockedFilesRegistry files_locked_by_this_process;
+    }
+
+    bool LockFileOwner::lock_non_blocking()
+    {
+        if (files_locked_by_this_process.is_locked(m_lockfile_path))
+        {
+            log_duplicate_lockfile_in_process(m_lockfile_path);
+            return true;
+        }
+        return lock(false);
+    }
+
+    LockFile::~LockFile() = default;
+    LockFile::LockFile(LockFile&&) = default;
+    LockFile& LockFile::operator=(LockFile&&) = default;
+
+    LockFile::LockFile(const fs::u8path& path, const std::chrono::seconds& timeout)
+        : impl{ files_locked_by_this_process.acquire_lock(path, timeout) }
+    {
+    }
+
+    LockFile::LockFile(const fs::u8path& path)
+        : LockFile(path, std::chrono::seconds(Context::instance().lock_timeout))
+    {
+    }
+
+    int LockFile::fd() const
+    {
+        return impl.value()->fd();
+    }
+
+    fs::u8path LockFile::path() const
+    {
+        return impl.value()->path();
+    }
+
+    fs::u8path LockFile::lockfile_path() const
+    {
+        return impl.value()->lockfile_path();
     }
 
 #ifdef _WIN32
@@ -907,6 +1101,17 @@ namespace mamba
         // Windows locks are isolated between file descriptor
         // We can then test if locked by opening a new one
         int fd = _wopen(path.wstring().c_str(), O_RDWR | O_CREAT, 0666);
+        if (fd == -1)
+        {
+            if (errno == EACCES)
+            {
+                return true;
+            }
+
+            // In other cases, something is wrong.
+            throw mamba_error{ fmt::format("failed to check if path is locked : '{}'", path.string()),
+                               mamba_error_code::lockfile_failure };
+        }
         _lseek(fd, MAMBA_LOCK_POS, SEEK_SET);
         char buffer[1];
         bool is_locked = _read(fd, buffer, 1) == -1;
@@ -932,217 +1137,32 @@ namespace mamba
         // On Windows, if called from the same process, with the lockfile file descriptor
         // and PID written in lockfile is corrupted, the result would be a false negative
 
-        int pid = read_pid(fd);
-        if (pid == getpid())
+        // Here we replaced the pid check by tracking internally if we did or not lock
+        // the file.
+        if (files_locked_by_this_process.is_locked(fd))
+        {
             return true;
+        }
+
+        const auto this_process_pid = getpid();
 
         struct flock lock;
         lock.l_type = F_WRLCK;
         lock.l_whence = SEEK_SET;
         lock.l_start = MAMBA_LOCK_POS;
         lock.l_len = 1;
-        fcntl(fd, F_GETLK, &lock);
+        auto result = fcntl(fd, F_GETLK, &lock);
 
-        if ((lock.l_type == F_UNLCK) && (pid != lock.l_pid))
-            LOG_ERROR << "LockFile file has wrong owner PID " << pid << ", actual is "
+        if ((lock.l_type == F_UNLCK) && (this_process_pid != lock.l_pid))
+        {
+            LOG_ERROR << "LockFile file has wrong owner PID " << this_process_pid << ", actual is "
                       << lock.l_pid;
+        }
 
-        return lock.l_type != F_UNLCK;
+        return lock.l_type != F_UNLCK && result != -1;
     }
 #endif
 
-    bool LockFile::write_pid(int pid) const
-    {
-        auto pid_s = std::to_string(pid);
-#ifdef _WIN32
-        _lseek(m_fd, 0, SEEK_SET);
-        _chsize_s(m_fd, 0);
-        return _write(m_fd, pid_s.c_str(), pid_s.size()) > -1;
-#else
-        lseek(m_fd, 0, SEEK_SET);
-        ftruncate(m_fd, 0);
-        return write(m_fd, pid_s.c_str(), pid_s.size()) > -1;
-#endif
-    }
-
-#ifndef _WIN32
-    int timedout_set_fd_lock(int fd, struct flock& lock, const std::chrono::seconds& timeout)
-    {
-        int ret;
-        std::mutex m;
-        std::condition_variable cv;
-
-        thread t(
-            [&cv, &ret, &fd, &lock]()
-            {
-                ret = fcntl(fd, F_SETLKW, &lock);
-                cv.notify_one();
-            });
-
-        auto th = t.native_handle();
-
-        int err = 0;
-        set_signal_handler(
-            [&th, &cv, &ret, &err](sigset_t sigset) -> int
-            {
-                int signum = 0;
-                sigwait(&sigset, &signum);
-                pthread_cancel(th);
-                err = EINTR;
-                ret = -1;
-                cv.notify_one();
-                return signum;
-            });
-
-        MainExecutor::instance().take_ownership(t.extract());
-
-        {
-            std::unique_lock<std::mutex> l(m);
-            if (cv.wait_for(l, timeout) == std::cv_status::timeout)
-            {
-                pthread_cancel(th);
-                kill_receiver_thread();
-                err = EINTR;
-                ret = -1;
-            }
-        }
-        set_default_signal_handler();
-        errno = err;
-
-        return ret;
-    }
-#endif
-
-    bool LockFile::set_fd_lock(bool blocking) const
-    {
-        int ret = 0;
-#ifdef _WIN32
-        _lseek(m_fd, MAMBA_LOCK_POS, SEEK_SET);
-
-        if (blocking)
-        {
-            std::chrono::seconds timer(0);
-            bool has_timeout = m_timeout.count() > 0;
-
-            while (!has_timeout || (timer < m_timeout))
-            {
-                ret = _locking(m_fd, LK_NBLCK, 1 /*lock_file_contents_length()*/);
-                if (ret == 0)
-                    break;
-                std::this_thread::sleep_for(std::chrono::seconds(1));
-                timer += std::chrono::seconds(1);
-            }
-
-            if (has_timeout && (timer >= m_timeout) && (ret == -1))
-                errno = EINTR;
-        }
-        else
-            ret = _locking(m_fd, LK_NBLCK, 1 /*lock_file_contents_length()*/);
-#else
-        struct flock lock;
-        lock.l_type = F_WRLCK;
-        lock.l_whence = SEEK_SET;
-        lock.l_start = MAMBA_LOCK_POS;
-        lock.l_len = 1;
-
-        if (blocking)
-        {
-            if (m_timeout.count())
-                ret = timedout_set_fd_lock(m_fd, lock, m_timeout);
-            else
-                ret = fcntl(m_fd, F_SETLKW, &lock);
-        }
-        else
-            ret = fcntl(m_fd, F_SETLK, &lock);
-#endif
-        return ret == 0;
-    }
-
-    bool LockFile::lock(int pid, bool blocking) const
-    {
-        if (!set_fd_lock(blocking))
-        {
-            LOG_ERROR << "Could not set lock (" << strerror(errno) << ")";
-            return false;
-        }
-
-        if (!write_pid(pid))
-        {
-            LOG_ERROR << "Could not write PID to lockfile (" << strerror(errno) << ")";
-            return false;
-        }
-
-        return true;
-    }
-
-    int LockFile::fd() const
-    {
-        return m_fd;
-    }
-
-    bool LockFile::lock_blocking()
-    {
-        return lock(m_pid, true);
-    }
-
-    bool LockFile::lock_non_blocking()
-    {
-        int old_pid = read_pid();
-        if (old_pid > 0)
-        {
-            if (old_pid == m_pid)
-            {
-                LOG_ERROR << "Path already locked by the same PID: '" << m_path.string() << "'";
-                unlock();
-                throw std::logic_error("LockFile error.");
-            }
-
-            LOG_TRACE << "File currently locked by PID " << old_pid;
-#ifdef _WIN32
-            return false;
-#else
-            // sending `0` with kill will check if the process is still alive
-            if (kill(old_pid, 0) != -1)
-                return false;
-            else
-            {
-                LOG_TRACE << "Removing dangling lock file '" << m_lock << "'";
-                m_lockfile_existed = false;
-            }
-#endif
-        }
-
-        return lock(m_pid, false);
-    }
-
-    fs::u8path LockFile::path() const
-    {
-        return m_path;
-    }
-
-    fs::u8path LockFile::lockfile_path() const
-    {
-        return m_lock;
-    }
-
-    std::unique_ptr<LockFile> LockFile::try_lock(const fs::u8path& path) noexcept
-    {
-        try
-        {
-            // Don't even log if the file/directory isn't writable by someone or doesnt exists.
-            if (path::is_writable(path))
-            {
-                auto ptr = std::make_unique<LockFile>(path);
-                return ptr;
-            }
-        }
-        catch (...)
-        {
-            LOG_WARNING << "LockFile creation for path '" << path.string()
-                        << "' failed, continuing without it";
-        }
-        return nullptr;
-    }
 
     std::string timestamp(const std::time_t& utc_time)
     {
@@ -1167,16 +1187,18 @@ namespace mamba
     std::time_t parse_utc_timestamp(const std::string& timestamp, int& error_code) noexcept
     {
         error_code = 0;
-        struct std::tm tt = { 0 };
+        std::tm tt = {};
 
-        if (sscanf(timestamp.data(),
-                   "%04d-%02d-%02dT%02d:%02d:%02dZ",
-                   &tt.tm_year,
-                   &tt.tm_mon,
-                   &tt.tm_mday,
-                   &tt.tm_hour,
-                   &tt.tm_min,
-                   &tt.tm_sec)
+        if (sscanf(
+                timestamp.data(),
+                "%04d-%02d-%02dT%02d:%02d:%02dZ",
+                &tt.tm_year,
+                &tt.tm_mon,
+                &tt.tm_mday,
+                &tt.tm_hour,
+                &tt.tm_min,
+                &tt.tm_sec
+            )
             != 6)
         {
             error_code = 1;
@@ -1207,12 +1229,10 @@ namespace mamba
         std::string cmd_exe = env::get("COMSPEC").value_or("");
         if (!ends_with(to_lower(cmd_exe), "cmd.exe"))
         {
-            cmd_exe = (fs::u8path(env::get("SystemRoot").value_or("")) / "System32" / "cmd.exe")
-                          .string();
+            cmd_exe = (fs::u8path(env::get("SystemRoot").value_or("")) / "System32" / "cmd.exe").string();
             if (!fs::is_regular_file(cmd_exe))
             {
-                cmd_exe = (fs::u8path(env::get("windir").value_or("")) / "System32" / "cmd.exe")
-                              .string();
+                cmd_exe = (fs::u8path(env::get("windir").value_or("")) / "System32" / "cmd.exe").string();
             }
             if (!fs::is_regular_file(cmd_exe))
             {
@@ -1251,11 +1271,13 @@ namespace mamba
     }
 
 
-    std::unique_ptr<TemporaryFile> wrap_call(const fs::u8path& root_prefix,
-                                             const fs::u8path& prefix,
-                                             bool dev_mode,
-                                             bool debug_wrapper_scripts,
-                                             const std::vector<std::string>& arguments)
+    std::unique_ptr<TemporaryFile> wrap_call(
+        const fs::u8path& root_prefix,
+        const fs::u8path& prefix,
+        bool dev_mode,
+        bool debug_wrapper_scripts,
+        const std::vector<std::string>& arguments
+    )
     {
         // todo add abspath here
         fs::u8path tmp_prefix = prefix / ".tmp";
@@ -1267,22 +1289,22 @@ namespace mamba
         // TODO
         std::string CONDA_PACKAGE_ROOT = "";
 
-        std::string bat_name = Context::instance().is_micromamba ? "micromamba.bat" : "conda.bat";
+        std::string bat_name = Context::instance().command_params.is_micromamba ? "micromamba.bat"
+                                                                                : "conda.bat";
 
         if (dev_mode)
         {
-            conda_bat
-                = (fs::u8path(CONDA_PACKAGE_ROOT) / "shell" / "condabin" / "conda.bat").string();
+            conda_bat = (fs::u8path(CONDA_PACKAGE_ROOT) / "shell" / "condabin" / "conda.bat").string();
         }
         else
         {
             conda_bat = env::get("CONDA_BAT")
                             .value_or((fs::absolute(root_prefix) / "condabin" / bat_name).string());
         }
-        if (!fs::exists(conda_bat) && Context::instance().is_micromamba)
+        if (!fs::exists(conda_bat) && Context::instance().command_params.is_micromamba)
         {
             // this adds in the needed .bat files for activation
-            init_root_prefix_cmdexe(Context::instance().root_prefix);
+            init_root_prefix_cmdexe(Context::instance().prefix_params.root_prefix);
         }
 
         auto tf = std::make_unique<TemporaryFile>("mamba_bat_", ".bat");
@@ -1335,7 +1357,7 @@ namespace mamba
 
         std::string shebang, dev_arg;
 
-        if (!Context::instance().is_micromamba)
+        if (!Context::instance().command_params.is_micromamba)
         {
             // During tests, we sometimes like to have a temp env with e.g. an old python
             // in it and have it run tests against the very latest development sources.
@@ -1370,8 +1392,8 @@ namespace mamba
         {
             // Micromamba hook
             out << "export MAMBA_EXE=" << std::quoted(get_self_exe_path().string(), '\'') << "\n";
-            hook_quoted << "$MAMBA_EXE 'shell' 'hook' '-s' 'bash' '-p' "
-                        << std::quoted(Context::instance().root_prefix.string(), '\'');
+            hook_quoted << "$MAMBA_EXE 'shell' 'hook' '-s' 'bash' '-r' "
+                        << std::quoted(Context::instance().prefix_params.root_prefix.string(), '\'');
         }
         if (debug_wrapper_scripts)
         {
@@ -1382,7 +1404,7 @@ namespace mamba
         }
         out << "eval \"$(" << hook_quoted.str() << ")\"\n";
 
-        if (!Context::instance().is_micromamba)
+        if (!Context::instance().command_params.is_micromamba)
         {
             out << "conda activate " << dev_arg << " " << std::quoted(prefix.string()) << "\n";
         }
@@ -1403,8 +1425,8 @@ namespace mamba
         return tf;
     }
 
-    std::tuple<std::vector<std::string>, std::unique_ptr<TemporaryFile>> prepare_wrapped_call(
-        const fs::u8path& prefix, const std::vector<std::string>& cmd)
+    std::tuple<std::vector<std::string>, std::unique_ptr<TemporaryFile>>
+    prepare_wrapped_call(const fs::u8path& prefix, const std::vector<std::string>& cmd)
     {
         std::vector<std::string> command_args;
         std::unique_ptr<TemporaryFile> script_file;
@@ -1415,12 +1437,16 @@ namespace mamba
             auto comspec = env::get("COMSPEC");
             if (!comspec)
             {
-                throw std::runtime_error(
-                    concat("Failed to run script: COMSPEC not set in env vars."));
+                throw std::runtime_error(concat("Failed to run script: COMSPEC not set in env vars."));
             }
 
             script_file = wrap_call(
-                Context::instance().root_prefix, prefix, Context::instance().dev, false, cmd);
+                Context::instance().prefix_params.root_prefix,
+                prefix,
+                Context::instance().dev,
+                false,
+                cmd
+            );
 
             command_args = { comspec.value(), "/D", "/C", script_file->path().string() };
         }
@@ -1439,43 +1465,110 @@ namespace mamba
             }
 
             script_file = wrap_call(
-                Context::instance().root_prefix, prefix, Context::instance().dev, false, cmd);
+                Context::instance().prefix_params.root_prefix,
+                prefix,
+                Context::instance().dev,
+                false,
+                cmd
+            );
             command_args.push_back(shell_path.string());
             command_args.push_back(script_file->path().string());
         }
         return std::make_tuple(command_args, std::move(script_file));
     }
 
-    tl::expected<std::string, mamba_error> encode_base64(const std::string_view& input)
+    bool is_yaml_file_name(std::string_view filename)
+    {
+        return ends_with(filename, ".yml") || ends_with(filename, ".yaml");
+    }
+
+    tl::expected<std::string, mamba_error> encode_base64(std::string_view input)
     {
         const auto pl = 4 * ((input.size() + 2) / 3);
         std::vector<unsigned char> output(pl + 1);
-        const auto ol
-            = EVP_EncodeBlock(output.data(), (const unsigned char*) input.data(), input.size());
+        const auto ol = EVP_EncodeBlock(
+            output.data(),
+            reinterpret_cast<const unsigned char*>(input.data()),
+            static_cast<int>(input.size())
+        );
 
-        if (pl != ol)
+        if (util::cmp_not_equal(pl, ol))
         {
-            return make_unexpected("Could not encode base64 string",
-                                   mamba_error_code::openssl_failed);
+            return make_unexpected("Could not encode base64 string", mamba_error_code::openssl_failed);
         }
 
-        return std::string((const char*) output.data());
+        return std::string(reinterpret_cast<const char*>(output.data()));
     }
 
-    tl::expected<std::string, mamba_error> decode_base64(const std::string_view& input)
+    tl::expected<std::string, mamba_error> decode_base64(std::string_view input)
     {
         const auto pl = 3 * input.size() / 4;
 
         std::vector<unsigned char> output(pl + 1);
-        const auto ol
-            = EVP_DecodeBlock(output.data(), (const unsigned char*) input.data(), input.size());
-        if (pl != ol)
+        const auto ol = EVP_DecodeBlock(
+            output.data(),
+            reinterpret_cast<const unsigned char*>(input.data()),
+            static_cast<int>(input.size())
+        );
+        if (util::cmp_not_equal(pl, ol))
         {
-            return make_unexpected("Could not decode base64 string",
-                                   mamba_error_code::openssl_failed);
+            return make_unexpected("Could not decode base64 string", mamba_error_code::openssl_failed);
         }
 
-        return std::string((const char*) output.data());
+        return std::string(reinterpret_cast<const char*>(output.data()));
+    }
+
+    std::optional<std::string> proxy_match(const std::string& url)
+    {
+        /* This is a reimplementation of requests.utils.select_proxy(), of the python requests
+        library used by conda */
+        auto& proxies = Context::instance().proxy_servers;
+        if (proxies.empty())
+        {
+            return std::nullopt;
+        }
+
+        auto handler = URLHandler(url);
+        auto scheme = handler.scheme();
+        auto host = handler.host();
+        std::vector<std::string> options;
+
+        if (host.empty())
+        {
+            options = {
+                scheme,
+                "all",
+            };
+        }
+        else
+        {
+            options = { scheme + "://" + host, scheme, "all://" + host, "all" };
+        }
+
+        for (auto& option : options)
+        {
+            auto proxy = proxies.find(option);
+            if (proxy != proxies.end())
+            {
+                return proxy->second;
+            }
+        }
+
+        return std::nullopt;
+    }
+
+    std::string hide_secrets(std::string_view str)
+    {
+        std::string copy(str);
+
+        if (contains(str, "/t/"))
+        {
+            copy = std::regex_replace(copy, Context::instance().token_regex, "/t/*****");
+        }
+
+        copy = std::regex_replace(copy, Context::instance().http_basicauth_regex, "$1$2:*****@");
+
+        return copy;
     }
 
 }  // namespace mamba

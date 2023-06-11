@@ -1,10 +1,10 @@
 import os
+import pathlib
 import platform
 import shutil
-import string
 import subprocess
-import sys
 import tempfile
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 import pytest
 
@@ -24,50 +24,50 @@ elif platform.system() == "Windows":
     running_os = "win"
 
 
-@pytest.fixture
-def keep_cache(existing_cache):
-    yield True
-
-
-@pytest.fixture
-def clean_env(keep_cache):
-    clean_env = os.environ.copy()
-    clean_env = {
-        k: v
-        for k, v in clean_env.items()
-        if not k.startswith(("CONDA", "MAMBA"))
-        or (k == "CONDA_PKGS_DIRS" and keep_cache)
-    }
-
-    path = clean_env.get("PATH")
-    elems = path.split(os.pathsep)
-    elems = [e for e in elems if not "condabin" in e]
-    clean_env["PATH"] = os.pathsep.join(elems)
-
-    yield clean_env
-
-
 suffixes = {
     "cmd.exe": ".bat",
     "bash": ".sh",
     "zsh": ".sh",
+    "tcsh": ".csh",
     "xonsh": ".sh",
     "fish": ".fish",
     "powershell": ".ps1",
 }
 
+
+class WindowsProfiles:
+    def __getitem__(self, shell: str) -> str:
+        if shell == "powershell":
+            # find powershell profile path dyanmically
+            args = [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                "$PROFILE.CurrentUserAllHosts",
+            ]
+            res = subprocess.run(
+                args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True
+            )
+            return res.stdout.decode("utf-8").strip()
+        elif shell == "cmd.exe":
+            return None
+        raise KeyError(f"Invalid shell: {shell}")
+
+
 paths = {
-    "win": {"powershell": None, "cmd.exe": None},
+    "win": WindowsProfiles(),
     "osx": {
         "zsh": "~/.zshrc",
         "bash": "~/.bash_profile",
         "xonsh": "~/.xonshrc",
+        "tcsh": "~/.tcshrc",
         "fish": "~/.config/fish/config.fish",
     },
     "linux": {
         "zsh": "~/.zshrc",
         "bash": "~/.bashrc",
         "xonsh": "~/.xonshrc",
+        "tcsh": "~/.tcshrc",
         "fish": "~/.config/fish/config.fish",
     },
 }
@@ -81,15 +81,6 @@ def xonsh_shell_args(interpreter):
 
 def extract_vars(vxs, interpreter):
     return [f"echo {v}={shvar(v, interpreter)}" for v in vxs]
-
-
-if plat == "win":
-    # find powershell profile path
-    args = ["powershell", "-NoProfile", "-Command", "$PROFILE.CurrentUserAllHosts"]
-    res = subprocess.run(
-        args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True
-    )
-    paths["win"]["powershell"] = res.stdout.decode("utf-8").strip()
 
 
 def write_script(interpreter, lines, path):
@@ -109,70 +100,50 @@ def write_script(interpreter, lines, path):
 
 
 possible_interpreters = {
-    "win": {"powershell", "cmd.exe"},
-    "unix": {"bash", "zsh", "fish", "xonsh"},
+    "win": {"powershell", "cmd.exe", "bash"},
+    "unix": {"bash", "zsh", "fish", "xonsh", "tcsh"},
 }
 
-shell_files = [
-    Path(x).expanduser()
-    for x in [
-        "~/.bashrc",
-        "~/.bash_profile",
-        "~/.zshrc",
-        "~/.zsh_profile",
-        "~/.xonshrc",
-        "~/.config/fish/config.fish",
-    ]
-]
-
-if plat == "win":
-    shell_files.append(Path(paths["win"]["powershell"]))
 
 regkey = "HKEY_CURRENT_USER\\Software\\Microsoft\\Command Processor\\AutoRun"
-bkup_winreg_value = None
 
 
 @pytest.fixture
-def clean_shell_files():
-    global bkup_winreg_value
-
-    for f in shell_files:
-        if f.exists():
-            f_bkup = Path(str(f) + ".mamba_test_backup")
-            if f_bkup.exists():
-                f_bkup.unlink()
-            f.rename(f_bkup)
-            f.touch()
-
+def winreg_value():
     if plat == "win":
         try:
-            regvalue = read_windows_registry(regkey)
-            bkup_winreg_value = regvalue
+            saved_winreg_value = read_windows_registry(regkey)
         except:
             print("Could not read registry value")
-            regvalue = ("", 1)
-        print("setting registry to ", regvalue[1])
-        write_windows_registry(regkey, "", regvalue[1])
+            saved_winreg_value = ("", 1)
 
-    yield shell_files
+        new_winreg_value = ("", saved_winreg_value[1])
+        print("setting registry to ", new_winreg_value)
+        write_windows_registry(regkey, *new_winreg_value)
 
-    for f in shell_files:
-        f_bkup = Path(str(f) + ".mamba_test_backup")
-        if f_bkup.exists():
-            if f.exists():
-                f.unlink()
-            f_bkup.rename(str(f_bkup)[: -len(".mamba_test_backup")])
-        if plat == "win":
-            print("setting registry to ", regvalue[0], regvalue[1])
-            write_windows_registry(regkey, regvalue[0], regvalue[1])
+        yield new_winreg_value
+
+        print("setting registry to ", saved_winreg_value)
+        write_windows_registry(regkey, *saved_winreg_value)
+    else:
+        yield None
 
 
 def find_path_in_str(p, s):
+    if isinstance(p, Path):
+        p = str(p)
     if p in s:
         return True
     if p.replace("\\", "\\\\") in s:
         return True
     return False
+
+
+def format_path(p, interpreter):
+    if plat == "win" and interpreter == "bash":
+        return str(PurePosixPath(PureWindowsPath(p)))
+    else:
+        return str(p)
 
 
 def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
@@ -201,6 +172,8 @@ def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
         args = ["cmd.exe", "/Q", "/C", f]
     elif interpreter == "powershell":
         args = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", f]
+    elif interpreter == "bash" and plat == "win":
+        args = [os.path.join(os.environ["PROGRAMFILES"], "Git", "bin", "bash.exe"), f]
     else:
         args = [interpreter, f]
         if interactive:
@@ -278,8 +251,28 @@ def get_valid_interpreters():
 valid_interpreters = get_valid_interpreters()
 
 
+@pytest.fixture
+def backup_umamba():
+    mamba_exe = get_umamba()
+    shutil.copyfile(mamba_exe, mamba_exe + ".orig")
+
+    yield mamba_exe
+
+    shutil.move(mamba_exe + ".orig", mamba_exe)
+    os.chmod(mamba_exe, 0o755)
+
+
+def get_self_update_interpreters():
+    if plat == "win":
+        return ["cmd.exe", "powershell", "bash"]
+    if plat == "osx":
+        return ["zsh", "bash"]
+    else:
+        return ["bash"]
+
+
 def shvar(v, interpreter):
-    if interpreter in ["bash", "zsh", "xonsh", "fish"]:
+    if interpreter in ["bash", "zsh", "xonsh", "fish", "tcsh", "dash"]:
         return f"${v}"
     elif interpreter == "powershell":
         return f"$Env:{v}"
@@ -288,47 +281,6 @@ def shvar(v, interpreter):
 
 
 class TestActivation:
-
-    current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
-    current_prefix = os.environ["CONDA_PREFIX"]
-
-    env_name = random_string()
-    root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
-    other_root_prefix = os.path.expanduser(
-        os.path.join("~", "tmproot" + random_string())
-    )
-    prefix = os.path.join(root_prefix, "envs", env_name)
-    long_prefix = os.path.join(
-        root_prefix, *["some_very_long_prefix" for i in range(20)], env_name
-    )
-
-    @staticmethod
-    @pytest.fixture(scope="class")
-    def new_root_prefix(existing_cache):
-        os.environ["MAMBA_ROOT_PREFIX"] = TestActivation.root_prefix
-        os.environ["CONDA_PREFIX"] = TestActivation.prefix
-        create("-n", "base", no_dry_run=True)
-        create("xtensor", "-n", TestActivation.env_name, no_dry_run=True)
-
-        yield
-
-        os.environ["MAMBA_ROOT_PREFIX"] = TestActivation.current_root_prefix
-        os.environ["CONDA_PREFIX"] = TestActivation.current_prefix
-
-        if os.path.exists(TestActivation.root_prefix):
-            if platform.system() == "Windows":
-                p = r"\\?\ ".strip() + TestActivation.root_prefix
-            else:
-                p = TestActivation.root_prefix
-            # shutil.rmtree(p)
-
-        if os.path.exists(TestActivation.other_root_prefix):
-            if platform.system() == "Windows":
-                p = r"\\?\ ".strip() + TestActivation.other_root_prefix
-            else:
-                p = TestActivation.other_root_prefix
-            # shutil.rmtree(p)
-
     @staticmethod
     def to_dict(out, interpreter="bash"):
         if interpreter == "cmd.exe":
@@ -340,49 +292,67 @@ class TestActivation:
                 v.split(" ", maxsplit=1)[0]: v.split(" ", maxsplit=1)[1]
                 for _, _, v in [x.partition("set -gx ") for x in out.splitlines()]
             }
+        elif interpreter in ["csh", "tcsh"]:
+            res = {}
+            for line in out.splitlines():
+                line = line.removesuffix(";")
+                if line.startswith("set "):
+                    k, v = line.split(" ")[1].split("=")
+                elif line.startswith("setenv "):
+                    _, k, v = line.strip().split(maxsplit=2)
+                res[k] = v
+            return res
         else:
             return {k: v for k, _, v in [x.partition("=") for x in out.splitlines()]}
 
     @pytest.mark.parametrize("interpreter", get_interpreters())
     def test_shell_init(
-        self, tmp_path, interpreter, clean_shell_files, new_root_prefix
+        self,
+        tmp_home,
+        winreg_value,
+        tmp_root_prefix,
+        tmp_path,
+        interpreter,
     ):
-        if interpreter not in valid_interpreters:
+        # TODO enable these tests also on win + bash!
+        if interpreter not in valid_interpreters or (
+            plat == "win" and interpreter == "bash"
+        ):
             pytest.skip(f"{interpreter} not available")
 
         umamba = get_umamba()
-        env = {"MAMBA_ROOT_PREFIX": self.root_prefix}
-        call = lambda s: call_interpreter(s, tmp_path, interpreter)
+        run_dir = tmp_path / "rundir"
+        run_dir.mkdir()
+        call = lambda s: call_interpreter(s, run_dir, interpreter)
 
         rpv = shvar("MAMBA_ROOT_PREFIX", interpreter)
         s = [f"echo {rpv}"]
         stdout, stderr = call(s)
-        assert stdout == self.root_prefix
+        assert stdout == str(tmp_root_prefix)
 
-        # TODO remove root prefix here
-        s = [f"{umamba} shell init -p {rpv} {xonsh_shell_args(interpreter)}"]
+        s = [f"{umamba} shell init -r {rpv} {xonsh_shell_args(interpreter)}"]
         stdout, stderr = call(s)
 
         if interpreter == "cmd.exe":
             value = read_windows_registry(regkey)
             assert "mamba_hook.bat" in value[0]
-            assert find_path_in_str(self.root_prefix, value[0])
+            assert find_path_in_str(tmp_root_prefix, value[0])
             prev_text = value[0]
         else:
             path = Path(paths[plat][interpreter]).expanduser()
             with open(path) as fi:
                 x = fi.read()
-                assert "mamba" in x
-                assert find_path_in_str(self.root_prefix, x)
+                assert "micromamba" in x
+                assert find_path_in_str(tmp_root_prefix, x)
                 prev_text = x
 
-        s = [f"{umamba} shell init -p {rpv} {xonsh_shell_args(interpreter)}"]
+        s = [f"{umamba} shell init -r {rpv} {xonsh_shell_args(interpreter)}"]
         stdout, stderr = call(s)
 
         if interpreter == "cmd.exe":
             value = read_windows_registry(regkey)
             assert "mamba_hook.bat" in value[0]
-            assert find_path_in_str(self.root_prefix, value[0])
+            assert find_path_in_str(tmp_root_prefix, value[0])
             assert prev_text == value[0]
             assert not "&" in value[0]
         else:
@@ -392,13 +362,13 @@ class TestActivation:
                 assert prev_text == x
 
         if interpreter == "cmd.exe":
-            write_windows_registry(regkey, "echo 'test'", bkup_winreg_value[1])
-            s = [f"{umamba} shell init -p {rpv}"]
+            write_windows_registry(regkey, "echo 'test'", winreg_value[1])
+            s = [f"{umamba} shell init -r {rpv}"]
             stdout, stderr = call(s)
 
             value = read_windows_registry(regkey)
             assert "mamba_hook.bat" in value[0]
-            assert find_path_in_str(self.root_prefix, value[0])
+            assert find_path_in_str(tmp_root_prefix, value[0])
             assert value[0].startswith("echo 'test' & ")
             assert "&" in value[0]
 
@@ -414,58 +384,67 @@ class TestActivation:
                 )
                 fo.write(text)
 
-            s = [f"{umamba} shell init -p {rpv}"]
+            s = [f"{umamba} shell init -r {rpv}"]
             stdout, stderr = call(s)
             with open(path) as fi:
                 x = fi.read()
                 assert "mamba" in x
                 assert text == x
 
+        other_root_prefix = tmp_path / "prefix"
+        other_root_prefix.mkdir()
         s = [
-            f"{umamba} shell init -p {self.other_root_prefix} {xonsh_shell_args(interpreter)}"
+            f"{umamba} shell init -r {other_root_prefix} {xonsh_shell_args(interpreter)}"
         ]
         stdout, stderr = call(s)
 
         if interpreter == "cmd.exe":
             x = read_windows_registry(regkey)[0]
             assert "mamba" in x
-            assert find_path_in_str(self.other_root_prefix, x)
-            assert not find_path_in_str(self.root_prefix, x)
+            assert find_path_in_str(other_root_prefix, x)
+            assert not find_path_in_str(tmp_root_prefix, x)
         else:
             with open(path) as fi:
                 x = fi.read()
                 assert "mamba" in x
-                assert find_path_in_str(self.other_root_prefix, x)
-                assert not find_path_in_str(self.root_prefix, x)
+                assert find_path_in_str(other_root_prefix, x)
+                assert not find_path_in_str(tmp_root_prefix, x)
 
     @pytest.mark.parametrize("interpreter", get_interpreters())
     def test_shell_init_deinit_root_prefix_files(
-        self, tmp_path, interpreter, clean_shell_files, new_root_prefix
+        self,
+        tmp_home,
+        tmp_root_prefix,
+        tmp_path,
+        interpreter,
     ):
-        if interpreter not in valid_interpreters:
+        if interpreter not in valid_interpreters or (
+            plat == "win" and interpreter == "bash"
+        ):
             pytest.skip(f"{interpreter} not available")
 
         umamba = get_umamba()
 
-        root_prefix_path = Path(self.root_prefix)
         if interpreter == "bash" or interpreter == "zsh":
-            files = [root_prefix_path / "etc" / "profile.d" / "micromamba.sh"]
+            files = [tmp_root_prefix / "etc" / "profile.d" / "micromamba.sh"]
         elif interpreter == "cmd.exe":
             files = [
-                root_prefix_path / "condabin" / "mamba_hook.bat",
-                root_prefix_path / "condabin" / "micromamba.bat",
-                root_prefix_path / "condabin" / "_mamba_activate.bat",
-                root_prefix_path / "condabin" / "activate.bat",
+                tmp_root_prefix / "condabin" / "mamba_hook.bat",
+                tmp_root_prefix / "condabin" / "micromamba.bat",
+                tmp_root_prefix / "condabin" / "_mamba_activate.bat",
+                tmp_root_prefix / "condabin" / "activate.bat",
             ]
         elif interpreter == "powershell":
             files = [
-                root_prefix_path / "condabin" / "mamba_hook.ps1",
-                root_prefix_path / "condabin" / "Mamba.psm1",
+                tmp_root_prefix / "condabin" / "mamba_hook.ps1",
+                tmp_root_prefix / "condabin" / "Mamba.psm1",
             ]
         elif interpreter == "fish":
-            files = [root_prefix_path / "etc" / "fish" / "conf.d" / "mamba.fish"]
+            files = [tmp_root_prefix / "etc" / "fish" / "conf.d" / "mamba.fish"]
         elif interpreter == "xonsh":
-            files = [root_prefix_path / "etc" / "profile.d" / "mamba.xsh"]
+            files = [tmp_root_prefix / "etc" / "profile.d" / "mamba.xsh"]
+        elif interpreter in ["csh", "tcsh"]:
+            files = [tmp_root_prefix / "etc" / "profile.d" / "micromamba.csh"]
         else:
             raise ValueError(f"Unknown shell {interpreter}")
 
@@ -473,7 +452,7 @@ class TestActivation:
             return call_interpreter(command, tmp_path, interpreter)
 
         s = [
-            f"{umamba} shell init -p {self.root_prefix} {xonsh_shell_args(interpreter)}"
+            f"{umamba} shell init -r {tmp_root_prefix} {xonsh_shell_args(interpreter)}"
         ]
         call(s)
 
@@ -481,7 +460,7 @@ class TestActivation:
             assert file.exists()
 
         s = [
-            f"{umamba} shell deinit -p {self.root_prefix} {xonsh_shell_args(interpreter)}"
+            f"{umamba} shell deinit -r {tmp_root_prefix} {xonsh_shell_args(interpreter)}"
         ]
         call(s)
 
@@ -489,7 +468,11 @@ class TestActivation:
             assert not file.exists()
 
     def test_shell_init_deinit_contents_cmdexe(
-        self, tmp_path, clean_shell_files, new_root_prefix
+        self,
+        tmp_home,
+        winreg_value,
+        tmp_root_prefix,
+        tmp_path,
     ):
         interpreter = "cmd.exe"
         if interpreter not in valid_interpreters:
@@ -502,19 +485,19 @@ class TestActivation:
 
         prev_value = read_windows_registry(regkey)
         assert "mamba_hook.bat" not in prev_value[0]
-        assert not find_path_in_str(self.root_prefix, prev_value[0])
+        assert not find_path_in_str(tmp_root_prefix, prev_value[0])
 
         s = [
-            f"{umamba} shell init -p {self.root_prefix} {xonsh_shell_args(interpreter)}"
+            f"{umamba} shell init -r {tmp_root_prefix} {xonsh_shell_args(interpreter)}"
         ]
         call(s)
 
         value_after_init = read_windows_registry(regkey)
         assert "mamba_hook.bat" in value_after_init[0]
-        assert find_path_in_str(self.root_prefix, value_after_init[0])
+        assert find_path_in_str(tmp_root_prefix, value_after_init[0])
 
         s = [
-            f"{umamba} shell deinit -p {self.root_prefix} {xonsh_shell_args(interpreter)}"
+            f"{umamba} shell deinit -r {tmp_root_prefix} {xonsh_shell_args(interpreter)}"
         ]
         call(s)
 
@@ -523,9 +506,15 @@ class TestActivation:
 
     @pytest.mark.parametrize("interpreter", get_interpreters(exclude=["cmd.exe"]))
     def test_shell_init_deinit_contents(
-        self, tmp_path, interpreter, clean_shell_files, new_root_prefix
+        self,
+        tmp_home,
+        tmp_root_prefix,
+        tmp_path,
+        interpreter,
     ):
-        if interpreter not in valid_interpreters:
+        if interpreter not in valid_interpreters or (
+            plat == "win" and interpreter == "bash"
+        ):
             pytest.skip(f"{interpreter} not available")
 
         umamba = get_umamba()
@@ -544,10 +533,10 @@ class TestActivation:
             assert "#region mamba initialize" not in prev_rc_contents
         else:
             assert "# >>> mamba initialize >>>" not in prev_rc_contents
-        assert not find_path_in_str(self.root_prefix, prev_rc_contents)
+        assert not find_path_in_str(tmp_root_prefix, prev_rc_contents)
 
         s = [
-            f"{umamba} shell init -p {self.root_prefix} {xonsh_shell_args(interpreter)}"
+            f"{umamba} shell init -r {tmp_root_prefix} {xonsh_shell_args(interpreter)}"
         ]
         call(s)
 
@@ -557,10 +546,10 @@ class TestActivation:
                 assert "#region mamba initialize" in rc_contents_after_init
             else:
                 assert "# >>> mamba initialize >>>" in rc_contents_after_init
-            assert find_path_in_str(self.root_prefix, rc_contents_after_init)
+            assert find_path_in_str(tmp_root_prefix, rc_contents_after_init)
 
         s = [
-            f"{umamba} shell deinit -p {self.root_prefix} {xonsh_shell_args(interpreter)}"
+            f"{umamba} shell deinit -r {tmp_root_prefix} {xonsh_shell_args(interpreter)}"
         ]
         call(s)
 
@@ -572,22 +561,21 @@ class TestActivation:
         assert rc_contents_after_deinit == prev_rc_contents
 
     @pytest.mark.parametrize("interpreter", get_interpreters())
-    def test_activation(
-        self, tmp_path, interpreter, clean_shell_files, new_root_prefix, clean_env
+    def test_env_activation(
+        self, tmp_home, winreg_value, tmp_root_prefix, tmp_path, interpreter
     ):
-        if interpreter not in valid_interpreters:
+        if interpreter not in valid_interpreters or (
+            plat == "win" and interpreter == "bash"
+        ):
             pytest.skip(f"{interpreter} not available")
 
         umamba = get_umamba()
 
-        s = [f"{umamba} shell init -p {self.root_prefix}"]
+        s = [f"{umamba} shell init -r {tmp_root_prefix}"]
         stdout, stderr = call_interpreter(s, tmp_path, interpreter)
 
-        call = lambda s: call_interpreter(
-            s, tmp_path, interpreter, interactive=True, env=clean_env
-        )
+        call = lambda s: call_interpreter(s, tmp_path, interpreter, interactive=True)
 
-        rp = Path(self.root_prefix)
         evars = extract_vars(["CONDA_PREFIX", "CONDA_SHLVL", "PATH"], interpreter)
 
         if interpreter == "cmd.exe":
@@ -606,20 +594,17 @@ class TestActivation:
             res = TestActivation.to_dict(stdout)
 
             assert "condabin" in res["PATH"]
-            assert self.root_prefix in res["PATH"]
-            assert f"CONDA_PREFIX={self.root_prefix}" in stdout.splitlines()
+            assert str(tmp_root_prefix) in res["PATH"]
+            assert f"CONDA_PREFIX={tmp_root_prefix}" in stdout.splitlines()
             assert f"CONDA_SHLVL=1" in stdout.splitlines()
 
             # throw with non-existent
-            s = ["micromamba activate nonexistent"]
             if plat != "win":
                 with pytest.raises(subprocess.CalledProcessError):
-                    stdout, stderr = call(s)
+                    stdout, stderr = call(["micromamba activate nonexistent"])
 
-            s1 = ["micromamba create -n abc"]
-            s2 = ["micromamba create -n xyz"]
-            call(s1)
-            call(s2)
+            call(["micromamba create -n abc -y"])
+            call(["micromamba create -n xyz -y"])
 
             s = [
                 "micromamba activate",
@@ -628,45 +613,10 @@ class TestActivation:
             ] + evars
             stdout, stderr = call(s)
             res = TestActivation.to_dict(stdout)
-
-            assert find_path_in_str(str(rp / "condabin"), res["PATH"])
-            assert not find_path_in_str(str(rp / "bin"), res["PATH"])
-            assert find_path_in_str(str(rp / "envs" / "xyz"), res["PATH"])
-            assert not find_path_in_str(str(rp / "envs" / "abc"), res["PATH"])
-
-            # long paths
-            s = [
-                f"micromamba create -p {TestActivation.long_prefix} xtensor six -v -y -c conda-forge"
-            ]
-            call(s)
-
-            assert os.path.exists(TestActivation.long_prefix)
-
-            s = [
-                "micromamba activate",
-                f"micromamba activate -p {TestActivation.long_prefix}",
-            ] + evars
-            # currently skipping longprefix _activation_ check with cmd.exe as it fails
-            # on CI for mysterious reasons
-            if not (plat == "win" and interpreter == "cmd.exe"):
-                stdout, stderr = call(s)
-                res = TestActivation.to_dict(stdout)
-
-                assert find_path_in_str(str(rp / "condabin"), res["PATH"])
-                assert not find_path_in_str(str(rp / "bin"), res["PATH"])
-                assert find_path_in_str(TestActivation.long_prefix, res["PATH"])
-
-            s = [
-                "micromamba activate",
-                "micromamba activate abc",
-                "micromamba activate xyz --stack",
-            ] + evars
-            stdout, stderr = call(s)
-            res = TestActivation.to_dict(stdout)
-            assert find_path_in_str(str(rp / "condabin"), res["PATH"])
-            assert not find_path_in_str(str(rp / "bin"), res["PATH"])
-            assert find_path_in_str(str(rp / "envs" / "abc"), res["PATH"])
-            assert find_path_in_str(str(rp / "envs" / "xyz"), res["PATH"])
+            assert find_path_in_str(tmp_root_prefix / "condabin", res["PATH"])
+            assert not find_path_in_str(tmp_root_prefix / "bin", res["PATH"])
+            assert find_path_in_str(tmp_root_prefix / "envs" / "xyz", res["PATH"])
+            assert not find_path_in_str(tmp_root_prefix / "envs" / "abc", res["PATH"])
 
             s = [
                 "micromamba activate",
@@ -675,28 +625,179 @@ class TestActivation:
             ] + evars
             stdout, stderr = call(s)
             res = TestActivation.to_dict(stdout)
-            assert find_path_in_str(str(rp / "condabin"), res["PATH"])
-            assert not find_path_in_str(str(rp / "bin"), res["PATH"])
-            assert find_path_in_str(str(rp / "envs" / "xyz"), res["PATH"])
-            assert find_path_in_str(str(rp / "envs" / "abc"), res["PATH"])
+            assert find_path_in_str(tmp_root_prefix / "condabin", res["PATH"])
+            assert not find_path_in_str(tmp_root_prefix / "bin", res["PATH"])
+            assert find_path_in_str(tmp_root_prefix / "envs" / "xyz", res["PATH"])
+            assert find_path_in_str(tmp_root_prefix / "envs" / "abc", res["PATH"])
+
+            s = [
+                "micromamba activate",
+                "micromamba activate abc",
+                "micromamba activate xyz --stack",
+            ] + evars
+            stdout, stderr = call(s)
+            res = TestActivation.to_dict(stdout)
+            assert find_path_in_str(tmp_root_prefix / "condabin", res["PATH"])
+            assert not find_path_in_str(tmp_root_prefix / "bin", res["PATH"])
+            assert find_path_in_str(tmp_root_prefix / "envs" / "xyz", res["PATH"])
+            assert find_path_in_str(tmp_root_prefix / "envs" / "abc", res["PATH"])
+
+            stdout, stderr = call(evars)
+            res = TestActivation.to_dict(stdout)
+            assert find_path_in_str(tmp_root_prefix / "condabin", res["PATH"])
+
+            stdout, stderr = call(["micromamba deactivate"] + evars)
+            res = TestActivation.to_dict(stdout)
+            assert find_path_in_str(tmp_root_prefix / "condabin", res["PATH"])
+            assert not find_path_in_str(tmp_root_prefix / "bin", res["PATH"])
+            assert not find_path_in_str(tmp_root_prefix / "envs" / "xyz", res["PATH"])
+            assert not find_path_in_str(tmp_root_prefix / "envs" / "abc", res["PATH"])
 
     @pytest.mark.parametrize("interpreter", get_interpreters())
-    def test_unicode_activation(
-        self, tmp_path, interpreter, clean_shell_files, new_root_prefix, clean_env
+    def test_activation_envvars(
+        self,
+        tmp_home,
+        tmp_clean_env,
+        winreg_value,
+        tmp_root_prefix,
+        tmp_path,
+        interpreter,
     ):
-        if interpreter not in valid_interpreters:
+        if interpreter not in valid_interpreters or (
+            plat == "win" and interpreter == "bash"
+        ):
             pytest.skip(f"{interpreter} not available")
 
         umamba = get_umamba()
 
-        s = [f"{umamba} shell init -p {self.root_prefix}"]
+        s = [f"{umamba} shell init -r {tmp_root_prefix}"]
         stdout, stderr = call_interpreter(s, tmp_path, interpreter)
 
-        call = lambda s: call_interpreter(
-            s, tmp_path, interpreter, interactive=True, env=clean_env
-        )
+        call = lambda s: call_interpreter(s, tmp_path, interpreter, interactive=True)
 
-        rp = Path(self.root_prefix)
+        evars = extract_vars(["CONDA_PREFIX", "CONDA_SHLVL", "PATH"], interpreter)
+
+        if interpreter == "cmd.exe":
+            x = read_windows_registry(regkey)
+            fp = Path(x[0][1:-1])
+            assert fp.exists()
+
+        if interpreter in ["bash", "zsh", "powershell", "cmd.exe"]:
+            call(["micromamba create -n def -y"])
+
+            stdout, stderr = call(["micromamba activate def"] + evars)
+            res = TestActivation.to_dict(stdout)
+            abc_prefix = pathlib.Path(res["CONDA_PREFIX"])
+
+            state_file = abc_prefix / "conda-meta" / "state"
+
+            # Python dicts are guaranteed to keep insertion order since 3.7,
+            # so the following works fine!
+            state_file.write_text(
+                json.dumps(
+                    {
+                        "env_vars": {
+                            "test": "Test",
+                            "HELLO": "world",
+                            "WORKING": "/FINE/PATH/YAY",
+                            "AAA": "last",
+                        }
+                    }
+                )
+            )
+
+            stdout, stderr = call(
+                ["micromamba activate def"]
+                + evars
+                + extract_vars(["TEST", "HELLO", "WORKING", "AAA"], interpreter)
+            )
+
+            # assert that env vars are in the same order
+            activation_script, stderr = call(
+                ["micromamba shell activate -s bash -n def"]
+            )
+            idxs = []
+            for el in ["TEST", "HELLO", "WORKING", "AAA"]:
+                for idx, line in enumerate(activation_script.splitlines()):
+                    if line.startswith(f"export {el}="):
+                        idxs.append(idx)
+                        continue
+            assert len(idxs) == 4
+
+            # make sure that the order is correct
+            assert idxs == sorted(idxs)
+
+            res = TestActivation.to_dict(stdout)
+            assert res["TEST"] == "Test"
+            assert res["HELLO"] == "world"
+            assert res["WORKING"] == "/FINE/PATH/YAY"
+            assert res["AAA"] == "last"
+
+            pkg_env_vars_d = abc_prefix / "etc" / "conda" / "env_vars.d"
+            pkg_env_vars_d.mkdir(exist_ok=True, parents=True)
+
+            j1 = {"PKG_ONE": "FANCY_ENV_VAR", "OVERLAP": "LOSE_AGAINST_PKG_TWO"}
+
+            j2 = {
+                "PKG_TWO": "SUPER_FANCY_ENV_VAR",
+                "OVERLAP": "WINNER",
+                "TEST": "LOSE_AGAINST_META_STATE",
+            }
+
+            (pkg_env_vars_d / "001-pkg-one.json").write_text(json.dumps(j1))
+            (pkg_env_vars_d / "002-pkg-two.json").write_text(json.dumps(j2))
+
+            activation_script, stderr = call(
+                ["micromamba shell activate -s bash -n def"]
+            )
+            stdout, stderr = call(
+                ["micromamba activate def"]
+                + evars
+                + extract_vars(
+                    [
+                        "TEST",
+                        "HELLO",
+                        "WORKING",
+                        "AAA",
+                        "PKG_ONE",
+                        "PKG_TWO",
+                        "OVERLAP",
+                    ],
+                    interpreter,
+                )
+            )
+            res = TestActivation.to_dict(stdout)
+
+            assert res["HELLO"] == "world"
+            assert res["WORKING"] == "/FINE/PATH/YAY"
+            assert res["AAA"] == "last"
+            assert res["PKG_ONE"] == "FANCY_ENV_VAR"
+            assert res["PKG_TWO"] == "SUPER_FANCY_ENV_VAR"
+            assert res["OVERLAP"] == "WINNER"
+            assert res["TEST"] == "Test"
+
+    @pytest.mark.parametrize("interpreter", get_interpreters())
+    @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+    def test_unicode_activation(
+        self,
+        tmp_home,
+        winreg_value,
+        tmp_root_prefix,
+        tmp_path,
+        interpreter,
+    ):
+        if interpreter not in valid_interpreters or (
+            plat == "win" and interpreter == "bash"
+        ):
+            pytest.skip(f"{interpreter} not available")
+
+        umamba = get_umamba()
+
+        s = [f"{umamba} shell init -r {tmp_root_prefix}"]
+        stdout, stderr = call_interpreter(s, tmp_path, interpreter)
+
+        call = lambda s: call_interpreter(s, tmp_path, interpreter, interactive=True)
+
         evars = extract_vars(["CONDA_PREFIX", "CONDA_SHLVL", "PATH"], interpreter)
 
         if interpreter == "cmd.exe":
@@ -715,8 +816,8 @@ class TestActivation:
             res = TestActivation.to_dict(stdout)
 
             assert "condabin" in res["PATH"]
-            assert self.root_prefix in res["PATH"]
-            assert f"CONDA_PREFIX={self.root_prefix}" in stdout.splitlines()
+            assert str(tmp_root_prefix) in res["PATH"]
+            assert f"CONDA_PREFIX={tmp_root_prefix}" in stdout.splitlines()
             assert f"CONDA_SHLVL=1" in stdout.splitlines()
 
             # throw with non-existent
@@ -738,32 +839,15 @@ class TestActivation:
             call(s2)
             call(s3)
 
-            assert (rp / "envs" / u1 / "conda-meta").is_dir()
-            assert (rp / "envs" / u2 / "conda-meta").is_dir()
-            assert (rp / "envs" / u3 / "conda-meta").is_dir()
-            assert (rp / "envs" / u1 / "conda-meta" / "history").exists()
-            assert (rp / "envs" / u2 / "conda-meta" / "history").exists()
-            assert (rp / "envs" / u3 / "conda-meta" / "history").exists()
-            if plat == "win":
-                assert (
-                    rp / "envs" / u1 / "Library" / "include" / "xtensor" / "xtensor.hpp"
-                ).exists()
-                assert (
-                    rp / "envs" / u2 / "Library" / "include" / "xtensor" / "xtensor.hpp"
-                ).exists()
-                assert (
-                    rp / "envs" / u3 / "Library" / "include" / "xtensor" / "xtensor.hpp"
-                ).exists()
-            else:
-                assert (
-                    rp / "envs" / u1 / "include" / "xtensor" / "xtensor.hpp"
-                ).exists()
-                assert (
-                    rp / "envs" / u2 / "include" / "xtensor" / "xtensor.hpp"
-                ).exists()
-                assert (
-                    rp / "envs" / u3 / "include" / "xtensor" / "xtensor.hpp"
-                ).exists()
+            for u in [u1, u2, u3]:
+                assert (tmp_root_prefix / f"envs/{u}/conda-meta").is_dir()
+                assert (tmp_root_prefix / f"envs/{u}/conda-meta/history").exists()
+                if plat == "win":
+                    include_dir = tmp_root_prefix / f"envs/{u}/Library/include"
+                else:
+                    include_dir = tmp_root_prefix / f"envs/{u}/include"
+
+                assert (include_dir / "xtensor/xtensor.hpp").exists()
 
             # unicode activation on win: todo
             if plat == "win":
@@ -777,10 +861,10 @@ class TestActivation:
             stdout, stderr = call(s)
             res = TestActivation.to_dict(stdout)
 
-            assert find_path_in_str(str(rp / "condabin"), res["PATH"])
-            assert not find_path_in_str(str(rp / "bin"), res["PATH"])
-            assert find_path_in_str(str(rp / "envs" / u2), res["PATH"])
-            assert not find_path_in_str(str(rp / "envs" / u1), res["PATH"])
+            assert find_path_in_str(str(tmp_root_prefix / "condabin"), res["PATH"])
+            assert not find_path_in_str(str(tmp_root_prefix / "bin"), res["PATH"])
+            assert find_path_in_str(str(tmp_root_prefix / "envs" / u2), res["PATH"])
+            assert not find_path_in_str(str(tmp_root_prefix / "envs" / u1), res["PATH"])
 
             s = [
                 "micromamba activate",
@@ -789,10 +873,10 @@ class TestActivation:
             ] + evars
             stdout, stderr = call(s)
             res = TestActivation.to_dict(stdout)
-            assert find_path_in_str(str(rp / "condabin"), res["PATH"])
-            assert not find_path_in_str(str(rp / "bin"), res["PATH"])
-            assert find_path_in_str(str(rp / "envs" / u1), res["PATH"])
-            assert find_path_in_str(str(rp / "envs" / u2), res["PATH"])
+            assert find_path_in_str(str(tmp_root_prefix / "condabin"), res["PATH"])
+            assert not find_path_in_str(str(tmp_root_prefix / "bin"), res["PATH"])
+            assert find_path_in_str(str(tmp_root_prefix / "envs" / u1), res["PATH"])
+            assert find_path_in_str(str(tmp_root_prefix / "envs" / u2), res["PATH"])
 
             s = [
                 "micromamba activate",
@@ -800,33 +884,106 @@ class TestActivation:
             ] + evars
             stdout, stderr = call(s)
             res = TestActivation.to_dict(stdout)
-            assert find_path_in_str(str(rp / "condabin"), res["PATH"])
-            assert not find_path_in_str(str(rp / "bin"), res["PATH"])
-            assert find_path_in_str(str(rp / "envs" / u3), res["PATH"])
+            assert find_path_in_str(str(tmp_root_prefix / "condabin"), res["PATH"])
+            assert not find_path_in_str(str(tmp_root_prefix / "bin"), res["PATH"])
+            assert find_path_in_str(str(tmp_root_prefix / "envs" / u3), res["PATH"])
 
     @pytest.mark.parametrize("interpreter", get_interpreters())
-    def test_activate_path(self, tmp_path, interpreter, new_root_prefix):
-        if interpreter not in valid_interpreters:
+    def test_activate_path(self, tmp_empty_env, tmp_env_name, interpreter, tmp_path):
+        if interpreter not in valid_interpreters or (
+            plat == "win" and interpreter == "bash"
+        ):
             pytest.skip(f"{interpreter} not available")
 
-        test_dir = tmp_path / self.env_name
-        os.mkdir(test_dir)
-
-        create("-n", self.env_name)
-
-        res = shell("activate", self.env_name, "-s", interpreter)
+        # Activate env name
+        res = shell("activate", tmp_env_name, "-s", interpreter)
         dict_res = self.to_dict(res, interpreter)
-        assert any([str(self.prefix) in p for p in dict_res.values()])
 
-        res = shell("activate", self.prefix, "-s", interpreter)
+        assert any([str(tmp_empty_env) in p for p in dict_res.values()])
+
+        # Activate path
+        res = shell("activate", str(tmp_empty_env), "-s", interpreter)
         dict_res = self.to_dict(res, interpreter)
-        assert any([str(self.prefix) in p for p in dict_res.values()])
+        assert any([str(tmp_empty_env) in p for p in dict_res.values()])
 
-        prefix_short = self.prefix.replace(os.path.expanduser("~"), "~")
+        # Activate path with home
+        prefix_short = str(tmp_empty_env).replace(os.path.expanduser("~"), "~")
         res = shell("activate", prefix_short, "-s", interpreter)
         dict_res = self.to_dict(res, interpreter)
-        assert any([str(self.prefix) in p for p in dict_res.values()])
+        assert any([str(tmp_empty_env) in p for p in dict_res.values()])
 
-        res = shell("activate", test_dir, "-s", interpreter)
+    @pytest.mark.parametrize("interpreter", get_interpreters())
+    def test_activate_envs_dirs(
+        self, tmp_root_prefix: Path, interpreter, tmp_path: Path
+    ):
+        """Activate an environemt as the non leading entry in ``envs_dirs``."""
+        env_name = "myenv"
+        create("-p", tmp_path / env_name, "--offline", "--no-rc", no_dry_run=True)
+        os.environ["CONDA_ENVS_DIRS"] = f"{Path('/noperm')},{tmp_path}"
+        res = shell("activate", env_name, "-s", interpreter)
         dict_res = self.to_dict(res, interpreter)
-        assert any([str(test_dir) in p for p in dict_res.values()])
+        assert any([env_name in p for p in dict_res.values()])
+
+    @pytest.mark.parametrize("interpreter", get_self_update_interpreters())
+    def test_self_update(
+        self,
+        backup_umamba,
+        tmp_home,
+        tmp_path,
+        tmp_root_prefix,
+        winreg_value,
+        interpreter,
+    ):
+        mamba_exe = backup_umamba
+
+        shell_init = [
+            f"{format_path(mamba_exe, interpreter)} shell init -s {interpreter} -r {format_path(tmp_root_prefix, interpreter)}"
+        ]
+        call_interpreter(shell_init, tmp_path, interpreter)
+
+        if interpreter == "bash":
+            assert (
+                Path(tmp_root_prefix) / "etc" / "profile.d" / "micromamba.sh"
+            ).exists()
+
+        extra_start_code = []
+        if interpreter == "powershell":
+            extra_start_code = [
+                f'$Env:MAMBA_EXE="{mamba_exe}"',
+                "$MambaModuleArgs = @{ChangePs1 = $True}",
+                f'Import-Module "{tmp_root_prefix}\\condabin\\Mamba.psm1" -ArgumentList $MambaModuleArgs',
+                "Remove-Variable MambaModuleArgs",
+            ]
+        elif interpreter == "bash":
+            if plat == "linux":
+                extra_start_code = ["source ~/.bashrc"]
+            else:
+                print(mamba_exe)
+                extra_start_code = [
+                    f"source {PurePosixPath(tmp_home)}/.bash_profile",  # HOME from os.environ not acknowledged
+                    "micromamba info",
+                    "echo $MAMBA_ROOT_PREFIX",
+                    "echo $HOME",
+                    "ls ~",
+                    "echo $MAMBA_EXE",
+                ]
+        elif interpreter == "zsh":
+            extra_start_code = ["source ~/.zshrc"]
+
+        call_interpreter(
+            extra_start_code
+            + ["micromamba self-update --version 0.25.1 -c conda-forge"],
+            tmp_path,
+            interpreter,
+            interactive=False,
+        )
+
+        assert Path(mamba_exe).exists()
+
+        version = subprocess.check_output([mamba_exe, "--version"])
+        assert version.decode("utf8").strip() == "0.25.1"
+
+        assert not Path(mamba_exe + ".bkup").exists()
+
+        shutil.copyfile(mamba_exe + ".orig", mamba_exe)
+        os.chmod(mamba_exe, 0o755)

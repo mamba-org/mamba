@@ -4,25 +4,29 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <reproc/reproc.h>
-#include <reproc++/run.hpp>
 #include <stdexcept>
 
+#include <fmt/color.h>
+#include <fmt/format.h>
+#include <fmt/ostream.h>
+#include <reproc++/run.hpp>
+#include <reproc/reproc.h>
+
+#include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
-#include "mamba/api/channel_loader.hpp"
-
+#include "mamba/core/activation.hpp"
+#include "mamba/core/channel.hpp"
+#include "mamba/core/env_lockfile.hpp"
+#include "mamba/core/environments_manager.hpp"
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
+#include "mamba/core/package_download.hpp"
 #include "mamba/core/pinning.hpp"
 #include "mamba/core/transaction.hpp"
-#include "mamba/core/util.hpp"
+#include "mamba/core/util_string.hpp"
 #include "mamba/core/virtual_packages.hpp"
-#include "mamba/core/env_lockfile.hpp"
-#include "mamba/core/activation.hpp"
-
-#include "termcolor/termcolor.hpp"
 
 namespace mamba
 {
@@ -31,22 +35,32 @@ namespace mamba
         using command_args = std::vector<std::string>;
 
         tl::expected<command_args, std::runtime_error> get_other_pkg_mgr_install_instructions(
-            const std::string& name, const std::string& target_prefix, const fs::u8path& spec_file)
+            const std::string& name,
+            const std::string& target_prefix,
+            const fs::u8path& spec_file
+        )
         {
-            const auto get_python_path
-                = [&] { return env::which("python", get_path_dirs(target_prefix)).string(); };
+            const auto get_python_path = [&]
+            { return env::which("python", get_path_dirs(target_prefix)).string(); };
 
             const std::unordered_map<std::string, command_args> other_pkg_mgr_install_instructions{
                 { "pip",
-                  { get_python_path(), "-m", "pip", "install", "-r", spec_file, "--no-input" } }
+                  { get_python_path(), "-m", "pip", "install", "-r", spec_file, "--no-input" } },
+                { "pip --no-deps",
+                  { get_python_path(), "-m", "pip", "install", "--no-deps", "-r", spec_file, "--no-input" } }
             };
 
             auto found_it = other_pkg_mgr_install_instructions.find(name);
             if (found_it != other_pkg_mgr_install_instructions.end())
+            {
                 return found_it->second;
+            }
             else
+            {
                 return tl::unexpected(std::runtime_error(
-                    fmt::format("no install instruction found for package manager '{}'", name)));
+                    fmt::format("no install instruction found for package manager '{}'", name)
+                ));
+            }
         }
 
     }
@@ -75,11 +89,17 @@ namespace mamba
             || (!terminated_not_an_err && reproc_terminated(status)))
         {
             if (ec)
+            {
                 LOG_ERROR << "Subprocess call failed: " << ec.message();
+            }
             else if (reproc_killed(status))
+            {
                 LOG_ERROR << "Subprocess call failed (killed)";
+            }
             else
+            {
                 LOG_ERROR << "Subprocess call failed (terminated)";
+            }
             throw std::runtime_error("Subprocess call failed. Aborting.");
         }
     }
@@ -92,34 +112,48 @@ namespace mamba
 
         const auto& ctx = Context::instance();
 
-        TemporaryFile specs;
+        TemporaryFile specs("mambaf", "", cwd);
         {
             std::ofstream specs_f = open_ofstream(specs.path());
             for (auto& d : deps)
+            {
                 specs_f << d.c_str() << '\n';
+            }
         }
 
         command_args install_instructions = [&]
         {
             const auto maybe_instructions = get_other_pkg_mgr_install_instructions(
-                pkg_mgr, ctx.target_prefix.string(), specs.path());
+                pkg_mgr,
+                ctx.prefix_params.target_prefix.string(),
+                specs.path()
+            );
             if (maybe_instructions)
+            {
                 return maybe_instructions.value();
+            }
             else
+            {
                 throw maybe_instructions.error();
+            }
         }();
 
-        auto [wrapped_command, tmpfile]
-            = prepare_wrapped_call(ctx.target_prefix, install_instructions);
+        auto [wrapped_command, tmpfile] = prepare_wrapped_call(
+            ctx.prefix_params.target_prefix,
+            install_instructions
+        );
 
         reproc::options options;
         options.redirect.parent = true;
         options.working_directory = cwd.c_str();
 
-        Console::stream() << "\n"
-                          << termcolor::cyan << "Installing " << pkg_mgr
-                          << " packages: " << join(", ", deps) << termcolor::reset;
-        LOG_INFO << "Calling: " << join(" ", install_instructions);
+        Console::stream() << fmt::format(
+            Context::instance().graphics_params.palette.external,
+            "\nInstalling {} packages: {}",
+            pkg_mgr,
+            fmt::join(deps, ", ")
+        );
+        fmt::print(LOG_INFO, "Calling: {}", fmt::join(install_instructions, " "));
 
         auto [status, ec] = reproc::run(wrapped_command, options);
         assert_reproc_success(options, status, ec);
@@ -165,7 +199,8 @@ namespace mamba
             if (!(starts_with(selector, "sel(") && selector[selector.size() - 1] == ')'))
             {
                 throw std::runtime_error(
-                    "Couldn't parse selector. Needs to start with sel( and end with )");
+                    "Couldn't parse selector. Needs to start with sel( and end with )"
+                );
             }
             std::string expr = selector.substr(4, selector.size() - 5);
 
@@ -201,7 +236,9 @@ namespace mamba
 
             YAML::Node deps;
             if (f["dependencies"] && f["dependencies"].IsSequence() && f["dependencies"].size() > 0)
+            {
                 deps = f["dependencies"];
+            }
             else
             {
                 LOG_ERROR << "No 'dependencies' specified in YAML spec file '" << file.string()
@@ -236,16 +273,20 @@ namespace mamba
                                 else
                                 {
                                     throw std::runtime_error(
-                                        "Complicated selection merge not implemented yet.");
+                                        "Complicated selection merge not implemented yet."
+                                    );
                                 }
                             }
                         }
                         else if (key == "pip")
                         {
-                            result.others_pkg_mgrs_specs.push_back(
-                                { "pip",
-                                  map_el.second.as<std::vector<std::string>>(),
-                                  fs::absolute(yaml_file.parent_path()).string() });
+                            const auto yaml_parent_path = fs::absolute(yaml_file).parent_path().string(
+                            );
+                            result.others_pkg_mgrs_specs.push_back({
+                                "pip",
+                                map_el.second.as<std::vector<std::string>>(),
+                                yaml_parent_path,
+                            });
                             has_pip_deps = true;
                         }
                     }
@@ -259,13 +300,14 @@ namespace mamba
             }
             catch (const YAML::Exception& e)
             {
-                LOG_ERROR << "Bad conversion of 'dependencies' to a vector of string: "
-                          << final_deps;
+                LOG_ERROR << "Bad conversion of 'dependencies' to a vector of string: " << final_deps;
                 throw e;
             }
 
             if (has_pip_deps && !std::count(dependencies.begin(), dependencies.end(), "pip"))
+            {
                 dependencies.push_back("pip");
+            }
 
             result.dependencies = dependencies;
 
@@ -297,20 +339,22 @@ namespace mamba
             return result;
         }
 
-        std::tuple<std::vector<PackageInfo>, std::vector<MatchSpec>> parse_urls_to_package_info(
-            const std::vector<std::string>& urls)
+        std::tuple<std::vector<PackageInfo>, std::vector<MatchSpec>>
+        parse_urls_to_package_info(const std::vector<std::string>& urls, ChannelContext& channel_context)
         {
             std::vector<PackageInfo> pi_result;
             std::vector<MatchSpec> ms_result;
             for (auto& u : urls)
             {
                 if (strip(u).size() == 0)
+                {
                     continue;
+                }
                 std::size_t hash = u.find_first_of('#');
-                MatchSpec ms(u.substr(0, hash));
+                MatchSpec ms(u.substr(0, hash), channel_context);
                 PackageInfo p(ms.name);
                 p.url = ms.url;
-                p.build_string = ms.build;
+                p.build_string = ms.build_string;
                 p.version = ms.version;
                 p.channel = ms.channel;
                 p.fn = ms.fn;
@@ -339,28 +383,37 @@ namespace mamba
         config.at("create_base").set_value(true);
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
-            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_NOT_ALLOW_MISSING_PREFIX
-                       | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX | MAMBA_EXPECT_EXISTING_PREFIX);
+            .set_value(
+                MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_NOT_ALLOW_MISSING_PREFIX
+                | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX | MAMBA_EXPECT_EXISTING_PREFIX
+            );
         config.load();
 
         auto& install_specs = config.at("specs").value<std::vector<std::string>>();
         auto& use_explicit = config.at("explicit_install").value<bool>();
 
+        ChannelContext channel_context;
+
         if (Context::instance().env_lockfile)
         {
             const auto lockfile_path = Context::instance().env_lockfile.value();
-            LOG_DEBUG << "Lockfile: " << lockfile_path.string();
-            install_lockfile_specs(lockfile_path, false);
+            LOG_DEBUG << "Lockfile: " << lockfile_path;
+            install_lockfile_specs(
+                channel_context,
+                lockfile_path,
+                Configuration::instance().at("categories").value<std::vector<std::string>>(),
+                false
+            );
         }
         else if (!install_specs.empty())
         {
             if (use_explicit)
             {
-                install_explicit_specs(install_specs, false);
+                install_explicit_specs(channel_context, install_specs, false);
             }
             else
             {
-                mamba::install_specs(install_specs, false);
+                mamba::install_specs(channel_context, install_specs, false);
             }
         }
         else
@@ -374,10 +427,13 @@ namespace mamba
     int RETRY_SUBDIR_FETCH = 1 << 0;
     int RETRY_SOLVE_ERROR = 1 << 1;
 
-    void install_specs(const std::vector<std::string>& specs,
-                       bool create_env,
-                       int solver_flag,
-                       int is_retry)
+    void install_specs(
+        ChannelContext& channel_context,
+        const std::vector<std::string>& specs,
+        bool create_env,
+        int solver_flag,
+        int is_retry
+    )
     {
         auto& ctx = Context::instance();
         auto& config = Configuration::instance();
@@ -390,14 +446,15 @@ namespace mamba
         auto& only_deps = config.at("only_deps").value<bool>();
         auto& retry_clean_cache = config.at("retry_clean_cache").value<bool>();
 
-        if (ctx.target_prefix.empty())
+        if (ctx.prefix_params.target_prefix.empty())
         {
             throw std::runtime_error("No active target prefix");
         }
-        if (!fs::exists(ctx.target_prefix) && create_env == false)
+        if (!fs::exists(ctx.prefix_params.target_prefix) && create_env == false)
         {
             throw std::runtime_error(
-                fmt::format("Prefix does not exist at: {}", ctx.target_prefix.string()));
+                fmt::format("Prefix does not exist at: {}", ctx.prefix_params.target_prefix.string())
+            );
         }
 
         MultiPackageCache package_caches(ctx.pkgs_dirs);
@@ -405,7 +462,7 @@ namespace mamba
         // add channels from specs
         for (const auto& s : specs)
         {
-            if (auto m = MatchSpec{ s }; !m.channel.empty())
+            if (auto m = MatchSpec{ s, channel_context }; !m.channel.empty())
             {
                 ctx.channels.push_back(m.channel);
             }
@@ -416,13 +473,13 @@ namespace mamba
             LOG_WARNING << "No 'channels' specified";
         }
 
-        MPool pool;
+        MPool pool{ channel_context };
         // functions implied in 'and_then' coding-styles must return the same type
         // which limits this syntax
         /*auto exp_prefix_data = load_channels(pool, package_caches, is_retry)
                                .and_then([&ctx](const auto&) { return
-           PrefixData::create(ctx.target_prefix); } ) .map_error([](const mamba_error& err) { throw
-           std::runtime_error(err.what());
+           PrefixData::create(ctx.prefix_params.target_prefix); } ) .map_error([](const mamba_error&
+           err) { throw std::runtime_error(err.what());
                                 });*/
         auto exp_load = load_channels(pool, package_caches, is_retry);
         if (!exp_load)
@@ -430,7 +487,10 @@ namespace mamba
             throw std::runtime_error(exp_load.error().what());
         }
 
-        auto exp_prefix_data = PrefixData::create(ctx.target_prefix);
+        auto exp_prefix_data = PrefixData::create(
+            ctx.prefix_params.target_prefix,
+            pool.channel_context()
+        );
         if (!exp_prefix_data)
         {
             throw std::runtime_error(exp_prefix_data.error().what());
@@ -439,17 +499,22 @@ namespace mamba
 
         std::vector<std::string> prefix_pkgs;
         for (auto& it : prefix_data.records())
+        {
             prefix_pkgs.push_back(it.first);
+        }
 
         prefix_data.add_packages(get_virtual_packages());
 
-        MRepo::create(pool, prefix_data);
+        MRepo(pool, prefix_data);
 
-        MSolver solver(pool,
-                       { { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },
-                         { SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade },
-                         { SOLVER_FLAG_STRICT_REPO_PRIORITY,
-                           ctx.channel_priority == ChannelPriority::kStrict } });
+        MSolver solver(
+            pool,
+            {
+                { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },
+                { SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade },
+                { SOLVER_FLAG_STRICT_REPO_PRIORITY, ctx.channel_priority == ChannelPriority::kStrict },
+            }
+        );
 
         solver.set_postsolve_flags({ { MAMBA_NO_DEPS, no_deps },
                                      { MAMBA_ONLY_DEPS, only_deps },
@@ -460,8 +525,6 @@ namespace mamba
             LOG_INFO << "Locking environment: " << prefix_pkgs.size() << " packages freezed";
             solver.add_jobs(prefix_pkgs, SOLVER_LOCK);
         }
-
-        solver.add_jobs(specs, solver_flag);
 
         if (!no_pin)
         {
@@ -481,36 +544,51 @@ namespace mamba
         {
             std::vector<std::string> pinned_str;
             for (auto& ms : solver.pinned_specs())
+            {
                 pinned_str.push_back("  - " + ms.conda_build_form() + "\n");
+            }
             Console::instance().print("\nPinned packages:\n" + join("", pinned_str));
         }
 
-        bool success = solver.solve();
+        // FRAGILE this must be called after pins be before jobs in current ``MPool``
+        pool.create_whatprovides();
+
+        solver.add_jobs(specs, solver_flag);
+
+        bool success = solver.try_solve();
         if (!success)
         {
-            Console::stream() << solver.problems_to_str();
+            solver.explain_problems(LOG_ERROR);
             if (retry_clean_cache && !(is_retry & RETRY_SOLVE_ERROR))
             {
                 ctx.local_repodata_ttl = 2;
-                return install_specs(specs, create_env, solver_flag, is_retry | RETRY_SOLVE_ERROR);
+                return install_specs(
+                    channel_context,
+                    specs,
+                    create_env,
+                    solver_flag,
+                    is_retry | RETRY_SOLVE_ERROR
+                );
             }
             if (freeze_installed)
-                Console::instance().print("Possible hints:\n  - 'freeze_installed' is turned on\n");
-
-            if (ctx.json)
             {
-                Console::instance().json_write(
-                    { { "success", false }, { "solver_problems", solver.all_problems() } });
+                Console::instance().print("Possible hints:\n  - 'freeze_installed' is turned on\n");
             }
 
-            Console::stream() << "The environment can't be solved, aborting the operation";
-            LOG_ERROR << "Could not solve for environment specs";
-            throw std::runtime_error("UnsatisfiableError");
+            if (ctx.output_params.json)
+            {
+                Console::instance().json_write({ { "success", false },
+                                                 { "solver_problems", solver.all_problems() } });
+            }
+            throw mamba_error(
+                "Could not solve for environment specs",
+                mamba_error_code::satisfiablitity_error
+            );
         }
 
-        MTransaction trans(solver, package_caches);
+        MTransaction trans(pool, solver, package_caches);
 
-        if (ctx.json)
+        if (ctx.output_params.json)
         {
             trans.log_json();
         }
@@ -520,12 +598,14 @@ namespace mamba
         if (trans.prompt())
         {
             if (create_env && !Context::instance().dry_run)
-                detail::create_target_directory(ctx.target_prefix);
+            {
+                detail::create_target_directory(ctx.prefix_params.target_prefix);
+            }
 
             trans.execute(prefix_data);
 
-            for (auto other_spec : config.at("others_pkg_mgrs_specs")
-                                       .value<std::vector<detail::other_pkg_mgr_spec>>())
+            for (auto other_spec :
+                 config.at("others_pkg_mgrs_specs").value<std::vector<detail::other_pkg_mgr_spec>>())
             {
                 install_for_other_pkgmgr(other_spec);
             }
@@ -536,11 +616,15 @@ namespace mamba
     {
         // TransactionFunc: (MPool& pool, MultiPackageCache& package_caches) -> MTransaction
         template <typename TransactionFunc>
-        void install_explicit_with_transaction(TransactionFunc create_transaction, bool create_env)
+        void install_explicit_with_transaction(
+            ChannelContext& channel_context,
+            TransactionFunc create_transaction,
+            bool create_env
+        )
         {
-            MPool pool;
+            MPool pool{ channel_context };
             auto& ctx = Context::instance();
-            auto exp_prefix_data = PrefixData::create(ctx.target_prefix);
+            auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!exp_prefix_data)
             {
                 // TODO: propagate tl::expected mechanism
@@ -548,41 +632,89 @@ namespace mamba
             }
             PrefixData& prefix_data = exp_prefix_data.value();
 
-            fs::u8path pkgs_dirs(Context::instance().root_prefix / "pkgs");
-            MultiPackageCache pkg_caches({ pkgs_dirs });
-
-            auto transaction = create_transaction(pool, pkg_caches);
-
+            MultiPackageCache pkg_caches(ctx.pkgs_dirs);
             prefix_data.add_packages(get_virtual_packages());
-            MRepo::create(pool, prefix_data);
+            MRepo(pool, prefix_data);  // Potentially re-alloc (moves in memory) Solvables
+                                       // in the pool
 
-            if (ctx.json)
+            std::vector<detail::other_pkg_mgr_spec> others;
+            // Note that the Transaction will gather the Solvables,
+            // so they must have been ready in the pool before this line
+            auto transaction = create_transaction(pool, pkg_caches, others);
+
+            if (ctx.output_params.json)
+            {
                 transaction.log_json();
+            }
 
             if (transaction.prompt())
             {
                 if (create_env && !Context::instance().dry_run)
-                    detail::create_target_directory(ctx.target_prefix);
+                {
+                    detail::create_target_directory(ctx.prefix_params.target_prefix);
+                }
 
                 transaction.execute(prefix_data);
+
+                for (auto other_spec : others)
+                {
+                    install_for_other_pkgmgr(other_spec);
+                }
             }
         }
     }
 
-    void install_explicit_specs(const std::vector<std::string>& specs, bool create_env)
+    void install_explicit_specs(
+        ChannelContext& channel_context,
+        const std::vector<std::string>& specs,
+        bool create_env
+    )
     {
         detail::install_explicit_with_transaction(
-            [&](auto& pool, auto& pkg_caches)
-            { return create_explicit_transaction_from_urls(pool, specs, pkg_caches); },
-            create_env);
+            channel_context,
+            [&](auto& pool, auto& pkg_caches, auto& others)
+            { return create_explicit_transaction_from_urls(pool, specs, pkg_caches, others); },
+            create_env
+        );
     }
 
-    void install_lockfile_specs(const fs::u8path& lockfile, bool create_env)
+    void install_lockfile_specs(
+        ChannelContext& channel_context,
+        const std::string& lockfile,
+        const std::vector<std::string>& categories,
+        bool create_env
+    )
     {
+        std::unique_ptr<TemporaryFile> tmp_lock_file;
+        fs::u8path file;
+
+        if (lockfile.find("://") != std::string::npos)
+        {
+            LOG_INFO << "Downloading lockfile";
+            tmp_lock_file = std::make_unique<TemporaryFile>();
+            DownloadTarget dt("Environment Lockfile", lockfile, tmp_lock_file->path());
+            bool success = dt.perform();
+            if (!success || dt.get_http_status() != 200)
+            {
+                throw std::runtime_error(
+                    fmt::format("Could not download environment lockfile from {}", lockfile)
+                );
+            }
+
+            file = tmp_lock_file->path();
+        }
+        else
+        {
+            file = lockfile;
+        }
+
         detail::install_explicit_with_transaction(
-            [&](auto& pool, auto& pkg_caches)
-            { return create_explicit_transaction_from_lockfile(pool, lockfile, pkg_caches); },
-            create_env);
+            channel_context,
+            [&](auto& pool, auto& pkg_caches, auto& others) {
+                return create_explicit_transaction_from_lockfile(pool, file, categories, pkg_caches, others);
+            },
+            create_env
+        );
     }
 
     namespace detail
@@ -591,16 +723,20 @@ namespace mamba
         {
             detail::create_target_directory(prefix);
 
-            Console::instance().print(
-                join("",
-                     std::vector<std::string>(
-                         { "Empty environment created at prefix: ", prefix.string() })));
+            Console::instance().print(join(
+                "",
+                std::vector<std::string>({ "Empty environment created at prefix: ", prefix.string() })
+            ));
             Console::instance().json_write({ { "success", true } });
         }
 
         void create_target_directory(const fs::u8path prefix)
         {
             path::touch(prefix / "conda-meta" / "history", true);
+
+            // Register the environment
+            EnvironmentsManager env_manager;
+            env_manager.register_env(prefix);
         }
 
         void file_specs_hook(std::vector<std::string>& file_specs)
@@ -612,7 +748,9 @@ namespace mamba
             auto& channels = config.at("channels");
 
             if (file_specs.size() == 0)
+            {
                 return;
+            }
 
             for (const auto& file : file_specs)
             {
@@ -627,9 +765,16 @@ namespace mamba
                 // read specs from file :)
                 if (is_env_lockfile_name(file))
                 {
-                    const auto lockfile_path = fs::absolute(file);
-                    LOG_DEBUG << "File spec Lockfile: " << lockfile_path.string();
-                    Context::instance().env_lockfile = lockfile_path;
+                    if (starts_with(file, "http"))
+                    {
+                        Context::instance().env_lockfile = file;
+                    }
+                    else
+                    {
+                        Context::instance().env_lockfile = fs::absolute(file).string();
+                    }
+
+                    LOG_DEBUG << "File spec Lockfile: " << Context::instance().env_lockfile.value();
                 }
                 else if (is_yaml_file_name(file))
                 {
@@ -700,12 +845,15 @@ namespace mamba
                             LOG_INFO << "Installing explicit specs for platform " << platform;
 
                             std::vector<std::string> explicit_specs;
-                            for (auto f = file_contents.begin() + i + 1; f != file_contents.end();
+                            for (auto f = file_contents.begin() + static_cast<std::ptrdiff_t>(i) + 1;
+                                 f != file_contents.end();
                                  ++f)
                             {
                                 std::string_view spec = strip((*f));
                                 if (!spec.empty() && spec[0] != '#')
+                                {
                                     explicit_specs.push_back(*f);
+                                }
                             }
 
                             specs.clear_values();

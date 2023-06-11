@@ -1,3 +1,152 @@
+libmambapy 1.4.4 (May 16, 2023)
+===============================
+
+Bug fixes:
+
+- Support future deprecated API for Context by @Hind-M in https://github.com/mamba-org/mamba/pull/2494
+
+libmambapy 1.4.3 (May 15, 2023)
+===============================
+
+Enhancements:
+
+- Remove dead code / attribute by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2454
+- Context structuring by @Hind-M in https://github.com/mamba-org/mamba/pull/2432
+- Store PackageInfo::track\_features as a vector by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2478
+- Resume Context structuring by @Hind-M in https://github.com/mamba-org/mamba/pull/2460
+- Use libsolv wrappers in MPool and MRepo by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2453
+
+CI fixes and doc:
+
+- Extend issue template by @jonashaag in https://github.com/mamba-org/mamba/pull/2310
+
+libmambapy 1.4.2 (April 06, 2023)
+=================================
+
+
+CI fixes and doc:
+
+- Fixes typos by @nsoranzo in https://github.com/mamba-org/mamba/pull/2419
+- Migrated to doctest by @JohanMabille in https://github.com/mamba-org/mamba/pull/2436
+
+libmambapy 1.4.1 (March 28, 2023)
+=================================
+
+
+libmambapy 1.4.0 (March 22, 2023)
+=================================
+
+Enchancements:
+
+- Implemented recursive dependency printout in repoquery  by @timostrunk in https://github.com/mamba-org/mamba/pull/2283
+- Agressive compilation warnings by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2304
+- Fine tune clang-format by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2290
+- Activated SAT error messages by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2325
+- Removed redundant `DependencyInfo` by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2314
+- Only full shared or full static builds by @JohanMabille in https://github.com/mamba-org/mamba/pull/2342
+- Fixed repoquery commands working with installed packages only by @Hind-M in https://github.com/mamba-org/mamba/pull/2330
+- Isolate `PackageInfo` from libsolv from @AntoinePrv in https://github.com/mamba-org/mamba/pull/2340
+
+Bug fixes:
+
+- Fixed repoquery output of mamba when query format is JSON by @JohanMabille in https://github.com/mamba-org/mamba/pull/2353
+
+libmambapy 1.3.1 (February 09, 2023)
+====================================
+
+A bugfix release for 1.3.0!
+
+Docs:
+
+- - add micromamba docker image by @wholtz in https://github.com/mamba-org/mamba/pull/2266
+- - added biweekly meetings information to README by @JohanMabille in https://github.com/mamba-org/mamba/pull/2275
+- - change docs to homebrew/core by @pavelzw in https://github.com/mamba-org/mamba/pull/2278
+
+libmambapy 1.3.0 (February 03, 2023)
+====================================
+
+Enhancements:
+
+- add `use_lockfiles` to libmambapy bindings by @jaimergp in https://github.com/mamba-org/mamba/pull/2256
+
+CI fixes & docs:
+
+- docs: defaults should not be used with conda-forge by @jonashaag in https://github.com/mamba-org/mamba/pull/2181
+- fix tests for pkg_cache by @wolfv in https://github.com/mamba-org/mamba/pull/2259
+- Remove unused `get_tarball` function by @Hind-M in https://github.com/mamba-org/mamba/pull/2261
+
+libmambapy 1.2.0 (January 16, 2023)
+===================================
+
+This release contains some speed improvements: download repodata faster as zstd encoded files (configure using
+`repodata_use_zst: true` in your `~/.mambarc` file). Also, `.conda` file extraction is now faster, a prefix
+with spaces works better thanks to a new "shebang" style and the `micromamba package compress` and `transmute`
+commands produce better conda packages.
+
+CI fixes & docs:
+
+- - Improve build env cleanup by @jonashaag in #2213
+- - Run conda_nightly once per week by @jonashaag in #2147
+- - Update doc by @Hind-M in #2156
+- - Use Conda canary in nightly tests by @jonashaag in #2180
+- - Expliclity point to libmamba test data independently of cwd by @AntoinePrv in #2158
+- - Add bug report issue template by @jonashaag in #2182
+- - Downgrade curl to fix micromamba on macOS x64 by @wolfv in #2205
+- - Use conda-forge micromamba feedstock instead of a fork by @JohanMabille in #2206
+- - Update pre-commit versions by @jonashaag in #2178
+- - Use local meta.yaml by @wolfv in #2214
+- - Remove feedstock patches by @wolfv in #2216
+- - Fixed static dependency order by @JohanMabille in #2201
+
+libmambapy 1.1.0 (November 25, 2022)
+====================================
+
+Some bugfixes for 1.0 and experimental release of the new solver messages
+
+Enhancements
+
+- ci: Update pre-commit-config #2092
+- docs: Add warning to manual install instructions #2100
+- docs: Consistently use curl for fetching files #2126
+
+libmambapy 1.0.0 (November 01, 2022)
+====================================
+
+Our biggest version number yet! Finally a 1.0 release :)
+
+New notable micromamba features include:
+
+- - improved shell scripts with autocompletion available in PowerShell, xonsh, fish, bash and zsh
+- - `micromamba shell -n someenv`: enter a sub-shell without modifying the system
+- - `micromamba self-update`: micromamba searches for updates and installs them if available
+
+(you can also downgrade using `--version 0.26.0` for example)
+
+Bug fixes:
+
+- Ensure package record always has subdir (thanks @jaimergp) #2016
+
+Enhancements:
+
+- add stubs with pybind11-stubgen (thanks @dholth) #1983
+- Fix ci deprecation warnings, upload conda-bld artifacts for failed builds #2058, #2062
+- Explicitly define SPDLOG_FMT_EXTERNAL and use spdlog header only use external fmt (thanks @AntoinePrv) #2060, #2048
+- Fix CI by pointing to updated feedstock and fixing update tests (thanks @AntoinePrv) #2055
+- Add authentication with urlencoded @ to proxy test (#2024) @AdrianFreundQC
+- better test isolation (thanks @AntoinePrv) #1903
+- Test special characters in basic auth (thanks @jonashaag) #2012
+
+libmambapy 0.27.0 (October 04, 2022)
+====================================
+
+Bug fixes:
+
+- make compilation with external fmt library work #1987
+
+libmambapy 0.26.0 (September 30, 2022)
+======================================
+
+
 libmambapy 0.25.0 (July 26, 2022)
 =================================
 

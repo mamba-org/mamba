@@ -11,16 +11,20 @@ cmake_policy(SET CMP0057 NEW)
 
 project(libmambapy)
 
-find_package(Python COMPONENTS Interpreter Development)
-find_package(pybind11 REQUIRED)
 if(NOT TARGET libmamba)
     find_package(libmamba REQUIRED)
 endif ()
+
+find_package(Python COMPONENTS Interpreter Development)
+find_package(pybind11 REQUIRED)
 
 pybind11_add_module(bindings
     src/main.cpp
     longpath.manifest
 )
+
+mamba_target_add_compile_warnings(bindings WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
+
 target_link_libraries(bindings PUBLIC pybind11::pybind11 libmamba)
 set_property(TARGET bindings PROPERTY CXX_STANDARD 17)
 

@@ -9,7 +9,7 @@
 #include <string>
 
 #include "mamba/core/package_paths.hpp"
-#include "mamba/core/util.hpp"
+#include "mamba/core/util_string.hpp"
 
 namespace mamba
 {
@@ -133,7 +133,7 @@ namespace mamba
 
                 if (p.path_type != PathType::SOFTLINK)
                 {
-                    assign_or(jpath, "sha256", p.sha256, std::string(""));
+                    p.sha256 = jpath.value("sha256", "");
                 }
 
                 if (jpath.find("no_link") != jpath.end())

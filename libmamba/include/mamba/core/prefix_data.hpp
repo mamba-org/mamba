@@ -7,8 +7,8 @@
 #ifndef MAMBA_CORE_PREFIX_DATA_HPP
 #define MAMBA_CORE_PREFIX_DATA_HPP
 
+#include <map>
 #include <string>
-#include <unordered_map>
 
 #include "error_handling.hpp"
 #include "history.hpp"
@@ -16,12 +16,16 @@
 
 namespace mamba
 {
+    class ChannelContext;
+
     class PrefixData
     {
     public:
-        using package_map = std::unordered_map<std::string, PackageInfo>;
 
-        static expected_t<PrefixData> create(const fs::u8path& prefix_path);
+        using package_map = std::map<std::string, PackageInfo>;
+
+        static expected_t<PrefixData>
+        create(const fs::u8path& prefix_path, ChannelContext& channel_context);
 
         void add_packages(const std::vector<PackageInfo>& packages);
         const package_map& records() const;
@@ -31,13 +35,21 @@ namespace mamba
         const fs::u8path& path() const;
         std::vector<PackageInfo> sorted_records() const;
 
+        ChannelContext& channel_context() const
+        {
+            return m_channel_context;
+        }
+
     private:
-        PrefixData(const fs::u8path& prefix_path);
+
+        PrefixData(const fs::u8path& prefix_path, ChannelContext& channel_context);
         void load();
 
         History m_history;
-        std::unordered_map<std::string, PackageInfo> m_package_records;
+        package_map m_package_records;
         fs::u8path m_prefix_path;
+
+        ChannelContext& m_channel_context;
     };
 }  // namespace mamba
 

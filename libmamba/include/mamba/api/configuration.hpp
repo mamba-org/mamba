@@ -7,16 +7,16 @@
 #ifndef MAMBA_API_CONFIGURATION_HPP
 #define MAMBA_API_CONFIGURATION_HPP
 
+#include <functional>
+
+#include <yaml-cpp/yaml.h>
+
+#include "mamba/api/configuration_impl.hpp"
+#include "mamba/api/constants.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/api/constants.hpp"
-#include "mamba/api/configuration_impl.hpp"
-
-#include <yaml-cpp/yaml.h>
-
-#include <functional>
 
 
 #define CONTEXT_DEBUGGING                                                                          \
@@ -25,13 +25,12 @@
         Context::instance().debug_print();                                                         \
         exit(0);                                                                                   \
     }
-#define CONFIG_DEBUGGING                                                                           \
-    if (Configuration::instance().at("print_config_only").value<bool>())                           \
-    {                                                                                              \
-        int dump_opts                                                                              \
-            = MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS | MAMBA_SHOW_ALL_CONFIGS;          \
-        std::cout << Configuration::instance().dump(dump_opts) << std::endl;                       \
-        exit(0);                                                                                   \
+#define CONFIG_DEBUGGING                                                                            \
+    if (Configuration::instance().at("print_config_only").value<bool>())                            \
+    {                                                                                               \
+        int dump_opts = MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS | MAMBA_SHOW_ALL_CONFIGS; \
+        std::cout << Configuration::instance().dump(dump_opts) << std::endl;                        \
+        exit(0);                                                                                    \
     }
 
 namespace mamba
@@ -81,20 +80,32 @@ namespace YAML
         static bool decode(const Node& node, mamba::RCConfigLevel& rhs)
         {
             if (!node.IsScalar())
+            {
                 return false;
+            }
 
             auto str = node.as<std::string>();
 
             if (str == "HomeDir")
+            {
                 rhs = mamba::RCConfigLevel::kHomeDir;
+            }
             else if (str == "RootPrefix")
+            {
                 rhs = mamba::RCConfigLevel::kRootPrefix;
+            }
             else if (str == "SystemDir")
+            {
                 rhs = mamba::RCConfigLevel::kSystemDir;
+            }
             else if (str == "TargetPrefix")
+            {
                 rhs = mamba::RCConfigLevel::kTargetPrefix;
+            }
             else
+            {
                 return false;
+            }
 
             return true;
         }
@@ -120,9 +131,10 @@ namespace mamba
             virtual void set_default_value() = 0;
 
             virtual void set_rc_yaml_value(const YAML::Node& value, const std::string& source) = 0;
-            virtual void set_rc_yaml_values(const std::map<std::string, YAML::Node>& values,
-                                            const std::vector<std::string>& sources)
-                = 0;
+            virtual void set_rc_yaml_values(
+                const std::map<std::string, YAML::Node>& values,
+                const std::vector<std::string>& sources
+            ) = 0;
             virtual void set_cli_yaml_value(const YAML::Node& value) = 0;
             virtual void set_cli_yaml_value(const std::string& value) = 0;
             virtual void set_yaml_value(const YAML::Node& value) = 0;
@@ -175,8 +187,10 @@ namespace mamba
             void set_default_value() override;
 
             void set_rc_yaml_value(const YAML::Node& value, const std::string& source) override;
-            void set_rc_yaml_values(const std::map<std::string, YAML::Node>& values,
-                                    const std::vector<std::string>& sources) override;
+            void set_rc_yaml_values(
+                const std::map<std::string, YAML::Node>& values,
+                const std::vector<std::string>& sources
+            ) override;
             void set_cli_yaml_value(const YAML::Node& value) override;
             void set_cli_yaml_value(const std::string& value) override;
             void set_yaml_value(const YAML::Node& value) override;
@@ -191,8 +205,10 @@ namespace mamba
             void dump_json(nlohmann::json& node, const std::string& name) const override;
 
             void set_rc_value(const T& value, const std::string& source);
-            void set_rc_values(const std::map<std::string, T>& mapped_values,
-                               const std::vector<std::string>& sources);
+            void set_rc_values(
+                const std::map<std::string, T>& mapped_values,
+                const std::vector<std::string>& sources
+            );
             void set_value(const T& value);
 
             using cli_config_type = detail::cli_config<T>;
@@ -221,6 +237,7 @@ namespace mamba
     class Configurable
     {
     public:
+
         template <class T>
         Configurable(const std::string& name, T* context);
 
@@ -284,8 +301,10 @@ namespace mamba
         Configurable&& set_rc_value(const T& value, const std::string& source);
 
         template <class T>
-        Configurable&& set_rc_values(const std::map<std::string, T>& mapped_values,
-                                     const std::vector<std::string>& sources);
+        Configurable&& set_rc_values(
+            const std::map<std::string, T>& mapped_values,
+            const std::vector<std::string>& sources
+        );
 
         template <class T>
         Configurable&& set_value(const T& value);
@@ -327,15 +346,17 @@ namespace mamba
         cli_storage_type<T>& get_cli_config();
 
         Configurable&& set_rc_yaml_value(const YAML::Node& value, const std::string& source);
-        Configurable&& set_rc_yaml_values(const std::map<std::string, YAML::Node>& values,
-                                          const std::vector<std::string>& sources);
+        Configurable&& set_rc_yaml_values(
+            const std::map<std::string, YAML::Node>& values,
+            const std::vector<std::string>& sources
+        );
         Configurable&& set_cli_yaml_value(const YAML::Node& value);
         Configurable&& set_cli_yaml_value(const std::string& value);
         Configurable&& set_yaml_value(const YAML::Node& value);
         Configurable&& set_yaml_value(const std::string& value);
 
-        Configurable&& compute(int options = 0,
-                               const ConfigurationLevel& level = ConfigurationLevel::kDefault);
+        Configurable&&
+        compute(int options = 0, const ConfigurationLevel& level = ConfigurationLevel::kDefault);
 
         bool is_valid_serialization(const std::string& value) const;
         bool is_sequence() const;
@@ -344,6 +365,7 @@ namespace mamba
         void dump_json(nlohmann::json& node, const std::string& name) const;
 
     private:
+
         template <class T>
         detail::ConfigurableImpl<T>& get_wrapped();
 
@@ -353,13 +375,13 @@ namespace mamba
         std::unique_ptr<detail::ConfigurableImplBase> p_impl;
     };
 
-    int const MAMBA_SHOW_CONFIG_VALUES = 1 << 0;
-    int const MAMBA_SHOW_CONFIG_SRCS = 1 << 1;
-    int const MAMBA_SHOW_CONFIG_DESCS = 1 << 2;
-    int const MAMBA_SHOW_CONFIG_LONG_DESCS = 1 << 3;
-    int const MAMBA_SHOW_CONFIG_GROUPS = 1 << 4;
-    int const MAMBA_SHOW_ALL_CONFIGS = 1 << 5;
-    int const MAMBA_SHOW_ALL_RC_CONFIGS = 1 << 6;
+    const int MAMBA_SHOW_CONFIG_VALUES = 1 << 0;
+    const int MAMBA_SHOW_CONFIG_SRCS = 1 << 1;
+    const int MAMBA_SHOW_CONFIG_DESCS = 1 << 2;
+    const int MAMBA_SHOW_CONFIG_LONG_DESCS = 1 << 3;
+    const int MAMBA_SHOW_CONFIG_GROUPS = 1 << 4;
+    const int MAMBA_SHOW_ALL_CONFIGS = 1 << 5;
+    const int MAMBA_SHOW_ALL_RC_CONFIGS = 1 << 6;
 
     /*****************
      * Configuration *
@@ -368,6 +390,7 @@ namespace mamba
     class Configuration
     {
     public:
+
         static Configuration& instance();
 
         std::map<std::string, Configurable>& config();
@@ -406,10 +429,12 @@ namespace mamba
         void reset_configurables();
 
     protected:
+
         Configuration();
         ~Configuration();
 
     protected:
+
         Configuration(const Configuration&) = delete;
         Configuration& operator=(const Configuration&) = delete;
         Configuration(Configuration&&) = delete;
@@ -423,16 +448,15 @@ namespace mamba
 
         void clear_rc_sources();
 
-        void add_to_loading_sequence(std::vector<std::string>& seq,
-                                     const std::string& name,
-                                     std::vector<std::string>&);
+        void
+        add_to_loading_sequence(std::vector<std::string>& seq, const std::string& name, std::vector<std::string>&);
 
         static YAML::Node load_rc_file(const fs::u8path& file);
 
         static std::vector<fs::u8path> compute_default_rc_sources(const RCConfigLevel& level);
 
-        std::vector<fs::u8path> get_existing_rc_sources(
-            const std::vector<fs::u8path>& possible_rc_paths);
+        std::vector<fs::u8path>
+        get_existing_rc_sources(const std::vector<fs::u8path>& possible_rc_paths);
 
         std::vector<fs::u8path> m_sources;
         std::vector<fs::u8path> m_valid_sources;
@@ -477,8 +501,8 @@ namespace mamba
         }
 
         template <class T>
-        void ConfigurableImpl<T>::set_rc_yaml_value(const YAML::Node& value,
-                                                    const std::string& source)
+        void
+        ConfigurableImpl<T>::set_rc_yaml_value(const YAML::Node& value, const std::string& source)
         {
             try
             {
@@ -494,7 +518,8 @@ namespace mamba
         template <class T>
         void ConfigurableImpl<T>::set_rc_yaml_values(
             const std::map<std::string, YAML::Node>& values,
-            const std::vector<std::string>& sources)
+            const std::vector<std::string>& sources
+        )
         {
             std::map<std::string, T> converted_values;
             for (auto& y : values)
@@ -570,21 +595,25 @@ namespace mamba
         }
 
         template <>
-        inline void ConfigurableImpl<fs::u8path>::dump_json(nlohmann::json& node,
-                                                            const std::string& name) const
+        inline void
+        ConfigurableImpl<fs::u8path>::dump_json(nlohmann::json& node, const std::string& name) const
         {
             node[name] = m_value.string();
         }
 
         template <>
         inline void ConfigurableImpl<std::vector<fs::u8path>>::dump_json(
-            nlohmann::json& node, const std::string& name) const
+            nlohmann::json& node,
+            const std::string& name
+        ) const
         {
             std::vector<std::string> values(m_value.size());
-            std::transform(m_value.begin(),
-                           m_value.end(),
-                           values.begin(),
-                           [](const auto& value) { return value.string(); });
+            std::transform(
+                m_value.begin(),
+                m_value.end(),
+                values.begin(),
+                [](const auto& value) { return value.string(); }
+            );
             node[name] = values;
         }
 
@@ -597,8 +626,10 @@ namespace mamba
         }
 
         template <class T>
-        void ConfigurableImpl<T>::set_rc_values(const std::map<std::string, T>& mapped_values,
-                                                const std::vector<std::string>& sources)
+        void ConfigurableImpl<T>::set_rc_values(
+            const std::map<std::string, T>& mapped_values,
+            const std::vector<std::string>& sources
+        )
         {
             assert(mapped_values.size() == sources.size());
             this->m_rc_sources.insert(this->m_rc_sources.end(), sources.begin(), sources.end());
@@ -620,14 +651,20 @@ namespace mamba
             bool force_compute = options & MAMBA_CONF_FORCE_COMPUTE;
 
             if (force_compute)
+            {
                 LOG_TRACE << "Update configurable '" << this->m_name << "'";
+            }
             else
+            {
                 LOG_TRACE << "Compute configurable '" << this->m_name << "'";
+            }
 
-            if (!force_compute
-                && (Configuration::instance().is_loading() && (m_compute_counter > 0)))
-                throw std::runtime_error("Multiple computation of '" + m_name
-                                         + "' detected during loading sequence.");
+            if (!force_compute && (Configuration::instance().is_loading() && (m_compute_counter > 0)))
+            {
+                throw std::runtime_error(
+                    "Multiple computation of '" + m_name + "' detected during loading sequence."
+                );
+            }
 
             auto& ctx = Context::instance();
             m_sources.clear();
@@ -655,7 +692,8 @@ namespace mamba
                         try
                         {
                             m_values.insert(
-                                { env_var, detail::Source<T>::deserialize(env_var_value.value()) });
+                                { env_var, detail::Source<T>::deserialize(env_var_value.value()) }
+                            );
                             m_sources.push_back(env_var);
                         }
                         catch (const YAML::Exception& e)
@@ -670,7 +708,7 @@ namespace mamba
                 }
             }
 
-            if (rc_configured() && !ctx.no_rc && (level >= ConfigurationLevel::kFile))
+            if (rc_configured() && !ctx.src_params.no_rc && (level >= ConfigurationLevel::kFile))
             {
                 m_sources.insert(m_sources.end(), m_rc_sources.begin(), m_rc_sources.end());
                 m_values.insert(m_rc_values.begin(), m_rc_values.end());
@@ -689,7 +727,9 @@ namespace mamba
             }
 
             if (!m_sources.empty())
+            {
                 detail::Source<T>::merge(m_values, m_sources, m_value, m_source);
+            }
             else
             {
                 m_value = m_default_value;
@@ -697,7 +737,9 @@ namespace mamba
             }
 
             if (!hook_disabled && (p_post_merge_hook != NULL))
+            {
                 p_post_merge_hook(m_value);
+            }
 
             ++m_compute_counter;
             if (p_context != nullptr)
@@ -706,7 +748,9 @@ namespace mamba
             }
 
             if (p_post_ctx_hook != nullptr)
+            {
                 p_post_ctx_hook();
+            }
         }
     }
 
@@ -747,7 +791,9 @@ namespace mamba
     T& Configurable::value()
     {
         if (Configuration::instance().is_loading() && p_impl->m_compute_counter == 0)
+        {
             throw std::runtime_error("Using '" + name() + "' value without previous computation.");
+        }
         return get_wrapped<T>().m_value;
     }
 
@@ -755,7 +801,9 @@ namespace mamba
     const T& Configurable::cli_value() const
     {
         if (!cli_configured())
+        {
             throw std::runtime_error("Trying to get unset CLI value of '" + name() + "'");
+        }
 
         return get_wrapped<T>().m_cli_config.value();
     }
@@ -774,8 +822,10 @@ namespace mamba
     }
 
     template <class T>
-    Configurable&& Configurable::set_rc_values(const std::map<std::string, T>& mapped_values,
-                                               const std::vector<std::string>& sources)
+    Configurable&& Configurable::set_rc_values(
+        const std::map<std::string, T>& mapped_values,
+        const std::vector<std::string>& sources
+    )
     {
         get_wrapped<T>().set_rc_values(mapped_values, sources);
         return std::move(*this);
@@ -886,8 +936,7 @@ namespace mamba
         {
             if (!allow_redefinition)
             {
-                throw std::runtime_error("Redefinition of configurable '" + name
-                                         + "' not allowed.");
+                throw std::runtime_error("Redefinition of configurable '" + name + "' not allowed.");
             }
         }
 

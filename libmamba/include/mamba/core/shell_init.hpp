@@ -8,10 +8,12 @@
 #define MAMBA_CORE_SHELL_INIT
 
 #include <string>
+#include <vector>
 
 #include "mamba_fs.hpp"
 
 extern const char data_micromamba_sh[];
+extern const char data_micromamba_csh[];
 extern const char data_micromamba_bat[];
 extern const char data_activate_bat[];
 extern const char data__mamba_activate_bat[];
@@ -36,22 +38,21 @@ namespace mamba
     // this function calls cygpath to convert win path to unix
     std::string native_path_to_unix(const std::string& path, bool is_a_path_env = false);
 
-    std::string rcfile_content(const fs::u8path& env_prefix,
-                               const std::string& shell,
-                               const fs::u8path& mamba_exe);
+    std::string
+    rcfile_content(const fs::u8path& env_prefix, const std::string& shell, const fs::u8path& mamba_exe);
 
-    std::string xonsh_content(const fs::u8path& env_prefix,
-                              const std::string& shell,
-                              const fs::u8path& mamba_exe);
+    std::string
+    xonsh_content(const fs::u8path& env_prefix, const std::string& shell, const fs::u8path& mamba_exe);
 
-    void modify_rc_file(const fs::u8path& file_path,
-                        const fs::u8path& conda_prefix,
-                        const std::string& shell,
-                        const fs::u8path& mamba_exe);
+    void modify_rc_file(
+        const fs::u8path& file_path,
+        const fs::u8path& conda_prefix,
+        const std::string& shell,
+        const fs::u8path& mamba_exe
+    );
 
-    void reset_rc_file(const fs::u8path& file_path,
-                       const std::string& shell,
-                       const fs::u8path& mamba_exe);
+    void
+    reset_rc_file(const fs::u8path& file_path, const std::string& shell, const fs::u8path& mamba_exe);
 
     // we need this function during linking...
     void init_root_prefix_cmdexe(const fs::u8path& root_prefix);
@@ -65,6 +66,8 @@ namespace mamba
 
     void init_shell(const std::string& shell, const fs::u8path& conda_prefix);
     void deinit_shell(const std::string& shell, const fs::u8path& conda_prefix);
+    std::vector<std::string> find_initialized_shells();
+
 }
 
 #endif

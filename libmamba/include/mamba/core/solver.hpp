@@ -7,55 +7,66 @@
 #ifndef MAMBA_CORE_SOLVER_HPP
 #define MAMBA_CORE_SOLVER_HPP
 
+#include <iosfwd>
+#include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
-#include <optional>
+
+#include <solv/pooltypes.h>
+#include <solv/solvable.h>
+// Incomplete header
+#include <solv/rules.h>
+
+#include "mamba/core/package_info.hpp"
+#include "mamba/core/pool.hpp"
+#include "mamba/core/satisfiability_error.hpp"
 
 #include "match_spec.hpp"
-
-extern "C"
-{
-#include "solv/queue.h"
-#include "solv/solver.h"
-}
 
 #define MAMBA_NO_DEPS 0b0001
 #define MAMBA_ONLY_DEPS 0b0010
 #define MAMBA_FORCE_REINSTALL 0b0100
 
+extern "C"
+{
+    typedef struct s_Solver Solver;
+}
+
+namespace mamba::solv
+{
+    class ObjQueue;
+    class ObjSolver;
+}
+
 namespace mamba
 {
-    class MPool;
-    class PackageInfo;
 
-    class MSolverProblem
+    struct MSolverProblem
     {
-    public:
         SolverRuleinfo type;
         Id source_id;
         Id target_id;
         Id dep_id;
-
-        Solver* solver;
-
-        std::string to_string() const;
-
-        std::optional<PackageInfo> target() const;
-        std::optional<PackageInfo> source() const;
-        std::optional<std::string> dep() const;
+        std::optional<PackageInfo> source;
+        std::optional<PackageInfo> target;
+        std::optional<std::string> dep;
+        std::string description;
     };
+
 
     class MSolver
     {
     public:
-        MSolver(MPool& pool, const std::vector<std::pair<int, int>>& flags = {});
+
+        MSolver(MPool pool, std::vector<std::pair<int, int>> flags = {});
         ~MSolver();
 
         MSolver(const MSolver&) = delete;
         MSolver& operator=(const MSolver&) = delete;
-        MSolver(MSolver&&) = delete;
-        MSolver& operator=(MSolver&&) = delete;
+        MSolver(MSolver&&);
+        MSolver& operator=(MSolver&&);
 
         void add_global_job(int job_flag);
         void add_jobs(const std::vector<std::string>& jobs, int job_flag);
@@ -64,18 +75,28 @@ namespace mamba
         void add_pins(const std::vector<std::string>& pins);
         void set_flags(const std::vector<std::pair<int, int>>& flags);
         void set_postsolve_flags(const std::vector<std::pair<int, int>>& flags);
-        bool is_solved() const;
-        bool solve();
-        std::string problems_to_str() const;
-        std::vector<std::string> all_problems() const;
-        std::vector<MSolverProblem> all_problems_structured() const;
-        std::string all_problems_to_str() const;
+        [[nodiscard]] bool try_solve();
+        void must_solve();
 
-        const std::vector<MatchSpec>& install_specs() const;
-        const std::vector<MatchSpec>& remove_specs() const;
-        const std::vector<MatchSpec>& neuter_specs() const;
-        const std::vector<MatchSpec>& pinned_specs() const;
+        [[nodiscard]] bool is_solved() const;
+        [[nodiscard]] std::string problems_to_str() const;
+        [[nodiscard]] std::vector<std::string> all_problems() const;
+        [[nodiscard]] std::vector<MSolverProblem> all_problems_structured() const;
+        [[nodiscard]] ProblemsGraph problems_graph() const;
+        [[nodiscard]] std::string all_problems_to_str() const;
+        std::ostream& explain_problems(std::ostream& out) const;
+        [[nodiscard]] std::string explain_problems() const;
 
+        [[nodiscard]] const MPool& pool() const&;
+        [[nodiscard]] MPool& pool() &;
+        [[nodiscard]] MPool&& pool() &&;
+
+        [[nodiscard]] const std::vector<MatchSpec>& install_specs() const;
+        [[nodiscard]] const std::vector<MatchSpec>& remove_specs() const;
+        [[nodiscard]] const std::vector<MatchSpec>& neuter_specs() const;
+        [[nodiscard]] const std::vector<MatchSpec>& pinned_specs() const;
+
+        operator const Solver*() const;
         operator Solver*();
 
         bool only_deps = false;
@@ -83,8 +104,6 @@ namespace mamba
         bool force_reinstall = false;
 
     private:
-        void add_channel_specific_job(const MatchSpec& ms, int job_flag);
-        void add_reinstall_job(MatchSpec& ms, int job_flag);
 
         std::vector<std::pair<int, int>> m_flags;
         std::vector<MatchSpec> m_install_specs;
@@ -92,9 +111,16 @@ namespace mamba
         std::vector<MatchSpec> m_neuter_specs;
         std::vector<MatchSpec> m_pinned_specs;
         bool m_is_solved;
-        Solver* m_solver;
-        Pool* m_pool;
-        Queue m_jobs;
+        // Order of m_pool and m_solver is critical since m_pool must outlive m_solver.
+        MPool m_pool;
+        // Temporary Pimpl all libsolv to keep it private
+        std::unique_ptr<solv::ObjSolver> m_solver;
+        std::unique_ptr<solv::ObjQueue> m_jobs;
+
+        auto solver() -> solv::ObjSolver&;
+        auto solver() const -> const solv::ObjSolver&;
+
+        void add_reinstall_job(MatchSpec& ms, int job_flag);
     };
 }  // namespace mamba
 

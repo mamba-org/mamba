@@ -23,7 +23,7 @@ class TestInstall:
         os.environ["CONDA_PREFIX"] = TestInstall.prefix
 
     @classmethod
-    def setup(cls):
+    def setup_method(cls):
         create("-n", TestInstall.env_name, "--offline", no_dry_run=True)
 
     @classmethod
@@ -33,7 +33,7 @@ class TestInstall:
         shutil.rmtree(TestInstall.root_prefix)
 
     @classmethod
-    def teardown(cls):
+    def teardown_method(cls):
         os.environ["MAMBA_ROOT_PREFIX"] = TestInstall.root_prefix
         os.environ["CONDA_PREFIX"] = TestInstall.prefix
         for v in ("CONDA_CHANNELS", "MAMBA_TARGET_PREFIX"):
@@ -449,11 +449,13 @@ class TestInstall:
         action_keys = {"LINK", "UNLINK", "PREFIX"}
         assert action_keys.issubset(set(res["actions"].keys()))
 
-        expected_packages = {"python", "python_abi"}
+        expected_link_packages = (
+            {"python"} if os.name == "nt" else {"python", "python_abi"}
+        )
         link_packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
-        assert expected_packages.issubset(link_packages)
+        assert expected_link_packages.issubset(link_packages)
         unlink_packages = {pkg["name"] for pkg in res["actions"]["UNLINK"]}
-        assert expected_packages.issubset(unlink_packages)
+        assert {"python"}.issubset(unlink_packages)
 
         py_pkg = [pkg for pkg in res["actions"]["LINK"] if pkg["name"] == "python"][0]
         assert not py_pkg["version"].startswith("3.9")
@@ -522,3 +524,12 @@ class TestInstall:
         pkg = pkgs[0]
         assert pkg["version"] == "1.4.4"
         assert pkg["build_string"] == "pyh9f0ad1d_0"
+
+    def test_broken_package_name(self):
+        non_existing_url = (
+            "https://026e9ab9-6b46-4285-ae0d-427553801720.de/mypackage.tar.bz2"
+        )
+        try:
+            res = install(non_existing_url, default_channel=False)
+        except subprocess.CalledProcessError as e:
+            assert "Invalid package filename" in e.stderr.decode("utf-8")

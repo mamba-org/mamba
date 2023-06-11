@@ -5,24 +5,21 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <algorithm>
-#include <regex>
 #include <iostream>
+#include <regex>
 #include <stdexcept>
 
-#include <reproc++/run.hpp>
-
 #include <nlohmann/json.hpp>
-
-#include "spdlog/spdlog.h"
+#include <reproc++/run.hpp>
+#include <spdlog/spdlog.h>
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/info.hpp"
 #include "mamba/api/install.hpp"
-
 #include "mamba/core/environment.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/transaction.hpp"
+#include "mamba/core/package_download.hpp"
 
 namespace mamba
 {
@@ -34,23 +31,29 @@ namespace mamba
     {
         bool ConfigurableImplBase::env_var_configured() const
         {
-            if (Context::instance().no_env)
+            if (Context::instance().src_params.no_env)
+            {
                 return false;
+            }
 
             for (const auto& env_var : m_env_var_names)
+            {
                 if (env::get(env_var))
+                {
                     return true;
+                }
+            }
             return false;
         }
 
         bool ConfigurableImplBase::env_var_active() const
         {
-            return !Context::instance().no_env || (m_name == "no_env");
+            return !Context::instance().src_params.no_env || (m_name == "no_env");
         }
 
         bool ConfigurableImplBase::rc_configured() const
         {
-            return m_rc_configured && !Context::instance().no_rc;
+            return m_rc_configured && !Context::instance().src_params.no_rc;
         }
     }
 
@@ -145,9 +148,13 @@ namespace mamba
         p_impl->m_rc_configurable_policy = level;
 
         if (level == RCConfigLevel::kTargetPrefix)
+        {
             p_impl->m_needed_configs.insert("target_prefix");
+        }
         else
+        {
             p_impl->m_needed_configs.insert("root_prefix");
+        }
 
         return std::move(*this);
     }
@@ -185,12 +192,18 @@ namespace mamba
     Configurable&& Configurable::set_env_var_names(const std::vector<std::string>& names)
     {
         if (names.empty())
+        {
             p_impl->m_env_var_names = { "MAMBA_" + to_upper(p_impl->m_name) };
+        }
         else
+        {
             p_impl->m_env_var_names = names;
+        }
 
         if (name() != "no_env")
+        {
             p_impl->m_needed_configs.insert("no_env");
+        }
 
         return std::move(*this);
     }
@@ -235,8 +248,12 @@ namespace mamba
     Configurable&& Configurable::clear_env_values()
     {
         if (env_var_configured())
+        {
             for (const auto& ev : p_impl->m_env_var_names)
+            {
                 env::unset(ev);
+            }
+        }
         return std::move(*this);
     }
 
@@ -268,15 +285,16 @@ namespace mamba
         return std::move(*this);
     }
 
-    Configurable&& Configurable::set_rc_yaml_value(const YAML::Node& value,
-                                                   const std::string& source)
+    Configurable&& Configurable::set_rc_yaml_value(const YAML::Node& value, const std::string& source)
     {
         p_impl->set_rc_yaml_value(value, source);
         return std::move(*this);
     }
 
-    Configurable&& Configurable::set_rc_yaml_values(const std::map<std::string, YAML::Node>& values,
-                                                    const std::vector<std::string>& sources)
+    Configurable&& Configurable::set_rc_yaml_values(
+        const std::map<std::string, YAML::Node>& values,
+        const std::vector<std::string>& sources
+    )
     {
         p_impl->set_rc_yaml_values(values, sources);
         return std::move(*this);
@@ -412,8 +430,62 @@ namespace mamba
             if (name.find_first_of("/\\") != std::string::npos)
             {
                 throw std::runtime_error(
-                    "An unexpected file-system separator was found in environment name: '" + name
-                    + "'");
+                    "An unexpected file-system separator was found in environment name: '" + name + "'"
+                );
+            }
+        }
+
+        namespace
+        {
+            /** Find the first directory containing the given subdirectory. */
+            auto find_env_in_dirs(std::string_view name, const std::vector<fs::u8path>& dirs)
+                -> std::optional<fs::u8path>
+            {
+                for (const auto& dir : dirs)
+                {
+                    const auto candidate = dir / name;
+                    if (fs::exists(candidate) && fs::is_directory(candidate))
+                    {
+                        return candidate;
+                    }
+                }
+                return std::nullopt;
+            }
+
+            /** Find the first directory that can create the given subdirectory. */
+            auto find_writable_env_in_dirs(std::string_view name, const std::vector<fs::u8path>& dirs)
+                -> std::optional<fs::u8path>
+            {
+                for (const auto& dir : dirs)
+                {
+                    const auto candidate = dir / name;
+                    if (mamba::path::is_writable(candidate))
+                    {
+                        return candidate;
+                    }
+                }
+                return std::nullopt;
+            }
+
+            auto compute_prefix_from_name(
+                const fs::u8path& root_prefix,
+                const std::vector<fs::u8path>& envs_dirs,
+                std::string_view name
+            ) -> fs::u8path
+            {
+                if (name == "base")
+                {
+                    return root_prefix;
+                }
+                if (auto dir = find_env_in_dirs(name, envs_dirs); dir.has_value())
+                {
+                    return std::move(dir).value();
+                }
+                if (auto dir = find_writable_env_in_dirs(name, envs_dirs); dir.has_value())
+                {
+                    return std::move(dir).value();
+                }
+                return root_prefix / "envs" / name;
             }
         }
 
@@ -445,23 +517,20 @@ namespace mamba
 
             if (!name.empty())
             {
-                fs::u8path prefix;
-                if (name == "base")
-                {
-                    prefix = root_prefix;
-                }
-                else
-                {
-                    prefix = root_prefix / "envs" / name;
-                }
+                const auto& envs_dirs = config.at("envs_dirs").value<std::vector<fs::u8path>>();
+                fs::u8path prefix = compute_prefix_from_name(root_prefix, envs_dirs, name);
 
                 if (!config.at("target_prefix").cli_configured()
                     && config.at("env_name").cli_configured())
+                {
                     config.at("target_prefix").set_cli_value<fs::u8path>(prefix);
+                }
 
                 if (!config.at("target_prefix").api_configured()
                     && config.at("env_name").api_configured())
+                {
                     config.at("target_prefix").set_value(prefix);
+                }
             }
         }
 
@@ -491,7 +560,9 @@ namespace mamba
             {
                 bool use_fallback = config.at("use_target_prefix_fallback").value<bool>();
                 if (use_fallback)
+                {
                     prefix = std::getenv("CONDA_PREFIX") ? std::getenv("CONDA_PREFIX") : "";
+                }
             }
 
 #ifdef _WIN32
@@ -500,10 +571,11 @@ namespace mamba
             std::string sep = "/";
 #endif
             if (!prefix.empty())
+            {
                 prefix = rstrip(fs::weakly_canonical(env::expand_user(prefix)).string(), sep);
+            }
 
-            if ((prefix == root_prefix)
-                && Configuration::instance().at("create_base").value<bool>())
+            if ((prefix == root_prefix) && Configuration::instance().at("create_base").value<bool>())
             {
                 path::touch(root_prefix / "conda-meta" / "history", true);
             }
@@ -537,19 +609,23 @@ namespace mamba
                     if (fs::is_directory(prefix))
                     {
                         if (!fs::is_empty(prefix)
-                            && (!(fs::exists(prefix / "pkgs") || fs::exists(prefix / "conda-meta")
-                                  || fs::exists(prefix / "envs"))))
+                            && (!(
+                                fs::exists(prefix / "pkgs") || fs::exists(prefix / "conda-meta")
+                                || fs::exists(prefix / "envs")
+                            )))
                         {
                             throw std::runtime_error(fmt::format(
                                 "Could not use default 'root_prefix': {}: Directory exists, is not empty and not a conda prefix.",
-                                prefix.string()));
+                                prefix.string()
+                            ));
                         }
                     }
                     else
                     {
                         throw std::runtime_error(fmt::format(
                             "Could not use default 'root_prefix': {}: File is not a directory.",
-                            prefix.string()));
+                            prefix.string()
+                        ));
                     }
                 }
 
@@ -578,7 +654,7 @@ namespace mamba
         void post_root_prefix_rc_loading()
         {
             auto& config = Configuration::instance();
-            if (!Context::instance().no_rc)
+            if (!Context::instance().src_params.no_rc)
             {
                 rc_loading_hook(RCConfigLevel::kHomeDir);
                 config.at("no_env").compute(MAMBA_CONF_FORCE_COMPUTE);
@@ -588,7 +664,7 @@ namespace mamba
         void post_target_prefix_rc_loading()
         {
             auto& config = Configuration::instance();
-            if (!Context::instance().no_rc)
+            if (!Context::instance().src_params.no_rc)
             {
                 rc_loading_hook(RCConfigLevel::kTargetPrefix);
                 config.at("no_env").compute(MAMBA_CONF_FORCE_COMPUTE);
@@ -599,11 +675,13 @@ namespace mamba
         {
             auto& ctx = Context::instance();
 
-            if (ctx.json)
-                return mamba::log_level::off;
+            if (ctx.output_params.json)
+            {
+                return mamba::log_level::critical;
+            }
             else if (Configuration::instance().at("verbose").configured())
             {
-                switch (ctx.verbosity)
+                switch (ctx.output_params.verbosity)
                 {
                     case 0:
                         return mamba::log_level::warn;
@@ -616,19 +694,21 @@ namespace mamba
                 }
             }
             else
+            {
                 return mamba::log_level::warn;
+            }
         }
 
         void verbose_hook(int& lvl)
         {
             auto& ctx = Context::instance();
-            ctx.verbosity = lvl;
+            ctx.output_params.verbosity = lvl;
         }
 
         void target_prefix_checks_hook(int& options)
         {
             auto& ctx = Context::instance();
-            auto& prefix = ctx.target_prefix;
+            auto& prefix = ctx.prefix_params.target_prefix;
 
             bool no_checks = options & MAMBA_NO_PREFIX_CHECK;
             bool allow_missing = options & MAMBA_ALLOW_MISSING_PREFIX;
@@ -637,7 +717,9 @@ namespace mamba
             bool expect_existing = options & MAMBA_EXPECT_EXISTING_PREFIX;
 
             if (no_checks)
+            {
                 return;
+            }
 
             if (prefix.empty())
             {
@@ -669,8 +751,7 @@ namespace mamba
             else if (expect_existing)
             {
                 LOG_ERROR << "No prefix found at: " << prefix.string();
-                LOG_ERROR
-                    << "Environment must first be created with \"micromamba create -n {env_name} ...\"";
+                LOG_ERROR << "Environment must first be created with \"micromamba create -n {env_name} ...\"";
                 throw std::runtime_error("Aborting.");
             }
         }
@@ -681,7 +762,7 @@ namespace mamba
 
             if (!files.empty())
             {
-                if (ctx.no_rc)
+                if (ctx.src_params.no_rc)
                 {
                     LOG_ERROR << "Configuration files disabled by 'no_rc'";
                     throw std::runtime_error("Incompatible configuration. Aborting.");
@@ -710,7 +791,9 @@ namespace mamba
         void debug_hook(bool& value)
         {
             if (value)
+            {
                 LOG_WARNING << "Debug mode enabled";
+            }
         }
 
         void print_config_only_hook(bool& value)
@@ -743,7 +826,7 @@ namespace mamba
 
         std::vector<fs::u8path> fallback_envs_dirs_hook()
         {
-            return { Context::instance().root_prefix / "envs" };
+            return { Context::instance().prefix_params.root_prefix / "envs" };
         }
 
         void envs_dirs_hook(std::vector<fs::u8path>& dirs)
@@ -761,7 +844,7 @@ namespace mamba
 
         std::vector<fs::u8path> fallback_pkgs_dirs_hook()
         {
-            std::vector<fs::u8path> paths = { Context::instance().root_prefix / "pkgs",
+            std::vector<fs::u8path> paths = { Context::instance().prefix_params.root_prefix / "pkgs",
                                               env::home_directory() / ".mamba" / "pkgs" };
 #ifdef _WIN32
             auto appdata = env::get("APPDATA");
@@ -789,13 +872,17 @@ namespace mamba
         void download_threads_hook(std::size_t& value)
         {
             if (!value)
+            {
                 throw std::runtime_error(fmt::format(
-                    "Number of download threads as to be positive (currently set to {})", value));
+                    "Number of download threads as to be positive (currently set to {})",
+                    value
+                ));
+            }
         }
 
         void extract_threads_hook()
         {
-            DownloadExtractSemaphore::set_max(Context::instance().extract_threads);
+            DownloadExtractSemaphore::set_max(Context::instance().threads_params.extract_threads);
         }
     }
 
@@ -804,7 +891,11 @@ namespace mamba
         std::vector<std::string> args = { "conda", "config", "--show", "root_prefix", "--json" };
         std::string out, err;
         auto [status, ec] = reproc::run(
-            args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+            args,
+            reproc::options{},
+            reproc::sink::string(out),
+            reproc::sink::string(err)
+        );
 
         if (ec)
         {
@@ -848,10 +939,8 @@ namespace mamba
 
         void print_node(YAML::Emitter& out, YAML::Node value, YAML::Node source, bool show_source);
 
-        void print_scalar_node(YAML::Emitter& out,
-                               YAML::Node value,
-                               YAML::Node source,
-                               bool show_source)
+        void
+        print_scalar_node(YAML::Emitter& out, YAML::Node value, YAML::Node source, bool show_source)
         {
             out << value;
 
@@ -874,10 +963,7 @@ namespace mamba
             }
         }
 
-        void print_seq_node(YAML::Emitter& out,
-                            YAML::Node value,
-                            YAML::Node source,
-                            bool show_source)
+        void print_seq_node(YAML::Emitter& out, YAML::Node value, YAML::Node source, bool show_source)
         {
             if (value.size() > 0)
             {
@@ -892,14 +978,13 @@ namespace mamba
             {
                 out << YAML::_Null();
                 if (show_source)
+                {
                     out << YAML::Comment("'default'");
+                }
             }
         }
 
-        void print_map_node(YAML::Emitter& out,
-                            YAML::Node value,
-                            YAML::Node source,
-                            bool show_source)
+        void print_map_node(YAML::Emitter& out, YAML::Node value, YAML::Node source, bool show_source)
         {
             out << YAML::BeginMap;
             for (auto n : value)
@@ -940,13 +1025,13 @@ namespace mamba
         {
             auto group_title = name + " Configuration";
             auto blk_size = 52 - group_title.size();
-            int prepend_blk = blk_size / 2;
-            int append_blk = blk_size - prepend_blk;
+            auto prepend_blk = blk_size / 2;
+            auto append_blk = blk_size - prepend_blk;
 
             out << YAML::Comment(std::string(54, '#')) << YAML::Newline;
-            out << YAML::Comment("#" + std::string(prepend_blk, ' ') + group_title
-                                 + std::string(append_blk, ' ') + "#")
-                << YAML::Newline;
+            out << YAML::Comment(
+                "#" + std::string(prepend_blk, ' ') + group_title + std::string(append_blk, ' ') + "#"
+            ) << YAML::Newline;
             out << YAML::Comment(std::string(54, '#'));
         }
 
@@ -970,7 +1055,7 @@ namespace mamba
         auto& ctx = Context::instance();
 
         // Basic
-        insert(Configurable("root_prefix", &ctx.root_prefix)
+        insert(Configurable("root_prefix", &ctx.prefix_params.root_prefix)
                    .group("Basic")
                    .set_env_var_names()
                    .needs({ "create_base", "rc_files" })
@@ -983,7 +1068,7 @@ namespace mamba
                    .set_single_op_lifetime()
                    .description("Define if base environment will be initialized empty"));
 
-        insert(Configurable("target_prefix", &ctx.target_prefix)
+        insert(Configurable("target_prefix", &ctx.prefix_params.target_prefix)
                    .group("Basic")
                    .set_env_var_names()
                    .needs({ "root_prefix",
@@ -995,6 +1080,13 @@ namespace mamba
                    .description("Path to the target prefix")
                    .set_post_merge_hook(detail::target_prefix_hook)
                    .set_post_context_hook(detail::post_target_prefix_rc_loading));
+
+        insert(Configurable("relocate_prefix", &ctx.prefix_params.relocate_prefix)
+                   .group("Basic")
+                   .set_env_var_names()
+                   .needs({ "target_prefix" })
+                   .set_single_op_lifetime()
+                   .description("Path to the relocation prefix"));
 
         insert(Configurable("use_target_prefix_fallback", true)
                    .group("Basic")
@@ -1010,7 +1102,7 @@ namespace mamba
 
         insert(Configurable("env_name", std::string(""))
                    .group("Basic")
-                   .needs({ "root_prefix", "spec_file_env_name" })
+                   .needs({ "root_prefix", "spec_file_env_name", "envs_dirs" })
                    .set_single_op_lifetime()
                    .set_post_merge_hook(detail::env_name_hook)
                    .description("Name of the target prefix"));
@@ -1116,19 +1208,29 @@ namespace mamba
                    .description("Custom channels")
                    .long_description("A dictionary with name: url to use for custom channels."));
 
-        insert(
-            Configurable("custom_multichannels", &ctx.custom_multichannels)
-                .group("Channels")
-                .set_rc_configurable()
-                .description("Custom multichannels")
-                .long_description(
-                    "A dictionary with name: list of names/urls to use for custom multichannels."));
+        insert(Configurable("custom_multichannels", &ctx.custom_multichannels)
+                   .group("Channels")
+                   .set_rc_configurable()
+                   .description("Custom multichannels")
+                   .long_description(
+                       "A dictionary with name: list of names/urls to use for custom multichannels."
+                   ));
 
         insert(Configurable("override_channels_enabled", &ctx.override_channels_enabled)
                    .group("Channels")
                    .set_rc_configurable()
                    .set_env_var_names()
                    .description("Permit use of the --overide-channels command-line flag"));
+
+        insert(Configurable("repodata_use_zst", &ctx.repodata_use_zst)
+                   .group("Repodata")
+                   .set_rc_configurable()
+                   .description("Use zstd encoded repodata when fetching"));
+
+        insert(Configurable("repodata_has_zst", &ctx.repodata_has_zst)
+                   .group("Repodata")
+                   .set_rc_configurable()
+                   .description("Channels that have zstd encoded repodata (saves a HEAD request)"));
 
         // Network
         insert(Configurable("cacert_path", std::string(""))
@@ -1160,13 +1262,13 @@ namespace mamba
                    .set_env_var_names()
                    .description("Force use cached repodata"));
 
-	insert(Configurable("use_index_cache", &ctx.use_index_cache)
+	      insert(Configurable("use_index_cache", &ctx.use_index_cache)
                    .group("Network")
                    .set_rc_configurable()
                    .set_env_var_names()
                    .description("Force use cached repodata"));
 
-        insert(Configurable("ssl_no_revoke", &ctx.ssl_no_revoke)
+        insert(Configurable("ssl_no_revoke", &ctx.remote_fetch_params.ssl_no_revoke)
                    .group("Network")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1176,7 +1278,7 @@ namespace mamba
                         It's only working for Windows back-end.
                         WARNING: this option loosens the SSL security.)")));
 
-        insert(Configurable("ssl_verify", &ctx.ssl_verify)
+        insert(Configurable("ssl_verify", &ctx.remote_fetch_params.ssl_verify)
                    .group("Network")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1187,6 +1289,38 @@ namespace mamba
                         a directory with cert files, or a cert file..)"))
                    .needs({ "cacert_path", "offline" })
                    .set_post_merge_hook(detail::ssl_verify_hook));
+
+        insert(Configurable("proxy_servers", &ctx.proxy_servers)
+                   .group("Network")
+                   .set_rc_configurable()
+                   .description("Use a proxy server for network connections")
+                   .long_description(unindent(R"(
+                        'proxy_servers' should be a dictionary where the key is either in the form of
+                        scheme://hostname or just a scheme for which the proxy server should be used and
+                        the value is the url of the proxy server, optionally with username and password
+                        in the form of scheme://username:password@hostname.)")));
+
+        insert(Configurable("remote_connect_timeout_secs", &ctx.remote_fetch_params.connect_timeout_secs)
+                   .group("Network")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description(
+                       "The number seconds conda will wait for your client to establish a connection to a remote url resource."
+                   ));
+
+        insert(Configurable("remote_backoff_factor", &ctx.remote_fetch_params.retry_backoff)
+                   .group("Network")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description("The factor determines the time HTTP connection should wait for attempt."
+                   ));
+
+        insert(Configurable("remote_max_retries", &ctx.remote_fetch_params.max_retries)
+                   .group("Network")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description("The maximum number of retries each HTTP connection should attempt."));
+
 
         // Solver
         insert(Configurable("channel_priority", &ctx.channel_priority)
@@ -1245,19 +1379,22 @@ namespace mamba
                    .group("Solver")
                    .description("Freeze already installed dependencies"));
 
-        insert(Configurable("force_reinstall", false)
+        insert(
+            Configurable("force_reinstall", false).group("Solver").description("Force reinstall of package")
+        );
+
+        insert(Configurable("no_deps", false)
                    .group("Solver")
-                   .description("Force reinstall of package"));
+                   .description("Do not install dependencies. This WILL lead to broken environments "
+                                "and inconsistent behavior. Use at your own risk"));
 
         insert(
-            Configurable("no_deps", false)
-                .group("Solver")
-                .description("Do not install dependencies. This WILL lead to broken environments "
-                             "and inconsistent behavior. Use at your own risk"));
+            Configurable("only_deps", false).group("Solver").description("Only install dependencies")
+        );
 
-        insert(Configurable("only_deps", false)
+        insert(Configurable("categories", std::vector<std::string>({ "main" }))
                    .group("Solver")
-                   .description("Only install dependencies"));
+                   .description("Package categories to consider when installing from a lock file"));
 
         insert(Configurable("retry_clean_cache", false)
                    .group("Solver")
@@ -1268,8 +1405,8 @@ namespace mamba
                    .group("Solver")
                    .set_rc_configurable()
                    .set_env_var_names()
-                   .description(
-                       "Allow uninstall when installing or updating packages. Default is true."));
+                   .description("Allow uninstall when installing or updating packages. Default is true."
+                   ));
 
         insert(Configurable("allow_downgrade", &ctx.allow_downgrade)
                    .group("Solver")
@@ -1278,7 +1415,7 @@ namespace mamba
                    .description("Allow downgrade when installing packages. Default is false."));
 
         // Extract, Link & Install
-        insert(Configurable("download_threads", &ctx.download_threads)
+        insert(Configurable("download_threads", &ctx.threads_params.download_threads)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1288,7 +1425,7 @@ namespace mamba
                         Defines the number of threads for package download.
                         It has to be strictly positive.)")));
 
-        insert(Configurable("extract_threads", &ctx.extract_threads)
+        insert(Configurable("extract_threads", &ctx.threads_params.extract_threads)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1333,13 +1470,13 @@ namespace mamba
                         !WARNING: Using this option can result in corruption of long-lived
                         environments due to broken links (deleted cache).)")));
 
-        insert(
-            Configurable("shortcuts", &ctx.shortcuts)
-                .group("Extract, Link & Install")
-                .set_rc_configurable()
-                .set_env_var_names()
-                .description(
-                    "Install start-menu shortcuts on Windows (not implemented on Linux / macOS)"));
+        insert(Configurable("shortcuts", &ctx.shortcuts)
+                   .group("Extract, Link & Install")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description(
+                       "Install start-menu shortcuts on Windows (not implemented on Linux / macOS)"
+                   ));
 
         insert(Configurable("safety_checks", &ctx.safety_checks)
                    .group("Extract, Link & Install")
@@ -1372,10 +1509,21 @@ namespace mamba
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
-                   .description("LockFile timeout")
+                   .description("Lockfile timeout")
                    .long_description(unindent(R"(
-                        LockFile timeout for blocking mode when waiting for another process
+                        Lockfile timeout for blocking mode when waiting for another process
                         to release the path. Default is 0 (no timeout))")));
+
+        insert(Configurable("use_lockfiles", &ctx.use_lockfiles)
+                   .group("Extract, Link & Install")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description("Enable or disable the usage of filesystem lockfiles for shared resources")
+                   .long_description(unindent(R"(
+                        By default, mamba uses lockfiles on the filesystem to synchronize access to
+                        shared resources for multiple mamba processes (such as the package cache).
+                        However, some filesystems do not support file locking and locks do not always
+                        make sense - like when on an HPC.  Default is true (use a lockfile)")));
 
         insert(Configurable("compile_pyc", &ctx.compile_pyc)
                    .group("Extract, Link & Install")
@@ -1404,7 +1552,13 @@ namespace mamba
                    .set_env_var_names()
                    .description("Only display what would have been done"));
 
-        insert(Configurable("log_level", &ctx.logging_level)
+        insert(Configurable("download_only", &ctx.download_only)
+                   .group("Output, Prompt and Flow Control")
+                   .set_env_var_names()
+                   .description("Only download and extract packages, do not link them into environment."
+                   ));
+
+        insert(Configurable("log_level", &ctx.output_params.logging_level)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1416,7 +1570,7 @@ namespace mamba
                             be one of {'off', 'fatal', 'error', 'warning', 'info',
                             'debug', 'trace'}.)")));
 
-        insert(Configurable("log_backtrace", &ctx.log_backtrace)
+        insert(Configurable("log_backtrace", &ctx.output_params.log_backtrace)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1425,7 +1579,7 @@ namespace mamba
                             Set the log backtrace size. It will replay the n last
                             logs if an error is thrown during the execution.)")));
 
-        insert(Configurable("log_pattern", &ctx.log_pattern)
+        insert(Configurable("log_pattern", &ctx.output_params.log_pattern)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1433,28 +1587,28 @@ namespace mamba
                    .long_description(unindent(R"(
                             Set the log pattern.)")));
 
-        insert(Configurable("json", &ctx.json)
+        insert(Configurable("json", &ctx.output_params.json)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .needs({ "print_config_only", "print_context_only" })
                    .set_env_var_names()
                    .description("Report all output as json"));
 
-        insert(
-            Configurable("changeps1", &ctx.change_ps1)
-                .group("Output, Prompt and Flow Control")
-                .set_rc_configurable()
-                .set_env_var_names()
-                .description(
-                    "When using activate, change the command prompt ($PS1) to include the activated environment."));
+        insert(Configurable("changeps1", &ctx.change_ps1)
+                   .group("Output, Prompt and Flow Control")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description(
+                       "When using activate, change the command prompt ($PS1) to include the activated environment."
+                   ));
 
-        insert(
-            Configurable("shell_completion", &ctx.shell_completion)
-                .group("Output, Prompt and Flow Control")
-                .set_rc_configurable()
-                .set_env_var_names()
-                .description(
-                    "Enable or disable shell autocompletion (currently works for bash and zsh)."));
+        insert(Configurable("shell_completion", &ctx.shell_completion)
+                   .group("Output, Prompt and Flow Control")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description(
+                       "Enable or disable shell autocompletion (currently works for bash and zsh)."
+                   ));
 
         insert(Configurable("env_prompt", &ctx.env_prompt)
                    .group("Output, Prompt and Flow Control")
@@ -1468,19 +1622,17 @@ namespace mamba
                         active environment is a named environment ('-n' flag), or otherwise holds the value
                         of '{prefix}'.)")));
 
-        insert(
-            Configurable("print_config_only", false)
-                .group("Output, Prompt and Flow Control")
-                .needs({ "debug" })
-                .set_post_merge_hook(detail::print_config_only_hook)
-                .description("Print the context after loading the config. Allow ultra-dry runs"));
+        insert(Configurable("print_config_only", false)
+                   .group("Output, Prompt and Flow Control")
+                   .needs({ "debug" })
+                   .set_post_merge_hook(detail::print_config_only_hook)
+                   .description("Print the context after loading the config. Allow ultra-dry runs"));
 
-        insert(
-            Configurable("print_context_only", false)
-                .group("Output, Prompt and Flow Control")
-                .needs({ "debug" })
-                .set_post_merge_hook(detail::print_context_only_hook)
-                .description("Print the context after loading the config. Allow ultra-dry runs"));
+        insert(Configurable("print_context_only", false)
+                   .group("Output, Prompt and Flow Control")
+                   .needs({ "debug" })
+                   .set_post_merge_hook(detail::print_context_only_hook)
+                   .description("Print the context after loading the config. Allow ultra-dry runs"));
 
         insert(Configurable("show_banner", true)
                    .group("Output, Prompt and Flow Control")
@@ -1518,14 +1670,14 @@ namespace mamba
                    .group("Output, Prompt and Flow Control")
                    .description("Display configs values"));
 
-        insert(Configurable("quiet", &ctx.quiet)
+        insert(Configurable("quiet", &ctx.output_params.quiet)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
                    .needs({ "json", "print_config_only", "print_context_only" })
                    .description("Set quiet mode (print less output)"));
 
-        insert(Configurable("verbose", int(0))
+        insert(Configurable("verbose", 0)
                    .group("Output, Prompt and Flow Control")
                    .set_post_merge_hook(detail::verbose_hook)
                    .description("Set the verbosity")
@@ -1549,12 +1701,12 @@ namespace mamba
                    .set_env_var_names()
                    .description("Whether to override rc files by highest precedence"));
 
-        insert(Configurable("no_rc", &ctx.no_rc)
+        insert(Configurable("no_rc", &ctx.src_params.no_rc)
                    .group("Config sources")
                    .set_env_var_names()
                    .description("Disable the use of configuration files"));
 
-        insert(Configurable("no_env", &ctx.no_env)
+        insert(Configurable("no_env", &ctx.src_params.no_env)
                    .group("Config sources")
                    .set_env_var_names()
                    .description("Disable the use of environment variables"));
@@ -1614,10 +1766,10 @@ namespace mamba
                        "C:\\ProgramData\\conda\\.mambarc" };
         }
 
-        std::vector<fs::u8path> root = { ctx.root_prefix / ".condarc",
-                                         ctx.root_prefix / "condarc",
-                                         ctx.root_prefix / "condarc.d",
-                                         ctx.root_prefix / ".mambarc" };
+        std::vector<fs::u8path> root = { ctx.prefix_params.root_prefix / ".condarc",
+                                         ctx.prefix_params.root_prefix / "condarc",
+                                         ctx.prefix_params.root_prefix / "condarc.d",
+                                         ctx.prefix_params.root_prefix / ".mambarc" };
 
         std::vector<fs::u8path> home = { env::home_directory() / ".conda/.condarc",
                                          env::home_directory() / ".conda/condarc",
@@ -1625,21 +1777,29 @@ namespace mamba
                                          env::home_directory() / ".condarc",
                                          env::home_directory() / ".mambarc" };
 
-        std::vector<fs::u8path> prefix = { ctx.target_prefix / ".condarc",
-                                           ctx.target_prefix / "condarc",
-                                           ctx.target_prefix / "condarc.d",
-                                           ctx.target_prefix / ".mambarc" };
+        std::vector<fs::u8path> prefix = { ctx.prefix_params.target_prefix / ".condarc",
+                                           ctx.prefix_params.target_prefix / "condarc",
+                                           ctx.prefix_params.target_prefix / "condarc.d",
+                                           ctx.prefix_params.target_prefix / ".mambarc" };
 
         std::vector<fs::u8path> sources;
 
         if (level >= RCConfigLevel::kSystemDir)
+        {
             sources.insert(sources.end(), system.begin(), system.end());
-        if ((level >= RCConfigLevel::kRootPrefix) && !ctx.root_prefix.empty())
+        }
+        if ((level >= RCConfigLevel::kRootPrefix) && !ctx.prefix_params.root_prefix.empty())
+        {
             sources.insert(sources.end(), root.begin(), root.end());
+        }
         if (level >= RCConfigLevel::kHomeDir)
+        {
             sources.insert(sources.end(), home.begin(), home.end());
-        if ((level >= RCConfigLevel::kTargetPrefix) && !ctx.target_prefix.empty())
+        }
+        if ((level >= RCConfigLevel::kTargetPrefix) && !ctx.prefix_params.target_prefix.empty())
+        {
             sources.insert(sources.end(), prefix.begin(), prefix.end());
+        }
 
         // Sort by precedence
         std::reverse(sources.begin(), sources.end());
@@ -1676,19 +1836,25 @@ namespace mamba
         CONFIG_DEBUGGING;
 
         if (at("show_banner").value<bool>())
+        {
             Console::instance().print(banner());
+        }
 
         auto& ctx = Context::instance();
-        ctx.set_log_level(ctx.logging_level);
+        ctx.set_log_level(ctx.output_params.logging_level);
 
         spdlog::apply_all([&](std::shared_ptr<spdlog::logger> l) { l->flush(); });
         spdlog::flush_on(spdlog::level::off);
 
         Context::instance().dump_backtrace_no_guards();
-        if (ctx.log_backtrace > 0)
-            spdlog::enable_backtrace(ctx.log_backtrace);
+        if (ctx.output_params.log_backtrace > 0)
+        {
+            spdlog::enable_backtrace(ctx.output_params.log_backtrace);
+        }
         else
+        {
             spdlog::disable_backtrace();
+        }
     }
 
     bool Configuration::is_loading()
@@ -1702,12 +1868,16 @@ namespace mamba
 
         std::vector<std::string> locks;
         for (auto& c : m_config_order)
+        {
             add_to_loading_sequence(m_loading_sequence, c, locks);
+        }
     }
 
-    void Configuration::add_to_loading_sequence(std::vector<std::string>& seq,
-                                                const std::string& name,
-                                                std::vector<std::string>& locks)
+    void Configuration::add_to_loading_sequence(
+        std::vector<std::string>& seq,
+        const std::string& name,
+        std::vector<std::string>& locks
+    )
     {
         auto found = std::find(seq.begin(), seq.end(), name);
 
@@ -1721,8 +1891,7 @@ namespace mamba
                 if (at(n).locked())
                 {
                     LOG_ERROR << "Circular import: " << join("->", locks) << "->" << n;
-                    throw std::runtime_error(
-                        "Circular import detected in configuration. Aborting.");
+                    throw std::runtime_error("Circular import detected in configuration. Aborting.");
                 }
                 add_to_loading_sequence(seq, n, locks);
             }
@@ -1738,20 +1907,26 @@ namespace mamba
             locks.pop_back();
 
             for (auto& n : at(name).implied())
+            {
                 add_to_loading_sequence(seq, n, locks);
+            }
         }
     }
 
     void Configuration::reset_compute_counters()
     {
         for (auto& c : m_config)
+        {
             c.second.reset_compute_counter();
+        }
     }
 
     void Configuration::clear_rc_values()
     {
         for (auto& c : m_config)
+        {
             c.second.clear_rc_values();
+        }
     }
 
     void Configuration::clear_rc_sources()
@@ -1764,22 +1939,32 @@ namespace mamba
     void Configuration::clear_cli_values()
     {
         for (auto& c : m_config)
+        {
             c.second.clear_cli_value();
+        }
     }
 
     void Configuration::clear_values()
     {
         for (auto& c : m_config)
+        {
             c.second.clear_values();
+        }
     }
 
     void Configuration::operation_teardown()
     {
         for (auto& c : m_config)
+        {
             if (c.second.has_single_op_lifetime())
+            {
                 c.second.clear_values();
+            }
             else
+            {
                 c.second.clear_cli_value();
+            }
+        }
     }
 
     std::vector<fs::u8path> Configuration::sources()
@@ -1829,13 +2014,15 @@ namespace mamba
         return config;
     }
 
-    void Configuration::set_rc_values(std::vector<fs::u8path> possible_rc_paths,
-                                      const RCConfigLevel& level)
+    void
+    Configuration::set_rc_values(std::vector<fs::u8path> possible_rc_paths, const RCConfigLevel& level)
     {
         LOG_TRACE << "Get RC files configuration from locations up to "
                   << YAML::Node(level).as<std::string>();
         if (possible_rc_paths.empty())
+        {
             possible_rc_paths = compute_default_rc_sources(level);
+        }
 
         m_sources = get_existing_rc_sources(possible_rc_paths);
         m_valid_sources.clear();
@@ -1846,7 +2033,9 @@ namespace mamba
             {
                 auto node = load_rc_file(s);
                 if (node.IsNull())
+                {
                     continue;
+                }
 
                 m_rc_yaml_nodes_cache.insert({ s, node });
             }
@@ -1860,15 +2049,18 @@ namespace mamba
                 auto& key = it.first;
                 auto& c = it.second;
 
-                if (!c.rc_configurable() || (c.rc_configurable_level() > level)
-                    || c.rc_configured())
+                if (!c.rc_configurable() || (c.rc_configurable_level() > level) || c.rc_configured())
+                {
                     continue;
+                }
 
                 for (const auto& source : m_valid_sources)
                 {
                     auto yaml = m_rc_yaml_nodes_cache[source];
                     if (!yaml[key] || yaml[key].IsNull())
+                    {
                         continue;
+                    }
 
                     c.set_rc_yaml_value(yaml[key], env::shrink_user(source).string());
                 }
@@ -1876,8 +2068,8 @@ namespace mamba
         }
     }
 
-    std::vector<fs::u8path> Configuration::get_existing_rc_sources(
-        const std::vector<fs::u8path>& possible_rc_paths)
+    std::vector<fs::u8path>
+    Configuration::get_existing_rc_sources(const std::vector<fs::u8path>& possible_rc_paths)
     {
         std::vector<fs::u8path> sources;
 
@@ -1906,7 +2098,9 @@ namespace mamba
             else
             {
                 if (!l.empty())
+                {
                     LOG_TRACE << "Configuration not found at '" << l.string() << "'";
+                }
             }
         }
 
@@ -1924,9 +2118,11 @@ namespace mamba
         void dump_configurable(nl::json& node, const Configurable& c, const std::string& name);
     }
 
-    std::string dump_json(int opts,
-                          const std::vector<std::string>& names,
-                          const std::vector<Configuration::grouped_config_type>& grouped_config)
+    std::string dump_json(
+        int opts,
+        const std::vector<std::string>& names,
+        const std::vector<Configuration::grouped_config_type>& grouped_config
+    )
     {
         // bool show_values = opts & MAMBA_SHOW_CONFIG_VALUES;
         bool show_sources = opts & MAMBA_SHOW_CONFIG_SRCS;
@@ -2000,9 +2196,11 @@ namespace mamba
         return root.dump(4);
     }
 
-    std::string dump_yaml(int opts,
-                          const std::vector<std::string>& names,
-                          const std::vector<Configuration::grouped_config_type>& grouped_config)
+    std::string dump_yaml(
+        int opts,
+        const std::vector<std::string>& names,
+        const std::vector<Configuration::grouped_config_type>& grouped_config
+    )
     {
         bool show_values = opts & MAMBA_SHOW_CONFIG_VALUES;
         bool show_sources = opts & MAMBA_SHOW_CONFIG_SRCS;
@@ -2038,12 +2236,16 @@ namespace mamba
                         if (show_groups && first_group_config)
                         {
                             if (!first_config)
+                            {
                                 out << YAML::Newline << YAML::Newline;
+                            }
                             detail::print_group_title(out, group_name);
                         }
 
                         if (!first_config || (first_config && show_groups))
+                        {
                             out << YAML::Newline << YAML::Newline;
+                        }
 
                         out << YAML::Comment(c->name()) << YAML::Newline;
                         if (show_long_descs)
@@ -2059,7 +2261,9 @@ namespace mamba
                     if (show_values)
                     {
                         if (first_config)
+                        {
                             out << YAML::BeginMap;
+                        }
                         out << YAML::Key << c->name();
                         out << YAML::Value;
                         detail::print_configurable(out, *c, show_sources);
@@ -2071,7 +2275,9 @@ namespace mamba
             }
         }
         if (show_values && !first_config)
+        {
             out << YAML::EndMap;
+        }
 
         return out.c_str();
     }

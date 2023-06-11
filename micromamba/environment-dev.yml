@@ -3,24 +3,29 @@ channels:
   - conda-forge
 dependencies:
   - cxx-compiler
-  - cmake
+  - cmake >=3.16
   - ninja
   - nlohmann_json
+  - mitmproxy
   - libsolv >=0.7.18
   - libarchive
   - libsodium
-  - libcurl 7.82.0 *_0
+  - libcurl >=7.86
   - gtest
   - gmock
   - cpp-expected
   - reproc-cpp
   - yaml-cpp
-  - termcolor-cpp
   - cli11 >=2.2
-  - pytest
+  # Pin Pytest while pytest-xprocess relies on removed features
+  # https://github.com/pytest-dev/pytest-xprocess/issues/110
+  - pytest <7.2.0
+  - pytest-asyncio
   - pytest-lazy-fixture
   - pytest-xprocess
+  - conda-package-handling
   - pyyaml
   - spdlog
+  - fmt
   - sel(win): winreg
   - sel(win): pywin32

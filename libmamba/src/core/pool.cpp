@@ -4,118 +4,304 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-extern "C"
-{
+#include <string_view>
+
+#include <fmt/format.h>
+#include <solv/evr.h>
 #include <solv/pool.h>
-#include <solv/solver.h>
 #include <solv/selection.h>
+#include <solv/solver.h>
+extern "C"  // Incomplete header
+{
+#include <solv/conda.h>
 }
+#include <spdlog/spdlog.h>
 
-#include "spdlog/spdlog.h"
-
+#include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/core/pool.hpp"
+#include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/queue.hpp"
+#include "mamba/core/pool.hpp"
+#include "mamba/core/util_string.hpp"
+#include "mamba/util/cast.hpp"
+#include "mamba/util/compare.hpp"
+#include "solv-cpp/pool.hpp"
+#include "solv-cpp/queue.hpp"
 
 namespace mamba
 {
-    void libsolv_debug_callback(Pool* /*pool*/, void* userptr, int type, const char* str)
+    struct MPool::MPoolData
     {
-        auto* dbg = (std::pair<spdlog::logger*, std::string>*) (userptr);
-        dbg->second += str;
-        if (dbg->second.size() == 0 || dbg->second.back() != '\n')
+        MPoolData(ChannelContext& cc)
+            : channel_context(cc)
         {
-            return;
         }
 
-        auto log = Console::hide_secrets(dbg->second);
-        if (type & SOLV_FATAL || type & SOLV_ERROR)
-        {
-            dbg->first->error(log);
-        }
-        else if (type & SOLV_WARN)
-        {
-            dbg->first->warn(log);
-        }
-        else if (Context::instance().verbosity > 2)
-        {
-            dbg->first->info(log);
-        }
-        dbg->second.clear();
-    }
+        solv::ObjPool pool = {};
+        ChannelContext& channel_context;
+    };
 
-    MPool::MPool()
+    MPool::MPool(ChannelContext& channel_context)
+        : m_data(std::make_shared<MPoolData>(channel_context))
     {
-        m_pool = pool_create();
-        pool_setdisttype(m_pool, DISTTYPE_CONDA);
+        pool().set_disttype(DISTTYPE_CONDA);
         set_debuglevel();
     }
 
-    MPool::~MPool()
+    MPool::~MPool() = default;
+
+    ChannelContext& MPool::channel_context() const
     {
-        LOG_INFO << "Freeing pool.";
-        m_repo_list.clear();
-        pool_free(m_pool);
+        return m_data->channel_context;
+    }
+
+    solv::ObjPool& MPool::pool()
+    {
+        return m_data->pool;
+    }
+
+    const solv::ObjPool& MPool::pool() const
+    {
+        return m_data->pool;
     }
 
     void MPool::set_debuglevel()
     {
         // ensure that debug logging goes to stderr as to not interfere with stdout json output
-        m_pool->debugmask |= SOLV_DEBUG_TO_STDERR;
-        if (Context::instance().verbosity > 2)
+        pool().raw()->debugmask |= SOLV_DEBUG_TO_STDERR;
+        if (Context::instance().output_params.verbosity > 2)
         {
-            pool_setdebuglevel(m_pool, Context::instance().verbosity - 1);
-            auto logger = spdlog::get("libsolv");
-            m_debug_logger.first = logger.get();
-            pool_setdebugcallback(m_pool, &libsolv_debug_callback, &m_debug_logger);
+            pool_setdebuglevel(pool().raw(), Context::instance().output_params.verbosity - 1);
+            pool().set_debug_callback(
+                [logger = spdlog::get("libsolv")](::Pool*, int type, std::string_view msg) noexcept
+                {
+                    if (msg.size() == 0 || msg.back() != '\n')
+                    {
+                        return;
+                    }
+
+                    auto log = Console::hide_secrets(msg);
+                    if (type & SOLV_FATAL || type & SOLV_ERROR)
+                    {
+                        logger->error(log);
+                    }
+                    else if (type & SOLV_WARN)
+                    {
+                        logger->warn(log);
+                    }
+                    else if (Context::instance().output_params.verbosity > 2)
+                    {
+                        logger->info(log);
+                    }
+                }
+            );
         }
     }
 
     void MPool::create_whatprovides()
     {
-        pool_createwhatprovides(m_pool);
+        pool().create_whatprovides();
     }
 
     MPool::operator Pool*()
     {
-        return m_pool;
+        return pool().raw();
     }
 
-    std::vector<Id> MPool::select_solvables(Id matchspec)
+    MPool::operator const Pool*() const
     {
-        MQueue job, solvables;
-        job.push(SOLVER_SOLVABLE_PROVIDES, matchspec);
-        selection_solvables(m_pool, job, solvables);
+        return pool().raw();
+    }
+
+    std::vector<Id> MPool::select_solvables(Id matchspec, bool sorted) const
+    {
+        auto solvables = pool().select_solvables({ SOLVER_SOLVABLE_PROVIDES, matchspec });
+
+        if (sorted)
+        {
+            std::sort(
+                solvables.begin(),
+                solvables.end(),
+                [pool_ptr = pool().raw()](Id a, Id b)
+                {
+                    Solvable* sa = pool_id2solvable(pool_ptr, a);
+                    Solvable* sb = pool_id2solvable(pool_ptr, b);
+                    return (pool_evrcmp(pool_ptr, sa->evr, sb->evr, EVRCMP_COMPARE) > 0);
+                }
+            );
+        }
         return solvables.as<std::vector>();
     }
 
-    Id MPool::matchspec2id(const std::string& ms)
+    namespace
     {
-        Id id = pool_conda_matchspec(m_pool, ms.c_str());
-        if (!id)
+        bool
+        channel_match(ChannelContext& channel_context, const Channel& chan, const Channel& needle)
+        {
+            if ((chan) == needle)
+            {
+                return true;
+            }
+
+            auto& custom_multichannels = Context::instance().custom_multichannels;
+            auto x = custom_multichannels.find(needle.name());
+            if (x != custom_multichannels.end())
+            {
+                for (auto el : (x->second))
+                {
+                    const Channel& inner = channel_context.make_channel(el);
+                    if ((chan) == inner)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /**
+         * Add function to handle matchspec while parsing is done by libsolv.
+         */
+        auto add_channel_specific_matchspec(
+            ChannelContext& channel_context,
+            solv::ObjPool& pool,
+            const MatchSpec& ms
+        ) -> solv::DependencyId
+        {
+            // Poor man's ms repr to match waht the user provided
+            std::string const repr = fmt::format("{}::{}", ms.channel, ms.conda_build_form());
+
+            // Already added, return that id
+            if (const auto maybe_id = pool.find_string(repr))
+            {
+                return maybe_id.value();
+            }
+
+            // conda_build_form does **NOT** contain the channel info
+            solv::DependencyId const match = pool_conda_matchspec(
+                pool.raw(),
+                ms.conda_build_form().c_str()
+            );
+
+            const Channel& c = channel_context.make_channel(ms.channel);
+            solv::ObjQueue selected_pkgs = {};
+            pool.for_each_whatprovides(
+                match,
+                [&](solv::ObjSolvableViewConst s)
+                {
+                    // TODO this does not work with s.url(), we need to proper channel class
+                    // to properly manage this.
+                    auto repo = solv::ObjRepoView(*s.raw()->repo);
+                    // TODO make_channel should disapear avoiding conflict here
+                    auto const url = std::string(repo.url());
+                    if (channel_match(channel_context, channel_context.make_channel(url), c))
+                    {
+                        selected_pkgs.push_back(s.id());
+                    }
+                }
+            );
+            solv::StringId const repr_id = pool.add_string(repr);
+            ::Id const offset = pool_queuetowhatprovides(pool.raw(), selected_pkgs.raw());
+            // FRAGILE This get deleted when calling ``pool_createwhatprovides`` so care
+            // must be taken to do it before
+            // TODO investigate namespace providers
+            pool_set_whatprovides(pool.raw(), repr_id, offset);
+            return repr_id;
+        }
+    }
+
+    ::Id MPool::matchspec2id(const MatchSpec& ms)
+    {
+        ::Id id = 0;
+        if (ms.channel.empty())
+        {
+            id = pool_conda_matchspec(pool().raw(), ms.conda_build_form().c_str());
+        }
+        else
+        {
+            // Working around shortcomings of ``pool_conda_matchspec``
+            // The channels are not processed.
+            id = add_channel_specific_matchspec(channel_context(), pool(), ms);
+        }
+        if (id == 0)
+        {
             throw std::runtime_error("libsolv error: could not create matchspec from string");
+        }
         return id;
     }
 
-    std::optional<PackageInfo> MPool::id2pkginfo(Id id)
+    namespace
     {
-        if (id == 0 || id >= m_pool->nsolvables)
+        auto make_package_info(const solv::ObjPool& pool, solv::ObjSolvableViewConst s) -> PackageInfo
+        {
+            PackageInfo out = {};
+
+            out.name = s.name();
+            out.version = s.version();
+            out.build_string = s.build_string();
+            out.noarch = s.noarch();
+            out.build_number = s.build_number();
+            out.channel = s.channel();
+            out.url = s.url();
+            out.subdir = s.subdir();
+            out.fn = s.file_name();
+            out.license = s.license();
+            out.size = s.size();
+            out.timestamp = s.timestamp();
+            out.md5 = s.md5();
+            out.sha256 = s.sha256();
+
+            const auto dep_to_str = [&pool](solv::DependencyId id)
+            { return pool.dependency_to_string(id); };
+            {
+                const auto deps = s.dependencies();
+                out.depends.reserve(deps.size());
+                std::transform(deps.cbegin(), deps.cend(), std::back_inserter(out.depends), dep_to_str);
+            }
+            {
+                const auto cons = s.constraints();
+                out.constrains.reserve(cons.size());
+                std::transform(cons.cbegin(), cons.cend(), std::back_inserter(out.constrains), dep_to_str);
+            }
+            {
+                const auto id_to_str = [&pool](solv::StringId id)
+                { return std::string(pool.get_string(id)); };
+                auto feats = s.track_features();
+                out.track_features.reserve(feats.size());
+                std::transform(
+                    feats.begin(),
+                    feats.end(),
+                    std::back_inserter(out.track_features),
+                    id_to_str
+                );
+            }
+
+            return out;
+        }
+    }
+
+    std::optional<PackageInfo> MPool::id2pkginfo(Id solv_id) const
+    {
+        if (const auto solv = pool().get_solvable(solv_id))
+        {
+            return { make_package_info(pool(), solv.value()) };
+        }
+        return std::nullopt;
+    }
+
+    std::optional<std::string> MPool::dep2str(Id dep_id) const
+    {
+        if (!dep_id)
         {
             return std::nullopt;
         }
-        return pool_id2solvable(m_pool, id);
+        // Not const because might alloctmp space
+        return pool_dep2str(const_cast<::Pool*>(pool().raw()), dep_id);
     }
 
-    MRepo& MPool::add_repo(MRepo&& repo)
+    void MPool::remove_repo(::Id repo_id, bool reuse_ids)
     {
-        m_repo_list.push_back(std::move(repo));
-        return m_repo_list.back();
+        pool().remove_repo(repo_id, reuse_ids);
     }
-
-    void MPool::remove_repo(Id repo_id)
-    {
-        m_repo_list.remove_if([repo_id](const MRepo& repo) { return repo_id == repo.id(); });
-    }
-
 }  // namespace mamba

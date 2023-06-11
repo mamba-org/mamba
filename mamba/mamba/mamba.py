@@ -217,14 +217,14 @@ def remove(args, parser):
         )
 
         solver.add_jobs(mamba_solve_specs, api.SOLVER_ERASE | api.SOLVER_CLEANDEPS)
-        success = solver.solve()
+        success = solver.try_solve()
         if not success:
-            print(solver.problems_to_str())
+            print(solver.explain_problems())
             exit_code = 1
             return exit_code
 
         package_cache = api.MultiPackageCache(context.pkgs_dirs)
-        transaction = api.Transaction(solver, package_cache)
+        transaction = api.Transaction(pool, solver, package_cache)
 
         if not transaction.prompt():
             exit(0)
@@ -330,7 +330,9 @@ def install(args, parser, command="install"):
             if default_pkg_name not in args_packages_names:
                 args_packages.append(default_pkg)
 
-    num_cp = sum(s.endswith(".tar.bz2") for s in args_packages)
+    num_cp = sum(
+        (s.endswith(".tar.bz2") or s.endswith(".conda")) for s in args_packages
+    )
     if num_cp:
         if num_cp == len(args_packages):
             explicit(args_packages, prefix, verbose=not (context.quiet or context.json))
@@ -553,14 +555,14 @@ def install(args, parser, command="install"):
         if pinned_specs_info and not (context.quiet or context.json):
             print(f"\nPinned packages:\n{pinned_specs_info}\n")
 
-        success = solver.solve()
+        success = solver.try_solve()
         if not success:
-            print(solver.problems_to_str())
+            print(solver.explain_problems())
             exit_code = 1
             return exit_code
 
         package_cache = api.MultiPackageCache(context.pkgs_dirs)
-        transaction = api.Transaction(solver, package_cache)
+        transaction = api.Transaction(pool, solver, package_cache)
         mmb_specs, to_link, to_unlink = transaction.to_conda()
 
         specs_to_add = [MatchSpec(m) for m in mmb_specs[0]]
@@ -694,6 +696,8 @@ def repoquery(args, parser):
         fmt = api.QueryFormat.JSON
     elif hasattr(args, "tree") and args.tree:
         fmt = api.QueryFormat.TREE
+    elif hasattr(args, "recursive") and args.recursive:
+        fmt = api.QueryFormat.RECURSIVETABLE
     elif hasattr(args, "pretty") and args.pretty:
         fmt = api.QueryFormat.PRETTY
     else:
@@ -710,8 +714,10 @@ def clean(args, parser):
         init_api_context()
 
         root_prefix = os.environ.get("MAMBA_ROOT_PREFIX")
-        if api.Context().root_prefix != root_prefix:
-            os.environ["MAMBA_ROOT_PREFIX"] = str(api.Context().root_prefix)
+        if api.Context().prefix_params.root_prefix != root_prefix:
+            os.environ["MAMBA_ROOT_PREFIX"] = str(
+                api.Context().prefix_params.root_prefix
+            )
 
         api.Configuration().show_banner = False
         api.clean(api.MAMBA_CLEAN_LOCKS)
@@ -743,7 +749,31 @@ def do_call(args, parser):
         from importlib import import_module
 
         module = import_module("conda.cli" + relative_mod, __name__.rsplit(".", 1)[0])
-        exit_code = getattr(module, func_name)(args, parser)
+        if relative_mod == ".main_info":
+            import io
+            from contextlib import redirect_stdout
+
+            with io.StringIO() as buf, redirect_stdout(buf):
+                exit_code = getattr(module, func_name)(args, parser)
+                output = buf.getvalue()
+            # Append mamba version to output before printing/serializing
+            if context.json:
+                from json import loads
+
+                from conda.common.serialize import json_dump
+
+                json_obj = loads(output)
+                json_obj["mamba_version"] = mamba.__version__
+                print(json_dump(json_obj))  # To match conda's format
+            else:
+
+                def format_param(nm, val):
+                    return f"{nm:>23} : {val}"  # To match conda's format
+
+                print("\n" + format_param("mamba version", mamba.__version__))
+                print(output.lstrip("\n"))
+        else:
+            exit_code = getattr(module, func_name)(args, parser)
     elif relative_mod == ".main_clean":
         exit_code = clean(args, parser)
     elif relative_mod == ".main_install":
@@ -761,7 +791,8 @@ def do_call(args, parser):
     else:
         print(
             "Currently, only install, create, list, search, run,"
-            " info, clean, activate and deactivate are supported through mamba."
+            " info, clean, remove, update, repoquery, activate and"
+            " deactivate are supported through mamba."
         )
 
         return 0
@@ -818,22 +849,23 @@ Examples:
 
     view_cmds = argparse.ArgumentParser(add_help=False)
     view_cmds.add_argument("-t", "--tree", action="store_true")
+    view_cmds.add_argument("--recursive", action="store_true")
 
     c1 = subsub_parser.add_parser(
         "whoneeds",
-        help="shows packages that depends on this package",
+        help="shows packages that depend on this package",
         parents=[package_cmds, view_cmds],
     )
 
     c2 = subsub_parser.add_parser(
         "depends",
-        help="shows packages that depends on this package",
+        help="shows dependencies of this package",
         parents=[package_cmds, view_cmds],
     )
 
     c3 = subsub_parser.add_parser(
         "search",
-        help="shows packages that depends on this package",
+        help="shows all available package versions",
         parents=[package_cmds],
     )
 
@@ -869,21 +901,22 @@ def _wrapped_main(*args, **kwargs):
     p = generate_parser()
     configure_clean_locks(p._subparsers._group_actions[0])
     configure_parser_repoquery(p._subparsers._group_actions[0])
-    args = p.parse_args(args[1:])
+    parsed_args = p.parse_args(args[1:])
 
-    context.__init__(argparse_args=args)
+    context.__init__(argparse_args=parsed_args)
     context.__initialized__ = True
 
     if (
         not found_no_banner
         and os.isatty(sys.stdout.fileno())
-        and not ("MAMBA_NO_BANNER" in os.environ or "list" in args or "run" in args)
+        and not context.quiet
+        and not ("MAMBA_NO_BANNER" in os.environ or parsed_args.cmd in ("list", "run"))
     ):
         print(banner, file=sys.stderr)
 
     init_loggers(context)
 
-    result = do_call(args, p)
+    result = do_call(parsed_args, p)
     exit_code = getattr(
         result, "rc", result
     )  # may be Result objects with code in rc field
@@ -909,7 +942,7 @@ def main(*args, **kwargs):
     if not args:
         args = sys.argv
 
-    if "--version" in args:
+    if len(args) == 2 and args[1] in ("--version", "-V"):
         from mamba._version import __version__
 
         print("mamba {}".format(__version__))

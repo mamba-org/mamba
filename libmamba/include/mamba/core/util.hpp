@@ -7,20 +7,22 @@
 #ifndef MAMBA_CORE_UTIL_HPP
 #define MAMBA_CORE_UTIL_HPP
 
-#include "mamba/core/mamba_fs.hpp"
-#include "mamba/core/error_handling.hpp"
-#include "mamba/core/util_string.hpp"
-
-#include "nlohmann/json.hpp"
-
 #include <array>
+#include <chrono>
 #include <limits>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <string_view>
-#include <time.h>
 #include <vector>
-#include <chrono>
+
+#include <time.h>
+
+#include "mamba/core/error_handling.hpp"
+#include "mamba/core/mamba_fs.hpp"
+
+#include "nlohmann/json.hpp"
+#include "tl/expected.hpp"
 
 #if defined(__PPC64__) || defined(__ppc64__) || defined(_ARCH_PPC64)
 #include <iomanip>
@@ -46,27 +48,37 @@ namespace mamba
 #error "no supported OS detected"
 #endif
 
-    bool is_package_file(const std::string_view& fn);
+    // Used when we want a callback which does nothing.
+    struct no_op
+    {
+        void operator()() const noexcept
+        {
+        }
+    };
+
+    bool is_package_file(std::string_view fn);
 
     bool lexists(const fs::u8path& p);
     bool lexists(const fs::u8path& p, std::error_code& ec);
     std::vector<fs::u8path> filter_dir(const fs::u8path& dir, const std::string& suffix);
     bool paths_equal(const fs::u8path& lhs, const fs::u8path& rhs);
 
-    std::string read_contents(const fs::u8path& path,
-                              std::ios::openmode mode = std::ios::in | std::ios::binary);
+    std::string
+    read_contents(const fs::u8path& path, std::ios::openmode mode = std::ios::in | std::ios::binary);
     std::vector<std::string> read_lines(const fs::u8path& path);
 
     inline void make_executable(const fs::u8path& p)
     {
-        fs::permissions(p,
-                        fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read
-                            | fs::perms::others_exec);
+        fs::permissions(
+            p,
+            fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read | fs::perms::others_exec
+        );
     }
 
     class TemporaryDirectory
     {
     public:
+
         TemporaryDirectory();
         ~TemporaryDirectory();
 
@@ -78,13 +90,19 @@ namespace mamba
         operator fs::u8path();
 
     private:
+
         fs::u8path m_path;
     };
 
     class TemporaryFile
     {
     public:
-        TemporaryFile(const std::string& prefix = "mambaf", const std::string& suffix = "");
+
+        TemporaryFile(
+            const std::string& prefix = "mambaf",
+            const std::string& suffix = "",
+            const std::optional<fs::u8path>& dir = std::nullopt
+        );
         ~TemporaryFile();
 
         TemporaryFile(const TemporaryFile&) = delete;
@@ -95,27 +113,110 @@ namespace mamba
         operator fs::u8path();
 
     private:
+
         fs::u8path m_path;
     };
 
     const std::size_t MAMBA_LOCK_POS = 21;
 
+    class LockFileOwner;
+
+    // This is a non-throwing file-locking mechanism.
+    // It can be used on a file or directory path. In the case of a directory path a file will be
+    // created to be locked. The locking will be implemented using the OS's filesystem locking
+    // capabilities, if available.
+    //
+    // Once constructed, use `is_locked()` or `operator bool` to check if the lock did happen
+    // successfully. When locking fails because of an error, the error can be retrieved using
+    // `error()`. When attempting to lock a path which is already locked by another process, the
+    // attempt will fail and `is_locked()` will return false.
+    //
+    // When the same process attempts to lock the same path more than once (multiple instances of
+    // `LockFile` target the same path), creating a new `LockFile` for that path will always succeed
+    // and increment the lock owner count which can be retrieved using `count_lock_owners()`.
+    // Basically, all instacnes of `LockFile` locking the same path are sharing the lock, which will
+    // only be released once there is no instance alive.
+    //
+    // Use `Context::instance().use_lockfiles = false` to never have locking happen, in which case
+    // the created `LockFile` instance will not be locked (`is_locked()` will return false) but will
+    // have no error either (`error()` will return `noopt`).
+    //
+    // Example:
+    //
+    //      LockFile some_work_on(some_path)
+    //      {
+    //          LockFile lock{ some_path, timeout };
+    //          if(lock) // make sure the locking happened
+    //          {
+    //              print("locked file {}, locking counts: {}", some_path,
+    //              lock.count_lock_owners()); // success might mean we are locking the same path
+    //              from multiple threads do_something(som_path); // locking was a success
+    //          }
+    //          else // locking didnt succeed for some reason
+    //          {
+    //              if(auto error = lock.error) print(error); // some error happened while
+    //              attempting the lock, maybe some other process already locks the path else
+    //              print("didn't attempt locking {}", some_path); // locking didn't happen for some
+    //              other reason, maybe a configuration option
+    //          }
+    //          some_more_work(some_path); // do this that the lock failed or not
+    //          return lock; // The locking ownership can be transfered to another function if
+    //          necessary
+    //      }
+    //
     class LockFile
     {
     public:
+
+        // Non-throwing constructors, attempting lock on the provided path, file or directory.
+        // In case of a directory, a lock-file will be created, located at `this->lockfile_path()`
+        // and `this->is_locked()` (and `if(*this))` will always return true (unless this instance
+        // is moved-from). If the lock acquisition failed or `Context::instance().use_lockfiles ==
+        // false` and until re-assigned:
+        // - `this->is_locked() == false` and `if(*this) ...` will go in the `false` branch.
+        // - accessors will throw, except `is_locked()`, `count_lock_owners()`, and `error()`
         LockFile(const fs::u8path& path);
         LockFile(const fs::u8path& path, const std::chrono::seconds& timeout);
+
         ~LockFile();
 
         LockFile(const LockFile&) = delete;
         LockFile& operator=(const LockFile&) = delete;
-        LockFile& operator=(LockFile&&) = default;
 
-        static std::unique_ptr<LockFile> try_lock(const fs::u8path& path) noexcept;
+        LockFile(LockFile&&);
+        LockFile& operator=(LockFile&&);
 
+        // Returns true if this LockFile is currently maintaining a lock on the target path.
+        // Returns false if this instance have been moved-from without being re-assigned,
+        // or if the lock acquisition failed.
+        bool is_locked() const
+        {
+            return impl.has_value()                   // we have a owner
+                   && (impl.value() ? true : false);  // it's not null
+        }
+
+        // Convenient operator to check if a lockfile is actually locking a path.
+        explicit operator bool() const
+        {
+            return is_locked();
+        }
+
+        // Returns the fd of the path being locked, throws if `is_locked() == false`.
         int fd() const;
+
+        // Returns the path being locked, throws if `is_locked() == false`.
         fs::u8path path() const;
+
+        // Returns the path of the lock-file being locked, throws if `is_locked() == false`.
         fs::u8path lockfile_path() const;
+
+        // Returns the count of LockFile instances which are currently locking
+        // the same path/file from the same process.
+        // Returns 0 if `is_locked() == false`.
+        std::size_t count_lock_owners() const
+        {
+            return std::size_t(impl.has_value() ? impl.value().use_count() : 0);
+        }
 
 #ifdef _WIN32
         // Using file descriptor on Windows may cause false negative
@@ -124,38 +225,37 @@ namespace mamba
         // Opening a new file descriptor on Unix would clear locks
         static bool is_locked(int fd);
 #endif
-        static int read_pid(int fd);
+
+        static bool is_locked(const LockFile& lockfile)
+        {
+            return lockfile.is_locked() &&
+#ifdef _WIN32
+                   is_locked(lockfile.lockfile_path());
+#else
+                   // Opening a new file descriptor on Unix would clear locks
+                   is_locked(lockfile.fd());
+#endif
+        }
+
+        std::optional<mamba_error> error() const
+        {
+            if (impl.has_value())
+            {
+                return {};
+            }
+            else
+            {
+                return impl.error();
+            }
+        }
 
     private:
-        fs::u8path m_path;
-        fs::u8path m_lock;
-        std::chrono::seconds m_timeout;
-        int m_fd = -1;
-        bool m_locked;
-        bool m_lockfile_existed;
 
-#if defined(__APPLE__) || defined(__linux__)
-        pid_t m_pid;
-#else
-        int m_pid;
-#endif
-        int read_pid() const;
-        bool write_pid(int pid) const;
-
-        bool set_fd_lock(bool blocking) const;
-        bool lock_non_blocking();
-        bool lock_blocking();
-        bool lock(int pid, bool blocking) const;
-
-        void remove_lockfile() noexcept;
-        int close_fd();
-        bool unlock();
+        tl::expected<std::shared_ptr<LockFileOwner>, mamba_error> impl;
     };
 
 
-    void split_package_extension(const std::string& file,
-                                 std::string& name,
-                                 std::string& extension);
+    void split_package_extension(const std::string& file, std::string& name, std::string& extension);
     fs::u8path strip_package_extension(const std::string& file);
 
     template <class T>
@@ -165,23 +265,11 @@ namespace mamba
                && prefix.end() == std::mismatch(prefix.begin(), prefix.end(), vec.begin()).first;
     }
 
-    tl::expected<std::string, mamba_error> encode_base64(const std::string_view& input);
-    tl::expected<std::string, mamba_error> decode_base64(const std::string_view& input);
+    tl::expected<std::string, mamba_error> encode_base64(std::string_view input);
+    tl::expected<std::string, mamba_error> decode_base64(std::string_view input);
 
-
-    // get the value corresponding to a key in a JSON object and assign it to target
-    // if the key is not found, assign default_value to target
-    template <typename T>
-    void assign_or(const nlohmann::json& j, const char* key, T& target, T default_value)
-    {
-        if (j.contains(key))
-            target = j[key];
-        else
-            target = default_value;
-    }
-
-    std::string quote_for_shell(const std::vector<std::string>& arguments,
-                                const std::string& shell = "");
+    std::string
+    quote_for_shell(const std::vector<std::string>& arguments, const std::string& shell = "");
 
     std::size_t clean_trash_files(const fs::u8path& prefix, bool deep_clean);
     std::size_t remove_or_rename(const fs::u8path& path);
@@ -203,29 +291,45 @@ namespace mamba
 
     std::time_t parse_utc_timestamp(const std::string& timestamp);
 
-    std::ofstream open_ofstream(const fs::u8path& path,
-                                std::ios::openmode mode = std::ios::out | std::ios::binary);
+    std::ofstream
+    open_ofstream(const fs::u8path& path, std::ios::openmode mode = std::ios::out | std::ios::binary);
 
-    std::ifstream open_ifstream(const fs::u8path& path,
-                                std::ios::openmode mode = std::ios::in | std::ios::binary);
+    std::ifstream
+    open_ifstream(const fs::u8path& path, std::ios::openmode mode = std::ios::in | std::ios::binary);
 
     bool ensure_comspec_set();
-    std::unique_ptr<TemporaryFile> wrap_call(const fs::u8path& root_prefix,
-                                             const fs::u8path& prefix,
-                                             bool dev_mode,
-                                             bool debug_wrapper_scripts,
-                                             const std::vector<std::string>& arguments);
+    std::unique_ptr<TemporaryFile> wrap_call(
+        const fs::u8path& root_prefix,
+        const fs::u8path& prefix,
+        bool dev_mode,
+        bool debug_wrapper_scripts,
+        const std::vector<std::string>& arguments
+    );
 
-    std::tuple<std::vector<std::string>, std::unique_ptr<TemporaryFile>> prepare_wrapped_call(
-        const fs::u8path& prefix, const std::vector<std::string>& cmd);
+    std::tuple<std::vector<std::string>, std::unique_ptr<TemporaryFile>>
+    prepare_wrapped_call(const fs::u8path& prefix, const std::vector<std::string>& cmd);
 
     /// Returns `true` if the filename matches names of files which should be interpreted as YAML.
     /// NOTE: this does not check if the file exists.
-    inline bool is_yaml_file_name(const std::string_view filename)
-    {
-        return ends_with(filename, ".yml") || ends_with(filename, ".yaml");
-    }
+    bool is_yaml_file_name(std::string_view filename);
 
+    std::optional<std::string> proxy_match(const std::string& url);
+
+    std::string hide_secrets(std::string_view str);
+
+    class non_copyable_base
+    {
+    public:
+
+        non_copyable_base()
+        {
+        }
+
+    private:
+
+        non_copyable_base(const non_copyable_base&);
+        non_copyable_base& operator=(const non_copyable_base&);
+    };
 }  // namespace mamba
 
 #endif  // MAMBA_UTIL_HPP

@@ -1,3 +1,374 @@
+2023.05.16
+==========
+
+Releases: libmamba 1.4.4, libmambapy 1.4.4, mamba 1.4.4, micromamba 1.4.4
+
+Bug fixes:
+
+- [micromamba] fix: let the new executable run the shell init script by @ruben-arts in https://github.com/mamba-org/mamba/pull/2529
+- [libmambapy] Support future deprecated API for Context by @Hind-M in https://github.com/mamba-org/mamba/pull/2494
+- [libmamba] Fix CURLHandle::get_info on 32bit platform by e8035669 in https://github.com/mamba-org/mamba/pull/2528
+
+2023.05.15
+==========
+
+Releases: libmamba 1.4.3, libmambapy 1.4.3, mamba 1.4.3, micromamba 1.4.3
+
+Enhancements:
+
+- [libmamba] No Storing Channel\* and MRepo\* in Solvables by @AntoinPrv in https://github.com/mamba-org/mamba/pull/2409
+- [libmamba, libmambapy] Remove dead code / attribute by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2454
+- [all] Context structuring by @Hind-M in https://github.com/mamba-org/mamba/pull/2432
+- [libmamba] Clean up fetch by @Hind-M in https://github.com/mamba-org/mamba/pull/2452
+- [libmamba] Wapped curl multi handle by @JohanMabille in https://github.com/mamba-org/mamba/pull/2459
+- [libmamba] Remove empty test\_flat\_set.hpp by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2471
+- [libmamba] Add doctest printer for pair and vector by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2470
+- [libmamba] Add topological sort by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2467
+- [mamba] Add mamba version to mamba info output by @Hind-M in https://github.com/mamba-org/mamba/pull/2477
+- [libmamba, libmambapy] Store PackageInfo::track\_features as a vector by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2478
+- [libmamba] Use topological sort instead of libsolv by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2472
+- [libmamba] Remove assign\_or in favor of json::value by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2487
+- [all] Resume Context structuring by @Hind-M in https://github.com/mamba-org/mamba/pull/2460
+- [micromamba] cleanup: fix pytest warnings by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2490
+- [libmamba] Improve micromamba transaction message by @ruben-arts in https://github.com/mamba-org/mamba/pull/2474
+- [libmamba] Remove unused raw function in subdirdata by @Hind-M in https://github.com/mamba-org/mamba/pull/2491
+- [libmamba] Wrap ::Pool and ::Repo by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2401
+- [libmamba] Curl wrapping by @Hind-M in https://github.com/mamba-org/mamba/pull/2468
+- [libmamba] Reset fish shell status even if variable not exists by @soraxas in https://github.com/mamba-org/mamba/pull/2509
+- [libmamba, libmambapy, micromamba] Use libsolv wrappers in MPool and MRepo by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2453
+- [libmamba, micromamba] add bearer token authentication by @wolfv in https://github.com/mamba-org/mamba/pull/2512
+
+Bug fixes:
+
+- [libmamba] fix: parsing of empty track\_features by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2485
+- [libmamba] track\_feature typo by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2488
+- [libmamba, mamba] Move repoquery python test from libmamba (not run) to mamba by @Hind-M in https://github.com/mamba-org/mamba/pull/2489
+- [libmamba] Set log\_level to critical with --json option by @Hind-M in https://github.com/mamba-org/mamba/pull/2484
+- [libmamba] Add missing cstdint include for GCC 13 by @alexfikl in https://github.com/mamba-org/mamba/pull/2511
+- [libmamba] Forward NETRC environment variable to curl, if exported by @timostrunk in https://github.com/mamba-org/mamba/pull/2497
+- [libmamba] Remove wrong $Args in psm1 by @troubadour-hell in https://github.com/mamba-org/mamba/pull/2499
+- [libmamba] Avoid using /tmp by @johnhany97 in https://github.com/mamba-org/mamba/pull/2447
+- [libmamba] Fixed winreg search by @JohanMabille in https://github.com/mamba-org/mamba/pull/2526
+
+CI fixes and doc:
+
+- [libmamba] Extend troubleshooting docs by @jonashaag in https://github.com/mamba-org/mamba/pull/2451
+- [all] Extend issue template by @jonashaag in https://github.com/mamba-org/mamba/pull/2310
+
+2023.04.06
+==========
+
+Releases: libmamba 1.4.2, libmambapy 1.4.2, mamba 1.4.2, micromamba 1.4.2
+
+Enhancements:
+
+- [libmamba] Small libsolv improvements by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2399
+- [micromamba] Refactor test\_create, test\_proxy, and test\_env for test isolation by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2416
+- [libmamba] Improve message after the env creating with micromamba by @xmnlab in https://github.com/mamba-org/mamba/pull/2425
+- [libmamba] Use custom function to properly parse matchspec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2433
+- [libmamba, micromamba] Remove const ref to string\_view in codebase by @Hind-M in https://github.com/mamba-org/mamba/pull/2440
+- [libmamba] Wrap more libcurl calls by @Hind-M in https://github.com/mamba-org/mamba/pull/2421
+
+Bug fixes:
+
+- [libmamba] Fix PKG\_BUILDNUM env variable for post-link scripts by nsoranzo in https://github.com/mamba-org/mamba/pull/2420
+- [libmamba] Solve a corner case in the SAT error messages by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2423
+- [libmamba] Windows: Fixed environment variables not read as unicode by @Klaim in https://github.com/mamba-org/mamba/pull/2417
+- [libmamba] Fix segfault in add\_pin/all\_problems\_structured by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2428
+- [mamba] Safely ignores virtual packages in `compute_final_precs` function by @mariusvniekerk in https://github.com/mamba-org/mamba/pull/2424
+
+CI fixes and doc:
+
+- [libmambapy, micromamba] Fixes typos by @nsoranzo in https://github.com/mamba-org/mamba/pull/2419
+- [micromamba] Remove outdated micromamba experimental warning by @jonashaag in https://github.com/mamba-org/mamba/pull/2430
+- [libmamba] Replaced libtool 2.4.6\_9 with libtool 2.4.7-3 in vcpkg builds by @JohanMabille in https://github.com/mamba-org/mamba/pull/2439
+- [all] Migrated to doctest by @JohanMabille in https://github.com/mamba-org/mamba/pull/2436
+
+
+2023.03.28
+==========
+
+Releases: libmamba 1.4.1, libmambapy 1.4.1, mamba 1.4.1, micromamba 1.4.1
+
+Enhancements:
+
+- [libmamba] First version/steps of unraveling fetch code and wrapping libcurl by @Hind-M in https://github.com/mamba-org/mamba/pull/2376
+- [libmamba] Parse repodata.json by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2391
+- [libmamba] TimeRef is not a singleton anymore by @Klaim in https://github.com/mamba-org/mamba/pull/2396
+- [libmamba] Handle url via ChannelBuilder in Repo constructor by @jaimergp in https://github.com/mamba-org/mamba/pull/2398
+- [libmamba, micromamba] add option to relocate prefix by @DerThorsten in https://github.com/mamba-org/mamba/pull/2385
+- [libmamba] Renamed validate namespace to `mamba::validation` by @Klaim in https://github.com/mamba-org/mamba/pull/2411
+
+Bug fixes:
+
+- [libmamba] Fixed build with older Clang by @ZhongRuoyu in https://github.com/mamba-org/mamba/pull/2397
+
+
+2023.03.22
+==========
+
+Releases: libmamba 1.4.0, libmambapy 1.4.0, mamba 1.4.0, micromamba 1.4.0
+
+Enchancements:
+
+- [all] Implemented recursive dependency printout in repoquery by @timostrunk in https://github.com/mamba-org/mamba/pull/2283
+- [libmamba, libmambapy, micromamba] Agressive compilation warnings by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2304
+- [all] Fine tune clang-format by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2290
+- [libmamba] Added checked numeric cast by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2315
+- [libmamba, libmambapy] Activated SAT error messages by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2325
+- [libmamba] Added RISC-V support by @dtcxzyw in https://github.com/mamba-org/mamba/pull/2329
+- [mamba] Allow the direct installation of both .tar.bz2 and .conda packages by @romain-intel in https://github.com/mamba-org/mamba/pull/2333
+- [libmamba, libmambapy] Removed redundant `DependencyInfo` by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2314
+- [libmamba] Isolate solv::ObjQueue by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2289
+- [libmamba] Removed unused libarchive header in fetch by @hind-M in https://github.com/mamba-org/mamba/pull/2341
+- [libmamba] Removed duplicated header by @JohanMabille in https://github.com/mamba-org/mamba/pull/2343
+- [libmamba] Cleaned `util_string` by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2339
+- [libmamba, libmambapy, micromamba] Only full shared or full static builds by @JohanMabille in https://github.com/mamba-org/mamba/pull/2342
+- [libmamba, libmambapy, micromamba] Fixed repoquery commands working with installed packages only by @Hind-M in https://github.com/mamba-org/mamba/pull/2330
+- [libmamba] Added a heuristic to better handle the (almost) cyclic Python conflicts by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2318
+- [libmamba, libmambapy, mamba] Isolate `PackageInfo` from libsolv from @AntoinePrv in https://github.com/mamba-org/mamba/pull/2340
+- [libmamba] Added `strip_if` functions by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2344
+- [libmamba] Addded conda.rc Options for Existing Remote Settings by @srilman in https://github.com/mamba-org/mamba/pull/2306
+- [micromamba] Added micromamba server by @wolfv in https://github.com/mamba-org/mamba/pull/2185
+- [libmamba] Hide independent curl code and compression structures in unexposed files by @Hind-M in https://github.com/mamba-org/mamba/pull/2366
+- [libmamba] Added `strip_parts` functions by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2347
+- [libmamba] Added parsing of Conda version by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2373
+- [libmamba] Slight refactoring of the utility library by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2387
+
+Bug fixes:
+
+- [libmamba] Fixed invalid reinstall count display by @timostrunk in https://github.com/mamba-org/mamba/pull/2284
+- [libmamba] Fixed segmentation fault in case of an invalid package name by @timostrunk in https://github.com/mamba-org/mamba/pull/2287
+- [micromamba] Fixed `micromamba env export` to get channel name instead of full url by @Hind-M in https://github.com/mamba-org/mamba/pull/2260
+- [mamba] Fixed `mamba init --no-user` by @xylar in https://github.com/mamba-org/mamba/pull/2324
+- [libmambapy] Fixed repoquery output of mamba when query format is JSON by @JohanMabille in https://github.com/mamba-org/mamba/pull/2353
+- [libmamba] Fixed `to_lower(wchar_t)` and `to_upper(wchar_t)` by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2360
+- [libmamba] Fixed undefined-behaviors reported by UBSAN by @klaim in https://github.com/mamba-org/mamba/pull/2384
+
+CI fixes & docs:
+
+- [libmamba] Fixed sign warning in tests by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2293
+- [micromamba] Added missing dependency in local recipe by @wolfv in https://github.com/mamba-org/mamba/pull/2334
+- [mamba] `repoquery depends` requires the package to be installed or to specify a channel by @samtygier in https://github.com/mamba-org/mamba/pull/2098
+- [libmamba] Structured test directory layout by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2380
+- [micromamba] Fixed Conda Lock Path by @funtion in https://github.com/mamba-org/mamba/pull/2393
+
+
+2023.02.09
+==========
+
+Releases: libmamba 1.3.1, libmambapy 1.3.1, mamba 1.3.1, micromamba 1.3.1
+
+A bugfix release for 1.3.0!
+
+Bug fixes:
+- [micromamba, libmamba] fix up single download target perform finalization to make lockfile download work by @wolfv in https://github.com/mamba-org/mamba/pull/2274
+- [micromamba] use CONDA_PKGS_DIRS even in explicit installation trasactions by @hmaarrfk in https://github.com/mamba-org/mamba/pull/2265
+- [libmamba, micromamba] fix rename or remove by @wolfv in https://github.com/mamba-org/mamba/pull/2276
+- [libmamba] add channel specific job with new str by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2277
+- [libmamba, micromamba] fix `micromamba shell` for base environment, and improve behavior when `auto_activate_base` is true by @jonashaag, @Hind-M and @wolfv https://github.com/mamba-org/mamba/pull/2272
+
+Docs:
+- add micromamba docker image by @wholtz in https://github.com/mamba-org/mamba/pull/2266
+- added biweekly meetings information to README by @JohanMabille in https://github.com/mamba-org/mamba/pull/2275
+- change docs to homebrew/core by @pavelzw in https://github.com/mamba-org/mamba/pull/2278
+
+
+2023.02.03
+==========
+
+Releases: libmamba 1.3.0, libmambapy 1.3.0, mamba 1.3.0, micromamba 1.3.0
+
+Enhancements:
+- [libmambapy] add `use_lockfiles` to libmambapy bindings by @jaimergp in https://github.com/mamba-org/mamba/pull/2256
+- [micromamba] add functionality to download lockfiles from internet by @wolfv in https://github.com/mamba-org/mamba/pull/2229
+- [micromamba] Stop run command when given prefix does not exist by @Hind-M in https://github.com/mamba-org/mamba/pull/2257
+- [micromamba] Install pip deps like conda by @michalsieron in https://github.com/mamba-org/mamba/pull/2241
+- [libmamba, micromamba] switch to repodata.state.json format from cep by @wolfv in https://github.com/mamba-org/mamba/pull/2262
+
+Bug fixes:
+- [micromamba, libmamba] Fix temporary file renaming by @jonashaag in https://github.com/mamba-org/mamba/pull/2242
+- [mamba] Fix mamba / conda incompatibility by @jonashaag in https://github.com/mamba-org/mamba/pull/2249
+
+CI fixes & docs:
+- [micromamba] use proper recipe also on macOS by @wolfv in https://github.com/mamba-org/mamba/pull/2225
+- [micromamba] Update micromamba installation docs for Windows by @Tiksagol in https://github.com/mamba-org/mamba/pull/2218
+- [all] docs: defaults should not be used with conda-forge by @jonashaag in https://github.com/mamba-org/mamba/pull/2181
+- [all] fix tests for pkg_cache by @wolfv in https://github.com/mamba-org/mamba/pull/2259
+- [libmamba] Added missing public dependency to libmambaConfig.cmake by @JohanMabille in https://github.com/mamba-org/mamba/pull/2227
+- [libmambapy] Remove unused `get_tarball` function by @Hind-M in https://github.com/mamba-org/mamba/pull/2261
+- [mamba] update documentation for mamba activate by @cdeepali in https://github.com/mamba-org/mamba/pull/2176
+- [micromamba] Fix Windows static builds by @jonashaag in https://github.com/mamba-org/mamba/pull/2228
+
+2023.01.16
+==========
+
+Releases: libmamba 1.2.0, libmambapy 1.2.0, mamba 1.2.0, micromamba 1.2.0
+
+This release contains some speed improvements: download repodata faster as zstd encoded files (configure using
+`repodata_use_zst: true` in your `~/.mambarc` file). Also, `.conda` file extraction is now faster, a prefix
+with spaces works better thanks to a new "shebang" style and the `micromamba package compress` and `transmute`
+commands produce better conda packages.
+
+Enhancements:
+
+- [micromamba, libmamba] Make tarballs look more similar to conda-package-handling by @wolfv in #2177, #2217
+- [micromamba, libmamba] Use new shebang style by @wolfv in #2211
+- [micromamba, libmamba] Faster conda decompress by @wolfv in #2200
+- [micromamba, libmamba] Initial repodata.zst support by @wolfv & @jonashaag in #2113
+
+Bug fixes:
+
+- [micromamba, libmamba] log warnings but ignore cyclic symlinks by @wolfv in #2212
+- [mamba] Add Context binding for experimental_sat_error_message by @syslaila in #2143
+- [libmamba] Error messages improvements by @AntoinePrv in #2149
+- [micromamba, libmamba] Report failure when packages to remove don't exist. (#2131) by @Klaim in #2132
+- [libmamba] Fixing typo in solver errors by @shughes-uk in #2168
+- [micromamba] Fix micromamba shell completion when running 'shell hook' directly by @TomiBelan in #2137
+- [libmamba] Extend `last_write_time` implementation by special-casing file touching by @coroa in #2141
+- [libmamba, micromamba] Don't create a prefix which is missing conda-meta by @maresb in #2162
+- [libmamba, micromamba, mamba] Fix `custom_channels` parsing by @XuehaiPan in #2207
+- [micromamba] Fix #1783: Add `micromamba env create` by @jonashaag in #1790
+- [mamba] Use check_allowlist from conda by @duncanmmacleod in #2220
+
+CI fixes & docs:
+
+- Improve build env cleanup by @jonashaag in #2213
+- Run conda_nightly once per week by @jonashaag in #2147
+- Update doc by @Hind-M in #2156
+- Use Conda canary in nightly tests by @jonashaag in #2180
+- Expliclity point to libmamba test data independently of cwd by @AntoinePrv in #2158
+- Add bug report issue template by @jonashaag in #2182
+- Downgrade curl to fix micromamba on macOS x64 by @wolfv in #2205
+- Use conda-forge micromamba feedstock instead of a fork by @JohanMabille in #2206
+- Update pre-commit versions by @jonashaag in #2178
+- Use local meta.yaml by @wolfv in #2214
+- Remove feedstock patches by @wolfv in #2216
+- Fixed static dependency order by @JohanMabille in #2201
+
+
+2022.11.25
+==========
+
+Releases: libmamba 1.1.0, libmambapy 1.1.0, mamba 1.1.0, micromamba 1.1.0
+
+Some bugfixes for 1.0 and experimental release of the new solver messages
+
+Bug fixes
+
+- [micromamba] Fix fish scripts (thanks @JafarAbdi, @raj-magesh, @jonashaag) #2101
+- [mamba] Fix activate/deactivate in fish shell (thanks @psobolewskiPhD) #2081
+- [micromamba] fix direct hook for powershell #2122
+- [libmamba] Fix libmamba CMake config file after dependency change (thanks @l2dy) #2091
+- [micromamba] fixes for ssl init and static build #2076
+
+Enhancements
+
+- [libmamba] Add safe signed/unsigned conversion (thanks @AntoinePrv) #2087
+- [libmamba] Move to fmt::terminal_color and other output IO improvements & drop termcolor (thanks @AntoinePrv) #2085
+- [libmamba, micromamba] Handle non leaf conflicts (thanks @AntoinePrv) #2133
+- [libmamba, micromamba] Bind SAT error messages to python (thanks @AntoinePrv) #2127
+- [libmamba, micromamba] Nitpicking error messages (thanks @AntoinePrv) #2121
+- [libmamba, micromamba] Tree error message improvements (thanks @AntoinePrv) #2093
+- [libmamba, micromamba] Tree error message (thanks @AntoinePrv) #2064
+- [libmamba, micromamba] Add experimental flag for error messages (thanks @AntoinePrv) #2080
+- [libmamba, micromamba] Handle non leaf conflicts (thanks @AntoinePrv) #2133
+- [mamba] fix: Don't print banner in quiet mode (thanks @corneliusroemer) #2097
+- [all] ci: Update pre-commit-config #2092
+- [all] docs: Add warning to manual install instructions #2100
+- [all] docs: Consistently use curl for fetching files #2126
+
+
+2022.11.01
+==========
+
+Releases: libmamba 1.0.0, libmambapy 1.0.0, mamba 1.0.0, micromamba 1.0.0
+
+Our biggest version number yet! Finally a 1.0 release :)
+
+New notable micromamba features include:
+
+- improved shell scripts with autocompletion available in PowerShell, xonsh, fish, bash and zsh
+- `micromamba shell -n someenv`: enter a sub-shell without modifying the system
+- `micromamba self-update`: micromamba searches for updates and installs them if available
+							(you can also downgrade using `--version 0.26.0` for example)
+
+Bug fixes:
+- [micromamba, libmamba] ignore "Permission denied" in `env::which` (thanks @Rafflesiaceae) #2067
+- [micromamba] Link micromamba with static libc++.a and system libc++abi (thanks @isuruf) #2069
+- [libmamba, micromamba] Fix an infinite loop in replace_all() when the search string is empty (thanks @tsibley)
+- [mamba, libmambapy] Ensure package record always has subdir (thanks @jaimergp) #2016
+- [libmamba, micromamba] Do not crash when permissions cannot be changed, instead log warning (thanks @hwalinga)
+
+Enhancements:
+- [libmamba] Rewrite LockFile interface (thanks @Klaim) #2014
+- [micromamba] Add `micromamba env remove` (thanks @Hind-M) #2002
+- [micromamba] add self-update functionality (#2023)
+- [micromamba] order dependencies alphabetically from `micromamba env export` (thanks @torfinnberset) #2063
+
+- [libmambapy] add stubs with pybind11-stubgen (thanks @dholth) #1983
+- [mamba] Support for mamba init fish (thanks @dlukes) #2006
+- [mamba] Fix Repoquery help text (thanks @BastianZim) #1998
+
+- [all] Fix ci deprecation warnings, upload conda-bld artifacts for failed builds #2058, #2062
+- [all] Explicitly define SPDLOG_FMT_EXTERNAL and use spdlog header only use external fmt (thanks @AntoinePrv) #2060, #2048
+- [all] Fix CI by pointing to updated feedstock and fixing update tests (thanks @AntoinePrv) #2055
+- [all] Add authentication with urlencoded @ to proxy test (#2024) @AdrianFreundQC
+- [all] better test isolation (thanks @AntoinePrv) #1903
+- [all] Test special characters in basic auth (thanks @jonashaag) #2012
+
+- [libmamba] ProblemsGraph compression (thanks @AntoinePrv) #2019
+- [libmamba] vector_set compare function (thanks @AntoinePrv) #2051
+- [libmamba] Clean up util_graph header and tests (thanks @AntoinePrv) #2039
+- [libmamba] Add string utilities (thanks @AntoinePrv) #
+- [libmamba] Dynamic tree walk of the Compressed problem graph
+- [libmamba] Creating the initial problems graph (thanks @syslaila) #1891
+
+2022.10.04
+==========
+
+Releases: libmamba 0.27.0, libmambapy 0.27.0, mamba 0.27.0, micromamba 0.27.0
+
+Bug fixes:
+- [libmamba, micromamba] fix lockfiles relying on PID (thanks @Klaim) #1915
+- [micromamba] fix error condition in micromamba run to not print warning every time #1985
+- [micromamba] fix error when getting size of directories (thanks @Klaim) #1982
+- [micromamba] fix crash when installing pip packages from env files (thanks @Klaim) #1978
+- [libmambapy] make compilation with external fmt library work #1987
+
+Enhancements:
+- [micromamba] add cross-compiled builds to CI (thanks @pavelzw) #1976, #1989
+
+2022.09.29
+==========
+
+Releases: libmamba 0.26.0, libmambapy 0.26.0, mamba 0.26.0, micromamba 0.26.0
+
+Bug fixes:
+- [micromamba] fix fish scripts (thanks @jonashaag) #1975
+- [micromamba] fix issues with `micromamba ps` #1953
+- [libmamba, micromamba] add symlinks and empty directories to archive for `micromamba package compress` #1955
+- [mamba] fix mamba.sh and mamba.bat shell scripts to work with conda 22.09 #1952
+- [libmamba] increase curl buffer size for faster max download speeds (thanks @jonashaag) #1949
+- [micromamba] add `micromamba info --licenses` to print licenses of used OSS (thanks @jonashaag) #1933
+- [micromamba] proper quoting in `micromamba run` (thanks @jonashaag) #1936
+- [micromamba] install pip dependencies and by category for YAML lockfiles (thanks @jvansanten) #1908 #1917
+- [libmamba] fix crash when installing from environment lockfile (thanks @Klaim) #1893
+- [micromamba] fix update for packages with explicit channels (thanks @AntoinePrv) #1864
+- [libmamba] fix linux version regex (thanks @kelszo) #1852
+- [libmamba] remove duplicate console output (thanks @pavelzw) #1845
+- [mamba] remove usage of non-existing function (thanks @AntoinePrv) #1835
+
+Enhancements:
+- [libmamba] add option to disable file locks globally (thanks @danpf @JohanMabille) #1830
+- [libmamba] extend graph class for better solver messaging work (thanks @syslaila @AntoinePrv) #1880
+- [micromamba] only call compinit once to fix oh-my-zsh (thanks @AntoinePrv) #1911
+- [libmamba] use std::filesystem instead of ghc::filesystem (thanks @Klaim) #1665
+- [libmamba] add missing SolverRuleInfo enum entries (thanks @AntoinePrv) #1833
+- [micromamba] CI: add fully static micromamba build (thanks @jonashaag) #1821
+- [mamba, micromamba] allow configuring proxies (thanks @AdrianFreundQC) #1841
+
+
 2022.07.29
 ==========
 

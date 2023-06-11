@@ -21,6 +21,7 @@ __version__ = version_ns["__version__"]
 
 data_files = [
     ("etc/profile.d", ["mamba/shell_templates/mamba.sh"]),
+    ("etc/fish/conf.d", ["mamba/shell_templates/mamba.fish"]),
 ]
 if sys.platform == "win32":
     data_files.append(
@@ -40,7 +41,10 @@ setup(
     packages=["mamba"],
     entry_points={"console_scripts": ["mamba = mamba.mamba:main"]},
     long_description="A (hopefully faster) reimplementation of the slow bits of conda.",
-    install_requires=["conda", "libmambapy"],
+    install_requires=[
+        "conda>=4.14.0",
+        "libmambapy",
+    ],
     extras_require={"test": ["pytest", "pytest-lazy-fixture"]},
     data_files=data_files,
     include_package_data=True,

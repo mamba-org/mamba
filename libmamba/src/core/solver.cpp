@@ -4,142 +4,90 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/solver.hpp"
-#include "mamba/core/context.hpp"
+#include <sstream>
+#include <stdexcept>
+
+#include <fmt/format.h>
+#include <fmt/ostream.h>
+#include <solv/pool.h>
+#include <solv/solvable.h>
+#include <solv/solver.h>
+
 #include "mamba/core/channel.hpp"
+#include "mamba/core/context.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/repo.hpp"
-#include "mamba/core/util.hpp"
-#include <stdexcept>
+#include "mamba/core/satisfiability_error.hpp"
+#include "mamba/core/solver.hpp"
+#include "mamba/core/util_string.hpp"
+#include "solv-cpp/pool.hpp"
+#include "solv-cpp/queue.hpp"
+#include "solv-cpp/solver.hpp"
 
 namespace mamba
 {
-    std::string MSolverProblem::to_string() const
-    {
-        return solver_problemruleinfo2str(
-            solver, (SolverRuleinfo) type, source_id, target_id, dep_id);
-    }
-
-    std::optional<PackageInfo> MSolverProblem::target() const
-    {
-        if (target_id == 0 || target_id >= solver->pool->nsolvables)
-            return std::nullopt;
-        return pool_id2solvable(solver->pool, target_id);
-    }
-
-    std::optional<PackageInfo> MSolverProblem::source() const
-    {
-        if (source_id == 0 || source_id >= solver->pool->nsolvables)
-            return std::nullopt;
-        ;
-        return pool_id2solvable(solver->pool, source_id);
-    }
-
-    std::optional<std::string> MSolverProblem::dep() const
-    {
-        if (!dep_id)
-            return std::nullopt;
-        return pool_dep2str(solver->pool, dep_id);
-    }
-
-    MSolver::MSolver(MPool& pool, const std::vector<std::pair<int, int>>& flags)
-        : m_flags(flags)
+    MSolver::MSolver(MPool pool, const std::vector<std::pair<int, int>> flags)
+        : m_flags(std::move(flags))
         , m_is_solved(false)
+        , m_pool(std::move(pool))
         , m_solver(nullptr)
-        , m_pool(pool)
+        , m_jobs(std::make_unique<solv::ObjQueue>())
     {
-        queue_init(&m_jobs);
-        pool_createwhatprovides(pool);
+        // TODO should we lazyly create solver here? Should we what provides?
+        m_pool.create_whatprovides();
     }
 
-    MSolver::~MSolver()
+    MSolver::~MSolver() = default;
+
+    MSolver::MSolver(MSolver&&) = default;
+
+    MSolver& MSolver::operator=(MSolver&&) = default;
+
+    MSolver::operator const Solver*() const
     {
-        LOG_INFO << "Freeing solver.";
-        if (m_solver != nullptr)
-        {
-            solver_free(m_solver);
-        }
+        return solver().raw();
     }
 
-    inline bool channel_match(Solvable* s, const Channel& needle)
+    MSolver::operator Solver*()
     {
-        MRepo* mrepo = reinterpret_cast<MRepo*>(s->repo->appdata);
-        const Channel* chan = mrepo->channel();
+        return solver().raw();
+    }
 
-        if (!chan)
-            return false;
+    auto MSolver::solver() -> solv::ObjSolver&
+    {
+        return *m_solver;
+    }
 
-        if ((*chan) == needle)
-            return true;
-
-        auto& custom_multichannels = Context::instance().custom_multichannels;
-        auto x = custom_multichannels.find(needle.name());
-        if (x != custom_multichannels.end())
-        {
-            for (auto el : (x->second))
-            {
-                const Channel& inner = make_channel(el);
-                if ((*chan) == inner)
-                    return true;
-            }
-        }
-
-        return false;
+    auto MSolver::solver() const -> const solv::ObjSolver&
+    {
+        return *m_solver;
     }
 
     void MSolver::add_global_job(int job_flag)
     {
-        queue_push2(&m_jobs, job_flag, 0);
-    }
-
-    void MSolver::add_channel_specific_job(const MatchSpec& ms, int job_flag)
-    {
-        Pool* pool = m_pool;
-        Queue selected_pkgs;
-        queue_init(&selected_pkgs);
-
-        // conda_build_form does **NOT** contain the channel info
-        Id match = pool_conda_matchspec(pool, ms.conda_build_form().c_str());
-
-        const Channel& c = make_channel(ms.channel);
-        for (Id* wp = pool_whatprovides_ptr(pool, match); *wp; wp++)
-        {
-            if (channel_match(pool_id2solvable(pool, *wp), c))
-            {
-                queue_push(&selected_pkgs, *wp);
-            }
-        }
-        if (selected_pkgs.count == 0)
-        {
-            LOG_ERROR << "Selected channel specific (or force-reinstall) job, but "
-                         "package is not available from channel. Solve job will fail.";
-        }
-        Id d = pool_queuetowhatprovides(pool, &selected_pkgs);
-        queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_ONE_OF, d);
-        queue_free(&selected_pkgs);
+        m_jobs->push_back(job_flag, 0);
     }
 
     void MSolver::add_reinstall_job(MatchSpec& ms, int job_flag)
     {
-        if (!m_pool->installed)
+        Pool* const pool = m_pool;
+        if (pool->installed == nullptr)
         {
             throw std::runtime_error("Did not find any packages marked as installed.");
         }
-
-        Pool* pool = m_pool;
 
         // 1. check if spec is already installed
         Id needle = pool_str2id(m_pool, ms.name.c_str(), 0);
         static Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
 
-        if (needle && m_pool->installed)
+        if (needle && (pool->installed != nullptr))
         {
             Id pkg_id;
             Solvable* s;
-            FOR_REPO_SOLVABLES(m_pool->installed, pkg_id, s)
+            FOR_REPO_SOLVABLES(pool->installed, pkg_id, s)
             {
                 if (s->name == needle)
                 {
@@ -154,180 +102,164 @@ namespace mamba
                     else
                     {
                         throw std::runtime_error(
-                            "Could not find channel associated with reinstall package");
+                            "Could not find channel associated with reinstall package"
+                        );
                     }
 
-                    selected_channel = make_channel(selected_channel).name();
+                    selected_channel = m_pool.channel_context().make_channel(selected_channel).name();
 
                     MatchSpec modified_spec(ms);
-                    if (!ms.channel.empty() || !ms.version.empty() || !ms.build.empty())
+                    if (!ms.channel.empty() || !ms.version.empty() || !ms.build_string.empty())
                     {
                         Console::stream() << ms.conda_build_form()
                                           << ": overriding channel, version and build from "
                                              "installed packages due to --force-reinstall.";
                         ms.channel = "";
                         ms.version = "";
-                        ms.build = "";
+                        ms.build_string = "";
                     }
 
                     modified_spec.channel = selected_channel;
-                    modified_spec.version = check_char(pool_id2str(pool, s->evr));
-                    modified_spec.build = check_char(solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR));
+                    modified_spec.version = raw_str_or_empty(pool_id2str(pool, s->evr));
+                    modified_spec.build_string = raw_str_or_empty(
+                        solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR)
+                    );
                     LOG_INFO << "Reinstall " << modified_spec.conda_build_form() << " from channel "
                              << selected_channel;
-                    return add_channel_specific_job(modified_spec, job_flag);
+                    m_jobs->push_back(
+                        job_flag | SOLVER_SOLVABLE_PROVIDES,
+                        m_pool.matchspec2id(modified_spec)
+                    );
+                    return;
                 }
             }
         }
-        Id inst_id
-            = pool_conda_matchspec(reinterpret_cast<Pool*>(m_pool), ms.conda_build_form().c_str());
-        queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, inst_id);
+        m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, m_pool.matchspec2id(ms));
     }
 
     void MSolver::add_jobs(const std::vector<std::string>& jobs, int job_flag)
     {
         for (const auto& job : jobs)
         {
-            MatchSpec ms(job);
+            MatchSpec ms{ job, m_pool.channel_context() };
             int job_type = job_flag & SOLVER_JOBMASK;
 
             if (job_type & SOLVER_INSTALL)
-                m_install_specs.emplace_back(job);
+            {
+                m_install_specs.emplace_back(job, m_pool.channel_context());
+            }
             else if (job_type == SOLVER_ERASE)
-                m_remove_specs.emplace_back(job);
+            {
+                m_remove_specs.emplace_back(job, m_pool.channel_context());
+            }
             else if (job_type == SOLVER_LOCK)
-                m_neuter_specs.emplace_back(job);  // not used for the moment
+            {
+                m_neuter_specs.emplace_back(job, m_pool.channel_context());  // not used for the
+                                                                             // moment
+            }
+
+            ::Id const job_id = m_pool.matchspec2id(ms);
 
             // This is checking if SOLVER_ERASE and SOLVER_INSTALL are set
             // which are the flags for SOLVER_UPDATE
-            if (((job_flag & SOLVER_UPDATE) ^ SOLVER_UPDATE) == 0)
+            if ((job_flag & SOLVER_UPDATE) == SOLVER_UPDATE)
             {
                 // ignoring update specs here for now
                 if (!ms.is_simple())
                 {
-                    Id inst_id = pool_conda_matchspec(reinterpret_cast<Pool*>(m_pool),
-                                                      ms.conda_build_form().c_str());
-                    queue_push2(&m_jobs, SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, inst_id);
+                    m_jobs->push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, job_id);
                 }
-                if (ms.channel.empty())
-                {
-                    Id update_id
-                        = pool_conda_matchspec(reinterpret_cast<Pool*>(m_pool), ms.name.c_str());
-                    queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, update_id);
-                }
-                else
-                    add_channel_specific_job(ms, job_flag);
-
-                continue;
+                m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, job_id);
             }
-
-            if (!ms.channel.empty())
-            {
-                if (job_type == SOLVER_ERASE)
-                {
-                    throw std::runtime_error("Cannot remove channel-specific spec '" + job + "'");
-                }
-                add_channel_specific_job(ms, job_flag);
-            }
-            else if (job_flag & SOLVER_INSTALL && force_reinstall)
+            else if ((job_flag & SOLVER_INSTALL) && force_reinstall)
             {
                 add_reinstall_job(ms, job_flag);
             }
             else
             {
-                // Todo remove double parsing?
-                LOG_INFO << "Adding job: " << ms.conda_build_form();
-                Id inst_id = pool_conda_matchspec(reinterpret_cast<Pool*>(m_pool),
-                                                  ms.conda_build_form().c_str());
-                queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, inst_id);
+                LOG_INFO << "Adding job: " << ms.str();
+                m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, job_id);
             }
         }
     }
 
     void MSolver::add_constraint(const std::string& job)
     {
-        MatchSpec ms(job);
-        Id inst_id
-            = pool_conda_matchspec(reinterpret_cast<Pool*>(m_pool), ms.conda_build_form().c_str());
-        queue_push2(&m_jobs, SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, inst_id);
+        m_jobs->push_back(
+            SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
+            m_pool.matchspec2id({ job, m_pool.channel_context() })
+        );
     }
 
     void MSolver::add_pin(const std::string& pin)
     {
-        // if we pin a package, we need to remove all packages that don't match the
-        // pin from being available for installation! This is done by adding
-        // SOLVER_LOCK to the packages, so that they are prevented from being
-        // installed A lock basically says: keep the state of the package. I.e.
-        // uninstalled packages stay uninstalled, installed packages stay installed.
-        // A lock is a hard requirement, we could also use SOLVER_FAVOR for soft
-        // requirements
+        // In libsolv, locking means that a package keeps the same state: if it is installed,
+        // it remains installed, if not it remains uninstalled.
+        // Locking on a spec applies the lock to all packages matching the spec.
+        // In mamba, we do not want to lock the package because we want to allow other variants
+        // (matching the same spec) to unlock more solutions.
+        // For instance we may pin ``libfmt=8.*`` but allow it to be swaped with a version built
+        // by a more recent compiler.
+        //
+        // A previous version of this function would use ``SOLVER_LOCK`` to lock all packages not
+        // matching the pin.
+        // That played poorly with ``all_problems_structured`` because we could not interpret
+        // the ids that were returned (since they were not associated with a single reldep).
+        //
+        // Another wrong idea is to add the pin as an install job.
+        // This is not what is expected of pins, as they must not be installed if they were not
+        // in the environement.
+        // They can be configure in ``.condarc`` for generally specifying what versions are wanted.
+        //
+        // The idea behind the current version is to add the pin/spec as a constraint that must be
+        // fullfield only if the package is installed.
+        // This is not supported on solver jobs but it is on ``Solvable`` with
+        // ``disttype == DISTYPE_CONDA``.
+        // Therefore, we add a dummy solvable marked as already installed, and add the pin/spec
+        // as one of its constrains.
+        // Then we lock this solvable and force the re-checking of its dependencies.
 
-        // First we need to check if the pin is OK given the currently installed
-        // packages
-        Pool* pool = m_pool;
-        MatchSpec ms(pin);
+        const auto pin_ms = MatchSpec{ pin, m_pool.channel_context() };
+        m_pinned_specs.push_back(pin_ms);
 
-        // TODO
-        // if (m_prefix_data)
-        // {
-        //     for (auto& [name, record] : m_prefix_data->records())
-        //     {
-        //         LOG_ERROR << "NAME " << name;
-        //         if (name == ms.name)
-        //         {
-        //             LOG_ERROR << "Found pinned package in installed packages, need
-        //             to check pin now."; LOG_ERROR << record.version << " vs " <<
-        //             ms.version;
-        //         }
-        //     }
-        // }
+        ::Pool* pool = m_pool;
+        ::Repo* const installed_repo = pool->installed;
 
-        Id match = pool_conda_matchspec(pool, ms.conda_build_form().c_str());
-
-        std::set<Id> matching_solvables;
-        const Channel& c = make_channel(ms.channel);
-
-        for (Id* wp = pool_whatprovides_ptr(pool, match); *wp; wp++)
+        if (pool->disttype != DISTTYPE_CONDA)
         {
-            if (!ms.channel.empty())
-            {
-                if (!channel_match(pool_id2solvable(pool, *wp), c))
-                {
-                    continue;
-                }
-            }
-            matching_solvables.insert(*wp);
+            throw std::runtime_error("Cannot add pin to a pool that is not of Conda distype");
+        }
+        if (installed_repo == nullptr)
+        {
+            throw std::runtime_error("Cannot add pin without a repo of installed packages");
         }
 
-        std::set<Id> all_solvables;
-        Id name_id = pool_str2id(pool, ms.name.c_str(), 1);
-        for (Id* wp = pool_whatprovides_ptr(pool, name_id); *wp; wp++)
-        {
-            all_solvables.insert(*wp);
-        }
+        // Add dummy solvable with a constraint on the pin (not installed if not present)
+        ::Id const cons_solv_id = repo_add_solvable(installed_repo);
+        ::Solvable* const cons_solv = pool_id2solvable(pool, cons_solv_id);
+        // TODO set some "pin" key on the solvable so that we can retrieve it during error messages
+        std::string const cons_solv_name = fmt::format("pin-{}", m_pinned_specs.size());
+        solvable_set_str(cons_solv, SOLVABLE_NAME, cons_solv_name.c_str());
+        solvable_set_str(cons_solv, SOLVABLE_EVR, "1");
+        ::Id const pin_ms_id = m_pool.matchspec2id(pin_ms);
+        solv::ObjQueue q = { pin_ms_id };
+        solvable_add_idarray(cons_solv, SOLVABLE_CONSTRAINS, pin_ms_id);
+        // Solvable need to provide itself
+        cons_solv->provides = repo_addid_dep(
+            installed_repo,
+            cons_solv->provides,
+            pool_rel2id(pool, cons_solv->name, cons_solv->evr, REL_EQ, 1),
+            0
+        );
 
-        if (all_solvables.size() != 0 && matching_solvables.size() == 0)
-        {
-            throw std::runtime_error(fmt::format("No package can be installed for pin: {}", pin));
-        }
-        m_pinned_specs.push_back(ms);
+        // Necessary for attributes to be properly stored
+        repo_internalize(installed_repo);
 
-        Queue selected_pkgs;
-        queue_init(&selected_pkgs);
-
-        for (auto& id : all_solvables)
-        {
-            if (matching_solvables.find(id) == matching_solvables.end())
-            {
-                // the solvable is _NOT_ matched by our pinning expression! So we have to
-                // lock it to make it un-installable
-                queue_push(&selected_pkgs, id);
-            }
-        }
-
-        Id d = pool_queuetowhatprovides(pool, &selected_pkgs);
-        queue_push2(&m_jobs, SOLVER_LOCK | SOLVER_SOLVABLE_ONE_OF, d);
-        queue_free(&selected_pkgs);
+        // Lock the dummy solvable so that it stays install.
+        add_jobs({ cons_solv_name }, SOLVER_LOCK);
+        // Force check the dummy solvable dependencies, as this is not the default for
+        // installed packges.
+        add_jobs({ cons_solv_name }, SOLVER_VERIFY);
     }
 
     void MSolver::add_pins(const std::vector<std::string>& pins)
@@ -359,15 +291,31 @@ namespace mamba
 
     void MSolver::set_flags(const std::vector<std::pair<int, int>>& flags)
     {
+        // TODO use new API
         for (const auto& option : flags)
         {
-            solver_set_flag(m_solver, option.first, option.second);
+            solver_set_flag(*this, option.first, option.second);
         }
     }
 
     bool MSolver::is_solved() const
     {
         return m_is_solved;
+    }
+
+    const MPool& MSolver::pool() const&
+    {
+        return m_pool;
+    }
+
+    MPool& MSolver::pool() &
+    {
+        return m_pool;
+    }
+
+    MPool&& MSolver::pool() &&
+    {
+        return std::move(m_pool);
     }
 
     const std::vector<MatchSpec>& MSolver::install_specs() const
@@ -390,48 +338,85 @@ namespace mamba
         return m_pinned_specs;
     }
 
-    bool MSolver::solve()
+    bool MSolver::try_solve()
     {
-        bool success;
-        m_solver = solver_create(m_pool);
+        m_solver = std::make_unique<solv::ObjSolver>(m_pool.pool());
         set_flags(m_flags);
 
-        solver_solve(m_solver, &m_jobs);
+        const bool success = solver().solve(m_pool.pool(), *m_jobs);
         m_is_solved = true;
-        LOG_INFO << "Problem count: " << solver_problem_count(m_solver);
-        success = solver_problem_count(m_solver) == 0;
+        LOG_INFO << "Problem count: " << solver().problem_count();
         Console::instance().json_write({ { "success", success } });
         return success;
     }
 
+    void MSolver::must_solve()
+    {
+        const bool success = try_solve();
+        if (!success)
+        {
+            explain_problems(LOG_ERROR);
+            throw mamba_error(
+                "Could not solve for environment specs",
+                mamba_error_code::satisfiablitity_error
+            );
+        }
+    }
+
+    namespace
+    {
+        // TODO change MSolver problem
+        MSolverProblem make_solver_problem(
+            const MSolver& solver,
+            const MPool& pool,
+            SolverRuleinfo type,
+            Id source_id,
+            Id target_id,
+            Id dep_id
+        )
+        {
+            const ::Solver* const solver_ptr = solver;
+            return {
+                /* .type= */ type,
+                /* .source_id= */ source_id,
+                /* .target_id= */ target_id,
+                /* .dep_id= */ dep_id,
+                /* .source= */ pool.id2pkginfo(source_id),
+                /* .target= */ pool.id2pkginfo(target_id),
+                /* .dep= */ pool.dep2str(dep_id),
+                /* .description= */
+                solver_problemruleinfo2str(
+                    const_cast<::Solver*>(solver_ptr),  // Not const because might alloctmp space
+                    type,
+                    source_id,
+                    target_id,
+                    dep_id
+                ),
+            };
+        }
+    }
 
     std::vector<MSolverProblem> MSolver::all_problems_structured() const
     {
-        std::vector<MSolverProblem> res;
-        Queue problem_rules;
-        queue_init(&problem_rules);
-        Id count = solver_problem_count(m_solver);
-        for (Id i = 1; i <= count; ++i)
-        {
-            solver_findallproblemrules(m_solver, i, &problem_rules);
-            for (Id j = 0; j < problem_rules.count; ++j)
+        std::vector<MSolverProblem> res = {};
+        res.reserve(solver().problem_count());  // Lower bound
+        solver().for_each_problem_id(
+            [&](solv::ProblemId pb)
             {
-                Id type, source, target, dep;
-                Id r = problem_rules.elements[j];
-                if (r)
+                for (solv::RuleId const rule : solver().problem_rules(pb))
                 {
-                    type = solver_ruleinfo(m_solver, r, &source, &target, &dep);
-                    MSolverProblem problem;
-                    problem.source_id = source;
-                    problem.target_id = target;
-                    problem.dep_id = dep;
-                    problem.solver = m_solver;
-                    problem.type = static_cast<SolverRuleinfo>(type);
-                    res.push_back(problem);
+                    auto info = solver().get_rule_info(m_pool.pool(), rule);
+                    res.push_back(make_solver_problem(
+                        /* solver= */ *this,
+                        /* pool= */ m_pool,
+                        /* type= */ info.type,
+                        /* source_id= */ info.from_id.value_or(0),
+                        /* target_id= */ info.to_id.value_or(0),
+                        /* dep_id= */ info.dep_id.value_or(0)
+                    ));
                 }
             }
-        }
-        queue_free(&problem_rules);
+        );
         return res;
     }
 
@@ -439,68 +424,335 @@ namespace mamba
     std::string MSolver::all_problems_to_str() const
     {
         std::stringstream problems;
-
-        Queue problem_rules;
-        queue_init(&problem_rules);
-        Id count = solver_problem_count(m_solver);
-        for (Id i = 1; i <= count; ++i)
-        {
-            solver_findallproblemrules(m_solver, i, &problem_rules);
-            for (Id j = 0; j < problem_rules.count; ++j)
+        solver().for_each_problem_id(
+            [&](solv::ProblemId pb)
             {
-                Id type, source, target, dep;
-                Id r = problem_rules.elements[j];
-                if (!r)
+                for (solv::RuleId const rule : solver().problem_rules(pb))
                 {
-                    problems << "- [SKIP] no problem rule?\n";
-                }
-                else
-                {
-                    type = solver_ruleinfo(m_solver, r, &source, &target, &dep);
-                    problems << "  - "
-                             << solver_problemruleinfo2str(
-                                    m_solver, (SolverRuleinfo) type, source, target, dep)
-                             << "\n";
+                    auto const info = solver().get_rule_info(m_pool.pool(), rule);
+                    problems << "  - " << solver().rule_info_to_string(m_pool.pool(), info) << "\n";
                 }
             }
-        }
-        queue_free(&problem_rules);
+        );
         return problems.str();
+    }
+
+    std::ostream& MSolver::explain_problems(std::ostream& out) const
+    {
+        const auto& ctx = Context::instance();
+        out << "Could not solve for environment specs\n";
+        const auto pbs = problems_graph();
+        const auto pbs_simplified = simplify_conflicts(pbs);
+        const auto cp_pbs = CompressedProblemsGraph::from_problems_graph(pbs_simplified);
+        print_problem_tree_msg(
+            out,
+            cp_pbs,
+            { /* .unavailable= */ ctx.graphics_params.palette.failure,
+              /* .available= */ ctx.graphics_params.palette.success }
+        );
+        return out;
+    }
+
+    std::string MSolver::explain_problems() const
+    {
+        std::stringstream ss;
+        explain_problems(ss);
+        return ss.str();
     }
 
     std::string MSolver::problems_to_str() const
     {
-        Queue problem_queue;
-        queue_init(&problem_queue);
-        int count = solver_problem_count(m_solver);
         std::stringstream problems;
-        for (int i = 1; i <= count; i++)
-        {
-            queue_push(&problem_queue, i);
-            problems << "  - " << solver_problem2str(m_solver, i) << "\n";
-        }
-        queue_free(&problem_queue);
+        solver().for_each_problem_id(
+            [&](solv::ProblemId pb)
+            { problems << "  - " << solver().problem_to_string(m_pool.pool(), pb); }
+        );
         return "Encountered problems while solving:\n" + problems.str();
     }
 
     std::vector<std::string> MSolver::all_problems() const
     {
         std::vector<std::string> problems;
-        Queue problem_queue;
-        queue_init(&problem_queue);
-        int count = static_cast<int>(solver_problem_count(m_solver));
-        for (int i = 1; i <= count; i++)
-        {
-            queue_push(&problem_queue, i);
-            problems.emplace_back(solver_problem2str(m_solver, i));
-        }
-        queue_free(&problem_queue);
-
+        solver().for_each_problem_id(
+            [&](solv::ProblemId pb)
+            { problems.emplace_back(solver().problem_to_string(m_pool.pool(), pb)); }
+        );
         return problems;
     }
 
-    MSolver::operator Solver*()
+    namespace
     {
-        return m_solver;
+
+        void warn_unexpected_problem(const MSolverProblem& problem)
+        {
+            // TODO: Once the new error message are not experimental, we should consider
+            // reducing this level since it is not somethig the user has control over.
+            LOG_WARNING << "Unexpected empty optionals for problem type "
+                        << solv::enum_name(problem.type);
+        }
+
+        class ProblemsGraphCreator
+        {
+        public:
+
+            using graph_t = ProblemsGraph::graph_t;
+            using RootNode = ProblemsGraph::RootNode;
+            using PackageNode = ProblemsGraph::PackageNode;
+            using UnresolvedDependencyNode = ProblemsGraph::UnresolvedDependencyNode;
+            using ConstraintNode = ProblemsGraph::ConstraintNode;
+            using node_t = ProblemsGraph::node_t;
+            using node_id = ProblemsGraph::node_id;
+            using edge_t = ProblemsGraph::edge_t;
+            using conflicts_t = ProblemsGraph::conflicts_t;
+
+            ProblemsGraphCreator(const MSolver& solver, const MPool& pool);
+
+            ProblemsGraph problem_graph() &&;
+
+        private:
+
+            const MSolver& m_solver;
+            const MPool& m_pool;
+            graph_t m_graph;
+            conflicts_t m_conflicts;
+            std::map<solv::SolvableId, node_id> m_solv2node;
+            node_id m_root_node;
+
+            /**
+             * Add a node and return the node id.
+             *
+             * If the node is already present and ``update`` is false then the current
+             * node is left as it is, otherwise the new value is inserted.
+             */
+            node_id add_solvable(solv::SolvableId solv_id, node_t&& pkg_info, bool update = true);
+
+            void add_conflict(node_id n1, node_id n2);
+            [[nodiscard]] bool
+            add_expanded_deps_edges(node_id from_id, solv::SolvableId dep_id, const edge_t& edge);
+
+            void parse_problems();
+        };
+
+        ProblemsGraphCreator::ProblemsGraphCreator(const MSolver& solver, const MPool& pool)
+            : m_solver{ solver }
+            , m_pool{ pool }
+        {
+            m_root_node = m_graph.add_node(RootNode());
+            parse_problems();
+        }
+
+        ProblemsGraph ProblemsGraphCreator::problem_graph() &&
+        {
+            return { std::move(m_graph), std::move(m_conflicts), m_root_node };
+        }
+
+        auto ProblemsGraphCreator::add_solvable(solv::SolvableId solv_id, node_t&& node, bool update)
+            -> node_id
+        {
+            if (const auto iter = m_solv2node.find(solv_id); iter != m_solv2node.end())
+            {
+                const node_id id = iter->second;
+                if (update)
+                {
+                    m_graph.node(id) = std::move(node);
+                }
+                return id;
+            }
+            const node_id id = m_graph.add_node(std::move(node));
+            m_solv2node[solv_id] = id;
+            return id;
+        };
+
+        void ProblemsGraphCreator::add_conflict(node_id n1, node_id n2)
+        {
+            m_conflicts.add(n1, n2);
+        }
+
+        bool ProblemsGraphCreator::add_expanded_deps_edges(
+            node_id from_id,
+            solv::SolvableId dep_id,
+            const edge_t& edge
+        )
+        {
+            bool added = false;
+            for (const auto& solv_id : m_pool.select_solvables(dep_id))
+            {
+                added = true;
+                auto pkg_info = m_pool.id2pkginfo(solv_id);
+                assert(pkg_info.has_value());
+                node_id to_id = add_solvable(solv_id, PackageNode{ std::move(pkg_info).value() }, false);
+                m_graph.add_edge(from_id, to_id, edge);
+            }
+            return added;
+        }
+
+        void ProblemsGraphCreator::parse_problems()
+        {
+            auto& channel_context = m_pool.channel_context();
+            for (auto& problem : m_solver.all_problems_structured())
+            {
+                std::optional<PackageInfo>& source = problem.source;
+                std::optional<PackageInfo>& target = problem.target;
+                std::optional<std::string>& dep = problem.dep;
+                SolverRuleinfo type = problem.type;
+
+                switch (type)
+                {
+                    case SOLVER_RULE_PKG_CONSTRAINS:
+                    {
+                        // A constraint (run_constrained) on source is conflicting with target.
+                        // SOLVER_RULE_PKG_CONSTRAINS has a dep, but it can resolve to nothing.
+                        // The constraint conflict is actually expressed between the target and
+                        // a constrains node child of the source.
+                        if (!source || !target || !dep)
+                        {
+                            warn_unexpected_problem(problem);
+                            break;
+                        }
+                        auto src_id = add_solvable(
+                            problem.source_id,
+                            PackageNode{ std::move(source).value() }
+                        );
+                        node_id tgt_id = add_solvable(
+                            problem.target_id,
+                            PackageNode{ std::move(target).value() }
+                        );
+                        node_id cons_id = add_solvable(
+                            problem.dep_id,
+                            ConstraintNode{ { dep.value(), channel_context } }
+                        );
+                        MatchSpec edge(dep.value(), channel_context);
+                        m_graph.add_edge(src_id, cons_id, std::move(edge));
+                        add_conflict(cons_id, tgt_id);
+                        break;
+                    }
+                    case SOLVER_RULE_PKG_REQUIRES:
+                    {
+                        // Express a dependency on source that is involved in explaining the
+                        // problem.
+                        // Not all dependency of package will appear, only enough to explain the
+                        // problem. It is not a problem in itself, only a part of the graph.
+                        if (!dep || !source)
+                        {
+                            warn_unexpected_problem(problem);
+                            break;
+                        }
+                        auto src_id = add_solvable(
+                            problem.source_id,
+                            PackageNode{ std::move(source).value() }
+                        );
+                        MatchSpec edge(dep.value(), channel_context);
+                        bool added = add_expanded_deps_edges(src_id, problem.dep_id, edge);
+                        if (!added)
+                        {
+                            LOG_WARNING << "Added empty dependency for problem type "
+                                        << solv::enum_name(type);
+                        }
+                        break;
+                    }
+                    case SOLVER_RULE_JOB:
+                    case SOLVER_RULE_PKG:
+                    {
+                        // A top level requirement.
+                        // The difference between JOB and PKG is unknown (possibly unused).
+                        if (!dep)
+                        {
+                            warn_unexpected_problem(problem);
+                            break;
+                        }
+                        MatchSpec edge(dep.value(), channel_context);
+                        bool added = add_expanded_deps_edges(m_root_node, problem.dep_id, edge);
+                        if (!added)
+                        {
+                            LOG_WARNING << "Added empty dependency for problem type "
+                                        << solv::enum_name(type);
+                        }
+                        break;
+                    }
+                    case SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP:
+                    case SOLVER_RULE_JOB_UNKNOWN_PACKAGE:
+                    {
+                        // A top level dependency does not exist.
+                        // Could be a wrong name or missing channel.
+                        if (!dep)
+                        {
+                            warn_unexpected_problem(problem);
+                            break;
+                        }
+                        MatchSpec edge(dep.value(), channel_context);
+                        node_id dep_id = add_solvable(
+                            problem.dep_id,
+                            UnresolvedDependencyNode{ { std::move(dep).value(), channel_context } }
+                        );
+                        m_graph.add_edge(m_root_node, dep_id, std::move(edge));
+                        break;
+                    }
+                    case SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP:
+                    {
+                        // A package dependency does not exist.
+                        // Could be a wrong name or missing channel.
+                        // This is a partial exaplanation of why a specific solvable (could be any
+                        // of the parent) cannot be installed.
+                        if (!source || !dep)
+                        {
+                            warn_unexpected_problem(problem);
+                            break;
+                        }
+                        MatchSpec edge(dep.value(), channel_context);
+                        node_id src_id = add_solvable(
+                            problem.source_id,
+                            PackageNode{ std::move(source).value() }
+                        );
+                        node_id dep_id = add_solvable(
+                            problem.dep_id,
+                            UnresolvedDependencyNode{ { std::move(dep).value(), channel_context } }
+                        );
+                        m_graph.add_edge(src_id, dep_id, std::move(edge));
+                        break;
+                    }
+                    case SOLVER_RULE_PKG_CONFLICTS:
+                    case SOLVER_RULE_PKG_SAME_NAME:
+                    {
+                        // Looking for a valid solution to the installation satisfiability expand to
+                        // two solvables of same package that cannot be installed together. This is
+                        // a partial exaplanation of why one of the solvables (could be any of the
+                        // parent) cannot be installed.
+                        if (!source || !target)
+                        {
+                            warn_unexpected_problem(problem);
+                            break;
+                        }
+                        node_id src_id = add_solvable(
+                            problem.source_id,
+                            PackageNode{ std::move(source).value() }
+                        );
+                        node_id tgt_id = add_solvable(
+                            problem.target_id,
+                            PackageNode{ std::move(target).value() }
+                        );
+                        add_conflict(src_id, tgt_id);
+                        break;
+                    }
+                    case SOLVER_RULE_UPDATE:
+                    {
+                        // Encounterd in the problems list from libsolv but unknown.
+                        // Explicitly ignored until we do something with it.
+                        break;
+                    }
+                    default:
+                    {
+                        // Many more SolverRuleinfo that heve not been encountered.
+                        LOG_WARNING << "Problem type not implemented " << solv::enum_name(type);
+                        break;
+                    }
+                }
+            }
+        }
     }
+
+    auto MSolver::problems_graph() const -> ProblemsGraph
+    {
+        return ProblemsGraphCreator(*this, m_pool).problem_graph();
+    }
+
 }  // namespace mamba

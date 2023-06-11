@@ -4,9 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "common_options.hpp"
-
 #include "mamba/api/create.hpp"
+
+#include "common_options.hpp"
 
 
 using namespace mamba;  // NOLINT(build/namespaces)
@@ -16,5 +16,5 @@ set_create_command(CLI::App* subcom)
 {
     init_install_options(subcom);
 
-    subcom->callback([&]() { create(); });
+    subcom->callback(mamba::create);
 }

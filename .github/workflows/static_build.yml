@@ -1,0 +1,149 @@
+name: Micromamba static builds
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  conda-build:
+    name: "micromamba - ${{ matrix.platform }}-${{ matrix.arch }}"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, platform: linux, arch: 64 }
+          - { os: ubuntu-latest, platform: linux, arch: aarch64 }
+          - { os: ubuntu-latest, platform: linux, arch: ppc64le }
+          - { os: macos-latest, platform: osx, arch: 64 }
+          - { os: macos-latest, platform: osx, arch: arm64 }
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v3
+      - name: Checkout micromamba-feedstock
+        uses: actions/checkout@v3
+        with:
+          repository: conda-forge/micromamba-feedstock
+          path: micromamba-feedstock
+      # replace the url: ... until the libmamba.patch line with git_url: ../..
+      - name: Patch micromamba-feedstock
+        run: |
+          cp ./micromamba/recipe/* micromamba-feedstock/recipe/
+      - uses: mamba-org/provision-with-micromamba@main
+        with:
+          channels: conda-forge
+          environment-file: false
+          environment-name: mambabuild
+          extra-specs: boa
+      - name: Build conda package
+        shell: bash -l {0}
+        run: |
+          conda mambabuild -m micromamba-feedstock/.ci_support/${{ matrix.platform }}_${{ matrix.arch }}_.yaml \
+                              micromamba-feedstock/recipe ${{ matrix.arch != '64' && '--no-test' || '' }}
+      - name: Unpack micromamba package
+        shell: bash -l {0}
+        run: |
+          cd $MAMBA_ROOT_PREFIX/envs/mambabuild/conda-bld/${{ matrix.platform }}-${{ matrix.arch }}
+          tar -xvf micromamba-*.tar.bz2
+          mkdir -p ${{ github.workspace }}/artifacts
+          cp bin/micromamba ${{ github.workspace }}/artifacts
+      - name: Test micromamba on emulated target architecture
+        if: ${{ matrix.arch != '64' && matrix.platform == 'linux' }}
+        uses: uraimo/run-on-arch-action@v2
+        with:
+          arch: ${{ matrix.arch }}
+          distro: ubuntu_latest
+          dockerRunArgs: |
+            -v "${{ github.workspace }}/artifacts:/artifacts"
+          run: |
+            cd /artifacts
+            ./micromamba --version
+            ./micromamba --help
+            ./micromamba
+            apt update && apt install -y ca-certificates
+            ./micromamba create -p /tmp/testenv --override-channels -c conda-forge --yes python=3.9
+      - name: Archive conda-build artifact
+        if: failure()
+        run: tar -czf ${{ github.workspace }}/micromamba-conda-build-failed-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz $MAMBA_ROOT_PREFIX/envs/mambabuild/conda-bld/micromamba_*
+      - name: Upload conda build artifacts
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: micromamba-conda-build-failed-${{ matrix.platform }}-${{ matrix.arch }}
+          path: ${{ github.workspace }}/micromamba-conda-build-failed-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
+          retention-days: 7
+      - name: Upload micromamba
+        uses: actions/upload-artifact@v3
+        with:
+          name: micromamba-${{ matrix.platform }}-${{ matrix.arch }}
+          path: ${{ github.workspace }}/artifacts/micromamba
+
+  micromamba-static-win:
+    name: "micromamba - win-64"
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v3
+      - name: Cache vcpkg packages
+        uses: actions/cache@v3
+        with:
+          # The installed packages are in %VCPKG_INSTALLATION_ROOT%\installed\x64-windows-static
+          # and the info which packages are installed is in %VCPKG_INSTALLATION_ROOT%\installed\vcpkg
+          path: C:\Users\runneradmin\AppData\Local\vcpkg
+          key: vcpkg-win-64-appdata
+      - name: Install dependencies with vcpkg
+        shell: cmd
+        # remove libsolv overlay-ports once https://github.com/microsoft/vcpkg/pull/31275 is released
+        run: |
+          vcpkg install --overlay-ports=.\ports\libsolv --triplet x64-windows-static
+      - uses: hendrikmuhs/ccache-action@main
+        with:
+          variant: sccache
+          key: sccache-${{ github.job }}-win-64
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+      - name: build micromamba
+        shell: cmd
+        run: |
+          set CMAKE_PREFIX_PATH=.\vcpkg_installed\x64-windows-static
+          cmake -S . ^
+            -B build ^
+            -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
+            -D CMAKE_C_COMPILER_LAUNCHER=sccache ^
+            -D CMAKE_BUILD_TYPE="Release" ^
+            -D BUILD_LIBMAMBA=ON ^
+            -D BUILD_STATIC=ON ^
+            -D BUILD_MICROMAMBA=ON ^
+            -G "Ninja"
+          if %errorlevel% neq 0 exit /b %errorlevel%
+          cmake --build build
+          if %errorlevel% neq 0 exit /b %errorlevel%
+          sccache --show-stats
+          if %errorlevel% neq 0 exit /b %errorlevel%
+          .\build\micromamba\micromamba.exe --version
+          if %errorlevel% neq 0 exit /b %errorlevel%
+          .\build\micromamba\micromamba.exe --help
+          if %errorlevel% neq 0 exit /b %errorlevel%
+      - name: build cache statistics
+        run: sccache --show-stats
+      - name: Archive-build artifact
+        if: failure()
+        run: tar -czf ${{ github.workspace }}/micromamba-build-failed-win-64.tar.gz ${{ github.workspace }}/build/
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: micromamba-build-failed-win-64
+          path: ${{ github.workspace }}/micromamba-build-failed-win-64.tar.gz
+          retention-days: 7
+      - uses: actions/upload-artifact@v3
+        with:
+          name: micromamba-win-64
+          path: ${{ github.workspace }}/build/micromamba/micromamba.exe

@@ -3,7 +3,7 @@
 Concepts
 --------
 
-Few concepts are extensively used in ``Mamba`` and in this documentation as well.
+A few concepts are extensively used in ``Mamba`` and in this documentation as well.
 You should start by getting familiar with those as a starting point.
 
 
@@ -13,7 +13,7 @@ Prefix/Environment
 ==================
 
 
-In Unix-like platforms, installing a software consists in placing files in subdirectories of an "installation prefix":
+In Unix-like platforms, installing a piece of software consists of placing files in subdirectories of an "installation prefix":
 
 .. image:: prefix.png
   :height: 300
@@ -26,18 +26,18 @@ In Unix-like platforms, installing a software consists in placing files in subdi
     Examples on Unix: the root of the filesystem, the ``/usr/`` and ``/usr/local/`` directories.
 
 | A *prefix* is a fully self-contained and portable installation.
-| To disambiguate with :ref:`root prefix<root-prefix>`, *prefix* is often called *target prefix*. Without explicit *target* or *root* reference, you can assume it points a *target prefix*.
+| To disambiguate with :ref:`root prefix<root-prefix>`, *prefix* is often referred to as *target prefix*. Without an explicit *target* or *root* prefix, you can assume it refers to a *target prefix*.
 
-An *environment* is just another way to call a *target prefix*.
+An *environment* is just another name for a *target prefix*.
 
-Mamba's environments are similar to virtual environments known from Python's ``virtualenv`` and similar software, but more powerful since Mamba also manages *native* dependencies and generalizes the virtual environment concept to many programming languages.
+Mamba's environments are similar to virtual environments as seen in Python's ``virtualenv`` and similar software, but more powerful since Mamba also manages *native* dependencies and generalizes the virtual environment concept to many programming languages.
 
 .. _root-prefix:
 
 Root prefix
 ===========
 
-When downloading for the first time the index of packages for resolution of the environment, or the packages themselves, a *cache* is generated to speed-up next operations:
+When downloading for the first time the index of packages for resolution of the environment, or the packages themselves, a *cache* is generated to speed up future operations:
 
 - the index has a :ref:`configurable<configuration>` time-to-live (TTL) during which it will be considered as valid
 - the packages are preferentially hard-linked to the *cache* location
@@ -54,12 +54,12 @@ Base environment
 
 The *base* environment is the environment located at the *root prefix*.
 
-| This is a legacy *environment* from ``conda`` implementation still heavily used.
-| The *base* environment contains the ``conda`` and ``mamba`` installation alongside a Python installation (since ``mamba`` and ``conda`` require Python to run)
-| ``mamba`` and ``conda`` being themselves Python packages, they are installed in *base* environment, making the CLIs available in all *activated* environment *based* on this *base* environement.
+| This is a legacy *environment* from ``conda`` implementation that is still heavily used.
+| The *base* environment contains the ``conda`` and ``mamba`` installation alongside a Python installation (since ``mamba`` and ``conda`` require Python to run).
+| ``mamba`` and ``conda``, being themselves Python packages, are installed in the *base* environment, making the CLIs available in all *activated* environments *based* on this *base* environment.
 
 .. note::
-  You can't ``create`` *base* environment because it's already part of the *root prefix* structure, directly ``install`` in *base* instead.
+  You can't ``create`` the *base* environment because it's already part of the *root prefix* structure. Directly ``install`` in *base* instead.
 
 
 Activation/Deactivation

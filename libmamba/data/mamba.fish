@@ -1,13 +1,13 @@
 if not set -q MAMBA_SHLVL
   set -gx MAMBA_SHLVL "0"
-  set -gx PATH $MAMBA_ROOT_PREFIX/condabin $PATH
+  fish_add_path --move $MAMBA_ROOT_PREFIX/condabin
 end
 
 if not set -q MAMBA_NO_PROMPT
   function __mamba_add_prompt
-    if set -q MAMBA_PROMPT_MODIFIER
+    if set -q CONDA_PROMPT_MODIFIER
       set_color -o green
-      echo -n $MAMBA_PROMPT_MODIFIER
+      echo -n $CONDA_PROMPT_MODIFIER
       set_color normal
     end
   end
@@ -54,53 +54,27 @@ if not set -q MAMBA_NO_PROMPT
 end
 
 
-function __mamba_add_sys_prefix_to_path
-  test -z "$MAMBA_ROOT_PREFIX" && return
-
-  set -gx MAMBA_INTERNAL_OLDPATH $PATH
-  if test -n "$WINDIR"
-    set -gx -p PATH "$MAMBA_ROOT_PREFIX/bin"
-    set -gx -p PATH "$MAMBA_ROOT_PREFIX/Scripts"
-    set -gx -p PATH "$MAMBA_ROOT_PREFIX/Library/bin"
-    set -gx -p PATH "$MAMBA_ROOT_PREFIX/Library/usr/bin"
-    set -gx -p PATH "$MAMBA_ROOT_PREFIX/Library/mingw-w64/bin"
-    set -gx -p PATH "$MAMBA_ROOT_PREFIX"
-  else
-    set -gx -p PATH "$MAMBA_ROOT_PREFIX/bin"
-  end
-end
-
 function micromamba --inherit-variable MAMBA_EXE
-  if [ (count $argv) -lt 1 ]
-    eval $MAMBA_EXE
+  if test (count $argv) -lt 1 || contains -- --help $argv
+    $MAMBA_EXE $argv
   else
     set -l cmd $argv[1]
     set -e argv[1]
-    __mamba_add_sys_prefix_to_path
     switch $cmd
       case activate deactivate
-        $MAMBA_EXE shell -s fish $cmd $argv | source || return $status
-        return
+        $MAMBA_EXE shell $cmd --shell fish $argv | source || return $status
       case install update upgrade remove uninstall
-        eval $MAMBA_EXE $cmd $argv || return $status
-        set -l script (eval $MAMBA_EXE shell -s fish reactivate) || return $status
-        eval $script || return $status
+        $MAMBA_EXE $cmd $argv || return $status
+        $MAMBA_EXE shell reactivate --shell fish | source || return $status
       case '*'
-        eval $MAMBA_EXE $cmd $argv || return $status
+        $MAMBA_EXE $cmd $argv
     end
-    set ret $status
-    set -gx PATH $MAMBA_INTERNAL_OLDPATH
-    return $ret
   end
 end
 
 
 
 # Autocompletions below
-
-function __fish_mamba_env_commands
-  string replace -r '.*_([a-z]+)\.py$' '$1' $MAMBA_ROOT_PREFIX/lib/python*/site-packages/conda_env/cli/main_*.py
-end
 
 function __fish_mamba_envs
   micromamba env list | tail -n +11 | cut -d' ' -f3
@@ -110,60 +84,123 @@ function __fish_mamba_packages
   micromamba list | awk 'NR > 3 {print $1}'
 end
 
-function __fish_mamba_universial_optspecs
-    string join \n 'h/help' 'a-version' 'b-rc-file' \
+function __fish_mamba_universal_optspecs
+    string join \n 'h/help' 'a-version' 'b-rc-file=+' \
                    'c-no-rc' 'd-no-env' 'v/verbose' \
-                   'q/quiet' 'y/yes' 'e-json' 'f-offline' \
-                   'g-dry-run' 'i-experimental' 'r/root-prefix' \
-                   'p/prefix' 'n/name'
+                   'o/-log-level=+' 'q/quiet' 'y/yes' \
+                   'e-json' 'f-offline' \
+                   'g-dry-run' 'i-experimental' 'r/root-prefix=+' \
+                   'p/prefix=+' 'n/name=+'
 end
 
-function __fish_mamba_needs_command
-    # Figure out if the current invocation already has a command.
-    set -l argv (commandline -opc)
-    set -e argv[1]
-    argparse -s (__fish_mamba_universial_optspecs) -- $argv 2>/dev/null
-    or return 0
-    if set -q argv[1]
-      echo $argv[1]
-      return 1
+function __fish_mamba_has_command
+  set -l want_prefix $argv
+  set -l argv (commandline -opc)
+  # Remove MAMBA_EXE
+  set -e argv[1]
+  # Parse common options
+  argparse -i (__fish_mamba_universal_optspecs) -- $argv 2>/dev/null; or return 1
+  # Parse other options. This only works for boolean --flags so far.
+  set -l argv (string replace -r -- " ?-[^ ]+" "" "$argv")
+  # Normalize whitespace
+  set -l argv (string replace -r "\s+" " " "$argv")
+  test "$want_prefix" = "$argv"
+end
+
+function __fish_mamba_complete_subcmds
+  for line in (string split \n (string trim $argv[2]))
+    set tmp (string replace -r '\s{5,}+' ___ (string trim $line))
+    set cmd (string split ___  $tmp -f 1)
+    set description (string split ___ $tmp -f 2)
+    if test -z $description
+      complete -x -c micromamba -n $argv[1] -a $cmd
+    else
+      complete -x -c micromamba -n $argv[1] -a $cmd -d $description
     end
-    return 0
-end
-
-function __fish_mamba_using_command
-    set -l cmd (__fish_mamba_needs_command)
-    test -z "$cmd"
-    and return 1
-    contains -- $cmd $argv
-    and return 0
+  end
 end
 
 
-# Conda commands
-complete -x -c micromamba -n '__fish_mamba_needs_command' -a shell       -d 'Generate shell init scripts'
-complete -x -c micromamba -n '__fish_mamba_needs_command' -a create      -d 'Create new environment'
-complete -x -c micromamba -n '__fish_mamba_needs_command' -a install     -d 'Install packages in active environment'
-complete -x -c micromamba -n '__fish_mamba_needs_command' -a update      -d 'Update packages in active environment'
-complete -x -c micromamba -n '__fish_mamba_needs_command' -a remove      -d 'Remove packages from active environment'
-complete -x -c micromamba -n '__fish_mamba_needs_command' -a list        -d 'List packages in active environment'
-complete -x -c micromamba -n '__fish_mamba_needs_command' -a clean       -d 'Clean package cache'
-complete -x -c micromamba -n '__fish_mamba_needs_command' -a config      -d 'Configuration of micromamba'
-complete -x -c micromamba -n '__fish_mamba_needs_command' -a info        -d 'Information about micromamba'
-complete -x -c micromamba -n '__fish_mamba_needs_command' -a constructor -d 'Commands to support using micromamba in constructor'
-complete -x -c micromamba -n '__fish_mamba_needs_command' -a env         -d 'List environments'
-# Commands after hook
-complete -x -c micromamba -n '__fish_mamba_needs_command' -a activate    -d 'Commands to support using micromamba in constructor'
-complete -x -c micromamba -n '__fish_mamba_needs_command' -a deactivate  -d 'List environments'
+function __fish_mamba_needs_env
+  set -l cmd (commandline -opc)
+  test $cmd[-1] = "-n"
+end
 
-# subcommands
-complete -x -c micromamba -n '__fish_mamba_using_command env' -a 'list'  -d 'List known environments'
+
+# Top level commands
+# Generated by "micromamba --help"
+__fish_mamba_complete_subcmds '__fish_mamba_has_command' '
+  shell                       Generate shell init scripts
+  create                      Create new environment
+  install                     Install packages in active environment
+  update                      Update packages in active environment
+  repoquery                   Find and analyze packages in active environment or channels
+  remove                      Remove packages from active environment
+  list                        List packages in active environment
+  package                     Extract a package or bundle files into an archive
+  clean                       Clean package cache
+  config                      Configuration of micromamba
+  info                        Information about micromamba
+  constructor                 Commands to support using micromamba in constructor
+  env                         List environments
+  activate                    Activate an environment
+  run                         Run an executable in an environment
+  ps                          Show, inspect or kill running processes
+  auth                        Login or logout of a given host
+  search                      Find packages in active environment or channels
+'
+
+# TODO: deactivate
+# TODO: run
+
+# env subcommand
+# Generated by "micromamba env --help"
+__fish_mamba_complete_subcmds '__fish_mamba_has_command env' '
+  list                        List known environments
+  export                      Export environment
+  remove                      Remove an environment
+'
+# env subcommand
+# Generated by "micromamba config --help"
+__fish_mamba_complete_subcmds '__fish_mamba_has_command config' '
+  list                        List configuration values
+  sources                     Show configuration sources
+  describe                    Describe given configuration parameters
+  prepend                     Add one configuration value to the beginning of a list key
+  append                      Add one configuration value to the end of a list key
+  remove-key                  Remove a configuration key and its values
+  remove                      Remove a configuration value from a list key. This removes all instances of the value.
+  set                         Set a configuration value
+  get                         Get a configuration value
+'
+
+# repoquery
+__fish_mamba_complete_subcmds '__fish_mamba_has_command repoquery' '
+  search
+  depends
+  whoneeds
+'
+
+
+# shell
+__fish_mamba_complete_subcmds '__fish_mamba_has_command shell' '
+  init
+  deinit
+  hook
+  activate
+  deactivate
+  reactivate
+'
 
 # Commands that need environment as parameter
-complete -x -c micromamba -n '__fish_mamba_using_command activate' -a '(__fish_mamba_envs)'
+complete -x -c micromamba -n '__fish_mamba_has_command activate' -a '(__fish_mamba_envs)'
+complete -x -c micromamba -n '__fish_mamba_has_command shell activate' -a '(__fish_mamba_envs)'
 
 # Commands that need package as parameter
-complete -x -c micromamba -n '__fish_mamba_using_command remove' -a '(__fish_mamba_packages)'
-complete -x -c micromamba -n '__fish_mamba_using_command uninstall' -a '(__fish_mamba_packages)'
-complete -x -c micromamba -n '__fish_mamba_using_command upgrade' -a '(__fish_mamba_packages)'
-complete -x -c micromamba -n '__fish_mamba_using_command update' -a '(__fish_mamba_packages)'
+complete -x -c micromamba -n '__fish_mamba_has_command remove' -a '(__fish_mamba_packages)'
+complete -x -c micromamba -n '__fish_mamba_has_command uninstall' -a '(__fish_mamba_packages)'
+complete -x -c micromamba -n '__fish_mamba_has_command upgrade' -a '(__fish_mamba_packages)'
+complete -x -c micromamba -n '__fish_mamba_has_command update' -a '(__fish_mamba_packages)'
+
+# Environment name
+complete -x -c micromamba -n '__fish_mamba_needs_env' -a '(__fish_mamba_envs)'

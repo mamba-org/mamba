@@ -4,18 +4,20 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 
-cmake_minimum_required (VERSION 3.2)
-if(POLICY CMP0025)
-  cmake_policy(SET CMP0025 NEW)
-endif()
-cmake_policy(SET CMP0077 NEW)
-
+cmake_minimum_required (VERSION 3.16)
+cmake_policy(SET CMP0025 NEW) # Introduced in cmake 3.0
+cmake_policy(SET CMP0077 NEW) # Introduced in cmake 3.13
 project(micromamba)
 
 # Build options
 # =============
+option(BUILD_MICROMAMBA_SERVER "Build the micromamba server" OFF)
 
-set(MICROMAMBA_LINKAGE "DYNAMIC" CACHE STRING "micromamba linkage against libraries")
+if (BUILD_STATIC AND NOT BUILD_SHARED)
+    set(MICROMAMBA_LINKAGE "STATIC" CACHE STRING "micromamba linkage against libraries")
+else ()
+    set(MICROMAMBA_LINKAGE "DYNAMIC" CACHE STRING "micromamba linkage against libraries")
+endif ()
 
 # Source files
 # ============
@@ -51,39 +53,32 @@ set(MICROMAMBA_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/version.hpp
 )
 
+if(UNIX AND BUILD_MICROMAMBA_SERVER)
+    list(APPEND MICROMAMBA_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/server.cpp
+    )
+    add_definitions(-DMICROMAMBA_SERVER)
+endif()
+
 add_executable(micromamba ${MICROMAMBA_SRCS} ${MICROMAMBA_HEADERS})
 
-if(NOT (TARGET libmamba OR TARGET libmamba-static OR TARGET libmamba-full-static))
+mamba_target_add_compile_warnings(micromamba WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
+
+if(NOT (TARGET libmamba OR TARGET libmamba-static))
     find_package(libmamba REQUIRED)
 endif ()
-
-string(TOUPPER "${MICROMAMBA_LINKAGE}" linkage_upper)
-if (NOT ${linkage_upper} MATCHES "^(DYNAMIC|STATIC|FULL_STATIC)$")
-    message(FATAL_ERROR "Invalid executable linkage: ${MICROMAMBA_LINKAGE}, should be one of { DYNAMIC, STATIC, FULL_STATIC }")
-endif ()
-
-message(STATUS "Micromamba linkage: ${MICROMAMBA_LINKAGE}")
 
 find_package(Threads REQUIRED)
 target_link_libraries(micromamba PRIVATE Threads::Threads)
 
-# Check spdlog C header for external fmt configuration.
-find_file(SPDLOG_TWEAK_H NAMES spdlog/tweakme.h)
-if(SPDLOG_TWEAK_H)
-    file(READ ${SPDLOG_TWEAK_H} SPDLOG_TWEAK_H_STRING)
-    if("${SPDLOG_TWEAK_H_STRING}" MATCHES "\n *#define *SPDLOG_FMT_EXTERNAL *")
-        find_package(fmt REQUIRED)
-        target_link_libraries(micromamba PRIVATE fmt::fmt)
-    endif()
-endif()
+string(TOUPPER "${MICROMAMBA_LINKAGE}" linkage_upper)
+message(STATUS "Micromamba linkage: ${MICROMAMBA_LINKAGE}")
 
-if (${MICROMAMBA_LINKAGE} STREQUAL "FULL_STATIC")
-    target_link_libraries(micromamba PRIVATE libmamba-full-static)
-    if (WIN32)
-        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-    endif ()
-elseif (${MICROMAMBA_LINKAGE} STREQUAL "STATIC")
+if (${MICROMAMBA_LINKAGE} STREQUAL "STATIC")
     target_link_libraries(micromamba PRIVATE libmamba-static)
+    if (WIN32)
+        set_target_properties(micromamba PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    endif ()
 else ()
     target_link_libraries(micromamba PRIVATE libmamba)
 endif ()

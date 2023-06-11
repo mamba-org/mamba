@@ -3,22 +3,30 @@ channels:
   - conda-forge
 dependencies:
   - cxx-compiler
-  - cmake
+  - cmake >=3.16
   - ninja
   - nlohmann_json
   - libsolv >=0.7.18
   - libarchive
   - libsodium
-  - libcurl 7.82.0 *_0
+  - libcurl >=7.86
   - gtest
   - gmock
   - cpp-expected
   - reproc-cpp
   - yaml-cpp
-  - termcolor-cpp
   - cli11 >=2.2
   - spdlog
+  - fmt
+  - python
+  - pip
   - pybind11
+  - pybind11-stubgen
   - pytest
+  - pyyaml
   - conda
+  - conda-content-trust
+  - cryptography<40.0  # Or breaks conda-content-trust
+  - pip:
+    - securesystemslib
   - sel(win): winreg

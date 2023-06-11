@@ -1,0 +1,104 @@
+name: Bug report
+description: Problem using Mamba / Micromamba
+body:
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Troubleshooting docs
+      description: Please check the [troubleshooting docs](https://mamba.readthedocs.io/en/latest/user_guide/troubleshooting.html) before making a report.
+      options:
+        - label: "My problem is not solved in the Troubleshooting docs"
+          required: true
+  - type: dropdown
+    id: mamba_installation_method
+    attributes:
+      label: How did you install Mamba?
+      description: |
+        If you use Mamba, please install it via [Mambaforge](https://mamba.readthedocs.io/en/latest/installation.html#fresh-install).
+
+        If you use Micromamba, please select "Micromamba" below.
+      options:
+        - "Mambaforge"
+        - "Micromamba"
+        - "Other (please describe)"
+    validations:
+      required: true
+  - type: input
+    id: search
+    attributes:
+      label: Search tried in issue tracker
+      description: Please search for similar issues before making a report.
+      placeholder: ...
+    validations:
+      required: true
+  - type: checkboxes
+    id: latest_version
+    attributes:
+      label: Latest version of Mamba
+      description: |
+        Please try with the most recent version of Mamba/Micromamba:
+        [Latest Mamba version](https://anaconda.org/conda-forge/mamba) / [Latest Micromamba version](https://anaconda.org/conda-forge/micromamba)
+      options:
+        - label: "My problem is not solved with the latest version"
+          required: true
+  - type: dropdown
+    id: conda_reproducible
+    attributes:
+      label: Tried in Conda?
+      description: |
+        If possible, please try to reproduce your problem with Conda (without Mamba or Micromamba).
+
+        Can you reproduce the problem with Conda?
+      options:
+        - "I have this problem with Conda as well, without using Mamba"
+        - "I do not have this problem with Conda, just with Mamba"
+        - "I didn't try"
+        - "Not applicable"
+    validations:
+      required: true
+  - type: textarea
+    id: freeform
+    attributes:
+      label: Describe your issue
+    validations:
+      required: true
+  - type: textarea
+    id: mamba_info
+    attributes:
+      label: mamba info / micromamba info
+      description: |
+        Please post the output of `mamba info` / `micromamba info`.
+
+        Auto-rendered as code, no need for backticks.
+      render: shell
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        Verbose logs of the problematic command, eg. `mamba install -v ...`.
+
+        Auto-rendered as code, no need for backticks.
+      render: shell
+  - type: textarea
+    id: environment_yml
+    attributes:
+      label: environment.yml
+      description: |
+        Please post your `environment.yml` file if applicable.
+
+        Auto-rendered as code, no need for backticks.
+      placeholder: |
+        name: ...
+        channels: ...
+        dependencies: ...
+      render: yaml
+  - type: textarea
+    id: condarc
+    attributes:
+      label: ~/.condarc
+      description: |
+        `cat ~/.condarc`
+
+        Auto-rendered as code, no need for backticks.
+      render: yaml

@@ -7,7 +7,7 @@
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/create.hpp"
 #include "mamba/api/install.hpp"
-
+#include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/util.hpp"
 
@@ -21,30 +21,40 @@ namespace mamba
 
         config.at("use_target_prefix_fallback").set_value(false);
         config.at("target_prefix_checks")
-            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_NOT_ENV_PREFIX
-                       | MAMBA_NOT_ALLOW_MISSING_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
+            .set_value(
+                MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_NOT_ENV_PREFIX
+                | MAMBA_NOT_ALLOW_MISSING_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX
+            );
         config.load();
 
         auto& create_specs = config.at("specs").value<std::vector<std::string>>();
         auto& use_explicit = config.at("explicit_install").value<bool>();
 
+        ChannelContext channel_context;
+
         if (!ctx.dry_run)
         {
-            if (fs::exists(ctx.target_prefix))
+            if (fs::exists(ctx.prefix_params.target_prefix))
             {
-                if (ctx.target_prefix == ctx.root_prefix)
+                if (ctx.prefix_params.target_prefix == ctx.prefix_params.root_prefix)
                 {
                     LOG_ERROR << "Overwriting root prefix is not permitted";
                     throw std::runtime_error("Aborting.");
                 }
-                else if (fs::exists(ctx.target_prefix / "conda-meta"))
+                else if (fs::exists(ctx.prefix_params.target_prefix / "conda-meta"))
                 {
-                    if (Console::prompt("Found conda-prefix at '" + ctx.target_prefix.string()
-                                            + "'. Overwrite?",
-                                        'n'))
-                        fs::remove_all(ctx.target_prefix);
+                    if (Console::prompt(
+                            "Found conda-prefix at '" + ctx.prefix_params.target_prefix.string()
+                                + "'. Overwrite?",
+                            'n'
+                        ))
+                    {
+                        fs::remove_all(ctx.prefix_params.target_prefix);
+                    }
                     else
+                    {
                         throw std::runtime_error("Aborting.");
+                    }
                 }
                 else
                 {
@@ -53,24 +63,36 @@ namespace mamba
                 }
             }
             if (create_specs.empty())
-                detail::create_empty_target(ctx.target_prefix);
+            {
+                detail::create_empty_target(ctx.prefix_params.target_prefix);
+            }
 
             if (config.at("platform").configured() && !config.at("platform").rc_configured())
-                detail::store_platform_config(ctx.target_prefix, ctx.platform);
+            {
+                detail::store_platform_config(ctx.prefix_params.target_prefix, ctx.platform);
+            }
         }
 
         if (Context::instance().env_lockfile)
         {
             const auto lockfile_path = Context::instance().env_lockfile.value();
-            LOG_DEBUG << "Lockfile: " << lockfile_path.string();
-            install_lockfile_specs(lockfile_path, true);
+            install_lockfile_specs(
+                channel_context,
+                lockfile_path,
+                Configuration::instance().at("categories").value<std::vector<std::string>>(),
+                true
+            );
         }
         else if (!create_specs.empty())
         {
             if (use_explicit)
-                install_explicit_specs(create_specs, true);
+            {
+                install_explicit_specs(channel_context, create_specs, true);
+            }
             else
-                install_specs(create_specs, true);
+            {
+                install_specs(channel_context, create_specs, true);
+            }
         }
 
         config.operation_teardown();
@@ -81,7 +103,9 @@ namespace mamba
         void store_platform_config(const fs::u8path& prefix, const std::string& platform)
         {
             if (!fs::exists(prefix))
+            {
                 fs::create_directories(prefix);
+            }
 
             auto out = open_ofstream(prefix / ".mambarc");
             out << "platform: " << platform;

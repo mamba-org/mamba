@@ -7,25 +7,24 @@
 #ifdef _WIN32  // This set of includes is requires for CommandLineToArgvW() to be available.
 #define VC_EXTRALEAN
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h>
 #include <stdio.h>
+#include <windows.h>
+// Incomplete header included last
 #include <shellapi.h>
 #endif
 
-#include "umamba.hpp"
-
-#include "mamba/version.hpp"
+#include <CLI/CLI.hpp>
 
 #include "mamba/api/configuration.hpp"
-
 #include "mamba/core/context.hpp"
+#include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
-#include "mamba/core/execution.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_scope.hpp"
+#include "mamba/version.hpp"
 
-#include <CLI/CLI.hpp>
+#include "umamba.hpp"
 
 
 using namespace mamba;  // NOLINT(build/namespaces)
@@ -39,8 +38,8 @@ main(int argc, char** argv)
     init_console();
     auto& ctx = Context::instance();
 
-    ctx.is_micromamba = true;
-    ctx.custom_banner = banner;
+    ctx.command_params.is_micromamba = true;
+    ctx.command_params.custom_banner = banner;
 
     CLI::App app{ "Version: " + version() + "\n" };
     set_umamba_command(&app);
@@ -78,9 +77,11 @@ main(int argc, char** argv)
     {
         full_command << utf8argv[i];
         if (i < argc - 1)
+        {
             full_command << " ";
+        }
     }
-    ctx.current_command = full_command.str();
+    ctx.command_params.current_command = full_command.str();
 
     std::optional<std::string> error_to_report;
     try

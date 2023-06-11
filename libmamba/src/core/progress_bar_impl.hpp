@@ -7,20 +7,16 @@
 #ifndef MAMBA_CORE_PROGRESS_BAR_IMPL_HPP
 #define MAMBA_CORE_PROGRESS_BAR_IMPL_HPP
 
-#include "spdlog/spdlog.h"
-#ifdef SPDLOG_FMT_EXTERNAL
-#include "fmt/color.h"
-#else
-#include "spdlog/fmt/bundled/color.h"
-#endif
-
-#include <iosfwd>
-#include <mutex>
 #include <atomic>
+#include <iosfwd>
+#include <map>
+#include <mutex>
 #include <set>
 #include <string_view>
 #include <vector>
-#include <map>
+
+#include <fmt/color.h>
+#include <spdlog/spdlog.h>
 
 #include "mamba/core/progress_bar.hpp"
 
@@ -48,9 +44,9 @@ namespace mamba
     class Chrono
     {
     public:
+
         using duration_t = std::chrono::milliseconds;
-        using time_point_t
-            = std::chrono::time_point<std::chrono::high_resolution_clock, duration_t>;
+        using time_point_t = std::chrono::time_point<std::chrono::high_resolution_clock, duration_t>;
 
         Chrono() = default;
 
@@ -79,6 +75,7 @@ namespace mamba
         std::unique_lock<std::mutex> chrono_lock();
 
     private:
+
         time_point_t m_start;
         duration_t m_elapsed_ns = duration_t::zero();
         ChronoState m_state = ChronoState::unset;
@@ -87,12 +84,14 @@ namespace mamba
         void compute_elapsed();
 
     protected:
+
         static time_point_t now();
     };
 
     class FieldRepr
     {
     public:
+
         bool active() const;
         bool defined() const;
         operator bool() const;
@@ -113,6 +112,7 @@ namespace mamba
         FieldRepr& resize(std::size_t size);
 
     private:
+
         std::string m_value = "";
         std::size_t m_width = 0;
         std::string m_format = "";
@@ -127,12 +127,11 @@ namespace mamba
     class ProgressBarRepr
     {
     public:
-        ProgressBarRepr() = default;
+
+        ProgressBarRepr();
         ProgressBarRepr(ProgressBar* pbar);
 
         FieldRepr prefix, progress, current, separator, total, speed, postfix, elapsed;
-        fmt::text_style style;
-
         void print(std::ostream& ostream, std::size_t width = 0, bool with_endl = true);
 
         void compute_progress();
@@ -142,13 +141,23 @@ namespace mamba
         ProgressBarRepr& set_width(std::size_t width);
         std::size_t width() const;
 
+        const fmt::text_style& style() const;
+        void clear_style();
+        void reset_style();
+
         ProgressBarRepr& reset_fields();
 
         const ProgressBar& progress_bar() const;
 
     private:
+
+        fmt::text_style m_style_none;
+        fmt::text_style m_style_downloaded;
+        fmt::text_style m_style_extracted;
+        fmt::text_style m_style;
         ProgressBar* p_progress_bar = nullptr;
         std::size_t m_width = 0;
+        bool m_ascii_only;
 
         void set_same_widths(const ProgressBarRepr& r);
         void deactivate_empty_fields();
@@ -167,6 +176,7 @@ namespace mamba
     class ProgressBarManager : public Chrono
     {
     public:
+
         virtual ~ProgressBarManager();
 
         ProgressBarManager(const ProgressBarManager&) = delete;
@@ -174,17 +184,17 @@ namespace mamba
         ProgressBarManager(ProgressBarManager&&) = delete;
         ProgressBarManager& operator=(ProgressBarManager&&) = delete;
 
-        virtual ProgressProxy add_progress_bar(const std::string& name, size_t expected_total = 0)
-            = 0;
+        virtual ProgressProxy add_progress_bar(const std::string& name, size_t expected_total = 0) = 0;
         virtual void clear_progress_bars();
         virtual void add_label(const std::string& label, const ProgressProxy& progress_bar);
 
         void watch_print(const duration_t& period = std::chrono::milliseconds(100));
-        virtual std::size_t print(std::ostream& os,
-                                  std::size_t width = 0,
-                                  std::size_t max_lines = std::numeric_limits<std::size_t>::max(),
-                                  bool with_endl = true)
-            = 0;
+        virtual std::size_t print(
+            std::ostream& os,
+            std::size_t width = 0,
+            std::size_t max_lines = std::numeric_limits<std::size_t>::max(),
+            bool with_endl = true
+        ) = 0;
         void start();
         void terminate();
 
@@ -198,6 +208,7 @@ namespace mamba
         void deactivate_sorting();
 
     protected:
+
         using progress_bar_ptr = std::unique_ptr<ProgressBar>;
 
         ProgressBarManager() = default;
@@ -237,27 +248,30 @@ namespace mamba
     class MultiBarManager : public ProgressBarManager
     {
     public:
+
         MultiBarManager();
         MultiBarManager(std::size_t width);
         virtual ~MultiBarManager() = default;
 
         ProgressProxy add_progress_bar(const std::string& name, size_t expected_total) override;
 
-        std::size_t print(std::ostream& os,
-                          std::size_t width = 0,
-                          std::size_t max_lines = std::numeric_limits<std::size_t>::max(),
-                          bool with_endl = true) override;
+        std::size_t print(
+            std::ostream& os,
+            std::size_t width = 0,
+            std::size_t max_lines = std::numeric_limits<std::size_t>::max(),
+            bool with_endl = true
+        ) override;
     };
 
     class AggregatedBarManager : public ProgressBarManager
     {
     public:
+
         AggregatedBarManager();
         AggregatedBarManager(std::size_t width);
         virtual ~AggregatedBarManager() = default;
 
-        ProgressProxy add_progress_bar(const std::string& name,
-                                       std::size_t expected_total) override;
+        ProgressProxy add_progress_bar(const std::string& name, std::size_t expected_total) override;
 
         void update_download_bar(std::size_t current_diff);
         void update_extract_bar();
@@ -270,12 +284,15 @@ namespace mamba
 
         ProgressBar* aggregated_bar(const std::string& label);
 
-        std::size_t print(std::ostream& os,
-                          std::size_t width = 0,
-                          std::size_t max_lines = std::numeric_limits<std::size_t>::max(),
-                          bool with_endl = true) override;
+        std::size_t print(
+            std::ostream& os,
+            std::size_t width = 0,
+            std::size_t max_lines = std::numeric_limits<std::size_t>::max(),
+            bool with_endl = true
+        ) override;
 
     private:
+
         std::map<std::string, progress_bar_ptr> m_aggregated_bars;
         bool m_print_sub_bars = false;
 
@@ -287,6 +304,7 @@ namespace mamba
     class ProgressBar : public Chrono
     {
     public:
+
         virtual ~ProgressBar();
 
         ProgressBar(const ProgressBar&) = delete;
@@ -312,15 +330,15 @@ namespace mamba
         ProgressBar& activate_spinner();
         ProgressBar& deactivate_spinner();
 
-        ProgressBar& mark_as_completed(const std::chrono::milliseconds& delay
-                                       = std::chrono::milliseconds::zero());
+        ProgressBar&
+        mark_as_completed(const std::chrono::milliseconds& delay = std::chrono::milliseconds::zero());
 
         std::size_t current() const;
         std::size_t in_progress() const;
         std::size_t total() const;
         std::size_t speed() const;
-        std::size_t avg_speed(const std::chrono::milliseconds& ref_duration
-                              = std::chrono::milliseconds::max());
+        std::size_t
+        avg_speed(const std::chrono::milliseconds& ref_duration = std::chrono::milliseconds::max());
         double progress() const;
         bool completed() const;
         bool is_spinner() const;
@@ -344,6 +362,7 @@ namespace mamba
         int width() const;
 
     protected:
+
         ProgressBar(const std::string& prefix, std::size_t total, int width = 0);
 
         double m_progress = 0.;
@@ -377,6 +396,7 @@ namespace mamba
     class DefaultProgressBar : public ProgressBar
     {
     public:
+
         DefaultProgressBar(const std::string& prefix, std::size_t total, int width = 0);
         virtual ~DefaultProgressBar() = default;
 
@@ -386,10 +406,13 @@ namespace mamba
     class HiddenProgressBar : public ProgressBar
     {
     public:
-        HiddenProgressBar(const std::string& prefix,
-                          AggregatedBarManager* manager,
-                          std::size_t total,
-                          int width = 0);
+
+        HiddenProgressBar(
+            const std::string& prefix,
+            AggregatedBarManager* manager,
+            std::size_t total,
+            int width = 0
+        );
         virtual ~HiddenProgressBar() = default;
 
         void print(std::ostream& stream, std::size_t width = 0, bool with_endl = true) override;

@@ -1,13 +1,22 @@
-#include "common_options.hpp"
+// Copyright (c) 2019, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
+
+#include <string>
+
+#include "mamba/api/configuration.hpp"
+#include "mamba/api/create.hpp"
+#include "mamba/api/remove.hpp"
+#include "mamba/core/channel.hpp"
 #include "mamba/core/environments_manager.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/url.hpp"
-#include "mamba/core/channel.hpp"
+#include "mamba/core/util_string.hpp"
 
-#include "mamba/api/configuration.hpp"
-#include "mamba/core/pool.hpp"
-#include "mamba/core/transaction.hpp"
-#include "mamba/core/repo.hpp"
+#include "common_options.hpp"
+
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
@@ -16,7 +25,7 @@ get_env_name(const fs::u8path& px)
 {
     const auto& ctx = Context::instance();
     auto& ed = ctx.envs_dirs[0];
-    if (px == ctx.root_prefix)
+    if (px == ctx.prefix_params.root_prefix)
     {
         return "base";
     }
@@ -41,6 +50,12 @@ set_env_command(CLI::App* com)
     init_general_options(list_subcom);
     init_prefix_options(list_subcom);
 
+    auto* create_subcom = com->add_subcommand(
+        "create",
+        "Create new environment (pre-commit.com compatibility alias for 'micromamba create')"
+    );
+    init_install_options(create_subcom);
+
     static bool explicit_format;
     static bool no_md5;
 
@@ -54,27 +69,32 @@ set_env_command(CLI::App* com)
     export_subcom->add_flag("--no-md5,!--md5", no_md5, "Disable md5");
     export_subcom->add_flag("--no-build,!--build", no_build, "Disable the build string in spec");
     export_subcom->add_flag(
-        "--from-history", from_history, "Build environment spec from explicit specs in history");
+        "--from-history",
+        from_history,
+        "Build environment spec from explicit specs in history"
+    );
 
     export_subcom->callback(
-        []()
+        [&]
         {
-            auto& ctx = Context::instance();
+            auto const& ctx = Context::instance();
             auto& config = Configuration::instance();
             config.at("show_banner").set_value(false);
             config.load();
 
+
+            mamba::ChannelContext channel_context;
             if (explicit_format)
             {
                 // TODO: handle error
-                auto pd = PrefixData::create(ctx.target_prefix).value();
+                auto pd = PrefixData::create(ctx.prefix_params.target_prefix, channel_context).value();
                 auto records = pd.sorted_records();
                 std::cout << "# This file may be used to create an environment using:\n"
                           << "# $ conda create --name <env> --file <this file>\n"
                           << "# platform: " << Context::instance().platform << "\n"
                           << "@EXPLICIT\n";
 
-                for (auto& record : records)
+                for (const auto& record : records)
                 {
                     std::string clean_url, token;
                     split_anaconda_token(record.url, clean_url, token);
@@ -88,21 +108,23 @@ set_env_command(CLI::App* com)
             }
             else
             {
-                auto pd = PrefixData::create(ctx.target_prefix).value();
+                auto pd = PrefixData::create(ctx.prefix_params.target_prefix, channel_context).value();
                 History& hist = pd.history();
 
-                auto versions_map = pd.records();
+                const auto& versions_map = pd.records();
 
-                std::cout << "name: " << get_env_name(ctx.target_prefix) << "\n";
+                std::cout << "name: " << get_env_name(ctx.prefix_params.target_prefix) << "\n";
                 std::cout << "channels:\n";
 
                 auto requested_specs_map = hist.get_requested_specs_map();
                 std::stringstream dependencies;
                 std::set<std::string> channels;
-                for (auto& [k, v] : versions_map)
+                for (const auto& [k, v] : versions_map)
                 {
                     if (from_history && requested_specs_map.find(k) == requested_specs_map.end())
+                    {
                         continue;
+                    }
 
                     if (from_history)
                     {
@@ -112,38 +134,45 @@ set_env_command(CLI::App* com)
                     {
                         dependencies << "- " << v.name << "=" << v.version;
                         if (!no_build)
+                        {
                             dependencies << "=" << v.build_string;
+                        }
                         dependencies << "\n";
                     }
 
-                    channels.insert(make_channel(v.url).base_url());
+                    channels.insert(channel_context.make_channel(v.url).name());
                 }
 
-                for (auto& c : channels)
+                for (const auto& c : channels)
+                {
                     std::cout << "- " << c << "\n";
+                }
                 std::cout << "dependencies:\n" << dependencies.str() << std::endl;
                 std::cout.flush();
             }
-        });
+        }
+    );
 
     list_subcom->callback(
-        []()
+        []
         {
-            auto& ctx = Context::instance();
+            const auto& ctx = Context::instance();
             auto& config = Configuration::instance();
             config.load();
 
             EnvironmentsManager env_manager;
 
-            if (ctx.json)
+            if (ctx.output_params.json)
             {
                 nlohmann::json res;
                 const auto pfxs = env_manager.list_all_known_prefixes();
                 std::vector<std::string> envs(pfxs.size());
-                std::transform(pfxs.begin(),
-                               pfxs.end(),
-                               envs.begin(),
-                               [](const fs::u8path& path) { return path.string(); });
+                std::transform(
+                    pfxs.begin(),
+                    pfxs.end(),
+                    envs.begin(),
+                    [](const fs::u8path& path) { return path.string(); }
+                );
                 res["envs"] = envs;
                 std::cout << res.dump(4) << std::endl;
                 return;
@@ -151,16 +180,53 @@ set_env_command(CLI::App* com)
 
             // format and print table
             printers::Table t({ "Name", "Active", "Path" });
-            t.set_alignment({ printers::alignment::left,
-                              printers::alignment::left,
-                              printers::alignment::left });
+            t.set_alignment(
+                { printers::alignment::left, printers::alignment::left, printers::alignment::left }
+            );
             t.set_padding({ 2, 2, 2 });
 
             for (auto& env : env_manager.list_all_known_prefixes())
             {
-                bool is_active = (env == ctx.target_prefix);
+                bool is_active = (env == ctx.prefix_params.target_prefix);
                 t.add_row({ get_env_name(env), is_active ? "*" : "", env.string() });
             }
             t.print(std::cout);
-        });
+        }
+    );
+
+    auto* remove_subcom = com->add_subcommand("remove", "Remove an environment");
+    init_general_options(remove_subcom);
+    init_prefix_options(remove_subcom);
+
+    create_subcom->callback(mamba::create);
+
+    remove_subcom->callback(
+        []
+        {
+            // Remove specs if exist
+            remove(MAMBA_REMOVE_ALL);
+
+            const auto& ctx = Context::instance();
+            if (!ctx.dry_run)
+            {
+                const auto& prefix = ctx.prefix_params.target_prefix;
+                // Remove env directory or rename it (e.g. if used)
+                remove_or_rename(env::expand_user(prefix));
+
+                EnvironmentsManager env_manager;
+                // Unregister environment
+                env_manager.unregister_env(env::expand_user(prefix));
+
+                Console::instance().print(join(
+                    "",
+                    std::vector<std::string>({ "Environment removed at prefix: ", prefix.string() })
+                ));
+                Console::instance().json_write({ { "success", true } });
+            }
+            else
+            {
+                Console::stream() << "Dry run. The environment was not removed.";
+            }
+        }
+    );
 }

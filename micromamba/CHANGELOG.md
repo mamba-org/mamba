@@ -1,3 +1,235 @@
+micromamba 1.4.4 (May 16, 2023)
+===============================
+
+Bug fixes:
+
+- fix: let the new executable run the shell init script by @ruben-arts in https://github.com/mamba-org/mamba/pull/2529
+
+micromamba 1.4.3 (May 15, 2023)
+===============================
+
+Enhancements:
+
+- Context structuring by @Hind-M in https://github.com/mamba-org/mamba/pull/2432
+- Resume Context structuring by @Hind-M in https://github.com/mamba-org/mamba/pull/2460
+- cleanup: fix pytest warnings by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2490
+- Use libsolv wrappers in MPool and MRepo by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2453
+- add bearer token authentication by @wolfv in https://github.com/mamba-org/mamba/pull/2512
+
+CI fixes and doc:
+
+- Extend issue template by @jonashaag in https://github.com/mamba-org/mamba/pull/2310
+
+micromamba 1.4.2 (April 06, 2023)
+=================================
+
+Enhancements:
+
+- Refactor test\_create, test\_proxy, and test\_env for test isolation by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2416
+- Remove const ref to string\_view in codebase by @Hind-M in https://github.com/mamba-org/mamba/pull/2440
+
+CI fixes and doc:
+
+- Fixes typos by @nsoranzo in https://github.com/mamba-org/mamba/pull/2419
+- Remove outdated micromamba experimental warning by @jonashaag in https://github.com/mamba-org/mamba/pull/2430
+- Migrated to doctest by @JohanMabille in https://github.com/mamba-org/mamba/pull/2436
+
+micromamba 1.4.1 (March 28, 2023)
+=================================
+
+Enhancements:
+
+- add option to relocate prefix by @DerThorsten in https://github.com/mamba-org/mamba/pull/2385
+
+micromamba 1.4.0 (March 22, 2023)
+=================================
+
+Enchancements:
+
+- Implemented recursive dependency printout in repoquery  by @timostrunk in https://github.com/mamba-org/mamba/pull/2283
+- Agressive compilation warnings by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2304
+- Fine tune clang-format by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2290
+- Only full shared or full static builds by @JohanMabille in https://github.com/mamba-org/mamba/pull/2342
+- Fixed repoquery commands working with installed packages only by @Hind-M in https://github.com/mamba-org/mamba/pull/2330
+- Added micromamba server by @wolfv in https://github.com/mamba-org/mamba/pull/2185
+
+Bug fixes:
+
+- Fixed `micromamba env export` to get channel name instead of full url by @Hind-M in https://github.com/mamba-org/mamba/pull/2260
+
+CI fixes & docs:
+
+- Added missing dependency in local recipe by @wolfv in https://github.com/mamba-org/mamba/pull/2334
+- Fixed Conda Lock Path by @funtion in https://github.com/mamba-org/mamba/pull/2393
+
+micromamba 1.3.1 (February 09, 2023)
+====================================
+
+A bugfix release for 1.3.0!
+
+Bug fixes:
+
+- fix up single download target perform finalization to make lockfile download work by @wolfv in https://github.com/mamba-org/mamba/pull/2274
+- use CONDA_PKGS_DIRS even in explicit installation trasactions by @hmaarrfk in https://github.com/mamba-org/mamba/pull/2265
+- fix rename or remove by @wolfv in https://github.com/mamba-org/mamba/pull/2276
+- fix `micromamba shell` for base environment, and improve behavior when `auto_activate_base` is true by @jonashaag, @Hind-M and @wolfv https://github.com/mamba-org/mamba/pull/2272
+
+Docs:
+
+- - add micromamba docker image by @wholtz in https://github.com/mamba-org/mamba/pull/2266
+- - added biweekly meetings information to README by @JohanMabille in https://github.com/mamba-org/mamba/pull/2275
+- - change docs to homebrew/core by @pavelzw in https://github.com/mamba-org/mamba/pull/2278
+
+micromamba 1.3.0 (February 03, 2023)
+====================================
+
+Enhancements:
+
+- add functionality to download lockfiles from internet by @wolfv in https://github.com/mamba-org/mamba/pull/2229
+- Stop run command when given prefix does not exist by @Hind-M in https://github.com/mamba-org/mamba/pull/2257
+- Install pip deps like conda by @michalsieron in https://github.com/mamba-org/mamba/pull/2241
+- switch to repodata.state.json format from cep by @wolfv in https://github.com/mamba-org/mamba/pull/2262
+
+Bug fixes:
+
+- Fix temporary file renaming by @jonashaag in https://github.com/mamba-org/mamba/pull/2242
+
+CI fixes & docs:
+
+- use proper recipe also on macOS by @wolfv in https://github.com/mamba-org/mamba/pull/2225
+- Update micromamba installation docs for Windows by @Tiksagol in https://github.com/mamba-org/mamba/pull/2218
+- docs: defaults should not be used with conda-forge by @jonashaag in https://github.com/mamba-org/mamba/pull/2181
+- fix tests for pkg_cache by @wolfv in https://github.com/mamba-org/mamba/pull/2259
+- Fix Windows static builds by @jonashaag in https://github.com/mamba-org/mamba/pull/2228
+
+micromamba 1.2.0 (January 16, 2023)
+===================================
+
+This release contains some speed improvements: download repodata faster as zstd encoded files (configure using
+`repodata_use_zst: true` in your `~/.mambarc` file). Also, `.conda` file extraction is now faster, a prefix
+with spaces works better thanks to a new "shebang" style and the `micromamba package compress` and `transmute`
+commands produce better conda packages.
+
+Enhancements:
+
+- Make tarballs look more similar to conda-package-handling by @wolfv in #2177, #2217
+- Use new shebang style by @wolfv in #2211
+- Faster conda decompress by @wolfv in #2200
+- Initial repodata.zst support by @wolfv & @jonashaag in #2113
+
+Bug fixes:
+
+- log warnings but ignore cyclic symlinks by @wolfv in #2212
+- Report failure when packages to remove don't exist. (#2131) by @Klaim in #2132
+- Fix micromamba shell completion when running 'shell hook' directly by @TomiBelan in #2137
+- Don't create a prefix which is missing conda-meta by @maresb in #2162
+- Fix `custom_channels` parsing by @XuehaiPan in #2207
+- Fix #1783: Add `micromamba env create` by @jonashaag in #1790
+
+CI fixes & docs:
+
+- - Improve build env cleanup by @jonashaag in #2213
+- - Run conda_nightly once per week by @jonashaag in #2147
+- - Update doc by @Hind-M in #2156
+- - Use Conda canary in nightly tests by @jonashaag in #2180
+- - Expliclity point to libmamba test data independently of cwd by @AntoinePrv in #2158
+- - Add bug report issue template by @jonashaag in #2182
+- - Downgrade curl to fix micromamba on macOS x64 by @wolfv in #2205
+- - Use conda-forge micromamba feedstock instead of a fork by @JohanMabille in #2206
+- - Update pre-commit versions by @jonashaag in #2178
+- - Use local meta.yaml by @wolfv in #2214
+- - Remove feedstock patches by @wolfv in #2216
+- - Fixed static dependency order by @JohanMabille in #2201
+
+micromamba 1.1.0 (November 25, 2022)
+====================================
+
+Some bugfixes for 1.0 and experimental release of the new solver messages
+
+Bug fixes
+
+- Fix fish scripts (thanks @JafarAbdi, @raj-magesh, @jonashaag) #2101
+- fix direct hook for powershell #2122
+- fixes for ssl init and static build #2076
+
+Enhancements
+
+- Handle non leaf conflicts (thanks @AntoinePrv) #2133
+- Bind SAT error messages to python (thanks @AntoinePrv) #2127
+- Nitpicking error messages (thanks @AntoinePrv) #2121
+- Tree error message improvements (thanks @AntoinePrv) #2093
+- Tree error message (thanks @AntoinePrv) #2064
+- Add experimental flag for error messages (thanks @AntoinePrv) #2080
+- Handle non leaf conflicts (thanks @AntoinePrv) #2133
+- ci: Update pre-commit-config #2092
+- docs: Add warning to manual install instructions #2100
+- docs: Consistently use curl for fetching files #2126
+
+micromamba 1.0.0 (November 01, 2022)
+====================================
+
+Our biggest version number yet! Finally a 1.0 release :)
+
+New notable micromamba features include:
+
+- - improved shell scripts with autocompletion available in PowerShell, xonsh, fish, bash and zsh
+- - `micromamba shell -n someenv`: enter a sub-shell without modifying the system
+- - `micromamba self-update`: micromamba searches for updates and installs them if available
+
+(you can also downgrade using `--version 0.26.0` for example)
+
+Bug fixes:
+
+- ignore "Permission denied" in `env::which` (thanks @Rafflesiaceae) #2067
+- Link micromamba with static libc++.a and system libc++abi (thanks @isuruf) #2069
+- Fix an infinite loop in replace_all() when the search string is empty (thanks @tsibley)
+- Do not crash when permissions cannot be changed, instead log warning (thanks @hwalinga)
+
+Enhancements:
+
+- Add `micromamba env remove` (thanks @Hind-M) #2002
+- add self-update functionality (#2023)
+- order dependencies alphabetically from `micromamba env export` (thanks @torfinnberset) #2063
+- Fix ci deprecation warnings, upload conda-bld artifacts for failed builds #2058, #2062
+- Explicitly define SPDLOG_FMT_EXTERNAL and use spdlog header only use external fmt (thanks @AntoinePrv) #2060, #2048
+- Fix CI by pointing to updated feedstock and fixing update tests (thanks @AntoinePrv) #2055
+- Add authentication with urlencoded @ to proxy test (#2024) @AdrianFreundQC
+- better test isolation (thanks @AntoinePrv) #1903
+- Test special characters in basic auth (thanks @jonashaag) #2012
+
+micromamba 0.27.0 (October 04, 2022)
+====================================
+
+Bug fixes:
+
+- fix lockfiles relying on PID (thanks @Klaim) #1915
+- fix error condition in micromamba run to not print warning every time #1985
+- fix error when getting size of directories (thanks @Klaim) #1982
+- fix crash when installing pip packages from env files (thanks @Klaim) #1978
+
+Enhancements:
+
+- add cross-compiled builds to CI (thanks @pavelzw) #1976, #1989
+
+micromamba 0.26.0 (September 30, 2022)
+======================================
+
+Bug fixes:
+
+- fix fish scripts (thanks @jonashaag) #1975
+- fix issues with `micromamba ps` #1953
+- add symlinks and empty directories to archive for `micromamba package compress` #1955
+- add `micromamba info --licenses` to print licenses of used OSS (thanks @jonashaag) #1933
+- proper quoting in `micromamba run` (thanks @jonashaag) #1936
+- install pip dependencies and by category for YAML lockfiles (thanks @jvansanten) #1908 #1917
+- fix update for packages with explicit channels (thanks @AntoinePrv) #1864
+
+Enhancements:
+
+- only call compinit once to fix oh-my-zsh (thanks @AntoinePrv) #1911
+- CI: add fully static micromamba build (thanks @jonashaag) #1821
+- allow configuring proxies (thanks @AdrianFreundQC) #1841
+
 micromamba 0.25.1 (July 29, 2022)
 =================================
 

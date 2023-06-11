@@ -2,15 +2,17 @@ name: mamba-dev
 channels:
   - conda-forge
 dependencies:
+  - cxx-compiler
+  - cmake >=3.16
+  - ninja
   - yaml-cpp-static
-  # we pin an older curl build for darwin-ssl support
-  - libcurl         # sel(linux)
-  - libcurl-static  # sel(linux)
-  - libcurl 7.76.1 *_0           # sel(osx)
-  - libcurl-static  7.76.1 *_0   # sel(osx)
+  - spdlog
+  - fmt
+  - libcurl
+  - libcurl-static
   - xz-static
   - libssh2-static
-  - libarchive=3.3
+  - libarchive-minimal-static
   - krb5-static
   - libsolv-static
   - zstd-static
@@ -19,5 +21,7 @@ dependencies:
   - reproc-static
   - reproc-cpp
   - reproc-cpp-static
-  - openssl 1.1.1*
-  - libopenssl-static 1.1.1*
+  - openssl
+  - libopenssl-static
+  - nlohmann_json
+  - cpp-expected

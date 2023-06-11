@@ -1,35 +1,39 @@
-include/mamba/core/version.hpp
-.DS_Store
-.cache
-
-*build*
-__cache__/
-.ipynb_checkpoints/
-*.cppimporthash
-.rendered*
-installed.json
-*.so
-__pycache__
-.vscode
-.idea
-.ipynb_checkpoints
-build/
-/build-*/
-tmp/
-mamba.egg-info/
+# Git files
 *.orig
 
+# Mamba generated files
+include/mamba/core/version.hpp
+
+# OS files
+.DS_Store
+
+# Editor files
+.vscode
+.idea
+*.swap
+
+# CMake files
+**/build/
+**/build-*/
+CMakeUserPresets.json
+**/cmake-build-debug/
+
+# CMake files that should not exists because they should be generated under a build folder
 CMakeLists.txt.user
 CMakeCache.txt
 CMakeFiles
 CMakeScripts
 Testing
-Makefile
+# There exist other Makefiles in /docs
+/Makefile
 cmake_install.cmake
 install_manifest.txt
-compile_commands.json
 CTestTestfile.cmake
 _deps
+
+# Clang tools
+.cache/
+compile_commands.json
 
 # Prerequisites
 *.d
@@ -63,3 +67,18 @@ _deps
 *.exe
 *.out
 *.app
+
+# Python caches
+*.pyc
+.ipynb_checkpoints/
+.pytest_cache/
+__pycache__
+mamba.egg-info/
+
+# Misc
+__cache__/
+*.cppimporthash
+.rendered*
+installed.json
+tmp/
+test_7.json.state

@@ -4,9 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/api/remove.hpp"
-
 #include "mamba/api/configuration.hpp"
+#include "mamba/api/remove.hpp"
+#include "mamba/core/channel.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/pool.hpp"
@@ -28,15 +28,19 @@ namespace mamba
 
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
-            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_NOT_ALLOW_MISSING_PREFIX
-                       | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX | MAMBA_EXPECT_EXISTING_PREFIX);
+            .set_value(
+                MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_NOT_ALLOW_MISSING_PREFIX
+                | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX | MAMBA_EXPECT_EXISTING_PREFIX
+            );
         config.load();
 
         auto remove_specs = config.at("specs").value<std::vector<std::string>>();
 
+        ChannelContext channel_context;
+
         if (remove_all)
         {
-            auto sprefix_data = PrefixData::create(ctx.target_prefix);
+            auto sprefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!sprefix_data)
             {
                 // TODO: propagate tl::expected mechanism
@@ -51,7 +55,7 @@ namespace mamba
 
         if (!remove_specs.empty())
         {
-            detail::remove_specs(remove_specs, prune, force);
+            detail::remove_specs(channel_context, remove_specs, prune, force);
         }
         else
         {
@@ -63,17 +67,22 @@ namespace mamba
 
     namespace detail
     {
-        void remove_specs(const std::vector<std::string>& specs, bool prune, bool force)
+        void remove_specs(
+            ChannelContext& channel_context,
+            const std::vector<std::string>& specs,
+            bool prune,
+            bool force
+        )
         {
             auto& ctx = Context::instance();
 
-            if (ctx.target_prefix.empty())
+            if (ctx.prefix_params.target_prefix.empty())
             {
                 LOG_ERROR << "No active target prefix.";
                 throw std::runtime_error("Aborted.");
             }
 
-            auto exp_prefix_data = PrefixData::create(ctx.target_prefix);
+            auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!exp_prefix_data)
             {
                 // TODO: propagate tl::expected mechanism
@@ -81,52 +90,73 @@ namespace mamba
             }
             PrefixData& prefix_data = exp_prefix_data.value();
 
-            MPool pool;
-            MRepo::create(pool, prefix_data);
+            MPool pool{ channel_context };
+            MRepo(pool, prefix_data);
 
-            const fs::u8path pkgs_dirs(ctx.root_prefix / "pkgs");
+            const fs::u8path pkgs_dirs(ctx.prefix_params.root_prefix / "pkgs");
             MultiPackageCache package_caches({ pkgs_dirs });
 
             auto execute_transaction = [&](MTransaction& transaction)
             {
-                if (ctx.json)
+                if (ctx.output_params.json)
+                {
                     transaction.log_json();
+                }
 
                 if (transaction.prompt())
+                {
                     transaction.execute(prefix_data);
+                }
             };
 
             if (force)
             {
-                std::vector<MatchSpec> mspecs(specs.begin(), specs.end());
+                std::vector<MatchSpec> mspecs;
+                mspecs.reserve(specs.size());
+                std::transform(
+                    specs.begin(),
+                    specs.end(),
+                    std::back_inserter(mspecs),
+                    [&](const auto& spec_str) {
+                        return MatchSpec{ spec_str, channel_context };
+                    }
+                );
                 auto transaction = MTransaction(pool, mspecs, {}, package_caches);
                 execute_transaction(transaction);
             }
             else
             {
-                MSolver solver(pool,
-                               { { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 },
-                                 { SOLVER_FLAG_ALLOW_UNINSTALL, 1 },
-                                 { SOLVER_FLAG_STRICT_REPO_PRIORITY,
-                                   ctx.channel_priority == ChannelPriority::kStrict } });
+                MSolver solver(
+                    pool,
+                    {
+                        { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 },
+                        { SOLVER_FLAG_ALLOW_UNINSTALL, 1 },
+                        { SOLVER_FLAG_STRICT_REPO_PRIORITY,
+                          ctx.channel_priority == ChannelPriority::kStrict },
+                    }
+                );
 
-                History history(ctx.target_prefix);
+                History history(ctx.prefix_params.target_prefix, channel_context);
                 auto hist_map = history.get_requested_specs_map();
                 std::vector<std::string> keep_specs;
                 for (auto& it : hist_map)
+                {
                     keep_specs.push_back(it.second.conda_build_form());
+                }
 
                 solver.add_jobs(keep_specs, SOLVER_USERINSTALLED);
 
                 int solver_flag = SOLVER_ERASE;
 
                 if (prune)
+                {
                     solver_flag |= SOLVER_CLEANDEPS;
+                }
 
                 solver.add_jobs(specs, solver_flag);
-                solver.solve();
+                solver.must_solve();
 
-                MTransaction transaction(solver, package_caches);
+                MTransaction transaction(pool, solver, package_caches);
                 execute_transaction(transaction);
             }
         }

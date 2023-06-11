@@ -14,7 +14,7 @@ from conda.base.constants import ChannelPriority
 from conda.base.context import context
 from conda.common.serialize import json_dump
 from conda.common.url import join_url, remove_auth, split_anaconda_token
-from conda.core.index import _supplement_index_with_system, check_whitelist
+from conda.core.index import _supplement_index_with_system, check_allowlist
 from conda.core.link import PrefixSetup, UnlinkLinkTransaction
 from conda.core.prefix_data import PrefixData
 from conda.core.solve import diff_for_unlink_link_precs
@@ -68,7 +68,7 @@ def get_index(
     all_channels.extend(channel_urls)
     if prepend:
         all_channels.extend(context.channels)
-    check_whitelist(all_channels)
+    check_allowlist(all_channels)
 
     # Remove duplicates but retain order
     all_channels = list(OrderedDict.fromkeys(all_channels))
@@ -196,7 +196,7 @@ def log_level_from_verbosity(verbosity: int):
 def init_api_context(use_mamba_experimental=False):
     api_ctx = api.Context()
 
-    api_ctx.json = context.json
+    api_ctx.output_params.json = context.json
     api_ctx.dry_run = context.dry_run
     if context.json:
         context.always_yes = True
@@ -204,20 +204,22 @@ def init_api_context(use_mamba_experimental=False):
         if use_mamba_experimental:
             context.json = False
 
-    api_ctx.verbosity = context.verbosity
+    api_ctx.output_params.verbosity = context.verbosity
     api_ctx.set_verbosity(context.verbosity)
-    api_ctx.quiet = context.quiet
+    api_ctx.output_params.quiet = context.quiet
     api_ctx.offline = context.offline
     api_ctx.local_repodata_ttl = context.local_repodata_ttl
     api_ctx.use_index_cache = context.use_index_cache
     api_ctx.always_yes = context.always_yes
     api_ctx.channels = context.channels
     api_ctx.platform = context.subdir
+    # Conda uses a frozendict here
+    api_ctx.proxy_servers = dict(context.proxy_servers)
 
     if "MAMBA_EXTRACT_THREADS" in os.environ:
         try:
             max_threads = int(os.environ["MAMBA_EXTRACT_THREADS"])
-            api_ctx.extract_threads = max_threads
+            api_ctx.threads_params.extract_threads = max_threads
         except ValueError:
             v = os.environ["MAMBA_EXTRACT_THREADS"]
             raise ValueError(
@@ -258,18 +260,20 @@ def init_api_context(use_mamba_experimental=False):
     ]
 
     if context.ssl_verify is False:
-        api_ctx.ssl_verify = "<false>"
+        api_ctx.remote_fetch_params.ssl_verify = "<false>"
     elif context.ssl_verify is not True:
-        api_ctx.ssl_verify = context.ssl_verify
-    api_ctx.target_prefix = context.target_prefix
-    api_ctx.root_prefix = context.root_prefix
-    api_ctx.conda_prefix = context.conda_prefix
+        api_ctx.remote_fetch_params.ssl_verify = context.ssl_verify
+    api_ctx.prefix_params.target_prefix = context.target_prefix
+    api_ctx.prefix_params.root_prefix = context.root_prefix
+    api_ctx.prefix_params.conda_prefix = context.conda_prefix
     api_ctx.pkgs_dirs = context.pkgs_dirs
     api_ctx.envs_dirs = context.envs_dirs
 
-    api_ctx.connect_timeout_secs = int(round(context.remote_connect_timeout_secs))
-    api_ctx.max_retries = context.remote_max_retries
-    api_ctx.retry_backoff = context.remote_backoff_factor
+    api_ctx.remote_fetch_params.connect_timeout_secs = int(
+        round(context.remote_connect_timeout_secs)
+    )
+    api_ctx.remote_fetch_params.max_retries = context.remote_max_retries
+    api_ctx.remote_fetch_params.retry_backoff = context.remote_backoff_factor
     api_ctx.add_pip_as_python_dependency = context.add_pip_as_python_dependency
     api_ctx.use_only_tar_bz2 = context.use_only_tar_bz2
 
@@ -304,6 +308,8 @@ def to_package_record_from_subjson(entry, pkg, jsn_string):
     info["fn"] = pkg
     info["channel"] = to_conda_channel(entry["channel"], entry["platform"])
     info["url"] = join_url(channel_url, pkg)
+    if not info.get("subdir"):
+        info["subdir"] = entry["platform"]
     package_record = PackageRecord(**info)
     return package_record
 
@@ -361,11 +367,18 @@ def compute_final_precs(
             entry["channel"].platform_url(entry["platform"], with_credentials=False)
         ] = entry
 
+    i_rec: PackageRecord
     for _, pkg in to_unlink:
         for i_rec in installed_pkg_recs:
             if i_rec.fn == pkg:
-                final_precs.remove(i_rec)
-                to_unlink_records.append(i_rec)
+                try:
+                    final_precs.remove(i_rec)
+                    to_unlink_records.append(i_rec)
+                except KeyError:
+                    # virtual packages cannot be unlinked as they do not exist
+                    if i_rec.package_type == "virtual_system":
+                        continue
+                    raise
                 break
         else:
             print("No package record found!")
@@ -386,6 +399,10 @@ def compute_final_precs(
         for ipkg in installed_pkg_recs:
             if ipkg.name == rec.name:
                 rec.noarch = ipkg.noarch
+
+        # virtual packages cannot be linked as they do not exist
+        if rec.package_type == "virtual_system":
+            continue
 
         final_precs.add(rec)
         to_link_records.append(rec)

@@ -314,8 +314,6 @@ jobs:
           if %errorlevel% neq 0 exit /b %errorlevel%
           vcpkg install reproc --triplet x64-windows-static
           if %errorlevel% neq 0 exit /b %errorlevel%
-          set CMAKE_PREFIX_PATH=%VCPKG_ROOT%\installed\x64-windows-static\;%CMAKE_PREFIX_PATH%
-          if %errorlevel% neq 0 exit /b %errorlevel%
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -325,18 +323,17 @@ jobs:
         run: |
           call micromamba activate build_env
           if %errorlevel% neq 0 exit /b %errorlevel%
-          mkdir build
+          cmake -B build ^
+            -D CMAKE_PREFIX_PATH=C:\vcpkg/installed\x64-windows-static\;%CONDA_PREFIX%\Library ^
+            -D CMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
+            -D BUILD_LIBMAMBA=ON ^
+            -D BUILD_STATIC=ON ^
+            -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
+            -D CMAKE_C_COMPILER_LAUNCHER=sccache ^
+            -G Ninja
           if %errorlevel% neq 0 exit /b %errorlevel%
-          cd build
+          cmake --build build --parallel
           if %errorlevel% neq 0 exit /b %errorlevel%
-          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
-                   -DBUILD_LIBMAMBA=ON ^
-                   -DBUILD_STATIC=ON ^
-                   -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
-                   -DCMAKE_C_COMPILER_LAUNCHER=sccache ^
-                   -GNinja
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          ninja
       - name: build cache statistics
         run: sccache --show-stats
       - name: Cleanup

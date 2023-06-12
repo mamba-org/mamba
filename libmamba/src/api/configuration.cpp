@@ -1628,11 +1628,6 @@ namespace mamba
                    .set_post_merge_hook(detail::print_context_only_hook)
                    .description("Print the context after loading the config. Allow ultra-dry runs"));
 
-        insert(Configurable("show_banner", true)
-                   .group("Output, Prompt and Flow Control")
-                   .set_single_op_lifetime()
-                   .description("(Unused)"));
-
         insert(Configurable("show_all_configs", false)
                    .group("Output, Prompt and Flow Control")
                    .description("Display all configs, including not rc configurable"));

@@ -6,7 +6,6 @@ __all__ = [
     "Channel",
     "ChannelPriority",
     "CompressedProblemsGraph",
-    "Configuration",
     "Context",
     "DownloadTargetList",
     "ExtraPkgInfo",

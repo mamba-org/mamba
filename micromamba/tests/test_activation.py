@@ -191,7 +191,6 @@ def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
             encoding="utf-8",
         )
     except subprocess.CalledProcessError as e:
-
         stdout = e.stdout.strip()
         stderr = e.stderr.strip()
 

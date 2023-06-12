@@ -57,7 +57,6 @@ def normalize_keys(keys: KeySet) -> KeySet:
 
 
 class RepoSigner:
-
     keys = {
         "root": [],
         "key_mgr": [
@@ -134,7 +133,6 @@ class RepoSigner:
         print("[reposigner] Root metadata signed & verified!")
 
     def create_key_mgr(self, keys):
-
         private_key_key_mgr = cct_common.PrivateKey.from_hex(
             keys["key_mgr"][0]["private"]
         )
@@ -197,7 +195,6 @@ class RepoSigner:
 
 
 class ChannelHandler(SimpleHTTPRequestHandler):
-
     url_pattern = re.compile(r"^/(?:t/[^/]+/)?([^/]+)")
 
     def do_GET(self) -> None:

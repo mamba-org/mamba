@@ -61,13 +61,15 @@ namespace mamba
         }
 
         template <typename Range>
-        auto make_pkg_info_from_explicit_match_specs(Range specs)
+        auto make_pkg_info_from_explicit_match_specs(Range&& specs)
         {
-            std::vector<PackageInfo> out;
+            std::vector<PackageInfo> out = {};
+            out.reserve(specs.size());
 
             for (auto& ms : specs)
             {
-                PackageInfo p(ms.name);
+                out.emplace_back(ms.name);
+                auto& p = out.back();
                 p.url = ms.url;
                 p.build_string = ms.build_string;
                 p.version = ms.version;
@@ -82,7 +84,6 @@ namespace mamba
                 {
                     p.sha256 = ms.brackets.at("sha256");
                 }
-                out.push_back(p);
             }
             return out;
         }

@@ -288,6 +288,11 @@ jobs:
       - name: remove vcpkg manifest file
         # we need to remove the vcpkg.json file to be able to work not in manifest mode
         run: rm vcpkg.json
+      - name: Cache VCPKG dependencies
+        uses: actions/cache@v3
+        with:
+          path: C:\vcpkg
+          key: vcpkg-${{ runner.os }}-${{ runner.arch }}-${{ steps.get-date.outputs.date }}-
       - name: build static windows dependencies with vcpkg
         shell: cmd /C CALL {0}
         # Latest VCPKG is from GHA because releases are not up to date with VCPKG server

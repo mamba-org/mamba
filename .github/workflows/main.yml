@@ -333,6 +333,9 @@ jobs:
         run: |
           call micromamba activate build_env
           if %errorlevel% neq 0 exit /b %errorlevel%
+          @rem Used by CMake
+          set VCPKG_ROOT=C:\vcpkg
+          if %errorlevel% neq 0 exit /b %errorlevel%
           cmake -B build ^
             -D CMAKE_PREFIX_PATH=C:\vcpkg\installed\x64-windows-static\ ^
             -D CMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^

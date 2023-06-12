@@ -294,6 +294,8 @@ jobs:
         run: |
           call micromamba activate build_env
           if %errorlevel% neq 0 exit /b %errorlevel%
+          set VCPKG_ROOT=C:\vcpkg
+          if %errorlevel% neq 0 exit /b %errorlevel%
           ROBOCOPY .\ports\libsolv %VCPKG_ROOT%\ports\libsolv
           @rem ROBOCOPY has 0 and 1 as successfull exit codes
           if %errorlevel% neq 0 if %errorlevel% neq 1 exit /b %errorlevel%

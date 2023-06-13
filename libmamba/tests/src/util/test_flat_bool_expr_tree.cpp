@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <array>
+#include <stdexcept>
 #include <string>
 #include <variant>
 #include <vector>
@@ -15,9 +16,9 @@
 
 using namespace mamba::util;
 
-TEST_SUITE("flat_binary_tree")
+TEST_SUITE("flat_bool_expr_tree")
 {
-    TEST_CASE("Create tree")
+    TEST_CASE("flat_binary_tree")
     {
         auto tree = flat_binary_tree<std::string, int>{};
         CHECK(tree.empty());
@@ -68,11 +69,61 @@ TEST_SUITE("flat_binary_tree")
             }
         }
     }
-}
 
-TEST_SUITE("flat_bool_expr_tree")
-{
-    TEST_CASE("Create bool postfix tokens")
+    namespace
+    {
+        template <typename Tree, typename Queue>
+        void visit_all_once_no_cycle_impl(const Tree& tree, Queue& q, std::size_t idx)
+        {
+            if (std::find(q.cbegin(), q.cend(), idx) != q.cend())
+            {
+                throw std::invalid_argument("Tree has cycle");
+            }
+            q.push_back(idx);
+            if (tree.is_branch(idx))
+            {
+                visit_all_once_no_cycle_impl(tree, q, tree.left(idx));
+                visit_all_once_no_cycle_impl(tree, q, tree.right(idx));
+            }
+        }
+
+        template <typename Tree>
+        auto visit_all_once_no_cycle(const Tree& tree)
+        {
+            auto visited = std::vector<std::size_t>{};
+            visited.reserve(tree.size());
+            if (!tree.empty())
+            {
+                visit_all_once_no_cycle_impl(tree, visited, tree.size() - 1);
+            }
+            std::sort(visited.begin(), visited.end());
+            return visited;
+        }
+    }
+
+    TEST_CASE("PostfixParser")
+    {
+        // Infix:   (a + b) * (c * (d + e))
+        // Postfix: a b + c d e + * *
+        auto parser = PostfixParser<char, std::string>{};
+        parser.push_variable('a');
+        parser.push_variable('b');
+        parser.push_operator("+");
+        parser.push_variable('c');
+        parser.push_variable('d');
+        parser.push_variable('e');
+        parser.push_operator("+");
+        parser.push_operator("*");
+        parser.push_operator("*");
+
+        const auto& tree = parser.tree();
+        CHECK_EQ(tree.size(), 9);
+
+        const auto visited = visit_all_once_no_cycle(tree);
+        CHECK_EQ(visited.size(), tree.size());
+    }
+
+    TEST_CASE("Bool postfix tokens")
     {
         // Infix:    (false and false) or (false or (false or true))
         // Postfix:  false true or false or false false and or

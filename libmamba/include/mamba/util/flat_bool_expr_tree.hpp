@@ -77,6 +77,41 @@ namespace mamba::util
         auto add_branch_impl(B&& branch, idx_type left_child, idx_type right_child) -> idx_type;
     };
 
+    template <typename Variable, typename Operator>
+    class PostfixParser
+    {
+    public:
+
+        using operator_type = Operator;
+        using variable_type = Variable;
+        using tree_type = flat_binary_tree<operator_type, variable_type>;
+
+        void push_variable(const variable_type& var);
+        void push_variable(variable_type&& var);
+        void push_operator(const operator_type& op);
+        void push_operator(operator_type&& op);
+
+        [[nodiscard]] auto tree() const& -> const tree_type&;
+        [[nodiscard]] auto tree() && -> tree_type&&;
+
+    private:
+
+        using idx_type = typename tree_type::idx_type;
+
+        tree_type m_tree = {};
+        idx_type m_left_end = 0;
+        idx_type m_right_end = 0;
+
+        auto left_start() const -> idx_type;
+        auto right_start() const -> idx_type;
+        auto next_left_end() const -> idx_type;
+
+        template <typename V>
+        void push_variable_impl(V&& var);
+        template <typename O>
+        void push_operator_impl(O&& op);
+    };
+
     // TODO C++20 this is std::identity
     struct identity
     {
@@ -135,7 +170,6 @@ namespace mamba::util
 #include <cassert>
 #include <iterator>
 #include <type_traits>
-
 
 namespace mamba::util
 {
@@ -282,6 +316,90 @@ namespace mamba::util
         -> idx_type
     {
         return add_branch_impl(std::move(branch), left_child, right_child);
+    }
+
+    /*************************************
+     *  Implementation of PostfixParser  *
+     *************************************/
+
+    template <typename V, typename O>
+    auto PostfixParser<V, O>::left_start() const -> idx_type
+    {
+        assert(m_right_end >= 1);
+        return m_right_end - 1;
+    }
+
+    template <typename V, typename O>
+    auto PostfixParser<V, O>::right_start() const -> idx_type
+    {
+        assert(m_tree.size() >= 1);
+        return m_tree.size() - 1;
+    }
+
+    template <typename V, typename O>
+    auto PostfixParser<V, O>::next_left_end() const -> idx_type
+    {
+        if (m_left_end == 0)
+        {
+            return 0;
+        }
+        idx_type new_left_end = m_left_end - 1;
+        while (m_tree.is_branch(new_left_end))
+        {
+            new_left_end = m_tree.left(new_left_end);
+        }
+        return new_left_end;
+    }
+
+    template <typename V, typename O>
+    template <typename Var>
+    void PostfixParser<V, O>::push_variable_impl(Var&& var)
+    {
+        m_left_end = std::exchange(m_right_end, m_tree.add_leaf(std::forward<Var>(var)));
+    }
+
+    template <typename V, typename O>
+    void PostfixParser<V, O>::push_variable(const variable_type& var)
+    {
+        return push_variable_impl(var);
+    }
+
+    template <typename V, typename O>
+    void PostfixParser<V, O>::push_variable(variable_type&& var)
+    {
+        return push_variable_impl(std::move(var));
+    }
+
+    template <typename V, typename O>
+    template <typename Op>
+    void PostfixParser<V, O>::push_operator_impl(Op&& op)
+    {
+        m_tree.add_branch(std::forward<Op>(op), left_start(), right_start());
+        m_right_end = std::exchange(m_left_end, next_left_end());
+    }
+
+    template <typename V, typename O>
+    void PostfixParser<V, O>::push_operator(const operator_type& op)
+    {
+        return push_operator_impl(op);
+    }
+
+    template <typename V, typename O>
+    void PostfixParser<V, O>::push_operator(operator_type&& op)
+    {
+        return push_operator_impl(std::move(op));
+    }
+
+    template <typename V, typename O>
+    auto PostfixParser<V, O>::tree() const& -> const tree_type&
+    {
+        return m_tree;
+    }
+
+    template <typename V, typename O>
+    auto PostfixParser<V, O>::tree() && -> tree_type&&
+    {
+        return std::move(m_tree);
     }
 
     /********************************

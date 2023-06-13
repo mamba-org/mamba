@@ -5,7 +5,6 @@ from .helpers import info
 
 class TestVirtualPkgs:
     def test_virtual_packages(self):
-
         infos = info()
 
         assert "virtual packages :" in infos

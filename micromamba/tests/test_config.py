@@ -248,7 +248,6 @@ class TestConfigList:
         os.environ.pop("MAMBA_OFFLINE")
 
     def test_no_env(self):
-
         os.environ["MAMBA_OFFLINE"] = "false"
 
         assert (

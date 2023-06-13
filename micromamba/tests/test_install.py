@@ -9,7 +9,6 @@ from .helpers import *
 
 
 class TestInstall:
-
     current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
     current_prefix = os.environ["CONDA_PREFIX"]
 

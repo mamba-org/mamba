@@ -120,7 +120,6 @@ class Mermaid(Directive):
         return mmcode
 
     def run(self):
-
         node = mermaid()
         node["code"] = self.get_mm_code()
         node["options"] = {}

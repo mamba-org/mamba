@@ -864,12 +864,12 @@ namespace mamba
             const CompressedProblemsGraph& m_pbs;
 
             /**
-             * Function to decide if a node is uninstallable.
+             * Function to decide if a node is not installable.
              *
              * For a leaf this sets the final status.
-             * For other nodes, a pacakge could still be uninstallable because of its children.
+             * For other nodes, a pacakge could still be not installable because of its children.
              */
-            auto node_uninstallable(node_id id) -> Status;
+            auto node_not_installable(node_id id) -> Status;
 
             /**
              * Get the type of a node depending on the exploration.
@@ -931,7 +931,7 @@ namespace mamba
             return path;
         }
 
-        auto TreeDFS::node_uninstallable(node_id id) -> Status
+        auto TreeDFS::node_not_installable(node_id id) -> Status
         {
             auto installables_contains = [&](auto&& lid) { return leaf_installables.contains(lid); };
             const auto& conflicts = m_pbs.conflicts();
@@ -1146,9 +1146,9 @@ namespace mamba
             // to visit children to exaplin conflicts.
             // In most cases though, only leaves would have conflicts and the loop above would be
             // empty in such case.
-            // Warning node_uninstallable has side effects and must be called unconditionally
+            // Warning node_not_installable has side effects and must be called unconditionally
             // (first here).
-            status = !node_uninstallable(id) && status;
+            status = !node_not_installable(id) && status;
 
             m_node_visited[id] = status;
             return { out, status };
@@ -1306,7 +1306,7 @@ namespace mamba
                 }
                 else
                 {
-                    write(" is uninstallable because it requires");
+                    write(" is not installable because it requires");
                 }
             }
             else if (tn.type_from == TreeNode::Type::split)
@@ -1337,7 +1337,7 @@ namespace mamba
             {
                 if (tn.depth() == 1)
                 {
-                    write(" is uninstallable because there are no viable options");
+                    write(" is not installable because there are no viable options");
                 }
                 else
                 {
@@ -1379,7 +1379,7 @@ namespace mamba
                         // Assuming this is always a conflict.
                         if (tn.depth() == 1)
                         {
-                            write(" is uninstallable because it");
+                            write(" is not installable because it");
                         }
                         else if (tn.type_from != TreeNode::Type::split)
                         {

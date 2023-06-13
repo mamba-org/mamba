@@ -179,7 +179,7 @@ namespace mamba
             }
             else if (m_scheme != "")
             {
-                m_canonical_name = m_scheme + "://" + m_location + '/' + m_name;
+                m_canonical_name = concat_scheme_url(m_scheme, join_url(m_location, m_name));
             }
             else
             {

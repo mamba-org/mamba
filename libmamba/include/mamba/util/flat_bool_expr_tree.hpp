@@ -133,11 +133,21 @@ namespace mamba::util
         using self_type = flat_bool_expr_tree<Variable>;
         using operator_type = BoolOperator;
         using variable_type = Variable;
+        using tree_type = flat_binary_tree<operator_type, variable_type>;
+        using size_type = typename tree_type::size_type;
 
         template <typename Iter>
         [[nodiscard]] static auto from_postfix(Iter first, Iter last) -> self_type;
 
         flat_bool_expr_tree() = default;
+        flat_bool_expr_tree(const tree_type& tree);
+        flat_bool_expr_tree(tree_type&& tree);
+
+        [[nodiscard]] auto size() const -> size_type;
+        [[nodiscard]] auto empty() const -> bool;
+
+        void clear();
+        void reserve(size_type size);
 
         template <typename UnaryFunc = identity>
         [[nodiscard]] auto evaluate(UnaryFunc&& var_evaluator = {}, bool empty_val = true) const
@@ -145,25 +155,12 @@ namespace mamba::util
 
     private:
 
-        struct OperatorNode
-        {
-            operator_type op;
-            std::size_t left_expr = 0;
-            std::size_t right_expr = 0;
-        };
-        using node_type = std::variant<OperatorNode, variable_type>;
-        using node_list = std::vector<node_type>;
-
-        template <typename Iter>
-        static auto postfix_tokens_to_nodes(Iter first, Iter last) -> node_list;
-        static auto from_postfix_impl(node_list& nodes, std::size_t idx) -> std::size_t;
-
-        flat_bool_expr_tree(node_list&& nodes);
+        using idx_type = typename tree_type::idx_type;
 
         template <typename UnaryFunc>
-        auto evaluate_impl(UnaryFunc& var_evaluator, std::size_t idx) const -> bool;
+        auto evaluate_impl(UnaryFunc& var_evaluator, idx_type idx) const -> bool;
 
-        node_list m_nodes = {};
+        tree_type m_tree = {};
     };
 }
 
@@ -417,125 +414,73 @@ namespace mamba::util
      *******************************************/
 
     template <typename V>
-    flat_bool_expr_tree<V>::flat_bool_expr_tree(node_list&& nodes)
-        : m_nodes(std::move(nodes))
+    flat_bool_expr_tree<V>::flat_bool_expr_tree(const tree_type& tree)
+        : m_tree(tree)
     {
     }
 
     template <typename V>
-    template <typename Iter>
-    auto flat_bool_expr_tree<V>::postfix_tokens_to_nodes(Iter first, Iter last) -> node_list
+    flat_bool_expr_tree<V>::flat_bool_expr_tree(tree_type&& tree)
+        : m_tree(std::move(tree))
     {
-        node_list out = {};
-        {
-            const auto n_tokens = std::distance(first, last);
-            assert(n_tokens >= 0);
-            out.reserve(static_cast<std::size_t>(n_tokens));
-        }
-        for (; first != last; ++first)
-        {
-            out.push_back(std::visit(
-                [&](const auto& token) -> node_type
-                {
-                    using Token = std::decay_t<decltype(token)>;
-                    if constexpr (std::is_same_v<Token, variable_type>)
-                    {
-                        return { token };
-                    }
-                    else  // std::is_same_v<Token, operator_type>
-                    {
-                        return { OperatorNode{ token } };
-                    }
-                },
-                *first
-            ));
-        }
-        return out;
     }
 
     template <typename V>
-    auto flat_bool_expr_tree<V>::from_postfix_impl(node_list& nodes, std::size_t idx) -> std::size_t
+    auto flat_bool_expr_tree<V>::size() const -> size_type
     {
-        assert(idx < nodes.size());
-        return std::visit(
-            [&](auto& node) -> std::size_t
-            {
-                using Node = std::decay_t<decltype(node)>;
-                if constexpr (std::is_same_v<Node, variable_type>)
-                {
-                    return idx;
-                }
-                else  // std::is_same_v<Node, OperatorNode>
-                {
-                    assert(idx >= 1);
-                    node.right_expr = idx - 1;
-                    auto const right_end = from_postfix_impl(nodes, node.right_expr);
-                    assert(right_end >= 1);
-                    node.left_expr = right_end - 1;
-                    auto const left_end = from_postfix_impl(nodes, node.left_expr);
-                    return left_end;
-                }
-            },
-            nodes[idx]
-        );
+        return m_tree.size();
     }
 
     template <typename V>
-    template <typename Iter>
-    auto flat_bool_expr_tree<V>::from_postfix(Iter first, Iter last) -> self_type
+    auto flat_bool_expr_tree<V>::empty() const -> bool
     {
-        if (first == last)
-        {
-            return self_type{};
-        }
-        node_list out = postfix_tokens_to_nodes(first, last);
-        assert(!out.empty());
-        from_postfix_impl(out, out.size() - 1);
-        return self_type{ std::move(out) };
+        return m_tree.empty();
+    }
+
+    template <typename V>
+    void flat_bool_expr_tree<V>::clear()
+    {
+        return m_tree.clear();
+    }
+
+    template <typename V>
+    void flat_bool_expr_tree<V>::reserve(size_type size)
+    {
+        return m_tree.reserve(size);
     }
 
     template <typename V>
     template <typename UnaryFunc>
     auto flat_bool_expr_tree<V>::evaluate(UnaryFunc&& var_evaluator, bool empty_val) const -> bool
     {
-        if (m_nodes.empty())
+        if (m_tree.empty())
         {
             return empty_val;
         }
-        return evaluate_impl(var_evaluator, m_nodes.size() - 1);
+        return evaluate_impl(var_evaluator, m_tree.root());
     }
 
     template <typename V>
     template <typename UnaryFunc>
-    auto flat_bool_expr_tree<V>::evaluate_impl(UnaryFunc& var_eval, std::size_t idx) const -> bool
+    auto flat_bool_expr_tree<V>::evaluate_impl(UnaryFunc& var_eval, idx_type idx) const -> bool
     {
-        assert(idx < m_nodes.size());
-        return std::visit(
-            [&](const auto& node) -> bool
-            {
-                using Node = std::decay_t<decltype(node)>;
-                if constexpr (std::is_same_v<Node, variable_type>)
-                {
-                    return var_eval(node);
-                }
-                else  // node == BoolOperator::logical_or
-                {
-                    // Note that some subtrees may not be explore thanks to short-circuiting
-                    // of boolean && and ||
-                    if ((node.op == BoolOperator::logical_and))
-                    {
-                        return evaluate_impl(var_eval, node.left_expr)
-                               && evaluate_impl(var_eval, node.right_expr);
-                    }
-                    else  // node.op == BoolOperator::logical_or
-                    {
-                        return evaluate_impl(var_eval, node.left_expr)
-                               || evaluate_impl(var_eval, node.right_expr);
-                    }
-                }
-            },
-            m_nodes[idx]
-        );
+        // We do a tree evluation rather than a stack-based postfix evaluation to
+        // avoid evaluation sub trees thanks to operator && and || short circuiting.
+        assert(idx < m_tree.size());
+        if (m_tree.is_leaf(idx))
+        {
+            return var_eval(m_tree.leaf(idx));
+        }
+        if ((m_tree.branch(idx) == BoolOperator::logical_and))
+        {
+            return evaluate_impl(var_eval, m_tree.left(idx))
+                   && evaluate_impl(var_eval, m_tree.right(idx));
+        }
+        else  // BoolOperator::logical_or
+        {
+            return evaluate_impl(var_eval, m_tree.left(idx))
+                   || evaluate_impl(var_eval, m_tree.right(idx));
+        }
     }
 
 }

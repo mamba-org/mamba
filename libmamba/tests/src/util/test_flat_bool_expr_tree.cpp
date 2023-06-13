@@ -127,22 +127,21 @@ TEST_SUITE("flat_bool_expr_tree")
     {
         // Infix:    (false and false) or (false or (false or true))
         // Postfix:  false true or false or false false and or
-        auto postfix = std::vector<std::variant<bool, BoolOperator>>{
-            false,
-            true,
-            BoolOperator::logical_or,
-            false,
-            BoolOperator::logical_or,
-            false,
-            false,
-            BoolOperator::logical_and,
-            BoolOperator::logical_or,
-        };
+        auto parser = PostfixParser<bool, BoolOperator>{};
+        parser.push_variable(false);
+        parser.push_variable(true);
+        parser.push_operator(BoolOperator::logical_or);
+        parser.push_variable(false);
+        parser.push_operator(BoolOperator::logical_or);
+        parser.push_variable(false);
+        parser.push_variable(false);
+        parser.push_operator(BoolOperator::logical_and);
+        parser.push_operator(BoolOperator::logical_or);
+        auto tree = flat_bool_expr_tree(std::move(parser).tree());
 
         SUBCASE("Empty")
         {
-            postfix.clear();
-            const auto tree = flat_bool_expr_tree<bool>::from_postfix(postfix.cbegin(), postfix.cend());
+            tree.clear();
             CHECK(tree.evaluate());
             CHECK_FALSE(tree.evaluate({}, false));
             CHECK(tree.evaluate([](auto b) { return !b; }));
@@ -151,7 +150,6 @@ TEST_SUITE("flat_bool_expr_tree")
 
         SUBCASE("Evaluate tree")
         {
-            const auto tree = flat_bool_expr_tree<bool>::from_postfix(postfix.cbegin(), postfix.cend());
             CHECK(tree.evaluate());
             CHECK(tree.evaluate([](auto b) { return !b; }));
         }
@@ -163,22 +161,17 @@ TEST_SUITE("flat_bool_expr_tree")
         const auto reference_eval = [](std::array<bool, 5> values) -> bool
         { return (values[0] || values[1]) && (values[2] && (values[3] || values[4])); };
         // Postfix:   x0 x1 or x2 x3 x4 or and and
-        auto postfix = std::vector<std::variant<std::size_t, BoolOperator>>{
-            0ul,
-            1ul,
-            BoolOperator::logical_or,
-            2ul,
-            3ul,
-            4ul,
-            BoolOperator::logical_or,
-            BoolOperator::logical_and,
-            BoolOperator::logical_and,
-        };
-
-        const auto tree = flat_bool_expr_tree<std::size_t>::from_postfix(
-            postfix.cbegin(),
-            postfix.cend()
-        );
+        auto parser = PostfixParser<std::size_t, BoolOperator>{};
+        parser.push_variable(0);
+        parser.push_variable(1);
+        parser.push_operator(BoolOperator::logical_or);
+        parser.push_variable(2);
+        parser.push_variable(3);
+        parser.push_variable(4);
+        parser.push_operator(BoolOperator::logical_or);
+        parser.push_operator(BoolOperator::logical_and);
+        parser.push_operator(BoolOperator::logical_and);
+        auto tree = flat_bool_expr_tree(std::move(parser).tree());
 
         for (bool x0 : { true, false })
         {

@@ -112,6 +112,57 @@ namespace mamba::util
         void push_operator_impl(O&& op);
     };
 
+    template <typename Variable, typename Operator, typename OperatorCmp = std::less<>>
+    class InfixParser
+    {
+    public:
+
+        using operator_type = Operator;
+        using variable_type = Variable;
+        using tree_type = flat_binary_tree<operator_type, variable_type>;
+        using operator_precedence_type = OperatorCmp;
+
+        InfixParser(const operator_precedence_type& cmp);
+        InfixParser(operator_precedence_type&& cmp = {});
+
+        void push_variable(const variable_type& var);
+        void push_variable(variable_type&& var);
+        void push_operator(const operator_type& op);
+        void push_operator(operator_type&& op);
+        void push_left_parenthesis();
+        void push_right_parenthesis();
+        void finalize();
+
+        [[nodiscard]] auto tree() const& -> const tree_type&;
+        [[nodiscard]] auto tree() && -> tree_type&&;
+
+    private:
+
+        using postfix_parser_type = PostfixParser<variable_type, operator_type>;
+        struct LeftParenthesis
+        {
+        };
+        using operator_or_parenthesis_type = std::variant<operator_type, LeftParenthesis>;
+        using operator_stack_type = std::vector<operator_or_parenthesis_type>;
+
+        postfix_parser_type m_postfix_parser = {};
+        operator_stack_type m_op_stack = {};
+        operator_precedence_type m_op_cmp = {};
+
+        template <typename T>
+        void stack_push(T&& elem);
+        auto stack_pop() -> operator_or_parenthesis_type;
+        auto stack_empty() const -> bool;
+        auto stack_top() const -> const operator_or_parenthesis_type&;
+        auto stack_top_is_parenthesis() const -> bool;
+        auto stack_top_is_op_with_greater_precedence_than(const operator_type&) const -> bool;
+
+        template <typename V>
+        void push_variable_impl(V&& var);
+        template <typename O>
+        void push_operator_impl(O&& op);
+    };
+
     // TODO C++20 this is std::identity
     struct identity
     {
@@ -166,6 +217,7 @@ namespace mamba::util
 
 #include <cassert>
 #include <iterator>
+#include <stdexcept>
 #include <type_traits>
 
 namespace mamba::util
@@ -399,6 +451,160 @@ namespace mamba::util
         return std::move(m_tree);
     }
 
+    /***********************************
+     *  Implementation of InfixParser  *
+     ***********************************/
+
+    template <typename V, typename O, typename C>
+    InfixParser<V, O, C>::InfixParser(const operator_precedence_type& cmp)
+        : m_op_cmp(cmp)
+    {
+    }
+
+    template <typename V, typename O, typename C>
+    InfixParser<V, O, C>::InfixParser(operator_precedence_type&& cmp)
+        : m_op_cmp(std::move(cmp))
+    {
+    }
+
+    template <typename V, typename O, typename C>
+    template <typename T>
+    void InfixParser<V, O, C>::stack_push(T&& elem)
+    {
+        m_op_stack.push_back(std::forward<T>(elem));
+    }
+
+    template <typename V, typename O, typename C>
+    auto InfixParser<V, O, C>::stack_pop() -> operator_or_parenthesis_type
+    {
+        assert(!stack_empty());
+        auto top = stack_top();
+        m_op_stack.pop_back();
+        return top;
+    }
+
+    template <typename V, typename O, typename C>
+    auto InfixParser<V, O, C>::stack_empty() const -> bool
+    {
+        return m_op_stack.empty();
+    }
+
+    template <typename V, typename O, typename C>
+    auto InfixParser<V, O, C>::stack_top() const -> const operator_or_parenthesis_type&
+    {
+        assert(!stack_empty());
+        return m_op_stack.back();
+    }
+
+    template <typename V, typename O, typename C>
+    auto InfixParser<V, O, C>::stack_top_is_parenthesis() const -> bool
+    {
+        return !stack_empty() && std::holds_alternative<LeftParenthesis>(stack_top());
+    }
+
+    template <typename V, typename O, typename C>
+    auto InfixParser<V, O, C>::stack_top_is_op_with_greater_precedence_than(const operator_type& op
+    ) const -> bool
+    {
+        if (stack_empty())
+        {
+            return false;
+        }
+        if (const auto* const op_ptr = std::get_if<operator_type>(&stack_top()))
+        {
+            return m_op_cmp(op, *op_ptr);
+        }
+        return false;
+    }
+
+    template <typename V, typename O, typename C>
+    template <typename Var>
+    void InfixParser<V, O, C>::push_variable_impl(Var&& var)
+    {
+        m_postfix_parser.push_variable(std::forward<Var>(var));
+    }
+
+    template <typename V, typename O, typename C>
+    void InfixParser<V, O, C>::push_variable(const variable_type& var)
+    {
+        return push_variable_impl(var);
+    }
+
+    template <typename V, typename O, typename C>
+    void InfixParser<V, O, C>::push_variable(variable_type&& var)
+    {
+        return push_variable_impl(std::move(var));
+    }
+
+    template <typename V, typename O, typename C>
+    template <typename Op>
+    void InfixParser<V, O, C>::push_operator_impl(Op&& op)
+    {
+        while (stack_top_is_op_with_greater_precedence_than(op))
+        {
+            m_postfix_parser.push_operator(std::get<operator_type>(stack_pop()));
+        }
+        stack_push(std::forward<Op>(op));
+    }
+
+    template <typename V, typename O, typename C>
+    void InfixParser<V, O, C>::push_operator(const operator_type& op)
+    {
+        return push_operator_impl(op);
+    }
+
+    template <typename V, typename O, typename C>
+    void InfixParser<V, O, C>::push_operator(operator_type&& op)
+    {
+        return push_operator_impl(std::move(op));
+    }
+
+    template <typename V, typename O, typename C>
+    void InfixParser<V, O, C>::push_left_parenthesis()
+    {
+        stack_push(LeftParenthesis{});
+    }
+
+    template <typename V, typename O, typename C>
+    void InfixParser<V, O, C>::push_right_parenthesis()
+    {
+        while (!stack_top_is_parenthesis())
+        {
+            m_postfix_parser.push_operator(std::get<operator_type>(stack_pop()));
+        }
+        if (stack_empty())
+        {
+            throw std::invalid_argument("Mistmatched parenthesis");
+        }
+        assert(stack_top_is_parenthesis());
+        stack_pop();
+    }
+
+    template <typename V, typename O, typename C>
+    void InfixParser<V, O, C>::finalize()
+    {
+        while (!stack_empty())
+        {
+            if (stack_top_is_parenthesis())
+            {
+                throw std::invalid_argument("Mistmatched parenthesis");
+            }
+            m_postfix_parser.push_operator(std::get<operator_type>(stack_pop()));
+        }
+    }
+
+    template <typename V, typename O, typename C>
+    auto InfixParser<V, O, C>::tree() const& -> const tree_type&
+    {
+        return m_postfix_parser.tree();
+    }
+
+    template <typename V, typename O, typename C>
+    auto InfixParser<V, O, C>::tree() && -> tree_type&&
+    {
+        return std::move(m_postfix_parser).tree();
+    }
+
     /********************************
      *  Implementation of identity  *
      ********************************/
@@ -482,6 +688,5 @@ namespace mamba::util
                    || evaluate_impl(var_eval, m_tree.right(idx));
         }
     }
-
 }
 #endif

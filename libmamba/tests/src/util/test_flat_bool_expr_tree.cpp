@@ -123,6 +123,34 @@ TEST_SUITE("flat_bool_expr_tree")
         CHECK_EQ(visited.size(), tree.size());
     }
 
+    TEST_CASE("InfixParser")
+    {
+        // Infix:   (a + b) * (c * (d + e))
+        auto parser = InfixParser<char, std::string>{};
+        parser.push_left_parenthesis();
+        parser.push_variable('a');
+        parser.push_operator("+");
+        parser.push_variable('b');
+        parser.push_right_parenthesis();
+        parser.push_operator("*");
+        parser.push_left_parenthesis();
+        parser.push_variable('c');
+        parser.push_operator("*");
+        parser.push_left_parenthesis();
+        parser.push_variable('d');
+        parser.push_operator("+");
+        parser.push_variable('e');
+        parser.push_right_parenthesis();
+        parser.push_right_parenthesis();
+        parser.finalize();
+
+        const auto& tree = parser.tree();
+        CHECK_EQ(tree.size(), 9);
+
+        const auto visited = visit_all_once_no_cycle(tree);
+        CHECK_EQ(visited.size(), tree.size());
+    }
+
     TEST_CASE("Bool postfix tokens")
     {
         // Infix:    (false and false) or (false or (false or true))

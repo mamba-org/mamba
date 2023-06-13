@@ -736,7 +736,7 @@ namespace mamba
             env_manager.register_env(prefix);
         }
 
-        void file_specs_hook(std::vector<std::string>& file_specs, Configuration& config)
+        void file_specs_hook(Configuration& config, std::vector<std::string>& file_specs)
         {
             auto& env_name = config.at("spec_file_env_name");
             auto& specs = config.at("specs");

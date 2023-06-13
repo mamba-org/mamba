@@ -1352,7 +1352,7 @@ namespace mamba
                    .group("Solver")
                    .set_post_merge_hook<std::vector<std::string>>(
                        [&](std::vector<std::string>& value)
-                       { return detail::file_specs_hook(value, *this); }
+                       { return detail::file_specs_hook(*this, value); }
                    )
                    .description("File (yaml, explicit or plain)"));
 

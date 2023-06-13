@@ -56,7 +56,7 @@ namespace mamba
 
         void create_empty_target(const fs::u8path& prefix);
 
-        void file_specs_hook(std::vector<std::string>& file_specs, Configuration& config);
+        void file_specs_hook(Configuration& config, std::vector<std::string>& file_specs);
 
         void channels_hook(Configuration& config, std::vector<std::string>& channels);
 

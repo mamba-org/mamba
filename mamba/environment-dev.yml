@@ -22,7 +22,7 @@ dependencies:
   - pip
   - pybind11
   - pybind11-stubgen
-  - pytest
+  - pytest >=7.3
   - pyyaml
   - conda
   - conda-content-trust

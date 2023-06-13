@@ -228,7 +228,7 @@ class TestConfigList:
         assert (
             config(
                 "list", "--no-env", "--rc-file", rc_file, "-d", group_flag
-            ).splitlines()[:-8]
+            ).splitlines()
             == f"{group}# channels\n#   Define the list of channels\nchannels:\n"
             "  - channel1\n  - channel2\n".splitlines()
         )

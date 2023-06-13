@@ -7,6 +7,7 @@
 #ifndef TEST_MAMBA_SOLV_POOL_DATA_HPP
 #define TEST_MAMBA_SOLV_POOL_DATA_HPP
 
+#include <array>
 #include <map>
 #include <string>
 #include <vector>
@@ -32,7 +33,7 @@ namespace mamba::test
 
     inline auto make_packages()
     {
-        return std::array{
+        return std::array<SimplePkg, 16>{
             SimplePkg{ "menu", "1.5.0", { "dropdown=2.*" } },
             SimplePkg{ "menu", "1.4.0", { "dropdown=2.*" } },
             SimplePkg{ "menu", "1.3.0", { "dropdown=2.*" } },

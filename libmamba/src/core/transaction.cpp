@@ -6,6 +6,9 @@
 
 #include <iostream>
 #include <stack>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include <fmt/color.h>
 #include <fmt/format.h>
@@ -27,7 +30,11 @@ extern "C"  // Incomplete header
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_string.hpp"
+#include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
+#include "solv-cpp/repo.hpp"
+#include "solv-cpp/solver.hpp"
+#include "solv-cpp/transaction.hpp"
 
 #include "progress_bar_impl.hpp"
 
@@ -41,36 +48,44 @@ namespace mamba
                    && caches.get_tarball_path(pkg_info).empty();
         }
 
-        auto mk_pkginfo(const MPool& pool, Solvable* s) -> PackageInfo
+        auto mk_pkginfo(const MPool& pool, solv::ObjSolvableViewConst s) -> PackageInfo
         {
-            assert(s != nullptr);
-            const auto pkginfo = pool.id2pkginfo(pool_solvable2id(pool, s));
+            const auto pkginfo = pool.id2pkginfo(s.id());
             assert(pkginfo.has_value());  // There is Solvable so the optional must no be empty
             return std::move(pkginfo).value();
         };
 
-    }
-
-    nlohmann::json solvable_to_json(const MPool& pool, Solvable* s)
-    {
-        return mk_pkginfo(pool, s).json_record();
-    }
-
-    bool MTransaction::filter(Solvable* s)
-    {
-        if (m_filter_type == FilterType::none)
+        nlohmann::json solvable_to_json(const MPool& pool, solv::ObjSolvableViewConst s)
         {
-            return false;
+            return mk_pkginfo(pool, s).json_record();
         }
-        bool spec_in_filter = m_filter_name_ids.count(s->name);
 
-        if (m_filter_type == FilterType::keep_only)
+        template <typename Range>
+        auto make_pkg_info_from_explicit_match_specs(Range&& specs)
         {
-            return spec_in_filter;
-        }
-        else
-        {
-            return !spec_in_filter;
+            std::vector<PackageInfo> out = {};
+            out.reserve(specs.size());
+
+            for (auto& ms : specs)
+            {
+                out.emplace_back(ms.name);
+                auto& p = out.back();
+                p.url = ms.url;
+                p.build_string = ms.build_string;
+                p.version = ms.version;
+                p.channel = ms.channel;
+                p.fn = ms.fn;
+                p.subdir = ms.subdir;
+                if (ms.brackets.find("md5") != ms.brackets.end())
+                {
+                    p.md5 = ms.brackets.at("md5");
+                }
+                if (ms.brackets.find("sha256") != ms.brackets.end())
+                {
+                    p.sha256 = ms.brackets.at("sha256");
+                }
+            }
+            return out;
         }
     }
 
@@ -83,57 +98,36 @@ namespace mamba
         : m_pool(pool)
         , m_multi_cache(caches)
     {
-        // auto& ctx = Context::instance();
-        std::vector<PackageInfo> pi_result;
-
-        for (auto& ms : specs_to_install)
-        {
-            PackageInfo p(ms.name);
-            p.url = ms.url;
-            p.build_string = ms.build_string;
-            p.version = ms.version;
-            p.channel = ms.channel;
-            p.fn = ms.fn;
-            p.subdir = ms.subdir;
-            if (ms.brackets.find("md5") != ms.brackets.end())
-            {
-                p.md5 = ms.brackets.at("md5");
-            }
-            if (ms.brackets.find("sha256") != ms.brackets.end())
-            {
-                p.sha256 = ms.brackets.at("sha256");
-            }
-            pi_result.push_back(p);
-        }
-
-        MRepo mrepo = MRepo(m_pool, "__explicit_specs__", pi_result);
+        MRepo mrepo = MRepo(
+            m_pool,
+            "__explicit_specs__",
+            make_pkg_info_from_explicit_match_specs(specs_to_install)
+        );
 
         m_pool.create_whatprovides();
 
         // Just add the packages we want to remove directly to the transaction
-        solv::ObjQueue q, job, decision;
+        solv::ObjQueue job, decision;
 
-        std::vector<std::string> not_found;
+        std::vector<std::string> not_found = {};
         for (auto& s : specs_to_remove)
         {
-            job.clear();
-            q.clear();
+            job = {
+                SOLVER_SOLVABLE_PROVIDES,
+                m_pool.pool().add_conda_dependency(s.conda_build_form()),
+            };
 
-            const Id id = pool_conda_matchspec(m_pool, s.conda_build_form().c_str());
-            if (id)
+            if (const auto q = m_pool.pool().select_solvables(job); !q.empty())
             {
-                job.push_back(SOLVER_SOLVABLE_PROVIDES, id);
+                for (auto& el : q)
+                {
+                    // To remove, these have to be negative
+                    decision.push_back(-el);
+                }
             }
-            selection_solvables(m_pool, job.raw(), q.raw());
-
-            if (q.size() == 0)
+            else
             {
                 not_found.push_back("\n - " + s.str());
-            }
-            for (auto& el : q)
-            {
-                // To remove, these have to be negative
-                decision.push_back(-el);
             }
         }
 
@@ -143,22 +137,19 @@ namespace mamba
             throw std::runtime_error("Could not find packages to remove:" + join("", not_found));
         }
 
-        selection_solvables(m_pool, job.raw(), q.raw());
+        // TODO why is this only using the last job?
+        const auto q = m_pool.pool().select_solvables(job);
         const bool remove_success = q.size() >= specs_to_remove.size();
         Console::instance().json_write({ { "success", remove_success } });
-        Id pkg_id;
-        Solvable* solvable;
 
         // find repo __explicit_specs__ and install all packages from it
-        FOR_REPO_SOLVABLES(mrepo.repo(), pkg_id, solvable)
-        {
-            decision.push_back(pkg_id);
-        }
+        auto repo = solv::ObjRepoView(*mrepo.repo());
+        repo.for_each_solvable_id([&](solv::SolvableId id) { decision.push_back(id); });
 
-        m_transaction = transaction_create_decisionq(m_pool, decision.raw(), nullptr);
+        m_transaction = std::make_unique<solv::ObjTransaction>(
+            solv::ObjTransaction::from_solvables(m_pool.pool(), decision)
+        );
         init();
-
-        m_history_entry = History::UserRequest::prefilled();
 
         for (auto& s : specs_to_remove)
         {
@@ -186,9 +177,8 @@ namespace mamba
         );
     }
 
-    MTransaction::MTransaction(MPool& pool, MSolver& solver, MultiPackageCache& caches)
-
-        : m_pool(pool)
+    MTransaction::MTransaction(MPool& p_pool, MSolver& solver, MultiPackageCache& caches)
+        : m_pool(p_pool)
         , m_multi_cache(caches)
     {
         if (!solver.is_solved())
@@ -196,67 +186,61 @@ namespace mamba
             throw std::runtime_error("Cannot create transaction without calling solver.solve() first."
             );
         }
+        auto& pool = m_pool.pool();
 
-        m_transaction = solver_create_transaction(solver);
-        transaction_order(m_transaction, 0);
-
-        m_history_entry = History::UserRequest::prefilled();
+        m_transaction = std::make_unique<solv::ObjTransaction>(
+            solv::ObjTransaction::from_solver(pool, solver.solver())
+        );
+        trans().order(pool);
 
         if (solver.no_deps || solver.only_deps)
         {
             m_filter_type = solver.only_deps ? FilterType::keep_only : FilterType::ignore;
             for (auto& s : solver.install_specs())
             {
-                m_filter_name_ids.insert(pool_str2id(m_pool, s.name.c_str(), 0));
+                m_filter_name_ids.insert(pool.add_string(s.name));
             }
             for (auto& s : solver.remove_specs())
             {
-                m_filter_name_ids.insert(pool_str2id(m_pool, s.name.c_str(), 0));
+                m_filter_name_ids.insert(pool.add_string(s.name));
             }
+        }
 
-            if (solver.only_deps)
+        if (solver.only_deps)
+        {
+            for (const solv::SolvableId r : trans().steps())
             {
-                solv::ObjQueue q = {};
-                transaction_installedresult(m_transaction, q.raw());
-                for (const Id r : q)
+                auto s = pool.get_solvable(r);
+                assert(s.has_value());
+                if (m_filter_name_ids.count(s->raw()->name))
                 {
-                    Solvable* s = pool_id2solvable(m_pool, r);
-                    if (m_filter_name_ids.count(s->name))
+                    for (const auto dep_id : s->dependencies())
                     {
-                        // add the dependencies of this selected package to the added specs
-                        Id* reqp;
-                        for (reqp = s->repo->idarraydata + s->requires; *reqp; reqp++)
+                        std::string add_spec = std::string(pool.get_dependency_name(dep_id));
+                        if (auto version = pool.get_dependency_version(dep_id); !version.empty())
                         {
-                            const char* depname = pool_id2str(m_pool, *reqp);
-                            const char* depevr = pool_id2evr(m_pool, *reqp);
-                            std::string add_spec;
-                            if (depname)
-                            {
-                                add_spec += depname;
-                                if (depevr && strlen(depevr))
-                                {
-                                    add_spec += " ";
-                                    add_spec += depevr;
-                                }
-                            }
-                            m_history_entry.update.push_back(
-                                MatchSpec{ add_spec, pool.channel_context() }.str()
-                            );
+                            add_spec += ' ';
+                            add_spec += version;
                         }
+                        m_history_entry.update.push_back(
+                            MatchSpec{ add_spec, m_pool.channel_context() }.str()
+                        );
                     }
                 }
             }
         }
-
-        if (solver.only_deps == false)
+        else
         {
             auto to_string_vec = [](const std::vector<MatchSpec>& vec) -> std::vector<std::string>
             {
-                std::vector<std::string> res;
-                for (const auto& el : vec)
-                {
-                    res.push_back(el.str());
-                }
+                std::vector<std::string> res = {};
+                res.reserve(vec.size());
+                std::transform(
+                    vec.cbegin(),
+                    vec.cend(),
+                    std::back_inserter(res),
+                    [](auto const& el) { return el.str(); }
+                );
                 return res;
             };
             m_history_entry.update = to_string_vec(solver.install_specs());
@@ -282,101 +266,79 @@ namespace mamba
             solver.install_specs()
         );
 
-        ::Pool* const pool_ptr = static_cast<::Pool*>(m_pool);
-        if (m_transaction_context.relink_noarch && pool_ptr->installed != nullptr)
+        if (auto maybe_installed = pool.installed_repo();
+            m_transaction_context.relink_noarch && maybe_installed.has_value())
         {
-            Id p = 0;
-            Solvable* s = nullptr;
-            solv::ObjQueue job, q, decision;
+            // TODO could we use the transaction instead?
+            solv::ObjQueue decision = {};
+            solver_get_decisionqueue(solver.solver().raw(), decision.raw());
 
-            solver_get_decisionqueue(solver, decision.raw());
-
-            FOR_REPO_SOLVABLES(pool_ptr->installed, p, s)
-            {
-                const char* noarch_type = solvable_lookup_str(s, SOLVABLE_SOURCEARCH);
-
-                if (noarch_type == nullptr)
+            pool.for_each_installed_solvable(
+                [&](solv::ObjSolvableViewConst s)
                 {
-                    continue;
-                }
-
-                if (strcmp(noarch_type, "python") == 0)
-                {
-                    bool skip_relink = false;
-                    for (auto iter = decision.begin(); iter != decision.end(); ++iter)
+                    if (s.noarch() == "python")
                     {
-                        // if the installed package is kept, delete decision
-                        if (*iter == p)
-                        {
-                            iter = decision.erase(iter);
-                            break;
-                        }
-                        else if (*iter == -p)
-                        {
-                            // package is _already_ getting delete
-                            // in this case, we do not need to manually relink
-                            skip_relink = true;
-                            break;
-                        }
-                    }
-
-                    if (skip_relink)
-                    {
-                        continue;
-                    }
-
-
-                    const auto pkg_info = mk_pkginfo(m_pool, s);
-                    const Id id = pool_conda_matchspec(
-                        m_pool,
-                        fmt::format("{} {} {}", pkg_info.name, pkg_info.version, pkg_info.build_string)
-                            .c_str()
-                    );
-
-                    if (id)
-                    {
-                        job.push_back(SOLVER_SOLVABLE_PROVIDES, id);
-                    }
-
-                    selection_solvables(m_pool, job.raw(), q.raw());
-
-                    Id reinstall_id = -1;
-                    for (const Id r : q)
-                    {
-                        auto* xid = pool_id2solvable(m_pool, r);
-                        if (xid->repo != pool_ptr->installed)
-                        {
-                            reinstall_id = r;
-                            break;
-                        }
-                    }
-
-                    if (reinstall_id == -1)
-                    {
-                        // TODO we should also search the local package cache to make offline
-                        // installs work
-                        LOG_WARNING << fmt::format(
-                            "To upgrade python we need to reinstall noarch",
-                            " package {} {} {} but we could not find it in",
-                            " any of the loaded channels.",
-                            pkg_info.name,
-                            pkg_info.version,
-                            pkg_info.build_string
+                        auto id = s.id();
+                        auto id_iter = std::find_if(
+                            decision.cbegin(),
+                            decision.cend(),
+                            [id](auto other) { return std::abs(other) == id; }
                         );
-                        continue;
+
+                        // if the installed package is kept, we should relink
+                        if ((id_iter != decision.cend()) && (*id_iter == id))
+                        {
+                            // Remove old linked package
+                            decision.erase(id_iter);
+
+                            const auto pkg_info = mk_pkginfo(m_pool, s);
+                            solv::ObjQueue const job = {
+                                SOLVER_SOLVABLE_PROVIDES,
+                                pool.add_conda_dependency(fmt::format(
+                                    "{} {} {}",
+                                    pkg_info.name,
+                                    pkg_info.version,
+                                    pkg_info.build_string
+                                )),
+                            };
+
+                            const auto matches = pool.select_solvables(job);
+                            const auto reinstall_iter = std::find_if(
+                                matches.cbegin(),
+                                matches.cend(),
+                                [&](solv::SolvableId r)
+                                {
+                                    auto rsolv = pool.get_solvable(r);
+                                    return rsolv.has_value() && !rsolv->installed();
+                                }
+                            );
+                            if (reinstall_iter == matches.cend())
+                            {
+                                // TODO we should also search the local package cache to make
+                                // offline installs work
+                                LOG_WARNING << fmt::format(
+                                    "To upgrade python we need to reinstall noarch",
+                                    " package {} {} {} but we could not find it in",
+                                    " any of the loaded channels.",
+                                    pkg_info.name,
+                                    pkg_info.version,
+                                    pkg_info.build_string
+                                );
+                            }
+                            else
+                            {
+                                decision.push_back(*reinstall_iter);
+                                decision.push_back(-id);
+                            }
+                        }
                     }
-
-                    decision.push_back(reinstall_id);
-                    decision.push_back(-p);
-
-                    q.clear();
-                    job.clear();
                 }
-            }
+            );
 
-            transaction_free(m_transaction);
-            m_transaction = transaction_create_decisionq(m_pool, decision.raw(), nullptr);
-            transaction_order(m_transaction, 0);
+            m_transaction = std::make_unique<solv::ObjTransaction>(
+                solv::ObjTransaction::from_solvables(m_pool.pool(), decision)
+            );
+            trans().order(m_pool.pool());
 
             // init everything again...
             init();
@@ -396,21 +358,16 @@ namespace mamba
         m_pool.create_whatprovides();
 
         solv::ObjQueue decision = {};
+        // find repo __explicit_specs__ and install all packages from it
+        auto repo = solv::ObjRepoView(*mrepo.repo());
+        repo.for_each_solvable_id([&](solv::SolvableId id) { decision.push_back(id); });
 
-        Id pkg_id = {};
-        Solvable* solvable = nullptr;
-
-        FOR_REPO_SOLVABLES(mrepo.repo(), pkg_id, solvable)
-        {
-            decision.push_back(pkg_id);
-        }
-
-        m_transaction = transaction_create_decisionq(m_pool, decision.raw(), nullptr);
-        transaction_order(m_transaction, 0);
+        m_transaction = std::make_unique<solv::ObjTransaction>(
+            solv::ObjTransaction::from_solvables(m_pool.pool(), decision)
+        );
+        trans().order(m_pool.pool());
 
         init();
-
-        m_history_entry = History::UserRequest::prefilled();
 
         std::vector<MatchSpec> specs_to_install;
         for (const auto& pkginfo : packages)
@@ -429,54 +386,87 @@ namespace mamba
         );
     }
 
-    MTransaction::~MTransaction()
+    MTransaction::~MTransaction() = default;
+
+    auto MTransaction::trans() -> solv::ObjTransaction&
     {
-        LOG_INFO << "Freeing transaction.";
-        transaction_free(m_transaction);
+        assert(m_transaction != nullptr);
+        return *m_transaction;
+    }
+
+    auto MTransaction::trans() const -> const solv::ObjTransaction&
+    {
+        assert(m_transaction != nullptr);
+        return *m_transaction;
     }
 
     void MTransaction::init()
     {
         m_to_remove.clear();
         m_to_install.clear();
-        for (int i = 0; i < m_transaction->steps.count && !is_sig_interrupted(); i++)
+        const auto& pool = m_pool.pool();
+        trans().for_each_step_solvable(
+            pool,
+            [&](auto s)
+            {
+                assert(s.has_value());
+                if (!filter(*s))
+                {
+                    auto const type = trans().step_type(pool, s->id(), SOLVER_TRANSACTION_SHOW_ALL);
+                    switch (type)
+                    {
+                        case SOLVER_TRANSACTION_DOWNGRADED:
+                        case SOLVER_TRANSACTION_UPGRADED:
+                        case SOLVER_TRANSACTION_CHANGED:
+                        case SOLVER_TRANSACTION_REINSTALLED:
+                        {
+                            m_to_remove.emplace_back(*s);
+                            // Packages that replace these one will show up under IGNORE
+                            // so we need to fetch them here
+                            if (auto maybe_newer = trans().step_newer(pool, s->id()))
+                            {
+                                auto solvable = pool.get_solvable(*maybe_newer);
+                                assert(solvable);
+                                m_to_install.push_back(*solvable);
+                            }
+                            break;
+                        }
+                        case SOLVER_TRANSACTION_ERASE:
+                        {
+                            m_to_remove.emplace_back(*s);
+                            break;
+                        }
+                        case SOLVER_TRANSACTION_INSTALL:
+                        {
+                            m_to_install.emplace_back(*s);
+                            break;
+                        }
+                        case SOLVER_TRANSACTION_IGNORE:
+                            break;
+                        default:
+                            LOG_ERROR << "Exec case not handled: " << type;
+                            break;
+                    }
+                }
+            }
+        );
+    }
+
+    bool MTransaction::filter(const solv::ObjSolvableViewConst& s)
+    {
+        if (m_filter_type == FilterType::none)
         {
-            Id p = m_transaction->steps.elements[i];
-            Id ttype = transaction_type(m_transaction, p, SOLVER_TRANSACTION_SHOW_ALL);
-            Solvable* s = pool_id2solvable(m_pool, p);
-            if (filter(s))
-            {
-                continue;
-            }
-            switch (ttype)
-            {
-                case SOLVER_TRANSACTION_DOWNGRADED:
-                case SOLVER_TRANSACTION_UPGRADED:
-                case SOLVER_TRANSACTION_CHANGED:
-                case SOLVER_TRANSACTION_REINSTALLED:
-                {
-                    m_to_remove.push_back(s);
-                    m_to_install.push_back(
-                        static_cast<::Pool*>(m_pool)->solvables + transaction_obs_pkg(m_transaction, p)
-                    );
-                    break;
-                }
-                case SOLVER_TRANSACTION_ERASE:
-                {
-                    m_to_remove.push_back(s);
-                    break;
-                }
-                case SOLVER_TRANSACTION_INSTALL:
-                {
-                    m_to_install.push_back(s);
-                    break;
-                }
-                case SOLVER_TRANSACTION_IGNORE:
-                    break;
-                default:
-                    LOG_ERROR << "Exec case not handled: " << ttype;
-                    break;
-            }
+            return false;
+        }
+        bool spec_in_filter = m_filter_name_ids.count(s.raw()->name);
+
+        if (m_filter_type == FilterType::keep_only)
+        {
+            return spec_in_filter;
+        }
+        else
+        {
+            return !spec_in_filter;
         }
     }
 
@@ -487,35 +477,30 @@ namespace mamba
         // Transaction is finished in order to compile the noarch packages correctly,
         // for example
 
-        std::string installed_py_ver, new_py_ver;
-        Id python = pool_str2id(m_pool, "python", 0);
+        std::string installed_py_ver = {};
+        std::string new_py_ver = {};
 
-        for (Solvable* s : m_to_install)
+        for (auto s : m_to_install)
         {
-            if (s->name == python)
+            if (s.name() == "python")
             {
-                new_py_ver = pool_id2str(m_pool, s->evr);
+                new_py_ver = s.version();
                 LOG_INFO << "Found python version in packages to be installed " << new_py_ver;
                 break;
             }
         }
 
-        ::Pool* const pool_ptr = m_pool;
-        if (pool_ptr->installed != nullptr)
-        {
-            Id p;
-            Solvable* s;
-
-            FOR_REPO_SOLVABLES(pool_ptr->installed, p, s)
+        m_pool.pool().for_each_installed_solvable(
+            [&](solv::ObjSolvableViewConst s)
             {
-                if (s->name == python)
+                if (s.name() == "python")
                 {
-                    installed_py_ver = pool_id2str(m_pool, s->evr);
+                    installed_py_ver = s.version();
                     LOG_INFO << "Found python in installed packages " << installed_py_ver;
-                    break;
                 }
             }
-        }
+        );
+
         // if we do not install a new python version but keep the current one
         if (new_py_ver.empty())
         {
@@ -596,21 +581,23 @@ namespace mamba
             return true;
         }
 
-        History::UserRequest ur = History::UserRequest::prefilled();
-
         TransactionRollback rollback;
 
-        for (int i = 0; i < m_transaction->steps.count && !is_sig_interrupted(); i++)
+        const auto& pool = m_pool.pool();
+        for (solv::SolvableId const p : trans().steps())
         {
-            Id p = m_transaction->steps.elements[i];
-            Id ttype = transaction_type(m_transaction, p, SOLVER_TRANSACTION_SHOW_ALL);
-            Solvable* s = pool_id2solvable(m_pool, p);
-
-            if (filter(s))
+            if (is_sig_interrupted())
+            {
+                break;
+            }
+            auto s = pool.get_solvable(p);
+            assert(s.has_value());
+            if (filter(*s))
             {
                 continue;
             }
 
+            const auto ttype = trans().step_type(pool, p, SOLVER_TRANSACTION_SHOW_ALL);
             switch (ttype)
             {
                 case SOLVER_TRANSACTION_DOWNGRADED:
@@ -618,11 +605,17 @@ namespace mamba
                 case SOLVER_TRANSACTION_CHANGED:
                 case SOLVER_TRANSACTION_REINSTALLED:
                 {
-                    Solvable* s2 = static_cast<::Pool*>(m_pool)->solvables
-                                   + transaction_obs_pkg(m_transaction, p);
+                    auto newer = [&]()
+                    {
+                        auto maybe_newer_id = trans().step_newer(pool, s->id());
+                        assert(maybe_newer_id.has_value());
+                        auto maybe_newer = pool.get_solvable(maybe_newer_id.value());
+                        assert(maybe_newer.has_value());
+                        return maybe_newer.value();
+                    }();
 
-                    const PackageInfo package_to_unlink = mk_pkginfo(m_pool, s);
-                    const PackageInfo package_to_link = mk_pkginfo(m_pool, s2);
+                    const PackageInfo package_to_unlink = mk_pkginfo(m_pool, *s);
+                    const PackageInfo package_to_link = mk_pkginfo(m_pool, newer);
 
                     Console::stream() << "Changing " << package_to_unlink.str() << " ==> "
                                       << package_to_link.str();
@@ -650,7 +643,7 @@ namespace mamba
                 }
                 case SOLVER_TRANSACTION_ERASE:
                 {
-                    PackageInfo package_info = mk_pkginfo(m_pool, s);
+                    PackageInfo package_info = mk_pkginfo(m_pool, *s);
                     Console::stream() << "Unlinking " << package_info.str();
                     const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(package_info));
                     UnlinkPackage up(package_info, cache_path, &m_transaction_context);
@@ -661,7 +654,7 @@ namespace mamba
                 }
                 case SOLVER_TRANSACTION_INSTALL:
                 {
-                    PackageInfo package_info = mk_pkginfo(m_pool, s);
+                    PackageInfo package_info = mk_pkginfo(m_pool, *s);
                     Console::stream() << "Linking " << package_info.str();
                     const fs::u8path cache_path(
                         m_multi_cache.get_extracted_dir_path(package_info, false)
@@ -680,38 +673,34 @@ namespace mamba
             }
         }
 
-        bool interrupted = is_sig_interrupted();
-        if (interrupted)
+        if (is_sig_interrupted())
         {
             Console::stream() << "Transaction interrupted, rollbacking";
             rollback.rollback();
+            return false;
         }
-        else
-        {
-            LOG_INFO << "Waiting for pyc compilation to finish";
-            m_transaction_context.wait_for_pyc_compilation();
+        LOG_INFO << "Waiting for pyc compilation to finish";
+        m_transaction_context.wait_for_pyc_compilation();
 
-            // Get the name of the executable used directly from the command.
-            const auto executable = ctx.command_params.is_micromamba ? "micromamba" : "mamba";
+        // Get the name of the executable used directly from the command.
+        const auto executable = ctx.command_params.is_micromamba ? "micromamba" : "mamba";
 
-            // Get the name of the environment
-            const auto environment = env_name(ctx.prefix_params.target_prefix);
+        // Get the name of the environment
+        const auto environment = env_name(ctx.prefix_params.target_prefix);
 
-            Console::stream() << "\nTransaction finished\n\n"
-                              << "To activate this environment, use:\n\n"
-                              << "    " << executable << " activate " << environment << "\n\n"
-                              << "Or to execute a single command in this environment, use:\n\n"
-                              << "    " << executable
-                              << " run "
-                              // Use -n or -p depending on if the env_name is a full prefix or just
-                              // a name.
-                              << (environment == ctx.prefix_params.target_prefix ? "-p " : "-n ")
-                              << environment << " mycommand\n";
+        Console::stream() << "\nTransaction finished\n\n"
+                          << "To activate this environment, use:\n\n"
+                          << "    " << executable << " activate " << environment << "\n\n"
+                          << "Or to execute a single command in this environment, use:\n\n"
+                          << "    " << executable
+                          << " run "
+                          // Use -n or -p depending on if the env_name is a full prefix or just
+                          // a name.
+                          << (environment == ctx.prefix_params.target_prefix ? "-p " : "-n ")
+                          << environment << " mycommand\n";
 
-
-            prefix.history().add_entry(m_history_entry);
-        }
-        return !interrupted;
+        prefix.history().add_entry(m_history_entry);
+        return true;
     }
 
     auto MTransaction::to_conda() -> to_conda_type
@@ -719,29 +708,30 @@ namespace mamba
         to_install_type to_install_structured;
         to_remove_type to_remove_structured;
 
-        for (Solvable* s : m_to_remove)
+        for (auto s : m_to_remove)
         {
-            const char* mediafile = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
-            to_remove_structured.emplace_back(s->repo->name, mediafile);
+            to_remove_structured.emplace_back(
+                solv::ObjRepoViewConst::of_solvable(s).name(),
+                s.file_name()
+            );
         }
 
-        for (Solvable* s : m_to_install)
+        for (auto s : m_to_install)
         {
-            const char* mediafile = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
             std::string s_json = solvable_to_json(m_pool, s).dump(4);
 
             std::string channel;
-            if (const char* str = solvable_lookup_str(s, SOLVABLE_PACKAGER))
+            if (auto str = s.channel(); !str.empty())
             {
                 channel = str;
             }
             else
             {
-                channel = s->repo->name;  // note this can and should be <unknown> when
-                                          // e.g. installing from a tarball
+                // note this can and should be <unknown> when e.g. installing from a tarball
+                channel = solv::ObjRepoViewConst::of_solvable(s).name();
             }
 
-            to_install_structured.emplace_back(channel, mediafile, s_json);
+            to_install_structured.emplace_back(channel, s.file_name(), s_json);
         }
 
         to_specs_type specs;
@@ -755,7 +745,7 @@ namespace mamba
     {
         std::vector<nlohmann::json> to_fetch, to_link, to_unlink;
 
-        for (Solvable* s : m_to_install)
+        for (auto s : m_to_install)
         {
             if (!need_pkg_download(mk_pkginfo(m_pool, s), m_multi_cache))
             {
@@ -768,7 +758,7 @@ namespace mamba
             }
         }
 
-        for (Solvable* s : m_to_remove)
+        for (auto s : m_to_remove)
         {
             to_unlink.push_back(solvable_to_json(m_pool, s));
         }
@@ -810,15 +800,13 @@ namespace mamba
 
         for (auto& s : m_to_install)
         {
-            std::string const s_url = raw_str_or_empty(
-                repo_lookup_str(s->repo, SOLVID_META, SOLVABLE_URL)
-            );
+            const auto s_url = solv::ObjRepoViewConst::of_solvable(s).url();
 
             if (ctx.experimental && ctx.verify_artifacts)
             {
-                const auto& repo_checker = m_pool.channel_context().make_channel(s_url).repo_checker(
-                    m_multi_cache
-                );
+                const auto& repo_checker = m_pool.channel_context()
+                                               .make_channel(std::string(s_url))
+                                               .repo_checker(m_multi_cache);
                 const auto pkg_info = mk_pkginfo(m_pool, s);
                 repo_checker.verify_package(
                     pkg_info.json_signable(),
@@ -1096,11 +1084,13 @@ namespace mamba
             remove
         };
         auto format_row =
-            [this, &ctx, &total_size](rows& r, Solvable* s, Status status, std::string diff)
+            [this,
+             &ctx,
+             &total_size](rows& r, solv::ObjSolvableViewConst s, Status status, std::string diff)
         {
-            std::size_t dlsize = solvable_lookup_num(s, SOLVABLE_DOWNLOADSIZE, SIZE_MAX);
+            std::size_t const dlsize = s.size();
             printers::FormattedString dlsize_s;
-            if (dlsize != SIZE_MAX)
+            if (dlsize > 0)
             {
                 if (status == Status::ignore)
                 {
@@ -1127,7 +1117,7 @@ namespace mamba
                 }
             }
             printers::FormattedString name;
-            name.s = fmt::format("{} {}", diff, pool_id2str(m_pool, s->name));
+            name.s = fmt::format("{} {}", diff, s.name());
             if (status == Status::install)
             {
                 name.style = ctx.graphics_params.palette.addition;
@@ -1140,109 +1130,96 @@ namespace mamba
             {
                 name.style = ctx.graphics_params.palette.deletion;
             }
-            const char* build_string = solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
 
             std::string channel;
-            if (const char* str = solvable_lookup_str(s, SOLVABLE_PACKAGER))
+            if (auto str = s.channel(); !str.empty())
             {
-                if (std::string_view(str) == "explicit_specs")
+                if (str == "explicit_specs")
                 {
-                    channel = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
+                    channel = s.file_name();
                 }
                 else
                 {
-                    channel = m_pool.channel_context().make_channel(str).canonical_name();
+                    channel = m_pool.channel_context().make_channel(std::string(str)).canonical_name();
                 }
             }
             else
             {
-                // note this can and should be <unknown> when
-                // e.g. installing from a tarball
-                assert(s->repo != nullptr);
-                channel = s->repo->name;
+                // note this can and should be <unknown> when e.g. installing from a tarball
+                channel = solv::ObjRepoViewConst::of_solvable(s).name();
                 assert(channel != "__explicit_specs__");
             }
 
             r.push_back({ name,
-                          printers::FormattedString(pool_id2str(m_pool, s->evr)),
-                          printers::FormattedString(build_string ? build_string : ""),
+                          printers::FormattedString(std::string(s.version())),
+                          printers::FormattedString(std::string(s.build_string())),
                           printers::FormattedString(cut_repo_name(channel)),
                           dlsize_s });
         };
 
+        const auto& pool = m_pool.pool();
 
-        ::Solvable* const solvables = static_cast<::Pool*>(m_pool)->solvables;
-        int mode = SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE;
-        transaction_classify(m_transaction, mode, classes.raw());
-        for (std::size_t n_classes = classes.size(), i = 0; i < n_classes; i += 4)
-        {
-            const Id cls = classes.at(i);
-            transaction_classify_pkgs(
-                m_transaction,
-                mode,
-                cls,
-                classes.at(i + 2),
-                classes.at(i + 3),
-                pkgs.raw()
-            );
-
-            for (const Id p : pkgs)
+        trans().classify_for_each_type(
+            pool,
+            [&](const auto type, const auto& solv_ids)
             {
-                Solvable* s = solvables + p;
+                for (const solv::SolvableId id : solv_ids)
+                {
+                    const auto s = [&]()
+                    {
+                        auto maybe_s = pool.get_solvable(id);
+                        assert(maybe_s.has_value());
+                        return maybe_s.value();
+                    }();
+                    auto get_newer = [&]()
+                    {
+                        auto maybe_newer_id = trans().step_newer(pool, id);
+                        assert(maybe_newer_id.has_value());
+                        auto maybe_newer = pool.get_solvable(maybe_newer_id.value());
+                        assert(maybe_newer.has_value());
+                        return maybe_newer.value();
+                    };
 
-                if (filter(s))
-                {
-                    format_row(ignored, s, Status::ignore, "=");
-                    continue;
+                    if (filter(s))
+                    {
+                        format_row(ignored, s, Status::ignore, "=");
+                        continue;
+                    }
+                    switch (type)
+                    {
+                        case SOLVER_TRANSACTION_UPGRADED:
+                            format_row(upgraded, s, Status::remove, "-");
+                            format_row(upgraded, get_newer(), Status::install, "+");
+                            break;
+                        case SOLVER_TRANSACTION_CHANGED:
+                            format_row(changed, s, Status::remove, "-");
+                            format_row(changed, get_newer(), Status::install, "+");
+                            break;
+                        case SOLVER_TRANSACTION_REINSTALLED:
+                            format_row(reinstalled, s, Status::install, "o");
+                            break;
+                        case SOLVER_TRANSACTION_DOWNGRADED:
+                            format_row(downgraded, s, Status::remove, "-");
+                            format_row(downgraded, get_newer(), Status::install, "+");
+                            break;
+                        case SOLVER_TRANSACTION_ERASE:
+                            format_row(erased, s, Status::remove, "-");
+                            break;
+                        case SOLVER_TRANSACTION_INSTALL:
+                            format_row(installed, s, Status::install, "+");
+                            break;
+                        case SOLVER_TRANSACTION_IGNORE:
+                            break;
+                        case SOLVER_TRANSACTION_VENDORCHANGE:
+                        case SOLVER_TRANSACTION_ARCHCHANGE:
+                        default:
+                            LOG_ERROR << "Print case not handled: " << type;
+                            break;
+                    }
                 }
-                switch (cls)
-                {
-                    case SOLVER_TRANSACTION_UPGRADED:
-                        format_row(upgraded, s, Status::remove, "-");
-                        format_row(
-                            upgraded,
-                            solvables + transaction_obs_pkg(m_transaction, p),
-                            Status::install,
-                            "+"
-                        );
-                        break;
-                    case SOLVER_TRANSACTION_CHANGED:
-                        format_row(changed, s, Status::remove, "-");
-                        format_row(
-                            changed,
-                            solvables + transaction_obs_pkg(m_transaction, p),
-                            Status::install,
-                            "+"
-                        );
-                        break;
-                    case SOLVER_TRANSACTION_REINSTALLED:
-                        format_row(reinstalled, s, Status::install, "o");
-                        break;
-                    case SOLVER_TRANSACTION_DOWNGRADED:
-                        format_row(downgraded, s, Status::remove, "-");
-                        format_row(
-                            downgraded,
-                            solvables + transaction_obs_pkg(m_transaction, p),
-                            Status::install,
-                            "+"
-                        );
-                        break;
-                    case SOLVER_TRANSACTION_ERASE:
-                        format_row(erased, s, Status::remove, "-");
-                        break;
-                    case SOLVER_TRANSACTION_INSTALL:
-                        format_row(installed, s, Status::install, "+");
-                        break;
-                    case SOLVER_TRANSACTION_IGNORE:
-                        break;
-                    case SOLVER_TRANSACTION_VENDORCHANGE:
-                    case SOLVER_TRANSACTION_ARCHCHANGE:
-                    default:
-                        LOG_ERROR << "Print case not handled: " << cls;
-                        break;
-                }
-            }
-        }
+            },
+            SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE
+        );
 
         std::stringstream summary;
         summary << "Summary:\n\n";

@@ -53,7 +53,6 @@ namespace mamba::solv
         ObjTransaction(const ObjPool& pool);
         ObjTransaction(ObjTransaction&&) noexcept = default;
         ObjTransaction(const ObjTransaction&);
-        ~ObjTransaction();
         auto operator=(ObjTransaction&&) noexcept -> ObjTransaction& = default;
         auto operator=(const ObjTransaction&) -> ObjTransaction&;
 

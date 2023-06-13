@@ -87,6 +87,11 @@ TEST_SUITE("ObjRepo")
             CHECK_EQ(repo.solvable_count(), 2);
             CHECK(repo.has_solvable(id2));
 
+            SUBCASE("Retrieve repo from solvable")
+            {
+                CHECK_EQ(ObjRepoViewConst::of_solvable(s1).raw(), repo.raw());
+            }
+
             SUBCASE("Iterate through solvables")
             {
                 const auto ids = std::array{ id1, id2 };

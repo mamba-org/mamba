@@ -13,8 +13,6 @@
 #include <tuple>
 #include <vector>
 
-#include <solv/transaction.h>
-
 #include "mamba/api/install.hpp"
 
 #include "mamba_fs.hpp"
@@ -23,6 +21,12 @@
 #include "prefix_data.hpp"
 #include "solver.hpp"
 #include "transaction_context.hpp"
+
+namespace mamba::solv
+{
+    class ObjTransaction;
+    class ObjSolvableViewConst;
+}
 
 namespace mamba
 {
@@ -62,7 +66,6 @@ namespace mamba
         using to_specs_type = std::tuple<std::vector<std::string>, std::vector<std::string>>;
         using to_conda_type = std::tuple<to_specs_type, to_install_type, to_remove_type>;
 
-        void init();
         to_conda_type to_conda();
         void log_json();
         bool fetch_extract_packages();
@@ -70,7 +73,6 @@ namespace mamba
         bool prompt();
         void print();
         bool execute(PrefixData& prefix);
-        bool filter(Solvable* s);
 
         std::pair<std::string, std::string> find_python_version();
 
@@ -84,14 +86,22 @@ namespace mamba
         TransactionContext m_transaction_context;
         MultiPackageCache m_multi_cache;
         const fs::u8path m_cache_path;
-        std::vector<Solvable*> m_to_install, m_to_remove;
+        std::vector<solv::ObjSolvableViewConst> m_to_install;
+        std::vector<solv::ObjSolvableViewConst> m_to_remove;
 
-        History::UserRequest m_history_entry;
-        Transaction* m_transaction;
+        History::UserRequest m_history_entry = History::UserRequest::prefilled();
+        // Temporarily using Pimpl for encapsulation
+        std::unique_ptr<solv::ObjTransaction> m_transaction;
 
         std::vector<MatchSpec> m_requested_specs;
 
         bool m_force_reinstall = false;
+
+        void init();
+        bool filter(const solv::ObjSolvableViewConst& s);
+
+        auto trans() -> solv::ObjTransaction&;
+        auto trans() const -> const solv::ObjTransaction&;
     };
 
     MTransaction create_explicit_transaction_from_urls(

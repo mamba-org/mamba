@@ -35,6 +35,12 @@ namespace mamba::solv
      *  Implementation of ConstObjRepoView  *
      ****************************************/
 
+    auto ObjRepoViewConst::of_solvable(ObjSolvableViewConst s) -> ObjRepoViewConst
+    {
+        assert(s.raw()->repo != nullptr);
+        return ObjRepoViewConst(*(s.raw()->repo));
+    }
+
     ObjRepoViewConst::ObjRepoViewConst(const ::Repo& repo) noexcept
         : m_repo{ &repo }
     {
@@ -117,7 +123,6 @@ namespace mamba::solv
             void close();
 
             auto raw() noexcept -> std::FILE*;
-            auto raw() const noexcept -> const std::FILE*;
 
         private:
 
@@ -183,11 +188,6 @@ namespace mamba::solv
         }
 
         auto CFile::raw() noexcept -> std::FILE*
-        {
-            return m_ptr;
-        }
-
-        auto CFile::raw() const noexcept -> const std::FILE*
         {
             return m_ptr;
         }

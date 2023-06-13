@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <array>
+#include <string>
 #include <variant>
 #include <vector>
 
@@ -13,6 +14,61 @@
 #include "mamba/util/flat_bool_expr_tree.hpp"
 
 using namespace mamba::util;
+
+TEST_SUITE("flat_binary_tree")
+{
+    TEST_CASE("Create tree")
+    {
+        auto tree = flat_binary_tree<std::string, int>{};
+        CHECK(tree.empty());
+        CHECK_EQ(tree.size(), 0);
+
+        SUBCASE("Add nodes")
+        {
+            const auto l1 = tree.add_leaf(1);
+            CHECK(tree.is_leaf(l1));
+            CHECK_FALSE(tree.is_branch(l1));
+            CHECK_EQ(tree.leaf(l1), 1);
+            CHECK_EQ(tree.root(), l1);
+
+            const auto l2 = tree.add_leaf(2);
+            CHECK(tree.is_leaf(l2));
+            CHECK_FALSE(tree.is_branch(l2));
+            CHECK_EQ(tree.leaf(l2), 2);
+
+            const auto pa = tree.add_branch("a", l1, l2);
+            CHECK_FALSE(tree.is_leaf(pa));
+            CHECK(tree.is_branch(pa));
+            CHECK_EQ(tree.branch(pa), "a");
+            CHECK_EQ(tree.left(pa), l1);
+            CHECK_EQ(tree.right(pa), l2);
+            CHECK_EQ(tree.root(), pa);
+
+            const auto l3 = tree.add_leaf(3);
+            CHECK(tree.is_leaf(l3));
+            CHECK_FALSE(tree.is_branch(l3));
+            CHECK_EQ(tree.leaf(l2), 2);
+
+            const auto pb = tree.add_branch("b", pa, l3);
+            CHECK_FALSE(tree.is_leaf(pb));
+            CHECK(tree.is_branch(pb));
+            CHECK_EQ(tree.branch(pb), "b");
+            CHECK_EQ(tree.left(pb), pa);
+            CHECK_EQ(tree.right(pb), l3);
+            CHECK_EQ(tree.root(), pb);
+
+            CHECK_FALSE(tree.empty());
+            CHECK_EQ(tree.size(), 5);
+
+            SUBCASE("Clear nodes")
+            {
+                tree.clear();
+                CHECK(tree.empty());
+                CHECK_EQ(tree.size(), 0);
+            }
+        }
+    }
+}
 
 TEST_SUITE("flat_bool_expr_tree")
 {

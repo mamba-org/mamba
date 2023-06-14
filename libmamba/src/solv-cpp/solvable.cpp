@@ -6,8 +6,8 @@
 
 #include <array>
 #include <cassert>
-#include <cstdint>
 #include <charconv>
+#include <cstdint>
 #include <limits>
 
 #include <solv/knownid.h>

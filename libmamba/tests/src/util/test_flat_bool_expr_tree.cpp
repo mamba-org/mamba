@@ -14,6 +14,8 @@
 
 #include "mamba/util/flat_bool_expr_tree.hpp"
 
+#include "doctest-printer/array.hpp"
+
 using namespace mamba::util;
 
 TEST_SUITE("flat_bool_expr_tree")
@@ -183,11 +185,40 @@ TEST_SUITE("flat_bool_expr_tree")
         }
     }
 
+    namespace
+    {
+        /**
+         * Convert a bool to a boolean bit set.
+         *
+         * The output is inversed, so that the little end of the integer is the first element
+         * of the output bit set.
+         */
+        template <typename std::size_t N, typename I>
+        constexpr auto integer_to_bools(I x) -> std::array<bool, N>
+        {
+            std::array<bool, N> out = {};
+            for (std::size_t i = 0; i < N; ++i)
+            {
+                out[i] = ((x >> i) & I(1)) == I(1);
+            }
+            return out;
+        }
+    }
+
+    TEST_CASE("Test exponential boolean cross-product")
+    {
+        CHECK_EQ(integer_to_bools<5>(0b00000), std::array{ false, false, false, false, false });
+        CHECK_EQ(integer_to_bools<4>(0b1111), std::array{ true, true, true, true });
+        CHECK_EQ(
+            integer_to_bools<7>(0b1001101),
+            std::array{ true, false, true, true, false, false, true }
+        );
+    }
+
     TEST_CASE("Create var postfix tokens")
     {
-        // Infix:    (x0 or x1) and (x2 and (x3 or x4))
-        const auto reference_eval = [](std::array<bool, 5> values) -> bool
-        { return (values[0] || values[1]) && (values[2] && (values[3] || values[4])); };
+        const auto reference_eval = [](std::array<bool, 5> x) -> bool
+        { return (x[0] || x[1]) && (x[2] && (x[3] || x[4])); };
         // Postfix:   x0 x1 or x2 x3 x4 or and and
         auto parser = PostfixParser<std::size_t, BoolOperator>{};
         parser.push_variable(0);
@@ -201,23 +232,12 @@ TEST_SUITE("flat_bool_expr_tree")
         parser.push_operator(BoolOperator::logical_and);
         auto tree = flat_bool_expr_tree(std::move(parser).tree());
 
-        for (bool x0 : { true, false })
+        static constexpr std::size_t n_vars = 5;
+        for (std::size_t x = 0; x < (1 << n_vars); ++x)
         {
-            for (bool x1 : { true, false })
-            {
-                for (bool x2 : { true, false })
-                {
-                    for (bool x3 : { true, false })
-                    {
-                        for (bool x4 : { true, false })
-                        {
-                            const auto values = std::array{ x0, x1, x2, x3, x4 };
-                            const auto eval = [&values](std::size_t idx) { return values[idx]; };
-                            CHECK_EQ(tree.evaluate(eval), reference_eval(values));
-                        }
-                    }
-                }
-            }
+            const auto values = integer_to_bools<n_vars>(x);
+            const auto eval = [&values](std::size_t idx) { return values[idx]; };
+            CHECK_EQ(tree.evaluate(eval), reference_eval(values));
         }
     }
 }

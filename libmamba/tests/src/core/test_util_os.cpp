@@ -38,11 +38,11 @@ TEST_SUITE("windows_path")
     TEST_CASE("fix_win_path")
     {
         std::string test_str("file://\\unc\\path\\on\\win");
-        auto out = fix_win_path(test_str);
+        auto out = mamba::fix_win_path(test_str);
         CHECK_EQ(out, "file:///unc/path/on/win");
-        auto out2 = fix_win_path("file://C:\\Program\\ (x74)\\Users\\hello\\ world");
+        auto out2 = mamba::fix_win_path("file://C:\\Program\\ (x74)\\Users\\hello\\ world");
         CHECK_EQ(out2, "file://C:/Program\\ (x74)/Users/hello\\ world");
-        auto out3 = fix_win_path("file://\\\\Programs\\xyz");
+        auto out3 = mamba::fix_win_path("file://\\\\Programs\\xyz");
         CHECK_EQ(out3, "file://Programs/xyz");
     }
 }

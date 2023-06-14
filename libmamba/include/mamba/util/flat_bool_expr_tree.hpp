@@ -90,6 +90,7 @@ namespace mamba::util
         void push_variable(variable_type&& var);
         void push_operator(const operator_type& op);
         void push_operator(operator_type&& op);
+        void finalize();
 
         [[nodiscard]] auto tree() const& -> const tree_type&;
         [[nodiscard]] auto tree() && -> tree_type&&;
@@ -110,6 +111,7 @@ namespace mamba::util
         void push_variable_impl(V&& var);
         template <typename O>
         void push_operator_impl(O&& op);
+        auto accept_operator() const -> bool;
     };
 
     template <typename Variable, typename Operator, typename OperatorCmp = std::less<>>
@@ -420,9 +422,19 @@ namespace mamba::util
     }
 
     template <typename V, typename O>
+    auto PostfixParser<V, O>::accept_operator() const -> bool
+    {
+        return (m_tree.size() >= 2) && (m_left_end != m_right_end);
+    }
+
+    template <typename V, typename O>
     template <typename Op>
     void PostfixParser<V, O>::push_operator_impl(Op&& op)
     {
+        if (!accept_operator())
+        {
+            throw std::invalid_argument("Invalid expression");
+        }
         m_tree.add_branch(std::forward<Op>(op), left_start(), right_start());
         m_right_end = std::exchange(m_left_end, next_left_end());
     }
@@ -437,6 +449,15 @@ namespace mamba::util
     void PostfixParser<V, O>::push_operator(operator_type&& op)
     {
         return push_operator_impl(std::move(op));
+    }
+
+    template <typename V, typename O>
+    void PostfixParser<V, O>::finalize()
+    {
+        if ((!m_tree.empty()) && (m_tree.root() != (m_tree.size() - 1)))
+        {
+            throw std::invalid_argument("Incomplete expression");
+        }
     }
 
     template <typename V, typename O>
@@ -499,7 +520,7 @@ namespace mamba::util
     template <typename V, typename O, typename C>
     auto InfixParser<V, O, C>::stack_top_is_parenthesis() const -> bool
     {
-        return !stack_empty() && std::holds_alternative<LeftParenthesis>(stack_top());
+        return (!stack_empty()) && std::holds_alternative<LeftParenthesis>(stack_top());
     }
 
     template <typename V, typename O, typename C>
@@ -570,11 +591,11 @@ namespace mamba::util
     {
         while (!stack_top_is_parenthesis())
         {
+            if (stack_empty())
+            {
+                throw std::invalid_argument("Mistmatched parenthesis");
+            }
             m_postfix_parser.push_operator(std::get<operator_type>(stack_pop()));
-        }
-        if (stack_empty())
-        {
-            throw std::invalid_argument("Mistmatched parenthesis");
         }
         assert(stack_top_is_parenthesis());
         stack_pop();
@@ -591,6 +612,7 @@ namespace mamba::util
             }
             m_postfix_parser.push_operator(std::get<operator_type>(stack_pop()));
         }
+        m_postfix_parser.finalize();
     }
 
     template <typename V, typename O, typename C>

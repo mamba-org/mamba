@@ -106,52 +106,238 @@ TEST_SUITE("flat_bool_expr_tree")
 
     TEST_CASE("PostfixParser")
     {
-        // Infix:   (a + b) * (c * (d + e))
-        // Postfix: a b + c d e + * *
         auto parser = PostfixParser<char, std::string>{};
-        parser.push_variable('a');
-        parser.push_variable('b');
-        parser.push_operator("+");
-        parser.push_variable('c');
-        parser.push_variable('d');
-        parser.push_variable('e');
-        parser.push_operator("+");
-        parser.push_operator("*");
-        parser.push_operator("*");
 
-        const auto& tree = parser.tree();
-        CHECK_EQ(tree.size(), 9);
+        SUBCASE("a")
+        {
+            parser.push_variable('a');
+            parser.finalize();
 
-        const auto visited = visit_all_once_no_cycle(tree);
-        CHECK_EQ(visited.size(), tree.size());
+            const auto& tree = parser.tree();
+            CHECK_EQ(tree.size(), 1);
+            REQUIRE(tree.is_leaf(0));
+            CHECK_EQ(tree.leaf(0), 'a');
+            CHECK_EQ(tree.root(), 0);
+        }
+
+        SUBCASE("a b + c d e + * *")
+        {
+            // Infix:   (a + b) * (c * (d + e))
+            parser.push_variable('a');
+            parser.push_variable('b');
+            parser.push_operator("+");
+            parser.push_variable('c');
+            parser.push_variable('d');
+            parser.push_variable('e');
+            parser.push_operator("+");
+            parser.push_operator("*");
+            parser.push_operator("*");
+            parser.finalize();
+
+            const auto& tree = parser.tree();
+            CHECK_EQ(tree.size(), 9);
+
+            const auto visited = visit_all_once_no_cycle(tree);
+            CHECK_EQ(visited.size(), tree.size());
+        }
+
+        SUBCASE("a b")
+        {
+            auto bad_parse = [&]()
+            {
+                parser.push_variable('a');
+                parser.push_variable('b');
+                parser.finalize();
+            };
+            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+        }
+
+        SUBCASE("+")
+        {
+            auto bad_parse = [&]()
+            {
+                parser.push_operator("+");
+                parser.finalize();
+            };
+            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+        }
+
+        SUBCASE("a b + *")
+        {
+            auto bad_parse = [&]()
+            {
+                parser.push_variable('a');
+                parser.push_variable('b');
+                parser.push_operator("+");
+                parser.push_operator("*");
+                parser.finalize();
+            };
+            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+        }
+
+        SUBCASE("a b + c")
+        {
+            auto bad_parse = [&]()
+            {
+                parser.push_variable('a');
+                parser.push_variable('b');
+                parser.push_operator("+");
+                parser.push_variable('c');
+                parser.finalize();
+            };
+            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+        }
     }
 
     TEST_CASE("InfixParser")
     {
-        // Infix:   (a + b) * (c * (d + e))
         auto parser = InfixParser<char, std::string>{};
-        parser.push_left_parenthesis();
-        parser.push_variable('a');
-        parser.push_operator("+");
-        parser.push_variable('b');
-        parser.push_right_parenthesis();
-        parser.push_operator("*");
-        parser.push_left_parenthesis();
-        parser.push_variable('c');
-        parser.push_operator("*");
-        parser.push_left_parenthesis();
-        parser.push_variable('d');
-        parser.push_operator("+");
-        parser.push_variable('e');
-        parser.push_right_parenthesis();
-        parser.push_right_parenthesis();
-        parser.finalize();
 
-        const auto& tree = parser.tree();
-        CHECK_EQ(tree.size(), 9);
+        SUBCASE("(((a)))")
+        {
+            parser.push_left_parenthesis();
+            parser.push_left_parenthesis();
+            parser.push_left_parenthesis();
+            parser.push_variable('a');
+            parser.push_right_parenthesis();
+            parser.push_right_parenthesis();
+            parser.push_right_parenthesis();
+            parser.finalize();
 
-        const auto visited = visit_all_once_no_cycle(tree);
-        CHECK_EQ(visited.size(), tree.size());
+            const auto& tree = parser.tree();
+            REQUIRE_EQ(tree.size(), 1);
+            REQUIRE(tree.is_leaf(0));
+            CHECK_EQ(tree.root(), 0);
+            CHECK_EQ(tree.leaf(0), 'a');
+        }
+
+        SUBCASE("(((a)) + b)")
+        {
+            parser.push_left_parenthesis();
+            parser.push_left_parenthesis();
+            parser.push_left_parenthesis();
+            parser.push_variable('a');
+            parser.push_right_parenthesis();
+            parser.push_right_parenthesis();
+            parser.push_operator("+");
+            parser.push_variable('b');
+            parser.push_right_parenthesis();
+            parser.finalize();
+
+            const auto& tree = parser.tree();
+            REQUIRE_EQ(tree.size(), 3);
+            const auto root = tree.root();
+            REQUIRE(tree.is_branch(root));
+            CHECK_EQ(tree.branch(root), "+");
+            REQUIRE(tree.is_leaf(tree.left(root)));
+            CHECK_EQ(tree.leaf(tree.left(root)), 'a');
+            REQUIRE(tree.is_leaf(tree.right(root)));
+            CHECK_EQ(tree.leaf(tree.right(root)), 'b');
+        }
+
+        SUBCASE("(a + b) * (c * (d + e))")
+        {
+            parser.push_left_parenthesis();
+            parser.push_variable('a');
+            parser.push_operator("+");
+            parser.push_variable('b');
+            parser.push_right_parenthesis();
+            parser.push_operator("*");
+            parser.push_left_parenthesis();
+            parser.push_variable('c');
+            parser.push_operator("*");
+            parser.push_left_parenthesis();
+            parser.push_variable('d');
+            parser.push_operator("+");
+            parser.push_variable('e');
+            parser.push_right_parenthesis();
+            parser.push_right_parenthesis();
+            parser.finalize();
+
+            const auto& tree = parser.tree();
+            CHECK_EQ(tree.size(), 9);
+
+            const auto visited = visit_all_once_no_cycle(tree);
+            CHECK_EQ(visited.size(), tree.size());
+        }
+
+        SUBCASE("(")
+        {
+            auto bad_parse = [&]()
+            {
+                parser.push_left_parenthesis();
+                parser.finalize();
+            };
+            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+        }
+
+        SUBCASE(")")
+        {
+            auto bad_parse = [&]()
+            {
+                parser.push_right_parenthesis();
+                // parser.finalize();
+            };
+            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+        }
+
+        SUBCASE("(a+b")
+        {
+            auto bad_parse = [&]()
+            {
+                parser.push_left_parenthesis();
+                parser.push_variable('a');
+                parser.push_operator("+");
+                parser.push_variable('b');
+                parser.finalize();
+            };
+            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+        }
+
+        SUBCASE("a))")
+        {
+            auto bad_parse = [&]()
+            {
+                parser.push_variable('a');
+                parser.push_right_parenthesis();
+                parser.push_right_parenthesis();
+                parser.finalize();
+            };
+            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+        }
+
+        SUBCASE("+")
+        {
+            auto bad_parse = [&]()
+            {
+                parser.push_operator("+");
+                parser.finalize();
+            };
+            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+        }
+
+        SUBCASE("a +")
+        {
+            auto bad_parse = [&]()
+            {
+                parser.push_variable('a');
+                parser.push_operator("+");
+                parser.finalize();
+            };
+            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+        }
+
+        SUBCASE("a + )")
+        {
+            auto bad_parse = [&]()
+            {
+                parser.push_variable('a');
+                parser.push_operator("+");
+                parser.push_right_parenthesis();
+                parser.finalize();
+            };
+            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+        }
     }
 
     TEST_CASE("Bool postfix tokens")

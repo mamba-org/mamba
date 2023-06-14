@@ -54,7 +54,6 @@ def apply_changelog(name, version, changes):
 
 
 def commands(changes):
-
     commit_msg = ", ".join([f"{x} {changes[x]['version']}" for x in changes])
 
     today = datetime.date.today()
@@ -134,7 +133,6 @@ def main():
 
     contents = contents[release_start:]
     for idx, c in enumerate(contents):
-
         if c.startswith("Releases"):
             releases = [x.strip() for x in c[len("Releases: ") :].split(",")]
             for r in releases:

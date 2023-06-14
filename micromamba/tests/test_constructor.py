@@ -29,7 +29,6 @@ def constructor(*args, default_channel=True, no_rc=True, no_dry_run=False):
 
 
 class TestInstall:
-
     current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
     current_prefix = os.environ["CONDA_PREFIX"]
     cache = os.path.join(current_root_prefix, "pkgs")

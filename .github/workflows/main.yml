@@ -507,6 +507,7 @@ jobs:
           if %errorlevel% neq 0 exit /b %errorlevel%
           ninja install
           if %errorlevel% neq 0 exit /b %errorlevel%
+          unset CONDARC  # Interferes with tests
           ninja test
       - name: build cache statistics
         run: sccache --show-stats

@@ -1,6 +1,12 @@
 name: Linters (Python, C++)
 
-on: workflow_call
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

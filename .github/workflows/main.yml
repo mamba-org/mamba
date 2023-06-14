@@ -293,6 +293,7 @@ jobs:
           environment-file: ./libmamba/environment-static-dev-win.yml
           environment-name: build_env
           cache-environment: true
+          init-shell: bash cmd.exe
       - name: remove vcpkg manifest file
         # we need to remove the vcpkg.json file to be able to work not in manifest mode
         run: rm vcpkg.json
@@ -380,6 +381,7 @@ jobs:
           environment-file: ./mamba/environment-dev.yml
           environment-name: build_env
           cache-environment: true
+          init-shell: bash cmd.exe
           create-args: >-
             conda-build
             curl
@@ -479,6 +481,7 @@ jobs:
           environment-file: ./libmamba/environment-dev.yml
           environment-name: build_env
           cache-environment: true
+          init-shell: bash cmd.exe
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -529,6 +532,7 @@ jobs:
           environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
           cache-environment: true
+          init-shell: bash cmd.exe
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -601,7 +605,7 @@ jobs:
           environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
           create-args: menuinst
-
+          init-shell: bash cmd.exe
       - name: micromamba python based tests with pwsh
         shell: powershell
         run: |

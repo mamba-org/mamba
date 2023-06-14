@@ -98,20 +98,18 @@ namespace mamba::util
     private:
 
         using idx_type = typename tree_type::idx_type;
+        using node_idx_stack = std::vector<idx_type>;
 
         tree_type m_tree = {};
-        idx_type m_left_end = 0;
-        idx_type m_right_end = 0;
+        node_idx_stack m_orphans = {};
 
-        auto left_start() const -> idx_type;
-        auto right_start() const -> idx_type;
-        auto next_left_end() const -> idx_type;
+        void orphans_push(idx_type idx);
+        auto orphans_pop() -> idx_type;
 
         template <typename V>
         void push_variable_impl(V&& var);
         template <typename O>
         void push_operator_impl(O&& op);
-        auto accept_operator() const -> bool;
     };
 
     template <typename Variable, typename Operator, typename OperatorCmp = std::less<>>
@@ -374,39 +372,25 @@ namespace mamba::util
      *************************************/
 
     template <typename V, typename O>
-    auto PostfixParser<V, O>::left_start() const -> idx_type
+    void PostfixParser<V, O>::orphans_push(idx_type idx)
     {
-        assert(m_right_end >= 1);
-        return m_right_end - 1;
+        return m_orphans.push_back(idx);
     }
 
     template <typename V, typename O>
-    auto PostfixParser<V, O>::right_start() const -> idx_type
+    auto PostfixParser<V, O>::orphans_pop() -> idx_type
     {
-        assert(m_tree.size() >= 1);
-        return m_tree.size() - 1;
-    }
-
-    template <typename V, typename O>
-    auto PostfixParser<V, O>::next_left_end() const -> idx_type
-    {
-        if (m_left_end == 0)
-        {
-            return 0;
-        }
-        idx_type new_left_end = m_left_end - 1;
-        while (m_tree.is_branch(new_left_end))
-        {
-            new_left_end = m_tree.left(new_left_end);
-        }
-        return new_left_end;
+        assert(!m_orphans.empty());
+        auto out = m_orphans.back();
+        m_orphans.pop_back();
+        return out;
     }
 
     template <typename V, typename O>
     template <typename Var>
     void PostfixParser<V, O>::push_variable_impl(Var&& var)
     {
-        m_left_end = std::exchange(m_right_end, m_tree.add_leaf(std::forward<Var>(var)));
+        orphans_push(m_tree.add_leaf(std::forward<Var>(var)));
     }
 
     template <typename V, typename O>
@@ -422,21 +406,16 @@ namespace mamba::util
     }
 
     template <typename V, typename O>
-    auto PostfixParser<V, O>::accept_operator() const -> bool
-    {
-        return (m_tree.size() >= 2) && (m_left_end != m_right_end);
-    }
-
-    template <typename V, typename O>
     template <typename Op>
     void PostfixParser<V, O>::push_operator_impl(Op&& op)
     {
-        if (!accept_operator())
+        if (m_orphans.size() < 2)
         {
             throw std::invalid_argument("Invalid expression");
         }
-        m_tree.add_branch(std::forward<Op>(op), left_start(), right_start());
-        m_right_end = std::exchange(m_left_end, next_left_end());
+        const auto right = orphans_pop();
+        const auto left = orphans_pop();
+        orphans_push(m_tree.add_branch(std::forward<Op>(op), left, right));
     }
 
     template <typename V, typename O>
@@ -454,7 +433,7 @@ namespace mamba::util
     template <typename V, typename O>
     void PostfixParser<V, O>::finalize()
     {
-        if ((!m_tree.empty()) && (m_tree.root() != (m_tree.size() - 1)))
+        if (m_orphans.size() != 1)
         {
             throw std::invalid_argument("Incomplete expression");
         }

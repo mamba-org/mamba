@@ -147,6 +147,8 @@ namespace mamba::util
 
         postfix_parser_type m_postfix_parser = {};
         operator_stack_type m_op_stack = {};
+        std::size_t m_parenthesis_level = 0;
+        bool m_expects_op = false;
         operator_precedence_type m_op_cmp = {};
 
         template <typename T>
@@ -521,6 +523,13 @@ namespace mamba::util
     template <typename Var>
     void InfixParser<V, O, C>::push_variable_impl(Var&& var)
     {
+        // Input check
+        if (m_expects_op)
+        {
+            throw std::invalid_argument("Unexpected variable");
+        }
+        m_expects_op = true;
+        // Parsing
         m_postfix_parser.push_variable(std::forward<Var>(var));
     }
 
@@ -540,6 +549,13 @@ namespace mamba::util
     template <typename Op>
     void InfixParser<V, O, C>::push_operator_impl(Op&& op)
     {
+        // Input check
+        if (!m_expects_op)
+        {
+            throw std::invalid_argument("Unexpected operator");
+        }
+        m_expects_op = false;
+        // Parsing
         while (stack_top_is_op_with_greater_precedence_than(op))
         {
             m_postfix_parser.push_operator(std::get<operator_type>(stack_pop()));
@@ -562,18 +578,29 @@ namespace mamba::util
     template <typename V, typename O, typename C>
     void InfixParser<V, O, C>::push_left_parenthesis()
     {
+        // Input check
+        if (m_expects_op)
+        {
+            throw std::invalid_argument("Unexpected left parenthesis");
+        }
+        ++m_parenthesis_level;
+        // Parsing
         stack_push(LeftParenthesis{});
     }
 
     template <typename V, typename O, typename C>
     void InfixParser<V, O, C>::push_right_parenthesis()
     {
+        // Input check
+        if (!m_expects_op || (m_parenthesis_level == 0))
+        {
+            throw std::invalid_argument("Unexpected right parenthesis");
+        }
+        --m_parenthesis_level;
+        // Parsing
         while (!stack_top_is_parenthesis())
         {
-            if (stack_empty())
-            {
-                throw std::invalid_argument("Mistmatched parenthesis");
-            }
+            assert(!stack_empty());
             m_postfix_parser.push_operator(std::get<operator_type>(stack_pop()));
         }
         assert(stack_top_is_parenthesis());
@@ -583,12 +610,15 @@ namespace mamba::util
     template <typename V, typename O, typename C>
     void InfixParser<V, O, C>::finalize()
     {
+        // Input check
+        if (!m_expects_op || (m_parenthesis_level != 0))
+        {
+            throw std::invalid_argument("Invalid experssion");
+        }
+        // Parsing
         while (!stack_empty())
         {
-            if (stack_top_is_parenthesis())
-            {
-                throw std::invalid_argument("Mistmatched parenthesis");
-            }
+            assert(!stack_top_is_parenthesis());
             m_postfix_parser.push_operator(std::get<operator_type>(stack_pop()));
         }
         m_postfix_parser.finalize();

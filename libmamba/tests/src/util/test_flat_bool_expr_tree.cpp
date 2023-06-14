@@ -316,6 +316,31 @@ TEST_SUITE("flat_bool_expr_tree")
             CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
         }
 
+        SUBCASE("a b +")
+        {
+            auto bad_parse = [&]()
+            {
+                parser.push_variable('a');
+                parser.push_variable('b');
+                parser.push_operator("+");
+                parser.finalize();
+            };
+            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+        }
+
+        SUBCASE("a + + b")
+        {
+            auto bad_parse = [&]()
+            {
+                parser.push_variable('a');
+                parser.push_operator("+");
+                parser.push_operator("+");
+                parser.push_variable('b');
+                parser.finalize();
+            };
+            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+        }
+
         SUBCASE("a +")
         {
             auto bad_parse = [&]()
@@ -334,6 +359,27 @@ TEST_SUITE("flat_bool_expr_tree")
                 parser.push_variable('a');
                 parser.push_operator("+");
                 parser.push_right_parenthesis();
+                parser.finalize();
+            };
+            CHECK_THROWS_AS(bad_parse(), std::invalid_argument);
+        }
+        SUBCASE("(((a)) + b (* c")
+        {
+            auto bad_parse = [&]()
+            {
+                parser.push_left_parenthesis();
+                parser.push_right_parenthesis();
+                parser.push_left_parenthesis();
+                parser.push_left_parenthesis();
+                parser.push_left_parenthesis();
+                parser.push_variable('a');
+                parser.push_right_parenthesis();
+                parser.push_right_parenthesis();
+                parser.push_operator("+");
+                parser.push_variable('b');
+                parser.push_left_parenthesis();
+                parser.push_operator("*");
+                parser.push_variable('c');
                 parser.finalize();
             };
             CHECK_THROWS_AS(bad_parse(), std::invalid_argument);

@@ -240,4 +240,41 @@ TEST_SUITE("flat_bool_expr_tree")
             CHECK_EQ(tree.evaluate(eval), reference_eval(values));
         }
     }
+
+    TEST_CASE("Create var infix tokens")
+    {
+        const auto reference_eval = [](std::array<bool, 7> x) -> bool
+        { return ((x[0] || x[1]) && (x[2] || x[3] || x[4]) && x[5]) || x[6]; };
+        auto parser = InfixParser<std::size_t, BoolOperator>{};
+        parser.push_left_parenthesis();
+        parser.push_left_parenthesis();
+        parser.push_variable(0);
+        parser.push_operator(BoolOperator::logical_or);
+        parser.push_variable(1);
+        parser.push_right_parenthesis();
+        parser.push_operator(BoolOperator::logical_and);
+        parser.push_left_parenthesis();
+        parser.push_variable(2);
+        parser.push_operator(BoolOperator::logical_or);
+        parser.push_variable(3);
+        parser.push_operator(BoolOperator::logical_or);
+        parser.push_variable(4);
+        parser.push_right_parenthesis();
+        parser.push_operator(BoolOperator::logical_and);
+        parser.push_variable(5);
+        parser.push_right_parenthesis();
+        parser.push_operator(BoolOperator::logical_or);
+        parser.push_variable(6);
+        parser.finalize();
+        auto tree = flat_bool_expr_tree(std::move(parser).tree());
+
+        static constexpr std::size_t n_vars = 7;
+        for (std::size_t x = 0; x < (1 << n_vars); ++x)
+        {
+            const auto values = integer_to_bools<n_vars>(x);
+            CAPTURE(values);
+            const auto eval = [&values](std::size_t idx) { return values[idx]; };
+            CHECK_EQ(tree.evaluate(eval), reference_eval(values));
+        }
+    }
 }

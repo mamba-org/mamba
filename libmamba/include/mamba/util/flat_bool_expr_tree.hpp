@@ -77,6 +77,14 @@ namespace mamba::util
         auto add_branch_impl(B&& branch, idx_type left_child, idx_type right_child) -> idx_type;
     };
 
+    /**
+     * A parser for postfix expressions.
+     *
+     * The parser creates an expression tree and validate that the expression being pushed
+     * is a valid postfix expression.
+     * For example, for the expression ``a + b * c`` on might push ``a b c * +``
+     * or ``b c * a +``.
+     */
     template <typename Variable, typename Operator>
     class PostfixParser
     {
@@ -100,7 +108,9 @@ namespace mamba::util
         using idx_type = typename tree_type::idx_type;
         using node_idx_stack = std::vector<idx_type>;
 
+        /** The expression tree containing the expression being parsed. */
         tree_type m_tree = {};
+        /** Orphan nodes are node without a parent. */
         node_idx_stack m_orphans = {};
 
         void orphans_push(idx_type idx);
@@ -112,6 +122,14 @@ namespace mamba::util
         void push_operator_impl(O&& op);
     };
 
+    /**
+     * A parser for infix expressions.
+     *
+     * The parser creates an expression tree and validate that the expression being pushed
+     * is a valid infix expression.
+     * For example, the expression ``a + b * c`` can be pushed directly (thanks to the
+     * operator precedence), or parenthesised as ``a + (b * c)``.
+     */
     template <typename Variable, typename Operator, typename OperatorCmp = std::less<>>
     class InfixParser
     {

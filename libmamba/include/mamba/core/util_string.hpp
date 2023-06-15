@@ -36,7 +36,7 @@ namespace mamba
      * str1 is considered smaller than (or equal to) str2.
      * cf. Channels use case.
      */
-    std::string get_common_substr(const std::string& str1, const std::string& str2);
+    std::string get_common_substr(std::string_view str1, std::string_view str2);
 
     /**
      * Safe non utf-8 wrapping of <cctype> (see its doc).

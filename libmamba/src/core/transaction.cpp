@@ -55,11 +55,6 @@ namespace mamba
             return std::move(pkginfo).value();
         };
 
-        nlohmann::json solvable_to_json(const MPool& pool, solv::ObjSolvableViewConst s)
-        {
-            return mk_pkginfo(pool, s).json_record();
-        }
-
         template <typename Range>
         auto make_pkg_info_from_explicit_match_specs(Range&& specs)
         {
@@ -424,25 +419,25 @@ namespace mamba
                         case SOLVER_TRANSACTION_CHANGED:
                         case SOLVER_TRANSACTION_REINSTALLED:
                         {
-                            m_to_remove.emplace_back(*s);
+                            m_to_remove.emplace_back(mk_pkginfo(m_pool, *s));
                             // Packages that replace these one will show up under IGNORE
                             // so we need to fetch them here
                             if (auto maybe_newer = trans().step_newer(pool, s->id()))
                             {
-                                auto solvable = pool.get_solvable(*maybe_newer);
-                                assert(solvable);
-                                m_to_install.push_back(*solvable);
+                                auto newer = pool.get_solvable(*maybe_newer);
+                                assert(newer);
+                                m_to_install.push_back(mk_pkginfo(m_pool, *newer));
                             }
                             break;
                         }
                         case SOLVER_TRANSACTION_ERASE:
                         {
-                            m_to_remove.emplace_back(*s);
+                            m_to_remove.emplace_back(mk_pkginfo(m_pool, *s));
                             break;
                         }
                         case SOLVER_TRANSACTION_INSTALL:
                         {
-                            m_to_install.emplace_back(*s);
+                            m_to_install.emplace_back(mk_pkginfo(m_pool, *s));
                             break;
                         }
                         case SOLVER_TRANSACTION_IGNORE:
@@ -486,9 +481,9 @@ namespace mamba
 
         for (auto s : m_to_install)
         {
-            if (s.name() == "python")
+            if (s.name == "python")
             {
-                new_py_ver = s.version();
+                new_py_ver = s.version;
                 LOG_INFO << "Found python version in packages to be installed " << new_py_ver;
                 break;
             }
@@ -709,33 +704,18 @@ namespace mamba
 
     auto MTransaction::to_conda() -> to_conda_type
     {
-        to_install_type to_install_structured;
-        to_remove_type to_remove_structured;
-
+        to_remove_type to_remove_structured = {};
+        to_remove_structured.reserve(m_to_remove.size());
         for (auto s : m_to_remove)
         {
-            to_remove_structured.emplace_back(
-                solv::ObjRepoViewConst::of_solvable(s).name(),
-                s.file_name()
-            );
+            to_remove_structured.emplace_back(s.channel, s.fn);
         }
 
+        to_install_type to_install_structured = {};
+        to_install_structured.reserve(m_to_install.size());
         for (auto s : m_to_install)
         {
-            std::string s_json = solvable_to_json(m_pool, s).dump(4);
-
-            std::string chan_name;
-            if (auto str = s.channel(); !str.empty())
-            {
-                chan_name = str;
-            }
-            else
-            {
-                // note this can and should be <unknown> when e.g. installing from a tarball
-                chan_name = solv::ObjRepoViewConst::of_solvable(s).name();
-            }
-
-            to_install_structured.emplace_back(chan_name, s.file_name(), s_json);
+            to_install_structured.emplace_back(s.channel, s.fn, s.json_record().dump(4));
         }
 
         to_specs_type specs;
@@ -751,20 +731,20 @@ namespace mamba
 
         for (auto s : m_to_install)
         {
-            if (!need_pkg_download(mk_pkginfo(m_pool, s), m_multi_cache))
+            if (!need_pkg_download(s, m_multi_cache))
             {
-                to_link.push_back(solvable_to_json(m_pool, s));
+                to_link.push_back(s.json_record());
             }
             else
             {
-                to_fetch.push_back(solvable_to_json(m_pool, s));
-                to_link.push_back(solvable_to_json(m_pool, s));
+                to_fetch.push_back(s.json_record());
+                to_link.push_back(s.json_record());
             }
         }
 
         for (auto s : m_to_remove)
         {
-            to_unlink.push_back(solvable_to_json(m_pool, s));
+            to_unlink.push_back(s.json_record());
         }
 
         auto add_json = [](const auto& jlist, const char* s)
@@ -804,25 +784,19 @@ namespace mamba
 
         for (auto& s : m_to_install)
         {
-            const auto s_url = solv::ObjRepoViewConst::of_solvable(s).url();
-
             if (ctx.experimental && ctx.verify_artifacts)
             {
-                const Channel& chan = m_pool.channel_context().make_channel(std::string(s_url));
-                const auto& repo_checker = chan.repo_checker(m_multi_cache);
-                const auto pkg_info = mk_pkginfo(m_pool, s);
-                repo_checker.verify_package(
-                    pkg_info.json_signable(),
-                    nlohmann::json::parse(pkg_info.signatures)
+                const auto& repo_checker = m_pool.channel_context().make_channel(s.channel).repo_checker(
+                    m_multi_cache
                 );
+                repo_checker.verify_package(s.json_signable(), nlohmann::json::parse(s.signatures));
 
-                LOG_DEBUG << "'" << pkg_info.name << "' trusted from '" << s_url << "'";
+                LOG_DEBUG << "'" << s.name << "' trusted from '" << s.channel << "'";
             }
 
-            targets.emplace_back(std::make_unique<PackageDownloadExtractTarget>(
-                mk_pkginfo(m_pool, s),
-                m_pool.channel_context()
-            ));
+            targets.emplace_back(
+                std::make_unique<PackageDownloadExtractTarget>(s, m_pool.channel_context())
+            );
             DownloadTarget* download_target = targets.back()->target(m_multi_cache);
             if (download_target != nullptr)
             {

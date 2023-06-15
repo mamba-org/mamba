@@ -17,8 +17,9 @@
 namespace mamba
 {
     class ChannelContext;
+    class Configuration;
 
-    void info();
+    void info(Configuration& config);
 
     std::string version();
     std::string banner();
@@ -36,7 +37,7 @@ namespace mamba
 
     namespace detail
     {
-        void print_info(ChannelContext& channel_context);
+        void print_info(ChannelContext& channel_context, const Configuration& config);
     }
 }
 

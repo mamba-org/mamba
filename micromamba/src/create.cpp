@@ -12,9 +12,9 @@
 using namespace mamba;  // NOLINT(build/namespaces)
 
 void
-set_create_command(CLI::App* subcom)
+set_create_command(CLI::App* subcom, Configuration& config)
 {
-    init_install_options(subcom);
+    init_install_options(subcom, config);
 
-    subcom->callback(mamba::create);
+    subcom->callback([&] { return mamba::create(config); });
 }

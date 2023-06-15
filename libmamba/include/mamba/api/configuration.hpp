@@ -19,22 +19,10 @@
 #include "mamba/core/output.hpp"
 
 
-#define CONTEXT_DEBUGGING                                                                          \
-    if (Configuration::instance().at("print_context_only").value<bool>())                          \
-    {                                                                                              \
-        Context::instance().debug_print();                                                         \
-        exit(0);                                                                                   \
-    }
-#define CONFIG_DEBUGGING                                                                            \
-    if (Configuration::instance().at("print_config_only").value<bool>())                            \
-    {                                                                                               \
-        int dump_opts = MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS | MAMBA_SHOW_ALL_CONFIGS; \
-        std::cout << Configuration::instance().dump(dump_opts) << std::endl;                        \
-        exit(0);                                                                                    \
-    }
-
 namespace mamba
 {
+    class Configuration;
+
     enum class ConfigurationLevel
     {
         kApi = 0,
@@ -149,10 +137,13 @@ namespace mamba
             virtual YAML::Node yaml_value() const = 0;
             virtual void dump_json(nlohmann::json& node, const std::string& name) const = 0;
 
+            bool is_config_loading() const;
+
             std::string m_name;
             std::string m_group = "Default";
             std::string m_description = "No description provided";
             std::string m_long_description = "";
+            Configuration* m_config = nullptr;
 
             std::vector<std::string> m_rc_sources;
             std::vector<std::string> m_sources;
@@ -364,6 +355,12 @@ namespace mamba
         YAML::Node yaml_value() const;
         void dump_json(nlohmann::json& node, const std::string& name) const;
 
+        void set_configuration(Configuration& config)
+        {
+            p_impl->m_config = &config;
+            assert(p_impl->m_config);
+        }
+
     private:
 
         template <class T>
@@ -391,16 +388,20 @@ namespace mamba
     {
     public:
 
-        static Configuration& instance();
+        Configuration();
+        ~Configuration();
 
         std::map<std::string, Configurable>& config();
+        const std::map<std::string, Configurable>& config() const;
+
         Configurable& at(const std::string& name);
+        const Configurable& at(const std::string& name) const;
 
-        using grouped_config_type = std::pair<std::string, std::vector<Configurable*>>;
-        std::vector<grouped_config_type> get_grouped_config();
+        using grouped_config_type = std::pair<std::string, std::vector<const Configurable*>>;
+        std::vector<grouped_config_type> get_grouped_config() const;
 
-        std::vector<fs::u8path> sources();
-        std::vector<fs::u8path> valid_sources();
+        std::vector<fs::u8path> sources() const;
+        std::vector<fs::u8path> valid_sources() const;
 
         void set_rc_values(std::vector<fs::u8path> possible_rc_paths, const RCConfigLevel& level);
 
@@ -422,16 +423,12 @@ namespace mamba
          */
         void operation_teardown();
 
-        std::string dump(int opts = MAMBA_SHOW_CONFIG_VALUES, std::vector<std::string> names = {});
+        std::string
+        dump(int opts = MAMBA_SHOW_CONFIG_VALUES, std::vector<std::string> names = {}) const;
 
         Configurable& insert(Configurable configurable, bool allow_redefinition = false);
 
         void reset_configurables();
-
-    protected:
-
-        Configuration();
-        ~Configuration();
 
     protected:
 
@@ -659,7 +656,7 @@ namespace mamba
                 LOG_TRACE << "Compute configurable '" << this->m_name << "'";
             }
 
-            if (!force_compute && (Configuration::instance().is_loading() && (m_compute_counter > 0)))
+            if (!force_compute && ((is_config_loading() && (m_compute_counter > 0))))
             {
                 throw std::runtime_error(
                     "Multiple computation of '" + m_name + "' detected during loading sequence."
@@ -790,7 +787,7 @@ namespace mamba
     template <class T>
     T& Configurable::value()
     {
-        if (Configuration::instance().is_loading() && p_impl->m_compute_counter == 0)
+        if (p_impl->is_config_loading() && p_impl->m_compute_counter == 0)
         {
             throw std::runtime_error("Using '" + name() + "' value without previous computation.");
         }
@@ -929,7 +926,8 @@ namespace mamba
         std::string name = configurable.name();
         if (m_config.count(name) == 0)
         {
-            m_config.insert({ name, std::move(configurable) });
+            auto [it, success] = m_config.insert({ name, std::move(configurable) });
+            it->second.set_configuration(*this);
             m_config_order.push_back(name);
         }
         else
@@ -943,7 +941,7 @@ namespace mamba
         return m_config.at(name);
     }
 
-    void use_conda_root_prefix(bool force = false);
+    void use_conda_root_prefix(Configuration& config, bool force = false);
 }
 
 #endif  // MAMBA_CONFIG_HPP

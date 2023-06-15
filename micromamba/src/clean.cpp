@@ -13,11 +13,9 @@
 using namespace mamba;  // NOLINT(build/namespaces)
 
 void
-init_clean_parser(CLI::App* subcom)
+init_clean_parser(CLI::App* subcom, Configuration& config)
 {
-    init_general_options(subcom);
-
-    auto& config = Configuration::instance();
+    init_general_options(subcom, config);
 
     auto& clean_all = config.insert(
         Configurable("clean_all", false)
@@ -70,14 +68,13 @@ init_clean_parser(CLI::App* subcom)
 }
 
 void
-set_clean_command(CLI::App* subcom)
+set_clean_command(CLI::App* subcom, Configuration& config)
 {
-    init_clean_parser(subcom);
+    init_clean_parser(subcom, config);
 
     subcom->callback(
         [&]()
         {
-            auto& config = Configuration::instance();
             int options = 0;
 
             if (config.at("clean_all").compute().value<bool>())
@@ -113,7 +110,7 @@ set_clean_command(CLI::App* subcom)
                 }
             }
 
-            clean(options);
+            clean(config, options);
         }
     );
 }

@@ -388,6 +388,8 @@ namespace mamba
 
         TEST_CASE("get_common_substr")
         {
+            CHECK_EQ(get_common_substr("", ""), "");
+            CHECK_EQ(get_common_substr("", "test"), "");
             CHECK_EQ(get_common_substr("test", "test"), "test");
             CHECK_EQ(get_common_substr("test/chan", "test/chan"), "test/chan");
             CHECK_EQ(get_common_substr("test/chan/label", "label/abcd/xyz"), "label");

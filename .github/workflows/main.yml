@@ -33,7 +33,6 @@ jobs:
       - name: build libmamba-static
         shell: bash -l {0}
         run: |
-          micromamba activate build_env
           mkdir build
           cd build
           cmake .. -DBUILD_LIBMAMBA=ON \
@@ -68,7 +67,6 @@ jobs:
       - name: Build libmamba
         shell: bash -l {0}
         run: |
-          micromamba activate build_env
           cmake -B build/ \
             -D BUILD_LIBMAMBA=ON \
             -D BUILD_SHARED=ON \
@@ -80,7 +78,6 @@ jobs:
       - name: Run libmamba tests
         shell: bash -l {0}
         run: |
-          micromamba activate build_env
           unset CONDARC  # Interferes with tests
           cd build && ninja test
       - name: build cache statistics
@@ -109,7 +106,6 @@ jobs:
       - name: build micromamba
         shell: bash -l {0}
         run: |
-          micromamba activate build_env
           cmake -B build/ \
             -D BUILD_MICROMAMBA=ON \
             -D BUILD_MICROMAMBA_SERVER=ON \
@@ -134,7 +130,6 @@ jobs:
       - name: micromamba python based tests
         shell: bash -l -eo pipefail {0}
         run: |
-          micromamba activate build_env
           export TEST_MAMBA_EXE=$(pwd)/build/micromamba/micromamba
           unset CONDARC  # Interferes with tests
           pytest -v --capture=tee-sys micromamba/tests/
@@ -170,7 +165,6 @@ jobs:
       - name: build libmamba Python bindings
         shell: bash -l {0}
         run: |
-          micromamba activate build_env
           cmake -B build/ \
             -D CMAKE_INSTALL_PREFIX="${CONDA_PREFIX}" \
             -D BUILD_LIBMAMBAPY=ON \
@@ -186,7 +180,6 @@ jobs:
       - name: install libmambapy
         shell: bash -l {0}
         run: |
-          micromamba activate build_env
           python -m pip install --no-deps --no-build-isolation --editable ./libmambapy/
       - name: check libmambapy stubs
         shell: bash -l {0}
@@ -198,18 +191,15 @@ jobs:
       - name: install mamba
         shell: bash -l {0}
         run: |
-          micromamba activate build_env
           python -m pip install --no-deps --no-build-isolation ./mamba[test]
       - name: run mamba tests suite
         shell: bash -l {0}
         run: |
-          micromamba activate build_env
           unset CONDARC  # Interferes with tests
           pytest -v --capture=tee-sys mamba/tests
       - name: run mamba create/update tests
         shell: bash -l {0}
         run: |
-          micromamba activate build_env
           unset CONDARC  # Interferes with tests
           mamba create -n test_env xtensor -c conda-forge -y
           mamba env create -f mamba/tests/test_env.yml
@@ -217,7 +207,6 @@ jobs:
       - name: run mamba local channel test
         shell: bash -l {0}
         run: |
-          micromamba activate build_env
           unset CONDARC  # Interferes with tests
           if [ "$RUNNER_OS" == "Linux" ]; then
             mkdir -p $CONDA_PREFIX/conda-bld/linux-64
@@ -239,7 +228,6 @@ jobs:
       - name: Run server auth tests
         shell: bash -l {0} -euo pipefail -x
         run: |
-          micromamba activate build_env
           export TEST_MAMBA_EXE="${PWD}/build/micromamba/micromamba"
           cd mamba/tests
 
@@ -285,7 +273,6 @@ jobs:
         shell: cmd /C CALL {0}
         # Latest VCPKG is from GHA because releases are not up to date with VCPKG server
         run: |
-          call micromamba activate build_env
           if %errorlevel% neq 0 exit /b %errorlevel%
           set VCPKG_ROOT=C:\vcpkg
           if %errorlevel% neq 0 exit /b %errorlevel%
@@ -314,7 +301,6 @@ jobs:
       - name: build libmamba-static
         shell: cmd /C call {0}
         run: |
-          call micromamba activate build_env
           if %errorlevel% neq 0 exit /b %errorlevel%
           @rem Used by CMake
           set VCPKG_ROOT=C:\vcpkg
@@ -365,7 +351,6 @@ jobs:
       - name: build libmamba Python bindings
         shell: cmd /C call {0}
         run: |
-          call micromamba activate build_env
           if %errorlevel% neq 0 exit /b %errorlevel%
           mkdir build
           if %errorlevel% neq 0 exit /b %errorlevel%
@@ -386,7 +371,6 @@ jobs:
       - name: install libmambapy
         shell: cmd /C call {0}
         run: |
-          call micromamba activate build_env
           pip install -e .\libmambapy\ --no-deps
       - name: build cache statistics
         run: sccache --show-stats
@@ -453,7 +437,6 @@ jobs:
       - name: build and run libmamba C++ tests
         shell: cmd /C call {0}
         run: |
-          call micromamba activate build_env
           if %errorlevel% neq 0 exit /b %errorlevel%
           mkdir build
           if %errorlevel% neq 0 exit /b %errorlevel%
@@ -500,7 +483,6 @@ jobs:
       - name: build micromamba
         shell: cmd /C call {0}
         run: |
-          call micromamba activate build_env
           if %errorlevel% neq 0 exit /b %errorlevel%
           mkdir build
           if %errorlevel% neq 0 exit /b %errorlevel%
@@ -517,9 +499,7 @@ jobs:
           ninja install
       - name: check that micromamba runs
         shell: cmd /C call {0}
-        run: |
-          call micromamba activate build_env
-          .\build\micromamba\micromamba.exe --help
+        run: .\build\micromamba\micromamba.exe --help
       - name: build cache statistics
         run: sccache --show-stats
       - name: tar micromamba artifact

@@ -44,12 +44,6 @@ jobs:
           ninja
       - name: build cache statistics
         run: sccache --show-stats
-      - name: Cleanup
-        shell: bash
-        if: always()
-        run: |
-          # Do not cache temporary envs with 'cache-environment: true'
-          rm -rf ~/micromamba*/envs/*/envs
 
   libmamba_cpp_tests:
     needs: [libmamba_static]
@@ -91,12 +85,6 @@ jobs:
           cd build && ninja test
       - name: build cache statistics
         run: sccache --show-stats
-      - name: Cleanup
-        shell: bash
-        if: always()
-        run: |
-          # Do not cache temporary envs with 'cache-environment: true'
-          rm -rf ~/micromamba*/envs/*/envs
 
   umamba_tests:
     needs: [libmamba_static]
@@ -150,12 +138,6 @@ jobs:
           export TEST_MAMBA_EXE=$(pwd)/build/micromamba/micromamba
           unset CONDARC  # Interferes with tests
           pytest -v --capture=tee-sys micromamba/tests/
-      - name: Cleanup
-        shell: bash
-        if: always()
-        run: |
-          # Do not cache temporary envs with 'cache-environment: true'
-          rm -rf ~/micromamba*/envs/*/envs
 
   mamba_python_tests:
     needs: [libmamba_static]
@@ -266,18 +248,10 @@ jobs:
           fi
 
           ./testserver.sh
-
       - name: Shell init
         shell: bash -l {0} -euo pipefail -x
         run: |
           mamba init
-
-      - name: Cleanup
-        shell: bash
-        if: always()
-        run: |
-          # Do not cache temporary envs with 'cache-environment: true'
-          rm -rf ~/micromamba*/envs/*/envs
 
   libmamba_static_win:
     runs-on: ${{ matrix.os }}
@@ -358,12 +332,6 @@ jobs:
           if %errorlevel% neq 0 exit /b %errorlevel%
       - name: build cache statistics
         run: sccache --show-stats
-      - name: Cleanup
-        shell: bash
-        if: always()
-        run: |
-          # Do not cache temporary envs with 'cache-environment: true'
-          rm -rf ~/micromamba*/envs/*/envs
 
   mamba_python_tests_win:
     needs: [libmamba_static_win]
@@ -458,12 +426,6 @@ jobs:
           if [ "$(grep -c "local" list.txt)" -ne 2 ]; then
             exit 1
           fi
-      - name: Cleanup
-        shell: bash
-        if: always()
-        run: |
-          # Do not cache temporary envs with 'cache-environment: true'
-          rm -rf ~/micromamba*/envs/*/envs
 
   libmamba_cpp_tests_win:
     needs: [libmamba_static_win]
@@ -512,12 +474,6 @@ jobs:
           ninja test
       - name: build cache statistics
         run: sccache --show-stats
-      - name: Cleanup
-        shell: bash
-        if: always()
-        run: |
-          # Do not cache temporary envs with 'cache-environment: true'
-          rm -rf ~/micromamba*/envs/*/envs
 
   umamba_tests_win:
     runs-on: ${{ matrix.os }}
@@ -575,12 +531,6 @@ jobs:
         with:
           name: _internal_micromamba_binary
           path: umamba.tar
-      - name: Cleanup
-        shell: bash
-        if: always()
-        run: |
-          # Do not cache temporary envs with 'cache-environment: true'
-          rm -rf ~/micromamba*/envs/*/envs
 
   umamba_tests_win_cmd:
     needs: [umamba_tests_win]
@@ -642,10 +592,3 @@ jobs:
       #     export MAMBA_TEST_SHELL_TYPE=bash
       #
       #     pytest -v --capture=tee-sys micromamba/tests/test_shell.py
-
-      - name: Cleanup
-        shell: bash
-        if: always()
-        run: |
-          # Do not cache temporary envs with 'cache-environment: true'
-          rm -rf ~/micromamba*/envs/*/envs

@@ -507,7 +507,8 @@ jobs:
           if %errorlevel% neq 0 exit /b %errorlevel%
           ninja install
           if %errorlevel% neq 0 exit /b %errorlevel%
-          unset CONDARC  # Interferes with tests
+          @REM Interferes with tests
+          set CONDARC=
           ninja test
       - name: build cache statistics
         run: sccache --show-stats
@@ -614,6 +615,7 @@ jobs:
           $env:MAMBA_ROOT_PREFIX = Join-Path -Path $pwd -ChildPath 'mambaroot'
           $env:TEST_MAMBA_EXE = Join-Path -Path $pwd -ChildPath 'build\micromamba\micromamba.exe'
           $env:MAMBA_TEST_SHELL_TYPE='powershell'
+          Remove-Item -Path "env:CONDARC"
 
           pytest -v --capture=tee-sys micromamba/tests/
 

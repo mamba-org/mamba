@@ -7,7 +7,7 @@ from sys import platform
 
 import pytest
 
-from .helpers import create, random_string, umamba_run
+from .helpers import create, random_string, subprocess_run, umamba_run
 
 common_simple_flags = ["", "-d", "--detach", "--clean-env"]
 possible_characters_for_process_names = (
@@ -95,7 +95,7 @@ class TestRun:
                     test_script_file_name, test_script_path
                 )
             )
-        assert subprocess.run(test_script_path, shell=True).returncode == 0
+        subprocess_run(test_script_path, shell=True)
 
     def test_run_non_existing_env(self):
         env_name = random_string()

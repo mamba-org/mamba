@@ -537,10 +537,22 @@ namespace mamba
             // of the channel (e.g. -c testchannel/mylabel/xyz)
             // needs to result in `name = private/testchannel/mylabel/xyz`
             std::string combined_name = it->second.name();
-            if (name != combined_name && name.find('/') != std::string::npos)
+            if (combined_name != name)
             {
-                combined_name += "/";
-                combined_name += name.substr(name.find('/') + 1, std::string::npos);
+                // Find common string between `name` and `combined_name`
+                auto common_str = get_common_substr(combined_name, name);
+                // Combine names properly
+                if (common_str.empty())
+                {
+                    combined_name += "/" + name;
+                }
+                else
+                {
+                    // NOTE We assume that the `common_str`, if not empty, is necessarily at the
+                    // beginning of `name` and at the end of `combined_name` (I don't know about
+                    // other use cases for now)
+                    combined_name += name.substr(common_str.size());
+                }
             }
 
             return Channel(

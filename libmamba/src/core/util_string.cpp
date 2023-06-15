@@ -15,6 +15,27 @@
 
 namespace mamba
 {
+    /********************************************************
+     *  Implementation of Channels use case util function   *
+     *******************************************************/
+    std::string get_common_substr(const std::string& str1, const std::string& str2)
+    {
+        auto common_str = str1;
+        while ((str2.find(common_str) == std::string::npos))
+        {
+            if (common_str.find('/') != std::string::npos)
+            {
+                common_str = common_str.substr(common_str.find('/') + 1);
+            }
+            else
+            {
+                common_str = "";
+                break;
+            }
+        }
+        return common_str;
+    }
+
     /****************************************
      *  Implementation of cctype functions  *
      ****************************************/

@@ -385,6 +385,20 @@ namespace mamba
         {
             CHECK_EQ(concat("aa", std::string("bb"), std::string_view("cc"), 'd'), "aabbccd");
         }
+
+        TEST_CASE("get_common_substr")
+        {
+            CHECK_EQ(get_common_substr("test", "test"), "test");
+            CHECK_EQ(get_common_substr("test/chan", "test/chan"), "test/chan");
+            CHECK_EQ(get_common_substr("test/chan/label", "label/abcd/xyz"), "label");
+            CHECK_EQ(get_common_substr("test/chan/label", "chan/label/abcd"), "chan/label");
+            CHECK_EQ(get_common_substr("test/chan/label", "abcd/chan/label"), "chan/label");
+            CHECK_EQ(get_common_substr("test", "abcd"), "");
+            CHECK_EQ(get_common_substr("test", "abcd/xyz"), "");
+            CHECK_EQ(get_common_substr("test/xyz", "abcd/xyz"), "xyz");
+            CHECK_EQ(get_common_substr("test/xyz", "abcd/gef"), "");
+            CHECK_EQ(get_common_substr("abcd/test", "abcd/xyz"), "");
+        }
     }
 
 }  // namespace mamba

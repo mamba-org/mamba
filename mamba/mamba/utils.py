@@ -230,7 +230,8 @@ def init_api_context(use_mamba_experimental=False):
         tmp = url.rsplit("/", 1)[0]
         if name:
             if tmp.endswith(name):
-                return tmp.rsplit("/", 1)[0]
+                # Return base url stripped from name
+                return tmp[: -(len(name) + 1)]
         return tmp
 
     api_ctx.channel_alias = str(

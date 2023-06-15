@@ -30,6 +30,15 @@ namespace mamba
     const char* raw_str_or_empty(const char* ptr);
 
     /**
+     * Return the common substring of two strings by blocks located between the '/' separator,
+     * and considering that the common substring would be located at the end of str1 (search from
+     * left to right).
+     * str1 is considered smaller than (or equal to) str2.
+     * cf. Channels use case.
+     */
+    std::string get_common_substr(const std::string& str1, const std::string& str2);
+
+    /**
      * Safe non utf-8 wrapping of <cctype> (see its doc).
      */
     bool is_control(char c);

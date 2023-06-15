@@ -163,6 +163,7 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/repo.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/run.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/shell_init.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/solution.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/solver.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/subdirdata.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/thread_utils.cpp
@@ -237,6 +238,7 @@ set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/repo.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/run.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shell_init.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/solution.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/solver.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/subdirdata.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/thread_utils.hpp

@@ -1,4 +1,4 @@
-name: Linters (Python, C++)
+name: Linters
 
 on:
   push:
@@ -18,12 +18,11 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Install pre-commit
-      uses: mamba-org/provision-with-micromamba@main
+      uses: mamba-org/setup-micromamba@v1
       with:
-        environment-file: false
         environment-name: linters
         channels: conda-forge
-        extra-specs: pre-commit
+        create-args: pre-commit
     - name: Micromamba info
       shell: bash -el {0}
       run: |

@@ -95,10 +95,10 @@ namespace mamba
 
         template <typename Action>
         auto to_remove_ptr(Action& action)
-            -> std::conditional_t<std::is_const_v<Action>, const PackageInfo*, PackageInfo*>
         {
+            using PackageInfoPtr = std::conditional_t<std::is_const_v<Action>, const PackageInfo*, PackageInfo*>;
             return std::visit(
-                [](auto& a)
+                [](auto& a) -> PackageInfoPtr
                 {
                     using A = std::decay_t<decltype(a)>;
                     if constexpr (has_remove_v<A>)
@@ -138,10 +138,10 @@ namespace mamba
 
         template <typename Action>
         auto to_install_ptr(Action& action)
-            -> std::conditional_t<std::is_const_v<Action>, const PackageInfo*, PackageInfo*>
         {
+            using PackageInfoPtr = std::conditional_t<std::is_const_v<Action>, const PackageInfo*, PackageInfo*>;
             return std::visit(
-                [](auto& a)
+                [](auto& a) -> PackageInfoPtr
                 {
                     using A = std::decay_t<decltype(a)>;
                     if constexpr (has_install_v<A>)

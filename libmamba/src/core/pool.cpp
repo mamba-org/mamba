@@ -222,6 +222,7 @@ namespace mamba
         {
             // Working around shortcomings of ``pool_conda_matchspec``
             // The channels are not processed.
+            // TODO Fragile! Installing this matchspec will always trigger a reinstall
             id = add_channel_specific_matchspec(channel_context(), pool(), ms);
         }
         if (id == 0)

@@ -114,6 +114,8 @@ namespace mamba
 
         LOG_INFO << "Reinstall " << modified_spec.conda_build_form() << " from channel "
                  << modified_spec.channel;
+        // TODO Fragile! The only reason why this works is that with a channel specific matchspec
+        // the job will always eb reinstalled.
         m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, m_pool.matchspec2id(modified_spec));
     }
 

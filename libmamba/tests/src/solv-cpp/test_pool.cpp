@@ -15,6 +15,8 @@
 #include "solv-cpp/ids.hpp"
 #include "solv-cpp/pool.hpp"
 
+#include "doctest-printer/vector.hpp"
+
 using namespace mamba::solv;
 
 TEST_SUITE("ObjPool")
@@ -159,6 +161,35 @@ TEST_SUITE("ObjPool")
                     CHECK_EQ(pool.solvable_count(), 2);
                     CHECK(pool.get_solvable(id1).has_value());
                     CHECK(pool.get_solvable(id2).has_value());
+                }
+
+                SUBCASE("Iterate on solvables")
+                {
+                    std::vector<SolvableId> ids = {};
+                    pool.for_each_solvable_id([&](SolvableId id) { ids.push_back(id); });
+                    std::sort(ids.begin(), ids.end());  // Ease comparsion
+                    CHECK_EQ(ids, decltype(ids){ id1, id2 });
+                    pool.for_each_solvable(
+                        [&](ObjSolvableViewConst s)
+                        { CHECK_NE(std::find(ids.cbegin(), ids.cend(), s.id()), ids.cend()); }
+                    );
+                }
+
+                SUBCASE("Iterate on installed solvables")
+                {
+                    SUBCASE("No instaled repo")
+                    {
+                        pool.for_each_installed_solvable_id([&](SolvableId) { CHECK(false); });
+                    }
+
+                    SUBCASE("One installed repo")
+                    {
+                        pool.set_installed_repo(repo1_id);
+                        std::vector<SolvableId> ids = {};
+                        pool.for_each_installed_solvable_id([&](auto id) { ids.push_back(id); });
+                        std::sort(ids.begin(), ids.end());  // Ease comparsion
+                        CHECK_EQ(ids, decltype(ids){ id1 });
+                    }
                 }
 
                 SUBCASE("Iterate through whatprovides")

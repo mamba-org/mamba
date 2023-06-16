@@ -179,13 +179,6 @@ namespace mamba
 
         static std::unique_ptr<Singleton<Context>> context;
         static std::unique_ptr<Singleton<Console>> console;
-        static std::unique_ptr<Singleton<Configuration>> config;
-    }
-
-
-    Configuration& Configuration::instance()
-    {
-        return singletons::init_once(singletons::config);
     }
 
     Context& Context::instance()

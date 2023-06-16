@@ -448,7 +448,6 @@ def first_cache_is_writable():
 
 
 def link_dir(new_dir, existing_dir, prefixes=None):
-
     for i in existing_dir.iterdir():
         if i.is_dir():
             subdir = new_dir / i.name

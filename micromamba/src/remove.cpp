@@ -13,13 +13,11 @@
 using namespace mamba;  // NOLINT(build/namespaces)
 
 void
-set_remove_command(CLI::App* subcom)
+set_remove_command(CLI::App* subcom, Configuration& config)
 {
     using string_list = std::vector<std::string>;
-    init_general_options(subcom);
-    init_prefix_options(subcom);
-
-    auto& config = Configuration::instance();
+    init_general_options(subcom, config);
+    init_prefix_options(subcom, config);
 
     auto& specs = config.at("specs");
     subcom->add_option(
@@ -38,7 +36,7 @@ set_remove_command(CLI::App* subcom)
     subcom->add_flag("--prune,!--no-prune", prune, "Prune dependencies (default)");
 
     subcom->callback(
-        []
+        [&config]
         {
             int flags = 0;
             if (prune)
@@ -53,7 +51,7 @@ set_remove_command(CLI::App* subcom)
             {
                 flags |= MAMBA_REMOVE_ALL;
             }
-            remove(flags);
+            remove(config, flags);
         }
     );
 }

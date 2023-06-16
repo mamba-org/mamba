@@ -237,6 +237,18 @@ namespace mamba::solv
         template <typename UnaryFunc>
         void for_each_solvable(UnaryFunc&& func);
 
+        /** Execute function for each solvable id in the installed repository (if it exists). */
+        template <typename UnaryFunc>
+        void for_each_installed_solvable_id(UnaryFunc&& func) const;
+
+        /** Execute function for each solvable id in the installed repository (if it exists). */
+        template <typename UnaryFunc>
+        void for_each_installed_solvable(UnaryFunc&& func) const;
+
+        /** Execute function for each solvable id in the installed repository (if it exists). */
+        template <typename UnaryFunc>
+        void for_each_installed_solvable(UnaryFunc&& func);
+
         /** Set the callback to handle libsolv messages.
          *
          * The callback takes a ``Pool*``, the type of message as ``int``, and the message
@@ -355,6 +367,33 @@ namespace mamba::solv
     {
         // Safe optional unchecked because we iterate over available values
         return for_each_solvable_id([this, func](SolvableId id) { func(get_solvable(id).value()); });
+    }
+
+    template <typename UnaryFunc>
+    void ObjPool::for_each_installed_solvable_id(UnaryFunc&& func) const
+    {
+        if (auto installed = installed_repo(); installed.has_value())
+        {
+            installed->for_each_solvable_id(std::forward<UnaryFunc>(func));
+        }
+    }
+
+    template <typename UnaryFunc>
+    void ObjPool::for_each_installed_solvable(UnaryFunc&& func) const
+    {
+        if (auto installed = installed_repo(); installed.has_value())
+        {
+            installed->for_each_solvable(std::forward<UnaryFunc>(func));
+        }
+    }
+
+    template <typename UnaryFunc>
+    void ObjPool::for_each_installed_solvable(UnaryFunc&& func)
+    {
+        if (auto installed = installed_repo(); installed.has_value())
+        {
+            installed->for_each_solvable(std::forward<UnaryFunc>(func));
+        }
     }
 
     template <typename Func>

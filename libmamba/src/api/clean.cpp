@@ -18,10 +18,9 @@
 
 namespace mamba
 {
-    void clean(int options)
+    void clean(Configuration& config, int options)
     {
         auto& ctx = Context::instance();
-        auto& config = Configuration::instance();
 
         config.at("use_target_prefix_fallback").set_value(true);
         config.load();
@@ -313,7 +312,5 @@ namespace mamba
                 fs::remove_all(cache->path());
             }
         }
-
-        config.operation_teardown();
     }
 }  // mamba

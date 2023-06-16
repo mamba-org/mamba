@@ -37,7 +37,7 @@ namespace mamba
                 m_channel_alias_bu = ctx.channel_alias;
                 m_ssl_verify = ctx.remote_fetch_params.ssl_verify;
                 m_proxy_servers = ctx.proxy_servers;
-                mamba::Configuration::instance().at("show_banner").set_default_value(false);
+                config.at("show_banner").set_default_value(false);
             }
 
             ~Configuration()
@@ -60,12 +60,10 @@ namespace mamba
                 out_file << rc;
                 out_file.close();
 
-                mamba::Configuration::instance().reset_configurables();
-                mamba::Configuration::instance()
-                    .at("rc_files")
-                    .set_value<std::vector<fs::u8path>>({ unique_location });
-                mamba::Configuration::instance().at("show_banner").set_default_value(false);
-                mamba::Configuration::instance().load();
+                config.reset_configurables();
+                config.at("rc_files").set_value<std::vector<fs::u8path>>({ unique_location });
+                config.at("show_banner").set_default_value(false);
+                config.load();
             }
 
             void load_test_config(std::vector<std::string> rcs)
@@ -85,10 +83,10 @@ namespace mamba
                     sources.push_back(loc);
                 }
 
-                mamba::Configuration::instance().reset_configurables();
-                mamba::Configuration::instance().at("rc_files").set_value(sources);
-                mamba::Configuration::instance().at("show_banner").set_default_value(false);
-                mamba::Configuration::instance().load();
+                config.reset_configurables();
+                config.at("rc_files").set_value(sources);
+                config.at("show_banner").set_default_value(false);
+                config.load();
             }
 
             std::string shrink_source(std::size_t position)
@@ -100,8 +98,9 @@ namespace mamba
                 ".yaml"
             );
 
-            mamba::Configuration& config = mamba::Configuration::instance();
             mamba::Context& ctx = mamba::Context::instance();
+
+            mamba::Configuration config;
 
         private:
 

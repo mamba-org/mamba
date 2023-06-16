@@ -17,6 +17,18 @@ namespace mamba
 {
     namespace testing
     {
+
+        template <typename Callback>
+        struct Finally
+        {
+            Callback callback;
+
+            ~Finally()
+            {
+                callback();
+            }
+        };
+
         TEST_SUITE("virtual_packages")
         {
             TEST_CASE("make_virtual_package")
@@ -60,6 +72,11 @@ namespace mamba
                 CHECK_EQ(pkgs.back().name, "__archspec");
                 CHECK_EQ(pkgs.back().build_string, "x86_64");
 #endif
+
+                // This is bad design, tests should not interfer
+                // Will get rid of that when implementing context as not a singleton
+                auto restore_ctx = [&ctx, old_plat = ctx.platform]() { ctx.platform = old_plat; };
+                auto finally = Finally<decltype(restore_ctx)>{ restore_ctx };
 
                 ctx.platform = "osx-arm";
                 env::set("CONDA_OVERRIDE_OSX", "12.1");

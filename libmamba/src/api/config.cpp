@@ -11,10 +11,8 @@
 
 namespace mamba
 {
-    void config_describe()
+    void config_describe(Configuration& config)
     {
-        auto& config = Configuration::instance();
-
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("show_banner").set_value(false);
         config.at("target_prefix_checks")
@@ -37,10 +35,8 @@ namespace mamba
         config.operation_teardown();
     }
 
-    void config_list()
+    void config_list(Configuration& config)
     {
-        auto& config = Configuration::instance();
-
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("show_banner").set_value(false);
         config.at("target_prefix_checks")
@@ -71,10 +67,8 @@ namespace mamba
         config.operation_teardown();
     }
 
-    void config_sources()
+    void config_sources(Configuration& config)
     {
-        auto& config = Configuration::instance();
-
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("show_banner").set_value(false);
         config.at("target_prefix_checks")
@@ -110,7 +104,5 @@ namespace mamba
                 }
             }
         }
-
-        config.operation_teardown();
     }
 }

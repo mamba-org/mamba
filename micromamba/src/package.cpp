@@ -13,23 +13,23 @@
 using namespace mamba;  // NOLINT(build/namespaces)
 
 void
-set_package_command(CLI::App* subcom)
+set_package_command(CLI::App* subcom, Configuration& config)
 {
     static std::string infile, dest;
     static int compression_level = -1;
     static int compression_threads = 1;
 
-    init_general_options(subcom);
+    init_general_options(subcom, config);
 
     auto extract_subcom = subcom->add_subcommand("extract");
-    init_general_options(extract_subcom);
+    init_general_options(extract_subcom, config);
     extract_subcom->add_option("archive", infile, "Archive to extract");
     extract_subcom->add_option("dest", dest, "Destination folder");
     extract_subcom->callback(
-        [&]()
+        [&]
         {
             // load verbose and other options to context
-            Configuration::instance().load();
+            config.load();
 
             Console::stream() << "Extracting " << fs::absolute(infile) << " to "
                               << fs::absolute(dest) << std::endl;
@@ -38,7 +38,7 @@ set_package_command(CLI::App* subcom)
     );
 
     auto compress_subcom = subcom->add_subcommand("compress");
-    init_general_options(compress_subcom);
+    init_general_options(compress_subcom, config);
     compress_subcom->add_option("folder", infile, "Folder to compress");
     compress_subcom->add_option("dest", dest, "Destination (e.g. myfile-3.1-0.tar.bz2 or .conda)");
     compress_subcom->add_option(
@@ -55,7 +55,7 @@ set_package_command(CLI::App* subcom)
         [&]()
         {
             // load verbose and other options to context
-            Configuration::instance().load();
+            config.load();
 
             Console::stream() << "Compressing " << fs::absolute(infile) << " to " << dest
                               << std::endl;
@@ -79,7 +79,7 @@ set_package_command(CLI::App* subcom)
     );
 
     auto transmute_subcom = subcom->add_subcommand("transmute");
-    init_general_options(transmute_subcom);
+    init_general_options(transmute_subcom, config);
     transmute_subcom->add_option("infile", infile, "Folder to compress");
     transmute_subcom->add_option(
         "-c,--compression-level",
@@ -95,7 +95,7 @@ set_package_command(CLI::App* subcom)
         [&]()
         {
             // load verbose and other options to context
-            Configuration::instance().load();
+            config.load();
 
             if (ends_with(infile, ".tar.bz2"))
             {

@@ -13,12 +13,10 @@
 using namespace mamba;  // NOLINT(build/namespaces)
 
 void
-init_list_parser(CLI::App* subcom)
+init_list_parser(CLI::App* subcom, Configuration& config)
 {
-    init_general_options(subcom);
-    init_prefix_options(subcom);
-
-    auto& config = Configuration::instance();
+    init_general_options(subcom, config);
+    init_prefix_options(subcom, config);
 
     auto& regex = config.insert(Configurable("list_regex", std::string(""))
                                     .group("cli")
@@ -27,16 +25,15 @@ init_list_parser(CLI::App* subcom)
 }
 
 void
-set_list_command(CLI::App* subcom)
+set_list_command(CLI::App* subcom, Configuration& config)
 {
-    init_list_parser(subcom);
+    init_list_parser(subcom, config);
 
     subcom->callback(
-        []
+        [&config]
         {
-            auto& config = Configuration::instance();
             auto& regex = config.at("list_regex").compute().value<std::string>();
-            list(regex);
+            list(config, regex);
         }
     );
 }

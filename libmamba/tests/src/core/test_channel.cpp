@@ -450,11 +450,12 @@ namespace mamba
 #ifdef _WIN32
             std::string driveletter = fs::absolute(fs::u8path("/")).string().substr(0, 1);
             CHECK_EQ(c4.location(), driveletter + ":/home/mamba/test");
+            CHECK_EQ(c4.canonical_name(), "file:///" + driveletter + ":/home/mamba/test/channel_b");
 #else
             CHECK_EQ(c4.location(), "/home/mamba/test");
+            CHECK_EQ(c4.canonical_name(), "file:///home/mamba/test/channel_b");
 #endif
             CHECK_EQ(c4.name(), "channel_b");
-            CHECK_EQ(c4.canonical_name(), "file:///home/mamba/test/channel_b");
             CHECK_EQ(c4.platforms(), std::vector<std::string>({ platform, "noarch" }));
 
             std::string value5 = "/home/mamba/test/channel_b[" + platform + "]";
@@ -462,11 +463,12 @@ namespace mamba
             CHECK_EQ(c5.scheme(), "file");
 #ifdef _WIN32
             CHECK_EQ(c5.location(), driveletter + ":/home/mamba/test");
+            CHECK_EQ(c5.canonical_name(), "file:///" + driveletter + ":/home/mamba/test/channel_b");
 #else
             CHECK_EQ(c5.location(), "/home/mamba/test");
+            CHECK_EQ(c5.canonical_name(), "file:///home/mamba/test/channel_b");
 #endif
             CHECK_EQ(c5.name(), "channel_b");
-            CHECK_EQ(c5.canonical_name(), "file:///home/mamba/test/channel_b");
             CHECK_EQ(c5.platforms(), std::vector<std::string>({ platform }));
 
             std::string value6a = "http://localhost:8000/conda-forge[noarch]";

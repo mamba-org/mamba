@@ -10,7 +10,6 @@ from .helpers import *
 
 @pytest.mark.skipif(dry_run_tests == DryRun.ULTRA_DRY, reason="Running ultra dry tests")
 class TestUpdate:
-
     current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
     current_prefix = os.environ["CONDA_PREFIX"]
 
@@ -204,7 +203,6 @@ class TestUpdate:
 
 
 class TestUpdateConfig:
-
     current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
     current_prefix = os.environ["CONDA_PREFIX"]
 

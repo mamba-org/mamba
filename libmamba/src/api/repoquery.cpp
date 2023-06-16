@@ -17,10 +17,15 @@
 
 namespace mamba
 {
-    void repoquery(QueryType type, QueryResultFormat format, bool use_local, const std::string& query)
+    void repoquery(
+        Configuration& config,
+        QueryType type,
+        QueryResultFormat format,
+        bool use_local,
+        const std::string& query
+    )
     {
         auto& ctx = Context::instance();
-        auto& config = Configuration::instance();
 
         config.at("show_banner").set_value(false);
         config.at("use_target_prefix_fallback").set_value(true);
@@ -150,7 +155,5 @@ namespace mamba
                           << std::endl;
             }
         }
-
-        config.operation_teardown();
     }
 }

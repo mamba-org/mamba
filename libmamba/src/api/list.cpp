@@ -15,10 +15,8 @@
 
 namespace mamba
 {
-    void list(const std::string& regex)
+    void list(Configuration& config, const std::string& regex)
     {
-        auto& config = Configuration::instance();
-
         config.at("show_banner").set_value(false);
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
@@ -30,8 +28,6 @@ namespace mamba
 
         ChannelContext channel_context;
         detail::list_packages(regex, channel_context);
-
-        config.operation_teardown();
     }
 
     namespace detail

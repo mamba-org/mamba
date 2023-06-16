@@ -6,6 +6,8 @@
 
 #include <cassert>
 #include <limits>
+#include <sstream>
+#include <stdexcept>
 
 #include <solv/pool.h>
 #include <solv/poolid.h>
@@ -81,9 +83,17 @@ namespace mamba::solv
         return id;
     }
 
+    namespace
+    {
+        auto is_reldep(::Id id) -> bool
+        {
+            return ISRELDEP(static_cast<std::make_unsigned_t<::Id>>(id)) != 0;
+        }
+    }
+
     auto ObjPool::get_string(StringId id) const -> std::string_view
     {
-        assert(!ISRELDEP(id));
+        assert(!is_reldep(id));
         return ::pool_id2str(raw(), id);
     }
 
@@ -112,13 +122,19 @@ namespace mamba::solv
             /* .create= */ 1
         );
         assert(id != 0);
-        assert(ISRELDEP(id));
+        assert(is_reldep(id));
         return id;
     }
 
     auto ObjPool::add_conda_dependency(raw_str_view dep) -> DependencyId
     {
-        return ::pool_conda_matchspec(raw(), dep);
+        if (const auto id = ::pool_conda_matchspec(raw(), dep); id != 0)
+        {
+            return id;
+        }
+        std::stringstream msg = {};
+        msg << R"(Invalid conda dependency: ")" << dep << '"';
+        throw std::invalid_argument(msg.str());
     }
 
     auto ObjPool::add_conda_dependency(const std::string& dep) -> DependencyId

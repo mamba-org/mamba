@@ -18,7 +18,8 @@ namespace mamba
     const int MAMBA_CLEAN_TRASH = 1 << 5;
     const int MAMBA_CLEAN_FORCE_PKGS_DIRS = 1 << 6;
 
-    void clean(int options);
+    class Configuration;
+    void clean(Configuration& config, int options);
 }
 
 #endif

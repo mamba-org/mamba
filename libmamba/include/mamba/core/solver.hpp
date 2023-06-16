@@ -98,6 +98,8 @@ namespace mamba
 
         operator const Solver*() const;
         operator Solver*();
+        auto solver() -> solv::ObjSolver&;
+        auto solver() const -> const solv::ObjSolver&;
 
         bool only_deps = false;
         bool no_deps = false;
@@ -116,9 +118,6 @@ namespace mamba
         // Temporary Pimpl all libsolv to keep it private
         std::unique_ptr<solv::ObjSolver> m_solver;
         std::unique_ptr<solv::ObjQueue> m_jobs;
-
-        auto solver() -> solv::ObjSolver&;
-        auto solver() const -> const solv::ObjSolver&;
 
         void add_reinstall_job(MatchSpec& ms, int job_flag);
     };

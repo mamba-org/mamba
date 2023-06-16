@@ -82,6 +82,72 @@ namespace mamba
             }
             return out;
         }
+
+        auto transaction_to_solution(const MPool& pool, const solv::ObjTransaction& trans) -> Solution
+        {
+            auto get_pkginfo = [&](solv::SolvableId id)
+            {
+                const auto pkginfo = pool.id2pkginfo(id);
+                assert(pkginfo.has_value());
+                return std::move(pkginfo).value();
+            };
+
+            auto get_newer_pkginfo = [&](solv::SolvableId id)
+            {
+                auto maybe_newer_id = trans.step_newer(pool.pool(), id);
+                assert(maybe_newer_id.has_value());
+                return get_pkginfo(maybe_newer_id.value());
+            };
+
+            auto out = Solution::action_list();
+            out.reserve(trans.size());
+            trans.classify_for_each_type(
+                pool.pool(),
+                [&](const auto type, const auto& solv_ids)
+                {
+                    for (const solv::SolvableId id : solv_ids)
+                    {
+                        switch (type)
+                        {
+                            case SOLVER_TRANSACTION_UPGRADED:
+                                out.push_back(Solution::Upgrade{
+                                    /* .remove= */ get_pkginfo(id),
+                                    /* .install= */ get_newer_pkginfo(id),
+                                });
+                                break;
+                            case SOLVER_TRANSACTION_CHANGED:
+                                out.push_back(Solution::Change{
+                                    /* .remove= */ get_pkginfo(id),
+                                    /* .install= */ get_newer_pkginfo(id),
+                                });
+                                break;
+                            case SOLVER_TRANSACTION_REINSTALLED:
+                                out.push_back(Solution::Reinstall{ get_pkginfo(id) });
+                                break;
+                            case SOLVER_TRANSACTION_DOWNGRADED:
+                                out.push_back(Solution::Downgrade{
+                                    /* .remove= */ get_pkginfo(id),
+                                    /* .install= */ get_newer_pkginfo(id),
+                                });
+                                break;
+                            case SOLVER_TRANSACTION_ERASE:
+                                out.push_back(Solution::Remove{ get_pkginfo(id) });
+                                break;
+                            case SOLVER_TRANSACTION_INSTALL:
+                                out.push_back(Solution::Install{ get_pkginfo(id) });
+                                break;
+                            case SOLVER_TRANSACTION_IGNORE:
+                                break;
+                            default:
+                                LOG_WARNING << "solv::ObjTransaction case not handled: " << type;
+                                break;
+                        }
+                    }
+                },
+                SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE
+            );
+            return { std::move(out) };
+        }
     }
 
     MTransaction::MTransaction(
@@ -400,54 +466,7 @@ namespace mamba
 
     void MTransaction::init()
     {
-        m_to_remove.clear();
-        m_to_install.clear();
-        const auto& pool = m_pool.pool();
-        trans().for_each_step_solvable(
-            pool,
-            [&](auto s)
-            {
-                assert(s.has_value());
-                if (!filter(*s))
-                {
-                    auto const type = trans().step_type(pool, s->id(), SOLVER_TRANSACTION_SHOW_ALL);
-                    switch (type)
-                    {
-                        case SOLVER_TRANSACTION_DOWNGRADED:
-                        case SOLVER_TRANSACTION_UPGRADED:
-                        case SOLVER_TRANSACTION_CHANGED:
-                        case SOLVER_TRANSACTION_REINSTALLED:
-                        {
-                            m_to_remove.emplace_back(mk_pkginfo(m_pool, *s));
-                            // Packages that replace these one will show up under IGNORE
-                            // so we need to fetch them here
-                            if (auto maybe_newer = trans().step_newer(pool, s->id()))
-                            {
-                                auto newer = pool.get_solvable(*maybe_newer);
-                                assert(newer);
-                                m_to_install.push_back(mk_pkginfo(m_pool, *newer));
-                            }
-                            break;
-                        }
-                        case SOLVER_TRANSACTION_ERASE:
-                        {
-                            m_to_remove.emplace_back(mk_pkginfo(m_pool, *s));
-                            break;
-                        }
-                        case SOLVER_TRANSACTION_INSTALL:
-                        {
-                            m_to_install.emplace_back(mk_pkginfo(m_pool, *s));
-                            break;
-                        }
-                        case SOLVER_TRANSACTION_IGNORE:
-                            break;
-                        default:
-                            LOG_ERROR << "Exec case not handled: " << type;
-                            break;
-                    }
-                }
-            }
-        );
+        m_solution = transaction_to_solution(m_pool, *m_transaction);
     }
 
     bool MTransaction::filter(const solv::ObjSolvableViewConst& s) const
@@ -478,15 +497,17 @@ namespace mamba
         std::string installed_py_ver = {};
         std::string new_py_ver = {};
 
-        for (auto s : m_to_install)
-        {
-            if (s.name == "python")
+        m_solution.for_each_to_install(
+            [&](const auto& pkg)
             {
-                new_py_ver = s.version;
-                LOG_INFO << "Found python version in packages to be installed " << new_py_ver;
-                break;
+                if (pkg.name == "python")
+                {
+                    new_py_ver = pkg.version;
+                    LOG_INFO << "Found python version in packages to be installed " << new_py_ver;
+                    // Could break but not supported with for_each API
+                }
             }
-        }
+        );
 
         m_pool.pool().for_each_installed_solvable(
             [&](solv::ObjSolvableViewConst s)
@@ -704,18 +725,22 @@ namespace mamba
     auto MTransaction::to_conda() -> to_conda_type
     {
         to_remove_type to_remove_structured = {};
-        to_remove_structured.reserve(m_to_remove.size());
-        for (auto s : m_to_remove)
-        {
-            to_remove_structured.emplace_back(s.channel, s.fn);
-        }
+        to_remove_structured.reserve(m_solution.size());  // Upper bound
+        m_solution.for_each_to_remove(
+            [&](const auto& pkg)
+            {
+                to_remove_structured.emplace_back(pkg.channel, pkg.fn);  //
+            }
+        );
 
         to_install_type to_install_structured = {};
-        to_install_structured.reserve(m_to_install.size());
-        for (auto s : m_to_install)
-        {
-            to_install_structured.emplace_back(s.channel, s.fn, s.json_record().dump(4));
-        }
+        to_install_structured.reserve(m_solution.size());  // Upper bound
+        m_solution.for_each_to_install(
+            [&](const auto& pkg)
+            {
+                to_install_structured.emplace_back(pkg.channel, pkg.fn, pkg.json_record().dump(4));  //
+            }
+        );
 
         to_specs_type specs;
         std::get<0>(specs) = m_history_entry.update;
@@ -728,23 +753,27 @@ namespace mamba
     {
         std::vector<nlohmann::json> to_fetch, to_link, to_unlink;
 
-        for (auto s : m_to_install)
-        {
-            if (!need_pkg_download(s, m_multi_cache))
+        m_solution.for_each_to_install(
+            [&](const auto& pkg)
             {
-                to_link.push_back(s.json_record());
+                if (!need_pkg_download(pkg, m_multi_cache))
+                {
+                    to_link.push_back(pkg.json_record());
+                }
+                else
+                {
+                    to_fetch.push_back(pkg.json_record());
+                    to_link.push_back(pkg.json_record());
+                }
             }
-            else
-            {
-                to_fetch.push_back(s.json_record());
-                to_link.push_back(s.json_record());
-            }
-        }
+        );
 
-        for (auto s : m_to_remove)
-        {
-            to_unlink.push_back(s.json_record());
-        }
+        m_solution.for_each_to_remove(
+            [&](const auto& pkg)
+            {
+                to_unlink.push_back(pkg.json_record());  //
+            }
+        );
 
         auto add_json = [](const auto& jlist, const char* s)
         {
@@ -781,27 +810,32 @@ namespace mamba
             LOG_INFO << "Content trust is enabled, package(s) signatures will be verified";
         }
 
-        for (auto& s : m_to_install)
-        {
-            if (ctx.experimental && ctx.verify_artifacts)
+        m_solution.for_each_to_install(
+            [&](const auto& pkg)
             {
-                const auto& repo_checker = m_pool.channel_context().make_channel(s.channel).repo_checker(
-                    m_multi_cache
+                if (ctx.experimental && ctx.verify_artifacts)
+                {
+                    const auto& repo_checker = m_pool.channel_context()
+                                                   .make_channel(pkg.channel)
+                                                   .repo_checker(m_multi_cache);
+                    repo_checker.verify_package(
+                        pkg.json_signable(),
+                        nlohmann::json::parse(pkg.signatures)
+                    );
+
+                    LOG_DEBUG << "'" << pkg.name << "' trusted from '" << pkg.channel << "'";
+                }
+
+                targets.emplace_back(
+                    std::make_unique<PackageDownloadExtractTarget>(pkg, m_pool.channel_context())
                 );
-                repo_checker.verify_package(s.json_signable(), nlohmann::json::parse(s.signatures));
-
-                LOG_DEBUG << "'" << s.name << "' trusted from '" << s.channel << "'";
+                DownloadTarget* download_target = targets.back()->target(m_multi_cache);
+                if (download_target != nullptr)
+                {
+                    multi_dl.add(download_target);
+                }
             }
-
-            targets.emplace_back(
-                std::make_unique<PackageDownloadExtractTarget>(s, m_pool.channel_context())
-            );
-            DownloadTarget* download_target = targets.back()->target(m_multi_cache);
-            if (download_target != nullptr)
-            {
-                multi_dl.add(download_target);
-            }
-        }
+        );
 
         if (ctx.experimental && ctx.verify_artifacts)
         {
@@ -964,7 +998,7 @@ namespace mamba
 
     bool MTransaction::empty()
     {
-        return m_to_install.size() == 0 && m_to_remove.size() == 0;
+        return m_solution.empty();
     }
 
     bool MTransaction::prompt()

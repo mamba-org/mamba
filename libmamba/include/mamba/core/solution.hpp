@@ -54,6 +54,9 @@ namespace mamba
         Solution(const action_list& actions);
         Solution(action_list&& actions);
 
+        [[nodiscard]] auto empty() const -> bool;
+        [[nodiscard]] auto size() const -> size_type;
+
         [[nodiscard]] auto actions() const -> const action_list&;
         [[nodiscard]] auto actions() -> action_list&;
 

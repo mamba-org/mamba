@@ -18,6 +18,16 @@ namespace mamba
     {
     }
 
+    auto Solution::empty() const -> bool
+    {
+        return actions().empty();
+    }
+
+    auto Solution::size() const -> size_type
+    {
+        return actions().size();
+    }
+
     auto Solution::actions() const -> const action_list&
     {
         return m_actions;

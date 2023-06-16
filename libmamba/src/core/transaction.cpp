@@ -246,8 +246,6 @@ namespace mamba
             m_history_entry.remove = to_string_vec(solver.remove_specs());
         }
 
-        m_force_reinstall = solver.force_reinstall;
-
         init();
         // if no action required, don't even start logging them
         if (!empty())

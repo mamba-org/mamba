@@ -96,8 +96,6 @@ namespace mamba
 
         std::vector<MatchSpec> m_requested_specs;
 
-        bool m_force_reinstall = false;
-
         void init();
         bool filter(const solv::ObjSolvableViewConst& s) const;
 

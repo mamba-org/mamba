@@ -451,7 +451,7 @@ namespace mamba
         );
     }
 
-    bool MTransaction::filter(const solv::ObjSolvableViewConst& s)
+    bool MTransaction::filter(const solv::ObjSolvableViewConst& s) const
     {
         if (m_filter_type == FilterType::none)
         {

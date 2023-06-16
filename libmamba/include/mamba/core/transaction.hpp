@@ -99,7 +99,7 @@ namespace mamba
         bool m_force_reinstall = false;
 
         void init();
-        bool filter(const solv::ObjSolvableViewConst& s);
+        bool filter(const solv::ObjSolvableViewConst& s) const;
 
         auto trans() -> solv::ObjTransaction&;
         auto trans() const -> const solv::ObjTransaction&;

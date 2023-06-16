@@ -114,15 +114,32 @@ TEST_SUITE("ObjPool")
             SUBCASE("Iterate over repos")
             {
                 const auto repo_ids = std::array{ repo1_id, repo2_id, repo3_id };
-                std::size_t n_repos = 0;
-                pool.for_each_repo_id(
-                    [&](RepoId id)
-                    {
-                        CHECK_NE(std::find(repo_ids.cbegin(), repo_ids.cend(), id), repo_ids.cend());
-                        n_repos++;
-                    }
-                );
-                CHECK_EQ(n_repos, pool.repo_count());
+
+                SUBCASE("Over all repos")
+                {
+                    std::size_t n_repos = 0;
+                    pool.for_each_repo_id(
+                        [&](RepoId id)
+                        {
+                            CHECK_NE(std::find(repo_ids.cbegin(), repo_ids.cend(), id), repo_ids.cend());
+                            n_repos++;
+                        }
+                    );
+                    CHECK_EQ(n_repos, pool.repo_count());
+                }
+
+                SUBCASE("Over one repo then break")
+                {
+                    std::size_t n_repos = 0;
+                    pool.for_each_repo_id(
+                        [&](RepoId)
+                        {
+                            n_repos++;
+                            return LoopControl::Break;
+                        }
+                    );
+                    CHECK_EQ(n_repos, 1);
+                }
             }
 
             SUBCASE("Get inexisting repo")
@@ -163,16 +180,32 @@ TEST_SUITE("ObjPool")
                     CHECK(pool.get_solvable(id2).has_value());
                 }
 
-                SUBCASE("Iterate on solvables")
+                SUBCASE("Iterate over solvables")
                 {
-                    std::vector<SolvableId> ids = {};
-                    pool.for_each_solvable_id([&](SolvableId id) { ids.push_back(id); });
-                    std::sort(ids.begin(), ids.end());  // Ease comparsion
-                    CHECK_EQ(ids, decltype(ids){ id1, id2 });
-                    pool.for_each_solvable(
-                        [&](ObjSolvableViewConst s)
-                        { CHECK_NE(std::find(ids.cbegin(), ids.cend(), s.id()), ids.cend()); }
-                    );
+                    SUBCASE("Iterate over all solvables")
+                    {
+                        std::vector<SolvableId> ids = {};
+                        pool.for_each_solvable_id([&](SolvableId id) { ids.push_back(id); });
+                        std::sort(ids.begin(), ids.end());  // Ease comparsion
+                        CHECK_EQ(ids, decltype(ids){ id1, id2 });
+                        pool.for_each_solvable(
+                            [&](ObjSolvableViewConst s)
+                            { CHECK_NE(std::find(ids.cbegin(), ids.cend(), s.id()), ids.cend()); }
+                        );
+                    }
+
+                    SUBCASE("Over one solvable then break")
+                    {
+                        std::size_t n_solvables = 0;
+                        pool.for_each_solvable_id(
+                            [&](RepoId)
+                            {
+                                n_solvables++;
+                                return LoopControl::Break;
+                            }
+                        );
+                        CHECK_EQ(n_solvables, 1);
+                    }
                 }
 
                 SUBCASE("Iterate on installed solvables")

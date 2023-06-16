@@ -30,15 +30,6 @@ namespace mamba
     const char* raw_str_or_empty(const char* ptr);
 
     /**
-     * Return the common substring of two strings by blocks located between the '/' separator,
-     * and considering that the common substring would be located at the end of str1 (search from
-     * left to right).
-     * str1 is considered smaller than (or equal to) str2.
-     * cf. Channels use case.
-     */
-    std::string get_common_substr(std::string_view str1, std::string_view str2);
-
-    /**
      * Safe non utf-8 wrapping of <cctype> (see its doc).
      */
     bool is_control(char c);
@@ -620,6 +611,15 @@ namespace mamba
     {
         return hex_string(buffer, buffer.size());
     }
+
+    /**
+     * Return the common parts of two strings by blocks located between the given sep,
+     * and considering that these common parts would be located at the end of str1 (search from
+     * left to right).
+     * str1 is considered smaller than (or equal to) str2.
+     * cf. Channels use case.
+     */
+    std::string get_common_parts(std::string_view str1, std::string_view str2, std::string_view sep);
 }
 
 #endif

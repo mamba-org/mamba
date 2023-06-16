@@ -540,7 +540,7 @@ namespace mamba
             if (combined_name != name)
             {
                 // Find common string between `name` and `combined_name`
-                auto common_str = get_common_substr(combined_name, name);
+                auto common_str = get_common_parts(combined_name, name, "/");
                 // Combine names properly
                 if (common_str.empty())
                 {

@@ -73,67 +73,48 @@ namespace mamba
 
     void MSolver::add_reinstall_job(MatchSpec& ms, int job_flag)
     {
-        Pool* const pool = m_pool;
-        if (pool->installed == nullptr)
-        {
-            throw std::runtime_error("Did not find any packages marked as installed.");
-        }
+        auto solvable = std::optional<solv::ObjSolvableViewConst>{};
 
-        // 1. check if spec is already installed
-        Id needle = pool_str2id(m_pool, ms.name.c_str(), 0);
-
-        if (needle && (pool->installed != nullptr))
-        {
-            Id pkg_id;
-            Solvable* s;
-            FOR_REPO_SOLVABLES(pool->installed, pkg_id, s)
+        // the data about the channel is only in the prefix_data unfortunately
+        m_pool.pool().for_each_installed_solvable(
+            [&](solv::ObjSolvableViewConst s)
             {
-                if (s->name == needle)
+                if (s.name() == ms.name)
                 {
-                    // the data about the channel is only in the prefix_data unfortunately
-
-                    std::string selected_channel;
-                    if (const char* str = solvable_lookup_str(s, SOLVABLE_PACKAGER))
-                    {
-                        // this is the _full_ url to the file (incl. abc.tar.bz2)
-                        selected_channel = str;
-                    }
-                    else
-                    {
-                        throw std::runtime_error(
-                            "Could not find channel associated with reinstall package"
-                        );
-                    }
-
-                    selected_channel = m_pool.channel_context().make_channel(selected_channel).name();
-
-                    MatchSpec modified_spec(ms);
-                    if (!ms.channel.empty() || !ms.version.empty() || !ms.build_string.empty())
-                    {
-                        Console::stream() << ms.conda_build_form()
-                                          << ": overriding channel, version and build from "
-                                             "installed packages due to --force-reinstall.";
-                        ms.channel = "";
-                        ms.version = "";
-                        ms.build_string = "";
-                    }
-
-                    modified_spec.channel = selected_channel;
-                    modified_spec.version = raw_str_or_empty(pool_id2str(pool, s->evr));
-                    modified_spec.build_string = raw_str_or_empty(
-                        solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR)
-                    );
-                    LOG_INFO << "Reinstall " << modified_spec.conda_build_form() << " from channel "
-                             << selected_channel;
-                    m_jobs->push_back(
-                        job_flag | SOLVER_SOLVABLE_PROVIDES,
-                        m_pool.matchspec2id(modified_spec)
-                    );
-                    return;
+                    solvable = s;
+                    return solv::LoopControl::Break;
                 }
+                return solv::LoopControl::Continue;
             }
+        );
+
+        if (!solvable.has_value() || solvable->channel().empty())
+        {
+            throw std::runtime_error(
+                fmt::format(R"(Could not find any installed package matching "")", ms.str())
+            );
         }
-        m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, m_pool.matchspec2id(ms));
+
+        if (!ms.channel.empty() || !ms.version.empty() || !ms.build_string.empty())
+        {
+            Console::stream() << ms.conda_build_form()
+                              << ": overriding channel, version and build from "
+                                 "installed packages due to --force-reinstall.";
+            ms.channel = "";
+            ms.version = "";
+            ms.build_string = "";
+        }
+
+        MatchSpec modified_spec(ms);
+        modified_spec.channel = m_pool.channel_context()
+                                    .make_channel(std::string(solvable->channel()))
+                                    .name();
+        modified_spec.version = solvable->version();
+        modified_spec.build_string = solvable->build_string();
+
+        LOG_INFO << "Reinstall " << modified_spec.conda_build_form() << " from channel "
+                 << modified_spec.channel;
+        m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, m_pool.matchspec2id(modified_spec));
     }
 
     void MSolver::add_jobs(const std::vector<std::string>& jobs, int job_flag)

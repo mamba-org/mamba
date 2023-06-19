@@ -96,7 +96,6 @@ namespace mamba
 
         std::vector<MatchSpec> m_requested_specs;
 
-        void init();
         bool filter(const solv::ObjSolvableViewConst& s) const;
 
         auto trans() -> solv::ObjTransaction&;

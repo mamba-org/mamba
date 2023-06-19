@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
 #include <iostream>
 #include <stack>
 #include <string>
@@ -30,6 +31,7 @@ extern "C"  // Incomplete header
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_string.hpp"
+#include "mamba/util/flat_set.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
 #include "solv-cpp/repo.hpp"
@@ -83,7 +85,46 @@ namespace mamba
             return out;
         }
 
-        auto transaction_to_solution(const MPool& pool, const solv::ObjTransaction& trans) -> Solution
+        auto specs_names(const MSolver& solver)
+        {
+            // TODO C++20
+            // to_install_names and to_remove_names need not be allocated, only that
+            // flat_set::insert with iterators is more efficient (because it sorts only once).
+            // This could be solved with std::range::transform
+            const auto& to_install_specs = solver.install_specs();
+            auto to_install_names = std::vector<std::string_view>();
+            to_install_names.reserve(to_install_specs.size());
+            std::transform(
+                to_install_specs.cbegin(),
+                to_install_specs.cend(),
+                std::back_inserter(to_install_names),
+                [](const auto& spec) { return spec.name; }
+            );
+
+            const auto& to_remove_specs = solver.remove_specs();
+            auto to_remove_names = std::vector<std::string_view>();
+            to_remove_names.reserve(to_remove_specs.size());
+            std::transform(
+                to_remove_specs.cbegin(),
+                to_remove_specs.cend(),
+                std::back_inserter(to_remove_names),
+                [](const auto& spec) { return spec.name; }
+            );
+
+            auto specs = util::flat_set<std::string>{};
+            specs.reserve(to_install_specs.size() + to_remove_specs.size());
+            specs.insert(to_install_names.cbegin(), to_install_names.cend());
+            specs.insert(to_remove_names.cbegin(), to_remove_names.cend());
+
+            return specs;
+        }
+
+        auto transaction_to_solution(
+            const MPool& pool,
+            const solv::ObjTransaction& trans,
+            const util::flat_set<std::string>& specs = {},
+            bool keep_only = false
+        ) -> Solution
         {
             auto get_pkginfo = [&](solv::SolvableId id)
             {
@@ -107,34 +148,41 @@ namespace mamba
                 {
                     for (const solv::SolvableId id : solv_ids)
                     {
+                        auto pkginfo = get_pkginfo(id);
+                        // keep_only ? specs.contains(...) : !specs.contains(...);
+                        if (keep_only == specs.contains(pkginfo.name))
+                        {
+                            out.push_back(Solution::Omit{ std::move(pkginfo) });
+                            break;
+                        }
                         switch (type)
                         {
                             case SOLVER_TRANSACTION_UPGRADED:
                                 out.push_back(Solution::Upgrade{
-                                    /* .remove= */ get_pkginfo(id),
+                                    /* .remove= */ std::move(pkginfo),
                                     /* .install= */ get_newer_pkginfo(id),
                                 });
                                 break;
                             case SOLVER_TRANSACTION_CHANGED:
                                 out.push_back(Solution::Change{
-                                    /* .remove= */ get_pkginfo(id),
+                                    /* .remove= */ std::move(pkginfo),
                                     /* .install= */ get_newer_pkginfo(id),
                                 });
                                 break;
                             case SOLVER_TRANSACTION_REINSTALLED:
-                                out.push_back(Solution::Reinstall{ get_pkginfo(id) });
+                                out.push_back(Solution::Reinstall{ std::move(pkginfo) });
                                 break;
                             case SOLVER_TRANSACTION_DOWNGRADED:
                                 out.push_back(Solution::Downgrade{
-                                    /* .remove= */ get_pkginfo(id),
+                                    /* .remove= */ std::move(pkginfo),
                                     /* .install= */ get_newer_pkginfo(id),
                                 });
                                 break;
                             case SOLVER_TRANSACTION_ERASE:
-                                out.push_back(Solution::Remove{ get_pkginfo(id) });
+                                out.push_back(Solution::Remove{ std::move(pkginfo) });
                                 break;
                             case SOLVER_TRANSACTION_INSTALL:
-                                out.push_back(Solution::Install{ get_pkginfo(id) });
+                                out.push_back(Solution::Install{ std::move(pkginfo) });
                                 break;
                             case SOLVER_TRANSACTION_IGNORE:
                                 break;
@@ -214,7 +262,8 @@ namespace mamba
         // from the lockfile
         // TODO reload dependency information from ``ctx.target_prefix / "conda-meta"`` after
         // ``fetch_extract_packages`` is called.
-        init();
+
+        m_solution = transaction_to_solution(m_pool, *m_transaction);
 
         for (auto& s : specs_to_remove)
         {
@@ -313,7 +362,6 @@ namespace mamba
             m_history_entry.remove = to_string_vec(solver.remove_specs());
         }
 
-        init();
         // if no action required, don't even start logging them
         if (!empty())
         {
@@ -403,9 +451,21 @@ namespace mamba
                 solv::ObjTransaction::from_solvables(m_pool.pool(), decision)
             );
             trans().order(m_pool.pool());
+        }
 
-            // init everything again...
-            init();
+        const auto& flags = solver.flags();
+        if (flags.keep_specs && flags.keep_dependencies)
+        {
+            m_solution = transaction_to_solution(m_pool, *m_transaction);
+        }
+        else
+        {
+            m_solution = transaction_to_solution(
+                m_pool,
+                *m_transaction,
+                specs_names(solver),
+                !(flags.keep_specs)
+            );
         }
     }
 
@@ -431,7 +491,7 @@ namespace mamba
         );
         trans().order(m_pool.pool());
 
-        init();
+        m_solution = transaction_to_solution(m_pool, *m_transaction);
 
         std::vector<MatchSpec> specs_to_install;
         for (const auto& pkginfo : packages)
@@ -462,11 +522,6 @@ namespace mamba
     {
         assert(m_transaction != nullptr);
         return *m_transaction;
-    }
-
-    void MTransaction::init()
-    {
-        m_solution = transaction_to_solution(m_pool, *m_transaction);
     }
 
     bool MTransaction::filter(const solv::ObjSolvableViewConst& s) const

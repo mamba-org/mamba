@@ -9,11 +9,9 @@ using namespace mamba;  // NOLINT(build/namespaces)
 
 
 void
-set_install_command(CLI::App* subcom)
+set_install_command(CLI::App* subcom, Configuration& config)
 {
-    init_install_options(subcom);
-
-    auto& config = Configuration::instance();
+    init_install_options(subcom, config);
 
     auto& freeze_installed = config.at("freeze_installed");
     subcom->add_flag(
@@ -28,5 +26,5 @@ set_install_command(CLI::App* subcom)
         force_reinstall.description()
     );
 
-    subcom->callback(mamba::install);
+    subcom->callback([&] { return mamba::install(config); });
 }

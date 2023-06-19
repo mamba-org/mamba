@@ -11,9 +11,8 @@
 using namespace mamba;  // NOLINT(build/namespaces)
 
 void
-init_rc_options(CLI::App* subcom)
+init_rc_options(CLI::App* subcom, Configuration& config)
 {
-    auto& config = Configuration::instance();
     std::string cli_group = "Configuration options";
 
     auto& rc_files = config.at("rc_files");
@@ -34,11 +33,10 @@ init_rc_options(CLI::App* subcom)
 
 
 void
-init_general_options(CLI::App* subcom)
+init_general_options(CLI::App* subcom, Configuration& config)
 {
-    init_rc_options(subcom);
+    init_rc_options(subcom, config);
 
-    auto& config = Configuration::instance();
     std::string cli_group = "Global options";
 
     auto& verbose = config.at("verbose");
@@ -105,9 +103,8 @@ init_general_options(CLI::App* subcom)
 }
 
 void
-init_prefix_options(CLI::App* subcom)
+init_prefix_options(CLI::App* subcom, Configuration& config)
 {
-    auto& config = Configuration::instance();
     std::string cli_group = "Prefix options";
 
     auto& root = config.at("root_prefix");
@@ -134,9 +131,8 @@ init_prefix_options(CLI::App* subcom)
 
 
 void
-init_network_options(CLI::App* subcom)
+init_network_options(CLI::App* subcom, Configuration& config)
 {
-    auto& config = Configuration::instance();
     std::string cli_group = "Network options";
 
     auto& ssl_verify = config.at("ssl_verify");
@@ -179,10 +175,9 @@ init_network_options(CLI::App* subcom)
 
 
 void
-init_channel_parser(CLI::App* subcom)
+init_channel_parser(CLI::App* subcom, Configuration& config)
 {
     using string_list = std::vector<std::string>;
-    auto& config = Configuration::instance();
 
     auto& channels = config.at("channels");
     channels.needs({ "override_channels" });
@@ -197,7 +192,8 @@ init_channel_parser(CLI::App* subcom)
             .set_env_var_names()
             .description("Override channels")
             .needs({ "override_channels_enabled" })
-            .set_post_merge_hook(override_channels_hook),
+            .set_post_merge_hook<bool>([&](bool& value)
+                                       { return override_channels_hook(config, value); }),
         true
     );
     subcom->add_flag(
@@ -229,7 +225,8 @@ init_channel_parser(CLI::App* subcom)
         Configurable("strict_channel_priority", false)
             .group("cli")
             .description("Enable strict channel priority")
-            .set_post_merge_hook(strict_channel_priority_hook),
+            .set_post_merge_hook<bool>([&](bool& value)
+                                       { return strict_channel_priority_hook(config, value); }),
         true
     );
     subcom->add_flag(
@@ -242,7 +239,8 @@ init_channel_parser(CLI::App* subcom)
         Configurable("no_channel_priority", false)
             .group("cli")
             .description("Disable channel priority")
-            .set_post_merge_hook(no_channel_priority_hook),
+            .set_post_merge_hook<bool>([&](bool& value)
+                                       { return no_channel_priority_hook(config, value); }),
         true
     );
     subcom->add_flag(
@@ -255,9 +253,8 @@ init_channel_parser(CLI::App* subcom)
 }
 
 void
-override_channels_hook(bool& value)
+override_channels_hook(Configuration& config, bool& value)
 {
-    auto& config = Configuration::instance();
     auto& override_channels = config.at("override_channels");
     auto& channels = config.at("channels");
     bool override_channels_enabled = config.at("override_channels_enabled").value<bool>();
@@ -282,9 +279,8 @@ override_channels_hook(bool& value)
 }
 
 void
-strict_channel_priority_hook(bool&)
+strict_channel_priority_hook(Configuration& config, bool&)
 {
-    auto& config = Configuration::instance();
     auto& channel_priority = config.at("channel_priority");
     auto& strict_channel_priority = config.at("strict_channel_priority");
     auto& no_channel_priority = config.at("no_channel_priority");
@@ -312,9 +308,8 @@ strict_channel_priority_hook(bool&)
 }
 
 void
-no_channel_priority_hook(bool&)
+no_channel_priority_hook(Configuration& config, bool&)
 {
-    auto& config = Configuration::instance();
     auto& channel_priority = config.at("channel_priority");
     auto& no_channel_priority = config.at("no_channel_priority");
     auto& strict_channel_priority = config.at("strict_channel_priority");
@@ -341,15 +336,13 @@ no_channel_priority_hook(bool&)
 }
 
 void
-init_install_options(CLI::App* subcom)
+init_install_options(CLI::App* subcom, Configuration& config)
 {
     using string_list = std::vector<std::string>;
-    init_general_options(subcom);
-    init_prefix_options(subcom);
-    init_network_options(subcom);
-    init_channel_parser(subcom);
-
-    auto& config = Configuration::instance();
+    init_general_options(subcom, config);
+    init_prefix_options(subcom, config);
+    init_network_options(subcom, config);
+    init_channel_parser(subcom, config);
 
     auto& specs = config.at("specs");
     subcom->add_option(

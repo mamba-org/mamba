@@ -159,13 +159,12 @@ namespace
 
     void set_shell_init_command(CLI::App* subsubcmd, Configuration& config)
     {
-        init_general_options(subsubcmd);
+        init_general_options(subsubcmd, config);
         init_shell_option(subsubcmd, config);
         init_root_prefix_option(subsubcmd, config);
         subsubcmd->callback(
-            []()
+            [&config]()
             {
-                auto& config = Configuration::instance();
                 set_default_config_options(config);
                 config.load();
                 shell_init(
@@ -179,13 +178,12 @@ namespace
 
     void set_shell_deinit_command(CLI::App* subsubcmd, Configuration& config)
     {
-        init_general_options(subsubcmd);
+        init_general_options(subsubcmd, config);
         init_shell_option(subsubcmd, config);
         init_root_prefix_option(subsubcmd, config);
         subsubcmd->callback(
-            []()
+            [&config]()
             {
-                auto& config = Configuration::instance();
                 set_default_config_options(config);
                 config.load();
                 shell_deinit(
@@ -199,12 +197,11 @@ namespace
 
     void set_shell_reinit_command(CLI::App* subsubcmd, Configuration& config)
     {
-        init_general_options(subsubcmd);
+        init_general_options(subsubcmd, config);
         init_shell_option(subsubcmd, config);
         subsubcmd->callback(
-            []()
+            [&config]()
             {
-                auto& config = Configuration::instance();
                 set_default_config_options(config);
                 config.load();
                 shell_reinit(Context::instance().prefix_params.root_prefix);
@@ -215,13 +212,12 @@ namespace
 
     void set_shell_hook_command(CLI::App* subsubcmd, Configuration& config)
     {
-        init_general_options(subsubcmd);
+        init_general_options(subsubcmd, config);
         init_shell_option(subsubcmd, config);
         init_root_prefix_option(subsubcmd, config);  // FIXME not used here set in CLI scripts
         subsubcmd->callback(
-            []()
+            [&config]()
             {
-                auto& config = Configuration::instance();
                 set_default_config_options(config);
                 config.load();
                 shell_hook(consolidate_shell(config.at("shell_type").compute().value<std::string>()));
@@ -232,15 +228,14 @@ namespace
 
     void set_shell_activate_command(CLI::App* subsubcmd, Configuration& config)
     {
-        init_general_options(subsubcmd);
+        init_general_options(subsubcmd, config);
         init_shell_option(subsubcmd, config);
         init_prefix_options(subsubcmd, config);
         init_stack_option(subsubcmd, config);
 
         subsubcmd->callback(
-            []()
+            [&config]()
             {
-                auto& config = Configuration::instance();
                 set_default_config_options(config);
                 consolidate_prefix_options(config);
                 config.load();
@@ -256,12 +251,11 @@ namespace
 
     void set_shell_reactivate_command(CLI::App* subsubcmd, Configuration& config)
     {
-        init_general_options(subsubcmd);
+        init_general_options(subsubcmd, config);
         init_shell_option(subsubcmd, config);
         subsubcmd->callback(
-            []()
+            [&config]()
             {
-                auto& config = Configuration::instance();
                 set_default_config_options(config);
                 config.load();
                 shell_reactivate(
@@ -274,12 +268,11 @@ namespace
 
     void set_shell_deactivate_command(CLI::App* subsubcmd, Configuration& config)
     {
-        init_general_options(subsubcmd);
+        init_general_options(subsubcmd, config);
         init_shell_option(subsubcmd, config);
         subsubcmd->callback(
-            []()
+            [&config]()
             {
-                auto& config = Configuration::instance();
                 set_default_config_options(config);
                 config.load();
                 shell_deactivate(config.at("shell_type").compute().value<std::string>());
@@ -288,13 +281,12 @@ namespace
         );
     }
 
-    void set_shell_long_path_command(CLI::App* subsubcmd)
+    void set_shell_long_path_command(CLI::App* subsubcmd, mamba::Configuration& config)
     {
-        init_general_options(subsubcmd);
+        init_general_options(subsubcmd, config);
         subsubcmd->callback(
-            []()
+            [&config]()
             {
-                auto& config = Configuration::instance();
                 set_default_config_options(config);
                 config.load();
                 shell_enable_long_path_support();
@@ -308,16 +300,17 @@ namespace
      ***********************/
 
     template <typename Arr>
-    void set_shell_launch_command(CLI::App* subcmd, const Arr& all_subsubcmds, Configuration& config)
+    void
+    set_shell_launch_command(CLI::App* subcmd, const Arr& all_subsubcmds, mamba::Configuration& config)
     {
         // The initial parser had the subcmdmand as an action so both
         // ``micromamba shell init --shell bash`` and ``micromamba shell --shell bash init`` were
         // allowed.
-        init_general_options(subcmd);
+        init_general_options(subcmd, config);
         init_prefix_options(subcmd, config);
 
         subcmd->callback(
-            [all_subsubcmds]()
+            [all_subsubcmds, &config]()
             {
                 bool const got_subsubcmd = std::any_of(
                     all_subsubcmds.cbegin(),
@@ -328,7 +321,6 @@ namespace
                 // because this callback may be greedily executed, even with a sub sub command.
                 if (!got_subsubcmd)
                 {
-                    auto& config = Configuration::instance();
                     set_default_config_options(config);
                     consolidate_prefix_options(config);
                     config.load();
@@ -363,10 +355,8 @@ namespace
 }
 
 void
-set_shell_command(CLI::App* shell_subcmd)
+set_shell_command(CLI::App* shell_subcmd, Configuration& config)
 {
-    auto& config = Configuration::instance();
-
     auto* init_subsubcmd = shell_subcmd->add_subcommand(
         "init",
         "Add initialization in script to rc files"
@@ -410,7 +400,7 @@ set_shell_command(CLI::App* shell_subcmd)
         "enable_long_path_support",
         "Output deactivation code for the given shell"
     );
-    set_shell_long_path_command(long_path_subsubcmd);
+    set_shell_long_path_command(long_path_subsubcmd, config);
 
     // `micromamba shell` is used to launch a new shell
     // TODO micromamba 2.0 rename this command (e.g. start-shell) or the other to avoid

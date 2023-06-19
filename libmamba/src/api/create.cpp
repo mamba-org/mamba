@@ -14,10 +14,9 @@
 
 namespace mamba
 {
-    void create()
+    void create(Configuration& config)
     {
         auto& ctx = Context::instance();
-        auto& config = Configuration::instance();
 
         config.at("use_target_prefix_fallback").set_value(false);
         config.at("target_prefix_checks")
@@ -79,7 +78,7 @@ namespace mamba
             install_lockfile_specs(
                 channel_context,
                 lockfile_path,
-                Configuration::instance().at("categories").value<std::vector<std::string>>(),
+                config.at("categories").value<std::vector<std::string>>(),
                 true
             );
         }
@@ -91,11 +90,9 @@ namespace mamba
             }
             else
             {
-                install_specs(channel_context, create_specs, true);
+                install_specs(channel_context, config, create_specs, true);
             }
         }
-
-        config.operation_teardown();
     }
 
     namespace detail

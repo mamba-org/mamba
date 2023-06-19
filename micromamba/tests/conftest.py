@@ -73,7 +73,10 @@ def tmp_home(
     # Pytest would clean it automatically but this can be large (0.5 Gb for repodata)
     # We clean it explicitly
     if not request.config.getoption("--no-eager-clean"):
-        helpers.rmtree(new_home)
+        try:
+            helpers.rmtree(new_home)
+        except PermissionError:
+            pass
 
 
 @pytest.fixture

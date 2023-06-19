@@ -641,4 +641,47 @@ namespace mamba
         }
 
     }
+
+    /********************************************************
+     *  Implementation of Channels use case util function   *
+     *******************************************************/
+
+    std::string get_common_parts(std::string_view str1, std::string_view str2, std::string_view sep)
+    {
+        std::string common_str{ str1 };
+        while ((str2.find(common_str) == std::string::npos))
+        {
+            if (common_str.find(sep) != std::string::npos)
+            {
+                common_str = common_str.substr(common_str.find(sep) + 1);
+            }
+            else
+            {
+                return "";
+            }
+        }
+
+        // Case of non empty common_str
+        // Check that subparts of common_str are not substrings of elements between the sep
+        auto vec1 = split(common_str, sep);
+        auto vec2 = split(str2, sep);
+        std::vector<std::string> res_vec;
+        for (std::size_t idx = 0; idx < vec1.size(); ++idx)
+        {
+            auto it = std::find(vec2.begin(), vec2.end(), vec1.at(idx));
+            if (it != vec2.end())
+            {
+                res_vec.emplace_back(vec1.at(idx));
+            }
+            else
+            {
+                if (idx != 0)
+                {
+                    return join(sep, res_vec);
+                }
+            }
+        }
+
+        return join(sep, res_vec);
+    }
 }

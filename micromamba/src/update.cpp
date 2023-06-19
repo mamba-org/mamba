@@ -23,9 +23,8 @@
 using namespace mamba;  // NOLINT(build/namespaces)
 
 int
-update_self(const std::optional<std::string>& version)
+update_self(Configuration& config, const std::optional<std::string>& version)
 {
-    auto& config = mamba::Configuration::instance();
     auto& ctx = mamba::Context::instance();
     config.load();
 
@@ -164,11 +163,9 @@ update_self(const std::optional<std::string>& version)
 
 
 void
-set_update_command(CLI::App* subcom)
+set_update_command(CLI::App* subcom, Configuration& config)
 {
-    Configuration::instance();
-
-    init_install_options(subcom);
+    init_install_options(subcom, config);
 
     static bool prune = true;
     static bool update_all = false;
@@ -177,18 +174,16 @@ set_update_command(CLI::App* subcom)
     subcom->get_option("specs")->description("Specs to update in the environment");
     subcom->add_flag("-a,--all", update_all, "Update all packages in the environment");
 
-    subcom->callback([&] { return update(update_all, prune); });
+    subcom->callback([&] { return update(config, update_all, prune); });
 }
 
 void
-set_self_update_command(CLI::App* subcom)
+set_self_update_command(CLI::App* subcom, Configuration& config)
 {
-    Configuration::instance();
-
-    init_install_options(subcom);
+    init_install_options(subcom, config);
 
     static std::optional<std::string> version;
     subcom->add_option("--version", version, "Install specific micromamba version");
 
-    subcom->callback([&] { return update_self(version); });
+    subcom->callback([&] { return update_self(config, version); });
 }

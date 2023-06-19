@@ -134,9 +134,9 @@ set_ps_command(CLI::App* subcom)
 }
 
 void
-set_run_command(CLI::App* subcom)
+set_run_command(CLI::App* subcom, Configuration& config)
 {
-    init_prefix_options(subcom);
+    init_prefix_options(subcom, config);
 
     static std::string streams;
     CLI::Option* stream_option = subcom
@@ -176,9 +176,8 @@ set_run_command(CLI::App* subcom)
     static reproc::process proc;
 
     subcom->callback(
-        [subcom, stream_option]()
+        [&config, subcom, stream_option]()
         {
-            auto& config = Configuration::instance();
             config.load();
 
             std::vector<std::string> command = subcom->remaining();

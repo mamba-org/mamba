@@ -81,7 +81,6 @@ namespace mamba
 
         // 1. check if spec is already installed
         Id needle = pool_str2id(m_pool, ms.name.c_str(), 0);
-        static Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
 
         if (needle && (pool->installed != nullptr))
         {
@@ -94,10 +93,10 @@ namespace mamba
                     // the data about the channel is only in the prefix_data unfortunately
 
                     std::string selected_channel;
-                    if (solvable_lookup_str(s, real_repo_key))
+                    if (const char* str = solvable_lookup_str(s, SOLVABLE_PACKAGER))
                     {
                         // this is the _full_ url to the file (incl. abc.tar.bz2)
-                        selected_channel = solvable_lookup_str(s, real_repo_key);
+                        selected_channel = str;
                     }
                     else
                     {

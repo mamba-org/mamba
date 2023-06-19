@@ -18,9 +18,8 @@
 using namespace mamba;  // NOLINT(build/namespaces)
 
 bool
-is_valid_rc_key(const std::string& key)
+is_valid_rc_key(const mamba::Configuration& config, const std::string& key)
 {
-    auto& config = Configuration::instance();
     try
     {
         return config.config().at(key).rc_configurable();
@@ -32,12 +31,11 @@ is_valid_rc_key(const std::string& key)
 }
 
 bool
-is_valid_rc_sequence(const std::string& key, const std::string& value)
+is_valid_rc_sequence(const mamba::Configuration& config, const std::string& key, const std::string& value)
 {
-    auto& config = Configuration::instance();
     try
     {
-        auto& c = config.config().at(key);
+        const auto& c = config.config().at(key);
         return c.is_valid_serialization(value) && c.rc_configurable() && c.is_sequence();
     }
     catch (const std::out_of_range& /*e*/)
@@ -54,9 +52,8 @@ get_system_path()
 }
 
 fs::u8path
-compute_config_path(bool touch_if_not_exists)
+compute_config_path(Configuration& config, bool touch_if_not_exists)
 {
-    auto& config = Configuration::instance();
     auto& ctx = Context::instance();
 
     auto& file_path = config.at("config_set_file_path");
@@ -94,17 +91,15 @@ compute_config_path(bool touch_if_not_exists)
 }
 
 void
-init_config_options(CLI::App* subcom)
+init_config_options(CLI::App* subcom, mamba::Configuration& config)
 {
-    init_general_options(subcom);
-    init_prefix_options(subcom);
+    init_general_options(subcom, config);
+    init_prefix_options(subcom, config);
 }
 
 void
-init_config_describe_options(CLI::App* subcom)
+init_config_describe_options(CLI::App* subcom, mamba::Configuration& config)
 {
-    auto& config = Configuration::instance();
-
     auto& specs = config.at("specs");
     subcom->add_option("configs", specs.get_cli_config<std::vector<std::string>>(), "Configuration keys");
 
@@ -120,12 +115,10 @@ init_config_describe_options(CLI::App* subcom)
 }
 
 void
-init_config_list_options(CLI::App* subcom)
+init_config_list_options(CLI::App* subcom, mamba::Configuration& config)
 {
-    init_config_options(subcom);
-    init_config_describe_options(subcom);
-
-    auto& config = Configuration::instance();
+    init_config_options(subcom, config);
+    init_config_describe_options(subcom, config);
 
     auto& show_sources = config.at("show_config_sources");
     subcom->add_flag("-s,--sources", show_sources.get_cli_config<bool>(), show_sources.description());
@@ -142,52 +135,50 @@ init_config_list_options(CLI::App* subcom)
 }
 
 void
-set_config_list_command(CLI::App* subcom)
+set_config_list_command(CLI::App* subcom, mamba::Configuration& config)
 {
-    init_config_list_options(subcom);
+    init_config_list_options(subcom, config);
 
     subcom->callback(
         [&]()
         {
-            config_list();
+            config_list(config);
             return 0;
         }
     );
 }
 
 void
-set_config_sources_command(CLI::App* subcom)
+set_config_sources_command(CLI::App* subcom, mamba::Configuration& config)
 {
-    init_config_options(subcom);
+    init_config_options(subcom, config);
 
     subcom->callback(
         [&]()
         {
-            config_sources();
+            config_sources(config);
             return 0;
         }
     );
 }
 
 void
-set_config_describe_command(CLI::App* subcom)
+set_config_describe_command(CLI::App* subcom, mamba::Configuration& config)
 {
-    init_config_describe_options(subcom);
+    init_config_describe_options(subcom, config);
 
     subcom->callback(
-        [&]()
+        [&]
         {
-            config_describe();
+            config_describe(config);
             return 0;
         }
     );
 }
 
 void
-set_config_path_command(CLI::App* subcom)
+set_config_path_command(CLI::App* subcom, mamba::Configuration& config)
 {
-    auto& config = Configuration::instance();
-
     auto& system_path = config.insert(
         Configurable("config_set_system_path", false)
             .group("cli")
@@ -229,12 +220,11 @@ enum class SequenceAddType
 };
 
 void
-set_config_sequence_command(CLI::App* subcom)
+set_config_sequence_command(CLI::App* subcom, mamba::Configuration& config)
 {
-    set_config_path_command(subcom);
+    set_config_path_command(subcom, config);
 
     using config_set_sequence_type = std::vector<std::pair<std::string, std::string>>;
-    auto& config = Configuration::instance();
     auto& specs = config.insert(
         Configurable("config_set_sequence_spec", config_set_sequence_type({}))
             .group("Output, Prompt and Flow Control")
@@ -248,15 +238,16 @@ set_config_sequence_command(CLI::App* subcom)
 
 void
 set_sequence_to_yaml(
+    mamba::Configuration& config,
     YAML::Node& node,
     const std::string& key,
     const std::string& value,
     const SequenceAddType& opt
 )
 {
-    if (!is_valid_rc_sequence(key, value))
+    if (!is_valid_rc_sequence(config, key, value))
     {
-        if (!is_valid_rc_key(key))
+        if (!is_valid_rc_key(config, key))
         {
             LOG_ERROR << "Invalid key '" << key << "' or not rc configurable";
         }
@@ -303,10 +294,8 @@ set_sequence_to_yaml(
 }
 
 void
-set_sequence_to_rc(const SequenceAddType& opt)
+set_sequence_to_rc(mamba::Configuration& config, const SequenceAddType& opt)
 {
-    auto& config = Configuration::instance();
-
     config.at("use_target_prefix_fallback").set_value(true);
     config.at("target_prefix_checks")
         .set_value(
@@ -318,12 +307,12 @@ set_sequence_to_rc(const SequenceAddType& opt)
     auto specs = config.at("config_set_sequence_spec")
                      .value<std::vector<std::pair<std::string, std::string>>>();
 
-    fs::u8path rc_source = compute_config_path(true);
+    fs::u8path rc_source = compute_config_path(config, true);
 
     YAML::Node node = YAML::LoadFile(rc_source.string());
     for (auto& pair : specs)
     {
-        set_sequence_to_yaml(node, pair.first, pair.second, opt);
+        set_sequence_to_yaml(config, node, pair.first, pair.second, opt);
     }
 
     std::ofstream rc_file = open_ofstream(rc_source, std::ofstream::in | std::ofstream::trunc);
@@ -333,27 +322,25 @@ set_sequence_to_rc(const SequenceAddType& opt)
 }
 
 void
-set_config_prepend_command(CLI::App* subcom)
+set_config_prepend_command(CLI::App* subcom, mamba::Configuration& config)
 {
-    set_config_sequence_command(subcom);
+    set_config_sequence_command(subcom, config);
     subcom->get_option("specs")->description("Add value at the beginning of a configurable sequence");
-    subcom->callback([&]() { set_sequence_to_rc(SequenceAddType::kPrepend); });
+    subcom->callback([&] { set_sequence_to_rc(config, SequenceAddType::kPrepend); });
 }
 
 void
-set_config_append_command(CLI::App* subcom)
+set_config_append_command(CLI::App* subcom, mamba::Configuration& config)
 {
-    set_config_sequence_command(subcom);
+    set_config_sequence_command(subcom, config);
     subcom->get_option("specs")->description("Add value at the end of a configurable sequence");
-    subcom->callback([&]() { set_sequence_to_rc(SequenceAddType::kAppend); });
+    subcom->callback([&] { set_sequence_to_rc(config, SequenceAddType::kAppend); });
 }
 
 void
-set_config_remove_key_command(CLI::App* subcom)
+set_config_remove_key_command(CLI::App* subcom, mamba::Configuration& config)
 {
-    set_config_path_command(subcom);
-
-    auto& config = Configuration::instance();
+    set_config_path_command(subcom, config);
 
     auto& remove_key = config.insert(Configurable("remove_key", std::string(""))
                                          .group("Output, Prompt and Flow Control")
@@ -371,7 +358,7 @@ set_config_remove_key_command(CLI::App* subcom)
                 );
             config.load();
 
-            const fs::u8path rc_source = compute_config_path(false);
+            const fs::u8path rc_source = compute_config_path(config, false);
 
             bool key_removed = false;
             // convert rc file to YAML::Node
@@ -404,13 +391,11 @@ set_config_remove_key_command(CLI::App* subcom)
 }
 
 void
-set_config_remove_command(CLI::App* subcom)
+set_config_remove_command(CLI::App* subcom, mamba::Configuration& config)
 {
     using string_list = std::vector<std::string>;
     // have to check if a string is a vector
-    set_config_path_command(subcom);
-
-    auto& config = Configuration::instance();
+    set_config_path_command(subcom, config);
 
     auto& remove_vec_map = config.insert(
         Configurable("remove", std::vector<std::string>())
@@ -426,7 +411,7 @@ set_config_remove_command(CLI::App* subcom)
     );
 
     subcom->callback(
-        [&]()
+        [&]
         {
             config.at("use_target_prefix_fallback").set_value(true);
             config.at("target_prefix_checks")
@@ -436,7 +421,7 @@ set_config_remove_command(CLI::App* subcom)
                 );
             config.load();
 
-            const fs::u8path rc_source = compute_config_path(false);
+            const fs::u8path rc_source = compute_config_path(config, false);
             bool key_removed = false;
 
             const string_list& rvm = remove_vec_map.value<string_list>();
@@ -491,12 +476,10 @@ set_config_remove_command(CLI::App* subcom)
 }
 
 void
-set_config_set_command(CLI::App* subcom)
+set_config_set_command(CLI::App* subcom, mamba::Configuration& config)
 {
     using string_list = std::vector<std::string>;
-    set_config_path_command(subcom);
-
-    auto& config = Configuration::instance();
+    set_config_path_command(subcom, config);
 
     auto& set_value = config.insert(Configurable("set_value", std::vector<std::string>({}))
                                         .group("Output, Prompt and Flow Control")
@@ -505,7 +488,7 @@ set_config_set_command(CLI::App* subcom)
 
 
     subcom->callback(
-        [&]()
+        [&]
         {
             config.at("use_target_prefix_fallback").set_value(true);
             config.at("target_prefix_checks")
@@ -515,12 +498,12 @@ set_config_set_command(CLI::App* subcom)
                 );
             config.load();
 
-            const fs::u8path rc_source = compute_config_path(true);
+            const fs::u8path rc_source = compute_config_path(config, true);
 
             YAML::Node rc_YAML = YAML::LoadFile(rc_source.string());
 
             const string_list& sv = set_value.value<string_list>();
-            if (is_valid_rc_key(sv.at(0)) && sv.size() < 3)
+            if (is_valid_rc_key(config, sv.at(0)) && sv.size() < 3)
             {
                 rc_YAML[sv.at(0)] = sv.at(1);
             }
@@ -539,11 +522,9 @@ set_config_set_command(CLI::App* subcom)
 }
 
 void
-set_config_get_command(CLI::App* subcom)
+set_config_get_command(CLI::App* subcom, mamba::Configuration& config)
 {
-    set_config_path_command(subcom);
-
-    auto& config = Configuration::instance();
+    set_config_path_command(subcom, config);
 
     // TODO: get_value should be a vector of strings
     auto& get_value = config.insert(Configurable("get_value", std::string(""))
@@ -552,7 +533,7 @@ set_config_get_command(CLI::App* subcom)
     subcom->add_option("get_value", get_value.get_cli_config<std::string>(), get_value.description());
 
     subcom->callback(
-        [&]()
+        [&]
         {
             config.at("use_target_prefix_fallback").set_value(true);
             config.at("target_prefix_checks")
@@ -562,7 +543,7 @@ set_config_get_command(CLI::App* subcom)
                 );
             config.load();
 
-            fs::u8path rc_source = compute_config_path(false);
+            fs::u8path rc_source = compute_config_path(config, false);
 
             bool value_found = false;
 
@@ -591,46 +572,46 @@ set_config_get_command(CLI::App* subcom)
 }
 
 void
-set_config_command(CLI::App* subcom)
+set_config_command(CLI::App* subcom, mamba::Configuration& config)
 {
-    init_config_options(subcom);
+    init_config_options(subcom, config);
 
     auto list_subcom = subcom->add_subcommand("list", "List configuration values");
-    set_config_list_command(list_subcom);
+    set_config_list_command(list_subcom, config);
 
     auto sources_subcom = subcom->add_subcommand("sources", "Show configuration sources");
-    set_config_sources_command(sources_subcom);
+    set_config_sources_command(sources_subcom, config);
 
     auto describe_subcom = subcom->add_subcommand("describe", "Describe given configuration parameters");
-    set_config_describe_command(describe_subcom);
+    set_config_describe_command(describe_subcom, config);
 
     auto prepend_subcom = subcom->add_subcommand(
         "prepend",
         "Add one configuration value to the beginning of a list key"
     );
-    set_config_prepend_command(prepend_subcom);
+    set_config_prepend_command(prepend_subcom, config);
 
     auto append_subcom = subcom->add_subcommand(
         "append",
         "Add one configuration value to the end of a list key"
     );
-    set_config_append_command(append_subcom);
+    set_config_append_command(append_subcom, config);
 
     auto remove_key_subcom = subcom->add_subcommand(
         "remove-key",
         "Remove a configuration key and its values"
     );
-    set_config_remove_key_command(remove_key_subcom);
+    set_config_remove_key_command(remove_key_subcom, config);
 
     auto remove_subcom = subcom->add_subcommand(
         "remove",
         "Remove a configuration value from a list key. This removes all instances of the value."
     );
-    set_config_remove_command(remove_subcom);
+    set_config_remove_command(remove_subcom, config);
 
     auto set_subcom = subcom->add_subcommand("set", "Set a configuration value");
-    set_config_set_command(set_subcom);
+    set_config_set_command(set_subcom, config);
 
     auto get_subcom = subcom->add_subcommand("get", "Get a configuration value");
-    set_config_get_command(get_subcom);
+    set_config_get_command(get_subcom, config);
 }

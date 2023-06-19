@@ -117,6 +117,7 @@ namespace mambapy
     struct Singletons
     {
         mamba::ChannelContext channel_context;
+        mamba::Configuration config;
     };
 
     Singletons& singletons()
@@ -960,7 +961,7 @@ PYBIND11_MODULE(bindings, m)
             }
         );
 
-    m.def("clean", &clean);
+    m.def("clean", [](int flags) { return clean(mambapy::singletons().config, flags); });
 
     m.def(
         "get_channels",

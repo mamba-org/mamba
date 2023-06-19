@@ -34,6 +34,7 @@ int
 main(int argc, char** argv)
 {
     mamba::MainExecutor scoped_threads;
+    mamba::Configuration config;
 
     init_console();
     auto& ctx = Context::instance();
@@ -41,7 +42,7 @@ main(int argc, char** argv)
     ctx.command_params.is_micromamba = true;
 
     CLI::App app{ "Version: " + version() + "\n" };
-    set_umamba_command(&app);
+    set_umamba_command(&app, config);
 
     char** utf8argv;
 
@@ -66,7 +67,7 @@ main(int argc, char** argv)
 
     if (argc >= 2 && strcmp(argv[1], "completer") == 0)
     {
-        get_completions(&app, argc, utf8argv);
+        get_completions(&app, config, argc, utf8argv);
         reset_console();
         return 0;
     }
@@ -88,13 +89,13 @@ main(int argc, char** argv)
         CLI11_PARSE(app, argc, utf8argv);
         if (app.get_subcommands().size() == 0)
         {
-            Configuration::instance().load();
+            config.load();
             Console::instance().print(app.help());
         }
         if (app.got_subcommand("config")
             && app.get_subcommand("config")->get_subcommands().size() == 0)
         {
-            Configuration::instance().load();
+            config.load();
             Console::instance().print(app.get_subcommand("config")->help());
         }
     }

@@ -16,7 +16,7 @@
 
 namespace mamba
 {
-    void update(bool update_all = false, bool prune = false);
+    void update(Configuration& config, bool update_all = false, bool prune = false);
 }
 
 #endif

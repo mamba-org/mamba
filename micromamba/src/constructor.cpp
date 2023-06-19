@@ -20,10 +20,8 @@
 using namespace mamba;  // NOLINT(build/namespaces)
 
 void
-init_constructor_parser(CLI::App* subcom)
+init_constructor_parser(CLI::App* subcom, Configuration& config)
 {
-    auto& config = Configuration::instance();
-
     auto& prefix = config.insert(Configurable("constructor_prefix", fs::u8path(""))
                                      .group("cli")
                                      .description("Extract the conda pkgs in <prefix>/pkgs"));
@@ -51,29 +49,27 @@ init_constructor_parser(CLI::App* subcom)
 }
 
 void
-set_constructor_command(CLI::App* subcom)
+set_constructor_command(CLI::App* subcom, mamba::Configuration& config)
 {
-    init_constructor_parser(subcom);
+    init_constructor_parser(subcom, config);
 
     subcom->callback(
-        []
+        [&config]
         {
-            auto& c = Configuration::instance();
-
-            auto& prefix = c.at("constructor_prefix").compute().value<fs::u8path>();
-            auto& extract_conda_pkgs = c.at("constructor_extract_conda_pkgs").compute().value<bool>();
-            auto& extract_tarball = c.at("constructor_extract_tarball").compute().value<bool>();
-            construct(prefix, extract_conda_pkgs, extract_tarball);
+            auto& prefix = config.at("constructor_prefix").compute().value<fs::u8path>();
+            auto& extract_conda_pkgs = config.at("constructor_extract_conda_pkgs")
+                                           .compute()
+                                           .value<bool>();
+            auto& extract_tarball = config.at("constructor_extract_tarball").compute().value<bool>();
+            construct(config, prefix, extract_conda_pkgs, extract_tarball);
         }
     );
 }
 
 
 void
-construct(const fs::u8path& prefix, bool extract_conda_pkgs, bool extract_tarball)
+construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pkgs, bool extract_tarball)
 {
-    auto& config = Configuration::instance();
-
     config.at("use_target_prefix_fallback").set_value(true);
     config.at("target_prefix_checks")
         .set_value(

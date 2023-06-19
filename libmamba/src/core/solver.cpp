@@ -19,10 +19,8 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
-#include "mamba/core/repo.hpp"
 #include "mamba/core/satisfiability_error.hpp"
 #include "mamba/core/solver.hpp"
-#include "mamba/core/util_string.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
 #include "solv-cpp/solver.hpp"
@@ -115,7 +113,7 @@ namespace mamba
         LOG_INFO << "Reinstall " << modified_spec.conda_build_form() << " from channel "
                  << modified_spec.channel;
         // TODO Fragile! The only reason why this works is that with a channel specific matchspec
-        // the job will always eb reinstalled.
+        // the job will always be reinstalled.
         m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, m_pool.matchspec2id(modified_spec));
     }
 
@@ -204,44 +202,35 @@ namespace mamba
         const auto pin_ms = MatchSpec{ pin, m_pool.channel_context() };
         m_pinned_specs.push_back(pin_ms);
 
-        ::Pool* pool = m_pool;
-        ::Repo* const installed_repo = pool->installed;
-
-        if (pool->disttype != DISTTYPE_CONDA)
+        auto& pool = m_pool.pool();
+        if (pool.disttype() != DISTTYPE_CONDA)
         {
             throw std::runtime_error("Cannot add pin to a pool that is not of Conda distype");
         }
-        if (installed_repo == nullptr)
+        auto installed = pool.installed_repo();
+        if (!installed.has_value())
         {
             throw std::runtime_error("Cannot add pin without a repo of installed packages");
         }
 
         // Add dummy solvable with a constraint on the pin (not installed if not present)
-        ::Id const cons_solv_id = repo_add_solvable(installed_repo);
-        ::Solvable* const cons_solv = pool_id2solvable(pool, cons_solv_id);
+        auto [cons_solv_id, cons_solv] = installed->add_solvable();
         // TODO set some "pin" key on the solvable so that we can retrieve it during error messages
         std::string const cons_solv_name = fmt::format("pin-{}", m_pinned_specs.size());
-        solvable_set_str(cons_solv, SOLVABLE_NAME, cons_solv_name.c_str());
-        solvable_set_str(cons_solv, SOLVABLE_EVR, "1");
-        ::Id const pin_ms_id = m_pool.matchspec2id(pin_ms);
-        solv::ObjQueue q = { pin_ms_id };
-        solvable_add_idarray(cons_solv, SOLVABLE_CONSTRAINS, pin_ms_id);
+        cons_solv.set_name(cons_solv_name);
+        cons_solv.set_version("1");
+        cons_solv.add_constraints(solv::ObjQueue{ m_pool.matchspec2id(pin_ms) });
+
         // Solvable need to provide itself
-        cons_solv->provides = repo_addid_dep(
-            installed_repo,
-            cons_solv->provides,
-            pool_rel2id(pool, cons_solv->name, cons_solv->evr, REL_EQ, 1),
-            0
-        );
+        cons_solv.add_self_provide();
 
         // Necessary for attributes to be properly stored
-        repo_internalize(installed_repo);
+        installed->internalize();
 
         // Lock the dummy solvable so that it stays install.
-        add_jobs({ cons_solv_name }, SOLVER_LOCK);
-        // Force check the dummy solvable dependencies, as this is not the default for
-        // installed packges.
-        add_jobs({ cons_solv_name }, SOLVER_VERIFY);
+        // Force verify the dummy solvable dependencies, as this is not the default for
+        // installed packages.
+        return add_jobs({ cons_solv_name }, SOLVER_LOCK & SOLVER_VERIFY);
     }
 
     void MSolver::add_pins(const std::vector<std::string>& pins)

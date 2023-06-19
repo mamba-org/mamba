@@ -192,9 +192,9 @@ namespace mamba
         );
         trans().order(pool);
 
-        if (solver.no_deps || solver.only_deps)
+        if (!solver.flags().keep_dependencies || !solver.flags().keep_specs)
         {
-            m_filter_type = solver.only_deps ? FilterType::keep_only : FilterType::ignore;
+            m_filter_type = !(solver.flags().keep_specs) ? FilterType::keep_only : FilterType::ignore;
             for (auto& s : solver.install_specs())
             {
                 m_filter_name_ids.insert(pool.add_string(s.name));
@@ -205,7 +205,7 @@ namespace mamba
             }
         }
 
-        if (solver.only_deps)
+        if (!solver.flags().keep_specs)
         {
             for (const solv::SolvableId r : trans().steps())
             {

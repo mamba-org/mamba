@@ -25,9 +25,9 @@
 
 #include "match_spec.hpp"
 
-#define MAMBA_NO_DEPS 0b0001
-#define MAMBA_ONLY_DEPS 0b0010
-#define MAMBA_FORCE_REINSTALL 0b0100
+#define PY_MAMBA_NO_DEPS 0b0001
+#define PY_MAMBA_ONLY_DEPS 0b0010
+#define PY_MAMBA_FORCE_REINSTALL 0b0100
 
 extern "C"
 {
@@ -60,6 +60,16 @@ namespace mamba
     {
     public:
 
+        struct Flags
+        {
+            /** Keep the dependencies of the install package in the solution. */
+            bool keep_dependencies = true;
+            /** Keep the original required package in the solution. */
+            bool keep_specs = true;
+            /** Force reinstallation of jobs. */
+            bool force_reinstall = false;
+        };
+
         MSolver(MPool pool, std::vector<std::pair<int, int>> flags = {});
         ~MSolver();
 
@@ -74,8 +84,11 @@ namespace mamba
         void add_pin(const std::string& pin);
         void add_pins(const std::vector<std::string>& pins);
 
-        void set_postsolve_flags(const std::vector<std::pair<int, int>>& flags);
+        [[deprecated]] void py_set_postsolve_flags(const std::vector<std::pair<int, int>>& flags);
 
+        void set_flags(const Flags& flags);
+        [[nodiscard]] auto flags() const -> const Flags&;
+        [[nodiscard]] auto flags() -> Flags&;
         void set_libsolv_flags(const std::vector<std::pair<int, int>>& flags);
         [[nodiscard]] auto libsolv_flags() const -> const std::vector<std::pair<int, int>>&;
         [[nodiscard]] auto libsolv_flags() -> std::vector<std::pair<int, int>>&;
@@ -106,10 +119,6 @@ namespace mamba
         auto solver() -> solv::ObjSolver&;
         auto solver() const -> const solv::ObjSolver&;
 
-        bool only_deps = false;
-        bool no_deps = false;
-        bool force_reinstall = false;
-
     private:
 
         std::vector<std::pair<int, int>> m_libsolv_flags;
@@ -117,12 +126,13 @@ namespace mamba
         std::vector<MatchSpec> m_remove_specs;
         std::vector<MatchSpec> m_neuter_specs;
         std::vector<MatchSpec> m_pinned_specs;
-        bool m_is_solved;
         // Order of m_pool and m_solver is critical since m_pool must outlive m_solver.
         MPool m_pool;
         // Temporary Pimpl all libsolv to keep it private
         std::unique_ptr<solv::ObjSolver> m_solver;
         std::unique_ptr<solv::ObjQueue> m_jobs;
+        Flags m_flags = {};
+        bool m_is_solved;
 
         void add_reinstall_job(MatchSpec& ms, int job_flag);
         void apply_libsolv_flags();

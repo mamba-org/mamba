@@ -186,7 +186,7 @@ TEST_SUITE("ObjPool")
                     {
                         std::vector<SolvableId> ids = {};
                         pool.for_each_solvable_id([&](SolvableId id) { ids.push_back(id); });
-                        std::sort(ids.begin(), ids.end());  // Ease comparsion
+                        std::sort(ids.begin(), ids.end());  // Ease comparison
                         CHECK_EQ(ids, decltype(ids){ id1, id2 });
                         pool.for_each_solvable(
                             [&](ObjSolvableViewConst s)

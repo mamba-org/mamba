@@ -28,7 +28,7 @@
 namespace mamba
 {
     MSolver::MSolver(MPool pool, const std::vector<std::pair<int, int>> flags)
-        : m_flags(std::move(flags))
+        : m_libsolv_flags(std::move(flags))
         , m_is_solved(false)
         , m_pool(std::move(pool))
         , m_solver(nullptr)
@@ -262,10 +262,25 @@ namespace mamba
         }
     }
 
-    void MSolver::set_flags(const std::vector<std::pair<int, int>>& flags)
+    void MSolver::set_libsolv_flags(const std::vector<std::pair<int, int>>& flags)
+    {
+        m_libsolv_flags = flags;
+    }
+
+    auto MSolver::libsolv_flags() const -> const std::vector<std::pair<int, int>>&
+    {
+        return m_libsolv_flags;
+    }
+
+    auto MSolver::libsolv_flags() -> std::vector<std::pair<int, int>>&
+    {
+        return m_libsolv_flags;
+    }
+
+    void MSolver::apply_libsolv_flags()
     {
         // TODO use new API
-        for (const auto& option : flags)
+        for (const auto& option : m_libsolv_flags)
         {
             solver_set_flag(*this, option.first, option.second);
         }
@@ -314,7 +329,7 @@ namespace mamba
     bool MSolver::try_solve()
     {
         m_solver = std::make_unique<solv::ObjSolver>(m_pool.pool());
-        set_flags(m_flags);
+        apply_libsolv_flags();
 
         const bool success = solver().solve(m_pool.pool(), *m_jobs);
         m_is_solved = true;

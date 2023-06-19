@@ -73,12 +73,17 @@ namespace mamba
         void add_constraint(const std::string& job);
         void add_pin(const std::string& pin);
         void add_pins(const std::vector<std::string>& pins);
-        void set_flags(const std::vector<std::pair<int, int>>& flags);
+
         void set_postsolve_flags(const std::vector<std::pair<int, int>>& flags);
+
+        void set_libsolv_flags(const std::vector<std::pair<int, int>>& flags);
+        [[nodiscard]] auto libsolv_flags() const -> const std::vector<std::pair<int, int>>&;
+        [[nodiscard]] auto libsolv_flags() -> std::vector<std::pair<int, int>>&;
+
         [[nodiscard]] bool try_solve();
         void must_solve();
-
         [[nodiscard]] bool is_solved() const;
+
         [[nodiscard]] std::string problems_to_str() const;
         [[nodiscard]] std::vector<std::string> all_problems() const;
         [[nodiscard]] std::vector<MSolverProblem> all_problems_structured() const;
@@ -107,7 +112,7 @@ namespace mamba
 
     private:
 
-        std::vector<std::pair<int, int>> m_flags;
+        std::vector<std::pair<int, int>> m_libsolv_flags;
         std::vector<MatchSpec> m_install_specs;
         std::vector<MatchSpec> m_remove_specs;
         std::vector<MatchSpec> m_neuter_specs;
@@ -120,6 +125,7 @@ namespace mamba
         std::unique_ptr<solv::ObjQueue> m_jobs;
 
         void add_reinstall_job(MatchSpec& ms, int job_flag);
+        void apply_libsolv_flags();
     };
 }  // namespace mamba
 

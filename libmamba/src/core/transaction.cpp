@@ -684,94 +684,48 @@ namespace mamba
 
         TransactionRollback rollback;
 
-        const auto& pool = m_pool.pool();
-        for (solv::SolvableId const p : trans().steps())
+        const auto execute_action = [&](const auto& act)
+        {
+            using Action = std::decay_t<decltype(act)>;
+
+            if constexpr (Solution::has_remove_v<Action> && Solution::has_install_v<Action>)
+            {
+                Console::stream() << "Changing " << act.remove.str() << " ==> " << act.install.str();
+            }
+            else if constexpr (Solution::has_remove_v<Action>)
+            {
+                Console::stream() << "Unlinking " << act.remove.str();
+            }
+            else if constexpr (Solution::has_install_v<Action>)
+            {
+                Console::stream() << "Linking " << act.install.str();
+            }
+
+            if constexpr (Solution::has_remove_v<Action>)
+            {
+                const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(act.remove));
+                UnlinkPackage up(act.remove, cache_path, &m_transaction_context);
+                up.execute();
+                rollback.record(up);
+                m_history_entry.unlink_dists.push_back(act.remove.long_str());
+            }
+            else if constexpr (Solution::has_install_v<Action>)
+            {
+                const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(act.install, false));
+                LinkPackage lp(act.install, cache_path, &m_transaction_context);
+                lp.execute();
+                rollback.record(lp);
+                m_history_entry.link_dists.push_back(act.install.long_str());
+            }
+        };
+
+        for (const auto& action : m_solution.actions())
         {
             if (is_sig_interrupted())
             {
                 break;
             }
-            auto s = pool.get_solvable(p);
-            assert(s.has_value());
-            if (filter(*s))
-            {
-                continue;
-            }
-
-            const auto ttype = trans().step_type(pool, p, SOLVER_TRANSACTION_SHOW_ALL);
-            switch (ttype)
-            {
-                case SOLVER_TRANSACTION_DOWNGRADED:
-                case SOLVER_TRANSACTION_UPGRADED:
-                case SOLVER_TRANSACTION_CHANGED:
-                case SOLVER_TRANSACTION_REINSTALLED:
-                {
-                    auto newer = [&]()
-                    {
-                        auto maybe_newer_id = trans().step_newer(pool, s->id());
-                        assert(maybe_newer_id.has_value());
-                        auto maybe_newer = pool.get_solvable(maybe_newer_id.value());
-                        assert(maybe_newer.has_value());
-                        return maybe_newer.value();
-                    }();
-
-                    const PackageInfo package_to_unlink = mk_pkginfo(m_pool, *s);
-                    const PackageInfo package_to_link = mk_pkginfo(m_pool, newer);
-
-                    Console::stream() << "Changing " << package_to_unlink.str() << " ==> "
-                                      << package_to_link.str();
-
-                    const fs::u8path ul_cache_path(
-                        m_multi_cache.get_extracted_dir_path(package_to_unlink)
-                    );
-
-                    const fs::u8path l_cache_path(
-                        m_multi_cache.get_extracted_dir_path(package_to_link, false)
-                    );
-
-                    UnlinkPackage up(package_to_unlink, ul_cache_path, &m_transaction_context);
-                    up.execute();
-                    rollback.record(up);
-
-                    LinkPackage lp(package_to_link, l_cache_path, &m_transaction_context);
-                    lp.execute();
-                    rollback.record(lp);
-
-                    m_history_entry.unlink_dists.push_back(package_to_unlink.long_str());
-                    m_history_entry.link_dists.push_back(package_to_link.long_str());
-
-                    break;
-                }
-                case SOLVER_TRANSACTION_ERASE:
-                {
-                    PackageInfo package_info = mk_pkginfo(m_pool, *s);
-                    Console::stream() << "Unlinking " << package_info.str();
-                    const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(package_info));
-                    UnlinkPackage up(package_info, cache_path, &m_transaction_context);
-                    up.execute();
-                    rollback.record(up);
-                    m_history_entry.unlink_dists.push_back(package_info.long_str());
-                    break;
-                }
-                case SOLVER_TRANSACTION_INSTALL:
-                {
-                    PackageInfo package_info = mk_pkginfo(m_pool, *s);
-                    Console::stream() << "Linking " << package_info.str();
-                    const fs::u8path cache_path(
-                        m_multi_cache.get_extracted_dir_path(package_info, false)
-                    );
-                    LinkPackage lp(package_info, cache_path, &m_transaction_context);
-                    lp.execute();
-                    rollback.record(lp);
-                    m_history_entry.link_dists.push_back(package_info.long_str());
-                    break;
-                }
-                case SOLVER_TRANSACTION_IGNORE:
-                    break;
-                default:
-                    LOG_ERROR << "Exec case not handled: " << ttype;
-                    break;
-            }
+            std::visit(execute_action, action);
         }
 
         if (is_sig_interrupted())
@@ -790,10 +744,13 @@ namespace mamba
         const auto environment = env_name(ctx.prefix_params.target_prefix);
 
         Console::stream() << "\nTransaction finished\n\n"
-                          << "To activate this environment, use:\n\n"
-                          << "    " << executable << " activate " << environment << "\n\n"
-                          << "Or to execute a single command in this environment, use:\n\n"
-                          << "    " << executable
+                             "To activate this environment, use:\n\n"
+                             "    "
+                          << executable << " activate " << environment
+                          << "\n\n"
+                             "Or to execute a single command in this environment, use:\n\n"
+                             "    "
+                          << executable
                           << " run "
                           // Use -n or -p depending on if the env_name is a full prefix or just
                           // a name.

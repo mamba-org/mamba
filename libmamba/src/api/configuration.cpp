@@ -1652,14 +1652,6 @@ namespace mamba
                    )
                    .description("Print the context after loading the config. Allow ultra-dry runs"));
 
-        insert(Configurable("show_banner", true)
-                   .group("Output, Prompt and Flow Control")
-                   .set_rc_configurable()
-                   .set_env_var_names()
-                   .needs({ "quiet", "json" })
-                   .set_single_op_lifetime()
-                   .description("Show the banner"));
-
         insert(Configurable("show_all_configs", false)
                    .group("Output, Prompt and Flow Control")
                    .description("Display all configs, including not rc configurable"));
@@ -1857,11 +1849,6 @@ namespace mamba
                             | MAMBA_SHOW_ALL_CONFIGS;
             std::cout << this->dump(dump_opts) << std::endl;
             exit(0);
-        }
-
-        if (at("show_banner").value<bool>())
-        {
-            Console::instance().print(banner());
         }
 
         auto& ctx = Context::instance();

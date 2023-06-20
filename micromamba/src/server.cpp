@@ -190,8 +190,7 @@ run_server(int port, mamba::ChannelContext& channel_context, Configuration& conf
         {
             res.type = "text/plain";
             std::stringstream ss;
-            ss << banner << "\n\n"
-               << "Version " << UMAMBA_VERSION_STRING << "\n";
+            ss << "Micromamba version " << UMAMBA_VERSION_STRING << "\n";
             res.send(ss.str());
         }
     );

@@ -178,7 +178,6 @@ set_run_command(CLI::App* subcom, Configuration& config)
     subcom->callback(
         [&config, subcom, stream_option]()
         {
-            config.at("show_banner").set_value(false);
             config.load();
 
             std::vector<std::string> command = subcom->remaining();

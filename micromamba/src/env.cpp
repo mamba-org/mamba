@@ -78,9 +78,7 @@ set_env_command(CLI::App* com, Configuration& config)
         [&]
         {
             auto const& ctx = Context::instance();
-            config.at("show_banner").set_value(false);
             config.load();
-
 
             mamba::ChannelContext channel_context;
             if (explicit_format)

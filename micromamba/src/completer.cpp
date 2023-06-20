@@ -33,7 +33,6 @@ complete_options(
 
     if (last_args[0] == "-n" && last_args.size() == 2)
     {
-        config.at("show_banner").set_value(false);
         config.load();
 
         auto root_prefix = config.at("root_prefix").value<fs::u8path>();

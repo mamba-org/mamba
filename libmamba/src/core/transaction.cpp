@@ -388,15 +388,6 @@ namespace mamba
             m_history_entry.remove = to_string_vec(solver.remove_specs());
         }
 
-        // if no action required, don't even start logging them
-        if (!empty())
-        {
-            Console::instance().json_down("actions");
-            Console::instance().json_write(
-                { { "PREFIX", Context::instance().prefix_params.target_prefix.string() } }
-            );
-        }
-
         m_transaction_context = TransactionContext(
             Context::instance().prefix_params.target_prefix,
             Context::instance().prefix_params.relocate_prefix,
@@ -491,6 +482,15 @@ namespace mamba
                 *m_transaction,
                 specs_names(solver),
                 !(flags.keep_specs)
+            );
+        }
+
+        // if no action required, don't even start logging them
+        if (!empty())
+        {
+            Console::instance().json_down("actions");
+            Console::instance().json_write(
+                { { "PREFIX", Context::instance().prefix_params.target_prefix.string() } }
             );
         }
     }

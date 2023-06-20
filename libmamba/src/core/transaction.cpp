@@ -578,7 +578,8 @@ namespace mamba
         std::string installed_py_ver = {};
         std::string new_py_ver = {};
 
-        m_solution.for_each_to_install(
+        for_each_to_install(
+            m_solution.actions,
             [&](const auto& pkg)
             {
                 if (pkg.name == "python")
@@ -806,8 +807,9 @@ namespace mamba
     auto MTransaction::to_conda() -> to_conda_type
     {
         to_remove_type to_remove_structured = {};
-        to_remove_structured.reserve(m_solution.size());  // Upper bound
-        m_solution.for_each_to_remove(
+        to_remove_structured.reserve(m_solution.actions.size());  // Upper bound
+        for_each_to_remove(
+            m_solution.actions,
             [&](const auto& pkg)
             {
                 to_remove_structured.emplace_back(pkg.channel, pkg.fn);  //
@@ -815,8 +817,9 @@ namespace mamba
         );
 
         to_install_type to_install_structured = {};
-        to_install_structured.reserve(m_solution.size());  // Upper bound
-        m_solution.for_each_to_install(
+        to_install_structured.reserve(m_solution.actions.size());  // Upper bound
+        for_each_to_install(
+            m_solution.actions,
             [&](const auto& pkg)
             {
                 to_install_structured.emplace_back(pkg.channel, pkg.fn, pkg.json_record().dump(4));  //
@@ -834,7 +837,8 @@ namespace mamba
     {
         std::vector<nlohmann::json> to_fetch, to_link, to_unlink;
 
-        m_solution.for_each_to_install(
+        for_each_to_install(
+            m_solution.actions,
             [&](const auto& pkg)
             {
                 if (!need_pkg_download(pkg, m_multi_cache))
@@ -849,7 +853,8 @@ namespace mamba
             }
         );
 
-        m_solution.for_each_to_remove(
+        for_each_to_remove(
+            m_solution.actions,
             [&](const auto& pkg)
             {
                 to_unlink.push_back(pkg.json_record());  //
@@ -891,7 +896,8 @@ namespace mamba
             LOG_INFO << "Content trust is enabled, package(s) signatures will be verified";
         }
 
-        m_solution.for_each_to_install(
+        for_each_to_install(
+            m_solution.actions,
             [&](const auto& pkg)
             {
                 if (ctx.experimental && ctx.verify_artifacts)
@@ -1079,7 +1085,7 @@ namespace mamba
 
     bool MTransaction::empty()
     {
-        return m_solution.empty();
+        return m_solution.actions.empty();
     }
 
     bool MTransaction::prompt()
@@ -1175,11 +1181,9 @@ namespace mamba
             remove
         };
         auto format_row =
-            [this,
-             &ctx,
-             &total_size](rows& r, solv::ObjSolvableViewConst s, Status status, std::string diff)
+            [this, &ctx, &total_size](rows& r, const PackageInfo& s, Status status, std::string diff)
         {
-            std::size_t const dlsize = s.size();
+            std::size_t const dlsize = s.size;
             printers::FormattedString dlsize_s;
             if (dlsize > 0)
             {
@@ -1189,7 +1193,7 @@ namespace mamba
                 }
                 else
                 {
-                    if (!need_pkg_download(mk_pkginfo(m_pool, s), m_multi_cache))
+                    if (!need_pkg_download(s, m_multi_cache))
                     {
                         dlsize_s.s = "Cached";
                         dlsize_s.style = ctx.graphics_params.palette.addition;
@@ -1208,7 +1212,7 @@ namespace mamba
                 }
             }
             printers::FormattedString name;
-            name.s = fmt::format("{} {}", diff, s.name());
+            name.s = fmt::format("{} {}", diff, s.name);
             if (status == Status::install)
             {
                 name.style = ctx.graphics_params.palette.addition;
@@ -1223,11 +1227,11 @@ namespace mamba
             }
 
             std::string chan_name;
-            if (auto str = s.channel(); !str.empty())
+            if (auto str = s.channel; !str.empty())
             {
                 if (str == "explicit_specs")
                 {
-                    chan_name = s.file_name();
+                    chan_name = s.fn;
                 }
                 else
                 {
@@ -1238,80 +1242,56 @@ namespace mamba
             else
             {
                 // note this can and should be <unknown> when e.g. installing from a tarball
-                chan_name = solv::ObjRepoViewConst::of_solvable(s).name();
+                chan_name = s.channel;
                 assert(chan_name != "__explicit_specs__");
             }
 
             r.push_back({ name,
-                          printers::FormattedString(std::string(s.version())),
-                          printers::FormattedString(std::string(s.build_string())),
+                          printers::FormattedString(s.version),
+                          printers::FormattedString(s.build_string),
                           printers::FormattedString(cut_repo_name(chan_name)),
                           dlsize_s });
         };
 
-        const auto& pool = m_pool.pool();
-
-        trans().classify_for_each_type(
-            pool,
-            [&](const auto type, const auto& solv_ids)
+        auto format_action = [&](const auto& act)
+        {
+            using Action = std::decay_t<decltype(act)>;
+            if constexpr (std::is_same_v<Action, Solution::Omit>)
             {
-                for (const solv::SolvableId id : solv_ids)
-                {
-                    const auto s = [&]()
-                    {
-                        auto maybe_s = pool.get_solvable(id);
-                        assert(maybe_s.has_value());
-                        return maybe_s.value();
-                    }();
-                    auto get_newer = [&]()
-                    {
-                        auto maybe_newer_id = trans().step_newer(pool, id);
-                        assert(maybe_newer_id.has_value());
-                        auto maybe_newer = pool.get_solvable(maybe_newer_id.value());
-                        assert(maybe_newer.has_value());
-                        return maybe_newer.value();
-                    };
-
-                    if (filter(s))
-                    {
-                        format_row(ignored, s, Status::ignore, "=");
-                        continue;
-                    }
-                    switch (type)
-                    {
-                        case SOLVER_TRANSACTION_UPGRADED:
-                            format_row(upgraded, s, Status::remove, "-");
-                            format_row(upgraded, get_newer(), Status::install, "+");
-                            break;
-                        case SOLVER_TRANSACTION_CHANGED:
-                            format_row(changed, s, Status::remove, "-");
-                            format_row(changed, get_newer(), Status::install, "+");
-                            break;
-                        case SOLVER_TRANSACTION_REINSTALLED:
-                            format_row(reinstalled, s, Status::install, "o");
-                            break;
-                        case SOLVER_TRANSACTION_DOWNGRADED:
-                            format_row(downgraded, s, Status::remove, "-");
-                            format_row(downgraded, get_newer(), Status::install, "+");
-                            break;
-                        case SOLVER_TRANSACTION_ERASE:
-                            format_row(erased, s, Status::remove, "-");
-                            break;
-                        case SOLVER_TRANSACTION_INSTALL:
-                            format_row(installed, s, Status::install, "+");
-                            break;
-                        case SOLVER_TRANSACTION_IGNORE:
-                            break;
-                        case SOLVER_TRANSACTION_VENDORCHANGE:
-                        case SOLVER_TRANSACTION_ARCHCHANGE:
-                        default:
-                            LOG_ERROR << "Print case not handled: " << type;
-                            break;
-                    }
-                }
-            },
-            SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE
-        );
+                format_row(ignored, act.what, Status::ignore, "=");
+            }
+            else if constexpr (std::is_same_v<Action, Solution::Upgrade>)
+            {
+                format_row(upgraded, act.remove, Status::remove, "-");
+                format_row(upgraded, act.install, Status::install, "+");
+            }
+            else if constexpr (std::is_same_v<Action, Solution::Downgrade>)
+            {
+                format_row(downgraded, act.remove, Status::remove, "-");
+                format_row(downgraded, act.install, Status::install, "+");
+            }
+            else if constexpr (std::is_same_v<Action, Solution::Change>)
+            {
+                format_row(changed, act.remove, Status::remove, "-");
+                format_row(changed, act.install, Status::install, "+");
+            }
+            else if constexpr (std::is_same_v<Action, Solution::Reinstall>)
+            {
+                format_row(reinstalled, act.what, Status::install, "o");
+            }
+            else if constexpr (std::is_same_v<Action, Solution::Remove>)
+            {
+                format_row(erased, act.remove, Status::remove, "-");
+            }
+            else if constexpr (std::is_same_v<Action, Solution::Install>)
+            {
+                format_row(installed, act.install, Status::install, "+");
+            }
+        };
+        for (const auto& pkg : m_solution.actions)
+        {
+            std::visit(format_action, pkg);
+        }
 
         std::stringstream summary;
         summary << "Summary:\n\n";

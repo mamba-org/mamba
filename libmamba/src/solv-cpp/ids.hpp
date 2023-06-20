@@ -24,6 +24,12 @@ namespace mamba::solv
     using TransactionOrderFlag = int;
     using TransactionStepType = int;
     using TransactionMode = int;
+
+    enum struct LoopControl
+    {
+        Continue,
+        Break
+    };
 }
 
 #endif

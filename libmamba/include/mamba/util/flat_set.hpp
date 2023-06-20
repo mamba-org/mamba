@@ -72,6 +72,8 @@ namespace mamba::util
         bool contains(const value_type&) const;
         const value_type& front() const noexcept;
         const value_type& back() const noexcept;
+        const value_type& operator[](size_type pos) const;
+        const value_type& at(size_type pos) const;
 
         const_iterator begin() const noexcept;
         const_iterator end() const noexcept;
@@ -193,6 +195,18 @@ namespace mamba::util
     auto flat_set<K, C, A>::back() const noexcept -> const value_type&
     {
         return Base::back();
+    }
+
+    template <typename K, typename C, typename A>
+    auto flat_set<K, C, A>::operator[](size_type pos) const -> const value_type&
+    {
+        return Base::operator[](pos);
+    }
+
+    template <typename K, typename C, typename A>
+    auto flat_set<K, C, A>::at(size_type pos) const -> const value_type&
+    {
+        return Base::at(pos);
     }
 
     template <typename K, typename C, typename A>

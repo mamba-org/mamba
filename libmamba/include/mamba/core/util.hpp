@@ -121,6 +121,31 @@ namespace mamba
 
     class LockFileOwner;
 
+    // @return `true` if constructing a `LockFile` will result in locking behavior, `false` if
+    // using `LockFile will not lock the file and behave like a no-op.
+    //
+    // @warning This function must be called in the execution scope `main()`, doing otherwise leads
+    // to undefined behavior.
+    //
+    // @warning This is a thread-safe accessor for a global parameter: the returned value is
+    // therefore obsolete before being obtained and should be considered as a hint.
+    bool is_file_locking_allowed();
+
+
+    // Controls if, with `true`, constructing a `LockFile` will result in locking behavior,
+    // or, with `false, will not lock the file and behave like a no-op.
+    //
+    // @warning This function must be called in the execution scope `main()`, doing otherwise leads
+    // to undefined behavior.
+    //
+    // @warning This is a thread-safe function setting a global parameter: if concurrent threads
+    // are both calling this function with different value there is no guarantee as to which
+    // value will be retained.
+    // However if there is exactly one thread executing this function then the following is true:
+    //    const auto result = allow_file_locking(allow);
+    //    result == allow && is_file_locking_allowed() == allow
+    bool allow_file_locking(bool allow);
+
     // This is a non-throwing file-locking mechanism.
     // It can be used on a file or directory path. In the case of a directory path a file will be
     // created to be locked. The locking will be implemented using the OS's filesystem locking
@@ -137,12 +162,12 @@ namespace mamba
     // Basically, all instacnes of `LockFile` locking the same path are sharing the lock, which will
     // only be released once there is no instance alive.
     //
-    // Use `Context::instance().use_lockfiles = false` to never have locking happen, in which case
+    // Use `mamba::allow_file_locking(false)` to never have locking happen, in which case
     // the created `LockFile` instance will not be locked (`is_locked()` will return false) but will
     // have no error either (`error()` will return `noopt`).
     //
     // Example:
-    //
+    //      using namespace mamba;
     //      LockFile some_work_on(some_path)
     //      {
     //          LockFile lock{ some_path, timeout };
@@ -171,8 +196,8 @@ namespace mamba
         // Non-throwing constructors, attempting lock on the provided path, file or directory.
         // In case of a directory, a lock-file will be created, located at `this->lockfile_path()`
         // and `this->is_locked()` (and `if(*this))` will always return true (unless this instance
-        // is moved-from). If the lock acquisition failed or `Context::instance().use_lockfiles ==
-        // false` and until re-assigned:
+        // is moved-from). If the lock acquisition failed or `allow_file_locking(false)` and until
+        // re-assigned:
         // - `this->is_locked() == false` and `if(*this) ...` will go in the `false` branch.
         // - accessors will throw, except `is_locked()`, `count_lock_owners()`, and `error()`
         LockFile(const fs::u8path& path);

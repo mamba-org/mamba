@@ -533,7 +533,19 @@ PYBIND11_MODULE(bindings, m)
                            " The new error messages are always enabled.");
             }
         )
-        .def_readwrite("use_lockfiles", &Context::use_lockfiles)
+        .def_property(
+            "use_lockfiles",
+            [](Context& ctx)
+            {
+                ctx.use_lockfiles = is_file_locking_allowed();
+                return ctx.use_lockfiles;
+            },
+            [](Context& ctx, bool allow)
+            {
+                allow_file_locking(allow);
+                ctx.use_lockfiles = allow;
+            }
+        )
         .def("set_verbosity", &Context::set_verbosity)
         .def("set_log_level", &Context::set_log_level);
 

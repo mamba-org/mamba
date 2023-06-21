@@ -37,16 +37,14 @@ jobs:
       - name: Patch micromamba-feedstock
         run: |
           cp ./micromamba/recipe/* micromamba-feedstock/recipe/
-      - uses: mamba-org/provision-with-micromamba@main
+      - uses: mamba-org/setup-micromamba@v1
         with:
-          channels: conda-forge
-          environment-file: false
           environment-name: mambabuild
-          extra-specs: boa
+          create-args: boa
       - name: Build conda package
         shell: bash -l {0}
         run: |
-          conda mambabuild -m micromamba-feedstock/.ci_support/${{ matrix.platform }}_${{ matrix.arch }}_.yaml \
+          conda-mambabuild -m micromamba-feedstock/.ci_support/${{ matrix.platform }}_${{ matrix.arch }}_.yaml \
                               micromamba-feedstock/recipe ${{ matrix.arch != '64' && '--no-test' || '' }}
       - name: Unpack micromamba package
         shell: bash -l {0}

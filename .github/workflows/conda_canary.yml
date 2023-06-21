@@ -15,7 +15,7 @@ concurrency:
 
 defaults:
   run:
-    shell: bash -el {0}
+    shell: micromamba-shell {0}
 
 jobs:
   conda_nightly:
@@ -42,12 +42,10 @@ jobs:
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
-          key: ${{ github.job }}-${{ runner.os }}
-          restore-keys: |
-            libmamba_static-${{ runner.os }}
+          key: conda-canary-${{ github.job }}
+          restore-keys: conda-canary-
       - name: build libmamba Python bindings
         run: |
-          cd mamba
           mkdir build
           cd build
           cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
@@ -61,39 +59,33 @@ jobs:
           ninja
           ninja install
       - name: install libmambapy
-        run: |
-          cd mamba
-          pip install -e ./libmambapy/ --no-deps
+        run: pip install -e ./libmambapy/ --no-deps
       - name: build cache statistics
         run: sccache --show-stats
       - name: install mamba
-        run: |
-          cd mamba
-          pip install ./mamba[test] --no-deps
+        run: pip install ./mamba[test] --no-deps
 
       # Test Mamba with Conda nightly
       - name: run mamba tests suite
-        run: |
-          cd mamba
-          pytest -v --capture=tee-sys mamba/tests
+        run: pytest -v --capture=tee-sys mamba/tests
       - name: run mamba create/update tests
         run: |
-          cd mamba
           mamba create -n test_env xtensor -c conda-forge -y
           mamba env create -f mamba/tests/test_env.yml
           mamba env update -f mamba/tests/update_env.yml
 
-      - uses: JasonEtco/create-an-issue@1a16035489d05041b9af40b970f02e301c52ffba
-        if: failure()
-        with:
-          filename: mamba/.github/workflows/bot_issue_template.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - uses: JasonEtco/create-an-issue@1a16035489d05041b9af40b970f02e301c52ffba
+      #   if: failure()
+      #   with:
+      #     filename: mamba/.github/workflows/bot_issue_template.md
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cleanup
         if: always()
+        shell: bash
+        # Do not cache temporary envs with 'cache-env: true'
         run: |
-          # Do not cache temporary envs with 'cache-env: true'
           rm -rf $(micromamba info --json | jq -r '."env location"')/envs || true
           rm -rf ~/tmproot* || true
           rm -rf $(micromamba info --json | jq -r '."env location"')/conda-build/conda-bld || true

@@ -78,4 +78,3 @@ jobs:
           filename: mamba/.github/workflows/bot_issue_template.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

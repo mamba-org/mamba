@@ -19,10 +19,8 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
-#include "mamba/core/repo.hpp"
 #include "mamba/core/satisfiability_error.hpp"
 #include "mamba/core/solver.hpp"
-#include "mamba/core/util_string.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
 #include "solv-cpp/solver.hpp"
@@ -73,69 +71,50 @@ namespace mamba
 
     void MSolver::add_reinstall_job(MatchSpec& ms, int job_flag)
     {
-        Pool* const pool = m_pool;
-        if (pool->installed == nullptr)
-        {
-            throw std::runtime_error("Did not find any packages marked as installed.");
-        }
+        auto solvable = std::optional<solv::ObjSolvableViewConst>{};
 
-        // 1. check if spec is already installed
-        Id needle = pool_str2id(m_pool, ms.name.c_str(), 0);
-        static Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
-
-        if (needle && (pool->installed != nullptr))
-        {
-            Id pkg_id;
-            Solvable* s;
-            FOR_REPO_SOLVABLES(pool->installed, pkg_id, s)
+        // the data about the channel is only in the prefix_data unfortunately
+        m_pool.pool().for_each_installed_solvable(
+            [&](solv::ObjSolvableViewConst s)
             {
-                if (s->name == needle)
+                if (s.name() == ms.name)
                 {
-                    // the data about the channel is only in the prefix_data unfortunately
-
-                    std::string selected_channel;
-                    if (solvable_lookup_str(s, real_repo_key))
-                    {
-                        // this is the _full_ url to the file (incl. abc.tar.bz2)
-                        selected_channel = solvable_lookup_str(s, real_repo_key);
-                    }
-                    else
-                    {
-                        throw std::runtime_error(
-                            "Could not find channel associated with reinstall package"
-                        );
-                    }
-
-                    const Channel& channel = m_pool.channel_context().make_channel(selected_channel);
-                    selected_channel = channel.name();
-
-                    MatchSpec modified_spec(ms);
-                    if (!ms.channel.empty() || !ms.version.empty() || !ms.build_string.empty())
-                    {
-                        Console::stream() << ms.conda_build_form()
-                                          << ": overriding channel, version and build from "
-                                             "installed packages due to --force-reinstall.";
-                        ms.channel = "";
-                        ms.version = "";
-                        ms.build_string = "";
-                    }
-
-                    modified_spec.channel = selected_channel;
-                    modified_spec.version = raw_str_or_empty(pool_id2str(pool, s->evr));
-                    modified_spec.build_string = raw_str_or_empty(
-                        solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR)
-                    );
-                    LOG_INFO << "Reinstall " << modified_spec.conda_build_form() << " from channel "
-                             << selected_channel;
-                    m_jobs->push_back(
-                        job_flag | SOLVER_SOLVABLE_PROVIDES,
-                        m_pool.matchspec2id(modified_spec)
-                    );
-                    return;
+                    solvable = s;
+                    return solv::LoopControl::Break;
                 }
+                return solv::LoopControl::Continue;
             }
+        );
+
+        if (!solvable.has_value() || solvable->channel().empty())
+        {
+            throw std::runtime_error(
+                fmt::format(R"(Could not find any installed package matching "")", ms.str())
+            );
         }
-        m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, m_pool.matchspec2id(ms));
+
+        if (!ms.channel.empty() || !ms.version.empty() || !ms.build_string.empty())
+        {
+            Console::stream() << ms.conda_build_form()
+                              << ": overriding channel, version and build from "
+                                 "installed packages due to --force-reinstall.";
+            ms.channel = "";
+            ms.version = "";
+            ms.build_string = "";
+        }
+
+        MatchSpec modified_spec(ms);
+        const Channel& chan = m_pool.channel_context().make_channel(std::string(solvable->channel()));
+        modified_spec.channel = chan.name();
+
+        modified_spec.version = solvable->version();
+        modified_spec.build_string = solvable->build_string();
+
+        LOG_INFO << "Reinstall " << modified_spec.conda_build_form() << " from channel "
+                 << modified_spec.channel;
+        // TODO Fragile! The only reason why this works is that with a channel specific matchspec
+        // the job will always be reinstalled.
+        m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, m_pool.matchspec2id(modified_spec));
     }
 
     void MSolver::add_jobs(const std::vector<std::string>& jobs, int job_flag)
@@ -223,44 +202,35 @@ namespace mamba
         const auto pin_ms = MatchSpec{ pin, m_pool.channel_context() };
         m_pinned_specs.push_back(pin_ms);
 
-        ::Pool* pool = m_pool;
-        ::Repo* const installed_repo = pool->installed;
-
-        if (pool->disttype != DISTTYPE_CONDA)
+        auto& pool = m_pool.pool();
+        if (pool.disttype() != DISTTYPE_CONDA)
         {
             throw std::runtime_error("Cannot add pin to a pool that is not of Conda distype");
         }
-        if (installed_repo == nullptr)
+        auto installed = pool.installed_repo();
+        if (!installed.has_value())
         {
             throw std::runtime_error("Cannot add pin without a repo of installed packages");
         }
 
         // Add dummy solvable with a constraint on the pin (not installed if not present)
-        ::Id const cons_solv_id = repo_add_solvable(installed_repo);
-        ::Solvable* const cons_solv = pool_id2solvable(pool, cons_solv_id);
+        auto [cons_solv_id, cons_solv] = installed->add_solvable();
         // TODO set some "pin" key on the solvable so that we can retrieve it during error messages
         std::string const cons_solv_name = fmt::format("pin-{}", m_pinned_specs.size());
-        solvable_set_str(cons_solv, SOLVABLE_NAME, cons_solv_name.c_str());
-        solvable_set_str(cons_solv, SOLVABLE_EVR, "1");
-        ::Id const pin_ms_id = m_pool.matchspec2id(pin_ms);
-        solv::ObjQueue q = { pin_ms_id };
-        solvable_add_idarray(cons_solv, SOLVABLE_CONSTRAINS, pin_ms_id);
+        cons_solv.set_name(cons_solv_name);
+        cons_solv.set_version("1");
+        cons_solv.add_constraints(solv::ObjQueue{ m_pool.matchspec2id(pin_ms) });
+
         // Solvable need to provide itself
-        cons_solv->provides = repo_addid_dep(
-            installed_repo,
-            cons_solv->provides,
-            pool_rel2id(pool, cons_solv->name, cons_solv->evr, REL_EQ, 1),
-            0
-        );
+        cons_solv.add_self_provide();
 
         // Necessary for attributes to be properly stored
-        repo_internalize(installed_repo);
+        installed->internalize();
 
         // Lock the dummy solvable so that it stays install.
-        add_jobs({ cons_solv_name }, SOLVER_LOCK);
-        // Force check the dummy solvable dependencies, as this is not the default for
-        // installed packges.
-        add_jobs({ cons_solv_name }, SOLVER_VERIFY);
+        // Force verify the dummy solvable dependencies, as this is not the default for
+        // installed packages.
+        return add_jobs({ cons_solv_name }, SOLVER_LOCK & SOLVER_VERIFY);
     }
 
     void MSolver::add_pins(const std::vector<std::string>& pins)

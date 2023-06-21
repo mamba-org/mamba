@@ -12,8 +12,9 @@
 namespace mamba
 {
     class ChannelContext;
+    class Configuration;
 
-    void list(const std::string& regex);
+    void list(Configuration& config, const std::string& regex);
 
     namespace detail
     {

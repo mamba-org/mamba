@@ -169,9 +169,8 @@ handle_solve_request(
 
 
 int
-run_server(int port, mamba::ChannelContext& channel_context)
+run_server(int port, mamba::ChannelContext& channel_context, Configuration& config)
 {
-    auto& config = mamba::Configuration::instance();
     config.load();
     std::signal(SIGPIPE, SIG_IGN);
     auto server_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
@@ -191,8 +190,7 @@ run_server(int port, mamba::ChannelContext& channel_context)
         {
             res.type = "text/plain";
             std::stringstream ss;
-            ss << banner << "\n\n"
-               << "Version " << UMAMBA_VERSION_STRING << "\n";
+            ss << "Micromamba version " << UMAMBA_VERSION_STRING << "\n";
             res.send(ss.str());
         }
     );
@@ -209,18 +207,18 @@ run_server(int port, mamba::ChannelContext& channel_context)
 }
 
 void
-set_server_command(CLI::App* subcom)
+set_server_command(CLI::App* subcom, mamba::Configuration& config)
 {
-    init_general_options(subcom);
+    init_general_options(subcom, config);
 
     static int port = 1234;
     subcom->add_option("--port,-p", port, "The port to use for the server");
 
     subcom->callback(
-        []
+        [&config]
         {
             mamba::ChannelContext channel_context;
-            return run_server(port, channel_context);
+            return run_server(port, channel_context, config);
         }
     );
 }

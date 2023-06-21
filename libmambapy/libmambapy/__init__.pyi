@@ -6,7 +6,6 @@ __all__ = [
     "Channel",
     "ChannelPriority",
     "CompressedProblemsGraph",
-    "Configuration",
     "Context",
     "DownloadTargetList",
     "ExtraPkgInfo",
@@ -379,18 +378,6 @@ class CompressedProblemsGraph:
     ]: ...
     def root_node(self) -> int: ...
     def tree_message(self) -> str: ...
-    pass
-
-class Configuration:
-    def __init__(self) -> None: ...
-    @property
-    def show_banner(self) -> bool:
-        """
-        :type: bool
-        """
-    @show_banner.setter
-    def show_banner(self, arg1: bool) -> None:
-        pass
     pass
 
 class Context:

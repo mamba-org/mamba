@@ -376,10 +376,8 @@ namespace mamba
         }
     }
 
-    void install()
+    void install(Configuration& config)
     {
-        auto& config = Configuration::instance();
-
         config.at("create_base").set_value(true);
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
@@ -401,7 +399,7 @@ namespace mamba
             install_lockfile_specs(
                 channel_context,
                 lockfile_path,
-                Configuration::instance().at("categories").value<std::vector<std::string>>(),
+                config.at("categories").value<std::vector<std::string>>(),
                 false
             );
         }
@@ -413,15 +411,13 @@ namespace mamba
             }
             else
             {
-                mamba::install_specs(channel_context, install_specs, false);
+                mamba::install_specs(channel_context, config, install_specs, false);
             }
         }
         else
         {
             Console::instance().print("Nothing to do.");
         }
-
-        config.operation_teardown();
     }
 
     int RETRY_SUBDIR_FETCH = 1 << 0;
@@ -429,6 +425,7 @@ namespace mamba
 
     void install_specs(
         ChannelContext& channel_context,
+        const Configuration& config,
         const std::vector<std::string>& specs,
         bool create_env,
         int solver_flag,
@@ -436,7 +433,6 @@ namespace mamba
     )
     {
         auto& ctx = Context::instance();
-        auto& config = Configuration::instance();
 
         auto& no_pin = config.at("no_pin").value<bool>();
         auto& no_py_pin = config.at("no_py_pin").value<bool>();
@@ -564,6 +560,7 @@ namespace mamba
                 ctx.local_repodata_ttl = 2;
                 return install_specs(
                     channel_context,
+                    config,
                     specs,
                     create_env,
                     solver_flag,
@@ -739,9 +736,8 @@ namespace mamba
             env_manager.register_env(prefix);
         }
 
-        void file_specs_hook(std::vector<std::string>& file_specs)
+        void file_specs_hook(Configuration& config, std::vector<std::string>& file_specs)
         {
-            auto& config = Configuration::instance();
             auto& env_name = config.at("spec_file_env_name");
             auto& specs = config.at("specs");
             auto& others_pkg_mgrs_specs = config.at("others_pkg_mgrs_specs");
@@ -890,9 +886,8 @@ namespace mamba
             }
         }
 
-        void channels_hook(std::vector<std::string>& channels)
+        void channels_hook(Configuration& config, std::vector<std::string>& channels)
         {
-            auto& config = Configuration::instance();
             auto& config_channels = config.at("channels");
             std::vector<std::string> cli_channels;
 

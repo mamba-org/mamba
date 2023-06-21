@@ -21,10 +21,11 @@ set(LIBMAMBA_TEST_SRCS
     src/solv-cpp/test_solver.cpp
     src/solv-cpp/test_transaction.cpp
     # Utility library
+    src/util/test_cast.cpp
+    src/util/test_compare.cpp
     src/util/test_flat_set.cpp
     src/util/test_graph.cpp
-    src/util/test_compare.cpp
-    src/util/test_cast.cpp
+    src/util/test_iterator.cpp
     # Implementation of version and matching specs
     src/specs/test_version.cpp
     src/specs/test_repo_data.cpp

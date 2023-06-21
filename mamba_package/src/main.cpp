@@ -20,6 +20,7 @@ main(int argc, char** argv)
 {
     using namespace mamba;  // NOLINT(build/namespaces)
 
+    Configuration config;
     CLI::App app{ "Version: " + version() + "\n" };
     set_package_command(&app);
 
@@ -34,9 +35,10 @@ main(int argc, char** argv)
         return 1;
     }
 
+
     if (app.get_subcommands().size() == 0)
     {
-        Configuration::instance().load();
+        config.load();
         Console::instance().print(app.help());
     }
 

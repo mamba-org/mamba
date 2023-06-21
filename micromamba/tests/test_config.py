@@ -175,7 +175,7 @@ class TestConfigList:
     @pytest.mark.parametrize("rc_file_args", ({"channels": ["channel1", "channel2"]},))
     def test_list_with_rc(self, rc_file, rc_file_text):
         assert (
-            config("list", "--no-env", "--rc-file", rc_file).splitlines()[:-1]
+            config("list", "--no-env", "--rc-file", rc_file).splitlines()
             == rc_file_text.splitlines()
         )
 
@@ -188,9 +188,7 @@ class TestConfigList:
         home_folder = os.path.expanduser("~")
         src = f"  # '{str(rc_file).replace(home_folder, '~')}'"
         assert (
-            config("list", "--no-env", "--rc-file", rc_file, source_flag).splitlines()[
-                :-1
-            ]
+            config("list", "--no-env", "--rc-file", rc_file, source_flag).splitlines()
             == f"channels:\n  - channel1{src}\n  - channel2{src}\n".splitlines()
         )
 
@@ -198,9 +196,7 @@ class TestConfigList:
     @pytest.mark.parametrize("rc_file_args", ({"channels": ["channel1", "channel2"]},))
     def test_list_with_descriptions(self, rc_file, desc_flag):
         assert (
-            config("list", "--no-env", "--rc-file", rc_file, desc_flag).splitlines()[
-                :-4
-            ]
+            config("list", "--no-env", "--rc-file", rc_file, desc_flag).splitlines()
             == "# channels\n#   Define the list of channels\nchannels:\n"
             "  - channel1\n  - channel2\n".splitlines()
         )
@@ -209,9 +205,7 @@ class TestConfigList:
     @pytest.mark.parametrize("rc_file_args", ({"channels": ["channel1", "channel2"]},))
     def test_list_with_long_descriptions(self, rc_file, desc_flag):
         assert (
-            config("list", "--no-env", "--rc-file", rc_file, desc_flag).splitlines()[
-                :-4
-            ]
+            config("list", "--no-env", "--rc-file", rc_file, desc_flag).splitlines()
             == "# channels\n#   The list of channels where the packages will be searched for.\n"
             "#   See also 'channel_priority'.\nchannels:\n  - channel1\n  - channel2\n".splitlines()
         )
@@ -228,7 +222,7 @@ class TestConfigList:
         assert (
             config(
                 "list", "--no-env", "--rc-file", rc_file, "-d", group_flag
-            ).splitlines()[:-8]
+            ).splitlines()
             == f"{group}# channels\n#   Define the list of channels\nchannels:\n"
             "  - channel1\n  - channel2\n".splitlines()
         )

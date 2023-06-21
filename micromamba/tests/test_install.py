@@ -532,3 +532,19 @@ class TestInstall:
             res = install(non_existing_url, default_channel=False)
         except subprocess.CalledProcessError as e:
             assert "Invalid package filename" in e.stderr.decode("utf-8")
+
+    def test_no_reinstall(self, existing_cache):
+        """Reinstalling is a no op."""
+        res = install("xtensor", "--json")
+        assert "xtensor" in {pkg["name"] for pkg in res["actions"]["LINK"]}
+
+        reinstall_res = install("xtensor", "--json")
+        assert "actions" not in reinstall_res
+
+    def test_force_reinstall(self, existing_cache):
+        """Force reinstall installs existing package again."""
+        res = install("xtensor", "--json")
+        assert "xtensor" in {pkg["name"] for pkg in res["actions"]["LINK"]}
+
+        reinstall_res = install("xtensor", "--force-reinstall", "--json")
+        assert "xtensor" in {pkg["name"] for pkg in reinstall_res["actions"]["LINK"]}

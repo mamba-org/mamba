@@ -16,10 +16,9 @@
 
 namespace mamba
 {
-    void update(bool update_all, bool prune)
+    void update(Configuration& config, bool update_all, bool prune)
     {
         auto& ctx = Context::instance();
-        auto& config = Configuration::instance();
 
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
@@ -150,7 +149,5 @@ namespace mamba
 
         MTransaction transaction(pool, solver, package_caches);
         execute_transaction(transaction);
-
-        config.operation_teardown();
     }
 }

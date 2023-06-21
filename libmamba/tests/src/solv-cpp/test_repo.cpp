@@ -92,18 +92,34 @@ TEST_SUITE("ObjRepo")
                 CHECK_EQ(ObjRepoViewConst::of_solvable(s1).raw(), repo.raw());
             }
 
-            SUBCASE("Iterate through solvables")
+            SUBCASE("Iterate over solvables")
             {
-                const auto ids = std::array{ id1, id2 };
-                std::size_t n_solvables = 0;
-                repo.for_each_solvable_id(
-                    [&](SolvableId id)
-                    {
-                        CHECK_NE(std::find(ids.cbegin(), ids.cend(), id), ids.cend());
-                        n_solvables++;
-                    }
-                );
-                CHECK_EQ(n_solvables, repo.solvable_count());
+                SUBCASE("Over all solvables")
+                {
+                    const auto ids = std::array{ id1, id2 };
+                    std::size_t n_solvables = 0;
+                    repo.for_each_solvable_id(
+                        [&](SolvableId id)
+                        {
+                            CHECK_NE(std::find(ids.cbegin(), ids.cend(), id), ids.cend());
+                            n_solvables++;
+                        }
+                    );
+                    CHECK_EQ(n_solvables, repo.solvable_count());
+                }
+
+                SUBCASE("Over one solvable then break")
+                {
+                    std::size_t n_solvables = 0;
+                    repo.for_each_solvable(
+                        [&](ObjSolvableView)
+                        {
+                            n_solvables++;
+                            return LoopControl::Break;
+                        }
+                    );
+                    CHECK_EQ(n_solvables, 1);
+                }
             }
 
             SUBCASE("Get inexisting solvable")

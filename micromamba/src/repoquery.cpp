@@ -9,35 +9,31 @@
 
 #include "common_options.hpp"
 
-
-using namespace mamba;  // NOLINT(build/namespaces)
-
-QueryType
+mamba::QueryType
 str_to_qtype(const std::string& s)
 {
     if (s == "search")
     {
-        return QueryType::kSEARCH;
+        return mamba::QueryType::kSEARCH;
     }
     if (s == "depends")
     {
-        return QueryType::kDEPENDS;
+        return mamba::QueryType::kDEPENDS;
     }
     if (s == "whoneeds")
     {
-        return QueryType::kWHONEEDS;
+        return mamba::QueryType::kWHONEEDS;
     }
     throw std::runtime_error("Could not parse query type");
 }
 
 void
-set_common_search(CLI::App* subcom, bool is_repoquery)
+set_common_search(CLI::App* subcom, mamba::Configuration& config, bool is_repoquery)
 {
-    auto& config = Configuration::instance();
-    init_general_options(subcom);
-    init_prefix_options(subcom);
-    init_network_options(subcom);
-    init_channel_parser(subcom);
+    init_general_options(subcom, config);
+    init_prefix_options(subcom, config);
+    init_network_options(subcom, config);
+    init_channel_parser(subcom, config);
 
     static std::string query_type;
     if (is_repoquery)
@@ -81,6 +77,8 @@ set_common_search(CLI::App* subcom, bool is_repoquery)
     subcom->callback(
         [&]
         {
+            using namespace mamba;
+
             auto qtype = str_to_qtype(query_type);
             QueryResultFormat format = QueryResultFormat::kTABLE;
             bool use_local = true;
@@ -122,19 +120,19 @@ set_common_search(CLI::App* subcom, bool is_repoquery)
             auto& channels = config.at("channels").compute().value<std::vector<std::string>>();
             use_local = use_local && channels.empty();
 
-            repoquery(qtype, format, use_local, specs[0]);
+            repoquery(config, qtype, format, use_local, specs[0]);
         }
     );
 }
 
 void
-set_search_command(CLI::App* subcom)
+set_search_command(CLI::App* subcom, mamba::Configuration& config)
 {
-    set_common_search(subcom, false);
+    set_common_search(subcom, config, false);
 }
 
 void
-set_repoquery_command(CLI::App* subcom)
+set_repoquery_command(CLI::App* subcom, mamba::Configuration& config)
 {
-    set_common_search(subcom, true);
+    set_common_search(subcom, config, true);
 }

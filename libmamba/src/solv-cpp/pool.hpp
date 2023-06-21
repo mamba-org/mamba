@@ -276,6 +276,7 @@ namespace mamba::solv
  *******************************/
 
 #include <stdexcept>
+#include <type_traits>
 
 #include <solv/pool.h>
 
@@ -290,7 +291,17 @@ namespace mamba::solv
         RepoId repo_id = 0;
         FOR_REPOS(repo_id, repo)
         {
-            func(repo_id);
+            if constexpr (std::is_same_v<decltype(func(repo_id)), LoopControl>)
+            {
+                if (func(repo_id) == LoopControl::Break)
+                {
+                    break;
+                }
+            }
+            else
+            {
+                func(repo_id);
+            }
         }
     }
 
@@ -320,7 +331,17 @@ namespace mamba::solv
         ::Id offset = 0;  // Not really an Id
         FOR_PROVIDES(id, offset, dep)
         {
-            func(id);
+            if constexpr (std::is_same_v<decltype(func(id)), LoopControl>)
+            {
+                if (func(id) == LoopControl::Break)
+                {
+                    break;
+                }
+            }
+            else
+            {
+                func(id);
+            }
         }
     }
 
@@ -351,7 +372,17 @@ namespace mamba::solv
         SolvableId id = 0;
         FOR_POOL_SOLVABLES(id)
         {
-            func(id);
+            if constexpr (std::is_same_v<decltype(func(id)), LoopControl>)
+            {
+                if (func(id) == LoopControl::Break)
+                {
+                    break;
+                }
+            }
+            else
+            {
+                func(id);
+            }
         }
     }
 

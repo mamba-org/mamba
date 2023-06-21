@@ -611,6 +611,15 @@ namespace mamba
     {
         return hex_string(buffer, buffer.size());
     }
+
+    /**
+     * Return the common parts of two strings by blocks located between the given sep,
+     * and considering that these common parts would be located at the end of str1 (search from
+     * left to right).
+     * str1 is considered smaller than (or equal to) str2.
+     * cf. Channels use case.
+     */
+    std::string get_common_parts(std::string_view str1, std::string_view str2, std::string_view sep);
 }
 
 #endif

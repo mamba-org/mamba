@@ -21,10 +21,8 @@ extern "C"
 
 namespace mamba
 {
-    void info()
+    void info(Configuration& config)
     {
-        auto& config = Configuration::instance();
-
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
             .set_value(
@@ -33,16 +31,9 @@ namespace mamba
         config.load();
 
         ChannelContext channel_context;
-        detail::print_info(channel_context);
+        detail::print_info(channel_context, config);
 
         config.operation_teardown();
-    }
-
-    std::string banner()
-    {
-        auto& ctx = Context::instance();
-        return ctx.command_params.custom_banner.empty() ? mamba_banner
-                                                        : ctx.command_params.custom_banner;
     }
 
     namespace detail
@@ -93,7 +84,7 @@ namespace mamba
             Console::instance().json_write(items_map);
         }
 
-        void print_info(ChannelContext& channel_context)
+        void print_info(ChannelContext& channel_context, const Configuration& config)
         {
             auto& ctx = Context::instance();
             std::vector<std::tuple<std::string, nlohmann::json>> items;
@@ -135,7 +126,6 @@ namespace mamba
             items.push_back({ "user config files",
                               { (env::home_directory() / ".mambarc").string() } });
 
-            Configuration& config = Configuration::instance();
             std::vector<std::string> sources;
             for (auto s : config.valid_sources())
             {

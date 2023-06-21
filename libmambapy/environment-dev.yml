@@ -20,5 +20,5 @@ dependencies:
   - fmt
   - pybind11
   - pybind11-stubgen
-  - pytest
+  - pytest >=7.3
   - sel(win): winreg

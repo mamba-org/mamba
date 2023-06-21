@@ -13,7 +13,9 @@
 
 namespace mamba
 {
-    void create();
+    class Configuration;
+
+    void create(Configuration& config);
 
     namespace detail
     {

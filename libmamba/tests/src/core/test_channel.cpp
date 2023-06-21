@@ -322,6 +322,7 @@ namespace mamba
             auto& ctx = Context::instance();
             ctx.custom_channels = {
                 { "test_channel", "https://server.com/private/channels" },
+                { "random/test_channel", "https://server.com/random/channels" },
             };
             ChannelContext channel_context;
 
@@ -353,6 +354,22 @@ namespace mamba
                           + platform,
                       std::string("https://server.com/private/channels/test_channel/mylabel/xyz/noarch"
                       ) }
+                );
+                CHECK_EQ(c.urls(), exp_urls);
+            }
+
+            {
+                std::string value = "random/test_channel/pkg";
+                const Channel& c = channel_context.make_channel(value);
+                CHECK_EQ(c.scheme(), "https");
+                CHECK_EQ(c.location(), "server.com/random/channels");
+                CHECK_EQ(c.name(), "random/test_channel/pkg");
+                CHECK_EQ(c.canonical_name(), "random/test_channel/pkg");
+                CHECK_EQ(c.platforms(), std::vector<std::string>({ platform, "noarch" }));
+                std::vector<std::string> exp_urls(
+                    { std::string("https://server.com/random/channels/random/test_channel/pkg/")
+                          + platform,
+                      std::string("https://server.com/random/channels/random/test_channel/pkg/noarch") }
                 );
                 CHECK_EQ(c.urls(), exp_urls);
             }

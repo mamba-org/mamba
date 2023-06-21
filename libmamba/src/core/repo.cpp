@@ -19,7 +19,6 @@ extern "C"  // Incomplete header
 #include <solv/repo_conda.h>
 }
 
-#include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/output.hpp"
@@ -27,6 +26,7 @@ extern "C"  // Incomplete header
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/repo.hpp"
+#include "mamba/core/util.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/repo.hpp"
 
@@ -228,18 +228,13 @@ namespace mamba
         srepo(*this).for_each_solvable(
             [&](solv::ObjSolvableView s)
             {
-                if (s.name() == "python")
+                if ((s.name() == "python") && !s.version().empty() && (s.version()[0] >= '2'))
                 {
-                    if (!s.version().empty() && (s.version()[0] >= '2'))
-                    {
-                        s.add_dependency(pip_id);
-                    }
+                    s.add_dependency(pip_id);
                 }
                 if (s.name() == "pip")
                 {
-                    auto deps = s.dependencies();
-                    deps.insert(deps.begin(), python_id);  // TODO is this right?
-                    s.set_dependencies(std::move(deps));
+                    s.add_dependency(python_id, SOLVABLE_PREREQMARKER);
                 }
             }
         );

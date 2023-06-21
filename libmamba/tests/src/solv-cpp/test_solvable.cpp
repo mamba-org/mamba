@@ -133,6 +133,18 @@ TEST_SUITE("ObjSolvable")
                 solv.set_dependencies({});
                 CHECK(solv.dependencies().empty());
             }
+
+            SUBCASE("Dependencies with markers")
+            {
+                solv.add_dependency(34);
+                solv.add_dependency(11, SOLVABLE_PREREQMARKER);
+                solv.add_dependency(35);
+
+                CHECK_EQ(solv.dependencies(-1), ObjQueue{ 33, 34 });
+                CHECK_EQ(solv.dependencies(0), ObjQueue{ 33, 34, SOLVABLE_PREREQMARKER, 11, 35 });
+                CHECK_EQ(solv.dependencies(1), ObjQueue{ 11, 35 });
+                CHECK_EQ(solv.dependencies(SOLVABLE_PREREQMARKER), ObjQueue{ 11, 35 });
+            }
         }
 
         SUBCASE("Add provide")

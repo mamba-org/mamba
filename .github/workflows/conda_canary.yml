@@ -26,7 +26,7 @@ jobs:
         uses: mamba-org/setup-micromamba@v1
         with:
           environment-name: build_env
-          environment-file: mamba/mamba/environment-dev.yml
+          environment-file: ./mamba/environment-dev.yml
           condarc: |
             channels:
               - conda-forge

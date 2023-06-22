@@ -24,11 +24,6 @@
 #include "solver.hpp"
 #include "transaction_context.hpp"
 
-namespace mamba::solv
-{
-    class ObjSolvableViewConst;
-}
-
 namespace mamba
 {
     class ChannelContext;
@@ -88,8 +83,6 @@ namespace mamba
         History::UserRequest m_history_entry = History::UserRequest::prefilled();
 
         std::vector<MatchSpec> m_requested_specs;
-
-        bool filter(const solv::ObjSolvableViewConst& s) const;
     };
 
     MTransaction create_explicit_transaction_from_urls(

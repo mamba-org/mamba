@@ -548,24 +548,6 @@ namespace mamba
         );
     }
 
-    bool MTransaction::filter(const solv::ObjSolvableViewConst& s) const
-    {
-        if (m_filter_type == FilterType::none)
-        {
-            return false;
-        }
-        bool spec_in_filter = m_filter_name_ids.count(s.raw()->name);
-
-        if (m_filter_type == FilterType::keep_only)
-        {
-            return spec_in_filter;
-        }
-        else
-        {
-            return !spec_in_filter;
-        }
-    }
-
     // TODO rewrite this in terms of `trans`
     std::pair<std::string, std::string> MTransaction::find_python_version()
     {

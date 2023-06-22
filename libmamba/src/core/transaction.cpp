@@ -710,34 +710,44 @@ namespace mamba
         {
             using Action = std::decay_t<decltype(act)>;
 
-            if constexpr (Solution::has_remove_v<Action> && Solution::has_install_v<Action>)
+            auto const link = [&](PackageInfo const& pkg)
+            {
+                const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg, false));
+                LinkPackage lp(pkg, cache_path, &m_transaction_context);
+                lp.execute();
+                rollback.record(lp);
+                m_history_entry.link_dists.push_back(pkg.long_str());
+            };
+            auto const unlink = [&](PackageInfo const& pkg)
+            {
+                const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg));
+                UnlinkPackage up(pkg, cache_path, &m_transaction_context);
+                up.execute();
+                rollback.record(up);
+                m_history_entry.unlink_dists.push_back(pkg.long_str());
+            };
+
+            if constexpr (std::is_same_v<Action, Solution::Reinstall>)
+            {
+                Console::stream() << "Reinstalling " << act.what.str();
+                unlink(act.what);
+                link(act.what);
+            }
+            else if constexpr (Solution::has_remove_v<Action> && Solution::has_install_v<Action>)
             {
                 Console::stream() << "Changing " << act.remove.str() << " ==> " << act.install.str();
+                unlink(act.remove);
+                link(act.install);
             }
             else if constexpr (Solution::has_remove_v<Action>)
             {
                 Console::stream() << "Unlinking " << act.remove.str();
+                unlink(act.remove);
             }
             else if constexpr (Solution::has_install_v<Action>)
             {
                 Console::stream() << "Linking " << act.install.str();
-            }
-
-            if constexpr (Solution::has_remove_v<Action>)
-            {
-                const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(act.remove));
-                UnlinkPackage up(act.remove, cache_path, &m_transaction_context);
-                up.execute();
-                rollback.record(up);
-                m_history_entry.unlink_dists.push_back(act.remove.long_str());
-            }
-            else if constexpr (Solution::has_install_v<Action>)
-            {
-                const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(act.install, false));
-                LinkPackage lp(act.install, cache_path, &m_transaction_context);
-                lp.execute();
-                rollback.record(lp);
-                m_history_entry.link_dists.push_back(act.install.long_str());
+                link(act.install);
             }
         };
 

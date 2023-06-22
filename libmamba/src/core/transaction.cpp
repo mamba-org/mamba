@@ -331,7 +331,7 @@ namespace mamba
         m_transaction = std::make_unique<solv::ObjTransaction>(
             solv::ObjTransaction::from_solver(pool, solver.solver())
         );
-        trans().order(pool);
+        m_transaction->order(pool);
 
         const auto& solver_flags = solver.flags();
         if (!solver_flags.keep_dependencies || !solver_flags.keep_specs)
@@ -388,6 +388,21 @@ namespace mamba
             m_history_entry.remove = to_string_vec(solver.remove_specs());
         }
 
+        const auto& flags = solver.flags();
+        if (flags.keep_specs && flags.keep_dependencies)
+        {
+            m_solution = transaction_to_solution(m_pool, *m_transaction);
+        }
+        else
+        {
+            m_solution = transaction_to_solution(
+                m_pool,
+                *m_transaction,
+                specs_names(solver),
+                !(flags.keep_specs)
+            );
+        }
+
         m_transaction_context = TransactionContext(
             Context::instance().prefix_params.target_prefix,
             Context::instance().prefix_params.relocate_prefix,
@@ -398,7 +413,7 @@ namespace mamba
         if (auto maybe_installed = pool.installed_repo();
             m_transaction_context.relink_noarch && maybe_installed.has_value())
         {
-            // TODO could we use the transaction instead?
+            // TODO could we use the solution instead?
             solv::ObjQueue decision = {};
             solver_get_decisionqueue(solver.solver().raw(), decision.raw());
 
@@ -467,21 +482,28 @@ namespace mamba
             m_transaction = std::make_unique<solv::ObjTransaction>(
                 solv::ObjTransaction::from_solvables(m_pool.pool(), decision)
             );
-            trans().order(m_pool.pool());
-        }
+            m_transaction->order(pool);
 
-        const auto& flags = solver.flags();
-        if (flags.keep_specs && flags.keep_dependencies)
-        {
-            m_solution = transaction_to_solution(m_pool, *m_transaction);
-        }
-        else
-        {
-            m_solution = transaction_to_solution(
-                m_pool,
-                *m_transaction,
-                specs_names(solver),
-                !(flags.keep_specs)
+            // Init solution again...
+            if (flags.keep_specs && flags.keep_dependencies)
+            {
+                m_solution = transaction_to_solution(m_pool, *m_transaction);
+            }
+            else
+            {
+                m_solution = transaction_to_solution(
+                    m_pool,
+                    *m_transaction,
+                    specs_names(solver),
+                    !(flags.keep_specs)
+                );
+            }
+
+            m_transaction_context = TransactionContext(
+                Context::instance().prefix_params.target_prefix,
+                Context::instance().prefix_params.relocate_prefix,
+                find_python_version(),
+                solver.install_specs()
             );
         }
 
@@ -515,7 +537,7 @@ namespace mamba
         m_transaction = std::make_unique<solv::ObjTransaction>(
             solv::ObjTransaction::from_solvables(m_pool.pool(), decision)
         );
-        trans().order(m_pool.pool());
+        m_transaction->order(m_pool.pool());
 
         m_solution = transaction_to_solution(m_pool, *m_transaction);
 

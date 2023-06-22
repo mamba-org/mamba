@@ -7,8 +7,6 @@
 #ifndef MAMBA_CORE_TRANSACTION_HPP
 #define MAMBA_CORE_TRANSACTION_HPP
 
-#include <memory>
-#include <set>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -19,25 +17,19 @@
 #include "match_spec.hpp"
 #include "package_cache.hpp"
 #include "package_info.hpp"
+#include "pool.hpp"
 #include "prefix_data.hpp"
 #include "solution.hpp"
-#include "solver.hpp"
 #include "transaction_context.hpp"
 
 namespace mamba
 {
     class ChannelContext;
+    class MSolver;
 
     class MTransaction
     {
     public:
-
-        enum class FilterType
-        {
-            none,
-            keep_only,
-            ignore
-        };
 
         MTransaction(
             MPool& pool,
@@ -71,10 +63,6 @@ namespace mamba
     private:
 
         MPool m_pool;
-
-        FilterType m_filter_type = FilterType::none;
-        std::set<Id> m_filter_name_ids;
-
         TransactionContext m_transaction_context;
         MultiPackageCache m_multi_cache;
         const fs::u8path m_cache_path;

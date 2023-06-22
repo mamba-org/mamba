@@ -148,6 +148,7 @@ namespace mamba
                 {
                     auto pkginfo = get_pkginfo(id);
                     // keep_only ? specs.contains(...) : !specs.contains(...);
+                    // TODO ideally we should use Matchspecs::contains(pkginfo)
                     if (keep_only == specs.contains(pkginfo.name))
                     {
                         LOG_DEBUG << "Solution: Omit " << pkginfo.str();
@@ -290,10 +291,12 @@ namespace mamba
 
         m_solution = transaction_to_solution(m_pool, trans);
 
+        m_history_entry.remove.reserve(specs_to_remove.size());
         for (auto& s : specs_to_remove)
         {
             m_history_entry.remove.push_back(s.str());
         }
+        m_history_entry.update.reserve(specs_to_remove.size());
         for (auto& s : specs_to_install)
         {
             m_history_entry.update.push_back(s.str());
@@ -327,47 +330,20 @@ namespace mamba
         }
         auto& pool = m_pool.pool();
 
-        auto trans = solv::ObjTransaction(solv::ObjTransaction::from_solver(pool, solver.solver()));
+        auto trans = solv::ObjTransaction::from_solver(pool, solver.solver());
         trans.order(pool);
 
-        const auto& solver_flags = solver.flags();
-        if (!solver_flags.keep_dependencies || !solver_flags.keep_specs)
+        const auto& flags = solver.flags();
+        if (flags.keep_specs && flags.keep_dependencies)
         {
-            m_filter_type = !(solver_flags.keep_specs) ? FilterType::keep_only : FilterType::ignore;
-            for (auto& s : solver.install_specs())
-            {
-                m_filter_name_ids.insert(pool.add_string(s.name));
-            }
-            for (auto& s : solver.remove_specs())
-            {
-                m_filter_name_ids.insert(pool.add_string(s.name));
-            }
-        }
-
-        if (!solver_flags.keep_specs)
-        {
-            for (const solv::SolvableId r : trans.steps())
-            {
-                auto s = pool.get_solvable(r);
-                assert(s.has_value());
-                if (m_filter_name_ids.count(s->raw()->name))
-                {
-                    for (const auto dep_id : s->dependencies())
-                    {
-                        std::string add_spec = std::string(pool.get_dependency_name(dep_id));
-                        if (auto version = pool.get_dependency_version(dep_id); !version.empty())
-                        {
-                            add_spec += ' ';
-                            add_spec += version;
-                        }
-                        m_history_entry.update.push_back(
-                            MatchSpec{ add_spec, m_pool.channel_context() }.str()
-                        );
-                    }
-                }
-            }
+            m_solution = transaction_to_solution(m_pool, trans);
         }
         else
+        {
+            m_solution = transaction_to_solution(m_pool, trans, specs_names(solver), !(flags.keep_specs));
+        }
+
+        if (solver.flags().keep_specs)
         {
             auto to_string_vec = [](const std::vector<MatchSpec>& vec) -> std::vector<std::string>
             {
@@ -384,15 +360,19 @@ namespace mamba
             m_history_entry.update = to_string_vec(solver.install_specs());
             m_history_entry.remove = to_string_vec(solver.remove_specs());
         }
-
-        const auto& flags = solver.flags();
-        if (flags.keep_specs && flags.keep_dependencies)
-        {
-            m_solution = transaction_to_solution(m_pool, trans);
-        }
         else
         {
-            m_solution = transaction_to_solution(m_pool, trans, specs_names(solver), !(flags.keep_specs));
+            // The specs to install become all the dependencies of the non intstalled specs
+            for_each_to_omit(
+                m_solution.actions,
+                [&](const PackageInfo& pkg)
+                {
+                    for (const auto& dep : pkg.depends)
+                    {
+                        m_history_entry.update.push_back(dep);
+                    }
+                }
+            );
         }
 
         m_transaction_context = TransactionContext(
@@ -471,8 +451,7 @@ namespace mamba
                 }
             );
 
-            trans = solv::ObjTransaction(solv::ObjTransaction::from_solvables(m_pool.pool(), decision)
-            );
+            trans = solv::ObjTransaction::from_solvables(m_pool.pool(), decision);
             trans.order(pool);
 
             // Init solution again...
@@ -525,8 +504,7 @@ namespace mamba
         auto repo = solv::ObjRepoView(*mrepo.repo());
         repo.for_each_solvable_id([&](solv::SolvableId id) { decision.push_back(id); });
 
-        auto trans = solv::ObjTransaction(solv::ObjTransaction::from_solvables(m_pool.pool(), decision)
-        );
+        auto trans = solv::ObjTransaction::from_solvables(m_pool.pool(), decision);
         trans.order(m_pool.pool());
 
         m_solution = transaction_to_solution(m_pool, trans);
@@ -709,7 +687,7 @@ namespace mamba
             }
         };
 
-        for (const auto& action : m_solution.actions())
+        for (const auto& action : m_solution.actions)
         {
             if (is_sig_interrupted())
             {

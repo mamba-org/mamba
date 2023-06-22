@@ -789,7 +789,7 @@ class Context:
         :type: bool
         """
     @use_lockfiles.setter
-    def use_lockfiles(self, arg0: bool) -> None:
+    def use_lockfiles(self, arg1: bool) -> None:
         pass
     @property
     def use_only_tar_bz2(self) -> bool:

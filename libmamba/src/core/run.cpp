@@ -194,7 +194,7 @@ namespace mamba
         : location{ proc_dir() / fmt::format("{}.json", getpid()) }
     {
         // Lock must be hold for the duraction of this constructor.
-        if (Context::instance().use_lockfiles)
+        if (is_file_locking_allowed())
         {
             assert(proc_dir_lock);
         }

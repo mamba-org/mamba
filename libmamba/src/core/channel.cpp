@@ -21,7 +21,6 @@
 #include "mamba/core/url.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_string.hpp"
-#include "mamba/core/util_url.hpp"
 #include "mamba/core/validate.hpp"
 
 

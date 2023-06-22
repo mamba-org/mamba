@@ -4,8 +4,10 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <array>
 #include <string_view>
 #include <unordered_map>
+#include <utility>
 
 #include "mamba/core/output.hpp"
 #include "mamba/core/prefix_data.hpp"
@@ -104,6 +106,27 @@ namespace mamba
                     if (from_iter != name_to_node_id.cend())
                     {
                         dep_graph.add_edge(to_id, from_iter->second);
+                    }
+                }
+            }
+
+            // Flip known problematic edges.
+            // This is made to adress cycles but there is no straightforward way to make
+            // a generic cycle handler so we instead force flip the given edges
+            static constexpr auto edges_to_flip = std::array{ std::pair{ "pip", "python" } };
+            for (const auto& [from, to] : edges_to_flip)
+            {
+                const auto from_iter = name_to_node_id.find(from);
+                const auto to_iter = name_to_node_id.find(to);
+                const auto end_iter = name_to_node_id.cend();
+                if ((from_iter != end_iter) && (to_iter != end_iter))
+                {
+                    const auto from_id = from_iter->second;
+                    const auto to_id = to_iter->second;
+                    if (dep_graph.has_edge(from_id, to_id))
+                    {
+                        dep_graph.remove_edge(from_id, to_id);
+                        dep_graph.add_edge(to_id, from_id);  // safe if edge already exeists
                     }
                 }
             }

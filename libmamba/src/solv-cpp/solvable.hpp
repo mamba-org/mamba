@@ -71,8 +71,15 @@ namespace mamba::solv
          **/
         auto subdir() const -> std::string_view;
 
-        /** Queue of ``DependencyId``. */
-        auto dependencies() const -> ObjQueue;
+        /**
+         * Queue of ``DependencyId``.
+         *
+         * When the array is split in two using a maker, @p marker can be used to get
+         * only a part of the the dependency array.
+         * Use ``-1`` to get the first part, ``1`` to get the second part, and ``0`` to get
+         * eveything including the marker.
+         */
+        auto dependencies(DependencyMarker marker = -1) const -> ObjQueue;
 
         /** Queue of ``DependencyId``. */
         auto provides() const -> ObjQueue;
@@ -241,10 +248,16 @@ namespace mamba::solv
         void set_subdir(const std::string& str) const;
 
         /** Set the dependencies of the solvable. */
-        void set_dependencies(const ObjQueue& q) const;
+        void set_dependencies(const ObjQueue& q, DependencyMarker marker = 0) const;
 
-        /** Add a additional dependency to the solvable. */
-        void add_dependency(DependencyId dep) const;
+        /**
+         * Add a additional dependency to the solvable.
+         *
+         * Dependency array can be split in two using the given @p marker.
+         *
+         * @see dependencies
+         */
+        void add_dependency(DependencyId dep, DependencyMarker marker = 0) const;
 
         /** Add multiple additional dependencies to the solvable. */
         template <typename Iter>

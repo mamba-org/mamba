@@ -1841,6 +1841,8 @@ namespace mamba
         }
         m_load_lock = false;
 
+        allow_file_locking(Context::instance().use_lockfiles);
+
         LOG_DEBUG << m_config.size() << " configurables computed";
 
         if (this->at("print_config_only").value<bool>())

@@ -56,7 +56,7 @@ namespace mamba
 
             ~LockDirTest()
             {
-                mamba::Context::instance().use_lockfiles = true;
+                mamba::allow_file_locking(true);
                 spdlog::set_level(spdlog::level::info);
             }
         };
@@ -79,14 +79,14 @@ namespace mamba
             TEST_CASE_FIXTURE(LockDirTest, "disable_locking")
             {
                 {
-                    auto _ = on_scope_exit([] { mamba::Context::instance().use_lockfiles = true; });
-                    mamba::Context::instance().use_lockfiles = false;
+                    auto _ = on_scope_exit([] { mamba::allow_file_locking(true); });
+                    mamba::allow_file_locking(false);
                     auto lock = LockFile(tempdir_path);
                     CHECK_FALSE(lock);
                 }
-                REQUIRE(mamba::Context::instance().use_lockfiles);
+                REQUIRE(mamba::is_file_locking_allowed());
                 {
-                    REQUIRE(mamba::Context::instance().use_lockfiles);
+                    REQUIRE(mamba::is_file_locking_allowed());
                     auto lock = LockFile(tempdir_path);
                     CHECK(lock);
                 }

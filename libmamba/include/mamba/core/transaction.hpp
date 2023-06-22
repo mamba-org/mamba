@@ -26,7 +26,6 @@
 
 namespace mamba::solv
 {
-    class ObjTransaction;
     class ObjSolvableViewConst;
 }
 
@@ -56,12 +55,8 @@ namespace mamba
         // Only use if the packages have been solved previously already.
         MTransaction(MPool& pool, const std::vector<PackageInfo>& packages, MultiPackageCache& caches);
 
-        ~MTransaction();
-
         MTransaction(const MTransaction&) = delete;
         MTransaction& operator=(const MTransaction&) = delete;
-        MTransaction(MTransaction&&) = delete;
-        MTransaction& operator=(MTransaction&&) = delete;
 
         using to_install_type = std::vector<std::tuple<std::string, std::string, std::string>>;
         using to_remove_type = std::vector<std::tuple<std::string, std::string>>;
@@ -91,15 +86,10 @@ namespace mamba
         Solution m_solution;
 
         History::UserRequest m_history_entry = History::UserRequest::prefilled();
-        // Temporarily using Pimpl for encapsulation
-        std::unique_ptr<solv::ObjTransaction> m_transaction;
 
         std::vector<MatchSpec> m_requested_specs;
 
         bool filter(const solv::ObjSolvableViewConst& s) const;
-
-        auto trans() -> solv::ObjTransaction&;
-        auto trans() const -> const solv::ObjTransaction&;
     };
 
     MTransaction create_explicit_transaction_from_urls(

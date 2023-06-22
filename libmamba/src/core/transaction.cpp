@@ -281,15 +281,14 @@ namespace mamba
         auto repo = solv::ObjRepoView(*mrepo.repo());
         repo.for_each_solvable_id([&](solv::SolvableId id) { decision.push_back(id); });
 
-        m_transaction = std::make_unique<solv::ObjTransaction>(
-            solv::ObjTransaction::from_solvables(m_pool.pool(), decision)
+        auto trans = solv::ObjTransaction(solv::ObjTransaction::from_solvables(m_pool.pool(), decision)
         );
         // We cannot order the transcation here because we do no have dependency information
         // from the lockfile
         // TODO reload dependency information from ``ctx.target_prefix / "conda-meta"`` after
         // ``fetch_extract_packages`` is called.
 
-        m_solution = transaction_to_solution(m_pool, *m_transaction);
+        m_solution = transaction_to_solution(m_pool, trans);
 
         for (auto& s : specs_to_remove)
         {
@@ -328,10 +327,8 @@ namespace mamba
         }
         auto& pool = m_pool.pool();
 
-        m_transaction = std::make_unique<solv::ObjTransaction>(
-            solv::ObjTransaction::from_solver(pool, solver.solver())
-        );
-        m_transaction->order(pool);
+        auto trans = solv::ObjTransaction(solv::ObjTransaction::from_solver(pool, solver.solver()));
+        trans.order(pool);
 
         const auto& solver_flags = solver.flags();
         if (!solver_flags.keep_dependencies || !solver_flags.keep_specs)
@@ -349,7 +346,7 @@ namespace mamba
 
         if (!solver_flags.keep_specs)
         {
-            for (const solv::SolvableId r : trans().steps())
+            for (const solv::SolvableId r : trans.steps())
             {
                 auto s = pool.get_solvable(r);
                 assert(s.has_value());
@@ -391,16 +388,11 @@ namespace mamba
         const auto& flags = solver.flags();
         if (flags.keep_specs && flags.keep_dependencies)
         {
-            m_solution = transaction_to_solution(m_pool, *m_transaction);
+            m_solution = transaction_to_solution(m_pool, trans);
         }
         else
         {
-            m_solution = transaction_to_solution(
-                m_pool,
-                *m_transaction,
-                specs_names(solver),
-                !(flags.keep_specs)
-            );
+            m_solution = transaction_to_solution(m_pool, trans, specs_names(solver), !(flags.keep_specs));
         }
 
         m_transaction_context = TransactionContext(
@@ -479,21 +471,20 @@ namespace mamba
                 }
             );
 
-            m_transaction = std::make_unique<solv::ObjTransaction>(
-                solv::ObjTransaction::from_solvables(m_pool.pool(), decision)
+            trans = solv::ObjTransaction(solv::ObjTransaction::from_solvables(m_pool.pool(), decision)
             );
-            m_transaction->order(pool);
+            trans.order(pool);
 
             // Init solution again...
             if (flags.keep_specs && flags.keep_dependencies)
             {
-                m_solution = transaction_to_solution(m_pool, *m_transaction);
+                m_solution = transaction_to_solution(m_pool, trans);
             }
             else
             {
                 m_solution = transaction_to_solution(
                     m_pool,
-                    *m_transaction,
+                    trans,
                     specs_names(solver),
                     !(flags.keep_specs)
                 );
@@ -534,12 +525,11 @@ namespace mamba
         auto repo = solv::ObjRepoView(*mrepo.repo());
         repo.for_each_solvable_id([&](solv::SolvableId id) { decision.push_back(id); });
 
-        m_transaction = std::make_unique<solv::ObjTransaction>(
-            solv::ObjTransaction::from_solvables(m_pool.pool(), decision)
+        auto trans = solv::ObjTransaction(solv::ObjTransaction::from_solvables(m_pool.pool(), decision)
         );
-        m_transaction->order(m_pool.pool());
+        trans.order(m_pool.pool());
 
-        m_solution = transaction_to_solution(m_pool, *m_transaction);
+        m_solution = transaction_to_solution(m_pool, trans);
 
         std::vector<MatchSpec> specs_to_install;
         for (const auto& pkginfo : packages)
@@ -556,20 +546,6 @@ namespace mamba
             find_python_version(),
             specs_to_install
         );
-    }
-
-    MTransaction::~MTransaction() = default;
-
-    auto MTransaction::trans() -> solv::ObjTransaction&
-    {
-        assert(m_transaction != nullptr);
-        return *m_transaction;
-    }
-
-    auto MTransaction::trans() const -> const solv::ObjTransaction&
-    {
-        assert(m_transaction != nullptr);
-        return *m_transaction;
     }
 
     bool MTransaction::filter(const solv::ObjSolvableViewConst& s) const
@@ -590,7 +566,7 @@ namespace mamba
         }
     }
 
-    // TODO rewrite this in terms of `m_transaction`
+    // TODO rewrite this in terms of `trans`
     std::pair<std::string, std::string> MTransaction::find_python_version()
     {
         // We need to find the python version that will be there after this

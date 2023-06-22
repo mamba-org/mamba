@@ -143,82 +143,82 @@ namespace mamba
 
             auto out = Solution::action_list();
             out.reserve(trans.size());
-            trans.classify_for_each_type(
-                pool.pool(),
-                [&](const auto type, const auto& solv_ids)
+            trans.for_each_step_id(
+                [&](const solv::SolvableId id)
                 {
-                    for (const solv::SolvableId id : solv_ids)
+                    auto pkginfo = get_pkginfo(id);
+                    // keep_only ? specs.contains(...) : !specs.contains(...);
+                    if (keep_only == specs.contains(pkginfo.name))
                     {
-                        auto pkginfo = get_pkginfo(id);
-                        // keep_only ? specs.contains(...) : !specs.contains(...);
-                        if (keep_only == specs.contains(pkginfo.name))
-                        {
-                            LOG_DEBUG << "Solution: Omit " << pkginfo.str();
-                            out.push_back(Solution::Omit{ std::move(pkginfo) });
-                            continue;
-                        }
-                        switch (type)
-                        {
-                            case SOLVER_TRANSACTION_UPGRADED:
-                            {
-                                auto newer = get_newer_pkginfo(id);
-                                LOG_DEBUG << "Solution: Upgrade " << pkginfo.str() << " -> "
-                                          << newer.str();
-                                out.push_back(Solution::Upgrade{
-                                    /* .remove= */ std::move(pkginfo),
-                                    /* .install= */ std::move(newer),
-                                });
-                                break;
-                            }
-                            case SOLVER_TRANSACTION_CHANGED:
-                            {
-                                auto newer = get_newer_pkginfo(id);
-                                LOG_DEBUG << "Solution: Change " << pkginfo.str() << " -> "
-                                          << newer.str();
-                                out.push_back(Solution::Change{
-                                    /* .remove= */ std::move(pkginfo),
-                                    /* .install= */ std::move(newer),
-                                });
-                                break;
-                            }
-                            case SOLVER_TRANSACTION_REINSTALLED:
-                            {
-                                LOG_DEBUG << "Solution: Reinstall " << pkginfo.str();
-                                out.push_back(Solution::Reinstall{ std::move(pkginfo) });
-                                break;
-                            }
-                            case SOLVER_TRANSACTION_DOWNGRADED:
-                            {
-                                auto newer = get_newer_pkginfo(id);
-                                LOG_DEBUG << "Solution: Downgrade " << pkginfo.str() << " -> "
-                                          << newer.str();
-                                out.push_back(Solution::Downgrade{
-                                    /* .remove= */ std::move(pkginfo),
-                                    /* .install= */ std::move(newer),
-                                });
-                                break;
-                            }
-                            case SOLVER_TRANSACTION_ERASE:
-                            {
-                                LOG_DEBUG << "Solution: Remove " << pkginfo.str();
-                                out.push_back(Solution::Remove{ std::move(pkginfo) });
-                                break;
-                            }
-                            case SOLVER_TRANSACTION_INSTALL:
-                            {
-                                LOG_DEBUG << "Solution: Install " << pkginfo.str();
-                                out.push_back(Solution::Install{ std::move(pkginfo) });
-                                break;
-                            }
-                            case SOLVER_TRANSACTION_IGNORE:
-                                break;
-                            default:
-                                LOG_WARNING << "solv::ObjTransaction case not handled: " << type;
-                                break;
-                        }
+                        LOG_DEBUG << "Solution: Omit " << pkginfo.str();
+                        out.push_back(Solution::Omit{ std::move(pkginfo) });
+                        return;
                     }
-                },
-                SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE
+                    auto const type = trans.step_type(
+                        pool.pool(),
+                        id,
+                        SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE
+                    );
+                    switch (type)
+                    {
+                        case SOLVER_TRANSACTION_UPGRADED:
+                        {
+                            auto newer = get_newer_pkginfo(id);
+                            LOG_DEBUG << "Solution: Upgrade " << pkginfo.str() << " -> "
+                                      << newer.str();
+                            out.push_back(Solution::Upgrade{
+                                /* .remove= */ std::move(pkginfo),
+                                /* .install= */ std::move(newer),
+                            });
+                            break;
+                        }
+                        case SOLVER_TRANSACTION_CHANGED:
+                        {
+                            auto newer = get_newer_pkginfo(id);
+                            LOG_DEBUG << "Solution: Change " << pkginfo.str() << " -> "
+                                      << newer.str();
+                            out.push_back(Solution::Change{
+                                /* .remove= */ std::move(pkginfo),
+                                /* .install= */ std::move(newer),
+                            });
+                            break;
+                        }
+                        case SOLVER_TRANSACTION_REINSTALLED:
+                        {
+                            LOG_DEBUG << "Solution: Reinstall " << pkginfo.str();
+                            out.push_back(Solution::Reinstall{ std::move(pkginfo) });
+                            break;
+                        }
+                        case SOLVER_TRANSACTION_DOWNGRADED:
+                        {
+                            auto newer = get_newer_pkginfo(id);
+                            LOG_DEBUG << "Solution: Downgrade " << pkginfo.str() << " -> "
+                                      << newer.str();
+                            out.push_back(Solution::Downgrade{
+                                /* .remove= */ std::move(pkginfo),
+                                /* .install= */ std::move(newer),
+                            });
+                            break;
+                        }
+                        case SOLVER_TRANSACTION_ERASE:
+                        {
+                            LOG_DEBUG << "Solution: Remove " << pkginfo.str();
+                            out.push_back(Solution::Remove{ std::move(pkginfo) });
+                            break;
+                        }
+                        case SOLVER_TRANSACTION_INSTALL:
+                        {
+                            LOG_DEBUG << "Solution: Install " << pkginfo.str();
+                            out.push_back(Solution::Install{ std::move(pkginfo) });
+                            break;
+                        }
+                        case SOLVER_TRANSACTION_IGNORE:
+                            break;
+                        default:
+                            LOG_WARNING << "solv::ObjTransaction case not handled: " << type;
+                            break;
+                    }
+                }
             );
             return { std::move(out) };
         }

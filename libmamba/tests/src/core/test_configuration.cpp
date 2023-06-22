@@ -95,9 +95,9 @@ namespace mamba
                 ".yaml"
             );
 
-            mamba::Context& ctx = mamba::Context::instance();
 
-            mamba::Configuration config;
+            mamba::Context ctx;
+            mamba::Configuration config{ ctx };
 
         private:
 

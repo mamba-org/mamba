@@ -9,6 +9,7 @@
 
 namespace mamba
 {
+    class Context;
     class Configuration;
 }
 
@@ -17,7 +18,10 @@ extern "C"
 {
 #endif
 
-    mamba::Configuration* mamba_new_configuration();
+    mamba::Context* mamba_new_context();
+    void mamba_delete_context(mamba::Context* context);
+
+    mamba::Configuration* mamba_new_configuration(mamba::Context* context);
     void mamba_delete_configuration(mamba::Configuration* config);
 
     int mamba_create(mamba::Configuration* config);

@@ -16,12 +16,26 @@
 #include "mamba/api/list.hpp"
 #include "mamba/api/remove.hpp"
 #include "mamba/api/update.hpp"
+#include "mamba/core/context.hpp"
 
+
+mamba::Context*
+mamba_new_context()
+{
+    return new mamba::Context;
+}
+
+void
+mamba_delete_context(mamba::Context* context)
+{
+    delete context;
+}
 
 mamba::Configuration*
-mamba_new_configuration()
+mamba_new_configuration(mamba::Context* context)
 {
-    return new mamba::Configuration;
+    assert(context != nullptr);
+    return new mamba::Configuration(*context);
 }
 
 void

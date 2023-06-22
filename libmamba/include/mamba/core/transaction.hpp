@@ -58,7 +58,7 @@ namespace mamba
         void print();
         bool execute(PrefixData& prefix);
 
-        std::pair<std::string, std::string> find_python_version();
+        [[deprecated]] std::pair<std::string, std::string> py_find_python_version() const;
 
     private:
 

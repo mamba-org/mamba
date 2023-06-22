@@ -223,6 +223,46 @@ namespace mamba
             );
             return { std::move(out) };
         }
+
+        auto find_python_version(const Solution& solution, const solv::ObjPool& pool)
+            -> std::pair<std::string, std::string>
+        {
+            // We need to find the python version that will be there after this
+            // Transaction is finished in order to compile the noarch packages correctly,
+
+            // We need to look into installed packages in case we are not installing a new python
+            // version but keeping the current one.
+            // Could also be written in term of PrefixData.
+            std::string installed_py_ver = {};
+            pool.for_each_installed_solvable(
+                [&](solv::ObjSolvableViewConst s)
+                {
+                    if (s.name() == "python")
+                    {
+                        installed_py_ver = s.version();
+                        LOG_INFO << "Found python in installed packages " << installed_py_ver;
+                        return solv::LoopControl::Break;
+                    }
+                    return solv::LoopControl::Continue;
+                }
+            );
+
+            std::string new_py_ver = installed_py_ver;
+            for_each_to_install(
+                solution.actions,
+                [&](const auto& pkg)
+                {
+                    if (pkg.name == "python")
+                    {
+                        new_py_ver = pkg.version;
+                        LOG_INFO << "Found python version in packages to be installed " << new_py_ver;
+                        // Could break but not supported with for_each API
+                    }
+                }
+            );
+
+            return { std::move(new_py_ver), std::move(installed_py_ver) };
+        }
     }
 
     MTransaction::MTransaction(
@@ -314,7 +354,7 @@ namespace mamba
         m_transaction_context = TransactionContext(
             Context::instance().prefix_params.target_prefix,
             Context::instance().prefix_params.relocate_prefix,
-            find_python_version(),
+            find_python_version(m_solution, m_pool.pool()),
             specs_to_install
         );
     }
@@ -378,7 +418,7 @@ namespace mamba
         m_transaction_context = TransactionContext(
             Context::instance().prefix_params.target_prefix,
             Context::instance().prefix_params.relocate_prefix,
-            find_python_version(),
+            find_python_version(m_solution, m_pool.pool()),
             solver.install_specs()
         );
 
@@ -472,7 +512,7 @@ namespace mamba
             m_transaction_context = TransactionContext(
                 Context::instance().prefix_params.target_prefix,
                 Context::instance().prefix_params.relocate_prefix,
-                find_python_version(),
+                find_python_version(m_solution, m_pool.pool()),
                 solver.install_specs()
             );
         }
@@ -521,51 +561,14 @@ namespace mamba
         m_transaction_context = TransactionContext(
             Context::instance().prefix_params.target_prefix,
             Context::instance().prefix_params.relocate_prefix,
-            find_python_version(),
+            find_python_version(m_solution, m_pool.pool()),
             specs_to_install
         );
     }
 
-    // TODO rewrite this in terms of `trans`
-    std::pair<std::string, std::string> MTransaction::find_python_version()
+    auto MTransaction::py_find_python_version() const -> std::pair<std::string, std::string>
     {
-        // We need to find the python version that will be there after this
-        // Transaction is finished in order to compile the noarch packages correctly,
-        // for example
-
-        std::string installed_py_ver = {};
-        std::string new_py_ver = {};
-
-        for_each_to_install(
-            m_solution.actions,
-            [&](const auto& pkg)
-            {
-                if (pkg.name == "python")
-                {
-                    new_py_ver = pkg.version;
-                    LOG_INFO << "Found python version in packages to be installed " << new_py_ver;
-                    // Could break but not supported with for_each API
-                }
-            }
-        );
-
-        m_pool.pool().for_each_installed_solvable(
-            [&](solv::ObjSolvableViewConst s)
-            {
-                if (s.name() == "python")
-                {
-                    installed_py_ver = s.version();
-                    LOG_INFO << "Found python in installed packages " << installed_py_ver;
-                }
-            }
-        );
-
-        // if we do not install a new python version but keep the current one
-        if (new_py_ver.empty())
-        {
-            new_py_ver = installed_py_ver;
-        }
-        return std::make_pair(new_py_ver, installed_py_ver);
+        return find_python_version(m_solution, m_pool.pool());
     }
 
     class TransactionRollback

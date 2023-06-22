@@ -246,8 +246,6 @@ namespace mamba
         void set_verbosity(int lvl);
         void set_log_level(log_level level);
 
-    protected:
-
         Context();
         ~Context();
 

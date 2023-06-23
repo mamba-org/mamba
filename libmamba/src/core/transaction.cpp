@@ -149,6 +149,10 @@ namespace mamba
         m_transaction = std::make_unique<solv::ObjTransaction>(
             solv::ObjTransaction::from_solvables(m_pool.pool(), decision)
         );
+        // We cannot order the transcation here because we do no have dependency information
+        // from the lockfile
+        // TODO reload dependency information from ``ctx.target_prefix / "conda-meta"`` after
+        // ``fetch_extract_packages`` is called.
         init();
 
         for (auto& s : specs_to_remove)

@@ -105,7 +105,7 @@ namespace mamba
                     const auto from_iter = name_to_node_id.find(ms.name);
                     if (from_iter != name_to_node_id.cend())
                     {
-                        dep_graph.add_edge(to_id, from_iter->second);
+                        dep_graph.add_edge(from_iter->second, to_id);
                     }
                 }
             }

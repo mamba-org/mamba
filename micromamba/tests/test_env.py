@@ -101,3 +101,27 @@ def test_env_remove(tmp_home, tmp_root_prefix):
     with open(conda_env_file, "r", encoding="utf-8") as f:
         lines = [line.strip() for line in f]
         assert str(env_fp) not in lines
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_explicit_export_topologically_sorted(tmp_home, tmp_prefix):
+    """Explicit export must have dependencies before dependent packages."""
+    helpers.install("python=3.10", "pip", "jupyterlab")
+    lines = helpers.run_env("export", "--explicit").splitlines()
+
+    indices = {
+        "libzlib": 0,
+        "python": 0,
+        "wheel": 0,
+        "pip": 0,
+        "jupyterlab": 0,
+    }
+    for i, l in enumerate(lines):
+        for pkg in indices.keys():
+            if pkg in l:
+                indices[pkg] = i
+
+    assert indices["libzlib"] < indices["python"]
+    assert indices["python"] < indices["wheel"]
+    assert indices["wheel"] < indices["pip"]
+    assert indices["python"] < indices["jupyterlab"]

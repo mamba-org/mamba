@@ -30,7 +30,7 @@ To get ``mamba``, just install it *into the base environment* from the ``conda-f
 
 .. code:: bash
 
-   conda install mamba -n base -c conda-forge
+   conda install -n base --override-channels -c conda-forge mamba 'python_abi=*=*cp*'
 
 
 .. warning::

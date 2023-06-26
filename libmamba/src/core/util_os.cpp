@@ -5,6 +5,7 @@
 #include <clocale>
 
 #include <sys/ioctl.h>
+#include <sys/utsname.h>
 #include <unistd.h>
 #if defined(__APPLE__)
 #include <libproc.h>
@@ -21,6 +22,8 @@
 // Incomplete header included last
 #include <tlhelp32.h>
 #include <WinReg.hpp>
+
+#include "mamba/core/context.hpp"
 #endif
 
 #include <fmt/color.h>
@@ -28,7 +31,6 @@
 #include <fmt/ostream.h>
 #include <reproc++/run.hpp>
 
-#include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
@@ -322,25 +324,19 @@ namespace mamba
             return "";
         }
 
-        std::string out, err;
-        std::vector<std::string> args = { "uname", "-r" };
-        auto [status, ec] = reproc::run(
-            args,
-            reproc::options{},
-            reproc::sink::string(out),
-            reproc::sink::string(err)
-        );
-
-        if (ec)
+#ifndef _WIN32
+        struct utsname uname_result = {};
+        const auto ret = ::uname(&uname_result);
+        if (ret != 0)
         {
-            LOG_DEBUG << "Could not find linux version by calling 'uname -r' (skipped)";
-            return "";
+            LOG_DEBUG << "Error calling uname (skipping): "
+                      << std::system_error(errno, std::generic_category()).what();
         }
 
-        std::regex re("([0-9]+\\.[0-9]+\\.[0-9]+)(?:-.*)?");
+        static const std::regex re("([0-9]+\\.[0-9]+\\.[0-9]+)(?:-.*)?");
         std::smatch m;
-
-        if (std::regex_search(out, m, re))
+        std::string const version = uname_result.release;
+        if (std::regex_search(version, m, re))
         {
             if (m.size() == 2)
             {
@@ -351,6 +347,7 @@ namespace mamba
         }
 
         LOG_DEBUG << "Could not parse linux version";
+#endif
 
         return "";
     }

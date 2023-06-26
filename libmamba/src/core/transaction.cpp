@@ -1270,31 +1270,32 @@ namespace mamba
     MTransaction
     create_explicit_transaction_from_urls(MPool& pool, const std::vector<std::string>& urls, MultiPackageCache& package_caches, std::vector<detail::other_pkg_mgr_spec>&)
     {
-        std::vector<MatchSpec> specs_to_install;
-        for (auto& u : urls)
+        std::vector<MatchSpec> specs_to_install = {};
+        specs_to_install.reserve(urls.size());
+        for (auto& raw_url : urls)
         {
-            std::string x(strip(u));
-            if (x.empty())
+            std::string_view url = strip(raw_url);
+            if (url.empty())
             {
                 continue;
             }
 
-            std::size_t hash = u.find_first_of('#');
-            MatchSpec ms(u.substr(0, hash), pool.channel_context());
+            const auto hash_idx = url.find_first_of('#');
+            specs_to_install.emplace_back(url.substr(0, hash_idx), pool.channel_context());
+            MatchSpec& ms = specs_to_install.back();
 
-            if (hash != std::string::npos)
+            if (hash_idx != std::string::npos)
             {
-                std::string s_hash = u.substr(hash + 1);
-                if (starts_with(s_hash, "sha256:"))
+                std::string_view hash = url.substr(hash_idx + 1);
+                if (starts_with(hash, "sha256:"))
                 {
-                    ms.brackets["sha256"] = s_hash.substr(7);
+                    ms.brackets["sha256"] = hash.substr(7);
                 }
                 else
                 {
-                    ms.brackets["md5"] = s_hash;
+                    ms.brackets["md5"] = hash;
                 }
             }
-            specs_to_install.push_back(ms);
         }
         return MTransaction(pool, {}, specs_to_install, package_caches);
     }
@@ -1316,16 +1317,12 @@ namespace mamba
 
         const auto lockfile_data = maybe_lockfile.value();
 
-        struct
-        {
-            std::vector<PackageInfo> conda, pip;
-        } packages;
+        std::vector<PackageInfo> conda_packages = {};
+        std::vector<PackageInfo> pip_packages = {};
 
         for (const auto& category : categories)
         {
-            std::vector<PackageInfo> selected_packages;
-
-            selected_packages = lockfile_data.get_packages_for(
+            std::vector<PackageInfo> selected_packages = lockfile_data.get_packages_for(
                 category,
                 Context::instance().platform,
                 "conda"
@@ -1333,7 +1330,7 @@ namespace mamba
             std::copy(
                 selected_packages.begin(),
                 selected_packages.end(),
-                std::back_inserter(packages.conda)
+                std::back_inserter(conda_packages)
             );
 
             if (selected_packages.empty())
@@ -1348,24 +1345,28 @@ namespace mamba
             std::copy(
                 selected_packages.begin(),
                 selected_packages.end(),
-                std::back_inserter(packages.pip)
+                std::back_inserter(pip_packages)
             );
         }
 
         // extract pip packages
-        if (!packages.pip.empty())
+        if (!pip_packages.empty())
         {
-            std::vector<std::string> pip_specs;
-            for (const auto& package : packages.pip)
-            {
-                pip_specs.push_back(package.name + " @ " + package.url + "#sha256=" + package.sha256);
-            }
+            std::vector<std::string> pip_specs = {};
+            pip_specs.reserve(pip_packages.size());
+            std::transform(
+                pip_packages.cbegin(),
+                pip_packages.cend(),
+                std::back_inserter(pip_specs),
+                [](const PackageInfo& pkg)
+                { return fmt::format("{} @ {}#sha256={}", pkg.name, pkg.url, pkg.sha256); }
+            );
             other_specs.push_back(
                 { "pip --no-deps", pip_specs, fs::absolute(env_lockfile_path.parent_path()).string() }
             );
         }
 
-        return MTransaction{ pool, packages.conda, package_caches };
+        return MTransaction{ pool, conda_packages, package_caches };
     }
 
 }  // namespace mamba

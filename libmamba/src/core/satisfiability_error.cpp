@@ -1264,9 +1264,9 @@ namespace mamba
             // We show the build string in pkg_dep and not pkg_list because hand written build
             // string are more likely to contain vital information about the variant.
             auto [vers_builds_trunc, size] = edges.versions_and_build_strings_trunc();
-            if (vers_builds_trunc.empty())
+            if (strip(vers_builds_trunc).empty())
             {
-                write(edges.name());
+                write(fmt::format(style, "{}", edges.name()));
             }
             else
             {

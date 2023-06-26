@@ -391,7 +391,6 @@ namespace mamba
         return res;
     }
 
-
     std::string MSolver::all_problems_to_str() const
     {
         std::stringstream problems;
@@ -706,8 +705,29 @@ namespace mamba
                     }
                     case SOLVER_RULE_UPDATE:
                     {
-                        // Encounterd in the problems list from libsolv but unknown.
-                        // Explicitly ignored until we do something with it.
+                        // Case where source is an installed package appearing in the problem.
+                        // Contrary to its name upgrading it may not solve the problem (otherwise
+                        // the solver would likely have done it).
+                        if (!source)
+                        {
+                            warn_unexpected_problem(problem);
+                            break;
+                        }
+
+                        // We re-create an dependency. There is no dependency ready to use for
+                        // how the solver is handling this package, as this is resolved in term of
+                        // installed packages and solver flags (allow downgrade...) rather than a
+                        // dependency.
+                        MatchSpec edge(source.value().name, channel_context);
+                        // The package cannot exist without its name in the pool
+                        assert(m_pool.pool().find_string(edge.name).has_value());
+                        const auto dep_id = m_pool.pool().find_string(edge.name).value();
+                        const bool added = add_expanded_deps_edges(m_root_node, dep_id, edge);
+                        if (!added)
+                        {
+                            LOG_WARNING << "Added empty dependency for problem type "
+                                        << solv::enum_name(type);
+                        }
                         break;
                     }
                     default:

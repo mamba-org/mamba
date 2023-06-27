@@ -8,6 +8,8 @@
 #define MAMBA_SPECS_VERSION_SPEC_HPP
 
 #include <stdexcept>
+#include <string>
+#include <string_view>
 #include <variant>
 
 #include "mamba/specs/version.hpp"
@@ -120,12 +122,27 @@ namespace mamba::specs
 
         using tree_type = util::flat_bool_expr_tree<VersionInterval>;
 
+        static constexpr char and_token = ',';
+        static constexpr char or_token = '|';
+        static constexpr char left_parenthesis_token = '(';
+        static constexpr char right_parenthesis_token = ')';
+
+        static constexpr std::string_view starts_with_str = "=";
+        static constexpr std::string_view equal_str = "==";
+        static constexpr std::string_view not_equal_str = "!=";
+        static constexpr std::string_view greater_str = ">";
+        static constexpr std::string_view greater_eq_str = ">=";
+        static constexpr std::string_view less_str = "<";
+        static constexpr std::string_view less_eq_str = "<=";
+        static constexpr std::string_view compatible_str = "~=";
+
         [[nodiscard]] static auto parse(std::string_view str) -> VersionSpec;
 
         /** Construct VersionSpec that match all versions. */
         VersionSpec() = default;
-        VersionSpec(tree_type&& tree) noexcept;
+        explicit VersionSpec(tree_type&& tree) noexcept;
 
+        [[nodiscard]] auto str() const -> std::string;
         [[nodiscard]] auto contains(const Version& point) const -> bool;
 
     private:

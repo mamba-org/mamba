@@ -306,4 +306,48 @@ TEST_SUITE("version_spec")
             CHECK_FALSE(spec.contains(Version(0, { { { 2 } }, { { 3 } } })));             // 2.3
         }
     }
+
+    TEST_CASE("Parsing")
+    {
+        using namespace std::literals::string_view_literals;
+
+        SUBCASE("Successful")
+        {
+            // clang-format off
+            static constexpr auto specs = std::array{
+                "<1.7"sv,
+                "<=1.7.0"sv,
+                ">1.7.0 "sv,
+                ">= 1.7"sv,
+                "(>= 1.7, <1.8) |>=1.9.0.0"sv
+            };
+            static constexpr auto versions = std::array{
+                "1.6"sv,
+                "1.7.0.0"sv,
+                "1.8.1"sv,
+                "1.9.0"sv,
+            };
+            static constexpr auto contains = std::array{
+                std::array{true, false, false, false},
+                std::array{true, true, false, false},
+                std::array{false, false, true, true},
+                std::array{false, true, true, true},
+                std::array{false, true, false, true},
+            };
+            // clang-format on
+
+            for (std::size_t spec_id = 0; spec_id < specs.size(); ++spec_id)
+            {
+                CAPTURE(specs[spec_id]);
+                const auto spec = VersionSpec::parse(specs[spec_id]);
+
+                for (std::size_t ver_id = 0; ver_id < versions.size(); ++ver_id)
+                {
+                    CAPTURE(versions[ver_id]);
+                    const auto ver = Version::parse(versions[ver_id]);
+                    CHECK_EQ(spec.contains(ver), contains[spec_id][ver_id]);
+                }
+            }
+        }
+    }
 }

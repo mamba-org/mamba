@@ -4,9 +4,11 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <array>
 #include <cassert>
 #include <type_traits>
 
+#include "mamba/core/util_string.hpp"
 #include "mamba/specs/version_spec.hpp"
 
 namespace mamba::specs
@@ -250,5 +252,94 @@ namespace mamba::specs
     auto VersionSpec::contains(const Version& point) const -> bool
     {
         return m_tree.evaluate([&point](const auto& node) { return node.contains(point); });
+    }
+
+    namespace
+    {
+        auto parse_op_and_version(std::string_view str) -> VersionInterval
+        {
+            using Bound = VersionInterval::Bound;
+
+            str = lstrip(str);
+            // WARNING order is important since some operator are prefix of others.
+            if (starts_with(str, VersionSpec::greater_eq_str))
+            {
+                return VersionInterval::make_lower_bounded(
+                    Version::parse(str.substr(VersionSpec::greater_eq_str.size())),
+                    Bound::Closed
+                );
+            }
+            else if (starts_with(str, VersionSpec::greater_str))
+            {
+                return VersionInterval::make_lower_bounded(
+                    Version::parse(str.substr(VersionSpec::greater_str.size())),
+                    Bound::Open
+                );
+            }
+            else if (starts_with(str, VersionSpec::less_eq_str))
+            {
+                return VersionInterval::make_upper_bounded(
+
+                    Version::parse(str.substr(VersionSpec::less_eq_str.size())),
+                    Bound::Closed
+                );
+            }
+            else if (starts_with(str, VersionSpec::less_str))
+            {
+                return VersionInterval::make_upper_bounded(
+                    Version::parse(str.substr(VersionSpec::less_str.size())),
+                    Bound::Open
+                );
+            }
+            // TODO other cases
+            throw std::runtime_error("Not implemented");
+        }
+    }
+
+    auto VersionSpec::parse(std::string_view str) -> VersionSpec
+    {
+        static constexpr auto all_tokens = std::array{
+            VersionSpec::and_token,
+            VersionSpec::or_token,
+            VersionSpec::left_parenthesis_token,
+            VersionSpec::right_parenthesis_token,
+        };
+
+        auto is_token = [&](auto c)
+        { return std::find(all_tokens.cbegin(), all_tokens.cend(), c) != all_tokens.cend(); };
+
+        auto parser = util::InfixParser<VersionInterval, util::BoolOperator>();
+        str = lstrip(str);
+        while (!str.empty())
+        {
+            if (str.front() == VersionSpec::and_token)
+            {
+                parser.push_operator(util::BoolOperator::logical_and);
+                str = str.substr(1);
+            }
+            else if (str.front() == VersionSpec::or_token)
+            {
+                parser.push_operator(util::BoolOperator::logical_or);
+                str = str.substr(1);
+            }
+            else if (str.front() == VersionSpec::left_parenthesis_token)
+            {
+                parser.push_left_parenthesis();
+                str = lstrip(str.substr(1));
+            }
+            else if (str.front() == VersionSpec::right_parenthesis_token)
+            {
+                parser.push_right_parenthesis();
+                str = lstrip(str.substr(1));
+            }
+            else
+            {
+                auto [op_ver, rest] = lstrip_if_parts(str, [&](auto c) { return !is_token(c); });
+                parser.push_variable(parse_op_and_version(op_ver));
+                str = rest;
+            }
+        }
+        parser.finalize();
+        return VersionSpec{ std::move(parser).tree() };
     }
 }

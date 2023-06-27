@@ -207,9 +207,6 @@ namespace mamba::util
         using tree_type = flat_binary_tree<operator_type, variable_type>;
         using size_type = typename tree_type::size_type;
 
-        template <typename Iter>
-        [[nodiscard]] static auto from_postfix(Iter first, Iter last) -> self_type;
-
         flat_bool_expr_tree() = default;
         flat_bool_expr_tree(const tree_type& tree);
         flat_bool_expr_tree(tree_type&& tree);

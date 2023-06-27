@@ -267,4 +267,43 @@ TEST_SUITE("version_spec")
             CHECK_FALSE(o2o4.contains(v5));
         }
     }
+
+    TEST_CASE("VersionInterval")
+    {
+        SUBCASE("empty")
+        {
+            auto spec = VersionSpec();
+            CHECK(spec.contains(Version()));
+        }
+
+        SUBCASE("<2.0|(>2.3,<=2.8.0)")
+        {
+            using namespace mamba::util;
+            using Bound = VersionInterval::Bound;
+
+            const auto v20 = Version(0, { { { 2 } }, { { 0 } } });
+            const auto v23 = Version(0, { { { 2 } }, { { 3 } } });
+            const auto v28 = Version(0, { { { 2 } }, { { 8 } }, { { 0 } } });
+
+            auto parser = InfixParser<VersionInterval, BoolOperator>{};
+            parser.push_variable(VersionInterval::make_upper_bounded(v20, Bound::Open));
+            parser.push_operator(BoolOperator::logical_or);
+            parser.push_left_parenthesis();
+            parser.push_variable(VersionInterval::make_lower_bounded(v23, Bound::Open));
+            parser.push_operator(BoolOperator::logical_and);
+            parser.push_variable(VersionInterval::make_upper_bounded(v28, Bound::Closed));
+            parser.push_right_parenthesis();
+            parser.finalize();
+
+            auto spec = VersionSpec(std::move(parser).tree());
+
+            CHECK(spec.contains(Version(0, { { { 2 } }, { { 3 } }, { { 1 } } })));  // 2.3.1
+            CHECK(spec.contains(Version(0, { { { 2 } }, { { 8 } } })));             // 2.8
+            CHECK(spec.contains(Version(0, { { { 1 } }, { { 8 } } })));             // 1.8
+
+            CHECK_FALSE(spec.contains(Version(0, { { { 2 } }, { { 0 } }, { { 0 } } })));  // 2.0.0
+            CHECK_FALSE(spec.contains(Version(0, { { { 2 } }, { { 1 } } })));             // 2.1
+            CHECK_FALSE(spec.contains(Version(0, { { { 2 } }, { { 3 } } })));             // 2.3
+        }
+    }
 }

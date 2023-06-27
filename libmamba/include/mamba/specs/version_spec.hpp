@@ -11,7 +11,7 @@
 #include <variant>
 
 #include "mamba/specs/version.hpp"
-
+#include "mamba/util/flat_bool_expr_tree.hpp"
 
 namespace mamba::specs
 {
@@ -113,6 +113,25 @@ namespace mamba::specs
 
     auto operator==(const VersionInterval& lhs, const VersionInterval& rhs) -> bool;
     auto operator!=(const VersionInterval& lhs, const VersionInterval& rhs) -> bool;
+
+    class VersionSpec
+    {
+    public:
+
+        using tree_type = util::flat_bool_expr_tree<VersionInterval>;
+
+        [[nodiscard]] static auto parse(std::string_view str) -> VersionSpec;
+
+        /** Construct VersionSpec that match all versions. */
+        VersionSpec() = default;
+        VersionSpec(tree_type&& tree) noexcept;
+
+        [[nodiscard]] auto contains(const Version& point) const -> bool;
+
+    private:
+
+        tree_type m_tree;
+    };
 }
 
 #endif

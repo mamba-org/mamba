@@ -12,6 +12,10 @@
 namespace mamba::specs
 {
 
+    /************************************
+     *  VersionInterval Implementation  *
+     ************************************/
+
     VersionInterval::VersionInterval(IntervalImpl&& interval) noexcept
         : m_interval{ std::move(interval) }
     {
@@ -225,11 +229,26 @@ namespace mamba::specs
 
     auto operator==(const VersionInterval& lhs, const VersionInterval& rhs) -> bool
     {
+        // returns false if the variant does not contain the same type
         return lhs.m_interval == rhs.m_interval;
     }
 
     auto operator!=(const VersionInterval& lhs, const VersionInterval& rhs) -> bool
     {
         return !(lhs == rhs);
+    }
+
+    /********************************
+     *  VersionSpec Implementation  *
+     ********************************/
+
+    VersionSpec::VersionSpec(tree_type&& tree) noexcept
+        : m_tree(std::move(tree))
+    {
+    }
+
+    auto VersionSpec::contains(const Version& point) const -> bool
+    {
+        return m_tree.evaluate([&point](const auto& node) { return node.contains(point); });
     }
 }

@@ -15,20 +15,18 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      PRE_COMMIT_USE_MICROMAMBA: 1
     steps:
     - uses: actions/checkout@v3
     - name: Install pre-commit
       uses: mamba-org/setup-micromamba@v1
       with:
         environment-name: linters
-        channels: conda-forge
         create-args: pre-commit
-    - name: Micromamba info
-      shell: bash -el {0}
-      run: |
-        micromamba info
-        micromamba list
+    - name: Add micromamba to GITHUB_PATH
+      run: echo "${HOME}/micromamba-bin" >> $GITHUB_PATH
     - name: Run all linters
-      shell: bash -el {0}
+      shell: micromamba-shell {0}
       run: |
         pre-commit run --all-files --verbose --show-diff-on-failure

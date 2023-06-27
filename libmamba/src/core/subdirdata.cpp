@@ -598,33 +598,30 @@ namespace mamba
             auto& ctx = Context::instance();
             if (!ctx.offline || forbid_cache())
             {
-                if (ctx.repodata_use_zst)
+                bool has_value = m_metadata.has_zst.has_value();
+                bool is_expired = m_metadata.has_zst.has_value()
+                                  && m_metadata.has_zst.value().has_expired();
+                bool has_zst = m_metadata.check_zst(p_channel);
+                if (!has_zst && (is_expired || !has_value))
                 {
-                    bool has_value = m_metadata.has_zst.has_value();
-                    bool is_expired = m_metadata.has_zst.has_value()
-                                      && m_metadata.has_zst.value().has_expired();
-                    bool has_zst = m_metadata.check_zst(p_channel);
-                    if (!has_zst && (is_expired || !has_value))
+                    m_check_targets.push_back(std::make_unique<DownloadTarget>(
+                        m_name + " (check zst)",
+                        m_repodata_url + ".zst",
+                        ""
+                    ));
+                    m_check_targets.back()->set_head_only(true);
+                    m_check_targets.back()->set_finalize_callback(&MSubdirData::finalize_check, this);
+                    m_check_targets.back()->set_ignore_failure(true);
+                    if (!(ctx.graphics_params.no_progress_bars || ctx.output_params.quiet
+                          || ctx.output_params.json))
                     {
-                        m_check_targets.push_back(std::make_unique<DownloadTarget>(
-                            m_name + " (check zst)",
-                            m_repodata_url + ".zst",
-                            ""
-                        ));
-                        m_check_targets.back()->set_head_only(true);
-                        m_check_targets.back()->set_finalize_callback(&MSubdirData::finalize_check, this);
-                        m_check_targets.back()->set_ignore_failure(true);
-                        if (!(ctx.graphics_params.no_progress_bars || ctx.output_params.quiet
-                              || ctx.output_params.json))
-                        {
-                            m_progress_bar_check = Console::instance().add_progress_bar(
-                                m_name + " (check zst)"
-                            );
-                            m_check_targets.back()->set_progress_bar(m_progress_bar_check);
-                            m_progress_bar_check.repr().postfix.set_value("Checking");
-                        }
-                        return true;
+                        m_progress_bar_check = Console::instance().add_progress_bar(
+                            m_name + " (check zst)"
+                        );
+                        m_check_targets.back()->set_progress_bar(m_progress_bar_check);
+                        m_progress_bar_check.repr().postfix.set_value("Checking");
                     }
+                    return true;
                 }
                 create_target();
             }
@@ -676,15 +673,12 @@ namespace mamba
             m_solv_cache_valid = true;
         }
 
-        if (Context::instance().repodata_use_zst)
-        {
-            auto state_file = json_file;
-            state_file.replace_extension(".state.json");
-            auto lock = LockFile(state_file);
-            m_metadata.store_file_metadata(json_file);
-            auto outf = open_ofstream(state_file);
-            m_metadata.serialize_to_stream(outf);
-        }
+        auto state_file = json_file;
+        state_file.replace_extension(".state.json");
+        auto lock = LockFile(state_file);
+        m_metadata.store_file_metadata(json_file);
+        auto outf = open_ofstream(state_file);
+        m_metadata.serialize_to_stream(outf);
     }
 
     bool MSubdirData::finalize_transfer(const DownloadTarget&)
@@ -817,79 +811,28 @@ namespace mamba
         m_metadata.cache_control = m_target->get_cache_control();
         m_metadata.stored_file_size = file_size;
 
-        if (!Context::instance().repodata_use_zst)
+        fs::u8path state_file = json_file;
+        state_file.replace_extension(".state.json");
+        std::error_code ec;
+        mamba_fs::rename_or_move(m_temp_file->path(), json_file, ec);
+        if (ec)
         {
-            LOG_DEBUG << "Opening '" << json_file.string() << "'";
-            path::touch(json_file, true);
-            std::ofstream final_file = open_ofstream(json_file);
-
-            if (!final_file.is_open())
-            {
-                throw mamba_error(
-                    fmt::format("Could not open file '{}'", json_file.string()),
-                    mamba_error_code::subdirdata_not_loaded
-                );
-            }
-
-            if (m_progress_bar)
-            {
-                m_progress_bar.set_postfix("Finalizing");
-            }
-
-            std::ifstream temp_file = open_ifstream(m_temp_file->path());
-            std::stringstream temp_json;
-            m_metadata.serialize_to_stream_tiny(temp_json);
-
-            // replace `}` with `,`
-            temp_json.seekp(-1, temp_json.cur);
-            temp_json << ',';
-            final_file << temp_json.str();
-            temp_file.seekg(1);
-            std::copy(
-                std::istreambuf_iterator<char>(temp_file),
-                std::istreambuf_iterator<char>(),
-                std::ostreambuf_iterator<char>(final_file)
+            throw mamba_error(
+                fmt::format(
+                    "Could not move repodata file from {} to {}: {}",
+                    m_temp_file->path(),
+                    json_file,
+                    strerror(errno)
+                ),
+                mamba_error_code::subdirdata_not_loaded
             );
-
-            if (!temp_file)
-            {
-                std::error_code ec;
-                fs::remove(json_file, ec);
-                if (ec)
-                {
-                    LOG_ERROR << "Could not remove file " << json_file << ": " << ec.message();
-                }
-                throw mamba_error(
-                    fmt::format("Could not write out repodata file {}: {}", json_file, strerror(errno)),
-                    mamba_error_code::subdirdata_not_loaded
-                );
-            }
-            fs::last_write_time(json_file, fs::now());
         }
-        else
-        {
-            fs::u8path state_file = json_file;
-            state_file.replace_extension(".state.json");
-            std::error_code ec;
-            mamba_fs::rename_or_move(m_temp_file->path(), json_file, ec);
-            if (ec)
-            {
-                throw mamba_error(
-                    fmt::format(
-                        "Could not move repodata file from {} to {}: {}",
-                        m_temp_file->path(),
-                        json_file,
-                        strerror(errno)
-                    ),
-                    mamba_error_code::subdirdata_not_loaded
-                );
-            }
-            fs::last_write_time(json_file, fs::now());
+        fs::last_write_time(json_file, fs::now());
 
-            m_metadata.store_file_metadata(json_file);
-            std::ofstream state_file_stream = open_ofstream(state_file);
-            m_metadata.serialize_to_stream(state_file_stream);
-        }
+        m_metadata.store_file_metadata(json_file);
+        std::ofstream state_file_stream = open_ofstream(state_file);
+        m_metadata.serialize_to_stream(state_file_stream);
+
         if (m_progress_bar)
         {
             m_progress_bar.repr().postfix.set_value("Downloaded").deactivate();

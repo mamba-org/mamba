@@ -1,3 +1,35 @@
+micromamba 1.4.5 (June 27, 2023)
+================================
+
+Enhancements:
+
+- No singleton: ChannelContext, ChannelBuilder and channel cache by @Klaim in https://github.com/mamba-org/mamba/pull/2455
+- Micromamba tests improvements by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2517
+- Common CMake presets by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2532
+- No singleton: configuration by @Klaim in https://github.com/mamba-org/mamba/pull/2541
+- Remove banner by @jonashaag in https://github.com/mamba-org/mamba/pull/2298
+- Add topological sort explict export tests by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2618
+
+Bug fixes:
+
+- Use subsub commands for micromamba shell by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2527
+- Fix umamba tests by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2540
+- Honor envs_dirs by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2538
+- Fix wrong download url for custom channels by @Hind-M in https://github.com/mamba-org/mamba/pull/2596
+- Fix --force-reinstall by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2601
+
+CI fixes and doc:
+
+- Use only vcpkg for static windows build by @pavelzw in https://github.com/mamba-org/mamba/pull/2520
+- update the umamba GHA link by @ocefpaf in https://github.com/mamba-org/mamba/pull/2542
+- Extend troubleshooting docs by @jonashaag in https://github.com/mamba-org/mamba/pull/2569
+- Try new vcpkg by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2572
+- Update pre-commit hooks by @jonashaag in https://github.com/mamba-org/mamba/pull/2586
+- Move GHA to setup-micromamba by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2545
+- Switch linters to setup-micromamba by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2600
+- Switch to setup-micromamba by @pavelzw in https://github.com/mamba-org/mamba/pull/2610
+- Fix broken ref directives in docs by @mfisher87 in https://github.com/mamba-org/mamba/pull/2620
+
 micromamba 1.4.4 (May 16, 2023)
 ===============================
 

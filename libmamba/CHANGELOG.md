@@ -1,3 +1,50 @@
+libmamba 1.4.5 (June 27, 2023)
+==============================
+
+Enhancements:
+
+- No singleton: ChannelContext, ChannelBuilder and channel cache by @Klaim in https://github.com/mamba-org/mamba/pull/2455
+- Move problem graph creation to MSolver by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2515
+- Add ObjSolver by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2504
+- Use ObjSolver in MSolver by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2544
+- Common CMake presets by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2532
+- Wrap libsolv Transaction by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2554
+- Split the transaction.hpp header by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2564
+- Add more tests for channel canonical_name by @Hind-M in https://github.com/mamba-org/mamba/pull/2568
+- use ObjTransaction in MTransaction by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2565
+- https://github.com/mamba-org/mamba/pull/2590 by @jonashaag in https://github.com/mamba-org/mamba/pull/2590
+- Libcurl: Cleaning and comments by @Hind-M in https://github.com/mamba-org/mamba/pull/2534
+- No singleton: configuration by @Klaim in https://github.com/mamba-org/mamba/pull/2541
+- Added filtering iterators by @JohanMabille in https://github.com/mamba-org/mamba/pull/2594
+- Use ObjSolver wrapper in MSolver by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2602
+- Remove banner by @jonashaag in https://github.com/mamba-org/mamba/pull/2298
+- LockFile behavior on file-locking is now almost independent from Context by @Klaim in https://github.com/mamba-org/mamba/pull/2608
+- Small whitespace fix in error messages by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2623
+
+Bug fixes:
+
+- Use subsub commands for micromamba shell by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2527
+- Honor envs_dirs by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2538
+- Fixed Windows test build by @JohanMabille in https://github.com/mamba-org/mamba/pull/2585
+- Add missing cstdint include to libmamba/src/solv-cpp/solvable.cpp by @maxyvisser in https://github.com/mamba-org/mamba/pull/2587
+- Fix wrong download url for custom channels by @Hind-M in https://github.com/mamba-org/mamba/pull/2596
+- Fix --force-reinstall by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2601
+- Handle pip <-> python cycle in topo sort by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2613
+- Fix add missing pip PREREQ_MARKER by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2612
+- Fix lockfiles topological sort by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2616
+- Fix mising SAT message on already installed packages by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2622
+
+CI fixes and doc:
+
+- Fixe clang-format by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2531
+- update the umamba GHA link by @ocefpaf in https://github.com/mamba-org/mamba/pull/2542
+- Extend troubleshooting docs by @jonashaag in https://github.com/mamba-org/mamba/pull/2569
+- Update pre-commit hooks by @jonashaag in https://github.com/mamba-org/mamba/pull/2586
+- Move GHA to setup-micromamba by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2545
+- Switch linters to setup-micromamba by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2600
+- Switch to setup-micromamba by @pavelzw in https://github.com/mamba-org/mamba/pull/2610
+- Fix broken ref directives in docs by @mfisher87 in https://github.com/mamba-org/mamba/pull/2620
+
 libmamba 1.4.4 (May 16, 2023)
 =============================
 

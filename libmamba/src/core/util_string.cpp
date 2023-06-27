@@ -233,10 +233,21 @@ namespace mamba
                && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
     }
 
+    bool ends_with(std::string_view str, std::string_view::value_type c)
+    {
+        return (!str.empty()) && (str.back() == c);
+    }
+
     // TODO(C++20) This is a method of string_view
     bool starts_with(std::string_view str, std::string_view prefix)
     {
         return str.size() >= prefix.size() && 0 == str.compare(0, prefix.size(), prefix);
+    }
+
+    // TODO(C++20) This is a method of string_view
+    bool starts_with(std::string_view str, std::string_view::value_type c)
+    {
+        return (!str.empty()) && (str.front() == c);
     }
 
     /*********************************************

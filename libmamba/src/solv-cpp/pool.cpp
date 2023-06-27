@@ -132,7 +132,7 @@ namespace mamba::solv
         {
             return id;
         }
-        std::stringstream msg = {};
+        auto msg = std::stringstream {};
         msg << R"(Invalid conda dependency: ")" << dep << '"';
         throw std::invalid_argument(msg.str());
     }

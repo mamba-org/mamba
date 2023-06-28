@@ -548,3 +548,8 @@ class TestInstall:
 
         reinstall_res = install("xtensor", "--force-reinstall", "--json")
         assert "xtensor" in {pkg["name"] for pkg in reinstall_res["actions"]["LINK"]}
+
+    def test_force_reinstall_not_installed(self, existing_cache):
+        """Force reinstall on non-installed packages is valid."""
+        reinstall_res = install("xtensor", "--force-reinstall", "--json")
+        assert "xtensor" in {pkg["name"] for pkg in reinstall_res["actions"]["LINK"]}

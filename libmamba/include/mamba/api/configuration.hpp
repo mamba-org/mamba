@@ -403,8 +403,14 @@ namespace mamba
         std::vector<fs::u8path> sources() const;
         std::vector<fs::u8path> valid_sources() const;
 
-        Context& context() { return m_context; }
-        const Context& context() const { return m_context; }
+        Context& context()
+        {
+            return m_context;
+        }
+        const Context& context() const
+        {
+            return m_context;
+        }
 
         void set_rc_values(std::vector<fs::u8path> possible_rc_paths, const RCConfigLevel& level);
 
@@ -453,7 +459,8 @@ namespace mamba
 
         static YAML::Node load_rc_file(const fs::u8path& file);
 
-        static std::vector<fs::u8path> compute_default_rc_sources(const Context& context, const RCConfigLevel& level);
+        static std::vector<fs::u8path>
+        compute_default_rc_sources(const Context& context, const RCConfigLevel& level);
 
         std::vector<fs::u8path>
         get_existing_rc_sources(const std::vector<fs::u8path>& possible_rc_paths);
@@ -649,7 +656,7 @@ namespace mamba
         template <class T>
         void ConfigurableImpl<T>::compute(int options, const ConfigurationLevel& level)
         {
-            assert(m_config); // REVIEW: should this be a if & throw?
+            assert(m_config);  // REVIEW: should this be a if & throw?
 
             bool hook_disabled = options & MAMBA_CONF_DISABLE_HOOK;
             bool force_compute = options & MAMBA_CONF_FORCE_COMPUTE;

@@ -32,8 +32,10 @@ namespace mamba
     {
         bool ConfigurableImplBase::env_var_configured() const
         {
-            if(m_config == nullptr)
+            if (m_config == nullptr)
+            {
                 return false;
+            }
 
             if (m_config->context().src_params.no_env)
             {
@@ -52,16 +54,20 @@ namespace mamba
 
         bool ConfigurableImplBase::env_var_active() const
         {
-            if(m_config == nullptr)
+            if (m_config == nullptr)
+            {
                 return false;
+            }
 
             return !m_config->context().src_params.no_env || (m_name == "no_env");
         }
 
         bool ConfigurableImplBase::rc_configured() const
         {
-            if(m_config == nullptr)
+            if (m_config == nullptr)
+            {
                 return false;
+            }
 
             return m_rc_configured && !m_config->context().src_params.no_rc;
         }
@@ -1122,7 +1128,9 @@ namespace mamba
                    .needs({ "target_prefix", "rc_files" })
                    .description("The type of checks performed on the target prefix")
                    .set_single_op_lifetime()
-                   .set_post_merge_hook<int>([this](int& value){ detail::target_prefix_checks_hook(m_context, value); }));
+                   .set_post_merge_hook<int>([this](int& value)
+                                             { detail::target_prefix_checks_hook(m_context, value); }
+                   ));
 
         insert(Configurable("env_name", std::string(""))
                    .group("Basic")
@@ -1137,7 +1145,9 @@ namespace mamba
                    .set_rc_configurable(RCConfigLevel::kHomeDir)
                    .set_env_var_names({ "CONDA_ENVS_DIRS" })
                    .needs({ "root_prefix" })
-                   .set_fallback_value_hook<decltype(m_context.envs_dirs)>([this]{ return detail::fallback_envs_dirs_hook(m_context); })
+                   .set_fallback_value_hook<decltype(m_context.envs_dirs)>(
+                       [this] { return detail::fallback_envs_dirs_hook(m_context); }
+                   )
                    .set_post_merge_hook(detail::envs_dirs_hook)
                    .description("Possible locations of named environments"));
 
@@ -1146,7 +1156,9 @@ namespace mamba
                    .set_rc_configurable()
                    .set_env_var_names({ "CONDA_PKGS_DIRS" })
                    .needs({ "root_prefix" })
-                   .set_fallback_value_hook<decltype(m_context.pkgs_dirs)>([this]{ return detail::fallback_pkgs_dirs_hook(m_context); })
+                   .set_fallback_value_hook<decltype(m_context.pkgs_dirs)>(
+                       [this] { return detail::fallback_pkgs_dirs_hook(m_context); }
+                   )
                    .set_post_merge_hook(detail::pkgs_dirs_hook)
                    .description("Possible locations of packages caches"));
 
@@ -1457,7 +1469,7 @@ namespace mamba
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
-                   .set_post_context_hook([this]{ return detail::extract_threads_hook(m_context); })
+                   .set_post_context_hook([this] { return detail::extract_threads_hook(m_context); })
                    .description("Defines the number of threads for package extraction")
                    .long_description(unindent(R"(
                         Defines the number of threads for package extraction.
@@ -1708,7 +1720,8 @@ namespace mamba
 
         insert(Configurable("verbose", 0)
                    .group("Output, Prompt and Flow Control")
-                   .set_post_merge_hook<int>([this](int& value){ return detail::verbose_hook(m_context, value); })
+                   .set_post_merge_hook<int>([this](int& value)
+                                             { return detail::verbose_hook(m_context, value); })
                    .description("Set the verbosity")
                    .long_description(unindent(R"(
                     Set the verbosity of .
@@ -1722,8 +1735,10 @@ namespace mamba
                    .group("Config sources")
                    .set_env_var_names({ "MAMBARC", "CONDARC" })
                    .needs({ "no_rc" })
-                   .set_post_merge_hook<std::vector<fs::u8path>>([this](std::vector<fs::u8path>& value){
-                        return detail::rc_files_hook(m_context, value); })
+                   .set_post_merge_hook<std::vector<fs::u8path>>(
+                       [this](std::vector<fs::u8path>& value)
+                       { return detail::rc_files_hook(m_context, value); }
+                   )
                    .description("Paths to the configuration files to use"));
 
         insert(Configurable("override_rc_files", true)
@@ -1786,7 +1801,8 @@ namespace mamba
     // give env::user_config_dir a mamba argument, all so I can supply conda in a few default
     // cases. It seems like ../conda is an easier solution
     //
-    std::vector<fs::u8path> Configuration::compute_default_rc_sources(const Context& context, const RCConfigLevel& level)
+    std::vector<fs::u8path>
+    Configuration::compute_default_rc_sources(const Context& context, const RCConfigLevel& level)
     {
         std::vector<fs::u8path> system;
         if constexpr (util::on_mac || util::on_linux)

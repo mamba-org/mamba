@@ -528,7 +528,9 @@ PYBIND11_MODULE(bindings, m)
         .value("OFF", mamba::log_level::off);
 
     py::class_<Context, std::unique_ptr<Context, py::nodelete>> ctx(m, "Context");
-    ctx.def(py::init([]{ return std::unique_ptr<Context, py::nodelete>(&mambapy::singletons().context); }))
+    ctx.def(py::init(
+                [] { return std::unique_ptr<Context, py::nodelete>(&mambapy::singletons().context); }
+            ))
         .def_readwrite("offline", &Context::offline)
         .def_readwrite("local_repodata_ttl", &Context::local_repodata_ttl)
         .def_readwrite("use_index_cache", &Context::use_index_cache)

@@ -115,6 +115,7 @@ namespace mamba
             output_params.log_pattern,
             ""
         );
+        spdlog::drop_all(); // TODO: find a better solution. Note that adding this line in the destructor does not fix the issue of registering loggers in the same name.
         spdlog::register_logger(libcurl_logger);
         spdlog::register_logger(libsolv_logger);
 

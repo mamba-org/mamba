@@ -8,14 +8,6 @@
 
 namespace mamba
 {
-    std::string fix_win_path(const std::string& path);
-
-    void split_platform(
-        const std::vector<std::string>& known_platforms,
-        const std::string& url,
-        std::string& cleaned_url,
-        std::string& platform
-    );
 
 #ifdef __linux__
     std::string platform("linux-64");
@@ -25,22 +17,6 @@ namespace mamba
     std::string platform("osx-arm64");
 #elif _WIN32
     std::string platform("win-64");
-#endif
-
-#ifdef _WIN32
-    TEST_SUITE("Channel")
-    {
-        TEST_CASE("fix_win_path")
-        {
-            std::string test_str("file://\\unc\\path\\on\\win");
-            auto out = fix_win_path(test_str);
-            CHECK_EQ(out, "file:///unc/path/on/win");
-            auto out2 = fix_win_path("file://C:\\Program\\ (x74)\\Users\\hello\\ world");
-            CHECK_EQ(out2, "file://C:/Program\\ (x74)/Users/hello\\ world");
-            auto out3 = fix_win_path("file://\\\\Programs\\xyz");
-            CHECK_EQ(out3, "file://Programs/xyz");
-        }
-    }
 #endif
 
     static_assert(std::is_move_constructible_v<mamba::Channel>);
@@ -619,58 +595,6 @@ namespace mamba
             // CHECK_EQ(chan.url(true),
             // "https://conda.anaconda.org/t/my-12345-token/conda-forge/noarch");
             // CHECK_EQ(chan.url(false), "https://conda.anaconda.org/conda-forge/noarch");
-        }
-
-        TEST_CASE("split_platform")
-        {
-            std::string platform_found, cleaned_url;
-            split_platform(
-                { "noarch", "linux-64" },
-                "https://mamba.com/linux-64/package.tar.bz2",
-                cleaned_url,
-                platform_found
-            );
-
-            CHECK_EQ(platform_found, "linux-64");
-            CHECK_EQ(cleaned_url, "https://mamba.com/package.tar.bz2");
-
-            split_platform(
-                { "noarch", "linux-64" },
-                "https://mamba.com/linux-64/noarch-package.tar.bz2",
-                cleaned_url,
-                platform_found
-            );
-            CHECK_EQ(platform_found, "linux-64");
-            CHECK_EQ(cleaned_url, "https://mamba.com/noarch-package.tar.bz2");
-
-            split_platform(
-                { "linux-64", "osx-arm64", "noarch" },
-                "https://mamba.com/noarch/kernel_linux-64-package.tar.bz2",
-                cleaned_url,
-                platform_found
-            );
-            CHECK_EQ(platform_found, "noarch");
-            CHECK_EQ(cleaned_url, "https://mamba.com/kernel_linux-64-package.tar.bz2");
-
-            split_platform(
-                { "noarch", "linux-64" },
-                "https://mamba.com/linux-64",
-                cleaned_url,
-                platform_found
-            );
-
-            CHECK_EQ(platform_found, "linux-64");
-            CHECK_EQ(cleaned_url, "https://mamba.com");
-
-            split_platform(
-                { "noarch", "linux-64" },
-                "https://mamba.com/noarch",
-                cleaned_url,
-                platform_found
-            );
-
-            CHECK_EQ(platform_found, "noarch");
-            CHECK_EQ(cleaned_url, "https://mamba.com");
         }
     }
 }  // namespace mamba

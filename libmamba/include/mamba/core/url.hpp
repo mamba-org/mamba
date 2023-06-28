@@ -13,9 +13,9 @@ extern "C"
 }
 
 #include <limits>
+#include <optional>
 #include <stdexcept>
 #include <string>
-#include <string_view>
 #include <vector>
 
 // typedef enum {
@@ -41,6 +41,23 @@ extern "C"
 
 namespace mamba
 {
+    std::string concat_scheme_url(const std::string& scheme, const std::string& location);
+
+    std::string build_url(
+        const std::optional<std::string>& auth,
+        const std::string& scheme,
+        const std::string& base,
+        bool with_credential
+    );
+
+    void split_platform(
+        const std::vector<std::string>& known_platforms,
+        const std::string& url,
+        const std::string& context_platform,
+        std::string& cleaned_url,
+        std::string& platform
+    );
+
     bool has_scheme(const std::string& url);
 
     void split_anaconda_token(const std::string& url, std::string& cleaned_url, std::string& token);

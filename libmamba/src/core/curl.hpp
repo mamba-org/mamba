@@ -16,6 +16,7 @@
 extern "C"
 {
 #include <curl/curl.h>
+#include <curl/urlapi.h>
 }
 
 #include <fmt/core.h>
@@ -23,6 +24,8 @@ extern "C"
 
 namespace mamba
 {
+    std::string unc_url(const std::string& url);
+
     namespace curl
     {
         void configure_curl_handle(
@@ -43,7 +46,10 @@ namespace mamba
             const std::optional<std::string>& proxy,
             const std::string& ssl_verify
         );
-    }
+
+        std::string encode_url(const std::string& url);
+        std::string decode_url(const std::string& url);
+    }  // namespace curl
 
     enum class CurlLogLevel
     {
@@ -63,6 +69,10 @@ namespace mamba
 
         bool m_serious;
     };
+
+    /****************
+     *  CURLHandle  *
+     ****************/
 
     class CURLHandle
     {
@@ -122,6 +132,33 @@ namespace mamba
     bool operator==(const CURLHandle& lhs, const CURLHandle& rhs);
     bool operator!=(const CURLHandle& lhs, const CURLHandle& rhs);
 
+    template <class T>
+    CURLHandle& CURLHandle::set_opt(CURLoption opt, const T& val)
+    {
+        CURLcode ok;
+        if constexpr (std::is_same<T, std::string>())
+        {
+            ok = curl_easy_setopt(m_handle, opt, val.c_str());
+        }
+        else if constexpr (std::is_same<T, bool>())
+        {
+            ok = curl_easy_setopt(m_handle, opt, val ? 1L : 0L);
+        }
+        else
+        {
+            ok = curl_easy_setopt(m_handle, opt, val);
+        }
+        if (ok != CURLE_OK)
+        {
+            throw curl_error(fmt::format("curl: curl_easy_setopt failed {}", curl_easy_strerror(ok)));
+        }
+        return *this;
+    }
+
+    /********************
+     *   CURLReference  *
+     ********************/
+
     class CURLReference
     {
     public:
@@ -142,12 +179,20 @@ namespace mamba
     bool operator!=(const CURLReference& lhs, const CURLHandle& rhs);
     bool operator!=(const CURLReference& lhs, const CURLReference& rhs);
 
+    /************************
+     *   CURLMultiResponse  *
+     ************************/
+
     struct CURLMultiResponse
     {
         CURLReference m_handle_ref;
         CURLcode m_transfer_result;
         bool m_transfer_done;
     };
+
+    /**********************
+     *   CURLMultiHandle  *
+     **********************/
 
     class CURLMultiHandle
     {
@@ -175,28 +220,52 @@ namespace mamba
         std::size_t m_max_parallel_downloads = 5;
     };
 
-    template <class T>
-    CURLHandle& CURLHandle::set_opt(CURLoption opt, const T& val)
+    /******************
+     *   CURLUHandle  *
+     ******************/
+
+    // NOTE:
+    // This is used in set_curl_url
+    // typedef enum {
+    //   CURLUE_OK,
+    //   CURLUE_BAD_HANDLE,          /* 1 */
+    //   CURLUE_BAD_PARTPOINTER,     /* 2 */
+    //   CURLUE_MALFORMED_INPUT,     /* 3 */
+    //   CURLUE_BAD_PORT_NUMBER,     /* 4 */
+    //   CURLUE_UNSUPPORTED_SCHEME,  /* 5 */
+    //   CURLUE_URLDECODE,           /* 6 */
+    //   CURLUE_OUT_OF_MEMORY,       /* 7 */
+    //   CURLUE_USER_NOT_ALLOWED,    /* 8 */
+    //   CURLUE_UNKNOWN_PART,        /* 9 */
+    //   CURLUE_NO_SCHEME,           /* 10 */
+    //   CURLUE_NO_USER,             /* 11 */
+    //   CURLUE_NO_PASSWORD,         /* 12 */
+    //   CURLUE_NO_OPTIONS,          /* 13 */
+    //   CURLUE_NO_HOST,             /* 14 */
+    //   CURLUE_NO_PORT,             /* 15 */
+    //   CURLUE_NO_QUERY,            /* 16 */
+    //   CURLUE_NO_FRAGMENT          /* 17 */
+    // } CURLUcode;
+
+    class CURLUHandle
     {
-        CURLcode ok;
-        if constexpr (std::is_same<T, std::string>())
-        {
-            ok = curl_easy_setopt(m_handle, opt, val.c_str());
-        }
-        else if constexpr (std::is_same<T, bool>())
-        {
-            ok = curl_easy_setopt(m_handle, opt, val ? 1L : 0L);
-        }
-        else
-        {
-            ok = curl_easy_setopt(m_handle, opt, val);
-        }
-        if (ok != CURLE_OK)
-        {
-            throw curl_error(fmt::format("curl: curl_easy_setopt failed {}", curl_easy_strerror(ok)));
-        }
-        return *this;
-    }
+    public:
+
+        CURLUHandle();
+        ~CURLUHandle();
+
+        CURLUHandle(CURLUHandle&&);
+        CURLUHandle& operator=(CURLUHandle&&);
+
+        void set_curl_url(const std::string& url, bool has_scheme);
+
+        std::string get_part(const std::string& part, bool has_scheme) const;
+        void set_part(const std::string& part, const std::string& s, const std::string& url);
+
+    private:
+
+        CURLU* m_handle;
+    };
 
 }  // namespace mamba
 

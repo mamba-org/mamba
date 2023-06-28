@@ -13,6 +13,8 @@
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_string.hpp"
 
+#include "curl.hpp"
+
 namespace mamba
 {
     /*********************
@@ -186,61 +188,6 @@ namespace mamba
         return file_scheme + abs_path;
     }
 
-    std::string unc_url(const std::string& url)
-    {
-        // Replicate UNC behaviour of url_to_path from conda.common.path
-        // We cannot use URLHandler for this since CURL returns an error when asked to parse
-        // a url of type file://hostname/path
-        // Colon character is excluded to make sure we do not match file URLs with absoulute
-        // paths to a windows drive.
-        static const std::regex file_host(R"(file://([^:/]*)(/.*)?)");
-        std::smatch match;
-        if (std::regex_match(url, match, file_host))
-        {
-            if (match[1] != "" && match[1] != "localhost" && match[1] != "127.0.0.1"
-                && match[1] != "::1" && !starts_with(match[1].str(), R"(\\))"))
-            {
-                return "file:////" + std::string(match[1].first, url.cend());
-            }
-        }
-        return url;
-    }
-
-    std::string encode_url(const std::string& url)
-    {
-        CURL* curl = curl_easy_init();
-        if (curl)
-        {
-            char* output = curl_easy_escape(curl, url.c_str(), static_cast<int>(url.size()));
-            if (output)
-            {
-                std::string result(output);
-                curl_free(output);
-                curl_easy_cleanup(curl);
-                return result;
-            }
-        }
-        throw std::runtime_error("Could not url-escape string.");
-    }
-
-    std::string decode_url(const std::string& url)
-    {
-        CURL* curl = curl_easy_init();
-        if (curl)
-        {
-            int out_length;
-            char* output = curl_easy_unescape(curl, url.c_str(), static_cast<int>(url.size()), &out_length);
-            if (output)
-            {
-                std::string result(output, static_cast<std::size_t>(out_length));
-                curl_free(output);
-                curl_easy_cleanup(curl);
-                return result;
-            }
-        }
-        throw std::runtime_error("Could not url-unescape string.");
-    }
-
     std::string cache_name_from_url(const std::string& url)
     {
         std::string u = url;
@@ -277,70 +224,21 @@ namespace mamba
         : m_url(url)
         , m_has_scheme(has_scheme(url))
     {
-        m_handle = curl_url(); /* get a handle to work with */
-        if (!m_handle)
-        {
-            throw std::runtime_error("Could not initiate URL parser.");
-        }
+        m_curlu_handle = std::make_unique<CURLUHandle>();
 
         if (!url.empty())
         {
-            CURLUcode uc;
-            auto curl_flags = m_has_scheme ? CURLU_NON_SUPPORT_SCHEME : CURLU_DEFAULT_SCHEME;
-            std::string c_url = unc_url(url);
-            uc = curl_url_set(
-                m_handle,
-                CURLUPART_URL,
-                c_url.c_str(),
-                static_cast<unsigned int>(curl_flags)
-            );
-            if (uc)
-            {
-                throw std::runtime_error(
-                    "Could not set URL (code: " + std::to_string(uc) + " - url = " + url + ")"
-                );
-            }
+            m_curlu_handle->set_curl_url(url, m_has_scheme);
         }
     }
 
     URLHandler::~URLHandler()
     {
-        curl_url_cleanup(m_handle);
-    }
-
-    URLHandler::URLHandler(const URLHandler& rhs)
-        : m_url(rhs.m_url)
-        , m_handle(curl_url_dup(rhs.m_handle))
-        , m_has_scheme(rhs.m_has_scheme)
-    {
-    }
-
-    URLHandler& URLHandler::operator=(const URLHandler& rhs)
-    {
-        URLHandler tmp(rhs);
-        std::swap(tmp, *this);
-        return *this;
-    }
-
-    URLHandler::URLHandler(URLHandler&& rhs)
-        : m_url(std::move(rhs.m_url))
-        , m_handle(rhs.m_handle)
-        , m_has_scheme(std::move(rhs.m_has_scheme))
-    {
-        rhs.m_handle = nullptr;
-    }
-
-    URLHandler& URLHandler::operator=(URLHandler&& rhs)
-    {
-        std::swap(m_url, rhs.m_url);
-        std::swap(m_handle, rhs.m_handle);
-        std::swap(m_has_scheme, rhs.m_has_scheme);
-        return *this;
     }
 
     std::string URLHandler::url(bool strip_scheme)
     {
-        std::string res = get_part(CURLUPART_URL);
+        std::string res = get_part("CURLUPART_URL");
         if (!res.empty())
         {
             if (!m_has_scheme || strip_scheme)
@@ -358,37 +256,37 @@ namespace mamba
 
     std::string URLHandler::scheme() const
     {
-        return m_has_scheme ? get_part(CURLUPART_SCHEME) : "";
+        return m_has_scheme ? get_part("CURLUPART_SCHEME") : "";
     }
 
     std::string URLHandler::host() const
     {
-        return get_part(CURLUPART_HOST);
+        return get_part("CURLUPART_HOST");
     }
 
     std::string URLHandler::path() const
     {
-        return get_part(CURLUPART_PATH);
+        return get_part("CURLUPART_PATH");
     }
 
     std::string URLHandler::port() const
     {
-        return get_part(CURLUPART_PORT);
+        return get_part("CURLUPART_PORT");
     }
 
     std::string URLHandler::query() const
     {
-        return get_part(CURLUPART_QUERY);
+        return get_part("CURLUPART_QUERY");
     }
 
     std::string URLHandler::fragment() const
     {
-        return get_part(CURLUPART_FRAGMENT);
+        return get_part("CURLUPART_FRAGMENT");
     }
 
     std::string URLHandler::options() const
     {
-        return get_part(CURLUPART_OPTIONS);
+        return get_part("CURLUPART_OPTIONS");
     }
 
     std::string URLHandler::auth() const
@@ -400,17 +298,17 @@ namespace mamba
 
     std::string URLHandler::user() const
     {
-        return get_part(CURLUPART_USER);
+        return get_part("CURLUPART_USER");
     }
 
     std::string URLHandler::password() const
     {
-        return get_part(CURLUPART_PASSWORD);
+        return get_part("CURLUPART_PASSWORD");
     }
 
     std::string URLHandler::zoneid() const
     {
-        return get_part(CURLUPART_ZONEID);
+        return get_part("CURLUPART_ZONEID");
     }
 
     URLHandler& URLHandler::set_scheme(const std::string& scheme)
@@ -418,62 +316,62 @@ namespace mamba
         m_has_scheme = (scheme != "");
         if (m_has_scheme)
         {
-            set_part(CURLUPART_SCHEME, scheme);
+            set_part("CURLUPART_SCHEME", scheme);
         }
         return *this;
     }
 
     URLHandler& URLHandler::set_host(const std::string& host)
     {
-        set_part(CURLUPART_HOST, host);
+        set_part("CURLUPART_HOST", host);
         return *this;
     }
 
     URLHandler& URLHandler::set_path(const std::string& path)
     {
-        set_part(CURLUPART_PATH, path);
+        set_part("CURLUPART_PATH", path);
         return *this;
     }
 
     URLHandler& URLHandler::set_port(const std::string& port)
     {
-        set_part(CURLUPART_PORT, port);
+        set_part("CURLUPART_PORT", port);
         return *this;
     }
 
     URLHandler& URLHandler::set_query(const std::string& query)
     {
-        set_part(CURLUPART_QUERY, query);
+        set_part("CURLUPART_QUERY", query);
         return *this;
     }
 
     URLHandler& URLHandler::set_fragment(const std::string& fragment)
     {
-        set_part(CURLUPART_FRAGMENT, fragment);
+        set_part("CURLUPART_FRAGMENT", fragment);
         return *this;
     }
 
     URLHandler& URLHandler::set_options(const std::string& options)
     {
-        set_part(CURLUPART_OPTIONS, options);
+        set_part("CURLUPART_OPTIONS", options);
         return *this;
     }
 
     URLHandler& URLHandler::set_user(const std::string& user)
     {
-        set_part(CURLUPART_USER, user);
+        set_part("CURLUPART_USER", user);
         return *this;
     }
 
     URLHandler& URLHandler::set_password(const std::string& password)
     {
-        set_part(CURLUPART_PASSWORD, password);
+        set_part("CURLUPART_PASSWORD", password);
         return *this;
     }
 
     URLHandler& URLHandler::set_zoneid(const std::string& zoneid)
     {
-        set_part(CURLUPART_ZONEID, zoneid);
+        set_part("CURLUPART_ZONEID", zoneid);
         return *this;
     }
 
@@ -493,29 +391,13 @@ namespace mamba
             "zoneid"};
     }
 
-    std::string URLHandler::get_part(CURLUPart part) const
+    std::string URLHandler::get_part(const std::string& part) const
     {
-        char* scheme;
-        auto rc = curl_url_get(m_handle, part, &scheme, m_has_scheme ? 0 : CURLU_DEFAULT_SCHEME);
-        if (!rc)
-        {
-            std::string res(scheme);
-            curl_free(scheme);
-            return res;
-        }
-        else
-        {
-            return "";
-        }
+        return m_curlu_handle->get_part(part, m_has_scheme);
     }
 
-    void URLHandler::set_part(CURLUPart part, const std::string& s)
+    void URLHandler::set_part(const std::string& part, const std::string& s)
     {
-        const char* data = s == "" ? nullptr : s.c_str();
-        auto rc = curl_url_set(m_handle, part, data, CURLU_NON_SUPPORT_SCHEME);
-        if (rc)
-        {
-            throw std::runtime_error("Could not set " + s + " in url " + m_url);
-        }
+        m_curlu_handle->set_part(part, s, m_url);
     }
 }  // namespace mamba

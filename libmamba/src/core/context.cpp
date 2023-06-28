@@ -22,6 +22,8 @@
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_string.hpp"
 
+#include "curl.hpp"
+
 namespace mamba
 {
     class Logger : public spdlog::logger
@@ -197,7 +199,7 @@ namespace mamba
                 if (ends_with(entry.path().filename().string(), ".token"))
                 {
                     found_tokens.push_back(entry.path());
-                    std::string token_url = decode_url(entry.path().filename().string());
+                    std::string token_url = curl::decode_url(entry.path().filename().string());
 
                     // anaconda client writes out a token for https://api.anaconda.org...
                     // but we need the token for https://conda.anaconda.org

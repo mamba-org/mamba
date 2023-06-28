@@ -7,40 +7,13 @@
 #ifndef MAMBA_CORE_URL_HPP
 #define MAMBA_CORE_URL_HPP
 
-extern "C"
-{
-#include <curl/urlapi.h>
-}
-
-#include <limits>
-#include <optional>
-#include <stdexcept>
+#include <memory>
 #include <string>
-#include <vector>
-
-// typedef enum {
-//   CURLUE_OK,
-//   CURLUE_BAD_HANDLE,          /* 1 */
-//   CURLUE_BAD_PARTPOINTER,     /* 2 */
-//   CURLUE_MALFORMED_INPUT,     /* 3 */
-//   CURLUE_BAD_PORT_NUMBER,     /* 4 */
-//   CURLUE_UNSUPPORTED_SCHEME,  /* 5 */
-//   CURLUE_URLDECODE,           /* 6 */
-//   CURLUE_OUT_OF_MEMORY,       /* 7 */
-//   CURLUE_USER_NOT_ALLOWED,    /* 8 */
-//   CURLUE_UNKNOWN_PART,        /* 9 */
-//   CURLUE_NO_SCHEME,           /* 10 */
-//   CURLUE_NO_USER,             /* 11 */
-//   CURLUE_NO_PASSWORD,         /* 12 */
-//   CURLUE_NO_OPTIONS,          /* 13 */
-//   CURLUE_NO_HOST,             /* 14 */
-//   CURLUE_NO_PORT,             /* 15 */
-//   CURLUE_NO_QUERY,            /* 16 */
-//   CURLUE_NO_FRAGMENT          /* 17 */
-// } CURLUcode;
 
 namespace mamba
 {
+    class CURLUHandle;
+
     std::string concat_scheme_url(const std::string& scheme, const std::string& location);
 
     std::string build_url(
@@ -59,7 +32,6 @@ namespace mamba
     );
 
     bool has_scheme(const std::string& url);
-
     void split_anaconda_token(const std::string& url, std::string& cleaned_url, std::string& token);
 
     void split_scheme_auth_token(
@@ -78,9 +50,6 @@ namespace mamba
     template <class S, class... Args>
     std::string join_url(const S& s, const Args&... args);
 
-    std::string unc_url(const std::string& url);
-    std::string encode_url(const std::string& url);
-    std::string decode_url(const std::string& url);
     // Only returns a cache name without extension
     std::string cache_name_from_url(const std::string& url);
 
@@ -91,11 +60,11 @@ namespace mamba
         URLHandler(const std::string& url = "");
         ~URLHandler();
 
-        URLHandler(const URLHandler&);
-        URLHandler& operator=(const URLHandler&);
+        URLHandler(const URLHandler&) = delete;
+        URLHandler& operator=(const URLHandler&) = delete;
 
-        URLHandler(URLHandler&&);
-        URLHandler& operator=(URLHandler&&);
+        URLHandler(URLHandler&&) = delete;
+        URLHandler& operator=(URLHandler&&) = delete;
 
         std::string url(bool strip_scheme = false);
 
@@ -128,12 +97,12 @@ namespace mamba
 
     private:
 
-        std::string get_part(CURLUPart part) const;
-        void set_part(CURLUPart part, const std::string& s);
+        std::string get_part(const std::string& part) const;
+        void set_part(const std::string& part, const std::string& s);
 
         std::string m_url;
-        CURLU* m_handle;
         bool m_has_scheme;
+        std::unique_ptr<CURLUHandle> m_curlu_handle;
     };
 
     namespace detail

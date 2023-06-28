@@ -4,10 +4,14 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <vector>
+
 #include <doctest/doctest.h>
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/url.hpp"
+
+#include "core/curl.hpp"
 
 #ifdef _WIN32
 #include "mamba/core/mamba_fs.hpp"
@@ -121,6 +125,48 @@ namespace mamba
             CHECK_EQ(cleaned_url, "https://mamba.com");
         }
 
+        TEST_CASE("unc_url")
+        {
+            {
+                auto out = unc_url("http://example.com/test");
+                CHECK_EQ(out, "http://example.com/test");
+            }
+            {
+                auto out = unc_url("file://C:/Program\\ (x74)/Users/hello\\ world");
+                CHECK_EQ(out, "file://C:/Program\\ (x74)/Users/hello\\ world");
+            }
+            {
+                auto out = unc_url("file:///C:/Program\\ (x74)/Users/hello\\ world");
+                CHECK_EQ(out, "file:///C:/Program\\ (x74)/Users/hello\\ world");
+            }
+            {
+                auto out = unc_url("file:////server/share");
+                CHECK_EQ(out, "file:////server/share");
+            }
+            {
+                auto out = unc_url("file:///absolute/path");
+                CHECK_EQ(out, "file:///absolute/path");
+            }
+            {
+                auto out = unc_url("file://server/share");
+                CHECK_EQ(out, "file:////server/share");
+            }
+            {
+                auto out = unc_url("file://server");
+                CHECK_EQ(out, "file:////server");
+            }
+        }
+
+        TEST_CASE("has_scheme")
+        {
+            std::string url = "http://mamba.org";
+            std::string not_url = "mamba.org";
+
+            CHECK(has_scheme(url));
+            CHECK_FALSE(has_scheme(not_url));
+            CHECK_FALSE(has_scheme(""));
+        }
+
         TEST_CASE("parse")
         {
             {
@@ -177,93 +223,6 @@ namespace mamba
             auto url2 = path_to_url("D:\\users\\test\\miniconda3");
             CHECK_EQ(url2, "file://D:/users/test/miniconda3");
 #endif
-        }
-
-        TEST_CASE("unc_url")
-        {
-            {
-                auto out = unc_url("http://example.com/test");
-                CHECK_EQ(out, "http://example.com/test");
-            }
-            {
-                auto out = unc_url("file://C:/Program\\ (x74)/Users/hello\\ world");
-                CHECK_EQ(out, "file://C:/Program\\ (x74)/Users/hello\\ world");
-            }
-            {
-                auto out = unc_url("file:///C:/Program\\ (x74)/Users/hello\\ world");
-                CHECK_EQ(out, "file:///C:/Program\\ (x74)/Users/hello\\ world");
-            }
-            {
-                auto out = unc_url("file:////server/share");
-                CHECK_EQ(out, "file:////server/share");
-            }
-            {
-                auto out = unc_url("file:///absolute/path");
-                CHECK_EQ(out, "file:///absolute/path");
-            }
-            {
-                auto out = unc_url("file://server/share");
-                CHECK_EQ(out, "file:////server/share");
-            }
-            {
-                auto out = unc_url("file://server");
-                CHECK_EQ(out, "file:////server");
-            }
-        }
-
-        TEST_CASE("has_scheme")
-        {
-            std::string url = "http://mamba.org";
-            std::string not_url = "mamba.org";
-
-            CHECK(has_scheme(url));
-            CHECK_FALSE(has_scheme(not_url));
-            CHECK_FALSE(has_scheme(""));
-        }
-
-        TEST_CASE("value_semantic")
-        {
-            {
-                URLHandler in("s3://userx123:üúßsajd@mamba.org");
-                URLHandler m(in);
-                CHECK_EQ(m.scheme(), "s3");
-                CHECK_EQ(m.path(), "/");
-                CHECK_EQ(m.host(), "mamba.org");
-                CHECK_EQ(m.user(), "userx123");
-                CHECK_EQ(m.password(), "üúßsajd");
-            }
-
-            {
-                URLHandler m("http://mamba.org");
-                URLHandler in("s3://userx123:üúßsajd@mamba.org");
-                m = in;
-                CHECK_EQ(m.scheme(), "s3");
-                CHECK_EQ(m.path(), "/");
-                CHECK_EQ(m.host(), "mamba.org");
-                CHECK_EQ(m.user(), "userx123");
-                CHECK_EQ(m.password(), "üúßsajd");
-            }
-
-            {
-                URLHandler in("s3://userx123:üúßsajd@mamba.org");
-                URLHandler m(std::move(in));
-                CHECK_EQ(m.scheme(), "s3");
-                CHECK_EQ(m.path(), "/");
-                CHECK_EQ(m.host(), "mamba.org");
-                CHECK_EQ(m.user(), "userx123");
-                CHECK_EQ(m.password(), "üúßsajd");
-            }
-
-            {
-                URLHandler m("http://mamba.org");
-                URLHandler in("s3://userx123:üúßsajd@mamba.org");
-                m = std::move(in);
-                CHECK_EQ(m.scheme(), "s3");
-                CHECK_EQ(m.path(), "/");
-                CHECK_EQ(m.host(), "mamba.org");
-                CHECK_EQ(m.user(), "userx123");
-                CHECK_EQ(m.password(), "üúßsajd");
-            }
         }
 
         TEST_CASE("split_ananconda_token")

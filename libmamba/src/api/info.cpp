@@ -89,6 +89,19 @@ namespace mamba
             auto& ctx = Context::instance();
             std::vector<std::tuple<std::string, nlohmann::json>> items;
 
+            items.push_back({ "libmamba version", version() });
+
+            if (ctx.command_params.is_micromamba && !ctx.command_params.caller_version.empty())
+            {
+                items.push_back({ "micromamba version", ctx.command_params.caller_version });
+            }
+
+            items.push_back({ "curl version", curl_version() });
+            items.push_back({ "libarchive version", archive_version_details() });
+
+            items.push_back({ "envs directories", ctx.envs_dirs });
+            items.push_back({ "package cache", ctx.pkgs_dirs });
+
             std::string name, location;
             if (!ctx.prefix_params.target_prefix.empty())
             {
@@ -131,16 +144,6 @@ namespace mamba
                 sources.push_back(s.string());
             };
             items.push_back({"populated config files", sources});
-
-            items.push_back({"libmamba version", version()});
-
-            if (ctx.command_params.is_micromamba && !ctx.command_params.caller_version.empty())
-            {
-                items.push_back({"micromamba version", ctx.command_params.caller_version});
-            }
-
-            items.push_back({"curl version", curl_version()});
-            items.push_back({"libarchive version", archive_version_details()});
 
             std::vector<std::string> virtual_pkgs;
             for (auto pkg : get_virtual_packages())

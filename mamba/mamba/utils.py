@@ -102,23 +102,10 @@ def get_index(
                 channel, channel_platform, full_url, pkgs_dirs, repodata_fn
             )
 
-            needs_finalising = sd.download_and_check_targets(dlist)
             index.append(
-                (
-                    sd,
-                    {
-                        "platform": channel_platform,
-                        "url": url,
-                        "channel": channel,
-                        "needs_finalising": needs_finalising,
-                    },
-                )
+                (sd, {"platform": channel_platform, "url": url, "channel": channel})
             )
-
-    for (sd, info) in index:
-        if info["needs_finalising"]:
-            sd.finalize_checks()
-        dlist.add(sd)
+            dlist.add(sd)
 
     is_downloaded = dlist.download(api.MAMBA_DOWNLOAD_FAILFAST)
 

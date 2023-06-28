@@ -78,7 +78,7 @@ namespace mamba
             std::map<std::string, nlohmann::json> items_map;
             for (auto& [key, val] : items)
             {
-                items_map.insert({key, val});
+                items_map.insert({ key, val });
             }
 
             Console::instance().json_write(items_map);
@@ -89,18 +89,18 @@ namespace mamba
             auto& ctx = Context::instance();
             std::vector<std::tuple<std::string, nlohmann::json>> items;
 
-            items.push_back({"libmamba version", version()});
+            items.push_back({ "libmamba version", version() });
 
             if (ctx.command_params.is_micromamba && !ctx.command_params.caller_version.empty())
             {
-                items.push_back({"micromamba version", ctx.command_params.caller_version});
+                items.push_back({ "micromamba version", ctx.command_params.caller_version });
             }
 
-            items.push_back({"curl version", curl_version()});
-            items.push_back({"libarchive version", archive_version_details()});
+            items.push_back({ "curl version", curl_version() });
+            items.push_back({ "libarchive version", archive_version_details() });
 
-            items.push_back({"envs directories", ctx.envs_dirs});
-            items.push_back({"package cache", ctx.pkgs_dirs});
+            items.push_back({ "envs directories", ctx.envs_dirs });
+            items.push_back({ "package cache", ctx.pkgs_dirs });
 
             std::string name, location;
             if (!ctx.prefix_params.target_prefix.empty())
@@ -132,25 +132,26 @@ namespace mamba
                 name += " (not found)";
             }
 
-            items.push_back({"environment", name});
-            items.push_back({"env location", location});
+            items.push_back({ "environment", name });
+            items.push_back({ "env location", location });
 
             // items.insert( { "shell level", { 1 } });
-            items.push_back({"user config files", {(env::home_directory() / ".mambarc").string()}});
+            items.push_back({ "user config files",
+                              { (env::home_directory() / ".mambarc").string() } });
 
             std::vector<std::string> sources;
             for (auto s : config.valid_sources())
             {
                 sources.push_back(s.string());
             };
-            items.push_back({"populated config files", sources});
+            items.push_back({ "populated config files", sources });
 
             std::vector<std::string> virtual_pkgs;
             for (auto pkg : get_virtual_packages())
             {
                 virtual_pkgs.push_back(concat(pkg.name, "=", pkg.version, "=", pkg.build_string));
             }
-            items.push_back({"virtual packages", virtual_pkgs});
+            items.push_back({ "virtual packages", virtual_pkgs });
 
             std::vector<std::string> channels = ctx.channels;
             // Always append context channels
@@ -164,11 +165,11 @@ namespace mamba
                     channel_urls.push_back(url);
                 }
             }
-            items.push_back({"channels", channel_urls});
+            items.push_back({ "channels", channel_urls });
 
-            items.push_back({"base environment", ctx.prefix_params.root_prefix.string()});
+            items.push_back({ "base environment", ctx.prefix_params.root_prefix.string() });
 
-            items.push_back({"platform", ctx.platform});
+            items.push_back({ "platform", ctx.platform });
 
             info_json_print(items);
             info_pretty_print(items);

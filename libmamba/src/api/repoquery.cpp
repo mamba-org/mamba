@@ -33,7 +33,7 @@ namespace mamba
         config.load();
 
         ChannelContext channel_context;
-        MPool pool{ channel_context };
+        MPool pool{channel_context};
 
         // bool installed = (type == QueryType::kDepends) || (type == QueryType::kWhoneeds);
         MultiPackageCache package_caches(ctx.pkgs_dirs);
@@ -144,7 +144,7 @@ namespace mamba
                 case QueryResultFormat::kRECURSIVETABLE:
                     res.sort("name").table(
                         std::cout,
-                        { "Name", "Version", "Build", concat("Depends:", query), "Channel" }
+                        {"Name", "Version", "Build", concat("Depends:", query), "Channel"}
                     );
             }
             if (res.empty() && format != QueryResultFormat::kJSON)

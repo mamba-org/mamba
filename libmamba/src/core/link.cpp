@@ -184,7 +184,7 @@ namespace mamba
         conda_exe_f.write(reinterpret_cast<char*>(conda_exe), conda_exe_len);
         conda_exe_f.close();
         make_executable(m_context->target_prefix / script_exe);
-        return std::array<std::string, 2>{ win_script, script_exe.string() };
+        return std::array<std::string, 2>{win_script, script_exe.string()};
 #else
         if (!python_path.empty())
         {
@@ -363,14 +363,14 @@ namespace mamba
                     prefix,
                     Context::instance().dev,
                     false,
-                    { "@CALL", path.string() }
+                    {"@CALL", path.string()}
                 );
 
-                command_args = { comspec.value(), "/d", "/c", script_file->path().string() };
+                command_args = {comspec.value(), "/d", "/c", script_file->path().string()};
             }
             else
             {
-                command_args = { comspec.value(), "/d", "/c", path.string() };
+                command_args = {comspec.value(), "/d", "/c", path.string()};
             }
         }
 
@@ -391,7 +391,7 @@ namespace mamba
                     prefix,
                     Context::instance().dev,
                     false,
-                    { ".", path.string() }
+                    {".", path.string()}
                 );
                 command_args.push_back(shell_path.string());
                 command_args.push_back(script_file->path().string());
@@ -880,8 +880,9 @@ namespace mamba
             auto [sha256_in_prefix, final_path] = link_path(path, noarch_type == NoarchType::PYTHON);
             files_record.push_back(final_path);
 
-            nlohmann::json json_record = { { "_path", final_path },
-                                           { "sha256_in_prefix", sha256_in_prefix } };
+            nlohmann::json json_record = {
+                {"_path", final_path},
+                {"sha256_in_prefix", sha256_in_prefix}};
 
             if (!path.sha256.empty())
             {
@@ -987,7 +988,7 @@ namespace mamba
         out_json["extracted_package_dir"] = m_source.string();
 
         // TODO find out what `1` means
-        out_json["link"] = { { "source", m_source.string() }, { "type", 1 } };
+        out_json["link"] = {{"source", m_source.string()}, {"type", 1}};
 
         if (noarch_type == NoarchType::PYTHON)
         {
@@ -1014,8 +1015,9 @@ namespace mamba
             std::vector<fs::u8path> pyc_files = compile_pyc_files(for_compilation);
             for (const fs::u8path& pyc_path : pyc_files)
             {
-                out_json["paths_data"]["paths"].push_back({ { "_path", pyc_path.string() },
-                                                            { "path_type", "pyc_file" } });
+                out_json["paths_data"]["paths"].push_back(
+                    {{"_path", pyc_path.string()}, {"path_type", "pyc_file"}}
+                );
 
                 out_json["files"].push_back(pyc_path.string());
             }
@@ -1034,16 +1036,16 @@ namespace mamba
 
 #ifdef _WIN32
                     out_json["paths_data"]["paths"].push_back(
-                        { { "_path", files[0] }, { "path_type", "windows_python_entry_point_script" } }
+                        {{"_path", files[0]}, {"path_type", "windows_python_entry_point_script"}}
                     );
                     out_json["paths_data"]["paths"].push_back(
-                        { { "_path", files[1] }, { "path_type", "windows_python_entry_point_exe" } }
+                        {{"_path", files[1]}, {"path_type", "windows_python_entry_point_exe"}}
                     );
                     out_json["files"].push_back(files[0]);
                     out_json["files"].push_back(files[1]);
 #else
                     out_json["paths_data"]["paths"].push_back(
-                        { { "_path", files }, { "path_type", "unix_python_entry_point" } }
+                        {{"_path", files}, {"path_type", "unix_python_entry_point"}}
                     );
                     out_json["files"].push_back(files);
 #endif

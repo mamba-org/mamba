@@ -35,12 +35,12 @@ namespace
     struct filter_test_data
     {
         filter_test_data()
-            : input_forward_sequence({ 1, 12, 2, 3, 14, 4, 18, 20, 4 })
-            , res_forward_sequence({ 12, 14, 18, 20 })
-            , input_bidirectional_sequence({ 1, 12, 2, 3, 14, 4, 18, 20, 4 })
-            , res_bidirectional_sequence({ 12, 14, 18, 20 })
-            , input_random_sequence({ 1, 12, 2, 3, 14, 4, 18, 20, 4 })
-            , res_random_sequence({ 12, 14, 18, 20 })
+            : input_forward_sequence({1, 12, 2, 3, 14, 4, 18, 20, 4})
+            , res_forward_sequence({12, 14, 18, 20})
+            , input_bidirectional_sequence({1, 12, 2, 3, 14, 4, 18, 20, 4})
+            , res_bidirectional_sequence({12, 14, 18, 20})
+            , input_random_sequence({1, 12, 2, 3, 14, 4, 18, 20, 4})
+            , res_random_sequence({12, 14, 18, 20})
         {
         }
 

@@ -76,7 +76,7 @@ namespace mamba::path
                     }
                 }
                 // directory exists, now create empty file
-                std::ofstream outfile{ path.std_path(), std::ios::out };
+                std::ofstream outfile{path.std_path(), std::ios::out};
 
                 if (!outfile.good())
                 {
@@ -147,7 +147,7 @@ namespace mamba::path
                 }
             }
         );
-        std::ofstream test_file{ test_file_path.std_path(), std::ios_base::out | std::ios_base::app };
+        std::ofstream test_file{test_file_path.std_path(), std::ios_base::out | std::ios_base::app};
         return test_file.is_open();
     }
 }  // namespace path

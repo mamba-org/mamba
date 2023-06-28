@@ -140,7 +140,7 @@ namespace mamba
         // TODO why is this only using the last job?
         const auto q = m_pool.pool().select_solvables(job);
         const bool remove_success = q.size() >= specs_to_remove.size();
-        Console::instance().json_write({ { "success", remove_success } });
+        Console::instance().json_write({{"success", remove_success}});
 
         // find repo __explicit_specs__ and install all packages from it
         auto repo = solv::ObjRepoView(*mrepo.repo());
@@ -169,7 +169,7 @@ namespace mamba
         {
             Console::instance().json_down("actions");
             Console::instance().json_write(
-                { { "PREFIX", Context::instance().prefix_params.target_prefix.string() } }
+                {{"PREFIX", Context::instance().prefix_params.target_prefix.string()}}
             );
         }
 
@@ -227,7 +227,7 @@ namespace mamba
                             add_spec += version;
                         }
                         m_history_entry.update.push_back(
-                            MatchSpec{ add_spec, m_pool.channel_context() }.str()
+                            MatchSpec{add_spec, m_pool.channel_context()}.str()
                         );
                     }
                 }
@@ -259,7 +259,7 @@ namespace mamba
         {
             Console::instance().json_down("actions");
             Console::instance().json_write(
-                { { "PREFIX", Context::instance().prefix_params.target_prefix.string() } }
+                {{"PREFIX", Context::instance().prefix_params.target_prefix.string()}}
             );
         }
 
@@ -558,12 +558,12 @@ namespace mamba
         {
             Console::instance().json_up();
         }
-        Console::instance().json_write({ { "dry_run", ctx.dry_run },
-                                         { "prefix", ctx.prefix_params.target_prefix.string() } });
+        Console::instance().json_write(
+            {{"dry_run", ctx.dry_run}, {"prefix", ctx.prefix_params.target_prefix.string()}}
+        );
         if (empty())
         {
-            Console::instance().json_write({ { "message",
-                                               "All requested packages already installed" } });
+            Console::instance().json_write({{"message", "All requested packages already installed"}});
         }
 
         if (ctx.dry_run)
@@ -1065,13 +1065,15 @@ namespace mamba
             Console::instance().print("  No specs added or removed.\n");
         }
 
-        printers::Table t({ "Package", "Version", "Build", "Channel", "Size" });
-        t.set_alignment({ printers::alignment::left,
-                          printers::alignment::right,
-                          printers::alignment::left,
-                          printers::alignment::left,
-                          printers::alignment::right });
-        t.set_padding({ 2, 2, 2, 2, 5 });
+        printers::Table t({"Package", "Version", "Build", "Channel", "Size"});
+        t.set_alignment(
+            {printers::alignment::left,
+             printers::alignment::right,
+             printers::alignment::left,
+             printers::alignment::left,
+             printers::alignment::right}
+        );
+        t.set_padding({2, 2, 2, 2, 5});
         solv::ObjQueue classes = {};
         solv::ObjQueue pkgs = {};
 
@@ -1154,11 +1156,13 @@ namespace mamba
                 assert(chan_name != "__explicit_specs__");
             }
 
-            r.push_back({ name,
-                          printers::FormattedString(std::string(s.version())),
-                          printers::FormattedString(std::string(s.build_string())),
-                          printers::FormattedString(cut_repo_name(chan_name)),
-                          dlsize_s });
+            r.push_back(
+                {name,
+                 printers::FormattedString(std::string(s.version())),
+                 printers::FormattedString(std::string(s.build_string())),
+                 printers::FormattedString(cut_repo_name(chan_name)),
+                 dlsize_s}
+            );
         };
 
         const auto& pool = m_pool.pool();
@@ -1266,7 +1270,7 @@ namespace mamba
         summary << "\n  Total download: ";
         to_human_readable_filesize(summary, double(total_size));
         summary << "\n";
-        t.add_row({ summary.str() });
+        t.add_row({summary.str()});
         auto out = Console::stream();
         t.print(out);
     }
@@ -1365,11 +1369,11 @@ namespace mamba
                 pip_specs.push_back(package.name + " @ " + package.url + "#sha256=" + package.sha256);
             }
             other_specs.push_back(
-                { "pip --no-deps", pip_specs, fs::absolute(env_lockfile_path.parent_path()).string() }
+                {"pip --no-deps", pip_specs, fs::absolute(env_lockfile_path.parent_path()).string()}
             );
         }
 
-        return MTransaction{ pool, packages.conda, package_caches };
+        return MTransaction{pool, packages.conda, package_caches};
     }
 
 }  // namespace mamba

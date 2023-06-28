@@ -140,7 +140,7 @@ add_activate_completion(
         {
             if (completer_args.size() == 1)
             {
-                completer_args = { "-n", completer_args.back() };
+                completer_args = {"-n", completer_args.back()};
                 complete_options(app, config, completer_args, completed);
             }
         }
@@ -212,7 +212,7 @@ get_completions(CLI::App* app, mamba::Configuration& config, int argc, char** ar
         completer_args.push_back(std::string(mamba::strip(argv[argc - 1])));
     }
 
-    std::vector<CLI::App*> apps = { app };
+    std::vector<CLI::App*> apps = {app};
     overwrite_callbacks(apps, config, completer_args, completed);
     add_activate_completion(app, config, completer_args, completed);
     add_ps_completion(app, config, completer_args, completed);

@@ -47,8 +47,8 @@ namespace mamba::specs
     NLOHMANN_JSON_SERIALIZE_ENUM(
         NoArchType,
         {
-            { NoArchType::Generic, "generic" },
-            { NoArchType::Python, "python" },
+            {NoArchType::Generic, "generic"},
+            {NoArchType::Python, "python"},
         }
     )
 

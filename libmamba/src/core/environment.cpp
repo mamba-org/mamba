@@ -24,9 +24,9 @@ namespace mamba
             // See:
             // https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/getenv-s-wgetenv-s?view=msvc-170
             static std::mutex call_mutex;
-            std::scoped_lock ready_to_execute{ call_mutex };  // Calls to getenv_s kinds of
-                                                              // functions are not thread-safe, this
-                                                              // is to prevent related issues.
+            std::scoped_lock ready_to_execute{call_mutex};  // Calls to getenv_s kinds of
+                                                            // functions are not thread-safe, this
+                                                            // is to prevent related issues.
 
             const auto on_failed = [&](errno_t error_code)
             {
@@ -86,9 +86,9 @@ namespace mamba
             // See:
             // https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/getenv-s-wgetenv-s?view=msvc-170
             static std::mutex call_mutex;
-            std::scoped_lock ready_to_execute{ call_mutex };  // Calls to getenv_s kinds of
-                                                              // functions are not thread-safe, this
-                                                              // is to prevent related issues.
+            std::scoped_lock ready_to_execute{call_mutex};  // Calls to getenv_s kinds of
+                                                            // functions are not thread-safe, this
+                                                            // is to prevent related issues.
 
             const std::wstring unicode_key = to_windows_unicode(key);
             const std::wstring unicode_value = to_windows_unicode(value);

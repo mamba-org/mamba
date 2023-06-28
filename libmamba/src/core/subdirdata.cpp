@@ -63,8 +63,9 @@ namespace mamba
         {
             if (contains(c, channel->location()) && contains(c, channel->name()))
             {
-                has_zst = { true,
-                            std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) };
+                has_zst = {
+                    true,
+                    std::chrono::system_clock::to_time_t(std::chrono::system_clock::now())};
                 return true;
                 break;
             }
@@ -137,8 +138,7 @@ namespace mamba
             {
                 m.has_zst = {
                     j["has_zst"]["value"].get<bool>(),
-                    parse_utc_timestamp(j["has_zst"]["last_checked"].get<std::string>(), err_code)
-                };
+                    parse_utc_timestamp(j["has_zst"]["last_checked"].get<std::string>(), err_code)};
             }
         }
         catch (const std::exception& e)
@@ -462,7 +462,7 @@ namespace mamba
 
         if (ends_with(target.get_url(), ".zst"))
         {
-            this->m_metadata.has_zst = { target.get_http_status() == 200, utc_time_now() };
+            this->m_metadata.has_zst = {target.get_http_status() == 200, utc_time_now()};
         }
         return true;
     }

@@ -34,22 +34,22 @@ namespace mamba::test
     inline auto make_packages()
     {
         return std::array<SimplePkg, 16>{
-            SimplePkg{ "menu", "1.5.0", { "dropdown=2.*" } },
-            SimplePkg{ "menu", "1.4.0", { "dropdown=2.*" } },
-            SimplePkg{ "menu", "1.3.0", { "dropdown=2.*" } },
-            SimplePkg{ "menu", "1.2.0", { "dropdown=2.*" } },
-            SimplePkg{ "menu", "1.1.0", { "dropdown=2.*" } },
-            SimplePkg{ "menu", "1.0.0", { "dropdown=1.*" } },
-            SimplePkg{ "dropdown", "2.3.0", { "icons=2.*" } },
-            SimplePkg{ "dropdown", "2.2.0", { "icons=2.*" } },
-            SimplePkg{ "dropdown", "2.1.0", { "icons=2.*" } },
-            SimplePkg{ "dropdown", "2.0.0", { "icons=2.*" } },
-            SimplePkg{ "dropdown", "1.8.0", { "icons=1.*", "intl=3.*" } },
-            SimplePkg{ "icons", "2.0.0" },
-            SimplePkg{ "icons", "1.0.0" },
-            SimplePkg{ "intl", "5.0.0" },
-            SimplePkg{ "intl", "4.0.0" },
-            SimplePkg{ "intl", "3.0.0" },
+            SimplePkg{"menu", "1.5.0", {"dropdown=2.*"}},
+            SimplePkg{"menu", "1.4.0", {"dropdown=2.*"}},
+            SimplePkg{"menu", "1.3.0", {"dropdown=2.*"}},
+            SimplePkg{"menu", "1.2.0", {"dropdown=2.*"}},
+            SimplePkg{"menu", "1.1.0", {"dropdown=2.*"}},
+            SimplePkg{"menu", "1.0.0", {"dropdown=1.*"}},
+            SimplePkg{"dropdown", "2.3.0", {"icons=2.*"}},
+            SimplePkg{"dropdown", "2.2.0", {"icons=2.*"}},
+            SimplePkg{"dropdown", "2.1.0", {"icons=2.*"}},
+            SimplePkg{"dropdown", "2.0.0", {"icons=2.*"}},
+            SimplePkg{"dropdown", "1.8.0", {"icons=1.*", "intl=3.*"}},
+            SimplePkg{"icons", "2.0.0"},
+            SimplePkg{"icons", "1.0.0"},
+            SimplePkg{"intl", "5.0.0"},
+            SimplePkg{"intl", "4.0.0"},
+            SimplePkg{"intl", "3.0.0"},
         };
     }
 

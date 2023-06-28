@@ -36,13 +36,14 @@ namespace mamba
             auto s = split(l, " ");
             if (s.size() == 1)
             {
-                res[s[0]] = PrefixFileParse{ concat(PREFIX_PLACEHOLDER_1, PREFIX_PLACEHOLDER_2),
-                                             "text",
-                                             s[0] };
+                res[s[0]] = PrefixFileParse{
+                    concat(PREFIX_PLACEHOLDER_1, PREFIX_PLACEHOLDER_2),
+                    "text",
+                    s[0]};
             }
             else if (s.size() == 3)
             {
-                res[s[2]] = PrefixFileParse{ s[0], s[1], s[2] };
+                res[s[2]] = PrefixFileParse{s[0], s[1], s[2]};
             }
             else
             {

@@ -521,7 +521,7 @@ namespace mamba
             std::map<std::string, T> converted_values;
             for (auto& y : values)
             {
-                converted_values.insert({ y.first, y.second.as<T>() });
+                converted_values.insert({y.first, y.second.as<T>()});
             }
             set_rc_values(converted_values, sources);
         }
@@ -670,13 +670,13 @@ namespace mamba
             if (this->m_api_configured && (level >= ConfigurationLevel::kApi))
             {
                 m_sources.push_back("API");
-                m_values.insert({ "API", m_value });
+                m_values.insert({"API", m_value});
             }
 
             if (cli_configured() && (level >= ConfigurationLevel::kCli))
             {
                 m_sources.push_back("CLI");
-                m_values.insert({ "CLI", m_cli_config.value() });
+                m_values.insert({"CLI", m_cli_config.value()});
             }
 
             if (env_var_configured() && env_var_active() && (level >= ConfigurationLevel::kEnvVar))
@@ -689,7 +689,7 @@ namespace mamba
                         try
                         {
                             m_values.insert(
-                                { env_var, detail::Source<T>::deserialize(env_var_value.value()) }
+                                {env_var, detail::Source<T>::deserialize(env_var_value.value())}
                             );
                             m_sources.push_back(env_var);
                         }
@@ -714,13 +714,13 @@ namespace mamba
             if ((p_default_value_hook != NULL) && (level >= ConfigurationLevel::kDefault))
             {
                 m_sources.push_back("default");
-                m_values.insert({ "default", p_default_value_hook() });
+                m_values.insert({"default", p_default_value_hook()});
             }
 
             if (m_sources.empty() && (p_fallback_value_hook != NULL))
             {
                 m_sources.push_back("fallback");
-                m_values.insert({ "fallback", p_fallback_value_hook() });
+                m_values.insert({"fallback", p_fallback_value_hook()});
             }
 
             if (!m_sources.empty())
@@ -926,7 +926,7 @@ namespace mamba
         std::string name = configurable.name();
         if (m_config.count(name) == 0)
         {
-            auto [it, success] = m_config.insert({ name, std::move(configurable) });
+            auto [it, success] = m_config.insert({name, std::move(configurable)});
             it->second.set_configuration(*this);
             m_config_order.push_back(name);
         }

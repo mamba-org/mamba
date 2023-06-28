@@ -115,7 +115,7 @@ namespace mamba
 
     std::vector<Id> MPool::select_solvables(Id matchspec, bool sorted) const
     {
-        auto solvables = pool().select_solvables({ SOLVER_SOLVABLE_PROVIDES, matchspec });
+        auto solvables = pool().select_solvables({SOLVER_SOLVABLE_PROVIDES, matchspec});
 
         if (sorted)
         {
@@ -286,7 +286,7 @@ namespace mamba
     {
         if (const auto solv = pool().get_solvable(solv_id))
         {
-            return { make_package_info(pool(), solv.value()) };
+            return {make_package_info(pool(), solv.value())};
         }
         return std::nullopt;
     }

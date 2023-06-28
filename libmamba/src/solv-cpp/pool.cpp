@@ -107,7 +107,7 @@ namespace mamba::solv
             flag,
             /* .create= */ 0
         );
-        return (id == 0) ? std::nullopt : std::optional(DependencyId{ id });
+        return (id == 0) ? std::nullopt : std::optional(DependencyId{id});
     }
 
     auto ObjPool::add_dependency(StringId name_id, RelationFlag flag, StringId version_id)
@@ -193,7 +193,7 @@ namespace mamba::solv
         // No function exists to create a repo id
         assert(raw()->repos[raw()->nrepos - 1] == repo_ptr);
         assert(repo_ptr != nullptr);
-        return { raw()->nrepos - 1, ObjRepoView{ *repo_ptr } };
+        return {raw()->nrepos - 1, ObjRepoView{*repo_ptr}};
     }
 
     auto ObjPool::has_repo(RepoId id) const -> bool
@@ -209,7 +209,7 @@ namespace mamba::solv
         }
         auto* repo_ptr = ::pool_id2repo(raw(), id);
         assert(repo_ptr != nullptr);
-        return { ObjRepoView{ *repo_ptr } };
+        return {ObjRepoView{*repo_ptr}};
     }
 
     auto ObjPool::get_repo(RepoId id) const -> std::optional<ObjRepoViewConst>
@@ -221,7 +221,7 @@ namespace mamba::solv
         // Safe const_cast because we make the Repo deep const
         const auto* repo_ptr = ::pool_id2repo(const_cast<::Pool*>(raw()), id);
         assert(repo_ptr != nullptr);
-        return { ObjRepoViewConst{ *repo_ptr } };
+        return {ObjRepoViewConst{*repo_ptr}};
     }
 
     auto ObjPool::repo_count() const -> std::size_t
@@ -245,7 +245,7 @@ namespace mamba::solv
     {
         if (const auto* const installed_ptr = raw()->installed)
         {
-            return ObjRepoViewConst{ *installed_ptr };
+            return ObjRepoViewConst{*installed_ptr};
         }
         return std::nullopt;
     }
@@ -254,7 +254,7 @@ namespace mamba::solv
     {
         if (auto* const installed_ptr = raw()->installed)
         {
-            return ObjRepoView{ *installed_ptr };
+            return ObjRepoView{*installed_ptr};
         }
         return std::nullopt;
     }
@@ -280,7 +280,7 @@ namespace mamba::solv
         {
             if (const ::Solvable* s = ::pool_id2solvable(raw(), id))
             {
-                return ObjSolvableViewConst{ *s };
+                return ObjSolvableViewConst{*s};
             }
         }
         return std::nullopt;
@@ -292,7 +292,7 @@ namespace mamba::solv
         {
             if (::Solvable* s = ::pool_id2solvable(raw(), id))
             {
-                return ObjSolvableView{ *s };
+                return ObjSolvableView{*s};
             }
         }
         return std::nullopt;

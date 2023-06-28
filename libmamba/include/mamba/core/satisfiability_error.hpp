@@ -243,7 +243,7 @@ namespace mamba
     {
         fmt::text_style unavailable = fmt::fg(fmt::terminal_color::red);
         fmt::text_style available = fmt::fg(fmt::terminal_color::green);
-        std::array<std::string_view, 4> indents = { "│  ", "   ", "├─ ", "└─ " };
+        std::array<std::string_view, 4> indents = {"│  ", "   ", "├─ ", "└─ "};
     };
 
     std::ostream& print_problem_tree_msg(

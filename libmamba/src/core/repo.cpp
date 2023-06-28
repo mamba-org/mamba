@@ -77,12 +77,12 @@ namespace mamba
         // Keeping the solv-cpp header private
         auto srepo(const MRepo& r) -> solv::ObjRepoViewConst
         {
-            return solv::ObjRepoViewConst{ *const_cast<const ::Repo*>(r.repo()) };
+            return solv::ObjRepoViewConst{*const_cast<const ::Repo*>(r.repo())};
         }
 
         auto srepo(MRepo& r) -> solv::ObjRepoView
         {
-            return solv::ObjRepoView{ *r.repo() };
+            return solv::ObjRepoView{*r.repo()};
         }
     }
 

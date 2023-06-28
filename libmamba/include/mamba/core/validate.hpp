@@ -255,7 +255,7 @@ namespace mamba::validation
 
         static Key from_ed25519(std::string keyval)
         {
-            return { "ed25519", "ed25519", keyval };
+            return {"ed25519", "ed25519", keyval};
         }
     };
 

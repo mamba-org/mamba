@@ -21,7 +21,7 @@ main(int argc, char** argv)
     using namespace mamba;  // NOLINT(build/namespaces)
 
     Configuration config;
-    CLI::App app{ "Version: " + version() + "\n" };
+    CLI::App app{"Version: " + version() + "\n"};
     set_package_command(&app);
 
     try

@@ -118,7 +118,7 @@ namespace mamba
                 }
             }
         }
-        return { std::move(graph), std::move(conflicts), pbs.root_node() };
+        return {std::move(graph), std::move(conflicts), pbs.root_node()};
     }
 
     /***********************************************
@@ -433,7 +433,7 @@ namespace mamba
                     old_to_new
                 );
             }
-            return std::tuple{ std::move(new_graph), new_root_node, std::move(old_to_new) };
+            return std::tuple{std::move(new_graph), new_root_node, std::move(old_to_new)};
         }
 
         /**
@@ -509,7 +509,7 @@ namespace mamba
         }
         merge_edges(pbs.graph(), graph, old_to_new);
         auto conflicts = merge_conflicts(pbs.conflicts(), old_to_new);
-        return { std::move(graph), std::move(conflicts), root_node };
+        return {std::move(graph), std::move(conflicts), root_node};
     }
 
     CompressedProblemsGraph::CompressedProblemsGraph(graph_t graph, conflicts_t conflicts, node_id root_node)
@@ -661,7 +661,7 @@ namespace mamba
         {
             versions.erase(std::unique(versions.begin(), versions.end()), versions.end());
         }
-        return { join_trunc(versions, sep, etc, threshold), versions.size() };
+        return {join_trunc(versions, sep, etc, threshold), versions.size()};
     }
 
     template <typename T, typename A>
@@ -684,7 +684,7 @@ namespace mamba
         {
             builds.erase(std::unique(builds.begin(), builds.end()), builds.end());
         }
-        return { join_trunc(builds, sep, etc, threshold), builds.size() };
+        return {join_trunc(builds, sep, etc, threshold), builds.size()};
     }
 
     template <typename T, typename A>
@@ -714,7 +714,7 @@ namespace mamba
                 versions_builds.end()
             );
         }
-        return { join_trunc(versions_builds, sep, etc, threshold), versions_builds.size() };
+        return {join_trunc(versions_builds, sep, etc, threshold), versions_builds.size()};
     }
 
     template <typename T, typename A>
@@ -1067,7 +1067,7 @@ namespace mamba
                 out = children_begin;
             }
 
-            return { out, ongoing.status };
+            return {out, ongoing.status};
         }
 
         auto TreeDFS::visit_node(node_id root_id, TreeNodeIter out) -> std::pair<TreeNodeIter, Status>
@@ -1075,8 +1075,8 @@ namespace mamba
             auto& ongoing = *(out++);
             ongoing = TreeNode{
                 /* .ancestry= */ {},
-                /* .ids= */ { root_id },
-                /* .ids_from= */ { root_id },
+                /* .ids= */ {root_id},
+                /* .ids_from= */ {root_id},
                 /* .type= */ node_type(root_id),
                 /* .type_from= */ node_type(root_id),
                 /* .status= */ {},  // Placeholder updated
@@ -1094,7 +1094,7 @@ namespace mamba
             auto& ongoing = *(out++);
             ongoing = TreeNode{
                 /* .ancestry= */ concat(from.ancestry, position),
-                /* .ids= */ { id },
+                /* .ids= */ {id},
                 /* .ids_from= */ from.ids,
                 /* .type= */ node_type(id),
                 /* .type_from= */ from.type,
@@ -1116,7 +1116,7 @@ namespace mamba
 
             if (const auto status = m_node_visited[id]; status.has_value())
             {
-                return { out, status.value() };
+                return {out, status.value()};
             }
 
             Status status = true;
@@ -1151,7 +1151,7 @@ namespace mamba
             status = !node_not_installable(id) && status;
 
             m_node_visited[id] = status;
-            return { out, status };
+            return {out, status};
         }
 
         /**

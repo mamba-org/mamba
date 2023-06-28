@@ -260,10 +260,10 @@ namespace mamba::util
         auto it = std::lower_bound(begin(), end(), value, m_compare);
         if ((it != end()) && (key_eq(*it, value)))
         {
-            return { it, false };
+            return {it, false};
         }
         it = Base::insert(it, std::forward<U>(value));
-        return { it, true };
+        return {it, true};
     }
 
     template <typename K, typename C, typename A>

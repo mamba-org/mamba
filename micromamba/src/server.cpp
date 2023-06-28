@@ -39,7 +39,7 @@ load_pool(
 {
     auto& ctx = Context::instance();
     ctx.channels = channels;
-    mamba::MPool pool{ channel_context };
+    mamba::MPool pool{channel_context};
     auto exp_load = load_channels(pool, package_caches, false);
     if (!exp_load)
     {
@@ -75,7 +75,7 @@ handle_solve_request(
 
     for (const auto& s : specs)
     {
-        if (auto m = MatchSpec{ s, channel_context }; !m.channel.empty())
+        if (auto m = MatchSpec{s, channel_context}; !m.channel.empty())
         {
             channels.push_back(m.channel);
         }
@@ -88,8 +88,7 @@ handle_solve_request(
     {
         cache_map.insert_or_assign(
             cache_key,
-            cache{ load_pool(channels, package_caches, channel_context),
-                   std::chrono::system_clock::now() }
+            cache{load_pool(channels, package_caches, channel_context), std::chrono::system_clock::now()}
         );
     }
     else
@@ -99,8 +98,9 @@ handle_solve_request(
         {
             cache_map.insert_or_assign(
                 cache_key,
-                cache{ load_pool(channels, package_caches, channel_context),
-                       std::chrono::system_clock::now() }
+                cache{
+                    load_pool(channels, package_caches, channel_context),
+                    std::chrono::system_clock::now()}
             );
         }
     }
@@ -134,9 +134,9 @@ handle_solve_request(
 
     MSolver solver(
         *cache_entry.pool,
-        { { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },
-          { SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade },
-          { SOLVER_FLAG_STRICT_REPO_PRIORITY, ctx.channel_priority == ChannelPriority::kStrict } }
+        {{SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall},
+         {SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade},
+         {SOLVER_FLAG_STRICT_REPO_PRIORITY, ctx.channel_priority == ChannelPriority::kStrict}}
     );
 
     solver.add_jobs(specs, SOLVER_INSTALL);
@@ -151,7 +151,7 @@ handle_solve_request(
     }
     else
     {
-        MTransaction trans{ *cache_entry.pool, solver, package_caches };
+        MTransaction trans{*cache_entry.pool, solver, package_caches};
         auto to_install = std::get<1>(trans.to_conda());
         std::vector<nlohmann::json> packages;
         for (auto& p : to_install)
@@ -177,7 +177,7 @@ run_server(int port, mamba::ChannelContext& channel_context, Configuration& conf
     server_sink->set_level(spdlog::level::debug);
     server_sink->set_pattern("%^[%H:%M:%S]%$ %v");
 
-    spdlog::logger logger("server", { server_sink });
+    spdlog::logger logger("server", {server_sink});
 
     microserver::Server xserver(logger);
     xserver.get(

@@ -66,7 +66,7 @@ namespace mamba
         {
             TEST_CASE_FIXTURE(LockDirTest, "basics")
             {
-                mamba::LockFile lock{ tempdir_path };
+                mamba::LockFile lock{tempdir_path};
                 CHECK(lock);
                 {
                     auto new_lock = std::move(lock);
@@ -135,7 +135,7 @@ namespace mamba
                     CHECK(mamba::LockFile::is_locked(lock));
 
                     // Check lock status from another process
-                    args = { lock_exe, "is-locked", lock.lockfile_path().string() };
+                    args = {lock_exe, "is-locked", lock.lockfile_path().string()};
                     out.clear();
                     err.clear();
                     reproc::run(
@@ -157,7 +157,7 @@ namespace mamba
                     CHECK(is_locked);
 
                     // Try to lock from another process
-                    args = { lock_exe, "lock", "--timeout=1", tempdir_path.string() };
+                    args = {lock_exe, "lock", "--timeout=1", tempdir_path.string()};
                     out.clear();
                     err.clear();
                     reproc::run(
@@ -182,7 +182,7 @@ namespace mamba
                 fs::u8path lock_path = tempdir_path / (tempdir_path.filename().string() + ".lock");
                 CHECK_FALSE(fs::exists(lock_path));
 
-                args = { lock_exe, "is-locked", lock_path.string() };
+                args = {lock_exe, "is-locked", lock_path.string()};
                 out.clear();
                 err.clear();
                 reproc::run(args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
@@ -225,13 +225,13 @@ namespace mamba
             TEST_CASE_FIXTURE(LockFileTest, "same_pid")
             {
                 {
-                    LockFile lock{ tempfile_path };
+                    LockFile lock{tempfile_path};
                     CHECK(lock.is_locked());
                     CHECK(fs::exists(lock.lockfile_path()));
                     CHECK_EQ(lock.count_lock_owners(), 1);
 
                     {
-                        LockFile other_lock{ tempfile_path };
+                        LockFile other_lock{tempfile_path};
                         CHECK(other_lock.is_locked());
                         CHECK_EQ(other_lock.count_lock_owners(), 2);
                         CHECK_EQ(lock.count_lock_owners(), 2);
@@ -259,7 +259,7 @@ namespace mamba
                     CHECK(mamba::LockFile::is_locked(lock));
 
                     // Check lock status from another process
-                    args = { lock_exe, "is-locked", lock.lockfile_path().string() };
+                    args = {lock_exe, "is-locked", lock.lockfile_path().string()};
                     out.clear();
                     err.clear();
                     reproc::run(
@@ -281,7 +281,7 @@ namespace mamba
                     CHECK(is_locked);
 
                     // Try to lock from another process
-                    args = { lock_exe, "lock", "--timeout=1", tempfile_path.string() };
+                    args = {lock_exe, "lock", "--timeout=1", tempfile_path.string()};
                     out.clear();
                     err.clear();
                     reproc::run(
@@ -306,7 +306,7 @@ namespace mamba
                 fs::u8path lock_path = tempfile_path.string() + ".lock";
                 CHECK_FALSE(fs::exists(lock_path));
 
-                args = { lock_exe, "is-locked", lock_path.string() };
+                args = {lock_exe, "is-locked", lock_path.string()};
                 out.clear();
                 err.clear();
                 reproc::run(args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));

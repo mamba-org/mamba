@@ -19,7 +19,7 @@ namespace mamba
         TEST_CASE("normalized_separators")
         {
             static constexpr auto value = u8"a/b/c";
-            std::filesystem::path x{ value };
+            std::filesystem::path x{value};
             const auto y = fs::normalized_separators(x);
 #if defined(_WIN32)
             REQUIRE_EQ(y.u8string(), u8R"(a\b\c)");
@@ -84,7 +84,7 @@ namespace mamba
 
             {
                 const auto path_to_search_from = file_dir.parent_path();
-                fs::recursive_directory_iterator it{ path_to_search_from };
+                fs::recursive_directory_iterator it{path_to_search_from};
                 auto first_entry = *it;
                 CHECK_EQ(first_entry.path(), file_path.parent_path());
                 auto secibd_entry = *(++it);
@@ -190,8 +190,9 @@ namespace mamba
 
             const auto readonly_file_path = tmp_dir / "fs-readonly-file";
             {
-                std::ofstream readonly_file{ readonly_file_path.std_path(),
-                                             readonly_file.binary | readonly_file.trunc };
+                std::ofstream readonly_file{
+                    readonly_file_path.std_path(),
+                    readonly_file.binary | readonly_file.trunc};
                 readonly_file << "delete me" << std::endl;
             }
 
@@ -236,8 +237,9 @@ namespace mamba
                     const auto readonly_file_path = dir_path
                                                     / fmt::format("readonly-file-{}", file_idx);
                     {
-                        std::ofstream readonly_file{ readonly_file_path.std_path(),
-                                                     readonly_file.binary | readonly_file.trunc };
+                        std::ofstream readonly_file{
+                            readonly_file_path.std_path(),
+                            readonly_file.binary | readonly_file.trunc};
                         readonly_file << "delete me" << std::endl;
                     }
 
@@ -271,7 +273,7 @@ namespace mamba
                 return subdirs;
             };
 
-            std::vector<fs::u8path> dirs{ tmp_dir };
+            std::vector<fs::u8path> dirs{tmp_dir};
             for (int depth = 0; depth < tree_depth; ++depth)
             {
                 dirs = create_subdirs(dirs);

@@ -68,7 +68,7 @@ namespace mamba
         {
             constexpr std::size_t arbitrary_task_count = 2048;
             constexpr std::size_t arbitrary_tasks_per_generator = 24;
-            std::atomic<int> counter{ 0 };
+            std::atomic<int> counter{0};
             {
                 MainExecutor executor;
 
@@ -85,7 +85,7 @@ namespace mamba
         {
             constexpr std::size_t arbitrary_task_count = 2048;
             constexpr std::size_t arbitrary_tasks_per_generator = 36;
-            std::atomic<int> counter{ 0 };
+            std::atomic<int> counter{0};
             {
                 MainExecutor executor;
 

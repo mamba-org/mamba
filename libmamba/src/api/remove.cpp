@@ -87,11 +87,11 @@ namespace mamba
             }
             PrefixData& prefix_data = exp_prefix_data.value();
 
-            MPool pool{ channel_context };
+            MPool pool{channel_context};
             MRepo(pool, prefix_data);
 
             const fs::u8path pkgs_dirs(ctx.prefix_params.root_prefix / "pkgs");
-            MultiPackageCache package_caches({ pkgs_dirs });
+            MultiPackageCache package_caches({pkgs_dirs});
 
             auto execute_transaction = [&](MTransaction& transaction)
             {
@@ -115,7 +115,7 @@ namespace mamba
                     specs.end(),
                     std::back_inserter(mspecs),
                     [&](const auto& spec_str) {
-                        return MatchSpec{ spec_str, channel_context };
+                        return MatchSpec{spec_str, channel_context};
                     }
                 );
                 auto transaction = MTransaction(pool, mspecs, {}, package_caches);
@@ -126,10 +126,10 @@ namespace mamba
                 MSolver solver(
                     pool,
                     {
-                        { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 },
-                        { SOLVER_FLAG_ALLOW_UNINSTALL, 1 },
-                        { SOLVER_FLAG_STRICT_REPO_PRIORITY,
-                          ctx.channel_priority == ChannelPriority::kStrict },
+                        {SOLVER_FLAG_ALLOW_DOWNGRADE, 1},
+                        {SOLVER_FLAG_ALLOW_UNINSTALL, 1},
+                        {SOLVER_FLAG_STRICT_REPO_PRIORITY,
+                         ctx.channel_priority == ChannelPriority::kStrict},
                     }
                 );
 

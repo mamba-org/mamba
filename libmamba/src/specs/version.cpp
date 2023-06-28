@@ -55,20 +55,20 @@ namespace mamba::specs
      ***************************************/
 
     VersionPartAtom::VersionPartAtom(std::size_t numeral) noexcept
-        : m_numeral{ numeral }
+        : m_numeral{numeral}
     {
     }
 
     VersionPartAtom::VersionPartAtom(std::size_t numeral, std::string_view literal)
-        : m_literal{ to_lower(literal) }
-        , m_numeral{ numeral }
+        : m_literal{to_lower(literal)}
+        , m_numeral{numeral}
     {
     }
 
     template <typename Char>
     VersionPartAtom::VersionPartAtom(std::size_t numeral, std::basic_string<Char>&& literal)
-        : m_literal{ to_lower(std::move(literal)) }
-        , m_numeral{ numeral }
+        : m_literal{to_lower(std::move(literal))}
+        , m_numeral{numeral}
     {
     }
 
@@ -146,7 +146,7 @@ namespace mamba::specs
     {
         // More efficient thatn three way comparison because of edge cases
         auto attrs = [](const VersionPartAtom& a) -> std::tuple<std::size_t, const std::string&> {
-            return { a.numeral(), a.literal() };
+            return {a.numeral(), a.literal()};
         };
         return attrs(*this) == attrs(other);
     }
@@ -182,9 +182,9 @@ namespace mamba::specs
      *******************************/
 
     Version::Version(std::size_t epoch, CommonVersion&& version, CommonVersion&& local) noexcept
-        : m_version{ std::move(version) }
-        , m_local{ std::move(local) }
-        , m_epoch{ epoch }
+        : m_version{std::move(version)}
+        , m_local{std::move(local)}
+        , m_epoch{epoch}
     {
     }
 
@@ -344,7 +344,7 @@ namespace mamba::specs
         auto make_string_view(Iter first, Iter last) -> std::string_view
         {
             const auto size = util::safe_num_cast<std::size_t>(last - first);
-            return { first, size };
+            return {first, size};
         }
 
         template <typename Int>
@@ -367,7 +367,7 @@ namespace mamba::specs
             // No epoch is specified
             if (delim_pos == std::string_view::npos)  // TODO(C++20) [[likely]]
             {
-                return { Int(0), str };
+                return {Int(0), str};
             }
             if (delim_pos == 0)
             {
@@ -386,7 +386,7 @@ namespace mamba::specs
                 );
             }
             // Found an epoch
-            return { maybe_int.value(), str.substr(delim_pos + 1) };
+            return {maybe_int.value(), str.substr(delim_pos + 1)};
         }
 
         template <typename Int>
@@ -395,14 +395,14 @@ namespace mamba::specs
             const auto [integer_str, rest] = lstrip_if_parts(str, [](char c) { return is_digit(c); });
             auto maybe_integer = to_int<Int>(integer_str);
             assert(maybe_integer.has_value());
-            return { maybe_integer.value(), rest };
+            return {maybe_integer.value(), rest};
         }
 
         auto parse_leading_literal(std::string_view str)
             -> std::pair<std::string_view, std::string_view>
         {
             const auto [literal, rest] = lstrip_if_parts(str, [](char c) { return !is_digit(c); });
-            return { literal, rest };
+            return {literal, rest};
         }
 
         auto parse_leading_part_atom(std::string_view str)
@@ -422,7 +422,7 @@ namespace mamba::specs
                 tail = str;
             }
             std::tie(literal, tail) = parse_leading_literal(tail);
-            return { { numeral, literal }, tail };
+            return {{numeral, literal}, tail};
         }
 
         auto parse_part(std::string_view str) -> VersionPart
@@ -480,7 +480,7 @@ namespace mamba::specs
                 Version::part_delim_alt,
                 Version::part_delim_special,
             };
-            static constexpr auto delims = std::string_view{ delims_buf.data(), delims_buf.size() };
+            static constexpr auto delims = std::string_view{delims_buf.data(), delims_buf.size()};
 
             CommonVersion parts = {};
             auto tail = str;
@@ -518,7 +518,7 @@ namespace mamba::specs
             // No local is specified
             if (delim_pos == std::string_view::npos)  // TODO(C++20) [[likely]]
             {
-                return { str, {} };
+                return {str, {}};
             }
             // local specified but empty
             if (delim_pos + 1 == str.size())
@@ -527,7 +527,7 @@ namespace mamba::specs
                     fmt::format("Empty local version delimited by '{}'.", Version::local_delim)
                 );
             }
-            return { str.substr(0, delim_pos), parse_common_version(str.substr(delim_pos + 1)) };
+            return {str.substr(0, delim_pos), parse_common_version(str.substr(delim_pos + 1))};
         }
 
         auto parse_version(std::string_view str) -> CommonVersion

@@ -42,7 +42,7 @@ namespace mamba::solv
     }
 
     ObjRepoViewConst::ObjRepoViewConst(const ::Repo& repo) noexcept
-        : m_repo{ &repo }
+        : m_repo{&repo}
     {
     }
 
@@ -94,7 +94,7 @@ namespace mamba::solv
     {
         if (const ::Solvable* s = get_solvable_ptr(raw(), id))
         {
-            return { ObjSolvableViewConst{ *s } };
+            return {ObjSolvableViewConst{*s}};
         }
         return std::nullopt;
     }
@@ -133,8 +133,8 @@ namespace mamba::solv
         };
 
         CFile::CFile(std::FILE* ptr, std::string name)
-            : m_ptr{ ptr }
-            , m_name{ name }
+            : m_ptr{ptr}
+            , m_name{name}
         {
         }
 
@@ -163,7 +163,7 @@ namespace mamba::solv
             {
                 throw std::system_error(GetLastError(), std::generic_category());
             }
-            return { ptr, path.string() };
+            return {ptr, path.string()};
 #else
             std::string name = path.string();
             std::FILE* ptr = std::fopen(name.c_str(), mode);
@@ -171,7 +171,7 @@ namespace mamba::solv
             {
                 throw std::system_error(errno, std::generic_category());
             }
-            return { ptr, std::move(name) };
+            return {ptr, std::move(name)};
 #endif
         }
 
@@ -211,7 +211,7 @@ namespace mamba::solv
      ***********************************/
 
     ObjRepoView::ObjRepoView(::Repo& repo) noexcept
-        : ObjRepoViewConst{ repo }
+        : ObjRepoViewConst{repo}
     {
     }
 
@@ -273,7 +273,7 @@ namespace mamba::solv
     {
         if (::Solvable* s = get_solvable_ptr(raw(), id))
         {
-            return { ObjSolvableView{ *s } };
+            return {ObjSolvableView{*s}};
         }
         return std::nullopt;
     }
@@ -311,7 +311,7 @@ namespace mamba::solv
             {
                 return {};
             }
-            return { ptr };
+            return {ptr};
         }
 
         // Can only read key/value on solvable, but the special SOLVID_META is used for a fake

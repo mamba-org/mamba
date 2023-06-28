@@ -68,7 +68,7 @@ compute_config_path(Configuration& config, bool touch_if_not_exists)
     }
     else if (env_path.configured())
     {
-        rc_source = fs::u8path{ ctx.prefix_params.target_prefix / ".condarc" };
+        rc_source = fs::u8path{ctx.prefix_params.target_prefix / ".condarc"};
     }
     else if (system_path.configured())
     {

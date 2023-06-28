@@ -120,12 +120,12 @@ TEST_SUITE("ObjSolvable")
         SUBCASE("Add dependency")
         {
             solv.add_dependency(33);
-            CHECK_EQ(solv.dependencies(), ObjQueue{ 33 });
+            CHECK_EQ(solv.dependencies(), ObjQueue{33});
 
             SUBCASE("Add more dependencies")
             {
-                solv.add_dependencies(ObjQueue{ 44, 22 });
-                CHECK_EQ(solv.dependencies(), ObjQueue{ 33, 44, 22 });
+                solv.add_dependencies(ObjQueue{44, 22});
+                CHECK_EQ(solv.dependencies(), ObjQueue{33, 44, 22});
             }
 
             SUBCASE("Reset dependencies")
@@ -140,17 +140,17 @@ TEST_SUITE("ObjSolvable")
                 solv.add_dependency(11, SOLVABLE_PREREQMARKER);
                 solv.add_dependency(35);
 
-                CHECK_EQ(solv.dependencies(-1), ObjQueue{ 33, 34 });
-                CHECK_EQ(solv.dependencies(0), ObjQueue{ 33, 34, SOLVABLE_PREREQMARKER, 11, 35 });
-                CHECK_EQ(solv.dependencies(1), ObjQueue{ 11, 35 });
-                CHECK_EQ(solv.dependencies(SOLVABLE_PREREQMARKER), ObjQueue{ 11, 35 });
+                CHECK_EQ(solv.dependencies(-1), ObjQueue{33, 34});
+                CHECK_EQ(solv.dependencies(0), ObjQueue{33, 34, SOLVABLE_PREREQMARKER, 11, 35});
+                CHECK_EQ(solv.dependencies(1), ObjQueue{11, 35});
+                CHECK_EQ(solv.dependencies(SOLVABLE_PREREQMARKER), ObjQueue{11, 35});
             }
         }
 
         SUBCASE("Add provide")
         {
             solv.add_provide(33);
-            CHECK_EQ(solv.provides(), ObjQueue{ 33 });
+            CHECK_EQ(solv.provides(), ObjQueue{33});
 
             SUBCASE("Add self provide")
             {
@@ -160,8 +160,8 @@ TEST_SUITE("ObjSolvable")
 
             SUBCASE("Add more provides")
             {
-                solv.add_provides(ObjQueue{ 44, 22 });
-                CHECK_EQ(solv.provides(), ObjQueue{ 33, 44, 22 });
+                solv.add_provides(ObjQueue{44, 22});
+                CHECK_EQ(solv.provides(), ObjQueue{33, 44, 22});
             }
 
             SUBCASE("Reset provides")
@@ -178,38 +178,38 @@ TEST_SUITE("ObjSolvable")
             SUBCASE("Internalize and get constraint")
             {
                 repo.internalize();
-                CHECK_EQ(solv.constraints(), ObjQueue{ 33 });
+                CHECK_EQ(solv.constraints(), ObjQueue{33});
 
                 SUBCASE("Fail to add more constraint")
                 {
                     solv.add_constraint(44);
-                    CHECK_EQ(solv.constraints(), ObjQueue{ 33 });
+                    CHECK_EQ(solv.constraints(), ObjQueue{33});
 
                     SUBCASE("Override when internalizing again")
                     {
                         repo.internalize();
-                        CHECK_EQ(solv.constraints(), ObjQueue{ 44 });
+                        CHECK_EQ(solv.constraints(), ObjQueue{44});
                     }
                 }
 
                 SUBCASE("Fail to set constraints")
                 {
-                    solv.set_constraints({ 22 });
-                    CHECK_EQ(solv.constraints(), ObjQueue{ 33 });
+                    solv.set_constraints({22});
+                    CHECK_EQ(solv.constraints(), ObjQueue{33});
 
                     SUBCASE("Override when internalizing again")
                     {
                         repo.internalize();
-                        CHECK_EQ(solv.constraints(), ObjQueue{ 22 });
+                        CHECK_EQ(solv.constraints(), ObjQueue{22});
                     }
                 }
             }
 
             SUBCASE("Add more constraints")
             {
-                solv.add_constraints(ObjQueue{ 44, 22 });
+                solv.add_constraints(ObjQueue{44, 22});
                 repo.internalize();
-                CHECK_EQ(solv.constraints(), ObjQueue{ 33, 44, 22 });
+                CHECK_EQ(solv.constraints(), ObjQueue{33, 44, 22});
             }
 
             SUBCASE("Reset constraints")
@@ -227,38 +227,38 @@ TEST_SUITE("ObjSolvable")
             SUBCASE("Internalize and get tracked features")
             {
                 repo.internalize();
-                CHECK_EQ(solv.track_features(), ObjQueue{ feat1_id });
+                CHECK_EQ(solv.track_features(), ObjQueue{feat1_id});
 
                 SUBCASE("Fail to track more features")
                 {
                     const StringId feat2_id = solv.add_track_feature("feature2");
-                    CHECK_EQ(solv.track_features(), ObjQueue{ feat1_id });
+                    CHECK_EQ(solv.track_features(), ObjQueue{feat1_id});
 
                     SUBCASE("Override when internalizing again")
                     {
                         repo.internalize();
-                        CHECK_EQ(solv.track_features(), ObjQueue{ feat2_id });
+                        CHECK_EQ(solv.track_features(), ObjQueue{feat2_id});
                     }
                 }
 
                 SUBCASE("Fail to set tracked features")
                 {
-                    solv.set_track_features({ 22 });
-                    CHECK_EQ(solv.track_features(), ObjQueue{ feat1_id });
+                    solv.set_track_features({22});
+                    CHECK_EQ(solv.track_features(), ObjQueue{feat1_id});
 
                     SUBCASE("Override when internalizing again")
                     {
                         repo.internalize();
-                        CHECK_EQ(solv.track_features(), ObjQueue{ 22 });
+                        CHECK_EQ(solv.track_features(), ObjQueue{22});
                     }
                 }
             }
 
             SUBCASE("Track more features")
             {
-                solv.add_track_features(ObjQueue{ 44, 11 });
+                solv.add_track_features(ObjQueue{44, 11});
                 repo.internalize();
-                CHECK_EQ(solv.track_features(), ObjQueue{ feat1_id, 44, 11 });
+                CHECK_EQ(solv.track_features(), ObjQueue{feat1_id, 44, 11});
             }
 
             SUBCASE("Reset tracked features")

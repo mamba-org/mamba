@@ -33,7 +33,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     ctx.prefix_params.target_prefix = ctx.prefix_params.root_prefix;
 
     mamba::ChannelContext channel_context;
-    mamba::MPool pool{ channel_context };
+    mamba::MPool pool{channel_context};
     mamba::MultiPackageCache package_caches(ctx.pkgs_dirs);
 
     auto exp_loaded = load_channels(pool, package_caches, 0);
@@ -46,11 +46,11 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     std::string matchspec = version ? fmt::format("micromamba={}", version.value())
                                     : fmt::format("micromamba>{}", umamba::version());
 
-    auto solvable_ids = pool.select_solvables(pool.matchspec2id({ matchspec, channel_context }), true);
+    auto solvable_ids = pool.select_solvables(pool.matchspec2id({matchspec, channel_context}), true);
 
     if (solvable_ids.empty())
     {
-        if (pool.select_solvables(pool.matchspec2id({ "micromamba", channel_context })).empty())
+        if (pool.select_solvables(pool.matchspec2id({"micromamba", channel_context})).empty())
         {
             throw mamba::mamba_error(
                 "No micromamba found in the loaded channels. Add 'conda-forge' to your config file.",
@@ -86,7 +86,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     );
 
     ctx.download_only = true;
-    MTransaction t(pool, { latest_micromamba.value() }, package_caches);
+    MTransaction t(pool, {latest_micromamba.value()}, package_caches);
     auto exp_prefix_data = PrefixData::create(ctx.prefix_params.root_prefix, channel_context);
     if (!exp_prefix_data)
     {
@@ -140,8 +140,8 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     // Command to reinit shell from the new executable.
     // Adding bash as the shell but this is just a placeholder as the find_initialized_shells()
     // deals with the reinit.
-    std::vector<std::string> command = { mamba_exe, "shell", "reinit",          "-s",
-                                         "bash",    "-p",    prefix_data.path() };
+    std::vector<std::string>
+        command = {mamba_exe, "shell", "reinit", "-s", "bash", "-p", prefix_data.path()};
 
     // The options for the process
     reproc::options options;

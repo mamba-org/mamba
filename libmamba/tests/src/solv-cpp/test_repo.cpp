@@ -96,7 +96,7 @@ TEST_SUITE("ObjRepo")
             {
                 SUBCASE("Over all solvables")
                 {
-                    const auto ids = std::array{ id1, id2 };
+                    const auto ids = std::array{id1, id2};
                     std::size_t n_solvables = 0;
                     repo.for_each_solvable_id(
                         [&](SolvableId id)

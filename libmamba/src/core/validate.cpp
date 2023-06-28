@@ -293,13 +293,13 @@ namespace mamba::validation
     {
         std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> pk, sk;
         generate_ed25519_keypair(pk.data(), sk.data());
-        return { pk, sk };
+        return {pk, sk};
     }
 
     std::pair<std::string, std::string> generate_ed25519_keypair_hex()
     {
         auto pair = generate_ed25519_keypair();
-        return { ::mamba::hex_string(pair.first), ::mamba::hex_string(pair.second) };
+        return {::mamba::hex_string(pair.first), ::mamba::hex_string(pair.second)};
     }
 
     int sign(const std::string& data, const unsigned char* sk, unsigned char* signature)
@@ -509,7 +509,7 @@ namespace mamba::validation
 
     RoleKeys RolePubKeys::to_role_keys() const
     {
-        return { pubkeys, threshold };
+        return {pubkeys, threshold};
     }
 
     RoleFullKeys::RoleFullKeys(const std::map<std::string, Key>& keys_, const std::size_t& threshold_)
@@ -528,7 +528,7 @@ namespace mamba::validation
         {
             keyids.push_back(k.first);
         }
-        return { keyids, threshold };
+        return {keyids, threshold};
     }
 
     void check_timestamp_metadata_format(const std::string& ts)
@@ -576,11 +576,11 @@ namespace mamba::validation
         if (spec_version_major == 0)
         {
             // Return the most recent possible upgrade first
-            return { "1", split_spec_version[0] + "." + std::to_string(spec_version_minor + 1) };
+            return {"1", split_spec_version[0] + "." + std::to_string(spec_version_minor + 1)};
         }
         else
         {
-            return { std::to_string(spec_version_major + 1) };
+            return {std::to_string(spec_version_major + 1)};
         }
     }
 
@@ -1058,16 +1058,15 @@ namespace mamba::validation
         // upgrade first
         for (auto& s : upgrade_spec)
         {
-            files.push_back(
-                mamba::join(".", std::vector<std::string>({ new_v, "sv" + s, "root.json" }))
+            files.push_back(mamba::join(".", std::vector<std::string>({new_v, "sv" + s, "root.json"}))
             );
         }
         // compatible next
         files.push_back(
-            mamba::join(".", std::vector<std::string>({ new_v, "sv" + compat_spec, "root.json" }))
+            mamba::join(".", std::vector<std::string>({new_v, "sv" + compat_spec, "root.json"}))
         );
         // then finally undefined spec
-        files.push_back(mamba::join(".", std::vector<std::string>({ new_v, "root.json" })));
+        files.push_back(mamba::join(".", std::vector<std::string>({new_v, "root.json"})));
 
         return files;
     }
@@ -1179,12 +1178,12 @@ namespace mamba::validation
 
         std::set<std::string> RootImpl::mandatory_defined_roles() const
         {
-            return { "root", "snapshot", "targets", "timestamp" };
+            return {"root", "snapshot", "targets", "timestamp"};
         }
 
         std::set<std::string> RootImpl::optionally_defined_roles() const
         {
-            return { "mirrors" };
+            return {"mirrors"};
         }
 
         void
@@ -1199,7 +1198,7 @@ namespace mamba::validation
                 {
                     try
                     {
-                        role_keys.insert({ keyid, keys.at(keyid) });
+                        role_keys.insert({keyid, keys.at(keyid)});
                     }
                     catch (const std::out_of_range&)
                     {
@@ -1208,7 +1207,7 @@ namespace mamba::validation
                         throw role_metadata_error();
                     }
                 }
-                m_defined_roles.insert({ it.first, { role_keys, it.second.threshold } });
+                m_defined_roles.insert({it.first, {role_keys, it.second.threshold}});
             }
         }
 
@@ -1293,7 +1292,7 @@ namespace mamba::validation
                     pgp_trailer = s.second["other_headers"];
                 }
 
-                unique_sigs.insert(RoleSignature({ s.first, s.second.at("signature"), pgp_trailer }));
+                unique_sigs.insert(RoleSignature({s.first, s.second.at("signature"), pgp_trailer}));
             }
 
             return unique_sigs;
@@ -1375,8 +1374,8 @@ namespace mamba::validation
 
             v1_equivalent_root["roles"]["root"] = m_defined_roles.at("root").to_roles();
             v1_equivalent_root["roles"]["targets"] = m_defined_roles.at("key_mgr").to_roles();
-            v1_equivalent_root["roles"]["snapshot"] = RoleKeys({ std::vector<std::string>(), 1 });
-            v1_equivalent_root["roles"]["timestamp"] = RoleKeys({ std::vector<std::string>(), 1 });
+            v1_equivalent_root["roles"]["snapshot"] = RoleKeys({std::vector<std::string>(), 1});
+            v1_equivalent_root["roles"]["timestamp"] = RoleKeys({std::vector<std::string>(), 1});
 
             std::map<std::string, Key> v1_keys = m_defined_roles.at("root").to_keys();
             auto key_mgr_keys = m_defined_roles.at("key_mgr").to_keys();
@@ -1398,7 +1397,7 @@ namespace mamba::validation
             sign(j.dump(), sk, sig_bin.data());
             auto sig_hex = ::mamba::hex_string(sig_bin);
 
-            return { pk, sig_hex };
+            return {pk, sig_hex};
         }
 
         RoleFullKeys RootImpl::self_keys() const
@@ -1408,7 +1407,7 @@ namespace mamba::validation
 
         std::set<std::string> RootImpl::mandatory_defined_roles() const
         {
-            return { "root", "key_mgr" };
+            return {"root", "key_mgr"};
         }
 
         std::set<std::string> RootImpl::optionally_defined_roles() const
@@ -1424,9 +1423,9 @@ namespace mamba::validation
                 std::map<std::string, Key> role_keys;
                 for (auto& key : it.second.pubkeys)
                 {
-                    role_keys.insert({ key, Key::from_ed25519(key) });
+                    role_keys.insert({key, Key::from_ed25519(key)});
                 }
-                m_defined_roles.insert({ it.first, { role_keys, it.second.threshold } });
+                m_defined_roles.insert({it.first, {role_keys, it.second.threshold}});
             }
         }
 
@@ -1654,7 +1653,7 @@ namespace mamba::validation
 
         std::set<std::string> KeyMgrRole::mandatory_defined_roles() const
         {
-            return { "pkg_mgr" };
+            return {"pkg_mgr"};
         }
 
         std::set<std::string> KeyMgrRole::optionally_defined_roles() const
@@ -1670,9 +1669,9 @@ namespace mamba::validation
                 std::map<std::string, Key> role_keys;
                 for (auto& key : it.second.pubkeys)
                 {
-                    role_keys.insert({ key, Key::from_ed25519(key) });
+                    role_keys.insert({key, Key::from_ed25519(key)});
                 }
-                m_defined_roles.insert({ it.first, { role_keys, it.second.threshold } });
+                m_defined_roles.insert({it.first, {role_keys, it.second.threshold}});
             }
         }
 
@@ -1773,9 +1772,9 @@ namespace mamba::validation
                 std::map<std::string, Key> role_keys;
                 for (auto& key : it.second.pubkeys)
                 {
-                    role_keys.insert({ key, Key::from_ed25519(key) });
+                    role_keys.insert({key, Key::from_ed25519(key)});
                 }
-                m_defined_roles.insert({ it.first, { role_keys, it.second.threshold } });
+                m_defined_roles.insert({it.first, {role_keys, it.second.threshold}});
             }
         }
 
@@ -1843,7 +1842,7 @@ namespace mamba::validation
                     pgp_trailer = s.second["other_headers"];
                 }
 
-                unique_sigs.insert(RoleSignature({ s.first, s.second.at("signature"), pgp_trailer }));
+                unique_sigs.insert(RoleSignature({s.first, s.second.at("signature"), pgp_trailer}));
             }
 
             return unique_sigs;
@@ -1930,27 +1929,27 @@ namespace mamba::validation
 
     void to_json(json& j, const Key& key)
     {
-        j = json{ { "keytype", key.keytype }, { "scheme", key.scheme }, { "keyval", key.keyval } };
+        j = json{{"keytype", key.keytype}, {"scheme", key.scheme}, {"keyval", key.keyval}};
     }
 
     void to_json(json& j, const RoleKeys& role_keys)
     {
-        j = json{ { "keyids", role_keys.keyids }, { "threshold", role_keys.threshold } };
+        j = json{{"keyids", role_keys.keyids}, {"threshold", role_keys.threshold}};
     }
 
     void to_json(json& j, const RolePubKeys& role_keys)
     {
-        j = json{ { "pubkeys", role_keys.pubkeys }, { "threshold", role_keys.threshold } };
+        j = json{{"pubkeys", role_keys.pubkeys}, {"threshold", role_keys.threshold}};
     }
 
     void to_json(json& j, const RoleFullKeys& k)
     {
-        j = json{ { "keys", k.keys }, { "threshold", k.threshold } };
+        j = json{{"keys", k.keys}, {"threshold", k.threshold}};
     }
 
     void to_json(json& j, const RoleSignature& role_sig)
     {
-        j = json{ { "keyid", role_sig.keyid }, { "sig", role_sig.sig } };
+        j = json{{"keyid", role_sig.keyid}, {"sig", role_sig.sig}};
         if (!role_sig.pgp_trailer.empty())
         {
             j["other_headers"] = role_sig.pgp_trailer;
@@ -1959,7 +1958,7 @@ namespace mamba::validation
 
     void to_json(json& j, const RoleBase* role)
     {
-        j = json{ { "version", role->version() }, { "expires", role->expires() } };
+        j = json{{"version", role->version()}, {"expires", role->expires()}};
     }
 
     void from_json(const json& j, Key& key)

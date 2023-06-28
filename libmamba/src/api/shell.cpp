@@ -95,11 +95,12 @@ namespace mamba
         // TODO do we need to do something wtih `shell_prefix -> root_prefix?`?
         if (ctx.output_params.json)
         {
-            Console::instance().json_write({ { "success", true },
-                                             { "operation", "shell_hook" },
-                                             { "context", { { "shell_type", shell_type } } },
-                                             { "actions",
-                                               { { "print", { activator->hook(shell_type) } } } } });
+            Console::instance().json_write(
+                {{"success", true},
+                 {"operation", "shell_hook"},
+                 {"context", {{"shell_type", shell_type}}},
+                 {"actions", {{"print", {activator->hook(shell_type)}}}}}
+            );
         }
         else
         {

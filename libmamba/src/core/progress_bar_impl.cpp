@@ -157,7 +157,7 @@ namespace mamba
     // TODO: bytes sould be size_t and the implementation is wrong
     void to_human_readable_filesize(std::ostream& o, double bytes, std::size_t precision)
     {
-        static constexpr const char* sizes[] = {" B", "kB", "MB", "GB", "TB", "PB"};
+        static constexpr const char* sizes[] = { " B", "kB", "MB", "GB", "TB", "PB" };
         int order = 0;
         while (bytes >= 1000 && order < (6 - 1))
         {
@@ -861,7 +861,7 @@ namespace mamba
 
     std::vector<FieldRepr*> ProgressBarRepr::fields()
     {
-        return {&prefix, &progress, &current, &separator, &total, &speed, &postfix, &elapsed};
+        return { &prefix, &progress, &current, &separator, &total, &speed, &postfix, &elapsed };
     }
 
     ProgressBarRepr& ProgressBarRepr::reset_fields()
@@ -907,11 +907,11 @@ namespace mamba
                 std::vector<std::string> spinner;
                 if (!m_ascii_only)
                 {
-                    spinner = {"⣾", "⣽", "⣻", "⢿", "⣿", "⡿", "⣟", "⣯", "⣷", "⣿"};
+                    spinner = { "⣾", "⣽", "⣻", "⢿", "⣿", "⡿", "⣟", "⣯", "⣷", "⣿" };
                 }
                 else
                 {
-                    spinner = {"|", "/", "-", "|", "\\", "|", "/", "-", "|", "\\"};
+                    spinner = { "|", "/", "-", "|", "\\", "|", "/", "-", "|", "\\" };
                 }
 
                 constexpr int spinner_rounds = 2;
@@ -1198,7 +1198,7 @@ namespace mamba
             {
                 if (m_labels.count(label) == 0)
                 {
-                    m_labels.insert({label, {raw_bar(progress_bar)}});
+                    m_labels.insert({ label, { raw_bar(progress_bar) } });
                 }
                 else
                 {
@@ -1853,10 +1853,12 @@ namespace mamba
         std::lock_guard<std::mutex> lock(m_mutex);
         if (m_aggregated_bars.count(label) == 0)
         {
-            m_aggregated_bars.insert(
-                {label,
-                 std::make_unique<DefaultProgressBar>(label, std::numeric_limits<std::size_t>::max(), 100)}
-            );
+            m_aggregated_bars.insert({ label,
+                                       std::make_unique<DefaultProgressBar>(
+                                           label,
+                                           std::numeric_limits<std::size_t>::max(),
+                                           100
+                                       ) });
         }
     }
 

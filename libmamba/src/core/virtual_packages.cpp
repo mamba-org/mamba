@@ -43,7 +43,7 @@ namespace mamba
             const char* version = "";
 #ifdef __linux__
             std::vector<char> ver;
-            const size_t n = confstr(_CS_GNU_LIBC_VERSION, NULL, size_t{0});
+            const size_t n = confstr(_CS_GNU_LIBC_VERSION, NULL, size_t{ 0 });
 
             if (n > 0)
             {
@@ -66,7 +66,7 @@ namespace mamba
             }
 
             std::string out, err;
-            std::vector<std::string> args = {"nvidia-smi", "--query", "-u", "-x"};
+            std::vector<std::string> args = { "nvidia-smi", "--query", "-u", "-x" };
             auto [status, ec] = reproc::run(
                 args,
                 reproc::options{},
@@ -105,7 +105,7 @@ namespace mamba
                         {
                             std::string f = (p.path() / "nvidia-smi.exe").string();
                             LOG_DEBUG << "Found nvidia-smi in: " << f;
-                            std::vector<std::string> command = {f, "--query", "-u", "-x"};
+                            std::vector<std::string> command = { f, "--query", "-u", "-x" };
                             auto [_ /*cmd_status*/, cmd_ec] = reproc::run(
                                 command,
                                 reproc::options{},

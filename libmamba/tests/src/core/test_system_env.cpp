@@ -53,18 +53,10 @@ TEST_SUITE("system_env")
     {
         // We check that normal pre-defined variables are accessible and do not fail access even if
         // some of these values have unicode.
-        const std::vector<std::string> predefined_keys{
-            "PATH",
-            "OS",
-            "PATHEXT",
-            "ProgramData",
-            "SystemRoot",
-            "windir",
-            "APPDATA",
-            "COMPUTERNAME",
-            "TEMP",
-            "UserName",
-            "USERPROFILE"};
+        const std::vector<std::string> predefined_keys{ "PATH",        "OS",           "PATHEXT",
+                                                        "ProgramData", "SystemRoot",   "windir",
+                                                        "APPDATA",     "COMPUTERNAME", "TEMP",
+                                                        "UserName",    "USERPROFILE" };
 
         for (const auto& key : predefined_keys)
         {

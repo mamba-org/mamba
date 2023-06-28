@@ -309,25 +309,18 @@ namespace mamba
         {
             using param_type = std::tuple<std::string, char, bool>;
             std::vector<param_type> param_values = {
-                std::make_tuple("y", 'y', true),
-                std::make_tuple("yes", 'y', true),
-                std::make_tuple("Y", 'y', true),
-                std::make_tuple("Yes", 'y', true),
-                std::make_tuple("", 'y', true),
-                std::make_tuple("n", 'y', false),
-                std::make_tuple("no", 'y', false),
-                std::make_tuple("N", 'y', false),
+                std::make_tuple("y", 'y', true),   std::make_tuple("yes", 'y', true),
+                std::make_tuple("Y", 'y', true),   std::make_tuple("Yes", 'y', true),
+                std::make_tuple("", 'y', true),    std::make_tuple("n", 'y', false),
+                std::make_tuple("no", 'y', false), std::make_tuple("N", 'y', false),
                 std::make_tuple("No", 'y', false),
 
-                std::make_tuple("y", 'n', true),
-                std::make_tuple("yes", 'n', true),
-                std::make_tuple("Y", 'n', true),
-                std::make_tuple("Yes", 'n', true),
-                std::make_tuple("", 'n', false),
-                std::make_tuple("n", 'n', false),
-                std::make_tuple("no", 'n', false),
-                std::make_tuple("N", 'n', false),
-                std::make_tuple("No", 'n', false)};
+                std::make_tuple("y", 'n', true),   std::make_tuple("yes", 'n', true),
+                std::make_tuple("Y", 'n', true),   std::make_tuple("Yes", 'n', true),
+                std::make_tuple("", 'n', false),   std::make_tuple("n", 'n', false),
+                std::make_tuple("no", 'n', false), std::make_tuple("N", 'n', false),
+                std::make_tuple("No", 'n', false)
+            };
 
             for (const auto& p : param_values)
             {
@@ -350,7 +343,7 @@ namespace mamba
             {
                 auto& ctx = Context::instance();
                 ctx.prefix_params.root_prefix = "/home/user/micromamba/";
-                ctx.envs_dirs = {ctx.prefix_params.root_prefix / "envs"};
+                ctx.envs_dirs = { ctx.prefix_params.root_prefix / "envs" };
                 fs::u8path prefix = "/home/user/micromamba/envs/testprefix";
 
                 CHECK_EQ(env_name(prefix), "testprefix");
@@ -507,35 +500,35 @@ namespace mamba
         {
             if (!on_win)
             {
-                std::vector<std::string> args1 = {"python", "-c", "print('is\ngreat')"};
+                std::vector<std::string> args1 = { "python", "-c", "print('is\ngreat')" };
                 CHECK_EQ(quote_for_shell(args1), "python -c 'print('\"'\"'is\ngreat'\"'\"')'");
-                std::vector<std::string> args2 = {"python", "-c", "print(\"is great\")"};
+                std::vector<std::string> args2 = { "python", "-c", "print(\"is great\")" };
                 CHECK_EQ(quote_for_shell(args2), "python -c 'print(\"is great\")'");
-                std::vector<std::string> args3 = {"python", "very nice", "print(\"is great\")"};
+                std::vector<std::string> args3 = { "python", "very nice", "print(\"is great\")" };
                 CHECK_EQ(quote_for_shell(args3), "python 'very nice' 'print(\"is great\")'");
-                std::vector<std::string> args4 = {"pyt \t tab", "very nice", "print(\"is great\")"};
+                std::vector<std::string> args4 = { "pyt \t tab", "very nice", "print(\"is great\")" };
                 CHECK_EQ(quote_for_shell(args4), "'pyt \t tab' 'very nice' 'print(\"is great\")'");
-                std::vector<std::string> args5 = {"echo", "("};
+                std::vector<std::string> args5 = { "echo", "(" };
                 CHECK_EQ(quote_for_shell(args5), "echo '('");
-                std::vector<std::string> args6 = {"echo", "foo'bar\nspam"};
+                std::vector<std::string> args6 = { "echo", "foo'bar\nspam" };
                 CHECK_EQ(quote_for_shell(args6), "echo 'foo'\"'\"'bar\nspam'");
             }
 
-            std::vector<std::string> args1 = {"a b c", "d", "e"};
+            std::vector<std::string> args1 = { "a b c", "d", "e" };
             CHECK_EQ(quote_for_shell(args1, "cmdexe"), "\"a b c\" d e");
-            std::vector<std::string> args2 = {"ab\"c", "\\", "d"};
+            std::vector<std::string> args2 = { "ab\"c", "\\", "d" };
             CHECK_EQ(quote_for_shell(args2, "cmdexe"), "ab\\\"c \\ d");
-            std::vector<std::string> args3 = {"ab\"c", " \\", "d"};
+            std::vector<std::string> args3 = { "ab\"c", " \\", "d" };
             CHECK_EQ(quote_for_shell(args3, "cmdexe"), "ab\\\"c \" \\\\\" d");
-            std::vector<std::string> args4 = {"a\\\\\\b", "de fg", "h"};
+            std::vector<std::string> args4 = { "a\\\\\\b", "de fg", "h" };
             CHECK_EQ(quote_for_shell(args4, "cmdexe"), "a\\\\\\b \"de fg\" h");
-            std::vector<std::string> args5 = {"a\\\"b", "c", "d"};
+            std::vector<std::string> args5 = { "a\\\"b", "c", "d" };
             CHECK_EQ(quote_for_shell(args5, "cmdexe"), "a\\\\\\\"b c d");
-            std::vector<std::string> args6 = {"a\\\\b c", "d", "e"};
+            std::vector<std::string> args6 = { "a\\\\b c", "d", "e" };
             CHECK_EQ(quote_for_shell(args6, "cmdexe"), "\"a\\\\b c\" d e");
-            std::vector<std::string> args7 = {"a\\\\b\\ c", "d", "e"};
+            std::vector<std::string> args7 = { "a\\\\b\\ c", "d", "e" };
             CHECK_EQ(quote_for_shell(args7, "cmdexe"), "\"a\\\\b\\ c\" d e");
-            std::vector<std::string> args8 = {"ab", ""};
+            std::vector<std::string> args8 = { "ab", "" };
             CHECK_EQ(quote_for_shell(args8, "cmdexe"), "ab \"\"");
         }
 
@@ -594,7 +587,7 @@ namespace mamba
     {
         TEST_CASE("parse_mod_etag")
         {
-            fs::u8path cache_folder = fs::u8path{test_data_dir / "repodata_json_cache"};
+            fs::u8path cache_folder = fs::u8path{ test_data_dir / "repodata_json_cache" };
             auto mq = detail::read_metadata(cache_folder / "test_1.json");
             CHECK(mq.has_value());
             auto j = mq.value();

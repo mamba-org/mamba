@@ -70,34 +70,34 @@ namespace mamba::specs
 
         TEST_CASE("version_comparison")
         {
-            auto v = Version(0, {{{1, "post"}}});
+            auto v = Version(0, { { { 1, "post" } } });
             REQUIRE_EQ(v.version().size(), 1);
             REQUIRE_EQ(v.version().front().size(), 1);
             REQUIRE_EQ(v.version().front().front(), VersionPartAtom(1, "post"));
 
             // Same empty 0!1post version
-            CHECK_EQ(Version(0, {{{1, "post"}}}), Version(0, {{{1, "post"}}}));
+            CHECK_EQ(Version(0, { { { 1, "post" } } }), Version(0, { { { 1, "post" } } }));
             // Empty trailing atom 0!1a == 0!1a0""
-            CHECK_EQ(Version(0, {{{1, "a"}}}), Version(0, {{{1, "a"}, {}}}));
+            CHECK_EQ(Version(0, { { { 1, "a" } } }), Version(0, { { { 1, "a" }, {} } }));
             // Empty trailing part 0!1a == 0!1a.0""
-            CHECK_EQ(Version(0, {{{1, "a"}}}), Version(0, {{{1, "a"}}, {{}}}));
+            CHECK_EQ(Version(0, { { { 1, "a" } } }), Version(0, { { { 1, "a" } }, { {} } }));
             // Mixed 0!1a0""0"" == 0!1a.0""
-            CHECK_EQ(Version(0, {{{1, "a"}, {}, {}}}), Version(0, {{{1, "a"}}, {{}}}));
+            CHECK_EQ(Version(0, { { { 1, "a" }, {}, {} } }), Version(0, { { { 1, "a" } }, { {} } }));
 
             // Different epoch 0!2post < 1!1dev
-            CHECK_LT(Version(0, {{{2, "post"}}}), Version(1, {{{1, "dev"}}}));
-            CHECK_GE(Version(1, {{{1, "dev"}}}), Version(0, {{{2, "post"}}}));
+            CHECK_LT(Version(0, { { { 2, "post" } } }), Version(1, { { { 1, "dev" } } }));
+            CHECK_GE(Version(1, { { { 1, "dev" } } }), Version(0, { { { 2, "post" } } }));
             // Different lenght with dev
-            CHECK_LT(Version(0, {{{1}}, {{0, "dev"}}}), Version(0, {{{1}}}));
-            CHECK_LT(Version(0, {{{1}}, {{0}}, {{0, "dev"}}}), Version(0, {{{1}}}));
+            CHECK_LT(Version(0, { { { 1 } }, { { 0, "dev" } } }), Version(0, { { { 1 } } }));
+            CHECK_LT(Version(0, { { { 1 } }, { { 0 } }, { { 0, "dev" } } }), Version(0, { { { 1 } } }));
             // Different major 0!1post < 0!2dev
-            CHECK_LT(Version(0, {{{1, "post"}}}), Version(0, {{{2, "dev"}}}));
+            CHECK_LT(Version(0, { { { 1, "post" } } }), Version(0, { { { 2, "dev" } } }));
             // Different length 0!2"".0"" < 0!11"".0"".0post all operator
-            CHECK_NE(Version(0, {{{2}, {0}}}), Version(0, {{{11}, {0}, {0, "post"}}}));
-            CHECK_LT(Version(0, {{{2}, {0}}}), Version(0, {{{11}, {0}, {0, "post"}}}));
-            CHECK_LE(Version(0, {{{2}, {0}}}), Version(0, {{{11}, {0}, {0, "post"}}}));
-            CHECK_GT(Version(0, {{{11}, {0}, {0, "post"}}}), Version(0, {{{2}, {0}}}));
-            CHECK_GE(Version(0, {{{11}, {0}, {0, "post"}}}), Version(0, {{{2}, {0}}}));
+            CHECK_NE(Version(0, { { { 2 }, { 0 } } }), Version(0, { { { 11 }, { 0 }, { 0, "post" } } }));
+            CHECK_LT(Version(0, { { { 2 }, { 0 } } }), Version(0, { { { 11 }, { 0 }, { 0, "post" } } }));
+            CHECK_LE(Version(0, { { { 2 }, { 0 } } }), Version(0, { { { 11 }, { 0 }, { 0, "post" } } }));
+            CHECK_GT(Version(0, { { { 11 }, { 0 }, { 0, "post" } } }), Version(0, { { { 2 }, { 0 } } }));
+            CHECK_GE(Version(0, { { { 11 }, { 0 }, { 0, "post" } } }), Version(0, { { { 2 }, { 0 } } }));
         }
 
         TEST_CASE("version_format")

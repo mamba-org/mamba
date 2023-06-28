@@ -97,7 +97,7 @@ namespace mamba
 #ifdef _WIN32
     std::wstring get_autorun_registry_key(const std::wstring& reg_path)
     {
-        winreg::RegKey key{HKEY_CURRENT_USER, reg_path};
+        winreg::RegKey key{ HKEY_CURRENT_USER, reg_path };
         std::wstring content;
         try
         {
@@ -119,7 +119,7 @@ namespace mamba
             fmt::styled(to_utf8(value), Context::instance().graphics_params.palette.success)
         );
 
-        winreg::RegKey key{HKEY_CURRENT_USER, reg_path};
+        winreg::RegKey key{ HKEY_CURRENT_USER, reg_path };
         key.SetStringValue(L"AutoRun", value);
     }
 
@@ -253,7 +253,7 @@ namespace mamba
         std::string out, err;
         try
         {
-            std::vector<std::string> args{command, path};
+            std::vector<std::string> args{ command, path };
             if (is_a_path_env)
             {
                 args.push_back("--path");
@@ -654,12 +654,11 @@ namespace mamba
         auto scripts_activate_bat = root_prefix / "Scripts" / "activate.bat";
         auto mamba_hook_bat = root_prefix / "condabin" / "mamba_hook.bat";
 
-        for (auto& f :
-             {micromamba_bat,
-              _mamba_activate_bat,
-              condabin_activate_bat,
-              scripts_activate_bat,
-              mamba_hook_bat})
+        for (auto& f : { micromamba_bat,
+                         _mamba_activate_bat,
+                         condabin_activate_bat,
+                         scripts_activate_bat,
+                         mamba_hook_bat })
         {
             if (fs::exists(f))
             {
@@ -675,7 +674,7 @@ namespace mamba
         // remove condabin and Scripts if empty
         auto condabin = root_prefix / "condabin";
         auto scripts = root_prefix / "Scripts";
-        for (auto& d : {condabin, scripts})
+        for (auto& d : { condabin, scripts })
         {
             if (fs::exists(d) && fs::is_empty(d))
             {
@@ -989,7 +988,7 @@ namespace mamba
         {
             std::string out, err;
             auto [status, ec] = reproc::run(
-                std::vector<std::string>{exe, "-NoProfile", "-Command", profile_var},
+                std::vector<std::string>{ exe, "-NoProfile", "-Command", profile_var },
                 reproc::options{},
                 reproc::sink::string(out),
                 reproc::sink::string(err)
@@ -1055,7 +1054,7 @@ namespace mamba
         else if (shell == "powershell")
         {
             std::set<std::string> pwsh_profiles;
-            for (auto& exe : std::vector<std::string>{"powershell", "pwsh", "pwsh-preview"})
+            for (auto& exe : std::vector<std::string>{ "powershell", "pwsh", "pwsh-preview" })
             {
                 auto profile_path = find_powershell_paths(exe);
                 if (!profile_path.empty())
@@ -1123,7 +1122,7 @@ namespace mamba
         else if (shell == "powershell")
         {
             std::set<std::string> pwsh_profiles;
-            for (auto& exe : std::vector<std::string>{"powershell", "pwsh", "pwsh-preview"})
+            for (auto& exe : std::vector<std::string>{ "powershell", "pwsh", "pwsh-preview" })
             {
                 auto profile_path = find_powershell_paths(exe);
                 if (!profile_path.empty())
@@ -1173,7 +1172,7 @@ namespace mamba
         fs::u8path home = env::home_directory();
 
         std::vector<std::string> result;
-        std::vector<std::string> supported_shells = {"bash", "zsh", "xonsh", "csh", "fish"};
+        std::vector<std::string> supported_shells = { "bash", "zsh", "xonsh", "csh", "fish" };
         for (const std::string& shell : supported_shells)
         {
             fs::u8path config_path = config_path_for_shell(shell);
@@ -1199,7 +1198,7 @@ namespace mamba
         // powershell
         {
             std::set<std::string> pwsh_profiles;
-            for (auto& exe : std::vector<std::string>{"powershell", "pwsh", "pwsh-preview"})
+            for (auto& exe : std::vector<std::string>{ "powershell", "pwsh", "pwsh-preview" })
             {
                 auto profile_path = find_powershell_paths(exe);
                 if (!profile_path.empty() && fs::exists(profile_path))

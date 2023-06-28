@@ -38,7 +38,8 @@ namespace mamba
             void* pointer_to_this_thread_rng = same_thread_checks();
 
             void* pointer_to_another_thread_rng = nullptr;
-            std::thread another_thread{[&] { pointer_to_another_thread_rng = same_thread_checks(); }};
+            std::thread another_thread{ [&]
+                                        { pointer_to_another_thread_rng = same_thread_checks(); } };
             another_thread.join();
 
             CHECK_NE(pointer_to_this_thread_rng, pointer_to_another_thread_rng);
@@ -67,7 +68,7 @@ namespace mamba
         {
             bool executed = false;
             {
-                on_scope_exit _{[&] { executed = true; }};
+                on_scope_exit _{ [&] { executed = true; } };
                 CHECK_FALSE(executed);
             }
             CHECK(executed);
@@ -87,24 +88,24 @@ namespace mamba
             CHECK(is_yaml_file_name("../../some/dir/something.yml"));
             CHECK(is_yaml_file_name("../../some/dir/something.yml"));
 
-            CHECK(is_yaml_file_name(fs::u8path{"something.yaml"}.string()));
-            CHECK(is_yaml_file_name(fs::u8path{"something.yml"}.string()));
-            CHECK(is_yaml_file_name(fs::u8path{"something-lock.yaml"}.string()));
-            CHECK(is_yaml_file_name(fs::u8path{"something-lock.yml"}.string()));
-            CHECK(is_yaml_file_name(fs::u8path{"/some/dir/something.yaml"}.string()));
-            CHECK(is_yaml_file_name(fs::u8path{"/some/dir/something.yml"}.string()));
-            CHECK(is_yaml_file_name(fs::u8path{"../../some/dir/something.yaml"}.string()));
-            CHECK(is_yaml_file_name(fs::u8path{"../../some/dir/something.yml"}.string()));
+            CHECK(is_yaml_file_name(fs::u8path{ "something.yaml" }.string()));
+            CHECK(is_yaml_file_name(fs::u8path{ "something.yml" }.string()));
+            CHECK(is_yaml_file_name(fs::u8path{ "something-lock.yaml" }.string()));
+            CHECK(is_yaml_file_name(fs::u8path{ "something-lock.yml" }.string()));
+            CHECK(is_yaml_file_name(fs::u8path{ "/some/dir/something.yaml" }.string()));
+            CHECK(is_yaml_file_name(fs::u8path{ "/some/dir/something.yml" }.string()));
+            CHECK(is_yaml_file_name(fs::u8path{ "../../some/dir/something.yaml" }.string()));
+            CHECK(is_yaml_file_name(fs::u8path{ "../../some/dir/something.yml" }.string()));
 
             CHECK_FALSE(is_yaml_file_name("something"));
             CHECK_FALSE(is_yaml_file_name("something-lock"));
             CHECK_FALSE(is_yaml_file_name("/some/dir/something"));
             CHECK_FALSE(is_yaml_file_name("../../some/dir/something"));
 
-            CHECK_FALSE(is_yaml_file_name(fs::u8path{"something"}.string()));
-            CHECK_FALSE(is_yaml_file_name(fs::u8path{"something-lock"}.string()));
-            CHECK_FALSE(is_yaml_file_name(fs::u8path{"/some/dir/something"}.string()));
-            CHECK_FALSE(is_yaml_file_name(fs::u8path{"../../some/dir/something"}.string()));
+            CHECK_FALSE(is_yaml_file_name(fs::u8path{ "something" }.string()));
+            CHECK_FALSE(is_yaml_file_name(fs::u8path{ "something-lock" }.string()));
+            CHECK_FALSE(is_yaml_file_name(fs::u8path{ "/some/dir/something" }.string()));
+            CHECK_FALSE(is_yaml_file_name(fs::u8path{ "../../some/dir/something" }.string()));
         }
     }
 
@@ -133,11 +134,11 @@ namespace mamba
         {
             const auto test_dir_path = fs::temp_directory_path() / "libmamba" / "writable_tests";
             fs::create_directories(test_dir_path);
-            on_scope_exit _{[&]
-                            {
-                                fs::permissions(test_dir_path, fs::perms::all);
-                                fs::remove_all(test_dir_path);
-                            }};
+            on_scope_exit _{ [&]
+                             {
+                                 fs::permissions(test_dir_path, fs::perms::all);
+                                 fs::remove_all(test_dir_path);
+                             } };
 
             CHECK(path::is_writable(test_dir_path));
             fs::permissions(test_dir_path, fs::perms::none);
@@ -157,7 +158,7 @@ namespace mamba
                 const auto existing_file_path = test_dir_path
                                                 / "existing-writable-test-delete-me.txt";
                 {
-                    std::ofstream temp_file{existing_file_path.std_path()};
+                    std::ofstream temp_file{ existing_file_path.std_path() };
                     REQUIRE(temp_file.is_open());
                     temp_file << "delete me" << std::endl;
                 }
@@ -174,12 +175,11 @@ namespace mamba
     {
         TEST_CASE("proxy_match")
         {
-            Context::instance().proxy_servers = {
-                {"http", "foo"},
-                {"https", "bar"},
-                {"https://example.net", "foobar"},
-                {"all://example.net", "baz"},
-                {"all", "other"}};
+            Context::instance().proxy_servers = { { "http", "foo" },
+                                                  { "https", "bar" },
+                                                  { "https://example.net", "foobar" },
+                                                  { "all://example.net", "baz" },
+                                                  { "all", "other" } };
 
             CHECK_EQ(*proxy_match("http://example.com/channel"), "foo");
             CHECK_EQ(*proxy_match("http://example.net/channel"), "foo");
@@ -189,11 +189,10 @@ namespace mamba
             CHECK_EQ(*proxy_match("ftp://example.net/channel"), "baz");
             CHECK_EQ(*proxy_match("ftp://example.org"), "other");
 
-            Context::instance().proxy_servers = {
-                {"http", "foo"},
-                {"https", "bar"},
-                {"https://example.net", "foobar"},
-                {"all://example.net", "baz"}};
+            Context::instance().proxy_servers = { { "http", "foo" },
+                                                  { "https", "bar" },
+                                                  { "https://example.net", "foobar" },
+                                                  { "all://example.net", "baz" } };
 
             CHECK_FALSE(proxy_match("ftp://example.org").has_value());
 

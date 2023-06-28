@@ -115,7 +115,7 @@ def get_index(
                 )
             )
 
-    for sd, info in index:
+    for (sd, info) in index:
         if info["needs_finalising"]:
             sd.finalize_checks()
         dlist.add(sd)

@@ -49,14 +49,13 @@ init_general_options(CLI::App* subcom, Configuration& config)
         ->multi_option_policy(CLI::MultiOptionPolicy::Sum)
         ->group(cli_group);
 
-    std::map<std::string, mamba::log_level> le_map = {
-        {"critical", mamba::log_level::critical},
-        {"error", mamba::log_level::err},
-        {"warning", mamba::log_level::warn},
-        {"info", mamba::log_level::info},
-        {"debug", mamba::log_level::debug},
-        {"trace", mamba::log_level::trace},
-        {"off", mamba::log_level::off}};
+    std::map<std::string, mamba::log_level> le_map = { { "critical", mamba::log_level::critical },
+                                                       { "error", mamba::log_level::err },
+                                                       { "warning", mamba::log_level::warn },
+                                                       { "info", mamba::log_level::info },
+                                                       { "debug", mamba::log_level::debug },
+                                                       { "trace", mamba::log_level::trace },
+                                                       { "off", mamba::log_level::off } };
     auto& log_level = config.at("log_level");
     subcom
         ->add_option("--log-level", log_level.get_cli_config<mamba::log_level>(), log_level.description())
@@ -181,7 +180,7 @@ init_channel_parser(CLI::App* subcom, Configuration& config)
     using string_list = std::vector<std::string>;
 
     auto& channels = config.at("channels");
-    channels.needs({"override_channels"});
+    channels.needs({ "override_channels" });
     subcom
         ->add_option("-c,--channel", channels.get_cli_config<string_list>(), channels.description())
         ->type_size(1)
@@ -192,7 +191,7 @@ init_channel_parser(CLI::App* subcom, Configuration& config)
             .group("cli")
             .set_env_var_names()
             .description("Override channels")
-            .needs({"override_channels_enabled"})
+            .needs({ "override_channels_enabled" })
             .set_post_merge_hook<bool>([&](bool& value)
                                        { return override_channels_hook(config, value); }),
         true
@@ -203,10 +202,9 @@ init_channel_parser(CLI::App* subcom, Configuration& config)
         override_channels.description()
     );
 
-    std::map<std::string, ChannelPriority> cp_map = {
-        {"disabled", ChannelPriority::kDisabled},
-        {"flexible", ChannelPriority::kFlexible},
-        {"strict", ChannelPriority::kStrict}};
+    std::map<std::string, ChannelPriority> cp_map = { { "disabled", ChannelPriority::kDisabled },
+                                                      { "flexible", ChannelPriority::kFlexible },
+                                                      { "strict", ChannelPriority::kStrict } };
     auto& channel_priority = config.at("channel_priority");
     subcom
         ->add_option(
@@ -251,7 +249,7 @@ init_channel_parser(CLI::App* subcom, Configuration& config)
         no_channel_priority.description()
     );
 
-    channel_priority.needs({"strict_channel_priority", "no_channel_priority"});
+    channel_priority.needs({ "strict_channel_priority", "no_channel_priority" });
 }
 
 void
@@ -424,10 +422,9 @@ init_install_options(CLI::App* subcom, Configuration& config)
         shortcuts.description()
     );
 
-    std::map<std::string, VerificationLevel> vl_map = {
-        {"enabled", VerificationLevel::kEnabled},
-        {"warn", VerificationLevel::kWarn},
-        {"disabled", VerificationLevel::kDisabled}};
+    std::map<std::string, VerificationLevel> vl_map = { { "enabled", VerificationLevel::kEnabled },
+                                                        { "warn", VerificationLevel::kWarn },
+                                                        { "disabled", VerificationLevel::kDisabled } };
     auto& safety_checks = config.at("safety_checks");
     subcom
         ->add_option(

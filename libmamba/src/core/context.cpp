@@ -74,13 +74,12 @@ namespace mamba
         prefix_params.root_prefix = env::get("MAMBA_ROOT_PREFIX").value_or("");
         prefix_params.conda_prefix = prefix_params.root_prefix;
 
-        envs_dirs = {prefix_params.root_prefix / "envs"};
-        pkgs_dirs = {
-            prefix_params.root_prefix / "pkgs",
-            fs::u8path("~") / ".mamba" / "pkgs"
+        envs_dirs = { prefix_params.root_prefix / "envs" };
+        pkgs_dirs = { prefix_params.root_prefix / "pkgs",
+                      fs::u8path("~") / ".mamba" / "pkgs"
 #ifdef _WIN32
-            ,
-            fs::u8path(env::get("APPDATA").value_or("")) / ".mamba" / "pkgs"
+                      ,
+                      fs::u8path(env::get("APPDATA").value_or("")) / ".mamba" / "pkgs"
 #endif
         };
 
@@ -168,7 +167,7 @@ namespace mamba
 
     std::vector<std::string> Context::platforms()
     {
-        return {platform, "noarch"};
+        return { platform, "noarch" };
     }
 
     std::map<std::string, AuthenticationInfo>& Context::authentication_info()
@@ -212,7 +211,7 @@ namespace mamba
                     token_url = token_url.substr(0, token_url.size() - 6);
 
                     std::string token_content = read_contents(entry.path());
-                    AuthenticationInfo auth_info{AuthenticationType::kCondaToken, token_content};
+                    AuthenticationInfo auth_info{ AuthenticationType::kCondaToken, token_content };
                     m_authentication_info[token_url] = auth_info;
                     LOG_INFO << "Found token for " << token_url << " at " << entry.path();
                 }

@@ -160,13 +160,13 @@ PYBIND11_MODULE(bindings, m)
         .def(py::init<>())
         .def(py::init<>(
             [](const std::string& name) {
-                return MatchSpec{name, mambapy::singletons().channel_context};
+                return MatchSpec{ name, mambapy::singletons().channel_context };
             }
         ))
         .def("conda_build_form", &MatchSpec::conda_build_form);
 
     py::class_<MPool>(m, "Pool")
-        .def(py::init<>([] { return MPool{mambapy::singletons().channel_context}; }))
+        .def(py::init<>([] { return MPool{ mambapy::singletons().channel_context }; }))
         .def("set_debuglevel", &MPool::set_debuglevel)
         .def("create_whatprovides", &MPool::create_whatprovides)
         .def("select_solvables", &MPool::select_solvables, py::arg("id"), py::arg("sorted") = false)
@@ -174,7 +174,7 @@ PYBIND11_MODULE(bindings, m)
         .def(
             "matchspec2id",
             [](MPool& self, std::string_view ms) {
-                return self.matchspec2id({ms, mambapy::singletons().channel_context});
+                return self.matchspec2id({ ms, mambapy::singletons().channel_context });
             },
             py::arg("ms")
         )
@@ -193,7 +193,7 @@ PYBIND11_MODULE(bindings, m)
     py::class_<MRepo>(m, "Repo")
         .def(py::init(
             [](MPool& pool, const std::string& name, const std::string& filename, const std::string& url
-            ) { return MRepo(pool, name, filename, RepoMetadata{/* .url=*/url}); }
+            ) { return MRepo(pool, name, filename, RepoMetadata{ /* .url=*/url }); }
         ))
         .def(py::init<MPool&, const PrefixData&>())
         .def("add_extra_pkg_info", &MRepo::py_add_extra_pkg_info)
@@ -340,7 +340,7 @@ PYBIND11_MODULE(bindings, m)
     py::class_<History>(m, "History")
         .def(py::init(
             [](const fs::u8path& path) {
-                return History{path, mambapy::singletons().channel_context};
+                return History{ path, mambapy::singletons().channel_context };
             }
         ))
         .def("get_requested_specs_map", &History::get_requested_specs_map);
@@ -409,7 +409,7 @@ PYBIND11_MODULE(bindings, m)
                     case query::RECURSIVETABLE:
                         res.table(
                             res_stream,
-                            {"Name", "Version", "Build", concat("Depends:", query), "Channel"}
+                            { "Name", "Version", "Build", concat("Depends:", query), "Channel" }
                         );
                 }
                 if (res.empty() && format != query::JSON)

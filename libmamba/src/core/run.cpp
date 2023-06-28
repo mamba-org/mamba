@@ -62,17 +62,11 @@ namespace mamba
         };
 
         static std::vector alt_names{
-            "program",
-            "application",
-            "app",
-            "code",
-            "blob",
-            "binary",
-            "script",
+            "program", "application", "app", "code", "blob", "binary", "script",
         };
 
         static std::vector prefixes_bag(prefixes.cbegin(), prefixes.cend());
-        std::string selected_name{program_name};
+        std::string selected_name{ program_name };
         while (true)
         {
             std::string selected_prefix;
@@ -138,7 +132,8 @@ namespace mamba
                         proc_dir_path.string(),
                         error->what()
                     ),
-                    mamba_error_code::lockfile_failure};
+                    mamba_error_code::lockfile_failure
+                };
             }
             else
             {
@@ -157,7 +152,7 @@ namespace mamba
 
         const auto open_mode = std::ios::binary | std::ios::in;
 
-        for (auto&& entry : fs::directory_iterator{proc_dir()})
+        for (auto&& entry : fs::directory_iterator{ proc_dir() })
         {
             const auto file_location = entry.path();
             if (file_location.extension() != ".json")
@@ -165,7 +160,7 @@ namespace mamba
                 continue;
             }
 
-            std::ifstream pid_file{file_location.std_path(), open_mode};
+            std::ifstream pid_file{ file_location.std_path(), open_mode };
             if (!pid_file.is_open())
             {
                 LOG_WARNING << fmt::format("failed to open {}", file_location.string());
@@ -196,7 +191,7 @@ namespace mamba
         const std::vector<std::string>& command,
         LockFile proc_dir_lock
     )
-        : location{proc_dir() / fmt::format("{}.json", getpid())}
+        : location{ proc_dir() / fmt::format("{}.json", getpid()) }
     {
         // Lock must be hold for the duraction of this constructor.
         if (is_file_locking_allowed())
@@ -401,7 +396,7 @@ namespace mamba
                 if (specific_process_name.empty())
                 {
                     const auto unique_name = generate_unique_process_name(*exe_name_it);
-                    command.insert(exe_name_it, {{"-a"}, unique_name});
+                    command.insert(exe_name_it, { { "-a" }, unique_name });
                     return unique_name;
                 }
                 else
@@ -413,7 +408,7 @@ namespace mamba
                             specific_process_name
                         ));
                     }
-                    command.insert(exe_name_it, {{"-a"}, specific_process_name});
+                    command.insert(exe_name_it, { { "-a" }, specific_process_name });
                     return specific_process_name;
                 }
             }();
@@ -454,12 +449,10 @@ namespace mamba
                         {
                             LOG_INFO << "Received SIGTERM on micromamba run - terminating process";
                             reproc::stop_actions sa;
-                            sa.first = reproc::stop_action{
-                                reproc::stop::terminate,
-                                std::chrono::milliseconds(3000)};
-                            sa.second = reproc::stop_action{
-                                reproc::stop::kill,
-                                std::chrono::milliseconds(3000)};
+                            sa.first = reproc::stop_action{ reproc::stop::terminate,
+                                                            std::chrono::milliseconds(3000) };
+                            sa.second = reproc::stop_action{ reproc::stop::kill,
+                                                             std::chrono::milliseconds(3000) };
                             proc.stop(sa);
                         }
                     );

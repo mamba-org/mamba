@@ -363,9 +363,9 @@ namespace mamba
             std::size_t const start = input.find_first_not_of(chars);
             if (start == std::basic_string_view<Char>::npos)
             {
-                return {input, std::basic_string_view<Char>{}};
+                return { input, std::basic_string_view<Char>{} };
             }
-            return {input.substr(0, start), input.substr(start)};
+            return { input.substr(0, start), input.substr(start) };
         }
     }
 
@@ -400,9 +400,9 @@ namespace mamba
             std::size_t const end = input.find_last_not_of(chars);
             if (end == std::basic_string_view<Char>::npos)
             {
-                return {std::basic_string_view<Char>{}, input};
+                return { std::basic_string_view<Char>{}, input };
             }
-            return {input.substr(0, end + 1), input.substr(end + 1)};
+            return { input.substr(0, end + 1), input.substr(end + 1) };
         }
     }
 
@@ -437,11 +437,11 @@ namespace mamba
             std::size_t const start = input.find_first_not_of(chars);
             if (start == std::basic_string_view<Char>::npos)
             {
-                return {input, {}, {}};
+                return { input, {}, {} };
             }
             std::size_t const end = input.find_last_not_of(chars) + 1;
             std::size_t const length = end - start;
-            return {input.substr(0, start), input.substr(start, length), input.substr(end)};
+            return { input.substr(0, start), input.substr(start, length), input.substr(end) };
         }
     }
 
@@ -648,7 +648,7 @@ namespace mamba
 
     std::string get_common_parts(std::string_view str1, std::string_view str2, std::string_view sep)
     {
-        std::string common_str{str1};
+        std::string common_str{ str1 };
         while ((str2.find(common_str) == std::string::npos))
         {
             if (common_str.find(sep) != std::string::npos)

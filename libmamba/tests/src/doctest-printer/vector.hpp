@@ -16,7 +16,7 @@ namespace doctest
     {
         static auto convert(const std::vector<T>& value) -> String
         {
-            return {fmt::format("std::vector{{{}}}", fmt::join(value, ", ")).c_str()};
+            return { fmt::format("std::vector{{{}}}", fmt::join(value, ", ")).c_str() };
         }
     };
 }

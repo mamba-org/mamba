@@ -124,55 +124,55 @@ namespace mamba
             // ssl_verify can be either an empty string (regular SSL verification),
             // the string "<false>" to indicate no SSL verification, or a path to
             // a directory with cert files, or a cert file.
-            std::string ssl_verify{""};
-            bool ssl_no_revoke{false};
-            bool curl_initialized{false};  // non configurable, used in fetch only
+            std::string ssl_verify{ "" };
+            bool ssl_no_revoke{ false };
+            bool curl_initialized{ false };  // non configurable, used in fetch only
 
-            std::string user_agent{"mamba/" LIBMAMBA_VERSION_STRING};
+            std::string user_agent{ "mamba/" LIBMAMBA_VERSION_STRING };
 
-            int connect_timeout_secs{10};
+            int connect_timeout_secs{ 10 };
             // int read_timeout_secs { 60 };
-            int retry_timeout{2};  // seconds
-            int retry_backoff{3};  // retry_timeout * retry_backoff
-            int max_retries{3};    // max number of retries
+            int retry_timeout{ 2 };  // seconds
+            int retry_backoff{ 3 };  // retry_timeout * retry_backoff
+            int max_retries{ 3 };    // max number of retries
         };
 
         struct OutputParams
         {
-            int verbosity{0};
-            log_level logging_level{log_level::warn};
+            int verbosity{ 0 };
+            log_level logging_level{ log_level::warn };
 
-            bool json{false};
-            bool quiet{false};
+            bool json{ false };
+            bool quiet{ false };
 
-            std::string log_pattern{"%^%-9!l%-8n%$ %v"};
-            std::size_t log_backtrace{0};
+            std::string log_pattern{ "%^%-9!l%-8n%$ %v" };
+            std::size_t log_backtrace{ 0 };
         };
 
         struct GraphicsParams
         {
-            bool no_progress_bars{false};
+            bool no_progress_bars{ false };
             Palette palette;
         };
 
         struct SrcParams
         {
-            bool no_rc{false};
-            bool no_env{false};
+            bool no_rc{ false };
+            bool no_env{ false };
         };
 
         struct CommandParams
         {
-            std::string caller_version{""};
-            std::string conda_version{"3.8.0"};
-            std::string current_command{"mamba"};
-            bool is_micromamba{false};
+            std::string caller_version{ "" };
+            std::string conda_version{ "3.8.0" };
+            std::string current_command{ "mamba" };
+            bool is_micromamba{ false };
         };
 
         struct ThreadsParams
         {
-            std::size_t download_threads{5};
-            int extract_threads{0};
+            std::size_t download_threads{ 5 };
+            int extract_threads{ 0 };
         };
 
         struct PrefixParams
@@ -271,7 +271,7 @@ namespace mamba
 
         std::string channel_alias = "https://conda.anaconda.org";
         std::map<std::string, AuthenticationInfo>& authentication_info();
-        std::vector<fs::u8path> token_locations{"~/.continuum/anaconda-client/tokens"};
+        std::vector<fs::u8path> token_locations{ "~/.continuum/anaconda-client/tokens" };
 
         bool override_channels_enabled = true;
 
@@ -279,13 +279,13 @@ namespace mamba
 
         bool use_only_tar_bz2 = false;
 
-        std::vector<std::string> repodata_has_zst = {"https://conda.anaconda.org/conda-forge"};
+        std::vector<std::string> repodata_has_zst = { "https://conda.anaconda.org/conda-forge" };
 
         // usernames on anaconda.org can have a underscore, which influences the
         // first two characters
-        const std::regex token_regex{"/t/([a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-]*)"};
-        const std::regex http_basicauth_regex{"(://|^)([^\\s]+):([^\\s]+)@"};
-        const std::regex scheme_regex{"[a-z][a-z0-9]{0,11}://"};
+        const std::regex token_regex{ "/t/([a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-]*)" };
+        const std::regex http_basicauth_regex{ "(://|^)([^\\s]+):([^\\s]+)@" };
+        const std::regex scheme_regex{ "[a-z][a-z0-9]{0,11}://" };
 
         static Context& instance();
 

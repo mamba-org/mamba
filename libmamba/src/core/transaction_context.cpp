@@ -191,8 +191,9 @@ namespace mamba
         std::signal(SIGPIPE, SIG_IGN);
 #endif
         const auto complete_python_path = target_prefix / python_path;
-        std::vector<std::string>
-            command = {complete_python_path.string(), "-Wi", "-m", "compileall", "-q", "-l", "-i", "-"};
+        std::vector<std::string> command = {
+            complete_python_path.string(), "-Wi", "-m", "compileall", "-q", "-l", "-i", "-"
+        };
 
         auto py_ver_split = split(python_version, ".");
 
@@ -205,11 +206,10 @@ namespace mamba
                 compile_python_sources(compileall_f);
                 compileall_f.close();
 
-                command = {
-                    complete_python_path.string(),
-                    "-Wi",
-                    "-u",
-                    m_pyc_compileall->path().string()};
+                command = { complete_python_path.string(),
+                            "-Wi",
+                            "-u",
+                            m_pyc_compileall->path().string() };
             }
         }
         catch (const std::exception& e)
@@ -235,9 +235,9 @@ namespace mamba
         options.env.extra = envmap;
 
         options.stop = {
-            {reproc::stop::wait, reproc::milliseconds(10000)},
-            {reproc::stop::terminate, reproc::milliseconds(5000)},
-            {reproc::stop::kill, reproc::milliseconds(2000)},
+            { reproc::stop::wait, reproc::milliseconds(10000) },
+            { reproc::stop::terminate, reproc::milliseconds(5000) },
+            { reproc::stop::kill, reproc::milliseconds(2000) },
         };
 
         options.redirect.out.type = reproc::redirect::pipe;
@@ -321,9 +321,9 @@ namespace mamba
 
             int status = 0;
             std::tie(status, ec) = m_pyc_process->stop({
-                {reproc::stop::wait, reproc::milliseconds(100000)},
-                {reproc::stop::terminate, reproc::milliseconds(5000)},
-                {reproc::stop::kill, reproc::milliseconds(2000)},
+                { reproc::stop::wait, reproc::milliseconds(100000) },
+                { reproc::stop::terminate, reproc::milliseconds(5000) },
+                { reproc::stop::kill, reproc::milliseconds(2000) },
             });
             if (ec || status != 0)
             {

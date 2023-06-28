@@ -40,7 +40,7 @@ set_common_search(CLI::App* subcom, mamba::Configuration& config, bool is_repoqu
     {
         subcom
             ->add_option("query_type", query_type, "The type of query (search, depends or whoneeds)")
-            ->check(CLI::IsMember(std::vector<std::string>({"search", "depends", "whoneeds"})))
+            ->check(CLI::IsMember(std::vector<std::string>({ "search", "depends", "whoneeds" })))
             ->required();
     }
     else

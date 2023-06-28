@@ -47,7 +47,7 @@ TEST_SUITE("repo_data")
         j["build_number"] = 2;
         j["subdir"] = "folder";
         j["platform"] = nullptr;
-        j["depends"] = nl::json::array({"libsolv>=1.0"});
+        j["depends"] = nl::json::array({ "libsolv>=1.0" });
         j["constrains"] = nl::json::array();
         j["track_features"] = nl::json::array();
         {
@@ -60,7 +60,7 @@ TEST_SUITE("repo_data")
             CHECK_EQ(p.subdir, j.at("subdir"));
             CHECK_FALSE(p.md5.has_value());
             CHECK_FALSE(p.platform.has_value());
-            CHECK_EQ(p.depends, decltype(p.depends){"libsolv>=1.0"});
+            CHECK_EQ(p.depends, decltype(p.depends){ "libsolv>=1.0" });
             CHECK(p.constrains.empty());
             CHECK(p.track_features.empty());
             CHECK_FALSE(p.noarch.has_value());
@@ -87,12 +87,12 @@ TEST_SUITE("repo_data")
     {
         auto data = RepoData();
         data.version = 1;
-        data.info = ChannelInfo{/* .subdir= */ "linux-64"};
+        data.info = ChannelInfo{ /* .subdir= */ "linux-64" };
         data.packages = {
-            {"mamba-1.0-h12345.tar.bz2", RepoDataPackage{"mamba"}},
-            {"conda-1.0-h54321.tar.bz2", RepoDataPackage{"conda"}},
+            { "mamba-1.0-h12345.tar.bz2", RepoDataPackage{ "mamba" } },
+            { "conda-1.0-h54321.tar.bz2", RepoDataPackage{ "conda" } },
         };
-        data.removed = {"bad-package-1"};
+        data.removed = { "bad-package-1" };
 
         const nl::json j = data;
         CHECK_EQ(j.at("version"), data.version);
@@ -105,7 +105,7 @@ TEST_SUITE("repo_data")
             j.at("packages").at("conda-1.0-h54321.tar.bz2"),
             data.packages.at("conda-1.0-h54321.tar.bz2")
         );
-        CHECK_EQ(j.at("removed"), std::vector{"bad-package-1"});
+        CHECK_EQ(j.at("removed"), std::vector{ "bad-package-1" });
     }
 
     TEST_CASE("RepoData_from_json")
@@ -118,7 +118,7 @@ TEST_SUITE("repo_data")
         j["packages"]["mamba-1.0-h12345.tar.bz2"]["build"] = "foo1";
         j["packages"]["mamba-1.0-h12345.tar.bz2"]["build_number"] = 2;
         j["packages"]["mamba-1.0-h12345.tar.bz2"]["subdir"] = "folder";
-        j["packages"]["mamba-1.0-h12345.tar.bz2"]["depends"] = nl::json::array({"libsolv>=1.0"});
+        j["packages"]["mamba-1.0-h12345.tar.bz2"]["depends"] = nl::json::array({ "libsolv>=1.0" });
         j["packages"]["mamba-1.0-h12345.tar.bz2"]["constrains"] = nl::json::array();
         j["packages"]["mamba-1.0-h12345.tar.bz2"]["track_features"] = nl::json::array();
         j["conda_packages"] = nl::json::object();

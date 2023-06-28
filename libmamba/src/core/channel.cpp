@@ -30,15 +30,15 @@ namespace mamba
     namespace
     {
         const std::map<std::string, std::string> DEFAULT_CUSTOM_CHANNELS = {
-            {"pkgs/pro", "https://repo.anaconda.com"}};
+            { "pkgs/pro", "https://repo.anaconda.com" }
+        };
         const char UNKNOWN_CHANNEL[] = "<unknown>";
 
-        const std::set<std::string> INVALID_CHANNELS = {
-            "<unknown>",
-            "None:///<unknown>",
-            "None",
-            "",
-            ":///<unknown>"};
+        const std::set<std::string> INVALID_CHANNELS = { "<unknown>",
+                                                         "None:///<unknown>",
+                                                         "None",
+                                                         "",
+                                                         ":///<unknown>" };
 
         const char LOCAL_CHANNELS_NAME[] = "local";
         const char DEFAULT_CHANNELS_NAME[] = "defaults";
@@ -46,19 +46,10 @@ namespace mamba
         // ATTENTION names with substrings need to go longer -> smalle
         // otherwise linux-ppc64 matches for linux-ppc64le etc!
         const std::vector<std::string> KNOWN_PLATFORMS = {
-            "noarch",
-            "linux-32",
-            "linux-64",
-            "linux-aarch64",
-            "linux-armv6l",
-            "linux-armv7l",
-            "linux-ppc64le",
-            "linux-ppc64",
-            "osx-64",
-            "osx-arm64",
-            "win-32",
-            "win-64",
-            "zos-z"};
+            "noarch",       "linux-32",      "linux-64",    "linux-aarch64", "linux-armv6l",
+            "linux-armv7l", "linux-ppc64le", "linux-ppc64", "osx-64",        "osx-arm64",
+            "win-32",       "win-64",        "zos-z"
+        };
     }  // namespace
 
     // Specific functions, used only in this file
@@ -361,12 +352,12 @@ namespace mamba
             }
 
             std::string platform = m_platforms[0];
-            return {{build_url(
+            return { { build_url(
                 auth(),
                 scheme(),
                 join_url(base, name(), platform, *package_filename()),
                 with_credential
-            )}};
+            ) } };
         }
         else
         {
@@ -611,7 +602,7 @@ namespace mamba
                     chan.name() == UNKNOWN_CHANNEL ? "" : chan.name()
                 );
                 const auto& without_channel = chan.location();
-                for (const auto& auth : {with_channel, without_channel})
+                for (const auto& auth : { with_channel, without_channel })
                 {
                     auto it = ctx.authentication_info().find(auth);
                     if (it != ctx.authentication_info().end()
@@ -731,7 +722,8 @@ namespace mamba
         std::vector<std::string> local_channels = {
             Context::instance().prefix_params.target_prefix.string() + "/conda-bld",
             Context::instance().prefix_params.root_prefix.string() + "/conda-bld",
-            "~/conda-bld"};
+            "~/conda-bld"
+        };
 
         std::vector<std::string> local_names;
         local_names.reserve(local_channels.size());

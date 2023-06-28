@@ -164,10 +164,10 @@ namespace mamba
         {
             std::vector<fs::u8path> res;
             std::size_t total_size = 0;
-            std::vector<printers::FormattedString> header = { "Package file", "Size" };
+            std::vector<printers::FormattedString> header = {"Package file", "Size"};
             mamba::printers::Table t(header);
-            t.set_alignment({ printers::alignment::left, printers::alignment::right });
-            t.set_padding({ 2, 4 });
+            t.set_alignment({printers::alignment::left, printers::alignment::right});
+            t.set_padding({2, 4});
 
             for (auto* pkg_cache : caches.writable_caches())
             {
@@ -181,7 +181,7 @@ namespace mamba
                             || ends_with(p.path().string(), ".conda")))
                     {
                         res.push_back(p.path());
-                        rows.push_back({ p.path().filename().string(), get_file_size(p.file_size()) });
+                        rows.push_back({p.path().filename().string(), get_file_size(p.file_size())});
                         total_size += p.file_size();
                     }
                 }
@@ -194,7 +194,7 @@ namespace mamba
             }
             if (total_size)
             {
-                t.add_rows({}, { { "Total size: ", get_file_size(total_size) } });
+                t.add_rows({}, {{"Total size: ", get_file_size(total_size)}});
                 t.print(std::cout);
             }
             return res;
@@ -238,10 +238,10 @@ namespace mamba
         {
             std::vector<fs::u8path> res;
             std::size_t total_size = 0;
-            std::vector<printers::FormattedString> header = { "Package folder", "Size" };
+            std::vector<printers::FormattedString> header = {"Package folder", "Size"};
             mamba::printers::Table t(header);
-            t.set_alignment({ printers::alignment::left, printers::alignment::right });
-            t.set_padding({ 2, 4 });
+            t.set_alignment({printers::alignment::left, printers::alignment::right});
+            t.set_padding({2, 4});
 
             for (auto* pkg_cache : caches.writable_caches())
             {
@@ -258,7 +258,7 @@ namespace mamba
                         }
                         res.push_back(p.path());
                         std::size_t folder_size = get_folder_size(p);
-                        rows.push_back({ p.path().filename().string(), get_file_size(folder_size) });
+                        rows.push_back({p.path().filename().string(), get_file_size(folder_size)});
                         total_size += folder_size;
                     }
                 }
@@ -271,7 +271,7 @@ namespace mamba
             }
             if (total_size)
             {
-                t.add_rows({}, { { "Total size: ", get_file_size(total_size) } });
+                t.add_rows({}, {{"Total size: ", get_file_size(total_size)}});
                 t.print(std::cout);
             }
             return res;

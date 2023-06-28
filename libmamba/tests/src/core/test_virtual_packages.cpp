@@ -76,7 +76,7 @@ namespace mamba
                 // This is bad design, tests should not interfer
                 // Will get rid of that when implementing context as not a singleton
                 auto restore_ctx = [&ctx, old_plat = ctx.platform]() { ctx.platform = old_plat; };
-                auto finally = Finally<decltype(restore_ctx)>{ restore_ctx };
+                auto finally = Finally<decltype(restore_ctx)>{restore_ctx};
 
                 ctx.platform = "osx-arm";
                 env::set("CONDA_OVERRIDE_OSX", "12.1");

@@ -50,9 +50,10 @@ namespace mamba
             std::optional<std::type_index> yaml_error_type = std::nullopt
         )
         {
-            return mamba_error{ std::forward<StringT>(msg),
-                                mamba_error_code::env_lockfile_parsing_failed,
-                                EnvLockFileError{ error_code, yaml_error_type } };
+            return mamba_error{
+                std::forward<StringT>(msg),
+                mamba_error_code::env_lockfile_parsing_failed,
+                EnvLockFileError{error_code, yaml_error_type}};
         }
     };
 

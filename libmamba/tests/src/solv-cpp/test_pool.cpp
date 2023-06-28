@@ -113,7 +113,7 @@ TEST_SUITE("ObjPool")
 
             SUBCASE("Iterate over repos")
             {
-                const auto repo_ids = std::array{ repo1_id, repo2_id, repo3_id };
+                const auto repo_ids = std::array{repo1_id, repo2_id, repo3_id};
 
                 SUBCASE("Over all repos")
                 {
@@ -187,7 +187,7 @@ TEST_SUITE("ObjPool")
                         std::vector<SolvableId> ids = {};
                         pool.for_each_solvable_id([&](SolvableId id) { ids.push_back(id); });
                         std::sort(ids.begin(), ids.end());  // Ease comparison
-                        CHECK_EQ(ids, decltype(ids){ id1, id2 });
+                        CHECK_EQ(ids, decltype(ids){id1, id2});
                         pool.for_each_solvable(
                             [&](ObjSolvableViewConst s)
                             { CHECK_NE(std::find(ids.cbegin(), ids.cend(), s.id()), ids.cend()); }
@@ -221,7 +221,7 @@ TEST_SUITE("ObjPool")
                         std::vector<SolvableId> ids = {};
                         pool.for_each_installed_solvable_id([&](auto id) { ids.push_back(id); });
                         std::sort(ids.begin(), ids.end());  // Ease comparsion
-                        CHECK_EQ(ids, decltype(ids){ id1 });
+                        CHECK_EQ(ids, decltype(ids){id1});
                     }
                 }
 
@@ -246,7 +246,7 @@ TEST_SUITE("ObjPool")
                             [&](auto id) { whatprovides_ids.push_back(id); }
                         );
                         // Only one solvable matches
-                        CHECK_EQ(whatprovides_ids, std::vector{ id1 });
+                        CHECK_EQ(whatprovides_ids, std::vector{id1});
                     }
                 }
             }

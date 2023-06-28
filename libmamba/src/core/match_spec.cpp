@@ -40,7 +40,7 @@ namespace mamba
         {
             std::string tmp = s;
             replace_all(tmp, " ", "");
-            return { tmp, "" };
+            return {tmp, ""};
         }
         else
         {
@@ -53,7 +53,7 @@ namespace mamba
                 {
                     std::string tmp = s;
                     replace_all(tmp, " ", "");
-                    return { tmp, "" };
+                    return {tmp, ""};
                 }
             }
             // c is either ' ' or pm1 is none of the forbidden chars
@@ -61,7 +61,7 @@ namespace mamba
             std::string v = s.substr(0, pos), b = s.substr(pos + 1);
             replace_all(v, " ", "");
             replace_all(b, " ", "");
-            return { v, b };
+            return {v, b};
         }
     }
 
@@ -421,9 +421,14 @@ namespace mamba
         }
 
         std::vector<std::string> check = {
-            "build_number", "track_features", "features",       "url",
-            "md5",          "license",        "license_family", "fn"
-        };
+            "build_number",
+            "track_features",
+            "features",
+            "url",
+            "md5",
+            "license",
+            "license_family",
+            "fn"};
 
         if (!url.empty())
         {

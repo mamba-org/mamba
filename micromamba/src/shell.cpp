@@ -30,7 +30,7 @@ namespace
         subcmd
             ->add_option("-s,--shell", shell_type.get_cli_config<std::string>(), shell_type.description())
             ->check(CLI::IsMember(std::set<std::string>(
-                { "bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish", "tcsh", "dash" }
+                {"bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish", "tcsh", "dash"}
             )));
     }
 
@@ -111,7 +111,7 @@ namespace
     {
         if (!shell_type.empty())
         {
-            return std::string{ shell_type };
+            return std::string{shell_type};
         }
 
         LOG_DEBUG << "No shell type provided";
@@ -340,7 +340,7 @@ namespace
 
                     exit(mamba::run_in_environment(
                         Context::instance().prefix_params.root_prefix,
-                        { get_shell() },
+                        {get_shell()},
                         ".",
                         static_cast<int>(STREAM_OPTIONS::ALL_STREAMS),
                         false,
@@ -406,8 +406,14 @@ set_shell_command(CLI::App* shell_subcmd, Configuration& config)
     // TODO micromamba 2.0 rename this command (e.g. start-shell) or the other to avoid
     // confusion between `micromamba shell` and `micromamba shell subsubcmd`.
     const auto all_subsubcmds = std::array{
-        init_subsubcmd, deinit_subsubcmd, reinit_subsubcmd, hook_subsubcmd,
-        acti_subsubcmd, reacti_subsubcmd, deacti_subsubcmd, long_path_subsubcmd,
+        init_subsubcmd,
+        deinit_subsubcmd,
+        reinit_subsubcmd,
+        hook_subsubcmd,
+        acti_subsubcmd,
+        reacti_subsubcmd,
+        deacti_subsubcmd,
+        long_path_subsubcmd,
     };
     set_shell_launch_command(shell_subcmd, all_subsubcmds, config);
 }

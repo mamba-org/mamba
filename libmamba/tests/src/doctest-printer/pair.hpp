@@ -16,7 +16,7 @@ namespace doctest
     {
         static auto convert(const std::pair<T, U>& value) -> String
         {
-            return { fmt::format("std::pair{{{}, {}}}", value.first, value.second).c_str() };
+            return {fmt::format("std::pair{{{}, {}}}", value.first, value.second).c_str()};
         }
     };
 }

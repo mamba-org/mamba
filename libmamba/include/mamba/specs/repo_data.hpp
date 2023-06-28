@@ -68,7 +68,7 @@ namespace mamba::specs
         std::string name = {};
 
         /** The version of the package. */
-        Version version = Version(0, { { { 0 } } });
+        Version version = Version(0, {{{0}}});
 
         /** The build string of the package. */
         std::string build_string = {};

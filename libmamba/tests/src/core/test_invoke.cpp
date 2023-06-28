@@ -82,7 +82,7 @@ namespace mamba
                 }
             };
 
-            auto result = safe_invoke(DoNotDoThisAtHome{ did_move_happened });
+            auto result = safe_invoke(DoNotDoThisAtHome{did_move_happened});
             CHECK_FALSE(result);
             CHECK_MESSAGE(ends_with(result.error().what(), "unknown error"), result.error().what());
             CHECK(did_move_happened);

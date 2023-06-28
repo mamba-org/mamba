@@ -23,7 +23,7 @@ TEST_SUITE("ObjQueue")
         CHECK_EQ(q1.size(), 0);
         CHECK(q1.empty());
 
-        auto q2 = ObjQueue{ 1, 2, 3 };
+        auto q2 = ObjQueue{1, 2, 3};
         CHECK_EQ(q2.size(), 3);
         CHECK_FALSE(q2.empty());
 
@@ -50,7 +50,7 @@ TEST_SUITE("ObjQueue")
         const auto q1_data = q1.data();
         const auto q1_size = q1.size();
 
-        auto q2 = ObjQueue{ 1, 2, 3 };
+        auto q2 = ObjQueue{1, 2, 3};
         const auto q2_size = q2.size();
         const auto q2_data = q2.data();
 
@@ -74,7 +74,7 @@ TEST_SUITE("ObjQueue")
 
     TEST_CASE("element")
     {
-        auto q = ObjQueue{ 3, 2, 1 };
+        auto q = ObjQueue{3, 2, 1};
         CHECK_EQ(q[0], 3);
         CHECK_EQ(q[1], 2);
         CHECK_EQ(q[2], 1);
@@ -82,7 +82,7 @@ TEST_SUITE("ObjQueue")
 
     TEST_CASE("at")
     {
-        auto q = ObjQueue{ 3, 2, 1 };
+        auto q = ObjQueue{3, 2, 1};
         CHECK_EQ(q.at(0), q[0]);
         CHECK_EQ(q.at(1), q[1]);
         CHECK_EQ(q.at(2), q[2]);
@@ -91,14 +91,14 @@ TEST_SUITE("ObjQueue")
 
     TEST_CASE("clear")
     {
-        auto q = ObjQueue{ 3, 2, 1 };
+        auto q = ObjQueue{3, 2, 1};
         q.clear();
         CHECK(q.empty());
     }
 
     TEST_CASE("iterator")
     {
-        const auto q = ObjQueue{ 3, 2, 1 };
+        const auto q = ObjQueue{3, 2, 1};
         std::size_t n = 0;
         for ([[maybe_unused]] auto _ : q)
         {
@@ -107,13 +107,13 @@ TEST_SUITE("ObjQueue")
         CHECK_EQ(n, q.size());
 
         const auto l = std::list<::Id>(q.begin(), q.end());
-        const auto l_expected = std::list{ 3, 2, 1 };
+        const auto l_expected = std::list{3, 2, 1};
         CHECK_EQ(l, l_expected);
     }
 
     TEST_CASE("reverse_iterator")
     {
-        const auto q = ObjQueue{ 3, 2, 1 };
+        const auto q = ObjQueue{3, 2, 1};
 
         const auto v = std::vector(q.crbegin(), q.crend());
         CHECK_EQ(v.front(), q.back());
@@ -132,7 +132,7 @@ TEST_SUITE("ObjQueue")
     {
         auto q = ObjQueue();
 
-        const auto r1 = std::vector{ 1, 2, 3 };
+        const auto r1 = std::vector{1, 2, 3};
         // std::vector::iterator is not always a pointer
         auto iter = q.insert(q.cend(), r1.data(), r1.data() + r1.size());
         CHECK_EQ(*iter, q[0]);
@@ -140,7 +140,7 @@ TEST_SUITE("ObjQueue")
         CHECK_EQ(q[1], 2);
         CHECK_EQ(q[2], 3);
 
-        const auto r2 = std::vector{ 4, 4 };
+        const auto r2 = std::vector{4, 4};
         iter = q.insert(q.cbegin(), r2.data(), r2.data() + r2.size());
         CHECK_EQ(*iter, q[0]);
         CHECK_EQ(q[0], 4);
@@ -156,14 +156,14 @@ TEST_SUITE("ObjQueue")
     {
         auto q = ObjQueue();
 
-        const auto r1 = std::list{ 1, 2, 3 };
+        const auto r1 = std::list{1, 2, 3};
         auto iter = q.insert(q.cend(), r1.begin(), r1.end());
         CHECK_EQ(*iter, q[0]);
         CHECK_EQ(q[0], 1);
         CHECK_EQ(q[1], 2);
         CHECK_EQ(q[2], 3);
 
-        const auto r2 = std::list{ 4, 4 };
+        const auto r2 = std::list{4, 4};
         iter = q.insert(q.cbegin(), r2.begin(), r2.end());
         CHECK_EQ(*iter, q[0]);
         CHECK_EQ(q[0], 4);
@@ -177,7 +177,7 @@ TEST_SUITE("ObjQueue")
 
     TEST_CASE("erase")
     {
-        auto q = ObjQueue{ 3, 2, 1 };
+        auto q = ObjQueue{3, 2, 1};
         const auto iter = q.erase(q.cbegin() + 1);
         CHECK_EQ(*iter, 1);
         CHECK_EQ(q.size(), 2);
@@ -195,7 +195,7 @@ TEST_SUITE("ObjQueue")
     {
         CHECK_EQ(ObjQueue{}, ObjQueue{});
 
-        auto q1 = ObjQueue{ 1, 2, 3 };
+        auto q1 = ObjQueue{1, 2, 3};
 
         CHECK_EQ(q1, q1);
         CHECK_NE(q1, ObjQueue{});
@@ -208,7 +208,7 @@ TEST_SUITE("ObjQueue")
 
     TEST_CASE("contains")
     {
-        const auto q = ObjQueue{ 1, 9, 3 };
+        const auto q = ObjQueue{1, 9, 3};
         CHECK(q.contains(3));
         CHECK_FALSE(q.contains(0));
     }

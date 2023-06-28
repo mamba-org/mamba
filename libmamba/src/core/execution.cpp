@@ -8,7 +8,7 @@ namespace mamba
 
     void MainExecutor::invoke_close_handlers()
     {
-        std::scoped_lock lock{ handlers_mutex };
+        std::scoped_lock lock{handlers_mutex};
         for (auto&& handler : close_handlers)
         {
             const auto result = safe_invoke(handler);

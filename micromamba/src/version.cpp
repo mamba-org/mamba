@@ -16,6 +16,6 @@ namespace umamba
 
     std::array<int, 3> version_arr()
     {
-        return { UMAMBA_VERSION_MAJOR, UMAMBA_VERSION_MINOR, UMAMBA_VERSION_PATCH };
+        return {UMAMBA_VERSION_MAJOR, UMAMBA_VERSION_MINOR, UMAMBA_VERSION_PATCH};
     }
 }

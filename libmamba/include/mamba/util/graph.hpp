@@ -616,7 +616,7 @@ namespace mamba::util
 
             template <typename UnaryFuncU>
             PreorderVisitor(UnaryFuncU&& func)
-                : m_func{ std::forward<UnaryFuncU>(func) }
+                : m_func{std::forward<UnaryFuncU>(func)}
             {
             }
 
@@ -639,7 +639,7 @@ namespace mamba::util
 
             template <typename UnaryFuncU>
             PostorderVisitor(UnaryFuncU&& func)
-                : m_func{ std::forward<UnaryFuncU>(func) }
+                : m_func{std::forward<UnaryFuncU>(func)}
             {
             }
 
@@ -713,7 +713,7 @@ namespace mamba::util
             {
                 target_visited = target_visited || (node == target);
             }
-        } visitor{ {}, target };
+        } visitor{{}, target};
 
         dfs_raw(graph, visitor, source);
         return visitor.target_visited;
@@ -757,7 +757,7 @@ namespace mamba::util
     template <typename N, typename E>
     bool DiGraph<N, E>::remove_edge(node_id from, node_id to)
     {
-        m_edges.erase({ from, to });  // No-op if edge does not exists
+        m_edges.erase({from, to});  // No-op if edge does not exists
         return Base::remove_edge(from, to);
     }
 
@@ -767,11 +767,11 @@ namespace mamba::util
         // No-op if edge does not exists
         for (const auto& to : successors(id))
         {
-            m_edges.erase({ id, to });
+            m_edges.erase({id, to});
         }
         for (const auto& from : predecessors(id))
         {
-            m_edges.erase({ from, id });
+            m_edges.erase({from, id});
         }
         return Base::remove_node(id);
     }
@@ -791,7 +791,7 @@ namespace mamba::util
     template <typename N, typename E>
     auto DiGraph<N, E>::edge(node_id from, node_id to) const -> const edge_t&
     {
-        return edge({ from, to });
+        return edge({from, to});
     }
 
     template <typename N, typename E>
@@ -803,7 +803,7 @@ namespace mamba::util
     template <typename N, typename E>
     auto DiGraph<N, E>::edge(node_id from, node_id to) -> edge_t&
     {
-        return edge({ from, to });
+        return edge({from, to});
     }
 }
 #endif

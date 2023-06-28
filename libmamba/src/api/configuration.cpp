@@ -199,7 +199,7 @@ namespace mamba
     {
         if (names.empty())
         {
-            p_impl->m_env_var_names = { "MAMBA_" + to_upper(p_impl->m_name) };
+            p_impl->m_env_var_names = {"MAMBA_" + to_upper(p_impl->m_name)};
         }
         else
         {
@@ -826,7 +826,7 @@ namespace mamba
 
         std::vector<fs::u8path> fallback_envs_dirs_hook()
         {
-            return { Context::instance().prefix_params.root_prefix / "envs" };
+            return {Context::instance().prefix_params.root_prefix / "envs"};
         }
 
         void envs_dirs_hook(std::vector<fs::u8path>& dirs)
@@ -844,8 +844,9 @@ namespace mamba
 
         std::vector<fs::u8path> fallback_pkgs_dirs_hook()
         {
-            std::vector<fs::u8path> paths = { Context::instance().prefix_params.root_prefix / "pkgs",
-                                              env::home_directory() / ".mamba" / "pkgs" };
+            std::vector<fs::u8path> paths = {
+                Context::instance().prefix_params.root_prefix / "pkgs",
+                env::home_directory() / ".mamba" / "pkgs"};
 #ifdef _WIN32
             auto appdata = env::get("APPDATA");
             if (appdata)
@@ -888,7 +889,7 @@ namespace mamba
 
     fs::u8path get_conda_root_prefix()
     {
-        std::vector<std::string> args = { "conda", "config", "--show", "root_prefix", "--json" };
+        std::vector<std::string> args = {"conda", "config", "--show", "root_prefix", "--json"};
         std::string out, err;
         auto [status, ec] = reproc::run(
             args,
@@ -1059,7 +1060,7 @@ namespace mamba
             Configurable("root_prefix", &ctx.prefix_params.root_prefix)
                 .group("Basic")
                 .set_env_var_names()
-                .needs({ "create_base", "rc_files" })
+                .needs({"create_base", "rc_files"})
                 .description("Path to the root prefix")
                 .set_post_merge_hook<fs::u8path>([&](fs::u8path& value)
                                                  { return detail::root_prefix_hook(*this, value); })
@@ -1071,26 +1072,24 @@ namespace mamba
                    .set_single_op_lifetime()
                    .description("Define if base environment will be initialized empty"));
 
-        insert(Configurable("target_prefix", &ctx.prefix_params.target_prefix)
-                   .group("Basic")
-                   .set_env_var_names()
-                   .needs({ "root_prefix",
-                            "envs_dirs",
-                            "env_name",
-                            "spec_file_env_name",
-                            "use_target_prefix_fallback" })
-                   .set_single_op_lifetime()
-                   .description("Path to the target prefix")
-                   .set_post_merge_hook<fs::u8path>(
-                       [this](fs::u8path& value) { return detail::target_prefix_hook(*this, value); }
-                   )
-                   .set_post_context_hook([this]
-                                          { return detail::post_target_prefix_rc_loading(*this); }));
+        insert(
+            Configurable("target_prefix", &ctx.prefix_params.target_prefix)
+                .group("Basic")
+                .set_env_var_names()
+                .needs({"root_prefix", "envs_dirs", "env_name", "spec_file_env_name", "use_target_prefix_fallback"}
+                )
+                .set_single_op_lifetime()
+                .description("Path to the target prefix")
+                .set_post_merge_hook<fs::u8path>([this](fs::u8path& value)
+                                                 { return detail::target_prefix_hook(*this, value); })
+                .set_post_context_hook([this]
+                                       { return detail::post_target_prefix_rc_loading(*this); })
+        );
 
         insert(Configurable("relocate_prefix", &ctx.prefix_params.relocate_prefix)
                    .group("Basic")
                    .set_env_var_names()
-                   .needs({ "target_prefix" })
+                   .needs({"target_prefix"})
                    .set_single_op_lifetime()
                    .description("Path to the relocation prefix"));
 
@@ -1101,14 +1100,14 @@ namespace mamba
 
         insert(Configurable("target_prefix_checks", MAMBA_NO_PREFIX_CHECK)
                    .group("Basic")
-                   .needs({ "target_prefix", "rc_files" })
+                   .needs({"target_prefix", "rc_files"})
                    .description("The type of checks performed on the target prefix")
                    .set_single_op_lifetime()
                    .set_post_merge_hook(detail::target_prefix_checks_hook));
 
         insert(Configurable("env_name", std::string(""))
                    .group("Basic")
-                   .needs({ "root_prefix", "spec_file_env_name", "envs_dirs" })
+                   .needs({"root_prefix", "spec_file_env_name", "envs_dirs"})
                    .set_single_op_lifetime()
                    .set_post_merge_hook<std::string>([&](std::string& value)
                                                      { return detail::env_name_hook(*this, value); })
@@ -1117,8 +1116,8 @@ namespace mamba
         insert(Configurable("envs_dirs", &ctx.envs_dirs)
                    .group("Basic")
                    .set_rc_configurable(RCConfigLevel::kHomeDir)
-                   .set_env_var_names({ "CONDA_ENVS_DIRS" })
-                   .needs({ "root_prefix" })
+                   .set_env_var_names({"CONDA_ENVS_DIRS"})
+                   .needs({"root_prefix"})
                    .set_fallback_value_hook(detail::fallback_envs_dirs_hook)
                    .set_post_merge_hook(detail::envs_dirs_hook)
                    .description("Possible locations of named environments"));
@@ -1126,8 +1125,8 @@ namespace mamba
         insert(Configurable("pkgs_dirs", &ctx.pkgs_dirs)
                    .group("Basic")
                    .set_rc_configurable()
-                   .set_env_var_names({ "CONDA_PKGS_DIRS" })
-                   .needs({ "root_prefix" })
+                   .set_env_var_names({"CONDA_PKGS_DIRS"})
+                   .needs({"root_prefix"})
                    .set_fallback_value_hook(detail::fallback_pkgs_dirs_hook)
                    .set_post_merge_hook(detail::pkgs_dirs_hook)
                    .description("Possible locations of packages caches"));
@@ -1135,7 +1134,7 @@ namespace mamba
         insert(Configurable("platform", &ctx.platform)
                    .group("Basic")
                    .set_rc_configurable()
-                   .set_env_var_names({ "CONDA_SUBDIR", "MAMBA_PLATFORM" })
+                   .set_env_var_names({"CONDA_SUBDIR", "MAMBA_PLATFORM"})
                    .description("The platform description")
                    .long_description(unindent(R"(
                         The plaftorm description points what channels
@@ -1144,14 +1143,14 @@ namespace mamba
 
         insert(Configurable("spec_file_env_name", std::string(""))
                    .group("Basic")
-                   .needs({ "file_specs", "root_prefix" })
+                   .needs({"file_specs", "root_prefix"})
                    .set_single_op_lifetime()
                    .set_post_merge_hook(detail::file_spec_env_name_hook)
                    .description("Name of the target prefix, specified in a YAML spec file"));
 
         insert(Configurable("specs", std::vector<std::string>({}))
                    .group("Basic")
-                   .needs({ "file_specs" })  // explicit file specs overwrite current specs
+                   .needs({"file_specs"})  // explicit file specs overwrite current specs
                    .set_single_op_lifetime()
                    .description("Packages specification"));
 
@@ -1185,9 +1184,9 @@ namespace mamba
         insert(Configurable("channels", &ctx.channels)
                    .group("Channels")
                    .set_rc_configurable()
-                   .set_env_var_names({ "CONDA_CHANNELS" })
+                   .set_env_var_names({"CONDA_CHANNELS"})
                    .description("Define the list of channels")
-                   .needs({ "file_specs" })
+                   .needs({"file_specs"})
                    .long_description(unindent(R"(
                         The list of channels where the packages will be searched for.
                         See also 'channel_priority'.)"))
@@ -1286,7 +1285,7 @@ namespace mamba
                         'ssl_verify' can be either an empty string (regular SSL verification),
                         the string "<false>" to indicate no SSL verification, or a path to
                         a directory with cert files, or a cert file..)"))
-                   .needs({ "cacert_path", "offline" })
+                   .needs({"cacert_path", "offline"})
                    .set_post_merge_hook<decltype(ctx.remote_fetch_params.ssl_verify)>(
                        [this](auto&... args) { return detail::ssl_verify_hook(*this, args...); }
                    ));
@@ -1396,7 +1395,7 @@ namespace mamba
             Configurable("only_deps", false).group("Solver").description("Only install dependencies")
         );
 
-        insert(Configurable("categories", std::vector<std::string>({ "main" }))
+        insert(Configurable("categories", std::vector<std::string>({"main"}))
                    .group("Solver")
                    .description("Package categories to consider when installing from a lock file"));
 
@@ -1464,7 +1463,7 @@ namespace mamba
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
-                   .needs({ "always_copy" })
+                   .needs({"always_copy"})
                    .set_post_merge_hook<decltype(ctx.always_softlink)>(
                        [&](decltype(ctx.always_softlink)& value)
                        { return detail::always_softlink_hook(*this, value); }
@@ -1488,7 +1487,7 @@ namespace mamba
         insert(Configurable("safety_checks", &ctx.safety_checks)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
-                   .set_env_var_names({ "CONDA_SAFETY_CHECKS", "MAMBA_SAFETY_CHECKS" })
+                   .set_env_var_names({"CONDA_SAFETY_CHECKS", "MAMBA_SAFETY_CHECKS"})
                    .description("Safety checks policy ('enabled', 'warn', or 'disabled')")
                    .long_description(unindent(R"(
                         Enforce available safety guarantees during package installation. The
@@ -1497,7 +1496,7 @@ namespace mamba
         insert(Configurable("extra_safety_checks", &ctx.extra_safety_checks)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
-                   .set_env_var_names({ "CONDA_EXTRA_SAFETY_CHECKS", "MAMBA_EXTRA_SAFETY_CHECKS" })
+                   .set_env_var_names({"CONDA_EXTRA_SAFETY_CHECKS", "MAMBA_EXTRA_SAFETY_CHECKS"})
                    .description("Run extra verifications on packages")
                    .long_description(unindent(R"(
                         Spend extra time validating package contents. Currently, runs sha256
@@ -1569,7 +1568,7 @@ namespace mamba
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
-                   .needs({ "json", "verbose" })
+                   .needs({"json", "verbose"})
                    .description("Set the log level")
                    .set_fallback_value_hook<mamba::log_level>(
                        [this] { return detail::log_level_fallback_hook(*this); }
@@ -1599,7 +1598,7 @@ namespace mamba
         insert(Configurable("json", &ctx.output_params.json)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
-                   .needs({ "print_config_only", "print_context_only" })
+                   .needs({"print_config_only", "print_context_only"})
                    .set_env_var_names()
                    .description("Report all output as json"));
 
@@ -1633,7 +1632,7 @@ namespace mamba
 
         insert(Configurable("print_config_only", false)
                    .group("Output, Prompt and Flow Control")
-                   .needs({ "debug" })
+                   .needs({"debug"})
                    .set_post_merge_hook<bool>(
                        [&](bool& value) { return detail::print_config_only_hook(*this, value); }
                    )
@@ -1641,7 +1640,7 @@ namespace mamba
 
         insert(Configurable("print_context_only", false)
                    .group("Output, Prompt and Flow Control")
-                   .needs({ "debug" })
+                   .needs({"debug"})
                    .set_post_merge_hook<bool>(
                        [&](bool& value) { return detail::print_context_only_hook(*this, value); }
                    )
@@ -1679,7 +1678,7 @@ namespace mamba
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
-                   .needs({ "json", "print_config_only", "print_context_only" })
+                   .needs({"json", "print_config_only", "print_context_only"})
                    .description("Set quiet mode (print less output)"));
 
         insert(Configurable("verbose", 0)
@@ -1696,8 +1695,8 @@ namespace mamba
         // Config
         insert(Configurable("rc_files", std::vector<fs::u8path>({}))
                    .group("Config sources")
-                   .set_env_var_names({ "MAMBARC", "CONDARC" })
-                   .needs({ "no_rc" })
+                   .set_env_var_names({"MAMBARC", "CONDARC"})
+                   .needs({"no_rc"})
                    .set_post_merge_hook(detail::rc_files_hook)
                    .description("Paths to the configuration files to use"));
 
@@ -1745,7 +1744,7 @@ namespace mamba
 
         for (auto& g : group_order)
         {
-            res.push_back({ g, map.at(g) });
+            res.push_back({g, map.at(g)});
         }
 
         return res;
@@ -1758,34 +1757,43 @@ namespace mamba
         std::vector<fs::u8path> system;
         if constexpr (on_mac || on_linux)
         {
-            system = { "/etc/conda/.condarc",       "/etc/conda/condarc",
-                       "/etc/conda/condarc.d/",     "/etc/conda/.mambarc",
-                       "/var/lib/conda/.condarc",   "/var/lib/conda/condarc",
-                       "/var/lib/conda/condarc.d/", "/var/lib/conda/.mambarc" };
+            system = {
+                "/etc/conda/.condarc",
+                "/etc/conda/condarc",
+                "/etc/conda/condarc.d/",
+                "/etc/conda/.mambarc",
+                "/var/lib/conda/.condarc",
+                "/var/lib/conda/condarc",
+                "/var/lib/conda/condarc.d/",
+                "/var/lib/conda/.mambarc"};
         }
         else
         {
-            system = { "C:\\ProgramData\\conda\\.condarc",
-                       "C:\\ProgramData\\conda\\condarc",
-                       "C:\\ProgramData\\conda\\condarc.d",
-                       "C:\\ProgramData\\conda\\.mambarc" };
+            system = {
+                "C:\\ProgramData\\conda\\.condarc",
+                "C:\\ProgramData\\conda\\condarc",
+                "C:\\ProgramData\\conda\\condarc.d",
+                "C:\\ProgramData\\conda\\.mambarc"};
         }
 
-        std::vector<fs::u8path> root = { ctx.prefix_params.root_prefix / ".condarc",
-                                         ctx.prefix_params.root_prefix / "condarc",
-                                         ctx.prefix_params.root_prefix / "condarc.d",
-                                         ctx.prefix_params.root_prefix / ".mambarc" };
+        std::vector<fs::u8path> root = {
+            ctx.prefix_params.root_prefix / ".condarc",
+            ctx.prefix_params.root_prefix / "condarc",
+            ctx.prefix_params.root_prefix / "condarc.d",
+            ctx.prefix_params.root_prefix / ".mambarc"};
 
-        std::vector<fs::u8path> home = { env::home_directory() / ".conda/.condarc",
-                                         env::home_directory() / ".conda/condarc",
-                                         env::home_directory() / ".conda/condarc.d",
-                                         env::home_directory() / ".condarc",
-                                         env::home_directory() / ".mambarc" };
+        std::vector<fs::u8path> home = {
+            env::home_directory() / ".conda/.condarc",
+            env::home_directory() / ".conda/condarc",
+            env::home_directory() / ".conda/condarc.d",
+            env::home_directory() / ".condarc",
+            env::home_directory() / ".mambarc"};
 
-        std::vector<fs::u8path> prefix = { ctx.prefix_params.target_prefix / ".condarc",
-                                           ctx.prefix_params.target_prefix / "condarc",
-                                           ctx.prefix_params.target_prefix / "condarc.d",
-                                           ctx.prefix_params.target_prefix / ".mambarc" };
+        std::vector<fs::u8path> prefix = {
+            ctx.prefix_params.target_prefix / ".condarc",
+            ctx.prefix_params.target_prefix / "condarc",
+            ctx.prefix_params.target_prefix / "condarc.d",
+            ctx.prefix_params.target_prefix / ".mambarc"};
 
         std::vector<fs::u8path> sources;
 
@@ -2064,7 +2072,7 @@ namespace mamba
                     continue;
                 }
 
-                m_rc_yaml_nodes_cache.insert({ s, node });
+                m_rc_yaml_nodes_cache.insert({s, node});
             }
             m_valid_sources.push_back(s);
         }

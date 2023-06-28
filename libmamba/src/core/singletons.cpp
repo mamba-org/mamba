@@ -104,7 +104,7 @@ namespace mamba
     //--- Concurrency resources / thread-handling
     //------------------------------------------------------------------
 
-    static std::atomic<MainExecutor*> main_executor{ nullptr };
+    static std::atomic<MainExecutor*> main_executor{nullptr};
 
     static std::unique_ptr<MainExecutor> default_executor;
     static std::mutex default_executor_mutex;  // TODO: replace by sychronized_value once available
@@ -114,7 +114,7 @@ namespace mamba
         if (!main_executor)
         {
             // When no MainExecutor was created before we create a static one.
-            std::scoped_lock lock{ default_executor_mutex };
+            std::scoped_lock lock{default_executor_mutex};
             if (!main_executor)  // double check necessary to avoid data race
             {
                 default_executor = std::make_unique<MainExecutor>();
@@ -127,7 +127,7 @@ namespace mamba
 
     void MainExecutor::stop_default()
     {
-        std::scoped_lock lock{ default_executor_mutex };
+        std::scoped_lock lock{default_executor_mutex};
         default_executor.reset();
     }
 

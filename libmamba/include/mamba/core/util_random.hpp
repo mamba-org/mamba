@@ -27,7 +27,7 @@ namespace mamba
         auto dev = std::random_device{};
         std::generate_n(begin(seed), seed_len, std::ref(dev));
         auto seed_seq = std::seed_seq(begin(seed), end(seed));
-        return T{ seed_seq };
+        return T{seed_seq};
     }
 
     template <typename T = std::mt19937>
@@ -40,7 +40,7 @@ namespace mamba
     template <typename T = int, typename G = std::mt19937>
     inline T random_int(T min, T max, G& generator = local_random_generator())
     {
-        return std::uniform_int_distribution<T>{ min, max }(generator);
+        return std::uniform_int_distribution<T>{min, max}(generator);
     }
 
     inline std::string generate_random_alphanumeric_string(std::size_t len)
@@ -50,7 +50,7 @@ namespace mamba
                                       "abcdefghijklmnopqrstuvwxyz";
         auto& rng = local_random_generator<std::mt19937>();
 
-        auto dist = std::uniform_int_distribution{ {}, std::strlen(chars) - 1 };
+        auto dist = std::uniform_int_distribution{{}, std::strlen(chars) - 1};
         auto result = std::string(len, '\0');
         std::generate_n(begin(result), len, [&]() { return chars[dist(rng)]; });
         return result;

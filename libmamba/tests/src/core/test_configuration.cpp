@@ -60,7 +60,7 @@ namespace mamba
                 out_file.close();
 
                 config.reset_configurables();
-                config.at("rc_files").set_value<std::vector<fs::u8path>>({ unique_location });
+                config.at("rc_files").set_value<std::vector<fs::u8path>>({unique_location});
                 config.load();
             }
 
@@ -169,7 +169,7 @@ namespace mamba
                         - test2
                         - test1)");
 
-                std::vector<std::string> rcs = { rc1, rc2 };
+                std::vector<std::string> rcs = {rc1, rc2};
                 load_test_config(rcs);
 
                 REQUIRE_EQ(config.sources().size(), 2);
@@ -286,7 +286,7 @@ namespace mamba
                         - test10
                     override_channels_enabled: false)");
 
-                load_test_config({ rc1, rc2 });
+                load_test_config({rc1, rc2});
 
                 REQUIRE_EQ(config.sources().size(), 2);
                 REQUIRE_EQ(config.valid_sources().size(), 2);
@@ -337,7 +337,7 @@ namespace mamba
                         - c11
                         - c32
                         - c21)");
-                load_test_config({ rc1, rc2, rc3 });
+                load_test_config({rc1, rc2, rc3});
 
                 CHECK_EQ(config.dump(), unindent(R"(
                                     channels:
@@ -408,7 +408,7 @@ namespace mamba
                       - c11
                       - c32
                       - c21)");
-                load_test_config({ rc1, rc2, rc3 });
+                load_test_config({rc1, rc2, rc3});
 
                 CHECK_EQ(config.dump(), unindent(R"(
                             default_channels:
@@ -474,10 +474,10 @@ namespace mamba
                 std::string rc1 = "channel_alias: http://repo.mamba.pm/";
                 std::string rc2 = "channel_alias: https://conda.anaconda.org/";
 
-                load_test_config({ rc1, rc2 });
+                load_test_config({rc1, rc2});
                 CHECK_EQ(config.dump(), "channel_alias: http://repo.mamba.pm/");
 
-                load_test_config({ rc2, rc1 });
+                load_test_config({rc2, rc1});
                 CHECK_EQ(config.dump(), "channel_alias: https://conda.anaconda.org/");
 
                 env::set("MAMBA_CHANNEL_ALIAS", "https://foo.bar");
@@ -512,10 +512,10 @@ namespace mamba
                 std::string rc1 = "pkgs_dirs:\n  - " + cache1;
                 std::string rc2 = "pkgs_dirs:\n  - " + cache2;
 
-                load_test_config({ rc1, rc2 });
+                load_test_config({rc1, rc2});
                 CHECK_EQ(config.dump(), "pkgs_dirs:\n  - " + cache1 + "\n  - " + cache2);
 
-                load_test_config({ rc2, rc1 });
+                load_test_config({rc2, rc1});
                 CHECK_EQ(config.dump(), "pkgs_dirs:\n  - " + cache2 + "\n  - " + cache1);
 
                 std::string cache3 = (env::home_directory() / "baz").string();
@@ -557,7 +557,7 @@ namespace mamba
                 CHECK_EQ(
                     config.dump(
                         MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS | MAMBA_SHOW_ALL_CONFIGS,
-                        { "pkgs_dirs" }
+                        {"pkgs_dirs"}
                     ),
                     unindent((R"(
                                     pkgs_dirs:
@@ -629,11 +629,11 @@ namespace mamba
 
                 std::string rc1 = "ssl_verify: true";
                 std::string rc2 = "ssl_verify: false";
-                load_test_config({ rc1, rc2 });
+                load_test_config({rc1, rc2});
                 CHECK_EQ(config.at("ssl_verify").value<std::string>(), "<system>");
                 CHECK_EQ(ctx.remote_fetch_params.ssl_verify, "<system>");
 
-                load_test_config({ rc2, rc1 });
+                load_test_config({rc2, rc1});
                 CHECK_EQ(config.at("ssl_verify").value<std::string>(), "<false>");
                 CHECK_EQ(ctx.remote_fetch_params.ssl_verify, "<false>");
 
@@ -721,8 +721,7 @@ namespace mamba
                         https: bar)");
                 load_test_config(rc);
                 auto& actual = config.at("proxy_servers").value<std::map<std::string, std::string>>();
-                std::map<std::string, std::string> expected = { { "http", "foo" },
-                                                                { "https", "bar" } };
+                std::map<std::string, std::string> expected = {{"http", "foo"}, {"https", "bar"}};
                 CHECK_EQ(actual, expected);
                 CHECK_EQ(ctx.proxy_servers, expected);
 
@@ -772,11 +771,11 @@ namespace mamba
         std::string rc2 = std::string(#NAME) + ": false";                                           \
         if (config.at(#NAME).rc_configurable())                                                     \
         {                                                                                           \
-            load_test_config({ rc1, rc2 });                                                         \
+            load_test_config({rc1, rc2});                                                           \
             CHECK(config.at(#NAME).value<bool>());                                                  \
             CHECK(CTX);                                                                             \
                                                                                                     \
-            load_test_config({ rc2, rc1 });                                                         \
+            load_test_config({rc2, rc1});                                                           \
             CHECK_FALSE(config.at(#NAME).value<bool>());                                            \
             CHECK_FALSE(CTX);                                                                       \
         }                                                                                           \
@@ -799,7 +798,7 @@ namespace mamba
             expected = std::string(#NAME) + ": true  # '" + env_name + "'";                         \
         }                                                                                           \
         int dump_opts = MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS;                          \
-        CHECK_EQ((config.dump(dump_opts, { #NAME })), expected);                                    \
+        CHECK_EQ((config.dump(dump_opts, {#NAME})), expected);                                      \
         CHECK(config.at(#NAME).value<bool>());                                                      \
         CHECK(CTX);                                                                                 \
                                                                                                     \
@@ -812,7 +811,7 @@ namespace mamba
             expected = std::string(#NAME) + ": true  # 'API' > '" + env_name + "'";                 \
         }                                                                                           \
         config.at(#NAME).set_yaml_value("true").compute();                                          \
-        CHECK_EQ((config.dump(dump_opts, { #NAME })), expected);                                    \
+        CHECK_EQ((config.dump(dump_opts, {#NAME})), expected);                                      \
         CHECK(config.at(#NAME).value<bool>());                                                      \
         CHECK(CTX);                                                                                 \
                                                                                                     \
@@ -835,21 +834,21 @@ namespace mamba
                 std::string rc2 = "channel_priority: strict";
                 std::string rc3 = "channel_priority: disabled";
 
-                load_test_config({ rc1, rc2, rc3 });
+                load_test_config({rc1, rc2, rc3});
                 CHECK_EQ(
                     config.at("channel_priority").value<ChannelPriority>(),
                     ChannelPriority::kFlexible
                 );
                 CHECK(ctx.channel_priority == ChannelPriority::kFlexible);
 
-                load_test_config({ rc3, rc1, rc2 });
+                load_test_config({rc3, rc1, rc2});
                 CHECK_EQ(
                     config.at("channel_priority").value<ChannelPriority>(),
                     ChannelPriority::kDisabled
                 );
                 CHECK(ctx.channel_priority == ChannelPriority::kDisabled);
 
-                load_test_config({ rc2, rc1, rc3 });
+                load_test_config({rc2, rc1, rc3});
                 CHECK_EQ(
                     config.at("channel_priority").value<ChannelPriority>(),
                     ChannelPriority::kStrict
@@ -906,7 +905,7 @@ namespace mamba
                         - bokeh
                         - matplotlib)");
 
-                load_test_config({ rc1, rc2, rc3 });
+                load_test_config({rc1, rc2, rc3});
                 CHECK_EQ(config.dump(), unindent(R"(
                                             pinned_packages:
                                               - jupyterlab=3
@@ -915,10 +914,10 @@ namespace mamba
                                               - bokeh)"));
                 CHECK_EQ(
                     ctx.pinned_packages,
-                    std::vector<std::string>({ "jupyterlab=3", "numpy=1.19", "matplotlib", "bokeh" })
+                    std::vector<std::string>({"jupyterlab=3", "numpy=1.19", "matplotlib", "bokeh"})
                 );
 
-                load_test_config({ rc2, rc1, rc3 });
+                load_test_config({rc2, rc1, rc3});
                 REQUIRE(config.at("pinned_packages").yaml_value());
                 CHECK_EQ(config.dump(), unindent(R"(
                                             pinned_packages:
@@ -928,7 +927,7 @@ namespace mamba
                                               - bokeh)"));
                 CHECK_EQ(
                     ctx.pinned_packages,
-                    std::vector<std::string>({ "matplotlib", "numpy=1.19", "jupyterlab=3", "bokeh" })
+                    std::vector<std::string>({"matplotlib", "numpy=1.19", "jupyterlab=3", "bokeh"})
                 );
 
                 env::set("MAMBA_PINNED_PACKAGES", "mpl=10.2,xtensor");
@@ -951,7 +950,7 @@ namespace mamba
                 );
                 CHECK_EQ(
                     ctx.pinned_packages,
-                    std::vector<std::string>({ "mpl=10.2", "xtensor", "jupyterlab=3", "numpy=1.19" })
+                    std::vector<std::string>({"mpl=10.2", "xtensor", "jupyterlab=3", "numpy=1.19"})
                 );
 
                 config.at("pinned_packages").set_yaml_value("pytest").compute();
@@ -971,7 +970,7 @@ namespace mamba
                 CHECK_EQ(
                     ctx.pinned_packages,
                     std::vector<std::string>(
-                        { "pytest", "mpl=10.2", "xtensor", "jupyterlab=3", "numpy=1.19" }
+                        {"pytest", "mpl=10.2", "xtensor", "jupyterlab=3", "numpy=1.19"}
                     )
                 );
 
@@ -1008,18 +1007,18 @@ namespace mamba
                 std::string rc2 = "safety_checks: warn";
                 std::string rc3 = "safety_checks: disabled";
 
-                load_test_config({ rc1, rc2, rc3 });
+                load_test_config({rc1, rc2, rc3});
                 CHECK_EQ(
                     config.at("safety_checks").value<VerificationLevel>(),
                     VerificationLevel::kEnabled
                 );
                 CHECK_EQ(ctx.safety_checks, VerificationLevel::kEnabled);
 
-                load_test_config({ rc2, rc1, rc3 });
+                load_test_config({rc2, rc1, rc3});
                 CHECK_EQ(config.at("safety_checks").value<VerificationLevel>(), VerificationLevel::kWarn);
                 CHECK_EQ(ctx.safety_checks, VerificationLevel::kWarn);
 
-                load_test_config({ rc3, rc1, rc3 });
+                load_test_config({rc3, rc1, rc3});
                 CHECK_EQ(
                     config.at("safety_checks").value<VerificationLevel>(),
                     VerificationLevel::kDisabled

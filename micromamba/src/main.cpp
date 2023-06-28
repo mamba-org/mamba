@@ -41,7 +41,7 @@ main(int argc, char** argv)
 
     ctx.command_params.is_micromamba = true;
 
-    CLI::App app{ "Version: " + version() + "\n" };
+    CLI::App app{"Version: " + version() + "\n"};
     set_umamba_command(&app, config);
 
     char** utf8argv;

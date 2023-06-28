@@ -176,16 +176,16 @@ set_env_command(CLI::App* com, Configuration& config)
             }
 
             // format and print table
-            printers::Table t({ "Name", "Active", "Path" });
+            printers::Table t({"Name", "Active", "Path"});
             t.set_alignment(
-                { printers::alignment::left, printers::alignment::left, printers::alignment::left }
+                {printers::alignment::left, printers::alignment::left, printers::alignment::left}
             );
-            t.set_padding({ 2, 2, 2 });
+            t.set_padding({2, 2, 2});
 
             for (auto& env : env_manager.list_all_known_prefixes())
             {
                 bool is_active = (env == ctx.prefix_params.target_prefix);
-                t.add_row({ get_env_name(env), is_active ? "*" : "", env.string() });
+                t.add_row({get_env_name(env), is_active ? "*" : "", env.string()});
             }
             t.print(std::cout);
         }
@@ -216,9 +216,9 @@ set_env_command(CLI::App* com, Configuration& config)
 
                 Console::instance().print(join(
                     "",
-                    std::vector<std::string>({ "Environment removed at prefix: ", prefix.string() })
+                    std::vector<std::string>({"Environment removed at prefix: ", prefix.string()})
                 ));
-                Console::instance().json_write({ { "success", true } });
+                Console::instance().json_write({{"success", true}});
             }
             else
             {

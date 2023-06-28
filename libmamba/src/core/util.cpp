@@ -981,7 +981,7 @@ namespace mamba
                 }
 
                 const auto absolute_file_path = fs::absolute(file_path);
-                std::scoped_lock lock{ mutex };
+                std::scoped_lock lock{mutex};
 
                 const auto it = locked_files.find(absolute_file_path);
                 if (it != locked_files.end())
@@ -998,7 +998,7 @@ namespace mamba
                     [&]
                     {
                         auto lockedfile = std::make_shared<LockFileOwner>(absolute_file_path, timeout);
-                        auto tracker = std::weak_ptr{ lockedfile };
+                        auto tracker = std::weak_ptr{lockedfile};
                         locked_files.insert_or_assign(absolute_file_path, std::move(tracker));
                         fd_to_locked_path.insert_or_assign(lockedfile->fd(), absolute_file_path);
                         assert(is_lockfile_locked(*lockedfile));
@@ -1011,7 +1011,7 @@ namespace mamba
             bool is_locked(const fs::u8path& file_path) const
             {
                 const auto absolute_file_path = fs::absolute(file_path);
-                std::scoped_lock lock{ mutex };
+                std::scoped_lock lock{mutex};
                 auto it = locked_files.find(file_path);
                 if (it != locked_files.end())
                 {
@@ -1026,7 +1026,7 @@ namespace mamba
             // note: the resulting value will be obsolete before returning.
             bool is_locked(int fd) const
             {
-                std::scoped_lock lock{ mutex };
+                std::scoped_lock lock{mutex};
                 const auto it = fd_to_locked_path.find(fd);
                 if (it != fd_to_locked_path.end())
                 {
@@ -1040,7 +1040,7 @@ namespace mamba
 
         private:
 
-            std::atomic_bool m_is_file_locking_allowed{ true };
+            std::atomic_bool m_is_file_locking_allowed{true};
 
             // TODO: replace by something like boost::multiindex or equivalent to avoid having to
             // handle 2 hashmaps
@@ -1091,7 +1091,7 @@ namespace mamba
     LockFile& LockFile::operator=(LockFile&&) = default;
 
     LockFile::LockFile(const fs::u8path& path, const std::chrono::seconds& timeout)
-        : impl{ files_locked_by_this_process.acquire_lock(path, timeout) }
+        : impl{files_locked_by_this_process.acquire_lock(path, timeout)}
     {
     }
 
@@ -1129,8 +1129,9 @@ namespace mamba
             }
 
             // In other cases, something is wrong.
-            throw mamba_error{ fmt::format("failed to check if path is locked : '{}'", path.string()),
-                               mamba_error_code::lockfile_failure };
+            throw mamba_error{
+                fmt::format("failed to check if path is locked : '{}'", path.string()),
+                mamba_error_code::lockfile_failure};
         }
         _lseek(fd, MAMBA_LOCK_POS, SEEK_SET);
         char buffer[1];
@@ -1468,7 +1469,7 @@ namespace mamba
                 cmd
             );
 
-            command_args = { comspec.value(), "/D", "/C", script_file->path().string() };
+            command_args = {comspec.value(), "/D", "/C", script_file->path().string()};
         }
         else
         {
@@ -1562,7 +1563,7 @@ namespace mamba
         }
         else
         {
-            options = { scheme + "://" + host, scheme, "all://" + host, "all" };
+            options = {scheme + "://" + host, scheme, "all://" + host, "all"};
         }
 
         for (auto& option : options)

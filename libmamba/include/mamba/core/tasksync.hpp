@@ -71,7 +71,7 @@ namespace mamba
     {
         auto make_remote_status()
         {
-            return std::weak_ptr<Status>{ m_status };
+            return std::weak_ptr<Status>{m_status};
         }
 
     public:
@@ -119,12 +119,12 @@ namespace mamba
                                                         // requested.
                 {                                       // We can use 'this' safely in this scope.
                     notify_begin_execution();
-                    on_scope_exit _{ [&, this]
-                                     {
-                                         status.reset();  // Make sure we are not keeping the
-                                                          // TaskSynchronizer waiting
-                                         notify_end_execution();
-                                     } };
+                    on_scope_exit _{[&, this]
+                                    {
+                                        status.reset();  // Make sure we are not keeping the
+                                                         // TaskSynchronizer waiting
+                                        notify_end_execution();
+                                    }};
                     std::invoke(new_work, std::forward<decltype(args)>(args)...);
                 }
             };
@@ -178,10 +178,10 @@ namespace mamba
 
         struct Status
         {
-            std::atomic<bool> join_requested{ false };
+            std::atomic<bool> join_requested{false};
         };
 
-        std::atomic<int64_t> m_running_tasks{ 0 };
+        std::atomic<int64_t> m_running_tasks{0};
 
         std::shared_ptr<Status> m_status = std::make_shared<Status>();
 
@@ -196,7 +196,7 @@ namespace mamba
         void notify_end_execution()
         {
             {
-                std::unique_lock exit_lock{ m_mutex };
+                std::unique_lock exit_lock{m_mutex};
                 --m_running_tasks;
             }
             m_task_end_condition.notify_one();
@@ -209,7 +209,7 @@ namespace mamba
                 return;
             }
 
-            std::unique_lock exit_lock{ m_mutex };
+            std::unique_lock exit_lock{m_mutex};
 
             auto remote_status = make_remote_status();
             m_status->join_requested = true;

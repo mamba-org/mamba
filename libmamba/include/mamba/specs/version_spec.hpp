@@ -91,8 +91,8 @@ namespace mamba::specs
         struct Bounded
         {
             Version lower;
-            Bound ltype;
             Version upper;
+            Bound ltype;
             Bound utype;
         };
 

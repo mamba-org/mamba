@@ -74,7 +74,7 @@ namespace mamba::specs
     {
         if (lb < ub)
         {
-            return VersionInterval(Bounded{ std::move(lb), ltype, std::move(ub), utype });
+            return VersionInterval(Bounded{ std::move(lb), std::move(ub), ltype, utype });
         }
         if ((ltype == Bound::Closed) && (utype == Bound::Closed) && (lb == ub))
         {

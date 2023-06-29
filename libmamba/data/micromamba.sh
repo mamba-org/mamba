@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 __mamba_exe() (
-    "${MAMBA_EXE}" "${@}"
+    "$MAMBA_EXE" "${@}"
 )
 
 __mamba_hashr() {
@@ -36,8 +36,8 @@ micromamba() {
             __mamba_exe "${@}" || \return
 
             # remove leftover backup file on Windows
-            if [ -f "${MAMBA_EXE}.bkup" ]; then
-                rm -f "${MAMBA_EXE}.bkup"
+            if [ -f "$MAMBA_EXE.bkup" ]; then
+                rm -f "$MAMBA_EXE.bkup"
             fi
             ;;
         *)

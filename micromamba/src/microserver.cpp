@@ -207,19 +207,19 @@ namespace microserver
 
     void Server::get(std::string path, callback_function_t callback)
     {
-        Route r = {path, "GET", callback, ""};
+        Route r = { path, "GET", callback, "" };
         m_routes.push_back(r);
     }
 
     void Server::post(std::string path, callback_function_t callback)
     {
-        Route r = {path, "POST", callback, ""};
+        Route r = { path, "POST", callback, "" };
         m_routes.push_back(r);
     }
 
     void Server::all(std::string path, callback_function_t callback)
     {
-        Route r = {path, "ALL", callback, ""};
+        Route r = { path, "ALL", callback, "" };
         m_routes.push_back(r);
     }
 

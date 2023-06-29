@@ -88,9 +88,11 @@ namespace mamba
 
         if (!solvable.has_value() || solvable->channel().empty())
         {
-            throw std::runtime_error(
-                fmt::format(R"(Could not find any installed package matching "")", ms.str())
-            );
+            // We are not reinstalling but simply installing.
+            // Right now, using `--force-reinstall` will send all specs (whether they have
+            // been previously installed or not) down this path, so we need to handle specs
+            // that are not installed.
+            return m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, m_pool.matchspec2id(ms));
         }
 
         if (!ms.channel.empty() || !ms.version.empty() || !ms.build_string.empty())
@@ -121,7 +123,7 @@ namespace mamba
     {
         for (const auto& job : jobs)
         {
-            MatchSpec ms{job, m_pool.channel_context()};
+            MatchSpec ms{ job, m_pool.channel_context() };
             int job_type = job_flag & SOLVER_JOBMASK;
 
             if (job_type & SOLVER_INSTALL)
@@ -167,7 +169,7 @@ namespace mamba
     {
         m_jobs->push_back(
             SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
-            m_pool.matchspec2id({job, m_pool.channel_context()})
+            m_pool.matchspec2id({ job, m_pool.channel_context() })
         );
     }
 
@@ -199,7 +201,7 @@ namespace mamba
         // as one of its constrains.
         // Then we lock this solvable and force the re-checking of its dependencies.
 
-        const auto pin_ms = MatchSpec{pin, m_pool.channel_context()};
+        const auto pin_ms = MatchSpec{ pin, m_pool.channel_context() };
         m_pinned_specs.push_back(pin_ms);
 
         auto& pool = m_pool.pool();
@@ -219,7 +221,7 @@ namespace mamba
         std::string const cons_solv_name = fmt::format("pin-{}", m_pinned_specs.size());
         cons_solv.set_name(cons_solv_name);
         cons_solv.set_version("1");
-        cons_solv.add_constraints(solv::ObjQueue{m_pool.matchspec2id(pin_ms)});
+        cons_solv.add_constraints(solv::ObjQueue{ m_pool.matchspec2id(pin_ms) });
 
         // Solvable need to provide itself
         cons_solv.add_self_provide();
@@ -230,7 +232,7 @@ namespace mamba
         // Lock the dummy solvable so that it stays install.
         // Force verify the dummy solvable dependencies, as this is not the default for
         // installed packages.
-        return add_jobs({cons_solv_name}, SOLVER_LOCK & SOLVER_VERIFY);
+        return add_jobs({ cons_solv_name }, SOLVER_LOCK & SOLVER_VERIFY);
     }
 
     void MSolver::add_pins(const std::vector<std::string>& pins)
@@ -317,7 +319,7 @@ namespace mamba
         const bool success = solver().solve(m_pool.pool(), *m_jobs);
         m_is_solved = true;
         LOG_INFO << "Problem count: " << solver().problem_count();
-        Console::instance().json_write({{"success", success}});
+        Console::instance().json_write({ { "success", success } });
         return success;
     }
 
@@ -417,8 +419,8 @@ namespace mamba
         print_problem_tree_msg(
             out,
             cp_pbs,
-            {/* .unavailable= */ ctx.graphics_params.palette.failure,
-             /* .available= */ ctx.graphics_params.palette.success}
+            { /* .unavailable= */ ctx.graphics_params.palette.failure,
+              /* .available= */ ctx.graphics_params.palette.success }
         );
         return out;
     }
@@ -504,8 +506,8 @@ namespace mamba
         };
 
         ProblemsGraphCreator::ProblemsGraphCreator(const MSolver& solver, const MPool& pool)
-            : m_solver{solver}
-            , m_pool{pool}
+            : m_solver{ solver }
+            , m_pool{ pool }
         {
             m_root_node = m_graph.add_node(RootNode());
             parse_problems();
@@ -513,7 +515,7 @@ namespace mamba
 
         ProblemsGraph ProblemsGraphCreator::problem_graph() &&
         {
-            return {std::move(m_graph), std::move(m_conflicts), m_root_node};
+            return { std::move(m_graph), std::move(m_conflicts), m_root_node };
         }
 
         auto ProblemsGraphCreator::add_solvable(solv::SolvableId solv_id, node_t&& node, bool update)
@@ -550,7 +552,7 @@ namespace mamba
                 added = true;
                 auto pkg_info = m_pool.id2pkginfo(solv_id);
                 assert(pkg_info.has_value());
-                node_id to_id = add_solvable(solv_id, PackageNode{std::move(pkg_info).value()}, false);
+                node_id to_id = add_solvable(solv_id, PackageNode{ std::move(pkg_info).value() }, false);
                 m_graph.add_edge(from_id, to_id, edge);
             }
             return added;
@@ -581,15 +583,15 @@ namespace mamba
                         }
                         auto src_id = add_solvable(
                             problem.source_id,
-                            PackageNode{std::move(source).value()}
+                            PackageNode{ std::move(source).value() }
                         );
                         node_id tgt_id = add_solvable(
                             problem.target_id,
-                            PackageNode{std::move(target).value()}
+                            PackageNode{ std::move(target).value() }
                         );
                         node_id cons_id = add_solvable(
                             problem.dep_id,
-                            ConstraintNode{{dep.value(), channel_context}}
+                            ConstraintNode{ { dep.value(), channel_context } }
                         );
                         MatchSpec edge(dep.value(), channel_context);
                         m_graph.add_edge(src_id, cons_id, std::move(edge));
@@ -609,7 +611,7 @@ namespace mamba
                         }
                         auto src_id = add_solvable(
                             problem.source_id,
-                            PackageNode{std::move(source).value()}
+                            PackageNode{ std::move(source).value() }
                         );
                         MatchSpec edge(dep.value(), channel_context);
                         bool added = add_expanded_deps_edges(src_id, problem.dep_id, edge);
@@ -652,7 +654,7 @@ namespace mamba
                         MatchSpec edge(dep.value(), channel_context);
                         node_id dep_id = add_solvable(
                             problem.dep_id,
-                            UnresolvedDependencyNode{{std::move(dep).value(), channel_context}}
+                            UnresolvedDependencyNode{ { std::move(dep).value(), channel_context } }
                         );
                         m_graph.add_edge(m_root_node, dep_id, std::move(edge));
                         break;
@@ -671,11 +673,11 @@ namespace mamba
                         MatchSpec edge(dep.value(), channel_context);
                         node_id src_id = add_solvable(
                             problem.source_id,
-                            PackageNode{std::move(source).value()}
+                            PackageNode{ std::move(source).value() }
                         );
                         node_id dep_id = add_solvable(
                             problem.dep_id,
-                            UnresolvedDependencyNode{{std::move(dep).value(), channel_context}}
+                            UnresolvedDependencyNode{ { std::move(dep).value(), channel_context } }
                         );
                         m_graph.add_edge(src_id, dep_id, std::move(edge));
                         break;
@@ -694,11 +696,11 @@ namespace mamba
                         }
                         node_id src_id = add_solvable(
                             problem.source_id,
-                            PackageNode{std::move(source).value()}
+                            PackageNode{ std::move(source).value() }
                         );
                         node_id tgt_id = add_solvable(
                             problem.target_id,
-                            PackageNode{std::move(target).value()}
+                            PackageNode{ std::move(target).value() }
                         );
                         add_conflict(src_id, tgt_id);
                         break;

@@ -220,9 +220,9 @@ namespace mamba::solv
         const auto type = ::solver_ruleinfo(const_cast<::Solver*>(raw()), id, &from_id, &to_id, &dep_id);
 
         return {
-            /* .from_id= */ (from_id != 0) ? std::optional{from_id} : std::nullopt,
-            /* .to_id= */ (to_id != 0) ? std::optional{to_id} : std::nullopt,
-            /* .dep_id= */ (dep_id != 0) ? std::optional{dep_id} : std::nullopt,
+            /* .from_id= */ (from_id != 0) ? std::optional{ from_id } : std::nullopt,
+            /* .to_id= */ (to_id != 0) ? std::optional{ to_id } : std::nullopt,
+            /* .dep_id= */ (dep_id != 0) ? std::optional{ dep_id } : std::nullopt,
             /* .type= */ type,
             /* .klass= */ ::solver_ruleclass(const_cast<::Solver*>(raw()), id),
         };

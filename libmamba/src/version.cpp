@@ -16,6 +16,6 @@ namespace mamba
 
     std::array<int, 3> version_arr()
     {
-        return {LIBMAMBA_VERSION_MAJOR, LIBMAMBA_VERSION_MINOR, LIBMAMBA_VERSION_PATCH};
+        return { LIBMAMBA_VERSION_MAJOR, LIBMAMBA_VERSION_MINOR, LIBMAMBA_VERSION_PATCH };
     }
 }

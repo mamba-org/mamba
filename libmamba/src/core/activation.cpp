@@ -209,17 +209,16 @@ namespace mamba
     {
         if (on_win)
         {
-            return {
-                prefix,
-                prefix / "Library" / "mingw-w64" / "bin",
-                prefix / "Library" / "usr" / "bin",
-                prefix / "Library" / "bin",
-                prefix / "Scripts",
-                prefix / "bin"};
+            return { prefix,
+                     prefix / "Library" / "mingw-w64" / "bin",
+                     prefix / "Library" / "usr" / "bin",
+                     prefix / "Library" / "bin",
+                     prefix / "Scripts",
+                     prefix / "bin" };
         }
         else
         {
-            return {prefix / "bin"};
+            return { prefix / "bin" };
         }
     }
 
@@ -250,19 +249,18 @@ namespace mamba
         {
             if (on_linux)
             {
-                path = {"/usr/bin"};
+                path = { "/usr/bin" };
             }
             else if (on_mac)
             {
-                path = {"/usr/bin", "/bin", "/usr/sbin", "/sbin"};
+                path = { "/usr/bin", "/bin", "/usr/sbin", "/sbin" };
             }
             else
             {
-                path = {
-                    "C:\\Windows\\system32",
-                    "C:\\Windows",
-                    "C:\\Windows\\System32\\Wbem",
-                    "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"};
+                path = { "C:\\Windows\\system32",
+                         "C:\\Windows",
+                         "C:\\Windows\\System32\\Wbem",
+                         "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\" };
             }
         }
         return path;
@@ -379,7 +377,7 @@ namespace mamba
             }
             else
             {
-                envt.export_vars.push_back({to_upper(k), v});
+                envt.export_vars.push_back({ to_upper(k), v });
             }
         }
     }
@@ -425,9 +423,10 @@ namespace mamba
         }
 
         std::vector<std::pair<std::string, std::string>> env_vars_to_export = {
-            {"path", new_path},
-            {"conda_shlvl", std::to_string(conda_shlvl)},
-            {"conda_prompt_modifier", conda_prompt_modifier}};
+            { "path", new_path },
+            { "conda_shlvl", std::to_string(conda_shlvl) },
+            { "conda_prompt_modifier", conda_prompt_modifier }
+        };
         get_export_unset_vars(envt, env_vars_to_export);
 
         // TODO figure out if this is all really necessary?
@@ -475,10 +474,11 @@ namespace mamba
             // script, we need something I suppose!)
             envt.export_path = new_path;
             std::vector<std::pair<std::string, std::string>> env_vars_to_export = {
-                {"conda_prefix", ""},
-                {"conda_shlvl", std::to_string(new_conda_shlvl)},
-                {"conda_default_env", ""},
-                {"conda_prompt_modifier", ""}};
+                { "conda_prefix", "" },
+                { "conda_shlvl", std::to_string(new_conda_shlvl) },
+                { "conda_default_env", "" },
+                { "conda_prompt_modifier", "" }
+            };
             get_export_unset_vars(envt, env_vars_to_export);
         }
         else
@@ -505,16 +505,17 @@ namespace mamba
             }
 
             std::vector<std::pair<std::string, std::string>> env_vars_to_export = {
-                {"conda_prefix", new_prefix},
-                {"conda_shlvl", std::to_string(new_conda_shlvl)},
-                {"conda_default_env", conda_default_env},
-                {"conda_prompt_modifier", conda_prompt_modifier}};
+                { "conda_prefix", new_prefix },
+                { "conda_shlvl", std::to_string(new_conda_shlvl) },
+                { "conda_default_env", conda_default_env },
+                { "conda_prompt_modifier", conda_prompt_modifier }
+            };
 
             get_export_unset_vars(envt, env_vars_to_export);
 
             for (auto& [k, v] : new_conda_environment_env_vars)
             {
-                envt.export_vars.push_back({k, v});
+                envt.export_vars.push_back({ k, v });
             }
 
             envt.export_path = new_path;
@@ -536,7 +537,7 @@ namespace mamba
             std::string save_var = fmt::format("__CONDA_SHLVL_{}_{}", new_conda_shlvl, env_var.first);
             if (m_env.find(save_var) != m_env.end())
             {
-                envt.export_vars.push_back({env_var.first, m_env[save_var]});
+                envt.export_vars.push_back({ env_var.first, m_env[save_var] });
                 envt.unset_vars.push_back(save_var);
             }
         }
@@ -619,7 +620,7 @@ namespace mamba
         for (const auto& v : clobbering_env_vars)
         {
             conda_environment_env_vars.push_back(
-                {fmt::format("__CONDA_SHLVL_{}_{}", old_conda_shlvl, v), m_env[v]}
+                { fmt::format("__CONDA_SHLVL_{}_{}", old_conda_shlvl, v), m_env[v] }
             );
         }
 
@@ -632,15 +633,16 @@ namespace mamba
         std::string new_path = add_prefix_to_path(prefix, old_conda_shlvl);
 
         std::vector<std::pair<std::string, std::string>> env_vars_to_export{
-            {"path", new_path},
-            {"conda_prefix", prefix.string()},
-            {"conda_shlvl", std::to_string(new_conda_shlvl)},
-            {"conda_default_env", conda_default_env},
-            {"conda_prompt_modifier", conda_prompt_modifier}};
+            { "path", new_path },
+            { "conda_prefix", prefix.string() },
+            { "conda_shlvl", std::to_string(new_conda_shlvl) },
+            { "conda_default_env", conda_default_env },
+            { "conda_prompt_modifier", conda_prompt_modifier }
+        };
 
         for (auto& [k, v] : conda_environment_env_vars)
         {
-            envt.export_vars.push_back({k, v});
+            envt.export_vars.push_back({ k, v });
         }
 
         if (old_conda_shlvl == 0)
@@ -650,10 +652,9 @@ namespace mamba
         else if (m_stack)
         {
             get_export_unset_vars(envt, env_vars_to_export);
-            envt.export_vars.push_back(
-                {fmt::format("CONDA_PREFIX_{}", old_conda_shlvl), old_conda_prefix}
-            );
-            envt.export_vars.push_back({fmt::format("CONDA_STACKED_{}", new_conda_shlvl), "true"});
+            envt.export_vars.push_back({ fmt::format("CONDA_PREFIX_{}", old_conda_shlvl),
+                                         old_conda_prefix });
+            envt.export_vars.push_back({ fmt::format("CONDA_STACKED_{}", new_conda_shlvl), "true" });
         }
         else
         {
@@ -670,15 +671,17 @@ namespace mamba
                                        + env_var.first;  // % (new_conda_shlvl, env_var)
                 if (m_env.find(save_var) != m_env.end())
                 {
-                    envt.export_vars.insert(envt.export_vars.begin(), {env_var.first, m_env[save_var]});
+                    envt.export_vars.insert(
+                        envt.export_vars.begin(),
+                        { env_var.first, m_env[save_var] }
+                    );
                 }
             }
 
-            env_vars_to_export[0] = {"PATH", new_path};
+            env_vars_to_export[0] = { "PATH", new_path };
             get_export_unset_vars(envt, env_vars_to_export);
-            envt.export_vars.push_back(
-                {fmt::format("CONDA_PREFIX_{}", old_conda_shlvl), old_conda_prefix}
-            );
+            envt.export_vars.push_back({ fmt::format("CONDA_PREFIX_{}", old_conda_shlvl),
+                                         old_conda_prefix });
         }
 
         if (Context::instance().change_ps1)
@@ -819,7 +822,7 @@ namespace mamba
         {
             // Defer to powerline (https://github.com/powerline/powerline) if it's in
             // use.
-            return {"", ""};
+            return { "", "" };
         }
         auto current_prompt_modifier = env::get("CONDA_PROMPT_MODIFIER");
         if (current_prompt_modifier)
@@ -830,7 +833,7 @@ namespace mamba
         // the proper escaping of single quotes that are already part of the string.
         // Best solution appears to be https://stackoverflow.com/a/1250279
         replace_all(ps1, "'", "'\"'\"'");
-        return {"PS1", conda_prompt_modifier + ps1};
+        return { "PS1", conda_prompt_modifier + ps1 };
     }
 
     std::string PosixActivator::shell_extension()
@@ -943,7 +946,7 @@ namespace mamba
         // the proper escaping of single quotes that are already part of the string.
         // Best solution appears to be https://stackoverflow.com/a/1250279
         replace_all(prompt, "'", "'\"'\"'");
-        return {"prompt", conda_prompt_modifier + prompt};
+        return { "prompt", conda_prompt_modifier + prompt };
     }
 
 
@@ -1001,7 +1004,7 @@ namespace mamba
     std::pair<std::string, std::string>
     CmdExeActivator::update_prompt(const std::string& /* conda_prompt_modifier */)
     {
-        return {"", ""};
+        return { "", "" };
     }
 
     std::string CmdExeActivator::script(const EnvironmentTransform& env_transform)
@@ -1077,7 +1080,7 @@ namespace mamba
     std::pair<std::string, std::string>
     PowerShellActivator::update_prompt(const std::string& /*conda_prompt_modifier*/)
     {
-        return {"", ""};
+        return { "", "" };
     }
 
     std::string PowerShellActivator::script(const EnvironmentTransform& env_transform)
@@ -1145,7 +1148,7 @@ namespace mamba
     std::pair<std::string, std::string>
     XonshActivator::update_prompt(const std::string& /*conda_prompt_modifier*/)
     {
-        return {"", ""};
+        return { "", "" };
     }
 
     std::string XonshActivator::script(const EnvironmentTransform& env_transform)
@@ -1214,7 +1217,7 @@ namespace mamba
     std::pair<std::string, std::string>
     FishActivator::update_prompt(const std::string& /*conda_prompt_modifier*/)
     {
-        return {"", ""};
+        return { "", "" };
     }
 
     std::string FishActivator::script(const EnvironmentTransform& env_transform)

@@ -274,14 +274,14 @@ namespace mamba::validation
 
                 void generate_secrets(int root = 1, int key_mgr = 1, int pkg_mgr = 1)
                 {
-                    secrets.insert({"root", generate_role_secrets(root)});
-                    secrets.insert({"key_mgr", generate_role_secrets(key_mgr)});
-                    secrets.insert({"pkg_mgr", generate_role_secrets(pkg_mgr)});
+                    secrets.insert({ "root", generate_role_secrets(root) });
+                    secrets.insert({ "key_mgr", generate_role_secrets(key_mgr) });
+                    secrets.insert({ "pkg_mgr", generate_role_secrets(pkg_mgr) });
                 }
 
                 void sign_root()
                 {
-                    std::vector<std::string> mandatory_roles({"root", "key_mgr"});
+                    std::vector<std::string> mandatory_roles({ "root", "key_mgr" });
                     for (auto& r : mandatory_roles)
                     {
                         std::vector<std::string> role_public_keys;
@@ -289,7 +289,7 @@ namespace mamba::validation
                         {
                             role_public_keys.push_back(secret.first);
                         }
-                        root1_json["signed"]["delegations"][r] = RolePubKeys({role_public_keys, 1});
+                        root1_json["signed"]["delegations"][r] = RolePubKeys({ role_public_keys, 1 });
                     }
 
                     root1_json["signed"]["version"] = 1;
@@ -314,7 +314,7 @@ namespace mamba::validation
                         sign(root_meta.dump(2), secret.second.data(), sig_bin);
 
                         auto sig_hex = ::mamba::hex_string(sig_bin, MAMBA_ED25519_SIGSIZE_BYTES);
-                        signatures[secret.first].insert({"signature", sig_hex});
+                        signatures[secret.first].insert({ "signature", sig_hex });
                     }
 
                     return signatures;
@@ -365,7 +365,7 @@ namespace mamba::validation
                         generate_ed25519_keypair(pk, sk.data());
                         auto pk_hex = ::mamba::hex_string(pk, MAMBA_ED25519_KEYSIZE_BYTES);
 
-                        role_secrets.insert({pk_hex, sk});
+                        role_secrets.insert({ pk_hex, sk });
                     }
                     return role_secrets;
                 }
@@ -953,7 +953,7 @@ namespace mamba::validation
                     {
                         pkg_mgr_pks.push_back(secret.first);
                     }
-                    key_mgr_json["signed"]["delegations"]["pkg_mgr"] = RolePubKeys({pkg_mgr_pks, 1});
+                    key_mgr_json["signed"]["delegations"]["pkg_mgr"] = RolePubKeys({ pkg_mgr_pks, 1 });
 
                     key_mgr_json["signed"]["version"] = 1;
                     key_mgr_json["signed"]["metadata_spec_version"] = "0.6.0";
@@ -1009,7 +1009,7 @@ namespace mamba::validation
                         sign(meta.dump(2), secret.second.data(), sig_bin);
 
                         auto sig_hex = ::mamba::hex_string(sig_bin, MAMBA_ED25519_SIGSIZE_BYTES);
-                        signatures[secret.first].insert({"signature", sig_hex});
+                        signatures[secret.first].insert({ "signature", sig_hex });
                     }
 
                     return signatures;
@@ -1299,7 +1299,7 @@ namespace mamba::validation
                         sign(meta.dump(2), secret.second.data(), sig_bin);
 
                         auto sig_hex = ::mamba::hex_string(sig_bin, MAMBA_ED25519_SIGSIZE_BYTES);
-                        signatures[secret.first].insert({"signature", sig_hex});
+                        signatures[secret.first].insert({ "signature", sig_hex });
                     }
 
                     return signatures;
@@ -1347,7 +1347,7 @@ namespace mamba::validation
                         sign(meta.dump(2), secret.second.data(), sig_bin);
 
                         auto sig_hex = ::mamba::hex_string(sig_bin, MAMBA_ED25519_SIGSIZE_BYTES);
-                        signatures[secret.first].insert({"signature", sig_hex});
+                        signatures[secret.first].insert({ "signature", sig_hex });
                     }
 
                     return signatures;
@@ -1581,10 +1581,10 @@ namespace mamba::validation
                 void
                 generate_secrets(int root = 1, int targets = 1, int snapshot = 1, int timestamp = 1)
                 {
-                    secrets.insert({"root", generate_role_secrets(root)});
-                    secrets.insert({"targets", generate_role_secrets(targets)});
-                    secrets.insert({"snapshot", generate_role_secrets(snapshot)});
-                    secrets.insert({"timestamp", generate_role_secrets(timestamp)});
+                    secrets.insert({ "root", generate_role_secrets(root) });
+                    secrets.insert({ "targets", generate_role_secrets(targets) });
+                    secrets.insert({ "snapshot", generate_role_secrets(snapshot) });
+                    secrets.insert({ "timestamp", generate_role_secrets(timestamp) });
                 }
 
                 void sign_root()
@@ -1602,9 +1602,9 @@ namespace mamba::validation
                         for (auto& s : it.second)
                         {
                             r_keys.push_back(s.first);
-                            all_keys.insert({s.first, Key::from_ed25519(s.first)});
+                            all_keys.insert({ s.first, Key::from_ed25519(s.first) });
                         }
-                        all_roles[r] = {r_keys, 1};
+                        all_roles[r] = { r_keys, 1 };
                     }
                     root1_json.at("signed").at("roles") = all_roles;
                     root1_json.at("signed").at("keys") = all_keys;
@@ -1623,7 +1623,7 @@ namespace mamba::validation
                         sign(root_meta.dump(), secret.second.data(), sig_bin);
 
                         auto sig_hex = ::mamba::hex_string(sig_bin, MAMBA_ED25519_SIGSIZE_BYTES);
-                        signatures.push_back({secret.first, sig_hex});
+                        signatures.push_back({ secret.first, sig_hex });
                     }
 
                     return signatures;
@@ -1651,7 +1651,7 @@ namespace mamba::validation
                         generate_ed25519_keypair(pk, sk.data());
 
                         auto pk_hex = ::mamba::hex_string(pk, MAMBA_ED25519_KEYSIZE_BYTES);
-                        role_secrets.insert({pk_hex, sk});
+                        role_secrets.insert({ pk_hex, sk });
                     }
                     return role_secrets;
                 }
@@ -2156,11 +2156,11 @@ namespace mamba::validation
                 // Test serialization/deserialization
                 TEST_CASE("to_json")
                 {
-                    RoleSignature s{"some_key_id", "some_signature", ""};
+                    RoleSignature s{ "some_key_id", "some_signature", "" };
                     json j = R"({"keyid": "some_key_id", "sig": "some_signature"})"_json;
                     CHECK_EQ(j, json(s));
 
-                    s = {"some_key_id", "some_signature", "some_pgp_trailer"};
+                    s = { "some_key_id", "some_signature", "some_pgp_trailer" };
                     j = R"({"keyid": "some_key_id", "other_headers": "some_pgp_trailer", "sig": "some_signature"})"_json;
                     CHECK_EQ(j, json(s));
                 }

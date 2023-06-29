@@ -35,7 +35,7 @@ namespace mamba
         // add channels from specs
         for (const auto& s : update_specs)
         {
-            if (auto m = MatchSpec{s, channel_context}; !m.channel.empty())
+            if (auto m = MatchSpec{ s, channel_context }; !m.channel.empty())
             {
                 ctx.channels.push_back(m.channel);
             }
@@ -43,7 +43,7 @@ namespace mamba
 
         int solver_flag = SOLVER_UPDATE;
 
-        MPool pool{channel_context};
+        MPool pool{ channel_context };
         MultiPackageCache package_caches(ctx.pkgs_dirs);
 
         auto exp_loaded = load_channels(pool, package_caches, 0);
@@ -73,9 +73,9 @@ namespace mamba
         MSolver solver(
             pool,
             {
-                {SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade},
-                {SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall},
-                {SOLVER_FLAG_STRICT_REPO_PRIORITY, ctx.channel_priority == ChannelPriority::kStrict},
+                { SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade },
+                { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },
+                { SOLVER_FLAG_STRICT_REPO_PRIORITY, ctx.channel_priority == ChannelPriority::kStrict },
             }
         );
 

@@ -70,7 +70,7 @@ namespace mamba
                 return;
             }
 
-            std::scoped_lock lock{threads_mutex};
+            std::scoped_lock lock{ threads_mutex };
             if (is_open)  // Double check necessary for correctness
             {
                 threads.emplace_back(std::forward<Task>(task), std::forward<Args>(args)...);
@@ -91,7 +91,7 @@ namespace mamba
                 return;
             }
 
-            std::scoped_lock lock{threads_mutex};
+            std::scoped_lock lock{ threads_mutex };
             if (is_open)  // Double check necessary for correctness
             {
                 threads.push_back(std::move(thread));
@@ -116,7 +116,7 @@ namespace mamba
 
             invoke_close_handlers();
 
-            std::scoped_lock lock{threads_mutex};
+            std::scoped_lock lock{ threads_mutex };
             for (auto&& t : threads)
             {
                 t.join();
@@ -133,7 +133,7 @@ namespace mamba
                 return;
             }
 
-            std::scoped_lock lock{handlers_mutex};
+            std::scoped_lock lock{ handlers_mutex };
             if (is_open)  // Double check needed to avoid adding new handles while closing.
             {
                 close_handlers.push_back(std::move(handler));
@@ -142,7 +142,7 @@ namespace mamba
 
     private:
 
-        std::atomic<bool> is_open{true};
+        std::atomic<bool> is_open{ true };
         std::vector<std::thread> threads;
         std::recursive_mutex threads_mutex;  // TODO: replace by synchronized_value once available
 

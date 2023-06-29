@@ -12,8 +12,8 @@ namespace mamba
 {
     size_t ZstdStream::write(char* in, size_t size)
     {
-        ZSTD_inBuffer input = {in, size, 0};
-        ZSTD_outBuffer output = {buffer, BUFFER_SIZE, 0};
+        ZSTD_inBuffer input = { in, size, 0 };
+        ZSTD_outBuffer output = { buffer, BUFFER_SIZE, 0 };
 
         while (input.pos < input.size)
         {

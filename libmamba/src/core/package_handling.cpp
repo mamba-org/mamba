@@ -309,7 +309,7 @@ namespace mamba
             for (auto& dir_entry : fs::recursive_directory_iterator("."))
             {
                 auto clean_path = dir_entry.path().lexically_relative("./");
-                files.push_back({order(clean_path), clean_path});
+                files.push_back({ order(clean_path), clean_path });
             }
         }
         else
@@ -318,7 +318,7 @@ namespace mamba
             for (auto& dir_entry : fs::directory_iterator("."))
             {
                 auto clean_path = dir_entry.path().lexically_relative("./");
-                files.push_back({zip_order(clean_path), clean_path});
+                files.push_back({ zip_order(clean_path), clean_path });
             }
         }
 
@@ -740,11 +740,11 @@ namespace mamba
         std::vector<std::string> args;
         if (Context::instance().command_params.is_micromamba)
         {
-            args = {get_self_exe_path().string(), "package", "extract", file.string(), dest.string()};
+            args = { get_self_exe_path().string(), "package", "extract", file.string(), dest.string() };
         }
         else
         {
-            args = {"mamba-package", "extract", file.string(), dest.string()};
+            args = { "mamba-package", "extract", file.string(), dest.string() };
         }
 
         std::string out, err;

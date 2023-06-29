@@ -36,12 +36,12 @@ namespace mamba::util
         template <typename To, typename From>
         constexpr auto make_overflow_error(const From& val)
         {
-            return std::overflow_error{fmt::format(
+            return std::overflow_error{ fmt::format(
                 "Value to cast ({}) is out of destination range ([{}, {}])",
                 val,
                 std::numeric_limits<To>::lowest(),
                 std::numeric_limits<To>::max()
-            )};
+            ) };
         };
     }
 
@@ -106,7 +106,8 @@ namespace mamba::util
             if (cast_back != val)
             {
                 throw std::runtime_error{
-                    fmt::format("Casting from {} to {} loses precision", val, cast)};
+                    fmt::format("Casting from {} to {} loses precision", val, cast)
+                };
             }
             return cast;
         }

@@ -1077,6 +1077,14 @@ class PackageInfo:
     def name(self, arg0: str) -> None:
         pass
     @property
+    def noarch(self) -> str:
+        """
+        :type: str
+        """
+    @noarch.setter
+    def noarch(self, arg0: str) -> None:
+        pass
+    @property
     def sha256(self) -> str:
         """
         :type: str
@@ -1533,8 +1541,6 @@ class SubdirData:
     ) -> None: ...
     def cache_path(self) -> str: ...
     def create_repo(self, arg0: Pool) -> Repo: ...
-    def download_and_check_targets(self, arg0: DownloadTargetList) -> bool: ...
-    def finalize_checks(self) -> None: ...
     def loaded(self) -> bool: ...
     pass
 

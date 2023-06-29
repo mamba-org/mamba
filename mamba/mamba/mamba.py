@@ -55,7 +55,6 @@ from mamba.utils import (
     get_installed_jsonfile,
     init_api_context,
     load_channels,
-    load_conda_installed,
     print_activate,
     to_txn,
 )
@@ -175,13 +174,9 @@ def remove(args, parser):
         repos = []
 
         # add installed
-        if use_mamba_experimental:
-            prefix_data = api.PrefixData(context.target_prefix)
-            repo = api.Repo(pool, prefix_data)
-            repos.append(repo)
-        else:
-            repo = load_conda_installed(pool, installed_json_f, installed_pkg_recs)
-            repos.append(repo)
+        prefix_data = api.PrefixData(context.target_prefix)
+        repo = api.Repo(pool, prefix_data)
+        repos.append(repo)
 
         solver = api.Solver(pool, solver_options)
 
@@ -451,15 +446,11 @@ def install(args, parser, command="install"):
 
     repos = []
 
-    prefix_data = api.PrefixData(context.target_prefix)
-
     # add installed
-    if use_mamba_experimental:
-        repo = api.Repo(pool, prefix_data)
-        repos.append(repo)
-    else:
-        repo = load_conda_installed(pool, installed_json_f, installed_pkg_recs)
-        repos.append(repo)
+    prefix_data = api.PrefixData(context.target_prefix)
+    prefix_data.add_packages(api.get_virtual_packages())
+    repo = api.Repo(pool, prefix_data)
+    repos.append(repo)
 
     if newenv and not specs:
         # creating an empty environment with e.g. "mamba create -n my_env"

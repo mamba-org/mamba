@@ -78,7 +78,7 @@ namespace mamba
         void
         Table::add_rows(const std::string& header, const std::vector<std::vector<FormattedString>>& rs)
         {
-            m_table.push_back({header});
+            m_table.push_back({ header });
 
             for (auto& r : rs)
             {
@@ -548,7 +548,7 @@ namespace mamba
         else
         {
             const std::lock_guard<std::mutex> lock(MessageLoggerData::m_mutex);
-            MessageLoggerData::m_buffer.push_back({m_stream.str(), m_level});
+            MessageLoggerData::m_buffer.push_back({ m_stream.str(), m_level });
         }
     }
 

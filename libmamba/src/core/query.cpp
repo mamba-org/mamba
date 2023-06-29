@@ -52,7 +52,7 @@ namespace mamba
                 {
                     solv::ObjQueue rec_solvables = {};
                     // the following prints the requested version
-                    solv::ObjQueue job = {SOLVER_SOLVABLE_PROVIDES, req};
+                    solv::ObjQueue job = { SOLVER_SOLVABLE_PROVIDES, req };
                     selection_solvables(pool, job.raw(), rec_solvables.raw());
 
                     if (rec_solvables.size() != 0)
@@ -255,7 +255,7 @@ namespace mamba
             throw std::runtime_error("Could not generate query for " + query);
         }
 
-        solv::ObjQueue job = {SOLVER_SOLVABLE_PROVIDES, id};
+        solv::ObjQueue job = { SOLVER_SOLVABLE_PROVIDES, id };
         query_result::dependency_graph g;
 
         if (tree)
@@ -268,7 +268,7 @@ namespace mamba
                 assert(pkg_info.has_value());
                 const auto node_id = g.add_node(std::move(pkg_info).value());
                 Solvable* const latest = pool_id2solvable(m_pool.get(), solvables.front());
-                std::map<Solvable*, size_t> visited = {{latest, node_id}};
+                std::map<Solvable*, size_t> visited = { { latest, node_id } };
                 reverse_walk_graph(m_pool, g, node_id, latest, visited);
             }
         }
@@ -323,7 +323,7 @@ namespace mamba
             assert(pkg_info.has_value());
             const auto node_id = g.add_node(std::move(pkg_info).value());
 
-            std::map<Solvable*, size_t> visited = {{latest, node_id}};
+            std::map<Solvable*, size_t> visited = { { latest, node_id } };
             std::map<std::string, size_t> not_found;
             walk_graph(m_pool, g, node_id, latest, visited, not_found, depth);
         }
@@ -408,7 +408,7 @@ namespace mamba
 
     std::ostream& query_result::table(std::ostream& out) const
     {
-        return table(out, {"Name", "Version", "Build", "Channel"});
+        return table(out, { "Name", "Version", "Build", "Channel" });
     }
 
     namespace
@@ -631,13 +631,12 @@ namespace mamba
         std::string query_type = m_type == QueryType::kSEARCH
                                      ? "search"
                                      : (m_type == QueryType::kDEPENDS ? "depends" : "whoneeds");
-        j["query"] = {
-            {"query", MatchSpec{m_query, channel_context}.conda_build_form()},
-            {"type", query_type}};
+        j["query"] = { { "query", MatchSpec{ m_query, channel_context }.conda_build_form() },
+                       { "type", query_type } };
 
         std::string msg = m_pkg_id_list.empty() ? "No entries matching \"" + m_query + "\" found"
                                                 : "";
-        j["result"] = {{"msg", msg}, {"status", "OK"}};
+        j["result"] = { { "msg", msg }, { "status", "OK" } };
 
         j["result"]["pkgs"] = nlohmann::json::array();
         for (size_t i = 0; i < m_pkg_id_list.size(); ++i)

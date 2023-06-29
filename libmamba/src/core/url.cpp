@@ -377,18 +377,10 @@ namespace mamba
 
     namespace
     {
-        const std::vector<std::string> CURLUPART_NAMES = {
-            "url",
-            "scheme",
-            "user",
-            "password",
-            "options",
-            "host",
-            "port",
-            "path",
-            "query",
-            "fragment",
-            "zoneid"};
+        const std::vector<std::string> CURLUPART_NAMES = { "url",      "scheme",  "user",
+                                                           "password", "options", "host",
+                                                           "port",     "path",    "query",
+                                                           "fragment", "zoneid" };
     }
 
     std::string URLHandler::get_part(const std::string& part) const

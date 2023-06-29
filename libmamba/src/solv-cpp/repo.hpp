@@ -308,7 +308,7 @@ namespace mamba::solv
         const ::Solvable* s = nullptr;
         FOR_REPO_SOLVABLES(repo, id, s)
         {
-            auto solvable = ObjSolvableViewConst{*s};
+            auto solvable = ObjSolvableViewConst{ *s };
             if constexpr (std::is_same_v<decltype(func(solvable)), LoopControl>)
             {
                 if (func(solvable) == LoopControl::Break)
@@ -331,7 +331,7 @@ namespace mamba::solv
         ::Solvable* s = nullptr;
         FOR_REPO_SOLVABLES(repo, id, s)
         {
-            auto solvable = ObjSolvableView{*s};
+            auto solvable = ObjSolvableView{ *s };
             if constexpr (std::is_same_v<decltype(func(solvable)), LoopControl>)
             {
                 if (func(solvable) == LoopControl::Break)

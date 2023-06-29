@@ -121,7 +121,7 @@ namespace mamba
         // }
         // else
         {
-            search_dirs = std::vector<fs::u8path>{env::home_directory()};
+            search_dirs = std::vector<fs::u8path>{ env::home_directory() };
         }
 
         std::set<fs::u8path> all_env_paths;

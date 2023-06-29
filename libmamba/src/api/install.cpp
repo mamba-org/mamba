@@ -44,9 +44,11 @@ namespace mamba
             { return env::which("python", get_path_dirs(target_prefix)).string(); };
 
             const std::unordered_map<std::string, command_args> other_pkg_mgr_install_instructions{
-                {"pip", {get_python_path(), "-m", "pip", "install", "-r", spec_file, "--no-input"}},
-                {"pip --no-deps",
-                 {get_python_path(), "-m", "pip", "install", "--no-deps", "-r", spec_file, "--no-input"}}};
+                { "pip",
+                  { get_python_path(), "-m", "pip", "install", "-r", spec_file, "--no-input" } },
+                { "pip --no-deps",
+                  { get_python_path(), "-m", "pip", "install", "--no-deps", "-r", spec_file, "--no-input" } }
+            };
 
             auto found_it = other_pkg_mgr_install_instructions.find(name);
             if (found_it != other_pkg_mgr_install_instructions.end())
@@ -164,10 +166,10 @@ namespace mamba
     auto& truthy_values()
     {
         static std::map<std::string, int> vals{
-            {"win", 0},
-            {"unix", 0},
-            {"osx", 0},
-            {"linux", 0},
+            { "win", 0 },
+            { "unix", 0 },
+            { "osx", 0 },
+            { "linux", 0 },
         };
 
         const auto& ctx = Context::instance();
@@ -456,7 +458,7 @@ namespace mamba
         // add channels from specs
         for (const auto& s : specs)
         {
-            if (auto m = MatchSpec{s, channel_context}; !m.channel.empty())
+            if (auto m = MatchSpec{ s, channel_context }; !m.channel.empty())
             {
                 ctx.channels.push_back(m.channel);
             }
@@ -467,7 +469,7 @@ namespace mamba
             LOG_WARNING << "No 'channels' specified";
         }
 
-        MPool pool{channel_context};
+        MPool pool{ channel_context };
         // functions implied in 'and_then' coding-styles must return the same type
         // which limits this syntax
         /*auto exp_prefix_data = load_channels(pool, package_caches, is_retry)
@@ -504,17 +506,15 @@ namespace mamba
         MSolver solver(
             pool,
             {
-                {SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall},
-                {SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade},
-                {SOLVER_FLAG_STRICT_REPO_PRIORITY, ctx.channel_priority == ChannelPriority::kStrict},
+                { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },
+                { SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade },
+                { SOLVER_FLAG_STRICT_REPO_PRIORITY, ctx.channel_priority == ChannelPriority::kStrict },
             }
         );
 
-        solver.set_postsolve_flags(
-            {{MAMBA_NO_DEPS, no_deps},
-             {MAMBA_ONLY_DEPS, only_deps},
-             {MAMBA_FORCE_REINSTALL, force_reinstall}}
-        );
+        solver.set_postsolve_flags({ { MAMBA_NO_DEPS, no_deps },
+                                     { MAMBA_ONLY_DEPS, only_deps },
+                                     { MAMBA_FORCE_REINSTALL, force_reinstall } });
 
         if (freeze_installed && !prefix_pkgs.empty())
         {
@@ -574,9 +574,8 @@ namespace mamba
 
             if (ctx.output_params.json)
             {
-                Console::instance().json_write(
-                    {{"success", false}, {"solver_problems", solver.all_problems()}}
-                );
+                Console::instance().json_write({ { "success", false },
+                                                 { "solver_problems", solver.all_problems() } });
             }
             throw mamba_error(
                 "Could not solve for environment specs",
@@ -620,7 +619,7 @@ namespace mamba
             bool create_env
         )
         {
-            MPool pool{channel_context};
+            MPool pool{ channel_context };
             auto& ctx = Context::instance();
             auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!exp_prefix_data)
@@ -723,9 +722,9 @@ namespace mamba
 
             Console::instance().print(join(
                 "",
-                std::vector<std::string>({"Empty environment created at prefix: ", prefix.string()})
+                std::vector<std::string>({ "Empty environment created at prefix: ", prefix.string() })
             ));
-            Console::instance().json_write({{"success", true}});
+            Console::instance().json_write({ { "success", true } });
         }
 
         void create_target_directory(const fs::u8path prefix)

@@ -212,7 +212,7 @@ namespace mamba::solv
 
     auto ObjQueue::rbegin() -> reverse_iterator
     {
-        return std::reverse_iterator{end()};
+        return std::reverse_iterator{ end() };
     }
 
     auto ObjQueue::rbegin() const -> const_reverse_iterator
@@ -222,12 +222,12 @@ namespace mamba::solv
 
     auto ObjQueue::crbegin() const -> const_reverse_iterator
     {
-        return std::reverse_iterator{end()};
+        return std::reverse_iterator{ end() };
     }
 
     auto ObjQueue::rend() -> reverse_iterator
     {
-        return std::reverse_iterator{begin()};
+        return std::reverse_iterator{ begin() };
     }
 
     auto ObjQueue::rend() const -> const_reverse_iterator
@@ -237,7 +237,7 @@ namespace mamba::solv
 
     auto ObjQueue::crend() const -> const_reverse_iterator
     {
-        return std::reverse_iterator{begin()};
+        return std::reverse_iterator{ begin() };
     }
 
     auto ObjQueue::data() -> pointer

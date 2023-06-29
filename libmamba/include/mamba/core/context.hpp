@@ -249,6 +249,9 @@ namespace mamba
         Context();
         ~Context();
 
+        // Enables the provided context to drive the logging system and setup signal handling.
+        // This function must be called only for one Context in the lifetime of the program.
+        static void enable_logging_and_signal_handling(Context& context);
 
     private:
 
@@ -263,6 +266,8 @@ namespace mamba
 
         TaskSynchronizer tasksync;
     };
+
+
 }  // namespace mamba
 
 #endif  // MAMBA_CONTEXT_HPP

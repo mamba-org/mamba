@@ -66,10 +66,35 @@ namespace mamba
         return static_cast<spdlog::level::level_enum>(l);
     }
 
+    void Context::enable_logging_and_signal_handling(Context& context)
+    {
+        set_default_signal_handler();
+
+        context.logger = std::make_shared<Logger>("libmamba", context.output_params.log_pattern, "\n");
+        MainExecutor::instance().on_close(
+            context.tasksync.synchronized([&context] { context.logger->flush(); })
+        );
+
+        std::shared_ptr<spdlog::logger> libcurl_logger = std::make_shared<Logger>(
+            "libcurl",
+            context.output_params.log_pattern,
+            ""
+        );
+        std::shared_ptr<spdlog::logger> libsolv_logger = std::make_shared<Logger>(
+            "libsolv",
+            context.output_params.log_pattern,
+            ""
+        );
+
+        spdlog::register_logger(libcurl_logger);
+        spdlog::register_logger(libsolv_logger);
+
+        spdlog::set_default_logger(context.logger);
+        spdlog::set_level(convert_log_level(context.output_params.logging_level));
+    }
+
     Context::Context()
     {
-        MainExecutor::instance().on_close(tasksync.synchronized([this] { logger->flush(); }));
-
         on_ci = bool(env::get("CI"));
         prefix_params.root_prefix = env::get("MAMBA_ROOT_PREFIX").value_or("");
         prefix_params.conda_prefix = prefix_params.root_prefix;
@@ -97,31 +122,6 @@ namespace mamba
 #else
         ascii_only = false;
 #endif
-
-        set_default_signal_handler();
-
-        std::shared_ptr<spdlog::logger> l = std::make_shared<Logger>(
-            "libmamba",
-            output_params.log_pattern,
-            "\n"
-        );
-        std::shared_ptr<spdlog::logger> libcurl_logger = std::make_shared<Logger>(
-            "libcurl",
-            output_params.log_pattern,
-            ""
-        );
-        std::shared_ptr<spdlog::logger> libsolv_logger = std::make_shared<Logger>(
-            "libsolv",
-            output_params.log_pattern,
-            ""
-        );
-        spdlog::drop_all(); // TODO: find a better solution. Note that adding this line in the destructor does not fix the issue of registering loggers in the same name.
-        spdlog::register_logger(libcurl_logger);
-        spdlog::register_logger(libsolv_logger);
-
-        spdlog::set_default_logger(l);
-        logger = std::dynamic_pointer_cast<Logger>(l);
-        spdlog::set_level(convert_log_level(output_params.logging_level));
     }
 
     Context::~Context() = default;
@@ -349,7 +349,10 @@ namespace mamba
 
     void Context::dump_backtrace_no_guards()
     {
-        logger->dump_backtrace_no_guards();
+        if (logger)  // REVIEW: is this correct?
+        {
+            logger->dump_backtrace_no_guards();
+        }
     }
 
 }  // namespace mamba

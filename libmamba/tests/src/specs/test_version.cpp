@@ -97,6 +97,83 @@ TEST_SUITE("version")
         CHECK_GE(Version(0, { { { 11 }, { 0 }, { 0, "post" } } }), Version(0, { { { 2 }, { 0 } } }));
     }
 
+    TEST_CASE("starts_with")
+    {
+        SUBCASE("positive")
+        {
+            // clang-format off
+            auto const versions = std::vector<std::tuple<Version, Version>>{
+                // 0!1.0.0, 0!1
+                {Version(), Version()},
+                // 0!1a2post, 0!1a2post
+                {Version(0, {{{1, "a"}, {2, "post"}}}), Version(0, {{{1, "a"}, {2, "post"}}})},
+                // 0!1a2post, 0!1a2post
+                {Version(0, {{{1, "a"}, {2, "post"}}}), Version(0, {{{1, "a"}, {2, "post"}}})},
+                // 0!1, 0!1
+                {Version(0, {{{1}}}), Version(0, {{{1}}})},
+                // 0!1, 0!1.1
+                {Version(0, {{{1}}}), Version(0, {{{1}}, {{1}}})},
+                // 0!1, 0!1.3
+                {Version(0, {{{1}}}), Version(0, {{{1}}, {{3}}})},
+                // 0!1, 0!1.1a
+                {Version(0, {{{1}}}), Version(0, {{{1}}, {{1, "a"}}})},
+                // 0!1, 0!1a
+                {Version(0, {{{1}}}), Version(0, {{{1, "a"}}})},
+                // 0!1, 0!1.0a
+                {Version(0, {{{1}}}), Version(0, {{{1}}, {{0, "a"}}})},
+                // 0!1, 0!1post
+                {Version(0, {{{1}}}), Version(0, {{{1, "post"}}})},
+                // 0!1a, 0!1a.1
+                {Version(0, {{{1, "a"}}}), Version(0, {{{1, "a"}}, {{1}}})},
+                // 0!1a, 0!1a.1post3
+                {Version(0, {{{1, "a"}}}), Version(0, {{{1, "a"}}, {{1, "post"}, {3}}})},
+                // 0!1.0.0, 0!1
+                {Version(0, {{{1}}, {{0}}, {{0}}}), Version(0, {{{1}}})},
+            };
+            // clang-format on
+
+            for (const auto& [prefix, ver] : versions)
+            {
+                CAPTURE(prefix.str());
+                CAPTURE(ver.str());
+                CHECK(ver.starts_with(prefix));
+            }
+        }
+
+        SUBCASE("negative")
+        {
+            // clang-format off
+            auto const versions = std::vector<std::tuple<Version, Version>>{
+                // 0!1a, 1!1a
+                {Version(0, {{{1, "a"}}}), Version(1, {{{1, "a"}}})},
+                // 0!2, 0!1
+                {Version(0, {{{2}}}), Version(0, {{{1}}})},
+                // 0!1, 0!2
+                {Version(0, {{{1}}}), Version(0, {{{2}}})},
+                // 0!1.2, 0!1.3
+                {Version(0, {{{1}}, {{2}}}), Version(0, {{{1}}, {{3}}})},
+                // 0!1.2, 0!1.1
+                {Version(0, {{{1}}, {{2}}}), Version(0, {{{1}}, {{1}}})},
+                // 0!1.2, 0!1
+                {Version(0, {{{1}}, {{2}}}), Version(0, {{{1}}})},
+                // 0!1a, 0!1b
+                {Version(0, {{{1, "a"}}}), Version(0, {{{1, "b"}}})},
+                // 0!1.1a, 0!1.1b
+                {Version(0, {{{1}}, {{1, "a"}}}), Version(0, {{{1}}, {{1, "b"}}})},
+                // 0!1.1a, 0!1.1
+                {Version(0, {{{1}}, {{1, "a"}}}), Version(0, {{{1}}, {{1}}})},
+            };
+            // clang-format on
+
+            for (const auto& [prefix, ver] : versions)
+            {
+                CAPTURE(prefix.str());
+                CAPTURE(ver.str());
+                CHECK_FALSE(ver.starts_with(prefix));
+            }
+        }
+    }
+
     TEST_CASE("version_format")
     {
         // clang-format off

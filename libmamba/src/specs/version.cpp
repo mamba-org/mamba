@@ -47,7 +47,6 @@ namespace mamba::specs
         {
             return compare_three_way(std::strcmp(a.c_str(), b.c_str()), 0);
         }
-
     }
 
     /***************************************
@@ -218,13 +217,14 @@ namespace mamba::specs
          * Similarily ``[1, 1] is less than ``[1, 2, 0]`` but more than ``[1, 1, -1]``
          * because ``-1 < 0``.
          */
-        template <typename Iter1, typename Iter2, typename T, typename Cmp>
+        template <typename Iter1, typename Iter2, typename Empty1, typename Empty2, typename Cmp>
         constexpr auto lexicographical_compare_three_way_trailing(
             Iter1 first1,
             Iter1 last1,
             Iter2 first2,
             Iter2 last2,
-            T empty,
+            Empty1 empty1,
+            Empty2 empty2,
             Cmp comp
         ) -> strong_ordering
         {
@@ -242,7 +242,7 @@ namespace mamba::specs
             {
                 for (; first1 != last1; ++first1)
                 {
-                    if (auto c = comp(*first1, empty); c != strong_ordering::equal)
+                    if (auto c = comp(*first1, empty2); c != strong_ordering::equal)
                     {
                         return c;
                     }
@@ -255,7 +255,7 @@ namespace mamba::specs
             {
                 for (; first2 != last2; ++first2)
                 {
-                    if (auto c = comp(empty, *first2); c != strong_ordering::equal)
+                    if (auto c = comp(empty1, *first2); c != strong_ordering::equal)
                     {
                         return c;
                     }
@@ -263,6 +263,27 @@ namespace mamba::specs
             }
             // They have the same elements
             return strong_ordering::equal;
+        }
+
+        template <typename Iter1, typename Iter2, typename Empty, typename Cmp>
+        constexpr auto lexicographical_compare_three_way_trailing(
+            Iter1 first1,
+            Iter1 last1,
+            Iter2 first2,
+            Iter2 last2,
+            Empty empty,
+            Cmp comp
+        ) -> strong_ordering
+        {
+            return lexicographical_compare_three_way_trailing(
+                first1,
+                last1,
+                first2,
+                last2,
+                empty,
+                empty,
+                comp
+            );
         }
 
         template <>
@@ -335,6 +356,79 @@ namespace mamba::specs
     auto Version::operator>=(const Version& other) const -> bool
     {
         return compare_three_way(*this, other) != strong_ordering::less;
+    }
+
+    namespace
+    {
+        struct AlwaysEqual
+        {
+        };
+
+        template <typename T>
+        auto starts_with_three_way(const AlwaysEqual&, const T&) -> strong_ordering
+        {
+            return strong_ordering::equal;
+        }
+
+        template <typename T>
+        auto starts_with_three_way(const T&, const AlwaysEqual&) -> strong_ordering
+        {
+            return strong_ordering::equal;
+        }
+
+        auto starts_with_three_way(const VersionPartAtom& a, const VersionPartAtom& b)
+            -> strong_ordering
+        {
+            if ((a.numeral() == b.numeral()) && b.literal().empty())
+            {
+                return strong_ordering::equal;
+            }
+            return compare_three_way(a, b);
+        }
+
+        auto starts_with_three_way(const VersionPart& a, const VersionPart& b) -> strong_ordering
+        {
+            return lexicographical_compare_three_way_trailing(
+                a.cbegin(),
+                a.cend(),
+                b.cbegin(),
+                b.cend(),
+                VersionPartAtom{},
+                AlwaysEqual{},
+                [](const auto& x, const auto& y) { return starts_with_three_way(x, y); }
+            );
+        }
+
+        auto starts_with_three_way(const CommonVersion& a, const CommonVersion& b) -> strong_ordering
+        {
+            return lexicographical_compare_three_way_trailing(
+                a.cbegin(),
+                a.cend(),
+                b.cbegin(),
+                b.cend(),
+                VersionPart{},
+                AlwaysEqual{},
+                [](const auto& x, const auto& y) { return starts_with_three_way(x, y); }
+            );
+        }
+
+        auto starts_with_three_way(const Version& a, const Version& b) -> strong_ordering
+        {
+            if (auto c = compare_three_way(a.epoch(), b.epoch()); c != strong_ordering::equal)
+            {
+                return c;
+            }
+            if (auto c = starts_with_three_way(a.version(), b.version()); c != strong_ordering::equal)
+            {
+                return c;
+            }
+            return compare_three_way(a.local(), b.local());
+        }
+    }
+
+    auto Version::starts_with(const Version& prefix) const -> bool
+    {
+        return starts_with_three_way(*this, prefix) == strong_ordering::equal;
     }
 
     namespace

@@ -88,9 +88,11 @@ namespace mamba
 
         if (!solvable.has_value() || solvable->channel().empty())
         {
-            throw std::runtime_error(
-                fmt::format(R"(Could not find any installed package matching "")", ms.str())
-            );
+            // We are not reinstalling but simply installing.
+            // Right now, using `--force-reinstall` will send all specs (whether they have
+            // been previously installed or not) down this path, so we need to handle specs
+            // that are not installed.
+            return m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, m_pool.matchspec2id(ms));
         }
 
         if (!ms.channel.empty() || !ms.version.empty() || !ms.build_string.empty())

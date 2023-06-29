@@ -192,7 +192,8 @@ namespace mamba
         );
         trans().order(pool);
 
-        if (!solver.flags().keep_dependencies || !solver.flags().keep_specs)
+        const auto& solver_flags = solver.flags();
+        if (!solver_flags.keep_dependencies || !solver_flags.keep_specs)
         {
             m_filter_type = !(solver.flags().keep_specs) ? FilterType::keep_only : FilterType::ignore;
             for (auto& s : solver.install_specs())

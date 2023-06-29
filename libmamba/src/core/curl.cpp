@@ -732,18 +732,17 @@ namespace mamba
 
     namespace
     {
-        std::map<std::string, CURLUPart> to_curlu_part{
-            {"CURLUPART_URL", CURLUPART_URL},
-            {"CURLUPART_SCHEME", CURLUPART_SCHEME},
-            {"CURLUPART_HOST", CURLUPART_HOST},
-            {"CURLUPART_PATH", CURLUPART_PATH},
-            {"CURLUPART_PORT", CURLUPART_PORT},
-            {"CURLUPART_QUERY", CURLUPART_QUERY},
-            {"CURLUPART_FRAGMENT", CURLUPART_FRAGMENT},
-            {"CURLUPART_OPTIONS", CURLUPART_OPTIONS},
-            {"CURLUPART_USER", CURLUPART_USER},
-            {"CURLUPART_PASSWORD", CURLUPART_PASSWORD},
-            {"CURLUPART_ZONEID", CURLUPART_ZONEID}};
+        std::map<std::string, CURLUPart> to_curlu_part{ { "CURLUPART_URL", CURLUPART_URL },
+                                                        { "CURLUPART_SCHEME", CURLUPART_SCHEME },
+                                                        { "CURLUPART_HOST", CURLUPART_HOST },
+                                                        { "CURLUPART_PATH", CURLUPART_PATH },
+                                                        { "CURLUPART_PORT", CURLUPART_PORT },
+                                                        { "CURLUPART_QUERY", CURLUPART_QUERY },
+                                                        { "CURLUPART_FRAGMENT", CURLUPART_FRAGMENT },
+                                                        { "CURLUPART_OPTIONS", CURLUPART_OPTIONS },
+                                                        { "CURLUPART_USER", CURLUPART_USER },
+                                                        { "CURLUPART_PASSWORD", CURLUPART_PASSWORD },
+                                                        { "CURLUPART_ZONEID", CURLUPART_ZONEID } };
     }  // namespace
 
     std::string CURLUHandle::get_part(const std::string& part, bool has_scheme) const

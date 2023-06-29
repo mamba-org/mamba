@@ -194,7 +194,10 @@ namespace mamba
         j["build"] = build_string;
         j["build_string"] = build_string;
         j["build_number"] = build_number;
-        j["noarch"] = noarch;
+        if (!noarch.empty())
+        {
+            j["noarch"] = noarch;
+        }
         j["license"] = license;
         j["track_features"] = fmt::format("{}", fmt::join(track_features, ","));
         if (!md5.empty())
@@ -237,7 +240,10 @@ namespace mamba
         j["timestamp"] = timestamp;
         j["build"] = build_string;
         j["build_number"] = build_number;
-        j["noarch"] = noarch;
+        if (!noarch.empty())
+        {
+            j["noarch"] = noarch;
+        }
         j["license"] = license;
         j["md5"] = md5;
         j["sha256"] = sha256;

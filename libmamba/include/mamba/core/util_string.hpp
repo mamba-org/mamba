@@ -234,7 +234,7 @@ namespace mamba
         const Value& sep,
         const Value& etc,
         std::size_t threshold = 5,
-        std::pair<std::size_t, std::size_t> show = {2, 1}
+        std::pair<std::size_t, std::size_t> show = { 2, 1 }
     );
 
     /**
@@ -255,7 +255,7 @@ namespace mamba
         std::string_view sep = ", ",
         std::string_view etc = "...",
         std::size_t threshold = 5,
-        std::pair<std::size_t, std::size_t> show = {2, 1},
+        std::pair<std::size_t, std::size_t> show = { 2, 1 },
         Joiner joiner = detail::PlusEqual{}
     ) -> typename Range::value_type;
     ;
@@ -339,7 +339,7 @@ namespace mamba
                 [&should_strip](Char c) -> bool { return !should_strip(c); }
             );
             const auto start_idx = static_cast<std::size_t>(start_iter - input.cbegin());
-            return {input.substr(0, start_idx), input.substr(start_idx)};
+            return { input.substr(0, start_idx), input.substr(start_idx) };
         }
     }
 
@@ -379,7 +379,7 @@ namespace mamba
                 [&should_strip](Char c) -> bool { return !should_strip(c); }
             );
             const auto past_end_idx = static_cast<std::size_t>(input.crend() - rstart_iter);
-            return {input.substr(0, past_end_idx), input.substr(past_end_idx)};
+            return { input.substr(0, past_end_idx), input.substr(past_end_idx) };
         }
     }
 
@@ -415,7 +415,7 @@ namespace mamba
         {
             const auto [head, not_head] = lstrip_if_parts(input, should_strip);
             const auto [body, tail] = rstrip_if_parts(not_head, std::move(should_strip));
-            return {head, body, tail};
+            return { head, body, tail };
         }
     }
 

@@ -53,7 +53,7 @@ TEST_SUITE("conflict_map")
 
     TEST_CASE("remove")
     {
-        auto c = conflict_map<std::size_t>({{1, 1}, {1, 2}, {1, 3}, {2, 4}});
+        auto c = conflict_map<std::size_t>({ { 1, 1 }, { 1, 2 }, { 1, 3 }, { 2, 4 } });
         REQUIRE_EQ(c.size(), 4);
 
         REQUIRE(c.in_conflict(2, 4));
@@ -148,9 +148,12 @@ namespace
         );
         const auto repodata_f = create_repodata_json(tmp_dir.path, packages);
 
-        auto pool = MPool{channel_context};
-        MRepo(pool, "some-name", repodata_f, RepoMetadata{/* .url= */ "some-url"});
-        auto solver = MSolver(std::move(pool), std::vector{std::pair{SOLVER_FLAG_ALLOW_DOWNGRADE, 1}});
+        auto pool = MPool{ channel_context };
+        MRepo(pool, "some-name", repodata_f, RepoMetadata{ /* .url= */ "some-url" });
+        auto solver = MSolver(
+            std::move(pool),
+            std::vector{ std::pair{ SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } }
+        );
         solver.add_jobs(specs, SOLVER_INSTALL);
 
         return solver;
@@ -159,7 +162,7 @@ namespace
 
 TEST_CASE("Test create_problem utility")
 {
-    auto solver = create_problem(std::array{mkpkg("foo", "0.1.0", {})}, {"foo"});
+    auto solver = create_problem(std::array{ mkpkg("foo", "0.1.0", {}) }, { "foo" });
     const auto solved = solver.try_solve();
     REQUIRE(solved);
 }
@@ -174,7 +177,7 @@ namespace
                 mkpkg("A", "0.2.0"),
                 mkpkg("A", "0.3.0"),
             },
-            {"A=0.4.0"}
+            { "A=0.4.0" }
         );
     }
 
@@ -188,61 +191,61 @@ namespace
     {
         return create_problem(
             std::array{
-                mkpkg("menu", "1.5.0", {"dropdown=2.*"}),
-                mkpkg("menu", "1.4.0", {"dropdown=2.*"}),
-                mkpkg("menu", "1.3.0", {"dropdown=2.*"}),
-                mkpkg("menu", "1.2.0", {"dropdown=2.*"}),
-                mkpkg("menu", "1.1.0", {"dropdown=2.*"}),
-                mkpkg("menu", "1.0.0", {"dropdown=1.*"}),
-                mkpkg("dropdown", "2.3.0", {"icons=2.*"}),
-                mkpkg("dropdown", "2.2.0", {"icons=2.*"}),
-                mkpkg("dropdown", "2.1.0", {"icons=2.*"}),
-                mkpkg("dropdown", "2.0.0", {"icons=2.*"}),
-                mkpkg("dropdown", "1.8.0", {"icons=1.*", "intl=3.*"}),
+                mkpkg("menu", "1.5.0", { "dropdown=2.*" }),
+                mkpkg("menu", "1.4.0", { "dropdown=2.*" }),
+                mkpkg("menu", "1.3.0", { "dropdown=2.*" }),
+                mkpkg("menu", "1.2.0", { "dropdown=2.*" }),
+                mkpkg("menu", "1.1.0", { "dropdown=2.*" }),
+                mkpkg("menu", "1.0.0", { "dropdown=1.*" }),
+                mkpkg("dropdown", "2.3.0", { "icons=2.*" }),
+                mkpkg("dropdown", "2.2.0", { "icons=2.*" }),
+                mkpkg("dropdown", "2.1.0", { "icons=2.*" }),
+                mkpkg("dropdown", "2.0.0", { "icons=2.*" }),
+                mkpkg("dropdown", "1.8.0", { "icons=1.*", "intl=3.*" }),
                 mkpkg("icons", "2.0.0"),
                 mkpkg("icons", "1.0.0"),
                 mkpkg("intl", "5.0.0"),
                 mkpkg("intl", "4.0.0"),
                 mkpkg("intl", "3.0.0"),
             },
-            {"menu", "icons=1.*", "intl=5.*"}
+            { "menu", "icons=1.*", "intl=5.*" }
         );
     }
 
     auto create_pubgrub_hard_(bool missing_package) -> MSolver
     {
         auto packages = std::vector{
-            mkpkg("menu", "2.1.0", {"dropdown>=2.1", "emoji"}),
-            mkpkg("menu", "2.0.1", {"dropdown>=2", "emoji"}),
-            mkpkg("menu", "2.0.0", {"dropdown>=2", "emoji"}),
-            mkpkg("menu", "1.5.0", {"dropdown=2.*", "emoji"}),
-            mkpkg("menu", "1.4.0", {"dropdown=2.*", "emoji"}),
-            mkpkg("menu", "1.3.0", {"dropdown=2.*"}),
-            mkpkg("menu", "1.2.0", {"dropdown=2.*"}),
-            mkpkg("menu", "1.1.0", {"dropdown=1.*"}),
-            mkpkg("menu", "1.0.0", {"dropdown=1.*"}),
-            mkpkg("emoji", "1.1.0", {"libicons=2.*"}),
-            mkpkg("emoji", "1.0.0", {"libicons=2.*"}),
-            mkpkg("dropdown", "2.3.0", {"libicons=2.*"}),
-            mkpkg("dropdown", "2.2.0", {"libicons=2.*"}),
-            mkpkg("dropdown", "2.1.0", {"libicons=2.*"}),
-            mkpkg("dropdown", "2.0.0", {"libicons=2.*"}),
-            mkpkg("dropdown", "1.8.0", {"libicons=1.*", "intl=3.*"}),
-            mkpkg("dropdown", "1.7.0", {"libicons=1.*", "intl=3.*"}),
-            mkpkg("dropdown", "1.6.0", {"libicons=1.*", "intl=3.*"}),
-            mkpkg("pyicons", "2.0.0", {"libicons=2.*"}),
-            mkpkg("pyicons", "1.1.0", {"libicons=1.2.*"}),
-            mkpkg("pyicons", "1.0.0", {"libicons=1.*"}),
-            mkpkg("pretty", "1.1.0", {"pyicons=1.1.*"}),
-            mkpkg("pretty", "1.0.1", {"pyicons=1.*"}),
-            mkpkg("pretty", "1.0.0", {"pyicons=1.*"}),
+            mkpkg("menu", "2.1.0", { "dropdown>=2.1", "emoji" }),
+            mkpkg("menu", "2.0.1", { "dropdown>=2", "emoji" }),
+            mkpkg("menu", "2.0.0", { "dropdown>=2", "emoji" }),
+            mkpkg("menu", "1.5.0", { "dropdown=2.*", "emoji" }),
+            mkpkg("menu", "1.4.0", { "dropdown=2.*", "emoji" }),
+            mkpkg("menu", "1.3.0", { "dropdown=2.*" }),
+            mkpkg("menu", "1.2.0", { "dropdown=2.*" }),
+            mkpkg("menu", "1.1.0", { "dropdown=1.*" }),
+            mkpkg("menu", "1.0.0", { "dropdown=1.*" }),
+            mkpkg("emoji", "1.1.0", { "libicons=2.*" }),
+            mkpkg("emoji", "1.0.0", { "libicons=2.*" }),
+            mkpkg("dropdown", "2.3.0", { "libicons=2.*" }),
+            mkpkg("dropdown", "2.2.0", { "libicons=2.*" }),
+            mkpkg("dropdown", "2.1.0", { "libicons=2.*" }),
+            mkpkg("dropdown", "2.0.0", { "libicons=2.*" }),
+            mkpkg("dropdown", "1.8.0", { "libicons=1.*", "intl=3.*" }),
+            mkpkg("dropdown", "1.7.0", { "libicons=1.*", "intl=3.*" }),
+            mkpkg("dropdown", "1.6.0", { "libicons=1.*", "intl=3.*" }),
+            mkpkg("pyicons", "2.0.0", { "libicons=2.*" }),
+            mkpkg("pyicons", "1.1.0", { "libicons=1.2.*" }),
+            mkpkg("pyicons", "1.0.0", { "libicons=1.*" }),
+            mkpkg("pretty", "1.1.0", { "pyicons=1.1.*" }),
+            mkpkg("pretty", "1.0.1", { "pyicons=1.*" }),
+            mkpkg("pretty", "1.0.0", { "pyicons=1.*" }),
             mkpkg("intl", "5.0.0"),
             mkpkg("intl", "4.0.0"),
             mkpkg("intl", "3.2.0"),
             mkpkg("intl", "3.1.0"),
             mkpkg("intl", "3.0.0"),
-            mkpkg("intl-mod", "1.0.0", {"intl=5.0.*"}),
-            mkpkg("intl-mod", "1.0.1", {"intl=5.0.*"}),
+            mkpkg("intl-mod", "1.0.0", { "intl=5.0.*" }),
+            mkpkg("intl-mod", "1.0.1", { "intl=5.0.*" }),
             mkpkg("libicons", "2.1.0"),
             mkpkg("libicons", "2.0.1"),
             mkpkg("libicons", "2.0.0"),
@@ -253,12 +256,15 @@ namespace
 
         if (missing_package)
         {
-            packages.push_back(mkpkg("dropdown", "2.9.3", {"libnothere>1.0"}));
-            packages.push_back(mkpkg("dropdown", "2.9.2", {"libicons>10.0", "libnothere>1.0"}));
-            packages.push_back(mkpkg("dropdown", "2.9.1", {"libicons>10.0", "libnothere>1.0"}));
-            packages.push_back(mkpkg("dropdown", "2.9.0", {"libicons>10.0"}));
+            packages.push_back(mkpkg("dropdown", "2.9.3", { "libnothere>1.0" }));
+            packages.push_back(mkpkg("dropdown", "2.9.2", { "libicons>10.0", "libnothere>1.0" }));
+            packages.push_back(mkpkg("dropdown", "2.9.1", { "libicons>10.0", "libnothere>1.0" }));
+            packages.push_back(mkpkg("dropdown", "2.9.0", { "libicons>10.0" }));
         }
-        return create_problem(packages, {"menu", "pyicons=1.*", "intl=5.*", "intl-mod", "pretty>=1.0"});
+        return create_problem(
+            packages,
+            { "menu", "pyicons=1.*", "intl=5.*", "intl-mod", "pretty>=1.0" }
+        );
     }
 
     /**
@@ -326,9 +332,9 @@ namespace
      */
     auto create_conda_forge(
         std::vector<std::string>&& specs,
-        const std::vector<PackageInfo>& virtual_packages = {mkpkg("__glibc", "2.17.0")},
-        std::vector<std::string>&& channels = {"conda-forge"},
-        const std::vector<std::string>& platforms = {"linux-64", "noarch"}
+        const std::vector<PackageInfo>& virtual_packages = { mkpkg("__glibc", "2.17.0") },
+        std::vector<std::string>&& channels = { "conda-forge" },
+        const std::vector<std::string>& platforms = { "linux-64", "noarch" }
     ) -> MSolver
     {
         ChannelContext channel_context = {};
@@ -341,11 +347,11 @@ namespace
             PrefixData::create(tmp_dir.path / "prefix", channel_context)
         );
         prefix_data.add_packages(virtual_packages);
-        auto pool = MPool{channel_context};
-        auto repo = MRepo{pool, prefix_data};
+        auto pool = MPool{ channel_context };
+        auto repo = MRepo{ pool, prefix_data };
         repo.set_installed();
 
-        auto cache = MultiPackageCache({tmp_dir.path / "cache"});
+        auto cache = MultiPackageCache({ tmp_dir.path / "cache" });
         create_cache_dir(cache.first_writable_path());
 
         bool prev_progress_bars_value = Context::instance().graphics_params.no_progress_bars;
@@ -353,7 +359,10 @@ namespace
         load_channels(pool, cache, make_platform_channels(std::move(channels), platforms));
         Context::instance().graphics_params.no_progress_bars = prev_progress_bars_value;
 
-        auto solver = MSolver(std::move(pool), std::vector{std::pair{SOLVER_FLAG_ALLOW_DOWNGRADE, 1}});
+        auto solver = MSolver(
+            std::move(pool),
+            std::vector{ std::pair{ SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } }
+        );
         solver.add_jobs(specs, SOLVER_INSTALL);
 
         return solver;
@@ -362,7 +371,7 @@ namespace
 
 TEST_CASE("Test create_conda_forge utility ")
 {
-    auto solver = create_conda_forge({"xtensor>=0.7"});
+    auto solver = create_conda_forge({ "xtensor>=0.7" });
     const auto solved = solver.try_solve();
     REQUIRE(solved);
 }
@@ -371,50 +380,50 @@ namespace
 {
     auto create_pytorch_cpu() -> MSolver
     {
-        return create_conda_forge({"python=2.7", "pytorch=1.12"});
+        return create_conda_forge({ "python=2.7", "pytorch=1.12" });
     }
 
     auto create_pytorch_cuda() -> MSolver
     {
         return create_conda_forge(
-            {"python=2.7", "pytorch=1.12"},
-            {mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "10.2.0")}
+            { "python=2.7", "pytorch=1.12" },
+            { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "10.2.0") }
         );
     }
 
     auto create_cudatoolkit() -> MSolver
     {
         return create_conda_forge(
-            {"python=3.7", "cudatoolkit=11.1", "cudnn=8.0", "pytorch=1.8", "torchvision=0.9=*py37_cu111*"},
-            {mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "11.1")}
+            { "python=3.7", "cudatoolkit=11.1", "cudnn=8.0", "pytorch=1.8", "torchvision=0.9=*py37_cu111*" },
+            { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "11.1") }
         );
     }
 
     auto create_jpeg9b() -> MSolver
     {
-        return create_conda_forge({"python=3.7", "jpeg=9b"});
+        return create_conda_forge({ "python=3.7", "jpeg=9b" });
     }
 
     auto create_r_base() -> MSolver
     {
         return create_conda_forge(
-            {"r-base=3.5.* ", "pandas=0", "numpy<1.20.0", "matplotlib=2", "r-matchit=4.*"}
+            { "r-base=3.5.* ", "pandas=0", "numpy<1.20.0", "matplotlib=2", "r-matchit=4.*" }
         );
     }
 
     auto create_scip() -> MSolver
     {
-        return create_conda_forge({"scip=8.*", "pyscipopt<4.0"});
+        return create_conda_forge({ "scip=8.*", "pyscipopt<4.0" });
     }
 
     auto create_double_python() -> MSolver
     {
-        return create_conda_forge({"python=3.9.*", "python=3.10.*"});
+        return create_conda_forge({ "python=3.9.*", "python=3.10.*" });
     }
 
     auto create_numba() -> MSolver
     {
-        return create_conda_forge({"python=3.11", "numba<0.56"});
+        return create_conda_forge({ "python=3.11", "numba<0.56" });
     }
 
     template <typename NodeVariant>
@@ -441,7 +450,7 @@ TEST_CASE("NamedList")
     static constexpr std::size_t n_packages = 9;
     for (std::size_t minor = 1; minor <= n_packages; ++minor)
     {
-        l.insert({mkpkg("pkg", fmt::format("0.{}.0", minor))});
+        l.insert({ mkpkg("pkg", fmt::format("0.{}.0", minor)) });
     }
     CHECK_EQ(l.size(), n_packages);
     CHECK_EQ(l.name(), "pkg");
@@ -473,18 +482,18 @@ TEST_CASE("Create problem graph")
     using CpPbGr = CompressedProblemsGraph;
 
     const auto issues = std::array{
-        std::pair{"Basic conflict", &create_basic_conflict},
-        std::pair{"PubGrub example", &create_pubgrub},
-        std::pair{"Harder PubGrub example", &create_pubgrub_hard},
-        std::pair{"PubGrub example with missing packages", &create_pubgrub_missing},
-        std::pair{"PyTorch CPU", &create_pytorch_cpu},
-        std::pair{"PyTorch Cuda", &create_pytorch_cuda},
-        std::pair{"Cuda Toolkit", &create_cudatoolkit},
-        std::pair{"Jpeg", &create_jpeg9b},
-        std::pair{"R base", &create_r_base},
-        std::pair{"SCIP", &create_scip},
-        std::pair{"Two different Python", &create_double_python},
-        std::pair{"Numba", &create_numba},
+        std::pair{ "Basic conflict", &create_basic_conflict },
+        std::pair{ "PubGrub example", &create_pubgrub },
+        std::pair{ "Harder PubGrub example", &create_pubgrub_hard },
+        std::pair{ "PubGrub example with missing packages", &create_pubgrub_missing },
+        std::pair{ "PyTorch CPU", &create_pytorch_cpu },
+        std::pair{ "PyTorch Cuda", &create_pytorch_cuda },
+        std::pair{ "Cuda Toolkit", &create_cudatoolkit },
+        std::pair{ "Jpeg", &create_jpeg9b },
+        std::pair{ "R base", &create_r_base },
+        std::pair{ "SCIP", &create_scip },
+        std::pair{ "Two different Python", &create_double_python },
+        std::pair{ "Numba", &create_numba },
     };
 
     for (const auto& [name, factory] : issues)

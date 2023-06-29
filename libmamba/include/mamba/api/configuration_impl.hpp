@@ -58,7 +58,7 @@ namespace mamba
         {
             static std::vector<std::string> default_value(const T&)
             {
-                return std::vector<std::string>({"default"});
+                return std::vector<std::string>({ "default" });
             };
 
             static void merge(
@@ -328,8 +328,9 @@ namespace YAML
     {
     private:
 
-        inline static const std::array<std::string, 7>
-            log_level_names = {"trace", "debug", "info", "warning", "error", "critical", "off"};
+        inline static const std::array<std::string, 7> log_level_names = {
+            "trace", "debug", "info", "warning", "error", "critical", "off"
+        };
 
     public:
 

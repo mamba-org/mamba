@@ -67,24 +67,24 @@ namespace mamba
         TEST_CASE("any_starts_with")
         {
             using StrVec = std::vector<std::string_view>;
-            CHECK_FALSE(any_starts_with(StrVec{}, {"not"}));
+            CHECK_FALSE(any_starts_with(StrVec{}, { "not" }));
             CHECK_FALSE(any_starts_with(StrVec{}, ""));
-            CHECK(any_starts_with(StrVec{":hello", "world"}, ""));
-            CHECK(any_starts_with(StrVec{":hello", "world"}, ":"));
-            CHECK(any_starts_with(StrVec{":hello", "world"}, ":h"));
-            CHECK(any_starts_with(StrVec{":hello", "world"}, ":hello"));
-            CHECK_FALSE(any_starts_with(StrVec{":hello", "world"}, "orld"));
-            CHECK(any_starts_with(StrVec{"áäáœ©gþhëb", "®hüghœ©®xb"}, "áäá"));
+            CHECK(any_starts_with(StrVec{ ":hello", "world" }, ""));
+            CHECK(any_starts_with(StrVec{ ":hello", "world" }, ":"));
+            CHECK(any_starts_with(StrVec{ ":hello", "world" }, ":h"));
+            CHECK(any_starts_with(StrVec{ ":hello", "world" }, ":hello"));
+            CHECK_FALSE(any_starts_with(StrVec{ ":hello", "world" }, "orld"));
+            CHECK(any_starts_with(StrVec{ "áäáœ©gþhëb", "®hüghœ©®xb" }, "áäá"));
         }
 
         TEST_CASE("starts_with_any")
         {
             using StrVec = std::vector<std::string_view>;
-            CHECK(starts_with_any(":hello", StrVec{"", "not"}));
-            CHECK(starts_with_any(":hello", StrVec{":hello", "not"}));
+            CHECK(starts_with_any(":hello", StrVec{ "", "not" }));
+            CHECK(starts_with_any(":hello", StrVec{ ":hello", "not" }));
             CHECK_FALSE(starts_with_any(":hello", StrVec{}));
-            CHECK_FALSE(starts_with_any(":hello", StrVec{"not", "any"}));
-            CHECK(starts_with_any("áäáœ©gþhëb®hüghœ©®xb", StrVec{"áäáœ©gþhëb", "®hüghœ©®xb"}));
+            CHECK_FALSE(starts_with_any(":hello", StrVec{ "not", "any" }));
+            CHECK(starts_with_any("áäáœ©gþhëb®hüghœ©®xb", StrVec{ "áäáœ©gþhëb", "®hüghœ©®xb" }));
         }
 
         TEST_CASE("lstrip")
@@ -101,12 +101,12 @@ namespace mamba
         TEST_CASE("lstrip_parts")
         {
             using StrPair = std::array<std::string_view, 2>;
-            CHECK_EQ(lstrip_parts(":::hello%:%", ":%"), StrPair({":::", "hello%:%"}));
-            CHECK_EQ(lstrip_parts(":::hello%:%", ':'), StrPair({":::", "hello%:%"}));
-            CHECK_EQ(lstrip_parts(":::hello%:%", '%'), StrPair({"", ":::hello%:%"}));
-            CHECK_EQ(lstrip_parts("", '%'), StrPair({"", ""}));
-            CHECK_EQ(lstrip_parts("aaa", 'a'), StrPair({"aaa", ""}));
-            CHECK_EQ(lstrip_parts("aaa", 'b'), StrPair({"", "aaa"}));
+            CHECK_EQ(lstrip_parts(":::hello%:%", ":%"), StrPair({ ":::", "hello%:%" }));
+            CHECK_EQ(lstrip_parts(":::hello%:%", ':'), StrPair({ ":::", "hello%:%" }));
+            CHECK_EQ(lstrip_parts(":::hello%:%", '%'), StrPair({ "", ":::hello%:%" }));
+            CHECK_EQ(lstrip_parts("", '%'), StrPair({ "", "" }));
+            CHECK_EQ(lstrip_parts("aaa", 'a'), StrPair({ "aaa", "" }));
+            CHECK_EQ(lstrip_parts("aaa", 'b'), StrPair({ "", "aaa" }));
         }
 
         TEST_CASE("lstrip_if")
@@ -121,16 +121,16 @@ namespace mamba
         TEST_CASE("lstrip_if_parts")
         {
             using StrPair = std::array<std::string_view, 2>;
-            CHECK_EQ(lstrip_if_parts("", [](auto) { return true; }), StrPair({"", ""}));
-            CHECK_EQ(lstrip_if_parts("hello", [](auto) { return true; }), StrPair({"hello", ""}));
-            CHECK_EQ(lstrip_if_parts("hello", [](auto) { return false; }), StrPair({"", "hello"}));
+            CHECK_EQ(lstrip_if_parts("", [](auto) { return true; }), StrPair({ "", "" }));
+            CHECK_EQ(lstrip_if_parts("hello", [](auto) { return true; }), StrPair({ "hello", "" }));
+            CHECK_EQ(lstrip_if_parts("hello", [](auto) { return false; }), StrPair({ "", "hello" }));
             CHECK_EQ(
                 lstrip_if_parts("\n \thello \t\n", [](auto c) { return !is_alphanum(c); }),
-                StrPair({"\n \t", "hello \t\n"})
+                StrPair({ "\n \t", "hello \t\n" })
             );
             CHECK_EQ(
                 lstrip_if_parts("123hello456", [](auto c) { return is_digit(c); }),
-                StrPair({"123", "hello456"})
+                StrPair({ "123", "hello456" })
             );
         }
 
@@ -148,12 +148,12 @@ namespace mamba
         TEST_CASE("rstrip_parts")
         {
             using StrPair = std::array<std::string_view, 2>;
-            CHECK_EQ(rstrip_parts(":::hello%:%", '%'), StrPair({":::hello%:", "%"}));
-            CHECK_EQ(rstrip_parts(":::hello%:%", ":%"), StrPair({":::hello", "%:%"}));
-            CHECK_EQ(rstrip_parts(":::hello%:%", ':'), StrPair({":::hello%:%", ""}));
-            CHECK_EQ(rstrip_parts("", '%'), StrPair({"", ""}));
-            CHECK_EQ(rstrip_parts("aaa", 'a'), StrPair({"", "aaa"}));
-            CHECK_EQ(rstrip_parts("aaa", 'b'), StrPair({"aaa", ""}));
+            CHECK_EQ(rstrip_parts(":::hello%:%", '%'), StrPair({ ":::hello%:", "%" }));
+            CHECK_EQ(rstrip_parts(":::hello%:%", ":%"), StrPair({ ":::hello", "%:%" }));
+            CHECK_EQ(rstrip_parts(":::hello%:%", ':'), StrPair({ ":::hello%:%", "" }));
+            CHECK_EQ(rstrip_parts("", '%'), StrPair({ "", "" }));
+            CHECK_EQ(rstrip_parts("aaa", 'a'), StrPair({ "", "aaa" }));
+            CHECK_EQ(rstrip_parts("aaa", 'b'), StrPair({ "aaa", "" }));
         }
 
         TEST_CASE("rstrip_if")
@@ -168,16 +168,16 @@ namespace mamba
         TEST_CASE("rstrip_if_parts")
         {
             using StrPair = std::array<std::string_view, 2>;
-            CHECK_EQ(rstrip_if_parts("", [](auto) { return true; }), StrPair({"", ""}));
-            CHECK_EQ(rstrip_if_parts("hello", [](auto) { return true; }), StrPair({"", "hello"}));
-            CHECK_EQ(rstrip_if_parts("hello", [](auto) { return false; }), StrPair({"hello", ""}));
+            CHECK_EQ(rstrip_if_parts("", [](auto) { return true; }), StrPair({ "", "" }));
+            CHECK_EQ(rstrip_if_parts("hello", [](auto) { return true; }), StrPair({ "", "hello" }));
+            CHECK_EQ(rstrip_if_parts("hello", [](auto) { return false; }), StrPair({ "hello", "" }));
             CHECK_EQ(
                 rstrip_if_parts("\n \thello \t\n", [](auto c) { return !is_alphanum(c); }),
-                StrPair({"\n \thello", " \t\n"})
+                StrPair({ "\n \thello", " \t\n" })
             );
             CHECK_EQ(
                 rstrip_if_parts("123hello456", [](auto c) { return is_digit(c); }),
-                StrPair({"123hello", "456"})
+                StrPair({ "123hello", "456" })
             );
         }
 
@@ -194,11 +194,11 @@ namespace mamba
         TEST_CASE("strip_parts")
         {
             using StrTrio = std::array<std::string_view, 3>;
-            CHECK_EQ(strip_parts(":::hello%:%", ":%"), StrTrio({":::", "hello", "%:%"}));
-            CHECK_EQ(strip_parts(":::hello%:%", ':'), StrTrio({":::", "hello%:%", ""}));
-            CHECK_EQ(strip_parts("", '%'), StrTrio({"", "", ""}));
-            CHECK_EQ(strip_parts("aaa", 'a'), StrTrio({"aaa", "", ""}));
-            CHECK_EQ(strip_parts("aaa", 'b'), StrTrio({"", "aaa", ""}));
+            CHECK_EQ(strip_parts(":::hello%:%", ":%"), StrTrio({ ":::", "hello", "%:%" }));
+            CHECK_EQ(strip_parts(":::hello%:%", ':'), StrTrio({ ":::", "hello%:%", "" }));
+            CHECK_EQ(strip_parts("", '%'), StrTrio({ "", "", "" }));
+            CHECK_EQ(strip_parts("aaa", 'a'), StrTrio({ "aaa", "", "" }));
+            CHECK_EQ(strip_parts("aaa", 'b'), StrTrio({ "", "aaa", "" }));
         }
 
         TEST_CASE("strip_if")
@@ -213,16 +213,16 @@ namespace mamba
         TEST_CASE("strip_if_parts")
         {
             using StrTrio = std::array<std::string_view, 3>;
-            CHECK_EQ(strip_if_parts("", [](auto) { return true; }), StrTrio({"", "", ""}));
-            CHECK_EQ(strip_if_parts("hello", [](auto) { return true; }), StrTrio({"hello", "", ""}));
-            CHECK_EQ(strip_if_parts("hello", [](auto) { return false; }), StrTrio({"", "hello", ""}));
+            CHECK_EQ(strip_if_parts("", [](auto) { return true; }), StrTrio({ "", "", "" }));
+            CHECK_EQ(strip_if_parts("hello", [](auto) { return true; }), StrTrio({ "hello", "", "" }));
+            CHECK_EQ(strip_if_parts("hello", [](auto) { return false; }), StrTrio({ "", "hello", "" }));
             CHECK_EQ(
                 strip_if_parts("\n \thello \t\n", [](auto c) { return !is_alphanum(c); }),
-                StrTrio({"\n \t", "hello", " \t\n"})
+                StrTrio({ "\n \t", "hello", " \t\n" })
             );
             CHECK_EQ(
                 strip_if_parts("123hello456", [](auto c) { return is_digit(c); }),
-                StrTrio({"123", "hello", "456"})
+                StrTrio({ "123", "hello", "456" })
             );
         }
 
@@ -289,32 +289,32 @@ namespace mamba
         TEST_CASE("split")
         {
             std::string a = "hello.again.it's.me.mario";
-            std::vector<std::string> e1 = {"hello", "again", "it's", "me", "mario"};
+            std::vector<std::string> e1 = { "hello", "again", "it's", "me", "mario" };
             CHECK_EQ(split(a, "."), e1);
 
-            std::vector<std::string> s2 = {"hello", "again", "it's.me.mario"};
+            std::vector<std::string> s2 = { "hello", "again", "it's.me.mario" };
             CHECK_EQ(split(a, ".", 2), s2);
 
             CHECK_EQ(rsplit(a, "."), e1);
-            std::vector<std::string> r2 = {"hello.again.it's", "me", "mario"};
+            std::vector<std::string> r2 = { "hello.again.it's", "me", "mario" };
             CHECK_EQ(rsplit(a, ".", 2), r2);
 
             std::string b = "...";
-            auto es1 = std::vector<std::string>{"", "", "", ""};
-            auto es2 = std::vector<std::string>{"", ".."};
+            auto es1 = std::vector<std::string>{ "", "", "", "" };
+            auto es2 = std::vector<std::string>{ "", ".." };
             CHECK_EQ(split(b, "."), es1);
             CHECK_EQ(split(b, ".", 1), es2);
 
-            std::vector<std::string> v = {"xtensor==0.12.3"};
+            std::vector<std::string> v = { "xtensor==0.12.3" };
             CHECK_EQ(split(v[0], ":"), v);
             CHECK_EQ(rsplit(v[0], ":"), v);
             CHECK_EQ(split(v[0], ":", 2), v);
             CHECK_EQ(rsplit(v[0], ":", 2), v);
 
-            std::vector<std::string> v2 = {"conda-forge/linux64", "", "xtensor==0.12.3"};
+            std::vector<std::string> v2 = { "conda-forge/linux64", "", "xtensor==0.12.3" };
             CHECK_EQ(split("conda-forge/linux64::xtensor==0.12.3", ":", 2), v2);
             CHECK_EQ(rsplit("conda-forge/linux64::xtensor==0.12.3", ":", 2), v2);
-            std::vector<std::string> v21 = {"conda-forge/linux64:", "xtensor==0.12.3"};
+            std::vector<std::string> v21 = { "conda-forge/linux64:", "xtensor==0.12.3" };
 
             CHECK_EQ(rsplit("conda-forge/linux64::xtensor==0.12.3", ":", 1), v21);
         }
@@ -322,13 +322,13 @@ namespace mamba
         TEST_CASE("join")
         {
             {
-                std::vector<std::string> to_join = {"a", "bc", "d"};
+                std::vector<std::string> to_join = { "a", "bc", "d" };
                 auto joined = join("-", to_join);
                 static_assert(std::is_same<decltype(joined), decltype(to_join)::value_type>::value);
                 CHECK_EQ(joined, "a-bc-d");
             }
             {
-                std::vector<fs::u8path> to_join = {"/a", "bc", "d"};
+                std::vector<fs::u8path> to_join = { "/a", "bc", "d" };
                 auto joined = join("/", to_join);
                 static_assert(std::is_same<decltype(joined), decltype(to_join)::value_type>::value);
                 CHECK_EQ(joined, "/a/bc/d");
@@ -340,16 +340,16 @@ namespace mamba
 
         TEST_CASE("join_trunc")
         {
-            std::vector<std::string> to_join = {"a", "bc", "d", "e", "f"};
+            std::vector<std::string> to_join = { "a", "bc", "d", "e", "f" };
             {
                 auto joined = join_trunc(to_join);
                 static_assert(std::is_same<decltype(joined), decltype(to_join)::value_type>::value);
             }
-            CHECK_EQ(join_trunc(to_join, "-", "..", 5, {2, 1}), "a-bc-d-e-f");
-            CHECK_EQ(join_trunc(to_join, ",", "..", 4, {2, 1}), "a,bc,..,f");
-            CHECK_EQ(join_trunc(to_join, ",", "..", 4, {0, 1}), "..,f");
-            CHECK_EQ(join_trunc(to_join, ",", "..", 4, {2, 0}), "a,bc,..");
-            CHECK_EQ(join_trunc(to_join, ",", "..", 4, {0, 0}), "..");
+            CHECK_EQ(join_trunc(to_join, "-", "..", 5, { 2, 1 }), "a-bc-d-e-f");
+            CHECK_EQ(join_trunc(to_join, ",", "..", 4, { 2, 1 }), "a,bc,..,f");
+            CHECK_EQ(join_trunc(to_join, ",", "..", 4, { 0, 1 }), "..,f");
+            CHECK_EQ(join_trunc(to_join, ",", "..", 4, { 2, 0 }), "a,bc,..");
+            CHECK_EQ(join_trunc(to_join, ",", "..", 4, { 0, 0 }), "..");
             CHECK_EQ(join_trunc(std::vector<std::string>()), "");
         }
 

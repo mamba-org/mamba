@@ -143,16 +143,18 @@ TEST_SUITE("graph")
         CHECK_EQ(g.number_of_edges(), 7ul);
         CHECK_EQ(
             g.nodes(),
-            node_map({{0, 0.5}, {1, 1.5}, {2, 2.5}, {3, 3.5}, {4, 4.5}, {5, 5.5}, {6, 6.5}})
+            node_map(
+                { { 0, 0.5 }, { 1, 1.5 }, { 2, 2.5 }, { 3, 3.5 }, { 4, 4.5 }, { 5, 5.5 }, { 6, 6.5 } }
+            )
         );
-        CHECK_EQ(g.successors(0u), node_id_list({1u, 2u}));
-        CHECK_EQ(g.successors(1u), node_id_list({3u, 4u}));
-        CHECK_EQ(g.successors(2u), node_id_list({3u, 5u}));
-        CHECK_EQ(g.successors(3u), node_id_list({6u}));
+        CHECK_EQ(g.successors(0u), node_id_list({ 1u, 2u }));
+        CHECK_EQ(g.successors(1u), node_id_list({ 3u, 4u }));
+        CHECK_EQ(g.successors(2u), node_id_list({ 3u, 5u }));
+        CHECK_EQ(g.successors(3u), node_id_list({ 6u }));
         CHECK_EQ(g.predecessors(0u), node_id_list());
-        CHECK_EQ(g.predecessors(1u), node_id_list({0u}));
-        CHECK_EQ(g.predecessors(2u), node_id_list({0u}));
-        CHECK_EQ(g.predecessors(3u), node_id_list({1u, 2u}));
+        CHECK_EQ(g.predecessors(1u), node_id_list({ 0u }));
+        CHECK_EQ(g.predecessors(2u), node_id_list({ 0u }));
+        CHECK_EQ(g.predecessors(3u), node_id_list({ 1u, 2u }));
     }
 
     TEST_CASE("build_edge_data")
@@ -162,16 +164,16 @@ TEST_SUITE("graph")
         using node_id_list = decltype(g)::node_id_list;
         CHECK_EQ(g.number_of_nodes(), 3ul);
         CHECK_EQ(g.number_of_edges(), 2ul);
-        CHECK_EQ(g.nodes(), node_map({{0, 0.5}, {1, 1.5}, {2, 2.5}}));
-        CHECK_EQ(g.successors(0ul), node_id_list({1ul}));
-        CHECK_EQ(g.successors(1ul), node_id_list({2ul}));
+        CHECK_EQ(g.nodes(), node_map({ { 0, 0.5 }, { 1, 1.5 }, { 2, 2.5 } }));
+        CHECK_EQ(g.successors(0ul), node_id_list({ 1ul }));
+        CHECK_EQ(g.successors(1ul), node_id_list({ 2ul }));
         CHECK_EQ(g.successors(2ul), node_id_list());
         CHECK_EQ(g.predecessors(0ul), node_id_list());
-        CHECK_EQ(g.predecessors(1ul), node_id_list({0ul}));
-        CHECK_EQ(g.predecessors(2ul), node_id_list({1ul}));
+        CHECK_EQ(g.predecessors(1ul), node_id_list({ 0ul }));
+        CHECK_EQ(g.predecessors(2ul), node_id_list({ 1ul }));
 
         using edge_map = decltype(g)::edge_map;
-        CHECK_EQ(g.edges(), edge_map({{{0ul, 1ul}, "n0->n1"}, {{1ul, 2ul}, "n1->n2"}}));
+        CHECK_EQ(g.edges(), edge_map({ { { 0ul, 1ul }, "n0->n1" }, { { 1ul, 2ul }, "n1->n2" } }));
     }
 
     TEST_CASE("has_node_edge")
@@ -219,7 +221,7 @@ TEST_SUITE("graph")
         CHECK(g.remove_edge(0, 1));
         CHECK_EQ(g.number_of_edges(), n_edges_init - 1u);
         CHECK_FALSE(g.has_edge(0, 1));
-        CHECK_EQ(g.edges().count({0, 1}), 0);
+        CHECK_EQ(g.edges().count({ 0, 1 }), 0);
     }
 
     TEST_CASE("remove_node")
@@ -308,7 +310,7 @@ TEST_SUITE("graph")
         using node_id_list = decltype(g)::node_id_list;
         auto leaves = node_id_list();
         g.for_each_leaf_id([&leaves](node_id leaf) { leaves.insert(leaf); });
-        CHECK_EQ(leaves, node_id_list({4ul, 5ul, 6ul}));
+        CHECK_EQ(leaves, node_id_list({ 4ul, 5ul, 6ul }));
     }
 
     TEST_CASE("for_each_leaf_from")
@@ -318,7 +320,7 @@ TEST_SUITE("graph")
         using node_id_list = decltype(g)::node_id_list;
         auto leaves = node_id_list();
         g.for_each_leaf_id_from(2ul, [&leaves](node_id leaf) { leaves.insert(leaf); });
-        CHECK_EQ(leaves, node_id_list({5ul, 6ul}));
+        CHECK_EQ(leaves, node_id_list({ 5ul, 6ul }));
     }
 
     TEST_CASE("for_each_root")
@@ -328,7 +330,7 @@ TEST_SUITE("graph")
         using node_id_list = decltype(g)::node_id_list;
         auto roots = node_id_list();
         g.for_each_root_id([&roots](node_id root) { roots.insert(root); });
-        CHECK_EQ(roots, node_id_list({0ul}));
+        CHECK_EQ(roots, node_id_list({ 0ul }));
     }
 
     TEST_CASE("for_each_root_from")
@@ -338,7 +340,7 @@ TEST_SUITE("graph")
         using node_id_list = decltype(g)::node_id_list;
         auto leaves = node_id_list();
         g.for_each_root_id_from(2ul, [&leaves](node_id leaf) { leaves.insert(leaf); });
-        CHECK_EQ(leaves, node_id_list({0ul}));
+        CHECK_EQ(leaves, node_id_list({ 0ul }));
     }
 
     TEST_CASE("depth_first_search")
@@ -432,7 +434,7 @@ TEST_SUITE("graph")
                 [&nodes](node_id n) { nodes.push_back(n); },
                 n0
             );
-            CHECK_EQ(nodes, std::vector<node_id>{n0, n1});
+            CHECK_EQ(nodes, std::vector<node_id>{ n0, n1 });
         }
 
         SUBCASE("dfs_preorder on all nodes")
@@ -442,7 +444,7 @@ TEST_SUITE("graph")
             REQUIRE(g.has_node(n2));
             dfs_preorder_nodes_for_each_id(g, [&nodes](node_id n) { nodes.push_back(n); });
             CHECK(is_node_id_permutation(g, nodes.cbegin(), nodes.cend()));
-            CHECK_EQ(nodes, std::vector<node_id>{n0, n1, n2});
+            CHECK_EQ(nodes, std::vector<node_id>{ n0, n1, n2 });
         }
 
         SUBCASE("dfs_postorder starting on a given node")
@@ -452,14 +454,14 @@ TEST_SUITE("graph")
                 [&nodes](node_id n) { nodes.push_back(n); },
                 n0
             );
-            CHECK_EQ(nodes, std::vector<node_id>{n1, n0});
+            CHECK_EQ(nodes, std::vector<node_id>{ n1, n0 });
         }
 
         SUBCASE("dfs_postorder on all nodes")
         {
             dfs_postorder_nodes_for_each_id(g, [&nodes](node_id n) { nodes.push_back(n); });
             CHECK(is_node_id_permutation(g, nodes.cbegin(), nodes.cend()));
-            CHECK_EQ(nodes, std::vector<node_id>{n1, n0, n2});
+            CHECK_EQ(nodes, std::vector<node_id>{ n1, n0, n2 });
         }
     }
 

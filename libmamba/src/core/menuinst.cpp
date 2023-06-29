@@ -168,9 +168,9 @@ namespace mamba
         }
 
         const std::map<std::string, KNOWNFOLDERID> knownfolders = {
-            {"programs", FOLDERID_Programs},
-            {"profile", FOLDERID_Profile},
-            {"documents", FOLDERID_Documents},
+            { "programs", FOLDERID_Programs },
+            { "profile", FOLDERID_Profile },
+            { "documents", FOLDERID_Documents },
         };
 
         fs::u8path get_folder(const std::string& id)
@@ -252,13 +252,13 @@ namespace mamba
         }
 
         std::map<std::string, std::string> vars = {
-            {"${PREFIX}", to_forward_slash(target_prefix)},
-            {"${ROOT_PREFIX}", to_forward_slash(root_prefix)},
-            {"${PY_VER}", py_ver},
-            {"${MENU_DIR}", to_forward_slash(target_prefix / "Menu")},
-            {"${DISTRIBUTION_NAME}", distribution_name},
-            {"${ENV_NAME}", detail::get_formatted_env_name(target_prefix)},
-            {"${PLATFORM}", platform_bitness},
+            { "${PREFIX}", to_forward_slash(target_prefix) },
+            { "${ROOT_PREFIX}", to_forward_slash(root_prefix) },
+            { "${PY_VER}", py_ver },
+            { "${MENU_DIR}", to_forward_slash(target_prefix / "Menu") },
+            { "${DISTRIBUTION_NAME}", distribution_name },
+            { "${ENV_NAME}", detail::get_formatted_env_name(target_prefix) },
+            { "${PLATFORM}", platform_bitness },
         };
 
 #ifdef _WIN32
@@ -320,10 +320,10 @@ namespace mamba
             const fs::u8path env_pyw = target_prefix / "pythonw.exe";
             const auto cwp_path = root_prefix / "cwp.py";
             std::vector<std::string> cwp_py_args(
-                {cwp_path.string(), target_prefix.string(), env_py.string()}
+                { cwp_path.string(), target_prefix.string(), env_py.string() }
             );
             std::vector<std::string> cwp_pyw_args(
-                {cwp_path.string(), target_prefix.string(), env_pyw.string()}
+                { cwp_path.string(), target_prefix.string(), env_pyw.string() }
             );
 
             fs::u8path target_dir = win::get_folder("programs") / menu_name;
@@ -374,12 +374,12 @@ namespace mamba
                 else if (item.contains("webbrowser"))
                 {
                     script = root_pyw;
-                    arguments = {"-m", "webbrowser", "-t", item["webbrowser"]};
+                    arguments = { "-m", "webbrowser", "-t", item["webbrowser"] };
                 }
                 else if (item.contains("script"))
                 {
                     script = root_py;
-                    arguments = {cwp_path.string(), target_prefix.string()};
+                    arguments = { cwp_path.string(), target_prefix.string() };
                     auto tmp = split(item["script"], " ");
                     std::copy(tmp.begin(), tmp.end(), back_inserter(arguments));
                     extend_script_args(item, arguments);

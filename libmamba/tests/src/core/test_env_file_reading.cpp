@@ -47,19 +47,19 @@ namespace mamba
             using V = std::vector<std::string>;
             auto res = detail::read_yaml_file(test_data_dir / "env_file/env_1.yaml");
             CHECK_EQ(res.name, "env_1");
-            CHECK_EQ(res.channels, V({"conda-forge", "bioconda"}));
-            CHECK_EQ(res.dependencies, V({"test1", "test2", "test3"}));
+            CHECK_EQ(res.channels, V({ "conda-forge", "bioconda" }));
+            CHECK_EQ(res.dependencies, V({ "test1", "test2", "test3" }));
             CHECK_FALSE(res.others_pkg_mgrs_specs.size());
 
             auto res2 = detail::read_yaml_file(test_data_dir / "env_file/env_2.yaml");
             CHECK_EQ(res2.name, "env_2");
-            CHECK_EQ(res2.channels, V({"conda-forge", "bioconda"}));
+            CHECK_EQ(res2.channels, V({ "conda-forge", "bioconda" }));
 #ifdef __linux__
-            CHECK_EQ(res2.dependencies, V({"test1-unix", "test1-linux", "test2-linux", "test4"}));
+            CHECK_EQ(res2.dependencies, V({ "test1-unix", "test1-linux", "test2-linux", "test4" }));
 #elif __APPLE__
-            CHECK_EQ(res2.dependencies, V({"test1-unix", "test1-osx", "test4"}));
+            CHECK_EQ(res2.dependencies, V({ "test1-unix", "test1-osx", "test4" }));
 #elif _WIN32
-            CHECK_EQ(res2.dependencies, V({"test1-win", "test4"}));
+            CHECK_EQ(res2.dependencies, V({ "test1-win", "test4" }));
 #endif
             CHECK_FALSE(res2.others_pkg_mgrs_specs.size());
         }
@@ -69,13 +69,13 @@ namespace mamba
             using V = std::vector<std::string>;
             auto res = detail::read_yaml_file(test_data_dir / "env_file/env_3.yaml");
             CHECK_EQ(res.name, "env_3");
-            CHECK_EQ(res.channels, V({"conda-forge", "bioconda"}));
-            CHECK_EQ(res.dependencies, V({"test1", "test2", "test3", "pip"}));
+            CHECK_EQ(res.channels, V({ "conda-forge", "bioconda" }));
+            CHECK_EQ(res.dependencies, V({ "test1", "test2", "test3", "pip" }));
 
             CHECK_EQ(res.others_pkg_mgrs_specs.size(), 1);
             auto o = res.others_pkg_mgrs_specs[0];
             CHECK_EQ(o.pkg_mgr, "pip");
-            CHECK_EQ(o.deps, V({"pytest", "numpy"}));
+            CHECK_EQ(o.deps, V({ "pytest", "numpy" }));
             CHECK_EQ(o.cwd, fs::absolute(test_data_dir / "env_file"));
         }
     }

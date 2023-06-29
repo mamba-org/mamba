@@ -233,7 +233,7 @@ namespace mamba
         }
 
         std::string out, err;
-        std::vector<std::string> args = {env::get("COMSPEC").value_or(""), "/c", "ver"};
+        std::vector<std::string> args = { env::get("COMSPEC").value_or(""), "/c", "ver" };
         auto [status, ec] = reproc::run(
             args,
             reproc::options{},
@@ -289,7 +289,7 @@ namespace mamba
         // an XML file
         //       that contains the same information. However, then we'd either need an xml
         //       parser or some other crude method to read the data
-        std::vector<std::string> args = {"sw_vers", "-productVersion"};
+        std::vector<std::string> args = { "sw_vers", "-productVersion" };
         auto [status, ec] = reproc::run(
             args,
             reproc::options{},
@@ -323,7 +323,7 @@ namespace mamba
         }
 
         std::string out, err;
-        std::vector<std::string> args = {"uname", "-r"};
+        std::vector<std::string> args = { "uname", "-r" };
         auto [status, ec] = reproc::run(
             args,
             reproc::options{},
@@ -692,7 +692,7 @@ namespace mamba
             options.redirect.err = silence;
         }
 
-        const std::vector<std::string> cmd = {"/usr/bin/codesign", "-s", "-", "-f", path.string()};
+        const std::vector<std::string> cmd = { "/usr/bin/codesign", "-s", "-", "-f", path.string() };
         auto [status, ec] = reproc::run(cmd, options);
         if (ec)
         {

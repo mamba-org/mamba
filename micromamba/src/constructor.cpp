@@ -144,7 +144,7 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
             }
 
             nlohmann::json index;
-            std::ifstream index_file{index_path.std_path()};
+            std::ifstream index_file{ index_path.std_path() };
             index_file >> index;
 
             if (!repodata_record.is_null())
@@ -179,7 +179,7 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
             }
 
             LOG_TRACE << "Writing " << repodata_record_path;
-            std::ofstream repodata_record_of{repodata_record_path.std_path()};
+            std::ofstream repodata_record_of{ repodata_record_path.std_path() };
             repodata_record_of << repodata_record.dump(4);
         }
     }

@@ -128,11 +128,11 @@ namespace mamba
             std::string sequence;
             TaskSynchronizer task_sync;
 
-            const auto unlock_duration = std::chrono::seconds{1};
-            std::atomic<bool> task_started{false};
-            std::atomic<bool> task_continue{false};
-            std::atomic<bool> unlocker_ready{false};
-            std::atomic<bool> unlocker_start{false};
+            const auto unlock_duration = std::chrono::seconds{ 1 };
+            std::atomic<bool> task_started{ false };
+            std::atomic<bool> task_continue{ false };
+            std::atomic<bool> unlocker_ready{ false };
+            std::atomic<bool> unlocker_start{ false };
 
             auto ft_task = std::async(
                 std::launch::async,

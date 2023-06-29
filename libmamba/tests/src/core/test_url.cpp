@@ -16,19 +16,10 @@
 namespace mamba
 {
     const std::vector<std::string> KNOWN_PLATFORMS = {
-        "noarch",
-        "linux-32",
-        "linux-64",
-        "linux-aarch64",
-        "linux-armv6l",
-        "linux-armv7l",
-        "linux-ppc64le",
-        "linux-ppc64",
-        "osx-64",
-        "osx-arm64",
-        "win-32",
-        "win-64",
-        "zos-z"};
+        "noarch",       "linux-32",      "linux-64",    "linux-aarch64", "linux-armv6l",
+        "linux-armv7l", "linux-ppc64le", "linux-ppc64", "osx-64",        "osx-arm64",
+        "win-32",       "win-64",        "zos-z"
+    };
 
     TEST_SUITE("url")
     {
@@ -68,7 +59,7 @@ namespace mamba
 
             std::string platform_found, cleaned_url;
             split_platform(
-                {"noarch", "linux-64"},
+                { "noarch", "linux-64" },
                 "https://mamba.com/linux-64/package.tar.bz2",
                 ctx.platform,
                 cleaned_url,
@@ -79,7 +70,7 @@ namespace mamba
             CHECK_EQ(cleaned_url, "https://mamba.com/package.tar.bz2");
 
             split_platform(
-                {"noarch", "linux-64"},
+                { "noarch", "linux-64" },
                 "https://mamba.com/linux-64/noarch-package.tar.bz2",
                 ctx.platform,
                 cleaned_url,
@@ -89,7 +80,7 @@ namespace mamba
             CHECK_EQ(cleaned_url, "https://mamba.com/noarch-package.tar.bz2");
 
             split_platform(
-                {"linux-64", "osx-arm64", "noarch"},
+                { "linux-64", "osx-arm64", "noarch" },
                 "https://mamba.com/noarch/kernel_linux-64-package.tar.bz2",
                 ctx.platform,
                 cleaned_url,
@@ -99,7 +90,7 @@ namespace mamba
             CHECK_EQ(cleaned_url, "https://mamba.com/kernel_linux-64-package.tar.bz2");
 
             split_platform(
-                {"noarch", "linux-64"},
+                { "noarch", "linux-64" },
                 "https://mamba.com/linux-64",
                 ctx.platform,
                 cleaned_url,
@@ -110,7 +101,7 @@ namespace mamba
             CHECK_EQ(cleaned_url, "https://mamba.com");
 
             split_platform(
-                {"noarch", "linux-64"},
+                { "noarch", "linux-64" },
                 "https://mamba.com/noarch",
                 ctx.platform,
                 cleaned_url,

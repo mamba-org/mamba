@@ -67,7 +67,7 @@ namespace mamba
         {
             LOG_DEBUG << "Adding virtual package: " << pkg.name << "=" << pkg.version << "="
                       << pkg.build_string;
-            m_package_records.insert({pkg.name, std::move(pkg)});
+            m_package_records.insert({ pkg.name, std::move(pkg) });
         }
     }
 
@@ -99,7 +99,7 @@ namespace mamba
                 for (const auto& dep : record->depends)
                 {
                     // Creating a matchspec to parse the name (there may be a channel)
-                    auto ms = MatchSpec{dep, m_channel_context};
+                    auto ms = MatchSpec{ dep, m_channel_context };
                     // Ignoring unmatched dependencies, the environment could be broken
                     // or it could be a matchspec
                     const auto from_iter = name_to_node_id.find(ms.name);
@@ -113,7 +113,7 @@ namespace mamba
             // Flip known problematic edges.
             // This is made to adress cycles but there is no straightforward way to make
             // a generic cycle handler so we instead force flip the given edges
-            static constexpr auto edges_to_flip = std::array{std::pair{"pip", "python"}};
+            static constexpr auto edges_to_flip = std::array{ std::pair{ "pip", "python" } };
             for (const auto& [from, to] : edges_to_flip)
             {
                 const auto from_iter = name_to_node_id.find(from);
@@ -159,6 +159,6 @@ namespace mamba
         nlohmann::json j;
         infile >> j;
         auto prec = PackageInfo(std::move(j));
-        m_package_records.insert({prec.name, std::move(prec)});
+        m_package_records.insert({ prec.name, std::move(prec) });
     }
 }  // namespace mamba

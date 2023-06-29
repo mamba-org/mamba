@@ -42,7 +42,7 @@ namespace mamba
     void extract_conda(
         const fs::u8path& file,
         const fs::u8path& dest_dir,
-        const std::vector<std::string>& parts = {"info", "pkg"}
+        const std::vector<std::string>& parts = { "info", "pkg" }
     );
     void extract(const fs::u8path& file, const fs::u8path& destination);
     fs::u8path extract(const fs::u8path& file);

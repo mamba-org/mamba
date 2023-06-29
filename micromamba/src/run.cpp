@@ -59,8 +59,8 @@ set_ps_command(CLI::App* subcom)
         {
             std::cout << "No running processes" << std::endl;
         }
-        printers::Table table({"PID", "Name", "Prefix", "Command"});
-        table.set_padding({2, 4, 4, 4});
+        printers::Table table({ "PID", "Name", "Prefix", "Command" });
+        table.set_padding({ 2, 4, 4, 4 });
         for (auto& el : info)
         {
             auto prefix = el["prefix"].get<std::string>();

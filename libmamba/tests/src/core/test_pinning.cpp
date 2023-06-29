@@ -31,63 +31,63 @@ namespace mamba
                 PrefixData& prefix_data = sprefix_data.value();
                 REQUIRE_EQ(prefix_data.records().size(), 0);
 
-                specs = {"python"};
+                specs = { "python" };
                 pin = python_pin(prefix_data, specs);
                 CHECK_EQ(pin, "");
 
-                specs = {"python-test"};
+                specs = { "python-test" };
                 pin = python_pin(prefix_data, specs);
                 CHECK_EQ(pin, "");
 
-                specs = {"python=3"};
+                specs = { "python=3" };
                 pin = python_pin(prefix_data, specs);
                 CHECK_EQ(pin, "");
 
-                specs = {"python==3.8"};
+                specs = { "python==3.8" };
                 pin = python_pin(prefix_data, specs);
                 CHECK_EQ(pin, "");
 
-                specs = {"python==3.8.3"};
+                specs = { "python==3.8.3" };
                 pin = python_pin(prefix_data, specs);
                 CHECK_EQ(pin, "");
 
-                specs = {"numpy"};
+                specs = { "numpy" };
                 pin = python_pin(prefix_data, specs);
                 CHECK_EQ(pin, "");
 
                 PackageInfo pkg_info("python", "3.7.10", "abcde", 0);
-                prefix_data.add_packages({pkg_info});
+                prefix_data.add_packages({ pkg_info });
                 REQUIRE_EQ(prefix_data.records().size(), 1);
 
-                specs = {"python"};
+                specs = { "python" };
                 pin = python_pin(prefix_data, specs);
                 CHECK_EQ(pin, "");
 
-                specs = {"numpy"};
+                specs = { "numpy" };
                 pin = python_pin(prefix_data, specs);
                 CHECK_EQ(pin, "python 3.7.*");
 
-                specs = {"python-test"};
+                specs = { "python-test" };
                 pin = python_pin(prefix_data, specs);
                 CHECK_EQ(pin, "python 3.7.*");
 
-                specs = {"python==3"};
+                specs = { "python==3" };
                 pin = python_pin(prefix_data, specs);
                 CHECK_EQ(pin, "");
 
-                specs = {"python=3.*"};
+                specs = { "python=3.*" };
                 pin = python_pin(prefix_data, specs);
                 CHECK_EQ(pin, "");
 
-                specs = {"python=3.8"};
+                specs = { "python=3.8" };
                 pin = python_pin(prefix_data, specs);
                 CHECK_EQ(pin, "");
 
-                specs = {"python=3.8.3"};
+                specs = { "python=3.8.3" };
                 pin = python_pin(prefix_data, specs);
                 CHECK_EQ(pin, "");
 
-                specs = {"numpy", "python"};
+                specs = { "numpy", "python" };
                 pin = python_pin(prefix_data, specs);
                 CHECK_EQ(pin, "");
             }

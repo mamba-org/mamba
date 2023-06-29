@@ -23,7 +23,7 @@ namespace mamba
         read_package_info(ChannelContext& channel_context, const YAML::Node& package_node)
         {
             Package package{
-                /* .info = */ mamba::PackageInfo{package_node["name"].as<std::string>()},
+                /* .info = */ mamba::PackageInfo{ package_node["name"].as<std::string>() },
                 /* .is_optional = */
                 [&]
                 {
@@ -58,7 +58,7 @@ namespace mamba
             }
 
             package.info.url = package_node["url"].as<std::string>();
-            const MatchSpec spec{package.info.url, channel_context};
+            const MatchSpec spec{ package.info.url, channel_context };
             package.info.fn = spec.fn;
             package.info.build_string = spec.build_string;
             package.info.subdir = spec.subdir;
@@ -169,7 +169,7 @@ namespace mamba
                 }
             }
 
-            return EnvironmentLockFile{std::move(metadata), std::move(packages)};
+            return EnvironmentLockFile{ std::move(metadata), std::move(packages) };
         }
     }
 
@@ -210,7 +210,7 @@ namespace mamba
                     file_path.string(),
                     err.what()
                 ),
-                std::type_index{typeid(err)}
+                std::type_index{ typeid(err) }
             ));
         }
         catch (...)

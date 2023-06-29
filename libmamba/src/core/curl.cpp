@@ -592,7 +592,7 @@ namespace mamba
         CURLMsg* msg = curl_multi_info_read(p_handle, &msgs_in_queue);
         if (msg != nullptr)
         {
-            return CURLMultiResponse{msg->easy_handle, msg->data.result, msg->msg == CURLMSG_DONE};
+            return CURLMultiResponse{ msg->easy_handle, msg->data.result, msg->msg == CURLMSG_DONE };
         }
         else
         {

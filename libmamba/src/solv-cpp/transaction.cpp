@@ -44,11 +44,11 @@ namespace mamba::solv
     auto ObjTransaction::from_solvables(const ObjPool& pool, const ObjQueue& solvables)
         -> ObjTransaction
     {
-        return ObjTransaction{::transaction_create_decisionq(
+        return ObjTransaction{ ::transaction_create_decisionq(
             const_cast<::Pool*>(pool.raw()),
             const_cast<::Queue*>(solvables.raw()),
             nullptr
-        )};
+        ) };
     }
     namespace
     {
@@ -61,7 +61,8 @@ namespace mamba::solv
 
     auto ObjTransaction::from_solver(const ObjPool& pool, const ObjSolver& solver) -> ObjTransaction
     {
-        auto trans = ObjTransaction{::solver_create_transaction(const_cast<::Solver*>(solver.raw()))};
+        auto trans = ObjTransaction{ ::solver_create_transaction(const_cast<::Solver*>(solver.raw())
+        ) };
         assert_same_pool(pool, trans);
         return trans;
     }
@@ -109,7 +110,7 @@ namespace mamba::solv
         {
             if (auto id = ::transaction_obs_pkg(const_cast<::Transaction*>(raw()), step); id != 0)
             {
-                return {id};
+                return { id };
             }
         }
         return std::nullopt;

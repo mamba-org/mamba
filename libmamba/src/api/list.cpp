@@ -121,14 +121,12 @@ namespace mamba
             std::sort(packages.begin(), packages.end(), compare_alphabetically);
 
             // format and print table
-            printers::Table t({"Name", "Version", "Build", "Channel"});
-            t.set_alignment(
-                {printers::alignment::left,
-                 printers::alignment::left,
-                 printers::alignment::left,
-                 printers::alignment::left}
-            );
-            t.set_padding({2, 2, 2, 2});
+            printers::Table t({ "Name", "Version", "Build", "Channel" });
+            t.set_alignment({ printers::alignment::left,
+                              printers::alignment::left,
+                              printers::alignment::left,
+                              printers::alignment::left });
+            t.set_padding({ 2, 2, 2, 2 });
 
             for (auto p : packages)
             {
@@ -138,7 +136,7 @@ namespace mamba
                     formatted_name = printers::FormattedString(p.name);
                     formatted_name.style = ctx.graphics_params.palette.user;
                 }
-                t.add_row({formatted_name, p.version, p.build, p.channel});
+                t.add_row({ formatted_name, p.version, p.build, p.channel });
             }
 
             t.print(std::cout);

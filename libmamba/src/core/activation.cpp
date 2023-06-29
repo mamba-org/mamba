@@ -717,27 +717,15 @@ namespace mamba
 
     std::string Activator::hook(const std::string& shell_type)
     {
-        std::stringstream builder;
-        builder << hook_preamble() << "\n";
-        if (!hook_source_path().empty())
-        {
-            if (fs::exists(hook_source_path()))
-            {
-                builder << read_contents(hook_source_path()) << "\n";
-            }
-            else
-            {
-                std::string contents = get_hook_contents(shell());
-                builder << contents << "\n";
-            }
-        }
-
         // special handling for cmd.exe
-        if (!fs::exists(hook_source_path()) && shell() == "cmd.exe")
+        if (shell() == "cmd.exe")
         {
             get_hook_contents(shell());
             return "";
         }
+
+        std::stringstream builder;
+        builder << hook_preamble() << "\n" << get_hook_contents(shell()) << "\n";
 
         if (Context::instance().shell_completion)
         {

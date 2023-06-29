@@ -96,7 +96,9 @@ namespace mamba
             );
 
 
-            mamba::Context ctx;
+            mamba::Context& ctx = Context::instance();  // REVIEW: :/  this should be a separate
+                                                        // object, but turns out it's problematic if
+                                                        // it is
             mamba::Configuration config{ ctx };
 
         private:

@@ -1077,6 +1077,14 @@ class PackageInfo:
     def name(self, arg0: str) -> None:
         pass
     @property
+    def noarch(self) -> str:
+        """
+        :type: str
+        """
+    @noarch.setter
+    def noarch(self, arg0: str) -> None:
+        pass
+    @property
     def sha256(self) -> str:
         """
         :type: str

@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <algorithm>
+#include <array>
 #include <string>
 #include <vector>
 
@@ -37,19 +38,19 @@ namespace mamba::specs
             CHECK_GE(VersionPartAtom(1, "a"), VersionPartAtom(1, "dev"));
 
             // clang-format off
-            auto sorted_atoms = std::vector<VersionPartAtom>{
-                { 1, "*" },
-                { 1, "dev" },
-                { 1, "_" },
-                { 1, "a" },
-                { 1, "alpha" },
-                { 1, "b" },
-                { 1, "beta" },
-                { 1, "c" },
-                { 1, "r" },
-                { 1, "rc" },
-                { 1, "" },
-                { 1, "post" },
+            auto sorted_atoms = std::array{
+               VersionPartAtom{ 1, "*" },
+               VersionPartAtom{ 1, "dev" },
+               VersionPartAtom{ 1, "_" },
+               VersionPartAtom{ 1, "a" },
+               VersionPartAtom{ 1, "alpha" },
+               VersionPartAtom{ 1, "b" },
+               VersionPartAtom{ 1, "beta" },
+               VersionPartAtom{ 1, "c" },
+               VersionPartAtom{ 1, "r" },
+               VersionPartAtom{ 1, "rc" },
+               VersionPartAtom{ 1, "" },
+               VersionPartAtom{ 1, "post" },
             };
             // clang-format on
 

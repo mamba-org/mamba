@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <doctest/doctest.h>
+#include <fmt/format.h>
 
 #include "mamba/specs/version.hpp"
 
@@ -134,8 +135,9 @@ TEST_SUITE("version")
 
             for (const auto& [prefix, ver] : versions)
             {
-                CAPTURE(prefix.str());
-                CAPTURE(ver.str());
+                // Working around clang compilation issue.
+                const auto msg = fmt::format(R"(prefix="{}" version="{}")", prefix.str(), ver.str());
+                CAPTURE(msg);
                 CHECK(ver.starts_with(prefix));
             }
         }
@@ -167,8 +169,9 @@ TEST_SUITE("version")
 
             for (const auto& [prefix, ver] : versions)
             {
-                CAPTURE(prefix.str());
-                CAPTURE(ver.str());
+                // Working around clang compilation issue.
+                const auto msg = fmt::format(R"(prefix="{}" version="{}")", prefix.str(), ver.str());
+                CAPTURE(msg);
                 CHECK_FALSE(ver.starts_with(prefix));
             }
         }
@@ -227,9 +230,14 @@ TEST_SUITE("version")
 
             for (const auto& [level, older, newer] : versions)
             {
-                CAPTURE(level);
-                CAPTURE(older.str());
-                CAPTURE(newer.str());
+                // Working around clang compilation issue.
+                const auto msg = fmt::format(
+                    R"(level={} prefix="{}" version="{}")",
+                    level,
+                    older.str(),
+                    newer.str()
+                );
+                CAPTURE(msg);
                 CHECK(newer.compatible_with(older, level));
             }
         }
@@ -271,9 +279,14 @@ TEST_SUITE("version")
 
             for (const auto& [level, older, newer] : versions)
             {
-                CAPTURE(level);
-                CAPTURE(older.str());
-                CAPTURE(newer.str());
+                // Working around clang compilation issue.
+                const auto msg = fmt::format(
+                    R"(level={} prefix="{}" version="{}")",
+                    level,
+                    older.str(),
+                    newer.str()
+                );
+                CAPTURE(msg);
                 CHECK_FALSE(newer.compatible_with(older, level));
             }
         }

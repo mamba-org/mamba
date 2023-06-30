@@ -1,3 +1,25 @@
+2023.06.30
+==========
+
+Releases: libmamba 1.4.6, libmambapy 1.4.6, mamba 1.4.6, micromamba 1.4.6
+
+Enhancements:
+
+- [libmamba] Channels refactoring/cleaning by @Hind-M in https://github.com/mamba-org/mamba/pull/2537
+- [libmamba] Troubleshooting update by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2635
+- [libmamba] Direcly call uname for linux detection by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2624
+
+Bug fixes:
+
+- [libmamba] Fix build with older Clang by @pavelzw in https://github.com/mamba-org/mamba/pull/2625
+- [libmambapy, mamba] Fixed missing subdirs in mamba by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2632
+- [libmamba] Add missing noarch in PackageInfo serialization by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2641
+- [libmamba] Allow --force-reinstall on uninstalled specs by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2636
+
+CI fixes and doc:
+
+- [micromamba] Document micromamba support for conda-lock spec files by @mfisher87 in https://github.com/mamba-org/mamba/pull/2621
+
 2023.06.27
 ==========
 

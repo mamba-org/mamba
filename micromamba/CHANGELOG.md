@@ -1,3 +1,11 @@
+micromamba 1.4.6 (June 30, 2023)
+================================
+
+
+CI fixes and doc:
+
+- Document micromamba support for conda-lock spec files by @mfisher87 in https://github.com/mamba-org/mamba/pull/2621
+
 micromamba 1.4.5 (June 27, 2023)
 ================================
 

@@ -1,3 +1,18 @@
+libmamba 1.4.6 (June 30, 2023)
+==============================
+
+Enhancements:
+
+- Channels refactoring/cleaning by @Hind-M in https://github.com/mamba-org/mamba/pull/2537
+- Troubleshooting update by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2635
+- Direcly call uname for linux detection by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2624
+
+Bug fixes:
+
+- Fix build with older Clang by @pavelzw in https://github.com/mamba-org/mamba/pull/2625
+- Add missing noarch in PackageInfo serialization by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2641
+- Allow --force-reinstall on uninstalled specs by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2636
+
 libmamba 1.4.5 (June 27, 2023)
 ==============================
 

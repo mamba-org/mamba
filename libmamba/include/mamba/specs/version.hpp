@@ -130,6 +130,16 @@ namespace mamba::specs
          */
         [[nodiscard]] auto starts_with(const Version& prefix) const -> bool;
 
+        /**
+         * Return true if this version is a compatible upgrade to the given one.
+         *
+         * For instance 1.3.1 is compatible with 1.2.1 at level 0 (first component `1 == 1``),
+         * at level 1 (second component `` 3 >= 2``), but not at level two (because the second
+         * component is stricly larger ``3 > 2``).
+         * Compatible versions are always smaller than the current version.
+         */
+        [[nodiscard]] auto compatible_with(const Version& older, std::size_t level) const -> bool;
+
     private:
 
         // Stored in decreasing size order for performance

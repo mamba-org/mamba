@@ -21,7 +21,7 @@ main(int argc, char** argv)
 {
     using namespace mamba;  // NOLINT(build/namespaces)
 
-    Configuration config;
+    Configuration config{ Context::instance() };
 
     // call init console to setup utf8 extraction
     init_console();

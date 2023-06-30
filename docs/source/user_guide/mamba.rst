@@ -51,6 +51,15 @@ Once an environment is activated, ``mamba install`` can be used to install furth
    mamba create -n ... -c ... ...
    mamba list
 
+Specification files
+===================
+
+``mamba`` supports the same environment specification file formats as ``conda``.
+
+.. important::
+
+   While ``micromamba`` :ref:`supports conda-lock "unified" lock
+   files<micromamba-conda-lock>`, Mamba currently does not.
 
 Repoquery
 =========

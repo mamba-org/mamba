@@ -717,26 +717,26 @@ namespace mamba
 
     std::string Activator::hook(const std::string& shell_type)
     {
-        std::stringstream builder;
-        builder << hook_preamble() << "\n";
-        if (!hook_source_path().empty())
-        {
-            if (fs::exists(hook_source_path()))
-            {
-                builder << read_contents(hook_source_path()) << "\n";
-            }
-            else
-            {
-                std::string contents = get_hook_contents(shell());
-                builder << contents << "\n";
-            }
-        }
+        const auto is_cmd = [](const auto* ptr)
+        { return dynamic_cast<const CmdExeActivator*>(ptr) != nullptr; };
+        const auto is_powershell = [](const auto* ptr)
+        { return dynamic_cast<const PowerShellActivator*>(ptr) != nullptr; };
 
         // special handling for cmd.exe
-        if (!fs::exists(hook_source_path()) && shell() == "cmd.exe")
+        if (is_cmd(this))
         {
             get_hook_contents(shell());
             return "";
+        }
+
+        std::stringstream builder;
+        if (is_powershell(this) && fs::exists(hook_source_path()))
+        {
+            builder << read_contents(hook_source_path()) << "\n";
+        }
+        else
+        {
+            builder << hook_preamble() << "\n" << get_hook_contents(shell()) << "\n";
         }
 
         if (Context::instance().shell_completion)

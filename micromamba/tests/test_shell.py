@@ -86,7 +86,7 @@ class TestShell:
         elif shell_type == "cmd.exe":
             assert res == ""
         elif shell_type == "tcsh":
-            assert res.count(mamba_exe) == 2
+            assert res.count(mamba_exe) == 3
 
         res = shell("hook", "-s", shell_type, "--json")
         expected_keys = {"success", "operation", "context", "actions"}

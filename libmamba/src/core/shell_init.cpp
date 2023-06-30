@@ -282,10 +282,9 @@ namespace mamba
     std::string
     rcfile_content(const fs::u8path& env_prefix, const std::string& shell, const fs::u8path& mamba_exe)
     {
-        std::stringstream content;
-
         // todo use get bin dir here!
 #ifdef _WIN32
+        std::stringstream content;
         std::string cyg_mamba_exe = native_path_to_unix(mamba_exe.string());
         std::string cyg_env_prefix = native_path_to_unix(env_prefix.string());
         content << "\n# >>> mamba initialize >>>\n";
@@ -301,27 +300,30 @@ namespace mamba
 
         fs::u8path env_bin = env_prefix / "bin";
 
-        content << "\n# >>> mamba initialize >>>\n";
-        content << "# !! Contents within this block are managed by 'mamba init' !!\n";
-        content << "export MAMBA_EXE=" << mamba_exe << ";\n";
-        content << "export MAMBA_ROOT_PREFIX=" << env_prefix << ";\n";
-        content << "__mamba_setup=\"$(\"$MAMBA_EXE\" shell hook --shell " << shell
-                << " --root-prefix \"$MAMBA_ROOT_PREFIX\" 2> /dev/null)\"\n";
-        content << "if [ $? -eq 0 ]; then\n";
-        content << "    eval \"$__mamba_setup\"\n";
-        content << "else\n";
-        content << "    if [ -f " << (env_prefix / "etc" / "profile.d" / "micromamba.sh")
-                << " ]; then\n";
-        content << "        . " << (env_prefix / "etc" / "profile.d" / "micromamba.sh") << "\n";
-        content << "    else\n";
-        content << "        export  PATH=\"" << env_bin.string().c_str() << ":$PATH\""
-                << "  # extra space after export prevents interference from conda init\n";
-        content << "    fi\n";
-        content << "fi\n";
-        content << "unset __mamba_setup\n";
-        content << "# <<< mamba initialize <<<\n";
-
-        return content.str();
+        // Note that fs::path are already quoted by fmt.
+        return fmt::format(
+            "\n"
+            "# >>> mamba initialize >>>\n"
+            "# !! Contents within this block are managed by 'mamba init' !!\n"
+            "export MAMBA_EXE={mamba_exe_path};\n"
+            "export MAMBA_ROOT_PREFIX={root_prefix};\n"
+            R"sh(__mamba_setup="$("$MAMBA_EXE" shell hook --shell {shell} --root-prefix "$MAMBA_ROOT_PREFIX" 2> /dev/null)")sh"
+            "\n"
+            "if [ $? -eq 0 ]; then\n"
+            "    eval \"$__mamba_setup\"\n"
+            "else\n"
+            "    alias {mamba_exe_name}='"
+            R"sh(echo "Failed to initialize shell for micromamba.\nTry running {mamba_exe_name} shell reinit." 1>&2; "$MAMBA_EXE" "$@")sh"
+            "'"
+            "\n"
+            "fi\n"
+            "unset __mamba_setup\n"
+            "# <<< mamba initialize <<<\n",
+            fmt::arg("mamba_exe_path", mamba_exe),
+            fmt::arg("mamba_exe_name", mamba_exe.filename().string()),
+            fmt::arg("root_prefix", env_prefix),
+            fmt::arg("shell", shell)
+        );
 
 #endif
     }

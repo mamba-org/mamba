@@ -243,6 +243,7 @@ def repodata_json(cache: Path) -> set[Path]:
         (cache / "cache").glob("*.state.json")
     )
 
+
 def repodata_solv(cache: Path) -> set[Path]:
     return set((cache / "cache").glob("*.solv"))
 

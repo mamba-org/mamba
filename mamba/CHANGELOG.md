@@ -1,3 +1,11 @@
+mamba 1.4.6 (June 30, 2023)
+===========================
+
+
+Bug fixes:
+
+- Fixed missing subdirs in mamba by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2632
+
 mamba 1.4.5 (June 27, 2023)
 ===========================
 

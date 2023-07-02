@@ -10,7 +10,8 @@
 #include <map>
 #include <tuple>
 
-#include "mamba/core/channel.hpp"
+#include <fmt/format.h>
+
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/util_string.hpp"
 
@@ -50,6 +51,7 @@ namespace mamba
             res["version"] = build_field_getter(&PackageInfo::version);
             res["build_string"] = build_field_getter(&PackageInfo::build_string);
             res["build_number"] = build_field_getter(&PackageInfo::build_number);
+            res["noarch"] = build_field_getter(&PackageInfo::noarch);
             res["channel"] = build_field_getter(&PackageInfo::channel);
             res["url"] = build_field_getter(&PackageInfo::url);
             res["subdir"] = build_field_getter(&PackageInfo::subdir);
@@ -192,6 +194,10 @@ namespace mamba
         j["build"] = build_string;
         j["build_string"] = build_string;
         j["build_number"] = build_number;
+        if (!noarch.empty())
+        {
+            j["noarch"] = noarch;
+        }
         j["license"] = license;
         j["track_features"] = fmt::format("{}", fmt::join(track_features, ","));
         if (!md5.empty())
@@ -234,6 +240,10 @@ namespace mamba
         j["timestamp"] = timestamp;
         j["build"] = build_string;
         j["build_number"] = build_number;
+        if (!noarch.empty())
+        {
+            j["noarch"] = noarch;
+        }
         j["license"] = license;
         j["md5"] = md5;
         j["sha256"] = sha256;

@@ -239,7 +239,7 @@ def tmp_cache_alt(tmp_root_prefix: Path, tmp_shared_cache_xtensor: Path) -> Path
 
 
 def repodata_json(cache: Path) -> set[Path]:
-    return set((cache / "cache").glob("*.json"))
+    return set((cache / "cache").glob("*.json")) - set((cache / "cache").glob("*.state.json"))
 
 
 def repodata_solv(cache: Path) -> set[Path]:

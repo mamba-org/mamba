@@ -163,7 +163,6 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/repo.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/run.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/shell_init.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/solution.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/solver.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/subdirdata.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/thread_utils.cpp

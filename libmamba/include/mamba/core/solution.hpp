@@ -14,10 +14,14 @@
 
 namespace mamba
 {
-    class Solution
+    namespace detail
     {
-    public:
+        template <typename T, typename... U>
+        inline constexpr bool is_any_of_v = std::disjunction_v<std::is_same<T, U>...>;
+    }
 
+    namespace action
+    {
         struct Upgrade
         {
             PackageInfo remove;
@@ -45,34 +49,30 @@ namespace mamba
         {
             PackageInfo install;
         };
+
+        template <typename T>
+        inline constexpr bool has_remove_v = detail::is_any_of_v<T, Upgrade, Downgrade, Change, Remove>;
+
+        template <typename T>
+        inline constexpr bool has_install_v = detail::is_any_of_v<T, Upgrade, Downgrade, Change, Install>;
+
         using Action = std::variant<Upgrade, Downgrade, Change, Reinstall, Remove, Install>;
-        using action_list = std::vector<Action>;
+    }
 
-        using size_type = typename action_list::size_type;
+    using Solution = std::vector<action::Action>;
 
-        Solution() = default;
-        Solution(const action_list& actions);
-        Solution(action_list&& actions);
+    template <typename Iter, typename UnaryFunc>
+    void for_each_to_remove(Iter first, Iter last, UnaryFunc&& func);
 
-        [[nodiscard]] auto empty() const -> bool;
-        [[nodiscard]] auto size() const -> size_type;
+    template <typename Range, typename UnaryFunc>
+    void for_each_to_remove(Range&& solution, UnaryFunc&& func);
 
-        [[nodiscard]] auto actions() const -> const action_list&;
-        [[nodiscard]] auto actions() -> action_list&;
+    template <typename Iter, typename UnaryFunc>
+    void for_each_to_install(Iter first, Iter last, UnaryFunc&& func);
 
-        template <typename UnaryFunc>
-        void for_each_to_install(UnaryFunc&& func);
-        template <typename UnaryFunc>
-        void for_each_to_install(UnaryFunc&& func) const;
-        template <typename UnaryFunc>
-        void for_each_to_remove(UnaryFunc&& func);
-        template <typename UnaryFunc>
-        void for_each_to_remove(UnaryFunc&& func) const;
+    template <typename Range, typename UnaryFunc>
+    void for_each_to_install(Range&& solution, UnaryFunc&& func);
 
-    private:
-
-        action_list m_actions = {};
-    };
 }
 
 #include <type_traits>
@@ -83,19 +83,8 @@ namespace mamba
      *  Implementation of Solution  *
      ********************************/
 
-    namespace detail
+    namespace action::detail
     {
-        template <typename T, typename... U>
-        inline constexpr bool is_any_of_v = std::disjunction_v<std::is_same<T, U>...>;
-
-        template <typename T>
-        inline constexpr bool has_remove_v = is_any_of_v<
-            T,
-            Solution::Upgrade,
-            Solution::Downgrade,
-            Solution::Change,
-            Solution::Remove>;
-
         template <typename Action>
         auto to_remove_ptr(Action& action)
         {
@@ -108,7 +97,7 @@ namespace mamba
                     {
                         return &(a.remove);
                     }
-                    else if constexpr (std::is_same_v<A, Solution::Reinstall>)
+                    else if constexpr (std::is_same_v<A, Reinstall>)
                     {
                         return &(a.what);
                     }
@@ -117,28 +106,28 @@ namespace mamba
                 action
             );
         }
+    }
 
-        /** Mimick C++23 deducing this. */
-        template <typename Self, typename UnaryFunc>
-        void for_each_to_remove_impl(Self&& self, UnaryFunc&& func)
+    template <typename Iter, typename UnaryFunc>
+    void for_each_to_remove(Iter first, Iter last, UnaryFunc&& func)
+    {
+        for (; first != last; ++first)
         {
-            for (auto& a : self.actions())
+            if (auto* const ptr = action::detail::to_remove_ptr(*first))
             {
-                if (auto* const ptr = to_remove_ptr(a))
-                {
-                    func(*ptr);
-                }
+                func(*ptr);
             }
         }
+    }
 
-        template <typename T>
-        inline constexpr bool has_install_v = is_any_of_v<
-            T,
-            Solution::Upgrade,
-            Solution::Downgrade,
-            Solution::Change,
-            Solution::Install>;
+    template <typename Range, typename UnaryFunc>
+    void for_each_to_remove(Range&& self, UnaryFunc&& func)
+    {
+        return for_each_to_remove(self.begin(), self.end(), std::forward<UnaryFunc>(func));
+    }
 
+    namespace action::detail
+    {
         template <typename Action>
         auto to_install_ptr(Action& action)
         {
@@ -151,7 +140,7 @@ namespace mamba
                     {
                         return &(a.install);
                     }
-                    else if constexpr (std::is_same_v<A, Solution::Reinstall>)
+                    else if constexpr (std::is_same_v<A, Reinstall>)
                     {
                         return &(a.what);
                     }
@@ -160,43 +149,24 @@ namespace mamba
                 action
             );
         }
+    }
 
-        /** Mimick C++23 deducing this. */
-        template <typename Self, typename UnaryFunc>
-        void for_each_to_install_impl(Self&& self, UnaryFunc&& func)
+    template <typename Iter, typename UnaryFunc>
+    void for_each_to_install(Iter first, Iter last, UnaryFunc&& func)
+    {
+        for (; first != last; ++first)
         {
-            for (auto& a : self.actions())
+            if (auto* const ptr = action::detail::to_install_ptr(*first))
             {
-                if (auto* const ptr = to_install_ptr(a))
-                {
-                    func(*ptr);
-                }
+                func(*ptr);
             }
         }
     }
 
-    template <typename UnaryFunc>
-    void Solution::for_each_to_install(UnaryFunc&& func)
+    template <typename Self, typename UnaryFunc>
+    void for_each_to_install(Self&& self, UnaryFunc&& func)
     {
-        detail::for_each_to_install_impl(*this, std::forward<UnaryFunc>(func));
-    }
-
-    template <typename UnaryFunc>
-    void Solution::for_each_to_install(UnaryFunc&& func) const
-    {
-        detail::for_each_to_install_impl(*this, std::forward<UnaryFunc>(func));
-    }
-
-    template <typename UnaryFunc>
-    void Solution::for_each_to_remove(UnaryFunc&& func)
-    {
-        detail::for_each_to_remove_impl(*this, std::forward<UnaryFunc>(func));
-    }
-
-    template <typename UnaryFunc>
-    void Solution::for_each_to_remove(UnaryFunc&& func) const
-    {
-        detail::for_each_to_remove_impl(*this, std::forward<UnaryFunc>(func));
+        return for_each_to_install(self.begin(), self.end(), std::forward<UnaryFunc>(func));
     }
 }
 #endif

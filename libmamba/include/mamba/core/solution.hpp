@@ -22,6 +22,10 @@ namespace mamba
 
     struct Solution
     {
+        struct Omit
+        {
+            PackageInfo what;
+        };
         struct Upgrade
         {
             PackageInfo remove;
@@ -56,23 +60,26 @@ namespace mamba
         template <typename T>
         inline static constexpr bool has_install_v = detail::is_any_of_v<T, Upgrade, Downgrade, Change, Install>;
 
-        using Action = std::variant<Upgrade, Downgrade, Change, Reinstall, Remove, Install>;
+        using Action = std::variant<Omit, Upgrade, Downgrade, Change, Reinstall, Remove, Install>;
+        using action_list = std::vector<Action>;
 
-        std::vector<Action> actions = {};
+        action_list actions = {};
     };
 
     template <typename Iter, typename UnaryFunc>
     void for_each_to_remove(Iter first, Iter last, UnaryFunc&& func);
-
     template <typename Range, typename UnaryFunc>
     void for_each_to_remove(Range&& solution, UnaryFunc&& func);
 
     template <typename Iter, typename UnaryFunc>
     void for_each_to_install(Iter first, Iter last, UnaryFunc&& func);
-
     template <typename Range, typename UnaryFunc>
     void for_each_to_install(Range&& solution, UnaryFunc&& func);
 
+    template <typename Iter, typename UnaryFunc>
+    void for_each_to_omit(Iter first, Iter last, UnaryFunc&& func);
+    template <typename Range, typename UnaryFunc>
+    void for_each_to_omit(Range&& solution, UnaryFunc&& func);
 }
 
 #include <type_traits>
@@ -167,6 +174,45 @@ namespace mamba
     void for_each_to_install(Self&& self, UnaryFunc&& func)
     {
         return for_each_to_install(self.begin(), self.end(), std::forward<UnaryFunc>(func));
+    }
+
+    namespace detail
+    {
+        template <typename Action>
+        auto to_omit_ptr(Action& action)
+        {
+            using PackageInfoPtr = std::conditional_t<std::is_const_v<Action>, const PackageInfo*, PackageInfo*>;
+            return std::visit(
+                [](auto& a) -> PackageInfoPtr
+                {
+                    using A = std::decay_t<decltype(a)>;
+                    if constexpr (std::is_same_v<A, Solution::Omit>)
+                    {
+                        return &(a.what);
+                    }
+                    return nullptr;
+                },
+                action
+            );
+        }
+    }
+
+    template <typename Iter, typename UnaryFunc>
+    void for_each_to_omit(Iter first, Iter last, UnaryFunc&& func)
+    {
+        for (; first != last; ++first)
+        {
+            if (auto* const ptr = detail::to_omit_ptr(*first))
+            {
+                func(*ptr);
+            }
+        }
+    }
+
+    template <typename Range, typename UnaryFunc>
+    void for_each_to_omit(Range&& action, UnaryFunc&& func)
+    {
+        return for_each_to_omit(action.begin(), action.end(), std::forward<UnaryFunc>(func));
     }
 }
 #endif

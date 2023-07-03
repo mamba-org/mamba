@@ -103,20 +103,42 @@ namespace mamba::specs
 
         static auto parse(std::string_view str) -> Version;
 
+        /** Construct version ``0.0``. */
+        Version() noexcept = default;
         Version(std::size_t epoch, CommonVersion&& version, CommonVersion&& local = {}) noexcept;
 
-        auto epoch() const noexcept -> std::size_t;
-        auto version() const noexcept -> const CommonVersion&;
-        auto local() const noexcept -> const CommonVersion&;
+        [[nodiscard]] auto epoch() const noexcept -> std::size_t;
+        [[nodiscard]] auto version() const noexcept -> const CommonVersion&;
+        [[nodiscard]] auto local() const noexcept -> const CommonVersion&;
 
-        auto str() const -> std::string;
+        [[nodiscard]] auto str() const -> std::string;
 
-        auto operator==(const Version& other) const -> bool;
-        auto operator!=(const Version& other) const -> bool;
-        auto operator<(const Version& other) const -> bool;
-        auto operator<=(const Version& other) const -> bool;
-        auto operator>(const Version& other) const -> bool;
-        auto operator>=(const Version& other) const -> bool;
+        [[nodiscard]] auto operator==(const Version& other) const -> bool;
+        [[nodiscard]] auto operator!=(const Version& other) const -> bool;
+        [[nodiscard]] auto operator<(const Version& other) const -> bool;
+        [[nodiscard]] auto operator<=(const Version& other) const -> bool;
+        [[nodiscard]] auto operator>(const Version& other) const -> bool;
+        [[nodiscard]] auto operator>=(const Version& other) const -> bool;
+
+        /**
+         * Return true if this version starts with the other prefix.
+         *
+         * For instance 1.2.3 starts with 1.2 but not the opposite.
+         * Because Conda versions can contain an arbitrary number of segments, some of which
+         * with alpha releases, this function cannot be written as a comparison.
+         * One would need to comoare with a version with infinitely pre-release segments.
+         */
+        [[nodiscard]] auto starts_with(const Version& prefix) const -> bool;
+
+        /**
+         * Return true if this version is a compatible upgrade to the given one.
+         *
+         * For instance 1.3.1 is compatible with 1.2.1 at level 0 (first component `1 == 1``),
+         * at level 1 (second component `` 3 >= 2``), but not at level two (because the second
+         * component is stricly larger ``3 > 2``).
+         * Compatible versions are always smaller than the current version.
+         */
+        [[nodiscard]] auto compatible_with(const Version& older, std::size_t level) const -> bool;
 
     private:
 

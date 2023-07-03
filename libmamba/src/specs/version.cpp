@@ -47,7 +47,6 @@ namespace mamba::specs
         {
             return compare_three_way(std::strcmp(a.c_str(), b.c_str()), 0);
         }
-
     }
 
     /***************************************
@@ -217,78 +216,108 @@ namespace mamba::specs
          * ``[1, 2, 0, 0]`` are considered equal, however ``[1, 2]`` and ``[1, 0, 2]`` are not.
          * Similarily ``[1, 1] is less than ``[1, 2, 0]`` but more than ``[1, 1, -1]``
          * because ``-1 < 0``.
+         *
+         * @return The comparison between the two sequence
+         * @return The first index where the two sequence diverge.
          */
-        template <typename Iter1, typename Iter2, typename T, typename Cmp>
+        template <typename Iter1, typename Iter2, typename Empty1, typename Empty2, typename Cmp>
         constexpr auto lexicographical_compare_three_way_trailing(
             Iter1 first1,
             Iter1 last1,
             Iter2 first2,
             Iter2 last2,
-            T empty,
+            const Empty1& empty1,
+            const Empty2& empty2,
             Cmp comp
-        ) -> strong_ordering
+        ) -> std::pair<strong_ordering, std::size_t>
         {
-            for (; (first1 != last1) && (first2 != last2); ++first1, ++first2)
+            assert(std::distance(first1, last1) >= 0);
+            assert(std::distance(first2, last2) >= 0);
+
+            auto iter1 = first1;
+            auto iter2 = first2;
+            for (; (iter1 != last1) && (iter2 != last2); ++iter1, ++iter2)
             {
-                if (auto c = comp(*first1, *first2); c != strong_ordering::equal)
+                if (auto c = comp(*iter1, *iter2); c != strong_ordering::equal)
                 {
-                    return c;
+                    return { c, static_cast<std::size_t>(std::distance(first1, iter1)) };
                 }
             }
 
             // They have the same leading elements but 1 has more elements
             // We do a lexicographic compare with an infite sequence of empties
-            if ((first1 != last1))
+            if ((iter1 != last1))
             {
-                for (; first1 != last1; ++first1)
+                for (; iter1 != last1; ++iter1)
                 {
-                    if (auto c = comp(*first1, empty); c != strong_ordering::equal)
+                    if (auto c = comp(*iter1, empty2); c != strong_ordering::equal)
                     {
-                        return c;
+                        return { c, static_cast<std::size_t>(std::distance(first1, iter1)) };
                     }
                 }
             }
             // first2 != last2
             // They have the same leading elements but 2 has more elements
             // We do a lexicographic compare with an infite sequence of empties
-            if ((first2 != last2))
+            if ((iter2 != last2))
             {
-                for (; first2 != last2; ++first2)
+                for (; iter2 != last2; ++iter2)
                 {
-                    if (auto c = comp(empty, *first2); c != strong_ordering::equal)
+                    if (auto c = comp(empty1, *iter2); c != strong_ordering::equal)
                     {
-                        return c;
+                        return { c, static_cast<std::size_t>(std::distance(first2, iter2)) };
                     }
                 }
             }
             // They have the same elements
-            return strong_ordering::equal;
+            return { strong_ordering::equal, static_cast<std::size_t>(std::distance(first1, iter1)) };
+        }
+
+        template <typename Iter1, typename Iter2, typename Empty, typename Cmp>
+        constexpr auto lexicographical_compare_three_way_trailing(
+            Iter1 first1,
+            Iter1 last1,
+            Iter2 first2,
+            Iter2 last2,
+            const Empty& empty,
+            Cmp comp
+        ) -> std::pair<strong_ordering, std::size_t>
+        {
+            return lexicographical_compare_three_way_trailing(
+                first1,
+                last1,
+                first2,
+                last2,
+                empty,
+                empty,
+                comp
+            );
         }
 
         template <>
         auto compare_three_way(const VersionPart& a, const VersionPart& b) -> strong_ordering
         {
             return lexicographical_compare_three_way_trailing(
-                a.cbegin(),
-                a.cend(),
-                b.cbegin(),
-                b.cend(),
-                VersionPartAtom{},
-                [](const auto& x, const auto& y) { return compare_three_way(x, y); }
-            );
+                       a.cbegin(),
+                       a.cend(),
+                       b.cbegin(),
+                       b.cend(),
+                       VersionPartAtom{},
+                       [](const auto& x, const auto& y) { return compare_three_way(x, y); }
+            ).first;
         }
 
         template <>
         auto compare_three_way(const CommonVersion& a, const CommonVersion& b) -> strong_ordering
         {
             return lexicographical_compare_three_way_trailing(
-                a.cbegin(),
-                a.cend(),
-                b.cbegin(),
-                b.cend(),
-                VersionPart{},
-                [](const auto& x, const auto& y) { return compare_three_way(x, y); }
-            );
+                       a.cbegin(),
+                       a.cend(),
+                       b.cbegin(),
+                       b.cend(),
+                       VersionPart{},
+                       [](const auto& x, const auto& y) { return compare_three_way(x, y); }
+            ).first;
         }
 
         template <>
@@ -335,6 +364,113 @@ namespace mamba::specs
     auto Version::operator>=(const Version& other) const -> bool
     {
         return compare_three_way(*this, other) != strong_ordering::less;
+    }
+
+    namespace
+    {
+        struct AlwaysEqual
+        {
+        };
+
+        [[maybe_unused]] auto starts_with_three_way(const AlwaysEqual&, const AlwaysEqual&)
+            -> strong_ordering
+        {
+            // This comparison should not happen with the current usage.
+            assert(false);
+            return strong_ordering::equal;
+        }
+
+        template <typename T>
+        auto starts_with_three_way(const AlwaysEqual&, const T&) -> strong_ordering
+        {
+            return strong_ordering::equal;
+        }
+
+        template <typename T>
+        auto starts_with_three_way(const T&, const AlwaysEqual&) -> strong_ordering
+        {
+            return strong_ordering::equal;
+        }
+
+        auto starts_with_three_way(const VersionPartAtom& a, const VersionPartAtom& b)
+            -> strong_ordering
+        {
+            if ((a.numeral() == b.numeral()) && b.literal().empty())
+            {
+                return strong_ordering::equal;
+            }
+            return compare_three_way(a, b);
+        }
+
+        auto starts_with_three_way(const VersionPart& a, const VersionPart& b) -> strong_ordering
+        {
+            return lexicographical_compare_three_way_trailing(
+                       a.cbegin(),
+                       a.cend(),
+                       b.cbegin(),
+                       b.cend(),
+                       VersionPartAtom{},
+                       AlwaysEqual{},
+                       [](const auto& x, const auto& y) { return starts_with_three_way(x, y); }
+            ).first;
+        }
+
+        auto starts_with_three_way(const CommonVersion& a, const CommonVersion& b) -> strong_ordering
+        {
+            return lexicographical_compare_three_way_trailing(
+                       a.cbegin(),
+                       a.cend(),
+                       b.cbegin(),
+                       b.cend(),
+                       VersionPart{},
+                       AlwaysEqual{},
+                       [](const auto& x, const auto& y) { return starts_with_three_way(x, y); }
+            ).first;
+        }
+
+        auto starts_with_three_way(const Version& a, const Version& b) -> strong_ordering
+        {
+            if (auto c = compare_three_way(a.epoch(), b.epoch()); c != strong_ordering::equal)
+            {
+                return c;
+            }
+            if (auto c = starts_with_three_way(a.version(), b.version()); c != strong_ordering::equal)
+            {
+                return c;
+            }
+            return compare_three_way(a.local(), b.local());
+        }
+    }
+
+    auto Version::starts_with(const Version& prefix) const -> bool
+    {
+        return starts_with_three_way(*this, prefix) == strong_ordering::equal;
+    }
+
+    namespace
+    {
+        auto
+        compatible_with_impl(const CommonVersion& newer, const CommonVersion& older, std::size_t level)
+            -> bool
+        {
+            auto [cmp, idx] = lexicographical_compare_three_way_trailing(
+                newer.cbegin(),
+                newer.cend(),
+                older.cbegin(),
+                older.cend(),
+                VersionPart{},
+                [](const auto& x, const auto& y) { return compare_three_way(x, y); }
+            );
+
+            return (cmp == strong_ordering::equal)
+                   || ((cmp == strong_ordering::greater) && (idx >= level));
+        }
+    }
+
+    auto Version::compatible_with(const Version& older, std::size_t level) const -> bool
+    {
+        return (epoch() == older.epoch()) && compatible_with_impl(version(), older.version(), level)
+               && compatible_with_impl(local(), older.local(), level);
     }
 
     namespace

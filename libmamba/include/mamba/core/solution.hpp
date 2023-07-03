@@ -20,7 +20,7 @@ namespace mamba
         inline constexpr bool is_any_of_v = std::disjunction_v<std::is_same<T, U>...>;
     }
 
-    namespace action
+    struct Solution
     {
         struct Upgrade
         {
@@ -51,15 +51,15 @@ namespace mamba
         };
 
         template <typename T>
-        inline constexpr bool has_remove_v = detail::is_any_of_v<T, Upgrade, Downgrade, Change, Remove>;
+        inline static constexpr bool has_remove_v = detail::is_any_of_v<T, Upgrade, Downgrade, Change, Remove>;
 
         template <typename T>
-        inline constexpr bool has_install_v = detail::is_any_of_v<T, Upgrade, Downgrade, Change, Install>;
+        inline static constexpr bool has_install_v = detail::is_any_of_v<T, Upgrade, Downgrade, Change, Install>;
 
         using Action = std::variant<Upgrade, Downgrade, Change, Reinstall, Remove, Install>;
-    }
 
-    using Solution = std::vector<action::Action>;
+        std::vector<Action> actions = {};
+    };
 
     template <typename Iter, typename UnaryFunc>
     void for_each_to_remove(Iter first, Iter last, UnaryFunc&& func);
@@ -83,7 +83,7 @@ namespace mamba
      *  Implementation of Solution  *
      ********************************/
 
-    namespace action::detail
+    namespace detail
     {
         template <typename Action>
         auto to_remove_ptr(Action& action)
@@ -93,11 +93,11 @@ namespace mamba
                 [](auto& a) -> PackageInfoPtr
                 {
                     using A = std::decay_t<decltype(a)>;
-                    if constexpr (has_remove_v<A>)
+                    if constexpr (Solution::has_remove_v<A>)
                     {
                         return &(a.remove);
                     }
-                    else if constexpr (std::is_same_v<A, Reinstall>)
+                    else if constexpr (std::is_same_v<A, Solution::Reinstall>)
                     {
                         return &(a.what);
                     }
@@ -113,7 +113,7 @@ namespace mamba
     {
         for (; first != last; ++first)
         {
-            if (auto* const ptr = action::detail::to_remove_ptr(*first))
+            if (auto* const ptr = detail::to_remove_ptr(*first))
             {
                 func(*ptr);
             }
@@ -126,7 +126,7 @@ namespace mamba
         return for_each_to_remove(self.begin(), self.end(), std::forward<UnaryFunc>(func));
     }
 
-    namespace action::detail
+    namespace detail
     {
         template <typename Action>
         auto to_install_ptr(Action& action)
@@ -136,11 +136,11 @@ namespace mamba
                 [](auto& a) -> PackageInfoPtr
                 {
                     using A = std::decay_t<decltype(a)>;
-                    if constexpr (has_install_v<A>)
+                    if constexpr (Solution::has_install_v<A>)
                     {
                         return &(a.install);
                     }
-                    else if constexpr (std::is_same_v<A, Reinstall>)
+                    else if constexpr (std::is_same_v<A, Solution::Reinstall>)
                     {
                         return &(a.what);
                     }
@@ -156,7 +156,7 @@ namespace mamba
     {
         for (; first != last; ++first)
         {
-            if (auto* const ptr = action::detail::to_install_ptr(*first))
+            if (auto* const ptr = detail::to_install_ptr(*first))
             {
                 func(*ptr);
             }

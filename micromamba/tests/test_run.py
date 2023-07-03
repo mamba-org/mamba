@@ -7,7 +7,7 @@ from sys import platform
 
 import pytest
 
-from .helpers import create, random_string, umamba_run
+from .helpers import create, random_string, subprocess_run, umamba_run
 
 common_simple_flags = ["", "-d", "--detach", "--clean-env"]
 possible_characters_for_process_names = (
@@ -30,7 +30,6 @@ def simple_short_program():
 
 
 class TestRun:
-
     current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
     current_prefix = os.environ["CONDA_PREFIX"]
 
@@ -49,7 +48,6 @@ class TestRun:
     @pytest.mark.parametrize("option_flag", common_simple_flags)
     @pytest.mark.parametrize("make_label_flags", next_label_flags)
     def test_unknown_exe_fails(self, option_flag, make_label_flags):
-
         fails = True
         try:
             umamba_run(option_flag, *make_label_flags(), "exe-that-does-not-exists")
@@ -97,7 +95,7 @@ class TestRun:
                     test_script_file_name, test_script_path
                 )
             )
-        assert subprocess.run(test_script_path, shell=True).returncode == 0
+        subprocess_run(test_script_path, shell=True)
 
     def test_run_non_existing_env(self):
         env_name = random_string()

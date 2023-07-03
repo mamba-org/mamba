@@ -41,6 +41,8 @@ def reposerver_multi(
         auth = channel["auth"]
         if auth == "token":
             computed_args += ["--token", channel["token"]]
+        elif auth == "bearer":
+            computed_args += ["--bearer", channel["token"]]
         elif auth == "basic":
             computed_args += [
                 "--user",
@@ -81,6 +83,11 @@ def token_server(token, xprocess):
 
 
 @pytest.fixture
+def bearer_server(token, xprocess):
+    yield from reposerver_single(xprocess, auth="bearer", token=token)
+
+
+@pytest.fixture
 def basic_auth_server(user, password, xprocess):
     yield from reposerver_single(xprocess, auth="basic", user=user, password=password)
 
@@ -92,7 +99,7 @@ def multi_server(xprocess, channels):
 
 def create(*in_args, folder=None, root=None, override_channels=True):
     args = [arg for arg in in_args]
-
+    args += ["-vvv"]
     if folder:
         args += ["-p", str(folder)]
     else:
@@ -243,6 +250,26 @@ def test_token_explicit(auth_file, token, token_server, tmp_path):
 
     env_file = tmp_path / "environment.txt"
     env_file.write_text(env_file_content.format(server=token_server))
+    env_folder = tmp_path / "env"
+    root_folder = tmp_path / "root"
+    create("-f", str(env_file), folder=env_folder, root=root_folder)
+
+    assert (env_folder / "conda-meta" / "_r-mutex-1.0.1-anacondar_1.json").exists()
+
+
+@pytest.mark.parametrize("token", ["randomverystrongtoken"])
+def test_bearer_explicit(auth_file, token, bearer_server, tmp_path):
+    login(bearer_server, "--bearer", token)
+
+    host = remove_url_scheme(bearer_server)
+    with open(auth_file) as fi:
+        data = json.load(fi)
+        assert data[host]["token"] == token
+        assert data[host]["type"] == "BearerToken"
+        print(data)
+
+    env_file = tmp_path / "environment.txt"
+    env_file.write_text(env_file_content.format(server=bearer_server))
     env_folder = tmp_path / "env"
     root_folder = tmp_path / "root"
     create("-f", str(env_file), folder=env_folder, root=root_folder)

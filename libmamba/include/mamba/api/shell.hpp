@@ -7,20 +7,21 @@
 #ifndef MAMBA_API_SHELL_HPP
 #define MAMBA_API_SHELL_HPP
 
-#include "mamba/core/mamba_fs.hpp"
-
 #include <string>
-#include <vector>
+#include <string_view>
 
+#include "mamba/core/mamba_fs.hpp"
 
 namespace mamba
 {
-    void detect_shell(std::string& shell_type);
-
-    void shell(const std::string& action,
-               std::string& shell_type,
-               const std::string& prefix = "",
-               bool stack = false);
+    void shell_init(const std::string& shell_type, const fs::u8path& prefix);
+    void shell_deinit(const std::string& shell_type, const fs::u8path& prefix);
+    void shell_reinit(const fs::u8path& prefix);
+    void shell_hook(const std::string& shell_type);
+    void shell_activate(const fs::u8path& prefix, const std::string& shell_type, bool stack);
+    void shell_reactivate(const std::string& shell_type);
+    void shell_deactivate(const std::string& shell_type);
+    void shell_enable_long_path_support();
 }
 
 #endif

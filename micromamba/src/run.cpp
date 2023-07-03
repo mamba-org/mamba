@@ -1,30 +1,37 @@
+// Copyright (c) 2019, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
+
 #include <csignal>
 #include <exception>
 #include <thread>
 
-#include <spdlog/spdlog.h>
 #include <fmt/color.h>
-#include <reproc++/run.hpp>
+#include <fmt/format.h>
 #include <nlohmann/json.hpp>
+#include <reproc++/run.hpp>
+#include <spdlog/spdlog.h>
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
+#include "mamba/core/error_handling.hpp"
+#include "mamba/core/execution.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_random.hpp"
-#include "mamba/core/execution.hpp"
-#include "mamba/core/error_handling.hpp"
 
 #include "common_options.hpp"
 
 #ifndef _WIN32
 extern "C"
 {
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
+#include <sys/types.h>
+#include <unistd.h>
 }
 #else
 #include <process.h>
@@ -58,12 +65,16 @@ set_ps_command(CLI::App* subcom)
         {
             auto prefix = el["prefix"].get<std::string>();
             if (!prefix.empty())
+            {
                 prefix = env_name(prefix);
+            }
 
-            table.add_row({ el["pid"].get<std::string>(),
-                            el["name"].get<std::string>(),
-                            prefix,
-                            join(" ", el["command"].get<std::vector<std::string>>()) });
+            table.add_row({
+                el["pid"].get<std::string>(),
+                el["name"].get<std::string>(),
+                prefix,
+                fmt::format("{}", fmt::join(el["command"].get<std::vector<std::string>>(), " ")),
+            });
         }
 
         table.print(std::cout);
@@ -75,8 +86,11 @@ set_ps_command(CLI::App* subcom)
         [subcom, list_subcom, list_callback]()
         {
             if (!subcom->got_subcommand(list_subcom))
+            {
                 list_callback();
-        });
+            }
+        }
+    );
 
 
     auto stop_subcom = subcom->add_subcommand("stop");
@@ -115,26 +129,26 @@ set_ps_command(CLI::App* subcom)
                 return -1;
             }
             return 0;
-        });
+        }
+    );
 }
 
 void
-set_run_command(CLI::App* subcom)
+set_run_command(CLI::App* subcom, Configuration& config)
 {
-    init_prefix_options(subcom);
+    init_prefix_options(subcom, config);
 
     static std::string streams;
-    CLI::Option* stream_option
-        = subcom
-              ->add_option(
-                  "-a,--attach",
-                  streams,
-                  "Attach to stdin, stdout and/or stderr. -a \"\" for disabling stream redirection")
-              ->join(',');
+    CLI::Option* stream_option = subcom
+                                     ->add_option(
+                                         "-a,--attach",
+                                         streams,
+                                         "Attach to stdin, stdout and/or stderr. -a \"\" for disabling stream redirection"
+                                     )
+                                     ->join(',');
 
     static std::string cwd;
-    subcom->add_option(
-        "--cwd", cwd, "Current working directory for command to run in. Defaults to cwd");
+    subcom->add_option("--cwd", cwd, "Current working directory for command to run in. Defaults to cwd");
 
     static bool detach = false;
 #ifndef _WIN32
@@ -153,7 +167,8 @@ set_run_command(CLI::App* subcom)
     subcom->add_option(
         "--label",
         specific_process_name,
-        "Specifies the name of the process. If not set, a unique name will be generated derived from the executable name if possible.");
+        "Specifies the name of the process. If not set, a unique name will be generated derived from the executable name if possible."
+    );
 #endif
 
     subcom->prefix_command();
@@ -161,10 +176,8 @@ set_run_command(CLI::App* subcom)
     static reproc::process proc;
 
     subcom->callback(
-        [subcom, stream_option]()
+        [&config, subcom, stream_option]()
         {
-            auto& config = Configuration::instance();
-            config.at("show_banner").set_value(false);
             config.load();
 
             std::vector<std::string> command = subcom->remaining();
@@ -191,14 +204,33 @@ set_run_command(CLI::App* subcom)
             int stream_options = 0;
             if (!all_streams)
             {
-                stream_options = (sinkout ? 0 : (int) STREAM_OPTIONS::SINKOUT);
-                stream_options |= (sinkerr ? 0 : (int) STREAM_OPTIONS::SINKERR);
-                stream_options |= (sinkin ? 0 : (int) STREAM_OPTIONS::SINKIN);
+                stream_options = (sinkout ? 0 : static_cast<int>(STREAM_OPTIONS::SINKOUT));
+                stream_options |= (sinkerr ? 0 : static_cast<int>(STREAM_OPTIONS::SINKERR));
+                stream_options |= (sinkin ? 0 : static_cast<int>(STREAM_OPTIONS::SINKIN));
             }
 
+            auto const get_prefix = [&]()
+            {
+                auto& ctx = Context::instance();
+                if (auto prefix = ctx.prefix_params.target_prefix; !prefix.empty())
+                {
+                    return prefix;
+                }
+                return ctx.prefix_params.root_prefix;
+            };
+
             int exit_code = mamba::run_in_environment(
-                command, cwd, stream_options, clean_env, detach, env_vars, specific_process_name);
+                get_prefix(),
+                command,
+                cwd,
+                stream_options,
+                clean_env,
+                detach,
+                env_vars,
+                specific_process_name
+            );
 
             exit(exit_code);
-        });
+        }
+    );
 }

@@ -1,3 +1,91 @@
+mamba 1.4.6 (June 30, 2023)
+===========================
+
+
+Bug fixes:
+
+- Fixed missing subdirs in mamba by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2632
+
+mamba 1.4.5 (June 27, 2023)
+===========================
+
+Enhancements:
+
+- No singleton: ChannelContext, ChannelBuilder and channel cache by @Klaim in https://github.com/mamba-org/mamba/pull/2455
+- Common CMake presets by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2532
+- No singleton: configuration by @Klaim in https://github.com/mamba-org/mamba/pull/2541
+- Remove banner by @jonashaag in https://github.com/mamba-org/mamba/pull/2298
+
+Bug fixes:
+
+- fix different behavior between --version and -V options by @alaniwi in https://github.com/mamba-org/mamba/pull/2539
+- Fix server auth test by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2560
+
+CI fixes and doc:
+
+- update the umamba GHA link by @ocefpaf in https://github.com/mamba-org/mamba/pull/2542
+- Extend troubleshooting docs by @jonashaag in https://github.com/mamba-org/mamba/pull/2569
+- Update pre-commit hooks by @jonashaag in https://github.com/mamba-org/mamba/pull/2586
+- Move GHA to setup-micromamba by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2545
+- Switch linters to setup-micromamba by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2600
+- Switch to setup-micromamba by @pavelzw in https://github.com/mamba-org/mamba/pull/2610
+- Fix broken ref directives in docs by @mfisher87 in https://github.com/mamba-org/mamba/pull/2620
+
+mamba 1.4.4 (May 16, 2023)
+==========================
+
+
+mamba 1.4.3 (May 15, 2023)
+==========================
+
+Enhancements:
+
+- Context structuring by @Hind-M in https://github.com/mamba-org/mamba/pull/2432
+- Add mamba version to mamba info output by @Hind-M in https://github.com/mamba-org/mamba/pull/2477
+- Resume Context structuring by @Hind-M in https://github.com/mamba-org/mamba/pull/2460
+
+Bug fixes:
+
+- Move repoquery python test from libmamba (not run) to mamba by @Hind-M in https://github.com/mamba-org/mamba/pull/2489
+
+CI fixes and doc:
+
+- Extend issue template by @jonashaag in https://github.com/mamba-org/mamba/pull/2310
+
+mamba 1.4.2 (April 06, 2023)
+============================
+
+
+Bug fixes:
+
+- Safely ignores virtual packages in `compute_final_precs` function by @mariusvniekerk in https://github.com/mamba-org/mamba/pull/2424
+
+CI fixes and doc:
+
+- Migrated to doctest by @JohanMabille in https://github.com/mamba-org/mamba/pull/2436
+
+mamba 1.4.1 (March 28, 2023)
+============================
+
+
+mamba 1.4.0 (March 22, 2023)
+============================
+
+Enchancements:
+
+- Implemented recursive dependency printout in repoquery  by @timostrunk in https://github.com/mamba-org/mamba/pull/2283
+- Fine tune clang-format by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2290
+- Allow the direct installation of both .tar.bz2 and .conda packages by @romain-intel in https://github.com/mamba-org/mamba/pull/2333
+- Isolate `PackageInfo` from libsolv from @AntoinePrv in https://github.com/mamba-org/mamba/pull/2340
+
+Bug fixes:
+
+- Fixed `mamba init --no-user` by @xylar in https://github.com/mamba-org/mamba/pull/2324
+
+CI fixes & docs:
+
+- `repoquery depends` requires the package to be installed or to specify a channel by @samtygier in https://github.com/mamba-org/mamba/pull/2098
+
 mamba 1.3.1 (February 09, 2023)
 ===============================
 

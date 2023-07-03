@@ -9,7 +9,9 @@ namespace mamba
         void maybe_dump_backtrace(mamba_error_code ec)
         {
             if (ec == mamba_error_code::internal_failure)
+            {
                 spdlog::dump_backtrace();
+            }
         }
 
     }

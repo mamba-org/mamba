@@ -5,14 +5,104 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <regex>
-#include "openssl/evp.h"
 
+#include <openssl/evp.h>
+
+#include "mamba/core/context.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/core/context.hpp"
+#include "mamba/core/util_string.hpp"
 
 namespace mamba
 {
+    /*********************
+     * Utility functions *
+     *********************/
+
+    // proper file scheme on Windows is `file:///C:/blabla`
+    // https://blogs.msdn.microsoft.com/ie/2006/12/06/file-uris-in-windows/
+    std::string concat_scheme_url(const std::string& scheme, const std::string& location)
+    {
+        if (scheme == "file" && location.size() > 1 && location[1] == ':')
+        {
+            return concat("file:///", location);
+        }
+        else
+        {
+            return concat(scheme, "://", location);
+        }
+    }
+
+    std::string build_url(
+        const std::optional<std::string>& auth,
+        const std::string& scheme,
+        const std::string& base,
+        bool with_credential
+    )
+    {
+        if (with_credential && auth)
+        {
+            return concat_scheme_url(scheme, concat(*auth, "@", base));
+        }
+        else
+        {
+            return concat_scheme_url(scheme, base);
+        }
+    }
+
+    void split_platform(
+        const std::vector<std::string>& known_platforms,
+        const std::string& url,
+        const std::string& context_platform,
+        std::string& cleaned_url,
+        std::string& platform
+    )
+    {
+        platform = "";
+
+        auto check_platform_position = [&url](std::size_t pos, const std::string& lplatform) -> bool
+        {
+            if (pos == std::string::npos)
+            {
+                return false;
+            }
+            if (pos > 0 && url[pos - 1] != '/')
+            {
+                return false;
+            }
+            if ((pos + lplatform.size()) < url.size() && url[pos + lplatform.size()] != '/')
+            {
+                return false;
+            }
+
+            return true;
+        };
+
+        std::size_t pos = url.find(context_platform);
+        if (check_platform_position(pos, context_platform))
+        {
+            platform = context_platform;
+        }
+        else
+        {
+            for (auto it = known_platforms.begin(); it != known_platforms.end(); ++it)
+            {
+                pos = url.find(*it);
+                if (check_platform_position(pos, *it))
+                {
+                    platform = *it;
+                    break;
+                }
+            }
+        }
+
+        cleaned_url = url;
+        if (pos != std::string::npos)
+        {
+            cleaned_url.replace(pos - 1, platform.size() + 1, "");
+        }
+        cleaned_url = rstrip(cleaned_url, "/");
+    }
 
     bool has_scheme(const std::string& url)
     {
@@ -21,13 +111,16 @@ namespace mamba
 
     void split_anaconda_token(const std::string& url, std::string& cleaned_url, std::string& token)
     {
-        auto token_begin
-            = std::sregex_iterator(url.begin(), url.end(), Context::instance().token_regex);
+        auto token_begin = std::sregex_iterator(url.begin(), url.end(), Context::instance().token_regex);
         if (token_begin != std::sregex_iterator())
         {
             token = token_begin->str().substr(3u);
             cleaned_url = std::regex_replace(
-                url, Context::instance().token_regex, "", std::regex_constants::format_first_only);
+                url,
+                Context::instance().token_regex,
+                "",
+                std::regex_constants::format_first_only
+            );
         }
         else
         {
@@ -37,11 +130,13 @@ namespace mamba
         cleaned_url = rstrip(cleaned_url, "/");
     }
 
-    void split_scheme_auth_token(const std::string& url,
-                                 std::string& remaining_url,
-                                 std::string& scheme,
-                                 std::string& auth,
-                                 std::string& token)
+    void split_scheme_auth_token(
+        const std::string& url,
+        std::string& remaining_url,
+        std::string& scheme,
+        std::string& auth,
+        std::string& token
+    )
     {
         std::string cleaned_url;
         split_anaconda_token(url, cleaned_url, token);
@@ -116,7 +211,7 @@ namespace mamba
         CURL* curl = curl_easy_init();
         if (curl)
         {
-            char* output = curl_easy_escape(curl, url.c_str(), url.size());
+            char* output = curl_easy_escape(curl, url.c_str(), static_cast<int>(url.size()));
             if (output)
             {
                 std::string result(output);
@@ -134,10 +229,10 @@ namespace mamba
         if (curl)
         {
             int out_length;
-            char* output = curl_easy_unescape(curl, url.c_str(), url.size(), &out_length);
+            char* output = curl_easy_unescape(curl, url.c_str(), static_cast<int>(url.size()), &out_length);
             if (output)
             {
-                std::string result(output, out_length);
+                std::string result(output, static_cast<std::size_t>(out_length));
                 curl_free(output);
                 curl_easy_cleanup(curl);
                 return result;
@@ -174,19 +269,9 @@ namespace mamba
         return hex_digest.substr(0u, 8u);
     }
 
-    std::string hide_secrets(const std::string_view& str)
-    {
-        std::string copy(str);
-
-        if (contains(str, "/t/"))
-        {
-            copy = std::regex_replace(copy, Context::instance().token_regex, "/t/*****");
-        }
-
-        copy = std::regex_replace(copy, Context::instance().http_basicauth_regex, "$1$2:*****@");
-
-        return copy;
-    }
+    /*****************************
+     * URLHandler implementation *
+     *****************************/
 
     URLHandler::URLHandler(const std::string& url)
         : m_url(url)
@@ -203,11 +288,17 @@ namespace mamba
             CURLUcode uc;
             auto curl_flags = m_has_scheme ? CURLU_NON_SUPPORT_SCHEME : CURLU_DEFAULT_SCHEME;
             std::string c_url = unc_url(url);
-            uc = curl_url_set(m_handle, CURLUPART_URL, c_url.c_str(), curl_flags);
+            uc = curl_url_set(
+                m_handle,
+                CURLUPART_URL,
+                c_url.c_str(),
+                static_cast<unsigned int>(curl_flags)
+            );
             if (uc)
             {
-                throw std::runtime_error("Could not set URL (code: " + std::to_string(uc)
-                                         + " - url = " + url + ")");
+                throw std::runtime_error(
+                    "Could not set URL (code: " + std::to_string(uc) + " - url = " + url + ")"
+                );
             }
         }
     }
@@ -265,59 +356,59 @@ namespace mamba
         return res;
     }
 
-    std::string URLHandler::scheme()
+    std::string URLHandler::scheme() const
     {
         return m_has_scheme ? get_part(CURLUPART_SCHEME) : "";
     }
 
-    std::string URLHandler::host()
+    std::string URLHandler::host() const
     {
         return get_part(CURLUPART_HOST);
     }
 
-    std::string URLHandler::path()
+    std::string URLHandler::path() const
     {
         return get_part(CURLUPART_PATH);
     }
 
-    std::string URLHandler::port()
+    std::string URLHandler::port() const
     {
         return get_part(CURLUPART_PORT);
     }
 
-    std::string URLHandler::query()
+    std::string URLHandler::query() const
     {
         return get_part(CURLUPART_QUERY);
     }
 
-    std::string URLHandler::fragment()
+    std::string URLHandler::fragment() const
     {
         return get_part(CURLUPART_FRAGMENT);
     }
 
-    std::string URLHandler::options()
+    std::string URLHandler::options() const
     {
         return get_part(CURLUPART_OPTIONS);
     }
 
-    std::string URLHandler::auth()
+    std::string URLHandler::auth() const
     {
         std::string u = user();
         std::string p = password();
         return p != "" ? u + ':' + p : u;
     }
 
-    std::string URLHandler::user()
+    std::string URLHandler::user() const
     {
         return get_part(CURLUPART_USER);
     }
 
-    std::string URLHandler::password()
+    std::string URLHandler::password() const
     {
         return get_part(CURLUPART_PASSWORD);
     }
 
-    std::string URLHandler::zoneid()
+    std::string URLHandler::zoneid() const
     {
         return get_part(CURLUPART_ZONEID);
     }
@@ -388,12 +479,13 @@ namespace mamba
 
     namespace
     {
-        const std::vector<std::string> CURLUPART_NAMES
-            = { "url",  "scheme", "user",  "password", "options", "host",
-                "port", "path",   "query", "fragment", "zoneid" };
+        const std::vector<std::string> CURLUPART_NAMES = { "url",      "scheme",  "user",
+                                                           "password", "options", "host",
+                                                           "port",     "path",    "query",
+                                                           "fragment", "zoneid" };
     }
 
-    std::string URLHandler::get_part(CURLUPart part)
+    std::string URLHandler::get_part(CURLUPart part) const
     {
         char* scheme;
         auto rc = curl_url_get(m_handle, part, &scheme, m_has_scheme ? 0 : CURLU_DEFAULT_SCHEME);

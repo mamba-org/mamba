@@ -7,16 +7,23 @@
 #ifndef MAMBA_CORE_POOL_HPP
 #define MAMBA_CORE_POOL_HPP
 
-#include <optional>
 #include <memory>
+#include <optional>
 
 #include <solv/pooltypes.h>
 
-#include "mamba/core/repo.hpp"
 #include "mamba/core/package_info.hpp"
 
 namespace mamba
 {
+    class MatchSpec;
+    class ChannelContext;
+
+    namespace solv
+    {
+        class ObjPool;
+    }
+
     /**
      * Pool of solvable involved in resolving en environment.
      *
@@ -28,28 +35,35 @@ namespace mamba
     class MPool
     {
     public:
-        MPool();
+
+        MPool(ChannelContext& channel_context);
         ~MPool();
 
         void set_debuglevel();
         void create_whatprovides();
 
         std::vector<Id> select_solvables(Id id, bool sorted = false) const;
-        Id matchspec2id(const std::string& ms);
+        Id matchspec2id(const MatchSpec& ms);
 
-        std::optional<PackageInfo> id2pkginfo(Id id);
+        std::optional<PackageInfo> id2pkginfo(Id solv_id) const;
+        std::optional<std::string> dep2str(Id dep_id) const;
 
-        operator Pool*();
-        operator Pool const*() const;
+        // TODO: (TMP) This is not meant to exist but is needed for a transition period
+        operator ::Pool*();
+        operator const ::Pool*() const;
 
-        MRepo& add_repo(MRepo&& repo);
-        void remove_repo(Id repo_id);
+        // TODO: (TMP) This is not meant to be public but is needed for a transition period
+        solv::ObjPool& pool();
+        const solv::ObjPool& pool() const;
+
+        void remove_repo(::Id repo_id, bool reuse_ids);
+
+        ChannelContext& channel_context() const;
 
     private:
+
         struct MPoolData;
 
-        Pool* pool();
-        Pool const* pool() const;
 
         /**
          * Make MPool behave like a shared_ptr (with move and copy).

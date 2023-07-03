@@ -1,8 +1,17 @@
+// Copyright (c) 2019, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
+
 #include "mamba/core/environment.hpp"
-#include "mamba/core/util.hpp"
+#include "mamba/core/util_string.hpp"
 
 #ifdef _WIN32
+#include <mutex>
+
 #include "mamba/core/output.hpp"
+#include "mamba/core/util_os.hpp"
 #endif
 
 namespace mamba
@@ -12,50 +21,88 @@ namespace mamba
         std::optional<std::string> get(const std::string& key)
         {
 #ifdef _WIN32
-            const size_t initial_size = 1024;
-            std::unique_ptr<char[]> temp_small = std::make_unique<char[]>(initial_size);
-            std::size_t size = GetEnvironmentVariableA(key.c_str(), temp_small.get(), initial_size);
-            if (size == 0)  // Error or empty/missing
+            // See:
+            // https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/getenv-s-wgetenv-s?view=msvc-170
+            static std::mutex call_mutex;
+            std::scoped_lock ready_to_execute{ call_mutex };  // Calls to getenv_s kinds of
+                                                              // functions are not thread-safe, this
+                                                              // is to prevent related issues.
+
+            const auto on_failed = [&](errno_t error_code)
             {
-                // Note that on Windows environment variables can never be empty,
-                // only missing. See https://stackoverflow.com/a/39095782
-                auto last_err = GetLastError();
-                if (last_err != ERROR_ENVVAR_NOT_FOUND)
+                LOG_ERROR << fmt::format(
+                    "Failed to acquire environment variable '{}' : errcode = {}",
+                    key,
+                    error_code
+                );
+            };
+
+            const std::wstring unicode_key = to_windows_unicode(key);
+            size_t required_size = 0;
+            if (auto error_code = _wgetenv_s(&required_size, nullptr, 0, unicode_key.c_str());
+                error_code == 0)
+            {
+                if (required_size == 0)  // The value doesn't exist.
                 {
-                    LOG_ERROR << "Could not get environment variable: " << last_err;
+                    return {};
                 }
-                return {};
+
+                std::wstring value(required_size, L'?');  // Note: The required size implies a `\0`
+                                                          // but basic_string doesn't.
+                if (error_code = _wgetenv_s(
+                        &required_size,
+                        value.data(),
+                        value.size(),
+                        unicode_key.c_str()
+                    );
+                    error_code == 0)
+                {
+                    value.pop_back();  // Remove the `\0` that was written in, otherwise any future
+                                       // concatenation will fail.
+                    return mamba::to_utf8(value);
+                }
+                else
+                {
+                    on_failed(error_code);
+                }
             }
-            else if (size > initial_size)  // Buffer too small
+            else
             {
-                std::unique_ptr<char[]> temp_large = std::make_unique<char[]>(size);
-                GetEnvironmentVariableA(key.c_str(), temp_large.get(), size);
-                std::string res(temp_large.get());
-                return res;
-            }
-            else  // Success
-            {
-                std::string res(temp_small.get());
-                return res;
+                on_failed(error_code);
             }
 #else
             const char* value = std::getenv(key.c_str());
             if (value)
+            {
                 return value;
-            else
-                return {};
+            }
 #endif
+            return {};
         }
 
         bool set(const std::string& key, const std::string& value)
         {
 #ifdef _WIN32
-            auto res = SetEnvironmentVariableA(key.c_str(), value.c_str());
-            if (!res)
+            // See:
+            // https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/getenv-s-wgetenv-s?view=msvc-170
+            static std::mutex call_mutex;
+            std::scoped_lock ready_to_execute{ call_mutex };  // Calls to getenv_s kinds of
+                                                              // functions are not thread-safe, this
+                                                              // is to prevent related issues.
+
+            const std::wstring unicode_key = to_windows_unicode(key);
+            const std::wstring unicode_value = to_windows_unicode(value);
+            auto res = _wputenv_s(unicode_key.c_str(), unicode_value.c_str());
+            if (res != 0)
             {
-                LOG_ERROR << "Could not set environment variable: " << GetLastError();
+                LOG_ERROR << fmt::format(
+                    "Could not set environment variable '{}' to '{}' : {}",
+                    key,
+                    value,
+                    GetLastError()
+                );
             }
-            return res;
+            return res == 0;
 #else
             return setenv(key.c_str(), value.c_str(), 1) == 0;
 #endif
@@ -64,11 +111,7 @@ namespace mamba
         void unset(const std::string& key)
         {
 #ifdef _WIN32
-            auto res = SetEnvironmentVariableA(key.c_str(), NULL);
-            if (!res)
-            {
-                LOG_ERROR << "Could not unset environment variable: " << GetLastError();
-            }
+            set(key, "");
 #else
             unsetenv(key.c_str());
 #endif
@@ -81,7 +124,7 @@ namespace mamba
             if (env_path)
             {
                 std::string path = env_path.value();
-                const auto parts = mamba::split(path, pathsep());
+                const auto parts = split(path, pathsep());
                 const std::vector<fs::u8path> search_paths(parts.begin(), parts.end());
                 return which(exe, search_paths);
             }
@@ -91,8 +134,8 @@ namespace mamba
             if (override_path == "")
             {
                 char* pathbuf;
-                size_t n = confstr(_CS_PATH, NULL, (size_t) 0);
-                pathbuf = (char*) malloc(n);
+                size_t n = confstr(_CS_PATH, NULL, static_cast<size_t>(0));
+                pathbuf = static_cast<char*>(malloc(n));
                 if (pathbuf != NULL)
                 {
                     confstr(_CS_PATH, pathbuf, n);
@@ -146,8 +189,8 @@ namespace mamba
             {
                 std::string_view s(c);
                 auto pos = s.find("=");
-                m[std::string(s.substr(0, pos))]
-                    = (pos != s.npos) ? std::string(s.substr(pos + 1)) : "";
+                m[std::string(s.substr(0, pos))] = (pos != s.npos) ? std::string(s.substr(pos + 1))
+                                                                   : "";
                 c = *(environ + i);
             }
 #else
@@ -202,13 +245,16 @@ namespace mamba
             std::string maybe_home = env::get("USERPROFILE").value_or("");
             if (maybe_home.empty())
             {
-                maybe_home
-                    = concat(env::get("HOMEDRIVE").value_or(""), env::get("HOMEPATH").value_or(""));
+                maybe_home = concat(
+                    env::get("HOMEDRIVE").value_or(""),
+                    env::get("HOMEPATH").value_or("")
+                );
             }
             if (maybe_home.empty())
             {
                 throw std::runtime_error(
-                    "Cannot determine HOME (checked USERPROFILE, HOMEDRIVE and HOMEPATH env vars)");
+                    "Cannot determine HOME (checked USERPROFILE, HOMEDRIVE and HOMEPATH env vars)"
+                );
             }
 #else
             std::string maybe_home = env::get("HOME").value_or("");

@@ -36,6 +36,7 @@ namespace mamba
     class mamba_error : public std::runtime_error
     {
     public:
+
         using base_type = std::runtime_error;
 
         mamba_error(const std::string& msg, mamba_error_code ec);
@@ -47,6 +48,7 @@ namespace mamba
         const std::any& data() const noexcept;
 
     private:
+
         mamba_error_code m_error_code;
         std::any m_data;
     };
@@ -54,6 +56,7 @@ namespace mamba
     class mamba_aggregated_error : public mamba_error
     {
     public:
+
         using base_type = mamba_error;
         using error_list_t = std::vector<mamba_error>;
 
@@ -62,9 +65,10 @@ namespace mamba
         const char* what() const noexcept override;
 
     private:
+
         error_list_t m_error_list;
         mutable std::string m_aggregated_message;
-        constexpr static const char* m_base_message = "Multiple errors occured:\n";
+        static constexpr const char* m_base_message = "Multiple errors occured:\n";
     };
 
     /********************************
@@ -75,6 +79,7 @@ namespace mamba
     class expected_ref_wrapper : private tl::expected<std::reference_wrapper<T>, E>
     {
     public:
+
         using value_type = T;
         using self_type = expected_ref_wrapper<T, E>;
         using reference = std::reference_wrapper<T>;
@@ -246,26 +251,26 @@ namespace mamba
     }
 
     template <class T1, class E1, class T2, class E2>
-    constexpr bool operator==(const expected_ref_wrapper<T1, E1>& x,
-                              const expected_ref_wrapper<T2, E2>& y)
+    constexpr bool
+    operator==(const expected_ref_wrapper<T1, E1>& x, const expected_ref_wrapper<T2, E2>& y)
     {
         using base_type1 = typename expected_ref_wrapper<T1, E1>::base_type;
         using base_type2 = typename expected_ref_wrapper<T2, E2>::base_type;
-        return operator==((const base_type1&) x, (const base_type2&) y);
+        return operator==(static_cast<const base_type1&>(x), static_cast<const base_type2&>(y));
     }
 
     template <class T1, class E1, class T2>
     constexpr bool operator==(const expected_ref_wrapper<T1, E1>& x, const T2& y)
     {
         using base_type1 = typename expected_ref_wrapper<T1, E1>::base_type;
-        return operator==((const base_type1&) x, y);
+        return operator==(static_cast<const base_type1&>(x), y);
     }
 
     template <class T1, class E1, class E2>
     constexpr bool operator==(const expected_ref_wrapper<T1, E1>& x, const tl::unexpected<E2>& y)
     {
         using base_type1 = typename expected_ref_wrapper<T1, E1>::base_type;
-        return operator==((const base_type1&) x, y);
+        return operator==(static_cast<const base_type1&>(x), y);
     }
 
     /***********************************

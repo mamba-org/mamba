@@ -18,7 +18,6 @@ else:
 
 
 class TestLinking:
-
     current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
     current_prefix = os.environ["CONDA_PREFIX"]
 
@@ -39,7 +38,7 @@ class TestLinking:
             rmtree(TestLinking.root_prefix)
 
     @classmethod
-    def teardown(cls):
+    def teardown_method(cls):
         if Path(TestLinking.prefix).exists():
             rmtree(TestLinking.prefix)
 

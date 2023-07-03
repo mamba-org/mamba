@@ -13,9 +13,9 @@ extern "C"
 }
 
 #include <limits>
+#include <optional>
 #include <stdexcept>
 #include <string>
-#include <string_view>
 #include <vector>
 
 // typedef enum {
@@ -41,15 +41,34 @@ extern "C"
 
 namespace mamba
 {
+    std::string concat_scheme_url(const std::string& scheme, const std::string& location);
+
+    std::string build_url(
+        const std::optional<std::string>& auth,
+        const std::string& scheme,
+        const std::string& base,
+        bool with_credential
+    );
+
+    void split_platform(
+        const std::vector<std::string>& known_platforms,
+        const std::string& url,
+        const std::string& context_platform,
+        std::string& cleaned_url,
+        std::string& platform
+    );
+
     bool has_scheme(const std::string& url);
 
     void split_anaconda_token(const std::string& url, std::string& cleaned_url, std::string& token);
 
-    void split_scheme_auth_token(const std::string& url,
-                                 std::string& remaining_url,
-                                 std::string& scheme,
-                                 std::string& auth,
-                                 std::string& token);
+    void split_scheme_auth_token(
+        const std::string& url,
+        std::string& remaining_url,
+        std::string& scheme,
+        std::string& auth,
+        std::string& token
+    );
 
     bool compare_cleaned_url(const std::string& url1, const std::string& url2);
 
@@ -64,11 +83,11 @@ namespace mamba
     std::string decode_url(const std::string& url);
     // Only returns a cache name without extension
     std::string cache_name_from_url(const std::string& url);
-    std::string hide_secrets(const std::string_view& str);
 
     class URLHandler
     {
     public:
+
         URLHandler(const std::string& url = "");
         ~URLHandler();
 
@@ -80,19 +99,19 @@ namespace mamba
 
         std::string url(bool strip_scheme = false);
 
-        std::string scheme();
-        std::string host();
-        std::string path();
-        std::string port();
+        std::string scheme() const;
+        std::string host() const;
+        std::string path() const;
+        std::string port() const;
 
-        std::string query();
-        std::string fragment();
-        std::string options();
+        std::string query() const;
+        std::string fragment() const;
+        std::string options() const;
 
-        std::string auth();
-        std::string user();
-        std::string password();
-        std::string zoneid();
+        std::string auth() const;
+        std::string user() const;
+        std::string password() const;
+        std::string zoneid() const;
 
         URLHandler& set_scheme(const std::string& scheme);
         URLHandler& set_host(const std::string& host);
@@ -108,7 +127,8 @@ namespace mamba
         URLHandler& set_zoneid(const std::string& zoneid);
 
     private:
-        std::string get_part(CURLUPart part);
+
+        std::string get_part(CURLUPart part) const;
         void set_part(CURLUPart part, const std::string& s);
 
         std::string m_url;

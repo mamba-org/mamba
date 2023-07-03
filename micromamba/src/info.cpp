@@ -4,30 +4,28 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "mamba/api/info.hpp"
+#include "mamba/core/context.hpp"
+
 #include "common_options.hpp"
 
-#include "mamba/api/info.hpp"
-
-
-using namespace mamba;  // NOLINT(build/namespaces)
-
 void
-init_info_parser(CLI::App* subcom)
+init_info_parser(CLI::App* subcom, mamba::Configuration& config)
 {
-    init_general_options(subcom);
-    init_prefix_options(subcom);
+    init_general_options(subcom, config);
+    init_prefix_options(subcom, config);
 }
 
 void
-set_info_command(CLI::App* subcom)
+set_info_command(CLI::App* subcom, mamba::Configuration& config)
 {
-    init_info_parser(subcom);
+    init_info_parser(subcom, config);
     static bool print_licenses;
 
     subcom->add_flag("--licenses", print_licenses, "Print licenses");
 
     subcom->callback(
-        [&]()
+        [&config]
         {
             // TODO: Print full license texts.
             if (print_licenses)
@@ -72,7 +70,8 @@ set_info_command(CLI::App* subcom)
             }
             else
             {
-                info();
+                info(config);
             }
-        });
+        }
+    );
 }

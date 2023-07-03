@@ -6,7 +6,6 @@
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/info.hpp"
-
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
@@ -22,39 +21,35 @@ extern "C"
 
 namespace mamba
 {
-    void info()
+    void info(Configuration& config)
     {
-        auto& config = Configuration::instance();
-
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
-            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
-                       | MAMBA_ALLOW_NOT_ENV_PREFIX);
+            .set_value(
+                MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX | MAMBA_ALLOW_NOT_ENV_PREFIX
+            );
         config.load();
 
-        detail::print_info();
+        ChannelContext channel_context;
+        detail::print_info(channel_context, config);
 
         config.operation_teardown();
-    }
-
-    std::string banner()
-    {
-        auto& ctx = Context::instance();
-        return ctx.custom_banner.empty() ? mamba_banner : ctx.custom_banner;
     }
 
     namespace detail
     {
         void info_pretty_print(std::vector<std::tuple<std::string, nlohmann::json>> items)
         {
-            if (Context::instance().json)
+            if (Context::instance().output_params.json)
+            {
                 return;
+            }
 
-            int key_max_length = 0;
+            std::size_t key_max_length = 0;
             for (auto& item : items)
             {
-                int key_length = std::get<0>(item).size();
-                key_max_length = key_length < key_max_length ? key_max_length : key_length;
+                std::size_t key_length = std::get<0>(item).size();
+                key_max_length = std::max(key_length, key_max_length);
             }
             ++key_max_length;
 
@@ -64,7 +59,7 @@ namespace mamba
             {
                 auto key = std::get<0>(item);
                 auto val = std::get<1>(item);
-                int blk_size = key_max_length - std::get<0>(item).size();
+                auto blk_size = key_max_length - std::get<0>(item).size();
 
                 stream << "\n" << std::string(blk_size, ' ') << key << " : ";
                 for (auto v = val.begin(); v != val.end(); ++v)
@@ -82,21 +77,36 @@ namespace mamba
         {
             std::map<std::string, nlohmann::json> items_map;
             for (auto& [key, val] : items)
+            {
                 items_map.insert({ key, val });
+            }
 
             Console::instance().json_write(items_map);
         }
 
-        void print_info()
+        void print_info(ChannelContext& channel_context, const Configuration& config)
         {
             auto& ctx = Context::instance();
             std::vector<std::tuple<std::string, nlohmann::json>> items;
 
-            std::string name, location;
-            if (!ctx.target_prefix.empty())
+            items.push_back({ "libmamba version", version() });
+
+            if (ctx.command_params.is_micromamba && !ctx.command_params.caller_version.empty())
             {
-                name = env_name(ctx.target_prefix);
-                location = ctx.target_prefix.string();
+                items.push_back({ "micromamba version", ctx.command_params.caller_version });
+            }
+
+            items.push_back({ "curl version", curl_version() });
+            items.push_back({ "libarchive version", archive_version_details() });
+
+            items.push_back({ "envs directories", ctx.envs_dirs });
+            items.push_back({ "package cache", ctx.pkgs_dirs });
+
+            std::string name, location;
+            if (!ctx.prefix_params.target_prefix.empty())
+            {
+                name = env_name(ctx.prefix_params.target_prefix);
+                location = ctx.prefix_params.target_prefix.string();
             }
             else
             {
@@ -104,14 +114,15 @@ namespace mamba
                 location = "-";
             }
 
-            if (std::getenv("CONDA_PREFIX") && (std::getenv("CONDA_PREFIX") == ctx.target_prefix))
+            if (std::getenv("CONDA_PREFIX")
+                && (std::getenv("CONDA_PREFIX") == ctx.prefix_params.target_prefix))
             {
                 name += " (active)";
             }
-            else if (fs::exists(ctx.target_prefix))
+            else if (fs::exists(ctx.prefix_params.target_prefix))
             {
-                if (!(fs::exists(ctx.target_prefix / "conda-meta")
-                      || (ctx.target_prefix == ctx.root_prefix)))
+                if (!(fs::exists(ctx.prefix_params.target_prefix / "conda-meta")
+                      || (ctx.prefix_params.target_prefix == ctx.prefix_params.root_prefix)))
                 {
                     name += " (not env)";
                 }
@@ -125,24 +136,15 @@ namespace mamba
             items.push_back({ "env location", location });
 
             // items.insert( { "shell level", { 1 } });
-            items.push_back(
-                { "user config files", { (env::home_directory() / ".mambarc").string() } });
+            items.push_back({ "user config files",
+                              { (env::home_directory() / ".mambarc").string() } });
 
-            Configuration& config = Configuration::instance();
             std::vector<std::string> sources;
             for (auto s : config.valid_sources())
             {
                 sources.push_back(s.string());
             };
             items.push_back({ "populated config files", sources });
-
-            items.push_back({ "libmamba version", version() });
-
-            if (ctx.is_micromamba && !ctx.caller_version.empty())
-                items.push_back({ "micromamba version", ctx.caller_version });
-
-            items.push_back({ "curl version", curl_version() });
-            items.push_back({ "libarchive version", archive_version_details() });
 
             std::vector<std::string> virtual_pkgs;
             for (auto pkg : get_virtual_packages())
@@ -156,7 +158,7 @@ namespace mamba
             auto& ctx_channels = Context::instance().channels;
             std::copy(ctx_channels.begin(), ctx_channels.end(), std::back_inserter(channels));
             std::vector<std::string> channel_urls;
-            for (auto channel : get_channels(channels))
+            for (auto channel : channel_context.get_channels(channels))
             {
                 for (auto url : channel->urls(true))
                 {
@@ -165,7 +167,7 @@ namespace mamba
             }
             items.push_back({ "channels", channel_urls });
 
-            items.push_back({ "base environment", ctx.root_prefix.string() });
+            items.push_back({ "base environment", ctx.prefix_params.root_prefix.string() });
 
             items.push_back({ "platform", ctx.platform });
 

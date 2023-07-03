@@ -254,3 +254,20 @@ def test_unicode(tmpdir):
     assert len(pd.package_records) > 1
     assert "xtl" in pd.package_records
     assert "xtensor" in pd.package_records
+
+
+@pytest.mark.parametrize("use_json", [True, False])
+def test_info(use_json):
+    mamba_cmd = ["mamba", "info"]
+    if use_json:
+        mamba_cmd.append("--json")
+
+    output = subprocess.check_output(mamba_cmd).decode()
+
+    from mamba import __version__
+
+    if use_json:
+        output = json.loads(output)
+        assert output["mamba_version"] == __version__
+    else:
+        assert "mamba version : " + __version__ in output

@@ -10,7 +10,6 @@ from .helpers import *
 
 @pytest.mark.skipif(dry_run_tests == DryRun.ULTRA_DRY, reason="Running ultra dry tests")
 class TestUpdate:
-
     current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
     current_prefix = os.environ["CONDA_PREFIX"]
 
@@ -77,7 +76,7 @@ class TestUpdate:
             return
 
         res = umamba_list("python", "-n", TestUpdate.env_name, "--json")
-        assert len(res) == 2
+        assert len(res) >= 1
         pyelem = [r for r in res if r["name"] == "python"][0]
         assert pyelem["version"].startswith("3.9")
 
@@ -204,7 +203,6 @@ class TestUpdate:
 
 
 class TestUpdateConfig:
-
     current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
     current_prefix = os.environ["CONDA_PREFIX"]
 

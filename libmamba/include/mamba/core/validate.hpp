@@ -7,17 +7,18 @@
 #ifndef MAMBA_CORE_VALIDATE_HPP
 #define MAMBA_CORE_VALIDATE_HPP
 
-#include <string>
-#include <vector>
 #include <set>
 #include <stdexcept>
+#include <string>
+#include <vector>
 
 #include <nlohmann/json.hpp>
 
 #include "mamba/core/mamba_fs.hpp"
+#include "mamba/core/timeref.hpp"
 #include "mamba/core/util.hpp"
 
-namespace validate
+namespace mamba::validation
 {
     using nlohmann::json;
 
@@ -37,34 +38,35 @@ namespace validate
     const std::size_t MAMBA_ED25519_SIGSIZE_BYTES = 64;
 
     int generate_ed25519_keypair(unsigned char* pk, unsigned char* sk);
-    std::pair<std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>,
-              std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>>
+    std::pair<
+        std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>,
+        std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>>
     generate_ed25519_keypair();
     std::pair<std::string, std::string> generate_ed25519_keypair_hex();
 
     int sign(const std::string& data, const unsigned char* sk, unsigned char* signature);
     int sign(const std::string& data, const std::string& sk, std::string& signature);
 
-    std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> ed25519_sig_hex_to_bytes(
-        const std::string& sig_hex) noexcept;
+    std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES>
+    ed25519_sig_hex_to_bytes(const std::string& sig_hex) noexcept;
 
-    std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> ed25519_sig_hex_to_bytes(
-        const std::string& sig_hex, int& error_code) noexcept;
+    std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES>
+    ed25519_sig_hex_to_bytes(const std::string& sig_hex, int& error_code) noexcept;
 
-    std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> ed25519_key_hex_to_bytes(
-        const std::string& key_hex) noexcept;
+    std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>
+    ed25519_key_hex_to_bytes(const std::string& key_hex) noexcept;
 
-    std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> ed25519_key_hex_to_bytes(
-        const std::string& key_hex, int& error_code) noexcept;
+    std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>
+    ed25519_key_hex_to_bytes(const std::string& key_hex, int& error_code) noexcept;
 
-    int verify(const unsigned char* data,
-               std::size_t data_len,
-               const unsigned char* pk,
-               const unsigned char* signature);
+    int verify(
+        const unsigned char* data,
+        std::size_t data_len,
+        const unsigned char* pk,
+        const unsigned char* signature
+    );
     int verify(const std::string& data, const unsigned char* pk, const unsigned char* signature);
-    int verify(const std::string& data,
-               const std::string& pk_hex,
-               const std::string& signature_hex);
+    int verify(const std::string& data, const std::string& pk_hex, const std::string& signature_hex);
 
     /**
      * Verify a GPG/PGP signature against the hash of the binary data and
@@ -72,15 +74,15 @@ namespace validate
      * See RFC4880, section 5.2.4 https://datatracker.ietf.org/doc/html/rfc4880#section-5.2.4
      * This method assumes hash function to be SHA-256
      */
-    int verify_gpg_hashed_msg(const unsigned char* data,
-                              const unsigned char* pk,
-                              const unsigned char* signature);
-    int verify_gpg_hashed_msg(const std::string& data,
-                              const unsigned char* pk,
-                              const unsigned char* signature);
-    int verify_gpg_hashed_msg(const std::string& data,
-                              const std::string& pk,
-                              const std::string& signature);
+    int verify_gpg_hashed_msg(
+        const unsigned char* data,
+        const unsigned char* pk,
+        const unsigned char* signature
+    );
+    int
+    verify_gpg_hashed_msg(const std::string& data, const unsigned char* pk, const unsigned char* signature);
+    int
+    verify_gpg_hashed_msg(const std::string& data, const std::string& pk, const std::string& signature);
 
     /**
      * Verify a GPG/PGP signature against the binary data and
@@ -88,10 +90,12 @@ namespace validate
      * See RFC4880, section 5.2.4 https://datatracker.ietf.org/doc/html/rfc4880#section-5.2.4
      * This method assumes hash function to be SHA-256
      */
-    int verify_gpg(const std::string& data,
-                   const std::string& gpg_v4_trailer,
-                   const std::string& pk,
-                   const std::string& signature);
+    int verify_gpg(
+        const std::string& data,
+        const std::string& gpg_v4_trailer,
+        const std::string& pk,
+        const std::string& signature
+    );
 
     /**
      * Base class for artifact/package verification error.
@@ -99,11 +103,13 @@ namespace validate
     class trust_error : public std::exception
     {
     public:
+
         trust_error(const std::string& message) noexcept;
         virtual ~trust_error() = default;
         virtual const char* what() const noexcept override;
 
     private:
+
         std::string m_message;
     };
 
@@ -116,6 +122,7 @@ namespace validate
     class threshold_error : public trust_error
     {
     public:
+
         threshold_error() noexcept;
         virtual ~threshold_error() = default;
     };
@@ -127,6 +134,7 @@ namespace validate
     class role_metadata_error : public trust_error
     {
     public:
+
         role_metadata_error() noexcept;
         virtual ~role_metadata_error() = default;
     };
@@ -139,6 +147,7 @@ namespace validate
     class role_file_error : public trust_error
     {
     public:
+
         role_file_error() noexcept;
         virtual ~role_file_error() = default;
     };
@@ -151,6 +160,7 @@ namespace validate
     class rollback_error : public trust_error
     {
     public:
+
         rollback_error() noexcept;
         virtual ~rollback_error() = default;
     };
@@ -163,6 +173,7 @@ namespace validate
     class freeze_error : public trust_error
     {
     public:
+
         freeze_error() noexcept;
         virtual ~freeze_error() = default;
     };
@@ -175,6 +186,7 @@ namespace validate
     class spec_version_error : public trust_error
     {
     public:
+
         spec_version_error() noexcept;
         virtual ~spec_version_error() = default;
     };
@@ -187,6 +199,7 @@ namespace validate
     class fetching_error : public trust_error
     {
     public:
+
         fetching_error() noexcept;
         virtual ~fetching_error() = default;
     };
@@ -199,6 +212,7 @@ namespace validate
     class package_error : public trust_error
     {
     public:
+
         package_error() noexcept;
         virtual ~package_error() = default;
     };
@@ -210,6 +224,7 @@ namespace validate
     class role_error : public trust_error
     {
     public:
+
         role_error() noexcept;
         virtual ~role_error() = default;
     };
@@ -221,6 +236,7 @@ namespace validate
     class index_error : public trust_error
     {
     public:
+
         index_error() noexcept;
         virtual ~index_error() = default;
     };
@@ -317,34 +333,12 @@ namespace validate
 
 
     /**
-     * Singleton class to define a time reference.
-     * TUF 5.1 'Record fixed update start time'
-     * https://theupdateframework.github.io/specification/latest/#fix-time
-     */
-    class TimeRef
-    {
-    public:
-        static TimeRef& instance();
-
-        void set(const std::time_t& time);
-        void set_now();
-        std::string timestamp();
-
-    protected:
-        TimeRef();
-        ~TimeRef();
-
-    private:
-        std::time_t m_time_ref;
-    };
-
-
-    /**
      * Base class for spec implementations.
      */
     class SpecBase
     {
     public:
+
         virtual ~SpecBase() = default;
 
         std::string version_str() const;
@@ -369,12 +363,14 @@ namespace validate
         virtual std::set<RoleSignature> signatures(const json& j) const = 0;
 
     protected:
+
         SpecBase(const std::string& spec_version);
         SpecBase() = delete;
 
         std::string get_json_value(const json& j) const;
 
     private:
+
         std::string m_spec_version;
     };
 
@@ -388,6 +384,7 @@ namespace validate
     class RoleBase
     {
     public:
+
         RoleBase(const std::string& type, std::shared_ptr<SpecBase> sv);
 
         virtual ~RoleBase() = 0;
@@ -398,7 +395,7 @@ namespace validate
         std::string file_ext() const;
         std::string expires() const;
 
-        bool expired() const;
+        bool expired(const TimeRef& time_reference) const;
 
         std::set<std::string> roles() const;
         std::set<RoleSignature> signatures(const json& j) const;
@@ -410,6 +407,7 @@ namespace validate
         friend void from_json(const json& j, RoleBase* r);
 
     protected:
+
         json read_json_file(const fs::u8path& p, bool update = false) const;
 
         /**
@@ -424,9 +422,11 @@ namespace validate
          * Check that a threshold of valid signatures is met
          * for the signed metadata, using a set of keys.
          */
-        void check_signatures(const std::string& signed_data,
-                              const std::set<RoleSignature>& signatures,
-                              const RoleFullKeys& keyring) const;
+        void check_signatures(
+            const std::string& signed_data,
+            const std::set<RoleSignature>& signatures,
+            const RoleFullKeys& keyring
+        ) const;
 
         void set_spec_version(std::shared_ptr<SpecBase> sv);
         void set_expiration(const std::string& expires);
@@ -448,6 +448,7 @@ namespace validate
         std::map<std::string, RoleFullKeys> m_defined_roles;
 
     private:
+
         std::string m_internal_type;
         std::string m_type;
         std::shared_ptr<SpecBase> p_spec;
@@ -465,6 +466,7 @@ namespace validate
     class RootRole : public RoleBase
     {
     public:
+
         virtual ~RootRole() = default;
 
         std::unique_ptr<RootRole> update(fs::u8path path);
@@ -472,14 +474,15 @@ namespace validate
 
         std::vector<fs::u8path> possible_update_files();
 
-        virtual std::unique_ptr<RepoIndexChecker> build_index_checker(
-            const std::string& url, const fs::u8path& cache_path) const
-            = 0;
+        virtual std::unique_ptr<RepoIndexChecker>
+        build_index_checker(const TimeRef& time_reference, const std::string& url, const fs::u8path& cache_path) const = 0;
 
     protected:
+
         RootRole(std::shared_ptr<SpecBase> spec);
 
     private:
+
         virtual std::unique_ptr<RootRole> create_update(const json& j) = 0;
     };
 
@@ -491,12 +494,14 @@ namespace validate
     class RepoIndexChecker
     {
     public:
+
         virtual ~RepoIndexChecker() = default;
         virtual void verify_index(const json& j) const = 0;
         virtual void verify_index(const fs::u8path& p) const = 0;
         virtual void verify_package(const json& signed_data, const json& signatures) const = 0;
 
     protected:
+
         RepoIndexChecker() = default;
     };
 
@@ -509,15 +514,18 @@ namespace validate
     class RepoChecker
     {
     public:
+
         /**
          * Constructor.
          * @param base_url Repository base URL
          * @param ref_path Path to the reference directory, hosting trusted root metadata
          * @param cache_path Path to the cache directory
          */
-        RepoChecker(const std::string& base_url,
-                    const fs::u8path& ref_path,
-                    const fs::u8path& cache_path = "");
+        RepoChecker(
+            const std::string& base_url,
+            const fs::u8path& ref_path,
+            const fs::u8path& cache_path = ""
+        );
 
         // Forwarding to a ``RepoIndexChecker`` implementation
         void verify_index(const json& j) const;
@@ -531,6 +539,7 @@ namespace validate
         std::size_t root_version();
 
     private:
+
         std::string m_base_url;
         std::size_t m_root_version = 0;
         fs::u8path m_ref_path;
@@ -544,7 +553,7 @@ namespace validate
 
         std::unique_ptr<RepoIndexChecker> p_index_checker;
 
-        std::unique_ptr<RootRole> get_root_role();
+        std::unique_ptr<RootRole> get_root_role(const TimeRef& time_reference);
     };
 
 
@@ -556,6 +565,7 @@ namespace validate
         class SpecImpl final : public SpecBase
         {
         public:
+
             SpecImpl(const std::string& sv = "1.0.17");
 
             std::string json_key() const override;
@@ -573,18 +583,23 @@ namespace validate
         class RootImpl final : public RootRole
         {
         public:
+
             RootImpl(const fs::u8path& p);
             RootImpl(const json& j);
 
             RoleFullKeys self_keys() const override;
 
             std::unique_ptr<RepoIndexChecker> build_index_checker(
-                const std::string& url, const fs::u8path& cache_path) const override;
+                const TimeRef& time_reference,
+                const std::string& url,
+                const fs::u8path& cache_path
+            ) const override;
 
             friend void to_json(json& j, const RootImpl& r);
             friend void from_json(const json& j, RootImpl& r);
 
         private:
+
             RootImpl() = delete;
 
             void load_from_json(const json& j);
@@ -594,8 +609,8 @@ namespace validate
             std::set<std::string> mandatory_defined_roles() const override;
             std::set<std::string> optionally_defined_roles() const override;
 
-            void set_defined_roles(std::map<std::string, Key> keys,
-                                   std::map<std::string, RoleKeys> roles);
+            void
+            set_defined_roles(std::map<std::string, Key> keys, std::map<std::string, RoleKeys> roles);
         };
     }
 
@@ -608,6 +623,7 @@ namespace validate
         class SpecImpl final : public SpecBase
         {
         public:
+
             SpecImpl(const std::string& sv = "0.6.0");
 
             std::string json_key() const override;
@@ -622,11 +638,13 @@ namespace validate
         class V06RoleBaseExtension
         {
         public:
+
             void set_timestamp(const std::string& ts);
 
             std::string timestamp() const;
 
         protected:
+
             std::string m_timestamp;
 
             void check_timestamp_format() const;
@@ -644,6 +662,7 @@ namespace validate
             , public V06RoleBaseExtension
         {
         public:
+
             RootImpl(const fs::u8path& p);
             RootImpl(const json& j);
             RootImpl(const std::string& json_str);
@@ -653,14 +672,16 @@ namespace validate
              * from repository base URL.
              */
             std::unique_ptr<RepoIndexChecker> build_index_checker(
-                const std::string& url, const fs::u8path& cache_path) const override;
+                const TimeRef& time_reference,
+                const std::string& url,
+                const fs::u8path& cache_path
+            ) const override;
 
             RoleFullKeys self_keys() const override;
 
             json upgraded_signable() const;
-            RoleSignature upgraded_signature(const json& j,
-                                             const std::string& pk,
-                                             const unsigned char* sk) const;
+            RoleSignature
+            upgraded_signature(const json& j, const std::string& pk, const unsigned char* sk) const;
 
             KeyMgrRole create_key_mgr(const fs::u8path& p) const;
             KeyMgrRole create_key_mgr(const json& j) const;
@@ -669,6 +690,7 @@ namespace validate
             friend void from_json(const json& j, RootImpl& r);
 
         private:
+
             RootImpl() = delete;
 
             void load_from_json(const json& j);
@@ -693,15 +715,14 @@ namespace validate
             , public V06RoleBaseExtension
         {
         public:
-            KeyMgrRole(const fs::u8path& p,
-                       const RoleFullKeys& keys,
-                       const std::shared_ptr<SpecBase> spec);
-            KeyMgrRole(const json& j,
-                       const RoleFullKeys& keys,
-                       const std::shared_ptr<SpecBase> spec);
-            KeyMgrRole(const std::string& json_str,
-                       const RoleFullKeys& keys,
-                       const std::shared_ptr<SpecBase> spec);
+
+            KeyMgrRole(const fs::u8path& p, const RoleFullKeys& keys, const std::shared_ptr<SpecBase> spec);
+            KeyMgrRole(const json& j, const RoleFullKeys& keys, const std::shared_ptr<SpecBase> spec);
+            KeyMgrRole(
+                const std::string& json_str,
+                const RoleFullKeys& keys,
+                const std::shared_ptr<SpecBase> spec
+            );
 
             // std::set<std::string> roles() const override;
             RoleFullKeys self_keys() const override;
@@ -714,12 +735,16 @@ namespace validate
              * from repository base URL.
              */
             std::unique_ptr<RepoIndexChecker> build_index_checker(
-                const std::string& url, const fs::u8path& cache_path) const;
+                const TimeRef& time_reference,
+                const std::string& url,
+                const fs::u8path& cache_path
+            ) const;
 
             friend void to_json(json& j, const KeyMgrRole& r);
             friend void from_json(const json& j, KeyMgrRole& r);
 
         private:
+
             KeyMgrRole() = delete;
 
             void load_from_json(const json& j);
@@ -746,16 +771,15 @@ namespace validate
             , public RepoIndexChecker
         {
         public:
+
             PkgMgrRole(const RoleFullKeys& keys, const std::shared_ptr<SpecBase> spec);
-            PkgMgrRole(const fs::u8path& p,
-                       const RoleFullKeys& keys,
-                       const std::shared_ptr<SpecBase> spec);
-            PkgMgrRole(const json& j,
-                       const RoleFullKeys& keys,
-                       const std::shared_ptr<SpecBase> spec);
-            PkgMgrRole(const std::string& json_str,
-                       const RoleFullKeys& keys,
-                       const std::shared_ptr<SpecBase> spec);
+            PkgMgrRole(const fs::u8path& p, const RoleFullKeys& keys, const std::shared_ptr<SpecBase> spec);
+            PkgMgrRole(const json& j, const RoleFullKeys& keys, const std::shared_ptr<SpecBase> spec);
+            PkgMgrRole(
+                const std::string& json_str,
+                const RoleFullKeys& keys,
+                const std::shared_ptr<SpecBase> spec
+            );
 
             void verify_index(const fs::u8path& p) const override;
             void verify_index(const json& j) const override;
@@ -765,6 +789,7 @@ namespace validate
             friend void from_json(const json& j, PkgMgrRole& r);
 
         private:
+
             PkgMgrRole() = delete;
 
             void load_from_json(const json& j);

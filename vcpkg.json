@@ -1,0 +1,47 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "dependencies": [
+    {
+      "features": [
+        "conda"
+      ],
+      "name": "libsolv"
+    },
+    "zstd",
+    "nlohmann-json",
+    "tl-expected",
+    "curl",
+    "yaml-cpp",
+    "reproc",
+    "fmt",
+    "spdlog",
+    "cli11",
+    {
+      "name": "winreg",
+      "platform": "windows"
+    },
+    {
+      "features": [
+        "bzip2",
+        "lz4",
+        "lzma",
+        "lzo",
+        "openssl",
+        "zstd"
+      ],
+      "name": "libarchive"
+    },
+    {
+      "host": true,
+      "name": "vcpkg-cmake"
+    },
+    {
+      "host": true,
+      "name": "vcpkg-cmake-config"
+    }
+  ],
+  "homepage": "https://github.com/mamba-org/mamba",
+  "license": "BSD-3-Clause",
+  "name": "micromamba",
+  "supports": "x64 | (arm64 & !windows)"
+}

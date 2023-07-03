@@ -9,7 +9,6 @@ from .helpers import *
 
 
 class TestInstall:
-
     current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
     current_prefix = os.environ["CONDA_PREFIX"]
 
@@ -23,7 +22,7 @@ class TestInstall:
         os.environ["CONDA_PREFIX"] = TestInstall.prefix
 
     @classmethod
-    def setup(cls):
+    def setup_method(cls):
         create("-n", TestInstall.env_name, "--offline", no_dry_run=True)
 
     @classmethod
@@ -33,7 +32,7 @@ class TestInstall:
         shutil.rmtree(TestInstall.root_prefix)
 
     @classmethod
-    def teardown(cls):
+    def teardown_method(cls):
         os.environ["MAMBA_ROOT_PREFIX"] = TestInstall.root_prefix
         os.environ["CONDA_PREFIX"] = TestInstall.prefix
         for v in ("CONDA_CHANNELS", "MAMBA_TARGET_PREFIX"):
@@ -524,3 +523,33 @@ class TestInstall:
         pkg = pkgs[0]
         assert pkg["version"] == "1.4.4"
         assert pkg["build_string"] == "pyh9f0ad1d_0"
+
+    def test_broken_package_name(self):
+        non_existing_url = (
+            "https://026e9ab9-6b46-4285-ae0d-427553801720.de/mypackage.tar.bz2"
+        )
+        try:
+            res = install(non_existing_url, default_channel=False)
+        except subprocess.CalledProcessError as e:
+            assert "Invalid package filename" in e.stderr.decode("utf-8")
+
+    def test_no_reinstall(self, existing_cache):
+        """Reinstalling is a no op."""
+        res = install("xtensor", "--json")
+        assert "xtensor" in {pkg["name"] for pkg in res["actions"]["LINK"]}
+
+        reinstall_res = install("xtensor", "--json")
+        assert "actions" not in reinstall_res
+
+    def test_force_reinstall(self, existing_cache):
+        """Force reinstall installs existing package again."""
+        res = install("xtensor", "--json")
+        assert "xtensor" in {pkg["name"] for pkg in res["actions"]["LINK"]}
+
+        reinstall_res = install("xtensor", "--force-reinstall", "--json")
+        assert "xtensor" in {pkg["name"] for pkg in reinstall_res["actions"]["LINK"]}
+
+    def test_force_reinstall_not_installed(self, existing_cache):
+        """Force reinstall on non-installed packages is valid."""
+        reinstall_res = install("xtensor", "--force-reinstall", "--json")
+        assert "xtensor" in {pkg["name"] for pkg in reinstall_res["actions"]["LINK"]}

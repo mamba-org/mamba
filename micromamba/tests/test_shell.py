@@ -3,7 +3,6 @@ import os
 import platform
 import shutil
 import subprocess
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -33,7 +32,6 @@ def skip_if_shell_incompat(shell_type):
 
 
 class TestShell:
-
     current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
     current_prefix = os.environ["CONDA_PREFIX"]
 
@@ -88,7 +86,7 @@ class TestShell:
         elif shell_type == "cmd.exe":
             assert res == ""
         elif shell_type == "tcsh":
-            assert res.count(mamba_exe) == 2
+            assert res.count(mamba_exe) == 3
 
         res = shell("hook", "-s", shell_type, "--json")
         expected_keys = {"success", "operation", "context", "actions"}
@@ -195,7 +193,7 @@ class TestShell:
             p = TestShell.prefix
             n = TestShell.env_name
 
-        cmd = ["activate", "-s", shell_type, "-p"]
+        cmd = ["activate", "-s", shell_type]
         if prefix_type == "expanded_prefix":
             cmd.append(p)
         elif prefix_type == "shrinked_prefix":
@@ -237,12 +235,12 @@ class TestShell:
         if prefix_selector is None:
             res = shell("-y", "init", "-s", shell_type)
         else:
-            res = shell("-y", "init", "-s", shell_type, "-p", TestShell.root_prefix)
+            res = shell("-y", "init", "-s", shell_type, "-r", TestShell.root_prefix)
         assert res
 
         if multiple_time:
             if same_prefix and shell_type == "cmd.exe":
-                res = shell("-y", "init", "-s", shell_type, "-p", TestShell.root_prefix)
+                res = shell("-y", "init", "-s", shell_type, "-r", TestShell.root_prefix)
                 assert res.splitlines() == [
                     "cmd.exe already initialized.",
                     "Windows long-path support already enabled.",
@@ -253,7 +251,7 @@ class TestShell:
                     "init",
                     "-s",
                     shell_type,
-                    "-p",
+                    "-r",
                     os.path.join(TestShell.root_prefix, random_string()),
                 )
 
@@ -264,7 +262,7 @@ class TestShell:
         else:
             assert Path(os.path.join(TestShell.root_prefix, "condabin")).is_dir()
 
-        shell("init", "-y", "-s", shell_type, "-p", TestShell.current_root_prefix)
+        shell("init", "-y", "-s", shell_type, "-r", TestShell.current_root_prefix)
 
     def test_dash(self):
         skip_if_shell_incompat("dash")

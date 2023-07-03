@@ -1,7 +1,7 @@
 
 #include <atomic>
-#include <mutex>
 #include <cassert>
+#include <mutex>
 #include <regex>
 
 extern "C"
@@ -9,14 +9,14 @@ extern "C"
 #include <curl/urlapi.h>
 }
 
-#include "spdlog/spdlog.h"
-
 #include "mamba/api/configuration.hpp"
+#include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/validate.hpp"
-#include "mamba/core/channel_builder.hpp"
-#include "mamba/core/execution.hpp"
+
+#include "spdlog/spdlog.h"
 
 
 namespace mamba
@@ -39,6 +39,7 @@ namespace mamba
     class CURLSetup final
     {
     public:
+
         CURLSetup()
         {
 #ifdef LIBMAMBA_STATIC_DEPS
@@ -47,37 +48,38 @@ namespace mamba
 
             if (on_linux)
             {
-                sslset_res
-                    = curl_global_sslset(CURLSSLBACKEND_OPENSSL, nullptr, &available_backends);
+                sslset_res = curl_global_sslset(CURLSSLBACKEND_OPENSSL, nullptr, &available_backends);
             }
             else if (on_mac)
             {
                 sslset_res = curl_global_sslset(
-                    CURLSSLBACKEND_SECURETRANSPORT, nullptr, &available_backends);
+                    CURLSSLBACKEND_SECURETRANSPORT,
+                    nullptr,
+                    &available_backends
+                );
             }
             else if (on_win)
             {
-                sslset_res
-                    = curl_global_sslset(CURLSSLBACKEND_SCHANNEL, nullptr, &available_backends);
+                sslset_res = curl_global_sslset(CURLSSLBACKEND_SCHANNEL, nullptr, &available_backends);
             }
 
             if (sslset_res == CURLSSLSET_TOO_LATE)
             {
                 LOG_ERROR << "cURL SSL init called too late, that is a bug.";
             }
-            else if (sslset_res == CURLSSLSET_UNKNOWN_BACKEND
-                     || sslset_res == CURLSSLSET_NO_BACKENDS)
+            else if (sslset_res == CURLSSLSET_UNKNOWN_BACKEND || sslset_res == CURLSSLSET_NO_BACKENDS)
             {
-                LOG_WARNING
-                    << "Could not use preferred SSL backend (Linux: OpenSSL, OS X: SecureTransport, Win: SChannel)"
-                    << std::endl;
+                LOG_WARNING << "Could not use preferred SSL backend (Linux: OpenSSL, OS X: SecureTransport, Win: SChannel)"
+                            << std::endl;
                 LOG_WARNING << "Please check the cURL library configuration that you are using."
                             << std::endl;
             }
 #endif
 
             if (curl_global_init(CURL_GLOBAL_ALL) != 0)
+            {
                 throw std::runtime_error("failed to initialize curl");
+            }
         }
 
         ~CURLSetup()
@@ -133,7 +135,9 @@ namespace mamba
     {
         MainExecutor* expected = nullptr;
         if (!main_executor.compare_exchange_strong(expected, this))
+        {
             throw MainExecutorError("attempted to create multiple main executors");
+        }
     }
 
     MainExecutor::~MainExecutor()
@@ -162,9 +166,12 @@ namespace mamba
             if (!ptr)
             {
                 throw mamba::mamba_error(
-                    fmt::format("attempt to use {} singleton instance after destruction",
-                                typeid(T).name()),
-                    mamba_error_code::internal_failure);
+                    fmt::format(
+                        "attempt to use {} singleton instance after destruction",
+                        typeid(T).name()
+                    ),
+                    mamba_error_code::internal_failure
+                );
             }
 
             return *ptr;
@@ -172,21 +179,6 @@ namespace mamba
 
         static std::unique_ptr<Singleton<Context>> context;
         static std::unique_ptr<Singleton<Console>> console;
-        static std::unique_ptr<Singleton<Configuration>> config;
-        static std::unique_ptr<Singleton<ChannelCache>> channel_cache;
-        static std::unique_ptr<Singleton<ChannelContext>> channel_context;
-        static std::unique_ptr<Singleton<validate::TimeRef>> time_ref;
-    }
-
-
-    Configuration& Configuration::instance()
-    {
-        return singletons::init_once(singletons::config);
-    }
-
-    ChannelContext& ChannelContext::instance()
-    {
-        return singletons::init_once(singletons::channel_context);
     }
 
     Context& Context::instance()
@@ -199,17 +191,4 @@ namespace mamba
         return singletons::init_once(singletons::console);
     }
 
-    auto ChannelBuilder::get_cache() -> ChannelCache&
-    {
-        return singletons::init_once(singletons::channel_cache);
-    }
-
-}
-
-namespace validate
-{
-    TimeRef& TimeRef::instance()
-    {
-        return mamba::singletons::init_once(mamba::singletons::time_ref);
-    }
 }

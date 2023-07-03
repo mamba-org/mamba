@@ -8,18 +8,23 @@
 #define MAMBA_CORE_MATCH_SPEC
 
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <unordered_map>
 
 namespace mamba
 {
+    class ChannelContext;
+
     class MatchSpec
     {
     public:
-        MatchSpec() = default;
-        MatchSpec(const std::string& i_spec);
 
-        void parse();
+        MatchSpec() = default;
+
+        MatchSpec(std::string_view i_spec, ChannelContext& channel_context);
+
+        void parse(ChannelContext& channel_context);
         std::string conda_build_form() const;
         std::string str() const;
 
@@ -33,7 +38,7 @@ namespace mamba
         std::string channel;
         std::string ns;
         std::string subdir;
-        std::string build;
+        std::string build_string;
         std::string fn;
         std::string url;
         std::string build_number;

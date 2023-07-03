@@ -6,32 +6,31 @@
 
 #include <regex>
 
+#include "mamba/core/channel.hpp"
+#include "mamba/core/environment.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/url.hpp"
-#include "mamba/core/util.hpp"
-#include "mamba/core/channel.hpp"
-#include "mamba/core/environment.hpp"
+#include "mamba/core/util_string.hpp"
 
 namespace mamba
 {
     std::vector<std::string> parse_legacy_dist(std::string dist_str)
     {
-        try
+        dist_str = strip_package_extension(dist_str).string();
+        auto split_str = rsplit(dist_str, "-", 2);
+        if (split_str.size() != 3)
         {
-            dist_str = strip_package_extension(dist_str).string();
+            LOG_ERROR << "dist_str " << dist_str << " did not split into a correct version info.";
+            throw std::runtime_error("Invalid package filename");
         }
-        catch (...)
-        {
-        }
-        return rsplit(dist_str, "-", 2);
+        return split_str;
     }
 
-
-    MatchSpec::MatchSpec(const std::string& i_spec)
+    MatchSpec::MatchSpec(std::string_view i_spec, ChannelContext& channel_context)
         : spec(i_spec)
     {
-        parse();
+        parse(channel_context);
     }
 
     std::tuple<std::string, std::string> MatchSpec::parse_version_and_build(const std::string& s)
@@ -50,8 +49,7 @@ namespace mamba
             {
                 std::size_t pm1 = pos - 1;
                 char d = s[pm1];
-                if (d == '=' || d == '!' || d == '|' || d == ',' || d == '<' || d == '>'
-                    || d == '~')
+                if (d == '=' || d == '!' || d == '|' || d == ',' || d == '<' || d == '>' || d == '~')
                 {
                     std::string tmp = s;
                     replace_all(tmp, " ", "");
@@ -67,7 +65,7 @@ namespace mamba
         }
     }
 
-    void MatchSpec::parse()
+    void MatchSpec::parse(ChannelContext& channel_context)
     {
         LOG_INFO << "Parsing MatchSpec " << spec;
         std::string spec_str = spec;
@@ -86,7 +84,7 @@ namespace mamba
                 LOG_INFO << "need to expand path!";
                 spec_str = path_to_url(fs::absolute(env::expand_user(spec_str)).string());
             }
-            auto& parsed_channel = make_channel(spec_str);
+            auto& parsed_channel = channel_context.make_channel(spec_str);
 
             if (parsed_channel.package_filename())
             {
@@ -94,7 +92,7 @@ namespace mamba
 
                 name = dist[0];
                 version = dist[1];
-                build = dist[2];
+                build_string = dist[2];
 
                 channel = parsed_channel.canonical_name();
                 // TODO how to handle this with multiple platforms?
@@ -134,7 +132,10 @@ namespace mamba
             auto brackets_str = match[1].str();
             brackets_str = brackets_str.substr(1, brackets_str.size() - 2);
             extract_kv(brackets_str, brackets);
-            spec_str.erase(match.position(1), match.length(1));
+            spec_str.erase(
+                static_cast<std::size_t>(match.position(1)),
+                static_cast<std::size_t>(match.length(1))
+            );
         }
 
         // Step 4. strip off parens portion
@@ -148,7 +149,10 @@ namespace mamba
             {
                 optional = true;
             }
-            spec_str.erase(match.position(1), match.length(1));
+            spec_str.erase(
+                static_cast<std::size_t>(match.position(1)),
+                static_cast<std::size_t>(match.length(1))
+            );
         }
 
         auto m5 = rsplit(spec_str, ":", 2);
@@ -215,27 +219,28 @@ namespace mamba
             if (version.find("[") != version.npos)
             {
                 throw std::runtime_error(
-                    "Invalid match spec: multiple bracket sections not allowed " + spec);
+                    "Invalid match spec: multiple bracket sections not allowed " + spec
+                );
             }
 
             version = std::string(strip(version));
             auto [pv, pb] = parse_version_and_build(std::string(strip(version)));
 
             version = pv;
-            build = pb;
+            build_string = pb;
 
             // translate version '=1.2.3' to '1.2.3*'
             // is it a simple version starting with '='? i.e. '=1.2.3'
             if (version.size() >= 2 && version[0] == '=')
             {
                 auto rest = version.substr(1);
-                if (version[1] == '=' && build.empty())
+                if (version[1] == '=' && build_string.empty())
                 {
                     version = version.substr(2);
                 }
                 else if (rest.find_first_of("=,|") == rest.npos)
                 {
-                    if (build.empty() && version.back() != '*')
+                    if (build_string.empty() && version.back() != '*')
                     {
                         version = concat(version, "*");
                     }
@@ -249,7 +254,7 @@ namespace mamba
         else
         {
             version = "";
-            build = "";
+            build_string = "";
         }
 
         // TODO think about using a hash function here, (and elsewhere), like:
@@ -262,7 +267,7 @@ namespace mamba
             }
             else if (k == "build")
             {
-                build = v;
+                build_string = v;
             }
             else if (k == "version")
             {
@@ -298,9 +303,9 @@ namespace mamba
         {
             res << " " << version;
             // if (!build.empty() && (build != "*"))
-            if (!build.empty())
+            if (!build_string.empty())
             {
-                res << " " << build;
+                res << " " << build_string;
             }
         }
         return res.str();
@@ -344,8 +349,8 @@ namespace mamba
         std::vector<std::string> formatted_brackets;
         bool version_exact = false;
 
-        auto is_complex_relation
-            = [](const std::string& s) { return s.find_first_of("><$^|,") != s.npos; };
+        auto is_complex_relation = [](const std::string& s)
+        { return s.find_first_of("><$^|,") != s.npos; };
 
         if (!version.empty())
         {
@@ -355,7 +360,7 @@ namespace mamba
             }
             else if (starts_with(version, "!=") || starts_with(version, "~="))
             {
-                if (!build.empty())
+                if (!build_string.empty())
                 {
                     formatted_brackets.push_back(concat("version='", version, "'"));
                 }
@@ -395,29 +400,30 @@ namespace mamba
             }
         }
 
-        if (!build.empty())
+        if (!build_string.empty())
         {
-            if (is_complex_relation(build))
+            if (is_complex_relation(build_string))
             {
-                formatted_brackets.push_back(concat("build='", build, "'"));
+                formatted_brackets.push_back(concat("build='", build_string, "'"));
             }
-            else if (build.find("*") != build.npos)
+            else if (build_string.find("*") != build_string.npos)
             {
-                formatted_brackets.push_back(concat("build=", build));
+                formatted_brackets.push_back(concat("build=", build_string));
             }
             else if (version_exact)
             {
-                res << "=" << build;
+                res << "=" << build_string;
             }
             else
             {
-                formatted_brackets.push_back(concat("build=", build));
+                formatted_brackets.push_back(concat("build=", build_string));
             }
         }
 
-        std::vector<std::string> check
-            = { "build_number", "track_features", "features",       "url",
-                "md5",          "license",        "license_family", "fn" };
+        std::vector<std::string> check = {
+            "build_number", "track_features", "features",       "url",
+            "md5",          "license",        "license_family", "fn"
+        };
 
         if (!url.empty())
         {
@@ -459,6 +465,6 @@ namespace mamba
 
     bool MatchSpec::is_simple() const
     {
-        return version.empty() && build.empty() && build_number.empty();
+        return version.empty() && build_string.empty() && build_number.empty();
     }
 }  // namespace mamba

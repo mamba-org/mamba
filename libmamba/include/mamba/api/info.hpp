@@ -7,32 +7,25 @@
 #ifndef MAMBA_API_INFO_HPP
 #define MAMBA_API_INFO_HPP
 
-#include "mamba/core/mamba_fs.hpp"
-#include "mamba/core/util.hpp"
-
 #include <string>
 #include <vector>
+
+#include "mamba/core/mamba_fs.hpp"
+#include "mamba/core/util_string.hpp"
 
 
 namespace mamba
 {
-    void info();
+    class ChannelContext;
+    class Configuration;
+
+    void info(Configuration& config);
 
     std::string version();
-    std::string banner();
-
-    const std::string mamba_banner = std::string(strip(R"MAMBARAW(
-                                        __
-            _____ ___  ____ _____ ___  / /_  ____ _
-            / __ `__ \/ __ `/ __ `__ \/ __ \/ __ `/
-           / / / / / / /_/ / / / / / / /_/ / /_/ /
-          /_/ /_/ /_/\__,_/_/ /_/ /_/_.___/\__,_/
-    )MAMBARAW",
-                                                       "\n"));
 
     namespace detail
     {
-        void print_info();
+        void print_info(ChannelContext& channel_context, const Configuration& config);
     }
 }
 

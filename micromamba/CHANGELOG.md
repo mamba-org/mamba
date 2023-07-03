@@ -1,3 +1,107 @@
+micromamba 1.4.6 (June 30, 2023)
+================================
+
+
+CI fixes and doc:
+
+- Document micromamba support for conda-lock spec files by @mfisher87 in https://github.com/mamba-org/mamba/pull/2621
+
+micromamba 1.4.5 (June 27, 2023)
+================================
+
+Enhancements:
+
+- No singleton: ChannelContext, ChannelBuilder and channel cache by @Klaim in https://github.com/mamba-org/mamba/pull/2455
+- Micromamba tests improvements by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2517
+- Common CMake presets by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2532
+- No singleton: configuration by @Klaim in https://github.com/mamba-org/mamba/pull/2541
+- Remove banner by @jonashaag in https://github.com/mamba-org/mamba/pull/2298
+- Add topological sort explict export tests by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2618
+
+Bug fixes:
+
+- Use subsub commands for micromamba shell by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2527
+- Fix umamba tests by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2540
+- Honor envs_dirs by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2538
+- Fix wrong download url for custom channels by @Hind-M in https://github.com/mamba-org/mamba/pull/2596
+- Fix --force-reinstall by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2601
+
+CI fixes and doc:
+
+- Use only vcpkg for static windows build by @pavelzw in https://github.com/mamba-org/mamba/pull/2520
+- update the umamba GHA link by @ocefpaf in https://github.com/mamba-org/mamba/pull/2542
+- Extend troubleshooting docs by @jonashaag in https://github.com/mamba-org/mamba/pull/2569
+- Try new vcpkg by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2572
+- Update pre-commit hooks by @jonashaag in https://github.com/mamba-org/mamba/pull/2586
+- Move GHA to setup-micromamba by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2545
+- Switch linters to setup-micromamba by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2600
+- Switch to setup-micromamba by @pavelzw in https://github.com/mamba-org/mamba/pull/2610
+- Fix broken ref directives in docs by @mfisher87 in https://github.com/mamba-org/mamba/pull/2620
+
+micromamba 1.4.4 (May 16, 2023)
+===============================
+
+Bug fixes:
+
+- fix: let the new executable run the shell init script by @ruben-arts in https://github.com/mamba-org/mamba/pull/2529
+
+micromamba 1.4.3 (May 15, 2023)
+===============================
+
+Enhancements:
+
+- Context structuring by @Hind-M in https://github.com/mamba-org/mamba/pull/2432
+- Resume Context structuring by @Hind-M in https://github.com/mamba-org/mamba/pull/2460
+- cleanup: fix pytest warnings by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2490
+- Use libsolv wrappers in MPool and MRepo by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2453
+- add bearer token authentication by @wolfv in https://github.com/mamba-org/mamba/pull/2512
+
+CI fixes and doc:
+
+- Extend issue template by @jonashaag in https://github.com/mamba-org/mamba/pull/2310
+
+micromamba 1.4.2 (April 06, 2023)
+=================================
+
+Enhancements:
+
+- Refactor test\_create, test\_proxy, and test\_env for test isolation by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2416
+- Remove const ref to string\_view in codebase by @Hind-M in https://github.com/mamba-org/mamba/pull/2440
+
+CI fixes and doc:
+
+- Fixes typos by @nsoranzo in https://github.com/mamba-org/mamba/pull/2419
+- Remove outdated micromamba experimental warning by @jonashaag in https://github.com/mamba-org/mamba/pull/2430
+- Migrated to doctest by @JohanMabille in https://github.com/mamba-org/mamba/pull/2436
+
+micromamba 1.4.1 (March 28, 2023)
+=================================
+
+Enhancements:
+
+- add option to relocate prefix by @DerThorsten in https://github.com/mamba-org/mamba/pull/2385
+
+micromamba 1.4.0 (March 22, 2023)
+=================================
+
+Enchancements:
+
+- Implemented recursive dependency printout in repoquery  by @timostrunk in https://github.com/mamba-org/mamba/pull/2283
+- Agressive compilation warnings by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2304
+- Fine tune clang-format by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2290
+- Only full shared or full static builds by @JohanMabille in https://github.com/mamba-org/mamba/pull/2342
+- Fixed repoquery commands working with installed packages only by @Hind-M in https://github.com/mamba-org/mamba/pull/2330
+- Added micromamba server by @wolfv in https://github.com/mamba-org/mamba/pull/2185
+
+Bug fixes:
+
+- Fixed `micromamba env export` to get channel name instead of full url by @Hind-M in https://github.com/mamba-org/mamba/pull/2260
+
+CI fixes & docs:
+
+- Added missing dependency in local recipe by @wolfv in https://github.com/mamba-org/mamba/pull/2334
+- Fixed Conda Lock Path by @funtion in https://github.com/mamba-org/mamba/pull/2393
+
 micromamba 1.3.1 (February 09, 2023)
 ====================================
 

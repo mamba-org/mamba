@@ -3,7 +3,7 @@ channels:
   - conda-forge
 dependencies:
   - cxx-compiler
-  - cmake
+  - cmake >=3.16
   - ninja
   - nlohmann_json
   - libsolv >=0.7.18
@@ -20,5 +20,5 @@ dependencies:
   - fmt
   - pybind11
   - pybind11-stubgen
-  - pytest
+  - pytest >=7.3
   - sel(win): winreg

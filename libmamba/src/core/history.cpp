@@ -10,12 +10,15 @@
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/history.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/util.hpp"
+#include "mamba/core/util_string.hpp"
 
 namespace mamba
 {
-    History::History(const fs::u8path& prefix)
+    History::History(const fs::u8path& prefix, ChannelContext& channel_context)
         : m_prefix(prefix)
         , m_history_file_path(fs::absolute(m_prefix / "conda-meta" / "history"))
+        , m_channel_context(channel_context)
     {
     }
 
@@ -28,8 +31,8 @@ namespace mamba
         {
             ur.date = mbstr;
         }
-        ur.cmd = Context::instance().current_command;
-        ur.conda_version = Context::instance().conda_version;
+        ur.cmd = Context::instance().command_params.current_command;
+        ur.conda_version = Context::instance().command_params.conda_version;
         return ur;
     }
 
@@ -51,7 +54,9 @@ namespace mamba
         while (getline(in_file, line))
         {
             if (line.size() == 0)
+            {
                 continue;
+            }
             std::smatch base_match;
             if (std::regex_match(line, base_match, head_re))
             {
@@ -91,7 +96,9 @@ namespace mamba
     {
         std::size_t colon_idx = line.find_first_of(':');
         if (colon_idx == std::string::npos)
+        {
             return false;
+        }
 
         std::string key(strip(line.substr(1, colon_idx - 1)));
         std::string value(strip(line.substr(colon_idx + 1)));
@@ -187,13 +194,13 @@ namespace mamba
     {
         std::unordered_map<std::string, MatchSpec> map;
 
-        auto to_specs = [](const std::vector<std::string>& sv)
+        auto to_specs = [&](const std::vector<std::string>& sv)
         {
             std::vector<MatchSpec> v;
             v.reserve(sv.size());
             for (const auto& el : sv)
             {
-                v.emplace_back(el);
+                v.emplace_back(el, m_channel_context);
             }
             return v;
         };
@@ -266,7 +273,9 @@ namespace mamba
                                    const std::vector<std::string>& specs) -> std::string
             {
                 if (specs.empty())
+                {
                     return "";
+                }
                 std::stringstream spec_ss;
                 spec_ss << "# " << action << " specs: [";
                 for (auto spec : specs)

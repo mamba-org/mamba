@@ -7,25 +7,24 @@
 #ifdef _WIN32  // This set of includes is requires for CommandLineToArgvW() to be available.
 #define VC_EXTRALEAN
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h>
 #include <stdio.h>
+#include <windows.h>
+// Incomplete header included last
 #include <shellapi.h>
 #endif
 
-#include "umamba.hpp"
-
-#include "mamba/version.hpp"
+#include <CLI/CLI.hpp>
 
 #include "mamba/api/configuration.hpp"
-
 #include "mamba/core/context.hpp"
+#include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
-#include "mamba/core/execution.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_scope.hpp"
+#include "mamba/version.hpp"
 
-#include <CLI/CLI.hpp>
+#include "umamba.hpp"
 
 
 using namespace mamba;  // NOLINT(build/namespaces)
@@ -35,15 +34,15 @@ int
 main(int argc, char** argv)
 {
     mamba::MainExecutor scoped_threads;
+    mamba::Configuration config;
 
     init_console();
     auto& ctx = Context::instance();
 
-    ctx.is_micromamba = true;
-    ctx.custom_banner = banner;
+    ctx.command_params.is_micromamba = true;
 
     CLI::App app{ "Version: " + version() + "\n" };
-    set_umamba_command(&app);
+    set_umamba_command(&app, config);
 
     char** utf8argv;
 
@@ -68,7 +67,7 @@ main(int argc, char** argv)
 
     if (argc >= 2 && strcmp(argv[1], "completer") == 0)
     {
-        get_completions(&app, argc, utf8argv);
+        get_completions(&app, config, argc, utf8argv);
         reset_console();
         return 0;
     }
@@ -78,9 +77,11 @@ main(int argc, char** argv)
     {
         full_command << utf8argv[i];
         if (i < argc - 1)
+        {
             full_command << " ";
+        }
     }
-    ctx.current_command = full_command.str();
+    ctx.command_params.current_command = full_command.str();
 
     std::optional<std::string> error_to_report;
     try
@@ -88,13 +89,13 @@ main(int argc, char** argv)
         CLI11_PARSE(app, argc, utf8argv);
         if (app.get_subcommands().size() == 0)
         {
-            Configuration::instance().load();
+            config.load();
             Console::instance().print(app.help());
         }
         if (app.got_subcommand("config")
             && app.get_subcommand("config")->get_subcommands().size() == 0)
         {
-            Configuration::instance().load();
+            config.load();
             Console::instance().print(app.get_subcommand("config")->help());
         }
     }

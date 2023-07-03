@@ -16,6 +16,7 @@ include/mamba/core/version.hpp
 **/build/
 **/build-*/
 CMakeUserPresets.json
+**/cmake-build-debug/
 
 # CMake files that should not exists because they should be generated under a build folder
 CMakeLists.txt.user

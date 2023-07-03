@@ -8,22 +8,31 @@
 #define MAMBA_CORE_REPO_HPP
 
 #include <string>
+#include <string_view>
 #include <tuple>
+#include <utility>
+#include <vector>
 
-#include "channel.hpp"
-#include "prefix_data.hpp"
+#include <nlohmann/json_fwd.hpp>
+#include <solv/pooltypes.h>
+
+#include "pool.hpp"
 
 extern "C"
 {
-#include "solv/conda.h"
-#include "solv/repo.h"
-#include "solv/repo_conda.h"
-#include "solv/repo_solv.h"
+    typedef struct s_Repo Repo;
+    typedef struct s_Repodata Repodata;
+}
+
+namespace fs
+{
+    class u8path;
 }
 
 namespace mamba
 {
-    class MPool;
+    class PackageInfo;
+    class PrefixData;
 
     /**
      * Represents a channel subdirectory
@@ -31,17 +40,17 @@ namespace mamba
      */
     struct RepoMetadata
     {
-        std::string url;
-        bool pip_added;
-        std::string etag;
-        std::string mod;
+        std::string url = {};
+        std::string etag = {};
+        std::string mod = {};
+        bool pip_added = false;
     };
 
-    inline bool operator==(const RepoMetadata& lhs, const RepoMetadata& rhs)
-    {
-        return lhs.url == rhs.url && lhs.pip_added == rhs.pip_added && lhs.etag == rhs.etag
-               && lhs.mod == rhs.mod;
-    }
+    auto operator==(const RepoMetadata& lhs, const RepoMetadata& rhs) -> bool;
+    auto operator!=(const RepoMetadata& lhs, const RepoMetadata& rhs) -> bool;
+
+    void to_json(nlohmann::json& j, const RepoMetadata& m);
+    void from_json(const nlohmann::json& j, RepoMetadata& p);
 
     /**
      * A wrapper class of libsolv Repo.
@@ -52,100 +61,53 @@ namespace mamba
     class MRepo
     {
     public:
-        ~MRepo();
+
+        MRepo(MPool& pool, const std::string& name, const fs::u8path& filename, const RepoMetadata& meta);
+        MRepo(MPool& pool, const PrefixData& prefix_data);
+        MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& uris);
 
         MRepo(const MRepo&) = delete;
+        MRepo(MRepo&&) = default;
         MRepo& operator=(const MRepo&) = delete;
-
-        MRepo(MRepo&&);
-        MRepo& operator=(MRepo&&);
+        MRepo& operator=(MRepo&&) = default;
 
         void set_installed();
         void set_priority(int priority, int subpriority);
-        void add_package_info(Repodata*, const PackageInfo& pkg_info);
-        void add_pip_as_python_dependency();
-
-        const fs::u8path& index_file();
 
         Id id() const;
-        std::string name() const;
-        bool write() const;
-        const std::string& url() const;
         Repo* repo() const;
-        const Channel* channel() const;
-        std::tuple<int, int> priority() const;
-        std::size_t size() const;
 
-        bool clear(bool reuse_ids);
+        struct [[deprecated]] PyExtraPkgInfo
+        {
+            std::string noarch;
+            std::string repo_url;
+        };
 
-        /**
-         * Static constructor.
-         * @param pool ``libsolv`` pool wrapper
-         * @param name Name of the subdirectory (<channel>/<subdir>)
-         * @param filename Name of the index file
-         * @param url Subdirectory URL
-         */
-        static MRepo& create(MPool& pool,
-                             const std::string& name,
-                             const std::string& filename,
-                             const std::string& url);
-
-        /**
-         * Static constructor.
-         * @param pool ``libsolv`` pool wrapper
-         * @param name Name of the subdirectory (<channel>/<subdir>)
-         * @param index Path to the index file
-         * @param meta Metadata of the repo
-         * @param channel Channel of the repo
-         */
-        static MRepo& create(MPool& pool,
-                             const std::string& name,
-                             const fs::u8path& filename,
-                             const RepoMetadata& meta,
-                             const Channel& channel);
-
-        /**
-         * Static constructor.
-         * @param pool ``libsolv`` pool wrapper
-         * @param prefix_data prefix data
-         */
-        static MRepo& create(MPool& pool, const PrefixData& prefix_data);
-
-        /**
-         * Static constructor.
-         * @param pool ``libsolv`` pool wrapper
-         * @param name Name
-         * @param uris Matchspecs pointing to unique resources (URL or files)
-         */
-        static MRepo& create(MPool& pool,
-                             const std::string& name,
-                             const std::vector<PackageInfo>& uris);
+        [[deprecated]] auto py_name() const -> std::string_view;
+        [[deprecated]] auto py_priority() const -> std::tuple<int, int>;
+        [[deprecated]] auto py_clear(bool reuse_ids) -> bool;
+        [[deprecated]] auto py_size() const -> std::size_t;
+        [[deprecated]] void
+        py_add_extra_pkg_info(const std::map<std::string, PyExtraPkgInfo>& additional_info);
 
     private:
-        MRepo(MPool& pool,
-              const std::string& name,
-              const std::string& filename,
-              const std::string& url);
 
-        MRepo(MPool& pool,
-              const std::string& name,
-              const fs::u8path& filename,
-              const RepoMetadata& meta,
-              const Channel& channel);
+        auto name() const -> std::string_view;
 
-        MRepo(MPool& pool, const PrefixData& prefix_data);
+        void add_pip_as_python_dependency();
+        void clear(bool reuse_ids = true);
+        void load_file(const fs::u8path& filename);
+        void read_json(const fs::u8path& filename);
+        bool read_solv(const fs::u8path& filename);
+        void write_solv(fs::u8path path);
+        void add_package_info(const PackageInfo& pkg_info);
+        void set_solvables_url(const std::string& repo_url);
 
-        MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& uris);
+        MPool m_pool;
 
-        bool read_file(const fs::u8path& filename);
+        RepoMetadata m_metadata = {};
 
-        fs::u8path m_json_file, m_solv_file;
-        std::string m_url;
-
-        RepoMetadata m_metadata;
-
-        Repo* m_repo;
-        const Channel* p_channel = nullptr;
+        Repo* m_repo = nullptr;  // This is a view managed by libsolv pool
     };
 
 }  // namespace mamba

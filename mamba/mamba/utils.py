@@ -102,10 +102,23 @@ def get_index(
                 channel, channel_platform, full_url, pkgs_dirs, repodata_fn
             )
 
+            needs_finalising = sd.download_and_check_targets(dlist)
             index.append(
-                (sd, {"platform": channel_platform, "url": url, "channel": channel})
+                (
+                    sd,
+                    {
+                        "platform": channel_platform,
+                        "url": url,
+                        "channel": channel,
+                        "needs_finalising": needs_finalising,
+                    },
+                )
             )
-            dlist.add(sd)
+
+    for sd, info in index:
+        if info["needs_finalising"]:
+            sd.finalize_checks()
+        dlist.add(sd)
 
     is_downloaded = dlist.download(api.MAMBA_DOWNLOAD_FAILFAST)
 
@@ -196,7 +209,7 @@ def log_level_from_verbosity(verbosity: int):
 def init_api_context(use_mamba_experimental=False):
     api_ctx = api.Context()
 
-    api_ctx.json = context.json
+    api_ctx.output_params.json = context.json
     api_ctx.dry_run = context.dry_run
     if context.json:
         context.always_yes = True
@@ -204,9 +217,9 @@ def init_api_context(use_mamba_experimental=False):
         if use_mamba_experimental:
             context.json = False
 
-    api_ctx.verbosity = context.verbosity
+    api_ctx.output_params.verbosity = context.verbosity
     api_ctx.set_verbosity(context.verbosity)
-    api_ctx.quiet = context.quiet
+    api_ctx.output_params.quiet = context.quiet
     api_ctx.offline = context.offline
     api_ctx.local_repodata_ttl = context.local_repodata_ttl
     api_ctx.use_index_cache = context.use_index_cache
@@ -219,7 +232,7 @@ def init_api_context(use_mamba_experimental=False):
     if "MAMBA_EXTRACT_THREADS" in os.environ:
         try:
             max_threads = int(os.environ["MAMBA_EXTRACT_THREADS"])
-            api_ctx.extract_threads = max_threads
+            api_ctx.threads_params.extract_threads = max_threads
         except ValueError:
             v = os.environ["MAMBA_EXTRACT_THREADS"]
             raise ValueError(
@@ -230,7 +243,8 @@ def init_api_context(use_mamba_experimental=False):
         tmp = url.rsplit("/", 1)[0]
         if name:
             if tmp.endswith(name):
-                return tmp.rsplit("/", 1)[0]
+                # Return base url stripped from name
+                return tmp[: -(len(name) + 1)]
         return tmp
 
     api_ctx.channel_alias = str(
@@ -260,18 +274,20 @@ def init_api_context(use_mamba_experimental=False):
     ]
 
     if context.ssl_verify is False:
-        api_ctx.ssl_verify = "<false>"
+        api_ctx.remote_fetch_params.ssl_verify = "<false>"
     elif context.ssl_verify is not True:
-        api_ctx.ssl_verify = context.ssl_verify
-    api_ctx.target_prefix = context.target_prefix
-    api_ctx.root_prefix = context.root_prefix
-    api_ctx.conda_prefix = context.conda_prefix
+        api_ctx.remote_fetch_params.ssl_verify = context.ssl_verify
+    api_ctx.prefix_params.target_prefix = context.target_prefix
+    api_ctx.prefix_params.root_prefix = context.root_prefix
+    api_ctx.prefix_params.conda_prefix = context.conda_prefix
     api_ctx.pkgs_dirs = context.pkgs_dirs
     api_ctx.envs_dirs = context.envs_dirs
 
-    api_ctx.connect_timeout_secs = int(round(context.remote_connect_timeout_secs))
-    api_ctx.max_retries = context.remote_max_retries
-    api_ctx.retry_backoff = context.remote_backoff_factor
+    api_ctx.remote_fetch_params.connect_timeout_secs = int(
+        round(context.remote_connect_timeout_secs)
+    )
+    api_ctx.remote_fetch_params.max_retries = context.remote_max_retries
+    api_ctx.remote_fetch_params.retry_backoff = context.remote_backoff_factor
     api_ctx.add_pip_as_python_dependency = context.add_pip_as_python_dependency
     api_ctx.use_only_tar_bz2 = context.use_only_tar_bz2
 
@@ -365,11 +381,18 @@ def compute_final_precs(
             entry["channel"].platform_url(entry["platform"], with_credentials=False)
         ] = entry
 
+    i_rec: PackageRecord
     for _, pkg in to_unlink:
         for i_rec in installed_pkg_recs:
             if i_rec.fn == pkg:
-                final_precs.remove(i_rec)
-                to_unlink_records.append(i_rec)
+                try:
+                    final_precs.remove(i_rec)
+                    to_unlink_records.append(i_rec)
+                except KeyError:
+                    # virtual packages cannot be unlinked as they do not exist
+                    if i_rec.package_type == "virtual_system":
+                        continue
+                    raise
                 break
         else:
             print("No package record found!")
@@ -390,6 +413,10 @@ def compute_final_precs(
         for ipkg in installed_pkg_recs:
             if ipkg.name == rec.name:
                 rec.noarch = ipkg.noarch
+
+        # virtual packages cannot be linked as they do not exist
+        if rec.package_type == "virtual_system":
+            continue
 
         final_precs.add(rec)
         to_link_records.append(rec)

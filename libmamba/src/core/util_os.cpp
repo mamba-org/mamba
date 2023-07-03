@@ -1,35 +1,45 @@
-#include <regex>
 #include <iostream>
+#include <regex>
 
 #ifndef _WIN32
-#include <unistd.h>
 #include <clocale>
+
 #include <sys/ioctl.h>
+#include <sys/utsname.h>
+#include <unistd.h>
 #if defined(__APPLE__)
-#include <mach-o/dyld.h>
 #include <libproc.h>
+#include <mach-o/dyld.h>
 #endif
 #include <inttypes.h>
 #include <limits.h>
 #else
 #include <atomic>
-#include <windows.h>
-#include <io.h>
+
 #include <intrin.h>
+#include <io.h>
+#include <windows.h>
+// Incomplete header included last
 #include <tlhelp32.h>
-#include "WinReg.hpp"
+#include <WinReg.hpp>
+
+#include "mamba/core/context.hpp"
 #endif
 
-#include <fmt/format.h>
 #include <fmt/color.h>
+#include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <reproc++/run.hpp>
 
 #include "mamba/core/environment.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/context.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/core/util_string.hpp"
+
+#ifdef _WIN32
+static_assert(std::is_same_v<mamba::DWORD, ::DWORD>);
+#endif
 
 namespace mamba
 {
@@ -132,15 +142,13 @@ namespace mamba
         if (!(splitted.size() >= 3 && std::stoull(splitted[0]) >= 10
               && std::stoull(splitted[2]) >= 14352))
         {
-            LOG_WARNING
-                << "Not setting long path registry key; Windows version must be at least 10 "
-                   "with the fall 2016 \"Anniversary update\" or newer.";
+            LOG_WARNING << "Not setting long path registry key; Windows version must be at least 10 "
+                           "with the fall 2016 \"Anniversary update\" or newer.";
             return false;
         }
 
         winreg::RegKey key;
-        key.Open(
-            HKEY_LOCAL_MACHINE, L"SYSTEM\\CurrentControlSet\\Control\\FileSystem", KEY_QUERY_VALUE);
+        key.Open(HKEY_LOCAL_MACHINE, L"SYSTEM\\CurrentControlSet\\Control\\FileSystem", KEY_QUERY_VALUE);
         DWORD prev_value;
         try
         {
@@ -155,17 +163,23 @@ namespace mamba
         if (prev_value == 1)
         {
             auto out = Console::stream();
-            fmt::print(out,
-                       "{}",
-                       fmt::styled("Windows long-path support already enabled.",
-                                   Context::instance().palette.ignored));
+            fmt::print(
+                out,
+                "{}",
+                fmt::styled(
+                    "Windows long-path support already enabled.",
+                    Context::instance().graphics_params.palette.ignored
+                )
+            );
             return true;
         }
 
         if (force || is_admin())
         {
-            winreg::RegKey key_for_write(HKEY_LOCAL_MACHINE,
-                                         L"SYSTEM\\CurrentControlSet\\Control\\FileSystem");
+            winreg::RegKey key_for_write(
+                HKEY_LOCAL_MACHINE,
+                L"SYSTEM\\CurrentControlSet\\Control\\FileSystem"
+            );
             key_for_write.SetDwordValue(L"LongPathsEnabled", 1);
         }
         else
@@ -174,7 +188,8 @@ namespace mamba
             {
                 if (!run_as_admin(
                         "reg.exe",
-                        "ADD HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\FileSystem /v LongPathsEnabled /d 1 /t REG_DWORD /f"))
+                        "ADD HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\FileSystem /v LongPathsEnabled /d 1 /t REG_DWORD /f"
+                    ))
                 {
                     return false;
                 }
@@ -190,10 +205,14 @@ namespace mamba
         if (prev_value == 1)
         {
             auto out = Console::stream();
-            fmt::print(out,
-                       "{}",
-                       fmt::styled("Windows long-path support enabled.",
-                                   Context::instance().palette.success));
+            fmt::print(
+                out,
+                "{}",
+                fmt::styled(
+                    "Windows long-path support enabled.",
+                    Context::instance().graphics_params.palette.success
+                )
+            );
             return true;
         }
         LOG_WARNING << "Changing registry value did not succeed.";
@@ -218,7 +237,11 @@ namespace mamba
         std::string out, err;
         std::vector<std::string> args = { env::get("COMSPEC").value_or(""), "/c", "ver" };
         auto [status, ec] = reproc::run(
-            args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+            args,
+            reproc::options{},
+            reproc::sink::string(out),
+            reproc::sink::string(err)
+        );
 
         if (ec)
         {
@@ -270,13 +293,16 @@ namespace mamba
         //       parser or some other crude method to read the data
         std::vector<std::string> args = { "sw_vers", "-productVersion" };
         auto [status, ec] = reproc::run(
-            args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+            args,
+            reproc::options{},
+            reproc::sink::string(out),
+            reproc::sink::string(err)
+        );
 
         if (ec)
         {
-            LOG_WARNING
-                << "Could not find macOS version by calling 'sw_vers -productVersion'\nPlease file a bug report.\nError: "
-                << ec.message();
+            LOG_WARNING << "Could not find macOS version by calling 'sw_vers -productVersion'\nPlease file a bug report.\nError: "
+                        << ec.message();
             return "";
         }
 
@@ -298,21 +324,19 @@ namespace mamba
             return "";
         }
 
-        std::string out, err;
-        std::vector<std::string> args = { "uname", "-r" };
-        auto [status, ec] = reproc::run(
-            args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
-
-        if (ec)
+#ifndef _WIN32
+        struct utsname uname_result = {};
+        const auto ret = ::uname(&uname_result);
+        if (ret != 0)
         {
-            LOG_DEBUG << "Could not find linux version by calling 'uname -r' (skipped)";
-            return "";
+            LOG_DEBUG << "Error calling uname (skipping): "
+                      << std::system_error(errno, std::generic_category()).what();
         }
 
-        std::regex re("([0-9]+\\.[0-9]+\\.[0-9]+)(?:-.*)?");
+        static const std::regex re("([0-9]+\\.[0-9]+\\.[0-9]+)(?:-.*)?");
         std::smatch m;
-
-        if (std::regex_search(out, m, re))
+        std::string const version = uname_result.release;
+        if (std::regex_search(version, m, re))
         {
             if (m.size() == 2)
             {
@@ -323,6 +347,7 @@ namespace mamba
         }
 
         LOG_DEBUG << "Could not parse linux version";
+#endif
 
         return "";
     }
@@ -338,12 +363,16 @@ namespace mamba
         __try
         {
             if (hSnapshot == INVALID_HANDLE_VALUE)
+            {
                 __leave;
+            }
 
             ZeroMemory(&pe32, sizeof(pe32));
             pe32.dwSize = sizeof(pe32);
             if (!Process32First(hSnapshot, &pe32))
+            {
                 __leave;
+            }
 
             do
             {
@@ -357,7 +386,9 @@ namespace mamba
         __finally
         {
             if (hSnapshot != INVALID_HANDLE_VALUE)
+            {
                 CloseHandle(hSnapshot);
+            }
         }
         return ppid;
     }
@@ -472,7 +503,15 @@ namespace mamba
         {
             assert(s <= INT_MAX);
             const int size = WideCharToMultiByte(
-                CP_UTF8, 0, w, static_cast<int>(s), nullptr, 0, nullptr, nullptr);
+                CP_UTF8,
+                0,
+                w,
+                static_cast<int>(s),
+                nullptr,
+                0,
+                nullptr,
+                nullptr
+            );
             if (size <= 0)
             {
                 unsigned long last_error = ::GetLastError();
@@ -482,14 +521,16 @@ namespace mamba
             }
 
             output.resize(size);
-            int res_size = WideCharToMultiByte(CP_UTF8,
-                                               0,
-                                               w,
-                                               static_cast<int>(s),
-                                               output.data(),
-                                               static_cast<int>(size),
-                                               nullptr,
-                                               nullptr);
+            int res_size = WideCharToMultiByte(
+                CP_UTF8,
+                0,
+                w,
+                static_cast<int>(s),
+                output.data(),
+                static_cast<int>(size),
+                nullptr,
+                nullptr
+            );
             assert(res_size == size);
         }
 
@@ -501,10 +542,48 @@ namespace mamba
         return to_utf8(w, wcslen(w));
     }
 
-    std::string to_utf8(std::wstring const& s)
+    std::string to_utf8(const std::wstring& s)
     {
         return to_utf8(s.data(), s.size());
     }
+
+    std::wstring to_windows_unicode(const std::string_view utf8_text)
+    {
+        std::wstring output;
+        if (!utf8_text.empty())
+        {
+            assert(utf8_text.size() <= INT_MAX);
+            const int size = MultiByteToWideChar(
+                CP_UTF8,
+                0,
+                utf8_text.data(),
+                utf8_text.size(),
+                nullptr,
+                0
+            );
+            if (size <= 0)
+            {
+                unsigned long last_error = ::GetLastError();
+                LOG_ERROR << "Failed to convert UTF-8 string to Windows Unicode (UTF-16)"
+                          << std::system_category().message(static_cast<int>(last_error));
+                throw std::runtime_error("Failed to convert UTF-8 string to UTF-16");
+            }
+
+            output.resize(size);
+            int res_size = MultiByteToWideChar(
+                CP_UTF8,
+                0,
+                utf8_text.data(),
+                utf8_text.size(),
+                output.data(),
+                output.size()
+            );
+            assert(res_size == size);
+        }
+
+        return output;
+    }
+
 #endif
 
     /* From https://github.com/ikalnytskyi/termcolor
@@ -514,13 +593,13 @@ namespace mamba
      * */
     bool is_atty(const std::ostream& stream)
     {
-        FILE* const std_stream = [](const std::ostream& stream) -> FILE*
+        FILE* const std_stream = [](const std::ostream& lstream) -> FILE*
         {
-            if (&stream == &std::cout)
+            if (&lstream == &std::cout)
             {
                 return stdout;
             }
-            else if ((&stream == &std::cerr) || (&stream == &std::clog))
+            else if ((&lstream == &std::cerr) || (&lstream == &std::clog))
             {
                 return stderr;
             }
@@ -555,8 +634,8 @@ namespace mamba
 #else
         DWORD console_mode;
         bool res = GetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), &console_mode);
-        features.virtual_terminal_processing
-            = res && console_mode & ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+        features.virtual_terminal_processing = res
+                                               && console_mode & ENABLE_VIRTUAL_TERMINAL_PROCESSING;
         features.true_colors = false;
 
         std::string win_ver = windows_version();
@@ -610,12 +689,30 @@ namespace mamba
             options.redirect.err = silence;
         }
 
-        const std::vector<std::string> cmd
-            = { "/usr/bin/codesign", "-s", "-", "-f", path.string() };
+        const std::vector<std::string> cmd = { "/usr/bin/codesign", "-s", "-", "-f", path.string() };
         auto [status, ec] = reproc::run(cmd, options);
         if (ec)
         {
             throw std::runtime_error(std::string("Could not codesign executable: ") + ec.message());
         }
+    }
+
+    std::string fix_win_path(const std::string& path)
+    {
+#ifdef _WIN32
+        if (starts_with(path, "file:"))
+        {
+            std::regex re(R"(\\(?! ))");
+            std::string res = std::regex_replace(path, re, R"(/)");
+            replace_all(res, ":////", "://");
+            return res;
+        }
+        else
+        {
+            return path;
+        }
+#else
+        return path;
+#endif
     }
 }

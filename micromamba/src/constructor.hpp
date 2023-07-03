@@ -9,9 +9,19 @@
 
 #include "mamba/core/mamba_fs.hpp"
 
+namespace mamba
+{
+    class ChannelContext;
+    class Configuration;
+}
 
 void
-construct(const fs::u8path& prefix, bool extract_conda_pkgs, bool extract_tarball);
+construct(
+    mamba::Configuration& config,
+    const fs::u8path& prefix,
+    bool extract_conda_pkgs,
+    bool extract_tarball
+);
 
 void
 read_binary_from_stdin_and_write_to_file(fs::u8path& filename);

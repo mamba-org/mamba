@@ -4,32 +4,29 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <regex>
 #include <iostream>
+#include <regex>
 
-#include "mamba/api/list.hpp"
 #include "mamba/api/configuration.hpp"
-
+#include "mamba/api/list.hpp"
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/prefix_data.hpp"
 
 namespace mamba
 {
-    void list(const std::string& regex)
+    void list(Configuration& config, const std::string& regex)
     {
-        auto& config = Configuration::instance();
-
-        config.at("show_banner").set_value(false);
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
-            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
-                       | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX | MAMBA_EXPECT_EXISTING_PREFIX);
+            .set_value(
+                MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
+                | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX | MAMBA_EXPECT_EXISTING_PREFIX
+            );
         config.load();
 
-        detail::list_packages(regex);
-
-        config.operation_teardown();
+        ChannelContext channel_context;
+        detail::list_packages(regex, channel_context);
     }
 
     namespace detail
@@ -44,11 +41,11 @@ namespace mamba
             return a.name < b.name;
         }
 
-        void list_packages(std::string regex)
+        void list_packages(std::string regex, ChannelContext& channel_context)
         {
             auto& ctx = Context::instance();
 
-            auto sprefix_data = PrefixData::create(ctx.target_prefix);
+            auto sprefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!sprefix_data)
             {
                 // TODO: propagate tl::expected mechanism
@@ -58,7 +55,7 @@ namespace mamba
 
             std::regex spec_pat(regex);
 
-            if (ctx.json)
+            if (ctx.output_params.json)
             {
                 auto jout = nlohmann::json::array();
                 std::vector<std::string> keys;
@@ -76,7 +73,7 @@ namespace mamba
 
                     if (regex.empty() || std::regex_search(pkg_info.name, spec_pat))
                     {
-                        auto& channel = make_channel(pkg_info.url);
+                        auto& channel = channel_context.make_channel(pkg_info.url);
                         obj["base_url"] = channel.base_url();
                         obj["build_number"] = pkg_info.build_number;
                         obj["build_string"] = pkg_info.build_string;
@@ -92,7 +89,8 @@ namespace mamba
                 return;
             }
 
-            std::cout << "List of packages in environment: " << ctx.target_prefix << "\n\n";
+            std::cout << "List of packages in environment: " << ctx.prefix_params.target_prefix
+                      << "\n\n";
 
             formatted_pkg formatted_pkgs;
 
@@ -113,7 +111,7 @@ namespace mamba
                     }
                     else
                     {
-                        const Channel& channel = make_channel(package.second.url);
+                        const Channel& channel = channel_context.make_channel(package.second.url);
                         formatted_pkgs.channel = channel.name();
                     }
                     packages.push_back(formatted_pkgs);
@@ -136,7 +134,7 @@ namespace mamba
                 if (requested_specs.find(p.name) != requested_specs.end())
                 {
                     formatted_name = printers::FormattedString(p.name);
-                    formatted_name.style = ctx.palette.user;
+                    formatted_name.style = ctx.graphics_params.palette.user;
                 }
                 t.add_row({ formatted_name, p.version, p.build, p.channel });
             }

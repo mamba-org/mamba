@@ -58,7 +58,7 @@ function Exit-MambaEnvironment {
         if ($deactivateCommand.Trim().Length -eq 0) {
             return;
         }
-        Write-Verbose "[micromamba shell deactivate -s powershell]`n$deactivateCommand";
+        Write-Verbose "[micromamba shell deactivate --shell powershell]`n$deactivateCommand";
         Invoke-Expression -Command $deactivateCommand;
     }
     process {}
@@ -115,8 +115,8 @@ function Invoke-Mamba() {
                 # reactivate environment
                 if (@("install", "update", "remove").contains($Command))
                 {
-                    $activateCommand = (& $Env:MAMBA_EXE shell reactivate -s powershell $Args | Out-String);
-                    Write-Verbose "[micromamba shell reactivate --shell powershell $Args]`n$activateCommand";
+                    $activateCommand = (& $Env:MAMBA_EXE shell reactivate -s powershell | Out-String);
+                    Write-Verbose "[micromamba shell reactivate --shell powershell]`n$activateCommand";
                     Invoke-Expression -Command $activateCommand;
                 }
             }

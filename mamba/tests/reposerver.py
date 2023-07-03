@@ -57,7 +57,6 @@ def normalize_keys(keys: KeySet) -> KeySet:
 
 
 class RepoSigner:
-
     keys = {
         "root": [],
         "key_mgr": [
@@ -134,7 +133,6 @@ class RepoSigner:
         print("[reposigner] Root metadata signed & verified!")
 
     def create_key_mgr(self, keys):
-
         private_key_key_mgr = cct_common.PrivateKey.from_hex(
             keys["key_mgr"][0]["private"]
         )
@@ -197,7 +195,6 @@ class RepoSigner:
 
 
 class ChannelHandler(SimpleHTTPRequestHandler):
-
     url_pattern = re.compile(r"^/(?:t/[^/]+/)?([^/]+)")
 
     def do_GET(self) -> None:
@@ -223,6 +220,8 @@ class ChannelHandler(SimpleHTTPRequestHandler):
                     bytes(f"{channel['user']}:{channel['password']}", "utf-8")
                 ).decode("ascii")
                 return self.basic_do_GET(server_key=server_key)
+            elif auth == "bearer":
+                return self.bearer_do_GET(server_key=channel["bearer"])
             elif auth == "token":
                 return self.token_do_GET(server_token=channel["token"])
 
@@ -238,6 +237,18 @@ class ChannelHandler(SimpleHTTPRequestHandler):
         self.send_header("WWW-Authenticate", 'Basic realm="Test"')
         self.send_header("Content-type", "text/html")
         self.end_headers()
+
+    def bearer_do_GET(self, server_key: str) -> None:
+        auth_header = self.headers.get("Authorization", "")
+        print(auth_header)
+        print(f"Bearer {server_key}")
+        if not auth_header or auth_header != f"Bearer {server_key}":
+            self.send_response(403)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.wfile.write(b"no valid api key received")
+        else:
+            SimpleHTTPRequestHandler.do_GET(self)
 
     def basic_do_GET(self, server_key: str) -> None:
         """Present frontpage with basic user authentication."""
@@ -299,7 +310,7 @@ channel_parser.add_argument(
     "--auth",
     default=None,
     type=str,
-    help="auth method (none, basic, or token)",
+    help="auth method (none, basic, token, or bearer)",
 )
 channel_parser.add_argument(
     "--sign",
@@ -311,6 +322,12 @@ channel_parser.add_argument(
     type=str,
     default=None,
     help="Use token as API Key",
+)
+channel_parser.add_argument(
+    "--bearer",
+    type=str,
+    default=None,
+    help="Use bearer token as API Key",
 )
 channel_parser.add_argument(
     "--user",
@@ -344,6 +361,8 @@ while argv_remaining:
             args.auth = "basic"
         elif args.token:
             args.auth = "token"
+        elif args.bearer:
+            args.auth = "bearer"
         else:
             args.auth = "none"
     if args.sign:
@@ -351,7 +370,11 @@ while argv_remaining:
             fatal_error("Conda content trust not installed!")
         args.directory = RepoSigner(args.directory).make_signed_repo()
 
+    # name = args.name if args.name else Path(args.directory).name
+    # args.name = name
     channels[args.name] = vars(args)
+
+print(channels)
 
 # Unamed channel in multi-channel case would clash URLs but we want to allow
 # a single unamed channel for backward compatibility.

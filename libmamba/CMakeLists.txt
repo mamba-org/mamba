@@ -4,10 +4,9 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 
-cmake_minimum_required(VERSION 3.18.2)
-cmake_policy(SET CMP0025 NEW)
-cmake_policy(SET CMP0077 NEW)
-
+cmake_minimum_required (VERSION 3.16)
+cmake_policy(SET CMP0025 NEW) # Introduced in cmake 3.0
+cmake_policy(SET CMP0077 NEW) # Introduced in cmake 3.13
 project(libmamba)
 
 set(LIBMAMBA_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -48,19 +47,15 @@ message(STATUS "libmamba binary version: v${LIBMAMBA_BINARY_VERSION}")
 
 option(BUILD_TESTS "Build libmamba C++ tests" OFF)
 option(BUILD_SHARED "Build shared libmamba library" OFF)
-option(BUILD_STATIC "Build static libmamba library" OFF)
-option(BUILD_STATIC_DEPS "Build static libmamba library with static linkage to its dependencies" OFF)
+option(BUILD_STATIC "Build static libmamba library with static linkage to its dependencies" OFF)
 set(BUILD_LOG_LEVEL "TRACE" CACHE STRING "Logger active level at compile time")
 
 if (NOT ${BUILD_LOG_LEVEL} MATCHES "^(TRACE|DEBUG|INFO|WARN|ERROR|CRITICAL|OFF)$")
     message(FATAL_ERROR "Invalid log level: ${BUILD_LOG_LEVEL}, should be one of { TRACE, DEBUG, INFO, WARN, ERROR, CRITICAL, OFF }")
 endif ()
 
-if (BUILD_STATIC_DEPS)
+if (BUILD_STATIC)
     add_definitions("-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${BUILD_LOG_LEVEL}")
-endif ()
-
-if (BUILD_STATIC_DEPS)
     add_definitions(-DLIBMAMBA_STATIC_DEPS)
 endif ()
 
@@ -123,6 +118,20 @@ endforeach()
 set(LIBMAMBA_SOURCES
     longpath.manifest
     ${LIBMAMBA_SOURCE_DIR}/version.cpp
+    # C++ wrapping of libsolv
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/pool.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/repo.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solvable.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solver.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/transaction.cpp
+    # C++ wrapping of libcurl
+    ${LIBMAMBA_SOURCE_DIR}/core/curl.cpp
+    # C++ wrapping of compression libs (zstd and bzlib)
+    ${LIBMAMBA_SOURCE_DIR}/core/compression.cpp
+    # Implementation of version and matching specs
+    ${LIBMAMBA_SOURCE_DIR}/specs/version.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/repo_data.cpp
     # Core API (low-level)
     ${LIBMAMBA_SOURCE_DIR}/core/singletons.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/activation.cpp
@@ -135,6 +144,7 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/transaction_context.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/link.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/history.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/mamba_fs.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/match_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/menuinst.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/url.cpp
@@ -157,12 +167,17 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/subdirdata.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/thread_utils.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/transaction.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/package_download.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/util.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/fsutil.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/util_string.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/util_os.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/validate.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/virtual_packages.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/env_lockfile.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/execution.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/timeref.cpp
+
     # API (high-level)
     ${LIBMAMBA_SOURCE_DIR}/api/c_api.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/channel_loader.cpp
@@ -183,19 +198,26 @@ foreach(script ${SHELL_SCRIPTS})
     list(APPEND LIBMAMBA_SOURCES shell_scripts/${script}.cpp)
 endforeach()
 
-set(LIBMAMBA_HEADERS
+set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/version.hpp
+    # Utility library
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cast.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/compare.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/flat_set.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/graph.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/iterator.hpp
+    # Implementation of version and matching specs
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/repo_data.hpp
     # Core API (low-level)
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/activation.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/channel.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/channel_builder.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/palette.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/context.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/environment.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/environments_manager.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/error_handling.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/fetch.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/fsutil.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/satisfiability_error.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/history.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/link.hpp
@@ -212,28 +234,28 @@ set(LIBMAMBA_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/progress_bar.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/pinning.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/query.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/queue.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/repo.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/run.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shell_init.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/solver.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/subdirdata.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/thread_utils.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_download.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/transaction.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/transaction_context.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/url.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_graph.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/fsutil.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_os.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_random.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_scope.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_string.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_compare.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/validate.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/virtual_packages.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/env_lockfile.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/tasksync.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/invoke.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/timeref.hpp
     # API (high-level)
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/c_api.h
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/channel_loader.hpp
@@ -252,25 +274,45 @@ set(LIBMAMBA_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/update.hpp
 )
 
+set(LIBMAMBA_PRIVATE_HEADERS
+    # C++ wrapping of libsolv
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.hpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/ids.hpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/pool.hpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solvable.hpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solver.hpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/repo.hpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/transaction.hpp
+    # C++ wrapping of compression libs (zstd and bzlib)
+    ${LIBMAMBA_SOURCE_DIR}/core/compression.hpp
+    # C++ wrapping of libcurl
+    ${LIBMAMBA_SOURCE_DIR}/core/curl.hpp
+)
+
 # Targets and link
 # ================
 
-macro(libmamba_create_target target_name linkage deps_linkage output_name)
+macro(libmamba_create_target target_name linkage output_name)
     string(TOUPPER "${linkage}" linkage_upper)
     if (NOT ${linkage_upper} MATCHES "^(SHARED|STATIC)$")
         message(FATAL_ERROR "Invalid library linkage: ${linkage}")
     endif ()
 
-    string(TOUPPER "${deps_linkage}" deps_linkage_upper)
-    if (NOT ${deps_linkage_upper} MATCHES "^(SHARED|STATIC)$")
-        message(FATAL_ERROR "Invalid library dependencies linkage: ${deps_linkage_upper}")
-    endif ()
-
     # Output
     # ======
-    add_library(${target_name} ${linkage_upper} ${LIBMAMBA_SOURCES} ${LIBMAMBA_HEADERS})
+    add_library(
+        ${target_name} ${linkage_upper}
+        ${LIBMAMBA_PUBLIC_HEADERS}
+        ${LIBMAMBA_PRIVATE_HEADERS}
+        ${LIBMAMBA_SOURCES}
+    )
 
-    if (${deps_linkage_upper} STREQUAL "STATIC")
+    mamba_target_add_compile_warnings(
+        ${target_name}
+        WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR}
+    )
+
+    if (${linkage_upper} STREQUAL "STATIC")
         message("   -> Statically linking against libmamba (static) dependencies")
         if (UNIX)
 
@@ -338,18 +380,19 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
 
             if (APPLE)
                 set (MAMBA_FORCE_DYNAMIC_LIBS resolv c++abi)
-                target_link_options(libmamba-full-static PRIVATE -static-libstdc++)
+                target_link_options(${target_name} PRIVATE -static-libstdc++)
             elseif (UNIX)
                 set(MAMBA_FORCE_DYNAMIC_LIBS rt dl resolv)
-                target_link_options(libmamba-full-static PUBLIC -static-libstdc++ -static-libgcc)
+                target_link_options(${target_name} PUBLIC -static-libstdc++ -static-libgcc)
             endif()
 
             find_package(fmt REQUIRED)
             find_package(spdlog CONFIG REQUIRED)
+            find_package(tl-expected REQUIRED)
 
             add_compile_definitions(SPDLOG_FMT_EXTERNAL)
             target_link_libraries(
-              libmamba-full-static
+              ${target_name}
               PUBLIC
                 ${STATIC_DEPS}
                 ${MAMBA_FORCE_DYNAMIC_LIBS}
@@ -360,6 +403,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
         elseif (WIN32)
 
             set(CMAKE_PREFIX_PATH "$ENV{VCPKG_ROOT}/installed/x64-windows-static/")
+            set_target_properties(${target_name} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
             # For Windows we have a vcpkg based build system right now.
             find_package(LibArchive REQUIRED)
@@ -375,8 +419,8 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
             find_library(BZIP2_LIBRARIES NAMES bz2)
             find_library(CRYPTO_LIBRARIES NAMES libcrypto)
 
-            find_library(LIBSOLV_BUILD_STATICRARIES NAMES solv_static)
-            find_library(LIBSOLVEXT_BUILD_STATICRARIES NAMES solvext_static)
+            find_library(LIBSOLV_BUILD_STATICRARIES NAMES solv)
+            find_library(LIBSOLVEXT_BUILD_STATICRARIES NAMES solvext)
             find_package(reproc++ CONFIG REQUIRED)
             find_package(tl-expected REQUIRED)
 
@@ -418,7 +462,6 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
               CURL_STATICLIB
               SOLV_BUILD_STATIC
             )
-            set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
             include_directories($ENV{CONDA_PREFIX}/Library/include/)
             include_directories($ENV{VCPKG_ROOT}/installed/x64-windows-static/include/)
         endif()
@@ -464,7 +507,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
                               ${MAMBA_FORCE_DYNAMIC_LIBS})
     endif ()
 
-    set_property(TARGET ${target_name} PROPERTY CXX_STANDARD 17)
+    target_compile_features(${target_name} PUBLIC cxx_std_17)
 
     target_include_directories(
         ${target_name}
@@ -474,7 +517,11 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
     )
 
     if (WIN32)
-        find_path(WINREG_INCLUDE_DIR NAMES WinReg.hpp)
+        find_path(
+            WINREG_INCLUDE_DIR
+            NAMES WinReg.hpp
+            PATH_SUFFIXES winreg
+        )
     endif()
 
     target_include_directories(
@@ -489,7 +536,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
         set_target_properties(
             ${target_name}
             PROPERTIES
-            PUBLIC_HEADER "${LIBMAMBA_HEADERS}"
+            #PUBLIC_HEADER "${LIBMAMBA_PUBLIC_HEADERS}"
             COMPILE_DEFINITIONS "LIBMAMBA_EXPORTS"
             PREFIX ""
             VERSION "${LIBMAMBA_BINARY_COMPATIBLE}.${LIBMAMBA_BINARY_REVISION}.${LIBMAMBA_BINARY_AGE}"
@@ -500,7 +547,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
         set_target_properties(
             ${target_name}
             PROPERTIES
-            PUBLIC_HEADER "${LIBMAMBA_HEADERS}"
+            #PUBLIC_HEADER "${LIBMAMBA_PUBLIC_HEADERS}"
             COMPILE_DEFINITIONS "LIBMAMBA_EXPORTS"
             PREFIX ""
             VERSION ${LIBMAMBA_BINARY_VERSION}
@@ -527,7 +574,7 @@ set(libmamba_targets "")
 
 if (BUILD_SHARED)
     message(STATUS "Adding shared libmamba target")
-    libmamba_create_target(libmamba SHARED SHARED libmamba)
+    libmamba_create_target(libmamba SHARED libmamba)
 endif ()
 
 if (BUILD_STATIC)
@@ -536,23 +583,13 @@ if (BUILD_STATIC)
     # On Windows, a static library should use a different output name
     # to avoid the conflict with the import library of a shared one.
     if (CMAKE_HOST_WIN32)
-        libmamba_create_target(libmamba-static STATIC SHARED libmamba_static)
+        libmamba_create_target(libmamba-static STATIC libmamba_static)
     else ()
-        libmamba_create_target(libmamba-static STATIC SHARED libmamba)
+        libmamba_create_target(libmamba-static STATIC libmamba)
     endif ()
 endif ()
 
-if (BUILD_STATIC_DEPS)
-    message(STATUS "Adding full-static libmamba target")
-
-    if (CMAKE_HOST_WIN32)
-        libmamba_create_target(libmamba-full-static STATIC STATIC libmamba_full_static)
-    else ()
-        libmamba_create_target(libmamba-full-static STATIC STATIC libmamba_full_static)
-    endif ()
-endif ()
-
-if (NOT (BUILD_SHARED OR BUILD_STATIC OR BUILD_STATIC_DEPS))
+if (NOT (BUILD_SHARED OR BUILD_STATIC))
     message(FATAL_ERROR "Select at least a build variant for libmamba")
 endif ()
 

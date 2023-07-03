@@ -32,7 +32,7 @@ from mamba.utils import (
 def mamba_install(prefix, specs, args, env, dry_run=False, *_, **kwargs):
     # TODO: support all various ways this happens
     init_api_context()
-    api.Context().target_prefix = prefix
+    api.Context().prefix_params.target_prefix = prefix
     # conda doesn't ask for confirmation with env
     api.Context().always_yes = True
 
@@ -141,7 +141,7 @@ def mamba_install(prefix, specs, args, env, dry_run=False, *_, **kwargs):
         exit(1)
 
     package_cache = api.MultiPackageCache(context.pkgs_dirs)
-    transaction = api.Transaction(solver, package_cache)
+    transaction = api.Transaction(pool, solver, package_cache)
     mmb_specs, to_link, to_unlink = transaction.to_conda()
 
     specs_to_add = [MatchSpec(m) for m in mmb_specs[0]]

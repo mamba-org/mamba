@@ -222,17 +222,17 @@ namespace mamba::specs
          */
         template <typename Iter1, typename Iter2, typename Empty1, typename Empty2, typename Cmp>
         constexpr auto lexicographical_compare_three_way_trailing(
-            const Iter1 first1,
-            const Iter1 last1,
-            const Iter2 first2,
-            const Iter2 last2,
-            const Empty1 empty1,
-            const Empty2 empty2,
+            Iter1 first1,
+            Iter1 last1,
+            Iter2 first2,
+            Iter2 last2,
+            const Empty1& empty1,
+            const Empty2& empty2,
             Cmp comp
         ) -> std::pair<strong_ordering, std::size_t>
         {
-            assert(first1 <= last1);
-            assert(first2 <= last2);
+            assert(std::distance(first1, last1) >= 0);
+            assert(std::distance(first2, last2) >= 0);
 
             auto iter1 = first1;
             auto iter2 = first2;
@@ -279,7 +279,7 @@ namespace mamba::specs
             Iter1 last1,
             Iter2 first2,
             Iter2 last2,
-            Empty empty,
+            const Empty& empty,
             Cmp comp
         ) -> std::pair<strong_ordering, std::size_t>
         {
@@ -371,6 +371,14 @@ namespace mamba::specs
         struct AlwaysEqual
         {
         };
+
+        [[maybe_unused]] auto starts_with_three_way(const AlwaysEqual&, const AlwaysEqual&)
+            -> strong_ordering
+        {
+            // This comparison should not happen with the current usage.
+            assert(false);
+            return strong_ordering::equal;
+        }
 
         template <typename T>
         auto starts_with_three_way(const AlwaysEqual&, const T&) -> strong_ordering

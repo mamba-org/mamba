@@ -386,6 +386,9 @@ TEST_SUITE("version")
             [](const auto& a, const auto& b) { return a.second < b.second; }
         ));
 
+        // Default constructed
+        CHECK_EQ(Version::parse("0.0"), Version());
+
         // Lowercase and strip
         CHECK_EQ(Version::parse("0.4.1.rc"), Version::parse("  0.4.1.RC  "));
         CHECK_EQ(Version::parse("  0.4.1.RC  "), Version::parse("0.4.1.rc"));

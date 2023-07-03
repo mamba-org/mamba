@@ -272,24 +272,9 @@ namespace mamba
         return m_flags;
     }
 
-    auto MSolver::flags() -> Flags&
-    {
-        return m_flags;
-    }
-
-    void MSolver::set_libsolv_flags(const std::vector<std::pair<int, int>>& flags)
+    void MSolver::py_set_libsolv_flags(const std::vector<std::pair<int, int>>& flags)
     {
         m_libsolv_flags = flags;
-    }
-
-    auto MSolver::libsolv_flags() const -> const std::vector<std::pair<int, int>>&
-    {
-        return m_libsolv_flags;
-    }
-
-    auto MSolver::libsolv_flags() -> std::vector<std::pair<int, int>>&
-    {
-        return m_libsolv_flags;
     }
 
     void MSolver::apply_libsolv_flags()

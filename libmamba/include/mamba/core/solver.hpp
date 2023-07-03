@@ -86,12 +86,9 @@ namespace mamba
 
         [[deprecated]] void py_set_postsolve_flags(const std::vector<std::pair<int, int>>& flags);
 
-        void set_flags(const Flags& flags);
+        void set_flags(const Flags& flags);  // TODO temporary Itf meant to be passed in ctor
         [[nodiscard]] auto flags() const -> const Flags&;
-        [[nodiscard]] auto flags() -> Flags&;
-        void set_libsolv_flags(const std::vector<std::pair<int, int>>& flags);
-        [[nodiscard]] auto libsolv_flags() const -> const std::vector<std::pair<int, int>>&;
-        [[nodiscard]] auto libsolv_flags() -> std::vector<std::pair<int, int>>&;
+        [[deprecated]] void py_set_libsolv_flags(const std::vector<std::pair<int, int>>& flags);
 
         [[nodiscard]] bool try_solve();
         void must_solve();

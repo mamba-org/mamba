@@ -422,50 +422,6 @@ TEST_SUITE("version")
         CHECK_THROWS_AS(Version::parse("5.5++"), std::invalid_argument);
         CHECK_THROWS_AS(Version::parse("5.5+1+0.0"), std::invalid_argument);
         CHECK_THROWS_AS(Version::parse("1!2!3.0"), std::invalid_argument);
-        }
-
-        CHECK(std::is_sorted(
-            sorted_version.cbegin(),
-            sorted_version.cend(),
-            [](const auto& a, const auto& b) { return a.second < b.second; }
-        ));
-
-        // Lowercase and strip
-        CHECK_EQ(Version::parse("0.4.1.rc"), Version::parse("  0.4.1.RC  "));
-        CHECK_EQ(Version::parse("  0.4.1.RC  "), Version::parse("0.4.1.rc"));
-
-        // Functional assertions
-        CHECK_EQ(Version::parse("  0.4.rc  "), Version::parse("0.4.RC"));
-        CHECK_EQ(Version::parse("0.4"), Version::parse("0.4.0"));
-        CHECK_NE(Version::parse("0.4"), Version::parse("0.4.1"));
-        CHECK_EQ(Version::parse("0.4.a1"), Version::parse("0.4.0a1"));
-        CHECK_NE(Version::parse("0.4.a1"), Version::parse("0.4.1a1"));
-    }
-
-    TEST_CASE("parse_invalid")
-    {
-        // Wrong epoch
-        CHECK_THROWS_AS(Version::parse("!1.1"), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("-1!1.1"), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("foo!1.1"), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("0post1!1.1"), std::invalid_argument);
-
-        // Empty parts
-        CHECK_THROWS_AS(Version::parse(""), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("  "), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("!2.2"), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("0!"), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("!"), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("1."), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("1..1"), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("5.5..mw"), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("1.2post+"), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("1!+1.1"), std::invalid_argument);
-
-        // Repeated delimiters
-        CHECK_THROWS_AS(Version::parse("5.5++"), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("5.5+1+0.0"), std::invalid_argument);
-        CHECK_THROWS_AS(Version::parse("1!2!3.0"), std::invalid_argument);
 
         // '-' and '_' delimiters not allowed together.
         CHECK_THROWS_AS(Version::parse("1-1_1"), std::invalid_argument);

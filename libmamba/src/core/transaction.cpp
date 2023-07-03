@@ -195,7 +195,7 @@ namespace mamba
         const auto& solver_flags = solver.flags();
         if (!solver_flags.keep_dependencies || !solver_flags.keep_specs)
         {
-            m_filter_type = !(solver.flags().keep_specs) ? FilterType::keep_only : FilterType::ignore;
+            m_filter_type = !(solver_flags.keep_specs) ? FilterType::keep_only : FilterType::ignore;
             for (auto& s : solver.install_specs())
             {
                 m_filter_name_ids.insert(pool.add_string(s.name));
@@ -206,7 +206,7 @@ namespace mamba
             }
         }
 
-        if (!solver.flags().keep_specs)
+        if (!solver_flags.keep_specs)
         {
             for (const solv::SolvableId r : trans().steps())
             {

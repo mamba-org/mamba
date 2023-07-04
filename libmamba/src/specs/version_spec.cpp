@@ -172,7 +172,7 @@ namespace mamba::specs
     {
         auto parse_op_and_version(std::string_view str) -> VersionPredicate
         {
-            str = lstrip(str);
+            str = strip(str);
             // WARNING order is important since some operator are prefix of others.
             if (str.empty())
             {
@@ -217,31 +217,27 @@ namespace mamba::specs
             if (starts_with(str, VersionSpec::compatible_str))
             {
                 auto ver = Version::parse(str.substr(VersionSpec::compatible_str.size()));
+                // in ``~=1.1`` level is assumed to be 1, in ``~=1.1.1`` level 2, etc.
                 const std::size_t level = ver.version().size();
                 return VersionPredicate::make_compatible_with(std::move(ver), level);
             }
-            const bool has_glob_suffix = ends_with(str, VersionSpec::glob_suffix_str);
-            static constexpr std::size_t glob_suffix_size = VersionSpec::glob_suffix_str.size();
+            if (ends_with(str, VersionSpec::glob_suffix_str))
+            {
+                // ``1.3.*``, ``=1.3.*`` have the same meaning.
+                // All versions must start with a digit so we use it to find its begining.
+                auto [op, ver_str] = lstrip_if_parts(str, [](auto c) { return !is_digit(c); });
+                const std::size_t end = ver_str.size() - VersionSpec::glob_suffix_str.size();
+                return VersionPredicate::make_starts_with(Version::parse(ver_str.substr(0, end)));
+            }
             if (starts_with(str, VersionSpec::starts_with_str))
             {
-                // =1.3 and =1.3.* have the same meaning
-                const std::size_t start = VersionSpec::starts_with_str.size();
-                const std::size_t end = str.size() - glob_suffix_size * has_glob_suffix;
-                return VersionPredicate::make_starts_with(Version::parse(str.substr(start, end)));
+                return VersionPredicate::make_starts_with(
+                    Version::parse(str.substr(VersionSpec::starts_with_str.size()))
+                );
             }
             if (is_digit(str.front()))  // All versions must start with a digit
             {
-                if (has_glob_suffix)
-                {
-                    // 1.3.* means starts_with
-                    const std::size_t end = str.size() - glob_suffix_size;
-                    return VersionPredicate::make_starts_with(Version::parse(str.substr(0, end)));
-                }
-                else
-                {
-                    // 1.3 means equal
-                    return VersionPredicate::make_equal_to(Version::parse(str));
-                }
+                return VersionPredicate::make_equal_to(Version::parse(str));
             }
             throw std::invalid_argument(fmt::format(R"(Found invalid version predicate in "{}")", str)
             );

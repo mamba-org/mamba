@@ -144,11 +144,19 @@ TEST_SUITE("version_spec")
         {
             // clang-format off
             static constexpr auto specs = std::array{
+                ""sv,
+                "1.7"sv,
+                "==1.7"sv,
                 "<1.7"sv,
                 "<=1.7.0"sv,
                 ">1.7.0 "sv,
                 ">= 1.7"sv,
-                "(>= 1.7, <1.8) |>=1.9.0.0"sv
+                " = 1.8 "sv,
+                " = 1.7.* "sv,
+                "1.6.*"sv,
+                " ~=1.8"sv,
+                "~=1"sv,
+                " (>= 1.7, <1.8) |>=1.9.0.0 "sv,
             };
             static constexpr auto versions = std::array{
                 "1.6"sv,
@@ -157,10 +165,18 @@ TEST_SUITE("version_spec")
                 "1.9.0"sv,
             };
             static constexpr auto contains = std::array{
+                std::array{true, true, true, true},
+                std::array{false, true, false, false},
+                std::array{false, true, false, false},
                 std::array{true, false, false, false},
                 std::array{true, true, false, false},
                 std::array{false, false, true, true},
                 std::array{false, true, true, true},
+                std::array{false, false, true, false},
+                std::array{false, true, false, false},
+                std::array{true, false, false, false},
+                std::array{false, false, true, false},
+                std::array{true, true, true, true},
                 std::array{false, true, false, true},
             };
             // clang-format on

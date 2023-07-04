@@ -69,17 +69,17 @@ namespace mamba
     template <typename Iter, typename UnaryFunc>
     void for_each_to_remove(Iter first, Iter last, UnaryFunc&& func);
     template <typename Range, typename UnaryFunc>
-    void for_each_to_remove(Range&& solution, UnaryFunc&& func);
+    void for_each_to_remove(Range&& actions, UnaryFunc&& func);
 
     template <typename Iter, typename UnaryFunc>
     void for_each_to_install(Iter first, Iter last, UnaryFunc&& func);
     template <typename Range, typename UnaryFunc>
-    void for_each_to_install(Range&& solution, UnaryFunc&& func);
+    void for_each_to_install(Range&& actions, UnaryFunc&& func);
 
     template <typename Iter, typename UnaryFunc>
     void for_each_to_omit(Iter first, Iter last, UnaryFunc&& func);
     template <typename Range, typename UnaryFunc>
-    void for_each_to_omit(Range&& solution, UnaryFunc&& func);
+    void for_each_to_omit(Range&& actions, UnaryFunc&& func);
 }
 
 #include <type_traits>
@@ -128,9 +128,9 @@ namespace mamba
     }
 
     template <typename Range, typename UnaryFunc>
-    void for_each_to_remove(Range&& self, UnaryFunc&& func)
+    void for_each_to_remove(Range&& actions, UnaryFunc&& func)
     {
-        return for_each_to_remove(self.begin(), self.end(), std::forward<UnaryFunc>(func));
+        return for_each_to_remove(actions.begin(), actions.end(), std::forward<UnaryFunc>(func));
     }
 
     namespace detail
@@ -170,10 +170,10 @@ namespace mamba
         }
     }
 
-    template <typename Self, typename UnaryFunc>
-    void for_each_to_install(Self&& self, UnaryFunc&& func)
+    template <typename Range, typename UnaryFunc>
+    void for_each_to_install(Range&& actions, UnaryFunc&& func)
     {
-        return for_each_to_install(self.begin(), self.end(), std::forward<UnaryFunc>(func));
+        return for_each_to_install(actions.begin(), actions.end(), std::forward<UnaryFunc>(func));
     }
 
     namespace detail
@@ -210,9 +210,9 @@ namespace mamba
     }
 
     template <typename Range, typename UnaryFunc>
-    void for_each_to_omit(Range&& action, UnaryFunc&& func)
+    void for_each_to_omit(Range&& actions, UnaryFunc&& func)
     {
-        return for_each_to_omit(action.begin(), action.end(), std::forward<UnaryFunc>(func));
+        return for_each_to_omit(actions.begin(), actions.end(), std::forward<UnaryFunc>(func));
     }
 }
 #endif

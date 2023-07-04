@@ -434,11 +434,15 @@ namespace mamba::specs
             {
                 return c;
             }
-            if (auto c = starts_with_three_way(a.version(), b.version()); c != strong_ordering::equal)
+            if (b.local().empty())
+            {
+                return starts_with_three_way(a.version(), b.version());
+            }
+            if (auto c = compare_three_way(a.version(), b.version()); c != strong_ordering::equal)
             {
                 return c;
             }
-            return compare_three_way(a.local(), b.local());
+            return starts_with_three_way(a.local(), b.local());
         }
     }
 

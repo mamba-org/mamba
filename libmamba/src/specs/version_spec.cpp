@@ -42,6 +42,18 @@ namespace mamba::specs
     }
 
     auto
+    VersionPredicate::not_starts_with::operator()(const Version& point, const Version& prefix) const
+        -> bool
+    {
+        return !point.starts_with(prefix);
+    }
+
+    auto operator==(VersionPredicate::not_starts_with, VersionPredicate::not_starts_with) -> bool
+    {
+        return true;
+    }
+
+    auto
     VersionPredicate::compatible_with::operator()(const Version& point, const Version& older) const
         -> bool
     {
@@ -133,6 +145,11 @@ namespace mamba::specs
         return VersionPredicate(std::move(ver), starts_with{});
     }
 
+    auto VersionPredicate::make_not_starts_with(Version ver) -> VersionPredicate
+    {
+        return VersionPredicate(std::move(ver), not_starts_with{});
+    }
+
     auto VersionPredicate::make_compatible_with(Version ver, std::size_t level) -> VersionPredicate
     {
         return VersionPredicate(std::move(ver), compatible_with{ level });
@@ -178,6 +195,26 @@ namespace mamba::specs
             {
                 return VersionPredicate::make_free();
             }
+            if (ends_with(str, VersionSpec::glob_suffix_str))
+            {
+                // This suffix changes meaning for ``1.3.*``, ``==1.3.*`` and ``!=1.3.*``
+                // All versions must start with a digit so we can safely strip punctuation.
+                auto [op, ver_str] = lstrip_if_parts(str, [](auto c) { return is_punct(c); });
+                if (op.empty() || op == VersionSpec::equal_str)
+                {
+                    return VersionPredicate::make_starts_with(Version::parse(
+                        ver_str.substr(0, ver_str.size() - VersionSpec::glob_suffix_str.size())
+                    ));
+                }
+                if (op == VersionSpec::not_equal_str)
+                {
+                    return VersionPredicate::make_not_starts_with(Version::parse(
+                        ver_str.substr(0, ver_str.size() - VersionSpec::glob_suffix_str.size())
+                    ));
+                }
+                // Remove suffix an continue as it has redundant meaning for others.
+                str = str.substr(0, str.size() - VersionSpec::glob_suffix_str.size());
+            }
             if (starts_with(str, VersionSpec::greater_equal_str))
             {
                 return VersionPredicate::make_greater_equal(
@@ -220,14 +257,6 @@ namespace mamba::specs
                 // in ``~=1.1`` level is assumed to be 1, in ``~=1.1.1`` level 2, etc.
                 const std::size_t level = ver.version().size();
                 return VersionPredicate::make_compatible_with(std::move(ver), level);
-            }
-            if (ends_with(str, VersionSpec::glob_suffix_str))
-            {
-                // ``1.3.*``, ``=1.3.*`` have the same meaning.
-                // All versions must start with a digit so we use it to find its begining.
-                auto [op, ver_str] = lstrip_if_parts(str, [](auto c) { return !is_digit(c); });
-                const std::size_t end = ver_str.size() - VersionSpec::glob_suffix_str.size();
-                return VersionPredicate::make_starts_with(Version::parse(ver_str.substr(0, end)));
             }
             if (starts_with(str, VersionSpec::starts_with_str))
             {

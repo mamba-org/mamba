@@ -28,6 +28,7 @@ namespace mamba::specs
         [[nodiscard]] static auto make_less(Version ver) -> VersionPredicate;
         [[nodiscard]] static auto make_less_equal(Version ver) -> VersionPredicate;
         [[nodiscard]] static auto make_starts_with(Version ver) -> VersionPredicate;
+        [[nodiscard]] static auto make_not_starts_with(Version ver) -> VersionPredicate;
         [[nodiscard]] static auto make_compatible_with(Version ver, std::size_t level)
             -> VersionPredicate;
 
@@ -44,6 +45,11 @@ namespace mamba::specs
         };
 
         struct starts_with
+        {
+            auto operator()(const Version&, const Version&) const -> bool;
+        };
+
+        struct not_starts_with
         {
             auto operator()(const Version&, const Version&) const -> bool;
         };
@@ -71,6 +77,7 @@ namespace mamba::specs
             std::less<Version>,
             std::less_equal<Version>,
             starts_with,
+            not_starts_with,
             compatible_with>;
 
         Version m_version = {};
@@ -80,6 +87,7 @@ namespace mamba::specs
 
         friend auto operator==(free_interval, free_interval) -> bool;
         friend auto operator==(starts_with, starts_with) -> bool;
+        friend auto operator==(not_starts_with, not_starts_with) -> bool;
         friend auto operator==(compatible_with, compatible_with) -> bool;
         friend auto operator==(const VersionPredicate& lhs, const VersionPredicate& rhs) -> bool;
     };

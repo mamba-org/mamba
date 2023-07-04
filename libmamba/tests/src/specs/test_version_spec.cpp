@@ -73,6 +73,13 @@ TEST_SUITE("version_spec")
         CHECK_FALSE(sw.contains(v3));
         CHECK_FALSE(sw.contains(v4));
 
+        const auto nsw = VersionPredicate::make_not_starts_with(v2);
+        CHECK(nsw.contains(v1));
+        CHECK_FALSE(nsw.contains(v2));
+        CHECK_FALSE(nsw.contains(v201));
+        CHECK(nsw.contains(v3));
+        CHECK(nsw.contains(v4));
+
         const auto cp2 = VersionPredicate::make_compatible_with(v2, 2);
         CHECK_FALSE(cp2.contains(v1));
         CHECK(cp2.contains(v2));
@@ -147,12 +154,14 @@ TEST_SUITE("version_spec")
                 ""sv,
                 "1.7"sv,
                 "==1.7"sv,
+                "!=1.7"sv,
                 "<1.7"sv,
                 "<=1.7.0"sv,
                 ">1.7.0 "sv,
                 ">= 1.7"sv,
                 " = 1.8 "sv,
                 " = 1.7.* "sv,
+                " != 1.8.* "sv,
                 "1.6.*"sv,
                 " ~=1.8"sv,
                 "~=1"sv,
@@ -165,19 +174,21 @@ TEST_SUITE("version_spec")
                 "1.9.0"sv,
             };
             static constexpr auto contains = std::array{
-                std::array{true, true, true, true},
-                std::array{false, true, false, false},
-                std::array{false, true, false, false},
-                std::array{true, false, false, false},
-                std::array{true, true, false, false},
-                std::array{false, false, true, true},
-                std::array{false, true, true, true},
-                std::array{false, false, true, false},
-                std::array{false, true, false, false},
-                std::array{true, false, false, false},
-                std::array{false, false, true, false},
-                std::array{true, true, true, true},
-                std::array{false, true, false, true},
+                std::array{true,  true,  true,  true},
+                std::array{false, true,  false, false},
+                std::array{false, true,  false, false},
+                std::array{true,  false, true,  true},
+                std::array{true,  false, false, false},
+                std::array{true,  true,  false, false},
+                std::array{false, false, true,  true},
+                std::array{false, true,  true,  true},
+                std::array{false, false, true,  false},
+                std::array{false, true,  false, false},
+                std::array{true,  true,  false, true},
+                std::array{true,  false, false, false},
+                std::array{false, false, true,  false},
+                std::array{true,  true,  true,  true},
+                std::array{false, true,  false, true},
             };
             // clang-format on
 

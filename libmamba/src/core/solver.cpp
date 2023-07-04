@@ -27,7 +27,7 @@
 
 namespace mamba
 {
-    MSolver::MSolver(MPool pool, const std::vector<std::pair<int, int>> flags)
+    MSolver::MSolver(MPool pool, std::vector<std::pair<int, int>> flags)
         : m_libsolv_flags(std::move(flags))
         , m_pool(std::move(pool))
         , m_solver(nullptr)

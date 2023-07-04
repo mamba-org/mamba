@@ -7,8 +7,7 @@
 #ifndef MAMBA_SPECS_VERSION_SPEC_HPP
 #define MAMBA_SPECS_VERSION_SPEC_HPP
 
-#include <stdexcept>
-#include <string>
+#include <functional>
 #include <string_view>
 #include <variant>
 
@@ -17,110 +16,82 @@
 
 namespace mamba::specs
 {
-    class VersionInterval
+    class VersionPredicate
     {
     public:
 
-        enum struct Bound
-        {
-            Open,
-            Closed
-        };
+        [[nodiscard]] static auto make_free() -> VersionPredicate;
+        [[nodiscard]] static auto make_equal_to(Version ver) -> VersionPredicate;
+        [[nodiscard]] static auto make_not_equal_to(Version ver) -> VersionPredicate;
+        [[nodiscard]] static auto make_greater(Version ver) -> VersionPredicate;
+        [[nodiscard]] static auto make_greater_equal(Version ver) -> VersionPredicate;
+        [[nodiscard]] static auto make_less(Version ver) -> VersionPredicate;
+        [[nodiscard]] static auto make_less_equal(Version ver) -> VersionPredicate;
+        [[nodiscard]] static auto make_starts_with(Version ver) -> VersionPredicate;
+        [[nodiscard]] static auto make_compatible_with(Version ver, std::size_t level)
+            -> VersionPredicate;
 
-        static auto make_empty() -> VersionInterval;
-        static auto make_free() -> VersionInterval;
-        static auto make_singleton(const Version& point) -> VersionInterval;
-        static auto make_singleton(Version&& point) -> VersionInterval;
-        static auto make_lower_bounded(const Version& lb, Bound type) -> VersionInterval;
-        static auto make_lower_bounded(Version&& lb, Bound type) -> VersionInterval;
-        static auto make_upper_bounded(const Version& ub, Bound type) -> VersionInterval;
-        static auto make_upper_bounded(Version&& ub, Bound type) -> VersionInterval;
-        static auto make_bounded(const Version& lb, Bound ltype, const Version& ub, Bound utype)
-            -> VersionInterval;
-        static auto make_bounded(Version&& lb, Bound ltype, Version&& ub, Bound utype)
-            -> VersionInterval;
-
-        /** Construct an empty interval. */
-        VersionInterval() = default;
-
-        [[nodiscard]] auto is_empty() const -> bool;
-        [[nodiscard]] auto is_free() const -> bool;
-        [[nodiscard]] auto is_singleton() const -> bool;
-        [[nodiscard]] auto is_lower_bounded() const -> bool;
-        [[nodiscard]] auto is_upper_bounded() const -> bool;
-        [[nodiscard]] auto is_bounded() const -> bool;
-        [[nodiscard]] auto is_lower_closed() const -> bool;
-        [[nodiscard]] auto is_upper_closed() const -> bool;
-        [[nodiscard]] auto is_closed() const -> bool;
-        [[nodiscard]] auto is_segment() const -> bool;
+        /** Construct an free interval. */
+        VersionPredicate() = default;
 
         [[nodiscard]] auto contains(const Version& point) const -> bool;
 
     private:
 
-        struct Empty
+        struct free_interval
         {
+            auto operator()(const Version&, const Version&) const -> bool;
         };
 
-        struct Free
+        struct starts_with
         {
+            auto operator()(const Version&, const Version&) const -> bool;
         };
 
-        struct Singleton
+        struct compatible_with
         {
-            Version point;
-        };
-
-        struct LowerBounded
-        {
-            Version lower;
-            Bound ltype;
-        };
-
-        struct UpperBounded
-        {
-            Version upper;
-            Bound utype;
+            std::size_t level;
+            auto operator()(const Version&, const Version&) const -> bool;
         };
 
         /**
-         * A non degenerate or empty interval.
+         * Operator to compare with the stored version.
          *
-         * Requires ``lower`` < ``upper``.
+         * We could store arbitrary binary operators, but since this is tightly coupled with
+         * ``VersionSpec`` parsing (hence not user-extensible), and performance-sensitive,
+         * we choose an ``std::variant`` for dynamic dispatch.
+         * An alternative could be a type-erased wrapper with local storage.
          */
-        struct Bounded
-        {
-            Version lower;
-            Version upper;
-            Bound ltype;
-            Bound utype;
-        };
+        using BinaryOperator = std::variant<
+            free_interval,
+            std::equal_to<Version>,
+            std::not_equal_to<Version>,
+            std::greater<Version>,
+            std::greater_equal<Version>,
+            std::less<Version>,
+            std::less_equal<Version>,
+            starts_with,
+            compatible_with>;
 
-        using IntervalImpl = std::variant<Empty, Free, Singleton, LowerBounded, UpperBounded, Bounded>;
+        Version m_version = {};
+        BinaryOperator m_operator = free_interval{};
 
-        friend auto operator==(Empty lhs, Empty rhs) -> bool;
-        friend auto operator==(Free lhs, Free rhs) -> bool;
-        friend auto operator==(const Singleton& lhs, const Singleton& rhs) -> bool;
-        friend auto operator==(const LowerBounded& lhs, const LowerBounded& rhs) -> bool;
-        friend auto operator==(const UpperBounded& lhs, const UpperBounded& rhs) -> bool;
-        friend auto operator==(const Bounded& lhs, const Bounded& rhs) -> bool;
-        friend auto operator==(const VersionInterval& lhs, const VersionInterval& rhs) -> bool;
-        friend auto operator!=(const VersionInterval& lhs, const VersionInterval& rhs) -> bool;
+        VersionPredicate(Version ver, BinaryOperator op);
 
-        /** Construct an empty interval. */
-        VersionInterval(IntervalImpl&& interval) noexcept;
-
-        IntervalImpl m_interval = Empty{};
+        friend auto operator==(free_interval, free_interval) -> bool;
+        friend auto operator==(starts_with, starts_with) -> bool;
+        friend auto operator==(compatible_with, compatible_with) -> bool;
+        friend auto operator==(const VersionPredicate& lhs, const VersionPredicate& rhs) -> bool;
     };
 
-    auto operator==(const VersionInterval& lhs, const VersionInterval& rhs) -> bool;
-    auto operator!=(const VersionInterval& lhs, const VersionInterval& rhs) -> bool;
+    auto operator==(const VersionPredicate& lhs, const VersionPredicate& rhs) -> bool;
+    auto operator!=(const VersionPredicate& lhs, const VersionPredicate& rhs) -> bool;
 
     class VersionSpec
     {
     public:
 
-        using tree_type = util::flat_bool_expr_tree<VersionInterval>;
+        using tree_type = util::flat_bool_expr_tree<VersionPredicate>;
 
         static constexpr char and_token = ',';
         static constexpr char or_token = '|';
@@ -131,10 +102,11 @@ namespace mamba::specs
         static constexpr std::string_view equal_str = "==";
         static constexpr std::string_view not_equal_str = "!=";
         static constexpr std::string_view greater_str = ">";
-        static constexpr std::string_view greater_eq_str = ">=";
+        static constexpr std::string_view greater_equal_str = ">=";
         static constexpr std::string_view less_str = "<";
-        static constexpr std::string_view less_eq_str = "<=";
+        static constexpr std::string_view less_equal_str = "<=";
         static constexpr std::string_view compatible_str = "~=";
+        static constexpr std::string_view glob_suffix_str = ".*";
 
         [[nodiscard]] static auto parse(std::string_view str) -> VersionSpec;
 

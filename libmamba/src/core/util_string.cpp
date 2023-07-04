@@ -79,6 +79,16 @@ namespace mamba
         return std::iswdigit(static_cast<wint_t>(c)) != 0;
     }
 
+    bool is_punct(char c)
+    {
+        return std::ispunct(static_cast<unsigned char>(c)) != 0;
+    }
+
+    bool is_punct(wchar_t c)
+    {
+        return std::iswpunct(static_cast<wint_t>(c)) != 0;
+    }
+
     bool is_alpha(char c)
     {
         return std::isalpha(static_cast<unsigned char>(c)) != 0;

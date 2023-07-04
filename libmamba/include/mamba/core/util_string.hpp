@@ -44,6 +44,8 @@ namespace mamba
     bool is_graphic(wchar_t c);
     bool is_digit(char c);
     bool is_digit(wchar_t c);
+    bool is_punct(char c);
+    bool is_punct(wchar_t c);
     bool is_alpha(char c);
     bool is_alpha(wchar_t c);
     bool is_alphanum(char c);

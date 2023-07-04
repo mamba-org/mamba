@@ -243,10 +243,11 @@ namespace mamba::util
     template <typename V, typename O>
     void PostfixParser<V, O>::finalize()
     {
-        if (m_orphans.size() != 1)
+        if (((m_orphans.size() == 1) && !m_tree.empty()) || (m_orphans.empty() && m_tree.empty()))
         {
-            throw std::invalid_argument("Incomplete expression");
+            return;
         }
+        throw std::invalid_argument("Incomplete expression");
     }
 
     template <typename V, typename O>
@@ -444,6 +445,11 @@ namespace mamba::util
     template <typename V, typename O, typename C>
     void InfixParser<V, O, C>::finalize()
     {
+        // Empty expression case
+        if (m_postfix_parser.tree().empty() && stack_empty())
+        {
+            return;
+        }
         // Input check
         if (!m_expects_op || (m_parenthesis_level != 0))
         {

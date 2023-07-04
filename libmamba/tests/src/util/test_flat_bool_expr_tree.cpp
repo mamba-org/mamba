@@ -108,6 +108,13 @@ TEST_SUITE("flat_bool_expr_tree")
     {
         auto parser = PostfixParser<char, std::string>{};
 
+        SUBCASE("empty")
+        {
+            parser.finalize();
+            const auto& tree = parser.tree();
+            CHECK(tree.empty());
+        }
+
         SUBCASE("a")
         {
             parser.push_variable('a');
@@ -192,6 +199,13 @@ TEST_SUITE("flat_bool_expr_tree")
     TEST_CASE("InfixParser")
     {
         auto parser = InfixParser<char, std::string>{};
+
+        SUBCASE("empty")
+        {
+            parser.finalize();
+            const auto& tree = parser.tree();
+            CHECK(tree.empty());
+        }
 
         SUBCASE("(((a)))")
         {

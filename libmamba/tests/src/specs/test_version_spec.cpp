@@ -205,5 +205,31 @@ TEST_SUITE("version_spec")
                 }
             }
         }
+
+        SUBCASE("Conda tests")
+        {
+            CHECK(VersionSpec::parse("==1.7").contains(Version::parse("1.7.0")));
+            CHECK(VersionSpec::parse("<=1.7").contains(Version::parse("1.7.0")));
+            CHECK_FALSE(VersionSpec::parse("<1.7").contains(Version::parse("1.7.0")));
+            CHECK(VersionSpec::parse(">=1.7").contains(Version::parse("1.7.0")));
+            CHECK_FALSE(VersionSpec::parse(">1.7").contains(Version::parse("1.7.0")));
+            CHECK_FALSE(VersionSpec::parse(">=1.7").contains(Version::parse("1.6.7")));
+            CHECK_FALSE(VersionSpec::parse(">2013b").contains(Version::parse("2013a")));
+            CHECK(VersionSpec::parse(">2013b").contains(Version::parse("2013k")));
+            CHECK_FALSE(VersionSpec::parse(">2013b").contains(Version::parse("3.0.0")));
+            CHECK(VersionSpec::parse(">1.0.0a").contains(Version::parse("1.0.0")));
+            CHECK(VersionSpec::parse(">1.0.0*").contains(Version::parse("1.0.0")));
+            CHECK(VersionSpec::parse("1.0*").contains(Version::parse("1.0")));
+            CHECK(VersionSpec::parse("1.0*").contains(Version::parse("1.0.0")));
+            CHECK(VersionSpec::parse("1.0.0*").contains(Version::parse("1.0")));
+            CHECK_FALSE(VersionSpec::parse("1.0.0*").contains(Version::parse("1.0.1")));
+            CHECK(VersionSpec::parse("2013a*").contains(Version::parse("2013a")));
+            CHECK_FALSE(VersionSpec::parse("2013b*").contains(Version::parse("2013a")));
+            CHECK_FALSE(VersionSpec::parse("1.2.4*").contains(Version::parse("1.3.4")));
+            CHECK(VersionSpec::parse("1.2.3*").contains(Version::parse("1.2.3+4.5.6")));
+            CHECK(VersionSpec::parse("1.2.3+4*").contains(Version::parse("1.2.3+4.5.6")));
+            CHECK_FALSE(VersionSpec::parse("1.2.3+5*").contains(Version::parse("1.2.3+4.5.6")));
+            CHECK_FALSE(VersionSpec::parse("1.2.4+5*").contains(Version::parse("1.2.3+4.5.6")));
+        }
     }
 }

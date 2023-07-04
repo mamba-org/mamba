@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <stdexcept>
@@ -195,26 +196,6 @@ namespace mamba::specs
             {
                 return VersionPredicate::make_free();
             }
-            if (ends_with(str, VersionSpec::glob_suffix_str))
-            {
-                // This suffix changes meaning for ``1.3.*``, ``==1.3.*`` and ``!=1.3.*``
-                // All versions must start with a digit so we can safely strip punctuation.
-                auto [op, ver_str] = lstrip_if_parts(str, [](auto c) { return is_punct(c); });
-                if (op.empty() || op == VersionSpec::equal_str)
-                {
-                    return VersionPredicate::make_starts_with(Version::parse(
-                        ver_str.substr(0, ver_str.size() - VersionSpec::glob_suffix_str.size())
-                    ));
-                }
-                if (op == VersionSpec::not_equal_str)
-                {
-                    return VersionPredicate::make_not_starts_with(Version::parse(
-                        ver_str.substr(0, ver_str.size() - VersionSpec::glob_suffix_str.size())
-                    ));
-                }
-                // Remove suffix an continue as it has redundant meaning for others.
-                str = str.substr(0, str.size() - VersionSpec::glob_suffix_str.size());
-            }
             if (starts_with(str, VersionSpec::greater_equal_str))
             {
                 return VersionPredicate::make_greater_equal(
@@ -239,18 +220,6 @@ namespace mamba::specs
                     Version::parse(str.substr(VersionSpec::less_str.size()))
                 );
             }
-            if (starts_with(str, VersionSpec::equal_str))
-            {
-                return VersionPredicate::make_equal_to(
-                    Version::parse(str.substr(VersionSpec::equal_str.size()))
-                );
-            }
-            if (starts_with(str, VersionSpec::not_equal_str))
-            {
-                return VersionPredicate::make_not_equal_to(
-                    Version::parse(str.substr(VersionSpec::not_equal_str.size()))
-                );
-            }
             if (starts_with(str, VersionSpec::compatible_str))
             {
                 auto ver = Version::parse(str.substr(VersionSpec::compatible_str.size()));
@@ -258,15 +227,59 @@ namespace mamba::specs
                 const std::size_t level = ver.version().size();
                 return VersionPredicate::make_compatible_with(std::move(ver), level);
             }
+            const bool has_glob_suffix = ends_with(str, VersionSpec::glob_suffix_str);
+            std::size_t const glob_len = has_glob_suffix * VersionSpec::glob_suffix_str.size();
+            if (starts_with(str, VersionSpec::equal_str))
+            {
+                std::size_t const start = VersionSpec::equal_str.size();
+                // Glob suffix changes meaning for ==1.3.*
+                if (has_glob_suffix)
+                {
+                    return VersionPredicate::make_starts_with(
+                        Version::parse(str.substr(start, str.size() - glob_len - start))
+                    );
+                }
+                else
+                {
+                    return VersionPredicate::make_equal_to(Version::parse(str.substr(start)));
+                }
+            }
+            if (starts_with(str, VersionSpec::not_equal_str))
+            {
+                std::size_t const start = VersionSpec::not_equal_str.size();
+                // Glob suffix changes meaning for !=1.3.*
+                if (has_glob_suffix)
+                {
+                    return VersionPredicate::make_not_starts_with(
+                        Version::parse(str.substr(start, str.size() - glob_len - start))
+                    );
+                }
+                else
+                {
+                    return VersionPredicate::make_not_equal_to(Version::parse(str.substr(start)));
+                }
+            }
             if (starts_with(str, VersionSpec::starts_with_str))
             {
+                std::size_t const start = VersionSpec::starts_with_str.size();
+                // Glob suffix does not change meaning for =1.3.*
                 return VersionPredicate::make_starts_with(
-                    Version::parse(str.substr(VersionSpec::starts_with_str.size()))
+                    Version::parse(str.substr(start, str.size() - glob_len - start))
                 );
             }
             if (is_digit(str.front()))  // All versions must start with a digit
             {
-                return VersionPredicate::make_equal_to(Version::parse(str));
+                // Glob suffix does  change meaning for 1.3.* and 1.3*
+                if (ends_with(str, VersionSpec::glob_suffix_token))
+                {
+                    // either ".*" or "*"
+                    std::size_t const len = str.size() - std::max(glob_len, 1ul);
+                    return VersionPredicate::make_starts_with(Version::parse(str.substr(0, len)));
+                }
+                else
+                {
+                    return VersionPredicate::make_equal_to(Version::parse(str));
+                }
             }
             throw std::invalid_argument(fmt::format(R"(Found invalid version predicate in "{}")", str)
             );

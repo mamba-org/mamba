@@ -19,10 +19,10 @@
 #include "mamba/core/channel.hpp"
 #include "mamba/core/env_lockfile.hpp"
 #include "mamba/core/environments_manager.hpp"
+#include "mamba/core/fetch.hpp"
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
-#include "mamba/core/package_download.hpp"
 #include "mamba/core/pinning.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_string.hpp"
@@ -512,9 +512,11 @@ namespace mamba
             }
         );
 
-        solver.set_postsolve_flags({ { MAMBA_NO_DEPS, no_deps },
-                                     { MAMBA_ONLY_DEPS, only_deps },
-                                     { MAMBA_FORCE_REINSTALL, force_reinstall } });
+        solver.set_flags({
+            /* .keep_dependencies= */ !no_deps,
+            /* .keep_specs= */ !only_deps,
+            /* .force_reinstall= */ force_reinstall,
+        });
 
         if (freeze_installed && !prefix_pkgs.empty())
         {

@@ -226,8 +226,8 @@ PYBIND11_MODULE(bindings, m)
         .def("add_global_job", &MSolver::add_global_job)
         .def("add_constraint", &MSolver::add_constraint)
         .def("add_pin", &MSolver::add_pin)
-        .def("set_flags", &MSolver::set_flags)
-        .def("set_postsolve_flags", &MSolver::set_postsolve_flags)
+        .def("set_flags", &MSolver::py_set_libsolv_flags)
+        .def("set_postsolve_flags", &MSolver::py_set_postsolve_flags)
         .def("is_solved", &MSolver::is_solved)
         .def("problems_to_str", &MSolver::problems_to_str)
         .def("all_problems_to_str", &MSolver::all_problems_to_str)
@@ -1116,9 +1116,9 @@ PYBIND11_MODULE(bindings, m)
         .value("SOLVER_RULE_STRICT_REPO_PRIORITY", SolverRuleinfo::SOLVER_RULE_STRICT_REPO_PRIORITY);
 
     // INSTALL FLAGS
-    m.attr("MAMBA_NO_DEPS") = MAMBA_NO_DEPS;
-    m.attr("MAMBA_ONLY_DEPS") = MAMBA_ONLY_DEPS;
-    m.attr("MAMBA_FORCE_REINSTALL") = MAMBA_FORCE_REINSTALL;
+    m.attr("MAMBA_NO_DEPS") = PY_MAMBA_NO_DEPS;
+    m.attr("MAMBA_ONLY_DEPS") = PY_MAMBA_ONLY_DEPS;
+    m.attr("MAMBA_FORCE_REINSTALL") = PY_MAMBA_FORCE_REINSTALL;
 
     // DOWNLOAD FLAGS
     m.attr("MAMBA_DOWNLOAD_FAILFAST") = MAMBA_DOWNLOAD_FAILFAST;

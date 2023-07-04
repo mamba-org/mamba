@@ -237,6 +237,7 @@ set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/repo.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/run.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shell_init.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/solution.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/solver.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/subdirdata.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/thread_utils.hpp

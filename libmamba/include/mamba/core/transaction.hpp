@@ -18,6 +18,7 @@
 #include "mamba_fs.hpp"
 #include "match_spec.hpp"
 #include "package_cache.hpp"
+#include "package_info.hpp"
 #include "prefix_data.hpp"
 #include "solver.hpp"
 #include "transaction_context.hpp"
@@ -86,8 +87,8 @@ namespace mamba
         TransactionContext m_transaction_context;
         MultiPackageCache m_multi_cache;
         const fs::u8path m_cache_path;
-        std::vector<solv::ObjSolvableViewConst> m_to_install;
-        std::vector<solv::ObjSolvableViewConst> m_to_remove;
+        std::vector<PackageInfo> m_to_install;
+        std::vector<PackageInfo> m_to_remove;
 
         History::UserRequest m_history_entry = History::UserRequest::prefilled();
         // Temporarily using Pimpl for encapsulation
@@ -95,10 +96,8 @@ namespace mamba
 
         std::vector<MatchSpec> m_requested_specs;
 
-        bool m_force_reinstall = false;
-
         void init();
-        bool filter(const solv::ObjSolvableViewConst& s);
+        bool filter(const solv::ObjSolvableViewConst& s) const;
 
         auto trans() -> solv::ObjTransaction&;
         auto trans() const -> const solv::ObjTransaction&;

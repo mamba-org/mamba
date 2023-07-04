@@ -27,12 +27,12 @@
 
 namespace mamba
 {
-    MSolver::MSolver(MPool pool, const std::vector<std::pair<int, int>> flags)
-        : m_flags(std::move(flags))
-        , m_is_solved(false)
+    MSolver::MSolver(MPool pool, std::vector<std::pair<int, int>> flags)
+        : m_libsolv_flags(std::move(flags))
         , m_pool(std::move(pool))
         , m_solver(nullptr)
         , m_jobs(std::make_unique<solv::ObjQueue>())
+        , m_is_solved(false)
     {
         // TODO should we lazyly create solver here? Should we what provides?
         m_pool.create_whatprovides();
@@ -153,7 +153,7 @@ namespace mamba
                 }
                 m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, job_id);
             }
-            else if ((job_flag & SOLVER_INSTALL) && force_reinstall)
+            else if ((job_flag & SOLVER_INSTALL) && m_flags.force_reinstall)
             {
                 add_reinstall_job(ms, job_flag);
             }
@@ -243,29 +243,44 @@ namespace mamba
         }
     }
 
-    void MSolver::set_postsolve_flags(const std::vector<std::pair<int, int>>& flags)
+    void MSolver::py_set_postsolve_flags(const std::vector<std::pair<int, int>>& flags)
     {
         for (const auto& option : flags)
         {
             switch (option.first)
             {
-                case MAMBA_NO_DEPS:
-                    no_deps = option.second;
+                case PY_MAMBA_NO_DEPS:
+                    m_flags.keep_dependencies = !option.second;
                     break;
-                case MAMBA_ONLY_DEPS:
-                    only_deps = option.second;
+                case PY_MAMBA_ONLY_DEPS:
+                    m_flags.keep_specs = !option.second;
                     break;
-                case MAMBA_FORCE_REINSTALL:
-                    force_reinstall = option.second;
+                case PY_MAMBA_FORCE_REINSTALL:
+                    m_flags.force_reinstall = option.second;
                     break;
             }
         }
     }
 
-    void MSolver::set_flags(const std::vector<std::pair<int, int>>& flags)
+    void MSolver::set_flags(const Flags& flags)
+    {
+        m_flags = flags;
+    }
+
+    auto MSolver::flags() const -> const Flags&
+    {
+        return m_flags;
+    }
+
+    void MSolver::py_set_libsolv_flags(const std::vector<std::pair<int, int>>& flags)
+    {
+        m_libsolv_flags = flags;
+    }
+
+    void MSolver::apply_libsolv_flags()
     {
         // TODO use new API
-        for (const auto& option : flags)
+        for (const auto& option : m_libsolv_flags)
         {
             solver_set_flag(*this, option.first, option.second);
         }
@@ -314,7 +329,7 @@ namespace mamba
     bool MSolver::try_solve()
     {
         m_solver = std::make_unique<solv::ObjSolver>(m_pool.pool());
-        set_flags(m_flags);
+        apply_libsolv_flags();
 
         const bool success = solver().solve(m_pool.pool(), *m_jobs);
         m_is_solved = true;

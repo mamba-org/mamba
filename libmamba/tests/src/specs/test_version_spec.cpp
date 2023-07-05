@@ -16,7 +16,7 @@ using namespace mamba::specs;
 
 TEST_SUITE("version_spec")
 {
-    TEST_CASE("VersionInterval")
+    TEST_CASE("VersionPredicate")
     {
         const auto v1 = Version::parse("1.0");
         const auto v2 = Version::parse("2.0");
@@ -105,7 +105,7 @@ TEST_SUITE("version_spec")
         }
     }
 
-    TEST_CASE("VersionInterval")
+    TEST_CASE("Tree construction")
     {
         SUBCASE("empty")
         {
@@ -145,91 +145,237 @@ TEST_SUITE("version_spec")
 
     TEST_CASE("Parsing")
     {
-        using namespace std::literals::string_view_literals;
+        using namespace mamba::specs::version_literals;
+        using namespace mamba::specs::version_spec_literals;
 
         SUBCASE("Successful")
         {
-            // clang-format off
-            static constexpr auto specs = std::array{
-                ""sv,
-                "1.7"sv,
-                "==1.7"sv,
-                "!=1.7"sv,
-                "<1.7"sv,
-                "<=1.7.0"sv,
-                ">1.7.0 "sv,
-                ">= 1.7"sv,
-                " = 1.8 "sv,
-                " = 1.7.* "sv,
-                " != 1.8.* "sv,
-                "1.6.*"sv,
-                " ~=1.8"sv,
-                "~=1"sv,
-                " (>= 1.7, <1.8) |>=1.9.0.0 "sv,
-            };
-            static constexpr auto versions = std::array{
-                "1.6"sv,
-                "1.7.0.0"sv,
-                "1.8.1"sv,
-                "1.9.0"sv,
-            };
-            static constexpr auto contains = std::array{
-                std::array{true,  true,  true,  true},
-                std::array{false, true,  false, false},
-                std::array{false, true,  false, false},
-                std::array{true,  false, true,  true},
-                std::array{true,  false, false, false},
-                std::array{true,  true,  false, false},
-                std::array{false, false, true,  true},
-                std::array{false, true,  true,  true},
-                std::array{false, false, true,  false},
-                std::array{false, true,  false, false},
-                std::array{true,  true,  false, true},
-                std::array{true,  false, false, false},
-                std::array{false, false, true,  false},
-                std::array{true,  true,  true,  true},
-                std::array{false, true,  false, true},
-            };
-            // clang-format on
+            CHECK(""_vs.contains("1.6"_v));
+            CHECK(""_vs.contains("0.6+0.7"_v));
 
-            for (std::size_t spec_id = 0; spec_id < specs.size(); ++spec_id)
-            {
-                CAPTURE(specs[spec_id]);
-                const auto spec = VersionSpec::parse(specs[spec_id]);
+            CHECK("1.7"_vs.contains("1.7"_v));
+            CHECK("1.7"_vs.contains("1.7.0.0"_v));
+            CHECK_FALSE("1.7"_vs.contains("1.6"_v));
+            CHECK_FALSE("1.7"_vs.contains("1.7.7"_v));
+            CHECK_FALSE("1.7"_vs.contains("1.7.0.1"_v));
 
-                for (std::size_t ver_id = 0; ver_id < versions.size(); ++ver_id)
-                {
-                    CAPTURE(versions[ver_id]);
-                    const auto ver = Version::parse(versions[ver_id]);
-                    CHECK_EQ(spec.contains(ver), contains[spec_id][ver_id]);
-                }
-            }
+            CHECK("==1.7"_vs.contains("1.7"_v));
+            CHECK("==1.7"_vs.contains("1.7.0.0"_v));
+            CHECK_FALSE("==1.7"_vs.contains("1.6"_v));
+            CHECK_FALSE("==1.7"_vs.contains("1.7.7"_v));
+            CHECK_FALSE("==1.7"_vs.contains("1.7.0.1"_v));
+
+            CHECK_FALSE("!=1.7"_vs.contains("1.7"_v));
+            CHECK_FALSE("!=1.7"_vs.contains("1.7.0.0"_v));
+            CHECK("!=1.7"_vs.contains("1.6"_v));
+            CHECK("!=1.7"_vs.contains("1.7.7"_v));
+            CHECK("!=1.7"_vs.contains("1.7.0.1"_v));
+
+            CHECK_FALSE("<1.7"_vs.contains("1.7"_v));
+            CHECK_FALSE("<1.7"_vs.contains("1.7.0.0"_v));
+            CHECK("<1.7"_vs.contains("1.6"_v));
+            CHECK("<1.7"_vs.contains("1.7a"_v));
+            CHECK_FALSE("<1.7"_vs.contains("1.7.7"_v));
+            CHECK_FALSE("<1.7"_vs.contains("1.7.0.1"_v));
+
+            CHECK("<=1.7"_vs.contains("1.7"_v));
+            CHECK("<=1.7"_vs.contains("1.7.0.0"_v));
+            CHECK("<=1.7"_vs.contains("1.6"_v));
+            CHECK("<=1.7"_vs.contains("1.7a"_v));
+            CHECK_FALSE("<=1.7"_vs.contains("1.7.7"_v));
+            CHECK_FALSE("<=1.7"_vs.contains("1.7.0.1"_v));
+
+            CHECK_FALSE(">1.7"_vs.contains("1.7"_v));
+            CHECK_FALSE(">1.7"_vs.contains("1.7.0.0"_v));
+            CHECK_FALSE(">1.7"_vs.contains("1.6"_v));
+            CHECK_FALSE(">1.7"_vs.contains("1.7a"_v));
+            CHECK(">1.7"_vs.contains("1.7.7"_v));
+            CHECK(">1.7"_vs.contains("1.7.0.1"_v));
+
+            CHECK(">= 1.7"_vs.contains("1.7"_v));
+            CHECK(">= 1.7"_vs.contains("1.7.0.0"_v));
+            CHECK_FALSE(">= 1.7"_vs.contains("1.6"_v));
+            CHECK_FALSE(">= 1.7"_vs.contains("1.7a"_v));
+            CHECK(">= 1.7"_vs.contains("1.7.7"_v));
+            CHECK(">= 1.7"_vs.contains("1.7.0.1"_v));
+
+            CHECK_FALSE(" = 1.8"_vs.contains("1.7.0.1"_v));
+            CHECK(" = 1.8"_vs.contains("1.8"_v));
+            CHECK(" = 1.8"_vs.contains("1.8.0"_v));
+            CHECK(" = 1.8"_vs.contains("1.8.1"_v));
+            CHECK(" = 1.8"_vs.contains("1.8alpha"_v));
+            CHECK_FALSE(" = 1.8"_vs.contains("1.9"_v));
+
+            CHECK_FALSE(" = 1.8.* "_vs.contains("1.7.0.1"_v));
+            CHECK(" = 1.8.*"_vs.contains("1.8"_v));
+            CHECK(" = 1.8.*"_vs.contains("1.8.0"_v));
+            CHECK(" = 1.8.*"_vs.contains("1.8.1"_v));
+            CHECK(" = 1.8.*"_vs.contains("1.8alpha"_v));  // Like Conda
+            CHECK_FALSE(" = 1.8.*"_vs.contains("1.9"_v));
+
+            CHECK_FALSE("  1.8.* "_vs.contains("1.7.0.1"_v));
+            CHECK("  1.8.*"_vs.contains("1.8"_v));
+            CHECK("  1.8.*"_vs.contains("1.8.0"_v));
+            CHECK("  1.8.*"_vs.contains("1.8.1"_v));
+            CHECK("  1.8.*"_vs.contains("1.8alpha"_v));  // Like Conda
+            CHECK_FALSE("  1.8.*"_vs.contains("1.9"_v));
+
+            CHECK(" != 1.8.*"_vs.contains("1.7.0.1"_v));
+            CHECK_FALSE(" != 1.8.*"_vs.contains("1.8"_v));
+            CHECK_FALSE(" != 1.8.*"_vs.contains("1.8.0"_v));
+            CHECK_FALSE(" != 1.8.*"_vs.contains("1.8.1"_v));
+            CHECK_FALSE(" != 1.8.*"_vs.contains("1.8alpha"_v));  // Like Conda
+            CHECK(" != 1.8.*"_vs.contains("1.9"_v));
+
+            CHECK_FALSE(" ~= 1.8 "_vs.contains("1.7.0.1"_v));
+            CHECK(" ~= 1.8 "_vs.contains("1.8"_v));
+            CHECK(" ~= 1.8 "_vs.contains("1.8.0"_v));
+            CHECK(" ~= 1.8 "_vs.contains("1.8.1"_v));
+            CHECK(" ~= 1.8 "_vs.contains("1.9"_v));
+            CHECK(" ~= 1.8 "_vs.contains("1.8post"_v));
+            CHECK_FALSE(" ~= 1.8 "_vs.contains("1.8alpha"_v));
+
+            CHECK(" ~=1 "_vs.contains("1.7.0.1"_v));
+            CHECK(" ~=1 "_vs.contains("1.8"_v));
+            CHECK(" ~=1 "_vs.contains("1.8post"_v));
+            CHECK(" ~=1 "_vs.contains("2.0"_v));
+            CHECK_FALSE(" ~=1 "_vs.contains("0.1"_v));
+            CHECK_FALSE(" ~=1 "_vs.contains("1.0.alpha"_v));
+
+            CHECK_FALSE(" (>= 1.7, <1.8) |>=1.9.0.0 "_vs.contains("1.6"_v));
+            CHECK(" (>= 1.7, <1.8) |>=1.9.0.0 "_vs.contains("1.7.0.0"_v));
+            CHECK_FALSE(" (>= 1.7, <1.8) |>=1.9.0.0 "_vs.contains("1.8.1"_v));
+            CHECK(" (>= 1.7, <1.8) |>=1.9.0.0 "_vs.contains("6.33"_v));
+
+            // Test from Conda
+            CHECK("==1.7"_vs.contains("1.7.0"_v));
+            CHECK("<=1.7"_vs.contains("1.7.0"_v));
+            CHECK_FALSE("<1.7"_vs.contains("1.7.0"_v));
+            CHECK(">=1.7"_vs.contains("1.7.0"_v));
+            CHECK_FALSE(">1.7"_vs.contains("1.7.0"_v));
+            CHECK_FALSE(">=1.7"_vs.contains("1.6.7"_v));
+            CHECK_FALSE(">2013b"_vs.contains("2013a"_v));
+            CHECK(">2013b"_vs.contains("2013k"_v));
+            CHECK_FALSE(">2013b"_vs.contains("3.0.0"_v));
+            CHECK(">1.0.0a"_vs.contains("1.0.0"_v));
+            CHECK(">1.0.0*"_vs.contains("1.0.0"_v));
+            CHECK("1.0*"_vs.contains("1.0"_v));
+            CHECK("1.0*"_vs.contains("1.0.0"_v));
+            CHECK("1.0.0*"_vs.contains("1.0"_v));
+            CHECK_FALSE("1.0.0*"_vs.contains("1.0.1"_v));
+            CHECK("2013a*"_vs.contains("2013a"_v));
+            CHECK_FALSE("2013b*"_vs.contains("2013a"_v));
+            CHECK_FALSE("1.2.4*"_vs.contains("1.3.4"_v));
+            CHECK("1.2.3*"_vs.contains("1.2.3+4.5.6"_v));
+            CHECK("1.2.3+4*"_vs.contains("1.2.3+4.5.6"_v));
+            CHECK_FALSE("1.2.3+5*"_vs.contains("1.2.3+4.5.6"_v));
+            CHECK_FALSE("1.2.4+5*"_vs.contains("1.2.3+4.5.6"_v));
+            CHECK("1.7.*"_vs.contains("1.7.1"_v));
+            CHECK("1.7.1"_vs.contains("1.7.1"_v));
+            CHECK_FALSE("1.7.0"_vs.contains("1.7.1"_v));
+            CHECK_FALSE("1.7"_vs.contains("1.7.1"_v));
+            CHECK_FALSE("1.5.*"_vs.contains("1.7.1"_v));
+            CHECK(">=1.5"_vs.contains("1.7.1"_v));
+            CHECK("!=1.5"_vs.contains("1.7.1"_v));
+            CHECK_FALSE("!=1.7.1"_vs.contains("1.7.1"_v));
+            CHECK("==1.7.1"_vs.contains("1.7.1"_v));
+            CHECK_FALSE("==1.7"_vs.contains("1.7.1"_v));
+            CHECK_FALSE("==1.7.2"_vs.contains("1.7.1"_v));
+            CHECK("==1.7.1.0"_vs.contains("1.7.1"_v));
+            CHECK("1.7.*|1.8.*"_vs.contains("1.7.1"_v));
+            CHECK(">1.7,<1.8"_vs.contains("1.7.1"_v));
+            CHECK_FALSE(">1.7.1,<1.8"_vs.contains("1.7.1"_v));
+            CHECK("*"_vs.contains("1.7.1"_v));
+            CHECK("1.5.*|>1.7,<1.8"_vs.contains("1.7.1"_v));
+            CHECK_FALSE("1.5.*|>1.7,<1.7.1"_vs.contains("1.7.1"_v));
+            CHECK("1.7.0.post123"_vs.contains("1.7.0.post123"_v));
+            CHECK("1.7.0.post123.gabcdef9"_vs.contains("1.7.0.post123.gabcdef9"_v));
+            CHECK("1.7.0.post123+gabcdef9"_vs.contains("1.7.0.post123+gabcdef9"_v));
+            CHECK("=3.3"_vs.contains("3.3.1"_v));
+            CHECK("=3.3"_vs.contains("3.3"_v));
+            CHECK_FALSE("=3.3"_vs.contains("3.4"_v));
+            CHECK("3.3.*"_vs.contains("3.3.1"_v));
+            CHECK("3.3.*"_vs.contains("3.3"_v));
+            CHECK_FALSE("3.3.*"_vs.contains("3.4"_v));
+            CHECK("=3.3.*"_vs.contains("3.3.1"_v));
+            CHECK("=3.3.*"_vs.contains("3.3"_v));
+            CHECK_FALSE("=3.3.*"_vs.contains("3.4"_v));
+            CHECK_FALSE("!=3.3.*"_vs.contains("3.3.1"_v));
+            CHECK("!=3.3.*"_vs.contains("3.4"_v));
+            CHECK("!=3.3.*"_vs.contains("3.4.1"_v));
+            CHECK("!=3.3"_vs.contains("3.3.1"_v));
+            CHECK_FALSE("!=3.3"_vs.contains("3.3.0.0"_v));
+            CHECK_FALSE("!=3.3.*"_vs.contains("3.3.0.0"_v));
+            CHECK_FALSE(">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"_vs.contains("2.6.8"_v));
+            CHECK(">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"_vs.contains("2.7.2"_v));
+            CHECK_FALSE(">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"_vs.contains("3.3"_v));
+            CHECK_FALSE(">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"_vs.contains("3.3.4"_v));
+            CHECK(">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"_vs.contains("3.4"_v));
+            CHECK(">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"_vs.contains("3.4a"_v));
+            CHECK("~=1.10"_vs.contains("1.11.0"_v));
+            CHECK_FALSE("~=1.10.0"_vs.contains("1.11.0"_v));
+            CHECK_FALSE("~=3.3.2"_vs.contains("3.4.0"_v));
+            CHECK_FALSE("~=3.3.2"_vs.contains("3.3.1"_v));
+            CHECK("~=3.3.2"_vs.contains("3.3.2.0"_v));
+            CHECK("~=3.3.2"_vs.contains("3.3.3"_v));
+            CHECK("~=3.3.2|==2.2"_vs.contains("2.2.0"_v));
+            CHECK("~=3.3.2|==2.2"_vs.contains("3.3.3"_v));
+            CHECK_FALSE("~=3.3.2|==2.2"_vs.contains("2.2.1"_v));
+
+            // Regex are currently not supported
+            // CHECK("^1.7.1$"_vs.contains("1.7.1"_v));
+            // CHECK(R"(^1\.7\.1$)"_vs.contains("1.7.1"_v));
+            // CHECK(R"(^1\.7\.[0-9]+$)"_vs.contains("1.7.1"_v));
+            // CHECK_FALSE(R"(^1\.8.*$)"_vs.contains("1.7.1"_v));
+            // CHECK(R"(^1\.[5-8]\.1$)"_vs.contains("1.7.1"_v));
+            // CHECK_FALSE(R"(^[^1].*$)"_vs.contains("1.7.1"_v));
+            // CHECK(R"(^[0-9+]+\.[0-9+]+\.[0-9]+$)"_vs.contains("1.7.1"_v));
+            // CHECK_FALSE("^$"_vs.contains("1.7.1"_v));
+            // CHECK("^.*$"_vs.contains("1.7.1"_v));
+            // CHECK("1.7.*|^0.*$"_vs.contains("1.7.1"_v));
+            // CHECK_FALSE("1.6.*|^0.*$"_vs.contains("1.7.1"_v));
+            // CHECK("1.6.*|^0.*$|1.7.1"_vs.contains("1.7.1"_v));
+            // CHECK("^0.*$|1.7.1"_vs.contains("1.7.1"_v));
+            // CHECK(R"(1.6.*|^.*\.7\.1$|0.7.1)"_vs.contains("1.7.1"_v));
+            // CHECK("1.*.1"_vs.contains("1.7.1"_v));
         }
 
-        SUBCASE("Conda tests")
+        SUBCASE("Unsuccesful")
         {
-            CHECK(VersionSpec::parse("==1.7").contains(Version::parse("1.7.0")));
-            CHECK(VersionSpec::parse("<=1.7").contains(Version::parse("1.7.0")));
-            CHECK_FALSE(VersionSpec::parse("<1.7").contains(Version::parse("1.7.0")));
-            CHECK(VersionSpec::parse(">=1.7").contains(Version::parse("1.7.0")));
-            CHECK_FALSE(VersionSpec::parse(">1.7").contains(Version::parse("1.7.0")));
-            CHECK_FALSE(VersionSpec::parse(">=1.7").contains(Version::parse("1.6.7")));
-            CHECK_FALSE(VersionSpec::parse(">2013b").contains(Version::parse("2013a")));
-            CHECK(VersionSpec::parse(">2013b").contains(Version::parse("2013k")));
-            CHECK_FALSE(VersionSpec::parse(">2013b").contains(Version::parse("3.0.0")));
-            CHECK(VersionSpec::parse(">1.0.0a").contains(Version::parse("1.0.0")));
-            CHECK(VersionSpec::parse(">1.0.0*").contains(Version::parse("1.0.0")));
-            CHECK(VersionSpec::parse("1.0*").contains(Version::parse("1.0")));
-            CHECK(VersionSpec::parse("1.0*").contains(Version::parse("1.0.0")));
-            CHECK(VersionSpec::parse("1.0.0*").contains(Version::parse("1.0")));
-            CHECK_FALSE(VersionSpec::parse("1.0.0*").contains(Version::parse("1.0.1")));
-            CHECK(VersionSpec::parse("2013a*").contains(Version::parse("2013a")));
-            CHECK_FALSE(VersionSpec::parse("2013b*").contains(Version::parse("2013a")));
-            CHECK_FALSE(VersionSpec::parse("1.2.4*").contains(Version::parse("1.3.4")));
-            CHECK(VersionSpec::parse("1.2.3*").contains(Version::parse("1.2.3+4.5.6")));
-            CHECK(VersionSpec::parse("1.2.3+4*").contains(Version::parse("1.2.3+4.5.6")));
-            CHECK_FALSE(VersionSpec::parse("1.2.3+5*").contains(Version::parse("1.2.3+4.5.6")));
-            CHECK_FALSE(VersionSpec::parse("1.2.4+5*").contains(Version::parse("1.2.3+4.5.6")));
+            using namespace std::literals::string_view_literals;
+            static constexpr auto bad_specs = std::array{
+                "><2.4.5"sv,
+                "!!2.4.5"sv,
+                "!"sv,
+                "(1.5"sv,
+                "1.5)"sv,
+                "1.5||1.6"sv,
+                "^1.5"sv,
+                "~"sv,
+                "^"sv,
+                "===3.3.2"sv,  // PEP440 arbitrary equality not implemented in Conda
+                "~=3.3.2.*"sv
+                // Conda tests
+                "1.2+"sv,
+                "+1.2"sv,
+                "+1.2+"sv,
+                "++"sv,
+                "c +, 0/|0 *"sv,
+                "a[version=)|("sv,
+                "a=)(=b"sv,
+                "=="sv,
+                "="sv,
+                ">="sv,
+                "<="sv,
+            };
+
+            for (const auto& spec : bad_specs)
+            {
+                CAPTURE(spec);
+                // Silence [[nodiscard]] warning
+                auto parse = [](auto s) { return VersionSpec::parse(s); };
+                CHECK_THROWS_AS(parse(spec), std::invalid_argument);
+            }
         }
     }
 }

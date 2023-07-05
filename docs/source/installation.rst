@@ -1,30 +1,35 @@
 .. _installation:
-
 ============
 Installation
 ============
 
 .. _mamba-install:
-
-mamba
-=====
+``mamba`` distribution
+======================
 
 Fresh install
 *************
 
-We strongly recommend to start from Mambaforge, a community project of the conda-forge community.
+For a pre-configured installation, minimally different from ``conda``, the Mambaforge distribution
+is a community project of the conda-forge community that packages ``mamba``.
 
 | You can download `Mambaforge <https://github.com/conda-forge/miniforge#mambaforge>`_ for Windows, macOS and Linux.
 | Mambaforge comes with the popular ``conda-forge`` channel preconfigured, but you can modify the configuration to use any channel you like.
 
  | After successful installation, you can use the mamba commands as described in :ref:`mamba user guide<mamba>`.
 
+.. note::
+   For both ``mamba`` and ``conda``, the ``base`` environment is meant to hold their dependencies.
+   It is strongly discouraged to install anything else in the base envionment.
+   Doing so may break ``mamba`` and ``conda`` installation.
+
 
 Existing ``conda`` install
 **************************
 
 .. warning::
-   This way of installing Mamba is **not recommended**. We strongly recommend to use the Mambaforge method (see above).
+   This way of installing Mamba is **not recommended**.
+   We strongly recommend to use the Mambaforge method (see above).
 
 To get ``mamba``, just install it *into the base environment* from the ``conda-forge`` channel:
 
@@ -37,51 +42,62 @@ To get ``mamba``, just install it *into the base environment* from the ``conda-f
    Installing mamba into any other environment than ``base`` is not supported.
 
 .. _umamba-install:
+``micromamba`` standalone executable
+====================================
 
-micromamba
-==========
+``micromamba`` is a fully statically-linked, self-contained, executable.
+This means that the ``base`` environment is completely empty.
+The configuration for ``micromamba`` is slighly diffrent, namely all environments and cache will be
+created by default under the ``MAMBA_ROOT_PREFIX`` environment variable.
+There is also no ``.condarc``/``.mambarc`` shipped with micromamba.
 
 .. _umamba-install-automatic-installation:
-
-Automatic installation
-**********************
-
+Operating System package managers
+*********************************
 Homebrew
 ^^^^^^^^
 
-On macOS, you can install `micromamba` from Homebrew:
+On macOS, you can install ``micromamba`` from `Homebrew <https://brew.sh/>`_:
 
 .. code:: bash
 
    brew install micromamba
 
+
+Mamba-org releases
+******************
 Install script
 ^^^^^^^^^^^^^^
 
 If you are using macOS or Linux, there is a simple way of installing ``micromamba``.
 Simply execute the installation script in your preferred shell.
 
-For Linux, the default shell is ``bash``:
+For Linux and macOS install with:
 
 .. code:: bash
 
-   curl micro.mamba.pm/install.sh | bash
+   curl micro.mamba.pm/install.sh | "${SHELL}"
 
-For macOS, the default shell is ``zsh``:
+Self updates
+^^^^^^^^^^^^
+Once installed, ``micromamba`` can be updated with
 
-.. code:: zsh
+.. code-block:: bash
 
-   curl micro.mamba.pm/install.sh | zsh
+   micromamba self-update
+
+A explicit version can be specified with
+
+.. code-block:: bash
+
+   micromamba self-update --version 1.4.6
 
 .. _umamba-install-manual-installation:
-
 Manual installation
-*******************
-
+^^^^^^^^^^^^^^^^^^^
 .. _umamba-install-posix:
-
 Linux and macOS
-^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~
 
 Download and unzip the executable (from the official conda-forge package):
 
@@ -139,15 +155,22 @@ Now you can activate the base environment and install new packages, or create ot
   micromamba create -n env_name xtensor -c conda-forge
   micromamba activate env_name
 
-.. _umamba-install-win:
+An exclusive `conda-forge <https://conda-forge.org/>`_ setup can be configured with:
 
+.. code-block:: bash
+
+   micromamba config append channels conda-forge
+   micromamba config append channels nodefaults
+   micromamba set channel_priority strict
+
+.. _umamba-install-win:
 Windows
-^^^^^^^
+~~~~~~~
 
 | ``micromamba`` also has Windows support! For Windows, we recommend powershell.
 | Below are the commands to get micromamba installed in ``PowerShell``.
 
-.. code:: powershell
+.. code-block:: powershell
 
   Invoke-Webrequest -URI https://micro.mamba.pm/api/micromamba/win-64/latest -OutFile micromamba.tar.bz2
   tar xf micromamba.tar.bz2
@@ -170,7 +193,8 @@ Windows
 Nightly builds
 **************
 
-You can download fully statically linked builds for each commit to `master` on GitHub (scroll to the bottom of the "Summary" page):
+You can download fully statically linked builds for each commit to ``main`` on GitHub
+(scroll to the bottom of the "Summary" page):
 https://github.com/mamba-org/mamba/actions/workflows/static_build.yml?query=is%3Asuccess
 
 Docker images
@@ -179,7 +203,7 @@ Docker images
 The `mambaorg/micromamba <https://hub.docker.com/r/mambaorg/micromamba>`_ docker
 image can be used to run ``micromamba`` without installing it:
 
-.. code:: bash
+.. code-block:: bash
 
   docker run -it --rm mambaorg/micromamba:latest micromamba info
 
@@ -198,23 +222,13 @@ To activate it, it's as simple as running:
 
 The completion is now available in any new shell opened or in the current shell after sourcing the configuration file to take modifications into account.
 
-.. code:: sh
+.. code-block:: sh
 
   source ~/.<shell>rc
 
 | Just hit ``<TAB><TAB>`` to get completion when typing your command.
 | For example the following command will help you to pick a named environment to activate:
 
-.. code:: bash
+.. code-block:: bash
 
   micromamba activate <TAB><TAB>
-
-
-.. _umamba-install-api:
-
-API
-===
-
-We should soon figure out an automated process to use the latest version of micromamba.
-We can use the anaconda api: https://api.anaconda.org/release/conda-forge/micromamba/latest to find all the latest packages,
-we just need to select the one for the right platform.

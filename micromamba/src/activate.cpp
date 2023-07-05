@@ -62,10 +62,16 @@ set_activate_command(CLI::App* subcom)
 
             std::string const message = fmt::format(
                 "\n'micromamba' is running as a subprocess and can't modify the parent shell.\n"
-                "Thus you must initialize your shell before using activate and deactivate.\n\n"
+                "Thus you must initialize your shell before using activate and deactivate.\n"
+                "\n"
                 "{0}\n"
                 "To automatically initialize all future ({1}) shells, run:\n"
-                "    $ micromamba shell init --shell {1} --root-prefix=~/micromamba\n\n"
+                "    $ micromamba shell init --shell {1} --root-prefix=~/micromamba\n"
+                "If your shell was already initialized, reinitialize your shell with:\n"
+                "    $ micromamba shell reinit --shell {1}\n"
+                "Otherwise, this may be an issue. In the meantime you can run commands. See:\n"
+                "    $ micromamba run --help\n"
+                "\n"
                 "Supported shells are {{bash, zsh, csh, xonsh, cmd.exe, powershell, fish}}.\n",
                 get_shell_hook(guessed_shell),
                 guessed_shell

@@ -229,7 +229,8 @@ namespace mamba::specs
             {
                 auto ver = Version::parse(str.substr(VersionSpec::compatible_str.size()));
                 // in ``~=1.1`` level is assumed to be 1, in ``~=1.1.1`` level 2, etc.
-                const std::size_t level = std::max(ver.version().size(), 1ul) - 1ul;
+                static std::size_t constexpr one = std::size_t(1);  // MSVC
+                const std::size_t level = std::max(ver.version().size(), one) - one;
                 return VersionPredicate::make_compatible_with(std::move(ver), level);
             }
             const bool has_glob_suffix = ends_with(str, VersionSpec::glob_suffix_str);
@@ -278,7 +279,8 @@ namespace mamba::specs
                 if (ends_with(str, VersionSpec::glob_suffix_token))
                 {
                     // either ".*" or "*"
-                    std::size_t const len = str.size() - std::max(glob_len, 1ul);
+                    static std::size_t constexpr one = std::size_t(1);  // MSVC
+                    std::size_t const len = str.size() - std::max(glob_len, one);
                     return VersionPredicate::make_starts_with(Version::parse(str.substr(0, len)));
                 }
                 else

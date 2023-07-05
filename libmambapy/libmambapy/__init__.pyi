@@ -120,6 +120,7 @@ __all__ = [
     "generate_ed25519_keypair",
     "get_channels",
     "get_virtual_packages",
+    "init_console",
     "ostream_redirect",
     "sign",
     "simplify_conflicts",
@@ -1591,6 +1592,9 @@ def get_channels(arg0: typing.List[str]) -> typing.List[Channel]:
     pass
 
 def get_virtual_packages() -> typing.List[PackageInfo]:
+    pass
+
+def init_console() -> None:
     pass
 
 def sign(data: str, secret_key: str) -> str:

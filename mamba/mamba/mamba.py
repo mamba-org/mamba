@@ -226,6 +226,8 @@ def install(args, parser, command="install"):
     context.validate_configuration()
     check_non_admin()
 
+    api.init_console()
+
     init_api_context(use_mamba_experimental)
 
     newenv = bool(command == "create")

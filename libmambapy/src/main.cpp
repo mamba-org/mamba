@@ -30,6 +30,7 @@
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/url.hpp"
+#include "mamba/core/util_os.hpp"
 #include "mamba/core/util_string.hpp"
 #include "mamba/core/validate.hpp"
 #include "mamba/core/virtual_packages.hpp"
@@ -1003,6 +1004,8 @@ PYBIND11_MODULE(bindings, m)
         py::arg("compression_level"),
         py::arg("compression_threads") = 1
     );
+
+    m.def("init_console", &init_console);
 
     // fix extract from error_handling first
     // auto package_handling_sm = m.def_submodule("package_handling");

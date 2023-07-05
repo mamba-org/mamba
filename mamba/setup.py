@@ -42,6 +42,7 @@ setup(
     entry_points={"console_scripts": ["mamba = mamba.mamba:main"]},
     long_description="A (hopefully faster) reimplementation of the slow bits of conda.",
     install_requires=[
+        "boltons",
         "conda>=4.14.0",
         "libmambapy",
     ],

@@ -61,12 +61,14 @@ set_ps_command(CLI::App* subcom)
         }
         printers::Table table({ "PID", "Name", "Prefix", "Command" });
         table.set_padding({ 2, 4, 4, 4 });
+        auto& context = Context::instance();  // REVIEW: this is temporary and should be deleted
+                                              // before review.
         for (auto& el : info)
         {
             auto prefix = el["prefix"].get<std::string>();
             if (!prefix.empty())
             {
-                prefix = env_name(prefix);
+                prefix = env_name(context, prefix);
             }
 
             table.add_row({

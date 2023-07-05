@@ -53,8 +53,10 @@ namespace mamba
     };
 
     class Logger;
+    class Context;
 
-    std::string env_name(const fs::u8path& prefix);
+    std::string env_name(const Context& context, const fs::u8path& prefix);
+    std::string env_name(const Context& context);
 
     // Context singleton class
     class Context

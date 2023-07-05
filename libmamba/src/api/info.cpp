@@ -105,7 +105,7 @@ namespace mamba
             std::string name, location;
             if (!ctx.prefix_params.target_prefix.empty())
             {
-                name = env_name(ctx.prefix_params.target_prefix);
+                name = env_name(ctx);
                 location = ctx.prefix_params.target_prefix.string();
             }
             else

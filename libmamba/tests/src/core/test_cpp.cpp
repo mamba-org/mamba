@@ -372,15 +372,15 @@ namespace mamba
                 ctx.envs_dirs = { ctx.prefix_params.root_prefix / "envs" };
                 fs::u8path prefix = "/home/user/micromamba/envs/testprefix";
 
-                CHECK_EQ(env_name(prefix), "testprefix");
+                CHECK_EQ(env_name(ctx, prefix), "testprefix");
                 prefix = "/home/user/micromamba/envs/a.txt";
-                CHECK_EQ(env_name(prefix), "a.txt");
+                CHECK_EQ(env_name(ctx, prefix), "a.txt");
                 prefix = "/home/user/micromamba/envs/a.txt";
-                CHECK_EQ(env_name(prefix), "a.txt");
+                CHECK_EQ(env_name(ctx, prefix), "a.txt");
                 prefix = "/home/user/micromamba/envs/abc/a.txt";
-                CHECK_EQ(env_name(prefix), "/home/user/micromamba/envs/abc/a.txt");
+                CHECK_EQ(env_name(ctx, prefix), "/home/user/micromamba/envs/abc/a.txt");
                 prefix = "/home/user/env";
-                CHECK_EQ(env_name(prefix), "/home/user/env");
+                CHECK_EQ(env_name(ctx, prefix), "/home/user/env");
             }
         }
     }

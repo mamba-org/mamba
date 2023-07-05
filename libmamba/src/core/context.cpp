@@ -187,10 +187,9 @@ namespace mamba
 
     void Context::load_authentication_info()
     {
-        auto& ctx = Context::instance();
         std::vector<fs::u8path> found_tokens;
 
-        for (const auto& loc : ctx.token_locations)
+        for (const auto& loc : token_locations)
         {
             auto px = env::expand_user(loc);
             if (!fs::exists(px) || !fs::is_directory(px))
@@ -285,18 +284,18 @@ namespace mamba
     }
 
 
-    std::string env_name(const fs::u8path& prefix)
+    std::string env_name(const Context& context, const fs::u8path& prefix)
     {
         if (prefix.empty())
         {
             throw std::runtime_error("Empty path");
         }
-        if (paths_equal(prefix, Context::instance().prefix_params.root_prefix))
+        if (paths_equal(prefix, context.prefix_params.root_prefix))
         {
             return ROOT_ENV_NAME;
         }
         fs::u8path maybe_env_dir = prefix.parent_path();
-        for (const auto& d : Context::instance().envs_dirs)
+        for (const auto& d : context.envs_dirs)
         {
             if (paths_equal(d, maybe_env_dir))
             {
@@ -305,6 +304,12 @@ namespace mamba
         }
         return prefix.string();
     }
+
+    std::string env_name(const Context& context)
+    {
+        return env_name(context, context.prefix_params.target_prefix);
+    }
+
 
     void Context::debug_print() const
     {

@@ -21,9 +21,9 @@ namespace mamba
 {
     namespace detail
     {
-        std::string get_formatted_env_name(const fs::u8path& target_prefix)
+        std::string get_formatted_env_name(const Context& context, const fs::u8path& target_prefix)
         {
-            std::string name = env_name(target_prefix);
+            std::string name = env_name(context, target_prefix);
             if (name.find_first_of("\\/") != std::string::npos)
             {
                 return "";
@@ -259,7 +259,7 @@ namespace mamba
             { "${PY_VER}", py_ver },
             { "${MENU_DIR}", to_forward_slash(target_prefix / "Menu") },
             { "${DISTRIBUTION_NAME}", distribution_name },
-            { "${ENV_NAME}", detail::get_formatted_env_name(target_prefix) },
+            { "${ENV_NAME}", detail::get_formatted_env_name(ctx, target_prefix) },
             { "${PLATFORM}", platform_bitness },
         };
 
@@ -288,8 +288,10 @@ namespace mamba
 
             std::string menu_name = j.value("menu_name", "Mamba Shortcuts");
 
+
+            auto& ctx = mamba::Context::instance();
             std::string name_suffix;
-            std::string e_name = detail::get_formatted_env_name(transaction_context->target_prefix);
+            std::string e_name = detail::get_formatted_env_name(ctx, transaction_context->target_prefix);
 
             if (e_name.size())
             {
@@ -311,7 +313,6 @@ namespace mamba
             //     ]
             // }
 
-            auto& ctx = mamba::Context::instance();
             const fs::u8path root_prefix = ctx.prefix_params.root_prefix;
             const fs::u8path target_prefix = ctx.prefix_params.target_prefix;
 

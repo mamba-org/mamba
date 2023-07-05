@@ -74,9 +74,11 @@ Simply execute the installation script in your preferred shell.
 
 For Linux and macOS install with:
 
+.. We use ``bash <(curl ...)`` instead of ``curl .. | bash`` as the latter does not work with prompts
+
 .. code:: bash
 
-   curl micro.mamba.pm/install.sh | "${SHELL}"
+   "${SHELL}" <(curl -L micro.mamba.pm/install.sh)
 
 Self updates
 ^^^^^^^^^^^^

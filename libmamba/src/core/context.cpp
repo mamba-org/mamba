@@ -300,31 +300,6 @@ namespace mamba
         return prefix.string();
     }
 
-    // Find the location of a prefix given a conda env name.
-    // If the location does not exist, an error is raised.
-    fs::u8path locate_prefix_by_name(const std::string& name)
-    {
-        assert(!name.empty());
-        if (name == ROOT_ENV_NAME)
-        {
-            return Context::instance().prefix_params.root_prefix;
-        }
-        for (auto& d : Context::instance().envs_dirs)
-        {
-            if (!fs::exists(d) || !fs::is_directory(d))
-            {
-                continue;
-            }
-            fs::u8path prefix = d / name;
-            if (fs::exists(prefix) && fs::is_directory(prefix))
-            {
-                return fs::absolute(prefix);
-            }
-        }
-
-        throw std::runtime_error("Environment name not found " + name);
-    }
-
     void Context::debug_print() const
     {
 #define PRINT_CTX(xout, xname) fmt::print(xout, "{}: {}\n", #xname, xname)

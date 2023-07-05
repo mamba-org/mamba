@@ -112,7 +112,6 @@ namespace mamba
     class Logger;
 
     std::string env_name(const fs::u8path& prefix);
-    fs::u8path locate_prefix_by_name(const std::string& name);
 
     // Context singleton class
     class Context

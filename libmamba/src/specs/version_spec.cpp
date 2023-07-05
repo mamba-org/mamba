@@ -332,4 +332,12 @@ namespace mamba::specs
         parser.finalize();
         return VersionSpec{ std::move(parser).tree() };
     }
+
+    namespace version_spec_literals
+    {
+        auto operator""_vs(const char* str, std::size_t len) -> VersionSpec
+        {
+            return VersionSpec::parse(std::literals::string_view_literals::operator""sv(str, len));
+        }
+    }
 }

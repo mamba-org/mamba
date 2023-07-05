@@ -147,6 +147,11 @@ namespace mamba::specs
         CommonVersion m_local = {};
         std::size_t m_epoch = 0;
     };
+
+    namespace version_literals
+    {
+        auto operator""_v(const char* str, std::size_t len) -> Version;
+    }
 }
 
 template <>

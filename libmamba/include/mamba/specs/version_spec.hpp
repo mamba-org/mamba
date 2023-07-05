@@ -130,6 +130,11 @@ namespace mamba::specs
 
         tree_type m_tree;
     };
+
+    namespace version_spec_literals
+    {
+        auto operator""_vs(const char* str, std::size_t len) -> VersionSpec;
+    }
 }
 
 #endif

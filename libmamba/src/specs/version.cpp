@@ -699,4 +699,12 @@ namespace mamba::specs
             throw std::invalid_argument(fmt::format("Error parsing version '{}'. {}", str, ia.what()));
         }
     }
+
+    namespace version_literals
+    {
+        auto operator""_v(const char* str, std::size_t len) -> Version
+        {
+            return Version::parse(std::literals::string_view_literals::operator""sv(str, len));
+        }
+    }
 }

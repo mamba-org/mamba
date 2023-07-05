@@ -188,11 +188,16 @@ namespace mamba::specs
 
     namespace
     {
+        auto is_char(std::string_view str, char c) -> bool
+        {
+            return (str.size() == 1) && (str.front() == c);
+        }
+
         auto parse_op_and_version(std::string_view str) -> VersionPredicate
         {
             str = strip(str);
             // WARNING order is important since some operator are prefix of others.
-            if (str.empty())
+            if (str.empty() || is_char(str, VersionSpec::glob_suffix_token))
             {
                 return VersionPredicate::make_free();
             }
@@ -224,7 +229,7 @@ namespace mamba::specs
             {
                 auto ver = Version::parse(str.substr(VersionSpec::compatible_str.size()));
                 // in ``~=1.1`` level is assumed to be 1, in ``~=1.1.1`` level 2, etc.
-                const std::size_t level = ver.version().size();
+                const std::size_t level = std::max(ver.version().size(), 1ul) - 1ul;
                 return VersionPredicate::make_compatible_with(std::move(ver), level);
             }
             const bool has_glob_suffix = ends_with(str, VersionSpec::glob_suffix_str);

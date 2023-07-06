@@ -14,17 +14,12 @@
 
 #include <type_traits>
 
-#if __cplusplus >= 202002L
-#define MAMBA_UTIL_COMPARE_DEPRECATED [[deprecated("Use C++20 functions with the same name")]]
-#else
-#define MAMBA_UTIL_COMPARE_DEPRECATED
-#endif
+#include "mamba/util/deprecation.hpp"
 
 namespace mamba::util
 {
-
     template <class T, class U>
-    MAMBA_UTIL_COMPARE_DEPRECATED constexpr bool cmp_equal(T t, U u) noexcept
+    MAMBA_DEPRECATED_CXX20 constexpr bool cmp_equal(T t, U u) noexcept
     {
         using UT = std::make_unsigned_t<T>;
         using UU = std::make_unsigned_t<U>;
@@ -43,13 +38,13 @@ namespace mamba::util
     }
 
     template <class T, class U>
-    MAMBA_UTIL_COMPARE_DEPRECATED constexpr bool cmp_not_equal(T t, U u) noexcept
+    MAMBA_DEPRECATED_CXX20 constexpr bool cmp_not_equal(T t, U u) noexcept
     {
         return !cmp_equal(t, u);
     }
 
     template <class T, class U>
-    MAMBA_UTIL_COMPARE_DEPRECATED constexpr bool cmp_less(T t, U u) noexcept
+    MAMBA_DEPRECATED_CXX20 constexpr bool cmp_less(T t, U u) noexcept
     {
         using UT = std::make_unsigned_t<T>;
         using UU = std::make_unsigned_t<U>;
@@ -68,22 +63,21 @@ namespace mamba::util
     }
 
     template <class T, class U>
-    MAMBA_UTIL_COMPARE_DEPRECATED constexpr bool cmp_greater(T t, U u) noexcept
+    MAMBA_DEPRECATED_CXX20 constexpr bool cmp_greater(T t, U u) noexcept
     {
         return cmp_less(u, t);
     }
 
     template <class T, class U>
-    MAMBA_UTIL_COMPARE_DEPRECATED constexpr bool cmp_less_equal(T t, U u) noexcept
+    MAMBA_DEPRECATED_CXX20 constexpr bool cmp_less_equal(T t, U u) noexcept
     {
         return !cmp_greater(t, u);
     }
 
     template <class T, class U>
-    MAMBA_UTIL_COMPARE_DEPRECATED constexpr bool cmp_greater_equal(T t, U u) noexcept
+    MAMBA_DEPRECATED_CXX20 constexpr bool cmp_greater_equal(T t, U u) noexcept
     {
         return !cmp_less(t, u);
     }
-
 }
 #endif

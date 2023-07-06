@@ -7,10 +7,16 @@
 #ifndef MAMBA_UTIL_FLAT_EXPR_TREE_HPP
 #define MAMBA_UTIL_FLAT_EXPR_TREE_HPP
 
+#include <cassert>
 #include <functional>
+#include <iterator>
+#include <stdexcept>
+#include <type_traits>
 #include <utility>
 #include <variant>
 #include <vector>
+
+#include "mamba/util/functional.hpp"
 
 namespace mamba::util
 {
@@ -29,13 +35,12 @@ namespace mamba::util
 
         using branch_type = Branch;
         using leaf_type = Leaf;
-        struct BranchNode
+        struct branch_node
         {
             branch_type data;
             std::size_t left_child = 0;
             std::size_t right_child = 0;
         };
-        using branch_node = BranchNode;
         using leaf_node = leaf_type;
         using node_type = std::variant<branch_node, leaf_node>;
         using node_list = std::vector<node_type>;
@@ -183,13 +188,6 @@ namespace mamba::util
         void push_operator_impl(O&& op);
     };
 
-    // TODO C++20 this is std::identity
-    struct identity
-    {
-        template <typename T>
-        constexpr auto operator()(T&& t) const noexcept -> T&&;
-    };
-
     enum struct BoolOperator
     {
         logical_and,
@@ -230,15 +228,7 @@ namespace mamba::util
 
         tree_type m_tree = {};
     };
-}
 
-#include <cassert>
-#include <iterator>
-#include <stdexcept>
-#include <type_traits>
-
-namespace mamba::util
-{
     /****************************************
      *  Implementation of flat_binary_tree  *
      ****************************************/
@@ -649,16 +639,6 @@ namespace mamba::util
     auto InfixParser<V, O, C>::tree() && -> tree_type&&
     {
         return std::move(m_postfix_parser).tree();
-    }
-
-    /********************************
-     *  Implementation of identity  *
-     ********************************/
-
-    template <typename T>
-    constexpr auto identity::operator()(T&& t) const noexcept -> T&&
-    {
-        return std::forward<T>(t);
     }
 
     /*******************************************

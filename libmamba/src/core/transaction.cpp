@@ -85,7 +85,7 @@ namespace mamba
             return out;
         }
 
-        auto specs_names(const MSolver& solver)
+        auto specs_names(const MSolver& solver) -> util::flat_set<std::string>
         {
             // TODO C++20
             // to_install_names and to_remove_names need not be allocated, only that
@@ -322,9 +322,8 @@ namespace mamba
         auto repo = solv::ObjRepoView(*mrepo.repo());
         repo.for_each_solvable_id([&](solv::SolvableId id) { decision.push_back(id); });
 
-        auto trans = solv::ObjTransaction(solv::ObjTransaction::from_solvables(m_pool.pool(), decision)
-        );
-        // We cannot order the transcation here because we do no have dependency information
+        auto trans = solv::ObjTransaction::from_solvables(m_pool.pool(), decision);
+        // We cannot order the transaction here because we do no have dependency information
         // from the lockfile
         // TODO reload dependency information from ``ctx.target_prefix / "conda-meta"`` after
         // ``fetch_extract_packages`` is called.
@@ -336,7 +335,7 @@ namespace mamba
         {
             m_history_entry.remove.push_back(s.str());
         }
-        m_history_entry.update.reserve(specs_to_remove.size());
+        m_history_entry.update.reserve(specs_to_install.size());
         for (auto& s : specs_to_install)
         {
             m_history_entry.update.push_back(s.str());
@@ -769,15 +768,11 @@ namespace mamba
             m_solution.actions,
             [&](const auto& pkg)
             {
-                if (!need_pkg_download(pkg, m_multi_cache))
-                {
-                    to_link.push_back(pkg.json_record());
-                }
-                else
+                if (need_pkg_download(pkg, m_multi_cache))
                 {
                     to_fetch.push_back(pkg.json_record());
-                    to_link.push_back(pkg.json_record());
                 }
+                to_link.push_back(pkg.json_record());
             }
         );
 
@@ -1111,7 +1106,7 @@ namespace mamba
         auto format_row =
             [this, &ctx, &total_size](rows& r, const PackageInfo& s, Status status, std::string diff)
         {
-            std::size_t const dlsize = s.size;
+            const std::size_t dlsize = s.size;
             printers::FormattedString dlsize_s;
             if (dlsize > 0)
             {

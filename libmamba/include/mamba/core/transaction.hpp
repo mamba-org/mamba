@@ -43,7 +43,9 @@ namespace mamba
         MTransaction(MPool& pool, const std::vector<PackageInfo>& packages, MultiPackageCache& caches);
 
         MTransaction(const MTransaction&) = delete;
+        MTransaction(MTransaction&&) = delete;
         MTransaction& operator=(const MTransaction&) = delete;
+        MTransaction& operator=(MTransaction&&) = delete;
 
         using to_install_type = std::vector<std::tuple<std::string, std::string, std::string>>;
         using to_remove_type = std::vector<std::tuple<std::string, std::string>>;

@@ -1,3 +1,9 @@
+mamba 1.4.7 (July 06, 2023)
+===========================
+
+
+[libmambapy, mamba] Call init_console in mamba to prevent UTF8 errors when extracting packages by @JohanMabille in https://github.com/mamba-org/mamba/pull/2657
+
 mamba 1.4.6 (June 30, 2023)
 ===========================
 

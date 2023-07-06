@@ -10,6 +10,7 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
+#include "mamba/core/util_os.hpp"
 #include "mamba/version.hpp"
 
 #include "package.hpp"
@@ -21,6 +22,10 @@ main(int argc, char** argv)
     using namespace mamba;  // NOLINT(build/namespaces)
 
     Configuration config;
+
+    // call init console to setup utf8 extraction
+    init_console();
+
     CLI::App app{ "Version: " + version() + "\n" };
     set_package_command(&app);
 

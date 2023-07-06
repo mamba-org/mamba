@@ -1,3 +1,23 @@
+2023.07.06
+==========
+
+Releases: libmamba 1.4.7, libmambapy 1.4.7, mamba 1.4.7, micromamba 1.4.7
+
+Enhancements:
+
+- [libmamba] ZST support to mamba and remove the feature flag by @johnhany97 in https://github.com/mamba-org/mamba/pull/2642
+- [libmamba] Add Version::starts_with and Version::compatible_with by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2645
+- [libmamba, libmambapy] Create Solver solution by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2584
+
+Bug fixes:
+
+- [libmamba] call init_console to prevent UTF8 errors when extracting packages by @wolfv in https://github.com/mamba-org/mamba/pull/2655
+  [libmambapy, mamba] Call init_console in mamba to prevent UTF8 errors when extracting packages by @JohanMabille in https://github.com/mamba-org/mamba/pull/2657
+
+CI fixes and doc:
+
+- [libmambapy] Fixup python-api docs slightly by @HaoZeke in https://github.com/mamba-org/mamba/pull/2285
+
 2023.06.30
 ==========
 

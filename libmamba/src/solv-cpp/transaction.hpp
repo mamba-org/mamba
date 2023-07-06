@@ -11,13 +11,11 @@
 #include <optional>
 #include <utility>
 
-#include "solv-cpp/ids.hpp"
-#include "solv-cpp/queue.hpp"
+#include <solv/transaction.h>
 
-extern "C"
-{
-    using Transaction = struct s_Transaction;
-}
+#include "solv-cpp/ids.hpp"
+#include "solv-cpp/pool.hpp"
+#include "solv-cpp/queue.hpp"
 
 namespace mamba::solv
 {
@@ -142,14 +140,11 @@ namespace mamba::solv
             TransactionMode mode = 0
         ) const -> ObjQueue;
     };
-}
 
-#include <solv/transaction.h>
+    /**************************************
+     *  Implementation of ObjTransaction  *
+     **************************************/
 
-#include "solv-cpp/pool.hpp"
-
-namespace mamba::solv
-{
     template <typename UnaryFunc>
     void ObjTransaction::for_each_step_id(UnaryFunc&& func) const
     {

@@ -9,19 +9,18 @@
 
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
+
+#include <solv/pool.h>
 
 #include "solv-cpp/ids.hpp"
 #include "solv-cpp/queue.hpp"
 #include "solv-cpp/repo.hpp"
 #include "solv-cpp/solvable.hpp"
-
-extern "C"
-{
-    using Pool = struct s_Pool;
-}
 
 namespace mamba::solv
 {
@@ -269,19 +268,10 @@ namespace mamba::solv
         // Must be deleted before the debug callback
         std::unique_ptr<::Pool, ObjPool::PoolDeleter> m_pool = nullptr;
     };
-}
 
-/*******************************
- *  Implementation of ObjPool  *
- *******************************/
-
-#include <stdexcept>
-#include <type_traits>
-
-#include <solv/pool.h>
-
-namespace mamba::solv
-{
+    /*******************************
+     *  Implementation of ObjPool  *
+     *******************************/
 
     template <typename UnaryFunc>
     void ObjPool::for_each_repo_id(UnaryFunc&& func) const

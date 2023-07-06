@@ -7,6 +7,7 @@
 #ifndef MAMBA_CORE_SOLUTION_HPP
 #define MAMBA_CORE_SOLUTION_HPP
 
+#include <type_traits>
 #include <variant>
 #include <vector>
 
@@ -80,12 +81,7 @@ namespace mamba
     void for_each_to_omit(Iter first, Iter last, UnaryFunc&& func);
     template <typename Range, typename UnaryFunc>
     void for_each_to_omit(Range&& actions, UnaryFunc&& func);
-}
 
-#include <type_traits>
-
-namespace mamba
-{
     /********************************
      *  Implementation of Solution  *
      ********************************/

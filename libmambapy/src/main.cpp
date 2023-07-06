@@ -219,7 +219,7 @@ PYBIND11_MODULE(bindings, m)
         .def("print", &MTransaction::print)
         .def("fetch_extract_packages", &MTransaction::fetch_extract_packages)
         .def("prompt", &MTransaction::prompt)
-        .def("find_python_version", &MTransaction::find_python_version)
+        .def("find_python_version", &MTransaction::py_find_python_version)
         .def("execute", &MTransaction::execute);
 
     pySolver.def(py::init<MPool&, std::vector<std::pair<int, int>>>(), py::keep_alive<1, 2>())

@@ -157,7 +157,18 @@ namespace mamba::solv
         const auto count = static_cast<std::size_t>(steps.count);
         for (std::size_t i = 0; i < count; ++i)
         {
-            func(steps.elements[i]);
+            const auto id = steps.elements[i];
+            if constexpr (std::is_same_v<decltype(func(id)), LoopControl>)
+            {
+                if (func(id) == LoopControl::Break)
+                {
+                    break;
+                }
+            }
+            else
+            {
+                func(id);
+            }
         }
     }
 
@@ -176,7 +187,18 @@ namespace mamba::solv
         for (std::size_t n = types.size(), i = 0; i < n; i += 4)
         {
             const TransactionStepType type = types[i];
-            func(type, classify_pkgs(pool, type, types[i + 2], types[i + 3], mode));
+            auto ids = classify_pkgs(pool, type, types[i + 2], types[i + 3], mode);
+            if constexpr (std::is_same_v<decltype(func(type, std::move(ids))), LoopControl>)
+            {
+                if (func(type, std::move(ids)) == LoopControl::Break)
+                {
+                    break;
+                }
+            }
+            else
+            {
+                func(type, std::move(ids));
+            }
         }
     }
 }

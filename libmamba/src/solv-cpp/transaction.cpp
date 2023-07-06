@@ -84,7 +84,7 @@ namespace mamba::solv
 
     auto ObjTransaction::size() const -> std::size_t
     {
-        assert(raw()->steps.count);
+        assert(raw()->steps.count >= 0);
         return static_cast<std::size_t>(raw()->steps.count);
     }
 

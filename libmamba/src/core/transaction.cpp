@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
 #include <iostream>
 #include <stack>
 #include <string>
@@ -30,6 +31,7 @@ extern "C"  // Incomplete header
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_string.hpp"
+#include "mamba/util/flat_set.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
 #include "solv-cpp/repo.hpp"
@@ -81,6 +83,185 @@ namespace mamba
                 }
             }
             return out;
+        }
+
+        auto specs_names(const MSolver& solver) -> util::flat_set<std::string>
+        {
+            // TODO C++20
+            // to_install_names and to_remove_names need not be allocated, only that
+            // flat_set::insert with iterators is more efficient (because it sorts only once).
+            // This could be solved with std::range::transform
+            const auto& to_install_specs = solver.install_specs();
+            auto to_install_names = std::vector<std::string>();
+            to_install_names.reserve(to_install_specs.size());
+            std::transform(
+                to_install_specs.cbegin(),
+                to_install_specs.cend(),
+                std::back_inserter(to_install_names),
+                [](const auto& spec) { return spec.name; }
+            );
+
+            const auto& to_remove_specs = solver.remove_specs();
+            auto to_remove_names = std::vector<std::string>();
+            to_remove_names.reserve(to_remove_specs.size());
+            std::transform(
+                to_remove_specs.cbegin(),
+                to_remove_specs.cend(),
+                std::back_inserter(to_remove_names),
+                [](const auto& spec) { return spec.name; }
+            );
+
+            auto specs = util::flat_set<std::string>{};
+            specs.reserve(to_install_specs.size() + to_remove_specs.size());
+            specs.insert(to_install_names.cbegin(), to_install_names.cend());
+            specs.insert(to_remove_names.cbegin(), to_remove_names.cend());
+
+            return specs;
+        }
+
+        auto transaction_to_solution(
+            const MPool& pool,
+            const solv::ObjTransaction& trans,
+            const util::flat_set<std::string>& specs = {},
+            /** true to filter out specs, false to filter in specs */
+            bool keep_only = true
+        ) -> Solution
+        {
+            auto get_pkginfo = [&](solv::SolvableId id)
+            {
+                const auto pkginfo = pool.id2pkginfo(id);
+                assert(pkginfo.has_value());
+                return std::move(pkginfo).value();
+            };
+
+            auto get_newer_pkginfo = [&](solv::SolvableId id)
+            {
+                auto maybe_newer_id = trans.step_newer(pool.pool(), id);
+                assert(maybe_newer_id.has_value());
+                return get_pkginfo(maybe_newer_id.value());
+            };
+
+            auto out = Solution::action_list();
+            out.reserve(trans.size());
+            trans.for_each_step_id(
+                [&](const solv::SolvableId id)
+                {
+                    auto pkginfo = get_pkginfo(id);
+                    // keep_only ? specs.contains(...) : !specs.contains(...);
+                    // TODO ideally we should use Matchspecs::contains(pkginfo)
+                    if (keep_only == specs.contains(pkginfo.name))
+                    {
+                        LOG_DEBUG << "Solution: Omit " << pkginfo.str();
+                        out.push_back(Solution::Omit{ std::move(pkginfo) });
+                        return;
+                    }
+                    auto const type = trans.step_type(
+                        pool.pool(),
+                        id,
+                        SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE
+                    );
+                    switch (type)
+                    {
+                        case SOLVER_TRANSACTION_UPGRADED:
+                        {
+                            auto newer = get_newer_pkginfo(id);
+                            LOG_DEBUG << "Solution: Upgrade " << pkginfo.str() << " -> "
+                                      << newer.str();
+                            out.push_back(Solution::Upgrade{
+                                /* .remove= */ std::move(pkginfo),
+                                /* .install= */ std::move(newer),
+                            });
+                            break;
+                        }
+                        case SOLVER_TRANSACTION_CHANGED:
+                        {
+                            auto newer = get_newer_pkginfo(id);
+                            LOG_DEBUG << "Solution: Change " << pkginfo.str() << " -> "
+                                      << newer.str();
+                            out.push_back(Solution::Change{
+                                /* .remove= */ std::move(pkginfo),
+                                /* .install= */ std::move(newer),
+                            });
+                            break;
+                        }
+                        case SOLVER_TRANSACTION_REINSTALLED:
+                        {
+                            LOG_DEBUG << "Solution: Reinstall " << pkginfo.str();
+                            out.push_back(Solution::Reinstall{ std::move(pkginfo) });
+                            break;
+                        }
+                        case SOLVER_TRANSACTION_DOWNGRADED:
+                        {
+                            auto newer = get_newer_pkginfo(id);
+                            LOG_DEBUG << "Solution: Downgrade " << pkginfo.str() << " -> "
+                                      << newer.str();
+                            out.push_back(Solution::Downgrade{
+                                /* .remove= */ std::move(pkginfo),
+                                /* .install= */ std::move(newer),
+                            });
+                            break;
+                        }
+                        case SOLVER_TRANSACTION_ERASE:
+                        {
+                            LOG_DEBUG << "Solution: Remove " << pkginfo.str();
+                            out.push_back(Solution::Remove{ std::move(pkginfo) });
+                            break;
+                        }
+                        case SOLVER_TRANSACTION_INSTALL:
+                        {
+                            LOG_DEBUG << "Solution: Install " << pkginfo.str();
+                            out.push_back(Solution::Install{ std::move(pkginfo) });
+                            break;
+                        }
+                        case SOLVER_TRANSACTION_IGNORE:
+                            break;
+                        default:
+                            LOG_WARNING << "solv::ObjTransaction case not handled: " << type;
+                            break;
+                    }
+                }
+            );
+            return { std::move(out) };
+        }
+
+        auto find_python_version(const Solution& solution, const solv::ObjPool& pool)
+            -> std::pair<std::string, std::string>
+        {
+            // We need to find the python version that will be there after this
+            // Transaction is finished in order to compile the noarch packages correctly,
+
+            // We need to look into installed packages in case we are not installing a new python
+            // version but keeping the current one.
+            // Could also be written in term of PrefixData.
+            std::string installed_py_ver = {};
+            pool.for_each_installed_solvable(
+                [&](solv::ObjSolvableViewConst s)
+                {
+                    if (s.name() == "python")
+                    {
+                        installed_py_ver = s.version();
+                        LOG_INFO << "Found python in installed packages " << installed_py_ver;
+                        return solv::LoopControl::Break;
+                    }
+                    return solv::LoopControl::Continue;
+                }
+            );
+
+            std::string new_py_ver = installed_py_ver;
+            for_each_to_install(
+                solution.actions,
+                [&](const auto& pkg)
+                {
+                    if (pkg.name == "python")
+                    {
+                        new_py_ver = pkg.version;
+                        LOG_INFO << "Found python version in packages to be installed " << new_py_ver;
+                        // Could break but not supported with for_each API
+                    }
+                }
+            );
+
+            return { std::move(new_py_ver), std::move(installed_py_ver) };
         }
     }
 
@@ -141,19 +322,20 @@ namespace mamba
         auto repo = solv::ObjRepoView(*mrepo.repo());
         repo.for_each_solvable_id([&](solv::SolvableId id) { decision.push_back(id); });
 
-        m_transaction = std::make_unique<solv::ObjTransaction>(
-            solv::ObjTransaction::from_solvables(m_pool.pool(), decision)
-        );
-        // We cannot order the transcation here because we do no have dependency information
+        auto trans = solv::ObjTransaction::from_solvables(m_pool.pool(), decision);
+        // We cannot order the transaction here because we do no have dependency information
         // from the lockfile
         // TODO reload dependency information from ``ctx.target_prefix / "conda-meta"`` after
         // ``fetch_extract_packages`` is called.
-        init();
 
+        m_solution = transaction_to_solution(m_pool, trans);
+
+        m_history_entry.remove.reserve(specs_to_remove.size());
         for (auto& s : specs_to_remove)
         {
             m_history_entry.remove.push_back(s.str());
         }
+        m_history_entry.update.reserve(specs_to_install.size());
         for (auto& s : specs_to_install)
         {
             m_history_entry.update.push_back(s.str());
@@ -171,7 +353,7 @@ namespace mamba
         m_transaction_context = TransactionContext(
             Context::instance().prefix_params.target_prefix,
             Context::instance().prefix_params.relocate_prefix,
-            find_python_version(),
+            find_python_version(m_solution, m_pool.pool()),
             specs_to_install
         );
     }
@@ -187,49 +369,20 @@ namespace mamba
         }
         auto& pool = m_pool.pool();
 
-        m_transaction = std::make_unique<solv::ObjTransaction>(
-            solv::ObjTransaction::from_solver(pool, solver.solver())
-        );
-        trans().order(pool);
+        auto trans = solv::ObjTransaction::from_solver(pool, solver.solver());
+        trans.order(pool);
 
-        const auto& solver_flags = solver.flags();
-        if (!solver_flags.keep_dependencies || !solver_flags.keep_specs)
+        const auto& flags = solver.flags();
+        if (flags.keep_specs && flags.keep_dependencies)
         {
-            m_filter_type = !(solver_flags.keep_specs) ? FilterType::keep_only : FilterType::ignore;
-            for (auto& s : solver.install_specs())
-            {
-                m_filter_name_ids.insert(pool.add_string(s.name));
-            }
-            for (auto& s : solver.remove_specs())
-            {
-                m_filter_name_ids.insert(pool.add_string(s.name));
-            }
-        }
-
-        if (!solver_flags.keep_specs)
-        {
-            for (const solv::SolvableId r : trans().steps())
-            {
-                auto s = pool.get_solvable(r);
-                assert(s.has_value());
-                if (m_filter_name_ids.count(s->raw()->name))
-                {
-                    for (const auto dep_id : s->dependencies())
-                    {
-                        std::string add_spec = std::string(pool.get_dependency_name(dep_id));
-                        if (auto version = pool.get_dependency_version(dep_id); !version.empty())
-                        {
-                            add_spec += ' ';
-                            add_spec += version;
-                        }
-                        m_history_entry.update.push_back(
-                            MatchSpec{ add_spec, m_pool.channel_context() }.str()
-                        );
-                    }
-                }
-            }
+            m_solution = transaction_to_solution(m_pool, trans);
         }
         else
+        {
+            m_solution = transaction_to_solution(m_pool, trans, specs_names(solver), !(flags.keep_specs));
+        }
+
+        if (solver.flags().keep_specs)
         {
             auto to_string_vec = [](const std::vector<MatchSpec>& vec) -> std::vector<std::string>
             {
@@ -246,28 +399,32 @@ namespace mamba
             m_history_entry.update = to_string_vec(solver.install_specs());
             m_history_entry.remove = to_string_vec(solver.remove_specs());
         }
-
-        init();
-        // if no action required, don't even start logging them
-        if (!empty())
+        else
         {
-            Console::instance().json_down("actions");
-            Console::instance().json_write(
-                { { "PREFIX", Context::instance().prefix_params.target_prefix.string() } }
+            // The specs to install become all the dependencies of the non intstalled specs
+            for_each_to_omit(
+                m_solution.actions,
+                [&](const PackageInfo& pkg)
+                {
+                    for (const auto& dep : pkg.depends)
+                    {
+                        m_history_entry.update.push_back(dep);
+                    }
+                }
             );
         }
 
         m_transaction_context = TransactionContext(
             Context::instance().prefix_params.target_prefix,
             Context::instance().prefix_params.relocate_prefix,
-            find_python_version(),
+            find_python_version(m_solution, m_pool.pool()),
             solver.install_specs()
         );
 
         if (auto maybe_installed = pool.installed_repo();
             m_transaction_context.relink_noarch && maybe_installed.has_value())
         {
-            // TODO could we use the transaction instead?
+            // TODO could we use the solution instead?
             solv::ObjQueue decision = {};
             solver_get_decisionqueue(solver.solver().raw(), decision.raw());
 
@@ -333,13 +490,39 @@ namespace mamba
                 }
             );
 
-            m_transaction = std::make_unique<solv::ObjTransaction>(
-                solv::ObjTransaction::from_solvables(m_pool.pool(), decision)
-            );
-            trans().order(m_pool.pool());
+            trans = solv::ObjTransaction::from_solvables(m_pool.pool(), decision);
+            trans.order(pool);
 
-            // init everything again...
-            init();
+            // Init solution again...
+            if (flags.keep_specs && flags.keep_dependencies)
+            {
+                m_solution = transaction_to_solution(m_pool, trans);
+            }
+            else
+            {
+                m_solution = transaction_to_solution(
+                    m_pool,
+                    trans,
+                    specs_names(solver),
+                    !(flags.keep_specs)
+                );
+            }
+
+            m_transaction_context = TransactionContext(
+                Context::instance().prefix_params.target_prefix,
+                Context::instance().prefix_params.relocate_prefix,
+                find_python_version(m_solution, m_pool.pool()),
+                solver.install_specs()
+            );
+        }
+
+        // if no action required, don't even start logging them
+        if (!empty())
+        {
+            Console::instance().json_down("actions");
+            Console::instance().json_write(
+                { { "PREFIX", Context::instance().prefix_params.target_prefix.string() } }
+            );
         }
     }
 
@@ -360,12 +543,10 @@ namespace mamba
         auto repo = solv::ObjRepoView(*mrepo.repo());
         repo.for_each_solvable_id([&](solv::SolvableId id) { decision.push_back(id); });
 
-        m_transaction = std::make_unique<solv::ObjTransaction>(
-            solv::ObjTransaction::from_solvables(m_pool.pool(), decision)
-        );
-        trans().order(m_pool.pool());
+        auto trans = solv::ObjTransaction::from_solvables(m_pool.pool(), decision);
+        trans.order(m_pool.pool());
 
-        init();
+        m_solution = transaction_to_solution(m_pool, trans);
 
         std::vector<MatchSpec> specs_to_install;
         for (const auto& pkginfo : packages)
@@ -379,132 +560,14 @@ namespace mamba
         m_transaction_context = TransactionContext(
             Context::instance().prefix_params.target_prefix,
             Context::instance().prefix_params.relocate_prefix,
-            find_python_version(),
+            find_python_version(m_solution, m_pool.pool()),
             specs_to_install
         );
     }
 
-    MTransaction::~MTransaction() = default;
-
-    auto MTransaction::trans() -> solv::ObjTransaction&
+    auto MTransaction::py_find_python_version() const -> std::pair<std::string, std::string>
     {
-        assert(m_transaction != nullptr);
-        return *m_transaction;
-    }
-
-    auto MTransaction::trans() const -> const solv::ObjTransaction&
-    {
-        assert(m_transaction != nullptr);
-        return *m_transaction;
-    }
-
-    void MTransaction::init()
-    {
-        m_to_remove.clear();
-        m_to_install.clear();
-        const auto& pool = m_pool.pool();
-        trans().for_each_step_solvable(
-            pool,
-            [&](auto s)
-            {
-                assert(s.has_value());
-                if (!filter(*s))
-                {
-                    auto const type = trans().step_type(pool, s->id(), SOLVER_TRANSACTION_SHOW_ALL);
-                    switch (type)
-                    {
-                        case SOLVER_TRANSACTION_DOWNGRADED:
-                        case SOLVER_TRANSACTION_UPGRADED:
-                        case SOLVER_TRANSACTION_CHANGED:
-                        case SOLVER_TRANSACTION_REINSTALLED:
-                        {
-                            m_to_remove.emplace_back(mk_pkginfo(m_pool, *s));
-                            // Packages that replace these one will show up under IGNORE
-                            // so we need to fetch them here
-                            if (auto maybe_newer = trans().step_newer(pool, s->id()))
-                            {
-                                auto newer = pool.get_solvable(*maybe_newer);
-                                assert(newer);
-                                m_to_install.push_back(mk_pkginfo(m_pool, *newer));
-                            }
-                            break;
-                        }
-                        case SOLVER_TRANSACTION_ERASE:
-                        {
-                            m_to_remove.emplace_back(mk_pkginfo(m_pool, *s));
-                            break;
-                        }
-                        case SOLVER_TRANSACTION_INSTALL:
-                        {
-                            m_to_install.emplace_back(mk_pkginfo(m_pool, *s));
-                            break;
-                        }
-                        case SOLVER_TRANSACTION_IGNORE:
-                            break;
-                        default:
-                            LOG_ERROR << "Exec case not handled: " << type;
-                            break;
-                    }
-                }
-            }
-        );
-    }
-
-    bool MTransaction::filter(const solv::ObjSolvableViewConst& s) const
-    {
-        if (m_filter_type == FilterType::none)
-        {
-            return false;
-        }
-        bool spec_in_filter = m_filter_name_ids.count(s.raw()->name);
-
-        if (m_filter_type == FilterType::keep_only)
-        {
-            return spec_in_filter;
-        }
-        else
-        {
-            return !spec_in_filter;
-        }
-    }
-
-    // TODO rewrite this in terms of `m_transaction`
-    std::pair<std::string, std::string> MTransaction::find_python_version()
-    {
-        // We need to find the python version that will be there after this
-        // Transaction is finished in order to compile the noarch packages correctly,
-        // for example
-
-        std::string installed_py_ver = {};
-        std::string new_py_ver = {};
-
-        for (auto s : m_to_install)
-        {
-            if (s.name == "python")
-            {
-                new_py_ver = s.version;
-                LOG_INFO << "Found python version in packages to be installed " << new_py_ver;
-                break;
-            }
-        }
-
-        m_pool.pool().for_each_installed_solvable(
-            [&](solv::ObjSolvableViewConst s)
-            {
-                if (s.name() == "python")
-                {
-                    installed_py_ver = s.version();
-                    LOG_INFO << "Found python in installed packages " << installed_py_ver;
-                }
-            }
-        );
-
-        // if we do not install a new python version but keep the current one
-        if (new_py_ver.empty())
-        {
-            new_py_ver = installed_py_ver;
-        }
-        return std::make_pair(new_py_ver, installed_py_ver);
+        return find_python_version(m_solution, m_pool.pool());
     }
 
     class TransactionRollback
@@ -581,94 +644,58 @@ namespace mamba
 
         TransactionRollback rollback;
 
-        const auto& pool = m_pool.pool();
-        for (solv::SolvableId const p : trans().steps())
+        const auto execute_action = [&](const auto& act)
+        {
+            using Action = std::decay_t<decltype(act)>;
+
+            auto const link = [&](PackageInfo const& pkg)
+            {
+                const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg, false));
+                LinkPackage lp(pkg, cache_path, &m_transaction_context);
+                lp.execute();
+                rollback.record(lp);
+                m_history_entry.link_dists.push_back(pkg.long_str());
+            };
+            auto const unlink = [&](PackageInfo const& pkg)
+            {
+                const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg));
+                UnlinkPackage up(pkg, cache_path, &m_transaction_context);
+                up.execute();
+                rollback.record(up);
+                m_history_entry.unlink_dists.push_back(pkg.long_str());
+            };
+
+            if constexpr (std::is_same_v<Action, Solution::Reinstall>)
+            {
+                Console::stream() << "Reinstalling " << act.what.str();
+                unlink(act.what);
+                link(act.what);
+            }
+            else if constexpr (Solution::has_remove_v<Action> && Solution::has_install_v<Action>)
+            {
+                Console::stream() << "Changing " << act.remove.str() << " ==> " << act.install.str();
+                unlink(act.remove);
+                link(act.install);
+            }
+            else if constexpr (Solution::has_remove_v<Action>)
+            {
+                Console::stream() << "Unlinking " << act.remove.str();
+                unlink(act.remove);
+            }
+            else if constexpr (Solution::has_install_v<Action>)
+            {
+                Console::stream() << "Linking " << act.install.str();
+                link(act.install);
+            }
+        };
+
+        for (const auto& action : m_solution.actions)
         {
             if (is_sig_interrupted())
             {
                 break;
             }
-            auto s = pool.get_solvable(p);
-            assert(s.has_value());
-            if (filter(*s))
-            {
-                continue;
-            }
-
-            const auto ttype = trans().step_type(pool, p, SOLVER_TRANSACTION_SHOW_ALL);
-            switch (ttype)
-            {
-                case SOLVER_TRANSACTION_DOWNGRADED:
-                case SOLVER_TRANSACTION_UPGRADED:
-                case SOLVER_TRANSACTION_CHANGED:
-                case SOLVER_TRANSACTION_REINSTALLED:
-                {
-                    auto newer = [&]()
-                    {
-                        auto maybe_newer_id = trans().step_newer(pool, s->id());
-                        assert(maybe_newer_id.has_value());
-                        auto maybe_newer = pool.get_solvable(maybe_newer_id.value());
-                        assert(maybe_newer.has_value());
-                        return maybe_newer.value();
-                    }();
-
-                    const PackageInfo package_to_unlink = mk_pkginfo(m_pool, *s);
-                    const PackageInfo package_to_link = mk_pkginfo(m_pool, newer);
-
-                    Console::stream() << "Changing " << package_to_unlink.str() << " ==> "
-                                      << package_to_link.str();
-
-                    const fs::u8path ul_cache_path(
-                        m_multi_cache.get_extracted_dir_path(package_to_unlink)
-                    );
-
-                    const fs::u8path l_cache_path(
-                        m_multi_cache.get_extracted_dir_path(package_to_link, false)
-                    );
-
-                    UnlinkPackage up(package_to_unlink, ul_cache_path, &m_transaction_context);
-                    up.execute();
-                    rollback.record(up);
-
-                    LinkPackage lp(package_to_link, l_cache_path, &m_transaction_context);
-                    lp.execute();
-                    rollback.record(lp);
-
-                    m_history_entry.unlink_dists.push_back(package_to_unlink.long_str());
-                    m_history_entry.link_dists.push_back(package_to_link.long_str());
-
-                    break;
-                }
-                case SOLVER_TRANSACTION_ERASE:
-                {
-                    PackageInfo package_info = mk_pkginfo(m_pool, *s);
-                    Console::stream() << "Unlinking " << package_info.str();
-                    const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(package_info));
-                    UnlinkPackage up(package_info, cache_path, &m_transaction_context);
-                    up.execute();
-                    rollback.record(up);
-                    m_history_entry.unlink_dists.push_back(package_info.long_str());
-                    break;
-                }
-                case SOLVER_TRANSACTION_INSTALL:
-                {
-                    PackageInfo package_info = mk_pkginfo(m_pool, *s);
-                    Console::stream() << "Linking " << package_info.str();
-                    const fs::u8path cache_path(
-                        m_multi_cache.get_extracted_dir_path(package_info, false)
-                    );
-                    LinkPackage lp(package_info, cache_path, &m_transaction_context);
-                    lp.execute();
-                    rollback.record(lp);
-                    m_history_entry.link_dists.push_back(package_info.long_str());
-                    break;
-                }
-                case SOLVER_TRANSACTION_IGNORE:
-                    break;
-                default:
-                    LOG_ERROR << "Exec case not handled: " << ttype;
-                    break;
-            }
+            std::visit(execute_action, action);
         }
 
         if (is_sig_interrupted())
@@ -687,10 +714,13 @@ namespace mamba
         const auto environment = env_name(ctx.prefix_params.target_prefix);
 
         Console::stream() << "\nTransaction finished\n\n"
-                          << "To activate this environment, use:\n\n"
-                          << "    " << executable << " activate " << environment << "\n\n"
-                          << "Or to execute a single command in this environment, use:\n\n"
-                          << "    " << executable
+                             "To activate this environment, use:\n\n"
+                             "    "
+                          << executable << " activate " << environment
+                          << "\n\n"
+                             "Or to execute a single command in this environment, use:\n\n"
+                             "    "
+                          << executable
                           << " run "
                           // Use -n or -p depending on if the env_name is a full prefix or just
                           // a name.
@@ -704,18 +734,24 @@ namespace mamba
     auto MTransaction::to_conda() -> to_conda_type
     {
         to_remove_type to_remove_structured = {};
-        to_remove_structured.reserve(m_to_remove.size());
-        for (auto s : m_to_remove)
-        {
-            to_remove_structured.emplace_back(s.channel, s.fn);
-        }
+        to_remove_structured.reserve(m_solution.actions.size());  // Upper bound
+        for_each_to_remove(
+            m_solution.actions,
+            [&](const auto& pkg)
+            {
+                to_remove_structured.emplace_back(pkg.channel, pkg.fn);  //
+            }
+        );
 
         to_install_type to_install_structured = {};
-        to_install_structured.reserve(m_to_install.size());
-        for (auto s : m_to_install)
-        {
-            to_install_structured.emplace_back(s.channel, s.fn, s.json_record().dump(4));
-        }
+        to_install_structured.reserve(m_solution.actions.size());  // Upper bound
+        for_each_to_install(
+            m_solution.actions,
+            [&](const auto& pkg)
+            {
+                to_install_structured.emplace_back(pkg.channel, pkg.fn, pkg.json_record().dump(4));  //
+            }
+        );
 
         to_specs_type specs;
         std::get<0>(specs) = m_history_entry.update;
@@ -728,23 +764,25 @@ namespace mamba
     {
         std::vector<nlohmann::json> to_fetch, to_link, to_unlink;
 
-        for (auto s : m_to_install)
-        {
-            if (!need_pkg_download(s, m_multi_cache))
+        for_each_to_install(
+            m_solution.actions,
+            [&](const auto& pkg)
             {
-                to_link.push_back(s.json_record());
+                if (need_pkg_download(pkg, m_multi_cache))
+                {
+                    to_fetch.push_back(pkg.json_record());
+                }
+                to_link.push_back(pkg.json_record());
             }
-            else
-            {
-                to_fetch.push_back(s.json_record());
-                to_link.push_back(s.json_record());
-            }
-        }
+        );
 
-        for (auto s : m_to_remove)
-        {
-            to_unlink.push_back(s.json_record());
-        }
+        for_each_to_remove(
+            m_solution.actions,
+            [&](const auto& pkg)
+            {
+                to_unlink.push_back(pkg.json_record());  //
+            }
+        );
 
         auto add_json = [](const auto& jlist, const char* s)
         {
@@ -781,27 +819,33 @@ namespace mamba
             LOG_INFO << "Content trust is enabled, package(s) signatures will be verified";
         }
 
-        for (auto& s : m_to_install)
-        {
-            if (ctx.experimental && ctx.verify_artifacts)
+        for_each_to_install(
+            m_solution.actions,
+            [&](const auto& pkg)
             {
-                const auto& repo_checker = m_pool.channel_context().make_channel(s.channel).repo_checker(
-                    m_multi_cache
+                if (ctx.experimental && ctx.verify_artifacts)
+                {
+                    const auto& repo_checker = m_pool.channel_context()
+                                                   .make_channel(pkg.channel)
+                                                   .repo_checker(m_multi_cache);
+                    repo_checker.verify_package(
+                        pkg.json_signable(),
+                        nlohmann::json::parse(pkg.signatures)
+                    );
+
+                    LOG_DEBUG << "'" << pkg.name << "' trusted from '" << pkg.channel << "'";
+                }
+
+                targets.emplace_back(
+                    std::make_unique<PackageDownloadExtractTarget>(pkg, m_pool.channel_context())
                 );
-                repo_checker.verify_package(s.json_signable(), nlohmann::json::parse(s.signatures));
-
-                LOG_DEBUG << "'" << s.name << "' trusted from '" << s.channel << "'";
+                DownloadTarget* download_target = targets.back()->target(m_multi_cache);
+                if (download_target != nullptr)
+                {
+                    multi_dl.add(download_target);
+                }
             }
-
-            targets.emplace_back(
-                std::make_unique<PackageDownloadExtractTarget>(s, m_pool.channel_context())
-            );
-            DownloadTarget* download_target = targets.back()->target(m_multi_cache);
-            if (download_target != nullptr)
-            {
-                multi_dl.add(download_target);
-            }
-        }
+        );
 
         if (ctx.experimental && ctx.verify_artifacts)
         {
@@ -964,7 +1008,7 @@ namespace mamba
 
     bool MTransaction::empty()
     {
-        return m_to_install.size() == 0 && m_to_remove.size() == 0;
+        return m_solution.actions.empty();
     }
 
     bool MTransaction::prompt()
@@ -1060,11 +1104,9 @@ namespace mamba
             remove
         };
         auto format_row =
-            [this,
-             &ctx,
-             &total_size](rows& r, solv::ObjSolvableViewConst s, Status status, std::string diff)
+            [this, &ctx, &total_size](rows& r, const PackageInfo& s, Status status, std::string diff)
         {
-            std::size_t const dlsize = s.size();
+            const std::size_t dlsize = s.size;
             printers::FormattedString dlsize_s;
             if (dlsize > 0)
             {
@@ -1074,7 +1116,7 @@ namespace mamba
                 }
                 else
                 {
-                    if (!need_pkg_download(mk_pkginfo(m_pool, s), m_multi_cache))
+                    if (!need_pkg_download(s, m_multi_cache))
                     {
                         dlsize_s.s = "Cached";
                         dlsize_s.style = ctx.graphics_params.palette.addition;
@@ -1093,7 +1135,7 @@ namespace mamba
                 }
             }
             printers::FormattedString name;
-            name.s = fmt::format("{} {}", diff, s.name());
+            name.s = fmt::format("{} {}", diff, s.name);
             if (status == Status::install)
             {
                 name.style = ctx.graphics_params.palette.addition;
@@ -1108,11 +1150,11 @@ namespace mamba
             }
 
             std::string chan_name;
-            if (auto str = s.channel(); !str.empty())
+            if (auto str = s.channel; !str.empty())
             {
                 if (str == "explicit_specs")
                 {
-                    chan_name = s.file_name();
+                    chan_name = s.fn;
                 }
                 else
                 {
@@ -1123,80 +1165,56 @@ namespace mamba
             else
             {
                 // note this can and should be <unknown> when e.g. installing from a tarball
-                chan_name = solv::ObjRepoViewConst::of_solvable(s).name();
+                chan_name = s.channel;
                 assert(chan_name != "__explicit_specs__");
             }
 
             r.push_back({ name,
-                          printers::FormattedString(std::string(s.version())),
-                          printers::FormattedString(std::string(s.build_string())),
+                          printers::FormattedString(s.version),
+                          printers::FormattedString(s.build_string),
                           printers::FormattedString(cut_repo_name(chan_name)),
                           dlsize_s });
         };
 
-        const auto& pool = m_pool.pool();
-
-        trans().classify_for_each_type(
-            pool,
-            [&](const auto type, const auto& solv_ids)
+        auto format_action = [&](const auto& act)
+        {
+            using Action = std::decay_t<decltype(act)>;
+            if constexpr (std::is_same_v<Action, Solution::Omit>)
             {
-                for (const solv::SolvableId id : solv_ids)
-                {
-                    const auto s = [&]()
-                    {
-                        auto maybe_s = pool.get_solvable(id);
-                        assert(maybe_s.has_value());
-                        return maybe_s.value();
-                    }();
-                    auto get_newer = [&]()
-                    {
-                        auto maybe_newer_id = trans().step_newer(pool, id);
-                        assert(maybe_newer_id.has_value());
-                        auto maybe_newer = pool.get_solvable(maybe_newer_id.value());
-                        assert(maybe_newer.has_value());
-                        return maybe_newer.value();
-                    };
-
-                    if (filter(s))
-                    {
-                        format_row(ignored, s, Status::ignore, "=");
-                        continue;
-                    }
-                    switch (type)
-                    {
-                        case SOLVER_TRANSACTION_UPGRADED:
-                            format_row(upgraded, s, Status::remove, "-");
-                            format_row(upgraded, get_newer(), Status::install, "+");
-                            break;
-                        case SOLVER_TRANSACTION_CHANGED:
-                            format_row(changed, s, Status::remove, "-");
-                            format_row(changed, get_newer(), Status::install, "+");
-                            break;
-                        case SOLVER_TRANSACTION_REINSTALLED:
-                            format_row(reinstalled, s, Status::install, "o");
-                            break;
-                        case SOLVER_TRANSACTION_DOWNGRADED:
-                            format_row(downgraded, s, Status::remove, "-");
-                            format_row(downgraded, get_newer(), Status::install, "+");
-                            break;
-                        case SOLVER_TRANSACTION_ERASE:
-                            format_row(erased, s, Status::remove, "-");
-                            break;
-                        case SOLVER_TRANSACTION_INSTALL:
-                            format_row(installed, s, Status::install, "+");
-                            break;
-                        case SOLVER_TRANSACTION_IGNORE:
-                            break;
-                        case SOLVER_TRANSACTION_VENDORCHANGE:
-                        case SOLVER_TRANSACTION_ARCHCHANGE:
-                        default:
-                            LOG_ERROR << "Print case not handled: " << type;
-                            break;
-                    }
-                }
-            },
-            SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE
-        );
+                format_row(ignored, act.what, Status::ignore, "=");
+            }
+            else if constexpr (std::is_same_v<Action, Solution::Upgrade>)
+            {
+                format_row(upgraded, act.remove, Status::remove, "-");
+                format_row(upgraded, act.install, Status::install, "+");
+            }
+            else if constexpr (std::is_same_v<Action, Solution::Downgrade>)
+            {
+                format_row(downgraded, act.remove, Status::remove, "-");
+                format_row(downgraded, act.install, Status::install, "+");
+            }
+            else if constexpr (std::is_same_v<Action, Solution::Change>)
+            {
+                format_row(changed, act.remove, Status::remove, "-");
+                format_row(changed, act.install, Status::install, "+");
+            }
+            else if constexpr (std::is_same_v<Action, Solution::Reinstall>)
+            {
+                format_row(reinstalled, act.what, Status::install, "o");
+            }
+            else if constexpr (std::is_same_v<Action, Solution::Remove>)
+            {
+                format_row(erased, act.remove, Status::remove, "-");
+            }
+            else if constexpr (std::is_same_v<Action, Solution::Install>)
+            {
+                format_row(installed, act.install, Status::install, "+");
+            }
+        };
+        for (const auto& pkg : m_solution.actions)
+        {
+            std::visit(format_action, pkg);
+        }
 
         std::stringstream summary;
         summary << "Summary:\n\n";
@@ -1247,31 +1265,32 @@ namespace mamba
     MTransaction
     create_explicit_transaction_from_urls(MPool& pool, const std::vector<std::string>& urls, MultiPackageCache& package_caches, std::vector<detail::other_pkg_mgr_spec>&)
     {
-        std::vector<MatchSpec> specs_to_install;
-        for (auto& u : urls)
+        std::vector<MatchSpec> specs_to_install = {};
+        specs_to_install.reserve(urls.size());
+        for (auto& raw_url : urls)
         {
-            std::string x(strip(u));
-            if (x.empty())
+            std::string_view url = strip(raw_url);
+            if (url.empty())
             {
                 continue;
             }
 
-            std::size_t hash = u.find_first_of('#');
-            MatchSpec ms(u.substr(0, hash), pool.channel_context());
+            const auto hash_idx = url.find_first_of('#');
+            specs_to_install.emplace_back(url.substr(0, hash_idx), pool.channel_context());
+            MatchSpec& ms = specs_to_install.back();
 
-            if (hash != std::string::npos)
+            if (hash_idx != std::string::npos)
             {
-                std::string s_hash = u.substr(hash + 1);
-                if (starts_with(s_hash, "sha256:"))
+                std::string_view hash = url.substr(hash_idx + 1);
+                if (starts_with(hash, "sha256:"))
                 {
-                    ms.brackets["sha256"] = s_hash.substr(7);
+                    ms.brackets["sha256"] = hash.substr(7);
                 }
                 else
                 {
-                    ms.brackets["md5"] = s_hash;
+                    ms.brackets["md5"] = hash;
                 }
             }
-            specs_to_install.push_back(ms);
         }
         return MTransaction(pool, {}, specs_to_install, package_caches);
     }
@@ -1293,16 +1312,12 @@ namespace mamba
 
         const auto lockfile_data = maybe_lockfile.value();
 
-        struct
-        {
-            std::vector<PackageInfo> conda, pip;
-        } packages;
+        std::vector<PackageInfo> conda_packages = {};
+        std::vector<PackageInfo> pip_packages = {};
 
         for (const auto& category : categories)
         {
-            std::vector<PackageInfo> selected_packages;
-
-            selected_packages = lockfile_data.get_packages_for(
+            std::vector<PackageInfo> selected_packages = lockfile_data.get_packages_for(
                 category,
                 Context::instance().platform,
                 "conda"
@@ -1310,7 +1325,7 @@ namespace mamba
             std::copy(
                 selected_packages.begin(),
                 selected_packages.end(),
-                std::back_inserter(packages.conda)
+                std::back_inserter(conda_packages)
             );
 
             if (selected_packages.empty())
@@ -1325,24 +1340,28 @@ namespace mamba
             std::copy(
                 selected_packages.begin(),
                 selected_packages.end(),
-                std::back_inserter(packages.pip)
+                std::back_inserter(pip_packages)
             );
         }
 
         // extract pip packages
-        if (!packages.pip.empty())
+        if (!pip_packages.empty())
         {
-            std::vector<std::string> pip_specs;
-            for (const auto& package : packages.pip)
-            {
-                pip_specs.push_back(package.name + " @ " + package.url + "#sha256=" + package.sha256);
-            }
+            std::vector<std::string> pip_specs = {};
+            pip_specs.reserve(pip_packages.size());
+            std::transform(
+                pip_packages.cbegin(),
+                pip_packages.cend(),
+                std::back_inserter(pip_specs),
+                [](const PackageInfo& pkg)
+                { return fmt::format("{} @ {}#sha256={}", pkg.name, pkg.url, pkg.sha256); }
+            );
             other_specs.push_back(
                 { "pip --no-deps", pip_specs, fs::absolute(env_lockfile_path.parent_path()).string() }
             );
         }
 
-        return MTransaction{ pool, packages.conda, package_caches };
+        return MTransaction{ pool, conda_packages, package_caches };
     }
 
 }  // namespace mamba

@@ -7,8 +7,6 @@
 #ifndef MAMBA_CORE_TRANSACTION_HPP
 #define MAMBA_CORE_TRANSACTION_HPP
 
-#include <memory>
-#include <set>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -19,30 +17,19 @@
 #include "match_spec.hpp"
 #include "package_cache.hpp"
 #include "package_info.hpp"
+#include "pool.hpp"
 #include "prefix_data.hpp"
-#include "solver.hpp"
+#include "solution.hpp"
 #include "transaction_context.hpp"
-
-namespace mamba::solv
-{
-    class ObjTransaction;
-    class ObjSolvableViewConst;
-}
 
 namespace mamba
 {
     class ChannelContext;
+    class MSolver;
 
     class MTransaction
     {
     public:
-
-        enum class FilterType
-        {
-            none,
-            keep_only,
-            ignore
-        };
 
         MTransaction(
             MPool& pool,
@@ -55,11 +42,9 @@ namespace mamba
         // Only use if the packages have been solved previously already.
         MTransaction(MPool& pool, const std::vector<PackageInfo>& packages, MultiPackageCache& caches);
 
-        ~MTransaction();
-
         MTransaction(const MTransaction&) = delete;
-        MTransaction& operator=(const MTransaction&) = delete;
         MTransaction(MTransaction&&) = delete;
+        MTransaction& operator=(const MTransaction&) = delete;
         MTransaction& operator=(MTransaction&&) = delete;
 
         using to_install_type = std::vector<std::tuple<std::string, std::string, std::string>>;
@@ -75,32 +60,19 @@ namespace mamba
         void print();
         bool execute(PrefixData& prefix);
 
-        std::pair<std::string, std::string> find_python_version();
+        [[deprecated]] std::pair<std::string, std::string> py_find_python_version() const;
 
     private:
 
         MPool m_pool;
-
-        FilterType m_filter_type = FilterType::none;
-        std::set<Id> m_filter_name_ids;
-
         TransactionContext m_transaction_context;
         MultiPackageCache m_multi_cache;
         const fs::u8path m_cache_path;
-        std::vector<PackageInfo> m_to_install;
-        std::vector<PackageInfo> m_to_remove;
+        Solution m_solution;
 
         History::UserRequest m_history_entry = History::UserRequest::prefilled();
-        // Temporarily using Pimpl for encapsulation
-        std::unique_ptr<solv::ObjTransaction> m_transaction;
 
         std::vector<MatchSpec> m_requested_specs;
-
-        void init();
-        bool filter(const solv::ObjSolvableViewConst& s) const;
-
-        auto trans() -> solv::ObjTransaction&;
-        auto trans() const -> const solv::ObjTransaction&;
     };
 
     MTransaction create_explicit_transaction_from_urls(

@@ -4,7 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <array>
 #include <type_traits>
+#include <vector>
 
 #include <doctest/doctest.h>
 
@@ -59,6 +61,16 @@ TEST_SUITE("flat_set")
         auto v = std::vector<int>({ 33, 22, 17, 0 });
         s.insert(v.begin(), v.end());
         CHECK_EQ(s, flat_set<int>({ 0, 17, 22, 33 }));
+    }
+
+    TEST_CASE("insert conversion")
+    {
+        auto s = flat_set<std::string>();
+        const auto v = std::array<std::string_view, 2>{ "hello", "world" };
+        s.insert(v.cbegin(), v.cend());
+        REQUIRE_EQ(s.size(), 2);
+        CHECK_EQ(s.at(0), "hello");
+        CHECK_EQ(s.at(1), "world");
     }
 
     TEST_CASE("erase")

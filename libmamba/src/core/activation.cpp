@@ -550,17 +550,6 @@ namespace mamba
     {
         EnvironmentTransform envt;
 
-        // TODO find prefix if not absolute path
-        // if re.search(r'\\|/', env_name_or_prefix):
-        //     prefix = expand(env_name_or_prefix)
-        //     if not isdir(join(prefix, 'conda-meta')):
-        //         from .exceptions import EnvironmentLocationNotFound
-        //         raise EnvironmentLocationNotFound(prefix)
-        // elif env_name_or_prefix in (ROOT_ENV_NAME, 'root'):
-        //     prefix = context.prefix_params.root_prefix
-        // else:
-        //     prefix = locate_prefix_by_name(env_name_or_prefix)
-
         // query environment
         std::string old_conda_prefix;
         int old_conda_shlvl = 0, new_conda_shlvl;

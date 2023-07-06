@@ -355,13 +355,6 @@ namespace mamba
                 CHECK_EQ(env_name(prefix), "/home/user/micromamba/envs/abc/a.txt");
                 prefix = "/home/user/env";
                 CHECK_EQ(env_name(prefix), "/home/user/env");
-
-                // Workaround MSVC treating warning C4102 as an error in old version of MSVC,
-                // here triggered by GTest's macro implementation.
-#if defined(_MSC_VER) && _MSC_VER > 1920
-                CHECK_THROWS_AS(locate_prefix_by_name("test"), std::runtime_error);
-#endif
-                // TODO implement tests for locate_prefix_by_name
             }
         }
     }

@@ -47,9 +47,10 @@ To get ``mamba``, just install it *into the base environment* from the ``conda-f
 
 ``micromamba`` is a fully statically-linked, self-contained, executable.
 This means that the ``base`` environment is completely empty.
-The configuration for ``micromamba`` is slighly diffrent, namely all environments and cache will be
+The configuration for ``micromamba`` is slighly different, namely all environments and cache will be
 created by default under the ``MAMBA_ROOT_PREFIX`` environment variable.
-There is also no ``.condarc``/``.mambarc`` shipped with micromamba.
+There is also no pre-configured ``.condarc``/``.mambarc`` shipped with micromamba
+(they are however still read if present).
 
 .. _umamba-install-automatic-installation:
 Operating System package managers

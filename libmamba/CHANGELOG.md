@@ -1,3 +1,16 @@
+libmamba 1.4.7 (July 06, 2023)
+==============================
+
+Enhancements:
+
+- ZST support to mamba and remove the feature flag by @johnhany97 in https://github.com/mamba-org/mamba/pull/2642
+- Add Version::starts_with and Version::compatible_with by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2645
+- Create Solver solution by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2584
+
+Bug fixes:
+
+- call init_console to prevent UTF8 errors when extracting packages by @wolfv in https://github.com/mamba-org/mamba/pull/2655
+
 libmamba 1.4.6 (June 30, 2023)
 ==============================
 

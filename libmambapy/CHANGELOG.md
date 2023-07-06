@@ -1,3 +1,16 @@
+libmambapy 1.4.7 (July 06, 2023)
+================================
+
+Enhancements:
+
+- Create Solver solution by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2584
+
+[libmambapy, mamba] Call init_console in mamba to prevent UTF8 errors when extracting packages by @JohanMabille in https://github.com/mamba-org/mamba/pull/2657
+
+CI fixes and doc:
+
+- Fixup python-api docs slightly by @HaoZeke in https://github.com/mamba-org/mamba/pull/2285
+
 libmambapy 1.4.6 (June 30, 2023)
 ================================
 

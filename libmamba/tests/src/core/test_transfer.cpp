@@ -24,6 +24,7 @@ namespace mamba
                 mamba::MultiDownloadTarget multi_dl;
                 mamba::MultiPackageCache pkg_cache({ "/tmp/" });
                 mamba::MSubdirData cf = mamba::MSubdirData::create(
+                                            channel_context,
                                             c,
                                             "linux-64",
                                             "file:///nonexistent/repodata.json",
@@ -46,6 +47,7 @@ namespace mamba
                 mamba::MultiDownloadTarget multi_dl;
                 mamba::MultiPackageCache pkg_cache({ "/tmp/" });
                 mamba::MSubdirData cf = mamba::MSubdirData::create(
+                                            channel_context,
                                             c,
                                             "noarch",
                                             "file:///nonexistent/repodata.json",

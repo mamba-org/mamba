@@ -314,7 +314,8 @@ namespace
         {
             for (auto& [platform, url] : chan->platform_urls(true))
             {
-                auto sub_dir = expected_value_or_throw(MSubdirData::create(*chan, platform, url, cache)
+                auto sub_dir = expected_value_or_throw(
+                    MSubdirData::create(pool.channel_context(), *chan, platform, url, cache)
                 );
                 dlist.add(sub_dir.target());
                 sub_dirs.push_back(std::move(sub_dir));

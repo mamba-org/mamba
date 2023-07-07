@@ -67,7 +67,14 @@ namespace mamba
         {
             for (auto& [platform, url] : channel->platform_urls(true))
             {
-                auto sdires = MSubdirData::create(*channel, platform, url, package_caches, "repodata.json");
+                auto sdires = MSubdirData::create(
+                    pool.channel_context(),
+                    *channel,
+                    platform,
+                    url,
+                    package_caches,
+                    "repodata.json"
+                );
                 if (!sdires.has_value())
                 {
                     error_list.push_back(std::move(sdires).error());

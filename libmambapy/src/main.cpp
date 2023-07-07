@@ -462,7 +462,14 @@ PYBIND11_MODULE(bindings, m)
                MultiPackageCache& caches,
                const std::string& repodata_fn) -> MSubdirData
             {
-                auto sres = MSubdirData::create(channel, platform, url, caches, repodata_fn);
+                auto sres = MSubdirData::create(
+                    mambapy::singletons().channel_context,
+                    channel,
+                    platform,
+                    url,
+                    caches,
+                    repodata_fn
+                );
                 return extract(std::move(sres));
             }
         ))

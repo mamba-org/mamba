@@ -49,7 +49,7 @@ namespace mamba
         out << j.dump();
     }
 
-    bool subdir_metadata::check_zst(const Channel* channel)
+    bool subdir_metadata::check_zst(ChannelContext& channel_context, const Channel* channel)
     {
         if (has_zst.has_value())
         {
@@ -61,7 +61,7 @@ namespace mamba
 
         for (const auto& c : Context::instance().repodata_has_zst)
         {
-            if (contains(c, channel->location()) && contains(c, channel->name()))
+            if (channel_context.make_channel(c) == *channel)
             {
                 has_zst = { true,
                             std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) };
@@ -295,6 +295,7 @@ namespace mamba
     }
 
     expected_t<MSubdirData> MSubdirData::create(
+        ChannelContext& channel_context,
         const Channel& channel,
         const std::string& platform,
         const std::string& url,
@@ -304,7 +305,7 @@ namespace mamba
     {
         try
         {
-            return MSubdirData(channel, platform, url, caches, repodata_fn);
+            return MSubdirData(channel_context, channel, platform, url, caches, repodata_fn);
         }
         catch (std::exception& e)
         {
@@ -320,6 +321,7 @@ namespace mamba
     }
 
     MSubdirData::MSubdirData(
+        ChannelContext& channel_context,
         const Channel& channel,
         const std::string& platform,
         const std::string& url,
@@ -338,7 +340,7 @@ namespace mamba
     {
         m_json_fn = cache_fn_url(m_repodata_url);
         m_solv_fn = m_json_fn.substr(0, m_json_fn.size() - 4) + "solv";
-        load(caches);
+        load(caches, channel_context);
     }
 
     MSubdirData::MSubdirData(MSubdirData&& rhs)
@@ -485,7 +487,7 @@ namespace mamba
         }
     }
 
-    bool MSubdirData::load(MultiPackageCache& caches)
+    bool MSubdirData::load(MultiPackageCache& caches, ChannelContext& channel_context)
     {
         auto now = fs::file_time_type::clock::now();
 
@@ -601,7 +603,7 @@ namespace mamba
                 bool has_value = m_metadata.has_zst.has_value();
                 bool is_expired = m_metadata.has_zst.has_value()
                                   && m_metadata.has_zst.value().has_expired();
-                bool has_zst = m_metadata.check_zst(p_channel);
+                bool has_zst = m_metadata.check_zst(channel_context, p_channel);
                 if (!has_zst && (is_expired || !has_value))
                 {
                     m_check_targets.push_back(std::make_unique<DownloadTarget>(

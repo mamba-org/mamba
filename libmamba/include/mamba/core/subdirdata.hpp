@@ -61,7 +61,7 @@ namespace mamba
         void serialize_to_stream(std::ostream& out) const;
         void serialize_to_stream_tiny(std::ostream& out) const;
 
-        bool check_zst(const Channel* channel);
+        bool check_zst(ChannelContext& channel_context, const Channel* channel);
     };
 
 
@@ -75,6 +75,7 @@ namespace mamba
     public:
 
         static expected_t<MSubdirData> create(
+            ChannelContext& channel_context,
             const Channel& channel,
             const std::string& platform,
             const std::string& url,
@@ -112,6 +113,7 @@ namespace mamba
     private:
 
         MSubdirData(
+            ChannelContext& channel_context,
             const Channel& channel,
             const std::string& platform,
             const std::string& url,
@@ -119,7 +121,7 @@ namespace mamba
             const std::string& repodata_fn = "repodata.json"
         );
 
-        bool load(MultiPackageCache& caches);
+        bool load(MultiPackageCache& caches, ChannelContext& channel_context);
         void check_repodata_existence();
         void create_target();
         std::size_t get_cache_control_max_age(const std::string& val);

@@ -5,6 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import json
 import os
+import sys
 import tempfile
 import urllib.parse
 from collections import OrderedDict
@@ -395,7 +396,7 @@ def compute_final_precs(
                     raise
                 break
         else:
-            print("No package record found!")
+            print(f"No package record found for {pkg}!", file=sys.stderr)
 
     for c, pkg, jsn_s in to_link:
         if c.startswith("file://"):

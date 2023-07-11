@@ -1,3 +1,16 @@
+libmamba 1.4.8 (July 11, 2023)
+==============================
+
+Enhancements:
+
+- No profile.d fallback in rc files by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2649
+- Removed unused function by @Klaim in https://github.com/mamba-org/mamba/pull/2656
+- Replace MTransaction::m_remove with Solution by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2603
+
+Bug fixes:
+
+- Fixed zst check in MSubdirData by @JohanMabille in https://github.com/mamba-org/mamba/pull/2661
+
 libmamba 1.4.7 (July 06, 2023)
 ==============================
 

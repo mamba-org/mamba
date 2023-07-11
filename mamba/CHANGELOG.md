@@ -1,3 +1,15 @@
+mamba 1.4.8 (July 11, 2023)
+===========================
+
+Enhancements:
+
+- Improve warning when package record not found by @maresb in https://github.com/mamba-org/mamba/pull/2662
+
+CI fixes and doc;
+
+- Force conda-forge in Anaconda install by @jonashaag in https://github.com/mamba-org/mamba/pull/2619
+- Update installation docs by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2654
+
 mamba 1.4.7 (July 06, 2023)
 ===========================
 

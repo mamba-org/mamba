@@ -1,3 +1,14 @@
+micromamba 1.4.8 (July 11, 2023)
+================================
+
+Enhancements:
+
+- No profile.d fallback in rc files by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2649
+
+CI fixes and doc;
+
+- Update installation docs by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2654
+
 micromamba 1.4.7 (July 06, 2023)
 ================================
 

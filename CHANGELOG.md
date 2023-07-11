@@ -1,3 +1,24 @@
+2023.07.11
+==========
+
+Releases: libmamba 1.4.8, libmambapy 1.4.8, mamba 1.4.8, micromamba 1.4.8
+
+Enhancements:
+
+- [libmamba, micromamba] No profile.d fallback in rc files by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2649
+- [libmamba] Removed unused function by @Klaim in https://github.com/mamba-org/mamba/pull/2656
+- [libmamba] Replace MTransaction::m_remove with Solution by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2603
+- [mamba] Improve warning when package record not found by @maresb in https://github.com/mamba-org/mamba/pull/2662
+
+Bug fixes:
+
+- [libmamba] Fixed zst check in MSubdirData by @JohanMabille in https://github.com/mamba-org/mamba/pull/2661
+
+CI fixes and doc;
+
+- [mamba] Force conda-forge in Anaconda install by @jonashaag in https://github.com/mamba-org/mamba/pull/2619
+- [mamba, micromamba] Update installation docs by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2654
+
 2023.07.06
 ==========
 

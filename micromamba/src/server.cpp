@@ -218,7 +218,7 @@ set_server_command(CLI::App* subcom, mamba::Configuration& config)
     subcom->callback(
         [&config]
         {
-            mamba::ChannelContext channel_context;
+            mamba::ChannelContext channel_context{ Context::instance() };
             return run_server(port, channel_context, config);
         }
     );

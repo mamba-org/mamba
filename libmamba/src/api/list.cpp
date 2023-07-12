@@ -25,7 +25,7 @@ namespace mamba
             );
         config.load();
 
-        ChannelContext channel_context;
+        ChannelContext channel_context{ Context::instance() };
         detail::list_packages(regex, channel_context);
     }
 

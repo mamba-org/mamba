@@ -79,7 +79,7 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
 
     std::map<std::string, nlohmann::json> repodatas;
 
-    mamba::ChannelContext channel_context;
+    mamba::ChannelContext channel_context{ Context::instance() };
 
     if (extract_conda_pkgs)
     {

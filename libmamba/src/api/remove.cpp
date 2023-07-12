@@ -35,7 +35,7 @@ namespace mamba
 
         auto remove_specs = config.at("specs").value<std::vector<std::string>>();
 
-        ChannelContext channel_context;
+        ChannelContext channel_context{ ctx };
 
         if (remove_all)
         {

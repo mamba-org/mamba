@@ -390,11 +390,12 @@ namespace mamba
         auto& install_specs = config.at("specs").value<std::vector<std::string>>();
         auto& use_explicit = config.at("explicit_install").value<bool>();
 
-        ChannelContext channel_context;
+        auto& context = Context::instance();
+        ChannelContext channel_context{ context };
 
-        if (Context::instance().env_lockfile)
+        if (context.env_lockfile)
         {
-            const auto lockfile_path = Context::instance().env_lockfile.value();
+            const auto lockfile_path = context.env_lockfile.value();
             LOG_DEBUG << "Lockfile: " << lockfile_path;
             install_lockfile_specs(
                 channel_context,

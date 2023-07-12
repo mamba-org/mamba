@@ -166,12 +166,12 @@ namespace mamba
         spdlog::set_level(convert_log_level(level));
     }
 
-    std::vector<std::string> Context::platforms()
+    std::vector<std::string> Context::platforms() const
     {
         return { platform, "noarch" };
     }
 
-    std::map<std::string, AuthenticationInfo>& Context::authentication_info()
+    Context::authentication_info_map_t& Context::authentication_info()
     {
         if (!m_authentication_infos_loaded)
         {
@@ -180,7 +180,7 @@ namespace mamba
         return m_authentication_info;
     }
 
-    const std::map<std::string, AuthenticationInfo>& Context::authentication_info() const
+    const Context::authentication_info_map_t& Context::authentication_info() const
     {
         return const_cast<Context*>(this)->authentication_info();
     }

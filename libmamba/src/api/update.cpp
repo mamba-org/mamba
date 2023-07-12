@@ -30,7 +30,7 @@ namespace mamba
 
         auto update_specs = config.at("specs").value<std::vector<std::string>>();
 
-        ChannelContext channel_context;
+        ChannelContext channel_context{ ctx };
 
         // add channels from specs
         for (const auto& s : update_specs)

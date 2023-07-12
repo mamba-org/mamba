@@ -19,7 +19,7 @@ namespace mamba
 #ifdef __linux__
             Context::instance().output_params.quiet = true;
             {
-                mamba::ChannelContext channel_context;
+                mamba::ChannelContext channel_context{ Context::instance() };
                 const mamba::Channel& c = channel_context.make_channel("conda-forge");
                 mamba::MultiDownloadTarget multi_dl;
                 mamba::MultiPackageCache pkg_cache({ "/tmp/" });
@@ -42,7 +42,7 @@ namespace mamba
                 CHECK_EQ(cf.target()->get_result(), 37);
             }
             {
-                mamba::ChannelContext channel_context;
+                mamba::ChannelContext channel_context{ Context::instance() };
                 const mamba::Channel& c = channel_context.make_channel("conda-forge");
                 mamba::MultiDownloadTarget multi_dl;
                 mamba::MultiPackageCache pkg_cache({ "/tmp/" });

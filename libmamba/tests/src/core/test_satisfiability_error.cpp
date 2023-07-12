@@ -142,7 +142,7 @@ namespace
     template <typename PkgRange>
     auto create_problem(const PkgRange& packages, const std::vector<std::string>& specs)
     {
-        ChannelContext channel_context = {};
+        ChannelContext channel_context{ Context::instance() };
         const auto tmp_dir = dir_guard(
             fs::temp_directory_path() / "mamba/tests" / generate_random_alphanumeric_string(20)
         );
@@ -338,7 +338,7 @@ namespace
         const std::vector<std::string>& platforms = { "linux-64", "noarch" }
     ) -> MSolver
     {
-        ChannelContext channel_context = {};
+        ChannelContext channel_context{ Context::instance() };
         // Reusing the cache for all invocation of this funciton for speedup
         static const auto tmp_dir = dir_guard(
             fs::temp_directory_path() / "mamba/tests" / generate_random_alphanumeric_string(20)

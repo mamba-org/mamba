@@ -29,7 +29,7 @@ namespace mamba
         auto& create_specs = config.at("specs").value<std::vector<std::string>>();
         auto& use_explicit = config.at("explicit_install").value<bool>();
 
-        ChannelContext channel_context;
+        ChannelContext channel_context{ ctx };
 
         bool remove_prefix_on_failure = false;
 

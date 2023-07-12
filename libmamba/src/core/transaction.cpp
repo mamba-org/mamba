@@ -824,7 +824,8 @@ namespace mamba
         );
         auto& aggregated_pbar_manager = dynamic_cast<AggregatedBarManager&>(pbar_manager);
 
-        auto& ctx = Context::instance();
+        auto& channel_context = m_pool.channel_context();
+        auto& ctx = channel_context.context();
         DownloadExtractSemaphore::set_max(ctx.threads_params.extract_threads);
 
         if (ctx.experimental && ctx.verify_artifacts)
@@ -838,9 +839,8 @@ namespace mamba
             {
                 if (ctx.experimental && ctx.verify_artifacts)
                 {
-                    const auto& repo_checker = m_pool.channel_context()
-                                                   .make_channel(pkg.channel)
-                                                   .repo_checker(m_multi_cache);
+                    const auto& repo_checker = channel_context.make_channel(pkg.channel)
+                                                   .repo_checker(ctx, m_multi_cache);
                     repo_checker.verify_package(
                         pkg.json_signable(),
                         nlohmann::json::parse(pkg.signatures)

@@ -30,7 +30,7 @@ namespace mamba
             );
         config.load();
 
-        ChannelContext channel_context;
+        ChannelContext channel_context{ Context::instance() };
         detail::print_info(channel_context, config);
 
         config.operation_teardown();

@@ -116,7 +116,7 @@ namespace mambapy
     struct Singletons
     {
         mamba::Context context;
-        mamba::ChannelContext channel_context;
+        mamba::ChannelContext channel_context{ context };
         mamba::Configuration config{ context };
     };
 

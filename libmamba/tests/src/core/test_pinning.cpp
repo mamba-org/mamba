@@ -7,6 +7,7 @@
 #include <doctest/doctest.h>
 
 #include "mamba/core/channel.hpp"
+#include "mamba/core/context.hpp"
 #include "mamba/core/pinning.hpp"
 #include "mamba/core/util.hpp"
 
@@ -21,7 +22,7 @@ namespace mamba
                 std::vector<std::string> specs;
                 std::string pin;
 
-                ChannelContext channel_context;
+                ChannelContext channel_context{ Context::instance() };
                 auto sprefix_data = PrefixData::create("", channel_context);
                 if (!sprefix_data)
                 {

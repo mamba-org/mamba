@@ -32,7 +32,7 @@ namespace mamba
             .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX);
         config.load();
 
-        ChannelContext channel_context;
+        ChannelContext channel_context{ ctx };
         MPool pool{ channel_context };
 
         // bool installed = (type == QueryType::kDepends) || (type == QueryType::kWhoneeds);

@@ -197,7 +197,7 @@ namespace mamba
 
         std::string host_platform = std::string(specs::build_platform_name());
         std::string platform = std::string(specs::build_platform_name());
-        std::vector<std::string> platforms();
+        std::vector<std::string> platforms() const;
 
         std::vector<std::string> channels;
         std::map<std::string, std::string> custom_channels;

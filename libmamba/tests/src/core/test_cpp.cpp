@@ -87,7 +87,7 @@ namespace mamba
 
         TEST_CASE("parse")
         {
-            ChannelContext channel_context;
+            ChannelContext channel_context{ Context::instance() };
             {
                 MatchSpec ms("xtensor==0.12.3", channel_context);
                 CHECK_EQ(ms.version, "0.12.3");
@@ -264,7 +264,7 @@ namespace mamba
 
         TEST_CASE("is_simple")
         {
-            ChannelContext channel_context;
+            ChannelContext channel_context{ Context::instance() };
             {
                 MatchSpec ms("libblas", channel_context);
                 CHECK(ms.is_simple());

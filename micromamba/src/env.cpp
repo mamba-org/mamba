@@ -81,7 +81,7 @@ set_env_command(CLI::App* com, Configuration& config)
             auto const& ctx = Context::instance();
             config.load();
 
-            mamba::ChannelContext channel_context;
+            mamba::ChannelContext channel_context{ ctx };
             if (explicit_format)
             {
                 // TODO: handle error

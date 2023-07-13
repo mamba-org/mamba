@@ -168,7 +168,7 @@ set_env_command(CLI::App* com, Configuration& config)
             const auto& ctx = Context::instance();
             config.load();
 
-            EnvironmentsManager env_manager;
+            EnvironmentsManager env_manager{ ctx };
 
             if (ctx.output_params.json)
             {
@@ -221,7 +221,7 @@ set_env_command(CLI::App* com, Configuration& config)
                 // Remove env directory or rename it (e.g. if used)
                 remove_or_rename(env::expand_user(prefix));
 
-                EnvironmentsManager env_manager;
+                EnvironmentsManager env_manager{ ctx };
                 // Unregister environment
                 env_manager.unregister_env(env::expand_user(prefix));
 

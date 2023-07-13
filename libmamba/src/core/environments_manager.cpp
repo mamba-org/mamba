@@ -21,6 +21,11 @@ namespace mamba
         return fs::exists(prefix / PREFIX_MAGIC_FILE);
     }
 
+    EnvironmentsManager::EnvironmentsManager(const Context& context)
+        : m_context(context)
+    {
+    }
+
     void EnvironmentsManager::register_env(const fs::u8path& location)
     {
         if (!Context::instance().register_envs)
@@ -142,7 +147,7 @@ namespace mamba
                 }
             }
         }
-        for (auto& d : Context::instance().envs_dirs)
+        for (auto& d : m_context.envs_dirs)
         {
             if (fs::exists(d) && fs::is_directory(d))
             {
@@ -155,7 +160,7 @@ namespace mamba
                 }
             }
         }
-        all_env_paths.insert(Context::instance().prefix_params.root_prefix);
+        all_env_paths.insert(m_context.prefix_params.root_prefix);
         return all_env_paths;
     }
 

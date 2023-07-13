@@ -763,7 +763,7 @@ namespace mamba
             path::touch(prefix / "conda-meta" / "history", true);
 
             // Register the environment
-            EnvironmentsManager env_manager;
+            EnvironmentsManager env_manager{ Context::instance() };
             env_manager.register_env(prefix);
         }
 

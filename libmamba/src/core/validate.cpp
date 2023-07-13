@@ -13,6 +13,7 @@
 
 #include <openssl/evp.h>
 
+#include "mamba/core/context.hpp"
 #include "mamba/core/fetch.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/validate.hpp"
@@ -1444,6 +1445,7 @@ namespace mamba::validation
             const auto url = mamba::util::URL::parse(base_url + "/key_mgr.json");
 
             auto dl_target = std::make_unique<mamba::DownloadTarget>(
+                Context::instance(),
                 "key_mgr.json",
                 url.str(),
                 tmp_metadata_path.string()
@@ -1607,6 +1609,7 @@ namespace mamba::validation
             const auto url = mamba::util::URL::parse(base_url + "/pkg_mgr.json");
 
             auto dl_target = std::make_unique<mamba::DownloadTarget>(
+                Context::instance(),
                 "pkg_mgr.json",
                 url.str(),
                 tmp_metadata_path.string()
@@ -2150,6 +2153,7 @@ namespace mamba::validation
                 tmp_file_path = tmp_dir_path / f;
 
                 auto dl_target = std::make_unique<mamba::DownloadTarget>(
+                    Context::instance(),
                     f.string(),
                     url,
                     tmp_file_path.string()

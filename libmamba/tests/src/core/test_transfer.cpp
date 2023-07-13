@@ -21,7 +21,7 @@ namespace mamba
             {
                 mamba::ChannelContext channel_context{ Context::instance() };
                 const mamba::Channel& c = channel_context.make_channel("conda-forge");
-                mamba::MultiDownloadTarget multi_dl;
+                mamba::MultiDownloadTarget multi_dl{ channel_context.context() };
                 mamba::MultiPackageCache pkg_cache({ "/tmp/" });
                 mamba::MSubdirData cf = mamba::MSubdirData::create(
                                             channel_context,
@@ -44,7 +44,7 @@ namespace mamba
             {
                 mamba::ChannelContext channel_context{ Context::instance() };
                 const mamba::Channel& c = channel_context.make_channel("conda-forge");
-                mamba::MultiDownloadTarget multi_dl;
+                mamba::MultiDownloadTarget multi_dl{ channel_context.context() };
                 mamba::MultiPackageCache pkg_cache({ "/tmp/" });
                 mamba::MSubdirData cf = mamba::MSubdirData::create(
                                             channel_context,

@@ -409,7 +409,12 @@ namespace mamba
                 LOG_DEBUG << "Adding '" << m_name << "' to download targets from '" << m_url << "'";
 
                 m_tarball_path = m_cache_path / m_filename;
-                m_target = std::make_unique<DownloadTarget>(m_name, m_url, m_tarball_path.string());
+                m_target = std::make_unique<DownloadTarget>(
+                    Context::instance(),
+                    m_name,
+                    m_url,
+                    m_tarball_path.string()
+                );
                 m_target->set_finalize_callback(&PackageDownloadExtractTarget::finalize_callback, this);
                 m_target->set_expected_size(m_expected_size);
                 if (m_has_progress_bars)

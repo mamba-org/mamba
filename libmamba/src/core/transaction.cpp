@@ -818,7 +818,7 @@ namespace mamba
     bool MTransaction::fetch_extract_packages()
     {
         std::vector<std::unique_ptr<PackageDownloadExtractTarget>> targets;
-        MultiDownloadTarget multi_dl;
+        MultiDownloadTarget multi_dl{ Context::instance() };
 
         auto& pbar_manager = Console::instance().init_progress_bar_manager(ProgressBarMode::aggregated
         );

@@ -609,6 +609,7 @@ namespace mamba
                     if (!has_zst && (is_expired || !has_value))
                     {
                         m_check_targets.push_back(std::make_unique<DownloadTarget>(
+                            ctx,
                             m_name + " (check zst)",
                             m_repodata_url + ".zst",
                             ""
@@ -861,6 +862,7 @@ namespace mamba
 
         bool use_zst = m_metadata.has_zst.has_value() && m_metadata.has_zst.value().value;
         m_target = std::make_unique<DownloadTarget>(
+            ctx,
             m_name,
             m_repodata_url + (use_zst ? ".zst" : ""),
             m_temp_file->path().string()

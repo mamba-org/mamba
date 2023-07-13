@@ -136,7 +136,10 @@ PYBIND11_MODULE(bindings, m)
     auto pyPackageInfo = py::class_<PackageInfo>(m, "PackageInfo");
     auto pyPrefixData = py::class_<PrefixData>(m, "PrefixData");
     auto pySolver = py::class_<MSolver>(m, "Solver");
-    auto pyMultiDownloadTarget = py::class_<MultiDownloadTarget>(m, "DownloadTargetList");
+    auto pyMultiDownloadTarget = py::class_<MultiDownloadTarget, std::unique_ptr<MultiDownloadTarget>>(
+        m,
+        "DownloadTargetList"
+    );
     // only used in a return type; does it belong in the module?
     auto pyRootRole = py::class_<validation::RootRole>(m, "RootRole");
 
@@ -506,7 +509,10 @@ PYBIND11_MODULE(bindings, m)
     m.def("cache_fn_url", &cache_fn_url);
     m.def("create_cache_dir", &create_cache_dir);
 
-    pyMultiDownloadTarget.def(py::init<>())
+    pyMultiDownloadTarget
+        .def(py::init(
+            [] { return std::make_unique<MultiDownloadTarget>(mambapy::singletons().context); }
+        ))
         .def(
             "add",
             [](MultiDownloadTarget& self, MSubdirData& sub) -> void { self.add(sub.target()); }

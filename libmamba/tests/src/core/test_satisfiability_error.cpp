@@ -308,7 +308,7 @@ namespace
      */
     auto load_channels(MPool& pool, MultiPackageCache& cache, std::vector<std::string>&& channels)
     {
-        auto dlist = MultiDownloadTarget();
+        MultiDownloadTarget dlist{ Context::instance() };
         auto sub_dirs = std::vector<MSubdirData>();
         for (const auto* chan : pool.channel_context().get_channels(channels))
         {

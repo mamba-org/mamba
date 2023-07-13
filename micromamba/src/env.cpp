@@ -58,8 +58,8 @@ set_env_command(CLI::App* com, Configuration& config)
 
     static bool explicit_format = false;
     static int no_md5 = 0;
-
     static bool no_build = false;
+    static bool channel_subdir = false;
     static bool from_history = false;
 
     auto* export_subcom = com->add_subcommand("export", "Export environment");
@@ -68,6 +68,7 @@ set_env_command(CLI::App* com, Configuration& config)
     export_subcom->add_flag("-e,--explicit", explicit_format, "Use explicit format");
     export_subcom->add_flag("--no-md5,!--md5", no_md5, "Disable md5");
     export_subcom->add_flag("--no-build,!--build", no_build, "Disable the build string in spec");
+    export_subcom->add_flag("--channel-subdir", channel_subdir, "Enable channel/subdir in spec");
     export_subcom->add_flag(
         "--from-history",
         from_history,
@@ -123,13 +124,20 @@ set_env_command(CLI::App* com, Configuration& config)
                         continue;
                     }
 
+                    const Channel& channel = channel_context.make_channel(v.url);
+
                     if (from_history)
                     {
                         dependencies << "- " << requested_specs_map[k].str() << "\n";
                     }
                     else
                     {
-                        dependencies << "- " << v.name << "=" << v.version;
+                        dependencies << "- ";
+                        if (channel_subdir)
+                        {
+                            dependencies << channel.name() << "/" << v.subdir << "::";
+                        }
+                        dependencies << v.name << "=" << v.version;
                         if (!no_build)
                         {
                             dependencies << "=" << v.build_string;
@@ -141,7 +149,6 @@ set_env_command(CLI::App* com, Configuration& config)
                         dependencies << "\n";
                     }
 
-                    const Channel& channel = channel_context.make_channel(v.url);
                     channels.insert(channel.name());
                 }
 

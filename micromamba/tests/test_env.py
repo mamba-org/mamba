@@ -77,7 +77,7 @@ def test_env_export(export_env, explicit_flag, md5_flag, channel_subdir_flag):
     if explicit_flag:
         assert "/micromamba-0.24.0-0." in output
         if md5_flag != "--no-md5":
-            assert re.search("#[a-f0-9]{32}$", output)
+            assert re.search("#[a-f0-9]{32}$", output.replace("\r", ""))
     else:
         ret = yaml.safe_load(output)
         assert ret["name"] == export_env

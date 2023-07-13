@@ -164,7 +164,6 @@ def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
                 mods.append(x)
         s = mods
     f = write_script(interpreter, s, tmp_path)
-    print("script:\n" + s);
 
     if interpreter not in possible_interpreters[running_os]:
         return None, None

@@ -24,6 +24,6 @@ dependencies:
   - conda-package-handling
   - pyyaml
   - spdlog
-  - fmt
+  - fmt <10
   - sel(win): winreg
   - sel(win): pywin32

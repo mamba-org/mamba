@@ -57,7 +57,7 @@ set_env_command(CLI::App* com, Configuration& config)
     init_install_options(create_subcom, config);
 
     static bool explicit_format = false;
-    static bool no_md5 = false;
+    static int no_md5 = 0;
 
     static bool no_build = false;
     static bool from_history = false;
@@ -96,7 +96,7 @@ set_env_command(CLI::App* com, Configuration& config)
                     std::string clean_url, token;
                     split_anaconda_token(record.url, clean_url, token);
                     std::cout << clean_url;
-                    if (!no_md5)
+                    if (no_md5 != 1)
                     {
                         std::cout << "#" << record.md5;
                     }
@@ -133,6 +133,10 @@ set_env_command(CLI::App* com, Configuration& config)
                         if (!no_build)
                         {
                             dependencies << "=" << v.build_string;
+                        }
+                        if (no_md5 == -1)
+                        {
+                            dependencies << "[md5=" << v.md5 << "]";
                         }
                         dependencies << "\n";
                     }

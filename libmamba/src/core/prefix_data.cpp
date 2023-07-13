@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include "mamba/core/channel.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/util.hpp"
@@ -159,6 +160,12 @@ namespace mamba
         nlohmann::json j;
         infile >> j;
         auto prec = PackageInfo(std::move(j));
+        // Some versions of micromamba constructor generate repodata_record.json
+        // and conda-meta json files with channel names while mamba expects
+        // PackageInfo channels to be platform urls. This fixes the issue described
+        // in https://github.com/mamba-org/mamba/issues/2665
+        const Channel& channel = m_channel_context.make_channel(prec.channel);
+        prec.channel = channel.platform_url(prec.subdir);
         m_package_records.insert({ prec.name, std::move(prec) });
     }
 }  // namespace mamba

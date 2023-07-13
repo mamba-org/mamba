@@ -221,8 +221,8 @@ namespace mamba
                         }
                     }
                 }
-
             );
+            
             solv::StringId const repr_id = pool.add_string(repr);
             ::Id const offset = pool_queuetowhatprovides(pool.raw(), selected_pkgs.raw());
             // FRAGILE This get deleted when calling ``pool_createwhatprovides`` so care

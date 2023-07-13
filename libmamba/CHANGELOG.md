@@ -1,3 +1,10 @@
+libmamba 1.4.9 (July 13, 2023)
+==============================
+
+Bug fixes:
+
+- Fixed missing key <channel_name> in channel <channel_list> issue by @JohanMabille in https://github.com/mamba-org/mamba/pull/2668
+
 libmamba 1.4.8 (July 11, 2023)
 ==============================
 

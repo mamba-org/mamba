@@ -1,3 +1,10 @@
+micromamba 1.4.9 (July 13, 2023)
+================================
+
+Bug fixes:
+
+- Added upper bound to fmt to avoid weird failure on ci (windows only) by @JohanMabille in https://github.com/mamba-org/mamba/pull/2671
+
 micromamba 1.4.8 (July 11, 2023)
 ================================
 

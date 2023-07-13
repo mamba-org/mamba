@@ -1,3 +1,13 @@
+2023.07.13
+==========
+
+Releases: libmamba 1.4.9, libmambapy 1.4.9, mamba 1.4.9, micromamba 1.4.9
+
+Bug fixes:
+
+- [micromamba] Added upper bound to fmt to avoid weird failure on ci (windows only) by @JohanMabille in https://github.com/mamba-org/mamba/pull/2671
+- [libmamba] Fixed missing key <channel_name> in channel <channel_list> issue by @JohanMabille in https://github.com/mamba-org/mamba/pull/2668
+
 2023.07.11
 ==========
 

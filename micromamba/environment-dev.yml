@@ -2,7 +2,7 @@ name: mamba-dev
 channels:
   - conda-forge
 dependencies:
-  - cxx-compiler
+  - cxx-compiler <1.6
   - cmake >=3.16
   - ninja
   - nlohmann_json
@@ -24,6 +24,6 @@ dependencies:
   - conda-package-handling
   - pyyaml
   - spdlog
-  - fmt
+  - fmt<10
   - sel(win): winreg
   - sel(win): pywin32

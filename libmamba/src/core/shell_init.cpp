@@ -691,7 +691,8 @@ namespace mamba
 
     void init_root_prefix(const std::string& shell, const fs::u8path& root_prefix)
     {
-        Context::instance().prefix_params.root_prefix = root_prefix;
+        auto& context = Context::instance();
+        context.prefix_params.root_prefix = root_prefix;
 
         if (!fs::exists(root_prefix))
         {
@@ -700,8 +701,8 @@ namespace mamba
 
         if (shell == "zsh" || shell == "bash" || shell == "posix")
         {
-            PosixActivator a;
-            auto sh_source_path = a.hook_source_path();
+            PosixActivator activator{ context };
+            auto sh_source_path = activator.hook_source_path();
             try
             {
                 fs::create_directories(sh_source_path.parent_path());
@@ -715,8 +716,8 @@ namespace mamba
         }
         else if (shell == "csh")
         {
-            CshActivator a;
-            auto sh_source_path = a.hook_source_path();
+            CshActivator activator{ context };
+            auto sh_source_path = activator.hook_source_path();
             try
             {
                 fs::create_directories(sh_source_path.parent_path());
@@ -730,8 +731,8 @@ namespace mamba
         }
         else if (shell == "xonsh")
         {
-            XonshActivator a;
-            auto sh_source_path = a.hook_source_path();
+            XonshActivator activator{ context };
+            auto sh_source_path = activator.hook_source_path();
             try
             {
                 fs::create_directories(sh_source_path.parent_path());
@@ -745,8 +746,8 @@ namespace mamba
         }
         else if (shell == "fish")
         {
-            FishActivator a;
-            auto sh_source_path = a.hook_source_path();
+            FishActivator activator{ context };
+            auto sh_source_path = activator.hook_source_path();
             try
             {
                 fs::create_directories(sh_source_path.parent_path());
@@ -781,41 +782,42 @@ namespace mamba
 
     void deinit_root_prefix(const std::string& shell, const fs::u8path& root_prefix)
     {
-        if (Context::instance().dry_run)
+        auto& context = Context::instance();
+        if (context.dry_run)
         {
             return;
         }
 
-        Context::instance().prefix_params.root_prefix = root_prefix;
+        context.prefix_params.root_prefix = root_prefix;
 
         if (shell == "zsh" || shell == "bash" || shell == "posix")
         {
-            PosixActivator a;
-            auto sh_source_path = a.hook_source_path();
+            PosixActivator activator{ context };
+            auto sh_source_path = activator.hook_source_path();
 
             fs::remove(sh_source_path);
             LOG_INFO << "Removed " << sh_source_path << " file.";
         }
         else if (shell == "csh")
         {
-            CshActivator a;
-            auto sh_source_path = a.hook_source_path();
+            CshActivator activator{ context };
+            auto sh_source_path = activator.hook_source_path();
 
             fs::remove(sh_source_path);
             LOG_INFO << "Removed " << sh_source_path << " file.";
         }
         else if (shell == "xonsh")
         {
-            XonshActivator a;
-            auto sh_source_path = a.hook_source_path();
+            XonshActivator activator{ context };
+            auto sh_source_path = activator.hook_source_path();
 
             fs::remove(sh_source_path);
             LOG_INFO << "Removed " << sh_source_path << " file.";
         }
         else if (shell == "fish")
         {
-            FishActivator a;
-            auto sh_source_path = a.hook_source_path();
+            FishActivator activator{ context };
+            auto sh_source_path = activator.hook_source_path();
 
             fs::remove(sh_source_path);
             LOG_INFO << "Removed " << sh_source_path << " file.";

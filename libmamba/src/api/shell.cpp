@@ -23,31 +23,32 @@ namespace mamba
 {
     namespace
     {
-        auto make_activator(std::string_view name) -> std::unique_ptr<Activator>
+        auto make_activator(const Context& context, std::string_view name)
+            -> std::unique_ptr<Activator>
         {
             if (name == "bash" || name == "zsh" || name == "dash" || name == "posix")
             {
-                return std::make_unique<mamba::PosixActivator>();
+                return std::make_unique<mamba::PosixActivator>(context);
             }
             if (name == "csh" || name == "tcsh")
             {
-                return std::make_unique<mamba::CshActivator>();
+                return std::make_unique<mamba::CshActivator>(context);
             }
             if (name == "cmd.exe")
             {
-                return std::make_unique<mamba::CmdExeActivator>();
+                return std::make_unique<mamba::CmdExeActivator>(context);
             }
             if (name == "powershell")
             {
-                return std::make_unique<mamba::PowerShellActivator>();
+                return std::make_unique<mamba::PowerShellActivator>(context);
             }
             if (name == "xonsh")
             {
-                return std::make_unique<mamba::XonshActivator>();
+                return std::make_unique<mamba::XonshActivator>(context);
             }
             if (name == "fish")
             {
-                return std::make_unique<mamba::FishActivator>();
+                return std::make_unique<mamba::FishActivator>(context);
             }
             throw std::invalid_argument(fmt::format("Shell type not handled: {}", name));
         }
@@ -90,8 +91,8 @@ namespace mamba
 
     void shell_hook(const std::string& shell_type)
     {
-        auto activator = make_activator(shell_type);
-        auto& ctx = Context::instance();
+        const auto& ctx = Context::instance();
+        auto activator = make_activator(ctx, shell_type);
         // TODO do we need to do something wtih `shell_prefix -> root_prefix?`?
         if (ctx.output_params.json)
         {
@@ -116,19 +117,19 @@ namespace mamba
             );
         }
 
-        auto activator = make_activator(shell_type);
+        auto activator = make_activator(Context::instance(), shell_type);
         std::cout << activator->activate(prefix, stack);
     }
 
     void shell_reactivate(const std::string& shell_type)
     {
-        auto activator = make_activator(shell_type);
+        auto activator = make_activator(Context::instance(), shell_type);
         std::cout << activator->reactivate();
     }
 
     void shell_deactivate(const std::string& shell_type)
     {
-        auto activator = make_activator(shell_type);
+        auto activator = make_activator(Context::instance(), shell_type);
         std::cout << activator->deactivate();
     }
 

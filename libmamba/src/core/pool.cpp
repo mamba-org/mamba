@@ -160,22 +160,28 @@ namespace mamba
             return false;
         }
 
-        bool
-        subdir_match(std::string candidate_url, std::string needle_spec)
+        bool subdir_match(std::string candidate_repo_url, std::string needle_spec)
         {
+            // Example candidate_repo_url: https://.../conda-forge/linux-64
+            // example needle_spec: conda-forge/osx-64::xtensor
+
             std::string needle_channel = split(needle_spec, ":", 1)[0];
-            if (!contains(needle_channel, "/")){
+            if (!contains(needle_channel, "/"))
+            {
+                // Subdir not specified, so any subdir is fine
                 return true;
             }
             std::string needle_subdir = rsplit(needle_channel, "/", 1)[1];
 
             std::string candidate_subdir = rsplit(candidate_url, "/", 1)[1];
 
-            if (candidate_subdir == needle_subdir){
+            if (candidate_subdir == needle_subdir)
+            {
                 return true;
             }
-            throw std::runtime_error(
-                fmt::format("The package \"{}\" is not available for the specified platform", needle_spec
+            throw std::runtime_error(fmt::format(
+                "The package \"{}\" is not available for the specified platform",
+                needle_spec
             ));
         }
 
@@ -216,13 +222,14 @@ namespace mamba
                     auto const url = std::string(repo.url());
                     if (channel_match(channel_context, channel_context.make_channel(url), c))
                     {
-                        if (subdir_match(url, ms.spec)){
+                        if (subdir_match(url, ms.spec))
+                        {
                             selected_pkgs.push_back(s.id());
                         }
                     }
                 }
             );
-            
+
             solv::StringId const repr_id = pool.add_string(repr);
             ::Id const offset = pool_queuetowhatprovides(pool.raw(), selected_pkgs.raw());
             // FRAGILE This get deleted when calling ``pool_createwhatprovides`` so care

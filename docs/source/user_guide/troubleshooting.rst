@@ -134,3 +134,13 @@ When using Mamba/Micromamba inside a QEMU guest, installing packages may sometim
   mamba install ...
 
 See `#1611 <https://github.com/mamba-org/mamba/issues/1611>`_ for discussion.
+
+
+Hangs during package installation on NFS (Network File Systems)
+--------------------------------------------------------------
+When using Mamba/Micromamba in a environment with NFS, package installation (e.g., NumPy) may hang at the step when ``libmamba`` attempts to lock a directory. 
+A solution is to update the Mamba/Micromamba configuration to not use lockfile by the command: ::
+  
+  micromamba config set use_lockfiles False
+
+See `#2592 <https://github.com/mamba-org/mamba/issues/2592>`_, `#1446 <https://github.com/mamba-org/mamba/issues/1446>`_, `#1448 <https://github.com/mamba-org/mamba/pull/1448>`_, `#1515 <https://github.com/mamba-org/mamba/issues/1515>`_ for more details.

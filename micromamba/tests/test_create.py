@@ -616,17 +616,13 @@ def test_spec_with_channel(tmp_home, tmp_root_prefix, tmp_path):
 def test_spec_with_channel_and_subdir():
     env_name = "myenv"
     try:
-        res = helpers.create(
-            "-n", env_name, "conda-forge/noarch::xtensor", "--dry-run"
-        )
+        res = helpers.create("-n", env_name, "conda-forge/noarch::xtensor", "--dry-run")
     except subprocess.CalledProcessError as e:
-        assert (
-            e.stderr.decode()
-            == (
-                "critical libmamba The package \"conda-forge/noarch::xtensor\" is "
-                "not available for the specified platform\n"
-            )
+        assert e.stderr.decode() == (
+            'critical libmamba The package "conda-forge/noarch::xtensor" is '
+            "not available for the specified platform\n"
         )
+
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_channel_nodefaults(tmp_home, tmp_root_prefix, tmp_path):

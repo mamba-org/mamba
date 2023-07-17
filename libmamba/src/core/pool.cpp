@@ -173,9 +173,9 @@ namespace mamba
             }
             std::string needle_subdir = rsplit(needle_channel, "/", 1)[1];
 
-            std::string candidate_subdir = rsplit(candidate_url, "/", 1)[1];
+            std::string candidate_repo_subdir = rsplit(candidate_repo_url, "/", 1)[1];
 
-            if (candidate_subdir == needle_subdir)
+            if (candidate_repo_subdir == needle_subdir)
             {
                 return true;
             }

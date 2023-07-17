@@ -163,8 +163,8 @@ def test_create_subdir(tmpdir):
     except subprocess.CalledProcessError as e:
         result = json.loads(e.output)
         assert result["error"] == (
-        "RuntimeError('The package \"conda-forge/noarch::xtensor\" is"
-        " not available for the specified platform')"
+            'RuntimeError(\'The package "conda-forge/noarch::xtensor" is'
+            " not available for the specified platform')"
         )
 
 
@@ -257,7 +257,7 @@ def test_multi_channels_with_subdir(config_file, tmpdir):
     except subprocess.CalledProcessError as e:
         result = json.loads(e.output)
         assert result["error"] == (
-            "RuntimeError('The package \"conda-forge2/noarch::xtensor\" is"
+            'RuntimeError(\'The package "conda-forge2/noarch::xtensor" is'
             " not available for the specified platform')"
         )
 

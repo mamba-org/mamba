@@ -60,7 +60,7 @@ compute_config_path(Configuration& config, bool touch_if_not_exists)
     auto& env_path = config.at("config_set_env_path");
     auto& system_path = config.at("config_set_system_path");
 
-    fs::u8path rc_source = env::expand_user(env::home_directory() / ".condarc");
+    fs::u8path rc_source = env::expand_user(env::user_config_dir() / "mambarc");
 
     if (file_path.configured())
     {
@@ -68,7 +68,7 @@ compute_config_path(Configuration& config, bool touch_if_not_exists)
     }
     else if (env_path.configured())
     {
-        rc_source = fs::u8path{ ctx.prefix_params.target_prefix / ".condarc" };
+        rc_source = fs::u8path(ctx.prefix_params.target_prefix / ".mambarc");
     }
     else if (system_path.configured())
     {

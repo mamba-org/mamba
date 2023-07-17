@@ -23,7 +23,7 @@ namespace mamba
 
     void EnvironmentsManager::register_env(const fs::u8path& location)
     {
-        fs::u8path env_txt_file = get_environments_txt_file(env::home_directory());
+        fs::u8path env_txt_file = get_environments_txt_file(env::user_data_dir());
         fs::u8path final_location = fs::absolute(location);
         fs::u8path folder = final_location.parent_path();
 
@@ -96,7 +96,7 @@ namespace mamba
             }
         }
 
-        clean_environments_txt(get_environments_txt_file(env::home_directory()), location);
+        clean_environments_txt(get_environments_txt_file(env::user_data_dir()), location);
     }
 
     std::set<fs::u8path> EnvironmentsManager::list_all_known_prefixes()
@@ -121,7 +121,7 @@ namespace mamba
         // }
         // else
         {
-            search_dirs = std::vector<fs::u8path>{ env::home_directory() };
+            search_dirs = std::vector<fs::u8path>{ env::user_data_dir() };
         }
 
         std::set<fs::u8path> all_env_paths;
@@ -207,9 +207,9 @@ namespace mamba
         return p;
     }
 
-    fs::u8path EnvironmentsManager::get_environments_txt_file(const fs::u8path& home) const
+    fs::u8path EnvironmentsManager::get_environments_txt_file(const fs::u8path& user_data_dir_in) const
     {
-        return home / ".conda" / "environments.txt";
+        return user_data_dir_in / "environments.txt";
     }
 
 }  // namespace mamba

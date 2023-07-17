@@ -68,6 +68,10 @@ def tmp_home(
         for env in used_homes:
             os.environ[env] = str(new_home)
 
+    if platform.system() == "Windows":
+        os.environ["APPDATA"] = str(new_home / "AppData" / "Roaming")
+        os.environ["LOCALAPPDATA"] = str(new_home / "AppData" / "Local")
+
     yield new_home
 
     # Pytest would clean it automatically but this can be large (0.5 Gb for repodata)
@@ -83,7 +87,7 @@ def tmp_home(
 def tmp_clean_env(tmp_environ: None) -> None:
     """Remove all Conda/Mamba activation artifacts from environment."""
     for k, v in os.environ.items():
-        if k.startswith(("CONDA", "_CONDA", "MAMBA", "_MAMBA")):
+        if k.startswith(("CONDA", "_CONDA", "MAMBA", "_MAMBA", "XDG_")):
             del os.environ[k]
 
     def keep_in_path(
@@ -179,3 +183,54 @@ def tmp_xtensor_env(tmp_prefix: pathlib.Path) -> Generator[pathlib.Path, None, N
     """An activated environment with Xtensor installed."""
     helpers.install("-c", "conda-forge", "--json", "xtensor", no_dry_run=True)
     yield tmp_prefix
+
+
+@pytest.fixture
+def user_config_dir(tmp_home: pathlib.Path) -> Generator[pathlib.Path, None, None]:
+    """Location of config files that are generated from mamba"""
+    maybe_xdg_config = os.getenv("XDG_CONFIG_DIR", "")
+    if maybe_xdg_config:
+        yield pathlib.Path(maybe_xdg_config)
+    system = platform.system()
+    if system == "Darwin":
+        yield tmp_home / "Library/Application Support/mamba"
+    elif system == "Linux":
+        yield tmp_home / ".config/mamba"
+    elif system == "Windows":
+        yield pathlib.Path(os.environ["APPDATA"]) / "mamba"
+    else:
+        raise RuntimeError(f"Unsupported system {system}")
+
+
+@pytest.fixture
+def user_data_dir(tmp_home: pathlib.Path) -> Generator[pathlib.Path, None, None]:
+    """Location of data files that are generated from mamba"""
+    maybe_xdg_data = os.getenv("XDG_DATA_DIR", "")
+    if maybe_xdg_data:
+        yield pathlib.Path(maybe_xdg_data)
+    system = platform.system()
+    if system == "Darwin":
+        yield tmp_home / "Library/Application Support/mamba"
+    elif system == "Linux":
+        yield tmp_home / ".local/share/mamba"
+    elif system == "Windows":
+        yield pathlib.Path(os.environ["APPDATA"]) / "mamba"
+    else:
+        raise RuntimeError(f"Unsupported system {system}")
+
+
+@pytest.fixture
+def user_cache_dir(tmp_home: pathlib.Path) -> Generator[pathlib.Path, None, None]:
+    """Location of data files that are generated from mamba"""
+    maybe_xdg_cache = os.getenv("XDG_CACHE_DIR", "")
+    if maybe_xdg_cache:
+        yield pathlib.Path(maybe_xdg_cache)
+    system = platform.system()
+    if system == "Darwin":
+        yield tmp_home / "Library/Caches/mamba"
+    elif system == "Linux":
+        yield tmp_home / ".cache/mamba"
+    elif system == "Windows":
+        yield pathlib.Path(os.environ["LOCALAPPDATA"]) / "mamba"
+    else:
+        raise RuntimeError(f"Unsupported system {system}")

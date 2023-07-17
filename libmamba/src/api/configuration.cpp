@@ -599,7 +599,7 @@ namespace mamba
                 }
                 else
                 {
-                    prefix = env::home_directory() / "micromamba";
+                    prefix = env::user_data_dir() / "micromamba";
                 }
 
                 if (env_name.configured())
@@ -845,6 +845,7 @@ namespace mamba
         std::vector<fs::u8path> fallback_pkgs_dirs_hook()
         {
             std::vector<fs::u8path> paths = { Context::instance().prefix_params.root_prefix / "pkgs",
+                                              env::user_data_dir() / "pkgs",
                                               env::home_directory() / ".mamba" / "pkgs" };
 #ifdef _WIN32
             auto appdata = env::get("APPDATA");
@@ -1776,11 +1777,11 @@ namespace mamba
                                          ctx.prefix_params.root_prefix / "condarc.d",
                                          ctx.prefix_params.root_prefix / ".mambarc" };
 
-        std::vector<fs::u8path> home = { env::home_directory() / ".conda/.condarc",
-                                         env::home_directory() / ".conda/condarc",
-                                         env::home_directory() / ".conda/condarc.d",
-                                         env::home_directory() / ".condarc",
-                                         env::home_directory() / ".mambarc" };
+        std::vector<fs::u8path> home = {
+            env::home_directory() / ".conda/.condarc",  env::home_directory() / ".conda/condarc",
+            env::home_directory() / ".conda/condarc.d", env::home_directory() / ".condarc",
+            env::home_directory() / ".mambarc",         env::user_config_dir() / "mambarc"
+        };
 
         std::vector<fs::u8path> prefix = { ctx.prefix_params.target_prefix / ".condarc",
                                            ctx.prefix_params.target_prefix / "condarc",

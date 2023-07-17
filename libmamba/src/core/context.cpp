@@ -219,7 +219,7 @@ namespace mamba
         }
 
         std::map<std::string, AuthenticationInfo> res;
-        fs::u8path auth_loc(mamba::env::home_directory() / ".mamba" / "auth" / "authentication.json");
+        fs::u8path auth_loc(mamba::env::user_data_dir() / "auth" / "authentication.json");
         try
         {
             if (fs::exists(auth_loc))

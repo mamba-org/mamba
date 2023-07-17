@@ -1,5 +1,6 @@
 import base64
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -21,8 +22,8 @@ assert pyserver.exists()
 
 
 @pytest.fixture
-def auth_file(tmp_home):
-    return tmp_home / ".mamba/auth/authentication.json"
+def auth_file(user_data_dir):
+    return user_data_dir / "auth/authentication.json"
 
 
 def reposerver_multi(
@@ -156,6 +157,21 @@ def test_login_logout(auth_file, login_1, token_1, login_2, token_2):
         data = json.load(fi)
 
     assert remove_url_scheme(login_1) not in data
+
+
+@pytest.mark.parametrize("token", ["crazytoken1234"])
+def test_token_location_xdg_set(tmp_home, token, token_server):
+    tmp_dir = tmp_home / "crazy_xdg_auth_dir"
+    c_auth_file = tmp_dir / "mamba" / "auth" / "authentication.json"
+    os.environ["XDG_DATA_HOME"] = str(tmp_dir)
+    login(token_server, "--token", token)
+
+    with open(c_auth_file) as fi:
+        data = json.load(fi)
+
+    token_server_id = remove_url_scheme(token_server)
+    assert token_server_id in data
+    assert data[token_server_id]["token"] == token
 
 
 @pytest.mark.parametrize("token", ["crazytoken1234"])

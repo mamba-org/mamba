@@ -6,7 +6,7 @@ from . import helpers
 
 
 @pytest.mark.parametrize("prefix_selection", [None, "prefix", "name"])
-def test_base(tmp_home, tmp_root_prefix, prefix_selection):
+def test_base(tmp_home, tmp_root_prefix, prefix_selection, user_config_dir):
     os.environ["CONDA_PREFIX"] = str(tmp_root_prefix)
 
     if prefix_selection == "prefix":
@@ -15,31 +15,40 @@ def test_base(tmp_home, tmp_root_prefix, prefix_selection):
         infos = helpers.info("-n", "base")
     else:
         infos = helpers.info()
-
+    user_config = user_config_dir / "mambarc"
     assert "environment : base (active)" in infos
     assert f"env location : {tmp_root_prefix}" in infos
-    assert f"user config files : {tmp_home / '.mambarc' }" in infos
+    assert f"user config files : {user_config}" in infos
     assert f"base environment : {tmp_root_prefix}" in infos
 
 
 @pytest.mark.parametrize("prefix_selection", [None, "prefix", "name"])
-def test_env(tmp_home, tmp_root_prefix, tmp_env_name, tmp_prefix, prefix_selection):
+def test_env(
+    tmp_home,
+    tmp_root_prefix,
+    tmp_env_name,
+    tmp_prefix,
+    prefix_selection,
+    user_config_dir,
+):
     if prefix_selection == "prefix":
         infos = helpers.info("-p", tmp_prefix)
     elif prefix_selection == "name":
         infos = helpers.info("-n", tmp_env_name)
     else:
         infos = helpers.info()
-
+    user_config = user_config_dir / "mambarc"
     assert f"environment : {tmp_env_name} (active)" in infos
     assert f"env location : {tmp_prefix}" in infos
-    assert f"user config files : {tmp_home / '.mambarc' }" in infos
+    assert f"user config files : {user_config}" in infos
     assert f"base environment : {tmp_root_prefix}" in infos
 
 
 @pytest.mark.parametrize("existing_prefix", [False, True])
 @pytest.mark.parametrize("prefix_selection", [None, "env_var", "prefix", "name"])
-def test_not_env(tmp_home, tmp_root_prefix, prefix_selection, existing_prefix):
+def test_not_env(
+    tmp_home, tmp_root_prefix, prefix_selection, existing_prefix, user_config_dir
+):
     name = "not_an_env"
     prefix = tmp_root_prefix / "envs" / name
 
@@ -69,9 +78,10 @@ def test_not_env(tmp_home, tmp_root_prefix, prefix_selection, existing_prefix):
         else:
             expected_name = name + " (not found)"
         location = prefix
+    user_config = user_config_dir / "mambarc"
     print(infos)
 
     assert f"environment : {expected_name}" in infos
     assert f"env location : {location}" in infos
-    assert f"user config files : {tmp_home / '.mambarc' }" in infos
+    assert f"user config files : {user_config}" in infos
     assert f"base environment : {tmp_root_prefix}" in infos

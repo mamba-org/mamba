@@ -78,10 +78,10 @@ def test_create():
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_env_remove(tmp_home, tmp_root_prefix):
+def test_env_remove(tmp_home, tmp_root_prefix, user_data_dir):
     env_name = "env-create-remove"
     env_fp = tmp_root_prefix / "envs" / env_name
-    conda_env_file = tmp_home / ".conda/environments.txt"
+    conda_env_file = user_data_dir / "environments.txt"
 
     # Create env with xtensor
     helpers.create("xtensor", "-n", env_name, "--json", no_dry_run=True)

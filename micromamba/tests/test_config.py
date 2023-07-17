@@ -45,7 +45,15 @@ def rc_file_text(rc_file_args):
 
 
 @pytest.fixture
-def rc_file(request, rc_file_text, tmp_home, tmp_root_prefix, tmp_prefix, tmp_path):
+def rc_file(
+    request,
+    rc_file_text,
+    tmp_home,
+    tmp_root_prefix,
+    tmp_prefix,
+    tmp_path,
+    user_config_dir,
+):
     """Parametrizable fixture to create an rc file at the desired location.
 
     The file is created in an isolated folder and set as the prefix, root prefix, or
@@ -59,6 +67,11 @@ def rc_file(request, rc_file_text, tmp_home, tmp_root_prefix, tmp_prefix, tmp_pa
             rc_file = tmp_root_prefix / rc_filename
         elif where == "prefix":
             rc_file = tmp_prefix / rc_filename
+        elif where == "user_config_dir":
+            rc_file = user_config_dir / rc_filename
+        elif where == "env_set_xdg":
+            os.environ["XDG_CONFIG_HOME"] = str(tmp_home / "custom_xdg_config_dir")
+            rc_file = tmp_home / "custom_xdg_config_dir" / "mamba" / rc_filename
         elif where == "absolute":
             rc_file = Path(rc_filename)
         else:
@@ -114,7 +127,6 @@ class TestConfigSources:
             res = config("sources", quiet_flag)
             assert res.startswith("Configuration files (by precedence order):")
 
-    # TODO: test OS specific sources
     # TODO: test system located sources?
     @pytest.mark.parametrize(
         "rc_file",
@@ -127,6 +139,8 @@ class TestConfigSources:
             # "/var/lib/conda/condarc",
             # "/var/lib/conda/condarc.d/",
             # "/var/lib/conda/.mambarc",
+            ("user_config_dir", "mambarc"),
+            ("env_set_xdg", "mambarc"),
             ("home", ".conda/.condarc"),
             ("home", ".conda/condarc"),
             ("home", ".conda/condarc.d"),

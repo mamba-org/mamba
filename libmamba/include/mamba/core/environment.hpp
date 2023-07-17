@@ -54,6 +54,9 @@ namespace mamba
         std::map<std::string, std::string> copy();
         std::string platform();
         fs::u8path home_directory();
+        fs::u8path user_config_dir();
+        fs::u8path user_data_dir();
+        fs::u8path user_cache_dir();
 
         fs::u8path expand_user(const fs::u8path& path);
         fs::u8path shrink_user(const fs::u8path& path);

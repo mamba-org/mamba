@@ -1906,6 +1906,7 @@ namespace mamba
         m_load_lock = false;
 
         allow_file_locking(m_context.use_lockfiles);
+        set_file_locking_timeout(std::chrono::seconds{ m_context.lock_timeout });
 
         LOG_DEBUG << m_config.size() << " configurables computed";
 

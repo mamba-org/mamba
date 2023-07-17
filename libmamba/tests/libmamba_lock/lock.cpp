@@ -40,6 +40,7 @@ main(int argc, char** argv)
         [&]()
         {
             mamba::Context::instance().lock_timeout = timeout;
+            mamba::set_file_locking_timeout(std::chrono::seconds{ timeout });
             try
             {
                 auto lock = mamba::LockFile(path);

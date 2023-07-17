@@ -131,6 +131,29 @@ namespace mamba
     //    result == allow && is_file_locking_allowed() == allow
     bool allow_file_locking(bool allow);
 
+    // @return The file locking timeout used by `LockFile` at construction.
+    //
+    // @warning This function must be called in the execution scope `main()`, doing otherwise leads
+    // to undefined behavior.
+    //
+    // @warning This is a thread-safe accessor for a global parameter: the returned value is
+    // therefore obsolete before being obtained and should be considered as a hint.
+    std::chrono::seconds default_file_locking_timeout();
+
+    // Changes the locking duration when `LockFile` is constructed without a specified locking
+    // timeout.
+    //
+    // @warning This function must be called in the execution scope `main()`, doing otherwise leads
+    // to undefined behavior.
+    //
+    // @warning This is a thread-safe function setting a global parameter: if concurrent threads
+    // are both calling this function with different value there is no guarantee as to which
+    // value will be retained.
+    // However if there is exactly one thread executing this function then the following is true:
+    //    const auto result = set_file_locking_timeout(timeout);
+    //    result == timeout && default_file_locking_timeout() == timeout
+    std::chrono::seconds set_file_locking_timeout(const std::chrono::seconds& new_timeout);
+
     // This is a non-throwing file-locking mechanism.
     // It can be used on a file or directory path. In the case of a directory path a file will be
     // created to be locked. The locking will be implemented using the OS's filesystem locking
@@ -185,7 +208,7 @@ namespace mamba
         // re-assigned:
         // - `this->is_locked() == false` and `if(*this) ...` will go in the `false` branch.
         // - accessors will throw, except `is_locked()`, `count_lock_owners()`, and `error()`
-        LockFile(const fs::u8path& path);
+        explicit LockFile(const fs::u8path& path);
         LockFile(const fs::u8path& path, const std::chrono::seconds& timeout);
 
         ~LockFile();

@@ -975,6 +975,15 @@ namespace mamba
                 return m_is_file_locking_allowed.exchange(allow);
             }
 
+            std::chrono::seconds default_file_locking_timeout() const
+            {
+                return m_default_lock_timeout;
+            }
+            std::chrono::seconds set_file_locking_timeout(const std::chrono::seconds& new_timeout)
+            {
+                return m_default_lock_timeout.exchange(new_timeout);
+            }
+
             tl::expected<std::shared_ptr<LockFileOwner>, mamba_error>
             acquire_lock(const fs::u8path& file_path, const std::chrono::seconds timeout)
             {
@@ -1045,6 +1054,7 @@ namespace mamba
         private:
 
             std::atomic_bool m_is_file_locking_allowed{ true };
+            std::atomic<std::chrono::seconds> m_default_lock_timeout{ std::chrono::seconds::zero() };
 
             // TODO: replace by something like boost::multiindex or equivalent to avoid having to
             // handle 2 hashmaps
@@ -1080,6 +1090,15 @@ namespace mamba
         return files_locked_by_this_process.allow_file_locking(allow);
     }
 
+    std::chrono::seconds default_file_locking_timeout()
+    {
+        return files_locked_by_this_process.default_file_locking_timeout();
+    }
+    std::chrono::seconds set_file_locking_timeout(const std::chrono::seconds& new_timeout)
+    {
+        return files_locked_by_this_process.set_file_locking_timeout(new_timeout);
+    }
+
     bool LockFileOwner::lock_non_blocking()
     {
         if (files_locked_by_this_process.is_locked(m_lockfile_path))
@@ -1100,7 +1119,7 @@ namespace mamba
     }
 
     LockFile::LockFile(const fs::u8path& path)
-        : LockFile(path, std::chrono::seconds(Context::instance().lock_timeout))
+        : LockFile(path, files_locked_by_this_process.default_file_locking_timeout())
     {
     }
 

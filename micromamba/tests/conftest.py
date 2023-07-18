@@ -192,9 +192,7 @@ def user_config_dir(tmp_home: pathlib.Path) -> Generator[pathlib.Path, None, Non
     if maybe_xdg_config:
         yield pathlib.Path(maybe_xdg_config)
     system = platform.system()
-    if system == "Darwin":
-        yield tmp_home / "Library/Application Support/mamba"
-    elif system == "Linux":
+    if system == "Linux" or system == "Darwin":
         yield tmp_home / ".config/mamba"
     elif system == "Windows":
         yield pathlib.Path(os.environ["APPDATA"]) / "mamba"
@@ -209,9 +207,7 @@ def user_data_dir(tmp_home: pathlib.Path) -> Generator[pathlib.Path, None, None]
     if maybe_xdg_data:
         yield pathlib.Path(maybe_xdg_data)
     system = platform.system()
-    if system == "Darwin":
-        yield tmp_home / "Library/Application Support/mamba"
-    elif system == "Linux":
+    if system == "Linux" or system == "Darwin":
         yield tmp_home / ".local/share/mamba"
     elif system == "Windows":
         yield pathlib.Path(os.environ["APPDATA"]) / "mamba"
@@ -226,9 +222,7 @@ def user_cache_dir(tmp_home: pathlib.Path) -> Generator[pathlib.Path, None, None
     if maybe_xdg_cache:
         yield pathlib.Path(maybe_xdg_cache)
     system = platform.system()
-    if system == "Darwin":
-        yield tmp_home / "Library/Caches/mamba"
-    elif system == "Linux":
+    if system == "Linux" or system == "Darwin":
         yield tmp_home / ".cache/mamba"
     elif system == "Windows":
         yield pathlib.Path(os.environ["LOCALAPPDATA"]) / "mamba"

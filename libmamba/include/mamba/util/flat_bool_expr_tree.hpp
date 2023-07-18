@@ -16,8 +16,12 @@
 #include <variant>
 #include <vector>
 
+#include <fmt/format.h>
+#include <fmt/ostream.h>
+
 #include "mamba/util/flat_binary_tree.hpp"
 #include "mamba/util/functional.hpp"
+#include "mamba/util/type_traits.hpp"
 
 namespace mamba::util
 {
@@ -330,7 +334,20 @@ namespace mamba::util
         // Input check
         if (m_expects_op)
         {
-            throw std::invalid_argument("Unexpected variable");
+            std::string msg = {};
+            if constexpr (fmt::is_formattable<Var>::value)
+            {
+                msg = fmt::format("Unexpected variable: {}", var);
+            }
+            else if constexpr (is_ostreamable_v<Var>)
+            {
+                msg = fmt::format("Unexpected variable: {}", fmt::streamed(var));
+            }
+            else
+            {
+                msg = "Unexpected variable";
+            }
+            throw std::invalid_argument(std::move(msg));
         }
         m_expects_op = true;
         // Parsing
@@ -356,7 +373,20 @@ namespace mamba::util
         // Input check
         if (!m_expects_op)
         {
-            throw std::invalid_argument("Unexpected operator");
+            std::string msg = {};
+            if constexpr (fmt::is_formattable<Op>::value)
+            {
+                msg = fmt::format("Unexpected operator: {}", op);
+            }
+            else if constexpr (is_ostreamable_v<Op>)
+            {
+                msg = fmt::format("Unexpected operator: {}", fmt::streamed(op));
+            }
+            else
+            {
+                msg = "Unexpected operator";
+            }
+            throw std::invalid_argument(std::move(msg));
         }
         m_expects_op = false;
         // Parsing
@@ -417,7 +447,7 @@ namespace mamba::util
         // Input check
         if (!m_expects_op || (m_parenthesis_level != 0))
         {
-            throw std::invalid_argument("Invalid experssion");
+            throw std::invalid_argument("Invalid expression");
         }
         // Parsing
         while (!stack_empty())

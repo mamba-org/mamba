@@ -599,7 +599,7 @@ namespace mamba
                 }
                 else
                 {
-                    prefix = env::user_data_dir() / "micromamba";
+                    prefix = env::home_directory() / "micromamba";
                 }
 
                 if (env_name.configured())
@@ -1778,9 +1778,10 @@ namespace mamba
                                          ctx.prefix_params.root_prefix / ".mambarc" };
 
         std::vector<fs::u8path> home = {
-            env::home_directory() / ".conda/.condarc",  env::home_directory() / ".conda/condarc",
-            env::home_directory() / ".conda/condarc.d", env::home_directory() / ".condarc",
-            env::home_directory() / ".mambarc",         env::user_config_dir() / "mambarc"
+            env::home_directory() / ".conda/.condarc",   env::home_directory() / ".conda/condarc",
+            env::home_directory() / ".conda/condarc.d",  env::home_directory() / ".condarc",
+            env::user_config_dir() / "../conda/condarc", env::home_directory() / ".mambarc",
+            env::user_config_dir() / "mambarc"
         };
 
         std::vector<fs::u8path> prefix = { ctx.prefix_params.target_prefix / ".condarc",

@@ -280,14 +280,7 @@ namespace mamba
 #ifdef _WIN32
                 maybe_user_config_dir = ::mamba::win::get_folder("roamingappdata");
 #else
-                if (on_mac)
-                {
-                    maybe_user_config_dir = home_directory() / "Library" / "Application Support";
-                }
-                else
-                {
-                    maybe_user_config_dir = home_directory() / ".config";
-                }
+                maybe_user_config_dir = home_directory() / ".config";
 #endif
             }
             return fs::u8path(maybe_user_config_dir) / "mamba";
@@ -301,14 +294,7 @@ namespace mamba
 #ifdef _WIN32
                 maybe_user_data_dir = ::mamba::win::get_folder("roamingappdata");
 #else
-                if (on_mac)
-                {
-                    maybe_user_data_dir = home_directory() / "Library" / "Application Support";
-                }
-                else
-                {
-                    maybe_user_data_dir = home_directory() / ".local" / "share";
-                }
+                maybe_user_data_dir = home_directory() / ".local" / "share";
 #endif
             }
             return fs::u8path(maybe_user_data_dir) / "mamba";
@@ -322,14 +308,7 @@ namespace mamba
 #ifdef _WIN32
                 maybe_user_cache_dir = ::mamba::win::get_folder("localappdata");
 #else
-                if (on_mac)
-                {
-                    maybe_user_cache_dir = home_directory() / "Library" / "Caches";
-                }
-                else
-                {
-                    maybe_user_cache_dir = home_directory() / ".cache";
-                }
+                maybe_user_cache_dir = home_directory() / ".cache";
 #endif
             }
             return fs::u8path(maybe_user_cache_dir) / "mamba";

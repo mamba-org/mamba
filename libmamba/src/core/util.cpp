@@ -58,6 +58,31 @@ extern "C"
 
 namespace mamba
 {
+    namespace
+    {
+        std::atomic<bool> persist_temporary_files{ false };
+        std::atomic<bool> persist_temporary_directories{ false };
+    }
+
+    bool must_persist_temporary_files()
+    {
+        return persist_temporary_files;
+    }
+    bool set_persist_temporary_files(bool new_value)
+    {
+        return persist_temporary_files.exchange(new_value);
+    }
+
+    bool must_persist_temporary_directories()
+    {
+        return persist_temporary_directories;
+    }
+    bool set_persist_temporary_directories(bool new_value)
+    {
+        return persist_temporary_directories.exchange(new_value);
+    }
+
+
     bool is_package_file(std::string_view fn)
     {
         return util::ends_with(fn, ".tar.bz2") || util::ends_with(fn, ".conda");
@@ -147,7 +172,7 @@ namespace mamba
 
     TemporaryDirectory::~TemporaryDirectory()
     {
-        if (!Context::instance().keep_temp_directories)
+        if (!must_persist_temporary_directories())
         {
             fs::remove_all(m_path);
         }
@@ -206,7 +231,7 @@ namespace mamba
 
     TemporaryFile::~TemporaryFile()
     {
-        if (!Context::instance().keep_temp_files)
+        if (!must_persist_temporary_files())
         {
             fs::remove(m_path);
         }

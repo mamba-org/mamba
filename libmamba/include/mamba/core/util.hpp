@@ -60,6 +60,55 @@ namespace mamba
         );
     }
 
+    // @return `true` if `TemporaryFile` will not delete files once destroy.
+    //         If `set_persist_temporary_files` was not called, returns `false` by default.
+    //
+    // @warning This function must be called in the execution scope `main()`, doing otherwise leads
+    // to undefined behavior.
+    //
+    // @warning This is a thread-safe accessor for a global parameter: the returned value is
+    // therefore obsolete before being obtained and should be considered as a hint.
+    bool must_persist_temporary_files();
+
+    // Controls if `TemporaryFile` will delete files once destroy or not.
+    // This is useful for debugging situations where temporary data lead to unexpected behavior.
+    //
+    // @warning This function must be called in the execution scope `main()`, doing otherwise leads
+    // to undefined behavior.
+    //
+    // @warning This is a thread-safe function setting a global parameter: if concurrent threads
+    // are both calling this function with different value there is no guarantee as to which
+    // value will be retained.
+    // However if there is exactly one thread executing this function then the following is true:
+    //    const auto result = set_persist_temporary_files(must_persist);
+    //    result == must_persist && must_persist_temporary_files() == must_persist
+    bool set_persist_temporary_files(bool will_persist);
+
+    // @return `true` if `TemporaryDirectory` will not delete files once destroy.
+    //         If `set_persist_temporary_files` was not called, returns `false` by default.
+    //
+    // @warning This function must be called in the execution scope `main()`, doing otherwise leads
+    // to undefined behavior.
+    //
+    // @warning This is a thread-safe accessor for a global parameter: the returned value is
+    // therefore obsolete before being obtained and should be considered as a hint.
+    bool must_persist_temporary_directories();
+
+    // Controls if `TemporaryDirectory` will delete files once destroy or not.
+    // This is useful for debugging situations where temporary data lead to unexpected behavior.
+    //
+    // @warning This function must be called in the execution scope `main()`, doing otherwise leads
+    // to undefined behavior.
+    //
+    // @warning This is a thread-safe function setting a global parameter: if concurrent threads
+    // are both calling this function with different value there is no guarantee as to which
+    // value will be retained.
+    // However if there is exactly one thread executing this function then the following is true:
+    //    const auto result = set_persist_temporary_directories(must_persist);
+    //    result == must_persist && must_persist_temporary_directories() == must_persist
+    bool set_persist_temporary_directories(bool will_persist);
+
+
     class TemporaryDirectory
     {
     public:

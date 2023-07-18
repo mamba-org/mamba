@@ -111,6 +111,9 @@ namespace mamba
         keep_temp_files = env::get("MAMBA_KEEP_TEMP") ? true : false;
         keep_temp_directories = env::get("MAMBA_KEEP_TEMP_DIRS") ? true : false;
 
+        set_persist_temporary_files(keep_temp_files);
+        set_persist_temporary_directories(keep_temp_directories);
+
         {
             const bool cout_is_atty = is_atty(std::cout);
             graphics_params.no_progress_bars = (on_ci || !cout_is_atty);

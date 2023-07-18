@@ -564,8 +564,6 @@ namespace mamba
                                   - )"
                               + (fs::u8path(root_prefix_str) / "pkgs").string() + R"(  # 'fallback'
                                   - )"
-                              + (env::user_data_dir() / "pkgs").string() + R"(  # 'fallback'
-                                  - )"
                               + (env::home_directory() / ".mamba" / "pkgs").string()
                               + R"(  # 'fallback')" + extra_cache)
                                  .c_str())

@@ -845,7 +845,6 @@ namespace mamba
         std::vector<fs::u8path> fallback_pkgs_dirs_hook()
         {
             std::vector<fs::u8path> paths = { Context::instance().prefix_params.root_prefix / "pkgs",
-                                              env::user_data_dir() / "pkgs",
                                               env::home_directory() / ".mamba" / "pkgs" };
 #ifdef _WIN32
             auto appdata = env::get("APPDATA");

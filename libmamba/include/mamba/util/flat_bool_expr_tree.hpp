@@ -145,8 +145,13 @@ namespace mamba::util
         using size_type = typename tree_type::size_type;
 
         flat_bool_expr_tree() = default;
+        flat_bool_expr_tree(const flat_bool_expr_tree&) = default;
+        flat_bool_expr_tree(flat_bool_expr_tree&&) = default;
         flat_bool_expr_tree(const tree_type& tree);
         flat_bool_expr_tree(tree_type&& tree);
+
+        auto operator=(const flat_bool_expr_tree&) -> flat_bool_expr_tree& = default;
+        auto operator=(flat_bool_expr_tree&&) -> flat_bool_expr_tree& = default;
 
         [[nodiscard]] auto size() const -> size_type;
         [[nodiscard]] auto empty() const -> bool;

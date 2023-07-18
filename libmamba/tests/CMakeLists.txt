@@ -23,6 +23,7 @@ set(LIBMAMBA_TEST_SRCS
     # Utility library
     src/util/test_cast.cpp
     src/util/test_compare.cpp
+    src/util/test_type_traits.cpp
     src/util/test_flat_set.cpp
     src/util/test_flat_bool_expr_tree.cpp
     src/util/test_graph.cpp

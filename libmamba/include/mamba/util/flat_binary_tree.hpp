@@ -19,7 +19,11 @@ namespace mamba::util
      * A binary tree, each node is either a leaf, or a node with exactly two children.
      * This data structure is light and nothing prevents the user from representing
      * any kind of binary directed acyclic graph (e.g. there can be multiple trees,
-     * or nodes could have multiple parents).
+     * or nodes could have multiple parents)
+     *
+     * For efficency (and simplicity), this data structure can currenlty only grow.
+     * The tree must also be grown from the leaves, adding children first and their
+     * parents afterwards.
      */
     template <typename Branch, typename Leaf>
     class flat_binary_tree
@@ -43,11 +47,31 @@ namespace mamba::util
         [[nodiscard]] auto size() const -> size_type;
         [[nodiscard]] auto empty() const -> bool;
 
+        /** Remove all nodes. */
         void clear();
+
+        /**
+         * Reserve (allocate) space for @p nodes.
+         *
+         * This improves the efficency of ``add_leaf`` and ``add_branch`` but does not
+         * modify the tree in any way.
+         */
         void reserve(size_type size);
 
+        /**
+         * Add a node with no children.
+         *
+         * Return an ID that can be used to poin to this node as a children in ``add_branch``.
+         */
         auto add_leaf(const leaf_type& leaf) -> idx_type;
         auto add_leaf(leaf_type&& leaf) -> idx_type;
+
+        /**
+         * Add a node with exactly two children.
+         *
+         * The children must have been previously added to the tree and thei IDs can be used
+         * to point to them.
+         */
         auto add_branch(const branch_type& branch, idx_type left_child, idx_type right_child)
             -> idx_type;
         auto add_branch(branch_type&& branch, idx_type left_child, idx_type right_child) -> idx_type;

@@ -198,7 +198,7 @@ namespace mamba
             set_low_speed_opt,
             connect_timeout_secs,
             set_ssl_no_revoke,
-            proxy_match(url),
+            proxy_match(url, context().remote_fetch_params.proxy_servers),
             ssl_verify
         );
 
@@ -577,7 +577,7 @@ namespace mamba
             set_low_speed_opt,
             connect_timeout_secs,
             set_ssl_no_revoke,
-            proxy_match(m_url),
+            proxy_match(m_url, context().remote_fetch_params.proxy_servers),
             ssl_verify
         );
     }

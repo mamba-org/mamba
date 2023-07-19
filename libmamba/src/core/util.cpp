@@ -1633,21 +1633,16 @@ namespace mamba
         return std::nullopt;
     }
 
-    std::optional<std::string> proxy_match(const std::string& url)
-    {
-        return proxy_match(url, Context::instance().remote_fetch_params.proxy_servers);
-    }
-
-    std::string hide_secrets(std::string_view str)
+    std::string hide_secrets(const Context& context, std::string_view str)
     {
         std::string copy(str);
 
         if (util::contains(str, "/t/"))
         {
-            copy = std::regex_replace(copy, Context::instance().token_regex, "/t/*****");
+            copy = std::regex_replace(copy, context.token_regex, "/t/*****");
         }
 
-        copy = std::regex_replace(copy, Context::instance().http_basicauth_regex, "$1$2:*****@");
+        copy = std::regex_replace(copy, context.http_basicauth_regex, "$1$2:*****@");
 
         return copy;
     }

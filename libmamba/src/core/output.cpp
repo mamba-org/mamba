@@ -319,7 +319,7 @@ namespace mamba
 
     std::string Console::hide_secrets(std::string_view str)
     {
-        return mamba::hide_secrets(str);
+        return mamba::hide_secrets(Context::instance(), str);
     }
 
     void Console::print(std::string_view str, bool force_print)

@@ -362,9 +362,8 @@ namespace mamba
                 script_file = wrap_call(
                     Context::instance().prefix_params.root_prefix,
                     prefix,
-                    Context::instance().dev,
-                    false,
-                    { "@CALL", path.string() }
+                    { "@CALL", path.string() },
+                    WrappedCallOptions::from_context(Context::instance())
                 );
 
                 command_args = { comspec.value(), "/d", "/c", script_file->path().string() };
@@ -390,9 +389,8 @@ namespace mamba
                 script_file = wrap_call(
                     Context::instance().prefix_params.root_prefix.string(),
                     prefix,
-                    Context::instance().dev,
-                    false,
-                    { ".", path.string() }
+                    { ".", path.string() },
+                    WrappedCallOptions::from_context(Context::instance())
                 );
                 command_args.push_back(shell_path.string());
                 command_args.push_back(script_file->path().string());
@@ -480,7 +478,8 @@ namespace mamba
         LOG_TRACE << "Unlinking '" << dst.string() << "'";
         std::error_code err;
 
-        if (remove_or_rename(dst) == 0)
+        const auto& context = Context::instance();
+        if (remove_or_rename(context, dst) == 0)
         {
             LOG_DEBUG << "Error when removing file '" << dst.string() << "' will be ignored";
         }
@@ -504,7 +503,7 @@ namespace mamba
                 }
                 if (is_empty)
                 {
-                    remove_or_rename(parent_path);
+                    remove_or_rename(context, parent_path);
                 }
                 else
                 {

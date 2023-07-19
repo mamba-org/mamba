@@ -246,7 +246,7 @@ namespace mamba
         const std::string cwd = target_prefix.string();
         options.working_directory = cwd.c_str();
 
-        auto [wrapped_command, script_file] = prepare_wrapped_call(target_prefix, command);
+        auto [wrapped_command, script_file] = prepare_wrapped_call(ctx, target_prefix, command);
         m_pyc_script_file = std::move(script_file);
 
         LOG_INFO << "Running wrapped python compilation command " << util::join(" ", command);

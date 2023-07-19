@@ -219,7 +219,7 @@ set_env_command(CLI::App* com, Configuration& config)
             {
                 const auto& prefix = ctx.prefix_params.target_prefix;
                 // Remove env directory or rename it (e.g. if used)
-                remove_or_rename(env::expand_user(prefix));
+                remove_or_rename(ctx, env::expand_user(prefix));
 
                 EnvironmentsManager env_manager{ ctx };
                 // Unregister environment

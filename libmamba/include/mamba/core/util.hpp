@@ -33,6 +33,8 @@
 
 namespace mamba
 {
+    class Context;
+
     // Used when we want a callback which does nothing.
     struct no_op
     {
@@ -354,7 +356,7 @@ namespace mamba
     quote_for_shell(const std::vector<std::string>& arguments, const std::string& shell = "");
 
     std::size_t clean_trash_files(const fs::u8path& prefix, bool deep_clean);
-    std::size_t remove_or_rename(const fs::u8path& path);
+    std::size_t remove_or_rename(const Context& context, const fs::u8path& path);
 
     // Unindent a string literal
     std::string unindent(const char* p);
@@ -380,16 +382,28 @@ namespace mamba
     open_ifstream(const fs::u8path& path, std::ios::openmode mode = std::ios::in | std::ios::binary);
 
     bool ensure_comspec_set();
+
+    struct WrappedCallOptions
+    {
+        bool is_micromamba = false;
+        bool dev_mode = false;
+        bool debug_wrapper_scripts = false;
+
+        static WrappedCallOptions from_context(const Context&);
+    };
+
     std::unique_ptr<TemporaryFile> wrap_call(
         const fs::u8path& root_prefix,
         const fs::u8path& prefix,
-        bool dev_mode,
-        bool debug_wrapper_scripts,
-        const std::vector<std::string>& arguments
+        const std::vector<std::string>& arguments,  // TODO: c++20 replace by std::span
+        WrappedCallOptions options = {}
     );
 
-    std::tuple<std::vector<std::string>, std::unique_ptr<TemporaryFile>>
-    prepare_wrapped_call(const fs::u8path& prefix, const std::vector<std::string>& cmd);
+    std::tuple<std::vector<std::string>, std::unique_ptr<TemporaryFile>> prepare_wrapped_call(
+        const Context& context,
+        const fs::u8path& prefix,
+        const std::vector<std::string>& cmd
+    );
 
     /// Returns `true` if the filename matches names of files which should be interpreted as YAML.
     /// NOTE: this does not check if the file exists.

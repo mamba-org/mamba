@@ -139,6 +139,7 @@ namespace mamba
         }();
 
         auto [wrapped_command, tmpfile] = prepare_wrapped_call(
+            ctx,
             ctx.prefix_params.target_prefix,
             install_instructions
         );

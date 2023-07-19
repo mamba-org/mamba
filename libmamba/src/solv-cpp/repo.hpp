@@ -9,15 +9,13 @@
 
 #include <optional>
 #include <string_view>
+#include <type_traits>
 #include <utility>
+
+#include <solv/repo.h>
 
 #include "solv-cpp/ids.hpp"
 #include "solv-cpp/solvable.hpp"
-
-extern "C"
-{
-    using Repo = struct s_Repo;
-}
 
 namespace fs
 {
@@ -266,14 +264,7 @@ namespace mamba::solv
          */
         void internalize();
     };
-}
 
-#include <type_traits>
-
-#include <solv/repo.h>
-
-namespace mamba::solv
-{
     /****************************************
      *  Implementation of ObjRepoViewConst  *
      ****************************************/

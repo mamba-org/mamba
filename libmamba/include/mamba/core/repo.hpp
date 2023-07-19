@@ -100,7 +100,6 @@ namespace mamba
         void read_json(const fs::u8path& filename);
         bool read_solv(const fs::u8path& filename);
         void write_solv(fs::u8path path);
-        void add_package_info(const PackageInfo& pkg_info);
         void set_solvables_url(const std::string& repo_url);
 
         MPool m_pool;

@@ -84,6 +84,50 @@ namespace mamba
         {
             return solv::ObjRepoView{ *r.repo() };
         }
+
+        void set_solvable(MPool& pool, solv::ObjSolvableView solv, const PackageInfo& pkg)
+        {
+            solv.set_name(pkg.name);
+            solv.set_version(pkg.version);
+            solv.set_build_string(pkg.build_string);
+            solv.set_noarch(pkg.noarch);
+            solv.set_build_number(pkg.build_number);
+            solv.set_channel(pkg.channel);
+            solv.set_url(pkg.url);
+            solv.set_subdir(pkg.subdir);
+            solv.set_file_name(pkg.fn);
+            solv.set_license(pkg.license);
+            solv.set_size(pkg.size);
+            // TODO conda timestamp are not Unix timestamp.
+            // Libsolv normalize them this way, we need to do the same here otherwise the current
+            // package may get arbitrary priority.
+            solv.set_timestamp(
+                (pkg.timestamp > 253402300799ULL) ? (pkg.timestamp / 1000) : pkg.timestamp
+            );
+            solv.set_md5(pkg.md5);
+            solv.set_sha256(pkg.sha256);
+
+            for (const auto& dep : pkg.depends)
+            {
+                // TODO pool's matchspec2id
+                solv::DependencyId const dep_id = pool_conda_matchspec(pool, dep.c_str());
+                assert(dep_id);
+                solv.add_dependency(dep_id);
+            }
+
+            for (const auto& cons : pkg.constrains)
+            {
+                // TODO pool's matchspec2id
+                solv::DependencyId const dep_id = pool_conda_matchspec(pool, cons.c_str());
+                assert(dep_id);
+                solv.add_constraint(dep_id);
+            }
+
+            solv.add_track_features(pkg.track_features);
+
+            solv.add_self_provide();
+        }
+
     }
 
     MRepo::MRepo(MPool& pool, const std::string& name, const fs::u8path& index, const RepoMetadata& metadata)
@@ -105,7 +149,9 @@ namespace mamba
         m_repo = repo.raw();
         for (auto& info : package_infos)
         {
-            add_package_info(info);
+            LOG_INFO << "Adding package record to repo " << info.name;
+            auto [id, solv] = srepo(*this).add_solvable();
+            set_solvable(m_pool, solv, info);
         }
         repo.internalize();
     }
@@ -118,7 +164,9 @@ namespace mamba
 
         for (auto& [name, record] : prefix_data.records())
         {
-            add_package_info(record);
+            LOG_INFO << "Adding package record to repo " << record.name;
+            auto [id, solv] = srepo(*this).add_solvable();
+            set_solvable(m_pool, solv, record);
         }
 
         if (Context::instance().add_pip_as_python_dependency)
@@ -157,53 +205,6 @@ namespace mamba
     {
         m_repo->priority = priority;
         m_repo->subpriority = subpriority;
-    }
-
-    void MRepo::add_package_info(const PackageInfo& info)
-    {
-        LOG_INFO << "Adding package record to repo " << info.name;
-
-        auto [id, solv] = srepo(*this).add_solvable();
-
-        solv.set_name(info.name);
-        solv.set_version(info.version);
-        solv.set_build_string(info.build_string);
-        solv.set_noarch(info.noarch);
-        solv.set_build_number(info.build_number);
-        solv.set_channel(info.channel);
-        solv.set_url(info.url);
-        solv.set_subdir(info.subdir);
-        solv.set_file_name(info.fn);
-        solv.set_license(info.license);
-        solv.set_size(info.size);
-        // TODO conda timestamp are not Unix timestamp.
-        // Libsolv normalize them this way, we need to do the same here otherwise the current
-        // package may get arbitrary priority.
-        solv.set_timestamp(
-            (info.timestamp > 253402300799ULL) ? (info.timestamp / 1000) : info.timestamp
-        );
-        solv.set_md5(info.md5);
-        solv.set_sha256(info.sha256);
-
-        for (const auto& dep : info.depends)
-        {
-            // TODO pool's matchspec2id
-            solv::DependencyId const dep_id = pool_conda_matchspec(m_pool, dep.c_str());
-            assert(dep_id);
-            solv.add_dependency(dep_id);
-        }
-
-        for (const auto& cons : info.constrains)
-        {
-            // TODO pool's matchspec2id
-            solv::DependencyId const dep_id = pool_conda_matchspec(m_pool, cons.c_str());
-            assert(dep_id);
-            solv.add_constraint(dep_id);
-        }
-
-        solv.add_track_features(info.track_features);
-
-        solv.add_self_provide();
     }
 
     auto MRepo::name() const -> std::string_view

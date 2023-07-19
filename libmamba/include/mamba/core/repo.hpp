@@ -62,7 +62,19 @@ namespace mamba
     {
     public:
 
-        MRepo(MPool& pool, const std::string& name, const fs::u8path& filename, const RepoMetadata& meta);
+        enum class RepodataParser
+        {
+            mamba,
+            libsolv,
+        };
+
+        MRepo(
+            MPool& pool,
+            const std::string& name,
+            const fs::u8path& filename,
+            const RepoMetadata& meta,
+            RepodataParser parser = RepodataParser::libsolv
+        );
         MRepo(MPool& pool, const PrefixData& prefix_data);
         MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& uris);
 
@@ -96,7 +108,7 @@ namespace mamba
 
         void add_pip_as_python_dependency();
         void clear(bool reuse_ids = true);
-        void load_file(const fs::u8path& filename);
+        void load_file(const fs::u8path& filename, RepodataParser parser);
         void libsolv_read_json(const fs::u8path& filename);
         void mamba_read_json(const fs::u8path& filename);
         bool read_solv(const fs::u8path& filename);

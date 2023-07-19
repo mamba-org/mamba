@@ -204,14 +204,20 @@ namespace mamba
         }
     }
 
-    MRepo::MRepo(MPool& pool, const std::string& name, const fs::u8path& index, const RepoMetadata& metadata)
+    MRepo::MRepo(
+        MPool& pool,
+        const std::string& name,
+        const fs::u8path& index,
+        const RepoMetadata& metadata,
+        RepodataParser parser
+    )
         : m_pool(pool)
         , m_metadata(metadata)
     {
         auto [_, repo] = pool.pool().add_repo(name);
         m_repo = repo.raw();
         repo.set_url(m_metadata.url);
-        load_file(index);
+        load_file(index, parser);
         set_solvables_url(m_metadata.url);
         repo.internalize();
     }
@@ -390,7 +396,7 @@ namespace mamba
         return true;
     }
 
-    void MRepo::load_file(const fs::u8path& filename)
+    void MRepo::load_file(const fs::u8path& filename, RepodataParser parser)
     {
         auto repo = srepo(*this);
         bool is_solv = filename.extension() == ".solv";
@@ -421,7 +427,14 @@ namespace mamba
         }
 
         auto lock = LockFile(json_file);
-        libsolv_read_json(json_file);
+        if (parser == RepodataParser::mamba)
+        {
+            mamba_read_json(json_file);
+        }
+        else  // parser == RepodataParser::libsolv
+        {
+            libsolv_read_json(json_file);
+        }
 
         // TODO move this to a more structured approach for repodata patching?
         if (Context::instance().add_pip_as_python_dependency)

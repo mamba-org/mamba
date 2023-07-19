@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <array>
+#include <fstream>
 #include <tuple>
 
 #include <nlohmann/json.hpp>
@@ -27,6 +28,7 @@ extern "C"  // Incomplete header
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/specs/repo_data.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/repo.hpp"
 
@@ -37,6 +39,7 @@ extern "C"  // Incomplete header
 
 namespace mamba
 {
+    namespace nl = nlohmann;
 
     namespace
     {
@@ -128,6 +131,77 @@ namespace mamba
             solv.add_self_provide();
         }
 
+        void set_solvable(
+            MPool& pool,
+            solv::ObjSolvableView solv,
+            const std::string& filename,
+            const specs::RepoDataPackage& pkg
+        )
+        {
+            solv.set_name(pkg.name);
+            solv.set_version(pkg.version.str());
+            solv.set_build_string(pkg.build_string);
+            // Un parse Noarch
+            if (pkg.noarch == specs::NoArchType::Generic)
+            {
+                solv.set_noarch("generic");
+            }
+            else if (pkg.noarch == specs::NoArchType::Python)
+            {
+                solv.set_noarch("python");
+            }
+            solv.set_build_number(pkg.build_number);
+            if (pkg.subdir)
+            {
+                solv.set_subdir(*pkg.subdir);
+            }
+            solv.set_file_name(filename);
+            if (pkg.license)
+            {
+                solv.set_license(*pkg.license);
+            }
+            if (pkg.size)
+            {
+                solv.set_size(*pkg.size);
+            }
+            // TODO conda timestamp are not Unix timestamp.
+            // Libsolv normalize them this way, we need to do the same here otherwise the current
+            // package may get arbitrary priority.
+            if (pkg.timestamp)
+            {
+                solv.set_timestamp(
+                    (*pkg.timestamp > 253402300799ULL) ? (*pkg.timestamp / 1000) : *pkg.timestamp
+                );
+            }
+            if (pkg.md5)
+            {
+                solv.set_md5(*pkg.md5);
+            }
+            if (pkg.sha256)
+            {
+                solv.set_sha256(*pkg.sha256);
+            }
+
+            for (const auto& dep : pkg.depends)
+            {
+                // TODO pool's matchspec2id
+                solv::DependencyId const dep_id = pool_conda_matchspec(pool, dep.c_str());
+                assert(dep_id);
+                solv.add_dependency(dep_id);
+            }
+
+            for (const auto& cons : pkg.constrains)
+            {
+                // TODO pool's matchspec2id
+                solv::DependencyId const dep_id = pool_conda_matchspec(pool, cons.c_str());
+                assert(dep_id);
+                solv.add_constraint(dep_id);
+            }
+
+            solv.add_track_features(pkg.track_features);
+
+            solv.add_self_provide();
+        }
     }
 
     MRepo::MRepo(MPool& pool, const std::string& name, const fs::u8path& index, const RepoMetadata& metadata)
@@ -241,12 +315,39 @@ namespace mamba
         );
     }
 
-    void MRepo::read_json(const fs::u8path& filename)
+    void MRepo::libsolv_read_json(const fs::u8path& filename)
     {
-        LOG_INFO << "Reading repodata.json file " << filename << " for repo " << name();
+        LOG_INFO << "Reading repodata.json file " << filename << " for repo " << name()
+                 << " using libsolv";
         // TODO make this as part of options of the repo/pool
         const int flags = Context::instance().use_only_tar_bz2 ? CONDA_ADD_USE_ONLY_TAR_BZ2 : 0;
         srepo(*this).legacy_read_conda_repodata(filename, flags);
+    }
+
+    void MRepo::mamba_read_json(const fs::u8path& filename)
+    {
+        LOG_INFO << "Reading repodata.json file " << filename << " for repo " << name()
+                 << " using mamba";
+
+        auto filename_stream = std::ifstream(filename.std_path());
+        const auto repodata = nl::json::parse(filename_stream).get<specs::RepoData>();
+
+        for (const auto& [fn, pkg] : repodata.packages)
+        {
+            LOG_INFO << "Adding package record to repo " << pkg.name;
+            auto [id, solv] = srepo(*this).add_solvable();
+            set_solvable(m_pool, solv, fn, pkg);
+        }
+
+        if (!Context::instance().use_only_tar_bz2)
+        {
+            for (const auto& [fn, pkg] : repodata.conda_packages)
+            {
+                LOG_INFO << "Adding package record to repo " << pkg.name;
+                auto [id, solv] = srepo(*this).add_solvable();
+                set_solvable(m_pool, solv, fn, pkg);
+            }
+        }
     }
 
     bool MRepo::read_solv(const fs::u8path& filename)
@@ -320,7 +421,7 @@ namespace mamba
         }
 
         auto lock = LockFile(json_file);
-        read_json(json_file);
+        libsolv_read_json(json_file);
 
         // TODO move this to a more structured approach for repodata patching?
         if (Context::instance().add_pip_as_python_dependency)

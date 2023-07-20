@@ -72,16 +72,12 @@
         "BUILD_LIBMAMBA_TESTS": "ON",
         "BUILD_MAMBA_PACKAGE": "ON",
         "BUILD_MICROMAMBA": "ON",
-        "BUILD_MICROMAMBA_SERVER": "ON",
-        "CMAKE_CXX_EXTENSIONS": "OFF",
-        "CMAKE_CXX_STANDARD": "17",
-        "CMAKE_CXX_STANDARD_REQUIRED": "ON",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+        "BUILD_MICROMAMBA_SERVER": "ON"
       },
       "description": "Base profile for development in Mamba",
       "displayName": "Mamba dev",
       "hidden": true,
-      "name": "mamba-dev",
+      "name": "mamba-all",
       "warnings": {
         "dev": true,
         "unusedCli": true
@@ -109,14 +105,45 @@
       "name": "mamba-debug"
     },
     {
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "hidden": true,
+      "name": "mamba-release"
+    },
+    {
       "displayName": "Mamba shared debug",
       "inherits": [
         "conda-base",
-        "mamba-dev",
+        "mamba-all",
         "mamba-shared",
         "mamba-debug"
       ],
       "name": "mamba-shared-debug"
+    },
+    {
+      "displayName": "Mamba shared release",
+      "inherits": [
+        "conda-base",
+        "mamba-all",
+        "mamba-shared",
+        "mamba-release"
+      ],
+      "name": "mamba-shared-release"
+    },
+    {
+      "cacheVariables": {
+        "CMAKE_COLOR_DIAGNOSTICS": "ON",
+        "CMAKE_COLOR_MAKEFILE": "ON",
+        "CMAKE_CXX_COMPILER_LAUNCHER": "ccache",
+        "CMAKE_CXX_EXTENSIONS": "OFF",
+        "CMAKE_CXX_STANDARD": "17",
+        "CMAKE_CXX_STANDARD_REQUIRED": "ON",
+        "CMAKE_C_COMPILER_LAUNCHER": "ccache",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      },
+      "displayName": "Mamba dev",
+      "name": "mamba-dev"
     }
   ],
   "version": 4

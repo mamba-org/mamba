@@ -1171,6 +1171,12 @@ namespace mamba
                         under active development and not stable yet.)"))
                    .set_post_merge_hook(detail::experimental_hook));
 
+        insert(Configurable("experimental_repodata_parsing", &ctx.experimental_repodata_parsing)
+                   .group("Basic")
+                   .description("Enable experimental parsing of repodata.json using nl::json")
+                   .set_rc_configurable()
+                   .set_env_var_names());
+
         insert(Configurable("debug", &ctx.debug)
                    .group("Basic")
                    .set_env_var_names()

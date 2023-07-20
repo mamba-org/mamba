@@ -427,17 +427,20 @@ namespace mamba
         }
 
         auto lock = LockFile(json_file);
-        if (parser == RepodataParser::mamba)
+        const auto& ctx = Context::instance();
+
+        if ((parser == RepodataParser::mamba)
+            || (parser == RepodataParser::automatic && ctx.experimental_repodata_parsing))
         {
             mamba_read_json(json_file);
         }
-        else  // parser == RepodataParser::libsolv
+        else
         {
             libsolv_read_json(json_file);
         }
 
         // TODO move this to a more structured approach for repodata patching?
-        if (Context::instance().add_pip_as_python_dependency)
+        if (ctx.add_pip_as_python_dependency)
         {
             add_pip_as_python_dependency();
         }

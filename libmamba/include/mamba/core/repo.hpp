@@ -64,6 +64,7 @@ namespace mamba
 
         enum class RepodataParser
         {
+            automatic,
             mamba,
             libsolv,
         };
@@ -73,7 +74,7 @@ namespace mamba
             const std::string& name,
             const fs::u8path& filename,
             const RepoMetadata& meta,
-            RepodataParser parser = RepodataParser::libsolv
+            RepodataParser parser = RepodataParser::automatic
         );
         MRepo(MPool& pool, const PrefixData& prefix_data);
         MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& uris);

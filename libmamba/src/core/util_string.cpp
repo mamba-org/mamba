@@ -79,6 +79,16 @@ namespace mamba
         return std::iswdigit(static_cast<wint_t>(c)) != 0;
     }
 
+    bool is_punct(char c)
+    {
+        return std::ispunct(static_cast<unsigned char>(c)) != 0;
+    }
+
+    bool is_punct(wchar_t c)
+    {
+        return std::iswpunct(static_cast<wint_t>(c)) != 0;
+    }
+
     bool is_alpha(char c)
     {
         return std::isalpha(static_cast<unsigned char>(c)) != 0;
@@ -233,10 +243,21 @@ namespace mamba
                && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
     }
 
+    bool ends_with(std::string_view str, std::string_view::value_type c)
+    {
+        return (!str.empty()) && (str.back() == c);
+    }
+
     // TODO(C++20) This is a method of string_view
     bool starts_with(std::string_view str, std::string_view prefix)
     {
         return str.size() >= prefix.size() && 0 == str.compare(0, prefix.size(), prefix);
+    }
+
+    // TODO(C++20) This is a method of string_view
+    bool starts_with(std::string_view str, std::string_view::value_type c)
+    {
+        return (!str.empty()) && (str.front() == c);
     }
 
     /*********************************************

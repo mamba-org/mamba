@@ -34,8 +34,12 @@ namespace mamba
 
         TEST_CASE("starts_with")
         {
+            CHECK(starts_with("", ""));
+            CHECK_FALSE(starts_with("", ":"));
+            CHECK_FALSE(starts_with("", ':'));
             CHECK(starts_with(":hello", ""));
             CHECK(starts_with(":hello", ":"));
+            CHECK(starts_with(":hello", ':'));
             CHECK(starts_with(":hello", ":h"));
             CHECK(starts_with(":hello", ":hello"));
             CHECK_FALSE(starts_with(":hello", "lo"));
@@ -44,8 +48,12 @@ namespace mamba
 
         TEST_CASE("ends_with")
         {
+            CHECK(ends_with("", ""));
+            CHECK_FALSE(ends_with("", "&"));
+            CHECK_FALSE(ends_with("", '&'));
             CHECK(ends_with("hello&", ""));
             CHECK(ends_with("hello&", "&"));
+            CHECK(ends_with("hello&", '&'));
             CHECK(ends_with("hello&", "o&"));
             CHECK(ends_with("hello&", "hello&"));
             CHECK_FALSE(ends_with("hello&", "he"));

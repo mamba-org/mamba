@@ -434,11 +434,15 @@ namespace mamba::specs
             {
                 return c;
             }
-            if (auto c = starts_with_three_way(a.version(), b.version()); c != strong_ordering::equal)
+            if (b.local().empty())
+            {
+                return starts_with_three_way(a.version(), b.version());
+            }
+            if (auto c = compare_three_way(a.version(), b.version()); c != strong_ordering::equal)
             {
                 return c;
             }
-            return compare_three_way(a.local(), b.local());
+            return starts_with_three_way(a.local(), b.local());
         }
     }
 
@@ -693,6 +697,14 @@ namespace mamba::specs
         catch (const std::invalid_argument& ia)
         {
             throw std::invalid_argument(fmt::format("Error parsing version '{}'. {}", str, ia.what()));
+        }
+    }
+
+    namespace version_literals
+    {
+        auto operator""_v(const char* str, std::size_t len) -> Version
+        {
+            return Version::parse(std::literals::string_view_literals::operator""sv(str, len));
         }
     }
 }

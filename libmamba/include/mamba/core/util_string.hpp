@@ -44,6 +44,8 @@ namespace mamba
     bool is_graphic(wchar_t c);
     bool is_digit(char c);
     bool is_digit(wchar_t c);
+    bool is_punct(char c);
+    bool is_punct(wchar_t c);
     bool is_alpha(char c);
     bool is_alpha(wchar_t c);
     bool is_alphanum(char c);
@@ -74,8 +76,10 @@ namespace mamba
     extern template std::wstring to_upper(std::wstring&& str);
 
     bool starts_with(std::string_view str, std::string_view prefix);
+    bool starts_with(std::string_view str, std::string_view::value_type c);
 
     bool ends_with(std::string_view str, std::string_view suffix);
+    bool ends_with(std::string_view str, std::string_view::value_type c);
 
     bool contains(std::string_view str, std::string_view sub_str);
 

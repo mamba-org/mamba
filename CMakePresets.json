@@ -68,6 +68,7 @@
       "cacheVariables": {
         "BUILD_LIBMAMBA": "ON",
         "BUILD_LIBMAMBAPY": "ON",
+        "BUILD_LIBMAMBA_BENCHMARKS": "ON",
         "BUILD_LIBMAMBA_TESTS": "ON",
         "BUILD_MAMBA_PACKAGE": "ON",
         "BUILD_MICROMAMBA": "ON",

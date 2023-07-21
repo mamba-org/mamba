@@ -1058,7 +1058,7 @@ namespace mamba
 
     std::string PowerShellActivator::hook_postamble()
     {
-        return "Remove-Variable MambaModuleArgs";
+        return "Remove-Variable -Name MambaModuleArgs -ErrorAction SilentlyContinue";
     }
 
     fs::u8path PowerShellActivator::hook_source_path()

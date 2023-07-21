@@ -951,7 +951,7 @@ class TestActivation:
                 f'$Env:MAMBA_EXE="{mamba_exe}"',
                 "$MambaModuleArgs = @{ChangePs1 = $True}",
                 f'Import-Module "{tmp_root_prefix}\\condabin\\Mamba.psm1" -ArgumentList $MambaModuleArgs',
-                "Remove-Variable MambaModuleArgs",
+                "Remove-Variable -Name MambaModuleArgs -ErrorAction SilentlyContinue",
             ]
         elif interpreter == "bash":
             if plat == "linux":

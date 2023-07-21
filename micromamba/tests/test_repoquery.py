@@ -9,9 +9,9 @@ from . import helpers
 @pytest.fixture
 def yaml_env(tmp_prefix: Path) -> None:
     helpers.install(
+        "--yes",
         "--channel",
         "conda-forge",
-        "--offline",
         "yaml=0.2.5",
         "pyyaml=6.0",
         no_dry_run=True,

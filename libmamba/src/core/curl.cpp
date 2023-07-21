@@ -8,10 +8,10 @@
 
 #include <spdlog/spdlog.h>
 
+#include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"  // for NETRC env var
 #include "mamba/core/mamba_fs.hpp"     // for fs::exists
 #include "mamba/core/util.hpp"         // for hide_secrets
-#include "mamba/core/context.hpp"
 
 #include "curl.hpp"
 

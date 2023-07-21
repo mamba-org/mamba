@@ -95,7 +95,7 @@ namespace mamba
 
     Context::Context()
     {
-        on_ci = bool(env::get("CI"));
+        on_ci = static_cast<bool>(env::get("CI"));
         prefix_params.root_prefix = env::get("MAMBA_ROOT_PREFIX").value_or("");
         prefix_params.conda_prefix = prefix_params.root_prefix;
 

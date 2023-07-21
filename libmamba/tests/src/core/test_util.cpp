@@ -176,14 +176,12 @@ namespace mamba
         TEST_CASE("proxy_match")
         {
             auto& context = Context::instance();
-            context.remote_fetch_params.proxy_servers = {
-                                    { "http", "foo" },
-                                                        { "https", "bar" },
-                                                        { "https://example.net",
+            context.remote_fetch_params.proxy_servers = { { "http", "foo" },
+                                                          { "https", "bar" },
+                                                          { "https://example.net",
                                                                         "foobar" },
-                                                        { "all://example.net", "baz" },
-                                                        { "all", "other" }
-                                    };
+                                                          { "all://example.net", "baz" },
+                                                          { "all", "other" } };
 
             auto proxy_match_with_context = [&](const char* url){
                 return proxy_match(url, context.remote_fetch_params.proxy_servers);

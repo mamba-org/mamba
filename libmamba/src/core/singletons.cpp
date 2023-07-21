@@ -203,7 +203,10 @@ namespace mamba
 
     Console& Console::instance()
     {
-        return singletons::init_once(singletons::console);
+        return singletons::init_once(
+            singletons::console,
+            [] { return std::make_unique<singletons::Singleton<Console>>(Context::instance()); }
+        );
     }
 
 }

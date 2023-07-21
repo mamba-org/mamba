@@ -377,7 +377,7 @@ namespace mamba::util
         }
 
         // Trick to enable move and copy assignment: since lambdas are
-        // not assignable, we encpsulate them in an std::optional and
+        // not assignable, we encapsulate them in an std::optional and
         // rely on it to implement assignment operators. The optional
         // should be replaced with a dedicated wrapper.
         std::optional<Predicate> m_pred;

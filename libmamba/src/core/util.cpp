@@ -1544,11 +1544,9 @@ namespace mamba
         return std::string(reinterpret_cast<const char*>(output.data()));
     }
 
-    
-    std::optional<std::string> proxy_match(
-        const std::string& url,
-        const std::map<std::string, std::string>& proxy_servers
-    )
+
+    std::optional<std::string>
+    proxy_match(const std::string& url, const std::map<std::string, std::string>& proxy_servers)
     {
         /* This is a reimplementation of requests.utils.select_proxy(), of the python requests
         library used by conda */

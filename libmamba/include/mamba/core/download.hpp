@@ -20,39 +20,35 @@ namespace mamba
 {
     struct TransferData
     {
-        int http_status;
-        std::string effective_url;
-        std::size_t downloaded_size;
-        std::size_t average_speed;
+        int http_status = 0;
+        std::string effective_url = "";
+        std::size_t downloaded_size = 0;
+        std::size_t average_speed = 0;
     };
 
     struct DownloadSuccess
     {
-        std::string filename;
-        TransferData transfer;
-        std::string cache_control;
-        std::string etag;
-        std::string last_modified;
+        std::string filename = "";
+        TransferData transfer = {};
+        std::string cache_control = "";
+        std::string etag = "";
+        std::string last_modified = "";
     };
 
     struct DownloadError
     {
-        std::string message;
+        std::string message = "";
         std::optional<std::size_t> retry_wait_seconds = std::nullopt;
         std::optional<TransferData> transfer = std::nullopt;
     };
 
     struct DownloadProgress
     {
-        std::size_t downloaded_size;
-        std::size_t total_to_download;
+        std::size_t downloaded_size = 0;
+        std::size_t total_to_download = 0;
     };
 
-    using DownloadEvent = std::variant<
-        DownloadProgress,
-        DownloadError,
-        DownloadSuccess
-    >;
+    using DownloadEvent = std::variant<DownloadProgress, DownloadError, DownloadSuccess>;
 
     struct DownloadRequest
     {
@@ -65,19 +61,21 @@ namespace mamba
         std::string name;
         std::string url;
         std::string filename;
+        bool head_only;
         bool ignore_failure;
-        std::optional<std::size_t> expected_size;
-        std::optional<std::string> if_none_match;
-        std::optional<std::string> if_modified_since;
+        std::optional<std::size_t> expected_size = std::nullopt;
+        std::optional<std::string> if_none_match = std::nullopt;
+        std::optional<std::string> if_modified_since = std::nullopt;
 
-        std::optional<progress_callback_t> progress;
-        std::optional<on_success_callback_t> on_success;
-        std::optional<on_failure_callback_t> on_failure;
+        std::optional<progress_callback_t> progress = std::nullopt;
+        std::optional<on_success_callback_t> on_success = std::nullopt;
+        std::optional<on_failure_callback_t> on_failure = std::nullopt;
 
         DownloadRequest(
             const std::string& lname,
             const std::string& lurl,
             const std::string& lfilename,
+            bool lhead_only = false,
             bool lignore_failure = false
         );
     };
@@ -99,14 +97,12 @@ namespace mamba
 
     struct DownloadOptions
     {
-        bool fail_fast;
-        bool sort;
+        bool fail_fast = false;
+        bool sort = true;
     };
 
-    MultiDownloadResult download(MultiDownloadRequest requests,
-                                 const Context& context,
-                                 DownloadOptions options);
+    MultiDownloadResult
+    download(MultiDownloadRequest requests, const Context& context, DownloadOptions options = {});
 }
 
 #endif
-

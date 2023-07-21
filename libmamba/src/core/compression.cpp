@@ -49,12 +49,12 @@ namespace mamba
 
         size_t write_impl(char* in, size_t size) override;
 
-        static constexpr size_t BUFFER_SIZE = 256*1024;
+        static constexpr size_t BUFFER_SIZE = 256 * 1024;
 
         ZSTD_DCtx* p_stream;
         char m_buffer[BUFFER_SIZE];
     };
-    
+
     ZstdCompressionStream::ZstdCompressionStream(writer&& func)
         : base_type(std::move(func))
         , p_stream(ZSTD_createDCtx())
@@ -113,7 +113,7 @@ namespace mamba
 
         size_t write_impl(char* in, size_t size) override;
 
-        static constexpr size_t BUFFER_SIZE = 256*1024;
+        static constexpr size_t BUFFER_SIZE = 256 * 1024;
 
         bz_stream m_stream;
         char m_buffer[BUFFER_SIZE];
@@ -157,10 +157,7 @@ namespace mamba
                 return size + 1;
             }
 
-            size_t wcb_res = base_type::invoke_writer(
-                m_buffer, 
-                BUFFER_SIZE - m_stream.avail_out
-            );
+            size_t wcb_res = base_type::invoke_writer(m_buffer, BUFFER_SIZE - m_stream.avail_out);
             if (wcb_res != BUFFER_SIZE - m_stream.avail_out)
             {
                 return size + 1;
@@ -168,7 +165,7 @@ namespace mamba
         }
         return size;
     }
-    
+
     /***********************
      * NoCompressionStream *
      ***********************/
@@ -198,16 +195,14 @@ namespace mamba
         return base_type::invoke_writer(in, size);
     }
 
-    std::unique_ptr<CompressionStream> make_compression_stream(
-        const std::string& url,
-        CompressionStream::writer&& func
-    )
+    std::unique_ptr<CompressionStream>
+    make_compression_stream(const std::string& url, CompressionStream::writer&& func)
     {
         if (ends_with(url, ".json.zst"))
         {
             return std::make_unique<ZstdCompressionStream>(std::move(func));
         }
-        else if(ends_with(url, "json.bz2"))
+        else if (ends_with(url, "json.bz2"))
         {
             return std::make_unique<Bzip2CompressionStream>(std::move(func));
         }

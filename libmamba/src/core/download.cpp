@@ -15,20 +15,22 @@ namespace mamba
      * DownloadAttempt implementation *
      **********************************/
 
-    DownloadAttempt::DownloadAttempt(CURLHandle& handle, const DownloadRequest* request)
+    DownloadAttempt::DownloadAttempt(CURLHandle& handle, const DownloadRequest& request)
         : p_handle(&handle)
-        , p_request(request)
+        , p_request(&request)
     {
         p_stream = make_compression_stream(
             p_request->url,
             [this](char* in, size_t size) { return this->write_data(in, size); }
         );
     }
-        
-    void DownloadAttempt::prepare_download(CURLMultiHandle& downloader,
-                                           const Context& context,
-                                           on_success_callback success,
-                                           on_failure_callback error)
+
+    void DownloadAttempt::prepare_download(
+        CURLMultiHandle& downloader,
+        const Context& context,
+        on_success_callback success,
+        on_failure_callback error
+    )
     {
         downloader.add_handle(*p_handle);
         configure_handle(context);
@@ -37,18 +39,25 @@ namespace mamba
         downloader.add_handle(*p_handle);
     }
 
+    namespace http
+    {
+        static constexpr int PAYLOAD_TOO_LARGE = 413;
+        static constexpr int TOO_MANY_REQUESTS = 429;
+        static constexpr int ARBITRARY_ERROR = 10000;
+    }
+
     namespace
     {
         bool can_retry_download(int http_status, const std::string& url)
         {
-            return (http_status == 413 || http_status == 429 || http_status >= 500)
-                && !starts_with(url, "file://");
+            return (http_status == http::PAYLOAD_TOO_LARGE || http_status == http::TOO_MANY_REQUESTS
+                    || http_status >= 500)
+                   && !starts_with(url, "file://");
         }
     }
 
     bool DownloadAttempt::finish_download(CURLMultiHandle& downloader, CURLcode code)
     {
-        
         if (!CURLHandle::is_curl_res_ok(code))
         {
             DownloadError error = build_download_error(code);
@@ -59,7 +68,7 @@ namespace mamba
         else
         {
             TransferData data = get_transfer_data();
-            if(can_retry_download(data.http_status, p_request->url))
+            if (can_retry_download(data.http_status, p_request->url))
             {
                 DownloadError error = build_download_error(std::move(data));
                 clean_attempt(downloader, true);
@@ -106,9 +115,8 @@ namespace mamba
 
     auto DownloadAttempt::create_completion_function() -> completion_function
     {
-        return [this](CURLMultiHandle& handle, CURLcode code) {
-            return this->finish_download(handle, code);
-        };
+        return [this](CURLMultiHandle& handle, CURLcode code)
+        { return this->finish_download(handle, code); };
     }
 
     namespace
@@ -135,28 +143,30 @@ namespace mamba
             return 0;
         }
 
-        std::string build_transfer_message(int http_status, const std::string& effective_url, std::size_t size)
+        std::string
+        build_transfer_message(int http_status, const std::string& effective_url, std::size_t size)
         {
             std::stringstream ss;
             ss << "Transfer finalized, status: " << http_status << " [" << effective_url << "] "
-                << size << " bytes";
+               << size << " bytes";
             return ss.str();
         }
     }
 
     void DownloadAttempt::configure_handle(const Context& context)
     {
-        // TODO: we should probably store set_low_speed_limit and set_ssl_no_revoke in RemoteFetchParams
-        // if the request is slower than 30b/s for 60 seconds, cancel.
-        std::string no_low_speed_limit = std::getenv("MAMBA_NO_LOW_SPEED_LIMIT")
-                                             ? std::getenv("MAMBA_NO_LOW_SPEED_LIMIT")
-                                             : "0";
-        bool set_low_speed_opt = (no_low_speed_limit == "0");
+        // TODO: we should probably store set_low_speed_limit and set_ssl_no_revoke in
+        // RemoteFetchParams if the request is slower than 30b/s for 60 seconds, cancel.
+        const std::string no_low_speed_limit = std::getenv("MAMBA_NO_LOW_SPEED_LIMIT")
+                                                   ? std::getenv("MAMBA_NO_LOW_SPEED_LIMIT")
+                                                   : "0";
+        const bool set_low_speed_opt = (no_low_speed_limit == "0");
 
-        std::string ssl_no_revoke_env = std::getenv("MAMBA_SSL_NO_REVOKE")
-                                            ? std::getenv("MAMBA_SSL_NO_REVOKE")
-                                            : "0";
-        bool set_ssl_no_revoke = context.remote_fetch_params.ssl_no_revoke || (ssl_no_revoke_env != "0");
+        const std::string ssl_no_revoke_env = std::getenv("MAMBA_SSL_NO_REVOKE")
+                                                  ? std::getenv("MAMBA_SSL_NO_REVOKE")
+                                                  : "0";
+        const bool set_ssl_no_revoke = context.remote_fetch_params.ssl_no_revoke
+                                       || (ssl_no_revoke_env != "0");
 
         p_handle->configure_handle(
             p_request->url,
@@ -166,6 +176,8 @@ namespace mamba
             proxy_match(p_request->url),
             context.remote_fetch_params.ssl_verify
         );
+
+        p_handle->set_opt(CURLOPT_NOBODY, p_request->head_only);
 
         p_handle->set_opt(CURLOPT_HEADERFUNCTION, &DownloadAttempt::curl_header_callback);
         p_handle->set_opt(CURLOPT_HEADERDATA, this);
@@ -188,7 +200,7 @@ namespace mamba
         }
 
         p_handle->set_opt(CURLOPT_VERBOSE, context.output_params.verbosity >= 2);
-        
+
         configure_handle_headers(context);
 
         auto logger = spdlog::get("libcurl");
@@ -224,7 +236,7 @@ namespace mamba
                 p_handle->add_header(fmt::format("Authorization: Bearer {}", auth.value));
             }
         }
-        
+
         if (p_request->if_none_match.has_value())
         {
             p_handle->add_header("If-None-Match:" + p_request->if_none_match.value());
@@ -234,7 +246,7 @@ namespace mamba
         {
             p_handle->add_header("If-Modified-Since:" + p_request->if_modified_since.value());
         }
-       
+
         p_handle->set_opt_header();
     }
 
@@ -251,7 +263,7 @@ namespace mamba
                 return size + 1;
             }
         }
-        
+
         m_file.write(buffer, static_cast<std::streamsize>(size));
 
         if (!m_file)
@@ -263,17 +275,17 @@ namespace mamba
         return size;
     }
 
-    size_t DownloadAttempt::curl_header_callback(char* buffer, size_t size, size_t nbitems, void* self)
+    size_t
+    DownloadAttempt::curl_header_callback(char* buffer, size_t size, size_t nbitems, void* self)
     {
         auto* s = reinterpret_cast<DownloadAttempt*>(self);
 
-        size_t buffer_size = size * nbitems;
-        std::string_view header(buffer, buffer_size);
+        const size_t buffer_size = size * nbitems;
+        const std::string_view header(buffer, buffer_size);
         auto colon_idx = header.find(':');
         if (colon_idx != std::string_view::npos)
         {
-            std::string_view key, value;
-            key = header.substr(0, colon_idx);
+            std::string_view key = header.substr(0, colon_idx);
             colon_idx++;
             // remove spaces
             while (std::isspace(header[colon_idx]))
@@ -282,11 +294,14 @@ namespace mamba
             }
 
             // remove \r\n header ending
-            auto header_end = header.find_first_of("\r\n");
-            value = header.substr(colon_idx, (header_end > colon_idx) ? header_end - colon_idx : 0);
+            const auto header_end = header.find_first_of("\r\n");
+            std::string_view value = header.substr(
+                colon_idx,
+                (header_end > colon_idx) ? header_end - colon_idx : 0
+            );
 
             // http headers are case insensitive!
-            std::string lkey = to_lower(key);
+            const std::string lkey = to_lower(key);
             if (lkey == "etag")
             {
                 s->m_etag = value;
@@ -308,20 +323,26 @@ namespace mamba
         return reinterpret_cast<DownloadAttempt*>(self)->p_stream->write(buffer, size * nbitems);
     }
 
-    int DownloadAttempt::curl_progress_callback(void* f, curl_off_t total_to_download, curl_off_t now_downloaded, curl_off_t, curl_off_t)
+    int DownloadAttempt::curl_progress_callback(
+        void* f,
+        curl_off_t total_to_download,
+        curl_off_t now_downloaded,
+        curl_off_t,
+        curl_off_t
+    )
     {
         auto* self = reinterpret_cast<DownloadAttempt*>(f);
         self->p_request->progress.value()(DownloadProgress{
             static_cast<std::size_t>(total_to_download),
-            static_cast<std::size_t>(now_downloaded)
-        });
+            static_cast<std::size_t>(now_downloaded) });
         return 0;
     }
 
     TransferData DownloadAttempt::get_transfer_data() const
     {
         return {
-            /* .http_status = */ p_handle->get_info<int>(CURLINFO_RESPONSE_CODE).value_or(10000),
+            /* .http_status = */ p_handle->get_info<int>(CURLINFO_RESPONSE_CODE)
+                .value_or(http::ARBITRARY_ERROR),
             /* .effective_url = */ p_handle->get_info<char*>(CURLINFO_EFFECTIVE_URL).value(),
             /* .dwonloaded_size = */ p_handle->get_info<std::size_t>(CURLINFO_SIZE_DOWNLOAD_T).value_or(0),
             /* .average_speed = */ p_handle->get_info<std::size_t>(CURLINFO_SPEED_DOWNLOAD_T).value_or(0)
@@ -332,9 +353,9 @@ namespace mamba
     {
         DownloadError error;
         std::stringstream strerr;
-        strerr << "Download error (" << code << ") " << p_handle->get_res_error(code)
-            << " [" << p_handle->get_curl_effective_url() << "]\n"
-            << p_handle->get_error_buffer();
+        strerr << "Download error (" << code << ") " << p_handle->get_res_error(code) << " ["
+               << p_handle->get_curl_effective_url() << "]\n"
+               << p_handle->get_error_buffer();
         error.message = strerr.str();
 
         if (p_handle->can_retry(code))
@@ -347,7 +368,8 @@ namespace mamba
     DownloadError DownloadAttempt::build_download_error(TransferData data) const
     {
         DownloadError error;
-        error.retry_wait_seconds = p_handle->get_info<std::size_t>(CURLINFO_RETRY_AFTER).value_or(m_retry_wait_seconds);
+        error.retry_wait_seconds = p_handle->get_info<std::size_t>(CURLINFO_RETRY_AFTER)
+                                       .value_or(m_retry_wait_seconds);
         error.message = build_transfer_message(data.http_status, data.effective_url, data.downloaded_size);
         error.transfer = std::move(data);
         return error;
@@ -355,48 +377,46 @@ namespace mamba
 
     DownloadSuccess DownloadAttempt::build_download_success(TransferData data) const
     {
-        return 
-        {
-            /*.filename = */ p_request->filename,
-            /*.trnasfer = */ std::move(data),
-            /*.cache_control = */ m_cache_control,
-            /*.etag = */ m_etag,
-            /*.last_modified = */ m_last_modified
-        };
+        return { /*.filename = */ p_request->filename,
+                 /*.trnasfer = */ std::move(data),
+                 /*.cache_control = */ m_cache_control,
+                 /*.etag = */ m_etag,
+                 /*.last_modified = */ m_last_modified };
     }
 
     /**********************************
      * DownloadTracker implementation *
      **********************************/
 
-    DownloadTracker::DownloadTracker(const DownloadRequest* request, std::size_t max_retries, bool fail_fast)
-        : p_request(request)
+    DownloadTracker::DownloadTracker(const DownloadRequest& request, DownloadTrackerOptions options)
+        : p_request(&request)
+        , m_options(std::move(options))
         , m_curl_handle()
         , m_attempt(m_curl_handle, request)
         , m_attempt_results()
         , m_state(DownloadState::WAITING)
         , m_next_retry(std::nullopt)
-        , m_max_retries(max_retries)
-        , m_fail_fast(fail_fast)
     {
     }
 
-    auto DownloadTracker::prepare_new_attempt(
-        CURLMultiHandle& handle,
-        const Context& context)
+    auto DownloadTracker::prepare_new_attempt(CURLMultiHandle& handle, const Context& context)
         -> completion_map_entry
     {
         m_next_retry = std::nullopt;
 
-        m_attempt.prepare_download(handle, context,
-            [this](DownloadSuccess res) {
+        m_attempt.prepare_download(
+            handle,
+            context,
+            [this](DownloadSuccess res)
+            {
                 bool finalize_res = invoke_on_success(res);
                 set_state(finalize_res);
                 throw_if_required(res);
                 m_attempt_results.push_back(DownloadResult(std::move(res)));
                 return is_waiting();
             },
-            [this](DownloadError res) {
+            [this](DownloadError res)
+            {
                 invoke_on_failure(res);
                 set_state(res);
                 throw_if_required(res);
@@ -404,12 +424,14 @@ namespace mamba
                 return is_waiting();
             }
         );
-        return {CURLId(&m_curl_handle), m_attempt.create_completion_function()};
+        return { CURLId(&m_curl_handle), m_attempt.create_completion_function() };
     }
 
     bool DownloadTracker::can_start_transfer() const
     {
-        return is_waiting() && (!m_next_retry.has_value() || m_next_retry.value() < std::chrono::steady_clock::now());
+        return is_waiting()
+               && (!m_next_retry.has_value()
+                   || m_next_retry.value() < std::chrono::steady_clock::now());
     }
 
     const DownloadResult& DownloadTracker::get_result() const
@@ -447,7 +469,7 @@ namespace mamba
         }
         else
         {
-            if (m_attempt_results.size() < m_max_retries)
+            if (m_attempt_results.size() < m_options.max_retries)
             {
                 m_state = DownloadState::WAITING;
             }
@@ -462,10 +484,11 @@ namespace mamba
     {
         if (res.retry_wait_seconds.has_value())
         {
-            if (m_attempt_results.size() < m_max_retries)
+            if (m_attempt_results.size() < m_options.max_retries)
             {
                 m_state = DownloadState::WAITING;
-                m_next_retry = std::chrono::steady_clock::now() + std::chrono::seconds(res.retry_wait_seconds.value());
+                m_next_retry = std::chrono::steady_clock::now()
+                               + std::chrono::seconds(res.retry_wait_seconds.value());
             }
             else
             {
@@ -480,10 +503,16 @@ namespace mamba
 
     void DownloadTracker::throw_if_required(const DownloadSuccess& res)
     {
-        if (m_state == DownloadState::FAILED && !p_request->ignore_failure && m_fail_fast)
+        if (m_state == DownloadState::FAILED && !p_request->ignore_failure && m_options.fail_fast)
         {
-            throw std::runtime_error("Multi-download failed. Reason: " + 
-                build_transfer_message(res.transfer.http_status, res.transfer.effective_url, res.transfer.downloaded_size));
+            throw std::runtime_error(
+                "Multi-download failed. Reason: "
+                + build_transfer_message(
+                    res.transfer.http_status,
+                    res.transfer.effective_url,
+                    res.transfer.downloaded_size
+                )
+            );
         }
     }
 
@@ -494,7 +523,7 @@ namespace mamba
             throw std::runtime_error(res.message);
         }
     }
-    
+
     /*****************************
      * DOWNLOADER IMPLEMENTATION *
      *****************************/
@@ -511,22 +540,27 @@ namespace mamba
             std::sort(
                 m_requests.requests.begin(),
                 m_requests.requests.end(),
-                [](DownloadRequest& a, DownloadRequest& b) -> bool
+                [](const DownloadRequest& a, const DownloadRequest& b) -> bool
                 { return a.expected_size.value_or(SIZE_MAX) > b.expected_size.value_or(SIZE_MAX); }
             );
         }
 
         m_trackers.reserve(m_requests.requests.size());
         std::size_t max_retries = static_cast<std::size_t>(context.remote_fetch_params.max_retries);
-        bool fail_fast = options.fail_fast;
-        std::transform(m_requests.requests.begin(), m_requests.requests.end(), std::inserter(m_trackers, m_trackers.begin()),
-            [max_retries, fail_fast](const DownloadRequest& req) { return DownloadTracker(&req, max_retries, fail_fast); });
+        DownloadTrackerOptions tracker_options{ max_retries, options.fail_fast };
+        std::transform(
+            m_requests.requests.begin(),
+            m_requests.requests.end(),
+            std::inserter(m_trackers, m_trackers.begin()),
+            [tracker_options](const DownloadRequest& req)
+            { return DownloadTracker(req, tracker_options); }
+        );
         m_waiting_count = m_trackers.size();
     }
-    
+
     MultiDownloadResult Downloader::download()
     {
-        while(!download_done())
+        while (!download_done())
         {
             prepare_next_downloads();
             update_downloads();
@@ -538,15 +572,18 @@ namespace mamba
     void Downloader::prepare_next_downloads()
     {
         size_t running_attempts = m_completion_map.size();
-        size_t max_parallel_downloads = p_context->threads_params.download_threads;
-        auto start_filter = mamba::util::filter(m_trackers, [&](DownloadTracker& tracker)
-        {
-            return running_attempts < max_parallel_downloads && tracker.can_start_transfer();
-        });
+        const size_t max_parallel_downloads = p_context->threads_params.download_threads;
+        auto start_filter = mamba::util::filter(
+            m_trackers,
+            [&](DownloadTracker& tracker)
+            { return running_attempts < max_parallel_downloads && tracker.can_start_transfer(); }
+        );
 
-        for (auto& tracker: start_filter)
+        for (auto& tracker : start_filter)
         {
-            auto [iter, success] = m_completion_map.insert(tracker.prepare_new_attempt(m_curl_handle, *p_context));
+            auto [iter, success] = m_completion_map.insert(
+                tracker.prepare_new_attempt(m_curl_handle, *p_context)
+            );
             if (success)
             {
                 ++running_attempts;
@@ -556,7 +593,8 @@ namespace mamba
 
     void Downloader::update_downloads()
     {
-        while(auto resp = m_curl_handle.pop_message())
+        std::size_t still_running = m_curl_handle.perform();
+        while (auto resp = m_curl_handle.pop_message())
         {
             const auto& msg = resp.value();
             if (!msg.m_transfer_done)
@@ -570,7 +608,8 @@ namespace mamba
             {
                 spdlog::error(
                     "Received DONE message from unknown target - running transfers left = {}",
-                    m_completion_map.size());
+                    still_running
+                );
             }
             else
             {
@@ -591,19 +630,21 @@ namespace mamba
 
     MultiDownloadResult Downloader::build_result() const
     {
-        DownloadResultList l;
-        l.reserve(m_trackers.size());
-        std::transform(m_trackers.begin(), m_trackers.end(), std::inserter(l, l.begin()),
-            [](const DownloadTracker& tracker) { return tracker.get_result(); });
-        return { l };
+        DownloadResultList result;
+        result.reserve(m_trackers.size());
+        std::transform(
+            m_trackers.begin(),
+            m_trackers.end(),
+            std::inserter(result, result.begin()),
+            [](const DownloadTracker& tracker) { return tracker.get_result(); }
+        );
+        return { result };
     }
 
-    MultiDownloadResult download(MultiDownloadRequest requests,
-                                 const Context& context,
-                                 DownloadOptions options)
+    MultiDownloadResult
+    download(MultiDownloadRequest requests, const Context& context, DownloadOptions options)
     {
         Downloader dl(std::move(requests), std::move(options), context);
         return dl.download();
     }
 }
-

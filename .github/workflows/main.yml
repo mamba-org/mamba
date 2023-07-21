@@ -188,6 +188,7 @@ jobs:
         shell: bash -l {0}
         run: |
           pybind11-stubgen libmambapy.bindings
+          pre-commit run --files stubs/libmambapy/binginds-stubds/__init__.pyi
           python compare_stubs.py libmambapy/libmambapy/__init__.pyi stubs/libmambapy/bindings-stubs/__init__.pyi
       - name: build cache statistics
         run: sccache --show-stats

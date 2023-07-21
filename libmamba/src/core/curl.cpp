@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <functional>
+
 #include <spdlog/spdlog.h>
 
 #include "mamba/core/environment.hpp"  // for NETRC env var
@@ -526,7 +527,7 @@ namespace mamba
                 break;
         }
     }
-    
+
     CURL* unwrap(const CURLHandle& h)
     {
         return h.m_handle;
@@ -620,7 +621,9 @@ namespace mamba
         CURLMsg* msg = curl_multi_info_read(p_handle, &msgs_in_queue);
         if (msg != nullptr)
         {
-            return CURLMultiResponse{ CURLId(msg->easy_handle), msg->data.result, msg->msg == CURLMSG_DONE };
+            return CURLMultiResponse{ CURLId(msg->easy_handle),
+                                      msg->data.result,
+                                      msg->msg == CURLMSG_DONE };
         }
         else
         {

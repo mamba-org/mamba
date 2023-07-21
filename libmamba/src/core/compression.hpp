@@ -27,7 +27,7 @@ namespace mamba
         CompressionStream& operator=(const CompressionStream&) = delete;
         CompressionStream(CompressionStream&&) = delete;
         CompressionStream& operator=(CompressionStream&&) = delete;
-        
+
         size_t write(char* in, size_t size);
 
     protected:
@@ -43,10 +43,8 @@ namespace mamba
         writer m_writer;
     };
 
-    std::unique_ptr<CompressionStream> make_compression_stream(
-        const std::string& url,
-        CompressionStream::writer&& func
-    );
+    std::unique_ptr<CompressionStream>
+    make_compression_stream(const std::string& url, CompressionStream::writer&& func);
 
     // TODO: remove the following when switching to new CompressionStream
 

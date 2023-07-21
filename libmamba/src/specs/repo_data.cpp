@@ -159,7 +159,7 @@ namespace mamba::specs
         j["version"] = data.version;
         j["info"] = data.info;
         j["packages"] = data.packages;
-        j["conda_packages"] = data.conda_packages;
+        j["packages.conda"] = data.conda_packages;
         j["removed"] = data.removed;
     }
 
@@ -168,7 +168,7 @@ namespace mamba::specs
         deserialize_maybe_missing(j, "version", data.version);
         deserialize_maybe_missing(j, "info", data.info);
         deserialize_maybe_missing(j, "packages", data.packages);
-        deserialize_maybe_missing(j, "conda_packages", data.conda_packages);
+        deserialize_maybe_missing(j, "packages.conda", data.conda_packages);
         deserialize_maybe_missing(j, "removed", data.removed);
     }
 }

@@ -608,6 +608,11 @@ if (BUILD_LIBMAMBA_TESTS)
     add_subdirectory(tests)
 endif()
 
+# Benchmarks
+if(BUILD_LIBMAMBA_BENCHMARKS)
+    add_subdirectory(benchmarks)
+endif()
+
 # Installation
 # ============
 

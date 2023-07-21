@@ -45,7 +45,6 @@ message(STATUS "libmamba binary version: v${LIBMAMBA_BINARY_VERSION}")
 # Build options
 # =============
 
-option(BUILD_TESTS "Build libmamba C++ tests" OFF)
 option(BUILD_SHARED "Build shared libmamba library" OFF)
 option(BUILD_STATIC "Build static libmamba library with static linkage to its dependencies" OFF)
 set(BUILD_LOG_LEVEL "TRACE" CACHE STRING "Logger active level at compile time")
@@ -605,7 +604,7 @@ if (NOT (BUILD_SHARED OR BUILD_STATIC))
 endif ()
 
 # Tests
-if (BUILD_TESTS)
+if (BUILD_LIBMAMBA_TESTS)
     add_subdirectory(tests)
 endif()
 

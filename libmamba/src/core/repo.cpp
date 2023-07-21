@@ -340,7 +340,7 @@ namespace mamba
 
         for (const auto& [fn, pkg] : repodata.packages)
         {
-            LOG_INFO << "Adding package record to repo " << pkg.name;
+            LOG_INFO << "Adding package record to repo " << fn;
             auto [id, solv] = srepo(*this).add_solvable();
             set_solvable(m_pool, solv, fn, pkg);
         }
@@ -349,7 +349,7 @@ namespace mamba
         {
             for (const auto& [fn, pkg] : repodata.conda_packages)
             {
-                LOG_INFO << "Adding package record to repo " << pkg.name;
+                LOG_INFO << "Adding package record to repo " << fn;
                 auto [id, solv] = srepo(*this).add_solvable();
                 set_solvable(m_pool, solv, fn, pkg);
             }

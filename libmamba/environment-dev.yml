@@ -11,6 +11,8 @@ dependencies:
   - libsodium
   - libcurl >=7.86
   - doctest
+  - gtest
+  - benchmark
   - cpp-expected
   - reproc-cpp
   - yaml-cpp

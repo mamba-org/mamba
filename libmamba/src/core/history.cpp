@@ -22,7 +22,7 @@ namespace mamba
     {
     }
 
-    History::UserRequest History::UserRequest::prefilled()
+    History::UserRequest History::UserRequest::prefilled(const Context& context)
     {
         UserRequest ur;
         std::time_t t = std::time(nullptr);
@@ -31,8 +31,8 @@ namespace mamba
         {
             ur.date = mbstr;
         }
-        ur.cmd = Context::instance().command_params.current_command;
-        ur.conda_version = Context::instance().command_params.conda_version;
+        ur.cmd = context.command_params.current_command;
+        ur.conda_version = context.command_params.conda_version;
         return ur;
     }
 

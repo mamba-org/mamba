@@ -292,7 +292,7 @@ namespace mamba
     {
         TEST_CASE("user_request")
         {
-            auto u = History::UserRequest::prefilled();
+            auto u = History::UserRequest::prefilled(Context::instance());
             // update in 100 years!
             CHECK_EQ(u.date[0], '2');
             CHECK_EQ(u.date[1], '0');

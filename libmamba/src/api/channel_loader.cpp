@@ -48,7 +48,7 @@ namespace mamba
     {
         int RETRY_SUBDIR_FETCH = 1 << 0;
 
-        auto& ctx = Context::instance();
+        auto& ctx = pool.channel_context().context();
 
         std::vector<std::string> channel_urls = ctx.channels;
 

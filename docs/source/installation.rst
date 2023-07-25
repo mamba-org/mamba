@@ -164,7 +164,7 @@ An exclusive `conda-forge <https://conda-forge.org/>`_ setup can be configured w
 
    micromamba config append channels conda-forge
    micromamba config append channels nodefaults
-   micromamba set channel_priority strict
+   micromamba config set channel_priority strict
 
 .. _umamba-install-win:
 Windows

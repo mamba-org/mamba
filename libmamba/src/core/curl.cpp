@@ -203,6 +203,8 @@ namespace mamba
         : m_handle(std::move(rhs.m_handle))
         , p_headers(std::move(rhs.p_headers))
     {
+        rhs.m_handle = nullptr;
+        rhs.p_headers = nullptr;
         std::swap(m_errorbuffer, rhs.m_errorbuffer);
         std::swap(m_result, rhs.m_result);
     }

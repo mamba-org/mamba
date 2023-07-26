@@ -150,6 +150,24 @@ def test_create_dry_run(experimental, use_json, tmpdir):
         assert not env_dir.check()
 
 
+def test_create_subdir(tmpdir):
+    env_dir = tmpdir / str(uuid.uuid1())
+
+    try:
+        output = subprocess.check_output(
+            "mamba create --dry-run --json "
+            f"-p {env_dir} "
+            f"conda-forge/noarch::xtensor",
+            shell=True,
+        )
+    except subprocess.CalledProcessError as e:
+        result = json.loads(e.output)
+        assert result["error"] == (
+            'RuntimeError(\'The package "conda-forge/noarch::xtensor" is'
+            " not available for the specified platform')"
+        )
+
+
 def test_create_files(tmpdir):
     """Check that multiple --file arguments are respected."""
     (tmpdir / "1.txt").write(b"a")
@@ -216,6 +234,32 @@ def test_multi_channels(config_file, tmpdir):
         assert pkg["channel"].startswith("https://conda.anaconda.org/conda-forge")
     for pkg in res["actions"]["LINK"]:
         assert pkg["base_url"] == "https://conda.anaconda.org/conda-forge"
+
+
+@pytest.mark.parametrize("config_file", [multichannel_config], indirect=["config_file"])
+def test_multi_channels_with_subdir(config_file, tmpdir):
+    # we need to create a config file first
+    call_env = os.environ.copy()
+    call_env["CONDA_PKGS_DIRS"] = str(tmpdir / random_string())
+    try:
+        output = subprocess.check_output(
+            [
+                "mamba",
+                "create",
+                "-n",
+                "multichannels_with_subdir",
+                "conda-forge2/noarch::xtensor",
+                "--dry-run",
+                "--json",
+            ],
+            env=call_env,
+        )
+    except subprocess.CalledProcessError as e:
+        result = json.loads(e.output)
+        assert result["error"] == (
+            'RuntimeError(\'The package "conda-forge2/noarch::xtensor" is'
+            " not available for the specified platform')"
+        )
 
 
 def test_update_py():

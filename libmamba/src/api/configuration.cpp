@@ -1785,11 +1785,19 @@ namespace mamba
         // it a mamba argument, all so I can supply conda in a few default cases. it seems
         // like ../conda is an easier solution
         std::vector<fs::u8path> home = {
-            env::user_config_dir() / "../conda/.condarc", env::user_config_dir() / "../conda/condarc", env::user_config_dir() / "../conda/condarc.d",
-            env::home_directory() / ".conda/.condarc",   env::home_directory() / ".conda/condarc", env::home_directory() / ".conda/condarc.d",
+            env::user_config_dir() / "../conda/.condarc",
+            env::user_config_dir() / "../conda/condarc",
+            env::user_config_dir() / "../conda/condarc.d",
+            env::home_directory() / ".conda/.condarc",
+            env::home_directory() / ".conda/condarc",
+            env::home_directory() / ".conda/condarc.d",
             env::home_directory() / ".condarc",
-            env::user_config_dir() / ".mambarc", env::user_config_dir() / "mambarc", env::user_config_dir() / "mambarc.d",
-            env::home_directory() / ".mamba/.mambarc",   env::home_directory() / ".mamba/mambarc", env::home_directory() / ".mamba/mambarc.d",
+            env::user_config_dir() / ".mambarc",
+            env::user_config_dir() / "mambarc",
+            env::user_config_dir() / "mambarc.d",
+            env::home_directory() / ".mamba/.mambarc",
+            env::home_directory() / ".mamba/mambarc",
+            env::home_directory() / ".mamba/mambarc.d",
             env::home_directory() / ".mambarc",
         };
 

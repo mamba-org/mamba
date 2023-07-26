@@ -1776,11 +1776,22 @@ namespace mamba
                                          ctx.prefix_params.root_prefix / "condarc.d",
                                          ctx.prefix_params.root_prefix / ".mambarc" };
 
-        std::vector<fs::u8path> home = { env::home_directory() / ".conda/.condarc",
-                                         env::home_directory() / ".conda/condarc",
-                                         env::home_directory() / ".conda/condarc.d",
-                                         env::home_directory() / ".condarc",
-                                         env::home_directory() / ".mambarc" };
+        // Precedence is least to most. Configuration::set_rc_values iterates over this vector
+        // setting config values as they're found, overwriting preceeding ones.
+        // Because user_config_dir default=$XDG_CONFIG_HOME/mamba but we wanted to allow
+        // $XDG_CONFIG_HOME/conda and '..' seems like the best way to make it conda/mamba
+        // compatible. Otherwise I would have to set user_config_dir to either be just
+        // $XDG_CONFIG_HOME and always supply mamba after calling it, or I would have to give
+        // it a mamba argument, all so I can supply conda in a few default cases. it seems
+        // like ../conda is an easier solution
+        std::vector<fs::u8path> home = {
+            env::user_config_dir() / "../conda/.condarc", env::user_config_dir() / "../conda/condarc", env::user_config_dir() / "../conda/condarc.d",
+            env::home_directory() / ".conda/.condarc",   env::home_directory() / ".conda/condarc", env::home_directory() / ".conda/condarc.d",
+            env::home_directory() / ".condarc",
+            env::user_config_dir() / ".mambarc", env::user_config_dir() / "mambarc", env::user_config_dir() / "mambarc.d",
+            env::home_directory() / ".mamba/.mambarc",   env::home_directory() / ".mamba/mambarc", env::home_directory() / ".mamba/mambarc.d",
+            env::home_directory() / ".mambarc",
+        };
 
         std::vector<fs::u8path> prefix = { ctx.prefix_params.target_prefix / ".condarc",
                                            ctx.prefix_params.target_prefix / "condarc",

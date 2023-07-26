@@ -281,9 +281,8 @@ namespace mamba
         : m_pool(pool)
         , m_multi_cache(caches)
         , m_history_entry(History::UserRequest::prefilled(m_pool.channel_context().context()))
-        {
-
-        }
+    {
+    }
 
     MTransaction::MTransaction(
         MPool& pool,
@@ -293,11 +292,9 @@ namespace mamba
     )
         : MTransaction(pool, caches)
     {
-        MRepo mrepo {
-            m_pool,
-            "__explicit_specs__",
-            make_pkg_info_from_explicit_match_specs(specs_to_install)
-        };
+        MRepo mrepo{ m_pool,
+                     "__explicit_specs__",
+                     make_pkg_info_from_explicit_match_specs(specs_to_install) };
 
         m_pool.create_whatprovides();
 
@@ -367,9 +364,8 @@ namespace mamba
         if (!empty())
         {
             Console::instance().json_down("actions");
-            Console::instance().json_write(
-                { { "PREFIX", context.prefix_params.target_prefix.string() } }
-            );
+            Console::instance().json_write({ { "PREFIX",
+                                               context.prefix_params.target_prefix.string() } });
         }
 
         m_transaction_context = TransactionContext(
@@ -542,9 +538,8 @@ namespace mamba
         if (!empty())
         {
             Console::instance().json_down("actions");
-            Console::instance().json_write(
-                { { "PREFIX", context.prefix_params.target_prefix.string() } }
-            );
+            Console::instance().json_write({ { "PREFIX",
+                                               context.prefix_params.target_prefix.string() } });
         }
     }
 
@@ -606,17 +601,17 @@ namespace mamba
             m_link_stack.push(link);
         }
 
-        void rollback()
+        void rollback(const Context& context)
         {
             while (!m_link_stack.empty())
             {
-                m_link_stack.top().undo();
+                m_link_stack.top().undo(context);
                 m_link_stack.pop();
             }
 
             while (!m_unlink_stack.empty())
             {
-                m_unlink_stack.top().undo();
+                m_unlink_stack.top().undo(context);
                 m_unlink_stack.pop();
             }
         }
@@ -674,7 +669,7 @@ namespace mamba
             {
                 const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg, false));
                 LinkPackage lp(pkg, cache_path, &m_transaction_context);
-                lp.execute();
+                lp.execute(ctx);
                 rollback.record(lp);
                 m_history_entry.link_dists.push_back(pkg.long_str());
             };
@@ -682,7 +677,7 @@ namespace mamba
             {
                 const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg));
                 UnlinkPackage up(pkg, cache_path, &m_transaction_context);
-                up.execute();
+                up.execute(ctx);
                 rollback.record(up);
                 m_history_entry.unlink_dists.push_back(pkg.long_str());
             };
@@ -723,7 +718,7 @@ namespace mamba
         if (is_sig_interrupted())
         {
             Console::stream() << "Transaction interrupted, rollbacking";
-            rollback.rollback();
+            rollback.rollback(ctx);
             return false;
         }
         LOG_INFO << "Waiting for pyc compilation to finish";
@@ -1358,8 +1353,7 @@ namespace mamba
                             << context.platform << ").";
             }
 
-            selected_packages = lockfile_data
-                                    .get_packages_for(category, context.platform, "pip");
+            selected_packages = lockfile_data.get_packages_for(category, context.platform, "pip");
             std::copy(
                 selected_packages.begin(),
                 selected_packages.end(),

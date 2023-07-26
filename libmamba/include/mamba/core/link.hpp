@@ -22,6 +22,8 @@
 
 namespace mamba
 {
+    class Context;
+
     std::string replace_long_shebang(const std::string& shebang);
     std::string python_shebang(const std::string& python_exe);
 
@@ -48,12 +50,12 @@ namespace mamba
 
         UnlinkPackage(const PackageInfo& pkg_info, const fs::u8path& cache_path, TransactionContext* context);
 
-        bool execute();
-        bool undo();
+        bool execute(const Context& context);
+        bool undo(const Context& context);
 
     private:
 
-        bool unlink_path(const nlohmann::json& path_data);
+        bool unlink_path(const Context& context, const nlohmann::json& path_data);
 
         PackageInfo m_pkg_info;
         fs::u8path m_cache_path;
@@ -67,12 +69,13 @@ namespace mamba
 
         LinkPackage(const PackageInfo& pkg_info, const fs::u8path& cache_path, TransactionContext* context);
 
-        bool execute();
-        bool undo();
+        bool execute(const Context& context);
+        bool undo(const Context& context);
 
     private:
 
-        std::tuple<std::string, std::string> link_path(const PathData& path_data, bool noarch_python);
+        std::tuple<std::string, std::string>
+        link_path(const Context& context, const PathData& path_data, bool noarch_python);
         std::vector<fs::u8path> compile_pyc_files(const std::vector<fs::u8path>& py_files);
         auto
         create_python_entry_point(const fs::u8path& path, const python_entry_point_parsed& entry_point);

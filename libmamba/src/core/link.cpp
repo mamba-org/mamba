@@ -308,6 +308,7 @@ namespace mamba
        failure
     */
     bool run_script(
+        const Context& context,
         const fs::u8path& prefix,
         const PackageInfo& pkg_info,
         const std::string& action = "post-link",
@@ -360,10 +361,10 @@ namespace mamba
             if (activate)
             {
                 script_file = wrap_call(
-                    Context::instance().prefix_params.root_prefix,
+                    context.prefix_params.root_prefix,
                     prefix,
                     { "@CALL", path.string() },
-                    WrappedCallOptions::from_context(Context::instance())
+                    WrappedCallOptions::from_context(context)
                 );
 
                 command_args = { comspec.value(), "/d", "/c", script_file->path().string() };
@@ -387,10 +388,10 @@ namespace mamba
             {
                 // std::string caller
                 script_file = wrap_call(
-                    Context::instance().prefix_params.root_prefix.string(),
+                    context.prefix_params.root_prefix.string(),
                     prefix,
                     { ".", path.string() },
-                    WrappedCallOptions::from_context(Context::instance())
+                    WrappedCallOptions::from_context(context)
                 );
                 command_args.push_back(shell_path.string());
                 command_args.push_back(script_file->path().string());
@@ -403,7 +404,7 @@ namespace mamba
             }
         }
 
-        envmap["ROOT_PREFIX"] = Context::instance().prefix_params.root_prefix.string();
+        envmap["ROOT_PREFIX"] = context.prefix_params.root_prefix.string();
         envmap["PREFIX"] = env_prefix.size() ? env_prefix : prefix.string();
         envmap["PKG_NAME"] = pkg_info.name;
         envmap["PKG_VERSION"] = pkg_info.version;
@@ -436,7 +437,7 @@ namespace mamba
         auto [status, ec] = reproc::run(command_args, options);
 
         auto msg = get_prefix_messages(envmap["PREFIX"]);
-        if (Context::instance().output_params.json)
+        if (context.output_params.json)
         {
             // TODO implement cerr also on Console?
             std::cerr << msg;
@@ -470,7 +471,7 @@ namespace mamba
     {
     }
 
-    bool UnlinkPackage::unlink_path(const nlohmann::json& path_data)
+    bool UnlinkPackage::unlink_path(const Context& context, const nlohmann::json& path_data)
     {
         std::string subtarget = path_data["_path"].get<std::string>();
         fs::u8path dst = m_context->target_prefix / subtarget;
@@ -478,7 +479,6 @@ namespace mamba
         LOG_TRACE << "Unlinking '" << dst.string() << "'";
         std::error_code err;
 
-        const auto& context = Context::instance();
         if (remove_or_rename(context, dst) == 0)
         {
             LOG_DEBUG << "Error when removing file '" << dst.string() << "' will be ignored";
@@ -519,7 +519,7 @@ namespace mamba
         return true;
     }
 
-    bool UnlinkPackage::execute()
+    bool UnlinkPackage::execute(const Context& context)
     {
         // find the recorded JSON file
         fs::u8path json = m_context->target_prefix / "conda-meta" / (m_specifier + ".json");
@@ -535,10 +535,10 @@ namespace mamba
             std::string fpath = path["_path"];
             if (std::regex_match(fpath, MENU_PATH_REGEX))
             {
-                remove_menu_from_json(m_context->target_prefix / fpath, m_context);
+                remove_menu_from_json(context, m_context->target_prefix / fpath, m_context);
             }
 
-            unlink_path(path);
+            unlink_path(context, path);
         }
 
         json_file.close();
@@ -548,10 +548,10 @@ namespace mamba
         return true;
     }
 
-    bool UnlinkPackage::undo()
+    bool UnlinkPackage::undo(const Context& context)
     {
         LinkPackage lp(m_pkg_info, m_cache_path, m_context);
-        return lp.execute();
+        return lp.execute(context);
     }
 
     LinkPackage::LinkPackage(
@@ -567,7 +567,7 @@ namespace mamba
     }
 
     std::tuple<std::string, std::string>
-    LinkPackage::link_path(const PathData& path_data, bool noarch_python)
+    LinkPackage::link_path(const Context& context, const PathData& path_data, bool noarch_python)
     {
         std::string subtarget = path_data.path;
         LOG_TRACE << "linking '" << subtarget << "'";
@@ -733,7 +733,7 @@ namespace mamba
 #if defined(__APPLE__)
             if (binary_changed && m_pkg_info.subdir == "osx-arm64")
             {
-                codesign(dst, Context::instance().output_params.verbosity > 1);
+                codesign(dst, context.output_params.verbosity > 1);
             }
 #endif
             return std::make_tuple(validation::sha256sum(dst), rel_dst.string());
@@ -830,7 +830,7 @@ namespace mamba
         PYTHON
     };
 
-    bool LinkPackage::execute()
+    bool LinkPackage::execute(const Context& context)
     {
         nlohmann::json index_json, out_json;
         LOG_TRACE << "Preparing linking from '" << m_source.string() << "'";
@@ -877,7 +877,11 @@ namespace mamba
 
         for (auto& path : paths_data)
         {
-            auto [sha256_in_prefix, final_path] = link_path(path, noarch_type == NoarchType::PYTHON);
+            auto [sha256_in_prefix, final_path] = link_path(
+                context,
+                path,
+                noarch_type == NoarchType::PYTHON
+            );
             files_record.push_back(final_path);
 
             nlohmann::json json_record = { { "_path", final_path },
@@ -1052,19 +1056,18 @@ namespace mamba
         }
 
         // Create all start menu shortcuts if prefix name doesn't start with underscore
-        if (util::on_win && Context::instance().shortcuts
-            && m_context->target_prefix.filename().string()[0] != '_')
+        if (util::on_win && context.shortcuts && m_context->target_prefix.filename().string()[0] != '_')
         {
             for (auto& path : paths_data)
             {
                 if (std::regex_match(path.path, MENU_PATH_REGEX))
                 {
-                    create_menu_from_json(m_context->target_prefix / path.path, m_context);
+                    create_menu_from_json(context, m_context->target_prefix / path.path, m_context);
                 }
             }
         }
 
-        run_script(m_context->target_prefix, m_pkg_info, "post-link", "", true);
+        run_script(context, m_context->target_prefix, m_pkg_info, "post-link", "", true);
 
         fs::u8path prefix_meta = m_context->target_prefix / "conda-meta";
         if (!fs::exists(prefix_meta))
@@ -1088,9 +1091,9 @@ namespace mamba
         return true;
     }
 
-    bool LinkPackage::undo()
+    bool LinkPackage::undo(const Context& context)
     {
         UnlinkPackage ulp(m_pkg_info, m_cache_path, m_context);
-        return ulp.execute();
+        return ulp.execute(context);
     }
 }  // namespace mamba

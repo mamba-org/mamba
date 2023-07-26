@@ -215,9 +215,9 @@ namespace mamba
 #endif
 
 
-    void replace_variables(std::string& text, TransactionContext* transaction_context)
+    void
+    replace_variables(const Context& ctx, std::string& text, TransactionContext* transaction_context)
     {
-        auto& ctx = mamba::Context::instance();
         fs::u8path root_prefix = ctx.prefix_params.root_prefix;
 
         fs::u8path target_prefix;
@@ -277,19 +277,18 @@ namespace mamba
     namespace
     {
         void create_remove_shortcut_impl(
+            const Context& ctx,
             const fs::u8path& json_file,
             TransactionContext* transaction_context,
             [[maybe_unused]] bool remove
         )
         {
             std::string json_content = mamba::read_contents(json_file);
-            replace_variables(json_content, transaction_context);
+            replace_variables(ctx, json_content, transaction_context);
             auto j = nlohmann::json::parse(json_content);
 
             std::string menu_name = j.value("menu_name", "Mamba Shortcuts");
 
-
-            auto& ctx = mamba::Context::instance();
             std::string name_suffix;
             std::string e_name = detail::get_formatted_env_name(ctx, transaction_context->target_prefix);
 
@@ -459,11 +458,15 @@ namespace mamba
         }
     }
 
-    void remove_menu_from_json(const fs::u8path& json_file, TransactionContext* context)
+    void remove_menu_from_json(
+        const Context& context,
+        const fs::u8path& json_file,
+        TransactionContext* transaction_context
+    )
     {
         try
         {
-            create_remove_shortcut_impl(json_file, context, true);
+            create_remove_shortcut_impl(context, json_file, transaction_context, true);
         }
         catch (const std::exception& e)
         {
@@ -471,11 +474,15 @@ namespace mamba
         }
     }
 
-    void create_menu_from_json(const fs::u8path& json_file, TransactionContext* context)
+    void create_menu_from_json(
+        const Context& context,
+        const fs::u8path& json_file,
+        TransactionContext* transaction_context
+    )
     {
         try
         {
-            create_remove_shortcut_impl(json_file, context, false);
+            create_remove_shortcut_impl(context, json_file, transaction_context, false);
         }
         catch (const std::exception& e)
         {

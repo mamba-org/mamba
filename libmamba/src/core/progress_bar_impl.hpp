@@ -16,7 +16,6 @@
 #include <vector>
 
 #include <fmt/color.h>
-#include <spdlog/spdlog.h>
 
 #include "mamba/core/progress_bar.hpp"
 

@@ -55,7 +55,6 @@ if (NOT ${BUILD_LOG_LEVEL} MATCHES "^(TRACE|DEBUG|INFO|WARN|ERROR|CRITICAL|OFF)$
 endif ()
 
 if (BUILD_STATIC)
-    add_definitions("-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${BUILD_LOG_LEVEL}")
     add_definitions(-DLIBMAMBA_STATIC_DEPS)
 endif ()
 
@@ -401,7 +400,10 @@ macro(libmamba_create_target target_name linkage output_name)
             find_package(spdlog CONFIG REQUIRED)
             find_package(tl-expected REQUIRED)
 
-            add_compile_definitions(SPDLOG_FMT_EXTERNAL)
+            target_compile_definitions(${target_name} PUBLIC
+              SPDLOG_FMT_EXTERNAL
+              SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${BUILD_LOG_LEVEL}
+            )
             target_link_libraries(
               ${target_name}
               PUBLIC
@@ -467,8 +469,9 @@ macro(libmamba_create_target target_name linkage output_name)
                 tl::expected
             )
 
-            add_compile_definitions(
+            target_compile_definitions(${target_name} PUBLIC
               SPDLOG_FMT_EXTERNAL
+              SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${BUILD_LOG_LEVEL}
               LIBARCHIVE_STATIC
               CURL_STATICLIB
               SOLV_BUILD_STATIC
@@ -512,7 +515,10 @@ macro(libmamba_create_target target_name linkage output_name)
             spdlog::spdlog_header_only
         )
 
-        add_compile_definitions(SPDLOG_FMT_EXTERNAL)
+        target_compile_definitions(${target_name} PUBLIC
+          SPDLOG_FMT_EXTERNAL
+          SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${BUILD_LOG_LEVEL}
+        )
         target_link_libraries(${target_name} PUBLIC
                               ${LIBMAMBA_LIBRARIES_DEPS}
                               ${MAMBA_FORCE_DYNAMIC_LIBS})
@@ -547,8 +553,6 @@ macro(libmamba_create_target target_name linkage output_name)
         set_target_properties(
             ${target_name}
             PROPERTIES
-            #PUBLIC_HEADER "${LIBMAMBA_PUBLIC_HEADERS}"
-            COMPILE_DEFINITIONS "LIBMAMBA_EXPORTS"
             PREFIX ""
             VERSION "${LIBMAMBA_BINARY_COMPATIBLE}.${LIBMAMBA_BINARY_REVISION}.${LIBMAMBA_BINARY_AGE}"
             SOVERSION ${LIBMAMBA_BINARY_COMPATIBLE}
@@ -558,8 +562,6 @@ macro(libmamba_create_target target_name linkage output_name)
         set_target_properties(
             ${target_name}
             PROPERTIES
-            #PUBLIC_HEADER "${LIBMAMBA_PUBLIC_HEADERS}"
-            COMPILE_DEFINITIONS "LIBMAMBA_EXPORTS"
             PREFIX ""
             VERSION ${LIBMAMBA_BINARY_VERSION}
             SOVERSION ${LIBMAMBA_BINARY_CURRENT}

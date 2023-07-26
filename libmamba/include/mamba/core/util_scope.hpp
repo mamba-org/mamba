@@ -6,8 +6,6 @@
 
 #include "mamba/core/output.hpp"
 
-#include "spdlog/spdlog.h"
-
 namespace mamba
 {
 

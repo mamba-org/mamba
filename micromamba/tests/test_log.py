@@ -2,13 +2,17 @@ import subprocess
 
 from .helpers import get_umamba
 
+
 def info(*args):
     umamba = get_umamba()
     cmd = [umamba, "info"] + [arg for arg in args if arg]
 
     try:
         p = subprocess.run(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True,
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
         )
     except subprocess.CalledProcessError as e:
         print(f"Command {cmd} failed with stderr: {e.stderr.decode()}")

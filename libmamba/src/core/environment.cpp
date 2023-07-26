@@ -269,7 +269,7 @@ namespace mamba
                 throw std::runtime_error("HOME not set.");
             }
 #endif
-            return maybe_home;
+            return fs::u8path(maybe_home);
         }
 
         fs::u8path user_config_dir()

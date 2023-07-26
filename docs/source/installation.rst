@@ -24,8 +24,8 @@ is a community project of the conda-forge community that packages ``mamba``.
    Doing so may break ``mamba`` and ``conda`` installation.
 
 
-Existing ``conda`` install
-**************************
+Existing ``conda`` install (not recommended)
+********************************************
 
 .. warning::
    This way of installing Mamba is **not recommended**.
@@ -35,7 +35,8 @@ To get ``mamba``, just install it *into the base environment* from the ``conda-f
 
 .. code:: bash
 
-   conda install -n base --override-channels -c conda-forge mamba 'python_abi=*=*cp*'
+   # NOT RECOMMENDED: This method of installation is not recommended, prefer Mambaforge instead (see above)
+   # conda install -n base --override-channels -c conda-forge mamba 'python_abi=*=*cp*'
 
 
 .. warning::

@@ -7,6 +7,11 @@ on:
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - 'docs/**'
+      - 'mamba/**'
+      - 'libmambapy/**'
+      - '**.md'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

@@ -18,6 +18,7 @@
 #include <fmt/color.h>
 #include <spdlog/spdlog.h>
 
+#include "mamba/core/context.hpp"
 #include "mamba/core/progress_bar.hpp"
 
 namespace mamba
@@ -128,8 +129,8 @@ namespace mamba
     {
     public:
 
-        ProgressBarRepr();
-        ProgressBarRepr(ProgressBar* pbar);
+        explicit ProgressBarRepr(ProgressBarOptions options);
+        explicit ProgressBarRepr(ProgressBar* pbar);
 
         FieldRepr prefix, progress, current, separator, total, speed, postfix, elapsed;
         void print(std::ostream& ostream, std::size_t width = 0, bool with_endl = true);
@@ -169,6 +170,12 @@ namespace mamba
 
     class ProgressBarManager;
 
+    struct ProgressBarOptions
+    {
+        Context::GraphicsParams graphics;
+        bool ascii_only = false;
+    };
+
     /*******************************
      * Public API of progress bars *
      *******************************/
@@ -184,7 +191,11 @@ namespace mamba
         ProgressBarManager(ProgressBarManager&&) = delete;
         ProgressBarManager& operator=(ProgressBarManager&&) = delete;
 
-        virtual ProgressProxy add_progress_bar(const std::string& name, size_t expected_total = 0) = 0;
+        virtual ProgressProxy add_progress_bar(
+            const std::string& name,
+            ProgressBarOptions options,
+            size_t expected_total = 0
+        ) = 0;
         virtual void clear_progress_bars();
         virtual void add_label(const std::string& label, const ProgressProxy& progress_bar);
 
@@ -253,7 +264,9 @@ namespace mamba
         MultiBarManager(std::size_t width);
         virtual ~MultiBarManager() = default;
 
-        ProgressProxy add_progress_bar(const std::string& name, size_t expected_total) override;
+        ProgressProxy
+        add_progress_bar(const std::string& name, ProgressBarOptions options, size_t expected_total)
+            override;
 
         std::size_t print(
             std::ostream& os,
@@ -271,7 +284,11 @@ namespace mamba
         AggregatedBarManager(std::size_t width);
         virtual ~AggregatedBarManager() = default;
 
-        ProgressProxy add_progress_bar(const std::string& name, std::size_t expected_total) override;
+        ProgressProxy add_progress_bar(
+            const std::string& name,
+            ProgressBarOptions options,
+            std::size_t expected_total
+        ) override;
 
         void update_download_bar(std::size_t current_diff);
         void update_extract_bar();
@@ -361,9 +378,11 @@ namespace mamba
 
         int width() const;
 
+        const ProgressBarOptions& options() const;
+
     protected:
 
-        ProgressBar(const std::string& prefix, std::size_t total, int width = 0);
+        ProgressBar(const std::string& prefix, std::size_t total, ProgressBarOptions options, int width = 0);
 
         double m_progress = 0.;
         std::size_t m_current = 0;
@@ -378,6 +397,7 @@ namespace mamba
         time_point_t m_task_time, m_avg_speed_time;
 
         ProgressBarRepr m_repr;
+        ProgressBarOptions m_options;
 
         bool m_is_spinner;
         bool m_completed = false;
@@ -397,7 +417,12 @@ namespace mamba
     {
     public:
 
-        DefaultProgressBar(const std::string& prefix, std::size_t total, int width = 0);
+        DefaultProgressBar(
+            const std::string& prefix,
+            std::size_t total,
+            ProgressBarOptions options,
+            int width = 0
+        );
         virtual ~DefaultProgressBar() = default;
 
         void print(std::ostream& stream, std::size_t width = 0, bool with_endl = true) override;
@@ -411,6 +436,7 @@ namespace mamba
             const std::string& prefix,
             AggregatedBarManager* manager,
             std::size_t total,
+            ProgressBarOptions options,
             int width = 0
         );
         virtual ~HiddenProgressBar() = default;

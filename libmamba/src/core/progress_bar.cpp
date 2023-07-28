@@ -224,4 +224,9 @@ namespace mamba
     {
         return p_bar->repr();
     }
+
+    const ProgressBarOptions& ProgressProxy::options() const
+    {
+        return p_bar->options();
+    }
 }

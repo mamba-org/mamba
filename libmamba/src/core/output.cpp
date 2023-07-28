@@ -425,7 +425,14 @@ namespace mamba
         }
         else
         {
-            return p_data->p_progress_bar_manager->add_progress_bar(name, expected_total);
+            return p_data->p_progress_bar_manager->add_progress_bar(
+                name,
+                {
+                    /* .graphics = */ context().graphics_params,
+                    /* .ascii_only =  */ context().ascii_only,
+                },
+                expected_total
+            );
         }
     }
 

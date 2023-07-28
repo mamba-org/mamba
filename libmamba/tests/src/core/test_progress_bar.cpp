@@ -20,8 +20,12 @@ namespace mamba
 
         progress_bar()
         {
+            const auto& context = Context::instance();
             p_progress_bar_manager = std::make_unique<MultiBarManager>();
-            proxy = p_progress_bar_manager->add_progress_bar("conda-forge");
+            proxy = p_progress_bar_manager->add_progress_bar(
+                "conda-forge",
+                { context.graphics_params, context.ascii_only }
+            );
 
             auto& r = proxy.repr();
             r.progress.set_value("??");

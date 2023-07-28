@@ -469,10 +469,12 @@ namespace mamba
         , m_specifier(m_pkg_info.str())
         , m_context(context)
     {
+        assert(m_context != nullptr);
     }
 
-    bool UnlinkPackage::unlink_path(const Context& context, const nlohmann::json& path_data)
+    bool UnlinkPackage::unlink_path(const nlohmann::json& path_data)
     {
+        const auto& context = m_context->context();
         std::string subtarget = path_data["_path"].get<std::string>();
         fs::u8path dst = m_context->target_prefix / subtarget;
 
@@ -519,8 +521,9 @@ namespace mamba
         return true;
     }
 
-    bool UnlinkPackage::execute(const Context& context)
+    bool UnlinkPackage::execute()
     {
+        const auto& context = m_context->context();
         // find the recorded JSON file
         fs::u8path json = m_context->target_prefix / "conda-meta" / (m_specifier + ".json");
         LOG_INFO << "Unlinking package '" << m_specifier << "'";
@@ -538,7 +541,7 @@ namespace mamba
                 remove_menu_from_json(context, m_context->target_prefix / fpath, m_context);
             }
 
-            unlink_path(context, path);
+            unlink_path(path);
         }
 
         json_file.close();
@@ -548,10 +551,10 @@ namespace mamba
         return true;
     }
 
-    bool UnlinkPackage::undo(const Context& context)
+    bool UnlinkPackage::undo()
     {
         LinkPackage lp(m_pkg_info, m_cache_path, m_context);
-        return lp.execute(context);
+        return lp.execute();
     }
 
     LinkPackage::LinkPackage(
@@ -564,11 +567,13 @@ namespace mamba
         , m_source(cache_path / m_pkg_info.str())
         , m_context(context)
     {
+        assert(m_context != nullptr);
     }
 
     std::tuple<std::string, std::string>
-    LinkPackage::link_path(const Context& context, const PathData& path_data, bool noarch_python)
+    LinkPackage::link_path(const PathData& path_data, bool noarch_python)
     {
+        const auto& context = m_context->context();
         std::string subtarget = path_data.path;
         LOG_TRACE << "linking '" << subtarget << "'";
         fs::u8path dst, rel_dst;
@@ -733,7 +738,7 @@ namespace mamba
 #if defined(__APPLE__)
             if (binary_changed && m_pkg_info.subdir == "osx-arm64")
             {
-                codesign(dst, context.output_params.verbosity > 1);
+                codesign(dst, m_context->context().output_params.verbosity > 1);
             }
 #endif
             return std::make_tuple(validation::sha256sum(dst), rel_dst.string());
@@ -830,8 +835,10 @@ namespace mamba
         PYTHON
     };
 
-    bool LinkPackage::execute(const Context& context)
+    bool LinkPackage::execute()
     {
+        const auto& context = m_context->context();
+
         nlohmann::json index_json, out_json;
         LOG_TRACE << "Preparing linking from '" << m_source.string() << "'";
 
@@ -877,11 +884,7 @@ namespace mamba
 
         for (auto& path : paths_data)
         {
-            auto [sha256_in_prefix, final_path] = link_path(
-                context,
-                path,
-                noarch_type == NoarchType::PYTHON
-            );
+            auto [sha256_in_prefix, final_path] = link_path(path, noarch_type == NoarchType::PYTHON);
             files_record.push_back(final_path);
 
             nlohmann::json json_record = { { "_path", final_path },
@@ -1091,9 +1094,9 @@ namespace mamba
         return true;
     }
 
-    bool LinkPackage::undo(const Context& context)
+    bool LinkPackage::undo()
     {
         UnlinkPackage ulp(m_pkg_info, m_cache_path, m_context);
-        return ulp.execute(context);
+        return ulp.execute();
     }
 }  // namespace mamba

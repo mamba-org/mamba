@@ -369,6 +369,7 @@ namespace mamba
         }
 
         m_transaction_context = TransactionContext(
+            context,
             context.prefix_params.target_prefix,
             context.prefix_params.relocate_prefix,
             find_python_version(m_solution, m_pool.pool()),
@@ -433,6 +434,7 @@ namespace mamba
 
         const auto& context = m_pool.channel_context().context();
         m_transaction_context = TransactionContext(
+            context,
             context.prefix_params.target_prefix,
             context.prefix_params.relocate_prefix,
             find_python_version(m_solution, m_pool.pool()),
@@ -527,6 +529,7 @@ namespace mamba
             }
 
             m_transaction_context = TransactionContext(
+                context,
                 context.prefix_params.target_prefix,
                 context.prefix_params.relocate_prefix,
                 find_python_version(m_solution, m_pool.pool()),
@@ -575,6 +578,7 @@ namespace mamba
 
         const auto& context = m_pool.channel_context().context();
         m_transaction_context = TransactionContext(
+            context,
             context.prefix_params.target_prefix,
             context.prefix_params.relocate_prefix,
             find_python_version(m_solution, m_pool.pool()),
@@ -605,13 +609,13 @@ namespace mamba
         {
             while (!m_link_stack.empty())
             {
-                m_link_stack.top().undo(context);
+                m_link_stack.top().undo();
                 m_link_stack.pop();
             }
 
             while (!m_unlink_stack.empty())
             {
-                m_unlink_stack.top().undo(context);
+                m_unlink_stack.top().undo();
                 m_unlink_stack.pop();
             }
         }
@@ -669,7 +673,7 @@ namespace mamba
             {
                 const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg, false));
                 LinkPackage lp(pkg, cache_path, &m_transaction_context);
-                lp.execute(ctx);
+                lp.execute();
                 rollback.record(lp);
                 m_history_entry.link_dists.push_back(pkg.long_str());
             };
@@ -677,7 +681,7 @@ namespace mamba
             {
                 const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg));
                 UnlinkPackage up(pkg, cache_path, &m_transaction_context);
-                up.execute(ctx);
+                up.execute();
                 rollback.record(up);
                 m_history_entry.unlink_dists.push_back(pkg.long_str());
             };

@@ -1214,6 +1214,7 @@ namespace mamba::validation
         }
 
         std::unique_ptr<RepoIndexChecker> RootImpl::build_index_checker(
+            Context&,
             const TimeRef& /*time_reference*/,
             const std::string& /*url*/,
             const fs::u8path& /*cache_path*/
@@ -1432,6 +1433,7 @@ namespace mamba::validation
         }
 
         std::unique_ptr<RepoIndexChecker> RootImpl::build_index_checker(
+            Context& context,
             const TimeRef& time_reference,
             const std::string& base_url,
             const fs::u8path& cache_path
@@ -1445,7 +1447,7 @@ namespace mamba::validation
             const auto url = mamba::util::URL::parse(base_url + "/key_mgr.json");
 
             auto dl_target = std::make_unique<mamba::DownloadTarget>(
-                Context::instance(),
+                context,
                 "key_mgr.json",
                 url.str(),
                 tmp_metadata_path.string()
@@ -1477,7 +1479,7 @@ namespace mamba::validation
                         fs::copy(tmp_metadata_path, metadata_path);
                     }
 
-                    return key_mgr.build_index_checker(time_reference, base_url, cache_path);
+                    return key_mgr.build_index_checker(context, time_reference, base_url, cache_path);
                 }
             }
 
@@ -1485,7 +1487,7 @@ namespace mamba::validation
             if (fs::exists(metadata_path))
             {
                 KeyMgrRole key_mgr = create_key_mgr(metadata_path);
-                return key_mgr.build_index_checker(time_reference, base_url, cache_path);
+                return key_mgr.build_index_checker(context, time_reference, base_url, cache_path);
             }
 
             LOG_ERROR << "Error while fetching 'key_mgr' metadata";
@@ -1596,6 +1598,7 @@ namespace mamba::validation
         }
 
         std::unique_ptr<RepoIndexChecker> KeyMgrRole::build_index_checker(
+            Context& context,
             const TimeRef& time_reference,
             const std::string& base_url,
             const fs::u8path& cache_path
@@ -1609,7 +1612,7 @@ namespace mamba::validation
             const auto url = mamba::util::URL::parse(base_url + "/pkg_mgr.json");
 
             auto dl_target = std::make_unique<mamba::DownloadTarget>(
-                Context::instance(),
+                context,
                 "pkg_mgr.json",
                 url.str(),
                 tmp_metadata_path.string()
@@ -2007,13 +2010,17 @@ namespace mamba::validation
     }
 
     RepoChecker::RepoChecker(
+        Context& context,
         const std::string& base_url,
         const fs::u8path& ref_path,
         const fs::u8path& cache_path
     )
         : m_base_url(base_url)
         , m_ref_path(ref_path)
-        , m_cache_path(cache_path){};
+        , m_cache_path(cache_path)
+        , m_context(context)
+    {
+    }
 
     const fs::u8path& RepoChecker::cache_path()
     {
@@ -2031,7 +2038,12 @@ namespace mamba::validation
             const TimeRef time_reference;
 
             auto root = get_root_role(time_reference);
-            p_index_checker = root->build_index_checker(time_reference, m_base_url, cache_path());
+            p_index_checker = root->build_index_checker(
+                m_context,
+                time_reference,
+                m_base_url,
+                cache_path()
+            );
 
             LOG_INFO << "Index checker successfully generated for '" << m_base_url << "'";
         }
@@ -2153,7 +2165,7 @@ namespace mamba::validation
                 tmp_file_path = tmp_dir_path / f;
 
                 auto dl_target = std::make_unique<mamba::DownloadTarget>(
-                    Context::instance(),
+                    m_context,
                     f.string(),
                     url,
                     tmp_file_path.string()

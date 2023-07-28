@@ -41,7 +41,7 @@ namespace mamba
         const std::optional<std::string>& token() const;
         const std::optional<std::string>& package_filename() const;
         const validation::RepoChecker&
-        repo_checker(const Context& context, MultiPackageCache& caches) const;
+        repo_checker(Context& context, MultiPackageCache& caches) const;
 
         std::string base_url() const;
         std::string platform_url(std::string platform, bool with_credential = true) const;

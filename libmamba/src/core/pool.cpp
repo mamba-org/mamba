@@ -53,6 +53,11 @@ namespace mamba
         return m_data->channel_context;
     }
 
+    Context& MPool::context() const
+    {
+        return channel_context().context();
+    }
+
     solv::ObjPool& MPool::pool()
     {
         return m_data->pool;

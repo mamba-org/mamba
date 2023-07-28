@@ -121,7 +121,7 @@ namespace mamba
             add_package_info(record);
         }
 
-        if (Context::instance().add_pip_as_python_dependency)
+        if (pool.context().add_pip_as_python_dependency)
         {
             add_pip_as_python_dependency();
         }
@@ -244,7 +244,7 @@ namespace mamba
     {
         LOG_INFO << "Reading repodata.json file " << filename << " for repo " << name();
         // TODO make this as part of options of the repo/pool
-        const int flags = Context::instance().use_only_tar_bz2 ? CONDA_ADD_USE_ONLY_TAR_BZ2 : 0;
+        const int flags = m_pool.context().use_only_tar_bz2 ? CONDA_ADD_USE_ONLY_TAR_BZ2 : 0;
         srepo(*this).legacy_read_conda_repodata(filename, flags);
     }
 
@@ -322,7 +322,7 @@ namespace mamba
         read_json(json_file);
 
         // TODO move this to a more structured approach for repodata patching?
-        if (Context::instance().add_pip_as_python_dependency)
+        if (m_pool.context().add_pip_as_python_dependency)
         {
             add_pip_as_python_dependency();
         }

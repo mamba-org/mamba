@@ -694,7 +694,7 @@ namespace mamba
         return m_custom_multichannels;
     }
 
-    ChannelContext::ChannelContext(const Context& context)
+    ChannelContext::ChannelContext(Context& context)
         : m_context(context)
         , m_channel_alias(build_channel_alias())
     {

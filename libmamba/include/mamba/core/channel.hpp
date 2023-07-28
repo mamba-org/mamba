@@ -97,7 +97,7 @@ namespace mamba
         using channel_map = std::map<std::string, Channel>;
         using multichannel_map = std::map<std::string, std::vector<std::string>>;
 
-        ChannelContext(const Context& context);
+        ChannelContext(Context& context);
         ~ChannelContext();
 
         ChannelContext(const ChannelContext&) = delete;
@@ -111,14 +111,14 @@ namespace mamba
         const Channel& get_channel_alias() const;
         const channel_map& get_custom_channels() const;
 
-        const Context& context() const
+        Context& context() const
         {
             return m_context;
         }
 
     private:
 
-        const Context& m_context;
+        Context& m_context;
         ChannelCache m_channel_cache;
         Channel m_channel_alias;
         channel_map m_custom_channels;

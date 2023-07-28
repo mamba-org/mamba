@@ -78,7 +78,7 @@ set_env_command(CLI::App* com, Configuration& config)
     export_subcom->callback(
         [&]
         {
-            auto const& ctx = Context::instance();
+            auto& ctx = Context::instance();
             config.load();
 
             mamba::ChannelContext channel_context{ ctx };

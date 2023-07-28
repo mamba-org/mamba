@@ -59,7 +59,7 @@ namespace mamba
             }
         }
 
-        for (const auto& c : Context::instance().repodata_has_zst)
+        for (const auto& c : channel_context.context().repodata_has_zst)
         {
             if (channel_context.make_channel(c) == *channel)
             {
@@ -337,7 +337,9 @@ namespace mamba
         , m_name(util::join_url(channel.canonical_name(), platform))
         , m_is_noarch(platform == "noarch")
         , p_channel(&channel)
+        , p_context(&channel_context.context())
     {
+        assert(p_context);
         m_json_fn = cache_fn_url(m_repodata_url);
         m_solv_fn = m_json_fn.substr(0, m_json_fn.size() - 4) + "solv";
         load(caches, channel_context);
@@ -363,6 +365,7 @@ namespace mamba
         , m_metadata(std::move(rhs.m_metadata))
         , m_temp_file(std::move(rhs.m_temp_file))
         , p_channel(rhs.p_channel)
+        , p_context(rhs.p_context)
     {
         if (m_target != nullptr)
         {
@@ -396,6 +399,7 @@ namespace mamba
         swap(m_temp_file, rhs.m_temp_file);
         swap(m_check_targets, rhs.m_check_targets);
         swap(p_channel, rhs.p_channel);
+        swap(p_context, rhs.p_context);
 
         if (m_target != nullptr)
         {
@@ -489,6 +493,9 @@ namespace mamba
 
     bool MSubdirData::load(MultiPackageCache& caches, ChannelContext& channel_context)
     {
+        assert(&channel_context.context() == p_context);
+        assert(p_context != nullptr);
+
         auto now = fs::file_time_type::clock::now();
 
         m_valid_cache_path = "";
@@ -498,6 +505,8 @@ namespace mamba
         LOG_INFO << "Searching index cache file for repo '" << m_repodata_url << "'";
 
         const auto cache_paths = without_duplicates(caches.paths());
+
+        auto& context = *p_context;
 
         for (const auto& cache_path : cache_paths)
         {
@@ -525,11 +534,11 @@ namespace mamba
                 {
                     m_metadata = std::move(metadata_temp.value());
                     int max_age = 0;
-                    if (Context::instance().local_repodata_ttl > 1)
+                    if (context.local_repodata_ttl > 1)
                     {
-                        max_age = static_cast<int>(Context::instance().local_repodata_ttl);
+                        max_age = static_cast<int>(context.local_repodata_ttl);
                     }
-                    else if (Context::instance().local_repodata_ttl == 1)
+                    else if (context.local_repodata_ttl == 1)
                     {
                         // TODO error handling if _cache_control key does not exist!
                         max_age = static_cast<int>(get_cache_control_max_age(m_metadata.cache_control)
@@ -538,8 +547,7 @@ namespace mamba
 
                     auto cache_age_seconds = std::chrono::duration_cast<std::chrono::seconds>(cache_age)
                                                  .count();
-                    if ((max_age > cache_age_seconds || Context::instance().offline
-                         || Context::instance().use_index_cache))
+                    if ((max_age > cache_age_seconds || context.offline || context.use_index_cache))
                     {
                         // valid json cache found
                         if (!m_loaded)
@@ -597,10 +605,9 @@ namespace mamba
                          << m_expired_cache_path.string() << "'";
             }
 
-            auto& ctx = Context::instance();
-            if (!ctx.offline || forbid_cache())
+            if (!context.offline || forbid_cache())
             {
-                if (ctx.repodata_use_zst)
+                if (context.repodata_use_zst)
                 {
                     bool has_value = m_metadata.has_zst.has_value();
                     bool is_expired = m_metadata.has_zst.has_value()
@@ -609,7 +616,7 @@ namespace mamba
                     if (!has_zst && (is_expired || !has_value))
                     {
                         m_check_targets.push_back(std::make_unique<DownloadTarget>(
-                            ctx,
+                            context,
                             m_name + " (check zst)",
                             m_repodata_url + ".zst",
                             ""
@@ -855,7 +862,9 @@ namespace mamba
 
     void MSubdirData::create_target()
     {
-        auto& ctx = Context::instance();
+        assert(p_context != nullptr);
+
+        auto& ctx = *p_context;
         fs::u8path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
         auto lock = LockFile(writable_cache_dir);
         m_temp_file = std::make_unique<TemporaryFile>("mambaf", "", writable_cache_dir);
@@ -912,12 +921,13 @@ namespace mamba
 
     expected_t<MRepo> MSubdirData::create_repo(MPool& pool)
     {
+        assert(&pool.channel_context().context() == p_context);
         using return_type = expected_t<MRepo>;
         RepoMetadata meta{
             /* .url= */ util::rsplit(m_metadata.url, "/", 1).front(),
             /* .etag= */ m_metadata.etag,
             /* .mod= */ m_metadata.mod,
-            /* .pip_added= */ Context::instance().add_pip_as_python_dependency,
+            /* .pip_added= */ p_context->add_pip_as_python_dependency,
         };
 
         auto cache = cache_path();

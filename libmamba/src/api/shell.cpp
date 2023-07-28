@@ -133,10 +133,10 @@ namespace mamba
         std::cout << activator->deactivate();
     }
 
-    void shell_enable_long_path_support()
+    void shell_enable_long_path_support(Palette palette)
     {
 #ifdef _WIN32
-        if (const bool success = enable_long_paths_support(/* force= */ true); !success)
+        if (const bool success = enable_long_paths_support(/* force= */ true, palette); !success)
         {
             throw std::runtime_error("Error enabling Windows long-path support");
         }

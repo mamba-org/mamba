@@ -1086,7 +1086,7 @@ namespace mamba
             throw std::runtime_error("Support for other shells not yet implemented.");
         }
 #ifdef _WIN32
-        enable_long_paths_support(false);
+        enable_long_paths_support(false, Context::instance().graphics_params.palette);
 #endif
     }
 

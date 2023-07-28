@@ -11,6 +11,7 @@
 #include <string_view>
 
 #include "mamba/core/mamba_fs.hpp"
+#include "mamba/core/palette.hpp"
 
 namespace mamba
 {
@@ -21,7 +22,7 @@ namespace mamba
     void shell_activate(const fs::u8path& prefix, const std::string& shell_type, bool stack);
     void shell_reactivate(const std::string& shell_type);
     void shell_deactivate(const std::string& shell_type);
-    void shell_enable_long_path_support();
+    void shell_enable_long_path_support(Palette palette = Palette::no_color());
 }
 
 #endif

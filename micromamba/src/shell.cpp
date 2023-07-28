@@ -289,7 +289,7 @@ namespace
             {
                 set_default_config_options(config);
                 config.load();
-                shell_enable_long_path_support();
+                shell_enable_long_path_support(config.context().graphics_params.palette);
                 config.operation_teardown();
             }
         );

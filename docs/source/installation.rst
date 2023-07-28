@@ -1,4 +1,7 @@
+:orphan:
+
 .. _installation:
+   
 ============
 Installation
 ============
@@ -6,9 +9,9 @@ Installation
 Mamba
 =====
 
-See :ref:`mamba-installation`.
+See :ref:`mamba-install`.
 
 Micromamba
 ==========
 
-See :ref:`micromamba-installation`.
+See :ref:`umamba-install`.

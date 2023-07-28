@@ -1,4 +1,5 @@
 .. _mamba-install:
+
 ==================
 Mamba Installation
 ==================

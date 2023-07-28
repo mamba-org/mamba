@@ -1,8 +1,8 @@
 .. _micromamba:
 
-==========
-Micromamba
-==========
+=====================
+Micromamba User Guide
+=====================
 
 ``micromamba`` is a tiny version of the ``mamba`` package manager.
 It is a statically linked C++ executable with a separate command line interface.

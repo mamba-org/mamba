@@ -1,5 +1,6 @@
 
 .. _umamba-install:
+
 =======================
 Micromamba Installation
 =======================
@@ -12,6 +13,7 @@ There is also no pre-configured ``.condarc``/``.mambarc`` shipped with micromamb
 (they are however still read if present).
 
 .. _umamba-install-automatic-installation:
+
 Operating System package managers
 *********************************
 Homebrew
@@ -55,9 +57,12 @@ A explicit version can be specified with
    micromamba self-update --version 1.4.6
 
 .. _umamba-install-manual-installation:
+
 Manual installation
 ^^^^^^^^^^^^^^^^^^^
+
 .. _umamba-install-posix:
+
 Linux and macOS
 ~~~~~~~~~~~~~~~
 
@@ -126,6 +131,7 @@ An exclusive `conda-forge <https://conda-forge.org/>`_ setup can be configured w
    micromamba set channel_priority strict
 
 .. _umamba-install-win:
+
 Windows
 ~~~~~~~
 

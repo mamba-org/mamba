@@ -64,6 +64,7 @@ The resulting configuration written using `YAML` syntax is:
 
 .. code::
 
+  $ micromamba config list --sources
   channels:
     - my-channel  # 'CLI'
     - conda-forge  # '~/.mambarc'

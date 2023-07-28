@@ -3,16 +3,14 @@
 Mamba Installation
 ==================
 
-Fresh install
-*************
+Fresh install (recommended)
+***************************
 
-For a pre-configured installation, minimally different from ``conda``, the Mambaforge distribution
-is a community project of the conda-forge community that packages ``mamba``.
+We recommend that you start with the `Mambaforge distribution <https://github.com/conda-forge/miniforge#mambaforge>`_.
+Mambaforge comes with the popular ``conda-forge`` channel preconfigured, but you can modify the configuration to use any channel you like.
+Note that Anaconda channels are generally incompatible with conda-forge, so you should not mix them.
 
-| You can download `Mambaforge <https://github.com/conda-forge/miniforge#mambaforge>`_ for Windows, macOS and Linux.
-| Mambaforge comes with the popular ``conda-forge`` channel preconfigured, but you can modify the configuration to use any channel you like.
-
- | After successful installation, you can use the mamba commands as described in :ref:`mamba user guide<mamba>`.
+After successful installation, you can use the mamba commands as described in :ref:`mamba user guide<mamba>`.
 
 .. note::
    For both ``mamba`` and ``conda``, the ``base`` environment is meant to hold their dependencies.
@@ -42,11 +40,10 @@ To get ``mamba``, just install it *into the base environment* from the ``conda-f
 Docker images
 *************
 
-The `condaforge/mambaforge <https://hub.docker.com/r/condaforge/mambaforge>`_ docker
-image can be used to run ``mamba`` without installing it:
+In addition to the Mambaforge standalone distribution (see above), there are also the
+`condaforge/mambaforge <https://hub.docker.com/r/condaforge/mambaforge>`_ docker
+images:
 
 .. code-block:: bash
 
   docker run -it --rm condaforge/mambaforge:latest mamba info
-
-Note that the `condaforge/mambaforge` image is not maintained by the Mamba team.

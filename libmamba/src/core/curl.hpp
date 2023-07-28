@@ -68,8 +68,6 @@ namespace mamba
     {
     public:
 
-        explicit CURLId(CURL* handle = nullptr);
-
         bool operator==(const CURLId& rhs) const;
         bool operator!=(const CURLId& rhs) const;
         bool operator<(const CURLId& rhs) const;
@@ -81,7 +79,12 @@ namespace mamba
 
     private:
 
+        explicit CURLId(CURL* handle = nullptr);
+
         CURL* p_handle;
+
+        friend class CURLHandle;
+        friend class CURLMultiHandle;
     };
 }
 
@@ -108,7 +111,7 @@ namespace mamba
         const std::pair<std::string_view, CurlLogLevel> get_ssl_backend_info();
 
         template <class T>
-        tl::expected<T, CURLcode> get_info(CURLINFO option);
+        tl::expected<T, CURLcode> get_info(CURLINFO option) const;
 
         void configure_handle(
             const std::string& url,
@@ -131,7 +134,7 @@ namespace mamba
         CURLHandle& set_opt_header();
 
         const char* get_error_buffer() const;
-        std::string get_curl_effective_url();
+        std::string get_curl_effective_url() const;
 
         [[deprecated]] std::size_t get_result() const;
         [[deprecated]] bool is_curl_res_ok() const;

@@ -318,7 +318,7 @@ namespace mamba
     }
 
     template <class T>
-    tl::expected<T, CURLcode> CURLHandle::get_info(CURLINFO option)
+    tl::expected<T, CURLcode> CURLHandle::get_info(CURLINFO option) const
     {
         T val;
         CURLcode result = curl_easy_getinfo(m_handle, option, &val);
@@ -340,14 +340,14 @@ namespace mamba
     // defining `long long` is needed to handle `curl_off_t` is `long long` case without
     // causing duplication.
 
-    template tl::expected<long, CURLcode> CURLHandle::get_info(CURLINFO option);
-    template tl::expected<char*, CURLcode> CURLHandle::get_info(CURLINFO option);
-    template tl::expected<double, CURLcode> CURLHandle::get_info(CURLINFO option);
-    template tl::expected<long long, CURLcode> CURLHandle::get_info(CURLINFO option);
-    template tl::expected<curl_slist*, CURLcode> CURLHandle::get_info(CURLINFO option);
+    template tl::expected<long, CURLcode> CURLHandle::get_info(CURLINFO option) const;
+    template tl::expected<char*, CURLcode> CURLHandle::get_info(CURLINFO option) const;
+    template tl::expected<double, CURLcode> CURLHandle::get_info(CURLINFO option) const;
+    template tl::expected<long long, CURLcode> CURLHandle::get_info(CURLINFO option) const;
+    template tl::expected<curl_slist*, CURLcode> CURLHandle::get_info(CURLINFO option) const;
 
     template <>
-    tl::expected<std::size_t, CURLcode> CURLHandle::get_info(CURLINFO option)
+    tl::expected<std::size_t, CURLcode> CURLHandle::get_info(CURLINFO option) const
     {
         auto res = get_info<curl_off_t>(option);
         if (res)
@@ -361,7 +361,7 @@ namespace mamba
     }
 
     template <>
-    tl::expected<int, CURLcode> CURLHandle::get_info(CURLINFO option)
+    tl::expected<int, CURLcode> CURLHandle::get_info(CURLINFO option) const
     {
         auto res = get_info<long>(option);
         if (res)
@@ -375,7 +375,7 @@ namespace mamba
     }
 
     template <>
-    tl::expected<std::string, CURLcode> CURLHandle::get_info(CURLINFO option)
+    tl::expected<std::string, CURLcode> CURLHandle::get_info(CURLINFO option) const
     {
         auto res = get_info<char*>(option);
         if (res)
@@ -450,7 +450,7 @@ namespace mamba
         return m_errorbuffer;
     }
 
-    std::string CURLHandle::get_curl_effective_url()
+    std::string CURLHandle::get_curl_effective_url() const
     {
         return get_info<std::string>(CURLINFO_EFFECTIVE_URL).value();
     }
@@ -589,7 +589,8 @@ namespace mamba
 
     void CURLMultiHandle::add_handle(const CURLHandle& h)
     {
-        CURLMcode code = curl_multi_add_handle(p_handle, unwrap(h));
+        CURL* unw = unwrap(h);
+        CURLMcode code = curl_multi_add_handle(p_handle, unw);
         if (code != CURLM_CALL_MULTI_PERFORM)
         {
             if (code != CURLM_OK)

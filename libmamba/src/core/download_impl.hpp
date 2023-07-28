@@ -34,9 +34,9 @@ namespace mamba
         using on_success_callback = std::function<bool(DownloadSuccess)>;
         using on_failure_callback = std::function<bool(DownloadError)>;
 
-        DownloadAttempt(CURLHandle& handle, const DownloadRequest& request);
+        explicit DownloadAttempt(const DownloadRequest& request);
 
-        void prepare_download(
+        CURLId prepare_download(
             CURLMultiHandle& downloader,
             const Context& context,
             on_success_callback success,
@@ -66,13 +66,16 @@ namespace mamba
             curl_off_t
         );
 
+        bool can_retry(CURLcode code) const;
+        bool can_retry(const TransferData& data) const;
+
         TransferData get_transfer_data() const;
         DownloadError build_download_error(CURLcode code) const;
         DownloadError build_download_error(TransferData data) const;
         DownloadSuccess build_download_success(TransferData data) const;
 
-        CURLHandle* p_handle;
         const DownloadRequest* p_request;
+        CURLHandle m_handle;
         on_success_callback m_success_callback;
         on_failure_callback m_failure_callback;
         std::size_t m_retry_wait_seconds;
@@ -118,9 +121,11 @@ namespace mamba
         void throw_if_required(const DownloadSuccess&);
         void throw_if_required(const DownloadError&);
 
+        void save(DownloadSuccess&&);
+        void save(DownloadError&&);
+
         const DownloadRequest* p_request;
         DownloadTrackerOptions m_options;
-        CURLHandle m_curl_handle;
         DownloadAttempt m_attempt;
         std::vector<DownloadResult> m_attempt_results;
         DownloadState m_state;

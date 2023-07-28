@@ -33,6 +33,7 @@ namespace mamba
         std::string cache_control = "";
         std::string etag = "";
         std::string last_modified = "";
+        std::size_t attempt_number = std::size_t(1);
     };
 
     struct DownloadError
@@ -40,6 +41,7 @@ namespace mamba
         std::string message = "";
         std::optional<std::size_t> retry_wait_seconds = std::nullopt;
         std::optional<TransferData> transfer = std::nullopt;
+        std::size_t attempt_number = std::size_t(1);
     };
 
     struct DownloadProgress

@@ -37,3 +37,16 @@ To get ``mamba``, just install it *into the base environment* from the ``conda-f
 
 .. warning::
    Installing mamba into any other environment than ``base`` is not supported.
+
+
+Docker images
+*************
+
+The `condaforge/mambaforge <https://hub.docker.com/r/condaforge/mambaforge>`_ docker
+image can be used to run ``mamba`` without installing it:
+
+.. code-block:: bash
+
+  docker run -it --rm condaforge/mambaforge:latest mamba info
+
+Note that the `condaforge/mambaforge` image is not maintained by the Mamba team.

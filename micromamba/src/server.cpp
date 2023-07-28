@@ -125,6 +125,7 @@ handle_solve_request(
         auto elements = util::split(s, "=");
         vpacks.push_back(detail::make_virtual_package(
             elements[0],
+            ctx.platform,
             elements.size() >= 2 ? elements[1] : "",
             elements.size() >= 3 ? elements[2] : ""
         ));

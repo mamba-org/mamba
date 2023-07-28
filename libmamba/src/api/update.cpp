@@ -66,7 +66,7 @@ namespace mamba
             prefix_pkgs.push_back(it.first);
         }
 
-        prefix_data.add_packages(get_virtual_packages());
+        prefix_data.add_packages(get_virtual_packages(ctx));
 
         MRepo(pool, prefix_data);
 

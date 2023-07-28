@@ -86,7 +86,7 @@ namespace mamba
 
         void print_info(ChannelContext& channel_context, const Configuration& config)
         {
-            auto& ctx = Context::instance();
+            const auto& ctx = Context::instance();
             std::vector<std::tuple<std::string, nlohmann::json>> items;
 
             items.push_back({ "libmamba version", version() });
@@ -147,7 +147,7 @@ namespace mamba
             items.push_back({ "populated config files", sources });
 
             std::vector<std::string> virtual_pkgs;
-            for (auto pkg : get_virtual_packages())
+            for (auto pkg : get_virtual_packages(ctx))
             {
                 virtual_pkgs.push_back(util::concat(pkg.name, "=", pkg.version, "=", pkg.build_string)
                 );

@@ -502,7 +502,7 @@ namespace mamba
             prefix_pkgs.push_back(it.first);
         }
 
-        prefix_data.add_packages(get_virtual_packages());
+        prefix_data.add_packages(get_virtual_packages(ctx));
 
         MRepo(pool, prefix_data);
 
@@ -647,7 +647,7 @@ namespace mamba
             PrefixData& prefix_data = exp_prefix_data.value();
 
             MultiPackageCache pkg_caches(ctx.pkgs_dirs);
-            prefix_data.add_packages(get_virtual_packages());
+            prefix_data.add_packages(get_virtual_packages(ctx));
             MRepo(pool, prefix_data);  // Potentially re-alloc (moves in memory) Solvables
                                        // in the pool
 

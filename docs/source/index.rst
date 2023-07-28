@@ -26,6 +26,8 @@ You can try Mamba now by visiting the :ref:`installation page<installation>`!
    :hidden:
 
    installation
+   mamba-installation
+   micromamba-installation
 
 .. toctree::
    :caption: USER GUIDE

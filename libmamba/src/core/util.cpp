@@ -55,6 +55,7 @@ extern "C"
 #include "mamba/util/compare.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
+#include "mamba/util/url_manip.hpp"
 
 namespace mamba
 {
@@ -1633,16 +1634,16 @@ namespace mamba
         return std::nullopt;
     }
 
-    std::string hide_secrets(const Context& context, std::string_view str)
+    std::string hide_secrets(std::string_view str)
     {
         std::string copy(str);
 
         if (util::contains(str, "/t/"))
         {
-            copy = std::regex_replace(copy, context.token_regex, "/t/*****");
+            copy = std::regex_replace(copy, util::conda_urls::token_regex, "/t/*****");
         }
 
-        copy = std::regex_replace(copy, context.http_basicauth_regex, "$1$2:*****@");
+        copy = std::regex_replace(copy, util::conda_urls::http_basicauth_regex, "$1$2:*****@");
 
         return copy;
     }

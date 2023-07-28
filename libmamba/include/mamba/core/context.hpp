@@ -9,7 +9,6 @@
 
 #include <map>
 #include <optional>
-#include <regex>
 #include <string>
 #include <vector>
 
@@ -228,11 +227,6 @@ namespace mamba
 
         bool repodata_use_zst = true;
         std::vector<std::string> repodata_has_zst = { "https://conda.anaconda.org/conda-forge" };
-
-        // usernames on anaconda.org can have a underscore, which influences the
-        // first two characters
-        const std::regex token_regex{ "/t/([a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-]*)" };
-        const std::regex http_basicauth_regex{ "(://|^)([^\\s]+):([^\\s]+)@" };
 
         static Context& instance();
 

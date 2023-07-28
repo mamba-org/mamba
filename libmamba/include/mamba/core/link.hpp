@@ -7,6 +7,7 @@
 #ifndef MAMBA_CORE_LINK
 #define MAMBA_CORE_LINK
 
+#include <regex>
 #include <stack>
 #include <string>
 #include <tuple>
@@ -27,7 +28,7 @@ namespace mamba
     std::string replace_long_shebang(const std::string& shebang);
     std::string python_shebang(const std::string& python_exe);
 
-    static const std::regex shebang_regex("^(#!"      // pretty much the whole match string
+    inline const std::regex shebang_regex("^(#!"      // pretty much the whole match string
                                           "(?:[ ]*)"  // allow spaces between #! and beginning of
                                                       // the executable path
                                           "(/(?:\\\\ |[^ \n\r\t])*)"  // the executable is the next

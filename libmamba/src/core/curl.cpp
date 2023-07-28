@@ -72,7 +72,7 @@ namespace mamba
                 curl_easy_setopt(handle, CURLOPT_PROXY, proxy->c_str());
                 // TODO LOG_INFO was used here instead; to be modified later following the new log
                 // procedure (TBD)
-                spdlog::info("Using Proxy {}", hide_secrets(Context::instance(), *proxy));
+                spdlog::info("Using Proxy {}", hide_secrets(*proxy));
             }
 
             if (ssl_verify.size())

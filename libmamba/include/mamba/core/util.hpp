@@ -412,7 +412,7 @@ namespace mamba
     std::optional<std::string>
     proxy_match(const std::string& url, const std::map<std::string, std::string>& proxy_servers);
 
-    std::string hide_secrets(const Context& context, std::string_view str);
+    std::string hide_secrets(std::string_view str);
 
     class non_copyable_base
     {

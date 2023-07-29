@@ -222,6 +222,7 @@ set_run_command(CLI::App* subcom, Configuration& config)
             };
 
             int exit_code = mamba::run_in_environment(
+                config.context(),
                 get_prefix(),
                 command,
                 cwd,

@@ -339,7 +339,8 @@ namespace
                     };
 
                     exit(mamba::run_in_environment(
-                        Context::instance().prefix_params.target_prefix,
+                        config.context(),
+                        config.context().prefix_params.target_prefix,
                         { get_shell() },
                         ".",
                         static_cast<int>(STREAM_OPTIONS::ALL_STREAMS),

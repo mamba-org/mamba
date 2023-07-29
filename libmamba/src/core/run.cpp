@@ -187,6 +187,7 @@ namespace mamba
     }
 
     ScopedProcFile::ScopedProcFile(
+        const Context& context,
         const std::string& name,
         const std::vector<std::string>& command,
         LockFile proc_dir_lock
@@ -211,7 +212,7 @@ namespace mamba
         nlohmann::json file_json;
         file_json["name"] = name;
         file_json["command"] = command;
-        file_json["prefix"] = Context::instance().prefix_params.target_prefix.string();
+        file_json["prefix"] = context.prefix_params.target_prefix.string();
         // TODO: add other info here if necessary
         pid_file << file_json;
     }
@@ -284,6 +285,7 @@ namespace mamba
 #endif
 
     int run_in_environment(
+        const Context& context,
         const fs::u8path& prefix,
         std::vector<std::string> command,
         const std::string& cwd,
@@ -319,7 +321,7 @@ namespace mamba
         }
 #endif
 
-        auto [wrapped_command, script_file] = prepare_wrapped_call(Context::instance(), prefix, command);
+        auto [wrapped_command, script_file] = prepare_wrapped_call(context, prefix, command);
 
         fmt::print(LOG_DEBUG, "Running wrapped script: {}", fmt::join(command, " "));
 
@@ -372,7 +374,7 @@ namespace mamba
         if (detach)
         {
             Console::stream() << fmt::format(
-                Context::instance().graphics_params.palette.success,
+                context.graphics_params.palette.success,
                 "Running wrapped script {} in the background\n",
                 fmt::join(command, " ")
             );
@@ -419,6 +421,7 @@ namespace mamba
             if (fs::is_directory(proc_dir()) && mamba::path::is_writable(proc_dir()))
             {
                 scoped_proc_file = std::make_unique<ScopedProcFile>(
+                    context,
                     process_name,
                     raw_command,
                     std::move(proc_dir_lock)

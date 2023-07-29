@@ -403,7 +403,7 @@ PYBIND11_MODULE(bindings, m)
                 {
                     case query::TREE:
                     case query::PRETTY:
-                        res.tree(res_stream);
+                        res.tree(res_stream, mambapy::singletons().context.graphics_params);
                         break;
                     case query::JSON:
                         res_stream << res.json(mambapy::singletons().channel_context).dump(4);
@@ -443,7 +443,7 @@ PYBIND11_MODULE(bindings, m)
                 {
                     case query::TREE:
                     case query::PRETTY:
-                        res.tree(res_stream);
+                        res.tree(res_stream, mambapy::singletons().context.graphics_params);
                         break;
                     case query::JSON:
                         res_stream << res.json(mambapy::singletons().channel_context).dump(4);

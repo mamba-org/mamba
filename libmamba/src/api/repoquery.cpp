@@ -109,7 +109,7 @@ namespace mamba
             {
                 case QueryResultFormat::kTREE:
                 case QueryResultFormat::kPRETTY:
-                    res.tree(std::cout);
+                    res.tree(std::cout, config.context().graphics_params);
                     break;
                 case QueryResultFormat::kJSON:
                     std::cout << res.json(pool.channel_context()).dump(4);
@@ -135,7 +135,7 @@ namespace mamba
             {
                 case QueryResultFormat::kTREE:
                 case QueryResultFormat::kPRETTY:
-                    res.tree(std::cout);
+                    res.tree(std::cout, config.context().graphics_params);
                     break;
                 case QueryResultFormat::kJSON:
                     std::cout << res.json(pool.channel_context()).dump(4);

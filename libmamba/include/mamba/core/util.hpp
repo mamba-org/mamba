@@ -393,6 +393,7 @@ namespace mamba
     };
 
     std::unique_ptr<TemporaryFile> wrap_call(
+        const Context& context,
         const fs::u8path& root_prefix,
         const fs::u8path& prefix,
         const std::vector<std::string>& arguments,  // TODO: c++20 replace by std::span

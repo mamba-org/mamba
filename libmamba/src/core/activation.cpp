@@ -686,7 +686,7 @@ namespace mamba
         // special handling for cmd.exe
         if (is_cmd(this))
         {
-            get_hook_contents(shell());
+            get_hook_contents(m_context, shell());
             return "";
         }
 
@@ -697,7 +697,7 @@ namespace mamba
         }
         else
         {
-            builder << hook_preamble() << "\n" << get_hook_contents(shell()) << "\n";
+            builder << hook_preamble() << "\n" << get_hook_contents(m_context, shell()) << "\n";
         }
 
         if (m_context.shell_completion)

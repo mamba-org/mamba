@@ -59,11 +59,11 @@ namespace mamba
         auto& ctx = Context::instance();
         if (prefix.empty() || prefix == "base")
         {
-            init_shell(shell_type, ctx.prefix_params.root_prefix);
+            init_shell(ctx, shell_type, ctx.prefix_params.root_prefix);
         }
         else
         {
-            init_shell(shell_type, fs::weakly_canonical(env::expand_user(prefix)));
+            init_shell(ctx, shell_type, fs::weakly_canonical(env::expand_user(prefix)));
         }
     }
 
@@ -72,11 +72,11 @@ namespace mamba
         auto& ctx = Context::instance();
         if (prefix.empty() || prefix == "base")
         {
-            deinit_shell(shell_type, ctx.prefix_params.root_prefix);
+            deinit_shell(ctx, shell_type, ctx.prefix_params.root_prefix);
         }
         else
         {
-            deinit_shell(shell_type, fs::weakly_canonical(env::expand_user(prefix)));
+            deinit_shell(ctx, shell_type, fs::weakly_canonical(env::expand_user(prefix)));
         }
     }
 

@@ -1,7 +1,7 @@
 :orphan:
 
 .. _installation:
-   
+
 ============
 Installation
 ============

@@ -127,6 +127,14 @@ namespace mamba
 #endif
     }
 
+    ValidationOptions ValidationOptions::from_context(const Context& context)
+    {
+        return {
+            /* .safety_checks = */ context.safety_checks,
+            /* .extra_safety_checks = */ context.extra_safety_checks,
+        };
+    }
+
     Context::~Context() = default;
 
     void Context::set_verbosity(int lvl)

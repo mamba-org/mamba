@@ -605,7 +605,7 @@ namespace mamba
             m_link_stack.push(link);
         }
 
-        void rollback(const Context& context)
+        void rollback(const Context&)
         {
             while (!m_link_stack.empty())
             {
@@ -860,7 +860,7 @@ namespace mamba
                 targets.emplace_back(
                     std::make_unique<PackageDownloadExtractTarget>(pkg, m_pool.channel_context())
                 );
-                DownloadTarget* download_target = targets.back()->target(m_multi_cache);
+                DownloadTarget* download_target = targets.back()->target(ctx, m_multi_cache);
                 if (download_target != nullptr)
                 {
                     multi_dl.add(download_target);

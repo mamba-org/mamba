@@ -109,7 +109,7 @@ namespace mamba
         }
     }
 
-    bool PackageCacheData::has_valid_tarball(const PackageInfo& s)
+    bool PackageCacheData::has_valid_tarball(const PackageInfo& s, const ValidationOptions& options)
     {
         std::string pkg = s.str();
         if (m_valid_tarballs.find(pkg) != m_valid_tarballs.end())
@@ -139,13 +139,13 @@ namespace mamba
             }
             else
             {
-                if (Context::instance().safety_checks == VerificationLevel::kWarn)
+                if (options.safety_checks == VerificationLevel::kWarn)
                 {
                     LOG_WARNING << "Could not validate package '" + tarball_path.string()
                                        + "': md5 and sha256 sum unknown.\n"
                                          "Set safety_checks to disabled to override this warning.";
                 }
-                else if (Context::instance().safety_checks == VerificationLevel::kEnabled)
+                else if (options.safety_checks == VerificationLevel::kEnabled)
                 {
                     // we cannot validate this archive, but we could also not validate a downloaded
                     // archive since we just don't know the sha256 or md5 sum
@@ -173,7 +173,8 @@ namespace mamba
         return valid;
     }
 
-    bool PackageCacheData::has_valid_extracted_dir(const PackageInfo& s)
+    bool
+    PackageCacheData::has_valid_extracted_dir(const PackageInfo& s, const ValidationOptions& options)
     {
         bool valid = false, can_validate = false;
 
@@ -206,14 +207,14 @@ namespace mamba
                                    || (!s.sha256.empty() && repodata_record.contains("sha256"));
                     if (!can_validate)
                     {
-                        if (Context::instance().safety_checks == VerificationLevel::kWarn)
+                        if (options.safety_checks == VerificationLevel::kWarn)
                         {
                             LOG_WARNING
                                 << "Could not validate package '" + repodata_record_path.string()
                                        + "': md5 and sha256 sum unknown.\n"
                                          "Set safety_checks to disabled to override this warning.";
                         }
-                        else if (Context::instance().safety_checks == VerificationLevel::kEnabled)
+                        else if (options.safety_checks == VerificationLevel::kEnabled)
                         {
                             throw std::runtime_error(
                                 "Could not validate package '" + repodata_record_path.string()
@@ -322,7 +323,7 @@ namespace mamba
 
                 if (valid)
                 {
-                    valid = validate(extracted_dir);
+                    valid = validate(extracted_dir, options);
                 }
             }
         }
@@ -338,7 +339,11 @@ namespace mamba
         return valid;
     }
 
-    MultiPackageCache::MultiPackageCache(const std::vector<fs::u8path>& cache_paths)
+    MultiPackageCache::MultiPackageCache(
+        const std::vector<fs::u8path>& cache_paths,
+        const ValidationOptions& options
+    )
+        : m_options(options)
     {
         m_caches.reserve(cache_paths.size());
         for (auto& c : cache_paths)
@@ -408,7 +413,7 @@ namespace mamba
 
         for (PackageCacheData& c : m_caches)
         {
-            if (c.has_valid_tarball(s))
+            if (c.has_valid_tarball(s, m_options))
             {
                 m_cached_tarballs[pkg] = c.path();
                 return c.path();
@@ -438,7 +443,7 @@ namespace mamba
 
         for (auto& c : m_caches)
         {
-            if (c.has_valid_extracted_dir(s))
+            if (c.has_valid_extracted_dir(s, m_options))
             {
                 m_cached_extracted_dirs[pkg] = c.path();
                 return c.path();

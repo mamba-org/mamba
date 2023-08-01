@@ -44,7 +44,7 @@ namespace mamba
         int solver_flag = SOLVER_UPDATE;
 
         MPool pool{ channel_context };
-        MultiPackageCache package_caches(ctx.pkgs_dirs);
+        MultiPackageCache package_caches(ctx.pkgs_dirs, ValidationOptions::from_context(ctx));
 
         auto exp_loaded = load_channels(pool, package_caches, 0);
         if (!exp_loaded)

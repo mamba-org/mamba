@@ -134,13 +134,12 @@ namespace mamba
 
         TEST_CASE("create_transaction_with_categories")
         {
+            auto& ctx = Context::instance();
             const fs::u8path lockfile_path{ test_data_dir
                                             / "env_lockfile/good_multiple_categories-lock.yaml" };
-            ChannelContext channel_context{ Context::instance() };
+            ChannelContext channel_context{ ctx };
             MPool pool{ channel_context };
-            mamba::MultiPackageCache pkg_cache({ "/tmp/" });
-
-            auto& ctx = Context::instance();
+            mamba::MultiPackageCache pkg_cache({ "/tmp/" }, ValidationOptions::from_context(ctx));
 
             ctx.platform = "linux-64";
 

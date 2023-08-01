@@ -15,6 +15,23 @@
 
 namespace mamba
 {
+    struct ValidationOptions;
+    class Context;
+
+    // Determine the kind of command line to run to extract subprocesses.
+    enum class extract_subproc_mode
+    {
+        mamba_package,
+        micromamba,
+    };
+
+    struct ExtractOptions
+    {
+        bool sparse = false;
+        extract_subproc_mode subproc_mode;
+        static ExtractOptions from_context(const Context&);
+    };
+
     enum compression_algorithm
     {
         none,
@@ -38,22 +55,32 @@ namespace mamba
         int compression_level
     );
 
-    void extract_archive(const fs::u8path& file, const fs::u8path& destination);
+    void
+    extract_archive(const fs::u8path& file, const fs::u8path& destination, const ExtractOptions& options);
     void extract_conda(
         const fs::u8path& file,
         const fs::u8path& dest_dir,
+        const ExtractOptions& options,
         const std::vector<std::string>& parts = { "info", "pkg" }
     );
-    void extract(const fs::u8path& file, const fs::u8path& destination);
-    fs::u8path extract(const fs::u8path& file);
-    void extract_subproc(const fs::u8path& file, const fs::u8path& dest);
+    void
+    extract(const fs::u8path& file, const fs::u8path& destination, const ExtractOptions& options);
+    fs::u8path extract(const fs::u8path& file, const ExtractOptions& options);
+
+
+    void
+    extract_subproc(const fs::u8path& file, const fs::u8path& dest, const ExtractOptions& options);
+
     bool transmute(
         const fs::u8path& pkg_file,
         const fs::u8path& target,
         int compression_level,
-        int compression_threads
+        int compression_threads,
+        const ExtractOptions& options
     );
-    bool validate(const fs::u8path& pkg_folder);
+
+    bool validate(const fs::u8path& pkg_folder, const ValidationOptions& options);
+
 }  // namespace mamba
 
 #endif  // MAMBA_PACKAGE_HANDLING_HPP

@@ -79,7 +79,7 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
 
     std::map<std::string, nlohmann::json> repodatas;
 
-    mamba::ChannelContext channel_context{ Context::instance() };
+    mamba::ChannelContext channel_context{ config.context() };
 
     if (extract_conda_pkgs)
     {
@@ -116,7 +116,7 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
             LOG_TRACE << "Extracting " << pkg_info.fn << std::endl;
             std::cout << "Extracting " << pkg_info.fn << std::endl;
 
-            fs::u8path base_path = extract(entry);
+            fs::u8path base_path = extract(entry, ExtractOptions::from_context(config.context()));
 
             fs::u8path repodata_record_path = base_path / "info" / "repodata_record.json";
             fs::u8path index_path = base_path / "info" / "index.json";
@@ -191,7 +191,7 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
     {
         fs::u8path extract_tarball_path = prefix / "_tmp.tar.bz2";
         read_binary_from_stdin_and_write_to_file(extract_tarball_path);
-        extract_archive(extract_tarball_path, prefix);
+        extract_archive(extract_tarball_path, prefix, ExtractOptions::from_context(config.context()));
         fs::remove(extract_tarball_path);
     }
 }

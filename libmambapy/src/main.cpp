@@ -184,7 +184,15 @@ PYBIND11_MODULE(bindings, m)
         .def("id2pkginfo", &MPool::id2pkginfo, py::arg("id"));
 
     py::class_<MultiPackageCache>(m, "MultiPackageCache")
-        .def(py::init<std::vector<fs::u8path>>())
+        .def(py::init<>(
+            [](const std::vector<fs::u8path>& pkgs_dirs)
+            {
+                return MultiPackageCache{
+                    pkgs_dirs,
+                    mamba::ValidationOptions::from_context(mambapy::singletons().context)
+                };
+            }
+        ))
         .def("get_tarball_path", &MultiPackageCache::get_tarball_path)
         .def_property_readonly("first_writable_path", &MultiPackageCache::first_writable_path);
 
@@ -1033,7 +1041,14 @@ PYBIND11_MODULE(bindings, m)
 
     m.def(
         "transmute",
-        &transmute,
+        +[](const fs::u8path& pkg_file, const fs::u8path& target, int compression_level, int compression_threads
+         )
+        {
+            const auto extract_options = mamba::ExtractOptions::from_context(
+                mambapy::singletons().context
+            );
+            return transmute(pkg_file, target, compression_level, compression_threads, extract_options);
+        },
         py::arg("source_package"),
         py::arg("destination_package"),
         py::arg("compression_level"),

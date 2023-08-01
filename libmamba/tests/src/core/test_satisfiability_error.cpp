@@ -352,7 +352,10 @@ namespace
         auto repo = MRepo{ pool, prefix_data };
         repo.set_installed();
 
-        auto cache = MultiPackageCache({ tmp_dir.path / "cache" });
+        auto cache = MultiPackageCache(
+            { tmp_dir.path / "cache" },
+            ValidationOptions::from_context(Context::instance())
+        );
         create_cache_dir(cache.first_writable_path());
 
         bool prev_progress_bars_value = Context::instance().graphics_params.no_progress_bars;

@@ -30,6 +30,14 @@ namespace mamba
         kEnabled
     };
 
+    struct ValidationOptions
+    {
+        VerificationLevel safety_checks = VerificationLevel::kEnabled;
+        bool extra_safety_checks = false;
+
+        static ValidationOptions from_context(const Context&);
+    };
+
 
     enum class ChannelPriority
     {

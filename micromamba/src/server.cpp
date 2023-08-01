@@ -83,7 +83,7 @@ handle_solve_request(
     }
 
     std::string cache_key = mamba::util::join(", ", channels) + fmt::format(", {}", platform);
-    MultiPackageCache package_caches(ctx.pkgs_dirs);
+    MultiPackageCache package_caches(ctx.pkgs_dirs, ValidationOptions::from_context(ctx));
 
     if (cache_map.find(cache_key) == cache_map.end())
     {

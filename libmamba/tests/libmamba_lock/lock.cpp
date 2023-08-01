@@ -29,6 +29,9 @@ is_locked(const fs::u8path& path)
 int
 main(int argc, char** argv)
 {
+    mamba::Context context;
+    mamba::Context::enable_logging_and_signal_handling(context);
+
     CLI::App app{};
     fs::u8path path;
     std::size_t timeout = 1;
@@ -39,7 +42,7 @@ main(int argc, char** argv)
     lock_com->callback(
         [&]()
         {
-            mamba::Context::instance().lock_timeout = timeout;
+            context.lock_timeout = timeout;
             mamba::set_file_locking_timeout(std::chrono::seconds{ timeout });
             try
             {

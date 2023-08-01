@@ -11,6 +11,8 @@
 #include "mamba/core/pinning.hpp"
 #include "mamba/core/util.hpp"
 
+#include "mambatests.hpp"
+
 namespace mamba
 {
     namespace testing
@@ -22,7 +24,7 @@ namespace mamba
                 std::vector<std::string> specs;
                 std::string pin;
 
-                ChannelContext channel_context{ Context::instance() };
+                ChannelContext channel_context{ mambatests::context() };
                 auto sprefix_data = PrefixData::create("", channel_context);
                 if (!sprefix_data)
                 {

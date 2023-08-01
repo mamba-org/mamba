@@ -13,6 +13,8 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
 
+#include "mambatests.hpp"
+
 namespace mamba
 {
     namespace
@@ -23,8 +25,8 @@ namespace mamba
     int test_interruption_guard(bool interrupt)
     {
         int res = 0;
-        // Ensures the compiler doe snot optimize away Context::instance()
-        std::string current_command = Context::instance().command_params.current_command;
+        // Ensures the compiler doe snot optimize away mambatests::context()
+        std::string current_command = mambatests::context().command_params.current_command;
         CHECK_EQ(current_command, "mamba");
         Console::instance().init_progress_bar_manager(ProgressBarMode::multi);
         {

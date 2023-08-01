@@ -9,6 +9,7 @@
 #include "mamba/api/install.hpp"
 #include "mamba/util/build.hpp"
 
+#include "mambatests.hpp"
 #include "test_data.hpp"
 
 namespace mamba
@@ -17,7 +18,7 @@ namespace mamba
     {
         TEST_CASE("selector")
         {
-            const auto& context = Context::instance();
+            const auto& context = mambatests::context();
             using namespace detail;
             if constexpr (util::on_linux || util::on_mac)
             {
@@ -45,7 +46,7 @@ namespace mamba
 
         TEST_CASE("specs_selection")
         {
-            const auto& context = Context::instance();
+            const auto& context = mambatests::context();
             using V = std::vector<std::string>;
             auto res = detail::read_yaml_file(test_data_dir / "env_file/env_1.yaml", context.platform);
             CHECK_EQ(res.name, "env_1");
@@ -68,7 +69,7 @@ namespace mamba
 
         TEST_CASE("external_pkg_mgrs")
         {
-            const auto& context = Context::instance();
+            const auto& context = mambatests::context();
             using V = std::vector<std::string>;
             auto res = detail::read_yaml_file(test_data_dir / "env_file/env_3.yaml", context.platform);
             CHECK_EQ(res.name, "env_3");

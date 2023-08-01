@@ -11,6 +11,7 @@
 #include "mamba/core/util.hpp"
 #include "mamba/util/string.hpp"
 
+#include "mambatests.hpp"
 #include "test_data.hpp"
 
 namespace mamba
@@ -96,9 +97,7 @@ namespace mamba
             );
 
 
-            mamba::Context& ctx = Context::instance();  // REVIEW: :/  this should be a separate
-                                                        // object, but turns out it's problematic if
-                                                        // it is
+            mamba::Context& ctx = mambatests::context();
             mamba::Configuration config{ ctx };
 
         private:

@@ -13,6 +13,8 @@
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/util/build.hpp"
 
+#include "mambatests.hpp"
+
 namespace mamba
 {
     namespace testing
@@ -33,7 +35,7 @@ namespace mamba
         {
             TEST_CASE("make_virtual_package")
             {
-                const auto& context = Context::instance();
+                const auto& context = mambatests::context();
                 const auto pkg = detail::make_virtual_package("test", context.platform, "0.1.5", "abcd");
 
                 CHECK_EQ(pkg.name, "test");
@@ -48,7 +50,7 @@ namespace mamba
 
             TEST_CASE("dist_packages")
             {
-                auto& ctx = Context::instance();
+                auto& ctx = mambatests::context();
                 auto pkgs = detail::dist_packages(ctx);
 
                 if (util::on_win)
@@ -122,7 +124,7 @@ namespace mamba
             TEST_CASE("get_virtual_packages")
             {
                 env::set("CONDA_OVERRIDE_CUDA", "9.0");
-                const auto& context = Context::instance();
+                const auto& context = mambatests::context();
                 auto pkgs = get_virtual_packages(context);
                 int pkgs_count;
 

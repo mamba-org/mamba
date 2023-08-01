@@ -27,6 +27,8 @@
 #include "mamba/core/util_random.hpp"
 #include "mamba/util/string.hpp"
 
+#include "mambatests.hpp"
+
 using namespace mamba;
 
 TEST_SUITE("conflict_map")
@@ -142,7 +144,7 @@ namespace
     template <typename PkgRange>
     auto create_problem(const PkgRange& packages, const std::vector<std::string>& specs)
     {
-        ChannelContext channel_context{ Context::instance() };
+        ChannelContext channel_context{ mambatests::context() };
         const auto tmp_dir = dir_guard(
             fs::temp_directory_path() / "mamba/tests" / generate_random_alphanumeric_string(20)
         );
@@ -308,7 +310,7 @@ namespace
      */
     auto load_channels(MPool& pool, MultiPackageCache& cache, std::vector<std::string>&& channels)
     {
-        MultiDownloadTarget dlist{ Context::instance() };
+        MultiDownloadTarget dlist{ mambatests::context() };
         auto sub_dirs = std::vector<MSubdirData>();
         for (const auto* chan : pool.channel_context().get_channels(channels))
         {
@@ -338,7 +340,7 @@ namespace
         const std::vector<std::string>& platforms = { "linux-64", "noarch" }
     ) -> MSolver
     {
-        ChannelContext channel_context{ Context::instance() };
+        ChannelContext channel_context{ mambatests::context() };
         // Reusing the cache for all invocation of this funciton for speedup
         static const auto tmp_dir = dir_guard(
             fs::temp_directory_path() / "mamba/tests" / generate_random_alphanumeric_string(20)
@@ -354,14 +356,14 @@ namespace
 
         auto cache = MultiPackageCache(
             { tmp_dir.path / "cache" },
-            ValidationOptions::from_context(Context::instance())
+            ValidationOptions::from_context(mambatests::context())
         );
         create_cache_dir(cache.first_writable_path());
 
-        bool prev_progress_bars_value = Context::instance().graphics_params.no_progress_bars;
-        Context::instance().graphics_params.no_progress_bars = true;
+        bool prev_progress_bars_value = mambatests::context().graphics_params.no_progress_bars;
+        mambatests::context().graphics_params.no_progress_bars = true;
         load_channels(pool, cache, make_platform_channels(std::move(channels), platforms));
-        Context::instance().graphics_params.no_progress_bars = prev_progress_bars_value;
+        mambatests::context().graphics_params.no_progress_bars = prev_progress_bars_value;
 
         auto solver = MSolver(
             std::move(pool),

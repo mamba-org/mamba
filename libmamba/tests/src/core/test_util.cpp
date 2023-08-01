@@ -15,6 +15,8 @@
 #include "mamba/core/util_random.hpp"
 #include "mamba/core/util_scope.hpp"
 
+#include "mambatests.hpp"
+
 namespace mamba
 {
     TEST_SUITE("local_random_generator")

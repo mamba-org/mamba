@@ -11,13 +11,15 @@
 #include "mamba/core/environments_manager.hpp"
 #include "mamba/core/mamba_fs.hpp"
 
+#include "mambatests.hpp"
+
 namespace mamba
 {
     TEST_SUITE("env_manager")
     {
         TEST_CASE("all_envs")
         {
-            EnvironmentsManager e{ Context::instance() };
+            EnvironmentsManager e{ mambatests::context() };
             auto prefixes = e.list_all_known_prefixes();
             // Test registering env without `conda-meta/history` file
             e.register_env(env::expand_user("~/some/env"));

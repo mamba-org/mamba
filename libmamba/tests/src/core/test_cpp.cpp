@@ -20,13 +20,14 @@
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/util/build.hpp"
 
+#include "mambatests.hpp"
 #include "test_data.hpp"
 
 namespace mamba
 {
     // TEST(cpp_install, install)
     // {
-    //     Context::instance().output_params.verbosity = 3;
+    //     mambatests::context().output_params.verbosity = 3;
     //     PackageInfo pkg("wheel", "0.34.2", "py_1", 1);
     //     fs::u8path prefix = "C:\\Users\\wolfv\\miniconda3\\";
     //     TransactionContext tc(prefix, "3.8.x");
@@ -87,7 +88,7 @@ namespace mamba
 
         TEST_CASE("parse")
         {
-            ChannelContext channel_context{ Context::instance() };
+            ChannelContext channel_context{ mambatests::context() };
             {
                 MatchSpec ms("xtensor==0.12.3", channel_context);
                 CHECK_EQ(ms.version, "0.12.3");
@@ -264,7 +265,7 @@ namespace mamba
 
         TEST_CASE("is_simple")
         {
-            ChannelContext channel_context{ Context::instance() };
+            ChannelContext channel_context{ mambatests::context() };
             {
                 MatchSpec ms("libblas", channel_context);
                 CHECK(ms.is_simple());
@@ -292,7 +293,7 @@ namespace mamba
     {
         TEST_CASE("user_request")
         {
-            auto u = History::UserRequest::prefilled(Context::instance());
+            auto u = History::UserRequest::prefilled(mambatests::context());
             // update in 100 years!
             CHECK_EQ(u.date[0], '2');
             CHECK_EQ(u.date[1], '0');
@@ -367,7 +368,7 @@ namespace mamba
         {
             if constexpr (util::on_mac || util::on_linux)
             {
-                auto& ctx = Context::instance();
+                auto& ctx = mambatests::context();
                 ctx.prefix_params.root_prefix = "/home/user/micromamba/";
                 ctx.envs_dirs = { ctx.prefix_params.root_prefix / "envs" };
                 fs::u8path prefix = "/home/user/micromamba/envs/testprefix";

@@ -17,6 +17,7 @@
 #include "mamba/core/validate.hpp"
 #include "mamba/util/string.hpp"
 
+#include "mambatests.hpp"
 #include "test_data.hpp"
 
 namespace mamba::validation
@@ -1444,14 +1445,14 @@ namespace mamba::validation
             {
                 TEST_CASE_FIXTURE(RepoCheckerT, "ctor")
                 {
-                    RepoChecker checker(Context::instance(), m_repo_base_url, m_ref_path);
+                    RepoChecker checker(mambatests::context(), m_repo_base_url, m_ref_path);
                     checker.generate_index_checker();
                     CHECK_EQ(checker.root_version(), 2);
                 }
 
                 TEST_CASE_FIXTURE(RepoCheckerT, "verify_index")
                 {
-                    RepoChecker checker(Context::instance(), m_repo_base_url, m_ref_path);
+                    RepoChecker checker(mambatests::context(), m_repo_base_url, m_ref_path);
                     checker.generate_index_checker();
                     checker.verify_index(signed_repodata_json);
                 }
@@ -1466,7 +1467,7 @@ namespace mamba::validation
                                     ])"
                     );
                     write_role(create_root_update_json(patch), channel_dir->path() / "2.root.json");
-                    RepoChecker checker(Context::instance(), m_repo_base_url, m_ref_path);
+                    RepoChecker checker(mambatests::context(), m_repo_base_url, m_ref_path);
                     CHECK_THROWS_AS(checker.generate_index_checker(), freeze_error);
                 }
 
@@ -1479,20 +1480,20 @@ namespace mamba::validation
                                     ])"
                     );
                     write_role(patched_key_mgr_json(patch), channel_dir->path() / "key_mgr.json");
-                    RepoChecker checker(Context::instance(), m_repo_base_url, m_ref_path);
+                    RepoChecker checker(mambatests::context(), m_repo_base_url, m_ref_path);
                     CHECK_THROWS_AS(checker.generate_index_checker(), freeze_error);
                 }
 
                 TEST_CASE_FIXTURE(RepoCheckerT, "missing_key_mgr_file")
                 {
                     fs::remove(channel_dir->path() / "key_mgr.json");
-                    RepoChecker checker(Context::instance(), m_repo_base_url, m_ref_path);
+                    RepoChecker checker(mambatests::context(), m_repo_base_url, m_ref_path);
                     CHECK_THROWS_AS(checker.generate_index_checker(), fetching_error);
                 }
 
                 TEST_CASE_FIXTURE(RepoCheckerT, "corrupted_repodata")
                 {
-                    RepoChecker checker(Context::instance(), m_repo_base_url, m_ref_path);
+                    RepoChecker checker(mambatests::context(), m_repo_base_url, m_ref_path);
 
                     json wrong_pkg_patch = R"([
                                 { "op": "replace", "path": "/packages/test-package1-0.1-0.tar.bz2/version", "value": "0.1.1" }
@@ -1506,7 +1507,7 @@ namespace mamba::validation
 
                 TEST_CASE_FIXTURE(RepoCheckerT, "illformed_repodata")
                 {
-                    RepoChecker checker(Context::instance(), m_repo_base_url, m_ref_path);
+                    RepoChecker checker(mambatests::context(), m_repo_base_url, m_ref_path);
 
                     json illformed_pkg_patch = R"([
                                 { "op": "remove", "path": "/signatures"}

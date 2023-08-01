@@ -126,7 +126,7 @@ namespace mamba
         ascii_only = false;
 #endif
 
-        if(options.enable_logging_and_signal_handling)
+        if (options.enable_logging_and_signal_handling)
         {
             enable_logging_and_signal_handling(*this);
         }

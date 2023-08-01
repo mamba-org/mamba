@@ -12,6 +12,8 @@
 
 #include "../src/core/progress_bar_impl.hpp"
 
+#include "mambatests.hpp"
+
 namespace mamba
 {
     class progress_bar
@@ -20,7 +22,7 @@ namespace mamba
 
         progress_bar()
         {
-            const auto& context = Context::instance();
+            const auto& context = mambatests::context();
             p_progress_bar_manager = std::make_unique<MultiBarManager>();
             proxy = p_progress_bar_manager->add_progress_bar(
                 "conda-forge",

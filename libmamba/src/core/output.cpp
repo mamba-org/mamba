@@ -303,7 +303,7 @@ namespace mamba
 
     Console::~Console()
     {
-        if (!p_data->is_json_print_cancelled && !p_data->json_log.is_null())  // Note: we cannot
+        if (!p_data->is_json_print_cancelled && !p_data->json_log.is_null())  // FIXME: we cannot
                                                                               // rely on
                                                                               // Context::instance()
                                                                               // to still be valid

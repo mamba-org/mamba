@@ -38,7 +38,10 @@ namespace mamba
 
     namespace detail
     {
-        void info_pretty_print(std::vector<std::tuple<std::string, nlohmann::json>> items, const Context::OutputParams& params)
+        void info_pretty_print(
+            std::vector<std::tuple<std::string, nlohmann::json>> items,
+            const Context::OutputParams& params
+        )
         {
             if (params.json)
             {

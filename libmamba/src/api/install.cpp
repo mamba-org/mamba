@@ -192,7 +192,7 @@ namespace mamba
 
     namespace detail
     {
-        bool eval_selector(const std::string& selector, const std::string&  platform)
+        bool eval_selector(const std::string& selector, const std::string& platform)
         {
             if (!(util::starts_with(selector, "sel(") && selector[selector.size() - 1] == ')'))
             {
@@ -720,8 +720,12 @@ namespace mamba
         {
             LOG_INFO << "Downloading lockfile";
             tmp_lock_file = std::make_unique<TemporaryFile>();
-            DownloadTarget
-                dt(channel_context.context(), "Environment Lockfile", lockfile, tmp_lock_file->path());
+            DownloadTarget dt(
+                channel_context.context(),
+                "Environment Lockfile",
+                lockfile,
+                tmp_lock_file->path()
+            );
             bool success = dt.perform();
             if (!success || dt.get_http_status() != 200)
             {

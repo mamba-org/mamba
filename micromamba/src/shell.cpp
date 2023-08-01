@@ -226,7 +226,10 @@ namespace
                 auto& context = config.context();
                 set_default_config_options(config);
                 config.load();
-                shell_hook(context, consolidate_shell(config.at("shell_type").compute().value<std::string>()));
+                shell_hook(
+                    context,
+                    consolidate_shell(config.at("shell_type").compute().value<std::string>())
+                );
                 config.operation_teardown();
             }
         );

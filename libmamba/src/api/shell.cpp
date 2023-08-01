@@ -105,7 +105,8 @@ namespace mamba
         }
     }
 
-    void shell_activate(Context& ctx, const fs::u8path& prefix, const std::string& shell_type, bool stack)
+    void
+    shell_activate(Context& ctx, const fs::u8path& prefix, const std::string& shell_type, bool stack)
     {
         if (!fs::exists(prefix))
         {

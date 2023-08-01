@@ -21,7 +21,8 @@ namespace mamba
     void shell_deinit(Context& ctx, const std::string& shell_type, const fs::u8path& prefix);
     void shell_reinit(Context& ctx, const fs::u8path& prefix);
     void shell_hook(Context& ctx, const std::string& shell_type);
-    void shell_activate(Context& ctx, const fs::u8path& prefix, const std::string& shell_type, bool stack);
+    void
+    shell_activate(Context& ctx, const fs::u8path& prefix, const std::string& shell_type, bool stack);
     void shell_reactivate(Context& ctx, const std::string& shell_type);
     void shell_deactivate(Context& ctx, const std::string& shell_type);
     void shell_enable_long_path_support(Palette palette = Palette::no_color());

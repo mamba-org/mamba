@@ -15,13 +15,15 @@
 
 namespace mamba
 {
-    void shell_init(const std::string& shell_type, const fs::u8path& prefix);
-    void shell_deinit(const std::string& shell_type, const fs::u8path& prefix);
-    void shell_reinit(const fs::u8path& prefix);
-    void shell_hook(const std::string& shell_type);
-    void shell_activate(const fs::u8path& prefix, const std::string& shell_type, bool stack);
-    void shell_reactivate(const std::string& shell_type);
-    void shell_deactivate(const std::string& shell_type);
+    class Context;
+
+    void shell_init(Context& ctx, const std::string& shell_type, const fs::u8path& prefix);
+    void shell_deinit(Context& ctx, const std::string& shell_type, const fs::u8path& prefix);
+    void shell_reinit(Context& ctx, const fs::u8path& prefix);
+    void shell_hook(Context& ctx, const std::string& shell_type);
+    void shell_activate(Context& ctx, const fs::u8path& prefix, const std::string& shell_type, bool stack);
+    void shell_reactivate(Context& ctx, const std::string& shell_type);
+    void shell_deactivate(Context& ctx, const std::string& shell_type);
     void shell_enable_long_path_support(Palette palette = Palette::no_color());
 }
 

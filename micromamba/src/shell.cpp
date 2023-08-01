@@ -166,11 +166,13 @@ namespace
         subsubcmd->callback(
             [&config]()
             {
+                auto& context = config.context();
                 set_default_config_options(config);
                 config.load();
                 shell_init(
+                    context,
                     consolidate_shell(config.at("shell_type").compute().value<std::string>()),
-                    Context::instance().prefix_params.root_prefix
+                    context.prefix_params.root_prefix
                 );
                 config.operation_teardown();
             }
@@ -185,11 +187,13 @@ namespace
         subsubcmd->callback(
             [&config]()
             {
+                auto& context = config.context();
                 set_default_config_options(config);
                 config.load();
                 shell_deinit(
+                    context,
                     consolidate_shell(config.at("shell_type").compute().value<std::string>()),
-                    Context::instance().prefix_params.root_prefix
+                    context.prefix_params.root_prefix
                 );
                 config.operation_teardown();
             }
@@ -202,9 +206,10 @@ namespace
         subsubcmd->callback(
             [&config]()
             {
+                auto& context = config.context();
                 set_default_config_options(config);
                 config.load();
-                shell_reinit(Context::instance().prefix_params.root_prefix);
+                shell_reinit(context, context.prefix_params.root_prefix);
                 config.operation_teardown();
             }
         );
@@ -218,9 +223,10 @@ namespace
         subsubcmd->callback(
             [&config]()
             {
+                auto& context = config.context();
                 set_default_config_options(config);
                 config.load();
-                shell_hook(consolidate_shell(config.at("shell_type").compute().value<std::string>()));
+                shell_hook(context, consolidate_shell(config.at("shell_type").compute().value<std::string>()));
                 config.operation_teardown();
             }
         );
@@ -236,10 +242,12 @@ namespace
         subsubcmd->callback(
             [&config]()
             {
+                auto& context = config.context();
                 set_default_config_options(config);
                 consolidate_prefix_options(config);
                 config.load();
                 shell_activate(
+                    context,
                     Context::instance().prefix_params.target_prefix,
                     consolidate_shell(config.at("shell_type").compute().value<std::string>()),
                     config.at("shell_stack").compute().value<bool>()
@@ -256,9 +264,11 @@ namespace
         subsubcmd->callback(
             [&config]()
             {
+                auto& context = config.context();
                 set_default_config_options(config);
                 config.load();
                 shell_reactivate(
+                    context,
                     consolidate_shell(config.at("shell_type").compute().value<std::string>())
                 );
                 config.operation_teardown();
@@ -273,9 +283,10 @@ namespace
         subsubcmd->callback(
             [&config]()
             {
+                auto& context = config.context();
                 set_default_config_options(config);
                 config.load();
-                shell_deactivate(config.at("shell_type").compute().value<std::string>());
+                shell_deactivate(context, config.at("shell_type").compute().value<std::string>());
                 config.operation_teardown();
             }
         );

@@ -18,7 +18,7 @@ namespace mamba
 {
     void update(Configuration& config, bool update_all, bool prune)
     {
-        auto& ctx = Context::instance();
+        auto& ctx = config.context();
 
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")

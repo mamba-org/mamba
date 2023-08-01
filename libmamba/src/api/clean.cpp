@@ -20,7 +20,7 @@ namespace mamba
 {
     void clean(Configuration& config, int options)
     {
-        auto& ctx = Context::instance();
+        auto& ctx = config.context();
 
         config.at("use_target_prefix_fallback").set_value(true);
         config.load();

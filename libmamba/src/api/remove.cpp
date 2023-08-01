@@ -23,7 +23,7 @@ namespace mamba
         bool force = flags & MAMBA_REMOVE_FORCE;
         bool remove_all = flags & MAMBA_REMOVE_ALL;
 
-        auto& ctx = Context::instance();
+        auto& ctx = config.context();
 
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
@@ -71,7 +71,7 @@ namespace mamba
             bool force
         )
         {
-            auto& ctx = Context::instance();
+            auto& ctx = channel_context.context();
 
             if (ctx.prefix_params.target_prefix.empty())
             {

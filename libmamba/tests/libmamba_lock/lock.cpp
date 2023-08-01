@@ -29,7 +29,9 @@ is_locked(const fs::u8path& path)
 int
 main(int argc, char** argv)
 {
-    mamba::Context context{ { .enable_logging_and_signal_handling = true } };
+    mamba::Context context{ {
+        /* .enable_logging_and_signal_handling = */ true,
+    } };
 
     CLI::App app{};
     fs::u8path path;

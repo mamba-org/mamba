@@ -65,6 +65,11 @@ namespace mamba
     std::string env_name(const Context& context, const fs::u8path& prefix);
     std::string env_name(const Context& context);
 
+    struct ContextOptions
+    {
+        bool enable_logging_and_signal_handling = false;
+    };
+
     // Context singleton class
     class Context
     {
@@ -250,7 +255,7 @@ namespace mamba
         void set_verbosity(int lvl);
         void set_log_level(log_level level);
 
-        Context();
+        Context(const ContextOptions& options = {});
         ~Context();
 
         // Enables the provided context to drive the logging system and setup signal handling.

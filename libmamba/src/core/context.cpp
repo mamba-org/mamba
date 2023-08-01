@@ -93,7 +93,7 @@ namespace mamba
         spdlog::set_level(convert_log_level(context.output_params.logging_level));
     }
 
-    Context::Context()
+    Context::Context(const ContextOptions& options)
     {
         on_ci = static_cast<bool>(env::get("CI"));
         prefix_params.root_prefix = env::get("MAMBA_ROOT_PREFIX").value_or("");
@@ -125,6 +125,11 @@ namespace mamba
 #else
         ascii_only = false;
 #endif
+
+        if(options.enable_logging_and_signal_handling)
+        {
+            enable_logging_and_signal_handling(*this);
+        }
     }
 
     ValidationOptions ValidationOptions::from_context(const Context& context)

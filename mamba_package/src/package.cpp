@@ -28,11 +28,7 @@ set_package_command(CLI::App* com, mamba::Context& context)
         {
             std::cout << "Extracting " << fs::absolute(infile) << " to " << fs::absolute(dest)
                       << std::endl;
-            extract(
-                fs::absolute(infile),
-                fs::absolute(dest),
-                ExtractOptions::from_context(context)
-            );
+            extract(fs::absolute(infile), fs::absolute(dest), ExtractOptions::from_context(context));
         }
     );
 

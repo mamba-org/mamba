@@ -241,8 +241,6 @@ namespace mamba
         bool repodata_use_zst = true;
         std::vector<std::string> repodata_has_zst = { "https://conda.anaconda.org/conda-forge" };
 
-        static Context& instance();
-
         Context(const Context&) = delete;
         Context& operator=(const Context&) = delete;
 

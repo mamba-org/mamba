@@ -150,59 +150,6 @@ namespace mamba
         main_executor = nullptr;
     }
 
-    //---- Singletons from this library ------------------------------------------------------------
-
-    namespace singletons
-    {
-        template <typename T>
-        struct Singleton : public T
-        {
-            using T::T;
-        };
-
-        template <typename T, typename D, typename F>
-        T& init_once(std::unique_ptr<T, D>& ptr, F init_func)
-        {
-            static std::once_flag init_flag;
-            std::call_once(init_flag, [&] { ptr = init_func(); });
-            // In case the object was already created and destroyed, we make sure it is clearly
-            // visible (no undefined behavior).
-            if (!ptr)
-            {
-                throw mamba::mamba_error(
-                    fmt::format(
-                        "attempt to use {} singleton instance after destruction",
-                        typeid(T).name()
-                    ),
-                    mamba_error_code::internal_failure
-                );
-            }
-
-            return *ptr;
-        }
-
-        template <typename T, typename D>
-        T& init_once(std::unique_ptr<T, D>& ptr)
-        {
-            return init_once(ptr, [] { return std::make_unique<T>(); });
-        }
-
-        static std::unique_ptr<Singleton<Context>> context;
-    }
-
-    Context& Context::instance()
-    {
-        return singletons::init_once(
-            singletons::context,
-            []
-            {
-                auto ptr = std::make_unique<singletons::Singleton<Context>>();
-                Context::enable_logging_and_signal_handling(*ptr);
-                return ptr;
-            }
-        );
-    }
-
     static std::atomic<Console*> main_console{ nullptr };
 
     Console& Console::instance()

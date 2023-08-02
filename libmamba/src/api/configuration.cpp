@@ -1751,6 +1751,16 @@ namespace mamba
         return res;
     }
 
+    // Precedence is initially set least to most, and then at the end the list is reversed.
+    // Configuration::set_rc_values iterates over all config options, and then over all config
+    // file source. Essentially first come first serve.
+    // just FYI re "../conda": env::user_config_dir's default value is $XDG_CONFIG_HOME/mamba
+    // But we wanted to also allow $XDG_CONFIG_HOME/conda and '..' seems like the best way to
+    // make it conda/mamba compatible. Otherwise I would have to set user_config_dir to either
+    // be just $XDG_CONFIG_HOME and always supply mamba after calling it, or I would have to
+    // give env::user_config_dir a mamba argument, all so I can supply conda in a few default
+    // cases. It seems like ../conda is an easier solution
+    //
     std::vector<fs::u8path> Configuration::compute_default_rc_sources(const RCConfigLevel& level)
     {
         auto& ctx = Context::instance();
@@ -1776,11 +1786,30 @@ namespace mamba
                                          ctx.prefix_params.root_prefix / "condarc.d",
                                          ctx.prefix_params.root_prefix / ".mambarc" };
 
-        std::vector<fs::u8path> home = { env::home_directory() / ".conda/.condarc",
-                                         env::home_directory() / ".conda/condarc",
-                                         env::home_directory() / ".conda/condarc.d",
-                                         env::home_directory() / ".condarc",
-                                         env::home_directory() / ".mambarc" };
+        std::vector<fs::u8path> conda_user = {
+            env::user_config_dir() / "../conda/.condarc",
+            env::user_config_dir() / "../conda/condarc",
+            env::user_config_dir() / "../conda/condarc.d",
+            env::home_directory() / ".conda/.condarc",
+            env::home_directory() / ".conda/condarc",
+            env::home_directory() / ".conda/condarc.d",
+            env::home_directory() / ".condarc",
+        };
+        if (env::get("CONDARC"))
+        {
+            conda_user.push_back(fs::u8path(env::get("CONDARC").value()));
+        }
+
+        std::vector<fs::u8path> mamba_user = {
+            env::user_config_dir() / ".mambarc",      env::user_config_dir() / "mambarc",
+            env::user_config_dir() / "mambarc.d",     env::home_directory() / ".mamba/.mambarc",
+            env::home_directory() / ".mamba/mambarc", env::home_directory() / ".mamba/mambarc.d",
+            env::home_directory() / ".mambarc",
+        };
+        if (env::get("MAMBARC"))
+        {
+            mamba_user.push_back(fs::u8path(env::get("MAMBARC").value()));
+        }
 
         std::vector<fs::u8path> prefix = { ctx.prefix_params.target_prefix / ".condarc",
                                            ctx.prefix_params.target_prefix / "condarc",
@@ -1799,7 +1828,8 @@ namespace mamba
         }
         if (level >= RCConfigLevel::kHomeDir)
         {
-            sources.insert(sources.end(), home.begin(), home.end());
+            sources.insert(sources.end(), conda_user.begin(), conda_user.end());
+            sources.insert(sources.end(), mamba_user.begin(), mamba_user.end());
         }
         if ((level >= RCConfigLevel::kTargetPrefix) && !ctx.prefix_params.target_prefix.empty())
         {

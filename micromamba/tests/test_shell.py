@@ -296,3 +296,14 @@ class TestShell:
             env={**os.environ, "SHELL": script_path},
         )
         assert ret.returncode == 42
+
+    def test_shell_run_activated(self):
+        """Verify environment properly activated in `micromamba shell`."""
+        skip_if_shell_incompat("bash")
+        create("-n", self.env_name)
+        stdout = subprocess.check_output(
+            [get_umamba(), "shell", "-n", self.env_name],
+            input="echo $PATH",
+            text=True,
+        )
+        assert self.env_name in stdout.split(os.pathsep)[0]

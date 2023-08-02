@@ -168,9 +168,9 @@ namespace mamba
         }
 
         const std::map<std::string, KNOWNFOLDERID> knownfolders = {
-            { "programs", FOLDERID_Programs },
-            { "profile", FOLDERID_Profile },
-            { "documents", FOLDERID_Documents },
+            { "programs", FOLDERID_Programs },       { "profile", FOLDERID_Profile },
+            { "documents", FOLDERID_Documents },     { "roamingappdata", FOLDERID_RoamingAppData },
+            { "programdata", FOLDERID_ProgramData }, { "localappdata", FOLDERID_LocalAppData },
         };
 
         fs::u8path get_folder(const std::string& id)

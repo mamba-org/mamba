@@ -5,11 +5,13 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "mamba/core/environment.hpp"
+#include "mamba/core/util.hpp"
 #include "mamba/core/util_string.hpp"
 
 #ifdef _WIN32
 #include <mutex>
 
+#include "mamba/core/menuinst.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/util_os.hpp"
 #endif
@@ -267,7 +269,49 @@ namespace mamba
                 throw std::runtime_error("HOME not set.");
             }
 #endif
-            return maybe_home;
+            return fs::u8path(maybe_home);
+        }
+
+        fs::u8path user_config_dir()
+        {
+            std::string maybe_user_config_dir = env::get("XDG_CONFIG_HOME").value_or("");
+            if (maybe_user_config_dir.empty())
+            {
+#ifdef _WIN32
+                maybe_user_config_dir = ::mamba::win::get_folder("roamingappdata");
+#else
+                maybe_user_config_dir = home_directory() / ".config";
+#endif
+            }
+            return fs::u8path(maybe_user_config_dir) / "mamba";
+        }
+
+        fs::u8path user_data_dir()
+        {
+            std::string maybe_user_data_dir = env::get("XDG_DATA_HOME").value_or("");
+            if (maybe_user_data_dir.empty())
+            {
+#ifdef _WIN32
+                maybe_user_data_dir = ::mamba::win::get_folder("roamingappdata");
+#else
+                maybe_user_data_dir = home_directory() / ".local" / "share";
+#endif
+            }
+            return fs::u8path(maybe_user_data_dir) / "mamba";
+        }
+
+        fs::u8path user_cache_dir()
+        {
+            std::string maybe_user_cache_dir = env::get("XDG_CACHE_HOME").value_or("");
+            if (maybe_user_cache_dir.empty())
+            {
+#ifdef _WIN32
+                maybe_user_cache_dir = ::mamba::win::get_folder("localappdata");
+#else
+                maybe_user_cache_dir = home_directory() / ".cache";
+#endif
+            }
+            return fs::u8path(maybe_user_cache_dir) / "mamba";
         }
 
         fs::u8path expand_user(const fs::u8path& path)

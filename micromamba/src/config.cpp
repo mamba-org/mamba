@@ -55,7 +55,7 @@ get_system_path()
 fs::u8path
 compute_config_path(Configuration& config, bool touch_if_not_exists)
 {
-    auto& ctx = Context::instance();
+    auto& ctx = config.context();
 
     auto& file_path = config.at("config_set_file_path");
     auto& env_path = config.at("config_set_env_path");

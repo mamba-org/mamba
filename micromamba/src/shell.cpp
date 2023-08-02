@@ -251,7 +251,7 @@ namespace
                 config.load();
                 shell_activate(
                     context,
-                    Context::instance().prefix_params.target_prefix,
+                    context.prefix_params.target_prefix,
                     consolidate_shell(config.at("shell_type").compute().value<std::string>()),
                     config.at("shell_stack").compute().value<bool>()
                 );

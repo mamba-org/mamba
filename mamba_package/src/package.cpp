@@ -14,7 +14,7 @@
 using namespace mamba;  // NOLINT(build/namespaces)
 
 void
-set_package_command(CLI::App* com)
+set_package_command(CLI::App* com, mamba::Context& context)
 {
     static std::string infile, dest;
     static int compression_level = -1;
@@ -31,7 +31,7 @@ set_package_command(CLI::App* com)
             extract(
                 fs::absolute(infile),
                 fs::absolute(dest),
-                ExtractOptions::from_context(Context::instance())
+                ExtractOptions::from_context(context)
             );
         }
     );
@@ -109,7 +109,7 @@ set_package_command(CLI::App* com)
                 fs::absolute(dest),
                 compression_level,
                 compression_threads,
-                ExtractOptions::from_context(Context::instance())
+                ExtractOptions::from_context(context)
             );
         }
     );

@@ -31,7 +31,7 @@ main(int argc, char** argv)
     init_console();
 
     CLI::App app{ "Version: " + version() + "\n" };
-    set_package_command(&app);
+    set_package_command(&app, context);
 
     try
     {
@@ -48,7 +48,7 @@ main(int argc, char** argv)
     if (app.get_subcommands().size() == 0)
     {
         config.load();
-        Console::instance().print(app.help());
+        console.print(app.help());
     }
 
     return 0;

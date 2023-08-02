@@ -38,7 +38,7 @@ load_pool(
     mamba::ChannelContext& channel_context
 )
 {
-    auto& ctx = Context::instance();
+    auto& ctx = channel_context.context();
     ctx.channels = channels;
     mamba::MPool pool{ channel_context };
     auto exp_load = load_channels(pool, package_caches, false);
@@ -56,7 +56,7 @@ handle_solve_request(
     mamba::ChannelContext& channel_context
 )
 {
-    auto& ctx = Context::instance();
+    auto& ctx = channel_context.context();
 
     struct cache
     {
@@ -219,7 +219,7 @@ set_server_command(CLI::App* subcom, mamba::Configuration& config)
     subcom->callback(
         [&config]
         {
-            mamba::ChannelContext channel_context{ Context::instance() };
+            mamba::ChannelContext channel_context{ config.context() };
             return run_server(port, channel_context, config);
         }
     );

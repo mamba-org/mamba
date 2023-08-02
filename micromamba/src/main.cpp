@@ -34,10 +34,9 @@ int
 main(int argc, char** argv)
 {
     mamba::MainExecutor scoped_threads;
-    mamba::Context& ctx = mamba::Context::instance();  // TEMPORARY while there is still the
-                                                       // singleton access / replace by new ctx +
-                                                       // logging function once ready to remove
-                                                       // Context::instance()
+    mamba::Context ctx{{
+        /* .enable_logging_and_signal_handling = */ true,
+    }};
     mamba::Console console{ ctx };
     mamba::Configuration config{ ctx };
 

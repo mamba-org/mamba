@@ -62,7 +62,7 @@ void
 set_run_command(CLI::App* subcom, mamba::Configuration& config);
 
 void
-set_ps_command(CLI::App* subcom);
+set_ps_command(CLI::App* subcom, mamba::Context& context);
 
 void
 get_completions(CLI::App* app, mamba::Configuration& config, int argc, char** argv);

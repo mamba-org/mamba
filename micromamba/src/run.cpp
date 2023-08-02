@@ -43,11 +43,11 @@ using namespace mamba;  // NOLINT(build/namespaces)
 
 
 void
-set_ps_command(CLI::App* subcom)
+set_ps_command(CLI::App* subcom, Context& context)
 {
     auto list_subcom = subcom->add_subcommand("list");
 
-    auto list_callback = []()
+    auto list_callback = [&]()
     {
         nlohmann::json info;
         if (fs::is_directory(proc_dir()))
@@ -61,8 +61,6 @@ set_ps_command(CLI::App* subcom)
         }
         printers::Table table({ "PID", "Name", "Prefix", "Command" });
         table.set_padding({ 2, 4, 4, 4 });
-        auto& context = Context::instance();  // REVIEW: this is temporary and should be deleted
-                                              // before review.
         for (auto& el : info)
         {
             auto prefix = el["prefix"].get<std::string>();
@@ -211,9 +209,10 @@ set_run_command(CLI::App* subcom, Configuration& config)
                 stream_options |= (sinkin ? 0 : static_cast<int>(STREAM_OPTIONS::SINKIN));
             }
 
+            auto& ctx = config.context();
+
             auto const get_prefix = [&]()
             {
-                auto& ctx = Context::instance();
                 if (auto prefix = ctx.prefix_params.target_prefix; !prefix.empty())
                 {
                     return prefix;

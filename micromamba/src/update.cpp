@@ -25,7 +25,7 @@ using namespace mamba;  // NOLINT(build/namespaces)
 int
 update_self(Configuration& config, const std::optional<std::string>& version)
 {
-    auto& ctx = mamba::Context::instance();
+    auto& ctx = config.context();
     config.load();
 
     // set target_prefix to root_prefix (irrelevant, but transaction tries to lock

@@ -31,7 +31,7 @@ Mamba-org releases
 Install script
 ^^^^^^^^^^^^^^
 
-If you are using macOS or Linux, there is a simple way of installing ``micromamba``.
+If you are using macOS, Linux, or Git Bash on Windows there is a simple way of installing ``micromamba``.
 Simply execute the installation script in your preferred shell.
 
 For Linux and macOS install with:

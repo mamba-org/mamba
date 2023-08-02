@@ -8,6 +8,7 @@
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util_os.hpp"
@@ -21,7 +22,10 @@ main(int argc, char** argv)
 {
     using namespace mamba;  // NOLINT(build/namespaces)
 
-    Configuration config{ Context::instance() };
+    MainExecutor main_executor;
+    Context context{ { /* .enable_blah_blah = */ true } };
+    Console console{ context };
+    Configuration config{ context };
 
     // call init console to setup utf8 extraction
     init_console();

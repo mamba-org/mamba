@@ -137,7 +137,10 @@ namespace mamba
         MainExecutor* expected = nullptr;
         if (!main_executor.compare_exchange_strong(expected, this))
         {
-            throw MainExecutorError("attempted to create multiple main executors");
+            throw MainExecutorError(
+                "attempted to create multiple main executors",
+                mamba_error_code::incorrect_usage
+            );
         }
     }
 
@@ -185,7 +188,6 @@ namespace mamba
         }
 
         static std::unique_ptr<Singleton<Context>> context;
-        static std::unique_ptr<Singleton<Console>> console;
     }
 
     Context& Context::instance()
@@ -201,12 +203,36 @@ namespace mamba
         );
     }
 
+    static std::atomic<Console*> main_console{ nullptr };
+
     Console& Console::instance()
     {
-        return singletons::init_once(
-            singletons::console,
-            [] { return std::make_unique<singletons::Singleton<Console>>(Context::instance()); }
-        );
+        if (!main_console)  // NOTE: this is a temptative check, not a perfect one, it is possible
+                            // `main_console` becomes null after the if scope and before returning.
+                            // A perfect check would involve locking a mutex, we want to avoid that
+                            // here.
+        {
+            throw mamba_error(
+                "attempted to access the console but it have not been created yet",
+                mamba_error_code::incorrect_usage
+            );
+        }
+
+        return *main_console;
+    }
+
+    void Console::set_singleton(Console& console)
+    {
+        Console* expected = nullptr;
+        if (!main_console.compare_exchange_strong(expected, &console))
+        {
+            throw mamba_error("attempted to create multiple consoles", mamba_error_code::incorrect_usage);
+        }
+    }
+
+    void Console::clear_singleton()
+    {
+        main_console = nullptr;
     }
 
 }

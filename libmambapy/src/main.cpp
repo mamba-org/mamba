@@ -115,7 +115,9 @@ namespace mambapy
 {
     struct Singletons
     {
-        mamba::Context context;
+        mamba::MainExecutor main_executor;
+        mamba::Context context{ { /* .enable_logging_and_signal_handling = */ true } };
+        mamba::Console console{ context };
         mamba::ChannelContext channel_context{ context };
         mamba::Configuration config{ context };
     };

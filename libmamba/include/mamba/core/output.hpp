@@ -160,6 +160,9 @@ namespace mamba
         std::unique_ptr<ConsoleData> p_data;
 
         friend class ProgressProxy;
+
+        static void set_singleton(Console& console);
+        static void clear_singleton();
     };
 
     class MessageLogger

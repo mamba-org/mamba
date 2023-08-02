@@ -38,6 +38,7 @@ main(int argc, char** argv)
                                                        // singleton access / replace by new ctx +
                                                        // logging function once ready to remove
                                                        // Context::instance()
+    mamba::Console console{ ctx };
     mamba::Configuration config{ ctx };
 
     init_console();

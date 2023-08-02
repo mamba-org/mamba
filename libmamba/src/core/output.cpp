@@ -290,6 +290,8 @@ namespace mamba
     Console::Console(const Context& context)
         : p_data(new ConsoleData{ context })
     {
+        set_singleton(*this);
+
         init_progress_bar_manager(ProgressBarMode::multi);
         MainExecutor::instance().on_close(
             p_data->tasksync.synchronized([this] { terminate_progress_bar_manager(); })
@@ -303,14 +305,12 @@ namespace mamba
 
     Console::~Console()
     {
-        if (!p_data->is_json_print_cancelled && !p_data->json_log.is_null())  // FIXME: we cannot
-                                                                              // rely on
-                                                                              // Context::instance()
-                                                                              // to still be valid
-                                                                              // at this point.
+        if (!p_data->is_json_print_cancelled && !p_data->json_log.is_null())
         {
             this->json_print();
         }
+
+        clear_singleton();
     }
 
 

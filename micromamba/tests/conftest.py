@@ -149,7 +149,8 @@ def tmp_root_prefix(
     # Pytest would clean it automatically but this can be large (0.5 Gb for repodata)
     # We clean it explicitly
     if not request.config.getoption("--no-eager-clean"):
-        helpers.rmtree(new_root_prefix)
+        if new_root_prefix.exists():
+            helpers.rmtree(new_root_prefix)
     # os.environ restored by tmp_clean_env and tmp_environ
 
 

@@ -8,6 +8,9 @@
 #include <cassert>
 #include <string>
 
+#include <fmt/format.h>
+#include <nlohmann/json.hpp>
+
 #include "mamba/core/util_string.hpp"
 #include "mamba/specs/platform.hpp"
 
@@ -145,5 +148,23 @@ namespace mamba::specs
     auto build_platform_name() -> std::string_view
     {
         return platform_name(build_platform());
+    }
+
+    void to_json(nlohmann::json& j, const Platform& p)
+    {
+        j = platform_name(p);
+    }
+
+    void from_json(const nlohmann::json& j, Platform& p)
+    {
+        const auto j_str = j.get<std::string_view>();
+        if (const auto maybe = platform_parse(j_str))
+        {
+            p = *maybe;
+        }
+        else
+        {
+            throw std::invalid_argument(fmt::format("Invalid platform: {}", j_str));
+        }
     }
 }

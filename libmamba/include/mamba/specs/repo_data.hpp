@@ -11,6 +11,7 @@
 
 #include <nlohmann/json_fwd.hpp>
 
+#include "mamba/specs/platform.hpp"
 #include "mamba/specs/version.hpp"
 
 namespace mamba::specs
@@ -169,7 +170,7 @@ namespace mamba::specs
     struct ChannelInfo
     {
         /** The channel's subdirectory. */
-        std::string subdir = {};
+        Platform subdir = {};
     };
 
     /** Serialize to JSON. */

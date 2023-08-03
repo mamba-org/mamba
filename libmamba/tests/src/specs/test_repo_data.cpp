@@ -87,7 +87,7 @@ TEST_SUITE("repo_data")
     {
         auto data = RepoData();
         data.version = 1;
-        data.info = ChannelInfo{ /* .subdir= */ "linux-64" };
+        data.info = ChannelInfo{ /* .subdir= */ Platform::linux_64 };
         data.packages = {
             { "mamba-1.0-h12345.tar.bz2", RepoDataPackage{ "mamba" } },
             { "conda-1.0-h54321.tar.bz2", RepoDataPackage{ "conda" } },
@@ -96,7 +96,7 @@ TEST_SUITE("repo_data")
 
         const nl::json j = data;
         CHECK_EQ(j.at("version"), data.version);
-        CHECK_EQ(j.at("info").at("subdir"), data.info.value().subdir);
+        CHECK_EQ(j.at("info").at("subdir"), platform_name(data.info.value().subdir));
         CHECK_EQ(
             j.at("packages").at("mamba-1.0-h12345.tar.bz2"),
             data.packages.at("mamba-1.0-h12345.tar.bz2")
@@ -112,7 +112,7 @@ TEST_SUITE("repo_data")
     {
         auto j = nl::json::object();
         j["version"] = 1;
-        j["info"]["subdir"] = "somedir";
+        j["info"]["subdir"] = "osx-arm64";
         j["packages"]["mamba-1.0-h12345.tar.bz2"]["name"] = "mamba";
         j["packages"]["mamba-1.0-h12345.tar.bz2"]["version"] = "1.1.0";
         j["packages"]["mamba-1.0-h12345.tar.bz2"]["build"] = "foo1";
@@ -128,7 +128,7 @@ TEST_SUITE("repo_data")
         REQUIRE(data.version.has_value());
         CHECK_EQ(data.version, j["version"]);
         REQUIRE(data.info.has_value());
-        CHECK_EQ(data.info.value().subdir, j["info"]["subdir"]);
+        CHECK_EQ(platform_name(data.info.value().subdir), j["info"]["subdir"]);
         CHECK_EQ(
             data.packages.at("mamba-1.0-h12345.tar.bz2").name,
             j["packages"]["mamba-1.0-h12345.tar.bz2"]["name"]

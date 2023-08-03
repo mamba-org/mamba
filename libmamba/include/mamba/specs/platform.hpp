@@ -11,6 +11,8 @@
 #include <optional>
 #include <string_view>
 
+#include <nlohmann/json_fwd.hpp>
+
 namespace mamba::specs
 {
     enum class Platform
@@ -46,5 +48,16 @@ namespace mamba::specs
      */
     auto build_platform() -> Platform;
     auto build_platform_name() -> std::string_view;
+
+    /**
+     * Serialize to JSON string.
+     */
+    void to_json(nlohmann::json& j, const Platform& p);
+
+    /**
+     * Deserialize from JSON string.
+     */
+    void from_json(const nlohmann::json& j, Platform& p);
+
 }
 #endif

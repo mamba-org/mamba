@@ -922,9 +922,15 @@ def main(*args, **kwargs):
             return mamba_env.main()
         elif args[1] == "build":
             # calling mamba build == conda mambabuild
-            from boa.cli import mambabuild
+            try:
+                from boa.cli import mambabuild
 
-            return mambabuild.main()
+                return mambabuild.main()
+            except ImportError as exc:
+                raise ImportError(
+                    "Please install boa to use mamba build:\n"
+                    "  $ mamba install -c conda-forge boa"
+                ) from exc
 
     def exception_converter(*args, **kwargs):
         exit_code = 0

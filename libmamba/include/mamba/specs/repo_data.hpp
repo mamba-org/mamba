@@ -77,7 +77,11 @@ namespace mamba::specs
         /** The build number of the package. */
         std::size_t build_number = {};
 
-        /** The subdirectory where the package can be found. */
+        /**
+         * The subdirectory where the package can be found.
+         *
+         * This is likely not used as it contains not so useful strings such as "linux".
+         */
         std::string subdir = {};
 
         /** Optionally a MD5 hash of the package archive. */

@@ -23,7 +23,7 @@ TEST_SUITE("repo_data")
         p.version = Version::parse("1.0.0");
         p.build_string = "bld";
         p.build_number = 3;
-        p.subdir = "folder";
+        p.subdir = "linux";
         p.md5 = "ffsd";
         p.noarch = NoArchType::Python;
 
@@ -45,7 +45,7 @@ TEST_SUITE("repo_data")
         j["version"] = "1.1.0";
         j["build"] = "foo1";
         j["build_number"] = 2;
-        j["subdir"] = "folder";
+        j["subdir"] = "linux";
         j["platform"] = nullptr;
         j["depends"] = nl::json::array({ "libsolv>=1.0" });
         j["constrains"] = nl::json::array();
@@ -117,7 +117,7 @@ TEST_SUITE("repo_data")
         j["packages"]["mamba-1.0-h12345.tar.bz2"]["version"] = "1.1.0";
         j["packages"]["mamba-1.0-h12345.tar.bz2"]["build"] = "foo1";
         j["packages"]["mamba-1.0-h12345.tar.bz2"]["build_number"] = 2;
-        j["packages"]["mamba-1.0-h12345.tar.bz2"]["subdir"] = "folder";
+        j["packages"]["mamba-1.0-h12345.tar.bz2"]["subdir"] = "linux";
         j["packages"]["mamba-1.0-h12345.tar.bz2"]["depends"] = nl::json::array({ "libsolv>=1.0" });
         j["packages"]["mamba-1.0-h12345.tar.bz2"]["constrains"] = nl::json::array();
         j["packages"]["mamba-1.0-h12345.tar.bz2"]["track_features"] = nl::json::array();
@@ -128,7 +128,7 @@ TEST_SUITE("repo_data")
         REQUIRE(data.version.has_value());
         CHECK_EQ(data.version, j["version"]);
         REQUIRE(data.info.has_value());
-        CHECK_EQ(platform_name(data.info.value().subdir), j["info"]["subdir"]);
+        CHECK_EQ(platform_name(data.info.value().subdir), j["info"]["subdir"].get<std::string_view>());
         CHECK_EQ(
             data.packages.at("mamba-1.0-h12345.tar.bz2").name,
             j["packages"]["mamba-1.0-h12345.tar.bz2"]["name"]

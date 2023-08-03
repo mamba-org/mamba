@@ -82,6 +82,7 @@ def mamba_install(prefix, specs, args, env, dry_run=False, *_, **kwargs):
     prefix_data = api.PrefixData(context.target_prefix)
     prefix_data.add_packages(api.get_virtual_packages())
     repo = api.Repo(pool, prefix_data)
+    repo.set_installed()
     repos.append(repo)
 
     solver = api.Solver(pool, solver_options)

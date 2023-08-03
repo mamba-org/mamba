@@ -709,9 +709,9 @@ def do_call(args, parser):
     if hasattr(args, "func"):
         relative_mod, func_name = args.func.rsplit(".", 1)
     elif hasattr(args, "_plugin_subcommand"):
-        relative_mod = f'.{args._plugin_subcommand.action.__module__.split(".")[-1]}'
-        print(relative_mod)
-        func_name = args._plugin_subcommand.action.__name__
+        action = args._plugin_subcommand.action
+        relative_mod = f'.{action.__module__.split(".")[-1]}'
+        func_name = action.__name__
     else:
         raise ValueError("Unrecognized 'args' object: %r" % args)
 

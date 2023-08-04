@@ -96,7 +96,10 @@ TEST_SUITE("repo_data")
 
         const nl::json j = data;
         CHECK_EQ(j.at("version"), data.version);
-        CHECK_EQ(j.at("info").at("subdir"), platform_name(data.info.value().subdir));
+        CHECK_EQ(
+            j.at("info").at("subdir").get<std::string_view>(),
+            platform_name(data.info.value().subdir)
+        );
         CHECK_EQ(
             j.at("packages").at("mamba-1.0-h12345.tar.bz2"),
             data.packages.at("mamba-1.0-h12345.tar.bz2")

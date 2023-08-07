@@ -1066,7 +1066,7 @@ PYBIND11_MODULE(bindings, m)
     // py::arg("out_package"), py::arg("compression_level"), py::arg("compression_threads") = 1);
 
 
-    m.def("get_virtual_packages", &get_virtual_packages);
+    m.def("get_virtual_packages", [] { return get_virtual_packages(mambapy::singletons().context); });
 
     m.def("cancel_json_output", [] { Console::instance().cancel_json_print(); });
 

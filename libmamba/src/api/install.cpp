@@ -398,6 +398,7 @@ namespace mamba
             LOG_DEBUG << "Lockfile: " << lockfile_path;
             install_lockfile_specs(
                 channel_context,
+                config,
                 lockfile_path,
                 config.at("categories").value<std::vector<std::string>>(),
                 false
@@ -407,7 +408,7 @@ namespace mamba
         {
             if (use_explicit)
             {
-                install_explicit_specs(channel_context, install_specs, false);
+                install_explicit_specs(channel_context, config, install_specs, false);
             }
             else
             {
@@ -609,6 +610,23 @@ namespace mamba
                 install_for_other_pkgmgr(other_spec);
             }
         }
+        else
+        {
+            // Aborting new env creation
+            // but the directory was already created because of `store_platform_config` call
+            // => Remove the created directory
+            if (create_env && config.at("platform").configured()
+                && !config.at("platform").rc_configured())
+            {
+                if (fs::is_directory(ctx.prefix_params.target_prefix))
+                {
+                    if (Console::prompt("\nRemove " + ctx.prefix_params.target_prefix.string(), 'y'))
+                    {
+                        fs::remove_all(ctx.prefix_params.target_prefix);
+                    }
+                }
+            }
+        }
     }
 
     namespace detail
@@ -617,6 +635,7 @@ namespace mamba
         template <typename TransactionFunc>
         void install_explicit_with_transaction(
             ChannelContext& channel_context,
+            const Configuration& config,
             TransactionFunc create_transaction,
             bool create_env
         )
@@ -660,17 +679,36 @@ namespace mamba
                     install_for_other_pkgmgr(other_spec);
                 }
             }
+            else
+            {
+                // Aborting new env creation
+                // but the directory was already created because of `store_platform_config` call
+                // => Remove the created directory
+                if (create_env && config.at("platform").configured()
+                    && !config.at("platform").rc_configured())
+                {
+                    if (fs::is_directory(ctx.prefix_params.target_prefix))
+                    {
+                        if (Console::prompt("\nRemove " + ctx.prefix_params.target_prefix.string(), 'y'))
+                        {
+                            fs::remove_all(ctx.prefix_params.target_prefix);
+                        }
+                    }
+                }
+            }
         }
     }
 
     void install_explicit_specs(
         ChannelContext& channel_context,
+        const Configuration& config,
         const std::vector<std::string>& specs,
         bool create_env
     )
     {
         detail::install_explicit_with_transaction(
             channel_context,
+            config,
             [&](auto& pool, auto& pkg_caches, auto& others)
             { return create_explicit_transaction_from_urls(pool, specs, pkg_caches, others); },
             create_env
@@ -679,7 +717,9 @@ namespace mamba
 
     void install_lockfile_specs(
         ChannelContext& channel_context,
+        const Configuration& config,
         const std::string& lockfile,
+
         const std::vector<std::string>& categories,
         bool create_env
     )
@@ -709,6 +749,7 @@ namespace mamba
 
         detail::install_explicit_with_transaction(
             channel_context,
+            config,
             [&](auto& pool, auto& pkg_caches, auto& others) {
                 return create_explicit_transaction_from_lockfile(pool, file, categories, pkg_caches, others);
             },

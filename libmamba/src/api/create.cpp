@@ -77,6 +77,7 @@ namespace mamba
             const auto lockfile_path = Context::instance().env_lockfile.value();
             install_lockfile_specs(
                 channel_context,
+                config,
                 lockfile_path,
                 config.at("categories").value<std::vector<std::string>>(),
                 true
@@ -86,7 +87,7 @@ namespace mamba
         {
             if (use_explicit)
             {
-                install_explicit_specs(channel_context, create_specs, true);
+                install_explicit_specs(channel_context, config, create_specs, true);
             }
             else
             {

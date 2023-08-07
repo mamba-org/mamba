@@ -5,7 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "mamba/core/package_handling.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 #include "package.hpp"
 
@@ -48,11 +48,11 @@ set_package_command(CLI::App* com)
         {
             std::cout << "Compressing " << fs::absolute(infile) << " to " << dest << std::endl;
 
-            if (ends_with(dest, ".tar.bz2") && compression_level == -1)
+            if (util::ends_with(dest, ".tar.bz2") && compression_level == -1)
             {
                 compression_level = 9;
             }
-            if (ends_with(dest, ".conda") && compression_level == -1)
+            if (util::ends_with(dest, ".conda") && compression_level == -1)
             {
                 compression_level = 15;
             }
@@ -81,7 +81,7 @@ set_package_command(CLI::App* com)
     transmute_subcom->callback(
         [&]()
         {
-            if (ends_with(infile, ".tar.bz2"))
+            if (util::ends_with(infile, ".tar.bz2"))
             {
                 if (compression_level == -1)
                 {

@@ -13,8 +13,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/url.hpp"
-#include "mamba/core/util_string.hpp"
-#include "mamba/version.hpp"
+#include "mamba/util/string.hpp"
 
 #include "compression.hpp"
 #include "curl.hpp"
@@ -197,20 +196,20 @@ namespace mamba
         m_curl_handle->set_opt(CURLOPT_HEADERFUNCTION, &DownloadTarget::header_callback);
         m_curl_handle->set_opt(CURLOPT_HEADERDATA, this);
 
-        if (ends_with(url, ".json.zst"))
+        if (util::ends_with(url, ".json.zst"))
         {
             m_zstd_stream = std::make_unique<ZstdStream>(&DownloadTarget::write_callback, this);
-            if (ends_with(m_filename, ".zst"))
+            if (util::ends_with(m_filename, ".zst"))
             {
                 m_filename = m_filename.substr(0, m_filename.size() - 4);
             }
             m_curl_handle->set_opt(CURLOPT_WRITEFUNCTION, ZstdStream::write_callback);
             m_curl_handle->set_opt(CURLOPT_WRITEDATA, m_zstd_stream.get());
         }
-        else if (ends_with(url, ".json.bz2"))
+        else if (util::ends_with(url, ".json.bz2"))
         {
             m_bzip2_stream = std::make_unique<Bzip2Stream>(&DownloadTarget::write_callback, this);
-            if (ends_with(m_filename, ".bz2"))
+            if (util::ends_with(m_filename, ".bz2"))
             {
                 m_filename = m_filename.substr(0, m_filename.size() - 4);
             }
@@ -223,7 +222,7 @@ namespace mamba
             m_curl_handle->set_opt(CURLOPT_WRITEDATA, this);
         }
 
-        if (ends_with(url, ".json"))
+        if (util::ends_with(url, ".json"))
         {
             // accept all encodings supported by the libcurl build
             m_curl_handle->set_opt(CURLOPT_ACCEPT_ENCODING, "");
@@ -272,7 +271,7 @@ namespace mamba
 
         return m_retries < size_t(Context::instance().remote_fetch_params.max_retries)
                && (m_http_status == 413 || m_http_status == 429 || m_http_status >= 500)
-               && !starts_with(m_url, "file://");
+               && !util::starts_with(m_url, "file://");
     }
 
     bool DownloadTarget::retry()
@@ -357,7 +356,7 @@ namespace mamba
             value = header.substr(colon_idx, (header_end > colon_idx) ? header_end - colon_idx : 0);
 
             // http headers are case insensitive!
-            std::string lkey = to_lower(key);
+            std::string lkey = util::to_lower(key);
             if (lkey == "etag")
             {
                 s->m_etag = value;

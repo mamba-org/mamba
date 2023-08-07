@@ -20,7 +20,7 @@
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/query.hpp"
 #include "mamba/core/url.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 #include "solv-cpp/queue.hpp"
 
 namespace mamba
@@ -88,7 +88,7 @@ namespace mamba
                         if (it == not_found.end())
                         {
                             auto dep_id = dep_graph.add_node(
-                                PackageInfo(concat(name, " >>> NOT FOUND <<<"))
+                                PackageInfo(util::concat(name, " >>> NOT FOUND <<<"))
                             );
                             dep_graph.add_edge(parent, dep_id);
                             not_found.insert(std::make_pair(name, dep_id));
@@ -416,7 +416,7 @@ namespace mamba
         /** Remove potential subdir from channel name (not url!). */
         auto cut_subdir(std::string_view str) -> std::string
         {
-            return split(str, "/", 1).front();  // Has at least one element
+            return util::split(str, "/", 1).front();  // Has at least one element
         }
 
     }
@@ -440,7 +440,7 @@ namespace mamba
             }
             else
             {
-                auto sfmt = split(f, ":", 1);
+                auto sfmt = util::split(f, ":", 1);
                 headers.push_back(sfmt[0]);
                 cmds.push_back(sfmt[0]);
                 args.push_back(sfmt[1]);
@@ -474,7 +474,7 @@ namespace mamba
                     std::string depends_qualifier;
                     for (const auto& dep : pkg.depends)
                     {
-                        if (starts_with(dep, args[i]))
+                        if (util::starts_with(dep, args[i]))
                         {
                             depends_qualifier = dep;
                             break;

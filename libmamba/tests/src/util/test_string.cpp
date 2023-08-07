@@ -12,9 +12,9 @@
 #include <doctest/doctest.h>
 
 #include "mamba/core/mamba_fs.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
-namespace mamba
+namespace mamba::util
 {
     TEST_SUITE("util_string")
     {

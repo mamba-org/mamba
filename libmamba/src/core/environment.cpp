@@ -6,7 +6,7 @@
 
 #include "mamba/core/environment.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 #ifdef _WIN32
 #include <mutex>
@@ -126,7 +126,7 @@ namespace mamba
             if (env_path)
             {
                 std::string path = env_path.value();
-                const auto parts = split(path, pathsep());
+                const auto parts = util::split(path, pathsep());
                 const std::vector<fs::u8path> search_paths(parts.begin(), parts.end());
                 return which(exe, search_paths);
             }
@@ -212,7 +212,7 @@ namespace mamba
                 std::string_view s = current;
                 auto pos = s.find("=");
                 assert(pos != std::string_view::npos);
-                std::string key = to_upper(s.substr(0, pos));
+                std::string key = util::to_upper(s.substr(0, pos));
                 if (!key.empty())
                 {
                     std::string_view value = (pos != s.npos) ? s.substr(pos + 1) : "";
@@ -247,7 +247,7 @@ namespace mamba
             std::string maybe_home = env::get("USERPROFILE").value_or("");
             if (maybe_home.empty())
             {
-                maybe_home = concat(
+                maybe_home = util::concat(
                     env::get("HOMEDRIVE").value_or(""),
                     env::get("HOMEPATH").value_or("")
                 );
@@ -328,7 +328,7 @@ namespace mamba
         {
             auto p = path.string();
             auto home = home_directory().string();
-            if (starts_with(p, home))
+            if (util::starts_with(p, home))
             {
                 p.replace(0, home.size(), "~");
             }

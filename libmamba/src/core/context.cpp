@@ -20,7 +20,7 @@
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
@@ -193,7 +193,7 @@ namespace mamba
             }
             for (const auto& entry : fs::directory_iterator(px))
             {
-                if (ends_with(entry.path().filename().string(), ".token"))
+                if (util::ends_with(entry.path().filename().string(), ".token"))
                 {
                     found_tokens.push_back(entry.path());
                     std::string token_url = decode_url(entry.path().filename().string());
@@ -246,7 +246,7 @@ namespace mamba
                         auto pass = decode_base64(el["password"].get<std::string>());
                         if (pass)
                         {
-                            info.value = concat(user, ":", pass.value());
+                            info.value = util::concat(user, ":", pass.value());
                             LOG_INFO << "Found credentials for user " << user << " for host "
                                      << host << " in ~/.mamba/auth/authentication.json";
                         }

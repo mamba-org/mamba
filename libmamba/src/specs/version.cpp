@@ -12,9 +12,9 @@
 #include <tuple>
 
 #include "mamba/core/error_handling.hpp"
-#include "mamba/core/util_string.hpp"
 #include "mamba/specs/version.hpp"
 #include "mamba/util/cast.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba::specs
 {
@@ -59,14 +59,14 @@ namespace mamba::specs
     }
 
     VersionPartAtom::VersionPartAtom(std::size_t numeral, std::string_view literal)
-        : m_literal{ to_lower(literal) }
+        : m_literal{ util::to_lower(literal) }
         , m_numeral{ numeral }
     {
     }
 
     template <typename Char>
     VersionPartAtom::VersionPartAtom(std::size_t numeral, std::basic_string<Char>&& literal)
-        : m_literal{ to_lower(std::move(literal)) }
+        : m_literal{ util::to_lower(std::move(literal)) }
         , m_numeral{ numeral }
     {
     }
@@ -532,7 +532,10 @@ namespace mamba::specs
         template <typename Int>
         auto parse_leading_integer(std::string_view str) -> std::pair<Int, std::string_view>
         {
-            const auto [integer_str, rest] = lstrip_if_parts(str, [](char c) { return is_digit(c); });
+            const auto [integer_str, rest] = util::lstrip_if_parts(
+                str,
+                [](char c) { return util::is_digit(c); }
+            );
             auto maybe_integer = to_int<Int>(integer_str);
             assert(maybe_integer.has_value());
             return { maybe_integer.value(), rest };
@@ -541,7 +544,10 @@ namespace mamba::specs
         auto parse_leading_literal(std::string_view str)
             -> std::pair<std::string_view, std::string_view>
         {
-            const auto [literal, rest] = lstrip_if_parts(str, [](char c) { return !is_digit(c); });
+            const auto [literal, rest] = util::lstrip_if_parts(
+                str,
+                [](char c) { return !util::is_digit(c); }
+            );
             return { literal, rest };
         }
 
@@ -553,7 +559,7 @@ namespace mamba::specs
             std::size_t numeral = 0;
             std::string_view literal = {};
             auto tail = std::string_view{};
-            if (is_digit(str.front()))
+            if (util::is_digit(str.front()))
             {
                 std::tie(numeral, tail) = parse_leading_integer<std::size_t>(str);
             }
@@ -596,7 +602,7 @@ namespace mamba::specs
 
             auto allowed_char = [](char c) -> bool
             {
-                return is_alphanum(c)                         //
+                return util::is_alphanum(c)                   //
                        || (c == Version::part_delim)          //
                        || (c == Version::part_delim_alt)      //
                        || (c == Version::part_delim_special)  //
@@ -682,7 +688,7 @@ namespace mamba::specs
 
     auto Version::parse(std::string_view str) -> Version
     {
-        str = strip(str);
+        str = util::strip(str);
         try
         {
             auto [epoch, version_and_local_str] = parse_leading_epoch<std::size_t>(str);

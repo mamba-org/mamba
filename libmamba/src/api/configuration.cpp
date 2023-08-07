@@ -14,12 +14,12 @@
 #include <spdlog/spdlog.h>
 
 #include "mamba/api/configuration.hpp"
-#include "mamba/api/info.hpp"
 #include "mamba/api/install.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_download.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
@@ -199,7 +199,7 @@ namespace mamba
     {
         if (names.empty())
         {
-            p_impl->m_env_var_names = { "MAMBA_" + to_upper(p_impl->m_name) };
+            p_impl->m_env_var_names = { "MAMBA_" + util::to_upper(p_impl->m_name) };
         }
         else
         {
@@ -575,7 +575,7 @@ namespace mamba
 #endif
             if (!prefix.empty())
             {
-                prefix = rstrip(fs::weakly_canonical(env::expand_user(prefix)).string(), sep);
+                prefix = util::rstrip(fs::weakly_canonical(env::expand_user(prefix)).string(), sep);
             }
 
             if ((prefix == root_prefix) && config.at("create_base").value<bool>())
@@ -929,7 +929,8 @@ namespace mamba
         {
             const auto filename = fs::u8path(file).filename();
             return filename == ".condarc" || filename == "condarc" || filename == ".mambarc"
-                   || filename == "mambarc" || ends_with(file, ".yml") || ends_with(file, ".yaml");
+                   || filename == "mambarc" || util::ends_with(file, ".yml")
+                   || util::ends_with(file, ".yaml");
         }
 
         bool is_config_file(const fs::u8path& path)
@@ -1928,7 +1929,7 @@ namespace mamba
             {
                 if (at(n).locked())
                 {
-                    LOG_ERROR << "Circular import: " << join("->", locks) << "->" << n;
+                    LOG_ERROR << "Circular import: " << util::join("->", locks) << "->" << n;
                     throw std::runtime_error("Circular import detected in configuration. Aborting.");
                 }
                 add_to_loading_sequence(seq, n, locks);

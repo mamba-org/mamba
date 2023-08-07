@@ -13,7 +13,7 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
@@ -177,11 +177,11 @@ namespace mamba
     {
         if (scheme == "file" && location.size() > 1 && location[1] == ':')
         {
-            return concat("file:///", location);
+            return util::concat("file:///", location);
         }
         else
         {
-            return concat(scheme, "://", location);
+            return util::concat(scheme, "://", location);
         }
     }
 
@@ -194,7 +194,7 @@ namespace mamba
     {
         if (with_credential && auth)
         {
-            return concat_scheme_url(scheme, concat(*auth, "@", base));
+            return concat_scheme_url(scheme, util::concat(*auth, "@", base));
         }
         else
         {
@@ -253,7 +253,7 @@ namespace mamba
         {
             cleaned_url.replace(pos - 1, platform.size() + 1, "");
         }
-        cleaned_url = rstrip(cleaned_url, "/");
+        cleaned_url = util::rstrip(cleaned_url, "/");
     }
 
     bool has_scheme(const std::string& url)
@@ -279,7 +279,7 @@ namespace mamba
             token = "";
             cleaned_url = url;
         }
-        cleaned_url = rstrip(cleaned_url, "/");
+        cleaned_url = util::rstrip(cleaned_url, "/");
     }
 
     void split_scheme_auth_token(
@@ -298,7 +298,7 @@ namespace mamba
         handler.set_scheme("");
         handler.set_user("");
         handler.set_password("");
-        remaining_url = rstrip(handler.url(), "/");
+        remaining_url = util::rstrip(handler.url(), "/");
     }
 
     bool compare_cleaned_url(const std::string& url1, const std::string& url2)
@@ -321,7 +321,7 @@ namespace mamba
     std::string path_to_url(const std::string& path)
     {
         static const std::string file_scheme = "file://";
-        if (starts_with(path, file_scheme))
+        if (util::starts_with(path, file_scheme))
         {
             return path;
         }
@@ -333,7 +333,7 @@ namespace mamba
         // https://blogs.msdn.microsoft.com/ie/2006/12/06/file-uris-in-windows/
         if (on_win)
         {
-            replace_all(abs_path, "\\", "/");
+            util::replace_all(abs_path, "\\", "/");
         }
         return file_scheme + abs_path;
     }
@@ -350,7 +350,7 @@ namespace mamba
         if (std::regex_match(url, match, file_host))
         {
             if (match[1] != "" && match[1] != "localhost" && match[1] != "127.0.0.1"
-                && match[1] != "::1" && !starts_with(match[1].str(), R"(\\))"))
+                && match[1] != "::1" && !util::starts_with(match[1].str(), R"(\\))"))
             {
                 return "file:////" + std::string(match[1].first, url.cend());
             }
@@ -390,14 +390,14 @@ namespace mamba
     std::string cache_name_from_url(const std::string& url)
     {
         std::string u = url;
-        if (u.empty() || (u.back() != '/' && !ends_with(u, ".json")))
+        if (u.empty() || (u.back() != '/' && !util::ends_with(u, ".json")))
         {
             u += '/';
         }
 
         // mimicking conda's behavior by special handling repodata.json
         // todo support .zst
-        if (ends_with(u, "/repodata.json"))
+        if (util::ends_with(u, "/repodata.json"))
         {
             u = u.substr(0, u.size() - 13);
         }
@@ -411,7 +411,7 @@ namespace mamba
         EVP_DigestFinal_ex(mdctx, hash, nullptr);
         EVP_MD_CTX_destroy(mdctx);
 
-        std::string hex_digest = hex_string(hash, 16);
+        std::string hex_digest = util::hex_string(hash, 16);
         return hex_digest.substr(0u, 8u);
     }
 

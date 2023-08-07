@@ -11,8 +11,8 @@
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
-#include "mamba/core/util_string.hpp"
 #include "mamba/specs/platform.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba::specs
 {
@@ -62,7 +62,7 @@ namespace mamba::specs
 
     auto platform_parse(std::string_view str) -> std::optional<Platform>
     {
-        std::string const str_clean = to_lower(strip(str));
+        std::string const str_clean = util::to_lower(util::strip(str));
         for (const auto p : {
                  Platform::linux_32,
                  Platform::linux_64,

@@ -21,6 +21,7 @@
 #include "mamba/core/solver.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/virtual_packages.hpp"
+#include "mamba/util/string.hpp"
 
 #include "common_options.hpp"
 #include "microserver.cpp"
@@ -81,7 +82,7 @@ handle_solve_request(
         }
     }
 
-    std::string cache_key = mamba::join(", ", channels) + fmt::format(", {}", platform);
+    std::string cache_key = mamba::util::join(", ", channels) + fmt::format(", {}", platform);
     MultiPackageCache package_caches(ctx.pkgs_dirs);
 
     if (cache_map.find(cache_key) == cache_map.end())
@@ -121,7 +122,7 @@ handle_solve_request(
     std::vector<PackageInfo> vpacks;
     for (const auto& s : virtual_packages)
     {
-        auto elements = split(s, "=");
+        auto elements = util::split(s, "=");
         vpacks.push_back(detail::make_virtual_package(
             elements[0],
             elements.size() >= 2 ? elements[1] : "",

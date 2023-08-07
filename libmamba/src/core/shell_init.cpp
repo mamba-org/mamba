@@ -25,7 +25,7 @@
 #include "mamba/core/shell_init.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
@@ -49,45 +49,45 @@ namespace mamba
 
         LOG_DEBUG << "Guessing shell. Parent process name: " << parent_process_name;
 
-        std::string parent_process_name_lower = to_lower(parent_process_name);
+        std::string parent_process_name_lower = util::to_lower(parent_process_name);
 
-        if (contains(parent_process_name_lower, "bash"))
+        if (util::contains(parent_process_name_lower, "bash"))
         {
             return "bash";
         }
-        if (contains(parent_process_name_lower, "zsh"))
+        if (util::contains(parent_process_name_lower, "zsh"))
         {
             return "zsh";
         }
-        if (contains(parent_process_name_lower, "csh"))
+        if (util::contains(parent_process_name_lower, "csh"))
         {
             return "csh";
         }
-        if (contains(parent_process_name_lower, "dash"))
+        if (util::contains(parent_process_name_lower, "dash"))
         {
             return "dash";
         }
 
         // xonsh in unix, Python in macOS
-        if (contains(parent_process_name_lower, "python"))
+        if (util::contains(parent_process_name_lower, "python"))
         {
             Console::stream() << "Your parent process name is " << parent_process_name
                               << ".\nIf your shell is xonsh, please use \"-s xonsh\".";
         }
-        if (contains(parent_process_name_lower, "xonsh"))
+        if (util::contains(parent_process_name_lower, "xonsh"))
         {
             return "xonsh";
         }
-        if (contains(parent_process_name_lower, "cmd.exe"))
+        if (util::contains(parent_process_name_lower, "cmd.exe"))
         {
             return "cmd.exe";
         }
-        if (contains(parent_process_name_lower, "powershell")
-            || contains(parent_process_name_lower, "pwsh"))
+        if (util::contains(parent_process_name_lower, "powershell")
+            || util::contains(parent_process_name_lower, "pwsh"))
         {
             return "powershell";
         }
-        if (contains(parent_process_name_lower, "fish"))
+        if (util::contains(parent_process_name_lower, "fish"))
         {
             return "fish";
         }
@@ -159,7 +159,7 @@ namespace mamba
         }
         else
         {
-            replace_all(new_value, replace_str, hook_string);
+            util::replace_all(new_value, replace_str, hook_string);
         }
 
         // set modified registry key
@@ -192,20 +192,20 @@ namespace mamba
         std::wstring segment;
         std::vector<std::wstring> autorun_list;
 
-        autorun_list = split(std::wstring_view(prev_value), std::wstring_view(L"&"));
+        autorun_list = util::split(std::wstring_view(prev_value), std::wstring_view(L"&"));
 
         // remove the mamba hook from the autorun list
         autorun_list.erase(
             std::remove_if(
                 autorun_list.begin(),
                 autorun_list.end(),
-                [&hook_string](const std::wstring& s) { return strip(s) == hook_string; }
+                [&hook_string](const std::wstring& s) { return util::strip(s) == hook_string; }
             ),
             autorun_list.end()
         );
 
         // join the list back into a string
-        std::wstring new_value = join(L" & ", autorun_list);
+        std::wstring new_value = util::join(L" & ", autorun_list);
 
         // set modified registry key
         if (new_value != prev_value)
@@ -238,7 +238,7 @@ namespace mamba
         */
         fs::u8path bash;
         fs::u8path parent_process_name = get_process_name_by_pid(getppid());
-        if (contains(parent_process_name.filename().string(), "bash"))
+        if (util::contains(parent_process_name.filename().string(), "bash"))
         {
             bash = parent_process_name;
         }
@@ -268,7 +268,7 @@ namespace mamba
             {
                 throw std::runtime_error(ec.message());
             }
-            return std::string(strip(out));
+            return std::string(util::strip(out));
         }
         catch (...)
         {
@@ -531,19 +531,19 @@ namespace mamba
         if (shell == "zsh" || shell == "bash" || shell == "posix")
         {
             std::string contents = data_micromamba_sh;
-            replace_all(contents, "$MAMBA_EXE", exe.string());
+            util::replace_all(contents, "$MAMBA_EXE", exe.string());
             return contents;
         }
         else if (shell == "csh")
         {
             std::string contents = data_micromamba_csh;
-            replace_all(contents, "$MAMBA_EXE", exe.string());
+            util::replace_all(contents, "$MAMBA_EXE", exe.string());
             return contents;
         }
         else if (shell == "xonsh")
         {
             std::string contents = data_mamba_xsh;
-            replace_all(contents, "$MAMBA_EXE", exe.string());
+            util::replace_all(contents, "$MAMBA_EXE", exe.string());
             return contents;
         }
         else if (shell == "powershell")
@@ -569,7 +569,7 @@ namespace mamba
         else if (shell == "fish")
         {
             std::string contents = data_mamba_fish;
-            replace_all(contents, "$MAMBA_EXE", exe.string());
+            util::replace_all(contents, "$MAMBA_EXE", exe.string());
             return contents;
         }
         return "";
@@ -591,12 +591,12 @@ namespace mamba
 
         std::ofstream mamba_bat_f = open_ofstream(root_prefix / "condabin" / "micromamba.bat");
         std::string mamba_bat_contents(data_micromamba_bat);
-        replace_all(
+        util::replace_all(
             mamba_bat_contents,
             std::string("__MAMBA_INSERT_ROOT_PREFIX__"),
             "@SET \"MAMBA_ROOT_PREFIX=" + root_prefix.string() + "\""
         );
-        replace_all(
+        util::replace_all(
             mamba_bat_contents,
             std::string("__MAMBA_INSERT_MAMBA_EXE__"),
             "@SET \"MAMBA_EXE=" + exe.string() + "\""
@@ -610,12 +610,12 @@ namespace mamba
 
 
         std::string activate_bat_contents(data_activate_bat);
-        replace_all(
+        util::replace_all(
             activate_bat_contents,
             std::string("__MAMBA_INSERT_ROOT_PREFIX__"),
             "@SET \"MAMBA_ROOT_PREFIX=" + root_prefix.string() + "\""
         );
-        replace_all(
+        util::replace_all(
             activate_bat_contents,
             std::string("__MAMBA_INSERT_MAMBA_EXE__"),
             "@SET \"MAMBA_EXE=" + exe.string() + "\""
@@ -631,7 +631,7 @@ namespace mamba
         scripts_activate_bat_f << activate_bat_contents;
 
         std::string hook_content = data_mamba_hook_bat;
-        replace_all(
+        util::replace_all(
             hook_content,
             std::string("__MAMBA_INSERT_MAMBA_EXE__"),
             "@SET \"MAMBA_EXE=" + exe.string() + "\""
@@ -952,7 +952,7 @@ namespace mamba
             return;
         }
 
-        if (strip(profile_content).empty())
+        if (util::strip(profile_content).empty())
         {
             fs::remove(profile_path);
             LOG_INFO << "Removed " << profile_path << " file because it's empty.";
@@ -997,7 +997,7 @@ namespace mamba
             {
                 throw std::runtime_error(ec.message());
             }
-            return std::string(strip(out));
+            return std::string(util::strip(out));
         }
         catch (const std::exception& ex)
         {

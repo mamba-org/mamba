@@ -13,7 +13,7 @@
 #include "mamba/core/environments_manager.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/url.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 #include "common_options.hpp"
 
@@ -29,7 +29,7 @@ get_env_name(const fs::u8path& px)
     {
         return "base";
     }
-    else if (mamba::starts_with(px.string(), ed.string()))
+    else if (util::starts_with(px.string(), ed.string()))
     {
         return fs::relative(px, ed).string();
     }
@@ -214,7 +214,7 @@ set_env_command(CLI::App* com, Configuration& config)
                 // Unregister environment
                 env_manager.unregister_env(env::expand_user(prefix));
 
-                Console::instance().print(join(
+                Console::instance().print(util::join(
                     "",
                     std::vector<std::string>({ "Environment removed at prefix: ", prefix.string() })
                 ));

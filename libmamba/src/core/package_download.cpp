@@ -22,7 +22,7 @@
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/progress_bar.hpp"
 #include "mamba/core/thread_utils.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 #include "progress_bar_impl.hpp"
 
@@ -208,11 +208,11 @@ namespace mamba
             try
             {
                 std::string fn = m_filename;
-                if (ends_with(fn, ".tar.bz2"))
+                if (util::ends_with(fn, ".tar.bz2"))
                 {
                     fn = fn.substr(0, fn.size() - 8);
                 }
-                else if (ends_with(fn, ".conda"))
+                else if (util::ends_with(fn, ".conda"))
                 {
                     fn = fn.substr(0, fn.size() - 6);
                 }

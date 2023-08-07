@@ -11,9 +11,9 @@
 
 #include <stddef.h>
 
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
-namespace mamba
+namespace mamba::util
 {
     /****************************************
      *  Implementation of cctype functions  *

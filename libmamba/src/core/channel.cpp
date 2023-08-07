@@ -16,12 +16,11 @@
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
-#include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util_os.hpp"
-#include "mamba/core/util_string.hpp"
 #include "mamba/core/validate.hpp"
+#include "mamba/util/string.hpp"
 
 
 namespace mamba
@@ -77,7 +76,7 @@ namespace mamba
 
             if (extension != "")
             {
-                auto sp = rsplit(cleaned_url, "/", 1);
+                auto sp = util::rsplit(cleaned_url, "/", 1);
                 cleaned_url = sp[0];
                 package_name = sp[1] + extension;
             }
@@ -127,7 +126,7 @@ namespace mamba
             const std::string& path
         )
         {
-            std::string spath = std::string(rstrip(path, "/"));
+            std::string spath = std::string(util::rstrip(path, "/"));
             std::string url = URLHandler()
                                   .set_scheme(scheme)
                                   .set_host(host)
@@ -140,7 +139,13 @@ namespace mamba
             {
                 URLHandler handler;
                 handler.set_host(host).set_port(port);
-                return channel_configuration(std::string(rstrip(handler.url(), "/")), "", scheme, "", "");
+                return channel_configuration(
+                    std::string(util::rstrip(handler.url(), "/")),
+                    "",
+                    scheme,
+                    "",
+                    ""
+                );
             }
 
             // Case 2: migrated_custom_channels not implemented yet
@@ -152,9 +157,9 @@ namespace mamba
             {
                 const Channel& channel = ca.second;
                 std::string test_url = join_url(channel.location(), channel.name());
-                if (vector_is_prefix(split(test_url, "/"), split(url, "/")))
+                if (vector_is_prefix(util::split(test_url, "/"), util::split(url, "/")))
                 {
-                    auto subname = std::string(strip(url.replace(0u, test_url.size(), ""), "/"));
+                    auto subname = std::string(util::strip(url.replace(0u, test_url.size(), ""), "/"));
 
                     return channel_configuration(
                         channel.location(),
@@ -168,9 +173,9 @@ namespace mamba
 
             // Case 5: channel_alias match
             const Channel& ca = channel_context.get_channel_alias();
-            if (ca.location() != "" && starts_with(url, ca.location()))
+            if (ca.location() != "" && util::starts_with(url, ca.location()))
             {
-                auto name = std::string(strip(url.replace(0u, ca.location().size(), ""), "/"));
+                auto name = std::string(util::strip(url.replace(0u, ca.location().size(), ""), "/"));
                 return channel_configuration(
                     ca.location(),
                     name,
@@ -183,14 +188,14 @@ namespace mamba
             // Case 6: not-otherwise-specified file://-type urls
             if (host == "")
             {
-                auto sp = rsplit(url, "/", 1);
+                auto sp = util::rsplit(url, "/", 1);
                 return channel_configuration(sp[0].size() ? sp[0] : "/", sp[1], "file", "", "");
             }
 
             // Case 7: fallback, channel_location = host:port and channel_name = path
-            spath = lstrip(spath, "/");
+            spath = util::lstrip(spath, "/");
             std::string location = URLHandler().set_host(host).set_port(port).url();
-            return channel_configuration(std::string(strip(location, "/")), spath, scheme, "", "");
+            return channel_configuration(std::string(util::strip(location, "/")), spath, scheme, "", "");
         }
 
         std::vector<std::string> take_platforms(std::string& value)
@@ -311,7 +316,7 @@ namespace mamba
         if (p_repo_checker == nullptr)
         {
             p_repo_checker = std::make_unique<validation::RepoChecker>(
-                rsplit(base_url(), "/", 1).front(),
+                util::rsplit(base_url(), "/", 1).front(),
                 Context::instance().prefix_params.root_prefix / "etc" / "trusted-repos"
                     / cache_name_from_url(base_url()),
                 caches.first_writable_path() / "cache" / cache_name_from_url(base_url())
@@ -432,7 +437,8 @@ namespace mamba
         }
         else if (name == "")
         {
-            if (channel_alias.location() != "" && starts_with(location, channel_alias.location()))
+            if (channel_alias.location() != ""
+                && util::starts_with(location, channel_alias.location()))
             {
                 name = location;
                 name.replace(0u, channel_alias.location().size(), "");
@@ -442,14 +448,14 @@ namespace mamba
             {
                 std::string full_url = concat_scheme_url(scheme, location);
                 URLHandler parser(full_url);
-                location = rstrip(
+                location = util::rstrip(
                     URLHandler().set_host(parser.host()).set_port(parser.port()).url(),
                     "/"
                 );
-                name = lstrip(parser.path(), "/");
+                name = util::lstrip(parser.path(), "/");
             }
         }
-        name = name != "" ? strip(name, "/") : strip(channel_url, "/");
+        name = name != "" ? util::strip(name, "/") : util::strip(channel_url, "/");
         return Channel(
             scheme,
             location,
@@ -497,11 +503,11 @@ namespace mamba
     {
         std::string tmp_stripped = name;
         const auto& custom_channels = get_custom_channels();
-        auto it_end = custom_channels.end();
+        const auto it_end = custom_channels.end();
         auto it = custom_channels.find(tmp_stripped);
         while (it == it_end)
         {
-            size_t pos = tmp_stripped.rfind("/");
+            const auto pos = tmp_stripped.rfind("/");
             if (pos == std::string::npos)
             {
                 break;
@@ -524,7 +530,7 @@ namespace mamba
             if (combined_name != name)
             {
                 // Find common string between `name` and `combined_name`
-                auto common_str = get_common_parts(combined_name, name, "/");
+                auto common_str = util::get_common_parts(combined_name, name, "/");
                 // Combine names properly
                 if (common_str.empty())
                 {
@@ -744,7 +750,7 @@ namespace mamba
         for (const auto& [n, p] : context_custom_channels)
         {
             std::string url = p;
-            if (!starts_with(url, "http"))
+            if (!util::starts_with(url, "http"))
             {
                 url = path_to_url(url);
             }

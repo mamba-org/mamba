@@ -12,7 +12,7 @@
 #include "mamba/core/environment.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/transaction_context.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 extern const char data_compile_pyc_py[];
 
@@ -25,13 +25,13 @@ namespace mamba
 
     std::string compute_short_python_version(const std::string& long_version)
     {
-        auto sv = split(long_version, ".");
+        auto sv = util::split(long_version, ".");
         if (sv.size() < 2)
         {
             LOG_ERROR << "Could not compute short python version from " << long_version;
             return long_version;
         }
-        return concat(sv[0], '.', sv[1]);
+        return util::concat(sv[0], '.', sv[1]);
     }
 
     // supply short python version, e.g. 2.7, 3.5...
@@ -40,7 +40,7 @@ namespace mamba
 #ifdef _WIN32
         return "python.exe";
 #else
-        return fs::u8path("bin") / concat("python", python_version);
+        return fs::u8path("bin") / util::concat("python", python_version);
 #endif
     }
 
@@ -54,7 +54,7 @@ namespace mamba
 #ifdef _WIN32
         return fs::u8path("Lib") / "site-packages";
 #else
-        return fs::u8path("lib") / concat("python", python_version) / "site-packages";
+        return fs::u8path("lib") / util::concat("python", python_version) / "site-packages";
 #endif
     }
 
@@ -72,13 +72,13 @@ namespace mamba
         const fs::u8path& target_site_packages_short_path
     )
     {
-        if (starts_with(source_short_path, "site-packages/"))
+        if (util::starts_with(source_short_path, "site-packages/"))
         {
             // replace `site_packages/` with prefix/site_packages
             return target_site_packages_short_path
                    / source_short_path.substr(14, source_short_path.size() - 14);
         }
-        else if (starts_with(source_short_path, "python-scripts/"))
+        else if (util::starts_with(source_short_path, "python-scripts/"))
         {
             return get_bin_directory_short_path()
                    / source_short_path.substr(15, source_short_path.size() - 15);
@@ -195,7 +195,7 @@ namespace mamba
             complete_python_path.string(), "-Wi", "-m", "compileall", "-q", "-l", "-i", "-"
         };
 
-        auto py_ver_split = split(python_version, ".");
+        auto py_ver_split = util::split(python_version, ".");
 
         try
         {
@@ -249,7 +249,7 @@ namespace mamba
         auto [wrapped_command, script_file] = prepare_wrapped_call(target_prefix, command);
         m_pyc_script_file = std::move(script_file);
 
-        LOG_INFO << "Running wrapped python compilation command " << join(" ", command);
+        LOG_INFO << "Running wrapped python compilation command " << util::join(" ", command);
         std::error_code ec = m_pyc_process->start(wrapped_command, options);
 
         if (ec == std::errc::no_such_file_or_directory)

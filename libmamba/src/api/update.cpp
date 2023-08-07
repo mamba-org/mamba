@@ -11,8 +11,8 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/pinning.hpp"
 #include "mamba/core/transaction.hpp"
-#include "mamba/core/util_string.hpp"
 #include "mamba/core/virtual_packages.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
@@ -103,7 +103,7 @@ namespace mamba
             {
                 pinned_str.push_back("  - " + ms.conda_build_form() + "\n");
             }
-            Console::instance().print("\nPinned packages:\n" + join("", pinned_str));
+            Console::instance().print("\nPinned packages:\n" + util::join("", pinned_str));
         }
 
         // FRAGILE this must be called after pins be before jobs in current ``MPool``

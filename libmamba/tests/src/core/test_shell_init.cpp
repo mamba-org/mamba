@@ -10,7 +10,7 @@
 
 #include "mamba/core/environment.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
@@ -32,7 +32,7 @@ namespace mamba
             auto expanded = env::expand_user("~/this/is/a/test");
             if (on_linux)
             {
-                CHECK(starts_with(expanded.string(), "/home/"));
+                CHECK(util::starts_with(expanded.string(), "/home/"));
             }
         }
     }

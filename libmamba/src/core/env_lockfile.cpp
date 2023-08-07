@@ -10,8 +10,7 @@
 #include "mamba/core/env_lockfile.hpp"
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/match_spec.hpp"
-#include "mamba/core/output.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
@@ -252,6 +251,6 @@ namespace mamba
 
     bool is_env_lockfile_name(std::string_view filename)
     {
-        return ends_with(filename, "-lock.yml") || ends_with(filename, "-lock.yaml");
+        return util::ends_with(filename, "-lock.yml") || util::ends_with(filename, "-lock.yaml");
     }
 }

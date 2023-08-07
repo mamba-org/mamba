@@ -19,10 +19,8 @@
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 
-#include "mamba/core/output.hpp"
-#include "mamba/core/package_info.hpp"
 #include "mamba/core/satisfiability_error.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
@@ -582,7 +580,7 @@ namespace mamba
             {
                 if (invoke_name(*it) != invoke_name(*first))
                 {
-                    throw std::invalid_argument(concat(
+                    throw std::invalid_argument(util::concat(
                         "iterator contains different names (",
                         invoke_name(*first),
                         ", ",
@@ -661,7 +659,7 @@ namespace mamba
         {
             versions.erase(std::unique(versions.begin(), versions.end()), versions.end());
         }
-        return { join_trunc(versions, sep, etc, threshold), versions.size() };
+        return { util::join_trunc(versions, sep, etc, threshold), versions.size() };
     }
 
     template <typename T, typename A>
@@ -684,7 +682,7 @@ namespace mamba
         {
             builds.erase(std::unique(builds.begin(), builds.end()), builds.end());
         }
-        return { join_trunc(builds, sep, etc, threshold), builds.size() };
+        return { util::join_trunc(builds, sep, etc, threshold), builds.size() };
     }
 
     template <typename T, typename A>
@@ -714,7 +712,7 @@ namespace mamba
                 versions_builds.end()
             );
         }
-        return { join_trunc(versions_builds, sep, etc, threshold), versions_builds.size() };
+        return { util::join_trunc(versions_builds, sep, etc, threshold), versions_builds.size() };
     }
 
     template <typename T, typename A>
@@ -1264,7 +1262,7 @@ namespace mamba
             // We show the build string in pkg_dep and not pkg_list because hand written build
             // string are more likely to contain vital information about the variant.
             auto [vers_builds_trunc, size] = edges.versions_and_build_strings_trunc();
-            if (strip(vers_builds_trunc).empty())
+            if (util::strip(vers_builds_trunc).empty())
             {
                 write(fmt::format(style, "{}", edges.name()));
             }
@@ -1403,7 +1401,7 @@ namespace mamba
                         write(", which");
                     }
                     // Virtual package
-                    if (starts_with(node.name(), "__"))
+                    if (util::starts_with(node.name(), "__"))
                     {
                         write(" is missing on the system");
                     }

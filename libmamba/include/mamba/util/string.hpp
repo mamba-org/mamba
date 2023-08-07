@@ -22,7 +22,7 @@
 
 #include "mamba/util/compare.hpp"
 
-namespace mamba
+namespace mamba::util
 {
     /**
      * Return the string if the pointer is not null, otherwise a pointer to an empty string.

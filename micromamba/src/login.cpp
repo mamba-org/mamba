@@ -6,13 +6,14 @@
 
 #include <string>
 
-#include "mamba/api/list.hpp"
+#include <CLI/App.hpp>
+
 #include "mamba/core/environment.hpp"
+#include "mamba/core/output.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
-#include "common_options.hpp"
 
 std::string
 read_stdin()
@@ -50,7 +51,7 @@ get_token_base(const std::string& host)
         maybe_path.pop_back();
     }
 
-    return mamba::concat(url_handler.host(), maybe_colon_and_port, maybe_path);
+    return mamba::util::concat(url_handler.host(), maybe_colon_and_port, maybe_path);
 }
 
 void
@@ -188,7 +189,7 @@ set_login_command(CLI::App* subcom)
                 {
                     auth_object["type"] = "BasicHTTPAuthentication";
 
-                    auto pass_encoded = mamba::encode_base64(mamba::strip(pass));
+                    auto pass_encoded = mamba::encode_base64(mamba::util::strip(pass));
                     if (!pass_encoded)
                     {
                         throw pass_encoded.error();
@@ -200,12 +201,12 @@ set_login_command(CLI::App* subcom)
                 else if (!token.empty())
                 {
                     auth_object["type"] = "CondaToken";
-                    auth_object["token"] = mamba::strip(token);
+                    auth_object["token"] = mamba::util::strip(token);
                 }
                 else if (!bearer.empty())
                 {
                     auth_object["type"] = "BearerToken";
-                    auth_object["token"] = mamba::strip(bearer);
+                    auth_object["token"] = mamba::util::strip(bearer);
                 }
 
                 auth_info[token_base] = auth_object;

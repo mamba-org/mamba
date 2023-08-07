@@ -53,14 +53,14 @@ extern "C"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_random.hpp"
-#include "mamba/core/util_string.hpp"
 #include "mamba/util/compare.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
     bool is_package_file(std::string_view fn)
     {
-        return ends_with(fn, ".tar.bz2") || ends_with(fn, ".conda");
+        return util::ends_with(fn, ".tar.bz2") || util::ends_with(fn, ".conda");
     }
 
     // This function returns true even for broken symlinks
@@ -180,7 +180,7 @@ namespace mamba
         do
         {
             std::string random_file_name = mamba::generate_random_alphanumeric_string(10);
-            final_path = temp_path / concat(prefix, random_file_name, suffix);
+            final_path = temp_path / util::concat(prefix, random_file_name, suffix);
         } while (fs::exists(final_path));
 
         try
@@ -277,17 +277,17 @@ namespace mamba
 
     void split_package_extension(const std::string& file, std::string& name, std::string& extension)
     {
-        if (ends_with(file, ".conda"))
+        if (util::ends_with(file, ".conda"))
         {
             name = file.substr(0, file.size() - 6);
             extension = ".conda";
         }
-        else if (ends_with(file, ".tar.bz2"))
+        else if (util::ends_with(file, ".tar.bz2"))
         {
             name = file.substr(0, file.size() - 8);
             extension = ".tar.bz2";
         }
-        else if (ends_with(file, ".json"))
+        else if (util::ends_with(file, ".json"))
         {
             name = file.substr(0, file.size() - 5);
             extension = ".json";
@@ -403,8 +403,8 @@ namespace mamba
                 if (std::regex_search(s, unsafe))
                 {
                     std::string s2 = s;
-                    replace_all(s2, "'", "'\"'\"'");
-                    return concat("'", s2, "'");
+                    util::replace_all(s2, "'", "'\"'\"'");
+                    return util::concat("'", s2, "'");
                 }
                 else
                 {
@@ -537,13 +537,17 @@ namespace mamba
                 fs::u8path trash_file = path;
                 std::size_t fcounter = 0;
 
-                trash_file.replace_extension(concat(trash_file.extension().string(), ".mamba_trash"));
+                trash_file.replace_extension(
+                    util::concat(trash_file.extension().string(), ".mamba_trash")
+                );
                 while (lexists(trash_file))
                 {
                     trash_file = path;
-                    trash_file.replace_extension(
-                        concat(trash_file.extension().string(), std::to_string(fcounter), ".mamba_trash")
-                    );
+                    trash_file.replace_extension(util::concat(
+                        trash_file.extension().string(),
+                        std::to_string(fcounter),
+                        ".mamba_trash"
+                    ));
                     fcounter += 1;
                     if (fcounter > 100)
                     {
@@ -574,7 +578,7 @@ namespace mamba
                           << " (file in use?). Sleeping for " << counter * 2 << "s";
                 if (counter > 3)
                 {
-                    throw std::runtime_error(concat("Could not delete file ", path.string()));
+                    throw std::runtime_error(util::concat("Could not delete file ", path.string()));
                 }
                 std::this_thread::sleep_for(std::chrono::seconds(counter * 2));
             }
@@ -1247,7 +1251,7 @@ namespace mamba
     bool ensure_comspec_set()
     {
         std::string cmd_exe = env::get("COMSPEC").value_or("");
-        if (!ends_with(to_lower(cmd_exe), "cmd.exe"))
+        if (!util::ends_with(util::to_lower(cmd_exe), "cmd.exe"))
         {
             cmd_exe = (fs::u8path(env::get("SystemRoot").value_or("")) / "System32" / "cmd.exe").string();
             if (!fs::is_regular_file(cmd_exe))
@@ -1457,7 +1461,9 @@ namespace mamba
             auto comspec = env::get("COMSPEC");
             if (!comspec)
             {
-                throw std::runtime_error(concat("Failed to run script: COMSPEC not set in env vars."));
+                throw std::runtime_error(
+                    util::concat("Failed to run script: COMSPEC not set in env vars.")
+                );
             }
 
             script_file = wrap_call(
@@ -1499,7 +1505,7 @@ namespace mamba
 
     bool is_yaml_file_name(std::string_view filename)
     {
-        return ends_with(filename, ".yml") || ends_with(filename, ".yaml");
+        return util::ends_with(filename, ".yml") || util::ends_with(filename, ".yaml");
     }
 
     tl::expected<std::string, mamba_error> encode_base64(std::string_view input)
@@ -1581,7 +1587,7 @@ namespace mamba
     {
         std::string copy(str);
 
-        if (contains(str, "/t/"))
+        if (util::contains(str, "/t/"))
         {
             copy = std::regex_replace(copy, Context::instance().token_regex, "/t/*****");
         }

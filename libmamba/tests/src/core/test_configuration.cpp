@@ -9,7 +9,7 @@
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 #include "test_data.hpp"
 
@@ -781,7 +781,7 @@ namespace mamba
             CHECK_FALSE(CTX);                                                                       \
         }                                                                                           \
                                                                                                     \
-        std::string env_name = "MAMBA_" + to_upper(#NAME);                                          \
+        std::string env_name = "MAMBA_" + util::to_upper(#NAME);                                    \
         env::set(env_name, "true");                                                                 \
         load_test_config(rc2);                                                                      \
                                                                                                     \

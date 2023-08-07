@@ -18,7 +18,6 @@
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/pool.hpp"
@@ -29,12 +28,11 @@
 #include "mamba/core/solver.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/transaction.hpp"
-#include "mamba/core/url.hpp"
 #include "mamba/core/util_os.hpp"
-#include "mamba/core/util_string.hpp"
 #include "mamba/core/validate.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/util/flat_set.hpp"
+#include "mamba/util/string.hpp"
 
 namespace py = pybind11;
 
@@ -410,7 +408,7 @@ PYBIND11_MODULE(bindings, m)
                     case query::RECURSIVETABLE:
                         res.table(
                             res_stream,
-                            { "Name", "Version", "Build", concat("Depends:", query), "Channel" }
+                            { "Name", "Version", "Build", util::concat("Depends:", query), "Channel" }
                         );
                 }
                 if (res.empty() && format != query::JSON)
@@ -845,7 +843,8 @@ PYBIND11_MODULE(bindings, m)
                 static_assert(LIBMAMBA_VERSION_MAJOR == 1, "Version 1 compatibility.");
                 return fmt::format("{}", fmt::join(self.track_features, ","));
             },
-            [](PackageInfo& self, std::string_view val) { self.track_features = split(val, ","); }
+            [](PackageInfo& self, std::string_view val)
+            { self.track_features = util::split(val, ","); }
         )
         .def_readwrite("depends", &PackageInfo::depends)
         .def_readwrite("constrains", &PackageInfo::constrains)

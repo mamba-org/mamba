@@ -9,8 +9,8 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
-#include "mamba/core/util_string.hpp"
 #include "mamba/core/virtual_packages.hpp"
+#include "mamba/util/string.hpp"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -52,7 +52,7 @@ namespace mamba
                 version = ver.data();
             }
 #endif
-            return std::string(strip(version, "glibc "));
+            return std::string(util::strip(version, "glibc "));
         }
 
         std::string cuda_version()
@@ -84,7 +84,7 @@ namespace mamba
                 // Windows fallback
                 bool may_exist = false;
                 std::string path = env::get("PATH").value_or("");
-                std::vector<std::string> paths = split(path, env::pathsep());
+                std::vector<std::string> paths = util::split(path, env::pathsep());
 
                 for (auto& p : paths)
                 {
@@ -100,7 +100,7 @@ namespace mamba
                 {
                     for (auto& p : fs::directory_iterator(base))
                     {
-                        if (starts_with(p.path().filename().string(), "nv")
+                        if (util::starts_with(p.path().filename().string(), "nv")
                             && fs::exists(p.path() / "nvidia-smi.exe"))
                         {
                             std::string f = (p.path() / "nvidia-smi.exe").string();
@@ -168,7 +168,7 @@ namespace mamba
 
             std::vector<PackageInfo> res;
             auto platform = Context::instance().platform;
-            auto split_platform = split(platform, "-", 1);
+            auto split_platform = util::split(platform, "-", 1);
 
             if (split_platform.size() != 2)
             {

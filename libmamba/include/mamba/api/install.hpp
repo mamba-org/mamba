@@ -34,6 +34,7 @@ namespace mamba
         const Configuration& config,
         const std::vector<std::string>& specs,
         bool create_env = false,
+        bool remove_prefix_on_failure = false,
         int solver_flag = SOLVER_INSTALL,
         int is_retry = 0
     );
@@ -41,13 +42,15 @@ namespace mamba
     void install_explicit_specs(
         ChannelContext& channel_context,
         const std::vector<std::string>& specs,
-        bool create_env = false
+        bool create_env = false,
+        bool remove_prefix_on_failure = false
     );
     void install_lockfile_specs(
         ChannelContext& channel_context,
         const std::string& lockfile_specs,
         const std::vector<std::string>& categories,
-        bool create_env = false
+        bool create_env = false,
+        bool remove_prefix_on_failure = false
     );
 
     namespace detail

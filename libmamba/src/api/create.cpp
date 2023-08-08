@@ -31,7 +31,7 @@ namespace mamba
 
         ChannelContext channel_context;
 
-        bool remove_prefix = false;
+        bool remove_prefix_on_failure = false;
 
         if (!ctx.dry_run)
         {
@@ -73,7 +73,7 @@ namespace mamba
                 detail::store_platform_config(
                     ctx.prefix_params.target_prefix,
                     ctx.platform,
-                    remove_prefix
+                    remove_prefix_on_failure
                 );
             }
         }
@@ -86,30 +86,33 @@ namespace mamba
                 lockfile_path,
                 config.at("categories").value<std::vector<std::string>>(),
                 true,
-                remove_prefix
+                remove_prefix_on_failure
             );
         }
         else if (!create_specs.empty())
         {
             if (use_explicit)
             {
-                install_explicit_specs(channel_context, create_specs, true, remove_prefix);
+                install_explicit_specs(channel_context, create_specs, true, remove_prefix_on_failure);
             }
             else
             {
-                install_specs(channel_context, config, create_specs, true, remove_prefix);
+                install_specs(channel_context, config, create_specs, true, remove_prefix_on_failure);
             }
         }
     }
 
     namespace detail
     {
-        void
-        store_platform_config(const fs::u8path& prefix, const std::string& platform, bool& remove_prefix)
+        void store_platform_config(
+            const fs::u8path& prefix,
+            const std::string& platform,
+            bool& remove_prefix_on_failure
+        )
         {
             if (!fs::exists(prefix))
             {
-                remove_prefix = true;
+                remove_prefix_on_failure = true;
                 fs::create_directories(prefix);
             }
 

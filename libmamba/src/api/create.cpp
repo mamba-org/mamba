@@ -31,6 +31,8 @@ namespace mamba
 
         ChannelContext channel_context;
 
+        bool remove_prefix = false;
+
         if (!ctx.dry_run)
         {
             if (fs::exists(ctx.prefix_params.target_prefix))
@@ -68,7 +70,11 @@ namespace mamba
 
             if (config.at("platform").configured() && !config.at("platform").rc_configured())
             {
-                detail::store_platform_config(ctx.prefix_params.target_prefix, ctx.platform);
+                detail::store_platform_config(
+                    ctx.prefix_params.target_prefix,
+                    ctx.platform,
+                    remove_prefix
+                );
             }
         }
 
@@ -77,31 +83,33 @@ namespace mamba
             const auto lockfile_path = Context::instance().env_lockfile.value();
             install_lockfile_specs(
                 channel_context,
-                config,
                 lockfile_path,
                 config.at("categories").value<std::vector<std::string>>(),
-                true
+                true,
+                remove_prefix
             );
         }
         else if (!create_specs.empty())
         {
             if (use_explicit)
             {
-                install_explicit_specs(channel_context, config, create_specs, true);
+                install_explicit_specs(channel_context, create_specs, true, remove_prefix);
             }
             else
             {
-                install_specs(channel_context, config, create_specs, true);
+                install_specs(channel_context, config, create_specs, true, remove_prefix);
             }
         }
     }
 
     namespace detail
     {
-        void store_platform_config(const fs::u8path& prefix, const std::string& platform)
+        void
+        store_platform_config(const fs::u8path& prefix, const std::string& platform, bool& remove_prefix)
         {
             if (!fs::exists(prefix))
             {
+                remove_prefix = true;
                 fs::create_directories(prefix);
             }
 

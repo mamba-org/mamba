@@ -398,7 +398,6 @@ namespace mamba
             LOG_DEBUG << "Lockfile: " << lockfile_path;
             install_lockfile_specs(
                 channel_context,
-                config,
                 lockfile_path,
                 config.at("categories").value<std::vector<std::string>>(),
                 false
@@ -408,7 +407,7 @@ namespace mamba
         {
             if (use_explicit)
             {
-                install_explicit_specs(channel_context, config, install_specs, false);
+                install_explicit_specs(channel_context, install_specs, false);
             }
             else
             {
@@ -429,6 +428,7 @@ namespace mamba
         const Configuration& config,
         const std::vector<std::string>& specs,
         bool create_env,
+        bool remove_prefix,
         int solver_flag,
         int is_retry
     )
@@ -566,6 +566,7 @@ namespace mamba
                     config,
                     specs,
                     create_env,
+                    remove_prefix,
                     solver_flag,
                     is_retry | RETRY_SOLVE_ERROR
                 );
@@ -615,16 +616,9 @@ namespace mamba
             // Aborting new env creation
             // but the directory was already created because of `store_platform_config` call
             // => Remove the created directory
-            if (create_env && config.at("platform").configured()
-                && !config.at("platform").rc_configured())
+            if (remove_prefix && fs::is_directory(ctx.prefix_params.target_prefix))
             {
-                if (fs::is_directory(ctx.prefix_params.target_prefix))
-                {
-                    if (Console::prompt("\nRemove " + ctx.prefix_params.target_prefix.string(), 'y'))
-                    {
-                        fs::remove_all(ctx.prefix_params.target_prefix);
-                    }
-                }
+                fs::remove_all(ctx.prefix_params.target_prefix);
             }
         }
     }
@@ -635,9 +629,9 @@ namespace mamba
         template <typename TransactionFunc>
         void install_explicit_with_transaction(
             ChannelContext& channel_context,
-            const Configuration& config,
             TransactionFunc create_transaction,
-            bool create_env
+            bool create_env,
+            bool remove_prefix
         )
         {
             MPool pool{ channel_context };
@@ -684,16 +678,9 @@ namespace mamba
                 // Aborting new env creation
                 // but the directory was already created because of `store_platform_config` call
                 // => Remove the created directory
-                if (create_env && config.at("platform").configured()
-                    && !config.at("platform").rc_configured())
+                if (remove_prefix && fs::is_directory(ctx.prefix_params.target_prefix))
                 {
-                    if (fs::is_directory(ctx.prefix_params.target_prefix))
-                    {
-                        if (Console::prompt("\nRemove " + ctx.prefix_params.target_prefix.string(), 'y'))
-                        {
-                            fs::remove_all(ctx.prefix_params.target_prefix);
-                        }
-                    }
+                    fs::remove_all(ctx.prefix_params.target_prefix);
                 }
             }
         }
@@ -701,27 +688,27 @@ namespace mamba
 
     void install_explicit_specs(
         ChannelContext& channel_context,
-        const Configuration& config,
         const std::vector<std::string>& specs,
-        bool create_env
+        bool create_env,
+        bool remove_prefix
     )
     {
         detail::install_explicit_with_transaction(
             channel_context,
-            config,
             [&](auto& pool, auto& pkg_caches, auto& others)
             { return create_explicit_transaction_from_urls(pool, specs, pkg_caches, others); },
-            create_env
+            create_env,
+            remove_prefix
         );
     }
 
     void install_lockfile_specs(
         ChannelContext& channel_context,
-        const Configuration& config,
         const std::string& lockfile,
 
         const std::vector<std::string>& categories,
-        bool create_env
+        bool create_env,
+        bool remove_prefix
     )
     {
         std::unique_ptr<TemporaryFile> tmp_lock_file;
@@ -749,11 +736,11 @@ namespace mamba
 
         detail::install_explicit_with_transaction(
             channel_context,
-            config,
             [&](auto& pool, auto& pkg_caches, auto& others) {
                 return create_explicit_transaction_from_lockfile(pool, file, categories, pkg_caches, others);
             },
-            create_env
+            create_env,
+            remove_prefix
         );
     }
 

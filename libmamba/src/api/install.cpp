@@ -428,7 +428,6 @@ namespace mamba
         const Configuration& config,
         const std::vector<std::string>& specs,
         bool create_env,
-        bool remove_prefix_on_failure,
         int solver_flag,
         int is_retry
     )
@@ -566,7 +565,6 @@ namespace mamba
                     config,
                     specs,
                     create_env,
-                    remove_prefix_on_failure,
                     solver_flag,
                     is_retry | RETRY_SOLVE_ERROR
                 );
@@ -611,16 +609,6 @@ namespace mamba
                 install_for_other_pkgmgr(other_spec);
             }
         }
-        else
-        {
-            // Aborting new env creation
-            // but the directory was already created because of `store_platform_config` call
-            // => Remove the created directory
-            if (remove_prefix_on_failure && fs::is_directory(ctx.prefix_params.target_prefix))
-            {
-                fs::remove_all(ctx.prefix_params.target_prefix);
-            }
-        }
     }
 
     namespace detail
@@ -630,8 +618,7 @@ namespace mamba
         void install_explicit_with_transaction(
             ChannelContext& channel_context,
             TransactionFunc create_transaction,
-            bool create_env,
-            bool remove_prefix_on_failure
+            bool create_env
         )
         {
             MPool pool{ channel_context };
@@ -673,42 +660,28 @@ namespace mamba
                     install_for_other_pkgmgr(other_spec);
                 }
             }
-            else
-            {
-                // Aborting new env creation
-                // but the directory was already created because of `store_platform_config` call
-                // => Remove the created directory
-                if (remove_prefix_on_failure && fs::is_directory(ctx.prefix_params.target_prefix))
-                {
-                    fs::remove_all(ctx.prefix_params.target_prefix);
-                }
-            }
         }
     }
 
     void install_explicit_specs(
         ChannelContext& channel_context,
         const std::vector<std::string>& specs,
-        bool create_env,
-        bool remove_prefix_on_failure
+        bool create_env
     )
     {
         detail::install_explicit_with_transaction(
             channel_context,
             [&](auto& pool, auto& pkg_caches, auto& others)
             { return create_explicit_transaction_from_urls(pool, specs, pkg_caches, others); },
-            create_env,
-            remove_prefix_on_failure
+            create_env
         );
     }
 
     void install_lockfile_specs(
         ChannelContext& channel_context,
         const std::string& lockfile,
-
         const std::vector<std::string>& categories,
-        bool create_env,
-        bool remove_prefix_on_failure
+        bool create_env
     )
     {
         std::unique_ptr<TemporaryFile> tmp_lock_file;
@@ -739,8 +712,7 @@ namespace mamba
             [&](auto& pool, auto& pkg_caches, auto& others) {
                 return create_explicit_transaction_from_lockfile(pool, file, categories, pkg_caches, others);
             },
-            create_env,
-            remove_prefix_on_failure
+            create_env
         );
     }
 

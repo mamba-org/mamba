@@ -19,6 +19,7 @@ namespace mamba
 
     namespace detail
     {
+        // TODO ADD COMMENT to be removed
         void store_platform_config(
             const fs::u8path& prefix,
             const std::string& platform,

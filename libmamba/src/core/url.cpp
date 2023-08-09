@@ -85,8 +85,6 @@ namespace mamba
             pointer m_data = nullptr;
             // Only meaningful when > 0, otherwise, assume null terminated string
             size_type m_len = -1;
-
-            void free_data_if_present();
         };
 
         CurlEasyHandle::CurlEasyHandle()
@@ -126,12 +124,15 @@ namespace mamba
 
         CurlStr::~CurlStr()
         {
-            free_data_if_present();
+            // Even when Curl returns a len along side the data, `curl_free` must be used without
+            // len.
+            ::curl_free(m_data);
+            m_data = nullptr;
         }
 
         auto CurlStr::raw_input() -> input_pointer
         {
-            free_data_if_present();
+            assert(m_data == nullptr);  // Otherwise we leak Curl memory
             return &m_data;
         }
 
@@ -159,17 +160,6 @@ namespace mamba
                 }
             }
             return std::nullopt;
-        }
-
-        void CurlStr::free_data_if_present()
-        {
-            if (m_data)
-            {
-                // Even when Curl returns a len along side the data, `curl_free` must be used
-                // without len.
-                ::curl_free(m_data);
-            }
-            m_data = nullptr;
         }
     }
 

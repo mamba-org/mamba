@@ -4,7 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <optional>
 #include <regex>
+#include <string_view>
 
 #include <openssl/evp.h>
 
@@ -15,6 +17,156 @@
 
 namespace mamba
 {
+
+    namespace
+    {
+        /**
+         * A RAII ``CURL*`` created from ``curl_easy_handle``.
+         *
+         * Never null, throw exception at construction if creating the handle fails.
+         * This wrapper is not meant to handle more cases, it remains an implementation detail
+         * for url parsing, which we should ideally do without Curl.
+         * This differs from ``CURLHanlde`` in "curl.hpp" which is a fully-featured CURL wrapper
+         * for accessing the internet.
+         */
+        class CURLEasyHandle
+        {
+        public:
+
+            using value_type = ::CURL;
+            using pointer = value_type*;
+            using const_pointer = const value_type*;
+
+            CURLEasyHandle();
+            ~CURLEasyHandle();
+
+            CURLEasyHandle(const CURLEasyHandle&) = delete;
+            CURLEasyHandle& operator=(const CURLEasyHandle&) = delete;
+            CURLEasyHandle(CURLEasyHandle&&) = delete;
+            CURLEasyHandle& operator=(CURLEasyHandle&&) = delete;
+
+            [[nodiscard]] auto raw() const -> const_pointer;
+            [[nodiscard]] auto raw() -> pointer;
+
+        private:
+
+            pointer m_handle = nullptr;
+        };
+
+        /**
+         * A RAII wrapper for string mananged by CURL.
+         *
+         * String can possibly be null, or zero-lenght, depending on the data returned by CURL.
+         */
+        class CURLStr
+        {
+            using value_type = char;
+            using pointer = value_type*;
+            using const_pointer = const value_type*;
+            using input_pointer = value_type**;
+            using size_type = int;
+
+        public:
+
+            explicit CURLStr() = default;
+            explicit CURLStr(pointer data);
+            explicit CURLStr(pointer data, size_type len);
+            ~CURLStr();
+
+            CURLStr(const CURLStr&) = delete;
+            CURLStr& operator=(const CURLStr&) = delete;
+            CURLStr(CURLStr&&) = delete;
+            CURLStr& operator=(CURLStr&&) = delete;
+
+            [[nodiscard]] auto raw_input() -> input_pointer;
+            [[nodiscard]] auto raw() const -> const_pointer;
+            [[nodiscard]] auto raw() -> pointer;
+
+            [[nodiscard]] auto str() const -> std::optional<std::string_view>;
+
+        private:
+
+            pointer m_data = nullptr;
+            // Only meaningful when > 0, otherwise, assume null terminated string
+            size_type m_len = { -1 };
+        };
+
+        CURLEasyHandle::CURLEasyHandle()
+        {
+            m_handle = ::curl_easy_init();
+            if (m_handle == nullptr)
+            {
+                throw std::runtime_error("Could not create CURL handle");
+            }
+        }
+
+        CURLEasyHandle::~CURLEasyHandle()
+        {
+            ::curl_easy_cleanup(m_handle);
+        }
+
+        auto CURLEasyHandle::raw() const -> const_pointer
+        {
+            return m_handle;
+        }
+
+        auto CURLEasyHandle::raw() -> pointer
+        {
+            return m_handle;
+        }
+
+        CURLStr::CURLStr(pointer data)
+            : m_data(data)
+        {
+        }
+
+        CURLStr::CURLStr(pointer data, size_type len)
+            : m_data(data)
+            , m_len(len)
+        {
+        }
+
+        CURLStr::~CURLStr()
+        {
+            // Even when Curl returns a len along side the data, `curl_free` must be used without
+            // len.
+            ::curl_free(m_data);
+            m_data = nullptr;
+        }
+
+        auto CURLStr::raw_input() -> input_pointer
+        {
+            assert(m_data == nullptr);  // Otherwise we leak Curl memory
+            return &m_data;
+        }
+
+        auto CURLStr::raw() const -> const_pointer
+        {
+            return m_data;
+        }
+
+        auto CURLStr::raw() -> pointer
+        {
+            return m_data;
+        }
+
+        auto CURLStr::str() const -> std::optional<std::string_view>
+        {
+            if (m_data)
+            {
+                if (m_len > 0)
+                {
+                    return { { m_data, static_cast<std::size_t>(m_len) } };
+                }
+                else
+                {
+                    return { { m_data } };
+                }
+            }
+            return std::nullopt;
+        }
+    }
+
     /*********************
      * Utility functions *
      *********************/
@@ -208,35 +360,29 @@ namespace mamba
 
     std::string encode_url(const std::string& url)
     {
-        CURL* curl = curl_easy_init();
-        if (curl)
+        CURLEasyHandle curl = {};
+        auto output = CURLStr(curl_easy_escape(curl.raw(), url.c_str(), static_cast<int>(url.size())));
+        if (auto str = output.str())
         {
-            char* output = curl_easy_escape(curl, url.c_str(), static_cast<int>(url.size()));
-            if (output)
-            {
-                std::string result(output);
-                curl_free(output);
-                curl_easy_cleanup(curl);
-                return result;
-            }
+            return std::string(*str);
         }
         throw std::runtime_error("Could not url-escape string.");
     }
 
     std::string decode_url(const std::string& url)
     {
-        CURL* curl = curl_easy_init();
-        if (curl)
+        CURLEasyHandle curl = {};
+        int out_length;
+        char* output = curl_easy_unescape(
+            curl.raw(),
+            url.c_str(),
+            static_cast<int>(url.size()),
+            &out_length
+        );
+        auto curl_str = CURLStr(output, out_length);
+        if (auto str = curl_str.str())
         {
-            int out_length;
-            char* output = curl_easy_unescape(curl, url.c_str(), static_cast<int>(url.size()), &out_length);
-            if (output)
-            {
-                std::string result(output, static_cast<std::size_t>(out_length));
-                curl_free(output);
-                curl_easy_cleanup(curl);
-                return result;
-            }
+            return std::string(*str);
         }
         throw std::runtime_error("Could not url-unescape string.");
     }
@@ -487,18 +633,16 @@ namespace mamba
 
     std::string URLHandler::get_part(CURLUPart part) const
     {
-        char* scheme;
-        auto rc = curl_url_get(m_handle, part, &scheme, m_has_scheme ? 0 : CURLU_DEFAULT_SCHEME);
+        CURLStr scheme{};
+        auto rc = curl_url_get(m_handle, part, scheme.raw_input(), m_has_scheme ? 0 : CURLU_DEFAULT_SCHEME);
         if (!rc)
         {
-            std::string res(scheme);
-            curl_free(scheme);
-            return res;
+            if (auto str = scheme.str())
+            {
+                return std::string(*str);
+            }
         }
-        else
-        {
-            return "";
-        }
+        return "";
     }
 
     void URLHandler::set_part(CURLUPart part, const std::string& s)

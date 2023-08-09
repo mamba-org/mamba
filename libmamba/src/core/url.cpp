@@ -36,6 +36,11 @@ namespace mamba
             CurlEasyHandle();
             ~CurlEasyHandle();
 
+            CurlEasyHandle(const CurlEasyHandle&) = delete;
+            CurlEasyHandle& operator=(const CurlEasyHandle&) = delete;
+            CurlEasyHandle(CurlEasyHandle&&) = delete;
+            CurlEasyHandle& operator=(CurlEasyHandle&&) = delete;
+
             [[nodiscard]] auto raw() const -> const_pointer;
             [[nodiscard]] auto raw() -> pointer;
 
@@ -63,6 +68,11 @@ namespace mamba
             explicit CurlStr(pointer data);
             explicit CurlStr(pointer data, size_type len);
             ~CurlStr();
+
+            CurlStr(const CurlStr&) = delete;
+            CurlStr& operator=(const CurlStr&) = delete;
+            CurlStr(CurlStr&&) = delete;
+            CurlStr& operator=(CurlStr&&) = delete;
 
             [[nodiscard]] auto raw_input() -> input_pointer;
             [[nodiscard]] auto raw() const -> const_pointer;

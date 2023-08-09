@@ -12,7 +12,7 @@ function(mamba_target_add_compile_warnings target)
     # Names of named parameters with a multiple arguments
     set(multiValueArgs)
     cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-
+    # Extra arguments not accounted for
     if(ARG_UNPARSED_ARGUMENTS)
         message(
             AUTHOR_WARNING

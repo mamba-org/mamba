@@ -99,6 +99,18 @@ namespace mamba::util
     template <typename StrRange>
     bool starts_with_any(std::wstring_view str, const StrRange& prefix);
 
+    /**
+     * Return a view to the input without the prefix if present.
+     */
+    std::string_view remove_prefix(std::string_view str, std::string_view prefix);
+    std::string_view remove_prefix(std::string_view str, std::string_view::value_type c);
+
+    /**
+     * Return a view to the input without the suffix if present.
+     */
+    std::string_view remove_suffix(std::string_view str, std::string_view suffix);
+    std::string_view remove_suffix(std::string_view str, std::string_view::value_type c);
+
     std::string_view lstrip(std::string_view input, char c);
     std::wstring_view lstrip(std::wstring_view input, wchar_t c);
     std::string_view lstrip(std::string_view input, std::string_view chars);

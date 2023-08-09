@@ -21,11 +21,15 @@ namespace mamba
     namespace
     {
         /**
-         * A RAII `CURL*` createed from `curl_easy_handle`.
+         * A RAII ``CURL*`` created from ``curl_easy_handle``.
          *
          * Never null, throw exception at construction if creating the handle fails.
+         * This wrapper is not meant to handle more cases, it remains an implementation detail
+         * for url parsing, which we should ideally do without Curl.
+         * This differs from ``CURLHanlde`` in "curl.hpp" which is a fully-featured CURL wrapper
+         * for accessing the internet.
          */
-        class CurlEasyHandle
+        class CURLEasyHandle
         {
         public:
 
@@ -33,13 +37,13 @@ namespace mamba
             using pointer = value_type*;
             using const_pointer = const value_type*;
 
-            CurlEasyHandle();
-            ~CurlEasyHandle();
+            CURLEasyHandle();
+            ~CURLEasyHandle();
 
-            CurlEasyHandle(const CurlEasyHandle&) = delete;
-            CurlEasyHandle& operator=(const CurlEasyHandle&) = delete;
-            CurlEasyHandle(CurlEasyHandle&&) = delete;
-            CurlEasyHandle& operator=(CurlEasyHandle&&) = delete;
+            CURLEasyHandle(const CURLEasyHandle&) = delete;
+            CURLEasyHandle& operator=(const CURLEasyHandle&) = delete;
+            CURLEasyHandle(CURLEasyHandle&&) = delete;
+            CURLEasyHandle& operator=(CURLEasyHandle&&) = delete;
 
             [[nodiscard]] auto raw() const -> const_pointer;
             [[nodiscard]] auto raw() -> pointer;
@@ -50,11 +54,11 @@ namespace mamba
         };
 
         /**
-         * A RAII wrapper for string mananged by Curl.
+         * A RAII wrapper for string mananged by CURL.
          *
-         * String can possibly be null, or zero-lenght, depending on the data returned by Curl.
+         * String can possibly be null, or zero-lenght, depending on the data returned by CURL.
          */
-        class CurlStr
+        class CURLStr
         {
             using value_type = char;
             using pointer = value_type*;
@@ -64,15 +68,15 @@ namespace mamba
 
         public:
 
-            explicit CurlStr() = default;
-            explicit CurlStr(pointer data);
-            explicit CurlStr(pointer data, size_type len);
-            ~CurlStr();
+            explicit CURLStr() = default;
+            explicit CURLStr(pointer data);
+            explicit CURLStr(pointer data, size_type len);
+            ~CURLStr();
 
-            CurlStr(const CurlStr&) = delete;
-            CurlStr& operator=(const CurlStr&) = delete;
-            CurlStr(CurlStr&&) = delete;
-            CurlStr& operator=(CurlStr&&) = delete;
+            CURLStr(const CURLStr&) = delete;
+            CURLStr& operator=(const CURLStr&) = delete;
+            CURLStr(CURLStr&&) = delete;
+            CURLStr& operator=(CURLStr&&) = delete;
 
             [[nodiscard]] auto raw_input() -> input_pointer;
             [[nodiscard]] auto raw() const -> const_pointer;
@@ -84,10 +88,10 @@ namespace mamba
 
             pointer m_data = nullptr;
             // Only meaningful when > 0, otherwise, assume null terminated string
-            size_type m_len = -1;
+            size_type m_len = { -1 };
         };
 
-        CurlEasyHandle::CurlEasyHandle()
+        CURLEasyHandle::CURLEasyHandle()
         {
             m_handle = ::curl_easy_init();
             if (m_handle == nullptr)
@@ -96,33 +100,33 @@ namespace mamba
             }
         }
 
-        CurlEasyHandle::~CurlEasyHandle()
+        CURLEasyHandle::~CURLEasyHandle()
         {
             ::curl_easy_cleanup(m_handle);
         }
 
-        auto CurlEasyHandle::raw() const -> const_pointer
+        auto CURLEasyHandle::raw() const -> const_pointer
         {
             return m_handle;
         }
 
-        auto CurlEasyHandle::raw() -> pointer
+        auto CURLEasyHandle::raw() -> pointer
         {
             return m_handle;
         }
 
-        CurlStr::CurlStr(pointer data)
+        CURLStr::CURLStr(pointer data)
             : m_data(data)
         {
         }
 
-        CurlStr::CurlStr(pointer data, size_type len)
+        CURLStr::CURLStr(pointer data, size_type len)
             : m_data(data)
             , m_len(len)
         {
         }
 
-        CurlStr::~CurlStr()
+        CURLStr::~CURLStr()
         {
             // Even when Curl returns a len along side the data, `curl_free` must be used without
             // len.
@@ -130,23 +134,23 @@ namespace mamba
             m_data = nullptr;
         }
 
-        auto CurlStr::raw_input() -> input_pointer
+        auto CURLStr::raw_input() -> input_pointer
         {
             assert(m_data == nullptr);  // Otherwise we leak Curl memory
             return &m_data;
         }
 
-        auto CurlStr::raw() const -> const_pointer
+        auto CURLStr::raw() const -> const_pointer
         {
             return m_data;
         }
 
-        auto CurlStr::raw() -> pointer
+        auto CURLStr::raw() -> pointer
         {
             return m_data;
         }
 
-        auto CurlStr::str() const -> std::optional<std::string_view>
+        auto CURLStr::str() const -> std::optional<std::string_view>
         {
             if (m_data)
             {
@@ -356,8 +360,8 @@ namespace mamba
 
     std::string encode_url(const std::string& url)
     {
-        CurlEasyHandle curl = {};
-        auto output = CurlStr(curl_easy_escape(curl.raw(), url.c_str(), static_cast<int>(url.size())));
+        CURLEasyHandle curl = {};
+        auto output = CURLStr(curl_easy_escape(curl.raw(), url.c_str(), static_cast<int>(url.size())));
         if (auto str = output.str())
         {
             return std::string(*str);
@@ -367,7 +371,7 @@ namespace mamba
 
     std::string decode_url(const std::string& url)
     {
-        CurlEasyHandle curl = {};
+        CURLEasyHandle curl = {};
         int out_length;
         char* output = curl_easy_unescape(
             curl.raw(),
@@ -375,7 +379,7 @@ namespace mamba
             static_cast<int>(url.size()),
             &out_length
         );
-        auto curl_str = CurlStr(output, out_length);
+        auto curl_str = CURLStr(output, out_length);
         if (auto str = curl_str.str())
         {
             return std::string(*str);
@@ -629,7 +633,7 @@ namespace mamba
 
     std::string URLHandler::get_part(CURLUPart part) const
     {
-        CurlStr scheme{};
+        CURLStr scheme{};
         auto rc = curl_url_get(m_handle, part, scheme.raw_input(), m_has_scheme ? 0 : CURLU_DEFAULT_SCHEME);
         if (!rc)
         {

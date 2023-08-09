@@ -79,7 +79,7 @@ def mamba_install(prefix, specs, args, env, dry_run=False, *_, **kwargs):
         with tempfile.TemporaryDirectory() as td:
             installed_json_f, installed_pkg_recs = get_installed_jsonfile(td)
 
-    prefix_data = api.PrefixData(context.target_prefix)
+    prefix_data = api.PrefixData(prefix)
     prefix_data.add_packages(api.get_virtual_packages())
     repo = api.Repo(pool, prefix_data)
     repo.set_installed()

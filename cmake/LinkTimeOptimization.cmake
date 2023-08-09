@@ -24,7 +24,7 @@ function(mamba_should_lto)
     endif()
 
     # Check if we are building in a release-like build
-    string(TOLOWER ${CMAKE_BUILD_TYPE} build_type_lower)
+    string(TOLOWER "${CMAKE_BUILD_TYPE}" build_type_lower)
     set(valid_release_names "release" "relwithdebinfo")
     if(NOT ${build_type_lower} IN_LIST valid_release_names)
         set(${arg_RESULT} FALSE PARENT_SCOPE)

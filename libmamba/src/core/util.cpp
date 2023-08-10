@@ -1554,9 +1554,9 @@ namespace mamba
             return std::nullopt;
         }
 
-        auto handler = URLHandler(url);
-        auto scheme = handler.scheme();
-        auto host = handler.host();
+        auto url_parsed = URL(url);
+        auto scheme = url_parsed.scheme();
+        auto host = url_parsed.host();
         std::vector<std::string> options;
 
         if (host.empty())

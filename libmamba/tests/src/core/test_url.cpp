@@ -115,13 +115,13 @@ namespace mamba
         TEST_CASE("parse")
         {
             {
-                URLHandler m("http://mamba.org");
+                URL m("http://mamba.org");
                 CHECK_EQ(m.scheme(), "http");
                 CHECK_EQ(m.path(), "/");
                 CHECK_EQ(m.host(), "mamba.org");
             }
             {
-                URLHandler m("s3://userx123:üúßsajd@mamba.org");
+                URL m("s3://userx123:üúßsajd@mamba.org");
                 CHECK_EQ(m.scheme(), "s3");
                 CHECK_EQ(m.path(), "/");
                 CHECK_EQ(m.host(), "mamba.org");
@@ -138,7 +138,7 @@ namespace mamba
             //     CHECK_EQ(m.password(), "test");
             // }
             {
-                URLHandler m("https://mamba🆒🔬.org/this/is/a/path/?query=123&xyz=3333");
+                URL m("https://mamba🆒🔬.org/this/is/a/path/?query=123&xyz=3333");
                 CHECK_EQ(m.scheme(), "https");
                 CHECK_EQ(m.path(), "/this/is/a/path/");
                 CHECK_EQ(m.host(), "mamba🆒🔬.org");
@@ -150,7 +150,7 @@ namespace mamba
                 CHECK_EQ(m.scheme(), "file");
                 CHECK_EQ(m.path(), "C:/Users/wolfv/test/document.json");
 #else
-                URLHandler m("file:///home/wolfv/test/document.json");
+                URL m("file:///home/wolfv/test/document.json");
                 CHECK_EQ(m.scheme(), "file");
                 CHECK_EQ(m.path(), "/home/wolfv/test/document.json");
 #endif
@@ -202,8 +202,8 @@ namespace mamba
         TEST_CASE("value_semantic")
         {
             {
-                URLHandler in("s3://userx123:üúßsajd@mamba.org");
-                URLHandler m(in);
+                URL in("s3://userx123:üúßsajd@mamba.org");
+                URL m(in);
                 CHECK_EQ(m.scheme(), "s3");
                 CHECK_EQ(m.path(), "/");
                 CHECK_EQ(m.host(), "mamba.org");
@@ -212,8 +212,8 @@ namespace mamba
             }
 
             {
-                URLHandler m("http://mamba.org");
-                URLHandler in("s3://userx123:üúßsajd@mamba.org");
+                URL m("http://mamba.org");
+                URL in("s3://userx123:üúßsajd@mamba.org");
                 m = in;
                 CHECK_EQ(m.scheme(), "s3");
                 CHECK_EQ(m.path(), "/");
@@ -223,8 +223,8 @@ namespace mamba
             }
 
             {
-                URLHandler in("s3://userx123:üúßsajd@mamba.org");
-                URLHandler m(std::move(in));
+                URL in("s3://userx123:üúßsajd@mamba.org");
+                URL m(std::move(in));
                 CHECK_EQ(m.scheme(), "s3");
                 CHECK_EQ(m.path(), "/");
                 CHECK_EQ(m.host(), "mamba.org");
@@ -233,8 +233,8 @@ namespace mamba
             }
 
             {
-                URLHandler m("http://mamba.org");
-                URLHandler in("s3://userx123:üúßsajd@mamba.org");
+                URL m("http://mamba.org");
+                URL in("s3://userx123:üúßsajd@mamba.org");
                 m = std::move(in);
                 CHECK_EQ(m.scheme(), "s3");
                 CHECK_EQ(m.path(), "/");

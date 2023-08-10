@@ -240,9 +240,9 @@ namespace mamba
         m_curl_handle->set_opt(CURLOPT_VERBOSE, Context::instance().output_params.verbosity >= 2);
 
         // get url host
-        const auto url_handler = URLHandler(url);
-        auto host = url_handler.host();
-        const auto port = url_handler.port();
+        const auto url_parsed = URL(url);
+        auto host = url_parsed.host();
+        const auto port = url_parsed.port();
         if (port.size())
         {
             host += ":" + port;

@@ -36,22 +36,22 @@ read_stdin()
 std::string
 get_token_base(const std::string& host)
 {
-    mamba::URLHandler url_handler(host);
+    mamba::URL url(host);
 
     std::string maybe_colon_and_port{};
-    if (!url_handler.port().empty())
+    if (!url.port().empty())
     {
         maybe_colon_and_port.push_back(':');
-        maybe_colon_and_port.append(url_handler.port());
+        maybe_colon_and_port.append(url.port());
     }
     // Removing the trailing slashes
-    std::string maybe_path = url_handler.path();
+    std::string maybe_path = url.path();
     while ((!maybe_path.empty()) && (maybe_path.back() == '/'))
     {
         maybe_path.pop_back();
     }
 
-    return mamba::util::concat(url_handler.host(), maybe_colon_and_port, maybe_path);
+    return mamba::concat(url.host(), maybe_colon_and_port, maybe_path);
 }
 
 void

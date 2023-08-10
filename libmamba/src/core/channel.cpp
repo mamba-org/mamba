@@ -85,7 +85,7 @@ namespace mamba
                 package_name = "";
             }
 
-            URLHandler handler(cleaned_url);
+            URL handler(cleaned_url);
             scheme = handler.scheme();
             host = handler.host();
             port = handler.port();
@@ -126,18 +126,15 @@ namespace mamba
             const std::string& path
         )
         {
-            std::string spath = std::string(util::rstrip(path, "/"));
-            std::string url = URLHandler()
-                                  .set_scheme(scheme)
-                                  .set_host(host)
-                                  .set_port(port)
-                                  .set_path(spath)
-                                  .url(true);
+            std::string spath = std::string(rstrip(path, "/"));
+            std::string url = URL().set_scheme(scheme).set_host(host).set_port(port).set_path(spath).url(
+                true
+            );
 
             // Case 1: No path given, channel name is ""
             if (spath == "")
             {
-                URLHandler handler;
+                URL handler;
                 handler.set_host(host).set_port(port);
                 return channel_configuration(
                     std::string(util::rstrip(handler.url(), "/")),
@@ -193,9 +190,9 @@ namespace mamba
             }
 
             // Case 7: fallback, channel_location = host:port and channel_name = path
-            spath = util::lstrip(spath, "/");
-            std::string location = URLHandler().set_host(host).set_port(port).url();
-            return channel_configuration(std::string(util::strip(location, "/")), spath, scheme, "", "");
+            spath = lstrip(spath, "/");
+            std::string location = URL().set_host(host).set_port(port).url();
+            return channel_configuration(std::string(strip(location, "/")), spath, scheme, "", "");
         }
 
         std::vector<std::string> take_platforms(std::string& value)
@@ -447,12 +444,9 @@ namespace mamba
             else
             {
                 std::string full_url = concat_scheme_url(scheme, location);
-                URLHandler parser(full_url);
-                location = util::rstrip(
-                    URLHandler().set_host(parser.host()).set_port(parser.port()).url(),
-                    "/"
-                );
-                name = util::lstrip(parser.path(), "/");
+                URL parser(full_url);
+                location = rstrip(URL().set_host(parser.host()).set_port(parser.port()).url(), "/");
+                name = lstrip(parser.path(), "/");
             }
         }
         name = name != "" ? util::strip(name, "/") : util::strip(channel_url, "/");

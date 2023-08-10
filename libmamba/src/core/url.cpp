@@ -353,13 +353,13 @@ namespace mamba
     {
         std::string cleaned_url;
         split_anaconda_token(url, cleaned_url, token);
-        URLHandler handler(cleaned_url);
-        scheme = handler.scheme();
-        auth = handler.auth();
-        handler.set_scheme("");
-        handler.set_user("");
-        handler.set_password("");
-        remaining_url = util::rstrip(handler.url(), "/");
+        URL url_parsed(cleaned_url);
+        scheme = url_parsed.scheme();
+        auth = url_parsed.auth();
+        url_parsed.set_scheme("");
+        url_parsed.set_user("");
+        url_parsed.set_password("");
+        remaining_url = rstrip(url_parsed.url(), "/");
     }
 
     bool compare_cleaned_url(const std::string& url1, const std::string& url2)
@@ -507,7 +507,7 @@ namespace mamba
      * URLHandler implementation *
      *****************************/
 
-    URLHandler::URLHandler(std::string_view url)
+    URL::URL(std::string_view url)
     {
         const CURLUrl handle = { file_uri_unc2_to_unc4(url), CURLU_NON_SUPPORT_SCHEME };
         m_scheme = handle.get_part(CURLUPART_SCHEME).value_or("");
@@ -520,7 +520,7 @@ namespace mamba
         m_fragment = handle.get_part(CURLUPART_FRAGMENT).value_or("");
     }
 
-    auto URLHandler::url(bool strip_scheme) -> std::string
+    auto URL::url(bool strip_scheme) -> std::string
     {
         return concat(
             strip_scheme ? "" : m_scheme.c_str(),
@@ -540,96 +540,96 @@ namespace mamba
         );
     }
 
-    auto URLHandler::scheme() const -> const std::string&
+    auto URL::scheme() const -> const std::string&
     {
         return m_scheme;
     }
 
-    auto URLHandler::host() const -> const std::string&
+    auto URL::host() const -> const std::string&
     {
         return m_host;
     }
 
-    auto URLHandler::path() const -> const std::string&
+    auto URL::path() const -> const std::string&
     {
         return m_path;
     }
 
-    auto URLHandler::port() const -> const std::string&
+    auto URL::port() const -> const std::string&
     {
         return m_port;
     }
 
-    auto URLHandler::query() const -> const std::string&
+    auto URL::query() const -> const std::string&
     {
         return m_query;
     }
 
-    auto URLHandler::fragment() const -> const std::string&
+    auto URL::fragment() const -> const std::string&
     {
         return m_fragment;
     }
 
-    auto URLHandler::auth() const -> std::string
+    auto URL::auth() const -> std::string
     {
         const auto& u = user();
         const auto& p = password();
         return (p != "") ? concat(u, ':', p) : u;
     }
 
-    auto URLHandler::user() const -> const std::string&
+    auto URL::user() const -> const std::string&
     {
         return m_user;
     }
 
-    auto URLHandler::password() const -> const std::string&
+    auto URL::password() const -> const std::string&
     {
         return m_password;
     }
 
-    URLHandler& URLHandler::set_scheme(std::string_view scheme)
+    URL& URL::set_scheme(std::string_view scheme)
     {
         m_scheme = scheme;
         return *this;
     }
 
-    URLHandler& URLHandler::set_host(std::string_view host)
+    URL& URL::set_host(std::string_view host)
     {
         m_host = host;
         return *this;
     }
 
-    URLHandler& URLHandler::set_path(std::string_view path)
+    URL& URL::set_path(std::string_view path)
     {
         m_path = path;
         return *this;
     }
 
-    URLHandler& URLHandler::set_port(std::string_view port)
+    URL& URL::set_port(std::string_view port)
     {
         m_port = port;
         return *this;
     }
 
-    URLHandler& URLHandler::set_query(std::string_view query)
+    URL& URL::set_query(std::string_view query)
     {
         m_query = query;
         return *this;
     }
 
-    URLHandler& URLHandler::set_fragment(std::string_view fragment)
+    URL& URL::set_fragment(std::string_view fragment)
     {
         m_fragment = fragment;
         return *this;
     }
 
-    URLHandler& URLHandler::set_user(std::string_view user)
+    URL& URL::set_user(std::string_view user)
     {
         m_user = user;
         return *this;
     }
 
-    URLHandler& URLHandler::set_password(std::string_view password)
+    URL& URL::set_password(std::string_view password)
     {
         m_password = password;
         return *this;

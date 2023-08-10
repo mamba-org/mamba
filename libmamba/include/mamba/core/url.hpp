@@ -76,12 +76,12 @@ namespace mamba
     // Only returns a cache name without extension
     std::string cache_name_from_url(const std::string& url);
 
-    class URLHandler
+    class URL
     {
     public:
 
-        URLHandler() = default;
-        URLHandler(std::string_view url);
+        URL() = default;
+        URL(std::string_view url);
 
         [[nodiscard]] auto scheme() const -> const std::string&;
         [[nodiscard]] auto host() const -> const std::string&;
@@ -95,14 +95,14 @@ namespace mamba
         [[nodiscard]] auto url(bool strip_scheme = false) -> std::string;
         [[nodiscard]] auto auth() const -> std::string;
 
-        URLHandler& set_scheme(std::string_view scheme);
-        URLHandler& set_host(std::string_view host);
-        URLHandler& set_path(std::string_view path);
-        URLHandler& set_port(std::string_view port);
-        URLHandler& set_query(std::string_view query);
-        URLHandler& set_fragment(std::string_view fragment);
-        URLHandler& set_user(std::string_view user);
-        URLHandler& set_password(std::string_view password);
+        URL& set_scheme(std::string_view scheme);
+        URL& set_host(std::string_view host);
+        URL& set_path(std::string_view path);
+        URL& set_port(std::string_view port);
+        URL& set_query(std::string_view query);
+        URL& set_fragment(std::string_view fragment);
+        URL& set_user(std::string_view user);
+        URL& set_password(std::string_view password);
 
     private:
 

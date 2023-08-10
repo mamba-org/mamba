@@ -151,6 +151,30 @@ TEST_SUITE("url")
 
     TEST_CASE("URL::parse")
     {
+        SUBCASE("scheme options")
+        {
+            CHECK_EQ(URL::parse("mamba.org", URL::SchemeOpt::leave_as_is).scheme(), "");
+            CHECK_EQ(URL::parse("mamba.org", URL::SchemeOpt::add_if_abscent).scheme(), "https");
+            CHECK_EQ(URL::parse("mamba.org", URL::SchemeOpt::remove_if_present).scheme(), "");
+
+            CHECK_EQ(URL::parse("ftp://mamba.org", URL::SchemeOpt::leave_as_is).scheme(), "ftp");
+            CHECK_EQ(URL::parse("ftp://mamba.org", URL::SchemeOpt::add_if_abscent).scheme(), "ftp");
+            CHECK_EQ(URL::parse("ftp://mamba.org", URL::SchemeOpt::remove_if_present).scheme(), "");
+        }
+
+        SUBCASE("mamba.org")
+        {
+            const URL url = URL::parse("mamba.org");
+            CHECK_EQ(url.scheme(), "");
+            CHECK_EQ(url.host(), "mamba.org");
+            CHECK_EQ(url.path(), "/");
+            CHECK_EQ(url.user(), "");
+            CHECK_EQ(url.password(), "");
+            CHECK_EQ(url.port(), "");
+            CHECK_EQ(url.query(), "");
+            CHECK_EQ(url.fragment(), "");
+        }
+
         SUBCASE("http://mamba.org")
         {
             const URL url = URL::parse("http://mamba.org");

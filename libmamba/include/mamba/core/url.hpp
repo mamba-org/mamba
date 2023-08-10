@@ -82,7 +82,17 @@ namespace mamba
     {
     public:
 
-        [[nodiscard]] static auto parse(std::string_view url) -> URL;
+        inline static constexpr std::string_view default_scheme = "https";
+
+        enum class SchemeOpt
+        {
+            leave_as_is,
+            add_if_abscent,
+            remove_if_present,
+        };
+
+        [[nodiscard]] static auto
+        parse(std::string_view url, SchemeOpt opt = SchemeOpt::leave_as_is) -> URL;
 
         URL() = default;
 

@@ -524,12 +524,29 @@ namespace mamba
      * URLHandler implementation *
      *****************************/
 
-    auto URL::parse(std::string_view url) -> URL
+    auto URL::parse(std::string_view url, SchemeOpt opt) -> URL
     {
-        const CURLUrl handle = { file_uri_unc2_to_unc4(url), CURLU_NON_SUPPORT_SCHEME };
         auto out = URL();
-        out.set_scheme(handle.get_part(CURLUPART_SCHEME).value_or(""))
-            .set_user(handle.get_part(CURLUPART_USER).value_or(""))
+        // CURL fails to parse the URL if no scheme is given, unless CURLU_DEFAULT_SCHEME
+        // is given, but in this case, we loose the information about whether it was in the
+        // original URL, so we parse it manually.
+        if (opt == SchemeOpt::remove_if_present)
+        {
+        }
+        else if (auto scheme = get_scheme(url); !scheme.empty())
+        {
+            out.set_scheme(scheme);
+        }
+        else if (opt == SchemeOpt::add_if_abscent)
+        {
+            out.set_scheme(URL::default_scheme);
+        }
+
+        const CURLUrl handle = {
+            file_uri_unc2_to_unc4(url),
+            CURLU_NON_SUPPORT_SCHEME | CURLU_DEFAULT_SCHEME,
+        };
+        out.set_user(handle.get_part(CURLUPART_USER).value_or(""))
             .set_password(handle.get_part(CURLUPART_PASSWORD).value_or(""))
             .set_host(handle.get_part(CURLUPART_HOST).value_or(""))
             .set_path(handle.get_part(CURLUPART_PATH).value_or(""))

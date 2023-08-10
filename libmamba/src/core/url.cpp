@@ -317,9 +317,17 @@ namespace mamba
         cleaned_url = util::rstrip(cleaned_url, "/");
     }
 
-    bool has_scheme(const std::string& url)
+    auto has_scheme(std::string_view url) -> bool
     {
-        return std::regex_search(url, Context::instance().scheme_regex);
+        const auto sep = url.find("://");
+        if ((sep == std::string_view::npos) || (sep == 0))
+        {
+            return false;
+        }
+        auto scheme = url.substr(0, sep);
+        auto is_scheme_char = [](char c) -> bool
+        { return is_alphanum(c) || (c == '.') || (c == '-') || (c == '_'); };
+        return std::all_of(scheme.cbegin(), scheme.cend(), is_scheme_char);
     }
 
     void split_anaconda_token(const std::string& url, std::string& cleaned_url, std::string& token)

@@ -268,11 +268,12 @@ TEST_SUITE("url")
 
     TEST_CASE("has_scheme")
     {
-        std::string url = "http://mamba.org";
-        std::string not_url = "mamba.org";
-
-        CHECK(has_scheme(url));
-        CHECK_FALSE(has_scheme(not_url));
+        CHECK(has_scheme("http://mamba.org"));
+        CHECK(has_scheme("file:///folder/file.txt"));
+        CHECK(has_scheme("s3://bucket/file.txt"));
+        CHECK_FALSE(has_scheme("mamba.org"));
+        CHECK_FALSE(has_scheme("://"));
+        CHECK_FALSE(has_scheme("f#gre://"));
         CHECK_FALSE(has_scheme(""));
     }
 

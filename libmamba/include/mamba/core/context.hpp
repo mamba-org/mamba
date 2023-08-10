@@ -227,7 +227,6 @@ namespace mamba
         // first two characters
         const std::regex token_regex{ "/t/([a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-]*)" };
         const std::regex http_basicauth_regex{ "(://|^)([^\\s]+):([^\\s]+)@" };
-        const std::regex scheme_regex{ "[a-z][a-z0-9]{0,11}://" };
 
         static Context& instance();
 

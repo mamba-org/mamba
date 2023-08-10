@@ -170,36 +170,23 @@ namespace mamba
 #endif
         }
 
-        TEST_CASE("unc_url")
+        TEST_CASE("file_uri_unc2_to_unc4")
         {
+            for (std::string const uri : {
+                     "http://example.com/test",
+                     R"(file://C:/Program\ (x74)/Users/hello\ world)",
+                     R"(file:///C:/Program\ (x74)/Users/hello\ world)",
+                     "file:////server/share",
+                     "file:///path/to/data.xml",
+                     "file:///absolute/path",
+                     R"(file://\\server\path)",
+                 })
             {
-                auto out = unc_url("http://example.com/test");
-                CHECK_EQ(out, "http://example.com/test");
+                CAPTURE(uri);
+                CHECK_EQ(file_uri_unc2_to_unc4(uri), uri);
             }
-            {
-                auto out = unc_url("file://C:/Program\\ (x74)/Users/hello\\ world");
-                CHECK_EQ(out, "file://C:/Program\\ (x74)/Users/hello\\ world");
-            }
-            {
-                auto out = unc_url("file:///C:/Program\\ (x74)/Users/hello\\ world");
-                CHECK_EQ(out, "file:///C:/Program\\ (x74)/Users/hello\\ world");
-            }
-            {
-                auto out = unc_url("file:////server/share");
-                CHECK_EQ(out, "file:////server/share");
-            }
-            {
-                auto out = unc_url("file:///absolute/path");
-                CHECK_EQ(out, "file:///absolute/path");
-            }
-            {
-                auto out = unc_url("file://server/share");
-                CHECK_EQ(out, "file:////server/share");
-            }
-            {
-                auto out = unc_url("file://server");
-                CHECK_EQ(out, "file:////server");
-            }
+            CHECK_EQ(file_uri_unc2_to_unc4("file://server/share"), "file:////server/share");
+            CHECK_EQ(file_uri_unc2_to_unc4("file://server"), "file:////server");
         }
 
         TEST_CASE("has_scheme")

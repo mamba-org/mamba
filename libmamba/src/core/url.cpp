@@ -338,24 +338,51 @@ namespace mamba
         return file_scheme + abs_path;
     }
 
-    std::string unc_url(const std::string& url)
+    std::string file_uri_unc2_to_unc4(std::string_view uri)
     {
-        // Replicate UNC behaviour of url_to_path from conda.common.path
-        // We cannot use URLHandler for this since CURL returns an error when asked to parse
-        // a url of type file://hostname/path
-        // Colon character is excluded to make sure we do not match file URLs with absoulute
-        // paths to a windows drive.
-        static const std::regex file_host(R"(file://([^:/]*)(/.*)?)");
-        std::smatch match;
-        if (std::regex_match(url, match, file_host))
+        static constexpr std::string_view file_scheme = "file:";
+
+        // Not "file:" scheme
+        if (!starts_with(uri, file_scheme))
         {
-            if (match[1] != "" && match[1] != "localhost" && match[1] != "127.0.0.1"
-                && match[1] != "::1" && !util::starts_with(match[1].str(), R"(\\))"))
-            {
-                return "file:////" + std::string(match[1].first, url.cend());
-            }
+            return std::string(uri);
         }
-        return url;
+
+        // No hostname set in "file://hostname/path/to/data.xml"
+        auto [slashes, rest] = lstrip_parts(remove_prefix(uri, file_scheme), '/');
+        if (slashes.size() != 2)
+        {
+            return std::string(uri);
+        }
+
+        const auto s_idx = rest.find('/');
+        const auto c_idx = rest.find(':');
+
+        // ':' found before '/', a Windows drive is specified in "file://C:/path/to/data.xml" (not
+        // really URI compliant, they should have "file:///" or "file:/"). Otherwise no path in
+        // "file://hostname", also not URI compliant.
+        if (c_idx < s_idx)
+        {
+            return std::string(uri);
+        }
+
+        const auto hostname = rest.substr(0, s_idx);
+
+        // '\' are used as path separator in "file://\\hostname\path\to\data.xml" (also not RFC
+        // compliant)
+        if (starts_with(hostname, R"(\\)"))
+        {
+            return std::string(uri);
+        }
+
+        // Things that means localhost are kept for some reason in ``url_to_path``
+        // in ``conda.common.path``
+        if ((hostname == "localhost") || (hostname == "127.0.0.1") || (hostname == "::1"))
+        {
+            return std::string(uri);
+        }
+
+        return concat("file:////", rest);
     }
 
     std::string encode_url(const std::string& url)
@@ -433,7 +460,7 @@ namespace mamba
         {
             CURLUcode uc;
             auto curl_flags = m_has_scheme ? CURLU_NON_SUPPORT_SCHEME : CURLU_DEFAULT_SCHEME;
-            std::string c_url = unc_url(url);
+            std::string c_url = file_uri_unc2_to_unc4(url);
             uc = curl_url_set(
                 m_handle,
                 CURLUPART_URL,

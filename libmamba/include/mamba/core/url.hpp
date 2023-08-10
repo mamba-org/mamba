@@ -78,7 +78,25 @@ namespace mamba
     template <class S, class... Args>
     std::string join_url(const S& s, const Args&... args);
 
-    std::string unc_url(const std::string& url);
+    /**
+     * Convert UNC2 file URI to UNC4.
+     *
+     * Windows paths can be expressed in a form, called UNC, where it is possible to express a
+     * server location, as in "\\hostname\folder\data.xml".
+     * This can be succefully encoded in a file URI like "file://hostname/folder/data.xml"
+     * since file URI contain a part for the hostname (empty hostname file URI must start with
+     * "file:///").
+     * Since CURL does not support hostname in file URI, we can encode UNC hostname as part
+     * of the path (called 4-slash), where it becomes "file:////hostname/folder/data.xml".
+     *
+     * This function leaves all non-matching URI (inluding a number of invalid URI for unkown
+     * legacy reasons taken from ``url_to_path`` in conda.common.path) unchanged.
+     *
+     * @see https://learn.microsoft.com/en-us/dotnet/standard/io/file-path-formats#unc-paths
+     * @see https://en.wikipedia.org/wiki/File_URI_scheme
+     */
+    std::string file_uri_unc2_to_unc4(std::string_view url);
+
     std::string encode_url(const std::string& url);
     std::string decode_url(const std::string& url);
     // Only returns a cache name without extension

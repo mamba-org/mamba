@@ -61,7 +61,7 @@ namespace mamba
     DownloadTarget::DownloadTarget(const std::string& name, const std::string& url, const std::string& filename)
         : m_name(name)
         , m_filename(filename)
-        , m_url(unc_url(url))
+        , m_url(file_uri_unc2_to_unc4(url))
         , m_http_status(10000)
         , m_downloaded_size(0)
         , m_effective_url(nullptr)

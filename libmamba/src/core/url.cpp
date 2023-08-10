@@ -18,6 +18,10 @@
 namespace mamba
 {
 
+    /*******************
+     *  CURL wrappers  *
+     *******************/
+
     namespace
     {
         /**
@@ -45,7 +49,6 @@ namespace mamba
             CURLEasyHandle(CURLEasyHandle&&) = delete;
             CURLEasyHandle& operator=(CURLEasyHandle&&) = delete;
 
-            [[nodiscard]] auto raw() const -> const_pointer;
             [[nodiscard]] auto raw() -> pointer;
 
         private:
@@ -79,8 +82,6 @@ namespace mamba
             CURLStr& operator=(CURLStr&&) = delete;
 
             [[nodiscard]] auto raw_input() -> input_pointer;
-            [[nodiscard]] auto raw() const -> const_pointer;
-            [[nodiscard]] auto raw() -> pointer;
 
             [[nodiscard]] auto str() const -> std::optional<std::string_view>;
 
@@ -103,11 +104,6 @@ namespace mamba
         CURLEasyHandle::~CURLEasyHandle()
         {
             ::curl_easy_cleanup(m_handle);
-        }
-
-        auto CURLEasyHandle::raw() const -> const_pointer
-        {
-            return m_handle;
         }
 
         auto CURLEasyHandle::raw() -> pointer
@@ -138,16 +134,6 @@ namespace mamba
         {
             assert(m_data == nullptr);  // Otherwise we leak Curl memory
             return &m_data;
-        }
-
-        auto CURLStr::raw() const -> const_pointer
-        {
-            return m_data;
-        }
-
-        auto CURLStr::raw() -> pointer
-        {
-            return m_data;
         }
 
         auto CURLStr::str() const -> std::optional<std::string_view>

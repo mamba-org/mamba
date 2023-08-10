@@ -359,7 +359,7 @@ namespace mamba
         url_parsed.set_scheme("");
         url_parsed.set_user("");
         url_parsed.set_password("");
-        remaining_url = rstrip(url_parsed.url(), "/");
+        remaining_url = rstrip(url_parsed.str(), "/");
     }
 
     bool compare_cleaned_url(const std::string& url1, const std::string& url2)
@@ -520,7 +520,7 @@ namespace mamba
         m_fragment = handle.get_part(CURLUPART_FRAGMENT).value_or("");
     }
 
-    auto URL::url(bool strip_scheme) -> std::string
+    auto URL::str(bool strip_scheme) const -> std::string
     {
         return concat(
             strip_scheme ? "" : m_scheme.c_str(),

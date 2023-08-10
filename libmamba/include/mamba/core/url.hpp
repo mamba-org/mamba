@@ -92,7 +92,7 @@ namespace mamba
         [[nodiscard]] auto user() const -> const std::string&;
         [[nodiscard]] auto password() const -> const std::string&;
 
-        [[nodiscard]] auto url(bool strip_scheme = false) -> std::string;
+        [[nodiscard]] auto str(bool strip_scheme = false) const -> std::string;
         [[nodiscard]] auto auth() const -> std::string;
 
         URL& set_scheme(std::string_view scheme);

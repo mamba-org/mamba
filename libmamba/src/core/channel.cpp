@@ -127,7 +127,7 @@ namespace mamba
         )
         {
             std::string spath = std::string(rstrip(path, "/"));
-            std::string url = URL().set_scheme(scheme).set_host(host).set_port(port).set_path(spath).url(
+            std::string url = URL().set_scheme(scheme).set_host(host).set_port(port).set_path(spath).str(
                 true
             );
 
@@ -136,13 +136,7 @@ namespace mamba
             {
                 URL handler;
                 handler.set_host(host).set_port(port);
-                return channel_configuration(
-                    std::string(util::rstrip(handler.url(), "/")),
-                    "",
-                    scheme,
-                    "",
-                    ""
-                );
+                return channel_configuration(std::string(rstrip(handler.str(), "/")), "", scheme, "", "");
             }
 
             // Case 2: migrated_custom_channels not implemented yet
@@ -191,7 +185,7 @@ namespace mamba
 
             // Case 7: fallback, channel_location = host:port and channel_name = path
             spath = lstrip(spath, "/");
-            std::string location = URL().set_host(host).set_port(port).url();
+            std::string location = URL().set_host(host).set_port(port).str();
             return channel_configuration(std::string(strip(location, "/")), spath, scheme, "", "");
         }
 
@@ -445,7 +439,7 @@ namespace mamba
             {
                 std::string full_url = concat_scheme_url(scheme, location);
                 URL parser(full_url);
-                location = rstrip(URL().set_host(parser.host()).set_port(parser.port()).url(), "/");
+                location = rstrip(URL().set_host(parser.host()).set_port(parser.port()).str(), "/");
                 name = lstrip(parser.path(), "/");
             }
         }

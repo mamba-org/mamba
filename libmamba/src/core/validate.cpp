@@ -1445,7 +1445,7 @@ namespace mamba::validation
 
             auto dl_target = std::make_unique<mamba::DownloadTarget>(
                 "key_mgr.json",
-                url.url(),
+                url.str(),
                 tmp_metadata_path.string()
             );
 
@@ -1608,7 +1608,7 @@ namespace mamba::validation
 
             auto dl_target = std::make_unique<mamba::DownloadTarget>(
                 "pkg_mgr.json",
-                url.url(),
+                url.str(),
                 tmp_metadata_path.string()
             );
 

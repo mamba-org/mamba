@@ -113,7 +113,7 @@ TEST_SUITE("url")
             URL url{};
             CHECK_EQ(url.scheme(), "");
             CHECK_EQ(url.host(), "");
-            CHECK_EQ(url.path(), "");
+            CHECK_EQ(url.path(), "/");
             CHECK_EQ(url.user(), "");
             CHECK_EQ(url.password(), "");
             CHECK_EQ(url.port(), "");
@@ -255,6 +255,62 @@ TEST_SUITE("url")
             CHECK_EQ(url.query(), "");
             CHECK_EQ(url.fragment(), "");
 #endif
+        }
+    }
+
+    TEST_CASE("URL::str")
+    {
+        SUBCASE("scheme option")
+        {
+            URL url = {};
+            url.set_host("mamba.org");
+
+            SUBCASE("without scheme")
+            {
+                CHECK_EQ(url.str(URL::SchemeOpt::leave_as_is), "mamba.org/");
+                CHECK_EQ(url.str(URL::SchemeOpt::add_if_abscent), "https://mamba.org/");
+                CHECK_EQ(url.str(URL::SchemeOpt::remove_if_present), "mamba.org/");
+            }
+
+            SUBCASE("with scheme")
+            {
+                url.set_scheme("ftp");
+                CHECK_EQ(url.str(URL::SchemeOpt::leave_as_is), "ftp://mamba.org/");
+                CHECK_EQ(url.str(URL::SchemeOpt::add_if_abscent), "ftp://mamba.org/");
+                CHECK_EQ(url.str(URL::SchemeOpt::remove_if_present), "mamba.org/");
+            }
+        }
+
+        SUBCASE("https://user:password@mamba.org:8080/folder/file.html?param=value#fragment")
+        {
+            URL url{};
+            url.set_scheme("https")
+                .set_host("mamba.org")
+                .set_user("user")
+                .set_password("password")
+                .set_port("8080")
+                .set_path("/folder/file.html")
+                .set_query("param=value")
+                .set_fragment("fragment");
+
+            CHECK_EQ(
+                url.str(),
+                "https://user:password@mamba.org:8080/folder/file.html?param=value#fragment"
+            );
+        }
+
+        SUBCASE("user@mamba.org")
+        {
+            URL url{};
+            url.set_host("mamba.org").set_user("user");
+            CHECK_EQ(url.str(), "user@mamba.org/");
+        }
+
+        SUBCASE("https://mamba.org")
+        {
+            URL url{};
+            url.set_scheme("https").set_host("mamba.org");
+            CHECK_EQ(url.str(), "https://mamba.org/");
         }
     }
 

@@ -105,7 +105,7 @@ namespace mamba
         [[nodiscard]] auto user() const -> const std::string&;
         [[nodiscard]] auto password() const -> const std::string&;
 
-        [[nodiscard]] auto str(bool strip_scheme = false) const -> std::string;
+        [[nodiscard]] auto str(SchemeOpt opt = SchemeOpt::leave_as_is) const -> std::string;
         [[nodiscard]] auto auth() const -> std::string;
 
         URL& set_scheme(std::string_view scheme);
@@ -123,7 +123,7 @@ namespace mamba
         std::string m_user = {};
         std::string m_password = {};
         std::string m_host = {};
-        std::string m_path = {};
+        std::string m_path = "/";
         std::string m_port = {};
         std::string m_query = {};
         std::string m_fragment = {};

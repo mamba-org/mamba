@@ -127,9 +127,12 @@ namespace mamba
         )
         {
             std::string spath = std::string(rstrip(path, "/"));
-            std::string url = URL().set_scheme(scheme).set_host(host).set_port(port).set_path(spath).str(
-                true
-            );
+            std::string url = URL()  //
+                                  .set_scheme(scheme)
+                                  .set_host(host)
+                                  .set_port(port)
+                                  .set_path(spath)
+                                  .str(URL::SchemeOpt::remove_if_present);
 
             // Case 1: No path given, channel name is ""
             if (spath == "")

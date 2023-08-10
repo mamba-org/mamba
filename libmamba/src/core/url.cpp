@@ -556,11 +556,28 @@ namespace mamba
         return out;
     }
 
-    auto URL::str(bool strip_scheme) const -> std::string
+    auto URL::str(SchemeOpt opt) const -> std::string
     {
+        std::string_view const computed_scheme = [&]() -> std::string_view
+        {
+            if (opt == SchemeOpt::remove_if_present)
+            {
+                return "";
+            }
+            if (!m_scheme.empty())
+            {
+                return m_scheme;
+            }
+            else if (opt == SchemeOpt::add_if_abscent)
+            {
+                return URL::default_scheme;
+            }
+            return "";
+        }();
+
         return concat(
-            strip_scheme ? "" : m_scheme.c_str(),
-            (m_scheme.empty() || strip_scheme) ? "" : "://",
+            computed_scheme,
+            computed_scheme.empty() ? "" : "://",
             m_user,
             m_password.empty() ? "" : ":",
             m_password,

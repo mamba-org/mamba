@@ -6,8 +6,11 @@
 
 #include <optional>
 #include <regex>
+#include <stdexcept>
+#include <string>
 #include <string_view>
 
+#include <fmt/format.h>
 #include <openssl/evp.h>
 
 #include "mamba/core/context.hpp"
@@ -50,6 +53,37 @@ namespace mamba
             CURLEasyHandle& operator=(CURLEasyHandle&&) = delete;
 
             [[nodiscard]] auto raw() -> pointer;
+
+        private:
+
+            pointer m_handle = nullptr;
+        };
+
+        /**
+         * A RAII ``CURLU*`` created from ``curl_url``.
+         *
+         * Never null, throw exception at construction if creating the handle fails.
+         */
+        class CURLUrl
+        {
+        public:
+
+            using value_type = ::CURLU;
+            using pointer = value_type*;
+            using const_pointer = const value_type*;
+            using flag_type = unsigned int;
+
+            CURLUrl();
+            CURLUrl(const std::string& url, flag_type flags = 0);
+            ~CURLUrl();
+
+            CURLUrl(const CURLEasyHandle&) = delete;
+            CURLUrl& operator=(const CURLEasyHandle&) = delete;
+            CURLUrl(CURLEasyHandle&&) = delete;
+            CURLUrl& operator=(CURLEasyHandle&&) = delete;
+
+            [[nodiscard]] auto get_part(CURLUPart part, flag_type flags = 0) const
+                -> std::optional<std::string>;
 
         private:
 
@@ -109,6 +143,46 @@ namespace mamba
         auto CURLEasyHandle::raw() -> pointer
         {
             return m_handle;
+        }
+
+        CURLUrl::CURLUrl()
+        {
+            m_handle = ::curl_url();
+            if (m_handle == nullptr)
+            {
+                throw std::runtime_error("Could not create CURLU handle");
+            }
+        }
+
+        CURLUrl::CURLUrl(const std::string& url, flag_type flags)
+            : CURLUrl()
+        {
+            const CURLUcode uc = ::curl_url_set(m_handle, CURLUPART_URL, url.c_str(), flags);
+            if (uc != CURLUE_OK)
+            {
+                throw std::invalid_argument(
+                    fmt::format(R"(Failed to parse URL "{}": {})", url, ::curl_url_strerror(uc))
+                );
+            }
+        }
+
+        CURLUrl::~CURLUrl()
+        {
+            ::curl_url_cleanup(m_handle);
+        }
+
+        auto CURLUrl::get_part(CURLUPart part, flag_type flags) const -> std::optional<std::string>
+        {
+            CURLStr scheme{};
+            const auto rc = ::curl_url_get(m_handle, part, scheme.raw_input(), flags);
+            if (!rc)
+            {
+                if (auto str = scheme.str())
+                {
+                    return std::string(*str);
+                }
+            }
+            return std::nullopt;
         }
 
         CURLStr::CURLStr(pointer data)

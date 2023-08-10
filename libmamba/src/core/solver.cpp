@@ -452,7 +452,7 @@ namespace mamba
         std::stringstream problems;
         solver().for_each_problem_id(
             [&](solv::ProblemId pb)
-            { problems << "  - " << solver().problem_to_string(m_pool.pool(), pb); }
+            { problems << "  - " << solver().problem_to_string(m_pool.pool(), pb) << "\n"; }
         );
         return "Encountered problems while solving:\n" + problems.str();
     }

@@ -106,48 +106,101 @@ TEST_SUITE("url")
         CHECK_EQ(cleaned_url, "https://mamba.com");
     }
 
-    TEST_CASE("parse")
+    TEST_CASE("URL builder")
+    {
+        SUBCASE("empty")
+        {
+            URL url{};
+            CHECK_EQ(url.scheme(), "");
+            CHECK_EQ(url.host(), "");
+            CHECK_EQ(url.path(), "");
+            CHECK_EQ(url.user(), "");
+            CHECK_EQ(url.password(), "");
+            CHECK_EQ(url.port(), "");
+            CHECK_EQ(url.query(), "");
+        }
+
+        SUBCASE("complete")
+        {
+            URL url{};
+            url.set_scheme("https")
+                .set_host("mamba.org")
+                .set_user("user")
+                .set_password("password")
+                .set_port("8080")
+                .set_path("/folder/file.html")
+                .set_query("param=value")
+                .set_fragment("fragment");
+            CHECK_EQ(url.scheme(), "https");
+            CHECK_EQ(url.host(), "mamba.org");
+            CHECK_EQ(url.user(), "user");
+            CHECK_EQ(url.password(), "password");
+            CHECK_EQ(url.port(), "8080");
+            CHECK_EQ(url.path(), "/folder/file.html");
+            CHECK_EQ(url.query(), "param=value");
+            CHECK_EQ(url.fragment(), "fragment");
+        }
+
+        SUBCASE("path")
+        {
+            URL url{};
+            url.set_path("path/");
+            CHECK_EQ(url.path(), "/path/");
+        }
+    }
+
+    TEST_CASE("URL::parse")
     {
         SUBCASE("http://mamba.org")
         {
             URL url("http://mamba.org");
             CHECK_EQ(url.scheme(), "http");
             CHECK_EQ(url.host(), "mamba.org");
+            CHECK_EQ(url.path(), "/");
             CHECK_EQ(url.user(), "");
             CHECK_EQ(url.password(), "");
             CHECK_EQ(url.port(), "");
-            CHECK_EQ(url.path(), "/");
             CHECK_EQ(url.query(), "");
+            CHECK_EQ(url.fragment(), "");
         }
 
         SUBCASE("s3://userx123:üúßsajd@mamba.org")
         {
             URL url("s3://userx123:üúßsajd@mamba.org");
             CHECK_EQ(url.scheme(), "s3");
-            CHECK_EQ(url.path(), "/");
             CHECK_EQ(url.host(), "mamba.org");
+            CHECK_EQ(url.path(), "/");
             CHECK_EQ(url.user(), "userx123");
             CHECK_EQ(url.password(), "üúßsajd");
+            CHECK_EQ(url.port(), "");
+            CHECK_EQ(url.query(), "");
+            CHECK_EQ(url.fragment(), "");
         }
 
         SUBCASE("http://user%40email.com:test@localhost:8000")
         {
             URL url("http://user%40email.com:test@localhost:8000");
             CHECK_EQ(url.scheme(), "http");
-            CHECK_EQ(url.path(), "/");
             CHECK_EQ(url.host(), "localhost");
-            CHECK_EQ(url.port(), "8000");
+            CHECK_EQ(url.path(), "/");
             CHECK_EQ(url.user(), "user%40email.com");
             CHECK_EQ(url.password(), "test");
+            CHECK_EQ(url.port(), "8000");
+            CHECK_EQ(url.query(), "");
+            CHECK_EQ(url.fragment(), "");
         }
 
         SUBCASE("https://mamba🆒🔬.org/this/is/a/path/?query=123&xyz=3333")
         {
             URL url("https://mamba🆒🔬.org/this/is/a/path/?query=123&xyz=3333");
             CHECK_EQ(url.scheme(), "https");
-            CHECK_EQ(url.path(), "/this/is/a/path/");
             CHECK_EQ(url.host(), "mamba🆒🔬.org");
+            CHECK_EQ(url.path(), "/this/is/a/path/");
+            CHECK_EQ(url.user(), "");
+            CHECK_EQ(url.password(), "");
+            CHECK_EQ(url.port(), "");
             CHECK_EQ(url.query(), "query=123&xyz=3333");
+            CHECK_EQ(url.fragment(), "");
         }
 
         SUBCASE("file://C:/Users/wolfv/test/document.json")
@@ -155,7 +208,13 @@ TEST_SUITE("url")
 #ifdef _WIN32
             URL url("file://C:/Users/wolfv/test/document.json");
             CHECK_EQ(url.scheme(), "file");
+            CHECK_EQ(url.host(), "");
             CHECK_EQ(url.path(), "C:/Users/wolfv/test/document.json");
+            CHECK_EQ(url.user(), "");
+            CHECK_EQ(url.password(), "");
+            CHECK_EQ(url.port(), "");
+            CHECK_EQ(url.query(), "");
+            CHECK_EQ(url.fragment(), "");
 #endif
         }
 
@@ -163,8 +222,15 @@ TEST_SUITE("url")
         {
 #ifndef _WIN32
             URL url("file:///home/wolfv/test/document.json");
+
             CHECK_EQ(url.scheme(), "file");
+            CHECK_EQ(url.host(), "");
             CHECK_EQ(url.path(), "/home/wolfv/test/document.json");
+            CHECK_EQ(url.user(), "");
+            CHECK_EQ(url.password(), "");
+            CHECK_EQ(url.port(), "");
+            CHECK_EQ(url.query(), "");
+            CHECK_EQ(url.fragment(), "");
 #endif
         }
     }

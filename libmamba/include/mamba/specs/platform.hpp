@@ -31,6 +31,7 @@ namespace mamba::specs
         osx_arm64,
         win_32,
         win_64,
+        win_arm64,
     };
 
     /**

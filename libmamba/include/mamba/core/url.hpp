@@ -7,37 +7,11 @@
 #ifndef MAMBA_CORE_URL_HPP
 #define MAMBA_CORE_URL_HPP
 
-extern "C"
-{
-#include <curl/urlapi.h>
-}
-
-#include <limits>
 #include <optional>
-#include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
 
-// typedef enum {
-//   CURLUE_OK,
-//   CURLUE_BAD_HANDLE,          /* 1 */
-//   CURLUE_BAD_PARTPOINTER,     /* 2 */
-//   CURLUE_MALFORMED_INPUT,     /* 3 */
-//   CURLUE_BAD_PORT_NUMBER,     /* 4 */
-//   CURLUE_UNSUPPORTED_SCHEME,  /* 5 */
-//   CURLUE_URLDECODE,           /* 6 */
-//   CURLUE_OUT_OF_MEMORY,       /* 7 */
-//   CURLUE_USER_NOT_ALLOWED,    /* 8 */
-//   CURLUE_UNKNOWN_PART,        /* 9 */
-//   CURLUE_NO_SCHEME,           /* 10 */
-//   CURLUE_NO_USER,             /* 11 */
-//   CURLUE_NO_PASSWORD,         /* 12 */
-//   CURLUE_NO_OPTIONS,          /* 13 */
-//   CURLUE_NO_HOST,             /* 14 */
-//   CURLUE_NO_PORT,             /* 15 */
-//   CURLUE_NO_QUERY,            /* 16 */
-//   CURLUE_NO_FRAGMENT          /* 17 */
-// } CURLUcode;
 
 namespace mamba
 {
@@ -106,52 +80,40 @@ namespace mamba
     {
     public:
 
-        URLHandler(const std::string& url = "");
-        ~URLHandler();
+        URLHandler() = default;
+        URLHandler(std::string_view url);
 
-        URLHandler(const URLHandler&);
-        URLHandler& operator=(const URLHandler&);
+        [[nodiscard]] auto scheme() const -> const std::string&;
+        [[nodiscard]] auto host() const -> const std::string&;
+        [[nodiscard]] auto path() const -> const std::string&;
+        [[nodiscard]] auto port() const -> const std::string&;
+        [[nodiscard]] auto query() const -> const std::string&;
+        [[nodiscard]] auto fragment() const -> const std::string&;
+        [[nodiscard]] auto user() const -> const std::string&;
+        [[nodiscard]] auto password() const -> const std::string&;
 
-        URLHandler(URLHandler&&);
-        URLHandler& operator=(URLHandler&&);
+        [[nodiscard]] auto url(bool strip_scheme = false) -> std::string;
+        [[nodiscard]] auto auth() const -> std::string;
 
-        std::string url(bool strip_scheme = false);
-
-        std::string scheme() const;
-        std::string host() const;
-        std::string path() const;
-        std::string port() const;
-
-        std::string query() const;
-        std::string fragment() const;
-        std::string options() const;
-
-        std::string auth() const;
-        std::string user() const;
-        std::string password() const;
-        std::string zoneid() const;
-
-        URLHandler& set_scheme(const std::string& scheme);
-        URLHandler& set_host(const std::string& host);
-        URLHandler& set_path(const std::string& path);
-        URLHandler& set_port(const std::string& port);
-
-        URLHandler& set_query(const std::string& query);
-        URLHandler& set_fragment(const std::string& fragment);
-        URLHandler& set_options(const std::string& options);
-
-        URLHandler& set_user(const std::string& user);
-        URLHandler& set_password(const std::string& password);
-        URLHandler& set_zoneid(const std::string& zoneid);
+        URLHandler& set_scheme(std::string_view scheme);
+        URLHandler& set_host(std::string_view host);
+        URLHandler& set_path(std::string_view path);
+        URLHandler& set_port(std::string_view port);
+        URLHandler& set_query(std::string_view query);
+        URLHandler& set_fragment(std::string_view fragment);
+        URLHandler& set_user(std::string_view user);
+        URLHandler& set_password(std::string_view password);
 
     private:
 
-        std::string get_part(CURLUPart part) const;
-        void set_part(CURLUPart part, const std::string& s);
-
-        std::string m_url;
-        CURLU* m_handle;
-        bool m_has_scheme;
+        std::string m_scheme = {};
+        std::string m_user = {};
+        std::string m_password = {};
+        std::string m_host = {};
+        std::string m_path = {};
+        std::string m_port = {};
+        std::string m_query = {};
+        std::string m_fragment = {};
     };
 
     namespace detail

@@ -80,8 +80,9 @@ namespace mamba
     {
     public:
 
+        [[nodiscard]] static auto parse(std::string_view url) -> URL;
+
         URL() = default;
-        URL(std::string_view url);
 
         [[nodiscard]] auto scheme() const -> const std::string&;
         [[nodiscard]] auto host() const -> const std::string&;

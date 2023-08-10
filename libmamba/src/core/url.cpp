@@ -353,7 +353,7 @@ namespace mamba
     {
         std::string cleaned_url;
         split_anaconda_token(url, cleaned_url, token);
-        URL url_parsed(cleaned_url);
+        URL url_parsed = URL::parse(cleaned_url);
         scheme = url_parsed.scheme();
         auth = url_parsed.auth();
         url_parsed.set_scheme("");
@@ -507,17 +507,19 @@ namespace mamba
      * URLHandler implementation *
      *****************************/
 
-    URL::URL(std::string_view url)
+    auto URL::parse(std::string_view url) -> URL
     {
         const CURLUrl handle = { file_uri_unc2_to_unc4(url), CURLU_NON_SUPPORT_SCHEME };
-        m_scheme = handle.get_part(CURLUPART_SCHEME).value_or("");
-        m_user = handle.get_part(CURLUPART_USER).value_or("");
-        m_password = handle.get_part(CURLUPART_PASSWORD).value_or("");
-        m_host = handle.get_part(CURLUPART_HOST).value_or("");
-        m_path = handle.get_part(CURLUPART_PATH).value_or("");
-        m_port = handle.get_part(CURLUPART_PORT).value_or("");
-        m_query = handle.get_part(CURLUPART_QUERY).value_or("");
-        m_fragment = handle.get_part(CURLUPART_FRAGMENT).value_or("");
+        auto out = URL();
+        out.set_scheme(handle.get_part(CURLUPART_SCHEME).value_or(""))
+            .set_user(handle.get_part(CURLUPART_USER).value_or(""))
+            .set_password(handle.get_part(CURLUPART_PASSWORD).value_or(""))
+            .set_host(handle.get_part(CURLUPART_HOST).value_or(""))
+            .set_path(handle.get_part(CURLUPART_PATH).value_or(""))
+            .set_port(handle.get_part(CURLUPART_PORT).value_or(""))
+            .set_query(handle.get_part(CURLUPART_QUERY).value_or(""))
+            .set_fragment(handle.get_part(CURLUPART_FRAGMENT).value_or(""));
+        return out;
     }
 
     auto URL::str(bool strip_scheme) const -> std::string

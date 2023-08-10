@@ -85,12 +85,12 @@ namespace mamba
                 package_name = "";
             }
 
-            URL handler(cleaned_url);
-            scheme = handler.scheme();
-            host = handler.host();
-            port = handler.port();
-            path = handler.path();
-            auth = handler.auth();
+            const auto url_parsed = URL::parse(cleaned_url);
+            scheme = url_parsed.scheme();
+            host = url_parsed.host();
+            port = url_parsed.port();
+            path = url_parsed.path();
+            auth = url_parsed.auth();
         }
 
         // Channel configuration
@@ -438,7 +438,7 @@ namespace mamba
             else
             {
                 std::string full_url = concat_scheme_url(scheme, location);
-                URL parser(full_url);
+                const auto parser = URL::parse(full_url);
                 location = rstrip(URL().set_host(parser.host()).set_port(parser.port()).str(), "/");
                 name = lstrip(parser.path(), "/");
             }

@@ -1441,7 +1441,7 @@ namespace mamba::validation
             auto tmp_dir = std::make_unique<mamba::TemporaryDirectory>();
             auto tmp_metadata_path = tmp_dir->path() / "key_mgr.json";
 
-            mamba::URL url(base_url + "/key_mgr.json");
+            const auto url = mamba::URL::parse(base_url + "/key_mgr.json");
 
             auto dl_target = std::make_unique<mamba::DownloadTarget>(
                 "key_mgr.json",
@@ -1604,7 +1604,7 @@ namespace mamba::validation
             auto tmp_dir = std::make_unique<mamba::TemporaryDirectory>();
             auto tmp_metadata_path = tmp_dir->path() / "pkg_mgr.json";
 
-            mamba::URL url(base_url + "/pkg_mgr.json");
+            const auto url = mamba::URL::parse(base_url + "/pkg_mgr.json");
 
             auto dl_target = std::make_unique<mamba::DownloadTarget>(
                 "pkg_mgr.json",

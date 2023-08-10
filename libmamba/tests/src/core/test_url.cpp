@@ -153,7 +153,7 @@ TEST_SUITE("url")
     {
         SUBCASE("http://mamba.org")
         {
-            URL url("http://mamba.org");
+            const URL url = URL::parse("http://mamba.org");
             CHECK_EQ(url.scheme(), "http");
             CHECK_EQ(url.host(), "mamba.org");
             CHECK_EQ(url.path(), "/");
@@ -166,7 +166,7 @@ TEST_SUITE("url")
 
         SUBCASE("s3://userx123:üúßsajd@mamba.org")
         {
-            URL url("s3://userx123:üúßsajd@mamba.org");
+            const URL url = URL::parse("s3://userx123:üúßsajd@mamba.org");
             CHECK_EQ(url.scheme(), "s3");
             CHECK_EQ(url.host(), "mamba.org");
             CHECK_EQ(url.path(), "/");
@@ -179,7 +179,7 @@ TEST_SUITE("url")
 
         SUBCASE("http://user%40email.com:test@localhost:8000")
         {
-            URL url("http://user%40email.com:test@localhost:8000");
+            const URL url = URL::parse("http://user%40email.com:test@localhost:8000");
             CHECK_EQ(url.scheme(), "http");
             CHECK_EQ(url.host(), "localhost");
             CHECK_EQ(url.path(), "/");
@@ -192,7 +192,7 @@ TEST_SUITE("url")
 
         SUBCASE("https://mamba🆒🔬.org/this/is/a/path/?query=123&xyz=3333")
         {
-            URL url("https://mamba🆒🔬.org/this/is/a/path/?query=123&xyz=3333");
+            const URL url = URL::parse("https://mamba🆒🔬.org/this/is/a/path/?query=123&xyz=3333");
             CHECK_EQ(url.scheme(), "https");
             CHECK_EQ(url.host(), "mamba🆒🔬.org");
             CHECK_EQ(url.path(), "/this/is/a/path/");
@@ -206,7 +206,7 @@ TEST_SUITE("url")
         SUBCASE("file://C:/Users/wolfv/test/document.json")
         {
 #ifdef _WIN32
-            URL url("file://C:/Users/wolfv/test/document.json");
+            const URL url = URL::parse("file://C:/Users/wolfv/test/document.json");
             CHECK_EQ(url.scheme(), "file");
             CHECK_EQ(url.host(), "");
             CHECK_EQ(url.path(), "C:/Users/wolfv/test/document.json");
@@ -221,8 +221,7 @@ TEST_SUITE("url")
         SUBCASE("file:///home/wolfv/test/document.json")
         {
 #ifndef _WIN32
-            URL url("file:///home/wolfv/test/document.json");
-
+            const URL url = URL::parse("file:///home/wolfv/test/document.json");
             CHECK_EQ(url.scheme(), "file");
             CHECK_EQ(url.host(), "");
             CHECK_EQ(url.path(), "/home/wolfv/test/document.json");

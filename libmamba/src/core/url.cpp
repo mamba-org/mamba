@@ -601,7 +601,16 @@ namespace mamba
 
     URL& URL::set_path(std::string_view path)
     {
-        m_path = path;
+        if (!starts_with(path, '/'))
+        {
+            m_path.reserve(path.size() + 1);
+            m_path = '/';
+            m_path += path;
+        }
+        else
+        {
+            m_path = path;
+        }
         return *this;
     }
 

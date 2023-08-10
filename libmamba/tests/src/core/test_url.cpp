@@ -266,6 +266,17 @@ TEST_SUITE("url")
         CHECK_EQ(file_uri_unc2_to_unc4("file://server"), "file:////server");
     }
 
+    TEST_CASE("get_scheme")
+    {
+        CHECK_EQ(get_scheme("http://mamba.org"), "http");
+        CHECK_EQ(get_scheme("file:///folder/file.txt"), "file");
+        CHECK_EQ(get_scheme("s3://bucket/file.txt"), "s3");
+        CHECK_EQ(get_scheme("mamba.org"), "");
+        CHECK_EQ(get_scheme("://"), "");
+        CHECK_EQ(get_scheme("f#gre://"), "");
+        CHECK_EQ(get_scheme(""), "");
+    }
+
     TEST_CASE("has_scheme")
     {
         CHECK(has_scheme("http://mamba.org"));

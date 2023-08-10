@@ -32,6 +32,8 @@ namespace mamba
         std::string& platform
     );
 
+    [[nodiscard]] auto get_scheme(std::string_view url) -> std::string_view;
+
     [[nodiscard]] auto has_scheme(std::string_view url) -> bool;
 
     void split_anaconda_token(const std::string& url, std::string& cleaned_url, std::string& token);

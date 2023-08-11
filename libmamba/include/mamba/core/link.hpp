@@ -23,8 +23,6 @@
 
 namespace mamba
 {
-    class Context;
-
     std::string replace_long_shebang(const std::string& shebang);
     std::string python_shebang(const std::string& python_exe);
 

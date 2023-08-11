@@ -573,10 +573,6 @@ namespace mamba
 
     URL& URL::set_user(std::string_view user)
     {
-        if (user.empty())
-        {
-            m_password = "";
-        }
         m_user = user;
         return *this;
     }
@@ -588,10 +584,6 @@ namespace mamba
 
     URL& URL::set_password(std::string_view password)
     {
-        if (!password.empty() && m_user.empty())
-        {
-            throw std::invalid_argument("Cannot set password without user");
-        }
         m_password = password;
         return *this;
     }

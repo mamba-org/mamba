@@ -123,13 +123,13 @@ namespace mamba
         /** Return the user, or empty if none. */
         [[nodiscard]] auto user() const -> const std::string&;
 
-        /** Set the user, or clear the user and password. */
+        /** Set or clear the user. */
         URL& set_user(std::string_view user);
 
         /** Return the password, or empty if none. */
         [[nodiscard]] auto password() const -> const std::string&;
 
-        /** Set the password, user must be set first. */
+        /** Set or clear the password. */
         URL& set_password(std::string_view password);
 
         /** Return the basic authetification string. */

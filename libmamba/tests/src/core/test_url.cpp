@@ -168,7 +168,6 @@ TEST_SUITE("url")
             URL url{};
             CHECK_THROWS_AS(url.set_scheme(""), std::invalid_argument);
             CHECK_THROWS_AS(url.set_host(""), std::invalid_argument);
-            CHECK_THROWS_AS(url.set_password("password"), std::invalid_argument);  // No user
         }
     }
 
@@ -225,6 +224,20 @@ TEST_SUITE("url")
             CHECK_EQ(url.pretty_path(), "/");
             CHECK_EQ(url.user(), "user%40email.com");
             CHECK_EQ(url.password(), "test");
+            CHECK_EQ(url.port(), "8000");
+            CHECK_EQ(url.query(), "");
+            CHECK_EQ(url.fragment(), "");
+        }
+
+        SUBCASE("http://:pass@localhost:8000")
+        {
+            const URL url = URL::parse("http://:pass@localhost:8000");
+            CHECK_EQ(url.scheme(), "http");
+            CHECK_EQ(url.host(), "localhost");
+            CHECK_EQ(url.path(), "/");
+            CHECK_EQ(url.pretty_path(), "/");
+            CHECK_EQ(url.user(), "");
+            CHECK_EQ(url.password(), "pass");
             CHECK_EQ(url.port(), "8000");
             CHECK_EQ(url.query(), "");
             CHECK_EQ(url.fragment(), "");

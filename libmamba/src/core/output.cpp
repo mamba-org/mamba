@@ -24,9 +24,9 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/tasksync.hpp"
 #include "mamba/core/thread_utils.hpp"
-#include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/url_manip.hpp"
 
 #include "progress_bar_impl.hpp"
 
@@ -36,7 +36,7 @@ namespace mamba
     {
         std::string remaining_url, scheme, auth, token;
         // TODO maybe add some caching...
-        split_scheme_auth_token(full_url, remaining_url, scheme, auth, token);
+        util::split_scheme_auth_token(full_url, remaining_url, scheme, auth, token);
 
         if (util::starts_with(remaining_url, "conda.anaconda.org/"))
         {

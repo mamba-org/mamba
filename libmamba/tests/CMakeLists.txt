@@ -29,6 +29,8 @@ set(LIBMAMBA_TEST_SRCS
     src/util/test_flat_bool_expr_tree.cpp
     src/util/test_graph.cpp
     src/util/test_iterator.cpp
+    src/util/test_url_manip.cpp
+    src/util/test_url.cpp
     # Implementation of version and matching specs
     src/specs/test_platform.cpp
     src/specs/test_version.cpp
@@ -50,7 +52,6 @@ set(LIBMAMBA_TEST_SRCS
     src/core/test_shell_init.cpp
     src/core/test_thread_utils.cpp
     src/core/test_transfer.cpp
-    src/core/test_url.cpp
     src/core/test_validate.cpp
     src/core/test_virtual_packages.cpp
     src/core/test_util.cpp

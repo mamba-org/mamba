@@ -49,12 +49,12 @@ extern "C"
 #include "mamba/core/output.hpp"
 #include "mamba/core/shell_init.hpp"
 #include "mamba/core/thread_utils.hpp"
-#include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_random.hpp"
 #include "mamba/util/compare.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/url.hpp"
 
 namespace mamba
 {
@@ -1554,7 +1554,7 @@ namespace mamba
             return std::nullopt;
         }
 
-        const auto url_parsed = URL::parse(url);
+        const auto url_parsed = util::URL::parse(url);
         auto scheme = url_parsed.scheme();
         auto host = url_parsed.host();
         std::vector<std::string> options;

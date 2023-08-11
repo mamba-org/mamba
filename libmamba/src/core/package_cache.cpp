@@ -4,14 +4,14 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <nlohmann/json.hpp>
+
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/package_handling.hpp"
-#include "mamba/core/url.hpp"
 #include "mamba/core/validate.hpp"
-
-#include "nlohmann/json.hpp"
+#include "mamba/util/url_manip.hpp"
 
 namespace mamba
 {
@@ -280,7 +280,10 @@ namespace mamba
                     {
                         if (!repodata_record["url"].get<std::string>().empty())
                         {
-                            if (!compare_cleaned_url(repodata_record["url"].get<std::string>(), s.url))
+                            if (!util::compare_cleaned_url(
+                                    repodata_record["url"].get<std::string>(),
+                                    s.url
+                                ))
                             {
                                 LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
                                             << "' has invalid url";

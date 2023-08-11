@@ -12,9 +12,9 @@
 #include "mamba/core/channel.hpp"
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/package_info.hpp"
-#include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/url_manip.hpp"
 
 
 using namespace mamba;  // NOLINT(build/namespaces)
@@ -126,7 +126,10 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
             {
                 channel_url = pkg_info.url.substr(0, pkg_info.url.size() - pkg_info.fn.size());
             }
-            std::string repodata_cache_name = util::concat(cache_name_from_url(channel_url), ".json");
+            std::string repodata_cache_name = util::concat(
+                util::cache_name_from_url(channel_url),
+                ".json"
+            );
             fs::u8path repodata_location = pkgs_dir / "cache" / repodata_cache_name;
 
             nlohmann::json repodata_record;

@@ -12,8 +12,9 @@
 #include "mamba/core/fetch.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
-#include "mamba/core/url.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/url.hpp"
+#include "mamba/util/url_manip.hpp"
 
 #include "compression.hpp"
 #include "curl.hpp"
@@ -61,7 +62,7 @@ namespace mamba
     DownloadTarget::DownloadTarget(const std::string& name, const std::string& url, const std::string& filename)
         : m_name(name)
         , m_filename(filename)
-        , m_url(file_uri_unc2_to_unc4(url))
+        , m_url(util::file_uri_unc2_to_unc4(url))
         , m_http_status(10000)
         , m_downloaded_size(0)
         , m_effective_url(nullptr)
@@ -240,7 +241,7 @@ namespace mamba
         m_curl_handle->set_opt(CURLOPT_VERBOSE, Context::instance().output_params.verbosity >= 2);
 
         // get url host
-        const auto url_parsed = URL::parse(url);
+        const auto url_parsed = util::URL::parse(url);
         auto host = url_parsed.host();
         const auto port = url_parsed.port();
         if (port.size())

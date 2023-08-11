@@ -10,9 +10,9 @@
 
 #include "mamba/core/environment.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/url.hpp"
 
 
 std::string
@@ -36,7 +36,7 @@ read_stdin()
 std::string
 get_token_base(const std::string& host)
 {
-    const auto url = mamba::URL::parse(host);
+    const auto url = mamba::util::URL::parse(host);
 
     std::string maybe_colon_and_port{};
     if (!url.port().empty())

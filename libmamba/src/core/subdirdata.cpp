@@ -10,8 +10,8 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/subdirdata.hpp"
-#include "mamba/core/url.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/url_manip.hpp"
 
 #include "progress_bar_impl.hpp"
 
@@ -334,7 +334,7 @@ namespace mamba
         , m_loaded(false)
         , m_download_complete(false)
         , m_repodata_url(util::concat(url, "/", repodata_fn))
-        , m_name(join_url(channel.canonical_name(), platform))
+        , m_name(util::join_url(channel.canonical_name(), platform))
         , m_is_noarch(platform == "noarch")
         , p_channel(&channel)
     {
@@ -892,7 +892,7 @@ namespace mamba
 
     std::string cache_fn_url(const std::string& url)
     {
-        return cache_name_from_url(url) + ".json";
+        return util::cache_name_from_url(url) + ".json";
     }
 
     std::string create_cache_dir(const fs::u8path& cache_path)

@@ -19,8 +19,8 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/query.hpp"
-#include "mamba/core/url.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/url_manip.hpp"
 #include "solv-cpp/queue.hpp"
 
 namespace mamba
@@ -173,7 +173,7 @@ namespace mamba
             fmt::print(out, fmtstring, "Subdir", pkg.subdir);
 
             std::string url_remaining, url_scheme, url_auth, url_token;
-            split_scheme_auth_token(pkg.url, url_remaining, url_scheme, url_auth, url_token);
+            util::split_scheme_auth_token(pkg.url, url_remaining, url_scheme, url_auth, url_token);
 
             fmt::print(out, " {:<15} {}://{}\n", "URL", url_scheme, url_remaining);
 

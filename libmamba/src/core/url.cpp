@@ -556,9 +556,90 @@ namespace mamba
         return m_scheme;
     }
 
+    URL& URL::set_scheme(std::string_view scheme)
+    {
+        if (scheme.empty())
+        {
+            throw std::invalid_argument("Cannot set empty scheme");
+        }
+        m_scheme = scheme;
+        return *this;
+    }
+
+    auto URL::user() const -> const std::string&
+    {
+        return m_user;
+    }
+
+    URL& URL::set_user(std::string_view user)
+    {
+        if (user.empty())
+        {
+            m_password = "";
+        }
+        m_user = user;
+        return *this;
+    }
+
+    auto URL::password() const -> const std::string&
+    {
+        return m_password;
+    }
+
+    URL& URL::set_password(std::string_view password)
+    {
+        if (!password.empty() && m_user.empty())
+        {
+            throw std::invalid_argument("Cannot set password without user");
+        }
+        m_password = password;
+        return *this;
+    }
+
+    auto URL::authentication() const -> std::string
+    {
+        const auto& u = user();
+        const auto& p = password();
+        return p.empty() ? u : concat(u, ':', p);
+    }
+
     auto URL::host() const -> const std::string&
     {
         return m_host;
+    }
+
+    URL& URL::set_host(std::string_view host)
+    {
+        if (host.empty())
+        {
+            throw std::invalid_argument("Cannot set empty host");
+        }
+        m_host = host;
+        return *this;
+    }
+
+    auto URL::port() const -> const std::string&
+    {
+        return m_port;
+    }
+
+    URL& URL::set_port(std::string_view port)
+    {
+        m_port = port;
+        return *this;
+    }
+
+    auto URL::authority() const -> std::string
+    {
+        return concat(
+            m_user,
+            m_password.empty() ? "" : ":",
+            m_password,
+            m_user.empty() ? "" : "@",
+            m_host,
+            m_port.empty() ? "" : ":",
+            m_port
+        );
     }
 
     auto URL::path() const -> const std::string&
@@ -581,9 +662,19 @@ namespace mamba
         return m_path;
     }
 
-    auto URL::port() const -> const std::string&
+    URL& URL::set_path(std::string_view path)
     {
-        return m_port;
+        if (!starts_with(path, '/'))
+        {
+            m_path.reserve(path.size() + 1);
+            m_path = '/';
+            m_path += path;
+        }
+        else
+        {
+            m_path = path;
+        }
+        return *this;
     }
 
     auto URL::query() const -> const std::string&
@@ -591,26 +682,21 @@ namespace mamba
         return m_query;
     }
 
+    URL& URL::set_query(std::string_view query)
+    {
+        m_query = query;
+        return *this;
+    }
+
     auto URL::fragment() const -> const std::string&
     {
         return m_fragment;
     }
 
-    auto URL::user() const -> const std::string&
+    URL& URL::set_fragment(std::string_view fragment)
     {
-        return m_user;
-    }
-
-    auto URL::password() const -> const std::string&
-    {
-        return m_password;
-    }
-
-    auto URL::authentication() const -> std::string
-    {
-        const auto& u = user();
-        const auto& p = password();
-        return p.empty() ? u : concat(u, ':', p);
+        m_fragment = fragment;
+        return *this;
     }
 
     auto URL::str(StripScheme strip) const -> std::string
@@ -643,91 +729,5 @@ namespace mamba
             m_fragment.empty() ? "" : "#",
             m_fragment
         );
-    }
-
-    auto URL::authority() const -> std::string
-    {
-        return concat(
-            m_user,
-            m_password.empty() ? "" : ":",
-            m_password,
-            m_user.empty() ? "" : "@",
-            m_host,
-            m_port.empty() ? "" : ":",
-            m_port
-        );
-    }
-
-    URL& URL::set_scheme(std::string_view scheme)
-    {
-        if (scheme.empty())
-        {
-            throw std::invalid_argument("Cannot set empty scheme");
-        }
-        m_scheme = scheme;
-        return *this;
-    }
-
-    URL& URL::set_host(std::string_view host)
-    {
-        if (host.empty())
-        {
-            throw std::invalid_argument("Cannot set empty host");
-        }
-        m_host = host;
-        return *this;
-    }
-
-    URL& URL::set_path(std::string_view path)
-    {
-        if (!starts_with(path, '/'))
-        {
-            m_path.reserve(path.size() + 1);
-            m_path = '/';
-            m_path += path;
-        }
-        else
-        {
-            m_path = path;
-        }
-        return *this;
-    }
-
-    URL& URL::set_port(std::string_view port)
-    {
-        m_port = port;
-        return *this;
-    }
-
-    URL& URL::set_query(std::string_view query)
-    {
-        m_query = query;
-        return *this;
-    }
-
-    URL& URL::set_fragment(std::string_view fragment)
-    {
-        m_fragment = fragment;
-        return *this;
-    }
-
-    URL& URL::set_user(std::string_view user)
-    {
-        if (user.empty())
-        {
-            m_password = "";
-        }
-        m_user = user;
-        return *this;
-    }
-
-    URL& URL::set_password(std::string_view password)
-    {
-        if (!password.empty() && m_user.empty())
-        {
-            throw std::invalid_argument("Cannot set password without user");
-        }
-        m_password = password;
-        return *this;
     }
 }  // namespace mamba

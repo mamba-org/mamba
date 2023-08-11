@@ -91,6 +91,11 @@ namespace mamba
     // Only returns a cache name without extension
     std::string cache_name_from_url(const std::string& url);
 
+    /**
+     * Class representing a URL.
+     *
+     * All URL have a non-empty scheme, host, and path.
+     */
     class URL
     {
     public:
@@ -106,30 +111,77 @@ namespace mamba
 
         [[nodiscard]] static auto parse(std::string_view url) -> URL;
 
+        /** Create a local URL. */
         URL() = default;
 
+        /** Return the scheme, always non-empty. */
         [[nodiscard]] auto scheme() const -> const std::string&;
-        [[nodiscard]] auto host() const -> const std::string&;
-        [[nodiscard]] auto path() const -> const std::string&;
-        [[nodiscard]] auto pretty_path() const -> std::string_view;
-        [[nodiscard]] auto port() const -> const std::string&;
-        [[nodiscard]] auto query() const -> const std::string&;
-        [[nodiscard]] auto fragment() const -> const std::string&;
+
+        /** Set a non-empty scheme. */
+        URL& set_scheme(std::string_view scheme);
+
+        /** Return the user, or empty if none. */
         [[nodiscard]] auto user() const -> const std::string&;
+
+        /** Set the user, or clear the user and password. */
+        URL& set_user(std::string_view user);
+
+        /** Return the password, or empty if none. */
         [[nodiscard]] auto password() const -> const std::string&;
 
-        [[nodiscard]] auto authority() const -> std::string;
-        [[nodiscard]] auto authentication() const -> std::string;
-        [[nodiscard]] auto str(StripScheme opt = StripScheme::no) const -> std::string;
-
-        URL& set_scheme(std::string_view scheme);
-        URL& set_host(std::string_view host);
-        URL& set_path(std::string_view path);
-        URL& set_port(std::string_view port);
-        URL& set_query(std::string_view query);
-        URL& set_fragment(std::string_view fragment);
-        URL& set_user(std::string_view user);
+        /** Set the password, user must be set first. */
         URL& set_password(std::string_view password);
+
+        /** Return the basic authetification string. */
+        [[nodiscard]] auto authentication() const -> std::string;
+
+        /** Return the host, always non-empty. */
+        [[nodiscard]] auto host() const -> const std::string&;
+
+        /** Set a non-empty host. */
+        URL& set_host(std::string_view host);
+
+        /** Return the port, or empty if none. */
+        [[nodiscard]] auto port() const -> const std::string&;
+
+        /** Set or clear the port. */
+        URL& set_port(std::string_view port);
+
+        /** Return the autority part of the URL. */
+        [[nodiscard]] auto authority() const -> std::string;
+
+        /** Return the path, always starts with a '/'. */
+        [[nodiscard]] auto path() const -> const std::string&;
+
+        /**
+         * Return the path.
+         *
+         * For a "file" scheme, with a Windows path containing a drive, the leading '/' is
+         * stripped.
+         */
+        [[nodiscard]] auto pretty_path() const -> std::string_view;
+
+        /** Set the path, a leading '/' is added if abscent. */
+        URL& set_path(std::string_view path);
+
+        /** Return the query, or empty if none. */
+        [[nodiscard]] auto query() const -> const std::string&;
+
+        /** Set or clear the query. */
+        URL& set_query(std::string_view query);
+
+        /** Return the fragment, or empty if none. */
+        [[nodiscard]] auto fragment() const -> const std::string&;
+
+        /** Set or clear the fragment. */
+        URL& set_fragment(std::string_view fragment);
+
+        /**
+         * Return the full url.
+         *
+         * @param strip If true, remove the scheme and "localhost" on file URI.
+         */
+        [[nodiscard]] auto str(StripScheme strip = StripScheme::no) const -> std::string;
 
     private:
 

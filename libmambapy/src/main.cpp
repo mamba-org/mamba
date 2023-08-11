@@ -30,6 +30,7 @@
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/validate.hpp"
+#include "mamba/core/execution.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/util/flat_set.hpp"
 #include "mamba/util/string.hpp"

@@ -320,7 +320,7 @@ namespace mamba
     auto url_get_scheme(std::string_view url) -> std::string_view
     {
         static constexpr auto is_scheme_char = [](char c) -> bool
-        { return is_alphanum(c) || (c == '.') || (c == '-') || (c == '_'); };
+        { return util::is_alphanum(c) || (c == '.') || (c == '-') || (c == '_'); };
 
         const auto sep = url.find("://");
         if ((0 < sep) && (sep < std::string_view::npos))
@@ -341,9 +341,9 @@ namespace mamba
 
     auto path_has_drive_letter(std::string_view path) -> bool
     {
-        static constexpr auto is_drive_char = [](char c) -> bool { return is_alphanum(c); };
+        static constexpr auto is_drive_char = [](char c) -> bool { return util::is_alphanum(c); };
 
-        auto [drive, rest] = lstrip_if_parts(path, is_drive_char);
+        auto [drive, rest] = util::lstrip_if_parts(path, is_drive_char);
         return !drive.empty() && (rest.size() >= 2) && (rest[0] == ':')
                && ((rest[1] == '/') || (rest[1] == '\\'));
     }
@@ -384,7 +384,7 @@ namespace mamba
         auth = url_parsed.authentication();
         url_parsed.set_user("");
         url_parsed.set_password("");
-        remaining_url = rstrip(url_parsed.str(URL::StripScheme::yes), '/');
+        remaining_url = util::rstrip(url_parsed.str(URL::StripScheme::yes), '/');
     }
 
     bool compare_cleaned_url(const std::string& url1, const std::string& url2)
@@ -429,13 +429,13 @@ namespace mamba
         static constexpr std::string_view file_scheme = "file:";
 
         // Not "file:" scheme
-        if (!starts_with(uri, file_scheme))
+        if (!util::starts_with(uri, file_scheme))
         {
             return std::string(uri);
         }
 
         // No hostname set in "file://hostname/path/to/data.xml"
-        auto [slashes, rest] = lstrip_parts(remove_prefix(uri, file_scheme), '/');
+        auto [slashes, rest] = util::lstrip_parts(util::remove_prefix(uri, file_scheme), '/');
         if (slashes.size() != 2)
         {
             return std::string(uri);
@@ -456,7 +456,7 @@ namespace mamba
 
         // '\' are used as path separator in "file://\\hostname\path\to\data.xml" (also not RFC
         // compliant)
-        if (starts_with(hostname, R"(\\)"))
+        if (util::starts_with(hostname, R"(\\)"))
         {
             return std::string(uri);
         }
@@ -468,7 +468,7 @@ namespace mamba
             return std::string(uri);
         }
 
-        return concat("file:////", rest);
+        return util::concat("file:////", rest);
     }
 
     std::string encode_url(const std::string& url)
@@ -600,7 +600,7 @@ namespace mamba
     {
         const auto& u = user();
         const auto& p = password();
-        return p.empty() ? u : concat(u, ':', p);
+        return p.empty() ? u : util::concat(u, ':', p);
     }
 
     auto URL::host() const -> const std::string&
@@ -631,7 +631,7 @@ namespace mamba
 
     auto URL::authority() const -> std::string
     {
-        return concat(
+        return util::concat(
             m_user,
             m_password.empty() ? "" : ":",
             m_password,
@@ -652,7 +652,7 @@ namespace mamba
         // All paths start with a '/' except those like "file://C:/folder/file.txt"
         if (m_scheme == "file")
         {
-            assert(starts_with(m_path, '/'));
+            assert(util::starts_with(m_path, '/'));
             auto path_no_slash = std::string_view(m_path).substr(1);
             if (path_has_drive_letter(path_no_slash))
             {
@@ -664,7 +664,7 @@ namespace mamba
 
     URL& URL::set_path(std::string_view path)
     {
-        if (!starts_with(path, '/'))
+        if (!util::starts_with(path, '/'))
         {
             m_path.reserve(path.size() + 1);
             m_path = '/';
@@ -713,7 +713,7 @@ namespace mamba
         {
             computed_path = pretty_path();
         }
-        return concat(
+        return util::concat(
             (strip == StripScheme::no) ? m_scheme : "",
             (strip == StripScheme::no) ? "://" : "",
             m_user,

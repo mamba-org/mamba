@@ -44,7 +44,11 @@ get_token_base(const std::string& host)
         maybe_colon_and_port.push_back(':');
         maybe_colon_and_port.append(url.port());
     }
-    return mamba::concat(url.host(), maybe_colon_and_port, mamba::rstrip(url.pretty_path(), '/'));
+    return mamba::util::concat(
+        url.host(),
+        maybe_colon_and_port,
+        mamba::util::rstrip(url.pretty_path(), '/')
+    );
 }
 
 void

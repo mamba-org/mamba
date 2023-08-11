@@ -126,7 +126,7 @@ namespace mamba
             const std::string& path
         )
         {
-            std::string spath = std::string(rstrip(path, "/"));
+            std::string spath = std::string(util::rstrip(path, "/"));
             std::string url = URL()  //
                                   .set_scheme(scheme)
                                   .set_host(host)
@@ -139,7 +139,13 @@ namespace mamba
             {
                 URL handler;
                 handler.set_host(host).set_port(port);
-                return channel_configuration(std::string(rstrip(handler.str(), "/")), "", scheme, "", "");
+                return channel_configuration(
+                    std::string(util::rstrip(handler.str(), "/")),
+                    "",
+                    scheme,
+                    "",
+                    ""
+                );
             }
 
             // Case 2: migrated_custom_channels not implemented yet
@@ -187,9 +193,9 @@ namespace mamba
             }
 
             // Case 7: fallback, channel_location = host:port and channel_name = path
-            spath = lstrip(spath, "/");
+            spath = util::lstrip(spath, "/");
             std::string location = URL().set_host(host).set_port(port).str();
-            return channel_configuration(std::string(strip(location, "/")), spath, scheme, "", "");
+            return channel_configuration(std::string(util::strip(location, "/")), spath, scheme, "", "");
         }
 
         std::vector<std::string> take_platforms(std::string& value)
@@ -442,8 +448,8 @@ namespace mamba
             {
                 std::string full_url = concat_scheme_url(scheme, location);
                 const auto parser = URL::parse(full_url);
-                location = rstrip(URL().set_host(parser.host()).set_port(parser.port()).str(), "/");
-                name = lstrip(parser.pretty_path(), "/");
+                location = util::rstrip(URL().set_host(parser.host()).set_port(parser.port()).str(), "/");
+                name = util::lstrip(parser.pretty_path(), "/");
             }
         }
         name = name != "" ? util::strip(name, "/") : util::strip(channel_url, "/");

@@ -35,7 +35,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 #ifdef _WIN32
 static_assert(std::is_same_v<mamba::DWORD, ::DWORD>);
@@ -138,7 +138,7 @@ namespace mamba
     {
         // Needs to be set system-wide & can only be run as admin ...
         std::string win_ver = windows_version();
-        auto splitted = split(win_ver, ".");
+        auto splitted = util::split(win_ver, ".");
         if (!(splitted.size() >= 3 && std::stoull(splitted[0]) >= 10
               && std::stoull(splitted[2]) >= 14352))
         {
@@ -249,7 +249,7 @@ namespace mamba
                         << "Please file a bug report.\nError: " << ec.message();
             return "";
         }
-        std::string xout(strip(out));
+        std::string xout(util::strip(out));
 
         // from python
         std::regex ver_output_regex("(?:([\\w ]+) ([\\w.]+) .*\\[.* ([\\d.]+)\\])");
@@ -260,8 +260,8 @@ namespace mamba
         if (std::regex_match(xout, rmatch, ver_output_regex))
         {
             full_version = rmatch[3];
-            auto version_els = split(full_version, ".");
-            norm_version = concat(version_els[0], ".", version_els[1], ".", version_els[2]);
+            auto version_els = util::split(full_version, ".");
+            norm_version = util::concat(version_els[0], ".", version_els[1], ".", version_els[2]);
             LOG_DEBUG << "Windows version found: " << norm_version;
         }
         else
@@ -306,7 +306,7 @@ namespace mamba
             return "";
         }
 
-        auto version = std::string(strip(out));
+        auto version = std::string(util::strip(out));
         LOG_DEBUG << "macos version found: " << version;
         return version;
     }
@@ -434,7 +434,7 @@ namespace mamba
 #elif defined(__linux__)
     std::string get_process_name_by_pid(const int pid)
     {
-        std::ifstream f(concat("/proc/", std::to_string(pid), "/status"));
+        std::ifstream f(util::concat("/proc/", std::to_string(pid), "/status"));
         if (f.good())
         {
             std::string l;
@@ -639,7 +639,7 @@ namespace mamba
         features.true_colors = false;
 
         std::string win_ver = windows_version();
-        auto splitted = split(win_ver, ".");
+        auto splitted = util::split(win_ver, ".");
         if (splitted.size() >= 3 && std::stoull(splitted[0]) >= 10
             && std::stoull(splitted[2]) >= 15063)
         {
@@ -700,11 +700,11 @@ namespace mamba
     std::string fix_win_path(const std::string& path)
     {
 #ifdef _WIN32
-        if (starts_with(path, "file:"))
+        if (util::starts_with(path, "file:"))
         {
             std::regex re(R"(\\(?! ))");
             std::string res = std::regex_replace(path, re, R"(/)");
-            replace_all(res, ":////", "://");
+            util::replace_all(res, ":////", "://");
             return res;
         }
         else

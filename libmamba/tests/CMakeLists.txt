@@ -21,6 +21,7 @@ set(LIBMAMBA_TEST_SRCS
     src/solv-cpp/test_solver.cpp
     src/solv-cpp/test_transaction.cpp
     # Utility library
+    src/util/test_string.cpp
     src/util/test_cast.cpp
     src/util/test_compare.cpp
     src/util/test_type_traits.cpp
@@ -53,7 +54,6 @@ set(LIBMAMBA_TEST_SRCS
     src/core/test_validate.cpp
     src/core/test_virtual_packages.cpp
     src/core/test_util.cpp
-    src/core/test_util_string.cpp
     src/core/test_util_os.cpp
     src/core/test_system_env.cpp
     src/core/test_env_lockfile.cpp

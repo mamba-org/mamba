@@ -25,8 +25,8 @@
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/pinning.hpp"
 #include "mamba/core/transaction.hpp"
-#include "mamba/core/util_string.hpp"
 #include "mamba/core/virtual_packages.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
@@ -173,18 +173,18 @@ namespace mamba
         };
 
         const auto& ctx = Context::instance();
-        if (starts_with(ctx.platform, "win"))
+        if (util::starts_with(ctx.platform, "win"))
         {
             vals["win"] = true;
         }
         else
         {
             vals["unix"] = true;
-            if (starts_with(ctx.platform, "linux"))
+            if (util::starts_with(ctx.platform, "linux"))
             {
                 vals["linux"] = true;
             }
-            else if (starts_with(ctx.platform, "osx"))
+            else if (util::starts_with(ctx.platform, "osx"))
             {
                 vals["osx"] = true;
             }
@@ -196,7 +196,7 @@ namespace mamba
     {
         bool eval_selector(const std::string& selector)
         {
-            if (!(starts_with(selector, "sel(") && selector[selector.size() - 1] == ')'))
+            if (!(util::starts_with(selector, "sel(") && selector[selector.size() - 1] == ')'))
             {
                 throw std::runtime_error(
                     "Couldn't parse selector. Needs to start with sel( and end with )"
@@ -260,7 +260,7 @@ namespace mamba
                     for (const auto& map_el : *it)
                     {
                         std::string key = map_el.first.as<std::string>();
-                        if (starts_with(key, "sel("))
+                        if (util::starts_with(key, "sel("))
                         {
                             bool selected = detail::eval_selector(key);
                             if (selected)
@@ -346,7 +346,7 @@ namespace mamba
             std::vector<MatchSpec> ms_result;
             for (auto& u : urls)
             {
-                if (strip(u).size() == 0)
+                if (util::strip(u).size() == 0)
                 {
                     continue;
                 }
@@ -546,7 +546,7 @@ namespace mamba
             {
                 pinned_str.push_back("  - " + ms.conda_build_form() + "\n");
             }
-            Console::instance().print("\nPinned packages:\n" + join("", pinned_str));
+            Console::instance().print("\nPinned packages:\n" + util::join("", pinned_str));
         }
 
         // FRAGILE this must be called after pins be before jobs in current ``MPool``
@@ -750,7 +750,7 @@ namespace mamba
         {
             detail::create_target_directory(prefix);
 
-            Console::instance().print(join(
+            Console::instance().print(util::join(
                 "",
                 std::vector<std::string>({ "Empty environment created at prefix: ", prefix.string() })
             ));
@@ -791,7 +791,7 @@ namespace mamba
                 // read specs from file :)
                 if (is_env_lockfile_name(file))
                 {
-                    if (starts_with(file, "http"))
+                    if (util::starts_with(file, "http"))
                     {
                         Context::instance().env_lockfile = file;
                     }
@@ -846,12 +846,12 @@ namespace mamba
                     const std::vector<std::string> file_contents = read_lines(file);
                     if (file_contents.size() == 0)
                     {
-                        throw std::runtime_error(concat("Got an empty file: ", file));
+                        throw std::runtime_error(util::concat("Got an empty file: ", file));
                     }
                     for (std::size_t i = 0; i < file_contents.size(); ++i)
                     {
                         auto& line = file_contents[i];
-                        if (starts_with(line, "@EXPLICIT"))
+                        if (util::starts_with(line, "@EXPLICIT"))
                         {
                             // this is an explicit env
                             // we can check if the platform is correct with the previous line
@@ -861,7 +861,7 @@ namespace mamba
                                 for (std::size_t j = 0; j < i; ++j)
                                 {
                                     platform = file_contents[j];
-                                    if (starts_with(platform, "# platform: "))
+                                    if (util::starts_with(platform, "# platform: "))
                                     {
                                         platform = platform.substr(12);
                                         break;
@@ -875,7 +875,7 @@ namespace mamba
                                  f != file_contents.end();
                                  ++f)
                             {
-                                std::string_view spec = strip((*f));
+                                std::string_view spec = util::strip((*f));
                                 if (!spec.empty() && spec[0] != '#')
                                 {
                                     explicit_specs.push_back(*f);

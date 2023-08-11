@@ -22,9 +22,7 @@ extern "C"  // Incomplete header
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
-#include "mamba/core/util_string.hpp"
-#include "mamba/util/cast.hpp"
-#include "mamba/util/compare.hpp"
+#include "mamba/util/string.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
 
@@ -165,15 +163,15 @@ namespace mamba
             // Example candidate_repo_url: https://.../conda-forge/linux-64
             // example needle_spec: conda-forge/osx-64::xtensor
 
-            std::string needle_channel = split(needle_spec, ":", 1)[0];
-            if (!contains(needle_channel, "/"))
+            std::string needle_channel = util::split(needle_spec, ":", 1)[0];
+            if (!util::contains(needle_channel, "/"))
             {
                 // Subdir not specified, so any subdir is fine
                 return true;
             }
-            std::string needle_subdir = rsplit(needle_channel, "/", 1)[1];
+            std::string needle_subdir = util::rsplit(needle_channel, "/", 1)[1];
 
-            std::string candidate_repo_subdir = rsplit(candidate_repo_url, "/", 1)[1];
+            std::string candidate_repo_subdir = util::rsplit(candidate_repo_url, "/", 1)[1];
 
             if (candidate_repo_subdir == needle_subdir)
             {

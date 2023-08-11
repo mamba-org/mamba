@@ -12,8 +12,8 @@
 
 #include <fmt/format.h>
 
-#include "mamba/core/util_string.hpp"
 #include "mamba/specs/version_spec.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba::specs
 {
@@ -195,37 +195,37 @@ namespace mamba::specs
 
         auto parse_op_and_version(std::string_view str) -> VersionPredicate
         {
-            str = strip(str);
+            str = util::strip(str);
             // WARNING order is important since some operator are prefix of others.
             if (str.empty() || is_char(str, VersionSpec::glob_suffix_token))
             {
                 return VersionPredicate::make_free();
             }
-            if (starts_with(str, VersionSpec::greater_equal_str))
+            if (util::starts_with(str, VersionSpec::greater_equal_str))
             {
                 return VersionPredicate::make_greater_equal(
                     Version::parse(str.substr(VersionSpec::greater_equal_str.size()))
                 );
             }
-            if (starts_with(str, VersionSpec::greater_str))
+            if (util::starts_with(str, VersionSpec::greater_str))
             {
                 return VersionPredicate::make_greater(
                     Version::parse(str.substr(VersionSpec::greater_str.size()))
                 );
             }
-            if (starts_with(str, VersionSpec::less_equal_str))
+            if (util::starts_with(str, VersionSpec::less_equal_str))
             {
                 return VersionPredicate::make_less_equal(
                     Version::parse(str.substr(VersionSpec::less_equal_str.size()))
                 );
             }
-            if (starts_with(str, VersionSpec::less_str))
+            if (util::starts_with(str, VersionSpec::less_str))
             {
                 return VersionPredicate::make_less(
                     Version::parse(str.substr(VersionSpec::less_str.size()))
                 );
             }
-            if (starts_with(str, VersionSpec::compatible_str))
+            if (util::starts_with(str, VersionSpec::compatible_str))
             {
                 auto ver = Version::parse(str.substr(VersionSpec::compatible_str.size()));
                 // in ``~=1.1`` level is assumed to be 1, in ``~=1.1.1`` level 2, etc.
@@ -233,9 +233,9 @@ namespace mamba::specs
                 const std::size_t level = std::max(ver.version().size(), one) - one;
                 return VersionPredicate::make_compatible_with(std::move(ver), level);
             }
-            const bool has_glob_suffix = ends_with(str, VersionSpec::glob_suffix_str);
+            const bool has_glob_suffix = util::ends_with(str, VersionSpec::glob_suffix_str);
             std::size_t const glob_len = has_glob_suffix * VersionSpec::glob_suffix_str.size();
-            if (starts_with(str, VersionSpec::equal_str))
+            if (util::starts_with(str, VersionSpec::equal_str))
             {
                 std::size_t const start = VersionSpec::equal_str.size();
                 // Glob suffix changes meaning for ==1.3.*
@@ -250,7 +250,7 @@ namespace mamba::specs
                     return VersionPredicate::make_equal_to(Version::parse(str.substr(start)));
                 }
             }
-            if (starts_with(str, VersionSpec::not_equal_str))
+            if (util::starts_with(str, VersionSpec::not_equal_str))
             {
                 std::size_t const start = VersionSpec::not_equal_str.size();
                 // Glob suffix changes meaning for !=1.3.*
@@ -265,7 +265,7 @@ namespace mamba::specs
                     return VersionPredicate::make_not_equal_to(Version::parse(str.substr(start)));
                 }
             }
-            if (starts_with(str, VersionSpec::starts_with_str))
+            if (util::starts_with(str, VersionSpec::starts_with_str))
             {
                 std::size_t const start = VersionSpec::starts_with_str.size();
                 // Glob suffix does not change meaning for =1.3.*
@@ -273,10 +273,10 @@ namespace mamba::specs
                     Version::parse(str.substr(start, str.size() - glob_len - start))
                 );
             }
-            if (is_digit(str.front()))  // All versions must start with a digit
+            if (util::is_digit(str.front()))  // All versions must start with a digit
             {
                 // Glob suffix does  change meaning for 1.3.* and 1.3*
-                if (ends_with(str, VersionSpec::glob_suffix_token))
+                if (util::ends_with(str, VersionSpec::glob_suffix_token))
                 {
                     // either ".*" or "*"
                     static std::size_t constexpr one = std::size_t(1);  // MSVC
@@ -306,7 +306,7 @@ namespace mamba::specs
         { return std::find(all_tokens.cbegin(), all_tokens.cend(), c) != all_tokens.cend(); };
 
         auto parser = util::InfixParser<VersionPredicate, util::BoolOperator>();
-        str = lstrip(str);
+        str = util::lstrip(str);
         while (!str.empty())
         {
             if (str.front() == VersionSpec::and_token)
@@ -322,16 +322,16 @@ namespace mamba::specs
             else if (str.front() == VersionSpec::left_parenthesis_token)
             {
                 parser.push_left_parenthesis();
-                str = lstrip(str.substr(1));
+                str = util::lstrip(str.substr(1));
             }
             else if (str.front() == VersionSpec::right_parenthesis_token)
             {
                 parser.push_right_parenthesis();
-                str = lstrip(str.substr(1));
+                str = util::lstrip(str.substr(1));
             }
             else
             {
-                auto [op_ver, rest] = lstrip_if_parts(str, [&](auto c) { return !is_token(c); });
+                auto [op_ver, rest] = util::lstrip_if_parts(str, [&](auto c) { return !is_token(c); });
                 parser.push_variable(parse_op_and_version(op_ver));
                 str = rest;
             }

@@ -8,7 +8,7 @@
 
 #include "mamba/core/output.hpp"
 #include "mamba/core/pinning.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 
 namespace mamba
@@ -37,8 +37,8 @@ namespace mamba
             }
         }
 
-        std::vector<std::string> elems = split(py_version, ".");
-        std::string py_pin = concat("python ", elems[0], ".", elems[1], ".*");
+        std::vector<std::string> elems = util::split(py_version, ".");
+        std::string py_pin = util::concat("python ", elems[0], ".", elems[1], ".*");
         LOG_DEBUG << "Pinning Python to '" << py_pin << "'";
         return py_pin;
     }

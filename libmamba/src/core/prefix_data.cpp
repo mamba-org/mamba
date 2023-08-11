@@ -13,8 +13,8 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/core/util_string.hpp"
 #include "mamba/util/graph.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
@@ -54,7 +54,7 @@ namespace mamba
         {
             for (auto& p : fs::directory_iterator(conda_meta_dir))
             {
-                if (ends_with(p.path().string(), ".json"))
+                if (util::ends_with(p.path().string(), ".json"))
                 {
                     load_single_record(p.path());
                 }

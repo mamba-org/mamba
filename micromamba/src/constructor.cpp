@@ -4,6 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <CLI/App.hpp>
+
 #include "constructor.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
@@ -12,9 +14,7 @@
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/core/util_string.hpp"
-
-#include "common_options.hpp"
+#include "mamba/util/string.hpp"
 
 
 using namespace mamba;  // NOLINT(build/namespaces)
@@ -87,11 +87,11 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
         {
             try
             {
-                if (ends_with(fn, ".tar.bz2"))
+                if (util::ends_with(fn, ".tar.bz2"))
                 {
                     return j.at("packages").at(fn);
                 }
-                else if (ends_with(fn, ".conda"))
+                else if (util::ends_with(fn, ".conda"))
                 {
                     return j.at("packages.conda").at(fn);
                 }
@@ -126,7 +126,7 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
             {
                 channel_url = pkg_info.url.substr(0, pkg_info.url.size() - pkg_info.fn.size());
             }
-            std::string repodata_cache_name = concat(cache_name_from_url(channel_url), ".json");
+            std::string repodata_cache_name = util::concat(cache_name_from_url(channel_url), ".json");
             fs::u8path repodata_location = pkgs_dir / "cache" / repodata_cache_name;
 
             nlohmann::json repodata_record;

@@ -11,7 +11,7 @@
 #include "mamba/core/repo.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/thread_utils.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
@@ -153,7 +153,7 @@ namespace mamba
             auto& subdir = subdirs[i];
             if (!subdir.loaded())
             {
-                if (!ctx.offline && ends_with(subdir.name(), "/noarch"))
+                if (!ctx.offline && util::ends_with(subdir.name(), "/noarch"))
                 {
                     error_list.push_back(mamba_error(
                         "Subdir " + subdir.name() + " not loaded!",

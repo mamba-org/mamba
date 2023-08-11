@@ -25,7 +25,7 @@
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_random.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 using namespace mamba;
 
@@ -436,7 +436,7 @@ namespace
                 using Node = std::remove_const_t<std::remove_reference_t<decltype(n)>>;
                 if constexpr (!std::is_same_v<Node, ProblemsGraph::RootNode>)
                 {
-                    return starts_with(std::invoke(&Node::name, n), "__");
+                    return util::starts_with(std::invoke(&Node::name, n), "__");
                 }
                 return false;
             },
@@ -623,7 +623,7 @@ TEST_CASE("Create problem graph")
                         using Node = std::remove_cv_t<std::remove_reference_t<decltype(node)>>;
                         if constexpr (!std::is_same_v<Node, CpPbGr::RootNode>)
                         {
-                            CHECK(contains(message, node.name()));
+                            CHECK(util::contains(message, node.name()));
                         }
                     };
 

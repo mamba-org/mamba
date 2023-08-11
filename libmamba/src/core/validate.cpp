@@ -14,11 +14,10 @@
 #include <openssl/evp.h>
 
 #include "mamba/core/fetch.hpp"
-#include "mamba/core/fsutil.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/url.hpp"
-#include "mamba/core/util_string.hpp"
 #include "mamba/core/validate.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
@@ -165,7 +164,7 @@ namespace mamba::validation
         EVP_DigestFinal_ex(mdctx, hash, nullptr);
         EVP_MD_CTX_destroy(mdctx);
 
-        return ::mamba::hex_string(hash, MAMBA_SHA256_SIZE_BYTES);
+        return ::mamba::util::hex_string(hash, MAMBA_SHA256_SIZE_BYTES);
     }
 
     std::string md5sum(const fs::u8path& path)
@@ -194,7 +193,7 @@ namespace mamba::validation
         EVP_DigestFinal_ex(mdctx, hash, nullptr);
         EVP_MD_CTX_destroy(mdctx);
 
-        return ::mamba::hex_string(hash, MAMBA_MD5_SIZE_BYTES);
+        return ::mamba::util::hex_string(hash, MAMBA_MD5_SIZE_BYTES);
     }
 
     bool sha256(const fs::u8path& path, const std::string& validation)
@@ -299,7 +298,7 @@ namespace mamba::validation
     std::pair<std::string, std::string> generate_ed25519_keypair_hex()
     {
         auto pair = generate_ed25519_keypair();
-        return { ::mamba::hex_string(pair.first), ::mamba::hex_string(pair.second) };
+        return { ::mamba::util::hex_string(pair.first), ::mamba::util::hex_string(pair.second) };
     }
 
     int sign(const std::string& data, const unsigned char* sk, unsigned char* signature)
@@ -355,7 +354,7 @@ namespace mamba::validation
         std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> sig;
 
         error_code = sign(data, bin_sk.data(), sig.data());
-        signature = ::mamba::hex_string(sig, MAMBA_ED25519_SIGSIZE_BYTES);
+        signature = ::mamba::util::hex_string(sig, MAMBA_ED25519_SIGSIZE_BYTES);
 
         return error_code;
     }
@@ -556,7 +555,7 @@ namespace mamba::validation
 
     std::string SpecBase::compatible_prefix() const
     {
-        auto split_spec_version = mamba::split(m_spec_version, ".", 2);
+        auto split_spec_version = ::mamba::util::split(m_spec_version, ".", 2);
         auto spec_version_major = std::stoi(split_spec_version[0]);
         if (spec_version_major == 0)
         {
@@ -570,7 +569,7 @@ namespace mamba::validation
 
     std::vector<std::string> SpecBase::upgrade_prefix() const
     {
-        auto split_spec_version = mamba::split(m_spec_version, ".", 2);
+        auto split_spec_version = ::mamba::util::split(m_spec_version, ".", 2);
         auto spec_version_major = std::stoi(split_spec_version[0]);
         auto spec_version_minor = std::stoi(split_spec_version[1]);
         if (spec_version_major == 0)
@@ -619,7 +618,7 @@ namespace mamba::validation
 
     bool SpecBase::is_compatible(const std::string& version) const
     {
-        return mamba::starts_with(version, compatible_prefix() + ".");
+        return ::mamba::util::starts_with(version, compatible_prefix() + ".");
     }
 
     bool SpecBase::is_compatible(const json& j) const
@@ -645,7 +644,7 @@ namespace mamba::validation
             possible_upgrades.push_back(s);
         }
 
-        return mamba::starts_with_any(version, possible_upgrades);
+        return ::mamba::util::starts_with_any(version, possible_upgrades);
     }
 
     bool SpecBase::is_upgrade(const json& j) const
@@ -809,7 +808,7 @@ namespace mamba::validation
                 std::inserter(diff, diff.end())
             );
             LOG_ERROR << "Missing roles while loading '" << type() << "' metadata: '"
-                      << mamba::join(", ", diff) << "'";
+                      << ::mamba::util::join(", ", diff) << "'";
             throw role_metadata_error();
         }
 
@@ -1059,15 +1058,16 @@ namespace mamba::validation
         for (auto& s : upgrade_spec)
         {
             files.push_back(
-                mamba::join(".", std::vector<std::string>({ new_v, "sv" + s, "root.json" }))
+                ::mamba::util::join(".", std::vector<std::string>({ new_v, "sv" + s, "root.json" }))
             );
         }
         // compatible next
-        files.push_back(
-            mamba::join(".", std::vector<std::string>({ new_v, "sv" + compat_spec, "root.json" }))
-        );
+        files.push_back(::mamba::util::join(
+            ".",
+            std::vector<std::string>({ new_v, "sv" + compat_spec, "root.json" })
+        ));
         // then finally undefined spec
-        files.push_back(mamba::join(".", std::vector<std::string>({ new_v, "root.json" })));
+        files.push_back(::mamba::util::join(".", std::vector<std::string>({ new_v, "root.json" })));
 
         return files;
     }
@@ -1396,7 +1396,7 @@ namespace mamba::validation
         {
             std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> sig_bin;
             sign(j.dump(), sk, sig_bin.data());
-            auto sig_hex = ::mamba::hex_string(sig_bin);
+            auto sig_hex = ::mamba::util::hex_string(sig_bin);
 
             return { pk, sig_hex };
         }
@@ -2146,7 +2146,7 @@ namespace mamba::validation
             // Update from the most recent spec supported by this client
             for (auto& f : update_files)
             {
-                auto url = mamba::concat(m_base_url, "/", f.string());
+                auto url = ::mamba::util::concat(m_base_url, "/", f.string());
                 tmp_file_path = tmp_dir_path / f;
 
                 auto dl_target = std::make_unique<mamba::DownloadTarget>(

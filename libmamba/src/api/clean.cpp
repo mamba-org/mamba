@@ -12,7 +12,7 @@
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 #include "../core/progress_bar_impl.hpp"
 
@@ -75,9 +75,9 @@ namespace mamba
                 {
                     for (auto& p : fs::directory_iterator(pkg_cache->path()))
                     {
-                        if (p.exists() && ends_with(p.path().string(), ".lock")
-                            && (fs::exists(rstrip(p.path().string(), ".lock"))
-                                || (rstrip(p.path().filename().string(), ".lock")
+                        if (p.exists() && util::ends_with(p.path().string(), ".lock")
+                            && (fs::exists(util::rstrip(p.path().string(), ".lock"))
+                                || (util::rstrip(p.path().filename().string(), ".lock")
                                     == p.path().parent_path().filename())))
                         {
                             try
@@ -98,7 +98,7 @@ namespace mamba
                 {
                     for (auto& p : fs::recursive_directory_iterator(pkg_cache->path() / "cache"))
                     {
-                        if (p.exists() && ends_with(p.path().string(), ".lock"))
+                        if (p.exists() && util::ends_with(p.path().string(), ".lock"))
                         {
                             try
                             {
@@ -145,7 +145,7 @@ namespace mamba
         {
             for (auto& pkg : fs::directory_iterator(env / "conda-meta"))
             {
-                if (ends_with(pkg.path().string(), ".json"))
+                if (util::ends_with(pkg.path().string(), ".json"))
                 {
                     std::string pkg_name = pkg.path().filename().string();
                     installed_pkgs.insert(pkg_name.substr(0, pkg_name.size() - 5));
@@ -171,14 +171,17 @@ namespace mamba
 
             for (auto* pkg_cache : caches.writable_caches())
             {
-                std::string header_line = concat("Package cache folder: ", pkg_cache->path().string());
+                std::string header_line = util::concat(
+                    "Package cache folder: ",
+                    pkg_cache->path().string()
+                );
                 std::vector<std::vector<printers::FormattedString>> rows;
                 for (auto& p : fs::directory_iterator(pkg_cache->path()))
                 {
                     std::string fname = p.path().filename().string();
                     if (!p.is_directory()
-                        && (ends_with(p.path().string(), ".tar.bz2")
-                            || ends_with(p.path().string(), ".conda")))
+                        && (util::ends_with(p.path().string(), ".tar.bz2")
+                            || util::ends_with(p.path().string(), ".conda")))
                     {
                         res.push_back(p.path());
                         rows.push_back({ p.path().filename().string(), get_file_size(p.file_size()) });
@@ -245,7 +248,10 @@ namespace mamba
 
             for (auto* pkg_cache : caches.writable_caches())
             {
-                std::string header_line = concat("Package cache folder: ", pkg_cache->path().string());
+                std::string header_line = util::concat(
+                    "Package cache folder: ",
+                    pkg_cache->path().string()
+                );
                 std::vector<std::vector<printers::FormattedString>> rows;
                 for (auto& p : fs::directory_iterator(pkg_cache->path()))
                 {

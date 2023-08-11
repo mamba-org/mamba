@@ -19,9 +19,11 @@
 #include <vector>
 
 #include <arpa/inet.h>
+#include <fmt/format.h>
 #include <limits.h>
 #include <netinet/in.h>
 #include <poll.h>
+#include <spdlog/logger.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -29,11 +31,7 @@
 
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
-#include "mamba/core/util.hpp"
-#include "mamba/core/util_string.hpp"
-
-#include "fmt/format.h"
-#include "spdlog/spdlog.h"
+#include "mamba/util/string.hpp"
 
 #include "version.hpp"
 
@@ -145,7 +143,7 @@ namespace microserver
             // remove \r\n header ending
             value = header.substr(colon_idx, header.size() - colon_idx - 2);
             // http headers are case insensitive!
-            std::string lkey = mamba::to_lower(key);
+            std::string lkey = mamba::util::to_lower(key);
 
             return std::make_pair(lkey, std::string(value));
         }
@@ -164,7 +162,7 @@ namespace microserver
         {
             if (i++ == 0)
             {
-                auto R = mamba::split(line, " ", 3);
+                auto R = mamba::util::split(line, " ", 3);
 
                 if (R.size() != 3)
                 {
@@ -179,11 +177,11 @@ namespace microserver
                 // We have GET params here
                 if (pos != std::string::npos)
                 {
-                    auto Q1 = mamba::split(req.path.substr(pos + 1), "&");
+                    auto Q1 = mamba::util::split(req.path.substr(pos + 1), "&");
 
                     for (std::vector<std::string>::size_type q = 0; q < Q1.size(); q++)
                     {
-                        auto Q2 = mamba::split(Q1[q], "=");
+                        auto Q2 = mamba::util::split(Q1[q], "=");
 
                         if (Q2.size() == 2)
                         {

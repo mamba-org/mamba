@@ -11,7 +11,7 @@
 #include "mamba/core/history.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
@@ -100,8 +100,8 @@ namespace mamba
             return false;
         }
 
-        std::string key(strip(line.substr(1, colon_idx - 1)));
-        std::string value(strip(line.substr(colon_idx + 1)));
+        std::string key(util::strip(line.substr(1, colon_idx - 1)));
+        std::string value(util::strip(line.substr(colon_idx + 1)));
 
         if (key == "conda version")
         {
@@ -111,7 +111,7 @@ namespace mamba
         {
             req.cmd = value;
         }
-        else if (ends_with(key, " specs"))
+        else if (util::ends_with(key, " specs"))
         {
             std::string action = key.substr(0, key.find_first_of(" "));
             // small parser for pythonic lists

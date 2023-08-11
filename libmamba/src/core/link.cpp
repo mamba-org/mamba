@@ -20,8 +20,8 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/transaction_context.hpp"
 #include "mamba/core/util_os.hpp"
-#include "mamba/core/util_string.hpp"
 #include "mamba/core/validate.hpp"
+#include "mamba/util/string.hpp"
 
 #if _WIN32
 #include "../data/conda_exe.hpp"
@@ -33,7 +33,7 @@ namespace mamba
 
     void python_entry_point_template(std::ostream& out, const python_entry_point_parsed& p)
     {
-        auto import_name = split(p.func, ".")[0];
+        auto import_name = util::split(p.func, ".")[0];
         out << "# -*- coding: utf-8 -*-\n";
         out << "import re\n";
         out << "import sys\n\n";
@@ -69,28 +69,28 @@ namespace mamba
         if (py_ver[0] == '2')
         {
             // make `.pyc` file in same directory
-            return concat(py_path.string(), 'c');
+            return util::concat(py_path.string(), 'c');
         }
         else
         {
             auto directory = py_path.parent_path();
             auto py_file_stem = py_path.stem();
             std::string py_ver_nodot = py_ver;
-            replace_all(py_ver_nodot, ".", "");
+            util::replace_all(py_ver_nodot, ".", "");
             return directory / fs::u8path("__pycache__")
-                   / concat(py_file_stem.string(), ".cpython-", py_ver_nodot, ".pyc");
+                   / util::concat(py_file_stem.string(), ".cpython-", py_ver_nodot, ".pyc");
         }
     }
 
     python_entry_point_parsed parse_entry_point(const std::string& ep_def)
     {
         // def looks like: "wheel = wheel.cli:main"
-        auto cmd_mod_func = rsplit(ep_def, ":", 1);
-        auto command_module = rsplit(cmd_mod_func[0], "=", 1);
+        auto cmd_mod_func = util::rsplit(ep_def, ":", 1);
+        auto command_module = util::rsplit(cmd_mod_func[0], "=", 1);
         python_entry_point_parsed result;
-        result.command = strip(command_module[0]);
-        result.module = strip(command_module[1]);
-        result.func = strip(cmd_mod_func[1]);
+        result.command = util::strip(command_module[0]);
+        result.module = util::strip(command_module[1]);
+        result.func = util::strip(cmd_mod_func[1]);
         return result;
     }
 
@@ -108,7 +108,7 @@ namespace mamba
             {
                 fs::u8path shebang_path = match[2].str();
                 LOG_INFO << "New shebang path " << shebang_path;
-                return concat("#!/usr/bin/env ", shebang_path.filename().string(), match[3].str());
+                return util::concat("#!/usr/bin/env ", shebang_path.filename().string(), match[3].str());
             }
             else
             {
@@ -213,7 +213,7 @@ namespace mamba
         }
         else
         {
-            return concat(pad, str, pad);
+            return util::concat(pad, str, pad);
         }
     }
 
@@ -221,7 +221,7 @@ namespace mamba
     {
 #ifdef _WIN32
         std::string path_copy = path;
-        replace_all(path_copy, "\\", "\\\\");
+        util::replace_all(path_copy, "\\", "\\\\");
         return path_copy;
 #else
         return path;
@@ -318,12 +318,12 @@ namespace mamba
         if (on_win)
         {
             path = prefix / get_bin_directory_short_path()
-                   / concat(".", pkg_info.name, "-", action, ".bat");
+                   / util::concat(".", pkg_info.name, "-", action, ".bat");
         }
         else
         {
             path = prefix / get_bin_directory_short_path()
-                   / concat(".", pkg_info.name, "-", action, ".sh");
+                   / util::concat(".", pkg_info.name, "-", action, ".sh");
         }
 
         if (!fs::exists(path))
@@ -411,9 +411,9 @@ namespace mamba
         envmap["PKG_BUILDNUM"] = std::to_string(pkg_info.build_number);
 
         std::string PATH = env::get("PATH").value_or("");
-        envmap["PATH"] = concat(path.parent_path().string(), env::pathsep(), PATH);
+        envmap["PATH"] = util::concat(path.parent_path().string(), env::pathsep(), PATH);
 
-        std::string cargs = join(" ", command_args);
+        std::string cargs = util::join(" ", command_args);
         LOG_DEBUG << "For " << pkg_info.name << " at " << envmap["PREFIX"]
                   << ", executing script: $ " << cargs;
         LOG_TRACE << "Calling " << cargs;
@@ -614,7 +614,7 @@ namespace mamba
             // and copy the file
             std::string new_prefix = m_context->relocate_prefix.string();
 #ifdef _WIN32
-            replace_all(new_prefix, "\\", "/");
+            util::replace_all(new_prefix, "\\", "/");
 #endif
             LOG_TRACE << "Copying file & replace prefix " << src << " -> " << dst;
             // TODO windows does something else here
@@ -623,7 +623,7 @@ namespace mamba
             if (path_data.file_mode != FileMode::BINARY)
             {
                 buffer = read_contents(src, std::ios::in | std::ios::binary);
-                replace_all(buffer, path_data.prefix_placeholder, new_prefix);
+                util::replace_all(buffer, path_data.prefix_placeholder, new_prefix);
 
                 if constexpr (!on_win)  // only on non-windows platforms
                 {
@@ -682,7 +682,7 @@ namespace mamba
 
                     if (!shebang.empty() && !launcher.empty())
                     {
-                        replace_all(shebang, path_data.prefix_placeholder, new_prefix);
+                        util::replace_all(shebang, path_data.prefix_placeholder, new_prefix);
                         std::ofstream fo = open_ofstream(dst, std::ios::out | std::ios::binary);
                         fo << launcher << shebang << (buffer.c_str() + arc_pos);
                         fo.close();
@@ -711,7 +711,7 @@ namespace mamba
                         ++end;
                     }
 
-                    std::string replacement = concat(new_prefix, suffix, padding);
+                    std::string replacement = util::concat(new_prefix, suffix, padding);
                     buffer.replace(pos, end - pos, replacement);
 
                     pos = buffer.find(path_data.prefix_placeholder, pos + new_prefix.size());
@@ -1082,7 +1082,7 @@ namespace mamba
         {
             LOG_WARNING << "[" << f_name
                         << "] The following files were already present in the environment:\n- "
-                        << join("\n- ", m_clobber_warnings);
+                        << util::join("\n- ", m_clobber_warnings);
         }
 
         return true;

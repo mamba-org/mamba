@@ -26,7 +26,7 @@
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 #include "progress_bar_impl.hpp"
 
@@ -38,11 +38,11 @@ namespace mamba
         // TODO maybe add some caching...
         split_scheme_auth_token(full_url, remaining_url, scheme, auth, token);
 
-        if (starts_with(remaining_url, "conda.anaconda.org/"))
+        if (util::starts_with(remaining_url, "conda.anaconda.org/"))
         {
             return remaining_url.substr(19, std::string::npos).data();
         }
-        if (starts_with(remaining_url, "repo.anaconda.com/"))
+        if (util::starts_with(remaining_url, "repo.anaconda.com/"))
         {
             return remaining_url.substr(18, std::string::npos).data();
         }
@@ -383,7 +383,7 @@ namespace mamba
             std::string response;
             std::getline(input_stream, response);
 #ifdef _WIN32
-            response = strip(response);
+            response = util::strip(response);
 #endif
             if (response.size() == 0)
             {

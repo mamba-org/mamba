@@ -11,7 +11,7 @@
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/url.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 #include "progress_bar_impl.hpp"
 
@@ -333,7 +333,7 @@ namespace mamba
         , m_progress_bar()
         , m_loaded(false)
         , m_download_complete(false)
-        , m_repodata_url(concat(url, "/", repodata_fn))
+        , m_repodata_url(util::concat(url, "/", repodata_fn))
         , m_name(join_url(channel.canonical_name(), platform))
         , m_is_noarch(platform == "noarch")
         , p_channel(&channel)
@@ -443,7 +443,7 @@ namespace mamba
 
     bool MSubdirData::forbid_cache()
     {
-        return starts_with(m_repodata_url, "file://");
+        return util::starts_with(m_repodata_url, "file://");
     }
 
     void MSubdirData::finalize_checks()
@@ -462,7 +462,7 @@ namespace mamba
             m_progress_bar_check.mark_as_completed();
         }
 
-        if (ends_with(target.get_url(), ".zst"))
+        if (util::ends_with(target.get_url(), ".zst"))
         {
             this->m_metadata.has_zst = { target.get_http_status() == 200, utc_time_now() };
         }
@@ -909,7 +909,7 @@ namespace mamba
     {
         using return_type = expected_t<MRepo>;
         RepoMetadata meta{
-            /* .url= */ rsplit(m_metadata.url, "/", 1).front(),
+            /* .url= */ util::rsplit(m_metadata.url, "/", 1).front(),
             /* .etag= */ m_metadata.etag,
             /* .mod= */ m_metadata.mod,
             /* .pip_added= */ Context::instance().add_pip_as_python_dependency,

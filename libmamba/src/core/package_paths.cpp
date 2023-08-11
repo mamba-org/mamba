@@ -9,7 +9,7 @@
 #include <string>
 
 #include "mamba/core/package_paths.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
@@ -33,12 +33,14 @@ namespace mamba
         {
             // TODO: make sure that strings that are quoted are still split correctly
             //       e.g. when a file path contains a space...
-            auto s = split(l, " ");
+            auto s = util::split(l, " ");
             if (s.size() == 1)
             {
-                res[s[0]] = PrefixFileParse{ concat(PREFIX_PLACEHOLDER_1, PREFIX_PLACEHOLDER_2),
-                                             "text",
-                                             s[0] };
+                res[s[0]] = PrefixFileParse{
+                    util::concat(PREFIX_PLACEHOLDER_1, PREFIX_PLACEHOLDER_2),
+                    "text",
+                    s[0],
+                };
             }
             else if (s.size() == 3)
             {
@@ -46,7 +48,7 @@ namespace mamba
             }
             else
             {
-                throw std::runtime_error(concat("Could not parse ", path.string()));
+                throw std::runtime_error(util::concat("Could not parse ", path.string()));
             }
         }
         return res;

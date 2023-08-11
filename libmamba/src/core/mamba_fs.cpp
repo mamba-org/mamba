@@ -8,7 +8,7 @@
 #include <string>
 
 #include "mamba/core/mamba_fs.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 namespace fs
 {
@@ -20,7 +20,7 @@ namespace fs
         auto native_string = path.native();
         static constexpr auto platform_separator = L"\\";
         static constexpr auto other_separator = L"/";
-        mamba::replace_all(native_string, other_separator, platform_separator);
+        mamba::util::replace_all(native_string, other_separator, platform_separator);
         path = std::move(native_string);
         return path;
     }

@@ -118,6 +118,7 @@ TEST_SUITE("url")
             CHECK_EQ(url.scheme(), URL::https);
             CHECK_EQ(url.host(), URL::localhost);
             CHECK_EQ(url.path(), "/");
+            CHECK_EQ(url.pretty_path(), "/");
             CHECK_EQ(url.user(), "");
             CHECK_EQ(url.password(), "");
             CHECK_EQ(url.port(), "");
@@ -141,6 +142,7 @@ TEST_SUITE("url")
             CHECK_EQ(url.password(), "password");
             CHECK_EQ(url.port(), "8080");
             CHECK_EQ(url.path(), "/folder/file.html");
+            CHECK_EQ(url.pretty_path(), "/folder/file.html");
             CHECK_EQ(url.query(), "param=value");
             CHECK_EQ(url.fragment(), "fragment");
         }
@@ -150,13 +152,15 @@ TEST_SUITE("url")
             URL url{};
             url.set_path("path/");
             CHECK_EQ(url.path(), "/path/");
+            CHECK_EQ(url.pretty_path(), "/path/");
         }
 
         SUBCASE("Windows path")
         {
             URL url{};
             url.set_scheme("file").set_path("C:/folder/file.txt");
-            CHECK_EQ(url.path(), "C:/folder/file.txt");
+            CHECK_EQ(url.path(), "/C:/folder/file.txt");
+            CHECK_EQ(url.pretty_path(), "C:/folder/file.txt");
         }
 
         SUBCASE("Invalid")
@@ -176,6 +180,7 @@ TEST_SUITE("url")
             CHECK_EQ(url.scheme(), URL::https);
             CHECK_EQ(url.host(), "mamba.org");
             CHECK_EQ(url.path(), "/");
+            CHECK_EQ(url.pretty_path(), "/");
             CHECK_EQ(url.user(), "");
             CHECK_EQ(url.password(), "");
             CHECK_EQ(url.port(), "");
@@ -189,6 +194,7 @@ TEST_SUITE("url")
             CHECK_EQ(url.scheme(), "http");
             CHECK_EQ(url.host(), "mamba.org");
             CHECK_EQ(url.path(), "/");
+            CHECK_EQ(url.pretty_path(), "/");
             CHECK_EQ(url.user(), "");
             CHECK_EQ(url.password(), "");
             CHECK_EQ(url.port(), "");
@@ -202,6 +208,7 @@ TEST_SUITE("url")
             CHECK_EQ(url.scheme(), "s3");
             CHECK_EQ(url.host(), "mamba.org");
             CHECK_EQ(url.path(), "/");
+            CHECK_EQ(url.pretty_path(), "/");
             CHECK_EQ(url.user(), "userx123");
             CHECK_EQ(url.password(), "üúßsajd");
             CHECK_EQ(url.port(), "");
@@ -215,6 +222,7 @@ TEST_SUITE("url")
             CHECK_EQ(url.scheme(), "http");
             CHECK_EQ(url.host(), "localhost");
             CHECK_EQ(url.path(), "/");
+            CHECK_EQ(url.pretty_path(), "/");
             CHECK_EQ(url.user(), "user%40email.com");
             CHECK_EQ(url.password(), "test");
             CHECK_EQ(url.port(), "8000");
@@ -228,6 +236,7 @@ TEST_SUITE("url")
             CHECK_EQ(url.scheme(), "https");
             CHECK_EQ(url.host(), "mamba🆒🔬.org");
             CHECK_EQ(url.path(), "/this/is/a/path/");
+            CHECK_EQ(url.pretty_path(), "/this/is/a/path/");
             CHECK_EQ(url.user(), "");
             CHECK_EQ(url.password(), "");
             CHECK_EQ(url.port(), "");
@@ -241,7 +250,8 @@ TEST_SUITE("url")
             const URL url = URL::parse("file://C:/Users/wolfv/test/document.json");
             CHECK_EQ(url.scheme(), "file");
             CHECK_EQ(url.host(), URL::localhost);
-            CHECK_EQ(url.path(), "C:/Users/wolfv/test/document.json");
+            CHECK_EQ(url.path(), "/C:/Users/wolfv/test/document.json");
+            CHECK_EQ(url.pretty_path(), "C:/Users/wolfv/test/document.json");
             CHECK_EQ(url.user(), "");
             CHECK_EQ(url.password(), "");
             CHECK_EQ(url.port(), "");
@@ -257,6 +267,7 @@ TEST_SUITE("url")
             CHECK_EQ(url.scheme(), "file");
             CHECK_EQ(url.host(), URL::localhost);
             CHECK_EQ(url.path(), "/home/wolfv/test/document.json");
+            CHECK_EQ(url.pretty_path(), "/home/wolfv/test/document.json");
             CHECK_EQ(url.user(), "");
             CHECK_EQ(url.password(), "");
             CHECK_EQ(url.port(), "");
@@ -337,13 +348,23 @@ TEST_SUITE("url")
             CHECK_EQ(url.str(URL::StripScheme::yes), "/folder/file.txt");
         }
 
-        SUBCASE("file://C:/folder/file.txt")
+        SUBCASE("file:///C:/folder/file.txt")
         {
             URL url{};
             url.set_scheme("file").set_path("C:/folder/file.txt");
-            CHECK_EQ(url.str(), "file://C:/folder/file.txt");
+            CHECK_EQ(url.str(), "file:///C:/folder/file.txt");
             CHECK_EQ(url.str(URL::StripScheme::yes), "C:/folder/file.txt");
         }
+    }
+
+    TEST_CASE("URL::authentication")
+    {
+        URL url{};
+        CHECK_EQ(url.authentication(), "");
+        url.set_user("user");
+        CHECK_EQ(url.authentication(), "user");
+        url.set_password("password");
+        CHECK_EQ(url.authentication(), "user:password");
     }
 
     TEST_CASE("path_to_url")

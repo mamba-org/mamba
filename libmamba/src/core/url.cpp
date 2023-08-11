@@ -381,7 +381,7 @@ namespace mamba
         split_anaconda_token(url, cleaned_url, token);
         URL url_parsed = URL::parse(cleaned_url);
         scheme = url_parsed.scheme();
-        auth = url_parsed.auth();
+        auth = url_parsed.authentication();
         url_parsed.set_user("");
         url_parsed.set_password("");
         remaining_url = rstrip(url_parsed.str(URL::StripScheme::yes), '/');
@@ -553,6 +553,18 @@ namespace mamba
 
     auto URL::str(StripScheme strip) const -> std::string
     {
+        // Not showing "localhost" on file URI
+        std::string_view computed_host = m_host;
+        if ((m_scheme == "file") && (m_host == localhost))
+        {
+            computed_host = "";
+        }
+        // When stripping file scheme, not showing leading '/' for Windows path with drive
+        std::string_view computed_path = m_path;
+        if ((m_scheme == "file") && (strip == StripScheme::yes) && computed_host.empty())
+        {
+            computed_path = pretty_path();
+        }
         return concat(
             (strip == StripScheme::no) ? m_scheme : "",
             (strip == StripScheme::no) ? "://" : "",
@@ -560,10 +572,10 @@ namespace mamba
             m_password.empty() ? "" : ":",
             m_password,
             m_user.empty() ? "" : "@",
-            ((m_scheme != "file") || (m_host != localhost)) ? m_host : "",
+            computed_host,
             m_port.empty() ? "" : ":",
             m_port,
-            m_path,
+            computed_path,
             m_query.empty() ? "" : "?",
             m_query,
             m_fragment.empty() ? "" : "#",
@@ -586,6 +598,21 @@ namespace mamba
         return m_path;
     }
 
+    auto URL::pretty_path() const -> std::string_view
+    {
+        // All paths start with a '/' except those like "file://C:/folder/file.txt"
+        if (m_scheme == "file")
+        {
+            assert(starts_with(m_path, '/'));
+            auto path_no_slash = std::string_view(m_path).substr(1);
+            if (path_has_drive_letter(path_no_slash))
+            {
+                return path_no_slash;
+            }
+        }
+        return m_path;
+    }
+
     auto URL::port() const -> const std::string&
     {
         return m_port;
@@ -601,7 +628,7 @@ namespace mamba
         return m_fragment;
     }
 
-    auto URL::auth() const -> std::string
+    auto URL::authentication() const -> std::string
     {
         const auto& u = user();
         const auto& p = password();
@@ -640,8 +667,7 @@ namespace mamba
 
     URL& URL::set_path(std::string_view path)
     {
-        // All paths start with a '/' except those like "file://C:/folder/file.txt"
-        if (!starts_with(path, '/') && ((m_scheme != "file") || !path_has_drive_letter(path)))
+        if (!starts_with(path, '/'))
         {
             m_path.reserve(path.size() + 1);
             m_path = '/';

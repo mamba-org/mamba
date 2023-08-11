@@ -111,6 +111,7 @@ namespace mamba
         [[nodiscard]] auto scheme() const -> const std::string&;
         [[nodiscard]] auto host() const -> const std::string&;
         [[nodiscard]] auto path() const -> const std::string&;
+        [[nodiscard]] auto pretty_path() const -> std::string_view;
         [[nodiscard]] auto port() const -> const std::string&;
         [[nodiscard]] auto query() const -> const std::string&;
         [[nodiscard]] auto fragment() const -> const std::string&;
@@ -118,7 +119,7 @@ namespace mamba
         [[nodiscard]] auto password() const -> const std::string&;
 
         [[nodiscard]] auto str(StripScheme opt = StripScheme::no) const -> std::string;
-        [[nodiscard]] auto auth() const -> std::string;
+        [[nodiscard]] auto authentication() const -> std::string;
 
         URL& set_scheme(std::string_view scheme);
         URL& set_host(std::string_view host);

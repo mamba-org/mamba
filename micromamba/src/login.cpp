@@ -44,14 +44,7 @@ get_token_base(const std::string& host)
         maybe_colon_and_port.push_back(':');
         maybe_colon_and_port.append(url.port());
     }
-    // Removing the trailing slashes
-    std::string maybe_path = url.path();
-    while ((!maybe_path.empty()) && (maybe_path.back() == '/'))
-    {
-        maybe_path.pop_back();
-    }
-
-    return mamba::concat(url.host(), maybe_colon_and_port, maybe_path);
+    return mamba::concat(url.host(), maybe_colon_and_port, mamba::rstrip(url.pretty_path(), '/'));
 }
 
 void

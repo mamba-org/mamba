@@ -89,7 +89,7 @@ namespace mamba
             scheme = url_parsed.scheme();
             host = url_parsed.host();
             port = url_parsed.port();
-            path = url_parsed.pretty_path();
+            path = url_parsed.path();
             auth = url_parsed.authentication();
         }
 
@@ -126,7 +126,7 @@ namespace mamba
             const std::string& path
         )
         {
-            std::string spath = std::string(util::rstrip(path, "/"));
+            auto spath = std::string(util::rstrip(path, '/'));
             std::string url = URL()  //
                                   .set_scheme(scheme)
                                   .set_host(host)
@@ -135,16 +135,15 @@ namespace mamba
                                   .str(URL::StripScheme::yes);
 
             // Case 1: No path given, channel name is ""
-            if (spath == "")
+            if (spath.empty())
             {
-                URL handler;
-                handler.set_host(host).set_port(port);
+                auto l_url = URL().set_host(host).set_port(port).str(URL::StripScheme::yes);
                 return channel_configuration(
-                    std::string(util::rstrip(handler.str(), "/")),
-                    "",
-                    scheme,
-                    "",
-                    ""
+                    /* location= */ std::string(util::rstrip(l_url, '/')),
+                    /* name= */ "",
+                    /* scheme= */ scheme,
+                    /* auth= */ "",
+                    /* token= */ ""
                 );
             }
 
@@ -159,43 +158,56 @@ namespace mamba
                 std::string test_url = join_url(channel.location(), channel.name());
                 if (vector_is_prefix(util::split(test_url, "/"), util::split(url, "/")))
                 {
-                    auto subname = std::string(util::strip(url.replace(0u, test_url.size(), ""), "/"));
+                    auto subname = std::string(util::strip(url.replace(0u, test_url.size(), ""), '/'));
 
                     return channel_configuration(
-                        channel.location(),
-                        join_url(channel.name(), subname),
-                        scheme,
-                        channel.auth().value_or(""),
-                        channel.token().value_or("")
+                        /* location= */ channel.location(),
+                        /* name= */ join_url(channel.name(), subname),
+                        /* scheme= */ scheme,
+                        /* host= */ channel.auth().value_or(""),
+                        /* token= */ channel.token().value_or("")
                     );
                 }
             }
 
             // Case 5: channel_alias match
             const Channel& ca = channel_context.get_channel_alias();
-            if (ca.location() != "" && util::starts_with(url, ca.location()))
+            if (!ca.location().empty() && util::starts_with(url, ca.location()))
             {
-                auto name = std::string(util::strip(url.replace(0u, ca.location().size(), ""), "/"));
+                auto name = std::string(util::strip(url.replace(0u, ca.location().size(), ""), '/'));
                 return channel_configuration(
-                    ca.location(),
-                    name,
-                    scheme,
-                    ca.auth().value_or(""),
-                    ca.token().value_or("")
+                    /* location= */ ca.location(),
+                    /* name= */ name,
+                    /* scheme= */ scheme,
+                    /* host= */ ca.auth().value_or(""),
+                    /* token= */ ca.token().value_or("")
                 );
             }
 
             // Case 6: not-otherwise-specified file://-type urls
-            if (host == "")
+            if (host.empty() || ((host == URL::localhost) && port.empty()))
             {
                 auto sp = util::rsplit(url, "/", 1);
-                return channel_configuration(sp[0].size() ? sp[0] : "/", sp[1], "file", "", "");
+                return channel_configuration(
+                    /* location= */ sp[0].size() ? sp[0] : "/",
+                    /* name= */ sp[1],
+                    /* scheme= */ "file",
+                    /* host= */ "",
+                    /* token= */ ""
+                );
             }
 
             // Case 7: fallback, channel_location = host:port and channel_name = path
-            spath = util::lstrip(spath, "/");
-            std::string location = URL().set_host(host).set_port(port).str();
-            return channel_configuration(std::string(util::strip(location, "/")), spath, scheme, "", "");
+            spath = util::lstrip(spath, '/');
+            std::string location = URL().set_host(host).set_port(port).str(URL::StripScheme::yes);
+            location = util::rstrip(location, '/');
+            return channel_configuration(
+                /* location= */ location,
+                /* name= */ spath,
+                /* scheme= */ scheme,
+                /* host= */ "",
+                /* token= */ ""
+            );
         }
 
         std::vector<std::string> take_platforms(std::string& value)
@@ -428,7 +440,7 @@ namespace mamba
         std::string name(channel_name);
         std::string location, scheme, auth, token;
         split_scheme_auth_token(channel_url, location, scheme, auth, token);
-        if (scheme == "")
+        if (!url_has_scheme(channel_url))
         {
             location = channel_alias.location();
             scheme = channel_alias.scheme();
@@ -448,11 +460,12 @@ namespace mamba
             {
                 std::string full_url = concat_scheme_url(scheme, location);
                 const auto parser = URL::parse(full_url);
-                location = util::rstrip(URL().set_host(parser.host()).set_port(parser.port()).str(), "/");
-                name = util::lstrip(parser.pretty_path(), "/");
+                location = URL().set_host(parser.host()).set_port(parser.port()).str(URL::StripScheme::yes);
+                location = util::rstrip(location, '/');
+                name = util::lstrip(parser.pretty_path(), '/');
             }
         }
-        name = name != "" ? util::strip(name, "/") : util::strip(channel_url, "/");
+        name = name != "" ? util::strip(name, '/') : util::strip(channel_url, '/');
         return Channel(
             scheme,
             location,
@@ -543,13 +556,13 @@ namespace mamba
             }
 
             return Channel(
-                it->second.scheme(),
-                it->second.location(),
-                combined_name,
-                name,
-                it->second.auth(),
-                it->second.token(),
-                it->second.package_filename()
+                /*  .scheme= */ it->second.scheme(),
+                /*  .location= */ it->second.location(),
+                /*  .package_filename= */ combined_name,
+                /*  .name= */ name,
+                /*  .canonical_name= */ it->second.auth(),
+                /*  .auth= */ it->second.token(),
+                /*  .token= */ it->second.package_filename()
             );
         }
         else

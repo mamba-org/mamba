@@ -406,7 +406,7 @@ namespace mamba
 
     std::string path_to_url(const std::string& path)
     {
-        static const std::string file_scheme = "file://";
+        static constexpr std::string_view file_scheme = "file://";
         if (util::starts_with(path, file_scheme))
         {
             return path;
@@ -421,7 +421,7 @@ namespace mamba
         {
             util::replace_all(abs_path, "\\", "/");
         }
-        return file_scheme + abs_path;
+        return util::concat(file_scheme, abs_path);
     }
 
     std::string file_uri_unc2_to_unc4(std::string_view uri)

@@ -4,13 +4,12 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <stdexcept>
 #include <string>
 #include <string_view>
 
 #include <doctest/doctest.h>
 
-#include "mamba/core/context.hpp"
+#include "mamba/specs/platform.hpp"
 #include "mamba/util/url_manip.hpp"
 
 #ifdef _WIN32
@@ -19,7 +18,7 @@
 
 using namespace mamba::util;
 
-TEST_SUITE("url")
+TEST_SUITE("util::url_manip")
 {
     TEST_CASE("concat_scheme_url")
     {
@@ -53,13 +52,11 @@ TEST_SUITE("url")
 
     TEST_CASE("split_platform")
     {
-        auto& ctx = mamba::Context::instance();
-
         std::string platform_found, cleaned_url;
         split_platform(
             { "noarch", "linux-64" },
             "https://mamba.com/linux-64/package.tar.bz2",
-            ctx.platform,
+            std::string(mamba::specs::build_platform_name()),
             cleaned_url,
             platform_found
         );
@@ -70,7 +67,7 @@ TEST_SUITE("url")
         split_platform(
             { "noarch", "linux-64" },
             "https://mamba.com/linux-64/noarch-package.tar.bz2",
-            ctx.platform,
+            std::string(mamba::specs::build_platform_name()),
             cleaned_url,
             platform_found
         );
@@ -80,7 +77,7 @@ TEST_SUITE("url")
         split_platform(
             { "linux-64", "osx-arm64", "noarch" },
             "https://mamba.com/noarch/kernel_linux-64-package.tar.bz2",
-            ctx.platform,
+            std::string(mamba::specs::build_platform_name()),
             cleaned_url,
             platform_found
         );
@@ -90,7 +87,7 @@ TEST_SUITE("url")
         split_platform(
             { "noarch", "linux-64" },
             "https://mamba.com/linux-64",
-            ctx.platform,
+            std::string(mamba::specs::build_platform_name()),
             cleaned_url,
             platform_found
         );
@@ -101,7 +98,7 @@ TEST_SUITE("url")
         split_platform(
             { "noarch", "linux-64" },
             "https://mamba.com/noarch",
-            ctx.platform,
+            std::string(mamba::specs::build_platform_name()),
             cleaned_url,
             platform_found
         );

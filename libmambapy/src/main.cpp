@@ -191,7 +191,7 @@ PYBIND11_MODULE(bindings, m)
             {
                 return MultiPackageCache{
                     pkgs_dirs,
-                    mamba::ValidationOptions::from_context(mambapy::singletons().context)
+                    mambapy::singletons().context.validation_params,
                 };
             }
         ))
@@ -625,6 +625,13 @@ PYBIND11_MODULE(bindings, m)
         .def_readwrite("output_params", &Context::output_params)
         .def_readwrite("threads_params", &Context::threads_params)
         .def_readwrite("prefix_params", &Context::prefix_params);
+
+    py::class_<ValidationOptions>(ctx, "ValidationOptions")
+        .def_readwrite("safety_checks", &ValidationOptions::safety_checks)
+        .def_readwrite("extra_safety_checks", &ValidationOptions::extra_safety_checks)
+        .def_readwrite("verify_artifacts", &ValidationOptions::verify_artifacts);
+
+    ctx.def_readwrite("validation_params", &Context::validation_params);
 
     ////////////////////////////////////////////
     //    Support the old deprecated API     ///

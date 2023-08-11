@@ -836,7 +836,7 @@ namespace mamba
         auto& ctx = channel_context.context();
         DownloadExtractSemaphore::set_max(ctx.threads_params.extract_threads);
 
-        if (ctx.experimental && ctx.verify_artifacts)
+        if (ctx.experimental && ctx.validation_params.verify_artifacts)
         {
             LOG_INFO << "Content trust is enabled, package(s) signatures will be verified";
         }
@@ -845,7 +845,7 @@ namespace mamba
             m_solution.actions,
             [&](const auto& pkg)
             {
-                if (ctx.experimental && ctx.verify_artifacts)
+                if (ctx.experimental && ctx.validation_params.verify_artifacts)
                 {
                     const auto& repo_checker = channel_context.make_channel(pkg.channel)
                                                    .repo_checker(ctx, m_multi_cache);
@@ -868,7 +868,7 @@ namespace mamba
             }
         );
 
-        if (ctx.experimental && ctx.verify_artifacts)
+        if (ctx.experimental && ctx.validation_params.verify_artifacts)
         {
             auto out = Console::stream();
             fmt::print(

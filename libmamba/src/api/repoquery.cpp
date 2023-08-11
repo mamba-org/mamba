@@ -36,7 +36,7 @@ namespace mamba
         MPool pool{ channel_context };
 
         // bool installed = (type == QueryType::kDepends) || (type == QueryType::kWhoneeds);
-        MultiPackageCache package_caches(ctx.pkgs_dirs, ValidationOptions::from_context(ctx));
+        MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
         if (use_local)
         {
             if (format != QueryResultFormat::kJSON)

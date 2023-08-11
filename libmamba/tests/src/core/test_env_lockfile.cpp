@@ -140,7 +140,7 @@ namespace mamba
                                             / "env_lockfile/good_multiple_categories-lock.yaml" };
             ChannelContext channel_context{ ctx };
             MPool pool{ channel_context };
-            mamba::MultiPackageCache pkg_cache({ "/tmp/" }, ValidationOptions::from_context(ctx));
+            mamba::MultiPackageCache pkg_cache({ "/tmp/" }, ctx.validation_params);
 
             ctx.platform = "linux-64";
 

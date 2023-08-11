@@ -1014,18 +1014,18 @@ namespace mamba
                     config.at("safety_checks").value<VerificationLevel>(),
                     VerificationLevel::kEnabled
                 );
-                CHECK_EQ(ctx.safety_checks, VerificationLevel::kEnabled);
+                CHECK_EQ(ctx.validation_params.safety_checks, VerificationLevel::kEnabled);
 
                 load_test_config({ rc2, rc1, rc3 });
                 CHECK_EQ(config.at("safety_checks").value<VerificationLevel>(), VerificationLevel::kWarn);
-                CHECK_EQ(ctx.safety_checks, VerificationLevel::kWarn);
+                CHECK_EQ(ctx.validation_params.safety_checks, VerificationLevel::kWarn);
 
                 load_test_config({ rc3, rc1, rc3 });
                 CHECK_EQ(
                     config.at("safety_checks").value<VerificationLevel>(),
                     VerificationLevel::kDisabled
                 );
-                CHECK_EQ(ctx.safety_checks, VerificationLevel::kDisabled);
+                CHECK_EQ(ctx.validation_params.safety_checks, VerificationLevel::kDisabled);
 
                 env::set("MAMBA_SAFETY_CHECKS", "warn");
                 load_test_config(rc1);
@@ -1039,7 +1039,7 @@ namespace mamba
                     "safety_checks: warn  # 'MAMBA_SAFETY_CHECKS' > '" + src + "'"
                 );
                 CHECK_EQ(config.at("safety_checks").value<VerificationLevel>(), VerificationLevel::kWarn);
-                CHECK_EQ(ctx.safety_checks, VerificationLevel::kWarn);
+                CHECK_EQ(ctx.validation_params.safety_checks, VerificationLevel::kWarn);
 
                 config.at("safety_checks").set_yaml_value("disabled").compute();
                 CHECK_EQ(
@@ -1050,7 +1050,7 @@ namespace mamba
                     config.at("safety_checks").value<VerificationLevel>(),
                     VerificationLevel::kDisabled
                 );
-                CHECK_EQ(ctx.safety_checks, VerificationLevel::kDisabled);
+                CHECK_EQ(ctx.validation_params.safety_checks, VerificationLevel::kDisabled);
 
                 env::set("MAMBA_SAFETY_CHECKS", "yeap");
                 REQUIRE_THROWS_AS(load_test_config(rc2), std::runtime_error);
@@ -1059,7 +1059,7 @@ namespace mamba
                 load_test_config(rc2);
             }
 
-            TEST_BOOL_CONFIGURABLE(extra_safety_checks, ctx.extra_safety_checks);
+            TEST_BOOL_CONFIGURABLE(extra_safety_checks, ctx.validation_params.extra_safety_checks);
 
 #undef TEST_BOOL_CONFIGURABLE
 

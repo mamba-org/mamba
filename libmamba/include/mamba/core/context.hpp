@@ -32,10 +32,9 @@ namespace mamba
 
     struct ValidationOptions
     {
-        VerificationLevel safety_checks = VerificationLevel::kEnabled;
+        VerificationLevel safety_checks = VerificationLevel::kWarn;
         bool extra_safety_checks = false;
-
-        static ValidationOptions from_context(const Context&);
+        bool verify_artifacts = false;
     };
 
 
@@ -177,9 +176,7 @@ namespace mamba
         // add start menu shortcuts on Windows (not implemented on Linux / macOS)
         bool shortcuts = true;
 
-        VerificationLevel safety_checks = VerificationLevel::kWarn;
-        bool extra_safety_checks = false;
-        bool verify_artifacts = false;
+        ValidationOptions validation_params;
 
         // debug helpers
         bool keep_temp_files = false;

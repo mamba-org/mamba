@@ -91,7 +91,7 @@ namespace mamba
             MRepo(pool, prefix_data);
 
             const fs::u8path pkgs_dirs(ctx.prefix_params.root_prefix / "pkgs");
-            MultiPackageCache package_caches({ pkgs_dirs }, ValidationOptions::from_context(ctx));
+            MultiPackageCache package_caches({ pkgs_dirs }, ctx.validation_params);
 
             auto execute_transaction = [&](MTransaction& transaction)
             {

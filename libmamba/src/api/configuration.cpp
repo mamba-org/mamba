@@ -1521,7 +1521,7 @@ namespace mamba
                        "Install start-menu shortcuts on Windows (not implemented on Linux / macOS)"
                    ));
 
-        insert(Configurable("safety_checks", &m_context.safety_checks)
+        insert(Configurable("safety_checks", &m_context.validation_params.safety_checks)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names({ "CONDA_SAFETY_CHECKS", "MAMBA_SAFETY_CHECKS" })
@@ -1530,7 +1530,7 @@ namespace mamba
                         Enforce available safety guarantees during package installation. The
                         value must be one of 'enabled', 'warn', or 'disabled'.)")));
 
-        insert(Configurable("extra_safety_checks", &m_context.extra_safety_checks)
+        insert(Configurable("extra_safety_checks", &m_context.validation_params.extra_safety_checks)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names({ "CONDA_EXTRA_SAFETY_CHECKS", "MAMBA_EXTRA_SAFETY_CHECKS" })
@@ -1539,7 +1539,7 @@ namespace mamba
                         Spend extra time validating package contents. Currently, runs sha256
                         verification on every file within each package during installation.)")));
 
-        insert(Configurable("verify_artifacts", &m_context.verify_artifacts)
+        insert(Configurable("verify_artifacts", &m_context.validation_params.verify_artifacts)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()

@@ -340,7 +340,8 @@ namespace
         const std::vector<std::string>& platforms = { "linux-64", "noarch" }
     ) -> MSolver
     {
-        ChannelContext channel_context{ mambatests::context() };
+        auto& context = mambatests::context();
+        ChannelContext channel_context{ context };
         // Reusing the cache for all invocation of this funciton for speedup
         static const auto tmp_dir = dir_guard(
             fs::temp_directory_path() / "mamba/tests" / generate_random_alphanumeric_string(20)
@@ -354,10 +355,7 @@ namespace
         auto repo = MRepo{ pool, prefix_data };
         repo.set_installed();
 
-        auto cache = MultiPackageCache(
-            { tmp_dir.path / "cache" },
-            ValidationOptions::from_context(mambatests::context())
-        );
+        auto cache = MultiPackageCache({ tmp_dir.path / "cache" }, context.validation_params);
         create_cache_dir(cache.first_writable_path());
 
         bool prev_progress_bars_value = mambatests::context().graphics_params.no_progress_bars;

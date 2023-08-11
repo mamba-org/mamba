@@ -456,7 +456,7 @@ namespace mamba
             );
         }
 
-        MultiPackageCache package_caches{ ctx.pkgs_dirs, ValidationOptions::from_context(ctx) };
+        MultiPackageCache package_caches{ ctx.pkgs_dirs, ctx.validation_params };
 
         // add channels from specs
         for (const auto& s : specs)
@@ -646,7 +646,7 @@ namespace mamba
             }
             PrefixData& prefix_data = exp_prefix_data.value();
 
-            MultiPackageCache pkg_caches(ctx.pkgs_dirs, ValidationOptions::from_context(ctx));
+            MultiPackageCache pkg_caches(ctx.pkgs_dirs, ctx.validation_params);
             prefix_data.add_packages(get_virtual_packages(ctx));
             MRepo(pool, prefix_data);  // Potentially re-alloc (moves in memory) Solvables
                                        // in the pool

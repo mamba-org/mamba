@@ -132,14 +132,6 @@ namespace mamba
         }
     }
 
-    ValidationOptions ValidationOptions::from_context(const Context& context)
-    {
-        return {
-            /* .safety_checks = */ context.safety_checks,
-            /* .extra_safety_checks = */ context.extra_safety_checks,
-        };
-    }
-
     Context::~Context() = default;
 
     void Context::set_verbosity(int lvl)
@@ -354,7 +346,7 @@ namespace mamba
         PRINT_CTX(out, override_channels_enabled);
         PRINT_CTX(out, use_only_tar_bz2);
         PRINT_CTX(out, auto_activate_base);
-        PRINT_CTX(out, extra_safety_checks);
+        PRINT_CTX(out, validation_params.extra_safety_checks);
         PRINT_CTX(out, threads_params.download_threads);
         PRINT_CTX(out, output_params.verbosity);
         PRINT_CTX(out, channel_alias);

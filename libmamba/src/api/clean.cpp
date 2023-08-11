@@ -44,7 +44,7 @@ namespace mamba
 
         std::vector<fs::u8path> envs;
 
-        MultiPackageCache caches(ctx.pkgs_dirs, ValidationOptions::from_context(ctx));
+        MultiPackageCache caches(ctx.pkgs_dirs, ctx.validation_params);
         if (!ctx.dry_run && (clean_index || clean_all))
         {
             Console::stream() << "Cleaning index cache..";

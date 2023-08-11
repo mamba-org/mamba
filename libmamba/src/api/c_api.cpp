@@ -20,9 +20,12 @@
 
 
 mamba::Context*
-mamba_new_context()
+mamba_new_context(mamba::ContextOptions* options)
 {
-    return new mamba::Context;
+    if(options)
+        return new mamba::Context{ *options };
+    else
+        return new mamba::Context;
 }
 
 void

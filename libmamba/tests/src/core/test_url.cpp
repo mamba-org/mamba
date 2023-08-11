@@ -367,6 +367,23 @@ TEST_SUITE("url")
         CHECK_EQ(url.authentication(), "user:password");
     }
 
+    TEST_CASE("URL::authority")
+    {
+        URL url{};
+        url.set_scheme("https")
+            .set_host("mamba.org")
+            .set_path("/folder/file.html")
+            .set_query("param=value")
+            .set_fragment("fragment");
+        CHECK_EQ(url.authority(), "mamba.org");
+        url.set_port("8000");
+        CHECK_EQ(url.authority(), "mamba.org:8000");
+        url.set_user("user");
+        CHECK_EQ(url.authority(), "user@mamba.org:8000");
+        url.set_password("password");
+        CHECK_EQ(url.authority(), "user:password@mamba.org:8000");
+    }
+
     TEST_CASE("path_to_url")
     {
         auto url = path_to_url("/users/test/miniconda3");

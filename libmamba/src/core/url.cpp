@@ -551,38 +551,6 @@ namespace mamba
         return out;
     }
 
-    auto URL::str(StripScheme strip) const -> std::string
-    {
-        // Not showing "localhost" on file URI
-        std::string_view computed_host = m_host;
-        if ((m_scheme == "file") && (m_host == localhost))
-        {
-            computed_host = "";
-        }
-        // When stripping file scheme, not showing leading '/' for Windows path with drive
-        std::string_view computed_path = m_path;
-        if ((m_scheme == "file") && (strip == StripScheme::yes) && computed_host.empty())
-        {
-            computed_path = pretty_path();
-        }
-        return concat(
-            (strip == StripScheme::no) ? m_scheme : "",
-            (strip == StripScheme::no) ? "://" : "",
-            m_user,
-            m_password.empty() ? "" : ":",
-            m_password,
-            m_user.empty() ? "" : "@",
-            computed_host,
-            m_port.empty() ? "" : ":",
-            m_port,
-            computed_path,
-            m_query.empty() ? "" : "?",
-            m_query,
-            m_fragment.empty() ? "" : "#",
-            m_fragment
-        );
-    }
-
     auto URL::scheme() const -> const std::string&
     {
         return m_scheme;
@@ -628,13 +596,6 @@ namespace mamba
         return m_fragment;
     }
 
-    auto URL::authentication() const -> std::string
-    {
-        const auto& u = user();
-        const auto& p = password();
-        return p.empty() ? u : concat(u, ':', p);
-    }
-
     auto URL::user() const -> const std::string&
     {
         return m_user;
@@ -643,6 +604,58 @@ namespace mamba
     auto URL::password() const -> const std::string&
     {
         return m_password;
+    }
+
+    auto URL::authentication() const -> std::string
+    {
+        const auto& u = user();
+        const auto& p = password();
+        return p.empty() ? u : concat(u, ':', p);
+    }
+
+    auto URL::str(StripScheme strip) const -> std::string
+    {
+        // Not showing "localhost" on file URI
+        std::string_view computed_host = m_host;
+        if ((m_scheme == "file") && (m_host == localhost))
+        {
+            computed_host = "";
+        }
+        // When stripping file scheme, not showing leading '/' for Windows path with drive
+        std::string_view computed_path = m_path;
+        if ((m_scheme == "file") && (strip == StripScheme::yes) && computed_host.empty())
+        {
+            computed_path = pretty_path();
+        }
+        return concat(
+            (strip == StripScheme::no) ? m_scheme : "",
+            (strip == StripScheme::no) ? "://" : "",
+            m_user,
+            m_password.empty() ? "" : ":",
+            m_password,
+            m_user.empty() ? "" : "@",
+            computed_host,
+            m_port.empty() ? "" : ":",
+            m_port,
+            computed_path,
+            m_query.empty() ? "" : "?",
+            m_query,
+            m_fragment.empty() ? "" : "#",
+            m_fragment
+        );
+    }
+
+    auto URL::authority() const -> std::string
+    {
+        return concat(
+            m_user,
+            m_password.empty() ? "" : ":",
+            m_password,
+            m_user.empty() ? "" : "@",
+            m_host,
+            m_port.empty() ? "" : ":",
+            m_port
+        );
     }
 
     URL& URL::set_scheme(std::string_view scheme)

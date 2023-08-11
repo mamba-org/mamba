@@ -118,8 +118,9 @@ namespace mamba
         [[nodiscard]] auto user() const -> const std::string&;
         [[nodiscard]] auto password() const -> const std::string&;
 
-        [[nodiscard]] auto str(StripScheme opt = StripScheme::no) const -> std::string;
+        [[nodiscard]] auto authority() const -> std::string;
         [[nodiscard]] auto authentication() const -> std::string;
+        [[nodiscard]] auto str(StripScheme opt = StripScheme::no) const -> std::string;
 
         URL& set_scheme(std::string_view scheme);
         URL& set_host(std::string_view host);

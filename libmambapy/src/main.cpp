@@ -627,12 +627,13 @@ PYBIND11_MODULE(bindings, m)
         .def_readwrite("threads_params", &Context::threads_params)
         .def_readwrite("prefix_params", &Context::prefix_params);
 
-    py::class_<ValidationOptions>(ctx, "ValidationOptions")
-        .def_readwrite("safety_checks", &ValidationOptions::safety_checks)
-        .def_readwrite("extra_safety_checks", &ValidationOptions::extra_safety_checks)
-        .def_readwrite("verify_artifacts", &ValidationOptions::verify_artifacts);
+    // TODO: uncomment these parameters once they are made available to Python api.
+    // py::class_<ValidationOptions>(ctx, "ValidationOptions")
+    //     .def_readwrite("safety_checks", &ValidationOptions::safety_checks)
+    //     .def_readwrite("extra_safety_checks", &ValidationOptions::extra_safety_checks)
+    //     .def_readwrite("verify_artifacts", &ValidationOptions::verify_artifacts);
 
-    ctx.def_readwrite("validation_params", &Context::validation_params);
+    // ctx.def_readwrite("validation_params", &Context::validation_params);
 
     ////////////////////////////////////////////
     //    Support the old deprecated API     ///

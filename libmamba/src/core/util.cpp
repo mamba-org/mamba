@@ -38,6 +38,7 @@ extern "C"
 #include <mutex>
 #include <optional>
 #include <unordered_map>
+#include <regex>
 
 #include <openssl/evp.h>
 
@@ -1347,7 +1348,7 @@ namespace mamba
     }
 
     std::unique_ptr<TemporaryFile> wrap_call(
-        const Context& context,
+        const Context& [[maybe_unused]] context,
         const fs::u8path& root_prefix,
         const fs::u8path& prefix,
         const std::vector<std::string>& arguments,
@@ -1499,7 +1500,7 @@ namespace mamba
         return tf;
     }
 
-    std::tuple<std::vector<std::string>, std::unique_ptr<TemporaryFile>> prepare_wrapped_call(
+    PreparedWrappedCall prepare_wrapped_call(
         const Context& context,
         const fs::u8path& prefix,
         const std::vector<std::string>& cmd
@@ -1553,7 +1554,7 @@ namespace mamba
             command_args.push_back(shell_path.string());
             command_args.push_back(script_file->path().string());
         }
-        return std::make_tuple(command_args, std::move(script_file));
+        return { command_args, std::move(script_file) };
     }
 
     bool is_yaml_file_name(std::string_view filename)

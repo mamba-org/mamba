@@ -400,7 +400,13 @@ namespace mamba
         WrappedCallOptions options = {}
     );
 
-    std::tuple<std::vector<std::string>, std::unique_ptr<TemporaryFile>> prepare_wrapped_call(
+    struct PreparedWrappedCall
+    {
+        std::vector<std::string> wrapped_command;
+        std::unique_ptr<TemporaryFile> temporary_file;
+    };
+
+    PreparedWrappedCall prepare_wrapped_call(
         const Context& context,
         const fs::u8path& prefix,
         const std::vector<std::string>& cmd

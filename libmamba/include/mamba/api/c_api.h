@@ -12,12 +12,16 @@ namespace mamba
     class Context;
     class Configuration;
     struct ContextOptions;
+    class MainExecutor;
 }
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
+
+    mamba::MainExecutor* mamba_new_main_executor();
+    void mamba_delete_main_executor(mamba::MainExecutor* main_executor);
 
     mamba::Context* mamba_new_context(mamba::ContextOptions* options);
     void mamba_delete_context(mamba::Context* context);

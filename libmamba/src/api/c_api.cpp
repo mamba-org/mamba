@@ -17,7 +17,19 @@
 #include "mamba/api/remove.hpp"
 #include "mamba/api/update.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/execution.hpp"
 
+mamba::MainExecutor*
+mamba_new_main_executor()
+{
+    return new mamba::MainExecutor;
+}
+
+void
+mamba_delete_main_executor(mamba::MainExecutor* main_executor)
+{
+    delete main_executor;
+}
 
 mamba::Context*
 mamba_new_context(mamba::ContextOptions* options)

@@ -51,6 +51,8 @@ namespace mamba::specs
                 return "win-32";
             case Platform::win_64:
                 return "win-64";
+            case Platform::win_arm64:
+                return "win-arm64";
             default:
                 // All enum cases must be handled
                 assert(false);
@@ -76,6 +78,7 @@ namespace mamba::specs
                  Platform::osx_arm64,
                  Platform::win_32,
                  Platform::win_64,
+                 Platform::win_arm64,
              })
         {
             if (str_clean == platform_name(p))
@@ -136,7 +139,13 @@ namespace mamba::specs
 #endif
 
 #elif defined(_WIN64)
+#if defined(_M_AMD64)
         return Platform::win_64;
+#elif defined(_M_ARM64)
+        return Platform::win_arm64;
+#else
+#error "Unknown Windows platform"
+#endif
 #elif defined(_WIN32)
         return Platform::win_32;
 

@@ -48,7 +48,7 @@ namespace mamba
         const std::vector<std::string> KNOWN_PLATFORMS = {
             "noarch",       "linux-32",      "linux-64",    "linux-aarch64", "linux-armv6l",
             "linux-armv7l", "linux-ppc64le", "linux-ppc64", "osx-64",        "osx-arm64",
-            "win-32",       "win-64",        "zos-z"
+            "win-32",       "win-64",        "win-arm64",   "zos-z"
         };
     }  // namespace
 

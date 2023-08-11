@@ -85,8 +85,6 @@ namespace mamba::util
      */
     std::string file_uri_unc2_to_unc4(std::string_view url);
 
-    std::string encode_url(const std::string& url);
-    std::string decode_url(const std::string& url);
     // Only returns a cache name without extension
     std::string cache_name_from_url(const std::string& url);
 

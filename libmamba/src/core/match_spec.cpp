@@ -79,7 +79,7 @@ namespace mamba
 
         if (is_package_file(spec_str))
         {
-            if (!has_scheme(spec_str))
+            if (!url_has_scheme(spec_str))
             {
                 LOG_INFO << "need to expand path!";
                 spec_str = path_to_url(fs::absolute(env::expand_user(spec_str)).string());

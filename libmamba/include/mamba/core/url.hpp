@@ -32,14 +32,22 @@ namespace mamba
         std::string& platform
     );
 
-    [[nodiscard]] auto get_scheme(std::string_view url) -> std::string_view;
+    /**
+     * If @p url starts with a scheme, return it, otherwise return empty string.
+     *
+     * Does not include "://"
+     */
+    [[nodiscard]] auto url_get_scheme(std::string_view url) -> std::string_view;
 
-    [[nodiscard]] auto has_scheme(std::string_view url) -> bool;
+    /**
+     * Retrun true if @p url starts with a URL scheme.
+     */
+    [[nodiscard]] auto url_has_scheme(std::string_view url) -> bool;
 
     /**
      * Check if a Windows path (not URL) starts with a drive letter.
      */
-    [[nodiscard]] auto has_drive_letter(std::string_view path) -> bool;
+    [[nodiscard]] auto path_has_drive_letter(std::string_view path) -> bool;
 
     void split_anaconda_token(const std::string& url, std::string& cleaned_url, std::string& token);
 

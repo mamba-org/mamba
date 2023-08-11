@@ -346,36 +346,36 @@ TEST_SUITE("url")
         CHECK_EQ(file_uri_unc2_to_unc4("file://server"), "file:////server");
     }
 
-    TEST_CASE("get_scheme")
+    TEST_CASE("url_get_scheme")
     {
-        CHECK_EQ(get_scheme("http://mamba.org"), "http");
-        CHECK_EQ(get_scheme("file:///folder/file.txt"), "file");
-        CHECK_EQ(get_scheme("s3://bucket/file.txt"), "s3");
-        CHECK_EQ(get_scheme("mamba.org"), "");
-        CHECK_EQ(get_scheme("://"), "");
-        CHECK_EQ(get_scheme("f#gre://"), "");
-        CHECK_EQ(get_scheme(""), "");
+        CHECK_EQ(url_get_scheme("http://mamba.org"), "http");
+        CHECK_EQ(url_get_scheme("file:///folder/file.txt"), "file");
+        CHECK_EQ(url_get_scheme("s3://bucket/file.txt"), "s3");
+        CHECK_EQ(url_get_scheme("mamba.org"), "");
+        CHECK_EQ(url_get_scheme("://"), "");
+        CHECK_EQ(url_get_scheme("f#gre://"), "");
+        CHECK_EQ(url_get_scheme(""), "");
     }
 
-    TEST_CASE("has_scheme")
+    TEST_CASE("url_has_scheme")
     {
-        CHECK(has_scheme("http://mamba.org"));
-        CHECK(has_scheme("file:///folder/file.txt"));
-        CHECK(has_scheme("s3://bucket/file.txt"));
-        CHECK_FALSE(has_scheme("mamba.org"));
-        CHECK_FALSE(has_scheme("://"));
-        CHECK_FALSE(has_scheme("f#gre://"));
-        CHECK_FALSE(has_scheme(""));
+        CHECK(url_has_scheme("http://mamba.org"));
+        CHECK(url_has_scheme("file:///folder/file.txt"));
+        CHECK(url_has_scheme("s3://bucket/file.txt"));
+        CHECK_FALSE(url_has_scheme("mamba.org"));
+        CHECK_FALSE(url_has_scheme("://"));
+        CHECK_FALSE(url_has_scheme("f#gre://"));
+        CHECK_FALSE(url_has_scheme(""));
     }
 
-    TEST_CASE("has_drive_letter")
+    TEST_CASE("path_has_drive_letter")
     {
-        CHECK(has_drive_letter("C:/folder/file"));
-        CHECK(has_drive_letter(R"(C:\folder\file)"));
-        CHECK_FALSE(has_drive_letter("/folder/file"));
-        CHECK_FALSE(has_drive_letter("folder/file"));
-        CHECK_FALSE(has_drive_letter(R"(\folder\file)"));
-        CHECK_FALSE(has_drive_letter(R"(folder\file)"));
+        CHECK(path_has_drive_letter("C:/folder/file"));
+        CHECK(path_has_drive_letter(R"(C:\folder\file)"));
+        CHECK_FALSE(path_has_drive_letter("/folder/file"));
+        CHECK_FALSE(path_has_drive_letter("folder/file"));
+        CHECK_FALSE(path_has_drive_letter(R"(\folder\file)"));
+        CHECK_FALSE(path_has_drive_letter(R"(folder\file)"));
     }
 
     TEST_CASE("split_ananconda_token")

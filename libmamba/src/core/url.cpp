@@ -317,7 +317,7 @@ namespace mamba
         cleaned_url = util::rstrip(cleaned_url, "/");
     }
 
-    auto get_scheme(std::string_view url) -> std::string_view
+    auto url_get_scheme(std::string_view url) -> std::string_view
     {
         static constexpr auto is_scheme_char = [](char c) -> bool
         { return is_alphanum(c) || (c == '.') || (c == '-') || (c == '_'); };
@@ -334,12 +334,12 @@ namespace mamba
         return "";
     }
 
-    auto has_scheme(std::string_view url) -> bool
+    auto url_has_scheme(std::string_view url) -> bool
     {
-        return !get_scheme(url).empty();
+        return !url_get_scheme(url).empty();
     }
 
-    auto has_drive_letter(std::string_view path) -> bool
+    auto path_has_drive_letter(std::string_view path) -> bool
     {
         static constexpr auto is_drive_char = [](char c) -> bool { return is_alphanum(c); };
 
@@ -542,7 +542,7 @@ namespace mamba
         if (opt == SchemeOpt::remove_if_present)
         {
         }
-        else if (auto scheme = get_scheme(url); !scheme.empty())
+        else if (auto scheme = url_get_scheme(url); !scheme.empty())
         {
             out.set_scheme(scheme);
         }

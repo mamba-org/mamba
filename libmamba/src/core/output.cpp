@@ -268,11 +268,11 @@ namespace mamba
     public:
 
         ConsoleData(const Context& ctx)
-            : context(ctx)
+            : m_context(ctx)
         {
         }
 
-        const Context& context;
+        const Context& m_context;
 
         std::mutex m_mutex;
         std::unique_ptr<ProgressBarManager> p_progress_bar_manager;
@@ -284,7 +284,7 @@ namespace mamba
 
         std::vector<std::string> m_buffer;
 
-        TaskSynchronizer tasksync;
+        TaskSynchronizer m_tasksync;
     };
 
     Console::Console(const Context& context)
@@ -294,7 +294,7 @@ namespace mamba
 
         init_progress_bar_manager(ProgressBarMode::multi);
         MainExecutor::instance().on_close(
-            p_data->tasksync.synchronized([this] { terminate_progress_bar_manager(); })
+            p_data->m_tasksync.synchronized([this] { terminate_progress_bar_manager(); })
         );
 #ifdef _WIN32
         // initialize ANSI codes on Win terminals
@@ -316,7 +316,7 @@ namespace mamba
 
     const Context& Console::context() const
     {
-        return p_data->context;
+        return p_data->m_context;
     }
 
 

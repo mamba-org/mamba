@@ -368,6 +368,16 @@ TEST_SUITE("url")
         CHECK_FALSE(has_scheme(""));
     }
 
+    TEST_CASE("has_drive_letter")
+    {
+        CHECK(has_drive_letter("C:/folder/file"));
+        CHECK(has_drive_letter(R"(C:\folder\file)"));
+        CHECK_FALSE(has_drive_letter("/folder/file"));
+        CHECK_FALSE(has_drive_letter("folder/file"));
+        CHECK_FALSE(has_drive_letter(R"(\folder\file)"));
+        CHECK_FALSE(has_drive_letter(R"(folder\file)"));
+    }
+
     TEST_CASE("split_ananconda_token")
     {
         std::string input, cleaned_url, token;

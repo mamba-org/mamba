@@ -339,6 +339,15 @@ namespace mamba
         return !get_scheme(url).empty();
     }
 
+    auto has_drive_letter(std::string_view path) -> bool
+    {
+        static constexpr auto is_drive_char = [](char c) -> bool { return is_alphanum(c); };
+
+        auto [drive, rest] = lstrip_if_parts(path, is_drive_char);
+        return !drive.empty() && (rest.size() >= 2) && (rest[0] == ':')
+               && ((rest[1] == '/') || (rest[1] == '\\'));
+    }
+
     void split_anaconda_token(const std::string& url, std::string& cleaned_url, std::string& token)
     {
         auto token_begin = std::sregex_iterator(url.begin(), url.end(), Context::instance().token_regex);

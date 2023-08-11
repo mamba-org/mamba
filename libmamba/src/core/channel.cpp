@@ -132,7 +132,7 @@ namespace mamba
                                   .set_host(host)
                                   .set_port(port)
                                   .set_path(spath)
-                                  .str(URL::SchemeOpt::remove_if_present);
+                                  .str(URL::StripScheme::yes);
 
             // Case 1: No path given, channel name is ""
             if (spath == "")

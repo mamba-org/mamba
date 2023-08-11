@@ -95,17 +95,16 @@ namespace mamba
     {
     public:
 
-        inline static constexpr std::string_view default_scheme = "https";
-
-        enum class SchemeOpt
+        enum class StripScheme : bool
         {
-            leave_as_is,
-            add_if_abscent,
-            remove_if_present,
+            no,
+            yes,
         };
 
-        [[nodiscard]] static auto
-        parse(std::string_view url, SchemeOpt opt = SchemeOpt::leave_as_is) -> URL;
+        inline static constexpr std::string_view https = "https";
+        inline static constexpr std::string_view localhost = "localhost";
+
+        [[nodiscard]] static auto parse(std::string_view url) -> URL;
 
         URL() = default;
 
@@ -118,7 +117,7 @@ namespace mamba
         [[nodiscard]] auto user() const -> const std::string&;
         [[nodiscard]] auto password() const -> const std::string&;
 
-        [[nodiscard]] auto str(SchemeOpt opt = SchemeOpt::leave_as_is) const -> std::string;
+        [[nodiscard]] auto str(StripScheme opt = StripScheme::no) const -> std::string;
         [[nodiscard]] auto auth() const -> std::string;
 
         URL& set_scheme(std::string_view scheme);
@@ -132,10 +131,10 @@ namespace mamba
 
     private:
 
-        std::string m_scheme = {};
+        std::string m_scheme = std::string(https);
         std::string m_user = {};
         std::string m_password = {};
-        std::string m_host = {};
+        std::string m_host = std::string(localhost);
         std::string m_path = "/";
         std::string m_port = {};
         std::string m_query = {};

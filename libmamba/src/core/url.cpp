@@ -382,10 +382,9 @@ namespace mamba
         URL url_parsed = URL::parse(cleaned_url);
         scheme = url_parsed.scheme();
         auth = url_parsed.auth();
-        url_parsed.set_scheme("");
         url_parsed.set_user("");
         url_parsed.set_password("");
-        remaining_url = rstrip(url_parsed.str(), "/");
+        remaining_url = rstrip(url_parsed.str(URL::StripScheme::yes), '/');
     }
 
     bool compare_cleaned_url(const std::string& url1, const std::string& url2)
@@ -533,65 +532,35 @@ namespace mamba
      * URLHandler implementation *
      *****************************/
 
-    auto URL::parse(std::string_view url, SchemeOpt opt) -> URL
+    auto URL::parse(std::string_view url) -> URL
     {
         auto out = URL();
-        // CURL fails to parse the URL if no scheme is given, unless CURLU_DEFAULT_SCHEME
-        // is given, but in this case, we loose the information about whether it was in the
-        // original URL, so we parse it manually.
-        if (opt == SchemeOpt::remove_if_present)
-        {
-        }
-        else if (auto scheme = url_get_scheme(url); !scheme.empty())
-        {
-            out.set_scheme(scheme);
-        }
-        else if (opt == SchemeOpt::add_if_abscent)
-        {
-            out.set_scheme(URL::default_scheme);
-        }
-
+        // CURL fails to parse the URL if no scheme is given, unless CURLU_DEFAULT_SCHEME is given
         const CURLUrl handle = {
             file_uri_unc2_to_unc4(url),
             CURLU_NON_SUPPORT_SCHEME | CURLU_DEFAULT_SCHEME,
         };
-        out.set_user(handle.get_part(CURLUPART_USER).value_or(""))
+        out.set_scheme(handle.get_part(CURLUPART_SCHEME).value_or(std::string(URL::https)))
+            .set_user(handle.get_part(CURLUPART_USER).value_or(""))
             .set_password(handle.get_part(CURLUPART_PASSWORD).value_or(""))
-            .set_host(handle.get_part(CURLUPART_HOST).value_or(""))
-            .set_path(handle.get_part(CURLUPART_PATH).value_or(""))
+            .set_host(handle.get_part(CURLUPART_HOST).value_or(std::string(URL::localhost)))
+            .set_path(handle.get_part(CURLUPART_PATH).value_or("/"))
             .set_port(handle.get_part(CURLUPART_PORT).value_or(""))
             .set_query(handle.get_part(CURLUPART_QUERY).value_or(""))
             .set_fragment(handle.get_part(CURLUPART_FRAGMENT).value_or(""));
         return out;
     }
 
-    auto URL::str(SchemeOpt opt) const -> std::string
+    auto URL::str(StripScheme strip) const -> std::string
     {
-        std::string_view const computed_scheme = [&]() -> std::string_view
-        {
-            if (opt == SchemeOpt::remove_if_present)
-            {
-                return "";
-            }
-            if (!m_scheme.empty())
-            {
-                return m_scheme;
-            }
-            else if (opt == SchemeOpt::add_if_abscent)
-            {
-                return URL::default_scheme;
-            }
-            return "";
-        }();
-
         return concat(
-            computed_scheme,
-            computed_scheme.empty() ? "" : "://",
+            (strip == StripScheme::no) ? m_scheme : "",
+            (strip == StripScheme::no) ? "://" : "",
             m_user,
             m_password.empty() ? "" : ":",
             m_password,
             m_user.empty() ? "" : "@",
-            m_host,
+            ((m_scheme != "file") || (m_host != localhost)) ? m_host : "",
             m_port.empty() ? "" : ":",
             m_port,
             m_path,
@@ -636,7 +605,7 @@ namespace mamba
     {
         const auto& u = user();
         const auto& p = password();
-        return (p != "") ? concat(u, ':', p) : u;
+        return p.empty() ? u : concat(u, ':', p);
     }
 
     auto URL::user() const -> const std::string&
@@ -651,19 +620,28 @@ namespace mamba
 
     URL& URL::set_scheme(std::string_view scheme)
     {
+        if (scheme.empty())
+        {
+            throw std::invalid_argument("Cannot set empty scheme");
+        }
         m_scheme = scheme;
         return *this;
     }
 
     URL& URL::set_host(std::string_view host)
     {
+        if (host.empty())
+        {
+            throw std::invalid_argument("Cannot set empty host");
+        }
         m_host = host;
         return *this;
     }
 
     URL& URL::set_path(std::string_view path)
     {
-        if (!starts_with(path, '/'))
+        // All paths start with a '/' except those like "file://C:/folder/file.txt"
+        if (!starts_with(path, '/') && ((m_scheme != "file") || !path_has_drive_letter(path)))
         {
             m_path.reserve(path.size() + 1);
             m_path = '/';
@@ -696,12 +674,20 @@ namespace mamba
 
     URL& URL::set_user(std::string_view user)
     {
+        if (user.empty())
+        {
+            m_password = "";
+        }
         m_user = user;
         return *this;
     }
 
     URL& URL::set_password(std::string_view password)
     {
+        if (!password.empty() && m_user.empty())
+        {
+            throw std::invalid_argument("Cannot set password without user");
+        }
         m_password = password;
         return *this;
     }

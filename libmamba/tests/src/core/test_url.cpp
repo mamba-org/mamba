@@ -275,6 +275,35 @@ TEST_SUITE("url")
             CHECK_EQ(url.fragment(), "");
 #endif
         }
+
+        SUBCASE("https://169.254.0.0/page")
+        {
+            const URL url = URL::parse("https://169.254.0.0/page");
+            CHECK_EQ(url.scheme(), "https");
+            CHECK_EQ(url.host(), "169.254.0.0");
+            CHECK_EQ(url.path(), "/page");
+            CHECK_EQ(url.pretty_path(), "/page");
+            CHECK_EQ(url.user(), "");
+            CHECK_EQ(url.password(), "");
+            CHECK_EQ(url.port(), "");
+            CHECK_EQ(url.query(), "");
+            CHECK_EQ(url.fragment(), "");
+        }
+
+        SUBCASE("ftp://user:pass@[2001:db8:85a3:8d3:1319:0:370:7348]:9999/page")
+        {
+            const URL url = URL::parse("ftp://user:pass@[2001:db8:85a3:8d3:1319:0:370:7348]:9999/page"
+            );
+            CHECK_EQ(url.scheme(), "ftp");
+            CHECK_EQ(url.host(), "[2001:db8:85a3:8d3:1319:0:370:7348]");
+            CHECK_EQ(url.path(), "/page");
+            CHECK_EQ(url.pretty_path(), "/page");
+            CHECK_EQ(url.user(), "user");
+            CHECK_EQ(url.password(), "pass");
+            CHECK_EQ(url.port(), "9999");
+            CHECK_EQ(url.query(), "");
+            CHECK_EQ(url.fragment(), "");
+        }
     }
 
     TEST_CASE("URL::str")

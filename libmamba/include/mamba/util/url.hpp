@@ -77,11 +77,14 @@ namespace mamba::util
         /** Return the undecoded basic authentication string. */
         [[nodiscard]] auto authentication() const -> std::string;
 
-        /** Return the host, always non-empty. */
-        [[nodiscard]] auto host() const -> const std::string&;
+        /** Return the undecoded host, always non-empty. */
+        [[nodiscard]] auto host(Decode::no_type) const -> const std::string&;
+
+        /** Return the decoded host, always non-empty. */
+        [[nodiscard]] auto host(Decode::yes_type = Decode::yes) const -> std::string;
 
         /** Set a non-empty host. */
-        auto set_host(std::string_view host) -> URL&;
+        auto set_host(std::string_view host, Encode encode = Encode::yes) -> URL&;
 
         /** Return the port, or empty if none. */
         [[nodiscard]] auto port() const -> const std::string&;

@@ -94,6 +94,9 @@ TEST_SUITE("util::URL")
             url.set_password(R"(#!$&'"ab23)", URL::Encode::yes);
             CHECK_EQ(url.password(URL::Decode::no), "%23%21%24%26%27%22ab23");
             CHECK_EQ(url.password(URL::Decode::yes), R"(#!$&'"ab23)");
+            url.set_host("micro#mamba.org", URL::Encode::yes);
+            CHECK_EQ(url.host(URL::Decode::no), "micro%23mamba.org");
+            CHECK_EQ(url.host(URL::Decode::yes), "micro#mamba.org");
         }
     }
 

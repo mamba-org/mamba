@@ -258,18 +258,32 @@ namespace mamba::util
         return p.empty() ? u : util::concat(u, ':', p);
     }
 
-    auto URL::host() const -> const std::string&
+    auto URL::host(Decode::no_type) const -> const std::string&
     {
         return m_host;
     }
 
-    auto URL::set_host(std::string_view host) -> URL&
+    auto URL::host(Decode::yes_type) const -> std::string
     {
-        if (host.empty())
+        return url_decode(m_host);
+    }
+
+    auto URL::set_host(std::string_view host, Encode encode) -> URL&
+    {
+        std::string new_host = {};
+        if (encode == Encode::yes)
+        {
+            new_host = url_encode(host);
+        }
+        else
+        {
+            new_host = util::strip(host);  // spaces are illegal if not encoded
+        }
+        if (new_host.empty())
         {
             throw std::invalid_argument("Cannot set empty host");
         }
-        m_host = util::to_lower(util::rstrip(host));
+        m_host = util::to_lower(new_host);
         return *this;
     }
 

@@ -44,19 +44,19 @@ namespace mamba::util
         [[nodiscard]] auto scheme() const -> const std::string&;
 
         /** Set a non-empty scheme. */
-        URL& set_scheme(std::string_view scheme);
+        auto set_scheme(std::string_view scheme) -> URL&;
 
         /** Return the user, or empty if none. */
         [[nodiscard]] auto user() const -> const std::string&;
 
         /** Set or clear the user. */
-        URL& set_user(std::string_view user);
+        auto set_user(std::string_view user) -> URL&;
 
         /** Return the password, or empty if none. */
         [[nodiscard]] auto password() const -> const std::string&;
 
         /** Set or clear the password. */
-        URL& set_password(std::string_view password);
+        auto set_password(std::string_view password) -> URL&;
 
         /** Return the basic authetification string. */
         [[nodiscard]] auto authentication() const -> std::string;
@@ -65,13 +65,13 @@ namespace mamba::util
         [[nodiscard]] auto host() const -> const std::string&;
 
         /** Set a non-empty host. */
-        URL& set_host(std::string_view host);
+        auto set_host(std::string_view host) -> URL&;
 
         /** Return the port, or empty if none. */
         [[nodiscard]] auto port() const -> const std::string&;
 
         /** Set or clear the port. */
-        URL& set_port(std::string_view port);
+        auto set_port(std::string_view port) -> URL&;
 
         /** Return the autority part of the URL. */
         [[nodiscard]] auto authority() const -> std::string;
@@ -88,19 +88,27 @@ namespace mamba::util
         [[nodiscard]] auto pretty_path() const -> std::string_view;
 
         /** Set the path, a leading '/' is added if abscent. */
-        URL& set_path(std::string_view path);
+        auto set_path(std::string_view path) -> URL&;
+
+        /**
+         * Append a sub path to the current path.
+         *
+         * Contrary to `std::filesystem::path::append`, this always append and never replace
+         * the current path, even if @p subpath starts with a '/'.
+         */
+        auto append_path(std::string_view subpath) -> URL&;
 
         /** Return the query, or empty if none. */
         [[nodiscard]] auto query() const -> const std::string&;
 
         /** Set or clear the query. */
-        URL& set_query(std::string_view query);
+        auto set_query(std::string_view query) -> URL&;
 
         /** Return the fragment, or empty if none. */
         [[nodiscard]] auto fragment() const -> const std::string&;
 
         /** Set or clear the fragment. */
-        URL& set_fragment(std::string_view fragment);
+        auto set_fragment(std::string_view fragment) -> URL&;
 
         /**
          * Return the full url.
@@ -123,5 +131,9 @@ namespace mamba::util
 
     auto operator==(URL const& a, URL const& b) -> bool;
     auto operator!=(URL const& a, URL const& b) -> bool;
+
+    /** A functional equivalent to ``URL::append_path``. */
+    auto operator/(URL const& url, std::string_view subpath) -> URL;
+    auto operator/(URL&& url, std::string_view subpath) -> URL;
 }
 #endif

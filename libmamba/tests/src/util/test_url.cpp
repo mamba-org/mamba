@@ -369,4 +369,25 @@ TEST_SUITE("util::URL")
         CHECK_NE(URL::parse("mamba.org/page"), URL::parse("mamba.org/page?q=v"));
         CHECK_NE(URL::parse("mamba.org/page"), URL::parse("mamba.org/page#there"));
     }
+
+    TEST_CASE("Append path")
+    {
+        auto url = URL();
+
+        CHECK_EQ(url.path(), "/");
+        CHECK_EQ((url / "").path(), "/");
+        CHECK_EQ((url / "   ").path(), "/");
+        CHECK_EQ((url / "/").path(), "/");
+        CHECK_EQ((url / "page").path(), "/page");
+        CHECK_EQ((url / "/page").path(), "/page");
+        CHECK_EQ((url / " /page").path(), "/page");
+        CHECK_EQ(url.path(), "/");  // unchanged
+
+        url.append_path("folder");
+        CHECK_EQ(url.path(), "/folder");
+        CHECK_EQ((url / "").path(), "/folder");
+        CHECK_EQ((url / "/").path(), "/folder/");
+        CHECK_EQ((url / "page").path(), "/folder/page");
+        CHECK_EQ((url / "/page").path(), "/folder/page");
+    }
 }

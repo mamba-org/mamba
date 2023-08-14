@@ -231,7 +231,7 @@ namespace mamba::util
         return m_scheme;
     }
 
-    URL& URL::set_scheme(std::string_view scheme)
+    auto URL::set_scheme(std::string_view scheme) -> URL&
     {
         if (scheme.empty())
         {
@@ -246,7 +246,7 @@ namespace mamba::util
         return m_user;
     }
 
-    URL& URL::set_user(std::string_view user)
+    auto URL::set_user(std::string_view user) -> URL&
     {
         m_user = user;
         return *this;
@@ -257,7 +257,7 @@ namespace mamba::util
         return m_password;
     }
 
-    URL& URL::set_password(std::string_view password)
+    auto URL::set_password(std::string_view password) -> URL&
     {
         m_password = password;
         return *this;
@@ -275,7 +275,7 @@ namespace mamba::util
         return m_host;
     }
 
-    URL& URL::set_host(std::string_view host)
+    auto URL::set_host(std::string_view host) -> URL&
     {
         if (host.empty())
         {
@@ -290,7 +290,7 @@ namespace mamba::util
         return m_port;
     }
 
-    URL& URL::set_port(std::string_view port)
+    auto URL::set_port(std::string_view port) -> URL&
     {
         if (!std::all_of(port.cbegin(), port.cend(), [](char c) { return util::is_digit(c); }))
         {
@@ -333,7 +333,7 @@ namespace mamba::util
         return m_path;
     }
 
-    URL& URL::set_path(std::string_view path)
+    auto URL::set_path(std::string_view path) -> URL&
     {
         if (!util::starts_with(path, '/'))
         {
@@ -348,12 +348,30 @@ namespace mamba::util
         return *this;
     }
 
+    auto URL::append_path(std::string_view subpath) -> URL&
+    {
+        subpath = util::strip(subpath);
+        m_path.reserve(m_path.size() + 1 + subpath.size());
+        const bool trailing = util::ends_with(m_path, '/');
+        const bool leading = util::starts_with(subpath, '/');
+        if (!trailing && !leading && !subpath.empty())
+        {
+            m_path += '/';
+        }
+        if (trailing && leading)
+        {
+            m_path.pop_back();
+        }
+        m_path += subpath;
+        return *this;
+    }
+
     auto URL::query() const -> const std::string&
     {
         return m_query;
     }
 
-    URL& URL::set_query(std::string_view query)
+    auto URL::set_query(std::string_view query) -> URL&
     {
         m_query = query;
         return *this;
@@ -364,7 +382,7 @@ namespace mamba::util
         return m_fragment;
     }
 
-    URL& URL::set_fragment(std::string_view fragment)
+    auto URL::set_fragment(std::string_view fragment) -> URL&
     {
         m_fragment = fragment;
         return *this;
@@ -416,6 +434,17 @@ namespace mamba::util
     auto operator!=(URL const& a, URL const& b) -> bool
     {
         return !(a == b);
+    }
+
+    auto operator/(URL const& url, std::string_view subpath) -> URL
+    {
+        return URL(url) / subpath;
+    }
+
+    auto operator/(URL&& url, std::string_view subpath) -> URL
+    {
+        url.append_path(subpath);
+        return URL(std::move(url));
     }
 
 }  // namespace mamba

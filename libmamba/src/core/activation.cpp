@@ -222,20 +222,8 @@ namespace mamba
         }
     }
 
-    std::vector<fs::u8path> Activator::get_clean_dirs()
+    std::vector<fs::u8path> Activator::get_PATH()
     {
-        // For isolation, running the conda test suite *without* env. var. inheritance
-        // every so often is a good idea. We should probably make this a pytest
-        // fixture along with one that tests both hardlink-only and copy-only, but
-        // before that conda's testsuite needs to be a lot faster! clean_paths =
-        // {'darwin': '/usr/bin:/bin:/usr/sbin:/sbin',
-        //                # You may think 'let us do something more clever here and
-        //                interpolate # `%windir%`' but the point here is the the
-        //                whole env. is cleaned out 'win32': 'C:\\Windows\\system32;'
-        //                         'C:\\Windows;'
-        //                         'C:\\Windows\\System32\\Wbem;'
-        //                         'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\'
-        //                }
         std::vector<fs::u8path> path;
         if (m_env.find("PATH") != m_env.end())
         {
@@ -245,24 +233,6 @@ namespace mamba
                 path.push_back(s);
             }
         }
-        else
-        {
-            if (on_linux)
-            {
-                path = { "/usr/bin" };
-            }
-            else if (on_mac)
-            {
-                path = { "/usr/bin", "/bin", "/usr/sbin", "/sbin" };
-            }
-            else
-            {
-                path = { "C:\\Windows\\system32",
-                         "C:\\Windows",
-                         "C:\\Windows\\System32\\Wbem",
-                         "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\" };
-            }
-        }
         return path;
     }
 
@@ -270,7 +240,7 @@ namespace mamba
     {
         // prefix = self.path_conversion(prefix)
         // path_list = list(self.path_conversion(self._get_starting_path_list()))
-        auto path_list = get_clean_dirs();
+        auto path_list = get_PATH();
         // If this is the first time we're activating an environment, we need to
         // ensure that the condabin directory is included in the path list. Under
         // normal conditions, if the shell hook is working correctly, this should
@@ -303,7 +273,7 @@ namespace mamba
     Activator::replace_prefix_in_path(const fs::u8path& old_prefix, const fs::u8path& new_prefix)
     {
         // TODO not done yet.
-        std::vector<fs::u8path> current_path = get_clean_dirs();
+        std::vector<fs::u8path> current_path = get_PATH();
         assert(!old_prefix.empty());
 
         std::vector<fs::u8path> old_prefix_dirs = get_path_dirs(old_prefix);

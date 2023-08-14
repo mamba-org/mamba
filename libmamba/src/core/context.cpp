@@ -20,7 +20,7 @@
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/util/string.hpp"
-#include "mamba/util/url.hpp"
+#include "mamba/util/url_manip.hpp"
 
 namespace mamba
 {

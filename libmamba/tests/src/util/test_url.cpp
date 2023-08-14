@@ -16,22 +16,6 @@ using namespace mamba::util;
 
 TEST_SUITE("util::URL")
 {
-    TEST_CASE("encoding")
-    {
-        CHECK_EQ(url_encode(""), "");
-        CHECK_EQ(url_encode("page"), "page");
-        CHECK_EQ(url_encode(" /word%"), "%20%2Fword%25");
-        CHECK_EQ(url_encode("user@email.com"), "user%40email.com");
-        // Does NOT parse URL
-        CHECK_EQ(url_encode("https://foo/"), "https%3A%2F%2Ffoo%2F");
-
-        CHECK_EQ(url_decode(""), "");
-        CHECK_EQ(url_decode("page"), "page");
-        CHECK_EQ(url_decode("%20%2Fword%25"), " /word%");
-        CHECK_EQ(url_decode("user%40email.com"), "user@email.com");
-        CHECK_EQ(url_decode("https%3A%2F%2Ffoo%2F"), "https://foo/");
-    }
-
     TEST_CASE("URL builder")
     {
         SUBCASE("Empty")

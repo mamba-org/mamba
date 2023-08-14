@@ -13,7 +13,6 @@
 #include <curl/urlapi.h>
 #include <fmt/format.h>
 
-#include "mamba/util/cast.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
 #include "mamba/util/url_manip.hpp"
@@ -74,8 +73,6 @@ namespace mamba::util
         public:
 
             explicit CURLStr() = default;
-            explicit CURLStr(pointer data);
-            explicit CURLStr(pointer data, size_type len);
             ~CURLStr();
 
             CURLStr(const CURLStr&) = delete;
@@ -134,17 +131,6 @@ namespace mamba::util
             return std::nullopt;
         }
 
-        CURLStr::CURLStr(pointer data)
-            : m_data(data)
-        {
-        }
-
-        CURLStr::CURLStr(pointer data, size_type len)
-            : m_data(data)
-            , m_len(len)
-        {
-        }
-
         CURLStr::~CURLStr()
         {
             // Even when Curl returns a len along side the data, `curl_free` must be used without
@@ -175,37 +161,6 @@ namespace mamba::util
             return std::nullopt;
         }
     }
-
-    // TODO should live in url_manip.hpp but stays here for simplicity of calling CURL
-    auto url_encode(std::string_view url) -> std::string
-    {
-        auto output = CURLStr(
-            curl_easy_escape(nullptr, url.data(), util::safe_num_cast<int>(url.size()))
-        );
-        if (auto str = output.str())
-        {
-            return std::string(*str);
-        }
-        throw std::runtime_error("Could not url-escape string.");
-    }
-
-    auto url_decode(std::string_view url) -> std::string
-    {
-        int out_length;
-        char* output = curl_easy_unescape(
-            nullptr,
-            url.data(),
-            util::safe_num_cast<int>(url.size()),
-            &out_length
-        );
-        auto curl_str = CURLStr(output, out_length);
-        if (auto str = curl_str.str())
-        {
-            return std::string(*str);
-        }
-        throw std::runtime_error("Could not url-unescape string.");
-    }
-
 
     /*****************************
      * URLHandler implementation *
@@ -453,7 +408,7 @@ namespace mamba::util
     auto operator/(URL&& url, std::string_view subpath) -> URL
     {
         url.append_path(subpath);
-        return URL(std::move(url));
+        return std::move(url);
     }
 
 }  // namespace mamba

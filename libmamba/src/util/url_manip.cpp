@@ -4,6 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <array>
+#include <cassert>
 #include <optional>
 #include <regex>
 #include <stdexcept>
@@ -20,6 +22,93 @@
 
 namespace mamba::util
 {
+    namespace
+    {
+        auto url_is_unreserved_char(char c) -> bool
+        {
+            // https://github.com/curl/curl/blob/67e9e3cb1ea498cb94071dddb7653ab5169734b2/lib/escape.c#L45
+            return util::is_alphanum(c) || (c == '-') || (c == '.') || (c == '_') || (c == '~');
+        }
+
+        auto url_encode_char(char c) -> std::array<char, 3>
+        {
+            // https://github.com/curl/curl/blob/67e9e3cb1ea498cb94071dddb7653ab5169734b2/lib/escape.c#L107
+            static constexpr auto hex = std::array{
+                '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F',
+            };
+            return std::array{
+                '%',
+                hex[static_cast<unsigned char>(c) >> 4],
+                hex[c & 0xf],
+            };
+        }
+
+        auto url_is_hex_char(char c) -> bool
+        {
+            return util::is_digit(c) || (('A' <= c) && (c <= 'F')) || (('a' <= c) && (c <= 'f'));
+        }
+
+        auto url_decode_char(char d10, char d1) -> char
+        {
+            // https://github.com/curl/curl/blob/67e9e3cb1ea498cb94071dddb7653ab5169734b2/lib/escape.c#L147
+            // Offset from char '0', contains '0' padding for incomplete values.
+            static constexpr std::array<unsigned char, 55> hex_offset = {
+                0, 1,  2,  3,  4,  5,  6,  7, 8, 9, 0, 0, 0, 0, 0, 0, /* 0x30 - 0x3f */
+                0, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 0x40 - 0x4f */
+                0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, /* 0x50 - 0x5f */
+                0, 10, 11, 12, 13, 14, 15                             /* 0x60 - 0x66 */
+            };
+            assert('0' <= d10);
+            assert('0' <= d1);
+            unsigned char idx10 = static_cast<unsigned char>(d10 - '0');
+            unsigned char idx1 = static_cast<unsigned char>(d1 - '0');
+            assert(idx10 < hex_offset.size());
+            assert(idx1 < hex_offset.size());
+            return static_cast<char>((hex_offset[idx10] << 4) | hex_offset[idx1]);
+        }
+
+    }
+
+    auto url_encode(std::string_view url) -> std::string
+    {
+        std::string out = {};
+        out.reserve(url.size());
+        for (char c : url)
+        {
+            if (url_is_unreserved_char(c))
+            {
+                out += c;
+            }
+            else
+            {
+                const auto encoding = url_encode_char(c);
+                out += std::string_view(encoding.cbegin(), encoding.size());
+            }
+        }
+        return out;
+    }
+
+    auto url_decode(std::string_view url) -> std::string
+    {
+        std::string out = {};
+        out.reserve(url.size());
+        const auto end = url.cend();
+        for (auto iter = url.cbegin(); iter < end; ++iter)
+        {
+            if (((iter + 2) < end) && (iter[0] == '%') && url_is_hex_char(iter[1])
+                && url_is_hex_char(iter[2]))
+            {
+                out.push_back(url_decode_char(iter[1], iter[2]));
+                iter += 2;
+            }
+            else
+            {
+                out.push_back(*iter);
+            }
+        }
+        return out;
+    }
+
     // proper file scheme on Windows is `file:///C:/blabla`
     // https://blogs.msdn.microsoft.com/ie/2006/12/06/file-uris-in-windows/
     std::string concat_scheme_url(const std::string& scheme, const std::string& location)

@@ -4,16 +4,32 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#ifndef MAMBA_UTIL_URL_MANIP_HPP
+#define MAMBA_UTIL_URL_MANIP_HPP
+
 #include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
 
-#ifndef MAMBA_UTIL_URL_MANIP_HPP
-#define MAMBA_UTIL_URL_MANIP_HPP
-
 namespace mamba::util
 {
+    /**
+     * Escape reserved URL reserved characters with '%' encoding.
+     *
+     * Does not parse URL in any way so '/' in "http://mamba.org/page" get encoded.
+     *
+     * @see url_decode
+     */
+    [[nodiscard]] auto url_encode(std::string_view url) -> std::string;
+
+    /**
+     * Unescape percent encoded string to their URL reserved characters.
+     *
+     * @see url_encode
+     */
+    [[nodiscard]] auto url_decode(std::string_view url) -> std::string;
+
     std::string concat_scheme_url(const std::string& scheme, const std::string& location);
 
     std::string build_url(

@@ -91,6 +91,9 @@ TEST_SUITE("util::URL")
             url.set_user("micro@mamba.pm", URL::Encode::yes);
             CHECK_EQ(url.user(URL::Decode::no), "micro%40mamba.pm");
             CHECK_EQ(url.user(URL::Decode::yes), "micro@mamba.pm");
+            url.set_password(R"(#!$&'"ab23)", URL::Encode::yes);
+            CHECK_EQ(url.password(URL::Decode::no), "%23%21%24%26%27%22ab23");
+            CHECK_EQ(url.password(URL::Decode::yes), R"(#!$&'"ab23)");
         }
     }
 

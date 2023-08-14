@@ -180,7 +180,7 @@ namespace mamba::util
             };
             out.set_scheme(handle.get_part(CURLUPART_SCHEME).value_or(std::string(URL::https)))
                 .set_user(handle.get_part(CURLUPART_USER).value_or(""), Encode::no)
-                .set_password(handle.get_part(CURLUPART_PASSWORD).value_or(""))
+                .set_password(handle.get_part(CURLUPART_PASSWORD).value_or(""), Encode::no)
                 .set_host(handle.get_part(CURLUPART_HOST).value_or(std::string(URL::localhost)))
                 .set_path(handle.get_part(CURLUPART_PATH).value_or("/"))
                 .set_port(handle.get_part(CURLUPART_PORT).value_or(""))
@@ -228,14 +228,26 @@ namespace mamba::util
         return *this;
     }
 
-    auto URL::password() const -> const std::string&
+    auto URL::password(Decode::no_type) const -> const std::string&
     {
         return m_password;
     }
 
-    auto URL::set_password(std::string_view password) -> URL&
+    auto URL::password(Decode::yes_type) const -> std::string
     {
-        m_password = password;
+        return url_decode(m_password);
+    }
+
+    auto URL::set_password(std::string_view password, Encode encode) -> URL&
+    {
+        if (encode == Encode::yes)
+        {
+            m_password = url_encode(password);
+        }
+        else
+        {
+            m_password = password;
+        }
         return *this;
     }
 

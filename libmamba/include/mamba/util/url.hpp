@@ -65,13 +65,16 @@ namespace mamba::util
         /** Set or clear the user. */
         auto set_user(std::string_view user, Encode encode = Encode::yes) -> URL&;
 
-        /** Return the password, or empty if none. */
-        [[nodiscard]] auto password() const -> const std::string&;
+        /** Return the undecoded password, or empty if none. */
+        [[nodiscard]] auto password(Decode::no_type) const -> const std::string&;
+
+        /** Return the decoded password, or empty if none. */
+        [[nodiscard]] auto password(Decode::yes_type = Decode::yes) const -> std::string;
 
         /** Set or clear the password. */
-        auto set_password(std::string_view password) -> URL&;
+        auto set_password(std::string_view password, Encode encode = Encode::yes) -> URL&;
 
-        /** Return the basic authetification string. */
+        /** Return the undecoded basic authentication string. */
         [[nodiscard]] auto authentication() const -> std::string;
 
         /** Return the host, always non-empty. */

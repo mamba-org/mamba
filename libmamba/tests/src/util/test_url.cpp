@@ -88,6 +88,20 @@ TEST_SUITE("util::URL")
 
     TEST_CASE("parse")
     {
+        SUBCASE("Empty")
+        {
+            const URL url = URL::parse("");
+            CHECK_EQ(url.scheme(), URL::https);
+            CHECK_EQ(url.host(), URL::localhost);
+            CHECK_EQ(url.path(), "/");
+            CHECK_EQ(url.pretty_path(), "/");
+            CHECK_EQ(url.user(), "");
+            CHECK_EQ(url.password(), "");
+            CHECK_EQ(url.port(), "");
+            CHECK_EQ(url.query(), "");
+            CHECK_EQ(url.fragment(), "");
+        }
+
         SUBCASE("mamba.org")
         {
             const URL url = URL::parse("mamba.org");
@@ -339,5 +353,20 @@ TEST_SUITE("util::URL")
         CHECK_EQ(url.authority(), "user@mamba.org:8000");
         url.set_password("password");
         CHECK_EQ(url.authority(), "user:password@mamba.org:8000");
+    }
+
+    TEST_CASE("Equality")
+    {
+        CHECK_EQ(URL(), URL());
+        CHECK_EQ(URL::parse("https://169.254.0.0/page"), URL::parse("https://169.254.0.0/page"));
+        CHECK_EQ(URL::parse("mamba.org"), URL::parse("mamba.org/"));
+        CHECK_EQ(URL::parse("mAmba.oRg"), URL::parse("mamba.org/"));
+        CHECK_EQ(URL::parse("localhost/page"), URL::parse("https://localhost/page"));
+
+        CHECK_NE(URL::parse("mamba.org/page"), URL::parse("mamba.org/"));
+        CHECK_NE(URL::parse("mamba.org"), URL::parse("mamba.org:9999"));
+        CHECK_NE(URL::parse("user@mamba.org"), URL::parse("mamba.org"));
+        CHECK_NE(URL::parse("mamba.org/page"), URL::parse("mamba.org/page?q=v"));
+        CHECK_NE(URL::parse("mamba.org/page"), URL::parse("mamba.org/page#there"));
     }
 }

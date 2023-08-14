@@ -204,20 +204,25 @@ namespace mamba::util
 
     auto URL::parse(std::string_view url) -> URL
     {
+        url = util::rstrip(url);
         auto out = URL();
-        // CURL fails to parse the URL if no scheme is given, unless CURLU_DEFAULT_SCHEME is given
-        const CURLUrl handle = {
-            file_uri_unc2_to_unc4(url),
-            CURLU_NON_SUPPORT_SCHEME | CURLU_DEFAULT_SCHEME,
-        };
-        out.set_scheme(handle.get_part(CURLUPART_SCHEME).value_or(std::string(URL::https)))
-            .set_user(handle.get_part(CURLUPART_USER).value_or(""))
-            .set_password(handle.get_part(CURLUPART_PASSWORD).value_or(""))
-            .set_host(handle.get_part(CURLUPART_HOST).value_or(std::string(URL::localhost)))
-            .set_path(handle.get_part(CURLUPART_PATH).value_or("/"))
-            .set_port(handle.get_part(CURLUPART_PORT).value_or(""))
-            .set_query(handle.get_part(CURLUPART_QUERY).value_or(""))
-            .set_fragment(handle.get_part(CURLUPART_FRAGMENT).value_or(""));
+        if (!url.empty())
+        {
+            // CURL fails to parse the URL if no scheme is given, unless CURLU_DEFAULT_SCHEME is
+            // given
+            const CURLUrl handle = {
+                file_uri_unc2_to_unc4(url),
+                CURLU_NON_SUPPORT_SCHEME | CURLU_DEFAULT_SCHEME,
+            };
+            out.set_scheme(handle.get_part(CURLUPART_SCHEME).value_or(std::string(URL::https)))
+                .set_user(handle.get_part(CURLUPART_USER).value_or(""))
+                .set_password(handle.get_part(CURLUPART_PASSWORD).value_or(""))
+                .set_host(handle.get_part(CURLUPART_HOST).value_or(std::string(URL::localhost)))
+                .set_path(handle.get_part(CURLUPART_PATH).value_or("/"))
+                .set_port(handle.get_part(CURLUPART_PORT).value_or(""))
+                .set_query(handle.get_part(CURLUPART_QUERY).value_or(""))
+                .set_fragment(handle.get_part(CURLUPART_FRAGMENT).value_or(""));
+        }
         return out;
     }
 
@@ -396,4 +401,21 @@ namespace mamba::util
             m_fragment
         );
     }
+
+    auto operator==(URL const& a, URL const& b) -> bool
+    {
+        return (a.scheme() == b.scheme())
+               && (a.user() == b.user())
+               // omitting password, is that desirable?
+               && (a.host() == b.host())
+               // Would it be desirable to account for default ports?
+               && (a.port() == b.port()) && (a.path() == b.path()) && (a.query() == b.query())
+               && (a.fragment() == b.fragment());
+    }
+
+    auto operator!=(URL const& a, URL const& b) -> bool
+    {
+        return !(a == b);
+    }
+
 }  // namespace mamba

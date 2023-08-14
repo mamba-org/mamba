@@ -120,5 +120,8 @@ namespace mamba::util
         std::string m_query = {};
         std::string m_fragment = {};
     };
+
+    auto operator==(URL const& a, URL const& b) -> bool;
+    auto operator!=(URL const& a, URL const& b) -> bool;
 }
 #endif

@@ -82,7 +82,7 @@ namespace mamba::util
             else
             {
                 const auto encoding = url_encode_char(c);
-                out += std::string_view(encoding.cbegin(), encoding.size());
+                out += std::string_view(encoding.data(), encoding.size());
             }
         }
         return out;

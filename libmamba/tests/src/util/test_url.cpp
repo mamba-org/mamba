@@ -84,6 +84,14 @@ TEST_SUITE("util::URL")
             CHECK_THROWS_AS(url.set_host(""), std::invalid_argument);
             CHECK_THROWS_AS(url.set_port("not-a-number"), std::invalid_argument);
         }
+
+        SUBCASE("Encoding")
+        {
+            URL url{};
+            url.set_user("micro@mamba.pm", URL::Encode::yes);
+            CHECK_EQ(url.user(URL::Decode::no), "micro%40mamba.pm");
+            CHECK_EQ(url.user(URL::Decode::yes), "micro@mamba.pm");
+        }
     }
 
     TEST_CASE("parse")
@@ -151,7 +159,7 @@ TEST_SUITE("util::URL")
             CHECK_EQ(url.host(), "localhost");
             CHECK_EQ(url.path(), "/");
             CHECK_EQ(url.pretty_path(), "/");
-            CHECK_EQ(url.user(), "user%40email.com");
+            CHECK_EQ(url.user(), "user@email.com");
             CHECK_EQ(url.password(), "test");
             CHECK_EQ(url.port(), "8000");
             CHECK_EQ(url.query(), "");

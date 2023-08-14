@@ -21,15 +21,30 @@ namespace mamba::util
     {
     public:
 
-        enum class StripScheme : bool
+        // clang-format off
+        enum class StripScheme : bool { no, yes };
+        enum class Encode : bool { no, yes };
+        struct Decode
         {
-            no,
-            yes,
+            inline static constexpr struct yes_type {} yes = {};
+            inline static constexpr struct no_type {} no = {};
         };
+        // clang-format on
 
         inline static constexpr std::string_view https = "https";
         inline static constexpr std::string_view localhost = "localhost";
 
+        /**
+         * Create a URL from a string.
+         *
+         * The fields of the URL must be percent encoded, otherwise use the individual
+         * field setters to encode.
+         * For instance, "https://user@email.com@mamba.org/" must be passed as
+         *"https://user%40email.com@mamba.org/".
+         *
+         * @see Encode
+         * @see mamba::util::url_encode
+         */
         [[nodiscard]] static auto parse(std::string_view url) -> URL;
 
         /** Create a local URL. */
@@ -41,11 +56,14 @@ namespace mamba::util
         /** Set a non-empty scheme. */
         auto set_scheme(std::string_view scheme) -> URL&;
 
-        /** Return the user, or empty if none. */
-        [[nodiscard]] auto user() const -> const std::string&;
+        /** Return the undecoded user, or empty if none. */
+        [[nodiscard]] auto user(Decode::no_type) const -> const std::string&;
+
+        /** Retrun the decoded user, or empty if none. */
+        [[nodiscard]] auto user(Decode::yes_type = Decode::yes) const -> std::string;
 
         /** Set or clear the user. */
-        auto set_user(std::string_view user) -> URL&;
+        auto set_user(std::string_view user, Encode encode = Encode::yes) -> URL&;
 
         /** Return the password, or empty if none. */
         [[nodiscard]] auto password() const -> const std::string&;

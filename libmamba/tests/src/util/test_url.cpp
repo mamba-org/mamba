@@ -69,11 +69,20 @@ TEST_SUITE("util::URL")
             CHECK_EQ(url.pretty_path(), "C:/folder/file.txt");
         }
 
+        SUBCASE("Case")
+        {
+            URL url{};
+            url.set_scheme("FtP").set_host("sOme_Host.COM");
+            CHECK_EQ(url.scheme(), "ftp");
+            CHECK_EQ(url.host(), "some_host.com");
+        }
+
         SUBCASE("Invalid")
         {
             URL url{};
             CHECK_THROWS_AS(url.set_scheme(""), std::invalid_argument);
             CHECK_THROWS_AS(url.set_host(""), std::invalid_argument);
+            CHECK_THROWS_AS(url.set_port("not-a-number"), std::invalid_argument);
         }
     }
 

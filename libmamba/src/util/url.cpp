@@ -232,7 +232,7 @@ namespace mamba::util
         {
             throw std::invalid_argument("Cannot set empty scheme");
         }
-        m_scheme = scheme;
+        m_scheme = util::to_lower(util::rstrip(scheme));
         return *this;
     }
 
@@ -276,7 +276,7 @@ namespace mamba::util
         {
             throw std::invalid_argument("Cannot set empty host");
         }
-        m_host = host;
+        m_host = util::to_lower(util::rstrip(host));
         return *this;
     }
 
@@ -287,6 +287,10 @@ namespace mamba::util
 
     URL& URL::set_port(std::string_view port)
     {
+        if (!std::all_of(port.cbegin(), port.cend(), [](char c) { return util::is_digit(c); }))
+        {
+            throw std::invalid_argument(fmt::format(R"(Port must be a number, got "{}")", port));
+        }
         m_port = port;
         return *this;
     }

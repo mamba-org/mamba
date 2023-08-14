@@ -283,6 +283,31 @@ TEST_SUITE("util::URL")
             }
         }
 
+        SUBCASE("rstrip option")
+        {
+            URL url = {};
+            url.set_host("mamba.org");
+            CHECK_EQ(url.str(URL::StripScheme::no, 0), "https://mamba.org/");
+            CHECK_EQ(url.str(URL::StripScheme::no, '/'), "https://mamba.org");
+            url.set_path("/page/");
+            CHECK_EQ(url.str(URL::StripScheme::no, ':'), "https://mamba.org/page/");
+            CHECK_EQ(url.str(URL::StripScheme::no, '/'), "https://mamba.org/page");
+        }
+
+        SUBCASE("Hide password option")
+        {
+            URL url = {};
+            url.set_user("user").set_password("pass");
+            CHECK_EQ(
+                url.str(URL::StripScheme::no, 0, URL::HidePassword::no),
+                "https://user:pass@localhost/"
+            );
+            CHECK_EQ(
+                url.str(URL::StripScheme::no, 0, URL::HidePassword::yes),
+                "https://user:*****@localhost/"
+            );
+        }
+
         SUBCASE("https://user:password@mamba.org:8080/folder/file.html?param=value#fragment")
         {
             URL url{};

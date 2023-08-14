@@ -23,6 +23,7 @@ namespace mamba::util
 
         // clang-format off
         enum class StripScheme : bool { no, yes };
+        enum class HidePassword : bool { no, yes };
         enum class Encode : bool { no, yes };
         struct Decode
         {
@@ -130,11 +131,16 @@ namespace mamba::util
         auto set_fragment(std::string_view fragment) -> URL&;
 
         /**
-         * Return the full url.
+         * Return the full encoded url.
          *
-         * @param strip If true, remove the scheme and "localhost" on file URI.
+         * @param strip_scheme If true, remove the scheme and "localhost" on file URI.
+         * @param rstrip_path If non-null, remove the given charaters at the end of the path.
+         * @param hide_password If true, hide password in the decoded string.
          */
-        [[nodiscard]] auto str(StripScheme strip = StripScheme::no) const -> std::string;
+        [[nodiscard]] auto
+        str(StripScheme strip_scheme = StripScheme::no,
+            char rstrip_path = 0,
+            HidePassword hide_password = HidePassword::no) const -> std::string;
 
     private:
 

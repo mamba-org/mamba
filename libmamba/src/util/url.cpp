@@ -390,7 +390,8 @@ namespace mamba::util
         return *this;
     }
 
-    auto URL::str(StripScheme strip) const -> std::string
+    auto URL::str(StripScheme strip_scheme, char rstrip_path, HidePassword hide_password) const
+        -> std::string
     {
         // Not showing "localhost" on file URI
         std::string_view computed_host = m_host;
@@ -400,16 +401,17 @@ namespace mamba::util
         }
         // When stripping file scheme, not showing leading '/' for Windows path with drive
         std::string_view computed_path = m_path;
-        if ((m_scheme == "file") && (strip == StripScheme::yes) && computed_host.empty())
+        if ((m_scheme == "file") && (strip_scheme == StripScheme::yes) && computed_host.empty())
         {
             computed_path = pretty_path();
         }
+        computed_path = util::rstrip(computed_path, rstrip_path);
         return util::concat(
-            (strip == StripScheme::no) ? m_scheme : "",
-            (strip == StripScheme::no) ? "://" : "",
+            (strip_scheme == StripScheme::no) ? m_scheme : "",
+            (strip_scheme == StripScheme::no) ? "://" : "",
             m_user,
             m_password.empty() ? "" : ":",
-            m_password,
+            (hide_password == HidePassword::no) ? m_password : "*****",
             m_user.empty() ? "" : "@",
             computed_host,
             m_port.empty() ? "" : ":",

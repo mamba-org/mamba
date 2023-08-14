@@ -13,6 +13,7 @@
 #include <curl/urlapi.h>
 #include <fmt/format.h>
 
+#include "mamba/util/cast.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
 #include "mamba/util/url_manip.hpp"
@@ -175,9 +176,12 @@ namespace mamba::util
         }
     }
 
-    std::string encode_url(const std::string& url)
+    // TODO should live in url_manip.hpp but stays here for simplicity of calling CURL
+    auto url_encode(std::string_view url) -> std::string
     {
-        auto output = CURLStr(curl_easy_escape(nullptr, url.c_str(), static_cast<int>(url.size())));
+        auto output = CURLStr(
+            curl_easy_escape(nullptr, url.data(), util::safe_num_cast<int>(url.size()))
+        );
         if (auto str = output.str())
         {
             return std::string(*str);
@@ -185,10 +189,15 @@ namespace mamba::util
         throw std::runtime_error("Could not url-escape string.");
     }
 
-    std::string decode_url(const std::string& url)
+    auto url_decode(std::string_view url) -> std::string
     {
         int out_length;
-        char* output = curl_easy_unescape(nullptr, url.c_str(), static_cast<int>(url.size()), &out_length);
+        char* output = curl_easy_unescape(
+            nullptr,
+            url.data(),
+            util::safe_num_cast<int>(url.size()),
+            &out_length
+        );
         auto curl_str = CURLStr(output, out_length);
         if (auto str = curl_str.str())
         {

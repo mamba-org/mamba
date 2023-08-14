@@ -14,8 +14,21 @@
 namespace mamba::util
 {
 
-    [[nodiscard]] std::string encode_url(const std::string& url);
-    [[nodiscard]] std::string decode_url(const std::string& url);
+    /**
+     * Escape reserved URL reserved characters with '%' encoding.
+     *
+     * Does not parse URL in any way so '/' in "http://mamba.org/page" get encoded.
+     *
+     * @see url_decode
+     */
+    [[nodiscard]] auto url_encode(std::string_view url) -> std::string;
+
+    /**
+     * Unescape percent encoded string to their URL reserved characters.
+     *
+     * @see url_encode
+     */
+    [[nodiscard]] auto url_decode(std::string_view url) -> std::string;
 
     /**
      * Class representing a URL.

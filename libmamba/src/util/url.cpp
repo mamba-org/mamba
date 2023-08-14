@@ -253,8 +253,8 @@ namespace mamba::util
 
     auto URL::authentication() const -> std::string
     {
-        const auto& u = user();
-        const auto& p = password();
+        const auto& u = user(Decode::no);
+        const auto& p = password(Decode::no);
         return p.empty() ? u : util::concat(u, ':', p);
     }
 
@@ -304,12 +304,15 @@ namespace mamba::util
 
     auto URL::authority() const -> std::string
     {
+        const auto& l_user = user(Decode::no);
+        const auto& l_pass = password(Decode::no);
+        const auto& l_host = host(Decode::no);
         return util::concat(
-            m_user,
-            m_password.empty() ? "" : ":",
-            m_password,
-            m_user.empty() ? "" : "@",
-            m_host,
+            l_user,
+            l_pass.empty() ? "" : ":",
+            l_pass,
+            l_user.empty() ? "" : "@",
+            l_host,
             m_port.empty() ? "" : ":",
             m_port
         );

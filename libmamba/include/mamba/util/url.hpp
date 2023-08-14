@@ -57,7 +57,7 @@ namespace mamba::util
         /** Set a non-empty scheme. */
         auto set_scheme(std::string_view scheme) -> URL&;
 
-        /** Return the undecoded user, or empty if none. */
+        /** Return the encoded user, or empty if none. */
         [[nodiscard]] auto user(Decode::no_type) const -> const std::string&;
 
         /** Retrun the decoded user, or empty if none. */
@@ -66,7 +66,7 @@ namespace mamba::util
         /** Set or clear the user. */
         auto set_user(std::string_view user, Encode encode = Encode::yes) -> URL&;
 
-        /** Return the undecoded password, or empty if none. */
+        /** Return the encoded password, or empty if none. */
         [[nodiscard]] auto password(Decode::no_type) const -> const std::string&;
 
         /** Return the decoded password, or empty if none. */
@@ -75,10 +75,10 @@ namespace mamba::util
         /** Set or clear the password. */
         auto set_password(std::string_view password, Encode encode = Encode::yes) -> URL&;
 
-        /** Return the undecoded basic authentication string. */
+        /** Return the encoded basic authentication string. */
         [[nodiscard]] auto authentication() const -> std::string;
 
-        /** Return the undecoded host, always non-empty. */
+        /** Return the encoded host, always non-empty. */
         [[nodiscard]] auto host(Decode::no_type) const -> const std::string&;
 
         /** Return the decoded host, always non-empty. */
@@ -93,7 +93,7 @@ namespace mamba::util
         /** Set or clear the port. */
         auto set_port(std::string_view port) -> URL&;
 
-        /** Return the autority part of the URL. */
+        /** Return the encoded autority part of the URL. */
         [[nodiscard]] auto authority() const -> std::string;
 
         /** Return the path, always starts with a '/'. */

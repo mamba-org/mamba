@@ -371,10 +371,10 @@ TEST_SUITE("util::URL")
     {
         URL url{};
         CHECK_EQ(url.authentication(), "");
-        url.set_user("user");
-        CHECK_EQ(url.authentication(), "user");
+        url.set_user("user@email.com");
+        CHECK_EQ(url.authentication(), "user%40email.com");
         url.set_password("password");
-        CHECK_EQ(url.authentication(), "user:password");
+        CHECK_EQ(url.authentication(), "user%40email.com:password");
     }
 
     TEST_CASE("authority")
@@ -388,10 +388,10 @@ TEST_SUITE("util::URL")
         CHECK_EQ(url.authority(), "mamba.org");
         url.set_port("8000");
         CHECK_EQ(url.authority(), "mamba.org:8000");
-        url.set_user("user");
-        CHECK_EQ(url.authority(), "user@mamba.org:8000");
+        url.set_user("user@email.com");
+        CHECK_EQ(url.authority(), "user%40email.com@mamba.org:8000");
         url.set_password("password");
-        CHECK_EQ(url.authority(), "user:password@mamba.org:8000");
+        CHECK_EQ(url.authority(), "user%40email.com:password@mamba.org:8000");
     }
 
     TEST_CASE("Equality")

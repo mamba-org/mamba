@@ -27,6 +27,7 @@ extern "C"  // Incomplete header
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/repo.hpp"
+#include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/specs/repo_data.hpp"
 #include "solv-cpp/pool.hpp"
@@ -268,7 +269,7 @@ namespace mamba
             {
                 // The solvable url, this is not set in libsolv parsing so we set it manually
                 // while we still rely on libsolv for parsing
-                s.set_url(fmt::format("{}/{}", repo_url, s.file_name()));
+                s.set_url(join_url(repo_url, s.file_name()));
                 // The name of the channel where it came from, may be different from repo name
                 // for instance with the installed repo
                 s.set_channel(repo_url);

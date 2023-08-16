@@ -43,11 +43,7 @@ jobs:
       - name: Checkout mamba branch
         uses: actions/checkout@v3
         with:
-          path: micromamba-feedstock/mamba
-      # replace the url: ... until the libmamba.patch line with git_url: ../..
-      - name: Patch micromamba-feedstock
-        run: |
-          cp micromamba-feedstock/mamba/micromamba/recipe/* micromamba-feedstock/recipe/
+          path: micromamba-feedstock/source
       - uses: mamba-org/setup-micromamba@v1
         with:
           environment-name: mambabuild
@@ -56,6 +52,9 @@ jobs:
         shell: bash -l {0}
         run: |
           cd micromamba-feedstock/
+          # Special values for running the feedstock with a local source
+          export FEEDSTOCK_ROOT="${PWD}"
+          export CI="local"
           python build-locally.py ${{ matrix.platform }}_${{ matrix.arch }}_
       - name: Unpack micromamba package
         shell: bash -l {0}

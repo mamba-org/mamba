@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: AntoinePrv/micromamba-feedstock
-          branch: dyn-source
+          ref: dyn-source
           path: micromamba-feedstock
       - name: Clear micromamba-feedstock git directory
         run: rm -rf "micromamba-feedstock/.git"

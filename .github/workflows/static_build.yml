@@ -49,7 +49,9 @@ jobs:
           create-args: python boa
       - name: Build conda package
         shell: bash -l {0}
-        run: python micromamba-feedstock/build-locally.py ${{ matrix.platform }}_${{ matrix.arch }}_
+        run: |
+          cd micromamba-feedstock/
+          python build-locally.py ${{ matrix.platform }}_${{ matrix.arch }}_
       - name: Unpack micromamba package
         shell: bash -l {0}
         run: |

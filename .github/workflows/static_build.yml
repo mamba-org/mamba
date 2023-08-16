@@ -55,6 +55,9 @@ jobs:
           # Special values for running the feedstock with a local source
           export FEEDSTOCK_ROOT="${PWD}"
           export CI="local"
+          # For OSX no using Docker
+          export CONDA_BLD_PATH="${PWD}/build_artifacts"
+          mkdir -p "${CONDA_BLD_PATH}"
           python build-locally.py "${{ matrix.platform }}_${{ matrix.arch }}_"
       - name: Unpack micromamba package
         shell: bash -l {0}

@@ -26,10 +26,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: ubuntu-latest, platform: linux, arch: 64 }
+          - { os: ubuntu-latest, platform: linux, arch: "64" }
           - { os: ubuntu-latest, platform: linux, arch: aarch64 }
           - { os: ubuntu-latest, platform: linux, arch: ppc64le }
-          - { os: macos-latest, platform: osx, arch: 64 }
+          - { os: macos-latest, platform: osx, arch: "64" }
           - { os: macos-latest, platform: osx, arch: arm64 }
     steps:
       - name: Checkout micromamba-feedstock
@@ -55,15 +55,14 @@ jobs:
           # Special values for running the feedstock with a local source
           export FEEDSTOCK_ROOT="${PWD}"
           export CI="local"
-          python build-locally.py ${{ matrix.platform }}_${{ matrix.arch }}_
+          python build-locally.py "${{ matrix.platform }}_${{ matrix.arch }}_"
       - name: Unpack micromamba package
         shell: bash -l {0}
         run: |
-          micromamba package extract micromamba-feedstock/
-          cd $MAMBA_ROOT_PREFIX/envs/mambabuild/conda-bld/${{ matrix.platform }}-${{ matrix.arch }}
-          tar -xvf micromamba-*.tar.bz2
-          mkdir -p ${{ github.workspace }}/artifacts
-          cp bin/micromamba ${{ github.workspace }}/artifacts
+          micromamba package extract \
+            "micromamba-feedstock/build_artifacts/${{ matrix.platform }}-${{ matrix.arch }}/"micromamba-*.tar.bz2 "pkg/"
+          mkdir -p "${{ github.workspace }}/artifacts"
+          cp pkg/bin/micromamba "${{ github.workspace }}/artifacts"
       - name: Test micromamba on emulated target architecture
         if: ${{ matrix.arch != '64' && matrix.platform == 'linux' }}
         uses: uraimo/run-on-arch-action@v2

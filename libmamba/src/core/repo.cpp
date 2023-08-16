@@ -219,7 +219,6 @@ namespace mamba
         m_repo = repo.raw();
         repo.set_url(m_metadata.url);
         load_file(index, parser);
-        set_solvables_url(m_metadata.url);
         repo.internalize();
     }
 
@@ -329,6 +328,7 @@ namespace mamba
         // TODO make this as part of options of the repo/pool
         const int flags = Context::instance().use_only_tar_bz2 ? CONDA_ADD_USE_ONLY_TAR_BZ2 : 0;
         srepo(*this).legacy_read_conda_repodata(filename, flags);
+        set_solvables_url(m_metadata.url);
     }
 
     void MRepo::mamba_read_json(const fs::u8path& filename)
@@ -393,6 +393,7 @@ namespace mamba
             return false;
         }
 
+        set_solvables_url(m_metadata.url);
         LOG_INFO << "Metadata from solv are valid, loading successful";
         return true;
     }

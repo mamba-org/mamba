@@ -59,6 +59,7 @@ jobs:
       - name: Unpack micromamba package
         shell: bash -l {0}
         run: |
+          ls micromamba-feedstock/build_artifacts
           micromamba package extract \
             "micromamba-feedstock/build_artifacts/${{ matrix.platform }}-${{ matrix.arch }}/"micromamba-*.tar.bz2 "pkg/"
           mkdir -p "${{ github.workspace }}/artifacts"

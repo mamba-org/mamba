@@ -46,7 +46,7 @@ jobs:
       # replace the url: ... until the libmamba.patch line with git_url: ../..
       - name: Patch micromamba-feedstock
         run: |
-          cp ./micromamba/recipe/* micromamba-feedstock/recipe/
+          cp micromamba-feedstock/mamba/micromamba/recipe/* micromamba-feedstock/recipe/
       - uses: mamba-org/setup-micromamba@v1
         with:
           environment-name: mambabuild
@@ -59,6 +59,7 @@ jobs:
       - name: Unpack micromamba package
         shell: bash -l {0}
         run: |
+          micromamba package extract micromamba-feedstock/
           cd $MAMBA_ROOT_PREFIX/envs/mambabuild/conda-bld/${{ matrix.platform }}-${{ matrix.arch }}
           tar -xvf micromamba-*.tar.bz2
           mkdir -p ${{ github.workspace }}/artifacts

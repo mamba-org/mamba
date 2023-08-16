@@ -46,12 +46,10 @@ jobs:
       - uses: mamba-org/setup-micromamba@v1
         with:
           environment-name: mambabuild
-          create-args: boa
+          create-args: python boa
       - name: Build conda package
         shell: bash -l {0}
-        run: |
-          conda-mambabuild -m micromamba-feedstock/.ci_support/${{ matrix.platform }}_${{ matrix.arch }}_.yaml \
-                              micromamba-feedstock/recipe ${{ matrix.arch != '64' && '--no-test' || '' }}
+        run: python micromamba-feedstock/build-locally.py ${{ matrix.platform }}_${{ matrix.arch }}_
       - name: Unpack micromamba package
         shell: bash -l {0}
         run: |

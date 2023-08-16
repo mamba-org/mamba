@@ -32,13 +32,17 @@ jobs:
           - { os: macos-latest, platform: osx, arch: 64 }
           - { os: macos-latest, platform: osx, arch: arm64 }
     steps:
-      - name: Checkout branch
-        uses: actions/checkout@v3
       - name: Checkout micromamba-feedstock
         uses: actions/checkout@v3
         with:
           repository: conda-forge/micromamba-feedstock
           path: micromamba-feedstock
+      - name: Clear micromamba-feedstock git directory
+        run: rm -rf "micromamba-feedstock/.git"
+      - name: Checkout mamba branch
+        uses: actions/checkout@v3
+        with:
+          path: micromamba-feedstock/mamba
       # replace the url: ... until the libmamba.patch line with git_url: ../..
       - name: Patch micromamba-feedstock
         run: |

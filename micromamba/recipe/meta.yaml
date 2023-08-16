@@ -6,7 +6,7 @@ package:
   version: {{ version }}
 
 source:
-  - git_url: ../../
+  - git_url: /home/conda/feedstock_root/mamba
 
 build:
   number: {{ build_num }}

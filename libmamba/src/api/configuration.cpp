@@ -994,7 +994,7 @@ namespace mamba
                 out << YAML::Key << n.first;
                 out << YAML::Value;
 
-                print_node(out, n.second, source[key], show_source);
+                print_node(out, n.second, source, show_source);
             }
             out << YAML::EndMap;
         }

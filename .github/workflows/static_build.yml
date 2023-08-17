@@ -18,7 +18,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # TMP Check that CI fails
   conda-build:
     name: "micromamba - ${{ matrix.platform }}-${{ matrix.arch }}"
     runs-on: ${{ matrix.os }}

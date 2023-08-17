@@ -68,6 +68,10 @@ jobs:
         with:
           arch: ${{ matrix.arch }}
           distro: fedora_latest
+          dockerRunArgs: -v /var/run/docker.sock:/var/run/docker.sock
+          install: |
+            dnf -y update
+            dnf -y install docker
           run: |
             cd micromamba-feedstock/
             # Special values for running the feedstock with a local source

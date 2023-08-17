@@ -206,6 +206,16 @@ class TestConfigList:
             == f"channels:\n  - channel1{src}\n  - channel2{src}\n".splitlines()
         )
 
+    @pytest.mark.parametrize("source_flag", ["--sources", "-s"])
+    @pytest.mark.parametrize("rc_file_args", ({"custom_channels": {"key1": "value1"}},))
+    def test_list_map_with_sources(self, rc_file, source_flag):
+        home_folder = os.path.expanduser("~")
+        src = f"  # '{str(rc_file).replace(home_folder, '~')}'"
+        assert (
+            config("list", "--no-env", "--rc-file", rc_file, source_flag).splitlines()
+            == f"custom_channels:\n  key1: value1{src}\n".splitlines()
+        )
+
     @pytest.mark.parametrize("desc_flag", ["--descriptions", "-d"])
     @pytest.mark.parametrize("rc_file_args", ({"channels": ["channel1", "channel2"]},))
     def test_list_with_descriptions(self, rc_file, desc_flag):

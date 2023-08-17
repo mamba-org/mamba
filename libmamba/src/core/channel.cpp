@@ -22,7 +22,6 @@
 #include "mamba/core/validate.hpp"
 #include "mamba/util/string.hpp"
 
-
 namespace mamba
 {
     // Constants used by Channel and ChannelContext

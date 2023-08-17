@@ -35,8 +35,7 @@ jobs:
       - name: Checkout micromamba-feedstock
         uses: actions/checkout@v3
         with:
-          repository: AntoinePrv/micromamba-feedstock
-          ref: dyn-source
+          repository: conda-forge/micromamba-feedstock
           path: micromamba-feedstock
       - name: Clear micromamba-feedstock git directory
         run: rm -rf "micromamba-feedstock/.git"

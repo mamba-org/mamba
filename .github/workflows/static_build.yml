@@ -48,6 +48,7 @@ jobs:
         with:
           environment-name: mambabuild
           create-args: python boa
+          post-cleanup: none  # FIXME the cleanup fails on OSX
       - name: Build conda package
         shell: bash -l {0}
         run: |

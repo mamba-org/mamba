@@ -8,3 +8,4 @@ requires = [
 [tool.pytest.ini_options]
 minversion = "6.0"
 tmp_path_retention_policy = "failed"
+addopts = "--color=yes"

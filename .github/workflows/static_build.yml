@@ -67,11 +67,11 @@ jobs:
         uses: uraimo/run-on-arch-action@v2
         with:
           arch: ${{ matrix.arch }}
-          distro: fedora_latest
+          distro: ubuntu_latest
           dockerRunArgs: -v /var/run/docker.sock:/var/run/docker.sock
           install: |
-            dnf -y update
-            dnf -y install docker
+            apt-get update -y
+            apt-get install -y python3 docker.io
           run: |
             cd micromamba-feedstock/
             # Special values for running the feedstock with a local source

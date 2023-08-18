@@ -691,7 +691,7 @@ namespace mamba
         std::stringstream builder;
         if (is_powershell(this) && fs::exists(hook_source_path()))
         {
-            builder << read_contents(hook_source_path()) << "\n";
+            builder << hook_preamble() << "\n" << read_contents(hook_source_path()) << "\n";
         }
         else
         {

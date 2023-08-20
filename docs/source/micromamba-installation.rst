@@ -178,7 +178,7 @@ image can be used to run ``micromamba`` without installing it:
 .. _shell_completion:
 
 Shell completion
-================
+****************
 
 For now, only ``micromamba`` provides shell completion on ``bash`` and ``zsh``.
 

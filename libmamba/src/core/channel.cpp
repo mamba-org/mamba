@@ -352,7 +352,7 @@ namespace mamba
         {
             auto url = util::URL::parse(location());  // Maybe a port etc.
             url.set_scheme(scheme()).set_path(name());
-            return url.str();
+            return url.str(util::URL::StripScheme::no, /* rstrip_path= */ '/');
         }
     }
 
@@ -502,7 +502,7 @@ namespace mamba
         {
             auto l_url = util::URL::parse(config.location);  // Maybe a port etc.
             l_url.set_scheme(res_scheme).set_path(config.name);
-            canonical_name = l_url.str();
+            canonical_name = l_url.str(util::URL::StripScheme::no, /* rstrip_path= */ '/');
         }
 
         return Channel(

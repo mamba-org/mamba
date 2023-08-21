@@ -121,6 +121,10 @@ namespace mamba::util
         {
             url = URL::parse(util::concat(*auth, "@", base));
         }
+        else if (scheme == "file")
+        {
+            url.set_path(base);
+        }
         else
         {
             url = URL::parse(base);  // Maybe port etc.

@@ -120,6 +120,8 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/version.cpp
     # C++ utility library
     ${LIBMAMBA_SOURCE_DIR}/util/string.cpp
+    ${LIBMAMBA_SOURCE_DIR}/util/url_manip.cpp
+    ${LIBMAMBA_SOURCE_DIR}/util/url.cpp
     # C++ wrapping of libsolv
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.cpp
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/pool.cpp
@@ -151,7 +153,6 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/mamba_fs.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/match_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/menuinst.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/url.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/output.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_handling.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_cache.cpp
@@ -215,6 +216,8 @@ set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/graph.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/iterator.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/string.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/url_manip.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/url.hpp
     # Implementation of version and matching specs
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/platform.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version.hpp
@@ -255,7 +258,6 @@ set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_download.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/transaction.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/transaction_context.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/url.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/fsutil.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_os.hpp

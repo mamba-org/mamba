@@ -17,10 +17,10 @@
 #include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
-#include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/url_manip.hpp"
 
 namespace mamba
 {
@@ -196,7 +196,7 @@ namespace mamba
                 if (util::ends_with(entry.path().filename().string(), ".token"))
                 {
                     found_tokens.push_back(entry.path());
-                    std::string token_url = decode_url(entry.path().filename().string());
+                    std::string token_url = util::url_decode(entry.path().filename().string());
 
                     // anaconda client writes out a token for https://api.anaconda.org...
                     // but we need the token for https://conda.anaconda.org

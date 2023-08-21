@@ -10,8 +10,8 @@
 #include "mamba/core/environment.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/url.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/url_manip.hpp"
 
 namespace mamba
 {
@@ -79,10 +79,10 @@ namespace mamba
 
         if (is_package_file(spec_str))
         {
-            if (!has_scheme(spec_str))
+            if (!util::url_has_scheme(spec_str))
             {
                 LOG_INFO << "need to expand path!";
-                spec_str = path_to_url(fs::absolute(env::expand_user(spec_str)).string());
+                spec_str = util::path_to_url(fs::absolute(env::expand_user(spec_str)).string());
             }
             auto& parsed_channel = channel_context.make_channel(spec_str);
 

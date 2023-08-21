@@ -16,7 +16,7 @@
 
 namespace mamba::util
 {
-    TEST_SUITE("util_string")
+    TEST_SUITE("util::string")
     {
         TEST_CASE("to_lower")
         {
@@ -84,6 +84,7 @@ namespace mamba::util
             CHECK_EQ(remove_prefix("", 'a'), "");
             CHECK_EQ(remove_prefix("a", 'a'), "");
             CHECK_EQ(remove_prefix("aaa", 'a'), "aa");
+            CHECK_EQ(remove_prefix("aabb", 'b'), "aabb");
         }
 
         TEST_CASE("remove_suffix")
@@ -98,6 +99,7 @@ namespace mamba::util
             CHECK_EQ(remove_suffix("", 'b'), "");
             CHECK_EQ(remove_suffix("b", 'b'), "");
             CHECK_EQ(remove_suffix("bbb", 'b'), "bb");
+            CHECK_EQ(remove_suffix("aabb", 'a'), "aabb");
         }
 
         TEST_CASE("any_starts_with")

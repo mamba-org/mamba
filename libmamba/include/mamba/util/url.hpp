@@ -41,7 +41,9 @@ namespace mamba::util
          * The fields of the URL must be percent encoded, otherwise use the individual
          * field setters to encode.
          * For instance, "https://user@email.com@mamba.org/" must be passed as
-         *"https://user%40email.com@mamba.org/".
+         *"https://user%40email.com@mamba.org/".The first '@' charater is part of the username
+         * "user@email.com" whereas the second is the URL specification for separating username
+         * and hostname.
          *
          * @see Encode
          * @see mamba::util::url_encode

@@ -172,6 +172,16 @@ TEST_SUITE("util::URL")
             CHECK_EQ(url.fragment(), "");
         }
 
+        SUBCASE("http://user@40email.com:test@localhost")
+        {
+            // Fails before "user@email.com" needs to be percent encoded, otherwise parsing is
+            // ill defined.
+
+            // Silencing [[nodiscard]] warning
+            auto failure = [](std::string_view str) { [[maybe_unused]] auto url = URL::parse(str); };
+            CHECK_THROWS_AS(failure("http://user@40email.com:test@localhost"), std::invalid_argument);
+        }
+
         SUBCASE("http://:pass@localhost:8000")
         {
             const URL url = URL::parse("http://:pass@localhost:8000");
@@ -259,6 +269,20 @@ TEST_SUITE("util::URL")
             CHECK_EQ(url.port(), "9999");
             CHECK_EQ(url.query(), "");
             CHECK_EQ(url.fragment(), "");
+        }
+
+        SUBCASE("https://mamba.org/page#the-fragment")
+        {
+            const URL url = URL::parse("https://mamba.org/page#the-fragment");
+            CHECK_EQ(url.scheme(), "https");
+            CHECK_EQ(url.host(), "mamba.org");
+            CHECK_EQ(url.path(), "/page");
+            CHECK_EQ(url.pretty_path(), "/page");
+            CHECK_EQ(url.user(), "");
+            CHECK_EQ(url.password(), "");
+            CHECK_EQ(url.port(), "");
+            CHECK_EQ(url.query(), "");
+            CHECK_EQ(url.fragment(), "the-fragment");
         }
     }
 

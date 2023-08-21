@@ -554,15 +554,15 @@ PYBIND11_MODULE(bindings, m)
         )
         .def_property(
             "use_lockfiles",
-            [](Context& ctx)
+            [](Context& context)
             {
-                ctx.use_lockfiles = is_file_locking_allowed();
-                return ctx.use_lockfiles;
+                context.use_lockfiles = is_file_locking_allowed();
+                return context.use_lockfiles;
             },
-            [](Context& ctx, bool allow)
+            [](Context& context, bool allow)
             {
                 allow_file_locking(allow);
-                ctx.use_lockfiles = allow;
+                context.use_lockfiles = allow;
             }
         )
         .def("set_verbosity", &Context::set_verbosity)

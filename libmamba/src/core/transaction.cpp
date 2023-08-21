@@ -1159,7 +1159,7 @@ namespace mamba
                 }
                 else
                 {
-                    const Channel& chan = m_pool.channel_context().make_channel(std::string(str));
+                    const Channel& chan = m_pool.channel_context().make_channel(str);
                     chan_name = chan.canonical_name();
                 }
             }

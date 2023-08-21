@@ -30,8 +30,6 @@ namespace mamba::util
      */
     [[nodiscard]] auto url_decode(std::string_view url) -> std::string;
 
-    std::string concat_scheme_url(const std::string& scheme, const std::string& location);
-
     std::string build_url(
         const std::optional<std::string>& auth,
         const std::string& scheme,

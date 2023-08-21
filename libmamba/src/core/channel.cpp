@@ -350,7 +350,9 @@ namespace mamba
         }
         else
         {
-            return util::concat_scheme_url(scheme(), util::join_url(location(), name()));
+            auto url = util::URL::parse(location());  // Maybe a port etc.
+            url.set_scheme(scheme()).set_path(name());
+            return url.str();
         }
     }
 
@@ -454,13 +456,11 @@ namespace mamba
             }
             else
             {
-                std::string full_url = util::concat_scheme_url(scheme, location);
-                const auto parser = util::URL::parse(full_url);
-                location = util::URL()
-                               .set_host(parser.host())
-                               .set_port(parser.port())
-                               .str(util::URL::StripScheme::yes, /* rstrip_path= */ '/');
-                name = util::lstrip(parser.pretty_path(), '/');
+                auto url = util::URL::parse(location);
+                url.set_scheme(scheme);
+                name = util::lstrip(url.pretty_path(), '/');
+                url.set_user("").set_password("").set_path("").set_query("").set_fragment("");
+                location = url.str(util::URL::StripScheme::yes, /* rstrip_path= */ '/');
             }
         }
         name = name != "" ? util::strip(name, '/') : util::strip(channel_url, '/');
@@ -493,10 +493,9 @@ namespace mamba
         }
         else
         {
-            canonical_name = util::concat_scheme_url(
-                res_scheme,
-                util::join_url(config.location, config.name)
-            );
+            auto l_url = util::URL::parse(config.location);  // Maybe a port etc.
+            l_url.set_scheme(res_scheme).set_path(config.name);
+            canonical_name = l_url.str();
         }
 
         return Channel(

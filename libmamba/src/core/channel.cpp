@@ -491,6 +491,13 @@ namespace mamba
         {
             canonical_name = config.name;
         }
+        else if (res_scheme == "file")
+        {
+            auto l_url = util::URL();
+            l_url.set_scheme(res_scheme).set_path(config.location);
+            l_url = l_url / config.name;
+            canonical_name = l_url.str();
+        }
         else
         {
             auto l_url = util::URL::parse(config.location);  // Maybe a port etc.

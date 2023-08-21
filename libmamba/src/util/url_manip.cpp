@@ -126,7 +126,7 @@ namespace mamba::util
             url = URL::parse(base);  // Maybe port etc.
         }
         url.set_scheme(scheme);
-        return url.str();
+        return url.str(URL::StripScheme::no, /* rstrip_path= */ '/');
     }
 
     void split_platform(

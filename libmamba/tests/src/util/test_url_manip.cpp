@@ -57,7 +57,7 @@ TEST_SUITE("util::url_manip")
         CHECK_EQ(url, "https://auth@mamba.com");
 
         url = build_url(std::optional<std::string>(""), "https", "mamba.com", true);
-        CHECK_EQ(url, "https://@mamba.com");
+        CHECK_EQ(url, "https://mamba.com");
     }
 
     TEST_CASE("split_platform")

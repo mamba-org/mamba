@@ -21,6 +21,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
+        build_type: [Release, Debug]
     steps:
       - uses: actions/checkout@v3
       - name: create build environment
@@ -38,7 +39,8 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DBUILD_LIBMAMBA=ON \
+          cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+                   -DBUILD_LIBMAMBA=ON \
                    -DBUILD_STATIC=ON \
                    -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
                    -DCMAKE_C_COMPILER_LAUNCHER=sccache \
@@ -53,6 +55,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
+        build_type: [Release, Debug]
     steps:
       - uses: actions/checkout@v3
       - name: Create build environment
@@ -71,6 +74,7 @@ jobs:
         shell: bash -l {0}
         run: |
           cmake -B build/ \
+            -D CMAKE_BUILD_TYPE=${{ matrix.build_type }} \
             -D BUILD_LIBMAMBA=ON \
             -D BUILD_SHARED=ON \
             -D BUILD_LIBMAMBA_TESTS=ON \
@@ -92,6 +96,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
+        build_type: [Release, Debug]
     steps:
       - uses: actions/checkout@v3
       - name: create build environment
@@ -110,6 +115,7 @@ jobs:
         shell: bash -l {0}
         run: |
           cmake -B build/ \
+            -D CMAKE_BUILD_TYPE=${{ matrix.build_type }} \
             -D BUILD_MICROMAMBA=ON \
             -D BUILD_MICROMAMBA_SERVER=ON \
             -D BUILD_LIBMAMBA=ON \
@@ -143,6 +149,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
+        build_type: [Release, Debug]
         python_version: ["3.8"]
 
     steps:
@@ -169,6 +176,7 @@ jobs:
         shell: bash -l {0}
         run: |
           cmake -B build/ \
+            -D CMAKE_BUILD_TYPE=${{ matrix.build_type }} \
             -D CMAKE_INSTALL_PREFIX="${CONDA_PREFIX}" \
             -D BUILD_LIBMAMBAPY=ON \
             -D BUILD_LIBMAMBA=ON \

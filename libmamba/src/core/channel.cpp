@@ -348,6 +348,13 @@ namespace mamba
         {
             return "";
         }
+        else if (util::is_path(location()))
+        {
+            auto url = util::URL();
+            url.set_scheme(scheme()).set_path(location());
+            url = std::move(url) / name();
+            return url.str(util::URL::StripScheme::no, /* rstrip_path= */ '/');
+        }
         else
         {
             auto url = util::URL::parse(location());  // Maybe a port etc.

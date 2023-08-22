@@ -31,7 +31,7 @@ main(int argc, char** argv)
 {
     CLI::App app{};
     fs::u8path path;
-    int timeout = 1;
+    std::size_t timeout = 1;
 
     CLI::App* lock_com = app.add_subcommand("lock", "Lock a path");
     lock_com->add_option("path", path, "Path to lock");

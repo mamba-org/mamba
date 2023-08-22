@@ -951,7 +951,7 @@ namespace mamba
                 {
                     out << YAML::Comment("'" + source.as<std::string>() + "'");
                 }
-                else
+                else if (source.IsSequence())
                 {
                     auto srcs = source.as<std::vector<std::string>>();
                     std::string comment = "'" + srcs.at(0) + "'";
@@ -960,6 +960,11 @@ namespace mamba
                         comment += " > '" + srcs.at(i) + "'";
                     }
                     out << YAML::Comment(comment);
+                }
+                else
+                {
+                    LOG_ERROR << "YAML source type not handled";
+                    throw std::runtime_error("YAML source type not handled");
                 }
             }
         }
@@ -994,7 +999,14 @@ namespace mamba
                 out << YAML::Key << n.first;
                 out << YAML::Value;
 
-                print_node(out, n.second, source[key], show_source);
+                if (source.IsMap())
+                {
+                    print_node(out, n.second, source[key], show_source);
+                }
+                else
+                {
+                    print_node(out, n.second, source, show_source);
+                }
             }
             out << YAML::EndMap;
         }

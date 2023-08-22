@@ -120,7 +120,7 @@ set_ps_command(CLI::App* subcom)
 #endif
             for (auto& p : procs)
             {
-                PID pid = std::stoull(p["pid"].get<std::string>());
+                PID pid = std::stoi(p["pid"].get<std::string>());
                 stop_process(p["name"], pid);
             }
             if (procs.empty())

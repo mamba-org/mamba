@@ -8,10 +8,10 @@
 #define MAMBA_UTIL_URL_MANIP_HPP
 
 #include <optional>
+#include <regex>
 #include <string>
 #include <string_view>
 #include <vector>
-#include <regex>
 
 namespace mamba::util
 {

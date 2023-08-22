@@ -77,7 +77,7 @@ end
 # Autocompletions below
 
 function __fish_mamba_envs
-  micromamba env list | tail -n +11 | cut -d' ' -f3
+  micromamba env list | sed -n '/^[[:space:]]\+base[[:space:]]\+/,$p' | cut -d' ' -f3
 end
 
 function __fish_mamba_packages

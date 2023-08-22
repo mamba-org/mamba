@@ -6,7 +6,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 #include "compression.hpp"
 
@@ -198,11 +198,11 @@ namespace mamba
     std::unique_ptr<CompressionStream>
     make_compression_stream(const std::string& url, CompressionStream::writer&& func)
     {
-        if (ends_with(url, ".json.zst"))
+        if (util::ends_with(url, ".json.zst"))
         {
             return std::make_unique<ZstdCompressionStream>(std::move(func));
         }
-        else if (ends_with(url, "json.bz2"))
+        else if (util::ends_with(url, "json.bz2"))
         {
             return std::make_unique<Bzip2CompressionStream>(std::move(func));
         }

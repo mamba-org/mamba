@@ -1,8 +1,8 @@
 #include "mamba/core/download.hpp"
-#include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/core/util_string.hpp"
 #include "mamba/util/iterator.hpp"
+#include "mamba/util/string.hpp"
+#include "mamba/util/url.hpp"
 
 #include "curl.hpp"
 #include "download_impl.hpp"
@@ -184,7 +184,7 @@ namespace mamba
             m_handle.set_opt(CURLOPT_NOPROGRESS, 0L);
         }
 
-        if (ends_with(p_request->url, ".json"))
+        if (util::ends_with(p_request->url, ".json"))
         {
             // accept all encodings supported by the libcurl build
             m_handle.set_opt(CURLOPT_ACCEPT_ENCODING, "");
@@ -212,7 +212,7 @@ namespace mamba
         m_handle.add_header(user_agent);
 
         // get url host
-        const auto url_handler = URLHandler(p_request->url);
+        const auto url_handler = util::URL::parse(p_request->url);
         auto host = url_handler.host();
         const auto port = url_handler.port();
         if (port.size())
@@ -293,7 +293,7 @@ namespace mamba
             );
 
             // http headers are case insensitive!
-            const std::string lkey = to_lower(key);
+            const std::string lkey = util::to_lower(key);
             if (lkey == "etag")
             {
                 s->m_etag = value;
@@ -340,7 +340,7 @@ namespace mamba
 
     bool DownloadAttempt::can_retry(CURLcode code) const
     {
-        return m_handle.can_retry(code) && !starts_with(p_request->url, "file://");
+        return m_handle.can_retry(code) && !util::starts_with(p_request->url, "file://");
     }
 
     bool DownloadAttempt::can_retry(const TransferData& data) const
@@ -348,7 +348,7 @@ namespace mamba
         return (data.http_status == http::PAYLOAD_TOO_LARGE
                 || data.http_status == http::TOO_MANY_REQUESTS
                 || data.http_status >= http::INTERNAL_SERVER_ERROR)
-               && !starts_with(p_request->url, "file://");
+               && !util::starts_with(p_request->url, "file://");
     }
 
     TransferData DownloadAttempt::get_transfer_data() const

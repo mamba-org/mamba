@@ -681,6 +681,19 @@ PYBIND11_MODULE(bindings, m)
                 deprecated("Use `remote_fetch_params.connect_timeout_secs` instead.");
                 self.remote_fetch_params.connect_timeout_secs = cts;
             }
+        )
+        .def_property(
+            "proxy_servers",
+            [](const Context& self)
+            {
+                deprecated("Use `remote_fetch_params.proxy_servers` instead.");
+                return self.remote_fetch_params.proxy_servers;
+            },
+            [](Context& self, const std::map<std::string, std::string>& proxies)
+            {
+                deprecated("Use `remote_fetch_params.proxy_servers` instead.");
+                self.remote_fetch_params.proxy_servers = proxies;
+            }
         );
 
     // OutputParams

@@ -713,6 +713,14 @@ class Context:
     def prefix_params(self, arg0: Context.PrefixParams) -> None:
         pass
     @property
+    def proxy_servers(self) -> typing.Dict[str, str]:
+        """
+        :type: typing.Dict[str, str]
+        """
+    @proxy_servers.setter
+    def proxy_servers(self, arg1: typing.Dict[str, str]) -> None:
+        pass
+    @property
     def quiet(self) -> bool:
         """
         :type: bool

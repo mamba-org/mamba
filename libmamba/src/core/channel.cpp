@@ -461,6 +461,11 @@ namespace mamba
                 name.replace(0u, channel_alias.location().size(), "");
                 location = channel_alias.location();
             }
+            else if (util::is_path(location))
+            {
+                location = util::lstrip(location, '/');
+                name = location;
+            }
             else
             {
                 auto url = util::URL::parse(location);

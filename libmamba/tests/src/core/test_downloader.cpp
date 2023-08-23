@@ -6,6 +6,8 @@
 
 #include <doctest/doctest.h>
 
+#include "mambatests.hpp"
+
 #include "mamba/core/download.hpp"
 
 namespace mamba
@@ -22,9 +24,13 @@ namespace mamba
                 false,
                 true
             );
+            auto& context = mambatests::singletons().context;
+            const auto previous_quiet = context.output_params.quiet;
+            auto _ = on_scope_exit([&]{ context.output_params.quiet = previous_quiet; });
+
             MultiDownloadRequest dl_request{ std::vector{ std::move(request) } };
-            Context::instance().output_params.quiet = true;
-            MultiDownloadResult res = download(dl_request, Context::instance());
+            context.output_params.quiet = true;
+            MultiDownloadResult res = download(dl_request, context);
             CHECK_EQ(res.results.size(), std::size_t(1));
             CHECK(!res.results[0]);
             CHECK_EQ(res.results[0].error().attempt_number, std::size_t(1));
@@ -40,8 +46,11 @@ namespace mamba
                 "test_download_repodata.json"
             );
             MultiDownloadRequest dl_request{ std::vector{ std::move(request) } };
-            Context::instance().output_params.quiet = true;
-            CHECK_THROWS_AS(download(dl_request, Context::instance()), std::runtime_error);
+            auto& context = mambatests::singletons().context;
+            const auto previous_quiet = context.output_params.quiet;
+            auto _ = on_scope_exit([&]{ context.output_params.quiet = previous_quiet; });
+            context.output_params.quiet = true;
+            CHECK_THROWS_AS(download(dl_request, context), std::runtime_error);
 #endif
         }
     }

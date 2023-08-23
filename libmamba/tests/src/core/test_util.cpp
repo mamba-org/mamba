@@ -177,7 +177,7 @@ namespace mamba
     {
         TEST_CASE("proxy_match")
         {
-            auto& context = Context::instance();
+            auto& context = mambatests::singletons().context;
             context.remote_fetch_params.proxy_servers = { { "http", "foo" },
                                                           { "https", "bar" },
                                                           { "https://example.net",

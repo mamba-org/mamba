@@ -113,26 +113,13 @@ function Invoke-Mamba() {
                 & $Env:MAMBA_EXE $Command @OtherArgs;
 
                 # reactivate environment
-                if (@("install", "update", "remove").contains($Command)) {
-                    if ($Env:CONDA_DEFAULT_ENV) {
-                        # A dead simple way to get the possible environment name,
-                        # check for '-n' or '--name' and grab the next argument.
-                        # It is then used to compare against the current environment
-                        # and the environment reactivates only if the name matches.
-                        $argEnv = $null;
-                        for ($i = 0; $i -lt $OtherArgs.Count; $i++) {
-                            if ($OtherArgs[$i] -eq "-n" -or $OtherArgs[$i] -eq "--name") {
-                                $argEnv = $OtherArgs[$i + 1];
-                                break;
-                            }
-                        }
-
-                        if (!$argEnv -or $argEnv -eq $Env:CONDA_DEFAULT_ENV) {
-                            $activateCommand = (& $Env:MAMBA_EXE shell reactivate -s powershell | Out-String);
-                            Write-Verbose "[micromamba shell reactivate --shell powershell]`n$activateCommand";
-                            Invoke-Expression -Command $activateCommand;
-                        }
-                    }
+                if (@("install", "update", "remove").contains($Command))
+                {
+                   $activateCommand = (& $Env:MAMBA_EXE shell reactivate -s powershell | Out-String);
+                   if ($activateCommand) {
+                       Write-Verbose "[micromamba shell reactivate --shell powershell]`n$activateCommand";
+                       Invoke-Expression -Command $activateCommand;
+                   }
                 }
             }
         }

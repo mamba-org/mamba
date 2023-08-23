@@ -19,7 +19,7 @@
 
 using namespace mamba::solv;
 
-TEST_SUITE("ObjPool")
+TEST_SUITE("solv::ObjPool")
 {
     TEST_CASE("Construct a pool")
     {

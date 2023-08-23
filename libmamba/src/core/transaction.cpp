@@ -147,6 +147,18 @@ namespace mamba
                 [&](const solv::SolvableId id)
                 {
                     auto pkginfo = get_pkginfo(id);
+
+                    // Artificial packages are packages that were added to implement a feature
+                    // (e.g. a pin) but do not represent a Conda package.
+                    // They can appear in the transaction depending on libsolv flags.
+                    // We use this attribute to filter them out.
+                    if (const auto solv = pool.pool().get_solvable(id);
+                        solv.has_value() && solv->artificial())
+                    {
+                        LOG_DEBUG << "Solution: Remove artificial " << pkginfo.str();
+                        return;
+                    }
+
                     // keep_only ? specs.contains(...) : !specs.contains(...);
                     // TODO ideally we should use Matchspecs::contains(pkginfo)
                     if (keep_only == specs.contains(pkginfo.name))

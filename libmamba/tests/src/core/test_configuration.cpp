@@ -36,7 +36,7 @@ namespace mamba
             {
                 m_channel_alias_bu = ctx.channel_alias;
                 m_ssl_verify = ctx.remote_fetch_params.ssl_verify;
-                m_proxy_servers = ctx.proxy_servers;
+                m_proxy_servers = ctx.remote_fetch_params.proxy_servers;
             }
 
             ~Configuration()
@@ -44,7 +44,7 @@ namespace mamba
                 config.reset_configurables();
                 ctx.channel_alias = m_channel_alias_bu;
                 ctx.remote_fetch_params.ssl_verify = m_ssl_verify;
-                ctx.proxy_servers = m_proxy_servers;
+                ctx.remote_fetch_params.proxy_servers = m_proxy_servers;
             }
 
         protected:
@@ -724,7 +724,7 @@ namespace mamba
                 std::map<std::string, std::string> expected = { { "http", "foo" },
                                                                 { "https", "bar" } };
                 CHECK_EQ(actual, expected);
-                CHECK_EQ(ctx.proxy_servers, expected);
+                CHECK_EQ(ctx.remote_fetch_params.proxy_servers, expected);
 
                 CHECK_EQ(config.sources().size(), 1);
                 CHECK_EQ(config.valid_sources().size(), 1);

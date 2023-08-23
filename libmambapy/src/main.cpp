@@ -527,7 +527,6 @@ PYBIND11_MODULE(bindings, m)
         .def_readwrite("always_yes", &Context::always_yes)
         .def_readwrite("dry_run", &Context::dry_run)
         .def_readwrite("download_only", &Context::download_only)
-        .def_readwrite("proxy_servers", &Context::proxy_servers)
         .def_readwrite("add_pip_as_python_dependency", &Context::add_pip_as_python_dependency)
         .def_readwrite("envs_dirs", &Context::envs_dirs)
         .def_readwrite("pkgs_dirs", &Context::pkgs_dirs)
@@ -576,6 +575,7 @@ PYBIND11_MODULE(bindings, m)
         .def_readwrite("retry_backoff", &Context::RemoteFetchParams::retry_backoff)
         .def_readwrite("user_agent", &Context::RemoteFetchParams::user_agent)
         // .def_readwrite("read_timeout_secs", &Context::RemoteFetchParams::read_timeout_secs)
+        .def_readwrite("proxy_servers", &Context::RemoteFetchParams::proxy_servers)
         .def_readwrite("connect_timeout_secs", &Context::RemoteFetchParams::connect_timeout_secs);
 
     py::class_<Context::OutputParams>(ctx, "OutputParams")
@@ -680,6 +680,19 @@ PYBIND11_MODULE(bindings, m)
             {
                 deprecated("Use `remote_fetch_params.connect_timeout_secs` instead.");
                 self.remote_fetch_params.connect_timeout_secs = cts;
+            }
+        )
+        .def_property(
+            "proxy_servers",
+            [](const Context& self)
+            {
+                deprecated("Use `remote_fetch_params.proxy_servers` instead.");
+                return self.remote_fetch_params.proxy_servers;
+            },
+            [](Context& self, const std::map<std::string, std::string>& proxies)
+            {
+                deprecated("Use `remote_fetch_params.proxy_servers` instead.");
+                self.remote_fetch_params.proxy_servers = proxies;
             }
         );
 

@@ -77,6 +77,8 @@ namespace mamba
             int retry_timeout{ 2 };  // seconds
             int retry_backoff{ 3 };  // retry_timeout * retry_backoff
             int max_retries{ 3 };    // max number of retries
+
+            std::map<std::string, std::string> proxy_servers;
         };
 
         struct OutputParams
@@ -182,8 +184,6 @@ namespace mamba
         ThreadsParams threads_params;
         PrefixParams prefix_params;
 
-        std::map<std::string, std::string> proxy_servers;
-
         std::size_t lock_timeout = 0;
         bool use_lockfiles = true;
 
@@ -212,7 +212,9 @@ namespace mamba
         };
 
         std::string channel_alias = "https://conda.anaconda.org";
-        std::map<std::string, AuthenticationInfo>& authentication_info();
+        using authentication_info_map_t = std::map<std::string, AuthenticationInfo>;
+        authentication_info_map_t& authentication_info();
+        const authentication_info_map_t& authentication_info() const;
         std::vector<fs::u8path> token_locations{ "~/.continuum/anaconda-client/tokens" };
 
         bool override_channels_enabled = true;

@@ -211,7 +211,7 @@ def init_api_context(use_mamba_experimental=False):
     api_ctx.channels = context.channels
     api_ctx.platform = context.subdir
     # Conda uses a frozendict here
-    api_ctx.proxy_servers = dict(context.proxy_servers)
+    api_ctx.remote_fetch_params.proxy_servers = dict(context.proxy_servers)
 
     if "MAMBA_EXTRACT_THREADS" in os.environ:
         try:

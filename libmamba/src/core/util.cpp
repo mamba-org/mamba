@@ -1544,12 +1544,13 @@ namespace mamba
         return std::string(reinterpret_cast<const char*>(output.data()));
     }
 
-    std::optional<std::string> proxy_match(const std::string& url)
+
+    std::optional<std::string>
+    proxy_match(const std::string& url, const std::map<std::string, std::string>& proxy_servers)
     {
         /* This is a reimplementation of requests.utils.select_proxy(), of the python requests
         library used by conda */
-        auto& proxies = Context::instance().proxy_servers;
-        if (proxies.empty())
+        if (proxy_servers.empty())
         {
             return std::nullopt;
         }
@@ -1573,14 +1574,19 @@ namespace mamba
 
         for (auto& option : options)
         {
-            auto proxy = proxies.find(option);
-            if (proxy != proxies.end())
+            auto proxy = proxy_servers.find(option);
+            if (proxy != proxy_servers.end())
             {
                 return proxy->second;
             }
         }
 
         return std::nullopt;
+    }
+
+    std::optional<std::string> proxy_match(const std::string& url)
+    {
+        return proxy_match(url, Context::instance().remote_fetch_params.proxy_servers);
     }
 
     std::string hide_secrets(std::string_view str)

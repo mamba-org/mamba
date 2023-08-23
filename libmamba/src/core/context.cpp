@@ -179,6 +179,11 @@ namespace mamba
         return m_authentication_info;
     }
 
+    const std::map<std::string, AuthenticationInfo>& Context::authentication_info() const
+    {
+        return const_cast<Context*>(this)->authentication_info();
+    }
+
     void Context::load_authentication_info()
     {
         auto& ctx = Context::instance();

@@ -758,7 +758,7 @@ namespace mamba
             DownloadTarget* current_target = nullptr;
             for (const auto& target : m_targets)
             {
-                if (target->get_curl_handle() == msg.m_handle_ref)
+                if (target->get_curl_handle().get_id() == msg.m_handle_id)
                 {
                     current_target = target;
                     break;

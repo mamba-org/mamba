@@ -175,11 +175,12 @@ namespace mamba
     {
         TEST_CASE("proxy_match")
         {
-            Context::instance().proxy_servers = { { "http", "foo" },
-                                                  { "https", "bar" },
-                                                  { "https://example.net", "foobar" },
-                                                  { "all://example.net", "baz" },
-                                                  { "all", "other" } };
+            Context::instance().remote_fetch_params.proxy_servers = { { "http", "foo" },
+                                                                      { "https", "bar" },
+                                                                      { "https://example.net",
+                                                                        "foobar" },
+                                                                      { "all://example.net", "baz" },
+                                                                      { "all", "other" } };
 
             CHECK_EQ(*proxy_match("http://example.com/channel"), "foo");
             CHECK_EQ(*proxy_match("http://example.net/channel"), "foo");
@@ -189,14 +190,16 @@ namespace mamba
             CHECK_EQ(*proxy_match("ftp://example.net/channel"), "baz");
             CHECK_EQ(*proxy_match("ftp://example.org"), "other");
 
-            Context::instance().proxy_servers = { { "http", "foo" },
-                                                  { "https", "bar" },
-                                                  { "https://example.net", "foobar" },
-                                                  { "all://example.net", "baz" } };
+            Context::instance().remote_fetch_params.proxy_servers = {
+                { "http", "foo" },
+                { "https", "bar" },
+                { "https://example.net", "foobar" },
+                { "all://example.net", "baz" }
+            };
 
             CHECK_FALSE(proxy_match("ftp://example.org").has_value());
 
-            Context::instance().proxy_servers = {};
+            Context::instance().remote_fetch_params.proxy_servers = {};
 
             CHECK_FALSE(proxy_match("http://example.com/channel").has_value());
         }

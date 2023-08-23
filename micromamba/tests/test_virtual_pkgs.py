@@ -26,6 +26,6 @@ class TestVirtualPkgs:
         infos = info()
         if platform.system() == "Linux":
             assert "__linux=" in infos
-            assert "__linux=0=0" not in infos 
+            assert "__linux=0=0" not in infos
         else:
             assert "__linux=0=0" in infos

@@ -22,7 +22,10 @@ class TestVirtualPkgs:
             linux_ver = platform.release().split("-", 1)[0]
             assert f"__linux={linux_ver}=0" in infos
 
-    @pytest.mark.skipif(platform.system() == "Linux")
-    def test_virtual_linux_on_non_linux(self, monkeypatch):
+    def test_virtual_linux(self):
         infos = info()
-        assert f"__linux=0=0" in infos
+        if platform.system() == "Linux":
+            assert "__linux=" in infos
+            assert "__linux=0=0" not in infos 
+        else:
+            assert "__linux=0=0" in infos

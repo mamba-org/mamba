@@ -187,14 +187,12 @@ namespace mamba
                 res.push_back(make_virtual_package("__unix"));
 
                 std::string linux_ver = linux_version();
-                if (!linux_ver.empty())
+                if (linux_ver.empty())
                 {
-                    res.push_back(make_virtual_package("__linux", linux_ver));
+                    LOG_WARNING << "linux version not found, defaulting to '0'";
+                    linux_ver = "0";
                 }
-                else
-                {
-                    LOG_WARNING << "linux version not found (virtual package skipped)";
-                }
+                res.push_back(make_virtual_package("__linux", linux_ver));
 
                 std::string libc_ver = detail::glibc_version();
                 if (!libc_ver.empty())

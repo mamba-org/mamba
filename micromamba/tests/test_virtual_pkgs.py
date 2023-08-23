@@ -1,5 +1,7 @@
 import platform
 
+import pytest
+
 from .helpers import info
 
 
@@ -19,3 +21,11 @@ class TestVirtualPkgs:
             assert "__glibc" in infos
             linux_ver = platform.release().split("-", 1)[0]
             assert f"__linux={linux_ver}=0" in infos
+
+    def test_virtual_linux(self):
+        infos = info()
+        if platform.system() == "Linux":
+            assert "__linux=" in infos
+            assert "__linux=0=0" not in infos
+        else:
+            assert "__linux=0=0" in infos

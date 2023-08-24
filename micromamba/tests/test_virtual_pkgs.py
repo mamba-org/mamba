@@ -24,10 +24,10 @@ class TestVirtualPkgs:
             assert f"__linux={linux_ver}=0" in infos
 
     def test_virtual_linux(self):
-         if platform.system() == "Linux":
-             infos = info()
-             assert "__linux=" in infos
-             assert "__linux=0=0" not in infos
-         else:
-             infos = info(env={**os.environ, "CONDA_SUBDIR": "linux-64"})
-             assert "__linux=0=0" in infos
+        if platform.system() == "Linux":
+            infos = info()
+            assert "__linux=" in infos
+            assert "__linux=0=0" not in infos
+        else:
+            infos = info(env={**os.environ, "CONDA_SUBDIR": "linux-64"})
+            assert "__linux=0=0" in infos

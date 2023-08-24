@@ -1,3 +1,26 @@
+mamba 1.5.0 (August 24, 2023)
+=============================
+
+Enhancements:
+
+- Enable pytest color output by @jonashaag in https://github.com/mamba-org/mamba/pull/2759
+- Fix warnings by @Hind-M in https://github.com/mamba-org/mamba/pull/2760
+
+Bug fixes:
+
+- Fix Repo missing url by @Hind-M in https://github.com/mamba-org/mamba/pull/2723
+- Try Revert "Fix Repo missing url" by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2730
+- fix subcommands handling in recent versions of conda by @jaimergp in https://github.com/mamba-org/mamba/pull/2732
+- Try fix Missing Url error by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2731
+- fix: only reactivate current environment by @chawyehsu in https://github.com/mamba-org/mamba/pull/2763
+
+CI fixes and doc:
+
+- Update troubleshooting.rst by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2675
+- Ignore format changes in git blame by @jonashaag in https://github.com/mamba-org/mamba/pull/2690
+- Put more "not recommended" warnings in the installation instructions by @jonashaag in https://github.com/mamba-org/mamba/pull/2711
+- Add Debug build type by @Hind-M in https://github.com/mamba-org/mamba/pull/2762
+
 mamba 1.4.9 (July 13, 2023)
 ===========================
 

@@ -1,3 +1,16 @@
+libmambapy 1.5.0 (August 24, 2023)
+==================================
+
+Enhancements:
+
+- Enable pytest color output by @jonashaag in https://github.com/mamba-org/mamba/pull/2759
+- Fix warnings by @Hind-M in https://github.com/mamba-org/mamba/pull/2760
+
+CI fixes and doc:
+
+- Ignore format changes in git blame by @jonashaag in https://github.com/mamba-org/mamba/pull/2690
+- Add Debug build type by @Hind-M in https://github.com/mamba-org/mamba/pull/2762
+
 libmambapy 1.4.9 (July 13, 2023)
 ================================
 

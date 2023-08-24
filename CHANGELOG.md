@@ -1,3 +1,58 @@
+2023.08.23
+==========
+
+Releases: libmamba 1.5.0, libmambapy 1.5.0, mamba 1.5.0, micromamba 1.5.0
+
+Enhancements:
+
+- [libmamba] All headers at the top by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2658
+- [libmamba] Add boolean expression tree by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2591
+- [libmamba] Add VersionSpec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2502
+- [micromamba] Refactor test_repoquery to use new fixtures by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2691
+- [libmamba] Use xdg schemas for config saving/reading (minified) by @danpf in https://github.com/mamba-org/mamba/pull/2714
+- [micromamba] Remove warnings from test_activation by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2727
+- [micromamba] Refactor test_shell by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2726
+- [libmamba] specs platform by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2729
+- [libmamba] Safe Curl opt in url.cpp by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2734
+- [libmamba] Add win-arm64 support by @isuruf in https://github.com/mamba-org/mamba/pull/2745
+- [libmamba] Move util_string to utility library by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2739
+- [libmamba] Remove get_clean_dirs() by @jonashaag in https://github.com/mamba-org/mamba/pull/2748
+- [micromamba] Fix and improve static builds by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2755
+- [all] Enable pytest color output by @jonashaag in https://github.com/mamba-org/mamba/pull/2759
+- [libmamba, micromamba] Isolate URL object by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2744
+- [all] Fix warnings by @Hind-M in https://github.com/mamba-org/mamba/pull/2760
+- [libmamba] New apis for downloading by @JohanMabille in https://github.com/mamba-org/mamba/pull/2695
+
+Bug fixes:
+
+- [libmamba] Respect subdir in match spec by @ThomasBlauthQC in https://github.com/mamba-org/mamba/pull/2300
+- [libmamba] Fixed move constructor in CURLHandle by @JohanMabille in https://github.com/mamba-org/mamba/pull/2710
+- [micromamba] Fix wrong activated PATH in micromamba shell by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2722
+- [mamba] Fix Repo missing url by @Hind-M in https://github.com/mamba-org/mamba/pull/2723
+- [mamba] Try Revert "Fix Repo missing url" by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2730
+- [mamba] fix subcommands handling in recent versions of conda by @jaimergp in https://github.com/mamba-org/mamba/pull/2732
+- [libmamba] Remove created prefix if aborted with --platform by @Hind-M in https://github.com/mamba-org/mamba/pull/2738
+- [libmamba] Add missing newline in legacy errors by @jaimergp in https://github.com/mamba-org/mamba/pull/2743
+- [mamba] Try fix Missing Url error by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2731
+- [libmamba] fix: added missing hook_preamble() for powershell hook by @chawyehsu in https://github.com/mamba-org/mamba/pull/2761
+- [micromamba] Fix config list sources by @Hind-M in https://github.com/mamba-org/mamba/pull/2756
+- [libmamba] Fix fish completion by @soraxas in https://github.com/mamba-org/mamba/pull/2769
+- [libmamba, micromamba] Fix \_\_linux virtual package default version by jonashaag in https://github.com/mamba-org/mamba/pull/2749
+- [micromamba] Strong pin in test by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2774
+- [mamba] fix: only reactivate current environment by @chawyehsu in https://github.com/mamba-org/mamba/pull/2763
+- [micromamba] Revert failing test by @jonashaag in https://github.com/mamba-org/mamba/pull/2777
+
+CI fixes and doc:
+
+- [mamba, micromamba] Update troubleshooting.rst by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2675
+- [all] Ignore format changes in git blame by @jonashaag in https://github.com/mamba-org/mamba/pull/2690
+- [mamba] Put more "not recommended" warnings in the installation instructions by @jonashaag in https://github.com/mamba-org/mamba/pull/2711
+- [micromamba] Add command to docs for completeness by @danpf in https://github.com/mamba-org/mamba/pull/2717
+- [micromamba] fix: Correct a command in installation.rst by @wy-luke in https://github.com/mamba-org/mamba/pull/2703
+- [micromamba] Split Mamba and Micromamba installation docs by @jonashaag in https://github.com/mamba-org/mamba/pull/2719
+- [micromamba] fix: Shell completion section title missing by @wy-luke in https://github.com/mamba-org/mamba/pull/2764
+- [all] Add Debug build type by @Hind-M in https://github.com/mamba-org/mamba/pull/2762
+
 2023.07.13
 ==========
 

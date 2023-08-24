@@ -887,3 +887,9 @@ def test_pre_commit_compat(tmp_home, tmp_root_prefix, tmp_path):
         if pre_commit_log.exists():
             print(pre_commit_log.read_text())
         raise
+
+
+def test_long_path_support(tmp_home, tmp_root_prefix):
+    """Create an environment with a long name."""
+    res = helpers.create("-n", "long_prefix_" * 20, "--json")
+    assert res["success"]

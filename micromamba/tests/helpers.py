@@ -83,14 +83,14 @@ def random_string(n: int = 10) -> str:
     return "".join(random.choices(string.ascii_uppercase + string.digits, k=n))
 
 
-def shell(*args, cwd=os.getcwd()):
+def shell(*args, cwd=os.getcwd(), **kwargs):
     umamba = get_umamba(cwd=cwd)
     cmd = [umamba, "shell"] + [arg for arg in args if arg]
 
     if "--print-config-only" in args:
         cmd += ["--debug"]
 
-    res = subprocess_run(*cmd)
+    res = subprocess_run(*cmd, **kwargs)
     if "--json" in args:
         try:
             j = json.loads(res)
@@ -103,10 +103,10 @@ def shell(*args, cwd=os.getcwd()):
     return res.decode()
 
 
-def info(*args):
+def info(*args, **kwargs):
     umamba = get_umamba()
     cmd = [umamba, "info"] + [arg for arg in args if arg]
-    res = subprocess_run(*cmd)
+    res = subprocess_run(*cmd, **kwargs)
     if "--json" in args:
         try:
             j = json.loads(res)
@@ -117,21 +117,21 @@ def info(*args):
     return res.decode()
 
 
-def login(*args):
+def login(*args, **kwargs):
     umamba = get_umamba()
     cmd = [umamba, "auth", "login"] + [arg for arg in args if arg]
-    res = subprocess_run(*cmd)
+    res = subprocess_run(*cmd, **kwargs)
     return res.decode()
 
 
-def logout(*args):
+def logout(*args, **kwargs):
     umamba = get_umamba()
     cmd = [umamba, "auth", "logout"] + [arg for arg in args if arg]
-    res = subprocess_run(*cmd)
+    res = subprocess_run(*cmd, **kwargs)
     return res.decode()
 
 
-def install(*args, default_channel=True, no_rc=True, no_dry_run=False):
+def install(*args, default_channel=True, no_rc=True, no_dry_run=False, **kwargs):
     umamba = get_umamba()
     cmd = [umamba, "install", "-y"] + [arg for arg in args if arg]
 
@@ -147,7 +147,7 @@ def install(*args, default_channel=True, no_rc=True, no_dry_run=False):
         cmd += ["--dry-run"]
     cmd += ["--log-level=info"]
 
-    res = subprocess_run(*cmd)
+    res = subprocess_run(*cmd, **kwargs)
 
     if "--json" in args:
         try:
@@ -168,6 +168,7 @@ def create(
     no_dry_run=False,
     always_yes=True,
     create_cmd="create",
+    **kwargs,
 ):
     umamba = get_umamba()
     cmd = [umamba] + create_cmd.split() + [str(arg) for arg in args if arg]
@@ -186,7 +187,7 @@ def create(
         cmd += ["--dry-run"]
 
     try:
-        res = subprocess_run(*cmd)
+        res = subprocess_run(*cmd, **kwargs)
         if "--json" in args:
             j = json.loads(res)
             return j
@@ -198,7 +199,7 @@ def create(
         raise (e)
 
 
-def remove(*args, no_dry_run=False):
+def remove(*args, no_dry_run=False, **kwargs):
     umamba = get_umamba()
     cmd = [umamba, "remove", "-y"] + [arg for arg in args if arg]
 
@@ -208,7 +209,7 @@ def remove(*args, no_dry_run=False):
         cmd += ["--dry-run"]
 
     try:
-        res = subprocess_run(*cmd)
+        res = subprocess_run(*cmd, **kwargs)
         if "--json" in args:
             j = json.loads(res)
             return j
@@ -220,7 +221,7 @@ def remove(*args, no_dry_run=False):
         raise (e)
 
 
-def clean(*args, no_dry_run=False):
+def clean(*args, no_dry_run=False, **kwargs):
     umamba = get_umamba()
     cmd = [umamba, "clean", "-y"] + [arg for arg in args if arg]
 
@@ -230,7 +231,7 @@ def clean(*args, no_dry_run=False):
         cmd += ["--dry-run"]
 
     try:
-        res = subprocess.check_output(cmd)
+        res = subprocess.check_output(cmd, **kwargs)
         if "--json" in args:
             j = json.loads(res)
             return j
@@ -242,7 +243,7 @@ def clean(*args, no_dry_run=False):
         raise (e)
 
 
-def update(*args, default_channel=True, no_rc=True, no_dry_run=False):
+def update(*args, default_channel=True, no_rc=True, no_dry_run=False, **kwargs):
     umamba = get_umamba()
     cmd = [umamba, "update", "-y"] + [arg for arg in args if arg]
     if use_offline:
@@ -255,7 +256,7 @@ def update(*args, default_channel=True, no_rc=True, no_dry_run=False):
         cmd += ["--dry-run"]
 
     try:
-        res = subprocess_run(*cmd)
+        res = subprocess_run(*cmd, **kwargs)
         if "--json" in args:
             try:
                 j = json.loads(res)
@@ -272,11 +273,11 @@ def update(*args, default_channel=True, no_rc=True, no_dry_run=False):
         raise (e)
 
 
-def run_env(*args, f=None):
+def run_env(*args, f=None, **kwargs):
     umamba = get_umamba()
     cmd = [umamba, "env"] + [str(arg) for arg in args if arg]
 
-    res = subprocess_run(*cmd)
+    res = subprocess_run(*cmd, **kwargs)
 
     if "--json" in args:
         j = json.loads(res)
@@ -285,11 +286,11 @@ def run_env(*args, f=None):
     return res.decode()
 
 
-def umamba_list(*args):
+def umamba_list(*args, **kwargs):
     umamba = get_umamba()
 
     cmd = [umamba, "list"] + [str(arg) for arg in args if arg]
-    res = subprocess_run(*cmd)
+    res = subprocess_run(*cmd, **kwargs)
 
     if "--json" in args:
         j = json.loads(res)
@@ -311,7 +312,7 @@ def umamba_run(*args, **kwargs):
     return res.decode()
 
 
-def umamba_repoquery(*args, no_rc=True):
+def umamba_repoquery(*args, no_rc=True, **kwargs):
     umamba = get_umamba()
 
     cmd = [umamba, "repoquery"] + [str(arg) for arg in args if arg]
@@ -319,7 +320,7 @@ def umamba_repoquery(*args, no_rc=True):
     if no_rc:
         cmd += ["--no-rc"]
 
-    res = subprocess_run(*cmd)
+    res = subprocess_run(*cmd, **kwargs)
 
     if "--json" in args:
         j = json.loads(res)

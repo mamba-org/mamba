@@ -15,7 +15,7 @@
 
 using namespace mamba::solv;
 
-TEST_SUITE("ObjRepo")
+TEST_SUITE("solv::ObjRepo")
 {
     TEST_CASE("Construct a repo")
     {

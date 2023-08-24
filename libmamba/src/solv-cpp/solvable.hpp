@@ -93,6 +93,14 @@ namespace mamba::solv
         /** Whether the solvable is in the installed repo. */
         auto installed() const -> bool;
 
+        /**
+         * Some artificial packages are added to produce extra features (e.g. pins).
+         *
+         * We flag them as such so that we avoid trying to install them.
+         * This as no effect on libsolv, it must be checked manually.
+         */
+        auto artificial() const -> bool;
+
     private:
 
         const ::Solvable* m_solvable = nullptr;
@@ -393,6 +401,13 @@ namespace mamba::solv
         void add_track_features(Iter first, Iter last) const;
         template <typename Range>
         void add_track_features(const Range& features) const;
+
+        /**
+         * Mark package as artificial, i.e. that must not be installed.
+         *
+         * @see ObjSolvableViewConst::artificial
+         */
+        void set_artificial(bool val) const;
     };
 
     /***************************************

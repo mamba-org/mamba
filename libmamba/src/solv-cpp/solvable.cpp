@@ -466,4 +466,29 @@ namespace mamba::solv
         const auto* const repo = raw()->repo;
         return (repo != nullptr) && (repo == repo->pool->installed);
     }
+
+    namespace
+    {
+        auto solvable_lookup_bool(const ::Solvable* s, ::Id key) -> bool
+        {
+            return ::solvable_lookup_num(const_cast<::Solvable*>(s), key, 0) != 0;
+        }
+
+        void solvable_set_bool(::Solvable* s, ::Id key, bool val)
+        {
+            ::solvable_set_num(s, key, (val ? 1 : 0));
+        }
+    }
+
+    auto ObjSolvableViewConst::artificial() const -> bool
+    {
+        // (Ab)using meaningless key
+        return solvable_lookup_bool(raw(), SOLVABLE_INSTALLSTATUS);
+    }
+
+    void ObjSolvableView::set_artificial(bool val) const
+    {
+        // (Ab)using meaningless key
+        ::solvable_set_num(raw(), SOLVABLE_INSTALLSTATUS, val);
+    }
 }

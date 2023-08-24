@@ -19,7 +19,7 @@
 using namespace mamba::solv;
 using namespace mamba::test;
 
-TEST_SUITE("ObjSolver")
+TEST_SUITE("solv::ObjSolver")
 {
     TEST_CASE("Create a solver")
     {

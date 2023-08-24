@@ -145,7 +145,7 @@ test_random_access_api(Seq& input, const Seq& res, Pred pred)
     CHECK_EQ(citer2[1], res_iter2[1]);
 }
 
-TEST_SUITE("filter_iterator")
+TEST_SUITE("util::filter_iterator")
 {
     TEST_CASE("forward_iterator_api")
     {

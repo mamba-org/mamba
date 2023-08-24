@@ -19,7 +19,7 @@
 
 using namespace mamba::util;
 
-TEST_SUITE("flat_bool_expr_tree")
+TEST_SUITE("util::flat_bool_expr_tree")
 {
     TEST_CASE("flat_binary_tree")
     {

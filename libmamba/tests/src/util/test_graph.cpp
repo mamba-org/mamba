@@ -132,7 +132,7 @@ private:
     node_id_list m_finish_nodes;
 };
 
-TEST_SUITE("graph")
+TEST_SUITE("util::graph")
 {
     TEST_CASE("build_simple")
     {

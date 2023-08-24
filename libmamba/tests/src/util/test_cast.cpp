@@ -42,7 +42,7 @@ using OverflowLowestTypes = std::tuple<
     std::pair<double, int>,
     std::pair<float, char>>;
 
-TEST_SUITE("cast")
+TEST_SUITE("util::cast")
 {
     TEST_CASE_TEMPLATE_DEFINE("checked_exact_num_cast_widen", T, cast_widen)
     {

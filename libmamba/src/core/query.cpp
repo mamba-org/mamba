@@ -156,7 +156,7 @@ namespace mamba
 
     namespace
     {
-        auto print_solvable(const PackageInfo& pkg)
+        auto print_solvable(const PackageInfo& pkg, const std::vector<PackageInfo>& otherVersions)
         {
             auto out = Console::stream();
             std::string header = fmt::format("{} {} {}", pkg.name, pkg.version, pkg.build_string);
@@ -202,6 +202,29 @@ namespace mamba
                 for (auto& c : pkg.constrains)
                 {
                     fmt::print(out, "  - {}\n", c);
+                }
+            }
+
+            if (!pkg.depends.empty())
+            {
+                fmt::print(out, "\n Dependencies:\n");
+                for (auto& d : pkg.depends)
+                {
+                    fmt::print(out, "  - {}\n", d);
+                }
+            }
+
+            if (!otherVersions.empty())
+            {
+                fmt::print(out, "\n Other Versions:\n");
+                auto currentVersion = pkg.version;
+                for (const auto& p : otherVersions)
+                {
+                    if (p.version != currentVersion)
+                    {
+                        currentVersion = p.version;
+                        fmt::print(out, "  - {} {}\n", p.version, p.build_string);
+                    }
                 }
             }
 
@@ -673,9 +696,19 @@ namespace mamba
     {
         if (!m_pkg_id_list.empty())
         {
+            std::map<std::string, std::vector<PackageInfo>> packages;
             for (const auto& id : m_pkg_id_list)
             {
-                print_solvable(m_dep_graph.node(id));
+                auto package = m_dep_graph.node(id);
+                packages[package.name].push_back(package);
+            }
+
+            for (const auto& entry : packages)
+            {
+                print_solvable(
+                    entry.second[0],
+                    std::vector(entry.second.begin() + 1, entry.second.end())
+                );
             }
         }
         return out;

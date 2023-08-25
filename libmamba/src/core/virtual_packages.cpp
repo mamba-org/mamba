@@ -193,7 +193,7 @@ namespace mamba
                     LOG_WARNING << "linux version not found, defaulting to '0'";
                     linux_ver = "0";
                 }
-                res.push_back(make_virtual_package("__linux", linux_ver));
+                res.push_back(make_virtual_package("__linux", platform, linux_ver));
 
                 std::string libc_ver = detail::glibc_version();
                 if (!libc_ver.empty())

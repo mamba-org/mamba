@@ -43,46 +43,40 @@ TEST_SUITE("solv::ObjSolver")
             CHECK(solver.get_flag(SOLVER_FLAG_ALLOW_DOWNGRADE));
         }
 
-        SUBCASE("Add packages")
+        SUBCASE("Solve successfully")
         {
-            SUBCASE("Solve successfully")
-            {
-                // The job is matched with the ``provides`` field of the solvable
-                auto jobs = ObjQueue{
-                    SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
-                    pool.add_conda_dependency("menu"),
-                    SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
-                    pool.add_conda_dependency("icons=2.*"),
-                };
-                CHECK(solver.solve(pool, jobs));
-                CHECK_EQ(solver.problem_count(), 0);
-            }
+            // The job is matched with the ``provides`` field of the solvable
+            auto jobs = ObjQueue{
+                SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
+                pool.add_conda_dependency("menu"),
+                SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
+                pool.add_conda_dependency("icons=2.*"),
+            };
+            CHECK(solver.solve(pool, jobs));
+            CHECK_EQ(solver.problem_count(), 0);
+        }
 
-            SUBCASE("Solve unsuccessfully")
-            {
-                // The job is matched with the ``provides`` field of the solvable
-                auto jobs = ObjQueue{
-                    SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
-                    pool.add_conda_dependency("menu"),
-                    SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
-                    pool.add_conda_dependency("icons=1.*"),
-                    SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
-                    pool.add_conda_dependency("intl=5.*"),
-                };
+        SUBCASE("Solve unsuccessfully")
+        {
+            // The job is matched with the ``provides`` field of the solvable
+            auto jobs = ObjQueue{
+                SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, pool.add_conda_dependency("menu"),
+                SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, pool.add_conda_dependency("icons=1.*"),
+                SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, pool.add_conda_dependency("intl=5.*"),
+            };
 
-                CHECK_FALSE(solver.solve(pool, jobs));
-                CHECK_NE(solver.problem_count(), 0);
+            CHECK_FALSE(solver.solve(pool, jobs));
+            CHECK_NE(solver.problem_count(), 0);
 
-                auto all_rules = ObjQueue{};
-                solver.for_each_problem_id(
-                    [&](auto pb)
-                    {
-                        auto pb_rules = solver.problem_rules(pb);
-                        all_rules.insert(all_rules.end(), pb_rules.cbegin(), pb_rules.cend());
-                    }
-                );
-                CHECK_FALSE(all_rules.empty());
-            }
+            auto all_rules = ObjQueue{};
+            solver.for_each_problem_id(
+                [&](auto pb)
+                {
+                    auto pb_rules = solver.problem_rules(pb);
+                    all_rules.insert(all_rules.end(), pb_rules.cbegin(), pb_rules.cend());
+                }
+            );
+            CHECK_FALSE(all_rules.empty());
         }
     }
 }

@@ -231,13 +231,22 @@ namespace mamba
                 printer.set_alignment(
                     { alignment::left, alignment::left, alignment::left, alignment::right }
                 );
-                for (const auto& entry : buildsByVersion)
+                // We want the newest version to be on top, therefore we iterate in reverse.
+                for (auto it = buildsByVersion.rbegin(); it != buildsByVersion.rend(); it++)
                 {
-                    std::vector<mamba::printers::FormattedString> row;
-                    row.push_back(entry.second.front().version);
-                    row.push_back(entry.second.front().build_string);
-                    row.push_back("(+");
-                    row.push_back(fmt::format("{} builds)", entry.second.size() - 1));
+                    std::vector<FormattedString> row;
+                    row.push_back(it->second.front().version);
+                    row.push_back(it->second.front().build_string);
+                    if (it->second.size() > 1)
+                    {
+                        row.push_back("(+");
+                        row.push_back(fmt::format("{} builds)", it->second.size() - 1));
+                    }
+                    else
+                    {
+                        row.push_back("");
+                        row.push_back("");
+                    }
                     printer.add_row(row);
                 }
                 printer.print(buffer);
@@ -452,7 +461,7 @@ namespace mamba
 
     std::ostream& query_result::table(std::ostream& out) const
     {
-        return table(out, { "Name", "Version", "Build", "Channel" });
+        return table(out, { "Name", "Version", "Build", "", "", "Channel", "Subdir" });
     }
 
     namespace
@@ -461,6 +470,12 @@ namespace mamba
         auto cut_subdir(std::string_view str) -> std::string
         {
             return util::split(str, "/", 1).front();  // Has at least one element
+        }
+
+        /** Get subdir from channel name. */
+        auto get_subdir(std::string_view str) -> std::string
+        {
+            return util::split(str, "/").back();
         }
 
     }
@@ -474,6 +489,7 @@ namespace mamba
 
         std::vector<mamba::printers::FormattedString> headers;
         std::vector<std::string> cmds, args;
+        std::vector<mamba::printers::alignment> alignments;
         for (auto& f : fmt)
         {
             if (f.find_first_of(":") == f.npos)
@@ -489,9 +505,10 @@ namespace mamba
                 cmds.push_back(sfmt[0]);
                 args.push_back(sfmt[1]);
             }
+            alignments.push_back(f == "" ? printers::alignment::right : printers::alignment::left);
         }
 
-        auto format_row = [&](const PackageInfo& pkg)
+        auto format_row = [&](const PackageInfo& pkg, const std::vector<PackageInfo>& builds)
         {
             std::vector<mamba::printers::FormattedString> row;
             for (std::size_t i = 0; i < cmds.size(); ++i)
@@ -508,10 +525,24 @@ namespace mamba
                 else if (cmd == "Build")
                 {
                     row.push_back(pkg.build_string);
+                    if (builds.size() > 1)
+                    {
+                        row.push_back("(+");
+                        row.push_back(fmt::format("{} builds)", builds.size() - 1));
+                    }
+                    else
+                    {
+                        row.push_back("");
+                        row.push_back("");
+                    }
                 }
                 else if (cmd == "Channel")
                 {
                     row.push_back(cut_subdir(cut_repo_name(pkg.channel)));
+                }
+                else if (cmd == "Subdir")
+                {
+                    row.push_back(get_subdir(pkg.channel));
                 }
                 else if (cmd == "Depends")
                 {
@@ -531,14 +562,26 @@ namespace mamba
         };
 
         printers::Table printer(headers);
+        printer.set_alignment(alignments);
 
         if (!m_ordered_pkg_id_list.empty())
         {
+            std::map<std::string, std::map<std::string, std::vector<PackageInfo>>> packageBuildsByVersion;
             for (auto& entry : m_ordered_pkg_id_list)
             {
                 for (const auto& id : entry.second)
                 {
-                    printer.add_row(format_row(m_dep_graph.node(id)));
+                    auto package = m_dep_graph.node(id);
+                    packageBuildsByVersion[package.name][package.version].push_back(package);
+                }
+            }
+
+            for (const auto& entry : packageBuildsByVersion)
+            {
+                // We want the newest version to be on top, therefore we iterate in reverse.
+                for (auto it = entry.second.rbegin(); it != entry.second.rend(); ++it)
+                {
+                    printer.add_row(format_row(it->second[0], it->second));
                 }
             }
         }
@@ -546,9 +589,10 @@ namespace mamba
         {
             for (const auto& id : m_pkg_id_list)
             {
-                printer.add_row(format_row(m_dep_graph.node(id)));
+                printer.add_row(format_row(m_dep_graph.node(id), {}));
             }
         }
+
         return printer.print(out);
     }
 

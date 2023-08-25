@@ -144,7 +144,7 @@ namespace mamba
                 case QueryResultFormat::kRECURSIVETABLE:
                     res.sort("name").table(
                         std::cout,
-                        { "Name", "Version", "Build", util::concat("Depends:", query), "Channel" }
+                        { "Name", "Version", "Build", "", "", util::concat("Depends:", query), "Channel", "Subdir" }
                     );
             }
             if (res.empty() && format != QueryResultFormat::kJSON)

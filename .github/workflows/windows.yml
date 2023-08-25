@@ -48,13 +48,13 @@ jobs:
         shell: cmd /C CALL {0}
         # Latest VCPKG is from GHA because releases are not up to date with VCPKG server
         run: |
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          set VCPKG_ROOT=C:\vcpkg
+          SET VCPKG_ROOT=C:\vcpkg
+          SET VCPKG_BUILD_TYPE=release
           if %errorlevel% neq 0 exit /b %errorlevel%
           ROBOCOPY .\ports\libsolv %VCPKG_ROOT%\ports\libsolv
           @rem ROBOCOPY has 0 and 1 as successfull exit codes
           if %errorlevel% neq 0 if %errorlevel% neq 1 exit /b %errorlevel%
-          SET VCPKG_BUILD_TYPE=release && vcpkg install libsolv[conda] --triplet x64-windows-static
+          vcpkg install libsolv[conda] --triplet x64-windows-static
           if %errorlevel% neq 0 exit /b %errorlevel%
           vcpkg install "libarchive[bzip2,lz4,lzma,lzo,openssl,zstd]" --triplet x64-windows-static
           if %errorlevel% neq 0 exit /b %errorlevel%
@@ -83,6 +83,7 @@ jobs:
           cmake -B build ^
             -D CMAKE_PREFIX_PATH=C:\vcpkg\installed\x64-windows-static\ ^
             -D CMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
+            -D CMAKE_BUILD_TYPE="Release" ^
             -D BUILD_LIBMAMBA=ON ^
             -D BUILD_STATIC=ON ^
             -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
@@ -126,23 +127,21 @@ jobs:
       - name: build libmamba Python bindings
         shell: cmd /C call {0}
         run: |
+          cmake -B build/ ^
+              -G Ninja ^
+              -D CMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
+              -D CMAKE_BUILD_TYPE="Release" ^
+              -D BUILD_LIBMAMBAPY=ON ^
+              -D BUILD_LIBMAMBA=ON ^
+              -D BUILD_SHARED=ON ^
+              -D BUILD_MAMBA_PACKAGE=ON ^
+              -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
+              -D CMAKE_C_COMPILER_LAUNCHER=sccache
           if %errorlevel% neq 0 exit /b %errorlevel%
-          mkdir build
+          cmake --build build/ --parallel
           if %errorlevel% neq 0 exit /b %errorlevel%
-          cd build
+          cmake --install build/
           if %errorlevel% neq 0 exit /b %errorlevel%
-          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
-                   -DBUILD_LIBMAMBAPY=ON ^
-                   -DBUILD_LIBMAMBA=ON ^
-                   -DBUILD_SHARED=ON ^
-                   -DBUILD_MAMBA_PACKAGE=ON ^
-                   -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
-                   -DCMAKE_C_COMPILER_LAUNCHER=sccache ^
-                   -GNinja
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          ninja
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          ninja install
       - name: install libmambapy
         shell: cmd /C call {0}
         run: |
@@ -212,24 +211,23 @@ jobs:
       - name: build and run libmamba C++ tests
         shell: cmd /C call {0}
         run: |
+          cmake -B build/ ^
+              -G Ninja ^
+              -D CMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
+              -D CMAKE_BUILD_TYPE="Release" ^
+              -D BUILD_LIBMAMBA_TESTS=ON ^
+              -D BUILD_LIBMAMBA=ON ^
+              -D BUILD_SHARED=ON ^
+              -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
+              -D CMAKE_C_COMPILER_LAUNCHER=sccache
           if %errorlevel% neq 0 exit /b %errorlevel%
-          mkdir build
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          cd build
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
-                   -DBUILD_LIBMAMBA_TESTS=ON ^
-                   -DBUILD_LIBMAMBA=ON ^
-                   -DBUILD_SHARED=ON ^
-                   -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
-                   -DCMAKE_C_COMPILER_LAUNCHER=sccache ^
-                   -GNinja
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          ninja install
+          cmake --build build/ --parallel
           if %errorlevel% neq 0 exit /b %errorlevel%
           @REM Interferes with tests
           set CONDARC=
+          cd build
           ninja test
+          if %errorlevel% neq 0 exit /b %errorlevel%
       - name: build cache statistics
         run: sccache --show-stats
 
@@ -258,20 +256,18 @@ jobs:
       - name: build micromamba
         shell: cmd /C call {0}
         run: |
+          cmake -B build/ ^
+              -G Ninja ^
+              -D CMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
+              -D BUILD_MICROMAMBA=ON ^
+              -D BUILD_LIBMAMBA=ON ^
+              -D BUILD_SHARED=ON ^
+              -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
+              -D CMAKE_C_COMPILER_LAUNCHER=sccache
           if %errorlevel% neq 0 exit /b %errorlevel%
-          mkdir build
+          cmake --build build/ --parallel
           if %errorlevel% neq 0 exit /b %errorlevel%
-          cd build
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
-                   -DBUILD_MICROMAMBA=ON ^
-                   -DBUILD_LIBMAMBA=ON ^
-                   -DBUILD_SHARED=ON ^
-                   -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
-                   -DCMAKE_C_COMPILER_LAUNCHER=sccache ^
-                   -GNinja
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          ninja install
+          cmake --install build/
       - name: check that micromamba runs
         shell: cmd /C call {0}
         run: .\build\micromamba\micromamba.exe --help

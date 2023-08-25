@@ -63,6 +63,7 @@ endif()
 add_executable(micromamba ${MICROMAMBA_SRCS} ${MICROMAMBA_HEADERS})
 
 mamba_target_add_compile_warnings(micromamba WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
+mamba_target_set_lto(micromamba MODE ${MAMBA_LTO})
 
 if(NOT (TARGET libmamba OR TARGET libmamba-static))
     find_package(libmamba REQUIRED)

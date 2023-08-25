@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <iostream>
+#include <sstream>
 #include <stack>
 
 #include <fmt/chrono.h>
@@ -216,15 +217,35 @@ namespace mamba
 
             if (!otherVersions.empty())
             {
-                fmt::print(out, "\n Other Versions:\n");
-                auto currentVersion = pkg.version;
+                std::map<std::string, std::vector<PackageInfo>> buildsByVersion;
                 for (const auto& p : otherVersions)
                 {
-                    if (p.version != currentVersion)
-                    {
-                        currentVersion = p.version;
-                        fmt::print(out, "  - {} {}\n", p.version, p.build_string);
-                    }
+                    buildsByVersion[p.version].push_back(p);
+                }
+                fmt::print(out, "\n Other Versions ({}):\n\n", buildsByVersion.size());
+
+                std::stringstream buffer;
+
+                using namespace printers;
+                Table printer({ "Version", "Build", "", "" });
+                printer.set_alignment(
+                    { alignment::left, alignment::left, alignment::left, alignment::right }
+                );
+                for (const auto& entry : buildsByVersion)
+                {
+                    std::vector<mamba::printers::FormattedString> row;
+                    row.push_back(entry.second.front().version);
+                    row.push_back(entry.second.front().build_string);
+                    row.push_back("(+");
+                    row.push_back(fmt::format("{} builds)", entry.second.size() - 1));
+                    printer.add_row(row);
+                }
+                printer.print(buffer);
+
+                std::string line;
+                while (std::getline(buffer, line))
+                {
+                    out << "  " << line << std::endl;
                 }
             }
 

@@ -224,6 +224,7 @@ namespace mamba
 
         bool use_only_tar_bz2 = false;
 
+        bool repodata_use_zst = true;
         std::vector<std::string> repodata_has_zst = { "https://conda.anaconda.org/conda-forge" };
 
         // usernames on anaconda.org can have a underscore, which influences the

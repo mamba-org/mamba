@@ -600,30 +600,33 @@ namespace mamba
             auto& ctx = Context::instance();
             if (!ctx.offline || forbid_cache())
             {
-                bool has_value = m_metadata.has_zst.has_value();
-                bool is_expired = m_metadata.has_zst.has_value()
-                                  && m_metadata.has_zst.value().has_expired();
-                bool has_zst = m_metadata.check_zst(channel_context, p_channel);
-                if (!has_zst && (is_expired || !has_value))
+                if (ctx.repodata_use_zst)
                 {
-                    m_check_targets.push_back(std::make_unique<DownloadTarget>(
-                        m_name + " (check zst)",
-                        m_repodata_url + ".zst",
-                        ""
-                    ));
-                    m_check_targets.back()->set_head_only(true);
-                    m_check_targets.back()->set_finalize_callback(&MSubdirData::finalize_check, this);
-                    m_check_targets.back()->set_ignore_failure(true);
-                    if (!(ctx.graphics_params.no_progress_bars || ctx.output_params.quiet
-                          || ctx.output_params.json))
+                    bool has_value = m_metadata.has_zst.has_value();
+                    bool is_expired = m_metadata.has_zst.has_value()
+                                      && m_metadata.has_zst.value().has_expired();
+                    bool has_zst = m_metadata.check_zst(channel_context, p_channel);
+                    if (!has_zst && (is_expired || !has_value))
                     {
-                        m_progress_bar_check = Console::instance().add_progress_bar(
-                            m_name + " (check zst)"
-                        );
-                        m_check_targets.back()->set_progress_bar(m_progress_bar_check);
-                        m_progress_bar_check.repr().postfix.set_value("Checking");
+                        m_check_targets.push_back(std::make_unique<DownloadTarget>(
+                            m_name + " (check zst)",
+                            m_repodata_url + ".zst",
+                            ""
+                        ));
+                        m_check_targets.back()->set_head_only(true);
+                        m_check_targets.back()->set_finalize_callback(&MSubdirData::finalize_check, this);
+                        m_check_targets.back()->set_ignore_failure(true);
+                        if (!(ctx.graphics_params.no_progress_bars || ctx.output_params.quiet
+                              || ctx.output_params.json))
+                        {
+                            m_progress_bar_check = Console::instance().add_progress_bar(
+                                m_name + " (check zst)"
+                            );
+                            m_check_targets.back()->set_progress_bar(m_progress_bar_check);
+                            m_progress_bar_check.repr().postfix.set_value("Checking");
+                        }
+                        return true;
                     }
-                    return true;
                 }
                 create_target();
             }

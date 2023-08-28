@@ -335,6 +335,12 @@ namespace fs
             return this->wstring();
         }
 
+        // Returns an utf-8 string using the ``/`` on all systems.
+        std::string generic_string() const
+        {
+            return to_utf8(m_path.generic_string());
+        }
+
         // Implicit conversion to standard path.
         operator std::filesystem::path() const
         {

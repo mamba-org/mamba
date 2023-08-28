@@ -55,9 +55,11 @@ jobs:
       - name: Run libmamba tests
         shell: cmd /C call {0}
         run: |
+          cd build
+          ninja install
+          if %errorlevel% neq 0 exit /b %errorlevel%
           @REM Interferes with tests
           set CONDARC=
-          cd build
           ninja test
           if %errorlevel% neq 0 exit /b %errorlevel%
       - name: Show build cache statistics

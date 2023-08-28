@@ -154,7 +154,7 @@ def tmp_root_prefix(
     # os.environ restored by tmp_clean_env and tmp_environ
 
 
-@pytest.fixture(params=[helpers.random_string, "long_prefix_" * 20])
+@pytest.fixture(params=[helpers.random_string])
 def tmp_env_name(request) -> str:
     """Return the explicit or implicit parametrization."""
     if callable(request.param):

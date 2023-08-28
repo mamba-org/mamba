@@ -326,6 +326,7 @@ macro(libmamba_create_target target_name linkage output_name)
         ${target_name}
         WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR}
     )
+    mamba_target_set_lto(${target_name} MODE ${MAMBA_LTO})
 
     if (${linkage_upper} STREQUAL "STATIC")
         message("   -> Statically linking against libmamba (static) dependencies")

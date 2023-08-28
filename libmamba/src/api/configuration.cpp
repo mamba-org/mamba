@@ -297,15 +297,6 @@ namespace mamba
         return std::move(*this);
     }
 
-    Configurable&& Configurable::set_rc_yaml_values(
-        const std::map<std::string, YAML::Node>& values,
-        const std::vector<std::string>& sources
-    )
-    {
-        p_impl->set_rc_yaml_values(values, sources);
-        return std::move(*this);
-    }
-
     Configurable&& Configurable::set_cli_yaml_value(const YAML::Node& value)
     {
         p_impl->set_cli_yaml_value(value);

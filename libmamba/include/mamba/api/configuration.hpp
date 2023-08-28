@@ -119,10 +119,6 @@ namespace mamba
             virtual void set_default_value() = 0;
 
             virtual void set_rc_yaml_value(const YAML::Node& value, const std::string& source) = 0;
-            virtual void set_rc_yaml_values(
-                const std::map<std::string, YAML::Node>& values,
-                const std::vector<std::string>& sources
-            ) = 0;
             virtual void set_cli_yaml_value(const YAML::Node& value) = 0;
             virtual void set_cli_yaml_value(const std::string& value) = 0;
             virtual void set_yaml_value(const YAML::Node& value) = 0;
@@ -178,10 +174,6 @@ namespace mamba
             void set_default_value() override;
 
             void set_rc_yaml_value(const YAML::Node& value, const std::string& source) override;
-            void set_rc_yaml_values(
-                const std::map<std::string, YAML::Node>& values,
-                const std::vector<std::string>& sources
-            ) override;
             void set_cli_yaml_value(const YAML::Node& value) override;
             void set_cli_yaml_value(const std::string& value) override;
             void set_yaml_value(const YAML::Node& value) override;
@@ -196,10 +188,6 @@ namespace mamba
             void dump_json(nlohmann::json& node, const std::string& name) const override;
 
             void set_rc_value(const T& value, const std::string& source);
-            void set_rc_values(
-                const std::map<std::string, T>& mapped_values,
-                const std::vector<std::string>& sources
-            );
             void set_value(const T& value);
 
             using cli_config_type = detail::cli_config<T>;
@@ -292,12 +280,6 @@ namespace mamba
         Configurable&& set_rc_value(const T& value, const std::string& source);
 
         template <class T>
-        Configurable&& set_rc_values(
-            const std::map<std::string, T>& mapped_values,
-            const std::vector<std::string>& sources
-        );
-
-        template <class T>
         Configurable&& set_value(const T& value);
 
         template <class T>
@@ -337,10 +319,6 @@ namespace mamba
         cli_storage_type<T>& get_cli_config();
 
         Configurable&& set_rc_yaml_value(const YAML::Node& value, const std::string& source);
-        Configurable&& set_rc_yaml_values(
-            const std::map<std::string, YAML::Node>& values,
-            const std::vector<std::string>& sources
-        );
         Configurable&& set_cli_yaml_value(const YAML::Node& value);
         Configurable&& set_cli_yaml_value(const std::string& value);
         Configurable&& set_yaml_value(const YAML::Node& value);
@@ -513,20 +491,6 @@ namespace mamba
         }
 
         template <class T>
-        void ConfigurableImpl<T>::set_rc_yaml_values(
-            const std::map<std::string, YAML::Node>& values,
-            const std::vector<std::string>& sources
-        )
-        {
-            std::map<std::string, T> converted_values;
-            for (auto& y : values)
-            {
-                converted_values.insert({ y.first, y.second.as<T>() });
-            }
-            set_rc_values(converted_values, sources);
-        }
-
-        template <class T>
         void ConfigurableImpl<T>::set_cli_yaml_value(const YAML::Node& value)
         {
             m_cli_config.storage() = value.as<T>();
@@ -619,18 +583,6 @@ namespace mamba
         {
             this->m_rc_sources.push_back(source);
             m_rc_values[source] = value;
-            this->m_rc_configured = true;
-        }
-
-        template <class T>
-        void ConfigurableImpl<T>::set_rc_values(
-            const std::map<std::string, T>& mapped_values,
-            const std::vector<std::string>& sources
-        )
-        {
-            assert(mapped_values.size() == sources.size());
-            this->m_rc_sources.insert(this->m_rc_sources.end(), sources.begin(), sources.end());
-            m_rc_values.insert(mapped_values.begin(), mapped_values.end());
             this->m_rc_configured = true;
         }
 
@@ -815,16 +767,6 @@ namespace mamba
     Configurable&& Configurable::set_rc_value(const T& value, const std::string& source)
     {
         get_wrapped<T>().set_rc_value(value, source);
-        return std::move(*this);
-    }
-
-    template <class T>
-    Configurable&& Configurable::set_rc_values(
-        const std::map<std::string, T>& mapped_values,
-        const std::vector<std::string>& sources
-    )
-    {
-        get_wrapped<T>().set_rc_values(mapped_values, sources);
         return std::move(*this);
     }
 

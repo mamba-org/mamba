@@ -184,6 +184,15 @@ namespace mamba::solv
         ::pool_createwhatprovides(raw());
     }
 
+    auto ObjPool::add_to_whatprovies_data(const ObjQueue& solvables) -> OffsetId
+    {
+        ::pool_ids2whatprovides(raw(), solvables.data(), )
+    }
+
+    auto ObjPool::set_whatprovides(DependencyId dep, OffsetId solvables) -> OffsetId
+    {
+    }
+
     auto ObjPool::add_repo(std::string_view name) -> std::pair<RepoId, ObjRepoView>
     {
         auto* repo_ptr = ::repo_create(

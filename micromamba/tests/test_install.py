@@ -469,8 +469,12 @@ class TestInstall:
         """Black fails to install as it is not available for pinned Python 2."""
         res = install("python=2", "--json", no_dry_run=True)
         assert res["success"]
-        res = install("black", "--py-pin", "--json")
-        assert not res["success"]
+        # We do not have great way to check for the type of error for now
+        try:
+            install("black", "--py-pin", "--json")
+            assert False
+        except subprocess.CalledProcessError:
+            pass
 
     @pytest.mark.skipif(
         dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"

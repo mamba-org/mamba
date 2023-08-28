@@ -8,6 +8,7 @@
 #define MAMBA_CORE_OUTPUT_HPP
 
 #include <iosfwd>
+#include <map>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -52,6 +53,11 @@ namespace mamba
         {
             left,
             right,
+        };
+
+        const std::map<alignment, const char*> alignmentMarkers = {
+            { alignment::left, "alignment_left" },
+            { alignment::right, "alignment_right" },
         };
 
         class Table
@@ -182,4 +188,4 @@ namespace mamba
 #define LOG_ERROR LOG(mamba::log_level::err)
 #define LOG_CRITICAL LOG(mamba::log_level::critical)
 
-#endif  // MAMBA_OUTPUT_HPP
+#endif  // MAMBA_CORE_OUTPUT_HPP

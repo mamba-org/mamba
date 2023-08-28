@@ -157,10 +157,38 @@ namespace mamba
 
     namespace
     {
-        auto print_solvable(const PackageInfo& pkg, const std::vector<PackageInfo>& otherVersions)
+        auto print_solvable(const PackageInfo& pkg, const std::vector<PackageInfo>& otherBuilds)
         {
+            std::map<std::string, std::vector<PackageInfo>> buildsByVersion;
+            uint numOtherBuildsForLatestVersion = 0;
+            if (!otherBuilds.empty())
+            {
+                for (const auto& p : otherBuilds)
+                {
+                    if (p.version != pkg.version)
+                    {
+                        buildsByVersion[p.version].push_back(p);
+                    }
+                    else
+                    {
+                        ++numOtherBuildsForLatestVersion;
+                    }
+                }
+            }
             auto out = Console::stream();
-            std::string header = fmt::format("{} {} {}", pkg.name, pkg.version, pkg.build_string);
+            std::string additionalBuilds = "";
+            if (numOtherBuildsForLatestVersion > 0)
+            {
+                additionalBuilds = "(+ " + std::to_string(numOtherBuildsForLatestVersion)
+                                   + " builds)";
+            }
+            std::string header = fmt::format(
+                "{} {} {} {}",
+                pkg.name,
+                pkg.version,
+                pkg.build_string,
+                additionalBuilds
+            );
             fmt::print(out, "{:^40}\n{:-^{}}\n\n", header, "", header.size() > 40 ? header.size() : 40);
 
             static constexpr const char* fmtstring = " {:<15} {}\n";
@@ -188,15 +216,6 @@ namespace mamba
             // std::cout << fmt::format<char>(
             // " {:<15} {:%Y-%m-%d %H:%M:%S} UTC\n", "Timestamp", fmt::gmtime(pkg.timestamp));
 
-            if (!pkg.depends.empty())
-            {
-                fmt::print(out, "\n Dependencies:\n");
-                for (auto& d : pkg.depends)
-                {
-                    fmt::print(out, "  - {}\n", d);
-                }
-            }
-
             if (!pkg.constrains.empty())
             {
                 fmt::print(out, "\n Run Constraints:\n");
@@ -215,13 +234,8 @@ namespace mamba
                 }
             }
 
-            if (!otherVersions.empty())
+            if (!buildsByVersion.empty())
             {
-                std::map<std::string, std::vector<PackageInfo>> buildsByVersion;
-                for (const auto& p : otherVersions)
-                {
-                    buildsByVersion[p.version].push_back(p);
-                }
                 fmt::print(out, "\n Other Versions ({}):\n\n", buildsByVersion.size());
 
                 std::stringstream buffer;
@@ -461,7 +475,16 @@ namespace mamba
 
     std::ostream& query_result::table(std::ostream& out) const
     {
-        return table(out, { "Name", "Version", "Build", "", "", "Channel", "Subdir" });
+        return table(
+            out,
+            { "Name",
+              "Version",
+              "Build",
+              printers::alignmentMarkers.at(printers::alignment::left),
+              printers::alignmentMarkers.at(printers::alignment::right),
+              "Channel",
+              "Subdir" }
+        );
     }
 
     namespace
@@ -492,7 +515,22 @@ namespace mamba
         std::vector<mamba::printers::alignment> alignments;
         for (auto& f : fmt)
         {
-            if (f.find_first_of(":") == f.npos)
+            if (f == printers::alignmentMarkers.at(printers::alignment::right)
+                || f == printers::alignmentMarkers.at(printers::alignment::left))
+            {
+                // If an alignment marker is passed, we remove the column name.
+                headers.push_back("");
+                cmds.push_back("");
+                args.push_back("");
+                // We only check for the right alignment marker, as left alignment is set the
+                // default.
+                if (f == printers::alignmentMarkers.at(printers::alignment::right))
+                {
+                    alignments.push_back(printers::alignment::right);
+                    continue;
+                }
+            }
+            else if (f.find_first_of(":") == f.npos)
             {
                 headers.push_back(f);
                 cmds.push_back(f);
@@ -505,7 +543,8 @@ namespace mamba
                 cmds.push_back(sfmt[0]);
                 args.push_back(sfmt[1]);
             }
-            alignments.push_back(f == "" ? printers::alignment::right : printers::alignment::left);
+            // By default, columns are left aligned.
+            alignments.push_back(printers::alignment::left);
         }
 
         auto format_row = [&](const PackageInfo& pkg, const std::vector<PackageInfo>& builds)

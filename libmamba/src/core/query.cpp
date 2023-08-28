@@ -759,7 +759,11 @@ namespace mamba
 
     std::ostream& query_result::pretty(std::ostream& out) const
     {
-        if (!m_pkg_id_list.empty())
+        if (m_pkg_id_list.empty())
+        {
+            out << "No entries matching \"" << m_query << "\" found" << std::endl;
+        }
+        else
         {
             std::map<std::string, std::vector<PackageInfo>> packages;
             for (const auto& id : m_pkg_id_list)

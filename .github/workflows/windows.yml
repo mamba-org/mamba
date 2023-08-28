@@ -16,86 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  libmamba_static_win:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [windows-2019]
-
-    steps:
-      - uses: actions/checkout@v3
-      - name: create build environment
-        uses: mamba-org/setup-micromamba@v1
-        with:
-          environment-file: ./libmamba/environment-static-dev-win.yml
-          environment-name: build_env
-          cache-environment: true
-          init-shell: bash cmd.exe
-      - name: remove vcpkg manifest file
-        # we need to remove the vcpkg.json file to be able to work not in manifest mode
-        run: rm vcpkg.json
-      - name: Get Week
-        id: get-week
-        shell: bash
-        run: echo "week=$(/bin/date -u "+%Y%U")" >> "${GITHUB_OUTPUT}"
-      - name: Restore cached VCPKG dependencies
-        id: cache-vcpkg-restore
-        uses: actions/cache/restore@v3
-        with:
-          path: C:\vcpkg
-          key: vcpkg-${{ runner.os }}-${{ runner.arch }}-${{ steps.get-week.outputs.week }}-
-      - name: Build static windows dependencies with vcpkg
-        shell: cmd /C CALL {0}
-        # Latest VCPKG is from GHA because releases are not up to date with VCPKG server
-        run: |
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          set VCPKG_ROOT=C:\vcpkg
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          ROBOCOPY .\ports\libsolv %VCPKG_ROOT%\ports\libsolv
-          @rem ROBOCOPY has 0 and 1 as successfull exit codes
-          if %errorlevel% neq 0 if %errorlevel% neq 1 exit /b %errorlevel%
-          SET VCPKG_BUILD_TYPE=release && vcpkg install libsolv[conda] --triplet x64-windows-static
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          vcpkg install "libarchive[bzip2,lz4,lzma,lzo,openssl,zstd]" --triplet x64-windows-static
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          vcpkg install curl --triplet x64-windows-static
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          vcpkg install yaml-cpp --triplet x64-windows-static
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          vcpkg install reproc --triplet x64-windows-static
-          if %errorlevel% neq 0 exit /b %errorlevel%
-      - name: Save VCPKG dependencies
-        uses: actions/cache/save@v3
-        with:
-          path: C:\vcpkg
-          key: ${{ steps.cache-vcpkg-restore.outputs.cache-primary-key }}
-      - uses: hendrikmuhs/ccache-action@main
-        with:
-          variant: sccache
-          key: ${{ github.job }}-${{ matrix.os }}
-      - name: build libmamba-static
-        shell: cmd /C call {0}
-        run: |
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          @rem Used by CMake
-          set VCPKG_ROOT=C:\vcpkg
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          cmake -B build ^
-            -D CMAKE_PREFIX_PATH=C:\vcpkg\installed\x64-windows-static\ ^
-            -D CMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
-            -D BUILD_LIBMAMBA=ON ^
-            -D BUILD_STATIC=ON ^
-            -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
-            -D CMAKE_C_COMPILER_LAUNCHER=sccache ^
-            -G Ninja
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          cmake --build build --parallel
-          if %errorlevel% neq 0 exit /b %errorlevel%
-      - name: build cache statistics
-        run: sccache --show-stats
-
   mamba_python_tests_win:
-    needs: [libmamba_static_win]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -187,7 +108,6 @@ jobs:
           fi
 
   libmamba_cpp_tests_win:
-    needs: [libmamba_static_win]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:

@@ -16,41 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  libmamba_static:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-        build_type: [Release, Debug]
-    steps:
-      - uses: actions/checkout@v3
-      - name: create build environment
-        uses: mamba-org/setup-micromamba@v1
-        with:
-          environment-file: ./libmamba/environment-static-dev.yml
-          environment-name: build_env
-          cache-environment: true
-      - uses: hendrikmuhs/ccache-action@main
-        with:
-          variant: sccache
-          key: ${{ github.job }}-${{ matrix.os }}
-      - name: build libmamba-static
-        shell: bash -l {0}
-        run: |
-          mkdir build
-          cd build
-          cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-                   -DBUILD_LIBMAMBA=ON \
-                   -DBUILD_STATIC=ON \
-                   -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
-                   -DCMAKE_C_COMPILER_LAUNCHER=sccache \
-                   -GNinja
-          ninja
-      - name: build cache statistics
-        run: sccache --show-stats
-
   libmamba_cpp_tests:
-    needs: [libmamba_static]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -91,7 +57,6 @@ jobs:
         run: sccache --show-stats
 
   umamba_tests:
-    needs: [libmamba_static]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -144,7 +109,6 @@ jobs:
           pytest -v --capture=tee-sys micromamba/tests/
 
   mamba_python_tests:
-    needs: [libmamba_static]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:

@@ -272,6 +272,42 @@ TEST_SUITE("solv::ObjPool")
                         CHECK(called);
                     }
                 }
+
+                SUBCASE("Manually set whatprovides")
+                {
+                    const auto dep_id = pool.add_string("mydep");
+
+                    SUBCASE("Without creating the whatprovides index is an error")
+                    {
+                        CHECK_THROWS_AS(
+                            pool.add_to_whatprovides(dep_id, pool.add_to_whatprovides_data({ id1 })),
+                            std::runtime_error
+                        );
+                    }
+
+                    SUBCASE("With creation of whatprovides index")
+                    {
+                        pool.create_whatprovides();
+                        pool.add_to_whatprovides(dep_id, pool.add_to_whatprovides_data({ id1 }));
+                        auto whatprovides_ids = std::vector<SolvableId>();
+                        pool.for_each_whatprovides_id(
+                            dep_id,
+                            [&](auto id) { whatprovides_ids.push_back(id); }
+                        );
+                        CHECK_EQ(whatprovides_ids, std::vector{ id1 });
+
+                        SUBCASE("Gets cleared when calling create_whatprovides")
+                        {
+                            pool.create_whatprovides();
+                            whatprovides_ids.clear();
+                            pool.for_each_whatprovides_id(
+                                dep_id,
+                                [&](auto id) { whatprovides_ids.push_back(id); }
+                            );
+                            CHECK(whatprovides_ids.empty());
+                        }
+                    }
+                }
             }
         }
 

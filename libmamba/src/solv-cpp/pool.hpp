@@ -126,21 +126,40 @@ namespace mamba::solv
          * all packages that provide that name (without restriction on version).
          */
         void create_whatprovides();
-        template <typename UnaryFunc>
+
+        /**
+         * Add an entry on the ``whatprovides_data``.
+         *
+         * This works in as an input to @ref add_to_whatprovides.
+         *
+         * @see add_to_whatprovides
+         */
+        auto add_to_whatprovides_data(const ObjQueue& solvables) -> OffsetId;
+
+        auto add_to_whatprovdies_data(const SolvableId* ptr, std::size_t count) -> OffsetId;
+
+        /**
+         * Add an entry to ``whatprovides``.
+         *
+         * This is the table that is looked up to know which solvables satistfy a given dependency.
+         * Entries set with this function get overriden by @ref create_whatprovides.
+         */
+        void add_to_whatprovides(DependencyId dep, OffsetId solvables);
 
         /**
          * Execute function for each solvable id that provides the given dependency.
          *
          * @pre ObjPool::create_whatprovides must have been called before.
          */
-        void for_each_whatprovides_id(DependencyId dep, UnaryFunc&& func) const;
         template <typename UnaryFunc>
+        void for_each_whatprovides_id(DependencyId dep, UnaryFunc&& func) const;
 
         /**
          * Execute function for each solvable that provides the given dependency.
          *
          * @pre ObjPool::create_whatprovides must have been called before.
          */
+        template <typename UnaryFunc>
         void for_each_whatprovides(DependencyId dep, UnaryFunc&& func) const;
         template <typename UnaryFunc>
         void for_each_whatprovides(DependencyId dep, UnaryFunc&& func);

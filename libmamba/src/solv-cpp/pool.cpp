@@ -184,13 +184,28 @@ namespace mamba::solv
         ::pool_createwhatprovides(raw());
     }
 
-    auto ObjPool::add_to_whatprovies_data(const ObjQueue& solvables) -> OffsetId
+    auto ObjPool::add_to_whatprovides_data(const ObjQueue& solvables) -> OffsetId
     {
-        ::pool_ids2whatprovides(raw(), solvables.data(), )
+        return add_to_whatprovdies_data(solvables.data(), solvables.size());
     }
 
-    auto ObjPool::set_whatprovides(DependencyId dep, OffsetId solvables) -> OffsetId
+    auto ObjPool::add_to_whatprovdies_data(const SolvableId* ptr, std::size_t count) -> OffsetId
     {
+        assert(count <= std::numeric_limits<int>::max());
+        if (raw()->whatprovidesdata == nullptr)
+        {
+            throw std::runtime_error("Whatprovides index is not created");
+        }
+        return ::pool_ids2whatprovides(raw(), const_cast<::Id*>(ptr), static_cast<int>(count));
+    }
+
+    void ObjPool::add_to_whatprovides(DependencyId dep, OffsetId solvables)
+    {
+        if (raw()->whatprovides == nullptr)
+        {
+            throw std::runtime_error("Whatprovides index is not created");
+        }
+        ::pool_set_whatprovides(raw(), dep, solvables);
     }
 
     auto ObjPool::add_repo(std::string_view name) -> std::pair<RepoId, ObjRepoView>

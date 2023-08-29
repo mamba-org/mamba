@@ -229,11 +229,10 @@ namespace mamba
             );
 
             solv::StringId const repr_id = pool.add_string(repr);
-            ::Id const offset = pool_queuetowhatprovides(pool.raw(), selected_pkgs.raw());
             // FRAGILE This get deleted when calling ``pool_createwhatprovides`` so care
             // must be taken to do it before
             // TODO investigate namespace providers
-            pool_set_whatprovides(pool.raw(), repr_id, offset);
+            pool.add_to_whatprovides(repr_id, pool.add_to_whatprovides_data(selected_pkgs));
             return repr_id;
         }
     }

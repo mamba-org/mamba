@@ -20,6 +20,7 @@ set(LIBMAMBA_TEST_SRCS
     src/solv-cpp/test_solvable.cpp
     src/solv-cpp/test_solver.cpp
     src/solv-cpp/test_transaction.cpp
+    src/solv-cpp/test_scenarios.cpp
     # Utility library
     src/util/test_string.cpp
     src/util/test_cast.cpp

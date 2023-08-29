@@ -1,6 +1,7 @@
 import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -438,7 +439,7 @@ class TestInstall:
     @pytest.mark.skipif(
         dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"
     )
-    def test_python_pinning(self, existing_cache):
+    def test_no_python_pinning(self, existing_cache):
         install("python=3.9", no_dry_run=True)
         res = install("setuptools=28.4.0", "--no-py-pin", "--json")
 
@@ -461,6 +462,21 @@ class TestInstall:
 
         py_pkg = [pkg for pkg in res["actions"]["UNLINK"] if pkg["name"] == "python"][0]
         assert py_pkg["version"].startswith("3.9")
+
+    @pytest.mark.skipif(
+        dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"
+    )
+    @pytest.mark.skipif(sys.platform == "win32", reason="Python2 no available")
+    def test_python_pinning(self, existing_cache):
+        """Black fails to install as it is not available for pinned Python 2."""
+        res = install("python=2", "--json", no_dry_run=True)
+        assert res["success"]
+        # We do not have great way to check for the type of error for now
+        try:
+            install("black", "--py-pin", "--json")
+            assert False
+        except subprocess.CalledProcessError:
+            pass
 
     @pytest.mark.skipif(
         dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"

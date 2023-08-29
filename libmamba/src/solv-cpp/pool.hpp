@@ -126,21 +126,41 @@ namespace mamba::solv
          * all packages that provide that name (without restriction on version).
          */
         void create_whatprovides();
-        template <typename UnaryFunc>
+
+        /**
+         * Add an entry on the ``whatprovides_data``.
+         *
+         * This works in as an input to @ref add_to_whatprovides or @ref set_namespace_callback.
+         *
+         * @see add_to_whatprovides
+         * @see add_to_whatprovides
+         */
+        auto add_to_whatprovides_data(const ObjQueue& solvables) -> OffsetId;
+
+        auto add_to_whatprovdies_data(const SolvableId* ptr, std::size_t count) -> OffsetId;
+
+        /**
+         * Add an entry to ``whatprovides``.
+         *
+         * This is the table that is looked up to know which solvables satistfy a given dependency.
+         * Entries set with this function get overriden by @ref create_whatprovides.
+         */
+        void add_to_whatprovides(DependencyId dep, OffsetId solvables);
 
         /**
          * Execute function for each solvable id that provides the given dependency.
          *
          * @pre ObjPool::create_whatprovides must have been called before.
          */
-        void for_each_whatprovides_id(DependencyId dep, UnaryFunc&& func) const;
         template <typename UnaryFunc>
+        void for_each_whatprovides_id(DependencyId dep, UnaryFunc&& func) const;
 
         /**
          * Execute function for each solvable that provides the given dependency.
          *
          * @pre ObjPool::create_whatprovides must have been called before.
          */
+        template <typename UnaryFunc>
         void for_each_whatprovides(DependencyId dep, UnaryFunc&& func) const;
         template <typename UnaryFunc>
         void for_each_whatprovides(DependencyId dep, UnaryFunc&& func);
@@ -257,6 +277,9 @@ namespace mamba::solv
         template <typename Func>
         void set_debug_callback(Func&& callback);
 
+        template <typename Func>
+        void set_namespace_callback(Func&& callback);
+
     private:
 
         struct PoolDeleter
@@ -265,6 +288,7 @@ namespace mamba::solv
         };
 
         std::unique_ptr<void, void (*)(void*)> m_user_debug_callback;
+        std::unique_ptr<void, void (*)(void*)> m_user_namespace_callback;
         // Must be deleted before the debug callback
         std::unique_ptr<::Pool, ObjPool::PoolDeleter> m_pool = nullptr;
     };
@@ -435,7 +459,30 @@ namespace mamba::solv
             (*user_debug_callback)(pool, type, std::string_view(msg));  // noexcept
         };
 
-        pool_setdebugcallback(raw(), debug_callback, m_user_debug_callback.get());
+        ::pool_setdebugcallback(raw(), debug_callback, m_user_debug_callback.get());
+    }
+
+    template <typename Func>
+    void ObjPool::set_namespace_callback(Func&& callback)
+    {
+        static_assert(
+            std::is_nothrow_invocable_v<Func, Pool*, StringId, StringId>,
+            "User callback must be marked noexcept."
+        );
+
+        m_user_namespace_callback.reset(new Func(std::forward<Func>(callback)));
+        m_user_namespace_callback.get_deleter() = [](void* ptr)
+        { delete reinterpret_cast<Func*>(ptr); };
+
+        // Wrap the user callback in the libsolv function type that must cast the callback ptr
+        auto namespace_callback = [](::Pool* pool, void* user_data, StringId name, StringId ver
+                                  ) noexcept -> OffsetId
+        {
+            auto* user_namespace_callback = reinterpret_cast<Func*>(user_data);
+            return (*user_namespace_callback)(pool, name, ver);  // noexcept
+        };
+
+        ::pool_setnamespacecallback(raw(), namespace_callback, m_user_namespace_callback.get());
     }
 }
 #endif

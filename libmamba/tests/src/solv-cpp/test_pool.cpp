@@ -248,6 +248,65 @@ TEST_SUITE("solv::ObjPool")
                         // Only one solvable matches
                         CHECK_EQ(whatprovides_ids, std::vector{ id1 });
                     }
+
+                    SUBCASE("Namespace dependencies are not in whatprovies")
+                    {
+                        const auto other_dep_id = pool.add_dependency(
+                            pkg_name_id,
+                            REL_NAMESPACE,
+                            pkg_version_id
+                        );
+                        pool.create_whatprovides();
+                        bool called = false;
+                        pool.for_each_whatprovides_id(other_dep_id, [&](auto) { called = true; });
+                        CHECK_FALSE(called);
+                    }
+
+                    SUBCASE("Namespace names are in whatprovies")
+                    {
+                        pool.add_dependency(pkg_name_id, REL_NAMESPACE, pkg_version_id);
+                        pool.create_whatprovides();
+                        bool called = false;
+                        // Diff below in other_dep_id > pkg_name_id
+                        pool.for_each_whatprovides_id(pkg_name_id, [&](auto) { called = true; });
+                        CHECK(called);
+                    }
+                }
+
+                SUBCASE("Manually set whatprovides")
+                {
+                    const auto dep_id = pool.add_string("mydep");
+
+                    SUBCASE("Without creating the whatprovides index is an error")
+                    {
+                        CHECK_THROWS_AS(
+                            pool.add_to_whatprovides(dep_id, pool.add_to_whatprovides_data({ id1 })),
+                            std::runtime_error
+                        );
+                    }
+
+                    SUBCASE("With creation of whatprovides index")
+                    {
+                        pool.create_whatprovides();
+                        pool.add_to_whatprovides(dep_id, pool.add_to_whatprovides_data({ id1 }));
+                        auto whatprovides_ids = std::vector<SolvableId>();
+                        pool.for_each_whatprovides_id(
+                            dep_id,
+                            [&](auto id) { whatprovides_ids.push_back(id); }
+                        );
+                        CHECK_EQ(whatprovides_ids, std::vector{ id1 });
+
+                        SUBCASE("Gets cleared when calling create_whatprovides")
+                        {
+                            pool.create_whatprovides();
+                            whatprovides_ids.clear();
+                            pool.for_each_whatprovides_id(
+                                dep_id,
+                                [&](auto id) { whatprovides_ids.push_back(id); }
+                            );
+                            CHECK(whatprovides_ids.empty());
+                        }
+                    }
                 }
             }
         }
@@ -266,6 +325,14 @@ TEST_SUITE("solv::ObjPool")
             pool_debug(pool.raw(), SOLV_DEBUG_RESULT, "Ho no!");
             CHECK_EQ(message, "Ho no!");
             CHECK_EQ(type, SOLV_DEBUG_RESULT);
+        }
+
+        SUBCASE("Add a namespace callback")
+        {
+            pool.set_namespace_callback(
+                [&](auto* /* pool */, StringId /* name */, StringId /* version */) noexcept -> OffsetId
+                { return 0; }
+            );
         }
     }
 }

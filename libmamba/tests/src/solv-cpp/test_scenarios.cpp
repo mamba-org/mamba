@@ -158,10 +158,13 @@ TEST_SUITE("solv::scenariso")
         repo.internalize();
 
         pool.set_namespace_callback(
-            [&](::Pool*, StringId name, StringId ver) noexcept -> OffsetId
+            [&pool,
+             name_id = dep_name_id,
+             ver_id = dep_ver_id,
+             solv_id = solv_id](::Pool*, StringId name, StringId ver) noexcept -> OffsetId
             {
-                CHECK_EQ(name, dep_name_id);
-                CHECK_EQ(ver, dep_ver_id);
+                CHECK_EQ(name, name_id);
+                CHECK_EQ(ver, ver_id);
                 return pool.add_to_whatprovides_data({ solv_id });
             }
         );

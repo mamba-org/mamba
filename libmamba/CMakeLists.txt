@@ -159,6 +159,7 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/history.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/match_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/menuinst.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/mirror.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/output.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_handling.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_cache.cpp
@@ -253,6 +254,7 @@ set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/link.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/match_spec.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/menuinst.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/mirror.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/output.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_cache.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_fetcher.hpp

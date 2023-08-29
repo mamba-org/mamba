@@ -7,6 +7,7 @@
 #ifndef MAMBA_CURL_HPP
 #define MAMBA_CURL_HPP
 
+#include <map>
 #include <optional>
 #include <stdexcept>
 #include <string_view>
@@ -99,6 +100,8 @@ struct std::hash<mamba::CURLId>
 
 namespace mamba
 {
+    using proxy_map_type = std::map<std::string, std::string>;
+
     class CURLHandle
     {
     public:
@@ -136,6 +139,8 @@ namespace mamba
         CURLHandle& set_opt(CURLoption opt, const T& val);
 
         CURLHandle& set_opt_header();
+
+        CURLHandle& set_url(const std::string& url, const proxy_map_type& proxies);
 
         const char* get_error_buffer() const;
         std::string get_curl_effective_url() const;

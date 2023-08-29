@@ -231,18 +231,17 @@ namespace mamba
                 // that already contains the platform
                 else
                 {
-                    std::string cleaned_url = "", platform = "";
+                    std::string platform = "";
                     util::split_platform(
-                        KNOWN_PLATFORMS,
+                        get_known_platforms(),
                         value,
                         Context::instance().platform,
-                        cleaned_url,
+                        value,
                         platform
                     );
                     if (!platform.empty())
                     {
                         platforms.push_back(std::move(platform));
-                        value = cleaned_url;
                     }
                 }
             }
@@ -254,6 +253,11 @@ namespace mamba
             return platforms;
         }
     }  // namespace
+
+    std::vector<std::string> get_known_platforms()
+    {
+        return KNOWN_PLATFORMS;
+    }
 
     /**************************
      * Channel implementation *

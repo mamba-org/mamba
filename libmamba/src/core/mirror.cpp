@@ -155,7 +155,6 @@ namespace mamba
     }
 
     // Utility function
-    // TODO Add a test for it
     std::pair<std::string, std::string> split_path_tag(const std::string& path)
     {
         // for OCI, if we have a filename like "xtensor-0.23.10-h2acdbc0_0.tar.bz2"
@@ -171,6 +170,7 @@ namespace mamba
         if (parts.size() < 2)
         {
             LOG_ERROR << "Could not split filename into enough parts";
+            throw std::runtime_error("Could not split filename into enough parts");
         }
 
         result.first = parts[0];

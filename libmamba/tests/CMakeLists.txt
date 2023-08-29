@@ -58,6 +58,7 @@ set(LIBMAMBA_TEST_SRCS
     src/core/test_environments_manager.cpp
     src/core/test_history.cpp
     src/core/test_lockfile.cpp
+    src/core/test_mirror.cpp
     src/core/test_pinning.cpp
     src/core/test_output.cpp
     src/core/test_progress_bar.cpp

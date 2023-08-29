@@ -160,51 +160,41 @@ namespace mamba
         auto print_solvable(const PackageInfo& pkg, const std::vector<PackageInfo>& otherBuilds)
         {
             std::map<std::string, std::vector<PackageInfo>> buildsByVersion;
-            uint numOtherBuildsForLatestVersion = 0;
-            if (!otherBuilds.empty())
+            auto numOtherBuildsForLatestVersion = 0;
+            for (const auto& p : otherBuilds)
             {
-                for (const auto& p : otherBuilds)
+                if (p.version != pkg.version)
                 {
-                    if (p.version != pkg.version)
-                    {
-                        buildsByVersion[p.version].push_back(p);
-                    }
-                    else
-                    {
-                        ++numOtherBuildsForLatestVersion;
-                    }
+                    buildsByVersion[p.version].push_back(p);
+                }
+                else
+                {
+                    ++numOtherBuildsForLatestVersion;
                 }
             }
             auto out = Console::stream();
             std::string additionalBuilds = "";
             if (numOtherBuildsForLatestVersion > 0)
             {
-                additionalBuilds = "(+ " + std::to_string(numOtherBuildsForLatestVersion)
-                                   + " builds)";
+                additionalBuilds = fmt::format(" (+ {} builds)", numOtherBuildsForLatestVersion);
             }
-            std::string header = fmt::format(
-                "{} {} {} {}",
-                pkg.name,
-                pkg.version,
-                pkg.build_string,
-                additionalBuilds
-            );
-            fmt::print(out, "{:^40}\n{:-^{}}\n\n", header, "", header.size() > 40 ? header.size() : 40);
+            std::string header = fmt::format("{} {} {}", pkg.name, pkg.version, pkg.build_string)
+                                 + additionalBuilds;
+            fmt::print(out, "{:^40}\n{:_^{}}\n\n", header, "", header.size() > 40 ? header.size() : 40);
 
-            static constexpr const char* fmtstring = " {:<15} {}\n";
-            fmt::print(out, fmtstring, "File Name", pkg.fn);
+            static constexpr const char* fmtstring = "  {:<15} {}\n";
             fmt::print(out, fmtstring, "Name", pkg.name);
             fmt::print(out, fmtstring, "Version", pkg.version);
             fmt::print(out, fmtstring, "Build", pkg.build_string);
-            fmt::print(out, fmtstring, "Build Number", pkg.build_number);
-            fmt::print(out, " {:<15} {} Kb\n", "Size", pkg.size / 1000);
+            fmt::print(out, "  {:<15} {} kB\n", "Size", pkg.size / 1000);
             fmt::print(out, fmtstring, "License", pkg.license);
             fmt::print(out, fmtstring, "Subdir", pkg.subdir);
+            fmt::print(out, fmtstring, "File Name", pkg.fn);
 
             std::string url_remaining, url_scheme, url_auth, url_token;
             util::split_scheme_auth_token(pkg.url, url_remaining, url_scheme, url_auth, url_token);
 
-            fmt::print(out, " {:<15} {}://{}\n", "URL", url_scheme, url_remaining);
+            fmt::print(out, "  {:<15} {}://{}\n", "URL", url_scheme, url_remaining);
 
             fmt::print(out, fmtstring, "MD5", pkg.md5.empty() ? "Not available" : pkg.md5);
             fmt::print(out, fmtstring, "SHA256", pkg.sha256.empty() ? "Not available" : pkg.sha256);
@@ -264,7 +254,6 @@ namespace mamba
                     printer.add_row(row);
                 }
                 printer.print(buffer);
-
                 std::string line;
                 while (std::getline(buffer, line))
                 {
@@ -503,7 +492,7 @@ namespace mamba
 
     }
 
-    std::ostream& query_result::table(std::ostream& out, const std::vector<std::string>& fmt) const
+    std::ostream& query_result::table(std::ostream& out, const std::vector<std::string>& columns) const
     {
         if (m_pkg_id_list.empty())
         {
@@ -513,10 +502,10 @@ namespace mamba
         std::vector<mamba::printers::FormattedString> headers;
         std::vector<std::string> cmds, args;
         std::vector<mamba::printers::alignment> alignments;
-        for (auto& f : fmt)
+        for (auto& col : columns)
         {
-            if (f == printers::alignmentMarkers.at(printers::alignment::right)
-                || f == printers::alignmentMarkers.at(printers::alignment::left))
+            if (col == printers::alignmentMarkers.at(printers::alignment::right)
+                || col == printers::alignmentMarkers.at(printers::alignment::left))
             {
                 // If an alignment marker is passed, we remove the column name.
                 headers.push_back("");
@@ -524,21 +513,21 @@ namespace mamba
                 args.push_back("");
                 // We only check for the right alignment marker, as left alignment is set the
                 // default.
-                if (f == printers::alignmentMarkers.at(printers::alignment::right))
+                if (col == printers::alignmentMarkers.at(printers::alignment::right))
                 {
                     alignments.push_back(printers::alignment::right);
                     continue;
                 }
             }
-            else if (f.find_first_of(":") == f.npos)
+            else if (col.find_first_of(":") == col.npos)
             {
-                headers.push_back(f);
-                cmds.push_back(f);
+                headers.push_back(col);
+                cmds.push_back(col);
                 args.push_back("");
             }
             else
             {
-                auto sfmt = util::split(f, ":", 1);
+                auto sfmt = util::split(col, ":", 1);
                 headers.push_back(sfmt[0]);
                 cmds.push_back(sfmt[0]);
                 args.push_back(sfmt[1]);

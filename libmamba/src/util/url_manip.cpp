@@ -140,16 +140,13 @@ namespace mamba::util
         }
     }
 
-    void split_platform(
-        const std::vector<std::string>& known_platforms,
-        const std::string& url,
-        const std::string& context_platform,
-        std::string& cleaned_url,
-        std::string& platform
-    )
+    std::pair<std::string, std::optional<std::string>>
+    split_platform(const std::string& url, const std::vector<std::string>& known_platforms)
     {
-        platform = "";
+        std::string cleaned_url = url;
+        std::optional<std::string> platform;
 
+        // Split platform
         auto check_platform_position = [&url](std::size_t pos, const std::string& lplatform) -> bool
         {
             if (pos == std::string::npos)
@@ -167,31 +164,20 @@ namespace mamba::util
 
             return true;
         };
-
-        std::size_t pos = url.find(context_platform);
-        if (check_platform_position(pos, context_platform))
+        std::size_t pos;
+        for (auto it = known_platforms.begin(); it != known_platforms.end(); ++it)
         {
-            platform = context_platform;
-        }
-        else
-        {
-            for (auto it = known_platforms.begin(); it != known_platforms.end(); ++it)
+            pos = url.find(*it);
+            if (check_platform_position(pos, *it))
             {
-                pos = url.find(*it);
-                if (check_platform_position(pos, *it))
-                {
-                    platform = *it;
-                    break;
-                }
+                platform = *it;
+                cleaned_url.replace(pos - 1, platform.value().size() + 1, "");
+                break;
             }
         }
 
-        cleaned_url = url;
-        if (pos != std::string::npos)
-        {
-            cleaned_url.replace(pos - 1, platform.size() + 1, "");
-        }
         cleaned_url = util::rstrip(cleaned_url, "/");
+        return { cleaned_url, platform };
     }
 
     auto url_get_scheme(std::string_view url) -> std::string_view

@@ -177,17 +177,10 @@ namespace mamba
         {
             throw std::runtime_error("Parsing of channel / namespace / subdir failed.");
         }
-        // TODO implement Channel, and parsing of the channel here!
-        // channel = subdir = channel_str;
-        // channel, subdir = _parse_channel(channel_str)
-        // if 'channel' in brackets:
-        //     b_channel, b_subdir = _parse_channel(brackets.pop('channel'))
-        //     if b_channel:
-        //         channel = b_channel
-        //     if b_subdir:
-        //         subdir = b_subdir
-        // if 'subdir' in brackets:
-        //     subdir = brackets.pop('subdir')
+
+        std::optional<std::string> splitted_subdir;
+        std::tie(channel, splitted_subdir) = util::split_platform(channel, KNOWN_PLATFORMS);
+        subdir = splitted_subdir.value_or(subdir);
 
         // support faulty conda matchspecs such as `libblas=[build=*mkl]`, which is
         // the repr of `libblas=*=*mkl`
@@ -279,7 +272,7 @@ namespace mamba
             }
             else if (k == "subdir")
             {
-                subdir = v;
+                subdir = splitted_subdir.value_or(v);
             }
             else if (k == "url")
             {

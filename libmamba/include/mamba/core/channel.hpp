@@ -18,6 +18,14 @@
 
 namespace mamba
 {
+    // ATTENTION names with substrings need to go longer -> smalle
+    // otherwise linux-ppc64 matches for linux-ppc64le etc!
+    const std::vector<std::string> KNOWN_PLATFORMS = {
+        "noarch",       "linux-32",      "linux-64",    "linux-aarch64", "linux-armv6l",
+        "linux-armv7l", "linux-ppc64le", "linux-ppc64", "osx-64",        "osx-arm64",
+        "win-32",       "win-64",        "win-arm64",   "zos-z"
+    };
+
     // Note: Channels can only be created using ChannelContext.
     class Channel
     {

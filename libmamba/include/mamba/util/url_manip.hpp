@@ -39,13 +39,8 @@ namespace mamba::util
         bool with_credential
     );
 
-    void split_platform(
-        const std::vector<std::string>& known_platforms,
-        const std::string& url,
-        const std::string& context_platform,
-        std::string& cleaned_url,
-        std::string& platform
-    );
+    std::pair<std::string, std::optional<std::string>>
+    split_platform(const std::string& url, const std::vector<std::string>& known_platforms);
 
     /**
      * If @p url starts with a scheme, return it, otherwise return empty string.

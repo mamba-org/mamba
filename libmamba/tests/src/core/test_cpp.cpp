@@ -234,6 +234,31 @@ namespace mamba
                 MatchSpec ms("numpy=1.20", channel_context);
                 CHECK_EQ(ms.str(), "numpy=1.20");
             }
+
+            {
+                MatchSpec ms("conda-forge::tzdata", channel_context);
+                CHECK_EQ(ms.str(), "conda-forge::tzdata");
+            }
+            {
+                MatchSpec ms("conda-forge::noarch/tzdata", channel_context);
+                CHECK_EQ(ms.str(), "conda-forge::noarch/tzdata");
+            }
+            {
+                MatchSpec ms("pkgs/main::tzdata", channel_context);
+                CHECK_EQ(ms.str(), "pkgs/main::tzdata");
+            }
+            {
+                MatchSpec ms("pkgs/main/noarch::tzdata", channel_context);
+                CHECK_EQ(ms.str(), "pkgs/main/noarch::tzdata");
+            }
+            {
+                MatchSpec ms("conda-forge/noarch::tzdata[subdir=linux64]", channel_context);
+                CHECK_EQ(ms.str(), "conda-forge/noarch::tzdata");
+            }
+            {
+                MatchSpec ms("conda-forge::tzdata[subdir=linux64]", channel_context);
+                CHECK_EQ(ms.str(), "conda-forge/linux64::tzdata");
+            }
         }
 
         TEST_CASE("is_simple")

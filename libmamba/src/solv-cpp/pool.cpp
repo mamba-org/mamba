@@ -30,6 +30,7 @@ namespace mamba::solv
 
     ObjPool::ObjPool()
         : m_user_debug_callback(nullptr, [](void* /*ptr*/) {})
+        , m_user_namespace_callback(nullptr, [](void* /*ptr*/) {})
         , m_pool(::pool_create())
     {
     }

@@ -142,4 +142,33 @@ TEST_SUITE("solv::scenariso")
             }
         }
     }
+
+    TEST_CASE("Resolve namespace dependencies")
+    {
+        auto pool = ObjPool();
+
+        const auto dep_name_id = pool.add_string("dep-name");
+        const auto dep_ver_id = pool.add_string("dep-ver");
+        const auto dep_id = pool.add_dependency(dep_name_id, REL_NAMESPACE, dep_ver_id);
+
+        auto [repo_id, repo] = pool.add_repo("forge");
+        auto [solv_id, solv] = repo.add_solvable();
+        solv.set_name("a");
+        solv.set_version("1.0");
+        repo.internalize();
+
+        pool.set_namespace_callback(
+            [&](::Pool*, StringId name, StringId ver) noexcept -> OffsetId
+            {
+                CHECK_EQ(name, dep_name_id);
+                CHECK_EQ(ver, dep_ver_id);
+                return pool.add_to_whatprovides_data({ solv_id });
+            }
+        );
+
+        auto solver = ObjSolver(pool);
+        auto jobs = ObjQueue{ SOLVER_INSTALL, dep_id };
+        auto solved = solver.solve(pool, jobs);
+        CHECK(solved);
+    }
 }

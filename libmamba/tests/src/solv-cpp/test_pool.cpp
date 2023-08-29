@@ -326,5 +326,13 @@ TEST_SUITE("solv::ObjPool")
             CHECK_EQ(message, "Ho no!");
             CHECK_EQ(type, SOLV_DEBUG_RESULT);
         }
+
+        SUBCASE("Add a namespace callback")
+        {
+            pool.set_namespace_callback(
+                [&](auto* /* pool */, StringId /* name */, StringId /* version */) noexcept -> OffsetId
+                { return 0; }
+            );
+        }
     }
 }

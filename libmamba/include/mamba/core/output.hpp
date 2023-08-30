@@ -8,10 +8,10 @@
 #define MAMBA_CORE_OUTPUT_HPP
 
 #include <iosfwd>
-#include <map>
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 #include <fmt/color.h>
@@ -55,7 +55,7 @@ namespace mamba
             right,
         };
 
-        const std::map<alignment, const char*> alignmentMarkers = {
+        const std::unordered_map<alignment, const char*> alignmentMarkers = {
             { alignment::left, "alignment_left" },
             { alignment::right, "alignment_right" },
         };

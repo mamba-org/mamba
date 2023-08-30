@@ -83,7 +83,7 @@ namespace mamba
         void update_statistics(bool transfer_success);
 
         virtual std::string format_url(const std::string& path) const;
-        virtual std::vector<std::string> get_auth_headers(const std::string& path) const;
+        virtual std::string get_auth_header(const std::string& path) const;
         virtual bool needs_preparation(const std::string& path) const;
         virtual void prepare(const std::string& path, CURLHandle& handle);
 
@@ -148,9 +148,7 @@ namespace mamba
         bool need_auth() const;
 
         std::string format_url(const std::string& path) const override;
-        // TODO not sure we will need a vector here (we could use `add_header` instead of
-        // `add_headers`) To be checked when used/called
-        std::vector<std::string> get_auth_headers(const std::string& path) const override;
+        std::string get_auth_header(const std::string& path) const override;
         bool needs_preparation(const std::string& path) const override;
         void prepare(const std::string& path, CURLHandle& handle) override;
 

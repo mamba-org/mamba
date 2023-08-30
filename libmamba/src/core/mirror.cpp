@@ -111,7 +111,7 @@ namespace mamba
         return util::join_url(m_url, path);
     }
 
-    std::vector<std::string> Mirror::get_auth_headers(const std::string&) const
+    std::string Mirror::get_auth_header(const std::string&) const
     {
         return {};
     }
@@ -321,7 +321,7 @@ namespace mamba
         }
     }
 
-    std::vector<std::string> OCIMirror::get_auth_headers(const std::string& path) const
+    std::string OCIMirror::get_auth_header(const std::string& path) const
     {
         if (m_username.empty() && m_password.empty())
         {
@@ -329,9 +329,9 @@ namespace mamba
         }
 
         auto* data = get_data(path);
-        if (data)
+        if (data && !data->token.empty())
         {
-            return { fmt::format("Authorization: Bearer {}", data->token) };
+            return fmt::format("Authorization: Bearer {}", data->token);
         }
         else
         {
@@ -416,7 +416,7 @@ namespace mamba
             std::string manifest_url = get_manifest_url(split_path, split_tag);
 
             handle.set_url(manifest_url, m_proxy_map)
-                .add_headers(get_auth_headers(path))
+                .add_header(get_auth_header(path))
                 .add_header("Accept: application/vnd.oci.image.manifest.v1+json");
 
             auto finalize_manifest_callback =

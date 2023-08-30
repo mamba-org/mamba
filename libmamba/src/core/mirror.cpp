@@ -389,27 +389,20 @@ namespace mamba
                 handle.set_opt(CURLOPT_PASSWORD, m_password);
             }
 
-            auto transfer_end_callback =
+            auto set_data_callback =
                 [&data](bool success, const std::string& token, const std::string&)  // Args got as
                                                                                      // a response
                                                                                      // to transfer
             {
-                if (!success)
-                {
-                    return false;  // ERROR result to be modified to enum/struct?
-                }
-
-                if (!token.empty())
+                if (success && !token.empty())
                 {
                     data->token = token;
-                    return true;  // OK result to be modified to enum/struct?
                 }
-                return false;  // ERROR result to be modified to enum/struct?
             };
 
-            // TODO set here a callback to `transfer_end_callback` in CURLHandle or other relevant
+            // TODO set here a callback to `set_data_callback` in CURLHandle or other relevant
             // class which performs the transfer finalization and sets data token
-            // handle.set_end_callback(transfer_end_callback);
+            // handle.set_end_callback(set_data_callback);
         }
         else
         {
@@ -419,30 +412,21 @@ namespace mamba
                 .add_header(get_auth_header(path))
                 .add_header("Accept: application/vnd.oci.image.manifest.v1+json");
 
-            auto finalize_manifest_callback =
+            auto set_data_callback =
                 [&data](bool success, const std::string&, const std::string& digest)
             {
-                if (!success)
-                {
-                    return false;  // ERROR result to be modified to enum/struct?
-                }
-
                 // digest is got from a json response like
                 // j["layers"][0]["digest"]
-                if (!digest.empty())
+                if (success && !digest.empty())
                 {
                     assert(util::starts_with(digest, "sha256:"));
-
                     data->sha256sum = digest.substr(sizeof("sha256:") - 1);
-                    return true;  // OK result to be modified to enum/struct?
                 }
-
-                return false;  // ERROR result to be modified to enum/struct?
             };
 
-            // TODO set here a callback to `finalize_manifest_callback` in CURLHandle or other
+            // TODO set here a callback to `set_data_callback` in CURLHandle or other
             // relevant class which performs the transfer finalization and sets data sha256sum
-            // handle.set_end_callback(finalize_manifest_callback);
+            // handle.set_end_callback(set_data_callback);
         }
     }
 

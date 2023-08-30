@@ -26,13 +26,17 @@ namespace mamba
         OCI,
     };
 
-    // TODO make `allowed_parallel_connections` (i.e `max_downloads_per_mirror`) configurable later?
     // Statistics of mirror
     struct MirrorStats
     {
         // Maximum number of allowed parallel connections to this mirror. -1 means no
         // limit. Dynamically adjusted (decreased) if no fatal (temporary) error will
         // occur.
+        // TODO To be set using `ctx.threads_params.download_threads`
+        // Do we need it as an arg in Mirror constructor?
+        // Anyway, it will need to be linked to (or replacing?) `m_max_parallel_downloads` in
+        // CURLMultiHandle
+        // Same for the other stats?
         long allowed_parallel_connections = -1;
 
         // The maximum number of tried parallel connections to this mirror

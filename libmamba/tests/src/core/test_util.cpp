@@ -180,14 +180,12 @@ namespace mamba
             auto& context = mambatests::singletons().context;
             context.remote_fetch_params.proxy_servers = { { "http", "foo" },
                                                           { "https", "bar" },
-                                                          { "https://example.net",
-                                                                        "foobar" },
+                                                          { "https://example.net", "foobar" },
                                                           { "all://example.net", "baz" },
                                                           { "all", "other" } };
 
-            auto proxy_match_with_context = [&](const char* url){
-                return proxy_match(url, context.remote_fetch_params.proxy_servers);
-            };
+            auto proxy_match_with_context = [&](const char* url)
+            { return proxy_match(url, context.remote_fetch_params.proxy_servers); };
 
             CHECK_EQ(*proxy_match_with_context("http://example.com/channel"), "foo");
             CHECK_EQ(*proxy_match_with_context("http://example.net/channel"), "foo");
@@ -197,12 +195,10 @@ namespace mamba
             CHECK_EQ(*proxy_match_with_context("ftp://example.net/channel"), "baz");
             CHECK_EQ(*proxy_match_with_context("ftp://example.org"), "other");
 
-            context.remote_fetch_params.proxy_servers = {
-                { "http", "foo" },
-                { "https", "bar" },
-                { "https://example.net", "foobar" },
-                { "all://example.net", "baz" }
-            };
+            context.remote_fetch_params.proxy_servers = { { "http", "foo" },
+                                                          { "https", "bar" },
+                                                          { "https://example.net", "foobar" },
+                                                          { "all://example.net", "baz" } };
 
             CHECK_FALSE(proxy_match_with_context("ftp://example.org").has_value());
 

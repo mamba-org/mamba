@@ -114,20 +114,62 @@ bind_NamedList(PyClass pyclass)
 
 namespace mambapy
 {
-    struct Singletons
+    class Singletons
     {
-        mamba::MainExecutor main_executor;
-        mamba::Context context{ { /* .enable_logging_and_signal_handling = */ true } };
-        mamba::Console console{ context };
-        mamba::ChannelContext channel_context{ context };
-        mamba::Configuration config{ context };
+    public:
+
+        mamba::MainExecutor& main_executor()
+        {
+            return m_main_executor;
+        }
+        mamba::Context& context()
+        {
+            return m_context;
+        }
+        mamba::Console& console()
+        {
+            return m_console;
+        }
+        mamba::ChannelContext& channel_context()
+        {
+            return init_once(p_channel_context, m_context);
+        }
+
+        mamba::Configuration& config()
+        {
+            return m_config;
+        }
+
+    private:
+
+        template <class T, class D>
+        T& init_once(std::unique_ptr<T, D>& ptr, mamba::Context& context)
+        {
+            static std::once_flag init_flag;
+            std::call_once(init_flag, [&] { ptr = std::make_unique<T>(context); });
+            if (!ptr)
+            {
+                throw mamba::mamba_error(
+                    fmt::format(
+                        "attempt to use {} singleton instance after destruction",
+                        typeid(T).name()
+                    ),
+                    mamba::mamba_error_code::internal_failure
+                );
+            }
+            return *ptr;
+        }
+
+        mamba::MainExecutor m_main_executor;
+        mamba::Context m_context{ { /* .enable_logging_and_signal_handling = */ true } };
+        mamba::Console m_console{ m_context };
+        // ChannelContext needs to be lazy initialized, to enusre the Context has been initialized
+        // before
+        std::unique_ptr<mamba::ChannelContext> p_channel_context = nullptr;
+        mamba::Configuration m_config{ m_context };
     };
 
-    Singletons& singletons()
-    {
-        static Singletons singletons;
-        return singletons;
-    }
+    Singletons singletons;
 }
 
 PYBIND11_MODULE(bindings, m)
@@ -166,13 +208,13 @@ PYBIND11_MODULE(bindings, m)
         .def(py::init<>())
         .def(py::init<>(
             [](const std::string& name) {
-                return MatchSpec{ name, mambapy::singletons().channel_context };
+                return MatchSpec{ name, mambapy::singletons.channel_context() };
             }
         ))
         .def("conda_build_form", &MatchSpec::conda_build_form);
 
     py::class_<MPool>(m, "Pool")
-        .def(py::init<>([] { return MPool{ mambapy::singletons().channel_context }; }))
+        .def(py::init<>([] { return MPool{ mambapy::singletons.channel_context() }; }))
         .def("set_debuglevel", &MPool::set_debuglevel)
         .def("create_whatprovides", &MPool::create_whatprovides)
         .def("select_solvables", &MPool::select_solvables, py::arg("id"), py::arg("sorted") = false)
@@ -180,7 +222,7 @@ PYBIND11_MODULE(bindings, m)
         .def(
             "matchspec2id",
             [](MPool& self, std::string_view ms) {
-                return self.matchspec2id({ ms, mambapy::singletons().channel_context });
+                return self.matchspec2id({ ms, mambapy::singletons.channel_context() });
             },
             py::arg("ms")
         )
@@ -192,7 +234,7 @@ PYBIND11_MODULE(bindings, m)
             {
                 return MultiPackageCache{
                     pkgs_dirs,
-                    mambapy::singletons().context.validation_params,
+                    mambapy::singletons.context().validation_params,
                 };
             }
         ))
@@ -354,7 +396,7 @@ PYBIND11_MODULE(bindings, m)
     py::class_<History>(m, "History")
         .def(py::init(
             [](const fs::u8path& path) {
-                return History{ path, mambapy::singletons().channel_context };
+                return History{ path, mambapy::singletons.channel_context() };
             }
         ))
         .def("get_requested_specs_map", &History::get_requested_specs_map);
@@ -385,7 +427,7 @@ PYBIND11_MODULE(bindings, m)
                 {
                     case query::JSON:
                         res_stream
-                            << res.groupby("name").json(mambapy::singletons().channel_context).dump(4);
+                            << res.groupby("name").json(mambapy::singletons.channel_context()).dump(4);
                         break;
                     case query::TREE:
                     case query::TABLE:
@@ -414,10 +456,10 @@ PYBIND11_MODULE(bindings, m)
                 {
                     case query::TREE:
                     case query::PRETTY:
-                        res.tree(res_stream, mambapy::singletons().context.graphics_params);
+                        res.tree(res_stream, mambapy::singletons.context().graphics_params);
                         break;
                     case query::JSON:
-                        res_stream << res.json(mambapy::singletons().channel_context).dump(4);
+                        res_stream << res.json(mambapy::singletons.channel_context()).dump(4);
                         break;
                     case query::TABLE:
                     case query::RECURSIVETABLE:
@@ -454,10 +496,10 @@ PYBIND11_MODULE(bindings, m)
                 {
                     case query::TREE:
                     case query::PRETTY:
-                        res.tree(res_stream, mambapy::singletons().context.graphics_params);
+                        res.tree(res_stream, mambapy::singletons.context().graphics_params);
                         break;
                     case query::JSON:
-                        res_stream << res.json(mambapy::singletons().channel_context).dump(4);
+                        res_stream << res.json(mambapy::singletons.channel_context()).dump(4);
                         break;
                     case query::TABLE:
                     case query::RECURSIVETABLE:
@@ -483,7 +525,7 @@ PYBIND11_MODULE(bindings, m)
                const std::string& repodata_fn) -> MSubdirData
             {
                 auto sres = MSubdirData::create(
-                    mambapy::singletons().channel_context,
+                    mambapy::singletons.channel_context(),
                     channel,
                     platform,
                     url,
@@ -522,7 +564,7 @@ PYBIND11_MODULE(bindings, m)
 
     pyMultiDownloadTarget
         .def(py::init(
-            [] { return std::make_unique<MultiDownloadTarget>(mambapy::singletons().context); }
+            [] { return std::make_unique<MultiDownloadTarget>(mambapy::singletons.context()); }
         ))
         .def(
             "add",
@@ -546,7 +588,7 @@ PYBIND11_MODULE(bindings, m)
 
     py::class_<Context, std::unique_ptr<Context, py::nodelete>> ctx(m, "Context");
     ctx.def(py::init(
-                [] { return std::unique_ptr<Context, py::nodelete>(&mambapy::singletons().context); }
+                [] { return std::unique_ptr<Context, py::nodelete>(&mambapy::singletons.context()); }
             ))
         .def_readwrite("offline", &Context::offline)
         .def_readwrite("local_repodata_ttl", &Context::local_repodata_ttl)
@@ -847,7 +889,7 @@ PYBIND11_MODULE(bindings, m)
         .def(py::init(
             [](const fs::u8path& prefix_path) -> PrefixData
             {
-                auto sres = PrefixData::create(prefix_path, mambapy::singletons().channel_context);
+                auto sres = PrefixData::create(prefix_path, mambapy::singletons.channel_context());
                 if (sres.has_value())
                 {
                     return std::move(sres.value());
@@ -1006,7 +1048,7 @@ PYBIND11_MODULE(bindings, m)
     pyChannel
         .def(py::init(
             [](const std::string& value) {
-                return const_cast<Channel*>(&mambapy::singletons().channel_context.make_channel(value)
+                return const_cast<Channel*>(&mambapy::singletons.channel_context().make_channel(value)
                 );
             }
         ))
@@ -1042,12 +1084,12 @@ PYBIND11_MODULE(bindings, m)
             }
         );
 
-    m.def("clean", [](int flags) { return clean(mambapy::singletons().config, flags); });
+    m.def("clean", [](int flags) { return clean(mambapy::singletons.config(), flags); });
 
     m.def(
         "get_channels",
         [](const std::vector<std::string>& channel_names)
-        { return mambapy::singletons().channel_context.get_channels(channel_names); }
+        { return mambapy::singletons.channel_context().get_channels(channel_names); }
     );
 
     m.def(
@@ -1056,7 +1098,7 @@ PYBIND11_MODULE(bindings, m)
          )
         {
             const auto extract_options = mamba::ExtractOptions::from_context(
-                mambapy::singletons().context
+                mambapy::singletons.context()
             );
             return transmute(pkg_file, target, compression_level, compression_threads, extract_options);
         },
@@ -1075,7 +1117,7 @@ PYBIND11_MODULE(bindings, m)
     // py::arg("out_package"), py::arg("compression_level"), py::arg("compression_threads") = 1);
 
 
-    m.def("get_virtual_packages", [] { return get_virtual_packages(mambapy::singletons().context); });
+    m.def("get_virtual_packages", [] { return get_virtual_packages(mambapy::singletons.context()); });
 
     m.def("cancel_json_output", [] { Console::instance().cancel_json_print(); });
 

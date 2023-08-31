@@ -6,9 +6,9 @@
 
 #include <doctest/doctest.h>
 
-#include "mambatests.hpp"
-
 #include "mamba/core/download.hpp"
+
+#include "mambatests.hpp"
 
 namespace mamba
 {
@@ -26,7 +26,7 @@ namespace mamba
             );
             auto& context = mambatests::singletons().context;
             const auto previous_quiet = context.output_params.quiet;
-            auto _ = on_scope_exit([&]{ context.output_params.quiet = previous_quiet; });
+            auto _ = on_scope_exit([&] { context.output_params.quiet = previous_quiet; });
 
             MultiDownloadRequest dl_request{ std::vector{ std::move(request) } };
             context.output_params.quiet = true;
@@ -48,7 +48,7 @@ namespace mamba
             MultiDownloadRequest dl_request{ std::vector{ std::move(request) } };
             auto& context = mambatests::singletons().context;
             const auto previous_quiet = context.output_params.quiet;
-            auto _ = on_scope_exit([&]{ context.output_params.quiet = previous_quiet; });
+            auto _ = on_scope_exit([&] { context.output_params.quiet = previous_quiet; });
             context.output_params.quiet = true;
             CHECK_THROWS_AS(download(dl_request, context), std::runtime_error);
 #endif

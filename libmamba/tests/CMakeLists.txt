@@ -33,6 +33,7 @@ set(LIBMAMBA_TEST_SRCS
     src/util/test_url_manip.cpp
     src/util/test_url.cpp
     # Implementation of version and matching specs
+    src/specs/test_archive.cpp
     src/specs/test_platform.cpp
     src/specs/test_version.cpp
     src/specs/test_version_spec.cpp

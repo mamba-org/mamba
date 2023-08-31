@@ -7,6 +7,7 @@
 
 #include <doctest/doctest.h>
 
+#include "mamba/util/build.hpp"
 #include "mamba/util/path_manip.hpp"
 
 using namespace mamba::util;
@@ -47,5 +48,23 @@ TEST_SUITE("util::path_manip")
         CHECK_EQ(path_win_to_posix("file"), "file");
         CHECK_EQ(path_win_to_posix(R"(C:\folder\file)"), "C:/folder/file");
         CHECK_EQ(path_win_to_posix("C:/folder/file"), "C:/folder/file");
+    }
+
+    TEST_CASE("path_to_posix")
+    {
+        CHECK_EQ(path_to_posix(""), "");
+        CHECK_EQ(path_to_posix("file"), "file");
+        CHECK_EQ(path_to_posix("folder/file"), "folder/file");
+        CHECK_EQ(path_to_posix("/folder/file"), "/folder/file");
+
+        if (on_win)
+        {
+            CHECK_EQ(path_to_posix(R"(C:\folder\file)"), "C:/folder/file");
+            CHECK_EQ(path_to_posix("C:/folder/file"), "C:/folder/file");
+        }
+        else
+        {
+            CHECK_EQ(path_to_posix(R"(folder/weird\file)"), R"(folder/weird\file)");
+        }
     }
 }

@@ -31,8 +31,13 @@ namespace mamba::util
     [[nodiscard]] auto path_has_drive_letter(std::string_view path) -> bool;
 
     /**
-     * Convert the Windows path separators.
+     * Convert the Windows path separators to Posix ones.
      */
     [[nodiscard]] auto path_win_to_posix(std::string path) -> std::string;
+
+    /**
+     * Convert the Windows path separators to Posix ones on Windows only.
+     */
+    [[nodiscard]] auto path_to_posix(std::string path) -> std::string;
 }
 #endif

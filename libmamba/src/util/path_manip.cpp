@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <array>
 
+#include "mamba/util/build.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
@@ -54,6 +55,15 @@ namespace mamba::util
             preferred_path_separator_win,
             preferred_path_separator_posix
         );
+        return path;
+    }
+
+    auto path_to_posix(std::string path) -> std::string
+    {
+        if (on_win)
+        {
+            return path_win_to_posix(std::move(path));
+        }
         return path;
     }
 }

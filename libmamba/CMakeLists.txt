@@ -134,6 +134,7 @@ set(LIBMAMBA_SOURCES
     # C++ wrapping of compression libs (zstd and bzlib)
     ${LIBMAMBA_SOURCE_DIR}/core/compression.cpp
     # Implementation of version and matching specs
+    ${LIBMAMBA_SOURCE_DIR}/specs/archive.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/platform.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/version.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/version_spec.cpp
@@ -220,6 +221,7 @@ set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/url_manip.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/url.hpp
     # Implementation of version and matching specs
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/archive.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/platform.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version_spec.hpp

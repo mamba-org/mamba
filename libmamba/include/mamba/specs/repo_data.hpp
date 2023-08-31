@@ -82,7 +82,7 @@ namespace mamba::specs
          *
          * This is likely not used as it contains not so useful strings such as "linux".
          */
-        std::string subdir = {};
+        std::optional<std::string> subdir = {};
 
         /** Optionally a MD5 hash of the package archive. */
         std::optional<std::string> md5 = {};

@@ -17,6 +17,7 @@ namespace mamba::specs
 {
     enum class Platform
     {
+        noarch,
         linux_32,
         linux_64,
         linux_armv6l,

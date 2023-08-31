@@ -185,16 +185,6 @@ TEST_SUITE("util::url_manip")
         CHECK_FALSE(url_has_scheme(""));
     }
 
-    TEST_CASE("path_has_drive_letter")
-    {
-        CHECK(path_has_drive_letter("C:/folder/file"));
-        CHECK(path_has_drive_letter(R"(C:\folder\file)"));
-        CHECK_FALSE(path_has_drive_letter("/folder/file"));
-        CHECK_FALSE(path_has_drive_letter("folder/file"));
-        CHECK_FALSE(path_has_drive_letter(R"(\folder\file)"));
-        CHECK_FALSE(path_has_drive_letter(R"(folder\file)"));
-    }
-
     TEST_CASE("split_ananconda_token")
     {
         std::string input, cleaned_url, token;
@@ -271,15 +261,6 @@ TEST_SUITE("util::url_manip")
         CHECK_EQ(auth, "");
         CHECK_EQ(token, "");
 #endif
-    }
-
-    TEST_CASE("is_path")
-    {
-        CHECK(is_path("./"));
-        CHECK(is_path(".."));
-        CHECK(is_path("~"));
-        CHECK(is_path("/"));
-        CHECK_FALSE(is_path("file://makefile"));
     }
 
     TEST_CASE("cache_name_from_url")

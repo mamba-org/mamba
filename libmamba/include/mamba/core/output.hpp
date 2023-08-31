@@ -11,7 +11,6 @@
 #include <sstream>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <vector>
 
 #include <fmt/color.h>
@@ -38,6 +37,11 @@ namespace mamba
             {
             }
 
+            inline FormattedString(const std::string_view& i)
+                : s(i)
+            {
+            }
+
             inline FormattedString(const char* i)
                 : s(i)
             {
@@ -55,10 +59,16 @@ namespace mamba
             right,
         };
 
-        const std::unordered_map<alignment, const char*> alignmentMarkers = {
-            { alignment::left, "alignment_left" },
-            { alignment::right, "alignment_right" },
-        };
+        constexpr auto alignmentMarker(alignment a) -> std::string_view
+        {
+            switch (a)
+            {
+                case alignment::right:
+                    return "alignment_right";
+                default:
+                    return "alignment_left";
+            }
+        }
 
         class Table
         {

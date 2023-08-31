@@ -469,8 +469,8 @@ namespace mamba
             { "Name",
               "Version",
               "Build",
-              printers::alignmentMarkers.at(printers::alignment::left),
-              printers::alignmentMarkers.at(printers::alignment::right),
+              printers::alignmentMarker(printers::alignment::left),
+              printers::alignmentMarker(printers::alignment::right),
               "Channel",
               "Subdir" }
         );
@@ -492,7 +492,8 @@ namespace mamba
 
     }
 
-    std::ostream& query_result::table(std::ostream& out, const std::vector<std::string>& columns) const
+    std::ostream&
+    query_result::table(std::ostream& out, const std::vector<std::string_view>& columns) const
     {
         if (m_pkg_id_list.empty())
         {
@@ -500,12 +501,12 @@ namespace mamba
         }
 
         std::vector<mamba::printers::FormattedString> headers;
-        std::vector<std::string> cmds, args;
+        std::vector<std::string_view> cmds, args;
         std::vector<mamba::printers::alignment> alignments;
         for (auto& col : columns)
         {
-            if (col == printers::alignmentMarkers.at(printers::alignment::right)
-                || col == printers::alignmentMarkers.at(printers::alignment::left))
+            if (col == printers::alignmentMarker(printers::alignment::right)
+                || col == printers::alignmentMarker(printers::alignment::left))
             {
                 // If an alignment marker is passed, we remove the column name.
                 headers.push_back("");
@@ -513,7 +514,7 @@ namespace mamba
                 args.push_back("");
                 // We only check for the right alignment marker, as left alignment is set the
                 // default.
-                if (col == printers::alignmentMarkers.at(printers::alignment::right))
+                if (col == printers::alignmentMarker(printers::alignment::right))
                 {
                     alignments.push_back(printers::alignment::right);
                     continue;

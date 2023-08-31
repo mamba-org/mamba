@@ -147,8 +147,8 @@ namespace mamba
                         { "Name",
                           "Version",
                           "Build",
-                          printers::alignmentMarkers.at(printers::alignment::left),
-                          printers::alignmentMarkers.at(printers::alignment::right),
+                          printers::alignmentMarker(printers::alignment::left),
+                          printers::alignmentMarker(printers::alignment::right),
                           util::concat("Depends:", query),
                           "Channel",
                           "Subdir" }

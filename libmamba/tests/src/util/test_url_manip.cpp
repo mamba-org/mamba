@@ -127,6 +127,26 @@ TEST_SUITE("util::url_manip")
 
         CHECK_EQ(platform_found, "noarch");
         CHECK_EQ(cleaned_url, "https://mamba.com");
+
+        split_platform(
+            { "noarch", "linux-64" },
+            "https://conda.anaconda.org/conda-forge/noarch",
+            std::string(mamba::specs::build_platform_name()),
+            cleaned_url,
+            platform_found
+        );
+        CHECK_EQ(platform_found, "noarch");
+        CHECK_EQ(cleaned_url, "https://conda.anaconda.org/conda-forge");
+
+        split_platform(
+            { "noarch", "linux-64" },
+            "https://conda.anaconda.org/pkgs/main/noarch",
+            std::string(mamba::specs::build_platform_name()),
+            cleaned_url,
+            platform_found
+        );
+        CHECK_EQ(platform_found, "noarch");
+        CHECK_EQ(cleaned_url, "https://conda.anaconda.org/pkgs/main");
     }
 
     TEST_CASE("path_to_url")

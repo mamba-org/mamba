@@ -23,6 +23,11 @@ namespace mamba
 
     void EnvironmentsManager::register_env(const fs::u8path& location)
     {
+        if (!Context::instance().register_envs)
+        {
+            return;
+        }
+
         fs::u8path env_txt_file = get_environments_txt_file(env::home_directory());
         fs::u8path final_location = fs::absolute(location);
         fs::u8path folder = final_location.parent_path();

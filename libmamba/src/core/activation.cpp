@@ -10,6 +10,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/shell_init.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba
@@ -207,7 +208,7 @@ namespace mamba
 
     std::vector<fs::u8path> get_path_dirs(const fs::u8path& prefix)
     {
-        if (on_win)
+        if (util::on_win)
         {
             return { prefix,
                      prefix / "Library" / "mingw-w64" / "bin",
@@ -725,7 +726,7 @@ namespace mamba
         std::stringstream out;
         if (!env_transform.export_path.empty())
         {
-            if (on_win)
+            if (util::on_win)
             {
                 out << "export PATH='"
                     << native_path_to_unix(env_transform.export_path, /*is_a_env_path=*/true)
@@ -754,7 +755,7 @@ namespace mamba
 
         for (const auto& [ekey, evar] : env_transform.export_vars)
         {
-            if (on_win && ekey == "PATH")
+            if (util::on_win && ekey == "PATH")
             {
                 out << "export " << ekey << "='"
                     << native_path_to_unix(evar, /*is_a_env_path=*/true) << "'\n";
@@ -844,7 +845,7 @@ namespace mamba
         std::stringstream out;
         if (!env_transform.export_path.empty())
         {
-            if (on_win)
+            if (util::on_win)
             {
                 out << "setenv PATH '"
                     << native_path_to_unix(env_transform.export_path, /*is_a_env_path=*/true)
@@ -873,7 +874,7 @@ namespace mamba
 
         for (const auto& [ekey, evar] : env_transform.export_vars)
         {
-            if (on_win && ekey == "PATH")
+            if (util::on_win && ekey == "PATH")
             {
                 out << "setenv " << ekey << " '"
                     << native_path_to_unix(evar, /*is_a_env_path=*/true) << "';\n";

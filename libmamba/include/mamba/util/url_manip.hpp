@@ -59,11 +59,6 @@ namespace mamba::util
      */
     [[nodiscard]] auto url_has_scheme(std::string_view url) -> bool;
 
-    /**
-     * Check if a Windows path (not URL) starts with a drive letter.
-     */
-    [[nodiscard]] auto path_has_drive_letter(std::string_view path) -> bool;
-
     void split_anaconda_token(const std::string& url, std::string& cleaned_url, std::string& token);
 
     void split_scheme_auth_token(
@@ -76,7 +71,6 @@ namespace mamba::util
 
     bool compare_cleaned_url(const std::string& url1, const std::string& url2);
 
-    bool is_path(const std::string& input);
     std::string path_to_url(const std::string& path);
 
     template <class S, class... Args>

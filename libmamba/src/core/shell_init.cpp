@@ -25,6 +25,7 @@
 #include "mamba/core/shell_init.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba
@@ -332,7 +333,7 @@ namespace mamba
         std::stringstream content;
         std::string s_mamba_exe;
 
-        if (on_win)
+        if (util::on_win)
         {
             s_mamba_exe = native_path_to_unix(mamba_exe.string());
         }
@@ -364,7 +365,7 @@ namespace mamba
         std::stringstream content;
         std::string s_mamba_exe;
 
-        if (on_win)
+        if (util::on_win)
         {
             s_mamba_exe = native_path_to_unix(mamba_exe.string());
         }
@@ -388,7 +389,7 @@ namespace mamba
         std::stringstream content;
         std::string s_mamba_exe;
 
-        if (on_win)
+        if (util::on_win)
         {
             s_mamba_exe = native_path_to_unix(mamba_exe.string());
         }
@@ -1024,7 +1025,8 @@ namespace mamba
             // initializing conda in .bash_profile.
             // On Windows, there are multiple ways to open bash depending on how it was installed.
             // Git Bash, Cygwin, and MSYS2 all use .bash_profile by default.
-            fs::u8path bashrc_path = (on_mac || on_win) ? home / ".bash_profile" : home / ".bashrc";
+            fs::u8path bashrc_path = (util::on_mac || util::on_win) ? home / ".bash_profile"
+                                                                    : home / ".bashrc";
             modify_rc_file(bashrc_path, conda_prefix, shell, mamba_exe);
         }
         else if (shell == "zsh")
@@ -1092,7 +1094,8 @@ namespace mamba
         fs::u8path home = env::home_directory();
         if (shell == "bash")
         {
-            fs::u8path bashrc_path = (on_mac || on_win) ? home / ".bash_profile" : home / ".bashrc";
+            fs::u8path bashrc_path = (util::on_mac || util::on_win) ? home / ".bash_profile"
+                                                                    : home / ".bashrc";
             reset_rc_file(bashrc_path, shell, mamba_exe);
         }
         else if (shell == "zsh")
@@ -1150,7 +1153,7 @@ namespace mamba
         fs::u8path config_path;
         if (shell == "bash")
         {
-            config_path = (on_mac || on_win) ? home / ".bash_profile" : home / ".bashrc";
+            config_path = (util::on_mac || util::on_win) ? home / ".bash_profile" : home / ".bashrc";
         }
         else if (shell == "zsh")
         {

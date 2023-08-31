@@ -19,6 +19,7 @@
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_download.hpp"
+#include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba
@@ -1779,7 +1780,7 @@ namespace mamba
         auto& ctx = Context::instance();
 
         std::vector<fs::u8path> system;
-        if constexpr (on_mac || on_linux)
+        if constexpr (util::on_mac || util::on_linux)
         {
             system = { "/etc/conda/.condarc",       "/etc/conda/condarc",
                        "/etc/conda/condarc.d/",     "/etc/conda/.mambarc",

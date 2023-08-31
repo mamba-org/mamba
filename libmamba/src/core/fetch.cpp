@@ -12,6 +12,7 @@
 #include "mamba/core/fetch.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
+#include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
 #include "mamba/util/url_manip.hpp"
@@ -144,7 +145,7 @@ namespace mamba
                 ctx.remote_fetch_params.ssl_verify = std::getenv("REQUESTS_CA_BUNDLE");
                 LOG_INFO << "Using REQUESTS_CA_BUNDLE " << ctx.remote_fetch_params.ssl_verify;
             }
-            else if (ctx.remote_fetch_params.ssl_verify == "<system>" && on_linux)
+            else if (ctx.remote_fetch_params.ssl_verify == "<system>" && util::on_linux)
             {
                 std::array<std::string, 6> cert_locations{
                     "/etc/ssl/certs/ca-certificates.crt",  // Debian/Ubuntu/Gentoo etc.

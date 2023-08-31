@@ -21,6 +21,7 @@
 #include "mamba/core/transaction_context.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/validate.hpp"
+#include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 
 #if _WIN32
@@ -315,7 +316,7 @@ namespace mamba
     )
     {
         fs::u8path path;
-        if (on_win)
+        if (util::on_win)
         {
             path = prefix / get_bin_directory_short_path()
                    / util::concat(".", pkg_info.name, "-", action, ".bat");
@@ -345,7 +346,7 @@ namespace mamba
         std::vector<std::string> command_args;
         std::unique_ptr<TemporaryFile> script_file;
 
-        if (on_win)
+        if (util::on_win)
         {
             ensure_comspec_set();
             auto comspec = env::get("COMSPEC");
@@ -625,7 +626,7 @@ namespace mamba
                 buffer = read_contents(src, std::ios::in | std::ios::binary);
                 util::replace_all(buffer, path_data.prefix_placeholder, new_prefix);
 
-                if constexpr (!on_win)  // only on non-windows platforms
+                if constexpr (!util::on_win)  // only on non-windows platforms
                 {
                     // we need to check the first line for a shebang and replace it if it's too long
                     if (buffer[0] == '#' && buffer[1] == '!')
@@ -1052,7 +1053,7 @@ namespace mamba
         }
 
         // Create all start menu shortcuts if prefix name doesn't start with underscore
-        if (on_win && Context::instance().shortcuts
+        if (util::on_win && Context::instance().shortcuts
             && m_context->target_prefix.filename().string()[0] != '_')
         {
             for (auto& path : paths_data)

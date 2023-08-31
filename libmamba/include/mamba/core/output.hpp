@@ -37,7 +37,7 @@ namespace mamba
             {
             }
 
-            inline FormattedString(const std::string_view& i)
+            inline FormattedString(const std::string_view i)
                 : s(i)
             {
             }

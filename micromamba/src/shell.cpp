@@ -199,7 +199,6 @@ namespace
     void set_shell_reinit_command(CLI::App* subsubcmd, Configuration& config)
     {
         init_general_options(subsubcmd, config);
-        init_shell_option(subsubcmd, config);
         subsubcmd->callback(
             [&config]()
             {

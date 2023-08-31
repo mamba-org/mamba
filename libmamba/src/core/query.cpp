@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <iostream>
+#include <sstream>
 #include <stack>
 
 #include <fmt/chrono.h>
@@ -156,26 +157,44 @@ namespace mamba
 
     namespace
     {
-        auto print_solvable(const PackageInfo& pkg)
+        auto print_solvable(const PackageInfo& pkg, const std::vector<PackageInfo>& otherBuilds)
         {
+            std::map<std::string, std::vector<PackageInfo>> buildsByVersion;
+            auto numOtherBuildsForLatestVersion = 0;
+            for (const auto& p : otherBuilds)
+            {
+                if (p.version != pkg.version)
+                {
+                    buildsByVersion[p.version].push_back(p);
+                }
+                else
+                {
+                    ++numOtherBuildsForLatestVersion;
+                }
+            }
             auto out = Console::stream();
-            std::string header = fmt::format("{} {} {}", pkg.name, pkg.version, pkg.build_string);
-            fmt::print(out, "{:^40}\n{:-^{}}\n\n", header, "", header.size() > 40 ? header.size() : 40);
+            std::string additionalBuilds = "";
+            if (numOtherBuildsForLatestVersion > 0)
+            {
+                additionalBuilds = fmt::format(" (+ {} builds)", numOtherBuildsForLatestVersion);
+            }
+            std::string header = fmt::format("{} {} {}", pkg.name, pkg.version, pkg.build_string)
+                                 + additionalBuilds;
+            fmt::print(out, "{:^40}\n{:_^{}}\n\n", header, "", header.size() > 40 ? header.size() : 40);
 
-            static constexpr const char* fmtstring = " {:<15} {}\n";
-            fmt::print(out, fmtstring, "File Name", pkg.fn);
+            static constexpr const char* fmtstring = "  {:<15} {}\n";
             fmt::print(out, fmtstring, "Name", pkg.name);
             fmt::print(out, fmtstring, "Version", pkg.version);
             fmt::print(out, fmtstring, "Build", pkg.build_string);
-            fmt::print(out, fmtstring, "Build Number", pkg.build_number);
-            fmt::print(out, " {:<15} {} Kb\n", "Size", pkg.size / 1000);
+            fmt::print(out, "  {:<15} {} kB\n", "Size", pkg.size / 1000);
             fmt::print(out, fmtstring, "License", pkg.license);
             fmt::print(out, fmtstring, "Subdir", pkg.subdir);
+            fmt::print(out, fmtstring, "File Name", pkg.fn);
 
             std::string url_remaining, url_scheme, url_auth, url_token;
             util::split_scheme_auth_token(pkg.url, url_remaining, url_scheme, url_auth, url_token);
 
-            fmt::print(out, " {:<15} {}://{}\n", "URL", url_scheme, url_remaining);
+            fmt::print(out, "  {:<15} {}://{}\n", "URL", url_scheme, url_remaining);
 
             fmt::print(out, fmtstring, "MD5", pkg.md5.empty() ? "Not available" : pkg.md5);
             fmt::print(out, fmtstring, "SHA256", pkg.sha256.empty() ? "Not available" : pkg.sha256);
@@ -187,6 +206,15 @@ namespace mamba
             // std::cout << fmt::format<char>(
             // " {:<15} {:%Y-%m-%d %H:%M:%S} UTC\n", "Timestamp", fmt::gmtime(pkg.timestamp));
 
+            if (!pkg.constrains.empty())
+            {
+                fmt::print(out, "\n Run Constraints:\n");
+                for (auto& c : pkg.constrains)
+                {
+                    fmt::print(out, "  - {}\n", c);
+                }
+            }
+
             if (!pkg.depends.empty())
             {
                 fmt::print(out, "\n Dependencies:\n");
@@ -196,12 +224,40 @@ namespace mamba
                 }
             }
 
-            if (!pkg.constrains.empty())
+            if (!buildsByVersion.empty())
             {
-                fmt::print(out, "\n Run Constraints:\n");
-                for (auto& c : pkg.constrains)
+                fmt::print(out, "\n Other Versions ({}):\n\n", buildsByVersion.size());
+
+                std::stringstream buffer;
+
+                using namespace printers;
+                Table printer({ "Version", "Build", "", "" });
+                printer.set_alignment(
+                    { alignment::left, alignment::left, alignment::left, alignment::right }
+                );
+                // We want the newest version to be on top, therefore we iterate in reverse.
+                for (auto it = buildsByVersion.rbegin(); it != buildsByVersion.rend(); it++)
                 {
-                    fmt::print(out, "  - {}\n", c);
+                    std::vector<FormattedString> row;
+                    row.push_back(it->second.front().version);
+                    row.push_back(it->second.front().build_string);
+                    if (it->second.size() > 1)
+                    {
+                        row.push_back("(+");
+                        row.push_back(fmt::format("{} builds)", it->second.size() - 1));
+                    }
+                    else
+                    {
+                        row.push_back("");
+                        row.push_back("");
+                    }
+                    printer.add_row(row);
+                }
+                printer.print(buffer);
+                std::string line;
+                while (std::getline(buffer, line))
+                {
+                    out << "  " << line << std::endl;
                 }
             }
 
@@ -408,7 +464,16 @@ namespace mamba
 
     std::ostream& query_result::table(std::ostream& out) const
     {
-        return table(out, { "Name", "Version", "Build", "Channel" });
+        return table(
+            out,
+            { "Name",
+              "Version",
+              "Build",
+              printers::alignmentMarker(printers::alignment::left),
+              printers::alignmentMarker(printers::alignment::right),
+              "Channel",
+              "Subdir" }
+        );
     }
 
     namespace
@@ -419,9 +484,16 @@ namespace mamba
             return util::split(str, "/", 1).front();  // Has at least one element
         }
 
+        /** Get subdir from channel name. */
+        auto get_subdir(std::string_view str) -> std::string
+        {
+            return util::split(str, "/").back();
+        }
+
     }
 
-    std::ostream& query_result::table(std::ostream& out, const std::vector<std::string>& fmt) const
+    std::ostream&
+    query_result::table(std::ostream& out, const std::vector<std::string_view>& columns) const
     {
         if (m_pkg_id_list.empty())
         {
@@ -429,25 +501,43 @@ namespace mamba
         }
 
         std::vector<mamba::printers::FormattedString> headers;
-        std::vector<std::string> cmds, args;
-        for (auto& f : fmt)
+        std::vector<std::string_view> cmds, args;
+        std::vector<mamba::printers::alignment> alignments;
+        for (auto& col : columns)
         {
-            if (f.find_first_of(":") == f.npos)
+            if (col == printers::alignmentMarker(printers::alignment::right)
+                || col == printers::alignmentMarker(printers::alignment::left))
             {
-                headers.push_back(f);
-                cmds.push_back(f);
+                // If an alignment marker is passed, we remove the column name.
+                headers.push_back("");
+                cmds.push_back("");
+                args.push_back("");
+                // We only check for the right alignment marker, as left alignment is set the
+                // default.
+                if (col == printers::alignmentMarker(printers::alignment::right))
+                {
+                    alignments.push_back(printers::alignment::right);
+                    continue;
+                }
+            }
+            else if (col.find_first_of(":") == col.npos)
+            {
+                headers.push_back(col);
+                cmds.push_back(col);
                 args.push_back("");
             }
             else
             {
-                auto sfmt = util::split(f, ":", 1);
+                auto sfmt = util::split(col, ":", 1);
                 headers.push_back(sfmt[0]);
                 cmds.push_back(sfmt[0]);
                 args.push_back(sfmt[1]);
             }
+            // By default, columns are left aligned.
+            alignments.push_back(printers::alignment::left);
         }
 
-        auto format_row = [&](const PackageInfo& pkg)
+        auto format_row = [&](const PackageInfo& pkg, const std::vector<PackageInfo>& builds)
         {
             std::vector<mamba::printers::FormattedString> row;
             for (std::size_t i = 0; i < cmds.size(); ++i)
@@ -464,10 +554,24 @@ namespace mamba
                 else if (cmd == "Build")
                 {
                     row.push_back(pkg.build_string);
+                    if (builds.size() > 1)
+                    {
+                        row.push_back("(+");
+                        row.push_back(fmt::format("{} builds)", builds.size() - 1));
+                    }
+                    else
+                    {
+                        row.push_back("");
+                        row.push_back("");
+                    }
                 }
                 else if (cmd == "Channel")
                 {
                     row.push_back(cut_subdir(cut_repo_name(pkg.channel)));
+                }
+                else if (cmd == "Subdir")
+                {
+                    row.push_back(get_subdir(pkg.channel));
                 }
                 else if (cmd == "Depends")
                 {
@@ -487,14 +591,26 @@ namespace mamba
         };
 
         printers::Table printer(headers);
+        printer.set_alignment(alignments);
 
         if (!m_ordered_pkg_id_list.empty())
         {
+            std::map<std::string, std::map<std::string, std::vector<PackageInfo>>> packageBuildsByVersion;
             for (auto& entry : m_ordered_pkg_id_list)
             {
                 for (const auto& id : entry.second)
                 {
-                    printer.add_row(format_row(m_dep_graph.node(id)));
+                    auto package = m_dep_graph.node(id);
+                    packageBuildsByVersion[package.name][package.version].push_back(package);
+                }
+            }
+
+            for (const auto& entry : packageBuildsByVersion)
+            {
+                // We want the newest version to be on top, therefore we iterate in reverse.
+                for (auto it = entry.second.rbegin(); it != entry.second.rend(); ++it)
+                {
+                    printer.add_row(format_row(it->second[0], it->second));
                 }
             }
         }
@@ -502,9 +618,10 @@ namespace mamba
         {
             for (const auto& id : m_pkg_id_list)
             {
-                printer.add_row(format_row(m_dep_graph.node(id)));
+                printer.add_row(format_row(m_dep_graph.node(id), {}));
             }
         }
+
         return printer.print(out);
     }
 
@@ -671,11 +788,25 @@ namespace mamba
 
     std::ostream& query_result::pretty(std::ostream& out) const
     {
-        if (!m_pkg_id_list.empty())
+        if (m_pkg_id_list.empty())
         {
+            out << "No entries matching \"" << m_query << "\" found" << std::endl;
+        }
+        else
+        {
+            std::map<std::string, std::vector<PackageInfo>> packages;
             for (const auto& id : m_pkg_id_list)
             {
-                print_solvable(m_dep_graph.node(id));
+                auto package = m_dep_graph.node(id);
+                packages[package.name].push_back(package);
+            }
+
+            for (const auto& entry : packages)
+            {
+                print_solvable(
+                    entry.second[0],
+                    std::vector(entry.second.begin() + 1, entry.second.end())
+                );
             }
         }
         return out;

@@ -408,7 +408,14 @@ PYBIND11_MODULE(bindings, m)
                     case query::RECURSIVETABLE:
                         res.table(
                             res_stream,
-                            { "Name", "Version", "Build", util::concat("Depends:", query), "Channel" }
+                            { "Name",
+                              "Version",
+                              "Build",
+                              printers::alignmentMarker(printers::alignment::left),
+                              printers::alignmentMarker(printers::alignment::right),
+                              util::concat("Depends:", query),
+                              "Channel",
+                              "Subdir" }
                         );
                 }
                 if (res.empty() && format != query::JSON)

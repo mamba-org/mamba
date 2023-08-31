@@ -33,8 +33,8 @@
 
 #include "mamba/core/environment.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 
 #ifdef _WIN32
@@ -229,7 +229,7 @@ namespace mamba
             return override_version.value();
         }
 
-        if (!on_win)
+        if (!util::on_win)
         {
             return "";
         }
@@ -281,7 +281,7 @@ namespace mamba
             return override_version.value();
         }
 
-        if (!on_mac)
+        if (!util::on_mac)
         {
             return "";
         }
@@ -319,7 +319,7 @@ namespace mamba
         {
             return override_version.value();
         }
-        if (!on_linux)
+        if (!util::on_linux)
         {
             return "";
         }

@@ -16,7 +16,7 @@
 #include <openssl/evp.h>
 
 #include "mamba/core/context.hpp"
-#include "mamba/core/util.hpp"
+#include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
 

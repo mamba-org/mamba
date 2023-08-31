@@ -7,9 +7,9 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/virtual_packages.hpp"
+#include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 
 #ifdef _WIN32
@@ -35,7 +35,7 @@ namespace mamba
                 return override_version.value();
             }
 
-            if (!on_linux)
+            if (!util::on_linux)
             {
                 return "";
             }
@@ -79,7 +79,7 @@ namespace mamba
                 out = "";
             }
 
-            if (ec && on_win)
+            if (ec && util::on_win)
             {
                 // Windows fallback
                 bool may_exist = false;

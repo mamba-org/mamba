@@ -12,6 +12,7 @@
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/util/build.hpp"
 
 #include "common_options.hpp"
 
@@ -47,8 +48,8 @@ is_valid_rc_sequence(const mamba::Configuration& config, const std::string& key,
 fs::u8path
 get_system_path()
 {
-    return (on_mac || on_linux) ? fs::u8path("/etc/conda/.condarc")
-                                : fs::u8path("C:\\ProgramData\\conda\\.condarc");
+    return (util::on_mac || util::on_linux) ? fs::u8path("/etc/conda/.condarc")
+                                            : fs::u8path("C:\\ProgramData\\conda\\.condarc");
 }
 
 fs::u8path

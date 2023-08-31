@@ -33,22 +33,6 @@
 
 namespace mamba
 {
-#if __APPLE__ || __MACH__
-    static constexpr bool on_win = false;
-    static constexpr bool on_linux = false;
-    static constexpr bool on_mac = true;
-#elif __linux__
-    static constexpr bool on_win = false;
-    static constexpr bool on_linux = true;
-    static constexpr bool on_mac = false;
-#elif _WIN32
-    static constexpr bool on_win = true;
-    static constexpr bool on_linux = false;
-    static constexpr bool on_mac = false;
-#else
-#error "no supported OS detected"
-#endif
-
     // Used when we want a callback which does nothing.
     struct no_op
     {

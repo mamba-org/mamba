@@ -10,12 +10,12 @@
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
-#include "mamba/api/shell.hpp"
 #include "mamba/api/update.hpp"
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/util/build.hpp"
 
 #include "common_options.hpp"
 #include "version.hpp"
@@ -107,7 +107,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
 
     try
     {
-        if (on_win)
+        if (util::on_win)
         {
             fs::copy_file(
                 cache_path / "Library" / "bin" / "micromamba.exe",

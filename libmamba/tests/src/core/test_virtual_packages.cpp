@@ -10,8 +10,8 @@
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
-#include "mamba/core/util.hpp"
 #include "mamba/core/virtual_packages.hpp"
+#include "mamba/util/build.hpp"
 
 namespace mamba
 {
@@ -50,19 +50,19 @@ namespace mamba
                 auto pkgs = detail::dist_packages();
                 auto& ctx = Context::instance();
 
-                if (on_win)
+                if (util::on_win)
                 {
                     REQUIRE_EQ(pkgs.size(), 2);
                     CHECK_EQ(pkgs[0].name, "__win");
                 }
-                if (on_linux)
+                if (util::on_linux)
                 {
                     REQUIRE_EQ(pkgs.size(), 4);
                     CHECK_EQ(pkgs[0].name, "__unix");
                     CHECK_EQ(pkgs[1].name, "__linux");
                     CHECK_EQ(pkgs[2].name, "__glibc");
                 }
-                if (on_mac)
+                if (util::on_mac)
                 {
                     REQUIRE_EQ(pkgs.size(), 3);
                     CHECK_EQ(pkgs[0].name, "__unix");
@@ -125,15 +125,15 @@ namespace mamba
                 auto pkgs = get_virtual_packages();
                 int pkgs_count;
 
-                if (on_win)
+                if (util::on_win)
                 {
                     pkgs_count = 2;
                 }
-                if (on_linux)
+                if (util::on_linux)
                 {
                     pkgs_count = 4;
                 }
-                if (on_mac)
+                if (util::on_mac)
                 {
                     pkgs_count = 3;
                 }

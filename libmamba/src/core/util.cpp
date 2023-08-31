@@ -44,7 +44,6 @@ extern "C"
 #include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/execution.hpp"
-#include "mamba/core/fsutil.hpp"
 #include "mamba/core/invoke.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/shell_init.hpp"
@@ -52,6 +51,7 @@ extern "C"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_random.hpp"
+#include "mamba/util/build.hpp"
 #include "mamba/util/compare.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
@@ -314,7 +314,7 @@ namespace mamba
 
     std::string quote_for_shell(const std::vector<std::string>& arguments, const std::string& shell)
     {
-        if ((shell.empty() && on_win) || shell == "cmdexe")
+        if ((shell.empty() && util::on_win) || shell == "cmdexe")
         {
             // ported from CPython's list2cmdline to C++
             //
@@ -1455,7 +1455,7 @@ namespace mamba
         std::vector<std::string> command_args;
         std::unique_ptr<TemporaryFile> script_file;
 
-        if (on_win)
+        if (util::on_win)
         {
             ensure_comspec_set();
             auto comspec = env::get("COMSPEC");

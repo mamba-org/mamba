@@ -65,8 +65,11 @@ namespace mamba
             {
                 case alignment::right:
                     return "alignment_right";
+                case alignment::left:
+                    return "alignment_right";
                 default:
-                    return "alignment_left";
+                    assert(false);
+                    return "";
             }
         }
 

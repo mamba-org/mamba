@@ -154,6 +154,7 @@ namespace mamba
         bool allow_softlinks = false;
         bool always_copy = false;
         bool always_softlink = false;
+        bool register_envs = true;
 
         // solver options
         bool allow_uninstall = true;

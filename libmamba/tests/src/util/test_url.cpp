@@ -10,6 +10,7 @@
 
 #include <doctest/doctest.h>
 
+#include "mamba/util/build.hpp"
 #include "mamba/util/url.hpp"
 
 using namespace mamba::util;
@@ -53,6 +54,16 @@ TEST_SUITE("util::URL")
             CHECK_EQ(url.fragment(), "fragment");
         }
 
+        SUBCASE("File")
+        {
+            URL url{};
+            url.set_scheme("file");
+            url.set_path("/folder/file.txt");
+            CHECK_EQ(url.scheme(), "file");
+            CHECK_EQ(url.host(), "");
+            CHECK_EQ(url.path(), "/folder/file.txt");
+        }
+
         SUBCASE("Path")
         {
             URL url{};
@@ -83,7 +94,6 @@ TEST_SUITE("util::URL")
         {
             URL url{};
             CHECK_THROWS_AS(url.set_scheme(""), std::invalid_argument);
-            CHECK_THROWS_AS(url.set_host(""), std::invalid_argument);
             CHECK_THROWS_AS(url.set_port("not-a-number"), std::invalid_argument);
         }
 
@@ -214,34 +224,36 @@ TEST_SUITE("util::URL")
 
         SUBCASE("file://C:/Users/wolfv/test/document.json")
         {
-#ifdef _WIN32
-            const URL url = URL::parse("file://C:/Users/wolfv/test/document.json");
-            CHECK_EQ(url.scheme(), "file");
-            CHECK_EQ(url.host(), URL::localhost);
-            CHECK_EQ(url.path(), "/C:/Users/wolfv/test/document.json");
-            CHECK_EQ(url.pretty_path(), "C:/Users/wolfv/test/document.json");
-            CHECK_EQ(url.user(), "");
-            CHECK_EQ(url.password(), "");
-            CHECK_EQ(url.port(), "");
-            CHECK_EQ(url.query(), "");
-            CHECK_EQ(url.fragment(), "");
-#endif
+            if (on_win)
+            {
+                const URL url = URL::parse("file://C:/Users/wolfv/test/document.json");
+                CHECK_EQ(url.scheme(), "file");
+                CHECK_EQ(url.host(), "");
+                CHECK_EQ(url.path(), "/C:/Users/wolfv/test/document.json");
+                CHECK_EQ(url.pretty_path(), "C:/Users/wolfv/test/document.json");
+                CHECK_EQ(url.user(), "");
+                CHECK_EQ(url.password(), "");
+                CHECK_EQ(url.port(), "");
+                CHECK_EQ(url.query(), "");
+                CHECK_EQ(url.fragment(), "");
+            }
         }
 
         SUBCASE("file:///home/wolfv/test/document.json")
         {
-#ifndef _WIN32
-            const URL url = URL::parse("file:///home/wolfv/test/document.json");
-            CHECK_EQ(url.scheme(), "file");
-            CHECK_EQ(url.host(), URL::localhost);
-            CHECK_EQ(url.path(), "/home/wolfv/test/document.json");
-            CHECK_EQ(url.pretty_path(), "/home/wolfv/test/document.json");
-            CHECK_EQ(url.user(), "");
-            CHECK_EQ(url.password(), "");
-            CHECK_EQ(url.port(), "");
-            CHECK_EQ(url.query(), "");
-            CHECK_EQ(url.fragment(), "");
-#endif
+            if (!on_win)
+            {
+                const URL url = URL::parse("file:///home/wolfv/test/document.json");
+                CHECK_EQ(url.scheme(), "file");
+                CHECK_EQ(url.host(), "");
+                CHECK_EQ(url.path(), "/home/wolfv/test/document.json");
+                CHECK_EQ(url.pretty_path(), "/home/wolfv/test/document.json");
+                CHECK_EQ(url.user(), "");
+                CHECK_EQ(url.password(), "");
+                CHECK_EQ(url.port(), "");
+                CHECK_EQ(url.query(), "");
+                CHECK_EQ(url.fragment(), "");
+            }
         }
 
         SUBCASE("https://169.254.0.0/page")

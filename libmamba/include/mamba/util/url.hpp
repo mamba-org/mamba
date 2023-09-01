@@ -90,10 +90,10 @@ namespace mamba::util
         /** Return the encoded basic authentication string. */
         [[nodiscard]] auto authentication() const -> std::string;
 
-        /** Return the encoded host, always non-empty. */
-        [[nodiscard]] auto host(Decode::no_type) const -> const std::string&;
+        /** Return the encoded host, always non-empty except for file scheme. */
+        [[nodiscard]] auto host(Decode::no_type) const -> std::string_view;
 
-        /** Return the decoded host, always non-empty. */
+        /** Return the decoded host, always non-empty except for file scheme. */
         [[nodiscard]] auto host(Decode::yes_type = Decode::yes) const -> std::string;
 
         /** Set the host from a not encoded value. */
@@ -185,7 +185,7 @@ namespace mamba::util
         std::string m_scheme = std::string(https);
         std::string m_user = {};
         std::string m_password = {};
-        std::string m_host = std::string(localhost);
+        std::string m_host = {};
         std::string m_path = "/";
         std::string m_port = {};
         std::string m_query = {};

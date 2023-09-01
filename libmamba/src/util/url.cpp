@@ -182,7 +182,7 @@ namespace mamba::util
             out.set_scheme(handle.get_part(CURLUPART_SCHEME).value_or(std::string(URL::https)));
             out.set_user(handle.get_part(CURLUPART_USER).value_or(""), Encode::no);
             out.set_password(handle.get_part(CURLUPART_PASSWORD).value_or(""), Encode::no);
-            out.set_host(handle.get_part(CURLUPART_HOST).value_or(std::string(URL::localhost)));
+            out.set_host(handle.get_part(CURLUPART_HOST).value_or(""));
             out.set_path(handle.get_part(CURLUPART_PATH).value_or("/"));
             out.set_port(handle.get_part(CURLUPART_PORT).value_or(""));
             out.set_query(handle.get_part(CURLUPART_QUERY).value_or(""));
@@ -252,8 +252,12 @@ namespace mamba::util
         return p.empty() ? u : util::concat(u, ':', p);
     }
 
-    auto URL::host(Decode::no_type) const -> const std::string&
+    auto URL::host(Decode::no_type) const -> std::string_view
     {
+        if ((m_scheme != "file") && m_host.empty())
+        {
+            return localhost;
+        }
         return m_host;
     }
 
@@ -269,10 +273,6 @@ namespace mamba::util
 
     void URL::set_host(std::string host, Encode::no_type)
     {
-        if (host.empty())
-        {
-            throw std::invalid_argument("Cannot set empty host");
-        }
         std::transform(
             host.cbegin(),
             host.cend(),
@@ -395,22 +395,11 @@ namespace mamba::util
     auto URL::pretty_str(StripScheme strip_scheme, char rstrip_path, HidePassword hide_password) const
         -> std::string
     {
-        // Not showing "localhost" on file URI
-        std::string computed_host = {};
-        if ((m_scheme == "file") && (m_host == localhost))
-        {
-            computed_host = "";
-        }
-        else
-        {
-            computed_host = host(Decode::yes);
-        }
-
         std::string computed_path = {};
         if (m_scheme == "file")
         {
             // When stripping file scheme, not showing leading '/' for Windows path with drive
-            if ((strip_scheme == StripScheme::yes) && computed_host.empty())
+            if ((strip_scheme == StripScheme::yes) && host(Decode::no).empty())
             {
                 computed_path = pretty_path();
             }
@@ -432,7 +421,7 @@ namespace mamba::util
             m_password.empty() ? "" : ":",
             (hide_password == HidePassword::no) ? url_decode(m_password) : "*****",
             m_user.empty() ? "" : "@",
-            computed_host,
+            host(Decode::yes),
             m_port.empty() ? "" : ":",
             m_port,
             computed_path,

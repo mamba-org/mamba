@@ -14,7 +14,7 @@ using namespace mamba;  // NOLINT(build/namespaces)
 void
 set_create_command(CLI::App* subcom, Configuration& config)
 {
-    init_install_options(subcom, config);
+    init_create_options(subcom, config);
 
     subcom->callback([&] { return mamba::create(config); });
 }

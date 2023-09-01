@@ -1137,6 +1137,14 @@ namespace mamba
                    .set_post_merge_hook(detail::envs_dirs_hook)
                    .description("Possible locations of named environments"));
 
+        insert(Configurable("register_envs", &ctx.register_envs)
+                   .group("Basic")
+                   .set_rc_configurable()
+                   .set_env_var_names({ "CONDA_REGISTER_ENVS" })
+                   .needs({ "root_prefix" })
+                   .description("whether to add the newly created prefix to ~/.conda/environments.txt"
+                   ));
+
         insert(Configurable("pkgs_dirs", &ctx.pkgs_dirs)
                    .group("Basic")
                    .set_rc_configurable()

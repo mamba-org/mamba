@@ -205,7 +205,7 @@ set_config_path_command(CLI::App* subcom, mamba::Configuration& config)
     auto& file_path = config.insert(
         Configurable("config_set_file_path", fs::u8path())
             .group("cli")
-            .description("Set configuration on system's rc file"),
+            .description("Set configuration on specified file"),
         true
     );
     subcom->add_option("--file", file_path.get_cli_config<fs::u8path>(), file_path.description())

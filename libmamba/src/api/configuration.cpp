@@ -1244,7 +1244,12 @@ namespace mamba
                    .group("Channels")
                    .set_rc_configurable()
                    .set_env_var_names()
-                   .description("Permit use of the --overide-channels command-line flag"));
+                   .description("Permit use of the --override-channels command-line flag"));
+
+        insert(Configurable("repodata_use_zst", &ctx.repodata_use_zst)
+                   .group("Repodata")
+                   .set_rc_configurable()
+                   .description("Use zstd encoded repodata when fetching"));
 
         insert(Configurable("repodata_has_zst", &ctx.repodata_has_zst)
                    .group("Repodata")

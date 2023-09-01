@@ -179,14 +179,14 @@ namespace mamba::util
                 file_uri_unc2_to_unc4(url),
                 CURLU_NON_SUPPORT_SCHEME | CURLU_DEFAULT_SCHEME,
             };
-            out.set_scheme(handle.get_part(CURLUPART_SCHEME).value_or(std::string(URL::https)))
-                .set_user(handle.get_part(CURLUPART_USER).value_or(""), Encode::no)
-                .set_password(handle.get_part(CURLUPART_PASSWORD).value_or(""), Encode::no)
-                .set_host(handle.get_part(CURLUPART_HOST).value_or(std::string(URL::localhost)))
-                .set_path(handle.get_part(CURLUPART_PATH).value_or("/"))
-                .set_port(handle.get_part(CURLUPART_PORT).value_or(""))
-                .set_query(handle.get_part(CURLUPART_QUERY).value_or(""))
-                .set_fragment(handle.get_part(CURLUPART_FRAGMENT).value_or(""));
+            out.set_scheme(handle.get_part(CURLUPART_SCHEME).value_or(std::string(URL::https)));
+            out.set_user(handle.get_part(CURLUPART_USER).value_or(""), Encode::no);
+            out.set_password(handle.get_part(CURLUPART_PASSWORD).value_or(""), Encode::no);
+            out.set_host(handle.get_part(CURLUPART_HOST).value_or(std::string(URL::localhost)));
+            out.set_path(handle.get_part(CURLUPART_PATH).value_or("/"));
+            out.set_port(handle.get_part(CURLUPART_PORT).value_or(""));
+            out.set_query(handle.get_part(CURLUPART_QUERY).value_or(""));
+            out.set_fragment(handle.get_part(CURLUPART_FRAGMENT).value_or(""));
         }
         return out;
     }
@@ -196,14 +196,13 @@ namespace mamba::util
         return m_scheme;
     }
 
-    auto URL::set_scheme(std::string_view scheme) -> URL&
+    void URL::set_scheme(std::string_view scheme)
     {
         if (scheme.empty())
         {
             throw std::invalid_argument("Cannot set empty scheme");
         }
         m_scheme = util::to_lower(util::rstrip(scheme));
-        return *this;
     }
 
     auto URL::user(Decode::no_type) const -> const std::string&
@@ -216,7 +215,7 @@ namespace mamba::util
         return url_decode(m_user);
     }
 
-    auto URL::set_user(std::string_view user, Encode encode) -> URL&
+    void URL::set_user(std::string_view user, Encode encode)
     {
         if (encode == Encode::yes)
         {
@@ -226,7 +225,6 @@ namespace mamba::util
         {
             m_user = user;
         }
-        return *this;
     }
 
     auto URL::password(Decode::no_type) const -> const std::string&
@@ -239,7 +237,7 @@ namespace mamba::util
         return url_decode(m_password);
     }
 
-    auto URL::set_password(std::string_view password, Encode encode) -> URL&
+    void URL::set_password(std::string_view password, Encode encode)
     {
         if (encode == Encode::yes)
         {
@@ -249,7 +247,6 @@ namespace mamba::util
         {
             m_password = password;
         }
-        return *this;
     }
 
     auto URL::authentication() const -> std::string
@@ -269,7 +266,7 @@ namespace mamba::util
         return url_decode(m_host);
     }
 
-    auto URL::set_host(std::string_view host, Encode encode) -> URL&
+    void URL::set_host(std::string_view host, Encode encode)
     {
         std::string new_host = {};
         if (encode == Encode::yes)
@@ -285,7 +282,6 @@ namespace mamba::util
             throw std::invalid_argument("Cannot set empty host");
         }
         m_host = util::to_lower(new_host);
-        return *this;
     }
 
     auto URL::port() const -> const std::string&
@@ -293,14 +289,13 @@ namespace mamba::util
         return m_port;
     }
 
-    auto URL::set_port(std::string_view port) -> URL&
+    void URL::set_port(std::string_view port)
     {
         if (!std::all_of(port.cbegin(), port.cend(), [](char c) { return util::is_digit(c); }))
         {
             throw std::invalid_argument(fmt::format(R"(Port must be a number, got "{}")", port));
         }
         m_port = port;
-        return *this;
     }
 
     auto URL::authority() const -> std::string
@@ -339,7 +334,7 @@ namespace mamba::util
         return m_path;
     }
 
-    auto URL::set_path(std::string_view path) -> URL&
+    void URL::set_path(std::string_view path)
     {
         if (!util::starts_with(path, '/'))
         {
@@ -351,10 +346,9 @@ namespace mamba::util
         {
             m_path = path;
         }
-        return *this;
     }
 
-    auto URL::append_path(std::string_view subpath) -> URL&
+    void URL::append_path(std::string_view subpath)
     {
         subpath = util::strip(subpath);
         m_path.reserve(m_path.size() + 1 + subpath.size());
@@ -369,7 +363,6 @@ namespace mamba::util
             m_path.pop_back();
         }
         m_path += subpath;
-        return *this;
     }
 
     auto URL::query() const -> const std::string&
@@ -377,10 +370,9 @@ namespace mamba::util
         return m_query;
     }
 
-    auto URL::set_query(std::string_view query) -> URL&
+    void URL::set_query(std::string_view query)
     {
         m_query = query;
-        return *this;
     }
 
     auto URL::fragment() const -> const std::string&
@@ -388,10 +380,9 @@ namespace mamba::util
         return m_fragment;
     }
 
-    auto URL::set_fragment(std::string_view fragment) -> URL&
+    void URL::set_fragment(std::string_view fragment)
     {
         m_fragment = fragment;
-        return *this;
     }
 
     auto URL::str(StripScheme strip_scheme, char rstrip_path, HidePassword hide_password) const

@@ -34,14 +34,14 @@ TEST_SUITE("util::URL")
         SUBCASE("Complete")
         {
             URL url{};
-            url.set_scheme("https")
-                .set_host("mamba.org")
-                .set_user("user")
-                .set_password("password")
-                .set_port("8080")
-                .set_path("/folder/file.html")
-                .set_query("param=value")
-                .set_fragment("fragment");
+            url.set_scheme("https");
+            url.set_host("mamba.org");
+            url.set_user("user");
+            url.set_password("password");
+            url.set_port("8080");
+            url.set_path("/folder/file.html");
+            url.set_query("param=value");
+            url.set_fragment("fragment");
             CHECK_EQ(url.scheme(), "https");
             CHECK_EQ(url.host(), "mamba.org");
             CHECK_EQ(url.user(), "user");
@@ -64,7 +64,8 @@ TEST_SUITE("util::URL")
         SUBCASE("Windows path")
         {
             URL url{};
-            url.set_scheme("file").set_path("C:/folder/file.txt");
+            url.set_scheme("file");
+            url.set_path("C:/folder/file.txt");
             CHECK_EQ(url.path(), "/C:/folder/file.txt");
             CHECK_EQ(url.pretty_path(), "C:/folder/file.txt");
         }
@@ -72,7 +73,8 @@ TEST_SUITE("util::URL")
         SUBCASE("Case")
         {
             URL url{};
-            url.set_scheme("FtP").set_host("sOme_Host.COM");
+            url.set_scheme("FtP");
+            url.set_host("sOme_Host.COM");
             CHECK_EQ(url.scheme(), "ftp");
             CHECK_EQ(url.host(), "some_host.com");
         }
@@ -321,7 +323,8 @@ TEST_SUITE("util::URL")
         SUBCASE("Hide password option")
         {
             URL url = {};
-            url.set_user("user").set_password("pass");
+            url.set_user("user");
+            url.set_password("pass");
             CHECK_EQ(
                 url.str(URL::StripScheme::no, 0, URL::HidePassword::no),
                 "https://user:pass@localhost/"
@@ -335,14 +338,14 @@ TEST_SUITE("util::URL")
         SUBCASE("https://user:password@mamba.org:8080/folder/file.html?param=value#fragment")
         {
             URL url{};
-            url.set_scheme("https")
-                .set_host("mamba.org")
-                .set_user("user")
-                .set_password("password")
-                .set_port("8080")
-                .set_path("/folder/file.html")
-                .set_query("param=value")
-                .set_fragment("fragment");
+            url.set_scheme("https");
+            url.set_host("mamba.org");
+            url.set_user("user");
+            url.set_password("password");
+            url.set_port("8080");
+            url.set_path("/folder/file.html");
+            url.set_query("param=value");
+            url.set_fragment("fragment");
 
             CHECK_EQ(
                 url.str(),
@@ -353,7 +356,8 @@ TEST_SUITE("util::URL")
         SUBCASE("user@mamba.org")
         {
             URL url{};
-            url.set_host("mamba.org").set_user("user");
+            url.set_host("mamba.org");
+            url.set_user("user");
             CHECK_EQ(url.str(), "https://user@mamba.org/");
             CHECK_EQ(url.str(URL::StripScheme::yes), "user@mamba.org/");
         }
@@ -361,7 +365,8 @@ TEST_SUITE("util::URL")
         SUBCASE("https://mamba.org")
         {
             URL url{};
-            url.set_scheme("https").set_host("mamba.org");
+            url.set_scheme("https");
+            url.set_host("mamba.org");
             CHECK_EQ(url.str(), "https://mamba.org/");
             CHECK_EQ(url.str(URL::StripScheme::yes), "mamba.org/");
         }
@@ -369,7 +374,8 @@ TEST_SUITE("util::URL")
         SUBCASE("file:////folder/file.txt")
         {
             URL url{};
-            url.set_scheme("file").set_path("//folder/file.txt");
+            url.set_scheme("file");
+            url.set_path("//folder/file.txt");
             CHECK_EQ(url.str(), "file:////folder/file.txt");
             CHECK_EQ(url.str(URL::StripScheme::yes), "//folder/file.txt");
         }
@@ -377,7 +383,8 @@ TEST_SUITE("util::URL")
         SUBCASE("file:///folder/file.txt")
         {
             URL url{};
-            url.set_scheme("file").set_path("/folder/file.txt");
+            url.set_scheme("file");
+            url.set_path("/folder/file.txt");
             CHECK_EQ(url.str(), "file:///folder/file.txt");
             CHECK_EQ(url.str(URL::StripScheme::yes), "/folder/file.txt");
         }
@@ -385,7 +392,8 @@ TEST_SUITE("util::URL")
         SUBCASE("file:///C:/folder/file.txt")
         {
             URL url{};
-            url.set_scheme("file").set_path("C:/folder/file.txt");
+            url.set_scheme("file");
+            url.set_path("C:/folder/file.txt");
             CHECK_EQ(url.str(), "file:///C:/folder/file.txt");
             CHECK_EQ(url.str(URL::StripScheme::yes), "C:/folder/file.txt");
         }
@@ -404,11 +412,11 @@ TEST_SUITE("util::URL")
     TEST_CASE("authority")
     {
         URL url{};
-        url.set_scheme("https")
-            .set_host("mamba.org")
-            .set_path("/folder/file.html")
-            .set_query("param=value")
-            .set_fragment("fragment");
+        url.set_scheme("https");
+        url.set_host("mamba.org");
+        url.set_path("/folder/file.html");
+        url.set_query("param=value");
+        url.set_fragment("fragment");
         CHECK_EQ(url.authority(), "mamba.org");
         url.set_port("8000");
         CHECK_EQ(url.authority(), "mamba.org:8000");

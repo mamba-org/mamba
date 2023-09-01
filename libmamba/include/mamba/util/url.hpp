@@ -57,7 +57,7 @@ namespace mamba::util
         [[nodiscard]] auto scheme() const -> const std::string&;
 
         /** Set a non-empty scheme. */
-        auto set_scheme(std::string_view scheme) -> URL&;
+        void set_scheme(std::string_view scheme);
 
         /** Return the encoded user, or empty if none. */
         [[nodiscard]] auto user(Decode::no_type) const -> const std::string&;
@@ -66,7 +66,7 @@ namespace mamba::util
         [[nodiscard]] auto user(Decode::yes_type = Decode::yes) const -> std::string;
 
         /** Set or clear the user. */
-        auto set_user(std::string_view user, Encode encode = Encode::yes) -> URL&;
+        void set_user(std::string_view user, Encode encode = Encode::yes);
 
         /** Return the encoded password, or empty if none. */
         [[nodiscard]] auto password(Decode::no_type) const -> const std::string&;
@@ -75,7 +75,7 @@ namespace mamba::util
         [[nodiscard]] auto password(Decode::yes_type = Decode::yes) const -> std::string;
 
         /** Set or clear the password. */
-        auto set_password(std::string_view password, Encode encode = Encode::yes) -> URL&;
+        void set_password(std::string_view password, Encode encode = Encode::yes);
 
         /** Return the encoded basic authentication string. */
         [[nodiscard]] auto authentication() const -> std::string;
@@ -87,13 +87,13 @@ namespace mamba::util
         [[nodiscard]] auto host(Decode::yes_type = Decode::yes) const -> std::string;
 
         /** Set a non-empty host. */
-        auto set_host(std::string_view host, Encode encode = Encode::yes) -> URL&;
+        void set_host(std::string_view host, Encode encode = Encode::yes);
 
         /** Return the port, or empty if none. */
         [[nodiscard]] auto port() const -> const std::string&;
 
         /** Set or clear the port. */
-        auto set_port(std::string_view port) -> URL&;
+        void set_port(std::string_view port);
 
         /** Return the encoded autority part of the URL. */
         [[nodiscard]] auto authority() const -> std::string;
@@ -110,7 +110,7 @@ namespace mamba::util
         [[nodiscard]] auto pretty_path() const -> std::string_view;
 
         /** Set the path, a leading '/' is added if abscent. */
-        auto set_path(std::string_view path) -> URL&;
+        void set_path(std::string_view path);
 
         /**
          * Append a sub path to the current path.
@@ -118,19 +118,19 @@ namespace mamba::util
          * Contrary to `std::filesystem::path::append`, this always append and never replace
          * the current path, even if @p subpath starts with a '/'.
          */
-        auto append_path(std::string_view subpath) -> URL&;
+        void append_path(std::string_view subpath);
 
         /** Return the query, or empty if none. */
         [[nodiscard]] auto query() const -> const std::string&;
 
         /** Set or clear the query. */
-        auto set_query(std::string_view query) -> URL&;
+        void set_query(std::string_view query);
 
         /** Return the fragment, or empty if none. */
         [[nodiscard]] auto fragment() const -> const std::string&;
 
         /** Set or clear the fragment. */
-        auto set_fragment(std::string_view fragment) -> URL&;
+        void set_fragment(std::string_view fragment);
 
         /**
          * Return the full encoded url.

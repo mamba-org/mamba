@@ -70,13 +70,13 @@ namespace mamba::util
 
     }
 
-    auto url_encode(std::string_view url) -> std::string
+    auto url_encode(std::string_view url, std::string_view exclude) -> std::string
     {
         std::string out = {};
         out.reserve(url.size());
         for (char c : url)
         {
-            if (url_is_unreserved_char(c))
+            if (url_is_unreserved_char(c) || contains(exclude, c))
             {
                 out += c;
             }

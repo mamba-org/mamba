@@ -30,7 +30,7 @@ namespace mamba::util
      *
      * @see url_decode
      */
-    [[nodiscard]] auto url_encode(std::string_view url) -> std::string;
+    [[nodiscard]] auto url_encode(std::string_view url, std::string_view exclude = "") -> std::string;
 
     /**
      * Unescape percent encoded string to their URL reserved characters.

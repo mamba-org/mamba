@@ -63,8 +63,8 @@ namespace mamba::util
         TEST_CASE("contains")
         {
             CHECK(contains(":hello&", ""));
-            CHECK(contains(":hello&", "&"));
-            CHECK(contains(":hello&", ":"));
+            CHECK(contains(":hello&", '&'));
+            CHECK(contains(":hello&", ':'));
             CHECK(contains(":hello&", "ll"));
             CHECK_FALSE(contains(":hello&", "eo"));
             CHECK(contains("áäáœ©gþhëb®hüghœ©®xb", "ëb®"));

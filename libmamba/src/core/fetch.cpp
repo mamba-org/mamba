@@ -12,9 +12,10 @@
 #include "mamba/core/fetch.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
-#include "mamba/core/url.hpp"
-#include "mamba/core/util_string.hpp"
-#include "mamba/version.hpp"
+#include "mamba/util/build.hpp"
+#include "mamba/util/string.hpp"
+#include "mamba/util/url.hpp"
+#include "mamba/util/url_manip.hpp"
 
 #include "compression.hpp"
 #include "curl.hpp"
@@ -62,7 +63,7 @@ namespace mamba
     DownloadTarget::DownloadTarget(const std::string& name, const std::string& url, const std::string& filename)
         : m_name(name)
         , m_filename(filename)
-        , m_url(unc_url(url))
+        , m_url(util::file_uri_unc2_to_unc4(url))
         , m_http_status(10000)
         , m_downloaded_size(0)
         , m_effective_url(nullptr)
@@ -144,7 +145,7 @@ namespace mamba
                 ctx.remote_fetch_params.ssl_verify = std::getenv("REQUESTS_CA_BUNDLE");
                 LOG_INFO << "Using REQUESTS_CA_BUNDLE " << ctx.remote_fetch_params.ssl_verify;
             }
-            else if (ctx.remote_fetch_params.ssl_verify == "<system>" && on_linux)
+            else if (ctx.remote_fetch_params.ssl_verify == "<system>" && util::on_linux)
             {
                 std::array<std::string, 6> cert_locations{
                     "/etc/ssl/certs/ca-certificates.crt",  // Debian/Ubuntu/Gentoo etc.
@@ -197,20 +198,20 @@ namespace mamba
         m_curl_handle->set_opt(CURLOPT_HEADERFUNCTION, &DownloadTarget::header_callback);
         m_curl_handle->set_opt(CURLOPT_HEADERDATA, this);
 
-        if (ends_with(url, ".json.zst"))
+        if (util::ends_with(url, ".json.zst"))
         {
             m_zstd_stream = std::make_unique<ZstdStream>(&DownloadTarget::write_callback, this);
-            if (ends_with(m_filename, ".zst"))
+            if (util::ends_with(m_filename, ".zst"))
             {
                 m_filename = m_filename.substr(0, m_filename.size() - 4);
             }
             m_curl_handle->set_opt(CURLOPT_WRITEFUNCTION, ZstdStream::write_callback);
             m_curl_handle->set_opt(CURLOPT_WRITEDATA, m_zstd_stream.get());
         }
-        else if (ends_with(url, ".json.bz2"))
+        else if (util::ends_with(url, ".json.bz2"))
         {
             m_bzip2_stream = std::make_unique<Bzip2Stream>(&DownloadTarget::write_callback, this);
-            if (ends_with(m_filename, ".bz2"))
+            if (util::ends_with(m_filename, ".bz2"))
             {
                 m_filename = m_filename.substr(0, m_filename.size() - 4);
             }
@@ -223,7 +224,7 @@ namespace mamba
             m_curl_handle->set_opt(CURLOPT_WRITEDATA, this);
         }
 
-        if (ends_with(url, ".json"))
+        if (util::ends_with(url, ".json"))
         {
             // accept all encodings supported by the libcurl build
             m_curl_handle->set_opt(CURLOPT_ACCEPT_ENCODING, "");
@@ -241,9 +242,9 @@ namespace mamba
         m_curl_handle->set_opt(CURLOPT_VERBOSE, Context::instance().output_params.verbosity >= 2);
 
         // get url host
-        const auto url_handler = URLHandler(url);
-        auto host = url_handler.host();
-        const auto port = url_handler.port();
+        const auto url_parsed = util::URL::parse(url);
+        auto host = url_parsed.host();
+        const auto port = url_parsed.port();
         if (port.size())
         {
             host += ":" + port;
@@ -272,7 +273,7 @@ namespace mamba
 
         return m_retries < size_t(Context::instance().remote_fetch_params.max_retries)
                && (m_http_status == 413 || m_http_status == 429 || m_http_status >= 500)
-               && !starts_with(m_url, "file://");
+               && !util::starts_with(m_url, "file://");
     }
 
     bool DownloadTarget::retry()
@@ -357,7 +358,7 @@ namespace mamba
             value = header.substr(colon_idx, (header_end > colon_idx) ? header_end - colon_idx : 0);
 
             // http headers are case insensitive!
-            std::string lkey = to_lower(key);
+            std::string lkey = util::to_lower(key);
             if (lkey == "etag")
             {
                 s->m_etag = value;
@@ -758,7 +759,7 @@ namespace mamba
             DownloadTarget* current_target = nullptr;
             for (const auto& target : m_targets)
             {
-                if (target->get_curl_handle() == msg.m_handle_ref)
+                if (target->get_curl_handle().get_id() == msg.m_handle_id)
                 {
                     current_target = target;
                     break;

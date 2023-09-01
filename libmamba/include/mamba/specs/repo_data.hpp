@@ -11,6 +11,7 @@
 
 #include <nlohmann/json_fwd.hpp>
 
+#include "mamba/specs/platform.hpp"
 #include "mamba/specs/version.hpp"
 
 namespace mamba::specs
@@ -76,8 +77,12 @@ namespace mamba::specs
         /** The build number of the package. */
         std::size_t build_number = {};
 
-        /** The subdirectory where the package can be found. */
-        std::string subdir = {};
+        /**
+         * The subdirectory where the package can be found.
+         *
+         * This is likely not used as it contains not so useful strings such as "linux".
+         */
+        std::optional<std::string> subdir = {};
 
         /** Optionally a MD5 hash of the package archive. */
         std::optional<std::string> md5 = {};
@@ -169,7 +174,7 @@ namespace mamba::specs
     struct ChannelInfo
     {
         /** The channel's subdirectory. */
-        std::string subdir = {};
+        Platform subdir = {};
     };
 
     /** Serialize to JSON. */

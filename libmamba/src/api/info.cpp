@@ -9,8 +9,8 @@
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
-#include "mamba/core/util.hpp"
 #include "mamba/core/virtual_packages.hpp"
+#include "mamba/util/string.hpp"
 
 
 extern "C"
@@ -149,7 +149,8 @@ namespace mamba
             std::vector<std::string> virtual_pkgs;
             for (auto pkg : get_virtual_packages())
             {
-                virtual_pkgs.push_back(concat(pkg.name, "=", pkg.version, "=", pkg.build_string));
+                virtual_pkgs.push_back(util::concat(pkg.name, "=", pkg.version, "=", pkg.build_string)
+                );
             }
             items.push_back({ "virtual packages", virtual_pkgs });
 

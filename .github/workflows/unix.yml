@@ -1,0 +1,221 @@
+name: Unix tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  libmamba_tests_unix:
+    name: libmamba tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        build_type: [Release, Debug]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Create build environment
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-file: ./libmamba/environment-dev.yml
+          environment-name: build_env
+          cache-environment: true
+      - uses: hendrikmuhs/ccache-action@main
+        with:
+          variant: sccache
+          key: ${{ github.job }}-${{ matrix.os }}
+          restore-keys: |
+            libmamba-${{ matrix.os }}
+      - name: Build libmamba
+        shell: bash -l {0}
+        run: |
+          cmake -B build/ \
+            -D CMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -D BUILD_LIBMAMBA=ON \
+            -D BUILD_SHARED=ON \
+            -D BUILD_LIBMAMBA_TESTS=ON \
+            -D CMAKE_CXX_COMPILER_LAUNCHER=sccache \
+            -D CMAKE_C_COMPILER_LAUNCHER=sccache \
+            -G Ninja
+          cmake --build build/ --parallel --target test_libmamba testing_libmamba_lock
+      - name: Run libmamba tests
+        shell: bash -l {0}
+        run: |
+          unset CONDARC  # Interferes with tests
+          cd build && ninja test
+      - name: Show build cache statistics
+        run: sccache --show-stats
+
+  mamba_tests_unix:
+    name: Mamba tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        build_type: [Release, Debug]
+        python_version: ["3.8"]
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: create build environment
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-file: ./mamba/environment-dev.yml
+          environment-name: build_env
+          cache-environment: true
+          create-args: >-
+            conda-build
+            python=${{ matrix.python_version }}
+      - uses: hendrikmuhs/ccache-action@main
+        with:
+          variant: sccache
+          key: ${{ github.job }}-${{ matrix.os }}
+          restore-keys: |
+            libmamba-${{ matrix.os }}
+      - name: Run conda init
+        shell: bash -l {0}
+        run: conda init
+      - name: build libmamba Python bindings
+        shell: bash -l {0}
+        run: |
+          cmake -B build/ \
+            -D CMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -D CMAKE_INSTALL_PREFIX="${CONDA_PREFIX}" \
+            -D BUILD_LIBMAMBAPY=ON \
+            -D BUILD_LIBMAMBA=ON \
+            -D BUILD_MICROMAMBA=ON \
+            -D BUILD_SHARED=ON \
+            -D BUILD_MAMBA_PACKAGE=ON \
+            -D CMAKE_CXX_COMPILER_LAUNCHER=sccache \
+            -D CMAKE_C_COMPILER_LAUNCHER=sccache \
+            -G Ninja
+          cmake --build build/ --parallel
+          cmake --install build/
+      - name: Install libmambapy
+        shell: bash -l {0}
+        run: |
+          python -m pip install --no-deps --no-build-isolation --editable ./libmambapy/
+      - name: Check libmambapy stubs
+        shell: bash -l {0}
+        run: |
+          pybind11-stubgen libmambapy.bindings
+          pre-commit run --files stubs/libmambapy/binginds-stubs/__init__.pyi
+          python compare_stubs.py libmambapy/libmambapy/__init__.pyi stubs/libmambapy/bindings-stubs/__init__.pyi
+      - name: Show build cache statistics
+        run: sccache --show-stats
+      - name: install mamba
+        shell: bash -l {0}
+        run: |
+          python -m pip install --no-deps --no-build-isolation ./mamba[test]
+      - name: Run mamba tests suite
+        shell: bash -l {0}
+        run: |
+          unset CONDARC  # Interferes with tests
+          pytest -v --capture=tee-sys mamba/tests
+      - name: Run mamba create/update tests
+        shell: bash -l {0}
+        run: |
+          unset CONDARC  # Interferes with tests
+          mamba create -n test_env xtensor -c conda-forge -y
+          mamba env create -f mamba/tests/test_env.yml
+          mamba env update -f mamba/tests/update_env.yml
+      - name: Run mamba local channel test
+        shell: bash -l {0}
+        run: |
+          unset CONDARC  # Interferes with tests
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            mkdir -p $CONDA_PREFIX/conda-bld/linux-64
+            wget -P $CONDA_PREFIX/conda-bld/linux-64 https://anaconda.org/conda-forge/xtensor/0.21.8/download/linux-64/xtensor-0.21.8-hc9558a2_0.tar.bz2
+            wget -P $CONDA_PREFIX/conda-bld/linux-64 https://anaconda.org/conda-forge/xtl/0.6.21/download/linux-64/xtl-0.6.21-h0efe328_0.tar.bz2
+          else
+            mkdir -p $CONDA_PREFIX/conda-bld/osx-64
+            wget -P $CONDA_PREFIX/conda-bld/osx-64 https://anaconda.org/conda-forge/xtensor/0.21.8/download/osx-64/xtensor-0.21.8-h879752b_0.tar.bz2
+            wget -P $CONDA_PREFIX/conda-bld/osx-64 https://anaconda.org/conda-forge/xtl/0.6.21/download/osx-64/xtl-0.6.21-h6516342_0.tar.bz2
+          fi
+          conda index $CONDA_PREFIX/conda-bld
+          mamba create -n l_o_cal_test xtensor -c local -c conda-forge -y
+
+          conda list -n l_o_cal_test
+          conda list -n l_o_cal_test | tail -n +3 > list.txt
+          if [ "$(grep -c "local" list.txt)" -ne 2 ]; then
+            exit 1
+          fi
+      - name: Run server auth tests
+        shell: bash -l {0} -euo pipefail -x
+        run: |
+          export TEST_MAMBA_EXE="${PWD}/build/micromamba/micromamba"
+          cd mamba/tests
+
+          if [[ "$(uname -s)" == "Linux" ]]; then
+            ./generate_gpg_keys.sh
+          fi
+
+          ./testserver.sh
+      - name: Shell init
+        shell: bash -l {0} -euo pipefail -x
+        run: |
+          mamba init
+
+  umamba_integration_tests_unix:
+    name: Micromamba integration tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        build_type: [Release, Debug]
+    steps:
+      - uses: actions/checkout@v3
+      - name: create build environment
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-file: ./micromamba/environment-dev.yml
+          environment-name: build_env
+          cache-environment: true
+      - uses: hendrikmuhs/ccache-action@main
+        with:
+          variant: sccache
+          key: ${{ github.job }}-${{ matrix.os }}
+          restore-keys: |
+            libmamba-${{ matrix.os }}
+      - name: build micromamba
+        shell: bash -l {0}
+        run: |
+          cmake -B build/ \
+            -D CMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -D BUILD_MICROMAMBA=ON \
+            -D BUILD_MICROMAMBA_SERVER=ON \
+            -D BUILD_LIBMAMBA=ON \
+            -D BUILD_SHARED=ON \
+            -D CMAKE_CXX_COMPILER_LAUNCHER=sccache \
+            -D CMAKE_C_COMPILER_LAUNCHER=sccache \
+            -G Ninja
+          cmake --build build/ --parallel
+      - name: build cache statistics
+        run: sccache --show-stats
+      - name: install zsh, xonsh, fish and tcsh in linux
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash -l -eo pipefail {0}
+        run: |
+          sudo apt-get install zsh xonsh fish tcsh -y
+      - name: install xonsh and fish in mac
+        if: matrix.os == 'macos-latest'
+        shell: bash -l -eo pipefail {0}
+        run: |
+          brew install fish xonsh
+      - name: micromamba python based tests
+        shell: bash -l -eo pipefail {0}
+        run: |
+          export TEST_MAMBA_EXE=$(pwd)/build/micromamba/micromamba
+          unset CONDARC  # Interferes with tests
+          pytest -v --capture=tee-sys micromamba/tests/

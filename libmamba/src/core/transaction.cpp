@@ -30,8 +30,8 @@ extern "C"  // Incomplete header
 #include "mamba/core/pool.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
-#include "mamba/core/util_string.hpp"
 #include "mamba/util/flat_set.hpp"
+#include "mamba/util/string.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
 #include "solv-cpp/repo.hpp"
@@ -147,6 +147,18 @@ namespace mamba
                 [&](const solv::SolvableId id)
                 {
                     auto pkginfo = get_pkginfo(id);
+
+                    // Artificial packages are packages that were added to implement a feature
+                    // (e.g. a pin) but do not represent a Conda package.
+                    // They can appear in the transaction depending on libsolv flags.
+                    // We use this attribute to filter them out.
+                    if (const auto solv = pool.pool().get_solvable(id);
+                        solv.has_value() && solv->artificial())
+                    {
+                        LOG_DEBUG << "Solution: Remove artificial " << pkginfo.str();
+                        return;
+                    }
+
                     // keep_only ? specs.contains(...) : !specs.contains(...);
                     // TODO ideally we should use Matchspecs::contains(pkginfo)
                     if (keep_only == specs.contains(pkginfo.name))
@@ -309,8 +321,9 @@ namespace mamba
 
         if (!not_found.empty())
         {
-            LOG_ERROR << "Could not find packages to remove:" + join("", not_found) << std::endl;
-            throw std::runtime_error("Could not find packages to remove:" + join("", not_found));
+            LOG_ERROR << "Could not find packages to remove:" + util::join("", not_found)
+                      << std::endl;
+            throw std::runtime_error("Could not find packages to remove:" + util::join("", not_found));
         }
 
         // TODO why is this only using the last job?
@@ -1158,7 +1171,7 @@ namespace mamba
                 }
                 else
                 {
-                    const Channel& chan = m_pool.channel_context().make_channel(std::string(str));
+                    const Channel& chan = m_pool.channel_context().make_channel(str);
                     chan_name = chan.canonical_name();
                 }
             }
@@ -1269,7 +1282,7 @@ namespace mamba
         specs_to_install.reserve(urls.size());
         for (auto& raw_url : urls)
         {
-            std::string_view url = strip(raw_url);
+            std::string_view url = util::strip(raw_url);
             if (url.empty())
             {
                 continue;
@@ -1282,7 +1295,7 @@ namespace mamba
             if (hash_idx != std::string::npos)
             {
                 std::string_view hash = url.substr(hash_idx + 1);
-                if (starts_with(hash, "sha256:"))
+                if (util::starts_with(hash, "sha256:"))
                 {
                     ms.brackets["sha256"] = hash.substr(7);
                 }

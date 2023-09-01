@@ -98,7 +98,7 @@ namespace mamba::specs
         p.version = Version::parse(j.at("version").template get<std::string_view>());
         p.build_string = j.at("build");
         p.build_number = j.at("build_number");
-        p.subdir = j.at("subdir");
+        deserialize_maybe_missing(j, "subdir", p.subdir);
         deserialize_maybe_missing(j, "md5", p.md5);
         deserialize_maybe_missing(j, "sha256", p.sha256);
         deserialize_maybe_missing(j, "legacy_bz2_md5", p.legacy_bz2_md5);
@@ -159,7 +159,7 @@ namespace mamba::specs
         j["version"] = data.version;
         j["info"] = data.info;
         j["packages"] = data.packages;
-        j["conda_packages"] = data.conda_packages;
+        j["packages.conda"] = data.conda_packages;
         j["removed"] = data.removed;
     }
 
@@ -168,7 +168,7 @@ namespace mamba::specs
         deserialize_maybe_missing(j, "version", data.version);
         deserialize_maybe_missing(j, "info", data.info);
         deserialize_maybe_missing(j, "packages", data.packages);
-        deserialize_maybe_missing(j, "conda_packages", data.conda_packages);
+        deserialize_maybe_missing(j, "packages.conda", data.conda_packages);
         deserialize_maybe_missing(j, "removed", data.removed);
     }
 }

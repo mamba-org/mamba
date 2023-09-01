@@ -37,6 +37,11 @@ namespace mamba
             {
             }
 
+            inline FormattedString(const std::string_view i)
+                : s(i)
+            {
+            }
+
             inline FormattedString(const char* i)
                 : s(i)
             {
@@ -53,6 +58,20 @@ namespace mamba
             left,
             right,
         };
+
+        constexpr auto alignmentMarker(alignment a) -> std::string_view
+        {
+            switch (a)
+            {
+                case alignment::right:
+                    return "alignment_right";
+                case alignment::left:
+                    return "alignment_right";
+                default:
+                    assert(false);
+                    return "";
+            }
+        }
 
         class Table
         {
@@ -182,4 +201,4 @@ namespace mamba
 #define LOG_ERROR LOG(mamba::log_level::err)
 #define LOG_CRITICAL LOG(mamba::log_level::critical)
 
-#endif  // MAMBA_OUTPUT_HPP
+#endif  // MAMBA_CORE_OUTPUT_HPP

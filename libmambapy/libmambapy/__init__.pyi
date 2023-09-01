@@ -457,6 +457,14 @@ class Context:
         def max_retries(self, arg0: int) -> None:
             pass
         @property
+        def proxy_servers(self) -> typing.Dict[str, str]:
+            """
+            :type: typing.Dict[str, str]
+            """
+        @proxy_servers.setter
+        def proxy_servers(self, arg0: typing.Dict[str, str]) -> None:
+            pass
+        @property
         def retry_backoff(self) -> int:
             """
             :type: int
@@ -710,7 +718,7 @@ class Context:
         :type: typing.Dict[str, str]
         """
     @proxy_servers.setter
-    def proxy_servers(self, arg0: typing.Dict[str, str]) -> None:
+    def proxy_servers(self, arg1: typing.Dict[str, str]) -> None:
         pass
     @property
     def quiet(self) -> bool:

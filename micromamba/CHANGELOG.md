@@ -1,3 +1,34 @@
+micromamba 1.5.0 (August 24, 2023)
+==================================
+
+Enhancements:
+
+- Refactor test_repoquery to use new fixtures by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2691
+- Remove warnings from test_activation by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2727
+- Refactor test_shell by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2726
+- Fix and improve static builds by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2755
+- Enable pytest color output by @jonashaag in https://github.com/mamba-org/mamba/pull/2759
+- Isolate URL object by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2744
+- Fix warnings by @Hind-M in https://github.com/mamba-org/mamba/pull/2760
+
+Bug fixes:
+
+- Fix wrong activated PATH in micromamba shell by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2722
+- Fix config list sources by @Hind-M in https://github.com/mamba-org/mamba/pull/2756
+- Fix \_\_linux virtual package default version by jonashaag in https://github.com/mamba-org/mamba/pull/2749
+- Strong pin in test by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2774
+- Revert failing test by @jonashaag in https://github.com/mamba-org/mamba/pull/2777
+
+CI fixes and doc:
+
+- Update troubleshooting.rst by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2675
+- Ignore format changes in git blame by @jonashaag in https://github.com/mamba-org/mamba/pull/2690
+- Add command to docs for completeness by @danpf in https://github.com/mamba-org/mamba/pull/2717
+- fix: Correct a command in installation.rst by @wy-luke in https://github.com/mamba-org/mamba/pull/2703
+- Split Mamba and Micromamba installation docs by @jonashaag in https://github.com/mamba-org/mamba/pull/2719
+- fix: Shell completion section title missing by @wy-luke in https://github.com/mamba-org/mamba/pull/2764
+- Add Debug build type by @Hind-M in https://github.com/mamba-org/mamba/pull/2762
+
 micromamba 1.4.9 (July 13, 2023)
 ================================
 

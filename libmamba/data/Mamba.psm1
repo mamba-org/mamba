@@ -116,8 +116,10 @@ function Invoke-Mamba() {
                 if (@("install", "update", "remove").contains($Command))
                 {
                     $activateCommand = (& $Env:MAMBA_EXE shell reactivate -s powershell | Out-String);
-                    Write-Verbose "[micromamba shell reactivate --shell powershell]`n$activateCommand";
-                    Invoke-Expression -Command $activateCommand;
+                    if ($activateCommand) {
+                        Write-Verbose "[micromamba shell reactivate --shell powershell]`n$activateCommand";
+                        Invoke-Expression -Command $activateCommand;
+                    }
                 }
             }
         }

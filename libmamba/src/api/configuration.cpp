@@ -14,12 +14,13 @@
 #include <spdlog/spdlog.h>
 
 #include "mamba/api/configuration.hpp"
-#include "mamba/api/info.hpp"
 #include "mamba/api/install.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_download.hpp"
+#include "mamba/util/build.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
@@ -199,7 +200,7 @@ namespace mamba
     {
         if (names.empty())
         {
-            p_impl->m_env_var_names = { "MAMBA_" + to_upper(p_impl->m_name) };
+            p_impl->m_env_var_names = { "MAMBA_" + util::to_upper(p_impl->m_name) };
         }
         else
         {
@@ -575,7 +576,7 @@ namespace mamba
 #endif
             if (!prefix.empty())
             {
-                prefix = rstrip(fs::weakly_canonical(env::expand_user(prefix)).string(), sep);
+                prefix = util::rstrip(fs::weakly_canonical(env::expand_user(prefix)).string(), sep);
             }
 
             if ((prefix == root_prefix) && config.at("create_base").value<bool>())
@@ -929,7 +930,8 @@ namespace mamba
         {
             const auto filename = fs::u8path(file).filename();
             return filename == ".condarc" || filename == "condarc" || filename == ".mambarc"
-                   || filename == "mambarc" || ends_with(file, ".yml") || ends_with(file, ".yaml");
+                   || filename == "mambarc" || util::ends_with(file, ".yml")
+                   || util::ends_with(file, ".yaml");
         }
 
         bool is_config_file(const fs::u8path& path)
@@ -950,7 +952,7 @@ namespace mamba
                 {
                     out << YAML::Comment("'" + source.as<std::string>() + "'");
                 }
-                else
+                else if (source.IsSequence())
                 {
                     auto srcs = source.as<std::vector<std::string>>();
                     std::string comment = "'" + srcs.at(0) + "'";
@@ -959,6 +961,11 @@ namespace mamba
                         comment += " > '" + srcs.at(i) + "'";
                     }
                     out << YAML::Comment(comment);
+                }
+                else
+                {
+                    LOG_ERROR << "YAML source type not handled";
+                    throw std::runtime_error("YAML source type not handled");
                 }
             }
         }
@@ -993,7 +1000,14 @@ namespace mamba
                 out << YAML::Key << n.first;
                 out << YAML::Value;
 
-                print_node(out, n.second, source[key], show_source);
+                if (source.IsMap())
+                {
+                    print_node(out, n.second, source[key], show_source);
+                }
+                else
+                {
+                    print_node(out, n.second, source, show_source);
+                }
             }
             out << YAML::EndMap;
         }
@@ -1230,7 +1244,12 @@ namespace mamba
                    .group("Channels")
                    .set_rc_configurable()
                    .set_env_var_names()
-                   .description("Permit use of the --overide-channels command-line flag"));
+                   .description("Permit use of the --override-channels command-line flag"));
+
+        insert(Configurable("repodata_use_zst", &ctx.repodata_use_zst)
+                   .group("Repodata")
+                   .set_rc_configurable()
+                   .description("Use zstd encoded repodata when fetching"));
 
         insert(Configurable("repodata_has_zst", &ctx.repodata_has_zst)
                    .group("Repodata")
@@ -1291,7 +1310,7 @@ namespace mamba
                        [this](auto&... args) { return detail::ssl_verify_hook(*this, args...); }
                    ));
 
-        insert(Configurable("proxy_servers", &ctx.proxy_servers)
+        insert(Configurable("proxy_servers", &ctx.remote_fetch_params.proxy_servers)
                    .group("Network")
                    .set_rc_configurable()
                    .description("Use a proxy server for network connections")
@@ -1751,12 +1770,22 @@ namespace mamba
         return res;
     }
 
+    // Precedence is initially set least to most, and then at the end the list is reversed.
+    // Configuration::set_rc_values iterates over all config options, and then over all config
+    // file source. Essentially first come first serve.
+    // just FYI re "../conda": env::user_config_dir's default value is $XDG_CONFIG_HOME/mamba
+    // But we wanted to also allow $XDG_CONFIG_HOME/conda and '..' seems like the best way to
+    // make it conda/mamba compatible. Otherwise I would have to set user_config_dir to either
+    // be just $XDG_CONFIG_HOME and always supply mamba after calling it, or I would have to
+    // give env::user_config_dir a mamba argument, all so I can supply conda in a few default
+    // cases. It seems like ../conda is an easier solution
+    //
     std::vector<fs::u8path> Configuration::compute_default_rc_sources(const RCConfigLevel& level)
     {
         auto& ctx = Context::instance();
 
         std::vector<fs::u8path> system;
-        if constexpr (on_mac || on_linux)
+        if constexpr (util::on_mac || util::on_linux)
         {
             system = { "/etc/conda/.condarc",       "/etc/conda/condarc",
                        "/etc/conda/condarc.d/",     "/etc/conda/.mambarc",
@@ -1776,11 +1805,30 @@ namespace mamba
                                          ctx.prefix_params.root_prefix / "condarc.d",
                                          ctx.prefix_params.root_prefix / ".mambarc" };
 
-        std::vector<fs::u8path> home = { env::home_directory() / ".conda/.condarc",
-                                         env::home_directory() / ".conda/condarc",
-                                         env::home_directory() / ".conda/condarc.d",
-                                         env::home_directory() / ".condarc",
-                                         env::home_directory() / ".mambarc" };
+        std::vector<fs::u8path> conda_user = {
+            env::user_config_dir() / "../conda/.condarc",
+            env::user_config_dir() / "../conda/condarc",
+            env::user_config_dir() / "../conda/condarc.d",
+            env::home_directory() / ".conda/.condarc",
+            env::home_directory() / ".conda/condarc",
+            env::home_directory() / ".conda/condarc.d",
+            env::home_directory() / ".condarc",
+        };
+        if (env::get("CONDARC"))
+        {
+            conda_user.push_back(fs::u8path(env::get("CONDARC").value()));
+        }
+
+        std::vector<fs::u8path> mamba_user = {
+            env::user_config_dir() / ".mambarc",      env::user_config_dir() / "mambarc",
+            env::user_config_dir() / "mambarc.d",     env::home_directory() / ".mamba/.mambarc",
+            env::home_directory() / ".mamba/mambarc", env::home_directory() / ".mamba/mambarc.d",
+            env::home_directory() / ".mambarc",
+        };
+        if (env::get("MAMBARC"))
+        {
+            mamba_user.push_back(fs::u8path(env::get("MAMBARC").value()));
+        }
 
         std::vector<fs::u8path> prefix = { ctx.prefix_params.target_prefix / ".condarc",
                                            ctx.prefix_params.target_prefix / "condarc",
@@ -1799,7 +1847,8 @@ namespace mamba
         }
         if (level >= RCConfigLevel::kHomeDir)
         {
-            sources.insert(sources.end(), home.begin(), home.end());
+            sources.insert(sources.end(), conda_user.begin(), conda_user.end());
+            sources.insert(sources.end(), mamba_user.begin(), mamba_user.end());
         }
         if ((level >= RCConfigLevel::kTargetPrefix) && !ctx.prefix_params.target_prefix.empty())
         {
@@ -1898,7 +1947,7 @@ namespace mamba
             {
                 if (at(n).locked())
                 {
-                    LOG_ERROR << "Circular import: " << join("->", locks) << "->" << n;
+                    LOG_ERROR << "Circular import: " << util::join("->", locks) << "->" << n;
                     throw std::runtime_error("Circular import detected in configuration. Aborting.");
                 }
                 add_to_loading_sequence(seq, n, locks);

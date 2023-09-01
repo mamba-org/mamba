@@ -14,7 +14,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_scope.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba::path
 {
@@ -22,7 +22,7 @@ namespace mamba::path
     {
         std::string path = p.string();
         return path[0] == '~'
-               || starts_with(env::expand_user(path).string(), env::expand_user("~").string());
+               || util::starts_with(env::expand_user(path).string(), env::expand_user("~").string());
     }
 
     // TODO more error handling

@@ -17,70 +17,13 @@
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/palette.hpp"
 #include "mamba/core/tasksync.hpp"
+#include "mamba/specs/platform.hpp"
 #include "mamba/version.hpp"
 
 #define ROOT_ENV_NAME "base"
 
 namespace mamba
 {
-    namespace
-    {
-// Linux
-#if defined(__linux__)
-#if __x86_64__
-        static const char MAMBA_PLATFORM[] = "linux-64";
-#elif defined(i386)
-        static const char MAMBA_PLATFORM[] = "linux-32";
-// armv6l and armv7l
-#elif defined(__arm__) || defined(__thumb__)
-#ifdef ___ARM_ARCH_6__
-        static const char MAMBA_PLATFORM[] = "linux-armv6l";
-#elif __ARM_ARCH_7__
-        static const char MAMBA_PLATFORM[] = "linux-armv7l";
-#else
-#error "Unknown Linux arm platform"
-#endif
-#elif _M_ARM == 6
-        static const char MAMBA_PLATFORM[] = "linux-armv6l";
-#elif _M_ARM == 7
-        static const char MAMBA_PLATFORM[] = "linux-armv7l";
-// aarch64
-#elif defined(__aarch64__)
-        static const char MAMBA_PLATFORM[] = "linux-aarch64";
-#elif defined(__ppc64__) || defined(__powerpc64__)
-#if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
-        static const char MAMBA_PLATFORM[] = "linux-ppc64";
-#else
-        static const char MAMBA_PLATFORM[] = "linux-ppc64le";
-#endif
-#elif defined(__s390x__)
-        static const char MAMBA_PLATFORM[] = "linux-s390x";
-#elif defined(__riscv) && defined(__riscv_xlen) && (__riscv_xlen == 32)
-        static const char MAMBA_PLATFORM[] = "linux-riscv32";
-#elif defined(__riscv) && defined(__riscv_xlen) && (__riscv_xlen == 64)
-        static const char MAMBA_PLATFORM[] = "linux-riscv64";
-#else
-#error "Unknown Linux platform"
-#endif
-// OSX
-#elif defined(__APPLE__) || defined(__MACH__)
-#if __x86_64__
-        static const char MAMBA_PLATFORM[] = "osx-64";
-#elif __arm64__
-        static const char MAMBA_PLATFORM[] = "osx-arm64";
-#else
-#error "Unknown OSX platform"
-#endif
-// Windows
-#elif defined(_WIN64)
-        static const char MAMBA_PLATFORM[] = "win-64";
-#elif defined(_WIN32)
-        static const char MAMBA_PLATFORM[] = "win-32";
-#else
-#error "Unknown platform"
-#endif
-    }  // namespace
-
     enum class VerificationLevel
     {
         kDisabled,
@@ -134,6 +77,8 @@ namespace mamba
             int retry_timeout{ 2 };  // seconds
             int retry_backoff{ 3 };  // retry_timeout * retry_backoff
             int max_retries{ 3 };    // max number of retries
+
+            std::map<std::string, std::string> proxy_servers;
         };
 
         struct OutputParams
@@ -209,6 +154,7 @@ namespace mamba
         bool allow_softlinks = false;
         bool always_copy = false;
         bool always_softlink = false;
+        bool register_envs = true;
 
         // solver options
         bool allow_uninstall = true;
@@ -239,8 +185,6 @@ namespace mamba
         ThreadsParams threads_params;
         PrefixParams prefix_params;
 
-        std::map<std::string, std::string> proxy_servers;
-
         std::size_t lock_timeout = 0;
         bool use_lockfiles = true;
 
@@ -249,8 +193,8 @@ namespace mamba
         // Conda compat
         bool add_pip_as_python_dependency = true;
 
-        std::string host_platform = MAMBA_PLATFORM;
-        std::string platform = MAMBA_PLATFORM;
+        std::string host_platform = std::string(specs::build_platform_name());
+        std::string platform = std::string(specs::build_platform_name());
         std::vector<std::string> platforms();
 
         std::vector<std::string> channels;
@@ -269,7 +213,9 @@ namespace mamba
         };
 
         std::string channel_alias = "https://conda.anaconda.org";
-        std::map<std::string, AuthenticationInfo>& authentication_info();
+        using authentication_info_map_t = std::map<std::string, AuthenticationInfo>;
+        authentication_info_map_t& authentication_info();
+        const authentication_info_map_t& authentication_info() const;
         std::vector<fs::u8path> token_locations{ "~/.continuum/anaconda-client/tokens" };
 
         bool override_channels_enabled = true;
@@ -278,13 +224,13 @@ namespace mamba
 
         bool use_only_tar_bz2 = false;
 
+        bool repodata_use_zst = true;
         std::vector<std::string> repodata_has_zst = { "https://conda.anaconda.org/conda-forge" };
 
         // usernames on anaconda.org can have a underscore, which influences the
         // first two characters
         const std::regex token_regex{ "/t/([a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-]*)" };
         const std::regex http_basicauth_regex{ "(://|^)([^\\s]+):([^\\s]+)@" };
-        const std::regex scheme_regex{ "[a-z][a-z0-9]{0,11}://" };
 
         static Context& instance();
 

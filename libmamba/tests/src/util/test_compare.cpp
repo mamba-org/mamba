@@ -14,7 +14,7 @@
 using namespace mamba::util;
 
 
-TEST_SUITE("compare")
+TEST_SUITE("util::compare")
 {
     TEST_CASE("equal")
     {

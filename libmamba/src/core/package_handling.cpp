@@ -17,8 +17,8 @@
 #include "mamba/core/package_paths.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util_os.hpp"
-#include "mamba/core/util_string.hpp"
 #include "mamba/core/validate.hpp"
+#include "mamba/util/string.hpp"
 
 #include "nlohmann/json.hpp"
 
@@ -211,7 +211,7 @@ namespace mamba
     int zip_order(const fs::u8path& path)
     {
         // sort info-...tar.zst file last in zip folder"
-        int init_order = starts_with(path.filename().string(), "info-");
+        int init_order = util::starts_with(path.filename().string(), "info-");
         // sort metadata.json first in zip folder
         if (path.filename().string() == "metadata.json")
         {
@@ -348,15 +348,21 @@ namespace mamba
             scoped_archive_read disk = scoped_archive_read::read_disk();
             if (archive_read_disk_set_behavior(disk, 0) < ARCHIVE_OK)
             {
-                throw std::runtime_error(concat("libarchive error: ", archive_error_string(disk)));
+                throw std::runtime_error(
+                    util::concat("libarchive error: ", archive_error_string(disk))
+                );
             }
             if (archive_read_disk_open(disk, p.c_str()) < ARCHIVE_OK)
             {
-                throw std::runtime_error(concat("libarchive error: ", archive_error_string(disk)));
+                throw std::runtime_error(
+                    util::concat("libarchive error: ", archive_error_string(disk))
+                );
             }
             if (archive_read_next_header2(disk, entry) < ARCHIVE_OK)
             {
-                throw std::runtime_error(concat("libarchive error: ", archive_error_string(disk)));
+                throw std::runtime_error(
+                    util::concat("libarchive error: ", archive_error_string(disk))
+                );
             }
 
             // clean out UID and GID
@@ -367,11 +373,13 @@ namespace mamba
 
             if (archive_read_disk_descend(disk) < ARCHIVE_OK)
             {
-                throw std::runtime_error(concat("libarchive error: ", archive_error_string(disk)));
+                throw std::runtime_error(
+                    util::concat("libarchive error: ", archive_error_string(disk))
+                );
             }
             if (archive_write_header(a, entry) < ARCHIVE_OK)
             {
-                throw std::runtime_error(concat("libarchive error: ", archive_error_string(a)));
+                throw std::runtime_error(util::concat("libarchive error: ", archive_error_string(a)));
             }
 
 
@@ -394,7 +402,7 @@ namespace mamba
             }
             else if (r < ARCHIVE_OK)
             {
-                throw std::runtime_error(concat("libarchive error: ", archive_error_string(a)));
+                throw std::runtime_error(util::concat("libarchive error: ", archive_error_string(a)));
             }
         }
 
@@ -410,7 +418,7 @@ namespace mamba
     )
     {
         fs::u8path out_file_abs = fs::absolute(out_file);
-        if (ends_with(out_file.string(), ".tar.bz2"))
+        if (util::ends_with(out_file.string(), ".tar.bz2"))
         {
             create_archive(
                 directory,
@@ -421,12 +429,12 @@ namespace mamba
                 [](const fs::u8path&) { return false; }
             );
         }
-        else if (ends_with(out_file.string(), ".conda"))
+        else if (util::ends_with(out_file.string(), ".conda"))
         {
             TemporaryDirectory tdir;
             create_archive(
                 directory,
-                tdir.path() / concat("info-", out_file.stem().string(), ".tar.zst"),
+                tdir.path() / util::concat("info-", out_file.stem().string(), ".tar.zst"),
                 zstd,
                 compression_level,
                 compression_threads,
@@ -437,7 +445,7 @@ namespace mamba
             );
             create_archive(
                 directory,
-                tdir.path() / concat("pkg-", out_file.stem().string(), ".tar.zst"),
+                tdir.path() / util::concat("pkg-", out_file.stem().string(), ".tar.zst"),
                 zstd,
                 compression_level,
                 compression_threads,
@@ -696,11 +704,11 @@ namespace mamba
 
     static fs::u8path extract_dest_dir(const fs::u8path& file)
     {
-        if (ends_with(file.string(), ".tar.bz2"))
+        if (util::ends_with(file.string(), ".tar.bz2"))
         {
             return file.string().substr(0, file.string().size() - 8);
         }
-        else if (ends_with(file.string(), ".conda"))
+        else if (util::ends_with(file.string(), ".conda"))
         {
             return file.string().substr(0, file.string().size() - 6);
         }
@@ -713,11 +721,11 @@ namespace mamba
         static std::mutex extract_mutex;
         std::lock_guard<std::mutex> lock(extract_mutex);
 
-        if (ends_with(file.string(), ".tar.bz2"))
+        if (util::ends_with(file.string(), ".tar.bz2"))
         {
             extract_archive(file, dest);
         }
-        else if (ends_with(file.string(), ".conda"))
+        else if (util::ends_with(file.string(), ".conda"))
         {
             extract_conda(file, dest);
         }
@@ -748,7 +756,7 @@ namespace mamba
         }
 
         std::string out, err;
-        LOG_DEBUG << "Running subprocess extraction '" << join(" ", args) << "'";
+        LOG_DEBUG << "Running subprocess extraction '" << util::join(" ", args) << "'";
         auto [status, ec] = reproc::run(
             args,
             reproc::options{},
@@ -770,11 +778,11 @@ namespace mamba
     {
         TemporaryDirectory extract_dir;
 
-        if (ends_with(pkg_file.string(), ".tar.bz2"))
+        if (util::ends_with(pkg_file.string(), ".tar.bz2"))
         {
             extract_archive(pkg_file, extract_dir);
         }
-        else if (ends_with(pkg_file.string(), ".conda"))
+        else if (util::ends_with(pkg_file.string(), ".conda"))
         {
             extract_conda(pkg_file, extract_dir);
         }

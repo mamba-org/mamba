@@ -20,7 +20,7 @@
 using namespace mamba::solv;
 using namespace mamba::test;
 
-TEST_SUITE("ObjTransaction")
+TEST_SUITE("solv::ObjTransaction")
 {
     TEST_CASE("Create a transaction")
     {

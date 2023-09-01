@@ -12,11 +12,11 @@
 #include <doctest/doctest.h>
 
 #include "mamba/core/mamba_fs.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
-namespace mamba
+namespace mamba::util
 {
-    TEST_SUITE("util_string")
+    TEST_SUITE("util::string")
     {
         TEST_CASE("to_lower")
         {
@@ -70,6 +70,36 @@ namespace mamba
             CHECK(contains("áäáœ©gþhëb®hüghœ©®xb", "ëb®"));
             CHECK_FALSE(contains("", "ab"));
             CHECK(contains("", ""));  // same as Python ``"" in ""``
+        }
+
+        TEST_CASE("remove_prefix")
+        {
+            CHECK_EQ(remove_prefix("", ""), "");
+            CHECK_EQ(remove_prefix("hello", ""), "hello");
+            CHECK_EQ(remove_prefix("hello", "hello"), "");
+            CHECK_EQ(remove_prefix("", "hello"), "");
+            CHECK_EQ(remove_prefix("https://localhost", "https://"), "localhost");
+            CHECK_EQ(remove_prefix("https://localhost", "http://"), "https://localhost");
+            CHECK_EQ(remove_prefix("aabb", "a"), "abb");
+            CHECK_EQ(remove_prefix("", 'a'), "");
+            CHECK_EQ(remove_prefix("a", 'a'), "");
+            CHECK_EQ(remove_prefix("aaa", 'a'), "aa");
+            CHECK_EQ(remove_prefix("aabb", 'b'), "aabb");
+        }
+
+        TEST_CASE("remove_suffix")
+        {
+            CHECK_EQ(remove_suffix("", ""), "");
+            CHECK_EQ(remove_suffix("hello", ""), "hello");
+            CHECK_EQ(remove_suffix("hello", "hello"), "");
+            CHECK_EQ(remove_suffix("", "hello"), "");
+            CHECK_EQ(remove_suffix("localhost:8080", ":8080"), "localhost");
+            CHECK_EQ(remove_suffix("localhost:8080", ":80"), "localhost:8080");
+            CHECK_EQ(remove_suffix("aabb", "b"), "aab");
+            CHECK_EQ(remove_suffix("", 'b'), "");
+            CHECK_EQ(remove_suffix("b", 'b'), "");
+            CHECK_EQ(remove_suffix("bbb", 'b'), "bb");
+            CHECK_EQ(remove_suffix("aabb", 'a'), "aabb");
         }
 
         TEST_CASE("any_starts_with")

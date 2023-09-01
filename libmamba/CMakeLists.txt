@@ -118,6 +118,11 @@ endforeach()
 set(LIBMAMBA_SOURCES
     longpath.manifest
     ${LIBMAMBA_SOURCE_DIR}/version.cpp
+    # C++ utility library
+    ${LIBMAMBA_SOURCE_DIR}/util/string.cpp
+    ${LIBMAMBA_SOURCE_DIR}/util/path_manip.cpp
+    ${LIBMAMBA_SOURCE_DIR}/util/url_manip.cpp
+    ${LIBMAMBA_SOURCE_DIR}/util/url.cpp
     # C++ wrapping of libsolv
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.cpp
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/pool.cpp
@@ -130,6 +135,8 @@ set(LIBMAMBA_SOURCES
     # C++ wrapping of compression libs (zstd and bzlib)
     ${LIBMAMBA_SOURCE_DIR}/core/compression.cpp
     # Implementation of version and matching specs
+    ${LIBMAMBA_SOURCE_DIR}/specs/archive.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/platform.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/version.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/version_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/repo_data.cpp
@@ -138,6 +145,7 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/activation.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/channel.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/context.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/download.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/environment.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/environments_manager.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/error_handling.cpp
@@ -148,7 +156,6 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/mamba_fs.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/match_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/menuinst.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/url.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/output.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_handling.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_cache.cpp
@@ -171,7 +178,6 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/package_download.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/util.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/fsutil.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/util_string.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/util_os.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/validate.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/virtual_packages.cpp
@@ -203,6 +209,7 @@ set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/version.hpp
     # Utility library
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/deprecation.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/build.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cast.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/compare.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/functional.hpp
@@ -212,7 +219,13 @@ set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/flat_bool_expr_tree.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/graph.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/iterator.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/string.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/path_manip.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/url_manip.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/url.hpp
     # Implementation of version and matching specs
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/archive.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/platform.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version_spec.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/repo_data.hpp
@@ -221,6 +234,7 @@ set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/channel.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/palette.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/context.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/download.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/environment.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/environments_manager.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/error_handling.hpp
@@ -251,13 +265,11 @@ set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_download.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/transaction.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/transaction_context.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/url.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/fsutil.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_os.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_random.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_scope.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_string.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/validate.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/virtual_packages.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/env_lockfile.hpp
@@ -319,6 +331,7 @@ macro(libmamba_create_target target_name linkage output_name)
         ${target_name}
         WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR}
     )
+    mamba_target_set_lto(${target_name} MODE ${MAMBA_LTO})
 
     if (${linkage_upper} STREQUAL "STATIC")
         message("   -> Statically linking against libmamba (static) dependencies")

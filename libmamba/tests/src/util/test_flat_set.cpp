@@ -14,7 +14,7 @@
 
 using namespace mamba::util;
 
-TEST_SUITE("flat_set")
+TEST_SUITE("util::flat_set")
 {
     TEST_CASE("constructor")
     {

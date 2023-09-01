@@ -20,7 +20,9 @@ set(LIBMAMBA_TEST_SRCS
     src/solv-cpp/test_solvable.cpp
     src/solv-cpp/test_solver.cpp
     src/solv-cpp/test_transaction.cpp
+    src/solv-cpp/test_scenarios.cpp
     # Utility library
+    src/util/test_string.cpp
     src/util/test_cast.cpp
     src/util/test_compare.cpp
     src/util/test_type_traits.cpp
@@ -28,7 +30,12 @@ set(LIBMAMBA_TEST_SRCS
     src/util/test_flat_bool_expr_tree.cpp
     src/util/test_graph.cpp
     src/util/test_iterator.cpp
+    src/util/test_path_manip.cpp
+    src/util/test_url_manip.cpp
+    src/util/test_url.cpp
     # Implementation of version and matching specs
+    src/specs/test_archive.cpp
+    src/specs/test_platform.cpp
     src/specs/test_version.cpp
     src/specs/test_version_spec.cpp
     src/specs/test_repo_data.cpp
@@ -38,6 +45,7 @@ set(LIBMAMBA_TEST_SRCS
     src/core/test_channel.cpp
     src/core/test_configuration.cpp
     src/core/test_cpp.cpp
+    src/core/test_downloader.cpp
     src/core/test_env_file_reading.cpp
     src/core/test_environments_manager.cpp
     src/core/test_history.cpp
@@ -48,11 +56,9 @@ set(LIBMAMBA_TEST_SRCS
     src/core/test_shell_init.cpp
     src/core/test_thread_utils.cpp
     src/core/test_transfer.cpp
-    src/core/test_url.cpp
     src/core/test_validate.cpp
     src/core/test_virtual_packages.cpp
     src/core/test_util.cpp
-    src/core/test_util_string.cpp
     src/core/test_util_os.cpp
     src/core/test_system_env.cpp
     src/core/test_env_lockfile.cpp

@@ -10,10 +10,6 @@
 #include <string>
 #include <vector>
 
-#include "mamba/core/mamba_fs.hpp"
-#include "mamba/core/util_string.hpp"
-
-
 namespace mamba
 {
     class ChannelContext;

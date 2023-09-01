@@ -18,7 +18,6 @@
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/pool.hpp"
@@ -29,12 +28,11 @@
 #include "mamba/core/solver.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/transaction.hpp"
-#include "mamba/core/url.hpp"
 #include "mamba/core/util_os.hpp"
-#include "mamba/core/util_string.hpp"
 #include "mamba/core/validate.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/util/flat_set.hpp"
+#include "mamba/util/string.hpp"
 
 namespace py = pybind11;
 
@@ -410,7 +408,14 @@ PYBIND11_MODULE(bindings, m)
                     case query::RECURSIVETABLE:
                         res.table(
                             res_stream,
-                            { "Name", "Version", "Build", concat("Depends:", query), "Channel" }
+                            { "Name",
+                              "Version",
+                              "Build",
+                              printers::alignmentMarker(printers::alignment::left),
+                              printers::alignmentMarker(printers::alignment::right),
+                              util::concat("Depends:", query),
+                              "Channel",
+                              "Subdir" }
                         );
                 }
                 if (res.empty() && format != query::JSON)
@@ -529,7 +534,6 @@ PYBIND11_MODULE(bindings, m)
         .def_readwrite("always_yes", &Context::always_yes)
         .def_readwrite("dry_run", &Context::dry_run)
         .def_readwrite("download_only", &Context::download_only)
-        .def_readwrite("proxy_servers", &Context::proxy_servers)
         .def_readwrite("add_pip_as_python_dependency", &Context::add_pip_as_python_dependency)
         .def_readwrite("envs_dirs", &Context::envs_dirs)
         .def_readwrite("pkgs_dirs", &Context::pkgs_dirs)
@@ -556,15 +560,15 @@ PYBIND11_MODULE(bindings, m)
         )
         .def_property(
             "use_lockfiles",
-            [](Context& ctx)
+            [](Context& context)
             {
-                ctx.use_lockfiles = is_file_locking_allowed();
-                return ctx.use_lockfiles;
+                context.use_lockfiles = is_file_locking_allowed();
+                return context.use_lockfiles;
             },
-            [](Context& ctx, bool allow)
+            [](Context& context, bool allow)
             {
                 allow_file_locking(allow);
-                ctx.use_lockfiles = allow;
+                context.use_lockfiles = allow;
             }
         )
         .def("set_verbosity", &Context::set_verbosity)
@@ -578,6 +582,7 @@ PYBIND11_MODULE(bindings, m)
         .def_readwrite("retry_backoff", &Context::RemoteFetchParams::retry_backoff)
         .def_readwrite("user_agent", &Context::RemoteFetchParams::user_agent)
         // .def_readwrite("read_timeout_secs", &Context::RemoteFetchParams::read_timeout_secs)
+        .def_readwrite("proxy_servers", &Context::RemoteFetchParams::proxy_servers)
         .def_readwrite("connect_timeout_secs", &Context::RemoteFetchParams::connect_timeout_secs);
 
     py::class_<Context::OutputParams>(ctx, "OutputParams")
@@ -682,6 +687,19 @@ PYBIND11_MODULE(bindings, m)
             {
                 deprecated("Use `remote_fetch_params.connect_timeout_secs` instead.");
                 self.remote_fetch_params.connect_timeout_secs = cts;
+            }
+        )
+        .def_property(
+            "proxy_servers",
+            [](const Context& self)
+            {
+                deprecated("Use `remote_fetch_params.proxy_servers` instead.");
+                return self.remote_fetch_params.proxy_servers;
+            },
+            [](Context& self, const std::map<std::string, std::string>& proxies)
+            {
+                deprecated("Use `remote_fetch_params.proxy_servers` instead.");
+                self.remote_fetch_params.proxy_servers = proxies;
             }
         );
 
@@ -845,7 +863,8 @@ PYBIND11_MODULE(bindings, m)
                 static_assert(LIBMAMBA_VERSION_MAJOR == 1, "Version 1 compatibility.");
                 return fmt::format("{}", fmt::join(self.track_features, ","));
             },
-            [](PackageInfo& self, std::string_view val) { self.track_features = split(val, ","); }
+            [](PackageInfo& self, std::string_view val)
+            { self.track_features = util::split(val, ","); }
         )
         .def_readwrite("depends", &PackageInfo::depends)
         .def_readwrite("constrains", &PackageInfo::constrains)

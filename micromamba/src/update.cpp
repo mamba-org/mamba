@@ -10,12 +10,12 @@
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
-#include "mamba/api/shell.hpp"
 #include "mamba/api/update.hpp"
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/util/build.hpp"
 
 #include "common_options.hpp"
 #include "version.hpp"
@@ -107,7 +107,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
 
     try
     {
-        if (on_win)
+        if (util::on_win)
         {
             fs::copy_file(
                 cache_path / "Library" / "bin" / "micromamba.exe",
@@ -138,10 +138,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     }
 
     // Command to reinit shell from the new executable.
-    // Adding bash as the shell but this is just a placeholder as the find_initialized_shells()
-    // deals with the reinit.
-    std::vector<std::string> command = { mamba_exe, "shell", "reinit",          "-s",
-                                         "bash",    "-p",    prefix_data.path() };
+    std::vector<std::string> command = { mamba_exe, "shell", "reinit" };
 
     // The options for the process
     reproc::options options;

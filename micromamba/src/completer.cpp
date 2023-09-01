@@ -12,7 +12,7 @@
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/run.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 
 void
@@ -45,7 +45,7 @@ complete_options(
                 if (p.is_directory() && fs::exists(p.path() / "conda-meta"))
                 {
                     auto name = p.path().filename().string();
-                    if (mamba::starts_with(name, name_start))
+                    if (mamba::util::starts_with(name, name_start))
                     {
                         options.push_back(name);
                     }
@@ -53,17 +53,17 @@ complete_options(
             }
         }
     }
-    else if (mamba::starts_with(last_args.back(), "-"))
+    else if (mamba::util::starts_with(last_args.back(), "-"))
     {
-        auto opt_start = mamba::lstrip(last_args.back(), "-");
+        auto opt_start = mamba::util::lstrip(last_args.back(), "-");
 
-        if (mamba::starts_with(last_args.back(), "--"))
+        if (mamba::util::starts_with(last_args.back(), "--"))
         {
             for (const auto* opt : app->get_options())
             {
                 for (const auto& n : opt->get_lnames())
                 {
-                    if (mamba::starts_with(n, opt_start))
+                    if (mamba::util::starts_with(n, opt_start))
                     {
                         options.push_back("--" + n);
                     }
@@ -80,7 +80,7 @@ complete_options(
             {
                 for (const auto& n : opt->get_snames())
                 {
-                    if (mamba::starts_with(n, opt_start))
+                    if (mamba::util::starts_with(n, opt_start))
                     {
                         options.push_back("-" + n);
                     }
@@ -93,7 +93,7 @@ complete_options(
         for (const auto* subc : app->get_subcommands(nullptr))
         {
             auto& n = subc->get_name();
-            if (mamba::starts_with(n, last_args.back()))
+            if (mamba::util::starts_with(n, last_args.back()))
             {
                 options.push_back(n);
             }
@@ -204,12 +204,12 @@ get_completions(CLI::App* app, mamba::Configuration& config, int argc, char** ar
     if (argc > 2 && std::string(argv[argc - 2]) == "-n")
     {
         completer_args.push_back(argv[argc - 2]);
-        completer_args.push_back(std::string(mamba::strip(argv[argc - 1])));
+        completer_args.push_back(std::string(mamba::util::strip(argv[argc - 1])));
         argc -= 1;  // don't parse the -n
     }
     else
     {
-        completer_args.push_back(std::string(mamba::strip(argv[argc - 1])));
+        completer_args.push_back(std::string(mamba::util::strip(argv[argc - 1])));
     }
 
     std::vector<CLI::App*> apps = { app };

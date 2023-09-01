@@ -18,6 +18,7 @@
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/subdirdata.hpp"
+#include "mamba/util/build.hpp"
 
 #include "test_data.hpp"
 
@@ -234,6 +235,31 @@ namespace mamba
                 MatchSpec ms("numpy=1.20", channel_context);
                 CHECK_EQ(ms.str(), "numpy=1.20");
             }
+
+            {
+                MatchSpec ms("conda-forge::tzdata", channel_context);
+                CHECK_EQ(ms.str(), "conda-forge::tzdata");
+            }
+            {
+                MatchSpec ms("conda-forge::noarch/tzdata", channel_context);
+                CHECK_EQ(ms.str(), "conda-forge::noarch/tzdata");
+            }
+            {
+                MatchSpec ms("pkgs/main::tzdata", channel_context);
+                CHECK_EQ(ms.str(), "pkgs/main::tzdata");
+            }
+            {
+                MatchSpec ms("pkgs/main/noarch::tzdata", channel_context);
+                CHECK_EQ(ms.str(), "pkgs/main/noarch::tzdata");
+            }
+            {
+                MatchSpec ms("conda-forge/noarch::tzdata[subdir=linux64]", channel_context);
+                CHECK_EQ(ms.str(), "conda-forge/noarch::tzdata");
+            }
+            {
+                MatchSpec ms("conda-forge::tzdata[subdir=linux64]", channel_context);
+                CHECK_EQ(ms.str(), "conda-forge/linux64::tzdata");
+            }
         }
 
         TEST_CASE("is_simple")
@@ -339,7 +365,7 @@ namespace mamba
     {
         TEST_CASE("env_name")
         {
-            if constexpr (on_mac || on_linux)
+            if constexpr (util::on_mac || util::on_linux)
             {
                 auto& ctx = Context::instance();
                 ctx.prefix_params.root_prefix = "/home/user/micromamba/";
@@ -363,7 +389,7 @@ namespace mamba
     {
         TEST_CASE("starts_with_home")
         {
-            if (on_linux)
+            if (util::on_linux)
             {
                 auto home = env::expand_user("~");
                 CHECK_EQ(path::starts_with_home(home / "test" / "file.txt"), true);
@@ -381,7 +407,7 @@ namespace mamba
 
         TEST_CASE("touch")
         {
-            if (on_linux)
+            if (util::on_linux)
             {
                 path::touch("/tmp/dir/file.txt", true);
                 CHECK(fs::exists("/tmp/dir/file.txt"));
@@ -393,12 +419,12 @@ namespace mamba
     {
         TEST_CASE("replace_long_shebang")
         {
-            if (!on_win)
+            if (!util::on_win)
             {
                 std::string res = replace_long_shebang(
                     "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong/python -o test -x"
                 );
-                if (on_linux)
+                if (util::on_linux)
                 {
                     CHECK_EQ(res, "#!/usr/bin/env python -o test -x");
                 }
@@ -410,7 +436,7 @@ namespace mamba
                     );
                 }
 
-                if (on_linux)
+                if (util::on_linux)
                 {
                     res = replace_long_shebang(
                         "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo\\ oooooo\\ oooooo\\ oooooooooooooooooooooooooooooooooooong/python -o test -x"
@@ -491,7 +517,7 @@ namespace mamba
     {
         TEST_CASE("quote_for_shell")
         {
-            if (!on_win)
+            if (!util::on_win)
             {
                 std::vector<std::string> args1 = { "python", "-c", "print('is\ngreat')" };
                 CHECK_EQ(quote_for_shell(args1), "python -c 'print('\"'\"'is\ngreat'\"'\"')'");

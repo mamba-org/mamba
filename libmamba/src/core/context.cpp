@@ -17,10 +17,10 @@
 #include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
-#include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
+#include "mamba/util/url_manip.hpp"
 
 namespace mamba
 {
@@ -179,6 +179,11 @@ namespace mamba
         return m_authentication_info;
     }
 
+    const std::map<std::string, AuthenticationInfo>& Context::authentication_info() const
+    {
+        return const_cast<Context*>(this)->authentication_info();
+    }
+
     void Context::load_authentication_info()
     {
         auto& ctx = Context::instance();
@@ -193,10 +198,10 @@ namespace mamba
             }
             for (const auto& entry : fs::directory_iterator(px))
             {
-                if (ends_with(entry.path().filename().string(), ".token"))
+                if (util::ends_with(entry.path().filename().string(), ".token"))
                 {
                     found_tokens.push_back(entry.path());
-                    std::string token_url = decode_url(entry.path().filename().string());
+                    std::string token_url = util::url_decode(entry.path().filename().string());
 
                     // anaconda client writes out a token for https://api.anaconda.org...
                     // but we need the token for https://conda.anaconda.org
@@ -246,7 +251,7 @@ namespace mamba
                         auto pass = decode_base64(el["password"].get<std::string>());
                         if (pass)
                         {
-                            info.value = concat(user, ":", pass.value());
+                            info.value = util::concat(user, ":", pass.value());
                             LOG_INFO << "Found credentials for user " << user << " for host "
                                      << host << " in ~/.mamba/auth/authentication.json";
                         }

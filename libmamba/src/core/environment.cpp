@@ -5,11 +5,13 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "mamba/core/environment.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/core/util.hpp"
+#include "mamba/util/string.hpp"
 
 #ifdef _WIN32
 #include <mutex>
 
+#include "mamba/core/menuinst.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/util_os.hpp"
 #endif
@@ -124,7 +126,7 @@ namespace mamba
             if (env_path)
             {
                 std::string path = env_path.value();
-                const auto parts = split(path, pathsep());
+                const auto parts = util::split(path, pathsep());
                 const std::vector<fs::u8path> search_paths(parts.begin(), parts.end());
                 return which(exe, search_paths);
             }
@@ -210,7 +212,7 @@ namespace mamba
                 std::string_view s = current;
                 auto pos = s.find("=");
                 assert(pos != std::string_view::npos);
-                std::string key = to_upper(s.substr(0, pos));
+                std::string key = util::to_upper(s.substr(0, pos));
                 if (!key.empty())
                 {
                     std::string_view value = (pos != s.npos) ? s.substr(pos + 1) : "";
@@ -245,7 +247,7 @@ namespace mamba
             std::string maybe_home = env::get("USERPROFILE").value_or("");
             if (maybe_home.empty())
             {
-                maybe_home = concat(
+                maybe_home = util::concat(
                     env::get("HOMEDRIVE").value_or(""),
                     env::get("HOMEPATH").value_or("")
                 );
@@ -267,7 +269,49 @@ namespace mamba
                 throw std::runtime_error("HOME not set.");
             }
 #endif
-            return maybe_home;
+            return fs::u8path(maybe_home);
+        }
+
+        fs::u8path user_config_dir()
+        {
+            std::string maybe_user_config_dir = env::get("XDG_CONFIG_HOME").value_or("");
+            if (maybe_user_config_dir.empty())
+            {
+#ifdef _WIN32
+                maybe_user_config_dir = ::mamba::win::get_folder("roamingappdata");
+#else
+                maybe_user_config_dir = home_directory() / ".config";
+#endif
+            }
+            return fs::u8path(maybe_user_config_dir) / "mamba";
+        }
+
+        fs::u8path user_data_dir()
+        {
+            std::string maybe_user_data_dir = env::get("XDG_DATA_HOME").value_or("");
+            if (maybe_user_data_dir.empty())
+            {
+#ifdef _WIN32
+                maybe_user_data_dir = ::mamba::win::get_folder("roamingappdata");
+#else
+                maybe_user_data_dir = home_directory() / ".local" / "share";
+#endif
+            }
+            return fs::u8path(maybe_user_data_dir) / "mamba";
+        }
+
+        fs::u8path user_cache_dir()
+        {
+            std::string maybe_user_cache_dir = env::get("XDG_CACHE_HOME").value_or("");
+            if (maybe_user_cache_dir.empty())
+            {
+#ifdef _WIN32
+                maybe_user_cache_dir = ::mamba::win::get_folder("localappdata");
+#else
+                maybe_user_cache_dir = home_directory() / ".cache";
+#endif
+            }
+            return fs::u8path(maybe_user_cache_dir) / "mamba";
         }
 
         fs::u8path expand_user(const fs::u8path& path)
@@ -284,7 +328,7 @@ namespace mamba
         {
             auto p = path.string();
             auto home = home_directory().string();
-            if (starts_with(p, home))
+            if (util::starts_with(p, home))
             {
                 p.replace(0, home.size(), "~");
             }

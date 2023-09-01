@@ -10,7 +10,8 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/shell_init.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/build.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
@@ -84,7 +85,7 @@ namespace mamba
                 fin >> j;
                 for (auto it = j.begin(); it != j.end(); ++it)
                 {
-                    env_vars[to_upper(it.key())] = it.value();
+                    env_vars[util::to_upper(it.key())] = it.value();
                 }
             }
             catch (nlohmann::json::exception& error)
@@ -113,7 +114,7 @@ namespace mamba
                                         << "will overwrite those from packages";
                             LOG_WARNING << "Variable " << it.key() << " duplicated";
                         }
-                        env_vars[to_upper(it.key())] = it.value();
+                        env_vars[util::to_upper(it.key())] = it.value();
                     }
                 }
             }
@@ -190,13 +191,13 @@ namespace mamba
                 // TODO there may be more missing here.
             }
 
-            auto conda_stacked_env = join(";", prompt_stack);
+            auto conda_stacked_env = util::join(";", prompt_stack);
 
             std::string prompt = Context::instance().env_prompt;
-            replace_all(prompt, "{default_env}", conda_default_env);
-            replace_all(prompt, "{stacked_env}", conda_stacked_env);
-            replace_all(prompt, "{prefix}", prefix.string());
-            replace_all(prompt, "{name}", prefix.stem().string());
+            util::replace_all(prompt, "{default_env}", conda_default_env);
+            util::replace_all(prompt, "{stacked_env}", conda_stacked_env);
+            util::replace_all(prompt, "{prefix}", prefix.string());
+            util::replace_all(prompt, "{name}", prefix.stem().string());
             return prompt;
         }
         else
@@ -207,7 +208,7 @@ namespace mamba
 
     std::vector<fs::u8path> get_path_dirs(const fs::u8path& prefix)
     {
-        if (on_win)
+        if (util::on_win)
         {
             return { prefix,
                      prefix / "Library" / "mingw-w64" / "bin",
@@ -222,45 +223,15 @@ namespace mamba
         }
     }
 
-    std::vector<fs::u8path> Activator::get_clean_dirs()
+    std::vector<fs::u8path> Activator::get_PATH()
     {
-        // For isolation, running the conda test suite *without* env. var. inheritance
-        // every so often is a good idea. We should probably make this a pytest
-        // fixture along with one that tests both hardlink-only and copy-only, but
-        // before that conda's testsuite needs to be a lot faster! clean_paths =
-        // {'darwin': '/usr/bin:/bin:/usr/sbin:/sbin',
-        //                # You may think 'let us do something more clever here and
-        //                interpolate # `%windir%`' but the point here is the the
-        //                whole env. is cleaned out 'win32': 'C:\\Windows\\system32;'
-        //                         'C:\\Windows;'
-        //                         'C:\\Windows\\System32\\Wbem;'
-        //                         'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\'
-        //                }
         std::vector<fs::u8path> path;
         if (m_env.find("PATH") != m_env.end())
         {
-            auto strings = split(m_env["PATH"], env::pathsep());
+            auto strings = util::split(m_env["PATH"], env::pathsep());
             for (auto& s : strings)
             {
                 path.push_back(s);
-            }
-        }
-        else
-        {
-            if (on_linux)
-            {
-                path = { "/usr/bin" };
-            }
-            else if (on_mac)
-            {
-                path = { "/usr/bin", "/bin", "/usr/sbin", "/sbin" };
-            }
-            else
-            {
-                path = { "C:\\Windows\\system32",
-                         "C:\\Windows",
-                         "C:\\Windows\\System32\\Wbem",
-                         "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\" };
             }
         }
         return path;
@@ -270,7 +241,7 @@ namespace mamba
     {
         // prefix = self.path_conversion(prefix)
         // path_list = list(self.path_conversion(self._get_starting_path_list()))
-        auto path_list = get_clean_dirs();
+        auto path_list = get_PATH();
         // If this is the first time we're activating an environment, we need to
         // ensure that the condabin directory is included in the path list. Under
         // normal conditions, if the shell hook is working correctly, this should
@@ -280,7 +251,7 @@ namespace mamba
             bool no_condabin = std::none_of(
                 path_list.begin(),
                 path_list.end(),
-                [](const fs::u8path& s) { return ends_with(s.string(), "condabin"); }
+                [](const fs::u8path& s) { return util::ends_with(s.string(), "condabin"); }
             );
             if (no_condabin)
             {
@@ -295,7 +266,7 @@ namespace mamba
         final_path.insert(final_path.end(), path_list.begin(), path_list.end());
         final_path.erase(std::unique(final_path.begin(), final_path.end()), final_path.end());
 
-        std::string result = join(env::pathsep(), final_path).string();
+        std::string result = util::join(env::pathsep(), final_path).string();
         return result;
     }
 
@@ -303,7 +274,7 @@ namespace mamba
     Activator::replace_prefix_in_path(const fs::u8path& old_prefix, const fs::u8path& new_prefix)
     {
         // TODO not done yet.
-        std::vector<fs::u8path> current_path = get_clean_dirs();
+        std::vector<fs::u8path> current_path = get_PATH();
         assert(!old_prefix.empty());
 
         std::vector<fs::u8path> old_prefix_dirs = get_path_dirs(old_prefix);
@@ -338,7 +309,7 @@ namespace mamba
 
             // remove duplicates
             final_path.erase(std::unique(final_path.begin(), final_path.end()), final_path.end());
-            std::string result = join(env::pathsep(), final_path).string();
+            std::string result = util::join(env::pathsep(), final_path).string();
             return result;
         }
         else
@@ -347,7 +318,7 @@ namespace mamba
                 std::unique(current_path.begin(), current_path.end()),
                 current_path.end()
             );
-            std::string result = join(env::pathsep(), current_path).string();
+            std::string result = util::join(env::pathsep(), current_path).string();
             return result;
         }
     }
@@ -373,11 +344,11 @@ namespace mamba
         {
             if (v == "")
             {
-                envt.unset_vars.push_back(to_upper(k));
+                envt.unset_vars.push_back(util::to_upper(k));
             }
             else
             {
-                envt.export_vars.push_back({ to_upper(k), v });
+                envt.export_vars.push_back({ util::to_upper(k), v });
             }
         }
     }
@@ -387,7 +358,7 @@ namespace mamba
         int conda_shlvl = 0;
         if (m_env.find("CONDA_SHLVL") != m_env.end())
         {
-            std::string env_shlvl(strip(m_env["CONDA_SHLVL"]));
+            std::string env_shlvl(util::strip(m_env["CONDA_SHLVL"]));
             conda_shlvl = std::stoi(env_shlvl);
         }
 
@@ -555,7 +526,7 @@ namespace mamba
         int old_conda_shlvl = 0, new_conda_shlvl;
         if (m_env.find("CONDA_SHLVL") != m_env.end())
         {
-            std::string env_shlvl(strip(m_env["CONDA_SHLVL"]));
+            std::string env_shlvl(util::strip(m_env["CONDA_SHLVL"]));
             old_conda_shlvl = std::stoi(env_shlvl);
         }
         if (m_env.find("CONDA_PREFIX") != m_env.end())
@@ -616,7 +587,7 @@ namespace mamba
         if (clobbering_env_vars.size())
         {
             LOG_WARNING << "WARNING: overwriting environment variables set in the machine";
-            LOG_WARNING << "Overwriting variables: " << join(",", clobbering_env_vars);
+            LOG_WARNING << "Overwriting variables: " << util::join(",", clobbering_env_vars);
         }
 
         std::string new_path = add_prefix_to_path(prefix, old_conda_shlvl);
@@ -721,7 +692,7 @@ namespace mamba
         std::stringstream builder;
         if (is_powershell(this) && fs::exists(hook_source_path()))
         {
-            builder << read_contents(hook_source_path()) << "\n";
+            builder << hook_preamble() << "\n" << read_contents(hook_source_path()) << "\n";
         }
         else
         {
@@ -755,7 +726,7 @@ namespace mamba
         std::stringstream out;
         if (!env_transform.export_path.empty())
         {
-            if (on_win)
+            if (util::on_win)
             {
                 out << "export PATH='"
                     << native_path_to_unix(env_transform.export_path, /*is_a_env_path=*/true)
@@ -784,7 +755,7 @@ namespace mamba
 
         for (const auto& [ekey, evar] : env_transform.export_vars)
         {
-            if (on_win && ekey == "PATH")
+            if (util::on_win && ekey == "PATH")
             {
                 out << "export " << ekey << "='"
                     << native_path_to_unix(evar, /*is_a_env_path=*/true) << "'\n";
@@ -816,12 +787,12 @@ namespace mamba
         auto current_prompt_modifier = env::get("CONDA_PROMPT_MODIFIER");
         if (current_prompt_modifier)
         {
-            replace_all(ps1, current_prompt_modifier.value(), "");
+            util::replace_all(ps1, current_prompt_modifier.value(), "");
         }
         // Because we're using single-quotes to set shell variables, we need to handle
         // the proper escaping of single quotes that are already part of the string.
         // Best solution appears to be https://stackoverflow.com/a/1250279
-        replace_all(ps1, "'", "'\"'\"'");
+        util::replace_all(ps1, "'", "'\"'\"'");
         return { "PS1", conda_prompt_modifier + ps1 };
     }
 
@@ -874,7 +845,7 @@ namespace mamba
         std::stringstream out;
         if (!env_transform.export_path.empty())
         {
-            if (on_win)
+            if (util::on_win)
             {
                 out << "setenv PATH '"
                     << native_path_to_unix(env_transform.export_path, /*is_a_env_path=*/true)
@@ -903,7 +874,7 @@ namespace mamba
 
         for (const auto& [ekey, evar] : env_transform.export_vars)
         {
-            if (on_win && ekey == "PATH")
+            if (util::on_win && ekey == "PATH")
             {
                 out << "setenv " << ekey << " '"
                     << native_path_to_unix(evar, /*is_a_env_path=*/true) << "';\n";
@@ -929,12 +900,12 @@ namespace mamba
         auto current_prompt_modifier = env::get("CONDA_PROMPT_MODIFIER");
         if (current_prompt_modifier)
         {
-            replace_all(prompt, current_prompt_modifier.value(), "");
+            util::replace_all(prompt, current_prompt_modifier.value(), "");
         }
         // Because we're using single-quotes to set shell variables, we need to handle
         // the proper escaping of single quotes that are already part of the string.
         // Best solution appears to be https://stackoverflow.com/a/1250279
-        replace_all(prompt, "'", "'\"'\"'");
+        util::replace_all(prompt, "'", "'\"'\"'");
         return { "prompt", conda_prompt_modifier + prompt };
     }
 

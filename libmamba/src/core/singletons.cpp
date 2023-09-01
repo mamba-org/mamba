@@ -15,6 +15,7 @@ extern "C"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/validate.hpp"
+#include "mamba/util/build.hpp"
 
 #include "spdlog/spdlog.h"
 
@@ -46,11 +47,11 @@ namespace mamba
             CURLsslset sslset_res;
             const curl_ssl_backend** available_backends;
 
-            if (on_linux)
+            if (util::on_linux)
             {
                 sslset_res = curl_global_sslset(CURLSSLBACKEND_OPENSSL, nullptr, &available_backends);
             }
-            else if (on_mac)
+            else if (util::on_mac)
             {
                 sslset_res = curl_global_sslset(
                     CURLSSLBACKEND_SECURETRANSPORT,
@@ -58,7 +59,7 @@ namespace mamba
                     &available_backends
                 );
             }
-            else if (on_win)
+            else if (util::on_win)
             {
                 sslset_res = curl_global_sslset(CURLSSLBACKEND_SCHANNEL, nullptr, &available_backends);
             }

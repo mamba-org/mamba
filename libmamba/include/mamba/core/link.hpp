@@ -12,7 +12,7 @@
 #include <tuple>
 #include <vector>
 
-#include "nlohmann/json.hpp"
+#include "mamba/util/build.hpp"
 
 #include "mamba_fs.hpp"
 #include "match_spec.hpp"
@@ -35,7 +35,7 @@ namespace mamba
                                           "(.*))$");  // the rest of the line can contain option
                                                       // flags and end whole_shebang group
 
-    constexpr size_t MAX_SHEBANG_LENGTH = on_linux ? 127 : 512;
+    constexpr std::size_t MAX_SHEBANG_LENGTH = util::on_linux ? 127 : 512;
 
     struct python_entry_point_parsed
     {

@@ -8,6 +8,7 @@
 #include "mamba/api/shell.hpp"
 #include "mamba/core/run.hpp"
 #include "mamba/core/shell_init.hpp"
+#include "mamba/util/build.hpp"
 
 #include "common_options.hpp"
 #include "umamba.hpp"
@@ -198,7 +199,6 @@ namespace
     void set_shell_reinit_command(CLI::App* subsubcmd, Configuration& config)
     {
         init_general_options(subsubcmd, config);
-        init_shell_option(subsubcmd, config);
         subsubcmd->callback(
             [&config]()
             {
@@ -327,11 +327,11 @@ namespace
 
                     auto const get_shell = []() -> std::string
                     {
-                        if constexpr (on_win)
+                        if constexpr (util::on_win)
                         {
                             return env::get("SHELL").value_or("cmd.exe");
                         }
-                        else if constexpr (on_mac)
+                        else if constexpr (util::on_mac)
                         {
                             return env::get("SHELL").value_or("zsh");
                         }
@@ -339,7 +339,7 @@ namespace
                     };
 
                     exit(mamba::run_in_environment(
-                        Context::instance().prefix_params.root_prefix,
+                        Context::instance().prefix_params.target_prefix,
                         { get_shell() },
                         ".",
                         static_cast<int>(STREAM_OPTIONS::ALL_STREAMS),

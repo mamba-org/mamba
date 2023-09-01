@@ -27,23 +27,6 @@ from conda.models.records import PackageRecord
 import libmambapy as api
 
 
-def load_conda_installed(pool, installed_json_f, installed_pkg_recs):
-    repo = api.Repo(pool, "installed", installed_json_f.name, "")
-    additional_infos = {}
-    for rec in installed_pkg_recs:
-        info = api.ExtraPkgInfo()
-        if rec.noarch:
-            info.noarch = rec.noarch.value
-        if rec.url:
-            info.repo_url = rec.url
-        additional_infos[rec.name] = info
-
-    repo.add_extra_pkg_info(additional_infos)
-    repo.set_installed()
-
-    return repo
-
-
 def load_channel(subdir_data, result_container):
     if not context.quiet:
         print("Getting ", subdir_data.channel.name, subdir_data.channel.platform)
@@ -228,7 +211,7 @@ def init_api_context(use_mamba_experimental=False):
     api_ctx.channels = context.channels
     api_ctx.platform = context.subdir
     # Conda uses a frozendict here
-    api_ctx.proxy_servers = dict(context.proxy_servers)
+    api_ctx.remote_fetch_params.proxy_servers = dict(context.proxy_servers)
 
     if "MAMBA_EXTRACT_THREADS" in os.environ:
         try:

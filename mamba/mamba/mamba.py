@@ -706,7 +706,15 @@ def clean(args, parser):
 
 
 def do_call(args, parser):
-    relative_mod, func_name = args.func.rsplit(".", 1)
+    if hasattr(args, "func"):
+        relative_mod, func_name = args.func.rsplit(".", 1)
+    elif hasattr(args, "_plugin_subcommand"):
+        action = args._plugin_subcommand.action
+        relative_mod = f'.{action.__module__.split(".")[-1]}'
+        func_name = action.__name__
+    else:
+        raise ValueError("Unrecognized 'args' object: %r" % args)
+
     # func_name should always be 'execute'
     if relative_mod in [
         ".main_list",
@@ -873,7 +881,6 @@ def _wrapped_main(*args, **kwargs):
     context.__initialized__ = True
 
     init_loggers(context)
-
     result = do_call(parsed_args, p)
     exit_code = getattr(
         result, "rc", result
@@ -907,11 +914,23 @@ def main(*args, **kwargs):
 
     args = tuple(ensure_text_type(s) for s in args)
 
-    if len(args) > 2 and args[1] == "env" and args[2] in ("create", "update"):
-        # special handling for conda env create!
-        from mamba import mamba_env
+    if len(args) >= 2:
+        if args[1] == "env":
+            # special handling for conda env create!
+            from mamba import mamba_env
 
-        return mamba_env.main()
+            return mamba_env.main()
+        elif args[1] == "build":
+            # calling mamba build == conda mambabuild
+            try:
+                from boa.cli import mambabuild
+
+                return mambabuild.main()
+            except ImportError as exc:
+                raise ImportError(
+                    "Please install boa to use mamba build:\n"
+                    "  $ mamba install -c conda-forge boa"
+                ) from exc
 
     def exception_converter(*args, **kwargs):
         exit_code = 0

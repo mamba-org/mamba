@@ -7,18 +7,19 @@
 #include <regex>
 
 #include "mamba/core/channel.hpp"
+#include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/url.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
+#include "mamba/util/url_manip.hpp"
 
 namespace mamba
 {
     std::vector<std::string> parse_legacy_dist(std::string dist_str)
     {
         dist_str = strip_package_extension(dist_str).string();
-        auto split_str = rsplit(dist_str, "-", 2);
+        auto split_str = util::rsplit(dist_str, "-", 2);
         if (split_str.size() != 3)
         {
             LOG_ERROR << "dist_str " << dist_str << " did not split into a correct version info.";
@@ -39,7 +40,7 @@ namespace mamba
         if (pos == s.npos || pos == 0)
         {
             std::string tmp = s;
-            replace_all(tmp, " ", "");
+            util::replace_all(tmp, " ", "");
             return { tmp, "" };
         }
         else
@@ -52,15 +53,15 @@ namespace mamba
                 if (d == '=' || d == '!' || d == '|' || d == ',' || d == '<' || d == '>' || d == '~')
                 {
                     std::string tmp = s;
-                    replace_all(tmp, " ", "");
+                    util::replace_all(tmp, " ", "");
                     return { tmp, "" };
                 }
             }
             // c is either ' ' or pm1 is none of the forbidden chars
 
             std::string v = s.substr(0, pos), b = s.substr(pos + 1);
-            replace_all(v, " ", "");
-            replace_all(b, " ", "");
+            util::replace_all(v, " ", "");
+            util::replace_all(b, " ", "");
             return { v, b };
         }
     }
@@ -75,14 +76,14 @@ namespace mamba
         {
             spec_str = spec_str.substr(0, idx);
         }
-        spec_str = strip(spec_str);
+        spec_str = util::strip(spec_str);
 
         if (is_package_file(spec_str))
         {
-            if (!has_scheme(spec_str))
+            if (!util::url_has_scheme(spec_str))
             {
                 LOG_INFO << "need to expand path!";
-                spec_str = path_to_url(fs::absolute(env::expand_user(spec_str)).string());
+                spec_str = util::path_to_url(fs::absolute(env::expand_user(spec_str)).string());
             }
             auto& parsed_channel = channel_context.make_channel(spec_str);
 
@@ -155,7 +156,7 @@ namespace mamba
             );
         }
 
-        auto m5 = rsplit(spec_str, ":", 2);
+        auto m5 = util::rsplit(spec_str, ":", 2);
         auto m5_len = m5.size();
         std::string channel_str;
         if (m5_len == 3)
@@ -177,17 +178,14 @@ namespace mamba
         {
             throw std::runtime_error("Parsing of channel / namespace / subdir failed.");
         }
-        // TODO implement Channel, and parsing of the channel here!
-        // channel = subdir = channel_str;
-        // channel, subdir = _parse_channel(channel_str)
-        // if 'channel' in brackets:
-        //     b_channel, b_subdir = _parse_channel(brackets.pop('channel'))
-        //     if b_channel:
-        //         channel = b_channel
-        //     if b_subdir:
-        //         subdir = b_subdir
-        // if 'subdir' in brackets:
-        //     subdir = brackets.pop('subdir')
+
+        std::string cleaned_url;
+        std::string platform;
+        util::split_platform(get_known_platforms(), channel, Context::instance().platform, channel, platform);
+        if (!platform.empty())
+        {
+            subdir = platform;
+        }
 
         // support faulty conda matchspecs such as `libblas=[build=*mkl]`, which is
         // the repr of `libblas=*=*mkl`
@@ -201,7 +199,7 @@ namespace mamba
         if (std::regex_match(spec_str, vb_match, version_build_re))
         {
             name = vb_match[1].str();
-            version = strip(vb_match[2].str());
+            version = util::strip(vb_match[2].str());
             if (name.size() == 0)
             {
                 throw std::runtime_error("Invalid spec, no package name found: " + spec_str);
@@ -223,8 +221,8 @@ namespace mamba
                 );
             }
 
-            version = std::string(strip(version));
-            auto [pv, pb] = parse_version_and_build(std::string(strip(version)));
+            version = std::string(util::strip(version));
+            auto [pv, pb] = parse_version_and_build(std::string(util::strip(version)));
 
             version = pv;
             build_string = pb;
@@ -242,7 +240,7 @@ namespace mamba
                 {
                     if (build_string.empty() && version.back() != '*')
                     {
-                        version = concat(version, "*");
+                        version = util::concat(version, "*");
                     }
                     else
                     {
@@ -279,7 +277,10 @@ namespace mamba
             }
             else if (k == "subdir")
             {
-                subdir = v;
+                if (platform.empty())
+                {
+                    subdir = v;
+                }
             }
             else if (k == "url")
             {
@@ -356,20 +357,20 @@ namespace mamba
         {
             if (is_complex_relation(version))
             {
-                formatted_brackets.push_back(concat("version='", version, "'"));
+                formatted_brackets.push_back(util::concat("version='", version, "'"));
             }
-            else if (starts_with(version, "!=") || starts_with(version, "~="))
+            else if (util::starts_with(version, "!=") || util::starts_with(version, "~="))
             {
                 if (!build_string.empty())
                 {
-                    formatted_brackets.push_back(concat("version='", version, "'"));
+                    formatted_brackets.push_back(util::concat("version='", version, "'"));
                 }
                 else
                 {
                     res << " " << version;
                 }
             }
-            else if (ends_with(version, ".*"))
+            else if (util::ends_with(version, ".*"))
             {
                 res << "=" + version.substr(0, version.size() - 2);
             }
@@ -379,7 +380,7 @@ namespace mamba
                 {
                     res << "=*";
                 }
-                else if (starts_with(version, "="))
+                else if (util::starts_with(version, "="))
                 {
                     res << version.substr(0, version.size() - 1);
                 }
@@ -388,7 +389,7 @@ namespace mamba
                     res << "=" + version.substr(0, version.size() - 1);
                 }
             }
-            else if (starts_with(version, "=="))
+            else if (util::starts_with(version, "=="))
             {
                 res << version;
                 version_exact = true;
@@ -404,11 +405,11 @@ namespace mamba
         {
             if (is_complex_relation(build_string))
             {
-                formatted_brackets.push_back(concat("build='", build_string, "'"));
+                formatted_brackets.push_back(util::concat("build='", build_string, "'"));
             }
             else if (build_string.find("*") != build_string.npos)
             {
-                formatted_brackets.push_back(concat("build=", build_string));
+                formatted_brackets.push_back(util::concat("build=", build_string));
             }
             else if (version_exact)
             {
@@ -416,7 +417,7 @@ namespace mamba
             }
             else
             {
-                formatted_brackets.push_back(concat("build=", build_string));
+                formatted_brackets.push_back(util::concat("build=", build_string));
             }
         }
 
@@ -437,11 +438,11 @@ namespace mamba
                 if (brackets.at(key).find_first_of("= ,") != std::string::npos)
                 {
                     // need quoting
-                    formatted_brackets.push_back(concat(key, "='", brackets.at(key), "'"));
+                    formatted_brackets.push_back(util::concat(key, "='", brackets.at(key), "'"));
                 }
                 else
                 {
-                    formatted_brackets.push_back(concat(key, "=", brackets.at(key)));
+                    formatted_brackets.push_back(util::concat(key, "=", brackets.at(key)));
                 }
             }
         }
@@ -458,7 +459,7 @@ namespace mamba
 
         if (formatted_brackets.size())
         {
-            res << "[" << join(",", formatted_brackets) << "]";
+            res << "[" << util::join(",", formatted_brackets) << "]";
         }
         return res.str();
     }

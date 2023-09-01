@@ -19,7 +19,11 @@ namespace mamba
 
     namespace detail
     {
-        void store_platform_config(const fs::u8path& prefix, const std::string& platform);
+        void store_platform_config(
+            const fs::u8path& prefix,
+            const std::string& platform,
+            bool& remove_prefix_on_failure
+        );
     }
 }
 

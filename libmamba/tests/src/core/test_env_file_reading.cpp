@@ -7,7 +7,7 @@
 #include <doctest/doctest.h>
 
 #include "mamba/api/install.hpp"
-#include "mamba/core/util.hpp"
+#include "mamba/util/build.hpp"
 
 #include "test_data.hpp"
 
@@ -18,10 +18,10 @@ namespace mamba
         TEST_CASE("selector")
         {
             using namespace detail;
-            if constexpr (on_linux || on_mac)
+            if constexpr (util::on_linux || util::on_mac)
             {
                 CHECK(eval_selector("sel(unix)"));
-                if (on_mac)
+                if (util::on_mac)
                 {
                     CHECK(eval_selector("sel(osx)"));
                     CHECK_FALSE(eval_selector("sel(linux)"));
@@ -34,7 +34,7 @@ namespace mamba
                     CHECK_FALSE(eval_selector("sel(win)"));
                 }
             }
-            else if (on_win)
+            else if (util::on_win)
             {
                 CHECK(eval_selector("sel(win)"));
                 CHECK_FALSE(eval_selector("sel(osx)"));

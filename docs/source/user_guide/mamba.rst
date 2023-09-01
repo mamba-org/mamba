@@ -1,7 +1,7 @@
 .. _mamba:
 
-Mamba
------
+Mamba User Guide
+----------------
 
 ``mamba`` is a CLI tool to manage ``conda`` s environments.
 

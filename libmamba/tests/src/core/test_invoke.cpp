@@ -9,7 +9,7 @@
 #include <doctest/doctest.h>
 
 #include "mamba/core/invoke.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
@@ -28,7 +28,7 @@ namespace mamba
             const auto message = "expected failure";
             auto result = safe_invoke([&] { throw std::runtime_error(message); });
             CHECK_FALSE(result);
-            CHECK_MESSAGE(ends_with(result.error().what(), message), result.error().what());
+            CHECK_MESSAGE(util::ends_with(result.error().what(), message), result.error().what());
         }
 
         TEST_CASE("catches_any_exceptions")
@@ -36,7 +36,10 @@ namespace mamba
             const auto message = "expected failure";
             auto result = safe_invoke([&] { throw message; });
             CHECK_FALSE(result);
-            CHECK_MESSAGE(ends_with(result.error().what(), "unknown error"), result.error().what());
+            CHECK_MESSAGE(
+                util::ends_with(result.error().what(), "unknown error"),
+                result.error().what()
+            );
         }
 
         TEST_CASE("safely_catch_moved_callable_destructor_exception")
@@ -84,7 +87,10 @@ namespace mamba
 
             auto result = safe_invoke(DoNotDoThisAtHome{ did_move_happened });
             CHECK_FALSE(result);
-            CHECK_MESSAGE(ends_with(result.error().what(), "unknown error"), result.error().what());
+            CHECK_MESSAGE(
+                util::ends_with(result.error().what(), "unknown error"),
+                result.error().what()
+            );
             CHECK(did_move_happened);
         }
     }

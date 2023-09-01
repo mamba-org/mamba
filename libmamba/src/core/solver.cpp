@@ -226,13 +226,20 @@ namespace mamba
         // Solvable need to provide itself
         cons_solv.add_self_provide();
 
+        // Even if we lock it, libsolv may still try to remove it with
+        // `SOLVER_FLAG_ALLOW_UNINSTALL`, so we flag it as not a real package to filter it out in
+        // the transaction
+        cons_solv.set_artificial(true);
+
         // Necessary for attributes to be properly stored
         installed->internalize();
 
-        // Lock the dummy solvable so that it stays install.
+        // WARNING keep separate or libsolv does not understand
         // Force verify the dummy solvable dependencies, as this is not the default for
         // installed packages.
-        return add_jobs({ cons_solv_name }, SOLVER_LOCK & SOLVER_VERIFY);
+        add_jobs({ cons_solv_name }, SOLVER_VERIFY);
+        // Lock the dummy solvable so that it stays install.
+        add_jobs({ cons_solv_name }, SOLVER_LOCK);
     }
 
     void MSolver::add_pins(const std::vector<std::string>& pins)
@@ -452,7 +459,7 @@ namespace mamba
         std::stringstream problems;
         solver().for_each_problem_id(
             [&](solv::ProblemId pb)
-            { problems << "  - " << solver().problem_to_string(m_pool.pool(), pb); }
+            { problems << "  - " << solver().problem_to_string(m_pool.pool(), pb) << "\n"; }
         );
         return "Encountered problems while solving:\n" + problems.str();
     }

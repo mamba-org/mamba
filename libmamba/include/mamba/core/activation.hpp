@@ -65,7 +65,7 @@ namespace mamba
             int old_conda_shlvl
         );
 
-        std::vector<fs::u8path> get_clean_dirs();
+        std::vector<fs::u8path> get_PATH();
 
         std::string add_prefix_to_path(const fs::u8path& prefix, int old_conda_shlvl);
         std::string

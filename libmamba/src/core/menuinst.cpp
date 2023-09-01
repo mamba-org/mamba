@@ -14,7 +14,7 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/transaction_context.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 
 namespace mamba
@@ -141,9 +141,11 @@ namespace mamba
                 hres = pPersistFile->Save(filename.wstring().c_str(), true);
                 if (FAILED(hres))
                 {
-                    throw std::runtime_error(
-                        concat("Failed to create shortcut: ", filename.string(), std::to_string(hres))
-                    );
+                    throw std::runtime_error(util::concat(
+                        "Failed to create shortcut: ",
+                        filename.string(),
+                        std::to_string(hres)
+                    ));
                 }
             }
             catch (const std::runtime_error& e)
@@ -168,9 +170,9 @@ namespace mamba
         }
 
         const std::map<std::string, KNOWNFOLDERID> knownfolders = {
-            { "programs", FOLDERID_Programs },
-            { "profile", FOLDERID_Profile },
-            { "documents", FOLDERID_Documents },
+            { "programs", FOLDERID_Programs },       { "profile", FOLDERID_Profile },
+            { "documents", FOLDERID_Documents },     { "roamingappdata", FOLDERID_RoamingAppData },
+            { "programdata", FOLDERID_ProgramData }, { "localappdata", FOLDERID_LocalAppData },
         };
 
         fs::u8path get_folder(const std::string& id)
@@ -229,26 +231,26 @@ namespace mamba
         std::string distribution_name = root_prefix.filename().string();
         if (distribution_name.size() > 1)
         {
-            distribution_name[0] = to_upper(distribution_name[0]);
+            distribution_name[0] = util::to_upper(distribution_name[0]);
         }
 
         auto to_forward_slash = [](const fs::u8path& p)
         {
             std::string ps = p.string();
-            replace_all(ps, "\\", "/");
+            util::replace_all(ps, "\\", "/");
             return ps;
         };
 
-        auto platform_split = split(ctx.platform, "-");
+        auto platform_split = util::split(ctx.platform, "-");
         std::string platform_bitness;
         if (platform_split.size() >= 2)
         {
-            platform_bitness = concat("(", platform_split.back(), "-bit)");
+            platform_bitness = util::concat("(", platform_split.back(), "-bit)");
         }
 
         if (py_ver.size())
         {
-            py_ver = split(py_ver, ".")[0];
+            py_ver = util::split(py_ver, ".")[0];
         }
 
         std::map<std::string, std::string> vars = {
@@ -268,7 +270,7 @@ namespace mamba
 
         for (auto& [key, val] : vars)
         {
-            replace_all(text, key, val);
+            util::replace_all(text, key, val);
         }
     }
 
@@ -291,7 +293,7 @@ namespace mamba
 
             if (e_name.size())
             {
-                name_suffix = concat(" (", e_name, ")");
+                name_suffix = util::concat(" (", e_name, ")");
             }
 
 #ifdef _WIN32
@@ -353,7 +355,7 @@ namespace mamba
             for (auto& item : j["menu_items"])
             {
                 std::string name = item["name"];
-                std::string full_name = concat(name, name_suffix);
+                std::string full_name = util::concat(name, name_suffix);
 
                 std::vector<std::string> arguments;
                 fs::u8path script;
@@ -361,14 +363,14 @@ namespace mamba
                 {
                     script = root_pyw;
                     arguments = cwp_pyw_args;
-                    auto tmp = split(item["pywscript"], " ");
+                    auto tmp = util::split(item["pywscript"], " ");
                     std::copy(tmp.begin(), tmp.end(), back_inserter(arguments));
                 }
                 else if (item.contains("pyscript"))
                 {
                     script = root_py;
                     arguments = cwp_py_args;
-                    auto tmp = split(item["pyscript"], " ");
+                    auto tmp = util::split(item["pyscript"], " ");
                     std::copy(tmp.begin(), tmp.end(), back_inserter(arguments));
                 }
                 else if (item.contains("webbrowser"))
@@ -380,13 +382,13 @@ namespace mamba
                 {
                     script = root_py;
                     arguments = { cwp_path.string(), target_prefix.string() };
-                    auto tmp = split(item["script"], " ");
+                    auto tmp = util::split(item["script"], " ");
                     std::copy(tmp.begin(), tmp.end(), back_inserter(arguments));
                     extend_script_args(item, arguments);
                 }
                 else if (item.contains("system"))
                 {
-                    auto tmp = split(item["system"], " ");
+                    auto tmp = util::split(item["system"], " ");
                     script = tmp[0];
                     if (tmp.size() > 1)
                     {
@@ -406,13 +408,13 @@ namespace mamba
                 if (remove == false)
                 {
                     std::string argstring;
-                    std::string lscript = to_lower(script.string());
+                    std::string lscript = util::to_lower(script.string());
 
                     for (auto& arg : arguments)
                     {
                         if (arg.size() >= 1 && arg[0] != '/')
                         {
-                            mamba::replace_all(arg, "/", "\\");
+                            util::replace_all(arg, "/", "\\");
                         }
                     }
 
@@ -421,7 +423,8 @@ namespace mamba
                     {
                         if (arguments.size() > 1)
                         {
-                            if (to_upper(arguments[0]) == "/K" || to_upper(arguments[0]) == "/C")
+                            if (util::to_upper(arguments[0]) == "/K"
+                                || util::to_upper(arguments[0]) == "/C")
                             {
                             }
                         }

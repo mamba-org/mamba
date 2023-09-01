@@ -13,7 +13,8 @@
 #include <fmt/format.h>
 
 #include "mamba/core/package_info.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/specs/archive.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
@@ -118,7 +119,7 @@ namespace mamba
         if (std::string feat = j.value("track_features", ""); !feat.empty())
         {
             // Split empty string would have an empty element
-            track_features = split(feat, ",");
+            track_features = util::split(feat, ",");
         }
 
         // add the noarch type if we know it (only known for installed packages)
@@ -277,12 +278,12 @@ namespace mamba
 
     std::string PackageInfo::str() const
     {
-        return concat(name, "-", version, "-", build_string);
+        return std::string(specs::strip_archive_extension(fn));
     }
 
     std::string PackageInfo::long_str() const
     {
         // TODO channel contains subdir right now?!
-        return concat(channel, "::", name, "-", version, "-", build_string);
+        return util::concat(channel, "::", str());
     }
 }  // namespace mamba

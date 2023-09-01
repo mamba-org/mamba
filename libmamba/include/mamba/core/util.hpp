@@ -14,6 +14,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 #include <time.h>
@@ -32,22 +33,6 @@
 
 namespace mamba
 {
-#if __APPLE__ || __MACH__
-    static constexpr bool on_win = false;
-    static constexpr bool on_linux = false;
-    static constexpr bool on_mac = true;
-#elif __linux__
-    static constexpr bool on_win = false;
-    static constexpr bool on_linux = true;
-    static constexpr bool on_mac = false;
-#elif _WIN32
-    static constexpr bool on_win = true;
-    static constexpr bool on_linux = false;
-    static constexpr bool on_mac = false;
-#else
-#error "no supported OS detected"
-#endif
-
     // Used when we want a callback which does nothing.
     struct no_op
     {
@@ -338,6 +323,8 @@ namespace mamba
     /// NOTE: this does not check if the file exists.
     bool is_yaml_file_name(std::string_view filename);
 
+    std::optional<std::string>
+    proxy_match(const std::string& url, const std::map<std::string, std::string>& proxy_servers);
     std::optional<std::string> proxy_match(const std::string& url);
 
     std::string hide_secrets(std::string_view str);

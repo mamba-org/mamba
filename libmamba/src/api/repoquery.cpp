@@ -13,7 +13,7 @@
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/repo.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
@@ -144,7 +144,14 @@ namespace mamba
                 case QueryResultFormat::kRECURSIVETABLE:
                     res.sort("name").table(
                         std::cout,
-                        { "Name", "Version", "Build", concat("Depends:", query), "Channel" }
+                        { "Name",
+                          "Version",
+                          "Build",
+                          printers::alignmentMarker(printers::alignment::left),
+                          printers::alignmentMarker(printers::alignment::right),
+                          util::concat("Depends:", query),
+                          "Channel",
+                          "Subdir" }
                     );
             }
             if (res.empty() && format != QueryResultFormat::kJSON)

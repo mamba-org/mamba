@@ -10,8 +10,8 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/subdirdata.hpp"
-#include "mamba/core/url.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
+#include "mamba/util/url_manip.hpp"
 
 #include "progress_bar_impl.hpp"
 
@@ -333,8 +333,8 @@ namespace mamba
         , m_progress_bar()
         , m_loaded(false)
         , m_download_complete(false)
-        , m_repodata_url(concat(url, "/", repodata_fn))
-        , m_name(join_url(channel.canonical_name(), platform))
+        , m_repodata_url(util::concat(url, "/", repodata_fn))
+        , m_name(util::join_url(channel.canonical_name(), platform))
         , m_is_noarch(platform == "noarch")
         , p_channel(&channel)
     {
@@ -443,7 +443,7 @@ namespace mamba
 
     bool MSubdirData::forbid_cache()
     {
-        return starts_with(m_repodata_url, "file://");
+        return util::starts_with(m_repodata_url, "file://");
     }
 
     void MSubdirData::finalize_checks()
@@ -462,7 +462,7 @@ namespace mamba
             m_progress_bar_check.mark_as_completed();
         }
 
-        if (ends_with(target.get_url(), ".zst"))
+        if (util::ends_with(target.get_url(), ".zst"))
         {
             this->m_metadata.has_zst = { target.get_http_status() == 200, utc_time_now() };
         }
@@ -600,30 +600,33 @@ namespace mamba
             auto& ctx = Context::instance();
             if (!ctx.offline || forbid_cache())
             {
-                bool has_value = m_metadata.has_zst.has_value();
-                bool is_expired = m_metadata.has_zst.has_value()
-                                  && m_metadata.has_zst.value().has_expired();
-                bool has_zst = m_metadata.check_zst(channel_context, p_channel);
-                if (!has_zst && (is_expired || !has_value))
+                if (ctx.repodata_use_zst)
                 {
-                    m_check_targets.push_back(std::make_unique<DownloadTarget>(
-                        m_name + " (check zst)",
-                        m_repodata_url + ".zst",
-                        ""
-                    ));
-                    m_check_targets.back()->set_head_only(true);
-                    m_check_targets.back()->set_finalize_callback(&MSubdirData::finalize_check, this);
-                    m_check_targets.back()->set_ignore_failure(true);
-                    if (!(ctx.graphics_params.no_progress_bars || ctx.output_params.quiet
-                          || ctx.output_params.json))
+                    bool has_value = m_metadata.has_zst.has_value();
+                    bool is_expired = m_metadata.has_zst.has_value()
+                                      && m_metadata.has_zst.value().has_expired();
+                    bool has_zst = m_metadata.check_zst(channel_context, p_channel);
+                    if (!has_zst && (is_expired || !has_value))
                     {
-                        m_progress_bar_check = Console::instance().add_progress_bar(
-                            m_name + " (check zst)"
-                        );
-                        m_check_targets.back()->set_progress_bar(m_progress_bar_check);
-                        m_progress_bar_check.repr().postfix.set_value("Checking");
+                        m_check_targets.push_back(std::make_unique<DownloadTarget>(
+                            m_name + " (check zst)",
+                            m_repodata_url + ".zst",
+                            ""
+                        ));
+                        m_check_targets.back()->set_head_only(true);
+                        m_check_targets.back()->set_finalize_callback(&MSubdirData::finalize_check, this);
+                        m_check_targets.back()->set_ignore_failure(true);
+                        if (!(ctx.graphics_params.no_progress_bars || ctx.output_params.quiet
+                              || ctx.output_params.json))
+                        {
+                            m_progress_bar_check = Console::instance().add_progress_bar(
+                                m_name + " (check zst)"
+                            );
+                            m_check_targets.back()->set_progress_bar(m_progress_bar_check);
+                            m_progress_bar_check.repr().postfix.set_value("Checking");
+                        }
+                        return true;
                     }
-                    return true;
                 }
                 create_target();
             }
@@ -892,7 +895,7 @@ namespace mamba
 
     std::string cache_fn_url(const std::string& url)
     {
-        return cache_name_from_url(url) + ".json";
+        return util::cache_name_from_url(url) + ".json";
     }
 
     std::string create_cache_dir(const fs::u8path& cache_path)
@@ -909,7 +912,7 @@ namespace mamba
     {
         using return_type = expected_t<MRepo>;
         RepoMetadata meta{
-            /* .url= */ rsplit(m_metadata.url, "/", 1).front(),
+            /* .url= */ util::rsplit(m_metadata.url, "/", 1).front(),
             /* .etag= */ m_metadata.etag,
             /* .mod= */ m_metadata.mod,
             /* .pip_added= */ Context::instance().add_pip_as_python_dependency,

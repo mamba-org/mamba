@@ -7,10 +7,10 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
-#include "mamba/core/util_string.hpp"
 #include "mamba/core/virtual_packages.hpp"
+#include "mamba/util/build.hpp"
+#include "mamba/util/string.hpp"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -35,7 +35,7 @@ namespace mamba
                 return override_version.value();
             }
 
-            if (!on_linux)
+            if (!util::on_linux)
             {
                 return "";
             }
@@ -52,7 +52,7 @@ namespace mamba
                 version = ver.data();
             }
 #endif
-            return std::string(strip(version, "glibc "));
+            return std::string(util::strip(version, "glibc "));
         }
 
         std::string cuda_version()
@@ -79,12 +79,12 @@ namespace mamba
                 out = "";
             }
 
-            if (ec && on_win)
+            if (ec && util::on_win)
             {
                 // Windows fallback
                 bool may_exist = false;
                 std::string path = env::get("PATH").value_or("");
-                std::vector<std::string> paths = split(path, env::pathsep());
+                std::vector<std::string> paths = util::split(path, env::pathsep());
 
                 for (auto& p : paths)
                 {
@@ -100,7 +100,7 @@ namespace mamba
                 {
                     for (auto& p : fs::directory_iterator(base))
                     {
-                        if (starts_with(p.path().filename().string(), "nv")
+                        if (util::starts_with(p.path().filename().string(), "nv")
                             && fs::exists(p.path() / "nvidia-smi.exe"))
                         {
                             std::string f = (p.path() / "nvidia-smi.exe").string();
@@ -168,7 +168,7 @@ namespace mamba
 
             std::vector<PackageInfo> res;
             auto platform = Context::instance().platform;
-            auto split_platform = split(platform, "-", 1);
+            auto split_platform = util::split(platform, "-", 1);
 
             if (split_platform.size() != 2)
             {
@@ -187,14 +187,12 @@ namespace mamba
                 res.push_back(make_virtual_package("__unix"));
 
                 std::string linux_ver = linux_version();
-                if (!linux_ver.empty())
+                if (linux_ver.empty())
                 {
-                    res.push_back(make_virtual_package("__linux", linux_ver));
+                    LOG_WARNING << "linux version not found, defaulting to '0'";
+                    linux_ver = "0";
                 }
-                else
-                {
-                    LOG_WARNING << "linux version not found (virtual package skipped)";
-                }
+                res.push_back(make_virtual_package("__linux", linux_ver));
 
                 std::string libc_ver = detail::glibc_version();
                 if (!libc_ver.empty())

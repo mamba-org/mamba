@@ -19,8 +19,10 @@ option(BUILD_LIBMAMBA_TESTS "Build libmamba C++ tests" OFF)
 option(BUILD_MICROMAMBA "Build micromamba" OFF)
 option(BUILD_MAMBA_PACKAGE "Build mamba package utility" OFF)
 option(MAMBA_WARNING_AS_ERROR "Treat compiler warnings as errors" OFF)
+set(MAMBA_LTO "Default" CACHE STRING "Apply Link Time Optimization to targets")
 
 include("cmake/CompilerWarnings.cmake")
+include("cmake/LinkTimeOptimization.cmake")
 
 if (MSVC)
     # NOMINMAX : prevent tons of code to be included when having to `#include <windows.h>`

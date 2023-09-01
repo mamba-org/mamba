@@ -27,7 +27,7 @@
 #include "mamba/core/run.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_random.hpp"
-#include "mamba/core/util_string.hpp"
+#include "mamba/util/string.hpp"
 
 #ifndef _WIN32
 extern "C"
@@ -114,7 +114,7 @@ namespace mamba
 
     const fs::u8path& proc_dir()
     {
-        static const auto path = env::home_directory() / ".mamba" / "proc";
+        static auto path = env::user_cache_dir() / "proc";
         return path;
     }
 
@@ -345,7 +345,7 @@ namespace mamba
             {
                 if (e.find_first_of("=") != std::string::npos)
                 {
-                    auto split_e = split(e, "=", 1);
+                    auto split_e = util::split(e, "=", 1);
                     env_map[split_e[0]] = split_e[1];
                 }
                 else

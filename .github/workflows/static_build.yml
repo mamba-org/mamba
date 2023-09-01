@@ -7,6 +7,11 @@ on:
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - 'docs/**'
+      - 'mamba/**'
+      - 'libmambapy/**'
+      - '**.md'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -20,54 +25,65 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: ubuntu-latest, platform: linux, arch: 64 }
+          - { os: ubuntu-latest, platform: linux, arch: "64" }
           - { os: ubuntu-latest, platform: linux, arch: aarch64 }
           - { os: ubuntu-latest, platform: linux, arch: ppc64le }
-          - { os: macos-latest, platform: osx, arch: 64 }
+          - { os: macos-latest, platform: osx, arch: "64" }
           - { os: macos-latest, platform: osx, arch: arm64 }
     steps:
-      - name: Checkout branch
-        uses: actions/checkout@v3
       - name: Checkout micromamba-feedstock
         uses: actions/checkout@v3
         with:
           repository: conda-forge/micromamba-feedstock
           path: micromamba-feedstock
-      # replace the url: ... until the libmamba.patch line with git_url: ../..
-      - name: Patch micromamba-feedstock
-        run: |
-          cp ./micromamba/recipe/* micromamba-feedstock/recipe/
+      - name: Clear micromamba-feedstock git directory
+        run: rm -rf "micromamba-feedstock/.git"
+      - name: Checkout mamba branch
+        uses: actions/checkout@v3
+        with:
+          path: micromamba-feedstock/source
       - uses: mamba-org/setup-micromamba@v1
         with:
           environment-name: mambabuild
-          create-args: boa
-      - name: Build conda package
+          create-args: python boa
+          post-cleanup: none  # FIXME the cleanup fails on OSX
+      - name: Build conda package (Unix native)
+        if: ${{ !(matrix.platform == 'linux' && matrix.arch != '64') }}
         shell: bash -l {0}
         run: |
-          conda-mambabuild -m micromamba-feedstock/.ci_support/${{ matrix.platform }}_${{ matrix.arch }}_.yaml \
-                              micromamba-feedstock/recipe ${{ matrix.arch != '64' && '--no-test' || '' }}
-      - name: Unpack micromamba package
-        shell: bash -l {0}
-        run: |
-          cd $MAMBA_ROOT_PREFIX/envs/mambabuild/conda-bld/${{ matrix.platform }}-${{ matrix.arch }}
-          tar -xvf micromamba-*.tar.bz2
-          mkdir -p ${{ github.workspace }}/artifacts
-          cp bin/micromamba ${{ github.workspace }}/artifacts
-      - name: Test micromamba on emulated target architecture
-        if: ${{ matrix.arch != '64' && matrix.platform == 'linux' }}
+          cd micromamba-feedstock/
+          # Special values for running the feedstock with a local source
+          export FEEDSTOCK_ROOT="${PWD}"
+          export CI="local"
+          # For OSX not using Docker
+          export CONDA_BLD_PATH="${PWD}/build_artifacts"
+          mkdir -p "${CONDA_BLD_PATH}"
+          python build-locally.py "${{ matrix.platform }}_${{ matrix.arch }}_"
+      # The build_locally.py script will test all Linux builds, which fails outside of linux-64
+      - name: Build conda package (Linux emulated)
+        if: ${{ matrix.platform == 'linux' && matrix.arch != '64' }}
         uses: uraimo/run-on-arch-action@v2
         with:
           arch: ${{ matrix.arch }}
           distro: ubuntu_latest
-          dockerRunArgs: |
-            -v "${{ github.workspace }}/artifacts:/artifacts"
+          dockerRunArgs: -v /var/run/docker.sock:/var/run/docker.sock
+          install: |
+            apt-get update -y
+            apt-get install -y python3 docker.io
           run: |
-            cd /artifacts
-            ./micromamba --version
-            ./micromamba --help
-            ./micromamba
-            apt update && apt install -y ca-certificates
-            ./micromamba create -p /tmp/testenv --override-channels -c conda-forge --yes python=3.9
+            cd micromamba-feedstock/
+            # Special values for running the feedstock with a local source
+            export FEEDSTOCK_ROOT="${PWD}"
+            export CI="local"
+            python3 build-locally.py "${{ matrix.platform }}_${{ matrix.arch }}_"
+      - name: Unpack micromamba package
+        shell: bash -l {0}
+        run: |
+          ls micromamba-feedstock/build_artifacts
+          micromamba package extract \
+            "micromamba-feedstock/build_artifacts/${{ matrix.platform }}-${{ matrix.arch }}/"micromamba-*.tar.bz2 "pkg/"
+          mkdir -p "${{ github.workspace }}/artifacts"
+          cp pkg/bin/micromamba "${{ github.workspace }}/artifacts"
       - name: Archive conda-build artifact
         if: failure()
         run: tar -czf ${{ github.workspace }}/micromamba-conda-build-failed-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz $MAMBA_ROOT_PREFIX/envs/mambabuild/conda-bld/micromamba_*

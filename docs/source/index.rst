@@ -25,7 +25,8 @@ You can try Mamba now by visiting the :ref:`installation page<installation>`!
    :maxdepth: 2
    :hidden:
 
-   installation
+   Mamba <mamba-installation>
+   Micromamba <micromamba-installation>
 
 .. toctree::
    :caption: USER GUIDE
@@ -33,8 +34,8 @@ You can try Mamba now by visiting the :ref:`installation page<installation>`!
    :hidden:
 
    user_guide/concepts
-   user_guide/mamba
-   user_guide/micromamba
+   Mamba <user_guide/mamba>
+   Micromamba <user_guide/micromamba>
    user_guide/configuration
    user_guide/troubleshooting
 

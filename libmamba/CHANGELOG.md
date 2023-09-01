@@ -1,3 +1,37 @@
+libmamba 1.5.0 (August 24, 2023)
+================================
+
+Enhancements:
+
+- All headers at the top by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2658
+- Add boolean expression tree by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2591
+- Add VersionSpec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2502
+- Use xdg schemas for config saving/reading (minified) by @danpf in https://github.com/mamba-org/mamba/pull/2714
+- specs platform by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2729
+- Safe Curl opt in url.cpp by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2734
+- Add win-arm64 support by @isuruf in https://github.com/mamba-org/mamba/pull/2745
+- Move util_string to utility library by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2739
+- Remove get_clean_dirs() by @jonashaag in https://github.com/mamba-org/mamba/pull/2748
+- Enable pytest color output by @jonashaag in https://github.com/mamba-org/mamba/pull/2759
+- Isolate URL object by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2744
+- Fix warnings by @Hind-M in https://github.com/mamba-org/mamba/pull/2760
+- New apis for downloading by @JohanMabille in https://github.com/mamba-org/mamba/pull/2695
+
+Bug fixes:
+
+- Respect subdir in match spec by @ThomasBlauthQC in https://github.com/mamba-org/mamba/pull/2300
+- Fixed move constructor in CURLHandle by @JohanMabille in https://github.com/mamba-org/mamba/pull/2710
+- Remove created prefix if aborted with --platform by @Hind-M in https://github.com/mamba-org/mamba/pull/2738
+- Add missing newline in legacy errors by @jaimergp in https://github.com/mamba-org/mamba/pull/2743
+- fix: added missing hook_preamble() for powershell hook by @chawyehsu in https://github.com/mamba-org/mamba/pull/2761
+- Fix fish completion by @soraxas in https://github.com/mamba-org/mamba/pull/2769
+- Fix \_\_linux virtual package default version by jonashaag in https://github.com/mamba-org/mamba/pull/2749
+
+CI fixes and doc:
+
+- Ignore format changes in git blame by @jonashaag in https://github.com/mamba-org/mamba/pull/2690
+- Add Debug build type by @Hind-M in https://github.com/mamba-org/mamba/pull/2762
+
 libmamba 1.4.9 (July 13, 2023)
 ==============================
 

@@ -348,7 +348,7 @@ namespace mamba
         {
             return "";
         }
-        else if (util::is_path(location()))
+        else if (scheme() == "file")
         {
             auto url = util::URL();
             url.set_scheme(scheme()).set_path(location());
@@ -461,7 +461,7 @@ namespace mamba
                 name.replace(0u, channel_alias.location().size(), "");
                 location = channel_alias.location();
             }
-            else if (util::is_path(location))
+            else if (scheme == "file")
             {
                 location = util::lstrip(location, '/');
                 name = location;

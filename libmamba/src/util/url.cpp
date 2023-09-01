@@ -312,43 +312,52 @@ namespace mamba::util
         );
     }
 
-    auto URL::path() const -> const std::string&
+    auto URL::path(Decode::no_type) const -> const std::string&
     {
         return m_path;
     }
 
-    auto URL::pretty_path() const -> std::string_view
+    auto URL::path(Decode::yes_type) const -> std::string
+    {
+        return url_decode(path(Decode::no));
+    }
+
+    void URL::set_path(std::string_view path, Encode::yes_type)
+    {
+        return set_path(url_encode(path, "/"), Encode::no);
+    }
+
+    void URL::set_path(std::string path, Encode::no_type)
+    {
+        if (!util::starts_with(path, '/'))
+        {
+            path.insert(0, 1, '/');
+        }
+        m_path = path;
+    }
+
+    auto URL::pretty_path() const -> std::string
     {
         // All paths start with a '/' except those like "file://C:/folder/file.txt"
         if (m_scheme == "file")
         {
             assert(util::starts_with(m_path, '/'));
-            auto path_no_slash = std::string_view(m_path).substr(1);
+            auto path_no_slash = url_decode(std::string_view(m_path).substr(1));
             if (path_has_drive_letter(path_no_slash))
             {
                 return path_no_slash;
             }
         }
-        return m_path;
+        return url_decode(m_path);
     }
 
-    void URL::set_path(std::string_view path)
+    void URL::append_path(std::string_view subpath, Encode::yes_type)
     {
-        if (!util::starts_with(path, '/'))
-        {
-            m_path.reserve(path.size() + 1);
-            m_path = '/';
-            m_path += path;
-        }
-        else
-        {
-            m_path = path;
-        }
+        return append_path(url_encode(subpath, "/"), Encode::no);
     }
 
-    void URL::append_path(std::string_view subpath)
+    void URL::append_path(std::string_view subpath, Encode::no_type)
     {
-        subpath = util::strip(subpath);
         m_path.reserve(m_path.size() + 1 + subpath.size());
         const bool trailing = util::ends_with(m_path, '/');
         const bool leading = util::starts_with(subpath, '/');
@@ -383,28 +392,45 @@ namespace mamba::util
         m_fragment = fragment;
     }
 
-    auto URL::str(StripScheme strip_scheme, char rstrip_path, HidePassword hide_password) const
+    auto URL::pretty_str(StripScheme strip_scheme, char rstrip_path, HidePassword hide_password) const
         -> std::string
     {
         // Not showing "localhost" on file URI
-        std::string_view computed_host = m_host;
+        std::string computed_host = {};
         if ((m_scheme == "file") && (m_host == localhost))
         {
             computed_host = "";
         }
-        // When stripping file scheme, not showing leading '/' for Windows path with drive
-        std::string_view computed_path = m_path;
-        if ((m_scheme == "file") && (strip_scheme == StripScheme::yes) && computed_host.empty())
+        else
         {
-            computed_path = pretty_path();
+            computed_host = host(Decode::yes);
+        }
+
+        std::string computed_path = {};
+        if (m_scheme == "file")
+        {
+            // When stripping file scheme, not showing leading '/' for Windows path with drive
+            if ((strip_scheme == StripScheme::yes) && computed_host.empty())
+            {
+                computed_path = pretty_path();
+            }
+            else
+            {
+                computed_path = path(Decode::yes);
+            }
+        }
+        else
+        {
+            computed_path = m_path;
         }
         computed_path = util::rstrip(computed_path, rstrip_path);
+
         return util::concat(
             (strip_scheme == StripScheme::no) ? m_scheme : "",
             (strip_scheme == StripScheme::no) ? "://" : "",
-            m_user,
+            url_decode(m_user),
             m_password.empty() ? "" : ":",
-            (hide_password == HidePassword::no) ? m_password : "*****",
+            (hide_password == HidePassword::no) ? url_decode(m_password) : "*****",
             m_user.empty() ? "" : "@",
             computed_host,
             m_port.empty() ? "" : ":",

@@ -253,7 +253,7 @@ namespace mamba::util
         auth = url_parsed.authentication();
         url_parsed.set_user("");
         url_parsed.set_password("");
-        remaining_url = util::rstrip(url_parsed.str(URL::StripScheme::yes), '/');
+        remaining_url = util::rstrip(url_parsed.pretty_str(URL::StripScheme::yes), '/');
     }
 
     bool compare_cleaned_url(const std::string& url1, const std::string& url2)

@@ -111,27 +111,47 @@ namespace mamba::util
         /** Return the encoded autority part of the URL. */
         [[nodiscard]] auto authority() const -> std::string;
 
-        /** Return the path, always starts with a '/'. */
-        [[nodiscard]] auto path() const -> const std::string&;
+        /** Return the encoded path, always starts with a '/'. */
+        [[nodiscard]] auto path(Decode::no_type) const -> const std::string&;
+
+        /** Return the decoded paht, always starts with a '/'. */
+        [[nodiscard]] auto path(Decode::yes_type = Decode::yes) const -> std::string;
 
         /**
-         * Return the path.
+         * Set the path from a not encoded value.
+         *
+         * All '/' are not encoded but interpreted as separators.
+         * A leading '/' is added if abscent.
+         */
+        void set_path(std::string_view path, Encode::yes_type = Encode::yes);
+
+        /** Set the path from an already encoded value, a leading '/' is added if abscent. */
+        void set_path(std::string path, Encode::no_type);
+
+        /**
+         * Return the decoded path.
          *
          * For a "file" scheme, with a Windows path containing a drive, the leading '/' is
          * stripped.
          */
-        [[nodiscard]] auto pretty_path() const -> std::string_view;
-
-        /** Set the path, a leading '/' is added if abscent. */
-        void set_path(std::string_view path);
+        [[nodiscard]] auto pretty_path() const -> std::string;
 
         /**
-         * Append a sub path to the current path.
+         * Append a not encoded sub path to the current path.
+         *
+         * Contrary to `std::filesystem::path::append`, this always append and never replace
+         * the current path, even if @p subpath starts with a '/'.
+         * All '/' are not encoded but interpreted as separators.
+         */
+        void append_path(std::string_view path, Encode::yes_type = Encode::yes);
+
+        /**
+         * Append a already encoded sub path to the current path.
          *
          * Contrary to `std::filesystem::path::append`, this always append and never replace
          * the current path, even if @p subpath starts with a '/'.
          */
-        void append_path(std::string_view subpath);
+        void append_path(std::string_view path, Encode::no_type);
 
         /** Return the query, or empty if none. */
         [[nodiscard]] auto query() const -> const std::string&;
@@ -146,16 +166,19 @@ namespace mamba::util
         void set_fragment(std::string_view fragment);
 
         /**
-         * Return the full encoded url.
+         * Return the full decoded url.
          *
+         * Due to decoding, the outcome may not be understood by parser and usable to reach an
+         * asset.
          * @param strip_scheme If true, remove the scheme and "localhost" on file URI.
          * @param rstrip_path If non-null, remove the given charaters at the end of the path.
          * @param hide_password If true, hide password in the decoded string.
          */
-        [[nodiscard]] auto
-        str(StripScheme strip_scheme = StripScheme::no,
+        [[nodiscard]] auto pretty_str(
+            StripScheme strip_scheme = StripScheme::no,
             char rstrip_path = 0,
-            HidePassword hide_password = HidePassword::no) const -> std::string;
+            HidePassword hide_password = HidePassword::no
+        ) const -> std::string;
 
     private:
 

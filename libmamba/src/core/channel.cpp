@@ -121,7 +121,7 @@ namespace mamba
                 parsed_url.set_host(host);
                 parsed_url.set_port(port);
                 parsed_url.set_path(spath);
-                return parsed_url.str(util::URL::StripScheme::yes);
+                return parsed_url.pretty_str(util::URL::StripScheme::yes);
             }();
 
             // Case 1: No path given, channel name is ""
@@ -131,7 +131,7 @@ namespace mamba
                 l_url.set_host(host);
                 l_url.set_port(port);
                 return channel_configuration{
-                    /* location= */ l_url.str(util::URL::StripScheme::yes, /* rstrip_path= */ '/'),
+                    /* location= */ l_url.pretty_str(util::URL::StripScheme::yes, /* rstrip_path= */ '/'),
                     /* name= */ "",
                     /* scheme= */ scheme,
                     /* auth= */ "",
@@ -195,7 +195,7 @@ namespace mamba
             location.set_host(host);
             location.set_port(port);
             return channel_configuration{
-                /* location= */ location.str(util::URL::StripScheme::yes, /* rstrip_path= */ '/'),
+                /* location= */ location.pretty_str(util::URL::StripScheme::yes, /* rstrip_path= */ '/'),
                 /* name= */ spath,
                 /* scheme= */ scheme,
                 /* auth= */ "",
@@ -456,7 +456,7 @@ namespace mamba
                 auto url = util::URL();
                 url.set_host(parser.host());
                 url.set_port(parser.port());
-                location = url.str(util::URL::StripScheme::yes, /* rstrip_path= */ '/');
+                location = url.pretty_str(util::URL::StripScheme::yes, /* rstrip_path= */ '/');
                 name = util::lstrip(parser.pretty_path(), '/');
             }
         }

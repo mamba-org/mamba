@@ -212,19 +212,17 @@ namespace mamba::util
 
     auto URL::user(Decode::yes_type) const -> std::string
     {
-        return url_decode(m_user);
+        return url_decode(user(Decode::no));
     }
 
-    void URL::set_user(std::string_view user, Encode encode)
+    void URL::set_user(std::string_view user, Encode::yes_type)
     {
-        if (encode == Encode::yes)
-        {
-            m_user = url_encode(user);
-        }
-        else
-        {
-            m_user = user;
-        }
+        return set_user(url_encode(user), Encode::no);
+    }
+
+    void URL::set_user(std::string user, Encode::no_type)
+    {
+        m_user = std::move(user);
     }
 
     auto URL::password(Decode::no_type) const -> const std::string&
@@ -234,19 +232,17 @@ namespace mamba::util
 
     auto URL::password(Decode::yes_type) const -> std::string
     {
-        return url_decode(m_password);
+        return url_decode(password(Decode::no));
     }
 
-    void URL::set_password(std::string_view password, Encode encode)
+    void URL::set_password(std::string_view password, Encode::yes_type)
     {
-        if (encode == Encode::yes)
-        {
-            m_password = url_encode(password);
-        }
-        else
-        {
-            m_password = password;
-        }
+        return set_password(url_encode(password), Encode::no);
+    }
+
+    void URL::set_password(std::string password, Encode::no_type)
+    {
+        m_password = std::move(password);
     }
 
     auto URL::authentication() const -> std::string
@@ -263,25 +259,27 @@ namespace mamba::util
 
     auto URL::host(Decode::yes_type) const -> std::string
     {
-        return url_decode(m_host);
+        return url_decode(host(Decode::no));
     }
 
-    void URL::set_host(std::string_view host, Encode encode)
+    void URL::set_host(std::string_view host, Encode::yes_type)
     {
-        std::string new_host = {};
-        if (encode == Encode::yes)
-        {
-            new_host = url_encode(host);
-        }
-        else
-        {
-            new_host = util::strip(host);  // spaces are illegal if not encoded
-        }
-        if (new_host.empty())
+        return set_host(url_encode(host), Encode::no);
+    }
+
+    void URL::set_host(std::string host, Encode::no_type)
+    {
+        if (host.empty())
         {
             throw std::invalid_argument("Cannot set empty host");
         }
-        m_host = util::to_lower(new_host);
+        std::transform(
+            host.cbegin(),
+            host.cend(),
+            host.begin(),
+            [](char c) { return util::to_lower(c); }
+        );
+        m_host = std::move(host);
     }
 
     auto URL::port() const -> const std::string&

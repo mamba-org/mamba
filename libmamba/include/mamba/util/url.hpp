@@ -24,7 +24,11 @@ namespace mamba::util
         // clang-format off
         enum class StripScheme : bool { no, yes };
         enum class HidePassword : bool { no, yes };
-        enum class Encode : bool { no, yes };
+        struct Encode
+        {
+            inline static constexpr struct yes_type {} yes = {};
+            inline static constexpr struct no_type {} no = {};
+        };
         struct Decode
         {
             inline static constexpr struct yes_type {} yes = {};
@@ -65,8 +69,11 @@ namespace mamba::util
         /** Retrun the decoded user, or empty if none. */
         [[nodiscard]] auto user(Decode::yes_type = Decode::yes) const -> std::string;
 
-        /** Set or clear the user. */
-        void set_user(std::string_view user, Encode encode = Encode::yes);
+        /** Set the user from a not encoded value. */
+        void set_user(std::string_view user, Encode::yes_type = Encode::yes);
+
+        /** Set the user from an already encoded value. */
+        void set_user(std::string user, Encode::no_type);
 
         /** Return the encoded password, or empty if none. */
         [[nodiscard]] auto password(Decode::no_type) const -> const std::string&;
@@ -74,8 +81,11 @@ namespace mamba::util
         /** Return the decoded password, or empty if none. */
         [[nodiscard]] auto password(Decode::yes_type = Decode::yes) const -> std::string;
 
-        /** Set or clear the password. */
-        void set_password(std::string_view password, Encode encode = Encode::yes);
+        /** Set the password from a not encoded value. */
+        void set_password(std::string_view password, Encode::yes_type = Encode::yes);
+
+        /** Set the password from an already encoded value. */
+        void set_password(std::string password, Encode::no_type);
 
         /** Return the encoded basic authentication string. */
         [[nodiscard]] auto authentication() const -> std::string;
@@ -86,8 +96,11 @@ namespace mamba::util
         /** Return the decoded host, always non-empty. */
         [[nodiscard]] auto host(Decode::yes_type = Decode::yes) const -> std::string;
 
-        /** Set a non-empty host. */
-        void set_host(std::string_view host, Encode encode = Encode::yes);
+        /** Set the host from a not encoded value. */
+        void set_host(std::string_view host, Encode::yes_type = Encode::yes);
+
+        /** Set the host from an already encoded value. */
+        void set_host(std::string host, Encode::no_type);
 
         /** Return the port, or empty if none. */
         [[nodiscard]] auto port() const -> const std::string&;

@@ -165,6 +165,9 @@ namespace mamba::util
         /** Set or clear the fragment. */
         void set_fragment(std::string_view fragment);
 
+        /** Return the full, exact, encoded URL. */
+        [[nodiscard]] auto str() -> std::string;
+
         /**
          * Return the full decoded url.
          *

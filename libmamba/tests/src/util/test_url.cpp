@@ -300,7 +300,7 @@ TEST_SUITE("util::URL")
         }
     }
 
-    TEST_CASE("str")
+    TEST_CASE("pretty_str options")
     {
         SUBCASE("scheme option")
         {
@@ -346,7 +346,10 @@ TEST_SUITE("util::URL")
                 "https://user:*****@localhost/"
             );
         }
+    }
 
+    TEST_CASE("str and pretty_str")
+    {
         SUBCASE("https://user:password@mamba.org:8080/folder/file.html?param=value#fragment")
         {
             URL url{};
@@ -360,6 +363,10 @@ TEST_SUITE("util::URL")
             url.set_fragment("fragment");
 
             CHECK_EQ(
+                url.str(),
+                "https://user:password@mamba.org:8080/folder/file.html?param=value#fragment"
+            );
+            CHECK_EQ(
                 url.pretty_str(),
                 "https://user:password@mamba.org:8080/folder/file.html?param=value#fragment"
             );
@@ -371,6 +378,7 @@ TEST_SUITE("util::URL")
             url.set_host("mamba.org");
             url.set_user("user");
             CHECK_EQ(url.pretty_str(), "https://user@mamba.org/");
+            CHECK_EQ(url.str(), "https://user@mamba.org/");
             CHECK_EQ(url.pretty_str(URL::StripScheme::yes), "user@mamba.org/");
         }
 
@@ -379,6 +387,7 @@ TEST_SUITE("util::URL")
             URL url{};
             url.set_scheme("https");
             url.set_host("mamba.org");
+            CHECK_EQ(url.str(), "https://mamba.org/");
             CHECK_EQ(url.pretty_str(), "https://mamba.org/");
             CHECK_EQ(url.pretty_str(URL::StripScheme::yes), "mamba.org/");
         }
@@ -388,6 +397,7 @@ TEST_SUITE("util::URL")
             URL url{};
             url.set_scheme("file");
             url.set_path("//folder/file.txt");
+            CHECK_EQ(url.str(), "file:////folder/file.txt");
             CHECK_EQ(url.pretty_str(), "file:////folder/file.txt");
             CHECK_EQ(url.pretty_str(URL::StripScheme::yes), "//folder/file.txt");
         }
@@ -397,6 +407,7 @@ TEST_SUITE("util::URL")
             URL url{};
             url.set_scheme("file");
             url.set_path("/folder/file.txt");
+            CHECK_EQ(url.str(), "file:///folder/file.txt");
             CHECK_EQ(url.pretty_str(), "file:///folder/file.txt");
             CHECK_EQ(url.pretty_str(URL::StripScheme::yes), "/folder/file.txt");
         }
@@ -406,8 +417,21 @@ TEST_SUITE("util::URL")
             URL url{};
             url.set_scheme("file");
             url.set_path("C:/folder/file.txt");
+            // CHECK_EQ(url.str(), "file:///C:/folder/file.txt");
             CHECK_EQ(url.pretty_str(), "file:///C:/folder/file.txt");
             CHECK_EQ(url.pretty_str(URL::StripScheme::yes), "C:/folder/file.txt");
+        }
+
+        SUBCASE("https://user@email.com:pw%rd@mamba.org/some /path$/")
+        {
+            URL url{};
+            url.set_scheme("https");
+            url.set_host("mamba.org");
+            url.set_user("user@email.com");
+            url.set_password("pw%rd");
+            url.set_path("/some /path$/");
+            CHECK_EQ(url.str(), "https://user%40email.com:pw%25rd@mamba.org/some%20/path%24/");
+            CHECK_EQ(url.pretty_str(), "https://user@email.com:pw%rd@mamba.org/some /path$/");
         }
     }
 

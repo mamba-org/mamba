@@ -392,34 +392,47 @@ namespace mamba::util
         m_fragment = fragment;
     }
 
+    auto URL::str() -> std::string
+    {
+        return util::concat(
+            scheme(),
+            "://",
+            user(Decode::no),
+            m_password.empty() ? "" : ":",
+            password(Decode::no),
+            m_user.empty() ? "" : "@",
+            host(Decode::no),
+            m_port.empty() ? "" : ":",
+            port(),
+            path(Decode::no),
+            m_query.empty() ? "" : "?",
+            m_query,
+            m_fragment.empty() ? "" : "#",
+            m_fragment
+        );
+    }
+
     auto URL::pretty_str(StripScheme strip_scheme, char rstrip_path, HidePassword hide_password) const
         -> std::string
     {
         std::string computed_path = {};
-        if (m_scheme == "file")
+        // When stripping file scheme, not showing leading '/' for Windows path with drive
+        if ((m_scheme == "file") && (strip_scheme == StripScheme::yes) && host(Decode::no).empty())
         {
-            // When stripping file scheme, not showing leading '/' for Windows path with drive
-            if ((strip_scheme == StripScheme::yes) && host(Decode::no).empty())
-            {
-                computed_path = pretty_path();
-            }
-            else
-            {
-                computed_path = path(Decode::yes);
-            }
+            computed_path = pretty_path();
         }
         else
         {
-            computed_path = m_path;
+            computed_path = path(Decode::yes);
         }
         computed_path = util::rstrip(computed_path, rstrip_path);
 
         return util::concat(
             (strip_scheme == StripScheme::no) ? m_scheme : "",
             (strip_scheme == StripScheme::no) ? "://" : "",
-            url_decode(m_user),
+            user(Decode::yes),
             m_password.empty() ? "" : ":",
-            (hide_password == HidePassword::no) ? url_decode(m_password) : "*****",
+            (hide_password == HidePassword::no) ? password(Decode::yes) : "*****",
             m_user.empty() ? "" : "@",
             host(Decode::yes),
             m_port.empty() ? "" : ":",

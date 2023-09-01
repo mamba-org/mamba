@@ -28,7 +28,7 @@ namespace mamba
 
     void EnvironmentsManager::register_env(const fs::u8path& location)
     {
-        if (!Context::instance().register_envs)
+        if (!m_context.register_envs)
         {
             return;
         }

@@ -624,8 +624,8 @@ namespace mamba
                         m_check_targets.back()->set_head_only(true);
                         m_check_targets.back()->set_finalize_callback(&MSubdirData::finalize_check, this);
                         m_check_targets.back()->set_ignore_failure(true);
-                        if (!(ctx.graphics_params.no_progress_bars || ctx.output_params.quiet
-                              || ctx.output_params.json))
+                        if (!(context.graphics_params.no_progress_bars
+                              || context.output_params.quiet || context.output_params.json))
                         {
                             m_progress_bar_check = Console::instance().add_progress_bar(
                                 m_name + " (check zst)"

@@ -15,6 +15,7 @@
 #include <fmt/format.h>
 #include <openssl/evp.h>
 
+#include "mamba/core/mamba_fs.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"

@@ -575,7 +575,6 @@ namespace mamba
     std::tuple<std::string, std::string>
     LinkPackage::link_path(const PathData& path_data, bool noarch_python)
     {
-        const auto& context = m_context->context();
         std::string subtarget = path_data.path;
         LOG_TRACE << "linking '" << subtarget << "'";
         fs::u8path dst, rel_dst;
@@ -1061,7 +1060,8 @@ namespace mamba
         }
 
         // Create all start menu shortcuts if prefix name doesn't start with underscore
-        if (util::on_win && context.shortcuts && m_context->target_prefix.filename().string()[0] != '_')
+        if (util::on_win && context.shortcuts
+            && m_context->target_prefix.filename().string()[0] != '_')
         {
             for (auto& path : paths_data)
             {

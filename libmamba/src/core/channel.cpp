@@ -233,13 +233,7 @@ namespace mamba
                 else
                 {
                     std::string platform = "";
-                    util::split_platform(
-                        get_known_platforms(),
-                        value,
-                        context.platform,
-                        value,
-                        platform
-                    );
+                    util::split_platform(get_known_platforms(), value, context.platform, value, platform);
                     if (!platform.empty())
                     {
                         platforms.push_back(std::move(platform));

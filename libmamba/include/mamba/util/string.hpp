@@ -83,6 +83,7 @@ namespace mamba::util
 
     bool contains(std::string_view str, std::string_view sub_str);
     bool contains(std::string_view str, char c);
+    bool contains(char c1, char c2);
 
     /**
      * Check if any of the strings starts with the prefix.

@@ -242,6 +242,11 @@ namespace mamba::util
         return str.find(c) != std::string::npos;
     }
 
+    bool contains(char c1, char c2)
+    {
+        return c1 == c2;
+    }
+
     // TODO(C++20) This is a method of string_view
     bool ends_with(std::string_view str, std::string_view suffix)
     {

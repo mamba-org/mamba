@@ -32,7 +32,7 @@ TEST_SUITE("util::url_manip")
         CHECK_EQ(url_encode("https://foo/"), "https%3A%2F%2Ffoo%2F");
 
         // Exclude characters
-        CHECK_EQ(url_encode(" /word%", "/"), "%20/word%25");
+        CHECK_EQ(url_encode(" /word%", '/'), "%20/word%25");
 
         CHECK_EQ(url_decode(""), "");
         CHECK_EQ(url_decode("page"), "page");

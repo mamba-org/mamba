@@ -121,6 +121,7 @@ namespace mamba::util
          * Set the path from a not encoded value.
          *
          * All '/' are not encoded but interpreted as separators.
+         * On windows with a file scheme, the colon after the drive letter is not encoded.
          * A leading '/' is added if abscent.
          */
         void set_path(std::string_view path, Encode::yes_type = Encode::yes);

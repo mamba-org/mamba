@@ -13,6 +13,7 @@
 #include <curl/urlapi.h>
 #include <fmt/format.h>
 
+#include "mamba/util/build.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
@@ -324,7 +325,31 @@ namespace mamba::util
 
     void URL::set_path(std::string_view path, Encode::yes_type)
     {
-        return set_path(url_encode(path, "/"), Encode::no);
+        // Drive colon must not be encoded
+        if (on_win && (scheme() == "file"))
+        {
+            auto [slashes, no_slash_path] = lstrip_parts(path, '/');
+            if (slashes.empty())
+            {
+                slashes = "/";
+            }
+            if ((no_slash_path.size() >= 2) && path_has_drive_letter(no_slash_path))
+            {
+                m_path = concat(
+                    slashes,
+                    no_slash_path.substr(0, 2),
+                    url_encode(no_slash_path.substr(2), '/')
+                );
+            }
+            else
+            {
+                m_path = concat(slashes, url_encode(no_slash_path, '/'));
+            }
+        }
+        else
+        {
+            return set_path(url_encode(path, '/'), Encode::no);
+        }
     }
 
     void URL::set_path(std::string path, Encode::no_type)
@@ -338,7 +363,7 @@ namespace mamba::util
 
     auto URL::pretty_path() const -> std::string
     {
-        // All paths start with a '/' except those like "file://C:/folder/file.txt"
+        // All paths start with a '/' except those like "file:///C:/folder/file.txt"
         if (m_scheme == "file")
         {
             assert(util::starts_with(m_path, '/'));
@@ -353,7 +378,12 @@ namespace mamba::util
 
     void URL::append_path(std::string_view subpath, Encode::yes_type)
     {
-        return append_path(url_encode(subpath, "/"), Encode::no);
+        if (path(Decode::no) == "/")
+        {
+            // Allow hanldling of Windows drive letter encoding
+            return set_path(std::string(subpath), Encode::yes);
+        }
+        return append_path(url_encode(subpath, '/'), Encode::no);
     }
 
     void URL::append_path(std::string_view subpath, Encode::no_type)

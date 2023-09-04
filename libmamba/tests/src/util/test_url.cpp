@@ -412,14 +412,21 @@ TEST_SUITE("util::URL")
             CHECK_EQ(url.pretty_str(URL::StripScheme::yes), "/folder/file.txt");
         }
 
-        SUBCASE("file:///C:/folder/file.txt")
+        SUBCASE("file:///C:/folder&/file.txt")
         {
             URL url{};
             url.set_scheme("file");
-            url.set_path("C:/folder/file.txt");
-            // CHECK_EQ(url.str(), "file:///C:/folder/file.txt");
-            CHECK_EQ(url.pretty_str(), "file:///C:/folder/file.txt");
-            CHECK_EQ(url.pretty_str(URL::StripScheme::yes), "C:/folder/file.txt");
+            url.set_path("C:/folder&/file.txt");
+            if (on_win)
+            {
+                CHECK_EQ(url.str(), "file:///C:/folder%26/file.txt");
+            }
+            else
+            {
+                CHECK_EQ(url.str(), "file:///C%3A/folder%26/file.txt");
+            }
+            CHECK_EQ(url.pretty_str(), "file:///C:/folder&/file.txt");
+            CHECK_EQ(url.pretty_str(URL::StripScheme::yes), "C:/folder&/file.txt");
         }
 
         SUBCASE("https://user@email.com:pw%rd@mamba.org/some /path$/")
@@ -481,20 +488,37 @@ TEST_SUITE("util::URL")
     {
         auto url = URL();
 
-        CHECK_EQ(url.path(), "/");
-        CHECK_EQ((url / "").path(), "/");
-        CHECK_EQ((url / "   ").path(), "/   ");
-        CHECK_EQ((url / "/").path(), "/");
-        CHECK_EQ((url / "page").path(), "/page");
-        CHECK_EQ((url / "/page").path(), "/page");
-        CHECK_EQ((url / " /page").path(), "/ /page");
-        CHECK_EQ(url.path(), "/");  // unchanged
+        SUBCASE("Add components")
+        {
+            CHECK_EQ(url.path(), "/");
+            CHECK_EQ((url / "").path(), "/");
+            CHECK_EQ((url / "   ").path(), "/   ");
+            CHECK_EQ((url / "/").path(), "/");
+            CHECK_EQ((url / "page").path(), "/page");
+            CHECK_EQ((url / "/page").path(), "/page");
+            CHECK_EQ((url / " /page").path(), "/ /page");
+            CHECK_EQ(url.path(), "/");  // unchanged
 
-        url.append_path("folder");
-        CHECK_EQ(url.path(), "/folder");
-        CHECK_EQ((url / "").path(), "/folder");
-        CHECK_EQ((url / "/").path(), "/folder/");
-        CHECK_EQ((url / "page").path(), "/folder/page");
-        CHECK_EQ((url / "/page").path(), "/folder/page");
+            url.append_path("folder");
+            CHECK_EQ(url.path(), "/folder");
+            CHECK_EQ((url / "").path(), "/folder");
+            CHECK_EQ((url / "/").path(), "/folder/");
+            CHECK_EQ((url / "page").path(), "/folder/page");
+            CHECK_EQ((url / "/page").path(), "/folder/page");
+        }
+
+        SUBCASE("Absolute paths")
+        {
+            url.set_scheme("file");
+            url.append_path("C:/folder/file.txt");
+            if (on_win)
+            {
+                CHECK_EQ(url.str(), "file:///C:/folder/file.txt");
+            }
+            else
+            {
+                CHECK_EQ(url.str(), "file:///C%3A/folder/file.txt");
+            }
+        }
     }
 }

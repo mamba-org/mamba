@@ -226,6 +226,11 @@ namespace mamba::util
         m_user = std::move(user);
     }
 
+    auto URL::clear_user() -> std::string
+    {
+        return std::exchange(m_user, "");
+    }
+
     auto URL::password(Decode::no_type) const -> const std::string&
     {
         return m_password;
@@ -244,6 +249,11 @@ namespace mamba::util
     void URL::set_password(std::string password, Encode::no_type)
     {
         m_password = std::move(password);
+    }
+
+    auto URL::clear_password() -> std::string
+    {
+        return std::exchange(m_password, "");
     }
 
     auto URL::authentication() const -> std::string
@@ -283,6 +293,18 @@ namespace mamba::util
         m_host = std::move(host);
     }
 
+    auto URL::clear_host() -> std::string
+    {
+        // Cheap == comparison that works because of class invariant
+        if (auto l_host = host(Decode::no); l_host.data() != m_host.data())
+        {
+            auto out = std::string(l_host);
+            set_host("", Encode::no);
+            return out;
+        }
+        return std::exchange(m_host, "");
+    }
+
     auto URL::port() const -> const std::string&
     {
         return m_port;
@@ -295,6 +317,11 @@ namespace mamba::util
             throw std::invalid_argument(fmt::format(R"(Port must be a number, got "{}")", port));
         }
         m_port = port;
+    }
+
+    auto URL::clear_port() -> std::string
+    {
+        return std::exchange(m_port, "");
     }
 
     auto URL::authority() const -> std::string
@@ -361,6 +388,11 @@ namespace mamba::util
         m_path = path;
     }
 
+    auto URL::clear_path() -> std::string
+    {
+        return std::exchange(m_path, "/");
+    }
+
     auto URL::pretty_path() const -> std::string
     {
         // All paths start with a '/' except those like "file:///C:/folder/file.txt"
@@ -412,6 +444,11 @@ namespace mamba::util
         m_query = query;
     }
 
+    auto URL::clear_query() -> std::string
+    {
+        return std::exchange(m_query, "");
+    }
+
     auto URL::fragment() const -> const std::string&
     {
         return m_fragment;
@@ -420,6 +457,11 @@ namespace mamba::util
     void URL::set_fragment(std::string_view fragment)
     {
         m_fragment = fragment;
+    }
+
+    auto URL::clear_fragment() -> std::string
+    {
+        return std::exchange(m_fragment, "");
     }
 
     auto URL::str() -> std::string

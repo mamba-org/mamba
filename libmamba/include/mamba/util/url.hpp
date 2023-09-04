@@ -75,6 +75,9 @@ namespace mamba::util
         /** Set the user from an already encoded value. */
         void set_user(std::string user, Encode::no_type);
 
+        /** Clear and return the encoded user. */
+        auto clear_user() -> std::string;
+
         /** Return the encoded password, or empty if none. */
         [[nodiscard]] auto password(Decode::no_type) const -> const std::string&;
 
@@ -86,6 +89,9 @@ namespace mamba::util
 
         /** Set the password from an already encoded value. */
         void set_password(std::string password, Encode::no_type);
+
+        /** Clear and return the encoded password. */
+        auto clear_password() -> std::string;
 
         /** Return the encoded basic authentication string. */
         [[nodiscard]] auto authentication() const -> std::string;
@@ -102,11 +108,17 @@ namespace mamba::util
         /** Set the host from an already encoded value. */
         void set_host(std::string host, Encode::no_type);
 
+        /** Clear and return the encoded hostname. */
+        auto clear_host() -> std::string;
+
         /** Return the port, or empty if none. */
         [[nodiscard]] auto port() const -> const std::string&;
 
         /** Set or clear the port. */
         void set_port(std::string_view port);
+
+        /** Clear and return the port number. */
+        auto clear_port() -> std::string;
 
         /** Return the encoded autority part of the URL. */
         [[nodiscard]] auto authority() const -> std::string;
@@ -128,6 +140,9 @@ namespace mamba::util
 
         /** Set the path from an already encoded value, a leading '/' is added if abscent. */
         void set_path(std::string path, Encode::no_type);
+
+        /** Clear the path and return the encoded path, always starts with a '/'. */
+        auto clear_path() -> std::string;
 
         /**
          * Return the decoded path.
@@ -160,11 +175,17 @@ namespace mamba::util
         /** Set or clear the query. */
         void set_query(std::string_view query);
 
+        /** Clear and return the query. */
+        auto clear_query() -> std::string;
+
         /** Return the fragment, or empty if none. */
         [[nodiscard]] auto fragment() const -> const std::string&;
 
         /** Set or clear the fragment. */
         void set_fragment(std::string_view fragment);
+
+        /** Clear and return the fragment. */
+        auto clear_fragment() -> std::string;
 
         /** Return the full, exact, encoded URL. */
         [[nodiscard]] auto str() -> std::string;

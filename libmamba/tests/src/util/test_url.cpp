@@ -23,13 +23,28 @@ TEST_SUITE("util::URL")
         {
             URL url{};
             CHECK_EQ(url.scheme(), URL::https);
-            CHECK_EQ(url.host(), URL::localhost);
-            CHECK_EQ(url.path(), "/");
-            CHECK_EQ(url.pretty_path(), "/");
             CHECK_EQ(url.user(), "");
             CHECK_EQ(url.password(), "");
             CHECK_EQ(url.port(), "");
+            CHECK_EQ(url.host(), URL::localhost);
+            CHECK_EQ(url.path(), "/");
+            CHECK_EQ(url.pretty_path(), "/");
             CHECK_EQ(url.query(), "");
+
+            CHECK_EQ(url.clear_user(), "");
+            CHECK_EQ(url.user(), "");
+            CHECK_EQ(url.clear_password(), "");
+            CHECK_EQ(url.password(), "");
+            CHECK_EQ(url.clear_port(), "");
+            CHECK_EQ(url.port(), "");
+            CHECK_EQ(url.clear_host(), URL::localhost);
+            CHECK_EQ(url.host(), URL::localhost);
+            CHECK_EQ(url.clear_path(), "/");
+            CHECK_EQ(url.path(), "/");
+            CHECK_EQ(url.clear_query(), "");
+            CHECK_EQ(url.query(), "");
+            CHECK_EQ(url.clear_fragment(), "");
+            CHECK_EQ(url.fragment(), "");
         }
 
         SUBCASE("Complete")
@@ -38,20 +53,36 @@ TEST_SUITE("util::URL")
             url.set_scheme("https");
             url.set_host("mamba.org");
             url.set_user("user");
-            url.set_password("password");
+            url.set_password("pass:word");
             url.set_port("8080");
             url.set_path("/folder/file.html");
             url.set_query("param=value");
             url.set_fragment("fragment");
+
             CHECK_EQ(url.scheme(), "https");
             CHECK_EQ(url.host(), "mamba.org");
             CHECK_EQ(url.user(), "user");
-            CHECK_EQ(url.password(), "password");
+            CHECK_EQ(url.password(), "pass:word");
             CHECK_EQ(url.port(), "8080");
             CHECK_EQ(url.path(), "/folder/file.html");
             CHECK_EQ(url.pretty_path(), "/folder/file.html");
             CHECK_EQ(url.query(), "param=value");
             CHECK_EQ(url.fragment(), "fragment");
+
+            CHECK_EQ(url.clear_user(), "user");
+            CHECK_EQ(url.user(), "");
+            CHECK_EQ(url.clear_password(), "pass%3Aword");
+            CHECK_EQ(url.password(), "");
+            CHECK_EQ(url.clear_port(), "8080");
+            CHECK_EQ(url.port(), "");
+            CHECK_EQ(url.clear_host(), "mamba.org");
+            CHECK_EQ(url.host(), URL::localhost);
+            CHECK_EQ(url.clear_path(), "/folder/file.html");
+            CHECK_EQ(url.path(), "/");
+            CHECK_EQ(url.clear_query(), "param=value");
+            CHECK_EQ(url.query(), "");
+            CHECK_EQ(url.clear_fragment(), "fragment");
+            CHECK_EQ(url.fragment(), "");
         }
 
         SUBCASE("File")

@@ -38,13 +38,19 @@ namespace mamba::util
         return false;
     }
 
+    auto path_get_drive_letter(std::string_view path) -> std::optional<char>
+    {
+        if (path_has_drive_letter(path))
+        {
+            return { path.front() };
+        }
+        return std::nullopt;
+    }
+
     auto path_has_drive_letter(std::string_view path) -> bool
     {
-        static constexpr auto is_drive_char = [](char c) -> bool { return is_alphanum(c); };
-
-        auto [drive, rest] = lstrip_if_parts(path, is_drive_char);
-        return !drive.empty() && (rest.size() >= 2) && (rest[0] == ':')
-               && ((rest[1] == '/') || (rest[1] == '\\'));
+        return (path.size() >= 3) && is_alpha(path[0]) && (path[1] == ':')
+               && ((path[2] == '/') || (path[2] == '\\'));
     }
 
     auto path_win_to_posix(std::string path) -> std::string

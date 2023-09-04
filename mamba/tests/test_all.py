@@ -39,13 +39,13 @@ def test_install():
         (".", "mamba", "tests", "channel_a"),
     ]
     package = "a"
-    run(get_umamba, channels, package)
+    run(get_umamba(), channels, package)
 
     package = "b"
-    run(get_umamba, channels, package)
+    run(get_umamba(), channels, package)
 
     channels = channels[::-1]
-    run(get_umamba, channels, package)
+    run(get_umamba(), channels, package)
 
 
 #@pytest.mark.parametrize("shell_type", platform_shells())

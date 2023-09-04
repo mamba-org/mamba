@@ -71,7 +71,7 @@ jobs:
       - name: create build environment
         uses: mamba-org/setup-micromamba@v1
         with:
-          environment-file: ./mamba/environment-dev.yml
+          environment-file: ./mamba/environment-dev.yml # TODO adjust with missing stuff of umamba and remove unecessary stuff
           environment-name: build_env
           cache-environment: true
           create-args: >-
@@ -121,6 +121,7 @@ jobs:
       - name: Run mamba tests suite
         shell: bash -l {0}
         run: |
+          export TEST_MAMBA_EXE=$(pwd)/build/micromamba/micromamba
           unset CONDARC  # Interferes with tests
           pytest -v --capture=tee-sys mamba/tests
       - name: Run mamba create/update tests

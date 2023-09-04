@@ -19,17 +19,17 @@ with open(os.path.join(here, "mamba", "_version.py")) as f:
 
 __version__ = version_ns["__version__"]
 
-data_files = [
-    ("etc/profile.d", ["mamba/shell_templates/mamba.sh"]),
-    ("etc/fish/conf.d", ["mamba/shell_templates/mamba.fish"]),
-]
-if sys.platform == "win32":
-    data_files.append(
-        ("condabin", ["mamba/shell_templates/mamba.bat"]),
-    )
-    data_files.append(
-        ("Library/bin", ["mamba/shell_templates/win_redirect/mamba.bat"]),
-    )
+#data_files = [
+    #("etc/profile.d", ["mamba/shell_templates/mamba.sh"]),
+    #("etc/fish/conf.d", ["mamba/shell_templates/mamba.fish"]),
+#]
+#if sys.platform == "win32":
+    #data_files.append(
+        #("condabin", ["mamba/shell_templates/mamba.bat"]),
+    #)
+    #data_files.append(
+        #("Library/bin", ["mamba/shell_templates/win_redirect/mamba.bat"]),
+    #)
 
 setup(
     name="mamba",
@@ -42,11 +42,10 @@ setup(
     entry_points={"console_scripts": ["mamba = mamba.mamba:main"]},
     long_description="A (hopefully faster) reimplementation of the slow bits of conda.",
     install_requires=[
-        "conda>=4.14.0",
         "libmambapy",
     ],
     extras_require={"test": ["pytest", "pytest-lazy-fixture"]},
-    data_files=data_files,
+    #data_files=data_files,
     include_package_data=True,
     zip_safe=False,
 )

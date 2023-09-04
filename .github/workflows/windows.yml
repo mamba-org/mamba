@@ -66,7 +66,7 @@ jobs:
         run: sccache --show-stats
 
   mamba_python_tests_win:
-    name: Mamba tests
+    name: Mamba tests # TODO Adjust this to run micromamba
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -100,6 +100,7 @@ jobs:
               -D CMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
               -D CMAKE_BUILD_TYPE="Release" ^
               -D BUILD_LIBMAMBAPY=ON ^
+              -D BUILD_MICROMAMBA=ON ^
               -D BUILD_LIBMAMBA=ON ^
               -D BUILD_SHARED=ON ^
               -D BUILD_MAMBA_PACKAGE=ON ^

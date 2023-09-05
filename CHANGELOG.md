@@ -1,3 +1,36 @@
+2023.09.05
+==========
+
+Releases: libmamba 1.5.1, libmambapy 1.5.1, mamba 1.5.1, micromamba 1.5.1
+
+Enhancements:
+
+- [libmamba] Add scope in util tests by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2775
+- [micromamba] Speed up tests (a bit) by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2776
+- [micromamba] Restore \_\_linux=0 test by @jonashaag in https://github.com/mamba-org/mamba/pull/2778
+- [libmamba, micromamba] Enable Link Time Optimization by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2742
+- [libmamba] Add libsolv namespace callback by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2796
+- [all] Clearer output from micromamba search by @delsner in https://github.com/mamba-org/mamba/pull/2782
+- [libmamba] add context.register_envs to control whether environments are registered to environments.txt or not by @jaimergp in https://github.com/mamba-org/mamba/pull/2802
+- [libmamba, micromamba] Windows path manipulation and other cleanups by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2801
+- [libmamba] Bring back repodata_use_zst by @jonashaag in https://github.com/mamba-org/mamba/pull/2790
+- [micromamba] Implement --md5 and --channel-subdir for non-explicit env export by @jonashaag in https://github.com/mamba-org/mamba/pull/2672
+
+Bug fixes:
+
+- [libmamba] fix install pin by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2773
+- [libmamba] Use generic_string for path on Windows unix shells by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2685
+- [libmamba] Fix pins by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2786
+- [libmamba] Various fixes by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2800
+- [micromamba] Fix extra agrument in self-update reinit by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2787
+- [libmamba] Parse subdirs in CLI match specs by @jonashaag in https://github.com/mamba-org/mamba/pull/2799
+
+CI fixes and doc:
+
+- [all] Splitted GHA workflow by @JohanMabille in https://github.com/mamba-org/mamba/pull/2779
+- [all] Use Release build mode in Windows CI by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2785
+- [micromamba] Fix wrong command description by @Hind-M in https://github.com/mamba-org/mamba/pull/2804
+
 2023.08.23
 ==========
 

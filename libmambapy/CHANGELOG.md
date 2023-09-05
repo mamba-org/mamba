@@ -1,3 +1,15 @@
+libmambapy 1.5.1 (September 05, 2023)
+=====================================
+
+Enhancements:
+
+- Clearer output from micromamba search by @delsner in https://github.com/mamba-org/mamba/pull/2782
+
+CI fixes and doc:
+
+- Splitted GHA workflow by @JohanMabille in https://github.com/mamba-org/mamba/pull/2779
+- Use Release build mode in Windows CI by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2785
+
 libmambapy 1.5.0 (August 24, 2023)
 ==================================
 

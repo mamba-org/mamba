@@ -83,6 +83,9 @@ jobs:
           key: ${{ github.job }}-${{ matrix.os }}
           restore-keys: |
             libmamba-${{ matrix.os }}
+      - name: Run conda init # TODO to be replaced
+        shell: bash -l {0}
+        run: conda init
       - name: build libmamba Python bindings
         shell: bash -l {0}
         run: |

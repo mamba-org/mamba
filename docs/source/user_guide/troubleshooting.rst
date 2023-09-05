@@ -41,7 +41,7 @@ Using the default and ``conda-forge`` channels at the same time is not supported
 
 Please disable the default channels in your install command::
 
-  mamba create -c nodefaults ...
+  mamba create --override-channels ...
 
 Or your :file:`environment.yml` file:
 

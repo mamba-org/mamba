@@ -126,8 +126,7 @@ An exclusive `conda-forge <https://conda-forge.org/>`_ setup can be configured w
 
 .. code-block:: bash
 
-   micromamba config append channels conda-forge
-   micromamba config append channels nodefaults
+   micromamba config append channels conda-forge`
    micromamba config set channel_priority strict
 
 .. _umamba-install-win:

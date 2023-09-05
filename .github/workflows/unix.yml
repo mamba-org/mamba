@@ -24,7 +24,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         build_type: [Release, Debug]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Create build environment
         uses: mamba-org/setup-micromamba@v1
         with:
@@ -67,7 +67,7 @@ jobs:
         python_version: ["3.8"]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: create build environment
         uses: mamba-org/setup-micromamba@v1
         with:
@@ -172,7 +172,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         build_type: [Release, Debug]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: create build environment
         uses: mamba-org/setup-micromamba@v1
         with:

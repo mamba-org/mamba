@@ -32,14 +32,14 @@ jobs:
           - { os: macos-latest, platform: osx, arch: arm64 }
     steps:
       - name: Checkout micromamba-feedstock
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: conda-forge/micromamba-feedstock
           path: micromamba-feedstock
       - name: Clear micromamba-feedstock git directory
         run: rm -rf "micromamba-feedstock/.git"
       - name: Checkout mamba branch
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: micromamba-feedstock/source
       - uses: mamba-org/setup-micromamba@v1
@@ -104,7 +104,7 @@ jobs:
     name: "micromamba - win-64"
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Cache vcpkg packages
         uses: actions/cache@v3
         with:

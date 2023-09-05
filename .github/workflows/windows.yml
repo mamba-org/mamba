@@ -23,7 +23,7 @@ jobs:
       matrix:
         os: [windows-2019]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Create build environment
         uses: mamba-org/setup-micromamba@v1
         with:
@@ -72,7 +72,7 @@ jobs:
       matrix:
         os: [windows-2019]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: create build environment
         uses: mamba-org/setup-micromamba@v1
         with:
@@ -161,7 +161,7 @@ jobs:
       matrix:
         os: [windows-2019]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: create build environment
         uses: mamba-org/setup-micromamba@v1
         with:
@@ -213,7 +213,7 @@ jobs:
       matrix:
         os: [windows-2019]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v3
         with:
           name: _internal_micromamba_binary

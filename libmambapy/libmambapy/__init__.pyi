@@ -729,6 +729,14 @@ class Context:
     def quiet(self, arg1: bool) -> None:
         pass
     @property
+    def register_envs(self) -> bool:
+        """
+        :type: bool
+        """
+    @register_envs.setter
+    def register_envs(self, arg0: bool) -> None:
+        pass
+    @property
     def remote_fetch_params(self) -> Context.RemoteFetchParams:
         """
         :type: Context.RemoteFetchParams

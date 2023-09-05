@@ -452,3 +452,16 @@ init_install_options(CLI::App* subcom, Configuration& config)
         "Categories of package to install from environment lockfile"
     );
 }
+
+void
+init_create_options(CLI::App* subcom, Configuration& config)
+{
+    init_install_options(subcom, config);
+
+    auto& register_envs = config.at("register_envs");
+    subcom->add_flag(
+        "--register-envs",
+        register_envs.get_cli_config<bool>(),
+        register_envs.description()
+    );
+}

@@ -255,7 +255,7 @@ namespace mamba
         }
     }  // namespace
 
-    std::vector<std::string> get_known_platforms()
+    const std::vector<std::string>& get_known_platforms()
     {
         return KNOWN_PLATFORMS;
     }

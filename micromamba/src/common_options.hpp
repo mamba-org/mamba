@@ -26,6 +26,9 @@ void
 init_install_options(CLI::App* subcom, mamba::Configuration& config);
 
 void
+init_create_options(CLI::App* subcom, mamba::Configuration& config);
+
+void
 init_network_options(CLI::App* subcom, mamba::Configuration& config);
 
 void

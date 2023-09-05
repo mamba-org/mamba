@@ -749,12 +749,13 @@ namespace mamba
             return std::make_tuple(validation::sha256sum(dst), rel_dst.string());
         }
 
-        if ((path_data.path_type == PathType::HARDLINK) || path_data.no_link)
+	auto begin = std::chrono::high_resolution_clock::now(); 
+	if ((path_data.path_type == PathType::HARDLINK) || path_data.no_link)
         {
             bool copy = path_data.no_link || m_context->always_copy;
             bool softlink = m_context->always_softlink;
 
-            if (!copy && !softlink)
+            if ((!copy && !softlink) || is_executable(src))
             {
                 std::error_code lec;
                 fs::create_hard_link(src, dst, lec);
@@ -785,9 +786,18 @@ namespace mamba
                 }
             }
             if (copy)
-            {
-                fs::copy(src, dst);
-                LOG_TRACE << "copied '" << src.string() << "'" << std::endl
+	    {
+		try
+		{
+		    fs::copy(src, dst);
+		}
+		catch (std::filesystem::filesystem_error const& ex)
+		{
+		    Console::stream() << "could not copy: " << src.string() << " -> "
+			<< dst.string() << ": " << ex.what();
+		}
+
+		LOG_TRACE << "copied '" << src.string() << "'" << std::endl
                           << " --> '" << dst.string() << "'";
             }
         }
@@ -806,7 +816,12 @@ namespace mamba
                 std::string("Path type not implemented: ")
                 + std::to_string(static_cast<int>(path_data.path_type))
             );
-        }
+	}
+	auto end = std::chrono::high_resolution_clock::now();
+	auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
+
+
+	LOG_TRACE << "Time measured: %.3f seconds.\n" << elapsed.count() * 1e-9;
         return std::make_tuple(
             path_data.sha256.empty() ? validation::sha256sum(dst) : path_data.sha256,
             rel_dst.string()

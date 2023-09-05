@@ -6,6 +6,7 @@
 
 #include <sys/ioctl.h>
 #include <sys/utsname.h>
+#include <libelf.h>
 #include <unistd.h>
 #if defined(__APPLE__)
 #include <libproc.h>
@@ -695,14 +696,57 @@ namespace mamba
             std::regex re(R"(\\(?! ))");
             std::string res = std::regex_replace(path, re, R"(/)");
             util::replace_all(res, ":////", "://");
-            return res;
-        }
-        else
-        {
-            return path;
-        }
+	    return res;
+	}
+	else
+	{
+	    return path;
+	}
 #else
-        return path;
+	return path;
 #endif
     }
+
+#ifndef _WIN32
+    bool is_executable(const fs::u8path& path)
+    {
+	elf_version(EV_CURRENT);
+	int fd = open(path.string().c_str(), O_RDONLY);
+	if (fd < 0)
+	{
+	    LOG_DEBUG << path.string() << " not found";
+	    return false;
+	}
+
+	Elf* elf = elf_begin(fd, ELF_C_READ, NULL);
+	if (!elf)
+	{
+	    LOG_DEBUG << path.string() << " error calling elf_begin";
+	    close(fd);
+	    return false;
+	}
+
+	Elf_Kind ek = elf_kind(elf);
+	if (ek != ELF_K_ELF)
+	{
+	    LOG_DEBUG << path.string() << " not an ELF file";
+	    close(fd);
+	    return false;
+	}
+
+	Elf64_Ehdr* elfhdr = elf64_getehdr(elf);
+	if (!elfhdr)
+	{
+	    LOG_DEBUG << path.string() << " error reading ELF header";
+	    close(fd);
+	    return false;
+	}
+	bool rc = elfhdr->e_type == ET_EXEC;
+
+	elf_end(elf);
+	close(fd);
+	return rc;
+    }
+#endif
+
 }

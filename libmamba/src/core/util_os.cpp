@@ -134,7 +134,7 @@ namespace mamba
         return true;
     }
 
-    bool enable_long_paths_support(bool force)
+    bool enable_long_paths_support(bool force, Palette palette)
     {
         // Needs to be set system-wide & can only be run as admin ...
         std::string win_ver = windows_version();
@@ -166,10 +166,7 @@ namespace mamba
             fmt::print(
                 out,
                 "{}",
-                fmt::styled(
-                    "Windows long-path support already enabled.",
-                    Context::instance().graphics_params.palette.ignored
-                )
+                fmt::styled("Windows long-path support already enabled.", palette.ignored)
             );
             return true;
         }
@@ -205,14 +202,7 @@ namespace mamba
         if (prev_value == 1)
         {
             auto out = Console::stream();
-            fmt::print(
-                out,
-                "{}",
-                fmt::styled(
-                    "Windows long-path support enabled.",
-                    Context::instance().graphics_params.palette.success
-                )
-            );
+            fmt::print(out, "{}", fmt::styled("Windows long-path support enabled.", palette.success));
             return true;
         }
         LOG_WARNING << "Changing registry value did not succeed.";

@@ -21,9 +21,9 @@ namespace mamba
 {
     namespace detail
     {
-        std::string get_formatted_env_name(const fs::u8path& target_prefix)
+        std::string get_formatted_env_name(const Context& context, const fs::u8path& target_prefix)
         {
-            std::string name = env_name(target_prefix);
+            std::string name = env_name(context, target_prefix);
             if (name.find_first_of("\\/") != std::string::npos)
             {
                 return "";
@@ -215,9 +215,9 @@ namespace mamba
 #endif
 
 
-    void replace_variables(std::string& text, TransactionContext* transaction_context)
+    void
+    replace_variables(const Context& ctx, std::string& text, TransactionContext* transaction_context)
     {
-        auto& ctx = mamba::Context::instance();
         fs::u8path root_prefix = ctx.prefix_params.root_prefix;
 
         fs::u8path target_prefix;
@@ -259,7 +259,7 @@ namespace mamba
             { "${PY_VER}", py_ver },
             { "${MENU_DIR}", to_forward_slash(target_prefix / "Menu") },
             { "${DISTRIBUTION_NAME}", distribution_name },
-            { "${ENV_NAME}", detail::get_formatted_env_name(target_prefix) },
+            { "${ENV_NAME}", detail::get_formatted_env_name(ctx, target_prefix) },
             { "${PLATFORM}", platform_bitness },
         };
 
@@ -277,19 +277,20 @@ namespace mamba
     namespace
     {
         void create_remove_shortcut_impl(
+            const Context& ctx,
             const fs::u8path& json_file,
             TransactionContext* transaction_context,
             [[maybe_unused]] bool remove
         )
         {
             std::string json_content = mamba::read_contents(json_file);
-            replace_variables(json_content, transaction_context);
+            replace_variables(ctx, json_content, transaction_context);
             auto j = nlohmann::json::parse(json_content);
 
             std::string menu_name = j.value("menu_name", "Mamba Shortcuts");
 
             std::string name_suffix;
-            std::string e_name = detail::get_formatted_env_name(transaction_context->target_prefix);
+            std::string e_name = detail::get_formatted_env_name(ctx, transaction_context->target_prefix);
 
             if (e_name.size())
             {
@@ -311,7 +312,6 @@ namespace mamba
             //     ]
             // }
 
-            auto& ctx = mamba::Context::instance();
             const fs::u8path root_prefix = ctx.prefix_params.root_prefix;
             const fs::u8path target_prefix = ctx.prefix_params.target_prefix;
 
@@ -458,11 +458,15 @@ namespace mamba
         }
     }
 
-    void remove_menu_from_json(const fs::u8path& json_file, TransactionContext* context)
+    void remove_menu_from_json(
+        const Context& context,
+        const fs::u8path& json_file,
+        TransactionContext* transaction_context
+    )
     {
         try
         {
-            create_remove_shortcut_impl(json_file, context, true);
+            create_remove_shortcut_impl(context, json_file, transaction_context, true);
         }
         catch (const std::exception& e)
         {
@@ -470,11 +474,15 @@ namespace mamba
         }
     }
 
-    void create_menu_from_json(const fs::u8path& json_file, TransactionContext* context)
+    void create_menu_from_json(
+        const Context& context,
+        const fs::u8path& json_file,
+        TransactionContext* transaction_context
+    )
     {
         try
         {
-            create_remove_shortcut_impl(json_file, context, false);
+            create_remove_shortcut_impl(context, json_file, transaction_context, false);
         }
         catch (const std::exception& e)
         {

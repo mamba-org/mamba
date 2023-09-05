@@ -15,10 +15,11 @@
 #include <fmt/format.h>
 #include <openssl/evp.h>
 
-#include "mamba/core/context.hpp"
+#include "mamba/core/mamba_fs.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
+#include "mamba/util/url_manip.hpp"
 
 namespace mamba::util
 {
@@ -218,13 +219,13 @@ namespace mamba::util
 
     void split_anaconda_token(const std::string& url, std::string& cleaned_url, std::string& token)
     {
-        auto token_begin = std::sregex_iterator(url.begin(), url.end(), Context::instance().token_regex);
+        auto token_begin = std::sregex_iterator(url.begin(), url.end(), conda_urls::token_regex);
         if (token_begin != std::sregex_iterator())
         {
             token = token_begin->str().substr(3u);
             cleaned_url = std::regex_replace(
                 url,
-                Context::instance().token_regex,
+                conda_urls::token_regex,
                 "",
                 std::regex_constants::format_first_only
             );

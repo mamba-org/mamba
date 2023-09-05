@@ -11,6 +11,7 @@ mamba_target_add_compile_warnings(testing_libmamba_lock WARNING_AS_ERROR ${MAMBA
 
 
 set(LIBMAMBA_TEST_SRCS
+    include/mambatests.hpp
     src/test_main.cpp
     # C++ wrapping of libsolv
     src/solv-cpp/pool_data.cpp
@@ -76,7 +77,7 @@ mamba_target_add_compile_warnings(test_libmamba WARNING_AS_ERROR ${MAMBA_WARNING
 
 target_include_directories(
     test_libmamba
-    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/libmamba/src"
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/libmamba/src"
 )
 
 find_package(doctest REQUIRED)

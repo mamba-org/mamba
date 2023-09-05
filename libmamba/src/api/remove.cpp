@@ -23,7 +23,7 @@ namespace mamba
         bool force = flags & MAMBA_REMOVE_FORCE;
         bool remove_all = flags & MAMBA_REMOVE_ALL;
 
-        auto& ctx = Context::instance();
+        auto& ctx = config.context();
 
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
@@ -35,7 +35,7 @@ namespace mamba
 
         auto remove_specs = config.at("specs").value<std::vector<std::string>>();
 
-        ChannelContext channel_context;
+        ChannelContext channel_context{ ctx };
 
         if (remove_all)
         {
@@ -71,7 +71,7 @@ namespace mamba
             bool force
         )
         {
-            auto& ctx = Context::instance();
+            auto& ctx = channel_context.context();
 
             if (ctx.prefix_params.target_prefix.empty())
             {
@@ -91,7 +91,7 @@ namespace mamba
             MRepo(pool, prefix_data);
 
             const fs::u8path pkgs_dirs(ctx.prefix_params.root_prefix / "pkgs");
-            MultiPackageCache package_caches({ pkgs_dirs });
+            MultiPackageCache package_caches({ pkgs_dirs }, ctx.validation_params);
 
             auto execute_transaction = [&](MTransaction& transaction)
             {

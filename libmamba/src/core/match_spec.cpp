@@ -181,7 +181,13 @@ namespace mamba
 
         std::string cleaned_url;
         std::string platform;
-        util::split_platform(get_known_platforms(), channel, Context::instance().platform, channel, platform);
+        util::split_platform(
+            get_known_platforms(),
+            channel,
+            channel_context.context().platform,
+            channel,
+            platform
+        );
         if (!platform.empty())
         {
             subdir = platform;

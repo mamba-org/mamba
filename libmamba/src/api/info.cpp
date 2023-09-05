@@ -30,7 +30,7 @@ namespace mamba
             );
         config.load();
 
-        ChannelContext channel_context;
+        ChannelContext channel_context{ config.context() };
         detail::print_info(channel_context, config);
 
         config.operation_teardown();
@@ -38,9 +38,12 @@ namespace mamba
 
     namespace detail
     {
-        void info_pretty_print(std::vector<std::tuple<std::string, nlohmann::json>> items)
+        void info_pretty_print(
+            std::vector<std::tuple<std::string, nlohmann::json>> items,
+            const Context::OutputParams& params
+        )
         {
-            if (Context::instance().output_params.json)
+            if (params.json)
             {
                 return;
             }
@@ -86,7 +89,8 @@ namespace mamba
 
         void print_info(ChannelContext& channel_context, const Configuration& config)
         {
-            auto& ctx = Context::instance();
+            assert(&channel_context.context() == &config.context());
+            const auto& ctx = config.context();
             std::vector<std::tuple<std::string, nlohmann::json>> items;
 
             items.push_back({ "libmamba version", version() });
@@ -105,7 +109,7 @@ namespace mamba
             std::string name, location;
             if (!ctx.prefix_params.target_prefix.empty())
             {
-                name = env_name(ctx.prefix_params.target_prefix);
+                name = env_name(ctx);
                 location = ctx.prefix_params.target_prefix.string();
             }
             else
@@ -147,7 +151,7 @@ namespace mamba
             items.push_back({ "populated config files", sources });
 
             std::vector<std::string> virtual_pkgs;
-            for (auto pkg : get_virtual_packages())
+            for (auto pkg : get_virtual_packages(ctx))
             {
                 virtual_pkgs.push_back(util::concat(pkg.name, "=", pkg.version, "=", pkg.build_string)
                 );
@@ -156,7 +160,7 @@ namespace mamba
 
             std::vector<std::string> channels = ctx.channels;
             // Always append context channels
-            auto& ctx_channels = Context::instance().channels;
+            auto& ctx_channels = ctx.channels;
             std::copy(ctx_channels.begin(), ctx_channels.end(), std::back_inserter(channels));
             std::vector<std::string> channel_urls;
             for (auto channel : channel_context.get_channels(channels))
@@ -173,7 +177,7 @@ namespace mamba
             items.push_back({ "platform", ctx.platform });
 
             info_json_print(items);
-            info_pretty_print(items);
+            info_pretty_print(items, ctx.output_params);
         }
     }  // detail
 }  // mamba

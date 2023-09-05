@@ -16,7 +16,7 @@ namespace mamba
 {
     void create(Configuration& config)
     {
-        auto& ctx = Context::instance();
+        auto& ctx = config.context();
 
         config.at("use_target_prefix_fallback").set_value(false);
         config.at("target_prefix_checks")
@@ -29,7 +29,7 @@ namespace mamba
         auto& create_specs = config.at("specs").value<std::vector<std::string>>();
         auto& use_explicit = config.at("explicit_install").value<bool>();
 
-        ChannelContext channel_context;
+        ChannelContext channel_context{ ctx };
 
         bool remove_prefix_on_failure = false;
 
@@ -65,7 +65,7 @@ namespace mamba
             }
             if (create_specs.empty())
             {
-                detail::create_empty_target(ctx.prefix_params.target_prefix);
+                detail::create_empty_target(ctx, ctx.prefix_params.target_prefix);
             }
 
             if (config.at("platform").configured() && !config.at("platform").rc_configured())
@@ -78,9 +78,9 @@ namespace mamba
             }
         }
 
-        if (Context::instance().env_lockfile)
+        if (ctx.env_lockfile)
         {
-            const auto lockfile_path = Context::instance().env_lockfile.value();
+            const auto lockfile_path = ctx.env_lockfile.value();
             install_lockfile_specs(
                 channel_context,
                 lockfile_path,

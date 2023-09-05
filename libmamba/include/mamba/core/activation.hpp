@@ -18,6 +18,8 @@
 
 namespace mamba
 {
+    class Context;
+
     enum class ActivationType
     {
         ACTIVATE,
@@ -93,8 +95,9 @@ namespace mamba
 
     protected:
 
-        Activator();
+        explicit Activator(const Context& context);
 
+        const Context& m_context;
         bool m_stack = false;
         ActivationType m_action;
 
@@ -105,7 +108,10 @@ namespace mamba
     {
     public:
 
-        PosixActivator() = default;
+        explicit PosixActivator(const Context& context)
+            : Activator(context)
+        {
+        }
         virtual ~PosixActivator() = default;
 
         std::string script(const EnvironmentTransform& env_transform) override;
@@ -123,7 +129,10 @@ namespace mamba
     {
     public:
 
-        CshActivator() = default;
+        explicit CshActivator(const Context& context)
+            : Activator(context)
+        {
+        }
         virtual ~CshActivator() = default;
 
         std::string script(const EnvironmentTransform& env_transform) override;
@@ -141,7 +150,10 @@ namespace mamba
     {
     public:
 
-        CmdExeActivator() = default;
+        explicit CmdExeActivator(const Context& context)
+            : Activator(context)
+        {
+        }
         virtual ~CmdExeActivator() = default;
 
         std::string script(const EnvironmentTransform& env_transform) override;
@@ -159,7 +171,10 @@ namespace mamba
     {
     public:
 
-        PowerShellActivator() = default;
+        explicit PowerShellActivator(const Context& context)
+            : Activator(context)
+        {
+        }
         virtual ~PowerShellActivator() = default;
 
         std::string script(const EnvironmentTransform& env_transform) override;
@@ -177,7 +192,10 @@ namespace mamba
     {
     public:
 
-        XonshActivator() = default;
+        explicit XonshActivator(const Context& context)
+            : Activator(context)
+        {
+        }
         virtual ~XonshActivator() = default;
 
         std::string script(const EnvironmentTransform& env_transform) override;
@@ -195,7 +213,10 @@ namespace mamba
     {
     public:
 
-        FishActivator() = default;
+        explicit FishActivator(const Context& context)
+            : Activator(context)
+        {
+        }
         virtual ~FishActivator() = default;
 
         std::string script(const EnvironmentTransform& env_transform) override;

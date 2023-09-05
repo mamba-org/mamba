@@ -18,7 +18,10 @@
 
 namespace mamba
 {
+    class Context;
+
     std::vector<std::string> get_known_platforms();
+
     // Note: Channels can only be created using ChannelContext.
     class Channel
     {
@@ -37,7 +40,8 @@ namespace mamba
         const std::optional<std::string>& auth() const;
         const std::optional<std::string>& token() const;
         const std::optional<std::string>& package_filename() const;
-        const validation::RepoChecker& repo_checker(MultiPackageCache& caches) const;
+        const validation::RepoChecker&
+        repo_checker(Context& context, MultiPackageCache& caches) const;
 
         std::string base_url() const;
         std::string platform_url(std::string platform, bool with_credential = true) const;
@@ -70,6 +74,12 @@ namespace mamba
         // This is used to make sure that there is a unique repo for every channel
         mutable std::unique_ptr<validation::RepoChecker> p_repo_checker;
 
+        // Note: as long as Channel is not a regular value-type and we want each
+        // instance only possible to create through ChannelContext, we need
+        // to have Channel's constructor only available to ChannelContext,
+        // therefore enabling it's use through this `friend` statement.
+        // However, all this should be removed as soon as Channel is changed to
+        // be a regular value-type (regular as in the regular concept).
         friend class ChannelContext;
     };
 
@@ -87,7 +97,7 @@ namespace mamba
         using channel_map = std::map<std::string, Channel>;
         using multichannel_map = std::map<std::string, std::vector<std::string>>;
 
-        ChannelContext();
+        ChannelContext(Context& context);
         ~ChannelContext();
 
         ChannelContext(const ChannelContext&) = delete;
@@ -101,8 +111,14 @@ namespace mamba
         const Channel& get_channel_alias() const;
         const channel_map& get_custom_channels() const;
 
+        Context& context() const
+        {
+            return m_context;
+        }
+
     private:
 
+        Context& m_context;
         ChannelCache m_channel_cache;
         Channel m_channel_alias;
         channel_map m_custom_channels;

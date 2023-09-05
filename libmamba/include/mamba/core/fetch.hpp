@@ -28,6 +28,7 @@ namespace mamba
     struct ZstdStream;
     struct Bzip2Stream;
 
+    class Context;
     class CURLHandle;
     class CURLMultiHandle;
 
@@ -36,13 +37,14 @@ namespace mamba
      ******************************/
 
     void get_config(
+        const Context& context,
         bool& set_low_speed_opt,
         bool& set_ssl_no_revoke,
         long& connect_timeout_secs,
         std::string& ssl_verify
     );
 
-    std::size_t get_default_retry_timeout();
+    std::size_t get_default_retry_timeout(const Context& context);
 
     /*******************
      * DownloadTarget  *
@@ -52,7 +54,12 @@ namespace mamba
     {
     public:
 
-        DownloadTarget(const std::string& name, const std::string& url, const std::string& filename);
+        DownloadTarget(
+            Context& context,
+            const std::string& name,
+            const std::string& url,
+            const std::string& filename
+        );
         ~DownloadTarget();
 
         DownloadTarget(const DownloadTarget&) = delete;
@@ -127,8 +134,14 @@ namespace mamba
 
         const CURLHandle& get_curl_handle() const;
 
+        const Context& context() const
+        {
+            return m_context;
+        }
+
     private:
 
+        Context& m_context;
         std::unique_ptr<ZstdStream> m_zstd_stream;
         std::unique_ptr<Bzip2Stream> m_bzip2_stream;
         std::unique_ptr<CURLHandle> m_curl_handle;
@@ -166,7 +179,7 @@ namespace mamba
     {
     public:
 
-        MultiDownloadTarget();
+        explicit MultiDownloadTarget(const Context& context);
         ~MultiDownloadTarget();
 
         void add(DownloadTarget* target);
@@ -176,6 +189,7 @@ namespace mamba
 
         bool check_msgs(bool failfast);
 
+        const Context& m_context;
         std::vector<DownloadTarget*> m_targets;
         std::vector<DownloadTarget*> m_retry_targets;
         std::unique_ptr<CURLMultiHandle> p_curl_handle;

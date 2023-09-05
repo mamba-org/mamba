@@ -104,13 +104,11 @@ namespace mamba
         }
     }
 
-    auto install_for_other_pkgmgr(const detail::other_pkg_mgr_spec& other_spec)
+    auto install_for_other_pkgmgr(const Context& ctx, const detail::other_pkg_mgr_spec& other_spec)
     {
         const auto& pkg_mgr = other_spec.pkg_mgr;
         const auto& deps = other_spec.deps;
         const auto& cwd = other_spec.cwd;
-
-        const auto& ctx = Context::instance();
 
         TemporaryFile specs("mambaf", "", cwd);
         {
@@ -139,6 +137,7 @@ namespace mamba
         }();
 
         auto [wrapped_command, tmpfile] = prepare_wrapped_call(
+            ctx,
             ctx.prefix_params.target_prefix,
             install_instructions
         );
@@ -148,7 +147,7 @@ namespace mamba
         options.working_directory = cwd.c_str();
 
         Console::stream() << fmt::format(
-            Context::instance().graphics_params.palette.external,
+            ctx.graphics_params.palette.external,
             "\nInstalling {} packages: {}",
             pkg_mgr,
             fmt::join(deps, ", ")
@@ -163,28 +162,27 @@ namespace mamba
         }
     }
 
-    auto& truthy_values()
+    const auto& truthy_values(const std::string platform)
     {
-        static std::map<std::string, int> vals{
-            { "win", 0 },
-            { "unix", 0 },
-            { "osx", 0 },
-            { "linux", 0 },
+        static std::unordered_map<std::string, bool> vals{
+            { "win", false },
+            { "unix", false },
+            { "osx", false },
+            { "linux", false },
         };
 
-        const auto& ctx = Context::instance();
-        if (util::starts_with(ctx.platform, "win"))
+        if (util::starts_with(platform, "win"))
         {
             vals["win"] = true;
         }
         else
         {
             vals["unix"] = true;
-            if (util::starts_with(ctx.platform, "linux"))
+            if (util::starts_with(platform, "linux"))
             {
                 vals["linux"] = true;
             }
-            else if (util::starts_with(ctx.platform, "osx"))
+            else if (util::starts_with(platform, "osx"))
             {
                 vals["osx"] = true;
             }
@@ -194,7 +192,7 @@ namespace mamba
 
     namespace detail
     {
-        bool eval_selector(const std::string& selector)
+        bool eval_selector(const std::string& selector, const std::string& platform)
         {
             if (!(util::starts_with(selector, "sel(") && selector[selector.size() - 1] == ')'))
             {
@@ -204,16 +202,18 @@ namespace mamba
             }
             std::string expr = selector.substr(4, selector.size() - 5);
 
-            if (truthy_values().find(expr) == truthy_values().end())
+            const auto& values = truthy_values(platform);
+            const auto found_it = values.find(expr);
+            if (found_it == values.end())
             {
                 throw std::runtime_error("Couldn't parse selector. Value not in [unix, linux, "
                                          "osx, win] or additional whitespaces found.");
             }
 
-            return truthy_values()[expr];
+            return found_it->second;
         }
 
-        yaml_file_contents read_yaml_file(fs::u8path yaml_file)
+        yaml_file_contents read_yaml_file(fs::u8path yaml_file, const std::string platform)
         {
             auto file = fs::weakly_canonical(env::expand_user(yaml_file));
             if (!fs::exists(file))
@@ -262,7 +262,7 @@ namespace mamba
                         std::string key = map_el.first.as<std::string>();
                         if (util::starts_with(key, "sel("))
                         {
-                            bool selected = detail::eval_selector(key);
+                            bool selected = detail::eval_selector(key, platform);
                             if (selected)
                             {
                                 const YAML::Node& rest = map_el.second;
@@ -390,11 +390,12 @@ namespace mamba
         auto& install_specs = config.at("specs").value<std::vector<std::string>>();
         auto& use_explicit = config.at("explicit_install").value<bool>();
 
-        ChannelContext channel_context;
+        auto& context = config.context();
+        ChannelContext channel_context{ context };
 
-        if (Context::instance().env_lockfile)
+        if (context.env_lockfile)
         {
-            const auto lockfile_path = Context::instance().env_lockfile.value();
+            const auto lockfile_path = context.env_lockfile.value();
             LOG_DEBUG << "Lockfile: " << lockfile_path;
             install_lockfile_specs(
                 channel_context,
@@ -433,7 +434,8 @@ namespace mamba
         int is_retry
     )
     {
-        auto& ctx = Context::instance();
+        assert(&config.context() == &channel_context.context());
+        Context& ctx = channel_context.context();
 
         auto& no_pin = config.at("no_pin").value<bool>();
         auto& no_py_pin = config.at("no_py_pin").value<bool>();
@@ -454,7 +456,7 @@ namespace mamba
             );
         }
 
-        MultiPackageCache package_caches(ctx.pkgs_dirs);
+        MultiPackageCache package_caches{ ctx.pkgs_dirs, ctx.validation_params };
 
         // add channels from specs
         for (const auto& s : specs)
@@ -500,7 +502,7 @@ namespace mamba
             prefix_pkgs.push_back(it.first);
         }
 
-        prefix_data.add_packages(get_virtual_packages());
+        prefix_data.add_packages(get_virtual_packages(ctx));
 
         MRepo(pool, prefix_data);
 
@@ -598,9 +600,9 @@ namespace mamba
 
         if (trans.prompt())
         {
-            if (create_env && !Context::instance().dry_run)
+            if (create_env && !ctx.dry_run)
             {
-                detail::create_target_directory(ctx.prefix_params.target_prefix);
+                detail::create_target_directory(ctx, ctx.prefix_params.target_prefix);
             }
 
             trans.execute(prefix_data);
@@ -608,7 +610,7 @@ namespace mamba
             for (auto other_spec :
                  config.at("others_pkg_mgrs_specs").value<std::vector<detail::other_pkg_mgr_spec>>())
             {
-                install_for_other_pkgmgr(other_spec);
+                install_for_other_pkgmgr(ctx, other_spec);
             }
         }
         else
@@ -635,7 +637,7 @@ namespace mamba
         )
         {
             MPool pool{ channel_context };
-            auto& ctx = Context::instance();
+            auto& ctx = channel_context.context();
             auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!exp_prefix_data)
             {
@@ -644,8 +646,8 @@ namespace mamba
             }
             PrefixData& prefix_data = exp_prefix_data.value();
 
-            MultiPackageCache pkg_caches(ctx.pkgs_dirs);
-            prefix_data.add_packages(get_virtual_packages());
+            MultiPackageCache pkg_caches(ctx.pkgs_dirs, ctx.validation_params);
+            prefix_data.add_packages(get_virtual_packages(ctx));
             MRepo(pool, prefix_data);  // Potentially re-alloc (moves in memory) Solvables
                                        // in the pool
 
@@ -661,16 +663,16 @@ namespace mamba
 
             if (transaction.prompt())
             {
-                if (create_env && !Context::instance().dry_run)
+                if (create_env && !ctx.dry_run)
                 {
-                    detail::create_target_directory(ctx.prefix_params.target_prefix);
+                    detail::create_target_directory(ctx, ctx.prefix_params.target_prefix);
                 }
 
                 transaction.execute(prefix_data);
 
                 for (auto other_spec : others)
                 {
-                    install_for_other_pkgmgr(other_spec);
+                    install_for_other_pkgmgr(ctx, other_spec);
                 }
             }
             else
@@ -718,7 +720,12 @@ namespace mamba
         {
             LOG_INFO << "Downloading lockfile";
             tmp_lock_file = std::make_unique<TemporaryFile>();
-            DownloadTarget dt("Environment Lockfile", lockfile, tmp_lock_file->path());
+            DownloadTarget dt(
+                channel_context.context(),
+                "Environment Lockfile",
+                lockfile,
+                tmp_lock_file->path()
+            );
             bool success = dt.perform();
             if (!success || dt.get_http_status() != 200)
             {
@@ -746,9 +753,9 @@ namespace mamba
 
     namespace detail
     {
-        void create_empty_target(const fs::u8path& prefix)
+        void create_empty_target(const Context& context, const fs::u8path& prefix)
         {
-            detail::create_target_directory(prefix);
+            detail::create_target_directory(context, prefix);
 
             Console::instance().print(util::join(
                 "",
@@ -757,12 +764,12 @@ namespace mamba
             Console::instance().json_write({ { "success", true } });
         }
 
-        void create_target_directory(const fs::u8path prefix)
+        void create_target_directory(const Context& context, const fs::u8path prefix)
         {
             path::touch(prefix / "conda-meta" / "history", true);
 
             // Register the environment
-            EnvironmentsManager env_manager;
+            EnvironmentsManager env_manager{ context };
             env_manager.register_env(prefix);
         }
 
@@ -772,6 +779,8 @@ namespace mamba
             auto& specs = config.at("specs");
             auto& others_pkg_mgrs_specs = config.at("others_pkg_mgrs_specs");
             auto& channels = config.at("channels");
+
+            auto& context = config.context();
 
             if (file_specs.size() == 0)
             {
@@ -793,18 +802,18 @@ namespace mamba
                 {
                     if (util::starts_with(file, "http"))
                     {
-                        Context::instance().env_lockfile = file;
+                        context.env_lockfile = file;
                     }
                     else
                     {
-                        Context::instance().env_lockfile = fs::absolute(file).string();
+                        context.env_lockfile = fs::absolute(file).string();
                     }
 
-                    LOG_DEBUG << "File spec Lockfile: " << Context::instance().env_lockfile.value();
+                    LOG_DEBUG << "File spec Lockfile: " << context.env_lockfile.value();
                 }
                 else if (is_yaml_file_name(file))
                 {
-                    const auto parse_result = read_yaml_file(file);
+                    const auto parse_result = read_yaml_file(file, context.platform);
 
                     if (parse_result.channels.size() != 0)
                     {

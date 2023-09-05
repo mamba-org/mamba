@@ -10,6 +10,8 @@
 
 #include "mamba/core/subdirdata.hpp"
 
+#include "mambatests.hpp"
+
 namespace mamba
 {
     TEST_SUITE("transfer")
@@ -17,12 +19,13 @@ namespace mamba
         TEST_CASE("file_not_exist")
         {
 #ifdef __linux__
-            Context::instance().output_params.quiet = true;
+            auto& context = mambatests::context();
+            context.output_params.quiet = true;
             {
-                mamba::ChannelContext channel_context;
+                mamba::ChannelContext channel_context{ context };
                 const mamba::Channel& c = channel_context.make_channel("conda-forge");
-                mamba::MultiDownloadTarget multi_dl;
-                mamba::MultiPackageCache pkg_cache({ "/tmp/" });
+                mamba::MultiDownloadTarget multi_dl{ context };
+                mamba::MultiPackageCache pkg_cache({ "/tmp/" }, context.validation_params);
                 mamba::MSubdirData cf = mamba::MSubdirData::create(
                                             channel_context,
                                             c,
@@ -42,10 +45,10 @@ namespace mamba
                 CHECK_EQ(cf.target()->get_result(), 37);
             }
             {
-                mamba::ChannelContext channel_context;
+                mamba::ChannelContext channel_context{ context };
                 const mamba::Channel& c = channel_context.make_channel("conda-forge");
-                mamba::MultiDownloadTarget multi_dl;
-                mamba::MultiPackageCache pkg_cache({ "/tmp/" });
+                mamba::MultiDownloadTarget multi_dl{ channel_context.context() };
+                mamba::MultiPackageCache pkg_cache({ "/tmp/" }, context.validation_params);
                 mamba::MSubdirData cf = mamba::MSubdirData::create(
                                             channel_context,
                                             c,
@@ -57,7 +60,7 @@ namespace mamba
                 multi_dl.add(cf.target());
                 CHECK_THROWS_AS(multi_dl.download(MAMBA_DOWNLOAD_FAILFAST), std::runtime_error);
             }
-            Context::instance().output_params.quiet = false;
+            context.output_params.quiet = false;
 #endif
         }
     }

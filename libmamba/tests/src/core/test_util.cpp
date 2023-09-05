@@ -15,6 +15,8 @@
 #include "mamba/core/util_random.hpp"
 #include "mamba/core/util_scope.hpp"
 
+#include "mambatests.hpp"
+
 namespace mamba
 {
     TEST_SUITE("local_random_generator")
@@ -175,33 +177,34 @@ namespace mamba
     {
         TEST_CASE("proxy_match")
         {
-            Context::instance().remote_fetch_params.proxy_servers = { { "http", "foo" },
-                                                                      { "https", "bar" },
-                                                                      { "https://example.net",
-                                                                        "foobar" },
-                                                                      { "all://example.net", "baz" },
-                                                                      { "all", "other" } };
+            auto& context = mambatests::singletons().context;
+            context.remote_fetch_params.proxy_servers = { { "http", "foo" },
+                                                          { "https", "bar" },
+                                                          { "https://example.net", "foobar" },
+                                                          { "all://example.net", "baz" },
+                                                          { "all", "other" } };
 
-            CHECK_EQ(*proxy_match("http://example.com/channel"), "foo");
-            CHECK_EQ(*proxy_match("http://example.net/channel"), "foo");
-            CHECK_EQ(*proxy_match("https://example.com/channel"), "bar");
-            CHECK_EQ(*proxy_match("https://example.com:8080/channel"), "bar");
-            CHECK_EQ(*proxy_match("https://example.net/channel"), "foobar");
-            CHECK_EQ(*proxy_match("ftp://example.net/channel"), "baz");
-            CHECK_EQ(*proxy_match("ftp://example.org"), "other");
+            auto proxy_match_with_context = [&](const char* url)
+            { return proxy_match(url, context.remote_fetch_params.proxy_servers); };
 
-            Context::instance().remote_fetch_params.proxy_servers = {
-                { "http", "foo" },
-                { "https", "bar" },
-                { "https://example.net", "foobar" },
-                { "all://example.net", "baz" }
-            };
+            CHECK_EQ(*proxy_match_with_context("http://example.com/channel"), "foo");
+            CHECK_EQ(*proxy_match_with_context("http://example.net/channel"), "foo");
+            CHECK_EQ(*proxy_match_with_context("https://example.com/channel"), "bar");
+            CHECK_EQ(*proxy_match_with_context("https://example.com:8080/channel"), "bar");
+            CHECK_EQ(*proxy_match_with_context("https://example.net/channel"), "foobar");
+            CHECK_EQ(*proxy_match_with_context("ftp://example.net/channel"), "baz");
+            CHECK_EQ(*proxy_match_with_context("ftp://example.org"), "other");
 
-            CHECK_FALSE(proxy_match("ftp://example.org").has_value());
+            context.remote_fetch_params.proxy_servers = { { "http", "foo" },
+                                                          { "https", "bar" },
+                                                          { "https://example.net", "foobar" },
+                                                          { "all://example.net", "baz" } };
 
-            Context::instance().remote_fetch_params.proxy_servers = {};
+            CHECK_FALSE(proxy_match_with_context("ftp://example.org").has_value());
 
-            CHECK_FALSE(proxy_match("http://example.com/channel").has_value());
+            context.remote_fetch_params.proxy_servers = {};
+
+            CHECK_FALSE(proxy_match_with_context("http://example.com/channel").has_value());
         }
     }
 }

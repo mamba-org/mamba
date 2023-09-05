@@ -14,7 +14,7 @@
 
 namespace mamba
 {
-    std::vector<PackageInfo> get_virtual_packages();
+    std::vector<PackageInfo> get_virtual_packages(const Context& context);
 
     namespace detail
     {
@@ -23,11 +23,12 @@ namespace mamba
 
         PackageInfo make_virtual_package(
             const std::string& name,
+            const std::string& subdir,
             const std::string& version = "",
             const std::string& build_string = ""
         );
 
-        std::vector<PackageInfo> dist_packages();
+        std::vector<PackageInfo> dist_packages(const Context& context);
     }
 }
 

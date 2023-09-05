@@ -19,6 +19,7 @@
 #include "mamba_fs.hpp"
 #include "package_cache.hpp"
 #include "progress_bar.hpp"
+#include "tasksync.hpp"
 #include "thread_utils.hpp"
 
 namespace mamba
@@ -39,6 +40,8 @@ namespace mamba
             EXTRACT_ERROR
         };
 
+        // TODO: REVIEW: consider caputring a reference to the context from the ChannelContext, if
+        // that makes sense.
         PackageDownloadExtractTarget(const PackageInfo& pkg_info, ChannelContext& channel_context);
 
         void write_repodata_record(const fs::u8path& base_path);
@@ -46,15 +49,15 @@ namespace mamba
         bool finalize_callback(const DownloadTarget& target);
         bool finished();
         void validate();
-        bool extract();
-        bool extract_from_cache();
-        bool validate_extract();
+        bool extract(const Context& context);
+        bool extract_from_cache(const Context& context);
+        bool validate_extract(const Context& context);
         const std::string& name() const;
         std::size_t expected_size() const;
         VALIDATION_RESULT validation_result() const;
         void clear_cache() const;
 
-        DownloadTarget* target(MultiPackageCache& cache);
+        DownloadTarget* target(Context& context, MultiPackageCache& cache);
 
         std::exception m_decompress_exception;
 
@@ -76,6 +79,8 @@ namespace mamba
         std::future<bool> m_extract_future;
 
         VALIDATION_RESULT m_validation_result = VALIDATION_RESULT::UNDEFINED;
+
+        TaskSynchronizer m_tasksync;
 
         std::function<void(ProgressBarRepr&)> extract_repr();
         std::function<void(ProgressProxy&)> extract_progress_callback();

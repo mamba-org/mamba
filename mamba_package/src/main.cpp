@@ -8,6 +8,7 @@
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util_os.hpp"
@@ -21,13 +22,16 @@ main(int argc, char** argv)
 {
     using namespace mamba;  // NOLINT(build/namespaces)
 
-    Configuration config;
+    MainExecutor main_executor;
+    Context context{ { /* .enable_blah_blah = */ true } };
+    Console console{ context };
+    Configuration config{ context };
 
     // call init console to setup utf8 extraction
     init_console();
 
     CLI::App app{ "Version: " + version() + "\n" };
-    set_package_command(&app);
+    set_package_command(&app, context);
 
     try
     {
@@ -44,7 +48,7 @@ main(int argc, char** argv)
     if (app.get_subcommands().size() == 0)
     {
         config.load();
-        Console::instance().print(app.help());
+        console.print(app.help());
     }
 
     return 0;

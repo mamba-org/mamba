@@ -202,7 +202,7 @@ namespace mamba
             };
         }
 
-        std::vector<std::string> take_platforms(std::string& value)
+        std::vector<std::string> take_platforms(const Context& context, std::string& value)
         {
             std::vector<std::string> platforms;
             if (!value.empty())
@@ -233,13 +233,7 @@ namespace mamba
                 else
                 {
                     std::string platform = "";
-                    util::split_platform(
-                        get_known_platforms(),
-                        value,
-                        Context::instance().platform,
-                        value,
-                        platform
-                    );
+                    util::split_platform(get_known_platforms(), value, context.platform, value, platform);
                     if (!platform.empty())
                     {
                         platforms.push_back(std::move(platform));
@@ -249,7 +243,7 @@ namespace mamba
 
             if (platforms.empty())
             {
-                platforms = Context::instance().platforms();
+                platforms = context.platforms();
             }
             return platforms;
         }
@@ -319,13 +313,15 @@ namespace mamba
         return m_package_filename;
     }
 
-    const validation::RepoChecker& Channel::repo_checker(MultiPackageCache& caches) const
+    const validation::RepoChecker&
+    Channel::repo_checker(Context& context, MultiPackageCache& caches) const
     {
         if (p_repo_checker == nullptr)
         {
             p_repo_checker = std::make_unique<validation::RepoChecker>(
+                context,
                 util::rsplit(base_url(), "/", 1).front(),
-                Context::instance().prefix_params.root_prefix / "etc" / "trusted-repos"
+                context.prefix_params.root_prefix / "etc" / "trusted-repos"
                     / util::cache_name_from_url(base_url()),
                 caches.first_writable_path() / "cache" / util::cache_name_from_url(base_url())
             );
@@ -581,7 +577,7 @@ namespace mamba
         }
 
         std::string value = in_value;
-        auto platforms = take_platforms(value);
+        auto platforms = take_platforms(m_context, value);
 
         auto chan = util::url_has_scheme(value)     ? from_url(fix_win_path(value))
                     : util::is_explicit_path(value) ? from_url(util::path_to_url(value))
@@ -609,8 +605,6 @@ namespace mamba
         auto res = m_channel_cache.find(value);
         if (res == m_channel_cache.end())
         {
-            auto& ctx = Context::instance();
-
             auto chan = from_value(value);
             if (!chan.token())
             {
@@ -621,14 +615,15 @@ namespace mamba
                 const auto& without_channel = chan.location();
                 for (const auto& auth : { with_channel, without_channel })
                 {
-                    auto it = ctx.authentication_info().find(auth);
-                    if (it != ctx.authentication_info().end()
+                    const auto& authentication_info = m_context.authentication_info();
+                    auto it = authentication_info.find(auth);
+                    if (it != authentication_info.end()
                         && it->second.type == AuthenticationType::kCondaToken)
                     {
                         chan.m_token = it->second.value;
                         break;
                     }
-                    else if (it != ctx.authentication_info().end() && it->second.type == AuthenticationType::kBasicHTTPAuthentication)
+                    else if (it != authentication_info.end() && it->second.type == AuthenticationType::kBasicHTTPAuthentication)
                     {
                         chan.m_auth = it->second.value;
                         break;
@@ -694,8 +689,9 @@ namespace mamba
         return m_custom_multichannels;
     }
 
-    ChannelContext::ChannelContext()
-        : m_channel_alias(build_channel_alias())
+    ChannelContext::ChannelContext(Context& context)
+        : m_context(context)
+        , m_channel_alias(build_channel_alias())
     {
         init_custom_channels();
     }
@@ -704,8 +700,7 @@ namespace mamba
 
     Channel ChannelContext::build_channel_alias()
     {
-        auto& ctx = Context::instance();
-        std::string alias = ctx.channel_alias;
+        const std::string alias = m_context.channel_alias;
         std::string location, scheme, auth, token;
         util::split_scheme_auth_token(alias, location, scheme, auth, token);
         return from_alias(
@@ -723,7 +718,7 @@ namespace mamba
          ******************/
 
         // Default channels
-        auto& default_channels = Context::instance().default_channels;
+        auto& default_channels = m_context.default_channels;
         std::vector<std::string> default_names(default_channels.size());
         auto default_name_iter = default_names.begin();
         for (auto& url : default_channels)
@@ -737,8 +732,8 @@ namespace mamba
 
         // Local channels
         std::vector<std::string> local_channels = {
-            Context::instance().prefix_params.target_prefix.string() + "/conda-bld",
-            Context::instance().prefix_params.root_prefix.string() + "/conda-bld",
+            m_context.prefix_params.target_prefix.string() + "/conda-bld",
+            m_context.prefix_params.root_prefix.string() + "/conda-bld",
             "~/conda-bld"
         };
 
@@ -757,7 +752,7 @@ namespace mamba
         }
         m_custom_multichannels.emplace(LOCAL_CHANNELS_NAME, std::move(local_names));
 
-        const auto& context_custom_channels = Context::instance().custom_channels;
+        const auto& context_custom_channels = m_context.custom_channels;
         for (const auto& [n, p] : context_custom_channels)
         {
             std::string url = p;
@@ -770,7 +765,7 @@ namespace mamba
             m_custom_channels.emplace(n, std::move(channel));
         }
 
-        auto& multichannels = Context::instance().custom_multichannels;
+        auto& multichannels = m_context.custom_multichannels;
         for (auto& [multichannelname, urllist] : multichannels)
         {
             std::vector<std::string> names(urllist.size());

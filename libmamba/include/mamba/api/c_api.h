@@ -9,7 +9,10 @@
 
 namespace mamba
 {
+    class Context;
     class Configuration;
+    struct ContextOptions;
+    class MainExecutor;
 }
 
 #ifdef __cplusplus
@@ -17,7 +20,13 @@ extern "C"
 {
 #endif
 
-    mamba::Configuration* mamba_new_configuration();
+    mamba::MainExecutor* mamba_new_main_executor();
+    void mamba_delete_main_executor(mamba::MainExecutor* main_executor);
+
+    mamba::Context* mamba_new_context(mamba::ContextOptions* options);
+    void mamba_delete_context(mamba::Context* context);
+
+    mamba::Configuration* mamba_new_configuration(mamba::Context* context);
     void mamba_delete_configuration(mamba::Configuration* config);
 
     int mamba_create(mamba::Configuration* config);

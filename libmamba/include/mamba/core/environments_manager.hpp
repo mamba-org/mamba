@@ -14,6 +14,8 @@
 
 namespace mamba
 {
+    class Context;
+
     const char PREFIX_MAGIC_FILE[] = "conda-meta/history";
 
     bool is_conda_environment(const fs::u8path& prefix);
@@ -22,12 +24,15 @@ namespace mamba
     {
     public:
 
+        explicit EnvironmentsManager(const Context& context);
+
         void register_env(const fs::u8path& location);
         void unregister_env(const fs::u8path& location);
         std::set<fs::u8path> list_all_known_prefixes();
 
     private:
 
+        const Context& m_context;
         std::set<std::string>
         clean_environments_txt(const fs::u8path& env_txt_file, const fs::u8path& location);
         std::string remove_trailing_slash(std::string p);

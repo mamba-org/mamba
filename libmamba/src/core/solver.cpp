@@ -433,7 +433,7 @@ namespace mamba
 
     std::ostream& MSolver::explain_problems(std::ostream& out) const
     {
-        const auto& ctx = Context::instance();
+        const auto& ctx = m_pool.context();
         out << "Could not solve for environment specs\n";
         const auto pbs = problems_graph();
         const auto pbs_simplified = simplify_conflicts(pbs);

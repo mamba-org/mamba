@@ -625,6 +625,8 @@ namespace mamba
         return printer.print(out);
     }
 
+    using GraphicsParams = Context::GraphicsParams;
+
     class graph_printer
     {
     public:
@@ -632,9 +634,10 @@ namespace mamba
         using graph_type = query_result::dependency_graph;
         using node_id = graph_type::node_id;
 
-        explicit graph_printer(std::ostream& out)
+        explicit graph_printer(std::ostream& out, GraphicsParams graphics)
             : m_is_last(false)
             , m_out(out)
+            , m_graphics(std::move(graphics))
         {
         }
 
@@ -679,8 +682,7 @@ namespace mamba
         void forward_or_cross_edge(node_id, node_id to, const graph_type& g)
         {
             print_prefix(to);
-            m_out << g.node(to).name
-                  << fmt::format(Context::instance().graphics_params.palette.shown, " already visited\n");
+            m_out << g.node(to).name << fmt::format(m_graphics.palette.shown, " already visited\n");
         }
 
         void finish_edge(node_id /*from*/, node_id to, const graph_type& /*g*/)
@@ -719,14 +721,15 @@ namespace mamba
         std::vector<std::string> m_prefix_stack;
         bool m_is_last;
         std::ostream& m_out;
+        const GraphicsParams m_graphics;
     };
 
-    std::ostream& query_result::tree(std::ostream& out) const
+    std::ostream& query_result::tree(std::ostream& out, const GraphicsParams& graphics) const
     {
         bool use_graph = (m_dep_graph.number_of_nodes() > 0) && !m_dep_graph.successors(0).empty();
         if (use_graph)
         {
-            graph_printer printer(out);
+            graph_printer printer{ out, graphics };
             dfs_raw(m_dep_graph, printer, /* start= */ node_id(0));
         }
         else if (!m_pkg_id_list.empty())

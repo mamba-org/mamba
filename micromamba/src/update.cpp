@@ -25,16 +25,16 @@ using namespace mamba;  // NOLINT(build/namespaces)
 int
 update_self(Configuration& config, const std::optional<std::string>& version)
 {
-    auto& ctx = mamba::Context::instance();
+    auto& ctx = config.context();
     config.load();
 
     // set target_prefix to root_prefix (irrelevant, but transaction tries to lock
     // the conda-meta folder of the target_prefix)
     ctx.prefix_params.target_prefix = ctx.prefix_params.root_prefix;
 
-    mamba::ChannelContext channel_context;
+    mamba::ChannelContext channel_context{ ctx };
     mamba::MPool pool{ channel_context };
-    mamba::MultiPackageCache package_caches(ctx.pkgs_dirs);
+    mamba::MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
 
     auto exp_loaded = load_channels(pool, package_caches, 0);
     if (!exp_loaded)

@@ -21,6 +21,8 @@
 
 namespace mamba
 {
+    class Context;
+
     std::string cut_repo_name(const std::string& reponame);
 
     namespace printers
@@ -145,9 +147,9 @@ namespace mamba
 
         void cancel_json_print();
 
-    protected:
+        const Context& context() const;
 
-        Console();
+        Console(const Context& context);
         ~Console();
 
     private:
@@ -158,6 +160,9 @@ namespace mamba
         std::unique_ptr<ConsoleData> p_data;
 
         friend class ProgressProxy;
+
+        static void set_singleton(Console& console);
+        static void clear_singleton();
     };
 
     class MessageLogger

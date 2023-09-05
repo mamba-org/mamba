@@ -15,6 +15,7 @@
 namespace mamba
 {
     class ProgressBar;
+    struct ProgressBarOptions;
     // TODO: find a way to define it here without
     // impoorting spdlog and modst of the STL.
     class ProgressBarRepr;
@@ -86,6 +87,7 @@ namespace mamba
         bool started() const;
 
         int width() const;
+        const ProgressBarOptions& options() const;
 
     private:
 

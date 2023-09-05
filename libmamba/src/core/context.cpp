@@ -66,11 +66,36 @@ namespace mamba
         return static_cast<spdlog::level::level_enum>(l);
     }
 
-    Context::Context()
+    void Context::enable_logging_and_signal_handling(Context& context)
     {
-        MainExecutor::instance().on_close(tasksync.synchronized([this] { logger->flush(); }));
+        set_default_signal_handler();
 
-        on_ci = bool(env::get("CI"));
+        context.logger = std::make_shared<Logger>("libmamba", context.output_params.log_pattern, "\n");
+        MainExecutor::instance().on_close(
+            context.tasksync.synchronized([&context] { context.logger->flush(); })
+        );
+
+        std::shared_ptr<spdlog::logger> libcurl_logger = std::make_shared<Logger>(
+            "libcurl",
+            context.output_params.log_pattern,
+            ""
+        );
+        std::shared_ptr<spdlog::logger> libsolv_logger = std::make_shared<Logger>(
+            "libsolv",
+            context.output_params.log_pattern,
+            ""
+        );
+
+        spdlog::register_logger(libcurl_logger);
+        spdlog::register_logger(libsolv_logger);
+
+        spdlog::set_default_logger(context.logger);
+        spdlog::set_level(convert_log_level(context.output_params.logging_level));
+    }
+
+    Context::Context(const ContextOptions& options)
+    {
+        on_ci = static_cast<bool>(env::get("CI"));
         prefix_params.root_prefix = env::get("MAMBA_ROOT_PREFIX").value_or("");
         prefix_params.conda_prefix = prefix_params.root_prefix;
 
@@ -86,6 +111,9 @@ namespace mamba
         keep_temp_files = env::get("MAMBA_KEEP_TEMP") ? true : false;
         keep_temp_directories = env::get("MAMBA_KEEP_TEMP_DIRS") ? true : false;
 
+        set_persist_temporary_files(keep_temp_files);
+        set_persist_temporary_directories(keep_temp_directories);
+
         {
             const bool cout_is_atty = is_atty(std::cout);
             graphics_params.no_progress_bars = (on_ci || !cout_is_atty);
@@ -98,29 +126,10 @@ namespace mamba
         ascii_only = false;
 #endif
 
-        set_default_signal_handler();
-
-        std::shared_ptr<spdlog::logger> l = std::make_shared<Logger>(
-            "libmamba",
-            output_params.log_pattern,
-            "\n"
-        );
-        std::shared_ptr<spdlog::logger> libcurl_logger = std::make_shared<Logger>(
-            "libcurl",
-            output_params.log_pattern,
-            ""
-        );
-        std::shared_ptr<spdlog::logger> libsolv_logger = std::make_shared<Logger>(
-            "libsolv",
-            output_params.log_pattern,
-            ""
-        );
-        spdlog::register_logger(libcurl_logger);
-        spdlog::register_logger(libsolv_logger);
-
-        spdlog::set_default_logger(l);
-        logger = std::dynamic_pointer_cast<Logger>(l);
-        spdlog::set_level(convert_log_level(output_params.logging_level));
+        if (options.enable_logging_and_signal_handling)
+        {
+            enable_logging_and_signal_handling(*this);
+        }
     }
 
     Context::~Context() = default;
@@ -165,12 +174,12 @@ namespace mamba
         spdlog::set_level(convert_log_level(level));
     }
 
-    std::vector<std::string> Context::platforms()
+    std::vector<std::string> Context::platforms() const
     {
         return { platform, "noarch" };
     }
 
-    std::map<std::string, AuthenticationInfo>& Context::authentication_info()
+    Context::authentication_info_map_t& Context::authentication_info()
     {
         if (!m_authentication_infos_loaded)
         {
@@ -179,17 +188,16 @@ namespace mamba
         return m_authentication_info;
     }
 
-    const std::map<std::string, AuthenticationInfo>& Context::authentication_info() const
+    const Context::authentication_info_map_t& Context::authentication_info() const
     {
         return const_cast<Context*>(this)->authentication_info();
     }
 
     void Context::load_authentication_info()
     {
-        auto& ctx = Context::instance();
         std::vector<fs::u8path> found_tokens;
 
-        for (const auto& loc : ctx.token_locations)
+        for (const auto& loc : token_locations)
         {
             auto px = env::expand_user(loc);
             if (!fs::exists(px) || !fs::is_directory(px))
@@ -284,18 +292,18 @@ namespace mamba
     }
 
 
-    std::string env_name(const fs::u8path& prefix)
+    std::string env_name(const Context& context, const fs::u8path& prefix)
     {
         if (prefix.empty())
         {
             throw std::runtime_error("Empty path");
         }
-        if (paths_equal(prefix, Context::instance().prefix_params.root_prefix))
+        if (paths_equal(prefix, context.prefix_params.root_prefix))
         {
             return ROOT_ENV_NAME;
         }
         fs::u8path maybe_env_dir = prefix.parent_path();
-        for (const auto& d : Context::instance().envs_dirs)
+        for (const auto& d : context.envs_dirs)
         {
             if (paths_equal(d, maybe_env_dir))
             {
@@ -304,6 +312,12 @@ namespace mamba
         }
         return prefix.string();
     }
+
+    std::string env_name(const Context& context)
+    {
+        return env_name(context, context.prefix_params.target_prefix);
+    }
+
 
     void Context::debug_print() const
     {
@@ -332,7 +346,7 @@ namespace mamba
         PRINT_CTX(out, override_channels_enabled);
         PRINT_CTX(out, use_only_tar_bz2);
         PRINT_CTX(out, auto_activate_base);
-        PRINT_CTX(out, extra_safety_checks);
+        PRINT_CTX(out, validation_params.extra_safety_checks);
         PRINT_CTX(out, threads_params.download_threads);
         PRINT_CTX(out, output_params.verbosity);
         PRINT_CTX(out, channel_alias);
@@ -348,7 +362,10 @@ namespace mamba
 
     void Context::dump_backtrace_no_guards()
     {
-        logger->dump_backtrace_no_guards();
+        if (logger)  // REVIEW: is this correct?
+        {
+            logger->dump_backtrace_no_guards();
+        }
     }
 
 }  // namespace mamba

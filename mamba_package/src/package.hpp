@@ -9,7 +9,12 @@
 
 #include <CLI/CLI.hpp>
 
+namespace mamba
+{
+    class Context;
+}
+
 void
-set_package_command(CLI::App* com);
+set_package_command(CLI::App* com, mamba::Context& context);
 
 #endif

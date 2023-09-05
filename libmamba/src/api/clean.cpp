@@ -20,7 +20,7 @@ namespace mamba
 {
     void clean(Configuration& config, int options)
     {
-        auto& ctx = Context::instance();
+        auto& ctx = config.context();
 
         config.at("use_target_prefix_fallback").set_value(true);
         config.load();
@@ -44,7 +44,7 @@ namespace mamba
 
         std::vector<fs::u8path> envs;
 
-        MultiPackageCache caches(ctx.pkgs_dirs);
+        MultiPackageCache caches(ctx.pkgs_dirs, ctx.validation_params);
         if (!ctx.dry_run && (clean_index || clean_all))
         {
             Console::stream() << "Cleaning index cache..";

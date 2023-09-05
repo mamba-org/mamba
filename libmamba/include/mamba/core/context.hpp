@@ -9,7 +9,6 @@
 
 #include <map>
 #include <optional>
-#include <regex>
 #include <string>
 #include <vector>
 
@@ -29,6 +28,13 @@ namespace mamba
         kDisabled,
         kWarn,
         kEnabled
+    };
+
+    struct ValidationOptions
+    {
+        VerificationLevel safety_checks = VerificationLevel::kWarn;
+        bool extra_safety_checks = false;
+        bool verify_artifacts = false;
     };
 
 
@@ -53,8 +59,15 @@ namespace mamba
     };
 
     class Logger;
+    class Context;
 
-    std::string env_name(const fs::u8path& prefix);
+    std::string env_name(const Context& context, const fs::u8path& prefix);
+    std::string env_name(const Context& context);
+
+    struct ContextOptions
+    {
+        bool enable_logging_and_signal_handling = false;
+    };
 
     // Context singleton class
     class Context
@@ -163,9 +176,7 @@ namespace mamba
         // add start menu shortcuts on Windows (not implemented on Linux / macOS)
         bool shortcuts = true;
 
-        VerificationLevel safety_checks = VerificationLevel::kWarn;
-        bool extra_safety_checks = false;
-        bool verify_artifacts = false;
+        ValidationOptions validation_params;
 
         // debug helpers
         bool keep_temp_files = false;
@@ -195,7 +206,7 @@ namespace mamba
 
         std::string host_platform = std::string(specs::build_platform_name());
         std::string platform = std::string(specs::build_platform_name());
-        std::vector<std::string> platforms();
+        std::vector<std::string> platforms() const;
 
         std::vector<std::string> channels;
         std::map<std::string, std::string> custom_channels;
@@ -227,13 +238,6 @@ namespace mamba
         bool repodata_use_zst = true;
         std::vector<std::string> repodata_has_zst = { "https://conda.anaconda.org/conda-forge" };
 
-        // usernames on anaconda.org can have a underscore, which influences the
-        // first two characters
-        const std::regex token_regex{ "/t/([a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-]*)" };
-        const std::regex http_basicauth_regex{ "(://|^)([^\\s]+):([^\\s]+)@" };
-
-        static Context& instance();
-
         Context(const Context&) = delete;
         Context& operator=(const Context&) = delete;
 
@@ -246,11 +250,12 @@ namespace mamba
         void set_verbosity(int lvl);
         void set_log_level(log_level level);
 
-    protected:
-
-        Context();
+        Context(const ContextOptions& options = {});
         ~Context();
 
+        // Enables the provided context to drive the logging system and setup signal handling.
+        // This function must be called only for one Context in the lifetime of the program.
+        static void enable_logging_and_signal_handling(Context& context);
 
     private:
 
@@ -265,6 +270,8 @@ namespace mamba
 
         TaskSynchronizer tasksync;
     };
+
+
 }  // namespace mamba
 
 #endif  // MAMBA_CONTEXT_HPP

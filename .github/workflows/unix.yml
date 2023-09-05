@@ -149,6 +149,8 @@ jobs:
           mamba list -n l_o_cal_test
           mamba list -n l_o_cal_test | tail -n +3 > list.txt
           if [ "$(grep -c "local" list.txt)" -ne 2 ]; then
+            echo "DEBUG INFO: failure"
+            cat list.txt
             exit 1
           fi
       - name: Run server auth tests

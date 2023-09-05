@@ -24,8 +24,6 @@ dependencies:
   - pybind11-stubgen
   - pytest >=7.3
   - pyyaml
-  - conda
-  - conda-content-trust
   - cryptography<40.0  # Or breaks conda-content-trust
   - pip:
     - securesystemslib

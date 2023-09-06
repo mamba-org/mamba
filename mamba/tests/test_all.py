@@ -73,7 +73,7 @@ def temp_env_prefix():
 
     os.environ["MAMBA_ROOT_PREFIX"] = root_prefix
     create("-p", prefix, "-q")
-    install("-p", prefix, "-q", f"urllib3={version}")
+    install("-p", prefix, "-q", f"urllib3={version}", "-c", "conda-forge")
 
     yield prefix
 
@@ -95,7 +95,7 @@ def test_update(temp_env_prefix):
     assert res[-1] == version
 
     # Update package
-    update("-p", temp_env_prefix, "-q", "urllib3")
+    update("-p", temp_env_prefix, "-q", "urllib3", "-c", "conda-forge")
     res = umamba_run(
             "-p", temp_env_prefix, "python", "-c", "import urllib3; print(urllib3.__version__)"
         )

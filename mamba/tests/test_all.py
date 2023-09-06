@@ -93,7 +93,7 @@ def test_update(temp_env_prefix):
 
     # Check that the installed version is the old one
     print("FIRST RES: ", res)
-    assert res[-1] == version
+    assert res.strip() == version
 
     # Update package
     update("-p", temp_env_prefix, "-q", "urllib3", "-c", "conda-forge")
@@ -102,7 +102,7 @@ def test_update(temp_env_prefix):
         )
     print("SECOND RES: ", res)
     # Check that the installed version is newer
-    assert StrictVersion(res[-1]) > StrictVersion(version)
+    assert StrictVersion(res.strip()) > StrictVersion(version)
 
 
 #@pytest.mark.parametrize("shell_type", platform_shells())

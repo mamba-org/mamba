@@ -131,4 +131,98 @@ namespace mamba::specs
         set_path(std::move(l_path), Encode::no);
         return true;
     }
+
+    namespace
+    {
+        [[nodiscard]] auto find_slash_and_platform(std::string_view path)
+            -> std::tuple<std::size_t, std::size_t, std::optional<Platform>>
+        {
+            static constexpr auto npos = std::string_view::npos;
+
+            assert(!path.empty() && (path.front() == '/'));
+            auto start = std::size_t(0);
+            auto end = path.find('/', start + 1);
+            while (start != npos)
+            {
+                assert(start < end);
+                const auto count = (end == npos) ? npos : end - start;
+                const auto count_minus_1 = (end == npos) ? npos : end - start - 1;
+                if (auto plat = platform_parse(path.substr(start + 1, count_minus_1)))
+                {
+                    return { start, count, plat };
+                }
+                start = end;
+                end = path.find('/', start + 1);
+            }
+            return { npos, 0, std::nullopt };
+        }
+    }
+
+    auto CondaURL::platform() const -> std::optional<Platform>
+    {
+        const auto& l_path = path(Decode::no);
+        const auto [pos, count, plat] = find_slash_and_platform(l_path);
+        return plat;
+    }
+
+    auto CondaURL::platform_name() const -> std::string_view
+    {
+        static constexpr auto npos = std::string_view::npos;
+
+        const auto& l_path = path(Decode::no);
+        const auto [pos, len, plat] = find_slash_and_platform(l_path);
+        if (!plat.has_value())
+        {
+            return "";
+        }
+        assert(1 < len);
+        const auto plat_len = (len != npos) ? len - 1 : npos;
+        return std::string_view(l_path).substr(pos + 1, plat_len);
+    }
+
+    void CondaURL::set_platform_no_check_input(std::string_view platform)
+    {
+        static constexpr auto npos = std::string_view::npos;
+
+        const auto [pos, len, plat] = find_slash_and_platform(path(Decode::no));
+        if (!plat.has_value())
+        {
+            throw std::invalid_argument(
+                fmt::format(R"(No platform in orignial path "{}")", path(Decode::no))
+            );
+        }
+        assert(1 < len);
+        std::string l_path = clear_path();  // percent encoded
+        const auto plat_len = (len != npos) ? len - 1 : npos;
+        l_path.replace(pos + 1, plat_len, platform);
+        set_path(std::move(l_path), Encode::no);
+    }
+
+    void CondaURL::set_platform(std::string_view platform)
+    {
+        if (!platform_parse(platform).has_value())
+        {
+            throw std::invalid_argument(fmt::format(R"(Invalid CondaURL platform "{}")", platform));
+        }
+        return set_platform_no_check_input(platform);
+    }
+
+    void CondaURL::set_platform(Platform platform)
+    {
+        return set_platform_no_check_input(specs::platform_name(platform));
+    }
+
+    auto CondaURL::clear_platform() -> bool
+    {
+        const auto [pos, count, plat] = find_slash_and_platform(path(Decode::no));
+        if (!plat.has_value())
+        {
+            return false;
+        }
+        assert(1 < count);
+        std::string l_path = clear_path();  // percent encoded
+        l_path.erase(pos, count);
+        set_path(std::move(l_path), Encode::no);
+        return true;
+    }
 }

@@ -85,4 +85,96 @@ TEST_SUITE("specs::CondaURL")
             CHECK_EQ(url.path(), "/bar/");
         }
     }
+
+    TEST_CASE("Platform")
+    {
+        CondaURL url{};
+        url.set_scheme("https");
+        url.set_host("repo.mamba.pm");
+
+        SUBCASE("https://repo.mamba.pm/")
+        {
+            CHECK_FALSE(url.platform().has_value());
+            CHECK_EQ(url.platform_name(), "");
+
+            CHECK_THROWS_AS(url.set_platform(Platform::linux_64), std::invalid_argument);
+            CHECK_EQ(url.path(), "/");
+
+            CHECK_FALSE(url.clear_platform());
+            CHECK_EQ(url.path(), "/");
+        }
+
+        SUBCASE("https://repo.mamba.pm/conda-forge")
+        {
+            url.set_path("conda-forge");
+
+            CHECK_FALSE(url.platform().has_value());
+            CHECK_EQ(url.platform_name(), "");
+
+            CHECK_THROWS_AS(url.set_platform(Platform::linux_64), std::invalid_argument);
+            CHECK_EQ(url.path(), "/conda-forge");
+
+            CHECK_FALSE(url.clear_platform());
+            CHECK_EQ(url.path(), "/conda-forge");
+        }
+
+        SUBCASE("https://repo.mamba.pm/conda-forge/")
+        {
+            url.set_path("conda-forge/");
+
+            CHECK_FALSE(url.platform().has_value());
+            CHECK_EQ(url.platform_name(), "");
+
+            CHECK_THROWS_AS(url.set_platform(Platform::linux_64), std::invalid_argument);
+            CHECK_EQ(url.path(), "/conda-forge/");
+
+            CHECK_FALSE(url.clear_platform());
+            CHECK_EQ(url.path(), "/conda-forge/");
+        }
+
+        SUBCASE("https://repo.mamba.pm/conda-forge/win-64")
+        {
+            url.set_path("conda-forge/win-64");
+
+            CHECK_EQ(url.platform(), Platform::win_64);
+            CHECK_EQ(url.platform_name(), "win-64");
+
+            url.set_platform(Platform::linux_64);
+            CHECK_EQ(url.platform(), Platform::linux_64);
+            CHECK_EQ(url.path(), "/conda-forge/linux-64");
+
+            CHECK(url.clear_platform());
+            CHECK_EQ(url.path(), "/conda-forge");
+        }
+
+        SUBCASE("https://repo.mamba.pm/conda-forge/OSX-64/")
+        {
+            url.set_path("conda-forge/OSX-64");
+
+            CHECK_EQ(url.platform(), Platform::osx_64);
+            CHECK_EQ(url.platform_name(), "OSX-64");  // Captialization not changed
+
+            url.set_platform("Win-64");
+            CHECK_EQ(url.platform(), Platform::win_64);
+            CHECK_EQ(url.path(), "/conda-forge/Win-64");  // Captialization not changed
+
+            CHECK(url.clear_platform());
+            CHECK_EQ(url.path(), "/conda-forge");
+        }
+
+        SUBCASE("https://repo.mamba.pm/conda-forge/linux-64/micromamba-1.5.1-0.tar.bz2")
+        {
+            url.set_path("/conda-forge/linux-64/micromamba-1.5.1-0.tar.bz2");
+
+            CHECK_EQ(url.platform(), Platform::linux_64);
+            CHECK_EQ(url.platform_name(), "linux-64");
+
+            url.set_platform("osx-64");
+            CHECK_EQ(url.platform(), Platform::osx_64);
+            CHECK_EQ(url.path(), "/conda-forge/osx-64/micromamba-1.5.1-0.tar.bz2");
+
+            CHECK(url.clear_platform());
+            CHECK_EQ(url.path(), "/conda-forge/micromamba-1.5.1-0.tar.bz2");
+        }
+    }
 }

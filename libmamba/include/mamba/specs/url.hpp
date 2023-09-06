@@ -9,6 +9,7 @@
 
 #include <string_view>
 
+#include "mamba/specs/platform.hpp"
 #include "mamba/util/url.hpp"
 
 namespace mamba::specs
@@ -65,12 +66,38 @@ namespace mamba::specs
         /** Set a token if the URL already contains one, or throw an error. */
         void set_token(std::string_view token);
 
-        /** Clear the token if it exists and return ``true``, otherwise return false. */
+        /** Clear the token and return ``true`` if it exists, otherwise return ``false``. */
         auto clear_token() -> bool;
+
+        /** Return the platform if part of the URL path. */
+        [[nodiscard]] auto platform() const -> std::optional<Platform>;
+
+        /**
+         * Return the platform if part of the URL path, or empty.
+         *
+         * If a platform is found, it is returned as a view onto the path without normalization
+         * (for instance the capitalization isn't changed).
+         */
+        [[nodiscard]] auto platform_name() const -> std::string_view;
+
+        /** Set the platform if the URL already contains one, or throw an error. */
+        void set_platform(Platform platform);
+
+        /**
+         * Set the platform if the URL already contains one, or throw an error.
+         *
+         * If the input @p platform is a valid platform, it is inserted as it is into the path
+         * (for instance the capitalization isn't changed).
+         */
+        void set_platform(std::string_view platform);
+
+        /** Clear the token and return true if it exists, otherwise return ``false``. */
+        auto clear_platform() -> bool;
 
     private:
 
         explicit CondaURL(URL&& url);
+        void set_platform_no_check_input(std::string_view platform);
     };
 }
 #endif

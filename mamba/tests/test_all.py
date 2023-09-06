@@ -62,6 +62,8 @@ def test_install():
 def temp_env_prefix():
     version = "1.25.11"
 
+    import os
+
     previous_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
     previous_prefix = os.environ["CONDA_PREFIX"]
 

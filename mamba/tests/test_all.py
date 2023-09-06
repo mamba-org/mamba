@@ -155,14 +155,14 @@ def test_track_features(temp_env_prefix):
 
     print("RES FIRST: ", res)
     if platform.system() == "Windows":
-        assert res[-1].strip().startswith(version)
-        assert "[MSC v." in res[-1].strip()
+        assert res.strip().startswith(version)
+        assert "[MSC v." in res.strip()
     elif platform.system() == "Linux":
-        assert res[-2].strip().startswith(version)
-        assert res[-1].strip().startswith("[GCC")
+        assert res.strip().startswith(version)
+        assert "[GCC" in res.strip()
     else:
-        assert res[-2].strip().startswith(version)
-        assert res[-1].strip().startswith("[Clang")
+        assert res.strip().startswith(version)
+        assert "[Clang" in res.strip()
 
     if platform.system() == "Linux":
         # now force PyPy install
@@ -171,8 +171,8 @@ def test_track_features(temp_env_prefix):
             "-p", temp_env_prefix, "python", "-c", "import sys; print(sys.version)"
         )
         print("RES SEC: ", res)
-        assert res[-2].strip().startswith(version)
-        assert res[-1].strip().startswith("[PyPy")
+        assert res.strip().startswith(version)
+        assert "[PyPy" in res.strip()
 
 
 #@pytest.mark.parametrize("experimental", [True, False])

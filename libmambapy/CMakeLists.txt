@@ -55,13 +55,13 @@ add_custom_target(
         libmambapy.bindings
     WORKING_DIRECTORY "${STUBGEN_RUN_DIR}"
     COMMENT "Generating PyBind11 Stubs"
-    BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/libmambapy/bindings.pyi"
+    BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/bindings.pyi"
 )
 add_dependencies(stubgen bindings)
 
 install(TARGETS bindings LIBRARY DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/libmambapy/)
 install(
-    FILES "${CMAKE_CURRENT_BINARY_DIR}/libmambapy/bindings.pyi"
+    FILES "${CMAKE_CURRENT_BINARY_DIR}/bindings.pyi"
     DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/libmambapy/
     COMPONENT PythonBindingsStubgen
     EXCLUDE_FROM_ALL

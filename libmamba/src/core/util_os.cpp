@@ -213,11 +213,6 @@ namespace mamba
     std::string windows_version()
     {
         LOG_DEBUG << "Loading Windows virtual package";
-        auto override_version = env::get("CONDA_OVERRIDE_WIN");
-        if (override_version)
-        {
-            return override_version.value();
-        }
 
         if (!util::on_win)
         {

@@ -1,12 +1,12 @@
 #import json
 #import platform
-#import shutil
 
 #import subprocess
 #import uuid
 
 import os
 import random
+import shutil
 import string
 
 from distutils.version import StrictVersion
@@ -92,6 +92,7 @@ def test_update(temp_env_prefix):
         )
 
     # Check that the installed version is the old one
+    print("FIRST RES: ", res)
     assert res[-1] == version
 
     # Update package
@@ -99,6 +100,7 @@ def test_update(temp_env_prefix):
     res = umamba_run(
             "-p", temp_env_prefix, "python", "-c", "import urllib3; print(urllib3.__version__)"
         )
+    print("SECOND RES: ", res)
     # Check that the installed version is newer
     assert StrictVersion(res[-1]) > StrictVersion(version)
 

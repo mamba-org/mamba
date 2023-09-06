@@ -1,11 +1,13 @@
 #import json
-#import os
 #import platform
-#import random
 #import shutil
-#import string
+
 #import subprocess
 #import uuid
+
+import os
+import random
+import string
 
 from distutils.version import StrictVersion
 
@@ -35,8 +37,8 @@ from utils import (
 #)
 
 
-#def random_string(N=10):
-    #return "".join(random.choices(string.ascii_uppercase + string.digits, k=N))
+def random_string(N=10):
+    return "".join(random.choices(string.ascii_uppercase + string.digits, k=N))
 
 
 def test_install():
@@ -61,8 +63,6 @@ def test_install():
 @pytest.fixture()
 def temp_env_prefix():
     version = "1.25.11"
-
-    import os
 
     previous_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
     previous_prefix = os.environ["CONDA_PREFIX"]

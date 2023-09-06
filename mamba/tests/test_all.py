@@ -173,7 +173,7 @@ def test_track_features(temp_env_prefix):
 
 # NOTE used to test --mamba-experimental flag as well (do we need to add it in micromamba? I don't think it's really useful...)
 @pytest.mark.parametrize("use_json", [True, False])
-def test_create_dry_run(experimental, use_json, tmpdir):
+def test_create_dry_run(use_json, tmpdir):
     env_dir = tmpdir / str(uuid.uuid1())
 
     cmd = ["-p", env_dir, "--dry-run", "python=3.8", "-c", "conda-forge"]

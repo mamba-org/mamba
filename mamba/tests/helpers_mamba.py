@@ -232,9 +232,6 @@ def update(*args, **kwargs):
             except json.decoder.JSONDecodeError as e:
                 print(f"Error when loading JSON output from {res}")
                 raise (e)
-        print(f"Error when executing '{' '.join(cmd)}'")
-        raise
-
         return res.decode()
     except subprocess.CalledProcessError as e:
         print(f"Error when executing '{' '.join(cmd)}'")

@@ -277,6 +277,17 @@ PYBIND11_MODULE(bindings, m)
         .def("find_python_version", &MTransaction::py_find_python_version)
         .def("execute", &MTransaction::execute);
 
+    py::class_<MSolverProblem>(m, "SolverProblem")
+        .def_readwrite("type", &MSolverProblem::type)
+        .def_readwrite("source_id", &MSolverProblem::source_id)
+        .def_readwrite("target_id", &MSolverProblem::target_id)
+        .def_readwrite("dep_id", &MSolverProblem::dep_id)
+        .def_readwrite("source", &MSolverProblem::source)
+        .def_readwrite("target", &MSolverProblem::target)
+        .def_readwrite("dep", &MSolverProblem::dep)
+        .def_readwrite("description", &MSolverProblem::description)
+        .def("__str__", [](const MSolverProblem& self) { return self.description; });
+
     pySolver.def(py::init<MPool&, std::vector<std::pair<int, int>>>(), py::keep_alive<1, 2>())
         .def("add_jobs", &MSolver::add_jobs)
         .def("add_global_job", &MSolver::add_global_job)
@@ -299,17 +310,6 @@ PYBIND11_MODULE(bindings, m)
         )
         .def("try_solve", &MSolver::try_solve)
         .def("must_solve", &MSolver::must_solve);
-
-    py::class_<MSolverProblem>(m, "SolverProblem")
-        .def_readwrite("type", &MSolverProblem::type)
-        .def_readwrite("source_id", &MSolverProblem::source_id)
-        .def_readwrite("target_id", &MSolverProblem::target_id)
-        .def_readwrite("dep_id", &MSolverProblem::dep_id)
-        .def_readwrite("source", &MSolverProblem::source)
-        .def_readwrite("target", &MSolverProblem::target)
-        .def_readwrite("dep", &MSolverProblem::dep)
-        .def_readwrite("description", &MSolverProblem::description)
-        .def("__str__", [](const MSolverProblem& self) { return self.description; });
 
     using PbGraph = ProblemsGraph;
     auto pyPbGraph = py::class_<PbGraph>(m, "ProblemsGraph");
@@ -982,6 +982,13 @@ PYBIND11_MODULE(bindings, m)
         )
         .def_readwrite("keys", &validation::RoleFullKeys::keys)
         .def_readwrite("threshold", &validation::RoleFullKeys::threshold);
+
+    py::class_<validation::TimeRef>(m, "TimeRef")
+        .def(py::init<>())
+        .def(py::init<std::time_t>())
+        .def("set_now", &validation::TimeRef::set_now)
+        .def("set", &validation::TimeRef::set)
+        .def("timestamp", &validation::TimeRef::timestamp);
 
     py::class_<validation::SpecBase, std::shared_ptr<validation::SpecBase>>(m, "SpecBase");
 

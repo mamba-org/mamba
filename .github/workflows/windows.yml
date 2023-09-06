@@ -110,11 +110,6 @@ jobs:
           if %errorlevel% neq 0 exit /b %errorlevel%
           cmake --install build/
           if %errorlevel% neq 0 exit /b %errorlevel%
-      - name: Generate libmambapy stubs
-        shell: cmd /C call {0}
-        run: |
-          cmake --build build/ --target stubgen
-          cmake --install build/ --component PythonBindingsStubgen
       - name: Install libmambapy
         shell: cmd /C call {0}
         run: pip install -e .\libmambapy\ --no-deps

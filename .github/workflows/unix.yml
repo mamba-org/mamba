@@ -102,14 +102,16 @@ jobs:
             -G Ninja
           cmake --build build/ --parallel
           cmake --install build/
-      - name: Generate libmambapy stubs
-        shell: bash -l {0}
-        run: |
-          cmake --build build/ --target stubgen
-          cmake --install build/ --component PythonBindingsStubgen
       - name: Install libmambapy
         shell: bash -l {0}
-        run: python -m pip install --no-deps --no-build-isolation --editable ./libmambapy/
+        run: |
+          python -m pip install --no-deps --no-build-isolation --editable ./libmambapy/
+      - name: Check libmambapy stubs
+        shell: bash -l {0}
+        run: |
+          pybind11-stubgen libmambapy.bindings -o stubs/
+          pre-commit run --files stubs/libmambapy/binginds.pyi
+          python compare_stubs.py libmambapy/libmambapy/__init__.pyi stubs/libmambapy/bindings.pyi
       - name: Show build cache statistics
         run: sccache --show-stats
       - name: Install mamba

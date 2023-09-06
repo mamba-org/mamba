@@ -179,7 +179,7 @@ def test_create_dry_run(use_json, tmpdir):
     cmd = ["-p", env_dir, "--dry-run", "python=3.8", "-c", "conda-forge"]
 
     if use_json:
-        cmd += "--json"
+        cmd += ["--json"]
 
     res = create(*cmd)
 

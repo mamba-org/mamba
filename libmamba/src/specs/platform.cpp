@@ -23,6 +23,8 @@ namespace mamba::specs
     {
         switch (p)
         {
+            case Platform::noarch:
+                return "noarch";
             case Platform::linux_32:
                 return "linux-32";
             case Platform::linux_64:
@@ -64,6 +66,7 @@ namespace mamba::specs
     {
         std::string const str_clean = util::to_lower(util::strip(str));
         for (const auto p : {
+                 Platform::noarch,
                  Platform::linux_32,
                  Platform::linux_64,
                  Platform::linux_armv6l,

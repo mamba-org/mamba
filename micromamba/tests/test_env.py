@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 from pathlib import Path
 
@@ -59,14 +60,37 @@ def test_register_new_env(tmp_home, tmp_root_prefix):
     assert str(env_3_fp) in env_json["envs"]
 
 
-def test_env_export(tmp_home, tmp_root_prefix):
+@pytest.fixture(scope="module")
+def export_env():
     env_name = "env-create-export"
     spec_file = __this_dir__ / "env-create-export.yaml"
     helpers.create("-n", env_name, "-f", spec_file)
-    ret = yaml.safe_load(helpers.run_env("export", "-n", env_name))
-    assert ret["name"] == env_name
-    assert set(ret["channels"]) == {"conda-forge"}
-    assert "micromamba=0.24.0=0" in ret["dependencies"]
+    return env_name
+
+
+@pytest.mark.parametrize("channel_subdir_flag", [None, "--channel-subdir"])
+@pytest.mark.parametrize("md5_flag", [None, "--md5", "--no-md5"])
+@pytest.mark.parametrize("explicit_flag", [None, "--explicit"])
+def test_env_export(export_env, explicit_flag, md5_flag, channel_subdir_flag):
+    flags = filter(None, [explicit_flag, md5_flag, channel_subdir_flag])
+    output = helpers.run_env("export", "-n", export_env, *flags)
+    if explicit_flag:
+        assert "/micromamba-0.24.0-0." in output
+        if md5_flag != "--no-md5":
+            assert re.search("#[a-f0-9]{32}$", output.replace("\r", ""))
+    else:
+        ret = yaml.safe_load(output)
+        assert ret["name"] == export_env
+        assert set(ret["channels"]) == {"conda-forge"}
+        assert "micromamba=0.24.0=0" in str(ret["dependencies"])
+        if md5_flag == "--md5":
+            assert re.search(
+                r"micromamba=0.24.0=0\[md5=[a-f0-9]{32}\]", str(ret["dependencies"])
+            )
+        if channel_subdir_flag:
+            assert re.search(
+                r"conda-forge/[a-z0-9-]+::micromamba=0.24.0=0", str(ret["dependencies"])
+            )
 
 
 def test_create():

@@ -33,21 +33,7 @@
 
 namespace mamba
 {
-#if __APPLE__ || __MACH__
-    static constexpr bool on_win = false;
-    static constexpr bool on_linux = false;
-    static constexpr bool on_mac = true;
-#elif __linux__
-    static constexpr bool on_win = false;
-    static constexpr bool on_linux = true;
-    static constexpr bool on_mac = false;
-#elif _WIN32
-    static constexpr bool on_win = true;
-    static constexpr bool on_linux = false;
-    static constexpr bool on_mac = false;
-#else
-#error "no supported OS detected"
-#endif
+    class Context;
 
     // Used when we want a callback which does nothing.
     struct no_op
@@ -75,6 +61,55 @@ namespace mamba
             fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read | fs::perms::others_exec
         );
     }
+
+    // @return `true` if `TemporaryFile` will not delete files once destroy.
+    //         If `set_persist_temporary_files` was not called, returns `false` by default.
+    //
+    // @warning This function must be called in the execution scope `main()`, doing otherwise leads
+    // to undefined behavior.
+    //
+    // @warning This is a thread-safe accessor for a global parameter: the returned value is
+    // therefore obsolete before being obtained and should be considered as a hint.
+    bool must_persist_temporary_files();
+
+    // Controls if `TemporaryFile` will delete files once destroy or not.
+    // This is useful for debugging situations where temporary data lead to unexpected behavior.
+    //
+    // @warning This function must be called in the execution scope `main()`, doing otherwise leads
+    // to undefined behavior.
+    //
+    // @warning This is a thread-safe function setting a global parameter: if concurrent threads
+    // are both calling this function with different value there is no guarantee as to which
+    // value will be retained.
+    // However if there is exactly one thread executing this function then the following is true:
+    //    const auto result = set_persist_temporary_files(must_persist);
+    //    result == must_persist && must_persist_temporary_files() == must_persist
+    bool set_persist_temporary_files(bool will_persist);
+
+    // @return `true` if `TemporaryDirectory` will not delete files once destroy.
+    //         If `set_persist_temporary_files` was not called, returns `false` by default.
+    //
+    // @warning This function must be called in the execution scope `main()`, doing otherwise leads
+    // to undefined behavior.
+    //
+    // @warning This is a thread-safe accessor for a global parameter: the returned value is
+    // therefore obsolete before being obtained and should be considered as a hint.
+    bool must_persist_temporary_directories();
+
+    // Controls if `TemporaryDirectory` will delete files once destroy or not.
+    // This is useful for debugging situations where temporary data lead to unexpected behavior.
+    //
+    // @warning This function must be called in the execution scope `main()`, doing otherwise leads
+    // to undefined behavior.
+    //
+    // @warning This is a thread-safe function setting a global parameter: if concurrent threads
+    // are both calling this function with different value there is no guarantee as to which
+    // value will be retained.
+    // However if there is exactly one thread executing this function then the following is true:
+    //    const auto result = set_persist_temporary_directories(must_persist);
+    //    result == must_persist && must_persist_temporary_directories() == must_persist
+    bool set_persist_temporary_directories(bool will_persist);
+
 
     class TemporaryDirectory
     {
@@ -147,6 +182,29 @@ namespace mamba
     //    result == allow && is_file_locking_allowed() == allow
     bool allow_file_locking(bool allow);
 
+    // @return The file locking timeout used by `LockFile` at construction.
+    //
+    // @warning This function must be called in the execution scope `main()`, doing otherwise leads
+    // to undefined behavior.
+    //
+    // @warning This is a thread-safe accessor for a global parameter: the returned value is
+    // therefore obsolete before being obtained and should be considered as a hint.
+    std::chrono::seconds default_file_locking_timeout();
+
+    // Changes the locking duration when `LockFile` is constructed without a specified locking
+    // timeout.
+    //
+    // @warning This function must be called in the execution scope `main()`, doing otherwise leads
+    // to undefined behavior.
+    //
+    // @warning This is a thread-safe function setting a global parameter: if concurrent threads
+    // are both calling this function with different value there is no guarantee as to which
+    // value will be retained.
+    // However if there is exactly one thread executing this function then the following is true:
+    //    const auto result = set_file_locking_timeout(timeout);
+    //    result == timeout && default_file_locking_timeout() == timeout
+    std::chrono::seconds set_file_locking_timeout(const std::chrono::seconds& new_timeout);
+
     // This is a non-throwing file-locking mechanism.
     // It can be used on a file or directory path. In the case of a directory path a file will be
     // created to be locked. The locking will be implemented using the OS's filesystem locking
@@ -201,7 +259,7 @@ namespace mamba
         // re-assigned:
         // - `this->is_locked() == false` and `if(*this) ...` will go in the `false` branch.
         // - accessors will throw, except `is_locked()`, `count_lock_owners()`, and `error()`
-        LockFile(const fs::u8path& path);
+        explicit LockFile(const fs::u8path& path);
         LockFile(const fs::u8path& path, const std::chrono::seconds& timeout);
 
         ~LockFile();
@@ -298,7 +356,7 @@ namespace mamba
     quote_for_shell(const std::vector<std::string>& arguments, const std::string& shell = "");
 
     std::size_t clean_trash_files(const fs::u8path& prefix, bool deep_clean);
-    std::size_t remove_or_rename(const fs::u8path& path);
+    std::size_t remove_or_rename(const Context& context, const fs::u8path& path);
 
     // Unindent a string literal
     std::string unindent(const char* p);
@@ -324,16 +382,35 @@ namespace mamba
     open_ifstream(const fs::u8path& path, std::ios::openmode mode = std::ios::in | std::ios::binary);
 
     bool ensure_comspec_set();
+
+    struct WrappedCallOptions
+    {
+        bool is_micromamba = false;
+        bool dev_mode = false;
+        bool debug_wrapper_scripts = false;
+
+        static WrappedCallOptions from_context(const Context&);
+    };
+
     std::unique_ptr<TemporaryFile> wrap_call(
+        const Context& context,
         const fs::u8path& root_prefix,
         const fs::u8path& prefix,
-        bool dev_mode,
-        bool debug_wrapper_scripts,
-        const std::vector<std::string>& arguments
+        const std::vector<std::string>& arguments,  // TODO: c++20 replace by std::span
+        WrappedCallOptions options = {}
     );
 
-    std::tuple<std::vector<std::string>, std::unique_ptr<TemporaryFile>>
-    prepare_wrapped_call(const fs::u8path& prefix, const std::vector<std::string>& cmd);
+    struct PreparedWrappedCall
+    {
+        std::vector<std::string> wrapped_command;
+        std::unique_ptr<TemporaryFile> temporary_file;
+    };
+
+    PreparedWrappedCall prepare_wrapped_call(
+        const Context& context,
+        const fs::u8path& prefix,
+        const std::vector<std::string>& cmd
+    );
 
     /// Returns `true` if the filename matches names of files which should be interpreted as YAML.
     /// NOTE: this does not check if the file exists.
@@ -341,7 +418,6 @@ namespace mamba
 
     std::optional<std::string>
     proxy_match(const std::string& url, const std::map<std::string, std::string>& proxy_servers);
-    std::optional<std::string> proxy_match(const std::string& url);
 
     std::string hide_secrets(std::string_view str);
 

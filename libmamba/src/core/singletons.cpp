@@ -15,6 +15,7 @@ extern "C"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/validate.hpp"
+#include "mamba/util/build.hpp"
 
 #include "spdlog/spdlog.h"
 
@@ -46,11 +47,11 @@ namespace mamba
             CURLsslset sslset_res;
             const curl_ssl_backend** available_backends;
 
-            if (on_linux)
+            if (util::on_linux)
             {
                 sslset_res = curl_global_sslset(CURLSSLBACKEND_OPENSSL, nullptr, &available_backends);
             }
-            else if (on_mac)
+            else if (util::on_mac)
             {
                 sslset_res = curl_global_sslset(
                     CURLSSLBACKEND_SECURETRANSPORT,
@@ -58,7 +59,7 @@ namespace mamba
                     &available_backends
                 );
             }
-            else if (on_win)
+            else if (util::on_win)
             {
                 sslset_res = curl_global_sslset(CURLSSLBACKEND_SCHANNEL, nullptr, &available_backends);
             }
@@ -136,7 +137,10 @@ namespace mamba
         MainExecutor* expected = nullptr;
         if (!main_executor.compare_exchange_strong(expected, this))
         {
-            throw MainExecutorError("attempted to create multiple main executors");
+            throw MainExecutorError(
+                "attempted to create multiple main executors",
+                mamba_error_code::incorrect_usage
+            );
         }
     }
 
@@ -146,49 +150,36 @@ namespace mamba
         main_executor = nullptr;
     }
 
-    //---- Singletons from this library ------------------------------------------------------------
-
-    namespace singletons
-    {
-        template <typename T>
-        struct Singleton : public T
-        {
-            using T::T;
-        };
-
-        template <typename T, typename D>
-        T& init_once(std::unique_ptr<T, D>& ptr)
-        {
-            static std::once_flag init_flag;
-            std::call_once(init_flag, [&] { ptr = std::make_unique<T>(); });
-            // In case the object was already created and destroyed, we make sure it is clearly
-            // visible (no undefined behavior).
-            if (!ptr)
-            {
-                throw mamba::mamba_error(
-                    fmt::format(
-                        "attempt to use {} singleton instance after destruction",
-                        typeid(T).name()
-                    ),
-                    mamba_error_code::internal_failure
-                );
-            }
-
-            return *ptr;
-        }
-
-        static std::unique_ptr<Singleton<Context>> context;
-        static std::unique_ptr<Singleton<Console>> console;
-    }
-
-    Context& Context::instance()
-    {
-        return singletons::init_once(singletons::context);
-    }
+    static std::atomic<Console*> main_console{ nullptr };
 
     Console& Console::instance()
     {
-        return singletons::init_once(singletons::console);
+        if (!main_console)  // NOTE: this is a temptative check, not a perfect one, it is possible
+                            // `main_console` becomes null after the if scope and before returning.
+                            // A perfect check would involve locking a mutex, we want to avoid that
+                            // here.
+        {
+            throw mamba_error(
+                "attempted to access the console but it have not been created yet",
+                mamba_error_code::incorrect_usage
+            );
+        }
+
+        return *main_console;
+    }
+
+    void Console::set_singleton(Console& console)
+    {
+        Console* expected = nullptr;
+        if (!main_console.compare_exchange_strong(expected, &console))
+        {
+            throw mamba_error("attempted to create multiple consoles", mamba_error_code::incorrect_usage);
+        }
+    }
+
+    void Console::clear_singleton()
+    {
+        main_console = nullptr;
     }
 
 }

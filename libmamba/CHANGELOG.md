@@ -1,3 +1,29 @@
+libmamba 1.5.1 (September 05, 2023)
+===================================
+
+Enhancements:
+
+- Add scope in util tests by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2775
+- Enable Link Time Optimization by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2742
+- Add libsolv namespace callback by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2796
+- Clearer output from micromamba search by @delsner in https://github.com/mamba-org/mamba/pull/2782
+- add context.register_envs to control whether environments are registered to environments.txt or not by @jaimergp in https://github.com/mamba-org/mamba/pull/2802
+- Windows path manipulation and other cleanups by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2801
+- Bring back repodata_use_zst by @jonashaag in https://github.com/mamba-org/mamba/pull/2790
+
+Bug fixes:
+
+- fix install pin by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2773
+- Use generic_string for path on Windows unix shells by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2685
+- Fix pins by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2786
+- Various fixes by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2800
+- Parse subdirs in CLI match specs by @jonashaag in https://github.com/mamba-org/mamba/pull/2799
+
+CI fixes and doc:
+
+- Splitted GHA workflow by @JohanMabille in https://github.com/mamba-org/mamba/pull/2779
+- Use Release build mode in Windows CI by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2785
+
 libmamba 1.5.0 (August 24, 2023)
 ================================
 

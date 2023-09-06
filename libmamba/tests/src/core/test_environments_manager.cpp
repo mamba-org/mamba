@@ -6,9 +6,12 @@
 
 #include <doctest/doctest.h>
 
+#include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/environments_manager.hpp"
 #include "mamba/core/mamba_fs.hpp"
+
+#include "mambatests.hpp"
 
 namespace mamba
 {
@@ -16,7 +19,7 @@ namespace mamba
     {
         TEST_CASE("all_envs")
         {
-            EnvironmentsManager e;
+            EnvironmentsManager e{ mambatests::context() };
             auto prefixes = e.list_all_known_prefixes();
             // Test registering env without `conda-meta/history` file
             e.register_env(env::expand_user("~/some/env"));

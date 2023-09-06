@@ -238,10 +238,12 @@ namespace mamba
         // Necessary for attributes to be properly stored
         installed->internalize();
 
-        // Lock the dummy solvable so that it stays install.
+        // WARNING keep separate or libsolv does not understand
         // Force verify the dummy solvable dependencies, as this is not the default for
         // installed packages.
-        return add_jobs({ cons_solv_name }, SOLVER_LOCK | SOLVER_VERIFY);
+        add_jobs({ cons_solv_name }, SOLVER_VERIFY);
+        // Lock the dummy solvable so that it stays install.
+        add_jobs({ cons_solv_name }, SOLVER_LOCK);
     }
 
     void MSolver::add_pins(const std::vector<std::string>& pins)
@@ -435,7 +437,7 @@ namespace mamba
 
     std::ostream& MSolver::explain_problems(std::ostream& out) const
     {
-        const auto& ctx = Context::instance();
+        const auto& ctx = m_pool.context();
         out << "Could not solve for environment specs\n";
         const auto pbs = problems_graph();
         const auto pbs_simplified = simplify_conflicts(pbs);

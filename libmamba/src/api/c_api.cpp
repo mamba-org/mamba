@@ -16,12 +16,45 @@
 #include "mamba/api/list.hpp"
 #include "mamba/api/remove.hpp"
 #include "mamba/api/update.hpp"
+#include "mamba/core/context.hpp"
+#include "mamba/core/execution.hpp"
 
+mamba::MainExecutor*
+mamba_new_main_executor()
+{
+    return new mamba::MainExecutor;
+}
+
+void
+mamba_delete_main_executor(mamba::MainExecutor* main_executor)
+{
+    delete main_executor;
+}
+
+mamba::Context*
+mamba_new_context(mamba::ContextOptions* options)
+{
+    if (options)
+    {
+        return new mamba::Context{ *options };
+    }
+    else
+    {
+        return new mamba::Context;
+    }
+}
+
+void
+mamba_delete_context(mamba::Context* context)
+{
+    delete context;
+}
 
 mamba::Configuration*
-mamba_new_configuration()
+mamba_new_configuration(mamba::Context* context)
 {
-    return new mamba::Configuration;
+    assert(context != nullptr);
+    return new mamba::Configuration(*context);
 }
 
 void

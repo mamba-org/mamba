@@ -13,6 +13,7 @@
 #include <curl/urlapi.h>
 #include <fmt/format.h>
 
+#include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
 #include "mamba/util/url_manip.hpp"

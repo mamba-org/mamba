@@ -31,6 +31,7 @@ namespace mamba
         selfupdate_failure,
         satisfiablitity_error,
         user_interrupted,
+        incorrect_usage,
     };
 
     class mamba_error : public std::runtime_error

@@ -10,12 +10,12 @@
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
-#include "mamba/api/shell.hpp"
 #include "mamba/api/update.hpp"
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/util/build.hpp"
 
 #include "common_options.hpp"
 #include "version.hpp"
@@ -25,16 +25,16 @@ using namespace mamba;  // NOLINT(build/namespaces)
 int
 update_self(Configuration& config, const std::optional<std::string>& version)
 {
-    auto& ctx = mamba::Context::instance();
+    auto& ctx = config.context();
     config.load();
 
     // set target_prefix to root_prefix (irrelevant, but transaction tries to lock
     // the conda-meta folder of the target_prefix)
     ctx.prefix_params.target_prefix = ctx.prefix_params.root_prefix;
 
-    mamba::ChannelContext channel_context;
+    mamba::ChannelContext channel_context{ ctx };
     mamba::MPool pool{ channel_context };
-    mamba::MultiPackageCache package_caches(ctx.pkgs_dirs);
+    mamba::MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
 
     auto exp_loaded = load_channels(pool, package_caches, 0);
     if (!exp_loaded)
@@ -107,7 +107,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
 
     try
     {
-        if (on_win)
+        if (util::on_win)
         {
             fs::copy_file(
                 cache_path / "Library" / "bin" / "micromamba.exe",
@@ -138,10 +138,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     }
 
     // Command to reinit shell from the new executable.
-    // Adding bash as the shell but this is just a placeholder as the find_initialized_shells()
-    // deals with the reinit.
-    std::vector<std::string> command = { mamba_exe, "shell", "reinit",          "-s",
-                                         "bash",    "-p",    prefix_data.path() };
+    std::vector<std::string> command = { mamba_exe, "shell", "reinit" };
 
     // The options for the process
     reproc::options options;

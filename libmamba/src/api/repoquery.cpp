@@ -25,18 +25,18 @@ namespace mamba
         const std::string& query
     )
     {
-        auto& ctx = Context::instance();
+        auto& ctx = config.context();
 
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
             .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX);
         config.load();
 
-        ChannelContext channel_context;
+        ChannelContext channel_context{ ctx };
         MPool pool{ channel_context };
 
         // bool installed = (type == QueryType::kDepends) || (type == QueryType::kWhoneeds);
-        MultiPackageCache package_caches(ctx.pkgs_dirs);
+        MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
         if (use_local)
         {
             if (format != QueryResultFormat::kJSON)
@@ -109,7 +109,7 @@ namespace mamba
             {
                 case QueryResultFormat::kTREE:
                 case QueryResultFormat::kPRETTY:
-                    res.tree(std::cout);
+                    res.tree(std::cout, config.context().graphics_params);
                     break;
                 case QueryResultFormat::kJSON:
                     std::cout << res.json(pool.channel_context()).dump(4);
@@ -135,7 +135,7 @@ namespace mamba
             {
                 case QueryResultFormat::kTREE:
                 case QueryResultFormat::kPRETTY:
-                    res.tree(std::cout);
+                    res.tree(std::cout, config.context().graphics_params);
                     break;
                 case QueryResultFormat::kJSON:
                     std::cout << res.json(pool.channel_context()).dump(4);
@@ -144,7 +144,14 @@ namespace mamba
                 case QueryResultFormat::kRECURSIVETABLE:
                     res.sort("name").table(
                         std::cout,
-                        { "Name", "Version", "Build", util::concat("Depends:", query), "Channel" }
+                        { "Name",
+                          "Version",
+                          "Build",
+                          printers::alignmentMarker(printers::alignment::left),
+                          printers::alignmentMarker(printers::alignment::right),
+                          util::concat("Depends:", query),
+                          "Channel",
+                          "Subdir" }
                     );
             }
             if (res.empty() && format != QueryResultFormat::kJSON)

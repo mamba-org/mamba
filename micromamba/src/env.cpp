@@ -21,9 +21,8 @@
 using namespace mamba;  // NOLINT(build/namespaces)
 
 std::string
-get_env_name(const fs::u8path& px)
+get_env_name(const Context& ctx, const fs::u8path& px)
 {
-    const auto& ctx = Context::instance();
     auto& ed = ctx.envs_dirs[0];
     if (px == ctx.prefix_params.root_prefix)
     {
@@ -57,9 +56,9 @@ set_env_command(CLI::App* com, Configuration& config)
     init_install_options(create_subcom, config);
 
     static bool explicit_format = false;
-    static bool no_md5 = false;
-
+    static int no_md5 = 0;
     static bool no_build = false;
+    static bool channel_subdir = false;
     static bool from_history = false;
 
     auto* export_subcom = com->add_subcommand("export", "Export environment");
@@ -68,6 +67,7 @@ set_env_command(CLI::App* com, Configuration& config)
     export_subcom->add_flag("-e,--explicit", explicit_format, "Use explicit format");
     export_subcom->add_flag("--no-md5,!--md5", no_md5, "Disable md5");
     export_subcom->add_flag("--no-build,!--build", no_build, "Disable the build string in spec");
+    export_subcom->add_flag("--channel-subdir", channel_subdir, "Enable channel/subdir in spec");
     export_subcom->add_flag(
         "--from-history",
         from_history,
@@ -77,10 +77,10 @@ set_env_command(CLI::App* com, Configuration& config)
     export_subcom->callback(
         [&]
         {
-            auto const& ctx = Context::instance();
+            auto& ctx = config.context();
             config.load();
 
-            mamba::ChannelContext channel_context;
+            mamba::ChannelContext channel_context{ ctx };
             if (explicit_format)
             {
                 // TODO: handle error
@@ -88,7 +88,7 @@ set_env_command(CLI::App* com, Configuration& config)
                 auto records = pd.sorted_records();
                 std::cout << "# This file may be used to create an environment using:\n"
                           << "# $ conda create --name <env> --file <this file>\n"
-                          << "# platform: " << Context::instance().platform << "\n"
+                          << "# platform: " << ctx.platform << "\n"
                           << "@EXPLICIT\n";
 
                 for (const auto& record : records)
@@ -96,7 +96,7 @@ set_env_command(CLI::App* com, Configuration& config)
                     std::string clean_url, token;
                     util::split_anaconda_token(record.url, clean_url, token);
                     std::cout << clean_url;
-                    if (!no_md5)
+                    if (no_md5 != 1)
                     {
                         std::cout << "#" << record.md5;
                     }
@@ -110,7 +110,7 @@ set_env_command(CLI::App* com, Configuration& config)
 
                 const auto& versions_map = pd.records();
 
-                std::cout << "name: " << get_env_name(ctx.prefix_params.target_prefix) << "\n";
+                std::cout << "name: " << get_env_name(ctx, ctx.prefix_params.target_prefix) << "\n";
                 std::cout << "channels:\n";
 
                 auto requested_specs_map = hist.get_requested_specs_map();
@@ -123,21 +123,31 @@ set_env_command(CLI::App* com, Configuration& config)
                         continue;
                     }
 
+                    const Channel& channel = channel_context.make_channel(v.url);
+
                     if (from_history)
                     {
                         dependencies << "- " << requested_specs_map[k].str() << "\n";
                     }
                     else
                     {
-                        dependencies << "- " << v.name << "=" << v.version;
+                        dependencies << "- ";
+                        if (channel_subdir)
+                        {
+                            dependencies << channel.name() << "/" << v.subdir << "::";
+                        }
+                        dependencies << v.name << "=" << v.version;
                         if (!no_build)
                         {
                             dependencies << "=" << v.build_string;
                         }
+                        if (no_md5 == -1)
+                        {
+                            dependencies << "[md5=" << v.md5 << "]";
+                        }
                         dependencies << "\n";
                     }
 
-                    const Channel& channel = channel_context.make_channel(v.url);
                     channels.insert(channel.name());
                 }
 
@@ -154,10 +164,10 @@ set_env_command(CLI::App* com, Configuration& config)
     list_subcom->callback(
         [&config]
         {
-            const auto& ctx = Context::instance();
+            const auto& ctx = config.context();
             config.load();
 
-            EnvironmentsManager env_manager;
+            EnvironmentsManager env_manager{ ctx };
 
             if (ctx.output_params.json)
             {
@@ -185,7 +195,7 @@ set_env_command(CLI::App* com, Configuration& config)
             for (auto& env : env_manager.list_all_known_prefixes())
             {
                 bool is_active = (env == ctx.prefix_params.target_prefix);
-                t.add_row({ get_env_name(env), is_active ? "*" : "", env.string() });
+                t.add_row({ get_env_name(ctx, env), is_active ? "*" : "", env.string() });
             }
             t.print(std::cout);
         }
@@ -203,14 +213,14 @@ set_env_command(CLI::App* com, Configuration& config)
             // Remove specs if exist
             remove(config, MAMBA_REMOVE_ALL);
 
-            const auto& ctx = Context::instance();
+            const auto& ctx = config.context();
             if (!ctx.dry_run)
             {
                 const auto& prefix = ctx.prefix_params.target_prefix;
                 // Remove env directory or rename it (e.g. if used)
-                remove_or_rename(env::expand_user(prefix));
+                remove_or_rename(ctx, env::expand_user(prefix));
 
-                EnvironmentsManager env_manager;
+                EnvironmentsManager env_manager{ ctx };
                 // Unregister environment
                 env_manager.unregister_env(env::expand_user(prefix));
 

@@ -16,92 +16,61 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  libmamba_static_win:
+  libmamba_tests_win:
+    name: libmamba tests
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [windows-2019]
-
     steps:
       - uses: actions/checkout@v3
-      - name: create build environment
+      - name: Create build environment
         uses: mamba-org/setup-micromamba@v1
         with:
-          environment-file: ./libmamba/environment-static-dev-win.yml
+          environment-file: ./libmamba/environment-dev.yml
           environment-name: build_env
           cache-environment: true
           init-shell: bash cmd.exe
-      - name: remove vcpkg manifest file
-        # we need to remove the vcpkg.json file to be able to work not in manifest mode
-        run: rm vcpkg.json
-      - name: Get Week
-        id: get-week
-        shell: bash
-        run: echo "week=$(/bin/date -u "+%Y%U")" >> "${GITHUB_OUTPUT}"
-      - name: Restore cached VCPKG dependencies
-        id: cache-vcpkg-restore
-        uses: actions/cache/restore@v3
-        with:
-          path: C:\vcpkg
-          key: vcpkg-${{ runner.os }}-${{ runner.arch }}-${{ steps.get-week.outputs.week }}-
-      - name: Build static windows dependencies with vcpkg
-        shell: cmd /C CALL {0}
-        # Latest VCPKG is from GHA because releases are not up to date with VCPKG server
-        run: |
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          set VCPKG_ROOT=C:\vcpkg
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          ROBOCOPY .\ports\libsolv %VCPKG_ROOT%\ports\libsolv
-          @rem ROBOCOPY has 0 and 1 as successfull exit codes
-          if %errorlevel% neq 0 if %errorlevel% neq 1 exit /b %errorlevel%
-          SET VCPKG_BUILD_TYPE=release && vcpkg install libsolv[conda] --triplet x64-windows-static
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          vcpkg install "libarchive[bzip2,lz4,lzma,lzo,openssl,zstd]" --triplet x64-windows-static
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          vcpkg install curl --triplet x64-windows-static
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          vcpkg install yaml-cpp --triplet x64-windows-static
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          vcpkg install reproc --triplet x64-windows-static
-          if %errorlevel% neq 0 exit /b %errorlevel%
-      - name: Save VCPKG dependencies
-        uses: actions/cache/save@v3
-        with:
-          path: C:\vcpkg
-          key: ${{ steps.cache-vcpkg-restore.outputs.cache-primary-key }}
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
           key: ${{ github.job }}-${{ matrix.os }}
-      - name: build libmamba-static
+          restore-keys: |
+            libmamba-${{ matrix.os }}
+      - name: Build libmamba
         shell: cmd /C call {0}
         run: |
+          cmake -B build/ ^
+              -G Ninja ^
+              -D CMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
+              -D CMAKE_BUILD_TYPE="Release" ^
+              -D BUILD_LIBMAMBA_TESTS=ON ^
+              -D BUILD_LIBMAMBA=ON ^
+              -D BUILD_SHARED=ON ^
+              -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
+              -D CMAKE_C_COMPILER_LAUNCHER=sccache
           if %errorlevel% neq 0 exit /b %errorlevel%
-          @rem Used by CMake
-          set VCPKG_ROOT=C:\vcpkg
+          cmake --build build/ --parallel --target test_libmamba testing_libmamba_lock
           if %errorlevel% neq 0 exit /b %errorlevel%
-          cmake -B build ^
-            -D CMAKE_PREFIX_PATH=C:\vcpkg\installed\x64-windows-static\ ^
-            -D CMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
-            -D BUILD_LIBMAMBA=ON ^
-            -D BUILD_STATIC=ON ^
-            -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
-            -D CMAKE_C_COMPILER_LAUNCHER=sccache ^
-            -G Ninja
+      - name: Run libmamba tests
+        shell: cmd /C call {0}
+        run: |
+          cd build
+          ninja install
           if %errorlevel% neq 0 exit /b %errorlevel%
-          cmake --build build --parallel
+          @REM Interferes with tests
+          set CONDARC=
+          ninja test
           if %errorlevel% neq 0 exit /b %errorlevel%
-      - name: build cache statistics
+      - name: Show build cache statistics
         run: sccache --show-stats
 
   mamba_python_tests_win:
-    needs: [libmamba_static_win]
+    name: Mamba tests
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [windows-2019]
-        python-version: ["3.7"]
-
     steps:
       - uses: actions/checkout@v3
       - name: create build environment
@@ -119,42 +88,40 @@ jobs:
           variant: sccache
           key: ${{ github.job }}-${{ matrix.os }}
           restore-keys: |
-            libmamba_static_win-${{ matrix.os }}
+            libmamba-${{ matrix.os }}
       - name: run conda init
         shell: bash -l {0}
         run: conda init
-      - name: build libmamba Python bindings
+      - name: Build libmambapy
         shell: cmd /C call {0}
         run: |
+          cmake -B build/ ^
+              -G Ninja ^
+              -D CMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
+              -D CMAKE_BUILD_TYPE="Release" ^
+              -D BUILD_LIBMAMBAPY=ON ^
+              -D BUILD_LIBMAMBA=ON ^
+              -D BUILD_SHARED=ON ^
+              -D BUILD_MAMBA_PACKAGE=ON ^
+              -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
+              -D CMAKE_C_COMPILER_LAUNCHER=sccache
           if %errorlevel% neq 0 exit /b %errorlevel%
-          mkdir build
+          cmake --build build/ --parallel
           if %errorlevel% neq 0 exit /b %errorlevel%
-          cd build
+          cmake --install build/
           if %errorlevel% neq 0 exit /b %errorlevel%
-          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
-                   -DBUILD_LIBMAMBAPY=ON ^
-                   -DBUILD_LIBMAMBA=ON ^
-                   -DBUILD_SHARED=ON ^
-                   -DBUILD_MAMBA_PACKAGE=ON ^
-                   -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
-                   -DCMAKE_C_COMPILER_LAUNCHER=sccache ^
-                   -GNinja
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          ninja
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          ninja install
-      - name: install libmambapy
+      - name: Install libmambapy
         shell: cmd /C call {0}
         run: |
           pip install -e .\libmambapy\ --no-deps
-      - name: build cache statistics
+      - name: Show build cache statistics
         run: sccache --show-stats
       - name: install mamba
         shell: bash -l {0}
         run: |
           python --version
           pip install ./mamba[test] --no-deps
-      - name: run mamba tests suite
+      - name: Run mamba tests suite
         shell: bash -l {0}
         run: pytest -v --capture=tee-sys mamba/tests
       - name: Run create command
@@ -186,60 +153,12 @@ jobs:
             exit 1
           fi
 
-  libmamba_cpp_tests_win:
-    needs: [libmamba_static_win]
+  umamba_build_win:
+    name: Build micromamba
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [windows-2019]
-        python-version: ["3.7"]
-
-    steps:
-      - uses: actions/checkout@v3
-      - name: create build environment
-        uses: mamba-org/setup-micromamba@v1
-        with:
-          environment-file: ./libmamba/environment-dev.yml
-          environment-name: build_env
-          cache-environment: true
-          init-shell: bash cmd.exe
-      - uses: hendrikmuhs/ccache-action@main
-        with:
-          variant: sccache
-          key: ${{ github.job }}-${{ matrix.os }}
-          restore-keys: |
-            libmamba_static_win-${{ matrix.os }}
-      - name: build and run libmamba C++ tests
-        shell: cmd /C call {0}
-        run: |
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          mkdir build
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          cd build
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
-                   -DBUILD_LIBMAMBA_TESTS=ON ^
-                   -DBUILD_LIBMAMBA=ON ^
-                   -DBUILD_SHARED=ON ^
-                   -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
-                   -DCMAKE_C_COMPILER_LAUNCHER=sccache ^
-                   -GNinja
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          ninja install
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          @REM Interferes with tests
-          set CONDARC=
-          ninja test
-      - name: build cache statistics
-        run: sccache --show-stats
-
-  umamba_tests_win:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [windows-2019]
-        python-version: ["3.7"]
-
     steps:
       - uses: actions/checkout@v3
       - name: create build environment
@@ -254,24 +173,22 @@ jobs:
           variant: sccache
           key: ${{ github.job }}-${{ matrix.os }}
           restore-keys: |
-            libmamba_static_win-${{ matrix.os }}
+            libmamba-${{ matrix.os }}
       - name: build micromamba
         shell: cmd /C call {0}
         run: |
+          cmake -B build/ ^
+              -G Ninja ^
+              -D CMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
+              -D BUILD_MICROMAMBA=ON ^
+              -D BUILD_LIBMAMBA=ON ^
+              -D BUILD_SHARED=ON ^
+              -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
+              -D CMAKE_C_COMPILER_LAUNCHER=sccache
           if %errorlevel% neq 0 exit /b %errorlevel%
-          mkdir build
+          cmake --build build/ --parallel
           if %errorlevel% neq 0 exit /b %errorlevel%
-          cd build
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
-                   -DBUILD_MICROMAMBA=ON ^
-                   -DBUILD_LIBMAMBA=ON ^
-                   -DBUILD_SHARED=ON ^
-                   -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
-                   -DCMAKE_C_COMPILER_LAUNCHER=sccache ^
-                   -GNinja
-          if %errorlevel% neq 0 exit /b %errorlevel%
-          ninja install
+          cmake --install build/
       - name: check that micromamba runs
         shell: cmd /C call {0}
         run: .\build\micromamba\micromamba.exe --help
@@ -287,25 +204,22 @@ jobs:
           name: _internal_micromamba_binary
           path: umamba.tar
 
-  umamba_tests_win_cmd:
-    needs: [umamba_tests_win]
+  umamba_integration_tests_win:
+    name: Micromamba integration tests with PWSH
+    needs: [umamba_build_win]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [windows-2019]
-        python-version: ["3.7"]
-
     steps:
       - uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
         with:
           name: _internal_micromamba_binary
-
       - name: untar micromamba artifact
         shell: bash -l -eo pipefail {0}
         run: |
           tar -xvf umamba.tar
-
       - name: create build environment
         uses: mamba-org/setup-micromamba@v1
         with:
@@ -323,27 +237,3 @@ jobs:
           Remove-Item -Path "env:CONDARC"
 
           pytest -v --capture=tee-sys micromamba/tests/
-
-      # - name: micromamba python based tests
-      #   shell: cmd /C call {0}
-      #   run: |
-      #     if %errorlevel% neq 0 exit /b %errorlevel%
-      #     set PYTHONIOENCODING=UTF-8
-      #     if %errorlevel% neq 0 exit /b %errorlevel%
-      #     set MAMBA_ROOT_PREFIX=%cd%\mambaroot
-      #     if %errorlevel% neq 0 exit /b %errorlevel%
-      #     set MAMBA_TEST_SHELL_TYPE=cmd.exe
-      #     if %errorlevel% neq 0 exit /b %errorlevel%
-      #     reg delete "HKEY_CURRENT_USER\Software\Microsoft\Command Processor" /v AutoRun /f
-      #     if %errorlevel% neq 0 exit /b %errorlevel%
-      #
-      #     pytest -v --capture=tee-sys micromamba/tests/test_shell.py
-
-      # - name: micromamba python based tests
-      #   shell: bash -l -eo pipefail {0}
-      #   run: |
-      #     export PYTHONIOENCODING=UTF-8
-      #     export MAMBA_ROOT_PREFIX=~/mambaroot
-      #     export MAMBA_TEST_SHELL_TYPE=bash
-      #
-      #     pytest -v --capture=tee-sys micromamba/tests/test_shell.py

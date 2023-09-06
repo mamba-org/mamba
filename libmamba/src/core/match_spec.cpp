@@ -7,6 +7,7 @@
 #include <regex>
 
 #include "mamba/core/channel.hpp"
+#include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
@@ -181,17 +182,20 @@ namespace mamba
         {
             throw std::runtime_error("Parsing of channel / namespace / subdir failed.");
         }
-        // TODO implement Channel, and parsing of the channel here!
-        // channel = subdir = channel_str;
-        // channel, subdir = _parse_channel(channel_str)
-        // if 'channel' in brackets:
-        //     b_channel, b_subdir = _parse_channel(brackets.pop('channel'))
-        //     if b_channel:
-        //         channel = b_channel
-        //     if b_subdir:
-        //         subdir = b_subdir
-        // if 'subdir' in brackets:
-        //     subdir = brackets.pop('subdir')
+
+        std::string cleaned_url;
+        std::string platform;
+        util::split_platform(
+            get_known_platforms(),
+            channel,
+            channel_context.context().platform,
+            channel,
+            platform
+        );
+        if (!platform.empty())
+        {
+            subdir = platform;
+        }
 
         // support faulty conda matchspecs such as `libblas=[build=*mkl]`, which is
         // the repr of `libblas=*=*mkl`
@@ -283,7 +287,10 @@ namespace mamba
             }
             else if (k == "subdir")
             {
-                subdir = v;
+                if (platform.empty())
+                {
+                    subdir = v;
+                }
             }
             else if (k == "url")
             {

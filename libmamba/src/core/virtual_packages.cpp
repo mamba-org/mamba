@@ -7,9 +7,9 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/virtual_packages.hpp"
+#include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 
 #ifdef _WIN32
@@ -35,7 +35,7 @@ namespace mamba
                 return override_version.value();
             }
 
-            if (!on_linux)
+            if (!util::on_linux)
             {
                 return "";
             }
@@ -79,7 +79,7 @@ namespace mamba
                 out = "";
             }
 
-            if (ec && on_win)
+            if (ec && util::on_win)
             {
                 // Windows fallback
                 bool may_exist = false;
@@ -147,6 +147,7 @@ namespace mamba
 
         PackageInfo make_virtual_package(
             const std::string& name,
+            const std::string& subdir,
             const std::string& version,
             const std::string& build_string
         )
@@ -156,19 +157,19 @@ namespace mamba
             res.build_string = build_string.size() ? build_string : "0";
             res.build_number = 0;
             res.channel = "@";
-            res.subdir = Context::instance().platform;
+            res.subdir = subdir;
             res.md5 = "12345678901234567890123456789012";
             res.fn = name;
             return res;
         }
 
-        std::vector<PackageInfo> dist_packages()
+        std::vector<PackageInfo> dist_packages(const Context& context)
         {
             LOG_DEBUG << "Loading distribution virtual packages";
 
             std::vector<PackageInfo> res;
-            auto platform = Context::instance().platform;
-            auto split_platform = util::split(platform, "-", 1);
+            const auto platform = context.platform;
+            const auto split_platform = util::split(platform, "-", 1);
 
             if (split_platform.size() != 2)
             {
@@ -180,11 +181,11 @@ namespace mamba
 
             if (os == "win")
             {
-                res.push_back(make_virtual_package("__win"));
+                res.push_back(make_virtual_package("__win", platform));
             }
             if (os == "linux")
             {
-                res.push_back(make_virtual_package("__unix"));
+                res.push_back(make_virtual_package("__unix", platform));
 
                 std::string linux_ver = linux_version();
                 if (linux_ver.empty())
@@ -192,12 +193,12 @@ namespace mamba
                     LOG_WARNING << "linux version not found, defaulting to '0'";
                     linux_ver = "0";
                 }
-                res.push_back(make_virtual_package("__linux", linux_ver));
+                res.push_back(make_virtual_package("__linux", platform, linux_ver));
 
                 std::string libc_ver = detail::glibc_version();
                 if (!libc_ver.empty())
                 {
-                    res.push_back(make_virtual_package("__glibc", libc_ver));
+                    res.push_back(make_virtual_package("__glibc", platform, libc_ver));
                 }
                 else
                 {
@@ -206,12 +207,12 @@ namespace mamba
             }
             if (os == "osx")
             {
-                res.push_back(make_virtual_package("__unix"));
+                res.push_back(make_virtual_package("__unix", platform));
 
                 std::string osx_ver = macos_version();
                 if (!osx_ver.empty())
                 {
-                    res.push_back(make_virtual_package("__osx", osx_ver));
+                    res.push_back(make_virtual_package("__osx", platform, osx_ver));
                 }
                 else
                 {
@@ -227,21 +228,21 @@ namespace mamba
             {
                 arch = "x86";
             }
-            res.push_back(make_virtual_package("__archspec", "1", arch));
+            res.push_back(make_virtual_package("__archspec", platform, "1", arch));
 
             return res;
         }
     }
 
-    std::vector<PackageInfo> get_virtual_packages()
+    std::vector<PackageInfo> get_virtual_packages(const Context& context)
     {
         LOG_DEBUG << "Loading virtual packages";
-        auto res = detail::dist_packages();
+        auto res = detail::dist_packages(context);
 
         auto cuda_ver = detail::cuda_version();
         if (!cuda_ver.empty())
         {
-            res.push_back(detail::make_virtual_package("__cuda", cuda_ver));
+            res.push_back(detail::make_virtual_package("__cuda", context.platform, cuda_ver));
         }
 
         return res;

@@ -18,7 +18,7 @@ namespace mamba
 {
     void update(Configuration& config, bool update_all, bool prune)
     {
-        auto& ctx = Context::instance();
+        auto& ctx = config.context();
 
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
@@ -30,7 +30,7 @@ namespace mamba
 
         auto update_specs = config.at("specs").value<std::vector<std::string>>();
 
-        ChannelContext channel_context;
+        ChannelContext channel_context{ ctx };
 
         // add channels from specs
         for (const auto& s : update_specs)
@@ -44,7 +44,7 @@ namespace mamba
         int solver_flag = SOLVER_UPDATE;
 
         MPool pool{ channel_context };
-        MultiPackageCache package_caches(ctx.pkgs_dirs);
+        MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
 
         auto exp_loaded = load_channels(pool, package_caches, 0);
         if (!exp_loaded)
@@ -66,7 +66,7 @@ namespace mamba
             prefix_pkgs.push_back(it.first);
         }
 
-        prefix_data.add_packages(get_virtual_packages());
+        prefix_data.add_packages(get_virtual_packages(ctx));
 
         MRepo(pool, prefix_data);
 

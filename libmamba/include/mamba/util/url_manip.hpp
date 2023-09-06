@@ -8,12 +8,21 @@
 #define MAMBA_UTIL_URL_MANIP_HPP
 
 #include <optional>
+#include <regex>
 #include <string>
 #include <string_view>
 #include <vector>
 
 namespace mamba::util
 {
+    namespace conda_urls
+    {
+        // usernames on anaconda.org can have a underscore, which influences the
+        // first two characters
+        inline const std::regex token_regex{ "/t/([a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-]*)" };
+        inline const std::regex http_basicauth_regex{ "(://|^)([^\\s]+):([^\\s]+)@" };
+    }
+
     /**
      * Escape reserved URL reserved characters with '%' encoding.
      *
@@ -59,11 +68,6 @@ namespace mamba::util
      */
     [[nodiscard]] auto url_has_scheme(std::string_view url) -> bool;
 
-    /**
-     * Check if a Windows path (not URL) starts with a drive letter.
-     */
-    [[nodiscard]] auto path_has_drive_letter(std::string_view path) -> bool;
-
     void split_anaconda_token(const std::string& url, std::string& cleaned_url, std::string& token);
 
     void split_scheme_auth_token(
@@ -76,7 +80,6 @@ namespace mamba::util
 
     bool compare_cleaned_url(const std::string& url1, const std::string& url2);
 
-    bool is_path(const std::string& input);
     std::string path_to_url(const std::string& path);
 
     template <class S, class... Args>

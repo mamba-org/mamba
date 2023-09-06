@@ -7,12 +7,13 @@
 #ifndef MAMBA_CORE_LINK
 #define MAMBA_CORE_LINK
 
+#include <regex>
 #include <stack>
 #include <string>
 #include <tuple>
 #include <vector>
 
-#include "nlohmann/json.hpp"
+#include "mamba/util/build.hpp"
 
 #include "mamba_fs.hpp"
 #include "match_spec.hpp"
@@ -25,7 +26,7 @@ namespace mamba
     std::string replace_long_shebang(const std::string& shebang);
     std::string python_shebang(const std::string& python_exe);
 
-    static const std::regex shebang_regex("^(#!"      // pretty much the whole match string
+    inline const std::regex shebang_regex("^(#!"      // pretty much the whole match string
                                           "(?:[ ]*)"  // allow spaces between #! and beginning of
                                                       // the executable path
                                           "(/(?:\\\\ |[^ \n\r\t])*)"  // the executable is the next
@@ -35,7 +36,7 @@ namespace mamba
                                           "(.*))$");  // the rest of the line can contain option
                                                       // flags and end whole_shebang group
 
-    constexpr size_t MAX_SHEBANG_LENGTH = on_linux ? 127 : 512;
+    constexpr std::size_t MAX_SHEBANG_LENGTH = util::on_linux ? 127 : 512;
 
     struct python_entry_point_parsed
     {

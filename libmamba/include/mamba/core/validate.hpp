@@ -475,7 +475,7 @@ namespace mamba::validation
         std::vector<fs::u8path> possible_update_files();
 
         virtual std::unique_ptr<RepoIndexChecker>
-        build_index_checker(const TimeRef& time_reference, const std::string& url, const fs::u8path& cache_path) const = 0;
+        build_index_checker(Context& context, const TimeRef& time_reference, const std::string& url, const fs::u8path& cache_path) const = 0;
 
     protected:
 
@@ -522,6 +522,7 @@ namespace mamba::validation
          * @param cache_path Path to the cache directory
          */
         RepoChecker(
+            Context& context,
             const std::string& base_url,
             const fs::u8path& ref_path,
             const fs::u8path& cache_path = ""
@@ -544,6 +545,7 @@ namespace mamba::validation
         std::size_t m_root_version = 0;
         fs::u8path m_ref_path;
         fs::u8path m_cache_path;
+        Context& m_context;
 
         fs::u8path initial_trusted_root();
         fs::u8path ref_root();
@@ -590,6 +592,7 @@ namespace mamba::validation
             RoleFullKeys self_keys() const override;
 
             std::unique_ptr<RepoIndexChecker> build_index_checker(
+                Context& context,
                 const TimeRef& time_reference,
                 const std::string& url,
                 const fs::u8path& cache_path
@@ -672,6 +675,7 @@ namespace mamba::validation
              * from repository base URL.
              */
             std::unique_ptr<RepoIndexChecker> build_index_checker(
+                Context& context,
                 const TimeRef& time_reference,
                 const std::string& url,
                 const fs::u8path& cache_path
@@ -735,6 +739,7 @@ namespace mamba::validation
              * from repository base URL.
              */
             std::unique_ptr<RepoIndexChecker> build_index_checker(
+                Context& context,
                 const TimeRef& time_reference,
                 const std::string& url,
                 const fs::u8path& cache_path

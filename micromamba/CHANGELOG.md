@@ -1,3 +1,25 @@
+micromamba 1.5.1 (September 05, 2023)
+=====================================
+
+Enhancements:
+
+- Speed up tests (a bit) by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2776
+- Restore \_\_linux=0 test by @jonashaag in https://github.com/mamba-org/mamba/pull/2778
+- Enable Link Time Optimization by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2742
+- Clearer output from micromamba search by @delsner in https://github.com/mamba-org/mamba/pull/2782
+- Windows path manipulation and other cleanups by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2801
+- Implement --md5 and --channel-subdir for non-explicit env export by @jonashaag in https://github.com/mamba-org/mamba/pull/2672
+
+Bug fixes:
+
+- Fix extra agrument in self-update reinit by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2787
+
+CI fixes and doc:
+
+- Splitted GHA workflow by @JohanMabille in https://github.com/mamba-org/mamba/pull/2779
+- Use Release build mode in Windows CI by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2785
+- Fix wrong command description by @Hind-M in https://github.com/mamba-org/mamba/pull/2804
+
 micromamba 1.5.0 (August 24, 2023)
 ==================================
 

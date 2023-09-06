@@ -10,6 +10,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/shell_init.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba
@@ -25,8 +26,9 @@ namespace mamba
      * Activator implementation *
      ****************************/
 
-    Activator::Activator()
-        : m_env(env::copy())
+    Activator::Activator(const Context& context)
+        : m_context(context)
+        , m_env(env::copy())
     {
     }
 
@@ -49,7 +51,7 @@ namespace mamba
 
     std::string Activator::get_default_env(const fs::u8path& prefix)
     {
-        if (paths_equal(prefix, Context::instance().prefix_params.root_prefix))
+        if (paths_equal(prefix, m_context.prefix_params.root_prefix))
         {
             return "base";
         }
@@ -132,7 +134,7 @@ namespace mamba
         int old_conda_shlvl
     )
     {
-        if (Context::instance().change_ps1)
+        if (m_context.change_ps1)
         {
             std::vector<std::string> env_stack;
             std::vector<std::string> prompt_stack;
@@ -192,7 +194,7 @@ namespace mamba
 
             auto conda_stacked_env = util::join(";", prompt_stack);
 
-            std::string prompt = Context::instance().env_prompt;
+            std::string prompt = m_context.env_prompt;
             util::replace_all(prompt, "{default_env}", conda_default_env);
             util::replace_all(prompt, "{stacked_env}", conda_stacked_env);
             util::replace_all(prompt, "{prefix}", prefix.string());
@@ -207,7 +209,7 @@ namespace mamba
 
     std::vector<fs::u8path> get_path_dirs(const fs::u8path& prefix)
     {
-        if (on_win)
+        if (util::on_win)
         {
             return { prefix,
                      prefix / "Library" / "mingw-w64" / "bin",
@@ -254,7 +256,7 @@ namespace mamba
             );
             if (no_condabin)
             {
-                auto condabin_dir = Context::instance().prefix_params.root_prefix / "condabin";
+                auto condabin_dir = m_context.prefix_params.root_prefix / "condabin";
                 path_list.insert(path_list.begin(), condabin_dir);
             }
         }
@@ -383,7 +385,7 @@ namespace mamba
             conda_default_env,
             conda_shlvl
         );
-        if (Context::instance().change_ps1)
+        if (m_context.change_ps1)
         {
             auto res = update_prompt(conda_prompt_modifier);
             if (!res.first.empty())
@@ -492,7 +494,7 @@ namespace mamba
             envt.activate_scripts = get_activate_scripts(new_prefix);
         }
 
-        if (Context::instance().change_ps1)
+        if (m_context.change_ps1)
         {
             auto res = update_prompt(conda_prompt_modifier);
             if (!res.first.empty())
@@ -643,7 +645,7 @@ namespace mamba
                                          old_conda_prefix });
         }
 
-        if (Context::instance().change_ps1)
+        if (m_context.change_ps1)
         {
             auto res = update_prompt(conda_prompt_modifier);
             if (!res.first.empty())
@@ -684,7 +686,7 @@ namespace mamba
         // special handling for cmd.exe
         if (is_cmd(this))
         {
-            get_hook_contents(shell());
+            get_hook_contents(m_context, shell());
             return "";
         }
 
@@ -695,10 +697,10 @@ namespace mamba
         }
         else
         {
-            builder << hook_preamble() << "\n" << get_hook_contents(shell()) << "\n";
+            builder << hook_preamble() << "\n" << get_hook_contents(m_context, shell()) << "\n";
         }
 
-        if (Context::instance().shell_completion)
+        if (m_context.shell_completion)
         {
             if (shell() == "posix" && (shell_type == "zsh" || shell_type == "bash"))
             {
@@ -708,7 +710,7 @@ namespace mamba
 
         // if we are in a `mamba shell -n <env>` we don't want to activate base
         auto has_prefix = env::get("CONDA_PREFIX");
-        if (Context::instance().auto_activate_base && !has_prefix.has_value())
+        if (m_context.auto_activate_base && !has_prefix.has_value())
         {
             builder << "micromamba activate base\n";
         }
@@ -725,7 +727,7 @@ namespace mamba
         std::stringstream out;
         if (!env_transform.export_path.empty())
         {
-            if (on_win)
+            if (util::on_win)
             {
                 out << "export PATH='"
                     << native_path_to_unix(env_transform.export_path, /*is_a_env_path=*/true)
@@ -754,7 +756,7 @@ namespace mamba
 
         for (const auto& [ekey, evar] : env_transform.export_vars)
         {
-            if (on_win && ekey == "PATH")
+            if (util::on_win && ekey == "PATH")
             {
                 out << "export " << ekey << "='"
                     << native_path_to_unix(evar, /*is_a_env_path=*/true) << "'\n";
@@ -832,7 +834,7 @@ namespace mamba
 
     fs::u8path PosixActivator::hook_source_path()
     {
-        return Context::instance().prefix_params.root_prefix / "etc" / "profile.d" / "micromamba.sh";
+        return m_context.prefix_params.root_prefix / "etc" / "profile.d" / "micromamba.sh";
     }
 
     /*********************************
@@ -844,7 +846,7 @@ namespace mamba
         std::stringstream out;
         if (!env_transform.export_path.empty())
         {
-            if (on_win)
+            if (util::on_win)
             {
                 out << "setenv PATH '"
                     << native_path_to_unix(env_transform.export_path, /*is_a_env_path=*/true)
@@ -873,7 +875,7 @@ namespace mamba
 
         for (const auto& [ekey, evar] : env_transform.export_vars)
         {
-            if (on_win && ekey == "PATH")
+            if (util::on_win && ekey == "PATH")
             {
                 out << "setenv " << ekey << " '"
                     << native_path_to_unix(evar, /*is_a_env_path=*/true) << "';\n";
@@ -931,7 +933,7 @@ namespace mamba
 
     fs::u8path CshActivator::hook_source_path()
     {
-        return Context::instance().prefix_params.root_prefix / "etc" / "profile.d" / "micromamba.csh";
+        return m_context.prefix_params.root_prefix / "etc" / "profile.d" / "micromamba.csh";
     }
 
 
@@ -1022,7 +1024,7 @@ namespace mamba
     {
         return fmt::format(
             "$MambaModuleArgs = @{{ChangePs1 = ${}}}",
-            Context::instance().change_ps1 ? "True" : "False"
+            m_context.change_ps1 ? "True" : "False"
         );
     }
 
@@ -1033,7 +1035,7 @@ namespace mamba
 
     fs::u8path PowerShellActivator::hook_source_path()
     {
-        return Context::instance().prefix_params.root_prefix / "condabin" / "mamba_hook.ps1";
+        return m_context.prefix_params.root_prefix / "condabin" / "mamba_hook.ps1";
     }
 
     std::pair<std::string, std::string>
@@ -1101,7 +1103,7 @@ namespace mamba
 
     fs::u8path XonshActivator::hook_source_path()
     {
-        return Context::instance().prefix_params.root_prefix / "etc" / "profile.d" / "mamba.xsh";
+        return m_context.prefix_params.root_prefix / "etc" / "profile.d" / "mamba.xsh";
     }
 
     std::pair<std::string, std::string>
@@ -1169,8 +1171,7 @@ namespace mamba
 
     fs::u8path FishActivator::hook_source_path()
     {
-        return Context::instance().prefix_params.root_prefix / "etc" / "fish" / "conf.d"
-               / "mamba.fish";
+        return m_context.prefix_params.root_prefix / "etc" / "fish" / "conf.d" / "mamba.fish";
     }
 
     std::pair<std::string, std::string>

@@ -34,10 +34,13 @@ int
 main(int argc, char** argv)
 {
     mamba::MainExecutor scoped_threads;
-    mamba::Configuration config;
+    mamba::Context ctx{ {
+        /* .enable_logging_and_signal_handling = */ true,
+    } };
+    mamba::Console console{ ctx };
+    mamba::Configuration config{ ctx };
 
     init_console();
-    auto& ctx = Context::instance();
 
     ctx.command_params.is_micromamba = true;
 

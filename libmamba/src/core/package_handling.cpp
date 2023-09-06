@@ -26,6 +26,17 @@
 
 namespace mamba
 {
+    ExtractOptions ExtractOptions::from_context(const Context& context)
+    {
+        return {
+            /* .sparse = */ context.extract_sparse,
+            /* .subproc_mode = */ context.command_params.is_micromamba
+                ? extract_subproc_mode::micromamba
+                : extract_subproc_mode::mamba_package,
+        };
+    }
+
+
     class extraction_guard
     {
     public:
@@ -162,7 +173,12 @@ namespace mamba
         archive_entry* m_entry;
     };
 
-    void stream_extract_archive(scoped_archive_read& a, const fs::u8path& destination);
+
+    void stream_extract_archive(
+        scoped_archive_read& a,
+        const fs::u8path& destination,
+        const ExtractOptions& options
+    );
 
     static int copy_data(scoped_archive_read& ar, scoped_archive_write& aw)
     {
@@ -473,7 +489,8 @@ namespace mamba
         }
     }
 
-    void extract_archive(const fs::u8path& file, const fs::u8path& destination)
+    void
+    extract_archive(const fs::u8path& file, const fs::u8path& destination, const ExtractOptions& options)
     {
         LOG_INFO << "Extracting " << file << " to " << destination;
         extraction_guard g(destination);
@@ -492,7 +509,7 @@ namespace mamba
             throw std::runtime_error(file.string() + " : Could not open archive for reading.");
         }
 
-        stream_extract_archive(a, destination);
+        stream_extract_archive(a, destination, options);
     }
 
     namespace
@@ -510,7 +527,11 @@ namespace mamba
         };
     }
 
-    void stream_extract_archive(scoped_archive_read& a, const fs::u8path& destination)
+    void stream_extract_archive(
+        scoped_archive_read& a,
+        const fs::u8path& destination,
+        const ExtractOptions& options
+    )
     {
         auto prev_path = fs::current_path();
         if (!fs::exists(destination))
@@ -527,7 +548,7 @@ namespace mamba
         flags |= ARCHIVE_EXTRACT_SECURE_NOABSOLUTEPATHS;
         flags |= ARCHIVE_EXTRACT_UNLINK;
 
-        if (Context::instance().extract_sparse)
+        if (options.sparse)
         {
             flags |= ARCHIVE_EXTRACT_SPARSE;
         }
@@ -616,8 +637,12 @@ namespace mamba
     }
 
 
-    void
-    extract_conda(const fs::u8path& file, const fs::u8path& dest_dir, const std::vector<std::string>& parts)
+    void extract_conda(
+        const fs::u8path& file,
+        const fs::u8path& dest_dir,
+        const ExtractOptions& options,
+        const std::vector<std::string>& parts
+    )
     {
         scoped_archive_read a;
         archive_read_support_format_zip(a);
@@ -673,7 +698,7 @@ namespace mamba
                 archive_read_support_format_tar(inner);
 
                 archive_read_open_archive_entry(inner, &extract_context);
-                stream_extract_archive(inner, dest_dir);
+                stream_extract_archive(inner, dest_dir, options);
             }
             else if (p.filename() == "metadata.json")
             {
@@ -716,18 +741,18 @@ namespace mamba
         throw std::runtime_error("Unknown package format.");
     }
 
-    void extract(const fs::u8path& file, const fs::u8path& dest)
+    void extract(const fs::u8path& file, const fs::u8path& dest, const ExtractOptions& options)
     {
         static std::mutex extract_mutex;
         std::lock_guard<std::mutex> lock(extract_mutex);
 
         if (util::ends_with(file.string(), ".tar.bz2"))
         {
-            extract_archive(file, dest);
+            extract_archive(file, dest, options);
         }
         else if (util::ends_with(file.string(), ".conda"))
         {
-            extract_conda(file, dest);
+            extract_conda(file, dest, options);
         }
         else
         {
@@ -736,17 +761,18 @@ namespace mamba
         }
     }
 
-    fs::u8path extract(const fs::u8path& file)
+    fs::u8path extract(const fs::u8path& file, const ExtractOptions& options)
     {
-        fs::u8path dest_dir = extract_dest_dir(file);
-        extract(file, dest_dir);
+        const fs::u8path dest_dir = extract_dest_dir(file);
+        extract(file, dest_dir, options);
         return dest_dir;
     }
 
-    void extract_subproc(const fs::u8path& file, const fs::u8path& dest)
+    void
+    extract_subproc(const fs::u8path& file, const fs::u8path& dest, const ExtractOptions& options)
     {
         std::vector<std::string> args;
-        if (Context::instance().command_params.is_micromamba)
+        if (options.subproc_mode == extract_subproc_mode::micromamba)
         {
             args = { get_self_exe_path().string(), "package", "extract", file.string(), dest.string() };
         }
@@ -769,22 +795,27 @@ namespace mamba
             LOG_DEBUG << "Subprocess extraction exited with code " << ec << ", stdout: " << out
                       << ", stderr: " << err;
             LOG_DEBUG << "Running in-process extraction for '" << file.string() << "'";
-            extract(file, dest);
+            extract(file, dest, options);
         }
     }
 
-    bool
-    transmute(const fs::u8path& pkg_file, const fs::u8path& target, int compression_level, int compression_threads)
+    bool transmute(
+        const fs::u8path& pkg_file,
+        const fs::u8path& target,
+        int compression_level,
+        int compression_threads,
+        const ExtractOptions& options
+    )
     {
         TemporaryDirectory extract_dir;
 
         if (util::ends_with(pkg_file.string(), ".tar.bz2"))
         {
-            extract_archive(pkg_file, extract_dir);
+            extract_archive(pkg_file, extract_dir, options);
         }
         else if (util::ends_with(pkg_file.string(), ".conda"))
         {
-            extract_conda(pkg_file, extract_dir);
+            extract_conda(pkg_file, extract_dir, options);
         }
         else
         {
@@ -795,9 +826,10 @@ namespace mamba
         return true;
     }
 
-    bool validate(const fs::u8path& pkg_folder)
+
+    bool validate(const fs::u8path& pkg_folder, const ValidationOptions& options)
     {
-        auto safety_checks = Context::instance().safety_checks;
+        auto safety_checks = options.safety_checks;
         if (safety_checks == VerificationLevel::kDisabled)
         {
             return true;
@@ -805,7 +837,7 @@ namespace mamba
 
         bool is_warn = safety_checks == VerificationLevel::kWarn;
         bool is_fail = safety_checks == VerificationLevel::kEnabled;
-        bool full_validation = Context::instance().extra_safety_checks;
+        bool full_validation = options.extra_safety_checks;
 
         try
         {

@@ -55,9 +55,9 @@ namespace mamba
 
     namespace detail
     {
-        void create_target_directory(const fs::u8path prefix);
+        void create_target_directory(const Context& context, const fs::u8path prefix);
 
-        void create_empty_target(const fs::u8path& prefix);
+        void create_empty_target(const Context& context, const fs::u8path& prefix);
 
         void file_specs_hook(Configuration& config, std::vector<std::string>& file_specs);
 
@@ -81,9 +81,9 @@ namespace mamba
             std::vector<other_pkg_mgr_spec> others_pkg_mgrs_specs;
         };
 
-        bool eval_selector(const std::string& selector);
+        bool eval_selector(const std::string& selector, const std::string& platform);
 
-        yaml_file_contents read_yaml_file(fs::u8path yaml_file);
+        yaml_file_contents read_yaml_file(fs::u8path yaml_file, const std::string platform);
 
         std::tuple<std::vector<PackageInfo>, std::vector<MatchSpec>>
         parse_urls_to_package_info(const std::vector<std::string>& urls, ChannelContext& channel_context);

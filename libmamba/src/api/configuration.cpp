@@ -19,6 +19,7 @@
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_download.hpp"
+#include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba
@@ -31,7 +32,12 @@ namespace mamba
     {
         bool ConfigurableImplBase::env_var_configured() const
         {
-            if (Context::instance().src_params.no_env)
+            if (m_config == nullptr)
+            {
+                return false;
+            }
+
+            if (m_config->context().src_params.no_env)
             {
                 return false;
             }
@@ -48,12 +54,22 @@ namespace mamba
 
         bool ConfigurableImplBase::env_var_active() const
         {
-            return !Context::instance().src_params.no_env || (m_name == "no_env");
+            if (m_config == nullptr)
+            {
+                return false;
+            }
+
+            return !m_config->context().src_params.no_env || (m_name == "no_env");
         }
 
         bool ConfigurableImplBase::rc_configured() const
         {
-            return m_rc_configured && !Context::instance().src_params.no_rc;
+            if (m_config == nullptr)
+            {
+                return false;
+            }
+
+            return m_rc_configured && !m_config->context().src_params.no_rc;
         }
 
 
@@ -655,7 +671,7 @@ namespace mamba
 
         void post_root_prefix_rc_loading(Configuration& config)
         {
-            if (!Context::instance().src_params.no_rc)
+            if (!config.context().src_params.no_rc)
             {
                 rc_loading_hook(config, RCConfigLevel::kHomeDir);
                 config.at("no_env").compute(MAMBA_CONF_FORCE_COMPUTE);
@@ -664,7 +680,7 @@ namespace mamba
 
         void post_target_prefix_rc_loading(Configuration& config)
         {
-            if (!Context::instance().src_params.no_rc)
+            if (!config.context().src_params.no_rc)
             {
                 rc_loading_hook(config, RCConfigLevel::kTargetPrefix);
                 config.at("no_env").compute(MAMBA_CONF_FORCE_COMPUTE);
@@ -673,7 +689,7 @@ namespace mamba
 
         mamba::log_level log_level_fallback_hook(Configuration& config)
         {
-            auto& ctx = Context::instance();
+            const auto& ctx = config.context();
 
             if (ctx.output_params.json)
             {
@@ -699,16 +715,14 @@ namespace mamba
             }
         }
 
-        void verbose_hook(int& lvl)
+        void verbose_hook(Context& ctx, int& lvl)
         {
-            auto& ctx = Context::instance();
             ctx.output_params.verbosity = lvl;
         }
 
-        void target_prefix_checks_hook(int& options)
+        void target_prefix_checks_hook(const Context& ctx, int& options)
         {
-            auto& ctx = Context::instance();
-            auto& prefix = ctx.prefix_params.target_prefix;
+            const auto& prefix = ctx.prefix_params.target_prefix;
 
             bool no_checks = options & MAMBA_NO_PREFIX_CHECK;
             bool allow_missing = options & MAMBA_ALLOW_MISSING_PREFIX;
@@ -756,10 +770,8 @@ namespace mamba
             }
         }
 
-        void rc_files_hook(std::vector<fs::u8path>& files)
+        void rc_files_hook(const Context& ctx, std::vector<fs::u8path>& files)
         {
-            auto& ctx = Context::instance();
-
             if (!files.empty())
             {
                 if (ctx.src_params.no_rc)
@@ -824,9 +836,9 @@ namespace mamba
             }
         }
 
-        std::vector<fs::u8path> fallback_envs_dirs_hook()
+        std::vector<fs::u8path> fallback_envs_dirs_hook(const Context& context)
         {
-            return { Context::instance().prefix_params.root_prefix / "envs" };
+            return { context.prefix_params.root_prefix / "envs" };
         }
 
         void envs_dirs_hook(std::vector<fs::u8path>& dirs)
@@ -842,9 +854,9 @@ namespace mamba
             }
         }
 
-        std::vector<fs::u8path> fallback_pkgs_dirs_hook()
+        std::vector<fs::u8path> fallback_pkgs_dirs_hook(const Context& context)
         {
-            std::vector<fs::u8path> paths = { Context::instance().prefix_params.root_prefix / "pkgs",
+            std::vector<fs::u8path> paths = { context.prefix_params.root_prefix / "pkgs",
                                               env::home_directory() / ".mamba" / "pkgs" };
 #ifdef _WIN32
             auto appdata = env::get("APPDATA");
@@ -880,9 +892,9 @@ namespace mamba
             }
         }
 
-        void extract_threads_hook()
+        void extract_threads_hook(const Context& context)
         {
-            DownloadExtractSemaphore::set_max(Context::instance().threads_params.extract_threads);
+            DownloadExtractSemaphore::set_max(context.threads_params.extract_threads);
         }
     }
 
@@ -1058,18 +1070,17 @@ namespace mamba
      * Configuration implementation *
      ********************************/
 
-    Configuration::Configuration()
+    Configuration::Configuration(Context& ctx)
+        : m_context(ctx)
     {
         set_configurables();
     }
 
     void Configuration::set_configurables()
     {
-        auto& ctx = Context::instance();
-
         // Basic
         insert(
-            Configurable("root_prefix", &ctx.prefix_params.root_prefix)
+            Configurable("root_prefix", &m_context.prefix_params.root_prefix)
                 .group("Basic")
                 .set_env_var_names()
                 .needs({ "create_base", "rc_files" })
@@ -1084,7 +1095,7 @@ namespace mamba
                    .set_single_op_lifetime()
                    .description("Define if base environment will be initialized empty"));
 
-        insert(Configurable("target_prefix", &ctx.prefix_params.target_prefix)
+        insert(Configurable("target_prefix", &m_context.prefix_params.target_prefix)
                    .group("Basic")
                    .set_env_var_names()
                    .needs({ "root_prefix",
@@ -1100,7 +1111,7 @@ namespace mamba
                    .set_post_context_hook([this]
                                           { return detail::post_target_prefix_rc_loading(*this); }));
 
-        insert(Configurable("relocate_prefix", &ctx.prefix_params.relocate_prefix)
+        insert(Configurable("relocate_prefix", &m_context.prefix_params.relocate_prefix)
                    .group("Basic")
                    .set_env_var_names()
                    .needs({ "target_prefix" })
@@ -1117,35 +1128,41 @@ namespace mamba
                    .needs({ "target_prefix", "rc_files" })
                    .description("The type of checks performed on the target prefix")
                    .set_single_op_lifetime()
-                   .set_post_merge_hook(detail::target_prefix_checks_hook));
+                   .set_post_merge_hook<int>([this](int& value)
+                                             { detail::target_prefix_checks_hook(m_context, value); }
+                   ));
 
         insert(Configurable("env_name", std::string(""))
                    .group("Basic")
                    .needs({ "root_prefix", "spec_file_env_name", "envs_dirs" })
                    .set_single_op_lifetime()
-                   .set_post_merge_hook<std::string>([&](std::string& value)
+                   .set_post_merge_hook<std::string>([this](std::string& value)
                                                      { return detail::env_name_hook(*this, value); })
                    .description("Name of the target prefix"));
 
-        insert(Configurable("envs_dirs", &ctx.envs_dirs)
+        insert(Configurable("envs_dirs", &m_context.envs_dirs)
                    .group("Basic")
                    .set_rc_configurable(RCConfigLevel::kHomeDir)
                    .set_env_var_names({ "CONDA_ENVS_DIRS" })
                    .needs({ "root_prefix" })
-                   .set_fallback_value_hook(detail::fallback_envs_dirs_hook)
+                   .set_fallback_value_hook<decltype(m_context.envs_dirs)>(
+                       [this] { return detail::fallback_envs_dirs_hook(m_context); }
+                   )
                    .set_post_merge_hook(detail::envs_dirs_hook)
                    .description("Possible locations of named environments"));
 
-        insert(Configurable("pkgs_dirs", &ctx.pkgs_dirs)
+        insert(Configurable("pkgs_dirs", &m_context.pkgs_dirs)
                    .group("Basic")
                    .set_rc_configurable()
                    .set_env_var_names({ "CONDA_PKGS_DIRS" })
                    .needs({ "root_prefix" })
-                   .set_fallback_value_hook(detail::fallback_pkgs_dirs_hook)
+                   .set_fallback_value_hook<decltype(m_context.pkgs_dirs)>(
+                       [this] { return detail::fallback_pkgs_dirs_hook(m_context); }
+                   )
                    .set_post_merge_hook(detail::pkgs_dirs_hook)
                    .description("Possible locations of packages caches"));
 
-        insert(Configurable("platform", &ctx.platform)
+        insert(Configurable("platform", &m_context.platform)
                    .group("Basic")
                    .set_rc_configurable()
                    .set_env_var_names({ "CONDA_SUBDIR", "MAMBA_PLATFORM" })
@@ -1173,7 +1190,7 @@ namespace mamba
                    .set_single_op_lifetime()
                    .description("Others package managers specifications"));
 
-        insert(Configurable("experimental", &ctx.experimental)
+        insert(Configurable("experimental", &m_context.experimental)
                    .group("Basic")
                    .description("Enable experimental features")
                    .set_rc_configurable()
@@ -1183,7 +1200,7 @@ namespace mamba
                         under active development and not stable yet.)"))
                    .set_post_merge_hook(detail::experimental_hook));
 
-        insert(Configurable("debug", &ctx.debug)
+        insert(Configurable("debug", &m_context.debug)
                    .group("Basic")
                    .set_env_var_names()
                    .description("Turn on the debug mode")
@@ -1195,7 +1212,7 @@ namespace mamba
                    .set_post_merge_hook(detail::debug_hook));
 
         // Channels
-        insert(Configurable("channels", &ctx.channels)
+        insert(Configurable("channels", &m_context.channels)
                    .group("Channels")
                    .set_rc_configurable()
                    .set_env_var_names({ "CONDA_CHANNELS" })
@@ -1204,18 +1221,18 @@ namespace mamba
                    .long_description(unindent(R"(
                         The list of channels where the packages will be searched for.
                         See also 'channel_priority'.)"))
-                   .set_post_merge_hook<decltype(ctx.channels)>(
-                       [&](decltype(ctx.channels)& value)
+                   .set_post_merge_hook<decltype(m_context.channels)>(
+                       [&](decltype(m_context.channels)& value)
                        { return detail::channels_hook(*this, value); }
                    ));
 
-        insert(Configurable("channel_alias", &ctx.channel_alias)
+        insert(Configurable("channel_alias", &m_context.channel_alias)
                    .group("Channels")
                    .set_rc_configurable()
                    .set_env_var_names()
                    .description("The prepended url location to associate with channel names"));
 
-        insert(Configurable("default_channels", &ctx.default_channels)
+        insert(Configurable("default_channels", &m_context.default_channels)
                    .group("Channels")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1224,14 +1241,14 @@ namespace mamba
                         The list of channel names and/or urls used for the 'defaults'
                         multichannel.)")));
 
-        insert(Configurable("custom_channels", &ctx.custom_channels)
+        insert(Configurable("custom_channels", &m_context.custom_channels)
                    .group("Channels")
                    .set_rc_configurable()
                    .set_env_var_names()
                    .description("Custom channels")
                    .long_description("A dictionary with name: url to use for custom channels."));
 
-        insert(Configurable("custom_multichannels", &ctx.custom_multichannels)
+        insert(Configurable("custom_multichannels", &m_context.custom_multichannels)
                    .group("Channels")
                    .set_rc_configurable()
                    .description("Custom multichannels")
@@ -1239,13 +1256,19 @@ namespace mamba
                        "A dictionary with name: list of names/urls to use for custom multichannels."
                    ));
 
-        insert(Configurable("override_channels_enabled", &ctx.override_channels_enabled)
+        insert(Configurable("override_channels_enabled", &m_context.override_channels_enabled)
                    .group("Channels")
                    .set_rc_configurable()
                    .set_env_var_names()
-                   .description("Permit use of the --overide-channels command-line flag"));
+                   .description("Permit use of the --override-channels command-line flag"));
 
-        insert(Configurable("repodata_has_zst", &ctx.repodata_has_zst)
+        insert(Configurable("repodata_use_zst", &m_context.repodata_use_zst)
+                   .group("Repodata")
+                   .set_rc_configurable()
+                   .description("Use zstd encoded repodata when fetching"));
+
+
+        insert(Configurable("repodata_has_zst", &m_context.repodata_has_zst)
                    .group("Repodata")
                    .set_rc_configurable()
                    .description("Channels that have zstd encoded repodata (saves a HEAD request)"));
@@ -1262,7 +1285,7 @@ namespace mamba
                         WARNING: overrides 'ssl_verify' if provided and 'ssl_verify'
                         also contains a path to SSL certificates.)")));
 
-        insert(Configurable("local_repodata_ttl", &ctx.local_repodata_ttl)
+        insert(Configurable("local_repodata_ttl", &m_context.local_repodata_ttl)
                    .group("Network")
                    .set_rc_configurable()
                    .description("Repodata time-to-live")
@@ -1274,13 +1297,13 @@ namespace mamba
                         locally cache repodata before checking the remote server for
                         an update.)")));
 
-        insert(Configurable("offline", &ctx.offline)
+        insert(Configurable("offline", &m_context.offline)
                    .group("Network")
                    .set_rc_configurable()
                    .set_env_var_names()
                    .description("Force use cached repodata"));
 
-        insert(Configurable("ssl_no_revoke", &ctx.remote_fetch_params.ssl_no_revoke)
+        insert(Configurable("ssl_no_revoke", &m_context.remote_fetch_params.ssl_no_revoke)
                    .group("Network")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1290,7 +1313,7 @@ namespace mamba
                         It's only working for Windows back-end.
                         WARNING: this option loosens the SSL security.)")));
 
-        insert(Configurable("ssl_verify", &ctx.remote_fetch_params.ssl_verify)
+        insert(Configurable("ssl_verify", &m_context.remote_fetch_params.ssl_verify)
                    .group("Network")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1300,11 +1323,11 @@ namespace mamba
                         the string "<false>" to indicate no SSL verification, or a path to
                         a directory with cert files, or a cert file..)"))
                    .needs({ "cacert_path", "offline" })
-                   .set_post_merge_hook<decltype(ctx.remote_fetch_params.ssl_verify)>(
+                   .set_post_merge_hook<decltype(m_context.remote_fetch_params.ssl_verify)>(
                        [this](auto&... args) { return detail::ssl_verify_hook(*this, args...); }
                    ));
 
-        insert(Configurable("proxy_servers", &ctx.remote_fetch_params.proxy_servers)
+        insert(Configurable("proxy_servers", &m_context.remote_fetch_params.proxy_servers)
                    .group("Network")
                    .set_rc_configurable()
                    .description("Use a proxy server for network connections")
@@ -1314,7 +1337,7 @@ namespace mamba
                         the value is the url of the proxy server, optionally with username and password
                         in the form of scheme://username:password@hostname.)")));
 
-        insert(Configurable("remote_connect_timeout_secs", &ctx.remote_fetch_params.connect_timeout_secs)
+        insert(Configurable("remote_connect_timeout_secs", &m_context.remote_fetch_params.connect_timeout_secs)
                    .group("Network")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1322,14 +1345,14 @@ namespace mamba
                        "The number seconds conda will wait for your client to establish a connection to a remote url resource."
                    ));
 
-        insert(Configurable("remote_backoff_factor", &ctx.remote_fetch_params.retry_backoff)
+        insert(Configurable("remote_backoff_factor", &m_context.remote_fetch_params.retry_backoff)
                    .group("Network")
                    .set_rc_configurable()
                    .set_env_var_names()
                    .description("The factor determines the time HTTP connection should wait for attempt."
                    ));
 
-        insert(Configurable("remote_max_retries", &ctx.remote_fetch_params.max_retries)
+        insert(Configurable("remote_max_retries", &m_context.remote_fetch_params.max_retries)
                    .group("Network")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1337,7 +1360,7 @@ namespace mamba
 
 
         // Solver
-        insert(Configurable("channel_priority", &ctx.channel_priority)
+        insert(Configurable("channel_priority", &m_context.channel_priority)
                    .group("Solver")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1379,14 +1402,14 @@ namespace mamba
                         the packages specifications, which is the default
                         behavior.)")));
 
-        insert(Configurable("add_pip_as_python_dependency", &ctx.add_pip_as_python_dependency)
+        insert(Configurable("add_pip_as_python_dependency", &m_context.add_pip_as_python_dependency)
                    .group("Solver")
                    .set_rc_configurable()
                    .set_env_var_names()
                    .description("Add pip as a Python dependency")
                    .long_description("Automatically add pip as a Python dependency"));
 
-        insert(Configurable("pinned_packages", &ctx.pinned_packages)
+        insert(Configurable("pinned_packages", &m_context.pinned_packages)
                    .group("Solver")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1418,21 +1441,21 @@ namespace mamba
                    .set_env_var_names()
                    .description("If solve fails, try to fetch updated repodata"));
 
-        insert(Configurable("allow_uninstall", &ctx.allow_uninstall)
+        insert(Configurable("allow_uninstall", &m_context.allow_uninstall)
                    .group("Solver")
                    .set_rc_configurable()
                    .set_env_var_names()
                    .description("Allow uninstall when installing or updating packages. Default is true."
                    ));
 
-        insert(Configurable("allow_downgrade", &ctx.allow_downgrade)
+        insert(Configurable("allow_downgrade", &m_context.allow_downgrade)
                    .group("Solver")
                    .set_rc_configurable()
                    .set_env_var_names()
                    .description("Allow downgrade when installing packages. Default is false."));
 
         // Extract, Link & Install
-        insert(Configurable("download_threads", &ctx.threads_params.download_threads)
+        insert(Configurable("download_threads", &m_context.threads_params.download_threads)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1442,11 +1465,11 @@ namespace mamba
                         Defines the number of threads for package download.
                         It has to be strictly positive.)")));
 
-        insert(Configurable("extract_threads", &ctx.threads_params.extract_threads)
+        insert(Configurable("extract_threads", &m_context.threads_params.extract_threads)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
-                   .set_post_context_hook(detail::extract_threads_hook)
+                   .set_post_context_hook([this] { return detail::extract_threads_hook(m_context); })
                    .description("Defines the number of threads for package extraction")
                    .long_description(unindent(R"(
                         Defines the number of threads for package extraction.
@@ -1454,7 +1477,7 @@ namespace mamba
                         host max concurrency minus the value, zero (default) is the host max
                         concurrency value.)")));
 
-        insert(Configurable("allow_softlinks", &ctx.allow_softlinks)
+        insert(Configurable("allow_softlinks", &m_context.allow_softlinks)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1464,7 +1487,7 @@ namespace mamba
                         such as when installing on a different filesystem than the one that
                         the package cache is on.)")));
 
-        insert(Configurable("always_copy", &ctx.always_copy)
+        insert(Configurable("always_copy", &m_context.always_copy)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1473,13 +1496,13 @@ namespace mamba
                         Register a preference that files be copied into a prefix during
                         install rather than hard-linked.)")));
 
-        insert(Configurable("always_softlink", &ctx.always_softlink)
+        insert(Configurable("always_softlink", &m_context.always_softlink)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
                    .needs({ "always_copy" })
-                   .set_post_merge_hook<decltype(ctx.always_softlink)>(
-                       [&](decltype(ctx.always_softlink)& value)
+                   .set_post_merge_hook<decltype(m_context.always_softlink)>(
+                       [&](decltype(m_context.always_softlink)& value)
                        { return detail::always_softlink_hook(*this, value); }
                    )
                    .description("Use soft-link instead of hard-link")
@@ -1490,7 +1513,7 @@ namespace mamba
                         !WARNING: Using this option can result in corruption of long-lived
                         environments due to broken links (deleted cache).)")));
 
-        insert(Configurable("shortcuts", &ctx.shortcuts)
+        insert(Configurable("shortcuts", &m_context.shortcuts)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1498,7 +1521,7 @@ namespace mamba
                        "Install start-menu shortcuts on Windows (not implemented on Linux / macOS)"
                    ));
 
-        insert(Configurable("safety_checks", &ctx.safety_checks)
+        insert(Configurable("safety_checks", &m_context.validation_params.safety_checks)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names({ "CONDA_SAFETY_CHECKS", "MAMBA_SAFETY_CHECKS" })
@@ -1507,7 +1530,7 @@ namespace mamba
                         Enforce available safety guarantees during package installation. The
                         value must be one of 'enabled', 'warn', or 'disabled'.)")));
 
-        insert(Configurable("extra_safety_checks", &ctx.extra_safety_checks)
+        insert(Configurable("extra_safety_checks", &m_context.validation_params.extra_safety_checks)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names({ "CONDA_EXTRA_SAFETY_CHECKS", "MAMBA_EXTRA_SAFETY_CHECKS" })
@@ -1516,7 +1539,7 @@ namespace mamba
                         Spend extra time validating package contents. Currently, runs sha256
                         verification on every file within each package during installation.)")));
 
-        insert(Configurable("verify_artifacts", &ctx.verify_artifacts)
+        insert(Configurable("verify_artifacts", &m_context.validation_params.verify_artifacts)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1525,7 +1548,7 @@ namespace mamba
                         Spend extra time validating package contents. It consists of running
                         cryptographic verifications on channels and packages metadata.)")));
 
-        insert(Configurable("lock_timeout", &ctx.lock_timeout)
+        insert(Configurable("lock_timeout", &m_context.lock_timeout)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1534,7 +1557,7 @@ namespace mamba
                         Lockfile timeout for blocking mode when waiting for another process
                         to release the path. Default is 0 (no timeout))")));
 
-        insert(Configurable("use_lockfiles", &ctx.use_lockfiles)
+        insert(Configurable("use_lockfiles", &m_context.use_lockfiles)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1545,20 +1568,20 @@ namespace mamba
                         However, some filesystems do not support file locking and locks do not always
                         make sense - like when on an HPC.  Default is true (use a lockfile)")));
 
-        insert(Configurable("compile_pyc", &ctx.compile_pyc)
+        insert(Configurable("compile_pyc", &m_context.compile_pyc)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
                    .description("Defines if PYC files will be compiled or not"));
 
         // Output, Prompt and Flow
-        insert(Configurable("always_yes", &ctx.always_yes)
+        insert(Configurable("always_yes", &m_context.always_yes)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
                    .description("Automatically answer yes on prompted questions"));
 
-        insert(Configurable("auto_activate_base", &ctx.auto_activate_base)
+        insert(Configurable("auto_activate_base", &m_context.auto_activate_base)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1567,18 +1590,18 @@ namespace mamba
                         Automatically activate the base environment during shell
                         initialization.)")));
 
-        insert(Configurable("dry_run", &ctx.dry_run)
+        insert(Configurable("dry_run", &m_context.dry_run)
                    .group("Output, Prompt and Flow Control")
                    .set_env_var_names()
                    .description("Only display what would have been done"));
 
-        insert(Configurable("download_only", &ctx.download_only)
+        insert(Configurable("download_only", &m_context.download_only)
                    .group("Output, Prompt and Flow Control")
                    .set_env_var_names()
                    .description("Only download and extract packages, do not link them into environment."
                    ));
 
-        insert(Configurable("log_level", &ctx.output_params.logging_level)
+        insert(Configurable("log_level", &m_context.output_params.logging_level)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1592,7 +1615,7 @@ namespace mamba
                             be one of {'off', 'fatal', 'error', 'warning', 'info',
                             'debug', 'trace'}.)")));
 
-        insert(Configurable("log_backtrace", &ctx.output_params.log_backtrace)
+        insert(Configurable("log_backtrace", &m_context.output_params.log_backtrace)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1601,7 +1624,7 @@ namespace mamba
                             Set the log backtrace size. It will replay the n last
                             logs if an error is thrown during the execution.)")));
 
-        insert(Configurable("log_pattern", &ctx.output_params.log_pattern)
+        insert(Configurable("log_pattern", &m_context.output_params.log_pattern)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1609,14 +1632,14 @@ namespace mamba
                    .long_description(unindent(R"(
                             Set the log pattern.)")));
 
-        insert(Configurable("json", &ctx.output_params.json)
+        insert(Configurable("json", &m_context.output_params.json)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .needs({ "print_config_only", "print_context_only" })
                    .set_env_var_names()
                    .description("Report all output as json"));
 
-        insert(Configurable("changeps1", &ctx.change_ps1)
+        insert(Configurable("changeps1", &m_context.change_ps1)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1624,7 +1647,7 @@ namespace mamba
                        "When using activate, change the command prompt ($PS1) to include the activated environment."
                    ));
 
-        insert(Configurable("shell_completion", &ctx.shell_completion)
+        insert(Configurable("shell_completion", &m_context.shell_completion)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1632,7 +1655,7 @@ namespace mamba
                        "Enable or disable shell autocompletion (currently works for bash and zsh)."
                    ));
 
-        insert(Configurable("env_prompt", &ctx.env_prompt)
+        insert(Configurable("env_prompt", &m_context.env_prompt)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1688,7 +1711,7 @@ namespace mamba
                    .group("Output, Prompt and Flow Control")
                    .description("Display configs values"));
 
-        insert(Configurable("quiet", &ctx.output_params.quiet)
+        insert(Configurable("quiet", &m_context.output_params.quiet)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1697,7 +1720,8 @@ namespace mamba
 
         insert(Configurable("verbose", 0)
                    .group("Output, Prompt and Flow Control")
-                   .set_post_merge_hook(detail::verbose_hook)
+                   .set_post_merge_hook<int>([this](int& value)
+                                             { return detail::verbose_hook(m_context, value); })
                    .description("Set the verbosity")
                    .long_description(unindent(R"(
                     Set the verbosity of .
@@ -1711,7 +1735,10 @@ namespace mamba
                    .group("Config sources")
                    .set_env_var_names({ "MAMBARC", "CONDARC" })
                    .needs({ "no_rc" })
-                   .set_post_merge_hook(detail::rc_files_hook)
+                   .set_post_merge_hook<std::vector<fs::u8path>>(
+                       [this](std::vector<fs::u8path>& value)
+                       { return detail::rc_files_hook(m_context, value); }
+                   )
                    .description("Paths to the configuration files to use"));
 
         insert(Configurable("override_rc_files", true)
@@ -1719,12 +1746,12 @@ namespace mamba
                    .set_env_var_names()
                    .description("Whether to override rc files by highest precedence"));
 
-        insert(Configurable("no_rc", &ctx.src_params.no_rc)
+        insert(Configurable("no_rc", &m_context.src_params.no_rc)
                    .group("Config sources")
                    .set_env_var_names()
                    .description("Disable the use of configuration files"));
 
-        insert(Configurable("no_env", &ctx.src_params.no_env)
+        insert(Configurable("no_env", &m_context.src_params.no_env)
                    .group("Config sources")
                    .set_env_var_names()
                    .description("Disable the use of environment variables"));
@@ -1774,12 +1801,11 @@ namespace mamba
     // give env::user_config_dir a mamba argument, all so I can supply conda in a few default
     // cases. It seems like ../conda is an easier solution
     //
-    std::vector<fs::u8path> Configuration::compute_default_rc_sources(const RCConfigLevel& level)
+    std::vector<fs::u8path>
+    Configuration::compute_default_rc_sources(const Context& context, const RCConfigLevel& level)
     {
-        auto& ctx = Context::instance();
-
         std::vector<fs::u8path> system;
-        if constexpr (on_mac || on_linux)
+        if constexpr (util::on_mac || util::on_linux)
         {
             system = { "/etc/conda/.condarc",       "/etc/conda/condarc",
                        "/etc/conda/condarc.d/",     "/etc/conda/.mambarc",
@@ -1794,10 +1820,10 @@ namespace mamba
                        "C:\\ProgramData\\conda\\.mambarc" };
         }
 
-        std::vector<fs::u8path> root = { ctx.prefix_params.root_prefix / ".condarc",
-                                         ctx.prefix_params.root_prefix / "condarc",
-                                         ctx.prefix_params.root_prefix / "condarc.d",
-                                         ctx.prefix_params.root_prefix / ".mambarc" };
+        std::vector<fs::u8path> root = { context.prefix_params.root_prefix / ".condarc",
+                                         context.prefix_params.root_prefix / "condarc",
+                                         context.prefix_params.root_prefix / "condarc.d",
+                                         context.prefix_params.root_prefix / ".mambarc" };
 
         std::vector<fs::u8path> conda_user = {
             env::user_config_dir() / "../conda/.condarc",
@@ -1824,10 +1850,10 @@ namespace mamba
             mamba_user.push_back(fs::u8path(env::get("MAMBARC").value()));
         }
 
-        std::vector<fs::u8path> prefix = { ctx.prefix_params.target_prefix / ".condarc",
-                                           ctx.prefix_params.target_prefix / "condarc",
-                                           ctx.prefix_params.target_prefix / "condarc.d",
-                                           ctx.prefix_params.target_prefix / ".mambarc" };
+        std::vector<fs::u8path> prefix = { context.prefix_params.target_prefix / ".condarc",
+                                           context.prefix_params.target_prefix / "condarc",
+                                           context.prefix_params.target_prefix / "condarc.d",
+                                           context.prefix_params.target_prefix / ".mambarc" };
 
         std::vector<fs::u8path> sources;
 
@@ -1835,7 +1861,7 @@ namespace mamba
         {
             sources.insert(sources.end(), system.begin(), system.end());
         }
-        if ((level >= RCConfigLevel::kRootPrefix) && !ctx.prefix_params.root_prefix.empty())
+        if ((level >= RCConfigLevel::kRootPrefix) && !context.prefix_params.root_prefix.empty())
         {
             sources.insert(sources.end(), root.begin(), root.end());
         }
@@ -1844,7 +1870,7 @@ namespace mamba
             sources.insert(sources.end(), conda_user.begin(), conda_user.end());
             sources.insert(sources.end(), mamba_user.begin(), mamba_user.end());
         }
-        if ((level >= RCConfigLevel::kTargetPrefix) && !ctx.prefix_params.target_prefix.empty())
+        if ((level >= RCConfigLevel::kTargetPrefix) && !context.prefix_params.target_prefix.empty())
         {
             sources.insert(sources.end(), prefix.begin(), prefix.end());
         }
@@ -1879,7 +1905,8 @@ namespace mamba
         }
         m_load_lock = false;
 
-        allow_file_locking(Context::instance().use_lockfiles);
+        allow_file_locking(m_context.use_lockfiles);
+        set_file_locking_timeout(std::chrono::seconds{ m_context.lock_timeout });
 
         LOG_DEBUG << m_config.size() << " configurables computed";
 
@@ -1891,16 +1918,15 @@ namespace mamba
             exit(0);
         }
 
-        auto& ctx = Context::instance();
-        ctx.set_log_level(ctx.output_params.logging_level);
+        m_context.set_log_level(m_context.output_params.logging_level);
 
         spdlog::apply_all([&](std::shared_ptr<spdlog::logger> l) { l->flush(); });
         spdlog::flush_on(spdlog::level::off);
 
-        Context::instance().dump_backtrace_no_guards();
-        if (ctx.output_params.log_backtrace > 0)
+        m_context.dump_backtrace_no_guards();
+        if (m_context.output_params.log_backtrace > 0)
         {
-            spdlog::enable_backtrace(ctx.output_params.log_backtrace);
+            spdlog::enable_backtrace(m_context.output_params.log_backtrace);
         }
         else
         {
@@ -2091,7 +2117,7 @@ namespace mamba
                   << YAML::Node(level).as<std::string>();
         if (possible_rc_paths.empty())
         {
-            possible_rc_paths = compute_default_rc_sources(level);
+            possible_rc_paths = compute_default_rc_sources(m_context, level);
         }
 
         m_sources = get_existing_rc_sources(possible_rc_paths);

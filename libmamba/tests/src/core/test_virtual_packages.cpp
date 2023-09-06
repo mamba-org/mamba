@@ -10,8 +10,10 @@
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
-#include "mamba/core/util.hpp"
 #include "mamba/core/virtual_packages.hpp"
+#include "mamba/util/build.hpp"
+
+#include "mambatests.hpp"
 
 namespace mamba
 {
@@ -33,36 +35,37 @@ namespace mamba
         {
             TEST_CASE("make_virtual_package")
             {
-                auto pkg = detail::make_virtual_package("test", "0.1.5", "abcd");
+                const auto& context = mambatests::context();
+                const auto pkg = detail::make_virtual_package("test", context.platform, "0.1.5", "abcd");
 
                 CHECK_EQ(pkg.name, "test");
                 CHECK_EQ(pkg.version, "0.1.5");
                 CHECK_EQ(pkg.build_string, "abcd");
                 CHECK_EQ(pkg.build_number, 0);
                 CHECK_EQ(pkg.channel, "@");
-                // CHECK_EQ(pkg.subdir, "osx-64");  // TODO: fix this
+                CHECK_EQ(pkg.subdir, context.platform);
                 CHECK_EQ(pkg.md5, "12345678901234567890123456789012");
                 CHECK_EQ(pkg.fn, pkg.name);
             }
 
             TEST_CASE("dist_packages")
             {
-                auto pkgs = detail::dist_packages();
-                auto& ctx = Context::instance();
+                auto& ctx = mambatests::context();
+                auto pkgs = detail::dist_packages(ctx);
 
-                if (on_win)
+                if (util::on_win)
                 {
                     REQUIRE_EQ(pkgs.size(), 2);
                     CHECK_EQ(pkgs[0].name, "__win");
                 }
-                if (on_linux)
+                if (util::on_linux)
                 {
                     REQUIRE_EQ(pkgs.size(), 4);
                     CHECK_EQ(pkgs[0].name, "__unix");
                     CHECK_EQ(pkgs[1].name, "__linux");
                     CHECK_EQ(pkgs[2].name, "__glibc");
                 }
-                if (on_mac)
+                if (util::on_mac)
                 {
                     REQUIRE_EQ(pkgs.size(), 3);
                     CHECK_EQ(pkgs[0].name, "__unix");
@@ -80,7 +83,7 @@ namespace mamba
 
                 ctx.platform = "osx-arm";
                 env::set("CONDA_OVERRIDE_OSX", "12.1");
-                pkgs = detail::dist_packages();
+                pkgs = detail::dist_packages(ctx);
                 REQUIRE_EQ(pkgs.size(), 3);
                 CHECK_EQ(pkgs[0].name, "__unix");
                 CHECK_EQ(pkgs[1].name, "__osx");
@@ -92,7 +95,7 @@ namespace mamba
                 ctx.platform = "linux-32";
                 env::set("CONDA_OVERRIDE_LINUX", "5.7");
                 env::set("CONDA_OVERRIDE_GLIBC", "2.15");
-                pkgs = detail::dist_packages();
+                pkgs = detail::dist_packages(ctx);
                 REQUIRE_EQ(pkgs.size(), 4);
                 CHECK_EQ(pkgs[0].name, "__unix");
                 CHECK_EQ(pkgs[1].name, "__linux");
@@ -105,14 +108,14 @@ namespace mamba
                 env::unset("CONDA_OVERRIDE_LINUX");
 
                 ctx.platform = "lin-850";
-                pkgs = detail::dist_packages();
+                pkgs = detail::dist_packages(ctx);
                 REQUIRE_EQ(pkgs.size(), 1);
                 CHECK_EQ(pkgs[0].name, "__archspec");
                 CHECK_EQ(pkgs[0].build_string, "850");
                 env::unset("CONDA_SUBDIR");
 
                 ctx.platform = "linux";
-                pkgs = detail::dist_packages();
+                pkgs = detail::dist_packages(ctx);
                 REQUIRE_EQ(pkgs.size(), 0);
 
                 ctx.platform = ctx.host_platform;
@@ -121,19 +124,19 @@ namespace mamba
             TEST_CASE("get_virtual_packages")
             {
                 env::set("CONDA_OVERRIDE_CUDA", "9.0");
-
-                auto pkgs = get_virtual_packages();
+                const auto& context = mambatests::context();
+                auto pkgs = get_virtual_packages(context);
                 int pkgs_count;
 
-                if (on_win)
+                if (util::on_win)
                 {
                     pkgs_count = 2;
                 }
-                if (on_linux)
+                if (util::on_linux)
                 {
                     pkgs_count = 4;
                 }
-                if (on_mac)
+                if (util::on_mac)
                 {
                     pkgs_count = 3;
                 }
@@ -144,7 +147,7 @@ namespace mamba
                 CHECK_EQ(pkgs.back().version, "9.0");
 
                 env::unset("CONDA_OVERRIDE_CUDA");
-                pkgs = get_virtual_packages();
+                pkgs = get_virtual_packages(context);
 
                 if (!detail::cuda_version().empty())
                 {

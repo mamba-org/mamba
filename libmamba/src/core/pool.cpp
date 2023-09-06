@@ -53,6 +53,11 @@ namespace mamba
         return m_data->channel_context;
     }
 
+    Context& MPool::context() const
+    {
+        return channel_context().context();
+    }
+
     solv::ObjPool& MPool::pool()
     {
         return m_data->pool;
@@ -67,11 +72,13 @@ namespace mamba
     {
         // ensure that debug logging goes to stderr as to not interfere with stdout json output
         pool().raw()->debugmask |= SOLV_DEBUG_TO_STDERR;
-        if (Context::instance().output_params.verbosity > 2)
+        const auto& context = channel_context().context();
+        if (context.output_params.verbosity > 2)
         {
-            pool_setdebuglevel(pool().raw(), Context::instance().output_params.verbosity - 1);
+            pool_setdebuglevel(pool().raw(), context.output_params.verbosity - 1);
             pool().set_debug_callback(
-                [logger = spdlog::get("libsolv")](::Pool*, int type, std::string_view msg) noexcept
+                [logger = spdlog::get("libsolv"),
+                 &context](::Pool*, int type, std::string_view msg) noexcept
                 {
                     if (msg.size() == 0 || msg.back() != '\n')
                     {
@@ -87,7 +94,7 @@ namespace mamba
                     {
                         logger->warn(log);
                     }
-                    else if (Context::instance().output_params.verbosity > 2)
+                    else if (context.output_params.verbosity > 2)
                     {
                         logger->info(log);
                     }
@@ -141,7 +148,7 @@ namespace mamba
                 return true;
             }
 
-            auto& custom_multichannels = Context::instance().custom_multichannels;
+            auto& custom_multichannels = channel_context.context().custom_multichannels;
             auto x = custom_multichannels.find(needle.name());
             if (x != custom_multichannels.end())
             {
@@ -229,11 +236,10 @@ namespace mamba
             );
 
             solv::StringId const repr_id = pool.add_string(repr);
-            ::Id const offset = pool_queuetowhatprovides(pool.raw(), selected_pkgs.raw());
             // FRAGILE This get deleted when calling ``pool_createwhatprovides`` so care
             // must be taken to do it before
             // TODO investigate namespace providers
-            pool_set_whatprovides(pool.raw(), repr_id, offset);
+            pool.add_to_whatprovides(repr_id, pool.add_to_whatprovides_data(selected_pkgs));
             return repr_id;
         }
     }

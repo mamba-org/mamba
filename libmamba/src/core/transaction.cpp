@@ -277,20 +277,24 @@ namespace mamba
         }
     }
 
+    MTransaction::MTransaction(MPool& pool, MultiPackageCache& caches)
+        : m_pool(pool)
+        , m_multi_cache(caches)
+        , m_history_entry(History::UserRequest::prefilled(m_pool.context()))
+    {
+    }
+
     MTransaction::MTransaction(
         MPool& pool,
         const std::vector<MatchSpec>& specs_to_remove,
         const std::vector<MatchSpec>& specs_to_install,
         MultiPackageCache& caches
     )
-        : m_pool(pool)
-        , m_multi_cache(caches)
+        : MTransaction(pool, caches)
     {
-        MRepo mrepo = MRepo(
-            m_pool,
-            "__explicit_specs__",
-            make_pkg_info_from_explicit_match_specs(specs_to_install)
-        );
+        MRepo mrepo{ m_pool,
+                     "__explicit_specs__",
+                     make_pkg_info_from_explicit_match_specs(specs_to_install) };
 
         m_pool.create_whatprovides();
 
@@ -354,26 +358,27 @@ namespace mamba
             m_history_entry.update.push_back(s.str());
         }
 
+        const auto& context = m_pool.context();
+
         // if no action required, don't even start logging them
         if (!empty())
         {
             Console::instance().json_down("actions");
-            Console::instance().json_write(
-                { { "PREFIX", Context::instance().prefix_params.target_prefix.string() } }
-            );
+            Console::instance().json_write({ { "PREFIX",
+                                               context.prefix_params.target_prefix.string() } });
         }
 
         m_transaction_context = TransactionContext(
-            Context::instance().prefix_params.target_prefix,
-            Context::instance().prefix_params.relocate_prefix,
+            context,
+            context.prefix_params.target_prefix,
+            context.prefix_params.relocate_prefix,
             find_python_version(m_solution, m_pool.pool()),
             specs_to_install
         );
     }
 
     MTransaction::MTransaction(MPool& p_pool, MSolver& solver, MultiPackageCache& caches)
-        : m_pool(p_pool)
-        , m_multi_cache(caches)
+        : MTransaction(p_pool, caches)
     {
         if (!solver.is_solved())
         {
@@ -427,9 +432,11 @@ namespace mamba
             );
         }
 
+        const auto& context = m_pool.context();
         m_transaction_context = TransactionContext(
-            Context::instance().prefix_params.target_prefix,
-            Context::instance().prefix_params.relocate_prefix,
+            context,
+            context.prefix_params.target_prefix,
+            context.prefix_params.relocate_prefix,
             find_python_version(m_solution, m_pool.pool()),
             solver.install_specs()
         );
@@ -522,8 +529,9 @@ namespace mamba
             }
 
             m_transaction_context = TransactionContext(
-                Context::instance().prefix_params.target_prefix,
-                Context::instance().prefix_params.relocate_prefix,
+                context,
+                context.prefix_params.target_prefix,
+                context.prefix_params.relocate_prefix,
                 find_python_version(m_solution, m_pool.pool()),
                 solver.install_specs()
             );
@@ -533,9 +541,8 @@ namespace mamba
         if (!empty())
         {
             Console::instance().json_down("actions");
-            Console::instance().json_write(
-                { { "PREFIX", Context::instance().prefix_params.target_prefix.string() } }
-            );
+            Console::instance().json_write({ { "PREFIX",
+                                               context.prefix_params.target_prefix.string() } });
         }
     }
 
@@ -544,8 +551,7 @@ namespace mamba
         const std::vector<PackageInfo>& packages,
         MultiPackageCache& caches
     )
-        : m_pool(pool)
-        , m_multi_cache(caches)
+        : MTransaction(pool, caches)
     {
         LOG_INFO << "MTransaction::MTransaction - packages already resolved (lockfile)";
         MRepo mrepo = MRepo(m_pool, "__explicit_specs__", packages);
@@ -570,9 +576,11 @@ namespace mamba
             ));
         }
 
+        const auto& context = m_pool.context();
         m_transaction_context = TransactionContext(
-            Context::instance().prefix_params.target_prefix,
-            Context::instance().prefix_params.relocate_prefix,
+            context,
+            context.prefix_params.target_prefix,
+            context.prefix_params.relocate_prefix,
             find_python_version(m_solution, m_pool.pool()),
             specs_to_install
         );
@@ -597,7 +605,7 @@ namespace mamba
             m_link_stack.push(link);
         }
 
-        void rollback()
+        void rollback(const Context&)
         {
             while (!m_link_stack.empty())
             {
@@ -620,7 +628,7 @@ namespace mamba
 
     bool MTransaction::execute(PrefixData& prefix)
     {
-        auto& ctx = Context::instance();
+        auto& ctx = m_pool.context();
 
         // JSON output
         // back to the top level if any action was required
@@ -714,7 +722,7 @@ namespace mamba
         if (is_sig_interrupted())
         {
             Console::stream() << "Transaction interrupted, rollbacking";
-            rollback.rollback();
+            rollback.rollback(ctx);
             return false;
         }
         LOG_INFO << "Waiting for pyc compilation to finish";
@@ -724,7 +732,7 @@ namespace mamba
         const auto executable = ctx.command_params.is_micromamba ? "micromamba" : "mamba";
 
         // Get the name of the environment
-        const auto environment = env_name(ctx.prefix_params.target_prefix);
+        const auto environment = env_name(ctx);
 
         Console::stream() << "\nTransaction finished\n\n"
                              "To activate this environment, use:\n\n"
@@ -818,16 +826,17 @@ namespace mamba
     bool MTransaction::fetch_extract_packages()
     {
         std::vector<std::unique_ptr<PackageDownloadExtractTarget>> targets;
-        MultiDownloadTarget multi_dl;
+        MultiDownloadTarget multi_dl{ m_pool.context() };
 
         auto& pbar_manager = Console::instance().init_progress_bar_manager(ProgressBarMode::aggregated
         );
         auto& aggregated_pbar_manager = dynamic_cast<AggregatedBarManager&>(pbar_manager);
 
-        auto& ctx = Context::instance();
+        auto& channel_context = m_pool.channel_context();
+        auto& ctx = channel_context.context();
         DownloadExtractSemaphore::set_max(ctx.threads_params.extract_threads);
 
-        if (ctx.experimental && ctx.verify_artifacts)
+        if (ctx.experimental && ctx.validation_params.verify_artifacts)
         {
             LOG_INFO << "Content trust is enabled, package(s) signatures will be verified";
         }
@@ -836,11 +845,10 @@ namespace mamba
             m_solution.actions,
             [&](const auto& pkg)
             {
-                if (ctx.experimental && ctx.verify_artifacts)
+                if (ctx.experimental && ctx.validation_params.verify_artifacts)
                 {
-                    const auto& repo_checker = m_pool.channel_context()
-                                                   .make_channel(pkg.channel)
-                                                   .repo_checker(m_multi_cache);
+                    const auto& repo_checker = channel_context.make_channel(pkg.channel)
+                                                   .repo_checker(ctx, m_multi_cache);
                     repo_checker.verify_package(
                         pkg.json_signable(),
                         nlohmann::json::parse(pkg.signatures)
@@ -852,7 +860,7 @@ namespace mamba
                 targets.emplace_back(
                     std::make_unique<PackageDownloadExtractTarget>(pkg, m_pool.channel_context())
                 );
-                DownloadTarget* download_target = targets.back()->target(m_multi_cache);
+                DownloadTarget* download_target = targets.back()->target(ctx, m_multi_cache);
                 if (download_target != nullptr)
                 {
                     multi_dl.add(download_target);
@@ -860,13 +868,13 @@ namespace mamba
             }
         );
 
-        if (ctx.experimental && ctx.verify_artifacts)
+        if (ctx.experimental && ctx.validation_params.verify_artifacts)
         {
             auto out = Console::stream();
             fmt::print(
                 out,
                 "Content trust verifications successful, {} ",
-                fmt::styled("package(s) are trusted", Context::instance().graphics_params.palette.safe)
+                fmt::styled("package(s) are trusted", ctx.graphics_params.palette.safe)
             );
             LOG_INFO << "All package(s) are trusted";
         }
@@ -1027,7 +1035,7 @@ namespace mamba
     bool MTransaction::prompt()
     {
         print();
-        if (Context::instance().dry_run || empty())
+        if (m_pool.context().dry_run || empty())
         {
             return true;
         }
@@ -1037,7 +1045,7 @@ namespace mamba
 
     void MTransaction::print()
     {
-        const auto& ctx = Context::instance();
+        const auto& ctx = m_pool.context();
 
         if (ctx.output_params.json)
         {
@@ -1328,11 +1336,12 @@ namespace mamba
         std::vector<PackageInfo> conda_packages = {};
         std::vector<PackageInfo> pip_packages = {};
 
+        const auto& context = pool.context();
         for (const auto& category : categories)
         {
             std::vector<PackageInfo> selected_packages = lockfile_data.get_packages_for(
                 category,
-                Context::instance().platform,
+                context.platform,
                 "conda"
             );
             std::copy(
@@ -1345,11 +1354,10 @@ namespace mamba
             {
                 LOG_WARNING << "Selected packages for category '" << category << "' are empty. "
                             << "The lockfile might not be resolved for your platform ("
-                            << Context::instance().platform << ").";
+                            << context.platform << ").";
             }
 
-            selected_packages = lockfile_data
-                                    .get_packages_for(category, Context::instance().platform, "pip");
+            selected_packages = lockfile_data.get_packages_for(category, context.platform, "pip");
             std::copy(
                 selected_packages.begin(),
                 selected_packages.end(),

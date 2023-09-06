@@ -11,6 +11,7 @@
 #include <string>
 
 #include "mamba/core/fsutil.hpp"
+#include "mamba/core/palette.hpp"
 
 namespace mamba
 {
@@ -36,7 +37,7 @@ namespace mamba
 #endif
 
     void run_as_admin(const std::string& args);
-    bool enable_long_paths_support(bool force);
+    bool enable_long_paths_support(bool force, Palette palette = Palette::no_color());
     std::string windows_version();
     std::string macos_version();
     std::string linux_version();

@@ -48,12 +48,12 @@ namespace mamba
     {
         int RETRY_SUBDIR_FETCH = 1 << 0;
 
-        auto& ctx = Context::instance();
+        auto& ctx = pool.context();
 
         std::vector<std::string> channel_urls = ctx.channels;
 
         std::vector<MSubdirData> subdirs;
-        MultiDownloadTarget multi_dl;
+        MultiDownloadTarget multi_dl{ ctx };
 
         std::vector<std::pair<int, int>> priorities;
         int max_prio = static_cast<int>(channel_urls.size());

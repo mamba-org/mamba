@@ -9,12 +9,10 @@
 
 #include <doctest/doctest.h>
 
-#include "mamba/specs/platform.hpp"
-#include "mamba/util/url_manip.hpp"
-
-#ifdef _WIN32
 #include "mamba/core/mamba_fs.hpp"
-#endif
+#include "mamba/specs/platform.hpp"
+#include "mamba/util/build.hpp"
+#include "mamba/util/url_manip.hpp"
 
 using namespace mamba::util;
 
@@ -129,19 +127,42 @@ TEST_SUITE("util::url_manip")
 
         CHECK_EQ(platform_found, "noarch");
         CHECK_EQ(cleaned_url, "https://mamba.com");
+
+        split_platform(
+            { "noarch", "linux-64" },
+            "https://conda.anaconda.org/conda-forge/noarch",
+            std::string(mamba::specs::build_platform_name()),
+            cleaned_url,
+            platform_found
+        );
+        CHECK_EQ(platform_found, "noarch");
+        CHECK_EQ(cleaned_url, "https://conda.anaconda.org/conda-forge");
+
+        split_platform(
+            { "noarch", "linux-64" },
+            "https://conda.anaconda.org/pkgs/main/noarch",
+            std::string(mamba::specs::build_platform_name()),
+            cleaned_url,
+            platform_found
+        );
+        CHECK_EQ(platform_found, "noarch");
+        CHECK_EQ(cleaned_url, "https://conda.anaconda.org/pkgs/main");
     }
 
     TEST_CASE("path_to_url")
     {
         auto url = path_to_url("/users/test/miniconda3");
-#ifndef _WIN32
-        CHECK_EQ(url, "file:///users/test/miniconda3");
-#else
-        std::string driveletter = fs::absolute(fs::u8path("/")).string().substr(0, 1);
-        CHECK_EQ(url, std::string("file://") + driveletter + ":/users/test/miniconda3");
-        auto url2 = path_to_url("D:\\users\\test\\miniconda3");
-        CHECK_EQ(url2, "file://D:/users/test/miniconda3");
-#endif
+        if (on_win)
+        {
+            std::string driveletter = fs::absolute(fs::u8path("/")).string().substr(0, 1);
+            CHECK_EQ(url, std::string("file://") + driveletter + ":/users/test/miniconda3");
+            auto url2 = path_to_url("D:\\users\\test\\miniconda3");
+            CHECK_EQ(url2, "file://D:/users/test/miniconda3");
+        }
+        else
+        {
+            CHECK_EQ(url, "file:///users/test/miniconda3");
+        }
     }
 
     TEST_CASE("file_uri_unc2_to_unc4")
@@ -183,16 +204,6 @@ TEST_SUITE("util::url_manip")
         CHECK_FALSE(url_has_scheme("://"));
         CHECK_FALSE(url_has_scheme("f#gre://"));
         CHECK_FALSE(url_has_scheme(""));
-    }
-
-    TEST_CASE("path_has_drive_letter")
-    {
-        CHECK(path_has_drive_letter("C:/folder/file"));
-        CHECK(path_has_drive_letter(R"(C:\folder\file)"));
-        CHECK_FALSE(path_has_drive_letter("/folder/file"));
-        CHECK_FALSE(path_has_drive_letter("folder/file"));
-        CHECK_FALSE(path_has_drive_letter(R"(\folder\file)"));
-        CHECK_FALSE(path_has_drive_letter(R"(folder\file)"));
     }
 
     TEST_CASE("split_ananconda_token")
@@ -258,28 +269,22 @@ TEST_SUITE("util::url_manip")
         CHECK_EQ(auth, "u:p");
         CHECK_EQ(token, "a_-12345-absdj12345-xyxyxyx");
 
-#ifdef _WIN32
-        split_scheme_auth_token("file://C:/Users/wolfv/test.json", remaining_url, scheme, auth, token);
-        CHECK_EQ(remaining_url, "C:/Users/wolfv/test.json");
-        CHECK_EQ(scheme, "file");
-        CHECK_EQ(auth, "");
-        CHECK_EQ(token, "");
-#else
-        split_scheme_auth_token("file:///home/wolfv/test.json", remaining_url, scheme, auth, token);
-        CHECK_EQ(remaining_url, "/home/wolfv/test.json");
-        CHECK_EQ(scheme, "file");
-        CHECK_EQ(auth, "");
-        CHECK_EQ(token, "");
-#endif
-    }
-
-    TEST_CASE("is_path")
-    {
-        CHECK(is_path("./"));
-        CHECK(is_path(".."));
-        CHECK(is_path("~"));
-        CHECK(is_path("/"));
-        CHECK_FALSE(is_path("file://makefile"));
+        if (on_win)
+        {
+            split_scheme_auth_token("file://C:/Users/wolfv/test.json", remaining_url, scheme, auth, token);
+            CHECK_EQ(remaining_url, "C:/Users/wolfv/test.json");
+            CHECK_EQ(scheme, "file");
+            CHECK_EQ(auth, "");
+            CHECK_EQ(token, "");
+        }
+        else
+        {
+            split_scheme_auth_token("file:///home/wolfv/test.json", remaining_url, scheme, auth, token);
+            CHECK_EQ(remaining_url, "/home/wolfv/test.json");
+            CHECK_EQ(scheme, "file");
+            CHECK_EQ(auth, "");
+            CHECK_EQ(token, "");
+        }
     }
 
     TEST_CASE("cache_name_from_url")

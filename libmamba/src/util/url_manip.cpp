@@ -15,10 +15,11 @@
 #include <fmt/format.h>
 #include <openssl/evp.h>
 
-#include "mamba/core/context.hpp"
-#include "mamba/core/util.hpp"
+#include "mamba/core/mamba_fs.hpp"
+#include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
+#include "mamba/util/url_manip.hpp"
 
 namespace mamba::util
 {
@@ -216,24 +217,15 @@ namespace mamba::util
         return !url_get_scheme(url).empty();
     }
 
-    auto path_has_drive_letter(std::string_view path) -> bool
-    {
-        static constexpr auto is_drive_char = [](char c) -> bool { return util::is_alphanum(c); };
-
-        auto [drive, rest] = util::lstrip_if_parts(path, is_drive_char);
-        return !drive.empty() && (rest.size() >= 2) && (rest[0] == ':')
-               && ((rest[1] == '/') || (rest[1] == '\\'));
-    }
-
     void split_anaconda_token(const std::string& url, std::string& cleaned_url, std::string& token)
     {
-        auto token_begin = std::sregex_iterator(url.begin(), url.end(), Context::instance().token_regex);
+        auto token_begin = std::sregex_iterator(url.begin(), url.end(), conda_urls::token_regex);
         if (token_begin != std::sregex_iterator())
         {
             token = token_begin->str().substr(3u);
             cleaned_url = std::regex_replace(
                 url,
-                Context::instance().token_regex,
+                conda_urls::token_regex,
                 "",
                 std::regex_constants::format_first_only
             );
@@ -271,14 +263,6 @@ namespace mamba::util
         split_scheme_auth_token(url1, u1_remaining, u1_scheme, u1_auth, u1_token);
         split_scheme_auth_token(url2, u2_remaining, u2_scheme, u2_auth, u2_token);
         return u1_remaining == u2_remaining;
-    }
-
-    bool is_path(const std::string& input)
-    {
-        static const std::regex re(R"(\./|\.\.|~|/|[a-zA-Z]:[/\\]|\\\\|//)");
-        std::smatch sm;
-        std::regex_search(input, sm, re);
-        return !sm.empty() && sm.position(0) == 0 && input.find("://") == std::string::npos;
     }
 
     std::string path_to_url(const std::string& path)

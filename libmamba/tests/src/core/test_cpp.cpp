@@ -18,14 +18,16 @@
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/subdirdata.hpp"
+#include "mamba/util/build.hpp"
 
+#include "mambatests.hpp"
 #include "test_data.hpp"
 
 namespace mamba
 {
     // TEST(cpp_install, install)
     // {
-    //     Context::instance().output_params.verbosity = 3;
+    //     mambatests::context().output_params.verbosity = 3;
     //     PackageInfo pkg("wheel", "0.34.2", "py_1", 1);
     //     fs::u8path prefix = "C:\\Users\\wolfv\\miniconda3\\";
     //     TransactionContext tc(prefix, "3.8.x");
@@ -86,7 +88,7 @@ namespace mamba
 
         TEST_CASE("parse")
         {
-            ChannelContext channel_context;
+            ChannelContext channel_context{ mambatests::context() };
             {
                 MatchSpec ms("xtensor==0.12.3", channel_context);
                 CHECK_EQ(ms.version, "0.12.3");
@@ -234,11 +236,36 @@ namespace mamba
                 MatchSpec ms("numpy=1.20", channel_context);
                 CHECK_EQ(ms.str(), "numpy=1.20");
             }
+
+            {
+                MatchSpec ms("conda-forge::tzdata", channel_context);
+                CHECK_EQ(ms.str(), "conda-forge::tzdata");
+            }
+            {
+                MatchSpec ms("conda-forge::noarch/tzdata", channel_context);
+                CHECK_EQ(ms.str(), "conda-forge::noarch/tzdata");
+            }
+            {
+                MatchSpec ms("pkgs/main::tzdata", channel_context);
+                CHECK_EQ(ms.str(), "pkgs/main::tzdata");
+            }
+            {
+                MatchSpec ms("pkgs/main/noarch::tzdata", channel_context);
+                CHECK_EQ(ms.str(), "pkgs/main/noarch::tzdata");
+            }
+            {
+                MatchSpec ms("conda-forge/noarch::tzdata[subdir=linux64]", channel_context);
+                CHECK_EQ(ms.str(), "conda-forge/noarch::tzdata");
+            }
+            {
+                MatchSpec ms("conda-forge::tzdata[subdir=linux64]", channel_context);
+                CHECK_EQ(ms.str(), "conda-forge/linux64::tzdata");
+            }
         }
 
         TEST_CASE("is_simple")
         {
-            ChannelContext channel_context;
+            ChannelContext channel_context{ mambatests::context() };
             {
                 MatchSpec ms("libblas", channel_context);
                 CHECK(ms.is_simple());
@@ -266,7 +293,7 @@ namespace mamba
     {
         TEST_CASE("user_request")
         {
-            auto u = History::UserRequest::prefilled();
+            auto u = History::UserRequest::prefilled(mambatests::context());
             // update in 100 years!
             CHECK_EQ(u.date[0], '2');
             CHECK_EQ(u.date[1], '0');
@@ -339,22 +366,22 @@ namespace mamba
     {
         TEST_CASE("env_name")
         {
-            if constexpr (on_mac || on_linux)
+            if constexpr (util::on_mac || util::on_linux)
             {
-                auto& ctx = Context::instance();
+                auto& ctx = mambatests::context();
                 ctx.prefix_params.root_prefix = "/home/user/micromamba/";
                 ctx.envs_dirs = { ctx.prefix_params.root_prefix / "envs" };
                 fs::u8path prefix = "/home/user/micromamba/envs/testprefix";
 
-                CHECK_EQ(env_name(prefix), "testprefix");
+                CHECK_EQ(env_name(ctx, prefix), "testprefix");
                 prefix = "/home/user/micromamba/envs/a.txt";
-                CHECK_EQ(env_name(prefix), "a.txt");
+                CHECK_EQ(env_name(ctx, prefix), "a.txt");
                 prefix = "/home/user/micromamba/envs/a.txt";
-                CHECK_EQ(env_name(prefix), "a.txt");
+                CHECK_EQ(env_name(ctx, prefix), "a.txt");
                 prefix = "/home/user/micromamba/envs/abc/a.txt";
-                CHECK_EQ(env_name(prefix), "/home/user/micromamba/envs/abc/a.txt");
+                CHECK_EQ(env_name(ctx, prefix), "/home/user/micromamba/envs/abc/a.txt");
                 prefix = "/home/user/env";
-                CHECK_EQ(env_name(prefix), "/home/user/env");
+                CHECK_EQ(env_name(ctx, prefix), "/home/user/env");
             }
         }
     }
@@ -363,7 +390,7 @@ namespace mamba
     {
         TEST_CASE("starts_with_home")
         {
-            if (on_linux)
+            if (util::on_linux)
             {
                 auto home = env::expand_user("~");
                 CHECK_EQ(path::starts_with_home(home / "test" / "file.txt"), true);
@@ -381,7 +408,7 @@ namespace mamba
 
         TEST_CASE("touch")
         {
-            if (on_linux)
+            if (util::on_linux)
             {
                 path::touch("/tmp/dir/file.txt", true);
                 CHECK(fs::exists("/tmp/dir/file.txt"));
@@ -393,12 +420,12 @@ namespace mamba
     {
         TEST_CASE("replace_long_shebang")
         {
-            if (!on_win)
+            if (!util::on_win)
             {
                 std::string res = replace_long_shebang(
                     "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong/python -o test -x"
                 );
-                if (on_linux)
+                if (util::on_linux)
                 {
                     CHECK_EQ(res, "#!/usr/bin/env python -o test -x");
                 }
@@ -410,7 +437,7 @@ namespace mamba
                     );
                 }
 
-                if (on_linux)
+                if (util::on_linux)
                 {
                     res = replace_long_shebang(
                         "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo\\ oooooo\\ oooooo\\ oooooooooooooooooooooooooooooooooooong/python -o test -x"
@@ -491,7 +518,7 @@ namespace mamba
     {
         TEST_CASE("quote_for_shell")
         {
-            if (!on_win)
+            if (!util::on_win)
             {
                 std::vector<std::string> args1 = { "python", "-c", "print('is\ngreat')" };
                 CHECK_EQ(quote_for_shell(args1), "python -c 'print('\"'\"'is\ngreat'\"'\"')'");

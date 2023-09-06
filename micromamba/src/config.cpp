@@ -12,6 +12,7 @@
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/util/build.hpp"
 
 #include "common_options.hpp"
 
@@ -47,14 +48,14 @@ is_valid_rc_sequence(const mamba::Configuration& config, const std::string& key,
 fs::u8path
 get_system_path()
 {
-    return (on_mac || on_linux) ? fs::u8path("/etc/conda/.condarc")
-                                : fs::u8path("C:\\ProgramData\\conda\\.condarc");
+    return (util::on_mac || util::on_linux) ? fs::u8path("/etc/conda/.condarc")
+                                            : fs::u8path("C:\\ProgramData\\conda\\.condarc");
 }
 
 fs::u8path
 compute_config_path(Configuration& config, bool touch_if_not_exists)
 {
-    auto& ctx = Context::instance();
+    auto& ctx = config.context();
 
     auto& file_path = config.at("config_set_file_path");
     auto& env_path = config.at("config_set_env_path");
@@ -204,7 +205,7 @@ set_config_path_command(CLI::App* subcom, mamba::Configuration& config)
     auto& file_path = config.insert(
         Configurable("config_set_file_path", fs::u8path())
             .group("cli")
-            .description("Set configuration on system's rc file"),
+            .description("Set configuration on specified file"),
         true
     );
     subcom->add_option("--file", file_path.get_cli_config<fs::u8path>(), file_path.description())

@@ -73,7 +73,7 @@ def temp_env_prefix():
 
     os.environ["MAMBA_ROOT_PREFIX"] = root_prefix
     create("-p", prefix, "-q")
-    install("-p", prefix, "-q", "urllib3={version}")
+    install("-p", prefix, "-q", f"urllib3={version}")
 
     yield prefix
 

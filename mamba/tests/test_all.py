@@ -6,15 +6,23 @@
 #import string
 #import subprocess
 #import uuid
-#from distutils.version import StrictVersion
+
+from distutils.version import StrictVersion
 
 import pytest
+
+from helpers_mamba import (
+    create,
+    get_umamba,
+    install,
+    umamba_run,
+)
+
 from utils import (
     add_glibc_virtual_package,
     copy_channels_osx,
     run,
 )
-from helpers_mamba import get_umamba
 
 #from utils import (
     #Environment,
@@ -48,23 +56,50 @@ def test_install():
     run(get_umamba(), channels, package)
 
 
+
+@pytest.fixture()
+def temp_env_prefix():
+    version = "1.25.11"
+
+    previous_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
+    previous_prefix = os.environ["CONDA_PREFIX"]
+
+    env_name = random_string()
+    root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
+    prefix = os.path.join(root_prefix, "envs", env_name)
+
+    os.environ["MAMBA_ROOT_PREFIX"] = root_prefix
+    create("-p", prefix, "-q")
+    install("-p", prefix, "-q", "urllib3={version}")
+
+    yield prefix
+
+    shutil.rmtree(prefix)
+    os.environ["MAMBA_ROOT_PREFIX"] = previous_root_prefix
+    os.environ["CONDA_PREFIX"] = previous_prefix
+
+
 #@pytest.mark.parametrize("shell_type", platform_shells())
 #def test_update(shell_type):
-    ## check updating a package when a newer version
-    #with Environment(shell_type) as env:
-        ## first install an older version
-        #version = "1.25.11"
-        #env.mamba(f"install -q -y urllib3={version}")
-        #out = env.execute('python -c "import urllib3; print(urllib3.__version__)"')
+def test_update(temp_env_prefix)
+    # check updating a package when a newer version
+    # first install an older version
+    version = "1.25.11"
 
-        ## check that the installed version is the old one
-        #assert out[-1] == version
+    res = umamba_run(
+            "-p", temp_env_prefix, "python", "-c", "import urllib3; print(urllib3.__version__)"
+        )
 
-        ## then update package
-        #env.mamba("update -q -y urllib3")
-        #out = env.execute('python -c "import urllib3; print(urllib3.__version__)"')
-        ## check that the installed version is newer
-        #assert StrictVersion(out[-1]) > StrictVersion(version)
+    # check that the installed version is the old one
+    assert res[-1] == version
+
+    # then update package
+    #env.mamba("update -q -y urllib3") # TODO to change
+    #res = umamba_run(
+            #"-p", temp_env_prefix, "python", "-c", "import urllib3; print(urllib3.__version__)"
+        #)
+    ## check that the installed version is newer
+    #assert StrictVersion(res[-1]) > StrictVersion(version)
 
 
 #@pytest.mark.parametrize("shell_type", platform_shells())

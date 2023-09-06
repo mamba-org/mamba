@@ -276,17 +276,17 @@ def create(
     #return res.decode()
 
 
-#def umamba_run(*args, **kwargs):
-    #umamba = get_umamba()
+def umamba_run(*args, **kwargs):
+    umamba = get_umamba()
 
-    #cmd = [umamba, "run"] + [str(arg) for arg in args if arg]
-    #res = subprocess_run(*cmd, **kwargs)
+    cmd = [umamba, "run"] + [str(arg) for arg in args if arg]
+    res = subprocess_run(*cmd, **kwargs)
 
-    #if "--json" in args:
-        #j = json.loads(res)
-        #return j
+    if "--json" in args:
+        j = json.loads(res)
+        return j
 
-    #return res.decode()
+    return res.decode()
 
 
 #def umamba_repoquery(*args, no_rc=True, **kwargs):

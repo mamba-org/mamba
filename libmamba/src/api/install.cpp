@@ -589,9 +589,16 @@ namespace mamba
             );
         }
 
-        MTransaction trans(pool, solver, package_caches);
+	std::vector<LockFile> locks;
 
-        if (ctx.output_params.json)
+	for (auto& c : ctx.pkgs_dirs)
+	{
+	    locks.push_back(LockFile(c));
+	}
+
+        MTransaction trans(pool, solver, package_caches);
+        
+	if (ctx.output_params.json)
         {
             trans.log_json();
         }
@@ -655,8 +662,15 @@ namespace mamba
             // Note that the Transaction will gather the Solvables,
             // so they must have been ready in the pool before this line
             auto transaction = create_transaction(pool, pkg_caches, others);
-
-            if (ctx.output_params.json)
+	    
+	    std::vector<LockFile> lock_pkgs;
+	    
+	    for (auto& c : ctx.pkgs_dirs)
+	    {
+		lock_pkgs.push_back(LockFile(c));
+	    }
+            
+	    if (ctx.output_params.json)
             {
                 transaction.log_json();
             }

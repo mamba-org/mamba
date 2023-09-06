@@ -1,10 +1,10 @@
 #import json
-#import platform
 
 #import subprocess
 #import uuid
 
 import os
+import platform
 import random
 import shutil
 import string
@@ -62,8 +62,6 @@ def test_install():
 
 @pytest.fixture()
 def temp_env_prefix():
-    version = "1.25.11"
-
     previous_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
     previous_prefix = os.environ["CONDA_PREFIX"]
 
@@ -73,7 +71,6 @@ def temp_env_prefix():
 
     os.environ["MAMBA_ROOT_PREFIX"] = root_prefix
     create("-p", prefix, "-q")
-    install("-p", prefix, "-q", f"urllib3={version}", "-c", "conda-forge")
 
     yield prefix
 
@@ -87,12 +84,13 @@ def test_update(temp_env_prefix):
     # First install an older version (in fixture)
     version = "1.25.11"
 
+    install("-p", temp_env_prefix, "-q", f"urllib3={version}", "-c", "conda-forge")
+
     res = umamba_run(
             "-p", temp_env_prefix, "python", "-c", "import urllib3; print(urllib3.__version__)"
         )
 
     # Check that the installed version is the old one
-    print("FIRST RES: ", res)
     assert res.strip() == version
 
     # Update package
@@ -100,73 +98,81 @@ def test_update(temp_env_prefix):
     res = umamba_run(
             "-p", temp_env_prefix, "python", "-c", "import urllib3; print(urllib3.__version__)"
         )
-    print("SECOND RES: ", res)
     # Check that the installed version is newer
     assert StrictVersion(res.strip()) > StrictVersion(version)
 
-
-#@pytest.mark.parametrize("shell_type", platform_shells())
-#def test_env_update(shell_type, tmpdir):
+# TODO Missing feature in micromamba
+#def test_env_update(temp_env_prefix, tmpdir):
     ## check updating a package when a newer version
-    #with Environment(shell_type) as env:
-        ## first install an older version
-        #version = "1.25.11"
-        #config_a = tmpdir / "a.yml"
-        #config_a.write(
-            #f"""
-            #dependencies:
-             #- python
-             #- urllib3={version}
-            #"""
+    ## first install an older version
+    #version = "1.25.11"
+    #install("-p", temp_env_prefix, "-q", f"urllib3={version}", "-c", "conda-forge")
+    #config_a = tmpdir / "a.yml"
+    #config_a.write(
+        #f"""
+        #dependencies:
+            #- python
+            #- urllib3={version}
+        #"""
+    #)
+
+    ## TODO to be replaced with corresponding umamba fct when feature will be available
+    ##env.mamba(f"env update -q -f {config_a}")
+
+    #res = umamba_run(
+            #"-p", temp_env_prefix, "python", "-c", "import urllib3; print(urllib3.__version__)"
         #)
-        #env.mamba(f"env update -q -f {config_a}")
-        #out = env.execute('python -c "import urllib3; print(urllib3.__version__)"')
 
-        ## check that the installed version is the old one
-        #assert out[-1] == version
+    ## check that the installed version is the old one
+    #assert res.strip() == version
 
-        ## then release the pin
-        #config_b = tmpdir / "b.yml"
-        #config_b.write(
-            #"""
-            #dependencies:
-             #- urllib3
-            #"""
+    ## then release the pin
+    #config_b = tmpdir / "b.yml"
+    #config_b.write(
+        #"""
+        #dependencies:
+            #- urllib3
+        #"""
+    #)
+
+    ## TODO to be replaced with corresponding umamba fct when feature will be available
+    ##env.mamba(f"env update -q -f {config_b}")
+
+    #res = umamba_run(
+            #"-p", temp_env_prefix, "python", "-c", "import urllib3; print(urllib3.__version__)"
         #)
-        #env.mamba(f"env update -q -f {config_b}")
-        #out = env.execute('python -c "import urllib3; print(urllib3.__version__)"')
-        ## check that the installed version is newer
-        #assert StrictVersion(out[-1]) > StrictVersion(version)
+    ## check that the installed version is newer
+    #assert StrictVersion(res.strip()) > StrictVersion(version)
 
 
-#@pytest.mark.parametrize("shell_type", platform_shells())
-#def test_track_features(shell_type):
-    #with Environment(shell_type) as env:
-        ## should install CPython since PyPy has track features
-        #version = "3.7.9"
-        #env.mamba(
-            #f'install -q -y "python={version}" --strict-channel-priority -c conda-forge'
-        #)
-        #out = env.execute('python -c "import sys; print(sys.version)"')
+def test_track_features(temp_env_prefix):
+    # should install CPython since PyPy has track features
+    version = "3.7.9"
+    install("-p", temp_env_prefix, "-q", f"python={version}", "-c", "conda-forge", "--strict-channel-priority")
+    res = umamba_run(
+            "-p", temp_env_prefix, "python", "-c", "import sys; print(sys.version)"
+        )
 
-        #if platform.system() == "Windows":
-            #assert out[-1].startswith(version)
-            #assert "[MSC v." in out[-1]
-        #elif platform.system() == "Linux":
-            #assert out[-2].startswith(version)
-            #assert out[-1].startswith("[GCC")
-        #else:
-            #assert out[-2].startswith(version)
-            #assert out[-1].startswith("[Clang")
+    print("RES FIRST: ", res)
+    if platform.system() == "Windows":
+        assert res[-1].strip().startswith(version)
+        assert "[MSC v." in res[-1].strip()
+    elif platform.system() == "Linux":
+        assert res[-2].strip().startswith(version)
+        assert res[-1].strip().startswith("[GCC")
+    else:
+        assert res[-2].strip().startswith(version)
+        assert res[-1].strip().startswith("[Clang")
 
-        #if platform.system() == "Linux":
-            ## now force PyPy install
-            #env.mamba(
-                #f'install -q -y "python={version}=*pypy" --strict-channel-priority -c conda-forge'
-            #)
-            #out = env.execute('python -c "import sys; print(sys.version)"')
-            #assert out[-2].startswith(version)
-            #assert out[-1].startswith("[PyPy")
+    if platform.system() == "Linux":
+        # now force PyPy install
+        install("-p", temp_env_prefix, "-q", f"python={version}=*pypy", "-c", "conda-forge", "--strict-channel-priority")
+        res = umamba_run(
+            "-p", temp_env_prefix, "python", "-c", "import sys; print(sys.version)"
+        )
+        print("RES SEC: ", res)
+        assert res[-2].strip().startswith(version)
+        assert res[-1].strip().startswith("[PyPy")
 
 
 #@pytest.mark.parametrize("experimental", [True, False])

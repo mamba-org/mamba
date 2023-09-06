@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cassert>
 #include <string_view>
+#include <tuple>
 
 #include <fmt/format.h>
 
@@ -45,23 +46,25 @@ namespace mamba::specs
         [[nodiscard]] auto find_token_and_prefix(std::string_view path)
             -> std::pair<std::size_t, std::size_t>
         {
+            static constexpr auto npos = std::string_view::npos;
+
             const auto prefix_pos = path.find(CondaURL::token_prefix);
-            if (prefix_pos == std::string_view::npos)
+            if (prefix_pos == npos)
             {
                 return std::pair{ std::string_view::npos, 0ul };
             }
 
             const auto token_pos = prefix_pos + CondaURL::token_prefix.size();
             const auto token_end_pos = path.find('/', token_pos);
-            auto candidate_token = path.substr(token_pos);
-            if (token_end_pos != std::string_view::npos)
+            assert(token_pos < token_end_pos);
+            const auto token_len = (token_end_pos == npos) ? npos : token_end_pos - token_pos;
+            if (is_token(path.substr(token_pos, token_len)))
             {
-                candidate_token = candidate_token.substr(0, token_end_pos - token_pos);
-            }
-
-            if (is_token(candidate_token))
-            {
-                return std::pair{ prefix_pos, token_end_pos };
+                const auto token_and_prefix_len = (token_end_pos == npos)
+                                                      ? npos
+                                                      : token_end_pos - token_pos
+                                                            + CondaURL::token_prefix.size();
+                return std::pair{ prefix_pos, token_and_prefix_len };
             }
 
             return std::pair{ std::string_view::npos, 0ul };
@@ -80,46 +83,51 @@ namespace mamba::specs
 
     auto CondaURL::token() const -> std::string_view
     {
+        static constexpr auto npos = std::string_view::npos;
+
         const auto& l_path = path(Decode::no);
-        const auto [pos, count] = find_token_and_prefix(l_path);
-        if ((pos == std::string_view::npos) || (count == 0))
+        const auto [pos, len] = find_token_and_prefix(l_path);
+        if ((pos == npos) || (len == 0))
         {
             return "";
         }
-        assert(token_prefix.size() < count);
-        return std::string_view(l_path).substr(pos + token_prefix.size(), count - token_prefix.size());
+        assert(token_prefix.size() < len);
+        const auto token_len = (len != npos) ? len - token_prefix.size() : npos;
+        return std::string_view(l_path).substr(pos + token_prefix.size(), token_len);
     }
 
     void CondaURL::set_token(std::string_view token)
     {
+        static constexpr auto npos = std::string_view::npos;
+
         if (!is_token(token))
         {
             throw std::invalid_argument(fmt::format(R"(Invalid CondaURL token "{}")", token));
         }
-        std::string l_path = clear_path();  // percent encoded
-        const auto [pos, count] = find_token_and_prefix(l_path);
-        if ((pos == std::string::npos) || (count == 0))
+        const auto [pos, len] = find_token_and_prefix(path(Decode::no));
+        if ((pos == npos) || (len == 0))
         {
-            set_path(std::move(l_path), Encode::no);
             throw std::invalid_argument(
                 fmt::format(R"(No token template in orignial path "{}")", path(Decode::no))
             );
         }
-        assert(token_prefix.size() < count);
-        l_path.replace(pos + token_prefix.size(), count - token_prefix.size(), token);
+        assert(token_prefix.size() < len);
+        std::string l_path = clear_path();  // percent encoded
+        const auto token_len = (len != npos) ? len - token_prefix.size() : npos;
+        l_path.replace(pos + token_prefix.size(), token_len, token);
         set_path(std::move(l_path), Encode::no);
     }
 
     auto CondaURL::clear_token() -> bool
     {
-        std::string l_path = clear_path();  // percent encoded
-        const auto [pos, count] = find_token_and_prefix(l_path);
-        if ((pos == std::string::npos) || (count == 0))
+        const auto [pos, len] = find_token_and_prefix(path(Decode::no));
+        if ((pos == std::string::npos) || (len == 0))
         {
             return false;
         }
-        assert(token_prefix.size() < count);
-        l_path.erase(pos, count);
+        assert(token_prefix.size() < len);
+        std::string l_path = clear_path();  // percent encoded
+        l_path.erase(pos, len);
         set_path(std::move(l_path), Encode::no);
         return true;
     }

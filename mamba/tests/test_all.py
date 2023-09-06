@@ -16,6 +16,7 @@ from helpers_mamba import (
     get_umamba,
     install,
     umamba_run,
+    update,
 )
 
 from utils import (
@@ -79,27 +80,25 @@ def temp_env_prefix():
     os.environ["CONDA_PREFIX"] = previous_prefix
 
 
-#@pytest.mark.parametrize("shell_type", platform_shells())
-#def test_update(shell_type):
-def test_update(temp_env_prefix)
-    # check updating a package when a newer version
-    # first install an older version
+def test_update(temp_env_prefix):
+    # Check updating a package when a newer version
+    # First install an older version (in fixture)
     version = "1.25.11"
 
     res = umamba_run(
             "-p", temp_env_prefix, "python", "-c", "import urllib3; print(urllib3.__version__)"
         )
 
-    # check that the installed version is the old one
+    # Check that the installed version is the old one
     assert res[-1] == version
 
-    # then update package
-    #env.mamba("update -q -y urllib3") # TODO to change
-    #res = umamba_run(
-            #"-p", temp_env_prefix, "python", "-c", "import urllib3; print(urllib3.__version__)"
-        #)
-    ## check that the installed version is newer
-    #assert StrictVersion(res[-1]) > StrictVersion(version)
+    # Update package
+    update("-p", temp_env_prefix, "-q", "urllib3")
+    res = umamba_run(
+            "-p", temp_env_prefix, "python", "-c", "import urllib3; print(urllib3.__version__)"
+        )
+    # Check that the installed version is newer
+    assert StrictVersion(res[-1]) > StrictVersion(version)
 
 
 #@pytest.mark.parametrize("shell_type", platform_shells())

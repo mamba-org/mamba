@@ -220,34 +220,25 @@ def create(
         #raise (e)
 
 
-#def update(*args, default_channel=True, no_rc=True, no_dry_run=False, **kwargs):
-    #umamba = get_umamba()
-    #cmd = [umamba, "update", "-y"] + [arg for arg in args if arg]
-    #if use_offline:
-        #cmd += ["--offline"]
-    #if no_rc:
-        #cmd += ["--no-rc"]
-    #if default_channel:
-        #cmd += channel
-    #if (dry_run_tests == DryRun.DRY) and "--dry-run" not in args and not no_dry_run:
-        #cmd += ["--dry-run"]
+def update(*args, **kwargs):
+    umamba = get_umamba()
+    cmd = [umamba, "update", "-y"] + [arg for arg in args if arg]
+    try:
+        res = subprocess_run(*cmd, **kwargs)
+        if "--json" in args:
+            try:
+                j = json.loads(res)
+                return j
+            except json.decoder.JSONDecodeError as e:
+                print(f"Error when loading JSON output from {res}")
+                raise (e)
+        print(f"Error when executing '{' '.join(cmd)}'")
+        raise
 
-    #try:
-        #res = subprocess_run(*cmd, **kwargs)
-        #if "--json" in args:
-            #try:
-                #j = json.loads(res)
-                #return j
-            #except json.decoder.JSONDecodeError as e:
-                #print(f"Error when loading JSON output from {res}")
-                #raise (e)
-        #print(f"Error when executing '{' '.join(cmd)}'")
-        #raise
-
-        #return res.decode()
-    #except subprocess.CalledProcessError as e:
-        #print(f"Error when executing '{' '.join(cmd)}'")
-        #raise (e)
+        return res.decode()
+    except subprocess.CalledProcessError as e:
+        print(f"Error when executing '{' '.join(cmd)}'")
+        raise (e)
 
 
 #def run_env(*args, f=None, **kwargs):

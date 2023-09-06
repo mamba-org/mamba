@@ -1,13 +1,12 @@
 #import json
-
 #import subprocess
-#import uuid
 
 import os
 import platform
 import random
 import shutil
 import string
+import uuid
 
 from distutils.version import StrictVersion
 
@@ -153,7 +152,6 @@ def test_track_features(temp_env_prefix):
             "-p", temp_env_prefix, "python", "-c", "import sys; print(sys.version)"
         )
 
-    print("RES FIRST: ", res)
     if platform.system() == "Windows":
         assert res.strip().startswith(version)
         assert "[MSC v." in res.strip()
@@ -170,35 +168,27 @@ def test_track_features(temp_env_prefix):
         res = umamba_run(
             "-p", temp_env_prefix, "python", "-c", "import sys; print(sys.version)"
         )
-        print("RES SEC: ", res)
         assert res.strip().startswith(version)
         assert "[PyPy" in res.strip()
 
+# NOTE used to test --mamba-experimental flag as well (do we need to add it in micromamba? I don't think it's really useful...)
+@pytest.mark.parametrize("use_json", [True, False])
+def test_create_dry_run(experimental, use_json, tmpdir):
+    env_dir = tmpdir / str(uuid.uuid1())
 
-#@pytest.mark.parametrize("experimental", [True, False])
-#@pytest.mark.parametrize("use_json", [True, False])
-#def test_create_dry_run(experimental, use_json, tmpdir):
-    #env_dir = tmpdir / str(uuid.uuid1())
+    cmd = ["-p", env_dir, "--dry-run", "python=3.8", "-c", "conda-forge"]
 
-    #mamba_cmd = "mamba create --dry-run -y"
-    #if experimental:
-        #mamba_cmd += " --mamba-experimental"
-    #if use_json:
-        #mamba_cmd += " --json"
-    #mamba_cmd += f" -p {env_dir} python=3.8"
+    if use_json:
+        cmd += "--json"
 
-    #output = subprocess.check_output(mamba_cmd, shell=True).decode()
+    res = create(*cmd)
 
-    #if use_json:
-        ## assert that the output is parseable parseable json
-        #json.loads(output)
-    #elif not experimental:
-        ## Assert the non-JSON output is in the terminal.
-        #assert "Total download" in output
+    if not use_json:
+        # Assert the non-JSON output is in the terminal.
+        assert "Total download" in res
 
-    #if not experimental:
-        ## dry-run, shouldn't create an environment
-        #assert not env_dir.check()
+    # dry-run, shouldn't create an environment
+    assert not env_dir.check()
 
 
 #def test_create_subdir(tmpdir):

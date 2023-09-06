@@ -68,7 +68,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: create build environment
+      - name: Create build environment
         uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: ./mamba/environment-dev.yml
@@ -86,7 +86,7 @@ jobs:
       - name: Run conda init
         shell: bash -l {0}
         run: conda init
-      - name: build libmamba Python bindings
+      - name: Build libmamba Python bindings
         shell: bash -l {0}
         run: |
           cmake -B build/ \
@@ -102,22 +102,19 @@ jobs:
             -G Ninja
           cmake --build build/ --parallel
           cmake --install build/
+      - name: Generate libmambapy stubs
+        shell: bash -l {0}
+        run: |
+          cmake --build build/ --target stubgen
+          cmake --install build/ --component PythonBindingsStubgen
       - name: Install libmambapy
         shell: bash -l {0}
-        run: |
-          python -m pip install --no-deps --no-build-isolation --editable ./libmambapy/
-      - name: Check libmambapy stubs
-        shell: bash -l {0}
-        run: |
-          pybind11-stubgen libmambapy.bindings
-          pre-commit run --files stubs/libmambapy/binginds-stubs/__init__.pyi
-          python compare_stubs.py libmambapy/libmambapy/__init__.pyi stubs/libmambapy/bindings-stubs/__init__.pyi
+        run: python -m pip install --no-deps --no-build-isolation --editable ./libmambapy/
       - name: Show build cache statistics
         run: sccache --show-stats
-      - name: install mamba
+      - name: Install mamba
         shell: bash -l {0}
-        run: |
-          python -m pip install --no-deps --no-build-isolation ./mamba[test]
+        run: python -m pip install --no-deps --no-build-isolation ./mamba[test]
       - name: Run mamba tests suite
         shell: bash -l {0}
         run: |
@@ -188,7 +185,7 @@ jobs:
           key: ${{ github.job }}-${{ matrix.os }}
           restore-keys: |
             libmamba-${{ matrix.os }}
-      - name: build micromamba
+      - name: Build micromamba
         shell: bash -l {0}
         run: |
           cmake -B build/ \
@@ -201,19 +198,19 @@ jobs:
             -D CMAKE_C_COMPILER_LAUNCHER=sccache \
             -G Ninja
           cmake --build build/ --parallel
-      - name: build cache statistics
+      - name: Build cache statistics
         run: sccache --show-stats
       - name: install zsh, xonsh, fish and tcsh in linux
         if: matrix.os == 'ubuntu-latest'
         shell: bash -l -eo pipefail {0}
         run: |
           sudo apt-get install zsh xonsh fish tcsh -y
-      - name: install xonsh and fish in mac
+      - name: Install xonsh and fish in mac
         if: matrix.os == 'macos-latest'
         shell: bash -l -eo pipefail {0}
         run: |
           brew install fish xonsh
-      - name: micromamba python based tests
+      - name: Micromamba python based tests
         shell: bash -l -eo pipefail {0}
         run: |
           export TEST_MAMBA_EXE=$(pwd)/build/micromamba/micromamba

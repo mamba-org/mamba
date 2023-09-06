@@ -65,7 +65,7 @@ jobs:
       - name: Show build cache statistics
         run: sccache --show-stats
 
-  mamba_python_tests_win:
+  mamba_tests_win:
     name: Mamba tests
     runs-on: ${{ matrix.os }}
     strategy:
@@ -73,7 +73,7 @@ jobs:
         os: [windows-2019]
     steps:
       - uses: actions/checkout@v3
-      - name: create build environment
+      - name: Create build environment
         uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: ./mamba/environment-dev.yml
@@ -110,13 +110,17 @@ jobs:
           if %errorlevel% neq 0 exit /b %errorlevel%
           cmake --install build/
           if %errorlevel% neq 0 exit /b %errorlevel%
-      - name: Install libmambapy
+      - name: Generate libmambapy stubs
         shell: cmd /C call {0}
         run: |
-          pip install -e .\libmambapy\ --no-deps
+          cmake --build build/ --target stubgen
+          cmake --install build/ --component PythonBindingsStubgen
+      - name: Install libmambapy
+        shell: cmd /C call {0}
+        run: pip install -e .\libmambapy\ --no-deps
       - name: Show build cache statistics
         run: sccache --show-stats
-      - name: install mamba
+      - name: Install mamba
         shell: bash -l {0}
         run: |
           python --version
@@ -161,7 +165,7 @@ jobs:
         os: [windows-2019]
     steps:
       - uses: actions/checkout@v3
-      - name: create build environment
+      - name: Create build environment
         uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: ./micromamba/environment-dev.yml
@@ -174,7 +178,7 @@ jobs:
           key: ${{ github.job }}-${{ matrix.os }}
           restore-keys: |
             libmamba-${{ matrix.os }}
-      - name: build micromamba
+      - name: Build micromamba
         shell: cmd /C call {0}
         run: |
           cmake -B build/ ^
@@ -189,12 +193,12 @@ jobs:
           cmake --build build/ --parallel
           if %errorlevel% neq 0 exit /b %errorlevel%
           cmake --install build/
-      - name: check that micromamba runs
+      - name: Check that micromamba runs
         shell: cmd /C call {0}
         run: .\build\micromamba\micromamba.exe --help
-      - name: build cache statistics
+      - name: Build cache statistics
         run: sccache --show-stats
-      - name: tar micromamba artifact
+      - name: Tar micromamba artifact
         shell: cmd /C call {0}
         run: |
           cp build/libmamba/libmamba.dll build/micromamba/
@@ -220,14 +224,14 @@ jobs:
         shell: bash -l -eo pipefail {0}
         run: |
           tar -xvf umamba.tar
-      - name: create build environment
+      - name: Create build environment
         uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
           create-args: menuinst
           init-shell: bash cmd.exe powershell
-      - name: micromamba python based tests with pwsh
+      - name: Micromamba python based tests with pwsh
         shell: pwsh
         run: |
           $env:PYTHONIOENCODING='UTF-8'

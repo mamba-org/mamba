@@ -21,7 +21,7 @@ dependencies:
   - python
   - pip
   - pybind11
-  - pybind11-stubgen
+  - pybind11-stubgen <1.0
   - pytest >=7.3
   - pyyaml
   - conda

@@ -254,7 +254,7 @@ def test_multi_channels(config_file, tmpdir):
     for pkg in res["actions"]["FETCH"]:
         assert pkg["channel"].startswith("https://conda.anaconda.org/conda-forge")
     for pkg in res["actions"]["LINK"]:
-        assert pkg["base_url"] == "https://conda.anaconda.org/conda-forge"
+        assert pkg["url"].startswith("https://conda.anaconda.org/conda-forge")
 
 
 #@pytest.mark.parametrize("config_file", [multichannel_config], indirect=["config_file"])

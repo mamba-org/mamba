@@ -191,22 +191,16 @@ def test_create_dry_run(use_json, tmpdir):
     assert not env_dir.check()
 
 
-#def test_create_subdir(tmpdir):
-    #env_dir = tmpdir / str(uuid.uuid1())
+def test_create_subdir(tmpdir):
+    env_dir = tmpdir / str(uuid.uuid1())
 
-    #try:
-        #output = subprocess.check_output(
-            #"mamba create --dry-run --json "
-            #f"-p {env_dir} "
-            #f"conda-forge/noarch::xtensor",
-            #shell=True,
-        #)
-    #except subprocess.CalledProcessError as e:
-        #result = json.loads(e.output)
-        #assert result["error"] == (
-            #'RuntimeError(\'The package "conda-forge/noarch::xtensor" is'
-            #" not available for the specified platform')"
-        #)
+    try:
+        res = create("-p", env_dir, "--dry-run", "--json", f"conda-forge/noarch::xtensor")
+    except subprocess.CalledProcessError as e:
+        assert res["error"] == (
+            'RuntimeError(\'The package "conda-forge/noarch::xtensor" is'
+            " not available for the specified platform')"
+        )
 
 
 #def test_create_files(tmpdir):

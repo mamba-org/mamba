@@ -126,7 +126,7 @@ namespace mamba::util
         /** Return the encoded path, always starts with a '/'. */
         [[nodiscard]] auto path(Decode::no_type) const -> const std::string&;
 
-        /** Return the decoded paht, always starts with a '/'. */
+        /** Return the decoded path, always starts with a '/'. */
         [[nodiscard]] auto path(Decode::yes_type = Decode::yes) const -> std::string;
 
         /**

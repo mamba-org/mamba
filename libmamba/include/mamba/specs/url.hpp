@@ -53,6 +53,7 @@ namespace mamba::specs
         using Base::path;
         using Base::set_path;
         using Base::clear_path;
+        using Base::append_path;
         using Base::query;
         using Base::set_query;
         using Base::clear_query;
@@ -93,6 +94,43 @@ namespace mamba::specs
 
         /** Clear the token and return true if it exists, otherwise return ``false``. */
         auto clear_platform() -> bool;
+
+        /**
+         * Return the encoded package name, or empty otherwise.
+         *
+         * Package name are at the end of the path and end with a archive extension.
+         *
+         * @see has_archive_extension
+         */
+        [[nodiscard]] auto package(Decode::yes_type = Decode::yes) const -> std::string;
+
+        /**
+         * Return the decoded package name, or empty otherwise.
+         *
+         * Package name are at the end of the path and end with a archive extension.
+         *
+         * @see has_archive_extension
+         */
+        [[nodiscard]] auto package(Decode::no_type) const -> std::string_view;
+
+        /**
+         * Change the package file name with a not encoded value.
+         *
+         * If a package file name is present, replace it, otherwise add it at the end
+         * of the path.
+         */
+        void set_package(std::string_view pkg, Encode::yes_type = Encode::yes);
+
+        /**
+         * Change the package file name with already encoded value.
+         *
+         * If a package file name is present, replace it, otherwise add it at the end
+         * of the path.
+         */
+        void set_package(std::string_view pkg, Encode::no_type);
+
+        /** Clear the package and return true if it exists, otherwise return ``false``. */
+        auto clear_package() -> bool;
 
     private:
 

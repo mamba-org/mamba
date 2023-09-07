@@ -177,4 +177,76 @@ TEST_SUITE("specs::CondaURL")
             CHECK_EQ(url.path(), "/conda-forge/micromamba-1.5.1-0.tar.bz2");
         }
     }
+
+    TEST_CASE("Package")
+    {
+        CondaURL url{};
+        url.set_scheme("https");
+        url.set_host("repo.mamba.pm");
+
+        SUBCASE("https://repo.mamba.pm/")
+        {
+            CHECK_EQ(url.package(), "");
+
+            CHECK_THROWS_AS(url.set_package("not-package/"), std::invalid_argument);
+            CHECK_EQ(url.path(), "/");
+
+            CHECK_FALSE(url.clear_package());
+            CHECK_EQ(url.package(), "");
+            CHECK_EQ(url.path(), "/");
+
+            url.set_package("micromamba-1.5.1-0.tar.bz2");
+            CHECK_EQ(url.package(), "micromamba-1.5.1-0.tar.bz2");
+            CHECK_EQ(url.path(), "/micromamba-1.5.1-0.tar.bz2");
+
+            CHECK(url.clear_package());
+            CHECK_EQ(url.package(), "");
+            CHECK_EQ(url.path(), "/");
+        }
+
+        SUBCASE("https://repo.mamba.pm/conda-forge")
+        {
+            url.set_path("conda-forge");
+
+            CHECK_EQ(url.package(), "");
+
+            url.set_package("micromamba-1.5.1-0.tar.bz2");
+            CHECK_EQ(url.package(), "micromamba-1.5.1-0.tar.bz2");
+            CHECK_EQ(url.path(), "/conda-forge/micromamba-1.5.1-0.tar.bz2");
+
+            CHECK(url.clear_package());
+            CHECK_EQ(url.package(), "");
+            CHECK_EQ(url.path(), "/conda-forge");
+        }
+
+        SUBCASE("https://repo.mamba.pm/conda-forge/")
+        {
+            url.set_path("conda-forge/");
+
+            CHECK_EQ(url.package(), "");
+
+            url.set_package("micromamba-1.5.1-0.tar.bz2");
+            CHECK_EQ(url.package(), "micromamba-1.5.1-0.tar.bz2");
+            CHECK_EQ(url.path(), "/conda-forge/micromamba-1.5.1-0.tar.bz2");
+
+            CHECK(url.clear_package());
+            CHECK_EQ(url.package(), "");
+            CHECK_EQ(url.path(), "/conda-forge");
+        }
+
+        SUBCASE("https://repo.mamba.pm/conda-forge/linux-64/micromamba-1.5.1-0.tar.bz2")
+        {
+            url.set_path("/conda-forge/linux-64/micromamba-1.5.1-0.tar.bz2");
+
+            CHECK_EQ(url.package(), "micromamba-1.5.1-0.tar.bz2");
+
+            url.set_package("mamba-1.5.1-0.tar.bz2");
+            CHECK_EQ(url.package(), "mamba-1.5.1-0.tar.bz2");
+            CHECK_EQ(url.path(), "/conda-forge/linux-64/mamba-1.5.1-0.tar.bz2");
+
+            CHECK(url.clear_package());
+            CHECK_EQ(url.package(), "");
+            CHECK_EQ(url.path(), "/conda-forge/linux-64");
+        }
+    }
 }

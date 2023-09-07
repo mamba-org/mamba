@@ -11,8 +11,10 @@
 
 #include <fmt/format.h>
 
+#include "mamba/specs/archive.hpp"
 #include "mamba/specs/url.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/url_manip.hpp"
 
 namespace mamba::specs
 {
@@ -224,5 +226,62 @@ namespace mamba::specs
         l_path.erase(pos, count);
         set_path(std::move(l_path), Encode::no);
         return true;
+    }
+
+    auto CondaURL::package(Decode::yes_type) const -> std::string
+    {
+        return util::url_decode(package(Decode::no));
+    }
+
+    auto CondaURL::package(Decode::no_type) const -> std::string_view
+    {
+        // Must not decode to find the meaningful '/' spearators
+        const auto& l_path = path(Decode::no);
+        if (has_archive_extension(l_path))
+        {
+            auto [head, pkg] = util::rstrip_if_parts(l_path, [](char c) { return c != '/'; });
+            return pkg;
+        }
+        return "";
+    }
+
+    void CondaURL::set_package(std::string_view pkg, Encode::yes_type)
+    {
+        return set_package(util::url_encode(pkg), Encode::no);
+    }
+
+    void CondaURL::set_package(std::string_view pkg, Encode::no_type)
+    {
+        if (!has_archive_extension(pkg))
+        {
+            throw std::invalid_argument(
+                fmt::format(R"(Invalid CondaURL package "{}", use path_append instead)", pkg)
+            );
+        }
+        // Must not decode to find the meaningful '/' spearators
+        if (has_archive_extension(path(Decode::no)))
+        {
+            auto l_path = clear_path();
+            const auto pos = std::min(std::min(l_path.rfind('/'), l_path.size()) + 1ul, l_path.size());
+            l_path.replace(pos, std::string::npos, pkg);
+            set_path(std::move(l_path), Encode::no);
+        }
+        else
+        {
+            append_path(pkg, Encode::no);
+        }
+    }
+
+    auto CondaURL::clear_package() -> bool
+    {
+        // Must not decode to find the meaningful '/' spearators
+        if (has_archive_extension(path(Decode::no)))
+        {
+            auto l_path = clear_path();
+            l_path.erase(l_path.rfind('/'));
+            set_path(std::move(l_path), Encode::no);
+            return true;
+        }
+        return false;
     }
 }

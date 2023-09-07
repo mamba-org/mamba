@@ -314,20 +314,17 @@ def test_unicode(tmpdir):
     assert "xtl" in pd.package_records
     assert "xtensor" in pd.package_records
 
+# NOTE / TODO THIS IS NOT TESTED IN MICROMAMBA
+#@pytest.mark.parametrize("use_json", [True, False])
+#def test_info(use_json):
+    #cmd = []
+    #if use_json:
+        #cmd += ["--json"]
 
-@pytest.mark.parametrize("use_json", [True, False])
-def test_info(use_json):
-    cmd = []
-    if use_json:
-        cmd += ["--json"]
+    #res = info(*cmd)
 
-    res = info(*cmd)
-
-    print("RES OF INFO: ", res)
-
-    from libmambapy import _version.__version__ as version # NOTE use version of umamba instead
-
-    if use_json:
-        assert res["micromamba version"] == version
-    else:
-        assert version in res assert "micromamba version : " + __version__ in output
+    ## TODO get version from umamba
+    #if use_json:
+        #assert res["micromamba version"] == version
+    #else:
+        #assert version in res

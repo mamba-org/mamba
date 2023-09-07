@@ -1,11 +1,11 @@
 #import json
-#import subprocess
 
 import os
 import platform
 import random
 import shutil
 import string
+import subprocess
 import uuid
 
 from distutils.version import StrictVersion

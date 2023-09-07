@@ -325,7 +325,7 @@ def test_info(use_json):
 
     print("RES OF INFO: ", res)
 
-    from libmambapy.__version__ as version # NOTE use version of umamba instead
+    from libmambapy import __version__ as version # NOTE use version of umamba instead
 
     if use_json:
         assert res["version"] == version

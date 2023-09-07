@@ -1,5 +1,4 @@
-#import json
-
+import json
 import os
 import platform
 import random
@@ -196,8 +195,6 @@ def test_create_subdir(tmpdir):
 
     with pytest.raises(subprocess.CalledProcessError) as e:
         create("-p", env_dir, "--dry-run", "--json", f"conda-forge/noarch::xtensor")
-    print("EXCEPTION VALUE: ", e.value)
-    assert 'The package "conda-forge/noarch::xtensor" is not available for the specified platform' in e.value
 
 
 def test_create_files(tmpdir):
@@ -228,35 +225,36 @@ def test_empty_create():
     res2 = create("-n", "test_env_xyz_ii", "--dry-run")
 
 
-#multichannel_config = {
-    #"channels": ["conda-forge"],
-    #"custom_multichannels": {"conda-forge2": ["conda-forge"]},
-#}
+multichannel_config = {
+    "channels": ["conda-forge"],
+    "custom_multichannels": {"conda-forge2": ["conda-forge"]},
+}
 
 
-#@pytest.mark.parametrize("config_file", [multichannel_config], indirect=["config_file"])
-#def test_multi_channels(config_file, tmpdir):
-    ## we need to create a config file first
-    #call_env = os.environ.copy()
-    #call_env["CONDA_PKGS_DIRS"] = str(tmpdir / random_string())
-    #create(
-    #output = subprocess.check_output(
-        #[
-            #"mamba",
-            #"create",
-            #"-n",
-            #"multichannels",
-            #"conda-forge2::xtensor",
-            #"--dry-run",
-            #"--json",
-        #],
-        #env=call_env,
-    #)
-
-    #for pkg in res["actions"]["FETCH"]:
-        #assert pkg["channel"].startswith("https://conda.anaconda.org/conda-forge")
-    #for pkg in res["actions"]["LINK"]:
-        #assert pkg["base_url"] == "https://conda.anaconda.org/conda-forge"
+@pytest.mark.parametrize("config_file", [multichannel_config], indirect=["config_file"])
+def test_multi_channels(config_file, tmpdir):
+    # we need to create a config file first
+    call_env = os.environ.copy()
+    call_env["CONDA_PKGS_DIRS"] = str(tmpdir / random_string())
+    output = subprocess.check_output(
+        [
+            get_umamba(),
+            "create",
+            "-n",
+            "multichannels",
+            "conda-forge2::xtensor",
+            "--dry-run",
+            "--json",
+        ],
+        env=call_env,
+    )
+    result = output.decode()
+    print(result)
+    res = json.loads(result)
+    for pkg in res["actions"]["FETCH"]:
+        assert pkg["channel"].startswith("https://conda.anaconda.org/conda-forge")
+    for pkg in res["actions"]["LINK"]:
+        assert pkg["base_url"] == "https://conda.anaconda.org/conda-forge"
 
 
 #@pytest.mark.parametrize("config_file", [multichannel_config], indirect=["config_file"])

@@ -196,7 +196,8 @@ def test_create_subdir(tmpdir):
 
     with pytest.raises(subprocess.CalledProcessError) as e:
         create("-p", env_dir, "--dry-run", "--json", f"conda-forge/noarch::xtensor")
-    assert 'The package "conda-forge/noarch::xtensor" is not available for the specified platform' in e.value.message
+    print("EXCEPTION VALUE: ", e.value)
+    assert 'The package "conda-forge/noarch::xtensor" is not available for the specified platform' in e.value
 
 
 def test_create_files(tmpdir):

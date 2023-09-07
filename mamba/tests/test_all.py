@@ -22,6 +22,7 @@ from helpers_mamba import (
 
 from utils import (
     add_glibc_virtual_package,
+    config_file,
     copy_channels_osx,
     run,
 )
@@ -29,7 +30,6 @@ from utils import (
 #from utils import (
     #Environment,
     #add_glibc_virtual_package,
-    #config_file,
     #copy_channels_osx,
     #platform_shells,
     #run_mamba_conda,
@@ -194,14 +194,9 @@ def test_create_dry_run(use_json, tmpdir):
 def test_create_subdir(tmpdir):
     env_dir = tmpdir / str(uuid.uuid1())
 
-    try:
-        res = create("-p", env_dir, "--dry-run", "--json", f"conda-forge/noarch::xtensor")
-    except subprocess.CalledProcessError as e:
-        print("Esception subdir: ", e)
-        #assert res["error"] == (
-            #'RuntimeError(\'The package "conda-forge/noarch::xtensor" is'
-            #" not available for the specified platform')"
-        #)
+    with pytest.raises(subprocess.CalledProcessError) as e:
+        create("-p", env_dir, "--dry-run", "--json", f"conda-forge/noarch::xtensor")
+    assert 'The package "conda-forge/noarch::xtensor" is not available for the specified platform' in e.value.message
 
 
 def test_create_files(tmpdir):
@@ -227,11 +222,9 @@ def test_create_files(tmpdir):
     assert names == {"a", "b"}
 
 
-#def test_empty_create():
-    #output = subprocess.check_output(["mamba", "create", "-n", "test_env_xyz_i"])
-    #output2 = subprocess.check_output(
-        #["mamba", "create", "-n", "test_env_xyz_ii", "--dry-run"]
-    #)
+def test_empty_create():
+    res1 = create("-n", "test_env_xyz_i")
+    res2 = create("-n", "test_env_xyz_ii", "--dry-run")
 
 
 #multichannel_config = {
@@ -245,6 +238,7 @@ def test_create_files(tmpdir):
     ## we need to create a config file first
     #call_env = os.environ.copy()
     #call_env["CONDA_PKGS_DIRS"] = str(tmpdir / random_string())
+    #create(
     #output = subprocess.check_output(
         #[
             #"mamba",
@@ -257,9 +251,7 @@ def test_create_files(tmpdir):
         #],
         #env=call_env,
     #)
-    #result = output.decode()
-    #print(result)
-    #res = json.loads(result)
+
     #for pkg in res["actions"]["FETCH"]:
         #assert pkg["channel"].startswith("https://conda.anaconda.org/conda-forge")
     #for pkg in res["actions"]["LINK"]:

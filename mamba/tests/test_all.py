@@ -277,26 +277,28 @@ def test_multi_channels_with_subdir(config_file, tmpdir):
         )
 
 
-#def test_update_py():
-    ## check updating a package when a newer version
-    #if platform.system() == "Windows":
-        #shell_type = "cmd.exe"
-    #else:
-        #shell_type = "bash"
+def test_update_py(temp_env_prefix):
+    # check updating a package when a newer version
+    install("-p", temp_env_prefix, "-q", "python=3.8", "pip", "-c", "conda-forge")
+    res = umamba_run(
+            "-p", temp_env_prefix, "python", "-c", "import sys; print(sys.version)"
+        )
+    assert "3.8" in res
 
-    #with Environment(shell_type) as env:
-        #env.mamba(f'install -q -y "python=3.8" pip -c conda-forge')
-        #out = env.execute('python -c "import sys; print(sys.version)"')
-        #assert "3.8" in out[0]
+    res = umamba_run(
+            "-p", temp_env_prefix, "python", "-c", "import pip; print(pip.__version__)"
+        )
+    assert len(res)
 
-        #out = env.execute('python -c "import pip; print(pip.__version__)"')
-        #assert len(out)
-
-        #env.mamba(f'install -q -y "python=3.9" -c conda-forge')
-        #out = env.execute('python -c "import sys; print(sys.version)"')
-        #assert "3.9" in out[0]
-        #out = env.execute('python -c "import pip; print(pip.__version__)"')
-        #assert len(out)
+    install("-p", temp_env_prefix, "-q", "python=3.9", "-c", "conda-forge")
+    res = umamba_run(
+            "-p", temp_env_prefix, "python", "-c", "import sys; print(sys.version)"
+        )
+    assert "3.9" in res
+    res = umamba_run(
+            "-p", temp_env_prefix, "python", "-c", "import pip; print(pip.__version__)"
+        )
+    assert len(res)
 
 
 #def test_unicode(tmpdir):

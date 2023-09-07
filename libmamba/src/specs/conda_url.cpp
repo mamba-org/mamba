@@ -12,7 +12,7 @@
 #include <fmt/format.h>
 
 #include "mamba/specs/archive.hpp"
-#include "mamba/specs/url.hpp"
+#include "mamba/specs/conda_url.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 

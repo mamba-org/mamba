@@ -7,7 +7,7 @@
 
 #include <doctest/doctest.h>
 
-#include "mamba/specs/url.hpp"
+#include "mamba/specs/conda_url.hpp"
 
 using namespace mamba::specs;
 

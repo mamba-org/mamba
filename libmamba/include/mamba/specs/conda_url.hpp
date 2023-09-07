@@ -4,8 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef MAMBA_SPECS_URL_HPP
-#define MAMBA_SPECS_URL_HPP
+#ifndef MAMBA_SPECS_CONDA_URL_HPP
+#define MAMBA_SPECS_CONDA_URL_HPP
 
 #include <string_view>
 

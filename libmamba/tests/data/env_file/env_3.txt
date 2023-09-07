@@ -1,0 +1,10 @@
+name: env_3
+channels: [conda-forge, bioconda]
+dependencies:
+  - test1
+
+  - test2
+  - test3
+  - pip:
+      - pytest
+      - numpy

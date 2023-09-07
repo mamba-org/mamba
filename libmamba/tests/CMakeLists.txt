@@ -48,6 +48,7 @@ set(LIBMAMBA_TEST_SRCS
     src/core/test_cpp.cpp
     src/core/test_downloader.cpp
     src/core/test_env_file_reading.cpp
+    src/core/test_env_txtfile_reading.cpp
     src/core/test_environments_manager.cpp
     src/core/test_history.cpp
     src/core/test_lockfile.cpp

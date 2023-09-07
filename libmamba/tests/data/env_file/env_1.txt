@@ -1,0 +1,7 @@
+name: env_1
+channels: [conda-forge, bioconda]
+dependencies:
+  - test1
+  - test2
+
+  - test3

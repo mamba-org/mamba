@@ -76,6 +76,7 @@ jobs:
           cache-environment: true
           create-args: >-
             conda-build
+            pre-commit
             python=${{ matrix.python_version }}
       - uses: hendrikmuhs/ccache-action@main
         with:

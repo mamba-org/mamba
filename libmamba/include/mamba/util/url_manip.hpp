@@ -26,11 +26,15 @@ namespace mamba::util
     /**
      * Escape reserved URL reserved characters with '%' encoding.
      *
-     * Does not parse URL in any way so '/' in "http://mamba.org/page" get encoded.
+     * The secons argument can be used to specify characters to exclude from encoding,
+     * so that for instance path can be encoded without splitting them (if they have no '/' other
+     * than separators).
      *
      * @see url_decode
      */
     [[nodiscard]] auto url_encode(std::string_view url) -> std::string;
+    [[nodiscard]] auto url_encode(std::string_view url, std::string_view exclude) -> std::string;
+    [[nodiscard]] auto url_encode(std::string_view url, char exclude) -> std::string;
 
     /**
      * Unescape percent encoded string to their URL reserved characters.

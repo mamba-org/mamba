@@ -31,9 +31,13 @@ TEST_SUITE("util::url_manip")
         // Does NOT parse URL
         CHECK_EQ(url_encode("https://foo/"), "https%3A%2F%2Ffoo%2F");
 
+        // Exclude characters
+        CHECK_EQ(url_encode(" /word%", '/'), "%20/word%25");
+
         CHECK_EQ(url_decode(""), "");
         CHECK_EQ(url_decode("page"), "page");
         CHECK_EQ(url_decode("%20%2Fword%25"), " /word%");
+        CHECK_EQ(url_decode(" /word%25"), " /word%");
         CHECK_EQ(url_decode("user%40email.com"), "user@email.com");
         CHECK_EQ(url_decode("https%3A%2F%2Ffoo%2F"), "https://foo/");
         CHECK_EQ(

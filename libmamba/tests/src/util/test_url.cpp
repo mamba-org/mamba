@@ -10,6 +10,7 @@
 
 #include <doctest/doctest.h>
 
+#include "mamba/util/build.hpp"
 #include "mamba/util/url.hpp"
 
 using namespace mamba::util;
@@ -22,35 +23,76 @@ TEST_SUITE("util::URL")
         {
             URL url{};
             CHECK_EQ(url.scheme(), URL::https);
-            CHECK_EQ(url.host(), URL::localhost);
-            CHECK_EQ(url.path(), "/");
-            CHECK_EQ(url.pretty_path(), "/");
             CHECK_EQ(url.user(), "");
             CHECK_EQ(url.password(), "");
             CHECK_EQ(url.port(), "");
+            CHECK_EQ(url.host(), URL::localhost);
+            CHECK_EQ(url.path(), "/");
+            CHECK_EQ(url.pretty_path(), "/");
             CHECK_EQ(url.query(), "");
+
+            CHECK_EQ(url.clear_user(), "");
+            CHECK_EQ(url.user(), "");
+            CHECK_EQ(url.clear_password(), "");
+            CHECK_EQ(url.password(), "");
+            CHECK_EQ(url.clear_port(), "");
+            CHECK_EQ(url.port(), "");
+            CHECK_EQ(url.clear_host(), URL::localhost);
+            CHECK_EQ(url.host(), URL::localhost);
+            CHECK_EQ(url.clear_path(), "/");
+            CHECK_EQ(url.path(), "/");
+            CHECK_EQ(url.clear_query(), "");
+            CHECK_EQ(url.query(), "");
+            CHECK_EQ(url.clear_fragment(), "");
+            CHECK_EQ(url.fragment(), "");
         }
 
         SUBCASE("Complete")
         {
             URL url{};
-            url.set_scheme("https")
-                .set_host("mamba.org")
-                .set_user("user")
-                .set_password("password")
-                .set_port("8080")
-                .set_path("/folder/file.html")
-                .set_query("param=value")
-                .set_fragment("fragment");
+            url.set_scheme("https");
+            url.set_host("mamba.org");
+            url.set_user("user");
+            url.set_password("pass:word");
+            url.set_port("8080");
+            url.set_path("/folder/file.html");
+            url.set_query("param=value");
+            url.set_fragment("fragment");
+
             CHECK_EQ(url.scheme(), "https");
             CHECK_EQ(url.host(), "mamba.org");
             CHECK_EQ(url.user(), "user");
-            CHECK_EQ(url.password(), "password");
+            CHECK_EQ(url.password(), "pass:word");
             CHECK_EQ(url.port(), "8080");
             CHECK_EQ(url.path(), "/folder/file.html");
             CHECK_EQ(url.pretty_path(), "/folder/file.html");
             CHECK_EQ(url.query(), "param=value");
             CHECK_EQ(url.fragment(), "fragment");
+
+            CHECK_EQ(url.clear_user(), "user");
+            CHECK_EQ(url.user(), "");
+            CHECK_EQ(url.clear_password(), "pass%3Aword");
+            CHECK_EQ(url.password(), "");
+            CHECK_EQ(url.clear_port(), "8080");
+            CHECK_EQ(url.port(), "");
+            CHECK_EQ(url.clear_host(), "mamba.org");
+            CHECK_EQ(url.host(), URL::localhost);
+            CHECK_EQ(url.clear_path(), "/folder/file.html");
+            CHECK_EQ(url.path(), "/");
+            CHECK_EQ(url.clear_query(), "param=value");
+            CHECK_EQ(url.query(), "");
+            CHECK_EQ(url.clear_fragment(), "fragment");
+            CHECK_EQ(url.fragment(), "");
+        }
+
+        SUBCASE("File")
+        {
+            URL url{};
+            url.set_scheme("file");
+            url.set_path("/folder/file.txt");
+            CHECK_EQ(url.scheme(), "file");
+            CHECK_EQ(url.host(), "");
+            CHECK_EQ(url.path(), "/folder/file.txt");
         }
 
         SUBCASE("Path")
@@ -64,7 +106,8 @@ TEST_SUITE("util::URL")
         SUBCASE("Windows path")
         {
             URL url{};
-            url.set_scheme("file").set_path("C:/folder/file.txt");
+            url.set_scheme("file");
+            url.set_path("C:/folder/file.txt");
             CHECK_EQ(url.path(), "/C:/folder/file.txt");
             CHECK_EQ(url.pretty_path(), "C:/folder/file.txt");
         }
@@ -72,7 +115,8 @@ TEST_SUITE("util::URL")
         SUBCASE("Case")
         {
             URL url{};
-            url.set_scheme("FtP").set_host("sOme_Host.COM");
+            url.set_scheme("FtP");
+            url.set_host("sOme_Host.COM");
             CHECK_EQ(url.scheme(), "ftp");
             CHECK_EQ(url.host(), "some_host.com");
         }
@@ -81,7 +125,6 @@ TEST_SUITE("util::URL")
         {
             URL url{};
             CHECK_THROWS_AS(url.set_scheme(""), std::invalid_argument);
-            CHECK_THROWS_AS(url.set_host(""), std::invalid_argument);
             CHECK_THROWS_AS(url.set_port("not-a-number"), std::invalid_argument);
         }
 
@@ -212,34 +255,36 @@ TEST_SUITE("util::URL")
 
         SUBCASE("file://C:/Users/wolfv/test/document.json")
         {
-#ifdef _WIN32
-            const URL url = URL::parse("file://C:/Users/wolfv/test/document.json");
-            CHECK_EQ(url.scheme(), "file");
-            CHECK_EQ(url.host(), URL::localhost);
-            CHECK_EQ(url.path(), "/C:/Users/wolfv/test/document.json");
-            CHECK_EQ(url.pretty_path(), "C:/Users/wolfv/test/document.json");
-            CHECK_EQ(url.user(), "");
-            CHECK_EQ(url.password(), "");
-            CHECK_EQ(url.port(), "");
-            CHECK_EQ(url.query(), "");
-            CHECK_EQ(url.fragment(), "");
-#endif
+            if (on_win)
+            {
+                const URL url = URL::parse("file://C:/Users/wolfv/test/document.json");
+                CHECK_EQ(url.scheme(), "file");
+                CHECK_EQ(url.host(), "");
+                CHECK_EQ(url.path(), "/C:/Users/wolfv/test/document.json");
+                CHECK_EQ(url.pretty_path(), "C:/Users/wolfv/test/document.json");
+                CHECK_EQ(url.user(), "");
+                CHECK_EQ(url.password(), "");
+                CHECK_EQ(url.port(), "");
+                CHECK_EQ(url.query(), "");
+                CHECK_EQ(url.fragment(), "");
+            }
         }
 
         SUBCASE("file:///home/wolfv/test/document.json")
         {
-#ifndef _WIN32
-            const URL url = URL::parse("file:///home/wolfv/test/document.json");
-            CHECK_EQ(url.scheme(), "file");
-            CHECK_EQ(url.host(), URL::localhost);
-            CHECK_EQ(url.path(), "/home/wolfv/test/document.json");
-            CHECK_EQ(url.pretty_path(), "/home/wolfv/test/document.json");
-            CHECK_EQ(url.user(), "");
-            CHECK_EQ(url.password(), "");
-            CHECK_EQ(url.port(), "");
-            CHECK_EQ(url.query(), "");
-            CHECK_EQ(url.fragment(), "");
-#endif
+            if (!on_win)
+            {
+                const URL url = URL::parse("file:///home/wolfv/test/document.json");
+                CHECK_EQ(url.scheme(), "file");
+                CHECK_EQ(url.host(), "");
+                CHECK_EQ(url.path(), "/home/wolfv/test/document.json");
+                CHECK_EQ(url.pretty_path(), "/home/wolfv/test/document.json");
+                CHECK_EQ(url.user(), "");
+                CHECK_EQ(url.password(), "");
+                CHECK_EQ(url.port(), "");
+                CHECK_EQ(url.query(), "");
+                CHECK_EQ(url.fragment(), "");
+            }
         }
 
         SUBCASE("https://169.254.0.0/page")
@@ -286,7 +331,7 @@ TEST_SUITE("util::URL")
         }
     }
 
-    TEST_CASE("str")
+    TEST_CASE("pretty_str options")
     {
         SUBCASE("scheme option")
         {
@@ -295,15 +340,15 @@ TEST_SUITE("util::URL")
 
             SUBCASE("defaut scheme")
             {
-                CHECK_EQ(url.str(URL::StripScheme::no), "https://mamba.org/");
-                CHECK_EQ(url.str(URL::StripScheme::yes), "mamba.org/");
+                CHECK_EQ(url.pretty_str(URL::StripScheme::no), "https://mamba.org/");
+                CHECK_EQ(url.pretty_str(URL::StripScheme::yes), "mamba.org/");
             }
 
             SUBCASE("ftp scheme")
             {
                 url.set_scheme("ftp");
-                CHECK_EQ(url.str(URL::StripScheme::no), "ftp://mamba.org/");
-                CHECK_EQ(url.str(URL::StripScheme::yes), "mamba.org/");
+                CHECK_EQ(url.pretty_str(URL::StripScheme::no), "ftp://mamba.org/");
+                CHECK_EQ(url.pretty_str(URL::StripScheme::yes), "mamba.org/");
             }
         }
 
@@ -311,41 +356,49 @@ TEST_SUITE("util::URL")
         {
             URL url = {};
             url.set_host("mamba.org");
-            CHECK_EQ(url.str(URL::StripScheme::no, 0), "https://mamba.org/");
-            CHECK_EQ(url.str(URL::StripScheme::no, '/'), "https://mamba.org");
+            CHECK_EQ(url.pretty_str(URL::StripScheme::no, 0), "https://mamba.org/");
+            CHECK_EQ(url.pretty_str(URL::StripScheme::no, '/'), "https://mamba.org");
             url.set_path("/page/");
-            CHECK_EQ(url.str(URL::StripScheme::no, ':'), "https://mamba.org/page/");
-            CHECK_EQ(url.str(URL::StripScheme::no, '/'), "https://mamba.org/page");
+            CHECK_EQ(url.pretty_str(URL::StripScheme::no, ':'), "https://mamba.org/page/");
+            CHECK_EQ(url.pretty_str(URL::StripScheme::no, '/'), "https://mamba.org/page");
         }
 
         SUBCASE("Hide password option")
         {
             URL url = {};
-            url.set_user("user").set_password("pass");
+            url.set_user("user");
+            url.set_password("pass");
             CHECK_EQ(
-                url.str(URL::StripScheme::no, 0, URL::HidePassword::no),
+                url.pretty_str(URL::StripScheme::no, 0, URL::HidePassword::no),
                 "https://user:pass@localhost/"
             );
             CHECK_EQ(
-                url.str(URL::StripScheme::no, 0, URL::HidePassword::yes),
+                url.pretty_str(URL::StripScheme::no, 0, URL::HidePassword::yes),
                 "https://user:*****@localhost/"
             );
         }
+    }
 
+    TEST_CASE("str and pretty_str")
+    {
         SUBCASE("https://user:password@mamba.org:8080/folder/file.html?param=value#fragment")
         {
             URL url{};
-            url.set_scheme("https")
-                .set_host("mamba.org")
-                .set_user("user")
-                .set_password("password")
-                .set_port("8080")
-                .set_path("/folder/file.html")
-                .set_query("param=value")
-                .set_fragment("fragment");
+            url.set_scheme("https");
+            url.set_host("mamba.org");
+            url.set_user("user");
+            url.set_password("password");
+            url.set_port("8080");
+            url.set_path("/folder/file.html");
+            url.set_query("param=value");
+            url.set_fragment("fragment");
 
             CHECK_EQ(
                 url.str(),
+                "https://user:password@mamba.org:8080/folder/file.html?param=value#fragment"
+            );
+            CHECK_EQ(
+                url.pretty_str(),
                 "https://user:password@mamba.org:8080/folder/file.html?param=value#fragment"
             );
         }
@@ -353,41 +406,70 @@ TEST_SUITE("util::URL")
         SUBCASE("user@mamba.org")
         {
             URL url{};
-            url.set_host("mamba.org").set_user("user");
+            url.set_host("mamba.org");
+            url.set_user("user");
+            CHECK_EQ(url.pretty_str(), "https://user@mamba.org/");
             CHECK_EQ(url.str(), "https://user@mamba.org/");
-            CHECK_EQ(url.str(URL::StripScheme::yes), "user@mamba.org/");
+            CHECK_EQ(url.pretty_str(URL::StripScheme::yes), "user@mamba.org/");
         }
 
         SUBCASE("https://mamba.org")
         {
             URL url{};
-            url.set_scheme("https").set_host("mamba.org");
+            url.set_scheme("https");
+            url.set_host("mamba.org");
             CHECK_EQ(url.str(), "https://mamba.org/");
-            CHECK_EQ(url.str(URL::StripScheme::yes), "mamba.org/");
+            CHECK_EQ(url.pretty_str(), "https://mamba.org/");
+            CHECK_EQ(url.pretty_str(URL::StripScheme::yes), "mamba.org/");
         }
 
         SUBCASE("file:////folder/file.txt")
         {
             URL url{};
-            url.set_scheme("file").set_path("//folder/file.txt");
+            url.set_scheme("file");
+            url.set_path("//folder/file.txt");
             CHECK_EQ(url.str(), "file:////folder/file.txt");
-            CHECK_EQ(url.str(URL::StripScheme::yes), "//folder/file.txt");
+            CHECK_EQ(url.pretty_str(), "file:////folder/file.txt");
+            CHECK_EQ(url.pretty_str(URL::StripScheme::yes), "//folder/file.txt");
         }
 
         SUBCASE("file:///folder/file.txt")
         {
             URL url{};
-            url.set_scheme("file").set_path("/folder/file.txt");
+            url.set_scheme("file");
+            url.set_path("/folder/file.txt");
             CHECK_EQ(url.str(), "file:///folder/file.txt");
-            CHECK_EQ(url.str(URL::StripScheme::yes), "/folder/file.txt");
+            CHECK_EQ(url.pretty_str(), "file:///folder/file.txt");
+            CHECK_EQ(url.pretty_str(URL::StripScheme::yes), "/folder/file.txt");
         }
 
-        SUBCASE("file:///C:/folder/file.txt")
+        SUBCASE("file:///C:/folder&/file.txt")
         {
             URL url{};
-            url.set_scheme("file").set_path("C:/folder/file.txt");
-            CHECK_EQ(url.str(), "file:///C:/folder/file.txt");
-            CHECK_EQ(url.str(URL::StripScheme::yes), "C:/folder/file.txt");
+            url.set_scheme("file");
+            url.set_path("C:/folder&/file.txt");
+            if (on_win)
+            {
+                CHECK_EQ(url.str(), "file:///C:/folder%26/file.txt");
+            }
+            else
+            {
+                CHECK_EQ(url.str(), "file:///C%3A/folder%26/file.txt");
+            }
+            CHECK_EQ(url.pretty_str(), "file:///C:/folder&/file.txt");
+            CHECK_EQ(url.pretty_str(URL::StripScheme::yes), "C:/folder&/file.txt");
+        }
+
+        SUBCASE("https://user@email.com:pw%rd@mamba.org/some /path$/")
+        {
+            URL url{};
+            url.set_scheme("https");
+            url.set_host("mamba.org");
+            url.set_user("user@email.com");
+            url.set_password("pw%rd");
+            url.set_path("/some /path$/");
+            CHECK_EQ(url.str(), "https://user%40email.com:pw%25rd@mamba.org/some%20/path%24/");
+            CHECK_EQ(url.pretty_str(), "https://user@email.com:pw%rd@mamba.org/some /path$/");
         }
     }
 
@@ -404,11 +486,11 @@ TEST_SUITE("util::URL")
     TEST_CASE("authority")
     {
         URL url{};
-        url.set_scheme("https")
-            .set_host("mamba.org")
-            .set_path("/folder/file.html")
-            .set_query("param=value")
-            .set_fragment("fragment");
+        url.set_scheme("https");
+        url.set_host("mamba.org");
+        url.set_path("/folder/file.html");
+        url.set_query("param=value");
+        url.set_fragment("fragment");
         CHECK_EQ(url.authority(), "mamba.org");
         url.set_port("8000");
         CHECK_EQ(url.authority(), "mamba.org:8000");
@@ -437,20 +519,37 @@ TEST_SUITE("util::URL")
     {
         auto url = URL();
 
-        CHECK_EQ(url.path(), "/");
-        CHECK_EQ((url / "").path(), "/");
-        CHECK_EQ((url / "   ").path(), "/");
-        CHECK_EQ((url / "/").path(), "/");
-        CHECK_EQ((url / "page").path(), "/page");
-        CHECK_EQ((url / "/page").path(), "/page");
-        CHECK_EQ((url / " /page").path(), "/page");
-        CHECK_EQ(url.path(), "/");  // unchanged
+        SUBCASE("Add components")
+        {
+            CHECK_EQ(url.path(), "/");
+            CHECK_EQ((url / "").path(), "/");
+            CHECK_EQ((url / "   ").path(), "/   ");
+            CHECK_EQ((url / "/").path(), "/");
+            CHECK_EQ((url / "page").path(), "/page");
+            CHECK_EQ((url / "/page").path(), "/page");
+            CHECK_EQ((url / " /page").path(), "/ /page");
+            CHECK_EQ(url.path(), "/");  // unchanged
 
-        url.append_path("folder");
-        CHECK_EQ(url.path(), "/folder");
-        CHECK_EQ((url / "").path(), "/folder");
-        CHECK_EQ((url / "/").path(), "/folder/");
-        CHECK_EQ((url / "page").path(), "/folder/page");
-        CHECK_EQ((url / "/page").path(), "/folder/page");
+            url.append_path("folder");
+            CHECK_EQ(url.path(), "/folder");
+            CHECK_EQ((url / "").path(), "/folder");
+            CHECK_EQ((url / "/").path(), "/folder/");
+            CHECK_EQ((url / "page").path(), "/folder/page");
+            CHECK_EQ((url / "/page").path(), "/folder/page");
+        }
+
+        SUBCASE("Absolute paths")
+        {
+            url.set_scheme("file");
+            url.append_path("C:/folder/file.txt");
+            if (on_win)
+            {
+                CHECK_EQ(url.str(), "file:///C:/folder/file.txt");
+            }
+            else
+            {
+                CHECK_EQ(url.str(), "file:///C%3A/folder/file.txt");
+            }
+        }
     }
 }

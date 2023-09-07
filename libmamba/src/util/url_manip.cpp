@@ -68,25 +68,40 @@ namespace mamba::util
             return static_cast<char>((hex_offset[idx10] << 4) | hex_offset[idx1]);
         }
 
+        template <typename Str>
+        auto url_encode_impl(std::string_view url, Str exclude) -> std::string
+        {
+            std::string out = {};
+            out.reserve(url.size());
+            for (char c : url)
+            {
+                if (url_is_unreserved_char(c) || contains(exclude, c))
+                {
+                    out += c;
+                }
+                else
+                {
+                    const auto encoding = url_encode_char(c);
+                    out += std::string_view(encoding.data(), encoding.size());
+                }
+            }
+            return out;
+        }
     }
 
     auto url_encode(std::string_view url) -> std::string
     {
-        std::string out = {};
-        out.reserve(url.size());
-        for (char c : url)
-        {
-            if (url_is_unreserved_char(c))
-            {
-                out += c;
-            }
-            else
-            {
-                const auto encoding = url_encode_char(c);
-                out += std::string_view(encoding.data(), encoding.size());
-            }
-        }
-        return out;
+        return url_encode_impl(url, 'a');  // Already not encoded
+    }
+
+    auto url_encode(std::string_view url, std::string_view exclude) -> std::string
+    {
+        return url_encode_impl(url, exclude);
+    }
+
+    auto url_encode(std::string_view url, char exclude) -> std::string
+    {
+        return url_encode_impl(url, exclude);
     }
 
     auto url_decode(std::string_view url) -> std::string
@@ -253,7 +268,7 @@ namespace mamba::util
         auth = url_parsed.authentication();
         url_parsed.set_user("");
         url_parsed.set_password("");
-        remaining_url = util::rstrip(url_parsed.str(URL::StripScheme::yes), '/');
+        remaining_url = util::rstrip(url_parsed.pretty_str(URL::StripScheme::yes), '/');
     }
 
     bool compare_cleaned_url(const std::string& url1, const std::string& url2)

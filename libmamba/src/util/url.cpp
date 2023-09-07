@@ -13,6 +13,7 @@
 #include <curl/urlapi.h>
 #include <fmt/format.h>
 
+#include "mamba/util/build.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
@@ -179,14 +180,14 @@ namespace mamba::util
                 file_uri_unc2_to_unc4(url),
                 CURLU_NON_SUPPORT_SCHEME | CURLU_DEFAULT_SCHEME,
             };
-            out.set_scheme(handle.get_part(CURLUPART_SCHEME).value_or(std::string(URL::https)))
-                .set_user(handle.get_part(CURLUPART_USER).value_or(""), Encode::no)
-                .set_password(handle.get_part(CURLUPART_PASSWORD).value_or(""), Encode::no)
-                .set_host(handle.get_part(CURLUPART_HOST).value_or(std::string(URL::localhost)))
-                .set_path(handle.get_part(CURLUPART_PATH).value_or("/"))
-                .set_port(handle.get_part(CURLUPART_PORT).value_or(""))
-                .set_query(handle.get_part(CURLUPART_QUERY).value_or(""))
-                .set_fragment(handle.get_part(CURLUPART_FRAGMENT).value_or(""));
+            out.set_scheme(handle.get_part(CURLUPART_SCHEME).value_or(std::string(URL::https)));
+            out.set_user(handle.get_part(CURLUPART_USER).value_or(""), Encode::no);
+            out.set_password(handle.get_part(CURLUPART_PASSWORD).value_or(""), Encode::no);
+            out.set_host(handle.get_part(CURLUPART_HOST).value_or(""));
+            out.set_path(handle.get_part(CURLUPART_PATH).value_or("/"));
+            out.set_port(handle.get_part(CURLUPART_PORT).value_or(""));
+            out.set_query(handle.get_part(CURLUPART_QUERY).value_or(""));
+            out.set_fragment(handle.get_part(CURLUPART_FRAGMENT).value_or(""));
         }
         return out;
     }
@@ -196,14 +197,13 @@ namespace mamba::util
         return m_scheme;
     }
 
-    auto URL::set_scheme(std::string_view scheme) -> URL&
+    void URL::set_scheme(std::string_view scheme)
     {
         if (scheme.empty())
         {
             throw std::invalid_argument("Cannot set empty scheme");
         }
         m_scheme = util::to_lower(util::rstrip(scheme));
-        return *this;
     }
 
     auto URL::user(Decode::no_type) const -> const std::string&
@@ -213,20 +213,22 @@ namespace mamba::util
 
     auto URL::user(Decode::yes_type) const -> std::string
     {
-        return url_decode(m_user);
+        return url_decode(user(Decode::no));
     }
 
-    auto URL::set_user(std::string_view user, Encode encode) -> URL&
+    void URL::set_user(std::string_view user, Encode::yes_type)
     {
-        if (encode == Encode::yes)
-        {
-            m_user = url_encode(user);
-        }
-        else
-        {
-            m_user = user;
-        }
-        return *this;
+        return set_user(url_encode(user), Encode::no);
+    }
+
+    void URL::set_user(std::string user, Encode::no_type)
+    {
+        m_user = std::move(user);
+    }
+
+    auto URL::clear_user() -> std::string
+    {
+        return std::exchange(m_user, "");
     }
 
     auto URL::password(Decode::no_type) const -> const std::string&
@@ -236,20 +238,22 @@ namespace mamba::util
 
     auto URL::password(Decode::yes_type) const -> std::string
     {
-        return url_decode(m_password);
+        return url_decode(password(Decode::no));
     }
 
-    auto URL::set_password(std::string_view password, Encode encode) -> URL&
+    void URL::set_password(std::string_view password, Encode::yes_type)
     {
-        if (encode == Encode::yes)
-        {
-            m_password = url_encode(password);
-        }
-        else
-        {
-            m_password = password;
-        }
-        return *this;
+        return set_password(url_encode(password), Encode::no);
+    }
+
+    void URL::set_password(std::string password, Encode::no_type)
+    {
+        m_password = std::move(password);
+    }
+
+    auto URL::clear_password() -> std::string
+    {
+        return std::exchange(m_password, "");
     }
 
     auto URL::authentication() const -> std::string
@@ -259,33 +263,46 @@ namespace mamba::util
         return p.empty() ? u : util::concat(u, ':', p);
     }
 
-    auto URL::host(Decode::no_type) const -> const std::string&
+    auto URL::host(Decode::no_type) const -> std::string_view
     {
+        if ((m_scheme != "file") && m_host.empty())
+        {
+            return localhost;
+        }
         return m_host;
     }
 
     auto URL::host(Decode::yes_type) const -> std::string
     {
-        return url_decode(m_host);
+        return url_decode(host(Decode::no));
     }
 
-    auto URL::set_host(std::string_view host, Encode encode) -> URL&
+    void URL::set_host(std::string_view host, Encode::yes_type)
     {
-        std::string new_host = {};
-        if (encode == Encode::yes)
+        return set_host(url_encode(host), Encode::no);
+    }
+
+    void URL::set_host(std::string host, Encode::no_type)
+    {
+        std::transform(
+            host.cbegin(),
+            host.cend(),
+            host.begin(),
+            [](char c) { return util::to_lower(c); }
+        );
+        m_host = std::move(host);
+    }
+
+    auto URL::clear_host() -> std::string
+    {
+        // Cheap == comparison that works because of class invariant
+        if (auto l_host = host(Decode::no); l_host.data() != m_host.data())
         {
-            new_host = url_encode(host);
+            auto out = std::string(l_host);
+            set_host("", Encode::no);
+            return out;
         }
-        else
-        {
-            new_host = util::strip(host);  // spaces are illegal if not encoded
-        }
-        if (new_host.empty())
-        {
-            throw std::invalid_argument("Cannot set empty host");
-        }
-        m_host = util::to_lower(new_host);
-        return *this;
+        return std::exchange(m_host, "");
     }
 
     auto URL::port() const -> const std::string&
@@ -293,14 +310,18 @@ namespace mamba::util
         return m_port;
     }
 
-    auto URL::set_port(std::string_view port) -> URL&
+    void URL::set_port(std::string_view port)
     {
         if (!std::all_of(port.cbegin(), port.cend(), [](char c) { return util::is_digit(c); }))
         {
             throw std::invalid_argument(fmt::format(R"(Port must be a number, got "{}")", port));
         }
         m_port = port;
-        return *this;
+    }
+
+    auto URL::clear_port() -> std::string
+    {
+        return std::exchange(m_port, "");
     }
 
     auto URL::authority() const -> std::string
@@ -319,44 +340,86 @@ namespace mamba::util
         );
     }
 
-    auto URL::path() const -> const std::string&
+    auto URL::path(Decode::no_type) const -> const std::string&
     {
         return m_path;
     }
 
-    auto URL::pretty_path() const -> std::string_view
+    auto URL::path(Decode::yes_type) const -> std::string
     {
-        // All paths start with a '/' except those like "file://C:/folder/file.txt"
+        return url_decode(path(Decode::no));
+    }
+
+    void URL::set_path(std::string_view path, Encode::yes_type)
+    {
+        // Drive colon must not be encoded
+        if (on_win && (scheme() == "file"))
+        {
+            auto [slashes, no_slash_path] = lstrip_parts(path, '/');
+            if (slashes.empty())
+            {
+                slashes = "/";
+            }
+            if ((no_slash_path.size() >= 2) && path_has_drive_letter(no_slash_path))
+            {
+                m_path = concat(
+                    slashes,
+                    no_slash_path.substr(0, 2),
+                    url_encode(no_slash_path.substr(2), '/')
+                );
+            }
+            else
+            {
+                m_path = concat(slashes, url_encode(no_slash_path, '/'));
+            }
+        }
+        else
+        {
+            return set_path(url_encode(path, '/'), Encode::no);
+        }
+    }
+
+    void URL::set_path(std::string path, Encode::no_type)
+    {
+        if (!util::starts_with(path, '/'))
+        {
+            path.insert(0, 1, '/');
+        }
+        m_path = path;
+    }
+
+    auto URL::clear_path() -> std::string
+    {
+        return std::exchange(m_path, "/");
+    }
+
+    auto URL::pretty_path() const -> std::string
+    {
+        // All paths start with a '/' except those like "file:///C:/folder/file.txt"
         if (m_scheme == "file")
         {
             assert(util::starts_with(m_path, '/'));
-            auto path_no_slash = std::string_view(m_path).substr(1);
+            auto path_no_slash = url_decode(std::string_view(m_path).substr(1));
             if (path_has_drive_letter(path_no_slash))
             {
                 return path_no_slash;
             }
         }
-        return m_path;
+        return url_decode(m_path);
     }
 
-    auto URL::set_path(std::string_view path) -> URL&
+    void URL::append_path(std::string_view subpath, Encode::yes_type)
     {
-        if (!util::starts_with(path, '/'))
+        if (path(Decode::no) == "/")
         {
-            m_path.reserve(path.size() + 1);
-            m_path = '/';
-            m_path += path;
+            // Allow hanldling of Windows drive letter encoding
+            return set_path(std::string(subpath), Encode::yes);
         }
-        else
-        {
-            m_path = path;
-        }
-        return *this;
+        return append_path(url_encode(subpath, '/'), Encode::no);
     }
 
-    auto URL::append_path(std::string_view subpath) -> URL&
+    void URL::append_path(std::string_view subpath, Encode::no_type)
     {
-        subpath = util::strip(subpath);
         m_path.reserve(m_path.size() + 1 + subpath.size());
         const bool trailing = util::ends_with(m_path, '/');
         const bool leading = util::starts_with(subpath, '/');
@@ -369,7 +432,6 @@ namespace mamba::util
             m_path.pop_back();
         }
         m_path += subpath;
-        return *this;
     }
 
     auto URL::query() const -> const std::string&
@@ -377,10 +439,14 @@ namespace mamba::util
         return m_query;
     }
 
-    auto URL::set_query(std::string_view query) -> URL&
+    void URL::set_query(std::string_view query)
     {
         m_query = query;
-        return *this;
+    }
+
+    auto URL::clear_query() -> std::string
+    {
+        return std::exchange(m_query, "");
     }
 
     auto URL::fragment() const -> const std::string&
@@ -388,36 +454,59 @@ namespace mamba::util
         return m_fragment;
     }
 
-    auto URL::set_fragment(std::string_view fragment) -> URL&
+    void URL::set_fragment(std::string_view fragment)
     {
         m_fragment = fragment;
-        return *this;
     }
 
-    auto URL::str(StripScheme strip_scheme, char rstrip_path, HidePassword hide_password) const
+    auto URL::clear_fragment() -> std::string
+    {
+        return std::exchange(m_fragment, "");
+    }
+
+    auto URL::str() -> std::string
+    {
+        return util::concat(
+            scheme(),
+            "://",
+            user(Decode::no),
+            m_password.empty() ? "" : ":",
+            password(Decode::no),
+            m_user.empty() ? "" : "@",
+            host(Decode::no),
+            m_port.empty() ? "" : ":",
+            port(),
+            path(Decode::no),
+            m_query.empty() ? "" : "?",
+            m_query,
+            m_fragment.empty() ? "" : "#",
+            m_fragment
+        );
+    }
+
+    auto URL::pretty_str(StripScheme strip_scheme, char rstrip_path, HidePassword hide_password) const
         -> std::string
     {
-        // Not showing "localhost" on file URI
-        std::string_view computed_host = m_host;
-        if ((m_scheme == "file") && (m_host == localhost))
-        {
-            computed_host = "";
-        }
+        std::string computed_path = {};
         // When stripping file scheme, not showing leading '/' for Windows path with drive
-        std::string_view computed_path = m_path;
-        if ((m_scheme == "file") && (strip_scheme == StripScheme::yes) && computed_host.empty())
+        if ((m_scheme == "file") && (strip_scheme == StripScheme::yes) && host(Decode::no).empty())
         {
             computed_path = pretty_path();
         }
+        else
+        {
+            computed_path = path(Decode::yes);
+        }
         computed_path = util::rstrip(computed_path, rstrip_path);
+
         return util::concat(
             (strip_scheme == StripScheme::no) ? m_scheme : "",
             (strip_scheme == StripScheme::no) ? "://" : "",
-            m_user,
+            user(Decode::yes),
             m_password.empty() ? "" : ":",
-            (hide_password == HidePassword::no) ? m_password : "*****",
+            (hide_password == HidePassword::no) ? password(Decode::yes) : "*****",
             m_user.empty() ? "" : "@",
-            computed_host,
+            host(Decode::yes),
             m_port.empty() ? "" : ":",
             m_port,
             computed_path,

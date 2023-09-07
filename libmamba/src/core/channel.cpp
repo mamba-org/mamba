@@ -114,22 +114,24 @@ namespace mamba
         )
         {
             auto spath = std::string(util::rstrip(path, '/'));
-            std::string url = util::URL()  //
-                                  .set_scheme(scheme)
-                                  .set_host(host)
-                                  .set_port(port)
-                                  .set_path(spath)
-                                  .str(util::URL::StripScheme::yes);
+            std::string url = [&]()
+            {
+                auto parsed_url = util::URL();
+                parsed_url.set_scheme(scheme);
+                parsed_url.set_host(host);
+                parsed_url.set_port(port);
+                parsed_url.set_path(spath);
+                return parsed_url.pretty_str(util::URL::StripScheme::yes);
+            }();
 
             // Case 1: No path given, channel name is ""
             if (spath.empty())
             {
-                auto l_url = util::URL().set_host(host).set_port(port).str(
-                    util::URL::StripScheme::yes,
-                    /* rstrip_path= */ '/'
-                );
+                auto l_url = util::URL();
+                l_url.set_host(host);
+                l_url.set_port(port);
                 return channel_configuration{
-                    /* location= */ std::move(l_url),
+                    /* location= */ l_url.pretty_str(util::URL::StripScheme::yes, /* rstrip_path= */ '/'),
                     /* name= */ "",
                     /* scheme= */ scheme,
                     /* auth= */ "",
@@ -189,12 +191,11 @@ namespace mamba
 
             // Case 7: fallback, channel_location = host:port and channel_name = path
             spath = util::lstrip(spath, '/');
-            std::string location = util::URL().set_host(host).set_port(port).str(
-                util::URL::StripScheme::yes,
-                /* rstrip_path= */ '/'
-            );
+            auto location = util::URL();
+            location.set_host(host);
+            location.set_port(port);
             return channel_configuration{
-                /* location= */ std::move(location),
+                /* location= */ location.pretty_str(util::URL::StripScheme::yes, /* rstrip_path= */ '/'),
                 /* name= */ spath,
                 /* scheme= */ scheme,
                 /* auth= */ "",
@@ -452,10 +453,10 @@ namespace mamba
             {
                 std::string full_url = util::concat_scheme_url(scheme, location);
                 const auto parser = util::URL::parse(full_url);
-                location = util::URL()
-                               .set_host(parser.host())
-                               .set_port(parser.port())
-                               .str(util::URL::StripScheme::yes, /* rstrip_path= */ '/');
+                auto url = util::URL();
+                url.set_host(parser.host());
+                url.set_port(parser.port());
+                location = url.pretty_str(util::URL::StripScheme::yes, /* rstrip_path= */ '/');
                 name = util::lstrip(parser.pretty_path(), '/');
             }
         }

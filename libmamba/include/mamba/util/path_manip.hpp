@@ -7,6 +7,7 @@
 #ifndef MAMBA_UTIL_PATH_MANIP_HPP
 #define MAMBA_UTIL_PATH_MANIP_HPP
 
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -24,6 +25,11 @@ namespace mamba::util
      * - Relative paths starting with "./" or "../"
      */
     [[nodiscard]] auto is_explicit_path(std::string_view input) -> bool;
+
+    /**
+     * Return the path drive letter, if any, or none.
+     */
+    [[nodiscard]] auto path_get_drive_letter(std::string_view path) -> std::optional<char>;
 
     /**
      * Check if a Windows path (not URL) starts with a drive letter.

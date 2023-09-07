@@ -14,6 +14,7 @@ import pytest
 from helpers_mamba import (
     create,
     get_umamba,
+    info,
     install,
     umamba_run,
     update,
@@ -304,7 +305,6 @@ def test_update_py(temp_env_prefix):
 def test_unicode(tmpdir):
     uc = "320 áγђß家固êôōçñ한"
     res = create("-p", str(tmpdir / uc), "--json", "xtensor", "-c", "conda-forge")
-    print(res["actions"]["PREFIX"])
     assert res["actions"]["PREFIX"] == str(tmpdir / uc)
 
     import libmambapy
@@ -315,18 +315,19 @@ def test_unicode(tmpdir):
     assert "xtensor" in pd.package_records
 
 
-#@pytest.mark.parametrize("use_json", [True, False])
-#def test_info(use_json):
-    #mamba_cmd = ["mamba", "info"]
-    #if use_json:
-        #mamba_cmd.append("--json")
+@pytest.mark.parametrize("use_json", [True, False])
+def test_info(use_json):
+    cmd = []
+    if use_json:
+        cmd += ["--json"]
 
-    #output = subprocess.check_output(mamba_cmd).decode()
+    res = info(*cmd)
 
-    #from mamba import __version__
+    print("RES OF INFO: ", res)
 
-    #if use_json:
-        #output = json.loads(output)
-        #assert output["mamba_version"] == __version__
-    #else:
-        #assert "mamba version : " + __version__ in output
+    from libmambapy.__version__ as version # NOTE use version of umamba instead
+
+    if use_json:
+        assert res["version"] == version
+    else:
+        assert version in res

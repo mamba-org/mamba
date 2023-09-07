@@ -103,18 +103,18 @@ def get_umamba(cwd=os.getcwd()):
     #return res.decode()
 
 
-#def info(*args, **kwargs):
-    #umamba = get_umamba()
-    #cmd = [umamba, "info"] + [arg for arg in args if arg]
-    #res = subprocess_run(*cmd, **kwargs)
-    #if "--json" in args:
-        #try:
-            #j = json.loads(res)
-            #return j
-        #except json.decoder.JSONDecodeError as e:
-            #print(f"Error when loading JSON output from {res}")
-            #raise (e)
-    #return res.decode()
+def info(*args, **kwargs):
+    umamba = get_umamba()
+    cmd = [umamba, "info"] + [arg for arg in args if arg]
+    res = subprocess_run(*cmd, **kwargs)
+    if "--json" in args:
+        try:
+            j = json.loads(res)
+            return j
+        except json.decoder.JSONDecodeError as e:
+            print(f"Error when loading JSON output from {res}")
+            raise (e)
+    return res.decode()
 
 
 #def login(*args, **kwargs):

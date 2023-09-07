@@ -262,7 +262,7 @@ def test_multi_channels_with_subdir(config_file, tmpdir):
     # we need to create a config file first
     call_env = os.environ.copy()
     call_env["CONDA_PKGS_DIRS"] = str(tmpdir / random_string())
-    try:
+    with pytest.raises(subprocess.CalledProcessError) as e:
         output = subprocess.check_output(
             [
                 get_umamba(),
@@ -274,12 +274,6 @@ def test_multi_channels_with_subdir(config_file, tmpdir):
                 "--json",
             ],
             env=call_env,
-        )
-    except subprocess.CalledProcessError as e:
-        result = json.loads(e.output)
-        assert result["error"] == (
-            'RuntimeError(\'The package "conda-forge2/noarch::xtensor" is'
-            " not available for the specified platform')"
         )
 
 

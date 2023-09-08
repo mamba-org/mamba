@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <stack>
+#include <unordered_set>
 
 #include <fmt/chrono.h>
 #include <fmt/color.h>
@@ -156,6 +157,7 @@ namespace mamba
 
     namespace
     {
+<<<<<<< Updated upstream
         auto print_solvable(const PackageInfo& pkg)
         {
             auto out = Console::stream();
@@ -169,6 +171,46 @@ namespace mamba
             fmt::print(out, fmtstring, "Build", pkg.build_string);
             fmt::print(out, fmtstring, "Build Number", pkg.build_number);
             fmt::print(out, " {:<15} {} Kb\n", "Size", pkg.size / 1000);
+=======
+        auto print_solvable(
+            const PackageInfo& pkg,
+            const std::vector<PackageInfo>& otherBuilds,
+            bool showAllBuilds = false
+        )
+        {
+            std::map<std::string, std::vector<PackageInfo>> buildsByVersion;
+            auto numOtherBuildsForLatestVersion = 0;
+            std::unordered_set<std::string> distinctBuildSHAs;
+            for (const auto& p : otherBuilds)
+            {
+                if (distinctBuildSHAs.insert(p.sha256).second)
+                {
+                    if (p.version != pkg.version)
+                    {
+                        buildsByVersion[p.version].push_back(p);
+                    }
+                    else
+                    {
+                        ++numOtherBuildsForLatestVersion;
+                    }
+                }
+            }
+            auto out = Console::stream();
+            std::string additionalBuilds = "";
+            if (numOtherBuildsForLatestVersion > 0)
+            {
+                additionalBuilds = fmt::format(" (+ {} builds)", numOtherBuildsForLatestVersion);
+            }
+            std::string header = fmt::format("{} {} {}", pkg.name, pkg.version, pkg.build_string)
+                                 + additionalBuilds;
+            fmt::print(out, "{:^40}\n{:─^{}}\n\n", header, "", header.size() > 40 ? header.size() : 40);
+
+            static constexpr const char* fmtstring = " {:<15} {}\n";
+            fmt::print(out, fmtstring, "Name", pkg.name);
+            fmt::print(out, fmtstring, "Version", pkg.version);
+            fmt::print(out, fmtstring, "Build", pkg.build_string);
+            fmt::print(out, " {:<15} {} kB\n", "Size", pkg.size / 1000);
+>>>>>>> Stashed changes
             fmt::print(out, fmtstring, "License", pkg.license);
             fmt::print(out, fmtstring, "Subdir", pkg.subdir);
 
@@ -198,10 +240,65 @@ namespace mamba
 
             if (!pkg.constrains.empty())
             {
+<<<<<<< Updated upstream
                 fmt::print(out, "\n Run Constraints:\n");
                 for (auto& c : pkg.constrains)
                 {
                     fmt::print(out, "  - {}\n", c);
+=======
+                fmt::print(out, "\n Other Versions ({}):\n\n", buildsByVersion.size());
+
+                std::stringstream buffer;
+
+                using namespace printers;
+                Table printer({ "Version", "Build", "", "" });
+                printer.set_alignment(
+                    { alignment::left, alignment::left, alignment::left, alignment::right }
+                );
+                bool collapseVersions = buildsByVersion.size() > 5;
+                size_t counter = 0;
+                for (auto it = buildsByVersion.rbegin(); it != buildsByVersion.rend(); it++)
+                {
+                    ++counter;
+                    if (collapseVersions)
+                    {
+                        if (counter == 3)
+                        {
+                            printer.add_row(
+                                { "...",
+                                  fmt::format("({} hidden versions)", buildsByVersion.size() - 4),
+                                  "",
+                                  "..." }
+                            );
+                            continue;
+                        }
+                        else if (counter > 3 && counter < buildsByVersion.size() - 1)
+                        {
+                            continue;
+                        }
+                    }
+
+                    std::vector<FormattedString> row;
+                    row.push_back(it->second.front().version);
+                    row.push_back(it->second.front().build_string);
+                    if (it->second.size() > 1)
+                    {
+                        row.push_back("(+");
+                        row.push_back(fmt::format("{} builds)", it->second.size() - 1));
+                    }
+                    else
+                    {
+                        row.push_back("");
+                        row.push_back("");
+                    }
+                    printer.add_row(row);
+                }
+                printer.print(buffer);
+                std::string line;
+                while (std::getline(buffer, line))
+                {
+                    out << " " << line << std::endl;
+>>>>>>> Stashed changes
                 }
             }
 
@@ -490,11 +587,33 @@ namespace mamba
 
         if (!m_ordered_pkg_id_list.empty())
         {
+<<<<<<< Updated upstream
+=======
+            std::map<std::string, std::map<std::string, std::vector<PackageInfo>>> packageBuildsByVersion;
+            std::unordered_set<std::string> distinctBuildSHAs;
+>>>>>>> Stashed changes
             for (auto& entry : m_ordered_pkg_id_list)
             {
                 for (const auto& id : entry.second)
                 {
+<<<<<<< Updated upstream
                     printer.add_row(format_row(m_dep_graph.node(id)));
+=======
+                    auto package = m_dep_graph.node(id);
+                    if (distinctBuildSHAs.insert(package.sha256).second)
+                    {
+                        packageBuildsByVersion[package.name][package.version].push_back(package);
+                    }
+                }
+            }
+
+            for (const auto& entry : packageBuildsByVersion)
+            {
+                // We want the newest version to be on top, therefore we iterate in reverse.
+                for (auto it = entry.second.rbegin(); it != entry.second.rend(); ++it)
+                {
+                    printer.add_row(format_row(it->second[0], it->second));
+>>>>>>> Stashed changes
                 }
             }
         }

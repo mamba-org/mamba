@@ -85,14 +85,14 @@ namespace mamba
                 return solv::LoopControl::Continue;
             }
         );
-    
+
         if (!solvable.has_value() || solvable->channel().empty())
         {
             // We are not reinstalling but simply installing.
             // Right now, using `--force-reinstall` will send all specs (whether they have
             // been previously installed or not) down this path, so we need to handle specs
             // that are not installed.
-	     return m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, m_pool.matchspec2id(ms));
+	    return m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, m_pool.matchspec2id(ms));
         }
 
         if (!ms.channel.empty() || !ms.version.empty() || !ms.build_string.empty())
@@ -126,7 +126,8 @@ namespace mamba
             MatchSpec ms{ job, m_pool.channel_context() };
             int job_type = job_flag & SOLVER_JOBMASK;
 
-            if (ms.conda_build_form().empty()){
+            if (ms.conda_build_form().empty())
+	    {
 		return;	
 	    }
 

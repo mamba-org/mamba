@@ -7,6 +7,7 @@
 #include <iostream>
 #include <sstream>
 #include <stack>
+#include <unordered_set>
 
 #include <fmt/chrono.h>
 #include <fmt/color.h>
@@ -161,32 +162,36 @@ namespace mamba
         {
             std::map<std::string, std::vector<PackageInfo>> buildsByVersion;
             auto numOtherBuildsForLatestVersion = 0;
+            std::unordered_set<std::string> distinctBuildSHAs;
             for (const auto& p : otherBuilds)
             {
-                if (p.version != pkg.version)
+                if (distinctBuildSHAs.insert(p.sha256).second)
                 {
-                    buildsByVersion[p.version].push_back(p);
-                }
-                else
-                {
-                    ++numOtherBuildsForLatestVersion;
+                    if (p.version != pkg.version)
+                    {
+                        buildsByVersion[p.version].push_back(p);
+                    }
+                    else
+                    {
+                        ++numOtherBuildsForLatestVersion;
+                    }
                 }
             }
             auto out = Console::stream();
-            std::string additionalBuilds = "";
+            std::string additionalBuilds;
             if (numOtherBuildsForLatestVersion > 0)
             {
                 additionalBuilds = fmt::format(" (+ {} builds)", numOtherBuildsForLatestVersion);
             }
             std::string header = fmt::format("{} {} {}", pkg.name, pkg.version, pkg.build_string)
                                  + additionalBuilds;
-            fmt::print(out, "{:^40}\n{:_^{}}\n\n", header, "", header.size() > 40 ? header.size() : 40);
+            fmt::print(out, "{:^40}\n{:─^{}}\n\n", header, "", header.size() > 40 ? header.size() : 40);
 
-            static constexpr const char* fmtstring = "  {:<15} {}\n";
+            static constexpr const char* fmtstring = " {:<15} {}\n";
             fmt::print(out, fmtstring, "Name", pkg.name);
             fmt::print(out, fmtstring, "Version", pkg.version);
             fmt::print(out, fmtstring, "Build", pkg.build_string);
-            fmt::print(out, "  {:<15} {} kB\n", "Size", pkg.size / 1000);
+            fmt::print(out, " {:<15} {} kB\n", "Size", pkg.size / 1000);
             fmt::print(out, fmtstring, "License", pkg.license);
             fmt::print(out, fmtstring, "Subdir", pkg.subdir);
             fmt::print(out, fmtstring, "File Name", pkg.fn);
@@ -194,7 +199,7 @@ namespace mamba
             std::string url_remaining, url_scheme, url_auth, url_token;
             util::split_scheme_auth_token(pkg.url, url_remaining, url_scheme, url_auth, url_token);
 
-            fmt::print(out, "  {:<15} {}://{}\n", "URL", url_scheme, url_remaining);
+            fmt::print(out, " {:<15} {}://{}\n", "URL", url_scheme, url_remaining);
 
             fmt::print(out, fmtstring, "MD5", pkg.md5.empty() ? "Not available" : pkg.md5);
             fmt::print(out, fmtstring, "SHA256", pkg.sha256.empty() ? "Not available" : pkg.sha256);
@@ -235,9 +240,30 @@ namespace mamba
                 printer.set_alignment(
                     { alignment::left, alignment::left, alignment::left, alignment::right }
                 );
+                bool collapseVersions = buildsByVersion.size() > 5;
+                size_t counter = 0;
                 // We want the newest version to be on top, therefore we iterate in reverse.
                 for (auto it = buildsByVersion.rbegin(); it != buildsByVersion.rend(); it++)
                 {
+                    ++counter;
+                    if (collapseVersions)
+                    {
+                        if (counter == 3)
+                        {
+                            printer.add_row(
+                                { "...",
+                                  fmt::format("({} hidden versions)", buildsByVersion.size() - 4),
+                                  "",
+                                  "..." }
+                            );
+                            continue;
+                        }
+                        else if (counter > 3 && counter < buildsByVersion.size() - 1)
+                        {
+                            continue;
+                        }
+                    }
+
                     std::vector<FormattedString> row;
                     row.push_back(it->second.front().version);
                     row.push_back(it->second.front().build_string);
@@ -257,7 +283,7 @@ namespace mamba
                 std::string line;
                 while (std::getline(buffer, line))
                 {
-                    out << "  " << line << std::endl;
+                    out << " " << line << std::endl;
                 }
             }
 
@@ -596,12 +622,16 @@ namespace mamba
         if (!m_ordered_pkg_id_list.empty())
         {
             std::map<std::string, std::map<std::string, std::vector<PackageInfo>>> packageBuildsByVersion;
+            std::unordered_set<std::string> distinctBuildSHAs;
             for (auto& entry : m_ordered_pkg_id_list)
             {
                 for (const auto& id : entry.second)
                 {
                     auto package = m_dep_graph.node(id);
-                    packageBuildsByVersion[package.name][package.version].push_back(package);
+                    if (distinctBuildSHAs.insert(package.sha256).second)
+                    {
+                        packageBuildsByVersion[package.name][package.version].push_back(package);
+                    }
                 }
             }
 

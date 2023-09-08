@@ -69,11 +69,10 @@ namespace mamba
     void MatchSpec::parse(ChannelContext& channel_context)
     {
         std::string spec_str = spec;
-	if(spec_str.empty())
-	{
-	    return;
-	}   
-
+        if (spec_str.empty())
+        {
+            return;
+        }
         LOG_INFO << "Parsing MatchSpec " << spec;
         std::size_t idx = spec_str.find('#');
         if (idx != std::string::npos)
@@ -307,7 +306,7 @@ namespace mamba
 
     std::string MatchSpec::conda_build_form() const
     {
-	std::stringstream res;
+        std::stringstream res;
         res << name;
         if (!version.empty())
         {

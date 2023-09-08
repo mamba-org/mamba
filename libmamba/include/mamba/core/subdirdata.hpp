@@ -25,45 +25,56 @@
 
 namespace mamba
 {
-    struct subdir_metadata
+    class MSubdirMetadata
     {
+    public:
+
+        using expected_subdir_metadata = tl::expected<MSubdirMetadata, mamba_error>;
+
+        static expected_subdir_metadata read(const fs::u8path& file);
+        void write(const fs::u8path& file);
+        bool check_valid_metadata(const fs::u8path& file);
+
+        const std::string& url() const;
+        const std::string& etag() const;
+        const std::string& mod() const;
+        const std::string& cache_control() const;
+
+        bool has_zst() const;
+
+        void store_http_metadata(std::string url, std::string etag, std::string mod, std::string cache_control);
+        void store_file_metadata(const fs::u8path& file);
+        void set_zst(bool value);
+
+    private:
+
+        static expected_subdir_metadata from_state_file(const fs::u8path& state_file, const fs::u8path& repodata_file);
+        static expected_subdir_metadata from_repodata_file(const fs::u8path& json);
+
+#ifdef _WIN32
+        using time_type = std::chrono::system_clock::time_point;
+#else
+        using time_type = fs::file_time_type;
+#endif
+
+        std::string m_url;
+        std::string m_etag;
+        std::string m_mod;
+        std::string m_cache_control;
+
+        time_type m_stored_mtime;
+        std::size_t m_stored_file_size;
+
         struct checked_at
         {
             bool value;
             std::time_t last_checked;
 
-            bool has_expired() const
-            {
-                // difference in seconds, check every 14 days
-                return std::difftime(std::time(nullptr), last_checked) > 60 * 60 * 24 * 14;
-            }
+            bool has_expired() const;
         };
 
-        static tl::expected<subdir_metadata, mamba_error> from_stream(std::istream& in);
-
-        std::string url;
-        std::string etag;
-        std::string mod;
-        std::string cache_control;
-#ifdef _WIN32
-        std::chrono::system_clock::time_point stored_mtime;
-#else
-        fs::file_time_type stored_mtime;
-#endif
-        std::size_t stored_file_size;
-        std::optional<checked_at> has_zst;
-        std::optional<checked_at> has_bz2;
-        std::optional<checked_at> has_jlap;
-
-        void store_file_metadata(const fs::u8path& path);
-        bool check_valid_metadata(const fs::u8path& path);
-
-        void serialize_to_stream(std::ostream& out) const;
-        void serialize_to_stream_tiny(std::ostream& out) const;
-
-        bool check_zst(ChannelContext& channel_context, const Channel* channel);
+        std::optional<checked_at> m_has_zst;
     };
-
 
     /**
      * Represents a channel subdirectory (i.e. a platform)
@@ -147,7 +158,7 @@ namespace mamba
         std::string m_json_fn;
         std::string m_solv_fn;
         bool m_is_noarch;
-        subdir_metadata m_metadata;
+        MSubdirMetadata m_metadata;
         std::unique_ptr<TemporaryFile> m_temp_file;
         const Channel* p_channel = nullptr;
         Context* p_context = nullptr;

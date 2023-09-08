@@ -589,12 +589,6 @@ namespace mamba
         }
     }
 
-    namespace detail
-    {
-        // read the header that contains json like {"_mod": "...", ...}
-        tl::expected<subdir_metadata, mamba_error> read_metadata(const fs::u8path& file);
-    }
-
 #ifdef _WIN32
     std::chrono::system_clock::time_point filetime_to_unix_test(const fs::file_time_type& filetime)
     {
@@ -613,44 +607,44 @@ namespace mamba
         TEST_CASE("parse_mod_etag")
         {
             fs::u8path cache_folder = fs::u8path{ test_data_dir / "repodata_json_cache" };
-            auto mq = detail::read_metadata(cache_folder / "test_1.json");
+            auto mq = MSubdirMetadata::read(cache_folder / "test_1.json");
             CHECK(mq.has_value());
             auto j = mq.value();
-            CHECK_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");
+            CHECK_EQ(j.mod(), "Fri, 11 Feb 2022 13:52:44 GMT");
             CHECK_EQ(
-                j.url,
+                j.url(),
                 "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json"
             );
 
-            j = detail::read_metadata(cache_folder / "test_2.json").value();
-            CHECK_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");
+            j = MSubdirMetadata::read(cache_folder / "test_2.json").value();
+            CHECK_EQ(j.mod(), "Fri, 11 Feb 2022 13:52:44 GMT");
             CHECK_EQ(
-                j.url,
+                j.url(),
                 "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json"
             );
 
-            j = detail::read_metadata(cache_folder / "test_5.json").value();
-            CHECK_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");
+            j = MSubdirMetadata::read(cache_folder / "test_5.json").value();
+            CHECK_EQ(j.mod(), "Fri, 11 Feb 2022 13:52:44 GMT");
             CHECK_EQ(
-                j.url,
+                j.url(),
                 "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json"
             );
 
-            j = detail::read_metadata(cache_folder / "test_4.json").value();
-            CHECK_EQ(j.cache_control, "{{}}\",,,\"");
-            CHECK_EQ(j.etag, "\n\n\"\"randome ecx,,ssd\n,,\"");
-            CHECK_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");
+            j = MSubdirMetadata::read(cache_folder / "test_4.json").value();
+            CHECK_EQ(j.cache_control(), "{{}}\",,,\"");
+            CHECK_EQ(j.etag(), "\n\n\"\"randome ecx,,ssd\n,,\"");
+            CHECK_EQ(j.mod(), "Fri, 11 Feb 2022 13:52:44 GMT");
             CHECK_EQ(
-                j.url,
+                j.url(),
                 "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json"
             );
 
-            mq = detail::read_metadata(cache_folder / "test_3.json");
+            mq = MSubdirMetadata::read(cache_folder / "test_3.json");
             CHECK(mq.has_value() == false);
 
-            j = detail::read_metadata(cache_folder / "test_6.json").value();
-            CHECK_EQ(j.mod, "Thu, 02 Apr 2020 20:21:27 GMT");
-            CHECK_EQ(j.url, "https://conda.anaconda.org/intake/osx-arm64");
+            j = MSubdirMetadata::read(cache_folder / "test_6.json").value();
+            CHECK_EQ(j.mod(), "Thu, 02 Apr 2020 20:21:27 GMT");
+            CHECK_EQ(j.url(), "https://conda.anaconda.org/intake/osx-arm64");
 
             auto state_file = cache_folder / "test_7.state.json";
             // set file_mtime
@@ -681,13 +675,12 @@ namespace mamba
                 ofs << jstate.dump(4);
             }
 
-            j = detail::read_metadata(cache_folder / "test_7.json").value();
-            CHECK_EQ(j.cache_control, "something");
-            CHECK_EQ(j.etag, "something else");
-            CHECK_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");
-            CHECK_EQ(j.url, "https://conda.anaconda.org/conda-forge/noarch/repodata.json.zst");
-            CHECK_EQ(j.has_zst.value().value, true);
-            CHECK_EQ(j.has_zst.value().last_checked, parse_utc_timestamp("2023-01-06T16:33:06Z"));
+            j = MSubdirMetadata::read(cache_folder / "test_7.json").value();
+            CHECK_EQ(j.cache_control(), "something");
+            CHECK_EQ(j.etag(), "something else");
+            CHECK_EQ(j.mod(), "Fri, 11 Feb 2022 13:52:44 GMT");
+            CHECK_EQ(j.url(), "https://conda.anaconda.org/conda-forge/noarch/repodata.json.zst");
+            CHECK_EQ(j.has_zst(), false);
         }
     }
 }  // namespace mamba

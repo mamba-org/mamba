@@ -17,96 +17,135 @@
 
 namespace mamba
 {
-    void subdir_metadata::serialize_to_stream(std::ostream& out) const
+    /*******************
+     * MSubdirMetadata *
+     *******************/
+    
+    namespace
+    {
+        // parse json at the beginning of the stream such as
+        // {"_url": "https://conda.anaconda.org/conda-forge/linux-64",
+        // "_etag": "W/\"6092e6a2b6cec6ea5aade4e177c3edda-8\"",
+        // "_mod": "Sat, 04 Apr 2020 03:29:49 GMT",
+        // "_cache_control": "public, max-age=1200"
+        std::string extract_subjson(std::ifstream& s)
+        {
+            char next = {};
+            std::string result = {};
+            bool escaped = false;
+            int i = 0, N = 4;
+            std::size_t idx = 0;
+            std::size_t prev_keystart = 0;
+            bool in_key = false;
+            std::string key = "";
+
+            while (s.get(next))
+            {
+                idx++;
+                if (next == '"')
+                {
+                    if (!escaped)
+                    {
+                        if ((i / 2) % 2 == 0)
+                        {
+                            in_key = !in_key;
+                            if (in_key)
+                            {
+                                prev_keystart = idx + 1;
+                            }
+                            else
+                            {
+                                if (key != "_mod" && key != "_etag" && key != "_cache_control"
+                                    && key != "_url")
+                                {
+                                    // bail out
+                                    auto last_comma = result.find_last_of(",", prev_keystart - 2);
+                                    if (last_comma != std::string::npos && last_comma > 0)
+                                    {
+                                        result = result.substr(0, last_comma);
+                                        result.push_back('}');
+                                        return result;
+                                    }
+                                    else
+                                    {
+                                        return std::string();
+                                    }
+                                }
+                                key.clear();
+                            }
+                        }
+                        i++;
+                    }
+
+                    // 4 keys == 4 ticks
+                    if (i == 4 * N)
+                    {
+                        result += "\"}";
+                        return result;
+                    }
+                }
+
+                if (in_key && next != '"')
+                {
+                    key.push_back(next);
+                }
+
+                escaped = (!escaped && next == '\\');
+                result.push_back(next);
+            }
+            return std::string();
+        }
+    }
+
+    auto MSubdirMetadata::read(const fs::u8path& file) -> expected_subdir_metadata
+    {
+        fs::u8path state_file = file;
+        state_file.replace_extension(".state.json");
+        std::error_code ec;
+        if (fs::exists(state_file, ec))
+        {
+            return from_state_file(state_file, file);
+        }
+        else
+        {
+            return from_repodata_file(file);
+        }
+    }
+    
+    void MSubdirMetadata::write(const fs::u8path& file)
     {
         nlohmann::json j;
-        j["url"] = url;
-        j["etag"] = etag;
-        j["mod"] = mod;
-        j["cache_control"] = cache_control;
-        j["size"] = stored_file_size;
+        j["url"] = m_url;
+        j["etag"] = m_etag;
+        j["mod"] = m_mod;
+        j["cache_control"] = m_cache_control;
+        j["size"] = m_stored_file_size;
 
         auto nsecs = std::chrono::duration_cast<std::chrono::nanoseconds>(
-            stored_mtime.time_since_epoch()
+            m_stored_mtime.time_since_epoch()
         );
         j["mtime_ns"] = nsecs.count();
 
-        if (has_zst.has_value())
+        if (m_has_zst.has_value())
         {
-            j["has_zst"]["value"] = has_zst.value().value;
-            j["has_zst"]["last_checked"] = timestamp(has_zst.value().last_checked);
+            j["has_zst"]["value"] = m_has_zst.value().value;
+            j["has_zst"]["last_checked"] = timestamp(m_has_zst.value().last_checked);
         }
+        std::ofstream out = open_ofstream(file);
         out << j.dump(4);
     }
 
-    void subdir_metadata::serialize_to_stream_tiny(std::ostream& out) const
+    bool MSubdirMetadata::check_valid_metadata(const fs::u8path& file)
     {
-        nlohmann::json j;
-        j["_url"] = url;
-        j["_etag"] = etag;
-        j["_mod"] = mod;
-        j["_cache_control"] = cache_control;
-        out << j.dump();
-    }
-
-    bool subdir_metadata::check_zst(ChannelContext& channel_context, const Channel* channel)
-    {
-        if (has_zst.has_value())
-        {
-            if (!has_zst.value().has_expired())
-            {
-                return has_zst.value().value;
-            }
-        }
-
-        for (const auto& c : channel_context.context().repodata_has_zst)
-        {
-            if (channel_context.make_channel(c) == *channel)
-            {
-                has_zst = { true,
-                            std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) };
-                return true;
-                break;
-            }
-        }
-        return false;
-    }
-
-#ifdef _WIN32
-    std::chrono::system_clock::time_point filetime_to_unix(const fs::file_time_type& filetime)
-    {
-        // windows filetime is in 100ns intervals since 1601-01-01
-        static constexpr auto epoch_offset = std::chrono::seconds(11644473600ULL);
-        return std::chrono::system_clock::time_point(
-            std::chrono::duration_cast<std::chrono::system_clock::duration>(
-                filetime.time_since_epoch() - epoch_offset
-            )
-        );
-    }
-#endif
-
-    void subdir_metadata::store_file_metadata(const fs::u8path& file)
-    {
-#ifndef _WIN32
-        stored_mtime = fs::last_write_time(file);
-#else
-        // convert windows filetime to unix timestamp
-        stored_mtime = filetime_to_unix(fs::last_write_time(file));
-#endif
-        stored_file_size = fs::file_size(file);
-    }
-
-    bool subdir_metadata::check_valid_metadata(const fs::u8path& file)
-    {
-        if (stored_file_size != fs::file_size(file))
+        if (m_stored_file_size != fs::file_size(file))
         {
             LOG_INFO << "File size changed, invalidating metadata";
             return false;
         }
 #ifndef _WIN32
-        bool last_write_time_valid = fs::last_write_time(file) == stored_mtime;
+        bool last_write_time_valid = fs::last_write_time(file) == m_stored_mtime;
 #else
-        bool last_write_time_valid = filetime_to_unix(fs::last_write_time(file)) == stored_mtime;
+        bool last_write_time_valid = filetime_to_unix(fs::last_write_time(file)) == m_stored_mtime;
 #endif
         if (!last_write_time_valid)
         {
@@ -115,27 +154,78 @@ namespace mamba
         return last_write_time_valid;
     }
 
-    tl::expected<subdir_metadata, mamba_error> subdir_metadata::from_stream(std::istream& in)
+    const std::string& MSubdirMetadata::url() const
     {
-        nlohmann::json j = nlohmann::json::parse(in);
-        subdir_metadata m;
+        return m_url;
+    }
+
+    const std::string& MSubdirMetadata::etag() const
+    {
+        return m_etag;
+    }
+
+    const std::string& MSubdirMetadata::mod() const
+    {
+        return m_mod;
+    }
+
+    const std::string& MSubdirMetadata::cache_control() const
+    {
+        return m_cache_control;
+    }
+
+    bool MSubdirMetadata::has_zst() const
+    {
+        return m_has_zst.has_value() && m_has_zst.value().value && !m_has_zst.value().has_expired();
+    }
+
+    void MSubdirMetadata::store_http_metadata(std::string url, std::string etag, std::string mod, std::string cache_control)
+    {
+        m_url = std::move(url);
+        m_etag = std::move(etag);
+        m_mod = std::move(mod);
+        m_cache_control = std::move(cache_control);
+    }
+
+    void MSubdirMetadata::store_file_metadata(const fs::u8path& file)
+    {
+#ifndef _WIN32
+        m_stored_mtime = fs::last_write_time(file);
+#else
+        // convert windows filetime to unix timestamp
+        m_stored_mtime = filetime_to_unix(fs::last_write_time(file));
+#endif
+        m_stored_file_size = fs::file_size(file);
+    }
+
+    void MSubdirMetadata::set_zst(bool value)
+    {
+        m_has_zst = { value,
+                      std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) };
+    }
+
+    auto MSubdirMetadata::from_state_file(const fs::u8path& state_file, const fs::u8path& repodata_file) -> expected_subdir_metadata 
+    {
+        std::ifstream infile = open_ifstream(state_file);
+        nlohmann::json j = nlohmann::json::parse(infile);
+        MSubdirMetadata m;
         try
         {
-            m.url = j["url"].get<std::string>();
-            m.etag = j["etag"].get<std::string>();
-            m.mod = j["mod"].get<std::string>();
-            m.cache_control = j["cache_control"].get<std::string>();
-            m.stored_file_size = j["size"].get<std::size_t>();
+            m.m_url = j["url"].get<std::string>();
+            m.m_etag = j["etag"].get<std::string>();
+            m.m_mod = j["mod"].get<std::string>();
+            m.m_cache_control = j["cache_control"].get<std::string>();
+            m.m_stored_file_size = j["size"].get<std::size_t>();
 
-            using time_type = decltype(m.stored_mtime);
-            m.stored_mtime = time_type(std::chrono::duration_cast<time_type::duration>(
+            using time_type = decltype(m.m_stored_mtime);
+            m.m_stored_mtime = time_type(std::chrono::duration_cast<time_type::duration>(
                 std::chrono::nanoseconds(j["mtime_ns"].get<std::size_t>())
             ));
 
             int err_code = 0;
             if (j.find("has_zst") != j.end())
             {
-                m.has_zst = {
+                m.m_has_zst = {
                     j["has_zst"]["value"].get<bool>(),
                     parse_utc_timestamp(j["has_zst"]["last_checked"].get<std::string>(), err_code)
                 };
@@ -143,156 +233,66 @@ namespace mamba
         }
         catch (const std::exception& e)
         {
+            LOG_WARNING << "Could not parse state file: " << e.what();
+            std::error_code ec;
+            fs::remove(state_file, ec);
+            if (ec)
+            {
+                LOG_WARNING << "Could not remove state file " << state_file << ": "
+                            << ec.message();
+            }
             return make_unexpected(
-                fmt::format("Could not load cache state: {}", e.what()),
+                fmt::format("File: {}: Could not load cache state: {}", state_file, e.what()),
+                mamba_error_code::cache_not_loaded
+            );
+        }
+
+        if (!m.check_valid_metadata(repodata_file))
+        {
+            LOG_WARNING << "Cache file " << repodata_file << " was modified by another program";
+            return make_unexpected(
+                fmt::format("File: {}: Cache file mtime mismatch", state_file),
                 mamba_error_code::cache_not_loaded
             );
         }
         return m;
     }
-
-
-    namespace detail
+    
+    auto MSubdirMetadata::from_repodata_file(const fs::u8path& repodata_file) -> expected_subdir_metadata
     {
-        tl::expected<subdir_metadata, mamba_error> read_metadata(const fs::u8path& file)
+        std::ifstream in_file = open_ifstream(repodata_file);
+        std::string json = extract_subjson(in_file);
+
+        try
         {
-            auto state_file = file;
-            state_file.replace_extension(".state.json");
-            std::error_code ec;
-            if (fs::exists(state_file, ec))
-            {
-                auto infile = open_ifstream(state_file);
-                auto m = subdir_metadata::from_stream(infile);
-                if (!m.has_value())
-                {
-                    LOG_WARNING << "Could not parse state file: " << m.error().what();
-                    fs::remove(state_file, ec);
-                    if (ec)
-                    {
-                        LOG_WARNING << "Could not remove state file " << state_file << ": "
-                                    << ec.message();
-                    }
-                    return make_unexpected(
-                        fmt::format("File: {}: {}", state_file, m.error().what()),
-                        mamba_error_code::cache_not_loaded
-                    );
-                }
-
-                if (!m.value().check_valid_metadata(file))
-                {
-                    LOG_WARNING << "Cache file " << file << " was modified by another program";
-                    // TODO clear out json file values?
-                    m.value().etag = "";
-                    m.value().mod = "";
-                    m.value().cache_control = "";
-                    m.value().stored_file_size = 0;
-                    m.value().stored_mtime = decltype(m.value().stored_mtime)::min();
-                    return make_unexpected(
-                        fmt::format("File: {}: Cache file mtime mismatch", state_file),
-                        mamba_error_code::cache_not_loaded
-                    );
-                }
-
-                return m.value();
-            }
-
-            // parse json at the beginning of the stream such as
-            // {"_url": "https://conda.anaconda.org/conda-forge/linux-64",
-            // "_etag": "W/\"6092e6a2b6cec6ea5aade4e177c3edda-8\"",
-            // "_mod": "Sat, 04 Apr 2020 03:29:49 GMT",
-            // "_cache_control": "public, max-age=1200"
-            auto extract_subjson = [](std::ifstream& s) -> std::string
-            {
-                char next = {};
-                std::string result = {};
-                bool escaped = false;
-                int i = 0, N = 4;
-                std::size_t idx = 0;
-                std::size_t prev_keystart = 0;
-                bool in_key = false;
-                std::string key = "";
-
-                while (s.get(next))
-                {
-                    idx++;
-                    if (next == '"')
-                    {
-                        if (!escaped)
-                        {
-                            if ((i / 2) % 2 == 0)
-                            {
-                                in_key = !in_key;
-                                if (in_key)
-                                {
-                                    prev_keystart = idx + 1;
-                                }
-                                else
-                                {
-                                    if (key != "_mod" && key != "_etag" && key != "_cache_control"
-                                        && key != "_url")
-                                    {
-                                        // bail out
-                                        auto last_comma = result.find_last_of(",", prev_keystart - 2);
-                                        if (last_comma != std::string::npos && last_comma > 0)
-                                        {
-                                            result = result.substr(0, last_comma);
-                                            result.push_back('}');
-                                            return result;
-                                        }
-                                        else
-                                        {
-                                            return std::string();
-                                        }
-                                    }
-                                    key.clear();
-                                }
-                            }
-                            i++;
-                        }
-
-                        // 4 keys == 4 ticks
-                        if (i == 4 * N)
-                        {
-                            result += "\"}";
-                            return result;
-                        }
-                    }
-
-                    if (in_key && next != '"')
-                    {
-                        key.push_back(next);
-                    }
-
-                    escaped = (!escaped && next == '\\');
-                    result.push_back(next);
-                }
-                return std::string();
-            };
-
-            std::ifstream in_file = open_ifstream(file);
-            auto json = extract_subjson(in_file);
-
-            nlohmann::json result;
-            try
-            {
-                result = nlohmann::json::parse(json);
-                subdir_metadata m;
-                m.url = result.value("_url", "");
-                m.etag = result.value("_etag", "");
-                m.mod = result.value("_mod", "");
-                m.cache_control = result.value("_cache_control", "");
-                return m;
-            }
-            catch (std::exception& e)
-            {
-                LOG_WARNING << "Could not parse mod/etag header";
-                return make_unexpected(
-                    fmt::format("File: {}: Could not parse mod/etag header ({})", state_file, e.what()),
-                    mamba_error_code::cache_not_loaded
-                );
-            }
+            nlohmann::json result = nlohmann::json::parse(json);
+            MSubdirMetadata m;
+            m.m_url = result.value("_url", "");
+            m.m_etag = result.value("_etag", "");
+            m.m_mod = result.value("_mod", "");
+            m.m_cache_control = result.value("_cache_control", "");
+            return m;
+        }
+        catch (std::exception& e)
+        {
+            LOG_WARNING << "Could not parse mod/etag header";
+            return make_unexpected(
+                fmt::format("File: {}: Could not parse mod/etag header ({})", repodata_file, e.what()),
+                mamba_error_code::cache_not_loaded
+            );
         }
     }
+
+
+    bool MSubdirMetadata::checked_at::has_expired() const
+    {
+        // difference in seconds, check every 14 days
+        return std::difftime(std::time(nullptr), last_checked) > 60 * 60 * 24 * 14;
+    }
+
+    /**********************
+     * OLD IMPLEMENTATION *
+     **********************/
 
     expected_t<MSubdirData> MSubdirData::create(
         ChannelContext& channel_context,
@@ -468,7 +468,7 @@ namespace mamba
 
         if (util::ends_with(target.get_url(), ".zst"))
         {
-            this->m_metadata.has_zst = { target.get_http_status() == 200, utc_time_now() };
+            this->m_metadata.set_zst(target.get_http_status() == 200);
         }
         return true;
     }
@@ -488,6 +488,18 @@ namespace mamba
             const auto end_it = std::unique(values.begin(), values.end());
             values.erase(end_it, values.end());
             return values;
+        }
+
+        bool check_zst(ChannelContext& channel_context, const Channel& channel)
+        {
+            for (const auto& c : channel_context.context().repodata_has_zst)
+            {
+                if (channel_context.make_channel(c) == channel)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 
@@ -524,7 +536,7 @@ namespace mamba
 
             if (cache_age != fs::file_time_type::duration::max() && !forbid_cache())
             {
-                auto metadata_temp = detail::read_metadata(json_file);
+                auto metadata_temp = MSubdirMetadata::read(json_file);
                 if (!metadata_temp.has_value())
                 {
                     LOG_INFO << "Invalid json cache found, ignoring";
@@ -541,7 +553,7 @@ namespace mamba
                     else if (context.local_repodata_ttl == 1)
                     {
                         // TODO error handling if _cache_control key does not exist!
-                        max_age = static_cast<int>(get_cache_control_max_age(m_metadata.cache_control)
+                        max_age = static_cast<int>(get_cache_control_max_age(m_metadata.cache_control())
                         );
                     }
 
@@ -609,11 +621,13 @@ namespace mamba
             {
                 if (context.repodata_use_zst)
                 {
-                    bool has_value = m_metadata.has_zst.has_value();
-                    bool is_expired = m_metadata.has_zst.has_value()
-                                      && m_metadata.has_zst.value().has_expired();
-                    bool has_zst = m_metadata.check_zst(channel_context, p_channel);
-                    if (!has_zst && (is_expired || !has_value))
+                    bool has_zst = m_metadata.has_zst();
+                    if (!has_zst)
+                    {
+                        has_zst = check_zst(channel_context, *p_channel);
+                        m_metadata.set_zst(has_zst);
+                    }
+                    if (!has_zst)
                     {
                         m_check_targets.push_back(std::make_unique<DownloadTarget>(
                             context,
@@ -690,8 +704,7 @@ namespace mamba
         state_file.replace_extension(".state.json");
         auto lock = LockFile(state_file);
         m_metadata.store_file_metadata(json_file);
-        auto outf = open_ofstream(state_file);
-        m_metadata.serialize_to_stream(outf);
+        m_metadata.write(state_file);
     }
 
     bool MSubdirData::finalize_transfer(const DownloadTarget&)
@@ -816,13 +829,15 @@ namespace mamba
         json_file = writable_cache_dir / m_json_fn;
         auto lock = LockFile(writable_cache_dir);
 
-        auto file_size = fs::file_size(m_temp_file->path());
+        //auto file_size = fs::file_size(m_temp_file->path());
 
-        m_metadata.url = m_target->get_url();
-        m_metadata.etag = m_target->get_etag();
-        m_metadata.mod = m_target->get_mod();
-        m_metadata.cache_control = m_target->get_cache_control();
-        m_metadata.stored_file_size = file_size;
+        m_metadata.store_http_metadata(
+            m_target->get_url(),
+            m_target->get_etag(),
+            m_target->get_mod(),
+            m_target->get_cache_control()
+        );
+        //m_metadata.stored_file_size = file_size;
 
         fs::u8path state_file = json_file;
         state_file.replace_extension(".state.json");
@@ -843,8 +858,7 @@ namespace mamba
         fs::last_write_time(json_file, fs::now());
 
         m_metadata.store_file_metadata(json_file);
-        std::ofstream state_file_stream = open_ofstream(state_file);
-        m_metadata.serialize_to_stream(state_file_stream);
+        m_metadata.write(state_file);
 
         if (m_progress_bar)
         {
@@ -869,7 +883,7 @@ namespace mamba
         auto lock = LockFile(writable_cache_dir);
         m_temp_file = std::make_unique<TemporaryFile>("mambaf", "", writable_cache_dir);
 
-        bool use_zst = m_metadata.has_zst.has_value() && m_metadata.has_zst.value().value;
+        bool use_zst = m_metadata.has_zst();
         m_target = std::make_unique<DownloadTarget>(
             ctx,
             m_name,
@@ -889,7 +903,7 @@ namespace mamba
             m_target->set_ignore_failure(true);
         }
         m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
-        m_target->set_mod_etag_headers(m_metadata.mod, m_metadata.etag);
+        m_target->set_mod_etag_headers(m_metadata.mod(), m_metadata.etag());
     }
 
     std::size_t MSubdirData::get_cache_control_max_age(const std::string& val)
@@ -924,9 +938,9 @@ namespace mamba
         assert(&pool.context() == p_context);
         using return_type = expected_t<MRepo>;
         RepoMetadata meta{
-            /* .url= */ util::rsplit(m_metadata.url, "/", 1).front(),
-            /* .etag= */ m_metadata.etag,
-            /* .mod= */ m_metadata.mod,
+            /* .url= */ util::rsplit(m_metadata.url(), "/", 1).front(),
+            /* .etag= */ m_metadata.etag(),
+            /* .mod= */ m_metadata.mod(),
             /* .pip_added= */ p_context->add_pip_as_python_dependency,
         };
 

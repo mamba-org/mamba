@@ -164,14 +164,14 @@ set_update_command(CLI::App* subcom, Configuration& config)
 {
     init_install_options(subcom, config);
 
-    static bool prune = true;
+    static bool prune_deps = true;
     static bool update_all = false;
-    subcom->add_flag("--prune,!--no-prune", prune, "Prune dependencies (default)");
+    subcom->add_flag("--prune-deps,!--no-prune-deps", prune_deps, "Prune dependencies (default)");
 
     subcom->get_option("specs")->description("Specs to update in the environment");
     subcom->add_flag("-a,--all", update_all, "Update all packages in the environment");
 
-    subcom->callback([&] { return update(config, update_all, prune); });
+    subcom->callback([&] { return update(config, update_all, prune_deps); });
 }
 
 void

@@ -130,3 +130,8 @@ class TestLinking:
 
         os.remove(linked_file)
         remove("xtensor", "-n", TestLinking.env_name)
+
+    def test_link_missing_scripts_dir(self):  # issue 2808
+        create(
+            "python=3.7", "pypy", "-n", TestLinking.env_name, "--json", no_dry_run=True
+        )

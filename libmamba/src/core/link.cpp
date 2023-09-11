@@ -153,6 +153,10 @@ namespace mamba
             m_clobber_warnings.push_back(fs::relative(script_path, m_context->target_prefix).string());
             fs::remove(script_path);
         }
+        if (!fs::is_directory(script_path.parent_path()))
+        {
+            fs::create_directories(script_path.parent_path());
+        }
         std::ofstream out_file = open_ofstream(script_path);
 
         fs::u8path python_path;

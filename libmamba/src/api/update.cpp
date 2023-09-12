@@ -139,11 +139,7 @@ namespace mamba
                         remove_specs.push_back(it.second.name);
                     }
                 }
-                solver.add_jobs(remove_specs, SOLVER_ERASE | SOLVER_CLEANDEPS);  // TODO it doesn't
-                                                                                 // seem that the
-                                                                                 // SOLVER_CLEANDEPS
-                                                                                 // is working
-                                                                                 // here...
+                solver.add_jobs(remove_specs, SOLVER_ERASE | SOLVER_CLEANDEPS);
             }
             solver.add_jobs(update_specs, solver_flag);
         }

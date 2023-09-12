@@ -153,6 +153,7 @@ def test_env_update(tmp_home, tmp_root_prefix, tmp_path, prune):
         package["name"] == "xtensor" and package["version"] == "0.20.0"
         for package in packages
     )
+    assert any(package["name"] == "xtl" for package in packages)
 
     # Update python
     from packaging.version import Version
@@ -171,11 +172,14 @@ def test_env_update(tmp_home, tmp_root_prefix, tmp_path, prune):
     )
     if prune:
         assert not any(package["name"] == "xtensor" for package in packages)
+        # Make sure dependencies of removed pkgs are removed as well (xtl is a dep of xtensor)
+        assert not any(package["name"] == "xtl" for package in packages)
     else:
         assert any(
             package["name"] == "xtensor" and package["version"] == "0.20.0"
             for package in packages
         )
+        assert any(package["name"] == "xtl" for package in packages)
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)

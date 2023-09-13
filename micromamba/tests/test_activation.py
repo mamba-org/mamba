@@ -32,6 +32,7 @@ suffixes = {
     "xonsh": ".sh",
     "fish": ".fish",
     "powershell": ".ps1",
+    "nu": ".nu",
 }
 
 
@@ -62,6 +63,7 @@ paths = {
         "xonsh": "~/.xonshrc",
         "tcsh": "~/.tcshrc",
         "fish": "~/.config/fish/config.fish",
+        "nu": "~/.config/nushell/config.nu",
     },
     "linux": {
         "zsh": "~/.zshrc",
@@ -69,6 +71,7 @@ paths = {
         "xonsh": "~/.xonshrc",
         "tcsh": "~/.tcshrc",
         "fish": "~/.config/fish/config.fish",
+        "nu": "~/.config/nushell/config.nu",
     },
 }
 
@@ -100,8 +103,8 @@ def write_script(interpreter, lines, path):
 
 
 possible_interpreters = {
-    "win": {"powershell", "cmd.exe", "bash"},
-    "unix": {"bash", "zsh", "fish", "xonsh", "tcsh"},
+    "win": {"powershell", "cmd.exe", "bash", "nu"},
+    "unix": {"bash", "zsh", "fish", "xonsh", "tcsh", "nu"},
 }
 
 
@@ -266,6 +269,8 @@ def shvar(v, interpreter):
         return f"$Env:{v}"
     elif interpreter == "cmd.exe":
         return f"%{v}%"
+    elif interpreter == "nu":
+        return f"$env.{v}"
 
 
 def env_to_dict(out, interpreter="bash"):
@@ -429,6 +434,8 @@ def test_shell_init_deinit_root_prefix_files(
         files = [tmp_root_prefix / "etc" / "profile.d" / "mamba.xsh"]
     elif interpreter in ["csh", "tcsh"]:
         files = [tmp_root_prefix / "etc" / "profile.d" / "micromamba.csh"]
+    elif interpreter == "nu":
+        files = []  # moved to ~/.config/nushell.nu controlled by micromamba activation
     else:
         raise ValueError(f"Unknown shell {interpreter}")
 

@@ -68,6 +68,10 @@ namespace mamba
         {
             return "dash";
         }
+        if (util::contains(parent_process_name, "nu"))
+        {
+            return "nu";
+        }
 
         // xonsh in unix, Python in macOS
         if (util::contains(parent_process_name_lower, "python"))
@@ -383,6 +387,59 @@ namespace mamba
     }
 
     std::string
+    nu_content(const fs::u8path& env_prefix, const std::string& /*shell*/, const fs::u8path& mamba_exe)
+    {
+        std::stringstream content;
+        std::string s_mamba_exe;
+        if (util::on_win)
+        {
+            s_mamba_exe = native_path_to_unix(mamba_exe.string());
+        }
+        else
+        {
+            s_mamba_exe = mamba_exe.string();
+        }
+
+        content << "\n# >>> mamba initialize >>>\n";
+        content << "# !! Contents within this block are managed by 'mamba init' !!\n";
+        content << "$env.MAMBA_EXE = " << mamba_exe << "\n";
+        content << "$env.MAMBA_ROOT_PREFIX = " << env_prefix << "\n";
+        content << "$env.PATH = ($env.PATH | prepend ([$env.MAMBA_ROOT_PREFIX bin] | path join) | uniq)\n";
+        content << R"###(def-env "micromamba activate"  [name: string] {
+    #add condabin when root
+    if $env.MAMBA_SHLVL? == null {
+        $env.MAMBA_SHLVL = 0
+        $env.PATH = ($env.PATH | prepend $"($env.MAMBA_ROOT_PREFIX)/condabin")
+    }
+    #ask mamba how to setup the environment and set the environment
+    (micromamba shell activate --shell nu $name
+      | split row ";"
+      | parse  "{key} = {value}"
+      | transpose --header-row
+      | into record
+      | load-env
+    )
+    $env.PROMPT_COMMAND = {$env.CONDA_PROMPT_MODIFIER + (create_left_prompt)}
+}
+def-env "micromamba deactivate" [] {
+    #remove active environment except micromamba root
+    if $env.CONDA_PROMPT_MODIFIER? != null {
+     (micromamba shell deactivate  --shell nu
+      | split row ";"
+      | str trim
+      | parse --regex '(.*?)(?:\s*=\s*|\s+)(.*?)'
+      | transpose --header-row
+      | into record
+      | load-env
+    )
+    $env.PROMPT_COMMAND = (create_left_prompt)
+  }})###"
+                << "\n";
+        content << "# <<< mamba initialize <<<\n";
+        return content.str();
+    }
+
+    std::string
     csh_content(const fs::u8path& env_prefix, const std::string& /*shell*/, const fs::u8path& mamba_exe)
     {
         std::stringstream content;
@@ -444,6 +501,10 @@ namespace mamba
         else if (shell == "fish")
         {
             conda_init_content = fish_content(conda_prefix, shell, mamba_exe);
+        }
+        else if (shell == "nu")
+        {
+            conda_init_content = nu_content(conda_prefix, shell, mamba_exe);
         }
         else if (shell == "csh")
         {
@@ -578,6 +639,11 @@ namespace mamba
             // Using /unix/like/paths on Unix shell (even on Windows)
             util::replace_all(contents, "$MAMBA_EXE", exe.generic_string());
             return contents;
+        }
+        else if (shell == "nu")
+        {
+            // not implemented due to inability in nu to evaluate dynamically generated code
+            return "";
         }
         return "";
     }
@@ -759,6 +825,18 @@ namespace mamba
             }
             std::ofstream sh_file = open_ofstream(sh_source_path);
             sh_file << data_mamba_fish;
+        }
+        else if (shell == "nu")
+        {
+            NuActivator a{ context };
+            auto sh_source_path = a.hook_source_path();
+            try
+            {
+                fs::create_directories(sh_source_path.parent_path());
+            }
+            catch (...)
+            {
+            }
         }
         else if (shell == "cmd.exe")
         {
@@ -1052,6 +1130,11 @@ namespace mamba
             fs::u8path fishrc_path = home / ".config" / "fish" / "config.fish";
             modify_rc_file(context, fishrc_path, conda_prefix, shell, mamba_exe);
         }
+        else if (shell == "nu")
+        {
+            fs::u8path nu_config_path = home / ".config" / "nushell" / "config.nu";
+            modify_rc_file(context, nu_config_path, conda_prefix, shell, mamba_exe);
+        }
         else if (shell == "cmd.exe")
         {
 #ifndef _WIN32
@@ -1121,6 +1204,11 @@ namespace mamba
             fs::u8path fishrc_path = home / ".config" / "fish" / "config.fish";
             reset_rc_file(context, fishrc_path, shell, mamba_exe);
         }
+        else if (shell == "nu")
+        {
+            fs::u8path nu_config_path = home / ".config" / "nushell" / "config.nu";
+            reset_rc_file(context, nu_config_path, shell, mamba_exe);
+        }
         else if (shell == "cmd.exe")
         {
 #ifndef _WIN32
@@ -1178,6 +1266,10 @@ namespace mamba
         {
             config_path = home / ".config" / "fish" / "config.fish";
         }
+        else if (shell == "nu")
+        {
+            config_path = "";
+        }
         return config_path;
     }
 
@@ -1186,7 +1278,7 @@ namespace mamba
         fs::u8path home = env::home_directory();
 
         std::vector<std::string> result;
-        std::vector<std::string> supported_shells = { "bash", "zsh", "xonsh", "csh", "fish" };
+        std::vector<std::string> supported_shells = { "bash", "zsh", "xonsh", "csh", "fish", "nu" };
         for (const std::string& shell : supported_shells)
         {
             fs::u8path config_path = config_path_for_shell(shell);

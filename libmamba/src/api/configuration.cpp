@@ -383,15 +383,24 @@ namespace mamba
             // Bail out early
             return s;
         }
-        // Match $$ and ${var} where var does not contains YAML special charaters
-        std::regex env_var_re(R"(\$(?:\$|\{([^\}'\"\s]+)\}))");
+        std::regex env_var_re(R"(\$(\{\w+\}|\w+))");
         for (auto matches = std::sregex_iterator(s.begin(), s.end(), env_var_re);
              matches != std::sregex_iterator();
              ++matches)
         {
             std::smatch match = *matches;
-            auto var = match[1].str();
-            auto val = var.empty() ? "$" : env::get(var);
+            auto var = match[0].str();
+            if (mamba::util::starts_with(var, "${"))
+            {
+                // strip ${ and }
+                var = var.substr(2, var.size() - 3);
+            }
+            else
+            {
+                // strip $
+                var = var.substr(1);
+            }
+            auto val = env::get(var);
             if (val)
             {
                 s.replace(match[0].first, match[0].second, val.value());

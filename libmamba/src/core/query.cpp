@@ -20,8 +20,8 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/query.hpp"
+#include "mamba/specs/conda_url.hpp"
 #include "mamba/util/string.hpp"
-#include "mamba/util/url_manip.hpp"
 #include "solv-cpp/queue.hpp"
 
 namespace mamba
@@ -191,10 +191,14 @@ namespace mamba
             fmt::print(out, fmtstring, "Subdir", pkg.subdir);
             fmt::print(out, fmtstring, "File Name", pkg.fn);
 
-            std::string url_remaining, url_scheme, url_auth, url_token;
-            util::split_scheme_auth_token(pkg.url, url_remaining, url_scheme, url_auth, url_token);
-
-            fmt::print(out, "  {:<15} {}://{}\n", "URL", url_scheme, url_remaining);
+            using CondaURL = typename specs::CondaURL;
+            auto url = CondaURL::parse(pkg.url);
+            fmt::print(
+                out,
+                "  {:<15} {}\n",
+                "URL",
+                url.pretty_str(CondaURL::StripScheme::no, '/', CondaURL::HideConfidential::yes)
+            );
 
             fmt::print(out, fmtstring, "MD5", pkg.md5.empty() ? "Not available" : pkg.md5);
             fmt::print(out, fmtstring, "SHA256", pkg.sha256.empty() ? "Not available" : pkg.sha256);

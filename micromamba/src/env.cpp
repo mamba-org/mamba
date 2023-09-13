@@ -9,6 +9,7 @@
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/create.hpp"
 #include "mamba/api/remove.hpp"
+#include "mamba/api/update.hpp"
 #include "mamba/core/channel.hpp"
 #include "mamba/core/environments_manager.hpp"
 #include "mamba/core/prefix_data.hpp"
@@ -45,16 +46,60 @@ set_env_command(CLI::App* com, Configuration& config)
     init_general_options(com, config);
     init_prefix_options(com, config);
 
+    // env list subcommand
     auto* list_subcom = com->add_subcommand("list", "List known environments");
     init_general_options(list_subcom, config);
     init_prefix_options(list_subcom, config);
 
+    list_subcom->callback(
+        [&config]
+        {
+            const auto& ctx = config.context();
+            config.load();
+
+            EnvironmentsManager env_manager{ ctx };
+
+            if (ctx.output_params.json)
+            {
+                nlohmann::json res;
+                const auto pfxs = env_manager.list_all_known_prefixes();
+                std::vector<std::string> envs(pfxs.size());
+                std::transform(
+                    pfxs.begin(),
+                    pfxs.end(),
+                    envs.begin(),
+                    [](const fs::u8path& path) { return path.string(); }
+                );
+                res["envs"] = envs;
+                std::cout << res.dump(4) << std::endl;
+                return;
+            }
+
+            // format and print table
+            printers::Table t({ "Name", "Active", "Path" });
+            t.set_alignment(
+                { printers::alignment::left, printers::alignment::left, printers::alignment::left }
+            );
+            t.set_padding({ 2, 2, 2 });
+
+            for (auto& env : env_manager.list_all_known_prefixes())
+            {
+                bool is_active = (env == ctx.prefix_params.target_prefix);
+                t.add_row({ get_env_name(ctx, env), is_active ? "*" : "", env.string() });
+            }
+            t.print(std::cout);
+        }
+    );
+
+    // env create subcommand
     auto* create_subcom = com->add_subcommand(
         "create",
         "Create new environment (pre-commit.com compatibility alias for 'micromamba create')"
     );
     init_install_options(create_subcom, config);
+    create_subcom->callback([&] { return mamba::create(config); });
 
+    // env export subcommand
     static bool explicit_format = false;
     static int no_md5 = 0;
     static bool no_build = false;
@@ -62,8 +107,10 @@ set_env_command(CLI::App* com, Configuration& config)
     static bool from_history = false;
 
     auto* export_subcom = com->add_subcommand("export", "Export environment");
+
     init_general_options(export_subcom, config);
     init_prefix_options(export_subcom, config);
+
     export_subcom->add_flag("-e,--explicit", explicit_format, "Use explicit format");
     export_subcom->add_flag("--no-md5,!--md5", no_md5, "Disable md5");
     export_subcom->add_flag("--no-build,!--build", no_build, "Disable the build string in spec");
@@ -161,51 +208,10 @@ set_env_command(CLI::App* com, Configuration& config)
         }
     );
 
-    list_subcom->callback(
-        [&config]
-        {
-            const auto& ctx = config.context();
-            config.load();
-
-            EnvironmentsManager env_manager{ ctx };
-
-            if (ctx.output_params.json)
-            {
-                nlohmann::json res;
-                const auto pfxs = env_manager.list_all_known_prefixes();
-                std::vector<std::string> envs(pfxs.size());
-                std::transform(
-                    pfxs.begin(),
-                    pfxs.end(),
-                    envs.begin(),
-                    [](const fs::u8path& path) { return path.string(); }
-                );
-                res["envs"] = envs;
-                std::cout << res.dump(4) << std::endl;
-                return;
-            }
-
-            // format and print table
-            printers::Table t({ "Name", "Active", "Path" });
-            t.set_alignment(
-                { printers::alignment::left, printers::alignment::left, printers::alignment::left }
-            );
-            t.set_padding({ 2, 2, 2 });
-
-            for (auto& env : env_manager.list_all_known_prefixes())
-            {
-                bool is_active = (env == ctx.prefix_params.target_prefix);
-                t.add_row({ get_env_name(ctx, env), is_active ? "*" : "", env.string() });
-            }
-            t.print(std::cout);
-        }
-    );
-
+    // env remove subcommand
     auto* remove_subcom = com->add_subcommand("remove", "Remove an environment");
     init_general_options(remove_subcom, config);
     init_prefix_options(remove_subcom, config);
-
-    create_subcom->callback([&] { return mamba::create(config); });
 
     remove_subcom->callback(
         [&config]
@@ -235,5 +241,30 @@ set_env_command(CLI::App* com, Configuration& config)
                 Console::stream() << "Dry run. The environment was not removed.";
             }
         }
+    );
+
+    // env update subcommand
+    auto* update_subcom = com->add_subcommand("update", "Update an environment");
+
+    init_general_options(update_subcom, config);
+    init_prefix_options(update_subcom, config);
+
+    auto& file_specs = config.at("file_specs");
+    update_subcom->add_option(
+        "-f,--file",
+        file_specs.get_cli_config<std::vector<std::string>>(),
+        file_specs.description()
+    );
+
+    static bool remove_not_specified = false;
+    update_subcom->add_flag(
+        "--prune",
+        remove_not_specified,
+        "Remove installed packages not specified in the command and in environment file"
+    );
+
+    update_subcom->callback(
+        [&config]
+        { update(config, /*update_all*/ false, /*prune_deps*/ false, remove_not_specified); }
     );
 }

@@ -16,7 +16,7 @@
 
 namespace mamba
 {
-    void update(Configuration& config, bool update_all, bool prune)
+    void update(Configuration& config, bool update_all, bool prune_deps, bool remove_not_specified)
     {
         auto& ctx = config.context();
 
@@ -118,7 +118,7 @@ namespace mamba
                 keep_specs.push_back(it.second.name);
             }
             solver_flag |= SOLVER_SOLVABLE_ALL;
-            if (prune)
+            if (prune_deps)
             {
                 solver_flag |= SOLVER_CLEANDEPS;
             }
@@ -127,6 +127,20 @@ namespace mamba
         }
         else
         {
+            if (remove_not_specified)
+            {
+                auto hist_map = prefix_data.history().get_requested_specs_map();
+                std::vector<std::string> remove_specs;
+                for (auto& it : hist_map)
+                {
+                    if (std::find(update_specs.begin(), update_specs.end(), it.second.name)
+                        == update_specs.end())
+                    {
+                        remove_specs.push_back(it.second.name);
+                    }
+                }
+                solver.add_jobs(remove_specs, SOLVER_ERASE | SOLVER_CLEANDEPS);
+            }
             solver.add_jobs(update_specs, solver_flag);
         }
 

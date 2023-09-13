@@ -26,20 +26,20 @@ set_remove_command(CLI::App* subcom, Configuration& config)
         "Specs to remove from the environment"
     );
 
-    static bool remove_all = false, force = false, prune = true;
+    static bool remove_all = false, force = false, prune_deps = true;
     subcom->add_flag("-a,--all", remove_all, "Remove all packages in the environment");
     subcom->add_flag(
         "-f,--force",
         force,
         "Force removal of package (note: consistency of environment is not guaranteed!"
     );
-    subcom->add_flag("--prune,!--no-prune", prune, "Prune dependencies (default)");
+    subcom->add_flag("--prune-deps,!--no-prune-deps", prune_deps, "Prune dependencies (default)");
 
     subcom->callback(
         [&config]
         {
             int flags = 0;
-            if (prune)
+            if (prune_deps)
             {
                 flags |= MAMBA_REMOVE_PRUNE;
             }

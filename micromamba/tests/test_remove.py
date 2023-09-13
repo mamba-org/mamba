@@ -104,11 +104,11 @@ class TestRemove:
         assert res["actions"]["UNLINK"][0]["name"] == "xtl"
         assert res["actions"]["PREFIX"] == TestRemove.prefix
 
-    def test_remove_noprune(self, env_created):
+    def test_remove_no_prune_deps(self, env_created):
         env_pkgs = [p["name"] for p in umamba_list("-p", TestRemove.prefix, "--json")]
         install("xframe", "-n", TestRemove.env_name, no_dry_run=True)
 
-        res = remove("xtensor", "-p", TestRemove.prefix, "--json", "--no-prune")
+        res = remove("xtensor", "-p", TestRemove.prefix, "--json", "--no-prune-deps")
 
         keys = {"dry_run", "success", "prefix", "actions"}
         assert keys.issubset(set(res.keys()))

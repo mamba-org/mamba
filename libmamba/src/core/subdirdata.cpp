@@ -444,9 +444,9 @@ namespace mamba
         return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
     }
 
-    DownloadRequestList MSubdirData::build_check_requests()
+    MultiDownloadRequest MSubdirData::build_check_requests()
     {
-        DownloadRequestList result;
+        MultiDownloadRequest result;
         
         if ((!p_context->offline || forbid_cache(m_repodata_url))
                 && p_context->repodata_use_zst

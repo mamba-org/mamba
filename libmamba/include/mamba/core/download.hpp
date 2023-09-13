@@ -82,20 +82,10 @@ namespace mamba
         );
     };
 
-    using DownloadRequestList = std::vector<DownloadRequest>;
-
-    struct MultiDownloadRequest
-    {
-        DownloadRequestList requests;
-    };
+    using MultiDownloadRequest = std::vector<DownloadRequest>;
 
     using DownloadResult = tl::expected<DownloadSuccess, DownloadError>;
-    using DownloadResultList = std::vector<DownloadResult>;
-
-    struct MultiDownloadResult
-    {
-        DownloadResultList results;
-    };
+    using MultiDownloadResult = std::vector<DownloadResult>;
 
     struct DownloadOptions
     {

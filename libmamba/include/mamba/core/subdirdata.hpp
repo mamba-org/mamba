@@ -114,7 +114,7 @@ namespace mamba
         const std::string& name() const;
         expected_t<std::string> cache_path() const;
 
-        DownloadRequestList build_check_requests();
+        MultiDownloadRequest build_check_requests();
         DownloadRequest build_index_request();
 
         expected_t<MRepo> create_repo(MPool& pool) const;

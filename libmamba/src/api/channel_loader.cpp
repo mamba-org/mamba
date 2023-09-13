@@ -102,8 +102,8 @@ namespace mamba
         MultiDownloadRequest check_requests;
         for (auto& subdir : subdirs)
         {
-            DownloadRequestList check_list = subdir.build_check_requests();
-            std::move(check_list.begin(), check_list.end(), std::back_inserter(check_requests.requests));
+            MultiDownloadRequest check_list = subdir.build_check_requests();
+            std::move(check_list.begin(), check_list.end(), std::back_inserter(check_requests));
         }
 
         download(std::move(check_requests), ctx);
@@ -118,7 +118,7 @@ namespace mamba
         MultiDownloadRequest index_requests;
         for (auto& subdir : subdirs)
         {
-            index_requests.requests.push_back(subdir.build_index_request());
+            index_requests.push_back(subdir.build_index_request());
         }
 
         // TODO load local channels even when offline if (!ctx.offline)

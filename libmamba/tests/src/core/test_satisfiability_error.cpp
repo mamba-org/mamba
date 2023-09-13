@@ -339,7 +339,7 @@ namespace
                 auto sub_dir = expected_value_or_throw(
                     MSubdirData::create(pool.channel_context(), *chan, platform, url, cache)
                 );
-                requests.requests.push_back(sub_dir.build_index_request());
+                requests.push_back(sub_dir.build_index_request());
                 sub_dirs.push_back(std::move(sub_dir));
             }
         }

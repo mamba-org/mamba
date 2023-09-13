@@ -568,19 +568,19 @@ namespace mamba
         if (m_options.sort)
         {
             std::sort(
-                m_requests.requests.begin(),
-                m_requests.requests.end(),
+                m_requests.begin(),
+                m_requests.end(),
                 [](const DownloadRequest& a, const DownloadRequest& b) -> bool
                 { return a.expected_size.value_or(SIZE_MAX) > b.expected_size.value_or(SIZE_MAX); }
             );
         }
 
-        m_trackers.reserve(m_requests.requests.size());
+        m_trackers.reserve(m_requests.size());
         std::size_t max_retries = static_cast<std::size_t>(context.remote_fetch_params.max_retries);
         DownloadTrackerOptions tracker_options{ max_retries, options.fail_fast };
         std::transform(
-            m_requests.requests.begin(),
-            m_requests.requests.end(),
+            m_requests.begin(),
+            m_requests.end(),
             std::inserter(m_trackers, m_trackers.begin()),
             [tracker_options](const DownloadRequest& req)
             { return DownloadTracker(req, tracker_options); }
@@ -659,7 +659,7 @@ namespace mamba
 
     MultiDownloadResult Downloader::build_result() const
     {
-        DownloadResultList result;
+        MultiDownloadResult result;
         result.reserve(m_trackers.size());
         std::transform(
             m_trackers.begin(),
@@ -667,7 +667,7 @@ namespace mamba
             std::inserter(result, result.begin()),
             [](const DownloadTracker& tracker) { return tracker.get_result(); }
         );
-        return { result };
+        return result;
     }
 
     /*****************************

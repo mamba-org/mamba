@@ -384,7 +384,6 @@ macro(libmamba_create_target target_name linkage output_name)
 
                 libreproc++.a
                 libreproc.a
-		libelf.a
             )
             if (APPLE)
                 set(REQUIRED_STATIC_DEPS ${REQUIRED_STATIC_DEPS} libc++.a)
@@ -453,7 +452,6 @@ macro(libmamba_create_target target_name linkage output_name)
             find_package(zstd CONFIG REQUIRED)
             find_library(BZIP2_LIBRARIES NAMES bz2)
             find_library(CRYPTO_LIBRARIES NAMES libcrypto)
-	    find_library(LIBELF_LIBRARIES NAMES elf)
 
             find_library(LIBSOLV_BUILD_STATICRARIES NAMES solv)
             find_library(LIBSOLVEXT_BUILD_STATICRARIES NAMES solvext)
@@ -470,7 +468,6 @@ macro(libmamba_create_target target_name linkage output_name)
                 ${LIBXML2_LIBRARY}
                 ${ICONV_LIBRARY}
                 ${CHARSET_LIBRARY}
-                ${LIBELF_LIBRARIES}
 		zstd::libzstd_static
                 ${LZ4_LIBRARY}
                 ${LZO2_LIBRARY}

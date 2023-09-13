@@ -40,7 +40,6 @@ if (MSVC)
     )
 endif()
 
-list(APPEND CMAKE_PREFIX_PATH $ENV{CONDA_PREFIX})
 # Variants
 # ========
 

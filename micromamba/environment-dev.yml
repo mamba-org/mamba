@@ -25,6 +25,5 @@ dependencies:
   - pyyaml
   - spdlog
   - fmt <10
-  - elfutils
   - sel(win): winreg
   - sel(win): pywin32

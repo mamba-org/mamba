@@ -67,9 +67,9 @@ namespace mamba
     void codesign(const fs::u8path& path, bool verbose = false);
 
     std::string fix_win_path(const std::string& path);
-    #ifndef _WIN32
+#ifndef _WIN32
     bool is_executable(const fs::u8path& path);
-    #endif
+#endif
 }
 
 #endif

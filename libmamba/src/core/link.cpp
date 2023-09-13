@@ -749,8 +749,7 @@ namespace mamba
             return std::make_tuple(validation::sha256sum(dst), rel_dst.string());
         }
 
-	auto begin = std::chrono::high_resolution_clock::now(); 
-	if ((path_data.path_type == PathType::HARDLINK) || path_data.no_link)
+        if ((path_data.path_type == PathType::HARDLINK) || path_data.no_link)
         {
             bool copy = path_data.no_link || m_context->always_copy;
             bool softlink = m_context->always_softlink;
@@ -786,18 +785,18 @@ namespace mamba
                 }
             }
             if (copy)
-	    {
-		try
-		{
-		    fs::copy(src, dst);
-		}
-		catch (std::filesystem::filesystem_error const& ex)
-		{
-		    Console::stream() << "could not copy: " << src.string() << " -> "
-			<< dst.string() << ": " << ex.what();
-		}
+            {
+                try
+                {
+                    fs::copy(src, dst);
+                }
+                catch (const std::filesystem::filesystem_error& ex)
+                {
+                    Console::stream() << "could not copy: " << src.string() << " -> "
+                                      << dst.string() << ": " << ex.what();
+                }
 
-		LOG_TRACE << "copied '" << src.string() << "'" << std::endl
+                LOG_TRACE << "copied '" << src.string() << "'" << std::endl
                           << " --> '" << dst.string() << "'";
             }
         }
@@ -816,12 +815,8 @@ namespace mamba
                 std::string("Path type not implemented: ")
                 + std::to_string(static_cast<int>(path_data.path_type))
             );
-	}
-	auto end = std::chrono::high_resolution_clock::now();
-	auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
+        }
 
-
-	LOG_TRACE << "Time measured: %.3f seconds.\n" << elapsed.count() * 1e-9;
         return std::make_tuple(
             path_data.sha256.empty() ? validation::sha256sum(dst) : path_data.sha256,
             rel_dst.string()
@@ -1108,7 +1103,6 @@ namespace mamba
         LOG_TRACE << "Adding package to prefix metadata at '" << meta.string() << "'";
         std::ofstream out_file = open_ofstream(meta);
         out_file << out_json.dump(4);
-
         if (!m_clobber_warnings.empty())
         {
             LOG_WARNING << "[" << f_name

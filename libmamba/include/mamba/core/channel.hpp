@@ -10,6 +10,7 @@
 #include <map>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -124,7 +125,6 @@ namespace mamba
         channel_map m_custom_channels;
         multichannel_map m_custom_multichannels;
 
-        Channel build_channel_alias();
         void init_custom_channels();
 
         const multichannel_map& get_custom_multichannels() const;
@@ -139,12 +139,7 @@ namespace mamba
         Channel from_url(const std::string& url);
         Channel from_name(const std::string& name);
         Channel from_value(const std::string& value);
-        Channel from_alias(
-            const std::string& scheme,
-            const std::string& location,
-            const std::optional<std::string>& auth = {},
-            const std::optional<std::string>& token = {}
-        );
+        Channel from_alias(std::string_view alias);
     };
 
 }  // namespace mamba

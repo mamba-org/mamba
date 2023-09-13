@@ -19,6 +19,7 @@
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/validate.hpp"
+#include "mamba/specs/conda_url.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
@@ -590,14 +591,24 @@ namespace mamba
         return chan;
     }
 
-    Channel ChannelContext::from_alias(
-        const std::string& scheme,
-        const std::string& location,
-        const std::optional<std::string>& auth,
-        const std::optional<std::string>& token
-    )
+    Channel ChannelContext::from_alias(std::string_view alias)
     {
-        return Channel(scheme, location, "<alias>", "<alias>", auth, token);
+        auto url = specs::CondaURL::parse(alias);
+
+        std::string auth = url.authentication();
+        std::string token = std::string(url.token());
+        url.clear_user();
+        url.clear_password();
+        url.clear_token();
+
+        return Channel(
+            url.scheme(),
+            url.pretty_str(specs::CondaURL::StripScheme::yes, '/'),
+            "<alias>",
+            "<alias>",
+            nonempty_str(std::move(auth)),
+            nonempty_str(std::move(token))
+        );
     }
 
 
@@ -692,25 +703,12 @@ namespace mamba
 
     ChannelContext::ChannelContext(Context& context)
         : m_context(context)
-        , m_channel_alias(build_channel_alias())
+        , m_channel_alias(from_alias(m_context.channel_alias))
     {
         init_custom_channels();
     }
 
     ChannelContext::~ChannelContext() = default;
-
-    Channel ChannelContext::build_channel_alias()
-    {
-        const std::string alias = m_context.channel_alias;
-        std::string location, scheme, auth, token;
-        util::split_scheme_auth_token(alias, location, scheme, auth, token);
-        return from_alias(
-            scheme,
-            location,
-            nonempty_str(std::move(auth)),
-            nonempty_str(std::move(token))
-        );
-    }
 
     void ChannelContext::init_custom_channels()
     {

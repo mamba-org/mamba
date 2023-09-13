@@ -249,4 +249,97 @@ TEST_SUITE("specs::CondaURL")
             CHECK_EQ(url.path(), "/conda-forge/linux-64");
         }
     }
+
+    TEST_CASE("pretty_str options")
+    {
+        SUBCASE("scheme option")
+        {
+            CondaURL url = {};
+            url.set_host("mamba.org");
+
+            SUBCASE("defaut scheme")
+            {
+                CHECK_EQ(url.pretty_str(CondaURL::StripScheme::no), "https://mamba.org/");
+                CHECK_EQ(url.pretty_str(CondaURL::StripScheme::yes), "mamba.org/");
+            }
+
+            SUBCASE("ftp scheme")
+            {
+                url.set_scheme("ftp");
+                CHECK_EQ(url.pretty_str(CondaURL::StripScheme::no), "ftp://mamba.org/");
+                CHECK_EQ(url.pretty_str(CondaURL::StripScheme::yes), "mamba.org/");
+            }
+        }
+
+        SUBCASE("rstrip option")
+        {
+            CondaURL url = {};
+            url.set_host("mamba.org");
+            CHECK_EQ(url.pretty_str(CondaURL::StripScheme::no, 0), "https://mamba.org/");
+            CHECK_EQ(url.pretty_str(CondaURL::StripScheme::no, '/'), "https://mamba.org");
+            url.set_path("/page/");
+            CHECK_EQ(url.pretty_str(CondaURL::StripScheme::no, ':'), "https://mamba.org/page/");
+            CHECK_EQ(url.pretty_str(CondaURL::StripScheme::no, '/'), "https://mamba.org/page");
+        }
+
+        SUBCASE("Hide confidential option")
+        {
+            CondaURL url = {};
+            url.set_user("user");
+            url.set_password("pass");
+            CHECK_EQ(
+                url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::HideConfidential::no),
+                "https://user:pass@localhost/"
+            );
+            CHECK_EQ(
+                url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::HideConfidential::yes),
+                "https://user:*****@localhost/"
+            );
+
+            url.set_path("/custom/t/abcd1234/linux-64");
+            CHECK_EQ(
+                url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::HideConfidential::no),
+                "https://user:pass@localhost/custom/t/abcd1234/linux-64"
+            );
+
+            CHECK_EQ(
+                url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::HideConfidential::yes),
+                "https://user:*****@localhost/custom/t/*****/linux-64"
+            );
+        }
+
+        SUBCASE("https://user:password@mamba.org:8080/folder/file.html?param=value#fragment")
+        {
+            CondaURL url{};
+            url.set_scheme("https");
+            url.set_host("mamba.org");
+            url.set_user("user");
+            url.set_password("password");
+            url.set_port("8080");
+            url.set_path("/folder/file.html");
+            url.set_query("param=value");
+            url.set_fragment("fragment");
+
+            CHECK_EQ(
+                url.str(),
+                "https://user:password@mamba.org:8080/folder/file.html?param=value#fragment"
+            );
+            CHECK_EQ(
+                url.pretty_str(),
+                "https://user:password@mamba.org:8080/folder/file.html?param=value#fragment"
+            );
+        }
+
+        SUBCASE("https://user@email.com:pw%rd@mamba.org/some /path$/")
+        {
+            CondaURL url{};
+            url.set_scheme("https");
+            url.set_host("mamba.org");
+            url.set_user("user@email.com");
+            url.set_password("pw%rd");
+            url.set_path("/some /path$/");
+            CHECK_EQ(url.str(), "https://user%40email.com:pw%25rd@mamba.org/some%20/path%24/");
+            CHECK_EQ(url.pretty_str(), "https://user@email.com:pw%rd@mamba.org/some /path$/");
+        }
+    }
 }

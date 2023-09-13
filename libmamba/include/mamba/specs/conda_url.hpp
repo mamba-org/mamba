@@ -21,7 +21,7 @@ namespace mamba::specs
     public:
 
         using Base::StripScheme;
-        using Base::HidePassword;
+        using Base::HideConfidential;
         using Base::Encode;
         using Base::Decode;
 
@@ -131,6 +131,24 @@ namespace mamba::specs
 
         /** Clear the package and return true if it exists, otherwise return ``false``. */
         auto clear_package() -> bool;
+
+        using Base::str;
+
+        /**
+         * Return the full decoded url.
+         *
+         * Due to decoding, the outcome may not be understood by parser and usable to reach an
+         * asset.
+         * @param strip_scheme If true, remove the scheme and "localhost" on file URI.
+         * @param rstrip_path If non-null, remove the given charaters at the end of the path.
+         * @param hide_confidential If true, hide password and tokens in the decoded string.
+         */
+        [[nodiscard]] auto pretty_str(
+            StripScheme strip_scheme = StripScheme::no,
+            char rstrip_path = 0,
+            HideConfidential hide_confidential = HideConfidential::no
+        ) const -> std::string;
+
 
     private:
 

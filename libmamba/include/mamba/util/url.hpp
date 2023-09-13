@@ -23,7 +23,7 @@ namespace mamba::util
 
         // clang-format off
         enum class StripScheme : bool { no, yes };
-        enum class HidePassword : bool { no, yes };
+        enum class HideConfidential : bool { no, yes };
         struct Encode
         {
             inline static constexpr struct yes_type {} yes = {};
@@ -197,13 +197,19 @@ namespace mamba::util
          * asset.
          * @param strip_scheme If true, remove the scheme and "localhost" on file URI.
          * @param rstrip_path If non-null, remove the given charaters at the end of the path.
-         * @param hide_password If true, hide password in the decoded string.
+         * @param hide_confidential If true, hide password in the decoded string.
          */
         [[nodiscard]] auto pretty_str(
             StripScheme strip_scheme = StripScheme::no,
             char rstrip_path = 0,
-            HidePassword hide_password = HidePassword::no
+            HideConfidential hide_confidential = HideConfidential::no
         ) const -> std::string;
+
+    protected:
+
+        [[nodiscard]] auto
+        pretty_str_path(StripScheme strip_scheme = StripScheme::no, char rstrip_path = 0) const
+            -> std::string;
 
     private:
 

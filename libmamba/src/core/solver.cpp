@@ -126,6 +126,11 @@ namespace mamba
             MatchSpec ms{ job, m_pool.channel_context() };
             int job_type = job_flag & SOLVER_JOBMASK;
 
+            if (ms.conda_build_form().empty())
+            {
+                return;
+            }
+
             if (job_type & SOLVER_INSTALL)
             {
                 m_install_specs.emplace_back(job, m_pool.channel_context());

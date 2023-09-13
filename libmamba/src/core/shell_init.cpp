@@ -412,7 +412,7 @@ namespace mamba
         $env.PATH = ($env.PATH | prepend $"($env.MAMBA_ROOT_PREFIX)/condabin")
     }
     #ask mamba how to setup the environment and set the environment
-    (micromamba shell activate --shell nu $name
+    (^($env.MAMBA_EXE) shell activate --shell nu $name
       | split row ";"
       | parse  "{key} = {value}"
       | transpose --header-row
@@ -424,7 +424,7 @@ namespace mamba
 def-env "micromamba deactivate" [] {
     #remove active environment except micromamba root
     if $env.CONDA_PROMPT_MODIFIER? != null {
-     (micromamba shell deactivate  --shell nu
+     (^($env.MAMBA_EXE) shell deactivate  --shell nu
       | split row ";"
       | str trim
       | parse --regex '(.*?)(?:\s*=\s*|\s+)(.*?)'

@@ -20,13 +20,11 @@ namespace mamba::specs
 
     public:
 
-        using Base::StripScheme;
-        using Base::HideConfidential;
-        using Base::Encode;
-        using Base::Decode;
+        using StripScheme = util::detail::StripScheme;
+        using HideConfidential = util::detail::HideConfidential;
+        using Encode = util::detail::Encode;
+        using Decode = util::detail::Decode;
 
-        using Base::https;
-        using Base::localhost;
         inline static constexpr std::string_view token_prefix = "/t/";
 
         [[nodiscard]] static auto parse(std::string_view url) -> CondaURL;

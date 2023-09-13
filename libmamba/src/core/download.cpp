@@ -44,7 +44,8 @@ namespace mamba
     {
         bool is_http_status_ok(int http_status)
         {
-            return http_status / 100 == 2;
+            // Note: http_status == 0 for files
+            return http_status / 100 == 2 || http_status == 304 || http_status == 0;
         }
     }
 
@@ -231,14 +232,14 @@ namespace mamba
             }
         }
 
-        if (p_request->if_none_match.has_value())
+        if (p_request->etag.has_value())
         {
-            m_handle.add_header("If-None-Match:" + p_request->if_none_match.value());
+            m_handle.add_header("If-None-Match:" + p_request->etag.value());
         }
 
-        if (p_request->if_modified_since.has_value())
+        if (p_request->last_modified.has_value())
         {
-            m_handle.add_header("If-Modified-Since:" + p_request->if_modified_since.value());
+            m_handle.add_header("If-Modified-Since:" + p_request->last_modified.value());
         }
 
         m_handle.set_opt_header();
@@ -327,8 +328,8 @@ namespace mamba
     {
         auto* self = reinterpret_cast<DownloadAttempt*>(f);
         self->p_request->progress.value()(DownloadProgress{
-            static_cast<std::size_t>(total_to_download),
-            static_cast<std::size_t>(now_downloaded) });
+            static_cast<std::size_t>(now_downloaded),
+            static_cast<std::size_t>(total_to_download) });
         return 0;
     }
 
@@ -396,7 +397,7 @@ namespace mamba
     DownloadSuccess DownloadAttempt::build_download_success(TransferData data) const
     {
         return { /*.filename = */ p_request->filename,
-                 /*.trnasfer = */ std::move(data),
+                 /*.transfer = */ std::move(data),
                  /*.cache_control = */ m_cache_control,
                  /*.etag = */ m_etag,
                  /*.last_modified = */ m_last_modified };

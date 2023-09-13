@@ -13,8 +13,8 @@
 
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/download.hpp"
 #include "mamba/core/error_handling.hpp"
-#include "mamba/core/fetch.hpp"
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/pool.hpp"
@@ -25,9 +25,18 @@
 
 namespace mamba
 {
+
     class MSubdirMetadata
     {
     public:
+
+        struct http_metadata
+        {
+            std::string url;
+            std::string etag;
+            std::string last_modified;
+            std::string cache_control;
+        };
 
         using expected_subdir_metadata = tl::expected<MSubdirMetadata, mamba_error>;
 
@@ -37,12 +46,12 @@ namespace mamba
 
         const std::string& url() const;
         const std::string& etag() const;
-        const std::string& mod() const;
+        const std::string& last_modified() const;
         const std::string& cache_control() const;
 
         bool has_zst() const;
 
-        void store_http_metadata(std::string url, std::string etag, std::string mod, std::string cache_control);
+        void store_http_metadata(http_metadata data);
         void store_file_metadata(const fs::u8path& file);
         void set_zst(bool value);
 
@@ -57,11 +66,7 @@ namespace mamba
         using time_type = fs::file_time_type;
 #endif
 
-        std::string m_url;
-        std::string m_etag;
-        std::string m_mod;
-        std::string m_cache_control;
-
+        http_metadata m_http;
         time_type m_stored_mtime;
         std::size_t m_stored_file_size;
 
@@ -99,27 +104,20 @@ namespace mamba
         MSubdirData(const MSubdirData&) = delete;
         MSubdirData& operator=(const MSubdirData&) = delete;
 
-        MSubdirData(MSubdirData&&);
-        MSubdirData& operator=(MSubdirData&&);
+        MSubdirData(MSubdirData&&) = default;
+        MSubdirData& operator=(MSubdirData&&) = default;
 
-        // TODO return seconds as double
-        fs::file_time_type::duration
-        check_cache(const fs::u8path& cache_file, const fs::file_time_type::clock::time_point& ref) const;
-        bool loaded() const;
-
-        bool forbid_cache();
+        bool is_noarch() const;
+        bool is_loaded() const;
         void clear_cache();
 
-        expected_t<std::string> cache_path() const;
         const std::string& name() const;
+        expected_t<std::string> cache_path() const;
 
-        std::vector<std::unique_ptr<DownloadTarget>>& check_targets();
-        DownloadTarget* target();
+        DownloadRequestList build_check_requests();
+        DownloadRequest build_index_request();
 
-        bool finalize_check(const DownloadTarget& target);
-        bool finalize_transfer(const DownloadTarget& target);
-        void finalize_checks();
-        expected_t<MRepo> create_repo(MPool& pool);
+        expected_t<MRepo> create_repo(MPool& pool) const;
 
     private:
 
@@ -132,15 +130,15 @@ namespace mamba
             const std::string& repodata_fn = "repodata.json"
         );
 
-        bool load(MultiPackageCache& caches, ChannelContext& channel_context);
-        void check_repodata_existence();
-        void create_target();
-        std::size_t get_cache_control_max_age(const std::string& val);
+        void load(MultiPackageCache& caches, ChannelContext& channel_context, const Channel& channel);
+        void load_cache(MultiPackageCache& caches, ChannelContext& channel_context);
+        void update_metadata_zst(ChannelContext& context, const Channel& channel);
+
+        bool use_existing_cache();
+        bool finalize_transfer(MSubdirMetadata::http_metadata http_data);
         void refresh_last_write_time(const fs::u8path& json_file, const fs::u8path& solv_file);
-
-        std::unique_ptr<DownloadTarget> m_target = nullptr;
-        std::vector<std::unique_ptr<DownloadTarget>> m_check_targets;
-
+        
+        bool m_loaded = false;
         bool m_json_cache_valid = false;
         bool m_solv_cache_valid = false;
 
@@ -148,20 +146,15 @@ namespace mamba
         fs::u8path m_expired_cache_path;
         fs::u8path m_writable_pkgs_dir;
 
-        ProgressProxy m_progress_bar;
-        ProgressProxy m_progress_bar_check;
-
-        bool m_loaded;
-        bool m_download_complete;
         std::string m_repodata_url;
         std::string m_name;
         std::string m_json_fn;
         std::string m_solv_fn;
         bool m_is_noarch;
+
         MSubdirMetadata m_metadata;
         std::unique_ptr<TemporaryFile> m_temp_file;
-        const Channel* p_channel = nullptr;
-        Context* p_context = nullptr;
+        Context* p_context;
     };
 
     // Contrary to conda original function, this one expects a full url

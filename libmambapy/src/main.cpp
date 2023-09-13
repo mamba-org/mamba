@@ -19,6 +19,7 @@
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/execution.hpp"
+#include "mamba/core/fetch.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/pool.hpp"
@@ -543,24 +544,22 @@ PYBIND11_MODULE(bindings, m)
             [](MSubdirData& subdir, MPool& pool) -> MRepo
             { return extract(subdir.create_repo(pool)); }
         )
-        .def("loaded", &MSubdirData::loaded)
+        .def("loaded", &MSubdirData::is_loaded)
         .def(
             "cache_path",
             [](const MSubdirData& self) -> std::string { return extract(self.cache_path()); }
         )
         .def(
             "download_and_check_targets",
-            [](MSubdirData& self, MultiDownloadTarget& multi_download) -> bool
+            [](MSubdirData& self, MultiDownloadTarget& /*multi_download*/) -> bool
             {
-                for (auto& check_target : self.check_targets())
-                {
-                    multi_download.add(check_target.get());
-                }
-                multi_download.download(MAMBA_NO_CLEAR_PROGRESS_BARS);
-                return self.check_targets().size();
+                DownloadRequestList check_requests = self.build_check_requests();
+                std::size_t check_size = check_requests.size();
+                download({ std::move(check_requests) }, mambapy::singletons.context());
+                //multi_download.download(MAMBA_NO_CLEAR_PROGRESS_BARS);
+                return check_size;
             }
-        )
-        .def("finalize_checks", &MSubdirData::finalize_checks);
+        );
 
     m.def("cache_fn_url", &cache_fn_url);
     m.def("create_cache_dir", &create_cache_dir);
@@ -569,10 +568,10 @@ PYBIND11_MODULE(bindings, m)
         .def(py::init(
             [] { return std::make_unique<MultiDownloadTarget>(mambapy::singletons.context()); }
         ))
-        .def(
+        /*.def(
             "add",
             [](MultiDownloadTarget& self, MSubdirData& sub) -> void { self.add(sub.target()); }
-        )
+        )*/
         .def("download", &MultiDownloadTarget::download);
 
     py::enum_<ChannelPriority>(m, "ChannelPriority")

@@ -15,6 +15,7 @@
 #include <solv/solver.h>
 
 #include "mamba/core/channel.hpp"
+#include "mamba/core/download.hpp"
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
@@ -329,8 +330,8 @@ namespace
      */
     auto load_channels(MPool& pool, MultiPackageCache& cache, std::vector<std::string>&& channels)
     {
-        MultiDownloadTarget dlist{ mambatests::context() };
         auto sub_dirs = std::vector<MSubdirData>();
+        MultiDownloadRequest requests;
         for (const auto* chan : pool.channel_context().get_channels(channels))
         {
             for (auto& [platform, url] : chan->platform_urls(true))
@@ -338,11 +339,11 @@ namespace
                 auto sub_dir = expected_value_or_throw(
                     MSubdirData::create(pool.channel_context(), *chan, platform, url, cache)
                 );
-                dlist.add(sub_dir.target());
+                requests.requests.push_back(sub_dir.build_index_request());
                 sub_dirs.push_back(std::move(sub_dir));
             }
         }
-        dlist.download(MAMBA_DOWNLOAD_FAILFAST);
+        download(std::move(requests), mambatests::context(), { /*fail_fast=*/true});
         for (auto& sub_dir : sub_dirs)
         {
             sub_dir.create_repo(pool);

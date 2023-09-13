@@ -6,6 +6,7 @@
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/core/channel.hpp"
+#include "mamba/core/download.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/repo.hpp"
@@ -53,7 +54,6 @@ namespace mamba
         std::vector<std::string> channel_urls = ctx.channels;
 
         std::vector<MSubdirData> subdirs;
-        MultiDownloadTarget multi_dl{ ctx };
 
         std::vector<std::pair<int, int>> priorities;
         int max_prio = static_cast<int>(channel_urls.size());
@@ -99,15 +99,15 @@ namespace mamba
             }
         }
 
+        MultiDownloadRequest check_requests;
         for (auto& subdir : subdirs)
         {
-            for (auto& check_target : subdir.check_targets())
-            {
-                multi_dl.add(check_target.get());
-            }
+            DownloadRequestList check_list = subdir.build_check_requests();
+            std::move(check_list.begin(), check_list.end(), std::back_inserter(check_requests.requests));
         }
 
-        multi_dl.download(MAMBA_NO_CLEAR_PROGRESS_BARS);
+        download(std::move(check_requests), ctx);
+        //multi_dl.download(MAMBA_NO_CLEAR_PROGRESS_BARS);
         if (is_sig_interrupted())
         {
             error_list.push_back(mamba_error("Interrupted by user", mamba_error_code::user_interrupted)
@@ -115,14 +115,10 @@ namespace mamba
             return tl::unexpected(mamba_aggregated_error(std::move(error_list)));
         }
 
+        MultiDownloadRequest index_requests;
         for (auto& subdir : subdirs)
         {
-            if (!subdir.check_targets().empty())
-            {
-                // recreate final download target in case HEAD requests succeeded
-                subdir.finalize_checks();
-            }
-            multi_dl.add(subdir.target());
+            index_requests.requests.push_back(subdir.build_index_request());
         }
 
         // TODO load local channels even when offline if (!ctx.offline)
@@ -130,7 +126,8 @@ namespace mamba
         {
             try
             {
-                multi_dl.download(MAMBA_DOWNLOAD_FAILFAST);
+                
+                download(std::move(index_requests), ctx, { /*fial_fast=*/true});
             }
             catch (const std::runtime_error& e)
             {
@@ -151,9 +148,9 @@ namespace mamba
         for (std::size_t i = 0; i < subdirs.size(); ++i)
         {
             auto& subdir = subdirs[i];
-            if (!subdir.loaded())
+            if (!subdir.is_loaded())
             {
-                if (!ctx.offline && util::ends_with(subdir.name(), "/noarch"))
+                if (!ctx.offline && subdir.is_noarch())
                 {
                     error_list.push_back(mamba_error(
                         "Subdir " + subdir.name() + " not loaded!",

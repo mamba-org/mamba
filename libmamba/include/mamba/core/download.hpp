@@ -66,8 +66,8 @@ namespace mamba
         bool head_only;
         bool ignore_failure;
         std::optional<std::size_t> expected_size = std::nullopt;
-        std::optional<std::string> if_none_match = std::nullopt;
-        std::optional<std::string> if_modified_since = std::nullopt;
+        std::optional<std::string> etag = std::nullopt;
+        std::optional<std::string> last_modified = std::nullopt;
 
         std::optional<progress_callback_t> progress = std::nullopt;
         std::optional<on_success_callback_t> on_success = std::nullopt;

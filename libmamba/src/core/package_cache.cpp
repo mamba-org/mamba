@@ -139,13 +139,13 @@ namespace mamba
             }
             else
             {
-                if (options.safety_checks == VerificationLevel::kWarn)
+                if (options.safety_checks == VerificationLevel::Warn)
                 {
                     LOG_WARNING << "Could not validate package '" + tarball_path.string()
                                        + "': md5 and sha256 sum unknown.\n"
                                          "Set safety_checks to disabled to override this warning.";
                 }
-                else if (options.safety_checks == VerificationLevel::kEnabled)
+                else if (options.safety_checks == VerificationLevel::Enabled)
                 {
                     // we cannot validate this archive, but we could also not validate a downloaded
                     // archive since we just don't know the sha256 or md5 sum
@@ -207,14 +207,14 @@ namespace mamba
                                    || (!s.sha256.empty() && repodata_record.contains("sha256"));
                     if (!can_validate)
                     {
-                        if (options.safety_checks == VerificationLevel::kWarn)
+                        if (options.safety_checks == VerificationLevel::Warn)
                         {
                             LOG_WARNING
                                 << "Could not validate package '" + repodata_record_path.string()
                                        + "': md5 and sha256 sum unknown.\n"
                                          "Set safety_checks to disabled to override this warning.";
                         }
-                        else if (options.safety_checks == VerificationLevel::kEnabled)
+                        else if (options.safety_checks == VerificationLevel::Enabled)
                         {
                             throw std::runtime_error(
                                 "Could not validate package '" + repodata_record_path.string()

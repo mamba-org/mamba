@@ -223,7 +223,7 @@ namespace mamba
         if (context.authentication_info().count(host))
         {
             const auto& auth = context.authentication_info().at(host);
-            if (auth.type == AuthenticationType::kBearerToken)
+            if (auth.type == AuthenticationType::BearerToken)
             {
                 m_handle.add_header(fmt::format("Authorization: Bearer {}", auth.value));
             }

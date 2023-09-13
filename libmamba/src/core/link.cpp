@@ -861,11 +861,13 @@ namespace mamba
 
         // handle noarch packages
         NoarchType noarch_type = NoarchType::NOT_A_NOARCH;
-        if (index_json.find("noarch") != index_json.end())
+        if (index_json.find("noarch") != index_json.end() && index_json["noarch"].type() != nlohmann::json::value_t::null)
         {
             if (index_json["noarch"].type() == nlohmann::json::value_t::boolean)
             {
-                noarch_type = NoarchType::GENERIC_V1;
+                if (index_json["noarch"].get<bool>()) {
+                    noarch_type = NoarchType::GENERIC_V1;
+                }
             }
             else
             {

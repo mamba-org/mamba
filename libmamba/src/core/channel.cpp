@@ -431,19 +431,32 @@ namespace mamba
         const std::string& channel_canonical_name
     )
     {
-        std::string name(channel_name);
-        std::string location, scheme, auth, token;
-        util::split_scheme_auth_token(channel_url, location, scheme, auth, token);
         if (!util::url_has_scheme(channel_url))
         {
-            location = channel_alias.location();
-            scheme = channel_alias.scheme();
-            auth = channel_alias.auth().value_or("");
-            token = channel_alias.token().value_or("");
+            return Channel(
+                channel_alias.scheme(),
+                channel_alias.location(),
+                std::string(util::strip(channel_name.empty() ? channel_url : channel_name, '/')),
+                channel_canonical_name,
+                nonempty_str(channel_alias.auth().value_or("")),
+                nonempty_str(channel_alias.token().value_or("")),
+                {}
+            );
         }
-        else if (name == "")
+
+
+        auto url = specs::CondaURL::parse(channel_url);
+        std::string token = std::string(url.token());
+        url.clear_token();
+        std::string auth = url.authentication();
+        url.clear_password();
+        url.clear_user();
+        std::string location = url.pretty_str(specs::CondaURL::StripScheme::yes, '/');
+
+        std::string name(channel_name);
+        if (name.empty())
         {
-            if (channel_alias.location() != ""
+            if (!channel_alias.location().empty()
                 && util::starts_with(location, channel_alias.location()))
             {
                 name = location;
@@ -452,18 +465,13 @@ namespace mamba
             }
             else
             {
-                std::string full_url = util::concat_scheme_url(scheme, location);
-                const auto parser = util::URL::parse(full_url);
-                auto url = util::URL();
-                url.set_host(parser.host());
-                url.set_port(parser.port());
-                location = url.pretty_str(util::URL::StripScheme::yes, /* rstrip_path= */ '/');
-                name = util::lstrip(parser.pretty_path(), '/');
+                location = util::concat(url.host(), url.port().empty() ? "" : ":", url.port());
+                name = url.path();
             }
         }
-        name = name != "" ? util::strip(name, '/') : util::strip(channel_url, '/');
+        name = util::strip(name.empty() ? channel_url : name, '/');
         return Channel(
-            scheme,
+            url.scheme(),
             location,
             name,
             channel_canonical_name,

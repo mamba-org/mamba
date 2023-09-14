@@ -82,7 +82,7 @@ namespace mamba
                 }
                 auto sdir = std::move(sdires).value();
                 subdirs.push_back(std::move(sdir));
-                if (ctx.channel_priority == ChannelPriority::kDisabled)
+                if (ctx.channel_priority == ChannelPriority::Disabled)
                 {
                     priorities.push_back(std::make_pair(0, 0));
                 }

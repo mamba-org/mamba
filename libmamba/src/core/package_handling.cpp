@@ -830,13 +830,13 @@ namespace mamba
     bool validate(const fs::u8path& pkg_folder, const ValidationOptions& options)
     {
         auto safety_checks = options.safety_checks;
-        if (safety_checks == VerificationLevel::kDisabled)
+        if (safety_checks == VerificationLevel::Disabled)
         {
             return true;
         }
 
-        bool is_warn = safety_checks == VerificationLevel::kWarn;
-        bool is_fail = safety_checks == VerificationLevel::kEnabled;
+        bool is_warn = safety_checks == VerificationLevel::Warn;
+        bool is_fail = safety_checks == VerificationLevel::Enabled;
         bool full_validation = options.extra_safety_checks;
 
         try

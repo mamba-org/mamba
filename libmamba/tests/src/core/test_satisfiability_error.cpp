@@ -77,7 +77,7 @@ TEST_SUITE("conflict_map")
     }
 }
 
-TEST_SUITE_BEGIN("satifiability_error");
+TEST_SUITE_BEGIN("satisfiability_error");
 
 namespace
 {
@@ -331,7 +331,6 @@ namespace
     auto load_channels(MPool& pool, MultiPackageCache& cache, std::vector<std::string>&& channels)
     {
         auto sub_dirs = std::vector<MSubdirData>();
-        MultiDownloadRequest requests;
         for (const auto* chan : pool.channel_context().get_channels(channels))
         {
             for (auto& [platform, url] : chan->platform_urls(true))
@@ -339,11 +338,19 @@ namespace
                 auto sub_dir = expected_value_or_throw(
                     MSubdirData::create(pool.channel_context(), *chan, platform, url, cache)
                 );
-                requests.push_back(sub_dir.build_index_request());
                 sub_dirs.push_back(std::move(sub_dir));
             }
         }
-        download(std::move(requests), mambatests::context(), { /*fail_fast=*/true});
+
+        MultiDownloadRequest requests;
+        for (auto& sub_dir : sub_dirs)
+        {
+            if (!sub_dir.is_loaded())
+            {
+                requests.push_back(sub_dir.build_index_request());
+            }
+        }
+        download(std::move(requests), mambatests::context(), { /*fail_fast=*/true });
         for (auto& sub_dir : sub_dirs)
         {
             sub_dir.create_repo(pool);
@@ -395,7 +402,7 @@ namespace
     }
 }
 
-TEST_CASE("Test create_conda_forge utility ")
+TEST_CASE("Test create_conda_forge utility")
 {
     ChannelContext channel_context{ mambatests::context() };
     auto solver = create_conda_forge(channel_context, { "xtensor>=0.7" });

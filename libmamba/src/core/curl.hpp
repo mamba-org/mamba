@@ -104,9 +104,13 @@ namespace mamba
     public:
 
         CURLHandle();
+        ~CURLHandle();
+
+        CURLHandle(const CURLHandle&) = delete;
+        CURLHandle& operator=(const CURLHandle&) = delete;
+
         CURLHandle(CURLHandle&& rhs);
         CURLHandle& operator=(CURLHandle&& rhs);
-        ~CURLHandle();
 
         const std::pair<std::string_view, CurlLogLevel> get_ssl_backend_info();
 
@@ -159,7 +163,7 @@ namespace mamba
         CURL* m_handle;
         CURLcode m_result;  // Enum range from 0 to 99
         curl_slist* p_headers = nullptr;
-        char m_errorbuffer[CURL_ERROR_SIZE];
+        std::array<char, CURL_ERROR_SIZE> m_errorbuffer;
 
         friend CURL* unwrap(const CURLHandle&);
     };
@@ -183,6 +187,9 @@ namespace mamba
         explicit CURLMultiHandle(std::size_t max_parallel_downloads);
         ~CURLMultiHandle();
 
+        CURLMultiHandle(const CURLMultiHandle&) = delete;
+        CURLMultiHandle& operator=(const CURLMultiHandle&) = delete;
+
         CURLMultiHandle(CURLMultiHandle&&);
         CURLMultiHandle& operator=(CURLMultiHandle&&);
 
@@ -193,6 +200,7 @@ namespace mamba
         response_type pop_message();
         std::size_t get_timeout(std::size_t max_timeout = 1000u) const;
         std::size_t wait(std::size_t timeout);
+        std::size_t poll(std::size_t timeout);
 
     private:
 

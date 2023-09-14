@@ -57,7 +57,8 @@ namespace mamba
 
     private:
 
-        static expected_subdir_metadata from_state_file(const fs::u8path& state_file, const fs::u8path& repodata_file);
+        static expected_subdir_metadata
+        from_state_file(const fs::u8path& state_file, const fs::u8path& repodata_file);
         static expected_subdir_metadata from_repodata_file(const fs::u8path& json);
 
 #ifdef _WIN32
@@ -134,10 +135,10 @@ namespace mamba
         void load_cache(MultiPackageCache& caches, ChannelContext& channel_context);
         void update_metadata_zst(ChannelContext& context, const Channel& channel);
 
-        bool use_existing_cache();
-        bool finalize_transfer(MSubdirMetadata::http_metadata http_data);
+        expected_t<void> use_existing_cache();
+        expected_t<void> finalize_transfer(MSubdirMetadata::http_metadata http_data);
         void refresh_last_write_time(const fs::u8path& json_file, const fs::u8path& solv_file);
-        
+
         bool m_loaded = false;
         bool m_json_cache_valid = false;
         bool m_solv_cache_valid = false;

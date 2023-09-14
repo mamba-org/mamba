@@ -243,7 +243,7 @@ namespace mamba
 
         // Set error buffer
         m_errorbuffer[0] = '\0';
-        set_opt(CURLOPT_ERRORBUFFER, m_errorbuffer);
+        set_opt(CURLOPT_ERRORBUFFER, m_errorbuffer.data());
     }
 
     CURLHandle::CURLHandle(CURLHandle&& rhs)
@@ -254,6 +254,7 @@ namespace mamba
         rhs.p_headers = nullptr;
         std::swap(m_errorbuffer, rhs.m_errorbuffer);
         std::swap(m_result, rhs.m_result);
+        set_opt(CURLOPT_ERRORBUFFER, m_errorbuffer.data());
     }
 
     CURLHandle& CURLHandle::operator=(CURLHandle&& rhs)
@@ -263,6 +264,8 @@ namespace mamba
         swap(m_result, rhs.m_result);
         swap(p_headers, rhs.p_headers);
         swap(m_errorbuffer, rhs.m_errorbuffer);
+        set_opt(CURLOPT_ERRORBUFFER, m_errorbuffer.data());
+        rhs.set_opt(CURLOPT_ERRORBUFFER, rhs.m_errorbuffer.data());
         return *this;
     }
 
@@ -448,7 +451,7 @@ namespace mamba
 
     const char* CURLHandle::get_error_buffer() const
     {
-        return m_errorbuffer;
+        return m_errorbuffer.data();
     }
 
     std::string CURLHandle::get_curl_effective_url() const
@@ -661,4 +664,14 @@ namespace mamba
         return static_cast<std::size_t>(numfds);
     }
 
+    std::size_t CURLMultiHandle::poll(size_t timeout)
+    {
+        int numfds = 0;
+        CURLMcode code = curl_multi_poll(p_handle, NULL, 0, static_cast<int>(timeout), &numfds);
+        if (code != CURLM_OK)
+        {
+            throw std::runtime_error(curl_multi_strerror(code));
+        }
+        return static_cast<std::size_t>(numfds);
+    }
 }  // namespace mamba

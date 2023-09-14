@@ -556,7 +556,7 @@ PYBIND11_MODULE(bindings, m)
                 MultiDownloadRequest check_requests = self.build_check_requests();
                 std::size_t check_size = check_requests.size();
                 download(std::move(check_requests), mambapy::singletons.context());
-                //multi_download.download(MAMBA_NO_CLEAR_PROGRESS_BARS);
+                // multi_download.download(MAMBA_NO_CLEAR_PROGRESS_BARS);
                 return check_size;
             }
         );

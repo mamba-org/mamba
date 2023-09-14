@@ -13,16 +13,27 @@
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
-#include "progress_bar_impl.hpp"
-
 namespace mamba
 {
     /*******************
      * MSubdirMetadata *
      *******************/
-    
+
     namespace
     {
+#ifdef _WIN32
+        std::chrono::system_clock::time_point filetime_to_unix(const fs::file_time_type& filetime)
+        {
+            // windows filetime is in 100ns intervals since 1601-01-01
+            static constexpr auto epoch_offset = std::chrono::seconds(11644473600ULL);
+            return std::chrono::system_clock::time_point(
+                std::chrono::duration_cast<std::chrono::system_clock::duration>(
+                    filetime.time_since_epoch() - epoch_offset
+                )
+            );
+        }
+#endif
+
         // parse json at the beginning of the stream such as
         // "_url": "https://conda.anaconda.org/conda-forge/linux-64",
         // "_etag": "W/\"6092e6a2b6cec6ea5aade4e177c3edda-8\"",
@@ -111,7 +122,7 @@ namespace mamba
             return from_repodata_file(file);
         }
     }
-    
+
     void MSubdirMetadata::write(const fs::u8path& file)
     {
         nlohmann::json j;
@@ -197,11 +208,12 @@ namespace mamba
 
     void MSubdirMetadata::set_zst(bool value)
     {
-        m_has_zst = { value,
-                      std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) };
+        m_has_zst = { value, std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) };
     }
 
-    auto MSubdirMetadata::from_state_file(const fs::u8path& state_file, const fs::u8path& repodata_file) -> expected_subdir_metadata 
+    auto
+    MSubdirMetadata::from_state_file(const fs::u8path& state_file, const fs::u8path& repodata_file)
+        -> expected_subdir_metadata
     {
         std::ifstream infile = open_ifstream(state_file);
         nlohmann::json j = nlohmann::json::parse(infile);
@@ -235,8 +247,7 @@ namespace mamba
             fs::remove(state_file, ec);
             if (ec)
             {
-                LOG_WARNING << "Could not remove state file " << state_file << ": "
-                            << ec.message();
+                LOG_WARNING << "Could not remove state file " << state_file << ": " << ec.message();
             }
             return make_unexpected(
                 fmt::format("File: {}: Could not load cache state: {}", state_file, e.what()),
@@ -254,8 +265,9 @@ namespace mamba
         }
         return m;
     }
-    
-    auto MSubdirMetadata::from_repodata_file(const fs::u8path& repodata_file) -> expected_subdir_metadata
+
+    auto MSubdirMetadata::from_repodata_file(const fs::u8path& repodata_file)
+        -> expected_subdir_metadata
     {
         std::ifstream in_file = open_ifstream(repodata_file);
         std::string json = extract_subjson(in_file);
@@ -303,8 +315,7 @@ namespace mamba
             return values;
         }
 
-        file_duration
-        get_cache_age(const fs::u8path& cache_file, const file_time_point& ref)
+        file_duration get_cache_age(const fs::u8path& cache_file, const file_time_point& ref)
         {
             try
             {
@@ -336,7 +347,7 @@ namespace mamba
             {
                 static std::regex max_age_re("max-age=(\\d+)");
                 std::smatch max_age_match;
-                bool matches = std::regex_search(cache_control, max_age_match, max_age_re); 
+                bool matches = std::regex_search(cache_control, max_age_match, max_age_re);
                 if (!matches)
                 {
                     max_age = 0;
@@ -446,22 +457,22 @@ namespace mamba
 
     MultiDownloadRequest MSubdirData::build_check_requests()
     {
-        MultiDownloadRequest result;
-        
-        if ((!p_context->offline || forbid_cache(m_repodata_url))
-                && p_context->repodata_use_zst
-                && !m_metadata.has_zst())
+        assert(!is_loaded());
+        MultiDownloadRequest request;
+
+        if ((!p_context->offline || forbid_cache(m_repodata_url)) && p_context->repodata_use_zst
+            && !m_metadata.has_zst())
         {
-            result.push_back(DownloadRequest(
+            request.push_back(DownloadRequest(
                 m_name + " (check zst)",
                 m_repodata_url + ".zst",
                 "",
-                /*head_only = */true,
-                /*ignore_failure = */true
+                /*head_only = */ true,
+                /*ignore_failure = */ true
             ));
 
-            result.back().on_success = [this](const DownloadSuccess& success)
-            {    
+            request.back().on_success = [this](const DownloadSuccess& success)
+            {
                 const std::string& effective_url = success.transfer.effective_url;
                 int http_status = success.transfer.http_status;
                 LOG_INFO << "Checked: " << effective_url << " [" << http_status << "]";
@@ -469,40 +480,41 @@ namespace mamba
                 {
                     m_metadata.set_zst(http_status == 200);
                 }
-                return true;
+                return expected_t<void>();
             };
-            
-            result.back().on_failure = [this](const DownloadError& error)
+
+            request.back().on_failure = [this](const DownloadError& error)
             {
                 if (error.transfer.has_value())
                 {
-                    LOG_INFO << "Checked: " << error.transfer.value().effective_url 
-                        << " [" << error.transfer.value().http_status << "]";
+                    LOG_INFO << "Checked: " << error.transfer.value().effective_url << " ["
+                             << error.transfer.value().http_status << "]";
                 }
                 m_metadata.set_zst(false);
             };
         }
-        return result;
+        return request;
     }
 
     DownloadRequest MSubdirData::build_index_request()
     {
+        assert(!is_loaded());
         fs::u8path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
         auto lock = LockFile(writable_cache_dir);
         m_temp_file = std::make_unique<TemporaryFile>("mambaf", "", writable_cache_dir);
-        
+
         bool use_zst = m_metadata.has_zst();
 
         DownloadRequest request(
             m_name,
             m_repodata_url + (use_zst ? ".zst" : ""),
             m_temp_file->path().string(),
-            /*head_only*/false,
-            /*ignore_failure*/!m_is_noarch
+            /*head_only*/ false,
+            /*ignore_failure*/ !m_is_noarch
         );
         request.etag = m_metadata.etag();
         request.last_modified = m_metadata.last_modified();
-        
+
         request.on_success = [this](const DownloadSuccess& success)
         {
             if (success.transfer.http_status == 304)
@@ -511,12 +523,10 @@ namespace mamba
             }
             else
             {
-                return finalize_transfer(MSubdirMetadata::http_metadata{
-                    success.transfer.effective_url,
-                    success.etag,
-                    success.last_modified,
-                    success.cache_control
-                });
+                return finalize_transfer(MSubdirMetadata::http_metadata{ success.transfer.effective_url,
+                                                                         success.etag,
+                                                                         success.last_modified,
+                                                                         success.cache_control });
             }
         };
 
@@ -524,8 +534,9 @@ namespace mamba
         {
             if (error.transfer.has_value())
             {
-                LOG_WARNING << "Unable to retrieve repodata (response: " << error.transfer.value().http_status
-                     << ") for '" << error.transfer.value().effective_url << "'";
+                LOG_WARNING << "Unable to retrieve repodata (response: "
+                            << error.transfer.value().http_status << ") for '"
+                            << error.transfer.value().effective_url << "'";
             }
             else
             {
@@ -577,7 +588,8 @@ namespace mamba
         load(caches, channel_context, channel);
     }
 
-    void MSubdirData::load(MultiPackageCache& caches, ChannelContext& channel_context, const Channel& channel)
+    void
+    MSubdirData::load(MultiPackageCache& caches, ChannelContext& channel_context, const Channel& channel)
     {
         if (!forbid_cache(m_repodata_url))
         {
@@ -633,9 +645,12 @@ namespace mamba
             }
             m_metadata = std::move(metadata_temp.value());
 
-            int max_age = get_max_age(m_metadata.cache_control(), static_cast<int>(context.local_repodata_ttl));
-            auto cache_age_seconds = std::chrono::duration_cast<std::chrono::seconds>(cache_age)
-                                                 .count();
+            int max_age = get_max_age(
+                m_metadata.cache_control(),
+                static_cast<int>(context.local_repodata_ttl)
+            );
+            auto cache_age_seconds = std::chrono::duration_cast<std::chrono::seconds>(cache_age).count(
+            );
 
             if ((max_age > cache_age_seconds || context.offline || context.use_index_cache))
             {
@@ -658,10 +673,9 @@ namespace mamba
                 {
                     // valid libsolv cache found
                     LOG_DEBUG << "Using SOLV cache";
-                    LOG_TRACE
-                        << "Cache age: "
-                        << std::chrono::duration_cast<std::chrono::seconds>(solv_age).count()
-                        << "s";
+                    LOG_TRACE << "Cache age: "
+                              << std::chrono::duration_cast<std::chrono::seconds>(solv_age).count()
+                              << "s";
                     m_solv_cache_valid = true;
                     m_valid_cache_path = cache_path;
                     // no need to search for other valid caches
@@ -675,7 +689,7 @@ namespace mamba
                     m_expired_cache_path = cache_path;
                 }
                 LOG_DEBUG << "Expired cache or invalid mod/etag headers";
-            }   
+            }
         }
     }
 
@@ -696,15 +710,14 @@ namespace mamba
         }
     }
 
-    bool MSubdirData::use_existing_cache()
+    expected_t<void> MSubdirData::use_existing_cache()
     {
         LOG_INFO << "Cache is still valid";
 
         fs::u8path json_file = m_expired_cache_path / "cache" / m_json_fn;
         fs::u8path solv_file = m_expired_cache_path / "cache" / m_solv_fn;
 
-        if (path::is_writable(json_file)
-            && (!fs::exists(solv_file) || path::is_writable(solv_file)))
+        if (path::is_writable(json_file) && (!fs::exists(solv_file) || path::is_writable(solv_file)))
         {
             LOG_DEBUG << "Refreshing cache files ages";
             m_valid_cache_path = m_expired_cache_path;
@@ -714,7 +727,10 @@ namespace mamba
             if (m_writable_pkgs_dir.empty())
             {
                 LOG_ERROR << "Could not find any writable cache directory for repodata file";
-                return false;
+                return make_unexpected(
+                    "Could not find any writable cache directory for repodata file",
+                    mamba_error_code::subdirdata_not_loaded
+                );
             }
 
             LOG_DEBUG << "Copying repodata cache files from '" << m_expired_cache_path.string()
@@ -738,15 +754,18 @@ namespace mamba
 
         m_temp_file.reset();
         m_loaded = true;
-        return true;
+        return expected_t<void>();
     }
 
-    bool MSubdirData::finalize_transfer(MSubdirMetadata::http_metadata http_data)
+    expected_t<void> MSubdirData::finalize_transfer(MSubdirMetadata::http_metadata http_data)
     {
         if (m_writable_pkgs_dir.empty())
         {
             LOG_ERROR << "Could not find any writable cache directory for repodata file";
-            return false;
+            return make_unexpected(
+                "Could not find any writable cache directory for repodata file",
+                mamba_error_code::subdirdata_not_loaded
+            );
         }
 
         LOG_DEBUG << "Finalized transfer of '" << http_data.url << "'";
@@ -763,12 +782,14 @@ namespace mamba
         mamba_fs::rename_or_move(m_temp_file->path(), json_file, ec);
         if (ec)
         {
-            LOG_ERROR << fmt::format(
-                    "Could not move repodata file from {} to {}: {}",
-                    m_temp_file->path(),
-                    json_file,
-                    strerror(errno));
-            return false;
+            std::string error = fmt::format(
+                "Could not move repodata file from {} to {}: {}",
+                m_temp_file->path(),
+                json_file,
+                strerror(errno)
+            );
+            LOG_ERROR << error;
+            return make_unexpected(error, mamba_error_code::subdirdata_not_loaded);
         }
 
         m_metadata.store_file_metadata(json_file);
@@ -777,10 +798,9 @@ namespace mamba
         m_temp_file.reset();
         m_valid_cache_path = m_writable_pkgs_dir;
         m_json_cache_valid = true;
-        m_solv_cache_valid = true;
         m_loaded = true;
 
-        return true;
+        return expected_t<void>();
     }
 
     void

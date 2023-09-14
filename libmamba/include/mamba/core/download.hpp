@@ -15,6 +15,7 @@
 #include <tl/expected.hpp>
 
 #include "mamba/core/context.hpp"
+#include "mamba/core/error_handling.hpp"
 
 namespace mamba
 {
@@ -48,6 +49,7 @@ namespace mamba
     {
         std::size_t downloaded_size = 0;
         std::size_t total_to_download = 0;
+        std::size_t speed = 0;
     };
 
     using DownloadEvent = std::variant<DownloadProgress, DownloadError, DownloadSuccess>;
@@ -57,7 +59,7 @@ namespace mamba
         using progress_callback_t = std::function<void(const DownloadEvent&)>;
 
         // TODO: remove these functions when we plug a library with continuation
-        using on_success_callback_t = std::function<bool(const DownloadSuccess&)>;
+        using on_success_callback_t = std::function<expected_t<void>(const DownloadSuccess&)>;
         using on_failure_callback_t = std::function<void(const DownloadError&)>;
 
         std::string name;
@@ -89,12 +91,36 @@ namespace mamba
 
     struct DownloadOptions
     {
+        using termination_function = std::optional<std::function<void()>>;
+
         bool fail_fast = false;
         bool sort = true;
+        termination_function on_unexpected_termination = std::nullopt;
+    };
+    
+    class DownloadMonitor
+    {
+    public:
+
+        virtual ~DownloadMonitor() = default;
+
+        DownloadMonitor(const DownloadMonitor&) = delete;
+        DownloadMonitor& operator=(const DownloadMonitor&) = delete;
+        DownloadMonitor(DownloadMonitor&&) = delete;
+        DownloadMonitor& operator=(DownloadMonitor&&) = delete;
+
+        virtual void observe(MultiDownloadRequest& requests, DownloadOptions& options) = 0;
+        virtual void on_done() = 0;
+        virtual void on_unexpected_termination() = 0;
+
+    protected:
+
+        DownloadMonitor() = default;
     };
 
     MultiDownloadResult
-    download(MultiDownloadRequest requests, const Context& context, DownloadOptions options = {});
+    download(MultiDownloadRequest requests, const Context& context, DownloadOptions options = {}, DownloadMonitor* monitor = nullptr);
+
 }
 
 #endif

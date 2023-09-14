@@ -7,6 +7,7 @@
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/core/channel.hpp"
 #include "mamba/core/download.hpp"
+#include "mamba/core/download_progress_bar.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/repo.hpp"
@@ -41,6 +42,29 @@ namespace mamba
                 prefix_data.load_single_record(repodata_record_json);
             }
             return MRepo(pool, prefix_data);
+        }
+    }
+
+    MultiDownloadResult download_impl(
+        MultiDownloadRequest requests,
+        const Context& context,
+        DownloadOptions options,
+        MonitorOptions monitor_options
+    )
+    {
+        if (DownloadProgressBar::can_monitor(context))
+        {
+            DownloadProgressBar monitor(std::move(monitor_options));
+            return download(
+                std::move(requests),
+                context,
+                std::move(options),
+                &monitor
+            );
+        }
+        else
+        {
+            return download(std::move(requests), context, std::move(options));
         }
     }
 
@@ -102,12 +126,14 @@ namespace mamba
         MultiDownloadRequest check_requests;
         for (auto& subdir : subdirs)
         {
-            MultiDownloadRequest check_list = subdir.build_check_requests();
-            std::move(check_list.begin(), check_list.end(), std::back_inserter(check_requests));
+            if (!subdir.is_loaded())
+            {
+                MultiDownloadRequest check_list = subdir.build_check_requests();
+                std::move(check_list.begin(), check_list.end(), std::back_inserter(check_requests));
+            }
         }
 
-        download(std::move(check_requests), ctx);
-        //multi_dl.download(MAMBA_NO_CLEAR_PROGRESS_BARS);
+        download_impl(std::move(check_requests), ctx, {}, { true, true });
         if (is_sig_interrupted())
         {
             error_list.push_back(mamba_error("Interrupted by user", mamba_error_code::user_interrupted)
@@ -118,7 +144,10 @@ namespace mamba
         MultiDownloadRequest index_requests;
         for (auto& subdir : subdirs)
         {
-            index_requests.push_back(subdir.build_index_request());
+            if (!subdir.is_loaded())
+            {
+                index_requests.push_back(subdir.build_index_request());
+            }
         }
 
         // TODO load local channels even when offline if (!ctx.offline)
@@ -126,8 +155,7 @@ namespace mamba
         {
             try
             {
-                
-                download(std::move(index_requests), ctx, { /*fial_fast=*/true});
+                download_impl(std::move(index_requests), ctx, { /*fail_fast=*/true }, {});
             }
             catch (const std::runtime_error& e)
             {

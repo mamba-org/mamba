@@ -25,6 +25,7 @@
 #include "mamba/core/tasksync.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/specs/conda_url.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
@@ -32,21 +33,19 @@
 
 namespace mamba
 {
-    std::string cut_repo_name(const std::string& full_url)
+    std::string cut_repo_name(std::string_view url_str)
     {
-        std::string remaining_url, scheme, auth, token;
-        // TODO maybe add some caching...
-        util::split_scheme_auth_token(full_url, remaining_url, scheme, auth, token);
-
-        if (util::starts_with(remaining_url, "conda.anaconda.org/"))
+        auto url = specs::CondaURL::parse(url_str);
+        url.clear_token();
+        if ((url.host() == "conda.anaconda.org") || (url.host() == "repo.anaconda.com"))
         {
-            return remaining_url.substr(19, std::string::npos).data();
+            std::string out = url.clear_path();
+            out = util::strip(out, '/');
+            return out;
         }
-        if (util::starts_with(remaining_url, "repo.anaconda.com/"))
-        {
-            return remaining_url.substr(18, std::string::npos).data();
-        }
-        return remaining_url;
+        url.clear_user();
+        url.clear_password();
+        return url.pretty_str(specs::CondaURL::StripScheme::yes, '/');
     }
 
     /***********

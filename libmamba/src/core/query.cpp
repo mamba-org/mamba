@@ -769,7 +769,9 @@ namespace mamba
             // We want the cannonical channel name here.
             // We do not know what is in the `channel` field so we need to make sure.
             // This is most likely legacy and should be updated on the next major release.
-            pkg_info_json["channel"] = cut_subdir(cut_repo_name(pkg_info_json["channel"]));
+            pkg_info_json["channel"] = cut_subdir(
+                cut_repo_name(pkg_info_json["channel"].get<std::string_view>())
+            );
             j["result"]["pkgs"].push_back(std::move(pkg_info_json));
         }
 
@@ -782,7 +784,9 @@ namespace mamba
                 // We want the cannonical channel name here.
                 // We do not know what is in the `channel` field so we need to make sure.
                 // This is most likely legacy and should be updated on the next major release.
-                pkg_info_json["channel"] = cut_subdir(cut_repo_name(pkg_info_json["channel"]));
+                pkg_info_json["channel"] = cut_subdir(
+                    cut_repo_name(pkg_info_json["channel"].get<std::string_view>())
+                );
                 j["result"]["graph_roots"].push_back(std::move(pkg_info_json));
             }
             else

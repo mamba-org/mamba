@@ -50,6 +50,10 @@ namespace mamba
             {
                 return std::make_unique<mamba::FishActivator>(context);
             }
+            if (name == "nu")
+            {
+                return std::make_unique<mamba::NuActivator>(context);
+            }
             throw std::invalid_argument(fmt::format("Shell type not handled: {}", name));
         }
     }

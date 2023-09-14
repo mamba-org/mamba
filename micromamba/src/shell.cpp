@@ -31,7 +31,7 @@ namespace
         subcmd
             ->add_option("-s,--shell", shell_type.get_cli_config<std::string>(), shell_type.description())
             ->check(CLI::IsMember(std::set<std::string>(
-                { "bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish", "tcsh", "dash" }
+                { "bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish", "tcsh", "dash", "nu" }
             )));
     }
 

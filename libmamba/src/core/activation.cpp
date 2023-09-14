@@ -1216,4 +1216,73 @@ namespace mamba
 
         return out.str();
     }
+
+    std::string NuActivator::shell_extension()
+    {
+        return ".nu";
+    }
+
+    std::string NuActivator::shell()
+    {
+        return "nu";
+    }
+
+    std::string NuActivator::hook_preamble()
+    {
+        return "";
+    }
+
+    std::string NuActivator::hook_postamble()
+    {
+        return "";
+    }
+
+    fs::u8path NuActivator::hook_source_path()
+    {
+        return "";
+    }
+
+    std::pair<std::string, std::string>
+    NuActivator::update_prompt(const std::string& conda_prompt_modifier)
+    {
+        // hook is implemented in shell_init.cpp as nushell behaves like a compiled language;
+        // one cannot dynamically evaluate strings
+        return { "", "" };
+    }
+
+    std::string NuActivator::script(const EnvironmentTransform& env_transform)
+    {
+        std::stringstream out;
+
+        if (!env_transform.export_path.empty())
+        {
+            out << "PATH = " << env_transform.export_path << ";";
+        }
+
+        for (const fs::u8path& ds : env_transform.deactivate_scripts)
+        {
+            out << "source " << ds << ";";
+        }
+
+        for (const std::string& uvar : env_transform.unset_vars)
+        {
+            out << "hide-env " << uvar << ";";
+        }
+
+        for (const auto& [skey, svar] : env_transform.set_vars)
+        {
+            out << "let " << skey << " = " << svar << ";";
+        }
+
+        for (const auto& [ekey, evar] : env_transform.export_vars)
+        {
+            out << ekey << " = " << evar << ";";
+        }
+
+        for (const fs::u8path& p : env_transform.activate_scripts)
+        {
+            out << "source " << p << ";";
+        }
+        return out.str();
+    }
 }  // namespace mamba

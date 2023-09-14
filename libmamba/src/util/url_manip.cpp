@@ -18,7 +18,6 @@
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
-#include "mamba/util/url.hpp"
 #include "mamba/util/url_manip.hpp"
 
 namespace mamba::util
@@ -251,33 +250,6 @@ namespace mamba::util
             cleaned_url = url;
         }
         cleaned_url = util::rstrip(cleaned_url, "/");
-    }
-
-    void split_scheme_auth_token(
-        const std::string& url,
-        std::string& remaining_url,
-        std::string& scheme,
-        std::string& auth,
-        std::string& token
-    )
-    {
-        std::string cleaned_url;
-        split_anaconda_token(url, cleaned_url, token);
-        URL url_parsed = URL::parse(cleaned_url);
-        scheme = url_parsed.scheme();
-        auth = url_parsed.authentication();
-        url_parsed.set_user("");
-        url_parsed.set_password("");
-        remaining_url = util::rstrip(url_parsed.pretty_str(URL::StripScheme::yes), '/');
-    }
-
-    bool compare_cleaned_url(const std::string& url1, const std::string& url2)
-    {
-        std::string u1_remaining, u1_scheme, u1_auth, u1_token;
-        std::string u2_remaining, u2_scheme, u2_auth, u2_token;
-        split_scheme_auth_token(url1, u1_remaining, u1_scheme, u1_auth, u1_token);
-        split_scheme_auth_token(url2, u2_remaining, u2_scheme, u2_auth, u2_token);
-        return u1_remaining == u2_remaining;
     }
 
     std::string path_to_url(const std::string& path)

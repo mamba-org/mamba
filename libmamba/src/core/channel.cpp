@@ -261,22 +261,22 @@ namespace mamba
      **************************/
 
     Channel::Channel(
-        const std::string& scheme,
-        const std::string& location,
-        const std::string& name,
-        const std::string& canonical_name,
-        const std::optional<std::string>& auth,
-        const std::optional<std::string>& token,
-        const std::optional<std::string>& package_filename
+        std::string scheme,
+        std::string location,
+        std::string name,
+        std::string canonical_name,
+        std::optional<std::string> auth,
+        std::optional<std::string> token,
+        std::optional<std::string> package_filename
     )
-        : m_scheme(scheme)
-        , m_location(location)
-        , m_name(name)
-        , m_canonical_name(canonical_name)
+        : m_scheme(std::move(scheme))
+        , m_location(std::move(location))
+        , m_name(std::move(name))
+        , m_canonical_name(std::move(canonical_name))
         , m_platforms()
-        , m_auth(auth)
-        , m_token(token)
-        , m_package_filename(package_filename)
+        , m_auth(std::move(auth))
+        , m_token(std::move(token))
+        , m_package_filename(std::move(package_filename))
     {
     }
 

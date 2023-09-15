@@ -54,13 +54,13 @@ namespace mamba
     private:
 
         Channel(
-            const std::string& scheme,
-            const std::string& location,
-            const std::string& name,
-            const std::string& canonical_name,
-            const std::optional<std::string>& auth = {},
-            const std::optional<std::string>& token = {},
-            const std::optional<std::string>& package_filename = {}
+            std::string scheme,
+            std::string location,
+            std::string name,
+            std::string canonical_name,
+            std::optional<std::string> auth = {},
+            std::optional<std::string> token = {},
+            std::optional<std::string> package_filename = {}
         );
 
         std::string m_scheme;

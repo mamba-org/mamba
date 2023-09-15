@@ -511,7 +511,7 @@ namespace mamba
             {
                 { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },
                 { SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade },
-                { SOLVER_FLAG_STRICT_REPO_PRIORITY, ctx.channel_priority == ChannelPriority::kStrict },
+                { SOLVER_FLAG_STRICT_REPO_PRIORITY, ctx.channel_priority == ChannelPriority::Strict },
             }
         );
 

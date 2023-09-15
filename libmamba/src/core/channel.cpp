@@ -619,12 +619,12 @@ namespace mamba
                     const auto& authentication_info = m_context.authentication_info();
                     auto it = authentication_info.find(auth);
                     if (it != authentication_info.end()
-                        && it->second.type == AuthenticationType::kCondaToken)
+                        && it->second.type == AuthenticationType::CondaToken)
                     {
                         chan.m_token = it->second.value;
                         break;
                     }
-                    else if (it != authentication_info.end() && it->second.type == AuthenticationType::kBasicHTTPAuthentication)
+                    else if (it != authentication_info.end() && it->second.type == AuthenticationType::BasicHTTPAuthentication)
                     {
                         chan.m_auth = it->second.value;
                         break;

@@ -260,7 +260,7 @@ namespace mamba
         if (m_context.authentication_info().count(host))
         {
             const auto& auth = m_context.authentication_info().at(host);
-            if (auth.type == AuthenticationType::kBearerToken)
+            if (auth.type == AuthenticationType::BearerToken)
             {
                 m_curl_handle->add_header(fmt::format("Authorization: Bearer {}", auth.value));
             }

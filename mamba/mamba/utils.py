@@ -276,11 +276,11 @@ def init_api_context(use_mamba_experimental=False):
     api_ctx.use_only_tar_bz2 = context.use_only_tar_bz2
 
     if context.channel_priority is ChannelPriority.STRICT:
-        api_ctx.channel_priority = api.ChannelPriority.kStrict
+        api_ctx.channel_priority = api.ChannelPriority.Strict
     elif context.channel_priority is ChannelPriority.FLEXIBLE:
-        api_ctx.channel_priority = api.ChannelPriority.kFlexible
+        api_ctx.channel_priority = api.ChannelPriority.Flexible
     elif context.channel_priority is ChannelPriority.DISABLED:
-        api_ctx.channel_priority = api.ChannelPriority.kDisabled
+        api_ctx.channel_priority = api.ChannelPriority.Disabled
 
 
 def to_conda_channel(channel, platform):

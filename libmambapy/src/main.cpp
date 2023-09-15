@@ -573,9 +573,9 @@ PYBIND11_MODULE(bindings, m)
         .def("download", &MultiDownloadTarget::download);
 
     py::enum_<ChannelPriority>(m, "ChannelPriority")
-        .value("kFlexible", ChannelPriority::kFlexible)
-        .value("kStrict", ChannelPriority::kStrict)
-        .value("kDisabled", ChannelPriority::kDisabled);
+        .value("Flexible", ChannelPriority::Flexible)
+        .value("Strict", ChannelPriority::Strict)
+        .value("Disabled", ChannelPriority::Disabled);
 
     py::enum_<mamba::log_level>(m, "LogLevel")
         .value("TRACE", mamba::log_level::trace)

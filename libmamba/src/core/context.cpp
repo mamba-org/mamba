@@ -224,7 +224,7 @@ namespace mamba
                     token_url = token_url.substr(0, token_url.size() - 6);
 
                     std::string token_content = read_contents(entry.path());
-                    AuthenticationInfo auth_info{ AuthenticationType::kCondaToken, token_content };
+                    AuthenticationInfo auth_info{ AuthenticationType::CondaToken, token_content };
                     m_authentication_info[token_url] = auth_info;
                     LOG_INFO << "Found token for " << token_url << " at " << entry.path();
                 }
@@ -247,14 +247,14 @@ namespace mamba
                     AuthenticationInfo info;
                     if (type == "CondaToken")
                     {
-                        info.type = AuthenticationType::kCondaToken;
+                        info.type = AuthenticationType::CondaToken;
                         info.value = el["token"].get<std::string>();
                         LOG_INFO << "Found token for host " << host
                                  << " in ~/.mamba/auth/authentication.json";
                     }
                     else if (type == "BasicHTTPAuthentication")
                     {
-                        info.type = AuthenticationType::kBasicHTTPAuthentication;
+                        info.type = AuthenticationType::BasicHTTPAuthentication;
                         const auto& user = el.value("user", "");
                         auto pass = decode_base64(el["password"].get<std::string>());
                         if (pass)
@@ -273,7 +273,7 @@ namespace mamba
                     }
                     else if (type == "BearerToken")
                     {
-                        info.type = AuthenticationType::kBearerToken;
+                        info.type = AuthenticationType::BearerToken;
                         info.value = el["token"].get<std::string>();
                         LOG_INFO << "Found bearer token for host " << host
                                  << " in ~/.mamba/auth/authentication.json";

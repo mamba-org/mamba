@@ -492,7 +492,7 @@ namespace mamba
         {
             auto& ctx = mambatests::context();
             ctx.authentication_info()["conda.anaconda.org"] = AuthenticationInfo{
-                AuthenticationType::kCondaToken,
+                AuthenticationType::CondaToken,
                 "my-12345-token"
             };
 
@@ -515,11 +515,11 @@ namespace mamba
         {
             auto& ctx = mambatests::context();
             ctx.authentication_info()["conda.anaconda.org"] = AuthenticationInfo{
-                AuthenticationType::kCondaToken,
+                AuthenticationType::CondaToken,
                 "base-token"
             };
             ctx.authentication_info()["conda.anaconda.org/conda-forge"] = AuthenticationInfo{
-                AuthenticationType::kCondaToken,
+                AuthenticationType::CondaToken,
                 "channel-token"
             };
 

@@ -210,52 +210,6 @@ TEST_SUITE("util::url_manip")
         CHECK_FALSE(url_has_scheme(""));
     }
 
-    TEST_CASE("split_ananconda_token")
-    {
-        std::string input, cleaned_url, token;
-        {
-            input = "https://1.2.3.4/t/tk-123-456/path";
-            split_anaconda_token(input, cleaned_url, token);
-            CHECK_EQ(cleaned_url, "https://1.2.3.4/path");
-            CHECK_EQ(token, "tk-123-456");
-        }
-
-        {
-            input = "https://1.2.3.4/t//path";
-            split_anaconda_token(input, cleaned_url, token);
-            CHECK_EQ(cleaned_url, "https://1.2.3.4/path");
-            CHECK_EQ(token, "");
-        }
-
-        {
-            input = "https://some.domain/api/t/tk-123-456/path";
-            split_anaconda_token(input, cleaned_url, token);
-            CHECK_EQ(cleaned_url, "https://some.domain/api/path");
-            CHECK_EQ(token, "tk-123-456");
-        }
-
-        {
-            input = "https://1.2.3.4/conda/t/tk-123-456/path";
-            split_anaconda_token(input, cleaned_url, token);
-            CHECK_EQ(cleaned_url, "https://1.2.3.4/conda/path");
-            CHECK_EQ(token, "tk-123-456");
-        }
-
-        {
-            input = "https://1.2.3.4/path";
-            split_anaconda_token(input, cleaned_url, token);
-            CHECK_EQ(cleaned_url, "https://1.2.3.4/path");
-            CHECK_EQ(token, "");
-        }
-
-        {
-            input = "https://10.2.3.4:8080/conda/t/tk-123-45";
-            split_anaconda_token(input, cleaned_url, token);
-            CHECK_EQ(cleaned_url, "https://10.2.3.4:8080/conda");
-            CHECK_EQ(token, "tk-123-45");
-        }
-    }
-
     TEST_CASE("cache_name_from_url")
     {
         CHECK_EQ(cache_name_from_url("http://test.com/1234/"), "302f0a61");

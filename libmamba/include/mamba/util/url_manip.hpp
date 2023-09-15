@@ -72,8 +72,6 @@ namespace mamba::util
      */
     [[nodiscard]] auto url_has_scheme(std::string_view url) -> bool;
 
-    void split_anaconda_token(const std::string& url, std::string& cleaned_url, std::string& token);
-
     std::string path_to_url(const std::string& path);
 
     template <class S, class... Args>

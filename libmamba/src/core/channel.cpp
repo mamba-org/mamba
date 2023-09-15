@@ -63,7 +63,7 @@ namespace mamba
         }
 
         void split_conda_url(
-            const std::string& url,
+            std::string_view url_str,
             std::string& scheme,
             std::string& host,
             std::string& port,
@@ -73,27 +73,16 @@ namespace mamba
             std::string& package_name
         )
         {
-            std::string cleaned_url, extension;
-            util::split_anaconda_token(url, cleaned_url, token);
-            split_package_extension(cleaned_url, cleaned_url, extension);
-
-            if (extension != "")
-            {
-                auto sp = util::rsplit(cleaned_url, "/", 1);
-                cleaned_url = sp[0];
-                package_name = sp[1] + extension;
-            }
-            else
-            {
-                package_name = "";
-            }
-
-            const auto url_parsed = util::URL::parse(cleaned_url);
-            scheme = url_parsed.scheme();
-            host = url_parsed.host();
-            port = url_parsed.port();
-            path = url_parsed.path();
-            auth = url_parsed.authentication();
+            auto url = specs::CondaURL::parse(url_str);
+            package_name = url.package();
+            url.clear_package();
+            token = url.token();
+            url.clear_token();
+            scheme = url.scheme();
+            host = url.host();
+            port = url.port();
+            path = url.path();
+            auth = url.authentication();
         }
 
         // Channel configuration

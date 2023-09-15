@@ -231,27 +231,6 @@ namespace mamba::util
         return !url_get_scheme(url).empty();
     }
 
-    void split_anaconda_token(const std::string& url, std::string& cleaned_url, std::string& token)
-    {
-        auto token_begin = std::sregex_iterator(url.begin(), url.end(), conda_urls::token_regex);
-        if (token_begin != std::sregex_iterator())
-        {
-            token = token_begin->str().substr(3u);
-            cleaned_url = std::regex_replace(
-                url,
-                conda_urls::token_regex,
-                "",
-                std::regex_constants::format_first_only
-            );
-        }
-        else
-        {
-            token = "";
-            cleaned_url = url;
-        }
-        cleaned_url = util::rstrip(cleaned_url, "/");
-    }
-
     std::string path_to_url(const std::string& path)
     {
         static constexpr std::string_view file_scheme = "file://";

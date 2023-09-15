@@ -13,6 +13,7 @@
 #include "mamba/core/channel.hpp"
 #include "mamba/core/environments_manager.hpp"
 #include "mamba/core/prefix_data.hpp"
+#include "mamba/core/util.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 

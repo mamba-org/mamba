@@ -8,18 +8,22 @@
 #define MAMBA_CORE_CHANNEL_HPP
 
 #include <map>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
 
-#include "mamba/core/package_cache.hpp"
-#include "mamba/core/validate.hpp"
 
 namespace mamba
 {
     class Context;
+    class MultiPackageCache;
+    namespace validation
+    {
+        class RepoChecker;
+    }
 
     std::vector<std::string> get_known_platforms();
 
@@ -32,6 +36,8 @@ namespace mamba
         Channel& operator=(const Channel&) = delete;
         Channel(Channel&&) noexcept = default;
         Channel& operator=(Channel&&) noexcept = default;
+
+        ~Channel();
 
         const std::string& scheme() const;
         const std::string& location() const;

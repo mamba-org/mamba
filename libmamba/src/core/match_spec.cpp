@@ -11,6 +11,7 @@
 #include "mamba/core/environment.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/util.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 

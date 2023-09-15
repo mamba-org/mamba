@@ -280,6 +280,8 @@ namespace mamba
     {
     }
 
+    Channel::~Channel() = default;
+
     const std::string& Channel::scheme() const
     {
         return m_scheme;

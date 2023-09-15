@@ -142,7 +142,7 @@ namespace mamba
             const std::string& channel_canonical_name
         );
 
-        Channel from_url(const std::string& url);
+        Channel from_url(std::string_view url);
         Channel from_name(const std::string& name);
         Channel from_value(const std::string& value);
         Channel from_alias(std::string_view alias);

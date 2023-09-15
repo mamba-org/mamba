@@ -62,29 +62,6 @@ namespace mamba
             return s.empty() ? std::optional<std::string>() : std::make_optional(s);
         }
 
-        void split_conda_url(
-            std::string_view url_str,
-            std::string& scheme,
-            std::string& host,
-            std::string& port,
-            std::string& path,
-            std::string& auth,
-            std::string& token,
-            std::string& package_name
-        )
-        {
-            auto url = specs::CondaURL::parse(url_str);
-            package_name = url.package();
-            url.clear_package();
-            token = url.token();
-            url.clear_token();
-            scheme = url.scheme();
-            host = url.host();
-            port = url.port();
-            path = url.path();
-            auth = url.authentication();
-        }
-
         // Channel configuration
         struct channel_configuration
         {
@@ -472,12 +449,15 @@ namespace mamba
         );
     }
 
-    Channel ChannelContext::from_url(const std::string& url)
+    Channel ChannelContext::from_url(std::string_view url_str)
     {
-        std::string scheme, host, port, path, auth, token, package_name;
-        split_conda_url(url, scheme, host, port, path, auth, token, package_name);
+        auto url = specs::CondaURL::parse(url_str);
+        std::string package_name = url.package();
+        url.clear_package();
+        std::string token = std::string(url.token());
+        url.clear_token();
 
-        auto config = read_channel_configuration(*this, scheme, host, port, path);
+        auto config = read_channel_configuration(*this, url.scheme(), url.host(), url.port(), url.path());
 
         auto res_scheme = !config.scheme.empty() ? config.scheme : "https";
         std::string canonical_name;
@@ -496,12 +476,13 @@ namespace mamba
             );
         }
 
+        std::string auth = url.authentication();
         return Channel(
             res_scheme,
             config.location,
             config.name,
             canonical_name,
-            auth.size() ? std::make_optional(auth) : nonempty_str(std::move(config.auth)),
+            auth.size() ? std::make_optional(std::move(auth)) : nonempty_str(std::move(config.auth)),
             token.size() ? std::make_optional(token) : nonempty_str(std::move(config.token)),
             nonempty_str(std::move(package_name))
         );

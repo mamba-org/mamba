@@ -405,7 +405,8 @@ namespace mamba
         content << "$env.MAMBA_EXE = " << mamba_exe << "\n";
         content << "$env.MAMBA_ROOT_PREFIX = " << env_prefix << "\n";
         content << "$env.PATH = ($env.PATH | prepend ([$env.MAMBA_ROOT_PREFIX bin] | path join) | uniq)\n";
-        content << R"###(def-env "micromamba activate"  [name: string] {
+        content << R"###(
+def-env "micromamba activate"  [name: string] {
     #add condabin when root
     if $env.MAMBA_SHLVL? == null {
         $env.MAMBA_SHLVL = 0
@@ -413,27 +414,41 @@ namespace mamba
     }
     #ask mamba how to setup the environment and set the environment
     (^($env.MAMBA_EXE) shell activate --shell nu $name
+      | str replace --regex '\s+' '' --all
       | split row ";"
-      | parse  "{key} = {value}"
+      | parse --regex '(.*)=(.+)'
       | transpose --header-row
       | into record
       | load-env
     )
-    $env.PROMPT_COMMAND = {$env.CONDA_PROMPT_MODIFIER + (create_left_prompt)}
+    # update prompt
+    if ($env.CONDA_PROMPT_MODIFIER? != null) {
+      $env.PROMPT_COMMAND = {|| $env.CONDA_PROMPT_MODIFIER + (create_left_prompt)}
+    }
 }
 def-env "micromamba deactivate" [] {
     #remove active environment except micromamba root
     if $env.CONDA_PROMPT_MODIFIER? != null {
-     (^($env.MAMBA_EXE) shell deactivate  --shell nu
-      | split row ";"
-      | str trim
-      | parse --regex '(.*?)(?:\s*=\s*|\s+)(.*?)'
-      | transpose --header-row
-      | into record
-      | load-env
-    )
-    $env.PROMPT_COMMAND = (create_left_prompt)
-  }})###"
+      # unset set variables
+      for x in (^$env.MAMBA_EXE shell deactivate --shell nu
+              | split row ";"
+              | parse --regex "hide-env (.*)") {
+          hide-env $x.capture0
+      }
+      # reset environment variables
+      (^($env.MAMBA_EXE) shell deactivate  --shell nu
+        | str replace --regex '\s+' "" --all
+        | split row ";"
+        | str trim
+        | parse --regex '(.*)=(.+)'
+        | transpose --header-row
+        | into record
+        | load-env
+      )
+      # update prompt
+      $env.PROMPT_COMMAND = {|| create_left_prompt}
+    }
+})###"
                 << "\n";
         content << "# <<< mamba initialize <<<\n";
         return content.str();

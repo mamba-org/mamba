@@ -31,6 +31,8 @@ namespace mamba::specs
 
         /** Create a local URL. */
         CondaURL() = default;
+        explicit CondaURL(util::URL&& url);
+        explicit CondaURL(const util::URL& url);
 
         using Base::scheme;
         using Base::set_scheme;
@@ -49,6 +51,7 @@ namespace mamba::specs
         using Base::clear_port;
         using Base::authority;
         using Base::path;
+        using Base::pretty_path;
         using Base::set_path;
         using Base::clear_path;
         using Base::append_path;
@@ -150,8 +153,17 @@ namespace mamba::specs
 
     private:
 
-        explicit CondaURL(URL&& url);
         void set_platform_no_check_input(std::string_view platform);
+
+        friend auto operator==(const CondaURL&, const CondaURL&) -> bool;
     };
+
+    /** Compare two CondaURL. */
+    auto operator==(const CondaURL& a, const CondaURL& b) -> bool;
+    auto operator!=(const CondaURL& a, const CondaURL& b) -> bool;
+
+    /** A functional equivalent to ``CondaURL::append_path``. */
+    auto operator/(const CondaURL& url, std::string_view subpath) -> CondaURL;
+    auto operator/(CondaURL&& url, std::string_view subpath) -> CondaURL;
 }
 #endif

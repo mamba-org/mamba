@@ -78,6 +78,11 @@ namespace mamba::specs
     {
     }
 
+    CondaURL::CondaURL(const util::URL& url)
+        : CondaURL(URL(url))
+    {
+    }
+
     auto CondaURL::parse(std::string_view url) -> CondaURL
     {
         return CondaURL(URL::parse(url));
@@ -98,6 +103,23 @@ namespace mamba::specs
         return std::string_view(l_path).substr(pos + token_prefix.size(), token_len);
     }
 
+    namespace
+    {
+        void set_token_no_check_input_impl(
+            std::string& path,
+            std::size_t pos,
+            std::size_t len,
+            std::string_view token
+        )
+        {
+            static constexpr auto npos = std::string_view::npos;
+
+            assert(CondaURL::token_prefix.size() < len);
+            const auto token_len = (len != npos) ? len - CondaURL::token_prefix.size() : npos;
+            path.replace(pos + CondaURL::token_prefix.size(), token_len, token);
+        }
+    }
+
     void CondaURL::set_token(std::string_view token)
     {
         static constexpr auto npos = std::string_view::npos;
@@ -113,10 +135,8 @@ namespace mamba::specs
                 fmt::format(R"(No token template in orignial path "{}")", path(Decode::no))
             );
         }
-        assert(token_prefix.size() < len);
         std::string l_path = clear_path();  // percent encoded
-        const auto token_len = (len != npos) ? len - token_prefix.size() : npos;
-        l_path.replace(pos + token_prefix.size(), token_len, token);
+        set_token_no_check_input_impl(l_path, pos, len, token);
         set_path(std::move(l_path), Encode::no);
     }
 
@@ -283,5 +303,59 @@ namespace mamba::specs
             return true;
         }
         return false;
+    }
+
+    auto
+    CondaURL::pretty_str(StripScheme strip_scheme, char rstrip_path, HideConfidential hide_confifential) const
+        -> std::string
+    {
+        std::string computed_path = pretty_str_path(strip_scheme, rstrip_path);
+
+        if (hide_confifential == HideConfidential::yes)
+        {
+            const auto [pos, len] = find_token_and_prefix(computed_path);
+            if ((pos < std::string::npos) && (len > 0))
+            {
+                set_token_no_check_input_impl(computed_path, pos, len, "*****");
+            }
+        }
+
+        return util::concat(
+            (strip_scheme == StripScheme::no) ? scheme() : "",
+            (strip_scheme == StripScheme::no) ? "://" : "",
+            user(Decode::yes),
+            password(Decode::no).empty() ? "" : ":",
+            (hide_confifential == HideConfidential::no) ? password(Decode::yes) : "*****",
+            user(Decode::no).empty() ? "" : "@",
+            host(Decode::yes),
+            port().empty() ? "" : ":",
+            port(),
+            computed_path,
+            query().empty() ? "" : "?",
+            query(),
+            fragment().empty() ? "" : "#",
+            fragment()
+        );
+    }
+
+    auto operator==(const CondaURL& a, const CondaURL& b) -> bool
+    {
+        return static_cast<const util::URL&>(a) == static_cast<const util::URL&>(b);
+    }
+
+    auto operator!=(const CondaURL& a, const CondaURL& b) -> bool
+    {
+        return !(a == b);
+    }
+
+    auto operator/(const CondaURL& url, std::string_view subpath) -> CondaURL
+    {
+        return CondaURL(url) / subpath;
+    }
+
+    auto operator/(CondaURL&& url, std::string_view subpath) -> CondaURL
+    {
+        url.append_path(subpath);
+        return std::move(url);
     }
 }

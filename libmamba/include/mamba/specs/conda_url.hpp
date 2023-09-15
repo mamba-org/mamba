@@ -20,19 +20,19 @@ namespace mamba::specs
 
     public:
 
-        using Base::StripScheme;
-        using Base::HidePassword;
-        using Base::Encode;
-        using Base::Decode;
+        using StripScheme = util::detail::StripScheme;
+        using HideConfidential = util::detail::HideConfidential;
+        using Encode = util::detail::Encode;
+        using Decode = util::detail::Decode;
 
-        using Base::https;
-        using Base::localhost;
         inline static constexpr std::string_view token_prefix = "/t/";
 
         [[nodiscard]] static auto parse(std::string_view url) -> CondaURL;
 
         /** Create a local URL. */
         CondaURL() = default;
+        explicit CondaURL(util::URL&& url);
+        explicit CondaURL(const util::URL& url);
 
         using Base::scheme;
         using Base::set_scheme;
@@ -51,6 +51,7 @@ namespace mamba::specs
         using Base::clear_port;
         using Base::authority;
         using Base::path;
+        using Base::pretty_path;
         using Base::set_path;
         using Base::clear_path;
         using Base::append_path;
@@ -132,10 +133,37 @@ namespace mamba::specs
         /** Clear the package and return true if it exists, otherwise return ``false``. */
         auto clear_package() -> bool;
 
+        using Base::str;
+
+        /**
+         * Return the full decoded url.
+         *
+         * Due to decoding, the outcome may not be understood by parser and usable to reach an
+         * asset.
+         * @param strip_scheme If true, remove the scheme and "localhost" on file URI.
+         * @param rstrip_path If non-null, remove the given charaters at the end of the path.
+         * @param hide_confidential If true, hide password and tokens in the decoded string.
+         */
+        [[nodiscard]] auto pretty_str(
+            StripScheme strip_scheme = StripScheme::no,
+            char rstrip_path = 0,
+            HideConfidential hide_confidential = HideConfidential::no
+        ) const -> std::string;
+
+
     private:
 
-        explicit CondaURL(URL&& url);
         void set_platform_no_check_input(std::string_view platform);
+
+        friend auto operator==(const CondaURL&, const CondaURL&) -> bool;
     };
+
+    /** Compare two CondaURL. */
+    auto operator==(const CondaURL& a, const CondaURL& b) -> bool;
+    auto operator!=(const CondaURL& a, const CondaURL& b) -> bool;
+
+    /** A functional equivalent to ``CondaURL::append_path``. */
+    auto operator/(const CondaURL& url, std::string_view subpath) -> CondaURL;
+    auto operator/(CondaURL&& url, std::string_view subpath) -> CondaURL;
 }
 #endif

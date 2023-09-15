@@ -369,11 +369,11 @@ TEST_SUITE("util::URL")
             url.set_user("user");
             url.set_password("pass");
             CHECK_EQ(
-                url.pretty_str(URL::StripScheme::no, 0, URL::HidePassword::no),
+                url.pretty_str(URL::StripScheme::no, 0, URL::HideConfidential::no),
                 "https://user:pass@localhost/"
             );
             CHECK_EQ(
-                url.pretty_str(URL::StripScheme::no, 0, URL::HidePassword::yes),
+                url.pretty_str(URL::StripScheme::no, 0, URL::HideConfidential::yes),
                 "https://user:*****@localhost/"
             );
         }

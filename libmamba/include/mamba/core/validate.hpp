@@ -24,6 +24,7 @@ namespace mamba::validation
 
     std::string sha256sum(const fs::u8path& path);
     std::string md5sum(const fs::u8path& path);
+    std::string blake2sum(const fs::u8path& path);
     bool sha256(const fs::u8path& path, const std::string& validation);
     bool md5(const fs::u8path& path, const std::string& validation);
     bool file_size(const fs::u8path& path, std::uintmax_t validation);

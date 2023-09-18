@@ -197,6 +197,33 @@ namespace mamba::validation
         return ::mamba::util::hex_string(hash, MAMBA_MD5_SIZE_BYTES);
     }
 
+    std::string blake2sum(const fs::u8path& path)
+    {
+        size_t sum, n;
+        // blake2b_state S;
+        constexpr std::size_t BUFSIZE = 32768;
+        std::vector<char> buffer(BUFSIZE);
+
+        constexpr std::size_t outbytes = 32;
+        // blake2b_init(&S, outbytes);
+
+        unsigned char hash[32];
+
+        std::ifstream infile = mamba::open_ifstream(path);
+
+        while (infile)
+        {
+            infile.read(buffer.data(), BUFSIZE);
+            size_t count = infile.gcount();
+            if (!count)
+                break;
+            // blake2b_update(&S, buffer.data(), count);
+        }
+
+        // blake2b_final(&S, hash, outbytes);
+        return ::mamba::hex_string(hash, outbytes);
+    }
+
     bool sha256(const fs::u8path& path, const std::string& validation)
     {
         return sha256sum(path) == validation;

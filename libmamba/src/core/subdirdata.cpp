@@ -946,4 +946,109 @@ namespace mamba
             fs::remove(m_solv_fn);
         }
     }
+
+    tl::expected<Jlap, std::runtime_error> Jlap::parse(const fs::u8path& path)
+    {
+        Jlap jlap_doc;
+        std::ifstream jlap_file = open_ifstream(path);
+        if (!jlap_file.is_open())
+        {
+            return tl::unexpected(std::runtime_error("No such file or directory"));
+        }
+
+        std::vector<std::string> lines;
+        std::string line;
+        while (std::getline(jlap_file, line))
+        {
+            lines.push_back(line);
+        }
+
+        if (lines.size() >= 3)
+        {
+            jlap_doc.start_hash = lines[0];
+            jlap_doc.end_hash = lines[lines.size() - 1];
+
+            if (jlap_doc.start_hash.size() != 64 || jlap_doc.end_hash.size() == 64)
+            {
+                return tl::unexpected(
+                    std::runtime_error("Hash at beginning or end of file not 64 characters long"));
+            }
+
+            try
+            {
+                jlap_doc.metadata = nlohmann::json::parse(lines[lines.size() - 2]);
+                assert(jlap_doc.patches.back().contains("latest"));
+                assert(jlap_doc.patches.back().contains("url"));
+            }
+            catch (...)
+            {
+                return tl::unexpected(std::runtime_error("Could not parse metadata in JLAP file"));
+                // std::cout << " " << line << std::endl;
+            }
+
+            // parse patches in between
+            auto it = lines.begin() + 1;
+            for (; it != lines.end() - 2; ++it)
+            {
+                try
+                {
+                    jlap_doc.patches.push_back(nlohmann::json::parse(*it));
+                    assert(jlap_doc.patches.back().contains("patch"));
+                    assert(jlap_doc.patches.back().contains("from"));
+                    assert(jlap_doc.patches.back().contains("to"));
+                }
+                catch (...)
+                {
+                    return tl::unexpected(std::runtime_error("Could not parse JLAP patch"));
+                    // std::cout << " " << line << std::endl;
+                }
+            }
+        }
+        return jlap_doc;
+    }
+
+    tl::expected<void, std::runtime_error> Jlap::apply_patches_to(const fs::u8path& path)
+    {
+        std::string current_hash = validate::blake2sum(path);
+        if (current_hash == metadata["latest"])
+        {
+            return tl::expected<void, std::runtime_error>();
+        }
+
+        nlohmann::json repodata = nlohmann::json::parse(open_ifstream(path));
+
+        LOG_INFO << "Found " << patches.size() << " jlap-patches";
+        std::ptrdiff_t applied_patches = 0;
+        for (auto& pf : patches)
+        {
+            if (pf["from"] == current_hash)
+            {
+                applied_patches++;
+                current_hash = pf["to"];
+                repodata.patch_inplace(pf["patch"]);
+            }
+        }
+        if (applied_patches == 0)
+        {
+            // check if last `to` is our current repodata
+            if (patches.back()["to"] != current_hash)
+            {
+                return tl::unexpected(std::runtime_error("Hash not matching"));
+            }
+        }
+
+        {
+            TemporaryFile temp_file;
+            std::ofstream of = open_ofstream(temp_file.path());
+            of << repodata.dump(2) << "\n" << std::flush;
+            if (validate::blake2sum(temp_file.path()) != metadata["latest"])
+            {
+                return tl::unexpected(
+                    std::runtime_error("Patching was not successful. Final hash is wrong"));
+            }
+            fs::rename(temp_file.path(), path);
+        }
+
+        return tl::expected<void, std::runtime_error>();
+    }
 }  // namespace mamba

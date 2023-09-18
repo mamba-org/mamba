@@ -223,10 +223,10 @@ namespace mamba
         if (context.authentication_info().count(host))
         {
             const auto& auth = context.authentication_info().at(host);
-            if (std::holds_alternative<BearerToken>(auth))
+            if (std::holds_alternative<specs::BearerToken>(auth))
             {
                 m_handle.add_header(
-                    fmt::format("Authorization: Bearer {}", std::get<BearerToken>(auth).token)
+                    fmt::format("Authorization: Bearer {}", std::get<specs::BearerToken>(auth).token)
                 );
             }
         }

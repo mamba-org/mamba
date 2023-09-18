@@ -607,14 +607,14 @@ namespace mamba
                     const auto& authentication_info = m_context.authentication_info();
                     auto it = authentication_info.find(auth);
                     if (it != authentication_info.end()
-                        && std::holds_alternative<CondaToken>(it->second))
+                        && std::holds_alternative<specs::CondaToken>(it->second))
                     {
-                        chan.m_token = std::get<CondaToken>(it->second).token;
+                        chan.m_token = std::get<specs::CondaToken>(it->second).token;
                         break;
                     }
-                    else if (it != authentication_info.end() && std::holds_alternative<BasicHTTPAuthentication>(it->second))
+                    else if (it != authentication_info.end() && std::holds_alternative<specs::BasicHTTPAuthentication>(it->second))
                     {
-                        const auto& l_auth = std::get<BasicHTTPAuthentication>(it->second);
+                        const auto& l_auth = std::get<specs::BasicHTTPAuthentication>(it->second);
                         chan.m_auth = util::concat(
                             l_auth.user,
                             l_auth.password.empty() ? "" : ":",

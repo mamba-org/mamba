@@ -223,13 +223,14 @@ namespace mamba
                     // cut ".token" ending
                     token_url = token_url.substr(0, token_url.size() - 6);
 
-                    m_authentication_info[token_url] = CondaToken{ read_contents(entry.path()) };
+                    m_authentication_info[token_url] = specs::CondaToken{ read_contents(entry.path()
+                    ) };
                     LOG_INFO << "Found token for " << token_url << " at " << entry.path();
                 }
             }
         }
 
-        std::map<std::string, AuthenticationInfo> res;
+        std::map<std::string, specs::AuthenticationInfo> res;
         fs::u8path auth_loc(mamba::env::home_directory() / ".mamba" / "auth" / "authentication.json");
         try
         {
@@ -242,10 +243,10 @@ namespace mamba
                 {
                     std::string const host = key;
                     const auto type = el["type"].get<std::string_view>();
-                    AuthenticationInfo info;
+                    specs::AuthenticationInfo info;
                     if (type == "CondaToken")
                     {
-                        info = CondaToken{ el["token"].get<std::string>() };
+                        info = specs::CondaToken{ el["token"].get<std::string>() };
                         LOG_INFO << "Found token for host " << host
                                  << " in ~/.mamba/auth/authentication.json";
                     }
@@ -255,7 +256,7 @@ namespace mamba
                         auto pass = decode_base64(el["password"].get<std::string>());
                         if (pass)
                         {
-                            info = BasicHTTPAuthentication{
+                            info = specs::BasicHTTPAuthentication{
                                 /* user= */ user,
                                 /* password= */ pass.value(),
                             };
@@ -272,7 +273,7 @@ namespace mamba
                     }
                     else if (type == "BearerToken")
                     {
-                        info = BearerToken{ el["token"].get<std::string>() };
+                        info = specs::BearerToken{ el["token"].get<std::string>() };
                         LOG_INFO << "Found bearer token for host " << host
                                  << " in ~/.mamba/auth/authentication.json";
                     }

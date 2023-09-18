@@ -9,10 +9,6 @@
 #include <set>
 #include <utility>
 
-#ifdef _WIN32
-#include <regex>
-#endif
-
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"

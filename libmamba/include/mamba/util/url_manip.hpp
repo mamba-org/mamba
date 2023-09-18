@@ -8,21 +8,12 @@
 #define MAMBA_UTIL_URL_MANIP_HPP
 
 #include <optional>
-#include <regex>
 #include <string>
 #include <string_view>
 #include <vector>
 
 namespace mamba::util
 {
-    namespace conda_urls
-    {
-        // usernames on anaconda.org can have a underscore, which influences the
-        // first two characters
-        inline const std::regex token_regex{ "/t/([a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-]*)" };
-        inline const std::regex http_basicauth_regex{ "(://|^)([^\\s]+):([^\\s]+)@" };
-    }
-
     /**
      * Escape reserved URL reserved characters with '%' encoding.
      *

@@ -4,22 +4,14 @@
 
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/core/output.hpp"
+#include "mamba/specs/platform.hpp"
 
 #include "mambatests.hpp"
 
 namespace mamba
 {
 
-#ifdef __linux__
-    std::string platform("linux-64");
-#elif __APPLE__ && __x86_64__
-    std::string platform("osx-64");
-#elif __APPLE__ && __arm64__
-    std::string platform("osx-arm64");
-#elif _WIN32
-    std::string platform("win-64");
-#endif
+    static const std::string platform = std::string(specs::build_platform_name());
 
     static_assert(std::is_move_constructible_v<mamba::Channel>);
     static_assert(std::is_move_assignable_v<mamba::Channel>);
@@ -491,10 +483,7 @@ namespace mamba
         TEST_CASE("add_token")
         {
             auto& ctx = mambatests::context();
-            ctx.authentication_info()["conda.anaconda.org"] = AuthenticationInfo{
-                AuthenticationType::CondaToken,
-                "my-12345-token"
-            };
+            ctx.authentication_info()["conda.anaconda.org"] = CondaToken{ "my-12345-token" };
 
             ChannelContext channel_context{ ctx };
 
@@ -514,14 +503,8 @@ namespace mamba
         TEST_CASE("add_multiple_tokens")
         {
             auto& ctx = mambatests::context();
-            ctx.authentication_info()["conda.anaconda.org"] = AuthenticationInfo{
-                AuthenticationType::CondaToken,
-                "base-token"
-            };
-            ctx.authentication_info()["conda.anaconda.org/conda-forge"] = AuthenticationInfo{
-                AuthenticationType::CondaToken,
-                "channel-token"
-            };
+            ctx.authentication_info()["conda.anaconda.org"] = CondaToken{ "base-token" };
+            ctx.authentication_info()["conda.anaconda.org/conda-forge"] = CondaToken{ "channel-token" };
 
             ChannelContext channel_context{ ctx };
 

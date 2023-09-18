@@ -10,6 +10,7 @@
 #include <map>
 #include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "mamba/core/common_types.hpp"
@@ -45,18 +46,23 @@ namespace mamba
         Strict
     };
 
-    enum class AuthenticationType
+    struct BasicHTTPAuthentication
     {
-        BasicHTTPAuthentication,
-        BearerToken,
-        CondaToken
+        std::string user;
+        std::string password;
     };
 
-    struct AuthenticationInfo
+    struct BearerToken
     {
-        AuthenticationType type;
-        std::string value;
+        std::string token;
     };
+
+    struct CondaToken
+    {
+        std::string token;
+    };
+
+    using AuthenticationInfo = std::variant<BasicHTTPAuthentication, BearerToken, CondaToken>;
 
     class Logger;
     class Context;

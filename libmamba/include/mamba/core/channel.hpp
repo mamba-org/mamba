@@ -15,6 +15,8 @@
 #include <utility>
 #include <vector>
 
+#include "mamba/specs/conda_url.hpp"
+
 
 namespace mamba
 {
@@ -69,6 +71,7 @@ namespace mamba
             std::optional<std::string> package_filename = {}
         );
 
+        specs::CondaURL m_url;
         std::string m_scheme;
         std::string m_location;
         std::string m_name;

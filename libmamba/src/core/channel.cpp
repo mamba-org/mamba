@@ -19,6 +19,7 @@
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/validate.hpp"
+#include "mamba/specs/archive.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
@@ -561,10 +562,10 @@ namespace mamba
         std::string value = in_value;
         auto platforms = take_platforms(m_context, value);
 
-        auto chan = util::url_has_scheme(value)     ? from_url(fix_win_path(value))
-                    : util::is_explicit_path(value) ? from_url(util::path_to_url(value))
-                    : is_package_file(value)        ? from_url(fix_win_path(value))
-                                                    : from_name(value);
+        auto chan = util::url_has_scheme(value)           ? from_url(fix_win_path(value))
+                    : util::is_explicit_path(value)       ? from_url(util::path_to_url(value))
+                    : specs::has_archive_extension(value) ? from_url(fix_win_path(value))
+                                                          : from_name(value);
 
         chan.m_platforms = std::move(platforms);
 

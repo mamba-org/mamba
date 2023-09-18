@@ -84,12 +84,6 @@ namespace mamba
         return persist_temporary_directories.exchange(new_value);
     }
 
-
-    bool is_package_file(std::string_view fn)
-    {
-        return util::ends_with(fn, ".tar.bz2") || util::ends_with(fn, ".conda");
-    }
-
     // This function returns true even for broken symlinks
     // E.g.
     // ln -s abcdef emptylink

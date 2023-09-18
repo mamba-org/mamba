@@ -43,8 +43,6 @@ namespace mamba
         }
     };
 
-    bool is_package_file(std::string_view fn);
-
     bool lexists(const fs::u8path& p);
     bool lexists(const fs::u8path& p, std::error_code& ec);
     std::vector<fs::u8path> filter_dir(const fs::u8path& dir, const std::string& suffix);

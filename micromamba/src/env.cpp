@@ -13,8 +13,9 @@
 #include "mamba/core/channel.hpp"
 #include "mamba/core/environments_manager.hpp"
 #include "mamba/core/prefix_data.hpp"
+#include "mamba/core/util.hpp"
+#include "mamba/specs/conda_url.hpp"
 #include "mamba/util/string.hpp"
-#include "mamba/util/url_manip.hpp"
 
 #include "common_options.hpp"
 
@@ -140,9 +141,11 @@ set_env_command(CLI::App* com, Configuration& config)
 
                 for (const auto& record : records)
                 {
-                    std::string clean_url, token;
-                    util::split_anaconda_token(record.url, clean_url, token);
-                    std::cout << clean_url;
+                    auto url = specs::CondaURL::parse(record.url);
+                    url.clear_token();
+                    url.clear_password();
+                    url.clear_user();
+                    std::cout << url.str();
                     if (no_md5 != 1)
                     {
                         std::cout << "#" << record.md5;

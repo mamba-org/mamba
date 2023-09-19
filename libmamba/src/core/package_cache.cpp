@@ -11,10 +11,30 @@
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/validate.hpp"
+#include "mamba/specs/conda_url.hpp"
+#include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
 namespace mamba
 {
+    namespace
+    {
+        bool compare_cleaned_url(std::string_view url_str1, std::string_view url_str2)
+        {
+            auto url1 = specs::CondaURL::parse(url_str1);
+            url1.set_scheme("https");
+            url1.clear_token();
+            url1.clear_password();
+            url1.clear_user();
+            auto url2 = specs::CondaURL::parse(url_str2);
+            url2.set_scheme("https");
+            url2.clear_token();
+            url2.clear_password();
+            url2.clear_user();
+            return util::rstrip(url1.str(), '/') == util::rstrip(url2.str(), '/');
+        }
+    }
+
     PackageCacheData::PackageCacheData(const fs::u8path& path)
         : m_path(path)
     {
@@ -281,10 +301,7 @@ namespace mamba
                     {
                         if (!repodata_record["url"].get<std::string>().empty())
                         {
-                            if (!util::compare_cleaned_url(
-                                    repodata_record["url"].get<std::string>(),
-                                    s.url
-                                ))
+                            if (!compare_cleaned_url(repodata_record["url"].get<std::string>(), s.url))
                             {
                                 LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
                                             << "' has invalid url";

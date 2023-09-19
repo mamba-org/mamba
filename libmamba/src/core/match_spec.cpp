@@ -11,6 +11,8 @@
 #include "mamba/core/environment.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/util.hpp"
+#include "mamba/specs/archive.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
@@ -81,7 +83,7 @@ namespace mamba
         }
         spec_str = util::strip(spec_str);
 
-        if (is_package_file(spec_str))
+        if (specs::has_archive_extension(spec_str))
         {
             if (!util::url_has_scheme(spec_str))
             {

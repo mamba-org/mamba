@@ -260,9 +260,11 @@ namespace mamba
         if (m_context.authentication_info().count(host))
         {
             const auto& auth = m_context.authentication_info().at(host);
-            if (auth.type == AuthenticationType::BearerToken)
+            if (std::holds_alternative<specs::BearerToken>(auth))
             {
-                m_curl_handle->add_header(fmt::format("Authorization: Bearer {}", auth.value));
+                m_curl_handle->add_header(
+                    fmt::format("Authorization: Bearer {}", std::get<specs::BearerToken>(auth).token)
+                );
             }
         }
 

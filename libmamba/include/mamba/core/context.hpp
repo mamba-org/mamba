@@ -16,6 +16,7 @@
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/palette.hpp"
 #include "mamba/core/tasksync.hpp"
+#include "mamba/specs/authentification_info.hpp"
 #include "mamba/specs/platform.hpp"
 #include "mamba/version.hpp"
 
@@ -45,18 +46,6 @@ namespace mamba
         Strict
     };
 
-    enum class AuthenticationType
-    {
-        BasicHTTPAuthentication,
-        BearerToken,
-        CondaToken
-    };
-
-    struct AuthenticationInfo
-    {
-        AuthenticationType type;
-        std::string value;
-    };
 
     class Logger;
     class Context;
@@ -224,7 +213,7 @@ namespace mamba
         };
 
         std::string channel_alias = "https://conda.anaconda.org";
-        using authentication_info_map_t = std::map<std::string, AuthenticationInfo>;
+        using authentication_info_map_t = std::map<std::string, specs::AuthenticationInfo>;
         authentication_info_map_t& authentication_info();
         const authentication_info_map_t& authentication_info() const;
         std::vector<fs::u8path> token_locations{ "~/.continuum/anaconda-client/tokens" };
@@ -263,7 +252,7 @@ namespace mamba
         bool on_ci = false;
 
         void load_authentication_info();
-        std::map<std::string, AuthenticationInfo> m_authentication_info;
+        std::map<std::string, specs::AuthenticationInfo> m_authentication_info;
         bool m_authentication_infos_loaded = false;
 
         std::shared_ptr<Logger> logger;

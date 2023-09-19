@@ -10,7 +10,6 @@
 #include <map>
 #include <optional>
 #include <string>
-#include <variant>
 #include <vector>
 
 #include "mamba/core/common_types.hpp"

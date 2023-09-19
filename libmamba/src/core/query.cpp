@@ -158,25 +158,40 @@ namespace mamba
 
     namespace
     {
-        auto print_solvable(const PackageInfo& pkg, const std::vector<PackageInfo>& otherBuilds)
+        auto
+        print_solvable(const PackageInfo& pkg, const std::vector<PackageInfo>& otherBuilds, bool showAllBuilds)
         {
-            std::map<std::string, std::vector<PackageInfo>> buildsByVersion;
+            std::map<std::string, std::vector<PackageInfo>> groupedOtherBuilds;
             auto numOtherBuildsForLatestVersion = 0;
-            std::unordered_set<std::string> distinctBuildSHAs;
-            for (const auto& p : otherBuilds)
+            if (showAllBuilds)
             {
-                if (distinctBuildSHAs.insert(p.sha256).second)
+                for (const auto& p : otherBuilds)
                 {
-                    if (p.version != pkg.version)
+                    if (p.sha256 != pkg.sha256)
                     {
-                        buildsByVersion[p.version].push_back(p);
-                    }
-                    else
-                    {
-                        ++numOtherBuildsForLatestVersion;
+                        groupedOtherBuilds[p.version + p.sha256].push_back(p);
                     }
                 }
             }
+            else
+            {
+                std::unordered_set<std::string> distinctBuildSHAs;
+                for (const auto& p : otherBuilds)
+                {
+                    if (distinctBuildSHAs.insert(p.sha256).second)
+                    {
+                        if (p.version != pkg.version)
+                        {
+                            groupedOtherBuilds[p.version].push_back(p);
+                        }
+                        else
+                        {
+                            ++numOtherBuildsForLatestVersion;
+                        }
+                    }
+                }
+            }
+
             auto out = Console::stream();
             std::string additionalBuilds;
             if (numOtherBuildsForLatestVersion > 0)
@@ -233,9 +248,14 @@ namespace mamba
                 }
             }
 
-            if (!buildsByVersion.empty())
+            if (!groupedOtherBuilds.empty())
             {
-                fmt::print(out, "\n Other Versions ({}):\n\n", buildsByVersion.size());
+                fmt::print(
+                    out,
+                    "\n Other {} ({}):\n\n",
+                    showAllBuilds ? "Builds" : "Versions",
+                    groupedOtherBuilds.size()
+                );
 
                 std::stringstream buffer;
 
@@ -244,10 +264,10 @@ namespace mamba
                 printer.set_alignment(
                     { alignment::left, alignment::left, alignment::left, alignment::right }
                 );
-                bool collapseVersions = buildsByVersion.size() > 5;
+                bool collapseVersions = !showAllBuilds && groupedOtherBuilds.size() > 5;
                 size_t counter = 0;
                 // We want the newest version to be on top, therefore we iterate in reverse.
-                for (auto it = buildsByVersion.rbegin(); it != buildsByVersion.rend(); it++)
+                for (auto it = groupedOtherBuilds.rbegin(); it != groupedOtherBuilds.rend(); it++)
                 {
                     ++counter;
                     if (collapseVersions)
@@ -256,13 +276,13 @@ namespace mamba
                         {
                             printer.add_row(
                                 { "...",
-                                  fmt::format("({} hidden versions)", buildsByVersion.size() - 4),
+                                  fmt::format("({} hidden versions)", groupedOtherBuilds.size() - 4),
                                   "",
                                   "..." }
                             );
                             continue;
                         }
-                        else if (counter > 3 && counter < buildsByVersion.size() - 1)
+                        else if (counter > 3 && counter < groupedOtherBuilds.size() - 1)
                         {
                             continue;
                         }
@@ -827,7 +847,8 @@ namespace mamba
         return j;
     }
 
-    std::ostream& query_result::pretty(std::ostream& out) const
+    std::ostream&
+    query_result::pretty(std::ostream& out, const Context::OutputParams& outputParams) const
     {
         if (m_pkg_id_list.empty())
         {
@@ -846,7 +867,8 @@ namespace mamba
             {
                 print_solvable(
                     entry.second[0],
-                    std::vector(entry.second.begin() + 1, entry.second.end())
+                    std::vector(entry.second.begin() + 1, entry.second.end()),
+                    outputParams.verbosity > 0
                 );
             }
         }

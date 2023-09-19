@@ -144,7 +144,7 @@ jobs:
             wget -P $CONDA_PREFIX/conda-bld/osx-64 https://anaconda.org/conda-forge/xtensor/0.21.8/download/osx-64/xtensor-0.21.8-h879752b_0.tar.bz2
             wget -P $CONDA_PREFIX/conda-bld/osx-64 https://anaconda.org/conda-forge/xtl/0.6.21/download/osx-64/xtl-0.6.21-h6516342_0.tar.bz2
           fi
-          mamba create -n l_o_cal_test xtensor -c local -y
+          mamba create -n l_o_cal_test xtensor -c local --override-channels -y
 
           mamba list -n l_o_cal_test
           mamba list -n l_o_cal_test | tail -n +3 > list.txt

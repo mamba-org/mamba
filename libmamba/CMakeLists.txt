@@ -225,6 +225,7 @@ set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/url_manip.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/url.hpp
     # Implementation of version and matching specs
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/authentification_info.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/archive.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/platform.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/conda_url.hpp
@@ -385,7 +386,11 @@ macro(libmamba_create_target target_name linkage output_name)
                 find_library(TMP_LIB
                     NAMES "${LIB}"
                 )
-                list(APPEND STATIC_DEPS "${TMP_LIB}")
+                if (NOT ${TMP_LIB} STREQUAL "TMP_LIB-NOTFOUND")
+                    list(APPEND STATIC_DEPS "${TMP_LIB}")
+                else ()
+                    list(APPEND STATIC_DEPS "${LIB}-NOTFOUND")
+                endif ()
             endforeach(LIB)
 
             if (APPLE)

@@ -15,9 +15,6 @@
 #include <utility>
 #include <vector>
 
-#include "mamba/specs/conda_url.hpp"
-
-
 namespace mamba
 {
     class Context;
@@ -46,7 +43,9 @@ namespace mamba
         const std::string& name() const;
         const std::string& canonical_name() const;
         const std::vector<std::string>& platforms() const;
-        const std::optional<std::string>& auth() const;
+        const std::optional<std::string> auth() const;
+        const std::optional<std::string>& user() const;
+        const std::optional<std::string>& password() const;
         const std::optional<std::string>& token() const;
         const std::optional<std::string>& package_filename() const;
         const validation::RepoChecker&
@@ -66,18 +65,19 @@ namespace mamba
             std::string location,
             std::string name,
             std::string canonical_name,
-            std::optional<std::string> auth = {},
+            std::optional<std::string> user = {},
+            std::optional<std::string> password = {},
             std::optional<std::string> token = {},
             std::optional<std::string> package_filename = {}
         );
 
-        specs::CondaURL m_url;
         std::string m_scheme;
         std::string m_location;
         std::string m_name;
         std::string m_canonical_name;
         std::vector<std::string> m_platforms;
-        std::optional<std::string> m_auth;
+        std::optional<std::string> m_user;
+        std::optional<std::string> m_password;
         std::optional<std::string> m_token;
         std::optional<std::string> m_package_filename;
 

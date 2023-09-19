@@ -25,14 +25,14 @@ namespace mamba
 {
     enum class VerificationLevel
     {
-        kDisabled,
-        kWarn,
-        kEnabled
+        Disabled,
+        Warn,
+        Enabled
     };
 
     struct ValidationOptions
     {
-        VerificationLevel safety_checks = VerificationLevel::kWarn;
+        VerificationLevel safety_checks = VerificationLevel::Warn;
         bool extra_safety_checks = false;
         bool verify_artifacts = false;
     };
@@ -40,16 +40,16 @@ namespace mamba
 
     enum class ChannelPriority
     {
-        kDisabled,
-        kFlexible,
-        kStrict
+        Disabled,
+        Flexible,
+        Strict
     };
 
     enum class AuthenticationType
     {
-        kBasicHTTPAuthentication,
-        kBearerToken,
-        kCondaToken
+        BasicHTTPAuthentication,
+        BearerToken,
+        CondaToken
     };
 
     struct AuthenticationInfo
@@ -153,7 +153,7 @@ namespace mamba
         std::size_t local_repodata_ttl = 1;  // take from header
         bool offline = false;
 
-        ChannelPriority channel_priority = ChannelPriority::kFlexible;
+        ChannelPriority channel_priority = ChannelPriority::Flexible;
         bool auto_activate_base = false;
 
         bool extract_sparse = false;

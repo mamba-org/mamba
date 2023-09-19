@@ -95,6 +95,11 @@ namespace mamba
                 CHECK_EQ(ms.name, "xtensor");
             }
             {
+                MatchSpec ms("", channel_context);
+                CHECK_EQ(ms.version, "");
+                CHECK_EQ(ms.name, "");
+            }
+            {
                 MatchSpec ms("ipykernel", channel_context);
                 CHECK_EQ(ms.version, "");
                 CHECK_EQ(ms.name, "ipykernel");

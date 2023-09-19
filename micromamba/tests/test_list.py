@@ -1,77 +1,57 @@
-import json
-import os
-import re
-import shutil
 import subprocess
 
 import pytest
 
-from .helpers import create, get_env, get_umamba, random_string, umamba_list
+from . import helpers
 
 
-class TestList:
-    env_name = random_string()
-    root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
-    current_prefix = os.environ["CONDA_PREFIX"]
-    prefix = os.path.join(root_prefix, "envs", env_name)
+@pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])
+@pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_list(
+    tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_selector, quiet_flag
+):
+    if env_selector == "prefix":
+        res = helpers.umamba_list("-p", tmp_xtensor_env, "--json", quiet_flag)
+    elif env_selector == "name":
+        res = helpers.umamba_list("-n", tmp_env_name, "--json", quiet_flag)
+    else:
+        res = helpers.umamba_list("--json", quiet_flag)
 
-    @classmethod
-    def setup_class(cls):
-        create("xtensor=0.18", "-n", TestList.env_name, "--json", no_dry_run=True)
-        os.environ["CONDA_PREFIX"] = TestList.prefix
+    assert len(res) > 2
 
-    @classmethod
-    def teardown_class(cls):
-        os.environ["CONDA_PREFIX"] = TestList.current_prefix
-        shutil.rmtree(get_env(TestList.env_name))
+    names = [i["name"] for i in res]
+    assert "xtensor" in names
+    assert "xtl" in names
 
-    @pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])
-    @pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
-    def test_list(self, env_selector, quiet_flag):
-        if env_selector == "prefix":
-            res = umamba_list("-p", TestList.prefix, "--json", quiet_flag)
-        elif env_selector == "name":
-            res = umamba_list("-n", TestList.env_name, "--json", quiet_flag)
-        else:
-            res = umamba_list("--json", quiet_flag)
 
-        assert len(res) > 2
+@pytest.mark.parametrize("env_selector", ["name", "prefix"])
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_not_existing(tmp_home, tmp_root_prefix, tmp_xtensor_env, env_selector):
+    if env_selector == "prefix":
+        cmd = ("-p", tmp_root_prefix / "envs" / "does-not-exist", "--json")
+    elif env_selector == "name":
+        cmd = ("-n", "does-not-exist", "--json")
 
-        names = [i["name"] for i in res]
-        assert "xtensor" in names
-        assert "xtl" in names
+    with pytest.raises(subprocess.CalledProcessError):
+        helpers.umamba_list(*cmd)
 
-    @pytest.mark.parametrize("env_selector", ["name", "prefix"])
-    def test_not_existing(self, env_selector):
-        if env_selector == "prefix":
-            cmd = (
-                "-p",
-                os.path.join(TestList.root_prefix, "envs", random_string()),
-                "--json",
-            )
-        elif env_selector == "name":
-            cmd = ("-n", random_string(), "--json")
 
-        with pytest.raises(subprocess.CalledProcessError):
-            umamba_list(*cmd)
+def test_not_environment(tmp_home, tmp_root_prefix):
+    with pytest.raises(subprocess.CalledProcessError):
+        helpers.umamba_list("-p", tmp_root_prefix / "envs", "--json")
 
-    def test_not_environment(self):
-        with pytest.raises(subprocess.CalledProcessError):
-            umamba_list(
-                "-p",
-                os.path.join(TestList.root_prefix, "envs"),
-                "--json",
-            )
 
-    @pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])
-    def test_regex(self, quiet_flag):
-        full_res = umamba_list("--json")
-        names = sorted([i["name"] for i in full_res])
+@pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_regex(tmp_home, tmp_root_prefix, tmp_xtensor_env, quiet_flag):
+    full_res = helpers.umamba_list("--json")
+    names = sorted([i["name"] for i in full_res])
 
-        filtered_res = umamba_list("\\**", "--json", quiet_flag)
-        filtered_names = sorted([i["name"] for i in filtered_res])
-        assert filtered_names == names
+    filtered_res = helpers.umamba_list("\\**", "--json", quiet_flag)
+    filtered_names = sorted([i["name"] for i in filtered_res])
+    assert filtered_names == names
 
-        filtered_res = umamba_list("^xt", "--json", quiet_flag)
-        filtered_names = sorted([i["name"] for i in filtered_res])
-        assert filtered_names == ["xtensor", "xtl"]
+    filtered_res = helpers.umamba_list("^xt", "--json", quiet_flag)
+    filtered_names = sorted([i["name"] for i in filtered_res])
+    assert filtered_names == ["xtensor", "xtl"]

@@ -173,6 +173,18 @@ TEST_CASE("Test create_problem utility")
     REQUIRE(solved);
 }
 
+TEST_CASE("Test empty specs")
+{
+    ChannelContext channel_context{ mambatests::context() };
+    auto solver = create_problem(
+        channel_context,
+        std::array{ mkpkg("foo", "0.1.0", {}), mkpkg("", "", {}) },
+        { "foo" }
+    );
+    const auto solved = solver.try_solve();
+    REQUIRE(solved);
+}
+
 namespace
 {
     auto create_basic_conflict(ChannelContext& channel_context) -> MSolver

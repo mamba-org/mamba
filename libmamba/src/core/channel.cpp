@@ -9,16 +9,14 @@
 #include <set>
 #include <utility>
 
-#ifdef _WIN32
-#include <regex>
-#endif
-
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/validate.hpp"
+#include "mamba/specs/archive.hpp"
+#include "mamba/specs/conda_url.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
@@ -59,40 +57,6 @@ namespace mamba
         std::optional<std::string> nonempty_str(std::string&& s)
         {
             return s.empty() ? std::optional<std::string>() : std::make_optional(s);
-        }
-
-        void split_conda_url(
-            const std::string& url,
-            std::string& scheme,
-            std::string& host,
-            std::string& port,
-            std::string& path,
-            std::string& auth,
-            std::string& token,
-            std::string& package_name
-        )
-        {
-            std::string cleaned_url, extension;
-            util::split_anaconda_token(url, cleaned_url, token);
-            split_package_extension(cleaned_url, cleaned_url, extension);
-
-            if (extension != "")
-            {
-                auto sp = util::rsplit(cleaned_url, "/", 1);
-                cleaned_url = sp[0];
-                package_name = sp[1] + extension;
-            }
-            else
-            {
-                package_name = "";
-            }
-
-            const auto url_parsed = util::URL::parse(cleaned_url);
-            scheme = url_parsed.scheme();
-            host = url_parsed.host();
-            port = url_parsed.port();
-            path = url_parsed.path();
-            auth = url_parsed.authentication();
         }
 
         // Channel configuration
@@ -260,24 +224,26 @@ namespace mamba
      **************************/
 
     Channel::Channel(
-        const std::string& scheme,
-        const std::string& location,
-        const std::string& name,
-        const std::string& canonical_name,
-        const std::optional<std::string>& auth,
-        const std::optional<std::string>& token,
-        const std::optional<std::string>& package_filename
+        std::string scheme,
+        std::string location,
+        std::string name,
+        std::string canonical_name,
+        std::optional<std::string> auth,
+        std::optional<std::string> token,
+        std::optional<std::string> package_filename
     )
-        : m_scheme(scheme)
-        , m_location(location)
-        , m_name(name)
-        , m_canonical_name(canonical_name)
+        : m_scheme(std::move(scheme))
+        , m_location(std::move(location))
+        , m_name(std::move(name))
+        , m_canonical_name(std::move(canonical_name))
         , m_platforms()
-        , m_auth(auth)
-        , m_token(token)
-        , m_package_filename(package_filename)
+        , m_auth(std::move(auth))
+        , m_token(std::move(token))
+        , m_package_filename(std::move(package_filename))
     {
     }
+
+    Channel::~Channel() = default;
 
     const std::string& Channel::scheme() const
     {
@@ -430,19 +396,32 @@ namespace mamba
         const std::string& channel_canonical_name
     )
     {
-        std::string name(channel_name);
-        std::string location, scheme, auth, token;
-        util::split_scheme_auth_token(channel_url, location, scheme, auth, token);
         if (!util::url_has_scheme(channel_url))
         {
-            location = channel_alias.location();
-            scheme = channel_alias.scheme();
-            auth = channel_alias.auth().value_or("");
-            token = channel_alias.token().value_or("");
+            return Channel(
+                channel_alias.scheme(),
+                channel_alias.location(),
+                std::string(util::strip(channel_name.empty() ? channel_url : channel_name, '/')),
+                channel_canonical_name,
+                nonempty_str(channel_alias.auth().value_or("")),
+                nonempty_str(channel_alias.token().value_or("")),
+                {}
+            );
         }
-        else if (name == "")
+
+
+        auto url = specs::CondaURL::parse(channel_url);
+        std::string token = std::string(url.token());
+        url.clear_token();
+        std::string auth = url.authentication();
+        url.clear_password();
+        url.clear_user();
+        std::string location = url.pretty_str(specs::CondaURL::StripScheme::yes, '/');
+
+        std::string name(channel_name);
+        if (name.empty())
         {
-            if (channel_alias.location() != ""
+            if (!channel_alias.location().empty()
                 && util::starts_with(location, channel_alias.location()))
             {
                 name = location;
@@ -451,18 +430,13 @@ namespace mamba
             }
             else
             {
-                std::string full_url = util::concat_scheme_url(scheme, location);
-                const auto parser = util::URL::parse(full_url);
-                auto url = util::URL();
-                url.set_host(parser.host());
-                url.set_port(parser.port());
-                location = url.pretty_str(util::URL::StripScheme::yes, /* rstrip_path= */ '/');
-                name = util::lstrip(parser.pretty_path(), '/');
+                location = util::concat(url.host(), url.port().empty() ? "" : ":", url.port());
+                name = url.path();
             }
         }
-        name = name != "" ? util::strip(name, '/') : util::strip(channel_url, '/');
+        name = util::strip(name.empty() ? channel_url : name, '/');
         return Channel(
-            scheme,
+            url.scheme(),
             location,
             name,
             channel_canonical_name,
@@ -472,12 +446,15 @@ namespace mamba
         );
     }
 
-    Channel ChannelContext::from_url(const std::string& url)
+    Channel ChannelContext::from_url(std::string_view url_str)
     {
-        std::string scheme, host, port, path, auth, token, package_name;
-        split_conda_url(url, scheme, host, port, path, auth, token, package_name);
+        auto url = specs::CondaURL::parse(url_str);
+        std::string package_name = url.package();
+        url.clear_package();
+        std::string token = std::string(url.token());
+        url.clear_token();
 
-        auto config = read_channel_configuration(*this, scheme, host, port, path);
+        auto config = read_channel_configuration(*this, url.scheme(), url.host(), url.port(), url.path());
 
         auto res_scheme = !config.scheme.empty() ? config.scheme : "https";
         std::string canonical_name;
@@ -496,12 +473,13 @@ namespace mamba
             );
         }
 
+        std::string auth = url.authentication();
         return Channel(
             res_scheme,
             config.location,
             config.name,
             canonical_name,
-            auth.size() ? std::make_optional(auth) : nonempty_str(std::move(config.auth)),
+            auth.size() ? std::make_optional(std::move(auth)) : nonempty_str(std::move(config.auth)),
             token.size() ? std::make_optional(token) : nonempty_str(std::move(config.token)),
             nonempty_str(std::move(package_name))
         );
@@ -580,24 +558,34 @@ namespace mamba
         std::string value = in_value;
         auto platforms = take_platforms(m_context, value);
 
-        auto chan = util::url_has_scheme(value)     ? from_url(fix_win_path(value))
-                    : util::is_explicit_path(value) ? from_url(util::path_to_url(value))
-                    : is_package_file(value)        ? from_url(fix_win_path(value))
-                                                    : from_name(value);
+        auto chan = util::url_has_scheme(value)           ? from_url(fix_win_path(value))
+                    : util::is_explicit_path(value)       ? from_url(util::path_to_url(value))
+                    : specs::has_archive_extension(value) ? from_url(fix_win_path(value))
+                                                          : from_name(value);
 
         chan.m_platforms = std::move(platforms);
 
         return chan;
     }
 
-    Channel ChannelContext::from_alias(
-        const std::string& scheme,
-        const std::string& location,
-        const std::optional<std::string>& auth,
-        const std::optional<std::string>& token
-    )
+    Channel ChannelContext::from_alias(std::string_view alias)
     {
-        return Channel(scheme, location, "<alias>", "<alias>", auth, token);
+        auto url = specs::CondaURL::parse(alias);
+
+        std::string auth = url.authentication();
+        std::string token = std::string(url.token());
+        url.clear_user();
+        url.clear_password();
+        url.clear_token();
+
+        return Channel(
+            url.scheme(),
+            url.pretty_str(specs::CondaURL::StripScheme::yes, '/'),
+            "<alias>",
+            "<alias>",
+            nonempty_str(std::move(auth)),
+            nonempty_str(std::move(token))
+        );
     }
 
 
@@ -619,12 +607,12 @@ namespace mamba
                     const auto& authentication_info = m_context.authentication_info();
                     auto it = authentication_info.find(auth);
                     if (it != authentication_info.end()
-                        && it->second.type == AuthenticationType::kCondaToken)
+                        && it->second.type == AuthenticationType::CondaToken)
                     {
                         chan.m_token = it->second.value;
                         break;
                     }
-                    else if (it != authentication_info.end() && it->second.type == AuthenticationType::kBasicHTTPAuthentication)
+                    else if (it != authentication_info.end() && it->second.type == AuthenticationType::BasicHTTPAuthentication)
                     {
                         chan.m_auth = it->second.value;
                         break;
@@ -692,25 +680,12 @@ namespace mamba
 
     ChannelContext::ChannelContext(Context& context)
         : m_context(context)
-        , m_channel_alias(build_channel_alias())
+        , m_channel_alias(from_alias(m_context.channel_alias))
     {
         init_custom_channels();
     }
 
     ChannelContext::~ChannelContext() = default;
-
-    Channel ChannelContext::build_channel_alias()
-    {
-        const std::string alias = m_context.channel_alias;
-        std::string location, scheme, auth, token;
-        util::split_scheme_auth_token(alias, location, scheme, auth, token);
-        return from_alias(
-            scheme,
-            location,
-            nonempty_str(std::move(auth)),
-            nonempty_str(std::move(token))
-        );
-    }
 
     void ChannelContext::init_custom_channels()
     {

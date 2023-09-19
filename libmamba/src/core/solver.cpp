@@ -15,6 +15,7 @@
 
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/error_handling.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
@@ -125,6 +126,11 @@ namespace mamba
         {
             MatchSpec ms{ job, m_pool.channel_context() };
             int job_type = job_flag & SOLVER_JOBMASK;
+
+            if (ms.conda_build_form().empty())
+            {
+                return;
+            }
 
             if (job_type & SOLVER_INSTALL)
             {

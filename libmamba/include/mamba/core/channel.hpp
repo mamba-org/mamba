@@ -8,17 +8,22 @@
 #define MAMBA_CORE_CHANNEL_HPP
 
 #include <map>
+#include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
-#include "mamba/core/package_cache.hpp"
-#include "mamba/core/validate.hpp"
 
 namespace mamba
 {
     class Context;
+    class MultiPackageCache;
+    namespace validation
+    {
+        class RepoChecker;
+    }
 
     std::vector<std::string> get_known_platforms();
 
@@ -31,6 +36,8 @@ namespace mamba
         Channel& operator=(const Channel&) = delete;
         Channel(Channel&&) noexcept = default;
         Channel& operator=(Channel&&) noexcept = default;
+
+        ~Channel();
 
         const std::string& scheme() const;
         const std::string& location() const;
@@ -53,13 +60,13 @@ namespace mamba
     private:
 
         Channel(
-            const std::string& scheme,
-            const std::string& location,
-            const std::string& name,
-            const std::string& canonical_name,
-            const std::optional<std::string>& auth = {},
-            const std::optional<std::string>& token = {},
-            const std::optional<std::string>& package_filename = {}
+            std::string scheme,
+            std::string location,
+            std::string name,
+            std::string canonical_name,
+            std::optional<std::string> auth = {},
+            std::optional<std::string> token = {},
+            std::optional<std::string> package_filename = {}
         );
 
         std::string m_scheme;
@@ -124,7 +131,6 @@ namespace mamba
         channel_map m_custom_channels;
         multichannel_map m_custom_multichannels;
 
-        Channel build_channel_alias();
         void init_custom_channels();
 
         const multichannel_map& get_custom_multichannels() const;
@@ -136,15 +142,10 @@ namespace mamba
             const std::string& channel_canonical_name
         );
 
-        Channel from_url(const std::string& url);
+        Channel from_url(std::string_view url);
         Channel from_name(const std::string& name);
         Channel from_value(const std::string& value);
-        Channel from_alias(
-            const std::string& scheme,
-            const std::string& location,
-            const std::optional<std::string>& auth = {},
-            const std::optional<std::string>& token = {}
-        );
+        Channel from_alias(std::string_view alias);
     };
 
 }  // namespace mamba

@@ -23,7 +23,7 @@ namespace mamba
 {
     class Context;
 
-    std::string cut_repo_name(const std::string& reponame);
+    std::string cut_repo_name(std::string_view reponame);
 
     namespace printers
     {

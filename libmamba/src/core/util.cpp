@@ -56,7 +56,6 @@ extern "C"
 #include "mamba/util/compare.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
-#include "mamba/util/url_manip.hpp"
 
 namespace mamba
 {
@@ -82,12 +81,6 @@ namespace mamba
     bool set_persist_temporary_directories(bool new_value)
     {
         return persist_temporary_directories.exchange(new_value);
-    }
-
-
-    bool is_package_file(std::string_view fn)
-    {
-        return util::ends_with(fn, ".tar.bz2") || util::ends_with(fn, ".conda");
     }
 
     // This function returns true even for broken symlinks
@@ -1638,16 +1631,24 @@ namespace mamba
         return std::nullopt;
     }
 
+    namespace
+    {
+        // usernames on anaconda.org can have a underscore, which influences the
+        // first two characters
+        inline const std::regex token_regex{ "/t/([a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-]*)" };
+        inline const std::regex http_basicauth_regex{ "(://|^)([^\\s]+):([^\\s]+)@" };
+    }
+
     std::string hide_secrets(std::string_view str)
     {
         std::string copy(str);
 
         if (util::contains(str, "/t/"))
         {
-            copy = std::regex_replace(copy, util::conda_urls::token_regex, "/t/*****");
+            copy = std::regex_replace(copy, token_regex, "/t/*****");
         }
 
-        copy = std::regex_replace(copy, util::conda_urls::http_basicauth_regex, "$1$2:*****@");
+        copy = std::regex_replace(copy, http_basicauth_regex, "$1$2:*****@");
 
         return copy;
     }

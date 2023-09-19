@@ -484,8 +484,7 @@ namespace mamba::util
         );
     }
 
-    auto URL::pretty_str(StripScheme strip_scheme, char rstrip_path, HidePassword hide_password) const
-        -> std::string
+    auto URL::pretty_str_path(StripScheme strip_scheme, char rstrip_path) const -> std::string
     {
         std::string computed_path = {};
         // When stripping file scheme, not showing leading '/' for Windows path with drive
@@ -498,18 +497,24 @@ namespace mamba::util
             computed_path = path(Decode::yes);
         }
         computed_path = util::rstrip(computed_path, rstrip_path);
+        return computed_path;
+    }
 
+    auto
+    URL::pretty_str(StripScheme strip_scheme, char rstrip_path, HideConfidential hide_confidential) const
+        -> std::string
+    {
         return util::concat(
             (strip_scheme == StripScheme::no) ? m_scheme : "",
             (strip_scheme == StripScheme::no) ? "://" : "",
             user(Decode::yes),
             m_password.empty() ? "" : ":",
-            (hide_password == HidePassword::no) ? password(Decode::yes) : "*****",
+            (hide_confidential == HideConfidential::no) ? password(Decode::yes) : "*****",
             m_user.empty() ? "" : "@",
             host(Decode::yes),
             m_port.empty() ? "" : ":",
             m_port,
-            computed_path,
+            pretty_str_path(strip_scheme, rstrip_path),
             m_query.empty() ? "" : "?",
             m_query,
             m_fragment.empty() ? "" : "#",

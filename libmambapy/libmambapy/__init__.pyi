@@ -182,11 +182,11 @@ class ChannelPriority:
     """
     Members:
 
-      kFlexible
+      Flexible
 
-      kStrict
+      Strict
 
-      kDisabled
+      Disabled
     """
 
     def __eq__(self, other: object) -> bool: ...
@@ -208,10 +208,10 @@ class ChannelPriority:
         """
         :type: int
         """
-    __members__: dict  # value = {'kFlexible': <ChannelPriority.kFlexible: 1>, 'kStrict': <ChannelPriority.kStrict: 2>, 'kDisabled': <ChannelPriority.kDisabled: 0>}
-    kDisabled: libmambapy.bindings.ChannelPriority  # value = <ChannelPriority.kDisabled: 0>
-    kFlexible: libmambapy.bindings.ChannelPriority  # value = <ChannelPriority.kFlexible: 1>
-    kStrict: libmambapy.bindings.ChannelPriority  # value = <ChannelPriority.kStrict: 2>
+    Disabled: libmambapy.bindings.ChannelPriority  # value = <ChannelPriority.Disabled: 0>
+    Flexible: libmambapy.bindings.ChannelPriority  # value = <ChannelPriority.Flexible: 1>
+    Strict: libmambapy.bindings.ChannelPriority  # value = <ChannelPriority.Strict: 2>
+    __members__: dict  # value = {'Flexible': <ChannelPriority.Flexible: 1>, 'Strict': <ChannelPriority.Strict: 2>, 'Disabled': <ChannelPriority.Disabled: 0>}
     pass
 
 class CompressedProblemsGraph:

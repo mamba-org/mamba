@@ -12,6 +12,43 @@
 
 namespace mamba::util
 {
+    namespace detail
+    {
+        // Working around MSVC limitation on private inheritance + using directive
+
+        enum class StripScheme : bool
+        {
+            no,
+            yes
+        };
+
+        enum class HideConfidential : bool
+        {
+            no,
+            yes
+        };
+
+        struct Encode
+        {
+            inline static constexpr struct yes_type
+            {
+            } yes = {};
+            inline static constexpr struct no_type
+            {
+            } no = {};
+        };
+
+        struct Decode
+        {
+            inline static constexpr struct yes_type
+            {
+            } yes = {};
+            inline static constexpr struct no_type
+            {
+            } no = {};
+        };
+    }
+
     /**
      * Class representing a URL.
      *
@@ -21,20 +58,10 @@ namespace mamba::util
     {
     public:
 
-        // clang-format off
-        enum class StripScheme : bool { no, yes };
-        enum class HidePassword : bool { no, yes };
-        struct Encode
-        {
-            inline static constexpr struct yes_type {} yes = {};
-            inline static constexpr struct no_type {} no = {};
-        };
-        struct Decode
-        {
-            inline static constexpr struct yes_type {} yes = {};
-            inline static constexpr struct no_type {} no = {};
-        };
-        // clang-format on
+        using StripScheme = detail::StripScheme;
+        using HideConfidential = detail::HideConfidential;
+        using Encode = detail::Encode;
+        using Decode = detail::Decode;
 
         inline static constexpr std::string_view https = "https";
         inline static constexpr std::string_view localhost = "localhost";
@@ -197,13 +224,19 @@ namespace mamba::util
          * asset.
          * @param strip_scheme If true, remove the scheme and "localhost" on file URI.
          * @param rstrip_path If non-null, remove the given charaters at the end of the path.
-         * @param hide_password If true, hide password in the decoded string.
+         * @param hide_confidential If true, hide password in the decoded string.
          */
         [[nodiscard]] auto pretty_str(
             StripScheme strip_scheme = StripScheme::no,
             char rstrip_path = 0,
-            HidePassword hide_password = HidePassword::no
+            HideConfidential hide_confidential = HideConfidential::no
         ) const -> std::string;
+
+    protected:
+
+        [[nodiscard]] auto
+        pretty_str_path(StripScheme strip_scheme = StripScheme::no, char rstrip_path = 0) const
+            -> std::string;
 
     private:
 

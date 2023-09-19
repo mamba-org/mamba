@@ -340,6 +340,34 @@ def test_multiple_spec_files(tmp_home, tmp_root_prefix, tmp_path, type):
             assert res["specs"] == [explicit_specs[0]]
 
 
+def test_multiprocessing():
+    if platform.system() == "Windows":
+        return
+
+    root_prefix = Path(os.environ["MAMBA_ROOT_PREFIX"])
+    if os.path.exists(root_prefix / "pkgs"):
+        shutil.rmtree(root_prefix / "pkgs")
+
+    cmd = [helpers.get_umamba()]
+    cmd += ["create", "-n", "env1", "-y"]
+    cmd += ["airflow"]
+    cmd += ["pytorch"]
+    cmd += ["-c", "conda-forge"]
+
+    cmd2 = [helpers.get_umamba(), "create"]
+    cmd2 += ["-n", "env2", "-y"]
+    cmd2 += ["airflow"]
+    cmd2 += ["pytorch"]
+    cmd2 += ["-c", "conda-forge"]
+
+    # must not crash
+    cmds = [cmd, cmd2]
+    procs = [subprocess.Popen(p) for p in cmds]
+    for p in procs:
+        rc = p.wait()
+        assert rc == 0
+
+
 @pytest.mark.skipif(
     helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
     reason="Running only ultra-dry tests",

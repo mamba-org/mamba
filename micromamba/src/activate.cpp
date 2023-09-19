@@ -72,7 +72,7 @@ set_activate_command(CLI::App* subcom)
                 "Otherwise, this may be an issue. In the meantime you can run commands. See:\n"
                 "    $ micromamba run --help\n"
                 "\n"
-                "Supported shells are {{bash, zsh, csh, xonsh, cmd.exe, powershell, fish}}.\n",
+                "Supported shells are {{bash, zsh, csh, xonsh, cmd.exe, powershell, fish, nu}}.\n",
                 get_shell_hook(guessed_shell),
                 guessed_shell
             );

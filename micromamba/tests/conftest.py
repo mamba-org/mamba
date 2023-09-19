@@ -2,7 +2,7 @@ import copy
 import os
 import pathlib
 import platform
-from typing import Any, Generator, Mapping
+from typing import Any, Generator, Mapping, Optional
 
 import pytest
 
@@ -91,7 +91,7 @@ def tmp_clean_env(tmp_environ: None) -> None:
             del os.environ[k]
 
     def keep_in_path(
-        p: str, prefix: str | None = tmp_environ.get("CONDA_PREFIX")
+        p: str, prefix: Optional[str] = tmp_environ.get("CONDA_PREFIX")
     ) -> bool:
         if "condabin" in p:
             return False

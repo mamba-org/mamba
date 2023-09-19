@@ -11,6 +11,8 @@
 #include "mamba/core/environment.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/util.hpp"
+#include "mamba/specs/archive.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
@@ -68,9 +70,12 @@ namespace mamba
 
     void MatchSpec::parse(ChannelContext& channel_context)
     {
-        LOG_INFO << "Parsing MatchSpec " << spec;
         std::string spec_str = spec;
-
+        if (spec_str.empty())
+        {
+            return;
+        }
+        LOG_INFO << "Parsing MatchSpec " << spec;
         std::size_t idx = spec_str.find('#');
         if (idx != std::string::npos)
         {
@@ -78,7 +83,7 @@ namespace mamba
         }
         spec_str = util::strip(spec_str);
 
-        if (is_package_file(spec_str))
+        if (specs::has_archive_extension(spec_str))
         {
             if (!util::url_has_scheme(spec_str))
             {
@@ -303,7 +308,6 @@ namespace mamba
 
     std::string MatchSpec::conda_build_form() const
     {
-        assert(!name.empty());
         std::stringstream res;
         res << name;
         if (!version.empty())

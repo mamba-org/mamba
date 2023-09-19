@@ -727,21 +727,18 @@ class TestConfigExpandVars:
     @pytest.mark.parametrize(
         "inp,outp",
         [
+            # Tests copied from: cpython/Lib/test/test_genericpath.py
             ("$", "$"),
-            ("$$", "$"),
+            ("$$", "$$"),
             ("foo", "foo"),
             ("${foo}bar1", "barbar1"),
             ("$[foo]bar", "$[foo]bar"),
             ("$bar bar", "$bar bar"),
             ("$?bar", "$?bar"),
+            ("$foo}bar", "bar}bar"),
             ("${foo", "${foo"),
-            ("${{foo}}2", "baz1}2"),
-            ("$bar$bar", "$bar$bar"),
             # Not supported by Micromamba
-            # ("$foo$foo", "barbar"),
-            # ("$foo}bar", "bar}bar"),
-            # ("$foo$$foo bar", "bar$foo bar"),
-            # ("$foo bar", "bar bar"),
+            # ("${{foo}}", "baz1"),
             # *(
             #     [
             #         ("%", "%"),
@@ -770,11 +767,15 @@ class TestConfigExpandVars:
             #     if platform.system() == "Windows"
             #     else []
             # ),
+            # Our tests:
+            ("$bar$bar", "$bar$bar"),
+            ("$foo$foo", "barbar"),
+            ("$foo$$foo bar", "bar$bar bar"),
+            ("$foo bar", "bar bar"),
         ],
     )
     @pytest.mark.parametrize("yaml_quote", ["", '"', "'"])
     def test_expandvars_cpython(self, monkeypatch, rc_file, inp, outp, yaml_quote):
-        """Tests copied from CPython."""
         monkeypatch.setenv("foo", "bar", True)
         monkeypatch.setenv("{foo", "baz1", True)
         monkeypatch.setenv("{foo}", "baz2", True)

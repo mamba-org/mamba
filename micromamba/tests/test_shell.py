@@ -26,7 +26,7 @@ def skip_if_shell_incompat(shell_type):
 
 @pytest.mark.parametrize(
     "shell_type",
-    ["bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish", "tcsh"],
+    ["bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish", "tcsh", "nu"],
 )
 def test_hook(tmp_home, tmp_root_prefix, shell_type):
     res = helpers.shell("hook", "-s", shell_type)
@@ -52,6 +52,10 @@ def test_hook(tmp_home, tmp_root_prefix, shell_type):
         assert res == ""
     elif shell_type == "tcsh":
         assert res.count(mamba_exe) == 3
+    elif shell_type == "nu":
+        # insert dummy test, as the nu scripts contains
+        # no mention of mamba_exe; path is added in config.nu
+        assert res.count(mamba_exe) == 0
 
     res = helpers.shell("hook", "-s", shell_type, "--json")
     expected_keys = {"success", "operation", "context", "actions"}

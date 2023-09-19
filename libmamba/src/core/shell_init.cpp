@@ -848,7 +848,7 @@ def-env "micromamba deactivate" [] {
             }
             catch (...)
             {
-                // no hooks are used sincee064563ee49de133f4dae24756911a1642a526d3 nu cannot
+                // no hooks are used since nu cannot
                 // dynamically load; no big deal, keep going.
             }
         }

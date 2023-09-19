@@ -386,7 +386,11 @@ macro(libmamba_create_target target_name linkage output_name)
                 find_library(TMP_LIB
                     NAMES "${LIB}"
                 )
-                list(APPEND STATIC_DEPS "${TMP_LIB}")
+                if (NOT ${TMP_LIB} STREQUAL "TMP_LIB-NOTFOUND")
+                    list(APPEND STATIC_DEPS "${TMP_LIB}")
+                else ()
+                    list(APPEND STATIC_DEPS "${LIB}-NOTFOUND")
+                endif ()
             endforeach(LIB)
 
             if (APPLE)

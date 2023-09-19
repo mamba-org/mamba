@@ -414,27 +414,38 @@ namespace mamba
     }
     #ask mamba how to setup the environment and set the environment
     (^($env.MAMBA_EXE) shell activate --shell nu $name
+      | str replace --regex '\s+' '' --all
       | split row ";"
-      | parse  "{key} = {value}"
+      | parse --regex '(.*)=(.+)'
       | transpose --header-row
       | into record
       | load-env
     )
-    $env.PROMPT_COMMAND = {$env.CONDA_PROMPT_MODIFIER + (create_left_prompt)}
+    # update prompt
+    if ($env.CONDA_PROMPT_MODIFIER? != null) {
+      $env.PROMPT_COMMAND = {|| $env.CONDA_PROMPT_MODIFIER + (create_left_prompt)}
+    }
 }
 def-env "micromamba deactivate" [] {
     #remove active environment except micromamba root
     if $env.CONDA_PROMPT_MODIFIER? != null {
-     (^($env.MAMBA_EXE) shell deactivate  --shell nu
-      | split row ";"
-      | str trim
-      | parse --regex '(.*?)(?:\s*=\s*|\s+)(.*?)'
-      | transpose --header-row
-      | into record
-      | load-env
-    )
-    $env.PROMPT_COMMAND = (create_left_prompt)
-  }})###"
+      # unset set variables
+      for x in (^$env.MAMBA_EXE shell deactivate --shell nu
+              | split row ";") {
+          if ("hide-env" in $x) {
+            hide-env ($x | parse "hide-env {var}").var.0
+          } else if $x != "" {
+            let keyValue = ($x
+            | str replace --regex '\s+' "" --all
+            | parse '{key}={value}'
+            )
+            load-env {$keyValue.0.key: $keyValue.0.value}
+          }
+    }
+    # update prompt
+    $env.PROMPT_COMMAND = {|| create_left_prompt}
+  }
+})###"
                 << "\n";
         content << "# <<< mamba initialize <<<\n";
         return content.str();

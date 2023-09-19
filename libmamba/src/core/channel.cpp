@@ -428,6 +428,12 @@ namespace mamba
                 name.replace(0u, channel_alias.location().size(), "");
                 location = channel_alias.location();
             }
+            else if (url.scheme() == "file")
+            {
+                const auto pos = location.rfind('/');
+                name = location.substr(pos + 1);
+                location = location.substr(0, pos);
+            }
             else
             {
                 location = util::concat(url.host(), url.port().empty() ? "" : ":", url.port());
@@ -715,7 +721,7 @@ namespace mamba
         std::vector<std::string> local_channels = {
             m_context.prefix_params.target_prefix.string() + "/conda-bld",
             m_context.prefix_params.root_prefix.string() + "/conda-bld",
-            "~/conda-bld"
+            env::home_directory() / "conda-bld"
         };
 
         std::vector<std::string> local_names;

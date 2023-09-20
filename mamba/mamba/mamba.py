@@ -152,7 +152,6 @@ def remove(args, parser):
         unregister_env(prefix)
 
         return
-
     else:
         if args.features:
             specs = tuple(MatchSpec(track_features=f) for f in set(args.package_names))
@@ -179,6 +178,9 @@ def remove(args, parser):
         repos.append(repo)
 
         solver = api.Solver(pool, solver_options)
+
+        if args.force_remove:
+            solver.set_postsolve_flags([(api.MAMBA_NO_DEPS, True)])
 
         history = api.History(context.target_prefix)
         history_map = history.get_requested_specs_map()

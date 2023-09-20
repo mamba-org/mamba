@@ -240,23 +240,42 @@ namespace mamba
         std::optional<std::string> token,
         std::optional<std::string> package_filename
     )
-        : m_scheme(std::move(scheme))
+        : m_url()
         , m_location(std::move(location))
         , m_name(std::move(name))
         , m_canonical_name(std::move(canonical_name))
         , m_platforms()
-        , m_user(std::move(user))
-        , m_password(std::move(password))
-        , m_token(std::move(token))
-        , m_package_filename(std::move(package_filename))
     {
+        if (m_name != UNKNOWN_CHANNEL)
+        {
+            if (scheme == "file")
+            {
+                m_url.set_path(m_location);
+            }
+            else
+            {
+                m_url = specs::CondaURL::parse(m_location);
+                if (token.has_value() && !token.value().empty())
+                {
+                    m_url.set_token(token.value());
+                }
+                m_url.set_user(user.value_or(""));
+                m_url.set_password(password.value_or(""));
+            }
+            m_url.set_scheme(scheme);
+            m_url.append_path(m_name);
+            if (package_filename.has_value() && !package_filename.value().empty())
+            {
+                m_url.set_package(package_filename.value());
+            }
+        }
     }
 
     Channel::~Channel() = default;
 
     const std::string& Channel::scheme() const
     {
-        return m_scheme;
+        return m_url.scheme();
     }
 
     const std::string& Channel::location() const
@@ -276,35 +295,27 @@ namespace mamba
 
     const std::optional<std::string> Channel::auth() const
     {
-        if (m_user.has_value() && m_password.has_value())
-        {
-            return util::concat(m_user.value(), ':', m_password.value());
-        }
-        else if (m_user.has_value())
-        {
-            return m_user;
-        }
-        return std::nullopt;
+        return nonempty_str(m_url.authentication());
     }
 
-    const std::optional<std::string>& Channel::user() const
+    const std::optional<std::string> Channel::user() const
     {
-        return m_user;
+        return nonempty_str(m_url.user());
     }
 
-    const std::optional<std::string>& Channel::password() const
+    const std::optional<std::string> Channel::password() const
     {
-        return m_password;
+        return nonempty_str(m_url.password());
     }
 
-    const std::optional<std::string>& Channel::token() const
+    const std::optional<std::string> Channel::token() const
     {
-        return m_token;
+        return nonempty_str(std::string(m_url.token()));
     }
 
-    const std::optional<std::string>& Channel::package_filename() const
+    const std::optional<std::string> Channel::package_filename() const
     {
-        return m_package_filename;
+        return nonempty_str(m_url.package());
     }
 
     const validation::RepoChecker&
@@ -660,14 +671,14 @@ namespace mamba
                     if (it != authentication_info.end()
                         && std::holds_alternative<specs::CondaToken>(it->second))
                     {
-                        chan.m_token = std::get<specs::CondaToken>(it->second).token;
+                        chan.m_url.set_token(std::get<specs::CondaToken>(it->second).token);
                         break;
                     }
                     else if (it != authentication_info.end() && std::holds_alternative<specs::BasicHTTPAuthentication>(it->second))
                     {
                         const auto& l_auth = std::get<specs::BasicHTTPAuthentication>(it->second);
-                        chan.m_user = nonempty_str(std::string(l_auth.user));
-                        chan.m_password = nonempty_str(std::string(l_auth.password));
+                        chan.m_url.set_user(l_auth.user);
+                        chan.m_url.set_password(l_auth.password);
                         break;
                     }
                 }

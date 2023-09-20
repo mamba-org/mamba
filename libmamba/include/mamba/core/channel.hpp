@@ -15,6 +15,8 @@
 #include <utility>
 #include <vector>
 
+#include "mamba/specs/conda_url.hpp"
+
 namespace mamba
 {
     class Context;
@@ -44,10 +46,10 @@ namespace mamba
         const std::string& canonical_name() const;
         const std::vector<std::string>& platforms() const;
         const std::optional<std::string> auth() const;
-        const std::optional<std::string>& user() const;
-        const std::optional<std::string>& password() const;
-        const std::optional<std::string>& token() const;
-        const std::optional<std::string>& package_filename() const;
+        const std::optional<std::string> user() const;
+        const std::optional<std::string> password() const;
+        const std::optional<std::string> token() const;
+        const std::optional<std::string> package_filename() const;
         const validation::RepoChecker&
         repo_checker(Context& context, MultiPackageCache& caches) const;
 
@@ -71,15 +73,11 @@ namespace mamba
             std::optional<std::string> package_filename = {}
         );
 
-        std::string m_scheme;
+        specs::CondaURL m_url;
         std::string m_location;
         std::string m_name;
         std::string m_canonical_name;
         std::vector<std::string> m_platforms;
-        std::optional<std::string> m_user;
-        std::optional<std::string> m_password;
-        std::optional<std::string> m_token;
-        std::optional<std::string> m_package_filename;
 
         // This is used to make sure that there is a unique repo for every channel
         mutable std::unique_ptr<validation::RepoChecker> p_repo_checker;

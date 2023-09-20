@@ -1235,6 +1235,7 @@ namespace mamba
                    .needs({ "file_specs" })
                    .long_description(unindent(R"(
                         The list of channels where the packages will be searched for.
+                        Note that '-c local' allows using locally built packages.
                         See also 'channel_priority'.)"))
                    .set_post_merge_hook<decltype(m_context.channels)>(
                        [&](decltype(m_context.channels)& value)

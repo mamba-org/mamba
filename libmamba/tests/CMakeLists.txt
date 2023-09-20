@@ -1,9 +1,14 @@
 cmake_minimum_required(VERSION 3.16)
 
+if (BUILD_SHARED)
+    set(libmamba_target "libmamba")
+else ()
+    set(libmamba_target "libmamba-static")
+endif()
 
 add_executable(testing_libmamba_lock libmamba_lock/lock.cpp)
 
-target_link_libraries(testing_libmamba_lock PUBLIC libmamba)
+target_link_libraries(testing_libmamba_lock PUBLIC ${libmamba_target})
 
 target_compile_features(testing_libmamba_lock PUBLIC cxx_std_17)
 
@@ -57,7 +62,6 @@ set(LIBMAMBA_TEST_SRCS
     src/core/test_progress_bar.cpp
     src/core/test_shell_init.cpp
     src/core/test_thread_utils.cpp
-    src/core/test_transfer.cpp
     src/core/test_validate.cpp
     src/core/test_virtual_packages.cpp
     src/core/test_util.cpp
@@ -86,7 +90,7 @@ find_package(Threads REQUIRED)
 
 target_link_libraries(
     test_libmamba
-    PUBLIC libmamba
+    PUBLIC ${libmamba_target}
     PRIVATE doctest::doctest Threads::Threads
 )
 

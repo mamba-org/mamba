@@ -166,7 +166,7 @@ jobs:
       - name: Shell init
         shell: bash -l {0} -euo pipefail -x
         run: |
-          mamba init
+          mamba shell init
 
   umamba_integration_tests_unix:
     name: Micromamba integration tests

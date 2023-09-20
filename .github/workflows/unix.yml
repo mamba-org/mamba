@@ -227,8 +227,6 @@ jobs:
         run: |
           unset CONDARC  # Interferes with tests
           if [ "$RUNNER_OS" == "Linux" ]; then
-            echo $MAMBA_ROOT_PREFIX
-            echo $CONDA_PREFIX
             mkdir -p $MAMBA_ROOT_PREFIX/conda-bld/linux-64
             wget -P $MAMBA_ROOT_PREFIX/conda-bld/linux-64 https://anaconda.org/conda-forge/xtensor/0.21.8/download/linux-64/xtensor-0.21.8-hc9558a2_0.tar.bz2
             wget -P $MAMBA_ROOT_PREFIX/conda-bld/linux-64 https://anaconda.org/conda-forge/xtl/0.6.21/download/linux-64/xtl-0.6.21-h0efe328_0.tar.bz2

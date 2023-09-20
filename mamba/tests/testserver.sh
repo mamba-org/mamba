@@ -70,7 +70,7 @@ fi
 python "${reposerver}" -d "${repo}" --auth basic --user '' --password test --port 8005 & PID=$!
 python "${reposerver}" -d "${repo}" --auth basic --user '' --password test --port 8006 & PID2=$!
 python "${reposerver}" -d "${repo}" --auth basic --user '' --password test --port 8007 & PID3=$!
-mamba create -y -q -n "env-${RANDOM}" --override-channels -c http://:test@localhost:8005/ -c http://:test@localhost:8006/ -c http://:test@localhost:8007/ test-package --json
+micromamba create -y -q -n "env-${RANDOM}" --override-channels -c http://:test@localhost:8005/ -c http://:test@localhost:8006/ -c http://:test@localhost:8007/ test-package --json
 kill -TERM $PID
 kill -TERM $PID2
 kill -TERM $PID3
@@ -81,6 +81,6 @@ python "${reposerver}" \
 	-d "${repo}" -n defaults --token private-token -- \
 	-d "${channel_a}" -n channel_a --user user@email.com --password test -- \
 	-d "${channel_b}" -n channel_b --auth none & PID=$!
-mamba create -y -q -n "env-${RANDOM}" --override-channels -c http://localhost:8000/defaults/t/private-token test-package --json
-mamba create -y -q -n "env-${RANDOM}" --override-channels -c http://user%40email.com:test@localhost:8000/channel_a _r-mutex --json
+micromamba create -y -q -n "env-${RANDOM}" --override-channels -c http://localhost:8000/defaults/t/private-token test-package --json
+micromamba create -y -q -n "env-${RANDOM}" --override-channels -c http://user%40email.com:test@localhost:8000/channel_a _r-mutex --json
 kill -TERM $PID

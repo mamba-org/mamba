@@ -464,7 +464,7 @@ namespace mamba::util
         return std::exchange(m_fragment, "");
     }
 
-    auto URL::str() -> std::string
+    auto URL::str() const -> std::string
     {
         return util::concat(
             scheme(),

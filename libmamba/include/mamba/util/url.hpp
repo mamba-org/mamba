@@ -215,7 +215,7 @@ namespace mamba::util
         auto clear_fragment() -> std::string;
 
         /** Return the full, exact, encoded URL. */
-        [[nodiscard]] auto str() -> std::string;
+        [[nodiscard]] auto str() const -> std::string;
 
         /**
          * Return the full decoded url.

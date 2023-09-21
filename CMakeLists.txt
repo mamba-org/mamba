@@ -35,7 +35,7 @@ if (MSVC)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "The build type")
     # add_definitions("-DUNICODE -D_UNICODE")
     set(
-        MAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL"
+        CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL"
         CACHE STRING "MSVC runtime library"
     )
 endif()

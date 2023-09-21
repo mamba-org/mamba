@@ -452,8 +452,10 @@ namespace mamba
         auto url = specs::CondaURL::parse(channel_url);
         std::string token = std::string(url.token());
         url.clear_token();
-        std::string user = url.clear_user();
-        std::string password = url.clear_password();
+        std::string user = url.user();  // % encoded
+        url.clear_user();
+        std::string password = url.password();  // % encoded
+        url.clear_password();
         std::string location = url.pretty_str(specs::CondaURL::StripScheme::yes, '/');
 
         std::string name(channel_name);
@@ -518,8 +520,8 @@ namespace mamba
             );
         }
 
-        std::string user = url.clear_user();
-        std::string password = url.clear_password();
+        std::string user = url.user();          // % encoded
+        std::string password = url.password();  // % encoded
         return Channel(
             /*  scheme= */ res_scheme,
             /*  location= */ config.location,
@@ -635,8 +637,10 @@ namespace mamba
         auto url = specs::CondaURL::parse(alias);
 
         std::string token = std::string(url.token());
-        std::string user = url.clear_user();
-        std::string password = url.clear_password();
+        std::string user = url.user();  // % encoded
+        url.clear_user();
+        std::string password = url.password();  // % encoded
+        url.clear_password();
         url.clear_token();
 
         return Channel(

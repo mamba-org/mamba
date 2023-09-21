@@ -34,7 +34,10 @@ jobs:
       - name: Checkout micromamba-feedstock
         uses: actions/checkout@v3
         with:
-          repository: conda-forge/micromamba-feedstock
+          # Running a fork until we can merge the changes in micromamba-feedstock
+          # https://github.com/conda-forge/micromamba-feedstock/pull/154
+          repository: AntoinePrv/micromamba-feedstock
+          ref: tmp-mamba-ci
           path: micromamba-feedstock
       - name: Clear micromamba-feedstock git directory
         run: rm -rf "micromamba-feedstock/.git"

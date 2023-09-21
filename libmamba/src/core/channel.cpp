@@ -41,14 +41,6 @@ namespace mamba
 
         const char LOCAL_CHANNELS_NAME[] = "local";
         const char DEFAULT_CHANNELS_NAME[] = "defaults";
-
-        // ATTENTION names with substrings need to go longer -> smalle
-        // otherwise linux-ppc64 matches for linux-ppc64le etc!
-        const std::vector<std::string> KNOWN_PLATFORMS = {
-            "noarch",       "linux-32",      "linux-64",    "linux-aarch64", "linux-armv6l",
-            "linux-armv7l", "linux-ppc64le", "linux-ppc64", "osx-64",        "osx-arm64",
-            "win-32",       "win-64",        "win-arm64",   "zos-z"
-        };
     }  // namespace
 
     // Specific functions, used only in this file
@@ -223,7 +215,8 @@ namespace mamba
 
     std::vector<std::string> get_known_platforms()
     {
-        return KNOWN_PLATFORMS;
+        auto plats = specs::known_platform_names();
+        return { plats.begin(), plats.end() };
     }
 
     /**************************

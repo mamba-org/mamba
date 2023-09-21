@@ -32,8 +32,12 @@ if (MSVC)
     # /external:I $ENV{CONDA_PREFIX}: consider the conda env prefix libraries headers as "external" to this project.
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /D_CRT_SECURE_NO_WARNINGS /DNOMINMAX /EHsc /Zc:__cplusplus /MP /experimental:external /external:I $ENV{CONDA_PREFIX}")
     # Force release mode to avoid debug libraries to be linked
-    set(CMAKE_BUILD_TYPE Release)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "The build type")
     # add_definitions("-DUNICODE -D_UNICODE")
+    set(
+        MAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL"
+        CACHE STRING "MSVC runtime library"
+    )
 endif()
 
 # Variants

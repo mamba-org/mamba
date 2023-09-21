@@ -131,6 +131,7 @@ jobs:
             -B build ^
             -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
             -D CMAKE_C_COMPILER_LAUNCHER=sccache ^
+            -D CMAKE_MSVC_RUNTIME_LIBRARY="MultiThreaded" ^
             -D CMAKE_BUILD_TYPE="Release" ^
             -D BUILD_LIBMAMBA=ON ^
             -D BUILD_STATIC=ON ^

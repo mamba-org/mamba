@@ -49,9 +49,6 @@ mamba_target_add_compile_warnings(mamba-package WARNING_AS_ERROR ${MAMBA_WARNING
 
 if (${MAMBA_PACKAGE_LINKAGE} STREQUAL "STATIC")
     target_link_libraries(mamba-package PRIVATE libmamba-static)
-    if (WIN32)
-        set_target_properties(mamba-package PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-    endif ()
 else ()
     target_link_libraries(mamba-package PRIVATE libmamba)
 endif ()

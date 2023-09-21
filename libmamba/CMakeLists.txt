@@ -431,7 +431,6 @@ macro(libmamba_create_target target_name linkage output_name)
         elseif (WIN32)
 
             set(CMAKE_PREFIX_PATH "$ENV{VCPKG_ROOT}/installed/x64-windows-static/")
-            set_target_properties(${target_name} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
             # For Windows we have a vcpkg based build system right now.
             find_package(LibArchive REQUIRED)

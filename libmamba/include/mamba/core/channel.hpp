@@ -63,14 +63,14 @@ namespace mamba
     private:
 
         Channel(
-            std::string scheme,
+            std::string_view scheme,
             std::string location,
             std::string name,
             std::string canonical_name,
-            std::optional<std::string> user = {},
-            std::optional<std::string> password = {},
-            std::optional<std::string> token = {},
-            std::optional<std::string> package_filename = {}
+            std::string_view user = {},
+            std::string_view password = {},
+            std::string_view token = {},
+            std::string_view package_filename = {}
         );
 
         specs::CondaURL m_url;

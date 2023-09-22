@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  conda-build:
+  micromamba-static-unix:
     name: "micromamba - ${{ matrix.platform }}-${{ matrix.arch }}"
     runs-on: ${{ matrix.os }}
     strategy:
@@ -34,7 +34,10 @@ jobs:
       - name: Checkout micromamba-feedstock
         uses: actions/checkout@v3
         with:
-          repository: conda-forge/micromamba-feedstock
+          # Running a fork until we can merge the changes in micromamba-feedstock
+          # https://github.com/conda-forge/micromamba-feedstock/pull/154
+          repository: AntoinePrv/micromamba-feedstock
+          ref: tmp-mamba-ci
           path: micromamba-feedstock
       - name: Clear micromamba-feedstock git directory
         run: rm -rf "micromamba-feedstock/.git"
@@ -116,7 +119,7 @@ jobs:
         shell: cmd
         # remove libsolv overlay-ports once https://github.com/microsoft/vcpkg/pull/31275 is released
         run: |
-          vcpkg install --overlay-ports=.\ports\libsolv --triplet x64-windows-static
+          vcpkg install --overlay-ports=.\ports\libsolv --triplet x64-windows-static-md
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -126,11 +129,12 @@ jobs:
       - name: build micromamba
         shell: cmd
         run: |
-          set CMAKE_PREFIX_PATH=.\vcpkg_installed\x64-windows-static
+          set CMAKE_PREFIX_PATH=.\vcpkg_installed\x64-windows-static-md
           cmake -S . ^
             -B build ^
             -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
             -D CMAKE_C_COMPILER_LAUNCHER=sccache ^
+            -D CMAKE_MSVC_RUNTIME_LIBRARY="MultiThreadedDLL" ^
             -D CMAKE_BUILD_TYPE="Release" ^
             -D BUILD_LIBMAMBA=ON ^
             -D BUILD_STATIC=ON ^

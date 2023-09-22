@@ -315,6 +315,10 @@ set(LIBMAMBA_PRIVATE_HEADERS
 # Targets and link
 # ================
 
+find_package(fmt REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(tl-expected REQUIRED)
+
 macro(libmamba_create_target target_name linkage output_name)
     string(TOUPPER "${linkage}" linkage_upper)
     if (NOT ${linkage_upper} MATCHES "^(SHARED|STATIC)$")
@@ -414,9 +418,6 @@ macro(libmamba_create_target target_name linkage output_name)
                 target_link_options(${target_name} PUBLIC -static-libstdc++ -static-libgcc)
             endif()
 
-            find_package(fmt REQUIRED)
-            find_package(spdlog CONFIG REQUIRED)
-            find_package(tl-expected REQUIRED)
 
             add_compile_definitions(SPDLOG_FMT_EXTERNAL)
             target_link_libraries(
@@ -424,8 +425,9 @@ macro(libmamba_create_target target_name linkage output_name)
               PUBLIC
                 ${STATIC_DEPS}
                 ${MAMBA_FORCE_DYNAMIC_LIBS}
-                spdlog::spdlog_header_only
                 fmt::fmt-header-only
+                spdlog::spdlog_header_only
+                tl::expected
              )
 
         elseif (WIN32)
@@ -437,8 +439,6 @@ macro(libmamba_create_target target_name linkage output_name)
             find_package(CURL CONFIG REQUIRED)
             find_package(yaml-cpp CONFIG REQUIRED)
             find_package(nlohmann_json CONFIG REQUIRED)
-            find_package(fmt REQUIRED)
-            find_package(spdlog CONFIG REQUIRED)
             find_library(LIBLZMA_LIBRARIES lzma REQUIRED)
             find_library(LZ4_LIBRARY NAMES lz4)
             find_library(LZO2_LIBRARY NAMES lzo2)
@@ -449,7 +449,6 @@ macro(libmamba_create_target target_name linkage output_name)
             find_library(LIBSOLV_BUILD_STATICRARIES NAMES solv)
             find_library(LIBSOLVEXT_BUILD_STATICRARIES NAMES solvext)
             find_package(reproc++ CONFIG REQUIRED)
-            find_package(tl-expected REQUIRED)
 
             find_library(LIBXML2_LIBRARY NAMES libxml2)
             find_library(ICONV_LIBRARY NAMES libiconv iconv)
@@ -504,9 +503,6 @@ macro(libmamba_create_target target_name linkage output_name)
         find_package(OpenSSL REQUIRED)
         find_package(yaml-cpp CONFIG REQUIRED)
         find_package(reproc++ CONFIG REQUIRED)
-        find_package(tl-expected REQUIRED)
-        find_package(fmt REQUIRED)
-        find_package(spdlog CONFIG REQUIRED)
 
         set(LIBMAMBA_LIBRARIES_DEPS
             ${LIBSOLV_LIBRARIES}

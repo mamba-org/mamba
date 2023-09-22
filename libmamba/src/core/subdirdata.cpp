@@ -10,6 +10,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/subdirdata.hpp"
+#include "mamba/core/thread_utils.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
@@ -455,100 +456,52 @@ namespace mamba
         return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
     }
 
-    MultiDownloadRequest MSubdirData::build_check_requests()
+    expected_t<void> MSubdirData::download_indexes(
+        std::vector<MSubdirData>& subdirs,
+        const Context& context,
+        DownloadMonitor* check_monitor,
+        DownloadMonitor* download_monitor
+    )
     {
-        assert(!is_loaded());
-        MultiDownloadRequest request;
-
-        if ((!p_context->offline || forbid_cache(m_repodata_url)) && p_context->repodata_use_zst
-            && !m_metadata.has_zst())
+        MultiDownloadRequest check_requests;
+        for (auto& subdir : subdirs)
         {
-            request.push_back(DownloadRequest(
-                m_name + " (check zst)",
-                m_repodata_url + ".zst",
-                "",
-                /*head_only = */ true,
-                /*ignore_failure = */ true
-            ));
-
-            request.back().on_success = [this](const DownloadSuccess& success)
+            if (!subdir.is_loaded())
             {
-                const std::string& effective_url = success.transfer.effective_url;
-                int http_status = success.transfer.http_status;
-                LOG_INFO << "Checked: " << effective_url << " [" << http_status << "]";
-                if (util::ends_with(effective_url, ".zst"))
-                {
-                    m_metadata.set_zst(http_status == 200);
-                }
-                return expected_t<void>();
-            };
-
-            request.back().on_failure = [this](const DownloadError& error)
-            {
-                if (error.transfer.has_value())
-                {
-                    LOG_INFO << "Checked: " << error.transfer.value().effective_url << " ["
-                             << error.transfer.value().http_status << "]";
-                }
-                m_metadata.set_zst(false);
-            };
+                MultiDownloadRequest check_list = subdir.build_check_requests();
+                std::move(check_list.begin(), check_list.end(), std::back_inserter(check_requests));
+            }
         }
-        return request;
-    }
-
-    DownloadRequest MSubdirData::build_index_request()
-    {
-        assert(!is_loaded());
-        fs::u8path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
-        auto lock = LockFile(writable_cache_dir);
-        m_temp_file = std::make_unique<TemporaryFile>("mambaf", "", writable_cache_dir);
-
-        bool use_zst = m_metadata.has_zst();
-
-        DownloadRequest request(
-            m_name,
-            m_repodata_url + (use_zst ? ".zst" : ""),
-            m_temp_file->path().string(),
-            /*head_only*/ false,
-            /*ignore_failure*/ !m_is_noarch
-        );
-        request.etag = m_metadata.etag();
-        request.last_modified = m_metadata.last_modified();
-
-        request.on_success = [this](const DownloadSuccess& success)
+        download(std::move(check_requests), context, {}, check_monitor);
+         
+        if (is_sig_interrupted())
         {
-            if (success.transfer.http_status == 304)
-            {
-                return use_existing_cache();
-            }
-            else
-            {
-                return finalize_transfer(MSubdirMetadata::http_metadata{ success.transfer.effective_url,
-                                                                         success.etag,
-                                                                         success.last_modified,
-                                                                         success.cache_control });
-            }
-        };
+            return make_unexpected("Interrupted by user", mamba_error_code::user_interrupted);
+        }
 
-        request.on_failure = [this](const DownloadError& error)
+        // TODO load local channels even when offline if (!ctx.offline)
+        if (!context.offline)
         {
-            if (error.transfer.has_value())
+            MultiDownloadRequest index_requests;
+            for (auto& subdir : subdirs)
             {
-                LOG_WARNING << "Unable to retrieve repodata (response: "
-                            << error.transfer.value().http_status << ") for '"
-                            << error.transfer.value().effective_url << "'";
+                if (!subdir.is_loaded())
+                {
+                    index_requests.push_back(subdir.build_index_request());
+                }
             }
-            else
-            {
-                LOG_WARNING << error.message;
-            }
-            if (error.retry_wait_seconds.has_value())
-            {
-                LOG_WARNING << "Retrying in " << error.retry_wait_seconds.value() << " seconds";
-            }
-        };
 
-        return request;
+            try
+            {
+                download(std::move(index_requests), context, { /*fail_fast=*/true }, download_monitor);
+            }
+            catch (const std::runtime_error& e)
+            {
+                return make_unexpected(e.what(), mamba_error_code::repodata_not_loaded);
+            }
+        }
+
+        return expected_t<void>();
     }
 
     expected_t<MRepo> MSubdirData::create_repo(MPool& pool) const
@@ -708,6 +661,100 @@ namespace mamba
                 }
             }
         }
+    }
+
+    MultiDownloadRequest MSubdirData::build_check_requests()
+    {
+        MultiDownloadRequest request;
+
+        if ((!p_context->offline || forbid_cache(m_repodata_url)) && p_context->repodata_use_zst
+            && !m_metadata.has_zst())
+        {
+            request.push_back(DownloadRequest(
+                m_name + " (check zst)",
+                m_repodata_url + ".zst",
+                "",
+                /*head_only = */ true,
+                /*ignore_failure = */ true
+            ));
+
+            request.back().on_success = [this](const DownloadSuccess& success)
+            {
+                const std::string& effective_url = success.transfer.effective_url;
+                int http_status = success.transfer.http_status;
+                LOG_INFO << "Checked: " << effective_url << " [" << http_status << "]";
+                if (util::ends_with(effective_url, ".zst"))
+                {
+                    m_metadata.set_zst(http_status == 200);
+                }
+                return expected_t<void>();
+            };
+
+            request.back().on_failure = [this](const DownloadError& error)
+            {
+                if (error.transfer.has_value())
+                {
+                    LOG_INFO << "Checked: " << error.transfer.value().effective_url << " ["
+                             << error.transfer.value().http_status << "]";
+                }
+                m_metadata.set_zst(false);
+            };
+        }
+        return request;
+    }
+
+    DownloadRequest MSubdirData::build_index_request()
+    {
+        fs::u8path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
+        auto lock = LockFile(writable_cache_dir);
+        m_temp_file = std::make_unique<TemporaryFile>("mambaf", "", writable_cache_dir);
+
+        bool use_zst = m_metadata.has_zst();
+
+        DownloadRequest request(
+            m_name,
+            m_repodata_url + (use_zst ? ".zst" : ""),
+            m_temp_file->path().string(),
+            /*head_only*/ false,
+            /*ignore_failure*/ !m_is_noarch
+        );
+        request.etag = m_metadata.etag();
+        request.last_modified = m_metadata.last_modified();
+
+        request.on_success = [this](const DownloadSuccess& success)
+        {
+            if (success.transfer.http_status == 304)
+            {
+                return use_existing_cache();
+            }
+            else
+            {
+                return finalize_transfer(MSubdirMetadata::http_metadata{ success.transfer.effective_url,
+                                                                         success.etag,
+                                                                         success.last_modified,
+                                                                         success.cache_control });
+            }
+        };
+
+        request.on_failure = [this](const DownloadError& error)
+        {
+            if (error.transfer.has_value())
+            {
+                LOG_WARNING << "Unable to retrieve repodata (response: "
+                            << error.transfer.value().http_status << ") for '"
+                            << error.transfer.value().effective_url << "'";
+            }
+            else
+            {
+                LOG_WARNING << error.message;
+            }
+            if (error.retry_wait_seconds.has_value())
+            {
+                LOG_WARNING << "Retrying in " << error.retry_wait_seconds.value() << " seconds";
+            }
+        };
+
+        return request;
     }
 
     expected_t<void> MSubdirData::use_existing_cache()

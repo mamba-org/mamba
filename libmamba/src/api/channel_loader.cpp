@@ -12,7 +12,6 @@
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/subdirdata.hpp"
-#include "mamba/core/thread_utils.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba
@@ -42,29 +41,6 @@ namespace mamba
                 prefix_data.load_single_record(repodata_record_json);
             }
             return MRepo(pool, prefix_data);
-        }
-    }
-
-    MultiDownloadResult download_impl(
-        MultiDownloadRequest requests,
-        const Context& context,
-        DownloadOptions options,
-        MonitorOptions monitor_options
-    )
-    {
-        if (DownloadProgressBar::can_monitor(context))
-        {
-            DownloadProgressBar monitor(std::move(monitor_options));
-            return download(
-                std::move(requests),
-                context,
-                std::move(options),
-                &monitor
-            );
-        }
-        else
-        {
-            return download(std::move(requests), context, std::move(options));
         }
     }
 
@@ -123,44 +99,28 @@ namespace mamba
             }
         }
 
-        MultiDownloadRequest check_requests;
-        for (auto& subdir : subdirs)
+        expected_t<void> download_res;
+        if (DownloadProgressBar::can_monitor(ctx))
         {
-            if (!subdir.is_loaded())
-            {
-                MultiDownloadRequest check_list = subdir.build_check_requests();
-                std::move(check_list.begin(), check_list.end(), std::back_inserter(check_requests));
-            }
+            DownloadProgressBar check_monitor({true, true});
+            DownloadProgressBar index_monitor;
+            download_res = MSubdirData::download_indexes(subdirs, ctx, &check_monitor, &index_monitor);
+        }
+        else
+        {
+            download_res = MSubdirData::download_indexes(subdirs, ctx);
         }
 
-        download_impl(std::move(check_requests), ctx, {}, { true, true });
-        if (is_sig_interrupted())
+        if (!download_res)
         {
-            error_list.push_back(mamba_error("Interrupted by user", mamba_error_code::user_interrupted)
-            );
-            return tl::unexpected(mamba_aggregated_error(std::move(error_list)));
-        }
+            mamba_error error = download_res.error();
+            mamba_error_code ec = error.error_code();
+            error_list.push_back(std::move(error));
+            if (ec == mamba_error_code::user_interrupted)
+            {
+                return tl::unexpected(mamba_aggregated_error(std::move(error_list)));
+            }
 
-        MultiDownloadRequest index_requests;
-        for (auto& subdir : subdirs)
-        {
-            if (!subdir.is_loaded())
-            {
-                index_requests.push_back(subdir.build_index_request());
-            }
-        }
-
-        // TODO load local channels even when offline if (!ctx.offline)
-        if (!ctx.offline)
-        {
-            try
-            {
-                download_impl(std::move(index_requests), ctx, { /*fail_fast=*/true }, {});
-            }
-            catch (const std::runtime_error& e)
-            {
-                error_list.push_back(mamba_error(e.what(), mamba_error_code::repodata_not_loaded));
-            }
         }
 
         if (ctx.offline)

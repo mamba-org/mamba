@@ -25,6 +25,7 @@
 
 namespace mamba
 {
+    class DownloadMonitor;
 
     class MSubdirMetadata
     {
@@ -115,8 +116,12 @@ namespace mamba
         const std::string& name() const;
         expected_t<std::string> cache_path() const;
 
-        MultiDownloadRequest build_check_requests();
-        DownloadRequest build_index_request();
+        static expected_t<void> download_indexes(
+            std::vector<MSubdirData>& subdirs,
+            const Context& context,
+            DownloadMonitor* check_monitor = nullptr,
+            DownloadMonitor* download_monitor = nullptr
+        );
 
         expected_t<MRepo> create_repo(MPool& pool) const;
 
@@ -134,6 +139,9 @@ namespace mamba
         void load(MultiPackageCache& caches, ChannelContext& channel_context, const Channel& channel);
         void load_cache(MultiPackageCache& caches, ChannelContext& channel_context);
         void update_metadata_zst(ChannelContext& context, const Channel& channel);
+
+        MultiDownloadRequest build_check_requests();
+        DownloadRequest build_index_request();
 
         expected_t<void> use_existing_cache();
         expected_t<void> finalize_transfer(MSubdirMetadata::http_metadata http_data);

@@ -342,15 +342,8 @@ namespace
             }
         }
 
-        MultiDownloadRequest requests;
-        for (auto& sub_dir : sub_dirs)
-        {
-            if (!sub_dir.is_loaded())
-            {
-                requests.push_back(sub_dir.build_index_request());
-            }
-        }
-        download(std::move(requests), mambatests::context(), { /*fail_fast=*/true });
+        MSubdirData::download_indexes(sub_dirs, mambatests::context());
+
         for (auto& sub_dir : sub_dirs)
         {
             sub_dir.create_repo(pool);

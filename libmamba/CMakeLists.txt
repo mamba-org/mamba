@@ -315,6 +315,11 @@ set(LIBMAMBA_PRIVATE_HEADERS
 # Targets and link
 # ================
 
+find_package(fmt REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(tl-expected REQUIRED)
+find_package(nlohmann_json REQUIRED)
+
 macro(libmamba_create_target target_name linkage output_name)
     string(TOUPPER "${linkage}" linkage_upper)
     if (NOT ${linkage_upper} MATCHES "^(SHARED|STATIC)$")
@@ -329,6 +334,14 @@ macro(libmamba_create_target target_name linkage output_name)
         ${LIBMAMBA_PRIVATE_HEADERS}
         ${LIBMAMBA_SOURCES}
     )
+
+    # Header only libraries are always linked the same way
+    target_link_libraries(
+        ${target_name}
+        PUBLIC
+            tl::expected
+            nlohmann_json::nlohmann_json
+     )
 
     mamba_target_add_compile_warnings(
         ${target_name}
@@ -414,9 +427,6 @@ macro(libmamba_create_target target_name linkage output_name)
                 target_link_options(${target_name} PUBLIC -static-libstdc++ -static-libgcc)
             endif()
 
-            find_package(fmt REQUIRED)
-            find_package(spdlog CONFIG REQUIRED)
-            find_package(tl-expected REQUIRED)
 
             add_compile_definitions(SPDLOG_FMT_EXTERNAL)
             target_link_libraries(
@@ -424,21 +434,18 @@ macro(libmamba_create_target target_name linkage output_name)
               PUBLIC
                 ${STATIC_DEPS}
                 ${MAMBA_FORCE_DYNAMIC_LIBS}
-                spdlog::spdlog_header_only
                 fmt::fmt-header-only
+                spdlog::spdlog_header_only
              )
 
         elseif (WIN32)
 
-            set(CMAKE_PREFIX_PATH "$ENV{VCPKG_ROOT}/installed/x64-windows-static/")
+            set(CMAKE_PREFIX_PATH "$ENV{VCPKG_ROOT}/installed/x64-windows-static-md/")
 
             # For Windows we have a vcpkg based build system right now.
             find_package(LibArchive REQUIRED)
             find_package(CURL CONFIG REQUIRED)
             find_package(yaml-cpp CONFIG REQUIRED)
-            find_package(nlohmann_json CONFIG REQUIRED)
-            find_package(fmt REQUIRED)
-            find_package(spdlog CONFIG REQUIRED)
             find_library(LIBLZMA_LIBRARIES lzma REQUIRED)
             find_library(LZ4_LIBRARY NAMES lz4)
             find_library(LZO2_LIBRARY NAMES lzo2)
@@ -449,7 +456,6 @@ macro(libmamba_create_target target_name linkage output_name)
             find_library(LIBSOLV_BUILD_STATICRARIES NAMES solv)
             find_library(LIBSOLVEXT_BUILD_STATICRARIES NAMES solvext)
             find_package(reproc++ CONFIG REQUIRED)
-            find_package(tl-expected REQUIRED)
 
             find_library(LIBXML2_LIBRARY NAMES libxml2)
             find_library(ICONV_LIBRARY NAMES libiconv iconv)
@@ -468,7 +474,6 @@ macro(libmamba_create_target target_name linkage output_name)
                 ${BZIP2_LIBRARIES}
                 ${LIBLZMA_LIBRARIES}
                 CURL::libcurl
-                nlohmann_json::nlohmann_json
                 fmt::fmt-header-only
                 # Since conda-forge spdlog is built with a bundled version of fmt we use the
                 # header only version to avoid chasing after the correct fmt version mathching
@@ -480,7 +485,6 @@ macro(libmamba_create_target target_name linkage output_name)
                 ${sodium_LIBRARY_RELEASE}
                 reproc++
                 reproc
-                tl::expected
             )
 
             add_compile_definitions(
@@ -490,7 +494,7 @@ macro(libmamba_create_target target_name linkage output_name)
               SOLV_BUILD_STATIC
             )
             include_directories($ENV{CONDA_PREFIX}/Library/include/)
-            include_directories($ENV{VCPKG_ROOT}/installed/x64-windows-static/include/)
+            include_directories($ENV{VCPKG_ROOT}/installed/x64-windows-static-md/include/)
         endif()
     else ()
         message("   -> Dynamically linking against libmamba (shared) dependencies")
@@ -504,9 +508,6 @@ macro(libmamba_create_target target_name linkage output_name)
         find_package(OpenSSL REQUIRED)
         find_package(yaml-cpp CONFIG REQUIRED)
         find_package(reproc++ CONFIG REQUIRED)
-        find_package(tl-expected REQUIRED)
-        find_package(fmt REQUIRED)
-        find_package(spdlog CONFIG REQUIRED)
 
         set(LIBMAMBA_LIBRARIES_DEPS
             ${LIBSOLV_LIBRARIES}
@@ -520,7 +521,6 @@ macro(libmamba_create_target target_name linkage output_name)
             yaml-cpp
             reproc++
             reproc
-            tl::expected
             fmt::fmt
             # Since conda-forge spdlog is built with a bundled version of fmt we use the
             # header only version to avoid chasing after the correct fmt version mathching
@@ -585,12 +585,9 @@ macro(libmamba_create_target target_name linkage output_name)
     endif()
 
     if (${linkage_upper} STREQUAL "STATIC")
-        find_package(nlohmann_json CONFIG REQUIRED)
         find_package(Threads REQUIRED)
 
-        target_link_libraries(${target_name} PUBLIC
-                              nlohmann_json::nlohmann_json
-                              Threads::Threads)
+        target_link_libraries(${target_name} PUBLIC Threads::Threads)
     endif ()
 
     list(APPEND libmamba_targets ${target_name})

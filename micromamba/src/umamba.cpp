@@ -104,7 +104,8 @@ set_umamba_command(CLI::App* com, mamba::Configuration& config)
 
     CLI::App* search_subcom = com->add_subcommand(
         "search",
-        "Find packages in active environment or channels"
+        "Find packages in active environment or channels\n"
+        "This is equivalent to `repoquery search` command"
     );
     set_search_command(search_subcom, config);
 

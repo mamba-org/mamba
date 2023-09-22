@@ -45,6 +45,7 @@ set_common_search(CLI::App* subcom, mamba::Configuration& config, bool is_repoqu
     }
     else
     {
+        // `search` and `repoquery search` are equivalent
         query_type = "search";
     }
 

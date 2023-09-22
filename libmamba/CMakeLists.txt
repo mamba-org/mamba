@@ -430,7 +430,7 @@ macro(libmamba_create_target target_name linkage output_name)
 
         elseif (WIN32)
 
-            set(CMAKE_PREFIX_PATH "$ENV{VCPKG_ROOT}/installed/x64-windows-static/")
+            set(CMAKE_PREFIX_PATH "$ENV{VCPKG_ROOT}/installed/x64-windows-static-md/")
 
             # For Windows we have a vcpkg based build system right now.
             find_package(LibArchive REQUIRED)
@@ -490,7 +490,7 @@ macro(libmamba_create_target target_name linkage output_name)
               SOLV_BUILD_STATIC
             )
             include_directories($ENV{CONDA_PREFIX}/Library/include/)
-            include_directories($ENV{VCPKG_ROOT}/installed/x64-windows-static/include/)
+            include_directories($ENV{VCPKG_ROOT}/installed/x64-windows-static-md/include/)
         endif()
     else ()
         message("   -> Dynamically linking against libmamba (shared) dependencies")

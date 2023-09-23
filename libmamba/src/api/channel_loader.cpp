@@ -102,7 +102,7 @@ namespace mamba
         expected_t<void> download_res;
         if (DownloadProgressBar::can_monitor(ctx))
         {
-            DownloadProgressBar check_monitor({true, true});
+            DownloadProgressBar check_monitor({ true, true });
             DownloadProgressBar index_monitor;
             download_res = MSubdirData::download_indexes(subdirs, ctx, &check_monitor, &index_monitor);
         }
@@ -120,7 +120,6 @@ namespace mamba
             {
                 return tl::unexpected(mamba_aggregated_error(std::move(error_list)));
             }
-
         }
 
         if (ctx.offline)

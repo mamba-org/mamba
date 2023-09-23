@@ -473,7 +473,7 @@ namespace mamba
             }
         }
         download(std::move(check_requests), context, {}, check_monitor);
-         
+
         if (is_sig_interrupted())
         {
             return make_unexpected("Interrupted by user", mamba_error_code::user_interrupted);

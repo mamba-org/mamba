@@ -8,7 +8,7 @@ namespace mamba
         : m_options(std::move(options))
     {
     }
-    
+
     void DownloadProgressBar::reset_options(MonitorOptions options)
     {
         m_options = std::move(options);
@@ -43,7 +43,7 @@ namespace mamba
         {
             pbar_manager.watch_print();
         }
-        
+
         options.on_unexpected_termination = [this]() { on_unexpected_termination(); };
     }
 

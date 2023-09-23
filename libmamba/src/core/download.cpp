@@ -6,6 +6,7 @@
 #include "mamba/util/iterator.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
+#include "mamba/util/url_manip.hpp"
 
 #include "curl.hpp"
 #include "download_impl.hpp"
@@ -240,7 +241,7 @@ namespace mamba
                                        || (ssl_no_revoke_env != "0");
 
         m_handle.configure_handle(
-            p_request->url,
+            util::file_uri_unc2_to_unc4(p_request->url),
             set_low_speed_opt,
             context.remote_fetch_params.connect_timeout_secs,
             set_ssl_no_revoke,
@@ -438,10 +439,16 @@ namespace mamba
 
     TransferData DownloadAttempt::get_transfer_data() const
     {
+        // Curl transforms file URI like file:///C/something into file://C/something, which
+        // may lead to wrong comparisons later. When the URL is a file URI, we know there is
+        // no redirection and we can use the input URL as the effective URL.
+        std::string url = util::is_file_uri(p_request->url)
+                              ? p_request->url
+                              : m_handle.get_info<char*>(CURLINFO_EFFECTIVE_URL).value();
         return {
             /* .http_status = */ m_handle.get_info<int>(CURLINFO_RESPONSE_CODE)
                 .value_or(http::ARBITRARY_ERROR),
-            /* .effective_url = */ m_handle.get_info<char*>(CURLINFO_EFFECTIVE_URL).value(),
+            /* .effective_url = */ std::move(url),
             /* .dwonloaded_size = */ m_handle.get_info<std::size_t>(CURLINFO_SIZE_DOWNLOAD_T).value_or(0),
             /* .average_speed = */ m_handle.get_info<std::size_t>(CURLINFO_SPEED_DOWNLOAD_T).value_or(0)
         };
@@ -790,8 +797,12 @@ namespace mamba
     {
     }
 
-    MultiDownloadResult
-    download(MultiDownloadRequest requests, const Context& context, DownloadOptions options, DownloadMonitor* monitor)
+    MultiDownloadResult download(
+        MultiDownloadRequest requests,
+        const Context& context,
+        DownloadOptions options,
+        DownloadMonitor* monitor
+    )
     {
         if (!context.remote_fetch_params.curl_initialized)
         {

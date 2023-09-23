@@ -97,7 +97,7 @@ namespace mamba
         bool sort = true;
         termination_function on_unexpected_termination = std::nullopt;
     };
-    
+
     class DownloadMonitor
     {
     public:
@@ -118,8 +118,12 @@ namespace mamba
         DownloadMonitor() = default;
     };
 
-    MultiDownloadResult
-    download(MultiDownloadRequest requests, const Context& context, DownloadOptions options = {}, DownloadMonitor* monitor = nullptr);
+    MultiDownloadResult download(
+        MultiDownloadRequest requests,
+        const Context& context,
+        DownloadOptions options = {},
+        DownloadMonitor* monitor = nullptr
+    );
 
 }
 

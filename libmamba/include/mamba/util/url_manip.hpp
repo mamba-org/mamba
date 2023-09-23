@@ -58,6 +58,11 @@ namespace mamba::util
      */
     [[nodiscard]] auto url_get_scheme(std::string_view url) -> std::string_view;
 
+    /*
+     * Return true if @p url is a file URI, i.e. if it starts with "file://".
+     */
+    [[nodiscard]] auto is_file_uri(std::string_view url) -> bool;
+
     /**
      * Retrun true if @p url starts with a URL scheme.
      */

@@ -61,6 +61,14 @@ jobs:
         if: ${{ ((matrix.os == 'ubuntu-latest') && (matrix.build_type == 'Debug')) || false }}
         shell: bash -l {0}
         run: |
+          echo "Current dir: "
+          echo ${PWD}
+          echo "Listing: "
+          ls
+          echo "Finding files: "
+          find . -iname "*info"
+          find . -iname "*gcno"
+          find . -iname "*gcda"
           ninja coverage
       - name: Show build cache statistics
         run: sccache --show-stats

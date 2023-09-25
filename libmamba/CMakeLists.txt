@@ -83,6 +83,13 @@ if(ENABLE_USAN)
     add_link_options(-fno-omit-frame-pointer  -fsanitize=undefined)
 endif()
 
+# Code coverage
+option(ENABLE_COVERAGE "Enable code testing coverage" OFF)
+
+if(ENABLE_COVERAGE)
+  add_compile_options(--coverage)
+  add_link_options(--coverage)
+endif()
 
 # Source files
 # ============

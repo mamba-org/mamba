@@ -25,6 +25,8 @@ jobs:
         build_type: [Release, Debug]
     steps:
       - uses: actions/checkout@v3
+        env:
+          enable_cov: ${{ ((matrix.os == 'ubuntu-latest') && (matrix.build_type == 'Debug')) || false }}
       - name: Create build environment
         uses: mamba-org/setup-micromamba@v1
         with:
@@ -42,6 +44,7 @@ jobs:
         run: |
           cmake -B build/ \
             -D CMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -D ENABLE_COVERAGE=${{ env.enable_cov }} \
             -D BUILD_LIBMAMBA=ON \
             -D BUILD_SHARED=ON \
             -D BUILD_LIBMAMBA_TESTS=ON \
@@ -54,6 +57,11 @@ jobs:
         run: |
           unset CONDARC  # Interferes with tests
           cd build && ninja test
+      - name: Coverage
+        if: ${{ env.enable_cov }}
+        shell: bash -l {0}
+        run: |
+          make coverage
       - name: Show build cache statistics
         run: sccache --show-stats
 

@@ -116,3 +116,16 @@ target_compile_definitions(
 target_compile_features(test_libmamba PUBLIC cxx_std_17)
 
 add_custom_target(test COMMAND test_libmamba DEPENDS test_libmamba)
+
+# Generate tests coverage report
+if (ENABLE_COVERAGE)
+  find_program(LCOV lcov REQUIRED)
+  find_program(GENHTML genhtml REQUIRED)
+
+  add_custom_target(coverage
+    # Gather data
+    COMMAND ${LCOV} --directory . --capture --output-file coverage.info
+    # Generate report
+    COMMAND ${GENHTML} --demangle-cpp -o coverage coverage.info
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+endif()

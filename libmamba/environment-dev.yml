@@ -18,4 +18,5 @@ dependencies:
   - cli11 >=2.2
   - spdlog
   - fmt
+  - lcov
   - sel(win): winreg

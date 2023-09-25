@@ -45,6 +45,7 @@ set(LIBMAMBA_TEST_SRCS
     src/specs/test_conda_url.cpp
     src/specs/test_version.cpp
     src/specs/test_version_spec.cpp
+    src/specs/test_channel_spec.cpp
     src/specs/test_repo_data.cpp
 
     ../longpath.manifest

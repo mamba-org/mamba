@@ -16,7 +16,7 @@
 
 using namespace mamba::specs;
 
-TEST_SUITE("version")
+TEST_SUITE("specs::version")
 {
     TEST_CASE("atom_comparison")
     {

@@ -126,10 +126,15 @@ jobs:
           key: sccache-${{ github.job }}-win-64
       - name: Set up MSVC
         uses: ilammy/msvc-dev-cmd@v1
+      - uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-name: mambabuild
+          init-shell: bash cmd.exe
+          create-args: nlohmann_json
       - name: build micromamba
-        shell: cmd
+        shell: cmd /C call {0}
         run: |
-          set CMAKE_PREFIX_PATH=.\vcpkg_installed\x64-windows-static-md
+          set CMAKE_PREFIX_PATH=.\vcpkg_installed\x64-windows-static-md;%CONDA_PREFIX%\Library
           cmake -S . ^
             -B build ^
             -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^

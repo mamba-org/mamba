@@ -705,23 +705,4 @@ namespace mamba
         return path;
 #endif
     }
-
-#ifndef _WIN32
-    bool is_executable(const fs::u8path& path)
-    {
-        struct stat sb;
-        bool rc = false;
-        if (stat(path.string().c_str(), &sb) != 0)
-        {
-            return rc;
-        }
-
-        if (sb.st_mode & S_IXUSR)
-        {
-            rc = true;
-        }
-        return rc;
-    }
-#endif
-
 }

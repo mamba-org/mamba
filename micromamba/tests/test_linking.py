@@ -77,6 +77,7 @@ class TestLinking:
     def test_always_softlink(self, existing_cache, test_pkg):
         create(
             "xtensor",
+            "r-base",
             "-n",
             TestLinking.env_name,
             "--json",
@@ -101,6 +102,7 @@ class TestLinking:
             pytest.skip("o/s is not linux")
 
         create_args = ["xtensor", "-n", TestLinking.env_name, "--json"]
+
         if allow_softlinks:
             create_args.append("--allow-softlinks")
         if always_copy:

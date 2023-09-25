@@ -753,8 +753,7 @@ namespace mamba
         {
             bool copy = path_data.no_link || m_context->always_copy;
             bool softlink = m_context->always_softlink;
-
-            if ((!copy && !softlink) || is_executable(src))
+            if (!copy && !softlink)
             {
                 std::error_code lec;
                 fs::create_hard_link(src, dst, lec);
@@ -789,15 +788,22 @@ namespace mamba
                 try
                 {
                     fs::copy(src, dst);
+                    LOG_TRACE << "copied '" << src.string() << "'" << std::endl
+                              << " --> '" << dst.string() << "'";
                 }
                 catch (const std::filesystem::filesystem_error& ex)
                 {
                     Console::stream() << "could not copy: " << src.string() << " -> "
                                       << dst.string() << ": " << ex.what();
+                    if (fs::exists(dst))
+                    {
+                        LOG_TRACE << dst.string() << " already exists" << std::endl;
+                    }
+                    else
+                    {
+                        throw ex;
+                    }
                 }
-
-                LOG_TRACE << "copied '" << src.string() << "'" << std::endl
-                          << " --> '" << dst.string() << "'";
             }
         }
         else if (path_data.path_type == PathType::SOFTLINK)

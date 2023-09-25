@@ -88,7 +88,7 @@ namespace mamba
             if (!util::url_has_scheme(spec_str))
             {
                 LOG_INFO << "need to expand path!";
-                spec_str = util::path_to_url(fs::absolute(env::expand_user(spec_str)).string());
+                spec_str = util::path_or_url_to_url(fs::absolute(env::expand_user(spec_str)).string());
             }
             auto& parsed_channel = channel_context.make_channel(spec_str);
 

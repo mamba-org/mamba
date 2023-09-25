@@ -160,7 +160,7 @@ namespace mamba
     {
 
         /**
-         * Prints metadata for the given package.
+         * Prints metadata for a given package.
          */
         auto print_metadata(std::ostream& out, const PackageInfo& pkg)
         {

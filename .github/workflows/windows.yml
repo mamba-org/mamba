@@ -44,6 +44,7 @@ jobs:
               -G Ninja ^
               -D CMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
               -D CMAKE_BUILD_TYPE="Release" ^
+              -D CMAKE_MSVC_RUNTIME_LIBRARY="MultiThreadedDLL" ^
               -D BUILD_LIBMAMBA_TESTS=ON ^
               -D BUILD_LIBMAMBA=ON ^
               -D BUILD_SHARED=ON ^
@@ -99,6 +100,7 @@ jobs:
               -G Ninja ^
               -D CMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
               -D CMAKE_BUILD_TYPE="Release" ^
+              -D CMAKE_MSVC_RUNTIME_LIBRARY="MultiThreadedDLL" ^
               -D BUILD_LIBMAMBAPY=ON ^
               -D BUILD_LIBMAMBA=ON ^
               -D BUILD_SHARED=ON ^
@@ -180,6 +182,8 @@ jobs:
           cmake -B build/ ^
               -G Ninja ^
               -D CMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
+              -D CMAKE_BUILD_TYPE="Release" ^
+              -D CMAKE_MSVC_RUNTIME_LIBRARY="MultiThreadedDLL" ^
               -D BUILD_MICROMAMBA=ON ^
               -D BUILD_LIBMAMBA=ON ^
               -D BUILD_SHARED=ON ^

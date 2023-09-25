@@ -39,7 +39,7 @@ jobs:
             libmamba-${{ matrix.os }}
       - name: Build libmamba
         env:
-          enable_cov: ${{ ((matrix.os == 'ubuntu-latest') && (matrix.build_type == 'Debug')) || <false> }}
+          enable_cov: ${{ ((matrix.os == 'ubuntu-latest') && (matrix.build_type == 'Debug')) || false }}
         shell: bash -l {0}
         run: |
           cmake -B build/ \
@@ -58,7 +58,7 @@ jobs:
           unset CONDARC  # Interferes with tests
           cd build && ninja test
       - name: Coverage
-        if: ${{ ((matrix.os == 'ubuntu-latest') && (matrix.build_type == 'Debug')) || <false> }}
+        if: ${{ ((matrix.os == 'ubuntu-latest') && (matrix.build_type == 'Debug')) || false }}
         shell: bash -l {0}
         run: |
           make coverage

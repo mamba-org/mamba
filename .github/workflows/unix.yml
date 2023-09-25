@@ -61,7 +61,7 @@ jobs:
         if: ${{ ((matrix.os == 'ubuntu-latest') && (matrix.build_type == 'Debug')) || false }}
         shell: bash -l {0}
         run: |
-          make coverage
+          ninja coverage
       - name: Show build cache statistics
         run: sccache --show-stats
 

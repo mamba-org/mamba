@@ -69,7 +69,7 @@ jobs:
           find . -iname "*info"
           find . -iname "*gcno"
           find . -iname "*gcda"
-          ninja coverage
+          cd build && ninja coverage
       - name: Show build cache statistics
         run: sccache --show-stats
 

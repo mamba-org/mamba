@@ -70,6 +70,7 @@ namespace mamba::specs
         ChannelSpec() = default;
         ChannelSpec(std::string location, util::flat_set<Platform> filters);
 
+        [[nodiscard]] auto type() const -> Type;
         [[nodiscard]] auto platform_filters() const -> const util::flat_set<Platform>&;
 
 

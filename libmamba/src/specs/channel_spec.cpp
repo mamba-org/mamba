@@ -9,7 +9,9 @@
 #include "mamba/specs/archive.hpp"
 #include "mamba/specs/channel_spec.hpp"
 #include "mamba/specs/conda_url.hpp"
+#include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/url_manip.hpp"
 
 namespace mamba::specs
 {
@@ -52,6 +54,15 @@ namespace mamba::specs
             }
             return { {}, std::nullopt };
         }
+
+        auto parse_location(std::string_view str) -> std::string
+        {
+            if (util::is_explicit_path(str))
+            {
+                return util::abs_path_to_url(str);
+            }
+            return std::string(str);
+        }
     }
 
     auto ChannelSpec::parse(std::string_view str) -> ChannelSpec
@@ -69,7 +80,7 @@ namespace mamba::specs
             if ((start_pos != std::string_view::npos) && (start_pos != 0))
             {
                 return ChannelSpec(
-                    std::string(str.substr(0, start_pos)),
+                    parse_location(str.substr(0, start_pos)),
                     parse_platform_list(str.substr(start_pos + 1, str.size() - start_pos - 2))
                 );
             }
@@ -79,7 +90,7 @@ namespace mamba::specs
         // since they are not needed to compute URLs.
         if (has_archive_extension(str))
         {
-            return { std::string(str), {} };
+            return { parse_location(str), {} };
         }
 
         // Paring a platform inside a path name.
@@ -88,10 +99,10 @@ namespace mamba::specs
         auto [rest, plat] = parse_platform_path(str);
         if (plat.has_value())
         {
-            return { std::move(rest), { plat.value() } };
+            return { parse_location(rest), { plat.value() } };
         }
 
-        return { std::string(str), {} };
+        return { parse_location(str), {} };
     }
 
     ChannelSpec::ChannelSpec(std::string location, util::flat_set<Platform> filters)
@@ -102,6 +113,22 @@ namespace mamba::specs
         {
             m_location = std::string(default_name);
         }
+    }
+
+    auto ChannelSpec::type() const -> Type
+    {
+        const bool has_package = has_archive_extension(m_location);
+        const std::string_view scheme = util::url_get_scheme(m_location);
+
+        if (scheme == "file")
+        {
+            return has_package ? Type::PackagePath : Type::Path;
+        }
+        if (!scheme.empty())
+        {
+            return has_package ? Type::PackageURL : Type::URL;
+        }
+        return Type::Name;
     }
 
     auto ChannelSpec::platform_filters() const -> const util::flat_set<Platform>&

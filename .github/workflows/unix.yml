@@ -64,6 +64,11 @@ jobs:
           cd build && ninja coverage
       - name: Upload coverage to Coveralls
         if: ${{ ((matrix.os == 'ubuntu-latest') && (matrix.build_type == 'Debug')) || false }}
+        shell: bash -l {0}
+        run: |
+          echo ${PWD}
+          ls
+          find . -iname "coverage.info"
         uses: coverallsapp/github-action@master
         with:
           path-to-lcov: ${{runner.workspace}}/build/coverage.info

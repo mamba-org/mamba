@@ -62,13 +62,9 @@ jobs:
         shell: bash -l {0}
         run: |
           cd build && ninja coverage
-          echo "Current dir:"
-          echo ${PWD}
-          ls
-          find . -iname "coverage.info"
       - name: Upload coverage to Coveralls
         if: ${{ ((matrix.os == 'ubuntu-latest') && (matrix.build_type == 'Debug')) || false }}
-        uses: coverallsapp/github-action@master
+        uses: coverallsapp/github-action@v2
         with:
           path-to-lcov: ${{github.workspace}}/build/coverage.info
           github-token: ${{ secrets.GITHUB_TOKEN }}

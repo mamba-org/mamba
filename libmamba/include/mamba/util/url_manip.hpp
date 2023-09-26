@@ -63,7 +63,22 @@ namespace mamba::util
      */
     [[nodiscard]] auto url_has_scheme(std::string_view url) -> bool;
 
-    std::string path_to_url(const std::string& path);
+    /**
+     * Transform an absolute path to a %-encoded "file://" URL.
+     */
+    [[nodiscard]] auto abs_path_to_url(std::string_view path) -> std::string;
+
+    /**
+     * Transform an absolute or relative path to a %-encoded "file://" URL.
+     */
+    [[nodiscard]] auto path_to_url(std::string_view path) -> std::string;
+
+    /**
+     * Transform an absolute or relative path to a %-encoded "file://" URL.
+     *
+     * Does nothing if the input is already has a URL scheme.
+     */
+    [[nodiscard]] auto path_or_url_to_url(std::string_view path) -> std::string;
 
     template <class S, class... Args>
     std::string join_url(const S& s, const Args&... args);

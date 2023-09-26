@@ -614,8 +614,8 @@ namespace mamba
         std::string value = in_value;
         auto platforms = take_platforms(m_context, value);
 
-        auto chan = util::url_has_scheme(value)           ? from_url(fix_win_path(value))
-                    : util::is_explicit_path(value)       ? from_url(util::path_to_url(value))
+        auto chan = util::url_has_scheme(value)     ? from_url(fix_win_path(value))
+                    : util::is_explicit_path(value) ? from_url(util::path_or_url_to_url(value))
                     : specs::has_archive_extension(value) ? from_url(fix_win_path(value))
                                                           : from_name(value);
 
@@ -778,7 +778,7 @@ namespace mamba
         {
             if (fs::is_directory(p))
             {
-                std::string url = util::path_to_url(p);
+                std::string url = util::path_or_url_to_url(p);
                 auto channel = make_simple_channel(m_channel_alias, url, "", LOCAL_CHANNELS_NAME);
                 std::string name = channel.name();
                 auto res = m_custom_channels.emplace(std::move(name), std::move(channel));
@@ -793,7 +793,7 @@ namespace mamba
             std::string url = p;
             if (!util::starts_with(url, "http"))
             {
-                url = util::path_to_url(url);
+                url = util::path_or_url_to_url(url);
             }
 
             auto channel = make_simple_channel(m_channel_alias, url, n, n);

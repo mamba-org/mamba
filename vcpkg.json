@@ -9,7 +9,6 @@
     },
     "zstd",
     "curl",
-    "yaml-cpp",
     "reproc",
     {
       "name": "winreg",

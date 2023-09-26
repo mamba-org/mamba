@@ -136,6 +136,7 @@ jobs:
             nlohmann_json
             spdlog
             fmt
+            yaml-cpp-static
       - name: build micromamba
         shell: cmd /C call {0}
         run: |

@@ -65,6 +65,7 @@ jobs:
           mkdir -p "${{ github.workspace }}/artifacts"
           cp coverage/index.html "${{ github.workspace }}/artifacts"
       - name: Upload libmamba tests coverage index
+        if: ${{ ((matrix.os == 'ubuntu-latest') && (matrix.build_type == 'Debug')) || false }}
         uses: actions/upload-artifact@v3
         with:
           name: libmamba_tests_coverage_index

@@ -62,15 +62,12 @@ jobs:
         shell: bash -l {0}
         run: |
           cd build && ninja coverage
-          mkdir -p "${{ github.workspace }}/artifacts"
-          cp coverage/index.html "${{ github.workspace }}/artifacts"
-      - name: Upload libmamba tests coverage index
+      - name: Upload coverage to Coveralls
         if: ${{ ((matrix.os == 'ubuntu-latest') && (matrix.build_type == 'Debug')) || false }}
-        uses: actions/upload-artifact@v3
+        uses: coverallsapp/github-action@master
         with:
-          name: libmamba_tests_coverage_index
-          path: ${{ github.workspace }}/artifacts/index.html
-          retention-days: 7
+          path-to-lcov: ${{runner.workspace}}/build/coverage.info
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Show build cache statistics
         run: sccache --show-stats
 

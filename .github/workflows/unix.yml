@@ -69,6 +69,7 @@ jobs:
           file: ${{github.workspace}}/build/coverage.info
           format: lcov
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          git-branch: gcov
       - name: Show build cache statistics
         run: sccache --show-stats
 

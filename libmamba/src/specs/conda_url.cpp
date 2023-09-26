@@ -131,13 +131,16 @@ namespace mamba::specs
         const auto [pos, len] = find_token_and_prefix(path(Decode::no));
         if ((pos == npos) || (len == 0))
         {
-            throw std::invalid_argument(
-                fmt::format(R"(No token template in orignial path "{}")", path(Decode::no))
-            );
+            std::string l_path = clear_path();  // percent encoded
+            assert(util::starts_with(l_path, '/'));
+            set_path(util::concat("/t/", token, l_path), Encode::no);
         }
-        std::string l_path = clear_path();  // percent encoded
-        set_token_no_check_input_impl(l_path, pos, len, token);
-        set_path(std::move(l_path), Encode::no);
+        else
+        {
+            std::string l_path = clear_path();  // percent encoded
+            set_token_no_check_input_impl(l_path, pos, len, token);
+            set_path(std::move(l_path), Encode::no);
+        }
     }
 
     auto CondaURL::clear_token() -> bool

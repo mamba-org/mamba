@@ -24,10 +24,11 @@ TEST_SUITE("specs::CondaURL")
             url.set_path("/folder/file.txt");
             CHECK_EQ(url.token(), "");
 
-            CHECK_THROWS_AS(url.set_token("token"), std::invalid_argument);
-            CHECK_EQ(url.path(), "/folder/file.txt");
+            url.set_token("mytoken");
+            CHECK_EQ(url.token(), "mytoken");
+            CHECK_EQ(url.path(), "/t/mytoken/folder/file.txt");
 
-            CHECK_FALSE(url.clear_token());
+            CHECK(url.clear_token());
             CHECK_EQ(url.path(), "/folder/file.txt");
         }
 

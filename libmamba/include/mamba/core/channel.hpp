@@ -17,7 +17,6 @@
 
 #include "mamba/specs/conda_url.hpp"
 
-
 namespace mamba
 {
     class Context;
@@ -46,9 +45,11 @@ namespace mamba
         const std::string& name() const;
         const std::string& canonical_name() const;
         const std::vector<std::string>& platforms() const;
-        const std::optional<std::string>& auth() const;
-        const std::optional<std::string>& token() const;
-        const std::optional<std::string>& package_filename() const;
+        std::optional<std::string> auth() const;
+        std::optional<std::string> user() const;
+        std::optional<std::string> password() const;
+        std::optional<std::string> token() const;
+        std::optional<std::string> package_filename() const;
         const validation::RepoChecker&
         repo_checker(Context& context, MultiPackageCache& caches) const;
 
@@ -62,24 +63,21 @@ namespace mamba
     private:
 
         Channel(
-            std::string scheme,
+            std::string_view scheme,
             std::string location,
             std::string name,
             std::string canonical_name,
-            std::optional<std::string> auth = {},
-            std::optional<std::string> token = {},
-            std::optional<std::string> package_filename = {}
+            std::string_view user = {},
+            std::string_view password = {},
+            std::string_view token = {},
+            std::string_view package_filename = {}
         );
 
         specs::CondaURL m_url;
-        std::string m_scheme;
         std::string m_location;
         std::string m_name;
         std::string m_canonical_name;
         std::vector<std::string> m_platforms;
-        std::optional<std::string> m_auth;
-        std::optional<std::string> m_token;
-        std::optional<std::string> m_package_filename;
 
         // This is used to make sure that there is a unique repo for every channel
         mutable std::unique_ptr<validation::RepoChecker> p_repo_checker;

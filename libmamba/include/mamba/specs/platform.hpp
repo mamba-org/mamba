@@ -40,6 +40,7 @@ namespace mamba::specs
         win_32,
         win_64,
         win_arm64,
+        zos_z,
 
         // For reflexion purposes only
         count_,
@@ -120,6 +121,8 @@ namespace mamba::specs
                 return "win-64";
             case Platform::win_arm64:
                 return "win-arm64";
+            case Platform::zos_z:
+                return "zos-z";
             default:
                 return "";
         }

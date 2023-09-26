@@ -8,13 +8,9 @@
       "name": "libsolv"
     },
     "zstd",
-    "tl-expected",
     "curl",
     "yaml-cpp",
     "reproc",
-    "fmt",
-    "spdlog",
-    "cli11",
     {
       "name": "winreg",
       "platform": "windows"

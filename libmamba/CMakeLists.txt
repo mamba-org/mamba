@@ -352,6 +352,9 @@ macro(libmamba_create_target target_name linkage output_name)
 
     if (${linkage_upper} STREQUAL "STATIC")
         message("   -> Statically linking against libmamba (static) dependencies")
+
+        mamba_target_check_type(yaml-cpp::yaml-cpp STATIC_LIBRARY FATAL_ERROR)
+
         if (UNIX)
 
             set(REQUIRED_STATIC_DEPS
@@ -497,6 +500,8 @@ macro(libmamba_create_target target_name linkage output_name)
         endif()
     else ()
         message("   -> Dynamically linking against libmamba (shared) dependencies")
+
+        mamba_target_check_type(yaml-cpp::yaml-cpp SHARED_LIBRARY WARNING)
 
         find_library(LIBSOLV_LIBRARIES NAMES solv)
         find_library(LIBSOLVEXT_LIBRARIES NAMES solvext)

@@ -70,7 +70,7 @@ jobs:
         if: ${{ ((matrix.os == 'ubuntu-latest') && (matrix.build_type == 'Debug')) || false }}
         uses: coverallsapp/github-action@master
         with:
-          path-to-lcov: ${{runner.workspace}}/build/coverage.info
+          path-to-lcov: ${{github.workspace}}/build/coverage.info
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Show build cache statistics
         run: sccache --show-stats

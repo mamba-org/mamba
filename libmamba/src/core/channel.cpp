@@ -286,27 +286,27 @@ namespace mamba
         return m_platforms;
     }
 
-    const std::optional<std::string> Channel::auth() const
+    std::optional<std::string> Channel::auth() const
     {
         return nonempty_str(m_url.authentication());
     }
 
-    const std::optional<std::string> Channel::user() const
+    std::optional<std::string> Channel::user() const
     {
         return nonempty_str(m_url.user());
     }
 
-    const std::optional<std::string> Channel::password() const
+    std::optional<std::string> Channel::password() const
     {
         return nonempty_str(m_url.password());
     }
 
-    const std::optional<std::string> Channel::token() const
+    std::optional<std::string> Channel::token() const
     {
         return nonempty_str(std::string(m_url.token()));
     }
 
-    const std::optional<std::string> Channel::package_filename() const
+    std::optional<std::string> Channel::package_filename() const
     {
         return nonempty_str(m_url.package());
     }

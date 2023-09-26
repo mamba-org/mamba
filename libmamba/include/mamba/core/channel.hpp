@@ -45,11 +45,11 @@ namespace mamba
         const std::string& name() const;
         const std::string& canonical_name() const;
         const std::vector<std::string>& platforms() const;
-        const std::optional<std::string> auth() const;
-        const std::optional<std::string> user() const;
-        const std::optional<std::string> password() const;
-        const std::optional<std::string> token() const;
-        const std::optional<std::string> package_filename() const;
+        std::optional<std::string> auth() const;
+        std::optional<std::string> user() const;
+        std::optional<std::string> password() const;
+        std::optional<std::string> token() const;
+        std::optional<std::string> package_filename() const;
         const validation::RepoChecker&
         repo_checker(Context& context, MultiPackageCache& caches) const;
 

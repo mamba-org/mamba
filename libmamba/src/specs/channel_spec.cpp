@@ -47,10 +47,13 @@ namespace mamba::specs
         auto parse_platform_path(std::string_view str)
             -> std::pair<std::string, std::optional<Platform>>
         {
-            auto [pos, len, plat] = detail::find_slash_and_platform(str);
+            static constexpr auto npos = std::string_view::npos;
+
+            auto [start, len, plat] = detail::find_slash_and_platform(str);
             if (plat.has_value())
             {
-                return { util::concat(str.substr(0, pos), str.substr(pos + len)), plat.value() };
+                const auto end = (len == npos) ? str.size() : start + len;
+                return { util::concat(str.substr(0, start), str.substr(end)), plat.value() };
             }
             return { {}, std::nullopt };
         }
@@ -59,9 +62,11 @@ namespace mamba::specs
         {
             if (util::is_explicit_path(str))
             {
-                return util::abs_path_to_url(str);
+                auto out = util::abs_path_to_url(str);
+                out = util::rstrip(out, '/');
+                return out;
             }
-            return std::string(str);
+            return std::string(util::rstrip(str, '/'));
         }
     }
 
@@ -129,6 +134,11 @@ namespace mamba::specs
             return has_package ? Type::PackageURL : Type::URL;
         }
         return Type::Name;
+    }
+
+    auto ChannelSpec::location() const -> const std::string&
+    {
+        return m_location;
     }
 
     auto ChannelSpec::platform_filters() const -> const util::flat_set<Platform>&

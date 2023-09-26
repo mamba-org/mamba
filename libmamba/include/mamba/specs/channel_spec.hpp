@@ -71,6 +71,9 @@ namespace mamba::specs
         ChannelSpec(std::string location, util::flat_set<Platform> filters);
 
         [[nodiscard]] auto type() const -> Type;
+
+        [[nodiscard]] auto location() const -> const std::string&;
+
         [[nodiscard]] auto platform_filters() const -> const util::flat_set<Platform>&;
 
 

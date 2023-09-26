@@ -17,30 +17,31 @@ TEST_SUITE("specs::channel_spec")
     TEST_CASE("Parsing")
     {
         using Type = typename ChannelSpec::Type;
+        using PlatformSet = typename util::flat_set<Platform>;
 
         SUBCASE("https://repo.anaconda.com/conda-forge")
         {
             const auto spec = ChannelSpec::parse("https://repo.anaconda.com/conda-forge");
-            CHECK_EQ(spec.platform_filters(), util::flat_set<Platform>{});
             CHECK_EQ(spec.type(), Type::URL);
+            CHECK_EQ(spec.location(), "https://repo.anaconda.com/conda-forge");
+            CHECK_EQ(spec.platform_filters(), PlatformSet{});
         }
 
         SUBCASE("https://repo.anaconda.com/conda-forge/osx-64")
         {
             const auto spec = ChannelSpec::parse("https://repo.anaconda.com/conda-forge/osx-64");
-            CHECK_EQ(spec.platform_filters(), util::flat_set<Platform>{ Platform::osx_64 });
             CHECK_EQ(spec.type(), Type::URL);
+            CHECK_EQ(spec.location(), "https://repo.anaconda.com/conda-forge");
+            CHECK_EQ(spec.platform_filters(), PlatformSet{ Platform::osx_64 });
         }
 
         SUBCASE("https://repo.anaconda.com/conda-forge[win-64|noarch]")
         {
             const auto spec = ChannelSpec::parse("https://repo.anaconda.com/conda-forge[win-64|noarch]"
             );
-            CHECK_EQ(
-                spec.platform_filters(),
-                util::flat_set<Platform>{ Platform::win_64, Platform::noarch }
-            );
             CHECK_EQ(spec.type(), Type::URL);
+            CHECK_EQ(spec.location(), "https://repo.anaconda.com/conda-forge");
+            CHECK_EQ(spec.platform_filters(), PlatformSet{ Platform::win_64, Platform::noarch });
         }
 
         SUBCASE("https://repo.anaconda.com/conda-forge/linux-64/pkg-0.0-bld.conda")
@@ -48,64 +49,73 @@ TEST_SUITE("specs::channel_spec")
             const auto spec = ChannelSpec::parse(
                 "https://repo.anaconda.com/conda-forge/linux-64/pkg-0.0-bld.conda"
             );
-            CHECK_EQ(spec.platform_filters(), util::flat_set<Platform>{});
             CHECK_EQ(spec.type(), Type::PackageURL);
+            CHECK_EQ(spec.location(), "https://repo.anaconda.com/conda-forge/linux-64/pkg-0.0-bld.conda");
+            CHECK_EQ(spec.platform_filters(), PlatformSet{});
         }
 
         SUBCASE("/Users/name/conda")
         {
             const auto spec = ChannelSpec::parse("/Users/name/conda");
-            CHECK_EQ(spec.platform_filters(), util::flat_set<Platform>{});
             CHECK_EQ(spec.type(), Type::Path);
+            CHECK_EQ(spec.location(), "file:///Users/name/conda");
+            CHECK_EQ(spec.platform_filters(), PlatformSet{});
         }
 
         SUBCASE("/tmp/pkg-0.0-bld.tar.bz2")
         {
             const auto spec = ChannelSpec::parse("/tmp/pkg-0.0-bld.tar.bz2");
-            CHECK_EQ(spec.platform_filters(), util::flat_set<Platform>{});
             CHECK_EQ(spec.type(), Type::PackagePath);
+            CHECK_EQ(spec.location(), "file:///tmp/pkg-0.0-bld.tar.bz2");
+            CHECK_EQ(spec.platform_filters(), PlatformSet{});
         }
 
         SUBCASE("conda-forge")
         {
             const auto spec = ChannelSpec::parse("conda-forge");
-            CHECK_EQ(spec.platform_filters(), util::flat_set<Platform>{});
             CHECK_EQ(spec.type(), Type::Name);
+            CHECK_EQ(spec.location(), "conda-forge");
+            CHECK_EQ(spec.platform_filters(), PlatformSet{});
         }
 
         SUBCASE("conda-forge/linux-64")
         {
             const auto spec = ChannelSpec::parse("conda-forge/linux-64");
-            CHECK_EQ(spec.platform_filters(), util::flat_set<Platform>{ Platform::linux_64 });
             CHECK_EQ(spec.type(), Type::Name);
+            CHECK_EQ(spec.location(), "conda-forge");
+            CHECK_EQ(spec.platform_filters(), PlatformSet{ Platform::linux_64 });
         }
 
         SUBCASE("conda-forge[linux-64]")
         {
             const auto spec = ChannelSpec::parse("conda-forge[linux-64]");
-            CHECK_EQ(spec.platform_filters(), util::flat_set<Platform>{ Platform::linux_64 });
             CHECK_EQ(spec.type(), Type::Name);
+            CHECK_EQ(spec.location(), "conda-forge");
+            CHECK_EQ(spec.platform_filters(), PlatformSet{ Platform::linux_64 });
         }
 
         SUBCASE("conda-forge[]")
         {
             const auto spec = ChannelSpec::parse("conda-forge[linux-64]");
-            CHECK_EQ(spec.platform_filters(), util::flat_set<Platform>{ Platform::linux_64 });
             CHECK_EQ(spec.type(), Type::Name);
+            CHECK_EQ(spec.location(), "conda-forge");
+            CHECK_EQ(spec.platform_filters(), PlatformSet{ Platform::linux_64 });
         }
 
         SUBCASE("conda-forge/linux-64/label/foo_dev")
         {
             const auto spec = ChannelSpec::parse("conda-forge/linux-64/label/foo_dev");
-            CHECK_EQ(spec.platform_filters(), util::flat_set<Platform>{ Platform::linux_64 });
             CHECK_EQ(spec.type(), Type::Name);
+            CHECK_EQ(spec.location(), "conda-forge/label/foo_dev");
+            CHECK_EQ(spec.platform_filters(), PlatformSet{ Platform::linux_64 });
         }
 
         SUBCASE("conda-forge/label/foo_dev[linux-64]")
         {
             const auto spec = ChannelSpec::parse("conda-forge/label/foo_dev[linux-64]");
-            CHECK_EQ(spec.platform_filters(), util::flat_set<Platform>{ Platform::linux_64 });
             CHECK_EQ(spec.type(), Type::Name);
+            CHECK_EQ(spec.location(), "conda-forge/label/foo_dev");
+            CHECK_EQ(spec.platform_filters(), PlatformSet{ Platform::linux_64 });
         }
     }
 }

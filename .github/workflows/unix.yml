@@ -65,10 +65,12 @@ jobs:
       - name: Upload coverage to Coveralls
         if: ${{ ((matrix.os == 'ubuntu-latest') && (matrix.build_type == 'Debug')) || false }}
         uses: coverallsapp/github-action@v2
+        env:
+          NODE_COVERALLS_DEBUG: 1
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           file: ${{github.workspace}}/build/coverage.info
           format: lcov
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           git-branch: gcov
       - name: Show build cache statistics
         run: sccache --show-stats

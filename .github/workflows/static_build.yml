@@ -131,12 +131,12 @@ jobs:
           environment-name: mambabuild
           init-shell: bash cmd.exe
           create-args: >-
-            cli11 >=2.2,<3
+            cli11>=2.2,<3
             cpp-expected
             nlohmann_json
             spdlog
             fmt
-            yaml-cpp-static
+            yaml-cpp-static>=0.8.0
       - name: build micromamba
         shell: cmd /C call {0}
         run: |

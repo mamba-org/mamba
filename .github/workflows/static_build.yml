@@ -119,7 +119,7 @@ jobs:
         shell: cmd
         # remove libsolv overlay-ports once https://github.com/microsoft/vcpkg/pull/31275 is released
         run: |
-          vcpkg install --overlay-ports=.\ports\libsolv --triplet x64-windows-static-md
+          vcpkg install --triplet x64-windows-static-md
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -137,6 +137,7 @@ jobs:
             spdlog
             fmt
             yaml-cpp-static>=0.8.0
+            libsolv-static>=0.7.24
       - name: build micromamba
         shell: cmd /C call {0}
         run: |

@@ -66,6 +66,7 @@ jobs:
         if: ${{ ((matrix.os == 'ubuntu-latest') && (matrix.build_type == 'Debug')) || false }}
         shell: bash -l {0}
         run: |
+          echo "Current dir:"
           echo ${PWD}
           ls
           find . -iname "coverage.info"

@@ -61,15 +61,15 @@ jobs:
         if: ${{ ((matrix.os == 'ubuntu-latest') && (matrix.build_type == 'Debug')) || false }}
         shell: bash -l {0}
         run: |
-          echo "Current dir: "
-          echo ${PWD}
-          echo "Listing: "
-          ls
-          echo "Finding files: "
-          find . -iname "*info"
-          find . -iname "*gcno"
-          find . -iname "*gcda"
           cd build && ninja coverage
+          mkdir -p "${{ github.workspace }}/artifacts"
+          cp coverage/index.html "${{ github.workspace }}/artifacts"
+      - name: Upload libmamba tests coverage index
+        uses: actions/upload-artifact@v3
+        with:
+          name: libmamba_tests_coverage_index
+          path: ${{ github.workspace }}/artifacts/index.html
+          retention-days: 7
       - name: Show build cache statistics
         run: sccache --show-stats
 

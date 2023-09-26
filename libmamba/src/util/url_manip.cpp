@@ -256,6 +256,15 @@ namespace mamba::util
         return util::concat(file_scheme, url_encode(path, '/'));
     }
 
+    auto abs_path_or_url_to_url(std::string_view path) -> std::string
+    {
+        if (url_has_scheme(path))
+        {
+            return std::string(path);
+        }
+        return abs_path_to_url(path);
+    }
+
     auto path_to_url(std::string_view path) -> std::string
     {
         return abs_path_to_url(fs::absolute(path).string());

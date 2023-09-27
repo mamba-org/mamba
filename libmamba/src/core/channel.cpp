@@ -166,9 +166,9 @@ namespace mamba
             };
         }
 
-        std::vector<std::string> take_platforms(const Context& context, std::string& value)
+        util::flat_set<std::string> take_platforms(const Context& context, std::string& value)
         {
-            std::vector<std::string> platforms;
+            util::flat_set<std::string> platforms;
             if (!value.empty())
             {
                 if (value[value.size() - 1] == ']')
@@ -181,7 +181,7 @@ namespace mamba
                         {
                             auto end = value.find_first_of(", ]", ind);
                             assert(end != std::string::npos);
-                            platforms.emplace_back(value.substr(ind, end - ind));
+                            platforms.insert(value.substr(ind, end - ind));
                             ind = end;
                             while (value[ind] == ',' || value[ind] == ' ')
                             {
@@ -200,14 +200,17 @@ namespace mamba
                     util::split_platform(get_known_platforms(), value, context.platform, value, platform);
                     if (!platform.empty())
                     {
-                        platforms.push_back(std::move(platform));
+                        platforms.insert(std::move(platform));
                     }
                 }
             }
 
             if (platforms.empty())
             {
-                platforms = context.platforms();
+                for (const auto& plat : context.platforms())
+                {
+                    platforms.insert(plat);
+                }
             }
             return platforms;
         }
@@ -281,7 +284,7 @@ namespace mamba
         return m_name;
     }
 
-    const std::vector<std::string>& Channel::platforms() const
+    const util::flat_set<std::string>& Channel::platforms() const
     {
         return m_platforms;
     }

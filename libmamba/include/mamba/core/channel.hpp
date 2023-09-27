@@ -16,6 +16,7 @@
 #include <vector>
 
 #include "mamba/specs/conda_url.hpp"
+#include "mamba/util/flat_set.hpp"
 
 namespace mamba
 {
@@ -44,7 +45,7 @@ namespace mamba
         const std::string& location() const;
         const std::string& name() const;
         const std::string& canonical_name() const;
-        const std::vector<std::string>& platforms() const;
+        const util::flat_set<std::string>& platforms() const;
         std::optional<std::string> auth() const;
         std::optional<std::string> user() const;
         std::optional<std::string> password() const;
@@ -77,7 +78,7 @@ namespace mamba
         std::string m_location;
         std::string m_name;
         std::string m_canonical_name;
-        std::vector<std::string> m_platforms;
+        util::flat_set<std::string> m_platforms;
 
         // This is used to make sure that there is a unique repo for every channel
         mutable std::unique_ptr<validation::RepoChecker> p_repo_checker;

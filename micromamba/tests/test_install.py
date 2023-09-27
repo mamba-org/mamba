@@ -569,3 +569,20 @@ class TestInstall:
         """Force reinstall on non-installed packages is valid."""
         reinstall_res = install("xtensor", "--force-reinstall", "--json")
         assert "xtensor" in {pkg["name"] for pkg in reinstall_res["actions"]["LINK"]}
+
+
+def test_install_check_dirs(tmp_home, tmp_root_prefix):
+    env_name = "myenv"
+    env_prefix = tmp_root_prefix / "envs" / env_name
+
+    create("-n", env_name, "python=3.8")
+    res = install("-n", env_name, "nodejs", "--json")
+
+    assert os.path.isdir(env_prefix)
+    assert "nodejs" in {pkg["name"] for pkg in res["actions"]["LINK"]}
+
+    if platform == "win32":
+        assert os.path.isdir(env_prefix / "lib" / "site-packages")
+    else:
+        print("Platform: ", platform)
+        assert os.path.isdir(env_prefix / "lib" / "python3.8" / "site-packages")

@@ -797,6 +797,23 @@ def test_pyc_compilation(tmp_home, tmp_root_prefix, version, build, cache_tag):
     assert pyc_fn.name in six_meta
 
 
+def test_create_check_dirs(tmp_home, tmp_root_prefix):
+    env_name = "myenv"
+    env_prefix = tmp_root_prefix / "envs" / env_name
+    cmd = ["-n", env_name, "python=3.8", "traitlets"]
+    helpers.create(*cmd)
+
+    assert os.path.isdir(env_prefix)
+
+    if platform == "win32":
+        assert os.path.isdir(env_prefix / "lib" / "site-packages" / "traitlets")
+    else:
+        print("Platform: ", platform)
+        assert os.path.isdir(
+            env_prefix / "lib" / "python3.8" / "site-packages" / "traitlets"
+        )
+
+
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 @pytest.mark.parametrize("env_file", env_files)
 def test_requires_pip_install(tmp_home, tmp_root_prefix, env_file):

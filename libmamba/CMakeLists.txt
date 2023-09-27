@@ -479,6 +479,8 @@ macro(libmamba_create_target target_name linkage output_name)
                 # header only version to avoid chasing after the correct fmt version mathching
                 # the one used in the bundle
                 spdlog::spdlog_header_only
+                # Change the next line for yaml-cpp::yaml-cpp when vcpkg
+                # upgrades yaml-cpp or when we get it from conda-forge
                 yaml-cpp
                 ${LIBSOLV_BUILD_STATICRARIES}
                 ${LIBSOLVEXT_BUILD_STATICRARIES}
@@ -518,7 +520,7 @@ macro(libmamba_create_target target_name linkage output_name)
             ${OPENSSL_LIBRARIES}
             zstd::libzstd_shared
             BZip2::BZip2
-            yaml-cpp
+            yaml-cpp::yaml-cpp
             reproc++
             reproc
             fmt::fmt

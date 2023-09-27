@@ -17,25 +17,17 @@ namespace mamba::specs
 {
     namespace
     {
-        auto parse_platform_list(std::string_view plats) -> util::flat_set<Platform>
+        auto parse_platform_list(std::string_view plats) -> util::flat_set<std::string>
         {
             static constexpr auto is_not_sep = [](char c) -> bool
             { return !util::contains(ChannelSpec::platform_separators, c); };
 
-            auto out = util::flat_set<Platform>{};
+            auto out = util::flat_set<std::string>{};
             auto head_rest = util::lstrip_if_parts(plats, is_not_sep);
             while (!head_rest.front().empty())
             {
-                if (auto p = platform_parse(head_rest.front()))
-                {
-                    out.insert(p.value());
-                }
-                else
-                {
-                    throw std::invalid_argument(
-                        fmt::format(R"(Found invalid platform "{}")", head_rest.front())
-                    );
-                }
+                // Accepting all strings, so that user can dynamically register new platforms
+                out.insert(util::to_lower(util::strip(head_rest.front())));
                 head_rest = util::lstrip_if_parts(
                     util::lstrip(head_rest.back(), ChannelSpec::platform_separators),
                     is_not_sep
@@ -44,8 +36,7 @@ namespace mamba::specs
             return out;
         }
 
-        auto parse_platform_path(std::string_view str)
-            -> std::pair<std::string, std::optional<Platform>>
+        auto parse_platform_path(std::string_view str) -> std::pair<std::string, std::string>
         {
             static constexpr auto npos = std::string_view::npos;
 
@@ -53,9 +44,12 @@ namespace mamba::specs
             if (plat.has_value())
             {
                 const auto end = (len == npos) ? str.size() : start + len;
-                return { util::concat(str.substr(0, start), str.substr(end)), plat.value() };
+                return {
+                    util::concat(str.substr(0, start), str.substr(end)),
+                    std::string(platform_name(plat.value())),
+                };
             }
-            return { {}, std::nullopt };
+            return { {}, {} };
         }
 
         auto parse_location(std::string_view str) -> std::string
@@ -102,15 +96,15 @@ namespace mamba::specs
         // This is required because a channel can be instantiated from a value that already
         // contains the platform.
         auto [rest, plat] = parse_platform_path(str);
-        if (plat.has_value())
+        if (!plat.empty())
         {
-            return { parse_location(rest), { plat.value() } };
+            return { parse_location(rest), { std::move(plat) } };
         }
 
         return { parse_location(str), {} };
     }
 
-    ChannelSpec::ChannelSpec(std::string location, util::flat_set<Platform> filters)
+    ChannelSpec::ChannelSpec(std::string location, util::flat_set<std::string> filters)
         : m_location(std::move(location))
         , m_platform_filters(std::move(filters))
     {
@@ -141,7 +135,7 @@ namespace mamba::specs
         return m_location;
     }
 
-    auto ChannelSpec::platform_filters() const -> const util::flat_set<Platform>&
+    auto ChannelSpec::platform_filters() const -> const util::flat_set<std::string>&
     {
         return m_platform_filters;
     }

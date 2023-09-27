@@ -10,7 +10,6 @@
 #include <string>
 #include <string_view>
 
-#include "mamba/specs/platform.hpp"
 #include "mamba/util/flat_set.hpp"
 
 namespace mamba::specs
@@ -68,19 +67,19 @@ namespace mamba::specs
         [[nodiscard]] static auto parse(std::string_view str) -> ChannelSpec;
 
         ChannelSpec() = default;
-        ChannelSpec(std::string location, util::flat_set<Platform> filters);
+        ChannelSpec(std::string location, util::flat_set<std::string> filters);
 
         [[nodiscard]] auto type() const -> Type;
 
         [[nodiscard]] auto location() const -> const std::string&;
 
-        [[nodiscard]] auto platform_filters() const -> const util::flat_set<Platform>&;
+        [[nodiscard]] auto platform_filters() const -> const util::flat_set<std::string>&;
 
 
     private:
 
         std::string m_location = std::string(default_name);
-        util::flat_set<Platform> m_platform_filters = {};
+        util::flat_set<std::string> m_platform_filters = {};
     };
 }
 #endif

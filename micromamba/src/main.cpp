@@ -21,7 +21,6 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util_os.hpp"
-#include "mamba/core/util_scope.hpp"
 #include "mamba/version.hpp"
 
 #include "umamba.hpp"

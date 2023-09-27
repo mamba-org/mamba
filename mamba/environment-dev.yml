@@ -14,7 +14,7 @@ dependencies:
   - gmock
   - cpp-expected
   - reproc-cpp
-  - yaml-cpp
+  - yaml-cpp >= 0.8.0
   - cli11 >=2.2
   - spdlog
   - fmt

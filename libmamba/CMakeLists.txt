@@ -319,6 +319,7 @@ find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(tl-expected REQUIRED)
 find_package(nlohmann_json REQUIRED)
+find_package(yaml-cpp REQUIRED)
 
 macro(libmamba_create_target target_name linkage output_name)
     string(TOUPPER "${linkage}" linkage_upper)
@@ -351,6 +352,9 @@ macro(libmamba_create_target target_name linkage output_name)
 
     if (${linkage_upper} STREQUAL "STATIC")
         message("   -> Statically linking against libmamba (static) dependencies")
+
+        mamba_target_check_type(yaml-cpp::yaml-cpp STATIC_LIBRARY FATAL_ERROR)
+
         if (UNIX)
 
             set(REQUIRED_STATIC_DEPS
@@ -379,8 +383,6 @@ macro(libmamba_create_target target_name linkage output_name)
                 liblzma.a
 
                 libnghttp2.a
-
-                libyaml-cpp.a
 
                 libreproc++.a
                 libreproc.a
@@ -436,6 +438,7 @@ macro(libmamba_create_target target_name linkage output_name)
                 ${MAMBA_FORCE_DYNAMIC_LIBS}
                 fmt::fmt-header-only
                 spdlog::spdlog_header_only
+                yaml-cpp::yaml-cpp
              )
 
         elseif (WIN32)
@@ -445,7 +448,6 @@ macro(libmamba_create_target target_name linkage output_name)
             # For Windows we have a vcpkg based build system right now.
             find_package(LibArchive REQUIRED)
             find_package(CURL CONFIG REQUIRED)
-            find_package(yaml-cpp CONFIG REQUIRED)
             find_library(LIBLZMA_LIBRARIES lzma REQUIRED)
             find_library(LZ4_LIBRARY NAMES lz4)
             find_library(LZO2_LIBRARY NAMES lzo2)
@@ -479,7 +481,7 @@ macro(libmamba_create_target target_name linkage output_name)
                 # header only version to avoid chasing after the correct fmt version mathching
                 # the one used in the bundle
                 spdlog::spdlog_header_only
-                yaml-cpp
+                yaml-cpp::yaml-cpp
                 ${LIBSOLV_BUILD_STATICRARIES}
                 ${LIBSOLVEXT_BUILD_STATICRARIES}
                 ${sodium_LIBRARY_RELEASE}
@@ -499,6 +501,8 @@ macro(libmamba_create_target target_name linkage output_name)
     else ()
         message("   -> Dynamically linking against libmamba (shared) dependencies")
 
+        mamba_target_check_type(yaml-cpp::yaml-cpp SHARED_LIBRARY WARNING)
+
         find_library(LIBSOLV_LIBRARIES NAMES solv)
         find_library(LIBSOLVEXT_LIBRARIES NAMES solvext)
         find_package(CURL REQUIRED)
@@ -506,7 +510,6 @@ macro(libmamba_create_target target_name linkage output_name)
         find_package(zstd REQUIRED)
         find_package(BZip2 REQUIRED)
         find_package(OpenSSL REQUIRED)
-        find_package(yaml-cpp CONFIG REQUIRED)
         find_package(reproc++ CONFIG REQUIRED)
 
         set(LIBMAMBA_LIBRARIES_DEPS
@@ -518,7 +521,7 @@ macro(libmamba_create_target target_name linkage output_name)
             ${OPENSSL_LIBRARIES}
             zstd::libzstd_shared
             BZip2::BZip2
-            yaml-cpp
+            yaml-cpp::yaml-cpp
             reproc++
             reproc
             fmt::fmt

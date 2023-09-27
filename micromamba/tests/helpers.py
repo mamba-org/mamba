@@ -505,3 +505,19 @@ def get_fake_activate(prefix):
     env["PATH"] = os.pathsep.join([str(x) for x in addpath + curpath])
     env["CONDA_PREFIX"] = str(prefix)
     return env
+
+
+def create_with_chan_pkg(env_name, channels, package):
+    cmd = [
+        "-n",
+        env_name,
+        "--override-channels",
+        "--strict-channel-priority",
+        "--dry-run",
+        "--json",
+    ]
+    for channel in channels:
+        cmd += ["-c", os.path.abspath(os.path.join(*channel))]
+    cmd.append(package)
+
+    return create(*cmd, default_channel=False, no_rc=False)

@@ -581,8 +581,93 @@ def test_install_check_dirs(tmp_home, tmp_root_prefix):
     assert os.path.isdir(env_prefix)
     assert "nodejs" in {pkg["name"] for pkg in res["actions"]["LINK"]}
 
-    if platform == "win32":
+    if platform.system() == "Windows":
         assert os.path.isdir(env_prefix / "lib" / "site-packages")
     else:
-        print("Platform: ", platform)
         assert os.path.isdir(env_prefix / "lib" / "python3.8" / "site-packages")
+
+
+def test_track_features(tmp_home, tmp_root_prefix):
+    env_name = "myenv"
+    env_prefix = tmp_root_prefix / "envs" / env_name
+
+    # should install CPython since PyPy has track features
+    version = "3.7.9"
+    create("-n", env_name, default_channel=False, no_rc=False)
+    install(
+        "-n",
+        env_name,
+        "-q",
+        f"python={version}",
+        "--strict-channel-priority",
+        no_rc=False,
+    )
+    res = umamba_run("-n", env_name, "python", "-c", "import sys; print(sys.version)")
+    if platform.system() == "Windows":
+        assert res.strip().startswith(version)
+        assert "[MSC v." in res.strip()
+    elif platform.system() == "Linux":
+        assert res.strip().startswith(version)
+        assert "[GCC" in res.strip()
+    else:
+        assert res.strip().startswith(version)
+        assert "[Clang" in res.strip()
+
+    if platform.system() == "Linux":
+        # now force PyPy install
+        install(
+            "-n",
+            env_name,
+            "-q",
+            f"python={version}=*pypy",
+            "--strict-channel-priority",
+            no_rc=False,
+        )
+        res = umamba_run(
+            "-n", env_name, "python", "-c", "import sys; print(sys.version)"
+        )
+
+        assert res.strip().startswith(version)
+        assert "[PyPy" in res.strip()
+
+
+def test_reinstall_with_new_version(tmp_home, tmp_root_prefix):
+    env_name = "myenv"
+    env_prefix = tmp_root_prefix / "envs" / env_name
+
+    version = "3.8"
+    create("-n", env_name, default_channel=False, no_rc=False)
+    install(
+        "-n",
+        env_name,
+        "-q",
+        f"python={version}",
+        "pip",
+        no_rc=False,
+    )
+
+    res = umamba_run("-n", env_name, "python", "-c", "import sys; print(sys.version)")
+    assert version in res
+
+    res = umamba_run(
+        "-n", env_name, "python", "-c", "import pip; print(pip.__version__)"
+    )
+    assert len(res)
+
+    # Update python version
+    version = "3.9"
+    install(
+        "-n",
+        env_name,
+        "-q",
+        f"python={version}",
+        no_rc=False,
+    )
+
+    res = umamba_run("-n", env_name, "python", "-c", "import sys; print(sys.version)")
+    assert version in res
+
+    res = umamba_run(
+        "-n", env_name, "python", "-c", "import pip; print(pip.__version__)"
+    )
+    assert len(res)

@@ -13,12 +13,7 @@ from pathlib import Path
 # create support
 from conda.base.constants import ChannelPriority, DepsModifier, UpdateModifier
 from conda.base.context import context
-from conda.cli.common import (
-    check_non_admin,
-    confirm_yn,
-    ensure_name_or_prefix,
-    specs_from_url,
-)
+from conda.cli.common import check_non_admin, confirm_yn, specs_from_url
 from conda.cli.install import check_prefix, clone, get_revision
 from conda.cli.main import generate_parser, init_loggers
 from conda.common.compat import on_win
@@ -239,8 +234,11 @@ def install(args, parser, command="install"):
         solver_task = api.SOLVER_UPDATE
         solver_options.clear()
 
-    if newenv:
-        ensure_name_or_prefix(args, command)
+    if newenv and not (args.name or args.prefix):
+        raise CondaValueError(
+            "either -n NAME or -p PREFIX option required,\n"
+            'try "mamba %s -h" for more details' % command
+        )
     prefix = context.target_prefix
     if newenv:
         check_prefix(prefix, json=context.json)
@@ -801,6 +799,7 @@ Examples:
 
     import argparse
     from argparse import SUPPRESS
+
     try:
         p = sub_parsers.add_parser(
             "repoquery", description=descr, help=help_cli, epilog=example

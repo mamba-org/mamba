@@ -6,6 +6,7 @@ dependencies:
   - cmake >=3.16
   - ninja
   - nlohmann_json
+  - simdjson >=3.3.0
   - libsolv >=0.7.18
   - libarchive
   - libsodium

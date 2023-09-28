@@ -18,7 +18,6 @@
 #endif
 
 #include "mamba/filesystem/u8path.hpp"
-#include "mamba/util/string.hpp"
 
 namespace mamba::fs
 {
@@ -28,9 +27,16 @@ namespace mamba::fs
     std::filesystem::path normalized_separators(std::filesystem::path path)
     {
         auto native_string = path.native();
-        static constexpr auto platform_separator = L"\\";
-        static constexpr auto other_separator = L"/";
-        mamba::util::replace_all(native_string, other_separator, platform_separator);
+        static constexpr wchar_t platform_separator = L'\\';
+        static constexpr wchar_t other_separator = L'/';
+
+        auto pos = native_string.find(other_separator);
+        while (pos != decltype(native_string)::npos)
+        {
+            native_string[pos] = platform_separator;
+            pos = native_string.find(other_separator, pos + 1);
+        }
+
         path = std::move(native_string);
         return path;
     }

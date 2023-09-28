@@ -39,20 +39,20 @@ namespace mamba
 
         void reset_options(MonitorOptions options);
 
-        void observe(MultiDownloadRequest& requests, DownloadOptions& options) override;
-        void on_done() override;
-        void on_unexpected_termination() override;
-
     private:
 
-        void update_progress_bar(size_t index, const DownloadEvent& event);
-        void update_progress_bar(size_t index, const DownloadProgress& progress);
-        void update_progress_bar(size_t index, const DownloadError& error);
-        void update_progress_bar(size_t index, const DownloadSuccess& success);
+        void observe_impl(MultiDownloadRequest& requests, DownloadOptions& options) override;
+        void on_done_impl() override;
+        void on_unexpected_termination_impl() override;
 
-        void complete_checking_progress_bar(size_t index);
+        void update_progress_bar(std::size_t index, const DownloadEvent& event);
+        void update_progress_bar(std::size_t index, const DownloadProgress& progress);
+        void update_progress_bar(std::size_t index, const DownloadError& error);
+        void update_progress_bar(std::size_t index, const DownloadSuccess& success);
 
-        std::function<void(ProgressBarRepr&)> download_repr(size_t index);
+        void complete_checking_progress_bar(std::size_t index);
+
+        std::function<void(ProgressBarRepr&)> download_repr(std::size_t index);
 
         using time_point = std::chrono::steady_clock::time_point;
         std::vector<time_point> m_throttle_time;

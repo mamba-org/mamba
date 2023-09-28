@@ -24,7 +24,7 @@ namespace mamba
         int http_status = 0;
         std::string effective_url = "";
         std::size_t downloaded_size = 0;
-        std::size_t average_speed = 0;
+        std::size_t average_speed_Bps = 0;
     };
 
     struct DownloadSuccess
@@ -49,7 +49,7 @@ namespace mamba
     {
         std::size_t downloaded_size = 0;
         std::size_t total_to_download = 0;
-        std::size_t speed = 0;
+        std::size_t speed_Bps = 0;
     };
 
     using DownloadEvent = std::variant<DownloadProgress, DownloadError, DownloadSuccess>;
@@ -109,13 +109,20 @@ namespace mamba
         DownloadMonitor(DownloadMonitor&&) = delete;
         DownloadMonitor& operator=(DownloadMonitor&&) = delete;
 
-        virtual void observe(MultiDownloadRequest& requests, DownloadOptions& options) = 0;
-        virtual void on_done() = 0;
-        virtual void on_unexpected_termination() = 0;
+        void observe(MultiDownloadRequest& requests, DownloadOptions& options);
+        void on_done();
+        void on_unexpected_termination();
 
     protected:
 
         DownloadMonitor() = default;
+
+    private:
+
+        virtual void observe_impl(MultiDownloadRequest& requests, DownloadOptions& options) = 0;
+        virtual void on_done_impl() = 0;
+        virtual void on_unexpected_termination_impl() = 0;
+
     };
 
     MultiDownloadResult download(

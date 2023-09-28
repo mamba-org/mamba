@@ -119,7 +119,15 @@ namespace mamba
         void set_state(bool success);
         void set_state(const DownloadError& res);
 
+        /**
+         * Invoked when the download succeeded but the download callback
+         * failed.
+         */
         void throw_if_required(const expected_t<void>&);
+
+        /**
+         * Invoked when the download failed.
+         */
         void throw_if_required(const DownloadError&);
 
         void save(DownloadSuccess&&);

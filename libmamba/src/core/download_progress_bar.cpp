@@ -22,11 +22,11 @@ namespace mamba
         );
     }
 
-    void DownloadProgressBar::observe(MultiDownloadRequest& requests, DownloadOptions& options)
+    void DownloadProgressBar::observe_impl(MultiDownloadRequest& requests, DownloadOptions& options)
     {
         m_throttle_time.resize(requests.size(), std::chrono::steady_clock::now());
         m_progress_bar.reserve(requests.size());
-        for (size_t i = 0; i < requests.size(); ++i)
+        for (std::size_t i = 0; i < requests.size(); ++i)
         {
             m_progress_bar.push_back(Console::instance().add_progress_bar(requests[i].name));
             m_progress_bar.back().set_repr_hook(download_repr(i));
@@ -47,7 +47,7 @@ namespace mamba
         options.on_unexpected_termination = [this]() { on_unexpected_termination(); };
     }
 
-    void DownloadProgressBar::on_done()
+    void DownloadProgressBar::on_done_impl()
     {
         auto& pbar_manager = Console::instance().progress_bar_manager();
         if (pbar_manager.started())
@@ -63,21 +63,22 @@ namespace mamba
         m_options = MonitorOptions{};
     }
 
-    void DownloadProgressBar::on_unexpected_termination()
+    void DownloadProgressBar::on_unexpected_termination_impl()
     {
         Console::instance().progress_bar_manager().terminate();
     }
 
-    void DownloadProgressBar::update_progress_bar(size_t index, const DownloadEvent& event)
+    void DownloadProgressBar::update_progress_bar(std::size_t index, const DownloadEvent& event)
     {
         std::visit([this, index](auto&& arg) { update_progress_bar(index, arg); }, event);
     }
 
-    void DownloadProgressBar::update_progress_bar(size_t index, const DownloadProgress& progress)
+    void DownloadProgressBar::update_progress_bar(std::size_t index, const DownloadProgress& progress)
     {
         auto now = std::chrono::steady_clock::now();
 
-        if (now - m_throttle_time[index] < std::chrono::milliseconds(50))
+        const auto throttle_treshold = std::chrono::milliseconds(50);
+        if (now - m_throttle_time[index] < throttle_treshold)
         {
             return;
         }
@@ -97,10 +98,10 @@ namespace mamba
         }
 
         progress_bar.update_progress(progress.downloaded_size, progress.total_to_download);
-        progress_bar.set_speed(progress.speed);
+        progress_bar.set_speed(progress.speed_Bps);
     }
 
-    void DownloadProgressBar::update_progress_bar(size_t index, const DownloadError& error)
+    void DownloadProgressBar::update_progress_bar(std::size_t index, const DownloadError& error)
     {
         if (m_options.checking_download)
         {
@@ -111,7 +112,7 @@ namespace mamba
             ProgressProxy& progress_bar = m_progress_bar[index];
             if (error.transfer.has_value())
             {
-                int http_status = error.transfer.value().http_status;
+                const int http_status = error.transfer.value().http_status;
                 progress_bar.set_postfix(std::to_string(http_status) + " failed");
             }
             else
@@ -123,7 +124,7 @@ namespace mamba
         }
     }
 
-    void DownloadProgressBar::update_progress_bar(size_t index, const DownloadSuccess& success)
+    void DownloadProgressBar::update_progress_bar(std::size_t index, const DownloadSuccess& success)
     {
         if (m_options.checking_download)
         {
@@ -166,7 +167,7 @@ namespace mamba
         }
     }
 
-    void DownloadProgressBar::complete_checking_progress_bar(size_t index)
+    void DownloadProgressBar::complete_checking_progress_bar(std::size_t index)
     {
         ProgressProxy& progress_bar = m_progress_bar[index];
         progress_bar.repr().postfix.set_value("Checked");
@@ -175,7 +176,7 @@ namespace mamba
         progress_bar.mark_as_completed();
     }
 
-    std::function<void(ProgressBarRepr&)> DownloadProgressBar::download_repr(size_t index)
+    std::function<void(ProgressBarRepr&)> DownloadProgressBar::download_repr(std::size_t index)
     {
         return [this, index](ProgressBarRepr& r)
         {

@@ -113,8 +113,7 @@ namespace mamba
     {
         fs::u8path state_file = file;
         state_file.replace_extension(".state.json");
-        std::error_code ec;
-        if (fs::exists(state_file, ec))
+        if (fs::is_regular_file(state_file))
         {
             return from_state_file(state_file, file);
         }
@@ -191,7 +190,7 @@ namespace mamba
         return m_has_zst.has_value() && m_has_zst.value().value && !m_has_zst.value().has_expired();
     }
 
-    void MSubdirMetadata::store_http_metadata(http_metadata data)
+    void MSubdirMetadata::store_http_metadata(HttpMetadata data)
     {
         m_http = std::move(data);
     }
@@ -296,7 +295,8 @@ namespace mamba
     bool MSubdirMetadata::checked_at::has_expired() const
     {
         // difference in seconds, check every 14 days
-        return std::difftime(std::time(nullptr), last_checked) > 60 * 60 * 24 * 14;
+        constexpr double expiration = 60 * 60 * 24 * 14;
+        return std::difftime(std::time(nullptr), last_checked) > expiration;
     }
 
     /***************
@@ -324,7 +324,7 @@ namespace mamba
                 file_duration tdiff = ref - last_write;
                 return tdiff;
             }
-            catch (...)
+            catch (std::exception&)
             {
                 // could not open the file...
                 return file_duration::max();
@@ -380,7 +380,7 @@ namespace mamba
 
         const fs::u8path& replace_file(const fs::u8path& old_file, const fs::u8path& new_file)
         {
-            if (fs::exists(old_file))
+            if (fs::is_regular_file(old_file))
             {
                 fs::remove(old_file);
             }
@@ -427,11 +427,11 @@ namespace mamba
 
     void MSubdirData::clear_cache()
     {
-        if (fs::exists(m_json_fn))
+        if (fs::is_regular_file(m_json_fn))
         {
             fs::remove(m_json_fn);
         }
-        if (fs::exists(m_solv_fn))
+        if (fs::is_regular_file(m_solv_fn))
         {
             fs::remove(m_solv_fn);
         }
@@ -515,7 +515,7 @@ namespace mamba
             /* .pip_added= */ p_context->add_pip_as_python_dependency,
         };
 
-        auto cache = cache_path();
+        const auto cache = cache_path();
         return cache ? return_type(MRepo(pool, m_name, *cache, meta))
                      : return_type(forward_error(cache));
     }
@@ -577,8 +577,7 @@ namespace mamba
         {
             // TODO: rewite this with pipe chains of ranges
             fs::u8path json_file = cache_path / "cache" / m_json_fn;
-            std::error_code ec;
-            if (!fs::exists(json_file, ec))
+            if (!fs::is_regular_file(json_file))
             {
                 continue;
             }
@@ -598,11 +597,11 @@ namespace mamba
             }
             m_metadata = std::move(metadata_temp.value());
 
-            int max_age = get_max_age(
+            const int max_age = get_max_age(
                 m_metadata.cache_control(),
                 static_cast<int>(context.local_repodata_ttl)
             );
-            auto cache_age_seconds = std::chrono::duration_cast<std::chrono::seconds>(cache_age).count(
+            const auto cache_age_seconds = std::chrono::duration_cast<std::chrono::seconds>(cache_age).count(
             );
 
             if ((max_age > cache_age_seconds || context.offline || context.use_index_cache))
@@ -729,7 +728,7 @@ namespace mamba
             }
             else
             {
-                return finalize_transfer(MSubdirMetadata::http_metadata{ success.transfer.effective_url,
+                return finalize_transfer(MSubdirMetadata::HttpMetadata{ success.transfer.effective_url,
                                                                          success.etag,
                                                                          success.last_modified,
                                                                          success.cache_control });
@@ -764,7 +763,7 @@ namespace mamba
         fs::u8path json_file = m_expired_cache_path / "cache" / m_json_fn;
         fs::u8path solv_file = m_expired_cache_path / "cache" / m_solv_fn;
 
-        if (path::is_writable(json_file) && (!fs::exists(solv_file) || path::is_writable(solv_file)))
+        if (path::is_writable(json_file) && (!fs::is_regular_file(solv_file) || path::is_writable(solv_file)))
         {
             LOG_DEBUG << "Refreshing cache files ages";
             m_valid_cache_path = m_expired_cache_path;
@@ -788,7 +787,7 @@ namespace mamba
             fs::u8path copied_json_file = writable_cache_dir / m_json_fn;
             json_file = replace_file(copied_json_file, json_file);
 
-            if (fs::exists(solv_file))
+            if (fs::is_regular_file(solv_file))
             {
                 auto copied_solv_file = writable_cache_dir / m_solv_fn;
                 solv_file = replace_file(copied_solv_file, solv_file);
@@ -804,7 +803,7 @@ namespace mamba
         return expected_t<void>();
     }
 
-    expected_t<void> MSubdirData::finalize_transfer(MSubdirMetadata::http_metadata http_data)
+    expected_t<void> MSubdirData::finalize_transfer(MSubdirMetadata::HttpMetadata http_data)
     {
         if (m_writable_pkgs_dir.empty())
         {
@@ -853,7 +852,7 @@ namespace mamba
     void
     MSubdirData::refresh_last_write_time(const fs::u8path& json_file, const fs::u8path& solv_file)
     {
-        auto now = fs::file_time_type::clock::now();
+        const auto now = fs::file_time_type::clock::now();
 
         file_duration json_age = get_cache_age(json_file, now);
         file_duration solv_age = get_cache_age(solv_file, now);
@@ -864,7 +863,7 @@ namespace mamba
             m_json_cache_valid = true;
         }
 
-        if (fs::exists(solv_file) && solv_age.count() <= json_age.count())
+        if (fs::is_regular_file(solv_file) && solv_age.count() <= json_age.count())
         {
             auto lock = LockFile(solv_file);
             fs::last_write_time(solv_file, fs::now());
@@ -887,9 +886,12 @@ namespace mamba
     {
         const auto cache_dir = cache_path / "cache";
         fs::create_directories(cache_dir);
-#ifndef _WIN32
-        ::chmod(cache_dir.string().c_str(), 02775);
-#endif
+        const auto new_permissions = fs::perms::set_gid
+            | fs::perms::owner_all
+            | fs::perms::group_all
+            | fs::perms::others_read
+            | fs::perms::others_exec;
+        fs::permissions(cache_dir.string().c_str(), new_permissions, fs::perm_options::replace);
         return cache_dir.string();
     }
 }  // namespace mamba

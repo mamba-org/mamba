@@ -31,7 +31,7 @@ namespace mamba
     {
     public:
 
-        struct http_metadata
+        struct HttpMetadata
         {
             std::string url;
             std::string etag;
@@ -52,7 +52,7 @@ namespace mamba
 
         bool has_zst() const;
 
-        void store_http_metadata(http_metadata data);
+        void store_http_metadata(HttpMetadata data);
         void store_file_metadata(const fs::u8path& file);
         void set_zst(bool value);
 
@@ -68,7 +68,7 @@ namespace mamba
         using time_type = fs::file_time_type;
 #endif
 
-        http_metadata m_http;
+        HttpMetadata m_http;
         time_type m_stored_mtime;
         std::size_t m_stored_file_size;
 
@@ -144,7 +144,7 @@ namespace mamba
         DownloadRequest build_index_request();
 
         expected_t<void> use_existing_cache();
-        expected_t<void> finalize_transfer(MSubdirMetadata::http_metadata http_data);
+        expected_t<void> finalize_transfer(MSubdirMetadata::HttpMetadata http_data);
         void refresh_last_write_time(const fs::u8path& json_file, const fs::u8path& solv_file);
 
         bool m_loaded = false;

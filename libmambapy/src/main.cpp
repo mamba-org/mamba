@@ -675,10 +675,6 @@ PYBIND11_MODULE(bindings, m)
         .def(py::init(
             [] { return std::make_unique<MultiDownloadTarget>(mambapy::singletons.context()); }
         ))
-        /*.def(
-            "add",
-            [](MultiDownloadTarget& self, MSubdirData& sub) -> void { self.add(sub.target()); }
-        )*/
         .def("download", &MultiDownloadTarget::download);
 
     py::enum_<ChannelPriority>(m, "ChannelPriority")

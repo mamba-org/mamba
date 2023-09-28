@@ -1,4 +1,5 @@
 #include "mamba/core/download.hpp"
+#include "mamba/core/invoke.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_scope.hpp"
@@ -16,6 +17,16 @@ namespace mamba
 
     namespace
     {
+
+        std::array<const char*, 6> cert_locations{
+            "/etc/ssl/certs/ca-certificates.crt",  // Debian/Ubuntu/Gentoo etc.
+            "/etc/pki/tls/certs/ca-bundle.crt",    // Fedora/RHEL 6
+            "/etc/ssl/ca-bundle.pem",              // OpenSUSE
+            "/etc/pki/tls/cacert.pem",             // OpenELEC
+            "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",  // CentOS/RHEL 7
+            "/etc/ssl/cert.pem",                                  // Alpine Linux
+        };
+        
         void init_remote_fetch_params(Context::RemoteFetchParams& remote_fetch_params)
         {
             if (!remote_fetch_params.curl_initialized)
@@ -57,14 +68,6 @@ namespace mamba
                 }
                 else if (remote_fetch_params.ssl_verify == "<system>" && util::on_linux)
                 {
-                    std::array<std::string, 6> cert_locations{
-                        "/etc/ssl/certs/ca-certificates.crt",  // Debian/Ubuntu/Gentoo etc.
-                        "/etc/pki/tls/certs/ca-bundle.crt",    // Fedora/RHEL 6
-                        "/etc/ssl/ca-bundle.pem",              // OpenSUSE
-                        "/etc/pki/tls/cacert.pem",             // OpenELEC
-                        "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",  // CentOS/RHEL 7
-                        "/etc/ssl/cert.pem",                                  // Alpine Linux
-                    };
                     bool found = false;
 
                     for (const auto& loc : cert_locations)
@@ -407,11 +410,11 @@ namespace mamba
     )
     {
         auto* self = reinterpret_cast<DownloadAttempt*>(f);
-        auto speed = self->m_handle.get_info<std::size_t>(CURLINFO_SPEED_DOWNLOAD_T).value_or(0);
+        auto speed_Bps = self->m_handle.get_info<std::size_t>(CURLINFO_SPEED_DOWNLOAD_T).value_or(0);
         size_t total = total_to_download ? static_cast<std::size_t>(total_to_download)
                                          : self->p_request->expected_size.value_or(0);
         self->p_request->progress.value()(
-            DownloadProgress{ static_cast<std::size_t>(now_downloaded), total, speed }
+            DownloadProgress{ static_cast<std::size_t>(now_downloaded), total, speed_Bps }
         );
         return 0;
     }
@@ -556,7 +559,8 @@ namespace mamba
     {
         if (p_request->on_success.has_value())
         {
-            return p_request->on_success.value()(res);
+            auto ret = safe_invoke(p_request->on_success.value(), res);
+            return ret.has_value() ? ret.value() : forward_error(ret);
         }
         return expected_t<void>();
     }
@@ -565,7 +569,7 @@ namespace mamba
     {
         if (p_request->on_failure.has_value())
         {
-            p_request->on_failure.value()(res);
+            safe_invoke(p_request->on_failure.value(), res);
         }
     }
 
@@ -669,7 +673,7 @@ namespace mamba
         std::transform(
             m_requests.begin(),
             m_requests.end(),
-            std::inserter(m_trackers, m_trackers.begin()),
+            std::back_inserter(m_trackers),
             [tracker_options](const DownloadRequest& req)
             { return DownloadTracker(req, tracker_options); }
         );
@@ -774,7 +778,7 @@ namespace mamba
     {
         if (m_options.on_unexpected_termination.has_value())
         {
-            m_options.on_unexpected_termination.value()();
+            safe_invoke(m_options.on_unexpected_termination.value());
         }
     }
 
@@ -797,6 +801,21 @@ namespace mamba
     {
     }
 
+    void DownloadMonitor::observe(MultiDownloadRequest& requests, DownloadOptions& options)
+    {
+        observe_impl(requests, options);
+    }
+
+    void DownloadMonitor::on_done()
+    {
+        on_done_impl();
+    }
+
+    void DownloadMonitor::on_unexpected_termination()
+    {
+        on_done_impl();
+    }
+    
     MultiDownloadResult download(
         MultiDownloadRequest requests,
         const Context& context,

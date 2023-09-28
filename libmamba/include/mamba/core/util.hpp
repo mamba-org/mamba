@@ -7,28 +7,18 @@
 #ifndef MAMBA_CORE_UTIL_HPP
 #define MAMBA_CORE_UTIL_HPP
 
-#include <array>
 #include <chrono>
 #include <fstream>
-#include <limits>
+#include <map>
 #include <optional>
-#include <sstream>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <vector>
-
-#include <time.h>
 
 #include "mamba/core/error_handling.hpp"
 #include "mamba/filesystem/u8path.hpp"
 
-#include "nlohmann/json.hpp"
 #include "tl/expected.hpp"
-
-#if defined(__PPC64__) || defined(__ppc64__) || defined(_ARCH_PPC64)
-#include <iomanip>
-#endif
 
 #define MAMBA_EMPTY_SHA "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 

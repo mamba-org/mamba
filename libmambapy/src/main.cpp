@@ -38,6 +38,8 @@
 #include "mamba/util/flat_set.hpp"
 #include "mamba/util/string.hpp"
 
+#include "flat_set_caster.hpp"
+
 namespace py = pybind11;
 
 namespace query
@@ -50,18 +52,6 @@ namespace query
         PRETTY = 3,
         RECURSIVETABLE = 4,
     };
-}
-
-namespace PYBIND11_NAMESPACE
-{
-    namespace detail
-    {
-        template <typename Key, typename Compare, typename Allocator>
-        struct type_caster<mamba::util::flat_set<Key, Compare, Allocator>>
-            : set_caster<mamba::util::flat_set<Key, Compare, Allocator>, Key>
-        {
-        };
-    }
 }
 
 void

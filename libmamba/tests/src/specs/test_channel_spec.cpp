@@ -4,10 +4,12 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-
 #include <doctest/doctest.h>
 
+#include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/channel_spec.hpp"
+#include "mamba/util/path_manip.hpp"
+#include "mamba/util/string.hpp"
 
 using namespace mamba;
 using namespace mamba::specs;
@@ -59,6 +61,15 @@ TEST_SUITE("specs::channel_spec")
             const auto spec = ChannelSpec::parse("/Users/name/conda");
             CHECK_EQ(spec.type(), Type::Path);
             CHECK_EQ(spec.location(), "file:///Users/name/conda");
+            CHECK_EQ(spec.platform_filters(), PlatformSet{});
+        }
+
+        SUBCASE("./folder/../folder/.")
+        {
+            const auto expected_folder = fs::weakly_canonical("./folder");
+            const auto spec = ChannelSpec::parse("./folder/../folder/.");
+            CHECK_EQ(spec.type(), Type::Path);
+            CHECK_EQ(spec.location(), util::concat("file://", util::path_to_posix(expected_folder)));
             CHECK_EQ(spec.platform_filters(), PlatformSet{});
         }
 

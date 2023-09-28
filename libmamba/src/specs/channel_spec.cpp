@@ -6,6 +6,7 @@
 
 #include <fmt/format.h>
 
+#include "mamba/core/environment.hpp"
 #include "mamba/specs/archive.hpp"
 #include "mamba/specs/channel_spec.hpp"
 #include "mamba/specs/conda_url.hpp"
@@ -56,7 +57,7 @@ namespace mamba::specs
         {
             if (util::is_explicit_path(str))
             {
-                auto out = util::abs_path_to_url(str);
+                auto out = util::abs_path_to_url(fs::weakly_canonical(env::expand_user(str)).string());
                 out = util::rstrip(out, '/');
                 return out;
             }

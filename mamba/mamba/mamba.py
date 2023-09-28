@@ -807,7 +807,7 @@ Examples:
         )
     except argparse.ArgumentError as exc:
         if "conflicting subparser" in str(exc):
-            # conda-libmamba-solver's repoquery is already registered 
+            # conda-libmamba-solver's repoquery is already registered
             return
 
     subsub_parser = p.add_subparsers(dest="subcmd")
@@ -884,7 +884,7 @@ def _wrapped_main(*args, **kwargs):
 
     context.__init__(argparse_args=parsed_args)
     context.__initialized__ = True
-    
+
     init_loggers()
     result = do_call(parsed_args, p)
     exit_code = getattr(

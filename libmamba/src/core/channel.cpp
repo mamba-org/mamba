@@ -351,7 +351,7 @@ namespace mamba
         }
     }
 
-    std::vector<std::string> Channel::urls(bool with_credential) const
+    util::flat_set<std::string> Channel::urls(bool with_credential) const
     {
         if (package_filename())
         {
@@ -371,16 +371,17 @@ namespace mamba
         }
         else
         {
-            std::vector<std::string> ret;
+            auto out = util::flat_set<std::string>{};
             for (auto& [_, v] : platform_urls(with_credential))
             {
-                ret.emplace_back(v);
+                out.insert(v);
             }
-            return ret;
+            return out;
         }
     }
 
-    std::vector<std::pair<std::string, std::string>> Channel::platform_urls(bool with_credential) const
+    util::flat_set<std::pair<std::string, std::string>>
+    Channel::platform_urls(bool with_credential) const
     {
         std::string base = location();
         if (with_credential && token())
@@ -388,15 +389,15 @@ namespace mamba
             base = util::join_url(base, "t", *token());
         }
 
-        std::vector<std::pair<std::string, std::string>> ret;
+        auto out = util::flat_set<std::pair<std::string, std::string>>{};
         for (const auto& platform : platforms())
         {
-            ret.emplace_back(
+            out.insert({
                 platform,
-                util::build_url(auth(), scheme(), util::join_url(base, name(), platform), with_credential)
-            );
+                util::build_url(auth(), scheme(), util::join_url(base, name(), platform), with_credential),
+            });
         }
-        return ret;
+        return out;
     }
 
     std::string Channel::platform_url(std::string platform, bool with_credential) const

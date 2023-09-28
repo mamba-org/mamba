@@ -134,6 +134,7 @@ jobs:
             cli11>=2.2,<3
             cpp-expected
             nlohmann_json
+            simdjson-static>=3.3.0
             spdlog
             fmt
             yaml-cpp-static>=0.8.0

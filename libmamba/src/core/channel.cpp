@@ -16,6 +16,7 @@
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/validate.hpp"
 #include "mamba/specs/archive.hpp"
+#include "mamba/specs/channel_spec.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
@@ -165,55 +166,6 @@ namespace mamba
                 /* .token= */ "",
             };
         }
-
-        util::flat_set<std::string> take_platforms(const Context& context, std::string& value)
-        {
-            util::flat_set<std::string> platforms;
-            if (!value.empty())
-            {
-                if (value[value.size() - 1] == ']')
-                {
-                    const auto end_value = value.find_last_of('[');
-                    if (end_value != std::string::npos)
-                    {
-                        auto ind = end_value + 1;
-                        while (ind < value.size() - 1)
-                        {
-                            auto end = value.find_first_of(", ]", ind);
-                            assert(end != std::string::npos);
-                            platforms.insert(value.substr(ind, end - ind));
-                            ind = end;
-                            while (value[ind] == ',' || value[ind] == ' ')
-                            {
-                                ind++;
-                            }
-                        }
-
-                        value.resize(end_value);
-                    }
-                }
-                // This is required because a channel can be instantiated from an URL
-                // that already contains the platform
-                else
-                {
-                    std::string platform = "";
-                    util::split_platform(get_known_platforms(), value, context.platform, value, platform);
-                    if (!platform.empty())
-                    {
-                        platforms.insert(std::move(platform));
-                    }
-                }
-            }
-
-            if (platforms.empty())
-            {
-                for (const auto& plat : context.platforms())
-                {
-                    platforms.insert(plat);
-                }
-            }
-            return platforms;
-        }
     }  // namespace
 
     std::vector<std::string> get_known_platforms()
@@ -353,31 +305,32 @@ namespace mamba
 
     util::flat_set<std::string> Channel::urls(bool with_credential) const
     {
-        if (package_filename())
+        if (auto fn = package_filename())
         {
-            std::string base = location();
+            std::string base = {};
             if (with_credential && token())
             {
-                base = util::join_url(base, "t", *token());
+                base = util::join_url(location(), "t", *token());
+            }
+            else
+            {
+                base = location();
             }
 
-            std::string platform = m_platforms[0];
             return { { util::build_url(
                 auth(),
                 scheme(),
-                util::join_url(base, name(), platform, *package_filename()),
+                util::join_url(base, name(), std::move(fn).value()),
                 with_credential
             ) } };
         }
-        else
+
+        auto out = util::flat_set<std::string>{};
+        for (auto& [_, v] : platform_urls(with_credential))
         {
-            auto out = util::flat_set<std::string>{};
-            for (auto& [_, v] : platform_urls(with_credential))
-            {
-                out.insert(v);
-            }
-            return out;
+            out.insert(v);
         }
+        return out;
     }
 
     util::flat_set<std::pair<std::string, std::string>>
@@ -615,17 +568,47 @@ namespace mamba
             );
         }
 
-        std::string value = in_value;
-        auto platforms = take_platforms(m_context, value);
+        const auto spec = specs::ChannelSpec::parse(in_value);
 
-        auto chan = util::url_has_scheme(value)     ? from_url(fix_win_path(value))
-                    : util::is_explicit_path(value) ? from_url(util::path_or_url_to_url(value))
-                    : specs::has_archive_extension(value) ? from_url(fix_win_path(value))
-                                                          : from_name(value);
+        auto get_platforms = [&]()
+        {
+            auto out = spec.platform_filters();
 
-        chan.m_platforms = std::move(platforms);
+            if (out.empty())
+            {
+                for (const auto& plat : m_context.platforms())
+                {
+                    out.insert(plat);
+                }
+            }
+            return out;
+        };
 
-        return chan;
+        return [&](auto type) -> Channel
+        {
+            switch (type)
+            {
+                case specs::ChannelSpec::Type::PackageURL:
+                case specs::ChannelSpec::Type::PackagePath:
+                {
+                    return from_url(spec.location());
+                }
+                case specs::ChannelSpec::Type::URL:
+                case specs::ChannelSpec::Type::Path:
+                {
+                    auto chan = from_url(spec.location());
+                    chan.m_platforms = get_platforms();
+                    return chan;
+                }
+                case specs::ChannelSpec::Type::Name:
+                {
+                    auto chan = from_name(spec.location());
+                    chan.m_platforms = get_platforms();
+                    return chan;
+                }
+            }
+            throw std::invalid_argument("Invalid ChannelSpec::Type");
+        }(spec.type());
     }
 
     Channel ChannelContext::from_alias(std::string_view alias)

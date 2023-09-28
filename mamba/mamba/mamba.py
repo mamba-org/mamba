@@ -808,6 +808,7 @@ Examples:
         if "conflicting subparser" in str(exc):
             # conda-libmamba-solver's repoquery is already registered
             return
+        raise
 
     p = sub_parsers.add_parser(
         "repoquery", description=descr, help=help_cli, epilog=example

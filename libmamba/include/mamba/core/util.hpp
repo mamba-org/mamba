@@ -9,6 +9,7 @@
 
 #include <array>
 #include <chrono>
+#include <fstream>
 #include <limits>
 #include <optional>
 #include <sstream>
@@ -20,7 +21,7 @@
 #include <time.h>
 
 #include "mamba/core/error_handling.hpp"
-#include "mamba/core/mamba_fs.hpp"
+#include "mamba/filesystem/u8path.hpp"
 
 #include "nlohmann/json.hpp"
 #include "tl/expected.hpp"

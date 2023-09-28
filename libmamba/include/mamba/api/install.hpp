@@ -15,12 +15,12 @@
 #include <yaml-cpp/yaml.h>
 
 #include "mamba/core/context.hpp"
-#include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/solver.hpp"
+#include "mamba/filesystem/u8path.hpp"
 
 namespace mamba
 {

@@ -13,9 +13,9 @@
 #include <tuple>
 #include <vector>
 
+#include "mamba/filesystem/u8path.hpp"
 #include "mamba/util/build.hpp"
 
-#include "mamba_fs.hpp"
 #include "match_spec.hpp"
 #include "package_paths.hpp"
 #include "transaction.hpp"

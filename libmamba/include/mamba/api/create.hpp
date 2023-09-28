@@ -9,7 +9,7 @@
 
 #include <string>
 
-#include "mamba/core/mamba_fs.hpp"
+#include "mamba/filesystem/u8path.hpp"
 
 namespace mamba
 {

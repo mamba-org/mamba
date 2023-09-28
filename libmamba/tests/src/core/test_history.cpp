@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -19,7 +20,6 @@
 #endif
 
 #include "mamba/core/channel.hpp"
-#include "mamba/core/context.hpp"
 #include "mamba/core/history.hpp"
 
 #include "test_data.hpp"

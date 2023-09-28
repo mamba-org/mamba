@@ -11,8 +11,9 @@
 #include <string>
 #include <vector>
 
+#include "mamba/filesystem/u8path.hpp"
+
 #include "fsutil.hpp"
-#include "mamba_fs.hpp"
 #include "package_info.hpp"
 
 #define PACKAGE_CACHE_MAGIC_FILE "urls.txt"

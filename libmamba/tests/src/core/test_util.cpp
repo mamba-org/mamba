@@ -10,10 +10,10 @@
 #include "mamba/core/environment.hpp"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/fsutil.hpp"
-#include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_random.hpp"
 #include "mamba/core/util_scope.hpp"
+#include "mamba/filesystem/u8path.hpp"
 
 #include "mambatests.hpp"
 

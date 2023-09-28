@@ -8,7 +8,6 @@
 #define MAMBA_CORE_SUBDIRDATA_HPP
 
 #include <memory>
-#include <regex>
 #include <string>
 
 #include <nlohmann/json_fwd.hpp>
@@ -17,11 +16,12 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/download.hpp"
 #include "mamba/core/error_handling.hpp"
-#include "mamba/core/mamba_fs.hpp"
+#include "mamba/core/fetch.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/filesystem/u8path.hpp"
 
 #include "package_handling.hpp"
 

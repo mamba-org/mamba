@@ -11,7 +11,7 @@
 #include <system_error>
 #include <vector>
 
-#include "mamba_fs.hpp"
+#include "mamba/filesystem/u8path.hpp"
 
 namespace mamba
 {

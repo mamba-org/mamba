@@ -9,7 +9,7 @@
 
 #include "mamba/core/common_types.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/core/mamba_fs.hpp"
+#include "mamba/filesystem/u8path.hpp"
 
 namespace mamba
 {
@@ -304,21 +304,21 @@ namespace YAML
     };
 
     template <>
-    struct convert<fs::u8path>
+    struct convert<mamba::fs::u8path>
     {
-        static Node encode(const fs::u8path& rhs)
+        static Node encode(const mamba::fs::u8path& rhs)
         {
             return Node(rhs.string());
         }
 
-        static bool decode(const Node& node, fs::u8path& rhs)
+        static bool decode(const Node& node, mamba::fs::u8path& rhs)
         {
             if (!node.IsScalar())
             {
                 return false;
             }
 
-            rhs = fs::u8path(node.as<std::string>());
+            rhs = mamba::fs::u8path(node.as<std::string>());
             return true;
         }
     };

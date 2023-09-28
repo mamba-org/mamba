@@ -12,6 +12,7 @@
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/run.hpp"
+#include "mamba/filesystem/u8path.hpp"
 #include "mamba/util/string.hpp"
 
 
@@ -35,14 +36,14 @@ complete_options(
     {
         config.load();
 
-        auto root_prefix = config.at("root_prefix").value<fs::u8path>();
+        auto root_prefix = config.at("root_prefix").value<mamba::fs::u8path>();
         auto& name_start = last_args.back();
 
-        if (fs::exists(root_prefix / "envs"))
+        if (mamba::fs::exists(root_prefix / "envs"))
         {
-            for (const auto& p : fs::directory_iterator(root_prefix / "envs"))
+            for (const auto& p : mamba::fs::directory_iterator(root_prefix / "envs"))
             {
-                if (p.is_directory() && fs::exists(p.path() / "conda-meta"))
+                if (p.is_directory() && mamba::fs::exists(p.path() / "conda-meta"))
                 {
                     auto name = p.path().filename().string();
                     if (mamba::util::starts_with(name, name_start))

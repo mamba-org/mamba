@@ -9,9 +9,9 @@
 #include "mamba/api/clean.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/filesystem/u8path.hpp"
 #include "mamba/util/string.hpp"
 
 #include "../core/progress_bar_impl.hpp"

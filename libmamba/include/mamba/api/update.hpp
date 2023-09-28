@@ -10,8 +10,8 @@
 #include <string>
 #include <vector>
 
-#include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/query.hpp"
+#include "mamba/filesystem/u8path.hpp"
 
 
 namespace mamba

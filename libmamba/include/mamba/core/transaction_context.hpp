@@ -11,8 +11,9 @@
 
 #include <reproc++/reproc.hpp>
 
+#include "mamba/filesystem/u8path.hpp"
+
 #include "context.hpp"
-#include "mamba_fs.hpp"
 #include "match_spec.hpp"
 #include "util.hpp"
 

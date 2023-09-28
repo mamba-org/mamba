@@ -20,12 +20,12 @@
 #include "mamba/core/env_lockfile.hpp"
 #include "mamba/core/environments_manager.hpp"
 #include "mamba/core/fetch.hpp"
-#include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/pinning.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/virtual_packages.hpp"
+#include "mamba/filesystem/u8path.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba

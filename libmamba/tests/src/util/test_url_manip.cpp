@@ -9,12 +9,13 @@
 
 #include <doctest/doctest.h>
 
-#include "mamba/core/mamba_fs.hpp"
+#include "mamba/filesystem/u8path.hpp"
 #include "mamba/specs/platform.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
+using namespace mamba;
 using namespace mamba::util;
 
 TEST_SUITE("util::url_manip")
@@ -180,7 +181,7 @@ TEST_SUITE("util::url_manip")
 
     TEST_CASE("path_to_url")
     {
-        std::string const win_drive = fs::absolute(fs::u8path("/")).string().substr(0, 1);
+        const std::string win_drive = fs::absolute(fs::u8path("/")).string().substr(0, 1);
 
         SUBCASE("/users/test/miniconda3")
         {
@@ -219,7 +220,7 @@ TEST_SUITE("util::url_manip")
 
     TEST_CASE("path_or_url_to_url")
     {
-        std::string const win_drive = fs::absolute(fs::u8path("/")).string().substr(0, 1);
+        const std::string win_drive = fs::absolute(fs::u8path("/")).string().substr(0, 1);
 
         SUBCASE("/tmp/foo bar")
         {
@@ -242,7 +243,7 @@ TEST_SUITE("util::url_manip")
 
     TEST_CASE("file_uri_unc2_to_unc4")
     {
-        for (std::string const uri : {
+        for (const std::string uri : {
                  "http://example.com/test",
                  R"(file://C:/Program\ (x74)/Users/hello\ world)",
                  R"(file:///C:/Program\ (x74)/Users/hello\ world)",

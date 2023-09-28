@@ -23,13 +23,13 @@ extern "C"  // Incomplete header
 }
 
 #include "mamba/core/context.hpp"
-#include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/filesystem/u8path.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
@@ -117,7 +117,7 @@ namespace mamba
             for (const auto& dep : pkg.depends)
             {
                 // TODO pool's matchspec2id
-                solv::DependencyId const dep_id = pool_conda_matchspec(pool, dep.c_str());
+                const solv::DependencyId dep_id = pool_conda_matchspec(pool, dep.c_str());
                 assert(dep_id);
                 solv.add_dependency(dep_id);
             }
@@ -125,7 +125,7 @@ namespace mamba
             for (const auto& cons : pkg.constrains)
             {
                 // TODO pool's matchspec2id
-                solv::DependencyId const dep_id = pool_conda_matchspec(pool, cons.c_str());
+                const solv::DependencyId dep_id = pool_conda_matchspec(pool, cons.c_str());
                 assert(dep_id);
                 solv.add_constraint(dep_id);
             }
@@ -432,8 +432,8 @@ namespace mamba
 
     void MRepo::add_pip_as_python_dependency()
     {
-        solv::DependencyId const python_id = pool_conda_matchspec(m_pool, "python");
-        solv::DependencyId const pip_id = pool_conda_matchspec(m_pool, "pip");
+        const solv::DependencyId python_id = pool_conda_matchspec(m_pool, "python");
+        const solv::DependencyId pip_id = pool_conda_matchspec(m_pool, "pip");
         srepo(*this).for_each_solvable(
             [&](solv::ObjSolvableView s)
             {

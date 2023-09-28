@@ -15,8 +15,6 @@
 #include <solv/solver.h>
 
 #include "mamba/core/channel.hpp"
-#include "mamba/core/download.hpp"
-#include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
@@ -26,6 +24,7 @@
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_random.hpp"
+#include "mamba/filesystem/u8path.hpp"
 #include "mamba/util/string.hpp"
 
 #include "mambatests.hpp"

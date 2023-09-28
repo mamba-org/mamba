@@ -14,9 +14,9 @@
 
 #include <nlohmann/json.hpp>
 
-#include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/timeref.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/filesystem/u8path.hpp"
 
 namespace mamba::validation
 {

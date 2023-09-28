@@ -9,13 +9,13 @@
 
 #include <system_error>
 
-namespace fs
-{
-    class u8path;
-}
-
 namespace mamba
 {
+    namespace fs
+    {
+        class u8path;
+    }
+
     namespace path
     {
         bool starts_with_home(const fs::u8path& p);

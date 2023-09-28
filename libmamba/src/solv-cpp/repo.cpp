@@ -26,7 +26,7 @@ extern "C"  // Incomplete header in libsolv 0.7.23
 #include <solv/repo_conda.h>
 }
 
-#include "mamba/core/mamba_fs.hpp"
+#include "mamba/filesystem/u8path.hpp"
 #include "solv-cpp/repo.hpp"
 
 namespace mamba::solv
@@ -110,7 +110,7 @@ namespace mamba::solv
              *
              * @param path must hae filesystem default encoding.
              */
-            static auto open(const fs::u8path& path, const char* mode) -> CFile;
+            static auto open(const mamba::fs::u8path& path, const char* mode) -> CFile;
 
             /**
              * The destructor will flush and close the file descriptor.
@@ -153,7 +153,7 @@ namespace mamba::solv
             }
         }
 
-        auto CFile::open(const fs::u8path& path, const char* mode) -> CFile
+        auto CFile::open(const mamba::fs::u8path& path, const char* mode) -> CFile
         {
 #ifdef _WIN32
             // Mode MUST be an ASCII string
@@ -193,7 +193,7 @@ namespace mamba::solv
         }
     }
 
-    void ObjRepoViewConst::write(const fs::u8path& solv_file) const
+    void ObjRepoViewConst::write(const mamba::fs::u8path& solv_file) const
     {
         auto file = CFile::open(solv_file, "wb");
         const auto write_res = ::repo_write(const_cast<::Repo*>(raw()), file.raw());
@@ -226,7 +226,7 @@ namespace mamba::solv
         ::repo_empty(raw(), static_cast<int>(reuse_ids));
     }
 
-    void ObjRepoView::read(const fs::u8path& solv_file) const
+    void ObjRepoView::read(const mamba::fs::u8path& solv_file) const
     {
         auto file = CFile::open(solv_file, "rb");
         const auto read_res = ::repo_add_solv(raw(), file.raw(), 0);
@@ -243,7 +243,8 @@ namespace mamba::solv
         }
     }
 
-    void ObjRepoView::legacy_read_conda_repodata(const fs::u8path& repodata_file, int flags) const
+    void
+    ObjRepoView::legacy_read_conda_repodata(const mamba::fs::u8path& repodata_file, int flags) const
     {
         auto file = CFile::open(repodata_file, "rb");
         const auto res = ::repo_add_conda(raw(), file.raw(), flags);

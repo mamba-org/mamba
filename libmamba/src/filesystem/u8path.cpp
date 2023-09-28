@@ -6,11 +6,21 @@
 
 #include <filesystem>
 #include <string>
+#if !defined(_WIN32)
+#include <fcntl.h>
+#include <sys/stat.h>
 
-#include "mamba/core/mamba_fs.hpp"
+// We can use the presence of UTIME_OMIT to detect platforms that provide
+// utimensat.
+#if defined(UTIME_OMIT)
+#define USE_UTIMENSAT
+#endif
+#endif
+
+#include "mamba/filesystem/u8path.hpp"
 #include "mamba/util/string.hpp"
 
-namespace fs
+namespace mamba::fs
 {
 
 #if defined(_WIN32)
@@ -45,4 +55,17 @@ namespace fs
 #else
 #error UTF8 functions implementation is specific to C++17, using another version requires a different implementation.
 #endif
+
+    void last_write_time(const u8path& path, now, std::error_code& ec) noexcept
+    {
+#if defined(USE_UTIMENSAT)
+        if (utimensat(AT_FDCWD, path.string().c_str(), NULL, 0) == -1)
+        {
+            ec = std::error_code(errno, std::generic_category());
+        }
+#else
+        auto new_time = fs::file_time_type::clock::now();
+        std::filesystem::last_write_time(path, new_time, ec);
+#endif
+    }
 }

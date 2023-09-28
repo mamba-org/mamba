@@ -136,8 +136,8 @@ class Channel:
     def platform_url(self, platform: str, with_credentials: bool = True) -> str: ...
     def platform_urls(
         self, with_credentials: bool = True
-    ) -> typing.List[typing.Tuple[str, str]]: ...
-    def urls(self, with_credentials: bool = True) -> typing.List[str]: ...
+    ) -> typing.Set[typing.Tuple[str, str]]: ...
+    def urls(self, with_credentials: bool = True) -> typing.Set[str]: ...
     @property
     def auth(self) -> typing.Optional[str]:
         """
@@ -164,9 +164,9 @@ class Channel:
         :type: typing.Optional[str]
         """
     @property
-    def platforms(self) -> typing.List[str]:
+    def platforms(self) -> typing.Set[str]:
         """
-        :type: typing.List[str]
+        :type: typing.Set[str]
         """
     @property
     def scheme(self) -> str:

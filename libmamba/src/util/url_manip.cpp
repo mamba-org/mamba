@@ -227,6 +227,11 @@ namespace mamba::util
         return "";
     }
 
+    auto is_file_uri(std::string_view url) -> bool
+    {
+        return url_get_scheme(url) == "file";
+    }
+
     auto url_has_scheme(std::string_view url) -> bool
     {
         return !url_get_scheme(url).empty();

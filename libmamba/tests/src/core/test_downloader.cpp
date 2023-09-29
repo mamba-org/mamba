@@ -31,9 +31,9 @@ namespace mamba
             MultiDownloadRequest dl_request{ std::vector{ std::move(request) } };
             context.output_params.quiet = true;
             MultiDownloadResult res = download(dl_request, context);
-            CHECK_EQ(res.results.size(), std::size_t(1));
-            CHECK(!res.results[0]);
-            CHECK_EQ(res.results[0].error().attempt_number, std::size_t(1));
+            CHECK_EQ(res.size(), std::size_t(1));
+            CHECK(!res[0]);
+            CHECK_EQ(res[0].error().attempt_number, std::size_t(1));
 #endif
         }
 

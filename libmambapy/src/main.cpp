@@ -13,12 +13,15 @@
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/stl_bind.h>
 
 #include "mamba/api/clean.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/download_progress_bar.hpp"
 #include "mamba/core/execution.hpp"
+#include "mamba/core/fetch.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/pool.hpp"
@@ -170,6 +173,98 @@ namespace mambapy
     };
 
     Singletons singletons;
+
+    // MSubdirData objects are movable only, and they need to be moved into
+    // a std::vector before we call MSudbirData::download. Since we cannot
+    // replicate the move semantics in Python, we encapsulate the creation
+    // and the storage of MSubdirData objects in this class, to avoid
+    // potential dangling references in Python.
+    class SubdirIndex
+    {
+    public:
+
+        struct Entry
+        {
+            mamba::MSubdirData* p_subdirdata = nullptr;
+            std::string m_platform = "";
+            const mamba::Channel* p_channel = nullptr;
+            std::string m_url = "";
+        };
+
+        using entry_list = std::vector<Entry>;
+        using iterator = entry_list::const_iterator;
+
+        void create(
+            mamba::ChannelContext& channel_context,
+            const mamba::Channel& channel,
+            const std::string& platform,
+            const std::string& full_url,
+            mamba::MultiPackageCache& caches,
+            const std::string& repodata_fn,
+            const std::string& url
+        )
+        {
+            using namespace mamba;
+            m_subdirs.push_back(extract(
+                MSubdirData::create(channel_context, channel, platform, full_url, caches, repodata_fn)
+            ));
+            m_entries.push_back({ nullptr, platform, &channel, url });
+            for (size_t i = 0; i < m_subdirs.size(); ++i)
+            {
+                m_entries[i].p_subdirdata = &(m_subdirs[i]);
+            }
+        }
+
+        bool download()
+        {
+            using namespace mamba;
+            // TODO: expose DownloadProgressBar to libmambapy and remove this
+            //  logic
+            Context& ctx = mambapy::singletons.context();
+            expected_t<void> download_res;
+            if (DownloadProgressBar::can_monitor(ctx))
+            {
+                DownloadProgressBar check_monitor({ true, true });
+                DownloadProgressBar index_monitor;
+                download_res = MSubdirData::download_indexes(
+                    m_subdirs,
+                    ctx,
+                    &check_monitor,
+                    &index_monitor
+                );
+            }
+            else
+            {
+                download_res = MSubdirData::download_indexes(m_subdirs, ctx);
+            }
+            return download_res.has_value();
+        }
+
+        std::size_t size() const
+        {
+            return m_entries.size();
+        }
+
+        const Entry& operator[](std::size_t index) const
+        {
+            return m_entries[index];
+        }
+
+        iterator begin() const
+        {
+            return m_entries.begin();
+        }
+
+        iterator end() const
+        {
+            return m_entries.end();
+        }
+
+    private:
+
+        std::vector<mamba::MSubdirData> m_subdirs;
+        entry_list m_entries;
+    };
 }
 
 PYBIND11_MODULE(bindings, m)
@@ -520,47 +615,58 @@ PYBIND11_MODULE(bindings, m)
         );
 
     py::class_<MSubdirData>(m, "SubdirData")
-        .def(py::init(
-            [](const Channel& channel,
-               const std::string& platform,
-               const std::string& url,
-               MultiPackageCache& caches,
-               const std::string& repodata_fn) -> MSubdirData
-            {
-                auto sres = MSubdirData::create(
-                    mambapy::singletons.channel_context(),
-                    channel,
-                    platform,
-                    url,
-                    caches,
-                    repodata_fn
-                );
-                return extract(std::move(sres));
-            }
-        ))
         .def(
             "create_repo",
             [](MSubdirData& subdir, MPool& pool) -> MRepo
             { return extract(subdir.create_repo(pool)); }
         )
-        .def("loaded", &MSubdirData::loaded)
+        .def("loaded", &MSubdirData::is_loaded)
         .def(
             "cache_path",
             [](const MSubdirData& self) -> std::string { return extract(self.cache_path()); }
-        )
+        );
+
+    using mambapy::SubdirIndex;
+    using SubdirIndexEntry = SubdirIndex::Entry;
+
+    py::class_<SubdirIndexEntry>(m, "SubdirIndexEntry")
+        .def(py::init<>())
+        .def_readonly("subdir", &SubdirIndexEntry::p_subdirdata, py::return_value_policy::reference)
+        .def_readonly("platform", &SubdirIndexEntry::m_platform)
+        .def_readonly("channel", &SubdirIndexEntry::p_channel, py::return_value_policy::reference)
+        .def_readonly("url", &SubdirIndexEntry::m_url);
+
+    py::class_<SubdirIndex>(m, "SubdirIndex")
+        .def(py::init<>())
         .def(
-            "download_and_check_targets",
-            [](MSubdirData& self, MultiDownloadTarget& multi_download) -> bool
+            "create",
+            [](SubdirIndex& self,
+               const Channel& channel,
+               const std::string& platform,
+               const std::string& full_url,
+               MultiPackageCache& caches,
+               const std::string& repodata_fn,
+               const std::string& url)
             {
-                for (auto& check_target : self.check_targets())
-                {
-                    multi_download.add(check_target.get());
-                }
-                multi_download.download(MAMBA_NO_CLEAR_PROGRESS_BARS);
-                return self.check_targets().size();
+                self.create(
+                    mambapy::singletons.channel_context(),
+                    channel,
+                    platform,
+                    full_url,
+                    caches,
+                    repodata_fn,
+                    url
+                );
             }
         )
-        .def("finalize_checks", &MSubdirData::finalize_checks);
+        .def("download", &SubdirIndex::download)
+        .def("__len__", &SubdirIndex::size)
+        .def("__getitem__", &SubdirIndex::operator[])
+        .def(
+            "__iter__",
+            [](SubdirIndex& self) { return py::make_iterator(self.begin(), self.end()); },
+            py::keep_alive<0, 1>()
+        );
 
     m.def("cache_fn_url", &cache_fn_url);
     m.def("create_cache_dir", &create_cache_dir);
@@ -569,10 +675,6 @@ PYBIND11_MODULE(bindings, m)
         .def(py::init(
             [] { return std::make_unique<MultiDownloadTarget>(mambapy::singletons.context()); }
         ))
-        .def(
-            "add",
-            [](MultiDownloadTarget& self, MSubdirData& sub) -> void { self.add(sub.target()); }
-        )
         .def("download", &MultiDownloadTarget::download);
 
     py::enum_<ChannelPriority>(m, "ChannelPriority")

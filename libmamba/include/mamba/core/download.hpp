@@ -15,6 +15,7 @@
 #include <tl/expected.hpp>
 
 #include "mamba/core/context.hpp"
+#include "mamba/core/error_handling.hpp"
 
 namespace mamba
 {
@@ -23,7 +24,7 @@ namespace mamba
         int http_status = 0;
         std::string effective_url = "";
         std::size_t downloaded_size = 0;
-        std::size_t average_speed = 0;
+        std::size_t average_speed_Bps = 0;
     };
 
     struct DownloadSuccess
@@ -48,6 +49,7 @@ namespace mamba
     {
         std::size_t downloaded_size = 0;
         std::size_t total_to_download = 0;
+        std::size_t speed_Bps = 0;
     };
 
     using DownloadEvent = std::variant<DownloadProgress, DownloadError, DownloadSuccess>;
@@ -57,7 +59,7 @@ namespace mamba
         using progress_callback_t = std::function<void(const DownloadEvent&)>;
 
         // TODO: remove these functions when we plug a library with continuation
-        using on_success_callback_t = std::function<bool(const DownloadSuccess&)>;
+        using on_success_callback_t = std::function<expected_t<void>(const DownloadSuccess&)>;
         using on_failure_callback_t = std::function<void(const DownloadError&)>;
 
         std::string name;
@@ -66,8 +68,8 @@ namespace mamba
         bool head_only;
         bool ignore_failure;
         std::optional<std::size_t> expected_size = std::nullopt;
-        std::optional<std::string> if_none_match = std::nullopt;
-        std::optional<std::string> if_modified_since = std::nullopt;
+        std::optional<std::string> etag = std::nullopt;
+        std::optional<std::string> last_modified = std::nullopt;
 
         std::optional<progress_callback_t> progress = std::nullopt;
         std::optional<on_success_callback_t> on_success = std::nullopt;
@@ -82,29 +84,53 @@ namespace mamba
         );
     };
 
-    using DownloadRequestList = std::vector<DownloadRequest>;
-
-    struct MultiDownloadRequest
-    {
-        DownloadRequestList requests;
-    };
+    using MultiDownloadRequest = std::vector<DownloadRequest>;
 
     using DownloadResult = tl::expected<DownloadSuccess, DownloadError>;
-    using DownloadResultList = std::vector<DownloadResult>;
-
-    struct MultiDownloadResult
-    {
-        DownloadResultList results;
-    };
+    using MultiDownloadResult = std::vector<DownloadResult>;
 
     struct DownloadOptions
     {
+        using termination_function = std::optional<std::function<void()>>;
+
         bool fail_fast = false;
         bool sort = true;
+        termination_function on_unexpected_termination = std::nullopt;
     };
 
-    MultiDownloadResult
-    download(MultiDownloadRequest requests, const Context& context, DownloadOptions options = {});
+    class DownloadMonitor
+    {
+    public:
+
+        virtual ~DownloadMonitor() = default;
+
+        DownloadMonitor(const DownloadMonitor&) = delete;
+        DownloadMonitor& operator=(const DownloadMonitor&) = delete;
+        DownloadMonitor(DownloadMonitor&&) = delete;
+        DownloadMonitor& operator=(DownloadMonitor&&) = delete;
+
+        void observe(MultiDownloadRequest& requests, DownloadOptions& options);
+        void on_done();
+        void on_unexpected_termination();
+
+    protected:
+
+        DownloadMonitor() = default;
+
+    private:
+
+        virtual void observe_impl(MultiDownloadRequest& requests, DownloadOptions& options) = 0;
+        virtual void on_done_impl() = 0;
+        virtual void on_unexpected_termination_impl() = 0;
+    };
+
+    MultiDownloadResult download(
+        MultiDownloadRequest requests,
+        const Context& context,
+        DownloadOptions options = {},
+        DownloadMonitor* monitor = nullptr
+    );
+
 }
 
 #endif

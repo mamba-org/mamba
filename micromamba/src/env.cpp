@@ -173,7 +173,7 @@ set_env_command(CLI::App* com, Configuration& config)
                         continue;
                     }
 
-                    const Channel& channel = channel_context.make_channel(v.url);
+                    const Channel& channel = channel_context.make_channel(v.channel);
 
                     if (from_history)
                     {

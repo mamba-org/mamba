@@ -11,6 +11,8 @@
 #include <regex>
 #include <string>
 
+#include <nlohmann/json_fwd.hpp>
+
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/download.hpp"
@@ -72,7 +74,7 @@ namespace mamba
         time_type m_stored_mtime;
         std::size_t m_stored_file_size;
 
-        struct checked_at
+        struct CheckedAt
         {
             bool value;
             std::time_t last_checked;
@@ -80,7 +82,13 @@ namespace mamba
             bool has_expired() const;
         };
 
-        std::optional<checked_at> m_has_zst;
+        std::optional<CheckedAt> m_has_zst;
+
+        friend void to_json(nlohmann::json& j, const CheckedAt& ca);
+        friend void from_json(const nlohmann::json& j, CheckedAt& ca);
+
+        friend void to_json(nlohmann::json& j, const MSubdirMetadata& data);
+        friend void from_json(const nlohmann::json& j, MSubdirMetadata& data);
     };
 
     /**

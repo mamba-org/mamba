@@ -122,7 +122,6 @@ namespace mamba
         virtual void observe_impl(MultiDownloadRequest& requests, DownloadOptions& options) = 0;
         virtual void on_done_impl() = 0;
         virtual void on_unexpected_termination_impl() = 0;
-
     };
 
     MultiDownloadResult download(

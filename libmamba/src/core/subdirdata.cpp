@@ -11,6 +11,7 @@
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/thread_utils.hpp"
+#include "mamba/util/json.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
@@ -109,6 +110,53 @@ namespace mamba
         }
     }
 
+    /*******************
+     * MSubdirMetadata *
+     *******************/
+
+    void to_json(nlohmann::json& j, const MSubdirMetadata::CheckedAt& ca)
+    {
+        j["value"] = ca.value;
+        j["last_checked"] = timestamp(ca.last_checked);
+    }
+
+    void from_json(const nlohmann::json& j, MSubdirMetadata::CheckedAt& ca)
+    {
+        int err_code = 0;
+        ca.value = j["value"].get<bool>();
+        ca.last_checked = parse_utc_timestamp(j["last_checked"].get<std::string>(), err_code);
+    }
+
+    void to_json(nlohmann::json& j, const MSubdirMetadata& data)
+    {
+        j["url"] = data.m_http.url;
+        j["etag"] = data.m_http.etag;
+        j["mod"] = data.m_http.last_modified;
+        j["cache_control"] = data.m_http.cache_control;
+        j["size"] = data.m_stored_file_size;
+
+        auto nsecs = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            data.m_stored_mtime.time_since_epoch()
+        );
+        j["mtime_ns"] = nsecs.count();
+        j["has_zst"] = data.m_has_zst;
+    }
+
+    void from_json(const nlohmann::json& j, MSubdirMetadata& data)
+    {
+        data.m_http.url = j["url"].get<std::string>();
+        data.m_http.etag = j["etag"].get<std::string>();
+        data.m_http.last_modified = j["mod"].get<std::string>();
+        data.m_http.cache_control = j["cache_control"].get<std::string>();
+        data.m_stored_file_size = j["size"].get<std::size_t>();
+
+        using time_type = decltype(data.m_stored_mtime);
+        data.m_stored_mtime = time_type(std::chrono::duration_cast<time_type::duration>(
+            std::chrono::nanoseconds(j["mtime_ns"].get<std::size_t>())
+        ));
+        util::deserialize_maybe_missing(j, "has_zst", data.m_has_zst);
+    }
+
     auto MSubdirMetadata::read(const fs::u8path& file) -> expected_subdir_metadata
     {
         fs::u8path state_file = file;
@@ -125,23 +173,7 @@ namespace mamba
 
     void MSubdirMetadata::write(const fs::u8path& file)
     {
-        nlohmann::json j;
-        j["url"] = m_http.url;
-        j["etag"] = m_http.etag;
-        j["mod"] = m_http.last_modified;
-        j["cache_control"] = m_http.cache_control;
-        j["size"] = m_stored_file_size;
-
-        auto nsecs = std::chrono::duration_cast<std::chrono::nanoseconds>(
-            m_stored_mtime.time_since_epoch()
-        );
-        j["mtime_ns"] = nsecs.count();
-
-        if (m_has_zst.has_value())
-        {
-            j["has_zst"]["value"] = m_has_zst.value().value;
-            j["has_zst"]["last_checked"] = timestamp(m_has_zst.value().last_checked);
-        }
+        nlohmann::json j = *this;
         std::ofstream out = open_ofstream(file);
         out << j.dump(4);
     }
@@ -220,25 +252,7 @@ namespace mamba
         MSubdirMetadata m;
         try
         {
-            m.m_http.url = j["url"].get<std::string>();
-            m.m_http.etag = j["etag"].get<std::string>();
-            m.m_http.last_modified = j["mod"].get<std::string>();
-            m.m_http.cache_control = j["cache_control"].get<std::string>();
-            m.m_stored_file_size = j["size"].get<std::size_t>();
-
-            using time_type = decltype(m.m_stored_mtime);
-            m.m_stored_mtime = time_type(std::chrono::duration_cast<time_type::duration>(
-                std::chrono::nanoseconds(j["mtime_ns"].get<std::size_t>())
-            ));
-
-            int err_code = 0;
-            if (j.find("has_zst") != j.end())
-            {
-                m.m_has_zst = {
-                    j["has_zst"]["value"].get<bool>(),
-                    parse_utc_timestamp(j["has_zst"]["last_checked"].get<std::string>(), err_code)
-                };
-            }
+            m = j.get<MSubdirMetadata>();
         }
         catch (const std::exception& e)
         {
@@ -270,7 +284,7 @@ namespace mamba
         -> expected_subdir_metadata
     {
         std::ifstream in_file = open_ifstream(repodata_file);
-        std::string json = extract_subjson(in_file);
+        const std::string json = extract_subjson(in_file);
 
         try
         {
@@ -292,7 +306,7 @@ namespace mamba
         }
     }
 
-    bool MSubdirMetadata::checked_at::has_expired() const
+    bool MSubdirMetadata::CheckedAt::has_expired() const
     {
         // difference in seconds, check every 14 days
         constexpr double expiration = 60 * 60 * 24 * 14;
@@ -601,8 +615,8 @@ namespace mamba
                 m_metadata.cache_control(),
                 static_cast<int>(context.local_repodata_ttl)
             );
-            const auto cache_age_seconds = std::chrono::duration_cast<std::chrono::seconds>(cache_age).count(
-            );
+            const auto cache_age_seconds = std::chrono::duration_cast<std::chrono::seconds>(cache_age)
+                                               .count();
 
             if ((max_age > cache_age_seconds || context.offline || context.use_index_cache))
             {
@@ -729,9 +743,9 @@ namespace mamba
             else
             {
                 return finalize_transfer(MSubdirMetadata::HttpMetadata{ success.transfer.effective_url,
-                                                                         success.etag,
-                                                                         success.last_modified,
-                                                                         success.cache_control });
+                                                                        success.etag,
+                                                                        success.last_modified,
+                                                                        success.cache_control });
             }
         };
 
@@ -763,7 +777,8 @@ namespace mamba
         fs::u8path json_file = m_expired_cache_path / "cache" / m_json_fn;
         fs::u8path solv_file = m_expired_cache_path / "cache" / m_solv_fn;
 
-        if (path::is_writable(json_file) && (!fs::is_regular_file(solv_file) || path::is_writable(solv_file)))
+        if (path::is_writable(json_file)
+            && (!fs::is_regular_file(solv_file) || path::is_writable(solv_file)))
         {
             LOG_DEBUG << "Refreshing cache files ages";
             m_valid_cache_path = m_expired_cache_path;
@@ -886,11 +901,8 @@ namespace mamba
     {
         const auto cache_dir = cache_path / "cache";
         fs::create_directories(cache_dir);
-        const auto new_permissions = fs::perms::set_gid
-            | fs::perms::owner_all
-            | fs::perms::group_all
-            | fs::perms::others_read
-            | fs::perms::others_exec;
+        const auto new_permissions = fs::perms::set_gid | fs::perms::owner_all | fs::perms::group_all
+                                     | fs::perms::others_read | fs::perms::others_exec;
         fs::permissions(cache_dir.string().c_str(), new_permissions, fs::perm_options::replace);
         return cache_dir.string();
     }

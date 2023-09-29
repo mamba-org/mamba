@@ -18,15 +18,15 @@ namespace mamba
     namespace
     {
 
-        std::array<const char*, 6> cert_locations{
-            "/etc/ssl/certs/ca-certificates.crt",  // Debian/Ubuntu/Gentoo etc.
-            "/etc/pki/tls/certs/ca-bundle.crt",    // Fedora/RHEL 6
-            "/etc/ssl/ca-bundle.pem",              // OpenSUSE
-            "/etc/pki/tls/cacert.pem",             // OpenELEC
+        constexpr std::array<const char*, 6> cert_locations{
+            "/etc/ssl/certs/ca-certificates.crt",                 // Debian/Ubuntu/Gentoo etc.
+            "/etc/pki/tls/certs/ca-bundle.crt",                   // Fedora/RHEL 6
+            "/etc/ssl/ca-bundle.pem",                             // OpenSUSE
+            "/etc/pki/tls/cacert.pem",                            // OpenELEC
             "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",  // CentOS/RHEL 7
             "/etc/ssl/cert.pem",                                  // Alpine Linux
         };
-        
+
         void init_remote_fetch_params(Context::RemoteFetchParams& remote_fetch_params)
         {
             if (!remote_fetch_params.curl_initialized)
@@ -81,8 +81,9 @@ namespace mamba
 
                     if (!found)
                     {
-                        LOG_ERROR << "No CA certificates found on system";
-                        throw std::runtime_error("Aborting.");
+                        const std::string msg = "No CA certificates found on system, aborting";
+                        LOG_ERROR << msg;
+                        throw mamba_error(msg, mamba_error_code::openssl_failed);
                     }
                 }
 
@@ -410,9 +411,10 @@ namespace mamba
     )
     {
         auto* self = reinterpret_cast<DownloadAttempt*>(f);
-        auto speed_Bps = self->m_handle.get_info<std::size_t>(CURLINFO_SPEED_DOWNLOAD_T).value_or(0);
-        size_t total = total_to_download ? static_cast<std::size_t>(total_to_download)
-                                         : self->p_request->expected_size.value_or(0);
+        const auto speed_Bps = self->m_handle.get_info<std::size_t>(CURLINFO_SPEED_DOWNLOAD_T)
+                                   .value_or(0);
+        const size_t total = total_to_download ? static_cast<std::size_t>(total_to_download)
+                                               : self->p_request->expected_size.value_or(0);
         self->p_request->progress.value()(
             DownloadProgress{ static_cast<std::size_t>(now_downloaded), total, speed_Bps }
         );
@@ -815,7 +817,7 @@ namespace mamba
     {
         on_done_impl();
     }
-    
+
     MultiDownloadResult download(
         MultiDownloadRequest requests,
         const Context& context,

@@ -73,8 +73,8 @@ jobs:
           mamba env update -f mamba/tests/update_env.yml
 
       - uses: JasonEtco/create-an-issue@1a16035489d05041b9af40b970f02e301c52ffba
-        if: failure()
+        if: failure() && github.repository_owner == 'mamba-org' && github.event_name == 'schedule'
         with:
-          filename: mamba/.github/workflows/bot_issue_template.md
+          filename: .github/workflows/bot_issue_template.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

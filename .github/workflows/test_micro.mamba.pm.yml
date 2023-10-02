@@ -1,6 +1,7 @@
 name: Test micro.mamba.pm
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: '0 10 * * *'
 
@@ -42,8 +43,13 @@ jobs:
         # use either -l or -i to source .bash_profile or .bashrc/.zshrc
         run: |
           ${{ matrix.shell }} ${{ matrix.shell-source-param }} -ec micromamba
+  issue:
+    runs-on: ubuntu-latest
+    needs: test_micro_mamba_pm
+    if: failure() && github.repository_owner == 'mamba-org' && github.event_name == 'schedule'
+    steps:
+      - uses: actions/checkout@v3
       - uses: JasonEtco/create-an-issue@1a16035489d05041b9af40b970f02e301c52ffba
-        if: failure()
         with:
           filename: mamba/.github/workflows/bot_issue_template.md
         env:

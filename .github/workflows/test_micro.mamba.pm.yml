@@ -51,6 +51,6 @@ jobs:
       - uses: actions/checkout@v3
       - uses: JasonEtco/create-an-issue@1a16035489d05041b9af40b970f02e301c52ffba
         with:
-          filename: mamba/.github/workflows/bot_issue_template.md
+          filename: .github/workflows/bot_issue_template.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,8 +1,13 @@
 #include "mamba/core/download.hpp"
+#include "mamba/core/invoke.hpp"
+#include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/util_scope.hpp"
+#include "mamba/util/build.hpp"
 #include "mamba/util/iterator.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
+#include "mamba/util/url_manip.hpp"
 
 #include "curl.hpp"
 #include "download_impl.hpp"
@@ -10,17 +15,91 @@
 namespace mamba
 {
 
+    namespace
+    {
+
+        constexpr std::array<const char*, 6> cert_locations{
+            "/etc/ssl/certs/ca-certificates.crt",                 // Debian/Ubuntu/Gentoo etc.
+            "/etc/pki/tls/certs/ca-bundle.crt",                   // Fedora/RHEL 6
+            "/etc/ssl/ca-bundle.pem",                             // OpenSUSE
+            "/etc/pki/tls/cacert.pem",                            // OpenELEC
+            "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",  // CentOS/RHEL 7
+            "/etc/ssl/cert.pem",                                  // Alpine Linux
+        };
+
+        void init_remote_fetch_params(Context::RemoteFetchParams& remote_fetch_params)
+        {
+            if (!remote_fetch_params.curl_initialized)
+            {
+                if (remote_fetch_params.ssl_verify == "<false>")
+                {
+                    LOG_DEBUG << "'ssl_verify' not activated, skipping cURL SSL init";
+                    remote_fetch_params.curl_initialized = true;
+                    return;
+                }
+#ifdef LIBMAMBA_STATIC_DEPS
+                CURLHandle handle;
+                auto init_res = handle.get_ssl_backend_info();
+                switch (init_res.second)
+                {
+                    case CurlLogLevel::kInfo:
+                    {
+                        LOG_INFO << init_res.first;
+                        break;
+                    }
+                    case CurlLogLevel::kWarning:
+                    {
+                        LOG_WARNING << init_res.first;
+                        break;
+                    }
+                    case CurlLogLevel::kError:
+                    {
+                        LOG_ERROR << init_res.first;
+                        break;
+                    }
+                }
+#endif
+
+                if (!remote_fetch_params.ssl_verify.size()
+                    && std::getenv("REQUESTS_CA_BUNDLE") != nullptr)
+                {
+                    remote_fetch_params.ssl_verify = std::getenv("REQUESTS_CA_BUNDLE");
+                    LOG_INFO << "Using REQUESTS_CA_BUNDLE " << remote_fetch_params.ssl_verify;
+                }
+                else if (remote_fetch_params.ssl_verify == "<system>" && util::on_linux)
+                {
+                    bool found = false;
+
+                    for (const auto& loc : cert_locations)
+                    {
+                        if (fs::exists(loc))
+                        {
+                            remote_fetch_params.ssl_verify = loc;
+                            found = true;
+                        }
+                    }
+
+                    if (!found)
+                    {
+                        const std::string msg = "No CA certificates found on system, aborting";
+                        LOG_ERROR << msg;
+                        throw mamba_error(msg, mamba_error_code::openssl_failed);
+                    }
+                }
+
+                remote_fetch_params.curl_initialized = true;
+            }
+        }
+    }
+
     /**********************************
      * DownloadAttempt implementation *
      **********************************/
 
     DownloadAttempt::DownloadAttempt(const DownloadRequest& request)
         : p_request(&request)
+        , p_stream(nullptr)
     {
-        p_stream = make_compression_stream(
-            p_request->url,
-            [this](char* in, std::size_t size) { return this->write_data(in, size); }
-        );
         m_retry_wait_seconds = std::size_t(0);
     }
 
@@ -31,6 +110,10 @@ namespace mamba
         on_failure_callback error
     )
     {
+        p_stream = make_compression_stream(
+            p_request->url,
+            [this](char* in, std::size_t size) { return this->write_data(in, size); }
+        );
         m_retry_wait_seconds = static_cast<std::size_t>(context.remote_fetch_params.retry_timeout);
         configure_handle(context);
         downloader.add_handle(m_handle);
@@ -44,7 +127,8 @@ namespace mamba
     {
         bool is_http_status_ok(int http_status)
         {
-            return http_status / 100 == 2;
+            // Note: http_status == 0 for files
+            return http_status / 100 == 2 || http_status == 304 || http_status == 0;
         }
     }
 
@@ -161,7 +245,7 @@ namespace mamba
                                        || (ssl_no_revoke_env != "0");
 
         m_handle.configure_handle(
-            p_request->url,
+            util::file_uri_unc2_to_unc4(p_request->url),
             set_low_speed_opt,
             context.remote_fetch_params.connect_timeout_secs,
             set_ssl_no_revoke,
@@ -231,14 +315,14 @@ namespace mamba
             }
         }
 
-        if (p_request->if_none_match.has_value())
+        if (p_request->etag.has_value())
         {
-            m_handle.add_header("If-None-Match:" + p_request->if_none_match.value());
+            m_handle.add_header("If-None-Match:" + p_request->etag.value());
         }
 
-        if (p_request->if_modified_since.has_value())
+        if (p_request->last_modified.has_value())
         {
-            m_handle.add_header("If-Modified-Since:" + p_request->if_modified_since.value());
+            m_handle.add_header("If-Modified-Since:" + p_request->last_modified.value());
         }
 
         m_handle.set_opt_header();
@@ -309,6 +393,7 @@ namespace mamba
                 s->m_last_modified = value;
             }
         }
+
         return buffer_size;
     }
 
@@ -326,9 +411,13 @@ namespace mamba
     )
     {
         auto* self = reinterpret_cast<DownloadAttempt*>(f);
-        self->p_request->progress.value()(DownloadProgress{
-            static_cast<std::size_t>(total_to_download),
-            static_cast<std::size_t>(now_downloaded) });
+        const auto speed_Bps = self->m_handle.get_info<std::size_t>(CURLINFO_SPEED_DOWNLOAD_T)
+                                   .value_or(0);
+        const size_t total = total_to_download ? static_cast<std::size_t>(total_to_download)
+                                               : self->p_request->expected_size.value_or(0);
+        self->p_request->progress.value()(
+            DownloadProgress{ static_cast<std::size_t>(now_downloaded), total, speed_Bps }
+        );
         return 0;
     }
 
@@ -355,10 +444,16 @@ namespace mamba
 
     TransferData DownloadAttempt::get_transfer_data() const
     {
+        // Curl transforms file URI like file:///C/something into file://C/something, which
+        // may lead to wrong comparisons later. When the URL is a file URI, we know there is
+        // no redirection and we can use the input URL as the effective URL.
+        std::string url = util::is_file_uri(p_request->url)
+                              ? p_request->url
+                              : m_handle.get_info<char*>(CURLINFO_EFFECTIVE_URL).value();
         return {
             /* .http_status = */ m_handle.get_info<int>(CURLINFO_RESPONSE_CODE)
                 .value_or(http::ARBITRARY_ERROR),
-            /* .effective_url = */ m_handle.get_info<char*>(CURLINFO_EFFECTIVE_URL).value(),
+            /* .effective_url = */ std::move(url),
             /* .dwonloaded_size = */ m_handle.get_info<std::size_t>(CURLINFO_SIZE_DOWNLOAD_T).value_or(0),
             /* .average_speed = */ m_handle.get_info<std::size_t>(CURLINFO_SPEED_DOWNLOAD_T).value_or(0)
         };
@@ -396,7 +491,7 @@ namespace mamba
     DownloadSuccess DownloadAttempt::build_download_success(TransferData data) const
     {
         return { /*.filename = */ p_request->filename,
-                 /*.trnasfer = */ std::move(data),
+                 /*.transfer = */ std::move(data),
                  /*.cache_control = */ m_cache_control,
                  /*.etag = */ m_etag,
                  /*.last_modified = */ m_last_modified };
@@ -419,6 +514,7 @@ namespace mamba
     auto DownloadTracker::prepare_new_attempt(CURLMultiHandle& handle, const Context& context)
         -> completion_map_entry
     {
+        m_state = DownloadState::PREPARING;
         m_next_retry = std::nullopt;
 
         CURLId id = m_attempt.prepare_download(
@@ -426,9 +522,9 @@ namespace mamba
             context,
             [this](DownloadSuccess res)
             {
-                bool finalize_res = invoke_on_success(res);
-                set_state(finalize_res);
-                throw_if_required(res);
+                expected_t<void> finalize_res = invoke_on_success(res);
+                set_state(finalize_res.has_value());
+                throw_if_required(finalize_res);
                 save(std::move(res));
                 return is_waiting();
             },
@@ -451,25 +547,31 @@ namespace mamba
                    || m_next_retry.value() < std::chrono::steady_clock::now());
     }
 
+    void DownloadTracker::set_transfer_started()
+    {
+        m_state = DownloadState::RUNNING;
+    }
+
     const DownloadResult& DownloadTracker::get_result() const
     {
         return m_attempt_results.back();
     }
 
-    bool DownloadTracker::invoke_on_success(const DownloadSuccess& res) const
+    expected_t<void> DownloadTracker::invoke_on_success(const DownloadSuccess& res) const
     {
         if (p_request->on_success.has_value())
         {
-            return p_request->on_success.value()(res);
+            auto ret = safe_invoke(p_request->on_success.value(), res);
+            return ret.has_value() ? ret.value() : forward_error(ret);
         }
-        return true;
+        return expected_t<void>();
     }
 
     void DownloadTracker::invoke_on_failure(const DownloadError& res) const
     {
         if (p_request->on_failure.has_value())
         {
-            p_request->on_failure.value()(res);
+            safe_invoke(p_request->on_failure.value(), res);
         }
     }
 
@@ -518,18 +620,11 @@ namespace mamba
         }
     }
 
-    void DownloadTracker::throw_if_required(const DownloadSuccess& res)
+    void DownloadTracker::throw_if_required(const expected_t<void>& res)
     {
         if (m_state == DownloadState::FAILED && !p_request->ignore_failure && m_options.fail_fast)
         {
-            throw std::runtime_error(
-                "Multi-download failed. Reason: "
-                + build_transfer_message(
-                    res.transfer.http_status,
-                    res.transfer.effective_url,
-                    res.transfer.downloaded_size
-                )
-            );
+            throw res.error();
         }
     }
 
@@ -567,20 +662,20 @@ namespace mamba
         if (m_options.sort)
         {
             std::sort(
-                m_requests.requests.begin(),
-                m_requests.requests.end(),
+                m_requests.begin(),
+                m_requests.end(),
                 [](const DownloadRequest& a, const DownloadRequest& b) -> bool
                 { return a.expected_size.value_or(SIZE_MAX) > b.expected_size.value_or(SIZE_MAX); }
             );
         }
 
-        m_trackers.reserve(m_requests.requests.size());
+        m_trackers.reserve(m_requests.size());
         std::size_t max_retries = static_cast<std::size_t>(context.remote_fetch_params.max_retries);
         DownloadTrackerOptions tracker_options{ max_retries, options.fail_fast };
         std::transform(
-            m_requests.requests.begin(),
-            m_requests.requests.end(),
-            std::inserter(m_trackers, m_trackers.begin()),
+            m_requests.begin(),
+            m_requests.end(),
+            std::back_inserter(m_trackers),
             [tracker_options](const DownloadRequest& req)
             { return DownloadTracker(req, tracker_options); }
         );
@@ -591,6 +686,11 @@ namespace mamba
     {
         while (!download_done())
         {
+            if (is_sig_interrupted())
+            {
+                invoke_unexpected_termination();
+                break;
+            }
             prepare_next_downloads();
             update_downloads();
         }
@@ -614,6 +714,7 @@ namespace mamba
             );
             if (success)
             {
+                tracker.set_transfer_started();
                 ++running_attempts;
             }
         }
@@ -622,6 +723,12 @@ namespace mamba
     void Downloader::update_downloads()
     {
         std::size_t still_running = m_curl_handle.perform();
+
+        if (still_running == m_waiting_count)
+        {
+            m_curl_handle.wait(m_curl_handle.get_timeout());
+        }
+
         while (auto resp = m_curl_handle.pop_message())
         {
             const auto& msg = resp.value();
@@ -658,7 +765,7 @@ namespace mamba
 
     MultiDownloadResult Downloader::build_result() const
     {
-        DownloadResultList result;
+        MultiDownloadResult result;
         result.reserve(m_trackers.size());
         std::transform(
             m_trackers.begin(),
@@ -666,7 +773,15 @@ namespace mamba
             std::inserter(result, result.begin()),
             [](const DownloadTracker& tracker) { return tracker.get_result(); }
         );
-        return { result };
+        return result;
+    }
+
+    void Downloader::invoke_unexpected_termination() const
+    {
+        if (m_options.on_unexpected_termination.has_value())
+        {
+            safe_invoke(m_options.on_unexpected_termination.value());
+        }
     }
 
     /*****************************
@@ -688,10 +803,48 @@ namespace mamba
     {
     }
 
-    MultiDownloadResult
-    download(MultiDownloadRequest requests, const Context& context, DownloadOptions options)
+    void DownloadMonitor::observe(MultiDownloadRequest& requests, DownloadOptions& options)
     {
-        Downloader dl(std::move(requests), std::move(options), context);
-        return dl.download();
+        observe_impl(requests, options);
+    }
+
+    void DownloadMonitor::on_done()
+    {
+        on_done_impl();
+    }
+
+    void DownloadMonitor::on_unexpected_termination()
+    {
+        on_done_impl();
+    }
+
+    MultiDownloadResult download(
+        MultiDownloadRequest requests,
+        const Context& context,
+        DownloadOptions options,
+        DownloadMonitor* monitor
+    )
+    {
+        if (!context.remote_fetch_params.curl_initialized)
+        {
+            // TODO: MOve this into an object that would be autmotacially initialized
+            // upon construction, and passed by const reference to this function instead
+            // of context.
+            Context& ctx = const_cast<Context&>(context);
+            init_remote_fetch_params(ctx.remote_fetch_params);
+        }
+
+        if (monitor)
+        {
+            monitor->observe(requests, options);
+            on_scope_exit guard([monitor]() { monitor->on_done(); });
+            Downloader dl(std::move(requests), std::move(options), context);
+            return dl.download();
+        }
+        else
+        {
+            Downloader dl(std::move(requests), std::move(options), context);
+            return dl.download();
+        }
     }
 }

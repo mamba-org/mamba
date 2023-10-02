@@ -15,6 +15,7 @@
 #include <solv/solver.h>
 
 #include "mamba/core/channel.hpp"
+#include "mamba/core/download.hpp"
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
@@ -76,7 +77,7 @@ TEST_SUITE("conflict_map")
     }
 }
 
-TEST_SUITE_BEGIN("satifiability_error");
+TEST_SUITE_BEGIN("satisfiability_error");
 
 namespace
 {
@@ -329,7 +330,6 @@ namespace
      */
     auto load_channels(MPool& pool, MultiPackageCache& cache, std::vector<std::string>&& channels)
     {
-        MultiDownloadTarget dlist{ mambatests::context() };
         auto sub_dirs = std::vector<MSubdirData>();
         for (const auto* chan : pool.channel_context().get_channels(channels))
         {
@@ -338,11 +338,12 @@ namespace
                 auto sub_dir = expected_value_or_throw(
                     MSubdirData::create(pool.channel_context(), *chan, platform, url, cache)
                 );
-                dlist.add(sub_dir.target());
                 sub_dirs.push_back(std::move(sub_dir));
             }
         }
-        dlist.download(MAMBA_DOWNLOAD_FAILFAST);
+
+        MSubdirData::download_indexes(sub_dirs, mambatests::context());
+
         for (auto& sub_dir : sub_dirs)
         {
             sub_dir.create_repo(pool);
@@ -394,7 +395,7 @@ namespace
     }
 }
 
-TEST_CASE("Test create_conda_forge utility ")
+TEST_CASE("Test create_conda_forge utility")
 {
     ChannelContext channel_context{ mambatests::context() };
     auto solver = create_conda_forge(channel_context, { "xtensor>=0.7" });

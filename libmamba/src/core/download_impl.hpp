@@ -105,12 +105,13 @@ namespace mamba
             -> completion_map_entry;
 
         bool can_start_transfer() const;
+        void set_transfer_started();
 
         const DownloadResult& get_result() const;
 
     private:
 
-        bool invoke_on_success(const DownloadSuccess&) const;
+        expected_t<void> invoke_on_success(const DownloadSuccess&) const;
         void invoke_on_failure(const DownloadError&) const;
 
         bool is_waiting() const;
@@ -118,7 +119,15 @@ namespace mamba
         void set_state(bool success);
         void set_state(const DownloadError& res);
 
-        void throw_if_required(const DownloadSuccess&);
+        /**
+         * Invoked when the download succeeded but the download callback
+         * failed.
+         */
+        void throw_if_required(const expected_t<void>&);
+
+        /**
+         * Invoked when the download failed.
+         */
         void throw_if_required(const DownloadError&);
 
         void save(DownloadSuccess&&);
@@ -147,6 +156,7 @@ namespace mamba
         void update_downloads();
         bool download_done() const;
         MultiDownloadResult build_result() const;
+        void invoke_unexpected_termination() const;
 
         MultiDownloadRequest m_requests;
         DownloadOptions m_options;

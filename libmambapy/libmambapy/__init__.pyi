@@ -112,6 +112,8 @@ __all__ = [
     "SpecBase",
     "SpecImpl",
     "SubdirData",
+    "SubdirIndex",
+    "SubdirIndexEntry",
     "TimeRef",
     "Transaction",
     "cache_fn_url",
@@ -829,7 +831,6 @@ class Context:
 
 class DownloadTargetList:
     def __init__(self) -> None: ...
-    def add(self, arg0: SubdirData) -> None: ...
     def download(self, arg0: int) -> bool: ...
     pass
 
@@ -1546,14 +1547,50 @@ class SpecImpl(SpecBase):
     pass
 
 class SubdirData:
-    def __init__(
-        self, arg0: Channel, arg1: str, arg2: str, arg3: MultiPackageCache, arg4: str
-    ) -> None: ...
     def cache_path(self) -> str: ...
     def create_repo(self, arg0: Pool) -> Repo: ...
-    def download_and_check_targets(self, arg0: DownloadTargetList) -> bool: ...
-    def finalize_checks(self) -> None: ...
     def loaded(self) -> bool: ...
+    pass
+
+class SubdirIndex:
+    def __getitem__(self, arg0: int) -> SubdirIndexEntry: ...
+    def __init__(self) -> None: ...
+    def __iter__(self) -> typing.Iterator: ...
+    def __len__(self) -> int: ...
+    def create(
+        self,
+        arg0: Channel,
+        arg1: str,
+        arg2: str,
+        arg3: MultiPackageCache,
+        arg4: str,
+        arg5: str,
+    ) -> None: ...
+    def download(self) -> bool: ...
+    pass
+
+class SubdirIndexEntry:
+    def __init__(self) -> None: ...
+    @property
+    def channel(self) -> Channel:
+        """
+        :type: Channel
+        """
+    @property
+    def platform(self) -> str:
+        """
+        :type: str
+        """
+    @property
+    def subdir(self) -> SubdirData:
+        """
+        :type: SubdirData
+        """
+    @property
+    def url(self) -> str:
+        """
+        :type: str
+        """
     pass
 
 class TimeRef:

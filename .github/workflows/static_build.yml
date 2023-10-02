@@ -138,6 +138,7 @@ jobs:
             fmt
             yaml-cpp-static>=0.8.0
             libsolv-static>=0.7.24
+            reproc-cpp-static>=14.2.4.post0
       - name: build micromamba
         shell: cmd /C call {0}
         run: |

@@ -11,7 +11,7 @@
 #include <string_view>
 
 #include "mamba/core/palette.hpp"
-#include "mamba/filesystem/u8path.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 namespace mamba
 {

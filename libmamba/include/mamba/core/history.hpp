@@ -12,7 +12,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "mamba/filesystem/u8path.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 #include "match_spec.hpp"
 

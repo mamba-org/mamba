@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "mamba/api/install.hpp"
-#include "mamba/filesystem/u8path.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 #include "match_spec.hpp"
 #include "package_cache.hpp"

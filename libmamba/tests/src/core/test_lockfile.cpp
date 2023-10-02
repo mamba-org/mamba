@@ -12,7 +12,7 @@
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/filesystem/u8path.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 #include "spdlog/spdlog.h"
 

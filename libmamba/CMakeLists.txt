@@ -119,7 +119,7 @@ set(LIBMAMBA_SOURCES
     longpath.manifest
     ${LIBMAMBA_SOURCE_DIR}/version.cpp
     # Filesystem library
-    ${LIBMAMBA_SOURCE_DIR}/filesystem/u8path.cpp
+    ${LIBMAMBA_SOURCE_DIR}/fs/filesystem.cpp
     # C++ utility library
     ${LIBMAMBA_SOURCE_DIR}/util/string.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/path_manip.cpp
@@ -211,7 +211,7 @@ endforeach()
 set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/version.hpp
     # Filesystem library
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/filesystem/u8path.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/fs/filesystem.hpp
     # Utility library
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/json.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/deprecation.hpp

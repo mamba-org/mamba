@@ -16,7 +16,7 @@
 #include <vector>
 
 #include "mamba/core/error_handling.hpp"
-#include "mamba/filesystem/u8path.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 #include "tl/expected.hpp"
 

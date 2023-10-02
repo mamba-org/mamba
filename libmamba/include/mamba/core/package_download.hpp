@@ -15,7 +15,7 @@
 #include <tuple>
 #include <vector>
 
-#include "mamba/filesystem/u8path.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 #include "fetch.hpp"
 #include "package_cache.hpp"

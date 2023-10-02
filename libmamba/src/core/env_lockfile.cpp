@@ -9,7 +9,7 @@
 
 #include "mamba/core/env_lockfile.hpp"
 #include "mamba/core/match_spec.hpp"
-#include "mamba/filesystem/u8path.hpp"
+#include "mamba/fs/filesystem.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba

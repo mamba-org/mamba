@@ -13,7 +13,7 @@
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_random.hpp"
 #include "mamba/core/util_scope.hpp"
-#include "mamba/filesystem/u8path.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 #include "mambatests.hpp"
 

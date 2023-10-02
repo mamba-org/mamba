@@ -20,7 +20,7 @@
 #include "mamba/core/pool.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/solver.hpp"
-#include "mamba/filesystem/u8path.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 namespace mamba
 {

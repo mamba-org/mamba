@@ -25,7 +25,7 @@
 #include "mamba/core/pinning.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/virtual_packages.hpp"
-#include "mamba/filesystem/u8path.hpp"
+#include "mamba/fs/filesystem.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba

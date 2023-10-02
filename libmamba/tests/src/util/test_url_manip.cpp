@@ -9,7 +9,7 @@
 
 #include <doctest/doctest.h>
 
-#include "mamba/filesystem/u8path.hpp"
+#include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/platform.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"

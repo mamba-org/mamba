@@ -21,7 +21,7 @@
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/progress_bar.hpp"
 #include "mamba/core/thread_utils.hpp"
-#include "mamba/filesystem/u8path.hpp"
+#include "mamba/fs/filesystem.hpp"
 #include "mamba/util/string.hpp"
 
 #include "progress_bar_impl.hpp"

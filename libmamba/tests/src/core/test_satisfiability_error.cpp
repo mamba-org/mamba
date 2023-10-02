@@ -24,7 +24,7 @@
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_random.hpp"
-#include "mamba/filesystem/u8path.hpp"
+#include "mamba/fs/filesystem.hpp"
 #include "mamba/util/string.hpp"
 
 #include "mambatests.hpp"

@@ -4,7 +4,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/filesystem/u8path.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 #if defined(__APPLE__) || defined(__linux__)
 #include <fcntl.h>

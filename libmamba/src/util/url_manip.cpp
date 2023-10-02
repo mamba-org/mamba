@@ -15,7 +15,7 @@
 #include <fmt/format.h>
 #include <openssl/evp.h>
 
-#include "mamba/filesystem/u8path.hpp"
+#include "mamba/fs/filesystem.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"

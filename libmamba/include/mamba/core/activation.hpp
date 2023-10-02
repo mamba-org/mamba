@@ -12,7 +12,7 @@
 #include <utility>
 #include <vector>
 
-#include "mamba/filesystem/u8path.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 // TODO write a map that keeps insertion order
 

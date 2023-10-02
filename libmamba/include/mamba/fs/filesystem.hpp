@@ -4,8 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef MAMBA_CORE_FS_HPP
-#define MAMBA_CORE_FS_HPP
+#ifndef MAMBA_CORE_FS_FILESYSTEM_HPP
+#define MAMBA_CORE_FS_FILESYSTEM_HPP
 
 #include <filesystem>
 #include <string>
@@ -1335,9 +1335,9 @@ struct std::hash<::mamba::fs::u8path>
 {
     std::size_t operator()(const ::mamba::fs::u8path& path) const noexcept
     {
-        // TODO: once we stop using gcc < 12 we can properly use
-        // std::hash<std::filesystem::path>{}(path.std_path());
-        return std::filesystem::hash_value(path.std_path());
+        return std::filesystem::hash_value(path.std_path()
+        );  // TODO: once we stop using gcc < 12 we can properly use
+            // std::hash<std::filesystem::path>{}(path.std_path());
     }
 };
 

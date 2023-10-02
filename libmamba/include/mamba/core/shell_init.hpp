@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-#include "mamba/filesystem/u8path.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 extern const char data_micromamba_sh[];
 extern const char data_micromamba_csh[];

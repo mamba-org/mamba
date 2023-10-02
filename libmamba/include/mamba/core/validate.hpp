@@ -16,7 +16,7 @@
 
 #include "mamba/core/timeref.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/filesystem/u8path.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 namespace mamba::validation
 {

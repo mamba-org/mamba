@@ -13,7 +13,7 @@
 #include <tuple>
 #include <vector>
 
-#include "mamba/filesystem/u8path.hpp"
+#include "mamba/fs/filesystem.hpp"
 #include "mamba/util/build.hpp"
 
 #include "match_spec.hpp"

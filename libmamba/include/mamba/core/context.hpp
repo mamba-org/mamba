@@ -15,7 +15,7 @@
 #include "mamba/core/common_types.hpp"
 #include "mamba/core/palette.hpp"
 #include "mamba/core/tasksync.hpp"
-#include "mamba/filesystem/u8path.hpp"
+#include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/authentification_info.hpp"
 #include "mamba/specs/platform.hpp"
 #include "mamba/version.hpp"

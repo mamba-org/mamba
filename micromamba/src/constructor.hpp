@@ -7,7 +7,7 @@
 #ifndef UMAMBA_CONSTRUCTOR_HPP
 #define UMAMBA_CONSTRUCTOR_HPP
 
-#include "mamba/filesystem/u8path.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 namespace mamba
 {

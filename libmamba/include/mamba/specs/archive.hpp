@@ -11,7 +11,7 @@
 #include <string_view>
 #include <type_traits>
 
-#include "mamba/filesystem/u8path.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 namespace mamba::specs
 {

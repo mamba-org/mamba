@@ -15,7 +15,7 @@
 
 #include <tl/expected.hpp>
 
-#include "mamba/filesystem/u8path.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 #include "error_handling.hpp"
 #include "fsutil.hpp"

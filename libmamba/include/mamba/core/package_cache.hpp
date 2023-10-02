@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-#include "mamba/filesystem/u8path.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 #include "fsutil.hpp"
 #include "package_info.hpp"

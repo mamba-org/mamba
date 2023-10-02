@@ -26,7 +26,7 @@ extern "C"  // Incomplete header in libsolv 0.7.23
 #include <solv/repo_conda.h>
 }
 
-#include "mamba/filesystem/u8path.hpp"
+#include "mamba/fs/filesystem.hpp"
 #include "solv-cpp/repo.hpp"
 
 namespace mamba::solv

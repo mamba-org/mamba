@@ -11,7 +11,7 @@
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/thread_utils.hpp"
-#include "mamba/filesystem/u8path.hpp"
+#include "mamba/fs/filesystem.hpp"
 #include "mamba/util/json.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"

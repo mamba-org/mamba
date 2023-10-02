@@ -12,7 +12,7 @@
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/run.hpp"
-#include "mamba/filesystem/u8path.hpp"
+#include "mamba/fs/filesystem.hpp"
 #include "mamba/util/string.hpp"
 
 

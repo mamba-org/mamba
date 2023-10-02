@@ -323,6 +323,8 @@ find_package(spdlog REQUIRED)
 find_package(tl-expected REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(yaml-cpp REQUIRED)
+find_package(reproc REQUIRED)
+find_package(reproc++ REQUIRED)
 
 macro(libmamba_create_target target_name linkage output_name)
     string(TOUPPER "${linkage}" linkage_upper)
@@ -357,6 +359,21 @@ macro(libmamba_create_target target_name linkage output_name)
         message("   -> Statically linking against libmamba (static) dependencies")
 
         mamba_target_check_type(yaml-cpp::yaml-cpp STATIC_LIBRARY FATAL_ERROR)
+        mamba_target_check_type(reproc STATIC_LIBRARY FATAL_ERROR)
+        mamba_target_check_type(reproc++ STATIC_LIBRARY FATAL_ERROR)
+
+        target_compile_definitions(${target_name} PUBLIC SPDLOG_FMT_EXTERNAL)
+
+        target_link_libraries(
+            ${target_name}
+            PUBLIC
+                fmt::fmt-header-only
+                spdlog::spdlog_header_only
+                yaml-cpp::yaml-cpp
+            PRIVATE
+                reproc
+                reproc++
+        )
 
         if (UNIX)
 
@@ -386,9 +403,6 @@ macro(libmamba_create_target target_name linkage output_name)
                 liblzma.a
 
                 libnghttp2.a
-
-                libreproc++.a
-                libreproc.a
             )
             if (APPLE)
                 set(REQUIRED_STATIC_DEPS ${REQUIRED_STATIC_DEPS} libc++.a)
@@ -432,16 +446,11 @@ macro(libmamba_create_target target_name linkage output_name)
                 target_link_options(${target_name} PUBLIC -static-libstdc++ -static-libgcc)
             endif()
 
-
-            add_compile_definitions(SPDLOG_FMT_EXTERNAL)
             target_link_libraries(
               ${target_name}
               PUBLIC
                 ${STATIC_DEPS}
                 ${MAMBA_FORCE_DYNAMIC_LIBS}
-                fmt::fmt-header-only
-                spdlog::spdlog_header_only
-                yaml-cpp::yaml-cpp
              )
 
         elseif (WIN32)
@@ -460,7 +469,6 @@ macro(libmamba_create_target target_name linkage output_name)
 
             find_library(LIBSOLV_BUILD_STATICRARIES NAMES solv_static)
             find_library(LIBSOLVEXT_BUILD_STATICRARIES NAMES solvext_static)
-            find_package(reproc++ CONFIG REQUIRED)
 
             find_library(LIBXML2_LIBRARY NAMES libxml2)
             find_library(ICONV_LIBRARY NAMES libiconv iconv)
@@ -479,21 +487,12 @@ macro(libmamba_create_target target_name linkage output_name)
                 ${BZIP2_LIBRARIES}
                 ${LIBLZMA_LIBRARIES}
                 CURL::libcurl
-                fmt::fmt-header-only
-                # Since conda-forge spdlog is built with a bundled version of fmt we use the
-                # header only version to avoid chasing after the correct fmt version mathching
-                # the one used in the bundle
-                spdlog::spdlog_header_only
-                yaml-cpp::yaml-cpp
                 ${LIBSOLV_BUILD_STATICRARIES}
                 ${LIBSOLVEXT_BUILD_STATICRARIES}
                 ${sodium_LIBRARY_RELEASE}
-                reproc++
-                reproc
             )
 
             add_compile_definitions(
-              SPDLOG_FMT_EXTERNAL
               LIBARCHIVE_STATIC
               CURL_STATICLIB
               SOLV_BUILD_STATIC
@@ -513,31 +512,30 @@ macro(libmamba_create_target target_name linkage output_name)
         find_package(zstd REQUIRED)
         find_package(BZip2 REQUIRED)
         find_package(OpenSSL REQUIRED)
-        find_package(reproc++ CONFIG REQUIRED)
 
-        set(LIBMAMBA_LIBRARIES_DEPS
-            ${LIBSOLV_LIBRARIES}
-            ${LIBSOLVEXT_LIBRARIES}
-            ${LibArchive_LIBRARIES}
-            zstd::libzstd_shared
-            ${CURL_LIBRARIES}
-            ${OPENSSL_LIBRARIES}
-            zstd::libzstd_shared
-            BZip2::BZip2
-            yaml-cpp::yaml-cpp
-            reproc++
-            reproc
-            fmt::fmt
-            # Since conda-forge spdlog is built with a bundled version of fmt we use the
-            # header only version to avoid chasing after the correct fmt version mathching
-            # the one used in the bundle
-            spdlog::spdlog_header_only
+        target_compile_definitions(${target_name} PUBLIC SPDLOG_FMT_EXTERNAL)
+
+        target_link_libraries(
+            ${target_name}
+            PUBLIC
+                ${LIBSOLV_LIBRARIES}
+                ${LIBSOLVEXT_LIBRARIES}
+                ${LibArchive_LIBRARIES}
+                zstd::libzstd_shared
+                ${CURL_LIBRARIES}
+                ${OPENSSL_LIBRARIES}
+                zstd::libzstd_shared
+                BZip2::BZip2
+                yaml-cpp::yaml-cpp
+                fmt::fmt
+                # Since conda-forge spdlog is built with a bundled version of fmt we use the
+                # header only version to avoid chasing after the correct fmt version mathching
+                # the one used in the bundle
+                spdlog::spdlog_header_only
+            PRIVATE
+                reproc
+                reproc++
         )
-
-        add_compile_definitions(SPDLOG_FMT_EXTERNAL)
-        target_link_libraries(${target_name} PUBLIC
-                              ${LIBMAMBA_LIBRARIES_DEPS}
-                              ${MAMBA_FORCE_DYNAMIC_LIBS})
     endif ()
 
     target_compile_features(${target_name} PUBLIC cxx_std_17)

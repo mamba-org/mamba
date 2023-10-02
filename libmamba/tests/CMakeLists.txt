@@ -82,7 +82,10 @@ mamba_target_add_compile_warnings(test_libmamba WARNING_AS_ERROR ${MAMBA_WARNING
 
 target_include_directories(
     test_libmamba
-    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/libmamba/src"
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+        "${CMAKE_SOURCE_DIR}/libmamba/src"
 )
 
 find_package(doctest REQUIRED)
@@ -90,8 +93,13 @@ find_package(Threads REQUIRED)
 
 target_link_libraries(
     test_libmamba
-    PUBLIC ${libmamba_target}
-    PRIVATE doctest::doctest Threads::Threads
+    PUBLIC
+        ${libmamba_target}
+        reproc
+        reproc++
+    PRIVATE
+        doctest::doctest
+        Threads::Threads
 )
 
 # Copy data directory into binary dir to avoid modifications

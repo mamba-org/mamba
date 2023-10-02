@@ -4,6 +4,12 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '0 10 * * 0'
+  push:
+    paths:
+      - '.github/workflows/conda_canary.yml'
+  pull_request:
+    paths:
+      - '.github/workflows/conda_canary.yml'
 
 permissions:
   contents: read

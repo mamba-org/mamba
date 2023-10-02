@@ -4,6 +4,12 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '0 10 * * *'
+  push:
+    paths:
+      - '.github/workflows/test_micro.mamba.pm.yml'
+  pull_request:
+    paths:
+      - '.github/workflows/test_micro.mamba.pm.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

@@ -12,7 +12,7 @@ find_path(Libsolvext_INCLUDE_DIR
 )
 
 find_library(Libsolv_LIBRARY
-    NAMES libsolv.so solv.lib
+    NAMES libsolv.so libsolv.dylib solv.lib
     PATHS ${PC_Libsolv_LIBRARY_DIRS}
 )
 find_library(Libsolv_static_LIBRARY
@@ -21,7 +21,7 @@ find_library(Libsolv_static_LIBRARY
 )
 
 find_library(Libsolvext_LIBRARY
-    NAMES libsolvext.so solvext.lib
+    NAMES libsolvext.so libsolvext.dylib solvext.lib
     PATHS ${PC_Libsolv_LIBRARY_DIRS}
 )
 find_library(Libsolvext_static_LIBRARY

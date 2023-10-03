@@ -325,6 +325,7 @@ find_package(nlohmann_json REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(reproc REQUIRED)
 find_package(reproc++ REQUIRED)
+find_package(Libsolv REQUIRED)
 
 macro(libmamba_create_target target_name linkage output_name)
     string(TOUPPER "${linkage}" linkage_upper)
@@ -370,6 +371,8 @@ macro(libmamba_create_target target_name linkage output_name)
                 fmt::fmt-header-only
                 spdlog::spdlog_header_only
                 yaml-cpp::yaml-cpp
+                solv::libsolv_static
+                solv::libsolvext_static
             PRIVATE
                 reproc
                 reproc++
@@ -391,9 +394,6 @@ macro(libmamba_create_target target_name linkage output_name)
                 libcrypto.a
 
                 libarchive.a
-
-                libsolv.a
-                libsolvext.a
 
                 libiconv.a
                 libbz2.a
@@ -467,9 +467,6 @@ macro(libmamba_create_target target_name linkage output_name)
             find_library(BZIP2_LIBRARIES NAMES bz2)
             find_library(CRYPTO_LIBRARIES NAMES libcrypto)
 
-            find_library(LIBSOLV_BUILD_STATICRARIES NAMES solv_static)
-            find_library(LIBSOLVEXT_BUILD_STATICRARIES NAMES solvext_static)
-
             find_library(LIBXML2_LIBRARY NAMES libxml2)
             find_library(ICONV_LIBRARY NAMES libiconv iconv)
             find_library(CHARSET_LIBRARY NAMES libcharset charset)
@@ -487,15 +484,12 @@ macro(libmamba_create_target target_name linkage output_name)
                 ${BZIP2_LIBRARIES}
                 ${LIBLZMA_LIBRARIES}
                 CURL::libcurl
-                ${LIBSOLV_BUILD_STATICRARIES}
-                ${LIBSOLVEXT_BUILD_STATICRARIES}
                 ${sodium_LIBRARY_RELEASE}
             )
 
             add_compile_definitions(
               LIBARCHIVE_STATIC
               CURL_STATICLIB
-              SOLV_BUILD_STATIC
             )
             include_directories($ENV{CONDA_PREFIX}/Library/include/)
             include_directories($ENV{VCPKG_ROOT}/installed/x64-windows-static-md/include/)
@@ -505,8 +499,6 @@ macro(libmamba_create_target target_name linkage output_name)
 
         mamba_target_check_type(yaml-cpp::yaml-cpp SHARED_LIBRARY WARNING)
 
-        find_library(LIBSOLV_LIBRARIES NAMES solv)
-        find_library(LIBSOLVEXT_LIBRARIES NAMES solvext)
         find_package(CURL REQUIRED)
         find_package(LibArchive REQUIRED)
         find_package(zstd REQUIRED)
@@ -532,6 +524,8 @@ macro(libmamba_create_target target_name linkage output_name)
                 # header only version to avoid chasing after the correct fmt version mathching
                 # the one used in the bundle
                 spdlog::spdlog_header_only
+                solv::libsolv
+                solv::libsolvext
             PRIVATE
                 reproc
                 reproc++

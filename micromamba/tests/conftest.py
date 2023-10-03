@@ -229,3 +229,50 @@ def user_cache_dir(tmp_home: pathlib.Path) -> Generator[pathlib.Path, None, None
         yield pathlib.Path(os.environ["LOCALAPPDATA"]) / "mamba"
     else:
         raise RuntimeError(f"Unsupported system {system}")
+
+
+def get_glibc_version():
+    try:
+        output = subprocess.check_output(["ldd", "--version"])
+    except:
+        return
+    output.splitlines()
+    version = output.splitlines()[0].split()[-1]
+    return version.decode("ascii")
+
+
+@pytest.fixture
+def add_glibc_virtual_package():
+    version = get_glibc_version()
+    here = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(here, "channel_a/linux-64/repodata.tpl")) as f:
+        repodata = f.read()
+    with open(os.path.join(here, "channel_a/linux-64/repodata.json"), "w") as f:
+        if version is not None:
+            glibc_placeholder = ', "__glibc=' + version + '"'
+        else:
+            glibc_placeholder = ""
+        repodata = repodata.replace("GLIBC_PLACEHOLDER", glibc_placeholder)
+        f.write(repodata)
+
+
+@pytest.fixture
+def copy_channels_osx():
+    import shutil
+
+    here = os.path.dirname(os.path.abspath(__file__))
+    for channel in ["a", "b"]:
+        if not os.path.exists(os.path.join(here, f"channel_{channel}/osx-64")):
+            shutil.copytree(
+                os.path.join(here, f"channel_{channel}/linux-64"),
+                os.path.join(here, f"channel_{channel}/osx-64"),
+            )
+            with open(
+                os.path.join(here, f"channel_{channel}/osx-64/repodata.json")
+            ) as f:
+                repodata = f.read()
+            with open(
+                os.path.join(here, f"channel_{channel}/osx-64/repodata.json"), "w"
+            ) as f:
+                repodata = repodata.replace("linux", "osx")
+                f.write(repodata)

@@ -71,10 +71,13 @@ namespace mamba::specs
 
         [[nodiscard]] auto type() const -> Type;
 
-        [[nodiscard]] auto location() const -> const std::string&;
+        [[nodiscard]] auto location() const& -> const std::string&;
+        [[nodiscard]] auto location() && -> std::string;
+        [[nodiscard]] auto clear_location() -> std::string;
 
-        [[nodiscard]] auto platform_filters() const -> const util::flat_set<std::string>&;
-
+        [[nodiscard]] auto platform_filters() const& -> const util::flat_set<std::string>&;
+        [[nodiscard]] auto platform_filters() && -> util::flat_set<std::string>;
+        [[nodiscard]] auto clear_platform_filters() -> util::flat_set<std::string>;
 
     private:
 

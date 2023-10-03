@@ -4,6 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <utility>
+
 #include <fmt/format.h>
 
 #include "mamba/core/environment.hpp"
@@ -133,13 +135,33 @@ namespace mamba::specs
         return Type::Name;
     }
 
-    auto ChannelSpec::location() const -> const std::string&
+    auto ChannelSpec::location() const& -> const std::string&
     {
         return m_location;
     }
 
-    auto ChannelSpec::platform_filters() const -> const util::flat_set<std::string>&
+    auto ChannelSpec::location() && -> std::string
+    {
+        return std::move(m_location);
+    }
+
+    auto ChannelSpec::clear_location() -> std::string
+    {
+        return std::exchange(m_location, "");
+    }
+
+    auto ChannelSpec::platform_filters() const& -> const util::flat_set<std::string>&
     {
         return m_platform_filters;
+    }
+
+    auto ChannelSpec::platform_filters() && -> util::flat_set<std::string>
+    {
+        return std::move(m_platform_filters);
+    }
+
+    auto ChannelSpec::clear_platform_filters() -> util::flat_set<std::string>
+    {
+        return std::exchange(m_platform_filters, {});
     }
 }

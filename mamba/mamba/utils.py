@@ -10,7 +10,7 @@ import tempfile
 import urllib.parse
 from collections import OrderedDict
 
-from conda._vendor.boltons.setutils import IndexedSet
+from boltons.setutils import IndexedSet
 from conda.base.constants import ChannelPriority
 from conda.base.context import context
 from conda.common.serialize import json_dump

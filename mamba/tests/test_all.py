@@ -6,9 +6,9 @@ import shutil
 import string
 import subprocess
 import uuid
-from distutils.version import StrictVersion
 
 import pytest
+from packaging.version import Version
 from utils import (
     Environment,
     add_glibc_virtual_package,
@@ -46,7 +46,7 @@ def test_update(shell_type):
     # check updating a package when a newer version
     with Environment(shell_type) as env:
         # first install an older version
-        version = "1.25.11"
+        version = "2.0.0"
         env.mamba(f"install -q -y urllib3={version}")
         out = env.execute('python -c "import urllib3; print(urllib3.__version__)"')
 
@@ -57,7 +57,7 @@ def test_update(shell_type):
         env.mamba("update -q -y urllib3")
         out = env.execute('python -c "import urllib3; print(urllib3.__version__)"')
         # check that the installed version is newer
-        assert StrictVersion(out[-1]) > StrictVersion(version)
+        assert Version(out[-1]) > Version(version)
 
 
 @pytest.mark.parametrize("shell_type", platform_shells())
@@ -65,7 +65,7 @@ def test_env_update(shell_type, tmpdir):
     # check updating a package when a newer version
     with Environment(shell_type) as env:
         # first install an older version
-        version = "1.25.11"
+        version = "2.0.0"
         config_a = tmpdir / "a.yml"
         config_a.write(
             f"""
@@ -91,7 +91,7 @@ def test_env_update(shell_type, tmpdir):
         env.mamba(f"env update -q -f {config_b}")
         out = env.execute('python -c "import urllib3; print(urllib3.__version__)"')
         # check that the installed version is newer
-        assert StrictVersion(out[-1]) > StrictVersion(version)
+        assert Version(out[-1]) > Version(version)
 
 
 @pytest.mark.parametrize("shell_type", platform_shells())

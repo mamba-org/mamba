@@ -5,7 +5,6 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <cassert>
-#include <iostream>
 #include <set>
 #include <utility>
 
@@ -13,12 +12,9 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/package_cache.hpp"
-#include "mamba/core/util_os.hpp"
 #include "mamba/core/validate.hpp"
-#include "mamba/specs/archive.hpp"
 #include "mamba/specs/channel_spec.hpp"
 #include "mamba/specs/conda_url.hpp"
-#include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
 #include "mamba/util/url_manip.hpp"
@@ -104,6 +100,21 @@ namespace mamba
                 m_url.set_package(package_filename);
             }
         }
+    }
+
+    Channel::Channel(
+        specs::CondaURL url,
+        std::string location,
+        std::string name,
+        std::string canonical_name,
+        util::flat_set<std::string> platforms
+    )
+        : m_url(std::move(url))
+        , m_location(std::move(location))
+        , m_name(std::move(name))
+        , m_canonical_name(std::move(canonical_name))
+        , m_platforms(std::move(platforms))
+    {
     }
 
     Channel::~Channel() = default;
@@ -470,18 +481,25 @@ namespace mamba
             );
         }
 
-        std::string user = url.user();          // % encoded
-        std::string password = url.password();  // % encoded
-        std::string token = std::string(url.token());
+        using Decode = typename specs::CondaURL::Decode;
+        using Encode = typename specs::CondaURL::Encode;
+        if (url.user(Decode::no).empty() && !config.url.user(Decode::no).empty())
+        {
+            url.set_user(config.url.clear_user(), Encode::no);
+        }
+        if (url.password(Decode::no).empty() && !config.url.password(Decode::no).empty())
+        {
+            url.set_password(config.url.clear_password(), Encode::no);
+        }
+        if (url.token().empty() && !config.url.token().empty())
+        {
+            url.set_token(config.url.token());
+        }
         return Channel(
-            /*  scheme= */ config.url.scheme(),
+            /* url= */ std::move(url),
             /*  location= */ config.location,
             /*  name= */ config.name,
-            /*  canonical_name= */ canonical_name,
-            /*  user= */ user.empty() ? config.url.user() : user,
-            /*  password= */ password.empty() ? config.url.password() : password,
-            /*  token= */ token.empty() ? config.url.token() : token,
-            /*  package_filename= */ std::string(url.package())
+            /*  canonical_name= */ canonical_name
         );
     }
 

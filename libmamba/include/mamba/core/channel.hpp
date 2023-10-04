@@ -78,6 +78,14 @@ namespace mamba
             util::flat_set<std::string> platforms = {}
         );
 
+        Channel(
+            specs::CondaURL url,
+            std::string location,
+            std::string name,
+            std::string canonical_name,
+            util::flat_set<std::string> platforms = {}
+        );
+
         specs::CondaURL m_url;
         std::string m_location;
         std::string m_name;

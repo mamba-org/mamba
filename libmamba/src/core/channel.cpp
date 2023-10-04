@@ -631,25 +631,25 @@ namespace mamba
         }(std::move(spec));
     }
 
+    namespace
+    {
+        auto channel_alias_location(specs::CondaURL url) -> std::string
+        {
+            url.clear_user();
+            url.clear_password();
+            url.clear_token();
+            return url.pretty_str(specs::CondaURL::StripScheme::yes, '/');
+        }
+    }
+
     Channel ChannelContext::from_alias(std::string_view alias)
     {
-        auto url = specs::CondaURL::parse(alias);
-
-        std::string token = std::string(url.token());
-        std::string user = url.user();  // % encoded
-        url.clear_user();
-        std::string password = url.password();  // % encoded
-        url.clear_password();
-        url.clear_token();
-
+        auto url = specs::CondaURL::parse(util::path_or_url_to_url(alias));
         return Channel(
-            /*  scheme= */ url.scheme(),
-            /*  location= */ url.pretty_str(specs::CondaURL::StripScheme::yes, '/'),
-            /*  name= */ "<alias>",
-            /*  canonical_name= */ "<alias>",
-            /*  user= */ user,
-            /*  password= */ password,
-            /*  token= */ token
+            /* url= */ std::move(url),
+            /* location= */ channel_alias_location(url),
+            /* name= */ "<alias>",
+            /* canonical_name= */ "<alias>"
         );
     }
 

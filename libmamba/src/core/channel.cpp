@@ -385,7 +385,8 @@ namespace mamba
 
                     auto location = channel.location();
                     auto name = util::join_url(channel.name(), subname);
-                    auto l_url = specs::CondaURL::parse(util::join_url(location, name));
+                    auto l_url = specs::CondaURL::parse(channel.base_url());
+                    l_url.append_path(subname);
                     l_url.set_scheme(le_url.scheme());
                     l_url.set_user(channel.user().value_or(""));
                     l_url.set_password(channel.password().value_or(""));

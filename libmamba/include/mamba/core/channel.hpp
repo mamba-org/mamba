@@ -129,7 +129,7 @@ namespace mamba
         const Channel& make_channel(const std::string& value);
         std::vector<const Channel*> get_channels(const std::vector<std::string>& channel_names);
 
-        const Channel& get_channel_alias() const;
+        const specs::CondaURL& get_channel_alias() const;
         const channel_map& get_custom_channels() const;
 
         Context& context() const
@@ -141,7 +141,7 @@ namespace mamba
 
         Context& m_context;
         ChannelCache m_channel_cache;
-        Channel m_channel_alias;
+        specs::CondaURL m_channel_alias;
         channel_map m_custom_channels;
         multichannel_map m_custom_multichannels;
 
@@ -150,7 +150,7 @@ namespace mamba
         const multichannel_map& get_custom_multichannels() const;
 
         Channel make_simple_channel(
-            const Channel& channel_alias,
+            const specs::CondaURL& channel_alias,
             const std::string& channel_url,
             const std::string& channel_name,
             const std::string& channel_canonical_name
@@ -159,7 +159,6 @@ namespace mamba
         Channel from_url(specs::ChannelSpec&& url);
         Channel from_name(const std::string& name);
         Channel from_value(const std::string& value);
-        Channel from_alias(std::string_view alias);
     };
 
 }  // namespace mamba

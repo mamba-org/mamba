@@ -33,10 +33,7 @@ namespace mamba
             // make_simple_channel
             ChannelContext channel_context{ mambatests::context() };
             const auto& ch = channel_context.get_channel_alias();
-            CHECK_EQ(ch.scheme(), "https");
-            CHECK_EQ(ch.location(), "conda.anaconda.org");
-            CHECK_EQ(ch.name(), "<alias>");
-            CHECK_EQ(ch.canonical_name(), "<alias>");
+            CHECK_EQ(ch.str(), "https://conda.anaconda.org/");
 
             const auto& custom = channel_context.get_custom_channels();
 
@@ -69,10 +66,7 @@ namespace mamba
             ChannelContext channel_context{ mambatests::context() };
 
             const auto& ch = channel_context.get_channel_alias();
-            CHECK_EQ(ch.scheme(), "https");
-            CHECK_EQ(ch.location(), "mydomain.com/channels");
-            CHECK_EQ(ch.name(), "<alias>");
-            CHECK_EQ(ch.canonical_name(), "<alias>");
+            CHECK_EQ(ch.str(), "https://mydomain.com/channels/");
 
             const auto& custom = channel_context.get_custom_channels();
 
@@ -126,10 +120,7 @@ namespace mamba
 
             ChannelContext channel_context{ ctx };
             const auto& ch = channel_context.get_channel_alias();
-            CHECK_EQ(ch.scheme(), "https");
-            CHECK_EQ(ch.location(), "mydomain.com/channels");
-            CHECK_EQ(ch.name(), "<alias>");
-            CHECK_EQ(ch.canonical_name(), "<alias>");
+            CHECK_EQ(ch.str(), "https://mydomain.com/channels/");
 
             {
                 std::string value = "test_channel";

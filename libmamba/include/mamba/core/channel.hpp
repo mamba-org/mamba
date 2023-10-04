@@ -25,6 +25,10 @@ namespace mamba
     {
         class RepoChecker;
     }
+    namespace specs
+    {
+        class ChannelSpec;
+    }
 
     std::vector<std::string> get_known_platforms();
 
@@ -70,7 +74,8 @@ namespace mamba
             std::string_view user = {},
             std::string_view password = {},
             std::string_view token = {},
-            std::string_view package_filename = {}
+            std::string_view package_filename = {},
+            util::flat_set<std::string> platforms = {}
         );
 
         specs::CondaURL m_url;
@@ -143,7 +148,7 @@ namespace mamba
             const std::string& channel_canonical_name
         );
 
-        Channel from_url(std::string_view url);
+        Channel from_url(specs::ChannelSpec&& url);
         Channel from_name(const std::string& name);
         Channel from_value(const std::string& value);
         Channel from_alias(std::string_view alias);

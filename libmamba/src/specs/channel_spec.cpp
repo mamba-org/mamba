@@ -59,9 +59,7 @@ namespace mamba::specs
         {
             if (util::is_explicit_path(str))
             {
-                auto out = util::abs_path_to_url(
-                    fs::absolute(env::expand_user(str)).lexically_normal().string()
-                );
+                auto out = util::path_to_url(str);
                 out = util::rstrip(out, '/');
                 return out;
             }

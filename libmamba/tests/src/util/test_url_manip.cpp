@@ -229,6 +229,21 @@ TEST_SUITE("util::url_manip")
                 CHECK_EQ(url, "file:///tmp/foo%20bar");
             }
         }
+
+        SUBCASE("./folder/./../folder")
+        {
+            auto url = path_to_url("./folder/./../folder");
+            if (on_win)
+            {
+                CHECK(starts_with(url, concat("file://", win_drive, ":/")));
+                CHECK(ends_with(url, "/folder"));
+            }
+            else
+            {
+                const auto expected_folder = fs::absolute("folder").lexically_normal();
+                CHECK_EQ(url, concat("file://", expected_folder.string()));
+            }
+        }
     }
 
     TEST_CASE("path_or_url_to_url")

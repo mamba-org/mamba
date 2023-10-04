@@ -47,10 +47,6 @@ endif()
 
 # libmamba library and tests
 if (BUILD_LIBMAMBA)
-    if (BUILD_LIBMAMBA_TESTS)
-        set(BUILD_TESTS ON)
-    endif()
-
     add_subdirectory(libmamba)
 endif()
 

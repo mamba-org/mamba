@@ -322,6 +322,7 @@ find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(tl-expected REQUIRED)
 find_package(nlohmann_json REQUIRED)
+find_package(simdjson REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(reproc REQUIRED)
 find_package(reproc++ REQUIRED)
@@ -359,6 +360,8 @@ macro(libmamba_create_target target_name linkage output_name)
     if (${linkage_upper} STREQUAL "STATIC")
         message("   -> Statically linking against libmamba (static) dependencies")
 
+        target_compile_definitions(${target_name} PUBLIC SPDLOG_FMT_EXTERNAL)
+
         mamba_target_check_type(yaml-cpp::yaml-cpp STATIC_LIBRARY FATAL_ERROR)
         mamba_target_check_type(reproc STATIC_LIBRARY FATAL_ERROR)
         mamba_target_check_type(reproc++ STATIC_LIBRARY FATAL_ERROR)
@@ -376,6 +379,7 @@ macro(libmamba_create_target target_name linkage output_name)
             PRIVATE
                 reproc
                 reproc++
+                simdjson::simdjson_static
         )
 
         if (UNIX)
@@ -529,6 +533,7 @@ macro(libmamba_create_target target_name linkage output_name)
             PRIVATE
                 reproc
                 reproc++
+                simdjson::simdjson
         )
     endif ()
 
@@ -616,7 +621,7 @@ if (NOT (BUILD_SHARED OR BUILD_STATIC))
 endif ()
 
 # Tests
-if (BUILD_TESTS)
+if (BUILD_LIBMAMBA_TESTS)
     add_subdirectory(tests)
 endif()
 

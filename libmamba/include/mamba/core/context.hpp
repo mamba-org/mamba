@@ -131,6 +131,7 @@ namespace mamba
 
         // Configurable
         bool experimental = false;
+        bool experimental_repodata_parsing = false;
         bool debug = false;
 
         // TODO check writable and add other potential dirs

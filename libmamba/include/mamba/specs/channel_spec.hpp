@@ -21,6 +21,10 @@ namespace mamba::specs
      * It needs to be resolved in order to get a final URL/path.
      * This is even true when a full URL or path is given, as some authentification information
      * may come from channel alias or login database.
+     *
+     * Note that for a string to be considered a URL, it must have an explicit scheme.
+     * So "repo.anaconda.com" is considered a name, similarily to "conda-forge" and not a URL.
+     * This is because otherwise it is not possible to tell names and URL appart.
      */
     class ChannelSpec
     {

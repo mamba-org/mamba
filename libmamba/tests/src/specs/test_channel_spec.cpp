@@ -91,6 +91,15 @@ TEST_SUITE("specs::channel_spec")
             CHECK_EQ(spec.platform_filters(), PlatformSet{});
         }
 
+        SUBCASE("repo.anaconda.com")
+        {
+            const auto spec = ChannelSpec::parse("repo.anaconda.com");
+            // Unintuitive but correct type, this is not a URL. Better explicit than clever.
+            CHECK_EQ(spec.type(), Type::Name);
+            CHECK_EQ(spec.location(), "repo.anaconda.com");
+            CHECK_EQ(spec.platform_filters(), PlatformSet{});
+        }
+
         SUBCASE("conda-forge/linux-64")
         {
             const auto spec = ChannelSpec::parse("conda-forge/linux-64");

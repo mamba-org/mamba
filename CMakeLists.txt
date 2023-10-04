@@ -24,6 +24,7 @@ set(MAMBA_LTO "Default" CACHE STRING "Apply Link Time Optimization to targets")
 include("cmake/CompilerWarnings.cmake")
 include("cmake/LinkTimeOptimization.cmake")
 include("cmake/Checks.cmake")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules")
 
 if (MSVC)
     # NOMINMAX : prevent tons of code to be included when having to `#include <windows.h>`

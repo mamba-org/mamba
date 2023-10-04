@@ -4,12 +4,15 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#ifdef _WIN32
+#include <algorithm>
+#endif
 #include <filesystem>
 #include <string>
-#if !defined(_WIN32)
+
+#ifndef _WIN32
 #include <fcntl.h>
 #include <sys/stat.h>
-
 // We can use the presence of UTIME_OMIT to detect platforms that provide
 // utimensat.
 #if defined(UTIME_OMIT)
@@ -27,16 +30,9 @@ namespace mamba::fs
     std::filesystem::path normalized_separators(std::filesystem::path path)
     {
         auto native_string = path.native();
-        static constexpr wchar_t platform_separator = L'\\';
-        static constexpr wchar_t other_separator = L'/';
-
-        auto pos = native_string.find(other_separator);
-        while (pos != decltype(native_string)::npos)
-        {
-            native_string[pos] = platform_separator;
-            pos = native_string.find(other_separator, pos + 1);
-        }
-
+        static constexpr wchar_t platform_sep = L'\\';
+        static constexpr wchar_t other_sep = L'/';
+        std::replace(native_string.begin(), native_string.end(), other_sep, platform_sep);
         path = std::move(native_string);
         return path;
     }

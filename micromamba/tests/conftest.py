@@ -10,6 +10,8 @@ import pytest
 
 from . import helpers
 
+__this_dir__ = pathlib.Path(__file__).parent.resolve()
+
 ####################
 #  Config options  #
 ####################
@@ -22,6 +24,12 @@ def pytest_addoption(parser):
         action="store",
         default=None,
         help="Path to mitmdump proxy executable",
+    )
+    parser.addoption(
+        "--caching-proxy-dir",
+        action="store",
+        default=None,
+        help="Path to a directory to store requests between calls",
     )
     parser.addoption(
         "--mamba-pkgs-dir",
@@ -44,21 +52,48 @@ def pytest_addoption(parser):
 
 
 ###########################
-#  Caching proxy fixture  #
+#  Test utility fixtures  #
 ###########################
 
 
 @pytest.fixture(scope="session")
-def mitmdump_exe(request) -> pathlib.Path:
+def mitmdump_exe(request) -> Optional[pathlib.Path]:
     """Get the path to the ``mitmdump`` executable."""
     if (p := request.config.getoption("--mitmdump-exe")) is not None:
         return pathlib.Path(p).resolve()
+    elif (p := shutil.which("mitmdump")) is not None:
+        return pathlib.Path(p).resolve()
+    return None
 
-    return pathlib.Path(shutil.which("mitmdump")).resolve()
+
+@pytest.fixture(scope="session")
+def session_cache_proxy(
+    request, mitmdump_exe, unused_tcp_port_factory, tmp_path_factory
+) -> Generator[Optional[helpers.MitmProxy], None, None]:
+    """Launch and a caching proxy to speed up tests, not used automatically."""
+    assert mitmdump_exe is not None
+
+    proxy = helpers.MitmProxy(
+        exe=mitmdump_exe,
+        scripts=str(__this_dir__ / "caching_proxy.py"),
+        confdir=tmp_path_factory.mktemp("mitmproxy"),
+    )
+
+    options = []
+    if (p := request.config.getoption("--caching-proxy-dir")) is not None:
+        options += ["--set", f"cache_dir={p}"]
+
+    proxy.start_proxy(unused_tcp_port_factory(), options)
+
+    yield proxy
+
+    proxy.stop_proxy()
 
 
 @pytest.fixture(scope="session", autouse=True)
-def session_clean_env() -> None:
+def session_clean_env(
+    mitmdump_exe,  # To help resolve the executable before we clean the env
+) -> None:
     """Remove all Conda/Mamba activation artifacts from environment."""
     old_environ = copy.deepcopy(os.environ)
 
@@ -97,6 +132,29 @@ def tmp_environ(session_clean_env: None) -> Generator[Mapping[str, Any], None, N
     yield old_environ
     os.environ.clear()
     os.environ.update(old_environ)
+
+
+@pytest.fixture(params=[True])
+def use_caching_proxy(request) -> bool:
+    """A dummy fixture to control the use of the caching proxy."""
+    return request.param
+
+
+@pytest.fixture(autouse=True)
+def tmp_use_proxy(
+    use_caching_proxy, tmp_environ, session_clean_env: None, session_cache_proxy
+):
+    if use_caching_proxy:
+        port = session_cache_proxy.port
+        assert port is not None
+        os.environ["MAMBA_PROXY_SERVERS"] = (
+            "{"
+            + f"http: http://localhost:{port}, https: https://localhost:{port}"
+            + "}"
+        )
+        os.environ["MAMBA_CACERT_PATH"] = str(
+            session_cache_proxy.confdir / "mitmproxy-ca-cert.pem"
+        )
 
 
 @pytest.fixture

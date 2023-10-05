@@ -341,6 +341,7 @@ def test_multiple_spec_files(tmp_home, tmp_root_prefix, tmp_path, type):
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Windows")
+@pytest.mark.parametrize("use_caching_proxy", [False], indirect=True)
 def test_multiprocessing(tmp_home, tmp_root_prefix):
     cmd = [helpers.get_umamba()]
     cmd += ["create", "-n", "env1", "-y"]

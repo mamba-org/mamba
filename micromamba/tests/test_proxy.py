@@ -11,6 +11,7 @@ __this_dir__ = Path(__file__).parent.resolve()
 
 @pytest.mark.parametrize("auth", [None, "foo:bar", "user%40example.com:pass"])
 @pytest.mark.parametrize("ssl_verify", (True, False))
+@pytest.mark.parametrize("use_caching_proxy", [False], indirect=True)
 def test_proxy_install(
     mitmdump_exe, tmp_home, tmp_prefix, tmp_path, unused_tcp_port, auth, ssl_verify
 ):

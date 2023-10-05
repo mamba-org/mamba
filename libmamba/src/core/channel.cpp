@@ -645,9 +645,10 @@ namespace mamba
     Channel ChannelContext::from_alias(std::string_view alias)
     {
         auto url = specs::CondaURL::parse(util::path_or_url_to_url(alias));
+        auto location = channel_alias_location(url);
         return Channel(
             /* url= */ std::move(url),
-            /* location= */ channel_alias_location(url),
+            /* location= */ std::move(location),
             /* name= */ "<alias>",
             /* canonical_name= */ "<alias>"
         );

@@ -93,7 +93,7 @@ namespace mamba::util
         /** Set a non-empty scheme. */
         void set_scheme(std::string_view scheme);
 
-        /** Clear the scheme back to a defaulted value and return the old value (or empty). */
+        /** Clear the scheme back to a defaulted value and return the old value. */
         auto clear_scheme() -> std::string;
 
         /** Return the encoded user, or empty if none. */
@@ -128,6 +128,9 @@ namespace mamba::util
 
         /** Return the encoded basic authentication string. */
         [[nodiscard]] auto authentication() const -> std::string;
+
+        /** Return whether the host was defaulted, i.e. not explicitly set. */
+        [[nodiscard]] auto host_is_defaulted() const -> bool;
 
         /** Return the encoded host, always non-empty except for file scheme. */
         [[nodiscard]] auto host(Decode::no_type) const -> std::string_view;

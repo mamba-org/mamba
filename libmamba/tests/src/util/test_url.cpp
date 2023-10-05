@@ -144,6 +144,29 @@ TEST_SUITE("util::URL")
             url.set_scheme("https");
         }
 
+        SUBCASE("Default host")
+        {
+            URL url{};
+            CHECK(url.host_is_defaulted());
+            CHECK_EQ(url.host(), "localhost");
+
+            url.set_host("localhost");
+            CHECK_FALSE(url.host_is_defaulted());
+            CHECK_EQ(url.host(), "localhost");
+
+            url.set_host("");
+            CHECK(url.host_is_defaulted());
+            url.set_host("localhost");
+
+            url.set_host("test.org");
+            CHECK_FALSE(url.host_is_defaulted());
+            CHECK_EQ(url.host(), "test.org");
+
+            CHECK_EQ(url.clear_host(), "test.org");
+            CHECK(url.host_is_defaulted());
+            url.set_host("localhost");
+        }
+
         SUBCASE("Invalid")
         {
             URL url{};

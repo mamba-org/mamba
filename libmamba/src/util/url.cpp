@@ -213,6 +213,10 @@ namespace mamba::util
 
     auto URL::clear_scheme() -> std::string
     {
+        if (scheme_is_defaulted())
+        {
+            return std::string(https);
+        }
         return std::exchange(m_scheme, "");
     }
 
@@ -273,9 +277,14 @@ namespace mamba::util
         return p.empty() ? u : util::concat(u, ':', p);
     }
 
+    auto URL::host_is_defaulted() const -> bool
+    {
+        return m_host.empty();
+    }
+
     auto URL::host(Decode::no_type) const -> std::string_view
     {
-        if ((scheme() != "file") && m_host.empty())
+        if ((scheme() != "file") && host_is_defaulted())
         {
             return localhost;
         }
@@ -305,12 +314,9 @@ namespace mamba::util
 
     auto URL::clear_host() -> std::string
     {
-        // Cheap == comparison that works because of class invariant
-        if (auto l_host = host(Decode::no); l_host.data() != m_host.data())
+        if (host_is_defaulted())
         {
-            auto out = std::string(l_host);
-            set_host("", Encode::no);
-            return out;
+            return std::string(host(Decode::no));
         }
         return std::exchange(m_host, "");
     }

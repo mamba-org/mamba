@@ -45,6 +45,7 @@ namespace mamba::specs
         using Base::set_password;
         using Base::clear_password;
         using Base::authentication;
+        using Base::host_is_defaulted;
         using Base::host;
         using Base::set_host;
         using Base::clear_host;

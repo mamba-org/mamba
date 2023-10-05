@@ -1,54 +1,12 @@
 import os
-import subprocess
-import time
 import urllib.parse
 from pathlib import Path
-from typing import Optional
 
 import pytest
 
 from . import helpers
 
 __this_dir__ = Path(__file__).parent.resolve()
-
-
-class MitmProxy:
-    def __init__(
-        self,
-        exe: Path,
-        scripts: Optional[Path],
-        confdir: Optional[Path],
-        outfile: Optional[Path],
-    ):
-        self.exe = Path(exe).resolve()
-        self.scripts = Path(scripts).resolve() if scripts is not None else None
-        self.confdir = Path(confdir).resolve() if confdir is not None else None
-        self.outfile = Path(outfile).resolve() if outfile is not None else None
-        self.process = None
-
-    def start_proxy(self, port, options=[]):
-        assert self.process is None
-        args = [self.exe, "--listen-port", str(port)]
-        if self.scripts is not None:
-            args += ["--scripts", str(self.scripts)]
-        if self.confdir is not None:
-            args += ["--set", f"confdir={self.confdir}"]
-        if self.outfile is not None:
-            args += ["--set", f"outfile={self.outfile}"]
-        args += options
-        self.process = subprocess.Popen(args)
-
-        # Wait until mitmproxy has generated its certificate or some tests might fail
-        while not (Path(self.confdir) / "mitmproxy-ca-cert.pem").exists():
-            time.sleep(1)
-
-    def stop_proxy(self):
-        self.process.terminate()
-        try:
-            self.process.wait(3)
-        except subprocess.TimeoutExpired:
-            self.process.kill()
-        self.process = None
 
 
 @pytest.mark.parametrize("auth", [None, "foo:bar", "user%40example.com:pass"])
@@ -71,7 +29,7 @@ def test_proxy_install(
         proxy_options = []
         proxy_url = "http://localhost:{}".format(unused_tcp_port)
 
-    proxy = MitmProxy(
+    proxy = helpers.MitmProxy(
         exe=mitmdump_exe,
         scripts=str(__this_dir__ / "dump_proxy_connections.py"),
         confdir=(tmp_path / "mitmproxy-conf"),

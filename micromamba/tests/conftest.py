@@ -3,6 +3,7 @@ import os
 import pathlib
 import platform
 import shutil
+import subprocess
 from typing import Any, Generator, Mapping, Optional
 
 import pytest
@@ -42,9 +43,9 @@ def pytest_addoption(parser):
     )
 
 
-##################
-#  Test fixture  #
-##################
+###########################
+#  Caching proxy fixture  #
+###########################
 
 
 @pytest.fixture(scope="session")
@@ -54,6 +55,11 @@ def mitmdump_exe(request) -> pathlib.Path:
         return pathlib.Path(p).resolve()
 
     return pathlib.Path(shutil.which("mitmdump")).resolve()
+
+
+##########################
+#  Test utility fixture  #
+##########################
 
 
 @pytest.fixture(autouse=True)

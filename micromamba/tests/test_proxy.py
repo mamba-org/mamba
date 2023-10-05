@@ -3,6 +3,7 @@ import subprocess
 import time
 import urllib.parse
 from pathlib import Path
+from typing import Optional
 
 import pytest
 
@@ -12,31 +13,33 @@ __this_dir__ = Path(__file__).parent.resolve()
 
 
 class MitmProxy:
-    def __init__(self, exe: Path, conf: Path, dump: Path):
+    def __init__(
+        self,
+        exe: Path,
+        scripts: Optional[Path],
+        confdir: Optional[Path],
+        outfile: Optional[Path],
+    ):
         self.exe = Path(exe).resolve()
-        self.conf = Path(conf).resolve()
-        self.dump = Path(dump).resolve()
+        self.scripts = Path(scripts).resolve() if scripts is not None else None
+        self.confdir = Path(confdir).resolve() if confdir is not None else None
+        self.outfile = Path(outfile).resolve() if outfile is not None else None
         self.process = None
 
     def start_proxy(self, port, options=[]):
         assert self.process is None
-        self.process = subprocess.Popen(
-            [
-                self.exe,
-                "--listen-port",
-                str(port),
-                "--scripts",
-                str(__this_dir__ / "dump_proxy_connections.py"),
-                "--set",
-                f"outfile={self.dump}",
-                "--set",
-                f"confdir={self.conf}",
-                *options,
-            ]
-        )
+        args = [self.exe, "--listen-port", str(port)]
+        if self.scripts is not None:
+            args += ["--scripts", str(self.scripts)]
+        if self.confdir is not None:
+            args += ["--set", f"confdir={self.confdir}"]
+        if self.outfile is not None:
+            args += ["--set", f"outfile={self.outfile}"]
+        args += options
+        self.process = subprocess.Popen(args)
 
         # Wait until mitmproxy has generated its certificate or some tests might fail
-        while not (Path(self.conf) / "mitmproxy-ca-cert.pem").exists():
+        while not (Path(self.confdir) / "mitmproxy-ca-cert.pem").exists():
             time.sleep(1)
 
     def stop_proxy(self):
@@ -53,8 +56,7 @@ class MitmProxy:
 def test_proxy_install(
     mitmdump_exe, tmp_home, tmp_prefix, tmp_path, unused_tcp_port, auth, ssl_verify
 ):
-    """
-    This test makes sure micromamba follows the proxy settings in .condarc
+    """This test makes sure micromamba follows the proxy settings in .condarc
 
     It starts mitmproxy with the `dump_proxy_connections.py` script, which dumps all requested urls in a text file.
     After that micromamba is used to install a package, while pointing it to that mitmproxy instance. Once
@@ -71,13 +73,14 @@ def test_proxy_install(
 
     proxy = MitmProxy(
         exe=mitmdump_exe,
-        conf=(tmp_path / "mitmproxy-conf"),
-        dump=(tmp_path / "mitmproxy-dump"),
+        scripts=str(__this_dir__ / "dump_proxy_connections.py"),
+        confdir=(tmp_path / "mitmproxy-conf"),
+        outfile=(tmp_path / "mitmproxy-dump"),
     )
     proxy.start_proxy(unused_tcp_port, proxy_options)
 
     rc_file = tmp_prefix / "rc.yaml"
-    verify_string = proxy.conf / "mitmproxy-ca-cert.pem" if ssl_verify else "false"
+    verify_string = proxy.confdir / "mitmproxy-ca-cert.pem" if ssl_verify else "false"
 
     file_content = [
         "proxy_servers:",
@@ -99,7 +102,7 @@ def test_proxy_install(
 
     proxy.stop_proxy()
 
-    with open(proxy.dump, "r") as f:
+    with open(proxy.outfile, "r") as f:
         proxied_requests = f.read().splitlines()
 
     for fetch in res["actions"]["FETCH"]:

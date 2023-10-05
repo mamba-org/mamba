@@ -635,7 +635,6 @@ def test_env_activation(tmp_home, winreg_value, tmp_root_prefix, tmp_path, inter
 @pytest.mark.parametrize("interpreter", get_interpreters())
 def test_activation_envvars(
     tmp_home,
-    tmp_clean_env,
     winreg_value,
     tmp_root_prefix,
     tmp_path,

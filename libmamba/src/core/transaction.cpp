@@ -24,14 +24,17 @@ extern "C"  // Incomplete header
 
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/download_progress_bar.hpp"
 #include "mamba/core/env_lockfile.hpp"
+#include "mamba/core/execution.hpp"
 #include "mamba/core/link.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/package_download.hpp"
+#include "mamba/core/package_fetcher.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
+#include "mamba/core/validate.hpp"
 #include "mamba/util/flat_set.hpp"
 #include "mamba/util/string.hpp"
 #include "solv-cpp/pool.hpp"
@@ -827,21 +830,21 @@ namespace mamba
 
     bool MTransaction::fetch_extract_packages()
     {
-        std::vector<std::unique_ptr<PackageDownloadExtractTarget>> targets;
-        MultiDownloadTarget multi_dl{ m_pool.context() };
-
+        // TODO: move this to the PackageDownloadMonitor
         auto& pbar_manager = Console::instance().init_progress_bar_manager(ProgressBarMode::aggregated
         );
-        auto& aggregated_pbar_manager = dynamic_cast<AggregatedBarManager&>(pbar_manager);
 
         auto& channel_context = m_pool.channel_context();
         auto& ctx = channel_context.context();
-        DownloadExtractSemaphore::set_max(ctx.threads_params.extract_threads);
+        PackageFetcherSemaphore::set_max(ctx.threads_params.extract_threads);
 
+        // TODO: move to private method create_fetchers
         if (ctx.experimental && ctx.validation_params.verify_artifacts)
         {
             LOG_INFO << "Content trust is enabled, package(s) signatures will be verified";
         }
+
+        std::vector<PackageFetcher> fetchers;
 
         for_each_to_install(
             m_solution.actions,
@@ -858,15 +861,7 @@ namespace mamba
 
                     LOG_DEBUG << "'" << pkg.name << "' trusted from '" << pkg.channel << "'";
                 }
-
-                targets.emplace_back(
-                    std::make_unique<PackageDownloadExtractTarget>(pkg, m_pool.channel_context())
-                );
-                DownloadTarget* download_target = targets.back()->target(ctx, m_multi_cache);
-                if (download_target != nullptr)
-                {
-                    multi_dl.add(download_target);
-                }
+                fetchers.emplace_back(pkg, m_pool.channel_context(), m_multi_cache);
             }
         );
 
@@ -881,152 +876,111 @@ namespace mamba
             LOG_INFO << "All package(s) are trusted";
         }
 
-        if (!(ctx.graphics_params.no_progress_bars || ctx.output_params.json
-              || ctx.output_params.quiet))
+        auto download_end = std::partition(
+            fetchers.begin(),
+            fetchers.end(),
+            [](const auto& f) { return f.needs_download(); }
+        );
+        auto extract_end = std::partition(
+            download_end,
+            fetchers.end(),
+            [](const auto& f) { return f.needs_extract(); }
+        );
+        // At this point:
+        // - [fetchers.begin(), download_end) contains packages that need to be downloaded,
+        // validated and extracted
+        // - [download_end, extract_end) contains packages that need to be extracted only
+        // - [extract_end, fecthers.end()) contains packages already installed and extracted
+
+        auto extract_options = ExtractOptions::from_context(ctx);
+        std::vector<PackageExtractRequest> extract_requests;
+        extract_requests.reserve(std::distance(fetchers.begin(), extract_end));
+        std::transform(
+            fetchers.begin(),
+            extract_end,
+            std::back_inserter(extract_requests),
+            [extract_options](auto& f) { return f.build_extract_request(extract_options); }
+        );
+        // Tracks extraction requests
+        std::vector<std::future<void>> extract_tasks;
+        extract_tasks.reserve(extract_requests.size());
+
+        std::vector<DownloadRequest> download_requests;
+        download_requests.reserve(std::distance(fetchers.begin(), download_end));
+        for (auto [fit, eit] = std::tuple{ fetchers.begin(), extract_requests.begin() };
+             fit != download_end;
+             ++fit, ++eit)
         {
-            interruption_guard g([]() { Console::instance().progress_bar_manager().terminate(); });
-
-            auto* dl_bar = aggregated_pbar_manager.aggregated_bar("Download");
-            if (dl_bar)
-            {
-                dl_bar->set_repr_hook(
-                    [=](ProgressBarRepr& repr) -> void
-                    {
-                        auto active_tasks = dl_bar->active_tasks().size();
-                        if (active_tasks == 0)
-                        {
-                            repr.prefix.set_value(fmt::format("{:<16}", "Downloading"));
-                            repr.postfix.set_value(fmt::format("{:<25}", ""));
-                        }
-                        else
-                        {
-                            repr.prefix.set_value(fmt::format(
-                                "{:<11} {:>4}",
-                                "Downloading",
-                                fmt::format("({})", active_tasks)
-                            ));
-                            repr.postfix.set_value(fmt::format("{:<25}", dl_bar->last_active_task()));
-                        }
-                        repr.current.set_value(fmt::format(
-                            "{:>7}",
-                            to_human_readable_filesize(double(dl_bar->current()), 1)
-                        ));
-                        repr.separator.set_value("/");
-
-                        std::string total_str;
-                        if (dl_bar->total() == std::numeric_limits<std::size_t>::max())
-                        {
-                            total_str = "??.?MB";
-                        }
-                        else
-                        {
-                            total_str = to_human_readable_filesize(double(dl_bar->total()), 1);
-                        }
-                        repr.total.set_value(fmt::format("{:>7}", total_str));
-
-                        auto speed = dl_bar->avg_speed(std::chrono::milliseconds(500));
-                        repr.speed.set_value(
-                            speed
-                                ? fmt::format("@ {:>7}/s", to_human_readable_filesize(double(speed), 1))
-                                : ""
-                        );
-                    }
-                );
-            }
-
-            auto* extract_bar = aggregated_pbar_manager.aggregated_bar("Extract");
-            if (extract_bar)
-            {
-                extract_bar->set_repr_hook(
-                    [=](ProgressBarRepr& repr) -> void
-                    {
-                        auto active_tasks = extract_bar->active_tasks().size();
-                        if (active_tasks == 0)
-                        {
-                            repr.prefix.set_value(fmt::format("{:<16}", "Extracting"));
-                            repr.postfix.set_value(fmt::format("{:<25}", ""));
-                        }
-                        else
-                        {
-                            repr.prefix.set_value(fmt::format(
-                                "{:<11} {:>4}",
-                                "Extracting",
-                                fmt::format("({})", active_tasks)
-                            ));
-                            repr.postfix.set_value(
-                                fmt::format("{:<25}", extract_bar->last_active_task())
-                            );
-                        }
-                        repr.current.set_value(fmt::format("{:>3}", extract_bar->current()));
-                        repr.separator.set_value("/");
-
-                        std::string total_str;
-                        if (extract_bar->total() == std::numeric_limits<std::size_t>::max())
-                        {
-                            total_str = "?";
-                        }
-                        else
-                        {
-                            total_str = std::to_string(extract_bar->total());
-                        }
-                        repr.total.set_value(fmt::format("{:>3}", total_str));
-                    }
-                );
-            }
-
-            pbar_manager.start();
-            pbar_manager.watch_print();
+            auto ceit = eit;  // Apple Clang cannot capture eit
+            auto task = std::make_shared<std::packaged_task<void(std::size_t)>>(
+                [ceit](std::size_t downloaded_size) { ceit->run(downloaded_size); }
+            );
+            extract_tasks.push_back(task->get_future());
+            download_requests.push_back(fit->build_download_request(
+                [extract_task = std::move(task)](std::size_t downloaded_size)
+                {
+                    MainExecutor::instance().schedule(
+                        [t = std::move(extract_task)](std::size_t ds) { (*t)(ds); },
+                        downloaded_size
+                    );
+                }
+            ));
         }
 
-        bool downloaded = multi_dl.download(MAMBA_DOWNLOAD_FAILFAST | MAMBA_DOWNLOAD_SORT);
-        bool all_valid = true;
+        std::unique_ptr<PackageDownloadMonitor> monitor = nullptr;
+        DownloadOptions download_options{ true, true };
+        if (PackageDownloadMonitor::can_monitor(ctx))
+        {
+            monitor = std::make_unique<PackageDownloadMonitor>();
+            monitor->observe(download_requests, extract_requests, download_options);
+        }
 
-        if (!downloaded)
+        for (auto it = extract_requests.begin() + download_requests.size();
+             it != extract_requests.end();
+             ++it)
+        {
+            std::packaged_task task{ [=] { it->run(); } };
+            extract_tasks.push_back(task.get_future());
+            MainExecutor::instance().schedule(std::move(task));
+        }
+
+        auto result = download(std::move(download_requests), ctx, download_options, monitor.get());
+        bool all_downloaded = std::accumulate(
+            result.begin(),
+            result.end(),
+            true,
+            [](bool acc, const auto& r) { return acc && r; }
+        );
+
+        if (!all_downloaded)
         {
             LOG_ERROR << "Download didn't finish!";
             return false;
         }
-        // make sure that all targets have finished extracting
-        while (!is_sig_interrupted())
+
+        // Blocks until all extraction are done
+        for (auto& task : extract_tasks)
         {
-            bool all_finished = true;
-            for (const auto& t : targets)
-            {
-                if (!t->finished())
-                {
-                    all_finished = false;
-                    break;
-                }
-            }
-            if (all_finished)
-            {
-                break;
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            task.wait();
         }
 
-        if (!(ctx.graphics_params.no_progress_bars || ctx.output_params.json
-              || ctx.output_params.quiet))
+        bool all_valid = true;
+        for (auto [fit, eit] = std::tuple{ fetchers.begin(), extract_requests.begin() };
+             eit != extract_requests.end();
+             ++fit, ++eit)
         {
-            pbar_manager.terminate();
-            pbar_manager.clear_progress_bars();
-        }
-
-        for (const auto& t : targets)
-        {
-            if (t->validation_result() != PackageDownloadExtractTarget::VALIDATION_RESULT::VALID
-                && t->validation_result()
-                       != PackageDownloadExtractTarget::VALIDATION_RESULT::UNDEFINED)
+            PackageExtractRequest::Result res = eit->get_result();
+            if (!res.valid || !res.extracted)
             {
-                t->clear_cache();
+                fit->clear_cache();
                 all_valid = false;
+                // TODO: check if we can remove this
                 throw std::runtime_error(
-                    std::string("Found incorrect download: ") + t->name() + ". Aborting"
+                    std::string("Found incorrect download: ") + fit->name() + ". Aborting"
                 );
             }
         }
-
-        return !is_sig_interrupted() && downloaded && all_valid;
+        return !is_sig_interrupted() && all_valid;
     }
 
     bool MTransaction::empty()

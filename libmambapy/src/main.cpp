@@ -14,6 +14,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
+#include <solv/solver.h>
 
 #include "mamba/api/clean.hpp"
 #include "mamba/api/configuration.hpp"
@@ -21,7 +22,6 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/download_progress_bar.hpp"
 #include "mamba/core/execution.hpp"
-#include "mamba/core/fetch.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/pool.hpp"
@@ -208,14 +208,14 @@ namespace mambapy
         bool download()
         {
             using namespace mamba;
-            // TODO: expose DownloadProgressBar to libmambapy and remove this
+            // TODO: expose SubdirDataMonitor to libmambapy and remove this
             //  logic
             Context& ctx = mambapy::singletons.context();
             expected_t<void> download_res;
-            if (DownloadProgressBar::can_monitor(ctx))
+            if (SubdirDataMonitor::can_monitor(ctx))
             {
-                DownloadProgressBar check_monitor({ true, true });
-                DownloadProgressBar index_monitor;
+                SubdirDataMonitor check_monitor({ true, true });
+                SubdirDataMonitor index_monitor;
                 download_res = MSubdirData::download_indexes(
                     m_subdirs,
                     ctx,
@@ -266,10 +266,7 @@ PYBIND11_MODULE(bindings, m)
     auto pyPackageInfo = py::class_<PackageInfo>(m, "PackageInfo");
     auto pyPrefixData = py::class_<PrefixData>(m, "PrefixData");
     auto pySolver = py::class_<MSolver>(m, "Solver");
-    auto pyMultiDownloadTarget = py::class_<MultiDownloadTarget, std::unique_ptr<MultiDownloadTarget>>(
-        m,
-        "DownloadTargetList"
-    );
+
     // only used in a return type; does it belong in the module?
     auto pyRootRole = py::class_<validation::RootRole>(m, "RootRole");
 
@@ -662,12 +659,6 @@ PYBIND11_MODULE(bindings, m)
 
     m.def("cache_fn_url", &cache_fn_url);
     m.def("create_cache_dir", &create_cache_dir);
-
-    pyMultiDownloadTarget
-        .def(py::init(
-            [] { return std::make_unique<MultiDownloadTarget>(mambapy::singletons.context()); }
-        ))
-        .def("download", &MultiDownloadTarget::download);
 
     py::enum_<ChannelPriority>(m, "ChannelPriority")
         .value("Flexible", ChannelPriority::Flexible)
@@ -1329,10 +1320,6 @@ PYBIND11_MODULE(bindings, m)
     m.attr("MAMBA_NO_DEPS") = PY_MAMBA_NO_DEPS;
     m.attr("MAMBA_ONLY_DEPS") = PY_MAMBA_ONLY_DEPS;
     m.attr("MAMBA_FORCE_REINSTALL") = PY_MAMBA_FORCE_REINSTALL;
-
-    // DOWNLOAD FLAGS
-    m.attr("MAMBA_DOWNLOAD_FAILFAST") = MAMBA_DOWNLOAD_FAILFAST;
-    m.attr("MAMBA_DOWNLOAD_SORT") = MAMBA_DOWNLOAD_SORT;
 
     // CLEAN FLAGS
     m.attr("MAMBA_CLEAN_ALL") = MAMBA_CLEAN_ALL;

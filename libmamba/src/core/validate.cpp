@@ -14,7 +14,7 @@
 #include <openssl/evp.h>
 
 #include "mamba/core/context.hpp"
-#include "mamba/core/fetch.hpp"
+#include "mamba/core/download.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/validate.hpp"
 #include "mamba/util/string.hpp"
@@ -1446,16 +1446,11 @@ namespace mamba::validation
 
             const auto url = mamba::util::URL::parse(base_url + "/key_mgr.json");
 
-            auto dl_target = std::make_unique<mamba::DownloadTarget>(
-                context,
-                "key_mgr.json",
-                url.pretty_str(),
-                tmp_metadata_path.string()
-            );
-
-            if (dl_target->resource_exists())
+            if (check_resource_exists(url.pretty_str(), context))
             {
-                if (dl_target->perform())
+                DownloadRequest request("key_mgr.json", url.pretty_str(), tmp_metadata_path.string());
+                DownloadResult res = download(std::move(request), context);
+                if (res)
                 {
                     KeyMgrRole key_mgr = create_key_mgr(tmp_metadata_path);
 
@@ -1611,16 +1606,12 @@ namespace mamba::validation
 
             const auto url = mamba::util::URL::parse(base_url + "/pkg_mgr.json");
 
-            auto dl_target = std::make_unique<mamba::DownloadTarget>(
-                context,
-                "pkg_mgr.json",
-                url.pretty_str(),
-                tmp_metadata_path.string()
-            );
-
-            if (dl_target->resource_exists())
+            if (check_resource_exists(url.pretty_str(), context))
             {
-                if (dl_target->perform())
+                DownloadRequest request("pkg_mgr.json", url.pretty_str(), tmp_metadata_path.string());
+                DownloadResult res = download(std::move(request), context);
+
+                if (res)
                 {
                     PkgMgrRole pkg_mgr = create_pkg_mgr(tmp_metadata_path);
 
@@ -2164,16 +2155,12 @@ namespace mamba::validation
                 auto url = ::mamba::util::concat(m_base_url, "/", f.string());
                 tmp_file_path = tmp_dir_path / f;
 
-                auto dl_target = std::make_unique<mamba::DownloadTarget>(
-                    m_context,
-                    f.string(),
-                    url,
-                    tmp_file_path.string()
-                );
-
-                if (dl_target->resource_exists())
+                if (check_resource_exists(url, m_context))
                 {
-                    if (dl_target->perform())
+                    DownloadRequest request(f.string(), url, tmp_file_path.string());
+                    DownloadResult res = download(std::move(request), m_context);
+
+                    if (res)
                     {
                         break;
                     }

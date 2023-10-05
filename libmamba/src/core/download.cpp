@@ -90,6 +90,24 @@ namespace mamba
                 remote_fetch_params.curl_initialized = true;
             }
         }
+
+        std::pair<bool, bool> get_env_remote_params(const Context& context)
+        {
+            // TODO: we should probably store set_low_speed_limit and set_ssl_no_revoke in
+            // RemoteFetchParams if the request is slower than 30b/s for 60 seconds, cancel.
+            const std::string no_low_speed_limit = std::getenv("MAMBA_NO_LOW_SPEED_LIMIT")
+                                                       ? std::getenv("MAMBA_NO_LOW_SPEED_LIMIT")
+                                                       : "0";
+            const bool set_low_speed_opt = (no_low_speed_limit == "0");
+
+            const std::string ssl_no_revoke_env = std::getenv("MAMBA_SSL_NO_REVOKE")
+                                                      ? std::getenv("MAMBA_SSL_NO_REVOKE")
+                                                      : "0";
+            const bool set_ssl_no_revoke = context.remote_fetch_params.ssl_no_revoke
+                                           || (ssl_no_revoke_env != "0");
+
+            return { set_low_speed_opt, set_ssl_no_revoke };
+        }
     }
 
     /**********************************
@@ -231,18 +249,7 @@ namespace mamba
 
     void DownloadAttempt::configure_handle(const Context& context)
     {
-        // TODO: we should probably store set_low_speed_limit and set_ssl_no_revoke in
-        // RemoteFetchParams if the request is slower than 30b/s for 60 seconds, cancel.
-        const std::string no_low_speed_limit = std::getenv("MAMBA_NO_LOW_SPEED_LIMIT")
-                                                   ? std::getenv("MAMBA_NO_LOW_SPEED_LIMIT")
-                                                   : "0";
-        const bool set_low_speed_opt = (no_low_speed_limit == "0");
-
-        const std::string ssl_no_revoke_env = std::getenv("MAMBA_SSL_NO_REVOKE")
-                                                  ? std::getenv("MAMBA_SSL_NO_REVOKE")
-                                                  : "0";
-        const bool set_ssl_no_revoke = context.remote_fetch_params.ssl_no_revoke
-                                       || (ssl_no_revoke_env != "0");
+        auto [set_low_speed_opt, set_ssl_no_revoke] = get_env_remote_params(context);
 
         m_handle.configure_handle(
             util::file_uri_unc2_to_unc4(p_request->url),
@@ -827,7 +834,7 @@ namespace mamba
     {
         if (!context.remote_fetch_params.curl_initialized)
         {
-            // TODO: MOve this into an object that would be autmotacially initialized
+            // TODO: Move this into an object that would be automatically initialized
             // upon construction, and passed by const reference to this function instead
             // of context.
             Context& ctx = const_cast<Context&>(context);
@@ -846,5 +853,36 @@ namespace mamba
             Downloader dl(std::move(requests), std::move(options), context);
             return dl.download();
         }
+    }
+
+    DownloadResult
+    download(DownloadRequest request, const Context& context, DownloadOptions options, DownloadMonitor* monitor)
+    {
+        MultiDownloadRequest req(1u, std::move(request));
+        auto res = download(std::move(req), context, std::move(options), monitor);
+        return std::move(res.front());
+    }
+
+    bool check_resource_exists(const std::string& url, const Context& context)
+    {
+        if (!context.remote_fetch_params.curl_initialized)
+        {
+            // TODO: Move this into an object that would be automatically initialized
+            // upon construction, and passed by const reference to this function instead
+            // of context.
+            Context& ctx = const_cast<Context&>(context);
+            init_remote_fetch_params(ctx.remote_fetch_params);
+        }
+
+        auto [set_low_speed_opt, set_ssl_no_revoke] = get_env_remote_params(context);
+
+        return curl::check_resource_exists(
+            util::file_uri_unc2_to_unc4(url),
+            set_low_speed_opt,
+            context.remote_fetch_params.connect_timeout_secs,
+            set_ssl_no_revoke,
+            proxy_match(url, context.remote_fetch_params.proxy_servers),
+            context.remote_fetch_params.ssl_verify
+        );
     }
 }

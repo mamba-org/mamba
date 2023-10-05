@@ -19,15 +19,16 @@ class MitmProxy:
     def __init__(
         self,
         exe: Path,
-        scripts: Optional[Path],
-        confdir: Optional[Path],
-        outfile: Optional[Path],
+        scripts: Optional[Path] = None,
+        confdir: Optional[Path] = None,
+        outfile: Optional[Path] = None,
     ):
         self.exe = Path(exe).resolve()
         self.scripts = Path(scripts).resolve() if scripts is not None else None
         self.confdir = Path(confdir).resolve() if confdir is not None else None
         self.outfile = Path(outfile).resolve() if outfile is not None else None
         self.process = None
+        self.port = None
 
     def start_proxy(self, port, options=[]):
         assert self.process is None
@@ -44,6 +45,7 @@ class MitmProxy:
         # Wait until mitmproxy has generated its certificate or some tests might fail
         while not (Path(self.confdir) / "mitmproxy-ca-cert.pem").exists():
             time.sleep(1)
+        self.port = port
 
     def stop_proxy(self):
         self.process.terminate()
@@ -52,6 +54,7 @@ class MitmProxy:
         except subprocess.TimeoutExpired:
             self.process.kill()
         self.process = None
+        self.port = None
 
 
 def subprocess_run(*args: str, **kwargs) -> str:

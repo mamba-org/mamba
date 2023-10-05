@@ -2,6 +2,7 @@ import copy
 import os
 import pathlib
 import platform
+import shutil
 from typing import Any, Generator, Mapping, Optional
 
 import pytest
@@ -15,6 +16,12 @@ from . import helpers
 
 def pytest_addoption(parser):
     """Add command line argument to pytest."""
+    parser.addoption(
+        "--mitmdump-exe",
+        action="store",
+        default=None,
+        help="Path to mitmdump proxy executable",
+    )
     parser.addoption(
         "--mamba-pkgs-dir",
         action="store",
@@ -38,6 +45,15 @@ def pytest_addoption(parser):
 ##################
 #  Test fixture  #
 ##################
+
+
+@pytest.fixture(scope="session")
+def mitmdump_exe(request) -> pathlib.Path:
+    """Get the path to the ``mitmdump`` executable."""
+    if (p := request.config.getoption("--mitmdump-exe")) is not None:
+        return pathlib.Path(p).resolve()
+
+    return pathlib.Path(shutil.which("mitmdump")).resolve()
 
 
 @pytest.fixture(autouse=True)

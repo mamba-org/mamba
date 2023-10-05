@@ -1,5 +1,4 @@
 import os
-import shutil
 import subprocess
 import time
 import urllib.parse
@@ -10,16 +9,6 @@ import pytest
 from . import helpers
 
 __this_dir__ = Path(__file__).parent.resolve()
-
-
-@pytest.fixture
-def mitmdump_exe():
-    """Get the path to the ``mitmdump`` executable.
-
-    If the executable is provided in a conda environment, this fixture needs to be called
-    before ``tmp_root_prefix`` and the like, as they will clean the ``PATH``.
-    """
-    return Path(shutil.which("mitmdump")).resolve()
 
 
 class MitmProxy:

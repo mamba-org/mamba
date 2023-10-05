@@ -57,13 +57,38 @@ def mitmdump_exe(request) -> pathlib.Path:
     return pathlib.Path(shutil.which("mitmdump")).resolve()
 
 
-##########################
-#  Test utility fixture  #
-##########################
+@pytest.fixture(scope="session", autouse=True)
+def session_clean_env() -> None:
+    """Remove all Conda/Mamba activation artifacts from environment."""
+    old_environ = copy.deepcopy(os.environ)
+
+    for k, v in os.environ.items():
+        if k.startswith(("CONDA", "_CONDA", "MAMBA", "_MAMBA", "XDG_")):
+            del os.environ[k]
+
+    def keep_in_path(
+        p: str, prefix: Optional[str] = old_environ.get("CONDA_PREFIX")
+    ) -> bool:
+        if "condabin" in p:
+            return False
+        # On windows, PATH is also used for dyanamic libraries.
+        if (prefix is not None) and (platform.system() != "Windows"):
+            p = str(pathlib.Path(p).expanduser().resolve())
+            prefix = str(pathlib.Path(prefix).expanduser().resolve())
+            return not p.startswith(prefix)
+        return True
+
+    path_list = os.environ["PATH"].split(os.pathsep)
+    path_list = [p for p in path_list if keep_in_path(p)]
+    os.environ["PATH"] = os.pathsep.join(path_list)
+
+    yield
+
+    os.environ.update(old_environ)
 
 
 @pytest.fixture(autouse=True)
-def tmp_environ() -> Generator[Mapping[str, Any], None, None]:
+def tmp_environ(session_clean_env: None) -> Generator[Mapping[str, Any], None, None]:
     """Saves and restore environment variables.
 
     This is used for test that need to modify ``os.environ``
@@ -105,31 +130,6 @@ def tmp_home(
             pass
 
 
-@pytest.fixture
-def tmp_clean_env(tmp_environ: None) -> None:
-    """Remove all Conda/Mamba activation artifacts from environment."""
-    for k, v in os.environ.items():
-        if k.startswith(("CONDA", "_CONDA", "MAMBA", "_MAMBA", "XDG_")):
-            del os.environ[k]
-
-    def keep_in_path(
-        p: str, prefix: Optional[str] = tmp_environ.get("CONDA_PREFIX")
-    ) -> bool:
-        if "condabin" in p:
-            return False
-        # On windows, PATH is also used for dyanamic libraries.
-        if (prefix is not None) and (platform.system() != "Windows"):
-            p = str(pathlib.Path(p).expanduser().resolve())
-            prefix = str(pathlib.Path(prefix).expanduser().resolve())
-            return not p.startswith(prefix)
-        return True
-
-    path_list = os.environ["PATH"].split(os.pathsep)
-    path_list = [p for p in path_list if keep_in_path(p)]
-    os.environ["PATH"] = os.pathsep.join(path_list)
-    # os.environ restored by tmp_clean_env and tmp_environ
-
-
 @pytest.fixture(scope="session")
 def tmp_pkgs_dirs(tmp_path_factory: pytest.TempPathFactory, request) -> pathlib.Path:
     """A common package cache for mamba downloads.
@@ -154,7 +154,7 @@ def shared_pkgs_dirs(request) -> bool:
 def tmp_root_prefix(
     request,
     tmp_path_factory: pytest.TempPathFactory,
-    tmp_clean_env: None,
+    tmp_environ: None,
     tmp_pkgs_dirs: pathlib.Path,
     shared_pkgs_dirs: bool,
 ) -> Generator[pathlib.Path, None, None]:
@@ -173,7 +173,7 @@ def tmp_root_prefix(
     if not request.config.getoption("--no-eager-clean"):
         if new_root_prefix.exists():
             helpers.rmtree(new_root_prefix)
-    # os.environ restored by tmp_clean_env and tmp_environ
+    # os.environ restored by tmp_environ
 
 
 @pytest.fixture(params=[helpers.random_string])

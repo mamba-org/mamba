@@ -8,6 +8,8 @@
 #include <set>
 #include <string>
 
+#include <nlohmann/json.hpp>
+
 #include "mamba/core/package_paths.hpp"
 #include "mamba/util/string.hpp"
 

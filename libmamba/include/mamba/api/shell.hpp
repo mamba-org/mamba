@@ -10,8 +10,8 @@
 #include <string>
 #include <string_view>
 
-#include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/palette.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 namespace mamba
 {

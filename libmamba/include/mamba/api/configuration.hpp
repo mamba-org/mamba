@@ -15,8 +15,8 @@
 #include "mamba/api/constants.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
-#include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 
 namespace mamba

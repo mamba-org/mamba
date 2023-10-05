@@ -24,13 +24,14 @@ extern "C"
     typedef struct s_Repodata Repodata;
 }
 
-namespace fs
-{
-    class u8path;
-}
-
 namespace mamba
 {
+
+    namespace fs
+    {
+        class u8path;
+    }
+
     class PackageInfo;
     class PrefixData;
 

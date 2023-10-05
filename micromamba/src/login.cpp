@@ -64,13 +64,13 @@ set_logout_command(CLI::App* subcom)
         []()
         {
             static auto path = mamba::env::home_directory() / ".mamba" / "auth";
-            fs::u8path auth_file = path / "authentication.json";
+            const mamba::fs::u8path auth_file = path / "authentication.json";
 
             if (all)
             {
-                if (fs::exists(auth_file))
+                if (mamba::fs::exists(auth_file))
                 {
-                    fs::remove(auth_file);
+                    mamba::fs::remove(auth_file);
                 }
                 return 0;
             }
@@ -79,7 +79,7 @@ set_logout_command(CLI::App* subcom)
 
             try
             {
-                if (fs::exists(auth_file))
+                if (mamba::fs::exists(auth_file))
                 {
                     auto fi = mamba::open_ifstream(auth_file);
                     fi >> auth_info;
@@ -157,16 +157,16 @@ set_login_command(CLI::App* subcom)
                 bearer = read_stdin();
             }
 
-            static auto path = mamba::env::home_directory() / ".mamba" / "auth";
-            fs::create_directories(path);
+            static const auto path = mamba::env::home_directory() / ".mamba" / "auth";
+            mamba::fs::create_directories(path);
 
 
             nlohmann::json auth_info;
-            fs::u8path auth_file = path / "authentication.json";
+            const mamba::fs::u8path auth_file = path / "authentication.json";
 
             try
             {
-                if (fs::exists(auth_file))
+                if (mamba::fs::exists(auth_file))
                 {
                     auto fi = mamba::open_ifstream(auth_file);
                     fi >> auth_info;

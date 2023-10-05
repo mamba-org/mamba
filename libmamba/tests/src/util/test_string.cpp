@@ -11,7 +11,7 @@
 
 #include <doctest/doctest.h>
 
-#include "mamba/core/mamba_fs.hpp"
+#include "mamba/fs/filesystem.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba::util

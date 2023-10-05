@@ -8,6 +8,7 @@
 
 #include "mamba/specs/archive.hpp"
 
+using namespace mamba;
 using namespace mamba::specs;
 
 TEST_SUITE("specs::archive")

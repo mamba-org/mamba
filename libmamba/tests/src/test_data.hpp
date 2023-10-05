@@ -8,7 +8,7 @@
 #define MAMBA_CORE_URL_HPP
 
 #include "mamba/core/fsutil.hpp"
-#include "mamba/core/mamba_fs.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 namespace mamba
 {

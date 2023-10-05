@@ -4,10 +4,30 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <cerrno>
+#include <chrono>
+#include <condition_variable>
+#include <cstring>
+#include <cwchar>
+#include <fstream>
+#include <iomanip>
+#include <memory>
+#include <mutex>
+#include <optional>
+#include <regex>
+#include <sstream>
+#include <string>
+#include <string_view>
+#include <unordered_map>
+#include <vector>
+
+#include <time.h>
+
+#if defined(__PPC64__) || defined(__ppc64__) || defined(_ARCH_PPC64)
+#include <iomanip>
+#endif
 
 #if defined(__APPLE__) || defined(__linux__)
-#include <csignal>
-
 #include <fcntl.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -26,24 +46,15 @@ extern "C"
 #include <process.h>
 #include <sys/locking.h>
 }
-
 #endif
 
-#include <cerrno>
-#include <condition_variable>
-#include <cstring>
-#include <cwchar>
-#include <iomanip>
-#include <memory>
-#include <mutex>
-#include <optional>
-#include <regex>
-#include <unordered_map>
-
+#include <nlohmann/json.hpp>
 #include <openssl/evp.h>
+#include <tl/expected.hpp>
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
+#include "mamba/core/error_handling.hpp"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/invoke.hpp"
 #include "mamba/core/output.hpp"
@@ -52,6 +63,7 @@ extern "C"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_random.hpp"
+#include "mamba/fs/filesystem.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/compare.hpp"
 #include "mamba/util/string.hpp"

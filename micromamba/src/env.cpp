@@ -23,7 +23,7 @@
 using namespace mamba;  // NOLINT(build/namespaces)
 
 std::string
-get_env_name(const Context& ctx, const fs::u8path& px)
+get_env_name(const Context& ctx, const mamba::fs::u8path& px)
 {
     auto& ed = ctx.envs_dirs[0];
     if (px == ctx.prefix_params.root_prefix)
@@ -32,7 +32,7 @@ get_env_name(const Context& ctx, const fs::u8path& px)
     }
     else if (util::starts_with(px.string(), ed.string()))
     {
-        return fs::relative(px, ed).string();
+        return mamba::fs::relative(px, ed).string();
     }
     else
     {
@@ -69,7 +69,7 @@ set_env_command(CLI::App* com, Configuration& config)
                     pfxs.begin(),
                     pfxs.end(),
                     envs.begin(),
-                    [](const fs::u8path& path) { return path.string(); }
+                    [](const mamba::fs::u8path& path) { return path.string(); }
                 );
                 res["envs"] = envs;
                 std::cout << res.dump(4) << std::endl;

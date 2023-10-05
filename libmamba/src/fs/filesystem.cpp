@@ -4,13 +4,25 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#ifdef _WIN32
+#include <algorithm>
+#endif
 #include <filesystem>
 #include <string>
 
-#include "mamba/core/mamba_fs.hpp"
-#include "mamba/util/string.hpp"
+#ifndef _WIN32
+#include <fcntl.h>
+#include <sys/stat.h>
+// We can use the presence of UTIME_OMIT to detect platforms that provide
+// utimensat.
+#if defined(UTIME_OMIT)
+#define USE_UTIMENSAT
+#endif
+#endif
 
-namespace fs
+#include "mamba/fs/filesystem.hpp"
+
+namespace mamba::fs
 {
 
 #if defined(_WIN32)
@@ -18,9 +30,9 @@ namespace fs
     std::filesystem::path normalized_separators(std::filesystem::path path)
     {
         auto native_string = path.native();
-        static constexpr auto platform_separator = L"\\";
-        static constexpr auto other_separator = L"/";
-        mamba::util::replace_all(native_string, other_separator, platform_separator);
+        static constexpr wchar_t platform_sep = L'\\';
+        static constexpr wchar_t other_sep = L'/';
+        std::replace(native_string.begin(), native_string.end(), other_sep, platform_sep);
         path = std::move(native_string);
         return path;
     }
@@ -45,4 +57,17 @@ namespace fs
 #else
 #error UTF8 functions implementation is specific to C++17, using another version requires a different implementation.
 #endif
+
+    void last_write_time(const u8path& path, now, std::error_code& ec) noexcept
+    {
+#if defined(USE_UTIMENSAT)
+        if (utimensat(AT_FDCWD, path.string().c_str(), NULL, 0) == -1)
+        {
+            ec = std::error_code(errno, std::generic_category());
+        }
+#else
+        auto new_time = fs::file_time_type::clock::now();
+        std::filesystem::last_write_time(path, new_time, ec);
+#endif
+    }
 }

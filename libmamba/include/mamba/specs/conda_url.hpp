@@ -34,8 +34,10 @@ namespace mamba::specs
         explicit CondaURL(util::URL&& url);
         explicit CondaURL(const util::URL& url);
 
+        using Base::scheme_is_defaulted;
         using Base::scheme;
         using Base::set_scheme;
+        using Base::clear_scheme;
         using Base::user;
         using Base::set_user;
         using Base::clear_user;

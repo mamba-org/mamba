@@ -180,7 +180,7 @@ namespace mamba::util
                 file_uri_unc2_to_unc4(url),
                 CURLU_NON_SUPPORT_SCHEME | CURLU_DEFAULT_SCHEME,
             };
-            out.set_scheme(handle.get_part(CURLUPART_SCHEME).value_or(std::string(URL::https)));
+            out.set_scheme(handle.get_part(CURLUPART_SCHEME).value_or(""));
             out.set_user(handle.get_part(CURLUPART_USER).value_or(""), Encode::no);
             out.set_password(handle.get_part(CURLUPART_PASSWORD).value_or(""), Encode::no);
             out.set_host(handle.get_part(CURLUPART_HOST).value_or(""));
@@ -192,18 +192,28 @@ namespace mamba::util
         return out;
     }
 
-    auto URL::scheme() const -> const std::string&
+    auto URL::scheme_is_defaulted() const -> bool
     {
+        return m_scheme.empty();
+    }
+
+    auto URL::scheme() const -> std::string_view
+    {
+        if (scheme_is_defaulted())
+        {
+            return https;
+        }
         return m_scheme;
     }
 
     void URL::set_scheme(std::string_view scheme)
     {
-        if (scheme.empty())
-        {
-            throw std::invalid_argument("Cannot set empty scheme");
-        }
         m_scheme = util::to_lower(util::rstrip(scheme));
+    }
+
+    auto URL::clear_scheme() -> std::string
+    {
+        return std::exchange(m_scheme, "");
     }
 
     auto URL::user(Decode::no_type) const -> const std::string&
@@ -265,7 +275,7 @@ namespace mamba::util
 
     auto URL::host(Decode::no_type) const -> std::string_view
     {
-        if ((m_scheme != "file") && m_host.empty())
+        if ((scheme() != "file") && m_host.empty())
         {
             return localhost;
         }
@@ -396,7 +406,7 @@ namespace mamba::util
     auto URL::pretty_path() const -> std::string
     {
         // All paths start with a '/' except those like "file:///C:/folder/file.txt"
-        if (m_scheme == "file")
+        if (scheme() == "file")
         {
             assert(util::starts_with(m_path, '/'));
             auto path_no_slash = url_decode(std::string_view(m_path).substr(1));
@@ -488,7 +498,7 @@ namespace mamba::util
     {
         std::string computed_path = {};
         // When stripping file scheme, not showing leading '/' for Windows path with drive
-        if ((m_scheme == "file") && (strip_scheme == StripScheme::yes) && host(Decode::no).empty())
+        if ((scheme() == "file") && (strip_scheme == StripScheme::yes) && host(Decode::no).empty())
         {
             computed_path = pretty_path();
         }
@@ -505,7 +515,7 @@ namespace mamba::util
         -> std::string
     {
         return util::concat(
-            (strip_scheme == StripScheme::no) ? m_scheme : "",
+            (strip_scheme == StripScheme::no) ? scheme() : "",
             (strip_scheme == StripScheme::no) ? "://" : "",
             user(Decode::yes),
             m_password.empty() ? "" : ":",

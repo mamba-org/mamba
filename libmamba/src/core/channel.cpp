@@ -121,7 +121,7 @@ namespace mamba
 
     Channel::~Channel() = default;
 
-    const std::string& Channel::scheme() const
+    std::string_view Channel::scheme() const
     {
         return m_url.scheme();
     }
@@ -199,7 +199,7 @@ namespace mamba
         }
         else
         {
-            return util::concat_scheme_url(scheme(), util::join_url(location(), name()));
+            return util::concat_scheme_url(std::string(scheme()), util::join_url(location(), name()));
         }
     }
 
@@ -219,7 +219,7 @@ namespace mamba
 
             return { { util::build_url(
                 auth(),
-                scheme(),
+                std::string(scheme()),
                 util::join_url(base, name(), std::move(fn).value()),
                 with_credential
             ) } };
@@ -247,7 +247,12 @@ namespace mamba
         {
             out.insert({
                 platform,
-                util::build_url(auth(), scheme(), util::join_url(base, name(), platform), with_credential),
+                util::build_url(
+                    auth(),
+                    std::string(scheme()),
+                    util::join_url(base, name(), platform),
+                    with_credential
+                ),
             });
         }
         return out;
@@ -260,7 +265,12 @@ namespace mamba
         {
             base = util::join_url(base, "t", *token());
         }
-        return util::build_url(auth(), scheme(), util::join_url(base, name(), platform), with_credential);
+        return util::build_url(
+            auth(),
+            std::string(scheme()),
+            util::join_url(base, name(), platform),
+            with_credential
+        );
     }
 
     bool operator==(const Channel& lhs, const Channel& rhs)
@@ -477,7 +487,7 @@ namespace mamba
         else
         {
             canonical_name = util::concat_scheme_url(
-                config.url.scheme(),
+                std::string(config.url.scheme()),
                 util::join_url(config.location, config.name)
             );
         }

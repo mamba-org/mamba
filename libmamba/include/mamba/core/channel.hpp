@@ -44,7 +44,7 @@ namespace mamba
 
         ~Channel();
 
-        const std::string& scheme() const;
+        std::string_view scheme() const;
         const std::string& location() const;
         const std::string& name() const;
         const std::string& canonical_name() const;

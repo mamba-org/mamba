@@ -84,11 +84,17 @@ namespace mamba::util
         /** Create a local URL. */
         URL() = default;
 
+        /** Return whether the scheme is defaulted, i.e. not explicitly set. */
+        [[nodiscard]] auto scheme_is_defaulted() const -> bool;
+
         /** Return the scheme, always non-empty. */
-        [[nodiscard]] auto scheme() const -> const std::string&;
+        [[nodiscard]] auto scheme() const -> std::string_view;
 
         /** Set a non-empty scheme. */
         void set_scheme(std::string_view scheme);
+
+        /** Clear the scheme back to a defaulted value and return the old value (or empty). */
+        auto clear_scheme() -> std::string;
 
         /** Return the encoded user, or empty if none. */
         [[nodiscard]] auto user(Decode::no_type) const -> const std::string&;
@@ -240,7 +246,7 @@ namespace mamba::util
 
     private:
 
-        std::string m_scheme = std::string(https);
+        std::string m_scheme = {};
         std::string m_user = {};
         std::string m_password = {};
         std::string m_host = {};

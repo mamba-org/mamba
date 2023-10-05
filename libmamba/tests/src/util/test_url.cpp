@@ -121,10 +121,32 @@ TEST_SUITE("util::URL")
             CHECK_EQ(url.host(), "some_host.com");
         }
 
+        SUBCASE("Default scheme")
+        {
+            URL url{};
+            CHECK(url.scheme_is_defaulted());
+            CHECK_EQ(url.scheme(), "https");
+
+            url.set_scheme("https");
+            CHECK_FALSE(url.scheme_is_defaulted());
+            CHECK_EQ(url.scheme(), "https");
+
+            url.set_scheme("");
+            CHECK(url.scheme_is_defaulted());
+            url.set_scheme("https");
+
+            url.set_scheme("ftp");
+            CHECK_FALSE(url.scheme_is_defaulted());
+            CHECK_EQ(url.scheme(), "ftp");
+
+            CHECK_EQ(url.clear_scheme(), "ftp");
+            CHECK(url.scheme_is_defaulted());
+            url.set_scheme("https");
+        }
+
         SUBCASE("Invalid")
         {
             URL url{};
-            CHECK_THROWS_AS(url.set_scheme(""), std::invalid_argument);
             CHECK_THROWS_AS(url.set_port("not-a-number"), std::invalid_argument);
         }
 

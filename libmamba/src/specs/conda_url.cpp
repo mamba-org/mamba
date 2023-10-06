@@ -355,33 +355,60 @@ namespace mamba::specs
     }
 
     auto
-    CondaURL::pretty_str(StripScheme strip_scheme, char rstrip_path, HideConfidential hide_confifential) const
+    CondaURL::pretty_str(StripScheme strip_scheme, char rstrip_path, Credentials credentials) const
         -> std::string
     {
-        std::string computed_path = pretty_str_path(strip_scheme, rstrip_path);
-
-        if (hide_confifential == HideConfidential::yes)
+        std::string l_user = {};
+        std::string l_password = {};
+        std::string l_path = {};
+        switch (credentials)
         {
-            const auto len = token_and_prefix_len(computed_path);
-            if (len > 0)
+            case (Credentials::Show):
             {
-                set_token_no_check_input_impl(computed_path, 0, len, "*****");
+                l_user = user(Decode::yes);
+                l_password = password(Decode::yes);
+                l_path = pretty_str_path(strip_scheme, rstrip_path);
+                break;
+            }
+            case (Credentials::Hide):
+            {
+                l_user = user(Decode::yes);
+                l_password = "*****";
+                if (token().empty())
+                {
+                    l_path = pretty_str_path(strip_scheme, rstrip_path);
+                }
+                else
+                {
+                    l_path = util::concat("/t/*****", path_without_token());
+                }
+                break;
+            }
+            case (Credentials::Remove):
+            {
+                if (token().empty())
+                {
+                    l_path = pretty_str_path(strip_scheme, rstrip_path);
+                }
+                else
+                {
+                    l_path = path_without_token();
+                }
+                break;
             }
         }
 
         return util::concat(
             (strip_scheme == StripScheme::no) ? scheme() : "",
             (strip_scheme == StripScheme::no) ? "://" : "",
-            user(Decode::yes),
-            password(Decode::no).empty() ? "" : ":",
-            password(Decode::no).empty()
-                ? ""
-                : ((hide_confifential == HideConfidential::no) ? password(Decode::yes) : "*****"),
-            user(Decode::no).empty() ? "" : "@",
+            l_user,
+            (l_password.empty() || l_user.empty()) ? "" : ":",
+            (l_password.empty() || l_user.empty()) ? "" : l_password,
+            l_user.empty() ? "" : "@",
             host(Decode::yes),
             port().empty() ? "" : ":",
             port(),
-            computed_path,
+            l_path,
             query().empty() ? "" : "?",
             query(),
             fragment().empty() ? "" : "#",

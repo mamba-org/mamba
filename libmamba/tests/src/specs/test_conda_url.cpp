@@ -329,29 +329,36 @@ TEST_SUITE("specs::CondaURL")
             CHECK_EQ(url.pretty_str(CondaURL::StripScheme::no, '/'), "https://mamba.org/page");
         }
 
-        SUBCASE("Hide confidential option")
+        SUBCASE("Credentail option")
         {
             CondaURL url = {};
             url.set_user("user");
             url.set_password("pass");
             CHECK_EQ(
-                url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::HideConfidential::no),
+                url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Show),
                 "https://user:pass@localhost/"
             );
             CHECK_EQ(
-                url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::HideConfidential::yes),
+                url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Hide),
                 "https://user:*****@localhost/"
+            );
+            CHECK_EQ(
+                url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Remove),
+                "https://localhost/"
             );
 
             url.set_path("/t/abcd1234/linux-64");
             CHECK_EQ(
-                url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::HideConfidential::no),
+                url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Show),
                 "https://user:pass@localhost/t/abcd1234/linux-64"
             );
-
             CHECK_EQ(
-                url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::HideConfidential::yes),
+                url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Hide),
                 "https://user:*****@localhost/t/*****/linux-64"
+            );
+            CHECK_EQ(
+                url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Remove),
+                "https://localhost/linux-64"
             );
         }
 

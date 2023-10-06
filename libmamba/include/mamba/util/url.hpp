@@ -22,10 +22,11 @@ namespace mamba::util
             yes
         };
 
-        enum class HideConfidential : bool
+        enum class Credentials
         {
-            no,
-            yes
+            Show,
+            Hide,
+            Remove,
         };
 
         struct Encode
@@ -59,7 +60,7 @@ namespace mamba::util
     public:
 
         using StripScheme = detail::StripScheme;
-        using HideConfidential = detail::HideConfidential;
+        using Credentials = detail::Credentials;
         using Encode = detail::Encode;
         using Decode = detail::Decode;
 
@@ -229,16 +230,15 @@ namespace mamba::util
         /**
          * Return the full decoded url.
          *
-         * Due to decoding, the outcome may not be understood by parser and usable to reach an
-         * asset.
+         * Due to decoding, the outcome may not be understood by parser and usable to fetch the URL.
          * @param strip_scheme If true, remove the scheme and "localhost" on file URI.
          * @param rstrip_path If non-null, remove the given charaters at the end of the path.
-         * @param hide_confidential If true, hide password in the decoded string.
+         * @param credentials Decide to keep, remove, or hide credentials.
          */
         [[nodiscard]] auto pretty_str(
             StripScheme strip_scheme = StripScheme::no,
             char rstrip_path = 0,
-            HideConfidential hide_confidential = HideConfidential::no
+            Credentials credentials = Credentials::Show
         ) const -> std::string;
 
     protected:

@@ -408,18 +408,22 @@ TEST_SUITE("util::URL")
             CHECK_EQ(url.pretty_str(URL::StripScheme::no, '/'), "https://mamba.org/page");
         }
 
-        SUBCASE("Hide password option")
+        SUBCASE("Credential option")
         {
             URL url = {};
             url.set_user("user");
             url.set_password("pass");
             CHECK_EQ(
-                url.pretty_str(URL::StripScheme::no, 0, URL::HideConfidential::no),
+                url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Show),
                 "https://user:pass@localhost/"
             );
             CHECK_EQ(
-                url.pretty_str(URL::StripScheme::no, 0, URL::HideConfidential::yes),
+                url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Hide),
                 "https://user:*****@localhost/"
+            );
+            CHECK_EQ(
+                url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Remove),
+                "https://localhost/"
             );
         }
     }

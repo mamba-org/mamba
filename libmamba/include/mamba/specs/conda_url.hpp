@@ -21,7 +21,7 @@ namespace mamba::specs
     public:
 
         using StripScheme = util::detail::StripScheme;
-        using HideConfidential = util::detail::HideConfidential;
+        using Credentials = util::detail::Credentials;
         using Encode = util::detail::Encode;
         using Decode = util::detail::Decode;
 
@@ -207,12 +207,13 @@ namespace mamba::specs
          * asset.
          * @param strip_scheme If true, remove the scheme and "localhost" on file URI.
          * @param rstrip_path If non-null, remove the given charaters at the end of the path.
-         * @param hide_confidential If true, hide password and tokens in the decoded string.
+         * @param credentials If true, hide password and tokens in the decoded string.
+         * @param credentials Decide to keep, remove, or hide passwrd, users, and token.
          */
         [[nodiscard]] auto pretty_str(
             StripScheme strip_scheme = StripScheme::no,
             char rstrip_path = 0,
-            HideConfidential hide_confidential = HideConfidential::no
+            Credentials credentials = Credentials::Show
         ) const -> std::string;
 
 

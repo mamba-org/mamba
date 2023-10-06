@@ -516,19 +516,37 @@ namespace mamba::util
         return computed_path;
     }
 
-    auto
-    URL::pretty_str(StripScheme strip_scheme, char rstrip_path, HideConfidential hide_confidential) const
+    auto URL::pretty_str(StripScheme strip_scheme, char rstrip_path, Credentials credentials) const
         -> std::string
     {
+        std::string l_user = {};
+        std::string l_password = {};
+        switch (credentials)
+        {
+            case (Credentials::Show):
+            {
+                l_user = user(Decode::yes);
+                l_password = password(Decode::yes);
+                break;
+            }
+            case (Credentials::Hide):
+            {
+                l_user = user(Decode::yes);
+                l_password = "*****";
+                break;
+            }
+            case (Credentials::Remove):
+            {
+                break;
+            }
+        }
         return util::concat(
             (strip_scheme == StripScheme::no) ? scheme() : "",
             (strip_scheme == StripScheme::no) ? "://" : "",
-            user(Decode::yes),
-            m_password.empty() ? "" : ":",
-            password(Decode::no).empty()
-                ? ""
-                : ((hide_confidential == HideConfidential::no) ? password(Decode::yes) : "*****"),
-            m_user.empty() ? "" : "@",
+            l_user,
+            (l_password.empty() || l_user.empty()) ? "" : ":",
+            (l_password.empty() || l_user.empty()) ? "" : l_password,
+            l_user.empty() ? "" : "@",
             host(Decode::yes),
             m_port.empty() ? "" : ":",
             m_port,

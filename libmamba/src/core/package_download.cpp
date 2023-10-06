@@ -5,7 +5,6 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <iostream>
-#include <stack>
 
 #include <fmt/color.h>
 #include <fmt/format.h>
@@ -21,6 +20,8 @@
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/progress_bar.hpp"
 #include "mamba/core/thread_utils.hpp"
+#include "mamba/core/util.hpp"
+#include "mamba/core/validate.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/util/string.hpp"
 

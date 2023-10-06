@@ -7,6 +7,8 @@
 #ifndef MAMBA_CORE_FETCH_HPP
 #define MAMBA_CORE_FETCH_HPP
 
+#include <fstream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -21,7 +23,6 @@ extern "C"
 ////////////////////////////////////
 
 #include "progress_bar.hpp"
-#include "validate.hpp"
 
 namespace mamba
 {

@@ -12,6 +12,7 @@
 #include "mamba/core/fetch.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
+#include "mamba/core/util.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"

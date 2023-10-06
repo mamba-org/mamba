@@ -39,7 +39,7 @@ namespace mamba
 
         Query(MPool& pool);
 
-        query_result find(const std::string& query) const;
+        query_result find(const std::vector<std::string>& queries) const;
         query_result whoneeds(const std::string& query, bool tree) const;
         query_result depends(const std::string& query, bool tree) const;
 

@@ -78,7 +78,7 @@ namespace mamba
         QueryType type,
         QueryResultFormat format,
         bool use_local,
-        const std::string& query
+        const std::vector<std::string>& queries
     )
     {
         auto& ctx = config.context();
@@ -89,12 +89,12 @@ namespace mamba
         {
             if (ctx.output_params.json)
             {
-                std::cout << q.find(query).groupby("name").json(pool.channel_context()).dump(4);
+                std::cout << q.find(queries).groupby("name").json(pool.channel_context()).dump(4);
             }
             else
             {
                 std::cout << "\n" << std::endl;
-                auto res = q.find(query);
+                auto res = q.find(queries);
                 switch (format)
                 {
                     case QueryResultFormat::Json:
@@ -115,8 +115,12 @@ namespace mamba
         }
         else if (type == QueryType::Depends)
         {
+            if (queries.size() != 1)
+            {
+                throw std::invalid_argument("Only one query supported for 'depends'.");
+            }
             auto res = q.depends(
-                query,
+                queries.front(),
                 format == QueryResultFormat::Tree || format == QueryResultFormat::RecursiveTable
             );
             switch (format)
@@ -134,15 +138,19 @@ namespace mamba
             }
             if (res.empty() && format != QueryResultFormat::Json)
             {
-                std::cout << query
-                          << " may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery"
+                std::cout << queries.front(
+                ) << " may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery"
                           << std::endl;
             }
         }
         else if (type == QueryType::WhoNeeds)
         {
+            if (queries.size() != 1)
+            {
+                throw std::invalid_argument("Only one query supported for 'whoneeds'.");
+            }
             auto res = q.whoneeds(
-                query,
+                queries.front(),
                 format == QueryResultFormat::Tree || format == QueryResultFormat::RecursiveTable
             );
             switch (format)
@@ -163,15 +171,15 @@ namespace mamba
                           "Build",
                           printers::alignmentMarker(printers::alignment::left),
                           printers::alignmentMarker(printers::alignment::right),
-                          util::concat("Depends:", query),
+                          util::concat("Depends:", queries.front()),
                           "Channel",
                           "Subdir" }
                     );
             }
             if (res.empty() && format != QueryResultFormat::Json)
             {
-                std::cout << query
-                          << " may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery"
+                std::cout << queries.front(
+                ) << " may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery"
                           << std::endl;
             }
         }

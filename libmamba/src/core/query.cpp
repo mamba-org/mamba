@@ -355,16 +355,19 @@ namespace mamba
         }
     }
 
-    query_result Query::find(const std::string& query) const
+    query_result Query::find(const std::vector<std::string>& queries) const
     {
         solv::ObjQueue job, solvables;
 
-        const Id id = pool_conda_matchspec(m_pool.get(), query.c_str());
-        if (!id)
+        for (const auto& query : queries)
         {
-            throw std::runtime_error("Could not generate query for " + query);
+            const Id id = pool_conda_matchspec(m_pool.get(), query.c_str());
+            if (!id)
+            {
+                throw std::runtime_error("Could not generate query for " + query);
+            }
+            job.push_back(SOLVER_SOLVABLE_PROVIDES, id);
         }
-        job.push_back(SOLVER_SOLVABLE_PROVIDES, id);
 
         selection_solvables(m_pool.get(), job.raw(), solvables.raw());
         query_result::dependency_graph g;
@@ -390,7 +393,11 @@ namespace mamba
             g.add_node(std::move(pkg_info).value());
         }
 
-        return query_result(QueryType::Search, query, std::move(g));
+        return query_result(
+            QueryType::Search,
+            fmt::format("{}", fmt::join(queries, " ")),  // Yes this is disgusting
+            std::move(g)
+        );
     }
 
     query_result Query::whoneeds(const std::string& query, bool tree) const

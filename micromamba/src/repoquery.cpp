@@ -57,6 +57,13 @@ set_common_search(CLI::App* subcom, mamba::Configuration& config, bool is_repoqu
     auto& platform = config.at("platform");
     subcom->add_option("--platform", platform.get_cli_config<std::string>(), platform.description());
 
+    auto specs_has_wildcard = [](auto first, auto last) -> bool
+    {
+        auto has_wildcard = [](std::string_view spec) -> bool
+        { return spec.find('*') != std::string_view::npos; };
+        return std::any_of(first, last, has_wildcard);
+    };
+
     subcom->callback(
         [&]
         {
@@ -89,7 +96,7 @@ set_common_search(CLI::App* subcom, mamba::Configuration& config, bool is_repoqu
             // Best guess to detect wildcard search; if there's no wildcard search, we want to show
             // the pretty single package view.
             if (qtype == QueryType::Search
-                && (pretty_print || specs[0].find("*") == std::string::npos))
+                && (pretty_print || specs_has_wildcard(specs.cbegin(), specs.cend())))
             {
                 format = QueryResultFormat::Pretty;
             }
@@ -102,7 +109,7 @@ set_common_search(CLI::App* subcom, mamba::Configuration& config, bool is_repoqu
             auto& channels = config.at("channels").compute().value<std::vector<std::string>>();
             use_local = use_local && channels.empty();
 
-            repoquery(config, qtype, format, use_local, specs[0]);
+            repoquery(config, qtype, format, use_local, specs);
         }
     );
 }

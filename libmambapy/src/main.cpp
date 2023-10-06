@@ -510,39 +510,41 @@ PYBIND11_MODULE(bindings, m)
         .value("PRETTY", query::RESULT_FORMAT::PRETTY)
         .value("RECURSIVETABLE", query::RESULT_FORMAT::RECURSIVETABLE);
 
+    auto queries_find = [](const Query& q,
+                           const std::vector<std::string>& queries,
+                           const query::RESULT_FORMAT format) -> std::string
+    {
+        query_result res = q.find(queries);
+        std::stringstream res_stream;
+        switch (format)
+        {
+            case query::JSON:
+                res_stream << res.groupby("name").json(mambapy::singletons.channel_context()).dump(4);
+                break;
+            case query::TREE:
+            case query::TABLE:
+            case query::RECURSIVETABLE:
+                res.groupby("name").table(res_stream);
+                break;
+            case query::PRETTY:
+                res.groupby("name").pretty(res_stream, mambapy::singletons.context().output_params);
+        }
+        if (res.empty() && format != query::JSON)
+        {
+            res_stream << fmt::format("{}", fmt::join(queries, " "))
+                       << " may not be installed. Try specifying a channel with '-c,--channel' option\n";
+        }
+        return res_stream.str();
+    };
+
     py::class_<Query>(m, "Query")
         .def(py::init<MPool&>())
         .def(
             "find",
-            [](const Query& q, const std::string& query, const query::RESULT_FORMAT format) -> std::string
-            {
-                query_result res = q.find(query);
-                std::stringstream res_stream;
-                switch (format)
-                {
-                    case query::JSON:
-                        res_stream
-                            << res.groupby("name").json(mambapy::singletons.channel_context()).dump(4);
-                        break;
-                    case query::TREE:
-                    case query::TABLE:
-                    case query::RECURSIVETABLE:
-                        res.groupby("name").table(res_stream);
-                        break;
-                    case query::PRETTY:
-                        res.groupby("name").pretty(
-                            res_stream,
-                            mambapy::singletons.context().output_params
-                        );
-                }
-                if (res.empty() && format != query::JSON)
-                {
-                    res_stream << query
-                               << " may not be installed. Try specifying a channel with '-c,--channel' option\n";
-                }
-                return res_stream.str();
-            }
+            [queries_find](const Query& q, const std::string& query, const query::RESULT_FORMAT format)
+                -> std::string { return queries_find(q, { query }, format); }
         )
+        .def("find", queries_find)
         .def(
             "whoneeds",
             [](const Query& q, const std::string& query, const query::RESULT_FORMAT format) -> std::string

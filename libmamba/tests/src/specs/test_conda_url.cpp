@@ -23,12 +23,15 @@ TEST_SUITE("specs::CondaURL")
         {
             url.set_path("/folder/file.txt");
             CHECK_EQ(url.token(), "");
+            CHECK_EQ(url.path_without_token(), "/folder/file.txt");
 
             url.set_token("mytoken");
             CHECK_EQ(url.token(), "mytoken");
+            CHECK_EQ(url.path_without_token(), "/folder/file.txt");
             CHECK_EQ(url.path(), "/t/mytoken/folder/file.txt");
 
             CHECK(url.clear_token());
+            CHECK_EQ(url.path_without_token(), "/folder/file.txt");
             CHECK_EQ(url.path(), "/folder/file.txt");
         }
 
@@ -36,12 +39,14 @@ TEST_SUITE("specs::CondaURL")
         {
             url.set_path("/t/xy-12345678-1234/conda-forge/linux-64");
             CHECK_EQ(url.token(), "xy-12345678-1234");
+            CHECK_EQ(url.path_without_token(), "/conda-forge/linux-64");
 
             SUBCASE("Cannot set invalid token")
             {
                 CHECK_THROWS_AS(url.set_token(""), std::invalid_argument);
                 CHECK_THROWS_AS(url.set_token("?fds:g"), std::invalid_argument);
                 CHECK_EQ(url.token(), "xy-12345678-1234");
+                CHECK_EQ(url.path_without_token(), "/conda-forge/linux-64");
                 CHECK_EQ(url.path(), "/t/xy-12345678-1234/conda-forge/linux-64");
             }
 
@@ -49,6 +54,7 @@ TEST_SUITE("specs::CondaURL")
             {
                 CHECK(url.clear_token());
                 CHECK_EQ(url.token(), "");
+                CHECK_EQ(url.path_without_token(), "/conda-forge/linux-64");
                 CHECK_EQ(url.path(), "/conda-forge/linux-64");
             }
 
@@ -56,6 +62,7 @@ TEST_SUITE("specs::CondaURL")
             {
                 url.set_token("abcd");
                 CHECK_EQ(url.token(), "abcd");
+                CHECK_EQ(url.path_without_token(), "/conda-forge/linux-64");
                 CHECK_EQ(url.path(), "/t/abcd/conda-forge/linux-64");
             }
         }
@@ -67,9 +74,12 @@ TEST_SUITE("specs::CondaURL")
 
             url.set_token("abcd");
             CHECK_EQ(url.token(), "abcd");
-            CHECK_EQ(url.path(), "/t/abcd");
+            CHECK_EQ(url.path_without_token(), "/");
+            CHECK_EQ(url.path(), "/t/abcd/");
 
             CHECK(url.clear_token());
+            CHECK_EQ(url.token(), "");
+            CHECK_EQ(url.path_without_token(), "/");
             CHECK_EQ(url.path(), "/");
         }
 
@@ -80,10 +90,45 @@ TEST_SUITE("specs::CondaURL")
 
             url.set_token("abcd");
             CHECK_EQ(url.token(), "abcd");
+            CHECK_EQ(url.path_without_token(), "/bar/t/xy-12345678-1234-1234-1234-123456789012/");
             CHECK_EQ(url.path(), "/t/abcd/bar/t/xy-12345678-1234-1234-1234-123456789012/");
 
             CHECK(url.clear_token());
+            CHECK_EQ(url.path_without_token(), "/bar/t/xy-12345678-1234-1234-1234-123456789012/");
             CHECK_EQ(url.path(), "/bar/t/xy-12345678-1234-1234-1234-123456789012/");
+        }
+    }
+
+    TEST_CASE("Path without token")
+    {
+        CondaURL url{};
+        url.set_scheme("https");
+        url.set_host("repo.mamba.pm");
+
+        SUBCASE("Setters")
+        {
+            url.set_path_without_token("foo");
+            CHECK_EQ(url.path_without_token(), "/foo");
+            url.set_token("mytoken");
+            CHECK_EQ(url.path_without_token(), "/foo");
+            CHECK(url.clear_path_without_token());
+            CHECK_EQ(url.path_without_token(), "/");
+        }
+
+        SUBCASE("Parse")
+        {
+            url = CondaURL::parse("mamba.org/t/xy-12345678-1234-1234-1234-123456789012");
+            CHECK_EQ(url.token(), "xy-12345678-1234-1234-1234-123456789012");
+            CHECK_EQ(url.path_without_token(), "/");
+            CHECK_EQ(url.path(), "/t/xy-12345678-1234-1234-1234-123456789012/");
+        }
+
+        SUBCASE("Encoding")
+        {
+            url.set_token("mytoken");
+            url.set_path_without_token("some / weird/path %");
+            CHECK_EQ(url.path_without_token(), "/some / weird/path %");
+            CHECK_EQ(url.path_without_token(CondaURL::Decode::no), "/some%20/%20weird/path%20%25");
         }
     }
 
@@ -99,6 +144,7 @@ TEST_SUITE("specs::CondaURL")
             CHECK_EQ(url.platform_name(), "");
 
             CHECK_THROWS_AS(url.set_platform(Platform::linux_64), std::invalid_argument);
+            CHECK_EQ(url.path_without_token(), "/");
             CHECK_EQ(url.path(), "/");
 
             CHECK_FALSE(url.clear_platform());

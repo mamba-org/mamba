@@ -55,15 +55,49 @@ namespace mamba::specs
         using Base::authority;
         using Base::path;
         using Base::pretty_path;
-        using Base::set_path;
         using Base::clear_path;
-        using Base::append_path;
         using Base::query;
         using Base::set_query;
         using Base::clear_query;
         using Base::fragment;
         using Base::set_fragment;
         using Base::clear_fragment;
+
+        /**
+         * Set the path from a not encoded value.
+         *
+         * All '/' are not encoded but interpreted as separators.
+         * On windows with a file scheme, the colon after the drive letter is not encoded.
+         * A leading '/' is added if abscent.
+         * If the path contains only a token, a trailing '/' is added afterwards.
+         */
+        void set_path(std::string_view path, Encode::yes_type = Encode::yes);
+
+        /** Set the path from an already encoded value.
+         *
+         * A leading '/' is added if abscent.
+         * If the path contains only a token, a trailing '/' is added afterwards.
+         */
+        void set_path(std::string path, Encode::no_type);
+
+        /**
+         * Append a not encoded sub path to the current path.
+         *
+         * Contrary to `std::filesystem::path::append`, this always append and never replace
+         * the current path, even if @p subpath starts with a '/'.
+         * All '/' are not encoded but interpreted as separators.
+         * If the final path contains only a token, a trailing '/' is added afterwards.
+         */
+        void append_path(std::string_view path, Encode::yes_type = Encode::yes);
+
+        /**
+         * Append a already encoded sub path to the current path.
+         *
+         * Contrary to `std::filesystem::path::append`, this always append and never replace
+         * the current path, even if @p subpath starts with a '/'.
+         * If the final path contains only a token, a trailing '/' is added afterwards.
+         */
+        void append_path(std::string_view path, Encode::no_type);
 
         /** Return the Conda token, as delimited with "/t/", or empty if there isn't any. */
         [[nodiscard]] auto token() const -> std::string_view;
@@ -78,6 +112,29 @@ namespace mamba::specs
 
         /** Clear the token and return ``true`` if it exists, otherwise return ``false``. */
         auto clear_token() -> bool;
+
+        /** Return the encoded part of the path without any Conda token, always start with '/'. */
+        [[nodiscard]] auto path_without_token(Decode::no_type) const -> std::string_view;
+
+        /** Return the decoded part of the path without any Conda token, always start with '/'. */
+        [[nodiscard]] auto path_without_token(Decode::yes_type = Decode::yes) const -> std::string;
+
+        /**
+         * Set the path from an already encoded value, without changing the Conda token.
+         *
+         * A leading '/' is added if abscent.
+         */
+        void set_path_without_token(std::string_view path, Encode::no_type);
+
+        /**
+         * Set the path from an not yet encoded value, without changing the Conda token.
+         *
+         * A leading '/' is added if abscent.
+         */
+        void set_path_without_token(std::string_view path, Encode::yes_type = Encode::yes);
+
+        /** Clear the path without changing the Conda token and return ``true`` if it exists. */
+        auto clear_path_without_token() -> bool;
 
         /** Return the platform if part of the URL path. */
         [[nodiscard]] auto platform() const -> std::optional<Platform>;
@@ -162,6 +219,7 @@ namespace mamba::specs
     private:
 
         void set_platform_no_check_input(std::string_view platform);
+        void ensure_path_without_token_leading_slash();
 
         friend auto operator==(const CondaURL&, const CondaURL&) -> bool;
     };

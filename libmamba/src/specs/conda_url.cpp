@@ -67,9 +67,18 @@ namespace mamba::specs
         }
     }
 
+    void CondaURL::ensure_path_without_token_leading_slash()
+    {
+        if (path_without_token().empty())
+        {
+            set_path_without_token("/", Encode::no);
+        }
+    }
+
     CondaURL::CondaURL(URL&& url)
         : Base(std::move(url))
     {
+        ensure_path_without_token_leading_slash();
     }
 
     CondaURL::CondaURL(const util::URL& url)
@@ -80,6 +89,30 @@ namespace mamba::specs
     auto CondaURL::parse(std::string_view url) -> CondaURL
     {
         return CondaURL(URL::parse(url));
+    }
+
+    void CondaURL::set_path(std::string_view path, Encode::yes_type)
+    {
+        Base::set_path(path, Encode::yes);
+        ensure_path_without_token_leading_slash();
+    }
+
+    void CondaURL::set_path(std::string path, Encode::no_type)
+    {
+        Base::set_path(path, Encode::no);
+        ensure_path_without_token_leading_slash();
+    }
+
+    void CondaURL::append_path(std::string_view path, Encode::yes_type)
+    {
+        Base::append_path(path, Encode::yes);
+        ensure_path_without_token_leading_slash();
+    }
+
+    void CondaURL::append_path(std::string_view path, Encode::no_type)
+    {
+        Base::append_path(path, Encode::no);
+        ensure_path_without_token_leading_slash();
     }
 
     auto CondaURL::token() const -> std::string_view
@@ -116,8 +149,6 @@ namespace mamba::specs
 
     void CondaURL::set_token(std::string_view token)
     {
-        static constexpr auto npos = std::string_view::npos;
-
         if (!is_token(token))
         {
             throw std::invalid_argument(fmt::format(R"(Invalid CondaURL token "{}")", token));
@@ -147,8 +178,51 @@ namespace mamba::specs
         assert(token_prefix.size() < len);
         std::string l_path = clear_path();  // percent encoded
         l_path.erase(0, len);
-        set_path(std::move(l_path), Encode::no);
+        Base::set_path(std::move(l_path), Encode::no);
         return true;
+    }
+
+    auto CondaURL::path_without_token(Decode::no_type) const -> std::string_view
+    {
+        const auto& full_path = path(Decode::no);
+        if (const auto len = token_and_prefix_len(full_path); len > 0)
+        {
+            return std::string_view(full_path).substr(std::min(len, full_path.size()));
+        }
+        return full_path;
+    }
+
+    auto CondaURL::path_without_token(Decode::yes_type) const -> std::string
+    {
+        return util::url_decode(path_without_token(Decode::no));
+    }
+
+    void CondaURL::set_path_without_token(std::string_view new_path, Encode::no_type)
+    {
+        if (const auto len = token_and_prefix_len(path(Decode::no)); len > 0)
+        {
+            auto old_path = clear_path();
+            old_path.erase(std::min(len, old_path.size()));
+            Base::set_path(std::move(old_path), Encode::no);
+            Base::append_path(new_path.empty() ? "/" : new_path);
+        }
+        else
+        {
+            Base::set_path(std::string(new_path), Encode::no);
+        }
+    }
+
+    void CondaURL::set_path_without_token(std::string_view new_path, Encode::yes_type)
+    {
+        clear_path_without_token();
+        Base::append_path(new_path.empty() ? "/" : new_path, Encode::yes);
+    }
+
+    auto CondaURL::clear_path_without_token() -> bool
+    {
+        const std::size_t old_len = path(Decode::no).size();
+        set_path_without_token("", Encode::no);
+        return path(Decode::no).size() != old_len;
     }
 
     auto CondaURL::platform() const -> std::optional<Platform>
@@ -191,7 +265,7 @@ namespace mamba::specs
         std::string l_path = clear_path();  // percent encoded
         const auto plat_len = (len != npos) ? len - 1 : npos;
         l_path.replace(pos + 1, plat_len, platform);
-        set_path(std::move(l_path), Encode::no);
+        Base::set_path(std::move(l_path), Encode::no);
     }
 
     void CondaURL::set_platform(std::string_view platform)
@@ -219,7 +293,7 @@ namespace mamba::specs
         assert(1 < count);
         std::string l_path = clear_path();  // percent encoded
         l_path.erase(pos, count);
-        set_path(std::move(l_path), Encode::no);
+        Base::set_path(std::move(l_path), Encode::no);
         return true;
     }
 
@@ -259,11 +333,11 @@ namespace mamba::specs
             auto l_path = clear_path();
             const auto pos = std::min(std::min(l_path.rfind('/'), l_path.size()) + 1ul, l_path.size());
             l_path.replace(pos, std::string::npos, pkg);
-            set_path(std::move(l_path), Encode::no);
+            Base::set_path(std::move(l_path), Encode::no);
         }
         else
         {
-            append_path(pkg, Encode::no);
+            Base::append_path(pkg, Encode::no);
         }
     }
 
@@ -274,7 +348,7 @@ namespace mamba::specs
         {
             auto l_path = clear_path();
             l_path.erase(l_path.rfind('/'));
-            set_path(std::move(l_path), Encode::no);
+            Base::set_path(std::move(l_path), Encode::no);
             return true;
         }
         return false;

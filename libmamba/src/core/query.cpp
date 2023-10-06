@@ -14,7 +14,15 @@
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <solv/evr.h>
+#include <solv/pool.h>
+#include <solv/repo.h>
+#include <solv/selection.h>
+#include <solv/solver.h>
 #include <spdlog/spdlog.h>
+extern "C"  // Incomplete header
+{
+#include <solv/conda.h>
+}
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/match_spec.hpp"

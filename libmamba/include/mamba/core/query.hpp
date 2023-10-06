@@ -11,15 +11,6 @@
 #include <string>
 #include <vector>
 
-#include <solv/pool.h>
-#include <solv/repo.h>
-#include <solv/selection.h>
-#include <solv/solver.h>
-extern "C"  // Incomplete header
-{
-#include <solv/conda.h>
-}
-
 #include "mamba/core/context.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"

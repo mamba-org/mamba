@@ -842,9 +842,7 @@ namespace mamba
     nlohmann::json query_result::json(ChannelContext& channel_context) const
     {
         nlohmann::json j;
-        std::string query_type = m_type == QueryType::Search
-                                     ? "search"
-                                     : (m_type == QueryType::Depends ? "depends" : "whoneeds");
+        std::string query_type = std::string(util::to_lower(enum_name(m_type)));
         j["query"] = { { "query", MatchSpec{ m_query, channel_context }.conda_build_form() },
                        { "type", query_type } };
 

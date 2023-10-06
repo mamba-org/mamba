@@ -9,6 +9,7 @@
 
 #include <map>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "mamba/core/context.hpp"
@@ -53,6 +54,8 @@ namespace mamba
         Depends,
         WhoNeeds
     };
+
+    constexpr auto enum_name(QueryType t) -> std::string_view;
 
     enum class QueryResultFormat
     {
@@ -109,6 +112,25 @@ namespace mamba
         package_id_list m_pkg_id_list = {};
         ordered_package_list m_ordered_pkg_id_list = {};
     };
+
+    /********************
+     *  Implementation  *
+     ********************/
+
+    constexpr auto enum_name(QueryType t) -> std::string_view
+    {
+        switch (t)
+        {
+            case QueryType::Search:
+                return "Search";
+            case QueryType::WhoNeeds:
+                return "WhoNeeds";
+            case QueryType::Depends:
+                return "Depends";
+        }
+        throw std::invalid_argument("Invalid enum value");
+    }
+
 }  // namespace mamba
 
 #endif  // MAMBA_QUERY_HPP

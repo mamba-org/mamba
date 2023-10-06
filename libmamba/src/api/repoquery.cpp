@@ -39,7 +39,7 @@ namespace mamba
         MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
         if (use_local)
         {
-            if (format != QueryResultFormat::kJSON)
+            if (format != QueryResultFormat::Json)
             {
                 Console::stream() << "Using local repodata..." << std::endl;
             }
@@ -51,7 +51,7 @@ namespace mamba
             }
             PrefixData& prefix_data = exp_prefix_data.value();
             MRepo(pool, prefix_data);
-            if (format != QueryResultFormat::kJSON)
+            if (format != QueryResultFormat::Json)
             {
                 Console::stream() << "Loaded current active prefix: "
                                   << ctx.prefix_params.target_prefix << std::endl;
@@ -59,7 +59,7 @@ namespace mamba
         }
         else
         {
-            if (format != QueryResultFormat::kJSON)
+            if (format != QueryResultFormat::Json)
             {
                 Console::stream() << "Getting repodata from channels..." << std::endl;
             }
@@ -71,7 +71,7 @@ namespace mamba
         }
 
         Query q(pool);
-        if (type == QueryType::kSEARCH)
+        if (type == QueryType::Search)
         {
             if (ctx.output_params.json)
             {
@@ -83,10 +83,10 @@ namespace mamba
                 auto res = q.find(query);
                 switch (format)
                 {
-                    case QueryResultFormat::kJSON:
+                    case QueryResultFormat::Json:
                         std::cout << res.json(pool.channel_context()).dump(4);
                         break;
-                    case QueryResultFormat::kPRETTY:
+                    case QueryResultFormat::Pretty:
                         res.pretty(std::cout, ctx.output_params);
                         break;
                     default:
@@ -99,49 +99,49 @@ namespace mamba
                 }
             }
         }
-        else if (type == QueryType::kDEPENDS)
+        else if (type == QueryType::Depends)
         {
             auto res = q.depends(
                 query,
-                format == QueryResultFormat::kTREE || format == QueryResultFormat::kRECURSIVETABLE
+                format == QueryResultFormat::Tree || format == QueryResultFormat::RecursiveTable
             );
             switch (format)
             {
-                case QueryResultFormat::kTREE:
-                case QueryResultFormat::kPRETTY:
+                case QueryResultFormat::Tree:
+                case QueryResultFormat::Pretty:
                     res.tree(std::cout, config.context().graphics_params);
                     break;
-                case QueryResultFormat::kJSON:
+                case QueryResultFormat::Json:
                     std::cout << res.json(pool.channel_context()).dump(4);
                     break;
-                case QueryResultFormat::kTABLE:
-                case QueryResultFormat::kRECURSIVETABLE:
+                case QueryResultFormat::Table:
+                case QueryResultFormat::RecursiveTable:
                     res.sort("name").table(std::cout);
             }
-            if (res.empty() && format != QueryResultFormat::kJSON)
+            if (res.empty() && format != QueryResultFormat::Json)
             {
                 std::cout << query
                           << " may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery"
                           << std::endl;
             }
         }
-        else if (type == QueryType::kWHONEEDS)
+        else if (type == QueryType::WhoNeeds)
         {
             auto res = q.whoneeds(
                 query,
-                format == QueryResultFormat::kTREE || format == QueryResultFormat::kRECURSIVETABLE
+                format == QueryResultFormat::Tree || format == QueryResultFormat::RecursiveTable
             );
             switch (format)
             {
-                case QueryResultFormat::kTREE:
-                case QueryResultFormat::kPRETTY:
+                case QueryResultFormat::Tree:
+                case QueryResultFormat::Pretty:
                     res.tree(std::cout, config.context().graphics_params);
                     break;
-                case QueryResultFormat::kJSON:
+                case QueryResultFormat::Json:
                     std::cout << res.json(pool.channel_context()).dump(4);
                     break;
-                case QueryResultFormat::kTABLE:
-                case QueryResultFormat::kRECURSIVETABLE:
+                case QueryResultFormat::Table:
+                case QueryResultFormat::RecursiveTable:
                     res.sort("name").table(
                         std::cout,
                         { "Name",
@@ -154,7 +154,7 @@ namespace mamba
                           "Subdir" }
                     );
             }
-            if (res.empty() && format != QueryResultFormat::kJSON)
+            if (res.empty() && format != QueryResultFormat::Json)
             {
                 std::cout << query
                           << " may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery"

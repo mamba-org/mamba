@@ -382,7 +382,7 @@ namespace mamba
             g.add_node(std::move(pkg_info).value());
         }
 
-        return query_result(QueryType::kSEARCH, query, std::move(g));
+        return query_result(QueryType::Search, query, std::move(g));
     }
 
     query_result Query::whoneeds(const std::string& query, bool tree) const
@@ -421,7 +421,7 @@ namespace mamba
                 g.add_node(std::move(pkg_info).value());
             }
         }
-        return query_result(QueryType::kWHONEEDS, query, std::move(g));
+        return query_result(QueryType::WhoNeeds, query, std::move(g));
     }
 
     query_result Query::depends(const std::string& query, bool tree) const
@@ -466,7 +466,7 @@ namespace mamba
             walk_graph(m_pool, g, node_id, latest, visited, not_found, depth);
         }
 
-        return query_result(QueryType::kDEPENDS, query, std::move(g));
+        return query_result(QueryType::Depends, query, std::move(g));
     }
 
     /*******************************
@@ -834,9 +834,9 @@ namespace mamba
     nlohmann::json query_result::json(ChannelContext& channel_context) const
     {
         nlohmann::json j;
-        std::string query_type = m_type == QueryType::kSEARCH
+        std::string query_type = m_type == QueryType::Search
                                      ? "search"
-                                     : (m_type == QueryType::kDEPENDS ? "depends" : "whoneeds");
+                                     : (m_type == QueryType::Depends ? "depends" : "whoneeds");
         j["query"] = { { "query", MatchSpec{ m_query, channel_context }.conda_build_form() },
                        { "type", query_type } };
 
@@ -857,7 +857,7 @@ namespace mamba
             j["result"]["pkgs"].push_back(std::move(pkg_info_json));
         }
 
-        if (m_type != QueryType::kSEARCH && !m_pkg_id_list.empty())
+        if (m_type != QueryType::Search && !m_pkg_id_list.empty())
         {
             j["result"]["graph_roots"] = nlohmann::json::array();
             if (!m_dep_graph.successors(0).empty())

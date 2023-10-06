@@ -509,7 +509,9 @@ namespace mamba::util
             (strip_scheme == StripScheme::no) ? "://" : "",
             user(Decode::yes),
             m_password.empty() ? "" : ":",
-            (hide_confidential == HideConfidential::no) ? password(Decode::yes) : "*****",
+            password(Decode::no).empty()
+                ? ""
+                : ((hide_confidential == HideConfidential::no) ? password(Decode::yes) : "*****"),
             m_user.empty() ? "" : "@",
             host(Decode::yes),
             m_port.empty() ? "" : ":",

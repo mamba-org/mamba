@@ -17,6 +17,62 @@
 
 namespace mamba
 {
+    namespace
+    {
+        auto repoquery_init(Configuration& config, QueryResultFormat format, bool use_local)
+        {
+            auto& ctx = config.context();
+
+            config.at("use_target_prefix_fallback").set_value(true);
+            config.at("target_prefix_checks")
+                .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX);
+            config.load();
+
+            ChannelContext channel_context{ ctx };
+            MPool pool{ channel_context };
+
+            // bool installed = (type == QueryType::kDepends) || (type == QueryType::kWhoneeds);
+            MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
+            if (use_local)
+            {
+                if (format != QueryResultFormat::Json)
+                {
+                    Console::stream() << "Using local repodata..." << std::endl;
+                }
+                auto exp_prefix_data = PrefixData::create(
+                    ctx.prefix_params.target_prefix,
+                    channel_context
+                );
+                if (!exp_prefix_data)
+                {
+                    // TODO: propagate tl::expected mechanism
+                    throw std::runtime_error(exp_prefix_data.error().what());
+                }
+                PrefixData& prefix_data = exp_prefix_data.value();
+                MRepo(pool, prefix_data);
+                if (format != QueryResultFormat::Json)
+                {
+                    Console::stream()
+                        << "Loaded current active prefix: " << ctx.prefix_params.target_prefix
+                        << std::endl;
+                }
+            }
+            else
+            {
+                if (format != QueryResultFormat::Json)
+                {
+                    Console::stream() << "Getting repodata from channels..." << std::endl;
+                }
+                auto exp_load = load_channels(pool, package_caches, 0);
+                if (!exp_load)
+                {
+                    throw std::runtime_error(exp_load.error().what());
+                }
+            }
+            return pool;
+        }
+    }
+
     void repoquery(
         Configuration& config,
         QueryType type,
@@ -26,51 +82,9 @@ namespace mamba
     )
     {
         auto& ctx = config.context();
-
-        config.at("use_target_prefix_fallback").set_value(true);
-        config.at("target_prefix_checks")
-            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX);
-        config.load();
-
-        ChannelContext channel_context{ ctx };
-        MPool pool{ channel_context };
-
-        // bool installed = (type == QueryType::kDepends) || (type == QueryType::kWhoneeds);
-        MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
-        if (use_local)
-        {
-            if (format != QueryResultFormat::Json)
-            {
-                Console::stream() << "Using local repodata..." << std::endl;
-            }
-            auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
-            if (!exp_prefix_data)
-            {
-                // TODO: propagate tl::expected mechanism
-                throw std::runtime_error(exp_prefix_data.error().what());
-            }
-            PrefixData& prefix_data = exp_prefix_data.value();
-            MRepo(pool, prefix_data);
-            if (format != QueryResultFormat::Json)
-            {
-                Console::stream() << "Loaded current active prefix: "
-                                  << ctx.prefix_params.target_prefix << std::endl;
-            }
-        }
-        else
-        {
-            if (format != QueryResultFormat::Json)
-            {
-                Console::stream() << "Getting repodata from channels..." << std::endl;
-            }
-            auto exp_load = load_channels(pool, package_caches, 0);
-            if (!exp_load)
-            {
-                throw std::runtime_error(exp_load.error().what());
-            }
-        }
-
+        auto pool = repoquery_init(config, format, use_local);
         Query q(pool);
+
         if (type == QueryType::Search)
         {
             if (ctx.output_params.json)

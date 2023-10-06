@@ -4,8 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef MAMBA_CORE_FS_FILESYSTEM_HPP
-#define MAMBA_CORE_FS_FILESYSTEM_HPP
+#ifndef MAMBA_FS_FILESYSTEM_HPP
+#define MAMBA_FS_FILESYSTEM_HPP
 
 #include <filesystem>
 #include <string>

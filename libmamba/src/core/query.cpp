@@ -477,6 +477,28 @@ namespace mamba
         return query_result(QueryType::Depends, query, std::move(g));
     }
 
+    /******************************
+     *  QueryType implementation  *
+     ******************************/
+
+    auto QueryType_from_name(std::string_view name) -> QueryType
+    {
+        auto l_name = util::to_lower(name);
+        if (l_name == "search")
+        {
+            return QueryType::Search;
+        }
+        if (l_name == "depends")
+        {
+            return QueryType::Depends;
+        }
+        if (l_name == "whoneeds")
+        {
+            return QueryType::WhoNeeds;
+        }
+        throw std::invalid_argument(fmt::format("Invalid enum name \"{}\"", name));
+    }
+
     /*******************************
      * query_result implementation *
      *******************************/

@@ -56,6 +56,7 @@ namespace mamba
     };
 
     constexpr auto enum_name(QueryType t) -> std::string_view;
+    auto QueryType_from_name(std::string_view name) -> QueryType;
 
     enum class QueryResultFormat
     {

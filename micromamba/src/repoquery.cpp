@@ -9,24 +9,6 @@
 
 #include "common_options.hpp"
 
-mamba::QueryType
-str_to_qtype(const std::string& s)
-{
-    if (s == "search")
-    {
-        return mamba::QueryType::Search;
-    }
-    if (s == "depends")
-    {
-        return mamba::QueryType::Depends;
-    }
-    if (s == "whoneeds")
-    {
-        return mamba::QueryType::WhoNeeds;
-    }
-    throw std::runtime_error("Could not parse query type");
-}
-
 void
 set_common_search(CLI::App* subcom, mamba::Configuration& config, bool is_repoquery)
 {
@@ -80,7 +62,7 @@ set_common_search(CLI::App* subcom, mamba::Configuration& config, bool is_repoqu
         {
             using namespace mamba;
 
-            auto qtype = str_to_qtype(query_type);
+            auto qtype = QueryType_from_name(query_type);
             QueryResultFormat format = QueryResultFormat::Table;
             bool use_local = true;
             switch (qtype)
@@ -90,9 +72,6 @@ set_common_search(CLI::App* subcom, mamba::Configuration& config, bool is_repoqu
                     use_local = local > 0;  // use remote repodata by default for `search`
                     break;
                 case QueryType::Depends:
-                    format = QueryResultFormat::Table;
-                    use_local = (local == -1) || (local > 0);
-                    break;
                 case QueryType::WhoNeeds:
                     format = QueryResultFormat::Table;
                     use_local = (local == -1) || (local > 0);

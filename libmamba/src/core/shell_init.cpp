@@ -405,7 +405,7 @@ namespace mamba
         content << "# !! Contents within this block are managed by 'mamba init' !!\n";
         content << "$env.MAMBA_EXE = " << mamba_exe << "\n";
         content << "$env.MAMBA_ROOT_PREFIX = " << env_prefix << "\n";
-        content << "$env.PATH = ($env.PATH | prepend ([$env.MAMBA_ROOT_PREFIX bin] | path join) | uniq)\n";
+        content << "$env.PATH = ($env.PATH | append ([$env.MAMBA_ROOT_PREFIX bin] | path join) | uniq)\n";
         content << R"###(def-env "micromamba activate"  [name: string] {
     #add condabin when root
     if $env.MAMBA_SHLVL? == null {

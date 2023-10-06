@@ -231,6 +231,7 @@ class TestConfigList:
         assert (
             config("list", "--no-env", "--rc-file", rc_file, desc_flag).splitlines()
             == "# channels\n#   The list of channels where the packages will be searched for.\n"
+            "#   Note that '-c local' allows using locally built packages.\n"
             "#   See also 'channel_priority'.\nchannels:\n  - channel1\n  - channel2\n".splitlines()
         )
 

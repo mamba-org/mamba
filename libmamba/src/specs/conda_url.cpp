@@ -45,31 +45,25 @@ namespace mamba::specs
                    && std::all_of(token_rest.cbegin(), token_rest.cend(), &is_token_char);
         }
 
-        [[nodiscard]] auto find_token_and_prefix(std::string_view path)
-            -> std::pair<std::size_t, std::size_t>
+        [[nodiscard]] auto token_and_prefix_len(std::string_view path) -> std::size_t
         {
             static constexpr auto npos = std::string_view::npos;
+            static constexpr auto prefix = CondaURL::token_prefix;
 
-            const auto prefix_pos = path.find(CondaURL::token_prefix);
-            if (prefix_pos == npos)
+            if ((path.size() <= prefix.size()) || !util::starts_with(path, prefix))
             {
-                return std::pair{ std::string_view::npos, 0ul };
+                return 0;
             }
 
-            const auto token_pos = prefix_pos + CondaURL::token_prefix.size();
-            const auto token_end_pos = path.find('/', token_pos);
-            assert(token_pos < token_end_pos);
-            const auto token_len = (token_end_pos == npos) ? npos : token_end_pos - token_pos;
-            if (is_token(path.substr(token_pos, token_len)))
+            const auto token_end_pos = path.find('/', prefix.size());
+            assert(prefix.size() < token_end_pos);
+            const auto token_len = (token_end_pos == npos) ? npos : token_end_pos - prefix.size();
+            if (is_token(path.substr(prefix.size(), token_len)))
             {
-                const auto token_and_prefix_len = (token_end_pos == npos)
-                                                      ? npos
-                                                      : token_end_pos - token_pos
-                                                            + CondaURL::token_prefix.size();
-                return std::pair{ prefix_pos, token_and_prefix_len };
+                return token_end_pos;
             }
 
-            return std::pair{ std::string_view::npos, 0ul };
+            return 0;
         }
     }
 
@@ -93,14 +87,14 @@ namespace mamba::specs
         static constexpr auto npos = std::string_view::npos;
 
         const auto& l_path = path(Decode::no);
-        const auto [pos, len] = find_token_and_prefix(l_path);
-        if ((pos == npos) || (len == 0))
+        const auto len = token_and_prefix_len(l_path);
+        if (len == 0)
         {
             return "";
         }
         assert(token_prefix.size() < len);
         const auto token_len = (len != npos) ? len - token_prefix.size() : npos;
-        return std::string_view(l_path).substr(pos + token_prefix.size(), token_len);
+        return std::string_view(l_path).substr(token_prefix.size(), token_len);
     }
 
     namespace
@@ -109,14 +103,14 @@ namespace mamba::specs
             std::string& path,
             std::size_t pos,
             std::size_t len,
-            std::string_view token
+            std::string_view new_token
         )
         {
             static constexpr auto npos = std::string_view::npos;
 
             assert(CondaURL::token_prefix.size() < len);
             const auto token_len = (len != npos) ? len - CondaURL::token_prefix.size() : npos;
-            path.replace(pos + CondaURL::token_prefix.size(), token_len, token);
+            path.replace(pos + CondaURL::token_prefix.size(), token_len, new_token);
         }
     }
 
@@ -128,8 +122,8 @@ namespace mamba::specs
         {
             throw std::invalid_argument(fmt::format(R"(Invalid CondaURL token "{}")", token));
         }
-        const auto [pos, len] = find_token_and_prefix(path(Decode::no));
-        if ((pos == npos) || (len == 0))
+        const auto len = token_and_prefix_len(path(Decode::no));
+        if (len == 0)
         {
             std::string l_path = clear_path();  // percent encoded
             assert(util::starts_with(l_path, '/'));
@@ -138,21 +132,21 @@ namespace mamba::specs
         else
         {
             std::string l_path = clear_path();  // percent encoded
-            set_token_no_check_input_impl(l_path, pos, len, token);
+            set_token_no_check_input_impl(l_path, 0, len, token);
             set_path(std::move(l_path), Encode::no);
         }
     }
 
     auto CondaURL::clear_token() -> bool
     {
-        const auto [pos, len] = find_token_and_prefix(path(Decode::no));
-        if ((pos == std::string::npos) || (len == 0))
+        const auto len = token_and_prefix_len(path(Decode::no));
+        if (len == 0)
         {
             return false;
         }
         assert(token_prefix.size() < len);
         std::string l_path = clear_path();  // percent encoded
-        l_path.erase(pos, len);
+        l_path.erase(0, len);
         set_path(std::move(l_path), Encode::no);
         return true;
     }
@@ -294,10 +288,10 @@ namespace mamba::specs
 
         if (hide_confifential == HideConfidential::yes)
         {
-            const auto [pos, len] = find_token_and_prefix(computed_path);
-            if ((pos < std::string::npos) && (len > 0))
+            const auto len = token_and_prefix_len(computed_path);
+            if (len > 0)
             {
-                set_token_no_check_input_impl(computed_path, pos, len, "*****");
+                set_token_no_check_input_impl(computed_path, 0, len, "*****");
             }
         }
 

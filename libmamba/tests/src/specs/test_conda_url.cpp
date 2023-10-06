@@ -76,14 +76,14 @@ TEST_SUITE("specs::CondaURL")
         SUBCASE("https://repo.mamba.pm/bar/t/xy-12345678-1234-1234-1234-123456789012/")
         {
             url.set_path("/bar/t/xy-12345678-1234-1234-1234-123456789012/");
-            CHECK_EQ(url.token(), "xy-12345678-1234-1234-1234-123456789012");
+            CHECK_EQ(url.token(), "");  // Not at begining of path
 
             url.set_token("abcd");
             CHECK_EQ(url.token(), "abcd");
-            CHECK_EQ(url.path(), "/bar/t/abcd/");
+            CHECK_EQ(url.path(), "/t/abcd/bar/t/xy-12345678-1234-1234-1234-123456789012/");
 
             CHECK(url.clear_token());
-            CHECK_EQ(url.path(), "/bar/");
+            CHECK_EQ(url.path(), "/bar/t/xy-12345678-1234-1234-1234-123456789012/");
         }
     }
 
@@ -297,15 +297,15 @@ TEST_SUITE("specs::CondaURL")
                 "https://user:*****@localhost/"
             );
 
-            url.set_path("/custom/t/abcd1234/linux-64");
+            url.set_path("/t/abcd1234/linux-64");
             CHECK_EQ(
                 url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::HideConfidential::no),
-                "https://user:pass@localhost/custom/t/abcd1234/linux-64"
+                "https://user:pass@localhost/t/abcd1234/linux-64"
             );
 
             CHECK_EQ(
                 url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::HideConfidential::yes),
-                "https://user:*****@localhost/custom/t/*****/linux-64"
+                "https://user:*****@localhost/t/*****/linux-64"
             );
         }
 

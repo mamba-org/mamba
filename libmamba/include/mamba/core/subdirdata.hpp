@@ -16,7 +16,6 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/download.hpp"
 #include "mamba/core/error_handling.hpp"
-#include "mamba/core/fetch.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/repo.hpp"

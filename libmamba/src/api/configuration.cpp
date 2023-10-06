@@ -19,6 +19,7 @@
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_download.hpp"
+#include "mamba/core/util.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 

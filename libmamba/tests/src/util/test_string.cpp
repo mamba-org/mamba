@@ -74,6 +74,28 @@ namespace mamba::util
             CHECK(contains("", ""));  // same as Python ``"" in ""``
         }
 
+        TEST_CASE("split_prefix")
+        {
+            using PrefixTail = decltype(split_prefix("", ""));
+            CHECK_EQ(split_prefix("", ""), PrefixTail{ "", "" });
+            CHECK_EQ(split_prefix("hello", ""), PrefixTail{ "", "hello" });
+            CHECK_EQ(split_prefix("hello", "hello"), PrefixTail{ "hello", "" });
+            CHECK_EQ(split_prefix("", "hello"), PrefixTail{ "", "" });
+            CHECK_EQ(
+                split_prefix("https://localhost", "https://"),
+                PrefixTail{ "https://", "localhost" }
+            );
+            CHECK_EQ(
+                split_prefix("https://localhost", "http://"),
+                PrefixTail{ "", "https://localhost" }
+            );
+            CHECK_EQ(split_prefix("aabb", "a"), PrefixTail{ "a", "abb" });
+            CHECK_EQ(split_prefix("", 'a'), PrefixTail{ "", "" });
+            CHECK_EQ(split_prefix("a", 'a'), PrefixTail{ "a", "" });
+            CHECK_EQ(split_prefix("aaa", 'a'), PrefixTail{ "a", "aa" });
+            CHECK_EQ(split_prefix("aabb", 'b'), PrefixTail{ "", "aabb" });
+        }
+
         TEST_CASE("remove_prefix")
         {
             CHECK_EQ(remove_prefix("", ""), "");
@@ -87,6 +109,22 @@ namespace mamba::util
             CHECK_EQ(remove_prefix("a", 'a'), "");
             CHECK_EQ(remove_prefix("aaa", 'a'), "aa");
             CHECK_EQ(remove_prefix("aabb", 'b'), "aabb");
+        }
+
+        TEST_CASE("split_suffix")
+        {
+            using HeadSuffix = decltype(split_suffix("", ""));
+            CHECK_EQ(split_suffix("", ""), HeadSuffix{ "", "" });
+            CHECK_EQ(split_suffix("hello", ""), HeadSuffix{ "hello", "" });
+            CHECK_EQ(split_suffix("hello", "hello"), HeadSuffix{ "", "hello" });
+            CHECK_EQ(split_suffix("", "hello"), HeadSuffix{ "", "" });
+            CHECK_EQ(split_suffix("localhost:8080", ":8080"), HeadSuffix{ "localhost", ":8080" });
+            CHECK_EQ(split_suffix("localhost:8080", ":80"), HeadSuffix{ "localhost:8080", "" });
+            CHECK_EQ(split_suffix("aabb", "b"), HeadSuffix{ "aab", "b" });
+            CHECK_EQ(split_suffix("", 'b'), HeadSuffix{ "", "" });
+            CHECK_EQ(split_suffix("b", 'b'), HeadSuffix{ "", "b" });
+            CHECK_EQ(split_suffix("bbb", 'b'), HeadSuffix{ "bb", "b" });
+            CHECK_EQ(split_suffix("aabb", 'a'), HeadSuffix{ "aabb", "" });
         }
 
         TEST_CASE("remove_suffix")

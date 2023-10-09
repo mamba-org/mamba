@@ -89,7 +89,7 @@ namespace mamba
         {
             if (ctx.output_params.json)
             {
-                std::cout << q.find(queries).groupby("name").json(pool.channel_context()).dump(4);
+                std::cout << q.find(queries).groupby("name").json().dump(4);
             }
             else
             {
@@ -98,7 +98,7 @@ namespace mamba
                 switch (format)
                 {
                     case QueryResultFormat::Json:
-                        std::cout << res.json(pool.channel_context()).dump(4);
+                        std::cout << res.json().dump(4);
                         break;
                     case QueryResultFormat::Pretty:
                         res.pretty(std::cout, ctx.output_params);
@@ -130,7 +130,7 @@ namespace mamba
                     res.tree(std::cout, config.context().graphics_params);
                     break;
                 case QueryResultFormat::Json:
-                    std::cout << res.json(pool.channel_context()).dump(4);
+                    std::cout << res.json().dump(4);
                     break;
                 case QueryResultFormat::Table:
                 case QueryResultFormat::RecursiveTable:
@@ -160,7 +160,7 @@ namespace mamba
                     res.tree(std::cout, config.context().graphics_params);
                     break;
                 case QueryResultFormat::Json:
-                    std::cout << res.json(pool.channel_context()).dump(4);
+                    std::cout << res.json().dump(4);
                     break;
                 case QueryResultFormat::Table:
                 case QueryResultFormat::RecursiveTable:

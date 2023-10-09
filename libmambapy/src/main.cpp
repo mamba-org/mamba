@@ -519,7 +519,7 @@ PYBIND11_MODULE(bindings, m)
         switch (format)
         {
             case query::JSON:
-                res_stream << res.groupby("name").json(mambapy::singletons.channel_context()).dump(4);
+                res_stream << res.groupby("name").json().dump(4);
                 break;
             case query::TREE:
             case query::TABLE:
@@ -559,7 +559,7 @@ PYBIND11_MODULE(bindings, m)
                         res.tree(res_stream, mambapy::singletons.context().graphics_params);
                         break;
                     case query::JSON:
-                        res_stream << res.json(mambapy::singletons.channel_context()).dump(4);
+                        res_stream << res.json().dump(4);
                         break;
                     case query::TABLE:
                     case query::RECURSIVETABLE:
@@ -599,7 +599,7 @@ PYBIND11_MODULE(bindings, m)
                         res.tree(res_stream, mambapy::singletons.context().graphics_params);
                         break;
                     case query::JSON:
-                        res_stream << res.json(mambapy::singletons.channel_context()).dump(4);
+                        res_stream << res.json().dump(4);
                         break;
                     case query::TABLE:
                     case query::RECURSIVETABLE:

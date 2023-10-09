@@ -867,7 +867,7 @@ namespace mamba
         return out;
     }
 
-    nlohmann::json query_result::json(ChannelContext& channel_context) const
+    nlohmann::json query_result::json() const
     {
         nlohmann::json j;
         std::string query_type = std::string(util::to_lower(enum_name(m_type)));

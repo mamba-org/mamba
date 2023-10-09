@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <type_traits>
 
 #include <curl/urlapi.h>
 #include <fmt/format.h>
@@ -270,11 +271,62 @@ namespace mamba::util
         return std::exchange(m_password, "");
     }
 
+    namespace
+    {
+        template <typename Str, typename UGetter, typename PGetter>
+        auto
+        authentication_impl(URL::Credentials credentials, UGetter&& get_user, PGetter&& get_password)
+        {
+            switch (credentials)
+            {
+                case (URL::Credentials::Show):
+                {
+                    Str user = get_user();
+                    Str pass = user.empty() ? "" : get_password();
+                    Str sep = pass.empty() ? "" : ":";
+                    return std::array<Str, 3>{ std::move(user), std::move(sep), std::move(pass) };
+                }
+                case (URL::Credentials::Hide):
+                {
+                    Str user = get_user();
+                    Str pass = user.empty() ? "" : "*****";
+                    Str sep = user.empty() ? "" : ":";
+                    return std::array<Str, 3>{ std::move(user), std::move(sep), std::move(pass) };
+                }
+                case (URL::Credentials::Remove):
+                {
+                    return std::array<Str, 3>{ "", "", "" };
+                }
+            }
+            assert(false);
+            throw std::invalid_argument("Invalid enum number");
+        }
+    }
+
+    auto URL::authentication(Credentials credentials, Decode::no_type) const
+        -> std::array<std::string_view, 3>
+    {
+        return authentication_impl<std::string_view>(
+            credentials,
+            [&]() -> std::string_view { return user(Decode::no); },
+            [&]() -> std::string_view { return password(Decode::no); }
+        );
+    }
+
+    auto URL::authentication(Credentials credentials, Decode::yes_type) const
+        -> std::array<std::string, 3>
+    {
+        return authentication_impl<std::string>(
+            credentials,
+            [&]() -> std::string { return user(Decode::yes); },
+            [&]() -> std::string { return password(Decode::yes); }
+        );
+    }
+
     auto URL::authentication() const -> std::string
     {
-        const auto& u = user(Decode::no);
-        const auto& p = password(Decode::no);
-        return p.empty() ? u : util::concat(u, ':', p);
+        auto user_sep_pass = authentication(Credentials::Show, Decode::no);
+        return util::concat(user_sep_pass[0], user_sep_pass[1], user_sep_pass[2]);
     }
 
     auto URL::host_is_defaulted() const -> bool
@@ -480,15 +532,16 @@ namespace mamba::util
         return std::exchange(m_fragment, "");
     }
 
-    auto URL::str() const -> std::string
+    auto URL::str(Credentials credentials) const -> std::string
     {
+        auto user_sep_pass = authentication(credentials, Decode::no);
         return util::concat(
             scheme(),
             "://",
-            user(Decode::no),
-            m_password.empty() ? "" : ":",
-            password(Decode::no),
-            m_user.empty() ? "" : "@",
+            user_sep_pass[0],
+            user_sep_pass[1],
+            user_sep_pass[2],
+            user_sep_pass[0].empty() ? "" : "@",
             host(Decode::no),
             m_port.empty() ? "" : ":",
             port(),
@@ -519,34 +572,14 @@ namespace mamba::util
     auto URL::pretty_str(StripScheme strip_scheme, char rstrip_path, Credentials credentials) const
         -> std::string
     {
-        std::string l_user = {};
-        std::string l_password = {};
-        switch (credentials)
-        {
-            case (Credentials::Show):
-            {
-                l_user = user(Decode::yes);
-                l_password = password(Decode::yes);
-                break;
-            }
-            case (Credentials::Hide):
-            {
-                l_user = user(Decode::yes);
-                l_password = "*****";
-                break;
-            }
-            case (Credentials::Remove):
-            {
-                break;
-            }
-        }
+        auto user_sep_pass = authentication(credentials, Decode::yes);
         return util::concat(
             (strip_scheme == StripScheme::no) ? scheme() : "",
             (strip_scheme == StripScheme::no) ? "://" : "",
-            l_user,
-            (l_password.empty() || l_user.empty()) ? "" : ":",
-            (l_password.empty() || l_user.empty()) ? "" : l_password,
-            l_user.empty() ? "" : "@",
+            user_sep_pass[0],
+            user_sep_pass[1],
+            user_sep_pass[2],
+            user_sep_pass[0].empty() ? "" : "@",
             host(Decode::yes),
             m_port.empty() ? "" : ":",
             m_port,

@@ -376,6 +376,28 @@ TEST_SUITE("util::URL")
         }
     }
 
+    TEST_CASE("str options")
+    {
+        URL url = {};
+
+        SUBCASE("without credentials")
+        {
+            CHECK_EQ(url.str(URL::Credentials::Show), "https://localhost/");
+            CHECK_EQ(url.str(URL::Credentials::Hide), "https://localhost/");
+            CHECK_EQ(url.str(URL::Credentials::Remove), "https://localhost/");
+        }
+
+        SUBCASE("with some credentials")
+        {
+            url.set_user("user@mamba.org");
+            url.set_password("pass");
+
+            CHECK_EQ(url.str(URL::Credentials::Show), "https://user%40mamba.org:pass@localhost/");
+            CHECK_EQ(url.str(URL::Credentials::Hide), "https://user%40mamba.org:*****@localhost/");
+            CHECK_EQ(url.str(URL::Credentials::Remove), "https://localhost/");
+        }
+    }
+
     TEST_CASE("pretty_str options")
     {
         SUBCASE("scheme option")

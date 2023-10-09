@@ -7,6 +7,7 @@
 #ifndef MAMBA_UTIL_URL_HPP
 #define MAMBA_UTIL_URL_HPP
 
+#include <array>
 #include <string>
 #include <string_view>
 
@@ -225,7 +226,7 @@ namespace mamba::util
         auto clear_fragment() -> std::string;
 
         /** Return the full, exact, encoded URL. */
-        [[nodiscard]] auto str() const -> std::string;
+        [[nodiscard]] auto str(Credentials credentials = Credentials::Show) const -> std::string;
 
         /**
          * Return the full decoded url.
@@ -242,6 +243,11 @@ namespace mamba::util
         ) const -> std::string;
 
     protected:
+
+        [[nodiscard]] auto authentication(Credentials, Decode::no_type) const
+            -> std::array<std::string_view, 3>;
+        [[nodiscard]] auto authentication(Credentials, Decode::yes_type) const
+            -> std::array<std::string, 3>;
 
         [[nodiscard]] auto
         pretty_str_path(StripScheme strip_scheme = StripScheme::no, char rstrip_path = 0) const

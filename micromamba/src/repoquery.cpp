@@ -9,24 +9,6 @@
 
 #include "common_options.hpp"
 
-mamba::QueryType
-str_to_qtype(const std::string& s)
-{
-    if (s == "search")
-    {
-        return mamba::QueryType::kSEARCH;
-    }
-    if (s == "depends")
-    {
-        return mamba::QueryType::kDEPENDS;
-    }
-    if (s == "whoneeds")
-    {
-        return mamba::QueryType::kWHONEEDS;
-    }
-    throw std::runtime_error("Could not parse query type");
-}
-
 void
 set_common_search(CLI::App* subcom, mamba::Configuration& config, bool is_repoquery)
 {
@@ -75,55 +57,59 @@ set_common_search(CLI::App* subcom, mamba::Configuration& config, bool is_repoqu
     auto& platform = config.at("platform");
     subcom->add_option("--platform", platform.get_cli_config<std::string>(), platform.description());
 
+    auto specs_has_wildcard = [](auto first, auto last) -> bool
+    {
+        auto has_wildcard = [](std::string_view spec) -> bool
+        { return spec.find('*') != std::string_view::npos; };
+        return std::any_of(first, last, has_wildcard);
+    };
+
     subcom->callback(
         [&]
         {
             using namespace mamba;
 
-            auto qtype = str_to_qtype(query_type);
-            QueryResultFormat format = QueryResultFormat::kTABLE;
+            auto qtype = QueryType_from_name(query_type);
+            QueryResultFormat format = QueryResultFormat::Table;
             bool use_local = true;
             switch (qtype)
             {
-                case QueryType::kSEARCH:
-                    format = QueryResultFormat::kTABLE;
+                case QueryType::Search:
+                    format = QueryResultFormat::Table;
                     use_local = local > 0;  // use remote repodata by default for `search`
                     break;
-                case QueryType::kDEPENDS:
-                    format = QueryResultFormat::kTABLE;
-                    use_local = (local == -1) || (local > 0);
-                    break;
-                case QueryType::kWHONEEDS:
-                    format = QueryResultFormat::kTABLE;
+                case QueryType::Depends:
+                case QueryType::WhoNeeds:
+                    format = QueryResultFormat::Table;
                     use_local = (local == -1) || (local > 0);
                     break;
             }
-            if (qtype == QueryType::kDEPENDS && recursive)
+            if (qtype == QueryType::Depends && recursive)
             {
-                format = QueryResultFormat::kRECURSIVETABLE;
+                format = QueryResultFormat::RecursiveTable;
             }
 
-            if (qtype == QueryType::kDEPENDS && show_as_tree)
+            if (qtype == QueryType::Depends && show_as_tree)
             {
-                format = QueryResultFormat::kTREE;
+                format = QueryResultFormat::Tree;
             }
             // Best guess to detect wildcard search; if there's no wildcard search, we want to show
             // the pretty single package view.
-            if (qtype == QueryType::kSEARCH
-                && (pretty_print || specs[0].find("*") == std::string::npos))
+            if (qtype == QueryType::Search
+                && (pretty_print || specs_has_wildcard(specs.cbegin(), specs.cend())))
             {
-                format = QueryResultFormat::kPRETTY;
+                format = QueryResultFormat::Pretty;
             }
 
             if (config.at("json").compute().value<bool>())
             {
-                format = QueryResultFormat::kJSON;
+                format = QueryResultFormat::Json;
             }
 
             auto& channels = config.at("channels").compute().value<std::vector<std::string>>();
             use_local = use_local && channels.empty();
 
-            repoquery(config, qtype, format, use_local, specs[0]);
+            repoquery(config, qtype, format, use_local, specs);
         }
     );
 }

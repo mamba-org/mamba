@@ -14,10 +14,17 @@
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <solv/evr.h>
+#include <solv/pool.h>
+#include <solv/repo.h>
+#include <solv/selection.h>
+#include <solv/solver.h>
 #include <spdlog/spdlog.h>
+extern "C"  // Incomplete header
+{
+#include <solv/conda.h>
+}
 
 #include "mamba/core/context.hpp"
-#include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/query.hpp"
@@ -347,16 +354,19 @@ namespace mamba
         }
     }
 
-    query_result Query::find(const std::string& query) const
+    query_result Query::find(const std::vector<std::string>& queries) const
     {
         solv::ObjQueue job, solvables;
 
-        const Id id = pool_conda_matchspec(m_pool.get(), query.c_str());
-        if (!id)
+        for (const auto& query : queries)
         {
-            throw std::runtime_error("Could not generate query for " + query);
+            const Id id = pool_conda_matchspec(m_pool.get(), query.c_str());
+            if (!id)
+            {
+                throw std::runtime_error("Could not generate query for " + query);
+            }
+            job.push_back(SOLVER_SOLVABLE_PROVIDES, id);
         }
-        job.push_back(SOLVER_SOLVABLE_PROVIDES, id);
 
         selection_solvables(m_pool.get(), job.raw(), solvables.raw());
         query_result::dependency_graph g;
@@ -382,7 +392,11 @@ namespace mamba
             g.add_node(std::move(pkg_info).value());
         }
 
-        return query_result(QueryType::kSEARCH, query, std::move(g));
+        return query_result(
+            QueryType::Search,
+            fmt::format("{}", fmt::join(queries, " ")),  // Yes this is disgusting
+            std::move(g)
+        );
     }
 
     query_result Query::whoneeds(const std::string& query, bool tree) const
@@ -421,7 +435,7 @@ namespace mamba
                 g.add_node(std::move(pkg_info).value());
             }
         }
-        return query_result(QueryType::kWHONEEDS, query, std::move(g));
+        return query_result(QueryType::WhoNeeds, query, std::move(g));
     }
 
     query_result Query::depends(const std::string& query, bool tree) const
@@ -466,7 +480,29 @@ namespace mamba
             walk_graph(m_pool, g, node_id, latest, visited, not_found, depth);
         }
 
-        return query_result(QueryType::kDEPENDS, query, std::move(g));
+        return query_result(QueryType::Depends, query, std::move(g));
+    }
+
+    /******************************
+     *  QueryType implementation  *
+     ******************************/
+
+    auto QueryType_from_name(std::string_view name) -> QueryType
+    {
+        auto l_name = util::to_lower(name);
+        if (l_name == "search")
+        {
+            return QueryType::Search;
+        }
+        if (l_name == "depends")
+        {
+            return QueryType::Depends;
+        }
+        if (l_name == "whoneeds")
+        {
+            return QueryType::WhoNeeds;
+        }
+        throw std::invalid_argument(fmt::format("Invalid enum name \"{}\"", name));
     }
 
     /*******************************
@@ -831,14 +867,11 @@ namespace mamba
         return out;
     }
 
-    nlohmann::json query_result::json(ChannelContext& channel_context) const
+    nlohmann::json query_result::json() const
     {
         nlohmann::json j;
-        std::string query_type = m_type == QueryType::kSEARCH
-                                     ? "search"
-                                     : (m_type == QueryType::kDEPENDS ? "depends" : "whoneeds");
-        j["query"] = { { "query", MatchSpec{ m_query, channel_context }.conda_build_form() },
-                       { "type", query_type } };
+        std::string query_type = std::string(util::to_lower(enum_name(m_type)));
+        j["query"] = { { "query", m_query }, { "type", query_type } };
 
         std::string msg = m_pkg_id_list.empty() ? "No entries matching \"" + m_query + "\" found"
                                                 : "";
@@ -857,7 +890,7 @@ namespace mamba
             j["result"]["pkgs"].push_back(std::move(pkg_info_json));
         }
 
-        if (m_type != QueryType::kSEARCH && !m_pkg_id_list.empty())
+        if (m_type != QueryType::Search && !m_pkg_id_list.empty())
         {
             j["result"]["graph_roots"] = nlohmann::json::array();
             if (!m_dep_graph.successors(0).empty())

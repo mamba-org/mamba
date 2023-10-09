@@ -22,7 +22,7 @@ def yaml_env(tmp_prefix: Path) -> None:
 def test_depends(yaml_env: Path):
     res = helpers.umamba_repoquery("depends", "yaml=0.2.5", "--json")
 
-    assert res["query"]["query"] == "yaml =0.2.5*"
+    assert res["query"]["query"] == "yaml=0.2.5"
     assert res["query"]["type"] == "depends"
 
     pkgs = res["result"]["pkgs"]
@@ -67,7 +67,7 @@ def test_depends_not_installed_with_channel(yaml_env: Path, with_platform):
             "depends", "-c", "conda-forge", "xtensor=0.24.5", "--json"
         )
 
-    assert res["query"]["query"] == "xtensor =0.24.5*"
+    assert res["query"]["query"] == "xtensor=0.24.5"
     assert res["query"]["type"] == "depends"
     assert "conda-forge" in res["result"]["graph_roots"][0]["channel"]
     assert res["result"]["graph_roots"][0]["name"] == "xtensor"
@@ -155,7 +155,7 @@ def test_whoneeds_not_installed_with_channel(yaml_env: Path, with_platform):
             "whoneeds", "-c", "conda-forge", "xtensor=0.24.5", "--json"
         )
 
-    assert res["query"]["query"] == "xtensor =0.24.5*"
+    assert res["query"]["query"] == "xtensor=0.24.5"
     assert res["query"]["type"] == "whoneeds"
 
     pkgs = res["result"]["pkgs"]
@@ -233,7 +233,7 @@ def test_remote_search_not_installed_pkg(yaml_env: Path):
         "search", "-c", "conda-forge", "xtensor=0.24.5", "--json"
     )
 
-    assert res["query"]["query"] == "xtensor =0.24.5*"
+    assert res["query"]["query"] == "xtensor=0.24.5"
     assert res["query"]["type"] == "search"
     assert "conda-forge" in res["result"]["pkgs"][0]["channel"]
     assert res["result"]["pkgs"][0]["name"] == "xtensor"

@@ -328,7 +328,9 @@ namespace mamba::specs
             (strip_scheme == StripScheme::no) ? "://" : "",
             user(Decode::yes),
             password(Decode::no).empty() ? "" : ":",
-            (hide_confifential == HideConfidential::no) ? password(Decode::yes) : "*****",
+            password(Decode::no).empty()
+                ? ""
+                : ((hide_confifential == HideConfidential::no) ? password(Decode::yes) : "*****"),
             user(Decode::no).empty() ? "" : "@",
             host(Decode::yes),
             port().empty() ? "" : ":",

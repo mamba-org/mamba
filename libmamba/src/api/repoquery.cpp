@@ -17,76 +17,90 @@
 
 namespace mamba
 {
+    namespace
+    {
+        auto repoquery_init(Configuration& config, QueryResultFormat format, bool use_local)
+        {
+            auto& ctx = config.context();
+
+            config.at("use_target_prefix_fallback").set_value(true);
+            config.at("target_prefix_checks")
+                .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX);
+            config.load();
+
+            ChannelContext channel_context{ ctx };
+            MPool pool{ channel_context };
+
+            // bool installed = (type == QueryType::kDepends) || (type == QueryType::kWhoneeds);
+            MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
+            if (use_local)
+            {
+                if (format != QueryResultFormat::Json)
+                {
+                    Console::stream() << "Using local repodata..." << std::endl;
+                }
+                auto exp_prefix_data = PrefixData::create(
+                    ctx.prefix_params.target_prefix,
+                    channel_context
+                );
+                if (!exp_prefix_data)
+                {
+                    // TODO: propagate tl::expected mechanism
+                    throw std::runtime_error(exp_prefix_data.error().what());
+                }
+                PrefixData& prefix_data = exp_prefix_data.value();
+                MRepo(pool, prefix_data);
+                if (format != QueryResultFormat::Json)
+                {
+                    Console::stream()
+                        << "Loaded current active prefix: " << ctx.prefix_params.target_prefix
+                        << std::endl;
+                }
+            }
+            else
+            {
+                if (format != QueryResultFormat::Json)
+                {
+                    Console::stream() << "Getting repodata from channels..." << std::endl;
+                }
+                auto exp_load = load_channels(pool, package_caches, 0);
+                if (!exp_load)
+                {
+                    throw std::runtime_error(exp_load.error().what());
+                }
+            }
+            return pool;
+        }
+    }
+
     void repoquery(
         Configuration& config,
         QueryType type,
         QueryResultFormat format,
         bool use_local,
-        const std::string& query
+        const std::vector<std::string>& queries
     )
     {
         auto& ctx = config.context();
-
-        config.at("use_target_prefix_fallback").set_value(true);
-        config.at("target_prefix_checks")
-            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX);
-        config.load();
-
-        ChannelContext channel_context{ ctx };
-        MPool pool{ channel_context };
-
-        // bool installed = (type == QueryType::kDepends) || (type == QueryType::kWhoneeds);
-        MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
-        if (use_local)
-        {
-            if (format != QueryResultFormat::kJSON)
-            {
-                Console::stream() << "Using local repodata..." << std::endl;
-            }
-            auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
-            if (!exp_prefix_data)
-            {
-                // TODO: propagate tl::expected mechanism
-                throw std::runtime_error(exp_prefix_data.error().what());
-            }
-            PrefixData& prefix_data = exp_prefix_data.value();
-            MRepo(pool, prefix_data);
-            if (format != QueryResultFormat::kJSON)
-            {
-                Console::stream() << "Loaded current active prefix: "
-                                  << ctx.prefix_params.target_prefix << std::endl;
-            }
-        }
-        else
-        {
-            if (format != QueryResultFormat::kJSON)
-            {
-                Console::stream() << "Getting repodata from channels..." << std::endl;
-            }
-            auto exp_load = load_channels(pool, package_caches, 0);
-            if (!exp_load)
-            {
-                throw std::runtime_error(exp_load.error().what());
-            }
-        }
-
+        auto pool = repoquery_init(config, format, use_local);
         Query q(pool);
-        if (type == QueryType::kSEARCH)
+
+        if (type == QueryType::Search)
         {
             if (ctx.output_params.json)
             {
-                std::cout << q.find(query).groupby("name").json(pool.channel_context()).dump(4);
+                std::cout << q.find(queries).groupby("name").json().dump(4);
             }
             else
             {
                 std::cout << "\n" << std::endl;
-                auto res = q.find(query);
+                auto res = q.find(queries);
                 switch (format)
                 {
-                    case QueryResultFormat::kJSON:
-                        std::cout << res.json(pool.channel_context()).dump(4);
+                    case QueryResultFormat::Json:
+                        std::cout << res.json().dump(4);
                         break;
-                    case QueryResultFormat::kPRETTY:
+                    case QueryResultFormat::Pretty:
                         res.pretty(std::cout, ctx.output_params);
                         break;
                     default:
@@ -99,49 +113,57 @@ namespace mamba
                 }
             }
         }
-        else if (type == QueryType::kDEPENDS)
+        else if (type == QueryType::Depends)
         {
+            if (queries.size() != 1)
+            {
+                throw std::invalid_argument("Only one query supported for 'depends'.");
+            }
             auto res = q.depends(
-                query,
-                format == QueryResultFormat::kTREE || format == QueryResultFormat::kRECURSIVETABLE
+                queries.front(),
+                format == QueryResultFormat::Tree || format == QueryResultFormat::RecursiveTable
             );
             switch (format)
             {
-                case QueryResultFormat::kTREE:
-                case QueryResultFormat::kPRETTY:
+                case QueryResultFormat::Tree:
+                case QueryResultFormat::Pretty:
                     res.tree(std::cout, config.context().graphics_params);
                     break;
-                case QueryResultFormat::kJSON:
-                    std::cout << res.json(pool.channel_context()).dump(4);
+                case QueryResultFormat::Json:
+                    std::cout << res.json().dump(4);
                     break;
-                case QueryResultFormat::kTABLE:
-                case QueryResultFormat::kRECURSIVETABLE:
+                case QueryResultFormat::Table:
+                case QueryResultFormat::RecursiveTable:
                     res.sort("name").table(std::cout);
             }
-            if (res.empty() && format != QueryResultFormat::kJSON)
+            if (res.empty() && format != QueryResultFormat::Json)
             {
-                std::cout << query
-                          << " may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery"
+                std::cout << queries.front(
+                ) << " may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery"
                           << std::endl;
             }
         }
-        else if (type == QueryType::kWHONEEDS)
+        else if (type == QueryType::WhoNeeds)
         {
+            if (queries.size() != 1)
+            {
+                throw std::invalid_argument("Only one query supported for 'whoneeds'.");
+            }
             auto res = q.whoneeds(
-                query,
-                format == QueryResultFormat::kTREE || format == QueryResultFormat::kRECURSIVETABLE
+                queries.front(),
+                format == QueryResultFormat::Tree || format == QueryResultFormat::RecursiveTable
             );
             switch (format)
             {
-                case QueryResultFormat::kTREE:
-                case QueryResultFormat::kPRETTY:
+                case QueryResultFormat::Tree:
+                case QueryResultFormat::Pretty:
                     res.tree(std::cout, config.context().graphics_params);
                     break;
-                case QueryResultFormat::kJSON:
-                    std::cout << res.json(pool.channel_context()).dump(4);
+                case QueryResultFormat::Json:
+                    std::cout << res.json().dump(4);
                     break;
-                case QueryResultFormat::kTABLE:
-                case QueryResultFormat::kRECURSIVETABLE:
+                case QueryResultFormat::Table:
+                case QueryResultFormat::RecursiveTable:
                     res.sort("name").table(
                         std::cout,
                         { "Name",
@@ -149,15 +171,15 @@ namespace mamba
                           "Build",
                           printers::alignmentMarker(printers::alignment::left),
                           printers::alignmentMarker(printers::alignment::right),
-                          util::concat("Depends:", query),
+                          util::concat("Depends:", queries.front()),
                           "Channel",
                           "Subdir" }
                     );
             }
-            if (res.empty() && format != QueryResultFormat::kJSON)
+            if (res.empty() && format != QueryResultFormat::Json)
             {
-                std::cout << query
-                          << " may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery"
+                std::cout << queries.front(
+                ) << " may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery"
                           << std::endl;
             }
         }

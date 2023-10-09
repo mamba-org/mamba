@@ -9,16 +9,8 @@
 
 #include <map>
 #include <string>
+#include <string_view>
 #include <vector>
-
-#include <solv/pool.h>
-#include <solv/repo.h>
-#include <solv/selection.h>
-#include <solv/solver.h>
-extern "C"  // Incomplete header
-{
-#include <solv/conda.h>
-}
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/package_info.hpp"
@@ -47,7 +39,7 @@ namespace mamba
 
         Query(MPool& pool);
 
-        query_result find(const std::string& query) const;
+        query_result find(const std::vector<std::string>& queries) const;
         query_result whoneeds(const std::string& query, bool tree) const;
         query_result depends(const std::string& query, bool tree) const;
 
@@ -58,18 +50,21 @@ namespace mamba
 
     enum class QueryType
     {
-        kSEARCH,
-        kDEPENDS,
-        kWHONEEDS
+        Search,
+        Depends,
+        WhoNeeds
     };
+
+    constexpr auto enum_name(QueryType t) -> std::string_view;
+    auto QueryType_from_name(std::string_view name) -> QueryType;
 
     enum class QueryResultFormat
     {
-        kJSON = 0,
-        kTREE = 1,
-        kTABLE = 2,
-        kPRETTY = 3,
-        kRECURSIVETABLE = 4,
+        Json = 0,
+        Tree = 1,
+        Table = 2,
+        Pretty = 3,
+        RecursiveTable = 4,
     };
 
     class query_result
@@ -97,7 +92,7 @@ namespace mamba
         std::ostream& table(std::ostream&) const;
         std::ostream& table(std::ostream&, const std::vector<std::string_view>& fmt) const;
         std::ostream& tree(std::ostream&, const GraphicsParams& graphics) const;
-        nlohmann::json json(ChannelContext& channel_context) const;
+        nlohmann::json json() const;
 
         std::ostream& pretty(std::ostream&, const Context::OutputParams& outputParams) const;
 
@@ -118,6 +113,25 @@ namespace mamba
         package_id_list m_pkg_id_list = {};
         ordered_package_list m_ordered_pkg_id_list = {};
     };
+
+    /********************
+     *  Implementation  *
+     ********************/
+
+    constexpr auto enum_name(QueryType t) -> std::string_view
+    {
+        switch (t)
+        {
+            case QueryType::Search:
+                return "Search";
+            case QueryType::WhoNeeds:
+                return "WhoNeeds";
+            case QueryType::Depends:
+                return "Depends";
+        }
+        throw std::invalid_argument("Invalid enum value");
+    }
+
 }  // namespace mamba
 
 #endif  // MAMBA_QUERY_HPP

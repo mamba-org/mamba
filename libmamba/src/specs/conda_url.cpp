@@ -354,33 +354,78 @@ namespace mamba::specs
         return false;
     }
 
+    auto CondaURL::str(Credentials credentials) const -> std::string
+    {
+        std::string_view l_path = "";
+        std::string_view l_token = "";
+        switch (credentials)
+        {
+            case (Credentials::Show):
+            {
+                l_path = path(Decode::no);
+                break;
+            }
+            case (Credentials::Hide):
+            {
+                if (token().empty())
+                {
+                    l_path = path(Decode::no);
+                }
+                else
+                {
+                    l_path = path_without_token(Decode::no);
+                    l_token = "*****";
+                }
+                break;
+            }
+            case (Credentials::Remove):
+            {
+                l_path = path_without_token(Decode::no);
+                break;
+            }
+        }
+        auto user_sep_pass = authentication(credentials, Decode::no);
+        return util::concat(
+            scheme(),
+            "://",
+            user_sep_pass[0],
+            user_sep_pass[1],
+            user_sep_pass[2],
+            user_sep_pass[0].empty() ? "" : "@",
+            host(Decode::no),
+            port().empty() ? "" : ":",
+            port(),
+            l_token.empty() ? "" : token_prefix,
+            l_token,
+            l_path,
+            query().empty() ? "" : "?",
+            query(),
+            fragment().empty() ? "" : "#",
+            fragment()
+        );
+    }
+
     auto
     CondaURL::pretty_str(StripScheme strip_scheme, char rstrip_path, Credentials credentials) const
         -> std::string
     {
-        std::string l_user = {};
-        std::string l_password = {};
         std::string l_path = {};
         switch (credentials)
         {
             case (Credentials::Show):
             {
-                l_user = user(Decode::yes);
-                l_password = password(Decode::yes);
                 l_path = pretty_str_path(strip_scheme, rstrip_path);
                 break;
             }
             case (Credentials::Hide):
             {
-                l_user = user(Decode::yes);
-                l_password = "*****";
                 if (token().empty())
                 {
                     l_path = pretty_str_path(strip_scheme, rstrip_path);
                 }
                 else
                 {
-                    l_path = util::concat("/t/*****", path_without_token());
+                    l_path = util::concat("/t/*****", path_without_token(Decode::yes));
                 }
                 break;
             }
@@ -392,19 +437,20 @@ namespace mamba::specs
                 }
                 else
                 {
-                    l_path = path_without_token();
+                    l_path = path_without_token(Decode::yes);
                 }
                 break;
             }
         }
+        auto user_sep_pass = authentication(credentials, Decode::yes);
 
         return util::concat(
             (strip_scheme == StripScheme::no) ? scheme() : "",
             (strip_scheme == StripScheme::no) ? "://" : "",
-            l_user,
-            (l_password.empty() || l_user.empty()) ? "" : ":",
-            (l_password.empty() || l_user.empty()) ? "" : l_password,
-            l_user.empty() ? "" : "@",
+            user_sep_pass[0],
+            user_sep_pass[1],
+            user_sep_pass[2],
+            user_sep_pass[0].empty() ? "" : "@",
             host(Decode::yes),
             port().empty() ? "" : ":",
             port(),

@@ -297,6 +297,42 @@ TEST_SUITE("specs::CondaURL")
         }
     }
 
+    TEST_CASE("str options")
+    {
+        CondaURL url = {};
+
+        SUBCASE("without credentials")
+        {
+            CHECK_EQ(url.str(CondaURL::Credentials::Show), "https://localhost/");
+            CHECK_EQ(url.str(CondaURL::Credentials::Hide), "https://localhost/");
+            CHECK_EQ(url.str(CondaURL::Credentials::Remove), "https://localhost/");
+        }
+
+        SUBCASE("with some credentials")
+        {
+            url.set_user("user@mamba.org");
+            url.set_password("pass");
+
+            CHECK_EQ(url.str(CondaURL::Credentials::Show), "https://user%40mamba.org:pass@localhost/");
+            CHECK_EQ(url.str(CondaURL::Credentials::Hide), "https://user%40mamba.org:*****@localhost/");
+            CHECK_EQ(url.str(CondaURL::Credentials::Remove), "https://localhost/");
+
+            SUBCASE("and token")
+            {
+                url.set_path("/t/abcd1234/linux-64");
+                CHECK_EQ(
+                    url.str(CondaURL::Credentials::Show),
+                    "https://user%40mamba.org:pass@localhost/t/abcd1234/linux-64"
+                );
+                CHECK_EQ(
+                    url.str(CondaURL::Credentials::Hide),
+                    "https://user%40mamba.org:*****@localhost/t/*****/linux-64"
+                );
+                CHECK_EQ(url.str(CondaURL::Credentials::Remove), "https://localhost/linux-64");
+            }
+        }
+    }
+
     TEST_CASE("pretty_str options")
     {
         SUBCASE("scheme option")

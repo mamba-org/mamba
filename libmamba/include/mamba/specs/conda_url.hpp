@@ -198,7 +198,8 @@ namespace mamba::specs
         /** Clear the package and return true if it exists, otherwise return ``false``. */
         auto clear_package() -> bool;
 
-        using Base::str;
+        /** Return the full, exact, encoded URL. */
+        [[nodiscard]] auto str(Credentials credentials = Credentials::Show) const -> std::string;
 
         /**
          * Return the full decoded url.

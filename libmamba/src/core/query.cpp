@@ -25,7 +25,6 @@ extern "C"  // Incomplete header
 }
 
 #include "mamba/core/context.hpp"
-#include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/query.hpp"
@@ -872,8 +871,7 @@ namespace mamba
     {
         nlohmann::json j;
         std::string query_type = std::string(util::to_lower(enum_name(m_type)));
-        j["query"] = { { "query", MatchSpec{ m_query, channel_context }.conda_build_form() },
-                       { "type", query_type } };
+        j["query"] = { { "query", m_query }, { "type", query_type } };
 
         std::string msg = m_pkg_id_list.empty() ? "No entries matching \"" + m_query + "\" found"
                                                 : "";

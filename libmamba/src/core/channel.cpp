@@ -121,6 +121,11 @@ namespace mamba
 
     Channel::~Channel() = default;
 
+    const specs::CondaURL& Channel::url() const
+    {
+        return m_url;
+    }
+
     std::string_view Channel::scheme() const
     {
         return m_url.scheme();
@@ -350,6 +355,85 @@ namespace mamba
             /*  password= */ password,
             /*  token= */ token,
             /*  package_filename= */ {}
+        );
+    }
+
+    namespace
+    {
+        auto equal_or_any_empty(std::string_view a, std::string_view b) -> bool
+        {
+            return a.empty() || (a == b);
+        }
+
+        auto url_match(const specs::CondaURL& registered, const specs::CondaURL& candidate) -> bool
+        {
+            using Decode = typename specs::CondaURL::Decode;
+
+            // Not checking users, passwords, and tokens
+            return /**/
+                // Defaulted scheme matches all, otherwise schemes must be the same
+                (registered.scheme_is_defaulted() || (registered.scheme() == candidate.scheme()))
+                // Hosts must always be the same
+                && (registered.host(Decode::no) == candidate.host(Decode::no))
+                // Different ports are considered different channels
+                && (registered.port() == candidate.port())
+                // Registered path must be a prefix
+                && util::starts_with(
+                    candidate.path_without_token(Decode::no),
+                    registered.path_without_token(Decode::no)
+                );
+        }
+
+        auto rsplit_once(std::string_view str, char sep)
+        {
+            auto [head, tail] = util::rstrip_if_parts(str, [sep](char c) { return c != sep; });
+            if (head.empty())
+            {
+                return std::array{ head, tail };
+            }
+            return std::array{ head.substr(0, head.size() - 1), tail };
+        }
+    }
+
+    Channel ChannelContext::from_package_path(specs::ChannelSpec&& spec)
+    {
+        assert(util::url_get_scheme(spec.location()) == "file");
+
+        // TODO resolve locations here
+        auto uri = specs::CondaURL::parse(spec.location());
+
+        if (const auto& ca = get_channel_alias(); url_match(ca, uri))
+        {
+            auto name = util::strip(util::remove_prefix(uri.path(), ca.path()), '/');
+            return Channel(
+                /* url= */ std::move(uri),
+                /*  location= */ ca.pretty_str(specs::CondaURL::StripScheme::yes),
+                /*  name= */ std::string(name),
+                /*  canonical_name= */ std::string(name)
+            );
+        }
+
+        auto path = uri.path();
+        auto [loc, name] = rsplit_once(path, '/');
+        for (const auto& [canonical_name, chan] : get_custom_channels())
+        {
+            if (url_match(chan.url(), uri))
+            {
+                return Channel(
+                    /* url= */ std::move(uri),
+                    /* location= */ chan.url().pretty_str(specs::CondaURL::StripScheme::yes),
+                    /* name= */ std::string(util::rstrip(loc, '/')),
+                    /* canonical_name= */ std::string(canonical_name)
+                );
+            }
+        }
+
+        auto canonical_name = uri.pretty_str();
+        return Channel(
+            /* url= */ std::move(uri),
+            /* location= */ std::string(util::rstrip(loc, '/')),
+            /* name= */ std::string(util::rstrip(name, '/')),
+            /* canonical_name= */ std::move(canonical_name)
         );
     }
 
@@ -618,8 +702,11 @@ namespace mamba
         {
             switch (spec.type())
             {
-                case specs::ChannelSpec::Type::PackageURL:
                 case specs::ChannelSpec::Type::PackagePath:
+                {
+                    return from_package_path(std::move(spec));
+                }
+                case specs::ChannelSpec::Type::PackageURL:
                 {
                     return from_url(std::move(spec));
                 }

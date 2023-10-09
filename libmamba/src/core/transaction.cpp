@@ -15,6 +15,8 @@
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <solv/selection.h>
+
+#include "mamba/core/validate.hpp"
 extern "C"  // Incomplete header
 {
 #include <solv/conda.h>

@@ -1,9 +1,14 @@
 cmake_minimum_required(VERSION 3.16)
 
+if (BUILD_SHARED)
+    set(libmamba_target "libmamba")
+else ()
+    set(libmamba_target "libmamba-static")
+endif()
 
 add_executable(testing_libmamba_lock libmamba_lock/lock.cpp)
 
-target_link_libraries(testing_libmamba_lock PUBLIC libmamba)
+target_link_libraries(testing_libmamba_lock PUBLIC ${libmamba_target})
 
 target_compile_features(testing_libmamba_lock PUBLIC cxx_std_17)
 
@@ -57,7 +62,6 @@ set(LIBMAMBA_TEST_SRCS
     src/core/test_progress_bar.cpp
     src/core/test_shell_init.cpp
     src/core/test_thread_utils.cpp
-    src/core/test_transfer.cpp
     src/core/test_validate.cpp
     src/core/test_virtual_packages.cpp
     src/core/test_util.cpp
@@ -78,7 +82,10 @@ mamba_target_add_compile_warnings(test_libmamba WARNING_AS_ERROR ${MAMBA_WARNING
 
 target_include_directories(
     test_libmamba
-    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/libmamba/src"
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+        "${CMAKE_SOURCE_DIR}/libmamba/src"
 )
 
 find_package(doctest REQUIRED)
@@ -86,8 +93,13 @@ find_package(Threads REQUIRED)
 
 target_link_libraries(
     test_libmamba
-    PUBLIC libmamba
-    PRIVATE doctest::doctest Threads::Threads
+    PUBLIC
+        ${libmamba_target}
+        reproc
+        reproc++
+    PRIVATE
+        doctest::doctest
+        Threads::Threads
 )
 
 # Copy data directory into binary dir to avoid modifications

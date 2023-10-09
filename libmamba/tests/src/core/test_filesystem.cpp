@@ -8,9 +8,9 @@
 
 #include <doctest/doctest.h>
 
-#include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_scope.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 namespace mamba
 {

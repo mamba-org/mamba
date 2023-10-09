@@ -13,7 +13,7 @@
 #include <optional>
 #include <vector>
 
-#include "mamba_fs.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 #ifdef _WIN32
 #include <Shlobj.h>

@@ -67,10 +67,10 @@ if [[ "$(uname -s)" == "Linux" ]]; then
 	kill -TERM $PID
 fi
 
-python "${reposerver}" -d "${repo}" --auth basic --user '' --password test --port 8005 & PID=$!
-python "${reposerver}" -d "${repo}" --auth basic --user '' --password test --port 8006 & PID2=$!
-python "${reposerver}" -d "${repo}" --auth basic --user '' --password test --port 8007 & PID3=$!
-mamba create -y -q -n "env-${RANDOM}" --override-channels -c http://:test@localhost:8005/ -c http://:test@localhost:8006/ -c http://:test@localhost:8007/ test-package --json
+python "${reposerver}" -d "${repo}" --auth basic --user user --password test --port 8005 & PID=$!
+python "${reposerver}" -d "${repo}" --auth basic --user user --password test --port 8006 & PID2=$!
+python "${reposerver}" -d "${repo}" --auth basic --user user --password test --port 8007 & PID3=$!
+mamba create -y -q -n "env-${RANDOM}" --override-channels -c http://user:test@localhost:8005/ -c http://user:test@localhost:8006/ -c http://user:test@localhost:8007/ test-package --json
 kill -TERM $PID
 kill -TERM $PID2
 kill -TERM $PID3

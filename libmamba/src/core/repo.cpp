@@ -6,9 +6,12 @@
 
 #include <algorithm>
 #include <array>
+#include <fstream>
+#include <map>
+#include <string_view>
 #include <tuple>
 
-#include <nlohmann/json.hpp>
+#include <simdjson.h>
 #include <solv/repo.h>
 #include <solv/repo_solv.h>
 #include <solv/repo_write.h>
@@ -20,13 +23,16 @@ extern "C"  // Incomplete header
 }
 
 #include "mamba/core/context.hpp"
-#include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/fs/filesystem.hpp"
+#include "mamba/util/build.hpp"
+#include "mamba/util/string.hpp"
+#include "mamba/util/url_manip.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/repo.hpp"
 
@@ -37,6 +43,7 @@ extern "C"  // Incomplete header
 
 namespace mamba
 {
+    namespace nl = nlohmann;
 
     namespace
     {
@@ -84,17 +91,280 @@ namespace mamba
         {
             return solv::ObjRepoView{ *r.repo() };
         }
+
+        void set_solvable(MPool& pool, solv::ObjSolvableView solv, const PackageInfo& pkg)
+        {
+            solv.set_name(pkg.name);
+            solv.set_version(pkg.version);
+            solv.set_build_string(pkg.build_string);
+            solv.set_noarch(pkg.noarch);
+            solv.set_build_number(pkg.build_number);
+            solv.set_channel(pkg.channel);
+            solv.set_url(pkg.url);
+            solv.set_subdir(pkg.subdir);
+            solv.set_file_name(pkg.fn);
+            solv.set_license(pkg.license);
+            solv.set_size(pkg.size);
+            // TODO conda timestamp are not Unix timestamp.
+            // Libsolv normalize them this way, we need to do the same here otherwise the current
+            // package may get arbitrary priority.
+            solv.set_timestamp(
+                (pkg.timestamp > 253402300799ULL) ? (pkg.timestamp / 1000) : pkg.timestamp
+            );
+            solv.set_md5(pkg.md5);
+            solv.set_sha256(pkg.sha256);
+
+            for (const auto& dep : pkg.depends)
+            {
+                // TODO pool's matchspec2id
+                const solv::DependencyId dep_id = pool_conda_matchspec(pool, dep.c_str());
+                assert(dep_id);
+                solv.add_dependency(dep_id);
+            }
+
+            for (const auto& cons : pkg.constrains)
+            {
+                // TODO pool's matchspec2id
+                const solv::DependencyId dep_id = pool_conda_matchspec(pool, cons.c_str());
+                assert(dep_id);
+                solv.add_constraint(dep_id);
+            }
+
+            solv.add_track_features(pkg.track_features);
+
+            solv.add_self_provide();
+        }
+
+        auto lsplit_track_features(std::string_view features)
+        {
+            constexpr auto is_sep = [](char c) -> bool { return (c == ',') || util::is_space(c); };
+            auto [_, tail] = util::lstrip_if_parts(features, is_sep);
+            return util::lstrip_if_parts(tail, [&](char c) { return !is_sep(c); });
+        }
+
+        [[nodiscard]] bool set_solvable(
+            MPool& pool,
+            solv::ObjSolvableView solv,
+            std::string_view repo_url,
+            std::string_view filename,
+            const std::string& default_subdir,
+            const simdjson::dom::element& pkg,
+            std::string& tmp_buffer
+        )
+        {
+            // Not available from RepoDataPackage
+            tmp_buffer = filename;
+            solv.set_file_name(tmp_buffer);
+            tmp_buffer = repo_url;
+            solv.set_url(util::join_url(tmp_buffer, filename));
+            solv.set_channel(tmp_buffer);
+
+            if (auto name = pkg["name"].get_string(); !name.error())
+            {
+                solv.set_name(name.value_unsafe());
+            }
+            else
+            {
+                LOG_WARNING << R"(Found invalid name in ")" << filename << R"(")";
+                return false;
+            }
+
+            if (auto version = pkg["version"].get_string(); !version.error())
+            {
+                solv.set_version(version.value_unsafe());
+            }
+            else
+            {
+                LOG_WARNING << R"(Found invalid version in ")" << filename << R"(")";
+                return false;
+            }
+
+            if (auto build_string = pkg["build"].get_string(); !build_string.error())
+            {
+                solv.set_build_string(build_string.value_unsafe());
+            }
+            else
+            {
+                LOG_WARNING << R"(Found invalid build in ")" << filename << R"(")";
+                return false;
+            }
+
+            if (auto build_number = pkg["build_number"].get_uint64(); !build_number.error())
+            {
+                solv.set_build_number(build_number.value_unsafe());
+            }
+            else
+            {
+                LOG_WARNING << R"(Found invalid build_number in ")" << filename << R"(")";
+                return false;
+            }
+
+            if (auto subdir = pkg["subdir"].get_c_str(); !subdir.error())
+            {
+                solv.set_subdir(subdir.value_unsafe());
+            }
+            else
+            {
+                solv.set_subdir(default_subdir);
+            }
+
+            if (auto size = pkg["size"].get_uint64(); !size.error())
+            {
+                solv.set_size(size.value_unsafe());
+            }
+
+            if (auto md5 = pkg["md5"].get_c_str(); !md5.error())
+            {
+                solv.set_md5(md5.value_unsafe());
+            }
+
+            if (auto sha256 = pkg["sha256"].get_c_str(); !sha256.error())
+            {
+                solv.set_sha256(sha256.value_unsafe());
+            }
+
+            if (auto elem = pkg["noarch"]; !elem.error())
+            {
+                if (auto val = elem.get_bool(); !val.error() && val.value_unsafe())
+                {
+                    solv.set_noarch("generic");
+                }
+                else if (auto noarch = elem.get_c_str(); !noarch.error())
+                {
+                    solv.set_noarch(noarch.value_unsafe());
+                }
+            }
+
+            if (auto license = pkg["license"].get_c_str(); !license.error())
+            {
+                solv.set_license(license.value_unsafe());
+            }
+
+            // TODO conda timestamp are not Unix timestamp.
+            // Libsolv normalize them this way, we need to do the same here otherwise the current
+            // package may get arbitrary priority.
+            if (auto timestamp = pkg["timestamp"].get_uint64(); !timestamp.error())
+            {
+                const auto time = timestamp.value_unsafe();
+                solv.set_timestamp((time > 253402300799ULL) ? (time / 1000) : time);
+            }
+
+            if (auto depends = pkg["depends"].get_array(); !depends.error())
+            {
+                for (auto elem : depends)
+                {
+                    if (auto dep = elem.get_c_str(); !dep.error())
+                    {
+                        if (const auto dep_id = pool_conda_matchspec(pool, dep.value_unsafe()))
+                        {
+                            solv.add_dependency(dep_id);
+                        }
+                    }
+                }
+            }
+
+            if (auto constrains = pkg["constrains"].get_array(); !constrains.error())
+            {
+                for (auto elem : constrains)
+                {
+                    if (auto cons = elem.get_c_str(); !cons.error())
+                    {
+                        if (const auto dep_id = pool_conda_matchspec(pool, cons.value_unsafe()))
+                        {
+                            solv.add_constraint(dep_id);
+                        }
+                    }
+                }
+            }
+
+            if (auto obj = pkg["track_features"]; !obj.error())
+            {
+                if (auto track_features_arr = obj.get_array(); !track_features_arr.error())
+                {
+                    for (auto elem : track_features_arr)
+                    {
+                        if (auto feat = elem.get_string(); !feat.error())
+                        {
+                            solv.add_track_feature(feat.value_unsafe());
+                        }
+                    }
+                }
+                else if (auto track_features_str = obj.get_string(); !track_features_str.error())
+                {
+                    auto splits = lsplit_track_features(track_features_str.value_unsafe());
+                    while (!splits[0].empty())
+                    {
+                        solv.add_track_feature(splits[0]);
+                        splits = lsplit_track_features(splits[1]);
+                    }
+                }
+            }
+
+            solv.add_self_provide();
+            return true;
+        }
+
+        void set_repo_solvables(
+            MPool& pool,
+            solv::ObjRepoView repo,
+            std::string_view repo_url,
+            const std::string& default_subdir,
+            const simdjson::dom::object& packages,
+            std::string& tmp_buffer
+        )
+        {
+            for (const auto& [fn, pkg] : packages)
+            {
+                auto [id, solv] = repo.add_solvable();
+                const bool parsed = set_solvable(pool, solv, repo_url, fn, default_subdir, pkg, tmp_buffer);
+                if (parsed)
+                {
+                    LOG_DEBUG << "Adding package record to repo " << fn;
+                }
+                else
+                {
+                    repo.remove_solvable(id, /* reuse_id= */ true);
+                    LOG_WARNING << "Failed to parse from repodata " << fn;
+                }
+            }
+        }
+
+
+        void set_solvables_url(solv::ObjRepoView repo, const std::string& repo_url)
+        {
+            // WARNING cannot call ``url()`` at this point because it has not been internalized.
+            // Setting the channel url on where the solvable so that we can retrace
+            // where it came from
+            repo.for_each_solvable(
+                [&](solv::ObjSolvableView s)
+                {
+                    // The solvable url, this is not set in libsolv parsing so we set it manually
+                    // while we still rely on libsolv for parsing
+                    s.set_url(util::join_url(repo_url, s.file_name()));
+                    // The name of the channel where it came from, may be different from repo name
+                    // for instance with the installed repo
+                    s.set_channel(repo_url);
+                }
+            );
+        }
+
     }
 
-    MRepo::MRepo(MPool& pool, const std::string& name, const fs::u8path& index, const RepoMetadata& metadata)
+    MRepo::MRepo(
+        MPool& pool,
+        const std::string& name,
+        const fs::u8path& index,
+        const RepoMetadata& metadata,
+        RepodataParser parser,
+        LibsolvCache use_cache
+    )
         : m_pool(pool)
         , m_metadata(metadata)
     {
         auto [_, repo] = pool.pool().add_repo(name);
         m_repo = repo.raw();
         repo.set_url(m_metadata.url);
-        load_file(index);
-        set_solvables_url(m_metadata.url);
+        load_file(index, parser, use_cache);
         repo.internalize();
     }
 
@@ -105,7 +375,9 @@ namespace mamba
         m_repo = repo.raw();
         for (auto& info : package_infos)
         {
-            add_package_info(info);
+            LOG_INFO << "Adding package record to repo " << info.name;
+            auto [id, solv] = srepo(*this).add_solvable();
+            set_solvable(m_pool, solv, info);
         }
         repo.internalize();
     }
@@ -118,7 +390,9 @@ namespace mamba
 
         for (auto& [name, record] : prefix_data.records())
         {
-            add_package_info(record);
+            LOG_INFO << "Adding package record to repo " << record.name;
+            auto [id, solv] = srepo(*this).add_solvable();
+            set_solvable(m_pool, solv, record);
         }
 
         if (pool.context().add_pip_as_python_dependency)
@@ -130,24 +404,6 @@ namespace mamba
         pool.pool().set_installed_repo(repo_id);
     }
 
-    void MRepo::set_solvables_url(const std::string& repo_url)
-    {
-        // WARNING cannot call ``url()`` at this point because it has not been internalized.
-        // Setting the channel url on where the solvable so that we can retrace
-        // where it came from
-        srepo(*this).for_each_solvable(
-            [&](solv::ObjSolvableView s)
-            {
-                // The solvable url, this is not set in libsolv parsing so we set it manually
-                // while we still rely on libsolv for parsing
-                s.set_url(fmt::format("{}/{}", repo_url, s.file_name()));
-                // The name of the channel where it came from, may be different from repo name
-                // for instance with the installed repo
-                s.set_channel(repo_url);
-            }
-        );
-    }
-
     void MRepo::set_installed()
     {
         m_pool.pool().set_installed_repo(srepo(*this).id());
@@ -157,53 +413,6 @@ namespace mamba
     {
         m_repo->priority = priority;
         m_repo->subpriority = subpriority;
-    }
-
-    void MRepo::add_package_info(const PackageInfo& info)
-    {
-        LOG_INFO << "Adding package record to repo " << info.name;
-
-        auto [id, solv] = srepo(*this).add_solvable();
-
-        solv.set_name(info.name);
-        solv.set_version(info.version);
-        solv.set_build_string(info.build_string);
-        solv.set_noarch(info.noarch);
-        solv.set_build_number(info.build_number);
-        solv.set_channel(info.channel);
-        solv.set_url(info.url);
-        solv.set_subdir(info.subdir);
-        solv.set_file_name(info.fn);
-        solv.set_license(info.license);
-        solv.set_size(info.size);
-        // TODO conda timestamp are not Unix timestamp.
-        // Libsolv normalize them this way, we need to do the same here otherwise the current
-        // package may get arbitrary priority.
-        solv.set_timestamp(
-            (info.timestamp > 253402300799ULL) ? (info.timestamp / 1000) : info.timestamp
-        );
-        solv.set_md5(info.md5);
-        solv.set_sha256(info.sha256);
-
-        for (const auto& dep : info.depends)
-        {
-            // TODO pool's matchspec2id
-            solv::DependencyId const dep_id = pool_conda_matchspec(m_pool, dep.c_str());
-            assert(dep_id);
-            solv.add_dependency(dep_id);
-        }
-
-        for (const auto& cons : info.constrains)
-        {
-            // TODO pool's matchspec2id
-            solv::DependencyId const dep_id = pool_conda_matchspec(m_pool, cons.c_str());
-            assert(dep_id);
-            solv.add_constraint(dep_id);
-        }
-
-        solv.add_track_features(info.track_features);
-
-        solv.add_self_provide();
     }
 
     auto MRepo::name() const -> std::string_view
@@ -223,8 +432,8 @@ namespace mamba
 
     void MRepo::add_pip_as_python_dependency()
     {
-        solv::DependencyId const python_id = pool_conda_matchspec(m_pool, "python");
-        solv::DependencyId const pip_id = pool_conda_matchspec(m_pool, "pip");
+        const solv::DependencyId python_id = pool_conda_matchspec(m_pool, "python");
+        const solv::DependencyId pip_id = pool_conda_matchspec(m_pool, "pip");
         srepo(*this).for_each_solvable(
             [&](solv::ObjSolvableView s)
             {
@@ -240,12 +449,43 @@ namespace mamba
         );
     }
 
-    void MRepo::read_json(const fs::u8path& filename)
+    void MRepo::libsolv_read_json(const fs::u8path& filename)
     {
-        LOG_INFO << "Reading repodata.json file " << filename << " for repo " << name();
+        LOG_INFO << "Reading repodata.json file " << filename << " for repo " << name()
+                 << " using libsolv";
         // TODO make this as part of options of the repo/pool
         const int flags = m_pool.context().use_only_tar_bz2 ? CONDA_ADD_USE_ONLY_TAR_BZ2 : 0;
         srepo(*this).legacy_read_conda_repodata(filename, flags);
+    }
+
+    void MRepo::mamba_read_json(const fs::u8path& filename)
+    {
+        LOG_INFO << "Reading repodata.json file " << filename << " for repo " << name()
+                 << " using mamba";
+
+        auto parser = simdjson::dom::parser();
+        const auto repodata = parser.load(filename);
+
+        // An override for missing package subdir is found in at the top level
+        auto default_subdir = std::string();
+        if (auto subdir = repodata.at_pointer("/info/subdir").get_string(); subdir.error())
+        {
+            default_subdir = std::string(subdir.value_unsafe());
+        }
+
+        // An temporary buffer for managing null terminated strings
+        std::string tmp_buffer = {};
+
+        if (auto pkgs = repodata["packages"].get_object(); !pkgs.error())
+        {
+            set_repo_solvables(m_pool, srepo(*this), m_metadata.url, default_subdir, pkgs.value(), tmp_buffer);
+        }
+
+        if (auto pkgs = repodata["packages.conda"].get_object();
+            !pkgs.error() && !m_pool.context().use_only_tar_bz2)
+        {
+            set_repo_solvables(m_pool, srepo(*this), m_metadata.url, default_subdir, pkgs.value(), tmp_buffer);
+        }
     }
 
     bool MRepo::read_solv(const fs::u8path& filename)
@@ -288,46 +528,54 @@ namespace mamba
         return true;
     }
 
-    void MRepo::load_file(const fs::u8path& filename)
+    void MRepo::load_file(const fs::u8path& filename, RepodataParser parser, LibsolvCache use_cache)
     {
         auto repo = srepo(*this);
         bool is_solv = filename.extension() == ".solv";
 
         fs::u8path solv_file = filename;
+        solv_file.replace_extension("solv");
         fs::u8path json_file = filename;
-
-        if (is_solv)
-        {
-            json_file.replace_extension("json");
-        }
-        else
-        {
-            solv_file.replace_extension("solv");
-        }
+        json_file.replace_extension("json");
 
         LOG_INFO << "Reading cache files '" << (filename.parent_path() / filename).string()
                  << ".*' for repo index '" << name() << "'";
 
-        if (is_solv)
+        // .solv files are slower to load than simdjson on Windows
+        if (!util::on_win && is_solv && (use_cache == LibsolvCache::yes))
         {
             const auto lock = LockFile(solv_file);
             const bool read = read_solv(solv_file);
             if (read)
             {
+                set_solvables_url(repo, m_metadata.url);
                 return;
             }
         }
 
-        auto lock = LockFile(json_file);
-        read_json(json_file);
+        const auto& ctx = m_pool.context();
+
+        {
+            const auto lock = LockFile(json_file);
+            if ((parser == RepodataParser::mamba)
+                || (parser == RepodataParser::automatic && ctx.experimental_repodata_parsing))
+            {
+                mamba_read_json(json_file);
+            }
+            else
+            {
+                libsolv_read_json(json_file);
+                set_solvables_url(repo, m_metadata.url);
+            }
+        }
 
         // TODO move this to a more structured approach for repodata patching?
-        if (m_pool.context().add_pip_as_python_dependency)
+        if (ctx.add_pip_as_python_dependency)
         {
             add_pip_as_python_dependency();
         }
 
-        if (name() != "installed")
+        if (!util::on_win && (name() != "installed"))
         {
             write_solv(solv_file);
         }
@@ -352,12 +600,6 @@ namespace mamba
     {
         m_pool.remove_repo(id(), reuse_ids);
     }
-}
-
-#include <map>
-
-namespace mamba
-{
 
     auto MRepo::py_name() const -> std::string_view
     {

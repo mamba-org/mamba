@@ -17,7 +17,7 @@
 #include "solv-cpp/ids.hpp"
 #include "solv-cpp/solvable.hpp"
 
-namespace fs
+namespace mamba::fs
 {
     class u8path;
 }
@@ -114,7 +114,7 @@ namespace mamba::solv
          * @warning This is a binary file that is not portable and may not even remain valid among
          *          different libsolv build, let alone versions.
          */
-        void write(const fs::u8path& solv_file) const;
+        void write(const mamba::fs::u8path& solv_file) const;
 
     private:
 
@@ -224,7 +224,7 @@ namespace mamba::solv
          * @param solv_file A standard path with system encoding.
          * @see ObjRepoViewConst::write
          */
-        void read(const fs::u8path& solv_file) const;
+        void read(const mamba::fs::u8path& solv_file) const;
 
         /**
          * Read repository information from a conda repodata.json.
@@ -234,7 +234,7 @@ namespace mamba::solv
          * added through the API.
          * @param repodata_file A standard path with system encoding.
          */
-        void legacy_read_conda_repodata(const fs::u8path& repodata_file, int flags = 0) const;
+        void legacy_read_conda_repodata(const mamba::fs::u8path& repodata_file, int flags = 0) const;
 
         /** Add an empty solvable to the repository. */
         auto add_solvable() const -> std::pair<SolvableId, ObjSolvableView>;

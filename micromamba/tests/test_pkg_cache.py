@@ -1,4 +1,5 @@
 import os
+import platform
 import shutil
 import subprocess
 from pathlib import Path
@@ -345,7 +346,8 @@ class TestMultiplePkgCaches:
         # check repodata files
         assert repodata_json(tmp_cache) == set()
         assert repodata_json(tmp_cache_alt) != set()
-        assert same_repodata_json_solv(tmp_cache_alt)
+        if platform.system() != "Windows":  # No .solv on Windows
+            assert same_repodata_json_solv(tmp_cache_alt)
 
         # check tarballs
         assert find_cache_archive(tmp_cache, xtensor_bld) is None
@@ -385,7 +387,8 @@ class TestMultiplePkgCaches:
 
         # check repodata files
         assert repodata_json(tmp_cache) != set()
-        assert same_repodata_json_solv(tmp_cache)
+        if platform.system() != "Windows":  # No .solv on Windows
+            assert same_repodata_json_solv(tmp_cache)
         assert repodata_json(tmp_cache_alt) == set()
 
         # check tarballs
@@ -424,7 +427,8 @@ class TestMultiplePkgCaches:
 
         # check repodata files
         assert repodata_json(tmp_cache) != set()
-        assert same_repodata_json_solv(tmp_cache)
+        if platform.system() != "Windows":  # No .solv on Windows
+            assert same_repodata_json_solv(tmp_cache)
         assert repodata_json(tmp_cache_alt) == set()
 
         # check tarballs
@@ -458,7 +462,8 @@ class TestMultiplePkgCaches:
 
         # check repodata files
         assert repodata_json(tmp_cache) != set()
-        assert same_repodata_json_solv(tmp_cache)
+        if platform.system() != "Windows":  # No .solv on Windows
+            assert same_repodata_json_solv(tmp_cache)
         assert repodata_json(tmp_cache_alt) == set()
 
         # check tarballs
@@ -505,9 +510,11 @@ class TestMultiplePkgCaches:
 
         # check repodata files
         assert repodata_json(tmp_cache) != set()
-        assert same_repodata_json_solv(tmp_cache)
+        if platform.system() != "Windows":  # No .solv on Windows
+            assert same_repodata_json_solv(tmp_cache)
         assert repodata_json(tmp_cache_alt) != set()
-        assert same_repodata_json_solv(tmp_cache_alt)
+        if platform.system() != "Windows":  # No .solv on Windows
+            assert same_repodata_json_solv(tmp_cache_alt)
 
         # check tarballs
         assert find_cache_archive(tmp_cache, xtensor_bld).exists()

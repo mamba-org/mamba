@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-#include "mamba_fs.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 extern const char data_micromamba_sh[];
 extern const char data_micromamba_csh[];

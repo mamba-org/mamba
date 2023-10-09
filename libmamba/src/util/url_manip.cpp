@@ -15,8 +15,9 @@
 #include <fmt/format.h>
 #include <openssl/evp.h>
 
-#include "mamba/core/mamba_fs.hpp"
+#include "mamba/fs/filesystem.hpp"
 #include "mamba/util/build.hpp"
+#include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
@@ -226,29 +227,47 @@ namespace mamba::util
         return "";
     }
 
+    auto is_file_uri(std::string_view url) -> bool
+    {
+        return url_get_scheme(url) == "file";
+    }
+
     auto url_has_scheme(std::string_view url) -> bool
     {
         return !url_get_scheme(url).empty();
     }
 
-    std::string path_to_url(const std::string& path)
+
+    auto abs_path_to_url(std::string_view path) -> std::string
     {
         static constexpr std::string_view file_scheme = "file://";
-        if (util::starts_with(path, file_scheme))
-        {
-            return path;
-        }
-
-        fs::u8path tmp_path = fs::u8path(path);
-        std::string abs_path = fs::absolute(tmp_path).string();
-
-        // TODO: handle percent encoding
-        // https://blogs.msdn.microsoft.com/ie/2006/12/06/file-uris-in-windows/
         if (on_win)
         {
-            util::replace_all(abs_path, "\\", "/");
+            if ((path.size() >= 2) && path_has_drive_letter(path))
+            {
+                return concat(
+                    file_scheme,
+                    path.substr(0, 2),
+                    url_encode(path_to_posix(std::string(path.substr(2))), '/')
+                );
+            }
+            return util::concat(file_scheme, url_encode(path_to_posix(std::string(path)), '/'));
         }
-        return util::concat(file_scheme, abs_path);
+        return util::concat(file_scheme, url_encode(path, '/'));
+    }
+
+    auto path_to_url(std::string_view path) -> std::string
+    {
+        return abs_path_to_url(fs::absolute(path).string());
+    }
+
+    auto path_or_url_to_url(std::string_view path) -> std::string
+    {
+        if (url_has_scheme(path))
+        {
+            return std::string(path);
+        }
+        return path_to_url(path);
     }
 
     std::string file_uri_unc2_to_unc4(std::string_view uri)

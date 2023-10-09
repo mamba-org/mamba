@@ -9,11 +9,13 @@
 
 #include <doctest/doctest.h>
 
-#include "mamba/core/mamba_fs.hpp"
+#include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/platform.hpp"
 #include "mamba/util/build.hpp"
+#include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
+using namespace mamba;
 using namespace mamba::util;
 
 TEST_SUITE("util::url_manip")
@@ -153,25 +155,95 @@ TEST_SUITE("util::url_manip")
         CHECK_EQ(cleaned_url, "https://conda.anaconda.org/pkgs/main");
     }
 
+    TEST_CASE("abs_path_to_url")
+    {
+        SUBCASE("/users/test/miniconda3")
+        {
+            CHECK_EQ(abs_path_to_url("/users/test/miniconda3"), "file:///users/test/miniconda3");
+        }
+
+        SUBCASE(R"(D:\users\test\miniconda3)")
+        {
+            if (on_win)
+            {
+                CHECK_EQ(
+                    abs_path_to_url(R"(D:\users\test\miniconda3)"),
+                    "file://D:/users/test/miniconda3"
+                );
+            }
+        }
+
+        SUBCASE("/tmp/foo bar")
+        {
+            CHECK_EQ(abs_path_to_url("/tmp/foo bar"), "file:///tmp/foo%20bar");
+        }
+    }
+
     TEST_CASE("path_to_url")
     {
-        auto url = path_to_url("/users/test/miniconda3");
-        if (on_win)
+        const std::string win_drive = fs::absolute(fs::u8path("/")).string().substr(0, 1);
+
+        SUBCASE("/users/test/miniconda3")
         {
-            std::string driveletter = fs::absolute(fs::u8path("/")).string().substr(0, 1);
-            CHECK_EQ(url, std::string("file://") + driveletter + ":/users/test/miniconda3");
-            auto url2 = path_to_url("D:\\users\\test\\miniconda3");
-            CHECK_EQ(url2, "file://D:/users/test/miniconda3");
+            auto url = path_to_url("/users/test/miniconda3");
+            if (on_win)
+            {
+                CHECK_EQ(url, concat("file://", win_drive, ":/users/test/miniconda3"));
+            }
+            else
+            {
+                CHECK_EQ(url, "file:///users/test/miniconda3");
+            }
         }
-        else
+
+        SUBCASE(R"(D:\users\test\miniconda3)")
         {
-            CHECK_EQ(url, "file:///users/test/miniconda3");
+            if (on_win)
+            {
+                CHECK_EQ(path_to_url(R"(D:\users\test\miniconda3)"), "file://D:/users/test/miniconda3");
+            }
+        }
+
+        SUBCASE("/tmp/foo bar")
+        {
+            auto url = path_to_url("/tmp/foo bar");
+            if (on_win)
+            {
+                CHECK_EQ(url, concat("file://", win_drive, ":/tmp/foo%20bar"));
+            }
+            else
+            {
+                CHECK_EQ(url, "file:///tmp/foo%20bar");
+            }
+        }
+    }
+
+    TEST_CASE("path_or_url_to_url")
+    {
+        const std::string win_drive = fs::absolute(fs::u8path("/")).string().substr(0, 1);
+
+        SUBCASE("/tmp/foo bar")
+        {
+            auto url = path_or_url_to_url("/tmp/foo bar");
+            if (on_win)
+            {
+                CHECK_EQ(url, concat("file://", win_drive, ":/tmp/foo%20bar"));
+            }
+            else
+            {
+                CHECK_EQ(url, "file:///tmp/foo%20bar");
+            }
+        }
+
+        SUBCASE("file:///tmp/bar")
+        {
+            CHECK_EQ(path_or_url_to_url("file:///tmp/bar"), "file:///tmp/bar");
         }
     }
 
     TEST_CASE("file_uri_unc2_to_unc4")
     {
-        for (std::string const uri : {
+        for (const std::string uri : {
                  "http://example.com/test",
                  R"(file://C:/Program\ (x74)/Users/hello\ world)",
                  R"(file:///C:/Program\ (x74)/Users/hello\ world)",

@@ -4,26 +4,13 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef MAMBA_CORE_FS_HPP
-#define MAMBA_CORE_FS_HPP
+#ifndef MAMBA_FS_FILESYSTEM_HPP
+#define MAMBA_FS_FILESYSTEM_HPP
 
 #include <filesystem>
-#include <fstream>
 #include <string>
 
 #include <fmt/format.h>
-
-#if !defined(_WIN32)
-#include <fcntl.h>
-#include <sys/stat.h>
-
-// We can use the presence of UTIME_OMIT to detect platforms that provide
-// utimensat.
-#if defined(UTIME_OMIT)
-#define USE_UTIMENSAT
-#endif
-#endif
-
 
 //---- RATIONAL: Why do we wrap standard filesystem here? ----
 // 1. This codebase relies on `std::string` and `const char*` to denote UTF-8 encoded text.
@@ -79,7 +66,7 @@
 //    (at least until the stnadard library provide better options).
 
 
-namespace fs
+namespace mamba::fs
 {
     // sentinel argument for indicating the current time to last_write_time
     class now
@@ -1151,18 +1138,7 @@ namespace fs
     }
 
     // void last_write_time(const path& p, now _, error_code& ec) noexcept;
-    inline void last_write_time(const u8path& path, now, std::error_code& ec) noexcept
-    {
-#if defined(USE_UTIMENSAT)
-        if (utimensat(AT_FDCWD, path.string().c_str(), NULL, 0) == -1)
-        {
-            ec = std::error_code(errno, std::generic_category());
-        }
-#else
-        auto new_time = fs::file_time_type::clock::now();
-        std::filesystem::last_write_time(path, new_time, ec);
-#endif
-    }
+    void last_write_time(const u8path& path, now, std::error_code& ec) noexcept;
 
     // void last_write_time(const path& p, now _);
     inline void last_write_time(const u8path& path, now sentinel)
@@ -1355,9 +1331,9 @@ namespace fs
 }
 
 template <>
-struct std::hash<::fs::u8path>
+struct std::hash<::mamba::fs::u8path>
 {
-    std::size_t operator()(const ::fs::u8path& path) const noexcept
+    std::size_t operator()(const ::mamba::fs::u8path& path) const noexcept
     {
         return std::filesystem::hash_value(path.std_path()
         );  // TODO: once we stop using gcc < 12 we can properly use
@@ -1366,7 +1342,7 @@ struct std::hash<::fs::u8path>
 };
 
 template <>
-struct fmt::formatter<::fs::u8path>
+struct fmt::formatter<::mamba::fs::u8path>
 {
     constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin())
     {
@@ -1379,7 +1355,7 @@ struct fmt::formatter<::fs::u8path>
     }
 
     template <class FormatContext>
-    auto format(const ::fs::u8path& path, FormatContext& ctx)
+    auto format(const ::mamba::fs::u8path& path, FormatContext& ctx)
     {
         return fmt::format_to(ctx.out(), "'{}'", path.string());
     }

@@ -49,10 +49,23 @@ def test_depends_not_installed(yaml_env: Path):
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_depends_not_installed_with_channel(yaml_env: Path):
-    res = helpers.umamba_repoquery(
-        "depends", "-c", "conda-forge", "xtensor=0.24.5", "--json"
-    )
+@pytest.mark.parametrize("with_platform", (False, True))
+def test_depends_not_installed_with_channel(yaml_env: Path, with_platform):
+    if with_platform:
+        res = helpers.umamba_repoquery(
+            "depends",
+            "-c",
+            "conda-forge",
+            "xtensor=0.24.5",
+            "--platform",
+            "win-64",
+            "--json",
+        )
+        assert res["result"]["pkgs"][0]["subdir"] == "win-64"
+    else:
+        res = helpers.umamba_repoquery(
+            "depends", "-c", "conda-forge", "xtensor=0.24.5", "--json"
+        )
 
     assert res["query"]["query"] == "xtensor =0.24.5*"
     assert res["query"]["type"] == "depends"
@@ -65,7 +78,7 @@ def test_depends_not_installed_with_channel(yaml_env: Path):
     assert any(x["name"] == "xtensor" for x in pkgs)
     assert any(x["name"] == "xtl" for x in pkgs)
 
-    if platform.system() == "Linux":
+    if not with_platform and platform.system() == "Linux":
         assert any(x["name"] == "libgcc-ng" for x in pkgs)
         assert any(x["name"] == "libstdcxx-ng" for x in pkgs)
 
@@ -124,10 +137,23 @@ def test_whoneeds_not_installed(yaml_env: Path):
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_whoneeds_not_installed_with_channel(yaml_env: Path):
-    res = helpers.umamba_repoquery(
-        "whoneeds", "-c", "conda-forge", "xtensor=0.24.5", "--json"
-    )
+@pytest.mark.parametrize("with_platform", (False, True))
+def test_whoneeds_not_installed_with_channel(yaml_env: Path, with_platform):
+    if with_platform:
+        res = helpers.umamba_repoquery(
+            "whoneeds",
+            "-c",
+            "conda-forge",
+            "xtensor=0.24.5",
+            "--platform",
+            "osx-64",
+            "--json",
+        )
+        assert res["result"]["pkgs"][0]["subdir"] == "osx-64"
+    else:
+        res = helpers.umamba_repoquery(
+            "whoneeds", "-c", "conda-forge", "xtensor=0.24.5", "--json"
+        )
 
     assert res["query"]["query"] == "xtensor =0.24.5*"
     assert res["query"]["type"] == "whoneeds"
@@ -148,6 +174,35 @@ def test_whoneeds_tree(yaml_env: Path):
     assert "cppcolormap" in res
     assert "pyxtensor" in res
     assert "qpot" in res
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+@pytest.mark.parametrize("with_platform", (False, True))
+def test_search(yaml_env: Path, with_platform):
+    if with_platform:
+        res = helpers.umamba_repoquery(
+            "search",
+            "-c",
+            "conda-forge",
+            "xtensor*",
+            "--platform",
+            "linux-64",
+            "--json",
+        )
+        assert res["result"]["pkgs"][0]["subdir"] == "linux-64"
+    else:
+        res = helpers.umamba_repoquery(
+            "search", "-c", "conda-forge", "xtensor*", "--json"
+        )
+
+    assert res["query"]["query"] == "xtensor*"
+    assert res["query"]["type"] == "search"
+
+    pkgs = res["result"]["pkgs"]
+    assert all("conda-forge" in x["channel"] for x in pkgs)
+    assert any(x["name"] == "xtensor-blas" for x in pkgs)
+    assert any(x["name"] == "xtensor" for x in pkgs)
+    assert any(x["name"] == "xtensor-io" for x in pkgs)
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)

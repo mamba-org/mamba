@@ -69,20 +69,27 @@ if(NOT (TARGET libmamba OR TARGET libmamba-static))
     find_package(libmamba REQUIRED)
 endif ()
 
-find_package(Threads REQUIRED)
-target_link_libraries(micromamba PRIVATE Threads::Threads)
-
 string(TOUPPER "${MICROMAMBA_LINKAGE}" linkage_upper)
 message(STATUS "Micromamba linkage: ${MICROMAMBA_LINKAGE}")
 
 if (${MICROMAMBA_LINKAGE} STREQUAL "STATIC")
-    target_link_libraries(micromamba PRIVATE libmamba-static)
-    if (WIN32)
-        set_target_properties(micromamba PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-    endif ()
+    set(libmamba_target "libmamba-static")
 else ()
-    target_link_libraries(micromamba PRIVATE libmamba)
+    set(libmamba_target "libmamba")
 endif ()
+
+find_package(Threads REQUIRED)
+find_package(reproc REQUIRED)
+find_package(reproc++ REQUIRED)
+
+target_link_libraries(
+    micromamba
+    PRIVATE
+        ${libmamba_target}
+        Threads::Threads
+        reproc
+        reproc++
+)
 
 set_property(TARGET micromamba PROPERTY CXX_STANDARD 17)
 

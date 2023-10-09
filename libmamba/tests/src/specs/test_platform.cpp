@@ -30,10 +30,10 @@ TEST_SUITE("specs::platform")
     TEST_CASE("known_platform")
     {
         static constexpr decltype(known_platform_names()) expected{
-            "noarch",       "linux-32",      "linux-64",      "linux-armv6l",
-            "linux-armv7l", "linux-aarch64", "linux-ppc64le", "linux-ppc64",
-            "linux-s390x",  "linux-riscv32", "linux-riscv64", "osx-64",
-            "osx-arm64",    "win-32",        "win-64",        "win-arm64",
+            "noarch",        "linux-32",      "linux-64",    "linux-armv6l", "linux-armv7l",
+            "linux-aarch64", "linux-ppc64le", "linux-ppc64", "linux-s390x",  "linux-riscv32",
+            "linux-riscv64", "osx-64",        "osx-arm64",   "win-32",       "win-64",
+            "win-arm64",     "zos-z",
 
         };
         CHECK_EQ(expected, known_platform_names());

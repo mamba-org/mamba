@@ -6,6 +6,7 @@ dependencies:
   - cmake >=3.16
   - ninja
   - nlohmann_json
+  - simdjson >=3.3.0
   - libsolv >=0.7.18
   - libarchive
   - libsodium
@@ -13,8 +14,8 @@ dependencies:
   - gtest
   - gmock
   - cpp-expected
-  - reproc-cpp
-  - yaml-cpp
+  - reproc-cpp >=14.2.4.post0
+  - yaml-cpp >= 0.8.0
   - cli11 >=2.2
   - spdlog
   - fmt
@@ -24,7 +25,8 @@ dependencies:
   - pybind11-stubgen <1.0
   - pytest >=7.3
   - pyyaml
-  - conda
+  - boltons
+  - conda >=23.9.0
   - conda-content-trust
   - cryptography<40.0  # Or breaks conda-content-trust
   - pip:

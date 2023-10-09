@@ -10,7 +10,7 @@ import tempfile
 import urllib.parse
 from collections import OrderedDict
 
-from conda._vendor.boltons.setutils import IndexedSet
+from boltons.setutils import IndexedSet
 from conda.base.constants import ChannelPriority
 from conda.base.context import context
 from conda.common.serialize import json_dump
@@ -57,10 +57,6 @@ def get_index(
     # Remove duplicates but retain order
     all_channels = list(OrderedDict.fromkeys(all_channels))
 
-    dlist = api.DownloadTargetList()
-
-    index = []
-
     def fixup_channel_spec(spec):
         at_count = spec.count("@")
         if at_count > 1:
@@ -78,33 +74,15 @@ def get_index(
     pkgs_dirs = api.MultiPackageCache(context.pkgs_dirs)
     api.create_cache_dir(str(pkgs_dirs.first_writable_path))
 
+    index = api.SubdirIndex()
     for channel in api.get_channels(all_channels):
         for channel_platform, url in channel.platform_urls(with_credentials=True):
             full_url = CondaHttpAuth.add_binstar_token(url)
-
-            sd = api.SubdirData(
-                channel, channel_platform, full_url, pkgs_dirs, repodata_fn
+            index.create(
+                channel, channel_platform, full_url, pkgs_dirs, repodata_fn, url
             )
 
-            needs_finalising = sd.download_and_check_targets(dlist)
-            index.append(
-                (
-                    sd,
-                    {
-                        "platform": channel_platform,
-                        "url": url,
-                        "channel": channel,
-                        "needs_finalising": needs_finalising,
-                    },
-                )
-            )
-
-    for sd, info in index:
-        if info["needs_finalising"]:
-            sd.finalize_checks()
-        dlist.add(sd)
-
-    is_downloaded = dlist.download(api.MAMBA_DOWNLOAD_FAILFAST)
+    is_downloaded = index.download()
 
     if not is_downloaded:
         raise RuntimeError("Error downloading repodata.")
@@ -141,16 +119,16 @@ def load_channels(
     subprio_index = len(index)
     if has_priority:
         # first, count unique channels
-        n_channels = len(set([entry["channel"].canonical_name for _, entry in index]))
-        current_channel = index[0][1]["channel"].canonical_name
+        n_channels = len(set([entry.channel.canonical_name for entry in index]))
+        current_channel = index[0].channel.canonical_name
         channel_prio = n_channels
 
-    for subdir, entry in index:
+    for entry in index:
         # add priority here
         if has_priority:
-            if entry["channel"].canonical_name != current_channel:
+            if entry.channel.canonical_name != current_channel:
                 channel_prio -= 1
-                current_channel = entry["channel"].canonical_name
+                current_channel = entry.channel.canonical_name
             priority = channel_prio
         else:
             priority = 0
@@ -160,19 +138,19 @@ def load_channels(
             subpriority = subprio_index
             subprio_index -= 1
 
-        if not subdir.loaded() and entry["platform"] != "noarch":
+        if not entry.subdir.loaded() and entry.platform != "noarch":
             # ignore non-loaded subdir if channel is != noarch
             continue
 
         if context.verbosity != 0 and not context.json:
             print(
                 "Channel: {}, platform: {}, prio: {} : {}".format(
-                    entry["channel"], entry["platform"], priority, subpriority
+                    entry.channel, entry.platform, priority, subpriority
                 )
             )
-            print("Cache path: ", subdir.cache_path())
+            print("Cache path: ", entry.subdir.cache_path())
 
-        repo = subdir.create_repo(pool)
+        repo = entry.subdir.create_repo(pool)
         repo.set_priority(priority, subpriority)
         repos.append(repo)
 
@@ -301,13 +279,13 @@ def to_conda_channel(channel, platform):
 
 
 def to_package_record_from_subjson(entry, pkg, jsn_string):
-    channel_url = entry["url"]
+    channel_url = entry.url
     info = json.loads(jsn_string)
     info["fn"] = pkg
-    info["channel"] = to_conda_channel(entry["channel"], entry["platform"])
+    info["channel"] = to_conda_channel(entry.channel, entry.platform)
     info["url"] = join_url(channel_url, pkg)
     if not info.get("subdir"):
-        info["subdir"] = entry["platform"]
+        info["subdir"] = entry.platform
     package_record = PackageRecord(**info)
     return package_record
 
@@ -360,9 +338,9 @@ def compute_final_precs(
     final_precs = IndexedSet(prefix_records)
 
     lookup_dict = {}
-    for _, entry in index:
+    for entry in index:
         lookup_dict[
-            entry["channel"].platform_url(entry["platform"], with_credentials=False)
+            entry.channel.platform_url(entry.platform, with_credentials=False)
         ] = entry
 
     i_rec: PackageRecord

@@ -44,6 +44,7 @@ jobs:
               -G Ninja ^
               -D CMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
               -D CMAKE_BUILD_TYPE="Release" ^
+              -D CMAKE_MSVC_RUNTIME_LIBRARY="MultiThreadedDLL" ^
               -D BUILD_LIBMAMBA_TESTS=ON ^
               -D BUILD_LIBMAMBA=ON ^
               -D BUILD_SHARED=ON ^
@@ -99,6 +100,7 @@ jobs:
               -G Ninja ^
               -D CMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
               -D CMAKE_BUILD_TYPE="Release" ^
+              -D CMAKE_MSVC_RUNTIME_LIBRARY="MultiThreadedDLL" ^
               -D BUILD_LIBMAMBAPY=ON ^
               -D BUILD_LIBMAMBA=ON ^
               -D BUILD_SHARED=ON ^
@@ -180,6 +182,8 @@ jobs:
           cmake -B build/ ^
               -G Ninja ^
               -D CMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
+              -D CMAKE_BUILD_TYPE="Release" ^
+              -D CMAKE_MSVC_RUNTIME_LIBRARY="MultiThreadedDLL" ^
               -D BUILD_MICROMAMBA=ON ^
               -D BUILD_LIBMAMBA=ON ^
               -D BUILD_SHARED=ON ^
@@ -225,7 +229,10 @@ jobs:
         with:
           environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
-          create-args: menuinst
+          create-args: >-
+            menuinst
+            conda-build
+            curl
           init-shell: bash cmd.exe powershell
       - name: micromamba python based tests with pwsh
         shell: pwsh
@@ -237,3 +244,22 @@ jobs:
           Remove-Item -Path "env:CONDARC"
 
           pytest -v --capture=tee-sys micromamba/tests/
+      - name: micromamba local channel checks
+        shell: bash -l {0}
+        run: |
+          mkdir -p $MAMBA_ROOT_PREFIX/conda-bld/win-64
+          echo $PATH
+          micromamba list
+          micromamba info
+          curl --version
+          curl https://anaconda.org/conda-forge/xtensor/0.21.7/download/win-64/xtensor-0.21.7-h7ef1ec2_0.tar.bz2 -L -o $MAMBA_ROOT_PREFIX/conda-bld/win-64/xtensor-0.21.7-h7ef1ec2_0.tar.bz2
+          curl https://anaconda.org/conda-forge/xtl/0.6.21/download/win-64/xtl-0.6.21-h5362a0b_0.tar.bz2 -L -o $MAMBA_ROOT_PREFIX/conda-bld/win-64/xtl-0.6.21-h5362a0b_0.tar.bz2
+          conda index $MAMBA_ROOT_PREFIX/conda-bld
+          micromamba create -n l_o_cal_test xtensor -c local -c conda-forge -y
+
+          micromamba list -n l_o_cal_test
+          # cut first couple of lines to remove prefix path
+          micromamba list -n l_o_cal_test | tail -n +3 > list.txt
+          if [ "$(grep -c "conda-bld" list.txt)" -ne 2 ]; then
+            exit 1
+          fi

@@ -6,6 +6,7 @@ dependencies:
   - cmake >=3.16
   - ninja
   - nlohmann_json
+  - simdjson >=3.3.0
   - mitmproxy
   - libsolv >=0.7.18
   - libarchive
@@ -14,8 +15,8 @@ dependencies:
   - gtest
   - gmock
   - cpp-expected
-  - reproc-cpp
-  - yaml-cpp
+  - reproc-cpp >=14.2.4.post0
+  - yaml-cpp >=0.8.0
   - cli11 >=2.2
   - pytest >=7.3.0
   - pytest-asyncio

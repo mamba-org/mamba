@@ -8,8 +8,8 @@
 #include <yaml-cpp/yaml.h>
 
 #include "mamba/core/env_lockfile.hpp"
-#include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/match_spec.hpp"
+#include "mamba/fs/filesystem.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba

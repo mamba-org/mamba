@@ -18,6 +18,7 @@ namespace mamba
 {
     class MatchSpec;
     class ChannelContext;
+    class Context;
 
     namespace solv
     {

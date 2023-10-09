@@ -4,6 +4,7 @@
 
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/environment.hpp"
 #include "mamba/specs/platform.hpp"
 
 #include "mambatests.hpp"
@@ -309,6 +310,38 @@ namespace mamba
             CHECK_EQ(c2->scheme(), "https");
 
             ctx.custom_channels.clear();
+        }
+
+        TEST_CASE("custom_local_channels")
+        {
+            auto& ctx = mambatests::context();
+
+            // Create conda-bld directory to enable testing
+            auto conda_bld_dir = env::home_directory() / "conda-bld";
+            bool to_be_removed = fs::create_directories(conda_bld_dir);
+
+            ChannelContext channel_context{ ctx };
+
+            const auto& custom = channel_context.get_custom_channels();
+
+            CHECK_EQ(custom.size(), 4);
+
+            auto it = custom.find("conda-bld");
+            CHECK_NE(it, custom.end());
+            CHECK_EQ(it->second.name(), "conda-bld");
+            CHECK_EQ(it->second.location(), env::home_directory());
+            CHECK_EQ(it->second.canonical_name(), "local");
+            CHECK_EQ(it->second.scheme(), "file");
+
+            auto local_channels = channel_context.get_channels({ "local" });
+            CHECK_EQ(local_channels.size(), 1);
+
+            // Cleaning
+            ctx.custom_channels.clear();
+            if (to_be_removed)
+            {
+                fs::remove_all(conda_bld_dir);
+            }
         }
 
         TEST_CASE("custom_channels_with_labels")

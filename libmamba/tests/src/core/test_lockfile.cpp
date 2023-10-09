@@ -11,8 +11,8 @@
 #include <reproc++/run.hpp>
 
 #include "mamba/core/context.hpp"
-#include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 #include "spdlog/spdlog.h"
 

@@ -65,7 +65,12 @@ namespace mamba::specs
         /** Return the Conda token, as delimited with "/t/", or empty if there isn't any. */
         [[nodiscard]] auto token() const -> std::string_view;
 
-        /** Set a token if the URL already contains one, or throw an error. */
+        /**
+         * Set a token.
+         *
+         * If the URL already contains one replace it at the same location, otherwise, add it at
+         * the begining of the path.
+         */
         void set_token(std::string_view token);
 
         /** Clear the token and return ``true`` if it exists, otherwise return ``false``. */

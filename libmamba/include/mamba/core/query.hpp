@@ -99,7 +99,7 @@ namespace mamba
         std::ostream& tree(std::ostream&, const GraphicsParams& graphics) const;
         nlohmann::json json(ChannelContext& channel_context) const;
 
-        std::ostream& pretty(std::ostream&) const;
+        std::ostream& pretty(std::ostream&, const Context::OutputParams& outputParams) const;
 
         bool empty() const;
 

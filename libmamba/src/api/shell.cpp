@@ -12,8 +12,8 @@
 #include "mamba/core/activation.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
-#include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/shell_init.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 #ifdef _WIN32
 #include "mamba/core/util_os.hpp"

@@ -19,6 +19,7 @@
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_download.hpp"
+#include "mamba/core/util.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 
@@ -1209,6 +1210,12 @@ namespace mamba
                         under active development and not stable yet.)"))
                    .set_post_merge_hook(detail::experimental_hook));
 
+        insert(Configurable("experimental_repodata_parsing", &m_context.experimental_repodata_parsing)
+                   .group("Basic")
+                   .description("Enable experimental parsing of repodata.json using nl::json")
+                   .set_rc_configurable()
+                   .set_env_var_names());
+
         insert(Configurable("debug", &m_context.debug)
                    .group("Basic")
                    .set_env_var_names()
@@ -1229,6 +1236,7 @@ namespace mamba
                    .needs({ "file_specs" })
                    .long_description(unindent(R"(
                         The list of channels where the packages will be searched for.
+                        Note that '-c local' allows using locally built packages.
                         See also 'channel_priority'.)"))
                    .set_post_merge_hook<decltype(m_context.channels)>(
                        [&](decltype(m_context.channels)& value)

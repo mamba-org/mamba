@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  conda-build:
+  micromamba-static-unix:
     name: "micromamba - ${{ matrix.platform }}-${{ matrix.arch }}"
     runs-on: ${{ matrix.os }}
     strategy:
@@ -34,7 +34,10 @@ jobs:
       - name: Checkout micromamba-feedstock
         uses: actions/checkout@v3
         with:
-          repository: conda-forge/micromamba-feedstock
+          # Running a fork until we can merge the changes in micromamba-feedstock
+          # https://github.com/conda-forge/micromamba-feedstock/pull/154
+          repository: AntoinePrv/micromamba-feedstock
+          ref: tmp-mamba-ci
           path: micromamba-feedstock
       - name: Clear micromamba-feedstock git directory
         run: rm -rf "micromamba-feedstock/.git"
@@ -116,21 +119,36 @@ jobs:
         shell: cmd
         # remove libsolv overlay-ports once https://github.com/microsoft/vcpkg/pull/31275 is released
         run: |
-          vcpkg install --overlay-ports=.\ports\libsolv --triplet x64-windows-static
+          vcpkg install --triplet x64-windows-static-md
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
           key: sccache-${{ github.job }}-win-64
       - name: Set up MSVC
         uses: ilammy/msvc-dev-cmd@v1
+      - uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-name: mambabuild
+          init-shell: bash cmd.exe
+          create-args: >-
+            cli11>=2.2,<3
+            cpp-expected
+            nlohmann_json
+            simdjson-static>=3.3.0
+            spdlog
+            fmt
+            yaml-cpp-static>=0.8.0
+            libsolv-static>=0.7.24
+            reproc-cpp-static>=14.2.4.post0
       - name: build micromamba
-        shell: cmd
+        shell: cmd /C call {0}
         run: |
-          set CMAKE_PREFIX_PATH=.\vcpkg_installed\x64-windows-static
+          set CMAKE_PREFIX_PATH=.\vcpkg_installed\x64-windows-static-md;%CONDA_PREFIX%\Library
           cmake -S . ^
             -B build ^
             -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
             -D CMAKE_C_COMPILER_LAUNCHER=sccache ^
+            -D CMAKE_MSVC_RUNTIME_LIBRARY="MultiThreadedDLL" ^
             -D CMAKE_BUILD_TYPE="Release" ^
             -D BUILD_LIBMAMBA=ON ^
             -D BUILD_STATIC=ON ^

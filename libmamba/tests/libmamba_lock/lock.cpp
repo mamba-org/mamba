@@ -1,10 +1,10 @@
 #include <CLI/CLI.hpp>
 
 #include "mamba/core/context.hpp"
-#include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/fs/filesystem.hpp"
 
 #if defined(__APPLE__) || defined(__linux__)
 #include <fcntl.h>
@@ -12,7 +12,7 @@
 #endif
 
 bool
-is_locked(const fs::u8path& path)
+is_locked(const mamba::fs::u8path& path)
 {
 #ifdef _WIN32
     return mamba::LockFile::is_locked(path);
@@ -34,7 +34,7 @@ main(int argc, char** argv)
     } };
 
     CLI::App app{};
-    fs::u8path path;
+    mamba::fs::u8path path;
     std::size_t timeout = 1;
 
     CLI::App* lock_com = app.add_subcommand("lock", "Lock a path");
@@ -66,7 +66,7 @@ main(int argc, char** argv)
 
     CLI::App* is_locked_com = app.add_subcommand("is-locked", "Check if a path is locked");
     is_locked_com->add_option("path", path, "Path to check");
-    is_locked_com->callback([&]() { std::cout << (fs::exists(path) && is_locked(path)); });
+    is_locked_com->callback([&]() { std::cout << (mamba::fs::exists(path) && is_locked(path)); });
 
     try
     {

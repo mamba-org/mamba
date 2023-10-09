@@ -332,34 +332,57 @@ TEST_SUITE("specs::CondaURL")
         SUBCASE("Credentail option")
         {
             CondaURL url = {};
-            url.set_user("user");
-            url.set_password("pass");
-            CHECK_EQ(
-                url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Show),
-                "https://user:pass@localhost/"
-            );
-            CHECK_EQ(
-                url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Hide),
-                "https://user:*****@localhost/"
-            );
-            CHECK_EQ(
-                url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Remove),
-                "https://localhost/"
-            );
 
-            url.set_path("/t/abcd1234/linux-64");
-            CHECK_EQ(
-                url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Show),
-                "https://user:pass@localhost/t/abcd1234/linux-64"
-            );
-            CHECK_EQ(
-                url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Hide),
-                "https://user:*****@localhost/t/*****/linux-64"
-            );
-            CHECK_EQ(
-                url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Remove),
-                "https://localhost/linux-64"
-            );
+            SUBCASE("without credentials")
+            {
+                CHECK_EQ(
+                    url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Show),
+                    "https://localhost/"
+                );
+                CHECK_EQ(
+                    url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Hide),
+                    "https://localhost/"
+                );
+                CHECK_EQ(
+                    url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Remove),
+                    "https://localhost/"
+                );
+            }
+
+            SUBCASE("with user:password")
+            {
+                url.set_user("user");
+                url.set_password("pass");
+                CHECK_EQ(
+                    url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Show),
+                    "https://user:pass@localhost/"
+                );
+                CHECK_EQ(
+                    url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Hide),
+                    "https://user:*****@localhost/"
+                );
+                CHECK_EQ(
+                    url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Remove),
+                    "https://localhost/"
+                );
+
+                SUBCASE("and token")
+                {
+                    url.set_path("/t/abcd1234/linux-64");
+                    CHECK_EQ(
+                        url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Show),
+                        "https://user:pass@localhost/t/abcd1234/linux-64"
+                    );
+                    CHECK_EQ(
+                        url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Hide),
+                        "https://user:*****@localhost/t/*****/linux-64"
+                    );
+                    CHECK_EQ(
+                        url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Remove),
+                        "https://localhost/linux-64"
+                    );
+                }
+            }
         }
 
         SUBCASE("https://user:password@mamba.org:8080/folder/file.html?param=value#fragment")

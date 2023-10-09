@@ -411,20 +411,41 @@ TEST_SUITE("util::URL")
         SUBCASE("Credential option")
         {
             URL url = {};
-            url.set_user("user");
-            url.set_password("pass");
-            CHECK_EQ(
-                url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Show),
-                "https://user:pass@localhost/"
-            );
-            CHECK_EQ(
-                url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Hide),
-                "https://user:*****@localhost/"
-            );
-            CHECK_EQ(
-                url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Remove),
-                "https://localhost/"
-            );
+
+            SUBCASE("without credentials")
+            {
+                CHECK_EQ(
+                    url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Show),
+                    "https://localhost/"
+                );
+                CHECK_EQ(
+                    url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Hide),
+                    "https://localhost/"
+                );
+                CHECK_EQ(
+                    url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Remove),
+                    "https://localhost/"
+                );
+            }
+
+            SUBCASE("with some credentials")
+            {
+                url.set_user("user");
+                url.set_password("pass");
+
+                CHECK_EQ(
+                    url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Show),
+                    "https://user:pass@localhost/"
+                );
+                CHECK_EQ(
+                    url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Hide),
+                    "https://user:*****@localhost/"
+                );
+                CHECK_EQ(
+                    url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Remove),
+                    "https://localhost/"
+                );
+            }
         }
     }
 

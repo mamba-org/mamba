@@ -244,9 +244,9 @@ namespace mamba::util
 
     protected:
 
-        [[nodiscard]] auto authentication(Credentials, Decode::no_type) const
+        [[nodiscard]] auto authentication_elems(Credentials, Decode::no_type) const
             -> std::array<std::string_view, 3>;
-        [[nodiscard]] auto authentication(Credentials, Decode::yes_type) const
+        [[nodiscard]] auto authentication_elems(Credentials, Decode::yes_type) const
             -> std::array<std::string, 3>;
 
         [[nodiscard]] auto

@@ -275,7 +275,7 @@ namespace mamba::util
     {
         template <typename Str, typename UGetter, typename PGetter>
         auto
-        authentication_impl(URL::Credentials credentials, UGetter&& get_user, PGetter&& get_password)
+        authentication_elems_impl(URL::Credentials credentials, UGetter&& get_user, PGetter&& get_password)
         {
             switch (credentials)
             {
@@ -303,20 +303,20 @@ namespace mamba::util
         }
     }
 
-    auto URL::authentication(Credentials credentials, Decode::no_type) const
+    auto URL::authentication_elems(Credentials credentials, Decode::no_type) const
         -> std::array<std::string_view, 3>
     {
-        return authentication_impl<std::string_view>(
+        return authentication_elems_impl<std::string_view>(
             credentials,
             [&]() -> std::string_view { return user(Decode::no); },
             [&]() -> std::string_view { return password(Decode::no); }
         );
     }
 
-    auto URL::authentication(Credentials credentials, Decode::yes_type) const
+    auto URL::authentication_elems(Credentials credentials, Decode::yes_type) const
         -> std::array<std::string, 3>
     {
-        return authentication_impl<std::string>(
+        return authentication_elems_impl<std::string>(
             credentials,
             [&]() -> std::string { return user(Decode::yes); },
             [&]() -> std::string { return password(Decode::yes); }
@@ -325,7 +325,7 @@ namespace mamba::util
 
     auto URL::authentication() const -> std::string
     {
-        auto user_sep_pass = authentication(Credentials::Show, Decode::no);
+        auto user_sep_pass = authentication_elems(Credentials::Show, Decode::no);
         return util::concat(user_sep_pass[0], user_sep_pass[1], user_sep_pass[2]);
     }
 
@@ -394,7 +394,7 @@ namespace mamba::util
 
     auto URL::authority(Credentials credentials) const -> std::string
     {
-        auto [auth_user, auth_sep, auth_password] = authentication(credentials, Decode::no);
+        auto [auth_user, auth_sep, auth_password] = authentication_elems(credentials, Decode::no);
         return util::concat(
             auth_user,
             auth_sep,
@@ -532,7 +532,7 @@ namespace mamba::util
 
     auto URL::str(Credentials credentials) const -> std::string
     {
-        auto user_sep_pass = authentication(credentials, Decode::no);
+        auto user_sep_pass = authentication_elems(credentials, Decode::no);
         return util::concat(
             scheme(),
             "://",
@@ -570,7 +570,7 @@ namespace mamba::util
     auto URL::pretty_str(StripScheme strip_scheme, char rstrip_path, Credentials credentials) const
         -> std::string
     {
-        auto user_sep_pass = authentication(credentials, Decode::yes);
+        auto user_sep_pass = authentication_elems(credentials, Decode::yes);
         return util::concat(
             (strip_scheme == StripScheme::no) ? scheme() : "",
             (strip_scheme == StripScheme::no) ? "://" : "",

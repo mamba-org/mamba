@@ -384,7 +384,7 @@ namespace mamba::specs
                 break;
             }
         }
-        auto user_sep_pass = authentication(credentials, Decode::no);
+        auto user_sep_pass = authentication_elems(credentials, Decode::no);
         return util::concat(
             scheme(),
             "://",
@@ -442,7 +442,7 @@ namespace mamba::specs
                 break;
             }
         }
-        auto user_sep_pass = authentication(credentials, Decode::yes);
+        auto user_sep_pass = authentication_elems(credentials, Decode::yes);
 
         return util::concat(
             (strip_scheme == StripScheme::no) ? scheme() : "",

@@ -412,6 +412,21 @@ namespace mamba
     {
         auto uri = specs::CondaURL::parse(util::path_or_url_to_url(spec.location()));
 
+        auto path = uri.pretty_path();
+        auto [parent, current] = rsplit_once(path, '/');
+        for (const auto& [canonical_name, chan] : get_custom_channels())
+        {
+            if (url_match(chan.url(), uri))
+            {
+                return Channel(
+                    /* url= */ std::move(uri),
+                    /* location= */ chan.url().pretty_str(specs::CondaURL::StripScheme::yes),
+                    /* name= */ std::string(util::rstrip(parent, '/')),
+                    /* canonical_name= */ std::string(canonical_name)
+                );
+            }
+        }
+
         if (const auto& ca = get_channel_alias(); url_match(ca, uri))
         {
             auto name = util::strip(util::remove_prefix(uri.path(), ca.path()), '/');
@@ -423,26 +438,11 @@ namespace mamba
             );
         }
 
-        auto path = uri.pretty_path();
-        auto [loc, name] = rsplit_once(path, '/');
-        for (const auto& [canonical_name, chan] : get_custom_channels())
-        {
-            if (url_match(chan.url(), uri))
-            {
-                return Channel(
-                    /* url= */ std::move(uri),
-                    /* location= */ chan.url().pretty_str(specs::CondaURL::StripScheme::yes),
-                    /* name= */ std::string(util::rstrip(loc, '/')),
-                    /* canonical_name= */ std::string(canonical_name)
-                );
-            }
-        }
-
         auto canonical_name = uri.pretty_str();
         return Channel(
             /* url= */ std::move(uri),
-            /* location= */ std::string(util::rstrip(loc, '/')),
-            /* name= */ std::string(util::rstrip(name, '/')),
+            /* location= */ std::string(util::rstrip(parent, '/')),
+            /* name= */ std::string(util::rstrip(current, '/')),
             /* canonical_name= */ std::move(canonical_name)
         );
     }

@@ -20,24 +20,19 @@ Installing packages other than Conda and Mamba into the ``base`` environment is 
 
 .. _defaults_channels:
 
-Mixing the ``defaults`` and ``conda-forge`` channels
-----------------------------------------------------
+Using the ``defaults`` channels
+-------------------------------
 
-The `Anaconda default channels <https://docs.anaconda.com/anaconda/user-guide/tasks/using-repositories/>`_ are **incompatible** with conda-forge:
+It is **not recommended** to use the `Anaconda default channels <https://docs.anaconda.com/anaconda/user-guide/tasks/using-repositories/>`_:
 
 - ``pkgs/main``
 - ``pkgs/r`` / ``R``
 - ``msys2``
 - ``defaults`` (which includes all of the above)
 
-Using the default and ``conda-forge`` channels at the same time is not supported, eg. using a channel configuration like this:
+Please note that we won't be able to help resolving any problems you might face with the Anaconda channels.
 
-.. code-block:: yaml
-
-  # NOT supported!
-  channels:
-    - conda-forge
-    - defaults
+Please use ``conda-forge`` instead.
 
 Please disable the default channels in your install command::
 
@@ -60,6 +55,20 @@ Or in your :file:`~/.condarc` file:
   channels:
     - ...
     - nodefaults
+
+Mixing the ``defaults`` and ``conda-forge`` channels
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The `Anaconda default channels <https://docs.anaconda.com/anaconda/user-guide/tasks/using-repositories/>`_ are **incompatible** with conda-forge.
+
+Using the default and ``conda-forge`` channels at the same time is not supported and will lead to broken environments:
+
+.. code-block:: yaml
+
+  # NOT supported!
+  channels:
+    - conda-forge
+    - defaults
 
 Mamba broken after Conda update
 -------------------------------

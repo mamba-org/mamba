@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <type_traits>
 
 #include <curl/urlapi.h>
@@ -325,8 +326,10 @@ namespace mamba::util
 
     auto URL::authentication() const -> std::string
     {
-        auto user_sep_pass = authentication_elems(Credentials::Show, Decode::no);
-        return util::concat(user_sep_pass[0], user_sep_pass[1], user_sep_pass[2]);
+        return std::apply(
+            [](auto&&... elem) { return util::concat(std::forward<decltype(elem)>(elem)...); },
+            authentication_elems(Credentials::Show, Decode::no)
+        );
     }
 
     auto URL::host_is_defaulted() const -> bool
@@ -392,17 +395,50 @@ namespace mamba::util
         return std::exchange(m_port, "");
     }
 
+    namespace
+    {
+        template <typename Str>
+        auto authority_elems_impl(std::array<Str, 3> user_sep_pass, Str host, Str port)
+        {
+            const bool has_auth = !user_sep_pass[0].empty();
+            const bool has_port = !port.empty();
+            return std::array<Str, 7>{
+                std::move(user_sep_pass[0]),
+                std::move(user_sep_pass[1]),
+                std::move(user_sep_pass[2]),
+                Str(has_auth ? "@" : ""),
+                std::move(host),
+                Str(has_port ? ":" : ""),
+                std::move(port),
+            };
+        }
+    }
+
+    auto URL::authority_elems(Credentials credentials, Decode::no_type) const
+        -> std::array<std::string_view, 7>
+    {
+        return authority_elems_impl<std::string_view>(
+            authentication_elems(credentials, Decode::no),
+            host(Decode::no),
+            port()
+        );
+    }
+
+    auto URL::authority_elems(Credentials credentials, Decode::yes_type) const
+        -> std::array<std::string, 7>
+    {
+        return authority_elems_impl<std::string>(
+            authentication_elems(credentials, Decode::yes),
+            host(Decode::yes),
+            port()
+        );
+    }
+
     auto URL::authority(Credentials credentials) const -> std::string
     {
-        auto [auth_user, auth_sep, auth_password] = authentication_elems(credentials, Decode::no);
-        return util::concat(
-            auth_user,
-            auth_sep,
-            auth_password,
-            auth_user.empty() ? "" : "@",
-            host(Decode::no),
-            port().empty() ? "" : ":",
-            port()
+        return std::apply(
+            [](auto&&... elem) { return util::concat(std::forward<decltype(elem)>(elem)...); },
+            authority_elems(credentials, Decode::no)
         );
     }
 
@@ -532,17 +568,17 @@ namespace mamba::util
 
     auto URL::str(Credentials credentials) const -> std::string
     {
-        auto user_sep_pass = authentication_elems(credentials, Decode::no);
+        std::array<std::string_view, 7> authority = authority_elems(credentials, Decode::no);
         return util::concat(
             scheme(),
             "://",
-            user_sep_pass[0],
-            user_sep_pass[1],
-            user_sep_pass[2],
-            user_sep_pass[0].empty() ? "" : "@",
-            host(Decode::no),
-            m_port.empty() ? "" : ":",
-            port(),
+            authority[0],
+            authority[1],
+            authority[2],
+            authority[3],
+            authority[4],
+            authority[5],
+            authority[6],
             path(Decode::no),
             m_query.empty() ? "" : "?",
             m_query,
@@ -570,17 +606,17 @@ namespace mamba::util
     auto URL::pretty_str(StripScheme strip_scheme, char rstrip_path, Credentials credentials) const
         -> std::string
     {
-        auto user_sep_pass = authentication_elems(credentials, Decode::yes);
+        std::array<std::string, 7> authority = authority_elems(credentials, Decode::yes);
         return util::concat(
             (strip_scheme == StripScheme::no) ? scheme() : "",
             (strip_scheme == StripScheme::no) ? "://" : "",
-            user_sep_pass[0],
-            user_sep_pass[1],
-            user_sep_pass[2],
-            user_sep_pass[0].empty() ? "" : "@",
-            host(Decode::yes),
-            m_port.empty() ? "" : ":",
-            m_port,
+            authority[0],
+            authority[1],
+            authority[2],
+            authority[3],
+            authority[4],
+            authority[5],
+            authority[6],
             pretty_str_path(strip_scheme, rstrip_path),
             m_query.empty() ? "" : "?",
             m_query,

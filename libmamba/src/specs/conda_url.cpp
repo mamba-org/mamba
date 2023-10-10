@@ -384,17 +384,17 @@ namespace mamba::specs
                 break;
             }
         }
-        auto user_sep_pass = authentication_elems(credentials, Decode::no);
+        std::array<std::string_view, 7> authority = authority_elems(credentials, Decode::no);
         return util::concat(
             scheme(),
             "://",
-            user_sep_pass[0],
-            user_sep_pass[1],
-            user_sep_pass[2],
-            user_sep_pass[0].empty() ? "" : "@",
-            host(Decode::no),
-            port().empty() ? "" : ":",
-            port(),
+            authority[0],
+            authority[1],
+            authority[2],
+            authority[3],
+            authority[4],
+            authority[5],
+            authority[6],
             l_token.empty() ? "" : token_prefix,
             l_token,
             l_path,
@@ -442,18 +442,18 @@ namespace mamba::specs
                 break;
             }
         }
-        auto user_sep_pass = authentication_elems(credentials, Decode::yes);
 
+        std::array<std::string, 7> authority = authority_elems(credentials, Decode::yes);
         return util::concat(
             (strip_scheme == StripScheme::no) ? scheme() : "",
             (strip_scheme == StripScheme::no) ? "://" : "",
-            user_sep_pass[0],
-            user_sep_pass[1],
-            user_sep_pass[2],
-            user_sep_pass[0].empty() ? "" : "@",
-            host(Decode::yes),
-            port().empty() ? "" : ":",
-            port(),
+            authority[0],
+            authority[1],
+            authority[2],
+            authority[3],
+            authority[4],
+            authority[5],
+            authority[6],
             l_path,
             query().empty() ? "" : "?",
             query(),

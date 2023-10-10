@@ -5,7 +5,6 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <stdexcept>
-#include <string>
 #include <string_view>
 
 #include <doctest/doctest.h>
@@ -605,12 +604,27 @@ TEST_SUITE("util::URL")
         url.set_query("param=value");
         url.set_fragment("fragment");
         CHECK_EQ(url.authority(), "mamba.org");
+        CHECK_EQ(url.authority(URL::Credentials::Show), "mamba.org");
+        CHECK_EQ(url.authority(URL::Credentials::Hide), "mamba.org");
+        CHECK_EQ(url.authority(URL::Credentials::Remove), "mamba.org");
+
         url.set_port("8000");
         CHECK_EQ(url.authority(), "mamba.org:8000");
+        CHECK_EQ(url.authority(URL::Credentials::Show), "mamba.org:8000");
+        CHECK_EQ(url.authority(URL::Credentials::Hide), "mamba.org:8000");
+        CHECK_EQ(url.authority(URL::Credentials::Remove), "mamba.org:8000");
+
         url.set_user("user@email.com");
         CHECK_EQ(url.authority(), "user%40email.com@mamba.org:8000");
-        url.set_password("password");
-        CHECK_EQ(url.authority(), "user%40email.com:password@mamba.org:8000");
+        CHECK_EQ(url.authority(URL::Credentials::Show), "user%40email.com@mamba.org:8000");
+        CHECK_EQ(url.authority(URL::Credentials::Hide), "user%40email.com:*****@mamba.org:8000");
+        CHECK_EQ(url.authority(URL::Credentials::Remove), "mamba.org:8000");
+
+        url.set_password("pass");
+        CHECK_EQ(url.authority(), "user%40email.com:pass@mamba.org:8000");
+        CHECK_EQ(url.authority(URL::Credentials::Show), "user%40email.com:pass@mamba.org:8000");
+        CHECK_EQ(url.authority(URL::Credentials::Hide), "user%40email.com:*****@mamba.org:8000");
+        CHECK_EQ(url.authority(URL::Credentials::Remove), "mamba.org:8000");
     }
 
     TEST_CASE("Equality")

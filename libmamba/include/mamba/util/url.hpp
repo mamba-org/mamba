@@ -159,7 +159,7 @@ namespace mamba::util
         auto clear_port() -> std::string;
 
         /** Return the encoded autority part of the URL. */
-        [[nodiscard]] auto authority() const -> std::string;
+        [[nodiscard]] auto authority(Credentials = Credentials::Show) const -> std::string;
 
         /** Return the encoded path, always starts with a '/'. */
         [[nodiscard]] auto path(Decode::no_type) const -> const std::string&;

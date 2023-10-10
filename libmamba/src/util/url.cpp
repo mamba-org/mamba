@@ -392,19 +392,17 @@ namespace mamba::util
         return std::exchange(m_port, "");
     }
 
-    auto URL::authority() const -> std::string
+    auto URL::authority(Credentials credentials) const -> std::string
     {
-        const auto& l_user = user(Decode::no);
-        const auto& l_pass = password(Decode::no);
-        const auto& l_host = host(Decode::no);
+        auto [auth_user, auth_sep, auth_password] = authentication(credentials, Decode::no);
         return util::concat(
-            l_user,
-            l_pass.empty() ? "" : ":",
-            l_pass,
-            l_user.empty() ? "" : "@",
-            l_host,
-            m_port.empty() ? "" : ":",
-            m_port
+            auth_user,
+            auth_sep,
+            auth_password,
+            auth_user.empty() ? "" : "@",
+            host(Decode::no),
+            port().empty() ? "" : ":",
+            port()
         );
     }
 

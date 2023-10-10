@@ -109,7 +109,14 @@ TEST_SUITE("util::URL")
             url.set_scheme("file");
             url.set_path("C:/folder/file.txt");
             CHECK_EQ(url.path(), "/C:/folder/file.txt");
-            CHECK_EQ(url.pretty_path(), "C:/folder/file.txt");
+            if (on_win)
+            {
+                CHECK_EQ(url.pretty_path(), "C:/folder/file.txt");
+            }
+            else
+            {
+                CHECK_EQ(url.pretty_path(), "/C:/folder/file.txt");
+            }
         }
 
         SUBCASE("Case")
@@ -306,7 +313,14 @@ TEST_SUITE("util::URL")
                 CHECK_EQ(url.scheme(), "file");
                 CHECK_EQ(url.host(), "");
                 CHECK_EQ(url.path(), "/C:/Users/wolfv/test/document.json");
-                CHECK_EQ(url.pretty_path(), "C:/Users/wolfv/test/document.json");
+                if (on_win)
+                {
+                    CHECK_EQ(url.pretty_path(), "C:/Users/wolfv/test/document.json");
+                }
+                else
+                {
+                    CHECK_EQ(url.pretty_path(), "/C:/Users/wolfv/test/document.json");
+                }
                 CHECK_EQ(url.user(), "");
                 CHECK_EQ(url.password(), "");
                 CHECK_EQ(url.port(), "");
@@ -549,7 +563,14 @@ TEST_SUITE("util::URL")
                 CHECK_EQ(url.str(), "file:///C%3A/folder%26/file.txt");
             }
             CHECK_EQ(url.pretty_str(), "file:///C:/folder&/file.txt");
-            CHECK_EQ(url.pretty_str(URL::StripScheme::yes), "C:/folder&/file.txt");
+            if (on_win)
+            {
+                CHECK_EQ(url.pretty_str(URL::StripScheme::yes), "C:/folder&/file.txt");
+            }
+            else
+            {
+                CHECK_EQ(url.pretty_str(URL::StripScheme::yes), "/C:/folder&/file.txt");
+            }
         }
 
         SUBCASE("https://user@email.com:pw%rd@mamba.org/some /path$/")

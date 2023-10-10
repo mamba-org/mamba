@@ -464,7 +464,7 @@ namespace mamba::util
     auto URL::pretty_path() const -> std::string
     {
         // All paths start with a '/' except those like "file:///C:/folder/file.txt"
-        if (scheme() == "file")
+        if (on_win && scheme() == "file")
         {
             assert(util::starts_with(m_path, '/'));
             auto path_no_slash = url_decode(std::string_view(m_path).substr(1));

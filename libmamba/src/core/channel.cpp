@@ -393,9 +393,22 @@ namespace mamba
             }
             return std::array{ head.substr(0, head.size() - 1), tail };
         }
+
+        auto
+        make_platforms(util::flat_set<std::string> filters, const std::vector<std::string>& defaults)
+        {
+            if (filters.empty())
+            {
+                for (const auto& plat : defaults)
+                {
+                    filters.insert(plat);
+                }
+            }
+            return filters;
+        };
     }
 
-    Channel ChannelContext::from_package_path(specs::ChannelSpec&& spec)
+    Channel ChannelContext::from_any_path(specs::ChannelSpec&& spec)
     {
         assert(util::url_get_scheme(spec.location()) == "file");
 
@@ -413,7 +426,7 @@ namespace mamba
             );
         }
 
-        auto path = uri.path();
+        auto path = uri.pretty_path();
         auto [loc, name] = rsplit_once(path, '/');
         for (const auto& [canonical_name, chan] : get_custom_channels())
         {
@@ -435,6 +448,21 @@ namespace mamba
             /* name= */ std::string(util::rstrip(name, '/')),
             /* canonical_name= */ std::move(canonical_name)
         );
+    }
+
+    Channel ChannelContext::from_package_path(specs::ChannelSpec&& spec)
+    {
+        assert(spec.type() == specs::ChannelSpec::Type::PackagePath);
+        return from_any_path(std::move(spec));
+    }
+
+    Channel ChannelContext::from_path(specs::ChannelSpec&& spec)
+    {
+        assert(spec.type() == specs::ChannelSpec::Type::Path);
+        auto platforms = make_platforms(spec.clear_platform_filters(), m_context.platforms());
+        auto chan = from_any_path(std::move(spec));
+        chan.m_platforms = std::move(platforms);
+        return chan;
     }
 
     namespace
@@ -706,12 +734,15 @@ namespace mamba
                 {
                     return from_package_path(std::move(spec));
                 }
+                case specs::ChannelSpec::Type::Path:
+                {
+                    return from_path(std::move(spec));
+                }
                 case specs::ChannelSpec::Type::PackageURL:
                 {
                     return from_url(std::move(spec));
                 }
                 case specs::ChannelSpec::Type::URL:
-                case specs::ChannelSpec::Type::Path:
                 {
                     auto plats = get_platforms();
                     auto chan = from_url(std::move(spec));

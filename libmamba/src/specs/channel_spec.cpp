@@ -8,7 +8,7 @@
 
 #include <fmt/format.h>
 
-#include "mamba/core/environment.hpp"
+#include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/archive.hpp"
 #include "mamba/specs/channel_spec.hpp"
 #include "mamba/specs/conda_url.hpp"
@@ -55,15 +55,48 @@ namespace mamba::specs
             return { {}, {} };
         }
 
-        auto parse_location(std::string_view str) -> std::string
+        auto split_location_platform(std::string_view str)
+            -> std::pair<std::string, util::flat_set<std::string>>
         {
-            if (util::is_explicit_path(str))
+            if (util::ends_with(str, ']'))
             {
-                auto out = util::path_to_url(str);
-                out = util::rstrip(out, '/');
-                return out;
+                // Parsing platforms in "something[linux-64,noarch]"
+                const auto start_pos = str.find_last_of('[');
+                if ((start_pos != std::string_view::npos) && (start_pos != 0))
+                {
+                    return {
+                        std::string(util::rstrip(str.substr(0, start_pos))),
+                        parse_platform_list(str.substr(start_pos + 1, str.size() - start_pos - 2)),
+                    };
+                }
             }
-            return std::string(util::rstrip(str, '/'));
+
+            if (!has_archive_extension(str))
+            {
+                // Paring a platform inside a path name.
+                // This is required because a channel can be instantiated from a value that already
+                // contains the platform.
+                auto [rest, plat] = parse_platform_path(str);
+                if (!plat.empty())
+                {
+                    rest = util::rstrip(rest, '/');
+                    return {
+                        std::move(rest),
+                        { std::move(plat) },
+                    };
+                }
+            }
+
+            // For single archive channel specs, we don't need to compute platform filters
+            // since they are not needed to compute URLs.
+            return { std::string(util::rstrip(str)), {} };
+        }
+
+        auto parse_path(std::string_view str) -> std::string
+        {
+            auto out = util::path_to_posix(fs::u8path(str).lexically_normal().string());
+            out = util::rstrip(out, '/');
+            return out;
         }
     }
 
@@ -75,41 +108,35 @@ namespace mamba::specs
             return {};
         }
 
-        // Parsing platforms in "something[linux-64,noarch]"
-        if (util::ends_with(str, ']'))
+        auto [location, filters] = split_location_platform(str);
+
+        const std::string_view scheme = util::url_get_scheme(location);
+        Type type = {};
+        if (scheme == "file")
         {
-            const auto start_pos = str.find_last_of('[');
-            if ((start_pos != std::string_view::npos) && (start_pos != 0))
-            {
-                return ChannelSpec(
-                    parse_location(str.substr(0, start_pos)),
-                    parse_platform_list(str.substr(start_pos + 1, str.size() - start_pos - 2))
-                );
-            }
+            type = has_archive_extension(location) ? Type::PackagePath : Type::Path;
+        }
+        else if (!scheme.empty())
+        {
+            type = has_archive_extension(location) ? Type::PackageURL : Type::URL;
+        }
+        else if (util::is_explicit_path(location))
+        {
+            location = parse_path(location);
+            type = has_archive_extension(location) ? Type::PackagePath : Type::Path;
+        }
+        else
+        {
+            type = Type::Name;
         }
 
-        // For single archive channel specs, we don't need to compute platform filters
-        // since they are not needed to compute URLs.
-        if (has_archive_extension(str))
-        {
-            return { parse_location(str), {} };
-        }
-
-        // Paring a platform inside a path name.
-        // This is required because a channel can be instantiated from a value that already
-        // contains the platform.
-        auto [rest, plat] = parse_platform_path(str);
-        if (!plat.empty())
-        {
-            return { parse_location(rest), { std::move(plat) } };
-        }
-
-        return { parse_location(str), {} };
+        return { std::move(location), std::move(filters), type };
     }
 
-    ChannelSpec::ChannelSpec(std::string location, util::flat_set<std::string> filters)
+    ChannelSpec::ChannelSpec(std::string location, util::flat_set<std::string> filters, Type type)
         : m_location(std::move(location))
         , m_platform_filters(std::move(filters))
+        , m_type(type)
     {
         if (m_location.empty())
         {
@@ -119,18 +146,7 @@ namespace mamba::specs
 
     auto ChannelSpec::type() const -> Type
     {
-        const bool has_package = has_archive_extension(m_location);
-        const std::string_view scheme = util::url_get_scheme(m_location);
-
-        if (scheme == "file")
-        {
-            return has_package ? Type::PackagePath : Type::Path;
-        }
-        if (!scheme.empty())
-        {
-            return has_package ? Type::PackageURL : Type::URL;
-        }
-        return Type::Name;
+        return m_type;
     }
 
     auto ChannelSpec::location() const& -> const std::string&

@@ -410,10 +410,7 @@ namespace mamba
 
     Channel ChannelContext::from_any_path(specs::ChannelSpec&& spec)
     {
-        assert(util::url_get_scheme(spec.location()) == "file");
-
-        // TODO resolve locations here
-        auto uri = specs::CondaURL::parse(spec.location());
+        auto uri = specs::CondaURL::parse(util::path_or_url_to_url(spec.location()));
 
         if (const auto& ca = get_channel_alias(); url_match(ca, uri))
         {

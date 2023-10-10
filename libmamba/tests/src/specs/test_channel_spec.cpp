@@ -8,6 +8,7 @@
 
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/channel_spec.hpp"
+#include "mamba/util/build.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 
@@ -56,31 +57,82 @@ TEST_SUITE("specs::channel_spec")
             CHECK_EQ(spec.platform_filters(), PlatformSet{});
         }
 
+        SUBCASE("file:///Users/name/conda")
+        {
+            const auto spec = ChannelSpec::parse("file:///Users/name/conda");
+            CHECK_EQ(spec.type(), Type::Path);
+            CHECK_EQ(spec.location(), "file:///Users/name/conda");
+            CHECK_EQ(spec.platform_filters(), PlatformSet{});
+        }
+
+        SUBCASE("file:///Users/name/conda[linux-64]")
+        {
+            const auto spec = ChannelSpec::parse("file:///Users/name/conda[linux-64]");
+            CHECK_EQ(spec.type(), Type::Path);
+            CHECK_EQ(spec.location(), "file:///Users/name/conda");
+            CHECK_EQ(spec.platform_filters(), PlatformSet{ "linux-64" });
+        }
+
+        SUBCASE("file://C:/Users/name/conda")
+        {
+            if (util::on_win)
+            {
+                const auto spec = ChannelSpec::parse("file://C:/Users/name/conda");
+                CHECK_EQ(spec.type(), Type::Path);
+                CHECK_EQ(spec.location(), "file://C:/Users/name/conda");
+                CHECK_EQ(spec.platform_filters(), PlatformSet{});
+            }
+        }
+
         SUBCASE("/Users/name/conda")
         {
-            const auto expected_folder = fs::absolute("/Users/name/conda").lexically_normal();
             const auto spec = ChannelSpec::parse("/Users/name/conda");
             CHECK_EQ(spec.type(), Type::Path);
-            CHECK_EQ(spec.location(), util::concat("file://", util::path_to_posix(expected_folder)));
+            CHECK_EQ(spec.location(), "/Users/name/conda");
             CHECK_EQ(spec.platform_filters(), PlatformSet{});
         }
 
         SUBCASE("./folder/../folder/.")
         {
-            const auto expected_folder = fs::absolute("folder").lexically_normal();
             const auto spec = ChannelSpec::parse("./folder/../folder/.");
             CHECK_EQ(spec.type(), Type::Path);
-            CHECK_EQ(spec.location(), util::concat("file://", util::path_to_posix(expected_folder)));
+            CHECK_EQ(spec.location(), "folder");
+            CHECK_EQ(spec.platform_filters(), PlatformSet{});
+        }
+
+        SUBCASE("~/folder/")
+        {
+            const auto spec = ChannelSpec::parse("~/folder/");
+            CHECK_EQ(spec.type(), Type::Path);
+            CHECK_EQ(spec.location(), "~/folder");
             CHECK_EQ(spec.platform_filters(), PlatformSet{});
         }
 
         SUBCASE("/tmp/pkg-0.0-bld.tar.bz2")
         {
-            const auto expected_folder = fs::absolute("/tmp/pkg-0.0-bld.tar.bz2").lexically_normal();
             const auto spec = ChannelSpec::parse("/tmp/pkg-0.0-bld.tar.bz2");
             CHECK_EQ(spec.type(), Type::PackagePath);
-            CHECK_EQ(spec.location(), util::concat("file://", util::path_to_posix(expected_folder)));
+            CHECK_EQ(spec.location(), "/tmp/pkg-0.0-bld.tar.bz2");
             CHECK_EQ(spec.platform_filters(), PlatformSet{});
+        }
+
+        SUBCASE("C:/tmp//pkg-0.0-bld.tar.bz2")
+        {
+            const auto spec = ChannelSpec::parse("C:/tmp//pkg-0.0-bld.tar.bz2");
+            CHECK_EQ(spec.type(), Type::PackagePath);
+            CHECK_EQ(spec.location(), "C:/tmp/pkg-0.0-bld.tar.bz2");
+            CHECK_EQ(spec.platform_filters(), PlatformSet{});
+        }
+
+        SUBCASE(R"(C:\tmp\pkg-0.0-bld.tar.bz2)")
+        {
+            if (util::on_win)
+            {
+                const auto spec = ChannelSpec::parse(R"(C:\tmp\pkg-0.0-bld.tar.bz2)");
+                CHECK_EQ(spec.type(), Type::PackagePath);
+                CHECK_EQ(spec.location(), "C:/tmp/pkg-0.0-bld.tar.bz2");
+                CHECK_EQ(spec.platform_filters(), PlatformSet{});
+            }
         }
 
         SUBCASE("conda-forge")

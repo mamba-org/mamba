@@ -20,7 +20,7 @@ namespace mamba::specs
      * This represent the string that is passed by the user to select a channel.
      * It needs to be resolved in order to get a final URL/path.
      * This is even true when a full URL or path is given, as some authentification information
-     * may come from channel alias or login database.
+     * may come from login database.
      *
      * Note that for a string to be considered a URL, it must have an explicit scheme.
      * So "repo.anaconda.com" is considered a name, similarily to "conda-forge" and not a URL.
@@ -45,15 +45,15 @@ namespace mamba::specs
              */
             PackageURL,
             /**
-             * An absolute path to a full repo strucuture.
+             * An (possibly implicit) path to a full repo strucuture.
              *
-             * Example "/Users/name/conda-bld".
+             * Example "/Users/name/conda-bld", "./conda-bld", "~/.conda-bld".
              */
             Path,
             /**
-             * An absolute path to a single-package.
+             * An (possibly implicit) path to a single-package.
              *
-             * Example "/tmp/pkg-0.0-bld.conda".
+             * Example "/tmp/pkg-0.0-bld.conda", "./pkg-0.0-bld.conda", "~/pkg-0.0-bld.tar.bz2".
              */
             PackagePath,
             /**
@@ -71,7 +71,7 @@ namespace mamba::specs
         [[nodiscard]] static auto parse(std::string_view str) -> ChannelSpec;
 
         ChannelSpec() = default;
-        ChannelSpec(std::string location, util::flat_set<std::string> filters);
+        ChannelSpec(std::string location, util::flat_set<std::string> filters, Type type);
 
         [[nodiscard]] auto type() const -> Type;
 
@@ -87,6 +87,7 @@ namespace mamba::specs
 
         std::string m_location = std::string(default_name);
         util::flat_set<std::string> m_platform_filters = {};
+        Type m_type = {};
     };
 }
 #endif

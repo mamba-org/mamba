@@ -483,25 +483,6 @@ namespace mamba
                 '/',
                 specs::CondaURL::Credentials::Remove
             );
-            std::string default_canonical_name = url.pretty_str(
-                util::URL::StripScheme::no,
-                /* rstrip_path/ */ '/',
-                specs::CondaURL::Credentials::Remove
-            );
-
-            // Case 1: No path given, channel name is ""
-            if (url.path(specs::CondaURL::Decode::no) == "/")
-            {
-                return channel_configuration{
-                    /* .url= */ std::move(url),
-                    /* .location= */ std::move(default_location),
-                    /* .name= */ "",
-                    /* .canonical_name= */ std::move(default_canonical_name),
-                };
-            }
-
-            // Case 2: migrated_custom_channels not implemented yet
-            // Case 3: migrated_channel_aliases not implemented yet
 
             // Case 4: custom_channels matches
             for (const auto& [canonical_name, chan] : channel_context.get_custom_channels())
@@ -557,14 +538,23 @@ namespace mamba
                 };
             }
 
+            // Case 2: migrated_custom_channels not implemented yet
+            // Case 3: migrated_channel_aliases not implemented yet
+
+            // Case 1: No path given, channel name is ""
             // Case 7: fallback, channel_location = host:port and channel_name = path
-            auto name = std::string(util::strip(url.path(), '/'));
+            auto name = std::string(util::strip(url.path_without_token(), '/'));
             auto location = url.authority(specs::CondaURL::Credentials::Remove);
+            auto canonical_name = url.pretty_str(
+                util::URL::StripScheme::no,
+                /* rstrip_path/ */ '/',
+                specs::CondaURL::Credentials::Remove
+            );
             return channel_configuration{
                 /* .url= */ std::move(url),
                 /* .location= */ std::move(location),
                 /* .name= */ std::move(name),
-                /* .canonical_name= */ std::move(default_canonical_name),
+                /* .canonical_name= */ std::move(canonical_name),
             };
         }
     }

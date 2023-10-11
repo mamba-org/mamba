@@ -45,5 +45,11 @@ namespace mamba::util
      * Convert the Windows path separators to Posix ones on Windows only.
      */
     [[nodiscard]] auto path_to_posix(std::string path) -> std::string;
+
+    /**
+     * Check that a path is a prefix of another path.
+     */
+    [[nodiscard]] auto
+    path_is_prefix(std::string_view parent, std::string_view child, char sep = '/') -> bool;
 }
 #endif

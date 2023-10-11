@@ -69,4 +69,24 @@ TEST_SUITE("util::path_manip")
             CHECK_EQ(path_to_posix(R"(folder/weird\file)"), R"(folder/weird\file)");
         }
     }
+
+    TEST_CASE("path_is_prefix")
+    {
+        CHECK(path_is_prefix("", ""));
+        CHECK(path_is_prefix("", "folder"));
+
+        CHECK(path_is_prefix("folder", "folder"));
+        CHECK(path_is_prefix("/", "/folder"));
+        CHECK(path_is_prefix("/folder", "/folder"));
+        CHECK(path_is_prefix("/folder/file.txt", "/folder/file.txt"));
+        CHECK(path_is_prefix("folder/file.txt", "folder/file.txt"));
+
+        CHECK_FALSE(path_is_prefix("/folder", "/"));
+        CHECK_FALSE(path_is_prefix("/folder", "/folder-more"));
+        CHECK_FALSE(path_is_prefix("/folder/file.json", "/folder/file.txt"));
+        CHECK_FALSE(path_is_prefix("folder/file.json", "folder/file.txt"));
+
+        // Debatable
+        CHECK_FALSE(path_is_prefix("/folder/", "/folder"));
+    }
 }

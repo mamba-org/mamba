@@ -5,7 +5,6 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <algorithm>
-#include <array>
 
 #include "mamba/util/build.hpp"
 #include "mamba/util/path_manip.hpp"
@@ -71,5 +70,31 @@ namespace mamba::util
             return path_win_to_posix(std::move(path));
         }
         return path;
+    }
+
+    // TODO(C++20): Use std::ranges::split_view
+    auto path_is_prefix(std::string_view parent, std::string_view child, char sep) -> bool
+    {
+        static constexpr auto npos = std::string_view::npos;
+
+        std::size_t parent_start = 0;
+        std::size_t parent_end = parent.find(sep);
+        std::size_t child_start = 0;
+        std::size_t child_end = child.find(sep);
+        auto parent_item = [&]() { return parent.substr(parent_start, parent_end); };
+        auto child_item = [&]() { return child.substr(child_start, child_end); };
+        while ((parent_end != npos) && (child_end != npos))
+        {
+            if (parent_item() != child_item())
+            {
+                return false;
+            }
+            parent_start = parent_end + 1;
+            parent_end = parent.find(sep, parent_start);
+            child_start = child_end + 1;
+            child_end = child.find(sep, child_start);
+        }
+        // Last item comparison
+        return parent_item().empty() || (parent_item() == child_item());
     }
 }

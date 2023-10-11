@@ -518,24 +518,21 @@ namespace mamba
             }
 
             // Case 5: channel_alias match
-            const auto& ca = channel_context.get_channel_alias();
-            if (auto ca_location = channel_alias_location(ca);
-                util::starts_with(default_location, ca_location))
+            if (const auto& ca = channel_context.get_channel_alias(); url_match(ca, url))
             {
-                auto name = std::string(
-                    util::strip(util::remove_prefix(default_location, ca_location), '/')
+                auto location = ca.pretty_str(
+                    specs::CondaURL::StripScheme::yes,
+                    '/',
+                    specs::CondaURL::Credentials::Remove
                 );
-                auto l_url = specs::CondaURL::parse(util::join_url(ca_location, name));
-                l_url.set_scheme(url.scheme());
-                l_url.set_user(ca.user());
-                l_url.set_password(ca.password());
-                if (auto token = ca.token(); !token.empty())
-                {
-                    l_url.set_token(std::move(token));
-                }
+                // Overridding url scheme since chan_url could have been defaulted
+                auto name = std::string(
+                    util::strip(util::remove_prefix(default_location, location), '/')
+                );
+                auto ca_url = ca;
                 return channel_configuration{
-                    /*. .url= */ std::move(l_url),
-                    /* .location= */ std::move(ca_location),
+                    /*. .url= */ std::move(ca_url),
+                    /* .location= */ std::move(location),
                     /* .name= */ name,
                     /* .canonical_name= */ name,
                 };

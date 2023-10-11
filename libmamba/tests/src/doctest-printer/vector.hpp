@@ -11,10 +11,10 @@
 
 namespace doctest
 {
-    template <typename T>
-    struct StringMaker<std::vector<T>>
+    template <typename T, typename A>
+    struct StringMaker<std::vector<T, A>>
     {
-        static auto convert(const std::vector<T>& value) -> String
+        static auto convert(const std::vector<T, A>& value) -> String
         {
             return { fmt::format("std::vector{{{}}}", fmt::join(value, ", ")).c_str() };
         }

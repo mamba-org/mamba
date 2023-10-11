@@ -31,6 +31,7 @@ set(LIBMAMBA_TEST_SRCS
     src/util/test_string.cpp
     src/util/test_cast.cpp
     src/util/test_compare.cpp
+    src/util/test_cow.cpp
     src/util/test_type_traits.cpp
     src/util/test_flat_set.cpp
     src/util/test_flat_bool_expr_tree.cpp

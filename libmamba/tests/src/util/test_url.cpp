@@ -5,7 +5,6 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <stdexcept>
-#include <string>
 #include <string_view>
 
 #include <doctest/doctest.h>

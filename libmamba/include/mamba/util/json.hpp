@@ -7,6 +7,7 @@
 #ifndef MAMBA_UTIL_JSON_HPP
 #define MAMBA_UTIL_JSON_HPP
 
+#include <optional>
 
 #include <nlohmann/json.hpp>
 

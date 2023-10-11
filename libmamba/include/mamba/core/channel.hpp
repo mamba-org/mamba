@@ -54,6 +54,7 @@ namespace mamba
         std::optional<std::string> password() const;
         std::optional<std::string> token() const;
         std::optional<std::string> package_filename() const;
+        const specs::CondaURL& url() const;
         const validation::RepoChecker&
         repo_checker(Context& context, MultiPackageCache& caches) const;
 
@@ -85,8 +86,6 @@ namespace mamba
             std::string canonical_name,
             util::flat_set<std::string> platforms = {}
         );
-
-        const specs::CondaURL& url() const;
 
         specs::CondaURL m_url;
         std::string m_location;

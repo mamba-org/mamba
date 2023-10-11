@@ -13,6 +13,9 @@
 #include "mamba/core/environment.hpp"
 #include "mamba/util/flat_set.hpp"
 
+#include "doctest-printer/conda_url.hpp"
+#include "doctest-printer/flat_set.hpp"
+
 #include "mambatests.hpp"
 
 namespace mamba

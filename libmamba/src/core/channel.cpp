@@ -490,11 +490,13 @@ namespace mamba
             {
                 if (url_match(chan.url(), url))
                 {
-                    std::string location = chan.url().pretty_str(
-                        specs::CondaURL::StripScheme::yes,
-                        '/',
-                        specs::CondaURL::Credentials::Remove
-                    );
+                    std::string location = chan.location();
+                    // TODO cannot change all the locations at once since they are used in from_name
+                    // std::string location = chan.url().pretty_str(
+                    //     specs::CondaURL::StripScheme::yes,
+                    //     '/',
+                    //     specs::CondaURL::Credentials::Remove
+                    // );
                     std::string name = std::string(
                         util::strip(util::remove_prefix(default_location, location), '/')
                     );

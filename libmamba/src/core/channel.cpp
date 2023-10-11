@@ -15,6 +15,7 @@
 #include "mamba/core/validate.hpp"
 #include "mamba/specs/channel_spec.hpp"
 #include "mamba/specs/conda_url.hpp"
+#include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
 #include "mamba/util/url_manip.hpp"
@@ -373,9 +374,9 @@ namespace mamba
                 // Different ports are considered different channels
                 && (registered.port() == candidate.port())
                 // Registered path must be a prefix
-                && util::starts_with(
-                    candidate.path_without_token(Decode::no),
-                    registered.path_without_token(Decode::no)
+                && util::path_is_prefix(
+                    registered.path_without_token(Decode::no),
+                    candidate.path_without_token(Decode::no)
                 );
         }
 

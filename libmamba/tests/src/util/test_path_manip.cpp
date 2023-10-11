@@ -54,19 +54,19 @@ TEST_SUITE("util::path_manip")
 
     TEST_CASE("path_to_posix")
     {
-        CHECK_EQ(path_to_posix(""), "");
-        CHECK_EQ(path_to_posix("file"), "file");
-        CHECK_EQ(path_to_posix("folder/file"), "folder/file");
-        CHECK_EQ(path_to_posix("/folder/file"), "/folder/file");
+        CHECK_EQ(path_to_posix("").view(), "");
+        CHECK_EQ(path_to_posix("file").view(), "file");
+        CHECK_EQ(path_to_posix("folder/file").view(), "folder/file");
+        CHECK_EQ(path_to_posix("/folder/file").view(), "/folder/file");
 
         if (on_win)
         {
-            CHECK_EQ(path_to_posix(R"(C:\folder\file)"), "C:/folder/file");
-            CHECK_EQ(path_to_posix("C:/folder/file"), "C:/folder/file");
+            CHECK_EQ(path_to_posix(R"(C:\folder\file)").view(), "C:/folder/file");
+            CHECK_EQ(path_to_posix("C:/folder/file").view(), "C:/folder/file");
         }
         else
         {
-            CHECK_EQ(path_to_posix(R"(folder/weird\file)"), R"(folder/weird\file)");
+            CHECK_EQ(path_to_posix(R"(folder/weird\file)").view(), R"(folder/weird\file)");
         }
     }
 }

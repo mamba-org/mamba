@@ -7,8 +7,6 @@
 #include <array>
 #include <cassert>
 #include <optional>
-#include <regex>
-#include <stdexcept>
 #include <string>
 #include <string_view>
 
@@ -248,10 +246,10 @@ namespace mamba::util
                 return concat(
                     file_scheme,
                     path.substr(0, 2),
-                    url_encode(path_to_posix(std::string(path.substr(2))), '/')
+                    url_encode(path_to_posix(path.substr(2)).view(), '/')
                 );
             }
-            return util::concat(file_scheme, url_encode(path_to_posix(std::string(path)), '/'));
+            return util::concat(file_scheme, url_encode(path_to_posix(path).view(), '/'));
         }
         return util::concat(file_scheme, url_encode(path, '/'));
     }

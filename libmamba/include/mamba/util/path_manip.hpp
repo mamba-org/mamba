@@ -11,6 +11,8 @@
 #include <string>
 #include <string_view>
 
+#include "mamba/util/cow.hpp"
+
 namespace mamba::util
 {
     inline static constexpr char preferred_path_separator_posix = '/';
@@ -44,6 +46,6 @@ namespace mamba::util
     /**
      * Convert the Windows path separators to Posix ones on Windows only.
      */
-    [[nodiscard]] auto path_to_posix(std::string path) -> std::string;
+    [[nodiscard]] auto path_to_posix(std::string_view path) -> string_cow;
 }
 #endif

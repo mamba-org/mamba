@@ -596,21 +596,21 @@ def-env "micromamba deactivate" [] {
         {
             std::string contents = data_micromamba_sh;
             // Using /unix/like/paths on Unix shell (even on Windows)
-            util::replace_all(contents, "$MAMBA_EXE", util::path_to_posix(exe.string()));
+            util::replace_all(contents, "$MAMBA_EXE", util::path_to_posix(exe.string()).view());
             return contents;
         }
         else if (shell == "csh")
         {
             std::string contents = data_micromamba_csh;
             // Using /unix/like/paths on Unix shell (even on Windows)
-            util::replace_all(contents, "$MAMBA_EXE", util::path_to_posix(exe.string()));
+            util::replace_all(contents, "$MAMBA_EXE", util::path_to_posix(exe.string()).view());
             return contents;
         }
         else if (shell == "xonsh")
         {
             std::string contents = data_mamba_xsh;
             // Using /unix/like/paths on Unix shell (even on Windows)
-            util::replace_all(contents, "$MAMBA_EXE", util::path_to_posix(exe.string()));
+            util::replace_all(contents, "$MAMBA_EXE", util::path_to_posix(exe.string()).view());
             return contents;
         }
         else if (shell == "powershell")
@@ -638,7 +638,7 @@ def-env "micromamba deactivate" [] {
         {
             std::string contents = data_mamba_fish;
             // Using /unix/like/paths on Unix shell (even on Windows)
-            util::replace_all(contents, "$MAMBA_EXE", util::path_to_posix(exe.string()));
+            util::replace_all(contents, "$MAMBA_EXE", util::path_to_posix(exe.string()).view());
             return contents;
         }
         else if (shell == "nu")

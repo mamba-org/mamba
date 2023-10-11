@@ -64,12 +64,12 @@ namespace mamba::util
         return path;
     }
 
-    auto path_to_posix(std::string path) -> std::string
+    auto path_to_posix(std::string_view path) -> string_cow
     {
         if (on_win)
         {
-            return path_win_to_posix(std::move(path));
+            return string_cow(path_win_to_posix(std::string(path)));
         }
-        return path;
+        return string_cow(path);
     }
 }

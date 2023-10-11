@@ -44,12 +44,13 @@ namespace mamba
             return s.empty() ? std::optional<std::string>() : std::make_optional(s);
         }
 
-        auto channel_alias_location(specs::CondaURL url) -> std::string
+        auto channel_alias_location(const specs::CondaURL& url) -> std::string
         {
-            url.clear_user();
-            url.clear_password();
-            url.clear_token();
-            return url.pretty_str(specs::CondaURL::StripScheme::yes, '/');
+            return url.pretty_str(
+                specs::CondaURL::StripScheme::yes,
+                '/',
+                specs::CondaURL::Credentials::Remove
+            );
         }
     }
 
@@ -302,10 +303,14 @@ namespace mamba
     {
         if (!util::url_has_scheme(channel_url))
         {
-            auto ca_location = channel_alias_location(channel_alias);
             return Channel(
                 /*  scheme= */ channel_alias.scheme(),
-                /*  location= */ std::move(ca_location),
+                /*  location= */
+                channel_alias.pretty_str(
+                    specs::CondaURL::StripScheme::yes,
+                    '/',
+                    specs::CondaURL::Credentials::Remove
+                ),
                 /*  name= */ std::string(util::strip(channel_name.empty() ? channel_url : channel_name, '/')),
                 /*  canonical_name= */ channel_canonical_name,
                 /*  user= */ channel_alias.user(),

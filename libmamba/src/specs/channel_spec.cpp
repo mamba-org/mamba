@@ -4,6 +4,10 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <optional>
+#include <string>
+#include <string_view>
+#include <tuple>
 #include <utility>
 
 #include <fmt/format.h>
@@ -11,13 +15,17 @@
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/archive.hpp"
 #include "mamba/specs/channel_spec.hpp"
-#include "mamba/specs/conda_url.hpp"
+#include "mamba/specs/platform.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
 namespace mamba::specs
 {
+    // Defined in  conda_url.cpp
+    [[nodiscard]] auto find_slash_and_platform(std::string_view path)
+        -> std::tuple<std::size_t, std::size_t, std::optional<Platform>>;
+
     namespace
     {
         using dynamic_platform_set = ChannelSpec::dynamic_platform_set;
@@ -45,7 +53,7 @@ namespace mamba::specs
         {
             static constexpr auto npos = std::string_view::npos;
 
-            auto [start, len, plat] = detail::find_slash_and_platform(str);
+            auto [start, len, plat] = find_slash_and_platform(str);
             if (plat.has_value())
             {
                 const auto end = (len == npos) ? str.size() : start + len;

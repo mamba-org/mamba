@@ -233,12 +233,5 @@ namespace mamba::specs
     /** A functional equivalent to ``CondaURL::append_path``. */
     auto operator/(const CondaURL& url, std::string_view subpath) -> CondaURL;
     auto operator/(CondaURL&& url, std::string_view subpath) -> CondaURL;
-
-    namespace detail
-    {
-        /** Find the location of "/os-arch"-like subsring. */
-        [[nodiscard]] auto find_slash_and_platform(std::string_view path)
-            -> std::tuple<std::size_t, std::size_t, std::optional<Platform>>;
-    }
 }
 #endif

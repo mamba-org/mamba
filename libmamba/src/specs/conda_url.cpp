@@ -18,6 +18,33 @@
 
 namespace mamba::specs
 {
+    /**
+     * Find the location of "/os-arch"-like subsring.
+     *
+     * Not a static function, it is needed in "channel_spec.cpp".
+     */
+    auto find_slash_and_platform(std::string_view path)
+        -> std::tuple<std::size_t, std::size_t, std::optional<Platform>>
+    {
+        static constexpr auto npos = std::string_view::npos;
+
+        auto start = std::size_t(0);
+        auto end = path.find('/', start + 1);
+        while (start != npos)
+        {
+            assert(start < end);
+            const auto count = (end == npos) ? npos : end - start;
+            const auto count_minus_1 = (end == npos) ? npos : end - start - 1;
+            if (auto plat = platform_parse(path.substr(start + 1, count_minus_1)))
+            {
+                return { start, count, plat };
+            }
+            start = end;
+            end = path.find('/', start + 1);
+        }
+        return { npos, 0, std::nullopt };
+    }
+
     namespace
     {
         [[nodiscard]] auto is_token_char(char c) -> bool
@@ -229,7 +256,7 @@ namespace mamba::specs
     {
         const auto& l_path = path(Decode::no);
         assert(!l_path.empty() && (l_path.front() == '/'));
-        const auto [pos, count, plat] = detail::find_slash_and_platform(l_path);
+        const auto [pos, count, plat] = find_slash_and_platform(l_path);
         return plat;
     }
 
@@ -239,7 +266,7 @@ namespace mamba::specs
 
         const auto& l_path = path(Decode::no);
         assert(!l_path.empty() && (l_path.front() == '/'));
-        const auto [pos, len, plat] = detail::find_slash_and_platform(l_path);
+        const auto [pos, len, plat] = find_slash_and_platform(l_path);
         if (!plat.has_value())
         {
             return "";
@@ -254,7 +281,7 @@ namespace mamba::specs
         static constexpr auto npos = std::string_view::npos;
 
         assert(!path(Decode::no).empty() && (path(Decode::no).front() == '/'));
-        const auto [pos, len, plat] = detail::find_slash_and_platform(path(Decode::no));
+        const auto [pos, len, plat] = find_slash_and_platform(path(Decode::no));
         if (!plat.has_value())
         {
             throw std::invalid_argument(
@@ -285,7 +312,7 @@ namespace mamba::specs
     auto CondaURL::clear_platform() -> bool
     {
         assert(!path(Decode::no).empty() && (path(Decode::no).front() == '/'));
-        const auto [pos, count, plat] = detail::find_slash_and_platform(path(Decode::no));
+        const auto [pos, count, plat] = find_slash_and_platform(path(Decode::no));
         if (!plat.has_value())
         {
             return false;
@@ -481,30 +508,5 @@ namespace mamba::specs
     {
         url.append_path(subpath);
         return std::move(url);
-    }
-
-    namespace detail
-    {
-        auto find_slash_and_platform(std::string_view path)
-            -> std::tuple<std::size_t, std::size_t, std::optional<Platform>>
-        {
-            static constexpr auto npos = std::string_view::npos;
-
-            auto start = std::size_t(0);
-            auto end = path.find('/', start + 1);
-            while (start != npos)
-            {
-                assert(start < end);
-                const auto count = (end == npos) ? npos : end - start;
-                const auto count_minus_1 = (end == npos) ? npos : end - start - 1;
-                if (auto plat = platform_parse(path.substr(start + 1, count_minus_1)))
-                {
-                    return { start, count, plat };
-                }
-                start = end;
-                end = path.find('/', start + 1);
-            }
-            return { npos, 0, std::nullopt };
-        }
     }
 }

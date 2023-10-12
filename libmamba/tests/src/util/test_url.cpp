@@ -110,10 +110,12 @@ TEST_SUITE("util::URL")
             CHECK_EQ(url.path(), "/C:/folder/file.txt");
             if (on_win)
             {
+                CHECK_EQ(url.path(URL::Decode::no), "/C:/folder/file.txt");
                 CHECK_EQ(url.pretty_path(), "C:/folder/file.txt");
             }
             else
             {
+                CHECK_EQ(url.path(URL::Decode::no), "/C%3A/folder/file.txt");
                 CHECK_EQ(url.pretty_path(), "/C:/folder/file.txt");
             }
         }

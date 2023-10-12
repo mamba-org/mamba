@@ -102,7 +102,10 @@ namespace mamba
 
                 channel = parsed_channel.canonical_name();
                 // TODO how to handle this with multiple platforms?
-                subdir = parsed_channel.platforms()[0];
+                if (const auto& plats = parsed_channel.platforms(); !plats.empty())
+                {
+                    subdir = plats.front();
+                }
                 fn = *parsed_channel.package_filename();
                 url = spec_str;
                 is_file = true;

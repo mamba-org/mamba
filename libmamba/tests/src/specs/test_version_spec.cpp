@@ -14,7 +14,7 @@
 
 using namespace mamba::specs;
 
-TEST_SUITE("version_spec")
+TEST_SUITE("specs::version_spec")
 {
     TEST_CASE("VersionPredicate")
     {

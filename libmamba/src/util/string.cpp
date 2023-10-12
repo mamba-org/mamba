@@ -285,40 +285,62 @@ namespace mamba::util
      *  Implementation of remove prefix/suffix functions  *
      ******************************************************/
 
-    std::string_view remove_prefix(std::string_view str, std::string_view prefix)
+    std::array<std::string_view, 2> split_prefix(std::string_view str, std::string_view prefix)
     {
         if (starts_with(str, prefix))
         {
-            return str.substr(prefix.size());
+            return { str.substr(0, prefix.size()), str.substr(prefix.size()) };
         }
-        return str;
+        return { std::string_view(), str };
+    }
+
+    std::array<std::string_view, 2> split_prefix(std::string_view str, std::string_view::value_type c)
+    {
+        if (starts_with(str, c))
+        {
+            return { str.substr(0, 1), str.substr(1) };
+        }
+        return { std::string_view(), str };
+    }
+
+    std::string_view remove_prefix(std::string_view str, std::string_view prefix)
+    {
+        return std::get<1>(split_prefix(str, prefix));
     }
 
     std::string_view remove_prefix(std::string_view str, std::string_view::value_type c)
     {
-        if (starts_with(str, c))
+        return std::get<1>(split_prefix(str, c));
+    }
+
+    std::array<std::string_view, 2> split_suffix(std::string_view str, std::string_view suffix)
+    {
+        if (ends_with(str, suffix))
         {
-            return str.substr(1);
+            auto suffix_pos = str.size() - suffix.size();
+            return { str.substr(0, suffix_pos), str.substr(suffix_pos) };
         }
-        return str;
+        return { str, std::string_view() };
+    }
+
+    std::array<std::string_view, 2> split_suffix(std::string_view str, std::string_view::value_type c)
+    {
+        if (ends_with(str, c))
+        {
+            auto suffix_pos = str.size() - 1;
+            return { str.substr(0, suffix_pos), str.substr(suffix_pos) };
+        }
+        return { str, std::string_view() };
     }
 
     std::string_view remove_suffix(std::string_view str, std::string_view suffix)
     {
-        if (ends_with(str, suffix))
-        {
-            return str.substr(0, str.size() - suffix.size());
-        }
-        return str;
+        return std::get<0>(split_suffix(str, suffix));
     }
 
     std::string_view remove_suffix(std::string_view str, std::string_view::value_type c)
     {
-        if (ends_with(str, c))
-        {
-            return str.substr(0, str.size() - 1);
-        }
-        return str;
+        return std::get<0>(split_suffix(str, c));
     }
 
     /***************************************
@@ -432,7 +454,7 @@ namespace mamba::util
         std::array<std::basic_string_view<Char>, 2>
         lstrip_parts_impl(std::basic_string_view<Char> input, CharOrStrView chars)
         {
-            std::size_t const start = input.find_first_not_of(chars);
+            const std::size_t start = input.find_first_not_of(chars);
             if (start == std::basic_string_view<Char>::npos)
             {
                 return { input, std::basic_string_view<Char>{} };
@@ -469,7 +491,7 @@ namespace mamba::util
         std::array<std::basic_string_view<Char>, 2>
         rstrip_parts_impl(std::basic_string_view<Char> input, CharOrStrView chars)
         {
-            std::size_t const end = input.find_last_not_of(chars);
+            const std::size_t end = input.find_last_not_of(chars);
             if (end == std::basic_string_view<Char>::npos)
             {
                 return { std::basic_string_view<Char>{}, input };
@@ -506,13 +528,13 @@ namespace mamba::util
         std::array<std::basic_string_view<Char>, 3>
         strip_parts_impl(std::basic_string_view<Char> input, CharOrStrView chars)
         {
-            std::size_t const start = input.find_first_not_of(chars);
+            const std::size_t start = input.find_first_not_of(chars);
             if (start == std::basic_string_view<Char>::npos)
             {
                 return { input, {}, {} };
             }
-            std::size_t const end = input.find_last_not_of(chars) + 1;
-            std::size_t const length = end - start;
+            const std::size_t end = input.find_last_not_of(chars) + 1;
+            const std::size_t length = end - start;
             return { input.substr(0, start), input.substr(start, length), input.substr(end) };
         }
     }
@@ -554,8 +576,8 @@ namespace mamba::util
 
             std::vector<std::basic_string<Char>> result;
 
-            std::size_t const len = input.size();
-            std::size_t const n = sep.size();
+            const std::size_t len = input.size();
+            const std::size_t n = sep.size();
             std::size_t i = 0;
             std::size_t j = 0;
 
@@ -597,8 +619,8 @@ namespace mamba::util
 
             std::vector<std::basic_string<Char>> result;
 
-            std::size_t const len = input.size();
-            std::size_t const n = sep.size();
+            const std::size_t len = input.size();
+            const std::size_t n = sep.size();
             std::size_t i = len;
             std::size_t j = len;
 

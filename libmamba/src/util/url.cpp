@@ -9,6 +9,8 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <tuple>
+#include <type_traits>
 
 #include <curl/urlapi.h>
 #include <fmt/format.h>
@@ -180,7 +182,7 @@ namespace mamba::util
                 file_uri_unc2_to_unc4(url),
                 CURLU_NON_SUPPORT_SCHEME | CURLU_DEFAULT_SCHEME,
             };
-            out.set_scheme(handle.get_part(CURLUPART_SCHEME).value_or(std::string(URL::https)));
+            out.set_scheme(handle.get_part(CURLUPART_SCHEME).value_or(""));
             out.set_user(handle.get_part(CURLUPART_USER).value_or(""), Encode::no);
             out.set_password(handle.get_part(CURLUPART_PASSWORD).value_or(""), Encode::no);
             out.set_host(handle.get_part(CURLUPART_HOST).value_or(""));
@@ -192,18 +194,32 @@ namespace mamba::util
         return out;
     }
 
-    auto URL::scheme() const -> const std::string&
+    auto URL::scheme_is_defaulted() const -> bool
     {
+        return m_scheme.empty();
+    }
+
+    auto URL::scheme() const -> std::string_view
+    {
+        if (scheme_is_defaulted())
+        {
+            return https;
+        }
         return m_scheme;
     }
 
     void URL::set_scheme(std::string_view scheme)
     {
-        if (scheme.empty())
-        {
-            throw std::invalid_argument("Cannot set empty scheme");
-        }
         m_scheme = util::to_lower(util::rstrip(scheme));
+    }
+
+    auto URL::clear_scheme() -> std::string
+    {
+        if (scheme_is_defaulted())
+        {
+            return std::string(https);
+        }
+        return std::exchange(m_scheme, "");
     }
 
     auto URL::user(Decode::no_type) const -> const std::string&
@@ -256,16 +272,74 @@ namespace mamba::util
         return std::exchange(m_password, "");
     }
 
+    namespace
+    {
+        template <typename Str, typename UGetter, typename PGetter>
+        auto
+        authentication_elems_impl(URL::Credentials credentials, UGetter&& get_user, PGetter&& get_password)
+        {
+            switch (credentials)
+            {
+                case (URL::Credentials::Show):
+                {
+                    Str user = get_user();
+                    Str pass = user.empty() ? "" : get_password();
+                    Str sep = pass.empty() ? "" : ":";
+                    return std::array<Str, 3>{ std::move(user), std::move(sep), std::move(pass) };
+                }
+                case (URL::Credentials::Hide):
+                {
+                    Str user = get_user();
+                    Str pass = user.empty() ? "" : "*****";
+                    Str sep = user.empty() ? "" : ":";
+                    return std::array<Str, 3>{ std::move(user), std::move(sep), std::move(pass) };
+                }
+                case (URL::Credentials::Remove):
+                {
+                    return std::array<Str, 3>{ "", "", "" };
+                }
+            }
+            assert(false);
+            throw std::invalid_argument("Invalid enum number");
+        }
+    }
+
+    auto URL::authentication_elems(Credentials credentials, Decode::no_type) const
+        -> std::array<std::string_view, 3>
+    {
+        return authentication_elems_impl<std::string_view>(
+            credentials,
+            [&]() -> std::string_view { return user(Decode::no); },
+            [&]() -> std::string_view { return password(Decode::no); }
+        );
+    }
+
+    auto URL::authentication_elems(Credentials credentials, Decode::yes_type) const
+        -> std::array<std::string, 3>
+    {
+        return authentication_elems_impl<std::string>(
+            credentials,
+            [&]() -> std::string { return user(Decode::yes); },
+            [&]() -> std::string { return password(Decode::yes); }
+        );
+    }
+
     auto URL::authentication() const -> std::string
     {
-        const auto& u = user(Decode::no);
-        const auto& p = password(Decode::no);
-        return p.empty() ? u : util::concat(u, ':', p);
+        return std::apply(
+            [](auto&&... elem) { return util::concat(std::forward<decltype(elem)>(elem)...); },
+            authentication_elems(Credentials::Show, Decode::no)
+        );
+    }
+
+    auto URL::host_is_defaulted() const -> bool
+    {
+        return m_host.empty();
     }
 
     auto URL::host(Decode::no_type) const -> std::string_view
     {
-        if ((m_scheme != "file") && m_host.empty())
+        if ((scheme() != "file") && host_is_defaulted())
         {
             return localhost;
         }
@@ -295,12 +369,9 @@ namespace mamba::util
 
     auto URL::clear_host() -> std::string
     {
-        // Cheap == comparison that works because of class invariant
-        if (auto l_host = host(Decode::no); l_host.data() != m_host.data())
+        if (host_is_defaulted())
         {
-            auto out = std::string(l_host);
-            set_host("", Encode::no);
-            return out;
+            return std::string(host(Decode::no));
         }
         return std::exchange(m_host, "");
     }
@@ -324,19 +395,50 @@ namespace mamba::util
         return std::exchange(m_port, "");
     }
 
-    auto URL::authority() const -> std::string
+    namespace
     {
-        const auto& l_user = user(Decode::no);
-        const auto& l_pass = password(Decode::no);
-        const auto& l_host = host(Decode::no);
-        return util::concat(
-            l_user,
-            l_pass.empty() ? "" : ":",
-            l_pass,
-            l_user.empty() ? "" : "@",
-            l_host,
-            m_port.empty() ? "" : ":",
-            m_port
+        template <typename Str>
+        auto authority_elems_impl(std::array<Str, 3> user_sep_pass, Str host, Str port)
+        {
+            const bool has_auth = !user_sep_pass[0].empty();
+            const bool has_port = !port.empty();
+            return std::array<Str, 7>{
+                std::move(user_sep_pass[0]),
+                std::move(user_sep_pass[1]),
+                std::move(user_sep_pass[2]),
+                Str(has_auth ? "@" : ""),
+                std::move(host),
+                Str(has_port ? ":" : ""),
+                std::move(port),
+            };
+        }
+    }
+
+    auto URL::authority_elems(Credentials credentials, Decode::no_type) const
+        -> std::array<std::string_view, 7>
+    {
+        return authority_elems_impl<std::string_view>(
+            authentication_elems(credentials, Decode::no),
+            host(Decode::no),
+            port()
+        );
+    }
+
+    auto URL::authority_elems(Credentials credentials, Decode::yes_type) const
+        -> std::array<std::string, 7>
+    {
+        return authority_elems_impl<std::string>(
+            authentication_elems(credentials, Decode::yes),
+            host(Decode::yes),
+            port()
+        );
+    }
+
+    auto URL::authority(Credentials credentials) const -> std::string
+    {
+        return std::apply(
+            [](auto&&... elem) { return util::concat(std::forward<decltype(elem)>(elem)...); },
+            authority_elems(credentials, Decode::no)
         );
     }
 
@@ -396,7 +498,7 @@ namespace mamba::util
     auto URL::pretty_path() const -> std::string
     {
         // All paths start with a '/' except those like "file:///C:/folder/file.txt"
-        if (m_scheme == "file")
+        if (on_win && scheme() == "file")
         {
             assert(util::starts_with(m_path, '/'));
             auto path_no_slash = url_decode(std::string_view(m_path).substr(1));
@@ -464,18 +566,19 @@ namespace mamba::util
         return std::exchange(m_fragment, "");
     }
 
-    auto URL::str() const -> std::string
+    auto URL::str(Credentials credentials) const -> std::string
     {
+        std::array<std::string_view, 7> authority = authority_elems(credentials, Decode::no);
         return util::concat(
             scheme(),
             "://",
-            user(Decode::no),
-            m_password.empty() ? "" : ":",
-            password(Decode::no),
-            m_user.empty() ? "" : "@",
-            host(Decode::no),
-            m_port.empty() ? "" : ":",
-            port(),
+            authority[0],
+            authority[1],
+            authority[2],
+            authority[3],
+            authority[4],
+            authority[5],
+            authority[6],
             path(Decode::no),
             m_query.empty() ? "" : "?",
             m_query,
@@ -488,7 +591,7 @@ namespace mamba::util
     {
         std::string computed_path = {};
         // When stripping file scheme, not showing leading '/' for Windows path with drive
-        if ((m_scheme == "file") && (strip_scheme == StripScheme::yes) && host(Decode::no).empty())
+        if ((scheme() == "file") && (strip_scheme == StripScheme::yes) && host(Decode::no).empty())
         {
             computed_path = pretty_path();
         }
@@ -500,22 +603,20 @@ namespace mamba::util
         return computed_path;
     }
 
-    auto
-    URL::pretty_str(StripScheme strip_scheme, char rstrip_path, HideConfidential hide_confidential) const
+    auto URL::pretty_str(StripScheme strip_scheme, char rstrip_path, Credentials credentials) const
         -> std::string
     {
+        std::array<std::string, 7> authority = authority_elems(credentials, Decode::yes);
         return util::concat(
-            (strip_scheme == StripScheme::no) ? m_scheme : "",
+            (strip_scheme == StripScheme::no) ? scheme() : "",
             (strip_scheme == StripScheme::no) ? "://" : "",
-            user(Decode::yes),
-            m_password.empty() ? "" : ":",
-            password(Decode::no).empty()
-                ? ""
-                : ((hide_confidential == HideConfidential::no) ? password(Decode::yes) : "*****"),
-            m_user.empty() ? "" : "@",
-            host(Decode::yes),
-            m_port.empty() ? "" : ":",
-            m_port,
+            authority[0],
+            authority[1],
+            authority[2],
+            authority[3],
+            authority[4],
+            authority[5],
+            authority[6],
             pretty_str_path(strip_scheme, rstrip_path),
             m_query.empty() ? "" : "?",
             m_query,

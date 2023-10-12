@@ -74,6 +74,13 @@ namespace mamba::util
     [[nodiscard]] auto abs_path_to_url(std::string_view path) -> std::string;
 
     /**
+     * Transform an absolute path to a %-encoded "file://" URL.
+     *
+     * Does nothing if the input is already has a URL scheme.
+     */
+    [[nodiscard]] auto abs_path_or_url_to_url(std::string_view path) -> std::string;
+
+    /**
      * Transform an absolute or relative path to a %-encoded "file://" URL.
      */
     [[nodiscard]] auto path_to_url(std::string_view path) -> std::string;

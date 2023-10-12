@@ -81,6 +81,6 @@ python "${reposerver}" \
 	-d "${repo}" -n defaults --token private-token -- \
 	-d "${channel_a}" -n channel_a --user user@email.com --password test -- \
 	-d "${channel_b}" -n channel_b --auth none & PID=$!
-mamba create -y -q -n "env-${RANDOM}" --override-channels -c http://localhost:8000/defaults/t/private-token test-package --json
+mamba create -y -q -n "env-${RANDOM}" --override-channels -c http://localhost:8000/t/private-token/defaults test-package --json
 mamba create -y -q -n "env-${RANDOM}" --override-channels -c http://user%40email.com:test@localhost:8000/channel_a _r-mutex --json
 kill -TERM $PID

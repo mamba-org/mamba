@@ -179,6 +179,19 @@ TEST_SUITE("util::url_manip")
         }
     }
 
+    TEST_CASE("abs_path_or_url_to_url")
+    {
+        SUBCASE("/users/test/miniconda3")
+        {
+            CHECK_EQ(abs_path_or_url_to_url("/users/test/miniconda3"), "file:///users/test/miniconda3");
+        }
+
+        SUBCASE("file:///tmp/bar")
+        {
+            CHECK_EQ(abs_path_or_url_to_url("file:///tmp/bar"), "file:///tmp/bar");
+        }
+    }
+
     TEST_CASE("path_to_url")
     {
         const std::string win_drive = fs::absolute(fs::u8path("/")).string().substr(0, 1);
@@ -214,6 +227,21 @@ TEST_SUITE("util::url_manip")
             else
             {
                 CHECK_EQ(url, "file:///tmp/foo%20bar");
+            }
+        }
+
+        SUBCASE("./folder/./../folder")
+        {
+            auto url = path_to_url("./folder/./../folder");
+            if (on_win)
+            {
+                CHECK(starts_with(url, concat("file://", win_drive, ":/")));
+                CHECK(ends_with(url, "/folder"));
+            }
+            else
+            {
+                const auto expected_folder = fs::absolute("folder").lexically_normal();
+                CHECK_EQ(url, concat("file://", expected_folder.string()));
             }
         }
     }

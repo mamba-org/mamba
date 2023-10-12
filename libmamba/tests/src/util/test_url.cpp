@@ -5,7 +5,6 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <stdexcept>
-#include <string>
 #include <string_view>
 
 #include <doctest/doctest.h>
@@ -109,7 +108,14 @@ TEST_SUITE("util::URL")
             url.set_scheme("file");
             url.set_path("C:/folder/file.txt");
             CHECK_EQ(url.path(), "/C:/folder/file.txt");
-            CHECK_EQ(url.pretty_path(), "C:/folder/file.txt");
+            if (on_win)
+            {
+                CHECK_EQ(url.pretty_path(), "C:/folder/file.txt");
+            }
+            else
+            {
+                CHECK_EQ(url.pretty_path(), "/C:/folder/file.txt");
+            }
         }
 
         SUBCASE("Case")
@@ -121,10 +127,55 @@ TEST_SUITE("util::URL")
             CHECK_EQ(url.host(), "some_host.com");
         }
 
+        SUBCASE("Default scheme")
+        {
+            URL url{};
+            CHECK(url.scheme_is_defaulted());
+            CHECK_EQ(url.scheme(), "https");
+
+            url.set_scheme("https");
+            CHECK_FALSE(url.scheme_is_defaulted());
+            CHECK_EQ(url.scheme(), "https");
+
+            url.set_scheme("");
+            CHECK(url.scheme_is_defaulted());
+            url.set_scheme("https");
+
+            url.set_scheme("ftp");
+            CHECK_FALSE(url.scheme_is_defaulted());
+            CHECK_EQ(url.scheme(), "ftp");
+
+            CHECK_EQ(url.clear_scheme(), "ftp");
+            CHECK(url.scheme_is_defaulted());
+            url.set_scheme("https");
+        }
+
+        SUBCASE("Default host")
+        {
+            URL url{};
+            CHECK(url.host_is_defaulted());
+            CHECK_EQ(url.host(), "localhost");
+
+            url.set_host("localhost");
+            CHECK_FALSE(url.host_is_defaulted());
+            CHECK_EQ(url.host(), "localhost");
+
+            url.set_host("");
+            CHECK(url.host_is_defaulted());
+            url.set_host("localhost");
+
+            url.set_host("test.org");
+            CHECK_FALSE(url.host_is_defaulted());
+            CHECK_EQ(url.host(), "test.org");
+
+            CHECK_EQ(url.clear_host(), "test.org");
+            CHECK(url.host_is_defaulted());
+            url.set_host("localhost");
+        }
+
         SUBCASE("Invalid")
         {
             URL url{};
-            CHECK_THROWS_AS(url.set_scheme(""), std::invalid_argument);
             CHECK_THROWS_AS(url.set_port("not-a-number"), std::invalid_argument);
         }
 
@@ -261,7 +312,14 @@ TEST_SUITE("util::URL")
                 CHECK_EQ(url.scheme(), "file");
                 CHECK_EQ(url.host(), "");
                 CHECK_EQ(url.path(), "/C:/Users/wolfv/test/document.json");
-                CHECK_EQ(url.pretty_path(), "C:/Users/wolfv/test/document.json");
+                if (on_win)
+                {
+                    CHECK_EQ(url.pretty_path(), "C:/Users/wolfv/test/document.json");
+                }
+                else
+                {
+                    CHECK_EQ(url.pretty_path(), "/C:/Users/wolfv/test/document.json");
+                }
                 CHECK_EQ(url.user(), "");
                 CHECK_EQ(url.password(), "");
                 CHECK_EQ(url.port(), "");
@@ -331,6 +389,28 @@ TEST_SUITE("util::URL")
         }
     }
 
+    TEST_CASE("str options")
+    {
+        URL url = {};
+
+        SUBCASE("without credentials")
+        {
+            CHECK_EQ(url.str(URL::Credentials::Show), "https://localhost/");
+            CHECK_EQ(url.str(URL::Credentials::Hide), "https://localhost/");
+            CHECK_EQ(url.str(URL::Credentials::Remove), "https://localhost/");
+        }
+
+        SUBCASE("with some credentials")
+        {
+            url.set_user("user@mamba.org");
+            url.set_password("pass");
+
+            CHECK_EQ(url.str(URL::Credentials::Show), "https://user%40mamba.org:pass@localhost/");
+            CHECK_EQ(url.str(URL::Credentials::Hide), "https://user%40mamba.org:*****@localhost/");
+            CHECK_EQ(url.str(URL::Credentials::Remove), "https://localhost/");
+        }
+    }
+
     TEST_CASE("pretty_str options")
     {
         SUBCASE("scheme option")
@@ -363,19 +443,44 @@ TEST_SUITE("util::URL")
             CHECK_EQ(url.pretty_str(URL::StripScheme::no, '/'), "https://mamba.org/page");
         }
 
-        SUBCASE("Hide password option")
+        SUBCASE("Credential option")
         {
             URL url = {};
-            url.set_user("user");
-            url.set_password("pass");
-            CHECK_EQ(
-                url.pretty_str(URL::StripScheme::no, 0, URL::HideConfidential::no),
-                "https://user:pass@localhost/"
-            );
-            CHECK_EQ(
-                url.pretty_str(URL::StripScheme::no, 0, URL::HideConfidential::yes),
-                "https://user:*****@localhost/"
-            );
+
+            SUBCASE("without credentials")
+            {
+                CHECK_EQ(
+                    url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Show),
+                    "https://localhost/"
+                );
+                CHECK_EQ(
+                    url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Hide),
+                    "https://localhost/"
+                );
+                CHECK_EQ(
+                    url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Remove),
+                    "https://localhost/"
+                );
+            }
+
+            SUBCASE("with some credentials")
+            {
+                url.set_user("user");
+                url.set_password("pass");
+
+                CHECK_EQ(
+                    url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Show),
+                    "https://user:pass@localhost/"
+                );
+                CHECK_EQ(
+                    url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Hide),
+                    "https://user:*****@localhost/"
+                );
+                CHECK_EQ(
+                    url.pretty_str(URL::StripScheme::no, 0, URL::Credentials::Remove),
+                    "https://localhost/"
+                );
+            }
         }
     }
 
@@ -457,7 +562,14 @@ TEST_SUITE("util::URL")
                 CHECK_EQ(url.str(), "file:///C%3A/folder%26/file.txt");
             }
             CHECK_EQ(url.pretty_str(), "file:///C:/folder&/file.txt");
-            CHECK_EQ(url.pretty_str(URL::StripScheme::yes), "C:/folder&/file.txt");
+            if (on_win)
+            {
+                CHECK_EQ(url.pretty_str(URL::StripScheme::yes), "C:/folder&/file.txt");
+            }
+            else
+            {
+                CHECK_EQ(url.pretty_str(URL::StripScheme::yes), "/C:/folder&/file.txt");
+            }
         }
 
         SUBCASE("https://user@email.com:pw%rd@mamba.org/some /path$/")
@@ -492,12 +604,27 @@ TEST_SUITE("util::URL")
         url.set_query("param=value");
         url.set_fragment("fragment");
         CHECK_EQ(url.authority(), "mamba.org");
+        CHECK_EQ(url.authority(URL::Credentials::Show), "mamba.org");
+        CHECK_EQ(url.authority(URL::Credentials::Hide), "mamba.org");
+        CHECK_EQ(url.authority(URL::Credentials::Remove), "mamba.org");
+
         url.set_port("8000");
         CHECK_EQ(url.authority(), "mamba.org:8000");
+        CHECK_EQ(url.authority(URL::Credentials::Show), "mamba.org:8000");
+        CHECK_EQ(url.authority(URL::Credentials::Hide), "mamba.org:8000");
+        CHECK_EQ(url.authority(URL::Credentials::Remove), "mamba.org:8000");
+
         url.set_user("user@email.com");
         CHECK_EQ(url.authority(), "user%40email.com@mamba.org:8000");
-        url.set_password("password");
-        CHECK_EQ(url.authority(), "user%40email.com:password@mamba.org:8000");
+        CHECK_EQ(url.authority(URL::Credentials::Show), "user%40email.com@mamba.org:8000");
+        CHECK_EQ(url.authority(URL::Credentials::Hide), "user%40email.com:*****@mamba.org:8000");
+        CHECK_EQ(url.authority(URL::Credentials::Remove), "mamba.org:8000");
+
+        url.set_password("pass");
+        CHECK_EQ(url.authority(), "user%40email.com:pass@mamba.org:8000");
+        CHECK_EQ(url.authority(URL::Credentials::Show), "user%40email.com:pass@mamba.org:8000");
+        CHECK_EQ(url.authority(URL::Credentials::Hide), "user%40email.com:*****@mamba.org:8000");
+        CHECK_EQ(url.authority(URL::Credentials::Remove), "mamba.org:8000");
     }
 
     TEST_CASE("Equality")

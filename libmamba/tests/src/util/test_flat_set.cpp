@@ -12,6 +12,8 @@
 
 #include "mamba/util/flat_set.hpp"
 
+#include "doctest-printer/flat_set.hpp"
+
 using namespace mamba::util;
 
 TEST_SUITE("util::flat_set")
@@ -34,7 +36,6 @@ TEST_SUITE("util::flat_set")
         CHECK_EQ(s6.size(), s5.size());
         static_assert(std::is_same_v<decltype(s6)::value_type, decltype(s5)::value_type>);
     }
-
 
     TEST_CASE("equality")
     {

@@ -12,7 +12,6 @@
 #include <cstdint>
 #include <cstring>
 #include <iomanip>
-#include <iterator>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -108,10 +107,24 @@ namespace mamba::util
     std::string_view remove_prefix(std::string_view str, std::string_view::value_type c);
 
     /**
+     * Return a view to prefix if present, and a view to the rest of the input.
+     */
+    std::array<std::string_view, 2> split_prefix(std::string_view str, std::string_view prefix);
+    std::array<std::string_view, 2>
+    split_prefix(std::string_view str, std::string_view::value_type c);
+
+    /**
      * Return a view to the input without the suffix if present.
      */
     std::string_view remove_suffix(std::string_view str, std::string_view suffix);
     std::string_view remove_suffix(std::string_view str, std::string_view::value_type c);
+
+    /**
+     * Return a view to the head of the input, and a view to suffix if present.
+     */
+    std::array<std::string_view, 2> split_suffix(std::string_view str, std::string_view suffix);
+    std::array<std::string_view, 2>
+    split_suffix(std::string_view str, std::string_view::value_type c);
 
     std::string_view lstrip(std::string_view input, char c);
     std::wstring_view lstrip(std::wstring_view input, wchar_t c);

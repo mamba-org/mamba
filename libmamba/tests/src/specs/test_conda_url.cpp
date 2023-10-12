@@ -23,12 +23,15 @@ TEST_SUITE("specs::CondaURL")
         {
             url.set_path("/folder/file.txt");
             CHECK_EQ(url.token(), "");
+            CHECK_EQ(url.path_without_token(), "/folder/file.txt");
 
             url.set_token("mytoken");
             CHECK_EQ(url.token(), "mytoken");
+            CHECK_EQ(url.path_without_token(), "/folder/file.txt");
             CHECK_EQ(url.path(), "/t/mytoken/folder/file.txt");
 
             CHECK(url.clear_token());
+            CHECK_EQ(url.path_without_token(), "/folder/file.txt");
             CHECK_EQ(url.path(), "/folder/file.txt");
         }
 
@@ -36,12 +39,14 @@ TEST_SUITE("specs::CondaURL")
         {
             url.set_path("/t/xy-12345678-1234/conda-forge/linux-64");
             CHECK_EQ(url.token(), "xy-12345678-1234");
+            CHECK_EQ(url.path_without_token(), "/conda-forge/linux-64");
 
             SUBCASE("Cannot set invalid token")
             {
                 CHECK_THROWS_AS(url.set_token(""), std::invalid_argument);
                 CHECK_THROWS_AS(url.set_token("?fds:g"), std::invalid_argument);
                 CHECK_EQ(url.token(), "xy-12345678-1234");
+                CHECK_EQ(url.path_without_token(), "/conda-forge/linux-64");
                 CHECK_EQ(url.path(), "/t/xy-12345678-1234/conda-forge/linux-64");
             }
 
@@ -49,6 +54,7 @@ TEST_SUITE("specs::CondaURL")
             {
                 CHECK(url.clear_token());
                 CHECK_EQ(url.token(), "");
+                CHECK_EQ(url.path_without_token(), "/conda-forge/linux-64");
                 CHECK_EQ(url.path(), "/conda-forge/linux-64");
             }
 
@@ -56,6 +62,7 @@ TEST_SUITE("specs::CondaURL")
             {
                 url.set_token("abcd");
                 CHECK_EQ(url.token(), "abcd");
+                CHECK_EQ(url.path_without_token(), "/conda-forge/linux-64");
                 CHECK_EQ(url.path(), "/t/abcd/conda-forge/linux-64");
             }
         }
@@ -67,23 +74,61 @@ TEST_SUITE("specs::CondaURL")
 
             url.set_token("abcd");
             CHECK_EQ(url.token(), "abcd");
-            CHECK_EQ(url.path(), "/t/abcd");
+            CHECK_EQ(url.path_without_token(), "/");
+            CHECK_EQ(url.path(), "/t/abcd/");
 
             CHECK(url.clear_token());
+            CHECK_EQ(url.token(), "");
+            CHECK_EQ(url.path_without_token(), "/");
             CHECK_EQ(url.path(), "/");
         }
 
         SUBCASE("https://repo.mamba.pm/bar/t/xy-12345678-1234-1234-1234-123456789012/")
         {
             url.set_path("/bar/t/xy-12345678-1234-1234-1234-123456789012/");
-            CHECK_EQ(url.token(), "xy-12345678-1234-1234-1234-123456789012");
+            CHECK_EQ(url.token(), "");  // Not at begining of path
 
             url.set_token("abcd");
             CHECK_EQ(url.token(), "abcd");
-            CHECK_EQ(url.path(), "/bar/t/abcd/");
+            CHECK_EQ(url.path_without_token(), "/bar/t/xy-12345678-1234-1234-1234-123456789012/");
+            CHECK_EQ(url.path(), "/t/abcd/bar/t/xy-12345678-1234-1234-1234-123456789012/");
 
             CHECK(url.clear_token());
-            CHECK_EQ(url.path(), "/bar/");
+            CHECK_EQ(url.path_without_token(), "/bar/t/xy-12345678-1234-1234-1234-123456789012/");
+            CHECK_EQ(url.path(), "/bar/t/xy-12345678-1234-1234-1234-123456789012/");
+        }
+    }
+
+    TEST_CASE("Path without token")
+    {
+        CondaURL url{};
+        url.set_scheme("https");
+        url.set_host("repo.mamba.pm");
+
+        SUBCASE("Setters")
+        {
+            url.set_path_without_token("foo");
+            CHECK_EQ(url.path_without_token(), "/foo");
+            url.set_token("mytoken");
+            CHECK_EQ(url.path_without_token(), "/foo");
+            CHECK(url.clear_path_without_token());
+            CHECK_EQ(url.path_without_token(), "/");
+        }
+
+        SUBCASE("Parse")
+        {
+            url = CondaURL::parse("mamba.org/t/xy-12345678-1234-1234-1234-123456789012");
+            CHECK_EQ(url.token(), "xy-12345678-1234-1234-1234-123456789012");
+            CHECK_EQ(url.path_without_token(), "/");
+            CHECK_EQ(url.path(), "/t/xy-12345678-1234-1234-1234-123456789012/");
+        }
+
+        SUBCASE("Encoding")
+        {
+            url.set_token("mytoken");
+            url.set_path_without_token("some / weird/path %");
+            CHECK_EQ(url.path_without_token(), "/some / weird/path %");
+            CHECK_EQ(url.path_without_token(CondaURL::Decode::no), "/some%20/%20weird/path%20%25");
         }
     }
 
@@ -99,6 +144,7 @@ TEST_SUITE("specs::CondaURL")
             CHECK_EQ(url.platform_name(), "");
 
             CHECK_THROWS_AS(url.set_platform(Platform::linux_64), std::invalid_argument);
+            CHECK_EQ(url.path_without_token(), "/");
             CHECK_EQ(url.path(), "/");
 
             CHECK_FALSE(url.clear_platform());
@@ -251,6 +297,42 @@ TEST_SUITE("specs::CondaURL")
         }
     }
 
+    TEST_CASE("str options")
+    {
+        CondaURL url = {};
+
+        SUBCASE("without credentials")
+        {
+            CHECK_EQ(url.str(CondaURL::Credentials::Show), "https://localhost/");
+            CHECK_EQ(url.str(CondaURL::Credentials::Hide), "https://localhost/");
+            CHECK_EQ(url.str(CondaURL::Credentials::Remove), "https://localhost/");
+        }
+
+        SUBCASE("with some credentials")
+        {
+            url.set_user("user@mamba.org");
+            url.set_password("pass");
+
+            CHECK_EQ(url.str(CondaURL::Credentials::Show), "https://user%40mamba.org:pass@localhost/");
+            CHECK_EQ(url.str(CondaURL::Credentials::Hide), "https://user%40mamba.org:*****@localhost/");
+            CHECK_EQ(url.str(CondaURL::Credentials::Remove), "https://localhost/");
+
+            SUBCASE("and token")
+            {
+                url.set_path("/t/abcd1234/linux-64");
+                CHECK_EQ(
+                    url.str(CondaURL::Credentials::Show),
+                    "https://user%40mamba.org:pass@localhost/t/abcd1234/linux-64"
+                );
+                CHECK_EQ(
+                    url.str(CondaURL::Credentials::Hide),
+                    "https://user%40mamba.org:*****@localhost/t/*****/linux-64"
+                );
+                CHECK_EQ(url.str(CondaURL::Credentials::Remove), "https://localhost/linux-64");
+            }
+        }
+    }
+
     TEST_CASE("pretty_str options")
     {
         SUBCASE("scheme option")
@@ -283,30 +365,60 @@ TEST_SUITE("specs::CondaURL")
             CHECK_EQ(url.pretty_str(CondaURL::StripScheme::no, '/'), "https://mamba.org/page");
         }
 
-        SUBCASE("Hide confidential option")
+        SUBCASE("Credentail option")
         {
             CondaURL url = {};
-            url.set_user("user");
-            url.set_password("pass");
-            CHECK_EQ(
-                url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::HideConfidential::no),
-                "https://user:pass@localhost/"
-            );
-            CHECK_EQ(
-                url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::HideConfidential::yes),
-                "https://user:*****@localhost/"
-            );
 
-            url.set_path("/custom/t/abcd1234/linux-64");
-            CHECK_EQ(
-                url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::HideConfidential::no),
-                "https://user:pass@localhost/custom/t/abcd1234/linux-64"
-            );
+            SUBCASE("without credentials")
+            {
+                CHECK_EQ(
+                    url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Show),
+                    "https://localhost/"
+                );
+                CHECK_EQ(
+                    url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Hide),
+                    "https://localhost/"
+                );
+                CHECK_EQ(
+                    url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Remove),
+                    "https://localhost/"
+                );
+            }
 
-            CHECK_EQ(
-                url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::HideConfidential::yes),
-                "https://user:*****@localhost/custom/t/*****/linux-64"
-            );
+            SUBCASE("with user:password")
+            {
+                url.set_user("user");
+                url.set_password("pass");
+                CHECK_EQ(
+                    url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Show),
+                    "https://user:pass@localhost/"
+                );
+                CHECK_EQ(
+                    url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Hide),
+                    "https://user:*****@localhost/"
+                );
+                CHECK_EQ(
+                    url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Remove),
+                    "https://localhost/"
+                );
+
+                SUBCASE("and token")
+                {
+                    url.set_path("/t/abcd1234/linux-64");
+                    CHECK_EQ(
+                        url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Show),
+                        "https://user:pass@localhost/t/abcd1234/linux-64"
+                    );
+                    CHECK_EQ(
+                        url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Hide),
+                        "https://user:*****@localhost/t/*****/linux-64"
+                    );
+                    CHECK_EQ(
+                        url.pretty_str(CondaURL::StripScheme::no, 0, CondaURL::Credentials::Remove),
+                        "https://localhost/linux-64"
+                    );
+                }
+            }
         }
 
         SUBCASE("https://user:password@mamba.org:8080/folder/file.html?param=value#fragment")

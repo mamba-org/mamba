@@ -186,7 +186,7 @@ namespace mamba
                 out,
                 " {:<15} {}\n",
                 "URL",
-                url.pretty_str(CondaURL::StripScheme::no, '/', CondaURL::HideConfidential::yes)
+                url.pretty_str(CondaURL::StripScheme::no, '/', CondaURL::Credentials::Hide)
             );
 
             fmt::print(out, fmtstring, "MD5", pkg.md5.empty() ? "Not available" : pkg.md5);

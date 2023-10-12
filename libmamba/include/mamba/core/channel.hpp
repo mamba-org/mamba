@@ -13,9 +13,9 @@
 #include <string>
 #include <string_view>
 #include <utility>
-#include <vector>
 
 #include "mamba/specs/conda_url.hpp"
+#include "mamba/util/flat_set.hpp"
 
 namespace mamba
 {
@@ -24,6 +24,10 @@ namespace mamba
     namespace validation
     {
         class RepoChecker;
+    }
+    namespace specs
+    {
+        class ChannelSpec;
     }
 
     std::vector<std::string> get_known_platforms();
@@ -40,11 +44,11 @@ namespace mamba
 
         ~Channel();
 
-        const std::string& scheme() const;
+        std::string_view scheme() const;
         const std::string& location() const;
         const std::string& name() const;
         const std::string& canonical_name() const;
-        const std::vector<std::string>& platforms() const;
+        const util::flat_set<std::string>& platforms() const;
         std::optional<std::string> auth() const;
         std::optional<std::string> user() const;
         std::optional<std::string> password() const;
@@ -56,9 +60,9 @@ namespace mamba
         std::string base_url() const;
         std::string platform_url(std::string platform, bool with_credential = true) const;
         // The pairs consist of (platform,url)
-        std::vector<std::pair<std::string, std::string>>
+        util::flat_set<std::pair<std::string, std::string>>
         platform_urls(bool with_credential = true) const;
-        std::vector<std::string> urls(bool with_credential = true) const;
+        util::flat_set<std::string> urls(bool with_credential = true) const;
 
     private:
 
@@ -70,14 +74,25 @@ namespace mamba
             std::string_view user = {},
             std::string_view password = {},
             std::string_view token = {},
-            std::string_view package_filename = {}
+            std::string_view package_filename = {},
+            util::flat_set<std::string> platforms = {}
         );
+
+        Channel(
+            specs::CondaURL url,
+            std::string location,
+            std::string name,
+            std::string canonical_name,
+            util::flat_set<std::string> platforms = {}
+        );
+
+        const specs::CondaURL& url() const;
 
         specs::CondaURL m_url;
         std::string m_location;
         std::string m_name;
         std::string m_canonical_name;
-        std::vector<std::string> m_platforms;
+        util::flat_set<std::string> m_platforms;
 
         // This is used to make sure that there is a unique repo for every channel
         mutable std::unique_ptr<validation::RepoChecker> p_repo_checker;
@@ -116,7 +131,7 @@ namespace mamba
         const Channel& make_channel(const std::string& value);
         std::vector<const Channel*> get_channels(const std::vector<std::string>& channel_names);
 
-        const Channel& get_channel_alias() const;
+        const specs::CondaURL& get_channel_alias() const;
         const channel_map& get_custom_channels() const;
 
         Context& context() const
@@ -128,7 +143,7 @@ namespace mamba
 
         Context& m_context;
         ChannelCache m_channel_cache;
-        Channel m_channel_alias;
+        specs::CondaURL m_channel_alias;
         channel_map m_custom_channels;
         multichannel_map m_custom_multichannels;
 
@@ -137,16 +152,18 @@ namespace mamba
         const multichannel_map& get_custom_multichannels() const;
 
         Channel make_simple_channel(
-            const Channel& channel_alias,
+            const specs::CondaURL& channel_alias,
             const std::string& channel_url,
             const std::string& channel_name,
             const std::string& channel_canonical_name
         );
 
-        Channel from_url(std::string_view url);
+        Channel from_any_path(specs::ChannelSpec&& spec);
+        Channel from_package_path(specs::ChannelSpec&& spec);
+        Channel from_path(specs::ChannelSpec&& spec);
+        Channel from_url(specs::ChannelSpec&& spec);
         Channel from_name(const std::string& name);
         Channel from_value(const std::string& value);
-        Channel from_alias(std::string_view alias);
     };
 
 }  // namespace mamba

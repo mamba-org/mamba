@@ -7,6 +7,7 @@
 #ifndef MAMBA_UTIL_URL_HPP
 #define MAMBA_UTIL_URL_HPP
 
+#include <array>
 #include <string>
 #include <string_view>
 
@@ -22,10 +23,11 @@ namespace mamba::util
             yes
         };
 
-        enum class HideConfidential : bool
+        enum class Credentials
         {
-            no,
-            yes
+            Show,
+            Hide,
+            Remove,
         };
 
         struct Encode
@@ -59,7 +61,7 @@ namespace mamba::util
     public:
 
         using StripScheme = detail::StripScheme;
-        using HideConfidential = detail::HideConfidential;
+        using Credentials = detail::Credentials;
         using Encode = detail::Encode;
         using Decode = detail::Decode;
 
@@ -84,11 +86,17 @@ namespace mamba::util
         /** Create a local URL. */
         URL() = default;
 
+        /** Return whether the scheme is defaulted, i.e. not explicitly set. */
+        [[nodiscard]] auto scheme_is_defaulted() const -> bool;
+
         /** Return the scheme, always non-empty. */
-        [[nodiscard]] auto scheme() const -> const std::string&;
+        [[nodiscard]] auto scheme() const -> std::string_view;
 
         /** Set a non-empty scheme. */
         void set_scheme(std::string_view scheme);
+
+        /** Clear the scheme back to a defaulted value and return the old value. */
+        auto clear_scheme() -> std::string;
 
         /** Return the encoded user, or empty if none. */
         [[nodiscard]] auto user(Decode::no_type) const -> const std::string&;
@@ -123,6 +131,9 @@ namespace mamba::util
         /** Return the encoded basic authentication string. */
         [[nodiscard]] auto authentication() const -> std::string;
 
+        /** Return whether the host was defaulted, i.e. not explicitly set. */
+        [[nodiscard]] auto host_is_defaulted() const -> bool;
+
         /** Return the encoded host, always non-empty except for file scheme. */
         [[nodiscard]] auto host(Decode::no_type) const -> std::string_view;
 
@@ -148,7 +159,7 @@ namespace mamba::util
         auto clear_port() -> std::string;
 
         /** Return the encoded autority part of the URL. */
-        [[nodiscard]] auto authority() const -> std::string;
+        [[nodiscard]] auto authority(Credentials = Credentials::Show) const -> std::string;
 
         /** Return the encoded path, always starts with a '/'. */
         [[nodiscard]] auto path(Decode::no_type) const -> const std::string&;
@@ -215,24 +226,33 @@ namespace mamba::util
         auto clear_fragment() -> std::string;
 
         /** Return the full, exact, encoded URL. */
-        [[nodiscard]] auto str() const -> std::string;
+        [[nodiscard]] auto str(Credentials credentials = Credentials::Show) const -> std::string;
 
         /**
          * Return the full decoded url.
          *
-         * Due to decoding, the outcome may not be understood by parser and usable to reach an
-         * asset.
+         * Due to decoding, the outcome may not be understood by parser and usable to fetch the URL.
          * @param strip_scheme If true, remove the scheme and "localhost" on file URI.
          * @param rstrip_path If non-null, remove the given charaters at the end of the path.
-         * @param hide_confidential If true, hide password in the decoded string.
+         * @param credentials Decide to keep, remove, or hide credentials.
          */
         [[nodiscard]] auto pretty_str(
             StripScheme strip_scheme = StripScheme::no,
             char rstrip_path = 0,
-            HideConfidential hide_confidential = HideConfidential::no
+            Credentials credentials = Credentials::Show
         ) const -> std::string;
 
     protected:
+
+        [[nodiscard]] auto authentication_elems(Credentials, Decode::no_type) const
+            -> std::array<std::string_view, 3>;
+        [[nodiscard]] auto authentication_elems(Credentials, Decode::yes_type) const
+            -> std::array<std::string, 3>;
+
+        [[nodiscard]] auto authority_elems(Credentials, Decode::no_type) const
+            -> std::array<std::string_view, 7>;
+        [[nodiscard]] auto authority_elems(Credentials, Decode::yes_type) const
+            -> std::array<std::string, 7>;
 
         [[nodiscard]] auto
         pretty_str_path(StripScheme strip_scheme = StripScheme::no, char rstrip_path = 0) const
@@ -240,7 +260,7 @@ namespace mamba::util
 
     private:
 
-        std::string m_scheme = std::string(https);
+        std::string m_scheme = {};
         std::string m_user = {};
         std::string m_password = {};
         std::string m_host = {};

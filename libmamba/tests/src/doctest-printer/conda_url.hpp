@@ -4,19 +4,18 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <vector>
-
 #include <doctest/doctest.h>
-#include <fmt/format.h>
+
+#include "mamba/specs/conda_url.hpp"
 
 namespace doctest
 {
-    template <typename T, typename A>
-    struct StringMaker<std::vector<T, A>>
+    template <>
+    struct StringMaker<mamba::specs::CondaURL>
     {
-        static auto convert(const std::vector<T, A>& value) -> String
+        static auto convert(const mamba::specs::CondaURL& value) -> String
         {
-            return { fmt::format("std::vector{{{}}}", fmt::join(value, ", ")).c_str() };
+            return { value.str().c_str() };
         }
     };
 }

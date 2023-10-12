@@ -377,9 +377,19 @@ namespace mamba::fs
             return m_path.extension();
         }
 
+        u8path lexically_normal() const
+        {
+            return m_path.lexically_normal();
+        }
+
         u8path lexically_relative(const u8path& base) const
         {
             return m_path.lexically_relative(base);
+        }
+
+        u8path lexically_proximate(const u8path& base) const
+        {
+            return m_path.lexically_proximate(base);
         }
 
         //---- Modifiers ----

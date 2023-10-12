@@ -1625,7 +1625,12 @@ namespace mamba
         }
         else
         {
-            options = { util::concat(scheme, "://", host), std::string(scheme), "all://" + host, "all" };
+            options = {
+                util::concat(scheme, "://", host),
+                std::string(scheme),
+                util::concat("all://", host),
+                "all",
+            };
         }
 
         for (auto& option : options)

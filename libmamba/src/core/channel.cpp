@@ -231,10 +231,9 @@ namespace mamba
     util::flat_set<std::pair<std::string, std::string>>
     Channel::platform_urls(bool with_credential) const
     {
-        std::string base = location();
-        if (with_credential && token())
+        if (!url().package().empty())
         {
-            base = util::join_url(base, "t", *token());
+            return {};
         }
 
         auto out = util::flat_set<std::pair<std::string, std::string>>{};
@@ -242,12 +241,12 @@ namespace mamba
         {
             out.insert({
                 platform,
-                util::build_url(
-                    auth(),
-                    std::string(scheme()),
-                    util::join_url(base, name(), platform),
-                    with_credential
-                ),
+                (url() / platform)
+                    .str(
+                        with_credential ? specs::CondaURL::Credentials::Show
+                                        : specs::CondaURL::Credentials::Remove
+
+                    ),
             });
         }
         return out;

@@ -65,13 +65,15 @@ namespace mamba::specs
             Name,
         };
 
-        inline static constexpr std::string_view default_name = "defaults";
-        inline static constexpr std::string_view platform_separators = "|,;";
+        static constexpr std::string_view default_name = "defaults";
+        static constexpr std::string_view platform_separators = "|,;";
+
+        using dynamic_platform_set = util::flat_set<std::string>;
 
         [[nodiscard]] static auto parse(std::string_view str) -> ChannelSpec;
 
         ChannelSpec() = default;
-        ChannelSpec(std::string location, util::flat_set<std::string> filters, Type type);
+        ChannelSpec(std::string location, dynamic_platform_set filters, Type type);
 
         [[nodiscard]] auto type() const -> Type;
 
@@ -79,14 +81,14 @@ namespace mamba::specs
         [[nodiscard]] auto location() && -> std::string;
         [[nodiscard]] auto clear_location() -> std::string;
 
-        [[nodiscard]] auto platform_filters() const& -> const util::flat_set<std::string>&;
-        [[nodiscard]] auto platform_filters() && -> util::flat_set<std::string>;
-        [[nodiscard]] auto clear_platform_filters() -> util::flat_set<std::string>;
+        [[nodiscard]] auto platform_filters() const& -> const dynamic_platform_set&;
+        [[nodiscard]] auto platform_filters() && -> dynamic_platform_set;
+        [[nodiscard]] auto clear_platform_filters() -> dynamic_platform_set;
 
     private:
 
         std::string m_location = std::string(default_name);
-        util::flat_set<std::string> m_platform_filters = {};
+        dynamic_platform_set m_platform_filters = {};
         Type m_type = {};
     };
 }

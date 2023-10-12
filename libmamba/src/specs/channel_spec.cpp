@@ -20,12 +20,14 @@ namespace mamba::specs
 {
     namespace
     {
-        auto parse_platform_list(std::string_view plats) -> util::flat_set<std::string>
+        using dynamic_platform_set = ChannelSpec::dynamic_platform_set;
+
+        auto parse_platform_list(std::string_view plats) -> dynamic_platform_set
         {
             static constexpr auto is_not_sep = [](char c) -> bool
             { return !util::contains(ChannelSpec::platform_separators, c); };
 
-            auto out = util::flat_set<std::string>{};
+            auto out = dynamic_platform_set{};
             auto head_rest = util::lstrip_if_parts(plats, is_not_sep);
             while (!head_rest.front().empty())
             {
@@ -56,7 +58,7 @@ namespace mamba::specs
         }
 
         auto split_location_platform(std::string_view str)
-            -> std::pair<std::string, util::flat_set<std::string>>
+            -> std::pair<std::string, dynamic_platform_set>
         {
             if (util::ends_with(str, ']'))
             {
@@ -133,7 +135,7 @@ namespace mamba::specs
         return { std::move(location), std::move(filters), type };
     }
 
-    ChannelSpec::ChannelSpec(std::string location, util::flat_set<std::string> filters, Type type)
+    ChannelSpec::ChannelSpec(std::string location, dynamic_platform_set filters, Type type)
         : m_location(std::move(location))
         , m_platform_filters(std::move(filters))
         , m_type(type)
@@ -164,17 +166,17 @@ namespace mamba::specs
         return std::exchange(m_location, "");
     }
 
-    auto ChannelSpec::platform_filters() const& -> const util::flat_set<std::string>&
+    auto ChannelSpec::platform_filters() const& -> const dynamic_platform_set&
     {
         return m_platform_filters;
     }
 
-    auto ChannelSpec::platform_filters() && -> util::flat_set<std::string>
+    auto ChannelSpec::platform_filters() && -> dynamic_platform_set
     {
         return std::move(m_platform_filters);
     }
 
-    auto ChannelSpec::clear_platform_filters() -> util::flat_set<std::string>
+    auto ChannelSpec::clear_platform_filters() -> dynamic_platform_set
     {
         return std::exchange(m_platform_filters, {});
     }

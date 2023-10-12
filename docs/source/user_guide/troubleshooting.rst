@@ -13,6 +13,8 @@ Mamba should be installed to the ``base`` environment
 
 Installing Mamba to an environment other than ``base`` is not supported. Mamba must be installed in the ``base`` environment alongside Conda, and no other packages may be installed into ``base``.
 
+.. _base_packages:
+
 No other packages should be installed to ``base``
 -------------------------------------------------
 
@@ -32,11 +34,20 @@ It is **not recommended** to use the `Anaconda default channels <https://docs.an
 
 Please note that we won't be able to help resolving any problems you might face with the Anaconda channels.
 
-Please use ``conda-forge`` instead.
+To check if you have any Anaconda default channels in your configuration, use::
 
-Please disable the default channels in your install command::
+    $ mamba info
+    ...
+    channel URLs : https://repo.anaconda.com/pkgs/... # BAD!
+                   ...
+                   https://conda.anaconda.org/conda-forge/...
+    ...
 
-  mamba create -c nodefaults ...
+Please change your configuration to use only ``conda-forge`` using one of the following methods.
+
+Disable the default channels in your install command::
+
+  mamba create --override-channels ...
 
 Or your :file:`environment.yml` file:
 
@@ -54,6 +65,7 @@ Or in your :file:`~/.condarc` file:
   ...
   channels:
     - ...
+    - defaults  # BAD! Remove this if it exists.
     - nodefaults
 
 Mixing the ``defaults`` and ``conda-forge`` channels

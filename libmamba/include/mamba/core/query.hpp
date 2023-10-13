@@ -17,6 +17,8 @@
 #include "mamba/core/pool.hpp"
 #include "mamba/util/graph.hpp"
 
+typedef struct s_Solvable Solvable;
+
 namespace mamba
 {
     using GraphicsParams = Context::GraphicsParams;

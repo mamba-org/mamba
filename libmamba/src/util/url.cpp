@@ -185,8 +185,8 @@ namespace mamba::util
             out.set_scheme(handle.get_part(CURLUPART_SCHEME).value_or(""));
             out.set_user(handle.get_part(CURLUPART_USER).value_or(""), Encode::no);
             out.set_password(handle.get_part(CURLUPART_PASSWORD).value_or(""), Encode::no);
-            out.set_host(handle.get_part(CURLUPART_HOST).value_or(""));
-            out.set_path(handle.get_part(CURLUPART_PATH).value_or("/"));
+            out.set_host(handle.get_part(CURLUPART_HOST).value_or(""), Encode::no);
+            out.set_path(handle.get_part(CURLUPART_PATH).value_or("/"), Encode::no);
             out.set_port(handle.get_part(CURLUPART_PORT).value_or(""));
             out.set_query(handle.get_part(CURLUPART_QUERY).value_or(""));
             out.set_fragment(handle.get_part(CURLUPART_FRAGMENT).value_or(""));

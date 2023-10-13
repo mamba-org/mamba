@@ -294,16 +294,10 @@ TEST_SUITE("util::URL")
 
         SUBCASE("https://mamba🆒🔬.org/this/is/a/path/?query=123&xyz=3333")
         {
+            // Not a valid IETF RFC 3986+ URL, but Curl parses it anyways.
+            // Undefined behavior, no assumptions are made
             const URL url = URL::parse("https://mamba🆒🔬.org/this/is/a/path/?query=123&xyz=3333");
-            CHECK_EQ(url.scheme(), "https");
-            CHECK_EQ(url.host(), "mamba🆒🔬.org");
-            CHECK_EQ(url.path(), "/this/is/a/path/");
-            CHECK_EQ(url.pretty_path(), "/this/is/a/path/");
-            CHECK_EQ(url.user(), "");
-            CHECK_EQ(url.password(), "");
-            CHECK_EQ(url.port(), "");
-            CHECK_EQ(url.query(), "query=123&xyz=3333");
-            CHECK_EQ(url.fragment(), "");
+            CHECK_NE(url.host(URL::Decode::no), "mamba%f0%9f%86%92%f0%9f%94%ac.org");
         }
 
         SUBCASE("file://C:/Users/wolfv/test/document.json")
@@ -314,14 +308,8 @@ TEST_SUITE("util::URL")
                 CHECK_EQ(url.scheme(), "file");
                 CHECK_EQ(url.host(), "");
                 CHECK_EQ(url.path(), "/C:/Users/wolfv/test/document.json");
-                if (on_win)
-                {
-                    CHECK_EQ(url.pretty_path(), "C:/Users/wolfv/test/document.json");
-                }
-                else
-                {
-                    CHECK_EQ(url.pretty_path(), "/C:/Users/wolfv/test/document.json");
-                }
+                CHECK_EQ(url.path(URL::Decode::no), "/C:/Users/wolfv/test/document.json");
+                CHECK_EQ(url.pretty_path(), "C:/Users/wolfv/test/document.json");
                 CHECK_EQ(url.user(), "");
                 CHECK_EQ(url.password(), "");
                 CHECK_EQ(url.port(), "");
@@ -332,19 +320,39 @@ TEST_SUITE("util::URL")
 
         SUBCASE("file:///home/wolfv/test/document.json")
         {
-            if (!on_win)
-            {
-                const URL url = URL::parse("file:///home/wolfv/test/document.json");
-                CHECK_EQ(url.scheme(), "file");
-                CHECK_EQ(url.host(), "");
-                CHECK_EQ(url.path(), "/home/wolfv/test/document.json");
-                CHECK_EQ(url.pretty_path(), "/home/wolfv/test/document.json");
-                CHECK_EQ(url.user(), "");
-                CHECK_EQ(url.password(), "");
-                CHECK_EQ(url.port(), "");
-                CHECK_EQ(url.query(), "");
-                CHECK_EQ(url.fragment(), "");
-            }
+            const URL url = URL::parse("file:///home/wolfv/test/document.json");
+            CHECK_EQ(url.scheme(), "file");
+            CHECK_EQ(url.host(), "");
+            CHECK_EQ(url.path(), "/home/wolfv/test/document.json");
+            CHECK_EQ(url.pretty_path(), "/home/wolfv/test/document.json");
+            CHECK_EQ(url.user(), "");
+            CHECK_EQ(url.password(), "");
+            CHECK_EQ(url.port(), "");
+            CHECK_EQ(url.query(), "");
+            CHECK_EQ(url.fragment(), "");
+        }
+
+        SUBCASE("file:///home/great:doc.json")
+        {
+            // Not a valid IETF RFC 3986+ URL, but Curl parses it anyways.
+            // Undefined behavior, no assumptions are made
+            const URL url = URL::parse("file:///home/great:doc.json");
+            CHECK_NE(url.path(URL::Decode::no), "/home/great%3Adoc.json");
+        }
+
+        SUBCASE("file:///home/great%3Adoc.json")
+        {
+            const URL url = URL::parse("file:///home/great%3Adoc.json");
+            CHECK_EQ(url.scheme(), "file");
+            CHECK_EQ(url.host(), "");
+            CHECK_EQ(url.path(), "/home/great:doc.json");
+            CHECK_EQ(url.path(URL::Decode::no), "/home/great%3Adoc.json");
+            CHECK_EQ(url.pretty_path(), "/home/great:doc.json");
+            CHECK_EQ(url.user(), "");
+            CHECK_EQ(url.password(), "");
+            CHECK_EQ(url.port(), "");
+            CHECK_EQ(url.query(), "");
+            CHECK_EQ(url.fragment(), "");
         }
 
         SUBCASE("https://169.254.0.0/page")

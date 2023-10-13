@@ -85,6 +85,7 @@ namespace mamba
         {
             if (scheme == "file")
             {
+                m_url.set_scheme("file");  // Scheme influence other URL operations
                 m_url.set_path(m_location);
             }
             else
@@ -96,8 +97,8 @@ namespace mamba
                 }
                 m_url.set_user(user);
                 m_url.set_password(password);
+                m_url.set_scheme(scheme);
             }
-            m_url.set_scheme(scheme);
             m_url.append_path(m_name);
             if (!package_filename.empty())
             {

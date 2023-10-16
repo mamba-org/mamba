@@ -406,6 +406,8 @@ namespace mamba
         content << "$env.MAMBA_EXE = " << mamba_exe << "\n";
         content << "$env.MAMBA_ROOT_PREFIX = " << env_prefix << "\n";
         content << "$env.PATH = ($env.PATH | append ([$env.MAMBA_ROOT_PREFIX bin] | path join) | uniq)\n";
+        content << "$env.PROMPT_COMMAND_BK = $env.PROMPT_COMMAND"
+                << "\n";
         content << R"###(def-env "micromamba activate"  [name: string] {
     #add condabin when root
     if $env.MAMBA_SHLVL? == null {
@@ -423,7 +425,7 @@ namespace mamba
     )
     # update prompt
     if ($env.CONDA_PROMPT_MODIFIER? != null) {
-      $env.PROMPT_COMMAND = {|| $env.CONDA_PROMPT_MODIFIER + (create_left_prompt)}
+      $env.PROMPT_COMMAND = {|| $env.CONDA_PROMPT_MODIFIER + (do $env.PROMPT_COMMAND_BK)}
     }
 }
 def-env "micromamba deactivate" [] {
@@ -443,7 +445,7 @@ def-env "micromamba deactivate" [] {
           }
     }
     # update prompt
-    $env.PROMPT_COMMAND = {|| create_left_prompt}
+    $env.PROMPT_COMMAND = $env.PROMPT_COMMAND
   }
 })###"
                 << "\n";

@@ -29,6 +29,7 @@ find_dependency(Threads)
 find_dependency(tl-expected)
 find_dependency(zstd)
 find_dependency(BZip2)
+find_dependency(yaml-cpp)
 
 if(NOT (TARGET libmamba OR TARGET libmamba-static))
     include("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake")

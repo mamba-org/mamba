@@ -813,9 +813,6 @@ Examples:
             return
         raise
 
-    p = sub_parsers.add_parser(
-        "repoquery", description=descr, help=help_cli, epilog=example
-    )
     subsub_parser = p.add_subparsers(dest="subcmd")
     package_cmds = argparse.ArgumentParser(add_help=False)
     package_cmds.add_argument("package_query", help="the target package")

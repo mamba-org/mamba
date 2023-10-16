@@ -1,3 +1,16 @@
+mamba 1.5.2 (October 16, 2023)
+==============================
+
+
+Bug fixes:
+
+- Backport #2878: compatibility fixes for conda 23.9 and conda-libmamba-solver 23.9 by @jaimergp in https://github.com/mamba-org/mamba/pull/2890
+- implement mamba remove --force via --no-deps functionality (backport #2856) by @jaimergp in https://github.com/mamba-org/mamba/pull/2903
+
+CI fixes and doc:
+
+- Fix CI by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2889
+
 mamba 1.5.1 (September 05, 2023)
 ================================
 

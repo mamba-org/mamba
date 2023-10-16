@@ -1,3 +1,24 @@
+2023.10.16
+==========
+
+Releases: libmamba 1.5.2, libmambapy 1.5.2, mamba 1.5.2, micromamba 1.5.2
+
+Enhancement:
+
+- [libmamba] Build micromamba with /MD by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2862
+- [libmamba] Build micromamba win with feedstock by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2859
+
+Bug fixes:
+
+- [mamba] Backport #2878: compatibility fixes for conda 23.9 and conda-libmamba-solver 23.9 by @jaimergp in https://github.com/mamba-org/mamba/pull/2890
+- [mamba] implement mamba remove --force via --no-deps functionality (backport #2856) by @jaimergp in https://github.com/mamba-org/mamba/pull/2903
+- [libmambapy] fix stubs by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2817
+
+CI fixes and doc:
+
+- [micromamba] Build micromamba win with feedstock by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2859
+- [all] Fix CI by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2889
+
 2023.09.05
 ==========
 

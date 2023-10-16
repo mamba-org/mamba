@@ -1,3 +1,15 @@
+libmambapy 1.5.2 (October 16, 2023)
+===================================
+
+
+Bug fixes:
+
+- fix stubs by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2817
+
+CI fixes and doc:
+
+- Fix CI by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2889
+
 libmambapy 1.5.1 (September 05, 2023)
 =====================================
 

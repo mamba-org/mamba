@@ -1,3 +1,15 @@
+libmamba 1.5.2 (October 16, 2023)
+=================================
+
+Enhancement:
+
+- Build micromamba with /MD by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2862
+- Build micromamba win with feedstock by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2859
+
+CI fixes and doc:
+
+- Fix CI by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2889
+
 libmamba 1.5.1 (September 05, 2023)
 ===================================
 

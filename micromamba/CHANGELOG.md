@@ -1,3 +1,12 @@
+micromamba 1.5.2 (October 16, 2023)
+===================================
+
+
+CI fixes and doc:
+
+- Build micromamba win with feedstock by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2859
+- Fix CI by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2889
+
 micromamba 1.5.1 (September 05, 2023)
 =====================================
 

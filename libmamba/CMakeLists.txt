@@ -137,7 +137,6 @@ set(LIBMAMBA_SOURCES
     # Implementation of version and matching specs
     ${LIBMAMBA_SOURCE_DIR}/specs/archive.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/platform.cpp
-    ${LIBMAMBA_SOURCE_DIR}/specs/conda_url.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/version.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/version_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/repo_data.cpp
@@ -225,10 +224,8 @@ set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/url_manip.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/url.hpp
     # Implementation of version and matching specs
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/authentification_info.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/archive.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/platform.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/conda_url.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version_spec.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/repo_data.hpp

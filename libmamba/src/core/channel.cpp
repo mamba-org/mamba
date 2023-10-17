@@ -43,15 +43,6 @@ namespace mamba
         {
             return s.empty() ? std::optional<std::string>() : std::make_optional(s);
         }
-
-        auto channel_alias_location(const specs::CondaURL& url) -> std::string
-        {
-            return url.pretty_str(
-                specs::CondaURL::StripScheme::yes,
-                '/',
-                specs::CondaURL::Credentials::Remove
-            );
-        }
     }
 
     std::vector<std::string> get_known_platforms()
@@ -271,8 +262,13 @@ namespace mamba
 
         if (channel_name.empty())
         {
-            if (auto ca_location = channel_alias_location(channel_alias);
-                util::starts_with(location, ca_location))
+            auto ca_location = channel_alias.pretty_str(
+                specs::CondaURL::StripScheme::yes,
+                '/',
+                specs::CondaURL::Credentials::Remove
+            );
+
+            if (util::starts_with(location, ca_location))
             {
                 name = std::string(util::strip(util::remove_prefix(location, ca_location), '/'));
                 location = std::move(ca_location);

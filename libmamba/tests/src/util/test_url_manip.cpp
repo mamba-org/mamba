@@ -48,18 +48,6 @@ TEST_SUITE("util::url_manip")
         );
     }
 
-    TEST_CASE("concat_scheme_url")
-    {
-        auto url = concat_scheme_url("https", "mamba.com");
-        CHECK_EQ(url, "https://mamba.com");
-
-        url = concat_scheme_url("file", "C:/some_folder");
-        CHECK_EQ(url, "file:///C:/some_folder");
-
-        url = concat_scheme_url("file", "some_folder");
-        CHECK_EQ(url, "file://some_folder");
-    }
-
     TEST_CASE("split_platform")
     {
         std::string platform_found, cleaned_url;

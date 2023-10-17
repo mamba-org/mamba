@@ -126,20 +126,6 @@ namespace mamba::util
         return out;
     }
 
-    // proper file scheme on Windows is `file:///C:/blabla`
-    // https://blogs.msdn.microsoft.com/ie/2006/12/06/file-uris-in-windows/
-    std::string concat_scheme_url(const std::string& scheme, const std::string& location)
-    {
-        if (scheme == "file" && location.size() > 1 && location[1] == ':')
-        {
-            return util::concat("file:///", location);
-        }
-        else
-        {
-            return util::concat(scheme, "://", location);
-        }
-    }
-
     void split_platform(
         const std::vector<std::string>& known_platforms,
         const std::string& url,

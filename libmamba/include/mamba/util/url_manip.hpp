@@ -33,8 +33,6 @@ namespace mamba::util
      */
     [[nodiscard]] auto url_decode(std::string_view url) -> std::string;
 
-    std::string concat_scheme_url(const std::string& scheme, const std::string& location);
-
     void split_platform(
         const std::vector<std::string>& known_platforms,
         const std::string& url,

@@ -181,15 +181,7 @@ namespace mamba
         auto out = util::flat_set<std::pair<std::string, std::string>>{};
         for (const auto& platform : platforms())
         {
-            out.insert({
-                platform,
-                (url() / platform)
-                    .str(
-                        with_credential ? specs::CondaURL::Credentials::Show
-                                        : specs::CondaURL::Credentials::Remove
-
-                    ),
-            });
+            out.insert({ platform, platform_url(platform, with_credential) });
         }
         return out;
     }

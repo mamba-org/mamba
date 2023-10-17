@@ -11,6 +11,21 @@ import yaml
 from . import helpers
 
 
+@pytest.fixture
+def user_config_dir(tmp_home: Path):
+    """Location of config files that are generated from mamba"""
+    maybe_xdg_config = os.getenv("XDG_CONFIG_DIR", "")
+    if maybe_xdg_config:
+        yield Path(maybe_xdg_config)
+    system = platform.system()
+    if system == "Linux" or system == "Darwin":
+        yield tmp_home / ".config/mamba"
+    elif system == "Windows":
+        yield Path(os.environ["APPDATA"]) / "mamba"
+    else:
+        raise RuntimeError(f"Unsupported system {system}")
+
+
 class Dumper(yaml.Dumper):
     """A YAML dumper to properly indent lists.
 

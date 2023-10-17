@@ -65,49 +65,6 @@ namespace mamba
      **************************/
 
     Channel::Channel(
-        std::string_view scheme,
-        std::string location,
-        std::string name,
-        std::string canonical_name,
-        std::string_view user,
-        std::string_view password,
-        std::string_view token,
-        std::string_view package_filename,
-        util::flat_set<std::string> platforms
-    )
-        : m_url()
-        , m_location(std::move(location))
-        , m_name(std::move(name))
-        , m_canonical_name(std::move(canonical_name))
-        , m_platforms(std::move(platforms))
-    {
-        if (m_name != UNKNOWN_CHANNEL)
-        {
-            if (scheme == "file")
-            {
-                m_url.set_scheme("file");  // Scheme influence other URL operations
-                m_url.set_path(m_location);
-            }
-            else
-            {
-                m_url = specs::CondaURL::parse(m_location);
-                if (!token.empty())
-                {
-                    m_url.set_token(token);
-                }
-                m_url.set_user(user);
-                m_url.set_password(password);
-                m_url.set_scheme(scheme);
-            }
-            m_url.append_path(m_name);
-            if (!package_filename.empty())
-            {
-                m_url.set_package(package_filename);
-            }
-        }
-    }
-
-    Channel::Channel(
         specs::CondaURL url,
         std::string location,
         std::string name,

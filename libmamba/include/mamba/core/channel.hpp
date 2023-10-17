@@ -68,18 +68,6 @@ namespace mamba
     private:
 
         Channel(
-            std::string_view scheme,
-            std::string location,
-            std::string name,
-            std::string canonical_name,
-            std::string_view user = {},
-            std::string_view password = {},
-            std::string_view token = {},
-            std::string_view package_filename = {},
-            util::flat_set<std::string> platforms = {}
-        );
-
-        Channel(
             specs::CondaURL url,
             std::string location,
             std::string name,

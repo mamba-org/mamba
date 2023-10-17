@@ -159,6 +159,8 @@ namespace mamba
         Channel from_any_path(specs::ChannelSpec&& spec);
         Channel from_package_path(specs::ChannelSpec&& spec);
         Channel from_path(specs::ChannelSpec&& spec);
+        Channel from_any_url(specs::ChannelSpec&& spec);
+        Channel from_package_url(specs::ChannelSpec&& spec);
         Channel from_url(specs::ChannelSpec&& spec);
         Channel from_name(const std::string& name);
         Channel from_value(const std::string& value);

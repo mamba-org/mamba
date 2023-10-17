@@ -470,7 +470,7 @@ namespace mamba
         return chan;
     }
 
-    Channel ChannelContext::from_url(specs::ChannelSpec&& spec)
+    Channel ChannelContext::from_any_url(specs::ChannelSpec&& spec)
     {
         assert(util::url_has_scheme(spec.location()));
         auto url = specs::CondaURL::parse(spec.location());
@@ -525,6 +525,19 @@ namespace mamba
             /* name= */ std::move(name),
             /* canonical_name= */ std::move(canonical_name)
         );
+    }
+
+    Channel ChannelContext::from_package_url(specs::ChannelSpec&& spec)
+    {
+        return from_any_url(std ::move(spec));
+    }
+
+    Channel ChannelContext::from_url(specs::ChannelSpec&& spec)
+    {
+        auto platforms = make_platforms(spec.clear_platform_filters(), m_context.platforms());
+        auto chan = from_any_url(std::move(spec));
+        chan.m_platforms = std::move(platforms);
+        return chan;
     }
 
     Channel ChannelContext::from_name(const std::string& name)
@@ -641,14 +654,11 @@ namespace mamba
                 }
                 case specs::ChannelSpec::Type::PackageURL:
                 {
-                    return from_url(std::move(l_spec));
+                    return from_package_url(std::move(l_spec));
                 }
                 case specs::ChannelSpec::Type::URL:
                 {
-                    auto plats = get_platforms();
-                    auto chan = from_url(std::move(l_spec));
-                    chan.m_platforms = std::move(plats);
-                    return chan;
+                    return from_url(std::move(l_spec));
                 }
                 case specs::ChannelSpec::Type::Name:
                 {

@@ -186,51 +186,6 @@ def tmp_xtensor_env(tmp_prefix: pathlib.Path) -> Generator[pathlib.Path, None, N
     yield tmp_prefix
 
 
-@pytest.fixture
-def user_config_dir(tmp_home: pathlib.Path) -> Generator[pathlib.Path, None, None]:
-    """Location of config files that are generated from mamba"""
-    maybe_xdg_config = os.getenv("XDG_CONFIG_DIR", "")
-    if maybe_xdg_config:
-        yield pathlib.Path(maybe_xdg_config)
-    system = platform.system()
-    if system == "Linux" or system == "Darwin":
-        yield tmp_home / ".config/mamba"
-    elif system == "Windows":
-        yield pathlib.Path(os.environ["APPDATA"]) / "mamba"
-    else:
-        raise RuntimeError(f"Unsupported system {system}")
-
-
-@pytest.fixture
-def user_data_dir(tmp_home: pathlib.Path) -> Generator[pathlib.Path, None, None]:
-    """Location of data files that are generated from mamba"""
-    maybe_xdg_data = os.getenv("XDG_DATA_DIR", "")
-    if maybe_xdg_data:
-        yield pathlib.Path(maybe_xdg_data)
-    system = platform.system()
-    if system == "Linux" or system == "Darwin":
-        yield tmp_home / ".local/share/mamba"
-    elif system == "Windows":
-        yield pathlib.Path(os.environ["APPDATA"]) / "mamba"
-    else:
-        raise RuntimeError(f"Unsupported system {system}")
-
-
-@pytest.fixture
-def user_cache_dir(tmp_home: pathlib.Path) -> Generator[pathlib.Path, None, None]:
-    """Location of data files that are generated from mamba"""
-    maybe_xdg_cache = os.getenv("XDG_CACHE_DIR", "")
-    if maybe_xdg_cache:
-        yield pathlib.Path(maybe_xdg_cache)
-    system = platform.system()
-    if system == "Linux" or system == "Darwin":
-        yield tmp_home / ".cache/mamba"
-    elif system == "Windows":
-        yield pathlib.Path(os.environ["LOCALAPPDATA"]) / "mamba"
-    else:
-        raise RuntimeError(f"Unsupported system {system}")
-
-
 def get_glibc_version():
     try:
         output = subprocess.check_output(["ldd", "--version"])

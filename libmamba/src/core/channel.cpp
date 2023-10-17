@@ -562,6 +562,7 @@ namespace mamba
 
         if (it != it_end)
         {
+            auto url = it->second.url();
             // we can have a channel like
             // testchannel: https://server.com/private/testchannel
             // where `name == private/testchannel` and we need to join the remaining label part
@@ -575,6 +576,7 @@ namespace mamba
                 // Combine names properly
                 if (common_str.empty())
                 {
+                    url.append_path(name);
                     combined_name += "/" + name;
                 }
                 else
@@ -583,33 +585,27 @@ namespace mamba
                     // beginning of `name` and at the end of `combined_name` (I don't know about
                     // other use cases for now)
                     combined_name += name.substr(common_str.size());
+                    url.append_path(name.substr(common_str.size()));
                 }
             }
 
             return Channel(
-                /*  scheme= */ it->second.scheme(),
-                /*  location= */ it->second.location(),
-                /*  name= */ combined_name,
-                /*  canonical_name= */ name,
-                /*  user= */ it->second.user().value_or(""),
-                /*  password= */ it->second.password().value_or(""),
-                /*  token= */ it->second.token().value_or(""),
-                /*  package_filename= */ it->second.package_filename().value_or("")
+                /* url= */ std::move(url),
+                /* location= */ it->second.location(),
+                /* name= */ std::move(combined_name),
+                /* canonical_name= */ std::move(name)
             );
         }
-        else
-        {
-            const auto& alias = get_channel_alias();
-            return Channel(
-                /*  scheme= */ alias.scheme(),
-                /*  location= */ channel_alias_location(alias),
-                /*  name= */ name,
-                /*  canonical_name= */ name,
-                /*  user= */ alias.user(),
-                /*  password= */ alias.password(),
-                /*  token= */ alias.token()
-            );
-        }
+
+        const auto& alias = get_channel_alias();
+        auto url = alias;
+        url.append_path(name);
+        return Channel(
+            /* url= */ std::move(url),
+            /*  location= */ alias.pretty_str(specs::CondaURL::StripScheme::yes, '/', specs::CondaURL::Credentials::Remove),
+            /*  name= */ name,
+            /*  canonical_name= */ name
+        );
     }
 
     Channel ChannelContext::from_value(const std::string& in_value)

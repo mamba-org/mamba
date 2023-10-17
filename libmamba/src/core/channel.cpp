@@ -149,14 +149,7 @@ namespace mamba
 
     std::string Channel::base_url() const
     {
-        if (name() == UNKNOWN_CHANNEL)
-        {
-            return "";
-        }
-        else
-        {
-            return util::concat_scheme_url(std::string(scheme()), util::join_url(location(), name()));
-        }
+        return url().str(specs::CondaURL::Credentials::Remove);
     }
 
     util::flat_set<std::string> Channel::urls(bool with_credential) const

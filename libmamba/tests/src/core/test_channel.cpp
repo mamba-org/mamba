@@ -575,7 +575,7 @@ namespace mamba
             ChannelContext channel_context{ mambatests::context() };
             const Channel& c = channel_context.make_channel("http://localhost:8000/");
             CHECK_EQ(c.platform_url("win-64", false), "http://localhost:8000/win-64");
-            CHECK_EQ(c.base_url(), "http://localhost:8000");
+            CHECK_EQ(c.base_url(), "http://localhost:8000/");
             const UrlSet expected_urls({ std::string("http://localhost:8000/") + platform,
                                          "http://localhost:8000/noarch" });
             CHECK_EQ(c.urls(true), expected_urls);

@@ -7,7 +7,6 @@
 #ifndef MAMBA_UTIL_URL_MANIP_HPP
 #define MAMBA_UTIL_URL_MANIP_HPP
 
-#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -35,13 +34,6 @@ namespace mamba::util
     [[nodiscard]] auto url_decode(std::string_view url) -> std::string;
 
     std::string concat_scheme_url(const std::string& scheme, const std::string& location);
-
-    std::string build_url(
-        const std::optional<std::string>& auth,
-        const std::string& scheme,
-        const std::string& base,
-        bool with_credential
-    );
 
     void split_platform(
         const std::vector<std::string>& known_platforms,

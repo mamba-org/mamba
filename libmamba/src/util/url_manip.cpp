@@ -140,23 +140,6 @@ namespace mamba::util
         }
     }
 
-    std::string build_url(
-        const std::optional<std::string>& auth,
-        const std::string& scheme,
-        const std::string& base,
-        bool with_credential
-    )
-    {
-        if (with_credential && auth)
-        {
-            return concat_scheme_url(scheme, util::concat(*auth, "@", base));
-        }
-        else
-        {
-            return concat_scheme_url(scheme, base);
-        }
-    }
-
     void split_platform(
         const std::vector<std::string>& known_platforms,
         const std::string& url,

@@ -60,24 +60,6 @@ TEST_SUITE("util::url_manip")
         CHECK_EQ(url, "file://some_folder");
     }
 
-    TEST_CASE("build_url")
-    {
-        auto url = build_url(std::nullopt, "https", "mamba.com", true);
-        CHECK_EQ(url, "https://mamba.com");
-
-        url = build_url(std::nullopt, "https", "mamba.com", false);
-        CHECK_EQ(url, "https://mamba.com");
-
-        url = build_url(std::optional<std::string>("auth"), "https", "mamba.com", false);
-        CHECK_EQ(url, "https://mamba.com");
-
-        url = build_url(std::optional<std::string>("auth"), "https", "mamba.com", true);
-        CHECK_EQ(url, "https://auth@mamba.com");
-
-        url = build_url(std::optional<std::string>(""), "https", "mamba.com", true);
-        CHECK_EQ(url, "https://@mamba.com");
-    }
-
     TEST_CASE("split_platform")
     {
         std::string platform_found, cleaned_url;

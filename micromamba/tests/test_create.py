@@ -939,6 +939,47 @@ def test_long_path_support(tmp_home, tmp_root_prefix):
     assert res["success"]
 
 
+def get_glibc_version():
+    try:
+        output = subprocess.check_output(["ldd", "--version"])
+    except Exception:
+        return
+    output.splitlines()
+    version = output.splitlines()[0].split()[-1]
+    return version.decode("ascii")
+
+
+@pytest.fixture
+def add_glibc_virtual_package():
+    version = get_glibc_version()
+    with open(__this_dir__ / "channel_a/linux-64/repodata.tpl") as f:
+        repodata = f.read()
+    with open(__this_dir__ / "channel_a/linux-64/repodata.json", "w") as f:
+        if version is not None:
+            glibc_placeholder = ', "__glibc=' + version + '"'
+        else:
+            glibc_placeholder = ""
+        repodata = repodata.replace("GLIBC_PLACEHOLDER", glibc_placeholder)
+        f.write(repodata)
+
+
+@pytest.fixture
+def copy_channels_osx():
+    for channel in ["a", "b"]:
+        if not (__this_dir__ / f"channel_{channel}/osx-64").exists():
+            shutil.copytree(
+                __this_dir__ / f"channel_{channel}/linux-64",
+                __this_dir__ / f"channel_{channel}/osx-64",
+            )
+            with open(__this_dir__ / f"channel_{channel}/osx-64/repodata.json") as f:
+                repodata = f.read()
+            with open(
+                __this_dir__ / f"channel_{channel}/osx-64/repodata.json", "w"
+            ) as f:
+                repodata = repodata.replace("linux", "osx")
+                f.write(repodata)
+
+
 def test_dummy_create(
     add_glibc_virtual_package, copy_channels_osx, tmp_home, tmp_root_prefix
 ):

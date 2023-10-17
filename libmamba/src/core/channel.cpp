@@ -194,19 +194,16 @@ namespace mamba
         return out;
     }
 
-    std::string Channel::platform_url(std::string platform, bool with_credential) const
+    std::string Channel::platform_url(std::string_view platform, bool with_credential) const
     {
-        std::string base = location();
-        if (with_credential && token())
+        auto cred = with_credential ? specs::CondaURL::Credentials::Show
+                                    : specs::CondaURL::Credentials::Remove;
+
+        if (!url().package().empty())
         {
-            base = util::join_url(base, "t", *token());
+            return url().str(cred);
         }
-        return util::build_url(
-            auth(),
-            std::string(scheme()),
-            util::join_url(base, name(), platform),
-            with_credential
-        );
+        return (url() / platform).str(cred);
     }
 
     /*********************************

@@ -59,7 +59,7 @@ namespace mamba
         repo_checker(Context& context, MultiPackageCache& caches) const;
 
         std::string base_url() const;
-        std::string platform_url(std::string platform, bool with_credential = true) const;
+        std::string platform_url(std::string_view platform, bool with_credential = true) const;
         // The pairs consist of (platform,url)
         util::flat_set<std::pair<std::string, std::string>>
         platform_urls(bool with_credential = true) const;

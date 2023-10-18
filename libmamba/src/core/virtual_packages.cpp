@@ -164,19 +164,19 @@ namespace mamba
         }
 
 #if (defined(__GNUC__) || defined(__clang__)) && __x86_64__
-        __attribute__ ((target ("default"))) std::string get_archspec_x86_64()
+        __attribute__((target ("default"))) std::string get_archspec_x86_64()
         {
             return "x86_64";
         }
-        __attribute__ ((target ("sse4.2"))) std::string get_archspec_x86_64()
+        __attribute__((target ("sse4.2"))) std::string get_archspec_x86_64()
         {
             return "x86_64_v2";
         }
-        __attribute__ ((target ("avx2"))) std::string get_archspec_x86_64()
+        __attribute__((target ("avx2"))) std::string get_archspec_x86_64()
         {
             return "x86_64_v3";
         }
-        __attribute__ ((target ("avx512f"))) std::string get_archspec_x86_64()
+        __attribute__((target ("avx512f"))) std::string get_archspec_x86_64()
         {
             return "x86_64_v4";
         }

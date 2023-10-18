@@ -163,6 +163,34 @@ namespace mamba
             return res;
         }
 
+#if defined(__GNUC__) || defined(__clang__)
+	__attribute__ ((target ("default")))
+	std::string get_archspec_x86_64()
+	{
+	    return "x86_64";
+	}
+	__attribute__ ((target ("sse4.2")))
+	std::string get_archspec_x86_64()
+	{
+            return "x86_64_v2";
+	}
+	__attribute__ ((target ("avx2")))
+	std::string get_archspec_x86_64()
+	{
+	    return "x86_64_v3";
+	}
+	__attribute__ ((target ("avx512f")))
+	std::string get_archspec_x86_64()
+	{
+	    return "x86_64_v4";
+	}
+#else
+	std::string get_archspec_x86_64()
+	{
+            return "x86_64";
+	}
+#endif
+
         std::vector<PackageInfo> dist_packages(const Context& context)
         {
             LOG_DEBUG << "Loading distribution virtual packages";
@@ -222,7 +250,7 @@ namespace mamba
 
             if (arch == "64")
             {
-                arch = "x86_64";
+                arch = get_archspec_x86_64();
             }
             else if (arch == "32")
             {

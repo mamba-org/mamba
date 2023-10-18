@@ -163,30 +163,33 @@ namespace mamba
             return res;
         }
 
-#if (defined(__GNUC__) || defined(__clang__)) && __x86_64__
-        __attribute__((target ("default"))) std::string get_archspec_x86_64()
-        {
-            return "x86_64";
-        }
-        __attribute__((target ("sse4.2"))) std::string get_archspec_x86_64()
-        {
-            return "x86_64_v2";
-        }
-        __attribute__((target ("avx2"))) std::string get_archspec_x86_64()
-        {
-            return "x86_64_v3";
-        }
-        __attribute__((target ("avx512f"))) std::string get_archspec_x86_64()
-        {
-            return "x86_64_v4";
-        }
-#else
         std::string get_archspec_x86_64()
         {
+#if (defined(__GNUC__) || defined(__clang__)) && __x86_64__
+            /* if (__builtin_cpu_supports ("x86-64-v4")) */
+            if (__builtin_cpu_supports("avx512f") && __builtin_cpu_supports("avx512bw")
+                && __builtin_cpu_supports("avx512cd") && __builtin_cpu_supports("avx512dq")
+                && __builtin_cpu_supports("avx512vl"))
+            {
+                return "x86_64-v4";
+            }
+            /* if (__builtin_cpu_supports ("x86-64-v3")) */
+            if (__builtin_cpu_supports("avx") && __builtin_cpu_supports("avx2")
+                && __builtin_cpu_supports("bmi") && __builtin_cpu_supports("bmi2")
+                && __builtin_cpu_supports("fma"))
+            {
+                return "x86_64-v3";
+            }
+            /* if (__builtin_cpu_supports ("x86-64-v2")) */
+            if (__builtin_cpu_supports("popcnt") && __builtin_cpu_supports("sse3")
+                && __builtin_cpu_supports("ssse3") && __builtin_cpu_supports("sse4.1")
+                && __builtin_cpu_supports("sse4.2"))
+            {
+                return "x86_64-v2";
+            }
+#endif
             return "x86_64";
         }
-#endif
-
         std::vector<PackageInfo> dist_packages(const Context& context)
         {
             LOG_DEBUG << "Loading distribution virtual packages";

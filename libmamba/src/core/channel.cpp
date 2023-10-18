@@ -209,16 +209,6 @@ namespace mamba
         );
     }
 
-    bool operator==(const Channel& lhs, const Channel& rhs)
-    {
-        return lhs.location() == rhs.location() && lhs.name() == rhs.name();
-    }
-
-    bool operator!=(const Channel& lhs, const Channel& rhs)
-    {
-        return !(lhs == rhs);
-    }
-
     /*********************************
      * ChannelContext implementation *
      *********************************/

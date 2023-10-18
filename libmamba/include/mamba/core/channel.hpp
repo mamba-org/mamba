@@ -93,10 +93,6 @@ namespace mamba
         friend class ChannelContext;
     };
 
-    bool operator==(const Channel& lhs, const Channel& rhs);
-    bool operator!=(const Channel& lhs, const Channel& rhs);
-
-
     using ChannelCache = std::map<std::string, Channel>;
 
     class ChannelContext

@@ -380,7 +380,7 @@ namespace mamba
         {
             for (const auto& c : channel_context.context().repodata_has_zst)
             {
-                if (channel_context.make_channel(c) == channel)
+                if (channel_context.make_channel(c).base_url() == channel.base_url())
                 {
                     return true;
                 }

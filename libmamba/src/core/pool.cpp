@@ -143,7 +143,7 @@ namespace mamba
         bool
         channel_match(ChannelContext& channel_context, const Channel& chan, const Channel& needle)
         {
-            if ((chan) == needle)
+            if (chan.base_url() == needle.base_url())
             {
                 return true;
             }
@@ -155,7 +155,7 @@ namespace mamba
                 for (auto el : (x->second))
                 {
                     const Channel& inner = channel_context.make_channel(el);
-                    if ((chan) == inner)
+                    if (chan.base_url() == inner.base_url())
                     {
                         return true;
                     }

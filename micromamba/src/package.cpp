@@ -115,7 +115,7 @@ set_package_command(CLI::App* subcom, Configuration& config)
                 {
                     compression_level = 9;
                 }
-                dest = infile.substr(0, infile.size() - 8) + ".tar.bz2";
+                dest = infile.substr(0, infile.size() - 6) + ".tar.bz2";
             }
             Console::stream() << "Transmuting " << fs::absolute(infile) << " to " << dest
                               << std::endl;

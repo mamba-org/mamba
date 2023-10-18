@@ -163,7 +163,7 @@ namespace mamba
             return res;
         }
 
-#if defined(__GNUC__) || defined(__clang__)
+#if (defined(__GNUC__) || defined(__clang__)) && __x86_64__
         __attribute__ ((target ("default"))) std::string get_archspec_x86_64()
         {
             return "x86_64";

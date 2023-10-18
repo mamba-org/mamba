@@ -32,35 +32,24 @@ namespace mamba
         m_progress_callback = std::move(cb);
     }
 
-    void PackageExtractTask::run()
+    auto PackageExtractTask::run() -> Result
     {
-        m_is_valid = true;
-        m_is_extracted = p_fetcher->extract(m_options);
+        bool is_valid = true;
+        bool is_extracted = p_fetcher->extract(m_options);
+        return { is_valid, is_extracted };
     }
 
-    void PackageExtractTask::run(std::size_t downloaded_size)
+    auto PackageExtractTask::run(std::size_t downloaded_size) -> Result
     {
         using ValidationResult = PackageFetcher::ValidationResult;
         ValidationResult validation_res = p_fetcher->validate(downloaded_size, get_progress_callback());
-        m_is_valid = validation_res == ValidationResult::VALID;
-        if (!m_is_valid)
+        const bool is_valid = validation_res == ValidationResult::VALID;
+        bool is_extracted = false;
+        if (is_valid)
         {
-            m_is_extracted = false;
+            is_extracted = p_fetcher->extract(m_options, get_progress_callback());
         }
-        else
-        {
-            m_is_extracted = p_fetcher->extract(m_options, get_progress_callback());
-        }
-    }
-
-    auto PackageExtractTask::get_result() const -> Result
-    {
-        return { m_is_valid, m_is_extracted };
-    }
-
-    void PackageExtractTask::clear_cache() const
-    {
-        p_fetcher->clear_cache();
+        return { is_valid, is_extracted };
     }
 
     auto PackageExtractTask::get_progress_callback() -> progress_callback_t*
@@ -277,7 +266,7 @@ namespace mamba
             LOG_DEBUG << "Decompressing '" << m_tarball_path.string() << "'";
             try
             {
-                fs::u8path extract_path = get_extract_path(filename(), m_cache_path);
+                const fs::u8path extract_path = get_extract_path(filename(), m_cache_path);
                 // Be sure the first writable cache doesn't contain invalid extracted package
                 clear_extract_path(extract_path);
                 extract_impl(m_tarball_path, extract_path, options);
@@ -308,7 +297,7 @@ namespace mamba
     void PackageFetcher::clear_cache() const
     {
         fs::remove_all(m_tarball_path);
-        fs::u8path dest_dir = strip_package_extension(m_tarball_path.string());
+        const fs::u8path dest_dir = strip_package_extension(m_tarball_path.string());
         fs::remove_all(dest_dir);
     }
 

@@ -894,7 +894,7 @@ namespace mamba
             return extract_tasks;
         }
 
-        using ExtractTrackerList = std::vector<std::future<void>>;
+        using ExtractTrackerList = std::vector<std::future<PackageExtractTask::Result>>;
 
         MultiDownloadRequest build_download_requests(
             FetcherList& fetchers,
@@ -910,8 +910,8 @@ namespace mamba
                  ++fit, ++eit)
             {
                 auto ceit = eit;  // Apple Clang cannot capture eit
-                auto task = std::make_shared<std::packaged_task<void(std::size_t)>>(
-                    [ceit](std::size_t downloaded_size) { ceit->run(downloaded_size); }
+                auto task = std::make_shared<std::packaged_task<PackageExtractTask::Result(std::size_t)>>(
+                    [ceit](std::size_t downloaded_size) { return ceit->run(downloaded_size); }
                 );
                 extract_trackers.push_back(task->get_future());
                 download_requests.push_back(fit->build_download_request(
@@ -927,17 +927,19 @@ namespace mamba
             return download_requests;
         }
 
-        void schedule_extractions(
+        void schedule_remaining_extractions(
             ExtractTaskList& extract_tasks,
             ExtractTrackerList& extract_trackers,
             std::size_t download_size
         )
         {
+            // We schedule extractions for packages that don't need to be downloaded,
+            // because downloading a package already triggers its extraction.
             for (auto it = extract_tasks.begin() + static_cast<std::ptrdiff_t>(download_size);
                  it != extract_tasks.end();
                  ++it)
             {
-                std::packaged_task task{ [=] { it->run(); } };
+                std::packaged_task task{ [=] { return it->run(); } };
                 extract_trackers.push_back(task.get_future());
                 MainExecutor::instance().schedule(std::move(task));
             }
@@ -951,24 +953,25 @@ namespace mamba
         )
         {
             auto result = download(std::move(requests), context, options, monitor);
-            bool all_downloaded = std::accumulate(
+            bool all_downloaded = std::all_of(
                 result.begin(),
                 result.end(),
-                true,
-                [](bool acc, const auto& r) { return acc && r; }
+                [](const auto& r) { return r; }
             );
             return all_downloaded;
         }
 
-        bool clear_invalid_caches(const ExtractTaskList& extract_tasks)
+        bool clear_invalid_caches(const FetcherList& fetchers, ExtractTrackerList& trackers)
         {
             bool all_valid = true;
-            for (auto eit = extract_tasks.begin(); eit != extract_tasks.end(); ++eit)
+            for (auto [fit, eit] = std::tuple{ fetchers.begin(), trackers.begin() };
+                 eit != trackers.end();
+                 ++fit, ++eit)
             {
-                PackageExtractTask::Result res = eit->get_result();
+                PackageExtractTask::Result res = eit->get();
                 if (!res.valid || !res.extracted)
                 {
-                    eit->clear_cache();
+                    fit->clear_cache();
                     all_valid = false;
                 }
             }
@@ -978,12 +981,7 @@ namespace mamba
 
     bool MTransaction::fetch_extract_packages()
     {
-        // TODO: move this to the PackageDownloadMonitor
-        auto& pbar_manager = Console::instance().init_progress_bar_manager(ProgressBarMode::aggregated
-        );
-
-        auto& channel_context = m_pool.channel_context();
-        auto& ctx = channel_context.context();
+        auto& ctx = m_pool.channel_context().context();
         PackageFetcherSemaphore::set_max(ctx.threads_params.extract_threads);
 
         FetcherList fetchers = build_fetchers(m_pool, m_solution, m_multi_cache);
@@ -1026,7 +1024,7 @@ namespace mamba
             monitor->observe(download_requests, extract_tasks, download_options);
         }
 
-        schedule_extractions(extract_tasks, extract_trackers, download_size);
+        schedule_remaining_extractions(extract_tasks, extract_trackers, download_size);
         bool all_downloaded = trigger_download(
             std::move(download_requests),
             ctx,
@@ -1045,8 +1043,8 @@ namespace mamba
             task.wait();
         }
 
-        const bool all_valid = clear_invalid_caches(extract_tasks);
-        // TODO: see if we can remove this in the caller
+        const bool all_valid = clear_invalid_caches(fetchers, extract_trackers);
+        // TODO: see if we can move this into the caller
         if (!all_valid)
         {
             throw std::runtime_error(std::string("Found incorrect downloads. Aborting"));

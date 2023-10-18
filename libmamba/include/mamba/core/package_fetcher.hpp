@@ -50,11 +50,8 @@ namespace mamba
 
         void set_progress_callback(progress_callback_t cb);
 
-        void run();
-        void run(std::size_t downloaded_size);
-
-        Result get_result() const;
-        void clear_cache() const;
+        Result run();
+        Result run(std::size_t downloaded_size);
 
     private:
 
@@ -62,8 +59,6 @@ namespace mamba
 
         PackageFetcher* p_fetcher;
         ExtractOptions m_options;
-        bool m_is_valid;
-        bool m_is_extracted;
         std::optional<progress_callback_t> m_progress_callback = std::nullopt;
     };
 

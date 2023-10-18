@@ -110,7 +110,10 @@ namespace mamba
                 }
                 else
                 {
-                    total_str = to_human_readable_filesize(static_cast<double>(r.progress_bar().total()), 1);
+                    total_str = to_human_readable_filesize(
+                        static_cast<double>(r.progress_bar().total()),
+                        1
+                    );
                 }
                 r.total.set_value(fmt::format("{:>7}", total_str));
 
@@ -257,6 +260,8 @@ namespace mamba
     )
     {
         assert(extract_tasks.size() >= dl_requests.size());
+        auto& pbar_manager = Console::instance().init_progress_bar_manager(ProgressBarMode::aggregated
+        );
         m_extract_bar.reserve(extract_tasks.size());
         m_throttle_time.resize(dl_requests.size(), std::chrono::steady_clock::now());
         m_download_bar.reserve(dl_requests.size());
@@ -281,9 +286,6 @@ namespace mamba
         init_aggregated_download();
         init_aggregated_extract();
 
-        auto& pbar_manager = static_cast<AggregatedBarManager&>(
-            Console::instance().progress_bar_manager()
-        );
         pbar_manager.start();
         pbar_manager.watch_print();
 

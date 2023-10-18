@@ -36,7 +36,7 @@ Please use ``conda-forge`` instead.
 
 Please disable the default channels in your install command::
 
-  mamba create -c nodefaults ...
+  mamba create --override-channels ...
 
 Or your :file:`environment.yml` file:
 

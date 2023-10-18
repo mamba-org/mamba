@@ -78,7 +78,7 @@ namespace mamba
         // Requires for i in [0, dl_requests.size()), extract_tasks[i].needs_download()
         void observe(
             MultiDownloadRequest& dl_requests,
-            std::vector<PackageExtractRequest>& extract_requests,
+            std::vector<PackageExtractTask>& extract_tasks,
             DownloadOptions& options
         );
 

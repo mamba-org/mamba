@@ -91,7 +91,13 @@ namespace mamba
             }
         }
 
-        std::pair<bool, bool> get_env_remote_params(const Context& context)
+        struct EnvRemoteParams
+        {
+            bool set_low_speed_opt = false;
+            bool set_ssl_no_revoke = false;
+        };
+
+        EnvRemoteParams get_env_remote_params(const Context& context)
         {
             // TODO: we should probably store set_low_speed_limit and set_ssl_no_revoke in
             // RemoteFetchParams if the request is slower than 30b/s for 60 seconds, cancel.
@@ -249,7 +255,7 @@ namespace mamba
 
     void DownloadAttempt::configure_handle(const Context& context)
     {
-        auto [set_low_speed_opt, set_ssl_no_revoke] = get_env_remote_params(context);
+        const auto [set_low_speed_opt, set_ssl_no_revoke] = get_env_remote_params(context);
 
         m_handle.configure_handle(
             util::file_uri_unc2_to_unc4(p_request->url),
@@ -874,7 +880,7 @@ namespace mamba
             init_remote_fetch_params(ctx.remote_fetch_params);
         }
 
-        auto [set_low_speed_opt, set_ssl_no_revoke] = get_env_remote_params(context);
+        const auto [set_low_speed_opt, set_ssl_no_revoke] = get_env_remote_params(context);
 
         return curl::check_resource_exists(
             util::file_uri_unc2_to_unc4(url),

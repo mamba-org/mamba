@@ -31,7 +31,7 @@ namespace mamba
         extract_failure
     };
 
-    class PackageExtractRequest
+    class PackageExtractTask
     {
     public:
 
@@ -43,7 +43,7 @@ namespace mamba
 
         using progress_callback_t = std::function<void(PackageExtractEvent)>;
 
-        PackageExtractRequest(PackageFetcher* fetcher, ExtractOptions options);
+        PackageExtractTask(PackageFetcher* fetcher, ExtractOptions options);
 
         const std::string& name() const;
         bool needs_download() const;
@@ -54,6 +54,7 @@ namespace mamba
         void run(std::size_t downloaded_size);
 
         Result get_result() const;
+        void clear_cache() const;
 
     private:
 
@@ -101,8 +102,8 @@ namespace mamba
         bool extract(const ExtractOptions& options, progress_callback_t* cb = nullptr);
 
         // The PackageFetcher object should be stable in memory (i.e. not moved) after this
-        // method has been called, until the PackageExtractRequest has been completed.
-        PackageExtractRequest build_extract_request(ExtractOptions options);
+        // method has been called, until the PackageExtractTask has been completed.
+        PackageExtractTask build_extract_task(ExtractOptions options);
 
         void clear_cache() const;
 

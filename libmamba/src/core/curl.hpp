@@ -140,16 +140,7 @@ namespace mamba
         const char* get_error_buffer() const;
         std::string get_curl_effective_url() const;
 
-        [[deprecated]] std::size_t get_result() const;
-        [[deprecated]] bool is_curl_res_ok() const;
-
-        [[deprecated]] void set_result(CURLcode res);
-
-        [[deprecated]] std::string get_res_error() const;
-
-        // Side-effect programming, to remove
-        [[deprecated]] bool can_proceed();
-        void perform();
+        CURLcode perform();
 
         CURLId get_id() const;
 
@@ -161,7 +152,6 @@ namespace mamba
     private:
 
         CURL* m_handle;
-        CURLcode m_result;  // Enum range from 0 to 99
         curl_slist* p_headers = nullptr;
         std::array<char, CURL_ERROR_SIZE> m_errorbuffer;
 

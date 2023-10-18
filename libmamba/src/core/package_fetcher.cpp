@@ -8,37 +8,37 @@ namespace mamba
 {
 
     /**********************
-     * PackageExtractRequest *
+     * PackageExtractTask *
      **********************/
 
-    PackageExtractRequest::PackageExtractRequest(PackageFetcher* fetcher, ExtractOptions options)
+    PackageExtractTask::PackageExtractTask(PackageFetcher* fetcher, ExtractOptions options)
         : p_fetcher(fetcher)
         , m_options(std::move(options))
     {
     }
 
-    const std::string& PackageExtractRequest::name() const
+    const std::string& PackageExtractTask::name() const
     {
         return p_fetcher->name();
     }
 
-    bool PackageExtractRequest::needs_download() const
+    bool PackageExtractTask::needs_download() const
     {
         return p_fetcher->needs_download();
     }
 
-    void PackageExtractRequest::set_progress_callback(progress_callback_t cb)
+    void PackageExtractTask::set_progress_callback(progress_callback_t cb)
     {
         m_progress_callback = std::move(cb);
     }
 
-    void PackageExtractRequest::run()
+    void PackageExtractTask::run()
     {
         m_is_valid = true;
         m_is_extracted = p_fetcher->extract(m_options);
     }
 
-    void PackageExtractRequest::run(std::size_t downloaded_size)
+    void PackageExtractTask::run(std::size_t downloaded_size)
     {
         using ValidationResult = PackageFetcher::ValidationResult;
         ValidationResult validation_res = p_fetcher->validate(downloaded_size, get_progress_callback());
@@ -53,12 +53,17 @@ namespace mamba
         }
     }
 
-    auto PackageExtractRequest::get_result() const -> Result
+    auto PackageExtractTask::get_result() const -> Result
     {
         return { m_is_valid, m_is_extracted };
     }
 
-    auto PackageExtractRequest::get_progress_callback() -> progress_callback_t*
+    void PackageExtractTask::clear_cache() const
+    {
+        p_fetcher->clear_cache();
+    }
+
+    auto PackageExtractTask::get_progress_callback() -> progress_callback_t*
     {
         if (m_progress_callback.has_value())
         {
@@ -81,7 +86,7 @@ namespace mamba
     )
         : m_package_info(pkg_info)
     {
-        // only do this for micromamba for now
+        // FIXME: only do this for micromamba for now
         if (channel_context.context().command_params.is_micromamba)
         {
             m_url = channel_context.make_channel(pkg_info.url).urls(true)[0];
@@ -91,10 +96,10 @@ namespace mamba
             m_url = pkg_info.url;
         }
 
-        fs::u8path extracted_cache = caches.get_extracted_dir_path(m_package_info);
+        const fs::u8path extracted_cache = caches.get_extracted_dir_path(m_package_info);
         if (extracted_cache.empty())
         {
-            fs::u8path tarball_cache = caches.get_tarball_path(m_package_info);
+            const fs::u8path tarball_cache = caches.get_tarball_path(m_package_info);
             auto& cache = caches.first_writable_cache(true);
             m_cache_path = cache.path();
 
@@ -295,7 +300,7 @@ namespace mamba
         return true;
     }
 
-    PackageExtractRequest PackageFetcher::build_extract_request(ExtractOptions options)
+    PackageExtractTask PackageFetcher::build_extract_task(ExtractOptions options)
     {
         return { this, std::move(options) };
     }
@@ -304,10 +309,7 @@ namespace mamba
     {
         fs::remove_all(m_tarball_path);
         fs::u8path dest_dir = strip_package_extension(m_tarball_path.string());
-        if (fs::exists(dest_dir))
-        {
-            fs::remove_all(dest_dir);
-        }
+        fs::remove_all(dest_dir);
     }
 
     /*******************
@@ -349,7 +351,6 @@ namespace mamba
                       << "\nExpected: " << expected_size() << "\nActual: " << downloaded_size
                       << "\n";
             Console::instance().print(filename() + " tarball has incorrect size");
-            // TODO: terminate monitor
         }
         return res;
     }
@@ -371,8 +372,8 @@ namespace mamba
 
     void PackageFetcher::write_repodata_record(const fs::u8path& base_path) const
     {
-        fs::u8path repodata_record_path = base_path / "info" / "repodata_record.json";
-        fs::u8path index_path = base_path / "info" / "index.json";
+        const fs::u8path repodata_record_path = base_path / "info" / "repodata_record.json";
+        const fs::u8path index_path = base_path / "info" / "index.json";
 
         nlohmann::json index, solvable_json;
         std::ifstream index_file = open_ifstream(index_path);
@@ -397,6 +398,7 @@ namespace mamba
 
     void PackageFetcher::update_urls_txt() const
     {
+        // TODO: check if this lock is really required
         std::lock_guard<std::mutex> lock(urls_txt_mutex);
         const auto urls_file_path = m_cache_path / "urls.txt";
         std::ofstream urls_txt(urls_file_path.std_path(), std::ios::app);

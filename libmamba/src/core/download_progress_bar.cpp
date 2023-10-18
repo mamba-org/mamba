@@ -18,7 +18,7 @@ namespace mamba
             const DownloadProgress& progress
         )
         {
-            auto now = std::chrono::steady_clock::now();
+            const auto now = std::chrono::steady_clock::now();
 
             const auto throttle_treshold = std::chrono::milliseconds(50);
             if (now - throttle_time < throttle_treshold)
@@ -93,29 +93,28 @@ namespace mamba
             }
         }
 
-        std::function<void(ProgressBarRepr&)> download_repr(ProgressProxy& progress_bar)
+        std::function<void(ProgressBarRepr&)> download_repr()
         {
-            // TODO: remove lambda capture and retrieve the progress bar via r.progress_bar()
-            return [&progress_bar](ProgressBarRepr& r)
+            return [](ProgressBarRepr& r)
             {
                 r.current.set_value(fmt::format(
                     "{:>7}",
-                    to_human_readable_filesize(static_cast<double>(progress_bar.current()), 1)
+                    to_human_readable_filesize(static_cast<double>(r.progress_bar().current()), 1)
                 ));
 
                 std::string total_str;
-                if (!progress_bar.total()
-                    || (progress_bar.total() == std::numeric_limits<std::size_t>::max()))
+                if (!r.progress_bar().total()
+                    || (r.progress_bar().total() == std::numeric_limits<std::size_t>::max()))
                 {
                     total_str = "??.?MB";
                 }
                 else
                 {
-                    total_str = to_human_readable_filesize(static_cast<double>(progress_bar.total()), 1);
+                    total_str = to_human_readable_filesize(static_cast<double>(r.progress_bar().total()), 1);
                 }
                 r.total.set_value(fmt::format("{:>7}", total_str));
 
-                auto speed = progress_bar.speed();
+                auto speed = r.progress_bar().speed();
                 r.speed.set_value(fmt::format(
                     "@ {:>7}/s",
                     speed ? to_human_readable_filesize(static_cast<double>(speed), 1) : "??.?MB"
@@ -155,7 +154,7 @@ namespace mamba
         for (std::size_t i = 0; i < requests.size(); ++i)
         {
             m_progress_bar.push_back(Console::instance().add_progress_bar(requests[i].name));
-            m_progress_bar.back().set_repr_hook(download_repr(m_progress_bar[i]));
+            m_progress_bar.back().set_repr_hook(download_repr());
 
             if (m_options.checking_download)
             {
@@ -253,26 +252,25 @@ namespace mamba
 
     void PackageDownloadMonitor::observe(
         MultiDownloadRequest& dl_requests,
-        std::vector<PackageExtractRequest>& extract_requests,
+        std::vector<PackageExtractTask>& extract_tasks,
         DownloadOptions& options
     )
     {
-        assert(extract_requests.size() >= dl_requests.size());
-        m_extract_bar.reserve(extract_requests.size());
+        assert(extract_tasks.size() >= dl_requests.size());
+        m_extract_bar.reserve(extract_tasks.size());
         m_throttle_time.resize(dl_requests.size(), std::chrono::steady_clock::now());
         m_download_bar.reserve(dl_requests.size());
 
-        for (size_t i = 0; i < extract_requests.size(); ++i)
+        for (size_t i = 0; i < extract_tasks.size(); ++i)
         {
-            m_extract_bar.push_back(Console::instance().add_progress_bar(extract_requests[i].name(), 1)
-            );
+            m_extract_bar.push_back(Console::instance().add_progress_bar(extract_tasks[i].name(), 1));
             init_extract_bar(m_extract_bar.back());
-            extract_requests[i].set_progress_callback([=](PackageExtractEvent e)
-                                                      { update_extract_bar(i, e); });
+            extract_tasks[i].set_progress_callback([=](PackageExtractEvent e)
+                                                   { update_extract_bar(i, e); });
 
             if (i < dl_requests.size())
             {
-                assert(extract_requests[i].needs_download());
+                assert(extract_tasks[i].needs_download());
                 m_download_bar.push_back(Console::instance().add_progress_bar(dl_requests[i].name));
                 init_download_bar(m_download_bar.back());
                 dl_requests[i].progress = [this, i](const DownloadEvent& e)
@@ -283,7 +281,7 @@ namespace mamba
         init_aggregated_download();
         init_aggregated_extract();
 
-        auto& pbar_manager = dynamic_cast<AggregatedBarManager&>(
+        auto& pbar_manager = static_cast<AggregatedBarManager&>(
             Console::instance().progress_bar_manager()
         );
         pbar_manager.start();
@@ -334,19 +332,20 @@ namespace mamba
 
     void PackageDownloadMonitor::init_download_bar(ProgressProxy& download_bar)
     {
-        download_bar.set_repr_hook(download_repr(download_bar));
+        download_bar.set_repr_hook(download_repr());
         Console::instance().progress_bar_manager().add_label("Download", download_bar);
     }
 
     void PackageDownloadMonitor::init_aggregated_extract()
     {
-        auto& pbar_manager = dynamic_cast<AggregatedBarManager&>(
+        auto& pbar_manager = static_cast<AggregatedBarManager&>(
             Console::instance().progress_bar_manager()
         );
         auto* extract_bar = pbar_manager.aggregated_bar("Extract");
         if (extract_bar)
         {
-            // TODO: remove lambda capture and retrieve the progress bar via repr.progress_bar()
+            // lambda capture required because we are calling non const methods
+            // on extract_bar.
             extract_bar->set_repr_hook(
                 [extract_bar](ProgressBarRepr& repr) -> void
                 {
@@ -383,13 +382,14 @@ namespace mamba
 
     void PackageDownloadMonitor::init_aggregated_download()
     {
-        auto& pbar_manager = dynamic_cast<AggregatedBarManager&>(
+        auto& pbar_manager = static_cast<AggregatedBarManager&>(
             Console::instance().progress_bar_manager()
         );
         auto* dl_bar = pbar_manager.aggregated_bar("Download");
         if (dl_bar)
         {
-            // TODO: remove lambda capture and retrieve the progress bar via repr.progress_bar()
+            // lambda capture required because we are calling non const methods
+            // on dl_bar.
             dl_bar->set_repr_hook(
                 [dl_bar](ProgressBarRepr& repr) -> void
                 {

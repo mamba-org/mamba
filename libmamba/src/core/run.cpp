@@ -475,7 +475,7 @@ namespace mamba
 
             if (ec)
             {
-                std::cerr << ec.message() << '\n';
+                std::cerr << ec.message() << " ; error code " << ec.value() << '\n';
             }
         }
         // exit with status code from reproc

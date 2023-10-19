@@ -18,7 +18,7 @@
 #include "mamba/core/environment.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/package_download.hpp"
+#include "mamba/core/package_fetcher.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
@@ -904,7 +904,7 @@ namespace mamba
 
         void extract_threads_hook(const Context& context)
         {
-            DownloadExtractSemaphore::set_max(context.threads_params.extract_threads);
+            PackageFetcherSemaphore::set_max(context.threads_params.extract_threads);
         }
     }
 

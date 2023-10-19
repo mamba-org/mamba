@@ -131,6 +131,15 @@ namespace mamba
         DownloadMonitor* monitor = nullptr
     );
 
+    DownloadResult download(
+        DownloadRequest request,
+        const Context& context,
+        DownloadOptions options = {},
+        DownloadMonitor* monitor = nullptr
+    );
+
+    bool check_resource_exists(const std::string& url, const Context& context);
+
 }
 
 #endif

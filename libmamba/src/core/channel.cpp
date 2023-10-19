@@ -459,23 +459,25 @@ namespace mamba
         return chan;
     }
 
-    Channel ChannelContext::from_name(const std::string& name)
+    Channel ChannelContext::from_name(specs::ChannelSpec&& spec)
     {
-        std::string tmp_stripped = name;
+        std::string name = spec.clear_location();
         const auto& custom_channels = get_custom_channels();
         const auto it_end = custom_channels.end();
-        auto it = custom_channels.find(tmp_stripped);
-        while (it == it_end)
+        auto it = custom_channels.find(name);
         {
-            const auto pos = tmp_stripped.rfind("/");
-            if (pos == std::string::npos)
+            std::string considered_name = name;
+            while (it == it_end)
             {
-                break;
-            }
-            else
-            {
-                tmp_stripped = tmp_stripped.substr(0, pos);
-                it = custom_channels.find(tmp_stripped);
+                if (const auto pos = considered_name.rfind("/"); pos != std::string::npos)
+                {
+                    considered_name = considered_name.substr(0, pos);
+                    it = custom_channels.find(considered_name);
+                }
+                else
+                {
+                    break;
+                }
             }
         }
 
@@ -512,7 +514,8 @@ namespace mamba
                 /* url= */ std::move(url),
                 /* location= */ it->second.location(),
                 /* name= */ std::move(combined_name),
-                /* canonical_name= */ std::move(name)
+                /* canonical_name= */ std::move(name),
+                /* platforms= */ make_platforms(spec.clear_platform_filters(), m_context.platforms())
             );
         }
 
@@ -521,9 +524,10 @@ namespace mamba
         url.append_path(name);
         return Channel(
             /* url= */ std::move(url),
-            /*  location= */ alias.pretty_str(specs::CondaURL::StripScheme::yes, '/', specs::CondaURL::Credentials::Remove),
-            /*  name= */ name,
-            /*  canonical_name= */ name
+            /* location= */ alias.pretty_str(specs::CondaURL::StripScheme::yes, '/', specs::CondaURL::Credentials::Remove),
+            /* name= */ name,
+            /* canonical_name= */ name,
+            /* platforms= */ make_platforms(spec.clear_platform_filters(), m_context.platforms())
         );
     }
 
@@ -541,49 +545,30 @@ namespace mamba
 
         auto spec = specs::ChannelSpec::parse(in_value);
 
-        auto get_platforms = [&]()
+        switch (spec.type())
         {
-            auto out = spec.platform_filters();
-
-            if (out.empty())
+            case specs::ChannelSpec::Type::PackagePath:
             {
-                for (const auto& plat : m_context.platforms())
-                {
-                    out.insert(plat);
-                }
+                return from_package_path(std::move(spec));
             }
-            return out;
-        };
-
-        return [&](specs::ChannelSpec&& l_spec) -> Channel
-        {
-            switch (l_spec.type())
+            case specs::ChannelSpec::Type::Path:
             {
-                case specs::ChannelSpec::Type::PackagePath:
-                {
-                    return from_package_path(std::move(l_spec));
-                }
-                case specs::ChannelSpec::Type::Path:
-                {
-                    return from_path(std::move(l_spec));
-                }
-                case specs::ChannelSpec::Type::PackageURL:
-                {
-                    return from_package_url(std::move(l_spec));
-                }
-                case specs::ChannelSpec::Type::URL:
-                {
-                    return from_url(std::move(l_spec));
-                }
-                case specs::ChannelSpec::Type::Name:
-                {
-                    auto chan = from_name(l_spec.location());
-                    chan.m_platforms = get_platforms();
-                    return chan;
-                }
+                return from_path(std::move(spec));
             }
-            throw std::invalid_argument("Invalid ChannelSpec::Type");
-        }(std::move(spec));
+            case specs::ChannelSpec::Type::PackageURL:
+            {
+                return from_package_url(std::move(spec));
+            }
+            case specs::ChannelSpec::Type::URL:
+            {
+                return from_url(std::move(spec));
+            }
+            case specs::ChannelSpec::Type::Name:
+            {
+                return from_name(std::move(spec));
+            }
+        }
+        throw std::invalid_argument("Invalid ChannelSpec::Type");
     }
 
     const Channel& ChannelContext::make_channel(const std::string& value)

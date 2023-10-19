@@ -7,6 +7,7 @@
 #ifndef MAMBA_SPECS_CONDA_URL_HPP
 #define MAMBA_SPECS_CONDA_URL_HPP
 
+#include <functional>
 #include <string_view>
 
 #include "mamba/specs/platform.hpp"
@@ -33,6 +34,8 @@ namespace mamba::specs
         CondaURL() = default;
         explicit CondaURL(util::URL&& url);
         explicit CondaURL(const util::URL& url);
+
+        auto base() const -> const util::URL&;
 
         using Base::scheme_is_defaulted;
         using Base::scheme;
@@ -226,12 +229,21 @@ namespace mamba::specs
         friend auto operator==(const CondaURL&, const CondaURL&) -> bool;
     };
 
-    /** Compare two CondaURL. */
+    /** Tuple-like equality of all observable members */
     auto operator==(const CondaURL& a, const CondaURL& b) -> bool;
     auto operator!=(const CondaURL& a, const CondaURL& b) -> bool;
 
     /** A functional equivalent to ``CondaURL::append_path``. */
     auto operator/(const CondaURL& url, std::string_view subpath) -> CondaURL;
     auto operator/(CondaURL&& url, std::string_view subpath) -> CondaURL;
+}
+
+namespace std
+{
+    template <>
+    struct hash<mamba::specs::CondaURL>
+    {
+        auto operator()(const mamba::specs::CondaURL& p) const -> std::size_t;
+    };
 }
 #endif

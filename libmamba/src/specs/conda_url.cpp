@@ -113,6 +113,11 @@ namespace mamba::specs
     {
     }
 
+    auto CondaURL::base() const -> const util::URL&
+    {
+        return static_cast<const util::URL&>(*this);
+    }
+
     auto CondaURL::parse(std::string_view url) -> CondaURL
     {
         return CondaURL(URL::parse(url));
@@ -491,7 +496,7 @@ namespace mamba::specs
 
     auto operator==(const CondaURL& a, const CondaURL& b) -> bool
     {
-        return static_cast<const util::URL&>(a) == static_cast<const util::URL&>(b);
+        return a.base() == b.base();
     }
 
     auto operator!=(const CondaURL& a, const CondaURL& b) -> bool
@@ -508,5 +513,13 @@ namespace mamba::specs
     {
         url.append_path(subpath);
         return std::move(url);
+    }
+}
+
+namespace std
+{
+    auto hash<mamba::specs::CondaURL>::operator()(const mamba::specs::CondaURL& u) const -> std::size_t
+    {
+        return std::hash<mamba::util::URL>()(u.base());
     }
 }

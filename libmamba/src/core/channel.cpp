@@ -571,41 +571,66 @@ namespace mamba
         throw std::invalid_argument("Invalid ChannelSpec::Type");
     }
 
+    namespace
+    {
+        void set_fallback_credential_from(specs::CondaURL& url, const specs::AuthenticationInfo& auth)
+        {
+            using Decode = typename specs::CondaURL::Decode;
+            using Encode = typename specs::CondaURL::Encode;
+
+            std::visit(
+                [&](const auto& info)
+                {
+                    using Info = std::decay_t<decltype(info)>;
+                    if constexpr (std::is_same_v<Info, specs::BasicHTTPAuthentication>)
+                    {
+                        if (url.user(Decode::no).empty() && url.password(Decode::no).empty())
+                        {
+                            url.set_user(info.user, Encode::yes);
+                            url.set_password(info.password, Encode::yes);
+                        }
+                    }
+                    else if constexpr (std::is_same_v<Info, specs::CondaToken>)
+                    {
+                        if (url.token().empty())
+                        {
+                            url.set_token(info.token);
+                        }
+                    }
+                },
+                auth
+            );
+        }
+
+    }
+
     const Channel& ChannelContext::make_channel(const std::string& value)
     {
-        auto res = m_channel_cache.find(value);
-        if (res == m_channel_cache.end())
+        if (const auto it = m_channel_cache.find(value); it != m_channel_cache.end())
         {
-            auto chan = from_value(value);
-            if (!chan.token())
+            return it->second;
+        }
+
+        auto chan = from_value(value);
+        if (!chan.token())
+        {
+            const auto& with_channel = util::join_url(
+                chan.location(),
+                chan.name() == UNKNOWN_CHANNEL ? "" : chan.name()
+            );
+            const auto& without_channel = chan.location();
+            for (const auto& auth : { with_channel, without_channel })
             {
-                const auto& with_channel = util::join_url(
-                    chan.location(),
-                    chan.name() == UNKNOWN_CHANNEL ? "" : chan.name()
-                );
-                const auto& without_channel = chan.location();
-                for (const auto& auth : { with_channel, without_channel })
+                const auto& authentication_info = m_context.authentication_info();
+
+                if (const auto it = authentication_info.find(auth); it != authentication_info.end())
                 {
-                    const auto& authentication_info = m_context.authentication_info();
-                    auto it = authentication_info.find(auth);
-                    if (it != authentication_info.end()
-                        && std::holds_alternative<specs::CondaToken>(it->second))
-                    {
-                        chan.m_url.set_token(std::get<specs::CondaToken>(it->second).token);
-                        break;
-                    }
-                    else if (it != authentication_info.end() && std::holds_alternative<specs::BasicHTTPAuthentication>(it->second))
-                    {
-                        const auto& l_auth = std::get<specs::BasicHTTPAuthentication>(it->second);
-                        chan.m_url.set_user(l_auth.user);
-                        chan.m_url.set_password(l_auth.password);
-                        break;
-                    }
+                    set_fallback_credential_from(chan.m_url, it->second);
                 }
             }
-            res = m_channel_cache.insert(std::make_pair(value, std::move(chan))).first;
         }
-        return res->second;
+        auto it = m_channel_cache.insert(std::make_pair(value, std::move(chan))).first;
+        return it->second;
     }
 
     std::vector<const Channel*>

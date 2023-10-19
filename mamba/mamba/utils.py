@@ -26,6 +26,19 @@ from conda.models.records import PackageRecord
 
 import libmambapy as api
 
+try:
+    from conda.models.enums import PackageType
+except ImportError:
+    PackageType = None
+
+
+def _is_virtual_system(rec):
+    if PackageType is None:
+        # Backward compat for older conda versions
+        return rec.package_type == "virtual_system"
+    else:
+        return rec.package_type == PackageType.VIRTUAL_SYSTEM
+
 
 def load_channel(subdir_data, result_container):
     if not context.quiet:
@@ -352,7 +365,7 @@ def compute_final_precs(
                     to_unlink_records.append(i_rec)
                 except KeyError:
                     # virtual packages cannot be unlinked as they do not exist
-                    if i_rec.package_type == "virtual_system":
+                    if _is_virtual_system(i_rec):
                         continue
                     raise
                 break
@@ -377,7 +390,7 @@ def compute_final_precs(
                 rec.noarch = ipkg.noarch
 
         # virtual packages cannot be linked as they do not exist
-        if rec.package_type == "virtual_system":
+        if _is_virtual_system(rec):
             continue
 
         final_precs.add(rec)

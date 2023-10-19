@@ -18,6 +18,7 @@
 #include "mamba/util/build.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/tuple_hash.hpp"
 #include "mamba/util/url.hpp"
 #include "mamba/util/url_manip.hpp"
 
@@ -664,3 +665,11 @@ namespace mamba::util
     }
 
 }  // namespace mamba
+
+namespace std
+{
+    auto hash<mamba::util::URL>::operator()(const mamba::util::URL& u) const -> std::size_t
+    {
+        return mamba::util::hash_tuple(mamba::util::attrs(u));
+    }
+}

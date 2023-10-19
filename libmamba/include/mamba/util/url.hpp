@@ -8,6 +8,7 @@
 #define MAMBA_UTIL_URL_HPP
 
 #include <array>
+#include <functional>
 #include <string>
 #include <string_view>
 
@@ -277,5 +278,14 @@ namespace mamba::util
     /** A functional equivalent to ``URL::append_path``. */
     auto operator/(URL const& url, std::string_view subpath) -> URL;
     auto operator/(URL&& url, std::string_view subpath) -> URL;
+}
+
+namespace std
+{
+    template <>
+    struct hash<mamba::util::URL>
+    {
+        auto operator()(const mamba::util::URL& p) const -> std::size_t;
+    };
 }
 #endif

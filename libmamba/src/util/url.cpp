@@ -617,15 +617,34 @@ namespace mamba::util
         );
     }
 
+    namespace
+    {
+        auto attrs(URL const& url)
+        {
+            return std::tuple<
+                std::string_view,
+                const std::string&,
+                const std::string&,
+                std::string_view,
+                const std::string&,
+                const std::string&,
+                const std::string&,
+                const std::string&>{
+                url.scheme(),
+                url.user(URL::Decode::no),
+                url.password(URL::Decode::no),
+                url.host(URL::Decode::no),
+                url.port(),
+                url.path(URL::Decode::no),
+                url.query(),
+                url.fragment(),
+            };
+        }
+    }
+
     auto operator==(URL const& a, URL const& b) -> bool
     {
-        return (a.scheme() == b.scheme())
-               && (a.user() == b.user())
-               // omitting password, is that desirable?
-               && (a.host() == b.host())
-               // Would it be desirable to account for default ports?
-               && (a.port() == b.port()) && (a.path() == b.path()) && (a.query() == b.query())
-               && (a.fragment() == b.fragment());
+        return attrs(a) == attrs(b);
     }
 
     auto operator!=(URL const& a, URL const& b) -> bool

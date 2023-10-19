@@ -270,6 +270,7 @@ namespace mamba::util
         std::string m_fragment = {};
     };
 
+    /** Tuple-like equality of all observable members */
     auto operator==(URL const& a, URL const& b) -> bool;
     auto operator!=(URL const& a, URL const& b) -> bool;
 

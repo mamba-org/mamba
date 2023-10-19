@@ -689,4 +689,54 @@ TEST_SUITE("util::URL")
             }
         }
     }
+
+    TEST_CASE("Comparison")
+    {
+        URL url{};
+        url.set_scheme("https");
+        url.set_user("user");
+        url.set_password("password");
+        url.set_host("mamba.org");
+        url.set_port("33");
+        url.set_path("/folder/file.html");
+        auto other = url;
+
+        CHECK_EQ(url, other);
+
+        SUBCASE("Different scheme")
+        {
+            other.set_scheme("ftp");
+            CHECK_NE(url, other);
+        }
+
+        SUBCASE("Different hosts")
+        {
+            other.clear_host();
+            CHECK_NE(url, other);
+        }
+
+        SUBCASE("Different users")
+        {
+            other.clear_user();
+            CHECK_NE(url, other);
+        }
+
+        SUBCASE("Different passwords")
+        {
+            other.clear_password();
+            CHECK_NE(url, other);
+        }
+
+        SUBCASE("Different ports")
+        {
+            other.clear_port();
+            CHECK_NE(url, other);
+        }
+
+        SUBCASE("Different path")
+        {
+            other.clear_path();
+            CHECK_NE(url, other);
+        }
+    }
 }

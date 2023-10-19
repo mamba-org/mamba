@@ -612,25 +612,40 @@ namespace mamba
         }
 
         auto chan = from_value(value);
-        if (!chan.token())
-        {
-            const auto& with_channel = util::join_url(
-                chan.location(),
-                chan.name() == UNKNOWN_CHANNEL ? "" : chan.name()
-            );
-            const auto& without_channel = chan.location();
-            for (const auto& auth : { with_channel, without_channel })
-            {
-                const auto& authentication_info = m_context.authentication_info();
 
-                if (const auto it = authentication_info.find(auth); it != authentication_info.end())
-                {
-                    set_fallback_credential_from(chan.m_url, it->second);
-                }
+        // Early optimized return
+        if (chan.token() || chan.user() || chan.password())
+        {
+            return m_channel_cache.emplace(value, std::move(chan)).first->second;
+        }
+
+        auto maybe_key = chan.url().pretty_str(
+            specs::CondaURL::StripScheme::yes,
+            '/',
+            specs::CondaURL::Credentials::Remove
+        );
+        const auto& authentication_info = m_context.authentication_info();
+
+        auto it = authentication_info.find(maybe_key);
+        while (it == authentication_info.end())
+        {
+            if (const auto pos = maybe_key.rfind('/'); pos != std::string::npos)
+            {
+                maybe_key = maybe_key.substr(0, pos);
+                it = authentication_info.find(maybe_key);
+            }
+            else
+            {
+                break;
             }
         }
-        auto it = m_channel_cache.insert(std::make_pair(value, std::move(chan))).first;
-        return it->second;
+
+        if (it != authentication_info.end())
+        {
+            set_fallback_credential_from(chan.m_url, it->second);
+        }
+
+        return m_channel_cache.emplace(value, std::move(chan)).first->second;
     }
 
     std::vector<const Channel*>

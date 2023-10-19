@@ -138,6 +138,7 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/compression.cpp
     # Implementation of version and matching specs
     ${LIBMAMBA_SOURCE_DIR}/specs/archive.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/authentication_info.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/platform.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/conda_url.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/version.cpp

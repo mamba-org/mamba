@@ -319,3 +319,21 @@ def test_info(use_json):
         assert output["mamba_version"] == __version__
     else:
         assert "mamba version : " + __version__ in output
+
+
+@pytest.mark.skipif(
+    platform.system() != "Darwin",
+    reason="__osx is a platform specific virtual package from conda-forge",
+)
+def test_remove_virtual_package():
+    # non-regression test for https://github.com/mamba-org/mamba/issues/2129
+    with Environment("bash") as env:
+        # The virtual package __osx is installed by default on macOS:
+        out = env.mamba("info -q")
+        assert "__osx" in "\n".join(out)
+
+        # Attempting to remove it should not fail (but should not remove it
+        # either).
+        env.mamba("remove -q -y __osx")
+        out = env.mamba("info -q")
+        assert "__osx" in "\n".join(out)

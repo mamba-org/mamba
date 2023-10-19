@@ -21,23 +21,11 @@ from conda.core.prefix_data import PrefixData
 from conda.core.solve import diff_for_unlink_link_precs
 from conda.gateways.connection.session import CondaHttpAuth
 from conda.models.channel import Channel as CondaChannel
+from conda.models.enums import PackageType
 from conda.models.prefix_graph import PrefixGraph
 from conda.models.records import PackageRecord
 
 import libmambapy as api
-
-try:
-    from conda.models.enums import PackageType
-except ImportError:
-    PackageType = None
-
-
-def _is_virtual_system(rec):
-    if PackageType is None:
-        # Backward compat for older conda versions
-        return rec.package_type == "virtual_system"
-    else:
-        return rec.package_type == PackageType.VIRTUAL_SYSTEM
 
 
 def load_channel(subdir_data, result_container):
@@ -365,8 +353,8 @@ def compute_final_precs(
                     to_unlink_records.append(i_rec)
                 except KeyError:
                     # virtual packages cannot be unlinked as they do not exist
-                    if _is_virtual_system(i_rec):
-                        continue
+                    if i_rec.package_type is PackageType.VIRTUAL_SYSTEM:
+                        raise
                     raise
                 break
         else:
@@ -390,7 +378,7 @@ def compute_final_precs(
                 rec.noarch = ipkg.noarch
 
         # virtual packages cannot be linked as they do not exist
-        if _is_virtual_system(rec):
+        if rec.package_type is PackageType.VIRTUAL_SYSTEM:
             continue
 
         final_precs.add(rec)

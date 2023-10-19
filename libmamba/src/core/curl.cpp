@@ -234,7 +234,6 @@ namespace mamba
 
     CURLHandle::CURLHandle()  //(const Context& ctx)
         : m_handle(curl_easy_init())
-        , m_result(CURLE_OK)
     {
         if (m_handle == nullptr)
         {
@@ -253,7 +252,6 @@ namespace mamba
         rhs.m_handle = nullptr;
         rhs.p_headers = nullptr;
         std::swap(m_errorbuffer, rhs.m_errorbuffer);
-        std::swap(m_result, rhs.m_result);
         set_opt(CURLOPT_ERRORBUFFER, m_errorbuffer.data());
     }
 
@@ -261,7 +259,6 @@ namespace mamba
     {
         using std::swap;
         swap(m_handle, rhs.m_handle);
-        swap(m_result, rhs.m_result);
         swap(p_headers, rhs.p_headers);
         swap(m_errorbuffer, rhs.m_errorbuffer);
         set_opt(CURLOPT_ERRORBUFFER, m_errorbuffer.data());
@@ -459,34 +456,9 @@ namespace mamba
         return get_info<std::string>(CURLINFO_EFFECTIVE_URL).value();
     }
 
-    std::size_t CURLHandle::get_result() const
+    CURLcode CURLHandle::perform()
     {
-        return static_cast<std::size_t>(m_result);
-    }
-
-    bool CURLHandle::is_curl_res_ok() const
-    {
-        return is_curl_res_ok(m_result);
-    }
-
-    void CURLHandle::set_result(CURLcode res)
-    {
-        m_result = res;
-    }
-
-    std::string CURLHandle::get_res_error() const
-    {
-        return get_res_error(m_result);
-    }
-
-    bool CURLHandle::can_proceed()
-    {
-        return can_retry(m_result);
-    }
-
-    void CURLHandle::perform()
-    {
-        m_result = curl_easy_perform(m_handle);
+        return curl_easy_perform(m_handle);
     }
 
     CURLId CURLHandle::get_id() const

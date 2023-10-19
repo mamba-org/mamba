@@ -7,7 +7,6 @@ __all__ = [
     "ChannelPriority",
     "CompressedProblemsGraph",
     "Context",
-    "DownloadTargetList",
     "ExtraPkgInfo",
     "History",
     "Key",
@@ -19,8 +18,6 @@ __all__ = [
     "MAMBA_CLEAN_LOCKS",
     "MAMBA_CLEAN_PKGS",
     "MAMBA_CLEAN_TARBALLS",
-    "MAMBA_DOWNLOAD_FAILFAST",
-    "MAMBA_DOWNLOAD_SORT",
     "MAMBA_FORCE_REINSTALL",
     "MAMBA_NO_DEPS",
     "MAMBA_ONLY_DEPS",
@@ -827,11 +824,6 @@ class Context:
     @verbosity.setter
     def verbosity(self, arg1: int) -> None:
         pass
-    pass
-
-class DownloadTargetList:
-    def __init__(self) -> None: ...
-    def download(self, arg0: int) -> bool: ...
     pass
 
 class ExtraPkgInfo:
@@ -1675,8 +1667,6 @@ MAMBA_CLEAN_INDEX = 2
 MAMBA_CLEAN_LOCKS = 16
 MAMBA_CLEAN_PKGS = 4
 MAMBA_CLEAN_TARBALLS = 8
-MAMBA_DOWNLOAD_FAILFAST = 1
-MAMBA_DOWNLOAD_SORT = 2
 MAMBA_FORCE_REINSTALL = 4
 MAMBA_NO_DEPS = 1
 MAMBA_ONLY_DEPS = 2

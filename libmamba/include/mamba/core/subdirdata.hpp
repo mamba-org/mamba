@@ -22,8 +22,6 @@
 #include "mamba/core/util.hpp"
 #include "mamba/fs/filesystem.hpp"
 
-#include "package_handling.hpp"
-
 namespace mamba
 {
     class DownloadMonitor;

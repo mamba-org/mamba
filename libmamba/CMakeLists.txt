@@ -154,7 +154,6 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/environment.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/environments_manager.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/error_handling.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/fetch.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/transaction_context.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/link.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/history.cpp
@@ -169,6 +168,7 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/progress_bar.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/progress_bar_impl.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/pinning.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/package_fetcher.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_info.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_paths.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/query.cpp
@@ -179,7 +179,6 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/subdirdata.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/thread_utils.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/transaction.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/package_download.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/util.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/fsutil.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/util_os.cpp
@@ -249,7 +248,6 @@ set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/environment.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/environments_manager.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/error_handling.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/fetch.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/satisfiability_error.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/history.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/link.hpp
@@ -257,6 +255,7 @@ set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/menuinst.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/output.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_cache.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_fetcher.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_handling.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_info.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_paths.hpp
@@ -272,7 +271,6 @@ set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/solver.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/subdirdata.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/thread_utils.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_download.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/transaction.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/transaction_context.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util.hpp

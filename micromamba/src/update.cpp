@@ -7,6 +7,7 @@
 #include <fmt/color.h>
 #include <fmt/format.h>
 #include <reproc++/run.hpp>
+#include <solv/solver.h>
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"

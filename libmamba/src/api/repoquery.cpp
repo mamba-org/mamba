@@ -6,6 +6,8 @@
 
 #include <iostream>
 
+#include <solv/solver.h>
+
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/repoquery.hpp"

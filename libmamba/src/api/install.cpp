@@ -17,9 +17,9 @@
 #include "mamba/api/install.hpp"
 #include "mamba/core/activation.hpp"
 #include "mamba/core/channel.hpp"
+#include "mamba/core/download.hpp"
 #include "mamba/core/env_lockfile.hpp"
 #include "mamba/core/environments_manager.hpp"
-#include "mamba/core/fetch.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/pinning.hpp"
@@ -734,14 +734,10 @@ namespace mamba
         {
             LOG_INFO << "Downloading lockfile";
             tmp_lock_file = std::make_unique<TemporaryFile>();
-            DownloadTarget dt(
-                channel_context.context(),
-                "Environment Lockfile",
-                lockfile,
-                tmp_lock_file->path()
-            );
-            bool success = dt.perform();
-            if (!success || dt.get_http_status() != 200)
+            DownloadRequest request("Environment Lockfile", lockfile, tmp_lock_file->path());
+            DownloadResult res = download(std::move(request), channel_context.context());
+
+            if (!res || res.value().transfer.http_status != 200)
             {
                 throw std::runtime_error(
                     fmt::format("Could not download environment lockfile from {}", lockfile)

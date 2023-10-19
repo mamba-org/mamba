@@ -16,7 +16,7 @@
 #include "mamba/core/palette.hpp"
 #include "mamba/core/tasksync.hpp"
 #include "mamba/fs/filesystem.hpp"
-#include "mamba/specs/authentification_info.hpp"
+#include "mamba/specs/authentication_info.hpp"
 #include "mamba/specs/platform.hpp"
 #include "mamba/version.hpp"
 

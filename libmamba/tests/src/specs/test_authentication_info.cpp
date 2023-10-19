@@ -6,7 +6,7 @@
 
 #include <doctest/doctest.h>
 
-#include "mamba/specs/authentification_info.hpp"
+#include "mamba/specs/authentication_info.hpp"
 
 using namespace mamba::specs;
 

@@ -8,7 +8,7 @@
 
 #include <fmt/format.h>
 
-#include "mamba/specs/authentification_info.hpp"
+#include "mamba/specs/authentication_info.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba::specs

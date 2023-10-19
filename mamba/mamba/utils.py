@@ -354,7 +354,7 @@ def compute_final_precs(
                 except KeyError:
                     # virtual packages cannot be unlinked as they do not exist
                     if i_rec.package_type is PackageType.VIRTUAL_SYSTEM:
-                        raise
+                        continue
                     raise
                 break
         else:

@@ -99,6 +99,9 @@ namespace mamba::util
         /** Clear the scheme back to a defaulted value and return the old value. */
         auto clear_scheme() -> std::string;
 
+        /** Return wether the user is empty. */
+        [[nodiscard]] auto has_user() const -> bool;
+
         /** Return the encoded user, or empty if none. */
         [[nodiscard]] auto user(Decode::no_type) const -> const std::string&;
 
@@ -113,6 +116,9 @@ namespace mamba::util
 
         /** Clear and return the encoded user. */
         auto clear_user() -> std::string;
+
+        /** Return wether the password is empty. */
+        [[nodiscard]] auto has_password() const -> bool;
 
         /** Return the encoded password, or empty if none. */
         [[nodiscard]] auto password(Decode::no_type) const -> const std::string&;

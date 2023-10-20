@@ -223,6 +223,11 @@ namespace mamba::util
         return std::exchange(m_scheme, "");
     }
 
+    auto URL::has_user() const -> bool
+    {
+        return !m_user.empty();
+    }
+
     auto URL::user(Decode::no_type) const -> const std::string&
     {
         return m_user;
@@ -246,6 +251,11 @@ namespace mamba::util
     auto URL::clear_user() -> std::string
     {
         return std::exchange(m_user, "");
+    }
+
+    auto URL::has_password() const -> bool
+    {
+        return !m_password.empty();
     }
 
     auto URL::password(Decode::no_type) const -> const std::string&

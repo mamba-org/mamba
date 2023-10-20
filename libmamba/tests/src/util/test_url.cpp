@@ -22,7 +22,9 @@ TEST_SUITE("util::URL")
         {
             URL url{};
             CHECK_EQ(url.scheme(), URL::https);
+            CHECK_FALSE(url.has_user());
             CHECK_EQ(url.user(), "");
+            CHECK_FALSE(url.has_password());
             CHECK_EQ(url.password(), "");
             CHECK_EQ(url.port(), "");
             CHECK_EQ(url.host(), URL::localhost);
@@ -60,7 +62,9 @@ TEST_SUITE("util::URL")
 
             CHECK_EQ(url.scheme(), "https");
             CHECK_EQ(url.host(), "mamba.org");
+            CHECK(url.has_user());
             CHECK_EQ(url.user(), "user");
+            CHECK(url.has_password());
             CHECK_EQ(url.password(), "pass:word");
             CHECK_EQ(url.port(), "8080");
             CHECK_EQ(url.path(), "/folder/file.html");

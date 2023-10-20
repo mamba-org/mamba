@@ -22,15 +22,18 @@ TEST_SUITE("specs::CondaURL")
         SUBCASE("https://repo.mamba.pm/folder/file.txt")
         {
             url.set_path("/folder/file.txt");
+            CHECK_FALSE(url.has_token());
             CHECK_EQ(url.token(), "");
             CHECK_EQ(url.path_without_token(), "/folder/file.txt");
 
             url.set_token("mytoken");
+            CHECK(url.has_token());
             CHECK_EQ(url.token(), "mytoken");
             CHECK_EQ(url.path_without_token(), "/folder/file.txt");
             CHECK_EQ(url.path(), "/t/mytoken/folder/file.txt");
 
             CHECK(url.clear_token());
+            CHECK_FALSE(url.has_token());
             CHECK_EQ(url.path_without_token(), "/folder/file.txt");
             CHECK_EQ(url.path(), "/folder/file.txt");
         }
@@ -38,6 +41,7 @@ TEST_SUITE("specs::CondaURL")
         SUBCASE("https://repo.mamba.pm/t/xy-12345678-1234/conda-forge/linux-64")
         {
             url.set_path("/t/xy-12345678-1234/conda-forge/linux-64");
+            CHECK(url.has_token());
             CHECK_EQ(url.token(), "xy-12345678-1234");
             CHECK_EQ(url.path_without_token(), "/conda-forge/linux-64");
 
@@ -45,6 +49,7 @@ TEST_SUITE("specs::CondaURL")
             {
                 CHECK_THROWS_AS(url.set_token(""), std::invalid_argument);
                 CHECK_THROWS_AS(url.set_token("?fds:g"), std::invalid_argument);
+                CHECK(url.has_token());
                 CHECK_EQ(url.token(), "xy-12345678-1234");
                 CHECK_EQ(url.path_without_token(), "/conda-forge/linux-64");
                 CHECK_EQ(url.path(), "/t/xy-12345678-1234/conda-forge/linux-64");
@@ -53,6 +58,7 @@ TEST_SUITE("specs::CondaURL")
             SUBCASE("Clear token")
             {
                 CHECK(url.clear_token());
+                CHECK_FALSE(url.has_token());
                 CHECK_EQ(url.token(), "");
                 CHECK_EQ(url.path_without_token(), "/conda-forge/linux-64");
                 CHECK_EQ(url.path(), "/conda-forge/linux-64");
@@ -61,6 +67,7 @@ TEST_SUITE("specs::CondaURL")
             SUBCASE("Set token")
             {
                 url.set_token("abcd");
+                CHECK(url.has_token());
                 CHECK_EQ(url.token(), "abcd");
                 CHECK_EQ(url.path_without_token(), "/conda-forge/linux-64");
                 CHECK_EQ(url.path(), "/t/abcd/conda-forge/linux-64");
@@ -70,14 +77,17 @@ TEST_SUITE("specs::CondaURL")
         SUBCASE("https://repo.mamba.pm/t/xy-12345678-1234-1234-1234-123456789012")
         {
             url.set_path("/t/xy-12345678-1234-1234-1234-123456789012");
+            CHECK(url.has_token());
             CHECK_EQ(url.token(), "xy-12345678-1234-1234-1234-123456789012");
 
             url.set_token("abcd");
+            CHECK(url.has_token());
             CHECK_EQ(url.token(), "abcd");
             CHECK_EQ(url.path_without_token(), "/");
             CHECK_EQ(url.path(), "/t/abcd/");
 
             CHECK(url.clear_token());
+            CHECK_FALSE(url.has_token());
             CHECK_EQ(url.token(), "");
             CHECK_EQ(url.path_without_token(), "/");
             CHECK_EQ(url.path(), "/");
@@ -86,9 +96,11 @@ TEST_SUITE("specs::CondaURL")
         SUBCASE("https://repo.mamba.pm/bar/t/xy-12345678-1234-1234-1234-123456789012/")
         {
             url.set_path("/bar/t/xy-12345678-1234-1234-1234-123456789012/");
+            CHECK_FALSE(url.has_token());
             CHECK_EQ(url.token(), "");  // Not at begining of path
 
             url.set_token("abcd");
+            CHECK(url.has_token());
             CHECK_EQ(url.token(), "abcd");
             CHECK_EQ(url.path_without_token(), "/bar/t/xy-12345678-1234-1234-1234-123456789012/");
             CHECK_EQ(url.path(), "/t/abcd/bar/t/xy-12345678-1234-1234-1234-123456789012/");
@@ -118,6 +130,7 @@ TEST_SUITE("specs::CondaURL")
         SUBCASE("Parse")
         {
             url = CondaURL::parse("mamba.org/t/xy-12345678-1234-1234-1234-123456789012");
+            CHECK(url.has_token());
             CHECK_EQ(url.token(), "xy-12345678-1234-1234-1234-123456789012");
             CHECK_EQ(url.path_without_token(), "/");
             CHECK_EQ(url.path(), "/t/xy-12345678-1234-1234-1234-123456789012/");
@@ -365,7 +378,7 @@ TEST_SUITE("specs::CondaURL")
             CHECK_EQ(url.pretty_str(CondaURL::StripScheme::no, '/'), "https://mamba.org/page");
         }
 
-        SUBCASE("Credentail option")
+        SUBCASE("Credential option")
         {
             CondaURL url = {};
 

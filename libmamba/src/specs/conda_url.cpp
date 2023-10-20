@@ -147,6 +147,16 @@ namespace mamba::specs
         ensure_path_without_token_leading_slash();
     }
 
+    auto CondaURL::has_token() const -> bool
+    {
+        const auto& p = path(Decode::no);
+        return
+            // Fast return for easy cases
+            (p.size() > token_prefix.size())
+            // The actual check
+            && util::starts_with(p, token_prefix);
+    }
+
     auto CondaURL::token() const -> std::string_view
     {
         static constexpr auto npos = std::string_view::npos;

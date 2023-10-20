@@ -169,30 +169,6 @@ namespace mamba
             CoUninitialize();
         }
 
-        const std::map<std::string, KNOWNFOLDERID> knownfolders = {
-            { "programs", FOLDERID_Programs },       { "profile", FOLDERID_Profile },
-            { "documents", FOLDERID_Documents },     { "roamingappdata", FOLDERID_RoamingAppData },
-            { "programdata", FOLDERID_ProgramData }, { "localappdata", FOLDERID_LocalAppData },
-        };
-
-        fs::u8path get_folder(const std::string& id)
-        {
-            wchar_t* localAppData;
-            HRESULT hres;
-
-            hres = SHGetKnownFolderPath(knownfolders.at(id), KF_FLAG_DONT_VERIFY, nullptr, &localAppData);
-
-            if (FAILED(hres))
-            {
-                throw std::runtime_error("Could not retrieve known folder");
-            }
-
-            std::wstring tmp(localAppData);
-            fs::u8path res(tmp);
-            CoTaskMemFree(localAppData);
-            return res;
-        }
-
         void remove_shortcut(const fs::u8path& filename)
         {
             try

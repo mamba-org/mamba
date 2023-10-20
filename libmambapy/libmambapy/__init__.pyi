@@ -136,11 +136,6 @@ class Channel:
     ) -> typing.Set[typing.Tuple[str, str]]: ...
     def urls(self, with_credentials: bool = True) -> typing.Set[str]: ...
     @property
-    def auth(self) -> typing.Optional[str]:
-        """
-        :type: typing.Optional[str]
-        """
-    @property
     def canonical_name(self) -> str:
         """
         :type: str

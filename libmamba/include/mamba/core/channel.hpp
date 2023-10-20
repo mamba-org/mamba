@@ -48,7 +48,6 @@ namespace mamba
         const std::string& name() const;
         const std::string& canonical_name() const;
         const util::flat_set<std::string>& platforms() const;
-        std::optional<std::string> auth() const;
         std::optional<std::string> package_filename() const;
         const specs::CondaURL& url() const;
         const validation::RepoChecker&

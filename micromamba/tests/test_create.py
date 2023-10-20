@@ -656,6 +656,23 @@ def test_spec_with_multichannel(tmp_home, tmp_root_prefix):
     helpers.create("-n", "myenv", "defaults::zlib", "--dry-run")
 
 
+def test_spec_with_slash_in_channel():
+    env_name = "myenv"
+    try:
+        res = helpers.create("-n", env_name, "pkgs/main/noarch::python", "--dry-run")
+    except subprocess.CalledProcessError as e:
+        assert e.stderr.decode() == (
+            'critical libmamba The package "pkgs/main/noarch::python" is '
+            "not available for the specified platform\n"
+        )
+
+    try:
+        os.environ["CONDA_SUBDIR"] = "linux-64"
+        helpers.create("-n", env_name, "pkgs/main/linux-64::python", "--dry-run")
+    finally:
+        os.environ.pop("CONDA_SUBDIR")
+
+
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_channel_nodefaults(tmp_home, tmp_root_prefix, tmp_path):
     rc_file = tmp_path / "rc.yaml"

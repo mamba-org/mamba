@@ -178,6 +178,14 @@ namespace mamba
             }
             std::string needle_subdir = util::rsplit(needle_channel, "/", 1)[1];
 
+            auto known_platforms = specs::known_platform_names();
+            if (std::find(known_platforms.begin(), known_platforms.end(),
+                    needle_subdir) == known_platforms.end()) {
+                // Not a known subdir. This can happen for specs like pkgs/main.
+                // so any subdir is fine
+                return true;
+            }
+
             std::string candidate_repo_subdir = util::rsplit(candidate_repo_url, "/", 1)[1];
 
             if (candidate_repo_subdir == needle_subdir)

@@ -292,7 +292,7 @@ namespace mamba
                 );
         }
 
-        void set_fallback_credential_from(specs::CondaURL& url, const specs::CondaURL& from)
+        void set_fallback_credential_from_url(specs::CondaURL& url, const specs::CondaURL& from)
         {
             using Decode = typename specs::CondaURL::Decode;
             using Encode = typename specs::CondaURL::Encode;
@@ -305,6 +305,50 @@ namespace mamba
             if (!url.has_token() && from.has_token())
             {
                 url.set_token(from.token());
+            }
+        }
+
+        void
+        set_fallback_credential_from_auth(specs::CondaURL& url, const specs::AuthenticationInfo& auth)
+        {
+            std::visit(
+                [&](const auto& info)
+                {
+                    using Info = std::decay_t<decltype(info)>;
+                    if constexpr (std::is_same_v<Info, specs::BasicHTTPAuthentication>)
+                    {
+                        if (!url.has_user() && !url.has_password())
+                        {
+                            url.set_user(info.user, specs::CondaURL::Encode::yes);
+                            url.set_password(info.password, specs::CondaURL::Encode::yes);
+                        }
+                    }
+                    else if constexpr (std::is_same_v<Info, specs::CondaToken>)
+                    {
+                        if (!url.has_token())
+                        {
+                            url.set_token(info.token);
+                        }
+                    }
+                },
+                auth
+            );
+        }
+
+        void
+        set_fallback_credential_from_db(specs::CondaURL& url, const specs::AuthenticationDataBase& db)
+        {
+            if (!url.has_token() || !url.has_user() || !url.has_password())
+            {
+                const auto key = url.pretty_str(
+                    specs::CondaURL::StripScheme::yes,
+                    '/',
+                    specs::CondaURL::Credentials::Remove
+                );
+                if (auto it = db.find_compatible(key); it != db.end())
+                {
+                    set_fallback_credential_from_auth(url, it->second);
+                }
             }
         }
 
@@ -408,7 +452,7 @@ namespace mamba
                 std::string name = std::string(
                     util::strip(util::remove_prefix(default_location, location), '/')
                 );
-                set_fallback_credential_from(url, chan.url());
+                set_fallback_credential_from_url(url, chan.url());
                 return Channel(
                     /* url= */ std::move(url),
                     /* location= */ std::move(location),
@@ -423,7 +467,7 @@ namespace mamba
             auto location = ca.pretty_str(StripScheme::yes, '/', Credentials::Remove);
             // Overridding url scheme since chan_url could have been defaulted
             auto name = std::string(util::strip(util::remove_prefix(default_location, location), '/'));
-            set_fallback_credential_from(url, ca);
+            set_fallback_credential_from_url(url, ca);
             return Channel(
                 /*..url= */ std::move(url),
                 /* location= */ std::move(location),
@@ -568,36 +612,6 @@ namespace mamba
         throw std::invalid_argument("Invalid ChannelSpec::Type");
     }
 
-    namespace
-    {
-        void set_fallback_credential_from(specs::CondaURL& url, const specs::AuthenticationInfo& auth)
-        {
-            std::visit(
-                [&](const auto& info)
-                {
-                    using Info = std::decay_t<decltype(info)>;
-                    if constexpr (std::is_same_v<Info, specs::BasicHTTPAuthentication>)
-                    {
-                        if (!url.has_user() && !url.has_password())
-                        {
-                            url.set_user(info.user, specs::CondaURL::Encode::yes);
-                            url.set_password(info.password, specs::CondaURL::Encode::yes);
-                        }
-                    }
-                    else if constexpr (std::is_same_v<Info, specs::CondaToken>)
-                    {
-                        if (!url.has_token())
-                        {
-                            url.set_token(info.token);
-                        }
-                    }
-                },
-                auth
-            );
-        }
-
-    }
-
     const Channel& ChannelContext::make_channel(const std::string& value)
     {
         if (const auto it = m_channel_cache.find(value); it != m_channel_cache.end())
@@ -607,25 +621,11 @@ namespace mamba
 
         auto chan = from_value(value);
 
-        // Early optimized return
-        if (chan.token() || chan.user() || chan.password())
-        {
-            return m_channel_cache.emplace(value, std::move(chan)).first->second;
-        }
+        set_fallback_credential_from_db(chan.m_url, m_context.authentication_info());
 
-        const auto key = chan.url().pretty_str(
-            specs::CondaURL::StripScheme::yes,
-            '/',
-            specs::CondaURL::Credentials::Remove
-        );
-
-        const auto& auth_info = m_context.authentication_info();
-        if (auto it = auth_info.find_compatible(key); it != auth_info.end())
-        {
-            set_fallback_credential_from(chan.m_url, it->second);
-        }
-
-        return m_channel_cache.emplace(value, std::move(chan)).first->second;
+        auto [it, inserted] = m_channel_cache.emplace(value, std::move(chan));
+        assert(inserted);
+        return it->second;
     }
 
     std::vector<const Channel*>

@@ -21,6 +21,7 @@ from conda.core.prefix_data import PrefixData
 from conda.core.solve import diff_for_unlink_link_precs
 from conda.gateways.connection.session import CondaHttpAuth
 from conda.models.channel import Channel as CondaChannel
+from conda.models.enums import PackageType
 from conda.models.prefix_graph import PrefixGraph
 from conda.models.records import PackageRecord
 
@@ -352,7 +353,7 @@ def compute_final_precs(
                     to_unlink_records.append(i_rec)
                 except KeyError:
                     # virtual packages cannot be unlinked as they do not exist
-                    if i_rec.package_type == "virtual_system":
+                    if i_rec.package_type is PackageType.VIRTUAL_SYSTEM:
                         continue
                     raise
                 break
@@ -377,7 +378,7 @@ def compute_final_precs(
                 rec.noarch = ipkg.noarch
 
         # virtual packages cannot be linked as they do not exist
-        if rec.package_type == "virtual_system":
+        if rec.package_type is PackageType.VIRTUAL_SYSTEM:
             continue
 
         final_precs.add(rec)

@@ -319,3 +319,43 @@ def test_info(use_json):
         assert output["mamba_version"] == __version__
     else:
         assert "mamba version : " + __version__ in output
+
+
+@pytest.mark.parametrize(
+    "virtual_package_name",
+    [
+        pytest.param(
+            "__osx",
+            marks=pytest.mark.skipif(
+                platform.system() != "Darwin",
+                reason="__osx package defined for macOS only",
+            ),
+        ),
+        pytest.param(
+            "__linux",
+            marks=pytest.mark.skipif(
+                platform.system() != "Linux",
+                reason="__linux package defined for Linux only",
+            ),
+        ),
+        pytest.param(
+            "__win",
+            marks=pytest.mark.skipif(
+                platform.system() != "Windows",
+                reason="__win package defined for Windows only",
+            ),
+        ),
+    ],
+)
+def test_remove_virtual_package(virtual_package_name):
+    # non-regression test for https://github.com/mamba-org/mamba/issues/2129
+    with Environment("bash") as env:
+        # The platform specific virtual package should be "installed" by default.
+        out = env.mamba("info -q")
+        assert virtual_package_name in "\n".join(out)
+
+        # Attempting to remove it should not fail (but should not remove it
+        # either).
+        env.mamba(f"remove -q -y {virtual_package_name}")
+        out = env.mamba("info -q")
+        assert virtual_package_name in "\n".join(out)

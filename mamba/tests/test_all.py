@@ -349,7 +349,12 @@ def test_info(use_json):
 )
 def test_remove_virtual_package(virtual_package_name):
     # non-regression test for https://github.com/mamba-org/mamba/issues/2129
-    with Environment("bash") as env:
+    if platform.system() == "Windows":
+        shell_type = "cmd.exe"
+    else:
+        shell_type = "bash"
+
+    with Environment(shell_type) as env:
         # The platform specific virtual package should be "installed" by default.
         out = env.mamba("info -q")
         assert virtual_package_name in "\n".join(out)

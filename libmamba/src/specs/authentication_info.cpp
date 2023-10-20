@@ -48,22 +48,22 @@ namespace mamba::specs
         while (it == Base::end())
         {
             const auto pos = maybe_key.rfind('/');
-            if ((pos + 1) == maybe_key.size())
+            if (maybe_key.empty() || (pos == std::string::npos))
+            {
+                // Nothing else to try
+                break;
+            }
+            else if ((pos + 1) == maybe_key.size())
             {
                 // Try again without final '/'
                 maybe_key.erase(pos);
                 it = Base::find(maybe_key);
             }
-            else if (pos != std::string::npos)
+            else
             {
                 // Try again without final element
                 maybe_key.erase(pos + 1);
                 it = Base::find(maybe_key);
-            }
-            else
-            {
-                // Nothing else to try
-                break;
             }
         }
         return it;

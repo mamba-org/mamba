@@ -23,6 +23,7 @@ TEST_SUITE("specs::AuthticationDataBase")
         CHECK(db.contains_compatible("mamba.org/"));
         CHECK(db.contains_compatible("mamba.org/channel"));
         CHECK_FALSE(db.contains_compatible("repo.mamba.org"));
+        CHECK_FALSE(db.contains_compatible("/folder"));
     }
 
     TEST_CASE("mamba.org/")
@@ -36,6 +37,7 @@ TEST_SUITE("specs::AuthticationDataBase")
         CHECK(db.contains_compatible("mamba.org/"));
         CHECK(db.contains_compatible("mamba.org/channel"));
         CHECK_FALSE(db.contains_compatible("repo.mamba.org/"));
+        CHECK_FALSE(db.contains_compatible("/folder"));
     }
 
     TEST_CASE("mamba.org/channel")
@@ -49,5 +51,6 @@ TEST_SUITE("specs::AuthticationDataBase")
         CHECK_FALSE(db.contains_compatible("mamba.org/"));
         CHECK(db.contains_compatible("mamba.org/channel"));
         CHECK_FALSE(db.contains_compatible("repo.mamba.org/"));
+        CHECK_FALSE(db.contains_compatible("/folder"));
     }
 }

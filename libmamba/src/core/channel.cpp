@@ -92,11 +92,6 @@ namespace mamba
         return m_platforms;
     }
 
-    std::optional<std::string> Channel::package_filename() const
-    {
-        return nonempty_str(m_url.package());
-    }
-
     const validation::RepoChecker&
     Channel::repo_checker(Context& context, MultiPackageCache& caches) const
     {

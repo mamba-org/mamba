@@ -151,11 +151,6 @@ class Channel:
         :type: str
         """
     @property
-    def package_filename(self) -> typing.Optional[str]:
-        """
-        :type: typing.Optional[str]
-        """
-    @property
     def platforms(self) -> typing.Set[str]:
         """
         :type: typing.Set[str]

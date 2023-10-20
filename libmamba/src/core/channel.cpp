@@ -97,11 +97,6 @@ namespace mamba
         return nonempty_str(m_url.authentication());
     }
 
-    std::optional<std::string> Channel::token() const
-    {
-        return nonempty_str(std::string(m_url.token()));
-    }
-
     std::optional<std::string> Channel::package_filename() const
     {
         return nonempty_str(m_url.package());

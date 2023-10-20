@@ -494,7 +494,7 @@ namespace mamba
             ChannelContext channel_context{ ctx };
 
             const auto& chan = channel_context.make_channel("conda-forge[noarch]");
-            CHECK_EQ(chan.token(), "my-12345-token");
+            CHECK_EQ(chan.url().token(), "my-12345-token");
             CHECK_EQ(
                 chan.urls(true),
                 UrlSet({ "https://conda.anaconda.org/t/my-12345-token/conda-forge/noarch" })
@@ -514,7 +514,7 @@ namespace mamba
             ChannelContext channel_context{ ctx };
 
             const auto& chan = channel_context.make_channel("conda-forge[noarch]");
-            CHECK_EQ(chan.token(), "channel-token");
+            CHECK_EQ(chan.url().token(), "channel-token");
         }
 
         TEST_CASE("fix_win_file_path")

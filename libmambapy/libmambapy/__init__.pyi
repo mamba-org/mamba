@@ -165,11 +165,6 @@ class Channel:
         """
         :type: typing.Set[str]
         """
-    @property
-    def token(self) -> typing.Optional[str]:
-        """
-        :type: typing.Optional[str]
-        """
     pass
 
 class ChannelPriority:

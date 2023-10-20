@@ -619,28 +619,14 @@ namespace mamba
             return m_channel_cache.emplace(value, std::move(chan)).first->second;
         }
 
-        auto maybe_key = chan.url().pretty_str(
+        const auto key = chan.url().pretty_str(
             specs::CondaURL::StripScheme::yes,
             '/',
             specs::CondaURL::Credentials::Remove
         );
-        const auto& authentication_info = m_context.authentication_info();
 
-        auto it = authentication_info.find(maybe_key);
-        while (it == authentication_info.end())
-        {
-            if (const auto pos = maybe_key.rfind('/'); pos != std::string::npos)
-            {
-                maybe_key = maybe_key.substr(0, pos);
-                it = authentication_info.find(maybe_key);
-            }
-            else
-            {
-                break;
-            }
-        }
-
-        if (it != authentication_info.end())
+        const auto& auth_info = m_context.authentication_info();
+        if (auto it = auth_info.find_compatible(key); it != auth_info.end())
         {
             set_fallback_credential_from(chan.m_url, it->second);
         }

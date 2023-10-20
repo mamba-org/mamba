@@ -318,7 +318,7 @@ namespace mamba
         }
 
         const auto& auth_info = context.authentication_info();
-        if (auto it = auth_info.find(host); it != auth_info.end())
+        if (auto it = auth_info.find_compatible(host); it != auth_info.end())
         {
             if (const auto& auth = it->second; std::holds_alternative<specs::BearerToken>(auth))
             {

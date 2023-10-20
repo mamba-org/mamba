@@ -669,6 +669,7 @@ def test_spec_with_slash_in_channel(tmp_home, tmp_root_prefix):
     try:
         os.environ["CONDA_SUBDIR"] = "linux-64"
         helpers.create("-n", env_name, "pkgs/main/linux-64::python", "--dry-run")
+        helpers.create("-n", env_name, "pkgs/main::python", "--dry-run")
     finally:
         os.environ.pop("CONDA_SUBDIR")
 

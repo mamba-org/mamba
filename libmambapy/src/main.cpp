@@ -1147,7 +1147,6 @@ PYBIND11_MODULE(bindings, m)
                 );
             }
         ))
-        .def_property_readonly("scheme", &Channel::scheme)
         .def_property_readonly("location", &Channel::location)
         .def_property_readonly("name", &Channel::name)
         .def_property_readonly("auth", &Channel::auth)

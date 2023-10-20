@@ -44,14 +44,11 @@ namespace mamba
 
         ~Channel();
 
-        std::string_view scheme() const;
         const std::string& location() const;
         const std::string& name() const;
         const std::string& canonical_name() const;
         const util::flat_set<std::string>& platforms() const;
         std::optional<std::string> auth() const;
-        std::optional<std::string> user() const;
-        std::optional<std::string> password() const;
         std::optional<std::string> token() const;
         std::optional<std::string> package_filename() const;
         const specs::CondaURL& url() const;

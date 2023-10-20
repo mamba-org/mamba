@@ -77,11 +77,6 @@ namespace mamba
         return m_url;
     }
 
-    std::string_view Channel::scheme() const
-    {
-        return m_url.scheme();
-    }
-
     const std::string& Channel::location() const
     {
         return m_location;
@@ -100,16 +95,6 @@ namespace mamba
     std::optional<std::string> Channel::auth() const
     {
         return nonempty_str(m_url.authentication());
-    }
-
-    std::optional<std::string> Channel::user() const
-    {
-        return nonempty_str(m_url.user());
-    }
-
-    std::optional<std::string> Channel::password() const
-    {
-        return nonempty_str(m_url.password());
     }
 
     std::optional<std::string> Channel::token() const

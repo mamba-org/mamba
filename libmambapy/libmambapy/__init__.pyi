@@ -166,11 +166,6 @@ class Channel:
         :type: typing.Set[str]
         """
     @property
-    def scheme(self) -> str:
-        """
-        :type: str
-        """
-    @property
     def token(self) -> typing.Optional[str]:
         """
         :type: typing.Optional[str]

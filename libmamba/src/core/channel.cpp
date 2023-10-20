@@ -297,15 +297,12 @@ namespace mamba
             using Decode = typename specs::CondaURL::Decode;
             using Encode = typename specs::CondaURL::Encode;
 
-            if (url.user(Decode::no).empty() && !from.user(Decode::no).empty())
+            if (!url.has_user() && from.has_user())
             {
                 url.set_user(from.user(Decode::no), Encode::no);
-            }
-            if (url.password(Decode::no).empty() && !from.password(Decode::no).empty())
-            {
                 url.set_password(from.password(Decode::no), Encode::no);
             }
-            if (url.token().empty() && !from.token().empty())
+            if (!url.has_token() && from.has_token())
             {
                 url.set_token(from.token());
             }
@@ -575,24 +572,21 @@ namespace mamba
     {
         void set_fallback_credential_from(specs::CondaURL& url, const specs::AuthenticationInfo& auth)
         {
-            using Decode = typename specs::CondaURL::Decode;
-            using Encode = typename specs::CondaURL::Encode;
-
             std::visit(
                 [&](const auto& info)
                 {
                     using Info = std::decay_t<decltype(info)>;
                     if constexpr (std::is_same_v<Info, specs::BasicHTTPAuthentication>)
                     {
-                        if (url.user(Decode::no).empty() && url.password(Decode::no).empty())
+                        if (!url.has_user() && !url.has_password())
                         {
-                            url.set_user(info.user, Encode::yes);
-                            url.set_password(info.password, Encode::yes);
+                            url.set_user(info.user, specs::CondaURL::Encode::yes);
+                            url.set_password(info.password, specs::CondaURL::Encode::yes);
                         }
                     }
                     else if constexpr (std::is_same_v<Info, specs::CondaToken>)
                     {
-                        if (url.token().empty())
+                        if (!url.has_token())
                         {
                             url.set_token(info.token);
                         }

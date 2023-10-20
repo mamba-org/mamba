@@ -36,6 +36,21 @@ namespace mamba::specs
 
     using AuthenticationInfo = std::variant<BasicHTTPAuthentication, BearerToken, CondaToken>;
 
+    /**
+     * A class that holds the authetication info stotred by users.
+     *
+     * Essentially a map, except that some keys can match mutliple queries.
+     * For instance "mamba.org/private" should be matched by queries "mamba.org/private",
+     * "mamba.org/private/channel", but not "mamba.org/public".
+     *
+     * A best effort is made to satifiy this with `xxx_compatible`.
+     *
+     * Future development of this class should aim to replace the map and keys with a
+     * `AuthenticationSpec`, that can decide whether or not a URL should benefit from such
+     * its authentication.
+     * Possibly, a string reprensentation such as "*.mamba.org/private/channel*" could be added
+     * to parse users intentions, rather than relying on the assumptions made here.
+     */
     class AuthenticationDataBase : private std::unordered_map<std::string, AuthenticationInfo>
     {
     public:

@@ -317,10 +317,10 @@ namespace mamba
             host += ":" + port;
         }
 
-        if (context.authentication_info().count(host))
+        const auto& auth_info = context.authentication_info();
+        if (auto it = auth_info.find(host); it != auth_info.end())
         {
-            const auto& auth = context.authentication_info().at(host);
-            if (std::holds_alternative<specs::BearerToken>(auth))
+            if (const auto& auth = it->second; std::holds_alternative<specs::BearerToken>(auth))
             {
                 m_handle.add_header(
                     fmt::format("Authorization: Bearer {}", std::get<specs::BearerToken>(auth).token)

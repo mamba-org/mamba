@@ -521,7 +521,10 @@ namespace mamba
         TEST_CASE("add_token")
         {
             auto& ctx = mambatests::context();
-            ctx.authentication_info()["conda.anaconda.org"] = specs::CondaToken{ "my-12345-token" };
+            ctx.authentication_info().emplace(
+                "conda.anaconda.org",
+                specs::CondaToken{ "my-12345-token" }
+            );
 
             ChannelContext channel_context{ ctx };
 
@@ -537,10 +540,11 @@ namespace mamba
         TEST_CASE("add_multiple_tokens")
         {
             auto& ctx = mambatests::context();
-            ctx.authentication_info()["conda.anaconda.org"] = specs::CondaToken{ "base-token" };
-            ctx.authentication_info()["conda.anaconda.org/conda-forge"] = specs::CondaToken{
-                "channel-token"
-            };
+            ctx.authentication_info().emplace("conda.anaconda.org", specs::CondaToken{ "base-token" });
+            ctx.authentication_info().emplace(
+                "conda.anaconda.org/conda-forge",
+                specs::CondaToken{ "channel-token" }
+            );
 
             ChannelContext channel_context{ ctx };
 

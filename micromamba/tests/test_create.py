@@ -656,7 +656,7 @@ def test_spec_with_multichannel(tmp_home, tmp_root_prefix):
     helpers.create("-n", "myenv", "defaults::zlib", "--dry-run")
 
 
-def test_spec_with_slash_in_channel():
+def test_spec_with_slash_in_channel(tmp_home, tmp_root_prefix):
     env_name = "myenv"
     try:
         res = helpers.create("-n", env_name, "pkgs/main/noarch::python", "--dry-run")

@@ -65,24 +65,31 @@ endif ()
 
 option(ENABLE_ASAN "Enable Address-Sanitizer (currently only supported on GCC and Clang)" OFF)
 
-if(ENABLE_ASAN)
+if (ENABLE_ASAN)
     message(WARNING "Address-Sanitizer instrumentation will be injected into binaries - do not release these binaries")
     add_compile_options(-fno-omit-frame-pointer  -fsanitize=address)
     add_link_options(-fno-omit-frame-pointer  -fsanitize=address)
 endif()
 
-if(ENABLE_TSAN)
+if (ENABLE_TSAN)
     message(WARNING "Thread-Sanitizer instrumentation will be injected into binaries - do not release these binaries")
     add_compile_options(-fno-omit-frame-pointer  -fsanitize=thread)
     add_link_options(-fno-omit-frame-pointer  -fsanitize=thread)
 endif()
 
-if(ENABLE_USAN)
+if (ENABLE_USAN)
     message(WARNING "Undefined-Sanitizer instrumentation will be injected into binaries - do not release these binaries")
     add_compile_options(-fno-omit-frame-pointer  -fsanitize=undefined)
     add_link_options(-fno-omit-frame-pointer  -fsanitize=undefined)
 endif()
 
+# Code coverage
+option(ENABLE_COVERAGE "Enable code testing coverage" OFF)
+
+if (ENABLE_COVERAGE)
+  add_compile_options(--coverage)
+  add_link_options(--coverage)
+endif()
 
 # Source files
 # ============

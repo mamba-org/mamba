@@ -38,10 +38,13 @@ jobs:
           restore-keys: |
             libmamba-${{ matrix.os }}
       - name: Build libmamba
+        env:
+          enable_cov: ${{ ((matrix.os == 'ubuntu-latest') && (matrix.build_type == 'Debug')) || false }}
         shell: bash -l {0}
         run: |
           cmake -B build/ \
             -D CMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -D ENABLE_COVERAGE=${{ env.enable_cov }} \
             -D BUILD_LIBMAMBA=ON \
             -D BUILD_SHARED=ON \
             -D BUILD_LIBMAMBA_TESTS=ON \
@@ -54,6 +57,21 @@ jobs:
         run: |
           unset CONDARC  # Interferes with tests
           cd build && ninja test
+      - name: Coverage
+        if: ${{ ((matrix.os == 'ubuntu-latest') && (matrix.build_type == 'Debug')) || false }}
+        shell: bash -l {0}
+        run: |
+          cd build && ninja coverage
+      - name: Upload coverage to Coveralls
+        if: ${{ ((matrix.os == 'ubuntu-latest') && (matrix.build_type == 'Debug')) || false }}
+        uses: coverallsapp/github-action@v2
+        env:
+          NODE_COVERALLS_DEBUG: 1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{github.workspace}}/build/coverage.info
+          format: lcov
+          git-branch: gcov
       - name: Show build cache statistics
         run: sccache --show-stats
 

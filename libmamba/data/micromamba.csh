@@ -5,40 +5,40 @@ alias __mamba_exe '"$MAMBA_EXE" "\!*"'
 
 alias __mamba_hashr 'rehash'
 
-alias __mamba_xctivate '
-    set ask_conda="`(setenv prompt "${prompt}"; __mamba_exe shell "\!*" --shell csh)`"
-    if ("${status}" != 0) then
-        return
-     endif
-         eval "${ask_conda}"
-     __mamba_hashr
+alias __mamba_xctivate '\\
+    set ask_conda="`(setenv prompt "${prompt}"; __mamba_exe shell "\!*" --shell csh)`"\\
+    if ("${status}" != 0) then\\
+        return\\
+     endif\\
+         eval "${ask_conda}"\\
+     __mamba_hashr\\
 '
 
-alias micromamba '
-    switch ("${1}")
-        case activate | reactivate | deactivate:
-            __mamba_xctivate "\!*"
-            breaksw
-        case install | update | upgrade | remove | uninstall:
-            __mamba_exe "\!*"
-            if ("${status}" != 0) then
-                return
-             endif
-            __mamba_xctivate reactivate
-            breaksw
-        case self-update:
-            __mamba_exe "\!*"
-            if ("${status}" != 0) then
-                return
-             endif
-             if (-f "$MAMBA_EXE.bkup") then
-                rm -f "$MAMBA_EXE.bkup"
-             endif
-            breaksw
-        default:
-            __mamba_exe "\!*"
-            breaksw
-    endsw
+alias micromamba '\\
+    switch ("${1}")\\
+        case activate | reactivate | deactivate:\\
+            __mamba_xctivate "\!*"\\
+            breaksw\\
+        case install | update | upgrade | remove | uninstall:\\
+            __mamba_exe "\!*"\\
+            if ("${status}" != 0) then\\
+                return\\
+             endif\\
+            __mamba_xctivate reactivate\\
+            breaksw\\
+        case self-update:\\
+            __mamba_exe "\!*"\\
+            if ("${status}" != 0) then\\
+                return\\
+             endif\\
+             if (-f "$MAMBA_EXE.bkup") then\\
+                rm -f "$MAMBA_EXE.bkup"\\
+             endif\\
+            breaksw\\
+        default:\\
+            __mamba_exe "\!*"\\
+            breaksw\\
+    endsw\\
 '
 
 if (! $?CONDA_SHLVL) then

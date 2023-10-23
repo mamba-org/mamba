@@ -416,7 +416,9 @@ namespace mamba
 
     Channel ChannelContext::from_package_url(specs::ChannelSpec&& spec)
     {
-        return from_any_url(std ::move(spec));
+        auto chan = from_any_url(std ::move(spec));
+        set_fallback_credential_from_db(chan.m_url, m_context.authentication_info());
+        return chan;
     }
 
     Channel ChannelContext::from_url(specs::ChannelSpec&& spec)
@@ -424,6 +426,7 @@ namespace mamba
         auto platforms = make_platforms(spec.clear_platform_filters(), m_context.platforms());
         auto chan = from_any_url(std::move(spec));
         chan.m_platforms = std::move(platforms);
+        set_fallback_credential_from_db(chan.m_url, m_context.authentication_info());
         return chan;
     }
 
@@ -478,6 +481,7 @@ namespace mamba
                 }
             }
 
+            set_fallback_credential_from_db(url, m_context.authentication_info());
             return Channel(
                 /* url= */ std::move(url),
                 /* location= */ it->second.location(),
@@ -490,6 +494,7 @@ namespace mamba
         const auto& alias = get_channel_alias();
         auto url = alias;
         url.append_path(name);
+        set_fallback_credential_from_db(url, m_context.authentication_info());
         return Channel(
             /* url= */ std::move(url),
             /* location= */ alias.pretty_str(specs::CondaURL::StripScheme::yes, '/', specs::CondaURL::Credentials::Remove),
@@ -546,11 +551,7 @@ namespace mamba
             return it->second;
         }
 
-        auto chan = from_value(value);
-
-        set_fallback_credential_from_db(chan.m_url, m_context.authentication_info());
-
-        auto [it, inserted] = m_channel_cache.emplace(value, std::move(chan));
+        auto [it, inserted] = m_channel_cache.emplace(value, from_value(value));
         assert(inserted);
         return it->second;
     }

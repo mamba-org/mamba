@@ -652,7 +652,7 @@ def test_spec_with_channel_and_subdir():
         )
 
 
-def test_spec_with_multichannel(tmp_home, tmp_root_prefix)::
+def test_spec_with_multichannel(tmp_home, tmp_root_prefix):
     helpers.create("-n", "myenv", "defaults::zlib", "--dry-run")
 
 

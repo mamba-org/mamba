@@ -673,20 +673,14 @@ namespace mamba
         m_custom_multichannels.emplace(LOCAL_CHANNELS_NAME, std::move(local_names));
 
         const auto& context_custom_channels = m_context.custom_channels;
-        for (const auto& [n, p] : context_custom_channels)
+        for (const auto& [name, location] : context_custom_channels)
         {
-            std::string url = p;
-            if (!util::starts_with(url, "http"))
-            {
-                url = util::path_or_url_to_url(url);
-            }
-
-            auto channel = make_simple_channel(m_channel_alias, url, n, n);
-            m_custom_channels.emplace(n, std::move(channel));
+            auto channel = from_value(location);
+            channel.m_canonical_name = name;
+            m_custom_channels.emplace(name, std::move(channel));
         }
 
-        auto& multichannels = m_context.custom_multichannels;
-        for (auto& [multichannelname, urllist] : multichannels)
+        for (const auto& [multichannelname, urllist] : m_context.custom_multichannels)
         {
             std::vector<std::string> names(urllist.size());
             auto name_iter = names.begin();

@@ -38,11 +38,6 @@ namespace mamba
 
         const char LOCAL_CHANNELS_NAME[] = "local";
         const char DEFAULT_CHANNELS_NAME[] = "defaults";
-
-        std::optional<std::string> nonempty_str(std::string&& s)
-        {
-            return s.empty() ? std::optional<std::string>() : std::make_optional(s);
-        }
     }
 
     std::vector<std::string> get_known_platforms()

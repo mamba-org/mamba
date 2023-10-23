@@ -133,6 +133,7 @@ namespace mamba
 
         const specs::CondaURL& get_channel_alias() const;
         const channel_map& get_custom_channels() const;
+        const multichannel_map& get_custom_multichannels() const;
 
         Context& context() const
         {
@@ -148,8 +149,6 @@ namespace mamba
         multichannel_map m_custom_multichannels;
 
         void init_custom_channels();
-
-        const multichannel_map& get_custom_multichannels() const;
 
         Channel make_simple_channel(
             const specs::CondaURL& channel_alias,

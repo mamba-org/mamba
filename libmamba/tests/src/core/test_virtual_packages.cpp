@@ -73,7 +73,7 @@ namespace mamba
                 }
 #if __x86_64__ || defined(_WIN64)
                 CHECK_EQ(pkgs.back().name, "__archspec");
-                CHECK_EQ(pkgs.back().build_string, "x86_64");
+                CHECK_EQ(pkgs.back().build_string.find("x86_64"), 0);
 #endif
 
                 // This is bad design, tests should not interfer

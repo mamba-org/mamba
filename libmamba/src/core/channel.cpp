@@ -87,26 +87,6 @@ namespace mamba
         return m_platforms;
     }
 
-    const validation::RepoChecker&
-    Channel::repo_checker(Context& context, MultiPackageCache& caches) const
-    {
-        if (p_repo_checker == nullptr)
-        {
-            p_repo_checker = std::make_unique<validation::RepoChecker>(
-                context,
-                util::rsplit(base_url(), "/", 1).front(),
-                context.prefix_params.root_prefix / "etc" / "trusted-repos"
-                    / util::cache_name_from_url(base_url()),
-                caches.first_writable_path() / "cache" / util::cache_name_from_url(base_url())
-            );
-
-            fs::create_directories(p_repo_checker->cache_path());
-            p_repo_checker->generate_index_checker();
-        }
-
-        return *p_repo_checker;
-    }
-
     const std::string& Channel::canonical_name() const
     {
         return m_canonical_name;

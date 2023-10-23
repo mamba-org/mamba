@@ -8,7 +8,6 @@
 #define MAMBA_CORE_CHANNEL_HPP
 
 #include <map>
-#include <memory>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -48,8 +47,6 @@ namespace mamba
         const std::string& canonical_name() const;
         const util::flat_set<std::string>& platforms() const;
         const specs::CondaURL& url() const;
-        const validation::RepoChecker&
-        repo_checker(Context& context, MultiPackageCache& caches) const;
 
         std::string base_url() const;
         std::string platform_url(std::string_view platform, bool with_credential = true) const;
@@ -73,9 +70,6 @@ namespace mamba
         std::string m_name;
         std::string m_canonical_name;
         util::flat_set<std::string> m_platforms;
-
-        // This is used to make sure that there is a unique repo for every channel
-        mutable std::unique_ptr<validation::RepoChecker> p_repo_checker;
 
         // Note: as long as Channel is not a regular value-type and we want each
         // instance only possible to create through ChannelContext, we need

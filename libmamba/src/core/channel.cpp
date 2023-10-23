@@ -257,22 +257,6 @@ namespace mamba
                 );
         }
 
-        void set_fallback_credential_from_url(specs::CondaURL& url, const specs::CondaURL& from)
-        {
-            using Decode = typename specs::CondaURL::Decode;
-            using Encode = typename specs::CondaURL::Encode;
-
-            if (!url.has_user() && from.has_user())
-            {
-                url.set_user(from.user(Decode::no), Encode::no);
-                url.set_password(from.password(Decode::no), Encode::no);
-            }
-            if (!url.has_token() && from.has_token())
-            {
-                url.set_token(from.token());
-            }
-        }
-
         void
         set_fallback_credential_from_auth(specs::CondaURL& url, const specs::AuthenticationInfo& auth)
         {
@@ -417,7 +401,6 @@ namespace mamba
                 std::string name = std::string(
                     util::strip(util::remove_prefix(default_location, location), '/')
                 );
-                set_fallback_credential_from_url(url, chan.url());
                 return Channel(
                     /* url= */ std::move(url),
                     /* location= */ std::move(location),
@@ -432,7 +415,6 @@ namespace mamba
             auto location = ca.pretty_str(StripScheme::yes, '/', Credentials::Remove);
             // Overridding url scheme since chan_url could have been defaulted
             auto name = std::string(util::strip(util::remove_prefix(default_location, location), '/'));
-            set_fallback_credential_from_url(url, ca);
             return Channel(
                 /*..url= */ std::move(url),
                 /* location= */ std::move(location),

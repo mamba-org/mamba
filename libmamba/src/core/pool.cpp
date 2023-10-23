@@ -217,11 +217,15 @@ namespace mamba
             auto multi_channels = channel_context.get_custom_multichannels();
             std::vector<const Channel*> channels;
             auto multi_channels_it = multi_channels.find(ms.channel);
-            if (multi_channels_it != multi_channels.end()) {
-                for (auto &c: multi_channels_it->second) {
+            if (multi_channels_it != multi_channels.end())
+            {
+                for (auto& c : multi_channels_it->second)
+                {
                     channels.push_back(&channel_context.make_channel(c));
                 }
-            } else {
+            }
+            else
+            {
                 channels.push_back(&channel_context.make_channel(ms.channel));
             }
             solv::ObjQueue selected_pkgs = {};
@@ -234,7 +238,8 @@ namespace mamba
                     auto repo = solv::ObjRepoView(*s.raw()->repo);
                     // TODO make_channel should disapear avoiding conflict here
                     auto const url = std::string(repo.url());
-                    for (auto &c: channels) {
+                    for (auto& c : channels)
+                    {
                         if (channel_match(channel_context, channel_context.make_channel(url), *c))
                         {
                             if (subdir_match(url, ms.spec))

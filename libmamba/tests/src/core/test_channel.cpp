@@ -259,6 +259,11 @@ namespace mamba
         TEST_CASE("default_channels")
         {
             auto& ctx = mambatests::context();
+            // Hard coded Anaconda multi channel names set in configuration after refactor
+            // Should be moved to test_config
+            // FIXME: this has side effect on all tests
+            ctx.custom_multichannels["defaults"] = ctx.default_channels;
+
             ChannelContext channel_context{ ctx };
 
             auto x = channel_context.get_channels({ "defaults" });
@@ -291,6 +296,9 @@ namespace mamba
                 "https://mamba.com/test/channel",
                 "https://mamba.com/stable/channel",
             };
+            // Hard coded Anaconda multi channel names set by configuration after refactor
+            // FIXME: this has side effect on all tests
+            ctx.custom_multichannels["defaults"] = ctx.default_channels;
             ChannelContext channel_context{ ctx };
 
             auto x = channel_context.get_channels({ "defaults" });

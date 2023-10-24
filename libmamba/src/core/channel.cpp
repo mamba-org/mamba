@@ -32,7 +32,6 @@ namespace mamba
                                                          ":///<unknown>" };
 
         const char LOCAL_CHANNELS_NAME[] = "local";
-        const char DEFAULT_CHANNELS_NAME[] = "defaults";
     }
 
     std::vector<std::string> get_known_platforms()
@@ -619,9 +618,6 @@ namespace mamba
         /******************
          * MULTI CHANNELS *
          ******************/
-
-        // Default channels
-        m_custom_multichannels.emplace(DEFAULT_CHANNELS_NAME, m_context.default_channels);
 
         // Local channels
         std::vector<std::string> local_channels = { m_context.prefix_params.target_prefix

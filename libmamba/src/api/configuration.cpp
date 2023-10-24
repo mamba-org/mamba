@@ -892,6 +892,14 @@ namespace mamba
             }
         }
 
+        void custom_multichannels_hook(
+            const Context& context,
+            std::map<std::string, std::vector<std::string>>& custom_multichannels
+        )
+        {
+            custom_multichannels.emplace("defaults", context.default_channels);
+        }
+
         void pkgs_dirs_hook(std::vector<fs::u8path>& dirs)
         {
             for (auto& d : dirs)
@@ -1277,15 +1285,27 @@ namespace mamba
                    .set_rc_configurable()
                    .set_env_var_names()
                    .description("Custom channels")
-                   .long_description("A dictionary with name: url to use for custom channels.")
+                   .long_description(  //
+                       "A dictionary with name: url to use for custom channels.\n"
+                       "If not defined, the Conda special names "
+                       R"("pkgs/main", "pkgs/r", "pkgs/pro", and "pkgs/msys2" (Windows only) )"
+                       "will be added."
+                   )
                    .set_post_merge_hook(detail::custom_channels_hook));
 
         insert(Configurable("custom_multichannels", &m_context.custom_multichannels)
                    .group("Channels")
                    .set_rc_configurable()
                    .description("Custom multichannels")
-                   .long_description(
-                       "A dictionary with name: list of names/urls to use for custom multichannels."
+                   .long_description(  //
+                       "A dictionary where keys are multi channels names, and values are a list "
+                       "of correspinding names / urls / file paths to use.\n"
+                       R"(If not defined, the Conda special mutli channel "defaults" is added )"
+                       R"(with values from the "default_channels" option.)"
+                   )
+                   .needs({ "default_channels" })
+                   .set_post_merge_hook<std::map<std::string, std::vector<std::string>>>(
+                       [this](auto& val) { detail::custom_multichannels_hook(m_context, val); }
                    ));
 
         insert(Configurable("override_channels_enabled", &m_context.override_channels_enabled)

@@ -120,13 +120,6 @@ namespace mamba
 
         void init_custom_channels();
 
-        Channel make_simple_channel(
-            const specs::CondaURL& channel_alias,
-            const std::string& channel_url,
-            const std::string& channel_name,
-            const std::string& channel_canonical_name
-        );
-
         Channel from_any_path(specs::ChannelSpec&& spec);
         Channel from_package_path(specs::ChannelSpec&& spec);
         Channel from_path(specs::ChannelSpec&& spec);

@@ -38,7 +38,16 @@ namespace mamba
         {
             // ChannelContext builds its custom channels with
             // make_simple_channel
-            ChannelContext channel_context{ mambatests::context() };
+            auto& ctx = mambatests::context();
+
+            // Hard coded Anaconda channels names set in configuration after refactor
+            // Should be moved to test_config
+            // FIXME: this has side effect on all tests
+            ctx.custom_channels.emplace("pkgs/main", "https://repo.anaconda.com/pkgs/main");
+            ctx.custom_channels.emplace("pkgs/r", "https://repo.anaconda.com/pkgs/r");
+            ctx.custom_channels.emplace("pkgs/pro", "https://repo.anaconda.com/pkgs/pro");
+
+            ChannelContext channel_context{ ctx };
             const auto& ch = channel_context.get_channel_alias();
             CHECK_EQ(ch.str(), "https://conda.anaconda.org/");
 
@@ -47,7 +56,7 @@ namespace mamba
             auto it = custom.find("pkgs/main");
             REQUIRE_NE(it, custom.end());
             CHECK_EQ(it->second.url(), CondaURL::parse("https://repo.anaconda.com/pkgs/main"));
-            CHECK_EQ(it->second.canonical_name(), "defaults");
+            CHECK_EQ(it->second.canonical_name(), "pkgs/main");
 
             it = custom.find("pkgs/pro");
             REQUIRE_NE(it, custom.end());
@@ -57,7 +66,7 @@ namespace mamba
             it = custom.find("pkgs/r");
             REQUIRE_NE(it, custom.end());
             CHECK_EQ(it->second.url(), CondaURL::parse("https://repo.anaconda.com/pkgs/r"));
-            CHECK_EQ(it->second.canonical_name(), "defaults");
+            CHECK_EQ(it->second.canonical_name(), "pkgs/r");
         }
 
         TEST_CASE("channel_alias")
@@ -77,7 +86,7 @@ namespace mamba
             auto it = custom.find("pkgs/main");
             REQUIRE_NE(it, custom.end());
             CHECK_EQ(it->second.url(), CondaURL::parse("https://repo.anaconda.com/pkgs/main"));
-            CHECK_EQ(it->second.canonical_name(), "defaults");
+            CHECK_EQ(it->second.canonical_name(), "pkgs/main");
 
             std::string value = "conda-forge";
             const Channel& c = channel_context.make_channel(value);
@@ -316,8 +325,7 @@ namespace mamba
             ChannelContext channel_context{ ctx };
 
             const auto& custom = channel_context.get_custom_channels();
-
-            CHECK_EQ(custom.size(), 4);
+            CHECK_EQ(custom.size(), 1);
 
             auto it = custom.find("conda-bld");
             REQUIRE_NE(it, custom.end());

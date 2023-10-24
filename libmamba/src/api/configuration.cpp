@@ -879,6 +879,19 @@ namespace mamba
             return paths;
         }
 
+        void custom_channels_hook(std::map<std::string, std::string>& custom_channels)
+        {
+            // Hard coded Anaconda channels names.
+            // This will redefine them if the user has already defined these keys.
+            custom_channels.emplace("pkgs/main", "https://repo.anaconda.com/pkgs/main");
+            custom_channels.emplace("pkgs/r", "https://repo.anaconda.com/pkgs/r");
+            custom_channels.emplace("pkgs/pro", "https://repo.anaconda.com/pkgs/pro");
+            if (util::on_win)
+            {
+                custom_channels.emplace("pkgs/msys2", "https://repo.anaconda.com/pkgs/msys2");
+            }
+        }
+
         void pkgs_dirs_hook(std::vector<fs::u8path>& dirs)
         {
             for (auto& d : dirs)
@@ -1264,7 +1277,8 @@ namespace mamba
                    .set_rc_configurable()
                    .set_env_var_names()
                    .description("Custom channels")
-                   .long_description("A dictionary with name: url to use for custom channels."));
+                   .long_description("A dictionary with name: url to use for custom channels.")
+                   .set_post_merge_hook(detail::custom_channels_hook));
 
         insert(Configurable("custom_multichannels", &m_context.custom_multichannels)
                    .group("Channels")

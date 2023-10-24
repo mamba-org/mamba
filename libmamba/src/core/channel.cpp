@@ -11,8 +11,6 @@
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
-#include "mamba/core/package_cache.hpp"
-#include "mamba/core/validate.hpp"
 #include "mamba/specs/channel_spec.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/util/path_manip.hpp"
@@ -25,9 +23,6 @@ namespace mamba
 {
     namespace
     {
-        const std::map<std::string, std::string> DEFAULT_CUSTOM_CHANNELS = {
-            { "pkgs/pro", "https://repo.anaconda.com" }
-        };
         const char UNKNOWN_CHANNEL[] = "<unknown>";
 
         const std::set<std::string> INVALID_CHANNELS = { "<unknown>",
@@ -626,17 +621,7 @@ namespace mamba
          ******************/
 
         // Default channels
-        auto& default_channels = m_context.default_channels;
-        std::vector<std::string> default_names(default_channels.size());
-        auto default_name_iter = default_names.begin();
-        for (auto& url : default_channels)
-        {
-            auto channel = make_simple_channel(m_channel_alias, url, "", DEFAULT_CHANNELS_NAME);
-            std::string name = channel.name();
-            auto res = m_custom_channels.emplace(std::move(name), std::move(channel));
-            *default_name_iter++ = res.first->first;
-        }
-        m_custom_multichannels.emplace(DEFAULT_CHANNELS_NAME, std::move(default_names));
+        m_custom_multichannels.emplace(DEFAULT_CHANNELS_NAME, m_context.default_channels);
 
         // Local channels
         std::vector<std::string> local_channels = { m_context.prefix_params.target_prefix
@@ -691,19 +676,6 @@ namespace mamba
                 names.push_back(location);
             }
             m_custom_multichannels.emplace(multi_name, std::move(names));
-        }
-
-        /*******************
-         * SIMPLE CHANNELS *
-         *******************/
-
-        // Default local channel
-        for (auto& ch : DEFAULT_CUSTOM_CHANNELS)
-        {
-            m_custom_channels.emplace(
-                ch.first,
-                make_simple_channel(m_channel_alias, ch.second, ch.first, ch.first)
-            );
         }
     }
 }  // namespace mamba

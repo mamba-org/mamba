@@ -657,21 +657,18 @@ def test_spec_with_multichannel(tmp_home, tmp_root_prefix):
 
 
 def test_spec_with_slash_in_channel(tmp_home, tmp_root_prefix):
-    env_name = "myenv"
-    try:
-        res = helpers.create("-n", env_name, "pkgs/main/noarch::python", "--dry-run")
-    except subprocess.CalledProcessError as e:
-        assert e.stderr.decode() == (
-            'critical libmamba The package "pkgs/main/noarch::python" is '
-            "not available for the specified platform\n"
-        )
+    "https://github.com/mamba-org/mamba/pull/2926"
+    with pytest.raises(subprocess.CalledProcessError) as info:
+        helpers.create("-n", "env1", "pkgs/main/noarch::python", "--dry-run")
 
-    try:
-        os.environ["CONDA_SUBDIR"] = "linux-64"
-        helpers.create("-n", env_name, "pkgs/main/linux-64::python", "--dry-run")
-        helpers.create("-n", env_name, "pkgs/main::python", "--dry-run")
-    finally:
-        os.environ.pop("CONDA_SUBDIR")
+    assert info.value.stderr.decode() == (
+        'critical libmamba The package "pkgs/main/noarch::python" is '
+        "not available for the specified platform\n"
+    )
+
+    os.environ["CONDA_SUBDIR"] = "linux-64"
+    helpers.create("-n", "env2", "pkgs/main/linux-64::python", "--dry-run")
+    helpers.create("-n", "env3", "pkgs/main::python", "--dry-run")
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)

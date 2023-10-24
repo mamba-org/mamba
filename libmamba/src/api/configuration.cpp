@@ -898,6 +898,22 @@ namespace mamba
         )
         {
             custom_multichannels.emplace("defaults", context.default_channels);
+
+            auto local_channels = std::vector<std::string>();
+            local_channels.reserve(3);
+            for (auto p : {
+                     context.prefix_params.target_prefix / "conda-bld",
+                     context.prefix_params.root_prefix / "conda-bld",
+                     env::home_directory() / "conda-bld",
+                 })
+            {
+                if (fs::exists(p))
+                {
+                    local_channels.push_back(std::move(p));
+                }
+            }
+
+            custom_multichannels.emplace("local", std::move(local_channels));
         }
 
         void pkgs_dirs_hook(std::vector<fs::u8path>& dirs)
@@ -1307,10 +1323,11 @@ namespace mamba
                    .long_description(  //
                        "A dictionary where keys are multi channels names, and values are a list "
                        "of correspinding names / urls / file paths to use.\n"
-                       R"(If not defined, the Conda special mutli channel "defaults" is added )"
-                       R"(with values from the "default_channels" option.)"
+                       R"(If not defined, the Conda special mutli channels "defaults" is added )"
+                       R"(with values from the "default_channels" option, and "local" is added )"
+                       R"(with "~/conda-bld" and target and root prefix "conda-bld" subfolders/)"
                    )
-                   .needs({ "default_channels" })
+                   .needs({ "default_channels", "target_prefix", "root_prefix" })
                    .set_post_merge_hook<std::map<std::string, std::vector<std::string>>>(
                        [this](auto& val) { detail::custom_multichannels_hook(m_context, val); }
                    ));

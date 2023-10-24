@@ -326,29 +326,20 @@ namespace mamba
         {
             auto& ctx = mambatests::context();
 
-            // Create conda-bld directory to enable testing
-            auto conda_bld_dir = env::home_directory() / "conda-bld";
-            bool to_be_removed = fs::create_directories(conda_bld_dir);
-
+            // Hard coded Anaconda multi channel names set in configuration after refactor
+            // Should be moved to test_config
+            // FIXME: this has side effect on all tests
+            ctx.custom_multichannels["local"] = std::vector<std::string>{
+                ctx.prefix_params.target_prefix / "conda-bld",
+                ctx.prefix_params.root_prefix / "conda-bld",
+                env::home_directory() / "conda-bld",
+            };
             ChannelContext channel_context{ ctx };
 
-            const auto& custom = channel_context.get_custom_channels();
-            CHECK_EQ(custom.size(), 1);
-
-            auto it = custom.find("conda-bld");
-            REQUIRE_NE(it, custom.end());
-            CHECK_EQ(it->second.url(), CondaURL::parse(util::path_to_url(conda_bld_dir.string())));
-            CHECK_EQ(it->second.canonical_name(), "local");
+            CHECK_EQ(channel_context.get_custom_multichannels().at("local").size(), 3);
 
             auto local_channels = channel_context.get_channels({ "local" });
-            CHECK_EQ(local_channels.size(), 1);
-
-            // Cleaning
-            ctx.custom_channels.clear();
-            if (to_be_removed)
-            {
-                fs::remove_all(conda_bld_dir);
-            }
+            CHECK_EQ(local_channels.size(), 3);
         }
 
         TEST_CASE("custom_channels_with_labels")

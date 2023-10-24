@@ -615,46 +615,7 @@ namespace mamba
 
     void ChannelContext::init_custom_channels()
     {
-        /******************
-         * MULTI CHANNELS *
-         ******************/
-
-        // Local channels
-        std::vector<std::string> local_channels = { m_context.prefix_params.target_prefix
-                                                        / "conda-bld",
-                                                    m_context.prefix_params.root_prefix / "conda-bld",
-                                                    env::home_directory() / "conda-bld" };
-
-        bool at_least_one_local_dir = false;
-        std::vector<std::string> local_names;
-        local_names.reserve(local_channels.size());
-        for (const auto& p : local_channels)
-        {
-            if (fs::is_directory(p))
-            {
-                at_least_one_local_dir = true;
-                std::string url = util::path_or_url_to_url(p);
-                auto channel = make_simple_channel(m_channel_alias, url, "", LOCAL_CHANNELS_NAME);
-                std::string name = channel.name();
-                auto res = m_custom_channels.emplace(std::move(name), std::move(channel));
-                local_names.push_back(res.first->first);
-            }
-        }
-
-        // Throw if `-c local` is given but none of the specified `local_channels` are found
-        if (!at_least_one_local_dir
-            && std::find(m_context.channels.begin(), m_context.channels.end(), LOCAL_CHANNELS_NAME)
-                   != m_context.channels.end())
-        {
-            throw std::runtime_error(
-                "No 'conda-bld' directory found in target prefix, root prefix or home directories!"
-            );
-        }
-
-        m_custom_multichannels.emplace(LOCAL_CHANNELS_NAME, std::move(local_names));
-
-        const auto& context_custom_channels = m_context.custom_channels;
-        for (const auto& [name, location] : context_custom_channels)
+        for (const auto& [name, location] : m_context.custom_channels)
         {
             auto channel = from_value(location);
             channel.m_canonical_name = name;

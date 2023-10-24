@@ -625,7 +625,23 @@ def test_spec_with_channel_and_subdir():
 
 
 def test_spec_with_multichannel(tmp_home, tmp_root_prefix):
+    "https://github.com/mamba-org/mamba/pull/2927"
     helpers.create("-n", "myenv", "defaults::zlib", "--dry-run")
+
+
+def test_spec_with_slash_in_channel(tmp_home, tmp_root_prefix):
+    "https://github.com/mamba-org/mamba/pull/2926"
+    with pytest.raises(subprocess.CalledProcessError) as info:
+        helpers.create("-n", "env1", "pkgs/main/noarch::python", "--dry-run")
+
+    assert info.value.stderr.decode() == (
+        'critical libmamba The package "pkgs/main/noarch::python" is '
+        "not available for the specified platform\n"
+    )
+
+    os.environ["CONDA_SUBDIR"] = "linux-64"
+    helpers.create("-n", "env2", "pkgs/main/linux-64::python", "--dry-run")
+    helpers.create("-n", "env3", "pkgs/main::python", "--dry-run")
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)

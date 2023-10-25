@@ -27,7 +27,7 @@ jobs:
       - name: Create build environment
         uses: mamba-org/setup-micromamba@v1
         with:
-          environment-file: ./libmamba/environment-dev.yml
+          environment-file: ./dev/environment-dev.yml
           environment-name: build_env
           cache-environment: true
           init-shell: bash cmd.exe
@@ -166,7 +166,7 @@ jobs:
       - name: create build environment
         uses: mamba-org/setup-micromamba@v1
         with:
-          environment-file: ./micromamba/environment-dev.yml
+          environment-file: ./dev/environment-dev.yml
           environment-name: build_env
           cache-environment: true
           init-shell: bash cmd.exe
@@ -227,7 +227,7 @@ jobs:
       - name: create build environment
         uses: mamba-org/setup-micromamba@v1
         with:
-          environment-file: ./micromamba/environment-dev.yml
+          environment-file: ./dev/environment-dev.yml
           environment-name: build_env
           create-args: >-
             menuinst

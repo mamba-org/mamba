@@ -30,9 +30,9 @@ namespace mamba::util
                 case (WindowsKnowUserFolder::ProgramData):
                     return FOLDERID_ProgramData;
                 case (WindowsKnowUserFolder::LocalAppData):
-                    return FOLDERID_RoamingAppData;
-                case (WindowsKnowUserFolder::RoamingAppData):
                     return FOLDERID_LocalAppData;
+                case (WindowsKnowUserFolder::RoamingAppData):
+                    return FOLDERID_RoamingAppData;
             }
             throw std::invalid_argument("Invalid enum");
         }

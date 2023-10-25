@@ -243,12 +243,10 @@ namespace mamba::specs
     auto operator/(CondaURL&& url, std::string_view subpath) -> CondaURL;
 }
 
-namespace std
+template <>
+struct std::hash<mamba::specs::CondaURL>
 {
-    template <>
-    struct hash<mamba::specs::CondaURL>
-    {
-        auto operator()(const mamba::specs::CondaURL& p) const -> std::size_t;
-    };
-}
+    auto operator()(const mamba::specs::CondaURL& p) const -> std::size_t;
+};
+
 #endif

@@ -676,10 +676,8 @@ namespace mamba::util
 
 }  // namespace mamba
 
-namespace std
+auto
+std::hash<mamba::util::URL>::operator()(const mamba::util::URL& u) const -> std::size_t
 {
-    auto hash<mamba::util::URL>::operator()(const mamba::util::URL& u) const -> std::size_t
-    {
-        return mamba::util::hash_tuple(mamba::util::attrs(u));
-    }
+    return mamba::util::hash_tuple(mamba::util::attrs(u));
 }

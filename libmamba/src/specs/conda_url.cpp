@@ -526,10 +526,8 @@ namespace mamba::specs
     }
 }
 
-namespace std
+auto
+std::hash<mamba::specs::CondaURL>::operator()(const mamba::specs::CondaURL& u) const -> std::size_t
 {
-    auto hash<mamba::specs::CondaURL>::operator()(const mamba::specs::CondaURL& u) const -> std::size_t
-    {
-        return std::hash<mamba::util::URL>()(u.base());
-    }
+    return std::hash<mamba::util::URL>()(u.base());
 }

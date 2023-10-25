@@ -4,8 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef MAMBA_SPECS_AUTHENTIFICATION_INFO_HPP
-#define MAMBA_SPECS_AUTHENTIFICATION_INFO_HPP
+#ifndef MAMBA_SPECS_AUTHENTICATION_INFO_HPP
+#define MAMBA_SPECS_AUTHENTICATION_INFO_HPP
 
 #include <string>
 #include <unordered_map>
@@ -37,7 +37,7 @@ namespace mamba::specs
     using AuthenticationInfo = std::variant<BasicHTTPAuthentication, BearerToken, CondaToken>;
 
     /**
-     * A class that holds the authetication info stotred by users.
+     * A class that holds the authentication info stored by users.
      *
      * Essentially a map, except that some keys can match mutliple queries.
      * For instance "mamba.org/private" should be matched by queries "mamba.org/private",

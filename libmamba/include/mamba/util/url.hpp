@@ -286,12 +286,9 @@ namespace mamba::util
     auto operator/(URL&& url, std::string_view subpath) -> URL;
 }
 
-namespace std
+template <>
+struct std::hash<mamba::util::URL>
 {
-    template <>
-    struct hash<mamba::util::URL>
-    {
-        auto operator()(const mamba::util::URL& p) const -> std::size_t;
-    };
-}
+    auto operator()(const mamba::util::URL& p) const -> std::size_t;
+};
 #endif

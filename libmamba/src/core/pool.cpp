@@ -171,7 +171,7 @@ namespace mamba
             }
             std::string needle_subdir = util::rsplit(needle_channel, "/", 1)[1];
 
-            auto known_platforms = specs::known_platform_names();
+            auto known_platforms = get_known_platforms();
             if (std::find(known_platforms.begin(), known_platforms.end(), needle_subdir)
                 == known_platforms.end())
             {

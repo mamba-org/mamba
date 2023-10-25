@@ -7,6 +7,7 @@
 #ifndef MAMBA_SPECS_CONDA_URL_HPP
 #define MAMBA_SPECS_CONDA_URL_HPP
 
+#include <functional>
 #include <string_view>
 
 #include "mamba/specs/platform.hpp"
@@ -34,13 +35,17 @@ namespace mamba::specs
         explicit CondaURL(util::URL&& url);
         explicit CondaURL(const util::URL& url);
 
+        auto base() const -> const util::URL&;
+
         using Base::scheme_is_defaulted;
         using Base::scheme;
         using Base::set_scheme;
         using Base::clear_scheme;
+        using Base::has_user;
         using Base::user;
         using Base::set_user;
         using Base::clear_user;
+        using Base::has_password;
         using Base::password;
         using Base::set_password;
         using Base::clear_password;
@@ -98,6 +103,9 @@ namespace mamba::specs
          * If the final path contains only a token, a trailing '/' is added afterwards.
          */
         void append_path(std::string_view path, Encode::no_type);
+
+        /** Return wether a token is set. */
+        [[nodiscard]] auto has_token() const -> bool;
 
         /** Return the Conda token, as delimited with "/t/", or empty if there isn't any. */
         [[nodiscard]] auto token() const -> std::string_view;
@@ -226,7 +234,7 @@ namespace mamba::specs
         friend auto operator==(const CondaURL&, const CondaURL&) -> bool;
     };
 
-    /** Compare two CondaURL. */
+    /** Tuple-like equality of all observable members */
     auto operator==(const CondaURL& a, const CondaURL& b) -> bool;
     auto operator!=(const CondaURL& a, const CondaURL& b) -> bool;
 
@@ -234,4 +242,11 @@ namespace mamba::specs
     auto operator/(const CondaURL& url, std::string_view subpath) -> CondaURL;
     auto operator/(CondaURL&& url, std::string_view subpath) -> CondaURL;
 }
+
+template <>
+struct std::hash<mamba::specs::CondaURL>
+{
+    auto operator()(const mamba::specs::CondaURL& p) const -> std::size_t;
+};
+
 #endif

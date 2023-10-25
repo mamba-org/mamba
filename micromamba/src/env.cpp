@@ -186,7 +186,7 @@ set_env_command(CLI::App* com, Configuration& config)
                         dependencies << "- ";
                         if (channel_subdir)
                         {
-                            dependencies << channel.name() << "/" << v.subdir << "::";
+                            dependencies << channel.canonical_name() << "/" << v.subdir << "::";
                         }
                         dependencies << v.name << "=" << v.version;
                         if (!no_build)
@@ -200,7 +200,7 @@ set_env_command(CLI::App* com, Configuration& config)
                         dependencies << "\n";
                     }
 
-                    channels.insert(channel.name());
+                    channels.insert(channel.canonical_name());
                 }
 
                 for (const auto& c : channels)

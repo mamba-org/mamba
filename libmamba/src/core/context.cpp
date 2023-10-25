@@ -179,7 +179,7 @@ namespace mamba
         return { platform, "noarch" };
     }
 
-    Context::authentication_info_map_t& Context::authentication_info()
+    specs::AuthenticationDataBase& Context::authentication_info()
     {
         if (!m_authentication_infos_loaded)
         {
@@ -188,7 +188,7 @@ namespace mamba
         return m_authentication_info;
     }
 
-    const Context::authentication_info_map_t& Context::authentication_info() const
+    const specs::AuthenticationDataBase& Context::authentication_info() const
     {
         return const_cast<Context*>(this)->authentication_info();
     }
@@ -223,9 +223,11 @@ namespace mamba
                     // cut ".token" ending
                     token_url = token_url.substr(0, token_url.size() - 6);
 
-                    m_authentication_info[token_url] = specs::CondaToken{ read_contents(entry.path()
-                    ) };
                     LOG_INFO << "Found token for " << token_url << " at " << entry.path();
+                    m_authentication_info.emplace(
+                        std::move(token_url),
+                        specs::CondaToken{ read_contents(entry.path()) }
+                    );
                 }
             }
         }
@@ -241,7 +243,7 @@ namespace mamba
                 infile >> j;
                 for (auto& [key, el] : j.items())
                 {
-                    std::string const host = key;
+                    const std::string host = key;
                     const auto type = el["type"].get<std::string_view>();
                     specs::AuthenticationInfo info;
                     if (type == "CondaToken")
@@ -277,7 +279,7 @@ namespace mamba
                         LOG_INFO << "Found bearer token for host " << host
                                  << " in ~/.mamba/auth/authentication.json";
                     }
-                    m_authentication_info[host] = info;
+                    m_authentication_info.emplace(std::move(host), std::move(info));
                 }
             }
         }

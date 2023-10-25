@@ -90,11 +90,12 @@ namespace mamba
                 LOG_INFO << "need to expand path!";
                 spec_str = util::path_or_url_to_url(fs::absolute(env::expand_user(spec_str)).string());
             }
-            auto& parsed_channel = channel_context.make_channel(spec_str);
 
-            if (parsed_channel.package_filename())
+            const auto& parsed_channel = channel_context.make_channel(spec_str);
+
+            if (auto pkg = parsed_channel.url().package(); !pkg.empty())
             {
-                auto dist = parse_legacy_dist(*parsed_channel.package_filename());
+                auto dist = parse_legacy_dist(pkg);
 
                 name = dist[0];
                 version = dist[1];
@@ -106,7 +107,7 @@ namespace mamba
                 {
                     subdir = plats.front();
                 }
-                fn = *parsed_channel.package_filename();
+                fn = std::move(pkg);
                 url = spec_str;
                 is_file = true;
             }

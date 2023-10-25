@@ -12,6 +12,11 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/util/flat_set.hpp"
+#include "mamba/util/string.hpp"
+#include "mamba/util/url_manip.hpp"
+
+#include "doctest-printer/conda_url.hpp"
+#include "doctest-printer/flat_set.hpp"
 
 #include "mambatests.hpp"
 
@@ -21,9 +26,11 @@ namespace mamba
     static const std::string platform = std::string(specs::build_platform_name());
     using PlatformSet = typename util::flat_set<std::string>;
     using UrlSet = typename util::flat_set<std::string>;
+    using CondaURL = specs::CondaURL;
 
     static_assert(std::is_move_constructible_v<mamba::Channel>);
     static_assert(std::is_move_assignable_v<mamba::Channel>);
+
 
     TEST_SUITE("ChannelContext")
     {
@@ -38,21 +45,18 @@ namespace mamba
             const auto& custom = channel_context.get_custom_channels();
 
             auto it = custom.find("pkgs/main");
-            CHECK_NE(it, custom.end());
-            CHECK_EQ(it->second.name(), "pkgs/main");
-            CHECK_EQ(it->second.location(), "repo.anaconda.com");
+            REQUIRE_NE(it, custom.end());
+            CHECK_EQ(it->second.url(), CondaURL::parse("https://repo.anaconda.com/pkgs/main"));
             CHECK_EQ(it->second.canonical_name(), "defaults");
 
             it = custom.find("pkgs/pro");
-            CHECK_NE(it, custom.end());
-            CHECK_EQ(it->second.name(), "pkgs/pro");
-            CHECK_EQ(it->second.location(), "repo.anaconda.com");
+            REQUIRE_NE(it, custom.end());
+            CHECK_EQ(it->second.url(), CondaURL::parse("https://repo.anaconda.com/pkgs/pro"));
             CHECK_EQ(it->second.canonical_name(), "pkgs/pro");
 
             it = custom.find("pkgs/r");
-            CHECK_NE(it, custom.end());
-            CHECK_EQ(it->second.name(), "pkgs/r");
-            CHECK_EQ(it->second.location(), "repo.anaconda.com");
+            REQUIRE_NE(it, custom.end());
+            CHECK_EQ(it->second.url(), CondaURL::parse("https://repo.anaconda.com/pkgs/r"));
             CHECK_EQ(it->second.canonical_name(), "defaults");
         }
 
@@ -71,18 +75,14 @@ namespace mamba
             const auto& custom = channel_context.get_custom_channels();
 
             auto it = custom.find("pkgs/main");
-            CHECK_NE(it, custom.end());
-            CHECK_EQ(it->second.name(), "pkgs/main");
-            CHECK_EQ(it->second.location(), "repo.anaconda.com");
+            REQUIRE_NE(it, custom.end());
+            CHECK_EQ(it->second.url(), CondaURL::parse("https://repo.anaconda.com/pkgs/main"));
             CHECK_EQ(it->second.canonical_name(), "defaults");
 
             std::string value = "conda-forge";
             const Channel& c = channel_context.make_channel(value);
-            CHECK_EQ(c.scheme(), "https");
-            CHECK_EQ(c.location(), "mydomain.com/channels");
-            CHECK_EQ(c.name(), "conda-forge");
+            CHECK_EQ(c.url(), CondaURL::parse("https://mydomain.com/channels/conda-forge"));
             CHECK_EQ(c.canonical_name(), "conda-forge");
-            // CHECK_EQ(c.url(), "conda-forge");
             CHECK_EQ(c.platforms(), PlatformSet({ platform, "noarch" }));
 
             ctx.channel_alias = "https://conda.anaconda.org";
@@ -125,9 +125,7 @@ namespace mamba
             {
                 std::string value = "test_channel";
                 const Channel& c = channel_context.make_channel(value);
-                CHECK_EQ(c.scheme(), "file");
-                CHECK_EQ(c.location(), "/tmp");
-                CHECK_EQ(c.name(), "test_channel");
+                CHECK_EQ(c.url(), CondaURL::parse("file:///tmp/test_channel"));
                 CHECK_EQ(c.canonical_name(), "test_channel");
                 CHECK_EQ(c.platforms(), PlatformSet({ platform, "noarch" }));
                 const UrlSet exp_urls({
@@ -140,9 +138,7 @@ namespace mamba
             {
                 std::string value = "some_channel";
                 const Channel& c = channel_context.make_channel(value);
-                CHECK_EQ(c.scheme(), "https");
-                CHECK_EQ(c.location(), "conda.mydomain.xyz");
-                CHECK_EQ(c.name(), "some_channel");
+                CHECK_EQ(c.url(), CondaURL::parse("https://conda.mydomain.xyz/some_channel"));
                 CHECK_EQ(c.canonical_name(), "some_channel");
                 CHECK_EQ(c.platforms(), PlatformSet({ platform, "noarch" }));
                 const UrlSet exp_urls({
@@ -261,22 +257,19 @@ namespace mamba
             const Channel* c1 = x[0];
             const Channel* c2 = x[1];
 
-            CHECK_EQ(c1->name(), "pkgs/main");
+            CHECK_EQ(c1->url(), CondaURL::parse("https://repo.anaconda.com/pkgs/main"));
             const UrlSet exp_urls({
                 std::string("https://repo.anaconda.com/pkgs/main/") + platform,
                 "https://repo.anaconda.com/pkgs/main/noarch",
             });
             CHECK_EQ(c1->urls(), exp_urls);
 
-            CHECK_EQ(c2->name(), "pkgs/r");
+            CHECK_EQ(c2->url(), CondaURL::parse("https://repo.anaconda.com/pkgs/r"));
             const UrlSet exp_urls2({
                 std::string("https://repo.anaconda.com/pkgs/r/") + platform,
                 "https://repo.anaconda.com/pkgs/r/noarch",
             });
             CHECK_EQ(c2->urls(), exp_urls2);
-
-            CHECK_EQ(c1->location(), "repo.anaconda.com");
-            CHECK_EQ(c1->scheme(), "https");
 
 #endif
             ctx.custom_channels.clear();
@@ -295,21 +288,19 @@ namespace mamba
             const Channel* c1 = x[0];
             const Channel* c2 = x[1];
 
-            CHECK_EQ(c1->name(), "test/channel");
+            CHECK_EQ(c1->url(), CondaURL::parse("https://mamba.com/test/channel"));
             const UrlSet exp_urls({
                 std::string("https://mamba.com/test/channel/") + platform,
                 "https://mamba.com/test/channel/noarch",
             });
             CHECK_EQ(c1->urls(), exp_urls);
+
+            CHECK_EQ(c2->url(), CondaURL::parse("https://mamba.com/stable/channel"));
             const UrlSet exp_urls2({
                 std::string("https://mamba.com/stable/channel/") + platform,
                 "https://mamba.com/stable/channel/noarch",
             });
             CHECK_EQ(c2->urls(), exp_urls2);
-
-            CHECK_EQ(c2->name(), "stable/channel");
-            CHECK_EQ(c2->location(), "mamba.com");
-            CHECK_EQ(c2->scheme(), "https");
 
             ctx.custom_channels.clear();
         }
@@ -329,11 +320,9 @@ namespace mamba
             CHECK_EQ(custom.size(), 4);
 
             auto it = custom.find("conda-bld");
-            CHECK_NE(it, custom.end());
-            CHECK_EQ(it->second.name(), "conda-bld");
-            CHECK_EQ(it->second.location(), env::home_directory());
+            REQUIRE_NE(it, custom.end());
+            CHECK_EQ(it->second.url(), CondaURL::parse(util::path_to_url(conda_bld_dir.string())));
             CHECK_EQ(it->second.canonical_name(), "local");
-            CHECK_EQ(it->second.scheme(), "file");
 
             auto local_channels = channel_context.get_channels({ "local" });
             CHECK_EQ(local_channels.size(), 1);
@@ -358,9 +347,7 @@ namespace mamba
             {
                 std::string value = "test_channel";
                 const Channel& c = channel_context.make_channel(value);
-                CHECK_EQ(c.scheme(), "https");
-                CHECK_EQ(c.location(), "server.com/private/channels");
-                CHECK_EQ(c.name(), "test_channel");
+                CHECK_EQ(c.url(), CondaURL::parse("https://server.com/private/channels/test_channel"));
                 CHECK_EQ(c.canonical_name(), "test_channel");
                 CHECK_EQ(c.platforms(), PlatformSet({ platform, "noarch" }));
                 const UrlSet exp_urls({
@@ -373,9 +360,10 @@ namespace mamba
             {
                 std::string value = "test_channel/mylabel/xyz";
                 const Channel& c = channel_context.make_channel(value);
-                CHECK_EQ(c.scheme(), "https");
-                CHECK_EQ(c.location(), "server.com/private/channels");
-                CHECK_EQ(c.name(), "test_channel/mylabel/xyz");
+                CHECK_EQ(
+                    c.url(),
+                    CondaURL::parse("https://server.com/private/channels/test_channel/mylabel/xyz")
+                );
                 CHECK_EQ(c.canonical_name(), "test_channel/mylabel/xyz");
                 CHECK_EQ(c.platforms(), PlatformSet({ platform, "noarch" }));
                 const UrlSet exp_urls({
@@ -387,11 +375,13 @@ namespace mamba
             }
 
             {
+                // https://github.com/mamba-org/mamba/issues/2553
                 std::string value = "random/test_channel/pkg";
                 const Channel& c = channel_context.make_channel(value);
-                CHECK_EQ(c.scheme(), "https");
-                CHECK_EQ(c.location(), "server.com/random/channels");
-                CHECK_EQ(c.name(), "random/test_channel/pkg");
+                CHECK_EQ(
+                    c.url(),
+                    CondaURL::parse("https://server.com/random/channels/random/test_channel/pkg")
+                );
                 CHECK_EQ(c.canonical_name(), "random/test_channel/pkg");
                 CHECK_EQ(c.platforms(), PlatformSet({ platform, "noarch" }));
                 const UrlSet exp_urls({
@@ -414,9 +404,7 @@ namespace mamba
             std::string value = "https://repo.mamba.pm/conda-forge";
             ChannelContext channel_context{ mambatests::context() };
             const Channel& c = channel_context.make_channel(value);
-            CHECK_EQ(c.scheme(), "https");
-            CHECK_EQ(c.location(), "repo.mamba.pm");
-            CHECK_EQ(c.name(), "conda-forge");
+            CHECK_EQ(c.url(), CondaURL::parse("https://repo.mamba.pm/conda-forge"));
             CHECK_EQ(c.canonical_name(), "https://repo.mamba.pm/conda-forge");
             CHECK_EQ(c.platforms(), PlatformSet({ platform, "noarch" }));
         }
@@ -426,53 +414,33 @@ namespace mamba
             std::string value = "conda-forge";
             ChannelContext channel_context{ mambatests::context() };
             const Channel& c = channel_context.make_channel(value);
-            CHECK_EQ(c.scheme(), "https");
-            CHECK_EQ(c.location(), "conda.anaconda.org");
-            CHECK_EQ(c.name(), "conda-forge");
+            CHECK_EQ(c.url(), CondaURL::parse("https://conda.anaconda.org/conda-forge"));
             CHECK_EQ(c.canonical_name(), "conda-forge");
             CHECK_EQ(c.platforms(), PlatformSet({ platform, "noarch" }));
 
             std::string value2 = "https://repo.anaconda.com/pkgs/main[" + platform + "]";
             const Channel& c2 = channel_context.make_channel(value2);
-            CHECK_EQ(c2.scheme(), "https");
-            CHECK_EQ(c2.location(), "repo.anaconda.com");
-            CHECK_EQ(c2.name(), "pkgs/main");
+            CHECK_EQ(c2.url(), CondaURL::parse("https://repo.anaconda.com/pkgs/main"));
             CHECK_EQ(c2.canonical_name(), "https://repo.anaconda.com/pkgs/main");
             CHECK_EQ(c2.platforms(), PlatformSet({ platform }));
 
             std::string value3 = "https://conda.anaconda.org/conda-forge[" + platform + "]";
             const Channel& c3 = channel_context.make_channel(value3);
-            CHECK_EQ(c3.scheme(), c.scheme());
-            CHECK_EQ(c3.location(), c.location());
-            CHECK_EQ(c3.name(), c.name());
+            CHECK_EQ(c3.url(), c.url());
             CHECK_EQ(c3.canonical_name(), c.canonical_name());
             CHECK_EQ(c3.platforms(), PlatformSet({ platform }));
 
             std::string value4 = "/home/mamba/test/channel_b";
             const Channel& c4 = channel_context.make_channel(value4);
-            CHECK_EQ(c4.scheme(), "file");
-#ifdef _WIN32
-            std::string driveletter = fs::absolute(fs::u8path("/")).string().substr(0, 1);
-            CHECK_EQ(c4.location(), driveletter + ":/home/mamba/test");
-            CHECK_EQ(c4.canonical_name(), "file:///" + driveletter + ":/home/mamba/test/channel_b");
-#else
-            CHECK_EQ(c4.location(), "/home/mamba/test");
-            CHECK_EQ(c4.canonical_name(), "file:///home/mamba/test/channel_b");
-#endif
-            CHECK_EQ(c4.name(), "channel_b");
+            CHECK_EQ(c4.url(), CondaURL::parse(util::path_to_url(value4)));
+            CHECK_EQ(c4.canonical_name(), c4.url().pretty_str());
             CHECK_EQ(c4.platforms(), PlatformSet({ platform, "noarch" }));
 
-            std::string value5 = "/home/mamba/test/channel_b[" + platform + "]";
+            std::string path5 = "/home/mamba/test/channel_b";
+            std::string value5 = util::concat(path5, '[', platform, ']');
             const Channel& c5 = channel_context.make_channel(value5);
-            CHECK_EQ(c5.scheme(), "file");
-#ifdef _WIN32
-            CHECK_EQ(c5.location(), driveletter + ":/home/mamba/test");
-            CHECK_EQ(c5.canonical_name(), "file:///" + driveletter + ":/home/mamba/test/channel_b");
-#else
-            CHECK_EQ(c5.location(), "/home/mamba/test");
-            CHECK_EQ(c5.canonical_name(), "file:///home/mamba/test/channel_b");
-#endif
-            CHECK_EQ(c5.name(), "channel_b");
+            CHECK_EQ(c5.url(), CondaURL::parse(util::path_to_url(path5)));
+            CHECK_EQ(c5.canonical_name(), c5.url().pretty_str());
             CHECK_EQ(c5.platforms(), PlatformSet({ platform }));
 
             std::string value6a = "http://localhost:8000/conda-forge[noarch]";
@@ -518,12 +486,15 @@ namespace mamba
         TEST_CASE("add_token")
         {
             auto& ctx = mambatests::context();
-            ctx.authentication_info()["conda.anaconda.org"] = specs::CondaToken{ "my-12345-token" };
+            ctx.authentication_info().emplace(
+                "conda.anaconda.org",
+                specs::CondaToken{ "my-12345-token" }
+            );
 
             ChannelContext channel_context{ ctx };
 
             const auto& chan = channel_context.make_channel("conda-forge[noarch]");
-            CHECK_EQ(chan.token(), "my-12345-token");
+            CHECK_EQ(chan.url().token(), "my-12345-token");
             CHECK_EQ(
                 chan.urls(true),
                 UrlSet({ "https://conda.anaconda.org/t/my-12345-token/conda-forge/noarch" })
@@ -534,15 +505,16 @@ namespace mamba
         TEST_CASE("add_multiple_tokens")
         {
             auto& ctx = mambatests::context();
-            ctx.authentication_info()["conda.anaconda.org"] = specs::CondaToken{ "base-token" };
-            ctx.authentication_info()["conda.anaconda.org/conda-forge"] = specs::CondaToken{
-                "channel-token"
-            };
+            ctx.authentication_info().emplace("conda.anaconda.org", specs::CondaToken{ "base-token" });
+            ctx.authentication_info().emplace(
+                "conda.anaconda.org/conda-forge",
+                specs::CondaToken{ "channel-token" }
+            );
 
             ChannelContext channel_context{ ctx };
 
             const auto& chan = channel_context.make_channel("conda-forge[noarch]");
-            CHECK_EQ(chan.token(), "channel-token");
+            CHECK_EQ(chan.url().token(), "channel-token");
         }
 
         TEST_CASE("fix_win_file_path")
@@ -572,7 +544,7 @@ namespace mamba
             ChannelContext channel_context{ mambatests::context() };
             const Channel& c = channel_context.make_channel("http://localhost:8000/");
             CHECK_EQ(c.platform_url("win-64", false), "http://localhost:8000/win-64");
-            CHECK_EQ(c.base_url(), "http://localhost:8000");
+            CHECK_EQ(c.base_url(), "http://localhost:8000/");
             const UrlSet expected_urls({ std::string("http://localhost:8000/") + platform,
                                          "http://localhost:8000/noarch" });
             CHECK_EQ(c.urls(true), expected_urls);

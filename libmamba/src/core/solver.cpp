@@ -108,7 +108,7 @@ namespace mamba
 
         MatchSpec modified_spec(ms);
         const Channel& chan = m_pool.channel_context().make_channel(std::string(solvable->channel()));
-        modified_spec.channel = chan.name();
+        modified_spec.channel = chan.canonical_name();
 
         modified_spec.version = solvable->version();
         modified_spec.build_string = solvable->build_string();

@@ -331,13 +331,6 @@ namespace mamba
     void split_package_extension(const std::string& file, std::string& name, std::string& extension);
     fs::u8path strip_package_extension(const std::string& file);
 
-    template <class T>
-    inline bool vector_is_prefix(const std::vector<T>& prefix, const std::vector<T>& vec)
-    {
-        return vec.size() >= prefix.size()
-               && prefix.end() == std::mismatch(prefix.begin(), prefix.end(), vec.begin()).first;
-    }
-
     tl::expected<std::string, mamba_error> encode_base64(std::string_view input);
     tl::expected<std::string, mamba_error> decode_base64(std::string_view input);
 

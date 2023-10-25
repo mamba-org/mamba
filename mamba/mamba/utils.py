@@ -263,19 +263,8 @@ def init_api_context(use_mamba_experimental=False):
 
 
 def to_conda_channel(channel, platform):
-    if channel.scheme == "file":
-        return CondaChannel.from_value(
-            channel.platform_url(platform, with_credentials=False)
-        )
-
-    return CondaChannel(
-        channel.scheme,
-        channel.auth,
-        channel.location,
-        channel.token,
-        channel.name,
-        platform,
-        channel.package_filename,
+    return CondaChannel.from_value(
+        channel.platform_url(platform, with_credentials=False)
     )
 
 

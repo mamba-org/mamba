@@ -8,8 +8,6 @@
 #define MAMBA_CORE_CHANNEL_HPP
 
 #include <map>
-#include <memory>
-#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -44,39 +42,20 @@ namespace mamba
 
         ~Channel();
 
-        std::string_view scheme() const;
         const std::string& location() const;
         const std::string& name() const;
         const std::string& canonical_name() const;
         const util::flat_set<std::string>& platforms() const;
-        std::optional<std::string> auth() const;
-        std::optional<std::string> user() const;
-        std::optional<std::string> password() const;
-        std::optional<std::string> token() const;
-        std::optional<std::string> package_filename() const;
-        const validation::RepoChecker&
-        repo_checker(Context& context, MultiPackageCache& caches) const;
+        const specs::CondaURL& url() const;
 
         std::string base_url() const;
-        std::string platform_url(std::string platform, bool with_credential = true) const;
+        std::string platform_url(std::string_view platform, bool with_credential = true) const;
         // The pairs consist of (platform,url)
         util::flat_set<std::pair<std::string, std::string>>
         platform_urls(bool with_credential = true) const;
         util::flat_set<std::string> urls(bool with_credential = true) const;
 
     private:
-
-        Channel(
-            std::string_view scheme,
-            std::string location,
-            std::string name,
-            std::string canonical_name,
-            std::string_view user = {},
-            std::string_view password = {},
-            std::string_view token = {},
-            std::string_view package_filename = {},
-            util::flat_set<std::string> platforms = {}
-        );
 
         Channel(
             specs::CondaURL url,
@@ -86,16 +65,11 @@ namespace mamba
             util::flat_set<std::string> platforms = {}
         );
 
-        const specs::CondaURL& url() const;
-
         specs::CondaURL m_url;
         std::string m_location;
         std::string m_name;
         std::string m_canonical_name;
         util::flat_set<std::string> m_platforms;
-
-        // This is used to make sure that there is a unique repo for every channel
-        mutable std::unique_ptr<validation::RepoChecker> p_repo_checker;
 
         // Note: as long as Channel is not a regular value-type and we want each
         // instance only possible to create through ChannelContext, we need
@@ -105,10 +79,6 @@ namespace mamba
         // be a regular value-type (regular as in the regular concept).
         friend class ChannelContext;
     };
-
-    bool operator==(const Channel& lhs, const Channel& rhs);
-    bool operator!=(const Channel& lhs, const Channel& rhs);
-
 
     using ChannelCache = std::map<std::string, Channel>;
 
@@ -160,8 +130,10 @@ namespace mamba
         Channel from_any_path(specs::ChannelSpec&& spec);
         Channel from_package_path(specs::ChannelSpec&& spec);
         Channel from_path(specs::ChannelSpec&& spec);
+        Channel from_any_url(specs::ChannelSpec&& spec);
+        Channel from_package_url(specs::ChannelSpec&& spec);
         Channel from_url(specs::ChannelSpec&& spec);
-        Channel from_name(const std::string& name);
+        Channel from_name(specs::ChannelSpec&& spec);
         Channel from_value(const std::string& value);
     };
 

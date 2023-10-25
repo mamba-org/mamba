@@ -18,6 +18,7 @@
 #include "mamba/util/build.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/tuple_hash.hpp"
 #include "mamba/util/url.hpp"
 #include "mamba/util/url_manip.hpp"
 
@@ -185,8 +186,8 @@ namespace mamba::util
             out.set_scheme(handle.get_part(CURLUPART_SCHEME).value_or(""));
             out.set_user(handle.get_part(CURLUPART_USER).value_or(""), Encode::no);
             out.set_password(handle.get_part(CURLUPART_PASSWORD).value_or(""), Encode::no);
-            out.set_host(handle.get_part(CURLUPART_HOST).value_or(""));
-            out.set_path(handle.get_part(CURLUPART_PATH).value_or("/"));
+            out.set_host(handle.get_part(CURLUPART_HOST).value_or(""), Encode::no);
+            out.set_path(handle.get_part(CURLUPART_PATH).value_or("/"), Encode::no);
             out.set_port(handle.get_part(CURLUPART_PORT).value_or(""));
             out.set_query(handle.get_part(CURLUPART_QUERY).value_or(""));
             out.set_fragment(handle.get_part(CURLUPART_FRAGMENT).value_or(""));
@@ -222,6 +223,11 @@ namespace mamba::util
         return std::exchange(m_scheme, "");
     }
 
+    auto URL::has_user() const -> bool
+    {
+        return !m_user.empty();
+    }
+
     auto URL::user(Decode::no_type) const -> const std::string&
     {
         return m_user;
@@ -245,6 +251,11 @@ namespace mamba::util
     auto URL::clear_user() -> std::string
     {
         return std::exchange(m_user, "");
+    }
+
+    auto URL::has_password() const -> bool
+    {
+        return !m_password.empty();
     }
 
     auto URL::password(Decode::no_type) const -> const std::string&
@@ -458,27 +469,19 @@ namespace mamba::util
         if (on_win && (scheme() == "file"))
         {
             auto [slashes, no_slash_path] = lstrip_parts(path, '/');
-            if (slashes.empty())
-            {
-                slashes = "/";
-            }
             if ((no_slash_path.size() >= 2) && path_has_drive_letter(no_slash_path))
             {
-                m_path = concat(
-                    slashes,
-                    no_slash_path.substr(0, 2),
-                    url_encode(no_slash_path.substr(2), '/')
+                return set_path(
+                    concat(
+                        slashes.empty() ? "/" : slashes,
+                        no_slash_path.substr(0, 2),
+                        url_encode(no_slash_path.substr(2), '/')
+                    ),
+                    Encode::no
                 );
             }
-            else
-            {
-                m_path = concat(slashes, url_encode(no_slash_path, '/'));
-            }
         }
-        else
-        {
-            return set_path(url_encode(path, '/'), Encode::no);
-        }
+        return set_path(url_encode(path, '/'), Encode::no);
     }
 
     void URL::set_path(std::string path, Encode::no_type)
@@ -512,9 +515,9 @@ namespace mamba::util
 
     void URL::append_path(std::string_view subpath, Encode::yes_type)
     {
-        if (path(Decode::no) == "/")
+        if (util::lstrip(path(Decode::no), '/').empty())
         {
-            // Allow hanldling of Windows drive letter encoding
+            // Allow handling of Windows drive letter encoding
             return set_path(std::string(subpath), Encode::yes);
         }
         return append_path(url_encode(subpath, '/'), Encode::no);
@@ -625,15 +628,34 @@ namespace mamba::util
         );
     }
 
+    namespace
+    {
+        auto attrs(URL const& url)
+        {
+            return std::tuple<
+                std::string_view,
+                const std::string&,
+                const std::string&,
+                std::string_view,
+                const std::string&,
+                const std::string&,
+                const std::string&,
+                const std::string&>{
+                url.scheme(),
+                url.user(URL::Decode::no),
+                url.password(URL::Decode::no),
+                url.host(URL::Decode::no),
+                url.port(),
+                url.path(URL::Decode::no),
+                url.query(),
+                url.fragment(),
+            };
+        }
+    }
+
     auto operator==(URL const& a, URL const& b) -> bool
     {
-        return (a.scheme() == b.scheme())
-               && (a.user() == b.user())
-               // omitting password, is that desirable?
-               && (a.host() == b.host())
-               // Would it be desirable to account for default ports?
-               && (a.port() == b.port()) && (a.path() == b.path()) && (a.query() == b.query())
-               && (a.fragment() == b.fragment());
+        return attrs(a) == attrs(b);
     }
 
     auto operator!=(URL const& a, URL const& b) -> bool
@@ -653,3 +675,9 @@ namespace mamba::util
     }
 
 }  // namespace mamba
+
+auto
+std::hash<mamba::util::URL>::operator()(const mamba::util::URL& u) const -> std::size_t
+{
+    return mamba::util::hash_tuple(mamba::util::attrs(u));
+}

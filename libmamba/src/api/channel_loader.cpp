@@ -89,10 +89,10 @@ namespace mamba
                 else
                 {
                     // Consider 'flexible' and 'strict' the same way
-                    if (channel->name() != prev_channel_name)
+                    if (channel->canonical_name() != prev_channel_name)
                     {
                         max_prio--;
-                        prev_channel_name = channel->name();
+                        prev_channel_name = channel->canonical_name();
                     }
                     priorities.push_back(std::make_pair(max_prio, 0));
                 }

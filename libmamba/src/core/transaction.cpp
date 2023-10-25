@@ -16,7 +16,6 @@
 #include <fmt/ostream.h>
 #include <solv/selection.h>
 
-#include "mamba/core/validate.hpp"
 extern "C"  // Incomplete header
 {
 #include <solv/conda.h>
@@ -34,7 +33,6 @@ extern "C"  // Incomplete header
 #include "mamba/core/pool.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
-#include "mamba/core/validate.hpp"
 #include "mamba/util/flat_set.hpp"
 #include "mamba/util/string.hpp"
 #include "solv-cpp/pool.hpp"
@@ -849,17 +847,46 @@ namespace mamba
                 solution.actions,
                 [&](const auto& pkg)
                 {
-                    if (ctx.experimental && ctx.validation_params.verify_artifacts)
-                    {
-                        const auto& repo_checker = channel_context.make_channel(pkg.channel)
-                                                       .repo_checker(ctx, multi_cache);
-                        repo_checker.verify_package(
-                            pkg.json_signable(),
-                            nlohmann::json::parse(pkg.signatures)
-                        );
+                    // The following was used for the The Update Framework (TUF) / package signing
+                    // proof of concept.
+                    //
+                    // Due to uncertainties on how TUF would be implemented, this was left commented
+                    // out as in was getting in the way of the Channel refactoring.
 
-                        LOG_DEBUG << "'" << pkg.name << "' trusted from '" << pkg.channel << "'";
-                    }
+                    // In channel.cpp, repo-checkers were instanciated with the folowing:
+                    // const validation::RepoChecker&
+                    //    Channel::repo_checker(Context& context, MultiPackageCache& caches) const
+                    //    {
+                    //        if (p_repo_checker == nullptr)
+                    //        {
+                    //            p_repo_checker = std::make_unique<validation::RepoChecker>(
+                    //                context,
+                    //                util::rsplit(base_url(), "/", 1).front(),
+                    //                context.prefix_params.root_prefix / "etc" / "trusted-repos"
+                    //                    / util::cache_name_from_url(base_url()),
+                    //                caches.first_writable_path() / "cache" /
+                    //                util::cache_name_from_url(base_url())
+                    //            );
+                    //
+                    //            fs::create_directories(p_repo_checker->cache_path());
+                    //            p_repo_checker->generate_index_checker();
+                    //        }
+                    //
+                    //        return *p_repo_checker;
+                    //    }
+
+                    // Here, the repo-checker would be fetched the following way:
+                    // if (ctx.experimental && ctx.validation_params.verify_artifacts)
+                    // {
+                    //     const auto& repo_checker = channel_context.make_channel(pkg.channel)
+                    //                                    .repo_checker(ctx, multi_cache);
+                    //     repo_checker.verify_package(
+                    //         pkg.json_signable(),
+                    //         nlohmann::json::parse(pkg.signatures)
+                    //     );
+                    //
+                    //     LOG_DEBUG << "'" << pkg.name << "' trusted from '" << pkg.channel << "'";
+                    // }
                     fetchers.emplace_back(pkg, channel_context, multi_cache);
                 }
             );

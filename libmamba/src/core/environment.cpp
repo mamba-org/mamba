@@ -16,6 +16,7 @@
 
 #include "mamba/core/output.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/util/os_win.hpp"
 #else
 #include <pwd.h>
 #include <sys/types.h>
@@ -31,35 +32,6 @@ extern "C"
 
 namespace mamba::env
 {
-#ifdef _WIN32
-    namespace
-    {
-        const std::map<std::string, KNOWNFOLDERID> knownfolders = {
-            { "programs", FOLDERID_Programs },       { "profile", FOLDERID_Profile },
-            { "documents", FOLDERID_Documents },     { "roamingappdata", FOLDERID_RoamingAppData },
-            { "programdata", FOLDERID_ProgramData }, { "localappdata", FOLDERID_LocalAppData },
-        };
-
-        auto get_known_folder(const std::string& id) -> fs::u8path
-        {
-            wchar_t* localAppData;
-            HRESULT hres;
-
-            hres = SHGetKnownFolderPath(knownfolders.at(id), KF_FLAG_DONT_VERIFY, nullptr, &localAppData);
-
-            if (FAILED(hres))
-            {
-                throw std::runtime_error("Could not retrieve known folder");
-            }
-
-            std::wstring tmp(localAppData);
-            fs::u8path res(tmp);
-            CoTaskMemFree(localAppData);
-            return res;
-        }
-    }
-#endif
-
     std::optional<std::string> get(const std::string& key)
     {
 #ifdef _WIN32
@@ -311,7 +283,9 @@ namespace mamba::env
         if (maybe_user_config_dir.empty())
         {
 #ifdef _WIN32
-            maybe_user_config_dir = get_known_folder("roamingappdata");
+            maybe_user_config_dir = util::get_windows_known_user_folder(
+                util::WindowsKnowUserFolder::RoamingAppData
+            );
 #else
             maybe_user_config_dir = home_directory() / ".config";
 #endif
@@ -325,7 +299,9 @@ namespace mamba::env
         if (maybe_user_data_dir.empty())
         {
 #ifdef _WIN32
-            maybe_user_data_dir = get_known_folder("roamingappdata");
+            maybe_user_data_dir = util::get_windows_known_user_folder(
+                util::WindowsKnowUserFolder::RoamingAppData
+            );
 #else
             maybe_user_data_dir = home_directory() / ".local" / "share";
 #endif
@@ -339,7 +315,9 @@ namespace mamba::env
         if (maybe_user_cache_dir.empty())
         {
 #ifdef _WIN32
-            maybe_user_cache_dir = get_known_folder("localappdata");
+            maybe_user_cache_dir = util::get_windows_known_user_folder(
+                util::WindowsKnowUserFolder::LocalAppData
+            );
 #else
             maybe_user_cache_dir = home_directory() / ".cache";
 #endif

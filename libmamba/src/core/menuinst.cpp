@@ -9,6 +9,8 @@
 #ifdef _WIN32
 #include <shlobj.h>
 #include <windows.h>
+
+#include "mamba/util/os_win.hpp"
 #endif
 
 #include "mamba/core/context.hpp"
@@ -240,8 +242,12 @@ namespace mamba
         };
 
 #ifdef _WIN32
-        vars["${PERSONALDIR}"] = to_forward_slash(win::get_folder("documents"));
-        vars["${USERPROFILE}"] = to_forward_slash(win::get_folder("profile"));
+        vars["${PERSONALDIR}"] = to_forward_slash(
+            util::get_windows_known_user_folder(util::WindowsKnowUserFolder::Documents)
+        );
+        vars["${USERPROFILE}"] = to_forward_slash(
+            util::get_windows_known_user_folder(util::WindowsKnowUserFolder::Profile)
+        );
 #endif
 
         for (auto& [key, val] : vars)
@@ -304,7 +310,11 @@ namespace mamba
                 { cwp_path.string(), target_prefix.string(), env_pyw.string() }
             );
 
-            fs::u8path target_dir = win::get_folder("programs") / menu_name;
+            fs::u8path target_dir = util::get_windows_known_user_folder(
+                                        util::WindowsKnowUserFolder::Programs
+                                    )
+                                    / menu_name;
+
             if (!fs::exists(target_dir))
             {
                 fs::create_directories(target_dir);

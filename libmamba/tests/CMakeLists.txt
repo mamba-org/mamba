@@ -1,14 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
 
-if (BUILD_SHARED)
-    set(libmamba_target "libmamba")
-else ()
-    set(libmamba_target "libmamba-static")
-endif()
-
 add_executable(testing_libmamba_lock libmamba_lock/lock.cpp)
 
-target_link_libraries(testing_libmamba_lock PUBLIC ${libmamba_target})
+target_link_libraries(testing_libmamba_lock PUBLIC mamba::libmamba)
 
 target_compile_features(testing_libmamba_lock PUBLIC cxx_std_17)
 
@@ -97,7 +91,7 @@ find_package(Threads REQUIRED)
 target_link_libraries(
     test_libmamba
     PUBLIC
-        ${libmamba_target}
+        mamba::libmamba
         reproc
         reproc++
     PRIVATE

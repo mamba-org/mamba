@@ -65,7 +65,7 @@ add_executable(micromamba ${MICROMAMBA_SRCS} ${MICROMAMBA_HEADERS})
 mamba_target_add_compile_warnings(micromamba WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
 mamba_target_set_lto(micromamba MODE ${MAMBA_LTO})
 
-if(NOT (TARGET libmamba OR TARGET libmamba-static))
+if(NOT (TARGET mamba::libmamba-dyn OR TARGET mamba::libmamba-static))
     find_package(libmamba REQUIRED)
 endif ()
 
@@ -73,9 +73,9 @@ string(TOUPPER "${MICROMAMBA_LINKAGE}" linkage_upper)
 message(STATUS "Micromamba linkage: ${MICROMAMBA_LINKAGE}")
 
 if (${MICROMAMBA_LINKAGE} STREQUAL "STATIC")
-    set(libmamba_target "libmamba-static")
+    set(libmamba_target mamba::libmamba-static)
 else ()
-    set(libmamba_target "libmamba")
+    set(libmamba_target mamba::libmamba-dyn)
 endif ()
 
 find_package(Threads REQUIRED)

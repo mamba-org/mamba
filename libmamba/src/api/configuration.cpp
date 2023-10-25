@@ -882,7 +882,7 @@ namespace mamba
         void custom_channels_hook(std::map<std::string, std::string>& custom_channels)
         {
             // Hard coded Anaconda channels names.
-            // This will redefine them if the user has already defined these keys.
+            // This will not redefine them if the user has already defined these keys.
             custom_channels.emplace("pkgs/main", "https://repo.anaconda.com/pkgs/main");
             custom_channels.emplace("pkgs/r", "https://repo.anaconda.com/pkgs/r");
             custom_channels.emplace("pkgs/pro", "https://repo.anaconda.com/pkgs/pro");
@@ -1020,7 +1020,14 @@ namespace mamba
                 out << YAML::BeginSeq;
                 for (std::size_t n = 0; n < value.size(); ++n)
                 {
-                    print_node(out, value[n], source[n], show_source);
+                    if (source.IsSequence() && (source.size() == value.size()))
+                    {
+                        print_node(out, value[n], source[n], show_source);
+                    }
+                    else
+                    {
+                        print_node(out, value[n], source, show_source);
+                    }
                 }
                 out << YAML::EndSeq;
             }

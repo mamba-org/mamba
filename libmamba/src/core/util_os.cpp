@@ -538,43 +538,6 @@ namespace mamba
         return to_utf8(s.data(), s.size());
     }
 
-    std::wstring to_windows_unicode(const std::string_view utf8_text)
-    {
-        std::wstring output;
-        if (!utf8_text.empty())
-        {
-            assert(utf8_text.size() <= INT_MAX);
-            const int size = MultiByteToWideChar(
-                CP_UTF8,
-                0,
-                utf8_text.data(),
-                utf8_text.size(),
-                nullptr,
-                0
-            );
-            if (size <= 0)
-            {
-                unsigned long last_error = ::GetLastError();
-                LOG_ERROR << "Failed to convert UTF-8 string to Windows Unicode (UTF-16)"
-                          << std::system_category().message(static_cast<int>(last_error));
-                throw std::runtime_error("Failed to convert UTF-8 string to UTF-16");
-            }
-
-            output.resize(size);
-            int res_size = MultiByteToWideChar(
-                CP_UTF8,
-                0,
-                utf8_text.data(),
-                utf8_text.size(),
-                output.data(),
-                output.size()
-            );
-            assert(res_size == size);
-        }
-
-        return output;
-    }
-
 #endif
 
     /* From https://github.com/ikalnytskyi/termcolor

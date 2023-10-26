@@ -36,6 +36,7 @@ set(LIBMAMBA_TEST_SRCS
     src/util/test_flat_bool_expr_tree.cpp
     src/util/test_graph.cpp
     src/util/test_iterator.cpp
+    src/util/test_os_win.cpp
     src/util/test_path_manip.cpp
     src/util/test_tuple_hash.cpp
     src/util/test_url_manip.cpp

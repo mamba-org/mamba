@@ -25,12 +25,6 @@ TEST_SUITE("basic_unicode_conversion")
         auto result = mamba::to_utf8(text_utf16);
         CHECK_EQ(text_utf8, result);
     }
-
-    TEST_CASE("to_windows_unicode")
-    {
-        auto result = mamba::to_windows_unicode(text_utf8);
-        CHECK_EQ(text_utf16, result);
-    }
 }
 
 TEST_SUITE("windows_path")

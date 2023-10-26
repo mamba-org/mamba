@@ -51,7 +51,7 @@ namespace mamba::env
             );
         };
 
-        const std::wstring unicode_key = to_windows_unicode(key);
+        const std::wstring unicode_key = util::utf8_to_windows_encoding(key);
         size_t required_size = 0;
         if (auto error_code = _wgetenv_s(&required_size, nullptr, 0, unicode_key.c_str());
             error_code == 0)
@@ -99,8 +99,8 @@ namespace mamba::env
                                                           // functions are not thread-safe, this
                                                           // is to prevent related issues.
 
-        const std::wstring unicode_key = to_windows_unicode(key);
-        const std::wstring unicode_value = to_windows_unicode(value);
+        const std::wstring unicode_key = util::utf8_to_windows_encoding(key);
+        const std::wstring unicode_value = util::utf8_to_windows_encoding(value);
         auto res = _wputenv_s(unicode_key.c_str(), unicode_value.c_str());
         if (res != 0)
         {

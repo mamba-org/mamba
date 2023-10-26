@@ -29,6 +29,10 @@ dependencies:
   - pytest-lazy-fixture
   - pytest-xprocess
   - sel(win): pywin32
+  - conda-content-trust
+  - cryptography<40.0  # Or breaks conda-content-trust
+  - pip:
+    - securesystemslib
   # libmambapy build dependencies
   - pybind11-stubgen <1.0
   # libmambapy dependencies

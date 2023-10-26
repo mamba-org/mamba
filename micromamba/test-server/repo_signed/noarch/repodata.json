@@ -1,0 +1,32 @@
+{
+  "info": {
+    "subdir": "noarch"
+  },
+  "packages": {
+    "test-package-0.1-0.tar.bz2": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [],
+      "license": "BSD",
+      "license_family": "BSD",
+      "md5": "2a8595f37faa2950e1b433acbe91d481",
+      "name": "test-package",
+      "noarch": "generic",
+      "sha256": "b908ffce2d26d94c58c968abf286568d4bcf87d1cfe6c994958351724a6f6988",
+      "size": 5719,
+      "subdir": "noarch",
+      "timestamp": 1613117294885,
+      "version": "0.1"
+    }
+  },
+  "packages.conda": {},
+  "removed": [],
+  "repodata_version": 1,
+  "signatures": {
+    "test-package-0.1-0.tar.bz2": {
+      "f46b5a7caa43640744186564c098955147daa8bac4443887bc64d8bfee3d3569": {
+        "signature": "0a50063539baf249970f1d08b07f00f544e2d87982826790e9ec6e80874ad90aec21a9607cf38bb58897163533c39cb4a4f1c741a7f8e9e4f67e2ff2087d2d00"
+      }
+    }
+  }
+}

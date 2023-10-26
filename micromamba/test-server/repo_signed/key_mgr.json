@@ -1,0 +1,22 @@
+{
+  "signatures": {
+    "013ddd714962866d12ba5bae273f14d48c89cf0773dee2dbf6d4561e521c83f7": {
+      "signature": "0a4ee7615fb9115e5bbd62a1a7f33455e6c26d46e0e815a6015258ad17d41570c068444311eb165828670cc4275b5650fb03eb235d10062b6d98f2650d62c50b"
+    }
+  },
+  "signed": {
+    "delegations": {
+      "pkg_mgr": {
+        "pubkeys": [
+          "f46b5a7caa43640744186564c098955147daa8bac4443887bc64d8bfee3d3569"
+        ],
+        "threshold": 1
+      }
+    },
+    "expiration": "2024-10-25T14:17:54Z",
+    "metadata_spec_version": "0.6.0",
+    "timestamp": "2023-10-26T14:17:54Z",
+    "type": "key_mgr",
+    "version": 1
+  }
+}

@@ -10,8 +10,8 @@ from .helpers import create as umamba_create
 from .helpers import login, logout, random_string
 
 here = Path(__file__).absolute()
-pyserver = here.parent.parent.parent / "mamba" / "tests" / "reposerver.py"
-base_channel_directory = here.parent.parent.parent / "mamba" / "tests"
+pyserver = here.parent.parent / "test-server" / "reposerver.py"
+base_channel_directory = here.parent.parent / "test-server"
 channel_a_directory = base_channel_directory / "channel_a"
 channel_b_directory = base_channel_directory / "channel_b"
 channel_r_directory = base_channel_directory / "repo"

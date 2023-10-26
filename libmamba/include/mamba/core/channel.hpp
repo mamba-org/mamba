@@ -100,6 +100,7 @@ namespace mamba
 
         const Channel& get_channel_alias() const;
         const channel_map& get_custom_channels() const;
+        const multichannel_map& get_custom_multichannels() const;
 
     private:
 
@@ -110,8 +111,6 @@ namespace mamba
 
         Channel build_channel_alias();
         void init_custom_channels();
-
-        const multichannel_map& get_custom_multichannels() const;
 
         Channel make_simple_channel(
             const Channel& channel_alias,

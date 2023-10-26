@@ -7,8 +7,10 @@
 #ifndef MAMBA_UTIL_OS_WIN_HPP
 #define MAMBA_UTIL_OS_WIN_HPP
 
-#include "mamba/fs/filesystem.hpp"
+#include <string>
+#include <string_view>
 
+#include "mamba/fs/filesystem.hpp"
 
 namespace mamba::util
 {
@@ -22,6 +24,10 @@ namespace mamba::util
         RoamingAppData,
     };
 
-    auto get_windows_known_user_folder(WindowsKnowUserFolder dir) -> fs::u8path;
+    [[nodiscard]] auto get_windows_known_user_folder(WindowsKnowUserFolder dir) -> fs::u8path;
+
+    [[nodiscard]] auto utf8_to_windows_encoding(const std::string_view utf8_text) -> std::wstring;
+
+    [[nodiscard]] auto windows_encoding_to_utf8(std::wstring_view) -> std::string;
 }
 #endif

@@ -486,97 +486,6 @@ namespace mamba
 #endif
     }
 
-#ifdef _WIN32
-    std::string to_utf8(const wchar_t* w, size_t s)
-    {
-        std::string output;
-        if (s != 0)
-        {
-            assert(s <= INT_MAX);
-            const int size = WideCharToMultiByte(
-                CP_UTF8,
-                0,
-                w,
-                static_cast<int>(s),
-                nullptr,
-                0,
-                nullptr,
-                nullptr
-            );
-            if (size <= 0)
-            {
-                unsigned long last_error = ::GetLastError();
-                LOG_ERROR << "Failed to convert string to UTF-8 "
-                          << std::system_category().message(static_cast<int>(last_error));
-                throw std::runtime_error("Failed to convert string to UTF-8");
-            }
-
-            output.resize(size);
-            int res_size = WideCharToMultiByte(
-                CP_UTF8,
-                0,
-                w,
-                static_cast<int>(s),
-                output.data(),
-                static_cast<int>(size),
-                nullptr,
-                nullptr
-            );
-            assert(res_size == size);
-        }
-
-        return output;
-    }
-
-    std::string to_utf8(const wchar_t* w)
-    {
-        return to_utf8(w, wcslen(w));
-    }
-
-    std::string to_utf8(const std::wstring& s)
-    {
-        return to_utf8(s.data(), s.size());
-    }
-
-    std::wstring to_windows_unicode(const std::string_view utf8_text)
-    {
-        std::wstring output;
-        if (!utf8_text.empty())
-        {
-            assert(utf8_text.size() <= INT_MAX);
-            const int size = MultiByteToWideChar(
-                CP_UTF8,
-                0,
-                utf8_text.data(),
-                utf8_text.size(),
-                nullptr,
-                0
-            );
-            if (size <= 0)
-            {
-                unsigned long last_error = ::GetLastError();
-                LOG_ERROR << "Failed to convert UTF-8 string to Windows Unicode (UTF-16)"
-                          << std::system_category().message(static_cast<int>(last_error));
-                throw std::runtime_error("Failed to convert UTF-8 string to UTF-16");
-            }
-
-            output.resize(size);
-            int res_size = MultiByteToWideChar(
-                CP_UTF8,
-                0,
-                utf8_text.data(),
-                utf8_text.size(),
-                output.data(),
-                output.size()
-            );
-            assert(res_size == size);
-        }
-
-        return output;
-    }
-
-#endif
-
     /* From https://github.com/ikalnytskyi/termcolor
      *
      * copyright: (c) 2013 by Ihor Kalnytskyi.
@@ -686,24 +595,5 @@ namespace mamba
         {
             throw std::runtime_error(std::string("Could not codesign executable: ") + ec.message());
         }
-    }
-
-    std::string fix_win_path(const std::string& path)
-    {
-#ifdef _WIN32
-        if (util::starts_with(path, "file:"))
-        {
-            std::regex re(R"(\\(?! ))");
-            std::string res = std::regex_replace(path, re, R"(/)");
-            util::replace_all(res, ":////", "://");
-            return res;
-        }
-        else
-        {
-            return path;
-        }
-#else
-        return path;
-#endif
     }
 }

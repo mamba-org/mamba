@@ -1,0 +1,38 @@
+channels:
+  - conda-forge
+dependencies:
+  # libmamba build dependencies
+  - cxx-compiler
+  - cmake >=3.16
+  - ninja
+  # libmamba dependencies
+  - cpp-expected
+  - fmt
+  - libarchive
+  - libcurl >=7.86
+  - libsodium
+  - libsolv >=0.7.18
+  - nlohmann_json
+  - reproc-cpp >=14.2.4.post0
+  - simdjson >=3.3.0
+  - spdlog
+  - yaml-cpp >=0.8.0
+  - sel(win): winreg
+  # libmamba test dependencies
+  - doctest
+  # micromamba dependencies
+  - cli11 >=2.2
+  # micromamba test dependencies
+  - mitmproxy
+  - pytest >=7.3.0
+  - pytest-asyncio
+  - pytest-lazy-fixture
+  - pytest-xprocess
+  - sel(win): pywin32
+  # libmambapy build dependencies
+  - pybind11-stubgen <1.0
+  # libmambapy dependencies
+  - python
+  - pybind11
+  # dev dependencies
+  - pre-commit

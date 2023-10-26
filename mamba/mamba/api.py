@@ -106,7 +106,7 @@ class MambaSolver:
             pkg_cache_path = self.context.pkgs_dirs
 
         package_cache = libmambapy.MultiPackageCache(pkg_cache_path)
-        return libmambapy.Transaction(self.pool, api_solver, package_cache)
+        return libmambapy.Transaction(api_solver, package_cache)
 
 
 def install(

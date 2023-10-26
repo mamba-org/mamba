@@ -18,6 +18,7 @@
 
 #include <intrin.h>
 #include <io.h>
+#include <shlobj_core.h>
 #include <windows.h>
 // Incomplete header included last
 #include <tlhelp32.h>

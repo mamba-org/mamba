@@ -7,60 +7,49 @@
 #ifndef MAMBA_CORE_ENVIRONMENT_HPP
 #define MAMBA_CORE_ENVIRONMENT_HPP
 
-#include <cassert>
-#include <cstdlib>
 #include <map>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/util/build.hpp"
 
-#ifdef _WIN32
-#include <Shlobj.h>
-#endif
-
-#ifndef _WIN32
-#include <pwd.h>
-#include <sys/types.h>
-#include <sys/utsname.h>
-#include <unistd.h>
-#include <wordexp.h>
-
-extern "C"
+namespace mamba::env
 {
-    extern char** environ;
-}
-#endif
+    [[nodiscard]] constexpr auto pathsep() -> const char*;
 
-namespace mamba
-{
-    namespace env
+    auto get(const std::string& key) -> std::optional<std::string>;
+    auto set(const std::string& key, const std::string& value) -> bool;
+    auto unset(const std::string& key) -> void;
+
+    auto which(const std::string& exe, const std::string& override_path = "") -> fs::u8path;
+    auto which(const std::string& exe, const std::vector<fs::u8path>& search_paths) -> fs::u8path;
+    auto copy() -> std::map<std::string, std::string>;
+    auto platform() -> std::string;
+    auto home_directory() -> fs::u8path;
+    auto user_config_dir() -> fs::u8path;
+    auto user_data_dir() -> fs::u8path;
+    auto user_cache_dir() -> fs::u8path;
+
+    auto expand_user(const fs::u8path& path) -> fs::u8path;
+    auto shrink_user(const fs::u8path& path) -> fs::u8path;
+
+    /********************
+     *  Implementation  *
+     ********************/
+
+    constexpr auto pathsep() -> const char*
     {
-        inline constexpr const char* pathsep()
+        if (util::on_win)
         {
-#ifdef _WIN32
             return ";";
-#else
-            return ":";
-#endif
         }
-
-        std::optional<std::string> get(const std::string& key);
-        bool set(const std::string& key, const std::string& value);
-        void unset(const std::string& key);
-
-        fs::u8path which(const std::string& exe, const std::string& override_path = "");
-        fs::u8path which(const std::string& exe, const std::vector<fs::u8path>& search_paths);
-        std::map<std::string, std::string> copy();
-        std::string platform();
-        fs::u8path home_directory();
-        fs::u8path user_config_dir();
-        fs::u8path user_data_dir();
-        fs::u8path user_cache_dir();
-
-        fs::u8path expand_user(const fs::u8path& path);
-        fs::u8path shrink_user(const fs::u8path& path);
+        else
+        {
+            return ":";
+        }
     }
-}
 
+}
 #endif

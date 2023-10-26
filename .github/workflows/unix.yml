@@ -243,3 +243,14 @@ jobs:
           if [ "$(grep -c "conda-bld" list.txt)" -ne 2 ]; then
             exit 1
           fi
+      - name: Run server auth tests
+        shell: bash -l {0} -euo pipefail -x
+        run: |
+          export TEST_MAMBA_EXE="${PWD}/build/micromamba/micromamba"
+          cd micromamba/test-server
+
+          if [[ "$(uname -s)" == "Linux" ]]; then
+            ./generate_gpg_keys.sh
+          fi
+
+          ./testserver.sh

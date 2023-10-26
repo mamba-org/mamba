@@ -58,8 +58,6 @@ namespace mamba
     int get_console_height();
 
     void codesign(const fs::u8path& path, bool verbose = false);
-
-    std::string fix_win_path(const std::string& path);
 }
 
 #endif

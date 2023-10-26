@@ -596,23 +596,4 @@ namespace mamba
             throw std::runtime_error(std::string("Could not codesign executable: ") + ec.message());
         }
     }
-
-    std::string fix_win_path(const std::string& path)
-    {
-#ifdef _WIN32
-        if (util::starts_with(path, "file:"))
-        {
-            std::regex re(R"(\\(?! ))");
-            std::string res = std::regex_replace(path, re, R"(/)");
-            util::replace_all(res, ":////", "://");
-            return res;
-        }
-        else
-        {
-            return path;
-        }
-#else
-        return path;
-#endif
-    }
 }

@@ -82,7 +82,7 @@ namespace mamba::util
         if (size <= 0)
         {
             throw std::runtime_error(fmt::format(
-                R"(Failed to convert UTF-8 string "{}" to UTF-16: )",
+                R"(Failed to convert UTF-8 string "{}" to UTF-16: {})",
                 utf8_text,
                 std::system_category().message(static_cast<int>(::GetLastError()))
             ));
@@ -98,6 +98,48 @@ namespace mamba::util
             output.size()
         );
         assert(res_size == size);
+        return output;
+    }
+
+    auto windows_encoding_to_utf8(std::wstring_view str) -> std::string
+    {
+        if (str.empty())
+        {
+            return {};
+        }
+
+        assert(str.size() <= std::numeric_limits<int>::max());
+        const int size = ::WideCharToMultiByte(
+            CP_UTF8,
+            0,
+            str.data(),
+            static_cast<int>(str.size()),
+            nullptr,
+            0,
+            nullptr,
+            nullptr
+        );
+        if (size <= 0)
+        {
+            throw std::runtime_error(fmt::format(
+                R"(Failed to convert UTF-16 string to UTF-8: {})",
+                std::system_category().message(static_cast<int>(::GetLastError()))
+            ));
+        }
+
+        auto output = std::string(static_cast<std::size_t>(size), char(0));
+        [[maybe_unused]] const int res_size = ::WideCharToMultiByte(
+            CP_UTF8,
+            0,
+            str.data(),
+            static_cast<int>(str.size()),
+            output.data(),
+            static_cast<int>(size),
+            nullptr,
+            nullptr
+        );
+        assert(res_size == size);
+
         return output;
     }
 }
@@ -129,6 +171,11 @@ namespace mamba::util
     auto utf8_to_windows_encoding(const std::string_view) -> std::wstring
     {
         throw_not_implemented("utf8_to_windows_unicode");
+    }
+
+    auto windows_encoding_to_utf8(std::wstring_view) -> std::string
+    {
+        throw_not_implemented("windows_encoding_to_utf8");
     }
 }
 

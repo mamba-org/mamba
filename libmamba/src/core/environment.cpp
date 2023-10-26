@@ -68,7 +68,7 @@ namespace mamba::env
             {
                 value.pop_back();  // Remove the `\0` that was written in, otherwise any future
                                    // concatenation will fail.
-                return mamba::to_utf8(value);
+                return util::windows_encoding_to_utf8(value);
             }
             else
             {

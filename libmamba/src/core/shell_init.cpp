@@ -16,6 +16,8 @@
 #include <reproc++/run.hpp>
 #ifdef _WIN32
 #include <WinReg.hpp>
+
+#include "mamba/util/os_win.hpp"
 #endif
 
 #include "mamba/core/activation.hpp"
@@ -33,14 +35,14 @@ namespace mamba
 {
     namespace
     {
-        static std::regex const MAMBA_INITIALIZE_RE_BLOCK("\n?# >>> mamba initialize >>>(?:\n|\r\n)?"
+        static const std::regex MAMBA_INITIALIZE_RE_BLOCK("\n?# >>> mamba initialize >>>(?:\n|\r\n)?"
                                                           "([\\s\\S]*?)"
                                                           "# <<< mamba initialize <<<(?:\n|\r\n)?");
 
-        static std::regex const MAMBA_INITIALIZE_PS_RE_BLOCK("\n?#region mamba initialize(?:\n|\r\n)?"
+        static const std::regex MAMBA_INITIALIZE_PS_RE_BLOCK("\n?#region mamba initialize(?:\n|\r\n)?"
                                                              "([\\s\\S]*?)"
                                                              "#endregion(?:\n|\r\n)?");
-        static std::wregex const
+        static const std::wregex
             MAMBA_CMDEXE_HOOK_REGEX(L"(\"[^\"]*?mamba[-_]hook\\.bat\")", std::regex_constants::icase);
 
     }
@@ -126,7 +128,7 @@ namespace mamba
         fmt::print(
             out,
             "Setting cmd.exe AUTORUN to: {}",
-            fmt::styled(to_utf8(value), graphics.palette.success)
+            fmt::styled(util::windows_encoding_to_utf8(value), graphics.palette.success)
         );
 
         winreg::RegKey key{ HKEY_CURRENT_USER, reg_path };

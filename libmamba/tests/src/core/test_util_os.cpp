@@ -12,21 +12,6 @@
 
 #ifdef _WIN32
 
-namespace
-{
-    const std::wstring text_utf16 = L"Hello, I am Joël. 私のにほんごわへたです";
-    const std::string text_utf8 = u8"Hello, I am Joël. 私のにほんごわへたです";
-}
-
-TEST_SUITE("basic_unicode_conversion")
-{
-    TEST_CASE("to_utf8")
-    {
-        auto result = mamba::to_utf8(text_utf16);
-        CHECK_EQ(text_utf8, result);
-    }
-}
-
 TEST_SUITE("windows_path")
 {
     TEST_CASE("fix_win_path")

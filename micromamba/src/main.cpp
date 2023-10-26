@@ -11,6 +11,8 @@
 #include <windows.h>
 // Incomplete header included last
 #include <shellapi.h>
+
+#include "mamba/util/os_win.hpp"
 #endif
 
 #include <CLI/CLI.hpp>
@@ -56,7 +58,7 @@ main(int argc, char** argv)
     std::vector<char*> utf8CharArgs;
     for (int i = 0; i < argc; i++)
     {
-        utf8Args.push_back(to_utf8(wargv[i]));
+        utf8Args.push_back(util::windows_encoding_to_utf8(wargv[i]));
     }
     for (int i = 0; i < argc; ++i)
     {

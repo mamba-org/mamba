@@ -1,5 +1,0 @@
-name: smalltestenv
-channels:
-    - conda-forge
-dependencies:
-    - flask

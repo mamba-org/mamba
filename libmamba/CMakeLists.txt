@@ -123,6 +123,7 @@ set(LIBMAMBA_SOURCES
     # C++ utility library
     ${LIBMAMBA_SOURCE_DIR}/util/string.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/os_win.cpp
+    ${LIBMAMBA_SOURCE_DIR}/util/environment.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/path_manip.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/url_manip.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/url.cpp
@@ -229,6 +230,7 @@ set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/iterator.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/string.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/os_win.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/environment.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/path_manip.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/tuple_hash.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/url_manip.hpp

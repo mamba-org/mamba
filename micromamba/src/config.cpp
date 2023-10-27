@@ -10,6 +10,7 @@
 
 #include "mamba/api/config.hpp"
 #include "mamba/api/configuration.hpp"
+#include "mamba/core/environment.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/util/build.hpp"

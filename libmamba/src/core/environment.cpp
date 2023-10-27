@@ -6,9 +6,6 @@
 
 #include <cstdlib>
 
-#include "mamba/core/environment.hpp"
-#include "mamba/util/string.hpp"
-
 #ifdef _WIN32
 #include <mutex>
 
@@ -30,106 +27,16 @@ extern "C"
 }
 #endif
 
+#include "mamba/core/environment.hpp"
+#include "mamba/util/environment.hpp"
+#include "mamba/util/string.hpp"
+
 namespace mamba::env
 {
-    std::optional<std::string> get(const std::string& key)
-    {
-#ifdef _WIN32
-        // See:
-        // https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/getenv-s-wgetenv-s?view=msvc-170
-        static std::mutex call_mutex;
-        std::scoped_lock ready_to_execute{ call_mutex };  // Calls to getenv_s kinds of
-                                                          // functions are not thread-safe, this
-                                                          // is to prevent related issues.
-
-        const auto on_failed = [&](errno_t error_code)
-        {
-            LOG_ERROR << fmt::format(
-                "Failed to acquire environment variable '{}' : errcode = {}",
-                key,
-                error_code
-            );
-        };
-
-        const std::wstring unicode_key = util::utf8_to_windows_encoding(key);
-        size_t required_size = 0;
-        if (auto error_code = _wgetenv_s(&required_size, nullptr, 0, unicode_key.c_str());
-            error_code == 0)
-        {
-            if (required_size == 0)  // The value doesn't exist.
-            {
-                return {};
-            }
-
-            std::wstring value(required_size, L'?');  // Note: The required size implies a `\0`
-                                                      // but basic_string doesn't.
-            if (error_code = _wgetenv_s(&required_size, value.data(), value.size(), unicode_key.c_str());
-                error_code == 0)
-            {
-                value.pop_back();  // Remove the `\0` that was written in, otherwise any future
-                                   // concatenation will fail.
-                return util::windows_encoding_to_utf8(value);
-            }
-            else
-            {
-                on_failed(error_code);
-            }
-        }
-        else
-        {
-            on_failed(error_code);
-        }
-#else
-        const char* value = std::getenv(key.c_str());
-        if (value)
-        {
-            return value;
-        }
-#endif
-        return {};
-    }
-
-    bool set(const std::string& key, const std::string& value)
-    {
-#ifdef _WIN32
-        // See:
-        // https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/getenv-s-wgetenv-s?view=msvc-170
-        static std::mutex call_mutex;
-        std::scoped_lock ready_to_execute{ call_mutex };  // Calls to getenv_s kinds of
-                                                          // functions are not thread-safe, this
-                                                          // is to prevent related issues.
-
-        const std::wstring unicode_key = util::utf8_to_windows_encoding(key);
-        const std::wstring unicode_value = util::utf8_to_windows_encoding(value);
-        auto res = _wputenv_s(unicode_key.c_str(), unicode_value.c_str());
-        if (res != 0)
-        {
-            LOG_ERROR << fmt::format(
-                "Could not set environment variable '{}' to '{}' : {}",
-                key,
-                value,
-                GetLastError()
-            );
-        }
-        return res == 0;
-#else
-        return setenv(key.c_str(), value.c_str(), 1) == 0;
-#endif
-    }
-
-    void unset(const std::string& key)
-    {
-#ifdef _WIN32
-        set(key, "");
-#else
-        unsetenv(key.c_str());
-#endif
-    }
-
     fs::u8path which(const std::string& exe, const std::string& override_path)
     {
         // TODO maybe add a cache?
-        auto env_path = override_path == "" ? env::get("PATH") : override_path;
+        auto env_path = override_path == "" ? util::getenv("PATH") : override_path;
         if (env_path)
         {
             std::string path = env_path.value();
@@ -249,12 +156,12 @@ namespace mamba::env
     fs::u8path home_directory()
     {
 #ifdef _WIN32
-        std::string maybe_home = env::get("USERPROFILE").value_or("");
+        std::string maybe_home = util::getenv("USERPROFILE").value_or("");
         if (maybe_home.empty())
         {
             maybe_home = util::concat(
-                env::get("HOMEDRIVE").value_or(""),
-                env::get("HOMEPATH").value_or("")
+                util::getenv("HOMEDRIVE").value_or(""),
+                util::getenv("HOMEPATH").value_or("")
             );
         }
         if (maybe_home.empty())
@@ -264,7 +171,7 @@ namespace mamba::env
             );
         }
 #else
-        std::string maybe_home = env::get("HOME").value_or("");
+        std::string maybe_home = util::getenv("HOME").value_or("");
         if (maybe_home.empty())
         {
             maybe_home = getpwuid(getuid())->pw_dir;
@@ -279,7 +186,7 @@ namespace mamba::env
 
     fs::u8path user_config_dir()
     {
-        std::string maybe_user_config_dir = env::get("XDG_CONFIG_HOME").value_or("");
+        std::string maybe_user_config_dir = util::getenv("XDG_CONFIG_HOME").value_or("");
         if (maybe_user_config_dir.empty())
         {
 #ifdef _WIN32
@@ -295,7 +202,7 @@ namespace mamba::env
 
     fs::u8path user_data_dir()
     {
-        std::string maybe_user_data_dir = env::get("XDG_DATA_HOME").value_or("");
+        std::string maybe_user_data_dir = util::getenv("XDG_DATA_HOME").value_or("");
         if (maybe_user_data_dir.empty())
         {
 #ifdef _WIN32
@@ -311,7 +218,7 @@ namespace mamba::env
 
     fs::u8path user_cache_dir()
     {
-        std::string maybe_user_cache_dir = env::get("XDG_CACHE_HOME").value_or("");
+        std::string maybe_user_cache_dir = util::getenv("XDG_CACHE_HOME").value_or("");
         if (maybe_user_cache_dir.empty())
         {
 #ifdef _WIN32

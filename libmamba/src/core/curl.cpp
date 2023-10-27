@@ -8,10 +8,9 @@
 
 #include <spdlog/spdlog.h>
 
-#include "mamba/core/context.hpp"
-#include "mamba/core/environment.hpp"  // for NETRC env var
-#include "mamba/core/util.hpp"         // for hide_secrets
-#include "mamba/fs/filesystem.hpp"     // for fs::exists
+#include "mamba/core/util.hpp"      // for hide_secrets
+#include "mamba/fs/filesystem.hpp"  // for fs::exists
+#include "mamba/util/environment.hpp"
 
 #include "curl.hpp"
 
@@ -34,7 +33,7 @@ namespace mamba
             curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
 
             // if NETRC is exported in ENV, we forward it to curl
-            std::string netrc_file = env::get("NETRC").value_or("");
+            std::string netrc_file = util::getenv("NETRC").value_or("");
             if (netrc_file != "")
             {
                 curl_easy_setopt(handle, CURLOPT_NETRC_FILE, netrc_file.c_str());

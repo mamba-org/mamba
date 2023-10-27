@@ -8,7 +8,6 @@
 #define MAMBA_CORE_ENVIRONMENT_HPP
 
 #include <map>
-#include <optional>
 #include <string>
 #include <vector>
 
@@ -18,10 +17,6 @@
 namespace mamba::env
 {
     [[nodiscard]] constexpr auto pathsep() -> const char*;
-
-    auto get(const std::string& key) -> std::optional<std::string>;
-    auto set(const std::string& key, const std::string& value) -> bool;
-    auto unset(const std::string& key) -> void;
 
     auto which(const std::string& exe, const std::string& override_path = "") -> fs::u8path;
     auto which(const std::string& exe, const std::vector<fs::u8path>& search_paths) -> fs::u8path;

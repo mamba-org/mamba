@@ -66,6 +66,16 @@ namespace mamba
         return static_cast<spdlog::level::level_enum>(l);
     }
 
+    namespace
+    {
+        std::atomic<bool> use_default_signal_handler_val = true;
+    }
+
+    void Context::use_default_signal_handler(bool val)
+    {
+        use_default_signal_handler_val = val;
+    }
+
     Context::Context()
     {
         MainExecutor::instance().on_close(tasksync.synchronized([this] { logger->flush(); }));
@@ -98,7 +108,12 @@ namespace mamba
         ascii_only = false;
 #endif
 
-        set_default_signal_handler();
+        // Workaround for https://github.com/mamba-org/mamba/issues/1594
+        // Otherwise this blocks Python's signal handler
+        if (use_default_signal_handler_val)
+        {
+            set_default_signal_handler();
+        }
 
         std::shared_ptr<spdlog::logger> l = std::make_shared<Logger>(
             "libmamba",

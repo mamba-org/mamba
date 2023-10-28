@@ -30,6 +30,7 @@ dependencies:
   - pytest-xprocess
   - sel(win): pywin32
   - conda-content-trust
+  - conda-package-handling
   - cryptography<40.0  # Or breaks conda-content-trust
   - pip:
     - securesystemslib

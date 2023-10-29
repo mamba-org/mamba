@@ -528,6 +528,7 @@ PYBIND11_MODULE(bindings, m)
 
     py::class_<Context, std::unique_ptr<Context, py::nodelete>> ctx(m, "Context");
     ctx.def(py::init([]() { return std::unique_ptr<Context, py::nodelete>(&Context::instance()); }))
+        .def_static("use_default_signal_handler", &Context::use_default_signal_handler)
         .def_readwrite("offline", &Context::offline)
         .def_readwrite("local_repodata_ttl", &Context::local_repodata_ttl)
         .def_readwrite("use_index_cache", &Context::use_index_cache)

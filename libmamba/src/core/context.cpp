@@ -67,7 +67,17 @@ namespace mamba
         return static_cast<spdlog::level::level_enum>(l);
     }
 
-    void Context::enable_logging_and_signal_handling(Context& context)
+    namespace
+    {
+        std::atomic<bool> use_default_signal_handler_val = true;
+    }
+
+    void Context::use_default_signal_handler(bool val)
+    {
+        use_default_signal_handler_val = val;
+    }
+
+    Context::Context()
     {
         set_default_signal_handler();
 
@@ -127,10 +137,34 @@ namespace mamba
         ascii_only = false;
 #endif
 
-        if (options.enable_logging_and_signal_handling)
+        // Workaround for https://github.com/mamba-org/mamba/issues/1594
+        // Otherwise this blocks Python's signal handler
+        if (use_default_signal_handler_val)
         {
-            enable_logging_and_signal_handling(*this);
+            set_default_signal_handler();
         }
+
+        std::shared_ptr<spdlog::logger> l = std::make_shared<Logger>(
+            "libmamba",
+            output_params.log_pattern,
+            "\n"
+        );
+        std::shared_ptr<spdlog::logger> libcurl_logger = std::make_shared<Logger>(
+            "libcurl",
+            output_params.log_pattern,
+            ""
+        );
+        std::shared_ptr<spdlog::logger> libsolv_logger = std::make_shared<Logger>(
+            "libsolv",
+            output_params.log_pattern,
+            ""
+        );
+        spdlog::register_logger(libcurl_logger);
+        spdlog::register_logger(libsolv_logger);
+
+        spdlog::set_default_logger(l);
+        logger = std::dynamic_pointer_cast<Logger>(l);
+        spdlog::set_level(convert_log_level(output_params.logging_level));
     }
 
     Context::~Context() = default;

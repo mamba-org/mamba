@@ -684,7 +684,7 @@ PYBIND11_MODULE(bindings, m)
                 deprecated("Use `remote_fetch_params.connect_timeout_secs` instead.");
                 return self.remote_fetch_params.connect_timeout_secs;
             },
-            [](Context& self, int cts)
+            [](Context& self, double cts)
             {
                 deprecated("Use `remote_fetch_params.connect_timeout_secs` instead.");
                 self.remote_fetch_params.connect_timeout_secs = cts;

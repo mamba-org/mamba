@@ -1,10 +1,4 @@
 {
-  "buildPresets": [
-    {
-      "configurePreset": "mamba-shared-debug",
-      "name": "mamba-shared-debug"
-    }
-  ],
   "configurePresets": [
     {
       "binaryDir": "${sourceDir}/build/${presetName}",
@@ -27,10 +21,10 @@
         "CMAKE_RANLIB": "$env{RANLIB}",
         "CMAKE_STRIP": "$env{STRIP}"
       },
-      "description": "Base profile using conda libraries and compilers",
-      "displayName": "Conda Base",
+      "description": "Base profile using conda libraries and compilers on Unix",
+      "displayName": "Conda Unix",
       "hidden": true,
-      "name": "conda-base"
+      "name": "conda-unix"
     },
     {
       "cacheVariables": {
@@ -42,10 +36,10 @@
         "CMAKE_RANLIB": "$env{GCC_RANLIB}"
       },
       "description": "Base profile using conda libraries and GNU compilers",
-      "displayName": "Conda Default",
+      "displayName": "Conda GNU",
       "hidden": true,
       "inherits": [
-        "conda-base"
+        "conda-unix"
       ],
       "name": "conda-gnu"
     },
@@ -60,7 +54,7 @@
       "displayName": "Conda Clang",
       "hidden": true,
       "inherits": [
-        "conda-base"
+        "conda-unix"
       ],
       "name": "conda-llvm"
     },
@@ -71,20 +65,12 @@
         "BUILD_LIBMAMBA_TESTS": "ON",
         "BUILD_MAMBA_PACKAGE": "ON",
         "BUILD_MICROMAMBA": "ON",
-        "BUILD_MICROMAMBA_SERVER": "ON",
-        "CMAKE_CXX_EXTENSIONS": "OFF",
-        "CMAKE_CXX_STANDARD": "17",
-        "CMAKE_CXX_STANDARD_REQUIRED": "ON",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+        "BUILD_MICROMAMBA_SERVER": "ON"
       },
-      "description": "Base profile for development in Mamba",
-      "displayName": "Mamba dev",
+      "description": "Base profile for building everything in Mamba",
+      "displayName": "Mamba All",
       "hidden": true,
-      "name": "mamba-dev",
-      "warnings": {
-        "dev": true,
-        "unusedCli": true
-      }
+      "name": "mamba-all"
     },
     {
       "cacheVariables": {
@@ -108,14 +94,35 @@
       "name": "mamba-debug"
     },
     {
-      "displayName": "Mamba shared debug",
+      "cacheVariables": {
+        "CMAKE_COLOR_DIAGNOSTICS": "ON",
+        "CMAKE_COLOR_MAKEFILE": "ON",
+        "CMAKE_CXX_COMPILER_LAUNCHER": "ccache",
+        "CMAKE_CXX_EXTENSIONS": "OFF",
+        "CMAKE_CXX_STANDARD": "17",
+        "CMAKE_CXX_STANDARD_REQUIRED": "ON",
+        "CMAKE_C_COMPILER_LAUNCHER": "ccache",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      },
+      "description": "Extra convenience flags used when developping",
+      "displayName": "Mamba Dev",
+      "hidden": true,
+      "name": "mamba-dev",
+      "warnings": {
+        "dev": true,
+        "unusedCli": true
+      }
+    },
+    {
+      "displayName": "Mamba Unix Shared Debug Dev",
       "inherits": [
-        "conda-base",
-        "mamba-dev",
+        "conda-unix",
+        "mamba-all",
         "mamba-shared",
-        "mamba-debug"
+        "mamba-debug",
+        "mamba-dev"
       ],
-      "name": "mamba-shared-debug"
+      "name": "mamba-unix-shared-debug-dev"
     }
   ],
   "version": 4

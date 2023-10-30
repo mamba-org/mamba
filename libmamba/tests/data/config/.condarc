@@ -1,2 +1,6 @@
 channels:
   - https://repo.mamba.pm/conda-forge
+
+
+# See: https://github.com/mamba-org/mamba/issues/2934
+remote_connect_timeout_secs: 9.15

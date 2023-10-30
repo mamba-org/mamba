@@ -35,6 +35,7 @@
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/validate.hpp"
 #include "mamba/core/virtual_packages.hpp"
+#include "mamba/specs/version.hpp"
 #include "mamba/util/flat_set.hpp"
 #include "mamba/util/string.hpp"
 
@@ -260,6 +261,11 @@ namespace mambapy
 PYBIND11_MODULE(bindings, m)
 {
     using namespace mamba;
+
+    py::class_<specs::Version>(m, "Version")
+        .def_static("parse", &specs::Version::parse)
+        .def("__str__", &specs::Version::str);
+
 
     // declare earlier to avoid C++ types in docstrings
     auto pyChannel = py::class_<Channel, std::unique_ptr<Channel, py::nodelete>>(m, "Channel");

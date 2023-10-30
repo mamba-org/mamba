@@ -267,7 +267,9 @@ def init_api_context(use_mamba_experimental=False):
     api_ctx.pkgs_dirs = context.pkgs_dirs
     api_ctx.envs_dirs = context.envs_dirs
 
-    api_ctx.remote_fetch_params.connect_timeout_secs = context.remote_connect_timeout_secs
+    api_ctx.remote_fetch_params.connect_timeout_secs = (
+        context.remote_connect_timeout_secs
+    )
     api_ctx.remote_fetch_params.max_retries = context.remote_max_retries
     api_ctx.remote_fetch_params.retry_backoff = context.remote_backoff_factor
     api_ctx.add_pip_as_python_dependency = context.add_pip_as_python_dependency

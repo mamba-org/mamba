@@ -29,7 +29,7 @@ namespace mamba
             CURL* handle,
             const std::string& url,
             const bool set_low_speed_opt,
-            const long connect_timeout_secs,
+            const double connect_timeout_secs,
             const bool set_ssl_no_revoke,
             const std::optional<std::string>& proxy,
             const std::string& ssl_verify
@@ -38,7 +38,7 @@ namespace mamba
         bool check_resource_exists(
             const std::string& url,
             const bool set_low_speed_opt,
-            const long connect_timeout_secs,
+            const double connect_timeout_secs,
             const bool set_ssl_no_revoke,
             const std::optional<std::string>& proxy,
             const std::string& ssl_verify
@@ -120,7 +120,7 @@ namespace mamba
         void configure_handle(
             const std::string& url,
             const bool set_low_speed_opt,
-            const long connect_timeout_secs,
+            const double connect_timeout_secs,
             const bool set_ssl_no_revoke,
             const std::optional<std::string>& proxy,
             const std::string& ssl_verify

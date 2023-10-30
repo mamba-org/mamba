@@ -421,12 +421,12 @@ class Context:
     class RemoteFetchParams:
         def __init__(self) -> None: ...
         @property
-        def connect_timeout_secs(self) -> int:
+        def connect_timeout_secs(self) -> float:
             """
             :type: int
             """
         @connect_timeout_secs.setter
-        def connect_timeout_secs(self, arg0: int) -> None:
+        def connect_timeout_secs(self, arg0: float) -> None:
             pass
         @property
         def max_retries(self) -> int:
@@ -549,12 +549,12 @@ class Context:
     def conda_prefix(self, arg1: Path) -> None:
         pass
     @property
-    def connect_timeout_secs(self) -> int:
+    def connect_timeout_secs(self) -> float:
         """
         :type: int
         """
     @connect_timeout_secs.setter
-    def connect_timeout_secs(self, arg1: int) -> None:
+    def connect_timeout_secs(self, arg1: float) -> None:
         pass
     @property
     def custom_channels(self) -> typing.Dict[str, str]:

@@ -74,7 +74,7 @@ namespace mamba
 
             std::string user_agent{ "mamba/" LIBMAMBA_VERSION_STRING };
 
-            int connect_timeout_secs{ 10 };
+            double connect_timeout_secs{ 10. };
             // int read_timeout_secs { 60 };
             int retry_timeout{ 2 };  // seconds
             int retry_backoff{ 3 };  // retry_timeout * retry_backoff

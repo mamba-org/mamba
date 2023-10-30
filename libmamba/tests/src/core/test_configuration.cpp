@@ -157,6 +157,17 @@ namespace mamba
                 CHECK_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS), "");
             }
 
+            // Regression test for https://github.com/mamba-org/mamba/issues/2934
+            TEST_CASE_FIXTURE(Configuration, "parse_condarc")
+            {
+                std::vector<fs::u8path> possible_rc_paths = {
+                    test_data_dir / "config/.condarc",
+                };
+
+                config.set_rc_values(possible_rc_paths, RCConfigLevel::kTargetPrefix);
+            };
+
+
             TEST_CASE_FIXTURE(Configuration, "load_rc_files")
             {
                 std::string rc1 = unindent(R"(

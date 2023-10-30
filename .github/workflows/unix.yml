@@ -22,7 +22,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        build_type: [Release, Debug]
+        build_type: [release, debug]
     steps:
       - uses: actions/checkout@v3
       - name: Create build environment
@@ -40,15 +40,10 @@ jobs:
       - name: Build libmamba
         shell: bash -l {0}
         run: |
-          cmake -B build/ \
-            -D CMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-            -D BUILD_LIBMAMBA=ON \
-            -D BUILD_LIBMAMBAPY=ON \
-            -D BUILD_SHARED=ON \
-            -D BUILD_LIBMAMBA_TESTS=ON \
+          cmake -B build/ -G Ninja \
+            --preset mamba-unix-shared-${{ matrix.build_type }}  \
             -D CMAKE_CXX_COMPILER_LAUNCHER=sccache \
-            -D CMAKE_C_COMPILER_LAUNCHER=sccache \
-            -G Ninja
+            -D CMAKE_C_COMPILER_LAUNCHER=sccache
           cmake --build build/ --parallel --target test_libmamba testing_libmamba_lock
       - name: Run libmamba tests
         shell: bash -l {0}

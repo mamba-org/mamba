@@ -95,6 +95,13 @@
     },
     {
       "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "hidden": true,
+      "name": "mamba-release"
+    },
+    {
+      "cacheVariables": {
         "CMAKE_COLOR_DIAGNOSTICS": "ON",
         "CMAKE_COLOR_MAKEFILE": "ON",
         "CMAKE_CXX_COMPILER_LAUNCHER": "ccache",
@@ -114,12 +121,29 @@
       }
     },
     {
-      "displayName": "Mamba Unix Shared Debug Dev",
+      "displayName": "Mamba Unix Shared Debug",
       "inherits": [
         "conda-unix",
         "mamba-all",
         "mamba-shared",
-        "mamba-debug",
+        "mamba-debug"
+      ],
+      "name": "mamba-unix-shared-debug"
+    },
+    {
+      "displayName": "Mamba Unix Shared Release",
+      "inherits": [
+        "conda-unix",
+        "mamba-all",
+        "mamba-shared",
+        "mamba-release"
+      ],
+      "name": "mamba-unix-shared-release"
+    },
+    {
+      "displayName": "Mamba Unix Shared Debug Dev",
+      "inherits": [
+        "mamba-unix-shared-debug",
         "mamba-dev"
       ],
       "name": "mamba-unix-shared-debug-dev"

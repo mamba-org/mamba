@@ -1,0 +1,26 @@
+channels:
+  - conda-forge
+dependencies:
+  # Compiler cache
+  - ccache
+  # C++ LSP tools and related packages
+  - clang-tools
+  - clang
+  - clangxx
+  - lld
+  # C++ Debugging
+  - gdb
+  - valgrind
+  # Python LSP support
+  - python-lsp-server-base
+  - python-lsp-black
+  - black
+  # Interactive Python tools
+  - jupyterlab
+  - ipython
+  # Python Debugging
+  - ipdb
+  # Github CLI tool
+  - gh
+  # Taskfile for running scripts
+  - go-task

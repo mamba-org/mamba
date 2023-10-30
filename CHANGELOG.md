@@ -1,3 +1,21 @@
+2023.10.30
+==========
+
+Releases: libmamba 1.5.3, libmambapy 1.5.3, mamba 1.5.3, micromamba 1.5.3
+
+Enhancement:
+
+- [libmamba] Backport #2927: Allow defaults::* spec by @isuruf in https://github.com/mamba-org/mamba/pull/2936
+- [libmamba] Backport #2921: return architecture levels for micromamba by @isuruf in https://github.com/mamba-org/mamba/pull/2936
+
+Bug fixes:
+
+- [libmamba] Backport #2926: Fix channels with slashes regression by @isuruf in https://github.com/mamba-org/mamba/pull/2936
+- [libmambapy] Fix ctrl-c handling issues in libmambapy by @jaimergp in https://github.com/mamba-org/mamba/pull/2946
+- [libmamba, libmambapy, mamba] Backport #2949: Parse remote_connect_timeout_secs as a double by @jjerphan in https://github.com/mamba-org/mamba/pull/2951
+
+CI fixes and doc:
+
 2023.10.16
 ==========
 

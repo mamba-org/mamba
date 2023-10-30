@@ -1,3 +1,14 @@
+libmambapy 1.5.3 (October 30, 2023)
+===================================
+
+
+Bug fixes:
+
+- Fix ctrl-c handling issues in libmambapy by @jaimergp in https://github.com/mamba-org/mamba/pull/2946
+- Backport #2949: Parse remote_connect_timeout_secs as a double by @jjerphan in https://github.com/mamba-org/mamba/pull/2951
+
+CI fixes and doc:
+
 libmambapy 1.5.2 (October 16, 2023)
 ===================================
 

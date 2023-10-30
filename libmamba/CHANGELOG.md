@@ -1,3 +1,18 @@
+libmamba 1.5.3 (October 30, 2023)
+=================================
+
+Enhancement:
+
+- Backport #2927: Allow defaults::* spec by @isuruf in https://github.com/mamba-org/mamba/pull/2936
+- Backport #2921: return architecture levels for micromamba by @isuruf in https://github.com/mamba-org/mamba/pull/2936
+
+Bug fixes:
+
+- Backport #2926: Fix channels with slashes regression by @isuruf in https://github.com/mamba-org/mamba/pull/2936
+- Backport #2949: Parse remote_connect_timeout_secs as a double by @jjerphan in https://github.com/mamba-org/mamba/pull/2951
+
+CI fixes and doc:
+
 libmamba 1.5.2 (October 16, 2023)
 =================================
 

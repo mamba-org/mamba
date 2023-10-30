@@ -162,7 +162,7 @@ namespace mamba
             TEST_CASE_FIXTURE(Configuration, "parse_condarc")
             {
                 std::vector<fs::u8path> possible_rc_paths = {
-                    test_data_dir / "config/.condarc,
+                    test_data_dir / "config/.condarc",
                 };
 
                 config.set_rc_values(possible_rc_paths, RCConfigLevel::kTargetPrefix);

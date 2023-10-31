@@ -275,7 +275,7 @@ namespace mamba
         {
             for (const auto& ev : p_impl->m_env_var_names)
             {
-                util::unsetenv(ev);
+                util::unset_env(ev);
             }
         }
         return std::move(*this);

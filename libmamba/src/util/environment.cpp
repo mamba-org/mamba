@@ -88,7 +88,7 @@ namespace mamba::util
         }
     }
 
-    void unsetenv(const std::string& key)
+    void unset_env(const std::string& key)
     {
         setenv(key, "");
     }
@@ -125,7 +125,7 @@ namespace mamba::util
         }
     }
 
-    void unsetenv(const std::string& key)
+    void unset_env(const std::string& key)
     {
         const auto res = ::unsetenv(key.c_str());
         if (res != 0)

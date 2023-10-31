@@ -28,14 +28,14 @@ TEST_SUITE("util::environment")
         CHECK_EQ(util::get_env(u8"VAR_私のにほんごわへたです"), u8"hello");
     }
 
-    TEST_CASE("unsetenv")
+    TEST_CASE("unset_env")
     {
         CHECK_FALSE(util::get_env("VAR_THAT_DOES_NOT_EXIST_ZZZ").has_value());
-        util::unsetenv("VAR_THAT_DOES_NOT_EXIST_ZZZ");
+        util::unset_env("VAR_THAT_DOES_NOT_EXIST_ZZZ");
         CHECK_FALSE(util::get_env("VAR_THAT_DOES_NOT_EXIST_ZZZ").has_value());
         util::set_env("VAR_THAT_DOES_NOT_EXIST_ZZZ", "VALUE");
         CHECK(util::get_env("VAR_THAT_DOES_NOT_EXIST_ZZZ").has_value());
-        util::unsetenv("VAR_THAT_DOES_NOT_EXIST_ZZZ");
+        util::unset_env("VAR_THAT_DOES_NOT_EXIST_ZZZ");
         CHECK_FALSE(util::get_env("VAR_THAT_DOES_NOT_EXIST_ZZZ").has_value());
     }
 }

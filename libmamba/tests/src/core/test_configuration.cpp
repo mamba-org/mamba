@@ -404,7 +404,7 @@ namespace mamba
                 );
                 CHECK_EQ(ctx.channels, config.at("channels").value<std::vector<std::string>>());
 
-                util::unsetenv("CONDA_CHANNELS");
+                util::unset_env("CONDA_CHANNELS");
             }
 
             TEST_CASE_FIXTURE(Configuration, "default_channels")
@@ -480,7 +480,7 @@ namespace mamba
                     config.at("default_channels").value<std::vector<std::string>>()
                 );
 
-                util::unsetenv("MAMBA_DEFAULT_CHANNELS");
+                util::unset_env("MAMBA_DEFAULT_CHANNELS");
             }
 
             TEST_CASE_FIXTURE(Configuration, "channel_alias")
@@ -515,7 +515,7 @@ namespace mamba
                 );
                 CHECK_EQ(ctx.channel_alias, config.at("channel_alias").value<std::string>());
 
-                util::unsetenv("MAMBA_CHANNEL_ALIAS");
+                util::unset_env("MAMBA_CHANNEL_ALIAS");
             }
 
             TEST_CASE_FIXTURE(Configuration, "pkgs_dirs")
@@ -552,7 +552,7 @@ namespace mamba
                                  .c_str())
                 );
 
-                util::unsetenv("CONDA_PKGS_DIRS");
+                util::unset_env("CONDA_PKGS_DIRS");
 
                 std::string empty_rc = "";
                 std::string root_prefix_str = (env::home_directory() / "any_prefix").string();
@@ -596,8 +596,8 @@ namespace mamba
                                  .c_str())
                 );
 
-                util::unsetenv("CONDA_PKGS_DIRS");
-                util::unsetenv("MAMBA_ROOT_PREFIX");
+                util::unset_env("CONDA_PKGS_DIRS");
+                util::unset_env("MAMBA_ROOT_PREFIX");
                 config.clear_values();
             }
 
@@ -669,7 +669,7 @@ namespace mamba
                     "ssl_verify: /new/test  # 'API' > 'MAMBA_SSL_VERIFY' > '" + src1 + "'"
                 );
 
-                util::unsetenv("MAMBA_SSL_VERIFY");
+                util::unset_env("MAMBA_SSL_VERIFY");
             }
 #undef EXPECT_CA_EQUAL
 
@@ -723,7 +723,7 @@ namespace mamba
                 );
                 CHECK_EQ(ctx.remote_fetch_params.ssl_verify, "/new/test");
 
-                util::unsetenv("MAMBA_CACERT_PATH");
+                util::unset_env("MAMBA_CACERT_PATH");
                 load_test_config("cacert_path:\nssl_verify: true");  // reset ssl verify to default
             }
 
@@ -833,7 +833,7 @@ namespace mamba
         util::set_env(env_name, "yeap");                                                            \
         REQUIRE_THROWS_AS(load_test_config(rc2), YAML::Exception);                                  \
                                                                                                     \
-        util::unsetenv(env_name);                                                                   \
+        util::unset_env(env_name);                                                                  \
         load_test_config(rc2);                                                                      \
     }
 
@@ -895,7 +895,7 @@ namespace mamba
                 util::set_env("MAMBA_CHANNEL_PRIORITY", "stric");
                 REQUIRE_THROWS_AS(load_test_config(rc3), YAML::Exception);
 
-                util::unsetenv("MAMBA_CHANNEL_PRIORITY");
+                util::unset_env("MAMBA_CHANNEL_PRIORITY");
             }
 
             TEST_CASE_FIXTURE(Configuration, "pinned_packages")
@@ -983,7 +983,7 @@ namespace mamba
                     )
                 );
 
-                util::unsetenv("MAMBA_PINNED_PACKAGES");
+                util::unset_env("MAMBA_PINNED_PACKAGES");
             }
 
 
@@ -1001,11 +1001,11 @@ namespace mamba
             {
                 util::set_env("MAMBA_ALWAYS_COPY", "true");
                 REQUIRE_THROWS_AS(load_test_config("always_softlink: true"), std::runtime_error);
-                util::unsetenv("MAMBA_ALWAYS_COPY");
+                util::unset_env("MAMBA_ALWAYS_COPY");
 
                 util::set_env("MAMBA_ALWAYS_SOFTLINK", "true");
                 REQUIRE_THROWS_AS(load_test_config("always_copy: true"), std::runtime_error);
-                util::unsetenv("MAMBA_ALWAYS_SOFTLINK");
+                util::unset_env("MAMBA_ALWAYS_SOFTLINK");
 
                 load_test_config("always_softlink: false\nalways_copy: false");
             }
@@ -1062,7 +1062,7 @@ namespace mamba
                 util::set_env("MAMBA_SAFETY_CHECKS", "yeap");
                 REQUIRE_THROWS_AS(load_test_config(rc2), std::runtime_error);
 
-                util::unsetenv("MAMBA_SAFETY_CHECKS");
+                util::unset_env("MAMBA_SAFETY_CHECKS");
                 load_test_config(rc2);
             }
 

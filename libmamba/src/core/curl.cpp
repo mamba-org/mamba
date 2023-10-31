@@ -33,7 +33,7 @@ namespace mamba
             curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
 
             // if NETRC is exported in ENV, we forward it to curl
-            std::string netrc_file = util::getenv("NETRC").value_or("");
+            std::string netrc_file = util::get_env("NETRC").value_or("");
             if (netrc_file != "")
             {
                 curl_easy_setopt(handle, CURLOPT_NETRC_FILE, netrc_file.c_str());

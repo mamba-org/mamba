@@ -26,7 +26,8 @@ namespace mamba::util
         std::mutex env_mutex = {};
 
     }
-    auto getenv(const std::string& key) -> std::optional<std::string>
+
+    auto get_env(const std::string& key) -> std::optional<std::string>
     {
         const auto on_failed = [&](auto error_code)
         {
@@ -67,7 +68,7 @@ namespace mamba::util
         return { windows_encoding_to_utf8(value) };
     }
 
-    void setenv(const std::string& key, const std::string& value)
+    void set_env(const std::string& key, const std::string& value)
     {
         std::scoped_lock ready_to_execute{ env_mutex };  // Calls to getenv_s kinds of
                                                          // functions are not thread-safe, this
@@ -87,9 +88,9 @@ namespace mamba::util
         }
     }
 
-    void unsetenv(const std::string& key)
+    void unset_env(const std::string& key)
     {
-        setenv(key, "");
+        set_env(key, "");
     }
 }
 
@@ -104,7 +105,7 @@ namespace mamba::util
 
 namespace mamba::util
 {
-    auto getenv(const std::string& key) -> std::optional<std::string>
+    auto get_env(const std::string& key) -> std::optional<std::string>
     {
         if (const char* val = std::getenv(key.c_str()))
         {
@@ -113,7 +114,7 @@ namespace mamba::util
         return {};
     }
 
-    void setenv(const std::string& key, const std::string& value)
+    void set_env(const std::string& key, const std::string& value)
     {
         const auto result = ::setenv(key.c_str(), value.c_str(), 1);
         if (result != 0)
@@ -124,7 +125,7 @@ namespace mamba::util
         }
     }
 
-    void unsetenv(const std::string& key)
+    void unset_env(const std::string& key)
     {
         const auto res = ::unsetenv(key.c_str());
         if (res != 0)

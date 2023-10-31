@@ -4,6 +4,7 @@
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_scope.hpp"
 #include "mamba/util/build.hpp"
+#include "mamba/util/environment.hpp"
 #include "mamba/util/iterator.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
@@ -60,11 +61,13 @@ namespace mamba
                 }
 #endif
 
-                if (!remote_fetch_params.ssl_verify.size()
-                    && std::getenv("REQUESTS_CA_BUNDLE") != nullptr)
+                if (!remote_fetch_params.ssl_verify.size())
                 {
-                    remote_fetch_params.ssl_verify = std::getenv("REQUESTS_CA_BUNDLE");
-                    LOG_INFO << "Using REQUESTS_CA_BUNDLE " << remote_fetch_params.ssl_verify;
+                    if (auto ca = util::get_env("REQUESTS_CA_BUNDLE"); ca.has_value())
+                    {
+                        remote_fetch_params.ssl_verify = ca.value();
+                        LOG_INFO << "Using REQUESTS_CA_BUNDLE " << remote_fetch_params.ssl_verify;
+                    }
                 }
                 else if (remote_fetch_params.ssl_verify == "<system>" && util::on_linux)
                 {
@@ -101,14 +104,11 @@ namespace mamba
         {
             // TODO: we should probably store set_low_speed_limit and set_ssl_no_revoke in
             // RemoteFetchParams if the request is slower than 30b/s for 60 seconds, cancel.
-            const std::string no_low_speed_limit = std::getenv("MAMBA_NO_LOW_SPEED_LIMIT")
-                                                       ? std::getenv("MAMBA_NO_LOW_SPEED_LIMIT")
-                                                       : "0";
+            const std::string no_low_speed_limit = util::get_env("MAMBA_NO_LOW_SPEED_LIMIT")
+                                                       .value_or("0");
             const bool set_low_speed_opt = (no_low_speed_limit == "0");
 
-            const std::string ssl_no_revoke_env = std::getenv("MAMBA_SSL_NO_REVOKE")
-                                                      ? std::getenv("MAMBA_SSL_NO_REVOKE")
-                                                      : "0";
+            const std::string ssl_no_revoke_env = util::get_env("MAMBA_SSL_NO_REVOKE").value_or("0");
             const bool set_ssl_no_revoke = context.remote_fetch_params.ssl_no_revoke
                                            || (ssl_no_revoke_env != "0");
 

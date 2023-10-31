@@ -118,8 +118,7 @@ namespace mamba
                 location = "-";
             }
 
-            if (std::getenv("CONDA_PREFIX")
-                && (std::getenv("CONDA_PREFIX") == ctx.prefix_params.target_prefix))
+            if (auto prefix = util::get_env("CONDA_PREFIX"); prefix == ctx.prefix_params.target_prefix)
             {
                 name += " (active)";
             }

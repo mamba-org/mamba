@@ -36,7 +36,7 @@ namespace mamba::env
     fs::u8path which(const std::string& exe, const std::string& override_path)
     {
         // TODO maybe add a cache?
-        auto env_path = override_path == "" ? util::getenv("PATH") : override_path;
+        auto env_path = override_path == "" ? util::get_env("PATH") : override_path;
         if (env_path)
         {
             std::string path = env_path.value();
@@ -156,12 +156,12 @@ namespace mamba::env
     fs::u8path home_directory()
     {
 #ifdef _WIN32
-        std::string maybe_home = util::getenv("USERPROFILE").value_or("");
+        std::string maybe_home = util::get_env("USERPROFILE").value_or("");
         if (maybe_home.empty())
         {
             maybe_home = util::concat(
-                util::getenv("HOMEDRIVE").value_or(""),
-                util::getenv("HOMEPATH").value_or("")
+                util::get_env("HOMEDRIVE").value_or(""),
+                util::get_env("HOMEPATH").value_or("")
             );
         }
         if (maybe_home.empty())
@@ -171,7 +171,7 @@ namespace mamba::env
             );
         }
 #else
-        std::string maybe_home = util::getenv("HOME").value_or("");
+        std::string maybe_home = util::get_env("HOME").value_or("");
         if (maybe_home.empty())
         {
             maybe_home = getpwuid(getuid())->pw_dir;
@@ -186,7 +186,7 @@ namespace mamba::env
 
     fs::u8path user_config_dir()
     {
-        std::string maybe_user_config_dir = util::getenv("XDG_CONFIG_HOME").value_or("");
+        std::string maybe_user_config_dir = util::get_env("XDG_CONFIG_HOME").value_or("");
         if (maybe_user_config_dir.empty())
         {
 #ifdef _WIN32
@@ -202,7 +202,7 @@ namespace mamba::env
 
     fs::u8path user_data_dir()
     {
-        std::string maybe_user_data_dir = util::getenv("XDG_DATA_HOME").value_or("");
+        std::string maybe_user_data_dir = util::get_env("XDG_DATA_HOME").value_or("");
         if (maybe_user_data_dir.empty())
         {
 #ifdef _WIN32
@@ -218,7 +218,7 @@ namespace mamba::env
 
     fs::u8path user_cache_dir()
     {
-        std::string maybe_user_cache_dir = util::getenv("XDG_CACHE_HOME").value_or("");
+        std::string maybe_user_cache_dir = util::get_env("XDG_CACHE_HOME").value_or("");
         if (maybe_user_cache_dir.empty())
         {
 #ifdef _WIN32

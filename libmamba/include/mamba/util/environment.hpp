@@ -12,8 +12,8 @@
 
 namespace mamba::util
 {
-    auto getenv(const std::string& key) -> std::optional<std::string>;
-    void setenv(const std::string& key, const std::string& value);
-    void unsetenv(const std::string& key);
+    auto get_env(const std::string& key) -> std::optional<std::string>;
+    void set_env(const std::string& key, const std::string& value);
+    void unset_env(const std::string& key);
 }
 #endif

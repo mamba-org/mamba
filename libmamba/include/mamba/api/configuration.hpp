@@ -697,7 +697,7 @@ namespace mamba
             {
                 for (const auto& env_var : m_env_var_names)
                 {
-                    auto env_var_value = util::getenv(env_var);
+                    auto env_var_value = util::get_env(env_var);
                     if (env_var_value)
                     {
                         try

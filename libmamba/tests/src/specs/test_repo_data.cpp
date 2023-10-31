@@ -10,6 +10,7 @@
 #include <nlohmann/json.hpp>
 
 #include "mamba/specs/repo_data.hpp"
+#include "mamba/util/environment.hpp"
 
 using namespace mamba::specs;
 namespace nl = nlohmann;
@@ -27,7 +28,7 @@ TEST_SUITE("repo_data")
         p.md5 = "ffsd";
         p.noarch = NoArchType::Python;
 
-        nl::json const j = p;
+        const nl::json j = p;
         CHECK_EQ(j.at("name"), p.name);
         CHECK_EQ(j.at("version"), p.version.str());
         CHECK_EQ(j.at("build"), p.build_string);
@@ -146,15 +147,13 @@ TEST_SUITE("repo_data")
         // ``repodata.json`` of interest are very large files. Should we check them in in VCS?
         // Download them in CMake? Do a specific integration test?
         // Could be downloaded in the tests, but we would like to keep these tests Context-free.
-        const char* repodata_file_path = std::getenv("MAMBA_REPODATA_JSON");
-        if (repodata_file_path == nullptr)
+        if (auto repodata_file_path = mamba::util::get_env("MAMBA_REPODATA_JSON"))
         {
-            return;
+            auto repodata_file = std::ifstream(repodata_file_path.value());
+            // Deserialize
+            auto data = nl::json::parse(repodata_file).get<RepoData>();
+            // Serialize
+            const nl::json json = std::move(data);
         }
-        auto repodata_file = std::ifstream(repodata_file_path);
-        // Deserialize
-        auto data = nl::json::parse(repodata_file).get<RepoData>();
-        // Serialize
-        const nl::json json = std::move(data);
     }
 }

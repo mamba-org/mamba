@@ -18,8 +18,7 @@
         "CMAKE_INSTALL_PREFIX": "$env{CONDA_PREFIX}",
         "CMAKE_LINKER": "$env{LD}",
         "CMAKE_PREFIX_PATH": "$env{CONDA_PREFIX}",
-        "CMAKE_RANLIB": "$env{RANLIB}",
-        "CMAKE_STRIP": "$env{STRIP}"
+        "CMAKE_RANLIB": "$env{RANLIB}"
       },
       "description": "Base profile using conda libraries and compilers on Unix",
       "displayName": "Conda Unix",

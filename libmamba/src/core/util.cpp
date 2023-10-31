@@ -1316,7 +1316,7 @@ namespace mamba
             }
             else
             {
-                util::setenv("COMSPEC", cmd_exe);
+                util::set_env("COMSPEC", cmd_exe);
             }
         }
         return true;

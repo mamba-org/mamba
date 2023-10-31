@@ -68,7 +68,7 @@ namespace mamba::util
         return { windows_encoding_to_utf8(value) };
     }
 
-    void setenv(const std::string& key, const std::string& value)
+    void set_env(const std::string& key, const std::string& value)
     {
         std::scoped_lock ready_to_execute{ env_mutex };  // Calls to getenv_s kinds of
                                                          // functions are not thread-safe, this
@@ -114,7 +114,7 @@ namespace mamba::util
         return {};
     }
 
-    void setenv(const std::string& key, const std::string& value)
+    void set_env(const std::string& key, const std::string& value)
     {
         const auto result = ::setenv(key.c_str(), value.c_str(), 1);
         if (result != 0)

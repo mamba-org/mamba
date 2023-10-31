@@ -80,7 +80,7 @@ namespace mamba
                 auto finally = Finally<decltype(restore_ctx)>{ restore_ctx };
 
                 ctx.platform = "osx-arm";
-                util::setenv("CONDA_OVERRIDE_OSX", "12.1");
+                util::set_env("CONDA_OVERRIDE_OSX", "12.1");
                 pkgs = detail::dist_packages(ctx);
                 REQUIRE_EQ(pkgs.size(), 3);
                 CHECK_EQ(pkgs[0].name, "__unix");
@@ -91,8 +91,8 @@ namespace mamba
 
                 util::unsetenv("CONDA_OVERRIDE_OSX");
                 ctx.platform = "linux-32";
-                util::setenv("CONDA_OVERRIDE_LINUX", "5.7");
-                util::setenv("CONDA_OVERRIDE_GLIBC", "2.15");
+                util::set_env("CONDA_OVERRIDE_LINUX", "5.7");
+                util::set_env("CONDA_OVERRIDE_GLIBC", "2.15");
                 pkgs = detail::dist_packages(ctx);
                 REQUIRE_EQ(pkgs.size(), 4);
                 CHECK_EQ(pkgs[0].name, "__unix");
@@ -121,7 +121,7 @@ namespace mamba
 
             TEST_CASE("get_virtual_packages")
             {
-                util::setenv("CONDA_OVERRIDE_CUDA", "9.0");
+                util::set_env("CONDA_OVERRIDE_CUDA", "9.0");
                 const auto& context = mambatests::context();
                 auto pkgs = get_virtual_packages(context);
                 int pkgs_count;

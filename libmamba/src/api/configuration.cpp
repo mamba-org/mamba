@@ -936,7 +936,7 @@ namespace mamba
     {
         if (!config.at("root_prefix").configured() || force)
         {
-            util::setenv("MAMBA_ROOT_PREFIX", get_conda_root_prefix().string());
+            util::set_env("MAMBA_ROOT_PREFIX", get_conda_root_prefix().string());
         }
     }
 

@@ -18,13 +18,13 @@ TEST_SUITE("util::environment")
         CHECK(util::get_env("PATH").has_value());
     }
 
-    TEST_CASE("setenv")
+    TEST_CASE("set_env")
     {
-        util::setenv("VAR_THAT_DOES_NOT_EXIST_XYZ", "VALUE");
+        util::set_env("VAR_THAT_DOES_NOT_EXIST_XYZ", "VALUE");
         CHECK_EQ(util::get_env("VAR_THAT_DOES_NOT_EXIST_XYZ"), "VALUE");
-        util::setenv(u8"VAR_私のにほんごわへたです", u8"😀");
+        util::set_env(u8"VAR_私のにほんごわへたです", u8"😀");
         CHECK_EQ(util::get_env(u8"VAR_私のにほんごわへたです"), u8"😀");
-        util::setenv(u8"VAR_私のにほんごわへたです", u8"hello");
+        util::set_env(u8"VAR_私のにほんごわへたです", u8"hello");
         CHECK_EQ(util::get_env(u8"VAR_私のにほんごわへたです"), u8"hello");
     }
 
@@ -33,7 +33,7 @@ TEST_SUITE("util::environment")
         CHECK_FALSE(util::get_env("VAR_THAT_DOES_NOT_EXIST_ZZZ").has_value());
         util::unsetenv("VAR_THAT_DOES_NOT_EXIST_ZZZ");
         CHECK_FALSE(util::get_env("VAR_THAT_DOES_NOT_EXIST_ZZZ").has_value());
-        util::setenv("VAR_THAT_DOES_NOT_EXIST_ZZZ", "VALUE");
+        util::set_env("VAR_THAT_DOES_NOT_EXIST_ZZZ", "VALUE");
         CHECK(util::get_env("VAR_THAT_DOES_NOT_EXIST_ZZZ").has_value());
         util::unsetenv("VAR_THAT_DOES_NOT_EXIST_ZZZ");
         CHECK_FALSE(util::get_env("VAR_THAT_DOES_NOT_EXIST_ZZZ").has_value());

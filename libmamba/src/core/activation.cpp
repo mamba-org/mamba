@@ -710,7 +710,7 @@ namespace mamba
         }
 
         // if we are in a `mamba shell -n <env>` we don't want to activate base
-        auto has_prefix = util::getenv("CONDA_PREFIX");
+        auto has_prefix = util::get_env("CONDA_PREFIX");
         if (m_context.auto_activate_base && !has_prefix.has_value())
         {
             builder << "micromamba activate base\n";
@@ -786,7 +786,7 @@ namespace mamba
             // use.
             return { "", "" };
         }
-        auto current_prompt_modifier = util::getenv("CONDA_PROMPT_MODIFIER");
+        auto current_prompt_modifier = util::get_env("CONDA_PROMPT_MODIFIER");
         if (current_prompt_modifier)
         {
             util::replace_all(ps1, current_prompt_modifier.value(), "");
@@ -899,7 +899,7 @@ namespace mamba
     CshActivator::update_prompt(const std::string& conda_prompt_modifier)
     {
         std::string prompt = (m_env.find("prompt") != m_env.end()) ? m_env["prompt"] : "";
-        auto current_prompt_modifier = util::getenv("CONDA_PROMPT_MODIFIER");
+        auto current_prompt_modifier = util::get_env("CONDA_PROMPT_MODIFIER");
         if (current_prompt_modifier)
         {
             util::replace_all(prompt, current_prompt_modifier.value(), "");

@@ -46,7 +46,7 @@ namespace mamba
 
             for (const auto& env_var : m_env_var_names)
             {
-                if (util::getenv(env_var))
+                if (util::get_env(env_var))
                 {
                     return true;
                 }
@@ -402,7 +402,7 @@ namespace mamba
                 // strip $
                 var = var.substr(1);
             }
-            auto val = util::getenv(var);
+            auto val = util::get_env(var);
             if (val)
             {
                 s.replace(match[0].first, match[0].second, val.value());
@@ -617,9 +617,9 @@ namespace mamba
 
             if (prefix.empty())
             {
-                if (util::getenv("MAMBA_DEFAULT_ROOT_PREFIX"))
+                if (util::get_env("MAMBA_DEFAULT_ROOT_PREFIX"))
                 {
-                    prefix = util::getenv("MAMBA_DEFAULT_ROOT_PREFIX").value();
+                    prefix = util::get_env("MAMBA_DEFAULT_ROOT_PREFIX").value();
                     LOG_WARNING << unindent(R"(
                                     'MAMBA_DEFAULT_ROOT_PREFIX' is meant for testing purpose.
                                     Consider using 'MAMBA_ROOT_PREFIX' instead)");
@@ -870,7 +870,7 @@ namespace mamba
             std::vector<fs::u8path> paths = { context.prefix_params.root_prefix / "pkgs",
                                               env::home_directory() / ".mamba" / "pkgs" };
 #ifdef _WIN32
-            auto appdata = util::getenv("APPDATA");
+            auto appdata = util::get_env("APPDATA");
             if (appdata)
             {
                 paths.push_back(fs::u8path(appdata.value()) / ".mamba" / "pkgs");
@@ -1852,9 +1852,9 @@ namespace mamba
             env::home_directory() / ".conda/condarc.d",
             env::home_directory() / ".condarc",
         };
-        if (util::getenv("CONDARC"))
+        if (util::get_env("CONDARC"))
         {
-            conda_user.push_back(fs::u8path(util::getenv("CONDARC").value()));
+            conda_user.push_back(fs::u8path(util::get_env("CONDARC").value()));
         }
 
         std::vector<fs::u8path> mamba_user = {
@@ -1863,9 +1863,9 @@ namespace mamba
             env::home_directory() / ".mamba/mambarc", env::home_directory() / ".mamba/mambarc.d",
             env::home_directory() / ".mambarc",
         };
-        if (util::getenv("MAMBARC"))
+        if (util::get_env("MAMBARC"))
         {
-            mamba_user.push_back(fs::u8path(util::getenv("MAMBARC").value()));
+            mamba_user.push_back(fs::u8path(util::get_env("MAMBARC").value()));
         }
 
         std::vector<fs::u8path> prefix = { context.prefix_params.target_prefix / ".condarc",

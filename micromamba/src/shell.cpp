@@ -344,13 +344,13 @@ namespace
                     {
                         if constexpr (util::on_win)
                         {
-                            return util::getenv("SHELL").value_or("cmd.exe");
+                            return util::get_env("SHELL").value_or("cmd.exe");
                         }
                         else if constexpr (util::on_mac)
                         {
-                            return util::getenv("SHELL").value_or("zsh");
+                            return util::get_env("SHELL").value_or("zsh");
                         }
-                        return util::getenv("SHELL").value_or("bash");
+                        return util::get_env("SHELL").value_or("bash");
                     };
 
                     exit(mamba::run_in_environment(

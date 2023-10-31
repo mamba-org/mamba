@@ -350,7 +350,7 @@ namespace mamba
                 }
                 else
                 {
-                    auto val = util::getenv(e);
+                    auto val = util::get_env(e);
                     if (val)
                     {
                         env_map[e] = val.value();

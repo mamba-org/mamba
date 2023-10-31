@@ -561,7 +561,7 @@ namespace mamba
 
 #ifdef _WIN32
                 std::string extra_cache = "\n  - "
-                                          + (fs::u8path(util::getenv("APPDATA").value_or(""))
+                                          + (fs::u8path(util::get_env("APPDATA").value_or(""))
                                              / ".mamba" / "pkgs")
                                                 .string()
                                           + "  # 'fallback'";

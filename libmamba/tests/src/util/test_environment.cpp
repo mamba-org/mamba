@@ -12,30 +12,30 @@ using namespace mamba;
 
 TEST_SUITE("util::environment")
 {
-    TEST_CASE("getenv")
+    TEST_CASE("get_env")
     {
-        CHECK_FALSE(util::getenv("VAR_THAT_DOES_NOT_EXIST_XYZ").has_value());
-        CHECK(util::getenv("PATH").has_value());
+        CHECK_FALSE(util::get_env("VAR_THAT_DOES_NOT_EXIST_XYZ").has_value());
+        CHECK(util::get_env("PATH").has_value());
     }
 
     TEST_CASE("setenv")
     {
         util::setenv("VAR_THAT_DOES_NOT_EXIST_XYZ", "VALUE");
-        CHECK_EQ(util::getenv("VAR_THAT_DOES_NOT_EXIST_XYZ"), "VALUE");
+        CHECK_EQ(util::get_env("VAR_THAT_DOES_NOT_EXIST_XYZ"), "VALUE");
         util::setenv(u8"VAR_私のにほんごわへたです", u8"😀");
-        CHECK_EQ(util::getenv(u8"VAR_私のにほんごわへたです"), u8"😀");
+        CHECK_EQ(util::get_env(u8"VAR_私のにほんごわへたです"), u8"😀");
         util::setenv(u8"VAR_私のにほんごわへたです", u8"hello");
-        CHECK_EQ(util::getenv(u8"VAR_私のにほんごわへたです"), u8"hello");
+        CHECK_EQ(util::get_env(u8"VAR_私のにほんごわへたです"), u8"hello");
     }
 
     TEST_CASE("unsetenv")
     {
-        CHECK_FALSE(util::getenv("VAR_THAT_DOES_NOT_EXIST_ZZZ").has_value());
+        CHECK_FALSE(util::get_env("VAR_THAT_DOES_NOT_EXIST_ZZZ").has_value());
         util::unsetenv("VAR_THAT_DOES_NOT_EXIST_ZZZ");
-        CHECK_FALSE(util::getenv("VAR_THAT_DOES_NOT_EXIST_ZZZ").has_value());
+        CHECK_FALSE(util::get_env("VAR_THAT_DOES_NOT_EXIST_ZZZ").has_value());
         util::setenv("VAR_THAT_DOES_NOT_EXIST_ZZZ", "VALUE");
-        CHECK(util::getenv("VAR_THAT_DOES_NOT_EXIST_ZZZ").has_value());
+        CHECK(util::get_env("VAR_THAT_DOES_NOT_EXIST_ZZZ").has_value());
         util::unsetenv("VAR_THAT_DOES_NOT_EXIST_ZZZ");
-        CHECK_FALSE(util::getenv("VAR_THAT_DOES_NOT_EXIST_ZZZ").has_value());
+        CHECK_FALSE(util::get_env("VAR_THAT_DOES_NOT_EXIST_ZZZ").has_value());
     }
 }

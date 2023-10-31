@@ -26,7 +26,8 @@ namespace mamba::util
         std::mutex env_mutex = {};
 
     }
-    auto getenv(const std::string& key) -> std::optional<std::string>
+
+    auto get_env(const std::string& key) -> std::optional<std::string>
     {
         const auto on_failed = [&](auto error_code)
         {
@@ -104,7 +105,7 @@ namespace mamba::util
 
 namespace mamba::util
 {
-    auto getenv(const std::string& key) -> std::optional<std::string>
+    auto get_env(const std::string& key) -> std::optional<std::string>
     {
         if (const char* val = std::getenv(key.c_str()))
         {

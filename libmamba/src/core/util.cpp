@@ -1299,14 +1299,14 @@ namespace mamba
 
     bool ensure_comspec_set()
     {
-        std::string cmd_exe = util::getenv("COMSPEC").value_or("");
+        std::string cmd_exe = util::get_env("COMSPEC").value_or("");
         if (!util::ends_with(util::to_lower(cmd_exe), "cmd.exe"))
         {
-            cmd_exe = (fs::u8path(util::getenv("SystemRoot").value_or("")) / "System32" / "cmd.exe")
+            cmd_exe = (fs::u8path(util::get_env("SystemRoot").value_or("")) / "System32" / "cmd.exe")
                           .string();
             if (!fs::is_regular_file(cmd_exe))
             {
-                cmd_exe = (fs::u8path(util::getenv("windir").value_or("")) / "System32" / "cmd.exe")
+                cmd_exe = (fs::u8path(util::get_env("windir").value_or("")) / "System32" / "cmd.exe")
                               .string();
             }
             if (!fs::is_regular_file(cmd_exe))
@@ -1381,7 +1381,7 @@ namespace mamba
         }
         else
         {
-            conda_bat = util::getenv("CONDA_BAT")
+            conda_bat = util::get_env("CONDA_BAT")
                             .value_or((fs::absolute(root_prefix) / "condabin" / bat_name).string());
         }
         if (!fs::exists(conda_bat) && options.is_micromamba)
@@ -1520,7 +1520,7 @@ namespace mamba
         if (util::on_win)
         {
             ensure_comspec_set();
-            auto comspec = util::getenv("COMSPEC");
+            auto comspec = util::get_env("COMSPEC");
             if (!comspec)
             {
                 throw std::runtime_error(

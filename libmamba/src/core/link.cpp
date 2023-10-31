@@ -355,7 +355,7 @@ namespace mamba
         if (util::on_win)
         {
             ensure_comspec_set();
-            auto comspec = util::getenv("COMSPEC");
+            auto comspec = util::get_env("COMSPEC");
             if (!comspec)
             {
                 LOG_ERROR << "Failed to run " << action << " for " << pkg_info.name
@@ -417,7 +417,7 @@ namespace mamba
         envmap["PKG_VERSION"] = pkg_info.version;
         envmap["PKG_BUILDNUM"] = std::to_string(pkg_info.build_number);
 
-        std::string PATH = util::getenv("PATH").value_or("");
+        std::string PATH = util::get_env("PATH").value_or("");
         envmap["PATH"] = util::concat(path.parent_path().string(), env::pathsep(), PATH);
 
         std::string cargs = util::join(" ", command_args);
@@ -457,7 +457,7 @@ namespace mamba
         if (ec)
         {
             LOG_ERROR << "response code: " << status << " error message: " << ec.message();
-            if (script_file != nullptr && util::getenv("CONDA_TEST_SAVE_TEMPS"))
+            if (script_file != nullptr && util::get_env("CONDA_TEST_SAVE_TEMPS"))
             {
                 LOG_ERROR << "CONDA_TEST_SAVE_TEMPS :: retaining run_script" << script_file->path();
             }

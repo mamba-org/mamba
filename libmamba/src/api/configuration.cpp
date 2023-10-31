@@ -591,7 +591,7 @@ namespace mamba
                 bool use_fallback = config.at("use_target_prefix_fallback").value<bool>();
                 if (use_fallback)
                 {
-                    prefix = std::getenv("CONDA_PREFIX") ? std::getenv("CONDA_PREFIX") : "";
+                    prefix = util::get_env("CONDA_PREFIX").value_or("");
                 }
             }
 

@@ -1454,9 +1454,9 @@ namespace mamba
             }
             else
             {
-                if (std::getenv("CONDA_EXE"))
+                if (auto exe = util::get_env("CONDA_EXE"))
                 {
-                    shebang = std::getenv("CONDA_EXE");
+                    shebang = exe.value();
                 }
                 else
                 {

@@ -602,6 +602,7 @@ macro(libmamba_create_target target_name linkage output_name)
     endif ()
 
     list(APPEND libmamba_targets ${target_name})
+    add_library(mamba::${target_name} ALIAS ${target_name})
 endmacro()
 
 
@@ -609,7 +610,7 @@ set(libmamba_targets "")
 
 if (BUILD_SHARED)
     message(STATUS "Adding shared libmamba target")
-    libmamba_create_target(libmamba SHARED libmamba)
+    libmamba_create_target(libmamba-dyn SHARED libmamba)
 endif ()
 
 if (BUILD_STATIC)
@@ -622,9 +623,15 @@ if (BUILD_STATIC)
     else ()
         libmamba_create_target(libmamba-static STATIC libmamba)
     endif ()
-endif ()
+endif()
 
-if (NOT (BUILD_SHARED OR BUILD_STATIC))
+if(BUILD_SHARED_LIBS AND BUILD_SHARED)
+    add_library(mamba::libmamba ALIAS libmamba-dyn)
+elseif(BUILD_STATIC)
+    add_library(mamba::libmamba ALIAS libmamba-static)
+elseif(BUILD_SHARED)
+    add_library(mamba::libmamba ALIAS libmamba-dyn)
+else()
     message(FATAL_ERROR "Select at least a build variant for libmamba")
 endif ()
 
@@ -654,8 +661,11 @@ install(DIRECTORY "${LIBMAMBA_INCLUDE_DIR}/"
         PATTERN "*.h")
 
 # Makes the project importable from the build directory
-export(EXPORT ${PROJECT_NAME}-targets
-        FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake")
+export(
+    EXPORT ${PROJECT_NAME}-targets
+    FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake"
+    NAMESPACE mamba::
+)
 
 # Configure 'mambaConfig.cmake' for a build tree
 set(MAMBA_CONFIG_CODE "####### Expanded from \@MAMBA_CONFIG_CODE\@ #######\n")

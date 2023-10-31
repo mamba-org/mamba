@@ -37,6 +37,7 @@ set(LIBMAMBA_TEST_SRCS
     src/util/test_graph.cpp
     src/util/test_iterator.cpp
     src/util/test_os_win.cpp
+    src/util/test_environment.cpp
     src/util/test_path_manip.cpp
     src/util/test_tuple_hash.cpp
     src/util/test_url_manip.cpp
@@ -69,7 +70,6 @@ set(LIBMAMBA_TEST_SRCS
     src/core/test_validate.cpp
     src/core/test_virtual_packages.cpp
     src/core/test_util.cpp
-    src/core/test_system_env.cpp
     src/core/test_env_lockfile.cpp
     src/core/test_execution.cpp
     src/core/test_invoke.cpp

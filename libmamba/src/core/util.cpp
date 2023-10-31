@@ -66,6 +66,7 @@ extern "C"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/compare.hpp"
+#include "mamba/util/environment.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
 
@@ -1298,13 +1299,15 @@ namespace mamba
 
     bool ensure_comspec_set()
     {
-        std::string cmd_exe = env::get("COMSPEC").value_or("");
+        std::string cmd_exe = util::getenv("COMSPEC").value_or("");
         if (!util::ends_with(util::to_lower(cmd_exe), "cmd.exe"))
         {
-            cmd_exe = (fs::u8path(env::get("SystemRoot").value_or("")) / "System32" / "cmd.exe").string();
+            cmd_exe = (fs::u8path(util::getenv("SystemRoot").value_or("")) / "System32" / "cmd.exe")
+                          .string();
             if (!fs::is_regular_file(cmd_exe))
             {
-                cmd_exe = (fs::u8path(env::get("windir").value_or("")) / "System32" / "cmd.exe").string();
+                cmd_exe = (fs::u8path(util::getenv("windir").value_or("")) / "System32" / "cmd.exe")
+                              .string();
             }
             if (!fs::is_regular_file(cmd_exe))
             {
@@ -1313,7 +1316,7 @@ namespace mamba
             }
             else
             {
-                env::set("COMSPEC", cmd_exe);
+                util::setenv("COMSPEC", cmd_exe);
             }
         }
         return true;
@@ -1378,7 +1381,7 @@ namespace mamba
         }
         else
         {
-            conda_bat = env::get("CONDA_BAT")
+            conda_bat = util::getenv("CONDA_BAT")
                             .value_or((fs::absolute(root_prefix) / "condabin" / bat_name).string());
         }
         if (!fs::exists(conda_bat) && options.is_micromamba)
@@ -1517,7 +1520,7 @@ namespace mamba
         if (util::on_win)
         {
             ensure_comspec_set();
-            auto comspec = env::get("COMSPEC");
+            auto comspec = util::getenv("COMSPEC");
             if (!comspec)
             {
                 throw std::runtime_error(

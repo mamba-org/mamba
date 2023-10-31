@@ -6,11 +6,22 @@
 
 #include <array>
 #include <csignal>
-#include <exception>
 #include <iostream>
 #include <string>
-#include <thread>
 #include <vector>
+
+#ifndef _WIN32
+extern "C"
+{
+#include <fcntl.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+}
+#else
+#include <process.h>
+#endif
 
 #include <fmt/color.h>
 #include <fmt/format.h>
@@ -27,21 +38,8 @@
 #include "mamba/core/run.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_random.hpp"
+#include "mamba/util/environment.hpp"
 #include "mamba/util/string.hpp"
-
-#ifndef _WIN32
-extern "C"
-{
-#include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
-}
-#else
-#include <process.h>
-#endif
 
 
 namespace mamba
@@ -352,7 +350,7 @@ namespace mamba
                 }
                 else
                 {
-                    auto val = env::get(e);
+                    auto val = util::getenv(e);
                     if (val)
                     {
                         env_map[e] = val.value();

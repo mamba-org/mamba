@@ -4,14 +4,12 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <iostream>
-
 #include <doctest/doctest.h>
 
 #include "mamba/core/context.hpp"
-#include "mamba/core/environment.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/util/build.hpp"
+#include "mamba/util/environment.hpp"
 
 #include "mambatests.hpp"
 
@@ -82,7 +80,7 @@ namespace mamba
                 auto finally = Finally<decltype(restore_ctx)>{ restore_ctx };
 
                 ctx.platform = "osx-arm";
-                env::set("CONDA_OVERRIDE_OSX", "12.1");
+                util::setenv("CONDA_OVERRIDE_OSX", "12.1");
                 pkgs = detail::dist_packages(ctx);
                 REQUIRE_EQ(pkgs.size(), 3);
                 CHECK_EQ(pkgs[0].name, "__unix");
@@ -91,10 +89,10 @@ namespace mamba
                 CHECK_EQ(pkgs[2].name, "__archspec");
                 CHECK_EQ(pkgs[2].build_string, "arm");
 
-                env::unset("CONDA_OVERRIDE_OSX");
+                util::unsetenv("CONDA_OVERRIDE_OSX");
                 ctx.platform = "linux-32";
-                env::set("CONDA_OVERRIDE_LINUX", "5.7");
-                env::set("CONDA_OVERRIDE_GLIBC", "2.15");
+                util::setenv("CONDA_OVERRIDE_LINUX", "5.7");
+                util::setenv("CONDA_OVERRIDE_GLIBC", "2.15");
                 pkgs = detail::dist_packages(ctx);
                 REQUIRE_EQ(pkgs.size(), 4);
                 CHECK_EQ(pkgs[0].name, "__unix");
@@ -104,15 +102,15 @@ namespace mamba
                 CHECK_EQ(pkgs[2].version, "2.15");
                 CHECK_EQ(pkgs[3].name, "__archspec");
                 CHECK_EQ(pkgs[3].build_string, "x86");
-                env::unset("CONDA_OVERRIDE_GLIBC");
-                env::unset("CONDA_OVERRIDE_LINUX");
+                util::unsetenv("CONDA_OVERRIDE_GLIBC");
+                util::unsetenv("CONDA_OVERRIDE_LINUX");
 
                 ctx.platform = "lin-850";
                 pkgs = detail::dist_packages(ctx);
                 REQUIRE_EQ(pkgs.size(), 1);
                 CHECK_EQ(pkgs[0].name, "__archspec");
                 CHECK_EQ(pkgs[0].build_string, "850");
-                env::unset("CONDA_SUBDIR");
+                util::unsetenv("CONDA_SUBDIR");
 
                 ctx.platform = "linux";
                 pkgs = detail::dist_packages(ctx);
@@ -123,7 +121,7 @@ namespace mamba
 
             TEST_CASE("get_virtual_packages")
             {
-                env::set("CONDA_OVERRIDE_CUDA", "9.0");
+                util::setenv("CONDA_OVERRIDE_CUDA", "9.0");
                 const auto& context = mambatests::context();
                 auto pkgs = get_virtual_packages(context);
                 int pkgs_count;
@@ -146,7 +144,7 @@ namespace mamba
                 CHECK_EQ(pkgs.back().name, "__cuda");
                 CHECK_EQ(pkgs.back().version, "9.0");
 
-                env::unset("CONDA_OVERRIDE_CUDA");
+                util::unsetenv("CONDA_OVERRIDE_CUDA");
                 pkgs = get_virtual_packages(context);
 
                 if (!detail::cuda_version().empty())

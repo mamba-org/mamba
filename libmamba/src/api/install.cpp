@@ -19,6 +19,7 @@
 #include "mamba/core/channel.hpp"
 #include "mamba/core/download.hpp"
 #include "mamba/core/env_lockfile.hpp"
+#include "mamba/core/environment.hpp"
 #include "mamba/core/environments_manager.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"

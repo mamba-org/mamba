@@ -19,6 +19,7 @@
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/util/environment.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
@@ -95,8 +96,8 @@ namespace mamba
 
     Context::Context(const ContextOptions& options)
     {
-        on_ci = static_cast<bool>(env::get("CI"));
-        prefix_params.root_prefix = env::get("MAMBA_ROOT_PREFIX").value_or("");
+        on_ci = static_cast<bool>(util::getenv("CI"));
+        prefix_params.root_prefix = util::getenv("MAMBA_ROOT_PREFIX").value_or("");
         prefix_params.conda_prefix = prefix_params.root_prefix;
 
         envs_dirs = { prefix_params.root_prefix / "envs" };
@@ -104,12 +105,12 @@ namespace mamba
                       fs::u8path("~") / ".mamba" / "pkgs"
 #ifdef _WIN32
                       ,
-                      fs::u8path(env::get("APPDATA").value_or("")) / ".mamba" / "pkgs"
+                      fs::u8path(util::getenv("APPDATA").value_or("")) / ".mamba" / "pkgs"
 #endif
         };
 
-        keep_temp_files = env::get("MAMBA_KEEP_TEMP") ? true : false;
-        keep_temp_directories = env::get("MAMBA_KEEP_TEMP_DIRS") ? true : false;
+        keep_temp_files = util::getenv("MAMBA_KEEP_TEMP") ? true : false;
+        keep_temp_directories = util::getenv("MAMBA_KEEP_TEMP_DIRS") ? true : false;
 
         set_persist_temporary_files(keep_temp_files);
         set_persist_temporary_directories(keep_temp_directories);

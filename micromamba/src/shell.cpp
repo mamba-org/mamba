@@ -9,6 +9,7 @@
 #include "mamba/core/run.hpp"
 #include "mamba/core/shell_init.hpp"
 #include "mamba/util/build.hpp"
+#include "mamba/util/environment.hpp"
 
 #include "common_options.hpp"
 #include "umamba.hpp"
@@ -343,13 +344,13 @@ namespace
                     {
                         if constexpr (util::on_win)
                         {
-                            return env::get("SHELL").value_or("cmd.exe");
+                            return util::getenv("SHELL").value_or("cmd.exe");
                         }
                         else if constexpr (util::on_mac)
                         {
-                            return env::get("SHELL").value_or("zsh");
+                            return util::getenv("SHELL").value_or("zsh");
                         }
-                        return env::get("SHELL").value_or("bash");
+                        return util::getenv("SHELL").value_or("bash");
                     };
 
                     exit(mamba::run_in_environment(

@@ -4,13 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/context.hpp"
-#include "mamba/core/environment.hpp"
-#include "mamba/core/output.hpp"
-#include "mamba/core/util_os.hpp"
-#include "mamba/core/virtual_packages.hpp"
-#include "mamba/util/build.hpp"
-#include "mamba/util/string.hpp"
+#include <regex>
+#include <vector>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -18,10 +13,16 @@
 #include <unistd.h>
 #endif
 
-#include <regex>
-#include <vector>
-
 #include <reproc++/run.hpp>
+
+#include "mamba/core/context.hpp"
+#include "mamba/core/environment.hpp"
+#include "mamba/core/output.hpp"
+#include "mamba/core/util_os.hpp"
+#include "mamba/core/virtual_packages.hpp"
+#include "mamba/util/build.hpp"
+#include "mamba/util/environment.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
@@ -29,7 +30,7 @@ namespace mamba
     {
         std::string glibc_version()
         {
-            auto override_version = env::get("CONDA_OVERRIDE_GLIBC");
+            auto override_version = util::getenv("CONDA_OVERRIDE_GLIBC");
             if (override_version)
             {
                 return override_version.value();
@@ -59,7 +60,7 @@ namespace mamba
         {
             LOG_DEBUG << "Loading CUDA virtual package";
 
-            auto override_version = env::get("CONDA_OVERRIDE_CUDA");
+            auto override_version = util::getenv("CONDA_OVERRIDE_CUDA");
             if (override_version)
             {
                 return override_version.value();
@@ -83,7 +84,7 @@ namespace mamba
             {
                 // Windows fallback
                 bool may_exist = false;
-                std::string path = env::get("PATH").value_or("");
+                std::string path = util::getenv("PATH").value_or("");
                 std::vector<std::string> paths = util::split(path, env::pathsep());
 
                 for (auto& p : paths)

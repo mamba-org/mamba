@@ -14,9 +14,9 @@
 #include "mamba/api/configuration_impl.hpp"
 #include "mamba/api/constants.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/core/environment.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/util/environment.hpp"
 
 
 namespace mamba
@@ -697,7 +697,7 @@ namespace mamba
             {
                 for (const auto& env_var : m_env_var_names)
                 {
-                    auto env_var_value = env::get(env_var);
+                    auto env_var_value = util::getenv(env_var);
                     if (env_var_value)
                     {
                         try

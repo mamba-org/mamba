@@ -7,6 +7,7 @@
 #include <iostream>
 
 #include "mamba/api/configuration.hpp"
+#include "mamba/core/environment.hpp"
 
 
 namespace mamba

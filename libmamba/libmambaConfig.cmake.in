@@ -43,11 +43,4 @@ if(NOT (TARGET libmamba OR TARGET libmamba-static))
         get_target_property(@PROJECT_NAME@_INCLUDE_DIR libmamba-static INTERFACE_INCLUDE_DIRECTORIES)
         get_target_property(@PROJECT_NAME@_STATIC_LIBRARY libmamba-static LOCATION)
     endif()
-
-    if(BUILD_SHARED_LIBS AND TARGET mamba::libmamba-dyn)
-        add_library(mamba::libmamba ALIAS mamba::libmamba-dyn)
-    else()
-        add_library(mamba::libmamba ALIAS mamba::libmamba-static)
-    endif()
-
 endif()

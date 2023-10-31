@@ -90,7 +90,7 @@ namespace mamba::util
 
     void unset_env(const std::string& key)
     {
-        setenv(key, "");
+        set_env(key, "");
     }
 }
 

@@ -111,7 +111,7 @@ jobs:
         run: |
           export TEST_MAMBA_EXE=$(pwd)/build/micromamba/micromamba
           unset CONDARC  # Interferes with tests
-          pytest -v --capture=tee-sys micromamba/tests/
+          pytest -v --capture=tee-sys micromamba/tests/ --mitmdump-exe="$(which mitmdump)"
       - name: micromamba local channel test
         shell: bash -l -eo pipefail {0}
         run: |

@@ -340,14 +340,9 @@ def test_multiple_spec_files(tmp_home, tmp_root_prefix, tmp_path, type):
             assert res["specs"] == [explicit_specs[0]]
 
 
-def test_multiprocessing():
-    if platform.system() == "Windows":
-        return
-
-    root_prefix = Path(os.environ["MAMBA_ROOT_PREFIX"])
-    if os.path.exists(root_prefix / "pkgs"):
-        shutil.rmtree(root_prefix / "pkgs")
-
+@pytest.mark.skipif(platform.system() == "Windows", reason="Windows")
+@pytest.mark.parametrize("use_caching_proxy", [False], indirect=True)
+def test_multiprocessing(tmp_home, tmp_root_prefix):
     cmd = [helpers.get_umamba()]
     cmd += ["create", "-n", "env1", "-y"]
     cmd += ["airflow"]
@@ -641,7 +636,8 @@ def test_spec_with_channel(tmp_home, tmp_root_prefix, tmp_path):
             assert link["version"].startswith("0.22.")
 
 
-def test_spec_with_channel_and_subdir():
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_spec_with_channel_and_subdir(tmp_home, tmp_root_prefix):
     env_name = "myenv"
     try:
         res = helpers.create("-n", env_name, "conda-forge/noarch::xtensor", "--dry-run")

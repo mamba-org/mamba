@@ -2,11 +2,15 @@ import copy
 import os
 import pathlib
 import platform
+import shutil
+import subprocess
 from typing import Any, Generator, Mapping, Optional
 
 import pytest
 
 from . import helpers
+
+__this_dir__ = pathlib.Path(__file__).parent.resolve()
 
 ####################
 #  Config options  #
@@ -15,6 +19,18 @@ from . import helpers
 
 def pytest_addoption(parser):
     """Add command line argument to pytest."""
+    parser.addoption(
+        "--mitmdump-exe",
+        action="store",
+        default=None,
+        help="Path to mitmdump proxy executable",
+    )
+    parser.addoption(
+        "--caching-proxy-dir",
+        action="store",
+        default=None,
+        help="Path to a directory to store requests between calls",
+    )
     parser.addoption(
         "--mamba-pkgs-dir",
         action="store",
@@ -35,13 +51,79 @@ def pytest_addoption(parser):
     )
 
 
-##################
-#  Test fixture  #
-##################
+###########################
+#  Test utility fixtures  #
+###########################
+
+
+@pytest.fixture(scope="session")
+def mitmdump_exe(request) -> Optional[pathlib.Path]:
+    """Get the path to the ``mitmdump`` executable."""
+    if (p := request.config.getoption("--mitmdump-exe")) is not None:
+        return pathlib.Path(p).resolve()
+    elif (p := shutil.which("mitmdump")) is not None:
+        return pathlib.Path(p).resolve()
+    return None
+
+
+@pytest.fixture(scope="session")
+def session_cache_proxy(
+    request, mitmdump_exe, unused_tcp_port_factory, tmp_path_factory
+) -> Generator[Optional[helpers.MitmProxy], None, None]:
+    """Launch and a caching proxy to speed up tests, not used automatically."""
+    assert mitmdump_exe is not None
+
+    proxy = helpers.MitmProxy(
+        exe=mitmdump_exe,
+        scripts=str(__this_dir__ / "caching_proxy.py"),
+        confdir=tmp_path_factory.mktemp("mitmproxy"),
+    )
+
+    options = []
+    if (p := request.config.getoption("--caching-proxy-dir")) is not None:
+        options += ["--set", f"cache_dir={p}"]
+
+    proxy.start_proxy(unused_tcp_port_factory(), options)
+
+    yield proxy
+
+    proxy.stop_proxy()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def session_clean_env(
+    mitmdump_exe,  # To help resolve the executable before we clean the env
+) -> None:
+    """Remove all Conda/Mamba activation artifacts from environment."""
+    old_environ = copy.deepcopy(os.environ)
+
+    for k, v in os.environ.items():
+        if k.startswith(("CONDA", "_CONDA", "MAMBA", "_MAMBA", "XDG_")):
+            del os.environ[k]
+
+    def keep_in_path(
+        p: str, prefix: Optional[str] = old_environ.get("CONDA_PREFIX")
+    ) -> bool:
+        if "condabin" in p:
+            return False
+        # On windows, PATH is also used for dyanamic libraries.
+        if (prefix is not None) and (platform.system() != "Windows"):
+            p = str(pathlib.Path(p).expanduser().resolve())
+            prefix = str(pathlib.Path(prefix).expanduser().resolve())
+            return not p.startswith(prefix)
+        return True
+
+    path_list = os.environ["PATH"].split(os.pathsep)
+    path_list = [p for p in path_list if keep_in_path(p)]
+    os.environ["PATH"] = os.pathsep.join(path_list)
+
+    yield
+
+    os.environ.update(old_environ)
 
 
 @pytest.fixture(autouse=True)
-def tmp_environ() -> Generator[Mapping[str, Any], None, None]:
+def tmp_environ(session_clean_env: None) -> Generator[Mapping[str, Any], None, None]:
     """Saves and restore environment variables.
 
     This is used for test that need to modify ``os.environ``
@@ -50,6 +132,29 @@ def tmp_environ() -> Generator[Mapping[str, Any], None, None]:
     yield old_environ
     os.environ.clear()
     os.environ.update(old_environ)
+
+
+@pytest.fixture(params=[True])
+def use_caching_proxy(request) -> bool:
+    """A dummy fixture to control the use of the caching proxy."""
+    return request.param
+
+
+@pytest.fixture(autouse=True)
+def tmp_use_proxy(
+    use_caching_proxy, tmp_environ, session_clean_env: None, session_cache_proxy
+):
+    if use_caching_proxy:
+        port = session_cache_proxy.port
+        assert port is not None
+        os.environ["MAMBA_PROXY_SERVERS"] = (
+            "{"
+            + f"http: http://localhost:{port}, https: https://localhost:{port}"
+            + "}"
+        )
+        os.environ["MAMBA_CACERT_PATH"] = str(
+            session_cache_proxy.confdir / "mitmproxy-ca-cert.pem"
+        )
 
 
 @pytest.fixture
@@ -83,31 +188,6 @@ def tmp_home(
             pass
 
 
-@pytest.fixture
-def tmp_clean_env(tmp_environ: None) -> None:
-    """Remove all Conda/Mamba activation artifacts from environment."""
-    for k, v in os.environ.items():
-        if k.startswith(("CONDA", "_CONDA", "MAMBA", "_MAMBA", "XDG_")):
-            del os.environ[k]
-
-    def keep_in_path(
-        p: str, prefix: Optional[str] = tmp_environ.get("CONDA_PREFIX")
-    ) -> bool:
-        if "condabin" in p:
-            return False
-        # On windows, PATH is also used for dyanamic libraries.
-        if (prefix is not None) and (platform.system() != "Windows"):
-            p = str(pathlib.Path(p).expanduser().resolve())
-            prefix = str(pathlib.Path(prefix).expanduser().resolve())
-            return not p.startswith(prefix)
-        return True
-
-    path_list = os.environ["PATH"].split(os.pathsep)
-    path_list = [p for p in path_list if keep_in_path(p)]
-    os.environ["PATH"] = os.pathsep.join(path_list)
-    # os.environ restored by tmp_clean_env and tmp_environ
-
-
 @pytest.fixture(scope="session")
 def tmp_pkgs_dirs(tmp_path_factory: pytest.TempPathFactory, request) -> pathlib.Path:
     """A common package cache for mamba downloads.
@@ -132,7 +212,7 @@ def shared_pkgs_dirs(request) -> bool:
 def tmp_root_prefix(
     request,
     tmp_path_factory: pytest.TempPathFactory,
-    tmp_clean_env: None,
+    tmp_environ: None,
     tmp_pkgs_dirs: pathlib.Path,
     shared_pkgs_dirs: bool,
 ) -> Generator[pathlib.Path, None, None]:
@@ -151,7 +231,7 @@ def tmp_root_prefix(
     if not request.config.getoption("--no-eager-clean"):
         if new_root_prefix.exists():
             helpers.rmtree(new_root_prefix)
-    # os.environ restored by tmp_clean_env and tmp_environ
+    # os.environ restored by tmp_environ
 
 
 @pytest.fixture(params=[helpers.random_string])

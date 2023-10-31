@@ -1,7 +1,4 @@
 import os
-import shutil
-import subprocess
-import time
 import urllib.parse
 from pathlib import Path
 
@@ -12,60 +9,13 @@ from . import helpers
 __this_dir__ = Path(__file__).parent.resolve()
 
 
-@pytest.fixture
-def mitmdump_exe():
-    """Get the path to the ``mitmdump`` executable.
-
-    If the executable is provided in a conda environment, this fixture needs to be called
-    before ``tmp_root_prefix`` and the like, as they will clean the ``PATH``.
-    """
-    return Path(shutil.which("mitmdump")).resolve()
-
-
-class MitmProxy:
-    def __init__(self, exe: Path, conf: Path, dump: Path):
-        self.exe = Path(exe).resolve()
-        self.conf = Path(conf).resolve()
-        self.dump = Path(dump).resolve()
-        self.process = None
-
-    def start_proxy(self, port, options=[]):
-        assert self.process is None
-        self.process = subprocess.Popen(
-            [
-                self.exe,
-                "--listen-port",
-                str(port),
-                "--scripts",
-                str(__this_dir__ / "dump_proxy_connections.py"),
-                "--set",
-                f"outfile={self.dump}",
-                "--set",
-                f"confdir={self.conf}",
-                *options,
-            ]
-        )
-
-        # Wait until mitmproxy has generated its certificate or some tests might fail
-        while not (Path(self.conf) / "mitmproxy-ca-cert.pem").exists():
-            time.sleep(1)
-
-    def stop_proxy(self):
-        self.process.terminate()
-        try:
-            self.process.wait(3)
-        except subprocess.TimeoutExpired:
-            self.process.kill()
-        self.process = None
-
-
 @pytest.mark.parametrize("auth", [None, "foo:bar", "user%40example.com:pass"])
 @pytest.mark.parametrize("ssl_verify", (True, False))
+@pytest.mark.parametrize("use_caching_proxy", [False], indirect=True)
 def test_proxy_install(
     mitmdump_exe, tmp_home, tmp_prefix, tmp_path, unused_tcp_port, auth, ssl_verify
 ):
-    """
-    This test makes sure micromamba follows the proxy settings in .condarc
+    """This test makes sure micromamba follows the proxy settings in .condarc
 
     It starts mitmproxy with the `dump_proxy_connections.py` script, which dumps all requested urls in a text file.
     After that micromamba is used to install a package, while pointing it to that mitmproxy instance. Once
@@ -80,15 +30,16 @@ def test_proxy_install(
         proxy_options = []
         proxy_url = "http://localhost:{}".format(unused_tcp_port)
 
-    proxy = MitmProxy(
+    proxy = helpers.MitmProxy(
         exe=mitmdump_exe,
-        conf=(tmp_path / "mitmproxy-conf"),
-        dump=(tmp_path / "mitmproxy-dump"),
+        scripts=str(__this_dir__ / "dump_proxy_connections.py"),
+        confdir=(tmp_path / "mitmproxy-conf"),
+        outfile=(tmp_path / "mitmproxy-dump"),
     )
     proxy.start_proxy(unused_tcp_port, proxy_options)
 
     rc_file = tmp_prefix / "rc.yaml"
-    verify_string = proxy.conf / "mitmproxy-ca-cert.pem" if ssl_verify else "false"
+    verify_string = proxy.confdir / "mitmproxy-ca-cert.pem" if ssl_verify else "false"
 
     file_content = [
         "proxy_servers:",
@@ -110,7 +61,7 @@ def test_proxy_install(
 
     proxy.stop_proxy()
 
-    with open(proxy.dump, "r") as f:
+    with open(proxy.outfile, "r") as f:
         proxied_requests = f.read().splitlines()
 
     for fetch in res["actions"]["FETCH"]:

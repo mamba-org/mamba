@@ -82,7 +82,8 @@ jobs:
         shell: bash -eo pipefail {0}
         run: |
           unset CONDARC  # Interferes with tests
-          cmake --build build/ --target test
+          # Move to directory of libmamba DLL for Windows to find it
+          cd build/libmamba/ && ./tests/test_libmamba
 
   libmambapy_tests_win:
     name: Test libmamba Python bindings

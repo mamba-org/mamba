@@ -75,7 +75,7 @@ jobs:
       - name: Run libmamba tests
         run: |
           unset CONDARC  # Interferes with tests
-          cd build/libmamba/tests/ && ./test_libmamba
+          ./build/libmamba/tests/test_libmamba
 
   libmambapy_tests_unix:
     name: Test libmamba Python bindings

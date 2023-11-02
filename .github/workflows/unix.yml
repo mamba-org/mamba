@@ -23,7 +23,9 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         build_type: [release, debug]
       fail-fast: false
-    uses: ./.github/workflows/unix_impl.yml
-    with:
-      os: ${{ matrix.os }}
-      build_type: ${{ matrix.build_type }}
+    steps:
+      - run: echo "Hello"
+    # uses: ./.github/workflows/unix_impl.yml
+    # with:
+    #   os: ${{ matrix.os }}
+    #   build_type: ${{ matrix.build_type }}

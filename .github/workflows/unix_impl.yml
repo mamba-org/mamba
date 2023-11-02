@@ -77,7 +77,7 @@ jobs:
           unset CONDARC  # Interferes with tests
           cd build/libmamba/tests/ && ./test_libmamba
 
-  libmambay_tests_unix:
+  libmambapy_tests_unix:
     name: Test libmamba Python bindings
     needs: ["build_shared_unix"]
     runs-on: ${{ inputs.os }}

@@ -27,58 +27,7 @@ jobs:
     with:
       os: ${{ matrix.os }}
       build_type: ${{ matrix.build_type }}
-  #
-  # libmamba_tests_win:
-  #   name: libmamba tests
-  #   runs-on: ${{ matrix.os }}
-  #   strategy:
-  #     matrix:
-  #       os: [windows-2019]
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - name: Create build environment
-  #       uses: mamba-org/setup-micromamba@v1
-  #       with:
-  #         environment-file: ./dev/environment-dev.yml
-  #         environment-name: build_env
-  #         cache-environment: true
-  #         init-shell: bash cmd.exe
-  #     - uses: hendrikmuhs/ccache-action@main
-  #       with:
-  #         variant: sccache
-  #         key: ${{ github.job }}-${{ matrix.os }}
-  #         restore-keys: |
-  #           libmamba-${{ matrix.os }}
-  #     - name: Build libmamba
-  #       shell: cmd /C call {0}
-  #       run: |
-  #         cmake -B build/ ^
-  #             -G Ninja ^
-  #             -D CMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
-  #             -D CMAKE_BUILD_TYPE="Release" ^
-  #             -D CMAKE_MSVC_RUNTIME_LIBRARY="MultiThreadedDLL" ^
-  #             -D BUILD_LIBMAMBA_TESTS=ON ^
-  #             -D BUILD_LIBMAMBA=ON ^
-  #             -D BUILD_LIBMAMBAPY=ON ^
-  #             -D BUILD_SHARED=ON ^
-  #             -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
-  #             -D CMAKE_C_COMPILER_LAUNCHER=sccache
-  #         if %errorlevel% neq 0 exit /b %errorlevel%
-  #         cmake --build build/ --parallel --target test_libmamba testing_libmamba_lock
-  #         if %errorlevel% neq 0 exit /b %errorlevel%
-  #     - name: Run libmamba tests
-  #       shell: cmd /C call {0}
-  #       run: |
-  #         cd build
-  #         ninja install
-  #         if %errorlevel% neq 0 exit /b %errorlevel%
-  #         @REM Interferes with tests
-  #         set CONDARC=
-  #         ninja test
-  #         if %errorlevel% neq 0 exit /b %errorlevel%
-  #     - name: Show build cache statistics
-  #       run: sccache --show-stats
-  #
+
   # umamba_build_win:
   #   name: Build micromamba
   #   runs-on: ${{ matrix.os }}

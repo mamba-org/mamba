@@ -85,34 +85,35 @@ jobs:
           cd "build\libmamba" && .\tests\test_libmamba
           if %errorlevel% neq 0 exit /b %errorlevel%
 
-  # libmambay_tests_win:
-  #   name: Test libmamba Python bindings
-  #   needs: ["build_shared_win"]
-  #   runs-on: ${{ inputs.os }}
-  #   steps:
-  #     - name: Checkout mamba repository
-  #       uses: actions/checkout@v4
-  #     - name: Restore workspace
-  #       uses: ./.github/actions/workspace
-  #       with:
-  #         action: restore
-  #         path: build/
-  #         key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
-  #     - name: Create build environment
-  #       uses: mamba-org/setup-micromamba@v1
-  #       with:
-  #         environment-file: ./build/environment.lock
-  #         environment-name: build_env
-  #         init-shell: bash cmd.exe
-  #     - name: Install libmambapy
-  #       run: |
-  #         ln build/libmambapy/bindings* libmambapy/libmambapy/
-  #         cmake --install build/ --prefix "${CONDA_PREFIX}"
-  #         python -m pip install ./libmambapy/
-  #     - name: Run libmamba Python bindings tests
-  #       run: |
-  #         python -m pytest libmambapy/tests/
-  #
+  libmambay_tests_win:
+    name: Test libmamba Python bindings
+    needs: ["build_shared_win"]
+    runs-on: ${{ inputs.os }}
+    steps:
+      - name: Checkout mamba repository
+        uses: actions/checkout@v4
+      - name: Restore workspace
+        uses: ./.github/actions/workspace
+        with:
+          action: restore
+          path: build/
+          key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
+      - name: Create build environment
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-file: ./build/environment.lock
+          environment-name: build_env
+          init-shell: bash cmd.exe
+      - name: Install libmambapy
+        shell: bash -eo pipefail {0}
+        run: |
+          ln build/libmambapy/bindings* libmambapy/libmambapy/
+          cmake --install build/ --prefix "${CONDA_PREFIX}"
+          python -m pip install ./libmambapy/
+      - name: Run libmamba Python bindings tests
+        run: |
+          python -m pytest libmambapy/tests/
+
   # umamba_integration_tests_win:
   #   name: Test integration micromamba
   #   needs: ["build_shared_win"]

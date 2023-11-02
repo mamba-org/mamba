@@ -33,8 +33,8 @@ jobs:
           variant: sccache
           key: ${{ github.job }}-${{ inputs.os }}
           restore-keys: |
-            libmamba-${{ inputs.os }}
-      - name: Build libmamba
+            ccache-libmamba-${{ inputs.os }}
+      - name: Build mamba
         run: |
           cmake -B build/ -G Ninja \
             --preset mamba-unix-shared-${{ inputs.build_type }}  \

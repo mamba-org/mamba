@@ -149,7 +149,7 @@ namespace mamba
             }
 
             auto& custom_multichannels = channel_context.context().custom_multichannels;
-            auto x = custom_multichannels.find(needle.name());
+            auto x = custom_multichannels.find(needle.canonical_name());
             if (x != custom_multichannels.end())
             {
                 for (auto el : (x->second))

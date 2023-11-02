@@ -1165,7 +1165,7 @@ bind_submodule_impl(pybind11::module_ m)
             "__repr__",
             [](const Channel& c)
             {
-                auto s = c.name();
+                auto s = c.canonical_name();
                 s += "[";
                 bool first = true;
                 for (const auto& platform : c.platforms())

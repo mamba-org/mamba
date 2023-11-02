@@ -1,129 +1,46 @@
 {
   "configurePresets": [
     {
-      "binaryDir": "${sourceDir}/build/${presetName}",
-      "cacheVariables": {
-        "CMAKE_AR": "$env{AR}",
-        "CMAKE_CXX_COMPILER": "$env{CXX}",
-        "CMAKE_CXX_FLAGS_DEBUG": "$env{DEBUG_CXXFLAGS}",
-        "CMAKE_CXX_FLAGS_RELEASE": "$env{CXXFLAGS}",
-        "CMAKE_C_COMPILER": "$env{CC}",
-        "CMAKE_C_FLAGS_DEBUG": "$env{DEBUG_CFLAGS}",
-        "CMAKE_C_FLAGS_RELEASE": "$env{CFLAGS}",
-        "CMAKE_EXE_LINKER_FLAGS": "$env{LDFLAGS}",
-        "CMAKE_Fortran_COMPILER": "$env{FC}",
-        "CMAKE_Fortran_FLAGS_DEBUG": "$env{DEBUG_FORTRANFLAGS}",
-        "CMAKE_Fortran_FLAGS_RELEASE": "$env{FORTRANFLAGS}",
-        "CMAKE_INSTALL_LIBDIR": "lib",
-        "CMAKE_INSTALL_PREFIX": "$env{CONDA_PREFIX}",
-        "CMAKE_LINKER": "$env{LD}",
-        "CMAKE_PREFIX_PATH": "$env{CONDA_PREFIX}",
-        "CMAKE_RANLIB": "$env{RANLIB}",
-        "CMAKE_STRIP": "$env{STRIP}"
-      },
-      "description": "Base profile using conda libraries and compilers on Unix",
-      "displayName": "Conda Unix",
-      "hidden": true,
-      "name": "conda-unix"
-    },
-    {
-      "cacheVariables": {
-        "CMAKE_AR": "$env{GCC_AR}",
-        "CMAKE_CXX_COMPILER": "$env{GXX}",
-        "CMAKE_C_COMPILER": "$env{GCC}",
-        "CMAKE_Fortran_COMPILER": "$env{GFORTRAN}",
-        "CMAKE_LINKER": "$env{LD_GOLD}",
-        "CMAKE_RANLIB": "$env{GCC_RANLIB}"
-      },
-      "description": "Base profile using conda libraries and GNU compilers",
-      "displayName": "Conda GNU",
-      "hidden": true,
-      "inherits": [
-        "conda-unix"
-      ],
-      "name": "conda-gnu"
-    },
-    {
-      "cacheVariables": {
-        "CMAKE_CXX_COMPILER": "clang++",
-        "CMAKE_C_COMPILER": "clang",
-        "CMAKE_Fortran_COMPILER": "lfortran",
-        "CMAKE_LINKER": "lld"
-      },
-      "description": "Base profile using conda libraries and LLVM compilers",
-      "displayName": "Conda Clang",
-      "hidden": true,
-      "inherits": [
-        "conda-unix"
-      ],
-      "name": "conda-llvm"
-    },
-    {
-      "cacheVariables": {
-        "BUILD_LIBMAMBA": "ON",
-        "BUILD_LIBMAMBAPY": "ON",
-        "BUILD_LIBMAMBA_TESTS": "ON",
-        "BUILD_MAMBA_PACKAGE": "ON",
-        "BUILD_MICROMAMBA": "ON",
-        "BUILD_MICROMAMBA_SERVER": "ON"
-      },
-      "description": "Base profile for building everything in Mamba",
-      "displayName": "Mamba All",
-      "hidden": true,
-      "name": "mamba-all"
-    },
-    {
-      "cacheVariables": {
-        "BUILD_SHARED": "ON"
-      },
-      "hidden": true,
-      "name": "mamba-shared"
-    },
-    {
-      "cacheVariables": {
-        "BUILD_STATIC": "ON"
-      },
-      "hidden": true,
-      "name": "mamba-static"
-    },
-    {
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
-      },
-      "hidden": true,
-      "name": "mamba-debug"
-    },
-    {
-      "cacheVariables": {
-        "CMAKE_COLOR_DIAGNOSTICS": "ON",
-        "CMAKE_COLOR_MAKEFILE": "ON",
-        "CMAKE_CXX_COMPILER_LAUNCHER": "ccache",
-        "CMAKE_CXX_EXTENSIONS": "OFF",
-        "CMAKE_CXX_STANDARD": "17",
-        "CMAKE_CXX_STANDARD_REQUIRED": "ON",
-        "CMAKE_C_COMPILER_LAUNCHER": "ccache",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
-      },
-      "description": "Extra convenience flags used when developping",
-      "displayName": "Mamba Dev",
-      "hidden": true,
-      "name": "mamba-dev",
-      "warnings": {
-        "dev": true,
-        "unusedCli": true
-      }
-    },
-    {
-      "displayName": "Mamba Unix Shared Debug Dev",
+      "displayName": "Mamba Unix Shared Debug",
       "inherits": [
         "conda-unix",
         "mamba-all",
         "mamba-shared",
-        "mamba-debug",
+        "mamba-debug"
+      ],
+      "name": "mamba-unix-shared-debug"
+    },
+    {
+      "displayName": "Mamba Unix Shared Release",
+      "inherits": [
+        "conda-unix",
+        "mamba-all",
+        "mamba-shared",
+        "mamba-release"
+      ],
+      "name": "mamba-unix-shared-release"
+    },
+    {
+      "displayName": "Mamba Unix Shared Debug Dev",
+      "inherits": [
+        "mamba-unix-shared-debug",
         "mamba-dev"
       ],
       "name": "mamba-unix-shared-debug-dev"
+    },
+    {
+      "displayName": "Mamba Win Shared Release",
+      "inherits": [
+        "mamba-all",
+        "mamba-shared",
+        "mamba-release"
+      ],
+      "name": "mamba-win-shared-release"
     }
+  ],
+  "include": [
+    "dev/CMakePresetsUnix.json",
+    "dev/CMakePresetsMamba.json"
   ],
   "version": 4
 }

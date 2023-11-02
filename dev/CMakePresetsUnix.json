@@ -1,0 +1,62 @@
+{
+  "configurePresets": [
+    {
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_AR": "$env{AR}",
+        "CMAKE_CXX_COMPILER": "$env{CXX}",
+        "CMAKE_CXX_FLAGS_DEBUG": "$env{DEBUG_CXXFLAGS}",
+        "CMAKE_CXX_FLAGS_RELEASE": "$env{CXXFLAGS}",
+        "CMAKE_C_COMPILER": "$env{CC}",
+        "CMAKE_C_FLAGS_DEBUG": "$env{DEBUG_CFLAGS}",
+        "CMAKE_C_FLAGS_RELEASE": "$env{CFLAGS}",
+        "CMAKE_EXE_LINKER_FLAGS": "$env{LDFLAGS}",
+        "CMAKE_Fortran_COMPILER": "$env{FC}",
+        "CMAKE_Fortran_FLAGS_DEBUG": "$env{DEBUG_FORTRANFLAGS}",
+        "CMAKE_Fortran_FLAGS_RELEASE": "$env{FORTRANFLAGS}",
+        "CMAKE_INSTALL_LIBDIR": "lib",
+        "CMAKE_INSTALL_PREFIX": "$env{CONDA_PREFIX}",
+        "CMAKE_LINKER": "$env{LD}",
+        "CMAKE_PREFIX_PATH": "$env{CONDA_PREFIX}",
+        "CMAKE_RANLIB": "$env{RANLIB}"
+      },
+      "description": "Base profile using conda libraries and compilers on Unix",
+      "displayName": "Conda Unix",
+      "hidden": true,
+      "name": "conda-unix"
+    },
+    {
+      "cacheVariables": {
+        "CMAKE_AR": "$env{GCC_AR}",
+        "CMAKE_CXX_COMPILER": "$env{GXX}",
+        "CMAKE_C_COMPILER": "$env{GCC}",
+        "CMAKE_Fortran_COMPILER": "$env{GFORTRAN}",
+        "CMAKE_LINKER": "$env{LD_GOLD}",
+        "CMAKE_RANLIB": "$env{GCC_RANLIB}"
+      },
+      "description": "Base profile using conda libraries and GNU compilers",
+      "displayName": "Conda GNU",
+      "hidden": true,
+      "inherits": [
+        "conda-unix"
+      ],
+      "name": "conda-gnu"
+    },
+    {
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_Fortran_COMPILER": "lfortran",
+        "CMAKE_LINKER": "lld"
+      },
+      "description": "Base profile using conda libraries and LLVM compilers",
+      "displayName": "Conda Clang",
+      "hidden": true,
+      "inherits": [
+        "conda-unix"
+      ],
+      "name": "conda-llvm"
+    }
+  ],
+  "version": 4
+}

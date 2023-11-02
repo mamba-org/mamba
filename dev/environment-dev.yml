@@ -4,6 +4,7 @@ dependencies:
   # libmamba build dependencies
   - cxx-compiler
   - cmake >=3.16
+  - pkg-config  # Used by some CMake dependencies
   - ninja
   # libmamba dependencies
   - cpp-expected
@@ -29,6 +30,7 @@ dependencies:
   - pytest-lazy-fixture
   - pytest-xprocess
   - sel(win): pywin32
+  - conda-build  # Used in legacy CI tests for `conda index`
   - conda-content-trust
   - conda-package-handling
   - cryptography<40.0  # Or breaks conda-content-trust

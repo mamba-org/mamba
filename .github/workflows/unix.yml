@@ -16,120 +16,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  libmamba_tests_unix:
-    name: libmamba tests
-    runs-on: ${{ matrix.os }}
+  unix_tests:
+    name: Unix tests
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        build_type: [Release, Debug]
-    steps:
-      - uses: actions/checkout@v3
-      - name: Create build environment
-        uses: mamba-org/setup-micromamba@v1
-        with:
-          environment-file: ./dev/environment-dev.yml
-          environment-name: build_env
-          cache-environment: true
-      - uses: hendrikmuhs/ccache-action@main
-        with:
-          variant: sccache
-          key: ${{ github.job }}-${{ matrix.os }}
-          restore-keys: |
-            libmamba-${{ matrix.os }}
-      - name: Build libmamba
-        shell: bash -l {0}
-        run: |
-          cmake -B build/ \
-            -D CMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-            -D BUILD_LIBMAMBA=ON \
-            -D BUILD_LIBMAMBAPY=ON \
-            -D BUILD_SHARED=ON \
-            -D BUILD_LIBMAMBA_TESTS=ON \
-            -D CMAKE_CXX_COMPILER_LAUNCHER=sccache \
-            -D CMAKE_C_COMPILER_LAUNCHER=sccache \
-            -G Ninja
-          cmake --build build/ --parallel --target test_libmamba testing_libmamba_lock
-      - name: Run libmamba tests
-        shell: bash -l {0}
-        run: |
-          unset CONDARC  # Interferes with tests
-          cd build && ninja test
-      - name: Show build cache statistics
-        run: sccache --show-stats
-
-  umamba_integration_tests_unix:
-    name: Micromamba integration tests
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-        build_type: [Release, Debug]
-    steps:
-      - uses: actions/checkout@v3
-      - name: create build environment
-        uses: mamba-org/setup-micromamba@v1
-        with:
-          environment-file: ./dev/environment-dev.yml
-          environment-name: build_env
-          cache-environment: true
-          create-args: >-
-            conda-build
-      - uses: hendrikmuhs/ccache-action@main
-        with:
-          variant: sccache
-          key: ${{ github.job }}-${{ matrix.os }}
-          restore-keys: |
-            libmamba-${{ matrix.os }}
-      - name: build micromamba
-        shell: bash -l {0}
-        run: |
-          cmake -B build/ \
-            -D CMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-            -D BUILD_MICROMAMBA=ON \
-            -D BUILD_MICROMAMBA_SERVER=ON \
-            -D BUILD_LIBMAMBA=ON \
-            -D BUILD_SHARED=ON \
-            -D CMAKE_CXX_COMPILER_LAUNCHER=sccache \
-            -D CMAKE_C_COMPILER_LAUNCHER=sccache \
-            -G Ninja
-          cmake --build build/ --parallel
-      - name: build cache statistics
-        run: sccache --show-stats
-      - name: install zsh, xonsh, fish and tcsh in linux
-        if: matrix.os == 'ubuntu-latest'
-        shell: bash -l -eo pipefail {0}
-        run: |
-          sudo apt-get install zsh xonsh fish tcsh -y
-      - name: install xonsh and fish in mac
-        if: matrix.os == 'macos-latest'
-        shell: bash -l -eo pipefail {0}
-        run: |
-          brew install fish xonsh
-      - name: micromamba python based tests
-        shell: bash -l -eo pipefail {0}
-        run: |
-          export TEST_MAMBA_EXE=$(pwd)/build/micromamba/micromamba
-          unset CONDARC  # Interferes with tests
-          pytest -v --capture=tee-sys micromamba/tests/
-      - name: micromamba local channel test
-        shell: bash -l -eo pipefail {0}
-        run: |
-          unset CONDARC  # Interferes with tests
-          if [ "$RUNNER_OS" == "Linux" ]; then
-            mkdir -p $MAMBA_ROOT_PREFIX/conda-bld/linux-64
-            wget -P $MAMBA_ROOT_PREFIX/conda-bld/linux-64 https://anaconda.org/conda-forge/xtensor/0.21.8/download/linux-64/xtensor-0.21.8-hc9558a2_0.tar.bz2
-            wget -P $MAMBA_ROOT_PREFIX/conda-bld/linux-64 https://anaconda.org/conda-forge/xtl/0.6.21/download/linux-64/xtl-0.6.21-h0efe328_0.tar.bz2
-          else
-            mkdir -p $MAMBA_ROOT_PREFIX/conda-bld/osx-64
-            wget -P $MAMBA_ROOT_PREFIX/conda-bld/osx-64 https://anaconda.org/conda-forge/xtensor/0.21.8/download/osx-64/xtensor-0.21.8-h879752b_0.tar.bz2
-            wget -P $MAMBA_ROOT_PREFIX/conda-bld/osx-64 https://anaconda.org/conda-forge/xtl/0.6.21/download/osx-64/xtl-0.6.21-h6516342_0.tar.bz2
-          fi
-          conda index $MAMBA_ROOT_PREFIX/conda-bld
-          micromamba create -n l_o_cal_test xtensor -c local -c conda-forge -y
-
-          micromamba list -n l_o_cal_test
-          micromamba list -n l_o_cal_test | tail -n +3 > list.txt
-          if [ "$(grep -c "conda-bld" list.txt)" -ne 2 ]; then
-            exit 1
-          fi
+        build_type: [release, debug]
+      fail-fast: false
+    uses: ./.github/workflows/unix_impl.yml
+    with:
+      os: ${{ matrix.os }}
+      build_type: ${{ matrix.build_type }}

@@ -84,7 +84,7 @@ jobs:
           unset CONDARC  # Interferes with tests
           cmake --build build/ --target test
 
-  libmambay_tests_win:
+  libmambapy_tests_win:
     name: Test libmamba Python bindings
     needs: ["build_shared_win"]
     runs-on: ${{ inputs.os }}
@@ -106,7 +106,9 @@ jobs:
       - name: Install libmambapy
         shell: bash -eo pipefail {0}
         run: |
+          ls build/libmambapy/
           ln build/libmambapy/bindings* libmambapy/libmambapy/
+          ls libmambapy/libmambapy/
           cmake --install build/ --prefix "${CONDA_PREFIX}"
           python -m pip install ./libmambapy/
       - name: Run libmamba Python bindings tests

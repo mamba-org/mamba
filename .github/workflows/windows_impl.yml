@@ -79,7 +79,6 @@ jobs:
           environment-name: build_env
           init-shell: cmd.exe
       - name: Run libmamba tests
-        shell: bash -eo pipefail {0}
         run: |
           @REM Interferes with tests
           set CONDARC=
@@ -106,10 +105,10 @@ jobs:
           environment-name: build_env
           init-shell: bash cmd.exe
       - name: Install libmambapy
-        shell: bash -eo pipefail {0}
+        shell: bash -elo pipefail {0}
         run: |
           ls build/libmambapy/
-          ln build/libmambapy/bindings* libmambapy/libmambapy/
+          ln build/libmambapy/bindings*.pyd libmambapy/libmambapy/
           ls libmambapy/libmambapy/
           cmake --install build/ --prefix "${CONDA_PREFIX}"
           python -m pip install ./libmambapy/
@@ -137,7 +136,7 @@ jobs:
           environment-name: build_env
           init-shell: bash cmd.exe powershell
       - name: Install micromamba
-        shell: bash -eo pipefail {0}
+        shell: bash -elo pipefail {0}
         run: cmake --install build/ --prefix "${CONDA_PREFIX}"
       - name: micromamba python based tests with pwsh
         shell: pwsh
@@ -149,7 +148,7 @@ jobs:
           Remove-Item -Path "env:CONDARC"
           python -m pytest -v --capture=tee-sys micromamba/tests/
       - name: micromamba local channel test
-        shell: bash -eo pipefail {0}
+        shell: bash -elo pipefail {0}
         run: |
           unset CONDARC  # Interferes with tests
           export TEST_MAMBA_EXE=$(pwd)/build/micromamba/micromamba

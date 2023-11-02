@@ -23,13 +23,11 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         build_type: [release, debug]
       fail-fast: false
-    steps:
-      - run: echo "Hello"
-    runs-on: ubuntu-latest
-    # uses: ./.github/workflows/unix_impl.yml
-    # with:
-    #   os: ${{ matrix.os }}
-    #   build_type: ${{ matrix.build_type }}
+    uses: ./.github/workflows/unix_impl.yml
+    with:
+      os: ${{ matrix.os }}
+      build_type: ${{ matrix.build_type }}
+
   win_tests:
     name: Windows tests
     strategy:

@@ -137,13 +137,17 @@ jobs:
           init-shell: bash cmd.exe powershell
       - name: Install micromamba
         shell: bash -elo pipefail {0}
-        run: cmake --install build/ --prefix "${CONDA_PREFIX}"
+        run: |
+          cmake --install build/ --prefix local/
+          echo === && ls local
+          echo === && ls local/bin
+          echo === && ls local/lib
       - name: micromamba python based tests with pwsh
         shell: pwsh
         run: |
           $env:PYTHONIOENCODING='UTF-8'
           $env:MAMBA_ROOT_PREFIX = Join-Path -Path $pwd -ChildPath 'mambaroot'
-          $env:TEST_MAMBA_EXE = Join-Path -Path "$env:CONDA_PREFIX" -ChildPath 'Library\bin\micromamba.exe'
+          $env:TEST_MAMBA_EXE = Join-Path -Path $pwd -ChildPath 'local\bin\micromamba.exe'
           $env:MAMBA_TEST_SHELL_TYPE='powershell'
           Remove-Item -Path "env:CONDARC"
           python -m pytest -v --capture=tee-sys micromamba/tests/

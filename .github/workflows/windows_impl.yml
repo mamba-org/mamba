@@ -77,13 +77,19 @@ jobs:
         with:
           environment-file: ./build/environment.lock
           environment-name: build_env
-          init-shell: cmd.exe
+          init-shell: bash cmd.exe
       - name: Run libmamba tests
+        shell: bash -elo pipefail {0}
         run: |
-          @REM Interferes with tests
-          set CONDARC=
-          @REM Move to directory of libmamba DLL for Windows to find it
-          cd "build\libmamba" && .\tests\test_libmamba
+          unset CONDARC  # Interferes with tests
+          cd .\build\libmamba && .\tests\test_libmamba
+
+      # - name: Run libmamba tests
+      #   run: |
+      #     @REM Interferes with tests
+      #     set CONDARC=
+      #     @REM Move to directory of libmamba DLL for Windows to find it
+      #     cd "build\libmamba" && .\tests\test_libmamba
 
   libmambapy_tests_win:
     name: Test libmamba Python bindings

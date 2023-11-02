@@ -1,0 +1,161 @@
+name: Windows tests impl
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+      build_type:
+        required: true
+        type: string
+
+defaults:
+  run:
+    # micromamba activation
+    shell: cmd /C call {0}
+
+jobs:
+  build_shared_win:
+    name: Build binaries
+    runs-on: ${{ inputs.os }}
+    steps:
+      - name: Checkout mamba repository
+        uses: actions/checkout@v4
+      - name: Create build environment
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-file: ./dev/environment-dev.yml
+          environment-name: build_env
+          cache-environment: true
+          init-shell: cmd.exe
+      - uses: hendrikmuhs/ccache-action@main
+        with:
+          variant: sccache
+          key: ${{ github.job }}-${{ inputs.os }}
+          restore-keys: |
+            ccache-libmamba-${{ inputs.os }}
+      - name: Build mamba
+        run: |
+          cmake -B build/ -G Ninja ^
+            --preset mamba-win-shared-${{ inputs.build_type }}  ^
+            -D CMAKE_MSVC_RUNTIME_LIBRARY="MultiThreadedDLL" ^
+            -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
+            -D CMAKE_C_COMPILER_LAUNCHER=sccache
+          if %errorlevel% neq 0 exit /b %errorlevel%
+          cmake --build build/ --parallel
+          if %errorlevel% neq 0 exit /b %errorlevel%
+      - name: Show build cache statistics
+        run: sccache --show-stats
+      - name: Lock environment
+        run: micromamba env export --explicit > build/environment.lock
+      - name: Remove extra files before saving workspace
+        shell: bash -eo pipefail {0}
+        run: find build/ -type f -name '*.obj' -exec rm {} +
+      - name: Save workspace
+        uses: ./.github/actions/workspace
+        with:
+          action: save
+          path: build/
+          key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
+
+  libmamba_tests_win:
+    name: Test libmamba
+    needs: ["build_shared_win"]
+    runs-on: ${{ inputs.os }}
+    steps:
+      - name: Checkout mamba repository
+        uses: actions/checkout@v4
+      - name: Restore workspace
+        uses: ./.github/actions/workspace
+        with:
+          action: restore
+          path: build/
+          key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
+      - name: Create build environment
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-file: ./build/environment.lock
+          environment-name: build_env
+          init-shell: cmd.exe
+      - name: Run libmamba tests
+        run: |
+          @REM Interferes with tests
+          set CONDARC=
+          cd "build\libmamba" && .\tests\test_libmamba
+          if %errorlevel% neq 0 exit /b %errorlevel%
+
+  # libmambay_tests_win:
+  #   name: Test libmamba Python bindings
+  #   needs: ["build_shared_win"]
+  #   runs-on: ${{ inputs.os }}
+  #   steps:
+  #     - name: Checkout mamba repository
+  #       uses: actions/checkout@v4
+  #     - name: Restore workspace
+  #       uses: ./.github/actions/workspace
+  #       with:
+  #         action: restore
+  #         path: build/
+  #         key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
+  #     - name: Create build environment
+  #       uses: mamba-org/setup-micromamba@v1
+  #       with:
+  #         environment-file: ./build/environment.lock
+  #         environment-name: build_env
+  #         init-shell: bash cmd.exe
+  #     - name: Install libmambapy
+  #       run: |
+  #         ln build/libmambapy/bindings* libmambapy/libmambapy/
+  #         cmake --install build/ --prefix "${CONDA_PREFIX}"
+  #         python -m pip install ./libmambapy/
+  #     - name: Run libmamba Python bindings tests
+  #       run: |
+  #         python -m pytest libmambapy/tests/
+  #
+  # umamba_integration_tests_win:
+  #   name: Test integration micromamba
+  #   needs: ["build_shared_win"]
+  #   runs-on: ${{ inputs.os }}
+  #   steps:
+  #     - name: Checkout mamba repository
+  #       uses: actions/checkout@v4
+  #     - name: Restore workspace
+  #       uses: ./.github/actions/workspace
+  #       with:
+  #         action: restore
+  #         path: build/
+  #         key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
+  #     - name: Create build environment
+  #       uses: mamba-org/setup-micromamba@v1
+  #       with:
+  #         environment-file: ./build/environment.lock
+  #         environment-name: build_env
+  #         init-shell: bash cmd.exe
+  #     - name: micromamba python based tests
+  #       run: |
+  #         export TEST_MAMBA_EXE=$(pwd)/build/micromamba/micromamba
+  #         unset CONDARC  # Interferes with tests
+  #         pytest -v --capture=tee-sys micromamba/tests/
+  #     - name: micromamba local channel test
+  #       run: |
+  #         unset CONDARC  # Interferes with tests
+  #         export TEST_MAMBA_EXE=$(pwd)/build/micromamba/micromamba
+  #         if [ "$RUNNER_OS" == "Linux" ]; then
+  #           mkdir -p $MAMBA_ROOT_PREFIX/conda-bld/linux-64
+  #           wget -P $MAMBA_ROOT_PREFIX/conda-bld/linux-64 https://anaconda.org/conda-forge/xtensor/0.21.8/download/linux-64/xtensor-0.21.8-hc9558a2_0.tar.bz2
+  #           wget -P $MAMBA_ROOT_PREFIX/conda-bld/linux-64 https://anaconda.org/conda-forge/xtl/0.6.21/download/linux-64/xtl-0.6.21-h0efe328_0.tar.bz2
+  #         else
+  #           mkdir -p $MAMBA_ROOT_PREFIX/conda-bld/osx-64
+  #           wget -P $MAMBA_ROOT_PREFIX/conda-bld/osx-64 https://anaconda.org/conda-forge/xtensor/0.21.8/download/osx-64/xtensor-0.21.8-h879752b_0.tar.bz2
+  #           wget -P $MAMBA_ROOT_PREFIX/conda-bld/osx-64 https://anaconda.org/conda-forge/xtl/0.6.21/download/osx-64/xtl-0.6.21-h6516342_0.tar.bz2
+  #         fi
+  #         conda index $MAMBA_ROOT_PREFIX/conda-bld
+  #         "${TEST_MAMBA_EXE}" create -n l_o_cal_test xtensor -c local -c conda-forge -y
+  #
+  #         "${TEST_MAMBA_EXE}" list -n l_o_cal_test
+  #         "${TEST_MAMBA_EXE}" list -n l_o_cal_test | tail -n +3 > list.txt
+  #         if [ "$(grep -c "conda-bld" list.txt)" -ne 2 ]; then
+  #           exit 1
+  #         fi
+  #

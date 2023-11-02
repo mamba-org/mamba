@@ -82,7 +82,7 @@ jobs:
         shell: bash -elo pipefail {0}
         run: |
           unset CONDARC  # Interferes with tests
-          cd .\build\libmamba && .\tests\test_libmamba
+          cd ./build/libmamba && ./tests/test_libmamba
 
       # - name: Run libmamba tests
       #   run: |
@@ -113,9 +113,7 @@ jobs:
       - name: Install libmambapy
         shell: bash -elo pipefail {0}
         run: |
-          ls build/libmambapy/
           ln build/libmambapy/bindings*.pyd libmambapy/libmambapy/
-          ls libmambapy/libmambapy/
           cmake --install build/ --prefix "${CONDA_PREFIX}"
           python -m pip install ./libmambapy/
       - name: Run libmamba Python bindings tests
@@ -145,9 +143,6 @@ jobs:
         shell: bash -elo pipefail {0}
         run: |
           cmake --install build/ --prefix local/
-          echo === && ls local
-          echo === && ls local/bin
-          echo === && ls local/lib
       - name: micromamba python based tests with pwsh
         shell: pwsh
         run: |

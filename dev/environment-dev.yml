@@ -30,6 +30,7 @@ dependencies:
   - pytest-lazy-fixture
   - pytest-xprocess
   - sel(win): pywin32
+  - sel(win): menuinst
   - conda-build  # Used in legacy CI tests for `conda index`
   - conda-content-trust
   - conda-package-handling

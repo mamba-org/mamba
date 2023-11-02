@@ -1163,47 +1163,29 @@ def download(url: str, out: Path):
 
 
 def test_create_local(tmp_home, tmp_root_prefix):
-    #  FIXME does not work on non AMD64 architectures
-    if (system := platform.system()) == "Linux":
-        plat = "linux-64"
-        xtensor_filename = "xtensor-0.21.8-hc9558a2_0.tar.bz2"
-        xtl_filename = "xtl-0.6.21-h0efe328_0.tar.bz2"
-    elif system == "Darwin":
-        plat = "osx-64"
-        xtensor_filename = "xtensor-0.21.8-h879752b_0.tar.bz2"
-        xtl_filename = "xtl-0.6.21-h6516342_0.tar.bz2"
-    elif system == "Windows":
-        plat = "win-64"
-        xtensor_filename = "xtensor-0.21.7-h7ef1ec2_0.tar.bz2"
-        xtl_filename = "xtl-0.6.21-h5362a0b_0.tar.bz2"
+    """The name "local" is a hard-coded custom multichannel."""
+    name = "attrs"
+    plat = "noarch"
+    fn = "attrs-23.1.0-pyh71513ae_1.conda"
 
     conda_bld = (tmp_root_prefix / "conda-bld").expanduser().resolve()
     (conda_bld / plat).mkdir(parents=True)
 
     download(
-        url=f"https://anaconda.org/conda-forge/xtensor/0.21.8/download/{plat}/{xtensor_filename}",
-        out=conda_bld / plat / xtensor_filename,
-    )
-    download(
-        url=f"https://anaconda.org/conda-forge/xtl/0.6.21/download/{plat}/{xtl_filename}",
-        out=conda_bld / plat / xtl_filename,
+        url=f"https://conda.anaconda.org/conda-forge/{plat}/{fn}",
+        out=conda_bld / plat / fn,
     )
 
     conda_index.index.ChannelIndex(str(conda_bld), channel_name="conda-bld").index(None)
 
     res = helpers.create(
-        "-n", "myenv", "--override-channels", "-c", "local", "-y", "xtensor", "--json"
+        "-n", "myenv", "--override-channels", "-c", "local", "-y", name, "--json"
     )
 
-    xtensor_link_pkg = None
-    xtl_link_pkg = None
+    attrs_link_pkg = None
     for pkg in res["actions"]["LINK"]:
-        if pkg["name"] == "xtensor":
-            xtensor_link_pkg = pkg
-        if pkg["name"] == "xtl":
-            xtl_link_pkg = pkg
+        if pkg["name"] == name:
+            attrs_link_pkg = pkg
 
-    assert xtensor_link_pkg["url"].startswith("file://")
-    assert xtensor_link_pkg["url"].endswith(xtensor_filename)
-    assert xtl_link_pkg["url"].startswith("file://")
-    assert xtl_link_pkg["url"].endswith(xtl_filename)
+    assert attrs_link_pkg["url"].startswith("file://")
+    assert attrs_link_pkg["url"].endswith(fn)

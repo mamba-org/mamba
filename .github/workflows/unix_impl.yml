@@ -135,24 +135,3 @@ jobs:
           export TEST_MAMBA_EXE=$(pwd)/build/micromamba/micromamba
           unset CONDARC  # Interferes with tests
           pytest -v --capture=tee-sys micromamba/tests/
-      - name: micromamba local channel test
-        run: |
-          unset CONDARC  # Interferes with tests
-          export TEST_MAMBA_EXE=$(pwd)/build/micromamba/micromamba
-          if [ "$RUNNER_OS" == "Linux" ]; then
-            mkdir -p $MAMBA_ROOT_PREFIX/conda-bld/linux-64
-            wget -P $MAMBA_ROOT_PREFIX/conda-bld/linux-64 https://anaconda.org/conda-forge/xtensor/0.21.8/download/linux-64/xtensor-0.21.8-hc9558a2_0.tar.bz2
-            wget -P $MAMBA_ROOT_PREFIX/conda-bld/linux-64 https://anaconda.org/conda-forge/xtl/0.6.21/download/linux-64/xtl-0.6.21-h0efe328_0.tar.bz2
-          else
-            mkdir -p $MAMBA_ROOT_PREFIX/conda-bld/osx-64
-            wget -P $MAMBA_ROOT_PREFIX/conda-bld/osx-64 https://anaconda.org/conda-forge/xtensor/0.21.8/download/osx-64/xtensor-0.21.8-h879752b_0.tar.bz2
-            wget -P $MAMBA_ROOT_PREFIX/conda-bld/osx-64 https://anaconda.org/conda-forge/xtl/0.6.21/download/osx-64/xtl-0.6.21-h6516342_0.tar.bz2
-          fi
-          conda index $MAMBA_ROOT_PREFIX/conda-bld
-          "${TEST_MAMBA_EXE}" create -n l_o_cal_test xtensor -c local -c conda-forge -y
-
-          "${TEST_MAMBA_EXE}" list -n l_o_cal_test
-          "${TEST_MAMBA_EXE}" list -n l_o_cal_test | tail -n +3 > list.txt
-          if [ "$(grep -c "conda-bld" list.txt)" -ne 2 ]; then
-            exit 1
-          fi

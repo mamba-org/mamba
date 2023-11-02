@@ -4,7 +4,9 @@ import shutil
 import subprocess
 from pathlib import Path
 
+import conda_index.index
 import pytest
+import requests
 import yaml
 
 from . import helpers
@@ -1149,3 +1151,59 @@ def test_create_with_unicode(tmp_home, tmp_root_prefix):
     assert res["actions"]["PREFIX"] == str(env_prefix)
     assert any(pkg["name"] == "xtensor" for pkg in res["actions"]["FETCH"])
     assert any(pkg["name"] == "xtl" for pkg in res["actions"]["FETCH"])
+
+
+def download(url: str, out: Path):
+    response = requests.get(url)
+    if response.status_code == 200:
+        with open(out, "wb") as file:
+            file.write(response.content)
+    else:
+        raise Exception(f'Failed to download URL "{url}"')
+
+
+def test_create_local(tmp_home, tmp_root_prefix):
+    #  FIXME does not work on non AMD64 architectures
+    if (system := platform.system()) == "Linux":
+        plat = "linux-64"
+        xtensor_filename = "xtensor-0.21.8-hc9558a2_0.tar.bz2"
+        xtl_filename = "xtl-0.6.21-h0efe328_0.tar.bz2"
+    elif system == "Darwin":
+        plat = "osx-64"
+        xtensor_filename = "xtensor-0.21.8-h879752b_0.tar.bz2"
+        xtl_filename = "xtl-0.6.21-h6516342_0.tar.bz2"
+    elif system == "Windows":
+        plat = "win-64"
+        xtensor_filename = "xtensor-0.21.7-h7ef1ec2_0.tar.bz2"
+        xtl_filename = "xtl-0.6.21-h5362a0b_0.tar.bz2"
+
+    conda_bld = (tmp_root_prefix / "conda-bld").expanduser().resolve()
+    (conda_bld / plat).mkdir(parents=True)
+
+    download(
+        url=f"https://anaconda.org/conda-forge/xtensor/0.21.8/download/{plat}/{xtensor_filename}",
+        out=conda_bld / plat / xtensor_filename,
+    )
+    download(
+        url=f"https://anaconda.org/conda-forge/xtl/0.6.21/download/{plat}/{xtl_filename}",
+        out=conda_bld / plat / xtl_filename,
+    )
+
+    conda_index.index.ChannelIndex(str(conda_bld), channel_name="conda-bld").index(None)
+
+    res = helpers.create(
+        "-n", "myenv", "--override-channels", "-c", "local", "-y", "xtensor", "--json"
+    )
+
+    xtensor_link_pkg = None
+    xtl_link_pkg = None
+    for pkg in res["actions"]["LINK"]:
+        if pkg["name"] == "xtensor":
+            xtensor_link_pkg = pkg
+        if pkg["name"] == "xtl":
+            xtl_link_pkg = pkg
+
+    assert xtensor_link_pkg["url"].startswith("file://")
+    assert xtensor_link_pkg["url"].endswith(xtensor_filename)
+    assert xtl_link_pkg["url"].startswith("file://")
+    assert xtl_link_pkg["url"].endswith(xtl_filename)

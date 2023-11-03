@@ -375,7 +375,7 @@ namespace mamba
             // where `name == private/testchannel` and we need to join the remaining label part
             // of the channel (e.g. -c testchannel/mylabel/xyz)
             // needs to result in `name = private/testchannel/mylabel/xyz`
-            std::string combined_name = it->second.name();
+            std::string combined_name = it->second.url().path();
             if (combined_name != name)
             {
                 // Find common string between `name` and `combined_name`

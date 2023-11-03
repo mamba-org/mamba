@@ -379,7 +379,7 @@ namespace mamba
             if (combined_name != name)
             {
                 // Find common string between `name` and `combined_name`
-                auto common_str = util::get_common_parts(combined_name, name, "/");
+                auto common_str = util::ending_splits_in(combined_name, name, "/");
                 // Combine names properly
                 if (common_str.empty())
                 {

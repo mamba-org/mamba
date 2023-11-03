@@ -16,7 +16,9 @@
 #include "doctest-printer/array.hpp"
 #include "doctest-printer/optional.hpp"
 
-namespace mamba::util
+using namespace mamba::util;
+
+namespace
 {
     TEST_SUITE("util::string")
     {
@@ -442,7 +444,7 @@ namespace mamba::util
                 CHECK_EQ(joined, "a-bc-d");
             }
             {
-                std::vector<fs::u8path> to_join = { "/a", "bc", "d" };
+                std::vector<mamba::fs::u8path> to_join = { "/a", "bc", "d" };
                 auto joined = join("/", to_join);
                 static_assert(std::is_same<decltype(joined), decltype(to_join)::value_type>::value);
                 CHECK_EQ(joined, "/a/bc/d");
@@ -500,37 +502,38 @@ namespace mamba::util
             CHECK_EQ(concat("aa", std::string("bb"), std::string_view("cc"), 'd'), "aabbccd");
         }
 
-        TEST_CASE("get_common_parts")
+        TEST_CASE("ending_splits_in")
         {
-            CHECK_EQ(get_common_parts("", "", "/"), "");
-            CHECK_EQ(get_common_parts("", "test", "/"), "");
-            CHECK_EQ(get_common_parts("test", "test", "/"), "test");
-            CHECK_EQ(get_common_parts("test/chan", "test/chan", "/"), "test/chan");
-            CHECK_EQ(get_common_parts("st/ch", "test/chan", "/"), "");
-            CHECK_EQ(get_common_parts("st/chan", "test/chan", "/"), "chan");
-            CHECK_EQ(get_common_parts("st/chan/abc", "test/chan/abc", "/"), "chan/abc");
-            CHECK_EQ(get_common_parts("test/ch", "test/chan", "/"), "test");
-            CHECK_EQ(get_common_parts("test/an/abc", "test/chan/abc", "/"), "abc");
-            CHECK_EQ(get_common_parts("test/chan/label", "label/abcd/xyz", "/"), "label");
-            CHECK_EQ(get_common_parts("test/chan/label", "chan/label/abcd", "/"), "chan/label");
-            CHECK_EQ(get_common_parts("test/chan/label", "abcd/chan/label", "/"), "chan/label");
-            CHECK_EQ(get_common_parts("test", "abcd", "/"), "");
-            CHECK_EQ(get_common_parts("test", "abcd/xyz", "/"), "");
-            CHECK_EQ(get_common_parts("test/xyz", "abcd/xyz", "/"), "xyz");
-            CHECK_EQ(get_common_parts("test/xyz", "abcd/gef", "/"), "");
-            CHECK_EQ(get_common_parts("abcd/test", "abcd/xyz", "/"), "");
+            CHECK_EQ(ending_splits_in("", "", "/"), "");
+            CHECK_EQ(ending_splits_in("", "test", "/"), "");
+            CHECK_EQ(ending_splits_in("test", "test", "/"), "test");
+            CHECK_EQ(ending_splits_in("test/chan", "test/chan", "/"), "test/chan");
+            CHECK_EQ(ending_splits_in("st/ch", "test/chan", "/"), "");
+            CHECK_EQ(ending_splits_in("st/chan", "test/chan", "/"), "chan");
+            CHECK_EQ(ending_splits_in("st/chan/abc", "test/chan/abc", "/"), "chan/abc");
+            CHECK_EQ(ending_splits_in("test/an/abc", "test/chan/abc", "/"), "abc");
+            CHECK_EQ(ending_splits_in("test/chan/label", "label/abcd/xyz", "/"), "label");
+            CHECK_EQ(ending_splits_in("test/chan/label", "chan/label/abcd", "/"), "chan/label");
+            CHECK_EQ(ending_splits_in("test/chan/label", "abcd/chan/label", "/"), "chan/label");
+            CHECK_EQ(ending_splits_in("test", "abcd", "/"), "");
+            CHECK_EQ(ending_splits_in("test", "abcd/xyz", "/"), "");
+            CHECK_EQ(ending_splits_in("test/xyz", "abcd/xyz", "/"), "xyz");
+            CHECK_EQ(ending_splits_in("test/xyz", "abcd/gef", "/"), "");
+            CHECK_EQ(ending_splits_in("abcd/test", "abcd/xyz", "/"), "");
+            CHECK_EQ(ending_splits_in("test/ch", "test/chan", "/"), "");
+            CHECK_EQ(ending_splits_in("pkgs/main", "pkgs/main/noarch", "/"), "pkgs/main");
 
-            CHECK_EQ(get_common_parts("", "", "."), "");
-            CHECK_EQ(get_common_parts("", "test", "."), "");
-            CHECK_EQ(get_common_parts("test", "test", "."), "test");
-            CHECK_EQ(get_common_parts("test.chan", "test.chan", "."), "test.chan");
-            CHECK_EQ(get_common_parts("test.chan.label", "chan.label.abcd", "."), "chan.label");
-            CHECK_EQ(get_common_parts("test/chan/label", "chan/label/abcd", "."), "");
-            CHECK_EQ(get_common_parts("st/ch", "test/chan", "."), "");
-            CHECK_EQ(get_common_parts("st.ch", "test.chan", "."), "");
+            CHECK_EQ(ending_splits_in("", "", "."), "");
+            CHECK_EQ(ending_splits_in("", "test", "."), "");
+            CHECK_EQ(ending_splits_in("test", "test", "."), "test");
+            CHECK_EQ(ending_splits_in("test.chan", "test.chan", "."), "test.chan");
+            CHECK_EQ(ending_splits_in("test.chan.label", "chan.label.abcd", "."), "chan.label");
+            CHECK_EQ(ending_splits_in("test/chan/label", "chan/label/abcd", "."), "");
+            CHECK_EQ(ending_splits_in("st/ch", "test/chan", "."), "");
+            CHECK_EQ(ending_splits_in("st.ch", "test.chan", "."), "");
 
-            CHECK_EQ(get_common_parts("test..chan", "test..chan", ".."), "test..chan");
+            CHECK_EQ(ending_splits_in("test..chan", "test..chan", ".."), "test..chan");
+            CHECK_EQ(ending_splits_in("test./chan", "test./chan", "./"), "test./chan");
         }
     }
-
 }  // namespace mamba

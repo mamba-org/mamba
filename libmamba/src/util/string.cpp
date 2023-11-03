@@ -734,6 +734,81 @@ namespace mamba::util
         return rsplit<decltype(input)::value_type>(input, sep, max_split);
     }
 
+    /*************************************
+     *  Implementation of ending_splits  *
+     *************************************/
+
+    namespace
+    {
+        auto
+        get_common_part_valid_substr(std::string_view sub, std::string_view main, std::string_view sep)
+            -> bool
+        {
+            auto start = main.find(sub);
+            auto end = start + sub.size();
+            const auto sep_size = sep.size();
+            const auto main_size = main.size();
+            return
+                // The substring is found
+                (start != std::string_view::npos)
+                && (
+                    // Either it starts at the begining
+                    (start == 0)
+                    // Or it is found after a separator
+                    || ((start >= sep_size) && starts_with(main.substr(start - sep_size), sep))
+                )
+                && (
+                    // Either it ends at the end
+                    (end == main_size)
+                    // Or it is found before a separator
+                    || ((end <= main_size) && ends_with(main.substr(0, end + sep_size), sep))
+                );
+        }
+    }
+
+    std::string_view
+    ending_splits_in(std::string_view str1, std::string_view str2, std::string_view sep)
+    {
+        static constexpr auto npos = std::string_view::npos;
+
+        if (str1.empty() || str2.empty())
+        {
+            return {};
+        }
+
+        auto split1 = str1.rfind(sep);
+
+        // str1 has only one segment, easy base case
+        if (split1 == npos)
+        {
+            if (get_common_part_valid_substr(str1, str2, sep))
+            {
+                return str1;
+            }
+            else
+            {
+                return {};
+            }
+        }
+
+        auto candidate = str1.substr(split1 + sep.size());
+        auto best_candidate = std::string_view{};
+        // In the case we find a match, we try to grow it as much as possible
+        while (get_common_part_valid_substr(candidate, str2, sep))
+        {
+            best_candidate = candidate;
+            if ((split1 == npos) || (split1 == 0))
+            {
+                break;
+            }
+            split1 = str1.rfind(sep, split1 - sep.size());
+            candidate = str1.substr((split1 == npos) ? 0 : (split1 + sep.size()));
+        }
+
+        // Return the best match, or nothing, we are not interested in non terminating matches
+        return best_candidate;
+    }
+
     /*****************************************
      *  Implementation of replace functions  *
      *****************************************/
@@ -793,48 +868,5 @@ namespace mamba::util
             return 1;
         }
 
-    }
-
-    /********************************************************
-     *  Implementation of Channels use case util function   *
-     *******************************************************/
-
-    std::string get_common_parts(std::string_view str1, std::string_view str2, std::string_view sep)
-    {
-        std::string common_str{ str1 };
-        while ((str2.find(common_str) == std::string::npos))
-        {
-            if (common_str.find(sep) != std::string::npos)
-            {
-                common_str = common_str.substr(common_str.find(sep) + 1);
-            }
-            else
-            {
-                return "";
-            }
-        }
-
-        // Case of non empty common_str
-        // Check that subparts of common_str are not substrings of elements between the sep
-        auto vec1 = split(common_str, sep);
-        auto vec2 = split(str2, sep);
-        std::vector<std::string> res_vec;
-        for (std::size_t idx = 0; idx < vec1.size(); ++idx)
-        {
-            auto it = std::find(vec2.begin(), vec2.end(), vec1.at(idx));
-            if (it != vec2.end())
-            {
-                res_vec.emplace_back(vec1.at(idx));
-            }
-            else
-            {
-                if (idx != 0)
-                {
-                    return join(sep, res_vec);
-                }
-            }
-        }
-
-        return join(sep, res_vec);
     }
 }

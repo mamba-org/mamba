@@ -214,6 +214,17 @@ namespace mamba::util
     std::vector<std::wstring>
     rsplit(std::wstring_view input, std::wstring_view sep, std::size_t max_split = SIZE_MAX);
 
+    /**
+     * Return the largest suffix from @p str1 that is in @p str2.
+     *
+     * Comparison are done as if comparing elements in a split given by @p sep.
+     * For instance "private/channel" and "channel/label/foo" with separator "/"
+     * would return "channel", but "private/chan" and "channel/label/foo"
+     * would return the empty string.
+     */
+    std::string_view
+    ending_splits_in(std::string_view str1, std::string_view str2, std::string_view sep);
+
     void replace_all(std::string& data, std::string_view search, std::string_view replace);
     void replace_all(std::wstring& data, std::wstring_view search, std::wstring_view replace);
 
@@ -655,14 +666,6 @@ namespace mamba::util
         return hex_string(buffer, buffer.size());
     }
 
-    /**
-     * Return the common parts of two strings by blocks located between the given sep,
-     * and considering that these common parts would be located at the end of str1 (search from
-     * left to right).
-     * str1 is considered smaller than (or equal to) str2.
-     * cf. Channels use case.
-     */
-    std::string get_common_parts(std::string_view str1, std::string_view str2, std::string_view sep);
 }
 
 #endif

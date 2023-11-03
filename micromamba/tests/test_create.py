@@ -1162,6 +1162,10 @@ def download(url: str, out: Path):
         raise Exception(f'Failed to download URL "{url}"')
 
 
+@pytest.mark.skipif(
+    platform.system() == "Windows",
+    reason="Too many bugs runnning conda-index on Windows CI",
+)
 def test_create_local(tmp_home, tmp_root_prefix):
     """The name "local" is a hard-coded custom multichannel."""
     name = "attrs"

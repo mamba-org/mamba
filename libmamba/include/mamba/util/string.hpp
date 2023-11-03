@@ -12,9 +12,11 @@
 #include <cstdint>
 #include <cstring>
 #include <iomanip>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -191,6 +193,16 @@ namespace mamba::util
     std::array<std::string_view, 3> strip_if_parts(std::string_view input, UnaryFunc should_strip);
     template <typename UnaryFunc>
     std::array<std::wstring_view, 3> strip_if_parts(std::wstring_view input, UnaryFunc should_strip);
+
+    [[nodiscard]] auto split_once(std::string_view str, char sep)
+        -> std::tuple<std::string_view, std::optional<std::string_view>>;
+    [[nodiscard]] auto split_once(std::string_view str, std::string_view sep)
+        -> std::tuple<std::string_view, std::optional<std::string_view>>;
+
+    [[nodiscard]] auto rsplit_once(std::string_view str, char sep)
+        -> std::tuple<std::optional<std::string_view>, std::string_view>;
+    [[nodiscard]] auto rsplit_once(std::string_view str, std::string_view sep)
+        -> std::tuple<std::optional<std::string_view>, std::string_view>;
 
     std::vector<std::string>
     split(std::string_view input, std::string_view sep, std::size_t max_split = SIZE_MAX);

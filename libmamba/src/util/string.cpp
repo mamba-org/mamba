@@ -556,6 +556,65 @@ namespace mamba::util
         return strip_parts_impl(input, chars);
     }
 
+    /********************************************
+     *  Implementation of split_once functions  *
+     ********************************************/
+
+    namespace
+    {
+        template <typename Char, typename CharOrStrView>
+        auto split_once_impl(std::basic_string_view<Char> str, CharOrStrView sep)
+            -> std::tuple<std::string_view, std::optional<std::string_view>>
+        {
+            static constexpr auto npos = std::basic_string_view<Char>::npos;
+            if (const auto pos = str.find(sep); pos != npos)
+            {
+                return { str.substr(0, pos), str.substr(pos + detail::length(sep)) };
+            }
+            return { str, std::nullopt };
+        }
+    }
+
+    auto split_once(std::string_view str, char sep)
+        -> std::tuple<std::string_view, std::optional<std::string_view>>
+    {
+        return split_once_impl(str, sep);
+    }
+
+    auto split_once(std::string_view str, std::string_view sep)
+        -> std::tuple<std::string_view, std::optional<std::string_view>>
+    {
+        return split_once_impl(str, sep);
+    }
+
+    namespace
+    {
+        template <typename Char, typename CharOrStrView>
+        auto rsplit_once_impl(std::basic_string_view<Char> str, CharOrStrView sep)
+            -> std::tuple<std::optional<std::string_view>, std::string_view>
+        {
+            static constexpr auto npos = std::basic_string_view<Char>::npos;
+            if (const auto pos = str.rfind(sep); pos != npos)
+            {
+                return { str.substr(0, pos), str.substr(pos + detail::length(sep)) };
+            }
+            return { std::nullopt, str };
+        }
+    }
+
+    auto rsplit_once(std::string_view str, char sep)
+        -> std::tuple<std::optional<std::string_view>, std::string_view>
+    {
+        return rsplit_once_impl(str, sep);
+    }
+
+    auto rsplit_once(std::string_view str, std::string_view sep)
+        -> std::tuple<std::optional<std::string_view>, std::string_view>
+    {
+        return rsplit_once_impl(str, sep);
+    }
+
+
     /***************************************
      *  Implementation of split functions  *
      ***************************************/

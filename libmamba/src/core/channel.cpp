@@ -206,16 +206,6 @@ namespace mamba
             }
         }
 
-        auto rsplit_once(std::string_view str, char sep)
-        {
-            auto [head, tail] = util::rstrip_if_parts(str, [sep](char c) { return c != sep; });
-            if (head.empty())
-            {
-                return std::array{ head, tail };
-            }
-            return std::array{ head.substr(0, head.size() - 1), tail };
-        }
-
         auto
         make_platforms(util::flat_set<std::string> filters, const std::vector<std::string>& defaults)
         {
@@ -234,8 +224,8 @@ namespace mamba
     {
         auto uri = specs::CondaURL::parse(util::path_or_url_to_url(spec.location()));
 
-        auto path = uri.pretty_path();
-        auto [parent, current] = rsplit_once(path, '/');
+        auto path = util::rstrip(uri.pretty_path(), '/');
+        auto [parent, current] = util::rsplit_once(path, '/');
         for (const auto& [canonical_name, chan] : get_custom_channels())
         {
             if (url_match(chan.url(), uri))
@@ -243,7 +233,7 @@ namespace mamba
                 return Channel(
                     /* url= */ std::move(uri),
                     /* location= */ chan.url().pretty_str(specs::CondaURL::StripScheme::yes),
-                    /* name= */ std::string(util::rstrip(parent, '/')),
+                    /* name= */ std::string(util::rstrip(parent.value_or(""), '/')),
                     /* canonical_name= */ std::string(canonical_name)
                 );
             }
@@ -263,7 +253,7 @@ namespace mamba
         auto canonical_name = uri.pretty_str();
         return Channel(
             /* url= */ std::move(uri),
-            /* location= */ std::string(util::rstrip(parent, '/')),
+            /* location= */ std::string(util::rstrip(parent.value_or(""), '/')),
             /* name= */ std::string(util::rstrip(current, '/')),
             /* canonical_name= */ std::move(canonical_name)
         );

@@ -4,7 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <cstddef>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -13,6 +12,9 @@
 
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/util/string.hpp"
+
+#include "doctest-printer/array.hpp"
+#include "doctest-printer/optional.hpp"
 
 namespace mamba::util
 {
@@ -362,6 +364,40 @@ namespace mamba::util
                 std::string z(lstrip("  \r \t  \n testwhitespacestrip \r \t  \n "));
                 CHECK_EQ(z, "testwhitespacestrip \r \t  \n ");
             }
+        }
+
+        TEST_CASE("split_once")
+        {
+            using Out = std::tuple<std::string_view, std::optional<std::string_view>>;
+
+            CHECK_EQ(split_once("", '/'), Out{ "", std::nullopt });
+            CHECK_EQ(split_once("/", '/'), Out{ "", "" });
+            CHECK_EQ(split_once("hello/world", '/'), Out{ "hello", "world" });
+            CHECK_EQ(split_once("hello/my/world", '/'), Out{ "hello", "my/world" });
+            CHECK_EQ(split_once("/hello/world", '/'), Out{ "", "hello/world" });
+
+            CHECK_EQ(split_once("", "/"), Out{ "", std::nullopt });
+            CHECK_EQ(split_once("hello/world", "/"), Out{ "hello", "world" });
+            CHECK_EQ(split_once("hello//world", "//"), Out{ "hello", "world" });
+            CHECK_EQ(split_once("hello/my//world", "/"), Out{ "hello", "my//world" });
+            CHECK_EQ(split_once("hello/my//world", "//"), Out{ "hello/my", "world" });
+        }
+
+        TEST_CASE("rsplit_once")
+        {
+            using Out = std::tuple<std::optional<std::string_view>, std::string_view>;
+
+            CHECK_EQ(rsplit_once("", '/'), Out{ std::nullopt, "" });
+            CHECK_EQ(rsplit_once("/", '/'), Out{ "", "" });
+            CHECK_EQ(rsplit_once("hello/world", '/'), Out{ "hello", "world" });
+            CHECK_EQ(rsplit_once("hello/my/world", '/'), Out{ "hello/my", "world" });
+            CHECK_EQ(rsplit_once("hello/world/", '/'), Out{ "hello/world", "" });
+
+            CHECK_EQ(rsplit_once("", "/"), Out{ std::nullopt, "" });
+            CHECK_EQ(rsplit_once("hello/world", "/"), Out{ "hello", "world" });
+            CHECK_EQ(rsplit_once("hello//world", "//"), Out{ "hello", "world" });
+            CHECK_EQ(rsplit_once("hello//my/world", "/"), Out{ "hello//my", "world" });
+            CHECK_EQ(rsplit_once("hello//my/world", "//"), Out{ "hello", "my/world" });
         }
 
         TEST_CASE("split")

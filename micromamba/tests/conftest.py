@@ -76,11 +76,14 @@ def tmp_home(
 
     # Pytest would clean it automatically but this can be large (0.5 Gb for repodata)
     # We clean it explicitly
+    on_ci = "CI" in os.environ
     if not request.config.getoption("--no-eager-clean"):
         try:
             helpers.rmtree(new_home)
-        except PermissionError:
-            pass
+        # Silence possible cleanup exeptions on CI, weird things happening there
+        except Exception as e:
+            if not on_ci:
+                raise e
 
 
 @pytest.fixture
@@ -148,9 +151,14 @@ def tmp_root_prefix(
 
     # Pytest would clean it automatically but this can be large (0.5 Gb for repodata)
     # We clean it explicitly
+    on_ci = "CI" in os.environ
     if not request.config.getoption("--no-eager-clean"):
-        if new_root_prefix.exists():
+        try:
             helpers.rmtree(new_root_prefix)
+        # Silence possible cleanup exeptions on CI, weird things happening there
+        except Exception as e:
+            if not on_ci:
+                raise e
     # os.environ restored by tmp_clean_env and tmp_environ
 
 

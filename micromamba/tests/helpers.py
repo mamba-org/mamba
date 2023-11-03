@@ -473,17 +473,21 @@ def recursive_chmod(path: Path, permission, is_root=True):
 
 
 def rmtree(path: Path):
-    p = Path(path)
-    recursive_chmod(p, 0o700)
+    path = Path(path)
 
-    def handleError(func, path, exc_info):
-        recursive_chmod(path, 0o700)
-        func(path)
+    if not path.exists():
+        return
 
-    if p.is_dir():
-        shutil.rmtree(p, onerror=handleError)
+    recursive_chmod(path, 0o700)
+
+    def handleError(func, p, exc_info):
+        recursive_chmod(p, 0o700)
+        func(p)
+
+    if path.is_dir():
+        shutil.rmtree(path, onerror=handleError)
     else:
-        os.remove(p)
+        os.remove(path)
 
 
 def get_fake_activate(prefix):

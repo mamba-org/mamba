@@ -4,7 +4,9 @@ import shutil
 import subprocess
 from pathlib import Path
 
+import conda_index.index
 import pytest
+import requests
 import yaml
 
 from . import helpers
@@ -1149,3 +1151,47 @@ def test_create_with_unicode(tmp_home, tmp_root_prefix):
     assert res["actions"]["PREFIX"] == str(env_prefix)
     assert any(pkg["name"] == "xtensor" for pkg in res["actions"]["FETCH"])
     assert any(pkg["name"] == "xtl" for pkg in res["actions"]["FETCH"])
+
+
+def download(url: str, out: Path):
+    response = requests.get(url)
+    if response.status_code == 200:
+        with open(out, "wb") as file:
+            file.write(response.content)
+    else:
+        raise Exception(f'Failed to download URL "{url}"')
+
+
+@pytest.mark.skipif(
+    platform.system() == "Windows",
+    reason="Too many bugs runnning conda-index on Windows CI",
+)
+def test_create_local(tmp_home, tmp_root_prefix):
+    """The name "local" is a hard-coded custom multichannel."""
+    name = "attrs"
+    plat = "noarch"
+    fn = "attrs-23.1.0-pyh71513ae_1.conda"
+
+    conda_bld = (tmp_root_prefix / "conda-bld").expanduser().resolve()
+    (conda_bld / plat).mkdir(parents=True)
+
+    download(
+        url=f"https://conda.anaconda.org/conda-forge/{plat}/{fn}",
+        out=conda_bld / plat / fn,
+    )
+
+    conda_index.index.ChannelIndex(
+        str(conda_bld), channel_name="conda-bld", threads=1
+    ).index(None)
+
+    res = helpers.create(
+        "-n", "myenv", "--override-channels", "-c", "local", "-y", name, "--json"
+    )
+
+    attrs_link_pkg = None
+    for pkg in res["actions"]["LINK"]:
+        if pkg["name"] == name:
+            attrs_link_pkg = pkg
+
+    assert attrs_link_pkg["url"].startswith("file://")
+    assert attrs_link_pkg["url"].endswith(fn)

@@ -16,7 +16,7 @@ inputs:
     default: workspace
   key_base:
     required: true
-    default: ${{ github.workflow }}-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-${{ github.sha }}
+    default: ${{ github.workflow }}-${{ github.run_id }}-${{ github.run_number }}-${{ github.sha }}
   key_suffix:
     default: ''
   token:

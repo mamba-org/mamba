@@ -1,4 +1,4 @@
-name: Unix tests impl
+name: Windows tests impl
 
 on:
   workflow_call:
@@ -13,10 +13,10 @@ on:
 defaults:
   run:
     # micromamba activation
-    shell: bash -l -eo pipefail {0}
+    shell: cmd /C call {0}
 
 jobs:
-  build_shared_unix:
+  build_shared_win:
     name: Build binaries
     runs-on: ${{ inputs.os }}
     steps:
@@ -28,6 +28,7 @@ jobs:
           environment-file: ./dev/environment-dev.yml
           environment-name: build_env
           cache-environment: true
+          init-shell: cmd.exe
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -36,17 +37,21 @@ jobs:
             ccache-libmamba-${{ inputs.os }}
       - name: Build mamba
         run: |
-          cmake -B build/ -G Ninja \
-            --preset mamba-unix-shared-${{ inputs.build_type }}  \
-            -D CMAKE_CXX_COMPILER_LAUNCHER=sccache \
+          cmake -B build/ -G Ninja ^
+            --preset mamba-win-shared-${{ inputs.build_type }}  ^
+            -D CMAKE_MSVC_RUNTIME_LIBRARY="MultiThreadedDLL" ^
+            -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
             -D CMAKE_C_COMPILER_LAUNCHER=sccache
+          if %errorlevel% neq 0 exit /b %errorlevel%
           cmake --build build/ --parallel
+          if %errorlevel% neq 0 exit /b %errorlevel%
       - name: Show build cache statistics
         run: sccache --show-stats
       - name: Lock environment
         run: micromamba env export --explicit > build/environment.lock
       - name: Remove extra files before saving workspace
-        run: find build/ -type f -name '*.o' -exec rm {} +
+        shell: bash -eo pipefail {0}
+        run: find build/ -type f -name '*.obj' -exec rm {} +
       - name: Save workspace
         uses: ./.github/actions/workspace
         with:
@@ -54,9 +59,9 @@ jobs:
           path: build/
           key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
 
-  libmamba_tests_unix:
+  libmamba_tests_win:
     name: Test libmamba
-    needs: ["build_shared_unix"]
+    needs: ["build_shared_win"]
     runs-on: ${{ inputs.os }}
     steps:
       - name: Checkout mamba repository
@@ -72,14 +77,23 @@ jobs:
         with:
           environment-file: ./build/environment.lock
           environment-name: build_env
+          init-shell: bash cmd.exe
       - name: Run libmamba tests
+        shell: bash -elo pipefail {0}
         run: |
           unset CONDARC  # Interferes with tests
-          ./build/libmamba/tests/test_libmamba
+          cd ./build/libmamba && ./tests/test_libmamba
 
-  libmambapy_tests_unix:
+      # - name: Run libmamba tests
+      #   run: |
+      #     @REM Interferes with tests
+      #     set CONDARC=
+      #     @REM Move to directory of libmamba DLL for Windows to find it
+      #     cd "build\libmamba" && .\tests\test_libmamba
+
+  libmambapy_tests_win:
     name: Test libmamba Python bindings
-    needs: ["build_shared_unix"]
+    needs: ["build_shared_win"]
     runs-on: ${{ inputs.os }}
     steps:
       - name: Checkout mamba repository
@@ -95,18 +109,20 @@ jobs:
         with:
           environment-file: ./build/environment.lock
           environment-name: build_env
+          init-shell: bash cmd.exe
       - name: Install libmambapy
+        shell: bash -elo pipefail {0}
         run: |
-          ln build/libmambapy/bindings* libmambapy/libmambapy/
+          ln build/libmambapy/bindings*.pyd libmambapy/libmambapy/
           cmake --install build/ --prefix "${CONDA_PREFIX}"
           python -m pip install ./libmambapy/
       - name: Run libmamba Python bindings tests
         run: |
           python -m pytest libmambapy/tests/
 
-  umamba_integration_tests_unix:
+  umamba_integration_tests_win:
     name: Test integration micromamba
-    needs: ["build_shared_unix"]
+    needs: ["build_shared_win"]
     runs-on: ${{ inputs.os }}
     steps:
       - name: Checkout mamba repository
@@ -122,16 +138,17 @@ jobs:
         with:
           environment-file: ./build/environment.lock
           environment-name: build_env
-      - name: install zsh, xonsh, fish and tcsh in linux
-        if: startsWith(inputs.os, 'ubuntu')
+          init-shell: bash cmd.exe powershell
+      - name: Install micromamba
+        shell: bash -elo pipefail {0}
         run: |
-          sudo apt-get install zsh xonsh fish tcsh -y
-      - name: install xonsh and fish in mac
-        if: startsWith(inputs.os, 'macos')
+          cmake --install build/ --prefix local/
+      - name: micromamba python based tests with pwsh
+        shell: pwsh
         run: |
-          brew install fish xonsh
-      - name: micromamba python based tests
-        run: |
-          export TEST_MAMBA_EXE=$(pwd)/build/micromamba/micromamba
-          unset CONDARC  # Interferes with tests
-          pytest -v --capture=tee-sys micromamba/tests/
+          $env:PYTHONIOENCODING='UTF-8'
+          $env:MAMBA_ROOT_PREFIX = Join-Path -Path $pwd -ChildPath 'mambaroot'
+          $env:TEST_MAMBA_EXE = Join-Path -Path $pwd -ChildPath 'local\bin\micromamba.exe'
+          $env:MAMBA_TEST_SHELL_TYPE='powershell'
+          Remove-Item -Path "env:CONDARC"
+          python -m pytest -v --capture=tee-sys micromamba/tests/

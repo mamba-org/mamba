@@ -1176,7 +1176,9 @@ def test_create_local(tmp_home, tmp_root_prefix):
         out=conda_bld / plat / fn,
     )
 
-    conda_index.index.ChannelIndex(str(conda_bld), channel_name="conda-bld").index(None)
+    conda_index.index.ChannelIndex(
+        str(conda_bld), channel_name="conda-bld", threads=1
+    ).index(None)
 
     res = helpers.create(
         "-n", "myenv", "--override-channels", "-c", "local", "-y", name, "--json"

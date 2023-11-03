@@ -350,20 +350,17 @@ namespace mamba
         std::string name = spec.clear_location();
         const auto& custom_channels = get_custom_channels();
         const auto it_end = custom_channels.end();
-        auto it = custom_channels.find(name);
+        auto it = it_end;
         {
-            std::string considered_name = name;
-            while (it == it_end)
+            auto considered_name = std::optional<std::string_view>(name);
+            while ((it == it_end))
             {
-                if (const auto pos = considered_name.rfind("/"); pos != std::string::npos)
-                {
-                    considered_name = considered_name.substr(0, pos);
-                    it = custom_channels.find(considered_name);
-                }
-                else
+                if (!considered_name.has_value())
                 {
                     break;
                 }
+                it = custom_channels.find(std::string(considered_name.value()));
+                considered_name = std::get<0>(util::rsplit_once(considered_name.value(), '/'));
             }
         }
 

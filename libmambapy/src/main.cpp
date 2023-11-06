@@ -258,7 +258,8 @@ namespace mambapy
     };
 }
 
-PYBIND11_MODULE(bindings, m)
+void
+bind_submodule_impl(pybind11::module_ m)
 {
     using namespace mamba;
 
@@ -1329,4 +1330,12 @@ PYBIND11_MODULE(bindings, m)
     m.attr("MAMBA_CLEAN_PKGS") = MAMBA_CLEAN_PKGS;
     m.attr("MAMBA_CLEAN_TARBALLS") = MAMBA_CLEAN_TARBALLS;
     m.attr("MAMBA_CLEAN_LOCKS") = MAMBA_CLEAN_LOCKS;
+}
+
+namespace mamba::bindings
+{
+    void bind_submodule(pybind11::module_ m)
+    {
+        bind_submodule_impl(std::move(m));
+    }
 }

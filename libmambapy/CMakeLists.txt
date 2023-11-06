@@ -18,11 +18,13 @@ endif()
 find_package(Python COMPONENTS Interpreter Development)
 find_package(pybind11 REQUIRED)
 
-pybind11_add_module(bindings src/main.cpp longpath.manifest)
+pybind11_add_module(libmambapy src/libmambapy.cpp src/main.cpp src/version.cpp longpath.manifest)
 
-mamba_target_add_compile_warnings(bindings WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
+target_include_directories(libmambapy PRIVATE src/)
 
-target_link_libraries(bindings PRIVATE pybind11::pybind11 mamba::libmamba)
-set_property(TARGET bindings PROPERTY CXX_STANDARD 17)
+mamba_target_add_compile_warnings(libmambapy WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
 
-install(TARGETS bindings LIBRARY DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/libmambapy/)
+target_link_libraries(libmambapy PRIVATE pybind11::pybind11 mamba::libmamba)
+set_property(TARGET libmambapy PROPERTY CXX_STANDARD 17)
+
+install(TARGETS libmambapy LIBRARY DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/libmambapy/)

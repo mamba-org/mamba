@@ -43,7 +43,6 @@ namespace mamba
         ~Channel();
 
         const std::string& location() const;
-        const std::string& name() const;
         const std::string& canonical_name() const;
         const util::flat_set<std::string>& platforms() const;
         const specs::CondaURL& url() const;
@@ -60,14 +59,12 @@ namespace mamba
         Channel(
             specs::CondaURL url,
             std::string location,
-            std::string name,
             std::string canonical_name,
             util::flat_set<std::string> platforms = {}
         );
 
         specs::CondaURL m_url;
         std::string m_location;
-        std::string m_name;
         std::string m_canonical_name;
         util::flat_set<std::string> m_platforms;
 

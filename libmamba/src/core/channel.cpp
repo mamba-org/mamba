@@ -10,7 +10,6 @@
 
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/core/environment.hpp"
 #include "mamba/specs/channel_spec.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/util/path_manip.hpp"
@@ -30,8 +29,6 @@ namespace mamba
                                                          "None",
                                                          "",
                                                          ":///<unknown>" };
-
-        const char LOCAL_CHANNELS_NAME[] = "local";
     }
 
     std::vector<std::string> get_known_platforms()
@@ -47,13 +44,11 @@ namespace mamba
     Channel::Channel(
         specs::CondaURL url,
         std::string location,
-        std::string name,
         std::string canonical_name,
         util::flat_set<std::string> platforms
     )
         : m_url(std::move(url))
         , m_location(std::move(location))
-        , m_name(std::move(name))
         , m_canonical_name(std::move(canonical_name))
         , m_platforms(std::move(platforms))
     {
@@ -69,11 +64,6 @@ namespace mamba
     const std::string& Channel::location() const
     {
         return m_location;
-    }
-
-    const std::string& Channel::name() const
-    {
-        return m_name;
     }
 
     const util::flat_set<std::string>& Channel::platforms() const
@@ -233,7 +223,6 @@ namespace mamba
                 return Channel(
                     /* url= */ std::move(uri),
                     /* location= */ chan.url().pretty_str(specs::CondaURL::StripScheme::yes),
-                    /* name= */ std::string(util::rstrip(parent.value_or(""), '/')),
                     /* canonical_name= */ std::string(canonical_name)
                 );
             }
@@ -245,7 +234,6 @@ namespace mamba
             return Channel(
                 /* url= */ std::move(uri),
                 /*  location= */ ca.pretty_str(specs::CondaURL::StripScheme::yes),
-                /*  name= */ std::string(name),
                 /*  canonical_name= */ std::string(name)
             );
         }
@@ -254,7 +242,6 @@ namespace mamba
         return Channel(
             /* url= */ std::move(uri),
             /* location= */ std::string(util::rstrip(parent.value_or(""), '/')),
-            /* name= */ std::string(util::rstrip(current, '/')),
             /* canonical_name= */ std::move(canonical_name)
         );
     }
@@ -299,7 +286,6 @@ namespace mamba
                 return Channel(
                     /* url= */ std::move(url),
                     /* location= */ std::move(location),
-                    /* name= */ std::move(name),
                     /* canonical_name= */ std::string(canonical_name)
                 );
             }
@@ -311,9 +297,8 @@ namespace mamba
             // Overridding url scheme since chan_url could have been defaulted
             auto name = std::string(util::strip(util::remove_prefix(default_location, location), '/'));
             return Channel(
-                /*..url= */ std::move(url),
+                /* url= */ std::move(url),
                 /* location= */ std::move(location),
-                /* name= */ name,
                 /* canonical_name= */ name
             );
         }
@@ -324,7 +309,6 @@ namespace mamba
         return Channel(
             /* url= */ std::move(url),
             /* location= */ std::move(location),
-            /* name= */ std::move(name),
             /* canonical_name= */ std::move(canonical_name)
         );
     }
@@ -383,7 +367,6 @@ namespace mamba
             return Channel(
                 /* url= */ std::move(url),
                 /* location= */ it->second.location(),
-                /* name= */ std::move(combined_name),
                 /* canonical_name= */ std::move(name),
                 /* platforms= */ make_platforms(spec.clear_platform_filters(), m_context.platforms())
             );
@@ -396,7 +379,6 @@ namespace mamba
         return Channel(
             /* url= */ std::move(url),
             /* location= */ alias.pretty_str(specs::CondaURL::StripScheme::yes, '/', specs::CondaURL::Credentials::Remove),
-            /* name= */ name,
             /* canonical_name= */ name,
             /* platforms= */ make_platforms(spec.clear_platform_filters(), m_context.platforms())
         );
@@ -409,7 +391,6 @@ namespace mamba
             return Channel(
                 /* url= */ specs::CondaURL{},
                 /* location= */ "",
-                /* name= */ UNKNOWN_CHANNEL,
                 /* canonical_name= */ UNKNOWN_CHANNEL
             );
         }

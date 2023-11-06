@@ -1155,7 +1155,6 @@ bind_submodule_impl(pybind11::module_ m)
             }
         ))
         .def_property_readonly("location", &Channel::location)
-        .def_property_readonly("name", &Channel::name)
         .def_property_readonly("platforms", &Channel::platforms)
         .def_property_readonly("canonical_name", &Channel::canonical_name)
         .def("urls", &Channel::urls, py::arg("with_credentials") = true)

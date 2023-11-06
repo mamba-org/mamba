@@ -57,7 +57,7 @@ namespace mamba
 
         std::vector<std::pair<int, int>> priorities;
         int max_prio = static_cast<int>(channel_urls.size());
-        std::string prev_channel_name;
+        auto prev_channel_url = specs::CondaURL();
 
         Console::instance().init_progress_bar_manager(ProgressBarMode::multi);
 
@@ -89,10 +89,10 @@ namespace mamba
                 else
                 {
                     // Consider 'flexible' and 'strict' the same way
-                    if (channel->canonical_name() != prev_channel_name)
+                    if (channel->url() != prev_channel_url)
                     {
                         max_prio--;
-                        prev_channel_name = channel->canonical_name();
+                        prev_channel_url = channel->url();
                     }
                     priorities.push_back(std::make_pair(max_prio, 0));
                 }

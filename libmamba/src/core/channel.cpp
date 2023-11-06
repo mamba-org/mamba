@@ -372,26 +372,12 @@ namespace mamba
             // where `name == private/testchannel` and we need to join the remaining label part
             // of the channel (e.g. -c testchannel/mylabel/xyz)
             // needs to result in `name = private/testchannel/mylabel/xyz`
-            std::string combined_name = it->second.url().path();
-            if (combined_name != name)
-            {
-                // Find common string between `name` and `combined_name`
-                auto common_str = util::ending_splits_in(combined_name, name, "/");
-                // Combine names properly
-                if (common_str.empty())
-                {
-                    url.append_path(name);
-                    combined_name += "/" + name;
-                }
-                else
-                {
-                    // NOTE We assume that the `common_str`, if not empty, is necessarily at the
-                    // beginning of `name` and at the end of `combined_name` (I don't know about
-                    // other use cases for now)
-                    combined_name += name.substr(common_str.size());
-                    url.append_path(name.substr(common_str.size()));
-                }
-            }
+            std::string combined_name = util::concat_dedup_splits(
+                util::rstrip(url.path(), '/'),
+                util::lstrip(name, '/'),
+                '/'
+            );
+            url.set_path(combined_name);
 
             set_fallback_credential_from_db(url, m_context.authentication_info());
             return Channel(

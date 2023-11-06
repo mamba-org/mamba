@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <cassert>
 #include <cctype>
 #include <cwchar>
 #include <cwctype>
@@ -740,73 +741,98 @@ namespace mamba::util
 
     namespace
     {
-        auto
-        get_common_part_valid_substr(std::string_view sub, std::string_view main, std::string_view sep)
-            -> bool
+        template <typename Char, typename CharOrStrView>
+        auto starts_with_split(
+            std::basic_string_view<Char> str,
+            std::basic_string_view<Char> prefix,
+            CharOrStrView sep
+        ) -> bool
         {
-            auto start = main.find(sub);
-            auto end = start + sub.size();
-            const auto sep_size = sep.size();
-            const auto main_size = main.size();
+            auto end = prefix.size();
+            const auto sep_size = detail::length(sep);
+            const auto str_size = str.size();
             return
                 // The substring is found
-                (start != std::string_view::npos)
-                && (
-                    // Either it starts at the begining
-                    (start == 0)
-                    // Or it is found after a separator
-                    || ((start >= sep_size) && starts_with(main.substr(start - sep_size), sep))
-                )
+                starts_with(str, prefix)
                 && (
                     // Either it ends at the end
-                    (end == main_size)
+                    (end == str_size)
                     // Or it is found before a separator
-                    || ((end <= main_size) && ends_with(main.substr(0, end + sep_size), sep))
+                    || ((end <= str_size) && ends_with(str.substr(0, end + sep_size), sep))
                 );
+        }
+
+        template <typename Char, typename CharOrStrView>
+        auto remove_suffix_splits(
+            std::basic_string_view<Char> str1,
+            std::basic_string_view<Char> str2,
+            CharOrStrView sep
+        ) -> std::basic_string_view<Char>
+        {
+            static constexpr auto npos = std::basic_string_view<Char>::npos;
+
+            assert(!str1.empty());
+            assert(!str2.empty());
+            const auto sep_size = detail::length(sep);
+            assert(sep_size > 0);
+
+            auto get_common_candidate = [&](auto split)
+            { return str1.substr((split == npos) ? 0 : split + sep_size); };
+
+            auto split1 = str1.rfind(sep);
+
+            // In the case we did not find a match, we try a bigger common part
+            while (!starts_with_split(str2, get_common_candidate(split1), sep))
+            {
+                if ((split1 == npos) || (split1 < sep_size))
+                {
+                    // No further possibility to find a match, nothing to remove
+                    return str1;
+                }
+                // Add the next split element
+                split1 = str1.rfind(sep, split1 - sep_size);
+            }
+
+            return str1.substr(0, (split1 == npos) ? 0 : split1);
+        }
+
+        template <typename Char, typename CharOrStrView>
+        auto concat_dedup_splits_impl(
+            std::basic_string_view<Char> str1,
+            std::basic_string_view<Char> str2,
+            CharOrStrView sep
+        ) -> std::basic_string<Char>
+        {
+            if (str1.empty())
+            {
+                return std::string(str2);
+            }
+            if (str2.empty())
+            {
+                return std::string(str1);
+            }
+            if (detail::length(sep) < 1)
+            {
+                throw std::invalid_argument("Cannot split on empty separator");
+            }
+            auto str1_no_suffix = remove_suffix_splits(str1, str2, sep);
+            if (str1_no_suffix.empty())
+            {
+                return concat(str1_no_suffix, str2);
+            }
+            return concat(str1_no_suffix, sep, str2);
         }
     }
 
-    std::string_view
-    ending_splits_in(std::string_view str1, std::string_view str2, std::string_view sep)
+    std::string concat_dedup_splits(std::string_view str1, std::string_view str2, char sep)
     {
-        static constexpr auto npos = std::string_view::npos;
+        return concat_dedup_splits_impl(str1, str2, sep);
+    }
 
-        if (str1.empty() || str2.empty())
-        {
-            return {};
-        }
-
-        auto split1 = str1.rfind(sep);
-
-        // str1 has only one segment, easy base case
-        if (split1 == npos)
-        {
-            if (get_common_part_valid_substr(str1, str2, sep))
-            {
-                return str1;
-            }
-            else
-            {
-                return {};
-            }
-        }
-
-        auto candidate = str1.substr(split1 + sep.size());
-        auto best_candidate = std::string_view{};
-        // In the case we find a match, we try to grow it as much as possible
-        while (get_common_part_valid_substr(candidate, str2, sep))
-        {
-            best_candidate = candidate;
-            if ((split1 == npos) || (split1 == 0))
-            {
-                break;
-            }
-            split1 = str1.rfind(sep, split1 - sep.size());
-            candidate = str1.substr((split1 == npos) ? 0 : (split1 + sep.size()));
-        }
-
-        // Return the best match, or nothing, we are not interested in non terminating matches
-        return best_candidate;
+    std::string
+    concat_dedup_splits(std::string_view str1, std::string_view str2, std::string_view sep)
+    {
+        return concat_dedup_splits_impl(str1, str2, sep);
     }
 
     /*****************************************

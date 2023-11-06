@@ -502,38 +502,71 @@ namespace
             CHECK_EQ(concat("aa", std::string("bb"), std::string_view("cc"), 'd'), "aabbccd");
         }
 
-        TEST_CASE("ending_splits_in")
+        TEST_CASE("concat_dedup_splits")
         {
-            CHECK_EQ(ending_splits_in("", "", "/"), "");
-            CHECK_EQ(ending_splits_in("", "test", "/"), "");
-            CHECK_EQ(ending_splits_in("test", "test", "/"), "test");
-            CHECK_EQ(ending_splits_in("test/chan", "test/chan", "/"), "test/chan");
-            CHECK_EQ(ending_splits_in("st/ch", "test/chan", "/"), "");
-            CHECK_EQ(ending_splits_in("st/chan", "test/chan", "/"), "chan");
-            CHECK_EQ(ending_splits_in("st/chan/abc", "test/chan/abc", "/"), "chan/abc");
-            CHECK_EQ(ending_splits_in("test/an/abc", "test/chan/abc", "/"), "abc");
-            CHECK_EQ(ending_splits_in("test/chan/label", "label/abcd/xyz", "/"), "label");
-            CHECK_EQ(ending_splits_in("test/chan/label", "chan/label/abcd", "/"), "chan/label");
-            CHECK_EQ(ending_splits_in("test/chan/label", "abcd/chan/label", "/"), "chan/label");
-            CHECK_EQ(ending_splits_in("test", "abcd", "/"), "");
-            CHECK_EQ(ending_splits_in("test", "abcd/xyz", "/"), "");
-            CHECK_EQ(ending_splits_in("test/xyz", "abcd/xyz", "/"), "xyz");
-            CHECK_EQ(ending_splits_in("test/xyz", "abcd/gef", "/"), "");
-            CHECK_EQ(ending_splits_in("abcd/test", "abcd/xyz", "/"), "");
-            CHECK_EQ(ending_splits_in("test/ch", "test/chan", "/"), "");
-            CHECK_EQ(ending_splits_in("pkgs/main", "pkgs/main/noarch", "/"), "pkgs/main");
+            for (std::string_view sep : { "/", "//", "/////", "./", "./." })
+            {
+                CAPTURE(sep);
 
-            CHECK_EQ(ending_splits_in("", "", "."), "");
-            CHECK_EQ(ending_splits_in("", "test", "."), "");
-            CHECK_EQ(ending_splits_in("test", "test", "."), "test");
-            CHECK_EQ(ending_splits_in("test.chan", "test.chan", "."), "test.chan");
-            CHECK_EQ(ending_splits_in("test.chan.label", "chan.label.abcd", "."), "chan.label");
-            CHECK_EQ(ending_splits_in("test/chan/label", "chan/label/abcd", "."), "");
-            CHECK_EQ(ending_splits_in("st/ch", "test/chan", "."), "");
-            CHECK_EQ(ending_splits_in("st.ch", "test.chan", "."), "");
+                CHECK_EQ(concat_dedup_splits("", "", sep), "");
 
-            CHECK_EQ(ending_splits_in("test..chan", "test..chan", ".."), "test..chan");
-            CHECK_EQ(ending_splits_in("test./chan", "test./chan", "./"), "test./chan");
+                CHECK_EQ(
+                    concat_dedup_splits(fmt::format("test{}chan", sep), "", sep),
+                    fmt::format("test{}chan", sep)
+                );
+                CHECK_EQ(
+                    concat_dedup_splits("", fmt::format("test{}chan", sep), sep),
+                    fmt::format("test{}chan", sep)
+                );
+                CHECK_EQ(
+                    concat_dedup_splits("test", fmt::format("test{}chan", sep), sep),
+                    fmt::format("test{}chan", sep)
+                );
+                CHECK_EQ(concat_dedup_splits("test", "chan", sep), fmt::format("test{}chan", sep));
+                CHECK_EQ(
+                    concat_dedup_splits(fmt::format("test{}chan", sep), "chan", sep),
+                    fmt::format("test{}chan", sep)
+                );
+                CHECK_EQ(
+                    concat_dedup_splits(fmt::format("test{}chan", sep), fmt::format("chan{}foo", sep), sep),
+                    fmt::format("test{}chan{}foo", sep, sep)
+                );
+                CHECK_EQ(
+                    concat_dedup_splits(
+                        fmt::format("test{}chan-foo", sep),
+                        fmt::format("foo{}bar", sep),
+                        sep
+                    ),
+                    fmt::format("test{}chan-foo{}foo{}bar", sep, sep, sep, sep)
+                );
+                CHECK_EQ(
+                    concat_dedup_splits(
+                        fmt::format("ab{}test{}chan", sep, sep),
+                        fmt::format("chan{}foo{}ab", sep, sep),
+                        sep
+                    ),
+                    fmt::format("ab{}test{}chan{}foo{}ab", sep, sep, sep, sep)
+                );
+                CHECK_EQ(
+                    concat_dedup_splits(
+                        fmt::format("{}test{}chan", sep, sep),
+                        fmt::format("chan{}foo{}", sep, sep),
+                        sep
+                    ),
+                    fmt::format("{}test{}chan{}foo{}", sep, sep, sep, sep)
+                );
+                CHECK_EQ(
+                    concat_dedup_splits(
+                        fmt::format("test{}chan", sep),
+                        fmt::format("chan{}test", sep),
+                        sep
+                    ),
+                    fmt::format("test{}chan{}test", sep, sep)
+                );
+            }
+
+            CHECK_EQ(concat_dedup_splits("test/chan", "chan/foo", "//"), "test/chan//chan/foo");
+            CHECK_EQ(concat_dedup_splits("test/chan", "chan/foo", '/'), "test/chan/foo");
         }
     }
 }  // namespace mamba

@@ -62,6 +62,20 @@ namespace mamba
         friend class ChannelContext;
     };
 
+    /** Tuple-like equality of all observable members */
+    auto operator==(const Channel& a, const Channel& b) -> bool;
+    auto operator!=(const Channel& a, const Channel& b) -> bool;
+}
+
+template <>
+struct std::hash<mamba::Channel>
+{
+    auto operator()(const mamba::Channel& c) const -> std::size_t;
+};
+
+
+namespace mamba
+{
 
     class ChannelContext
     {

@@ -6,6 +6,7 @@
 
 #include <cassert>
 #include <set>
+#include <tuple>
 #include <utility>
 
 #include "mamba/core/channel.hpp"
@@ -14,6 +15,7 @@
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/tuple_hash.hpp"
 #include "mamba/util/url.hpp"
 #include "mamba/util/url_manip.hpp"
 
@@ -113,6 +115,38 @@ namespace mamba
         }
         return (url() / platform).str(cred);
     }
+
+    namespace
+    {
+        auto attrs(const Channel& chan)
+        {
+            return std::tie(chan.url(), chan.platforms(), chan.canonical_name());
+        }
+    }
+
+    /** Tuple-like equality of all observable members */
+    auto operator==(const Channel& a, const Channel& b) -> bool
+    {
+        return attrs(a) == attrs(b);
+    }
+
+    auto operator!=(const Channel& a, const Channel& b) -> bool
+    {
+        return !(a == b);
+    }
+}
+
+auto
+std::hash<mamba::Channel>::operator()(const mamba::Channel& chan) const -> std::size_t
+{
+    return mamba::util::hash_combine(
+        mamba::util::hash_vals(chan.url(), chan.canonical_name()),
+        mamba::util::hash_range(chan.platforms())
+    );
+}
+
+namespace mamba
+{
 
     /*********************************
      * ChannelContext implementation *

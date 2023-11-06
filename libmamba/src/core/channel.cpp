@@ -41,14 +41,8 @@ namespace mamba
      * Channel implementation *
      **************************/
 
-    Channel::Channel(
-        specs::CondaURL url,
-        std::string location,
-        std::string canonical_name,
-        util::flat_set<std::string> platforms
-    )
+    Channel::Channel(specs::CondaURL url, std::string canonical_name, util::flat_set<std::string> platforms)
         : m_url(std::move(url))
-        , m_location(std::move(location))
         , m_canonical_name(std::move(canonical_name))
         , m_platforms(std::move(platforms))
     {
@@ -59,11 +53,6 @@ namespace mamba
     const specs::CondaURL& Channel::url() const
     {
         return m_url;
-    }
-
-    const std::string& Channel::location() const
-    {
-        return m_location;
     }
 
     const util::flat_set<std::string>& Channel::platforms() const
@@ -214,15 +203,12 @@ namespace mamba
     {
         auto uri = specs::CondaURL::parse(util::path_or_url_to_url(spec.location()));
 
-        auto path = util::rstrip(uri.pretty_path(), '/');
-        auto [parent, current] = util::rsplit_once(path, '/');
         for (const auto& [canonical_name, chan] : get_custom_channels())
         {
             if (url_match(chan.url(), uri))
             {
                 return Channel(
                     /* url= */ std::move(uri),
-                    /* location= */ chan.url().pretty_str(specs::CondaURL::StripScheme::yes),
                     /* canonical_name= */ std::string(canonical_name)
                 );
             }
@@ -233,15 +219,13 @@ namespace mamba
             auto name = util::strip(util::remove_prefix(uri.path(), ca.path()), '/');
             return Channel(
                 /* url= */ std::move(uri),
-                /*  location= */ ca.pretty_str(specs::CondaURL::StripScheme::yes),
-                /*  canonical_name= */ std::string(name)
+                /* canonical_name= */ std::string(name)
             );
         }
 
         auto canonical_name = uri.pretty_str();
         return Channel(
             /* url= */ std::move(uri),
-            /* location= */ std::string(util::rstrip(parent.value_or(""), '/')),
             /* canonical_name= */ std::move(canonical_name)
         );
     }
@@ -270,22 +254,14 @@ namespace mamba
         using StripScheme = typename specs::CondaURL::StripScheme;
         using Credentials = typename specs::CondaURL::Credentials;
 
-        std::string default_location = url.pretty_str(StripScheme::yes, '/', Credentials::Remove);
+        std::string url_str = url.pretty_str(StripScheme::yes, '/', Credentials::Remove);
 
         for (const auto& [canonical_name, chan] : get_custom_channels())
         {
             if (url_match(chan.url(), url))
             {
-                std::string location = chan.location();
-                // TODO cannot change all the locations at once since they are used in from_name
-                // std::string location = chan.url().pretty_str(StripScheme::yes, '/',
-                // Credentials::Remove);
-                std::string name = std::string(
-                    util::strip(util::remove_prefix(default_location, location), '/')
-                );
                 return Channel(
                     /* url= */ std::move(url),
-                    /* location= */ std::move(location),
                     /* canonical_name= */ std::string(canonical_name)
                 );
             }
@@ -293,22 +269,17 @@ namespace mamba
 
         if (const auto& ca = get_channel_alias(); url_match(ca, url))
         {
-            auto location = ca.pretty_str(StripScheme::yes, '/', Credentials::Remove);
-            // Overridding url scheme since chan_url could have been defaulted
-            auto name = std::string(util::strip(util::remove_prefix(default_location, location), '/'));
+            auto ca_str = ca.pretty_str(StripScheme::yes, '/', Credentials::Remove);
+            auto name = std::string(util::strip(util::remove_prefix(url_str, ca_str), '/'));
             return Channel(
                 /* url= */ std::move(url),
-                /* location= */ std::move(location),
                 /* canonical_name= */ name
             );
         }
 
-        auto name = std::string(util::strip(url.path_without_token(), '/'));
-        auto location = url.authority(Credentials::Remove);
         auto canonical_name = url.pretty_str(StripScheme::no, '/', Credentials::Remove);
         return Channel(
             /* url= */ std::move(url),
-            /* location= */ std::move(location),
             /* canonical_name= */ std::move(canonical_name)
         );
     }
@@ -366,7 +337,6 @@ namespace mamba
             set_fallback_credential_from_db(url, m_context.authentication_info());
             return Channel(
                 /* url= */ std::move(url),
-                /* location= */ it->second.location(),
                 /* canonical_name= */ std::move(name),
                 /* platforms= */ make_platforms(spec.clear_platform_filters(), m_context.platforms())
             );
@@ -378,7 +348,6 @@ namespace mamba
         set_fallback_credential_from_db(url, m_context.authentication_info());
         return Channel(
             /* url= */ std::move(url),
-            /* location= */ alias.pretty_str(specs::CondaURL::StripScheme::yes, '/', specs::CondaURL::Credentials::Remove),
             /* canonical_name= */ name,
             /* platforms= */ make_platforms(spec.clear_platform_filters(), m_context.platforms())
         );
@@ -390,7 +359,6 @@ namespace mamba
         {
             return Channel(
                 /* url= */ specs::CondaURL{},
-                /* location= */ "",
                 /* canonical_name= */ UNKNOWN_CHANNEL
             );
         }

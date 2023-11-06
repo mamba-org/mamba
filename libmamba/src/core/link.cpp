@@ -754,7 +754,6 @@ namespace mamba
         {
             bool copy = path_data.no_link || m_context->always_copy;
             bool softlink = m_context->always_softlink;
-
             if (!copy && !softlink)
             {
                 std::error_code lec;
@@ -787,9 +786,25 @@ namespace mamba
             }
             if (copy)
             {
-                fs::copy(src, dst);
-                LOG_TRACE << "copied '" << src.string() << "'" << std::endl
-                          << " --> '" << dst.string() << "'";
+                try
+                {
+                    fs::copy(src, dst);
+                    LOG_TRACE << "copied '" << src.string() << "'" << std::endl
+                              << " --> '" << dst.string() << "'";
+                }
+                catch (const std::filesystem::filesystem_error& ex)
+                {
+                    Console::stream() << "could not copy: " << src.string() << " -> "
+                                      << dst.string() << ": " << ex.what();
+                    if (fs::exists(dst))
+                    {
+                        LOG_TRACE << dst.string() << " already exists" << std::endl;
+                    }
+                    else
+                    {
+                        throw ex;
+                    }
+                }
             }
         }
         else if (path_data.path_type == PathType::SOFTLINK)
@@ -808,6 +823,7 @@ namespace mamba
                 + std::to_string(static_cast<int>(path_data.path_type))
             );
         }
+
         return std::make_tuple(
             path_data.sha256.empty() ? validation::sha256sum(dst) : path_data.sha256,
             rel_dst.string()
@@ -1094,7 +1110,6 @@ namespace mamba
         LOG_TRACE << "Adding package to prefix metadata at '" << meta.string() << "'";
         std::ofstream out_file = open_ofstream(meta);
         out_file << out_json.dump(4);
-
         if (!m_clobber_warnings.empty())
         {
             LOG_WARNING << "[" << f_name

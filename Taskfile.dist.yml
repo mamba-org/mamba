@@ -128,6 +128,17 @@ tasks:
   test-micromamba:
     cmds: [{task: _test-micromamba, vars: {args: '{{.CLI_ARGS}}'}}]
 
+  _test-libmambapy:
+    internal: true
+    deps: [{task: '_build', vars: {target: 'libmambapy'}}]
+    env:
+      PYTHONPATH: '{{.CMAKE_BUILD_DIR}}/libmambapy'
+    cmds:
+      - >-
+        {{.DEV_RUN}} python -m pytest libmambapy/tests/ {{.args}}
+  test-libmambapy:
+    cmds: [{task: _test-libmambapy, vars: {args: '{{.CLI_ARGS}}'}}]
+
   install-cpp:
     deps: [_build]
     cmds:

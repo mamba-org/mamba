@@ -28,4 +28,26 @@ TEST_SUITE("util::tuple_hash")
         const auto t3 = std::tuple{ std::string("hello"), 33 };
         CHECK_NE(hash_tuple(t1), hash_tuple(t3));
     }
+
+    TEST_CASE("hash_combine_val_range")
+    {
+        const auto hello = std::string("hello");
+        // Hash colision are hard to predict, but this is so trivial it is likely a bug if it fails.
+        CHECK_NE(hash_combine_val_range(0, hello.cbegin(), hello.cend()), 0);
+        CHECK_NE(hash_combine_val_range(0, hello.crbegin(), hello.crend()), 0);
+        CHECK_NE(
+            hash_combine_val_range(0, hello.cbegin(), hello.cend()),
+            hash_combine_val_range(0, hello.crbegin(), hello.crend())
+        );
+    }
+
+    TEST_CASE("hash_range")
+    {
+        const auto hello = std::string("hello");
+        const auto world = std::string("world");
+        // Hash colision are hard to predict, but this is so trivial it is likely a bug if it fails.
+        CHECK_NE(hash_range(hello), 0);
+        CHECK_NE(hash_range(world), 0);
+        CHECK_NE(hash_range(hello), hash_range(world));
+    }
 }

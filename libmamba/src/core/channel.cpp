@@ -48,8 +48,6 @@ namespace mamba
     {
     }
 
-    Channel::~Channel() = default;
-
     const specs::CondaURL& Channel::url() const
     {
         return m_url;

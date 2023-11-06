@@ -35,12 +35,11 @@ namespace mamba
     {
     public:
 
-        Channel(const Channel&) = delete;
-        Channel& operator=(const Channel&) = delete;
-        Channel(Channel&&) noexcept = default;
-        Channel& operator=(Channel&&) noexcept = default;
-
-        ~Channel();
+        Channel(
+            specs::CondaURL url,
+            std::string canonical_name,
+            util::flat_set<std::string> platforms = {}
+        );
 
         const std::string& canonical_name() const;
         const util::flat_set<std::string>& platforms() const;
@@ -55,26 +54,14 @@ namespace mamba
 
     private:
 
-        Channel(
-            specs::CondaURL url,
-            std::string canonical_name,
-            util::flat_set<std::string> platforms = {}
-        );
-
         specs::CondaURL m_url;
         std::string m_canonical_name;
         util::flat_set<std::string> m_platforms;
 
-        // Note: as long as Channel is not a regular value-type and we want each
-        // instance only possible to create through ChannelContext, we need
-        // to have Channel's constructor only available to ChannelContext,
-        // therefore enabling it's use through this `friend` statement.
-        // However, all this should be removed as soon as Channel is changed to
-        // be a regular value-type (regular as in the regular concept).
+        // FIXME: Remove this
         friend class ChannelContext;
     };
 
-    using ChannelCache = std::map<std::string, Channel>;
 
     class ChannelContext
     {
@@ -105,6 +92,8 @@ namespace mamba
         }
 
     private:
+
+        using ChannelCache = std::map<std::string, Channel>;
 
         Context& m_context;
         ChannelCache m_channel_cache;

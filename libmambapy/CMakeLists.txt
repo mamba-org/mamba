@@ -23,7 +23,13 @@ endif()
 find_package(Python COMPONENTS Interpreter Development)
 find_package(pybind11 REQUIRED)
 
-pybind11_add_module(libmambapy src/libmambapy.cpp src/main.cpp src/version.cpp longpath.manifest)
+pybind11_add_module(
+    libmambapy
+    src/libmambapy/core/longpath.manifest
+    src/libmambapy/core/libmambapy.cpp
+    src/libmambapy/core/main.cpp
+    src/libmambapy/core/version.cpp
+)
 
 target_include_directories(libmambapy PRIVATE src/)
 

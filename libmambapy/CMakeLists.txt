@@ -5,6 +5,8 @@
 # The full license is in the file LICENSE, distributed with this software.
 cmake_minimum_required(VERSION 3.18.2)
 
+include("../cmake/CompilerWarnings.cmake")
+
 cmake_policy(SET CMP0025 NEW)
 cmake_policy(SET CMP0077 NEW)
 cmake_policy(SET CMP0057 NEW)
@@ -13,6 +15,9 @@ project(libmambapy)
 
 if(NOT TARGET mamba::libmamba)
     find_package(libmamba REQUIRED)
+    set(libmamba_target mamba::libmamba-dyn)
+else()
+    set(libmamba_target mamba::libmamba)
 endif()
 
 find_package(Python COMPONENTS Interpreter Development)
@@ -24,7 +29,23 @@ target_include_directories(libmambapy PRIVATE src/)
 
 mamba_target_add_compile_warnings(libmambapy WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
 
-target_link_libraries(libmambapy PRIVATE pybind11::pybind11 mamba::libmamba)
-set_property(TARGET libmambapy PROPERTY CXX_STANDARD 17)
+target_link_libraries(libmambapy PRIVATE pybind11::pybind11 ${libmamba_target})
+target_compile_features(libmambapy PRIVATE cxx_std_17)
 
-install(TARGETS libmambapy LIBRARY DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/libmambapy/)
+# Installation
+
+# WARNING: this default should probably not be used as it is but set extranlly by a proper Python
+# packager tool
+set(
+    MAMBA_INSTALL_PYTHON_EXT_LIBDIR
+    "lib/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages"
+    CACHE PATH "Installation directory for Python extension"
+)
+
+install(
+    TARGETS libmambapy
+    EXCLUDE_FROM_ALL
+    COMPONENT Mamba_Python_Extension
+    LIBRARY DESTINATION ${MAMBA_INSTALL_PYTHON_EXT_LIBDIR}
+    RUNTIME DESTINATION ${MAMBA_INSTALL_PYTHON_EXT_LIBDIR}
+)

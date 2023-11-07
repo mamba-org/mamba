@@ -11,11 +11,6 @@
 
 namespace mambapy
 {
-    namespace version
-    {
-        void bind_submodule(pybind11::module_ m);
-    }
-
     namespace bindings
     {
         void bind_submodule(pybind11::module_ m);

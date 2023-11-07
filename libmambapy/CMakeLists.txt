@@ -28,7 +28,6 @@ pybind11_add_module(
     src/libmambapy/core/longpath.manifest
     src/libmambapy/core/core.cpp
     src/libmambapy/core/main.cpp
-    src/libmambapy/core/version.cpp
 )
 
 target_include_directories(core PRIVATE src/libmambapy/core)

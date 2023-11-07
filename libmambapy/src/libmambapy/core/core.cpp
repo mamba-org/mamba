@@ -8,6 +8,5 @@
 
 PYBIND11_MODULE(core, m)
 {
-    mambapy::version::bind_submodule(m.def_submodule("version"));
     mambapy::bindings::bind_submodule(m.def_submodule("bindings"));
 }

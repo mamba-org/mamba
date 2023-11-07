@@ -8,7 +8,7 @@ template = {"version": None, "changes": []}
 templates = {
     "libmamba": "libmamba/include/mamba/version.hpp.tmpl",
     "micromamba": "micromamba/src/version.hpp.tmpl",
-    "libmambapy": "libmambapy/src/libmambapy/core/version.cpp.tmpl",
+    "libmambapy": "libmambapy/src/libmambapy/version.py.tmpl",
 }
 
 

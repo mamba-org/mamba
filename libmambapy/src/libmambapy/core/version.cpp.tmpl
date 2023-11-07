@@ -9,9 +9,9 @@
 
 #include <pybind11/pybind11.h>
 
-#include "libmambapy.hpp"
+#include "core.hpp"
 
-namespace mamba::version
+namespace mambapy::version
 {
     void bind_submodule(pybind11::module_ m)
     {

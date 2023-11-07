@@ -26,7 +26,7 @@ find_package(pybind11 REQUIRED)
 pybind11_add_module(
     core
     src/libmambapy/core/longpath.manifest
-    src/libmambapy/core/libmambapy.cpp
+    src/libmambapy/core/core.cpp
     src/libmambapy/core/main.cpp
     src/libmambapy/core/version.cpp
 )

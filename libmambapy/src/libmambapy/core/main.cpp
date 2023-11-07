@@ -36,9 +36,9 @@
 #include "mamba/core/validate.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/specs/version.hpp"
-#include "mamba/util/flat_set.hpp"
 #include "mamba/util/string.hpp"
 
+#include "core.hpp"
 #include "flat_set_caster.hpp"
 
 namespace py = pybind11;
@@ -1332,7 +1332,7 @@ bind_submodule_impl(pybind11::module_ m)
     m.attr("MAMBA_CLEAN_LOCKS") = MAMBA_CLEAN_LOCKS;
 }
 
-namespace mamba::bindings
+namespace mambapy::bindings
 {
     void bind_submodule(pybind11::module_ m)
     {

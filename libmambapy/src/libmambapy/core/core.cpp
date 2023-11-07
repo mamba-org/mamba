@@ -4,10 +4,10 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "libmambapy.hpp"
+#include "core.hpp"
 
 PYBIND11_MODULE(core, m)
 {
-    mamba::version::bind_submodule(m.def_submodule("version"));
-    mamba::bindings::bind_submodule(m.def_submodule("bindings"));
+    mambapy::version::bind_submodule(m.def_submodule("version"));
+    mambapy::bindings::bind_submodule(m.def_submodule("bindings"));
 }

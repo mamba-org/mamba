@@ -9,7 +9,7 @@
 
 #include <pybind11/pybind11.h>
 
-namespace mamba
+namespace mambapy
 {
     namespace version
     {

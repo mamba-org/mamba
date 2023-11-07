@@ -4,7 +4,7 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 
-cmake_minimum_required (VERSION 3.16)
+cmake_minimum_required(VERSION 3.16)
 cmake_policy(SET CMP0025 NEW) # Introduced in cmake 3.0
 cmake_policy(SET CMP0077 NEW) # Introduced in cmake 3.13
 project(micromamba)
@@ -13,16 +13,25 @@ project(micromamba)
 # =============
 option(BUILD_MICROMAMBA_SERVER "Build the micromamba server" OFF)
 
-if (BUILD_STATIC AND NOT BUILD_SHARED)
-    set(MICROMAMBA_LINKAGE "STATIC" CACHE STRING "micromamba linkage against libraries")
-else ()
-    set(MICROMAMBA_LINKAGE "DYNAMIC" CACHE STRING "micromamba linkage against libraries")
-endif ()
+if(BUILD_STATIC AND NOT BUILD_SHARED)
+    set(
+        MICROMAMBA_LINKAGE
+        "STATIC"
+        CACHE STRING "micromamba linkage against libraries"
+    )
+else()
+    set(
+        MICROMAMBA_LINKAGE
+        "DYNAMIC"
+        CACHE STRING "micromamba linkage against libraries"
+    )
+endif()
 
 # Source files
 # ============
 
-set(MICROMAMBA_SRCS
+set(
+    MICROMAMBA_SRCS
     longpath.manifest
     ${CMAKE_CURRENT_SOURCE_DIR}/src/activate.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/clean.cpp
@@ -47,16 +56,15 @@ set(MICROMAMBA_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/version.cpp
 )
 
-set(MICROMAMBA_HEADERS
+set(
+    MICROMAMBA_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/common_options.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/umamba.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/version.hpp
 )
 
 if(UNIX AND BUILD_MICROMAMBA_SERVER)
-    list(APPEND MICROMAMBA_SRCS
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/server.cpp
-    )
+    list(APPEND MICROMAMBA_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/server.cpp)
     add_definitions(-DMICROMAMBA_SERVER)
 endif()
 
@@ -67,29 +75,22 @@ mamba_target_set_lto(micromamba MODE ${MAMBA_LTO})
 
 if(NOT (TARGET mamba::libmamba-dyn OR TARGET mamba::libmamba-static))
     find_package(libmamba REQUIRED)
-endif ()
+endif()
 
 string(TOUPPER "${MICROMAMBA_LINKAGE}" linkage_upper)
 message(STATUS "Micromamba linkage: ${MICROMAMBA_LINKAGE}")
 
-if (${MICROMAMBA_LINKAGE} STREQUAL "STATIC")
+if(${MICROMAMBA_LINKAGE} STREQUAL "STATIC")
     set(libmamba_target mamba::libmamba-static)
-else ()
+else()
     set(libmamba_target mamba::libmamba-dyn)
-endif ()
+endif()
 
 find_package(Threads REQUIRED)
 find_package(reproc REQUIRED)
 find_package(reproc++ REQUIRED)
 
-target_link_libraries(
-    micromamba
-    PRIVATE
-        ${libmamba_target}
-        Threads::Threads
-        reproc
-        reproc++
-)
+target_link_libraries(micromamba PRIVATE ${libmamba_target} Threads::Threads reproc reproc++)
 
 set_property(TARGET micromamba PROPERTY CXX_STANDARD 17)
 

@@ -2,7 +2,6 @@
 
 include(CheckIPOSupported)
 
-
 # Detect is setting Link Time Optimization is recommended.
 #
 # Currenlty checks if LTO is supported and if the build is a release.
@@ -17,9 +16,8 @@ function(mamba_should_lto)
     # Extra arguments not accounted for
     if(arg_UNPARSED_ARGUMENTS)
         message(
-            AUTHOR_WARNING
-            "Unrecoginzed options passed to ${CMAKE_CURRENT_FUNCTION}: "
-            "${ARG_UNPARSED_ARGUMENTS}"
+            AUTHOR_WARNING "Unrecoginzed options passed to ${CMAKE_CURRENT_FUNCTION}: "
+                           "${ARG_UNPARSED_ARGUMENTS}"
         )
     endif()
 
@@ -27,28 +25,46 @@ function(mamba_should_lto)
     string(TOLOWER "${CMAKE_BUILD_TYPE}" build_type_lower)
     set(valid_release_names "release" "relwithdebinfo")
     if(NOT ${build_type_lower} IN_LIST valid_release_names)
-        set(${arg_RESULT} FALSE PARENT_SCOPE)
-        set(${arg_OUTPUT} "the build type is not a release" PARENT_SCOPE)
+        set(
+            ${arg_RESULT}
+            FALSE
+            PARENT_SCOPE
+        )
+        set(
+            ${arg_OUTPUT}
+            "the build type is not a release"
+            PARENT_SCOPE
+        )
         return()
     endif()
 
     # Check if LTO is supported by compiler
     check_ipo_supported(RESULT lto_is_supported OUTPUT lto_not_supported_reason)
     if(NOT lto_is_supported)
-        set(${arg_RESULT} FALSE PARENT_SCOPE)
-        set(${arg_OUTPUT} "${lto_not_supported_reason}" PARENT_SCOPE)
+        set(
+            ${arg_RESULT}
+            FALSE
+            PARENT_SCOPE
+        )
+        set(
+            ${arg_OUTPUT}
+            "${lto_not_supported_reason}"
+            PARENT_SCOPE
+        )
     endif()
 
-    set(${arg_RESULT} TRUE PARENT_SCOPE)
+    set(
+        ${arg_RESULT}
+        TRUE
+        PARENT_SCOPE
+    )
 endfunction()
-
 
 # Set Link Time Optimization on a given target.
 #
-# MODE parameter takes the possible values
-# - A false constant: deactivate LTO
-# - A true constant: activate LTO, fails if this is not supported by the compiler
-# - "Default" or "Auto": set LTO if supported and the build type is a release.
+# MODE parameter takes the possible values - A false constant: deactivate LTO - A true constant:
+# activate LTO, fails if this is not supported by the compiler - "Default" or "Auto": set LTO if
+# supported and the build type is a release.
 function(mamba_target_set_lto target)
     # Names of option parameters (without arguments)
     set(options)
@@ -60,9 +76,8 @@ function(mamba_target_set_lto target)
     # Extra arguments not accounted for
     if(arg_UNPARSED_ARGUMENTS)
         message(
-            AUTHOR_WARNING
-            "Unrecoginzed parameter passed to ${CMAKE_CURRENT_FUNCTION}: "
-            "'${arg_UNPARSED_ARGUMENTS}'"
+            AUTHOR_WARNING "Unrecoginzed parameter passed to ${CMAKE_CURRENT_FUNCTION}: "
+                           "'${arg_UNPARSED_ARGUMENTS}'"
         )
         return()
     endif()

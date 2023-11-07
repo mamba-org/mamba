@@ -8,8 +8,8 @@ target_compile_features(testing_libmamba_lock PUBLIC cxx_std_17)
 
 mamba_target_add_compile_warnings(testing_libmamba_lock WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
 
-
-set(LIBMAMBA_TEST_SRCS
+set(
+    LIBMAMBA_TEST_SRCS
     include/mambatests.hpp
     src/test_main.cpp
     # C++ wrapping of libsolv
@@ -45,7 +45,6 @@ set(LIBMAMBA_TEST_SRCS
     src/specs/test_version_spec.cpp
     src/specs/test_channel_spec.cpp
     src/specs/test_repo_data.cpp
-
     ../longpath.manifest
     src/core/test_activation.cpp
     src/core/test_channel.cpp
@@ -91,13 +90,8 @@ find_package(Threads REQUIRED)
 
 target_link_libraries(
     test_libmamba
-    PUBLIC
-        mamba::libmamba
-        reproc
-        reproc++
-    PRIVATE
-        doctest::doctest
-        Threads::Threads
+    PUBLIC mamba::libmamba reproc reproc++
+    PRIVATE doctest::doctest Threads::Threads
 )
 
 # Copy data directory into binary dir to avoid modifications
@@ -113,4 +107,8 @@ target_compile_definitions(
 
 target_compile_features(test_libmamba PUBLIC cxx_std_17)
 
-add_custom_target(test COMMAND test_libmamba DEPENDS test_libmamba)
+add_custom_target(
+    test
+    COMMAND test_libmamba
+    DEPENDS test_libmamba
+)

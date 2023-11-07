@@ -128,17 +128,6 @@ tasks:
   test-micromamba:
     cmds: [{task: _test-micromamba, vars: {args: '{{.CLI_ARGS}}'}}]
 
-  _test-libmambapy:
-    internal: true
-    deps: [{task: '_build', vars: {target: 'libmambapy'}}]
-    env:
-      PYTHONPATH: '{{.CMAKE_BUILD_DIR}}/libmambapy'
-    cmds:
-      - >-
-        {{.DEV_RUN}} python -m pytest libmambapy/tests/ {{.args}}
-  test-libmambapy:
-    cmds: [{task: _test-libmambapy, vars: {args: '{{.CLI_ARGS}}'}}]
-
   install-cpp:
     deps: [_build]
     cmds:
@@ -166,7 +155,16 @@ tasks:
     cmds:
       - >-
         {{.TEST_RUN}} python -m pip install
-        --no-deps --no-build-isolation --ignore-installed --editable libmambapy/
+        --no-deps --no-build-isolation --ignore-installed ./libmambapy/
+
+  _test-libmambapy:
+    internal: true
+    deps: [install-py]
+    cmds:
+      - >-
+        {{.TEST_RUN}} python -m pytest libmambapy/tests/ {{.args}}
+  test-libmambapy:
+    cmds: [{task: _test-libmambapy, vars: {args: '{{.CLI_ARGS}}'}}]
 
   stubgen:
     deps: [install-py]

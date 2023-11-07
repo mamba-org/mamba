@@ -8,6 +8,7 @@ dependencies:
   - clang
   - clangxx
   - lld
+  - cmake-format
   # C++ Debugging
   - gdb
   - valgrind

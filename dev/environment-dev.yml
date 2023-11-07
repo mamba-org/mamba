@@ -38,6 +38,8 @@ dependencies:
   - pip:
     - securesystemslib
   # libmambapy build dependencies
+  - scikit-build
+  - build
   - pybind11-stubgen <1.0
   # libmambapy dependencies
   - python

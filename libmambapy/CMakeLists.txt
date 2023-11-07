@@ -24,34 +24,37 @@ find_package(Python COMPONENTS Interpreter Development)
 find_package(pybind11 REQUIRED)
 
 pybind11_add_module(
-    libmambapy
+    core
     src/libmambapy/core/longpath.manifest
     src/libmambapy/core/libmambapy.cpp
     src/libmambapy/core/main.cpp
     src/libmambapy/core/version.cpp
 )
 
-target_include_directories(libmambapy PRIVATE src/)
+target_include_directories(core PRIVATE src/libmambapy/core)
 
-mamba_target_add_compile_warnings(libmambapy WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
+mamba_target_add_compile_warnings(core WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
 
-target_link_libraries(libmambapy PRIVATE pybind11::pybind11 ${libmamba_target})
-target_compile_features(libmambapy PRIVATE cxx_std_17)
+target_link_libraries(core PRIVATE pybind11::pybind11 ${libmamba_target})
+target_compile_features(core PRIVATE cxx_std_17)
 
 # Installation
 
-# WARNING: this default should probably not be used as it is but set extranlly by a proper Python
-# packager tool
-set(
-    MAMBA_INSTALL_PYTHON_EXT_LIBDIR
-    "lib/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages"
-    CACHE PATH "Installation directory for Python extension"
-)
+if(SKBUILD)
+    install(TARGETS core DESTINATION ${MAMBA_INSTALL_PYTHON_EXT_LIBDIR})
+else()
+    # WARNING: this default should probably not be used as it is but set extranlly by a proper
+    # Python packager tool
+    set(
+        MAMBA_INSTALL_PYTHON_EXT_LIBDIR
+        "lib"
+        CACHE PATH "Installation directory for Python extension"
+    )
 
-install(
-    TARGETS libmambapy
-    EXCLUDE_FROM_ALL
-    COMPONENT Mamba_Python_Extension
-    LIBRARY DESTINATION ${MAMBA_INSTALL_PYTHON_EXT_LIBDIR}
-    RUNTIME DESTINATION ${MAMBA_INSTALL_PYTHON_EXT_LIBDIR}
-)
+    install(
+        TARGETS core
+        EXCLUDE_FROM_ALL
+        COMPONENT Mamba_Python_Extension
+        DESTINATION ${MAMBA_INSTALL_PYTHON_EXT_LIBDIR}
+    )
+endif()

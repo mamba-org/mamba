@@ -6,7 +6,7 @@
 
 #include "libmambapy.hpp"
 
-PYBIND11_MODULE(libmambapy, m)
+PYBIND11_MODULE(core, m)
 {
     mamba::version::bind_submodule(m.def_submodule("version"));
     mamba::bindings::bind_submodule(m.def_submodule("bindings"));

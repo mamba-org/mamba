@@ -169,9 +169,9 @@ tasks:
   stubgen:
     deps: [install-py]
     cmds:
-      - '{{.TEST_RUN}} python -m pybind11_stubgen -o "{{.BUILD_DIR}}/stubs" libmambapy.bindings'
-      - cp "{{.BUILD_DIR}}/stubs/libmambapy/bindings-stubs/__init__.pyi" libmambapy/libmambapy/
-      - '{{.DEV_RUN}} pre-commit run --files libmambapy/libmambapy/__init__.pyi'
+      - '{{.TEST_RUN}} python -m pybind11_stubgen -o "{{.BUILD_DIR}}/stubs" libmambapy.core.bindings'
+      - cp "{{.BUILD_DIR}}/stubs/libmambapy/core/bindings-stubs/__init__.pyi" libmambapy/src/libmambapy/__init__.pyi
+      - '{{.DEV_RUN}} pre-commit run --files libmambapy/src/libmambapy/__init__.pyi'
 
   clean: 'rm -rf {{.BUILD_DIR}}'
 

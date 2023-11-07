@@ -1,5 +1,5 @@
 from __future__ import annotations
-import libmambapy.bindings
+import libmambapy.core.bindings
 import typing
 
 __all__ = [
@@ -113,6 +113,7 @@ __all__ = [
     "SubdirIndexEntry",
     "TimeRef",
     "Transaction",
+    "Version",
     "cache_fn_url",
     "cancel_json_output",
     "clean",
@@ -187,9 +188,9 @@ class ChannelPriority:
         """
         :type: int
         """
-    Disabled: libmambapy.bindings.ChannelPriority  # value = <ChannelPriority.Disabled: 0>
-    Flexible: libmambapy.bindings.ChannelPriority  # value = <ChannelPriority.Flexible: 1>
-    Strict: libmambapy.bindings.ChannelPriority  # value = <ChannelPriority.Strict: 2>
+    Disabled: libmambapy.core.bindings.ChannelPriority  # value = <ChannelPriority.Disabled: 0>
+    Flexible: libmambapy.core.bindings.ChannelPriority  # value = <ChannelPriority.Flexible: 1>
+    Strict: libmambapy.core.bindings.ChannelPriority  # value = <ChannelPriority.Strict: 2>
     __members__: dict  # value = {'Flexible': <ChannelPriority.Flexible: 1>, 'Strict': <ChannelPriority.Strict: 2>, 'Disabled': <ChannelPriority.Disabled: 0>}
     pass
 
@@ -423,7 +424,7 @@ class Context:
         @property
         def connect_timeout_secs(self) -> float:
             """
-            :type: int
+            :type: float
             """
         @connect_timeout_secs.setter
         def connect_timeout_secs(self, arg0: float) -> None:
@@ -551,7 +552,7 @@ class Context:
     @property
     def connect_timeout_secs(self) -> float:
         """
-        :type: int
+        :type: float
         """
     @connect_timeout_secs.setter
     def connect_timeout_secs(self, arg1: float) -> None:
@@ -941,13 +942,13 @@ class LogLevel:
         """
         :type: int
         """
-    CRITICAL: libmambapy.bindings.LogLevel  # value = <LogLevel.CRITICAL: 5>
-    DEBUG: libmambapy.bindings.LogLevel  # value = <LogLevel.DEBUG: 1>
-    ERROR: libmambapy.bindings.LogLevel  # value = <LogLevel.ERROR: 4>
-    INFO: libmambapy.bindings.LogLevel  # value = <LogLevel.INFO: 2>
-    OFF: libmambapy.bindings.LogLevel  # value = <LogLevel.OFF: 6>
-    TRACE: libmambapy.bindings.LogLevel  # value = <LogLevel.TRACE: 0>
-    WARNING: libmambapy.bindings.LogLevel  # value = <LogLevel.WARNING: 3>
+    CRITICAL: libmambapy.core.bindings.LogLevel  # value = <LogLevel.CRITICAL: 5>
+    DEBUG: libmambapy.core.bindings.LogLevel  # value = <LogLevel.DEBUG: 1>
+    ERROR: libmambapy.core.bindings.LogLevel  # value = <LogLevel.ERROR: 4>
+    INFO: libmambapy.core.bindings.LogLevel  # value = <LogLevel.INFO: 2>
+    OFF: libmambapy.core.bindings.LogLevel  # value = <LogLevel.OFF: 6>
+    TRACE: libmambapy.core.bindings.LogLevel  # value = <LogLevel.TRACE: 0>
+    WARNING: libmambapy.core.bindings.LogLevel  # value = <LogLevel.WARNING: 3>
     __members__: dict  # value = {'TRACE': <LogLevel.TRACE: 0>, 'DEBUG': <LogLevel.DEBUG: 1>, 'INFO': <LogLevel.INFO: 2>, 'WARNING': <LogLevel.WARNING: 3>, 'ERROR': <LogLevel.ERROR: 4>, 'CRITICAL': <LogLevel.CRITICAL: 5>, 'OFF': <LogLevel.OFF: 6>}
     pass
 
@@ -1248,11 +1249,11 @@ class QueryFormat:
         """
         :type: int
         """
-    JSON: libmambapy.bindings.QueryFormat  # value = <QueryFormat.JSON: 0>
-    PRETTY: libmambapy.bindings.QueryFormat  # value = <QueryFormat.PRETTY: 3>
-    RECURSIVETABLE: libmambapy.bindings.QueryFormat  # value = <QueryFormat.RECURSIVETABLE: 4>
-    TABLE: libmambapy.bindings.QueryFormat  # value = <QueryFormat.TABLE: 2>
-    TREE: libmambapy.bindings.QueryFormat  # value = <QueryFormat.TREE: 1>
+    JSON: libmambapy.core.bindings.QueryFormat  # value = <QueryFormat.JSON: 0>
+    PRETTY: libmambapy.core.bindings.QueryFormat  # value = <QueryFormat.PRETTY: 3>
+    RECURSIVETABLE: libmambapy.core.bindings.QueryFormat  # value = <QueryFormat.RECURSIVETABLE: 4>
+    TABLE: libmambapy.core.bindings.QueryFormat  # value = <QueryFormat.TABLE: 2>
+    TREE: libmambapy.core.bindings.QueryFormat  # value = <QueryFormat.TREE: 1>
     __members__: dict  # value = {'JSON': <QueryFormat.JSON: 0>, 'TREE': <QueryFormat.TREE: 1>, 'TABLE': <QueryFormat.TABLE: 2>, 'PRETTY': <QueryFormat.PRETTY: 3>, 'RECURSIVETABLE': <QueryFormat.RECURSIVETABLE: 4>}
     pass
 
@@ -1482,35 +1483,35 @@ class SolverRuleinfo:
         """
         :type: int
         """
-    SOLVER_RULE_BEST: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_BEST: 2304>
-    SOLVER_RULE_BLACK: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_BLACK: 3072>
-    SOLVER_RULE_CHOICE: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_CHOICE: 1792>
-    SOLVER_RULE_DISTUPGRADE: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_DISTUPGRADE: 1280>
-    SOLVER_RULE_FEATURE: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_FEATURE: 768>
-    SOLVER_RULE_INFARCH: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_INFARCH: 1536>
-    SOLVER_RULE_JOB: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_JOB: 1024>
-    SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP: 1025>
-    SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM: 1026>
-    SOLVER_RULE_JOB_UNKNOWN_PACKAGE: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_JOB_UNKNOWN_PACKAGE: 1027>
-    SOLVER_RULE_JOB_UNSUPPORTED: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_JOB_UNSUPPORTED: 1028>
-    SOLVER_RULE_LEARNT: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_LEARNT: 2048>
-    SOLVER_RULE_PKG: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG: 256>
-    SOLVER_RULE_PKG_CONFLICTS: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_CONFLICTS: 261>
-    SOLVER_RULE_PKG_CONSTRAINS: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_CONSTRAINS: 267>
-    SOLVER_RULE_PKG_IMPLICIT_OBSOLETES: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_IMPLICIT_OBSOLETES: 264>
-    SOLVER_RULE_PKG_INSTALLED_OBSOLETES: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_INSTALLED_OBSOLETES: 265>
-    SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP: 258>
-    SOLVER_RULE_PKG_NOT_INSTALLABLE: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_NOT_INSTALLABLE: 257>
-    SOLVER_RULE_PKG_OBSOLETES: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_OBSOLETES: 263>
-    SOLVER_RULE_PKG_RECOMMENDS: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_RECOMMENDS: 266>
-    SOLVER_RULE_PKG_REQUIRES: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_REQUIRES: 259>
-    SOLVER_RULE_PKG_SAME_NAME: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_SAME_NAME: 262>
-    SOLVER_RULE_PKG_SELF_CONFLICT: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_SELF_CONFLICT: 260>
-    SOLVER_RULE_RECOMMENDS: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_RECOMMENDS: 2816>
-    SOLVER_RULE_STRICT_REPO_PRIORITY: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_STRICT_REPO_PRIORITY: 3328>
-    SOLVER_RULE_UNKNOWN: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_UNKNOWN: 0>
-    SOLVER_RULE_UPDATE: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_UPDATE: 512>
-    SOLVER_RULE_YUMOBS: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_YUMOBS: 2560>
+    SOLVER_RULE_BEST: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_BEST: 2304>
+    SOLVER_RULE_BLACK: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_BLACK: 3072>
+    SOLVER_RULE_CHOICE: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_CHOICE: 1792>
+    SOLVER_RULE_DISTUPGRADE: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_DISTUPGRADE: 1280>
+    SOLVER_RULE_FEATURE: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_FEATURE: 768>
+    SOLVER_RULE_INFARCH: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_INFARCH: 1536>
+    SOLVER_RULE_JOB: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_JOB: 1024>
+    SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP: 1025>
+    SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM: 1026>
+    SOLVER_RULE_JOB_UNKNOWN_PACKAGE: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_JOB_UNKNOWN_PACKAGE: 1027>
+    SOLVER_RULE_JOB_UNSUPPORTED: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_JOB_UNSUPPORTED: 1028>
+    SOLVER_RULE_LEARNT: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_LEARNT: 2048>
+    SOLVER_RULE_PKG: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG: 256>
+    SOLVER_RULE_PKG_CONFLICTS: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_CONFLICTS: 261>
+    SOLVER_RULE_PKG_CONSTRAINS: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_CONSTRAINS: 267>
+    SOLVER_RULE_PKG_IMPLICIT_OBSOLETES: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_IMPLICIT_OBSOLETES: 264>
+    SOLVER_RULE_PKG_INSTALLED_OBSOLETES: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_INSTALLED_OBSOLETES: 265>
+    SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP: 258>
+    SOLVER_RULE_PKG_NOT_INSTALLABLE: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_NOT_INSTALLABLE: 257>
+    SOLVER_RULE_PKG_OBSOLETES: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_OBSOLETES: 263>
+    SOLVER_RULE_PKG_RECOMMENDS: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_RECOMMENDS: 266>
+    SOLVER_RULE_PKG_REQUIRES: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_REQUIRES: 259>
+    SOLVER_RULE_PKG_SAME_NAME: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_SAME_NAME: 262>
+    SOLVER_RULE_PKG_SELF_CONFLICT: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_SELF_CONFLICT: 260>
+    SOLVER_RULE_RECOMMENDS: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_RECOMMENDS: 2816>
+    SOLVER_RULE_STRICT_REPO_PRIORITY: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_STRICT_REPO_PRIORITY: 3328>
+    SOLVER_RULE_UNKNOWN: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_UNKNOWN: 0>
+    SOLVER_RULE_UPDATE: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_UPDATE: 512>
+    SOLVER_RULE_YUMOBS: libmambapy.core.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_YUMOBS: 2560>
     __members__: dict  # value = {'SOLVER_RULE_UNKNOWN': <SolverRuleinfo.SOLVER_RULE_UNKNOWN: 0>, 'SOLVER_RULE_PKG': <SolverRuleinfo.SOLVER_RULE_PKG: 256>, 'SOLVER_RULE_PKG_NOT_INSTALLABLE': <SolverRuleinfo.SOLVER_RULE_PKG_NOT_INSTALLABLE: 257>, 'SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP': <SolverRuleinfo.SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP: 258>, 'SOLVER_RULE_PKG_REQUIRES': <SolverRuleinfo.SOLVER_RULE_PKG_REQUIRES: 259>, 'SOLVER_RULE_PKG_SELF_CONFLICT': <SolverRuleinfo.SOLVER_RULE_PKG_SELF_CONFLICT: 260>, 'SOLVER_RULE_PKG_CONFLICTS': <SolverRuleinfo.SOLVER_RULE_PKG_CONFLICTS: 261>, 'SOLVER_RULE_PKG_SAME_NAME': <SolverRuleinfo.SOLVER_RULE_PKG_SAME_NAME: 262>, 'SOLVER_RULE_PKG_OBSOLETES': <SolverRuleinfo.SOLVER_RULE_PKG_OBSOLETES: 263>, 'SOLVER_RULE_PKG_IMPLICIT_OBSOLETES': <SolverRuleinfo.SOLVER_RULE_PKG_IMPLICIT_OBSOLETES: 264>, 'SOLVER_RULE_PKG_INSTALLED_OBSOLETES': <SolverRuleinfo.SOLVER_RULE_PKG_INSTALLED_OBSOLETES: 265>, 'SOLVER_RULE_PKG_RECOMMENDS': <SolverRuleinfo.SOLVER_RULE_PKG_RECOMMENDS: 266>, 'SOLVER_RULE_PKG_CONSTRAINS': <SolverRuleinfo.SOLVER_RULE_PKG_CONSTRAINS: 267>, 'SOLVER_RULE_UPDATE': <SolverRuleinfo.SOLVER_RULE_UPDATE: 512>, 'SOLVER_RULE_FEATURE': <SolverRuleinfo.SOLVER_RULE_FEATURE: 768>, 'SOLVER_RULE_JOB': <SolverRuleinfo.SOLVER_RULE_JOB: 1024>, 'SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP': <SolverRuleinfo.SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP: 1025>, 'SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM': <SolverRuleinfo.SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM: 1026>, 'SOLVER_RULE_JOB_UNKNOWN_PACKAGE': <SolverRuleinfo.SOLVER_RULE_JOB_UNKNOWN_PACKAGE: 1027>, 'SOLVER_RULE_JOB_UNSUPPORTED': <SolverRuleinfo.SOLVER_RULE_JOB_UNSUPPORTED: 1028>, 'SOLVER_RULE_DISTUPGRADE': <SolverRuleinfo.SOLVER_RULE_DISTUPGRADE: 1280>, 'SOLVER_RULE_INFARCH': <SolverRuleinfo.SOLVER_RULE_INFARCH: 1536>, 'SOLVER_RULE_CHOICE': <SolverRuleinfo.SOLVER_RULE_CHOICE: 1792>, 'SOLVER_RULE_LEARNT': <SolverRuleinfo.SOLVER_RULE_LEARNT: 2048>, 'SOLVER_RULE_BEST': <SolverRuleinfo.SOLVER_RULE_BEST: 2304>, 'SOLVER_RULE_YUMOBS': <SolverRuleinfo.SOLVER_RULE_YUMOBS: 2560>, 'SOLVER_RULE_RECOMMENDS': <SolverRuleinfo.SOLVER_RULE_RECOMMENDS: 2816>, 'SOLVER_RULE_BLACK': <SolverRuleinfo.SOLVER_RULE_BLACK: 3072>, 'SOLVER_RULE_STRICT_REPO_PRIORITY': <SolverRuleinfo.SOLVER_RULE_STRICT_REPO_PRIORITY: 3328>}
     pass
 
@@ -1596,6 +1597,12 @@ class Transaction:
         typing.List[typing.Tuple[str, str, str]],
         typing.List[typing.Tuple[str, str]],
     ]: ...
+    pass
+
+class Version:
+    def __str__(self) -> str: ...
+    @staticmethod
+    def parse(arg0: str) -> Version: ...
     pass
 
 class ostream_redirect:

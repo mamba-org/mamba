@@ -4,7 +4,7 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 
-cmake_minimum_required (VERSION 3.16)
+cmake_minimum_required(VERSION 3.16)
 cmake_policy(SET CMP0025 NEW) # Introduced in cmake 3.0
 cmake_policy(SET CMP0077 NEW) # Introduced in cmake 3.13
 
@@ -13,21 +13,19 @@ project(mamba-package)
 # Source files
 # ============
 
-set(MAMBA_PACKAGE_SRCS
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/package.cpp
+set(
+    MAMBA_PACKAGE_SRCS
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/package.cpp
 )
 
-set(MAMBA_PACKAGE_HEADERS
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/package.hpp
-)
+set(MAMBA_PACKAGE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/src/package.hpp)
 
 # Dependencies
 # ============
 
 if(NOT TARGET mamba::libmamba)
     find_package(libmamba REQUIRED)
-endif ()
+endif()
 
 # Build definition
 # ================

@@ -4,7 +4,7 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 
-cmake_minimum_required (VERSION 3.16)
+cmake_minimum_required(VERSION 3.16)
 cmake_policy(SET CMP0025 NEW) # Introduced in cmake 3.0
 cmake_policy(SET CMP0077 NEW) # Introduced in cmake 3.13
 project(libmamba)
@@ -15,32 +15,45 @@ set(LIBMAMBA_DATA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/data)
 
 # Versioning
 # ===========
-file(STRINGS "${LIBMAMBA_INCLUDE_DIR}/mamba/version.hpp" libmamba_version_defines
-     REGEX "#define LIBMAMBA_VERSION_(MAJOR|MINOR|PATCH)")
+file(
+    STRINGS "${LIBMAMBA_INCLUDE_DIR}/mamba/version.hpp" libmamba_version_defines
+    REGEX "#define LIBMAMBA_VERSION_(MAJOR|MINOR|PATCH)"
+)
 foreach(ver ${libmamba_version_defines})
     if(ver MATCHES "#define LIBMAMBA_VERSION_(MAJOR|MINOR|PATCH) +([^ ]+)$")
-        set(LIBMAMBA_VERSION_${CMAKE_MATCH_1} "${CMAKE_MATCH_2}" CACHE INTERNAL "")
+        set(
+            LIBMAMBA_VERSION_${CMAKE_MATCH_1}
+            "${CMAKE_MATCH_2}"
+            CACHE INTERNAL ""
+        )
     endif()
 endforeach()
-set(${PROJECT_NAME}_VERSION
-    ${LIBMAMBA_VERSION_MAJOR}.${LIBMAMBA_VERSION_MINOR}.${LIBMAMBA_VERSION_PATCH})
+set(
+    ${PROJECT_NAME}_VERSION
+    ${LIBMAMBA_VERSION_MAJOR}.${LIBMAMBA_VERSION_MINOR}.${LIBMAMBA_VERSION_PATCH}
+)
 message(STATUS "Building libmamba v${${PROJECT_NAME}_VERSION}")
 
-
-# Binary version
-# See the following URL for explanations about the binary versionning
+# Binary version See the following URL for explanations about the binary versionning
 # https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html#Updating-version-info
-file(STRINGS "${LIBMAMBA_INCLUDE_DIR}/mamba/version.hpp" libmamba_version_defines
-     REGEX "#define LIBMAMBA_BINARY_(CURRENT|REVISION|AGE)")
+file(
+    STRINGS "${LIBMAMBA_INCLUDE_DIR}/mamba/version.hpp" libmamba_version_defines
+    REGEX "#define LIBMAMBA_BINARY_(CURRENT|REVISION|AGE)"
+)
 foreach(ver ${libmamba_version_defines})
     if(ver MATCHES "#define LIBMAMBA_BINARY_(CURRENT|REVISION|AGE) +([^ ]+)$")
-        set(LIBMAMBA_BINARY_${CMAKE_MATCH_1} "${CMAKE_MATCH_2}" CACHE INTERNAL "")
+        set(
+            LIBMAMBA_BINARY_${CMAKE_MATCH_1}
+            "${CMAKE_MATCH_2}"
+            CACHE INTERNAL ""
+        )
     endif()
 endforeach()
-set(LIBMAMBA_BINARY_VERSION
-    ${LIBMAMBA_BINARY_CURRENT}.${LIBMAMBA_BINARY_REVISION}.${LIBMAMBA_BINARY_AGE})
+set(
+    LIBMAMBA_BINARY_VERSION
+    ${LIBMAMBA_BINARY_CURRENT}.${LIBMAMBA_BINARY_REVISION}.${LIBMAMBA_BINARY_AGE}
+)
 message(STATUS "libmamba binary version: v${LIBMAMBA_BINARY_VERSION}")
-
 
 # Build options
 # =============
@@ -48,48 +61,64 @@ message(STATUS "libmamba binary version: v${LIBMAMBA_BINARY_VERSION}")
 option(BUILD_TESTS "Build libmamba C++ tests" OFF)
 option(BUILD_SHARED "Build shared libmamba library" OFF)
 option(BUILD_STATIC "Build static libmamba library with static linkage to its dependencies" OFF)
-set(BUILD_LOG_LEVEL "TRACE" CACHE STRING "Logger active level at compile time")
+set(
+    BUILD_LOG_LEVEL
+    "TRACE"
+    CACHE STRING "Logger active level at compile time"
+)
 
-if (NOT ${BUILD_LOG_LEVEL} MATCHES "^(TRACE|DEBUG|INFO|WARN|ERROR|CRITICAL|OFF)$")
-    message(FATAL_ERROR "Invalid log level: ${BUILD_LOG_LEVEL}, should be one of { TRACE, DEBUG, INFO, WARN, ERROR, CRITICAL, OFF }")
-endif ()
+if(NOT ${BUILD_LOG_LEVEL} MATCHES "^(TRACE|DEBUG|INFO|WARN|ERROR|CRITICAL|OFF)$")
+    message(
+        FATAL_ERROR
+            "Invalid log level: ${BUILD_LOG_LEVEL}, should be one of { TRACE, DEBUG, INFO, WARN, ERROR, CRITICAL, OFF }"
+    )
+endif()
 
-if (BUILD_STATIC)
+if(BUILD_STATIC)
     add_definitions("-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${BUILD_LOG_LEVEL}")
     add_definitions(-DLIBMAMBA_STATIC_DEPS)
-endif ()
+endif()
 
-if (WIN32)
+if(WIN32)
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-endif ()
+endif()
 
 option(ENABLE_ASAN "Enable Address-Sanitizer (currently only supported on GCC and Clang)" OFF)
 
 if(ENABLE_ASAN)
-    message(WARNING "Address-Sanitizer instrumentation will be injected into binaries - do not release these binaries")
-    add_compile_options(-fno-omit-frame-pointer  -fsanitize=address)
-    add_link_options(-fno-omit-frame-pointer  -fsanitize=address)
+    message(
+        WARNING
+            "Address-Sanitizer instrumentation will be injected into binaries - do not release these binaries"
+    )
+    add_compile_options(-fno-omit-frame-pointer -fsanitize=address)
+    add_link_options(-fno-omit-frame-pointer -fsanitize=address)
 endif()
 
 if(ENABLE_TSAN)
-    message(WARNING "Thread-Sanitizer instrumentation will be injected into binaries - do not release these binaries")
-    add_compile_options(-fno-omit-frame-pointer  -fsanitize=thread)
-    add_link_options(-fno-omit-frame-pointer  -fsanitize=thread)
+    message(
+        WARNING
+            "Thread-Sanitizer instrumentation will be injected into binaries - do not release these binaries"
+    )
+    add_compile_options(-fno-omit-frame-pointer -fsanitize=thread)
+    add_link_options(-fno-omit-frame-pointer -fsanitize=thread)
 endif()
 
 if(ENABLE_USAN)
-    message(WARNING "Undefined-Sanitizer instrumentation will be injected into binaries - do not release these binaries")
-    add_compile_options(-fno-omit-frame-pointer  -fsanitize=undefined)
-    add_link_options(-fno-omit-frame-pointer  -fsanitize=undefined)
+    message(
+        WARNING
+            "Undefined-Sanitizer instrumentation will be injected into binaries - do not release these binaries"
+    )
+    add_compile_options(-fno-omit-frame-pointer -fsanitize=undefined)
+    add_link_options(-fno-omit-frame-pointer -fsanitize=undefined)
 endif()
-
 
 # Source files
 # ============
 
-find_package (Python3 COMPONENTS Interpreter)
+find_package(Python3 COMPONENTS Interpreter)
 
-set(SHELL_SCRIPTS
+set(
+    SHELL_SCRIPTS
     micromamba.sh
     micromamba.csh
     micromamba.bat
@@ -101,21 +130,24 @@ set(SHELL_SCRIPTS
     mamba.xsh
     mamba.fish
     compile_pyc.py
-    mamba_completion.posix)
+    mamba_completion.posix
+)
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/shell_scripts)
 foreach(script ${SHELL_SCRIPTS})
     string(REPLACE "." "_" script_var ${script})
-    add_custom_command(OUTPUT shell_scripts/${script}.cpp
-                       DEPENDS data/${script}
-                       COMMAND ${Python3_EXECUTABLE} ${LIBMAMBA_DATA_DIR}/bin2header.py
-                        --extern
-                        -v data_${script_var}
-                        -i ${CMAKE_CURRENT_SOURCE_DIR}/data/${script}
-                        -o ${CMAKE_CURRENT_BINARY_DIR}/shell_scripts/${script}.cpp)
+    add_custom_command(
+        OUTPUT shell_scripts/${script}.cpp
+        DEPENDS data/${script}
+        COMMAND
+            ${Python3_EXECUTABLE} ${LIBMAMBA_DATA_DIR}/bin2header.py --extern -v data_${script_var}
+            -i ${CMAKE_CURRENT_SOURCE_DIR}/data/${script} -o
+            ${CMAKE_CURRENT_BINARY_DIR}/shell_scripts/${script}.cpp
+    )
 endforeach()
 
-set(LIBMAMBA_SOURCES
+set(
+    LIBMAMBA_SOURCES
     longpath.manifest
     ${LIBMAMBA_SOURCE_DIR}/version.cpp
     # Filesystem library
@@ -191,7 +223,6 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/env_lockfile.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/execution.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/timeref.cpp
-
     # API (high-level)
     ${LIBMAMBA_SOURCE_DIR}/api/c_api.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/channel_loader.cpp
@@ -212,7 +243,8 @@ foreach(script ${SHELL_SCRIPTS})
     list(APPEND LIBMAMBA_SOURCES shell_scripts/${script}.cpp)
 endforeach()
 
-set(LIBMAMBA_PUBLIC_HEADERS
+set(
+    LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/version.hpp
     # Filesystem library
     ${LIBMAMBA_INCLUDE_DIR}/mamba/fs/filesystem.hpp
@@ -310,7 +342,8 @@ set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/update.hpp
 )
 
-set(LIBMAMBA_PRIVATE_HEADERS
+set(
+    LIBMAMBA_PRIVATE_HEADERS
     # C++ wrapping of libsolv
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.hpp
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/ids.hpp
@@ -340,34 +373,24 @@ find_package(Libsolv REQUIRED)
 
 macro(libmamba_create_target target_name linkage output_name)
     string(TOUPPER "${linkage}" linkage_upper)
-    if (NOT ${linkage_upper} MATCHES "^(SHARED|STATIC)$")
+    if(NOT ${linkage_upper} MATCHES "^(SHARED|STATIC)$")
         message(FATAL_ERROR "Invalid library linkage: ${linkage}")
-    endif ()
+    endif()
 
     # Output
     # ======
     add_library(
-        ${target_name} ${linkage_upper}
-        ${LIBMAMBA_PUBLIC_HEADERS}
-        ${LIBMAMBA_PRIVATE_HEADERS}
-        ${LIBMAMBA_SOURCES}
+        ${target_name}
+        ${linkage_upper} ${LIBMAMBA_PUBLIC_HEADERS} ${LIBMAMBA_PRIVATE_HEADERS} ${LIBMAMBA_SOURCES}
     )
 
     # Header only libraries are always linked the same way
-    target_link_libraries(
-        ${target_name}
-        PUBLIC
-            tl::expected
-            nlohmann_json::nlohmann_json
-     )
+    target_link_libraries(${target_name} PUBLIC tl::expected nlohmann_json::nlohmann_json)
 
-    mamba_target_add_compile_warnings(
-        ${target_name}
-        WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR}
-    )
+    mamba_target_add_compile_warnings(${target_name} WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
     mamba_target_set_lto(${target_name} MODE ${MAMBA_LTO})
 
-    if (${linkage_upper} STREQUAL "STATIC")
+    if(${linkage_upper} STREQUAL "STATIC")
         message("   -> Statically linking against libmamba (static) dependencies")
 
         target_compile_definitions(${target_name} PUBLIC SPDLOG_FMT_EXTERNAL)
@@ -386,65 +409,62 @@ macro(libmamba_create_target target_name linkage output_name)
                 yaml-cpp::yaml-cpp
                 solv::libsolv_static
                 solv::libsolvext_static
-            PRIVATE
-                reproc
-                reproc++
-                simdjson::simdjson_static
+            PRIVATE reproc reproc++ simdjson::simdjson_static
         )
 
-        if (UNIX)
+        if(UNIX)
 
-            set(REQUIRED_STATIC_DEPS
+            set(
+                REQUIRED_STATIC_DEPS
                 libcurl.a
                 libssh2.a
-
                 libgssapi_krb5.a
                 libkrb5.a
                 libk5crypto.a
                 libkrb5support.a
                 libcom_err.a
-
                 libssl.a
                 libcrypto.a
-
                 libarchive.a
-
                 libiconv.a
                 libbz2.a
                 liblz4.a
                 libzstd.a
                 libz.a
                 liblzma.a
-
                 libnghttp2.a
             )
-            if (APPLE)
+            if(APPLE)
                 set(REQUIRED_STATIC_DEPS ${REQUIRED_STATIC_DEPS} libc++.a)
             endif()
 
-            if (UNIX AND NOT APPLE)
+            if(UNIX AND NOT APPLE)
                 list(REMOVE_ITEM REQUIRED_STATIC_DEPS libiconv.a)
             endif()
 
             set(STATIC_DEPS "")
             foreach(LIB ${REQUIRED_STATIC_DEPS})
                 set(TMP_LIB "${LIB}-NOTFOUND")
-                find_library(TMP_LIB
-                    NAMES "${LIB}"
-                )
-                if (NOT ${TMP_LIB} STREQUAL "TMP_LIB-NOTFOUND")
+                find_library(TMP_LIB NAMES "${LIB}")
+                if(NOT ${TMP_LIB} STREQUAL "TMP_LIB-NOTFOUND")
                     list(APPEND STATIC_DEPS "${TMP_LIB}")
-                else ()
+                else()
                     list(APPEND STATIC_DEPS "${LIB}-NOTFOUND")
-                endif ()
+                endif()
             endforeach(LIB)
 
-            if (APPLE)
+            if(APPLE)
                 find_library(SECURITY_LIBRARY Security)
                 find_library(SYSTEMCONFIGURATION_LIBRARY SystemConfiguration)
                 find_library(COREFOUNDATION_LIBRARY CoreFoundation)
                 message("Found library: ${SECURITY_LIBRARY}\n${COREFOUNDATION_LIBRARY}")
-                list(APPEND STATIC_DEPS ${COREFOUNDATION_LIBRARY} ${SECURITY_LIBRARY} ${SYSTEMCONFIGURATION_LIBRARY})
+                list(
+                    APPEND
+                    STATIC_DEPS
+                    ${COREFOUNDATION_LIBRARY}
+                    ${SECURITY_LIBRARY}
+                    ${SYSTEMCONFIGURATION_LIBRARY}
+                )
             endif()
 
             message("   -> Found static dependencies:")
@@ -452,22 +472,17 @@ macro(libmamba_create_target target_name linkage output_name)
                 message("      - ${LIB}")
             endforeach(LIB)
 
-            if (APPLE)
-                set (MAMBA_FORCE_DYNAMIC_LIBS resolv c++abi)
+            if(APPLE)
+                set(MAMBA_FORCE_DYNAMIC_LIBS resolv c++abi)
                 target_link_options(${target_name} PRIVATE -static-libstdc++)
-            elseif (UNIX)
+            elseif(UNIX)
                 set(MAMBA_FORCE_DYNAMIC_LIBS rt dl resolv)
                 target_link_options(${target_name} PUBLIC -static-libstdc++ -static-libgcc)
             endif()
 
-            target_link_libraries(
-              ${target_name}
-              PUBLIC
-                ${STATIC_DEPS}
-                ${MAMBA_FORCE_DYNAMIC_LIBS}
-             )
+            target_link_libraries(${target_name} PUBLIC ${STATIC_DEPS} ${MAMBA_FORCE_DYNAMIC_LIBS})
 
-        elseif (WIN32)
+        elseif(WIN32)
 
             set(CMAKE_PREFIX_PATH "$ENV{VCPKG_ROOT}/installed/x64-windows-static-md/")
 
@@ -486,29 +501,28 @@ macro(libmamba_create_target target_name linkage output_name)
             find_library(CHARSET_LIBRARY NAMES libcharset charset)
             message("Found: ${LIBXML2_LIBRARY} ${ICONV_LIBRARY} ${CHARSET_LIBRARY}")
 
-            target_link_libraries(${target_name} PUBLIC
-                ${CRYPTO_LIBRARIES}
-                ${LibArchive_LIBRARY}
-                ${LIBXML2_LIBRARY}
-                ${ICONV_LIBRARY}
-                ${CHARSET_LIBRARY}
-                zstd::libzstd_static
-                ${LZ4_LIBRARY}
-                ${LZO2_LIBRARY}
-                ${BZIP2_LIBRARIES}
-                ${LIBLZMA_LIBRARIES}
-                CURL::libcurl
-                ${sodium_LIBRARY_RELEASE}
+            target_link_libraries(
+                ${target_name}
+                PUBLIC
+                    ${CRYPTO_LIBRARIES}
+                    ${LibArchive_LIBRARY}
+                    ${LIBXML2_LIBRARY}
+                    ${ICONV_LIBRARY}
+                    ${CHARSET_LIBRARY}
+                    zstd::libzstd_static
+                    ${LZ4_LIBRARY}
+                    ${LZO2_LIBRARY}
+                    ${BZIP2_LIBRARIES}
+                    ${LIBLZMA_LIBRARIES}
+                    CURL::libcurl
+                    ${sodium_LIBRARY_RELEASE}
             )
 
-            add_compile_definitions(
-              LIBARCHIVE_STATIC
-              CURL_STATICLIB
-            )
+            add_compile_definitions(LIBARCHIVE_STATIC CURL_STATICLIB)
             include_directories($ENV{CONDA_PREFIX}/Library/include/)
             include_directories($ENV{VCPKG_ROOT}/installed/x64-windows-static-md/include/)
         endif()
-    else ()
+    else()
         message("   -> Dynamically linking against libmamba (shared) dependencies")
 
         mamba_target_check_type(yaml-cpp::yaml-cpp SHARED_LIBRARY WARNING)
@@ -534,29 +548,24 @@ macro(libmamba_create_target target_name linkage output_name)
                 BZip2::BZip2
                 yaml-cpp::yaml-cpp
                 fmt::fmt
-                # Since conda-forge spdlog is built with a bundled version of fmt we use the
-                # header only version to avoid chasing after the correct fmt version mathching
-                # the one used in the bundle
+                # Since conda-forge spdlog is built with a bundled version of fmt we use the header
+                # only version to avoid chasing after the correct fmt version mathching the one used
+                # in the bundle
                 spdlog::spdlog_header_only
                 solv::libsolv
                 solv::libsolvext
-            PRIVATE
-                reproc
-                reproc++
-                simdjson::simdjson
+            PRIVATE reproc reproc++ simdjson::simdjson
         )
-    endif ()
+    endif()
 
     target_compile_features(${target_name} PUBLIC cxx_std_17)
 
     target_include_directories(
         ${target_name}
-        PUBLIC
-            $<BUILD_INTERFACE:${LIBMAMBA_INCLUDE_DIR}>
-            $<INSTALL_INTERFACE:include>
+        PUBLIC $<BUILD_INTERFACE:${LIBMAMBA_INCLUDE_DIR}> $<INSTALL_INTERFACE:include>
     )
 
-    if (WIN32)
+    if(WIN32)
         find_path(
             WINREG_INCLUDE_DIR
             NAMES WinReg.hpp
@@ -564,67 +573,62 @@ macro(libmamba_create_target target_name linkage output_name)
         )
     endif()
 
-    target_include_directories(
-        ${target_name}
-        PRIVATE
-            ${LIBMAMBA_SOURCE_DIR}
-            ${WINREG_INCLUDE_DIR}
-    )
+    target_include_directories(${target_name} PRIVATE ${LIBMAMBA_SOURCE_DIR} ${WINREG_INCLUDE_DIR})
 
-    if (UNIX)
+    if(UNIX)
         math(EXPR LIBMAMBA_BINARY_COMPATIBLE "${LIBMAMBA_BINARY_CURRENT} - ${LIBMAMBA_BINARY_AGE}")
         set_target_properties(
             ${target_name}
             PROPERTIES
-            #PUBLIC_HEADER "${LIBMAMBA_PUBLIC_HEADERS}"
-            COMPILE_DEFINITIONS "LIBMAMBA_EXPORTS"
-            PREFIX ""
-            VERSION "${LIBMAMBA_BINARY_COMPATIBLE}.${LIBMAMBA_BINARY_REVISION}.${LIBMAMBA_BINARY_AGE}"
-            SOVERSION ${LIBMAMBA_BINARY_COMPATIBLE}
-            OUTPUT_NAME "${output_name}"
+                # PUBLIC_HEADER "${LIBMAMBA_PUBLIC_HEADERS}"
+                COMPILE_DEFINITIONS "LIBMAMBA_EXPORTS"
+                PREFIX ""
+                VERSION
+                "${LIBMAMBA_BINARY_COMPATIBLE}.${LIBMAMBA_BINARY_REVISION}.${LIBMAMBA_BINARY_AGE}"
+                SOVERSION ${LIBMAMBA_BINARY_COMPATIBLE}
+                OUTPUT_NAME "${output_name}"
         )
     else()
         set_target_properties(
             ${target_name}
             PROPERTIES
-            #PUBLIC_HEADER "${LIBMAMBA_PUBLIC_HEADERS}"
-            COMPILE_DEFINITIONS "LIBMAMBA_EXPORTS"
-            PREFIX ""
-            VERSION ${LIBMAMBA_BINARY_VERSION}
-            SOVERSION ${LIBMAMBA_BINARY_CURRENT}
-            OUTPUT_NAME "${output_name}"
+                # PUBLIC_HEADER "${LIBMAMBA_PUBLIC_HEADERS}"
+                COMPILE_DEFINITIONS "LIBMAMBA_EXPORTS"
+                PREFIX ""
+                VERSION ${LIBMAMBA_BINARY_VERSION}
+                SOVERSION ${LIBMAMBA_BINARY_CURRENT}
+                OUTPUT_NAME "${output_name}"
         )
         target_compile_definitions(${target_name} PUBLIC GHC_WIN_DISABLE_WSTRING_STORAGE_TYPE)
     endif()
 
-    if (${linkage_upper} STREQUAL "STATIC")
+    if(${linkage_upper} STREQUAL "STATIC")
         find_package(Threads REQUIRED)
 
         target_link_libraries(${target_name} PUBLIC Threads::Threads)
-    endif ()
+    endif()
 
     list(APPEND libmamba_targets ${target_name})
     add_library(mamba::${target_name} ALIAS ${target_name})
 endmacro()
 
-
 set(libmamba_targets "")
 
-if (BUILD_SHARED)
+if(BUILD_SHARED)
     message(STATUS "Adding shared libmamba target")
     libmamba_create_target(libmamba-dyn SHARED libmamba)
-endif ()
+endif()
 
-if (BUILD_STATIC)
+if(BUILD_STATIC)
     message(STATUS "Adding static libmamba target")
 
-    # On Windows, a static library should use a different output name
-    # to avoid the conflict with the import library of a shared one.
-    if (CMAKE_HOST_WIN32)
+    # On Windows, a static library should use a different output name to avoid the conflict with the
+    # import library of a shared one.
+    if(CMAKE_HOST_WIN32)
         libmamba_create_target(libmamba-static STATIC libmamba_static)
-    else ()
+    else()
         libmamba_create_target(libmamba-static STATIC libmamba)
-    endif ()
+    endif()
 endif()
 
 if(BUILD_SHARED_LIBS AND BUILD_SHARED)
@@ -635,10 +639,10 @@ elseif(BUILD_SHARED)
     add_library(mamba::libmamba ALIAS libmamba-dyn)
 else()
     message(FATAL_ERROR "Select at least a build variant for libmamba")
-endif ()
+endif()
 
 # Tests
-if (BUILD_LIBMAMBA_TESTS)
+if(BUILD_LIBMAMBA_TESTS)
     add_subdirectory(tests)
 endif()
 
@@ -648,19 +652,27 @@ endif()
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
-set(LIBMAMBA_CMAKECONFIG_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}" CACHE STRING "install path for libmambaConfig.cmake")
+set(
+    LIBMAMBA_CMAKECONFIG_INSTALL_DIR
+    "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
+    CACHE STRING "install path for libmambaConfig.cmake"
+)
 
-install(TARGETS ${libmamba_targets}
-        EXPORT ${PROJECT_NAME}-targets
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(
+    TARGETS ${libmamba_targets}
+    EXPORT ${PROJECT_NAME}-targets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
 
-install(DIRECTORY "${LIBMAMBA_INCLUDE_DIR}/"
-        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
-        FILES_MATCHING
-        PATTERN "*.hpp"
-        PATTERN "*.h")
+install(
+    DIRECTORY "${LIBMAMBA_INCLUDE_DIR}/"
+    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+    FILES_MATCHING
+    PATTERN "*.hpp"
+    PATTERN "*.h"
+)
 
 # Makes the project importable from the build directory
 export(
@@ -671,25 +683,36 @@ export(
 
 # Configure 'mambaConfig.cmake' for a build tree
 set(MAMBA_CONFIG_CODE "####### Expanded from \@MAMBA_CONFIG_CODE\@ #######\n")
-set(MAMBA_CONFIG_CODE "${MAMBA_CONFIG_CODE}set(CMAKE_MODULE_PATH \"${CMAKE_CURRENT_SOURCE_DIR}/cmake;\${CMAKE_MODULE_PATH}\")\n")
+set(
+    MAMBA_CONFIG_CODE
+    "${MAMBA_CONFIG_CODE}set(CMAKE_MODULE_PATH \"${CMAKE_CURRENT_SOURCE_DIR}/cmake;\${CMAKE_MODULE_PATH}\")\n"
+)
 set(MAMBA_CONFIG_CODE "${MAMBA_CONFIG_CODE}##################################################")
-configure_package_config_file(${PROJECT_NAME}Config.cmake.in
-                                "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-                                INSTALL_DESTINATION ${PROJECT_BINARY_DIR})
+configure_package_config_file(
+    ${PROJECT_NAME}Config.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+    INSTALL_DESTINATION ${PROJECT_BINARY_DIR}
+)
 
 # Configure 'mambaConfig.cmake' for an install tree
 set(MAMBA_CONFIG_CODE "")
-configure_package_config_file(${PROJECT_NAME}Config.cmake.in
-                                "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}Config.cmake"
-                                INSTALL_DESTINATION ${LIBMAMBA_CMAKECONFIG_INSTALL_DIR})
+configure_package_config_file(
+    ${PROJECT_NAME}Config.cmake.in
+    "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}Config.cmake"
+    INSTALL_DESTINATION ${LIBMAMBA_CMAKECONFIG_INSTALL_DIR}
+)
 
-
-write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
-                                    VERSION ${MAMBA_VERSION_MAJOR}.${MAMBA_VERSION_MINOR}.${MAMBA_VERSION_PATCH}
-                                    COMPATIBILITY AnyNewerVersion)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}Config.cmake
-                ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
-                DESTINATION ${LIBMAMBA_CMAKECONFIG_INSTALL_DIR})
-install(EXPORT ${PROJECT_NAME}-targets
-        FILE ${PROJECT_NAME}Targets.cmake
-        DESTINATION ${LIBMAMBA_CMAKECONFIG_INSTALL_DIR})
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+    VERSION ${MAMBA_VERSION_MAJOR}.${MAMBA_VERSION_MINOR}.${MAMBA_VERSION_PATCH}
+    COMPATIBILITY AnyNewerVersion
+)
+install(
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}Config.cmake
+          ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+    DESTINATION ${LIBMAMBA_CMAKECONFIG_INSTALL_DIR}
+)
+install(
+    EXPORT ${PROJECT_NAME}-targets
+    FILE ${PROJECT_NAME}Targets.cmake
+    DESTINATION ${LIBMAMBA_CMAKECONFIG_INSTALL_DIR}
+)

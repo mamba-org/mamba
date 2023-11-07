@@ -1,0 +1,32 @@
+{
+  "encode": {
+    "emit_byteorder_mark": false,
+    "input_encoding": "utf-8",
+    "output_encoding": "utf-8"
+  },
+  "format": {
+    "always_wrap": [],
+    "autosort": false,
+    "command_case": "lower",
+    "dangle_align": "prefix",
+    "dangle_parens": true,
+    "enable_sort": true,
+    "keyword_case": "upper",
+    "layout_passes": {},
+    "line_ending": "unix",
+    "line_width": 100,
+    "max_lines_hwrap": 0,
+    "max_pargs_hwrap": 6,
+    "max_prefix_chars": 0,
+    "max_rows_cmdline": 1,
+    "max_subgroups_hwrap": 2,
+    "min_prefix_chars": 0,
+    "require_valid_layout": false,
+    "separate_ctrl_name_with_space": false,
+    "separate_fn_name_with_space": false,
+    "tab_size": 4
+  },
+  "misc": {
+    "per_command": {}
+  }
+}

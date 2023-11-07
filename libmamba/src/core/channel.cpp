@@ -7,6 +7,7 @@
 #include <cassert>
 #include <set>
 #include <tuple>
+#include <unordered_set>
 #include <utility>
 
 #include "mamba/core/channel.hpp"
@@ -435,40 +436,37 @@ namespace mamba
         return it->second;
     }
 
-    std::vector<const Channel*>
-    ChannelContext::get_channels(const std::vector<std::string>& channel_names)
+    auto ChannelContext::get_channels(const std::vector<std::string>& channel_names) -> channel_list
     {
-        std::set<const Channel*> added;
-        std::vector<const Channel*> result;
+        auto added = std::unordered_set<Channel>();
+        auto result = channel_list();
         for (auto name : channel_names)
         {
-            std::string platform_spec;
-            auto platform_spec_ind = name.find("[");
-            if (platform_spec_ind != std::string::npos)
-            {
-                platform_spec = name.substr(platform_spec_ind);
-                name = name.substr(0, platform_spec_ind);
-            }
+            auto spec = specs::ChannelSpec::parse(name);
 
-            auto add_channel = [&](const std::string& lname)
+            const auto& multi_chan = get_custom_multichannels();
+            if (auto iter = multi_chan.find(spec.location()); iter != multi_chan.end())
             {
-                auto* channel = &make_channel(lname + platform_spec);
-                if (added.insert(channel).second)
+                for (const auto& chan : iter->second)
                 {
-                    result.push_back(channel);
-                }
-            };
-            auto multi_iter = get_custom_multichannels().find(name);
-            if (multi_iter != get_custom_multichannels().end())
-            {
-                for (const auto& n : multi_iter->second)
-                {
-                    add_channel(n);
+                    auto channel = chan;
+                    if (!spec.platform_filters().empty())
+                    {
+                        channel.m_platforms = spec.platform_filters();
+                    }
+                    if (added.insert(channel).second)
+                    {
+                        result.push_back(std::move(channel));
+                    }
                 }
             }
             else
             {
-                add_channel(name);
+                auto channel = make_channel(name);
+                if (added.insert(channel).second)
+                {
+                    result.push_back(std::move(channel));
+                }
             }
         }
         return result;
@@ -509,15 +507,13 @@ namespace mamba
 
         for (const auto& [multi_name, location_list] : m_context.custom_multichannels)
         {
-            std::vector<std::string> names = {};
-            names.reserve(location_list.size());
+            auto channels = channel_list();
+            channels.reserve(location_list.size());
             for (auto& location : location_list)
             {
-                auto channel = from_value(location);
-                // No cannonical name give to mulit_channels
-                names.push_back(location);
+                channels.push_back(from_value(location));
             }
-            m_custom_multichannels.emplace(multi_name, std::move(names));
+            m_custom_multichannels.emplace(multi_name, std::move(channels));
         }
     }
 }  // namespace mamba

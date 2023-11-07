@@ -65,11 +65,11 @@ namespace mamba
 
         for (auto channel : pool.channel_context().get_channels(channel_urls))
         {
-            for (auto& [platform, url] : channel->platform_urls(true))
+            for (auto& [platform, url] : channel.platform_urls(true))
             {
                 auto sdires = MSubdirData::create(
                     pool.channel_context(),
-                    *channel,
+                    channel,
                     platform,
                     url,
                     package_caches,
@@ -89,10 +89,10 @@ namespace mamba
                 else
                 {
                     // Consider 'flexible' and 'strict' the same way
-                    if (channel->url() != prev_channel_url)
+                    if (channel.url() != prev_channel_url)
                     {
                         max_prio--;
-                        prev_channel_url = channel->url();
+                        prev_channel_url = channel.url();
                     }
                     priorities.push_back(std::make_pair(max_prio, 0));
                 }

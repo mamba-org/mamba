@@ -330,12 +330,12 @@ namespace
     auto load_channels(MPool& pool, MultiPackageCache& cache, std::vector<std::string>&& channels)
     {
         auto sub_dirs = std::vector<MSubdirData>();
-        for (const auto* chan : pool.channel_context().get_channels(channels))
+        for (const auto& chan : pool.channel_context().get_channels(channels))
         {
-            for (auto& [platform, url] : chan->platform_urls(true))
+            for (auto& [platform, url] : chan.platform_urls(true))
             {
                 auto sub_dir = expected_value_or_throw(
-                    MSubdirData::create(pool.channel_context(), *chan, platform, url, cache)
+                    MSubdirData::create(pool.channel_context(), chan, platform, url, cache)
                 );
                 sub_dirs.push_back(std::move(sub_dir));
             }

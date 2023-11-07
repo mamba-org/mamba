@@ -164,7 +164,7 @@ namespace mamba
             std::vector<std::string> channel_urls;
             for (auto channel : channel_context.get_channels(channels))
             {
-                for (auto url : channel->urls(true))
+                for (auto url : channel.urls(true))
                 {
                     channel_urls.push_back(url);
                 }

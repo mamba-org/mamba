@@ -7,9 +7,9 @@
 #ifndef MAMBA_CORE_CHANNEL_HPP
 #define MAMBA_CORE_CHANNEL_HPP
 
-#include <map>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <utility>
 
 #include "mamba/specs/conda_url.hpp"
@@ -81,9 +81,9 @@ namespace mamba
     {
     public:
 
-        using channel_list = std::vector<std::string>;
         using channel_map = std::map<std::string, Channel>;
-        using multichannel_map = std::map<std::string, std::vector<std::string>>;
+        using channel_list = std::vector<Channel>;
+        using multichannel_map = std::unordered_map<std::string, channel_list>;
 
         ChannelContext(Context& context);
         ~ChannelContext();
@@ -94,7 +94,7 @@ namespace mamba
         ChannelContext& operator=(ChannelContext&&) = delete;
 
         const Channel& make_channel(const std::string& value);
-        std::vector<const Channel*> get_channels(const std::vector<std::string>& channel_names);
+        auto get_channels(const std::vector<std::string>& channel_names) -> channel_list;
 
         const specs::CondaURL& get_channel_alias() const;
         const channel_map& get_custom_channels() const;

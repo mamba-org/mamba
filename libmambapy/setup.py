@@ -11,7 +11,7 @@ def CMAKE_INSTALL_DIR():
 
 skbuild.setup(
     packages=["libmambapy", "libmambapy.core"],
-    package_dir={"": "src/"},
+    package_dir={"": "src"},
     package_data={"libmambapy": ["py.typed", "__init__.pyi"]},
     cmake_languages=["CXX"],
     cmake_minimum_required_version="3.17",

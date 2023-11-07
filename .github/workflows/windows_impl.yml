@@ -41,7 +41,8 @@ jobs:
             --preset mamba-win-shared-${{ inputs.build_type }}  ^
             -D CMAKE_MSVC_RUNTIME_LIBRARY="MultiThreadedDLL" ^
             -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
-            -D CMAKE_C_COMPILER_LAUNCHER=sccache
+            -D CMAKE_C_COMPILER_LAUNCHER=sccache ^
+            -D BUILD_LIBMAMBAPY=OFF
           if %errorlevel% neq 0 exit /b %errorlevel%
           cmake --build build/ --parallel
           if %errorlevel% neq 0 exit /b %errorlevel%
@@ -84,13 +85,6 @@ jobs:
           unset CONDARC  # Interferes with tests
           cd ./build/libmamba && ./tests/test_libmamba
 
-      # - name: Run libmamba tests
-      #   run: |
-      #     @REM Interferes with tests
-      #     set CONDARC=
-      #     @REM Move to directory of libmamba DLL for Windows to find it
-      #     cd "build\libmamba" && .\tests\test_libmamba
-
   libmambapy_tests_win:
     name: Test libmamba Python bindings
     needs: ["build_shared_win"]
@@ -111,11 +105,10 @@ jobs:
           environment-name: build_env
           init-shell: bash cmd.exe
       - name: Install libmambapy
-        shell: bash -elo pipefail {0}
         run: |
-          ln build/libmambapy/bindings*.pyd libmambapy/libmambapy/
-          cmake --install build/ --prefix "${CONDA_PREFIX}"
-          python -m pip install ./libmambapy/
+          cmake --install build/ --prefix %CONDA_PREFIX%
+          # TODO add some ccache and parallelism to builds
+          python -m pip install --no-deps --no-build-isolation ./libmambapy
       - name: Run libmamba Python bindings tests
         run: |
           python -m pytest libmambapy/tests/

@@ -445,6 +445,21 @@ namespace mamba
         return *this;
     }
 
+    CURLHandle& CURLHandle::set_url(const std::string& url, const proxy_map_type& proxies)
+    {
+        set_opt(CURLOPT_URL, url);
+        const auto match = proxy_match(url, proxies);
+        if (match)
+        {
+            set_opt(CURLOPT_PROXY, match.value());
+        }
+        else
+        {
+            set_opt(CURLOPT_PROXY, nullptr);
+        }
+        return *this;
+    }
+
     const char* CURLHandle::get_error_buffer() const
     {
         return m_errorbuffer.data();

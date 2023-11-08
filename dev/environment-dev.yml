@@ -32,7 +32,6 @@ dependencies:
   - requests
   - sel(win): pywin32
   - sel(win): menuinst
-  - conda-index
   - conda-content-trust
   - conda-package-handling
   - cryptography<40.0  # Or breaks conda-content-trust

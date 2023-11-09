@@ -192,7 +192,7 @@ namespace mamba
             return "x86_64";
         }
 
-        std::string get_archspec(const std::string &arch)
+        std::string get_archspec(const std::string& arch)
         {
             auto override_version = util::get_env("CONDA_OVERRIDE_ARCHSPEC");
             if (override_version)

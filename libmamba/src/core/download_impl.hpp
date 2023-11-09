@@ -34,9 +34,11 @@ namespace mamba
         using on_success_callback = std::function<bool(DownloadSuccess)>;
         using on_failure_callback = std::function<bool(DownloadError)>;
 
-        explicit DownloadAttempt(const DownloadRequest& request);
+        DownloadAttempt() = default;
 
-        CURLId prepare_download(
+        DownloadAttempt(
+            CURLHandle& handle,
+            const DownloadRequest& request,
             CURLMultiHandle& downloader,
             const Context& context,
             on_success_callback success,
@@ -47,43 +49,60 @@ namespace mamba
 
     private:
 
-        bool finish_download(CURLMultiHandle& downloader, CURLcode code);
-        void clean_attempt(CURLMultiHandle& downloader, bool erase_downloaded);
-        void invoke_progress_callback(const DownloadEvent&) const;
+        // This internal structure stored in an std::unique_ptr is required to guarantee
+        // move semantics: some of these functions return lambda capturing the current
+        // instance, therefore this latter must be stable in memory.
+        struct Impl
+        {
+            Impl(
+                CURLHandle& handle,
+                const DownloadRequest& request,
+                CURLMultiHandle& downloader,
+                const Context& context,
+                on_success_callback success,
+                on_failure_callback error
+            );
 
-        void configure_handle(const Context& context);
-        void configure_handle_headers(const Context& context);
+            bool finish_download(CURLMultiHandle& downloader, CURLcode code);
+            void clean_attempt(CURLMultiHandle& downloader, bool erase_downloaded);
+            void invoke_progress_callback(const DownloadEvent&) const;
 
-        size_t write_data(char* buffer, size_t data);
+            void configure_handle(const Context& context);
+            void configure_handle_headers(const Context& context);
 
-        static size_t curl_header_callback(char* buffer, size_t size, size_t nbitems, void* self);
-        static size_t curl_write_callback(char* buffer, size_t size, size_t nbitems, void* self);
-        static int curl_progress_callback(
-            void* f,
-            curl_off_t total_to_download,
-            curl_off_t now_downloaded,
-            curl_off_t,
-            curl_off_t
-        );
+            size_t write_data(char* buffer, size_t data);
 
-        bool can_retry(CURLcode code) const;
-        bool can_retry(const TransferData& data) const;
+            static size_t curl_header_callback(char* buffer, size_t size, size_t nbitems, void* self);
+            static size_t curl_write_callback(char* buffer, size_t size, size_t nbitems, void* self);
+            static int curl_progress_callback(
+                void* f,
+                curl_off_t total_to_download,
+                curl_off_t now_downloaded,
+                curl_off_t,
+                curl_off_t
+            );
 
-        TransferData get_transfer_data() const;
-        DownloadError build_download_error(CURLcode code) const;
-        DownloadError build_download_error(TransferData data) const;
-        DownloadSuccess build_download_success(TransferData data) const;
+            bool can_retry(CURLcode code) const;
+            bool can_retry(const TransferData& data) const;
 
-        const DownloadRequest* p_request;
-        CURLHandle m_handle;
-        on_success_callback m_success_callback;
-        on_failure_callback m_failure_callback;
-        std::size_t m_retry_wait_seconds;
-        std::unique_ptr<CompressionStream> p_stream;
-        std::ofstream m_file;
-        std::string m_cache_control;
-        std::string m_etag;
-        std::string m_last_modified;
+            TransferData get_transfer_data() const;
+            DownloadError build_download_error(CURLcode code) const;
+            DownloadError build_download_error(TransferData data) const;
+            DownloadSuccess build_download_success(TransferData data) const;
+
+            CURLHandle* p_handle = nullptr;
+            const DownloadRequest* p_request = nullptr;
+            on_success_callback m_success_callback;
+            on_failure_callback m_failure_callback;
+            std::size_t m_retry_wait_seconds = std::size_t(0);
+            std::unique_ptr<CompressionStream> p_stream = nullptr;
+            std::ofstream m_file;
+            std::string m_cache_control;
+            std::string m_etag;
+            std::string m_last_modified;
+        };
+
+        std::unique_ptr<Impl> p_impl = nullptr;
     };
 
     struct DownloadTrackerOptions
@@ -133,6 +152,7 @@ namespace mamba
         void save(DownloadSuccess&&);
         void save(DownloadError&&);
 
+        CURLHandle m_handle;
         const DownloadRequest* p_request;
         DownloadTrackerOptions m_options;
         DownloadAttempt m_attempt;

@@ -237,7 +237,7 @@ namespace mamba
             return filters;
         }
 
-        auto canonical_name_from_path(const specs::CondaURL& uri, Channel::ResolveParams params)
+        auto resolve_path_name(const specs::CondaURL& uri, Channel::ResolveParams params)
             -> std::string
         {
             for (const auto& [canonical_name, chan] : params.custom_channels)
@@ -256,10 +256,10 @@ namespace mamba
             return uri.pretty_str();
         }
 
-        auto resolve_any_path(specs::ChannelSpec&& spec, Channel::ResolveParams params) -> Channel
+        auto resolve_path(specs::ChannelSpec&& spec, Channel::ResolveParams params) -> Channel
         {
             auto uri = specs::CondaURL::parse(util::path_or_url_to_url(spec.location()));
-            auto canonical_name = canonical_name_from_path(uri, params);
+            auto canonical_name = resolve_path_name(uri, params);
             auto platforms = Channel::ResolveParams::platform_list{};
             if (spec.type() == specs::ChannelSpec::Type::Path)
             {
@@ -269,72 +269,46 @@ namespace mamba
             return Channel(std::move(uri), std::move(canonical_name), std::move(platforms));
         }
 
-        auto resolve_package_path(specs::ChannelSpec&& spec, Channel::ResolveParams params) -> Channel
+        auto resolve_url_name(const specs::CondaURL& url, Channel::ResolveParams params) -> std::string
         {
-            assert(spec.type() == specs::ChannelSpec::Type::PackagePath);
-            return resolve_any_path(std::move(spec), params);
-        }
+            using StripScheme = typename specs::CondaURL::StripScheme;
+            using Credentials = typename specs::CondaURL::Credentials;
 
-        auto resolve_path(specs::ChannelSpec&& spec, Channel::ResolveParams params) -> Channel
-        {
-            assert(spec.type() == specs::ChannelSpec::Type::Path);
-            return resolve_any_path(std::move(spec), params);
-        }
-    }
+            std::string url_str = url.pretty_str(StripScheme::yes, '/', Credentials::Remove);
 
-    Channel ChannelContext::from_any_url(specs::ChannelSpec&& spec)
-    {
-        assert(util::url_has_scheme(spec.location()));
-        auto url = specs::CondaURL::parse(spec.location());
-        assert(url.scheme() != "file");
-
-        using StripScheme = typename specs::CondaURL::StripScheme;
-        using Credentials = typename specs::CondaURL::Credentials;
-
-        std::string url_str = url.pretty_str(StripScheme::yes, '/', Credentials::Remove);
-
-        for (const auto& [canonical_name, chan] : get_custom_channels())
-        {
-            if (url_match(chan.url(), url))
+            for (const auto& [canonical_name, chan] : params.custom_channels)
             {
-                return Channel(
-                    /* url= */ std::move(url),
-                    /* canonical_name= */ std::string(canonical_name)
-                );
+                if (url_match(chan.url(), url))
+                {
+                    return std::string(canonical_name);
+                }
             }
+
+            if (const auto& ca = params.channel_alias; url_match(ca, url))
+            {
+                auto ca_str = ca.pretty_str(StripScheme::yes, '/', Credentials::Remove);
+                return std::string(util::strip(util::remove_prefix(url_str, ca_str), '/'));
+            }
+
+            return url.pretty_str(StripScheme::no, '/', Credentials::Remove);
         }
 
-        if (const auto& ca = get_channel_alias(); url_match(ca, url))
+        auto resolve_url(specs::ChannelSpec&& spec, Channel::ResolveParams params) -> Channel
         {
-            auto ca_str = ca.pretty_str(StripScheme::yes, '/', Credentials::Remove);
-            auto name = std::string(util::strip(util::remove_prefix(url_str, ca_str), '/'));
-            return Channel(
-                /* url= */ std::move(url),
-                /* canonical_name= */ name
-            );
+            assert(util::url_has_scheme(spec.location()));
+            assert(util::url_get_scheme(spec.location()) != "file");
+
+            auto url = specs::CondaURL::parse(spec.location());
+            auto canonical_name = resolve_url_name(url, params);
+            set_fallback_credential_from_db(url, params.auth_db);
+            auto platforms = Channel::ResolveParams::platform_list{};
+            if (spec.type() == specs::ChannelSpec::Type::URL)
+            {
+                platforms = make_platforms(spec.clear_platform_filters(), params.platforms);
+            }
+
+            return Channel(std::move(url), std::move(canonical_name), std::move(platforms));
         }
-
-        auto canonical_name = url.pretty_str(StripScheme::no, '/', Credentials::Remove);
-        return Channel(
-            /* url= */ std::move(url),
-            /* canonical_name= */ std::move(canonical_name)
-        );
-    }
-
-    Channel ChannelContext::from_package_url(specs::ChannelSpec&& spec)
-    {
-        auto chan = from_any_url(std ::move(spec));
-        set_fallback_credential_from_db(chan.m_url, m_context.authentication_info());
-        return chan;
-    }
-
-    Channel ChannelContext::from_url(specs::ChannelSpec&& spec)
-    {
-        auto platforms = make_platforms(spec.clear_platform_filters(), m_context.platforms());
-        auto chan = from_any_url(std::move(spec));
-        chan.m_platforms = std::move(platforms);
-        set_fallback_credential_from_db(chan.m_url, m_context.authentication_info());
-        return chan;
     }
 
     Channel ChannelContext::from_name(specs::ChannelSpec&& spec)
@@ -408,25 +382,20 @@ namespace mamba
             /* .platforms */ platforms,
             /* .channel_alias */ m_channel_alias,
             /* .custom_channels */ m_custom_channels,
+            /* .auth_db */ m_context.authentication_info(),
         };
 
         switch (spec.type())
         {
             case specs::ChannelSpec::Type::PackagePath:
-            {
-                return resolve_package_path(std::move(spec), params);
-            }
             case specs::ChannelSpec::Type::Path:
             {
                 return resolve_path(std::move(spec), params);
             }
             case specs::ChannelSpec::Type::PackageURL:
-            {
-                return from_package_url(std::move(spec));
-            }
             case specs::ChannelSpec::Type::URL:
             {
-                return from_url(std::move(spec));
+                return resolve_url(std::move(spec), params);
             }
             case specs::ChannelSpec::Type::Name:
             {

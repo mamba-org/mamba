@@ -26,6 +26,7 @@ namespace mamba
     namespace specs
     {
         class ChannelSpec;
+        class AuthenticationDataBase;
     }
 
     std::vector<std::string> get_known_platforms();
@@ -45,6 +46,7 @@ namespace mamba
             const platform_list& platforms;
             const specs::CondaURL& channel_alias;
             const channel_map& custom_channels;
+            const specs::AuthenticationDataBase& auth_db;
 
             // TODO add CWD and home
         };
@@ -132,9 +134,6 @@ namespace mamba
 
         void init_custom_channels();
 
-        Channel from_any_url(specs::ChannelSpec&& spec);
-        Channel from_package_url(specs::ChannelSpec&& spec);
-        Channel from_url(specs::ChannelSpec&& spec);
         Channel from_name(specs::ChannelSpec&& spec);
         Channel from_value(const std::string& value);
     };

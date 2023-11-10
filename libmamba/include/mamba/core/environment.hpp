@@ -7,7 +7,6 @@
 #ifndef MAMBA_CORE_ENVIRONMENT_HPP
 #define MAMBA_CORE_ENVIRONMENT_HPP
 
-#include <map>
 #include <string>
 #include <vector>
 
@@ -20,7 +19,6 @@ namespace mamba::env
 
     auto which(const std::string& exe, const std::string& override_path = "") -> fs::u8path;
     auto which(const std::string& exe, const std::vector<fs::u8path>& search_paths) -> fs::u8path;
-    auto copy() -> std::map<std::string, std::string>;
     auto platform() -> std::string;
     auto home_directory() -> fs::u8path;
     auto user_config_dir() -> fs::u8path;

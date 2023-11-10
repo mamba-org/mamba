@@ -7,14 +7,17 @@
 
 #ifdef _WIN32
 
+#include <cassert>
 #include <mutex>
 #include <stdexcept>
 
 #include <fmt/format.h>
 #include <Shlobj.h>
+#include <Windows.h>
 
 #include "mamba/util/environment.hpp"
 #include "mamba/util/os_win.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba::util
 {
@@ -92,6 +95,56 @@ namespace mamba::util
     {
         set_env(key, "");
     }
+
+    namespace
+    {
+        struct Environ
+        {
+            Environ()
+            {
+                ptr = GetEnvironmentStringsW();
+                if (ptr == nullptr)
+                {
+                    throw std::runtime_error("Fail to get environment");
+                }
+            }
+
+            ~Environ()
+            {
+                FreeEnvironmentStringsW(ptr);
+            }
+
+            wchar_t* ptr = nullptr;
+        };
+    }
+
+    auto get_env_map() -> environment_map
+    {
+        static constexpr auto npos = std::wstring_view::npos;
+
+        auto env = environment_map();
+
+        auto raw_env = Environ();
+
+        wchar_t* current = raw_env.ptr;
+        while (*current != '\0')
+        {
+            const auto expr = std::wstring_view(current);
+            const auto pos = expr.find(L'=');
+            assert(pos != npos);
+            std::string key = to_upper(windows_encoding_to_utf8(expr.substr(0, pos)));
+            if (!key.empty())
+            {
+                std::string value = windows_encoding_to_utf8(
+                    (pos != npos) ? expr.substr(pos + 1) : L""
+                );
+                env.emplace(std::move(key), std::move(value));
+            }
+            current += expr.size() + 1;
+        }
+
+        return env;
+    }
 }
 
 #else  // #ifdef _WIN32
@@ -102,6 +155,11 @@ namespace mamba::util
 #include <fmt/format.h>
 
 #include "mamba/util/environment.hpp"
+
+extern "C"
+{
+    extern char** environ;  // Unix defined
+}
 
 namespace mamba::util
 {
@@ -132,6 +190,25 @@ namespace mamba::util
         {
             throw std::runtime_error(fmt::format(R"(Could not unset environment variable "{}")", key));
         }
+    }
+
+    auto get_env_map() -> environment_map
+    {
+        // To keep the same signature between Unix and Windows (which is more convenient
+        // to work with), we have to copy strings.
+        // A more advanced slution could wrap a platform specific solution in a common return type.
+        auto env = environment_map();
+        for (std::size_t i = 0; environ[i]; ++i)
+        {
+            const auto expr = std::string_view(environ[i]);
+            const auto pos = expr.find('=');
+            env.emplace(
+                expr.substr(0, pos),
+                (pos != expr.npos) ? std::string(expr.substr(pos + 1)) : ""
+
+            );
+        }
+        return env;
     }
 }
 

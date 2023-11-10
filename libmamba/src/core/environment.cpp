@@ -94,48 +94,6 @@ namespace mamba::env
         return "";  // empty path
     }
 
-    std::map<std::string, std::string> copy()
-    {
-        std::map<std::string, std::string> m;
-#ifndef _WIN32
-        int i = 1;
-        const char* c = *environ;
-        for (; c; i++)
-        {
-            std::string_view s(c);
-            auto pos = s.find("=");
-            m[std::string(s.substr(0, pos))] = (pos != s.npos) ? std::string(s.substr(pos + 1)) : "";
-            c = *(environ + i);
-        }
-#else
-
-        // inspired by
-        // https://github.com/gennaroprota/breath/blob/0709a9f0fe4e745b1d9fc44ab65d92853820b515
-        //                    /breath/environment/brt/dep/syst/windows/get_environment_map.cpp#L38-L80
-        char* start = GetEnvironmentStrings();
-        if (start == nullptr)
-        {
-            throw std::runtime_error("GetEnvironmentStrings() failed");
-        }
-
-        char* current = start;
-        while (*current != '\0')
-        {
-            std::string_view s = current;
-            auto pos = s.find("=");
-            assert(pos != std::string_view::npos);
-            std::string key = util::to_upper(s.substr(0, pos));
-            if (!key.empty())
-            {
-                std::string_view value = (pos != s.npos) ? s.substr(pos + 1) : "";
-                m[std::string(key)] = value;
-            }
-            current += s.size() + 1;
-        }
-#endif
-        return m;
-    }
-
     std::string platform()
     {
 #ifndef _WIN32

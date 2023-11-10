@@ -309,59 +309,57 @@ namespace mamba
 
             return Channel(std::move(url), std::move(canonical_name), std::move(platforms));
         }
-    }
 
-    Channel ChannelContext::from_name(specs::ChannelSpec&& spec)
-    {
-        std::string name = spec.clear_location();
-        const auto& custom_channels = get_custom_channels();
-        const auto it_end = custom_channels.end();
-        auto it = it_end;
+        auto resolve_name(specs::ChannelSpec&& spec, Channel::ResolveParams params) -> Channel
         {
-            auto considered_name = std::optional<std::string_view>(name);
-            while ((it == it_end))
+            std::string name = spec.clear_location();
+            const auto it_end = params.custom_channels.end();
+            auto it = it_end;
             {
-                if (!considered_name.has_value())
+                auto considered_name = std::optional<std::string_view>(name);
+                while ((it == it_end))
                 {
-                    break;
+                    if (!considered_name.has_value())
+                    {
+                        break;
+                    }
+                    it = params.custom_channels.find(std::string(considered_name.value()));
+                    considered_name = std::get<0>(util::rsplit_once(considered_name.value(), '/'));
                 }
-                it = custom_channels.find(std::string(considered_name.value()));
-                considered_name = std::get<0>(util::rsplit_once(considered_name.value(), '/'));
             }
-        }
 
-        if (it != it_end)
-        {
-            auto url = it->second.url();
-            // we can have a channel like
-            // testchannel: https://server.com/private/testchannel
-            // where `name == private/testchannel` and we need to join the remaining label part
-            // of the channel (e.g. -c testchannel/mylabel/xyz)
-            // needs to result in `name = private/testchannel/mylabel/xyz`
-            std::string combined_name = util::concat_dedup_splits(
-                util::rstrip(url.path(), '/'),
-                util::lstrip(name, '/'),
-                '/'
-            );
-            url.set_path(combined_name);
+            if (it != it_end)
+            {
+                auto url = it->second.url();
+                // we can have a channel like
+                // testchannel: https://server.com/private/testchannel
+                // where `name == private/testchannel` and we need to join the remaining label part
+                // of the channel (e.g. -c testchannel/mylabel/xyz)
+                // needs to result in `name = private/testchannel/mylabel/xyz`
+                std::string combined_name = util::concat_dedup_splits(
+                    util::rstrip(url.path(), '/'),
+                    util::lstrip(name, '/'),
+                    '/'
+                );
+                url.set_path(combined_name);
 
-            set_fallback_credential_from_db(url, m_context.authentication_info());
+                set_fallback_credential_from_db(url, params.auth_db);
+                return Channel(
+                    /* url= */ std::move(url),
+                    /* canonical_name= */ std::move(name),
+                    /* platforms= */ make_platforms(spec.clear_platform_filters(), params.platforms)
+                );
+            }
+
+            auto url = params.channel_alias;
+            url.append_path(name);
+            set_fallback_credential_from_db(url, params.auth_db);
             return Channel(
                 /* url= */ std::move(url),
-                /* canonical_name= */ std::move(name),
-                /* platforms= */ make_platforms(spec.clear_platform_filters(), m_context.platforms())
+                /* canonical_name= */ name,
+                /* platforms= */ make_platforms(spec.clear_platform_filters(), params.platforms)
             );
         }
-
-        const auto& alias = get_channel_alias();
-        auto url = alias;
-        url.append_path(name);
-        set_fallback_credential_from_db(url, m_context.authentication_info());
-        return Channel(
-            /* url= */ std::move(url),
-            /* canonical_name= */ name,
-            /* platforms= */ make_platforms(spec.clear_platform_filters(), m_context.platforms())
-        );
     }
 
     Channel ChannelContext::from_value(const std::string& in_value)
@@ -399,7 +397,7 @@ namespace mamba
             }
             case specs::ChannelSpec::Type::Name:
             {
-                return from_name(std::move(spec));
+                return resolve_name(std::move(spec), params);
             }
         }
         throw std::invalid_argument("Invalid ChannelSpec::Type");

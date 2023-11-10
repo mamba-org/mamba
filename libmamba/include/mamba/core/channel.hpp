@@ -134,7 +134,6 @@ namespace mamba
 
         void init_custom_channels();
 
-        Channel from_name(specs::ChannelSpec&& spec);
         Channel from_value(const std::string& value);
     };
 

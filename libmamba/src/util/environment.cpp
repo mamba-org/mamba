@@ -213,3 +213,25 @@ namespace mamba::util
 }
 
 #endif  // #ifdef _WIN32
+
+#include "mamba/util/environment.hpp"
+
+namespace mamba::util
+{
+    void update_env_map(const environment_map& env)
+    {
+        for (const auto& [name, val] : env)
+        {
+            set_env(name, val);
+        }
+    }
+
+    void set_env_map(const environment_map& env)
+    {
+        for (const auto& [name, val] : get_env_map())
+        {
+            unset_env(name);
+        }
+        update_env_map(env);
+    }
+}

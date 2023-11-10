@@ -37,5 +37,19 @@ namespace mamba::util
      * when their name is unknown.
      */
     [[nodiscard]] auto get_env_map() -> environment_map;
+
+    /**
+     * Equivalent to calling set_env in a loop.
+     *
+     * This leaves environment variables not refered to in the map unmodified.
+     */
+    void update_env_map(const environment_map& env);
+
+    /**
+     * Set the environment to be exactly the map given.
+     *
+     * This unset all environment variables not refered to in the map unmodified.
+     */
+    void set_env_map(const environment_map& env);
 }
 #endif

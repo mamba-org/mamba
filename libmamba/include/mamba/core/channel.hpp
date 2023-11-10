@@ -29,8 +29,6 @@ namespace mamba
         class AuthenticationDataBase;
     }
 
-    std::vector<std::string> get_known_platforms();
-
     // Note: Channels can only be created using ChannelContext.
     class Channel
     {

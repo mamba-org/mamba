@@ -22,12 +22,6 @@
 
 namespace mamba
 {
-    std::vector<std::string> get_known_platforms()
-    {
-        auto plats = specs::known_platform_names();
-        return { plats.begin(), plats.end() };
-    }
-
     /**************************
      * Channel implementation *
      **************************/

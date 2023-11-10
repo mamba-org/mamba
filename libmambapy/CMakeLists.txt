@@ -24,23 +24,23 @@ find_package(Python COMPONENTS Interpreter Development)
 find_package(pybind11 REQUIRED)
 
 pybind11_add_module(
-    core
-    src/libmambapy/core/longpath.manifest
-    src/libmambapy/core/core.cpp
-    src/libmambapy/core/main.cpp
+    bindings
+    src/libmambapy/bindings/longpath.manifest
+    src/libmambapy/bindings/bindings.cpp
+    src/libmambapy/bindings/legacy.cpp
 )
 
-target_include_directories(core PRIVATE src/libmambapy/core)
+target_include_directories(bindings PRIVATE src/libmambapy/bindings)
 
-mamba_target_add_compile_warnings(core WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
+mamba_target_add_compile_warnings(bindings WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
 
-target_link_libraries(core PRIVATE pybind11::pybind11 ${libmamba_target})
-target_compile_features(core PRIVATE cxx_std_17)
+target_link_libraries(bindings PRIVATE pybind11::pybind11 ${libmamba_target})
+target_compile_features(bindings PRIVATE cxx_std_17)
 
 # Installation
 
 if(SKBUILD)
-    install(TARGETS core DESTINATION ${MAMBA_INSTALL_PYTHON_EXT_LIBDIR})
+    install(TARGETS bindings DESTINATION ${MAMBA_INSTALL_PYTHON_EXT_LIBDIR})
 else()
     # WARNING: this default should probably not be used as it is but set extranlly by a proper
     # Python packager tool
@@ -51,7 +51,7 @@ else()
     )
 
     install(
-        TARGETS core
+        TARGETS bindings
         EXCLUDE_FROM_ALL
         COMPONENT Mamba_Python_Extension
         DESTINATION ${MAMBA_INSTALL_PYTHON_EXT_LIBDIR}

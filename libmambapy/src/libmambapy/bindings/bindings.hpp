@@ -4,9 +4,16 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "core.hpp"
+#ifndef LIBMAMBAPY_HPP
+#define LIBMAMBAPY_HPP
 
-PYBIND11_MODULE(core, m)
+#include <pybind11/pybind11.h>
+
+namespace mambapy
 {
-    mambapy::bindings::bind_submodule(m.def_submodule("bindings"));
+    namespace legacy
+    {
+        void bind_submodule(pybind11::module_ m);
+    }
 }
+#endif

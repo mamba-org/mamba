@@ -35,6 +35,21 @@ namespace mamba
     {
     public:
 
+        struct ResolveParams
+        {
+            using platform_list = util::flat_set<std::string>;
+            using channel_list = std::vector<Channel>;
+            using channel_map = std::map<std::string, Channel>;
+            using multichannel_map = std::unordered_map<std::string, channel_list>;
+
+            const platform_list& platforms;
+            const specs::CondaURL& channel_alias;
+            const channel_map& custom_channels;
+
+            // TODO add CWD and home
+        };
+
+
         Channel(
             specs::CondaURL url,
             std::string canonical_name,
@@ -117,9 +132,6 @@ namespace mamba
 
         void init_custom_channels();
 
-        Channel from_any_path(specs::ChannelSpec&& spec);
-        Channel from_package_path(specs::ChannelSpec&& spec);
-        Channel from_path(specs::ChannelSpec&& spec);
         Channel from_any_url(specs::ChannelSpec&& spec);
         Channel from_package_url(specs::ChannelSpec&& spec);
         Channel from_url(specs::ChannelSpec&& spec);

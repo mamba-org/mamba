@@ -219,6 +219,12 @@ namespace mamba
         }
 
         auto
+        make_platforms(util::flat_set<std::string> filters, const util::flat_set<std::string>& defaults)
+        {
+            return filters.empty() ? defaults : filters;
+        }
+
+        auto
         make_platforms(util::flat_set<std::string> filters, const std::vector<std::string>& defaults)
         {
             if (filters.empty())
@@ -229,53 +235,51 @@ namespace mamba
                 }
             }
             return filters;
-        };
-    }
+        }
 
-    Channel ChannelContext::from_any_path(specs::ChannelSpec&& spec)
-    {
-        auto uri = specs::CondaURL::parse(util::path_or_url_to_url(spec.location()));
-
-        for (const auto& [canonical_name, chan] : get_custom_channels())
+        auto canonical_name_from_path(const specs::CondaURL& uri, Channel::ResolveParams params)
+            -> std::string
         {
-            if (url_match(chan.url(), uri))
+            for (const auto& [canonical_name, chan] : params.custom_channels)
             {
-                return Channel(
-                    /* url= */ std::move(uri),
-                    /* canonical_name= */ std::string(canonical_name)
-                );
+                if (url_match(chan.url(), uri))
+                {
+                    return std::string(canonical_name);
+                }
             }
+
+            if (const auto& ca = params.channel_alias; url_match(ca, uri))
+            {
+                return std::string(util::strip(util::remove_prefix(uri.path(), ca.path()), '/'));
+            }
+
+            return uri.pretty_str();
         }
 
-        if (const auto& ca = get_channel_alias(); url_match(ca, uri))
+        auto resolve_any_path(specs::ChannelSpec&& spec, Channel::ResolveParams params) -> Channel
         {
-            auto name = util::strip(util::remove_prefix(uri.path(), ca.path()), '/');
-            return Channel(
-                /* url= */ std::move(uri),
-                /* canonical_name= */ std::string(name)
-            );
+            auto uri = specs::CondaURL::parse(util::path_or_url_to_url(spec.location()));
+            auto canonical_name = canonical_name_from_path(uri, params);
+            auto platforms = Channel::ResolveParams::platform_list{};
+            if (spec.type() == specs::ChannelSpec::Type::Path)
+            {
+                platforms = make_platforms(spec.clear_platform_filters(), params.platforms);
+            }
+
+            return Channel(std::move(uri), std::move(canonical_name), std::move(platforms));
         }
 
-        auto canonical_name = uri.pretty_str();
-        return Channel(
-            /* url= */ std::move(uri),
-            /* canonical_name= */ std::move(canonical_name)
-        );
-    }
+        auto resolve_package_path(specs::ChannelSpec&& spec, Channel::ResolveParams params) -> Channel
+        {
+            assert(spec.type() == specs::ChannelSpec::Type::PackagePath);
+            return resolve_any_path(std::move(spec), params);
+        }
 
-    Channel ChannelContext::from_package_path(specs::ChannelSpec&& spec)
-    {
-        assert(spec.type() == specs::ChannelSpec::Type::PackagePath);
-        return from_any_path(std::move(spec));
-    }
-
-    Channel ChannelContext::from_path(specs::ChannelSpec&& spec)
-    {
-        assert(spec.type() == specs::ChannelSpec::Type::Path);
-        auto platforms = make_platforms(spec.clear_platform_filters(), m_context.platforms());
-        auto chan = from_any_path(std::move(spec));
-        chan.m_platforms = std::move(platforms);
-        return chan;
+        auto resolve_path(specs::ChannelSpec&& spec, Channel::ResolveParams params) -> Channel
+        {
+            assert(spec.type() == specs::ChannelSpec::Type::Path);
+            return resolve_any_path(std::move(spec), params);
+        }
     }
 
     Channel ChannelContext::from_any_url(specs::ChannelSpec&& spec)
@@ -397,16 +401,24 @@ namespace mamba
         }
 
         auto spec = specs::ChannelSpec::parse(in_value);
+        const auto platforms = [](const auto& plats) {
+            return Channel::ResolveParams::platform_list(plats.cbegin(), plats.cend());
+        }(m_context.platforms());
+        auto params = Channel::ResolveParams{
+            /* .platforms */ platforms,
+            /* .channel_alias */ m_channel_alias,
+            /* .custom_channels */ m_custom_channels,
+        };
 
         switch (spec.type())
         {
             case specs::ChannelSpec::Type::PackagePath:
             {
-                return from_package_path(std::move(spec));
+                return resolve_package_path(std::move(spec), params);
             }
             case specs::ChannelSpec::Type::Path:
             {
-                return from_path(std::move(spec));
+                return resolve_path(std::move(spec), params);
             }
             case specs::ChannelSpec::Type::PackageURL:
             {

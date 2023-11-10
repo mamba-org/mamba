@@ -660,7 +660,7 @@ set(
 
 install(
     TARGETS ${libmamba_targets}
-    EXPORT ${PROJECT_NAME}-targets
+    EXPORT ${PROJECT_NAME}Targets
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
@@ -672,13 +672,6 @@ install(
     FILES_MATCHING
     PATTERN "*.hpp"
     PATTERN "*.h"
-)
-
-# Makes the project importable from the build directory
-export(
-    EXPORT ${PROJECT_NAME}-targets
-    FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake"
-    NAMESPACE mamba::
 )
 
 # Configure 'mambaConfig.cmake' for a build tree
@@ -711,8 +704,12 @@ install(
           ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
     DESTINATION ${LIBMAMBA_CMAKECONFIG_INSTALL_DIR}
 )
+# Need to install the FindLibsolv for the installed target to work
+install(FILES "../cmake/modules/FindLibsolv.cmake" DESTINATION ${LIBMAMBA_CMAKECONFIG_INSTALL_DIR})
+
 install(
-    EXPORT ${PROJECT_NAME}-targets
-    FILE ${PROJECT_NAME}Targets.cmake
+    EXPORT ${PROJECT_NAME}Targets
+    NAMESPACE mamba::
     DESTINATION ${LIBMAMBA_CMAKECONFIG_INSTALL_DIR}
+    COMPONENT Mamba_Development
 )

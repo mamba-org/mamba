@@ -39,7 +39,8 @@ jobs:
           cmake -B build/ -G Ninja \
             --preset mamba-unix-shared-${{ inputs.build_type }}  \
             -D CMAKE_CXX_COMPILER_LAUNCHER=sccache \
-            -D CMAKE_C_COMPILER_LAUNCHER=sccache
+            -D CMAKE_C_COMPILER_LAUNCHER=sccache \
+            -D BUILD_LIBMAMBAPY=OFF
           cmake --build build/ --parallel
       - name: Show build cache statistics
         run: sccache --show-stats
@@ -97,9 +98,9 @@ jobs:
           environment-name: build_env
       - name: Install libmambapy
         run: |
-          ln build/libmambapy/bindings* libmambapy/libmambapy/
           cmake --install build/ --prefix "${CONDA_PREFIX}"
-          python -m pip install ./libmambapy/
+          # TODO add some ccache and parallelism to builds
+          python -m pip install --no-deps --no-build-isolation ./libmambapy
       - name: Run libmamba Python bindings tests
         run: |
           python -m pytest libmambapy/tests/

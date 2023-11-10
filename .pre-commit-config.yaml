@@ -41,6 +41,7 @@ repos:
           - flake8-builtins==2.1.0
           - flake8-bugbear==23.9.16
           - flake8-isort==6.1.0
+        exclude: libmambapy/src
   - repo: https://github.com/pre-commit/mirrors-clang-format
     rev: v16.0.6
     hooks:

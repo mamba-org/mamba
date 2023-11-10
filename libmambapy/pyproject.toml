@@ -1,0 +1,34 @@
+[build-system]
+requires = [
+    "setuptools>=42",
+    "wheel",
+    "scikit-build>=0.13",
+    "cmake>=3.18",
+    "ninja",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "libmambapy"
+authors = [
+    {name = "Wolf Vollprecht"},
+    {name = "Adrien Delsalle"},
+    {name = "Jonas Haag"},
+    {name = "QuantStack", email = "info@quantstack.net"},
+    {name = "Other contributors"},
+]
+maintainers = [
+    {name = "QuantStack", email = "info@quantstack.net"},
+]
+description = "A fast library to interact with the Conda package ecosystem"
+requires-python = ">=3.7"
+keywords = ["mamba", "conda", "packaging"]
+license = {text = "BSD-3-Clause"}
+dependencies = []
+dynamic = ["version"]
+[projet.url]
+Documentation = "https://mamba.readthedocs.io"
+Repository = "https://github.com/mamba-org/mamba/"
+
+[tool.setuptools]
+platforms = ["Windows", "Linux", "Mac OS X"]

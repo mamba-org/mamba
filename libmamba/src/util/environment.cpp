@@ -17,7 +17,6 @@
 
 #include "mamba/util/environment.hpp"
 #include "mamba/util/os_win.hpp"
-#include "mamba/util/string.hpp"
 
 namespace mamba::util
 {
@@ -127,12 +126,12 @@ namespace mamba::util
         auto raw_env = Environ();
 
         wchar_t* current = raw_env.ptr;
-        while (*current != '\0')
+        while (*current != L'\0')
         {
             const auto expr = std::wstring_view(current);
             const auto pos = expr.find(L'=');
             assert(pos != npos);
-            std::string key = to_upper(windows_encoding_to_utf8(expr.substr(0, pos)));
+            std::string key = windows_encoding_to_utf8(expr.substr(0, pos));
             if (!key.empty())
             {
                 std::string value = windows_encoding_to_utf8(

@@ -57,16 +57,16 @@ TEST_SUITE("util::environment")
 
     TEST_CASE("get_env_map")
     {
-        auto environ = get_env_map();
-        CHECK_GT(environ.size(), 0);
-        CHECK_EQ(environ.count("VAR_THAT_MUST_NOT_EXIST_XYZ"), 0);
-        CHECK_EQ(environ.count("PATH"), 1);
+        auto env = mamba::util::get_env_map();
+        CHECK_GT(env.size(), 0);
+        CHECK_EQ(env.count("VAR_THAT_MUST_NOT_EXIST_XYZ"), 0);
+        CHECK_EQ(env.count("PATH"), 1);
 
         const auto key = std::string(u8"VAR_私のにほHelloわへたです");
         const auto value = std::string(u8"😀");
         set_env(key, value);
-        environ = get_env_map();
-        CHECK_EQ(environ.at(key), value);
+        env = get_env_map();
+        CHECK_EQ(env.at(key), value);
     }
 
     TEST_CASE("update_env_map")

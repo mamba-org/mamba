@@ -5,7 +5,6 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <cassert>
-#include <set>
 #include <tuple>
 #include <unordered_set>
 #include <utility>
@@ -23,17 +22,6 @@
 
 namespace mamba
 {
-    namespace
-    {
-        const char UNKNOWN_CHANNEL[] = "<unknown>";
-
-        const std::set<std::string> INVALID_CHANNELS = { "<unknown>",
-                                                         "None:///<unknown>",
-                                                         "None",
-                                                         "",
-                                                         ":///<unknown>" };
-    }
-
     std::vector<std::string> get_known_platforms()
     {
         auto plats = specs::known_platform_names();
@@ -364,14 +352,6 @@ namespace mamba
 
     Channel ChannelContext::from_value(const std::string& in_value)
     {
-        if (INVALID_CHANNELS.count(in_value) > 0)
-        {
-            return Channel(
-                /* url= */ specs::CondaURL{},
-                /* canonical_name= */ UNKNOWN_CHANNEL
-            );
-        }
-
         auto spec = specs::ChannelSpec::parse(in_value);
         const auto platforms = [](const auto& plats) {
             return Channel::ResolveParams::platform_list(plats.cbegin(), plats.cend());

@@ -310,11 +310,23 @@ namespace mamba
             std::string_view repo_url,
             const std::string& default_subdir,
             const simdjson::dom::object& packages,
-            std::string& tmp_buffer
+            std::string& tmp_buffer,
+            std::set<std::string>* remember_packages = nullptr,
+            std::set<std::string>* skip_packages = nullptr
         )
         {
             for (const auto& [fn, pkg] : packages)
             {
+                if (skip_packages != nullptr && skip_packages->count(std::string(fn)))
+                {
+                    continue;
+                }
+
+                if (remember_packages != nullptr)
+                {
+                    remember_packages->insert(std::string(fn));
+                }
+
                 auto [id, solv] = repo.add_solvable();
                 const bool parsed = set_solvable(pool, solv, repo_url, fn, default_subdir, pkg, tmp_buffer);
                 if (parsed)
@@ -365,6 +377,25 @@ namespace mamba
         m_repo = repo.raw();
         repo.set_url(m_metadata.url);
         load_file(index, parser, use_cache);
+        repo.internalize();
+    }
+
+    MRepo::MRepo(
+        MPool& pool,
+        const std::string& name,
+        const fs::u8path& index,
+        const fs::u8path& overlay,
+        const RepoMetadata& metadata,
+        RepodataParser parser,
+        LibsolvCache use_cache
+    )
+        : m_pool(pool)
+        , m_metadata(metadata)
+    {
+        auto [_, repo] = pool.pool().add_repo(name);
+        m_repo = repo.raw();
+        repo.set_url(m_metadata.url);
+        load_file(index, parser, use_cache, &overlay);
         repo.internalize();
     }
 
@@ -458,6 +489,88 @@ namespace mamba
         srepo(*this).legacy_read_conda_repodata(filename, flags);
     }
 
+    void MRepo::mamba_read_json_plus_overlay(const fs::u8path& filename, const fs::u8path& overlay)
+    {
+        LOG_INFO << "Reading repodata.json file " << filename << " and overlay " << overlay
+                 << " for repo " << name() << " using mamba";
+
+        auto parser = simdjson::dom::parser();
+        // Most packages
+        const auto repodata = parser.load(filename);
+
+        // prefer packages in overlay then fall back to repodata
+        const auto patch = parser.load(overlay);
+
+        // An override for missing package subdir is found in at the top level
+        auto default_subdir = std::string();
+        if (auto subdir = repodata.at_pointer("/info/subdir").get_string(); subdir.error())
+        {
+            default_subdir = std::string(subdir.value_unsafe());
+        }
+
+        // An temporary buffer for managing null terminated strings
+        std::string tmp_buffer = {};
+
+        std::set<std::string> patched_packages;
+
+        if (auto pkgs = patch["packages"].get_object(); !pkgs.error())
+        {
+            set_repo_solvables(
+                m_pool,
+                srepo(*this),
+                m_metadata.url,
+                default_subdir,
+                pkgs.value(),
+                tmp_buffer,
+                &patched_packages
+            );
+        }
+
+        if (auto pkgs = patch["packages.conda"].get_object();
+            !pkgs.error() && !m_pool.context().use_only_tar_bz2)
+        {
+            set_repo_solvables(
+                m_pool,
+                srepo(*this),
+                m_metadata.url,
+                default_subdir,
+                pkgs.value(),
+                tmp_buffer,
+                &patched_packages
+            );
+        }
+
+
+        if (auto pkgs = repodata["packages"].get_object(); !pkgs.error())
+        {
+            set_repo_solvables(
+                m_pool,
+                srepo(*this),
+                m_metadata.url,
+                default_subdir,
+                pkgs.value(),
+                tmp_buffer,
+                nullptr,
+                &patched_packages
+            );
+        }
+
+        if (auto pkgs = repodata["packages.conda"].get_object();
+            !pkgs.error() && !m_pool.context().use_only_tar_bz2)
+        {
+            set_repo_solvables(
+                m_pool,
+                srepo(*this),
+                m_metadata.url,
+                default_subdir,
+                pkgs.value(),
+                tmp_buffer,
+                nullptr,
+                &patched_packages
+            );
+        }
+    }
+
     void MRepo::mamba_read_json(const fs::u8path& filename)
     {
         LOG_INFO << "Reading repodata.json file " << filename << " for repo " << name()
@@ -528,7 +641,12 @@ namespace mamba
         return true;
     }
 
-    void MRepo::load_file(const fs::u8path& filename, RepodataParser parser, LibsolvCache use_cache)
+    void MRepo::load_file(
+        const fs::u8path& filename,
+        RepodataParser parser,
+        LibsolvCache use_cache,
+        const fs::u8path* overlay
+    )
     {
         auto repo = srepo(*this);
         bool is_solv = filename.extension() == ".solv";
@@ -560,7 +678,14 @@ namespace mamba
             if ((parser == RepodataParser::mamba)
                 || (parser == RepodataParser::automatic && ctx.experimental_repodata_parsing))
             {
-                mamba_read_json(json_file);
+                if (overlay)
+                {
+                    mamba_read_json_plus_overlay(json_file, *overlay);
+                }
+                else
+                {
+                    mamba_read_json(json_file);
+                }
             }
             else
             {

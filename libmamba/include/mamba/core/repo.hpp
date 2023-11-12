@@ -84,6 +84,16 @@ namespace mamba
             RepodataParser parser = RepodataParser::automatic,
             LibsolvCache use_cache = LibsolvCache::yes
         );
+        MRepo(
+            MPool& pool,
+            const std::string& name,
+            const fs::u8path& filename,
+            const fs::u8path& overlay,
+            const RepoMetadata& meta,
+            RepodataParser parser = RepodataParser::automatic,
+            LibsolvCache use_cache = LibsolvCache::yes
+        );
+
         MRepo(MPool& pool, const PrefixData& prefix_data);
         MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& uris);
 
@@ -117,9 +127,16 @@ namespace mamba
 
         void add_pip_as_python_dependency();
         void clear(bool reuse_ids = true);
-        void load_file(const fs::u8path& filename, RepodataParser parser, LibsolvCache use_cache);
+        void load_file(
+            const fs::u8path& filename,
+            RepodataParser parser,
+            LibsolvCache use_cache,
+            const fs::u8path* overlay = nullptr
+        );
         void libsolv_read_json(const fs::u8path& filename);
         void mamba_read_json(const fs::u8path& filename);
+        void
+        mamba_read_json_plus_overlay(const mamba::fs::u8path& filename, const mamba::fs::u8path& overlay);
         bool read_solv(const fs::u8path& filename);
         void write_solv(fs::u8path path);
 

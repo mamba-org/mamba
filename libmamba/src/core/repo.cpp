@@ -327,6 +327,11 @@ namespace mamba
                     remember_packages->insert(std::string(fn));
                 }
 
+                // packages in the overlay may be null as a deletion marker
+                if (pkg.type() == dom::element_type::NULL_VALUE) {
+                    continue;
+                }
+
                 auto [id, solv] = repo.add_solvable();
                 const bool parsed = set_solvable(pool, solv, repo_url, fn, default_subdir, pkg, tmp_buffer);
                 if (parsed)

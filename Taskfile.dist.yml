@@ -10,6 +10,7 @@ vars:
   CMAKE_BUILD_DIR: '{{.BUILD_DIR}}/cmake'
   CMAKE_PRESET: 'mamba-unix-shared-debug-dev'
   CACHE_DIR: '{{.BUILD_DIR}}/pkgs'
+  DOCS_DIR: '{{.BUILD_DIR}}/doc'
   CPU_PERCENTAGE: 75
   CPU_TOTAL:
     sh: >-
@@ -175,8 +176,10 @@ tasks:
       - cp "{{.BUILD_DIR}}/stubs/libmambapy/core/bindings-stubs/__init__.pyi" libmambapy/src/libmambapy/__init__.pyi
       - '{{.DEV_RUN}} pre-commit run --files libmambapy/src/libmambapy/__init__.pyi'
 
-  clean: 'rm -rf {{.BUILD_DIR}}'
+  build-docs:
+    deps: [create-dev-env]
+    cmds:
+      - '{{.DEV_RUN}} python -m sphinx -b html docs/source {{.DOCS_DIR}}'
 
-  clean-ci-caches: >-
-    gh api 'repos/{owner}/{repo}/actions/caches' --paginate --jq '.actions_caches[].id'
-    | xargs -I'{}' gh api -X DELETE 'repos/{owner}/{repo}/actions/caches/{}'
+
+  clean: 'rm -rf {{.BUILD_DIR}}'

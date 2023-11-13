@@ -47,3 +47,7 @@ dependencies:
   - pybind11
   # dev dependencies
   - pre-commit
+  # Documentation dependencies
+  - sphinx
+  - sphinx-book-theme
+  - myst-parser

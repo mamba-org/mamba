@@ -317,18 +317,21 @@ namespace mamba
         {
             for (const auto& [fn, pkg] : packages)
             {
-                if (skip_packages != nullptr && skip_packages->count(std::string(fn)))
+                if (skip_packages != nullptr && skip_packages->count(std::string(fn))==1)
                 {
+                    LOG_INFO << "Skip " << fn;
                     continue;
                 }
 
                 if (remember_packages != nullptr)
                 {
+                    LOG_INFO << "Store " << fn;
                     remember_packages->insert(std::string(fn));
                 }
 
                 // packages in the overlay may be null as a deletion marker
-                if (pkg.type() == dom::element_type::NULL_VALUE) {
+                if (pkg.type() == simdjson::dom::element_type::NULL_VALUE) {
+                    LOG_INFO << "Skip NULL " << fn;
                     continue;
                 }
 
@@ -499,12 +502,9 @@ namespace mamba
         LOG_INFO << "Reading repodata.json file " << filename << " and overlay " << overlay
                  << " for repo " << name() << " using mamba";
 
+        // Full index json.
         auto parser = simdjson::dom::parser();
-        // Most packages
         const auto repodata = parser.load(filename);
-
-        // prefer packages in overlay then fall back to repodata
-        const auto patch = parser.load(overlay);
 
         // An override for missing package subdir is found in at the top level
         auto default_subdir = std::string();
@@ -517,6 +517,10 @@ namespace mamba
         std::string tmp_buffer = {};
 
         std::set<std::string> patched_packages;
+
+        // Patches to index json. Prefer packages in overlay then fall back to repodata.
+        auto patch_parser = simdjson::dom::parser();
+        const auto patch = patch_parser.load(overlay);
 
         if (auto pkgs = patch["packages"].get_object(); !pkgs.error())
         {
@@ -685,10 +689,12 @@ namespace mamba
             {
                 if (overlay)
                 {
+                    LOG_INFO << "Overlay passed";
                     mamba_read_json_plus_overlay(json_file, *overlay);
                 }
                 else
                 {
+                    LOG_INFO << "Overlay not passed";
                     mamba_read_json(json_file);
                 }
             }

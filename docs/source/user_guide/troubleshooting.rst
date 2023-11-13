@@ -113,7 +113,7 @@ Windows API historically supports paths up to 260 characters. While it's now pos
 
 
 Long paths support has to be activated
-**************************************
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 source: Robocorp `troubleshooting documentation <https://robocorp.com/docs/troubleshooting/windows-long-path>`_
 
@@ -131,7 +131,7 @@ If the problem persists after those steps, try the following:
 
 
 cmd.exe does not support calls to long prefixes
-***********************************************
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 While ``cmd.exe`` shell support long paths prefixing for directory operations such as ``dir``, it doesn't allow to call an executable or a batch file located at a long path prefix.
 

@@ -373,6 +373,10 @@ namespace mamba
             {
                 return resolve_name(std::move(spec), params);
             }
+            case specs::ChannelSpec::Type::Unknown:
+            {
+                return Channel(specs::CondaURL{}, spec.clear_location());
+            }
         }
         throw std::invalid_argument("Invalid ChannelSpec::Type");
     }

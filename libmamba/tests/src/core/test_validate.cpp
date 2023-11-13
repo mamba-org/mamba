@@ -18,7 +18,6 @@
 #include "mamba/util/string.hpp"
 
 #include "mambatests.hpp"
-#include "test_data.hpp"
 
 namespace mamba::validation
 {
@@ -347,7 +346,7 @@ namespace mamba::validation
 
             protected:
 
-                fs::u8path root1_pgp = test_data_dir / "validation/1.sv0.6.root.json";
+                fs::u8path root1_pgp = mambatests::test_data_dir / "validation/1.sv0.6.root.json";
                 json root1_json, root1_pgp_json;
 
                 secrets_type secrets;
@@ -1633,7 +1632,7 @@ namespace mamba::validation
 
             protected:
 
-                fs::u8path root1 = test_data_dir / "validation/root.json";
+                fs::u8path root1 = mambatests::test_data_dir / "validation/root.json";
                 json root1_json;
 
                 std::unique_ptr<TemporaryDirectory> channel_dir;

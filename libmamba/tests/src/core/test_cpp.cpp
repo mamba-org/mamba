@@ -21,7 +21,6 @@
 #include "mamba/util/build.hpp"
 
 #include "mambatests.hpp"
-#include "test_data.hpp"
 
 namespace mamba
 {
@@ -606,7 +605,7 @@ namespace mamba
     {
         TEST_CASE("parse_last_modified_etag")
         {
-            fs::u8path cache_folder = fs::u8path{ test_data_dir / "repodata_json_cache" };
+            fs::u8path cache_folder = fs::u8path{ mambatests::test_data_dir / "repodata_json_cache" };
             auto mq = MSubdirMetadata::read(cache_folder / "test_1.json");
             CHECK(mq.has_value());
             auto j = mq.value();

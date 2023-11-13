@@ -206,19 +206,6 @@ namespace mamba
             return filters.empty() ? defaults : filters;
         }
 
-        auto
-        make_platforms(util::flat_set<std::string> filters, const std::vector<std::string>& defaults)
-        {
-            if (filters.empty())
-            {
-                for (const auto& plat : defaults)
-                {
-                    filters.insert(plat);
-                }
-            }
-            return filters;
-        }
-
         auto resolve_path_name(const specs::CondaURL& uri, Channel::ResolveParams params)
             -> std::string
         {

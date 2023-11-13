@@ -317,7 +317,7 @@ namespace mamba
         {
             for (const auto& [fn, pkg] : packages)
             {
-                if (skip_packages != nullptr && skip_packages->count(std::string(fn))==1)
+                if (skip_packages != nullptr && skip_packages->count(std::string(fn)) == 1)
                 {
                     LOG_INFO << "Skip " << fn;
                     continue;
@@ -330,7 +330,8 @@ namespace mamba
                 }
 
                 // packages in the overlay may be null as a deletion marker
-                if (pkg.type() == simdjson::dom::element_type::NULL_VALUE) {
+                if (pkg.type() == simdjson::dom::element_type::NULL_VALUE)
+                {
                     LOG_INFO << "Skip NULL " << fn;
                     continue;
                 }

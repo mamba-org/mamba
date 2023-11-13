@@ -7,8 +7,8 @@
 #ifndef MAMBA_CORE_ACTIVATION_HPP
 #define MAMBA_CORE_ACTIVATION_HPP
 
-#include <map>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -101,7 +101,7 @@ namespace mamba
         bool m_stack = false;
         ActivationType m_action;
 
-        std::map<std::string, std::string> m_env;
+        std::unordered_map<std::string, std::string> m_env;
     };
 
     class PosixActivator : public Activator

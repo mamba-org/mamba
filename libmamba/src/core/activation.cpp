@@ -29,7 +29,7 @@ namespace mamba
 
     Activator::Activator(const Context& context)
         : m_context(context)
-        , m_env(env::copy())
+        , m_env(util::get_env_map())
     {
     }
 

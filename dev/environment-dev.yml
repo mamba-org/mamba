@@ -24,6 +24,7 @@ dependencies:
   # micromamba dependencies
   - cli11 >=2.2
   # micromamba test dependencies
+  - python =3.9  # Some not too recent version
   - mitmproxy
   - pytest >=7.3.0
   - pytest-asyncio

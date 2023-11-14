@@ -7,12 +7,23 @@
 #ifndef LIBMAMBATESTS_HPP
 #define LIBMAMBATESTS_HPP
 
+#include <array>
+#include <string_view>
+
 #include "mamba/core/context.hpp"
-#include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/fs/filesystem.hpp"
+#include "mamba/util/environment.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mambatests
 {
+
+#ifndef MAMBA_TEST_DATA_DIR
+#error "MAMBA_TEST_DATA_DIR must be defined pointing to test data"
+#endif
+    inline static const mamba::fs::u8path test_data_dir = MAMBA_TEST_DATA_DIR;
+
     struct Singletons
     {
         // mamba::MainExecutor main_executor; // FIXME: reactivate once the tests are not indirectly
@@ -35,7 +46,71 @@ namespace mambatests
         return singletons().context;
     }
 
+    class EnvironmentCleaner
+    {
+    public:
+
+        EnvironmentCleaner();
+
+        template <typename... Func>
+        EnvironmentCleaner(Func&&... cleaner);
+
+        ~EnvironmentCleaner();
+
+    private:
+
+        mamba::util::environment_map m_env;
+    };
+
+    class CleanMambaEnv
+    {
+    public:
+
+        inline static constexpr auto prefixes = std::array<std::string_view, 4>{
+            "CONDA",
+            "_CONDA",
+            "MAMBA",
+            "_MAMBA",
+        };
+
+        void operator()(const mamba::util::environment_map& env);
+    };
+
+    /******************************************
+     *  Implementation of EnvironmentCleaner  *
+     ******************************************/
+
+    inline EnvironmentCleaner::EnvironmentCleaner()
+        : m_env(mamba::util::get_env_map())
+    {
+    }
+
+    template <typename... Func>
+    EnvironmentCleaner::EnvironmentCleaner(Func&&... cleaner)
+        : EnvironmentCleaner()
+    {
+        ((cleaner(const_cast<const mamba::util::environment_map&>(m_env))), ...);
+    }
+
+    inline EnvironmentCleaner::~EnvironmentCleaner()
+    {
+        mamba::util::set_env_map(m_env);
+    }
+
+    /*************************************
+     *  Implementation of CleanMambaEnv  *
+     *************************************/
+
+    inline void CleanMambaEnv::operator()(const mamba::util::environment_map& env)
+    {
+        for (const auto& [key, val] : env)
+        {
+            if (mamba::util::starts_with_any(key, prefixes))
+            {
+                mamba::util::unset_env(key);
+            }
+        }
+    }
+
 }
-
-
 #endif

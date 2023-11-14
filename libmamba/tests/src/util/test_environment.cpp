@@ -8,18 +8,24 @@
 
 #include "mamba/util/environment.hpp"
 
+#include "mambatests.hpp"
+
 using namespace mamba::util;
 
 TEST_SUITE("util::environment")
 {
     TEST_CASE("get_env")
     {
+        const auto restore = mambatests::EnvironmentCleaner();
+
         CHECK_FALSE(get_env("VAR_THAT_DOES_NOT_EXIST_XYZ").has_value());
         CHECK(get_env("PATH").has_value());
     }
 
     TEST_CASE("set_env")
     {
+        const auto restore = mambatests::EnvironmentCleaner();
+
         SUBCASE("ASCII")
         {
             const auto key = std::string(u8"VAR_THAT_DOES_NOT_EXIST_XYZ");
@@ -45,6 +51,8 @@ TEST_SUITE("util::environment")
 
     TEST_CASE("unset_env")
     {
+        const auto restore = mambatests::EnvironmentCleaner();
+
         const auto key = std::string(u8"VAR_THAT_DOES_NOT_EXIST_ABC_😀");
         CHECK_FALSE(get_env(key).has_value());
         unset_env(key);
@@ -57,6 +65,8 @@ TEST_SUITE("util::environment")
 
     TEST_CASE("get_env_map")
     {
+        const auto restore = mambatests::EnvironmentCleaner();
+
         auto env = mamba::util::get_env_map();
         CHECK_GT(env.size(), 0);
         CHECK_EQ(env.count("VAR_THAT_MUST_NOT_EXIST_XYZ"), 0);
@@ -71,6 +81,8 @@ TEST_SUITE("util::environment")
 
     TEST_CASE("update_env_map")
     {
+        const auto restore = mambatests::EnvironmentCleaner();
+
         const auto key_inexistant = std::string(u8"CONDA😀");
         const auto key_unchanged = std::string(u8"MAMBA😀");
         const auto key_changed = std::string(u8"PIXI😀");
@@ -94,6 +106,8 @@ TEST_SUITE("util::environment")
 
     TEST_CASE("set_env_map")
     {
+        const auto restore = mambatests::EnvironmentCleaner();
+
         const auto key_inexistant = std::string(u8"CONDA🤗");
         const auto key_unchanged = std::string(u8"MAMBA🤗");
         const auto key_changed = std::string(u8"PIXI🤗");

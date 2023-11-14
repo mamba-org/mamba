@@ -14,7 +14,6 @@
 #include "mamba/util/string.hpp"
 
 #include "mambatests.hpp"
-#include "test_data.hpp"
 
 namespace mamba
 {
@@ -111,6 +110,7 @@ namespace mamba
             std::string m_channel_alias_bu;
             std::string m_ssl_verify;
             std::map<std::string, std::string> m_proxy_servers;
+            mambatests::EnvironmentCleaner restore = { mambatests::CleanMambaEnv() };
         };
 
         TEST_SUITE("Configuration")
@@ -164,7 +164,7 @@ namespace mamba
             TEST_CASE_FIXTURE(Configuration, "parse_condarc")
             {
                 std::vector<fs::u8path> possible_rc_paths = {
-                    test_data_dir / "config/.condarc",
+                    mambatests::test_data_dir / "config/.condarc",
                 };
 
                 config.set_rc_values(possible_rc_paths, RCConfigLevel::kTargetPrefix);
@@ -1095,13 +1095,13 @@ namespace mamba
             {
                 using namespace detail;
 
-                fs::u8path p = test_data_dir / "config/.condarc";
+                fs::u8path p = mambatests::test_data_dir / "config/.condarc";
 
                 std::vector<fs::u8path> wrong_paths = {
-                    test_data_dir / "config",
-                    test_data_dir / "conf",
-                    test_data_dir / "config/condarc",
-                    test_data_dir / "history/conda-meta/history",
+                    mambatests::test_data_dir / "config",
+                    mambatests::test_data_dir / "conf",
+                    mambatests::test_data_dir / "config/condarc",
+                    mambatests::test_data_dir / "history/conda-meta/history",
                 };
 
                 CHECK(is_config_file(p));

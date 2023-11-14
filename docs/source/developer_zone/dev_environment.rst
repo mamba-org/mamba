@@ -124,7 +124,7 @@ Install develoment dependencies
 Compile ``libmmaba`` and other artifacts
 ****************************************
 
-``libmamba`` is build using CMake.
+``libmamba`` is built using CMake.
 Typically during development, development, we build everything dynamically using dependencies
 from Conda-Forge.
 

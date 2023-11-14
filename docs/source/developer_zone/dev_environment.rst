@@ -28,7 +28,7 @@ Develop using Taskfile
 ======================
 
 Many development operations can be automated and chained using `Taskfile <https://taskfile.dev/>`_.
-You can follow the installation instruction there, or install it via `conda-forge`.
+You can follow the installation instructions there, or install it via `conda-forge`.
 
 .. code:: bash
 

@@ -27,7 +27,7 @@ Refer to the :ref:`installation<installation>` page for how to install micromamb
 Develop using Taskfile
 ======================
 
-Many development opetation can be automated and chained using `Taskfile <https://taskfile.dev/>`_.
+Many development operations can be automated and chained using `Taskfile <https://taskfile.dev/>`_.
 You can follow the installation instruction there, or install it via `conda-forge`.
 
 .. code:: bash

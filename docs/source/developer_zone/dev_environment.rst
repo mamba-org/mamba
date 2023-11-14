@@ -125,7 +125,7 @@ Compile ``libmmaba`` and other artifacts
 ****************************************
 
 ``libmamba`` is built using CMake.
-Typically during development, development, we build everything dynamically using dependencies
+Typically during development, we build everything dynamically using dependencies
 from Conda-Forge.
 
 The first step is to configure the build options.

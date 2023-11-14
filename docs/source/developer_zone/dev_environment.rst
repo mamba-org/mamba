@@ -38,7 +38,7 @@ You can follow the installation instructions there, or install it via `conda-for
 Running commands
 ****************
 
-Tasks and their description can be queried with:
+Tasks and their descriptions can be queried with:
 
 .. code:: bash
 

@@ -148,7 +148,7 @@ Compilation can then be launched with:
 ``libmamba`` tests
 ******************
 
-The test for libamba are written in C++.
+The tests for libamba are written in C++.
 
 .. code:: bash
 

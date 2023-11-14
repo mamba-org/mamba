@@ -44,7 +44,7 @@ Tasks and their descriptions can be queried with:
 
     task --list-all
 
-At the time of writing, the following tasks are avaiable:
+At the time of writing, the following tasks are available:
 
 .. code::
 

@@ -22,7 +22,7 @@ Setting the development environment requires conda, mamba, or micromamba.
 Since some commands are automated with ``micromamba``, and to avoid any runtime linking issue,
 it is best to work with micromamba.
 
-Refer to the :ref:`installation<installation>` page for how to install micromamba or mamba.
+Refer to the :ref:`installation<umamba-install>` page for how to install micromamba or mamba.
 
 Develop using Taskfile
 ======================

@@ -6,7 +6,8 @@ Troubleshooting
 Please use the official installer
 ---------------------------------
 
-Please make sure that you use the :ref:`official Mambaforge installer <installation>` to install Mamba. Other installation methods are not supported.
+Please make sure that you use the :ref:`official Mambaforge installer <mamba-install>` to install Mamba.
+Other installation methods are not supported.
 
 Mamba should be installed to the ``base`` environment
 -----------------------------------------------------

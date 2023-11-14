@@ -61,6 +61,7 @@ At the time of writing, the following tasks are available:
    * pre-commit:            Run linters and code formatters.
    * reconfigure:           Erase all CMake cache entries and run confiiguration again.
    * stubgen:               Regenerate libmambapy typing stubs.
+   * test-docs:             Test the documentation, for instance for dead links.
    * test-libmamba:         Run `libmamba` C++ based tests.
    * test-libmambapy:       Run `libmambapy` Python based unit tests.
    * test-micromamba:       Run `micromamba` integration tests.

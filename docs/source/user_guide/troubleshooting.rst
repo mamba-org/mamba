@@ -25,7 +25,8 @@ Installing packages other than Conda and Mamba into the ``base`` environment is 
 Using the ``defaults`` channels
 -------------------------------
 
-It is **not recommended** to use the `Anaconda default channels <https://docs.anaconda.com/anaconda/user-guide/tasks/using-repositories/>`_:
+It is **not recommended** to use the
+`Anaconda default channels <https://docs.anaconda.com/free/anaconda/reference/default-repositories/>`_:
 
 - ``pkgs/main``
 - ``pkgs/r`` / ``R``
@@ -71,7 +72,8 @@ Or in your :file:`~/.condarc` file:
 Mixing the ``defaults`` and ``conda-forge`` channels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The `Anaconda default channels <https://docs.anaconda.com/anaconda/user-guide/tasks/using-repositories/>`_ are **incompatible** with conda-forge.
+The `Anaconda default channels <https://docs.anaconda.com/free/anaconda/reference/default-repositories/>`_
+are **incompatible** with conda-forge.
 
 Using the default and ``conda-forge`` channels at the same time is not supported and will lead to broken environments:
 

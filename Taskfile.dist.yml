@@ -10,6 +10,7 @@ vars:
   CMAKE_BUILD_DIR: '{{.BUILD_DIR}}/cmake'
   CMAKE_PRESET: 'mamba-unix-shared-debug-dev'
   CACHE_DIR: '{{.BUILD_DIR}}/pkgs'
+  DOCS_DIR: '{{.BUILD_DIR}}/docs'
   CPU_PERCENTAGE: 75
   CPU_TOTAL:
     sh: >-
@@ -48,11 +49,20 @@ tasks:
       - '{{.prefix}}/conda-meta/**/*'
 
   create-dev-env:
-    summary: 'Create a local development mamba environment with all needed dependencies'
+    desc: Create a local development mamba environment with all needed dependencies
+    summary: |
+      Create development Conda environment with dependencies and development packages used to build
+      Mamba. Many tasks are automatically run inside this environment.
+      The environment is located at "{{.DEV_ENV_DIR}}" and can also be activated with micromamba to
+      benefit from the executables and LSP tools.
     cmds: [{task: '_create-env', vars: {prefix: '{{.DEV_ENV_DIR}}'}}]
 
   create-test-env:
-    summary: 'Copy the development environment'
+    desc: Create a local test environment with as a copy of the dev environment.
+    summary: |
+      Copy the dev environment as a test environment under "{{.TEST_ENV_DIR}}". This environment is
+      used by some task that need to make an actual install of Mamba, ensuring the dev environment
+      is not modified.
     deps: [create-dev-env]
     cmds:
       - task: '_copy-env'
@@ -60,12 +70,17 @@ tasks:
 
   _pre-commit:
     internal: true
-    summary: 'Run pre-commit hooks inside the development environment'
     deps: [create-dev-env]
     cmds:
       - cmd: '{{.DEV_RUN}} pre-commit run {{.args}}'
         ignore_error: true
   pre-commit:
+    desc: Run linters and code formatters.
+    summary: |
+      Run the pre-commit hooks inside the development environment to format and lint the code.
+      It is recommended to install the pre-commit hooks instead using
+
+          pre-commit install
     cmds: [{task: _pre-commit, vars: {args: '{{.CLI_ARGS | default "--all-files"}}'}}]
 
   _configure:
@@ -84,8 +99,22 @@ tasks:
     status:
       - test -f '{{.CMAKE_BUILD_DIR}}/CMakeCache.txt'
   configure:
+    desc: Configure the CMake build.
+    summary: |
+      CMake makes a one time configuration to detect system properties and find dependencies.
+      This step runs such configuration steps with development options passed in.
+      Extra argument can be passed to CMake using the syntax:
+
+          task configure -- -D SOME_OPTION=True
     cmds: [{task: _configure, vars: {args: '{{.CLI_ARGS}}'}}]
   reconfigure:
+    desc: Erase all CMake cache entries and run confiiguration again.
+    summary: |
+      CMake configuration can have some sticky parameters. Use this when in need to start from a
+      clean configuration, for instance when encountering issues with dependencies.
+      Extra argument can be passed to CMake using the syntax:
+
+          task reconfigure -- -D SOME_OPTION=True
     cmds:
       - 'rm -rf "{{.CMAKE_BUILD_DIR}}/CMakeCache.txt"'
       - {task: _configure, vars: {args: '{{.CLI_ARGS}}'}}
@@ -101,9 +130,23 @@ tasks:
       args: '{{.args | default (printf "--parallel %s --target %s" .cpu_count .target)}}'
     # Again, CMake knows what to rebuild so we always rerun the task
   build:
+    desc: Build all (or some) CMake targets.
+    summary: |
+      Build all CMake targets, including `micormamba` and `libmambapy`. A single target can be built
+      using:
+
+          task build -- --target micromamba
     cmds: [{task: '_build', vars: {args: '{{.CLI_ARGS}}'}}]
 
   micromamba:
+    desc: Run the development `micromamba`.
+    summary: |
+      When developing a feature or tracking down a bug, it can be useful to try it out "for real".
+      This lets you run `micromamba` with the safety of automatic recompile, and disambiguation
+      from a local install of stable `micromamba`.
+      An example run could look like:
+
+          task micromamba -- create -n env -c conda-forge python=3.11
     deps: [{task: '_build', vars: {target: 'micromamba'}}]
     cmds:
       - '"{{.CMAKE_BUILD_DIR}}/micromamba/micromamba" {{.CLI_ARGS}}'
@@ -115,6 +158,13 @@ tasks:
     cmds:
       - './test_libmamba {{.args}}'
   test-libmamba:
+    desc: Run `libmamba` C++ based tests.
+    summary: |
+      Run fast C++ tests of libmamba. Running this command will rebuild only `libmamba` and its
+      tests, so compilation error may still happen when building other targets.
+      Test options can be passed as extra command line arguments:
+
+          task test-libmamba -- --test-suite='util::*'
     cmds: [{task: '_test-libmamba', vars: {args: '{{.CLI_ARGS}}'}}]
 
   _test-micromamba:
@@ -128,9 +178,19 @@ tasks:
         {{.DEV_RUN}} python -m pytest micromamba/tests/
         --mamba-pkgs-dir="{{.CACHE_DIR}}" {{.args}}
   test-micromamba:
+    desc: Run `micromamba` integration tests.
+    summary: |
+      Run slow `micromamba` tests through a Pytest Python framework.
+      Test options can be passed as extra command line arguments:
+
+          task test-micromamba -- -x --failed-first -k 'test_create'
     cmds: [{task: _test-micromamba, vars: {args: '{{.CLI_ARGS}}'}}]
 
   install-cpp:
+    desc: Install C++ targets into the test environment.
+    summary: |
+      Installing C++ target is needed to create the Python package but this command rarely needs
+      to be called directly.
     deps: [_build]
     cmds:
       - '{{.DEV_RUN}} cmake --install "{{.CMAKE_BUILD_DIR}}" --prefix "{{.TEST_ENV_DIR}}"'
@@ -153,6 +213,10 @@ tasks:
     cmds: [{task: _test-reposerver, vars: {args: '{{.CLI_ARGS}}'}}]
 
   install-py:
+    desc: Install the `libmambapy` Python package inside the test environment.
+    summary: |
+      Installing the Python package is required to run `libmambapy` Python tests but this command
+      rarely needs to be called explicitly.
     deps: [install-cpp]
     cmds:
       - >-
@@ -166,17 +230,48 @@ tasks:
       - >-
         {{.TEST_RUN}} python -m pytest libmambapy/tests/ {{.args}}
   test-libmambapy:
+    desc: Run `libmambapy` Python based unit tests.
+    summary: |
+      Run the Python unit tests of `libmambapy`. These tests do not test features of `libmamba`
+      but rather that the bindings code runs without errors.
+      Test options can be passed as extra command line arguments:
+
+          task test-libmambapy -- -x --failed-first -k 'specs'
     cmds: [{task: _test-libmambapy, vars: {args: '{{.CLI_ARGS}}'}}]
 
   stubgen:
+    desc: Regenerate libmambapy typing stubs.
+    summary: |
+      Regenerate the stub `*.pyi` stubs files providing Python typing information.
+      If this command creates any changes, the modifications needs to be commited.
     deps: [install-py]
     cmds:
       - '{{.TEST_RUN}} python -m pybind11_stubgen -o "{{.BUILD_DIR}}/stubs" libmambapy.core.bindings'
       - cp "{{.BUILD_DIR}}/stubs/libmambapy/core/bindings-stubs/__init__.pyi" libmambapy/src/libmambapy/__init__.pyi
       - '{{.DEV_RUN}} pre-commit run --files libmambapy/src/libmambapy/__init__.pyi'
 
-  clean: 'rm -rf {{.BUILD_DIR}}'
+  build-docs:
+    desc: Build the documentation.
+    summary: |
+      Build Mamba documentation using Sphinx.
+    deps: [create-dev-env]
+    cmds:
+      - '{{.DEV_RUN}} python -m sphinx -b html docs/source {{.DOCS_DIR}}'
 
-  clean-ci-caches: >-
-    gh api 'repos/{owner}/{repo}/actions/caches' --paginate --jq '.actions_caches[].id'
-    | xargs -I'{}' gh api -X DELETE 'repos/{owner}/{repo}/actions/caches/{}'
+  test-docs:
+    desc: Test the documentation, for instance for dead links.
+    summary: |
+      Run documentation tests, checking for dead links.
+    deps: [create-dev-env]
+    cmds:
+      - '{{.DEV_RUN}} python -m sphinx -W -b linkcheck docs/source {{.DOCS_DIR}}'
+
+  clean:
+    desc: Remove files generated by Task commands.
+    summary: |
+      Remove files generated by Task commnds. Some files and folder generated by tools may still
+      remain. To entirely clean the repository, run:
+
+          git clean -xdn
+    cmds:
+      - rm -rf {{.BUILD_DIR}}'

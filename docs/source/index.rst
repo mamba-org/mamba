@@ -62,5 +62,5 @@ You can try Mamba now by visiting the :ref:`installation page<installation>`!
    :hidden:
 
    developer_zone/contributing
-   developer_zone/build_locally
+   developer_zone/dev_environment
    developer_zone/internals

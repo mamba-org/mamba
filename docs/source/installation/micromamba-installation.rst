@@ -174,6 +174,44 @@ image can be used to run ``micromamba`` without installing it:
 
   docker run -it --rm mambaorg/micromamba:latest micromamba info
 
+Build from source
+*****************
+
+.. note::
+
+   These instuction do not work currently on Windows, which requires a more complex hybrid build.
+   For up-to-date instructions on Windows and Unix, consult the scripts in the
+   `micromamba-feedstock <https://github.com/conda-forge/micromamba-feedstock>`_.
+
+To build from source, install the development dependencies, using a Conda compatible installer
+(``conda``/``mamba``/``micromamba``/``rattler``/``pixi``).
+
+.. code-block:: bash
+
+  micromamba create -n mamba --file dev/environment-static.yml
+  micromamba activate -n mamba
+
+Use CMake from this environment to drive the build:
+
+.. code-block:: bash
+
+   cmake -B build/ \
+       -G Ninja \
+       ${CMAKE_ARGS} \
+       -D CMAKE_BUILD_TYPE="Release" \
+       -D BUILD_LIBMAMBA=ON \
+       -D BUILD_STATIC=ON \
+       -D BUILD_MICROMAMBA=ON
+   cmake --build build/ --parallel
+
+You will find the executable under "build/micromamba/micromamba".
+The executable can be striped to remove its size:
+
+.. code:: bash
+
+   strip "build/micromamba/micromamba"
+
+
 .. _shell_completion:
 
 Shell completion

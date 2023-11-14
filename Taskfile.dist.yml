@@ -11,22 +11,24 @@ vars:
   CMAKE_PRESET: 'mamba-unix-shared-debug-dev'
   CACHE_DIR: '{{.BUILD_DIR}}/pkgs'
   CPU_PERCENTAGE: 75
-  CPU_COUNT:
+  CPU_TOTAL:
     sh: >-
       {{- if eq OS "linux" -}}
-        echo $(($(cat /proc/cpuinfo | grep processor | wc -l) * {{.CPU_PERCENTAGE}} / 100))
+        cat /proc/cpuinfo | grep processor | wc -l
+      {{- else if eq OS "darwin" -}}
+        sysctl -n hw.ncpu
       {{- else -}}
         echo 1
       {{- end -}}
+  CPU_COUNT:
+    sh: echo $(({{.CPU_TOTAL}} * {{.CPU_PERCENTAGE}} / 100))
 
 tasks:
   _create-env:
     run: 'when_changed'
     internal: true
     cmds:
-      # Pin some version of Python so that we don' develop witha too recent version
-      - 'micromamba create --yes --prefix "{{.prefix}}" python=3.9'
-      - 'micromamba install --yes --prefix "{{.prefix}}" --file ./dev/environment-dev.yml'
+      - 'micromamba create --yes --prefix "{{.prefix}}" --file ./dev/environment-dev.yml'
       - 'micromamba install --yes --prefix "{{.prefix}}" --file ./dev/environment-dev-extra.yml'
     sources:
       - './dev/environment-dev.yml'

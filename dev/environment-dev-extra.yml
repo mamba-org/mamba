@@ -10,8 +10,9 @@ dependencies:
   - lld
   - cmake-format
   # C++ Debugging
-  - gdb
-  - valgrind
+  - sel(linux): gdb
+  - sel(osx): lldb
+  - sel(linux): valgrind  # Out of date on MacOS
   # Python LSP support
   - python-lsp-server-base
   - python-lsp-black

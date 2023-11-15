@@ -33,19 +33,34 @@ namespace mamba
     {
     }
 
-    const specs::CondaURL& Channel::url() const
+    auto Channel::url() const -> const specs::CondaURL&
     {
         return m_url;
     }
 
-    const util::flat_set<std::string>& Channel::platforms() const
+    void Channel::set_url(specs::CondaURL url)
+    {
+        m_url = std::move(url);
+    }
+
+    auto Channel::platforms() const -> const platform_list&
     {
         return m_platforms;
     }
 
-    const std::string& Channel::display_name() const
+    void Channel::set_platforms(platform_list platforms)
+    {
+        m_platforms = std::move(platforms);
+    }
+
+    auto Channel::display_name() const -> const std::string&
     {
         return m_display_name;
+    }
+
+    void Channel::set_display_name(std::string display_name)
+    {
+        m_display_name = std::move(display_name);
     }
 
     std::string Channel::base_url() const
@@ -396,7 +411,7 @@ namespace mamba
                     auto channel = chan;
                     if (!spec.platform_filters().empty())
                     {
-                        channel.m_platforms = spec.platform_filters();
+                        channel.set_platforms(spec.platform_filters());
                     }
                     if (added.insert(channel).second)
                     {
@@ -445,7 +460,7 @@ namespace mamba
         for (const auto& [name, location] : m_context.custom_channels)
         {
             auto channel = from_value(location);
-            channel.m_display_name = name;
+            channel.set_display_name(name);
             m_custom_channels.emplace(name, std::move(channel));
         }
 

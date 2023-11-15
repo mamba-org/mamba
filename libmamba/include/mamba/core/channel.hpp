@@ -49,12 +49,18 @@ namespace mamba
             // TODO add CWD and home
         };
 
+        using platform_list = util::flat_set<std::string>;
 
         Channel(specs::CondaURL url, std::string display_name, util::flat_set<std::string> platforms = {});
 
-        const std::string& display_name() const;
-        const util::flat_set<std::string>& platforms() const;
-        const specs::CondaURL& url() const;
+        [[nodiscard]] auto url() const -> const specs::CondaURL&;
+        void set_url(specs::CondaURL url);
+
+        [[nodiscard]] auto platforms() const -> const platform_list&;
+        void set_platforms(platform_list platforms);
+
+        [[nodiscard]] auto display_name() const -> const std::string&;
+        void set_display_name(std::string display_name);
 
         std::string base_url() const;
         std::string platform_url(std::string_view platform, bool with_credential = true) const;
@@ -68,9 +74,6 @@ namespace mamba
         specs::CondaURL m_url;
         std::string m_display_name;
         util::flat_set<std::string> m_platforms;
-
-        // FIXME: Remove this
-        friend class ChannelContext;
     };
 
     /** Tuple-like equality of all observable members */

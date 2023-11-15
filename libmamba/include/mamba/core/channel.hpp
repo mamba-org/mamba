@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include "mamba/specs/authentication_info.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/util/flat_set.hpp"
 
@@ -26,7 +27,6 @@ namespace mamba
     namespace specs
     {
         class ChannelSpec;
-        class AuthenticationDataBase;
     }
 
     // Note: Channels can only be created using ChannelContext.

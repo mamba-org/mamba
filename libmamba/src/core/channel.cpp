@@ -208,7 +208,7 @@ namespace mamba
                     '/',
                     specs::CondaURL::Credentials::Remove
                 );
-                if (auto it = db.find_compatible(key); it != db.end())
+                if (auto it = db.find_weaken(key); it != db.end())
                 {
                     set_fallback_credential_from_auth(url, it->second);
                 }

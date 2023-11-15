@@ -4,7 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -108,14 +110,24 @@ namespace mamba::specs
             out = util::rstrip(out, '/');
             return out;
         }
+
+        auto is_unknown_channel(std::string_view str) -> bool
+        {
+            auto it = std::find(
+                ChannelSpec::invalid_channels_lower.cbegin(),
+                ChannelSpec::invalid_channels_lower.cend(),
+                util::to_lower(str)
+            );
+            return str.empty() || (it != ChannelSpec::invalid_channels_lower.cend());
+        }
     }
 
     auto ChannelSpec::parse(std::string_view str) -> ChannelSpec
     {
         str = util::strip(str);
-        if (str.empty())
+        if (is_unknown_channel(str))
         {
-            return {};
+            return { std::string(unknown_channel), {}, Type::Unknown };
         }
 
         auto [location, filters] = split_location_platform(str);
@@ -148,9 +160,17 @@ namespace mamba::specs
         , m_platform_filters(std::move(filters))
         , m_type(type)
     {
+        if (m_type == Type::Unknown)
+        {
+            m_location = unknown_channel;
+            m_platform_filters = {};
+        }
         if (m_location.empty())
         {
-            m_location = std::string(default_name);
+            throw std::invalid_argument(  //
+                "Cannot channel with empty location, "
+                "use unknown type instead."
+            );
         }
     }
 

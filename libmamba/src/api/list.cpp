@@ -77,7 +77,7 @@ namespace mamba
                         obj["base_url"] = channel.base_url();
                         obj["build_number"] = pkg_info.build_number;
                         obj["build_string"] = pkg_info.build_string;
-                        obj["channel"] = channel.canonical_name();
+                        obj["channel"] = channel.display_name();
                         obj["dist_name"] = pkg_info.str();
                         obj["name"] = pkg_info.name;
                         obj["platform"] = pkg_info.subdir;
@@ -112,7 +112,7 @@ namespace mamba
                     else
                     {
                         const Channel& channel = channel_context.make_channel(package.second.url);
-                        formatted_pkgs.channel = channel.canonical_name();
+                        formatted_pkgs.channel = channel.display_name();
                     }
                     packages.push_back(formatted_pkgs);
                 }

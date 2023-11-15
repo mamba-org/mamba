@@ -13,6 +13,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/specs/archive.hpp"
+#include "mamba/specs/platform.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
@@ -101,7 +102,7 @@ namespace mamba
                 version = dist[1];
                 build_string = dist[2];
 
-                channel = parsed_channel.canonical_name();
+                channel = parsed_channel.display_name();
                 // TODO how to handle this with multiple platforms?
                 if (const auto& plats = parsed_channel.platforms(); !plats.empty())
                 {
@@ -187,6 +188,12 @@ namespace mamba
         {
             throw std::runtime_error("Parsing of channel / namespace / subdir failed.");
         }
+
+        auto get_known_platforms = []() -> std::vector<std::string>
+        {
+            auto plats = specs::known_platform_names();
+            return { plats.begin(), plats.end() };
+        };
 
         std::string cleaned_url;
         std::string platform;

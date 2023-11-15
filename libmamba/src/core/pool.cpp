@@ -149,7 +149,7 @@ namespace mamba
             }
 
             auto& custom_multichannels = channel_context.context().custom_multichannels;
-            auto x = custom_multichannels.find(needle.name());
+            auto x = custom_multichannels.find(needle.display_name());
             if (x != custom_multichannels.end())
             {
                 for (auto el : (x->second))
@@ -209,7 +209,7 @@ namespace mamba
         ) -> solv::DependencyId
         {
             // Poor man's ms repr to match waht the user provided
-            std::string const repr = fmt::format("{}::{}", ms.channel, ms.conda_build_form());
+            const std::string repr = fmt::format("{}::{}", ms.channel, ms.conda_build_form());
 
             // Already added, return that id
             if (const auto maybe_id = pool.find_string(repr))
@@ -218,25 +218,22 @@ namespace mamba
             }
 
             // conda_build_form does **NOT** contain the channel info
-            solv::DependencyId const match = pool_conda_matchspec(
+            const solv::DependencyId match = pool_conda_matchspec(
                 pool.raw(),
                 ms.conda_build_form().c_str()
             );
 
-            auto multi_channels = channel_context.get_custom_multichannels();
-            std::vector<const Channel*> channels;
-            auto multi_channels_it = multi_channels.find(ms.channel);
-            if (multi_channels_it != multi_channels.end())
+            const auto& multi_chan = channel_context.get_custom_multichannels();
+            auto channels = std::vector<Channel>();
+            if (auto iter = multi_chan.find(ms.channel); iter != multi_chan.end())
             {
-                for (auto& c : multi_channels_it->second)
-                {
-                    channels.push_back(&channel_context.make_channel(c));
-                }
+                channels.insert(channels.end(), iter->second.cbegin(), iter->second.cend());
             }
             else
             {
-                channels.push_back(&channel_context.make_channel(ms.channel));
+                channels.push_back(channel_context.make_channel(ms.channel));
             }
+
             solv::ObjQueue selected_pkgs = {};
             pool.for_each_whatprovides(
                 match,
@@ -247,9 +244,9 @@ namespace mamba
                     auto repo = solv::ObjRepoView(*s.raw()->repo);
                     // TODO make_channel should disapear avoiding conflict here
                     auto const url = std::string(repo.url());
-                    for (auto& c : channels)
+                    for (auto const& c : channels)
                     {
-                        if (channel_match(channel_context, channel_context.make_channel(url), *c))
+                        if (channel_match(channel_context, channel_context.make_channel(url), c))
                         {
                             if (subdir_match(url, ms.spec))
                             {
@@ -260,7 +257,7 @@ namespace mamba
                 }
             );
 
-            solv::StringId const repr_id = pool.add_string(repr);
+            const solv::StringId repr_id = pool.add_string(repr);
             // FRAGILE This get deleted when calling ``pool_createwhatprovides`` so care
             // must be taken to do it before
             // TODO investigate namespace providers

@@ -226,10 +226,8 @@ class TestConfigList:
     def test_list_map_with_sources(self, rc_file, source_flag):
         home_folder = os.path.expanduser("~")
         src = f"  # '{str(rc_file).replace(home_folder, '~')}'"
-        assert (
-            config("list", "--no-env", "--rc-file", rc_file, source_flag).splitlines()
-            == f"custom_channels:\n  key1: value1{src}\n".splitlines()
-        )
+        out = config("list", "--no-env", "--rc-file", rc_file, source_flag)
+        assert f"key1: value1{src}" in out
 
     @pytest.mark.parametrize("desc_flag", ["--descriptions", "-d"])
     @pytest.mark.parametrize("rc_file_args", ({"channels": ["channel1", "channel2"]},))
@@ -850,6 +848,7 @@ class TestConfigExpandVars:
             out["channel_alias"]
             == "https://xxxxxxxxxxxxxxxxxxxx.com/t/kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk/get"
         )
-        assert out["custom_channels"] == {
-            "yyyyyyyyyyyy": "https://uuuuuuuuu:pppppppppppppppppppp@xxxxxxxxxxxxxxx.com"
-        }
+        assert (
+            out["custom_channels"]["yyyyyyyyyyyy"]
+            == "https://uuuuuuuuu:pppppppppppppppppppp@xxxxxxxxxxxxxxx.com"
+        )

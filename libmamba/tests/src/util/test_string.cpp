@@ -4,7 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <cstddef>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -14,7 +13,12 @@
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/util/string.hpp"
 
-namespace mamba::util
+#include "doctest-printer/array.hpp"
+#include "doctest-printer/optional.hpp"
+
+using namespace mamba::util;
+
+namespace
 {
     TEST_SUITE("util::string")
     {
@@ -364,6 +368,40 @@ namespace mamba::util
             }
         }
 
+        TEST_CASE("split_once")
+        {
+            using Out = std::tuple<std::string_view, std::optional<std::string_view>>;
+
+            CHECK_EQ(split_once("", '/'), Out{ "", std::nullopt });
+            CHECK_EQ(split_once("/", '/'), Out{ "", "" });
+            CHECK_EQ(split_once("hello/world", '/'), Out{ "hello", "world" });
+            CHECK_EQ(split_once("hello/my/world", '/'), Out{ "hello", "my/world" });
+            CHECK_EQ(split_once("/hello/world", '/'), Out{ "", "hello/world" });
+
+            CHECK_EQ(split_once("", "/"), Out{ "", std::nullopt });
+            CHECK_EQ(split_once("hello/world", "/"), Out{ "hello", "world" });
+            CHECK_EQ(split_once("hello//world", "//"), Out{ "hello", "world" });
+            CHECK_EQ(split_once("hello/my//world", "/"), Out{ "hello", "my//world" });
+            CHECK_EQ(split_once("hello/my//world", "//"), Out{ "hello/my", "world" });
+        }
+
+        TEST_CASE("rsplit_once")
+        {
+            using Out = std::tuple<std::optional<std::string_view>, std::string_view>;
+
+            CHECK_EQ(rsplit_once("", '/'), Out{ std::nullopt, "" });
+            CHECK_EQ(rsplit_once("/", '/'), Out{ "", "" });
+            CHECK_EQ(rsplit_once("hello/world", '/'), Out{ "hello", "world" });
+            CHECK_EQ(rsplit_once("hello/my/world", '/'), Out{ "hello/my", "world" });
+            CHECK_EQ(rsplit_once("hello/world/", '/'), Out{ "hello/world", "" });
+
+            CHECK_EQ(rsplit_once("", "/"), Out{ std::nullopt, "" });
+            CHECK_EQ(rsplit_once("hello/world", "/"), Out{ "hello", "world" });
+            CHECK_EQ(rsplit_once("hello//world", "//"), Out{ "hello", "world" });
+            CHECK_EQ(rsplit_once("hello//my/world", "/"), Out{ "hello//my", "world" });
+            CHECK_EQ(rsplit_once("hello//my/world", "//"), Out{ "hello", "my/world" });
+        }
+
         TEST_CASE("split")
         {
             std::string a = "hello.again.it's.me.mario";
@@ -406,7 +444,7 @@ namespace mamba::util
                 CHECK_EQ(joined, "a-bc-d");
             }
             {
-                std::vector<fs::u8path> to_join = { "/a", "bc", "d" };
+                std::vector<mamba::fs::u8path> to_join = { "/a", "bc", "d" };
                 auto joined = join("/", to_join);
                 static_assert(std::is_same<decltype(joined), decltype(to_join)::value_type>::value);
                 CHECK_EQ(joined, "/a/bc/d");
@@ -464,37 +502,71 @@ namespace mamba::util
             CHECK_EQ(concat("aa", std::string("bb"), std::string_view("cc"), 'd'), "aabbccd");
         }
 
-        TEST_CASE("get_common_parts")
+        TEST_CASE("concat_dedup_splits")
         {
-            CHECK_EQ(get_common_parts("", "", "/"), "");
-            CHECK_EQ(get_common_parts("", "test", "/"), "");
-            CHECK_EQ(get_common_parts("test", "test", "/"), "test");
-            CHECK_EQ(get_common_parts("test/chan", "test/chan", "/"), "test/chan");
-            CHECK_EQ(get_common_parts("st/ch", "test/chan", "/"), "");
-            CHECK_EQ(get_common_parts("st/chan", "test/chan", "/"), "chan");
-            CHECK_EQ(get_common_parts("st/chan/abc", "test/chan/abc", "/"), "chan/abc");
-            CHECK_EQ(get_common_parts("test/ch", "test/chan", "/"), "test");
-            CHECK_EQ(get_common_parts("test/an/abc", "test/chan/abc", "/"), "abc");
-            CHECK_EQ(get_common_parts("test/chan/label", "label/abcd/xyz", "/"), "label");
-            CHECK_EQ(get_common_parts("test/chan/label", "chan/label/abcd", "/"), "chan/label");
-            CHECK_EQ(get_common_parts("test/chan/label", "abcd/chan/label", "/"), "chan/label");
-            CHECK_EQ(get_common_parts("test", "abcd", "/"), "");
-            CHECK_EQ(get_common_parts("test", "abcd/xyz", "/"), "");
-            CHECK_EQ(get_common_parts("test/xyz", "abcd/xyz", "/"), "xyz");
-            CHECK_EQ(get_common_parts("test/xyz", "abcd/gef", "/"), "");
-            CHECK_EQ(get_common_parts("abcd/test", "abcd/xyz", "/"), "");
+            for (std::string_view sep : { "/", "//", "/////", "./", "./." })
+            {
+                CAPTURE(sep);
 
-            CHECK_EQ(get_common_parts("", "", "."), "");
-            CHECK_EQ(get_common_parts("", "test", "."), "");
-            CHECK_EQ(get_common_parts("test", "test", "."), "test");
-            CHECK_EQ(get_common_parts("test.chan", "test.chan", "."), "test.chan");
-            CHECK_EQ(get_common_parts("test.chan.label", "chan.label.abcd", "."), "chan.label");
-            CHECK_EQ(get_common_parts("test/chan/label", "chan/label/abcd", "."), "");
-            CHECK_EQ(get_common_parts("st/ch", "test/chan", "."), "");
-            CHECK_EQ(get_common_parts("st.ch", "test.chan", "."), "");
+                CHECK_EQ(concat_dedup_splits("", "", sep), "");
 
-            CHECK_EQ(get_common_parts("test..chan", "test..chan", ".."), "test..chan");
+                CHECK_EQ(
+                    concat_dedup_splits(fmt::format("test{}chan", sep), "", sep),
+                    fmt::format("test{}chan", sep)
+                );
+                CHECK_EQ(
+                    concat_dedup_splits("", fmt::format("test{}chan", sep), sep),
+                    fmt::format("test{}chan", sep)
+                );
+                CHECK_EQ(
+                    concat_dedup_splits("test", fmt::format("test{}chan", sep), sep),
+                    fmt::format("test{}chan", sep)
+                );
+                CHECK_EQ(concat_dedup_splits("test", "chan", sep), fmt::format("test{}chan", sep));
+                CHECK_EQ(
+                    concat_dedup_splits(fmt::format("test{}chan", sep), "chan", sep),
+                    fmt::format("test{}chan", sep)
+                );
+                CHECK_EQ(
+                    concat_dedup_splits(fmt::format("test{}chan", sep), fmt::format("chan{}foo", sep), sep),
+                    fmt::format("test{}chan{}foo", sep, sep)
+                );
+                CHECK_EQ(
+                    concat_dedup_splits(
+                        fmt::format("test{}chan-foo", sep),
+                        fmt::format("foo{}bar", sep),
+                        sep
+                    ),
+                    fmt::format("test{}chan-foo{}foo{}bar", sep, sep, sep, sep)
+                );
+                CHECK_EQ(
+                    concat_dedup_splits(
+                        fmt::format("ab{}test{}chan", sep, sep),
+                        fmt::format("chan{}foo{}ab", sep, sep),
+                        sep
+                    ),
+                    fmt::format("ab{}test{}chan{}foo{}ab", sep, sep, sep, sep)
+                );
+                CHECK_EQ(
+                    concat_dedup_splits(
+                        fmt::format("{}test{}chan", sep, sep),
+                        fmt::format("chan{}foo{}", sep, sep),
+                        sep
+                    ),
+                    fmt::format("{}test{}chan{}foo{}", sep, sep, sep, sep)
+                );
+                CHECK_EQ(
+                    concat_dedup_splits(
+                        fmt::format("test{}chan", sep),
+                        fmt::format("chan{}test", sep),
+                        sep
+                    ),
+                    fmt::format("test{}chan{}test", sep, sep)
+                );
+            }
+
+            CHECK_EQ(concat_dedup_splits("test/chan", "chan/foo", "//"), "test/chan//chan/foo");
+            CHECK_EQ(concat_dedup_splits("test/chan", "chan/foo", '/'), "test/chan/foo");
         }
     }
-
 }  // namespace mamba

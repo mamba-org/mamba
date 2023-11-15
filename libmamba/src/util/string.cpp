@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <cassert>
 #include <cctype>
 #include <cwchar>
 #include <cwctype>
@@ -556,6 +557,65 @@ namespace mamba::util
         return strip_parts_impl(input, chars);
     }
 
+    /********************************************
+     *  Implementation of split_once functions  *
+     ********************************************/
+
+    namespace
+    {
+        template <typename Char, typename CharOrStrView>
+        auto split_once_impl(std::basic_string_view<Char> str, CharOrStrView sep)
+            -> std::tuple<std::string_view, std::optional<std::string_view>>
+        {
+            static constexpr auto npos = std::basic_string_view<Char>::npos;
+            if (const auto pos = str.find(sep); pos != npos)
+            {
+                return { str.substr(0, pos), str.substr(pos + detail::length(sep)) };
+            }
+            return { str, std::nullopt };
+        }
+    }
+
+    auto split_once(std::string_view str, char sep)
+        -> std::tuple<std::string_view, std::optional<std::string_view>>
+    {
+        return split_once_impl(str, sep);
+    }
+
+    auto split_once(std::string_view str, std::string_view sep)
+        -> std::tuple<std::string_view, std::optional<std::string_view>>
+    {
+        return split_once_impl(str, sep);
+    }
+
+    namespace
+    {
+        template <typename Char, typename CharOrStrView>
+        auto rsplit_once_impl(std::basic_string_view<Char> str, CharOrStrView sep)
+            -> std::tuple<std::optional<std::string_view>, std::string_view>
+        {
+            static constexpr auto npos = std::basic_string_view<Char>::npos;
+            if (const auto pos = str.rfind(sep); pos != npos)
+            {
+                return { str.substr(0, pos), str.substr(pos + detail::length(sep)) };
+            }
+            return { std::nullopt, str };
+        }
+    }
+
+    auto rsplit_once(std::string_view str, char sep)
+        -> std::tuple<std::optional<std::string_view>, std::string_view>
+    {
+        return rsplit_once_impl(str, sep);
+    }
+
+    auto rsplit_once(std::string_view str, std::string_view sep)
+        -> std::tuple<std::optional<std::string_view>, std::string_view>
+    {
+        return rsplit_once_impl(str, sep);
+    }
+
+
     /***************************************
      *  Implementation of split functions  *
      ***************************************/
@@ -675,6 +735,106 @@ namespace mamba::util
         return rsplit<decltype(input)::value_type>(input, sep, max_split);
     }
 
+    /*************************************
+     *  Implementation of ending_splits  *
+     *************************************/
+
+    namespace
+    {
+        template <typename Char, typename CharOrStrView>
+        auto starts_with_split(
+            std::basic_string_view<Char> str,
+            std::basic_string_view<Char> prefix,
+            CharOrStrView sep
+        ) -> bool
+        {
+            auto end = prefix.size();
+            const auto sep_size = detail::length(sep);
+            const auto str_size = str.size();
+            return
+                // The substring is found
+                starts_with(str, prefix)
+                && (
+                    // Either it ends at the end
+                    (end == str_size)
+                    // Or it is found before a separator
+                    || ((end <= str_size) && ends_with(str.substr(0, end + sep_size), sep))
+                );
+        }
+
+        template <typename Char, typename CharOrStrView>
+        auto remove_suffix_splits(
+            std::basic_string_view<Char> str1,
+            std::basic_string_view<Char> str2,
+            CharOrStrView sep
+        ) -> std::basic_string_view<Char>
+        {
+            static constexpr auto npos = std::basic_string_view<Char>::npos;
+
+            assert(!str1.empty());
+            assert(!str2.empty());
+            const auto sep_size = detail::length(sep);
+            assert(sep_size > 0);
+
+            auto get_common_candidate = [&](auto split)
+            { return str1.substr((split == npos) ? 0 : split + sep_size); };
+
+            auto split1 = str1.rfind(sep);
+
+            // In the case we did not find a match, we try a bigger common part
+            while (!starts_with_split(str2, get_common_candidate(split1), sep))
+            {
+                if ((split1 == npos) || (split1 < sep_size))
+                {
+                    // No further possibility to find a match, nothing to remove
+                    return str1;
+                }
+                // Add the next split element
+                split1 = str1.rfind(sep, split1 - sep_size);
+            }
+
+            return str1.substr(0, (split1 == npos) ? 0 : split1);
+        }
+
+        template <typename Char, typename CharOrStrView>
+        auto concat_dedup_splits_impl(
+            std::basic_string_view<Char> str1,
+            std::basic_string_view<Char> str2,
+            CharOrStrView sep
+        ) -> std::basic_string<Char>
+        {
+            if (str1.empty())
+            {
+                return std::string(str2);
+            }
+            if (str2.empty())
+            {
+                return std::string(str1);
+            }
+            if (detail::length(sep) < 1)
+            {
+                throw std::invalid_argument("Cannot split on empty separator");
+            }
+            auto str1_no_suffix = remove_suffix_splits(str1, str2, sep);
+            if (str1_no_suffix.empty())
+            {
+                return concat(str1_no_suffix, str2);
+            }
+            return concat(str1_no_suffix, sep, str2);
+        }
+    }
+
+    std::string concat_dedup_splits(std::string_view str1, std::string_view str2, char sep)
+    {
+        return concat_dedup_splits_impl(str1, str2, sep);
+    }
+
+    std::string
+    concat_dedup_splits(std::string_view str1, std::string_view str2, std::string_view sep)
+    {
+        return concat_dedup_splits_impl(str1, str2, sep);
+    }
+
     /*****************************************
      *  Implementation of replace functions  *
      *****************************************/
@@ -734,48 +894,5 @@ namespace mamba::util
             return 1;
         }
 
-    }
-
-    /********************************************************
-     *  Implementation of Channels use case util function   *
-     *******************************************************/
-
-    std::string get_common_parts(std::string_view str1, std::string_view str2, std::string_view sep)
-    {
-        std::string common_str{ str1 };
-        while ((str2.find(common_str) == std::string::npos))
-        {
-            if (common_str.find(sep) != std::string::npos)
-            {
-                common_str = common_str.substr(common_str.find(sep) + 1);
-            }
-            else
-            {
-                return "";
-            }
-        }
-
-        // Case of non empty common_str
-        // Check that subparts of common_str are not substrings of elements between the sep
-        auto vec1 = split(common_str, sep);
-        auto vec2 = split(str2, sep);
-        std::vector<std::string> res_vec;
-        for (std::size_t idx = 0; idx < vec1.size(); ++idx)
-        {
-            auto it = std::find(vec2.begin(), vec2.end(), vec1.at(idx));
-            if (it != vec2.end())
-            {
-                res_vec.emplace_back(vec1.at(idx));
-            }
-            else
-            {
-                if (idx != 0)
-                {
-                    return join(sep, res_vec);
-                }
-            }
-        }
-
-        return join(sep, res_vec);
     }
 }

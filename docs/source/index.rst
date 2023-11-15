@@ -17,7 +17,8 @@ The ``mamba-org`` organization hosts multiple Mamba flavors:
 .. note::
     :ref:`micromamba<micromamba>` is especially well fitted for the CI use-case but not limited to that!
 
-You can try Mamba now by visiting the :ref:`installation page<installation>`!
+You can try Mamba now by visiting the installation for
+:ref:`mamba<mamba-install>` or :ref:`micromamba<umamba-install>`
 
 
 .. toctree::
@@ -25,8 +26,8 @@ You can try Mamba now by visiting the :ref:`installation page<installation>`!
    :maxdepth: 2
    :hidden:
 
-   Mamba <mamba-installation>
-   Micromamba <micromamba-installation>
+   Mamba <installation/mamba-installation>
+   Micromamba <installation/micromamba-installation>
 
 .. toctree::
    :caption: USER GUIDE
@@ -62,5 +63,5 @@ You can try Mamba now by visiting the :ref:`installation page<installation>`!
    :hidden:
 
    developer_zone/contributing
-   developer_zone/build_locally
+   developer_zone/dev_environment
    developer_zone/internals

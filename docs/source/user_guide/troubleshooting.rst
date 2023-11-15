@@ -6,7 +6,8 @@ Troubleshooting
 Please use the official installer
 ---------------------------------
 
-Please make sure that you use the :ref:`official Mambaforge installer <installation>` to install Mamba. Other installation methods are not supported.
+Please make sure that you use the :ref:`official Mambaforge installer <mamba-install>` to install Mamba.
+Other installation methods are not supported.
 
 Mamba should be installed to the ``base`` environment
 -----------------------------------------------------
@@ -25,7 +26,8 @@ Installing packages other than Conda and Mamba into the ``base`` environment is 
 Using the ``defaults`` channels
 -------------------------------
 
-It is **not recommended** to use the `Anaconda default channels <https://docs.anaconda.com/anaconda/user-guide/tasks/using-repositories/>`_:
+It is **not recommended** to use the
+`Anaconda default channels <https://docs.anaconda.com/free/anaconda/reference/default-repositories/>`_:
 
 - ``pkgs/main``
 - ``pkgs/r`` / ``R``
@@ -71,7 +73,8 @@ Or in your :file:`~/.condarc` file:
 Mixing the ``defaults`` and ``conda-forge`` channels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The `Anaconda default channels <https://docs.anaconda.com/anaconda/user-guide/tasks/using-repositories/>`_ are **incompatible** with conda-forge.
+The `Anaconda default channels <https://docs.anaconda.com/free/anaconda/reference/default-repositories/>`_
+are **incompatible** with conda-forge.
 
 Using the default and ``conda-forge`` channels at the same time is not supported and will lead to broken environments:
 
@@ -113,7 +116,7 @@ Windows API historically supports paths up to 260 characters. While it's now pos
 
 
 Long paths support has to be activated
-**************************************
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 source: Robocorp `troubleshooting documentation <https://robocorp.com/docs/troubleshooting/windows-long-path>`_
 
@@ -131,7 +134,7 @@ If the problem persists after those steps, try the following:
 
 
 cmd.exe does not support calls to long prefixes
-***********************************************
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 While ``cmd.exe`` shell support long paths prefixing for directory operations such as ``dir``, it doesn't allow to call an executable or a batch file located at a long path prefix.
 

@@ -1,0 +1,34 @@
+channels:
+  - conda-forge
+dependencies:
+  # libmamba build dependencies
+  - cxx-compiler
+  - cmake >=3.16
+  - pkg-config  # Used by some CMake dependencies
+  - ninja
+  # libmamba dependencies
+  - cpp-expected
+  - nlohmann_json
+  - simdjson-static >=3.3.0
+  - spdlog
+  - fmt
+  - libsolv-static >=0.7.24
+  - yaml-cpp-static >=0.8.0
+  - reproc-static >=14.2.4.post0
+  - reproc-cpp-static >=14.2.4.post0
+  - libcurl >=8.4.0
+  - libcurl-static >=8.4.0
+  - xz-static
+  - libssh2-static
+  - libarchive-minimal-static
+  - krb5-static
+  - openssl
+  - libopenssl-static
+  - zstd-static
+  - zlib
+  - libnghttp2-static
+  - lz4-c-static
+  # libmamba test dependencies
+  - doctest
+  # micromamba dependencies
+  - cli11 >=2.2,<3

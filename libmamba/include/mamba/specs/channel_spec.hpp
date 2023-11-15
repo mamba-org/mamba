@@ -7,6 +7,7 @@
 #ifndef MAMBA_SPECS_CHANNEL_SPEC_HPP
 #define MAMBA_SPECS_CHANNEL_SPEC_HPP
 
+#include <array>
 #include <string>
 #include <string_view>
 
@@ -63,10 +64,22 @@ namespace mamba::specs
              * Example "conda-forge", "locals", "my-channel/my-label".
              */
             Name,
+            /**
+             * An unknown channel source.
+             *
+             * It is currently unclear why it is needed.
+             */
+            Unknown,
         };
 
-        static constexpr std::string_view default_name = "defaults";
         static constexpr std::string_view platform_separators = "|,;";
+        static constexpr std::string_view unknown_channel = "<unknown>";
+        static constexpr std::array<std::string_view, 4> invalid_channels_lower = {
+            "<unknown>",
+            "none:///<unknown>",
+            "none",
+            ":///<unknown>",
+        };
 
         using dynamic_platform_set = util::flat_set<std::string>;
 
@@ -87,9 +100,9 @@ namespace mamba::specs
 
     private:
 
-        std::string m_location = std::string(default_name);
+        std::string m_location = std::string(unknown_channel);
         dynamic_platform_set m_platform_filters = {};
-        Type m_type = {};
+        Type m_type = Type::Unknown;
     };
 }
 #endif

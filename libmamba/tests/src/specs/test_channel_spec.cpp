@@ -6,21 +6,49 @@
 
 #include <doctest/doctest.h>
 
-#include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/channel_spec.hpp"
 #include "mamba/util/build.hpp"
-#include "mamba/util/path_manip.hpp"
-#include "mamba/util/string.hpp"
 
 using namespace mamba;
 using namespace mamba::specs;
 
 TEST_SUITE("specs::channel_spec")
 {
+    TEST_CASE("Constructor")
+    {
+        SUBCASE("Default")
+        {
+            const auto spec = ChannelSpec();
+            CHECK_EQ(spec.type(), ChannelSpec::Type::Unknown);
+            CHECK_EQ(spec.location(), "<unknown>");
+            CHECK(spec.platform_filters().empty());
+        }
+
+        SUBCASE("Unknown")
+        {
+            const auto spec = ChannelSpec("hello", { "linux-78" }, ChannelSpec::Type::Unknown);
+            CHECK_EQ(spec.type(), ChannelSpec::Type::Unknown);
+            CHECK_EQ(spec.location(), "<unknown>");
+            CHECK(spec.platform_filters().empty());
+        }
+    }
+
     TEST_CASE("Parsing")
     {
         using Type = typename ChannelSpec::Type;
         using PlatformSet = typename util::flat_set<std::string>;
+
+        SUBCASE("Invalid channels")
+        {
+            for (std::string_view str : { "", "<unknown>", ":///<unknown>", "none" })
+            {
+                CAPTURE(str);
+                const auto spec = ChannelSpec::parse(str);
+                CHECK_EQ(spec.type(), Type::Unknown);
+                CHECK_EQ(spec.location(), "<unknown>");
+                CHECK_EQ(spec.platform_filters(), PlatformSet{});
+            }
+        }
 
         SUBCASE("https://repo.anaconda.com/conda-forge")
         {

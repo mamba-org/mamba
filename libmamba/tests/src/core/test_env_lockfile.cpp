@@ -13,7 +13,6 @@
 #include "mamba/core/transaction.hpp"
 
 #include "mambatests.hpp"
-#include "test_data.hpp"
 
 namespace mamba
 {
@@ -45,7 +44,7 @@ namespace mamba
         TEST_CASE("invalid_version_fails")
         {
             ChannelContext channel_context{ mambatests::context() };
-            const fs::u8path invalid_version_lockfile_path{ test_data_dir
+            const fs::u8path invalid_version_lockfile_path{ mambatests::test_data_dir
                                                             / "env_lockfile/bad_version-lock.yaml" };
             const auto maybe_lockfile = read_environment_lockfile(
                 channel_context,
@@ -61,7 +60,8 @@ namespace mamba
         TEST_CASE("valid_no_package_succeed")
         {
             ChannelContext channel_context{ mambatests::context() };
-            const fs::u8path lockfile_path{ test_data_dir / "env_lockfile/good_no_package-lock.yaml" };
+            const fs::u8path lockfile_path{ mambatests::test_data_dir
+                                            / "env_lockfile/good_no_package-lock.yaml" };
             const auto maybe_lockfile = read_environment_lockfile(channel_context, lockfile_path);
             REQUIRE_MESSAGE(maybe_lockfile, maybe_lockfile.error().what());
             const auto lockfile = maybe_lockfile.value();
@@ -71,7 +71,8 @@ namespace mamba
         TEST_CASE("invalid_package_fails")
         {
             ChannelContext channel_context{ mambatests::context() };
-            const fs::u8path lockfile_path{ test_data_dir / "env_lockfile/bad_package-lock.yaml" };
+            const fs::u8path lockfile_path{ mambatests::test_data_dir
+                                            / "env_lockfile/bad_package-lock.yaml" };
             const auto maybe_lockfile = read_environment_lockfile(channel_context, lockfile_path);
             REQUIRE_FALSE(maybe_lockfile);
             const auto error = maybe_lockfile.error();
@@ -83,7 +84,7 @@ namespace mamba
         TEST_CASE("valid_one_package_succeed")
         {
             ChannelContext channel_context{ mambatests::context() };
-            const fs::u8path lockfile_path{ test_data_dir
+            const fs::u8path lockfile_path{ mambatests::test_data_dir
                                             / "env_lockfile/good_one_package-lock.yaml" };
             const auto maybe_lockfile = read_environment_lockfile(channel_context, lockfile_path);
             REQUIRE_MESSAGE(maybe_lockfile, maybe_lockfile.error().what());
@@ -95,7 +96,7 @@ namespace mamba
         {
             ChannelContext channel_context{ mambatests::context() };
             const fs::u8path lockfile_path{
-                test_data_dir / "env_lockfile/good_one_package_missing_category-lock.yaml"
+                mambatests::test_data_dir / "env_lockfile/good_one_package_missing_category-lock.yaml"
             };
             const auto maybe_lockfile = read_environment_lockfile(channel_context, lockfile_path);
             REQUIRE_MESSAGE(maybe_lockfile, maybe_lockfile.error().what());
@@ -106,7 +107,7 @@ namespace mamba
         TEST_CASE("valid_multiple_packages_succeed")
         {
             ChannelContext channel_context{ mambatests::context() };
-            const fs::u8path lockfile_path{ test_data_dir
+            const fs::u8path lockfile_path{ mambatests::test_data_dir
                                             / "env_lockfile/good_multiple_packages-lock.yaml" };
             const auto maybe_lockfile = read_environment_lockfile(channel_context, lockfile_path);
             REQUIRE_MESSAGE(maybe_lockfile, maybe_lockfile.error().what());
@@ -117,7 +118,7 @@ namespace mamba
         TEST_CASE("get_specific_packages")
         {
             ChannelContext channel_context{ mambatests::context() };
-            const fs::u8path lockfile_path{ test_data_dir
+            const fs::u8path lockfile_path{ mambatests::test_data_dir
                                             / "env_lockfile/good_multiple_packages-lock.yaml" };
             const auto lockfile = read_environment_lockfile(channel_context, lockfile_path).value();
             CHECK(lockfile.get_packages_for("", "", "").empty());
@@ -136,7 +137,7 @@ namespace mamba
         TEST_CASE("create_transaction_with_categories")
         {
             auto& ctx = mambatests::context();
-            const fs::u8path lockfile_path{ test_data_dir
+            const fs::u8path lockfile_path{ mambatests::test_data_dir
                                             / "env_lockfile/good_multiple_categories-lock.yaml" };
             ChannelContext channel_context{ ctx };
             MPool pool{ channel_context };

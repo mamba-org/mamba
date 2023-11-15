@@ -1179,10 +1179,8 @@ bind_submodule_impl(pybind11::module_ m)
                 );
             }
         ))
-        .def_property_readonly("location", &Channel::location)
-        .def_property_readonly("name", &Channel::name)
         .def_property_readonly("platforms", &Channel::platforms)
-        .def_property_readonly("canonical_name", &Channel::canonical_name)
+        .def_property_readonly("canonical_name", &Channel::display_name)
         .def("urls", &Channel::urls, py::arg("with_credentials") = true)
         .def("platform_urls", &Channel::platform_urls, py::arg("with_credentials") = true)
         .def("platform_url", &Channel::platform_url, py::arg("platform"), py::arg("with_credentials") = true)
@@ -1190,7 +1188,7 @@ bind_submodule_impl(pybind11::module_ m)
             "__repr__",
             [](const Channel& c)
             {
-                auto s = c.name();
+                auto s = c.display_name();
                 s += "[";
                 bool first = true;
                 for (const auto& platform : c.platforms())

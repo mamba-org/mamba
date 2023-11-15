@@ -12,9 +12,11 @@
 #include <cstdint>
 #include <cstring>
 #include <iomanip>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -192,6 +194,16 @@ namespace mamba::util
     template <typename UnaryFunc>
     std::array<std::wstring_view, 3> strip_if_parts(std::wstring_view input, UnaryFunc should_strip);
 
+    [[nodiscard]] auto split_once(std::string_view str, char sep)
+        -> std::tuple<std::string_view, std::optional<std::string_view>>;
+    [[nodiscard]] auto split_once(std::string_view str, std::string_view sep)
+        -> std::tuple<std::string_view, std::optional<std::string_view>>;
+
+    [[nodiscard]] auto rsplit_once(std::string_view str, char sep)
+        -> std::tuple<std::optional<std::string_view>, std::string_view>;
+    [[nodiscard]] auto rsplit_once(std::string_view str, std::string_view sep)
+        -> std::tuple<std::optional<std::string_view>, std::string_view>;
+
     std::vector<std::string>
     split(std::string_view input, std::string_view sep, std::size_t max_split = SIZE_MAX);
     std::vector<std::wstring>
@@ -201,6 +213,18 @@ namespace mamba::util
     rsplit(std::string_view input, std::string_view sep, std::size_t max_split = SIZE_MAX);
     std::vector<std::wstring>
     rsplit(std::wstring_view input, std::wstring_view sep, std::size_t max_split = SIZE_MAX);
+
+    /**
+     * Concatenate string while removing the suffix of the first that may be prefix of second.
+     *
+     * Comparison are done as if comparing elements in a split given by @p sep.
+     * For instance "private/channel" and "channel/label/foo" with separator "/"
+     * would return "private/channel/label/foo", but "private/chan" and "channel/label/foo"
+     * would return the "private/chan/channel/label/foo".
+     */
+    std::string concat_dedup_splits(std::string_view str1, std::string_view str2, char sep);
+    std::string
+    concat_dedup_splits(std::string_view str1, std::string_view str2, std::string_view sep);
 
     void replace_all(std::string& data, std::string_view search, std::string_view replace);
     void replace_all(std::wstring& data, std::wstring_view search, std::wstring_view replace);
@@ -643,14 +667,6 @@ namespace mamba::util
         return hex_string(buffer, buffer.size());
     }
 
-    /**
-     * Return the common parts of two strings by blocks located between the given sep,
-     * and considering that these common parts would be located at the end of str1 (search from
-     * left to right).
-     * str1 is considered smaller than (or equal to) str2.
-     * cf. Channels use case.
-     */
-    std::string get_common_parts(std::string_view str1, std::string_view str2, std::string_view sep);
 }
 
 #endif

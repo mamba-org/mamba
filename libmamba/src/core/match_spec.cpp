@@ -102,7 +102,7 @@ namespace mamba
                 version = dist[1];
                 build_string = dist[2];
 
-                channel = parsed_channel.canonical_name();
+                channel = parsed_channel.display_name();
                 // TODO how to handle this with multiple platforms?
                 if (const auto& plats = parsed_channel.platforms(); !plats.empty())
                 {

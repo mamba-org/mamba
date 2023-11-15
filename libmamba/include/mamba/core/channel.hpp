@@ -50,13 +50,9 @@ namespace mamba
         };
 
 
-        Channel(
-            specs::CondaURL url,
-            std::string canonical_name,
-            util::flat_set<std::string> platforms = {}
-        );
+        Channel(specs::CondaURL url, std::string display_name, util::flat_set<std::string> platforms = {});
 
-        const std::string& canonical_name() const;
+        const std::string& display_name() const;
         const util::flat_set<std::string>& platforms() const;
         const specs::CondaURL& url() const;
 
@@ -70,7 +66,7 @@ namespace mamba
     private:
 
         specs::CondaURL m_url;
-        std::string m_canonical_name;
+        std::string m_display_name;
         util::flat_set<std::string> m_platforms;
 
         // FIXME: Remove this

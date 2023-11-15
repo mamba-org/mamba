@@ -1232,7 +1232,7 @@ namespace mamba
                 else
                 {
                     const Channel& chan = m_pool.channel_context().make_channel(str);
-                    chan_name = chan.canonical_name();
+                    chan_name = chan.display_name();
                 }
             }
             else

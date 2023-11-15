@@ -26,9 +26,9 @@ namespace mamba
      * Channel implementation *
      **************************/
 
-    Channel::Channel(specs::CondaURL url, std::string canonical_name, util::flat_set<std::string> platforms)
+    Channel::Channel(specs::CondaURL url, std::string display_name, util::flat_set<std::string> platforms)
         : m_url(std::move(url))
-        , m_canonical_name(std::move(canonical_name))
+        , m_display_name(std::move(display_name))
         , m_platforms(std::move(platforms))
     {
     }
@@ -43,9 +43,9 @@ namespace mamba
         return m_platforms;
     }
 
-    const std::string& Channel::canonical_name() const
+    const std::string& Channel::display_name() const
     {
-        return m_canonical_name;
+        return m_display_name;
     }
 
     std::string Channel::base_url() const
@@ -103,7 +103,7 @@ namespace mamba
     {
         auto attrs(const Channel& chan)
         {
-            return std::tie(chan.url(), chan.platforms(), chan.canonical_name());
+            return std::tie(chan.url(), chan.platforms(), chan.display_name());
         }
     }
 
@@ -123,7 +123,7 @@ auto
 std::hash<mamba::Channel>::operator()(const mamba::Channel& chan) const -> std::size_t
 {
     return mamba::util::hash_combine(
-        mamba::util::hash_vals(chan.url(), chan.canonical_name()),
+        mamba::util::hash_vals(chan.url(), chan.display_name()),
         mamba::util::hash_range(chan.platforms())
     );
 }
@@ -209,11 +209,11 @@ namespace mamba
         auto resolve_path_name(const specs::CondaURL& uri, Channel::ResolveParams params)
             -> std::string
         {
-            for (const auto& [canonical_name, chan] : params.custom_channels)
+            for (const auto& [display_name, chan] : params.custom_channels)
             {
                 if (url_match(chan.url(), uri))
                 {
-                    return std::string(canonical_name);
+                    return std::string(display_name);
                 }
             }
 
@@ -228,14 +228,14 @@ namespace mamba
         auto resolve_path(specs::ChannelSpec&& spec, Channel::ResolveParams params) -> Channel
         {
             auto uri = specs::CondaURL::parse(util::path_or_url_to_url(spec.location()));
-            auto canonical_name = resolve_path_name(uri, params);
+            auto display_name = resolve_path_name(uri, params);
             auto platforms = Channel::ResolveParams::platform_list{};
             if (spec.type() == specs::ChannelSpec::Type::Path)
             {
                 platforms = make_platforms(spec.clear_platform_filters(), params.platforms);
             }
 
-            return Channel(std::move(uri), std::move(canonical_name), std::move(platforms));
+            return Channel(std::move(uri), std::move(display_name), std::move(platforms));
         }
 
         auto resolve_url_name(const specs::CondaURL& url, Channel::ResolveParams params) -> std::string
@@ -245,11 +245,11 @@ namespace mamba
 
             std::string url_str = url.pretty_str(StripScheme::yes, '/', Credentials::Remove);
 
-            for (const auto& [canonical_name, chan] : params.custom_channels)
+            for (const auto& [display_name, chan] : params.custom_channels)
             {
                 if (url_match(chan.url(), url))
                 {
-                    return std::string(canonical_name);
+                    return std::string(display_name);
                 }
             }
 
@@ -268,7 +268,7 @@ namespace mamba
             assert(util::url_get_scheme(spec.location()) != "file");
 
             auto url = specs::CondaURL::parse(spec.location());
-            auto canonical_name = resolve_url_name(url, params);
+            auto display_name = resolve_url_name(url, params);
             set_fallback_credential_from_db(url, params.auth_db);
             auto platforms = Channel::ResolveParams::platform_list{};
             if (spec.type() == specs::ChannelSpec::Type::URL)
@@ -276,7 +276,7 @@ namespace mamba
                 platforms = make_platforms(spec.clear_platform_filters(), params.platforms);
             }
 
-            return Channel(std::move(url), std::move(canonical_name), std::move(platforms));
+            return Channel(std::move(url), std::move(display_name), std::move(platforms));
         }
 
         auto resolve_name(specs::ChannelSpec&& spec, Channel::ResolveParams params) -> Channel
@@ -315,7 +315,7 @@ namespace mamba
                 set_fallback_credential_from_db(url, params.auth_db);
                 return Channel(
                     /* url= */ std::move(url),
-                    /* canonical_name= */ std::move(name),
+                    /* display_name= */ std::move(name),
                     /* platforms= */ make_platforms(spec.clear_platform_filters(), params.platforms)
                 );
             }
@@ -325,7 +325,7 @@ namespace mamba
             set_fallback_credential_from_db(url, params.auth_db);
             return Channel(
                 /* url= */ std::move(url),
-                /* canonical_name= */ name,
+                /* display_name= */ name,
                 /* platforms= */ make_platforms(spec.clear_platform_filters(), params.platforms)
             );
         }
@@ -445,7 +445,7 @@ namespace mamba
         for (const auto& [name, location] : m_context.custom_channels)
         {
             auto channel = from_value(location);
-            channel.m_canonical_name = name;
+            channel.m_display_name = name;
             m_custom_channels.emplace(name, std::move(channel));
         }
 

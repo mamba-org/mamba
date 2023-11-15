@@ -55,7 +55,7 @@ tasks:
       Mamba. Many tasks are automatically run inside this environment.
       The environment is located at "{{.DEV_ENV_DIR}}" and can also be activated with micromamba to
       benefit from the executables and LSP tools.
-    cmds: [{task: '_create-env', vars: {prefix: '{{.DEV_ENV_DIR}}'}}]
+    cmds: [{task: '_create-env', vars: {prefix: '{{.PWD}}/{{.DEV_ENV_DIR}}'}}]
 
   create-test-env:
     desc: Create a local test environment with as a copy of the dev environment.

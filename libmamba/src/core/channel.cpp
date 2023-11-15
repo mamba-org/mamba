@@ -346,19 +346,8 @@ namespace mamba
         }
     }
 
-    Channel ChannelContext::from_value(const std::string& in_value)
+    auto Channel::resolve(specs::ChannelSpec spec, ResolveParams params) -> Channel
     {
-        auto spec = specs::ChannelSpec::parse(in_value);
-        const auto platforms = [](const auto& plats) {
-            return Channel::ResolveParams::platform_list(plats.cbegin(), plats.cend());
-        }(m_context.platforms());
-        auto params = Channel::ResolveParams{
-            /* .platforms */ platforms,
-            /* .channel_alias */ m_channel_alias,
-            /* .custom_channels */ m_custom_channels,
-            /* .auth_db */ m_context.authentication_info(),
-        };
-
         switch (spec.type())
         {
             case specs::ChannelSpec::Type::PackagePath:
@@ -381,6 +370,21 @@ namespace mamba
             }
         }
         throw std::invalid_argument("Invalid ChannelSpec::Type");
+    }
+
+    Channel ChannelContext::from_value(const std::string& in_value)
+    {
+        auto spec = specs::ChannelSpec::parse(in_value);
+        const auto platforms = [](const auto& plats) {
+            return Channel::ResolveParams::platform_list(plats.cbegin(), plats.cend());
+        }(m_context.platforms());
+        auto params = Channel::ResolveParams{
+            /* .platforms */ platforms,
+            /* .channel_alias */ m_channel_alias,
+            /* .custom_channels */ m_custom_channels,
+            /* .auth_db */ m_context.authentication_info(),
+        };
+        return Channel::resolve(std::move(spec), params);
     }
 
     const Channel& ChannelContext::make_channel(const std::string& value)

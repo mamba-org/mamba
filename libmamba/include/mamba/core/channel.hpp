@@ -51,6 +51,8 @@ namespace mamba
 
         using platform_list = util::flat_set<std::string>;
 
+        [[nodiscard]] static auto resolve(specs::ChannelSpec spec, ResolveParams params) -> Channel;
+
         Channel(specs::CondaURL url, std::string display_name, util::flat_set<std::string> platforms = {});
 
         [[nodiscard]] auto url() const -> const specs::CondaURL&;

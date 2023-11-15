@@ -132,8 +132,6 @@ namespace mamba
         multichannel_map m_custom_multichannels;
 
         void init_custom_channels();
-
-        Channel from_value(const std::string& value);
     };
 
 }  // namespace mamba

@@ -372,9 +372,14 @@ namespace mamba
         throw std::invalid_argument("Invalid ChannelSpec::Type");
     }
 
-    Channel ChannelContext::from_value(const std::string& in_value)
+    const Channel& ChannelContext::make_channel(const std::string& value)
     {
-        auto spec = specs::ChannelSpec::parse(in_value);
+        if (const auto it = m_channel_cache.find(value); it != m_channel_cache.end())
+        {
+            return it->second;
+        }
+
+        auto spec = specs::ChannelSpec::parse(value);
         const auto platforms = [](const auto& plats) {
             return Channel::ResolveParams::platform_list(plats.cbegin(), plats.cend());
         }(m_context.platforms());
@@ -384,17 +389,8 @@ namespace mamba
             /* .custom_channels */ m_custom_channels,
             /* .auth_db */ m_context.authentication_info(),
         };
-        return Channel::resolve(std::move(spec), params);
-    }
 
-    const Channel& ChannelContext::make_channel(const std::string& value)
-    {
-        if (const auto it = m_channel_cache.find(value); it != m_channel_cache.end())
-        {
-            return it->second;
-        }
-
-        auto [it, inserted] = m_channel_cache.emplace(value, from_value(value));
+        auto [it, inserted] = m_channel_cache.emplace(value, Channel::resolve(std::move(spec), params));
         assert(inserted);
         return it->second;
     }
@@ -463,7 +459,7 @@ namespace mamba
     {
         for (const auto& [name, location] : m_context.custom_channels)
         {
-            auto channel = from_value(location);
+            auto channel = make_channel(location);
             channel.set_display_name(name);
             m_custom_channels.emplace(name, std::move(channel));
         }
@@ -474,7 +470,7 @@ namespace mamba
             channels.reserve(location_list.size());
             for (auto& location : location_list)
             {
-                channels.push_back(from_value(location));
+                channels.push_back(make_channel(location));
             }
             m_custom_multichannels.emplace(multi_name, std::move(channels));
         }

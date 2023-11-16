@@ -89,4 +89,27 @@ TEST_SUITE("util::path_manip")
         // Debatable
         CHECK_FALSE(path_is_prefix("/folder/", "/folder"));
     }
+
+    TEST_CASE("path_concat")
+    {
+        SUBCASE("proper concatenation")
+        {
+            CHECK_EQ(path_concat("", "file", '/'), "file");
+            CHECK_EQ(path_concat("some/folder", "", '/'), "some/folder");
+
+            CHECK_EQ(path_concat("some/folder", "file", '/'), "some/folder/file");
+            CHECK_EQ(path_concat("some/folder/", "file", '/'), "some/folder/file");
+            CHECK_EQ(path_concat("some/folder", "/file", '/'), "some/folder/file");
+            CHECK_EQ(path_concat("some/folder/", "/file", '/'), "some/folder/file");
+        }
+
+        SUBCASE("Separator detection")
+        {
+            CHECK_EQ(path_concat("some/folder", "file"), "some/folder/file");
+            if (on_win)
+            {
+                CHECK_EQ(path_concat(R"(D:\some\folder)", "file"), R"(D:\some\folder\file)");
+            }
+        }
+    }
 }

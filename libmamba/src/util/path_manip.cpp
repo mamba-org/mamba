@@ -97,4 +97,34 @@ namespace mamba::util
         // Last item comparison
         return parent_item().empty() || (parent_item() == child_item());
     }
+
+    auto path_concat(std::string_view parent, std::string_view child, char sep) -> std::string
+    {
+        if (parent.empty())
+        {
+            return std::string(child);
+        }
+        if (child.empty())
+        {
+            return std::string(parent);
+        }
+        return concat(rstrip(parent, sep), std::string_view(&sep, 1), strip(child, sep));
+    }
+
+    auto path_concat(std::string_view parent, std::string_view child) -> std::string
+    {
+        if (!on_win)
+        {
+            return path_concat(parent, child, '/');
+        }
+        if (path_has_drive_letter(parent))
+        {
+            return path_concat(parent, child, parent.at(2));
+        }
+        if (parent.find('/') < std::string_view::npos)
+        {
+            return path_concat(parent, child, '/');
+        }
+        return path_concat(parent, child, '\\');
+    }
 }

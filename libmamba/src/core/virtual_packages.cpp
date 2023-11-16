@@ -85,7 +85,7 @@ namespace mamba
                 // Windows fallback
                 bool may_exist = false;
                 std::string path = util::get_env("PATH").value_or("");
-                std::vector<std::string> paths = util::split(path, env::pathsep());
+                std::vector<std::string> paths = util::split(path, util::pathsep());
 
                 for (auto& p : paths)
                 {

@@ -40,7 +40,7 @@ namespace mamba::env
         if (env_path)
         {
             std::string path = env_path.value();
-            const auto parts = util::split(path, pathsep());
+            const auto parts = util::split(path, util::pathsep());
             const std::vector<fs::u8path> search_paths(parts.begin(), parts.end());
             return which(exe, search_paths);
         }

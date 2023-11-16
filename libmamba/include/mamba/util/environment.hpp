@@ -12,9 +12,15 @@
 #include <unordered_map>
 
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/util/build.hpp"
 
 namespace mamba::util
 {
+    /**
+     * Return the character use to separate paths.
+     */
+    [[nodiscard]] constexpr auto pathsep() -> char;
+
     /**
      * Get an environment variable encoded in UTF8.
      */
@@ -85,5 +91,21 @@ namespace mamba::util
      * on Unix.
      */
     [[nodiscard]] auto user_cache_dir() -> mamba::fs::u8path;
+
+    /********************
+     *  Implementation  *
+     ********************/
+
+    constexpr auto pathsep() -> char
+    {
+        if (on_win)
+        {
+            return ';';
+        }
+        else
+        {
+            return ':';
+        }
+    }
 }
 #endif

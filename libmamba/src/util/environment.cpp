@@ -168,29 +168,29 @@ namespace mamba::util
         return maybe_home;
     }
 
-    auto user_config_dir() -> mamba::fs::u8path
+    auto user_config_dir() -> std::string
     {
         if (auto maybe_dir = get_env("XDG_CONFIG_HOME").value_or(""); !maybe_dir.empty())
         {
-            return { std::move(maybe_dir) };
+            return maybe_dir;
         }
         return util::get_windows_known_user_folder(WindowsKnowUserFolder::RoamingAppData);
     }
 
-    auto user_data_dir() -> mamba::fs::u8path
+    auto user_data_dir() -> std::string
     {
         if (auto maybe_dir = get_env("XDG_DATA_HOME").value_or(""); !maybe_dir.empty())
         {
-            return { std::move(maybe_dir) };
+            return maybe_dir;
         }
         return util::get_windows_known_user_folder(WindowsKnowUserFolder::RoamingAppData);
     }
 
-    auto user_cache_dir() -> mamba::fs::u8path
+    auto user_cache_dir() -> std::string
     {
         if (auto maybe_dir = get_env("XDG_CACHE_HOME").value_or(""); !maybe_dir.empty())
         {
-            return { std::move(maybe_dir) };
+            return maybe_dir;
         }
         return util::get_windows_known_user_folder(WindowsKnowUserFolder::LocalAppData);
     }
@@ -279,29 +279,29 @@ namespace mamba::util
         throw std::runtime_error("HOME not set.");
     }
 
-    auto user_config_dir() -> mamba::fs::u8path
+    auto user_config_dir() -> std::string
     {
         if (auto maybe_dir = get_env("XDG_CONFIG_HOME").value_or(""); !maybe_dir.empty())
         {
-            return { std::move(maybe_dir) };
+            return maybe_dir;
         }
         return path_concat(user_home_dir(), ".config");
     }
 
-    auto user_data_dir() -> mamba::fs::u8path
+    auto user_data_dir() -> std::string
     {
         if (auto maybe_dir = get_env("XDG_DATA_HOME").value_or(""); !maybe_dir.empty())
         {
-            return { std::move(maybe_dir) };
+            return maybe_dir;
         }
         return path_concat(user_home_dir(), ".local/share");
     }
 
-    auto user_cache_dir() -> mamba::fs::u8path
+    auto user_cache_dir() -> std::string
     {
         if (auto maybe_dir = get_env("XDG_CACHE_HOME").value_or(""); !maybe_dir.empty())
         {
-            return { std::move(maybe_dir) };
+            return maybe_dir;
         }
         return path_concat(user_home_dir(), ".cache");
     }

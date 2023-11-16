@@ -11,7 +11,6 @@
 #include <string>
 #include <unordered_map>
 
-#include "mamba/fs/filesystem.hpp"
 #include "mamba/util/build.hpp"
 
 namespace mamba::util
@@ -68,29 +67,29 @@ namespace mamba::util
     /**
      * Return the current user config directory.
      *
-     * On all platforms, the XDG base directory environment variables are honored.
+     * On all platforms, the XDG_CONFIG_HOME environment variables are honored.
      * Otherwise, it returns the OS-specified config directory on Windows, and the XDG default
      * on Unix.
      */
-    [[nodiscard]] auto user_config_dir() -> mamba::fs::u8path;
+    [[nodiscard]] auto user_config_dir() -> std::string;
 
     /**
      * Return the current user program data directory.
      *
-     * On all platforms, the XDG base directory environment variables are honored.
+     * On all platforms, the XDG_DATA_HOME environment variables are honored.
      * Otherwise, it returns the OS-specified config directory on Windows, and the XDG default
      * on Unix.
      */
-    [[nodiscard]] auto user_data_dir() -> mamba::fs::u8path;
+    [[nodiscard]] auto user_data_dir() -> std::string;
 
     /**
      * Return the current user program dispensable cache directory.
      *
-     * On all platforms, the XDG base directory environment variables are honored.
+     * On all platforms, the XDG_CACHE_HOME environment variables are honored.
      * Otherwise, it returns the OS-specified config directory on Windows, and the XDG default
      * on Unix.
      */
-    [[nodiscard]] auto user_cache_dir() -> mamba::fs::u8path;
+    [[nodiscard]] auto user_cache_dir() -> std::string;
 
     /********************
      *  Implementation  *

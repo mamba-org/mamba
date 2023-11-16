@@ -1904,9 +1904,9 @@ namespace mamba
                                          context.prefix_params.root_prefix / ".mambarc" };
 
         std::vector<fs::u8path> conda_user = {
-            util::user_config_dir() / "conda/.condarc",
-            util::user_config_dir() / "conda/condarc",
-            util::user_config_dir() / "conda/condarc.d",
+            fs::u8path(util::user_config_dir()) / "conda/.condarc",
+            fs::u8path(util::user_config_dir()) / "conda/condarc",
+            fs::u8path(util::user_config_dir()) / "conda/condarc.d",
             fs::u8path(util::user_home_dir()) / ".conda/.condarc",
             fs::u8path(util::user_home_dir()) / ".conda/condarc",
             fs::u8path(util::user_home_dir()) / ".conda/condarc.d",
@@ -1918,9 +1918,9 @@ namespace mamba
         }
 
         std::vector<fs::u8path> mamba_user = {
-            util::user_config_dir() / "mamba/.mambarc",
-            util::user_config_dir() / "mamba/mambarc",
-            util::user_config_dir() / "mamba/mambarc.d",
+            fs::u8path(util::user_config_dir()) / "mamba/.mambarc",
+            fs::u8path(util::user_config_dir()) / "mamba/mambarc",
+            fs::u8path(util::user_config_dir()) / "mamba/mambarc.d",
             fs::u8path(util::user_home_dir()) / ".mamba/.mambarc",
             fs::u8path(util::user_home_dir()) / ".mamba/mambarc",
             fs::u8path(util::user_home_dir()) / ".mamba/mambarc.d",

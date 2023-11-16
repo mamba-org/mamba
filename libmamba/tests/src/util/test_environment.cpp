@@ -176,9 +176,9 @@ TEST_SUITE("util::environment")
                 { "XDG_DATA_HOME", "xdata" },
                 { "XDG_CACHE_HOME", "xcache" },
             });
-            CHECK_EQ(user_config_dir(), mamba::fs::u8path("xconfig"));
-            CHECK_EQ(user_data_dir(), mamba::fs::u8path("xdata"));
-            CHECK_EQ(user_cache_dir(), mamba::fs::u8path("xcache"));
+            CHECK_EQ(user_config_dir(), "xconfig");
+            CHECK_EQ(user_data_dir(), "xdata");
+            CHECK_EQ(user_cache_dir(), "xcache");
         }
 
         SUBCASE("Defaults")
@@ -186,9 +186,9 @@ TEST_SUITE("util::environment")
             if (!on_win)
             {
                 set_env_map({ { "HOME", "/user/mamba" } });
-                CHECK_EQ(user_config_dir(), mamba::fs::u8path("/user/mamba/.config"));
-                CHECK_EQ(user_data_dir(), mamba::fs::u8path("/user/mamba/.local/share"));
-                CHECK_EQ(user_cache_dir(), mamba::fs::u8path("/user/mamba/.cache"));
+                CHECK_EQ(user_config_dir(), "/user/mamba/.config");
+                CHECK_EQ(user_data_dir(), "/user/mamba/.local/share");
+                CHECK_EQ(user_cache_dir(), "/user/mamba/.cache");
             }
         }
     }

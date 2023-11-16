@@ -411,7 +411,7 @@ namespace mamba
         content << "$env.PATH = ($env.PATH | append ([$env.MAMBA_ROOT_PREFIX bin] | path join) | uniq)\n";
         content << "$env.PROMPT_COMMAND_BK = $env.PROMPT_COMMAND"
                 << "\n";
-        content << R"###(def-env "micromamba activate"  [name: string] {
+        content << R"###(def --env "micromamba activate"  [name: string] {
     #add condabin when root
     if $env.MAMBA_SHLVL? == null {
         $env.MAMBA_SHLVL = 0
@@ -431,7 +431,7 @@ namespace mamba
       $env.PROMPT_COMMAND = {|| $env.CONDA_PROMPT_MODIFIER + (do $env.PROMPT_COMMAND_BK)}
     }
 }
-def-env "micromamba deactivate" [] {
+def --env "micromamba deactivate" [] {
     #remove active environment except micromamba root
     if $env.CONDA_PROMPT_MODIFIER? != null {
       # unset set variables

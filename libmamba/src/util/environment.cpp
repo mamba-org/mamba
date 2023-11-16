@@ -146,11 +146,11 @@ namespace mamba::util
         return env;
     }
 
-    auto user_home_dir() -> mamba::fs::u8path
+    auto user_home_dir() -> std::string
     {
         if (auto maybe_home = get_env("USERPROFILE").value_or(""); !maybe_home.empty())
         {
-            return { std::move(maybe_home) };
+            return maybe_home;
         }
 
         auto maybe_home = util::concat(
@@ -165,7 +165,7 @@ namespace mamba::util
             );
         }
 
-        return { std::move(maybe_home) };
+        return maybe_home;
     }
 
     auto user_config_dir() -> mamba::fs::u8path
@@ -206,6 +206,7 @@ namespace mamba::util
 #include <unistd.h>
 
 #include "mamba/util/environment.hpp"
+#include "mamba/util/path_manip.hpp"
 
 extern "C"
 {
@@ -262,17 +263,17 @@ namespace mamba::util
         return env;
     }
 
-    auto user_home_dir() -> mamba::fs::u8path
+    auto user_home_dir() -> std::string
     {
         if (auto maybe_home = get_env("HOME").value_or(""); !maybe_home.empty())
         {
-            return { std::move(maybe_home) };
+            return maybe_home;
         }
         if (const auto* user = ::getpwuid(::getuid()))
         {
             if (const char* maybe_home = user->pw_dir)
             {
-                return { maybe_home };
+                return maybe_home;
             }
         }
         throw std::runtime_error("HOME not set.");
@@ -284,7 +285,7 @@ namespace mamba::util
         {
             return { std::move(maybe_dir) };
         }
-        return user_home_dir() / ".config";
+        return path_concat(user_home_dir(), ".config");
     }
 
     auto user_data_dir() -> mamba::fs::u8path
@@ -293,7 +294,7 @@ namespace mamba::util
         {
             return { std::move(maybe_dir) };
         }
-        return user_home_dir() / ".local" / "share";
+        return path_concat(user_home_dir(), ".local/share");
     }
 
     auto user_cache_dir() -> mamba::fs::u8path
@@ -302,7 +303,7 @@ namespace mamba::util
         {
             return { std::move(maybe_dir) };
         }
-        return user_home_dir() / ".cache";
+        return path_concat(user_home_dir(), ".cache");
     }
 }
 

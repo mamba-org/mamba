@@ -150,17 +150,17 @@ TEST_SUITE("util::environment")
             if (on_win)
             {
                 set_env("USERPROFILE", R"(D:\user\mamba)");
-                CHECK_EQ(user_home_dir(), mamba::fs::u8path(R"(D:\user\mamba)"));
+                CHECK_EQ(user_home_dir(), R"(D:\user\mamba)");
 
                 unset_env("USERPROFILE");
                 set_env("HOMEDRIVE", R"(D:\user\)");
                 set_env("HOMEPATH", "mamba");
-                CHECK_EQ(user_home_dir(), mamba::fs::u8path(R"(D:\user\mamba)"));
+                CHECK_EQ(user_home_dir(), R"(D:\user\mamba)");
             }
             else
             {
                 set_env("HOME", "/user/mamba");
-                CHECK_EQ(user_home_dir(), mamba::fs::u8path("/user/mamba"));
+                CHECK_EQ(user_home_dir(), "/user/mamba");
             }
         }
     }

@@ -332,7 +332,7 @@ namespace mamba
             ctx.custom_multichannels["local"] = std::vector<std::string>{
                 ctx.prefix_params.target_prefix / "conda-bld",
                 ctx.prefix_params.root_prefix / "conda-bld",
-                util::user_home_dir() / "conda-bld",
+                fs::u8path(util::user_home_dir()) / "conda-bld",
             };
             ChannelContext channel_context{ ctx };
 

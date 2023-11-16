@@ -63,7 +63,7 @@ namespace mamba::util
     /*
      * Return the current user home directory.
      */
-    [[nodiscard]] auto user_home_dir() -> mamba::fs::u8path;
+    [[nodiscard]] auto user_home_dir() -> std::string;
 
     /**
      * Return the current user config directory.

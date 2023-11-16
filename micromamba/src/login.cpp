@@ -63,7 +63,7 @@ set_logout_command(CLI::App* subcom)
     subcom->callback(
         []()
         {
-            static auto path = mamba::util::user_home_dir() / ".mamba" / "auth";
+            static auto path = mamba::fs::u8path(mamba::util::user_home_dir()) / ".mamba" / "auth";
             const mamba::fs::u8path auth_file = path / "authentication.json";
 
             if (all)
@@ -157,7 +157,8 @@ set_login_command(CLI::App* subcom)
                 bearer = read_stdin();
             }
 
-            static const auto path = mamba::util::user_home_dir() / ".mamba" / "auth";
+            static const auto path = mamba::fs::u8path(mamba::util::user_home_dir()) / ".mamba"
+                                     / "auth";
             mamba::fs::create_directories(path);
 
 

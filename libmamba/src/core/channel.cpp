@@ -22,6 +22,22 @@
 
 namespace mamba
 {
+    /********************************
+     *  NameWeakener Implmentation  *
+     ********************************/
+
+    auto Channel::ResolveParams::NameWeakener::make_first_key(std::string_view key) const
+        -> std::string_view
+    {
+        return key;
+    }
+
+    auto Channel::ResolveParams::NameWeakener::weaken_key(std::string_view key) const
+        -> std::optional<std::string_view>
+    {
+        return std::get<0>(util::rsplit_once(key, '/'));
+    }
+
     /**************************
      * Channel implementation *
      **************************/
@@ -297,22 +313,9 @@ namespace mamba
         auto resolve_name(specs::ChannelSpec&& spec, Channel::ResolveParams params) -> Channel
         {
             std::string name = spec.clear_location();
-            const auto it_end = params.custom_channels.end();
-            auto it = it_end;
-            {
-                auto considered_name = std::optional<std::string_view>(name);
-                while ((it == it_end))
-                {
-                    if (!considered_name.has_value())
-                    {
-                        break;
-                    }
-                    it = params.custom_channels.find(std::string(considered_name.value()));
-                    considered_name = std::get<0>(util::rsplit_once(considered_name.value(), '/'));
-                }
-            }
 
-            if (it != it_end)
+            const auto& custom_chans = params.custom_channels;
+            if (auto it = custom_chans.find_weaken(name); it != custom_chans.cend())
             {
                 auto url = it->second.url();
                 // we can have a channel like
@@ -380,11 +383,8 @@ namespace mamba
         }
 
         auto spec = specs::ChannelSpec::parse(value);
-        const auto platforms = [](const auto& plats) {
-            return Channel::ResolveParams::platform_list(plats.cbegin(), plats.cend());
-        }(m_context.platforms());
         auto params = Channel::ResolveParams{
-            /* .platforms */ platforms,
+            /* .platforms */ m_platforms,
             /* .channel_alias */ m_channel_alias,
             /* .custom_channels */ m_custom_channels,
             /* .auth_db */ m_context.authentication_info(),
@@ -450,6 +450,8 @@ namespace mamba
         : m_context(context)
         , m_channel_alias(specs::CondaURL::parse(util::path_or_url_to_url(m_context.channel_alias)))
     {
+        m_platforms = [](const auto& plats)
+        { return platform_list(plats.cbegin(), plats.cend()); }(m_context.platforms());
         init_custom_channels();
     }
 

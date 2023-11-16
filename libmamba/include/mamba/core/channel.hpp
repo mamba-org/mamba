@@ -15,6 +15,7 @@
 #include "mamba/specs/authentication_info.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/util/flat_set.hpp"
+#include "mamba/util/weakening_map.hpp"
 
 namespace mamba
 {
@@ -34,11 +35,29 @@ namespace mamba
     {
     public:
 
+
         struct ResolveParams
         {
+            /**
+             * The weakener for @ref ResolveParams::custom_channels.
+             */
+            struct NameWeakener
+            {
+                /**
+                 * Return the key unchanged.
+                 */
+                [[nodiscard]] auto make_first_key(std::string_view key) const -> std::string_view;
+
+                /**
+                 * Remove the last element of the '/'-separated name.
+                 */
+                [[nodiscard]] auto weaken_key(std::string_view key) const
+                    -> std::optional<std::string_view>;
+            };
+
             using platform_list = util::flat_set<std::string>;
             using channel_list = std::vector<Channel>;
-            using channel_map = std::map<std::string, Channel>;
+            using channel_map = util::weakening_map<std::unordered_map<std::string, Channel>, NameWeakener>;
             using multichannel_map = std::unordered_map<std::string, channel_list>;
 
             const platform_list& platforms;
@@ -97,8 +116,9 @@ namespace mamba
     {
     public:
 
-        using channel_map = std::map<std::string, Channel>;
-        using channel_list = std::vector<Channel>;
+        using channel_map = Channel::ResolveParams::channel_map;
+        using channel_list = Channel::ResolveParams::channel_list;
+        using platform_list = Channel::ResolveParams::platform_list;
         using multichannel_map = std::unordered_map<std::string, channel_list>;
 
         ChannelContext(Context& context);
@@ -128,6 +148,7 @@ namespace mamba
         Context& m_context;
         ChannelCache m_channel_cache;
         specs::CondaURL m_channel_alias;
+        platform_list m_platforms;
         channel_map m_custom_channels;
         multichannel_map m_custom_multichannels;
 

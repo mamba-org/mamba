@@ -112,7 +112,7 @@ namespace mamba
 
     const fs::u8path& proc_dir()
     {
-        static auto path = env::user_cache_dir() / "proc";
+        static auto path = util::user_cache_dir() / "mamba" / "proc";
         return path;
     }
 

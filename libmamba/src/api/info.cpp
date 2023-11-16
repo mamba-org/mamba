@@ -8,8 +8,8 @@
 #include "mamba/api/info.hpp"
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/core/environment.hpp"
 #include "mamba/core/virtual_packages.hpp"
+#include "mamba/util/environment.hpp"
 #include "mamba/util/string.hpp"
 
 
@@ -140,7 +140,7 @@ namespace mamba
 
             // items.insert( { "shell level", { 1 } });
             items.push_back({ "user config files",
-                              { (env::home_directory() / ".mambarc").string() } });
+                              { (util::user_home_dir() / ".mambarc").string() } });
 
             std::vector<std::string> sources;
             for (auto s : config.valid_sources())

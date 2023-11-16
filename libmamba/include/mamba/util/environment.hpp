@@ -11,6 +11,8 @@
 #include <string>
 #include <unordered_map>
 
+#include "mamba/fs/filesystem.hpp"
+
 namespace mamba::util
 {
     /**
@@ -51,5 +53,37 @@ namespace mamba::util
      * This unset all environment variables not refered to in the map unmodified.
      */
     void set_env_map(const environment_map& env);
+
+    /*
+     * Return the current user home directory.
+     */
+    [[nodiscard]] auto user_home_dir() -> mamba::fs::u8path;
+
+    /**
+     * Return the current user config directory.
+     *
+     * On all platforms, the XDG base directory environment variables are honored.
+     * Otherwise, it returns the OS-specified config directory on Windows, and the XDG default
+     * on Unix.
+     */
+    [[nodiscard]] auto user_config_dir() -> mamba::fs::u8path;
+
+    /**
+     * Return the current user program data directory.
+     *
+     * On all platforms, the XDG base directory environment variables are honored.
+     * Otherwise, it returns the OS-specified config directory on Windows, and the XDG default
+     * on Unix.
+     */
+    [[nodiscard]] auto user_data_dir() -> mamba::fs::u8path;
+
+    /**
+     * Return the current user program dispensable cache directory.
+     *
+     * On all platforms, the XDG base directory environment variables are honored.
+     * Otherwise, it returns the OS-specified config directory on Windows, and the XDG default
+     * on Unix.
+     */
+    [[nodiscard]] auto user_cache_dir() -> mamba::fs::u8path;
 }
 #endif

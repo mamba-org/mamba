@@ -19,11 +19,6 @@ namespace mamba::env
 
     auto which(const std::string& exe, const std::string& override_path = "") -> fs::u8path;
     auto which(const std::string& exe, const std::vector<fs::u8path>& search_paths) -> fs::u8path;
-    auto platform() -> std::string;
-    auto home_directory() -> fs::u8path;
-    auto user_config_dir() -> fs::u8path;
-    auto user_data_dir() -> fs::u8path;
-    auto user_cache_dir() -> fs::u8path;
 
     auto expand_user(const fs::u8path& path) -> fs::u8path;
     auto shrink_user(const fs::u8path& path) -> fs::u8path;

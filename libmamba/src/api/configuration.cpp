@@ -626,7 +626,7 @@ namespace mamba
                 }
                 else
                 {
-                    prefix = env::home_directory() / "micromamba";
+                    prefix = util::user_home_dir() / "micromamba";
                 }
 
                 if (env_name.configured())
@@ -868,7 +868,7 @@ namespace mamba
         std::vector<fs::u8path> fallback_pkgs_dirs_hook(const Context& context)
         {
             std::vector<fs::u8path> paths = { context.prefix_params.root_prefix / "pkgs",
-                                              env::home_directory() / ".mamba" / "pkgs" };
+                                              util::user_home_dir() / ".mamba" / "pkgs" };
 #ifdef _WIN32
             auto appdata = util::get_env("APPDATA");
             if (appdata)
@@ -904,7 +904,7 @@ namespace mamba
             for (auto p : {
                      context.prefix_params.target_prefix / "conda-bld",
                      context.prefix_params.root_prefix / "conda-bld",
-                     env::home_directory() / "conda-bld",
+                     util::user_home_dir() / "conda-bld",
                  })
             {
                 if (fs::exists(p))
@@ -1902,13 +1902,10 @@ namespace mamba
                                          context.prefix_params.root_prefix / ".mambarc" };
 
         std::vector<fs::u8path> conda_user = {
-            env::user_config_dir() / "../conda/.condarc",
-            env::user_config_dir() / "../conda/condarc",
-            env::user_config_dir() / "../conda/condarc.d",
-            env::home_directory() / ".conda/.condarc",
-            env::home_directory() / ".conda/condarc",
-            env::home_directory() / ".conda/condarc.d",
-            env::home_directory() / ".condarc",
+            util::user_config_dir() / "conda/.condarc",  util::user_config_dir() / "conda/condarc",
+            util::user_config_dir() / "conda/condarc.d", util::user_home_dir() / ".conda/.condarc",
+            util::user_home_dir() / ".conda/condarc",    util::user_home_dir() / ".conda/condarc.d",
+            util::user_home_dir() / ".condarc",
         };
         if (util::get_env("CONDARC"))
         {
@@ -1916,10 +1913,10 @@ namespace mamba
         }
 
         std::vector<fs::u8path> mamba_user = {
-            env::user_config_dir() / ".mambarc",      env::user_config_dir() / "mambarc",
-            env::user_config_dir() / "mambarc.d",     env::home_directory() / ".mamba/.mambarc",
-            env::home_directory() / ".mamba/mambarc", env::home_directory() / ".mamba/mambarc.d",
-            env::home_directory() / ".mambarc",
+            util::user_config_dir() / "mamba/.mambarc",  util::user_config_dir() / "mamba/mambarc",
+            util::user_config_dir() / "mamba/mambarc.d", util::user_home_dir() / ".mamba/.mambarc",
+            util::user_home_dir() / ".mamba/mambarc",    util::user_home_dir() / ".mamba/mambarc.d",
+            util::user_home_dir() / ".mambarc",
         };
         if (util::get_env("MAMBARC"))
         {

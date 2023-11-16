@@ -28,6 +28,7 @@
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/util/build.hpp"
+#include "mamba/util/environment.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 
@@ -1114,7 +1115,7 @@ def-env "micromamba deactivate" [] {
     {
         init_root_prefix(context, shell, conda_prefix);
         auto mamba_exe = get_self_exe_path();
-        fs::u8path home = env::home_directory();
+        fs::u8path home = util::user_home_dir();
         if (shell == "bash")
         {
             // On Linux, when opening the terminal, .bashrc is sourced (because it is an interactive
@@ -1195,7 +1196,7 @@ def-env "micromamba deactivate" [] {
     void deinit_shell(Context& context, const std::string& shell, const fs::u8path& conda_prefix)
     {
         auto mamba_exe = get_self_exe_path();
-        fs::u8path home = env::home_directory();
+        fs::u8path home = util::user_home_dir();
         if (shell == "bash")
         {
             fs::u8path bashrc_path = (util::on_mac || util::on_win) ? home / ".bash_profile"
@@ -1262,7 +1263,7 @@ def-env "micromamba deactivate" [] {
 
     fs::u8path config_path_for_shell(const std::string& shell)
     {
-        fs::u8path home = env::home_directory();
+        fs::u8path home = util::user_home_dir();
         fs::u8path config_path;
         if (shell == "bash")
         {
@@ -1293,7 +1294,7 @@ def-env "micromamba deactivate" [] {
 
     std::vector<std::string> find_initialized_shells()
     {
-        fs::u8path home = env::home_directory();
+        fs::u8path home = util::user_home_dir();
 
         std::vector<std::string> result;
         std::vector<std::string> supported_shells = { "bash", "zsh", "xonsh", "csh", "fish", "nu" };

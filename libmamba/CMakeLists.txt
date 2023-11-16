@@ -268,6 +268,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/tuple_hash.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/url_manip.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/url.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/weakening_map.hpp
     # Implementation of version and matching specs
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/authentication_info.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/archive.hpp

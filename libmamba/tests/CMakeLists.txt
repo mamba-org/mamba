@@ -36,6 +36,7 @@ set(
     src/util/test_tuple_hash.cpp
     src/util/test_url_manip.cpp
     src/util/test_url.cpp
+    src/util/test_weakening_map.cpp
     # Implementation of version and matching specs
     src/specs/test_authentication_info.cpp
     src/specs/test_archive.cpp

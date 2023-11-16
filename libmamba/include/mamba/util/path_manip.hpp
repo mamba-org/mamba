@@ -51,5 +51,16 @@ namespace mamba::util
      */
     [[nodiscard]] auto
     path_is_prefix(std::string_view parent, std::string_view child, char sep = '/') -> bool;
+
+    /**
+     * Concatenate paths with the given separator.
+     */
+    [[nodiscard]] auto path_concat(std::string_view parent, std::string_view child, char sep)
+        -> std::string;
+
+    /**
+     * Concatenate paths with '/' on Unix and detected separator on Windows.
+     */
+    [[nodiscard]] auto path_concat(std::string_view parent, std::string_view child) -> std::string;
 }
 #endif

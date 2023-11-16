@@ -418,7 +418,7 @@ namespace mamba
         envmap["PKG_BUILDNUM"] = std::to_string(pkg_info.build_number);
 
         std::string PATH = util::get_env("PATH").value_or("");
-        envmap["PATH"] = util::concat(path.parent_path().string(), env::pathsep(), PATH);
+        envmap["PATH"] = util::concat(path.parent_path().string(), util::pathsep(), PATH);
 
         std::string cargs = util::join(" ", command_args);
         LOG_DEBUG << "For " << pkg_info.name << " at " << envmap["PREFIX"]

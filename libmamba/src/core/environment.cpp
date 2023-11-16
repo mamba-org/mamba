@@ -40,7 +40,7 @@ namespace mamba::env
         if (env_path)
         {
             std::string path = env_path.value();
-            const auto parts = util::split(path, pathsep());
+            const auto parts = util::split(path, util::pathsep());
             const std::vector<fs::u8path> search_paths(parts.begin(), parts.end());
             return which(exe, search_paths);
         }
@@ -94,108 +94,12 @@ namespace mamba::env
         return "";  // empty path
     }
 
-    std::string platform()
-    {
-#ifndef _WIN32
-        utsname un;
-        int ret = uname(&un);
-
-        if (ret == -1)
-        {
-            throw std::runtime_error("uname() failed");
-        }
-
-        return std::string(un.sysname);
-#else
-        return "win32";
-#endif
-    }
-
-    fs::u8path home_directory()
-    {
-#ifdef _WIN32
-        std::string maybe_home = util::get_env("USERPROFILE").value_or("");
-        if (maybe_home.empty())
-        {
-            maybe_home = util::concat(
-                util::get_env("HOMEDRIVE").value_or(""),
-                util::get_env("HOMEPATH").value_or("")
-            );
-        }
-        if (maybe_home.empty())
-        {
-            throw std::runtime_error(
-                "Cannot determine HOME (checked USERPROFILE, HOMEDRIVE and HOMEPATH env vars)"
-            );
-        }
-#else
-        std::string maybe_home = util::get_env("HOME").value_or("");
-        if (maybe_home.empty())
-        {
-            maybe_home = getpwuid(getuid())->pw_dir;
-        }
-        if (maybe_home.empty())
-        {
-            throw std::runtime_error("HOME not set.");
-        }
-#endif
-        return fs::u8path(maybe_home);
-    }
-
-    fs::u8path user_config_dir()
-    {
-        std::string maybe_user_config_dir = util::get_env("XDG_CONFIG_HOME").value_or("");
-        if (maybe_user_config_dir.empty())
-        {
-#ifdef _WIN32
-            maybe_user_config_dir = util::get_windows_known_user_folder(
-                util::WindowsKnowUserFolder::RoamingAppData
-            );
-#else
-            maybe_user_config_dir = home_directory() / ".config";
-#endif
-        }
-        return fs::u8path(maybe_user_config_dir) / "mamba";
-    }
-
-    fs::u8path user_data_dir()
-    {
-        std::string maybe_user_data_dir = util::get_env("XDG_DATA_HOME").value_or("");
-        if (maybe_user_data_dir.empty())
-        {
-#ifdef _WIN32
-            maybe_user_data_dir = util::get_windows_known_user_folder(
-                util::WindowsKnowUserFolder::RoamingAppData
-            );
-#else
-            maybe_user_data_dir = home_directory() / ".local" / "share";
-#endif
-        }
-        return fs::u8path(maybe_user_data_dir) / "mamba";
-    }
-
-    fs::u8path user_cache_dir()
-    {
-        std::string maybe_user_cache_dir = util::get_env("XDG_CACHE_HOME").value_or("");
-        if (maybe_user_cache_dir.empty())
-        {
-#ifdef _WIN32
-            maybe_user_cache_dir = util::get_windows_known_user_folder(
-                util::WindowsKnowUserFolder::LocalAppData
-            );
-#else
-            maybe_user_cache_dir = home_directory() / ".cache";
-#endif
-        }
-        return fs::u8path(maybe_user_cache_dir) / "mamba";
-    }
-
     fs::u8path expand_user(const fs::u8path& path)
     {
         auto p = path.string();
         if (p[0] == '~')
         {
-            p.replace(0, 1, home_directory().string());
+            p.replace(0, 1, util::user_home_dir());
         }
         return p;
     }
@@ -203,7 +107,7 @@ namespace mamba::env
     fs::u8path shrink_user(const fs::u8path& path)
     {
         auto p = path.string();
-        auto home = home_directory().string();
+        auto home = util::user_home_dir();
         if (util::starts_with(p, home))
         {
             p.replace(0, home.size(), "~");

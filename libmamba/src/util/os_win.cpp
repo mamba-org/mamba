@@ -51,7 +51,7 @@ namespace mamba::util
         };
     }
 
-    auto get_windows_known_user_folder(WindowsKnowUserFolder dir) -> fs::u8path
+    auto get_windows_known_user_folder(WindowsKnowUserFolder dir) -> std::string
     {
         auto localAppData = COMwstr{ nullptr };
 
@@ -67,7 +67,7 @@ namespace mamba::util
             throw std::runtime_error("Could not retrieve known user folder");
         }
 
-        return fs::u8path(localAppData.str);
+        return windows_encoding_to_utf8(localAppData.str);
     }
 
     auto utf8_to_windows_encoding(const std::string_view utf8_text) -> std::wstring
@@ -163,7 +163,7 @@ namespace mamba::util
         }
     }
 
-    auto get_windows_known_user_folder(WindowsKnowUserFolder) -> fs::u8path
+    auto get_windows_known_user_folder(WindowsKnowUserFolder) -> std::string
     {
         throw_not_implemented("get_windows_known_user_folder");
     }

@@ -11,8 +11,15 @@
 #include <string>
 #include <unordered_map>
 
+#include "mamba/util/build.hpp"
+
 namespace mamba::util
 {
+    /**
+     * Return the character use to separate paths.
+     */
+    [[nodiscard]] constexpr auto pathsep() -> char;
+
     /**
      * Get an environment variable encoded in UTF8.
      */
@@ -51,5 +58,53 @@ namespace mamba::util
      * This unset all environment variables not refered to in the map unmodified.
      */
     void set_env_map(const environment_map& env);
+
+    /*
+     * Return the current user home directory.
+     */
+    [[nodiscard]] auto user_home_dir() -> std::string;
+
+    /**
+     * Return the current user config directory.
+     *
+     * On all platforms, the XDG_CONFIG_HOME environment variables are honored.
+     * Otherwise, it returns the OS-specified config directory on Windows, and the XDG default
+     * on Unix.
+     */
+    [[nodiscard]] auto user_config_dir() -> std::string;
+
+    /**
+     * Return the current user program data directory.
+     *
+     * On all platforms, the XDG_DATA_HOME environment variables are honored.
+     * Otherwise, it returns the OS-specified config directory on Windows, and the XDG default
+     * on Unix.
+     */
+    [[nodiscard]] auto user_data_dir() -> std::string;
+
+    /**
+     * Return the current user program dispensable cache directory.
+     *
+     * On all platforms, the XDG_CACHE_HOME environment variables are honored.
+     * Otherwise, it returns the OS-specified config directory on Windows, and the XDG default
+     * on Unix.
+     */
+    [[nodiscard]] auto user_cache_dir() -> std::string;
+
+    /********************
+     *  Implementation  *
+     ********************/
+
+    constexpr auto pathsep() -> char
+    {
+        if (on_win)
+        {
+            return ';';
+        }
+        else
+        {
+            return ':';
+        }
+    }
 }
 #endif

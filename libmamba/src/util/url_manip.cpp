@@ -6,9 +6,6 @@
 
 #include <array>
 #include <cassert>
-#include <optional>
-#include <regex>
-#include <stdexcept>
 #include <string>
 #include <string_view>
 

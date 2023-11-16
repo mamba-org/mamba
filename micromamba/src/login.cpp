@@ -8,9 +8,9 @@
 
 #include <CLI/App.hpp>
 
-#include "mamba/core/environment.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/util/environment.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
 
@@ -63,7 +63,7 @@ set_logout_command(CLI::App* subcom)
     subcom->callback(
         []()
         {
-            static auto path = mamba::env::home_directory() / ".mamba" / "auth";
+            static auto path = mamba::fs::u8path(mamba::util::user_home_dir()) / ".mamba" / "auth";
             const mamba::fs::u8path auth_file = path / "authentication.json";
 
             if (all)
@@ -157,7 +157,8 @@ set_login_command(CLI::App* subcom)
                 bearer = read_stdin();
             }
 
-            static const auto path = mamba::env::home_directory() / ".mamba" / "auth";
+            static const auto path = mamba::fs::u8path(mamba::util::user_home_dir()) / ".mamba"
+                                     / "auth";
             mamba::fs::create_directories(path);
 
 

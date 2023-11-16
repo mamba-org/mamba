@@ -10,7 +10,7 @@
 
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/core/environment.hpp"
+#include "mamba/util/environment.hpp"
 #include "mamba/util/flat_set.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
@@ -332,7 +332,7 @@ namespace mamba
             ctx.custom_multichannels["local"] = std::vector<std::string>{
                 ctx.prefix_params.target_prefix / "conda-bld",
                 ctx.prefix_params.root_prefix / "conda-bld",
-                env::home_directory() / "conda-bld",
+                fs::u8path(util::user_home_dir()) / "conda-bld",
             };
             ChannelContext channel_context{ ctx };
 

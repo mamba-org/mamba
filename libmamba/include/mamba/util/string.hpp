@@ -206,13 +206,21 @@ namespace mamba::util
 
     std::vector<std::string>
     split(std::string_view input, std::string_view sep, std::size_t max_split = SIZE_MAX);
+    std::vector<std::string>
+    split(std::string_view input, char sep, std::size_t max_split = SIZE_MAX);
     std::vector<std::wstring>
     split(std::wstring_view input, std::wstring_view sep, std::size_t max_split = SIZE_MAX);
+    std::vector<std::wstring>
+    split(std::wstring_view input, wchar_t sep, std::size_t max_split = SIZE_MAX);
 
     std::vector<std::string>
     rsplit(std::string_view input, std::string_view sep, std::size_t max_split = SIZE_MAX);
+    std::vector<std::string>
+    rsplit(std::string_view input, char sep, std::size_t max_split = SIZE_MAX);
     std::vector<std::wstring>
     rsplit(std::wstring_view input, std::wstring_view sep, std::size_t max_split = SIZE_MAX);
+    std::vector<std::wstring>
+    rsplit(std::wstring_view input, wchar_t sep, std::size_t max_split = SIZE_MAX);
 
     /**
      * Concatenate string while removing the suffix of the first that may be prefix of second.

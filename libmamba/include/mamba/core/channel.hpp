@@ -118,8 +118,8 @@ namespace mamba
 
         using channel_map = Channel::ResolveParams::channel_map;
         using channel_list = Channel::ResolveParams::channel_list;
-        using platform_list = Channel::ResolveParams::platform_list;
         using multichannel_map = std::unordered_map<std::string, channel_list>;
+        using platform_list = Channel::ResolveParams::platform_list;
 
         ChannelContext(Context& context);
         ~ChannelContext();
@@ -149,10 +149,11 @@ namespace mamba
         Context& m_context;
         ChannelCache m_channel_cache;
         specs::CondaURL m_channel_alias;
-        platform_list m_platforms;
         channel_map m_custom_channels;
         multichannel_map m_custom_multichannels;
+        platform_list m_platforms;
 
+        auto params() -> Channel::ResolveParams;
         void init_custom_channels();
     };
 

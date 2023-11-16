@@ -22,9 +22,9 @@
 
 namespace mamba
 {
-    /********************************
-     *  NameWeakener Implmentation  *
-     ********************************/
+    /*********************************
+     *  NameWeakener Implementation  *
+     *********************************/
 
     auto Channel::ResolveParams::NameWeakener::make_first_key(std::string_view key) const
         -> std::string_view
@@ -375,6 +375,16 @@ namespace mamba
         throw std::invalid_argument("Invalid ChannelSpec::Type");
     }
 
+    auto ChannelContext::params() -> Channel::ResolveParams
+    {
+        return {
+            /* .platforms */ m_platforms,
+            /* .channel_alias */ m_channel_alias,
+            /* .custom_channels */ m_custom_channels,
+            /* .auth_db */ m_context.authentication_info(),
+        };
+    }
+
     const Channel& ChannelContext::make_channel(const std::string& value)
     {
         if (const auto it = m_channel_cache.find(value); it != m_channel_cache.end())
@@ -382,15 +392,10 @@ namespace mamba
             return it->second;
         }
 
-        auto spec = specs::ChannelSpec::parse(value);
-        auto params = Channel::ResolveParams{
-            /* .platforms */ m_platforms,
-            /* .channel_alias */ m_channel_alias,
-            /* .custom_channels */ m_custom_channels,
-            /* .auth_db */ m_context.authentication_info(),
-        };
-
-        auto [it, inserted] = m_channel_cache.emplace(value, Channel::resolve(std::move(spec), params));
+        auto [it, inserted] = m_channel_cache.emplace(
+            value,
+            Channel::resolve(specs::ChannelSpec::parse(value), params())
+        );
         assert(inserted);
         return it->second;
     }
@@ -476,8 +481,10 @@ namespace mamba
         : m_context(context)
         , m_channel_alias(specs::CondaURL::parse(util::path_or_url_to_url(m_context.channel_alias)))
     {
-        m_platforms = [](const auto& plats)
-        { return platform_list(plats.cbegin(), plats.cend()); }(m_context.platforms());
+        {
+            const auto& plats = m_context.platforms();
+            m_platforms = Channel::ResolveParams::platform_list(plats.cbegin(), plats.cend());
+        }
         init_custom_channels();
     }
 

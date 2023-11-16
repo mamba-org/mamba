@@ -395,6 +395,32 @@ namespace mamba
         return it->second;
     }
 
+    auto ChannelContext::make_chan(const std::string& name) -> channel_list
+    {
+        auto spec = specs::ChannelSpec::parse(name);
+        auto out = channel_list();
+
+        const auto& multi_chan = get_custom_multichannels();
+        if (auto iter = multi_chan.find(spec.location()); iter != multi_chan.end())
+        {
+            for (const auto& chan : iter->second)
+            {
+                auto channel = chan;
+                if (!spec.platform_filters().empty())
+                {
+                    channel.set_platforms(spec.platform_filters());
+                }
+                out.push_back(std::move(channel));
+            }
+        }
+        else
+        {
+            auto channel = make_channel(name);
+            out.push_back(std::move(channel));
+        }
+        return out;
+    }
+
     auto ChannelContext::get_channels(const std::vector<std::string>& channel_names) -> channel_list
     {
         auto added = std::unordered_set<Channel>();

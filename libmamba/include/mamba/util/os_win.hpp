@@ -10,8 +10,6 @@
 #include <string>
 #include <string_view>
 
-#include "mamba/fs/filesystem.hpp"
-
 namespace mamba::util
 {
     enum class WindowsKnowUserFolder
@@ -24,7 +22,7 @@ namespace mamba::util
         RoamingAppData,
     };
 
-    [[nodiscard]] auto get_windows_known_user_folder(WindowsKnowUserFolder dir) -> fs::u8path;
+    [[nodiscard]] auto get_windows_known_user_folder(WindowsKnowUserFolder dir) -> std::string;
 
     [[nodiscard]] auto utf8_to_windows_encoding(const std::string_view utf8_text) -> std::wstring;
 

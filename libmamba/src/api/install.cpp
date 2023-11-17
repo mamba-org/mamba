@@ -27,6 +27,7 @@
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba
@@ -216,7 +217,7 @@ namespace mamba
 
         yaml_file_contents read_yaml_file(fs::u8path yaml_file, const std::string platform)
         {
-            auto file = fs::weakly_canonical(env::expand_user(yaml_file));
+            auto file = fs::weakly_canonical(util::expand_home(yaml_file.string()));
             if (!fs::exists(file))
             {
                 LOG_ERROR << "YAML spec file '" << file.string() << "' not found";

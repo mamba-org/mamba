@@ -8,12 +8,12 @@
 #include <string>
 #include <system_error>
 
-#include "mamba/core/environment.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_scope.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba::path
@@ -21,8 +21,8 @@ namespace mamba::path
     bool starts_with_home(const fs::u8path& p)
     {
         std::string path = p.string();
-        return path[0] == '~'
-               || util::starts_with(env::expand_user(path).string(), env::expand_user("~").string());
+        return util::starts_with(path, '~')
+               || util::starts_with(util::expand_home(path), util::expand_home("~"));
     }
 
     // TODO more error handling
@@ -55,7 +55,7 @@ namespace mamba::path
         bool touch_impl(fs::u8path path, bool mkdir, bool sudo_safe)
         {
             // TODO error handling!
-            path = env::expand_user(path);
+            path = util::expand_home(path.string());
             if (lexists(path))
             {
                 fs::last_write_time(path, fs::now());

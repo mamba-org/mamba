@@ -30,7 +30,7 @@
 //    code like this:
 //
 //        fs::u8path prefix = ...;
-//        prefix = rstrip(fs::weakly_canonical(env::expand_user(prefix)).string(), sep);
+//        prefix = rstrip(fs::weakly_canonical(util::expand_user(prefix)).string(), sep);
 //
 //    Here if `fs::weakly_canonical` is just an alias for `std::filesystem::weakly_canonical` it
 //    then returns a `std::filesystem::path` and we then call `.string()` on it. That conversion

@@ -8,7 +8,6 @@
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/core/environment.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/path_manip.hpp"
@@ -91,7 +90,7 @@ namespace mamba
 
             std::string shrink_source(std::size_t position)
             {
-                return env::shrink_user(config.valid_sources()[position]).string();
+                return util::shrink_home(config.valid_sources()[position].string());
             }
             std::unique_ptr<TemporaryFile> tempfile_ptr = std::make_unique<TemporaryFile>(
                 "mambarc",
@@ -138,13 +137,13 @@ namespace mamba
                     channels:
                         - test1)");
                 load_test_config(rc);
-                const auto src = env::shrink_user(tempfile_ptr->path());
+                const auto src = util::shrink_home(tempfile_ptr->path().string());
                 CHECK_EQ(config.sources().size(), 1);
                 CHECK_EQ(config.valid_sources().size(), 1);
                 CHECK_EQ(config.dump(), "channels:\n  - test1");
                 CHECK_EQ(
                     config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                    "channels:\n  - test1  # '" + src.string() + "'"
+                    "channels:\n  - test1  # '" + src + "'"
                 );
 
                 // ill-formed config file
@@ -306,7 +305,7 @@ namespace mamba
                 REQUIRE_EQ(config.sources().size(), 2);
                 REQUIRE_EQ(config.valid_sources().size(), 2);
                 std::string src1 = shrink_source(0);
-                std::string src2 = env::shrink_user(shrink_source(1)).string();
+                std::string src2 = util::shrink_home(shrink_source(1));
 
                 std::string res = config.dump();
                 // Unexpected/handled keys are dropped

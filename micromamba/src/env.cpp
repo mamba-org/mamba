@@ -13,11 +13,11 @@
 #include "mamba/api/remove.hpp"
 #include "mamba/api/update.hpp"
 #include "mamba/core/channel.hpp"
-#include "mamba/core/environment.hpp"
 #include "mamba/core/environments_manager.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/specs/conda_url.hpp"
+#include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 
 #include "common_options.hpp"
@@ -230,11 +230,11 @@ set_env_command(CLI::App* com, Configuration& config)
             {
                 const auto& prefix = ctx.prefix_params.target_prefix;
                 // Remove env directory or rename it (e.g. if used)
-                remove_or_rename(ctx, env::expand_user(prefix));
+                remove_or_rename(ctx, util::expand_home(prefix.string()));
 
                 EnvironmentsManager env_manager{ ctx };
                 // Unregister environment
-                env_manager.unregister_env(env::expand_user(prefix));
+                env_manager.unregister_env(util::expand_home(prefix.string()));
 
                 Console::instance().print(util::join(
                     "",

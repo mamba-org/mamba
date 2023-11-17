@@ -15,13 +15,13 @@
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
-#include "mamba/core/environment.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_fetcher.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
+#include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba
@@ -602,7 +602,10 @@ namespace mamba
 #endif
             if (!prefix.empty())
             {
-                prefix = util::rstrip(fs::weakly_canonical(env::expand_user(prefix)).string(), sep);
+                prefix = util::rstrip(
+                    fs::weakly_canonical(util::expand_home(prefix.string())).string(),
+                    sep
+                );
             }
 
             if ((prefix == root_prefix) && config.at("create_base").value<bool>())
@@ -671,7 +674,7 @@ namespace mamba
                 }
             }
 
-            prefix = fs::weakly_canonical(env::expand_user(prefix));
+            prefix = fs::weakly_canonical(util::expand_home(prefix.string()));
         }
 
         void rc_loading_hook(Configuration& config, const RCConfigLevel& level)
@@ -792,7 +795,7 @@ namespace mamba
                 }
                 for (auto& f : files)
                 {
-                    f = env::expand_user(f);
+                    f = util::expand_home(f.string());
                     if (!fs::exists(f))
                     {
                         LOG_ERROR << "Configuration file specified but does not exist at '"
@@ -856,7 +859,7 @@ namespace mamba
         {
             for (auto& d : dirs)
             {
-                d = fs::weakly_canonical(env::expand_user(d)).string();
+                d = fs::weakly_canonical(util::expand_home(d.string())).string();
                 if (fs::exists(d) && !fs::is_directory(d))
                 {
                     LOG_ERROR << "Env dir specified is not a directory: " << d.string();
@@ -922,7 +925,7 @@ namespace mamba
         {
             for (auto& d : dirs)
             {
-                d = fs::weakly_canonical(env::expand_user(d)).string();
+                d = fs::weakly_canonical(util::expand_home(d.string())).string();
                 if (fs::exists(d) && !fs::is_directory(d))
                 {
                     LOG_ERROR << "Packages dir specified is not a directory: " << d.string();
@@ -2239,7 +2242,7 @@ namespace mamba
                         continue;
                     }
 
-                    c.set_rc_yaml_value(yaml[key], env::shrink_user(source).string());
+                    c.set_rc_yaml_value(yaml[key], util::shrink_home(source.string()));
                 }
             }
         }

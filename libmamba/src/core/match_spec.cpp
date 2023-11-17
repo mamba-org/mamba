@@ -14,6 +14,7 @@
 #include "mamba/core/util.hpp"
 #include "mamba/specs/archive.hpp"
 #include "mamba/specs/platform.hpp"
+#include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
@@ -89,7 +90,8 @@ namespace mamba
             if (!util::url_has_scheme(spec_str))
             {
                 LOG_INFO << "need to expand path!";
-                spec_str = util::path_or_url_to_url(fs::absolute(env::expand_user(spec_str)).string());
+                spec_str = util::path_or_url_to_url(fs::absolute(util::expand_home(spec_str)).string()
+                );
             }
 
             const auto& parsed_channel = channel_context.make_channel(spec_str);

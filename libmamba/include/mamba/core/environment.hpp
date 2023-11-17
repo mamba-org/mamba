@@ -14,13 +14,7 @@
 
 namespace mamba::env
 {
-
     auto which(const std::string& exe, const std::string& override_path = "") -> fs::u8path;
     auto which(const std::string& exe, const std::vector<fs::u8path>& search_paths) -> fs::u8path;
-
-    auto expand_user(const fs::u8path& path) -> fs::u8path;
-    auto shrink_user(const fs::u8path& path) -> fs::u8path;
-
-
 }
 #endif

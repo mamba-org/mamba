@@ -121,4 +121,31 @@ TEST_SUITE("util::path_manip")
             }
         }
     }
+
+    TEST_CASE("expand_home")
+    {
+        CHECK_EQ(expand_home("", ""), "");
+        CHECK_EQ(expand_home("~", ""), "");
+        CHECK_EQ(expand_home("", "/user/mamba"), "");
+        CHECK_EQ(expand_home("~", "/user/mamba"), "/user/mamba");
+        CHECK_EQ(expand_home("~/", "/user/mamba"), "/user/mamba/");
+        CHECK_EQ(expand_home("~/folder", "/user/mamba"), "/user/mamba/folder");
+        CHECK_EQ(expand_home("~/folder", "/user/mamba/"), "/user/mamba/folder");
+        CHECK_EQ(expand_home("file~name", "/user/mamba"), "file~name");
+        CHECK_EQ(expand_home("~file", "/user/mamba"), "~file");
+        CHECK_EQ(expand_home("~/foo", "."), "./foo");
+    }
+
+    TEST_CASE("shrink_home")
+    {
+        CHECK_EQ(shrink_home("", ""), "");
+        CHECK_EQ(shrink_home("/user/mamba", ""), "/user/mamba");
+        CHECK_EQ(shrink_home("/user/mamba", "/user/mamba"), "~");
+        CHECK_EQ(shrink_home("/user/mamba/", "/user/mamba"), "~/");  // Final "/" as in first input
+        CHECK_EQ(shrink_home("/user/mamba", "/user/mamba/"), "~");
+        CHECK_EQ(shrink_home("/user/mamba/", "/user/mamba/"), "~/");  // Final "/" as in first input
+        CHECK_EQ(shrink_home("/user/mamba/file", "/user/mamba"), "~/file");
+        CHECK_EQ(shrink_home("/user/mamba/file", "/user/mamba/"), "~/file");
+        CHECK_EQ(shrink_home("/user/mamba-dev/file", "/user/mamba"), "/user/mamba-dev/file");
+    }
 }

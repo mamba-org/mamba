@@ -7,6 +7,7 @@
 #include <algorithm>
 
 #include "mamba/util/build.hpp"
+#include "mamba/util/environment.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
@@ -140,5 +141,35 @@ namespace mamba::util
             return path_concat(parent, child, '/');
         }
         return path_concat(parent, child, '\\');
+    }
+
+    auto expand_home(std::string_view path) -> std::string
+    {
+        return expand_home(path, user_home_dir());
+    }
+
+    auto expand_home(std::string_view path, std::string_view home) -> std::string
+    {
+        if ((path == "~") || starts_with(path, "~/"))
+        {
+            return path_concat(home, path.substr(1));
+        }
+        return std::string(path);
+    }
+
+    auto shrink_home(std::string_view path) -> std::string
+    {
+        return shrink_home(path, user_home_dir());
+    }
+
+    auto shrink_home(std::string_view path, std::string_view home) -> std::string
+    {
+        static constexpr auto sep = '/';
+        home = rstrip(home, sep);
+        if (!home.empty() && path_is_prefix(home, path, sep))
+        {
+            return path_concat("~", path.substr(home.size()), sep);
+        }
+        return std::string(path);
     }
 }

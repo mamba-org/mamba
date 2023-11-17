@@ -62,5 +62,25 @@ namespace mamba::util
      * Concatenate paths with '/' on Unix and detected separator on Windows.
      */
     [[nodiscard]] auto path_concat(std::string_view parent, std::string_view child) -> std::string;
+
+    /**
+     * Expand a leading '~' with the given home directory.
+     */
+    [[nodiscard]] auto expand_home(std::string_view path, std::string_view home) -> std::string;
+
+    /**
+     * Expand a leading '~' with the user home directory.
+     */
+    [[nodiscard]] auto expand_home(std::string_view path) -> std::string;
+
+    /**
+     * If the path starts with the given home directory, replace it with a leading '~'.
+     */
+    [[nodiscard]] auto shrink_home(std::string_view path, std::string_view home) -> std::string;
+
+    /**
+     * If the path starts with the user home directory, replace it with a leading '~'.
+     */
+    [[nodiscard]] auto shrink_home(std::string_view path) -> std::string;
 }
 #endif

@@ -7,13 +7,12 @@
 #include <doctest/doctest.h>
 
 #include "mamba/core/context.hpp"
-#include "mamba/core/environment.hpp"
-#include "mamba/core/execution.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_random.hpp"
 #include "mamba/core/util_scope.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/util/path_manip.hpp"
 
 #include "mambatests.hpp"
 
@@ -150,7 +149,7 @@ namespace mamba
 
             CHECK(path::is_writable(test_dir_path / "non-existing-writable-test-delete-me.txt"));
             CHECK(path::is_writable(
-                env::expand_user("~/.libmamba-non-existing-writable-test-delete-me.txt")
+                util::expand_home("~/.libmamba-non-existing-writable-test-delete-me.txt")
             ));
 
             CHECK(path::is_writable(test_dir_path / "non-existing-subfolder"));

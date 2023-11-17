@@ -11,7 +11,6 @@
 #include <doctest/doctest.h>
 
 #include "mamba/core/context.hpp"
-#include "mamba/core/environment.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/history.hpp"
 #include "mamba/core/link.hpp"
@@ -19,6 +18,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/util/build.hpp"
+#include "mamba/util/path_manip.hpp"
 
 #include "mambatests.hpp"
 
@@ -396,18 +396,11 @@ namespace mamba
         {
             if (util::on_linux)
             {
-                auto home = env::expand_user("~");
+                auto home = fs::u8path(util::expand_home("~"));
                 CHECK_EQ(path::starts_with_home(home / "test" / "file.txt"), true);
                 CHECK_EQ(path::starts_with_home("~"), true);
                 CHECK_EQ(path::starts_with_home("/opt/bin"), false);
             }
-        }
-
-        TEST_CASE("expand_user")
-        {
-            fs::u8path pbefore = "/tmp/test/xyz.txt";
-            fs::u8path p = env::expand_user(pbefore);
-            CHECK_EQ(p, pbefore);
         }
 
         TEST_CASE("touch")

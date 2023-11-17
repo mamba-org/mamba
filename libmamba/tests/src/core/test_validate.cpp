@@ -4,17 +4,15 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <algorithm>
 #include <map>
 
 #include <doctest/doctest.h>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
-#include "mamba/core/context.hpp"
-#include "mamba/core/environment.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/validate.hpp"
+#include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 
 #include "mambatests.hpp"
@@ -1429,7 +1427,7 @@ namespace mamba::validation
 
                 void write_role(const json& j, const fs::u8path& p)
                 {
-                    fs::u8path expanded_p = env::expand_user(p);
+                    fs::u8path expanded_p = util::expand_home(p.string());
                     path::touch(expanded_p, true);
                     std::ofstream out_file(
                         expanded_p.std_path(),

@@ -13,13 +13,13 @@
 #include <spdlog/spdlog.h>
 
 #include "mamba/core/context.hpp"
-#include "mamba/core/environment.hpp"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/util/environment.hpp"
+#include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
@@ -200,7 +200,7 @@ namespace mamba
 
         for (const auto& loc : token_locations)
         {
-            auto px = env::expand_user(loc);
+            auto px = util::expand_home(loc.string());
             if (!fs::exists(px) || !fs::is_directory(px))
             {
                 continue;

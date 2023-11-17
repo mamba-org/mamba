@@ -93,25 +93,4 @@ namespace mamba::env
 
         return "";  // empty path
     }
-
-    fs::u8path expand_user(const fs::u8path& path)
-    {
-        auto p = path.string();
-        if (p[0] == '~')
-        {
-            p.replace(0, 1, util::user_home_dir());
-        }
-        return p;
-    }
-
-    fs::u8path shrink_user(const fs::u8path& path)
-    {
-        auto p = path.string();
-        auto home = util::user_home_dir();
-        if (util::starts_with(p, home))
-        {
-            p.replace(0, home.size(), "~");
-        }
-        return p;
-    }
 }

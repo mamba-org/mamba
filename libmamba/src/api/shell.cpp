@@ -11,9 +11,9 @@
 #include "mamba/api/shell.hpp"
 #include "mamba/core/activation.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/core/environment.hpp"
 #include "mamba/core/shell_init.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/util/path_manip.hpp"
 
 #ifdef _WIN32
 #include "mamba/core/util_os.hpp"
@@ -66,7 +66,7 @@ namespace mamba
         }
         else
         {
-            init_shell(ctx, shell_type, fs::weakly_canonical(env::expand_user(prefix)));
+            init_shell(ctx, shell_type, fs::weakly_canonical(util::expand_home(prefix.string())));
         }
     }
 
@@ -78,7 +78,7 @@ namespace mamba
         }
         else
         {
-            deinit_shell(ctx, shell_type, fs::weakly_canonical(env::expand_user(prefix)));
+            deinit_shell(ctx, shell_type, fs::weakly_canonical(util::expand_home(prefix.string())));
         }
     }
 

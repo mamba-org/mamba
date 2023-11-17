@@ -30,7 +30,6 @@ namespace mamba::util
     public:
 
         using Base = std::vector<Key, Allocator>;
-        using Self = flat_set<Key, Compare, Allocator>;
         using typename Base::allocator_type;
         using typename Base::const_iterator;
         using typename Base::const_reverse_iterator;
@@ -67,53 +66,53 @@ namespace mamba::util
         explicit flat_set(std::vector<Key, Allocator>&& other, key_compare compare = key_compare());
         explicit flat_set(const std::vector<Key, Allocator>& other, key_compare compare = key_compare());
 
-        flat_set& operator=(const flat_set&) = default;
-        flat_set& operator=(flat_set&&) = default;
+        auto operator=(const flat_set&) -> flat_set& = default;
+        auto operator=(flat_set&&) -> flat_set& = default;
 
-        const value_type& front() const noexcept;
-        const value_type& back() const noexcept;
-        const value_type& operator[](size_type pos) const;
-        const value_type& at(size_type pos) const;
+        auto front() const noexcept -> const value_type&;
+        auto back() const noexcept -> const value_type&;
+        auto operator[](size_type pos) const -> const value_type&;
+        auto at(size_type pos) const -> const value_type&;
 
-        const_iterator begin() const noexcept;
-        const_iterator end() const noexcept;
-        const_reverse_iterator rbegin() const noexcept;
-        const_reverse_iterator rend() const noexcept;
+        auto begin() const noexcept -> const_iterator;
+        auto end() const noexcept -> const_iterator;
+        auto rbegin() const noexcept -> const_reverse_iterator;
+        auto rend() const noexcept -> const_reverse_iterator;
 
         /** Insert an element in the set.
          *
          * Like std::vector and unlike std::set, inserting an element invalidates iterators.
          */
-        std::pair<const_iterator, bool> insert(value_type&& value);
-        std::pair<const_iterator, bool> insert(const value_type& value);
+        auto insert(value_type&& value) -> std::pair<const_iterator, bool>;
+        auto insert(const value_type& value) -> std::pair<const_iterator, bool>;
         template <typename InputIterator>
         void insert(InputIterator first, InputIterator last);
 
-        const_iterator erase(const_iterator pos);
-        const_iterator erase(const_iterator first, const_iterator last);
-        size_type erase(const value_type& value);
+        auto erase(const_iterator pos) -> const_iterator;
+        auto erase(const_iterator first, const_iterator last) -> const_iterator;
+        auto erase(const value_type& value) -> size_type;
 
-        bool contains(const value_type&) const;
-        bool is_disjoint_of(const Self& other) const;
-        bool is_subset_of(const Self& other) const;
-        bool is_superset_of(const Self& other) const;
+        auto contains(const value_type&) const -> bool;
+        auto is_disjoint_of(const flat_set& other) const -> bool;
+        auto is_subset_of(const flat_set& other) const -> bool;
+        auto is_superset_of(const flat_set& other) const -> bool;
 
-        static Self union_(const Self& lhs, const Self& rhs);
-        static Self intersection(const Self& lhs, const Self& rhs);
-        static Self difference(const Self& lhs, const Self& rhs);
-        static Self symetric_difference(const Self& lhs, const Self& rhs);
+        static auto union_(const flat_set& lhs, const flat_set& rhs) -> flat_set;
+        static auto intersection(const flat_set& lhs, const flat_set& rhs) -> flat_set;
+        static auto difference(const flat_set& lhs, const flat_set& rhs) -> flat_set;
+        static auto symetric_difference(const flat_set& lhs, const flat_set& rhs) -> flat_set;
 
     private:
 
         key_compare m_compare;
 
-        bool key_eq(const value_type& a, const value_type& b) const;
+        auto key_eq(const value_type& a, const value_type& b) const -> bool;
         template <typename U>
-        std::pair<const_iterator, bool> insert_impl(U&& value);
+        auto insert_impl(U&& value) -> std::pair<const_iterator, bool>;
         void sort_and_remove_duplicates();
 
         template <typename K, typename C, typename A>
-        friend bool operator==(const flat_set<K, C, A>& lhs, const flat_set<K, C, A>& rhs);
+        friend auto operator==(const flat_set<K, C, A>& lhs, const flat_set<K, C, A>& rhs) -> bool;
     };
 
     template <class Key, class Compare = std::less<Key>, class Allocator = std::allocator<Key>>
@@ -136,52 +135,62 @@ namespace mamba::util
         -> flat_set<Key, Compare, Allocator>;
 
     template <typename Key, typename Compare, typename Allocator>
-    bool
-    operator==(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs);
+    auto
+    operator==(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs)
+        -> bool;
 
     template <typename Key, typename Compare, typename Allocator>
-    bool
-    operator!=(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs);
+    auto
+    operator!=(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs)
+        -> bool;
 
     /** Return whether the first set is a subset of the second. */
     template <typename Key, typename Compare, typename Allocator>
-    bool
-    operator<=(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs);
+    auto
+    operator<=(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs)
+        -> bool;
 
     /** Return whether the first set is a strict subset of the second. */
     template <typename Key, typename Compare, typename Allocator>
-    bool
-    operator<(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs);
+    auto
+    operator<(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs)
+        -> bool;
 
     /** Return whether the first set is a superset of the second. */
     template <typename Key, typename Compare, typename Allocator>
-    bool
-    operator>=(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs);
+    auto
+    operator>=(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs)
+        -> bool;
 
     /** Return whether the first set is a strict superset of the second. */
     template <typename Key, typename Compare, typename Allocator>
-    bool
-    operator>(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs);
+    auto
+    operator>(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs)
+        -> bool;
 
     /** Compute the set union. */
     template <typename Key, typename Compare, typename Allocator>
-    flat_set<Key, Compare, Allocator>
-    operator|(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs);
+    auto
+    operator|(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs)
+        -> flat_set<Key, Compare, Allocator>;
 
     /** Compute the set intersection. */
     template <typename Key, typename Compare, typename Allocator>
-    flat_set<Key, Compare, Allocator>
-    operator&(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs);
+    auto
+    operator&(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs)
+        -> flat_set<Key, Compare, Allocator>;
 
     /** Compute the set difference. */
     template <typename Key, typename Compare, typename Allocator>
-    flat_set<Key, Compare, Allocator>
-    operator-(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs);
+    auto
+    operator-(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs)
+        -> flat_set<Key, Compare, Allocator>;
 
     /** Compute the set symetric difference. */
     template <typename Key, typename Compare, typename Allocator>
-    flat_set<Key, Compare, Allocator>
-    operator^(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs);
+    auto
+    operator^(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs)
+        -> flat_set<Key, Compare, Allocator>;
 
     /*******************************
      *  vector_set Implementation  *
@@ -290,7 +299,7 @@ namespace mamba::util
     }
 
     template <typename K, typename C, typename A>
-    bool flat_set<K, C, A>::key_eq(const value_type& a, const value_type& b) const
+    auto flat_set<K, C, A>::key_eq(const value_type& a, const value_type& b) const -> bool
     {
         return !m_compare(a, b) && !m_compare(b, a);
     }
@@ -367,8 +376,9 @@ namespace mamba::util
          * https://en.cppreference.com/w/Cppreference:Copyright/CC-BY-SA
          */
         template <class InputIt1, class InputIt2, class Compare>
-        bool
+        auto
         set_disjoint(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2, Compare comp)
+            -> bool
         {
             while (first1 != last1 && first2 != last2)
             {
@@ -390,66 +400,71 @@ namespace mamba::util
     }
 
     template <typename K, typename C, typename A>
-    auto flat_set<K, C, A>::is_disjoint_of(const Self& other) const -> bool
+    auto flat_set<K, C, A>::is_disjoint_of(const flat_set& other) const -> bool
     {
         return detail::set_disjoint(cbegin(), cend(), other.cbegin(), other.cend(), m_compare);
     }
 
     template <typename K, typename C, typename A>
-    bool operator==(const flat_set<K, C, A>& lhs, const flat_set<K, C, A>& rhs)
+    auto operator==(const flat_set<K, C, A>& lhs, const flat_set<K, C, A>& rhs) -> bool
     {
         auto is_eq = [&lhs](const auto& a, const auto& b) { return lhs.key_eq(a, b); };
         return std::equal(lhs.cbegin(), lhs.cend(), rhs.cbegin(), rhs.cend(), is_eq);
     }
 
     template <typename K, typename C, typename A>
-    bool operator!=(const flat_set<K, C, A>& lhs, const flat_set<K, C, A>& rhs)
+    auto operator!=(const flat_set<K, C, A>& lhs, const flat_set<K, C, A>& rhs) -> bool
     {
         return !(lhs == rhs);
     }
 
     template <typename K, typename C, typename A>
-    auto flat_set<K, C, A>::is_subset_of(const Self& other) const -> bool
+    auto flat_set<K, C, A>::is_subset_of(const flat_set& other) const -> bool
     {
         return std::includes(other.cbegin(), other.cend(), cbegin(), cend(), m_compare);
     }
 
     template <typename Key, typename Compare, typename Allocator>
-    bool
+    auto
     operator<=(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs)
+        -> bool
     {
         return lhs.is_subset_of(rhs);
     }
 
     template <typename Key, typename Compare, typename Allocator>
-    bool
+    auto
     operator<(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs)
+        -> bool
     {
         return (lhs.size() < rhs.size()) && (lhs <= rhs);
     }
 
     template <typename K, typename C, typename A>
-    auto flat_set<K, C, A>::is_superset_of(const Self& other) const -> bool
+    auto flat_set<K, C, A>::is_superset_of(const flat_set& other) const -> bool
     {
         return other.is_subset_of(*this);
     }
 
     template <typename Key, typename Compare, typename Allocator>
-    bool
+    auto
     operator>=(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs)
+        -> bool
     {
         return lhs.is_superset_of(rhs);
     }
 
     template <typename Key, typename Compare, typename Allocator>
-    bool
+    auto
     operator>(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs)
+        -> bool
     {
         return rhs < lhs;
     }
 
     template <typename Key, typename Compare, typename Allocator>
-    auto flat_set<Key, Compare, Allocator>::union_(const Self& lhs, const Self& rhs) -> Self
+    auto flat_set<Key, Compare, Allocator>::union_(const flat_set& lhs, const flat_set& rhs)
+        -> flat_set
     {
         auto out = flat_set<Key, Compare, Allocator>();
         out.reserve(std::max(lhs.size(), rhs.size()));  // lower bound
@@ -465,14 +480,16 @@ namespace mamba::util
     }
 
     template <typename Key, typename Compare, typename Allocator>
-    flat_set<Key, Compare, Allocator>
+    auto
     operator|(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs)
+        -> flat_set<Key, Compare, Allocator>
     {
         return flat_set<Key, Compare, Allocator>::union_(lhs, rhs);
     }
 
     template <typename Key, typename Compare, typename Allocator>
-    auto flat_set<Key, Compare, Allocator>::intersection(const Self& lhs, const Self& rhs) -> Self
+    auto flat_set<Key, Compare, Allocator>::intersection(const flat_set& lhs, const flat_set& rhs)
+        -> flat_set
     {
         auto out = flat_set<Key, Compare, Allocator>();
         std::set_intersection(
@@ -487,14 +504,16 @@ namespace mamba::util
     }
 
     template <typename Key, typename Compare, typename Allocator>
-    flat_set<Key, Compare, Allocator>
+    auto
     operator&(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs)
+        -> flat_set<Key, Compare, Allocator>
     {
         return flat_set<Key, Compare, Allocator>::intersection(lhs, rhs);
     }
 
     template <typename Key, typename Compare, typename Allocator>
-    auto flat_set<Key, Compare, Allocator>::difference(const Self& lhs, const Self& rhs) -> Self
+    auto flat_set<Key, Compare, Allocator>::difference(const flat_set& lhs, const flat_set& rhs)
+        -> flat_set
     {
         auto out = flat_set<Key, Compare, Allocator>();
         std::set_difference(
@@ -509,15 +528,17 @@ namespace mamba::util
     }
 
     template <typename Key, typename Compare, typename Allocator>
-    flat_set<Key, Compare, Allocator>
+    auto
     operator-(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs)
+        -> flat_set<Key, Compare, Allocator>
     {
         return flat_set<Key, Compare, Allocator>::difference(lhs, rhs);
     }
 
     template <typename Key, typename Compare, typename Allocator>
-    auto flat_set<Key, Compare, Allocator>::symetric_difference(const Self& lhs, const Self& rhs)
-        -> Self
+    auto
+    flat_set<Key, Compare, Allocator>::symetric_difference(const flat_set& lhs, const flat_set& rhs)
+        -> flat_set
     {
         auto out = flat_set<Key, Compare, Allocator>();
         std::set_symmetric_difference(
@@ -532,8 +553,9 @@ namespace mamba::util
     }
 
     template <typename Key, typename Compare, typename Allocator>
-    flat_set<Key, Compare, Allocator>
+    auto
     operator^(const flat_set<Key, Compare, Allocator>& lhs, const flat_set<Key, Compare, Allocator>& rhs)
+        -> flat_set<Key, Compare, Allocator>
     {
         return flat_set<Key, Compare, Allocator>::symetric_difference(lhs, rhs);
     }

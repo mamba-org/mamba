@@ -37,6 +37,11 @@ namespace mamba::util
     [[nodiscard]] auto path_has_drive_letter(std::string_view path) -> bool;
 
     /**
+     * Detect the separator used in a path.
+     */
+    [[nodiscard]] auto path_win_detect_sep(std::string_view path) -> std::optional<char>;
+
+    /**
      * Convert the Windows path separators to Posix ones.
      */
     [[nodiscard]] auto path_win_to_posix(std::string path) -> std::string;
@@ -88,6 +93,14 @@ namespace mamba::util
      * Expand a leading '~' with the user home directory.
      */
     [[nodiscard]] auto expand_home(std::string_view path) -> std::string;
+
+    /**
+     * If the path starts with the given home directory, replace it with a leading '~'.
+     *
+     * This assumes the given separator is used separate paths.
+     */
+    [[nodiscard]] auto shrink_home(std::string_view path, std::string_view home, char sep)
+        -> std::string;
 
     /**
      * If the path starts with the given home directory, replace it with a leading '~'.

@@ -44,6 +44,19 @@ TEST_SUITE("util::path_manip")
         CHECK_FALSE(path_has_drive_letter(R"(folder\file)"));
     }
 
+    TEST_CASE("path_win_detect_sep")
+    {
+        CHECK_EQ(path_win_detect_sep("file"), std::nullopt);
+
+        CHECK_EQ(path_win_detect_sep("C:/file"), '/');
+        CHECK_EQ(path_win_detect_sep("~/file"), '/');
+        CHECK_EQ(path_win_detect_sep("/folder/file"), '/');
+
+        CHECK_EQ(path_win_detect_sep(R"(C:\file)"), '\\');
+        CHECK_EQ(path_win_detect_sep(R"(~\file)"), '\\');
+        CHECK_EQ(path_win_detect_sep(R"(\\folder\\file)"), '\\');
+    }
+
     TEST_CASE("path_win_to_posix")
     {
         CHECK_EQ(path_win_to_posix(""), "");

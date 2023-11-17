@@ -81,8 +81,22 @@ namespace mamba::util
         std::size_t parent_end = parent.find(sep);
         std::size_t child_start = 0;
         std::size_t child_end = child.find(sep);
-        auto parent_item = [&]() { return parent.substr(parent_start, parent_end); };
-        auto child_item = [&]() { return child.substr(child_start, child_end); };
+        auto parent_item = [&]()
+        {
+            if (parent_end < npos)
+            {
+                return parent.substr(parent_start, parent_end - parent_start);
+            }
+            return parent.substr(parent_start);
+        };
+        auto child_item = [&]()
+        {
+            if (child_end < npos)
+            {
+                return child.substr(child_start, child_end - child_start);
+            }
+            return child.substr(child_start);
+        };
         while ((parent_end != npos) && (child_end != npos))
         {
             if (parent_item() != child_item())
@@ -95,7 +109,7 @@ namespace mamba::util
             child_end = child.find(sep, child_start);
         }
         // Last item comparison
-        return parent_item().empty() || (parent_item() == child_item());
+        return (parent_end == npos) && (parent_item().empty() || (parent_item() == child_item()));
     }
 
     auto path_concat(std::string_view parent, std::string_view child, char sep) -> std::string

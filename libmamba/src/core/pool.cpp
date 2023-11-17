@@ -223,17 +223,6 @@ namespace mamba
                 ms.conda_build_form().c_str()
             );
 
-            const auto& multi_chan = channel_context.get_custom_multichannels();
-            auto channels = std::vector<Channel>();
-            if (auto iter = multi_chan.find(ms.channel); iter != multi_chan.end())
-            {
-                channels.insert(channels.end(), iter->second.cbegin(), iter->second.cend());
-            }
-            else
-            {
-                channels.push_back(channel_context.make_channel(ms.channel));
-            }
-
             solv::ObjQueue selected_pkgs = {};
             pool.for_each_whatprovides(
                 match,
@@ -244,7 +233,7 @@ namespace mamba
                     auto repo = solv::ObjRepoView(*s.raw()->repo);
                     // TODO make_channel should disapear avoiding conflict here
                     auto const url = std::string(repo.url());
-                    for (auto const& c : channels)
+                    for (auto const& c : channel_context.get_channels({ ms.channel }))
                     {
                         if (channel_match(channel_context, channel_context.make_channel(url), c))
                         {

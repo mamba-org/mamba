@@ -144,35 +144,64 @@ namespace mamba::util
         return concat(rstrip(parent, sep), std::string_view(&sep, 1), strip(child, sep));
     }
 
+    namespace
+    {
+        auto detect_sep(std::string_view path) -> char
+        {
+            if (!on_win)
+            {
+                return preferred_path_separator_posix;
+            }
+            if (path_has_drive_letter(path))
+            {
+                return path.at(2);
+            }
+            for (const char sep : { preferred_path_separator_posix, preferred_path_separator_win })
+            {
+                const auto prefix = std::array<char, 2>{ '~', sep };
+                const auto prefix_str = std::string_view(prefix.data(), prefix.size());
+                if (starts_with(path, prefix_str))
+                {
+                    return sep;
+                }
+            }
+            if (path.find(preferred_path_separator_posix) < std::string_view::npos)
+            {
+                return preferred_path_separator_posix;
+            }
+            return preferred_path_separator_win;
+        }
+    }
+
     auto path_concat(std::string_view parent, std::string_view child) -> std::string
+    {
+        return path_concat(parent, child, detect_sep(parent));
+    }
+
+    auto expand_home(std::string_view path, std::string_view home, char sep) -> std::string
+    {
+        const auto prefix = std::array<char, 2>{ '~', sep };
+        const auto prefix_str = std::string_view(prefix.data(), prefix.size());
+        if ((path == "~") || starts_with(path, prefix_str))
+        {
+            return path_concat(home, path.substr(1), sep);
+        }
+        return std::string(path);
+    }
+
+    auto expand_home(std::string_view path, std::string_view home) -> std::string
     {
         if (!on_win)
         {
-            return path_concat(parent, child, '/');
+            return expand_home(path, home, preferred_path_separator_posix);
         }
-        if (path_has_drive_letter(parent))
-        {
-            return path_concat(parent, child, parent.at(2));
-        }
-        if (parent.find('/') < std::string_view::npos)
-        {
-            return path_concat(parent, child, '/');
-        }
-        return path_concat(parent, child, '\\');
+        const auto sep = detect_sep(path);
+        return expand_home(path, path_to_sep(std::string(home), sep), sep);
     }
 
     auto expand_home(std::string_view path) -> std::string
     {
         return expand_home(path, user_home_dir());
-    }
-
-    auto expand_home(std::string_view path, std::string_view home) -> std::string
-    {
-        if ((path == "~") || starts_with(path, "~/"))
-        {
-            return path_concat(home, path.substr(1));
-        }
-        return std::string(path);
     }
 
     auto shrink_home(std::string_view path) -> std::string

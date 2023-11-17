@@ -74,6 +74,12 @@ namespace mamba::util
     [[nodiscard]] auto path_concat(std::string_view parent, std::string_view child) -> std::string;
 
     /**
+     * Expand a leading '~' with the given home directory, assuming the given separator.
+     */
+    [[nodiscard]] auto expand_home(std::string_view path, std::string_view home, char sep)
+        -> std::string;
+
+    /**
      * Expand a leading '~' with the given home directory.
      */
     [[nodiscard]] auto expand_home(std::string_view path, std::string_view home) -> std::string;

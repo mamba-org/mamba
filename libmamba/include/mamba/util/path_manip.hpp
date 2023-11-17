@@ -42,6 +42,16 @@ namespace mamba::util
     [[nodiscard]] auto path_win_to_posix(std::string path) -> std::string;
 
     /**
+     * Convert the Posix path separators to Windows ones.
+     */
+    [[nodiscard]] auto path_posix_to_win(std::string path) -> std::string;
+
+    /**
+     * Convert the path separators to the desired one.
+     */
+    [[nodiscard]] auto path_to_sep(std::string path, char sep) -> std::string;
+
+    /**
      * Convert the Windows path separators to Posix ones on Windows only.
      */
     [[nodiscard]] auto path_to_posix(std::string path) -> std::string;

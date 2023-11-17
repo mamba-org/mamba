@@ -52,6 +52,14 @@ TEST_SUITE("util::path_manip")
         CHECK_EQ(path_win_to_posix("C:/folder/file"), "C:/folder/file");
     }
 
+    TEST_CASE("path_win_to_posix")
+    {
+        CHECK_EQ(path_posix_to_win(""), "");
+        CHECK_EQ(path_posix_to_win("file"), "file");
+        CHECK_EQ(path_posix_to_win("C:/folder/file"), R"(C:\folder\file)");
+        CHECK_EQ(path_posix_to_win(R"(C:\folder\file)"), R"(C:\folder\file)");
+    }
+
     TEST_CASE("path_to_posix")
     {
         CHECK_EQ(path_to_posix(""), "");

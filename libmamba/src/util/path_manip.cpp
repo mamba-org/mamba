@@ -64,6 +64,24 @@ namespace mamba::util
         return path;
     }
 
+    auto path_posix_to_win(std::string path) -> std::string
+    {
+        std::replace(
+            path.begin(),
+            path.end(),
+            preferred_path_separator_posix,
+            preferred_path_separator_win
+        );
+        return path;
+    }
+
+    auto path_to_sep(std::string path, char sep) -> std::string
+    {
+        std::replace(path.begin(), path.end(), preferred_path_separator_posix, sep);
+        std::replace(path.begin(), path.end(), preferred_path_separator_win, sep);
+        return path;
+    }
+
     auto path_to_posix(std::string path) -> std::string
     {
         if (on_win)

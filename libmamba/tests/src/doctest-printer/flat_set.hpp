@@ -16,7 +16,7 @@ namespace doctest
     {
         static auto convert(const mamba::util::flat_set<K, C, A>& value) -> String
         {
-            return { fmt::format("std::flat_set{{{}}}", fmt::join(value, ", ")).c_str() };
+            return { fmt::format("mamba::util::flat_set{{{}}}", fmt::join(value, ", ")).c_str() };
         }
     };
 }

@@ -191,6 +191,29 @@ namespace mamba
 #endif
             return "x86_64";
         }
+
+        std::string get_archspec(const std::string& arch)
+        {
+            auto override_version = util::get_env("CONDA_OVERRIDE_ARCHSPEC");
+            if (override_version)
+            {
+                return override_version.value();
+            }
+
+            if (arch == "64")
+            {
+                return get_archspec_x86_64();
+            }
+            else if (arch == "32")
+            {
+                return "x86";
+            }
+            else
+            {
+                return arch;
+            }
+        }
+
         std::vector<PackageInfo> dist_packages(const Context& context)
         {
             LOG_DEBUG << "Loading distribution virtual packages";
@@ -248,15 +271,7 @@ namespace mamba
                 }
             }
 
-            if (arch == "64")
-            {
-                arch = get_archspec_x86_64();
-            }
-            else if (arch == "32")
-            {
-                arch = "x86";
-            }
-            res.push_back(make_virtual_package("__archspec", platform, "1", arch));
+            res.push_back(make_virtual_package("__archspec", platform, "1", get_archspec(arch)));
 
             return res;
         }

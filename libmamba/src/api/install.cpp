@@ -816,14 +816,6 @@ namespace mamba
                 return;
             }
 
-            for (const auto& file : file_specs)
-            {
-                if (is_yaml_file_name(file) && file_specs.size() != 1)
-                {
-                    throw std::runtime_error("Can only handle 1 yaml file!");
-                }
-            }
-
             for (auto& file : file_specs)
             {
                 // read specs from file :)
@@ -858,9 +850,13 @@ namespace mamba
                         channels.set_cli_value(updated_channels);
                     }
 
-                    if (parse_result.name.size() != 0)
+                    if (parse_result.name.size() != 0 && !env_name.configured())
                     {
                         env_name.set_cli_yaml_value(parse_result.name);
+                    }
+                    else if (parse_result.name.size() != 0 && parse_result.name != env_name.value<std::string>())
+                    {
+                        LOG_WARNING << "YAML specs have different environment names. Using " << env_name.value<std::string>();
                     }
 
                     if (parse_result.dependencies.size() != 0)

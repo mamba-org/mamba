@@ -1,6 +1,7 @@
 channels:
   - conda-forge
 dependencies:
+  - python >=3.12
   # libmamba build dependencies
   - cxx-compiler
   - cmake >=3.16

@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <cstdlib>
+#include <optional>
 
 #ifdef _WIN32
 #include <mutex>
@@ -33,16 +34,17 @@ extern "C"
 
 namespace mamba::env
 {
-    fs::u8path which(const std::string& exe, const std::string& override_path)
+    auto which(std::string_view exe, std::string_view override_path) -> fs::u8path
     {
         // TODO maybe add a cache?
-        auto env_path = override_path == "" ? util::get_env("PATH") : override_path;
-        if (env_path)
+        auto env_path = std::string(
+            override_path == "" ? util::get_env("PATH").value_or("") : override_path
+        );
+        if (!env_path.empty())
         {
-            std::string path = env_path.value();
-            const auto parts = util::split(path, util::pathsep());
+            const auto parts = util::split(env_path, util::pathsep());
             const std::vector<fs::u8path> search_paths(parts.begin(), parts.end());
-            return which(exe, search_paths);
+            return which_in(exe, search_paths);
         }
 
 
@@ -50,9 +52,9 @@ namespace mamba::env
         if (override_path == "")
         {
             char* pathbuf;
-            size_t n = confstr(_CS_PATH, NULL, static_cast<size_t>(0));
+            size_t n = confstr(_CS_PATH, nullptr, static_cast<size_t>(0));
             pathbuf = static_cast<char*>(malloc(n));
-            if (pathbuf != NULL)
+            if (pathbuf != nullptr)
             {
                 confstr(_CS_PATH, pathbuf, n);
                 return which(exe, pathbuf);
@@ -63,34 +65,26 @@ namespace mamba::env
         return "";  // empty path
     }
 
-    fs::u8path which(const std::string& exe, const std::vector<fs::u8path>& search_paths)
+    namespace detail
     {
-        for (auto& p : search_paths)
+        auto which_in_impl(const fs::u8path& exe, const fs::u8path& dir, const fs::u8path& extension)
+            -> fs::u8path
         {
             std::error_code _ec;  // ignore
-            if (!fs::exists(p, _ec) || !fs::is_directory(p, _ec))
+            if (!fs::exists(dir, _ec) || !fs::is_directory(dir, _ec))
             {
-                continue;
+                return "";  // Not found
             }
 
-#ifdef _WIN32
-            const auto exe_with_extension = exe + ".exe";
-#endif
-            for (const auto& entry : fs::directory_iterator(p, _ec))
+            for (const auto& entry : fs::directory_iterator(dir, _ec))
             {
-                const auto filename = entry.path().filename();
-                if (filename == exe
-
-#ifdef _WIN32
-                    || filename == exe_with_extension
-#endif
-                )
+                auto p = entry.path();
+                if ((p.stem() == exe.stem()) && (p.extension().empty() || p.extension() == extension))
                 {
                     return entry.path();
                 }
             }
+            return "";  // Not found
         }
-
-        return "";  // empty path
     }
 }

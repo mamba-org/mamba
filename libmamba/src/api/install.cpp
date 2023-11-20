@@ -43,7 +43,7 @@ namespace mamba
         )
         {
             const auto get_python_path = [&]
-            { return env::which("python", get_path_dirs(target_prefix)).string(); };
+            { return env::which_in("python", get_path_dirs(target_prefix)).string(); };
 
             const std::unordered_map<std::string, command_args> other_pkg_mgr_install_instructions{
                 { "pip",

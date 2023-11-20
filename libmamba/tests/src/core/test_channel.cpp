@@ -189,7 +189,7 @@ namespace mamba
 
             ChannelContext channel_context{ ctx };
 
-            auto x = channel_context.get_channels({ "xtest" });
+            auto x = channel_context.make_chan("xtest");
 
             CHECK_EQ(x.size(), 3);
             auto c1 = x[0];
@@ -206,7 +206,7 @@ namespace mamba
                 "https://otherdomain.com/snakepit/noarch",
             });
 
-            auto y = channel_context.get_channels({ "ytest" });
+            auto y = channel_context.make_chan("ytest");
             auto y3 = y[2];
 
             CHECK_EQ(y3.urls(), exp_urlsy3);
@@ -233,7 +233,7 @@ namespace mamba
 
             ChannelContext channel_context{ ctx };
 
-            auto x = channel_context.get_channels({ "everything" });
+            auto x = channel_context.make_chan("everything");
 
             CHECK_EQ(x.size(), 3);
             auto c1 = x[0];
@@ -276,7 +276,7 @@ namespace mamba
 
             ChannelContext channel_context{ ctx };
 
-            auto x = channel_context.get_channels({ "defaults" });
+            auto x = channel_context.make_chan("defaults");
 #if !defined(_WIN32)
             const Channel c1 = x[0];
             const Channel c2 = x[1];
@@ -311,7 +311,7 @@ namespace mamba
             ctx.custom_multichannels["defaults"] = ctx.default_channels;
             ChannelContext channel_context{ ctx };
 
-            auto x = channel_context.get_channels({ "defaults" });
+            auto x = channel_context.make_chan("defaults");
             const Channel c1 = x[0];
             const Channel c2 = x[1];
 
@@ -348,7 +348,7 @@ namespace mamba
 
             CHECK_EQ(channel_context.get_custom_multichannels().at("local").size(), 3);
 
-            auto local_channels = channel_context.get_channels({ "local" });
+            auto local_channels = channel_context.make_chan("local");
             CHECK_EQ(local_channels.size(), 3);
         }
 

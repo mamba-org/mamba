@@ -144,7 +144,7 @@ namespace mamba
         ChannelContext(ChannelContext&&) = delete;
         auto operator=(ChannelContext&&) -> ChannelContext& = delete;
 
-        auto make_chan(std::string_view name) -> channel_list;
+        auto make_channel(std::string_view name) -> channel_list;
 
         auto get_channel_alias() const -> const specs::CondaURL&;
         auto get_custom_channels() const -> const channel_map&;

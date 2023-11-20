@@ -1231,7 +1231,7 @@ namespace mamba
                 }
                 else
                 {
-                    auto channels = m_pool.channel_context().make_chan(str);
+                    auto channels = m_pool.channel_context().make_channel(str);
                     if (channels.size() == 1)
                     {
                         chan_name = channels.front().display_name();

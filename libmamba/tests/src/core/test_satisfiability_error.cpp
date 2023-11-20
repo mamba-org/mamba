@@ -332,7 +332,7 @@ namespace
         auto sub_dirs = std::vector<MSubdirData>();
         for (const auto& location : channels)
         {
-            for (const auto& chan : pool.channel_context().make_chan(location))
+            for (const auto& chan : pool.channel_context().make_channel(location))
             {
                 for (auto& [platform, url] : chan.platform_urls(true))
                 {

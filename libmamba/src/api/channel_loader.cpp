@@ -63,7 +63,7 @@ namespace mamba
 
         for (const auto& location : ctx.channels)
         {
-            for (auto channel : pool.channel_context().make_chan(location))
+            for (auto channel : pool.channel_context().make_channel(location))
             {
                 for (auto& [platform, url] : channel.platform_urls(true))
                 {

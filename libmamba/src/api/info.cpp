@@ -165,7 +165,7 @@ namespace mamba
             channel_urls.reserve(ctx.channels.size() * 2);  // Lower bound * (platform + noarch)
             for (const auto& loc : ctx.channels)
             {
-                for (auto channel : channel_context.make_chan(loc))
+                for (auto channel : channel_context.make_channel(loc))
                 {
                     for (auto url : channel.urls(true))
                     {

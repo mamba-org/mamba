@@ -173,7 +173,7 @@ set_env_command(CLI::App* com, Configuration& config)
                         continue;
                     }
 
-                    auto chans = channel_context.make_chan(v.channel);
+                    auto chans = channel_context.make_channel(v.channel);
 
                     if (from_history)
                     {

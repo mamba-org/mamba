@@ -93,7 +93,7 @@ namespace mamba
                 );
             }
 
-            auto channels = channel_context.make_chan(spec_str);
+            auto channels = channel_context.make_channel(spec_str);
 
             // TODO we are not handling the custom_multichannel case where `channels` can have
             // more than one element.

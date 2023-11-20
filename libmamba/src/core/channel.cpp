@@ -464,7 +464,7 @@ namespace mamba
         };
     }
 
-    auto ChannelContext::make_chan(std::string_view name) -> channel_list
+    auto ChannelContext::make_channel(std::string_view name) -> channel_list
     {
         if (const auto it = m_channel_cache.find(std::string(name)); it != m_channel_cache.end())
         {
@@ -511,7 +511,7 @@ namespace mamba
     {
         for (const auto& [name, location] : m_context.custom_channels)
         {
-            auto channels = make_chan(location);
+            auto channels = make_channel(location);
             assert(channels.size() == 1);
             channels.front().set_display_name(name);
             m_custom_channels.emplace(name, std::move(channels.front()));
@@ -523,7 +523,7 @@ namespace mamba
             channels.reserve(location_list.size());
             for (auto& location : location_list)
             {
-                for (auto& chan : make_chan(location))
+                for (auto& chan : make_channel(location))
                 {
                     channels.push_back(std::move(chan));
                 }

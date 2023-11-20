@@ -382,7 +382,7 @@ namespace mamba
             // the ChannelContext
             for (const auto& c : channel_context.context().repodata_has_zst)
             {
-                for (const auto& chan : channel_context.make_chan(c))
+                for (const auto& chan : channel_context.make_channel(c))
                 {
                     if (chan.contains_equivalent(channel))
                     {

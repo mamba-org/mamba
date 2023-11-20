@@ -108,7 +108,7 @@ namespace mamba
 
         MatchSpec modified_spec(ms);
         {
-            auto channels = m_pool.channel_context().make_chan(std::string(solvable->channel()));
+            auto channels = m_pool.channel_context().make_channel(std::string(solvable->channel()));
             if (channels.size() == 1)
             {
                 modified_spec.channel = channels.front().display_name();

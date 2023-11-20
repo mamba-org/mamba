@@ -78,7 +78,7 @@ namespace mamba
         // FIXME: only do this for micromamba for now
         if (channel_context.context().command_params.is_micromamba)
         {
-            auto channels = channel_context.make_chan(pkg_info.url);
+            auto channels = channel_context.make_channel(pkg_info.url);
             assert(channels.size() == 1);  // A URL can only resolve to one channel
             m_url = channels.front().urls(true)[0];
         }

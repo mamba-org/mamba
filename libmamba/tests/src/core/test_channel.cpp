@@ -89,7 +89,7 @@ namespace mamba
             CHECK_EQ(it->second.display_name(), "pkgs/main");
 
             std::string value = "conda-forge";
-            const auto channels = channel_context.make_chan(value);
+            const auto channels = channel_context.make_channel(value);
             REQUIRE_EQ(channels.size(), 1);
             CHECK_EQ(
                 channels.front().url(),
@@ -112,7 +112,7 @@ namespace mamba
 
             ChannelContext channel_context{ ctx };
             auto base = std::string("https://ali.as/prefix-and-more/");
-            const auto channels = channel_context.make_chan(base);
+            const auto channels = channel_context.make_channel(base);
             REQUIRE_EQ(channels.size(), 1);
             CHECK_EQ(channels.front().urls(), UrlSet{ base + platform, base + "noarch" });
 
@@ -138,7 +138,7 @@ namespace mamba
 
             {
                 std::string value = "test_channel";
-                const auto channels = channel_context.make_chan(value);
+                const auto channels = channel_context.make_channel(value);
                 REQUIRE_EQ(channels.size(), 1);
                 CHECK_EQ(channels.front().url(), CondaURL::parse("file:///tmp/test_channel"));
                 CHECK_EQ(channels.front().display_name(), "test_channel");
@@ -152,7 +152,7 @@ namespace mamba
 
             {
                 std::string value = "some_channel";
-                const auto channels = channel_context.make_chan(value);
+                const auto channels = channel_context.make_channel(value);
                 REQUIRE_EQ(channels.size(), 1);
                 CHECK_EQ(
                     channels.front().url(),
@@ -189,7 +189,7 @@ namespace mamba
 
             ChannelContext channel_context{ ctx };
 
-            auto x = channel_context.make_chan("xtest");
+            auto x = channel_context.make_channel("xtest");
 
             CHECK_EQ(x.size(), 3);
             auto c1 = x[0];
@@ -206,7 +206,7 @@ namespace mamba
                 "https://otherdomain.com/snakepit/noarch",
             });
 
-            auto y = channel_context.make_chan("ytest");
+            auto y = channel_context.make_channel("ytest");
             auto y3 = y[2];
 
             CHECK_EQ(y3.urls(), exp_urlsy3);
@@ -233,7 +233,7 @@ namespace mamba
 
             ChannelContext channel_context{ ctx };
 
-            auto x = channel_context.make_chan("everything");
+            auto x = channel_context.make_channel("everything");
 
             CHECK_EQ(x.size(), 3);
             auto c1 = x[0];
@@ -276,7 +276,7 @@ namespace mamba
 
             ChannelContext channel_context{ ctx };
 
-            auto x = channel_context.make_chan("defaults");
+            auto x = channel_context.make_channel("defaults");
 #if !defined(_WIN32)
             const Channel c1 = x[0];
             const Channel c2 = x[1];
@@ -311,7 +311,7 @@ namespace mamba
             ctx.custom_multichannels["defaults"] = ctx.default_channels;
             ChannelContext channel_context{ ctx };
 
-            auto x = channel_context.make_chan("defaults");
+            auto x = channel_context.make_channel("defaults");
             const Channel c1 = x[0];
             const Channel c2 = x[1];
 
@@ -348,7 +348,7 @@ namespace mamba
 
             CHECK_EQ(channel_context.get_custom_multichannels().at("local").size(), 3);
 
-            auto local_channels = channel_context.make_chan("local");
+            auto local_channels = channel_context.make_channel("local");
             CHECK_EQ(local_channels.size(), 3);
         }
 
@@ -363,7 +363,7 @@ namespace mamba
 
             {
                 std::string value = "test_channel";
-                const auto channels = channel_context.make_chan(value);
+                const auto channels = channel_context.make_channel(value);
                 REQUIRE_EQ(channels.size(), 1);
                 CHECK_EQ(
                     channels.front().url(),
@@ -380,7 +380,7 @@ namespace mamba
 
             {
                 std::string value = "test_channel/mylabel/xyz";
-                const auto channels = channel_context.make_chan(value);
+                const auto channels = channel_context.make_channel(value);
                 REQUIRE_EQ(channels.size(), 1);
                 CHECK_EQ(
                     channels.front().url(),
@@ -399,7 +399,7 @@ namespace mamba
             {
                 // https://github.com/mamba-org/mamba/issues/2553
                 std::string value = "random/test_channel/pkg";
-                const auto channels = channel_context.make_chan(value);
+                const auto channels = channel_context.make_channel(value);
                 REQUIRE_EQ(channels.size(), 1);
                 CHECK_EQ(
                     channels.front().url(),
@@ -426,7 +426,7 @@ namespace mamba
         {
             std::string value = "https://repo.mamba.pm/conda-forge";
             ChannelContext channel_context{ mambatests::context() };
-            const auto channels = channel_context.make_chan(value);
+            const auto channels = channel_context.make_channel(value);
             REQUIRE_EQ(channels.size(), 1);
             CHECK_EQ(channels.front().url(), CondaURL::parse("https://repo.mamba.pm/conda-forge"));
             CHECK_EQ(channels.front().display_name(), "https://repo.mamba.pm/conda-forge");
@@ -437,28 +437,28 @@ namespace mamba
         {
             std::string value1 = "conda-forge";
             ChannelContext channel_context{ mambatests::context() };
-            const auto channels1 = channel_context.make_chan(value1);
+            const auto channels1 = channel_context.make_channel(value1);
             REQUIRE_EQ(channels1.size(), 1);
             CHECK_EQ(channels1.front().url(), CondaURL::parse("https://conda.anaconda.org/conda-forge"));
             CHECK_EQ(channels1.front().display_name(), "conda-forge");
             CHECK_EQ(channels1.front().platforms(), PlatformSet({ platform, "noarch" }));
 
             std::string value2 = "https://repo.anaconda.com/pkgs/main[" + platform + "]";
-            const auto channels2 = channel_context.make_chan(value2);
+            const auto channels2 = channel_context.make_channel(value2);
             REQUIRE_EQ(channels2.size(), 1);
             CHECK_EQ(channels2.front().url(), CondaURL::parse("https://repo.anaconda.com/pkgs/main"));
             CHECK_EQ(channels2.front().display_name(), "https://repo.anaconda.com/pkgs/main");
             CHECK_EQ(channels2.front().platforms(), PlatformSet({ platform }));
 
             std::string value3 = "https://conda.anaconda.org/conda-forge[" + platform + "]";
-            const auto channels3 = channel_context.make_chan(value3);
+            const auto channels3 = channel_context.make_channel(value3);
             REQUIRE_EQ(channels3.size(), 1);
             CHECK_EQ(channels3.front().url(), channels1.front().url());
             CHECK_EQ(channels3.front().display_name(), channels1.front().display_name());
             CHECK_EQ(channels3.front().platforms(), PlatformSet({ platform }));
 
             std::string value4 = "/home/mamba/test/channel_b";
-            const auto channels4 = channel_context.make_chan(value4);
+            const auto channels4 = channel_context.make_channel(value4);
             REQUIRE_EQ(channels4.size(), 1);
             CHECK_EQ(channels4.front().url(), CondaURL::parse(util::path_to_url(value4)));
             CHECK_EQ(channels4.front().display_name(), channels4.front().url().pretty_str());
@@ -466,14 +466,14 @@ namespace mamba
 
             std::string path5 = "/home/mamba/test/channel_b";
             std::string value5 = util::concat(path5, '[', platform, ']');
-            const auto channels5 = channel_context.make_chan(value5);
+            const auto channels5 = channel_context.make_channel(value5);
             REQUIRE_EQ(channels5.size(), 1);
             CHECK_EQ(channels5.front().url(), CondaURL::parse(util::path_to_url(path5)));
             CHECK_EQ(channels5.front().display_name(), channels5.front().url().pretty_str());
             CHECK_EQ(channels5.front().platforms(), PlatformSet({ platform }));
 
             std::string value6a = "http://localhost:8000/conda-forge[noarch]";
-            const auto channels6a = channel_context.make_chan(value6a);
+            const auto channels6a = channel_context.make_channel(value6a);
             REQUIRE_EQ(channels6a.size(), 1);
             CHECK_EQ(
                 channels6a.front().urls(false),
@@ -481,7 +481,7 @@ namespace mamba
             );
 
             std::string value6b = "http://localhost:8000/conda_mirror/conda-forge[noarch]";
-            const auto channels6b = channel_context.make_chan(value6b);
+            const auto channels6b = channel_context.make_channel(value6b);
             REQUIRE_EQ(channels6b.size(), 1);
             CHECK_EQ(
                 channels6b.front().urls(false),
@@ -489,7 +489,7 @@ namespace mamba
             );
 
             std::string value7 = "conda-forge[noarch,arbitrary]";
-            const auto channels7 = channel_context.make_chan(value7);
+            const auto channels7 = channel_context.make_channel(value7);
             REQUIRE_EQ(channels7.size(), 1);
             CHECK_EQ(channels7.front().platforms(), PlatformSet({ "noarch", "arbitrary" }));
         }
@@ -498,7 +498,7 @@ namespace mamba
         {
             std::string value1 = "https://conda.anaconda.org/conda-forge[noarch,win-64,arbitrary]";
             ChannelContext channel_context{ mambatests::context() };
-            const auto channels1 = channel_context.make_chan(value1);
+            const auto channels1 = channel_context.make_channel(value1);
             REQUIRE_EQ(channels1.size(), 1);
             CHECK_EQ(
                 channels1.front().urls(),
@@ -509,7 +509,8 @@ namespace mamba
                 })
             );
 
-            const auto channels2 = channel_context.make_chan("https://conda.anaconda.org/conda-forge");
+            const auto channels2 = channel_context.make_channel("https://conda.anaconda.org/conda-forge"
+            );
             REQUIRE_EQ(channels2.size(), 1);
             CHECK_EQ(
                 channels2.front().urls(),
@@ -530,7 +531,7 @@ namespace mamba
 
             ChannelContext channel_context{ ctx };
 
-            const auto channels = channel_context.make_chan("conda-forge[noarch]");
+            const auto channels = channel_context.make_channel("conda-forge[noarch]");
             REQUIRE_EQ(channels.size(), 1);
             CHECK_EQ(channels.front().url().token(), "my-12345-token");
             CHECK_EQ(
@@ -554,7 +555,7 @@ namespace mamba
 
             ChannelContext channel_context{ ctx };
 
-            const auto channels = channel_context.make_chan("conda-forge[noarch]");
+            const auto channels = channel_context.make_channel("conda-forge[noarch]");
             REQUIRE_EQ(channels.size(), 1);
             CHECK_EQ(channels.front().url().token(), "channel-token");
         }
@@ -564,7 +565,7 @@ namespace mamba
             ChannelContext channel_context{ mambatests::context() };
             if (platform == "win-64")
             {
-                const auto channels = channel_context.make_chan(R"(C:\test\channel)");
+                const auto channels = channel_context.make_channel(R"(C:\test\channel)");
                 REQUIRE_EQ(channels.size(), 1);
                 CHECK_EQ(
                     channels.front().urls(false),
@@ -573,7 +574,7 @@ namespace mamba
             }
             else
             {
-                const auto channels = channel_context.make_chan("/test/channel");
+                const auto channels = channel_context.make_channel("/test/channel");
                 REQUIRE_EQ(channels.size(), 1);
                 CHECK_EQ(
                     channels.front().urls(false),
@@ -587,7 +588,7 @@ namespace mamba
         {
             ChannelContext channel_context{ mambatests::context() };
 
-            const auto channels1 = channel_context.make_chan("http://localhost:8000/");
+            const auto channels1 = channel_context.make_channel("http://localhost:8000/");
             REQUIRE_EQ(channels1.size(), 1);
             CHECK_EQ(channels1.front().platform_url("win-64", false), "http://localhost:8000/win-64");
             CHECK_EQ(channels1.front().url().str(), "http://localhost:8000/");
@@ -595,11 +596,11 @@ namespace mamba
                                          "http://localhost:8000/noarch" });
             CHECK_EQ(channels1.front().urls(true), expected_urls);
 
-            const auto channels4 = channel_context.make_chan("http://localhost:8000");
+            const auto channels4 = channel_context.make_channel("http://localhost:8000");
             REQUIRE_EQ(channels4.size(), 1);
             CHECK_EQ(channels4.front().platform_url("linux-64", false), "http://localhost:8000/linux-64");
 
-            const auto channels2 = channel_context.make_chan("http://user:test@localhost:8000/");
+            const auto channels2 = channel_context.make_channel("http://user:test@localhost:8000/");
             REQUIRE_EQ(channels2.size(), 1);
             CHECK_EQ(channels2.front().platform_url("win-64", false), "http://localhost:8000/win-64");
             CHECK_EQ(
@@ -607,7 +608,7 @@ namespace mamba
                 "http://user:test@localhost:8000/win-64"
             );
 
-            const auto channels3 = channel_context.make_chan(
+            const auto channels3 = channel_context.make_channel(
                 "https://localhost:8000/t/xy-12345678-1234-1234-1234-123456789012"
             );
             REQUIRE_EQ(channels3.size(), 1);

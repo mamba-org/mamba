@@ -165,7 +165,7 @@ namespace mamba
         // PackageInfo channels to be platform urls. This fixes the issue described
         // in https://github.com/mamba-org/mamba/issues/2665
 
-        auto channels = m_channel_context.make_chan(prec.channel);
+        auto channels = m_channel_context.make_channel(prec.channel);
         // If someone wrote multichannel names in repodata_record, we don't know which one is the
         // correct URL. This is must never happen!
         assert(channels.size() == 1);

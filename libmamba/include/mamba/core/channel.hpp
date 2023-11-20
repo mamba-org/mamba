@@ -55,10 +55,13 @@ namespace mamba
                     -> std::optional<std::string_view>;
             };
 
+            template <typename Key, typename Value>
+            using name_map = util::weakening_map<std::unordered_map<Key, Value>, NameWeakener>;
+
             using platform_list = util::flat_set<std::string>;
             using channel_list = std::vector<Channel>;
-            using channel_map = util::weakening_map<std::unordered_map<std::string, Channel>, NameWeakener>;
-            using multichannel_map = std::unordered_map<std::string, channel_list>;
+            using channel_map = name_map<std::string, Channel>;
+            using multichannel_map = name_map<std::string, channel_list>;
 
             const platform_list& platforms;
             const specs::CondaURL& channel_alias;

@@ -1150,12 +1150,6 @@ bind_submodule_impl(pybind11::module_ m)
     m.def("clean", [](int flags) { return clean(mambapy::singletons.config(), flags); });
 
     m.def(
-        "get_channels",
-        [](const std::vector<std::string>& channel_names)
-        { return mambapy::singletons.channel_context().get_channels(channel_names); }
-    );
-
-    m.def(
         "transmute",
         +[](const fs::u8path& pkg_file, const fs::u8path& target, int compression_level, int compression_threads
          )

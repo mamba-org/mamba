@@ -15,7 +15,7 @@ body:
       label: Anaconda default channels
       description: Please be sure that you do NOT use the `pkgs/*` etc. channels. See the [troubleshooting docs](https://mamba.readthedocs.io/en/latest/user_guide/troubleshooting.html#using-the-defaults-channels).
       options:
-        - label: I do NOT use the Anaconda default channels (`pkgs/*` etc.)
+        - label: "I do NOT use the Anaconda default channels (pkgs/* etc.)"
           required: true
   - type: dropdown
     id: mamba_installation_method

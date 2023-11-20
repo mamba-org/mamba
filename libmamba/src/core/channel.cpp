@@ -385,29 +385,14 @@ namespace mamba
         };
     }
 
-    const Channel& ChannelContext::make_channel(const std::string& value)
-    {
-        if (const auto it = m_channel_cache.find(value); it != m_channel_cache.end())
-        {
-            return it->second;
-        }
-
-        auto [it, inserted] = m_channel_cache.emplace(
-            value,
-            Channel::resolve(specs::ChannelSpec::parse(value), params())
-        );
-        assert(inserted);
-        return it->second;
-    }
-
     auto ChannelContext::make_chan(const std::string& name) -> channel_list
     {
         auto spec = specs::ChannelSpec::parse(name);
-        auto out = channel_list();
 
         const auto& multi_chan = get_custom_multichannels();
         if (auto iter = multi_chan.find(spec.location()); iter != multi_chan.end())
         {
+            auto out = channel_list();
             for (const auto& chan : iter->second)
             {
                 auto channel = chan;
@@ -417,13 +402,20 @@ namespace mamba
                 }
                 out.push_back(std::move(channel));
             }
+            return out;
         }
-        else
+
+        if (const auto it = m_channel_cache.find(name); it != m_channel_cache.end())
         {
-            auto channel = make_channel(name);
-            out.push_back(std::move(channel));
+            return { it->second };
         }
-        return out;
+
+        auto [it, inserted] = m_channel_cache.emplace(
+            name,
+            Channel::resolve(specs::ChannelSpec::parse(name), params())
+        );
+        assert(inserted);
+        return { it->second };
     }
 
     auto ChannelContext::get_channels(const std::vector<std::string>& channel_names) -> channel_list
@@ -452,10 +444,12 @@ namespace mamba
             }
             else
             {
-                auto channel = make_channel(name);
-                if (added.insert(channel).second)
+                for (auto& channel : make_chan(name))
                 {
-                    result.push_back(std::move(channel));
+                    if (added.insert(channel).second)
+                    {
+                        result.push_back(std::move(channel));
+                    }
                 }
             }
         }
@@ -494,9 +488,10 @@ namespace mamba
     {
         for (const auto& [name, location] : m_context.custom_channels)
         {
-            auto channel = make_channel(location);
-            channel.set_display_name(name);
-            m_custom_channels.emplace(name, std::move(channel));
+            auto channels = make_chan(location);
+            assert(channels.size() == 1);
+            channels.front().set_display_name(name);
+            m_custom_channels.emplace(name, std::move(channels.front()));
         }
 
         for (const auto& [multi_name, location_list] : m_context.custom_multichannels)
@@ -505,7 +500,10 @@ namespace mamba
             channels.reserve(location_list.size());
             for (auto& location : location_list)
             {
-                channels.push_back(make_channel(location));
+                for (auto& chan : make_chan(location))
+                {
+                    channels.push_back(std::move(chan));
+                }
             }
             m_custom_multichannels.emplace(multi_name, std::move(channels));
         }

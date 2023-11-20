@@ -129,7 +129,6 @@ namespace mamba
         ChannelContext(ChannelContext&&) = delete;
         ChannelContext& operator=(ChannelContext&&) = delete;
 
-        const Channel& make_channel(const std::string& value);
         auto make_chan(const std::string& name) -> channel_list;
         auto get_channels(const std::vector<std::string>& channel_names) -> channel_list;
 

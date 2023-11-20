@@ -22,7 +22,6 @@
 
 #include "mamba/core/activation.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/core/environment.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/shell_init.hpp"
 #include "mamba/core/util.hpp"
@@ -251,11 +250,9 @@ namespace mamba
             bash = parent_process_name;
         }
         else
-#ifdef _WIN32
-            bash = env::which("bash.exe");
-#else
-            bash = env::which("bash");
-#endif
+        {
+            bash = util::which("bash");
+        }
         const std::string command = bash.empty() ? "cygpath"
                                                  : (bash.parent_path() / "cygpath").string();
         std::string out, err;

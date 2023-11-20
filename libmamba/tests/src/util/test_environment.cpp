@@ -192,4 +192,72 @@ TEST_SUITE("util::environment")
             }
         }
     }
+
+    TEST_CASE("which_in")
+    {
+        SUBCASE("Inexistant search dirs")
+        {
+            CHECK_EQ(which_in("echo", "/obviously/does/not/exist"), "");
+        }
+
+        SUBCASE("testing_libmamba_lock")
+        {
+            const auto test_exe = which_in(
+                "testing_libmamba_lock",
+                mambatests::testing_libmamba_lock_exe.parent_path()
+            );
+            CHECK_EQ(test_exe.stem(), "testing_libmamba_lock");
+            CHECK(mamba::fs::exists(test_exe));
+        }
+
+        SUBCASE("testing_libmamba_lock.exe")
+        {
+            if (on_win)
+            {
+                const auto test_exe = which_in(
+                    "testing_libmamba_lock.exe",
+                    mambatests::testing_libmamba_lock_exe.parent_path()
+                );
+                CHECK_EQ(test_exe.stem(), "testing_libmamba_lock");
+                CHECK(mamba::fs::exists(test_exe));
+            }
+        }
+    }
+
+    TEST_CASE("which")
+    {
+        SUBCASE("echo")
+        {
+            const auto echo = which("echo");
+            CHECK_EQ(echo.stem(), "echo");
+            CHECK(mamba::fs::exists(echo));
+
+            if (!on_win)
+            {
+                const auto dir = echo.parent_path();
+                constexpr auto reasonable_locations = std::array{
+                    "/bin",
+                    "/sbin",
+                    "/usr/bin",
+                    "/usr/sbin",
+                };
+                CHECK(starts_with_any(echo.string(), reasonable_locations));
+            }
+        }
+
+        SUBCASE("echo.exe")
+        {
+            if (on_win)
+            {
+                const auto echo = which("echo.exe");
+                CHECK_EQ(echo.stem(), "echo");
+                CHECK(mamba::fs::exists(echo));
+            }
+        }
+
+        SUBCASE("Inexistant path")
+        {
+            CHECK_EQ(which("obvisously-does-not-exist"), "");
+        }
+    }
 }

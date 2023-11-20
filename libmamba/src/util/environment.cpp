@@ -194,12 +194,23 @@ namespace mamba::util
         }
         return util::get_windows_known_user_folder(WindowsKnowUserFolder::LocalAppData);
     }
+
+    auto which_system(std::string_view exe) -> fs::u8path
+    {
+        return "";
+    }
+
+    constexpr auto exec_extension() -> std::string_view
+    {
+        return ".exe";
+    };
 }
 
 #else  // #ifdef _WIN32
 
 #include <cstdlib>
 #include <stdexcept>
+#include <vector>
 
 #include <fmt/format.h>
 #include <pwd.h>
@@ -305,11 +316,25 @@ namespace mamba::util
         }
         return path_concat(user_home_dir(), ".cache");
     }
+
+    auto which_system(std::string_view exe) -> fs::u8path
+    {
+        const auto n = ::confstr(_CS_PATH, nullptr, static_cast<std::size_t>(0));
+        auto pathbuf = std::vector<char>(n, '\0');
+        ::confstr(_CS_PATH, pathbuf.data(), n);
+        return which_in(exe, std::string_view(pathbuf.data(), n));
+    }
+
+    constexpr auto exec_extension() -> std::string_view
+    {
+        return "";
+    };
 }
 
 #endif  // #ifdef _WIN32
 
 #include "mamba/util/environment.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba::util
 {
@@ -328,5 +353,83 @@ namespace mamba::util
             unset_env(name);
         }
         update_env_map(env);
+    }
+
+    namespace
+    {
+        auto
+        which_in_one_impl(const fs::u8path& exe, const fs::u8path& dir, const fs::u8path& extension)
+            -> fs::u8path
+        {
+            std::error_code _ec;  // ignore
+            if (!fs::exists(dir, _ec) || !fs::is_directory(dir, _ec))
+            {
+                return "";  // Not found
+            }
+
+            const auto strip_ext = [&extension](const fs::u8path& p)
+            {
+                if (p.extension() == extension)
+                {
+                    return p.stem();
+                }
+                return p.filename();
+            };
+
+            const auto exe_striped = strip_ext(exe);
+            for (const auto& entry : fs::directory_iterator(dir, _ec))
+            {
+                if (auto p = entry.path(); strip_ext(p) == exe_striped)
+                {
+                    return p;
+                }
+            }
+            return "";  // Not found
+        }
+
+        auto which_in_split_impl(
+            const fs::u8path& exe,
+            std::string_view paths,
+            const fs::u8path& extension,
+            char pathsep
+        ) -> fs::u8path
+        {
+            auto elem = std::string_view();
+            auto rest = std::optional<std::string_view>(paths);
+            while (rest.has_value())
+            {
+                std::tie(elem, rest) = util::split_once(rest.value(), pathsep);
+                if (auto p = which_in_one_impl(exe, elem, extension); !p.empty())
+                {
+                    return p;
+                };
+            }
+            return "";
+        }
+    }
+
+    auto which(std::string_view exe) -> fs::u8path
+    {
+        if (auto paths = get_env("PATH"))
+        {
+            if (auto p = which_in(exe, paths.value()); !p.empty())
+            {
+                return p;
+            }
+        }
+        return which_system(exe);
+    }
+
+    namespace detail
+    {
+        auto which_in_one(const fs::u8path& exe, const fs::u8path& dir) -> fs::u8path
+        {
+            return which_in_one_impl(exe, dir, exec_extension());
+        }
+
+        auto which_in_split(const fs::u8path& exe, std::string_view paths) -> fs::u8path
+        {
+            return which_in_split_impl(exe, paths, exec_extension(), util::pathsep());
+        }
     }
 }

@@ -27,15 +27,10 @@ extern "C"
 }
 #endif
 
+#include "mambatests.hpp"
 
 namespace mamba
 {
-
-#ifndef MAMBA_TEST_LOCK_EXE
-#error "MAMBA_TEST_LOCK_EXE must be defined pointing to testing_libmamba_lock"
-#endif
-    inline static const fs::u8path testing_libmamba_lock_exe = MAMBA_TEST_LOCK_EXE;
-
     namespace testing
     {
 
@@ -123,7 +118,7 @@ namespace mamba
 
             TEST_CASE_FIXTURE(LockDirTest, "different_pid")
             {
-                std::string const lock_exe = testing_libmamba_lock_exe.string();
+                std::string const lock_exe = mambatests::testing_libmamba_lock_exe.string();
                 std::string out, err;
                 std::vector<std::string> args;
 
@@ -247,7 +242,7 @@ namespace mamba
 
             TEST_CASE_FIXTURE(LockFileTest, "different_pid")
             {
-                std::string const lock_exe = testing_libmamba_lock_exe.string();
+                std::string const lock_exe = mambatests::testing_libmamba_lock_exe.string();
                 std::string out, err;
                 std::vector<std::string> args;
                 {

@@ -31,11 +31,31 @@ extern "C"
 #endif
 
 #include "mamba/core/environment.hpp"
+#include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba::env
 {
+    namespace
+    {
+#ifdef _WIN32
+        auto which_system(std::string_view exe) -> fs::u8path
+        {
+            return "";
+        }
+#else
+        auto which_system(std::string_view exe) -> fs::u8path
+        {
+            const auto n = ::confstr(_CS_PATH, nullptr, static_cast<std::size_t>(0));
+            auto pathbuf = std::vector<char>(n, '\0');
+            ::confstr(_CS_PATH, pathbuf.data(), n);
+            return which_in(exe, std::string_view(pathbuf.data(), n));
+        }
+#endif
+
+    }
+
     auto which(std::string_view exe, std::string_view override_path) -> fs::u8path
     {
         // TODO maybe add a cache?
@@ -49,23 +69,28 @@ namespace mamba::env
             return which_in(exe, search_paths);
         }
 
-
-#ifndef _WIN32
-        if (override_path == "")
+        if (override_path.empty())
         {
-            const auto n = ::confstr(_CS_PATH, nullptr, static_cast<std::size_t>(0));
-            auto pathbuf = std::vector<char>(n, '\0');
-            ::confstr(_CS_PATH, pathbuf.data(), n);
-            return which(exe, std::string_view(pathbuf.data(), n));
+            return which_system(exe);
         }
-#endif
 
         return "";  // empty path
     }
 
-    namespace detail
+    namespace
     {
-        auto which_in_impl(const fs::u8path& exe, const fs::u8path& dir, const fs::u8path& extension)
+
+        [[nodiscard]] constexpr auto exec_extension() -> std::string_view
+        {
+            if (util::on_win)
+            {
+                return ".exe";
+            }
+            return "";
+        };
+
+        [[nodiscard]] auto
+        which_in_one_impl(const fs::u8path& exe, const fs::u8path& dir, const fs::u8path& extension)
             -> fs::u8path
         {
             std::error_code _ec;  // ignore
@@ -83,6 +108,39 @@ namespace mamba::env
                 }
             }
             return "";  // Not found
+        }
+
+        [[nodiscard]] auto which_in_split_impl(
+            const fs::u8path& exe,
+            std::string_view paths,
+            const fs::u8path& extension,
+            char pathsep
+        ) -> fs::u8path
+        {
+            auto elem = std::string_view();
+            auto rest = std::optional<std::string_view>(paths);
+            while (rest.has_value())
+            {
+                std::tie(elem, rest) = util::split_once(rest.value(), pathsep);
+                if (auto p = which_in_one_impl(exe, elem, extension); !p.empty())
+                {
+                    return p;
+                };
+            }
+            return "";
+        }
+    }
+
+    namespace detail
+    {
+        auto which_in_one(const fs::u8path& exe, const fs::u8path& dir) -> fs::u8path
+        {
+            return which_in_one_impl(exe, dir, exec_extension());
+        }
+
+        auto which_in_split(const fs::u8path& exe, std::string_view paths) -> fs::u8path
+        {
+            return which_in_split_impl(exe, paths, exec_extension(), util::pathsep());
         }
     }
 }

@@ -16,6 +16,8 @@
 #include "mamba/core/util_os.hpp"
 #include "mamba/util/os_win.hpp"
 #else
+#include <vector>
+
 #include <pwd.h>
 #include <sys/types.h>
 #include <sys/utsname.h>
@@ -51,14 +53,10 @@ namespace mamba::env
 #ifndef _WIN32
         if (override_path == "")
         {
-            char* pathbuf;
-            size_t n = confstr(_CS_PATH, nullptr, static_cast<size_t>(0));
-            pathbuf = static_cast<char*>(malloc(n));
-            if (pathbuf != nullptr)
-            {
-                confstr(_CS_PATH, pathbuf, n);
-                return which(exe, pathbuf);
-            }
+            const auto n = ::confstr(_CS_PATH, nullptr, static_cast<std::size_t>(0));
+            auto pathbuf = std::vector<char>(n, '\0');
+            ::confstr(_CS_PATH, pathbuf.data(), n);
+            return which(exe, std::string_view(pathbuf.data(), n));
         }
 #endif
 

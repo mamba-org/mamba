@@ -250,11 +250,9 @@ namespace mamba
             bash = parent_process_name;
         }
         else
-#ifdef _WIN32
-            bash = util::which("bash.exe");
-#else
+        {
             bash = util::which("bash");
-#endif
+        }
         const std::string command = bash.empty() ? "cygpath"
                                                  : (bash.parent_path() / "cygpath").string();
         std::string out, err;

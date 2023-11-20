@@ -367,12 +367,21 @@ namespace mamba::util
                 return "";  // Not found
             }
 
+            const auto strip_ext = [&extension](const fs::u8path& p)
+            {
+                if (p.extension() == extension)
+                {
+                    return p.stem();
+                }
+                return p.filename();
+            };
+
+            const auto exe_striped = strip_ext(exe);
             for (const auto& entry : fs::directory_iterator(dir, _ec))
             {
-                auto p = entry.path();
-                if ((p.stem() == exe.stem()) && (p.extension().empty() || p.extension() == extension))
+                if (auto p = entry.path(); strip_ext(p) == exe_striped)
                 {
-                    return entry.path();
+                    return p;
                 }
             }
             return "";  // Not found

@@ -23,6 +23,10 @@
 #include "mamba/util/environment.hpp"
 #include "mamba/util/string.hpp"
 
+#ifdef __APPLE__
+#include "mamba/core/util_os.hpp"
+#endif
+
 #if _WIN32
 #include "../data/conda_exe.hpp"
 #endif

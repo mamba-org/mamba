@@ -18,6 +18,10 @@
 #include "mamba/core/util_os.hpp"
 #include "mamba/util/build.hpp"
 
+#ifdef __APPLE__
+#include "mamba/core/util_os.hpp"
+#endif
+
 #include "common_options.hpp"
 #include "version.hpp"
 

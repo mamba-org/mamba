@@ -89,10 +89,14 @@ namespace mamba
             CHECK_EQ(it->second.display_name(), "pkgs/main");
 
             std::string value = "conda-forge";
-            const Channel& c = channel_context.make_channel(value);
-            CHECK_EQ(c.url(), CondaURL::parse("https://mydomain.com/channels/conda-forge"));
-            CHECK_EQ(c.display_name(), "conda-forge");
-            CHECK_EQ(c.platforms(), PlatformSet({ platform, "noarch" }));
+            const auto channels = channel_context.make_chan(value);
+            REQUIRE_EQ(channels.size(), 1);
+            CHECK_EQ(
+                channels.front().url(),
+                CondaURL::parse("https://mydomain.com/channels/conda-forge")
+            );
+            CHECK_EQ(channels.front().display_name(), "conda-forge");
+            CHECK_EQ(channels.front().platforms(), PlatformSet({ platform, "noarch" }));
 
             ctx.channel_alias = "https://conda.anaconda.org";
         }
@@ -108,8 +112,9 @@ namespace mamba
 
             ChannelContext channel_context{ ctx };
             auto base = std::string("https://ali.as/prefix-and-more/");
-            auto& chan = channel_context.make_channel(base);
-            CHECK_EQ(chan.urls(), UrlSet{ base + platform, base + "noarch" });
+            const auto channels = channel_context.make_chan(base);
+            REQUIRE_EQ(channels.size(), 1);
+            CHECK_EQ(channels.front().urls(), UrlSet{ base + platform, base + "noarch" });
 
             ctx.channel_alias = "https://conda.anaconda.org";
             ctx.custom_channels.clear();
@@ -133,28 +138,33 @@ namespace mamba
 
             {
                 std::string value = "test_channel";
-                const Channel& c = channel_context.make_channel(value);
-                CHECK_EQ(c.url(), CondaURL::parse("file:///tmp/test_channel"));
-                CHECK_EQ(c.display_name(), "test_channel");
-                CHECK_EQ(c.platforms(), PlatformSet({ platform, "noarch" }));
+                const auto channels = channel_context.make_chan(value);
+                REQUIRE_EQ(channels.size(), 1);
+                CHECK_EQ(channels.front().url(), CondaURL::parse("file:///tmp/test_channel"));
+                CHECK_EQ(channels.front().display_name(), "test_channel");
+                CHECK_EQ(channels.front().platforms(), PlatformSet({ platform, "noarch" }));
                 const UrlSet exp_urls({
                     std::string("file:///tmp/test_channel/") + platform,
                     "file:///tmp/test_channel/noarch",
                 });
-                CHECK_EQ(c.urls(), exp_urls);
+                CHECK_EQ(channels.front().urls(), exp_urls);
             }
 
             {
                 std::string value = "some_channel";
-                const Channel& c = channel_context.make_channel(value);
-                CHECK_EQ(c.url(), CondaURL::parse("https://conda.mydomain.xyz/some_channel"));
-                CHECK_EQ(c.display_name(), "some_channel");
-                CHECK_EQ(c.platforms(), PlatformSet({ platform, "noarch" }));
+                const auto channels = channel_context.make_chan(value);
+                REQUIRE_EQ(channels.size(), 1);
+                CHECK_EQ(
+                    channels.front().url(),
+                    CondaURL::parse("https://conda.mydomain.xyz/some_channel")
+                );
+                CHECK_EQ(channels.front().display_name(), "some_channel");
+                CHECK_EQ(channels.front().platforms(), PlatformSet({ platform, "noarch" }));
                 const UrlSet exp_urls({
                     std::string("https://conda.mydomain.xyz/some_channel/") + platform,
                     "https://conda.mydomain.xyz/some_channel/noarch",
                 });
-                CHECK_EQ(c.urls(), exp_urls);
+                CHECK_EQ(channels.front().urls(), exp_urls);
             }
 
             ctx.channel_alias = "https://conda.anaconda.org";
@@ -353,50 +363,56 @@ namespace mamba
 
             {
                 std::string value = "test_channel";
-                const Channel& c = channel_context.make_channel(value);
-                CHECK_EQ(c.url(), CondaURL::parse("https://server.com/private/channels/test_channel"));
-                CHECK_EQ(c.display_name(), "test_channel");
-                CHECK_EQ(c.platforms(), PlatformSet({ platform, "noarch" }));
+                const auto channels = channel_context.make_chan(value);
+                REQUIRE_EQ(channels.size(), 1);
+                CHECK_EQ(
+                    channels.front().url(),
+                    CondaURL::parse("https://server.com/private/channels/test_channel")
+                );
+                CHECK_EQ(channels.front().display_name(), "test_channel");
+                CHECK_EQ(channels.front().platforms(), PlatformSet({ platform, "noarch" }));
                 const UrlSet exp_urls({
                     std::string("https://server.com/private/channels/test_channel/") + platform,
                     "https://server.com/private/channels/test_channel/noarch",
                 });
-                CHECK_EQ(c.urls(), exp_urls);
+                CHECK_EQ(channels.front().urls(), exp_urls);
             }
 
             {
                 std::string value = "test_channel/mylabel/xyz";
-                const Channel& c = channel_context.make_channel(value);
+                const auto channels = channel_context.make_chan(value);
+                REQUIRE_EQ(channels.size(), 1);
                 CHECK_EQ(
-                    c.url(),
+                    channels.front().url(),
                     CondaURL::parse("https://server.com/private/channels/test_channel/mylabel/xyz")
                 );
-                CHECK_EQ(c.display_name(), "test_channel/mylabel/xyz");
-                CHECK_EQ(c.platforms(), PlatformSet({ platform, "noarch" }));
+                CHECK_EQ(channels.front().display_name(), "test_channel/mylabel/xyz");
+                CHECK_EQ(channels.front().platforms(), PlatformSet({ platform, "noarch" }));
                 const UrlSet exp_urls({
                     std::string("https://server.com/private/channels/test_channel/mylabel/xyz/")
                         + platform,
                     "https://server.com/private/channels/test_channel/mylabel/xyz/noarch",
                 });
-                CHECK_EQ(c.urls(), exp_urls);
+                CHECK_EQ(channels.front().urls(), exp_urls);
             }
 
             {
                 // https://github.com/mamba-org/mamba/issues/2553
                 std::string value = "random/test_channel/pkg";
-                const Channel& c = channel_context.make_channel(value);
+                const auto channels = channel_context.make_chan(value);
+                REQUIRE_EQ(channels.size(), 1);
                 CHECK_EQ(
-                    c.url(),
+                    channels.front().url(),
                     CondaURL::parse("https://server.com/random/channels/random/test_channel/pkg")
                 );
-                CHECK_EQ(c.display_name(), "random/test_channel/pkg");
-                CHECK_EQ(c.platforms(), PlatformSet({ platform, "noarch" }));
+                CHECK_EQ(channels.front().display_name(), "random/test_channel/pkg");
+                CHECK_EQ(channels.front().platforms(), PlatformSet({ platform, "noarch" }));
                 const UrlSet exp_urls({
                     std::string("https://server.com/random/channels/random/test_channel/pkg/")
                         + platform,
                     "https://server.com/random/channels/random/test_channel/pkg/noarch",
                 });
-                CHECK_EQ(c.urls(), exp_urls);
+                CHECK_EQ(channels.front().urls(), exp_urls);
             }
 
             ctx.channel_alias = "https://conda.anaconda.org";
@@ -410,69 +426,82 @@ namespace mamba
         {
             std::string value = "https://repo.mamba.pm/conda-forge";
             ChannelContext channel_context{ mambatests::context() };
-            const Channel& c = channel_context.make_channel(value);
-            CHECK_EQ(c.url(), CondaURL::parse("https://repo.mamba.pm/conda-forge"));
-            CHECK_EQ(c.display_name(), "https://repo.mamba.pm/conda-forge");
-            CHECK_EQ(c.platforms(), PlatformSet({ platform, "noarch" }));
+            const auto channels = channel_context.make_chan(value);
+            REQUIRE_EQ(channels.size(), 1);
+            CHECK_EQ(channels.front().url(), CondaURL::parse("https://repo.mamba.pm/conda-forge"));
+            CHECK_EQ(channels.front().display_name(), "https://repo.mamba.pm/conda-forge");
+            CHECK_EQ(channels.front().platforms(), PlatformSet({ platform, "noarch" }));
         }
 
-        TEST_CASE("make_channel")
+        TEST_CASE("make_chan")
         {
-            std::string value = "conda-forge";
+            std::string value1 = "conda-forge";
             ChannelContext channel_context{ mambatests::context() };
-            const Channel& c = channel_context.make_channel(value);
-            CHECK_EQ(c.url(), CondaURL::parse("https://conda.anaconda.org/conda-forge"));
-            CHECK_EQ(c.display_name(), "conda-forge");
-            CHECK_EQ(c.platforms(), PlatformSet({ platform, "noarch" }));
+            const auto channels1 = channel_context.make_chan(value1);
+            REQUIRE_EQ(channels1.size(), 1);
+            CHECK_EQ(channels1.front().url(), CondaURL::parse("https://conda.anaconda.org/conda-forge"));
+            CHECK_EQ(channels1.front().display_name(), "conda-forge");
+            CHECK_EQ(channels1.front().platforms(), PlatformSet({ platform, "noarch" }));
 
             std::string value2 = "https://repo.anaconda.com/pkgs/main[" + platform + "]";
-            const Channel& c2 = channel_context.make_channel(value2);
-            CHECK_EQ(c2.url(), CondaURL::parse("https://repo.anaconda.com/pkgs/main"));
-            CHECK_EQ(c2.display_name(), "https://repo.anaconda.com/pkgs/main");
-            CHECK_EQ(c2.platforms(), PlatformSet({ platform }));
+            const auto channels2 = channel_context.make_chan(value2);
+            REQUIRE_EQ(channels2.size(), 1);
+            CHECK_EQ(channels2.front().url(), CondaURL::parse("https://repo.anaconda.com/pkgs/main"));
+            CHECK_EQ(channels2.front().display_name(), "https://repo.anaconda.com/pkgs/main");
+            CHECK_EQ(channels2.front().platforms(), PlatformSet({ platform }));
 
             std::string value3 = "https://conda.anaconda.org/conda-forge[" + platform + "]";
-            const Channel& c3 = channel_context.make_channel(value3);
-            CHECK_EQ(c3.url(), c.url());
-            CHECK_EQ(c3.display_name(), c.display_name());
-            CHECK_EQ(c3.platforms(), PlatformSet({ platform }));
+            const auto channels3 = channel_context.make_chan(value3);
+            REQUIRE_EQ(channels3.size(), 1);
+            CHECK_EQ(channels3.front().url(), channels1.front().url());
+            CHECK_EQ(channels3.front().display_name(), channels1.front().display_name());
+            CHECK_EQ(channels3.front().platforms(), PlatformSet({ platform }));
 
             std::string value4 = "/home/mamba/test/channel_b";
-            const Channel& c4 = channel_context.make_channel(value4);
-            CHECK_EQ(c4.url(), CondaURL::parse(util::path_to_url(value4)));
-            CHECK_EQ(c4.display_name(), c4.url().pretty_str());
-            CHECK_EQ(c4.platforms(), PlatformSet({ platform, "noarch" }));
+            const auto channels4 = channel_context.make_chan(value4);
+            REQUIRE_EQ(channels4.size(), 1);
+            CHECK_EQ(channels4.front().url(), CondaURL::parse(util::path_to_url(value4)));
+            CHECK_EQ(channels4.front().display_name(), channels4.front().url().pretty_str());
+            CHECK_EQ(channels4.front().platforms(), PlatformSet({ platform, "noarch" }));
 
             std::string path5 = "/home/mamba/test/channel_b";
             std::string value5 = util::concat(path5, '[', platform, ']');
-            const Channel& c5 = channel_context.make_channel(value5);
-            CHECK_EQ(c5.url(), CondaURL::parse(util::path_to_url(path5)));
-            CHECK_EQ(c5.display_name(), c5.url().pretty_str());
-            CHECK_EQ(c5.platforms(), PlatformSet({ platform }));
+            const auto channels5 = channel_context.make_chan(value5);
+            REQUIRE_EQ(channels5.size(), 1);
+            CHECK_EQ(channels5.front().url(), CondaURL::parse(util::path_to_url(path5)));
+            CHECK_EQ(channels5.front().display_name(), channels5.front().url().pretty_str());
+            CHECK_EQ(channels5.front().platforms(), PlatformSet({ platform }));
 
             std::string value6a = "http://localhost:8000/conda-forge[noarch]";
-            const Channel& c6a = channel_context.make_channel(value6a);
-            CHECK_EQ(c6a.urls(false), UrlSet({ "http://localhost:8000/conda-forge/noarch" }));
+            const auto channels6a = channel_context.make_chan(value6a);
+            REQUIRE_EQ(channels6a.size(), 1);
+            CHECK_EQ(
+                channels6a.front().urls(false),
+                UrlSet({ "http://localhost:8000/conda-forge/noarch" })
+            );
 
             std::string value6b = "http://localhost:8000/conda_mirror/conda-forge[noarch]";
-            const Channel& c6b = channel_context.make_channel(value6b);
+            const auto channels6b = channel_context.make_chan(value6b);
+            REQUIRE_EQ(channels6b.size(), 1);
             CHECK_EQ(
-                c6b.urls(false),
+                channels6b.front().urls(false),
                 UrlSet({ "http://localhost:8000/conda_mirror/conda-forge/noarch" })
             );
 
             std::string value7 = "conda-forge[noarch,arbitrary]";
-            const Channel& c7 = channel_context.make_channel(value7);
-            CHECK_EQ(c7.platforms(), PlatformSet({ "noarch", "arbitrary" }));
+            const auto channels7 = channel_context.make_chan(value7);
+            REQUIRE_EQ(channels7.size(), 1);
+            CHECK_EQ(channels7.front().platforms(), PlatformSet({ "noarch", "arbitrary" }));
         }
 
         TEST_CASE("urls")
         {
-            std::string value = "https://conda.anaconda.org/conda-forge[noarch,win-64,arbitrary]";
+            std::string value1 = "https://conda.anaconda.org/conda-forge[noarch,win-64,arbitrary]";
             ChannelContext channel_context{ mambatests::context() };
-            const Channel& c = channel_context.make_channel(value);
+            const auto channels1 = channel_context.make_chan(value1);
+            REQUIRE_EQ(channels1.size(), 1);
             CHECK_EQ(
-                c.urls(),
+                channels1.front().urls(),
                 UrlSet({
                     "https://conda.anaconda.org/conda-forge/arbitrary",
                     "https://conda.anaconda.org/conda-forge/noarch",
@@ -480,9 +509,10 @@ namespace mamba
                 })
             );
 
-            const Channel& c1 = channel_context.make_channel("https://conda.anaconda.org/conda-forge");
+            const auto channels2 = channel_context.make_chan("https://conda.anaconda.org/conda-forge");
+            REQUIRE_EQ(channels2.size(), 1);
             CHECK_EQ(
-                c1.urls(),
+                channels2.front().urls(),
                 UrlSet({
                     "https://conda.anaconda.org/conda-forge/" + platform,
                     "https://conda.anaconda.org/conda-forge/noarch",
@@ -500,13 +530,17 @@ namespace mamba
 
             ChannelContext channel_context{ ctx };
 
-            const auto& chan = channel_context.make_channel("conda-forge[noarch]");
-            CHECK_EQ(chan.url().token(), "my-12345-token");
+            const auto channels = channel_context.make_chan("conda-forge[noarch]");
+            REQUIRE_EQ(channels.size(), 1);
+            CHECK_EQ(channels.front().url().token(), "my-12345-token");
             CHECK_EQ(
-                chan.urls(true),
+                channels.front().urls(true),
                 UrlSet({ "https://conda.anaconda.org/t/my-12345-token/conda-forge/noarch" })
             );
-            CHECK_EQ(chan.urls(false), UrlSet({ "https://conda.anaconda.org/conda-forge/noarch" }));
+            CHECK_EQ(
+                channels.front().urls(false),
+                UrlSet({ "https://conda.anaconda.org/conda-forge/noarch" })
+            );
         }
 
         TEST_CASE("add_multiple_tokens")
@@ -520,8 +554,9 @@ namespace mamba
 
             ChannelContext channel_context{ ctx };
 
-            const auto& chan = channel_context.make_channel("conda-forge[noarch]");
-            CHECK_EQ(chan.url().token(), "channel-token");
+            const auto channels = channel_context.make_chan("conda-forge[noarch]");
+            REQUIRE_EQ(channels.size(), 1);
+            CHECK_EQ(channels.front().url().token(), "channel-token");
         }
 
         TEST_CASE("fix_win_file_path")
@@ -529,17 +564,19 @@ namespace mamba
             ChannelContext channel_context{ mambatests::context() };
             if (platform == "win-64")
             {
-                const Channel& c = channel_context.make_channel("C:\\test\\channel");
+                const auto channels = channel_context.make_chan(R"(C:\test\channel)");
+                REQUIRE_EQ(channels.size(), 1);
                 CHECK_EQ(
-                    c.urls(false),
+                    channels.front().urls(false),
                     UrlSet({ "file:///C:/test/channel/win-64", "file:///C:/test/channel/noarch" })
                 );
             }
             else
             {
-                const Channel& c = channel_context.make_channel("/test/channel");
+                const auto channels = channel_context.make_chan("/test/channel");
+                REQUIRE_EQ(channels.size(), 1);
                 CHECK_EQ(
-                    c.urls(false),
+                    channels.front().urls(false),
                     UrlSet({ std::string("file:///test/channel/") + platform,
                              "file:///test/channel/noarch" })
                 );
@@ -549,33 +586,42 @@ namespace mamba
         TEST_CASE("trailing_slash")
         {
             ChannelContext channel_context{ mambatests::context() };
-            const Channel& c = channel_context.make_channel("http://localhost:8000/");
-            CHECK_EQ(c.platform_url("win-64", false), "http://localhost:8000/win-64");
-            CHECK_EQ(c.base_url(), "http://localhost:8000/");
+
+            const auto channels1 = channel_context.make_chan("http://localhost:8000/");
+            REQUIRE_EQ(channels1.size(), 1);
+            CHECK_EQ(channels1.front().platform_url("win-64", false), "http://localhost:8000/win-64");
+            CHECK_EQ(channels1.front().base_url(), "http://localhost:8000/");
             const UrlSet expected_urls({ std::string("http://localhost:8000/") + platform,
                                          "http://localhost:8000/noarch" });
-            CHECK_EQ(c.urls(true), expected_urls);
-            const Channel& c4 = channel_context.make_channel("http://localhost:8000");
-            CHECK_EQ(c4.platform_url("linux-64", false), "http://localhost:8000/linux-64");
-            const Channel& c2 = channel_context.make_channel("http://user:test@localhost:8000/");
-            CHECK_EQ(c2.platform_url("win-64", false), "http://localhost:8000/win-64");
-            CHECK_EQ(c2.platform_url("win-64", true), "http://user:test@localhost:8000/win-64");
-            const Channel& c3 = channel_context.make_channel(
-                "https://localhost:8000/t/xy-12345678-1234-1234-1234-123456789012"
-            );
-            CHECK_EQ(c3.platform_url("win-64", false), "https://localhost:8000/win-64");
+            CHECK_EQ(channels1.front().urls(true), expected_urls);
+
+            const auto channels4 = channel_context.make_chan("http://localhost:8000");
+            REQUIRE_EQ(channels4.size(), 1);
+            CHECK_EQ(channels4.front().platform_url("linux-64", false), "http://localhost:8000/linux-64");
+
+            const auto channels2 = channel_context.make_chan("http://user:test@localhost:8000/");
+            REQUIRE_EQ(channels2.size(), 1);
+            CHECK_EQ(channels2.front().platform_url("win-64", false), "http://localhost:8000/win-64");
             CHECK_EQ(
-                c3.platform_url("win-64", true),
-                "https://localhost:8000/t/xy-12345678-1234-1234-1234-123456789012/win-64"
+                channels2.front().platform_url("win-64", true),
+                "http://user:test@localhost:8000/win-64"
             );
 
-            const UrlSet expected_urls2({
+            const auto channels3 = channel_context.make_chan(
+                "https://localhost:8000/t/xy-12345678-1234-1234-1234-123456789012"
+            );
+            REQUIRE_EQ(channels3.size(), 1);
+            CHECK_EQ(channels3.front().platform_url("win-64", false), "https://localhost:8000/win-64");
+            CHECK_EQ(
+                channels3.front().platform_url("win-64", true),
+                "https://localhost:8000/t/xy-12345678-1234-1234-1234-123456789012/win-64"
+            );
+            const UrlSet expected_urls3({
                 std::string("https://localhost:8000/t/xy-12345678-1234-1234-1234-123456789012/")
                     + platform,
                 "https://localhost:8000/t/xy-12345678-1234-1234-1234-123456789012/noarch",
             });
-
-            CHECK_EQ(c3.urls(true), expected_urls2);
+            CHECK_EQ(channels3.front().urls(true), expected_urls3);
         }
 
         TEST_CASE("load_tokens")

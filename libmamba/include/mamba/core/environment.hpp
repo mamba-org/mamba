@@ -13,7 +13,7 @@
 
 namespace mamba::env
 {
-    [[nodiscard]] auto which(std::string_view exe, std::string_view override_path = "") -> fs::u8path;
+    [[nodiscard]] auto which(std::string_view exe) -> fs::u8path;
 
     template <typename Iter>
     [[nodiscard]] auto which_in(std::string_view exe, Iter search_path_first, Iter search_path_last)

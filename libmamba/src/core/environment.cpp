@@ -54,32 +54,6 @@ namespace mamba::env
         }
 #endif
 
-    }
-
-    auto which(std::string_view exe, std::string_view override_path) -> fs::u8path
-    {
-        // TODO maybe add a cache?
-        auto env_path = std::string(
-            override_path == "" ? util::get_env("PATH").value_or("") : override_path
-        );
-        if (!env_path.empty())
-        {
-            const auto parts = util::split(env_path, util::pathsep());
-            const std::vector<fs::u8path> search_paths(parts.begin(), parts.end());
-            return which_in(exe, search_paths);
-        }
-
-        if (override_path.empty())
-        {
-            return which_system(exe);
-        }
-
-        return "";  // empty path
-    }
-
-    namespace
-    {
-
         [[nodiscard]] constexpr auto exec_extension() -> std::string_view
         {
             if (util::on_win)
@@ -129,6 +103,18 @@ namespace mamba::env
             }
             return "";
         }
+    }
+
+    auto which(std::string_view exe) -> fs::u8path
+    {
+        if (auto paths = util::get_env("PATH"))
+        {
+            if (auto p = which_in(exe, paths.value()); !p.empty())
+            {
+                return p;
+            }
+        }
+        return which_system(exe);
     }
 
     namespace detail

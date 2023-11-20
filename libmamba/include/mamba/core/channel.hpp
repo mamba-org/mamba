@@ -98,7 +98,6 @@ namespace mamba
 
         [[nodiscard]] auto contains_equivalent(const Channel& other) const -> bool;
 
-        [[nodiscard]] auto base_url() const -> std::string;
         [[nodiscard]] auto
         platform_url(std::string_view platform, bool with_credential = true) const -> std::string;
         // The pairs consist of (platform,url)

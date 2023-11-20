@@ -590,7 +590,7 @@ namespace mamba
             const auto channels1 = channel_context.make_chan("http://localhost:8000/");
             REQUIRE_EQ(channels1.size(), 1);
             CHECK_EQ(channels1.front().platform_url("win-64", false), "http://localhost:8000/win-64");
-            CHECK_EQ(channels1.front().base_url(), "http://localhost:8000/");
+            CHECK_EQ(channels1.front().url().str(), "http://localhost:8000/");
             const UrlSet expected_urls({ std::string("http://localhost:8000/") + platform,
                                          "http://localhost:8000/noarch" });
             CHECK_EQ(channels1.front().urls(true), expected_urls);

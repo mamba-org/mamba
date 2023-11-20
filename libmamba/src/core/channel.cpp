@@ -120,11 +120,6 @@ namespace mamba
         return url_equivalent_with(other) && util::set_is_superset_of(platforms(), other.platforms());
     }
 
-    auto Channel::base_url() const -> std::string
-    {
-        return url().str(specs::CondaURL::Credentials::Remove);
-    }
-
     auto Channel::urls(bool with_credential) const -> util::flat_set<std::string>
     {
         if (!url().package().empty())

@@ -96,6 +96,30 @@ namespace mamba
         m_display_name = std::move(display_name);
     }
 
+    auto Channel::url_equivalent_with(const Channel& other) const -> bool
+    {
+        using Decode = typename specs::CondaURL::Decode;
+
+        const auto& this_url = url();
+        const auto& other_url = other.url();
+        // Not checking users, passwords, and tokens
+        return
+            // Schemes
+            (this_url.scheme() == other_url.scheme())
+            // Hosts
+            && (this_url.host(Decode::no) == other_url.host(Decode::no))
+            // Different ports are considered different channels
+            && (this_url.port() == other_url.port())
+            // Removing potential trailing '/'
+            && (util::rstrip(this_url.path_without_token(Decode::no), '/')
+                == util::rstrip(other_url.path_without_token(Decode::no), '/'));
+    }
+
+    auto Channel::contains_equivalent(const Channel& other) const -> bool
+    {
+        return url_equivalent_with(other) && util::set_is_superset_of(platforms(), other.platforms());
+    }
+
     auto Channel::base_url() const -> std::string
     {
         return url().str(specs::CondaURL::Credentials::Remove);

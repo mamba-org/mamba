@@ -1147,39 +1147,6 @@ bind_submodule_impl(pybind11::module_ m)
             py::arg("json_str")
         );
 
-    pyChannel
-        .def(py::init(
-            [](const std::string& value) {
-                return const_cast<Channel*>(&mambapy::singletons.channel_context().make_channel(value)
-                );
-            }
-        ))
-        .def_property_readonly("platforms", &Channel::platforms)
-        .def_property_readonly("canonical_name", &Channel::display_name)
-        .def("urls", &Channel::urls, py::arg("with_credentials") = true)
-        .def("platform_urls", &Channel::platform_urls, py::arg("with_credentials") = true)
-        .def("platform_url", &Channel::platform_url, py::arg("platform"), py::arg("with_credentials") = true)
-        .def(
-            "__repr__",
-            [](const Channel& c)
-            {
-                auto s = c.display_name();
-                s += "[";
-                bool first = true;
-                for (const auto& platform : c.platforms())
-                {
-                    if (!first)
-                    {
-                        s += ",";
-                    }
-                    s += platform;
-                    first = false;
-                }
-                s += "]";
-                return s;
-            }
-        );
-
     m.def("clean", [](int flags) { return clean(mambapy::singletons.config(), flags); });
 
     m.def(

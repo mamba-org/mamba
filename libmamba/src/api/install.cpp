@@ -19,7 +19,6 @@
 #include "mamba/core/channel.hpp"
 #include "mamba/core/download.hpp"
 #include "mamba/core/env_lockfile.hpp"
-#include "mamba/core/environment.hpp"
 #include "mamba/core/environments_manager.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
@@ -43,7 +42,7 @@ namespace mamba
         )
         {
             const auto get_python_path = [&]
-            { return env::which_in("python", get_path_dirs(target_prefix)).string(); };
+            { return util::which_in("python", get_path_dirs(target_prefix)).string(); };
 
             const std::unordered_map<std::string, command_args> other_pkg_mgr_install_instructions{
                 { "pip",

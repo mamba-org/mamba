@@ -13,13 +13,11 @@
 #include <reproc++/reproc.hpp>
 #include <reproc++/run.hpp>
 
-#include "mamba/core/environment.hpp"
 #include "mamba/core/link.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/menuinst.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/transaction_context.hpp"
-#include "mamba/core/util_os.hpp"
 #include "mamba/core/validate.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
@@ -384,10 +382,10 @@ namespace mamba
         else
         {
             // shell_path = 'sh' if 'bsd' in sys.platform else 'bash'
-            fs::u8path shell_path = env::which("bash");
+            fs::u8path shell_path = util::which("bash");
             if (shell_path.empty())
             {
-                shell_path = env::which("sh");
+                shell_path = util::which("sh");
             }
 
             if (activate)

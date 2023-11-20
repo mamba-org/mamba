@@ -16,7 +16,6 @@
 #include <reproc++/run.hpp>
 
 #include "mamba/core/context.hpp"
-#include "mamba/core/environment.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/virtual_packages.hpp"

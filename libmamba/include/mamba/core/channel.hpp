@@ -129,7 +129,7 @@ namespace mamba
         ChannelContext(ChannelContext&&) = delete;
         ChannelContext& operator=(ChannelContext&&) = delete;
 
-        auto make_chan(const std::string& name) -> channel_list;
+        auto make_chan(std::string_view name) -> channel_list;
         auto get_channels(const std::vector<std::string>& channel_names) -> channel_list;
 
         const specs::CondaURL& get_channel_alias() const;
@@ -143,7 +143,7 @@ namespace mamba
 
     private:
 
-        using ChannelCache = std::map<std::string, Channel>;
+        using ChannelCache = std::unordered_map<std::string, Channel>;
 
         Context& m_context;
         ChannelCache m_channel_cache;

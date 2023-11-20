@@ -369,7 +369,7 @@ namespace mamba
             }
             case specs::ChannelSpec::Type::Unknown:
             {
-                return Channel(specs::CondaURL{}, spec.clear_location());
+                return { specs::CondaURL{}, spec.clear_location() };
             }
         }
         throw std::invalid_argument("Invalid ChannelSpec::Type");
@@ -385,7 +385,7 @@ namespace mamba
         };
     }
 
-    auto ChannelContext::make_chan(const std::string& name) -> channel_list
+    auto ChannelContext::make_chan(std::string_view name) -> channel_list
     {
         auto spec = specs::ChannelSpec::parse(name);
 
@@ -405,7 +405,7 @@ namespace mamba
             return out;
         }
 
-        if (const auto it = m_channel_cache.find(name); it != m_channel_cache.end())
+        if (const auto it = m_channel_cache.find(std::string(name)); it != m_channel_cache.end())
         {
             return { it->second };
         }

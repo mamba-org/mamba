@@ -160,16 +160,17 @@ namespace mamba
             }
             items.push_back({ "virtual packages", virtual_pkgs });
 
-            std::vector<std::string> channels = ctx.channels;
             // Always append context channels
-            auto& ctx_channels = ctx.channels;
-            std::copy(ctx_channels.begin(), ctx_channels.end(), std::back_inserter(channels));
             std::vector<std::string> channel_urls;
-            for (auto channel : channel_context.get_channels(channels))
+            channel_urls.reserve(ctx.channels.size() * 2);  // Lower bound * (platform + noarch)
+            for (const auto& loc : ctx.channels)
             {
-                for (auto url : channel.urls(true))
+                for (auto channel : channel_context.make_chan(loc))
                 {
-                    channel_urls.push_back(url);
+                    for (auto url : channel.urls(true))
+                    {
+                        channel_urls.push_back(url);
+                    }
                 }
             }
             items.push_back({ "channels", channel_urls });

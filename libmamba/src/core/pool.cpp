@@ -217,8 +217,8 @@ namespace mamba
                         return util::concat(ms.channel, '[', ms.subdir, ']');
                     }();
                     auto const match = channel_match(
-                        channel_context.get_channels({ std::string(repo.url()) }),
-                        channel_context.get_channels({ chan_spec })
+                        channel_context.make_chan(repo.url()),
+                        channel_context.make_chan(chan_spec)
                     );
                     switch (match)
                     {

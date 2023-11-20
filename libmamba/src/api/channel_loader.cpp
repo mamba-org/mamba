@@ -51,50 +51,51 @@ namespace mamba
 
         auto& ctx = pool.context();
 
-        std::vector<std::string> channel_urls = ctx.channels;
-
         std::vector<MSubdirData> subdirs;
 
         std::vector<std::pair<int, int>> priorities;
-        int max_prio = static_cast<int>(channel_urls.size());
+        int max_prio = static_cast<int>(ctx.channels.size());
         auto prev_channel_url = specs::CondaURL();
 
         Console::instance().init_progress_bar_manager(ProgressBarMode::multi);
 
         std::vector<mamba_error> error_list;
 
-        for (auto channel : pool.channel_context().get_channels(channel_urls))
+        for (const auto& location : ctx.channels)
         {
-            for (auto& [platform, url] : channel.platform_urls(true))
+            for (auto channel : pool.channel_context().make_chan(location))
             {
-                auto sdires = MSubdirData::create(
-                    pool.channel_context(),
-                    channel,
-                    platform,
-                    url,
-                    package_caches,
-                    "repodata.json"
-                );
-                if (!sdires.has_value())
+                for (auto& [platform, url] : channel.platform_urls(true))
                 {
-                    error_list.push_back(std::move(sdires).error());
-                    continue;
-                }
-                auto sdir = std::move(sdires).value();
-                subdirs.push_back(std::move(sdir));
-                if (ctx.channel_priority == ChannelPriority::Disabled)
-                {
-                    priorities.push_back(std::make_pair(0, 0));
-                }
-                else
-                {
-                    // Consider 'flexible' and 'strict' the same way
-                    if (channel.url() != prev_channel_url)
+                    auto sdires = MSubdirData::create(
+                        pool.channel_context(),
+                        channel,
+                        platform,
+                        url,
+                        package_caches,
+                        "repodata.json"
+                    );
+                    if (!sdires.has_value())
                     {
-                        max_prio--;
-                        prev_channel_url = channel.url();
+                        error_list.push_back(std::move(sdires).error());
+                        continue;
                     }
-                    priorities.push_back(std::make_pair(max_prio, 0));
+                    auto sdir = std::move(sdires).value();
+                    subdirs.push_back(std::move(sdir));
+                    if (ctx.channel_priority == ChannelPriority::Disabled)
+                    {
+                        priorities.push_back(std::make_pair(0, 0));
+                    }
+                    else
+                    {
+                        // Consider 'flexible' and 'strict' the same way
+                        if (channel.url() != prev_channel_url)
+                        {
+                            max_prio--;
+                            prev_channel_url = channel.url();
+                        }
+                        priorities.push_back(std::make_pair(max_prio, 0));
+                    }
                 }
             }
         }

@@ -68,9 +68,11 @@ namespace mamba
             // TODO add CWD and home
         };
 
-        using platform_list = util::flat_set<std::string>;
+        using platform_list = ResolveParams::platform_list;
+        using channel_list = ResolveParams::channel_list;
 
-        [[nodiscard]] static auto resolve(specs::ChannelSpec spec, ResolveParams params) -> Channel;
+        [[nodiscard]] static auto resolve(specs::ChannelSpec spec, ResolveParams params)
+            -> channel_list;
 
         Channel(specs::CondaURL url, std::string display_name, util::flat_set<std::string> platforms = {});
 
@@ -142,7 +144,7 @@ namespace mamba
 
     private:
 
-        using ChannelCache = std::unordered_map<std::string, Channel>;
+        using ChannelCache = std::unordered_map<std::string, channel_list>;
 
         Context& m_context;
         ChannelCache m_channel_cache;

@@ -349,27 +349,27 @@ namespace mamba
         }
     }
 
-    auto Channel::resolve(specs::ChannelSpec spec, ResolveParams params) -> Channel
+    auto Channel::resolve(specs::ChannelSpec spec, ResolveParams params) -> channel_list
     {
         switch (spec.type())
         {
             case specs::ChannelSpec::Type::PackagePath:
             case specs::ChannelSpec::Type::Path:
             {
-                return resolve_path(std::move(spec), params);
+                return { resolve_path(std::move(spec), params) };
             }
             case specs::ChannelSpec::Type::PackageURL:
             case specs::ChannelSpec::Type::URL:
             {
-                return resolve_url(std::move(spec), params);
+                return { resolve_url(std::move(spec), params) };
             }
             case specs::ChannelSpec::Type::Name:
             {
-                return resolve_name(std::move(spec), params);
+                return { resolve_name(std::move(spec), params) };
             }
             case specs::ChannelSpec::Type::Unknown:
             {
-                return { specs::CondaURL{}, spec.clear_location() };
+                return { { specs::CondaURL{}, spec.clear_location() } };
             }
         }
         throw std::invalid_argument("Invalid ChannelSpec::Type");
@@ -407,7 +407,7 @@ namespace mamba
 
         if (const auto it = m_channel_cache.find(std::string(name)); it != m_channel_cache.end())
         {
-            return { it->second };
+            return it->second;
         }
 
         auto [it, inserted] = m_channel_cache.emplace(

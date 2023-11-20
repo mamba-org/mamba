@@ -160,8 +160,7 @@ namespace mamba
                 // We need to add any repo that matches.
                 for (const auto& cand_chan : candidate_channels)
                 {
-                    // TODO replace with weaker equality: no credentials and rstrip
-                    if (repo_chan.url() == cand_chan.url())
+                    if (repo_chan.url_equivalent_with(cand_chan))
                     {
                         if (util::set_is_subset_of(repo_chan.platforms(), cand_chan.platforms()))
                         {

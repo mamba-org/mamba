@@ -89,12 +89,13 @@ namespace mamba
         [[nodiscard]] auto display_name() const -> const std::string&;
         void set_display_name(std::string display_name);
 
-        std::string base_url() const;
-        std::string platform_url(std::string_view platform, bool with_credential = true) const;
+        [[nodiscard]] auto base_url() const -> std::string;
+        [[nodiscard]] auto
+        platform_url(std::string_view platform, bool with_credential = true) const -> std::string;
         // The pairs consist of (platform,url)
-        util::flat_set<std::pair<std::string, std::string>>
-        platform_urls(bool with_credential = true) const;
-        util::flat_set<std::string> urls(bool with_credential = true) const;
+        [[nodiscard]] auto platform_urls(bool with_credential = true) const
+            -> util::flat_set<std::pair<std::string, std::string>>;
+        [[nodiscard]] auto urls(bool with_credential = true) const -> util::flat_set<std::string>;
 
     private:
 
@@ -131,17 +132,17 @@ namespace mamba
         ~ChannelContext();
 
         ChannelContext(const ChannelContext&) = delete;
-        ChannelContext& operator=(const ChannelContext&) = delete;
+        auto operator=(const ChannelContext&) -> ChannelContext& = delete;
         ChannelContext(ChannelContext&&) = delete;
-        ChannelContext& operator=(ChannelContext&&) = delete;
+        auto operator=(ChannelContext&&) -> ChannelContext& = delete;
 
         auto make_chan(std::string_view name) -> channel_list;
 
-        const specs::CondaURL& get_channel_alias() const;
-        const channel_map& get_custom_channels() const;
-        const multichannel_map& get_custom_multichannels() const;
+        auto get_channel_alias() const -> const specs::CondaURL&;
+        auto get_custom_channels() const -> const channel_map&;
+        auto get_custom_multichannels() const -> const multichannel_map&;
 
-        Context& context() const
+        auto context() const -> Context&
         {
             return m_context;
         }

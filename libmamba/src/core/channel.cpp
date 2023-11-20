@@ -78,12 +78,12 @@ namespace mamba
         m_display_name = std::move(display_name);
     }
 
-    std::string Channel::base_url() const
+    auto Channel::base_url() const -> std::string
     {
         return url().str(specs::CondaURL::Credentials::Remove);
     }
 
-    util::flat_set<std::string> Channel::urls(bool with_credential) const
+    auto Channel::urls(bool with_credential) const -> util::flat_set<std::string>
     {
         if (!url().package().empty())
         {
@@ -101,8 +101,8 @@ namespace mamba
         return out;
     }
 
-    util::flat_set<std::pair<std::string, std::string>>
-    Channel::platform_urls(bool with_credential) const
+    auto Channel::platform_urls(bool with_credential) const
+        -> util::flat_set<std::pair<std::string, std::string>>
     {
         if (!url().package().empty())
         {
@@ -117,7 +117,7 @@ namespace mamba
         return out;
     }
 
-    std::string Channel::platform_url(std::string_view platform, bool with_credential) const
+    auto Channel::platform_url(std::string_view platform, bool with_credential) const -> std::string
     {
         auto cred = with_credential ? specs::CondaURL::Credentials::Show
                                     : specs::CondaURL::Credentials::Remove;
@@ -265,7 +265,7 @@ namespace mamba
                 platforms = make_platforms(spec.clear_platform_filters(), params.platforms);
             }
 
-            return Channel(std::move(uri), std::move(display_name), std::move(platforms));
+            return { std::move(uri), std::move(display_name), std::move(platforms) };
         }
 
         auto resolve_url_name(const specs::CondaURL& url, Channel::ResolveParams params) -> std::string
@@ -306,7 +306,7 @@ namespace mamba
                 platforms = make_platforms(spec.clear_platform_filters(), params.platforms);
             }
 
-            return Channel(std::move(url), std::move(display_name), std::move(platforms));
+            return { std::move(url), std::move(display_name), std::move(platforms) };
         }
 
         auto resolve_name_in_custom_channel(
@@ -442,7 +442,7 @@ namespace mamba
         return { it->second };
     }
 
-    const specs::CondaURL& ChannelContext::get_channel_alias() const
+    auto ChannelContext::get_channel_alias() const -> const specs::CondaURL&
     {
         return m_channel_alias;
     }

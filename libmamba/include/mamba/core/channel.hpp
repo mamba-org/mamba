@@ -63,6 +63,7 @@ namespace mamba
             const platform_list& platforms;
             const specs::CondaURL& channel_alias;
             const channel_map& custom_channels;
+            const multichannel_map& custom_multichannels;
             const specs::AuthenticationDataBase& auth_db;
 
             // TODO add CWD and home
@@ -120,7 +121,7 @@ namespace mamba
 
         using channel_map = Channel::ResolveParams::channel_map;
         using channel_list = Channel::ResolveParams::channel_list;
-        using multichannel_map = std::unordered_map<std::string, channel_list>;
+        using multichannel_map = Channel::ResolveParams::multichannel_map;
         using platform_list = Channel::ResolveParams::platform_list;
 
         ChannelContext(Context& context);

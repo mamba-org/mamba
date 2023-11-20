@@ -6,7 +6,6 @@
 
 #include <cassert>
 #include <tuple>
-#include <unordered_set>
 #include <utility>
 
 #include "mamba/core/channel.hpp"
@@ -310,12 +309,11 @@ namespace mamba
             return Channel(std::move(url), std::move(display_name), std::move(platforms));
         }
 
-        auto resolve_name(specs::ChannelSpec&& spec, Channel::ResolveParams params) -> Channel
+        auto resolve_name(specs::ChannelSpec&& spec, Channel::ResolveParams params)
+            -> Channel::channel_list
         {
-            std::string name = spec.clear_location();
-
             const auto& custom_chans = params.custom_channels;
-            if (auto it = custom_chans.find_weaken(name); it != custom_chans.cend())
+            if (auto it = custom_chans.find_weaken(spec.location()); it != custom_chans.cend())
             {
                 auto url = it->second.url();
                 // we can have a channel like
@@ -325,27 +323,41 @@ namespace mamba
                 // needs to result in `name = private/testchannel/mylabel/xyz`
                 std::string combined_name = util::concat_dedup_splits(
                     util::rstrip(url.path(), '/'),
-                    util::lstrip(name, '/'),
+                    util::lstrip(spec.location(), '/'),
                     '/'
                 );
                 url.set_path(combined_name);
 
                 set_fallback_credential_from_db(url, params.auth_db);
-                return Channel(
+                return { Channel(
                     /* url= */ std::move(url),
-                    /* display_name= */ std::move(name),
+                    /* display_name= */ spec.clear_location(),
                     /* platforms= */ make_platforms(spec.clear_platform_filters(), params.platforms)
-                );
+                ) };
+            }
+
+            const auto& multi_chan = params.custom_multichannels;
+            if (auto iter = multi_chan.find(spec.location()); iter != multi_chan.end())
+            {
+                auto channels = iter->second;
+                if (!spec.platform_filters().empty())
+                {
+                    for (auto& chan : channels)
+                    {
+                        chan.set_platforms(spec.platform_filters());
+                    }
+                }
+                return channels;
             }
 
             auto url = params.channel_alias;
-            url.append_path(name);
+            url.append_path(spec.location());
             set_fallback_credential_from_db(url, params.auth_db);
-            return Channel(
+            return { Channel(
                 /* url= */ std::move(url),
-                /* display_name= */ name,
+                /* display_name= */ spec.clear_location(),
                 /* platforms= */ make_platforms(spec.clear_platform_filters(), params.platforms)
-            );
+            ) };
         }
     }
 
@@ -365,7 +377,7 @@ namespace mamba
             }
             case specs::ChannelSpec::Type::Name:
             {
-                return { resolve_name(std::move(spec), params) };
+                return resolve_name(std::move(spec), params);
             }
             case specs::ChannelSpec::Type::Unknown:
             {
@@ -381,30 +393,13 @@ namespace mamba
             /* .platforms */ m_platforms,
             /* .channel_alias */ m_channel_alias,
             /* .custom_channels */ m_custom_channels,
+            /* .custom_multichannels */ m_custom_multichannels,
             /* .auth_db */ m_context.authentication_info(),
         };
     }
 
     auto ChannelContext::make_chan(std::string_view name) -> channel_list
     {
-        auto spec = specs::ChannelSpec::parse(name);
-
-        const auto& multi_chan = get_custom_multichannels();
-        if (auto iter = multi_chan.find(spec.location()); iter != multi_chan.end())
-        {
-            auto out = channel_list();
-            for (const auto& chan : iter->second)
-            {
-                auto channel = chan;
-                if (!spec.platform_filters().empty())
-                {
-                    channel.set_platforms(spec.platform_filters());
-                }
-                out.push_back(std::move(channel));
-            }
-            return out;
-        }
-
         if (const auto it = m_channel_cache.find(std::string(name)); it != m_channel_cache.end())
         {
             return it->second;

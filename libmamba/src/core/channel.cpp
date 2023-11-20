@@ -418,44 +418,6 @@ namespace mamba
         return { it->second };
     }
 
-    auto ChannelContext::get_channels(const std::vector<std::string>& channel_names) -> channel_list
-    {
-        auto added = std::unordered_set<Channel>();
-        auto result = channel_list();
-        for (auto name : channel_names)
-        {
-            auto spec = specs::ChannelSpec::parse(name);
-
-            const auto& multi_chan = get_custom_multichannels();
-            if (auto iter = multi_chan.find(spec.location()); iter != multi_chan.end())
-            {
-                for (const auto& chan : iter->second)
-                {
-                    auto channel = chan;
-                    if (!spec.platform_filters().empty())
-                    {
-                        channel.set_platforms(spec.platform_filters());
-                    }
-                    if (added.insert(channel).second)
-                    {
-                        result.push_back(std::move(channel));
-                    }
-                }
-            }
-            else
-            {
-                for (auto& channel : make_chan(name))
-                {
-                    if (added.insert(channel).second)
-                    {
-                        result.push_back(std::move(channel));
-                    }
-                }
-            }
-        }
-        return result;
-    }
-
     const specs::CondaURL& ChannelContext::get_channel_alias() const
     {
         return m_channel_alias;

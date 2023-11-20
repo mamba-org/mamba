@@ -309,55 +309,84 @@ namespace mamba
             return Channel(std::move(url), std::move(display_name), std::move(platforms));
         }
 
-        auto resolve_name(specs::ChannelSpec&& spec, Channel::ResolveParams params)
-            -> Channel::channel_list
+        auto resolve_name_in_custom_channel(
+            specs::ChannelSpec&& spec,
+            Channel::ResolveParams params,
+            const Channel& match
+        ) -> Channel
         {
-            const auto& custom_chans = params.custom_channels;
-            if (auto it = custom_chans.find_weaken(spec.location()); it != custom_chans.cend())
-            {
-                auto url = it->second.url();
-                // we can have a channel like
-                // testchannel: https://server.com/private/testchannel
-                // where `name == private/testchannel` and we need to join the remaining label part
-                // of the channel (e.g. -c testchannel/mylabel/xyz)
-                // needs to result in `name = private/testchannel/mylabel/xyz`
-                std::string combined_name = util::concat_dedup_splits(
-                    util::rstrip(url.path(), '/'),
-                    util::lstrip(spec.location(), '/'),
-                    '/'
-                );
-                url.set_path(combined_name);
+            auto url = match.url();
+            // we can have a channel like
+            // testchannel: https://server.com/private/testchannel
+            // where `name == private/testchannel` and we need to join the remaining label part
+            // of the channel (e.g. -c testchannel/mylabel/xyz)
+            // needs to result in `name = private/testchannel/mylabel/xyz`
+            std::string combined_name = util::concat_dedup_splits(
+                util::rstrip(url.path(), '/'),
+                util::lstrip(spec.location(), '/'),
+                '/'
+            );
+            url.set_path(combined_name);
 
+            set_fallback_credential_from_db(url, params.auth_db);
+            return {
+                /* url= */ std::move(url),
+                /* display_name= */ spec.clear_location(),
+                /* platforms= */ make_platforms(spec.clear_platform_filters(), params.platforms),
+            };
+        }
+
+        auto resolve_name_in_custom_mulitchannels(
+            const specs::ChannelSpec& spec,
+            Channel::ResolveParams params,
+            const Channel::channel_list& matches
+        ) -> Channel::channel_list
+        {
+            auto out = Channel::channel_list();
+            out.reserve(matches.size());
+
+            for (const auto& chan : matches)
+            {
+                auto url = chan.url();
                 set_fallback_credential_from_db(url, params.auth_db);
-                return { Channel(
+                out.emplace_back(
                     /* url= */ std::move(url),
-                    /* display_name= */ spec.clear_location(),
-                    /* platforms= */ make_platforms(spec.clear_platform_filters(), params.platforms)
-                ) };
+                    /* display_name= */ chan.display_name(),  // Not using multi_channel name
+                    /* platforms= */ make_platforms(spec.platform_filters(), params.platforms)
+                );
             }
+            return out;
+        }
 
-            const auto& multi_chan = params.custom_multichannels;
-            if (auto iter = multi_chan.find(spec.location()); iter != multi_chan.end())
-            {
-                auto channels = iter->second;
-                if (!spec.platform_filters().empty())
-                {
-                    for (auto& chan : channels)
-                    {
-                        chan.set_platforms(spec.platform_filters());
-                    }
-                }
-                return channels;
-            }
-
+        auto resolve_name_from_alias(specs::ChannelSpec&& spec, Channel::ResolveParams params)
+            -> Channel
+        {
             auto url = params.channel_alias;
             url.append_path(spec.location());
             set_fallback_credential_from_db(url, params.auth_db);
-            return { Channel(
+            return {
                 /* url= */ std::move(url),
                 /* display_name= */ spec.clear_location(),
-                /* platforms= */ make_platforms(spec.clear_platform_filters(), params.platforms)
-            ) };
+                /* platforms= */ make_platforms(spec.clear_platform_filters(), params.platforms),
+            };
+        }
+
+        auto resolve_name(specs::ChannelSpec&& spec, Channel::ResolveParams params)
+            -> Channel::channel_list
+        {
+            if (auto it = params.custom_channels.find_weaken(spec.location());
+                it != params.custom_channels.cend())
+            {
+                return { resolve_name_in_custom_channel(std::move(spec), params, it->second) };
+            }
+
+            if (auto it = params.custom_multichannels.find(spec.location());
+                it != params.custom_multichannels.end())
+            {
+                return resolve_name_in_custom_mulitchannels(spec, params, it->second);
+            }
+
+            return { resolve_name_from_alias(std::move(spec), params) };
         }
     }
 

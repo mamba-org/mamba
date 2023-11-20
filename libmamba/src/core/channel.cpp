@@ -46,6 +46,9 @@ namespace mamba
         , m_display_name(std::move(display_name))
         , m_platforms(std::move(platforms))
     {
+        auto p = m_url.clear_path();
+        p = util::rstrip(p, '/');
+        m_url.set_path(std::move(p));
     }
 
     auto Channel::url() const -> const specs::CondaURL&

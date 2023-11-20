@@ -81,12 +81,15 @@ namespace mamba
         Channel(specs::CondaURL url, std::string display_name, util::flat_set<std::string> platforms = {});
 
         [[nodiscard]] auto url() const -> const specs::CondaURL&;
+        auto clear_url() -> const specs::CondaURL;
         void set_url(specs::CondaURL url);
 
         [[nodiscard]] auto platforms() const -> const platform_list&;
+        auto clear_platforms() -> platform_list;
         void set_platforms(platform_list platforms);
 
         [[nodiscard]] auto display_name() const -> const std::string&;
+        auto clear_display_name() -> std::string;
         void set_display_name(std::string display_name);
 
         [[nodiscard]] auto base_url() const -> std::string;

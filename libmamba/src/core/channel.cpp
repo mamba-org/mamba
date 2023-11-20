@@ -53,6 +53,11 @@ namespace mamba
         return m_url;
     }
 
+    auto Channel::clear_url() -> const specs::CondaURL
+    {
+        return std::exchange(m_url, {});
+    }
+
     void Channel::set_url(specs::CondaURL url)
     {
         m_url = std::move(url);
@@ -63,6 +68,11 @@ namespace mamba
         return m_platforms;
     }
 
+    auto Channel::clear_platforms() -> platform_list
+    {
+        return std::exchange(m_platforms, {});
+    }
+
     void Channel::set_platforms(platform_list platforms)
     {
         m_platforms = std::move(platforms);
@@ -71,6 +81,11 @@ namespace mamba
     auto Channel::display_name() const -> const std::string&
     {
         return m_display_name;
+    }
+
+    auto Channel::clear_display_name() -> std::string
+    {
+        return std::exchange(m_display_name, {});
     }
 
     void Channel::set_display_name(std::string display_name)

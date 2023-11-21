@@ -92,11 +92,11 @@ namespace mamba::specs
 
         [[nodiscard]] auto location() const& -> const std::string&;
         [[nodiscard]] auto location() && -> std::string;
-        [[nodiscard]] auto clear_location() -> std::string;
+        auto clear_location() -> std::string;
 
         [[nodiscard]] auto platform_filters() const& -> const dynamic_platform_set&;
         [[nodiscard]] auto platform_filters() && -> dynamic_platform_set;
-        [[nodiscard]] auto clear_platform_filters() -> dynamic_platform_set;
+        auto clear_platform_filters() -> dynamic_platform_set;
 
     private:
 

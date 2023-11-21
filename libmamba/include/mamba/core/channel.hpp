@@ -67,9 +67,9 @@ namespace mamba
             const specs::CondaURL& channel_alias;
             const channel_map& custom_channels;
             const multichannel_map& custom_multichannels;
-            const specs::AuthenticationDataBase& auth_db;
-
-            // TODO add CWD and home
+            const specs::AuthenticationDataBase& authentication_db;
+            std::string_view home_dir;
+            std::string_view current_working_dir;
         };
 
         using platform_list = ResolveParams::platform_list;
@@ -165,6 +165,8 @@ namespace mamba
         channel_map m_custom_channels;
         multichannel_map m_custom_multichannels;
         platform_list m_platforms;
+        std::string m_home_dir;
+        std::string m_current_working_dir;
 
         auto params() -> Channel::ResolveParams;
         void init_custom_channels();

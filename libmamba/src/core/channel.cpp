@@ -12,6 +12,7 @@
 #include "mamba/core/context.hpp"
 #include "mamba/specs/channel_spec.hpp"
 #include "mamba/specs/conda_url.hpp"
+#include "mamba/util/environment.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/tuple_hash.hpp"
@@ -292,9 +293,25 @@ namespace mamba
             return uri.pretty_str();
         }
 
+        auto resolve_path_location(std::string location, Channel::ResolveParams params) -> std::string
+        {
+            if (util::url_has_scheme(location))
+            {
+                return location;
+            }
+
+            const auto home = util::path_to_posix(std::string(params.home_dir));
+            auto path = fs::u8path(util::expand_home(location, home));
+            if (path.is_relative())
+            {
+                path = fs::proximate(path, params.current_working_dir);
+            }
+            return util::abs_path_to_url(std::move(path).lexically_normal().string());
+        }
+
         auto resolve_path(specs::ChannelSpec&& spec, Channel::ResolveParams params) -> Channel
         {
-            auto uri = specs::CondaURL::parse(util::path_or_url_to_url(spec.location()));
+            auto uri = specs::CondaURL::parse(resolve_path_location(spec.clear_location(), params));
             auto display_name = resolve_path_name(uri, params);
             auto platforms = Channel::ResolveParams::platform_list{};
             if (spec.type() == specs::ChannelSpec::Type::Path)
@@ -336,7 +353,7 @@ namespace mamba
 
             auto url = specs::CondaURL::parse(spec.location());
             auto display_name = resolve_url_name(url, params);
-            set_fallback_credential_from_db(url, params.auth_db);
+            set_fallback_credential_from_db(url, params.authentication_db);
             auto platforms = Channel::ResolveParams::platform_list{};
             if (spec.type() == specs::ChannelSpec::Type::URL)
             {
@@ -365,7 +382,7 @@ namespace mamba
             );
             url.set_path(combined_name);
 
-            set_fallback_credential_from_db(url, params.auth_db);
+            set_fallback_credential_from_db(url, params.authentication_db);
             return {
                 /* url= */ std::move(url),
                 /* display_name= */ spec.clear_location(),
@@ -385,7 +402,7 @@ namespace mamba
             for (const auto& chan : matches)
             {
                 auto url = chan.url();
-                set_fallback_credential_from_db(url, params.auth_db);
+                set_fallback_credential_from_db(url, params.authentication_db);
                 out.emplace_back(
                     /* url= */ std::move(url),
                     /* display_name= */ chan.display_name(),  // Not using multi_channel name
@@ -400,7 +417,7 @@ namespace mamba
         {
             auto url = params.channel_alias;
             url.append_path(spec.location());
-            set_fallback_credential_from_db(url, params.auth_db);
+            set_fallback_credential_from_db(url, params.authentication_db);
             return {
                 /* url= */ std::move(url),
                 /* display_name= */ spec.clear_location(),
@@ -456,11 +473,13 @@ namespace mamba
     auto ChannelContext::params() -> Channel::ResolveParams
     {
         return {
-            /* .platforms */ m_platforms,
-            /* .channel_alias */ m_channel_alias,
-            /* .custom_channels */ m_custom_channels,
-            /* .custom_multichannels */ m_custom_multichannels,
-            /* .auth_db */ m_context.authentication_info(),
+            /* .platforms= */ m_platforms,
+            /* .channel_alias= */ m_channel_alias,
+            /* .custom_channels= */ m_custom_channels,
+            /* .custom_multichannels= */ m_custom_multichannels,
+            /* .authentication_db= */ m_context.authentication_info(),
+            /* .home_dir= */ m_home_dir,
+            /* .current_working_dir= */ m_current_working_dir,
         };
     }
 
@@ -497,6 +516,8 @@ namespace mamba
     ChannelContext::ChannelContext(Context& context)
         : m_context(context)
         , m_channel_alias(specs::CondaURL::parse(util::path_or_url_to_url(m_context.channel_alias)))
+        , m_home_dir(util::user_home_dir())
+        , m_current_working_dir(fs::current_path())
     {
         {
             const auto& plats = m_context.platforms();

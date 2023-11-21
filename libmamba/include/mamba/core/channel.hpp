@@ -33,6 +33,8 @@ namespace mamba
         auto get_custom_channels() const -> const channel_map&;
         auto get_custom_multichannels() const -> const multichannel_map&;
 
+        [[nodiscard]] auto params() const -> const specs::ChannelResolveParams&;
+
         auto context() const -> Context&
         {
             return m_context;
@@ -44,17 +46,9 @@ namespace mamba
 
         Context& m_context;
         ChannelCache m_channel_cache;
-        specs::CondaURL m_channel_alias;
-        channel_map m_custom_channels;
-        multichannel_map m_custom_multichannels;
-        platform_list m_platforms;
-        std::string m_home_dir;
-        std::string m_current_working_dir;
+        specs::ChannelResolveParams m_channel_params;
 
-        auto params() -> specs::ChannelResolveParams;
         void init_custom_channels();
     };
-
-}  // namespace mamba
-
+}
 #endif

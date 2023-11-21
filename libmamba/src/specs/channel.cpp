@@ -232,7 +232,7 @@ namespace mamba::specs
             return filters.empty() ? defaults : filters;
         }
 
-        auto resolve_path_name(const CondaURL& uri, ChannelResolveParams params) -> std::string
+        auto resolve_path_name(const CondaURL& uri, ChannelResolveParamsView params) -> std::string
         {
             for (const auto& [display_name, chan] : params.custom_channels)
             {
@@ -250,7 +250,8 @@ namespace mamba::specs
             return uri.pretty_str();
         }
 
-        auto resolve_path_location(std::string location, ChannelResolveParams params) -> std::string
+        auto resolve_path_location(std::string location, ChannelResolveParamsView params)
+            -> std::string
         {
             if (util::url_has_scheme(location))
             {
@@ -266,7 +267,7 @@ namespace mamba::specs
             return util::abs_path_to_url(std::move(path).string());
         }
 
-        auto resolve_path(ChannelSpec&& spec, ChannelResolveParams params) -> Channel
+        auto resolve_path(ChannelSpec&& spec, ChannelResolveParamsView params) -> Channel
         {
             auto uri = CondaURL::parse(resolve_path_location(spec.clear_location(), params));
             auto display_name = resolve_path_name(uri, params);
@@ -279,7 +280,7 @@ namespace mamba::specs
             return { std::move(uri), std::move(display_name), std::move(platforms) };
         }
 
-        auto resolve_url_name(const CondaURL& url, ChannelResolveParams params) -> std::string
+        auto resolve_url_name(const CondaURL& url, ChannelResolveParamsView params) -> std::string
         {
             using StripScheme = typename CondaURL::StripScheme;
             using Credentials = typename CondaURL::Credentials;
@@ -303,7 +304,7 @@ namespace mamba::specs
             return url.pretty_str(StripScheme::no, '/', Credentials::Remove);
         }
 
-        auto resolve_url(ChannelSpec&& spec, ChannelResolveParams params) -> Channel
+        auto resolve_url(ChannelSpec&& spec, ChannelResolveParamsView params) -> Channel
         {
             assert(util::url_has_scheme(spec.location()));
             assert(util::url_get_scheme(spec.location()) != "file");
@@ -320,9 +321,11 @@ namespace mamba::specs
             return { std::move(url), std::move(display_name), std::move(platforms) };
         }
 
-        auto
-        resolve_name_in_custom_channel(ChannelSpec&& spec, ChannelResolveParams params, const Channel& match)
-            -> Channel
+        auto resolve_name_in_custom_channel(
+            ChannelSpec&& spec,
+            ChannelResolveParamsView params,
+            const Channel& match
+        ) -> Channel
         {
             auto url = match.url();
             // we can have a channel like
@@ -347,7 +350,7 @@ namespace mamba::specs
 
         auto resolve_name_in_custom_mulitchannels(
             const ChannelSpec& spec,
-            ChannelResolveParams params,
+            ChannelResolveParamsView params,
             const Channel::channel_list& matches
         ) -> Channel::channel_list
         {
@@ -367,7 +370,7 @@ namespace mamba::specs
             return out;
         }
 
-        auto resolve_name_from_alias(ChannelSpec&& spec, ChannelResolveParams params) -> Channel
+        auto resolve_name_from_alias(ChannelSpec&& spec, ChannelResolveParamsView params) -> Channel
         {
             auto url = params.channel_alias;
             url.append_path(spec.location());
@@ -379,7 +382,7 @@ namespace mamba::specs
             };
         }
 
-        auto resolve_name(ChannelSpec&& spec, ChannelResolveParams params) -> Channel::channel_list
+        auto resolve_name(ChannelSpec&& spec, ChannelResolveParamsView params) -> Channel::channel_list
         {
             if (auto it = params.custom_channels.find_weaken(spec.location());
                 it != params.custom_channels.cend())
@@ -397,7 +400,8 @@ namespace mamba::specs
         }
     }
 
-    auto Channel::resolve(ChannelSpec spec, ChannelResolveParams params) -> channel_list
+
+    auto Channel::resolve(ChannelSpec spec, ChannelResolveParamsView params) -> channel_list
     {
         switch (spec.type())
         {
@@ -421,6 +425,22 @@ namespace mamba::specs
             }
         }
         throw std::invalid_argument("Invalid ChannelSpec::Type");
+    }
+
+    auto Channel::resolve(ChannelSpec spec, const ChannelResolveParams& params) -> channel_list
+    {
+        return resolve(
+            std::move(spec),
+            ChannelResolveParamsView{
+                /* .platforms= */ params.platforms,
+                /* .channel_alias= */ params.channel_alias,
+                /* .custom_channels= */ params.custom_channels,
+                /* .custom_multichannels= */ params.custom_multichannels,
+                /* .authentication_db= */ params.authentication_db,
+                /* .home_dir= */ params.home_dir,
+                /* .current_working_dir= */ params.current_working_dir,
+            }
+        );
     }
 
     /**********************************

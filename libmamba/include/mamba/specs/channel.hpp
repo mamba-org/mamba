@@ -51,10 +51,21 @@ namespace mamba::specs
         using channel_map = name_map<std::string, Channel>;
         using multichannel_map = name_map<std::string, channel_list>;
 
-        const platform_list& platforms = {};
+        platform_list platforms = {};
+        CondaURL channel_alias = {};
+        channel_map custom_channels = {};
+        multichannel_map custom_multichannels = {};
+        AuthenticationDataBase authentication_db = {};
+        std::string home_dir = {};
+        std::string current_working_dir = {};
+    };
+
+    struct ChannelResolveParamsView
+    {
+        const ChannelResolveParams::platform_list& platforms = {};
         const CondaURL& channel_alias = {};
-        const channel_map& custom_channels = {};
-        const multichannel_map& custom_multichannels = {};
+        const ChannelResolveParams::channel_map& custom_channels = {};
+        const ChannelResolveParams::multichannel_map& custom_multichannels = {};
         const AuthenticationDataBase& authentication_db = {};
         std::string_view home_dir = {};
         std::string_view current_working_dir = {};
@@ -69,7 +80,12 @@ namespace mamba::specs
 
         [[nodiscard]] static auto resolve(  //
             ChannelSpec spec,
-            ChannelResolveParams params
+            const ChannelResolveParams& params
+        ) -> channel_list;
+
+        [[nodiscard]] static auto resolve(  //
+            ChannelSpec spec,
+            ChannelResolveParamsView params
         ) -> channel_list;
 
         Channel(CondaURL url, std::string display_name, util::flat_set<std::string> platforms = {});

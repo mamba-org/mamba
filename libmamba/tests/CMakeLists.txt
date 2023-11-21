@@ -45,7 +45,9 @@ set(
     src/specs/test_version.cpp
     src/specs/test_version_spec.cpp
     src/specs/test_channel_spec.cpp
+    src/specs/test_channel.cpp
     src/specs/test_repo_data.cpp
+    # The un-triaged rest
     ../longpath.manifest
     src/core/test_activation.cpp
     src/core/test_channel.cpp

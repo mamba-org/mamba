@@ -55,40 +55,55 @@ namespace mamba
                     -> std::optional<std::string_view>;
             };
 
+            template <typename Key, typename Value>
+            using name_map = util::weakening_map<std::unordered_map<Key, Value>, NameWeakener>;
+
             using platform_list = util::flat_set<std::string>;
             using channel_list = std::vector<Channel>;
-            using channel_map = util::weakening_map<std::unordered_map<std::string, Channel>, NameWeakener>;
-            using multichannel_map = std::unordered_map<std::string, channel_list>;
+            using channel_map = name_map<std::string, Channel>;
+            using multichannel_map = name_map<std::string, channel_list>;
 
             const platform_list& platforms;
             const specs::CondaURL& channel_alias;
             const channel_map& custom_channels;
-            const specs::AuthenticationDataBase& auth_db;
-
-            // TODO add CWD and home
+            const multichannel_map& custom_multichannels;
+            const specs::AuthenticationDataBase& authentication_db;
+            std::string_view home_dir;
+            std::string_view current_working_dir;
         };
 
-        using platform_list = util::flat_set<std::string>;
+        using platform_list = ResolveParams::platform_list;
+        using channel_list = ResolveParams::channel_list;
 
-        [[nodiscard]] static auto resolve(specs::ChannelSpec spec, ResolveParams params) -> Channel;
+        [[nodiscard]] static auto resolve(specs::ChannelSpec spec, ResolveParams params)
+            -> channel_list;
 
         Channel(specs::CondaURL url, std::string display_name, util::flat_set<std::string> platforms = {});
 
         [[nodiscard]] auto url() const -> const specs::CondaURL&;
+        auto clear_url() -> const specs::CondaURL;
         void set_url(specs::CondaURL url);
 
         [[nodiscard]] auto platforms() const -> const platform_list&;
+        auto clear_platforms() -> platform_list;
         void set_platforms(platform_list platforms);
 
         [[nodiscard]] auto display_name() const -> const std::string&;
+        auto clear_display_name() -> std::string;
         void set_display_name(std::string display_name);
 
-        std::string base_url() const;
-        std::string platform_url(std::string_view platform, bool with_credential = true) const;
+        [[nodiscard]] auto url_equivalent_with(const Channel& other) const -> bool;
+
+        [[nodiscard]] auto is_equivalent_to(const Channel& other) const -> bool;
+
+        [[nodiscard]] auto contains_equivalent(const Channel& other) const -> bool;
+
+        [[nodiscard]] auto
+        platform_url(std::string_view platform, bool with_credential = true) const -> std::string;
         // The pairs consist of (platform,url)
-        util::flat_set<std::pair<std::string, std::string>>
-        platform_urls(bool with_credential = true) const;
-        util::flat_set<std::string> urls(bool with_credential = true) const;
+        [[nodiscard]] auto platform_urls(bool with_credential = true) const
+            -> util::flat_set<std::pair<std::string, std::string>>;
+        [[nodiscard]] auto urls(bool with_credential = true) const -> util::flat_set<std::string>;
 
     private:
 
@@ -118,40 +133,42 @@ namespace mamba
 
         using channel_map = Channel::ResolveParams::channel_map;
         using channel_list = Channel::ResolveParams::channel_list;
+        using multichannel_map = Channel::ResolveParams::multichannel_map;
         using platform_list = Channel::ResolveParams::platform_list;
-        using multichannel_map = std::unordered_map<std::string, channel_list>;
 
         ChannelContext(Context& context);
         ~ChannelContext();
 
         ChannelContext(const ChannelContext&) = delete;
-        ChannelContext& operator=(const ChannelContext&) = delete;
+        auto operator=(const ChannelContext&) -> ChannelContext& = delete;
         ChannelContext(ChannelContext&&) = delete;
-        ChannelContext& operator=(ChannelContext&&) = delete;
+        auto operator=(ChannelContext&&) -> ChannelContext& = delete;
 
-        const Channel& make_channel(const std::string& value);
-        auto get_channels(const std::vector<std::string>& channel_names) -> channel_list;
+        auto make_channel(std::string_view name) -> channel_list;
 
-        const specs::CondaURL& get_channel_alias() const;
-        const channel_map& get_custom_channels() const;
-        const multichannel_map& get_custom_multichannels() const;
+        auto get_channel_alias() const -> const specs::CondaURL&;
+        auto get_custom_channels() const -> const channel_map&;
+        auto get_custom_multichannels() const -> const multichannel_map&;
 
-        Context& context() const
+        auto context() const -> Context&
         {
             return m_context;
         }
 
     private:
 
-        using ChannelCache = std::map<std::string, Channel>;
+        using ChannelCache = std::unordered_map<std::string, channel_list>;
 
         Context& m_context;
         ChannelCache m_channel_cache;
         specs::CondaURL m_channel_alias;
-        platform_list m_platforms;
         channel_map m_custom_channels;
         multichannel_map m_custom_multichannels;
+        platform_list m_platforms;
+        std::string m_home_dir;
+        std::string m_current_working_dir;
 
+        auto params() -> Channel::ResolveParams;
         void init_custom_channels();
     };
 

@@ -378,11 +378,16 @@ namespace mamba
 
         bool check_zst(ChannelContext& channel_context, const Channel& channel)
         {
+            // TODO the list of channels with zst should really be computed only once in
+            // the ChannelContext
             for (const auto& c : channel_context.context().repodata_has_zst)
             {
-                if (channel_context.make_channel(c).base_url() == channel.base_url())
+                for (const auto& chan : channel_context.make_channel(c))
                 {
-                    return true;
+                    if (chan.contains_equivalent(channel))
+                    {
+                        return true;
+                    }
                 }
             }
             return false;

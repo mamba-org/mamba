@@ -13,6 +13,16 @@
 
 namespace mamba::util
 {
+    /**
+     * Lightweight file path manipulation.
+     *
+     * The purpose of this file is to provide a lightweight functions for manipulating paths
+     * for things that manipulate "path-like" objects, such as parsers and URLs.
+     * In general, users should prefer using the correct abstraction, such as @ref URL
+     * and @ref u8path.
+     * However some features provided here, such as @ref expand_home, are not available elsewhere.
+     */
+
     inline static constexpr char preferred_path_separator_posix = '/';
     inline static constexpr char preferred_path_separator_win = '\\';
 

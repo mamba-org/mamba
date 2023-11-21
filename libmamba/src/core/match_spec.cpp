@@ -93,9 +93,11 @@ namespace mamba
                 );
             }
 
-            const auto& parsed_channel = channel_context.make_channel(spec_str);
+            auto channels = channel_context.make_channel(spec_str);
 
-            if (auto pkg = parsed_channel.url().package(); !pkg.empty())
+            // TODO we are not handling the custom_multichannel case where `channels` can have
+            // more than one element.
+            if (auto pkg = channels.front().url().package(); !pkg.empty())
             {
                 auto dist = parse_legacy_dist(pkg);
 
@@ -103,9 +105,9 @@ namespace mamba
                 version = dist[1];
                 build_string = dist[2];
 
-                channel = parsed_channel.display_name();
+                channel = channels.front().display_name();
                 // TODO how to handle this with multiple platforms?
-                if (const auto& plats = parsed_channel.platforms(); !plats.empty())
+                if (const auto& plats = channels.front().platforms(); !plats.empty())
                 {
                     subdir = plats.front();
                 }

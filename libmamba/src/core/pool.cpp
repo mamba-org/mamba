@@ -140,63 +140,37 @@ namespace mamba
 
     namespace
     {
-        bool
-        channel_match(ChannelContext& channel_context, const Channel& chan, const Channel& needle)
+        enum struct ChannelMatch
         {
-            if (chan.base_url() == needle.base_url())
-            {
-                return true;
-            }
+            None,
+            ChannelOnly,
+            ChannelAndSubdir,
+        };
 
-            auto& custom_multichannels = channel_context.context().custom_multichannels;
-            auto x = custom_multichannels.find(needle.display_name());
-            if (x != custom_multichannels.end())
+        auto channel_match(
+            const std::vector<Channel>& repo_channels,
+            const std::vector<Channel>& candidate_channels
+        ) -> ChannelMatch
+        {
+            // More than one element means the channel spec was a custom_multi_channel,
+            // which should never happen for the repo
+            for (const auto& repo_chan : repo_channels)
             {
-                for (auto el : (x->second))
+                // More than one element means the channel spec was a custom_multi_channel.
+                // We need to add any repo that matches.
+                for (const auto& cand_chan : candidate_channels)
                 {
-                    const Channel& inner = channel_context.make_channel(el);
-                    if (chan.base_url() == inner.base_url())
+                    if (repo_chan.url_equivalent_with(cand_chan))
                     {
-                        return true;
+                        if (util::set_is_subset_of(repo_chan.platforms(), cand_chan.platforms()))
+                        {
+                            return ChannelMatch::ChannelAndSubdir;
+                        }
+                        return ChannelMatch::ChannelOnly;
                     }
                 }
             }
-
-            return false;
-        }
-
-        bool subdir_match(std::string candidate_repo_url, std::string needle_spec)
-        {
-            // Example candidate_repo_url: https://.../conda-forge/linux-64
-            // example needle_spec: conda-forge/osx-64::xtensor
-
-            std::string needle_channel = util::split(needle_spec, ":", 1)[0];
-            if (!util::contains(needle_channel, "/"))
-            {
-                // Subdir not specified, so any subdir is fine
-                return true;
-            }
-            std::string needle_subdir = util::rsplit(needle_channel, "/", 1)[1];
-
-            auto known_platforms = specs::known_platform_names();
-            if (std::find(known_platforms.begin(), known_platforms.end(), needle_subdir)
-                == known_platforms.end())
-            {
-                // Not a known subdir. This can happen for specs like pkgs/main.
-                // so any subdir is fine
-                return true;
-            }
-
-            std::string candidate_repo_subdir = util::rsplit(candidate_repo_url, "/", 1)[1];
-
-            if (candidate_repo_subdir == needle_subdir)
-            {
-                return true;
-            }
-            throw std::runtime_error(fmt::format(
-                "The package \"{}\" is not available for the specified platform",
-                needle_spec
-            ));
+            return ChannelMatch::None;
         }
 
         /**
@@ -223,18 +197,8 @@ namespace mamba
                 ms.conda_build_form().c_str()
             );
 
-            const auto& multi_chan = channel_context.get_custom_multichannels();
-            auto channels = std::vector<Channel>();
-            if (auto iter = multi_chan.find(ms.channel); iter != multi_chan.end())
-            {
-                channels.insert(channels.end(), iter->second.cbegin(), iter->second.cend());
-            }
-            else
-            {
-                channels.push_back(channel_context.make_channel(ms.channel));
-            }
-
             solv::ObjQueue selected_pkgs = {};
+            bool found_partial_matches = false;
             pool.for_each_whatprovides(
                 match,
                 [&](solv::ObjSolvableViewConst s)
@@ -242,20 +206,45 @@ namespace mamba
                     // TODO this does not work with s.url(), we need to proper channel class
                     // to properly manage this.
                     auto repo = solv::ObjRepoView(*s.raw()->repo);
-                    // TODO make_channel should disapear avoiding conflict here
-                    auto const url = std::string(repo.url());
-                    for (auto const& c : channels)
+                    // TODO Replace MatchSpec channel and subdir with a ChannelSpec
+                    const auto chan_spec = [&]() -> std::string
                     {
-                        if (channel_match(channel_context, channel_context.make_channel(url), c))
+                        if (ms.subdir.empty())
                         {
-                            if (subdir_match(url, ms.spec))
-                            {
-                                selected_pkgs.push_back(s.id());
-                            }
+                            return ms.channel;
+                        }
+                        return util::concat(ms.channel, '[', ms.subdir, ']');
+                    }();
+                    const auto match = channel_match(
+                        channel_context.make_channel(repo.url()),
+                        channel_context.make_channel(chan_spec)
+                    );
+                    switch (match)
+                    {
+                        case (ChannelMatch::ChannelAndSubdir):
+                        {
+                            selected_pkgs.push_back(s.id());
+                            break;
+                        }
+                        case (ChannelMatch::ChannelOnly):
+                        {
+                            found_partial_matches = true;
+                            break;
+                        }
+                        case (ChannelMatch::None):
+                        {
                         }
                     }
                 }
             );
+
+            if (selected_pkgs.empty() && found_partial_matches)
+            {
+                throw std::runtime_error(fmt::format(
+                    R"(The package "{}" is not available for the specified platform)",
+                    ms.spec
+                ));
+            }
 
             const solv::StringId repr_id = pool.add_string(repr);
             // FRAGILE This get deleted when calling ``pool_createwhatprovides`` so care

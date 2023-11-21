@@ -1231,8 +1231,17 @@ namespace mamba
                 }
                 else
                 {
-                    const Channel& chan = m_pool.channel_context().make_channel(str);
-                    chan_name = chan.display_name();
+                    auto channels = m_pool.channel_context().make_channel(str);
+                    if (channels.size() == 1)
+                    {
+                        chan_name = channels.front().display_name();
+                    }
+                    else
+                    {
+                        // If there is more than on, it's a custom_multi_channel name
+                        // This should never happen
+                        chan_name = str;
+                    }
                 }
             }
             else

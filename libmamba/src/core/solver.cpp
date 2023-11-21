@@ -107,8 +107,19 @@ namespace mamba
         }
 
         MatchSpec modified_spec(ms);
-        const Channel& chan = m_pool.channel_context().make_channel(std::string(solvable->channel()));
-        modified_spec.channel = chan.display_name();
+        {
+            auto channels = m_pool.channel_context().make_channel(std::string(solvable->channel()));
+            if (channels.size() == 1)
+            {
+                modified_spec.channel = channels.front().display_name();
+            }
+            else
+            {
+                // If there is more than one, it's a custom_multi_channel name.
+                // This should never happen.
+                modified_spec.channel = solvable->channel();
+            }
+        }
 
         modified_spec.version = solvable->version();
         modified_spec.build_string = solvable->build_string();
@@ -146,7 +157,7 @@ namespace mamba
                                                                              // moment
             }
 
-            ::Id const job_id = m_pool.matchspec2id(ms);
+            const ::Id job_id = m_pool.matchspec2id(ms);
 
             // This is checking if SOLVER_ERASE and SOLVER_INSTALL are set
             // which are the flags for SOLVER_UPDATE
@@ -224,7 +235,7 @@ namespace mamba
         // Add dummy solvable with a constraint on the pin (not installed if not present)
         auto [cons_solv_id, cons_solv] = installed->add_solvable();
         // TODO set some "pin" key on the solvable so that we can retrieve it during error messages
-        std::string const cons_solv_name = fmt::format("pin-{}", m_pinned_specs.size());
+        const std::string cons_solv_name = fmt::format("pin-{}", m_pinned_specs.size());
         cons_solv.set_name(cons_solv_name);
         cons_solv.set_version("1");
         cons_solv.add_constraints(solv::ObjQueue{ m_pool.matchspec2id(pin_ms) });

@@ -51,13 +51,13 @@ namespace mamba::specs
         using channel_map = name_map<std::string, Channel>;
         using multichannel_map = name_map<std::string, channel_list>;
 
-        const platform_list& platforms;
-        const specs::CondaURL& channel_alias;
-        const channel_map& custom_channels;
-        const multichannel_map& custom_multichannels;
-        const specs::AuthenticationDataBase& authentication_db;
-        std::string_view home_dir;
-        std::string_view current_working_dir;
+        const platform_list& platforms = {};
+        const CondaURL& channel_alias = {};
+        const channel_map& custom_channels = {};
+        const multichannel_map& custom_multichannels = {};
+        const AuthenticationDataBase& authentication_db = {};
+        std::string_view home_dir = {};
+        std::string_view current_working_dir = {};
     };
 
     class Channel
@@ -67,14 +67,16 @@ namespace mamba::specs
         using platform_list = ChannelResolveParams::platform_list;
         using channel_list = ChannelResolveParams::channel_list;
 
-        [[nodiscard]] static auto resolve(specs::ChannelSpec spec, ChannelResolveParams params)
-            -> channel_list;
+        [[nodiscard]] static auto resolve(  //
+            ChannelSpec spec,
+            ChannelResolveParams params
+        ) -> channel_list;
 
-        Channel(specs::CondaURL url, std::string display_name, util::flat_set<std::string> platforms = {});
+        Channel(CondaURL url, std::string display_name, util::flat_set<std::string> platforms = {});
 
-        [[nodiscard]] auto url() const -> const specs::CondaURL&;
-        auto clear_url() -> const specs::CondaURL;
-        void set_url(specs::CondaURL url);
+        [[nodiscard]] auto url() const -> const CondaURL&;
+        auto clear_url() -> const CondaURL;
+        void set_url(CondaURL url);
 
         [[nodiscard]] auto platforms() const -> const platform_list&;
         auto clear_platforms() -> platform_list;
@@ -99,7 +101,7 @@ namespace mamba::specs
 
     private:
 
-        specs::CondaURL m_url;
+        CondaURL m_url;
         std::string m_display_name;
         util::flat_set<std::string> m_platforms;
     };

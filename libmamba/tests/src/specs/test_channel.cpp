@@ -606,6 +606,49 @@ TEST_SUITE("specs::channel")
             }
         }
 
+        SUBCASE("prefix-and-more")
+        {
+            const auto name = "prefix-and-more"sv;
+            auto specs = ChannelSpec(std::string(name), {}, ChannelSpec::Type::Name);
+
+            auto params = ChannelResolveParams{
+                /* .platform= */ {},
+                /* .channel_alias= */ CondaURL::parse("https://ali.as/"),
+            };
+            params.custom_channels.emplace(
+                "prefix",
+                Channel::resolve(ChannelSpec::parse("https://server.com/prefix"), params).at(0)
+            );
+
+            auto channels = Channel::resolve(specs, params);
+            REQUIRE_EQ(channels.size(), 1);
+            const auto& chan = channels.front();
+            CHECK_EQ(chan.url(), CondaURL::parse("https://ali.as/prefix-and-more"));
+            CHECK_EQ(chan.display_name(), name);
+            CHECK_EQ(chan.platforms(), params.platforms);
+        }
+
+        SUBCASE("defaults")
+        {
+            const auto name = "defaults"sv;
+            auto specs = ChannelSpec(std::string(name), { "linux-64" }, ChannelSpec::Type::Name);
+
+            SUBCASE("Typical parameters")
+            {
+                auto params = make_typical_params();
+                auto channels = Channel::resolve(specs, params);
+                REQUIRE_EQ(channels.size(), 3);
+
+                auto found_names = util::flat_set<std::string>();
+                for (const auto& chan : channels)
+                {
+                    CHECK_EQ(chan.platforms(), specs.platform_filters());  // Overriden
+                    found_names.insert(chan.display_name());
+                }
+                CHECK_EQ(found_names, util::flat_set<std::string>{ "pkgs/main", "pkgs/pro", "pkgs/r" });
+            }
+        }
+
         SUBCASE("<unknown>")
         {
             auto specs = ChannelSpec({}, { "linux-64" }, ChannelSpec::Type::Unknown);

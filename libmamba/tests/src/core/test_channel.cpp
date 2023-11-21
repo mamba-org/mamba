@@ -27,6 +27,7 @@ namespace mamba
     using PlatformSet = typename util::flat_set<std::string>;
     using UrlSet = typename util::flat_set<std::string>;
     using CondaURL = specs::CondaURL;
+    using Channel = specs::Channel;
 
     static_assert(std::is_move_constructible_v<mamba::Channel>);
     static_assert(std::is_move_assignable_v<mamba::Channel>);

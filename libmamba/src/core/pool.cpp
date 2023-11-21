@@ -148,8 +148,8 @@ namespace mamba
         };
 
         auto channel_match(
-            const std::vector<Channel>& repo_channels,
-            const std::vector<Channel>& candidate_channels
+            const std::vector<specs::Channel>& repo_channels,
+            const std::vector<specs::Channel>& candidate_channels
         ) -> ChannelMatch
         {
             // More than one element means the channel spec was a custom_multi_channel,

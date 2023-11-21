@@ -178,6 +178,7 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/specs/version.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/version_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/channel_spec.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/channel.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/repo_data.cpp
     # Core API (low-level)
     ${LIBMAMBA_SOURCE_DIR}/core/singletons.cpp
@@ -275,6 +276,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/conda_url.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version_spec.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/channel.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/channel_spec.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/repo_data.hpp
     # Core API (low-level)

@@ -7,11 +7,13 @@
 #include <regex>
 #include <stdexcept>
 
+#include "mamba/core/channel.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/specs/channel.hpp"
 #include "mamba/util/json.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
@@ -376,7 +378,7 @@ namespace mamba
             return max_age;
         }
 
-        bool check_zst(ChannelContext& channel_context, const Channel& channel)
+        bool check_zst(ChannelContext& channel_context, const specs::Channel& channel)
         {
             // TODO the list of channels with zst should really be computed only once in
             // the ChannelContext
@@ -411,7 +413,7 @@ namespace mamba
 
     expected_t<MSubdirData> MSubdirData::create(
         ChannelContext& channel_context,
-        const Channel& channel,
+        const specs::Channel& channel,
         const std::string& platform,
         const std::string& url,
         MultiPackageCache& caches,
@@ -542,7 +544,7 @@ namespace mamba
 
     MSubdirData::MSubdirData(
         ChannelContext& channel_context,
-        const Channel& channel,
+        const specs::Channel& channel,
         const std::string& platform,
         const std::string& url,
         MultiPackageCache& caches,
@@ -561,8 +563,11 @@ namespace mamba
         load(caches, channel_context, channel);
     }
 
-    void
-    MSubdirData::load(MultiPackageCache& caches, ChannelContext& channel_context, const Channel& channel)
+    void MSubdirData::load(
+        MultiPackageCache& caches,
+        ChannelContext& channel_context,
+        const specs::Channel& channel
+    )
     {
         if (!forbid_cache(m_repodata_url))
         {
@@ -665,7 +670,8 @@ namespace mamba
         }
     }
 
-    void MSubdirData::update_metadata_zst(ChannelContext& channel_context, const Channel& channel)
+    void
+    MSubdirData::update_metadata_zst(ChannelContext& channel_context, const specs::Channel& channel)
     {
         const Context& context = channel_context.context();
         if (!context.offline || forbid_cache(m_repodata_url))
@@ -693,8 +699,8 @@ namespace mamba
                 m_name + " (check zst)",
                 m_repodata_url + ".zst",
                 "",
-                /*head_only = */ true,
-                /*ignore_failure = */ true
+                /* lhead_only = */ true,
+                /* lignore_failure = */ true
             ));
 
             request.back().on_success = [this](const DownloadSuccess& success)
@@ -755,7 +761,7 @@ namespace mamba
             }
         };
 
-        request.on_failure = [this](const DownloadError& error)
+        request.on_failure = [](const DownloadError& error)
         {
             if (error.transfer.has_value())
             {

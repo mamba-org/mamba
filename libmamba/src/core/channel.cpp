@@ -304,9 +304,9 @@ namespace mamba
             auto path = fs::u8path(util::expand_home(location, home));
             if (path.is_relative())
             {
-                path = fs::proximate(path, params.current_working_dir);
+                path = (fs::u8path(params.current_working_dir) / std::move(path)).lexically_normal();
             }
-            return util::abs_path_to_url(std::move(path).lexically_normal().string());
+            return util::abs_path_to_url(std::move(path).string());
         }
 
         auto resolve_path(specs::ChannelSpec&& spec, Channel::ResolveParams params) -> Channel

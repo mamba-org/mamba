@@ -207,7 +207,7 @@ namespace mamba
                     // to properly manage this.
                     auto repo = solv::ObjRepoView(*s.raw()->repo);
                     // TODO Replace MatchSpec channel and subdir with a ChannelSpec
-                    auto const chan_spec = [&]() -> std::string
+                    const auto chan_spec = [&]() -> std::string
                     {
                         if (ms.subdir.empty())
                         {
@@ -215,7 +215,7 @@ namespace mamba
                         }
                         return util::concat(ms.channel, '[', ms.subdir, ']');
                     }();
-                    auto const match = channel_match(
+                    const auto match = channel_match(
                         channel_context.make_channel(repo.url()),
                         channel_context.make_channel(chan_spec)
                     );

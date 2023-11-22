@@ -126,7 +126,10 @@ namespace mambapy
         }
         mamba::ChannelContext& channel_context()
         {
-            return init_once(p_channel_context, m_context);
+            return init_once(
+                p_channel_context,
+                [&]() { return mamba::ChannelContext::make_conda_compatible(m_context); }
+            );
         }
 
         mamba::Configuration& config()
@@ -136,11 +139,11 @@ namespace mambapy
 
     private:
 
-        template <class T, class D>
-        T& init_once(std::unique_ptr<T, D>& ptr, mamba::Context& context)
+        template <class T, class D, class Factory>
+        T& init_once(std::unique_ptr<T, D>& ptr, Factory&& factory)
         {
             static std::once_flag init_flag;
-            std::call_once(init_flag, [&] { ptr = std::make_unique<T>(context); });
+            std::call_once(init_flag, [&] { ptr = std::make_unique<T>(factory()); });
             if (!ptr)
             {
                 throw mamba::mamba_error(

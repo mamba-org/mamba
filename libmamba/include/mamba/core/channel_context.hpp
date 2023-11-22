@@ -20,12 +20,15 @@ namespace mamba
     {
     public:
 
-        using channel_map = specs::ChannelResolveParams::channel_map;
-        using channel_list = specs::ChannelResolveParams::channel_list;
-        using multichannel_map = specs::ChannelResolveParams::multichannel_map;
-        using platform_list = specs::ChannelResolveParams::platform_list;
+        using ChannelResolveParams = specs::ChannelResolveParams;
+        using channel_list = ChannelResolveParams::channel_list;
 
-        ChannelContext(Context& context);
+        [[nodiscard]] static auto make_simple(Context& ctx) -> ChannelContext;
+
+        [[nodiscard]] static auto make_conda_compatible(Context& ctx) -> ChannelContext;
+
+        explicit ChannelContext(Context& ctx);
+        ChannelContext(Context& ctx, ChannelResolveParams params);
 
         auto make_channel(std::string_view name) -> channel_list;
 
@@ -37,11 +40,9 @@ namespace mamba
 
         using ChannelCache = std::unordered_map<std::string, channel_list>;
 
-        Context& m_context;
+        ChannelResolveParams m_channel_params;
         ChannelCache m_channel_cache;
-        specs::ChannelResolveParams m_channel_params;
-
-        void init_custom_channels();
+        Context& m_context;
     };
 }
 #endif

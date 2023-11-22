@@ -13,6 +13,7 @@
 #include "mamba/specs/channel_spec.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/util/environment.hpp"
+#include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
 namespace mamba
@@ -29,44 +30,99 @@ namespace mamba
         {
             return { platforms.cbegin(), platforms.cend() };
         }
+
+        template <typename Param>
+        auto make_unique_chan(std::string_view loc, const Param& params) -> specs::Channel
+        {
+            auto spec = specs::ChannelSpec::parse(loc);
+            auto channels = specs::Channel::resolve(std::move(spec), params);
+            assert(channels.size() == 1);
+            return std::move(channels.front());
+        };
+
+        auto make_simple_params_base(Context& ctx) -> specs::ChannelResolveParams
+        {
+            return specs::ChannelResolveParams{
+                /* .platform= */ create_paltforms(ctx.platforms()),
+                /* .channel_alias= */ specs::CondaURL::parse(util::path_or_url_to_url(ctx.channel_alias)),
+                /* .custom_channels= */ {},
+                /* .custom_multichannels= */ {},
+                /* .authentication_db= */ ctx.authentication_info(),
+                /* .home_dir= */ util::user_home_dir(),
+                /* .current_working_dir= */ fs::current_path(),
+            };
+        }
+
+        void add_simple_params_custom_channel(specs::ChannelResolveParams& params, Context& ctx)
+        {
+            for (const auto& [name, location] : ctx.custom_channels)
+            {
+                auto chan = make_unique_chan(location, params);
+                chan.set_display_name(name);
+                params.custom_channels.emplace(name, std::move(chan));
+            }
+        }
+
+        void add_conda_params_custom_channel(specs::ChannelResolveParams& params, Context& ctx)
+        {
+            for (const auto& [name, location] : ctx.custom_channels)
+            {
+                // In Conda, with custom_channel `name: "https://domain.net/"`, the URL must resolve
+                // to "https://domain.net/name"
+                auto conda_location = util::concat_dedup_splits(
+                    util::rstrip(location, '/'),
+                    util::lstrip(name, '/'),
+                    '/'
+                );
+                auto chan = make_unique_chan(conda_location, params);
+                chan.set_display_name(name);
+                params.custom_channels.emplace(name, std::move(chan));
+            }
+        }
+
+        void add_simple_params_custom_multichannel(specs::ChannelResolveParams& params, Context& ctx)
+        {
+            for (const auto& [multi_name, location_list] : ctx.custom_multichannels)
+            {
+                auto channels = specs::ChannelResolveParams::channel_list();
+                channels.reserve(location_list.size());
+                for (auto& location : location_list)
+                {
+                    channels.push_back(make_unique_chan(location, params));
+                }
+                params.custom_multichannels.emplace(multi_name, std::move(channels));
+            }
+        }
     }
 
     ChannelContext::ChannelContext(Context& context)
-        : m_context(context)
+        : m_channel_params(make_simple_params_base(context))
+        , m_context(context)
     {
-        m_channel_params.channel_alias = specs::CondaURL::parse(
-            util::path_or_url_to_url(m_context.channel_alias)
-        );
-        m_channel_params.home_dir = util::user_home_dir();
-        m_channel_params.current_working_dir = fs::current_path();
-        m_channel_params.authentication_db = m_context.authentication_info();
-        m_channel_params.platforms = create_paltforms(m_context.platforms());
-        init_custom_channels();
+        add_conda_params_custom_channel(m_channel_params, m_context);
+        add_simple_params_custom_multichannel(m_channel_params, m_context);
     }
 
-    void ChannelContext::init_custom_channels()
+    ChannelContext::ChannelContext(Context& context, ChannelResolveParams params)
+        : m_channel_params(std::move(params))
+        , m_context(context)
     {
-        for (const auto& [name, location] : m_context.custom_channels)
-        {
-            auto channels = make_channel(location);
-            assert(channels.size() == 1);
-            channels.front().set_display_name(name);
-            m_channel_params.custom_channels.emplace(name, std::move(channels.front()));
-        }
+    }
 
-        for (const auto& [multi_name, location_list] : m_context.custom_multichannels)
-        {
-            auto channels = channel_list();
-            channels.reserve(location_list.size());
-            for (auto& location : location_list)
-            {
-                for (auto& chan : make_channel(location))
-                {
-                    channels.push_back(std::move(chan));
-                }
-            }
-            m_channel_params.custom_multichannels.emplace(multi_name, std::move(channels));
-        }
+    auto ChannelContext::make_simple(Context& ctx) -> ChannelContext
+    {
+        auto params = make_simple_params_base(ctx);
+        add_simple_params_custom_channel(params, ctx);
+        add_simple_params_custom_multichannel(params, ctx);
+        return { ctx, std::move(params) };
+    }
+
+    auto ChannelContext::make_conda_compatible(Context& ctx) -> ChannelContext
+    {
+        auto params = make_simple_params_base(ctx);
+        add_conda_params_custom_channel(params, ctx);
+        add_simple_params_custom_multichannel(params, ctx);
+        return { ctx, std::move(params) };
     }
 
     auto ChannelContext::make_channel(std::string_view name) -> channel_list

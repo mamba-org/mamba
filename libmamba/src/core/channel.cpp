@@ -84,24 +84,13 @@ namespace mamba
         return { it->second };
     }
 
-    auto ChannelContext::get_channel_alias() const -> const specs::CondaURL&
-    {
-        return m_channel_params.channel_alias;
-    }
-
-    auto ChannelContext::get_custom_channels() const -> const channel_map&
-    {
-        return m_channel_params.custom_channels;
-    }
-
-    auto ChannelContext::get_custom_multichannels() const -> const multichannel_map&
-    {
-        return m_channel_params.custom_multichannels;
-    }
-
     auto ChannelContext::params() const -> const specs::ChannelResolveParams&
     {
         return m_channel_params;
     }
 
-}  // namespace mamba
+    auto ChannelContext::context() const -> const Context&
+    {
+        return m_context;
+    }
+}

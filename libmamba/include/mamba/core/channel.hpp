@@ -29,16 +29,9 @@ namespace mamba
 
         auto make_channel(std::string_view name) -> channel_list;
 
-        auto get_channel_alias() const -> const specs::CondaURL&;
-        auto get_custom_channels() const -> const channel_map&;
-        auto get_custom_multichannels() const -> const multichannel_map&;
-
         [[nodiscard]] auto params() const -> const specs::ChannelResolveParams&;
 
-        auto context() const -> const Context&
-        {
-            return m_context;
-        }
+        [[nodiscard]] auto context() const -> const Context&;
 
     private:
 

@@ -49,10 +49,10 @@ namespace mamba
             ctx.custom_channels.emplace("pkgs/pro", "https://repo.anaconda.com/pkgs/pro");
 
             ChannelContext channel_context{ ctx };
-            const auto& ch = channel_context.get_channel_alias();
+            const auto& ch = channel_context.params().channel_alias;
             CHECK_EQ(ch.str(), "https://conda.anaconda.org/");
 
-            const auto& custom = channel_context.get_custom_channels();
+            const auto& custom = channel_context.params().custom_channels;
 
             auto it = custom.find("pkgs/main");
             REQUIRE_NE(it, custom.end());
@@ -79,10 +79,10 @@ namespace mamba
 
             ChannelContext channel_context{ mambatests::context() };
 
-            const auto& ch = channel_context.get_channel_alias();
+            const auto& ch = channel_context.params().channel_alias;
             CHECK_EQ(ch.str(), "https://mydomain.com/channels/");
 
-            const auto& custom = channel_context.get_custom_channels();
+            const auto& custom = channel_context.params().custom_channels;
 
             auto it = custom.find("pkgs/main");
             REQUIRE_NE(it, custom.end());
@@ -134,7 +134,7 @@ namespace mamba
             };
 
             ChannelContext channel_context{ ctx };
-            const auto& ch = channel_context.get_channel_alias();
+            const auto& ch = channel_context.params().channel_alias;
             CHECK_EQ(ch.str(), "https://mydomain.com/channels/");
 
             {
@@ -347,7 +347,7 @@ namespace mamba
             };
             ChannelContext channel_context{ ctx };
 
-            CHECK_EQ(channel_context.get_custom_multichannels().at("local").size(), 3);
+            CHECK_EQ(channel_context.params().custom_multichannels.at("local").size(), 3);
 
             auto local_channels = channel_context.make_channel("local");
             CHECK_EQ(local_channels.size(), 3);

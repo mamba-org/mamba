@@ -25,7 +25,7 @@ namespace mamba
 
     namespace
     {
-        auto create_paltforms(const std::vector<std::string>& platforms)
+        auto create_platforms(const std::vector<std::string>& platforms)
             -> specs::ChannelResolveParams::platform_list
         {
             return { platforms.cbegin(), platforms.cend() };
@@ -43,7 +43,7 @@ namespace mamba
         auto make_simple_params_base(Context& ctx) -> specs::ChannelResolveParams
         {
             return specs::ChannelResolveParams{
-                /* .platform= */ create_paltforms(ctx.platforms()),
+                /* .platform= */ create_platforms(ctx.platforms()),
                 /* .channel_alias= */ specs::CondaURL::parse(util::path_or_url_to_url(ctx.channel_alias)),
                 /* .custom_channels= */ {},
                 /* .custom_multichannels= */ {},
@@ -125,7 +125,7 @@ namespace mamba
         return { ctx, std::move(params) };
     }
 
-    auto ChannelContext::make_channel(std::string_view name) -> channel_list
+    auto ChannelContext::make_channel(std::string_view name) -> const channel_list&
     {
         if (const auto it = m_channel_cache.find(std::string(name)); it != m_channel_cache.end())
         {
@@ -137,7 +137,7 @@ namespace mamba
             specs::Channel::resolve(specs::ChannelSpec::parse(name), params())
         );
         assert(inserted);
-        return { it->second };
+        return it->second;
     }
 
     auto ChannelContext::params() const -> const specs::ChannelResolveParams&

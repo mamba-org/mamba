@@ -30,7 +30,7 @@ namespace mamba
         explicit ChannelContext(Context& ctx);
         ChannelContext(Context& ctx, ChannelResolveParams params);
 
-        auto make_channel(std::string_view name) -> channel_list;
+        auto make_channel(std::string_view name) -> const channel_list&;
 
         [[nodiscard]] auto params() const -> const specs::ChannelResolveParams&;
 

@@ -96,14 +96,6 @@ namespace mamba
         }
     }
 
-    ChannelContext::ChannelContext(Context& context)
-        : m_channel_params(make_simple_params_base(context))
-        , m_context(context)
-    {
-        add_conda_params_custom_channel(m_channel_params, m_context);
-        add_simple_params_custom_multichannel(m_channel_params, m_context);
-    }
-
     ChannelContext::ChannelContext(Context& context, ChannelResolveParams params)
         : m_channel_params(std::move(params))
         , m_context(context)

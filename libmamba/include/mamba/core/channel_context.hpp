@@ -7,6 +7,7 @@
 #ifndef MAMBA_CORE_CHANNEL_HPP
 #define MAMBA_CORE_CHANNEL_HPP
 
+#include <functional>
 #include <string>
 #include <string_view>
 
@@ -38,8 +39,6 @@ namespace mamba
          */
         ChannelContext(Context& ctx, ChannelResolveParams params);
 
-        explicit ChannelContext(Context& ctx);
-
         auto make_channel(std::string_view name) -> const channel_list&;
 
         [[nodiscard]] auto params() const -> const specs::ChannelResolveParams&;
@@ -52,7 +51,7 @@ namespace mamba
 
         ChannelResolveParams m_channel_params;
         ChannelCache m_channel_cache;
-        const Context& m_context;
+        std::reference_wrapper<const Context> m_context;
     };
 }
 #endif

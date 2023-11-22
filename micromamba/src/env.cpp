@@ -131,7 +131,7 @@ set_env_command(CLI::App* com, Configuration& config)
             auto& ctx = config.context();
             config.load();
 
-            mamba::ChannelContext channel_context{ ctx };
+            auto channel_context = mamba::ChannelContext::make_conda_compatible(ctx);
             if (explicit_format)
             {
                 // TODO: handle error

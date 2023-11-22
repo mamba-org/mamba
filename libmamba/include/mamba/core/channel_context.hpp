@@ -23,12 +23,22 @@ namespace mamba
         using ChannelResolveParams = specs::ChannelResolveParams;
         using channel_list = ChannelResolveParams::channel_list;
 
+        /**
+         * Create a ChannelContext with a simple parsing of the context options.
+         */
         [[nodiscard]] static auto make_simple(Context& ctx) -> ChannelContext;
 
+        /**
+         * Create a ChannelContext while applying all of Conda context options.
+         */
         [[nodiscard]] static auto make_conda_compatible(Context& ctx) -> ChannelContext;
 
-        explicit ChannelContext(Context& ctx);
+        /**
+         * Initialize channel with the paramters as they are.
+         */
         ChannelContext(Context& ctx, ChannelResolveParams params);
+
+        explicit ChannelContext(Context& ctx);
 
         auto make_channel(std::string_view name) -> const channel_list&;
 

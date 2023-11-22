@@ -24,7 +24,7 @@ namespace mamba
                 std::vector<std::string> specs;
                 std::string pin;
 
-                ChannelContext channel_context{ mambatests::context() };
+                auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
                 auto sprefix_data = PrefixData::create("", channel_context);
                 if (!sprefix_data)
                 {

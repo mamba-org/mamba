@@ -218,7 +218,7 @@ set_server_command(CLI::App* subcom, mamba::Configuration& config)
     subcom->callback(
         [&config]
         {
-            mamba::ChannelContext channel_context{ config.context() };
+            auto channel_context = mamba::ChannelContext::make_conda_compatible(config.context());
             return run_server(port, config.context(), channel_context, config);
         }
     );

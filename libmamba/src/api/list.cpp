@@ -25,7 +25,7 @@ namespace mamba
             );
         config.load();
 
-        ChannelContext channel_context{ config.context() };
+        auto channel_context = ChannelContext::make_conda_compatible(config.context());
         detail::list_packages(regex, channel_context);
     }
 

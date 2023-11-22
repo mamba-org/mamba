@@ -394,7 +394,7 @@ namespace mamba
         auto& use_explicit = config.at("explicit_install").value<bool>();
 
         auto& context = config.context();
-        ChannelContext channel_context{ context };
+        auto channel_context = ChannelContext::make_conda_compatible(context);
 
         if (context.env_lockfile)
         {

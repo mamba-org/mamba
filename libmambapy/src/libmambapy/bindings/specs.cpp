@@ -9,6 +9,7 @@
 #include <pybind11/pybind11.h>
 
 #include "mamba/specs/channel_spec.hpp"
+#include "mamba/specs/platform.hpp"
 
 #include "bindings.hpp"
 #include "flat_set_caster.hpp"
@@ -32,6 +33,28 @@ namespace mambapy
     {
         namespace py = pybind11;
         using namespace mamba::specs;
+
+        py::enum_<Platform>(m, "Platform")
+            .value("noarch", Platform::noarch)
+            .value("linux_32", Platform::linux_32)
+            .value("linux_64", Platform::linux_64)
+            .value("linux_armv6l", Platform::linux_armv6l)
+            .value("linux_armv7l", Platform::linux_armv7l)
+            .value("linux_aarch64", Platform::linux_aarch64)
+            .value("linux_ppc64le", Platform::linux_ppc64le)
+            .value("linux_ppc64", Platform::linux_ppc64)
+            .value("linux_s390x", Platform::linux_s390x)
+            .value("linux_riscv32", Platform::linux_riscv32)
+            .value("linux_riscv64", Platform::linux_riscv64)
+            .value("osx_64", Platform::osx_64)
+            .value("osx_arm64", Platform::osx_arm64)
+            .value("win_32", Platform::win_32)
+            .value("win_64", Platform::win_64)
+            .value("win_arm64", Platform::win_arm64)
+            .value("zos_z", Platform::zos_z)
+            .def_static("parse", &platform_parse)
+            .def_static("count", &known_platforms_count)
+            .def_static("build_platform", &build_platform);
 
         auto py_channel_spec = py::class_<ChannelSpec>(m, "ChannelSpec");
 

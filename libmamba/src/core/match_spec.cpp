@@ -6,7 +6,7 @@
 
 #include <regex>
 
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"

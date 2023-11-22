@@ -21,7 +21,7 @@ extern "C"  // Incomplete header
 #include <solv/conda.h>
 }
 
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/download_progress_bar.hpp"
 #include "mamba/core/env_lockfile.hpp"

@@ -9,7 +9,7 @@
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/list.hpp"
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/prefix_data.hpp"
 

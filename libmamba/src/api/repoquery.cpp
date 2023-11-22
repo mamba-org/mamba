@@ -11,7 +11,7 @@
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/repoquery.hpp"
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/repo.hpp"

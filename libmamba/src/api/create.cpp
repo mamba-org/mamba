@@ -7,7 +7,7 @@
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/create.hpp"
 #include "mamba/api/install.hpp"
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/util.hpp"
 

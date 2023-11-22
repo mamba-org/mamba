@@ -19,7 +19,7 @@
 #include <unistd.h>
 #endif
 
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/history.hpp"
 
 #include "mambatests.hpp"

@@ -12,7 +12,7 @@
 #include "mamba/api/create.hpp"
 #include "mamba/api/remove.hpp"
 #include "mamba/api/update.hpp"
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/environments_manager.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/util.hpp"

@@ -7,7 +7,7 @@
 #include <doctest/doctest.h>
 #include <yaml-cpp/exceptions.h>
 
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/env_lockfile.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/transaction.hpp"

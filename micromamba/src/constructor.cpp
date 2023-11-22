@@ -9,7 +9,7 @@
 #include "constructor.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/package_info.hpp"

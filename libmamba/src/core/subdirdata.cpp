@@ -7,7 +7,7 @@
 #include <regex>
 #include <stdexcept>
 
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/subdirdata.hpp"

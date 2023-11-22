@@ -8,7 +8,7 @@
 #include <tuple>
 #include <utility>
 
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/specs/channel_spec.hpp"
 #include "mamba/specs/conda_url.hpp"

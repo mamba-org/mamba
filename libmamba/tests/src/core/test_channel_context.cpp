@@ -8,7 +8,7 @@
 
 #include <doctest/doctest.h>
 
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/flat_set.hpp"

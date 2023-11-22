@@ -9,7 +9,7 @@
 
 #include <functional>
 
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/download.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/package_handling.hpp"

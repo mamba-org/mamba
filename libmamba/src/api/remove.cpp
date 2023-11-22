@@ -6,7 +6,7 @@
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/remove.hpp"
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/pool.hpp"

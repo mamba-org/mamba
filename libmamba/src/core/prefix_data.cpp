@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <utility>
 
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/util.hpp"

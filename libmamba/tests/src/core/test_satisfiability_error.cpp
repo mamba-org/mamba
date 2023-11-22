@@ -14,7 +14,7 @@
 #include <nlohmann/json.hpp>
 #include <solv/solver.h>
 
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"

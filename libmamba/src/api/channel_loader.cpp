@@ -5,7 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "mamba/api/channel_loader.hpp"
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/download.hpp"
 #include "mamba/core/download_progress_bar.hpp"
 #include "mamba/core/output.hpp"

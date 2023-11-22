@@ -183,7 +183,7 @@ set(
     # Core API (low-level)
     ${LIBMAMBA_SOURCE_DIR}/core/singletons.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/activation.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/channel.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/channel_context.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/context.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/download.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/download_progress_bar.cpp
@@ -281,7 +281,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/repo_data.hpp
     # Core API (low-level)
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/activation.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/channel.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/channel_context.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/palette.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/context.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/download.hpp

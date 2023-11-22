@@ -11,9 +11,6 @@
 
 namespace mambapy
 {
-    namespace legacy
-    {
-        void bind_submodule(pybind11::module_ m);
-    }
+    void bind_submodule_legacy(pybind11::module_ m);
 }
 #endif

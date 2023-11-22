@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <array>
 #include <cassert>
 #include <tuple>
 #include <utility>
@@ -63,6 +64,24 @@ namespace mamba
             }
         }
 
+        template <bool on_win>
+        auto conda_custom_channels()
+        {
+            using namespace std::literals::string_view_literals;
+
+            static constexpr std::size_t count = 3 + (on_win ? 1 : 0);
+            auto channels = std::array<std::pair<std::string_view, std::string_view>, count>{
+                std::pair{ "pkgs/main"sv, "https://repo.anaconda.com/pkgs/main"sv },
+                std::pair{ "pkgs/r"sv, "https://repo.anaconda.com/pkgs/r"sv },
+                std::pair{ "pkgs/pro"sv, "https://repo.anaconda.com/pkgs/pro"sv },
+            };
+            if constexpr (on_win)
+            {
+                channels[3] = std::pair{ "pkgs/msys2"sv, "https://repo.anaconda.com/pkgs/msys2"sv };
+            }
+            return channels;
+        }
+
         void add_conda_params_custom_channel(specs::ChannelResolveParams& params, const Context& ctx)
         {
             for (const auto& [name, location] : ctx.custom_channels)
@@ -76,6 +95,15 @@ namespace mamba
                 );
                 auto chan = make_unique_chan(conda_location, params);
                 chan.set_display_name(name);
+                params.custom_channels.emplace(name, std::move(chan));
+            }
+
+            // Hard coded Anaconda channels names.
+            // This will not redefine them if the user has already defined these keys.
+            for (const auto& [name, location] : conda_custom_channels<util::on_win>())
+            {
+                auto chan = make_unique_chan(location, params);
+                chan.set_display_name(std::string(name));
                 params.custom_channels.emplace(name, std::move(chan));
             }
         }
@@ -93,6 +121,51 @@ namespace mamba
                 }
                 params.custom_multichannels.emplace(multi_name, std::move(channels));
             }
+        }
+
+        void
+        add_conda_params_custom_multichannel(specs::ChannelResolveParams& params, const Context& ctx)
+        {
+            // Hard coded Anaconda "defaults" multi channel name.
+            // This will not redefine them if the user has already defined these keys.
+            if (auto it = ctx.custom_multichannels.find("defaults");
+                it == ctx.custom_multichannels.cend())
+            {
+                auto channels = specs::ChannelResolveParams::channel_list();
+                channels.reserve(ctx.default_channels.size());
+                std::transform(
+                    ctx.default_channels.cbegin(),
+                    ctx.default_channels.cend(),
+                    std::back_inserter(channels),
+                    [&params](const auto& loc) { return make_unique_chan(loc, params); }
+                );
+                params.custom_multichannels.emplace("defaults", std::move(channels));
+            }
+
+            // Hard coded Anaconda "local" multi channel name.
+            // This will not redefine them if the user has already defined these keys.
+            if (auto it = ctx.custom_multichannels.find("local");
+                it == ctx.custom_multichannels.cend())
+            {
+                auto channels = specs::ChannelResolveParams::channel_list();
+                channels.reserve(3);
+                for (auto path : {
+                         ctx.prefix_params.target_prefix / "conda-bld",
+                         ctx.prefix_params.root_prefix / "conda-bld",
+                         fs::u8path(params.home_dir) / "conda-bld",
+                     })
+                {
+                    if (fs::exists(path))
+                    {
+                        channels.push_back(make_unique_chan(path.string(), params));
+                    }
+                }
+                params.custom_multichannels.emplace("local", std::move(channels));
+            }
+
+            // Called after to guarentee there are no custom multichannels when calling
+            // make_unique_chan.
+            add_simple_params_custom_multichannel(params, ctx);
         }
     }
 
@@ -114,7 +187,7 @@ namespace mamba
     {
         auto params = make_simple_params_base(ctx);
         add_conda_params_custom_channel(params, ctx);
-        add_simple_params_custom_multichannel(params, ctx);
+        add_conda_params_custom_multichannel(params, ctx);
         return { ctx, std::move(params) };
     }
 

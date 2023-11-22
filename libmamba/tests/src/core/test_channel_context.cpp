@@ -41,13 +41,6 @@ namespace mamba
             // make_simple_channel
             auto& ctx = mambatests::context();
 
-            // Hard coded Anaconda channels names set in configuration after refactor
-            // Should be moved to test_config
-            // FIXME: this has side effect on all tests
-            ctx.custom_channels.emplace("pkgs/main", "https://repo.anaconda.com/pkgs/main");
-            ctx.custom_channels.emplace("pkgs/r", "https://repo.anaconda.com/pkgs/r");
-            ctx.custom_channels.emplace("pkgs/pro", "https://repo.anaconda.com/pkgs/pro");
-
             ChannelContext channel_context = ChannelContext::make_conda_compatible(ctx);
             const auto& ch = channel_context.params().channel_alias;
             CHECK_EQ(ch.str(), "https://conda.anaconda.org/");
@@ -448,7 +441,7 @@ namespace mamba
             const auto channels2 = channel_context.make_channel(value2);
             REQUIRE_EQ(channels2.size(), 1);
             CHECK_EQ(channels2.front().url(), CondaURL::parse("https://repo.anaconda.com/pkgs/main"));
-            CHECK_EQ(channels2.front().display_name(), "https://repo.anaconda.com/pkgs/main");
+            CHECK_EQ(channels2.front().display_name(), "pkgs/main");
             CHECK_EQ(channels2.front().platforms(), PlatformSet({ platform }));
 
             std::string value3 = "https://conda.anaconda.org/conda-forge[" + platform + "]";

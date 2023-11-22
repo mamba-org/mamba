@@ -6,7 +6,7 @@
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/remove.hpp"
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/pool.hpp"
@@ -35,7 +35,7 @@ namespace mamba
 
         auto remove_specs = config.at("specs").value<std::vector<std::string>>();
 
-        ChannelContext channel_context{ ctx };
+        auto channel_context = ChannelContext::make_conda_compatible(ctx);
 
         if (remove_all)
         {

@@ -9,9 +9,10 @@
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/update.hpp"
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/pinning.hpp"
+#include "mamba/core/solver.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/util/string.hpp"
@@ -32,7 +33,7 @@ namespace mamba
 
         auto update_specs = config.at("specs").value<std::vector<std::string>>();
 
-        ChannelContext channel_context{ ctx };
+        auto channel_context = ChannelContext::make_conda_compatible(ctx);
 
         // add channels from specs
         for (const auto& s : update_specs)

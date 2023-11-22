@@ -13,7 +13,7 @@
 #include <solv/solvable.h>
 #include <solv/solver.h>
 
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/match_spec.hpp"

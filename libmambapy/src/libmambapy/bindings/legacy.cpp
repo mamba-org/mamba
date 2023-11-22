@@ -18,7 +18,7 @@
 
 #include "mamba/api/clean.hpp"
 #include "mamba/api/configuration.hpp"
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/download_progress_bar.hpp"
 #include "mamba/core/execution.hpp"
@@ -178,7 +178,7 @@ namespace mambapy
         {
             mamba::MSubdirData* p_subdirdata = nullptr;
             std::string m_platform = "";
-            const mamba::Channel* p_channel = nullptr;
+            const mamba::specs::Channel* p_channel = nullptr;
             std::string m_url = "";
         };
 
@@ -187,7 +187,7 @@ namespace mambapy
 
         void create(
             mamba::ChannelContext& channel_context,
-            const mamba::Channel& channel,
+            const mamba::specs::Channel& channel,
             const std::string& platform,
             const std::string& full_url,
             mamba::MultiPackageCache& caches,
@@ -269,7 +269,6 @@ bind_submodule_impl(pybind11::module_ m)
 
 
     // declare earlier to avoid C++ types in docstrings
-    auto pyChannel = py::class_<Channel, std::unique_ptr<Channel, py::nodelete>>(m, "Channel");
     auto pyPackageInfo = py::class_<PackageInfo>(m, "PackageInfo");
     auto pyPrefixData = py::class_<PrefixData>(m, "PrefixData");
     auto pySolver = py::class_<MSolver>(m, "Solver");
@@ -637,7 +636,7 @@ bind_submodule_impl(pybind11::module_ m)
         .def(
             "create",
             [](SubdirIndex& self,
-               const Channel& channel,
+               const specs::Channel& channel,
                const std::string& platform,
                const std::string& full_url,
                MultiPackageCache& caches,

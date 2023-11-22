@@ -10,6 +10,7 @@
 
 #include <doctest/doctest.h>
 
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/history.hpp"
@@ -87,7 +88,7 @@ namespace mamba
 
         TEST_CASE("parse")
         {
-            ChannelContext channel_context{ mambatests::context() };
+            auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
             {
                 MatchSpec ms("xtensor==0.12.3", channel_context);
                 CHECK_EQ(ms.version, "0.12.3");
@@ -269,7 +270,7 @@ namespace mamba
 
         TEST_CASE("is_simple")
         {
-            ChannelContext channel_context{ mambatests::context() };
+            auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
             {
                 MatchSpec ms("libblas", channel_context);
                 CHECK(ms.is_simple());

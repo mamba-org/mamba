@@ -17,7 +17,7 @@ extern "C"  // Incomplete header
 }
 #include <spdlog/spdlog.h>
 
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
@@ -53,7 +53,7 @@ namespace mamba
         return m_data->channel_context;
     }
 
-    Context& MPool::context() const
+    const Context& MPool::context() const
     {
         return channel_context().context();
     }
@@ -148,8 +148,8 @@ namespace mamba
         };
 
         auto channel_match(
-            const std::vector<Channel>& repo_channels,
-            const std::vector<Channel>& candidate_channels
+            const std::vector<specs::Channel>& repo_channels,
+            const std::vector<specs::Channel>& candidate_channels
         ) -> ChannelMatch
         {
             // More than one element means the channel spec was a custom_multi_channel,

@@ -7,7 +7,7 @@
 #include <doctest/doctest.h>
 #include <yaml-cpp/exceptions.h>
 
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/env_lockfile.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/transaction.hpp"
@@ -20,7 +20,7 @@ namespace mamba
     {
         TEST_CASE("absent_file_fails")
         {
-            ChannelContext channel_context{ mambatests::context() };
+            auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
             const auto maybe_lockfile = read_environment_lockfile(
                 channel_context,
                 "this/file/does/not/exists"
@@ -43,7 +43,7 @@ namespace mamba
 
         TEST_CASE("invalid_version_fails")
         {
-            ChannelContext channel_context{ mambatests::context() };
+            auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
             const fs::u8path invalid_version_lockfile_path{ mambatests::test_data_dir
                                                             / "env_lockfile/bad_version-lock.yaml" };
             const auto maybe_lockfile = read_environment_lockfile(
@@ -59,7 +59,7 @@ namespace mamba
 
         TEST_CASE("valid_no_package_succeed")
         {
-            ChannelContext channel_context{ mambatests::context() };
+            auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
             const fs::u8path lockfile_path{ mambatests::test_data_dir
                                             / "env_lockfile/good_no_package-lock.yaml" };
             const auto maybe_lockfile = read_environment_lockfile(channel_context, lockfile_path);
@@ -70,7 +70,7 @@ namespace mamba
 
         TEST_CASE("invalid_package_fails")
         {
-            ChannelContext channel_context{ mambatests::context() };
+            auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
             const fs::u8path lockfile_path{ mambatests::test_data_dir
                                             / "env_lockfile/bad_package-lock.yaml" };
             const auto maybe_lockfile = read_environment_lockfile(channel_context, lockfile_path);
@@ -83,7 +83,7 @@ namespace mamba
 
         TEST_CASE("valid_one_package_succeed")
         {
-            ChannelContext channel_context{ mambatests::context() };
+            auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
             const fs::u8path lockfile_path{ mambatests::test_data_dir
                                             / "env_lockfile/good_one_package-lock.yaml" };
             const auto maybe_lockfile = read_environment_lockfile(channel_context, lockfile_path);
@@ -94,7 +94,7 @@ namespace mamba
 
         TEST_CASE("valid_one_package_implicit_category")
         {
-            ChannelContext channel_context{ mambatests::context() };
+            auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
             const fs::u8path lockfile_path{
                 mambatests::test_data_dir / "env_lockfile/good_one_package_missing_category-lock.yaml"
             };
@@ -106,7 +106,7 @@ namespace mamba
 
         TEST_CASE("valid_multiple_packages_succeed")
         {
-            ChannelContext channel_context{ mambatests::context() };
+            auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
             const fs::u8path lockfile_path{ mambatests::test_data_dir
                                             / "env_lockfile/good_multiple_packages-lock.yaml" };
             const auto maybe_lockfile = read_environment_lockfile(channel_context, lockfile_path);
@@ -117,7 +117,7 @@ namespace mamba
 
         TEST_CASE("get_specific_packages")
         {
-            ChannelContext channel_context{ mambatests::context() };
+            auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
             const fs::u8path lockfile_path{ mambatests::test_data_dir
                                             / "env_lockfile/good_multiple_packages-lock.yaml" };
             const auto lockfile = read_environment_lockfile(channel_context, lockfile_path).value();
@@ -139,7 +139,7 @@ namespace mamba
             auto& ctx = mambatests::context();
             const fs::u8path lockfile_path{ mambatests::test_data_dir
                                             / "env_lockfile/good_multiple_categories-lock.yaml" };
-            ChannelContext channel_context{ ctx };
+            auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
             MPool pool{ channel_context };
             mamba::MultiPackageCache pkg_cache({ "/tmp/" }, ctx.validation_params);
 

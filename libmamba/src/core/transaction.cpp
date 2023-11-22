@@ -21,7 +21,7 @@ extern "C"  // Incomplete header
 #include <solv/conda.h>
 }
 
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/download_progress_bar.hpp"
 #include "mamba/core/env_lockfile.hpp"
@@ -31,6 +31,7 @@ extern "C"  // Incomplete header
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_fetcher.hpp"
 #include "mamba/core/pool.hpp"
+#include "mamba/core/solver.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/util/flat_set.hpp"

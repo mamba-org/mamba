@@ -11,7 +11,7 @@
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/repoquery.hpp"
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/repo.hpp"
@@ -30,7 +30,7 @@ namespace mamba
                 .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX);
             config.load();
 
-            ChannelContext channel_context{ ctx };
+            auto channel_context = ChannelContext::make_conda_compatible(ctx);
             MPool pool{ channel_context };
 
             // bool installed = (type == QueryType::kDepends) || (type == QueryType::kWhoneeds);

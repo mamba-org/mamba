@@ -6,7 +6,7 @@
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/info.hpp"
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/util/environment.hpp"
@@ -31,7 +31,7 @@ namespace mamba
             );
         config.load();
 
-        ChannelContext channel_context{ config.context() };
+        auto channel_context = ChannelContext::make_conda_compatible(config.context());
         detail::print_info(channel_context, config);
 
         config.operation_teardown();

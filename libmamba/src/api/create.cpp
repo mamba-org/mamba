@@ -7,7 +7,7 @@
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/create.hpp"
 #include "mamba/api/install.hpp"
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/util.hpp"
 
@@ -29,7 +29,7 @@ namespace mamba
         auto& create_specs = config.at("specs").value<std::vector<std::string>>();
         auto& use_explicit = config.at("explicit_install").value<bool>();
 
-        ChannelContext channel_context{ ctx };
+        auto channel_context = ChannelContext::make_conda_compatible(ctx);
 
         bool remove_prefix_on_failure = false;
 
@@ -97,7 +97,7 @@ namespace mamba
             }
             else
             {
-                install_specs(channel_context, config, create_specs, true, remove_prefix_on_failure);
+                install_specs(ctx, channel_context, config, create_specs, true, remove_prefix_on_failure);
             }
         }
     }

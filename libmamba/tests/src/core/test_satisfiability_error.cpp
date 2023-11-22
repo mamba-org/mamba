@@ -14,7 +14,7 @@
 #include <nlohmann/json.hpp>
 #include <solv/solver.h>
 
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
@@ -167,7 +167,7 @@ namespace
 
 TEST_CASE("Test create_problem utility")
 {
-    ChannelContext channel_context{ mambatests::context() };
+    auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
     auto solver = create_problem(channel_context, std::array{ mkpkg("foo", "0.1.0", {}) }, { "foo" });
     const auto solved = solver.try_solve();
     REQUIRE(solved);
@@ -175,7 +175,7 @@ TEST_CASE("Test create_problem utility")
 
 TEST_CASE("Test empty specs")
 {
-    ChannelContext channel_context{ mambatests::context() };
+    auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
     auto solver = create_problem(
         channel_context,
         std::array{ mkpkg("foo", "0.1.0", {}), mkpkg("", "", {}) },
@@ -399,7 +399,7 @@ namespace
 
 TEST_CASE("Test create_conda_forge utility")
 {
-    ChannelContext channel_context{ mambatests::context() };
+    auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
     auto solver = create_conda_forge(channel_context, { "xtensor>=0.7" });
     const auto solved = solver.try_solve();
     REQUIRE(solved);
@@ -530,7 +530,7 @@ TEST_CASE("Create problem graph")
 
     for (const auto& [name, factory] : issues)
     {
-        ChannelContext channel_context{ mambatests::context() };
+        auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
 
         // Somehow the capture does not work directly on ``name``
         std::string_view name_copy = name;

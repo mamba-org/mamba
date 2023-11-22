@@ -179,6 +179,11 @@ namespace mamba::specs
         return m_type;
     }
 
+    void ChannelSpec::set_type(Type t)
+    {
+        m_type = t;
+    }
+
     auto ChannelSpec::location() const& -> const std::string&
     {
         return m_location;
@@ -187,6 +192,11 @@ namespace mamba::specs
     auto ChannelSpec::location() && -> std::string
     {
         return std::move(m_location);
+    }
+
+    void ChannelSpec::set_location(std::string location)
+    {
+        m_location = std::move(location);
     }
 
     auto ChannelSpec::clear_location() -> std::string
@@ -202,6 +212,11 @@ namespace mamba::specs
     auto ChannelSpec::platform_filters() && -> dynamic_platform_set
     {
         return std::move(m_platform_filters);
+    }
+
+    void ChannelSpec::set_platform_filters(dynamic_platform_set filters)
+    {
+        m_platform_filters = std::move(filters);
     }
 
     auto ChannelSpec::clear_platform_filters() -> dynamic_platform_set

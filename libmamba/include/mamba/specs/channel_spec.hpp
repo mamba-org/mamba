@@ -89,13 +89,16 @@ namespace mamba::specs
         ChannelSpec(std::string location, dynamic_platform_set filters, Type type);
 
         [[nodiscard]] auto type() const -> Type;
+        void set_type(Type t);
 
         [[nodiscard]] auto location() const& -> const std::string&;
         [[nodiscard]] auto location() && -> std::string;
+        void set_location(std::string location);
         auto clear_location() -> std::string;
 
         [[nodiscard]] auto platform_filters() const& -> const dynamic_platform_set&;
         [[nodiscard]] auto platform_filters() && -> dynamic_platform_set;
+        void set_platform_filters(dynamic_platform_set filters);
         auto clear_platform_filters() -> dynamic_platform_set;
 
     private:

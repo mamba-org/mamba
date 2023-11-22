@@ -14,22 +14,22 @@
 #include <solv/solver.h>
 #include <yaml-cpp/yaml.h>
 
-#include "mamba/core/context.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/repo.hpp"
-#include "mamba/core/solver.hpp"
 #include "mamba/fs/filesystem.hpp"
 
 namespace mamba
 {
+    class Context;
     class ChannelContext;
     class Configuration;
 
     void install(Configuration& config);
 
     void install_specs(
+        Context& ctx,
         ChannelContext& channel_context,
         const Configuration& config,
         const std::vector<std::string>& specs,

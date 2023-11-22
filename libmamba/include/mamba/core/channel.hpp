@@ -35,7 +35,7 @@ namespace mamba
 
         [[nodiscard]] auto params() const -> const specs::ChannelResolveParams&;
 
-        auto context() const -> Context&
+        auto context() const -> const Context&
         {
             return m_context;
         }

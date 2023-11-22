@@ -595,7 +595,7 @@ namespace mamba
         LOG_INFO << "Searching index cache file for repo '" << m_repodata_url << "'";
         file_time_point now = fs::file_time_type::clock::now();
 
-        Context& context = channel_context.context();
+        const Context& context = channel_context.context();
         const auto cache_paths = without_duplicates(caches.paths());
 
         for (const fs::u8path& cache_path : cache_paths)

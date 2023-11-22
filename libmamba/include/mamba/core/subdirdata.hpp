@@ -173,7 +173,7 @@ namespace mamba
 
         MSubdirMetadata m_metadata;
         std::unique_ptr<TemporaryFile> m_temp_file;
-        Context* p_context;
+        const Context* p_context;
     };
 
     // Contrary to conda original function, this one expects a full url

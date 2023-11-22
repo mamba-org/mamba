@@ -97,7 +97,7 @@ namespace mamba
             }
             else
             {
-                install_specs(channel_context, config, create_specs, true, remove_prefix_on_failure);
+                install_specs(ctx, channel_context, config, create_specs, true, remove_prefix_on_failure);
             }
         }
     }

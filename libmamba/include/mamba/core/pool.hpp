@@ -60,7 +60,7 @@ namespace mamba
         void remove_repo(::Id repo_id, bool reuse_ids);
 
         ChannelContext& channel_context() const;
-        Context& context() const;
+        const Context& context() const;
 
     private:
 

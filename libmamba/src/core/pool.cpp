@@ -53,7 +53,7 @@ namespace mamba
         return m_data->channel_context;
     }
 
-    Context& MPool::context() const
+    const Context& MPool::context() const
     {
         return channel_context().context();
     }

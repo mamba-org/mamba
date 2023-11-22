@@ -17,12 +17,14 @@
 #include "mamba/api/install.hpp"
 #include "mamba/core/activation.hpp"
 #include "mamba/core/channel.hpp"
+#include "mamba/core/context.hpp"
 #include "mamba/core/download.hpp"
 #include "mamba/core/env_lockfile.hpp"
 #include "mamba/core/environments_manager.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/pinning.hpp"
+#include "mamba/core/solver.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/fs/filesystem.hpp"
@@ -413,7 +415,7 @@ namespace mamba
             }
             else
             {
-                mamba::install_specs(channel_context, config, install_specs, false);
+                mamba::install_specs(context, channel_context, config, install_specs, false);
             }
         }
         else
@@ -426,6 +428,7 @@ namespace mamba
     int RETRY_SOLVE_ERROR = 1 << 1;
 
     void install_specs(
+        Context& ctx,
         ChannelContext& channel_context,
         const Configuration& config,
         const std::vector<std::string>& specs,
@@ -435,8 +438,7 @@ namespace mamba
         int is_retry
     )
     {
-        assert(&config.context() == &channel_context.context());
-        Context& ctx = channel_context.context();
+        assert(&config.context() == &ctx);
 
         auto& no_pin = config.at("no_pin").value<bool>();
         auto& no_py_pin = config.at("no_py_pin").value<bool>();
@@ -565,6 +567,7 @@ namespace mamba
             {
                 ctx.local_repodata_ttl = 2;
                 return install_specs(
+                    ctx,
                     channel_context,
                     config,
                     specs,

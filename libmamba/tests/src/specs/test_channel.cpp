@@ -525,8 +525,8 @@ TEST_SUITE("specs::channel")
                 auto channels = Channel::resolve(specs, params);
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
-                // Higher precedence. Unfotunate, but the name must be repeated...
-                CHECK_EQ(chan.url(), CondaURL::parse("ftp://mydomain.net/conda/conda-forge"));
+                // Higher precedence.
+                CHECK_EQ(chan.url(), CondaURL::parse("ftp://mydomain.net/conda"));
                 CHECK_EQ(chan.display_name(), name);
                 CHECK_EQ(chan.platforms(), params.platforms);
             }

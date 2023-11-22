@@ -324,22 +324,13 @@ namespace mamba::specs
         auto resolve_name_in_custom_channel(
             ChannelSpec&& spec,
             ChannelResolveParamsView params,
-            const Channel& match
+            std::string_view match_name,
+            const Channel& match_chan
+
         ) -> Channel
         {
-            auto url = match.url();
-            // we can have a channel like
-            // testchannel: https://server.com/private/testchannel
-            // where `name == private/testchannel` and we need to join the remaining label part
-            // of the channel (e.g. -c testchannel/mylabel/xyz)
-            // needs to result in https://server.com/private/testchannel/mylabel/xyz
-            std::string combined_name = util::concat_dedup_splits(
-                util::rstrip(url.path(), '/'),
-                util::lstrip(spec.location(), '/'),
-                '/'
-            );
-            url.set_path(combined_name);
-
+            auto url = match_chan.url();
+            url.append_path(util::remove_prefix(spec.location(), match_name));
             set_fallback_credential_from_db(url, params.authentication_db);
             return {
                 /* url= */ std::move(url),
@@ -387,7 +378,9 @@ namespace mamba::specs
             if (auto it = params.custom_channels.find_weaken(spec.location());
                 it != params.custom_channels.cend())
             {
-                return { resolve_name_in_custom_channel(std::move(spec), params, it->second) };
+                return {
+                    resolve_name_in_custom_channel(std::move(spec), params, it->first, it->second)
+                };
             }
 
             if (auto it = params.custom_multichannels.find(spec.location());

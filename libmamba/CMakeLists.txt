@@ -153,33 +153,33 @@ set(
     # Filesystem library
     ${LIBMAMBA_SOURCE_DIR}/fs/filesystem.cpp
     # C++ utility library
-    ${LIBMAMBA_SOURCE_DIR}/util/string.cpp
-    ${LIBMAMBA_SOURCE_DIR}/util/os_win.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/environment.cpp
+    ${LIBMAMBA_SOURCE_DIR}/util/os_win.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/path_manip.cpp
-    ${LIBMAMBA_SOURCE_DIR}/util/url_manip.cpp
+    ${LIBMAMBA_SOURCE_DIR}/util/string.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/url.cpp
+    ${LIBMAMBA_SOURCE_DIR}/util/url_manip.cpp
     # C++ wrapping of libsolv
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.cpp
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/pool.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.cpp
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/repo.cpp
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solvable.cpp
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solver.cpp
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/transaction.cpp
+    # Implementation of version and matching specs
+    ${LIBMAMBA_SOURCE_DIR}/specs/archive.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/authentication_info.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/channel.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/channel_spec.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/conda_url.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/platform.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/repo_data.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/version.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/version_spec.cpp
     # C++ wrapping of libcurl
     ${LIBMAMBA_SOURCE_DIR}/core/curl.cpp
     # C++ wrapping of compression libs (zstd and bzlib)
     ${LIBMAMBA_SOURCE_DIR}/core/compression.cpp
-    # Implementation of version and matching specs
-    ${LIBMAMBA_SOURCE_DIR}/specs/archive.cpp
-    ${LIBMAMBA_SOURCE_DIR}/specs/authentication_info.cpp
-    ${LIBMAMBA_SOURCE_DIR}/specs/platform.cpp
-    ${LIBMAMBA_SOURCE_DIR}/specs/conda_url.cpp
-    ${LIBMAMBA_SOURCE_DIR}/specs/version.cpp
-    ${LIBMAMBA_SOURCE_DIR}/specs/version_spec.cpp
-    ${LIBMAMBA_SOURCE_DIR}/specs/channel_spec.cpp
-    ${LIBMAMBA_SOURCE_DIR}/specs/channel.cpp
-    ${LIBMAMBA_SOURCE_DIR}/specs/repo_data.cpp
     # Core API (low-level)
     ${LIBMAMBA_SOURCE_DIR}/core/singletons.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/activation.cpp
@@ -249,36 +249,36 @@ set(
     # Filesystem library
     ${LIBMAMBA_INCLUDE_DIR}/mamba/fs/filesystem.hpp
     # Utility library
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/json.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/deprecation.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/build.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cast.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/compare.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/functional.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/type_traits.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/flat_set.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/deprecation.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/environment.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/flat_binary_tree.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/flat_bool_expr_tree.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/flat_set.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/functional.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/graph.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/iterator.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/string.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/json.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/os_win.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/environment.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/path_manip.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/string.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/tuple_hash.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/url_manip.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/type_traits.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/url.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/url_manip.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/weakening_map.hpp
     # Implementation of version and matching specs
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/authentication_info.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/archive.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/platform.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/conda_url.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version_spec.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/authentication_info.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/channel.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/channel_spec.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/conda_url.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/platform.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/repo_data.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version_spec.hpp
     # Core API (low-level)
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/activation.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/channel_context.hpp

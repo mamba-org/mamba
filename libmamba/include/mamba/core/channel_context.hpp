@@ -42,7 +42,7 @@ namespace mamba
 
         ChannelResolveParams m_channel_params;
         ChannelCache m_channel_cache;
-        Context& m_context;
+        const Context& m_context;
     };
 }
 #endif

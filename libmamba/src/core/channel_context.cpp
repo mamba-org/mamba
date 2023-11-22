@@ -40,7 +40,7 @@ namespace mamba
             return std::move(channels.front());
         };
 
-        auto make_simple_params_base(Context& ctx) -> specs::ChannelResolveParams
+        auto make_simple_params_base(const Context& ctx) -> specs::ChannelResolveParams
         {
             return specs::ChannelResolveParams{
                 /* .platform= */ create_platforms(ctx.platforms()),
@@ -53,7 +53,7 @@ namespace mamba
             };
         }
 
-        void add_simple_params_custom_channel(specs::ChannelResolveParams& params, Context& ctx)
+        void add_simple_params_custom_channel(specs::ChannelResolveParams& params, const Context& ctx)
         {
             for (const auto& [name, location] : ctx.custom_channels)
             {
@@ -63,7 +63,7 @@ namespace mamba
             }
         }
 
-        void add_conda_params_custom_channel(specs::ChannelResolveParams& params, Context& ctx)
+        void add_conda_params_custom_channel(specs::ChannelResolveParams& params, const Context& ctx)
         {
             for (const auto& [name, location] : ctx.custom_channels)
             {
@@ -80,7 +80,8 @@ namespace mamba
             }
         }
 
-        void add_simple_params_custom_multichannel(specs::ChannelResolveParams& params, Context& ctx)
+        void
+        add_simple_params_custom_multichannel(specs::ChannelResolveParams& params, const Context& ctx)
         {
             for (const auto& [multi_name, location_list] : ctx.custom_multichannels)
             {

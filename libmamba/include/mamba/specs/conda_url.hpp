@@ -35,7 +35,7 @@ namespace mamba::specs
         explicit CondaURL(util::URL&& url);
         explicit CondaURL(const util::URL& url);
 
-        auto base() const -> const util::URL&;
+        [[nodiscard]] auto generic() const -> const util::URL&;
 
         using Base::scheme_is_defaulted;
         using Base::scheme;

@@ -1,5 +1,7 @@
 import copy
 
+import pytest
+
 import libmambapy
 
 
@@ -27,6 +29,11 @@ def test_platform():
     assert len(Platform.__members__) == Platform.count()
     assert Platform.build_platform() in Platform.__members__.values()
     assert Platform.parse("linux-64") == Platform.linux_64
+    assert Platform("linux_64") == Platform.linux_64
+
+    with pytest.raises(KeyError):
+        # No parsing, explicit name
+        Platform("linux-64") == Platform.linux_64
 
 
 def test_channel_spec_type():
@@ -38,6 +45,7 @@ def test_channel_spec_type():
     assert Type.PackagePath.name == "PackagePath"
     assert Type.Name.name == "Name"
     assert Type.Unknown.name == "Unknown"
+    assert Type("Name").name == "Name"
 
 
 def test_channel_spec():
@@ -52,6 +60,10 @@ def test_channel_spec():
     assert spec.location == "<unknown>"
     assert spec.platform_filters == set()
     assert spec.type == ChannelSpec.Type.Unknown
+
+    # Enum cast
+    spec = ChannelSpec(location="conda-forge", platform_filters=set(), type="Name")
+    assert spec.type == ChannelSpec.Type.Name
 
     #  Parser
     spec = ChannelSpec.parse("conda-forge[linux-64]")

@@ -17,6 +17,14 @@
 
 namespace mambapy
 {
+
+    template <typename Enum>
+    auto enum_from_str(const pybind11::str& name)
+    {
+        auto pyenum = pybind11::type::of<Enum>();
+        return pyenum.attr("__members__")[name].template cast<Enum>();
+    }
+
     template <typename T>
     auto copy(const T& x) -> std::unique_ptr<T>
     {
@@ -52,9 +60,11 @@ namespace mambapy
             .value("win_64", Platform::win_64)
             .value("win_arm64", Platform::win_arm64)
             .value("zos_z", Platform::zos_z)
+            .def(py::init(&enum_from_str<Platform>))
             .def_static("parse", &platform_parse)
             .def_static("count", &known_platforms_count)
             .def_static("build_platform", &build_platform);
+        py::implicitly_convertible<py::str, Platform>();
 
         auto py_channel_spec = py::class_<ChannelSpec>(m, "ChannelSpec");
 
@@ -64,7 +74,9 @@ namespace mambapy
             .value("Path", ChannelSpec::Type::Path)
             .value("PackagePath", ChannelSpec::Type::PackagePath)
             .value("Name", ChannelSpec::Type::Name)
-            .value("Unknown", ChannelSpec::Type::Unknown);
+            .value("Unknown", ChannelSpec::Type::Unknown)
+            .def(py::init(&enum_from_str<ChannelSpec::Type>));
+        py::implicitly_convertible<py::str, ChannelSpec::Type>();
 
         py_channel_spec  //
             .def_static("parse", ChannelSpec::parse)

@@ -80,7 +80,7 @@ namespace mamba
         {
             auto channels = channel_context.make_channel(pkg_info.url);
             assert(channels.size() == 1);  // A URL can only resolve to one channel
-            m_url = channels.front().urls(true)[0];
+            m_url = channels.front().platform_urls().at(0).str();
         }
         else
         {

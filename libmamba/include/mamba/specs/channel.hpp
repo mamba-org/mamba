@@ -8,7 +8,6 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
-#include <utility>
 #include <vector>
 
 #include "mamba/specs/authentication_info.hpp"
@@ -90,9 +89,15 @@ namespace mamba::specs
 
         Channel(CondaURL url, std::string display_name, util::flat_set<std::string> platforms = {});
 
+        [[nodiscard]] auto is_package() const -> bool;
+
         [[nodiscard]] auto url() const -> const CondaURL&;
         auto clear_url() -> const CondaURL;
         void set_url(CondaURL url);
+
+        [[nodiscard]] auto platform_urls() const -> std::vector<CondaURL>;
+
+        [[nodiscard]] auto platform_url(std::string_view platform) const -> CondaURL;
 
         [[nodiscard]] auto platforms() const -> const platform_list&;
         auto clear_platforms() -> platform_list;
@@ -107,10 +112,6 @@ namespace mamba::specs
         [[nodiscard]] auto is_equivalent_to(const Channel& other) const -> bool;
 
         [[nodiscard]] auto contains_equivalent(const Channel& other) const -> bool;
-
-        [[nodiscard]] auto platform_url(std::string_view platform) const -> CondaURL;
-
-        [[nodiscard]] auto urls(bool with_credential = true) const -> util::flat_set<std::string>;
 
     private:
 

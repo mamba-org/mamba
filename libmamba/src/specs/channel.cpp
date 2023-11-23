@@ -46,6 +46,11 @@ namespace mamba::specs
         m_url.set_path(std::move(p));
     }
 
+    auto Channel::is_package() const -> bool
+    {
+        return !url().package().empty();
+    }
+
     auto Channel::url() const -> const CondaURL&
     {
         return m_url;
@@ -60,6 +65,32 @@ namespace mamba::specs
     {
         m_url = std::move(url);
     }
+
+    auto Channel::platform_urls() const -> std::vector<CondaURL>
+    {
+        if (is_package())
+        {
+            return { url() };
+        }
+
+        auto out = std::vector<CondaURL>();
+        out.reserve(platforms().size());
+        for (const auto& platform : platforms())
+        {
+            out.push_back(platform_url(platform));
+        }
+        return out;
+    }
+
+    auto Channel::platform_url(std::string_view platform) const -> CondaURL
+    {
+        if (is_package())
+        {
+            return url();
+        }
+        return (url() / platform);
+    }
+
 
     auto Channel::platforms() const -> const platform_list&
     {
@@ -113,31 +144,6 @@ namespace mamba::specs
     auto Channel::contains_equivalent(const Channel& other) const -> bool
     {
         return url_equivalent_with(other) && util::set_is_superset_of(platforms(), other.platforms());
-    }
-
-    auto Channel::urls(bool with_credential) const -> util::flat_set<std::string>
-    {
-        auto cred = with_credential ? CondaURL::Credentials::Show : CondaURL::Credentials::Remove;
-        if (!url().package().empty())
-        {
-            return { url().str(cred) };
-        }
-
-        auto out = util::flat_set<std::string>{};
-        for (const auto& platform : platforms())
-        {
-            out.insert(platform_url(platform).str(cred));
-        }
-        return out;
-    }
-
-    auto Channel::platform_url(std::string_view platform) const -> CondaURL
-    {
-        if (!url().package().empty())
-        {
-            return url();
-        }
-        return (url() / platform);
     }
 
     /****************************************

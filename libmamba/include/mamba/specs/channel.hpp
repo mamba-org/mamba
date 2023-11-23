@@ -110,9 +110,6 @@ namespace mamba::specs
 
         [[nodiscard]] auto platform_url(std::string_view platform) const -> CondaURL;
 
-        // The pairs consist of (platform,url)
-        [[nodiscard]] auto platform_urls(bool with_credential = true) const
-            -> util::flat_set<std::pair<std::string, std::string>>;
         [[nodiscard]] auto urls(bool with_credential = true) const -> util::flat_set<std::string>;
 
     private:

@@ -334,11 +334,15 @@ namespace
         {
             for (const auto& chan : pool.channel_context().make_channel(location))
             {
-                for (auto& [platform, url] : chan.platform_urls(true))
+                for (const auto& platform : chan.platforms())
                 {
-                    auto sub_dir = expected_value_or_throw(
-                        MSubdirData::create(pool.channel_context(), chan, platform, url, cache)
-                    );
+                    auto sub_dir = expected_value_or_throw(MSubdirData::create(
+                        pool.channel_context(),
+                        chan,
+                        platform,
+                        chan.platform_url(platform).str(),
+                        cache
+                    ));
                     sub_dirs.push_back(std::move(sub_dir));
                 }
             }

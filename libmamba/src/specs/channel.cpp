@@ -117,34 +117,16 @@ namespace mamba::specs
 
     auto Channel::urls(bool with_credential) const -> util::flat_set<std::string>
     {
+        auto cred = with_credential ? CondaURL::Credentials::Show : CondaURL::Credentials::Remove;
         if (!url().package().empty())
         {
-            return { url().str(
-                with_credential ? CondaURL::Credentials::Show : CondaURL::Credentials::Remove
-            ) };
+            return { url().str(cred) };
         }
 
         auto out = util::flat_set<std::string>{};
-        for (auto& [_, v] : platform_urls(with_credential))
-        {
-            out.insert(v);
-        }
-        return out;
-    }
-
-    auto Channel::platform_urls(bool with_credential) const
-        -> util::flat_set<std::pair<std::string, std::string>>
-    {
-        if (!url().package().empty())
-        {
-            return {};
-        }
-
-        auto cred = with_credential ? CondaURL::Credentials::Show : CondaURL::Credentials::Remove;
-        auto out = util::flat_set<std::pair<std::string, std::string>>{};
         for (const auto& platform : platforms())
         {
-            out.insert({ platform, platform_url(platform).str(cred) });
+            out.insert(platform_url(platform).str(cred));
         }
         return out;
     }

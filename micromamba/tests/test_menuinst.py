@@ -1,27 +1,20 @@
-import json
 import os
-import re
 import shutil
-import subprocess
 import sys
 from pathlib import Path
 
 import pytest
 
-if not sys.platform.startswith("win"):
-    pytest.skip("skipping windows-only tests", allow_module_level=True)
-
-import menuinst
-import win32com.client
-
 from .helpers import create, get_env, get_umamba, random_string, remove, umamba_list
+
+if sys.platform.startswith("win"):
+    import menuinst
+    import win32com.client
 
 
 class TestMenuinst:
     root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
     current_prefix = os.environ["CONDA_PREFIX"]
-
-    dirs = menuinst.win32.dirs_src
 
     @classmethod
     def setup_class(cls):
@@ -31,12 +24,16 @@ class TestMenuinst:
     def teardown_class(cls):
         pass
 
+    @pytest.mark.skipif(
+        not sys.platform.startswith("win"),
+        reason="skipping windows-only tests",
+    )
     def test_simple_shortcut(self):
         env_name = random_string()
         # "--json"
         create("miniforge_console_shortcut=1.0", "-n", env_name, no_dry_run=True)
         prefix = os.path.join(self.root_prefix, "envs", env_name)
-        d = self.dirs["user"]["start"][0]
+        d = menuinst.win32.dirs_src["user"]["start"][0]
         lnk = os.path.join(d, "Miniforge", "Miniforge Prompt (" + env_name + ").lnk")
 
         assert os.path.exists(lnk)
@@ -60,6 +57,10 @@ class TestMenuinst:
         remove("miniforge_console_shortcut", "-n", env_name, no_dry_run=True)
         assert not os.path.exists(lnk)
 
+    @pytest.mark.skipif(
+        not sys.platform.startswith("win"),
+        reason="skipping windows-only tests",
+    )
     def test_shortcut_weird_env(self):
         # note Umlauts do not work yet
         os.environ["MAMBA_ROOT_PREFIX"] = str(Path("./compl i c ted").absolute())
@@ -69,7 +70,7 @@ class TestMenuinst:
         # "--json"
         create("miniforge_console_shortcut=1.0", "-n", env_name, no_dry_run=True)
         prefix = os.path.join(root_prefix, "envs", env_name)
-        d = self.dirs["user"]["start"][0]
+        d = menuinst.win32.dirs_src["user"]["start"][0]
         lnk = os.path.join(d, "Miniforge", "Miniforge Prompt (" + env_name + ").lnk")
 
         assert os.path.exists(lnk)

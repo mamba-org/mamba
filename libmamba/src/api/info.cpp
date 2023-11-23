@@ -167,9 +167,9 @@ namespace mamba
             {
                 for (auto channel : channel_context.make_channel(loc))
                 {
-                    for (auto url : channel.urls(true))
+                    for (auto url : channel.platform_urls())
                     {
-                        channel_urls.push_back(url);
+                        channel_urls.push_back(std::move(url).str());
                     }
                 }
             }

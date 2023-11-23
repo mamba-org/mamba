@@ -378,23 +378,6 @@ namespace mamba
             return max_age;
         }
 
-        bool check_zst(ChannelContext& channel_context, const specs::Channel& channel)
-        {
-            // TODO the list of channels with zst should really be computed only once in
-            // the ChannelContext
-            for (const auto& c : channel_context.context().repodata_has_zst)
-            {
-                for (const auto& chan : channel_context.make_channel(c))
-                {
-                    if (chan.contains_equivalent(channel))
-                    {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-
         fs::u8path get_cache_dir(const fs::u8path& cache_path)
         {
             return cache_path / "cache";
@@ -676,15 +659,7 @@ namespace mamba
         const Context& context = channel_context.context();
         if (!context.offline || forbid_cache(m_repodata_url))
         {
-            if (context.repodata_use_zst)
-            {
-                bool has_zst = m_metadata.has_zst();
-                if (!has_zst)
-                {
-                    has_zst = check_zst(channel_context, channel);
-                    m_metadata.set_zst(has_zst);
-                }
-            }
+            m_metadata.set_zst(m_metadata.has_zst() || channel_context.has_zst(channel));
         }
     }
 

@@ -46,6 +46,11 @@ namespace mamba::specs
         m_url.set_path(std::move(p));
     }
 
+    auto Channel::is_package() const -> bool
+    {
+        return !url().package().empty();
+    }
+
     auto Channel::url() const -> const CondaURL&
     {
         return m_url;
@@ -60,6 +65,32 @@ namespace mamba::specs
     {
         m_url = std::move(url);
     }
+
+    auto Channel::platform_urls() const -> std::vector<CondaURL>
+    {
+        if (is_package())
+        {
+            return { url() };
+        }
+
+        auto out = std::vector<CondaURL>();
+        out.reserve(platforms().size());
+        for (const auto& platform : platforms())
+        {
+            out.push_back(platform_url(platform));
+        }
+        return out;
+    }
+
+    auto Channel::platform_url(std::string_view platform) const -> CondaURL
+    {
+        if (is_package())
+        {
+            return url();
+        }
+        return (url() / platform);
+    }
+
 
     auto Channel::platforms() const -> const platform_list&
     {
@@ -113,50 +144,6 @@ namespace mamba::specs
     auto Channel::contains_equivalent(const Channel& other) const -> bool
     {
         return url_equivalent_with(other) && util::set_is_superset_of(platforms(), other.platforms());
-    }
-
-    auto Channel::urls(bool with_credential) const -> util::flat_set<std::string>
-    {
-        if (!url().package().empty())
-        {
-            return { url().str(
-                with_credential ? CondaURL::Credentials::Show : CondaURL::Credentials::Remove
-            ) };
-        }
-
-        auto out = util::flat_set<std::string>{};
-        for (auto& [_, v] : platform_urls(with_credential))
-        {
-            out.insert(v);
-        }
-        return out;
-    }
-
-    auto Channel::platform_urls(bool with_credential) const
-        -> util::flat_set<std::pair<std::string, std::string>>
-    {
-        if (!url().package().empty())
-        {
-            return {};
-        }
-
-        auto out = util::flat_set<std::pair<std::string, std::string>>{};
-        for (const auto& platform : platforms())
-        {
-            out.insert({ platform, platform_url(platform, with_credential) });
-        }
-        return out;
-    }
-
-    auto Channel::platform_url(std::string_view platform, bool with_credential) const -> std::string
-    {
-        auto cred = with_credential ? CondaURL::Credentials::Show : CondaURL::Credentials::Remove;
-
-        if (!url().package().empty())
-        {
-            return url().str(cred);
-        }
-        return (url() / platform).str(cred);
     }
 
     /****************************************
@@ -324,22 +311,13 @@ namespace mamba::specs
         auto resolve_name_in_custom_channel(
             ChannelSpec&& spec,
             ChannelResolveParamsView params,
-            const Channel& match
+            std::string_view match_name,
+            const Channel& match_chan
+
         ) -> Channel
         {
-            auto url = match.url();
-            // we can have a channel like
-            // testchannel: https://server.com/private/testchannel
-            // where `name == private/testchannel` and we need to join the remaining label part
-            // of the channel (e.g. -c testchannel/mylabel/xyz)
-            // needs to result in https://server.com/private/testchannel/mylabel/xyz
-            std::string combined_name = util::concat_dedup_splits(
-                util::rstrip(url.path(), '/'),
-                util::lstrip(spec.location(), '/'),
-                '/'
-            );
-            url.set_path(combined_name);
-
+            auto url = match_chan.url();
+            url.append_path(util::remove_prefix(spec.location(), match_name));
             set_fallback_credential_from_db(url, params.authentication_db);
             return {
                 /* url= */ std::move(url),
@@ -387,7 +365,9 @@ namespace mamba::specs
             if (auto it = params.custom_channels.find_weaken(spec.location());
                 it != params.custom_channels.cend())
             {
-                return { resolve_name_in_custom_channel(std::move(spec), params, it->second) };
+                return {
+                    resolve_name_in_custom_channel(std::move(spec), params, it->first, it->second)
+                };
             }
 
             if (auto it = params.custom_multichannels.find(spec.location());

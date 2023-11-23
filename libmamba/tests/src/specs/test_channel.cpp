@@ -22,9 +22,9 @@ TEST_SUITE("specs::channel")
     using platform_list = Channel::platform_list;
     using namespace std::literals::string_view_literals;
 
-    TEST_CASE("Channel constructor")
+    TEST_CASE("Channel")
     {
-        SUBCASE("Trailing slash")
+        SUBCASE("Constructor railing slash")
         {
             // Leading slash for empty paths
             for (auto url : {
@@ -32,6 +32,7 @@ TEST_SUITE("specs::channel")
                      "https://repo.mamba.pm"sv,
                  })
             {
+                CAPTURE(url);
                 auto chan = Channel(CondaURL::parse(url), "somename");
                 CHECK_NE(chan.url().str(), mamba::util::rstrip(url, '/'));
             }
@@ -43,8 +44,81 @@ TEST_SUITE("specs::channel")
                      "ftp://mamba.org/some/folder"sv,
                  })
             {
+                CAPTURE(url);
                 auto chan = Channel(CondaURL::parse(url), "somename");
                 CHECK_EQ(chan.url().str(), mamba::util::rstrip(url, '/'));
+            }
+        }
+
+        SUBCASE("Equality")
+        {
+            for (auto raw_url : {
+                     "https://repo.mamba.pm/"sv,
+                     "https://repo.mamba.pm"sv,
+                     "https://repo.mamba.pm/conda-forge/win-64/"sv,
+                     "file:///some/folder/"sv,
+                     "ftp://mamba.org/some/folder"sv,
+                 })
+            {
+                CAPTURE(raw_url);
+
+                auto chan_a = Channel(CondaURL::parse(raw_url), "somename", { "linux-64" });
+                CHECK_EQ(chan_a, chan_a);
+
+                auto chan_b = chan_a;
+                CHECK_EQ(chan_b, chan_a);
+                CHECK_EQ(chan_a, chan_b);
+
+                chan_b = chan_a;
+                chan_b.set_platforms({ "linux-64", "noarch" });
+                CHECK_NE(chan_b, chan_a);
+
+                chan_b = chan_a;
+                chan_b.set_display_name("othername");
+                CHECK_NE(chan_b, chan_a);
+            }
+        }
+
+        SUBCASE("Equivalence")
+        {
+            for (auto raw_url : {
+                     "https://repo.mamba.pm/"sv,
+                     "https://repo.mamba.pm/t/mytoken/"sv,
+                     "https://user:pass@repo.mamba.pm/conda-forge/win-64/"sv,
+                     "file:///some/folder/"sv,
+                     "ftp://mamba.org/some/folder"sv,
+                 })
+            {
+                CAPTURE(raw_url);
+
+                auto url_a = CondaURL::parse(raw_url);
+                auto url_b = url_a;
+                url_b.clear_user();
+                url_b.clear_password();
+                url_b.clear_token();
+                auto chan_a = Channel(url_a, "somename", { "linux-64" });
+                auto chan_b = Channel(url_b, "somename", { "linux-64" });
+
+                // Channel::url_equivalent_with
+                CHECK(chan_a.url_equivalent_with(chan_a));
+                CHECK(chan_b.url_equivalent_with(chan_b));
+                CHECK(chan_a.url_equivalent_with(chan_b));
+                CHECK(chan_b.url_equivalent_with(chan_a));
+
+                // Channel::contains_equivalent
+                CHECK(chan_a.contains_equivalent(chan_a));
+                CHECK(chan_b.contains_equivalent(chan_b));
+                CHECK(chan_a.contains_equivalent(chan_b));
+                CHECK(chan_b.contains_equivalent(chan_a));
+
+                chan_a.set_platforms({ "noarch", "linux-64" });
+                CHECK(chan_a.contains_equivalent(chan_a));
+                CHECK(chan_a.contains_equivalent(chan_b));
+                CHECK_FALSE(chan_b.contains_equivalent(chan_a));
+
+                chan_b.set_platforms({ "osx-64" });
+                CHECK_FALSE(chan_a.contains_equivalent(chan_b));
+                CHECK_FALSE(chan_b.contains_equivalent(chan_a));
             }
         }
     }
@@ -525,8 +599,8 @@ TEST_SUITE("specs::channel")
                 auto channels = Channel::resolve(specs, params);
                 REQUIRE_EQ(channels.size(), 1);
                 const auto& chan = channels.front();
-                // Higher precedence. Unfotunate, but the name must be repeated...
-                CHECK_EQ(chan.url(), CondaURL::parse("ftp://mydomain.net/conda/conda-forge"));
+                // Higher precedence.
+                CHECK_EQ(chan.url(), CondaURL::parse("ftp://mydomain.net/conda"));
                 CHECK_EQ(chan.display_name(), name);
                 CHECK_EQ(chan.platforms(), params.platforms);
             }

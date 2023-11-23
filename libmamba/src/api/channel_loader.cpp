@@ -65,13 +65,13 @@ namespace mamba
         {
             for (auto channel : pool.channel_context().make_channel(location))
             {
-                for (auto& [platform, url] : channel.platform_urls(true))
+                for (const auto& platform : channel.platforms())
                 {
                     auto sdires = MSubdirData::create(
                         pool.channel_context(),
                         channel,
                         platform,
-                        url,
+                        channel.platform_url(platform).str(),
                         package_caches,
                         "repodata.json"
                     );

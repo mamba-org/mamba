@@ -22,28 +22,48 @@ namespace mamba
     public:
 
         using ChannelResolveParams = specs::ChannelResolveParams;
+        using Channel = specs::Channel;
         using channel_list = ChannelResolveParams::channel_list;
 
         /**
          * Create a ChannelContext with a simple parsing of the context options.
+         *
+         * No hardcoded names are added.
+         * Custom channels are treated as aliases rather than the Conda way (the name is not
+         * added at the end of the URL if absent).
          */
         [[nodiscard]] static auto make_simple(Context& ctx) -> ChannelContext;
 
         /**
          * Create a ChannelContext while applying all of Conda context options.
+         *
+         * If not defined, the Conda custom channels "pkgs/main", "pkgs/r", "pkgs/pro",
+         * and "pkgs/msys2" (Windows only) will be added.
+         * If not defined, the Conda custom mutlit channels "defaults" and "local" will
+         * be added.
+         * The function will ensure custom channels names are added at the end of the URLs.
          */
         [[nodiscard]] static auto make_conda_compatible(Context& ctx) -> ChannelContext;
 
         /**
-         * Initialize channel with the paramters as they are.
+         * Initialize channel with the parameters as they are.
+         *
+         * The Context is not parsed.
          */
-        ChannelContext(Context& ctx, ChannelResolveParams params);
+        ChannelContext(Context& ctx, ChannelResolveParams params, std::vector<Channel> has_zst);
 
         auto make_channel(std::string_view name) -> const channel_list&;
 
         [[nodiscard]] auto params() const -> const specs::ChannelResolveParams&;
 
-        [[nodiscard]] auto context() const -> const Context&;
+        [[nodiscard]] auto has_zst(const Channel& chan) const -> bool;
+
+        /**
+         * Return the context.
+         *
+         * @deprecated We aim to remove the capture of the Context.
+         */
+        [[nodiscard, deprecated]] auto context() const -> const Context&;
 
     private:
 
@@ -51,6 +71,7 @@ namespace mamba
 
         ChannelResolveParams m_channel_params;
         ChannelCache m_channel_cache;
+        std::vector<Channel> m_has_zst;
         std::reference_wrapper<const Context> m_context;
     };
 }

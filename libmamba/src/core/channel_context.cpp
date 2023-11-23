@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <tuple>
@@ -167,11 +168,32 @@ namespace mamba
             // make_unique_chan.
             add_simple_params_custom_multichannel(params, ctx);
         }
+
+        auto create_zstd(const Context& ctx, specs::ChannelResolveParams params)
+            -> std::vector<specs::Channel>
+        {
+            auto out = std::vector<specs::Channel>();
+            if (ctx.repodata_use_zst)
+            {
+                out.reserve(ctx.repodata_has_zst.size());
+                for (const auto& loc : ctx.repodata_has_zst)
+                {
+                    auto spec = specs::ChannelSpec::parse(loc);
+                    auto channels = specs::Channel::resolve(std::move(spec), params);
+                    for (auto& chan : channels)
+                    {
+                        out.push_back(std::move(chan));
+                    }
+                }
+            }
+            return out;
+        }
     }
 
-    ChannelContext::ChannelContext(Context& context, ChannelResolveParams params)
+    ChannelContext::ChannelContext(Context& ctx, ChannelResolveParams params, std::vector<Channel> has_zst)
         : m_channel_params(std::move(params))
-        , m_context(context)
+        , m_has_zst(has_zst)
+        , m_context(ctx)
     {
     }
 
@@ -180,7 +202,8 @@ namespace mamba
         auto params = make_simple_params_base(ctx);
         add_simple_params_custom_channel(params, ctx);
         add_simple_params_custom_multichannel(params, ctx);
-        return { ctx, std::move(params) };
+        auto has_zst = create_zstd(ctx, params);
+        return { ctx, std::move(params), std::move(has_zst) };
     }
 
     auto ChannelContext::make_conda_compatible(Context& ctx) -> ChannelContext
@@ -188,7 +211,8 @@ namespace mamba
         auto params = make_simple_params_base(ctx);
         add_conda_params_custom_channel(params, ctx);
         add_conda_params_custom_multichannel(params, ctx);
-        return { ctx, std::move(params) };
+        auto has_zst = create_zstd(ctx, params);
+        return { ctx, std::move(params), has_zst };
     }
 
     auto ChannelContext::make_channel(std::string_view name) -> const channel_list&
@@ -200,7 +224,7 @@ namespace mamba
 
         auto [it, inserted] = m_channel_cache.emplace(
             name,
-            specs::Channel::resolve(specs::ChannelSpec::parse(name), params())
+            Channel::resolve(specs::ChannelSpec::parse(name), params())
         );
         assert(inserted);
         return it->second;
@@ -209,6 +233,18 @@ namespace mamba
     auto ChannelContext::params() const -> const specs::ChannelResolveParams&
     {
         return m_channel_params;
+    }
+
+    auto ChannelContext::has_zst(const Channel& chan) const -> bool
+    {
+        for (const auto& zst_chan : m_has_zst)
+        {
+            if (zst_chan.contains_equivalent(chan))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     auto ChannelContext::context() const -> const Context&

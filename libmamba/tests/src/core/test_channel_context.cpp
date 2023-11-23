@@ -94,6 +94,13 @@ TEST_SUITE("ChannelContext")
                 );
             }
         }
+
+        SUBCASE("Has zst")
+        {
+            const auto& chans = chan_ctx.make_channel("https://conda.anaconda.org/conda-forge");
+            REQUIRE_EQ(chans.size(), 1);
+            CHECK(chan_ctx.has_zst(chans.at(0)));
+        }
     }
 
     TEST_CASE("make_conda_compatible override")
@@ -392,6 +399,48 @@ TEST_SUITE("ChannelContext")
                         "https://otherdomain.com/snakepit",
                     }
                 );
+            }
+        }
+
+        SUBCASE("Has zst")
+        {
+            ctx.repodata_has_zst = { "https://otherdomain.com/conda-forge[noarch,linux-64]" };
+
+            SUBCASE("enabled")
+            {
+                ctx.repodata_use_zst = true;
+                auto chan_ctx = ChannelContext::make_simple(ctx);
+
+                {
+                    const auto& chans = chan_ctx.make_channel(
+                        "https://otherdomain.com/conda-forge[noarch]"
+                    );
+                    REQUIRE_EQ(chans.size(), 1);
+                    CHECK(chan_ctx.has_zst(chans.at(0)));
+                }
+                {
+                    const auto& chans = chan_ctx.make_channel(
+                        "https://otherdomain.com/conda-forge[win-64]"
+                    );
+                    REQUIRE_EQ(chans.size(), 1);
+                    CHECK_FALSE(chan_ctx.has_zst(chans.at(0)));
+                }
+                {
+                    const auto& chans = chan_ctx.make_channel("https://conda.anaconda.org/conda-forge"
+                    );
+                    REQUIRE_EQ(chans.size(), 1);
+                    CHECK_FALSE(chan_ctx.has_zst(chans.at(0)));
+                }
+            }
+
+            SUBCASE("disabled")
+            {
+                ctx.repodata_use_zst = false;
+                auto chan_ctx = ChannelContext::make_simple(ctx);
+
+                const auto& chans = chan_ctx.make_channel("https://otherdomain.com/conda-forge");
+                REQUIRE_EQ(chans.size(), 1);
+                CHECK_FALSE(chan_ctx.has_zst(chans.at(0)));
             }
         }
     }

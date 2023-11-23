@@ -22,6 +22,7 @@ namespace mamba
     public:
 
         using ChannelResolveParams = specs::ChannelResolveParams;
+        using Channel = specs::Channel;
         using channel_list = ChannelResolveParams::channel_list;
 
         /**
@@ -49,11 +50,13 @@ namespace mamba
          *
          * The Context is not parsed.
          */
-        ChannelContext(Context& ctx, ChannelResolveParams params);
+        ChannelContext(Context& ctx, ChannelResolveParams params, std::vector<Channel> has_zst);
 
         auto make_channel(std::string_view name) -> const channel_list&;
 
         [[nodiscard]] auto params() const -> const specs::ChannelResolveParams&;
+
+        [[nodiscard]] auto has_zst(const Channel& chan) const -> bool;
 
         /**
          * Return the context.
@@ -68,6 +71,7 @@ namespace mamba
 
         ChannelResolveParams m_channel_params;
         ChannelCache m_channel_cache;
+        std::vector<Channel> m_has_zst;
         std::reference_wrapper<const Context> m_context;
     };
 }

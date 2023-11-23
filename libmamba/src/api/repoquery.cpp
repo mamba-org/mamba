@@ -87,7 +87,7 @@ namespace mamba
                         std::cout << res.json(pool.channel_context()).dump(4);
                         break;
                     case QueryResultFormat::kPRETTY:
-                        res.pretty(std::cout);
+                        res.pretty(std::cout, ctx.output_params);
                         break;
                     default:
                         res.groupby("name").table(std::cout);

@@ -7,6 +7,7 @@
 #include <iostream>
 #include <sstream>
 #include <stack>
+#include <unordered_set>
 
 #include <fmt/chrono.h>
 #include <fmt/color.h>
@@ -157,44 +158,29 @@ namespace mamba
 
     namespace
     {
-        auto print_solvable(const PackageInfo& pkg, const std::vector<PackageInfo>& otherBuilds)
-        {
-            std::map<std::string, std::vector<PackageInfo>> buildsByVersion;
-            auto numOtherBuildsForLatestVersion = 0;
-            for (const auto& p : otherBuilds)
-            {
-                if (p.version != pkg.version)
-                {
-                    buildsByVersion[p.version].push_back(p);
-                }
-                else
-                {
-                    ++numOtherBuildsForLatestVersion;
-                }
-            }
-            auto out = Console::stream();
-            std::string additionalBuilds = "";
-            if (numOtherBuildsForLatestVersion > 0)
-            {
-                additionalBuilds = fmt::format(" (+ {} builds)", numOtherBuildsForLatestVersion);
-            }
-            std::string header = fmt::format("{} {} {}", pkg.name, pkg.version, pkg.build_string)
-                                 + additionalBuilds;
-            fmt::print(out, "{:^40}\n{:_^{}}\n\n", header, "", header.size() > 40 ? header.size() : 40);
 
-            static constexpr const char* fmtstring = "  {:<15} {}\n";
+        /**
+         * Prints metadata for a given package.
+         */
+        auto print_metadata(std::ostream& out, const PackageInfo& pkg)
+        {
+            static constexpr const char* fmtstring = " {:<15} {}\n";
             fmt::print(out, fmtstring, "Name", pkg.name);
             fmt::print(out, fmtstring, "Version", pkg.version);
             fmt::print(out, fmtstring, "Build", pkg.build_string);
-            fmt::print(out, "  {:<15} {} kB\n", "Size", pkg.size / 1000);
+            fmt::print(out, " {:<15} {} kB\n", "Size", pkg.size / 1000);
             fmt::print(out, fmtstring, "License", pkg.license);
             fmt::print(out, fmtstring, "Subdir", pkg.subdir);
             fmt::print(out, fmtstring, "File Name", pkg.fn);
 
-            std::string url_remaining, url_scheme, url_auth, url_token;
-            util::split_scheme_auth_token(pkg.url, url_remaining, url_scheme, url_auth, url_token);
-
-            fmt::print(out, "  {:<15} {}://{}\n", "URL", url_scheme, url_remaining);
+            using CondaURL = typename specs::CondaURL;
+            auto url = CondaURL::parse(pkg.url);
+            fmt::print(
+                out,
+                " {:<15} {}\n",
+                "URL",
+                url.pretty_str(CondaURL::StripScheme::no, '/', CondaURL::HideConfidential::yes)
+            );
 
             fmt::print(out, fmtstring, "MD5", pkg.md5.empty() ? "Not available" : pkg.md5);
             fmt::print(out, fmtstring, "SHA256", pkg.sha256.empty() ? "Not available" : pkg.sha256);
@@ -223,42 +209,138 @@ namespace mamba
                     fmt::print(out, "  - {}\n", d);
                 }
             }
+        }
 
-            if (!buildsByVersion.empty())
+        /**
+         * Prints all other versions/builds in a table format for a given package.
+         */
+        auto print_other_builds(
+            std::ostream& out,
+            const PackageInfo& pkg,
+            const std::map<std::string, std::vector<PackageInfo>> groupedOtherBuilds,
+            bool showAllBuilds
+        )
+        {
+            fmt::print(
+                out,
+                "\n Other {} ({}):\n\n",
+                showAllBuilds ? "Builds" : "Versions",
+                groupedOtherBuilds.size()
+            );
+
+            std::stringstream buffer;
+
+            using namespace printers;
+            Table printer({ "Version", "Build", "", "" });
+            printer.set_alignment(
+                { alignment::left, alignment::left, alignment::left, alignment::right }
+            );
+            bool collapseVersions = !showAllBuilds && groupedOtherBuilds.size() > 5;
+            size_t counter = 0;
+            // We want the newest version to be on top, therefore we iterate in reverse.
+            for (auto it = groupedOtherBuilds.rbegin(); it != groupedOtherBuilds.rend(); it++)
             {
-                fmt::print(out, "\n Other Versions ({}):\n\n", buildsByVersion.size());
-
-                std::stringstream buffer;
-
-                using namespace printers;
-                Table printer({ "Version", "Build", "", "" });
-                printer.set_alignment(
-                    { alignment::left, alignment::left, alignment::left, alignment::right }
-                );
-                // We want the newest version to be on top, therefore we iterate in reverse.
-                for (auto it = buildsByVersion.rbegin(); it != buildsByVersion.rend(); it++)
+                ++counter;
+                if (collapseVersions)
                 {
-                    std::vector<FormattedString> row;
-                    row.push_back(it->second.front().version);
-                    row.push_back(it->second.front().build_string);
-                    if (it->second.size() > 1)
+                    if (counter == 3)
                     {
-                        row.push_back("(+");
-                        row.push_back(fmt::format("{} builds)", it->second.size() - 1));
+                        printer.add_row(
+                            { "...",
+                              fmt::format("({} hidden versions)", groupedOtherBuilds.size() - 4),
+                              "",
+                              "..." }
+                        );
+                        continue;
                     }
-                    else
+                    else if (counter > 3 && counter < groupedOtherBuilds.size() - 1)
                     {
-                        row.push_back("");
-                        row.push_back("");
+                        continue;
                     }
-                    printer.add_row(row);
                 }
-                printer.print(buffer);
-                std::string line;
-                while (std::getline(buffer, line))
+
+                std::vector<FormattedString> row;
+                row.push_back(it->second.front().version);
+                row.push_back(it->second.front().build_string);
+                if (it->second.size() > 1)
                 {
-                    out << "  " << line << std::endl;
+                    row.push_back("(+");
+                    row.push_back(fmt::format("{} builds)", it->second.size() - 1));
                 }
+                else
+                {
+                    row.push_back("");
+                    row.push_back("");
+                }
+                printer.add_row(row);
+            }
+            printer.print(buffer);
+            std::string line;
+            while (std::getline(buffer, line))
+            {
+                out << " " << line << std::endl;
+            }
+        }
+
+        /**
+         * Prints detailed information about a given package, including a list of other
+         * versions/builds.
+         */
+        auto print_solvable(
+            std::ostream& out,
+            const PackageInfo& pkg,
+            const std::vector<PackageInfo>& otherBuilds,
+            bool showAllBuilds
+        )
+        {
+            // Filter and group builds/versions.
+            std::map<std::string, std::vector<PackageInfo>> groupedOtherBuilds;
+            auto numOtherBuildsForLatestVersion = 0;
+            if (showAllBuilds)
+            {
+                for (const auto& p : otherBuilds)
+                {
+                    if (p.sha256 != pkg.sha256)
+                    {
+                        groupedOtherBuilds[p.version + p.sha256].push_back(p);
+                    }
+                }
+            }
+            else
+            {
+                std::unordered_set<std::string> distinctBuildSHAs;
+                for (const auto& p : otherBuilds)
+                {
+                    if (distinctBuildSHAs.insert(p.sha256).second)
+                    {
+                        if (p.version != pkg.version)
+                        {
+                            groupedOtherBuilds[p.version].push_back(p);
+                        }
+                        else
+                        {
+                            ++numOtherBuildsForLatestVersion;
+                        }
+                    }
+                }
+            }
+
+            // Construct and print header line.
+            std::string additionalBuilds;
+            if (numOtherBuildsForLatestVersion > 0)
+            {
+                additionalBuilds = fmt::format(" (+ {} builds)", numOtherBuildsForLatestVersion);
+            }
+            std::string header = fmt::format("{} {} {}", pkg.name, pkg.version, pkg.build_string)
+                                 + additionalBuilds;
+            fmt::print(out, "{:^40}\n{:─^{}}\n\n", header, "", header.size() > 40 ? header.size() : 40);
+
+            // Print metadata.
+            print_metadata(out, pkg);
+
+            if (!groupedOtherBuilds.empty())
+            {
+                print_other_builds(out, pkg, groupedOtherBuilds, showAllBuilds);
             }
 
             out << '\n';
@@ -596,12 +678,16 @@ namespace mamba
         if (!m_ordered_pkg_id_list.empty())
         {
             std::map<std::string, std::map<std::string, std::vector<PackageInfo>>> packageBuildsByVersion;
+            std::unordered_set<std::string> distinctBuildSHAs;
             for (auto& entry : m_ordered_pkg_id_list)
             {
                 for (const auto& id : entry.second)
                 {
                     auto package = m_dep_graph.node(id);
-                    packageBuildsByVersion[package.name][package.version].push_back(package);
+                    if (distinctBuildSHAs.insert(package.sha256).second)
+                    {
+                        packageBuildsByVersion[package.name][package.version].push_back(package);
+                    }
                 }
             }
 
@@ -786,7 +872,8 @@ namespace mamba
         return j;
     }
 
-    std::ostream& query_result::pretty(std::ostream& out) const
+    std::ostream&
+    query_result::pretty(std::ostream& out, const Context::OutputParams& outputParams) const
     {
         if (m_pkg_id_list.empty())
         {
@@ -801,11 +888,14 @@ namespace mamba
                 packages[package.name].push_back(package);
             }
 
+            auto out = Console::stream();
             for (const auto& entry : packages)
             {
                 print_solvable(
+                    out,
                     entry.second[0],
-                    std::vector(entry.second.begin() + 1, entry.second.end())
+                    std::vector(entry.second.begin() + 1, entry.second.end()),
+                    outputParams.verbosity > 0
                 );
             }
         }

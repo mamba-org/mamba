@@ -108,8 +108,8 @@ namespace mamba::specs
 
         [[nodiscard]] auto contains_equivalent(const Channel& other) const -> bool;
 
-        [[nodiscard]] auto
-        platform_url(std::string_view platform, bool with_credential = true) const -> std::string;
+        [[nodiscard]] auto platform_url(std::string_view platform) const -> CondaURL;
+
         // The pairs consist of (platform,url)
         [[nodiscard]] auto platform_urls(bool with_credential = true) const
             -> util::flat_set<std::pair<std::string, std::string>>;

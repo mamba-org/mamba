@@ -140,23 +140,22 @@ namespace mamba::specs
             return {};
         }
 
+        auto cred = with_credential ? CondaURL::Credentials::Show : CondaURL::Credentials::Remove;
         auto out = util::flat_set<std::pair<std::string, std::string>>{};
         for (const auto& platform : platforms())
         {
-            out.insert({ platform, platform_url(platform, with_credential) });
+            out.insert({ platform, platform_url(platform).str(cred) });
         }
         return out;
     }
 
-    auto Channel::platform_url(std::string_view platform, bool with_credential) const -> std::string
+    auto Channel::platform_url(std::string_view platform) const -> CondaURL
     {
-        auto cred = with_credential ? CondaURL::Credentials::Show : CondaURL::Credentials::Remove;
-
         if (!url().package().empty())
         {
-            return url().str(cred);
+            return url();
         }
-        return (url() / platform).str(cred);
+        return (url() / platform);
     }
 
     /****************************************

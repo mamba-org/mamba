@@ -169,7 +169,7 @@ namespace mamba
         // If someone wrote multichannel names in repodata_record, we don't know which one is the
         // correct URL. This is must never happen!
         assert(channels.size() == 1);
-        prec.channel = channels.front().platform_url(prec.subdir);
+        prec.channel = channels.front().platform_url(prec.subdir).str();
         m_package_records.insert({ prec.name, std::move(prec) });
     }
 }  // namespace mamba

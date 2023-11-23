@@ -378,10 +378,7 @@ PYBIND11_MODULE(bindings, m)
                         res.groupby("name").table(res_stream);
                         break;
                     case query::PRETTY:
-                        res.groupby("name").pretty(
-                            res_stream,
-                            mambapy::singletons.context().output_params
-                        );
+                        res.groupby("name").pretty(res_stream);
                 }
                 if (res.empty() && format != query::JSON)
                 {

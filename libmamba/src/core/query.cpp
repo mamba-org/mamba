@@ -173,15 +173,10 @@ namespace mamba
             fmt::print(out, fmtstring, "Subdir", pkg.subdir);
             fmt::print(out, fmtstring, "File Name", pkg.fn);
 
-            using CondaURL = typename specs::CondaURL;
-            auto url = CondaURL::parse(pkg.url);
-            fmt::print(
-                out,
-                " {:<15} {}\n",
-                "URL",
-                url.pretty_str(CondaURL::StripScheme::no, '/', CondaURL::HideConfidential::yes)
-            );
+            std::string url_remaining, url_scheme, url_auth, url_token;
+            util::split_scheme_auth_token(pkg.url, url_remaining, url_scheme, url_auth, url_token);
 
+            fmt::print(out, " {:<15} {}://{}\n", "URL", url_scheme, url_remaining);
             fmt::print(out, fmtstring, "MD5", pkg.md5.empty() ? "Not available" : pkg.md5);
             fmt::print(out, fmtstring, "SHA256", pkg.sha256.empty() ? "Not available" : pkg.sha256);
             if (!pkg.track_features.empty())
@@ -872,8 +867,7 @@ namespace mamba
         return j;
     }
 
-    std::ostream&
-    query_result::pretty(std::ostream& out, const Context::OutputParams& outputParams) const
+    std::ostream& query_result::pretty(std::ostream& out) const
     {
         if (m_pkg_id_list.empty())
         {
@@ -887,15 +881,13 @@ namespace mamba
                 auto package = m_dep_graph.node(id);
                 packages[package.name].push_back(package);
             }
-
-            auto out = Console::stream();
             for (const auto& entry : packages)
             {
                 print_solvable(
                     out,
                     entry.second[0],
                     std::vector(entry.second.begin() + 1, entry.second.end()),
-                    outputParams.verbosity > 0
+                    Context::instance().output_params.verbosity > 0
                 );
             }
         }

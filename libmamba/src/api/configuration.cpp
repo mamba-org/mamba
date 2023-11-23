@@ -884,43 +884,6 @@ namespace mamba
             return paths;
         }
 
-        void custom_channels_hook(std::map<std::string, std::string>& custom_channels)
-        {
-            // Hard coded Anaconda channels names.
-            // This will not redefine them if the user has already defined these keys.
-            custom_channels.emplace("pkgs/main", "https://repo.anaconda.com/pkgs/main");
-            custom_channels.emplace("pkgs/r", "https://repo.anaconda.com/pkgs/r");
-            custom_channels.emplace("pkgs/pro", "https://repo.anaconda.com/pkgs/pro");
-            if (util::on_win)
-            {
-                custom_channels.emplace("pkgs/msys2", "https://repo.anaconda.com/pkgs/msys2");
-            }
-        }
-
-        void custom_multichannels_hook(
-            const Context& context,
-            std::map<std::string, std::vector<std::string>>& custom_multichannels
-        )
-        {
-            custom_multichannels.emplace("defaults", context.default_channels);
-
-            auto local_channels = std::vector<std::string>();
-            local_channels.reserve(3);
-            for (auto p : {
-                     context.prefix_params.target_prefix / "conda-bld",
-                     context.prefix_params.root_prefix / "conda-bld",
-                     fs::u8path(util::user_home_dir()) / "conda-bld",
-                 })
-            {
-                if (fs::exists(p))
-                {
-                    local_channels.push_back(std::move(p));
-                }
-            }
-
-            custom_multichannels.emplace("local", std::move(local_channels));
-        }
-
         void pkgs_dirs_hook(std::vector<fs::u8path>& dirs)
         {
             for (auto& d : dirs)
@@ -1315,11 +1278,7 @@ namespace mamba
                    .description("Custom channels")
                    .long_description(  //
                        "A dictionary with name: url to use for custom channels.\n"
-                       "If not defined, the Conda special names "
-                       R"("pkgs/main", "pkgs/r", "pkgs/pro", and "pkgs/msys2" (Windows only) )"
-                       "will be added."
-                   )
-                   .set_post_merge_hook(detail::custom_channels_hook));
+                   ));
 
         insert(Configurable("custom_multichannels", &m_context.custom_multichannels)
                    .group("Channels")
@@ -1328,14 +1287,8 @@ namespace mamba
                    .long_description(  //
                        "A dictionary where keys are multi channels names, and values are a list "
                        "of correspinding names / urls / file paths to use.\n"
-                       R"(If not defined, the Conda special mutli channels "defaults" is added )"
-                       R"(with values from the "default_channels" option, and "local" is added )"
-                       R"(with "~/conda-bld" and target and root prefix "conda-bld" subfolders/)"
                    )
-                   .needs({ "default_channels", "target_prefix", "root_prefix" })
-                   .set_post_merge_hook<std::map<std::string, std::vector<std::string>>>(
-                       [this](auto& val) { detail::custom_multichannels_hook(m_context, val); }
-                   ));
+                   .needs({ "default_channels", "target_prefix", "root_prefix" }));
 
         insert(Configurable("override_channels_enabled", &m_context.override_channels_enabled)
                    .group("Channels")

@@ -20,7 +20,7 @@
 
 #include "nlohmann/json.hpp"
 
-#include "compression.hpp"
+#include "../download/compression.hpp"
 
 namespace mamba
 {

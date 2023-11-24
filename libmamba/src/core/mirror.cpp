@@ -11,7 +11,7 @@
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
-#include "curl.hpp"
+#include "../download/curl.hpp"
 
 namespace mamba
 {

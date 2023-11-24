@@ -196,16 +196,18 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/validation/update_framework_v0_6.cpp
     ${LIBMAMBA_SOURCE_DIR}/validation/update_framework_v1.cpp
     ${LIBMAMBA_SOURCE_DIR}/validation/repo_checker.cpp
-    # C++ wrapping of libcurl
-    ${LIBMAMBA_SOURCE_DIR}/core/curl.cpp
-    # C++ wrapping of compression libs (zstd and bzlib)
-    ${LIBMAMBA_SOURCE_DIR}/core/compression.cpp
+    # Implementation of downloaders and mirrors
+    ${LIBMAMBA_SOURCE_DIR}/download/compression.hpp
+    ${LIBMAMBA_SOURCE_DIR}/download/compression.cpp
+    ${LIBMAMBA_SOURCE_DIR}/download/curl.hpp
+    ${LIBMAMBA_SOURCE_DIR}/download/curl.cpp
+    ${LIBMAMBA_SOURCE_DIR}/download/downloader_impl.hpp
+    ${LIBMAMBA_SOURCE_DIR}/download/downloader.cpp
     # Core API (low-level)
     ${LIBMAMBA_SOURCE_DIR}/core/singletons.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/activation.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/channel_context.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/context.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/download.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/download_progress_bar.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/environments_manager.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/error_handling.cpp
@@ -325,7 +327,6 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/channel_context.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/palette.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/context.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/download.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/download_progress_bar.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/environments_manager.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/error_handling.hpp
@@ -388,10 +389,6 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solver.hpp
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/repo.hpp
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/transaction.hpp
-    # C++ wrapping of compression libs (zstd and bzlib)
-    ${LIBMAMBA_SOURCE_DIR}/core/compression.hpp
-    # C++ wrapping of libcurl
-    ${LIBMAMBA_SOURCE_DIR}/core/curl.hpp
 )
 
 # Targets and link

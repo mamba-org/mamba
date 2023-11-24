@@ -4,7 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/download.hpp"
+#include "mamba/download/downloader.hpp"
 #include "mamba/core/invoke.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
@@ -17,7 +17,7 @@
 #include "mamba/util/url_manip.hpp"
 
 #include "curl.hpp"
-#include "download_impl.hpp"
+#include "downloader_impl.hpp"
 
 namespace mamba
 {

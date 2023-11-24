@@ -9,11 +9,11 @@
 
 #include <functional>
 
-#include "mamba/core/download.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/package_handling.hpp"
+#include "mamba/core/package_info.hpp"
 #include "mamba/core/thread_utils.hpp"
-#include "mamba/specs/package_info.hpp"
+#include "mamba/download/downloader.hpp"
 
 namespace mamba
 {

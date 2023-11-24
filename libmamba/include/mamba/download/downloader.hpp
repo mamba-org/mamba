@@ -4,8 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef MAMBA_CORE_DOWNLOAD_HPP
-#define MAMBA_CORE_DOWNLOAD_HPP
+#ifndef MAMBA_DL_DOWNLOADER_HPP
+#define MAMBA_DL_DOWNLOADER_HPP
 
 #include <functional>
 #include <optional>

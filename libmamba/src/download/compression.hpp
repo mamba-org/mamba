@@ -4,8 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef MAMBA_COMPRESSION_HPP
-#define MAMBA_COMPRESSION_HPP
+#ifndef MAMBA_DL_COMPRESSION_HPP
+#define MAMBA_DL_COMPRESSION_HPP
 
 #include <bzlib.h>
 #include <zstd.h>

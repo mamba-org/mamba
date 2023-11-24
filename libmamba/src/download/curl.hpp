@@ -4,8 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef MAMBA_CURL_HPP
-#define MAMBA_CURL_HPP
+#ifndef MAMBA_DL_CURL_HPP
+#define MAMBA_DL_CURL_HPP
 
 #include <map>
 #include <optional>

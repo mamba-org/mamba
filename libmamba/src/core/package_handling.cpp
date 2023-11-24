@@ -18,9 +18,8 @@
 #include "mamba/util/string.hpp"
 #include "mamba/validation/tools.hpp"
 
+#include "../download/compression.hpp"
 #include "nlohmann/json.hpp"
-
-#include "compression.hpp"
 
 namespace mamba
 {

@@ -11,6 +11,7 @@
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/subdirdata.hpp"
+#include "mamba/download/downloader.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
 
 namespace mamba
@@ -111,6 +112,8 @@ namespace mamba
                         ctx,
                         pool.channel_context(),
                         channel,
+                        //                        platform,
+                        //                        channel.platform_url(platform).str(specs::CondaURL::Credentials::Show),
                         package_caches,
                         subdirs,
                         error_list,

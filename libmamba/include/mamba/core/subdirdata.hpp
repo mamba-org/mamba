@@ -12,10 +12,10 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-#include "mamba/core/download.hpp"
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/download/downloader.hpp"
 #include "mamba/fs/filesystem.hpp"
 
 namespace mamba

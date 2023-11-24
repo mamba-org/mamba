@@ -60,13 +60,14 @@ set(
     src/validation/test_tools.cpp
     src/validation/test_update_framework_v0_6.cpp
     src/validation/test_update_framework_v1.cpp
-    # The un-triaged rest
+    # Implementation of downloaders and mirrors
+    src/download/test_downloader.cpp
+    # Core tests
     ../longpath.manifest
     src/core/test_activation.cpp
     src/core/test_channel_context.cpp
     src/core/test_configuration.cpp
     src/core/test_cpp.cpp
-    src/core/test_downloader.cpp
     src/core/test_env_file_reading.cpp
     src/core/test_environments_manager.cpp
     src/core/test_history.cpp

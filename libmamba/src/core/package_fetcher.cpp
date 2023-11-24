@@ -133,13 +133,13 @@ namespace mamba
         return m_needs_extract;
     }
 
-    DownloadRequest
+    download::Request
     PackageFetcher::build_download_request(std::optional<post_download_success_t> callback)
     {
-        DownloadRequest request(name(), url(), m_tarball_path.string());
+        download::Request request(name(), download::MirrorName(""), url(), m_tarball_path.string());
         request.expected_size = expected_size();
 
-        request.on_success = [this, cb = std::move(callback)](const DownloadSuccess& success)
+        request.on_success = [this, cb = std::move(callback)](const download::Success& success)
         {
             LOG_INFO << "Download finished, tarball available at '" << m_tarball_path.string() << "'";
             if (cb.has_value())
@@ -150,7 +150,7 @@ namespace mamba
             return expected_t<void>();
         };
 
-        request.on_failure = [](const DownloadError& error)
+        request.on_failure = [](const download::Error& error)
         {
             if (error.transfer.has_value())
             {

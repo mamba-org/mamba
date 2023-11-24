@@ -10,7 +10,7 @@
 
 #include "compression.hpp"
 
-namespace mamba
+namespace mamba::download
 {
     /*********************
      * CompressionStream *

@@ -781,8 +781,13 @@ namespace mamba
         {
             LOG_INFO << "Downloading lockfile";
             tmp_lock_file = std::make_unique<TemporaryFile>();
-            DownloadRequest request("Environment Lockfile", lockfile, tmp_lock_file->path());
-            DownloadResult res = download(std::move(request), ctx);
+            download::Request request(
+                "Environment Lockfile",
+                download::MirrorName(""),
+                lockfile,
+                tmp_lock_file->path()
+            );
+            download::Result res = download::download(std::move(request), ctx.mirrors, ctx);
 
             if (!res || res.value().transfer.http_status != 200)
             {

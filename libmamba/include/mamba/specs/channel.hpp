@@ -109,6 +109,12 @@ namespace mamba::specs
         auto clear_platforms() -> platform_list;
         void set_platforms(platform_list platforms);
 
+        /*
+         * This ID is a cross URL id, and is dependent on the
+         * channel_alias when the channel has not been specified in
+         * the new mirrord_channel section of the configuration.
+         */
+        [[nodiscard]] auto id() const -> const std::string&;
         [[nodiscard]] auto display_name() const -> const std::string&;
         auto clear_display_name() -> std::string;
         void set_display_name(std::string display_name);
@@ -134,6 +140,7 @@ namespace mamba::specs
 
         std::vector<CondaURL> m_mirror_urls;
         std::string m_display_name;
+        std::string m_id;
         util::flat_set<std::string> m_platforms;
     };
 

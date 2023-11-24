@@ -85,7 +85,7 @@ namespace mamba
         bool needs_download() const;
         bool needs_extract() const;
 
-        DownloadRequest
+        download::Request
         build_download_request(std::optional<post_download_success_t> callback = std::nullopt);
         ValidationResult
         validate(std::size_t downloaded_size, progress_callback_t* cb = nullptr) const;

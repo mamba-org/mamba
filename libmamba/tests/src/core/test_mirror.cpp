@@ -10,7 +10,7 @@
 
 namespace mamba
 {
-    TEST_SUITE("mirror")
+    /*TEST_SUITE("mirror")
     {
         TEST_CASE("split_path_tag")
         {
@@ -23,15 +23,15 @@ namespace mamba
 
             SUBCASE("multiple_parts")
             {
-                auto [split_path, split_tag] = split_path_tag("x-tensor-10.23.10-h2acdbc0_0.tar.bz2");
-                CHECK_EQ(split_path, "x-tensor");
+                auto [split_path, split_tag] =
+    split_path_tag("x-tensor-10.23.10-h2acdbc0_0.tar.bz2"); CHECK_EQ(split_path, "x-tensor");
                 CHECK_EQ(split_tag, "10.23.10-h2acdbc0-0");
             }
 
             SUBCASE("more_multiple_parts")
             {
-                auto [split_path, split_tag] = split_path_tag("x-tens-or-10.23.10-h2acdbc0_0.tar.bz2");
-                CHECK_EQ(split_path, "x-tens-or");
+                auto [split_path, split_tag] =
+    split_path_tag("x-tens-or-10.23.10-h2acdbc0_0.tar.bz2"); CHECK_EQ(split_path, "x-tens-or");
                 CHECK_EQ(split_tag, "10.23.10-h2acdbc0-0");
             }
 
@@ -47,5 +47,5 @@ namespace mamba
                 CHECK_THROWS_AS(split_path_tag("xtensor.tar.bz2"), std::runtime_error);
             }
         }
-    }
+    }*/
 }

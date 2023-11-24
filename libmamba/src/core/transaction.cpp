@@ -701,14 +701,14 @@ namespace mamba
 
         using ExtractTrackerList = std::vector<std::future<PackageExtractTask::Result>>;
 
-        MultiDownloadRequest build_download_requests(
+        download::MultiRequest build_download_requests(
             FetcherList& fetchers,
             ExtractTaskList& extract_tasks,
             ExtractTrackerList& extract_trackers,
             std::size_t download_size
         )
         {
-            MultiDownloadRequest download_requests;
+            download::MultiRequest download_requests;
             download_requests.reserve(download_size);
             for (auto [fit, eit] = std::tuple{ fetchers.begin(), extract_tasks.begin() };
                  fit != fetchers.begin() + static_cast<std::ptrdiff_t>(download_size);
@@ -751,13 +751,13 @@ namespace mamba
         }
 
         bool trigger_download(
-            MultiDownloadRequest requests,
+            download::MultiRequest requests,
             const Context& context,
-            DownloadOptions options,
+            download::Options options,
             PackageDownloadMonitor* monitor
         )
         {
-            auto result = download(std::move(requests), context, options, monitor);
+            auto result = download::download(std::move(requests), context.mirrors, context, options, monitor);
             bool all_downloaded = std::all_of(
                 result.begin(),
                 result.end(),
@@ -814,7 +814,7 @@ namespace mamba
         ExtractTaskList extract_tasks = build_extract_tasks(ctx, fetchers, extract_size);
         ExtractTrackerList extract_trackers;
         extract_trackers.reserve(extract_tasks.size());
-        MultiDownloadRequest download_requests = build_download_requests(
+        download::MultiRequest download_requests = build_download_requests(
             fetchers,
             extract_tasks,
             extract_trackers,
@@ -822,7 +822,7 @@ namespace mamba
         );
 
         std::unique_ptr<PackageDownloadMonitor> monitor = nullptr;
-        DownloadOptions download_options{ true, true };
+        download::Options download_options{ true, true };
         if (PackageDownloadMonitor::can_monitor(ctx))
         {
             monitor = std::make_unique<PackageDownloadMonitor>();

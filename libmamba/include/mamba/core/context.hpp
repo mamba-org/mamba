@@ -15,6 +15,7 @@
 #include "mamba/core/common_types.hpp"
 #include "mamba/core/palette.hpp"
 #include "mamba/core/tasksync.hpp"
+#include "mamba/download/mirror_map.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/authentication_info.hpp"
 #include "mamba/specs/platform.hpp"
@@ -229,6 +230,11 @@ namespace mamba
 
         bool repodata_use_zst = true;
         std::vector<std::string> repodata_has_zst = { "https://conda.anaconda.org/conda-forge" };
+
+        // Should not be stored here
+        // Notice that we cannot build this map directly from mirrored_channels,
+        // since we need to add a single "mirror" for non mirrored channels
+        download::mirror_map mirrors;
 
         Context(const Context&) = delete;
         Context& operator=(const Context&) = delete;

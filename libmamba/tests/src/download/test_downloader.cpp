@@ -17,8 +17,9 @@ namespace mamba
         TEST_CASE("file_does_not_exist")
         {
 #ifdef __linux__
-            DownloadRequest request(
+            download::Request request(
                 "test",
+                download::MirrorName(""),
                 "file:///nonexistent/repodata.json",
                 "test_download_repodata.json",
                 false,
@@ -28,9 +29,9 @@ namespace mamba
             const auto previous_quiet = context.output_params.quiet;
             auto _ = on_scope_exit([&] { context.output_params.quiet = previous_quiet; });
 
-            MultiDownloadRequest dl_request{ std::vector{ std::move(request) } };
+            download::MultiRequest dl_request{ std::vector{ std::move(request) } };
             context.output_params.quiet = true;
-            MultiDownloadResult res = download(dl_request, context);
+            download::MultiResult res = download::download(dl_request, context.mirrors, context);
             CHECK_EQ(res.size(), std::size_t(1));
             CHECK(!res[0]);
             CHECK_EQ(res[0].error().attempt_number, std::size_t(1));
@@ -40,17 +41,18 @@ namespace mamba
         TEST_CASE("file_does_not_exist_throw")
         {
 #ifdef __linux__
-            DownloadRequest request(
+            download::Request request(
                 "test",
+                download::MirrorName(""),
                 "file:///nonexistent/repodata.json",
                 "test_download_repodata.json"
             );
-            MultiDownloadRequest dl_request{ std::vector{ std::move(request) } };
+            download::MultiRequest dl_request{ std::vector{ std::move(request) } };
             auto& context = mambatests::singletons().context;
             const auto previous_quiet = context.output_params.quiet;
             auto _ = on_scope_exit([&] { context.output_params.quiet = previous_quiet; });
             context.output_params.quiet = true;
-            CHECK_THROWS_AS(download(dl_request, context), std::runtime_error);
+            CHECK_THROWS_AS(download::download(dl_request, context.mirrors, context), std::runtime_error);
 #endif
         }
     }

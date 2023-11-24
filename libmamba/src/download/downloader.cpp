@@ -19,9 +19,8 @@
 #include "curl.hpp"
 #include "downloader_impl.hpp"
 
-namespace mamba
+namespace mamba::download
 {
-
     namespace
     {
 
@@ -128,7 +127,7 @@ namespace mamba
 
     DownloadAttempt::DownloadAttempt(
         CURLHandle& handle,
-        const DownloadRequest& request,
+        const MirrorRequest& request,
         CURLMultiHandle& downloader,
         const Context& context,
         on_success_callback success,
@@ -147,7 +146,7 @@ namespace mamba
 
     DownloadAttempt::Impl::Impl(
         CURLHandle& handle,
-        const DownloadRequest& request,
+        const MirrorRequest& request,
         CURLMultiHandle& downloader,
         const Context& context,
         on_success_callback success,
@@ -180,7 +179,7 @@ namespace mamba
     {
         if (!CURLHandle::is_curl_res_ok(code))
         {
-            DownloadError error = build_download_error(code);
+            Error error = build_download_error(code);
             clean_attempt(downloader, true);
             invoke_progress_callback(error);
             return m_failure_callback(std::move(error));
@@ -190,14 +189,14 @@ namespace mamba
             TransferData data = get_transfer_data();
             if (!is_http_status_ok(data.http_status))
             {
-                DownloadError error = build_download_error(std::move(data));
+                Error error = build_download_error(std::move(data));
                 clean_attempt(downloader, true);
                 invoke_progress_callback(error);
                 return m_failure_callback(std::move(error));
             }
             else
             {
-                DownloadSuccess success = build_download_success(std::move(data));
+                Success success = build_download_success(std::move(data));
                 clean_attempt(downloader, false);
                 invoke_progress_callback(success);
                 return m_success_callback(std::move(success));
@@ -214,17 +213,19 @@ namespace mamba
         {
             m_file.close();
         }
-        if (erase_downloaded && fs::exists(p_request->filename))
+        if (erase_downloaded && p_request->filename.has_value()
+            && fs::exists(p_request->filename.value()))
         {
-            fs::remove(p_request->filename);
+            fs::remove(p_request->filename.value());
         }
 
+        m_response.clear();
         m_cache_control.clear();
         m_etag.clear();
         m_last_modified.clear();
     }
 
-    void DownloadAttempt::Impl::invoke_progress_callback(const DownloadEvent& event) const
+    void DownloadAttempt::Impl::invoke_progress_callback(const Event& event) const
     {
         if (p_request->progress.has_value())
         {
@@ -279,7 +280,7 @@ namespace mamba
             context.remote_fetch_params.ssl_verify
         );
 
-        p_handle->set_opt(CURLOPT_NOBODY, p_request->head_only);
+        p_handle->set_opt(CURLOPT_NOBODY, p_request->check_only);
 
         p_handle->set_opt(CURLOPT_HEADERFUNCTION, &DownloadAttempt::Impl::curl_header_callback);
         p_handle->set_opt(CURLOPT_HEADERDATA, this);
@@ -356,25 +357,33 @@ namespace mamba
 
     size_t DownloadAttempt::Impl::write_data(char* buffer, size_t size)
     {
-        if (!m_file.is_open())
+        if (p_request->filename.has_value())
         {
-            m_file = open_ofstream(p_request->filename, std::ios::binary);
+            if (!m_file.is_open())
+            {
+                m_file = open_ofstream(p_request->filename.value(), std::ios::binary);
+                if (!m_file)
+                {
+                    LOG_ERROR << "Could not open file for download " << p_request->filename.value()
+                              << ": " << strerror(errno);
+                    // Return a size _different_ than the expected write size to signal an error
+                    return size + 1;
+                }
+            }
+
+            m_file.write(buffer, static_cast<std::streamsize>(size));
+
             if (!m_file)
             {
-                LOG_ERROR << "Could not open file for download " << p_request->filename << ": "
+                LOG_ERROR << "Could not write to file " << p_request->filename.value() << ": "
                           << strerror(errno);
                 // Return a size _different_ than the expected write size to signal an error
                 return size + 1;
             }
         }
-
-        m_file.write(buffer, static_cast<std::streamsize>(size));
-
-        if (!m_file)
+        else
         {
-            LOG_ERROR << "Could not write to file " << p_request->filename << ": " << strerror(errno);
-            // Return a size _different_ than the expected write size to signal an error
-            return size + 1;
+            m_response.append(buffer, size);
         }
         return size;
     }
@@ -443,7 +452,7 @@ namespace mamba
         const size_t total = total_to_download ? static_cast<std::size_t>(total_to_download)
                                                : self->p_request->expected_size.value_or(0);
         self->p_request->progress.value()(
-            DownloadProgress{ static_cast<std::size_t>(now_downloaded), total, speed_Bps }
+            Progress{ static_cast<std::size_t>(now_downloaded), total, speed_Bps }
         );
         return 0;
     }
@@ -486,9 +495,9 @@ namespace mamba
         };
     }
 
-    DownloadError DownloadAttempt::Impl::build_download_error(CURLcode code) const
+    Error DownloadAttempt::Impl::build_download_error(CURLcode code) const
     {
-        DownloadError error;
+        Error error;
         std::stringstream strerr;
         strerr << "Download error (" << code << ") " << p_handle->get_res_error(code) << " ["
                << p_handle->get_curl_effective_url() << "]\n"
@@ -502,9 +511,9 @@ namespace mamba
         return error;
     }
 
-    DownloadError DownloadAttempt::Impl::build_download_error(TransferData data) const
+    Error DownloadAttempt::Impl::build_download_error(TransferData data) const
     {
-        DownloadError error;
+        Error error;
         if (can_retry(data))
         {
             error.retry_wait_seconds = p_handle->get_info<std::size_t>(CURLINFO_RETRY_AFTER)
@@ -515,42 +524,204 @@ namespace mamba
         return error;
     }
 
-    DownloadSuccess DownloadAttempt::Impl::build_download_success(TransferData data) const
+    Success DownloadAttempt::Impl::build_download_success(TransferData data) const
     {
-        return { /*.filename = */ p_request->filename,
+        Content content;
+        if (p_request->filename.has_value())
+        {
+            content = Filename{ p_request->filename.value() };
+        }
+        else
+        {
+            content = Buffer{ std::move(m_response) };
+        }
+
+        return { /*.content = */ std::move(content),
                  /*.transfer = */ std::move(data),
                  /*.cache_control = */ m_cache_control,
                  /*.etag = */ m_etag,
                  /*.last_modified = */ m_last_modified };
     }
 
+    /********************************
+     * MirrorAttempt implementation *
+     ********************************/
+
+    /*
+     * MirrorAttempt FSM:
+     * WAITING_SEQUENCE_START:
+     *     - prepare_attempt => PREPARING_DOWNLOAD
+     * PREPARING_DOWNLOAD:
+     *     - set_transfer_started => RUNNING_DOWNLOAD
+     * RUNNING_DOWNLOAD:
+     *     - set_state(true) => LAST_REQUEST_FINISHED
+     *     - set_state(false) => LAST_REQUEST_FAILED
+     *     - set_state(Error with wait_next_retry) => LAST_REQUEST_FAILED
+     *     - set_state(Error no wait_next_retry  ) => SEQUENCE_FAILED
+     * LAST_REQUEST_FINISHED:
+     *     - m_step == m_request_generators.size() ? => SEQUENCE_FINISHED
+     * LAST_REQUEST_FAILED:
+     *     - m_retries == p_mirror->max_retries ? => SEQUENCE_FAILED
+     */
+    MirrorAttempt::MirrorAttempt(Mirror* mirror)
+        : p_mirror(mirror)
+        , m_request_generators(p_mirror->get_request_generators())
+    {
+    }
+
+    void MirrorAttempt::prepare_request(const Request& initial_request)
+    {
+        if (m_state != State::LAST_REQUEST_FAILED)
+        {
+            m_request = m_request_generators[m_step](initial_request, p_last_content);
+            ++m_step;
+        }
+        else
+        {
+            m_next_retry = std::nullopt;
+            ++m_retries;
+        }
+    }
+
+    auto MirrorAttempt::prepare_attempt(
+        CURLHandle& handle,
+        CURLMultiHandle& downloader,
+        const Context& context,
+        on_success_callback success,
+        on_failure_callback error
+    ) -> completion_function
+    {
+        m_state = State::PREPARING_DOWNLOAD;
+        m_attempt = DownloadAttempt(
+            handle,
+            m_request.value(),
+            downloader,
+            context,
+            std::move(success),
+            std::move(error)
+        );
+        return m_attempt.create_completion_function();
+    }
+
+    bool MirrorAttempt::can_start_transfer() const
+    {
+        return m_state == State::WAITING_SEQUENCE_START || m_state == State::LAST_REQUEST_FINISHED
+               || (m_state == State::LAST_REQUEST_FAILED && can_retry());
+    }
+
+    bool MirrorAttempt::has_failed() const
+    {
+        return m_state == State::SEQUENCE_FAILED;
+    }
+
+    bool MirrorAttempt::has_finished() const
+    {
+        return m_state == State::SEQUENCE_FINISHED;
+    }
+
+    void MirrorAttempt::set_transfer_started()
+    {
+        m_state = State::RUNNING_DOWNLOAD;
+        p_mirror->increase_running_transfers();
+    }
+
+    void MirrorAttempt::set_state(bool success)
+    {
+        if (success)
+        {
+            if (m_step == m_request_generators.size())
+            {
+                m_state = State::SEQUENCE_FINISHED;
+            }
+            else
+            {
+                m_state = State::LAST_REQUEST_FINISHED;
+            }
+            update_transfers_done(true);
+        }
+        else
+        {
+            if (m_retries < p_mirror->max_retries())
+            {
+                m_state = State::LAST_REQUEST_FAILED;
+            }
+            else
+            {
+                m_state = State::SEQUENCE_FAILED;
+            }
+            update_transfers_done(false);
+        }
+    }
+
+    void MirrorAttempt::set_state(const Error& res)
+    {
+        if (res.retry_wait_seconds.has_value() && m_retries < p_mirror->max_retries())
+        {
+            m_state = State::LAST_REQUEST_FAILED;
+            m_next_retry = std::chrono::steady_clock::now()
+                           + std::chrono::seconds(res.retry_wait_seconds.value());
+        }
+        else
+        {
+            m_state = State::SEQUENCE_FAILED;
+        }
+        update_transfers_done(false);
+    }
+
+    void MirrorAttempt::update_last_content(const Content* content)
+    {
+        p_last_content = content;
+    }
+
+    bool MirrorAttempt::can_retry() const
+    {
+        return !m_next_retry.has_value() || m_next_retry.value() < std::chrono::steady_clock::now();
+    }
+
+    void MirrorAttempt::update_transfers_done(bool success)
+    {
+        p_mirror->update_transfers_done(success, !m_request.value().check_only);
+    }
+
     /**********************************
      * DownloadTracker implementation *
      **********************************/
 
-    DownloadTracker::DownloadTracker(const DownloadRequest& request, DownloadTrackerOptions options)
+    DownloadTracker::DownloadTracker(
+        const Request& request,
+        const mirror_set_view& mirrors,
+        DownloadTrackerOptions options
+    )
         : m_handle()
-        , p_request(&request)
+        , p_initial_request(&request)
+        , m_mirror_set(mirrors)
         , m_options(std::move(options))
-        , m_attempt()
+        , m_state(State::WAITING)
         , m_attempt_results()
-        , m_state(DownloadState::WAITING)
-        , m_next_retry(std::nullopt)
+        , m_tried_mirrors()
+        , m_mirror_attempt()
     {
+        prepare_mirror_attempt();
+        if (has_failed())
+        {
+            Error error;
+            error.message = std::string("Could not find mirrors for channel ")
+                            + p_initial_request->mirror_name;
+            m_attempt_results.push_back(tl::unexpected(std::move(error)));
+        }
     }
 
     auto DownloadTracker::prepare_new_attempt(CURLMultiHandle& handle, const Context& context)
         -> completion_map_entry
     {
-        m_state = DownloadState::PREPARING;
-        m_next_retry = std::nullopt;
+        m_state = State::PREPARING;
 
-        m_attempt = DownloadAttempt(
+        m_mirror_attempt.prepare_request(*p_initial_request);
+        auto completion_func = m_mirror_attempt.prepare_attempt(
             m_handle,
-            *p_request,
             handle,
             context,
-            [this](DownloadSuccess res)
+            [this](Success res)
             {
                 expected_t<void> finalize_res = invoke_on_success(res);
                 set_state(finalize_res.has_value());
@@ -558,7 +729,7 @@ namespace mamba
                 save(std::move(res));
                 return is_waiting();
             },
-            [this](DownloadError res)
+            [this](Error res)
             {
                 invoke_on_failure(res);
                 set_state(res);
@@ -567,123 +738,197 @@ namespace mamba
                 return is_waiting();
             }
         );
-        return { m_handle.get_id(), m_attempt.create_completion_function() };
+        return { m_handle.get_id(), completion_func };
+    }
+
+    bool DownloadTracker::has_failed() const
+    {
+        return m_state == State::FAILED;
     }
 
     bool DownloadTracker::can_start_transfer() const
     {
-        return is_waiting()
-               && (!m_next_retry.has_value()
-                   || m_next_retry.value() < std::chrono::steady_clock::now());
+        return is_waiting() && (m_mirror_attempt.can_start_transfer() || can_try_other_mirror());
     }
 
     void DownloadTracker::set_transfer_started()
     {
-        m_state = DownloadState::RUNNING;
+        m_state = State::RUNNING;
+        m_mirror_attempt.set_transfer_started();
     }
 
-    const DownloadResult& DownloadTracker::get_result() const
+    const Result& DownloadTracker::get_result() const
     {
         return m_attempt_results.back();
     }
 
-    expected_t<void> DownloadTracker::invoke_on_success(const DownloadSuccess& res) const
+    expected_t<void> DownloadTracker::invoke_on_success(const Success& res) const
     {
-        if (p_request->on_success.has_value())
+        if (p_initial_request->on_success.has_value())
         {
-            auto ret = safe_invoke(p_request->on_success.value(), res);
+            auto ret = safe_invoke(p_initial_request->on_success.value(), res);
             return ret.has_value() ? ret.value() : forward_error(ret);
         }
         return expected_t<void>();
     }
 
-    void DownloadTracker::invoke_on_failure(const DownloadError& res) const
+    void DownloadTracker::invoke_on_failure(const Error& res) const
     {
-        if (p_request->on_failure.has_value())
+        if (p_initial_request->on_failure.has_value())
         {
-            safe_invoke(p_request->on_failure.value(), res);
+            safe_invoke(p_initial_request->on_failure.value(), res);
         }
     }
 
     bool DownloadTracker::is_waiting() const
     {
-        return m_state == DownloadState::WAITING;
+        return m_state == State::WAITING;
+    }
+
+    bool DownloadTracker::can_try_other_mirror() const
+    {
+        bool is_file = util::starts_with(p_initial_request->url_path, "file://");
+        bool is_check = p_initial_request->check_only;
+        return !is_file && !is_check && m_tried_mirrors.size() < m_options.max_mirror_tries;
     }
 
     void DownloadTracker::set_state(bool success)
     {
+        m_mirror_attempt.set_state(success);
         if (success)
         {
-            m_state = DownloadState::FINISHED;
+            m_state = m_mirror_attempt.has_finished() ? State::FINISHED : State::WAITING;
         }
         else
         {
-            if (m_attempt_results.size() < m_options.max_retries)
-            {
-                m_state = DownloadState::WAITING;
-            }
-            else
-            {
-                m_state = DownloadState::FAILED;
-            }
+            set_error_state();
         }
     }
 
-    void DownloadTracker::set_state(const DownloadError& res)
+    void DownloadTracker::set_state(const Error& res)
     {
-        if (res.retry_wait_seconds.has_value())
+        m_mirror_attempt.set_state(res);
+        set_error_state();
+    }
+
+    void DownloadTracker::set_error_state()
+    {
+        if (!m_mirror_attempt.has_failed() || can_try_other_mirror())
         {
-            if (m_attempt_results.size() < m_options.max_retries)
+            m_state = State::WAITING;
+            if (m_mirror_attempt.has_failed())
             {
-                m_state = DownloadState::WAITING;
-                m_next_retry = std::chrono::steady_clock::now()
-                               + std::chrono::seconds(res.retry_wait_seconds.value());
-            }
-            else
-            {
-                m_state = DownloadState::FAILED;
+                prepare_mirror_attempt();
             }
         }
         else
         {
-            m_state = DownloadState::FAILED;
+            m_state = State::FAILED;
         }
     }
 
     void DownloadTracker::throw_if_required(const expected_t<void>& res)
     {
-        if (m_state == DownloadState::FAILED && !p_request->ignore_failure && m_options.fail_fast)
+        if (m_state == State::FAILED && !p_initial_request->ignore_failure && m_options.fail_fast)
         {
             throw res.error();
         }
     }
 
-    void DownloadTracker::throw_if_required(const DownloadError& res)
+    void DownloadTracker::throw_if_required(const Error& res)
     {
-        if (m_state == DownloadState::FAILED && !p_request->ignore_failure)
+        if (m_state == State::FAILED && !p_initial_request->ignore_failure)
         {
             throw std::runtime_error(res.message);
         }
     }
 
-    void DownloadTracker::save(DownloadSuccess&& res)
+    void DownloadTracker::save(Success&& res)
     {
         res.attempt_number = m_attempt_results.size() + std::size_t(1);
-        m_attempt_results.push_back(DownloadResult(std::move(res)));
+        m_attempt_results.push_back(Result(std::move(res)));
+        m_mirror_attempt.update_last_content(&(get_result().value().content));
     }
 
-    void DownloadTracker::save(DownloadError&& res)
+    void DownloadTracker::save(Error&& res)
     {
         res.attempt_number = m_attempt_results.size() + std::size_t(1);
         m_attempt_results.push_back(tl::unexpected(std::move(res)));
+    }
+
+    void DownloadTracker::prepare_mirror_attempt()
+    {
+        Mirror* mirror = select_new_mirror();
+        if (mirror != nullptr)
+        {
+            m_tried_mirrors.insert(mirror->id());
+            m_mirror_attempt = MirrorAttempt(mirror);
+        }
+        else
+        {
+            m_state = State::FAILED;
+        }
+    }
+
+    namespace
+    {
+        template <class F>
+        Mirror* find_mirror(const mirror_set_view& mirrors, F&& f)
+        {
+            auto iter = std::find_if(mirrors.begin(), mirrors.end(), std::forward<F>(f));
+            Mirror* mirror = (iter == mirrors.end()) ? nullptr : iter->get();
+            return mirror;
+        }
+    }
+
+    Mirror* DownloadTracker::select_new_mirror() const
+    {
+        Mirror* new_mirror = find_mirror(
+            m_mirror_set,
+            [this](const auto& mirror)
+            {
+                return !has_tried_mirror(mirror.get()) && !is_bad_mirror(mirror.get())
+                       && mirror->can_accept_more_connections();
+            }
+        );
+
+        std::size_t iteration = 0;
+        while (new_mirror == nullptr && ++iteration < m_options.max_mirror_tries)
+        {
+            new_mirror = find_mirror(
+                m_mirror_set,
+                [this, iteration](const auto& mirror) {
+                    return iteration > mirror->failed_transfers()
+                           && mirror->can_accept_more_connections();
+                }
+            );
+        }
+        return new_mirror;
+    }
+
+    bool DownloadTracker::has_tried_mirror(Mirror* mirror) const
+    {
+        return m_tried_mirrors.contains(mirror->id());
+    }
+
+    bool DownloadTracker::is_bad_mirror(Mirror* mirror) const
+    {
+        return mirror->successful_transfers() == 0
+               && mirror->failed_transfers() >= mirror->max_retries();
     }
 
     /*****************************
      * DOWNLOADER IMPLEMENTATION *
      *****************************/
 
-    Downloader::Downloader(MultiDownloadRequest requests, DownloadOptions options, const Context& context)
+    Downloader::Downloader(
+        MultiRequest requests,
+        const mirror_map& mirrors,
+        Options options,
+        const Context& context
+    )
         : m_requests(std::move(requests))
+        , p_mirrors(&mirrors)
         , m_options(std::move(options))
         , p_context(&context)
         , m_curl_handle(context.threads_params.download_threads)
@@ -694,7 +939,7 @@ namespace mamba
             std::sort(
                 m_requests.begin(),
                 m_requests.end(),
-                [](const DownloadRequest& a, const DownloadRequest& b) -> bool
+                [](const Request& a, const Request& b) -> bool
                 { return a.expected_size.value_or(SIZE_MAX) > b.expected_size.value_or(SIZE_MAX); }
             );
         }
@@ -706,13 +951,20 @@ namespace mamba
             m_requests.begin(),
             m_requests.end(),
             std::back_inserter(m_trackers),
-            [tracker_options](const DownloadRequest& req)
-            { return DownloadTracker(req, tracker_options); }
+            [tracker_options, this](const Request& req) {
+                return DownloadTracker(req, p_mirrors->get_mirrors(req.mirror_name), tracker_options);
+            }
         );
         m_waiting_count = m_trackers.size();
+        auto failed_count = std::count_if(
+            m_trackers.begin(),
+            m_trackers.end(),
+            [](const auto& tracker) { return tracker.has_failed(); }
+        );
+        m_waiting_count -= static_cast<size_t>(failed_count);
     }
 
-    MultiDownloadResult Downloader::download()
+    MultiResult Downloader::download()
     {
         while (!download_done())
         {
@@ -793,9 +1045,9 @@ namespace mamba
         return m_waiting_count == 0;
     }
 
-    MultiDownloadResult Downloader::build_result() const
+    MultiResult Downloader::build_result() const
     {
-        MultiDownloadResult result;
+        MultiResult result;
         result.reserve(m_trackers.size());
         std::transform(
             m_trackers.begin(),
@@ -818,41 +1070,27 @@ namespace mamba
      * Public API implementation *
      *****************************/
 
-    DownloadRequest::DownloadRequest(
-        const std::string& lname,
-        const std::string& lurl,
-        const std::string& lfilename,
-        bool lhead_only,
-        bool lignore_failure
-    )
-        : name(lname)
-        , url(lurl)
-        , filename(lfilename)
-        , head_only(lhead_only)
-        , ignore_failure(lignore_failure)
-    {
-    }
-
-    void DownloadMonitor::observe(MultiDownloadRequest& requests, DownloadOptions& options)
+    void Monitor::observe(MultiRequest& requests, Options& options)
     {
         observe_impl(requests, options);
     }
 
-    void DownloadMonitor::on_done()
+    void Monitor::on_done()
     {
         on_done_impl();
     }
 
-    void DownloadMonitor::on_unexpected_termination()
+    void Monitor::on_unexpected_termination()
     {
         on_done_impl();
     }
 
-    MultiDownloadResult download(
-        MultiDownloadRequest requests,
+    MultiResult download(
+        MultiRequest requests,
+        const mirror_map& mirrors,
         const Context& context,
-        DownloadOptions options,
-        DownloadMonitor* monitor
+        Options options,
+        Monitor* monitor
     )
     {
         if (!context.remote_fetch_params.curl_initialized)
@@ -868,21 +1106,26 @@ namespace mamba
         {
             monitor->observe(requests, options);
             on_scope_exit guard([monitor]() { monitor->on_done(); });
-            Downloader dl(std::move(requests), std::move(options), context);
+            Downloader dl(std::move(requests), mirrors, std::move(options), context);
             return dl.download();
         }
         else
         {
-            Downloader dl(std::move(requests), std::move(options), context);
+            Downloader dl(std::move(requests), mirrors, std::move(options), context);
             return dl.download();
         }
     }
 
-    DownloadResult
-    download(DownloadRequest request, const Context& context, DownloadOptions options, DownloadMonitor* monitor)
+    Result download(
+        Request request,
+        const mirror_map& mirrors,
+        const Context& context,
+        Options options,
+        Monitor* monitor
+    )
     {
-        MultiDownloadRequest req(1u, std::move(request));
-        auto res = download(std::move(req), context, std::move(options), monitor);
+        MultiRequest req(1u, std::move(request));
+        auto res = download(std::move(req), mirrors, context, std::move(options), monitor);
         return std::move(res.front());
     }
 

@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <fstream>
 #include <functional>
 
 #include <spdlog/spdlog.h>
@@ -14,7 +15,7 @@
 
 #include "curl.hpp"
 
-namespace mamba
+namespace mamba::download
 {
     namespace curl
     {
@@ -28,6 +29,9 @@ namespace mamba
             const std::string& ssl_verify
         )
         {
+            std::ofstream out("trace.txt", std::ios_base::app);
+            out << "configuring CURL handle:"
+                << "\n\turl = " << url << std::endl;
             curl_easy_setopt(handle, CURLOPT_URL, url.c_str());
             curl_easy_setopt(handle, CURLOPT_NETRC, CURL_NETRC_OPTIONAL);
             curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);

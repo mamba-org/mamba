@@ -1893,23 +1893,33 @@ namespace mamba
                                            context.prefix_params.target_prefix / ".mambarc" };
 
         std::vector<fs::u8path> sources;
+        auto insertIntoSources = [&](const std::vector<fs::u8path>& locations)
+        {
+            for (auto& location : locations)
+            {
+                if (std::find(sources.begin(), sources.end(), location) == std::end(sources))
+                {
+                    sources.emplace_back(location);
+                }
+            }
+        };
 
         if (level >= RCConfigLevel::kSystemDir)
         {
-            sources.insert(sources.end(), system.begin(), system.end());
+            insertIntoSources(system);
         }
         if ((level >= RCConfigLevel::kRootPrefix) && !context.prefix_params.root_prefix.empty())
         {
-            sources.insert(sources.end(), root.begin(), root.end());
+            insertIntoSources(root);
         }
         if (level >= RCConfigLevel::kHomeDir)
         {
-            sources.insert(sources.end(), conda_user.begin(), conda_user.end());
-            sources.insert(sources.end(), mamba_user.begin(), mamba_user.end());
+            insertIntoSources(conda_user);
+            insertIntoSources(mamba_user);
         }
         if ((level >= RCConfigLevel::kTargetPrefix) && !context.prefix_params.target_prefix.empty())
         {
-            sources.insert(sources.end(), prefix.begin(), prefix.end());
+            insertIntoSources(prefix);
         }
 
         // Sort by precedence

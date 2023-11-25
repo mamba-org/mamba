@@ -1893,33 +1893,23 @@ namespace mamba
                                            context.prefix_params.target_prefix / ".mambarc" };
 
         std::vector<fs::u8path> sources;
-        auto insertIntoSources = [&](const std::vector<fs::u8path>& locations)
-        {
-            for (auto& location : locations)
-            {
-                if (std::find(sources.begin(), sources.end(), location) == std::end(sources))
-                {
-                    sources.emplace_back(location);
-                }
-            }
-        };
 
         if (level >= RCConfigLevel::kSystemDir)
         {
-            insertIntoSources(system);
+            sources.insert(sources.end(), system.begin(), system.end());
         }
         if ((level >= RCConfigLevel::kRootPrefix) && !context.prefix_params.root_prefix.empty())
         {
-            insertIntoSources(root);
+            sources.insert(sources.end(), root.begin(), root.end());
         }
         if (level >= RCConfigLevel::kHomeDir)
         {
-            insertIntoSources(conda_user);
-            insertIntoSources(mamba_user);
+            sources.insert(sources.end(), conda_user.begin(), conda_user.end());
+            sources.insert(sources.end(), mamba_user.begin(), mamba_user.end());
         }
         if ((level >= RCConfigLevel::kTargetPrefix) && !context.prefix_params.target_prefix.empty())
         {
-            insertIntoSources(prefix);
+            sources.insert(sources.end(), prefix.begin(), prefix.end());
         }
 
         // Sort by precedence
@@ -2216,7 +2206,27 @@ namespace mamba
     {
         std::vector<fs::u8path> sources;
 
-        for (const fs::u8path& l : possible_rc_paths)
+        auto deduplicate_paths = [](const std::vector<fs::u8path>& possible_rc_paths)
+        {
+            std::set<fs::u8path> seen;
+            std::vector<fs::u8path> res;
+
+            for (auto& s : possible_rc_paths)
+            {
+                if (seen.count(s) == 0)
+                {
+                    seen.insert(s);
+                    res.push_back(s);
+                }
+            }
+
+            return res;
+
+        };
+
+        auto deduplicated_paths = deduplicate_paths(possible_rc_paths);
+
+        for (const fs::u8path& l : deduplicated_paths)
         {
             if (detail::is_config_file(l))
             {

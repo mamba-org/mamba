@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from .helpers import create, get_env, get_umamba, random_string, remove, umamba_list
+from .helpers import create, random_string, remove
 
 if sys.platform.startswith("win"):
     import menuinst
@@ -44,9 +44,7 @@ class TestMenuinst:
         assert shortcut.TargetPath.lower() == os.getenv("COMSPEC").lower()
         icon_location = shortcut.IconLocation
         icon_location_path, icon_location_index = icon_location.split(",")
-        assert Path(icon_location_path) == (
-            Path(prefix) / "Menu" / "console_shortcut.ico"
-        )
+        assert Path(icon_location_path) == (Path(prefix) / "Menu" / "console_shortcut.ico")
         assert icon_location_index == "0"
 
         assert shortcut.Description == "Miniforge Prompt (" + env_name + ")"
@@ -82,9 +80,7 @@ class TestMenuinst:
 
         icon_location = shortcut.IconLocation
         icon_location_path, icon_location_index = icon_location.split(",")
-        assert Path(icon_location_path) == (
-            Path(prefix) / "Menu" / "console_shortcut.ico"
-        )
+        assert Path(icon_location_path) == (Path(prefix) / "Menu" / "console_shortcut.ico")
         assert icon_location_index == "0"
 
         assert shortcut.Description == "Miniforge Prompt (" + env_name + ")"

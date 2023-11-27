@@ -6,15 +6,17 @@ from pathlib import Path
 
 import pytest
 
-from .helpers import *
+# Need to import everything to get fixtures
+from .helpers import *  # noqa: F403
+from . import helpers
 
 
 class TestInstall:
     current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
     current_prefix = os.environ["CONDA_PREFIX"]
 
-    env_name = random_string()
-    root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
+    env_name = helpers.random_string()
+    root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + helpers.random_string()))
     prefix = os.path.join(root_prefix, "envs", env_name)
 
     @classmethod
@@ -24,7 +26,7 @@ class TestInstall:
 
     @classmethod
     def setup_method(cls):
-        create("-n", TestInstall.env_name, "--offline", no_dry_run=True)
+        helpers.create("-n", TestInstall.env_name, "--offline", no_dry_run=True)
 
     @classmethod
     def teardown_class(cls):
@@ -41,7 +43,7 @@ class TestInstall:
                 os.environ.pop(v)
 
         if Path(TestInstall.prefix).exists():
-            rmtree(TestInstall.prefix)
+            helpers.rmtree(TestInstall.prefix)
 
     @classmethod
     def config_tests(cls, res, root_prefix=root_prefix, target_prefix=prefix):
@@ -49,10 +51,10 @@ class TestInstall:
         assert res["target_prefix"] == target_prefix
         assert res["use_target_prefix_fallback"]
         checks = (
-            MAMBA_ALLOW_EXISTING_PREFIX
-            | MAMBA_NOT_ALLOW_MISSING_PREFIX
-            | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX
-            | MAMBA_EXPECT_EXISTING_PREFIX
+            helpers.MAMBA_ALLOW_EXISTING_PREFIX
+            | helpers.MAMBA_NOT_ALLOW_MISSING_PREFIX
+            | helpers.MAMBA_NOT_ALLOW_NOT_ENV_PREFIX
+            | helpers.MAMBA_EXPECT_EXISTING_PREFIX
         )
         assert res["target_prefix_checks"] == checks
 
@@ -77,7 +79,7 @@ class TestInstall:
             cmd = list(specs)
 
         if source in ("spec_file_only", "both"):
-            f_name = random_string()
+            f_name = helpers.random_string()
             spec_file = os.path.join(TestInstall.root_prefix, f_name)
 
             if file_type == "classic":
@@ -86,10 +88,8 @@ class TestInstall:
             elif file_type == "explicit":
                 channel = "https://conda.anaconda.org/conda-forge/linux-64/"
                 explicit_specs = [
-                    channel
-                    + "xtensor-0.21.5-hc9558a2_0.tar.bz2#d330e02e5ed58330638a24601b7e4887",
-                    channel
-                    + "xsimd-7.4.8-hc9558a2_0.tar.bz2#32d5b7ad7d6511f1faacf87e53a63e5f",
+                    channel + "xtensor-0.21.5-hc9558a2_0.tar.bz2#d330e02e5ed58330638a24601b7e4887",
+                    channel + "xsimd-7.4.8-hc9558a2_0.tar.bz2#32d5b7ad7d6511f1faacf87e53a63e5f",
                 ]
                 file_content = ["@EXPLICIT"] + explicit_specs
                 specs = explicit_specs
@@ -103,7 +103,7 @@ class TestInstall:
 
             cmd += ["-f", spec_file]
 
-        res = install(*cmd, "--print-config-only")
+        res = helpers.install(*cmd, "--print-config-only")
 
         TestInstall.config_tests(res)
         assert res["env_name"] == ""
@@ -130,9 +130,7 @@ class TestInstall:
         cmd = []
 
         if root_prefix in (None, "cli"):
-            os.environ["MAMBA_DEFAULT_ROOT_PREFIX"] = os.environ.pop(
-                "MAMBA_ROOT_PREFIX"
-            )
+            os.environ["MAMBA_DEFAULT_ROOT_PREFIX"] = os.environ.pop("MAMBA_ROOT_PREFIX")
 
         if root_prefix == "cli":
             cmd += ["-r", TestInstall.root_prefix]
@@ -155,7 +153,7 @@ class TestInstall:
             cmd += ["-n", n]
 
         if yaml_name:
-            f_name = random_string() + ".yaml"
+            f_name = helpers.random_string() + ".yaml"
             spec_file = os.path.join(TestInstall.prefix, f_name)
 
             if yaml_name == "prefix":
@@ -188,9 +186,9 @@ class TestInstall:
             or not (cli_prefix or cli_env_name or yaml_name or env_var or fallback)
         ):
             with pytest.raises(subprocess.CalledProcessError):
-                install(*cmd, "--print-config-only")
+                helpers.install(*cmd, "--print-config-only")
         else:
-            res = install(*cmd, "--print-config-only")
+            res = helpers.install(*cmd, "--print-config-only")
             TestInstall.config_tests(res, root_prefix=r, target_prefix=expected_p)
 
     @pytest.mark.parametrize("cli", (False, True))
@@ -206,7 +204,7 @@ class TestInstall:
             expected_channels += ["cli"]
 
         if yaml:
-            f_name = random_string() + ".yaml"
+            f_name = helpers.random_string() + ".yaml"
             spec_file = os.path.join(TestInstall.prefix, f_name)
 
             file_content = [
@@ -224,7 +222,7 @@ class TestInstall:
             expected_channels += ["env_var"]
 
         if rc_file:
-            f_name = random_string() + ".yaml"
+            f_name = helpers.random_string() + ".yaml"
             rc_file = os.path.join(TestInstall.prefix, f_name)
 
             file_content = ["channels: [rc]"]
@@ -234,9 +232,7 @@ class TestInstall:
             cmd += ["--rc-file", rc_file]
             expected_channels += ["rc"]
 
-        res = install(
-            *cmd, "--print-config-only", no_rc=not rc_file, default_channel=False
-        )
+        res = helpers.install(*cmd, "--print-config-only", no_rc=not rc_file, default_channel=False)
         TestInstall.config_tests(res)
         if expected_channels:
             assert res["channels"] == expected_channels
@@ -249,14 +245,12 @@ class TestInstall:
         specs = ["xtensor", "xsimd"]
         channel = "https://conda.anaconda.org/conda-forge/linux-64/"
         explicit_specs = [
-            channel
-            + "xtensor-0.21.5-hc9558a2_0.tar.bz2#d330e02e5ed58330638a24601b7e4887",
-            channel
-            + "linux-64/xsimd-7.4.8-hc9558a2_0.tar.bz2#32d5b7ad7d6511f1faacf87e53a63e5f",
+            channel + "xtensor-0.21.5-hc9558a2_0.tar.bz2#d330e02e5ed58330638a24601b7e4887",
+            channel + "linux-64/xsimd-7.4.8-hc9558a2_0.tar.bz2#32d5b7ad7d6511f1faacf87e53a63e5f",
         ]
 
         for i in range(2):
-            f_name = random_string()
+            f_name = helpers.random_string()
             file = os.path.join(TestInstall.prefix, f_name)
 
             if type == "yaml":
@@ -264,7 +258,6 @@ class TestInstall:
                 file_content = [f"dependencies: [{specs[i]}]"]
             elif type == "classic":
                 file_content = [specs[i]]
-                expected_specs = specs
             else:  # explicit
                 file_content = ["@EXPLICIT", explicit_specs[i]]
 
@@ -275,9 +268,9 @@ class TestInstall:
 
         if type == "yaml":
             with pytest.raises(subprocess.CalledProcessError):
-                install(*cmd, "--print-config-only")
+                helpers.install(*cmd, "--print-config-only")
         else:
-            res = install(*cmd, "--print-config-only")
+            res = helpers.install(*cmd, "--print-config-only")
             if type == "classic":
                 assert res["specs"] == specs
             else:  # explicit
@@ -286,9 +279,7 @@ class TestInstall:
     @pytest.mark.parametrize("priority", (None, "disabled", "flexible", "strict"))
     @pytest.mark.parametrize("no_priority", (None, True))
     @pytest.mark.parametrize("strict_priority", (None, True))
-    def test_channel_priority(
-        self, priority, no_priority, strict_priority, existing_cache
-    ):
+    def test_channel_priority(self, priority, no_priority, strict_priority, existing_cache):
         cmd = ["-p", TestInstall.prefix, "xtensor"]
         expected_priority = "flexible"
 
@@ -311,14 +302,14 @@ class TestInstall:
             or (no_priority and strict_priority)
         ):
             with pytest.raises(subprocess.CalledProcessError):
-                install(*cmd, "--print-config-only")
+                helpers.install(*cmd, "--print-config-only")
         else:
-            res = install(*cmd, "--print-config-only")
+            res = helpers.install(*cmd, "--print-config-only")
             assert res["channel_priority"] == expected_priority
 
     def test_quotes(self, existing_cache):
         cmd = ["-p", f"{TestInstall.prefix}", "xtensor", "--print-config-only"]
-        res = install(*cmd)
+        res = helpers.install(*cmd)
         assert res["target_prefix"] == TestInstall.prefix
 
     @pytest.mark.parametrize("prefix", ("target", "root"))
@@ -338,27 +329,28 @@ class TestInstall:
             "xtensor",
             "--print-config-only",
         ]
-        res = install(*cmd)
+        res = helpers.install(*cmd)
         assert res["target_prefix"] == TestInstall.prefix
         assert res["root_prefix"] == TestInstall.root_prefix
 
     def test_empty_specs(self, existing_cache):
-        assert "Nothing to do." in install().strip()
+        assert "Nothing to do." in helpers.install().strip()
 
     @pytest.mark.skipif(
-        dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"
+        helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
+        reason="Running only ultra-dry tests",
     )
     @pytest.mark.parametrize("already_installed", [False, True])
     def test_non_explicit_spec(self, already_installed, existing_cache):
         cmd = ["-p", TestInstall.prefix, "xtensor", "--json"]
 
         if already_installed:
-            install(*cmd, no_dry_run=True)
+            helpers.install(*cmd, no_dry_run=True)
 
-        res = install(*cmd)
+        res = helpers.install(*cmd)
 
         assert res["success"]
-        assert res["dry_run"] == (dry_run_tests == DryRun.DRY)
+        assert res["dry_run"] == (helpers.dry_run_tests == helpers.DryRun.DRY)
         if already_installed:
             keys = {"dry_run", "success", "prefix", "message"}
             assert keys.issubset(set(res.keys()))
@@ -373,15 +365,16 @@ class TestInstall:
             expected_packages = {"xtensor", "xtl"}
             assert expected_packages.issubset(packages)
 
-            if not dry_run_tests:
-                pkg_name = get_concrete_pkg(res, "xtensor")
-                orig_file_path = get_pkg(
-                    pkg_name, xtensor_hpp, TestInstall.current_root_prefix
+            if not helpers.dry_run_tests:
+                pkg_name = helpers.get_concrete_pkg(res, "xtensor")
+                orig_file_path = helpers.get_pkg(
+                    pkg_name, helpers.xtensor_hpp, TestInstall.current_root_prefix
                 )
                 assert orig_file_path.exists()
 
     @pytest.mark.skipif(
-        dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"
+        helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
+        reason="Running only ultra-dry tests",
     )
     @pytest.mark.parametrize("already_installed", [False, True])
     @pytest.mark.parametrize("valid", [False, True])
@@ -400,9 +393,9 @@ class TestInstall:
         cmd = ("-p", TestInstall.prefix, "-q", "-f", spec_file)
 
         if valid:
-            install(*cmd, default_channel=False)
+            helpers.install(*cmd, default_channel=False)
 
-            list_res = umamba_list("-p", TestInstall.prefix, "--json")
+            list_res = helpers.umamba_list("-p", TestInstall.prefix, "--json")
             assert len(list_res) == 1
             pkg = list_res[0]
             assert pkg["name"] == "xtensor"
@@ -410,10 +403,11 @@ class TestInstall:
             assert pkg["build_string"] == "hc9558a2_0"
         else:
             with pytest.raises(subprocess.CalledProcessError):
-                install(*cmd, default_channel=False)
+                helpers.install(*cmd, default_channel=False)
 
     @pytest.mark.skipif(
-        dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"
+        helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
+        reason="Running only ultra-dry tests",
     )
     @pytest.mark.parametrize(
         "alias",
@@ -426,22 +420,23 @@ class TestInstall:
     )
     def test_channel_alias(self, alias, existing_cache):
         if alias:
-            res = install("xtensor", "--json", "--channel-alias", alias)
+            res = helpers.install("xtensor", "--json", "--channel-alias", alias)
             ca = alias.rstrip("/")
         else:
-            res = install("xtensor", "--json")
+            res = helpers.install("xtensor", "--json")
             ca = "https://conda.anaconda.org"
 
-        for l in res["actions"]["LINK"]:
-            assert l["channel"].startswith(f"{ca}/conda-forge/")
-            assert l["url"].startswith(f"{ca}/conda-forge/")
+        for to_link in res["actions"]["LINK"]:
+            assert to_link["channel"].startswith(f"{ca}/conda-forge/")
+            assert to_link["url"].startswith(f"{ca}/conda-forge/")
 
     @pytest.mark.skipif(
-        dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"
+        helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
+        reason="Running only ultra-dry tests",
     )
     def test_no_python_pinning(self, existing_cache):
-        install("python=3.9", no_dry_run=True)
-        res = install("setuptools=28.4.0", "--no-py-pin", "--json")
+        helpers.install("python=3.9", no_dry_run=True)
+        res = helpers.install("setuptools=28.4.0", "--no-py-pin", "--json")
 
         keys = {"success", "prefix", "actions", "dry_run"}
         assert keys.issubset(set(res.keys()))
@@ -449,9 +444,7 @@ class TestInstall:
         action_keys = {"LINK", "UNLINK", "PREFIX"}
         assert action_keys.issubset(set(res["actions"].keys()))
 
-        expected_link_packages = (
-            {"python"} if os.name == "nt" else {"python", "python_abi"}
-        )
+        expected_link_packages = {"python"} if os.name == "nt" else {"python", "python_abi"}
         link_packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
         assert expected_link_packages.issubset(link_packages)
         unlink_packages = {pkg["name"] for pkg in res["actions"]["UNLINK"]}
@@ -464,26 +457,28 @@ class TestInstall:
         assert py_pkg["version"].startswith("3.9")
 
     @pytest.mark.skipif(
-        dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"
+        helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
+        reason="Running only ultra-dry tests",
     )
     @pytest.mark.skipif(sys.platform == "win32", reason="Python2 no available")
     def test_python_pinning(self, existing_cache):
         """Black fails to install as it is not available for pinned Python 2."""
-        res = install("python=2", "--json", no_dry_run=True)
+        res = helpers.install("python=2", "--json", no_dry_run=True)
         assert res["success"]
         # We do not have great way to check for the type of error for now
         try:
-            install("black", "--py-pin", "--json")
+            helpers.install("black", "--py-pin", "--json")
             assert False
         except subprocess.CalledProcessError:
             pass
 
     @pytest.mark.skipif(
-        dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"
+        helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
+        reason="Running only ultra-dry tests",
     )
     def test_freeze_installed(self, existing_cache):
-        install("xtensor=0.20", no_dry_run=True)
-        res = install("xframe", "--freeze-installed", "--json")
+        helpers.install("xtensor=0.20", no_dry_run=True)
+        res = helpers.install("xframe", "--freeze-installed", "--json")
 
         # without freeze installed, xframe 0.3.0 should be installed and xtensor updated to 0.21
         keys = {"success", "prefix", "actions", "dry_run"}
@@ -498,9 +493,7 @@ class TestInstall:
         assert res["actions"]["LINK"][0]["version"] == "0.2.0"
 
     def test_channel_specific(self, existing_cache):
-        res = install(
-            "conda-forge::xtensor", "--json", default_channel=False, no_rc=True
-        )
+        res = helpers.install("conda-forge::xtensor", "--json", default_channel=False, no_rc=True)
 
         keys = {"success", "prefix", "actions", "dry_run"}
         assert keys.issubset(set(res.keys()))
@@ -516,12 +509,11 @@ class TestInstall:
             assert pkg["channel"].startswith("https://conda.anaconda.org/conda-forge/")
 
     def test_explicit_noarch(self, existing_cache):
-        install("python", no_dry_run=True)
+        helpers.install("python", no_dry_run=True)
 
         channel = "https://conda.anaconda.org/conda-forge/noarch/"
         explicit_spec = (
-            channel
-            + "appdirs-1.4.4-pyh9f0ad1d_0.tar.bz2#5f095bc6454094e96f146491fd03633b"
+            channel + "appdirs-1.4.4-pyh9f0ad1d_0.tar.bz2#5f095bc6454094e96f146491fd03633b"
         )
         file_content = ["@EXPLICIT", explicit_spec]
 
@@ -531,9 +523,9 @@ class TestInstall:
 
         cmd = ("-p", TestInstall.prefix, "-q", "-f", spec_file)
 
-        install(*cmd, default_channel=False)
+        helpers.install(*cmd, default_channel=False)
 
-        list_res = umamba_list("-p", TestInstall.prefix, "--json")
+        list_res = helpers.umamba_list("-p", TestInstall.prefix, "--json")
         pkgs = [p for p in list_res if p["name"] == "appdirs"]
         assert len(pkgs) == 1
         pkg = pkgs[0]
@@ -541,33 +533,31 @@ class TestInstall:
         assert pkg["build_string"] == "pyh9f0ad1d_0"
 
     def test_broken_package_name(self):
-        non_existing_url = (
-            "https://026e9ab9-6b46-4285-ae0d-427553801720.de/mypackage.tar.bz2"
-        )
+        non_existing_url = "https://026e9ab9-6b46-4285-ae0d-427553801720.de/mypackage.tar.bz2"
         try:
-            res = install(non_existing_url, default_channel=False)
+            helpers.install(non_existing_url, default_channel=False)
         except subprocess.CalledProcessError as e:
             assert "Invalid package filename" in e.stderr.decode("utf-8")
 
     def test_no_reinstall(self, existing_cache):
         """Reinstalling is a no op."""
-        res = install("xtensor", "--json")
+        res = helpers.install("xtensor", "--json")
         assert "xtensor" in {pkg["name"] for pkg in res["actions"]["LINK"]}
 
-        reinstall_res = install("xtensor", "--json")
+        reinstall_res = helpers.install("xtensor", "--json")
         assert "actions" not in reinstall_res
 
     def test_force_reinstall(self, existing_cache):
         """Force reinstall installs existing package again."""
-        res = install("xtensor", "--json")
+        res = helpers.install("xtensor", "--json")
         assert "xtensor" in {pkg["name"] for pkg in res["actions"]["LINK"]}
 
-        reinstall_res = install("xtensor", "--force-reinstall", "--json")
+        reinstall_res = helpers.install("xtensor", "--force-reinstall", "--json")
         assert "xtensor" in {pkg["name"] for pkg in reinstall_res["actions"]["LINK"]}
 
     def test_force_reinstall_not_installed(self, existing_cache):
         """Force reinstall on non-installed packages is valid."""
-        reinstall_res = install("xtensor", "--force-reinstall", "--json")
+        reinstall_res = helpers.install("xtensor", "--force-reinstall", "--json")
         assert "xtensor" in {pkg["name"] for pkg in reinstall_res["actions"]["LINK"]}
 
 
@@ -575,13 +565,13 @@ def test_install_check_dirs(tmp_home, tmp_root_prefix):
     env_name = "myenv"
     env_prefix = tmp_root_prefix / "envs" / env_name
 
-    create("-n", env_name, "python=3.8")
-    res = install("-n", env_name, "nodejs", "--json")
+    helpers.create("-n", env_name, "python=3.8")
+    res = helpers.install("-n", env_name, "nodejs", "--json")
 
     assert os.path.isdir(env_prefix)
     assert "nodejs" in {pkg["name"] for pkg in res["actions"]["LINK"]}
 
-    if platform.system() == "Windows":
+    if helpers.platform.system() == "Windows":
         assert os.path.isdir(env_prefix / "lib" / "site-packages")
     else:
         assert os.path.isdir(env_prefix / "lib" / "python3.8" / "site-packages")
@@ -589,12 +579,12 @@ def test_install_check_dirs(tmp_home, tmp_root_prefix):
 
 def test_track_features(tmp_home, tmp_root_prefix):
     env_name = "myenv"
-    env_prefix = tmp_root_prefix / "envs" / env_name
+    tmp_root_prefix / "envs" / env_name
 
     # should install CPython since PyPy has track features
     version = "3.7.9"
-    create("-n", env_name, default_channel=False, no_rc=False)
-    install(
+    helpers.create("-n", env_name, default_channel=False, no_rc=False)
+    helpers.install(
         "-n",
         env_name,
         "-q",
@@ -602,20 +592,20 @@ def test_track_features(tmp_home, tmp_root_prefix):
         "--strict-channel-priority",
         no_rc=False,
     )
-    res = umamba_run("-n", env_name, "python", "-c", "import sys; print(sys.version)")
-    if platform.system() == "Windows":
+    res = helpers.umamba_run("-n", env_name, "python", "-c", "import sys; print(sys.version)")
+    if helpers.platform.system() == "Windows":
         assert res.strip().startswith(version)
         assert "[MSC v." in res.strip()
-    elif platform.system() == "Linux":
+    elif helpers.platform.system() == "Linux":
         assert res.strip().startswith(version)
         assert "[GCC" in res.strip()
     else:
         assert res.strip().startswith(version)
         assert "[Clang" in res.strip()
 
-    if platform.system() == "Linux":
+    if helpers.platform.system() == "Linux":
         # now force PyPy install
-        install(
+        helpers.install(
             "-n",
             env_name,
             "-q",
@@ -623,9 +613,7 @@ def test_track_features(tmp_home, tmp_root_prefix):
             "--strict-channel-priority",
             no_rc=False,
         )
-        res = umamba_run(
-            "-n", env_name, "python", "-c", "import sys; print(sys.version)"
-        )
+        res = helpers.umamba_run("-n", env_name, "python", "-c", "import sys; print(sys.version)")
 
         assert res.strip().startswith(version)
         assert "[PyPy" in res.strip()
@@ -633,11 +621,11 @@ def test_track_features(tmp_home, tmp_root_prefix):
 
 def test_reinstall_with_new_version(tmp_home, tmp_root_prefix):
     env_name = "myenv"
-    env_prefix = tmp_root_prefix / "envs" / env_name
+    tmp_root_prefix / "envs" / env_name
 
     version = "3.8"
-    create("-n", env_name, default_channel=False, no_rc=False)
-    install(
+    helpers.create("-n", env_name, default_channel=False, no_rc=False)
+    helpers.install(
         "-n",
         env_name,
         "-q",
@@ -646,17 +634,15 @@ def test_reinstall_with_new_version(tmp_home, tmp_root_prefix):
         no_rc=False,
     )
 
-    res = umamba_run("-n", env_name, "python", "-c", "import sys; print(sys.version)")
+    res = helpers.umamba_run("-n", env_name, "python", "-c", "import sys; print(sys.version)")
     assert version in res
 
-    res = umamba_run(
-        "-n", env_name, "python", "-c", "import pip; print(pip.__version__)"
-    )
+    res = helpers.umamba_run("-n", env_name, "python", "-c", "import pip; print(pip.__version__)")
     assert len(res)
 
     # Update python version
     version = "3.9"
-    install(
+    helpers.install(
         "-n",
         env_name,
         "-q",
@@ -664,10 +650,8 @@ def test_reinstall_with_new_version(tmp_home, tmp_root_prefix):
         no_rc=False,
     )
 
-    res = umamba_run("-n", env_name, "python", "-c", "import sys; print(sys.version)")
+    res = helpers.umamba_run("-n", env_name, "python", "-c", "import sys; print(sys.version)")
     assert version in res
 
-    res = umamba_run(
-        "-n", env_name, "python", "-c", "import pip; print(pip.__version__)"
-    )
+    res = helpers.umamba_run("-n", env_name, "python", "-c", "import pip; print(pip.__version__)")
     assert len(res)

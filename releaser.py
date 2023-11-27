@@ -161,9 +161,7 @@ def main():
             else:
                 sections[-1].items.append(Item())
                 sections[-1].items[-1].text = c[m.end() :].strip()
-                sections[-1].items[-1].applies_to = [
-                    x.strip() for x in m.groups(1)[0].split(",")
-                ]
+                sections[-1].items[-1].applies_to = [x.strip() for x in m.groups(1)[0].split(",")]
 
         else:
             if c.startswith(" "):

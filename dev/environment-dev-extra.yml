@@ -14,9 +14,9 @@ dependencies:
   - sel(osx): lldb
   - sel(linux): valgrind  # Out of date on MacOS
   # Python LSP support
+  - ruff
   - python-lsp-server-base
-  - python-lsp-black
-  - black
+  - ruff-lsp
   # Interactive Python tools
   - jupyterlab
   - ipython

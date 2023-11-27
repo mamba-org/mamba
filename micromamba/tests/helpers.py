@@ -6,7 +6,6 @@ import random
 import shutil
 import string
 import subprocess
-import sys
 from enum import Enum
 from pathlib import Path
 
@@ -36,9 +35,7 @@ class DryRun(Enum):
 use_offline = False
 channel = ["-c", "conda-forge"]
 dry_run_tests = DryRun(
-    os.environ["MAMBA_DRY_RUN_TESTS"]
-    if ("MAMBA_DRY_RUN_TESTS" in os.environ)
-    else "OFF"
+    os.environ["MAMBA_DRY_RUN_TESTS"] if ("MAMBA_DRY_RUN_TESTS" in os.environ) else "OFF"
 )
 
 MAMBA_NO_PREFIX_CHECK = 1 << 0
@@ -153,7 +150,7 @@ def install(*args, default_channel=True, no_rc=True, no_dry_run=False, **kwargs)
         try:
             j = json.loads(res)
             return j
-        except:
+        except Exception:
             print(res.decode())
             return
     if "--print-config-only" in args:

@@ -10,7 +10,7 @@ import pytest
 import zstandard
 from conda_package_handling import api as cph
 
-from .helpers import *
+from . import helpers
 
 
 @pytest.fixture
@@ -37,7 +37,7 @@ def test_extract(cph_test_file: Path, tmp_path: Path):
     shutil.copy(cph_test_file, tmp_path / "mm")
     shutil.copy(cph_test_file, tmp_path / "cph")
 
-    mamba_exe = get_umamba()
+    mamba_exe = helpers.get_umamba()
     subprocess.call(
         [
             mamba_exe,
@@ -52,21 +52,13 @@ def test_extract(cph_test_file: Path, tmp_path: Path):
         dest_dir=str(tmp_path / "cph" / "cph_test_data-0.0.1-0"),
     )
 
-    conda = set(
-        (p.relative_to(tmp_path / "cph") for p in (tmp_path / "cph").rglob("**/*"))
-    )
-    mamba = set(
-        (p.relative_to(tmp_path / "mm") for p in (tmp_path / "mm").rglob("**/*"))
-    )
+    conda = set((p.relative_to(tmp_path / "cph") for p in (tmp_path / "cph").rglob("**/*")))
+    mamba = set((p.relative_to(tmp_path / "mm") for p in (tmp_path / "mm").rglob("**/*")))
     assert conda == mamba
 
     extracted = cph_test_file.name.removesuffix(".tar.bz2")
     fcmp = filecmp.dircmp(tmp_path / "cph" / extracted, tmp_path / "mm" / extracted)
-    assert (
-        len(fcmp.left_only) == 0
-        and len(fcmp.right_only) == 0
-        and len(fcmp.diff_files) == 0
-    )
+    assert len(fcmp.left_only) == 0 and len(fcmp.right_only) == 0 and len(fcmp.diff_files) == 0
     # fcmp.report_full_closure()
 
 
@@ -101,8 +93,8 @@ def compare_two_tarfiles(tar1, tar2):
             assert m1.linkname == m2.linkname
 
 
-def assert_sorted(l):
-    assert l == sorted(l)
+def assert_sorted(seq):
+    assert seq == sorted(seq)
 
 
 def test_extract_compress(cph_test_file: Path, tmp_path: Path):
@@ -110,7 +102,7 @@ def test_extract_compress(cph_test_file: Path, tmp_path: Path):
 
     shutil.copy(cph_test_file, tmp_path / "mm")
 
-    mamba_exe = get_umamba()
+    mamba_exe = helpers.get_umamba()
     out = tmp_path / "mm" / "out"
     subprocess.call(
         [
@@ -131,9 +123,7 @@ def test_extract_compress(cph_test_file: Path, tmp_path: Path):
         ]
     )
 
-    compare_two_tarfiles(
-        tarfile.open(cph_test_file), tarfile.open(tmp_path / "mm" / "out.tar.bz2")
-    )
+    compare_two_tarfiles(tarfile.open(cph_test_file), tarfile.open(tmp_path / "mm" / "out.tar.bz2"))
 
     fout = tarfile.open(tmp_path / "mm" / "out.tar.bz2")
     names = fout.getnames()
@@ -155,10 +145,8 @@ def test_transmute(cph_test_file: Path, tmp_path: Path):
     shutil.copy(cph_test_file, tmp_path)
     shutil.copy(tmp_path / cph_test_file.name, tmp_path / "mm")
 
-    mamba_exe = get_umamba()
-    subprocess.call(
-        [mamba_exe, "package", "transmute", str(tmp_path / "mm" / cph_test_file.name)]
-    )
+    mamba_exe = helpers.get_umamba()
+    subprocess.call([mamba_exe, "package", "transmute", str(tmp_path / "mm" / cph_test_file.name)])
     failed_files = cph.transmute(
         str(tmp_path / cph_test_file.name), ".conda", out_folder=str(tmp_path / "cph")
     )
@@ -169,27 +157,23 @@ def test_transmute(cph_test_file: Path, tmp_path: Path):
     cph.extract(str(tmp_path / "cph" / as_conda))
     cph.extract(str(tmp_path / "mm" / as_conda))
 
-    conda = list((tmp_path / "cph").rglob("**/*"))
-    mamba = list((tmp_path / "mm").rglob("**/*"))
+    list((tmp_path / "cph").rglob("**/*"))
+    list((tmp_path / "mm").rglob("**/*"))
 
     fcmp = filecmp.dircmp(
         tmp_path / "cph" / "cph_test_data-0.0.1-0",
         tmp_path / "mm" / "cph_test_data-0.0.1-0",
     )
-    assert (
-        len(fcmp.left_only) == 0
-        and len(fcmp.right_only) == 0
-        and len(fcmp.diff_files) == 0
-    )
+    assert len(fcmp.left_only) == 0 and len(fcmp.right_only) == 0 and len(fcmp.diff_files) == 0
     # fcmp.report_full_closure()
 
     # extract zipfile
     with zipfile.ZipFile(tmp_path / "mm" / as_conda, "r") as zip_ref:
-        l = zip_ref.namelist()
+        names = zip_ref.namelist()
 
-        assert l[2].startswith("info-")
-        assert l[0] == "metadata.json"
-        assert l[1].startswith("pkg-")
+        assert names[2].startswith("info-")
+        assert names[0] == "metadata.json"
+        assert names[1].startswith("pkg-")
 
         zip_ref.extractall(tmp_path / "mm" / "zipcontents")
 

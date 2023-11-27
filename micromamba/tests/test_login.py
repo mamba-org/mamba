@@ -209,9 +209,7 @@ env_file_content = """
 
 
 @pytest.mark.parametrize("user,password", [["testuser", "xyzpass"]])
-def test_basic_auth_explicit_txt(
-    auth_file, user, password, basic_auth_server, tmp_path
-):
+def test_basic_auth_explicit_txt(auth_file, user, password, basic_auth_server, tmp_path):
     login(basic_auth_server, "--username", user, "--password", password)
 
     env_file = tmp_path / "environment.txt"
@@ -224,9 +222,7 @@ def test_basic_auth_explicit_txt(
 
 
 @pytest.mark.parametrize("user,password", [["testuser", "xyzpass"]])
-def test_basic_auth_explicit_yaml(
-    auth_file, user, password, basic_auth_server, tmp_path
-):
+def test_basic_auth_explicit_yaml(auth_file, user, password, basic_auth_server, tmp_path):
     login(basic_auth_server, "--username", user, "--password", password)
 
     env_file = tmp_path / "environment.yml"

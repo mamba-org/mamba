@@ -116,9 +116,7 @@ class TestConfigSources:
     @pytest.mark.parametrize(
         "rc_file", (("home", "dummy.yaml"), ("home", ".mambarc")), indirect=True
     )
-    @pytest.mark.parametrize(
-        "rc_file_args", ({"override_channels_enabled": True},), indirect=True
-    )
+    @pytest.mark.parametrize("rc_file_args", ({"override_channels_enabled": True},), indirect=True)
     @pytest.mark.parametrize("quiet_flag", ["-q", "--quiet"])
     @pytest.mark.parametrize("norc", [False, True])
     def test_config_sources(self, rc_file, quiet_flag, norc):
@@ -172,15 +170,11 @@ class TestConfigSources:
         ),
         indirect=True,
     )
-    @pytest.mark.parametrize(
-        "rc_file_args", ({"override_channels_enabled": True},), indirect=True
-    )
+    @pytest.mark.parametrize("rc_file_args", ({"override_channels_enabled": True},), indirect=True)
     def test_config_rc_file(self, rc_file, tmp_env_name):
         srcs = config("sources", "-n", tmp_env_name).strip().splitlines()
         short_name = str(rc_file).replace(os.path.expanduser("~"), "~")
-        expected_srcs = (
-            f"Configuration files (by precedence order):\n{short_name}".splitlines()
-        )
+        expected_srcs = f"Configuration files (by precedence order):\n{short_name}".splitlines()
         assert srcs == expected_srcs
 
     @pytest.mark.parametrize(
@@ -188,9 +182,7 @@ class TestConfigSources:
         [("home", "somefile.yml")],
         indirect=True,
     )
-    @pytest.mark.parametrize(
-        "rc_file_args", ({"override_channels_enabled": True},), indirect=True
-    )
+    @pytest.mark.parametrize("rc_file_args", ({"override_channels_enabled": True},), indirect=True)
     def test_config_expand_user(self, rc_file):
         rc_file_short = str(rc_file).replace(os.path.expanduser("~"), "~")
         res = config("sources", "--rc-file", rc_file)
@@ -258,9 +250,7 @@ class TestConfigList:
         )
 
         assert (
-            config(
-                "list", "--no-env", "--rc-file", rc_file, "-d", group_flag
-            ).splitlines()
+            config("list", "--no-env", "--rc-file", rc_file, "-d", group_flag).splitlines()
             == f"{group}# channels\n#   Define the list of channels\nchannels:\n"
             "  - channel1\n  - channel2\n".splitlines()
         )
@@ -283,18 +273,14 @@ class TestConfigList:
         os.environ["MAMBA_OFFLINE"] = "false"
 
         assert (
-            config(
-                "list", "offline", "--no-rc", "--no-env", "-s", "--offline"
-            ).splitlines()
+            config("list", "offline", "--no-rc", "--no-env", "-s", "--offline").splitlines()
             == "offline: true  # 'CLI'".splitlines()
         )
 
         os.environ.pop("MAMBA_OFFLINE")
 
     def test_precedence(self):
-        rc_dir = os.path.expanduser(
-            os.path.join("~", "test_mamba", helpers.random_string())
-        )
+        rc_dir = os.path.expanduser(os.path.join("~", "test_mamba", helpers.random_string()))
         os.makedirs(rc_dir, exist_ok=True)
         rc_file = os.path.join(rc_dir, ".mambarc")
         short_rc_file = rc_file.replace(os.path.expanduser("~"), "~")
@@ -322,9 +308,7 @@ class TestConfigList:
             )
 
             assert (
-                config(
-                    "list", "offline", f"--rc-file={rc_file}", "-s", "--offline"
-                ).splitlines()
+                config("list", "offline", f"--rc-file={rc_file}", "-s", "--offline").splitlines()
                 == f"offline: true  # 'CLI' > 'MAMBA_OFFLINE' > '{short_rc_file}'".splitlines()
             )
             assert (
@@ -359,18 +343,12 @@ class TestConfigList:
 class TestConfigModifiers:
     def test_file_set_single_input(self, rc_file):
         config("set", "json", "true", "--file", rc_file)
-        assert (
-            config("get", "json", "--file", rc_file).splitlines()
-            == "json: true".splitlines()
-        )
+        assert config("get", "json", "--file", rc_file).splitlines() == "json: true".splitlines()
 
     def test_file_set_change_key_value(self, rc_file):
         config("set", "json", "true", "--file", rc_file)
         config("set", "json", "false", "--file", rc_file)
-        assert (
-            config("get", "json", "--file", rc_file).splitlines()
-            == "json: false".splitlines()
-        )
+        assert config("get", "json", "--file", rc_file).splitlines() == "json: false".splitlines()
 
     def test_file_set_invalit_input(self, rc_file):
         assert (
@@ -721,9 +699,7 @@ class TestConfigExpandVars:
             value = _expandvars(attr, "['${TEST_VAR}']", "foo")
             assert value == ["foo"]
 
-        custom_channels = _expandvars(
-            "custom_channels", "{'x': '${TEST_VAR}'}", "http://foo"
-        )
+        custom_channels = _expandvars("custom_channels", "{'x': '${TEST_VAR}'}", "http://foo")
         assert custom_channels["x"] == "http://foo"
 
         custom_multichannels = _expandvars(
@@ -793,9 +769,7 @@ class TestConfigExpandVars:
         monkeypatch.setenv("foo", "bar", True)
         monkeypatch.setenv("{foo", "baz1", True)
         monkeypatch.setenv("{foo}", "baz2", True)
-        assert outp == self._roundtrip_attr(
-            rc_file, "channel_alias", yaml_quote + inp + yaml_quote
-        )
+        assert outp == self._roundtrip_attr(rc_file, "channel_alias", yaml_quote + inp + yaml_quote)
 
     @pytest.mark.parametrize(
         "inp,outp",
@@ -840,9 +814,7 @@ class TestConfigExpandVars:
         )
         monkeypatch.setenv("CONDA_API_KEY", "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk", True)
         monkeypatch.setenv("CONDA_CHANNEL_UPLOAD_USER", "uuuuuuuuu", True)
-        monkeypatch.setenv(
-            "CONDA_CHANNEL_UPLOAD_PASSWORD", "pppppppppppppppppppp", True
-        )
+        monkeypatch.setenv("CONDA_CHANNEL_UPLOAD_PASSWORD", "pppppppppppppppppppp", True)
         out = self._roundtrip(rc_file, condarc)
         assert (
             out["channel_alias"]

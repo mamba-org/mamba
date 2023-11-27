@@ -317,6 +317,7 @@ def test_authentication_data_base():
     db = AuthenticationDataBase({"mamba.org": auth_1})
 
     assert "mamba.org" in db
+    assert len(db) == 1
     assert db["mamba.org"] == auth_1
 
     auth_2 = BasicHTTPAuthentication(user="user", password="pass")

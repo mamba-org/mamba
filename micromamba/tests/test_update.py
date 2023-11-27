@@ -141,9 +141,7 @@ class TestUpdate:
 
         if helpers.dry_run_tests == helpers.DryRun.OFF:
             pkg = helpers.get_concrete_pkg(update_res, "xtensor")
-            pkg_info = helpers.get_concrete_phelpers.kg_info(
-                helpers.get_env(TestUpdate.env_name), pkg
-            )
+            pkg_info = helpers.get_concrete_pkg_info(helpers.get_env(TestUpdate.env_name), pkg)
             version = pkg_info["version"]
 
             assert TestUpdate.old_version != version

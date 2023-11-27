@@ -5,7 +5,7 @@ import pytest
 import libmambapy
 
 
-def test_platform():
+def test_Platform():
     Platform = libmambapy.specs.Platform
 
     assert Platform.noarch.name == "noarch"
@@ -36,7 +36,7 @@ def test_platform():
         Platform("linux-64") == Platform.linux_64
 
 
-def test_conda_url_credentials():
+def test_CondaURL_Credentials():
     Credentials = libmambapy.specs.CondaURL.Credentials
 
     assert Credentials.Hide.name == "Hide"
@@ -45,7 +45,7 @@ def test_conda_url_credentials():
     assert Credentials("Show") == Credentials.Show
 
 
-def test_conda_url_setters():
+def test_CondaURL_setters():
     CondaURL = libmambapy.specs.CondaURL
     url = CondaURL()
 
@@ -130,7 +130,7 @@ def test_conda_url_setters():
     assert url.clear_package()
 
 
-def test_conda_url_parse():
+def test_CondaURL_parse():
     CondaURL = libmambapy.specs.CondaURL
 
     url = CondaURL.parse(
@@ -170,7 +170,7 @@ def test_conda_url_parse():
     )
 
 
-def test_conda_url_op():
+def test_CondaURL_op():
     CondaURL = libmambapy.specs.CondaURL
     url = CondaURL.parse(
         "https://user%40mail.com:pas%23@repo.mamba.pm:400/t/xy-12345678-1234/%20conda/linux-64/pkg.conda"
@@ -188,7 +188,7 @@ def test_conda_url_op():
     assert other != url
 
 
-def test_channel_spec_type():
+def test_ChannelSpec_Type():
     Type = libmambapy.specs.ChannelSpec.Type
 
     assert Type.URL.name == "URL"
@@ -200,7 +200,7 @@ def test_channel_spec_type():
     assert Type("Name").name == "Name"
 
 
-def test_channel_spec():
+def test_ChannelSpec():
     ChannelSpec = libmambapy.specs.ChannelSpec
 
     # Constructor

@@ -1127,6 +1127,7 @@ namespace mamba
                 // the target_prefix is the same as the root_prefix for the base env
                 util::set_env("MAMBA_TARGET_PREFIX", temp_prefix->path().string());
                 util::set_env("HOME", temp_home->path().string());
+                util::set_env("USERPROFILE", temp_home->path().string());
 
                 auto root_config_file = temp_prefix->path() / ".condarc";
                 std::ofstream out_root_config(root_config_file.std_path());

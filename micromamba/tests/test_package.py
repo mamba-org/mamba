@@ -10,7 +10,7 @@ import pytest
 import zstandard
 from conda_package_handling import api as cph
 
-from .helpers import *
+from . import helpers
 
 
 @pytest.fixture
@@ -37,7 +37,7 @@ def test_extract(cph_test_file: Path, tmp_path: Path):
     shutil.copy(cph_test_file, tmp_path / "mm")
     shutil.copy(cph_test_file, tmp_path / "cph")
 
-    mamba_exe = get_umamba()
+    mamba_exe = helpers.get_umamba()
     subprocess.call(
         [
             mamba_exe,
@@ -101,8 +101,8 @@ def compare_two_tarfiles(tar1, tar2):
             assert m1.linkname == m2.linkname
 
 
-def assert_sorted(l):
-    assert l == sorted(l)
+def assert_sorted(seq):
+    assert seq == sorted(seq)
 
 
 def test_extract_compress(cph_test_file: Path, tmp_path: Path):
@@ -110,7 +110,7 @@ def test_extract_compress(cph_test_file: Path, tmp_path: Path):
 
     shutil.copy(cph_test_file, tmp_path / "mm")
 
-    mamba_exe = get_umamba()
+    mamba_exe = helpers.get_umamba()
     out = tmp_path / "mm" / "out"
     subprocess.call(
         [
@@ -155,7 +155,7 @@ def test_transmute(cph_test_file: Path, tmp_path: Path):
     shutil.copy(cph_test_file, tmp_path)
     shutil.copy(tmp_path / cph_test_file.name, tmp_path / "mm")
 
-    mamba_exe = get_umamba()
+    mamba_exe = helpers.get_umamba()
     subprocess.call(
         [mamba_exe, "package", "transmute", str(tmp_path / "mm" / cph_test_file.name)]
     )
@@ -185,11 +185,11 @@ def test_transmute(cph_test_file: Path, tmp_path: Path):
 
     # extract zipfile
     with zipfile.ZipFile(tmp_path / "mm" / as_conda, "r") as zip_ref:
-        l = zip_ref.namelist()
+        names = zip_ref.namelist()
 
-        assert l[2].startswith("info-")
-        assert l[0] == "metadata.json"
-        assert l[1].startswith("pkg-")
+        assert names[2].startswith("info-")
+        assert names[0] == "metadata.json"
+        assert names[1].startswith("pkg-")
 
         zip_ref.extractall(tmp_path / "mm" / "zipcontents")
 

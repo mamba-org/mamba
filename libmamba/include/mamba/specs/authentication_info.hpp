@@ -7,6 +7,7 @@
 #ifndef MAMBA_SPECS_AUTHENTICATION_INFO_HPP
 #define MAMBA_SPECS_AUTHENTICATION_INFO_HPP
 
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -17,8 +18,6 @@
 
 namespace mamba::specs
 {
-    class CondaURL;
-
     /** User and password authetification set in the URL. */
     struct BasicHTTPAuthentication
     {
@@ -26,17 +25,26 @@ namespace mamba::specs
         std::string password;
     };
 
+    auto operator==(const BasicHTTPAuthentication& a, const BasicHTTPAuthentication& b) -> bool;
+    auto operator!=(const BasicHTTPAuthentication& a, const BasicHTTPAuthentication& b) -> bool;
+
     /** HTTP Bearer token set in the request headers. */
     struct BearerToken
     {
         std::string token;
     };
 
+    auto operator==(const BearerToken& a, const BearerToken& b) -> bool;
+    auto operator!=(const BearerToken& a, const BearerToken& b) -> bool;
+
     /** A Conda token set in the URL path. */
     struct CondaToken
     {
         std::string token;
     };
+
+    auto operator==(const CondaToken& a, const CondaToken& b) -> bool;
+    auto operator!=(const CondaToken& a, const CondaToken& b) -> bool;
 
     using AuthenticationInfo = std::variant<BasicHTTPAuthentication, BearerToken, CondaToken>;
 
@@ -79,4 +87,23 @@ namespace mamba::specs
     using AuthenticationDataBase = util::
         weakening_map<std::unordered_map<std::string, AuthenticationInfo>, URLWeakener>;
 }
+
+template <>
+struct std::hash<mamba::specs::BasicHTTPAuthentication>
+{
+    auto operator()(const mamba::specs::BasicHTTPAuthentication& auth) const -> std::size_t;
+};
+
+template <>
+struct std::hash<mamba::specs::BearerToken>
+{
+    auto operator()(const mamba::specs::BearerToken& auth) const -> std::size_t;
+};
+
+template <>
+struct std::hash<mamba::specs::CondaToken>
+{
+    auto operator()(const mamba::specs::CondaToken& auth) const -> std::size_t;
+};
+
 #endif

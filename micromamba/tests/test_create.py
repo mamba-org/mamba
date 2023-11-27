@@ -1054,7 +1054,7 @@ def test_create_with_non_existing_subdir(tmp_home, tmp_root_prefix, tmp_path):
     env_prefix = tmp_path / "myprefix"
     with pytest.raises(subprocess.CalledProcessError) as e:
         helpers.create(
-            "-p", env_prefix, "--dry-run", "--json", f"conda-forge/noarch::xtensor"
+            "-p", env_prefix, "--dry-run", "--json", "conda-forge/noarch::xtensor"
         )
 
 

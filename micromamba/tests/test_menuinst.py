@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from .helpers import create, get_env, get_umamba, random_string, remove, umamba_list
+from .helpers import create, random_string, remove
 
 if sys.platform.startswith("win"):
     import menuinst

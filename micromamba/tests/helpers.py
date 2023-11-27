@@ -6,7 +6,6 @@ import random
 import shutil
 import string
 import subprocess
-import sys
 from enum import Enum
 from pathlib import Path
 

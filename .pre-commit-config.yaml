@@ -26,6 +26,12 @@ repos:
         args: [--autofix]
       - id: debug-statements
         language_version: python3
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.6
+    hooks:
+      - id: ruff
+        args: [ --fix ]
+      - id: ruff-format
   - repo: https://github.com/pre-commit/mirrors-isort
     rev: v5.10.1
     hooks:

@@ -41,6 +41,8 @@ namespace mamba::util
         template <typename... Args>
         explicit weakening_map(weakener_type weakener, Args&&... args);
 
+        [[nodiscard]] auto generic() const -> const Base&;
+
         using Base::begin;
         using Base::end;
         using Base::cbegin;
@@ -83,6 +85,11 @@ namespace mamba::util
         Weakener m_weakener = {};
     };
 
+    template <typename M, typename W>
+    auto operator==(const weakening_map<M, W>& a, const weakening_map<M, W>& b) -> bool;
+    template <typename M, typename W>
+    auto operator!=(const weakening_map<M, W>& a, const weakening_map<M, W>& b) -> bool;
+
     /*************************************
      *  Implementation of weakening_map  *
      *************************************/
@@ -99,6 +106,12 @@ namespace mamba::util
         : Base(std::forward<Args>(args)...)
         , m_weakener(std::move(weakener))
     {
+    }
+
+    template <typename M, typename W>
+    auto weakening_map<M, W>::generic() const -> const Base&
+    {
+        return *this;
     }
 
     template <typename M, typename W>
@@ -164,5 +177,16 @@ namespace mamba::util
         return find_weaken(key) != end();
     }
 
+    template <typename M, typename W>
+    auto operator==(const weakening_map<M, W>& a, const weakening_map<M, W>& b) -> bool
+    {
+        return a.generic() == b.generic();
+    }
+
+    template <typename M, typename W>
+    auto operator!=(const weakening_map<M, W>& a, const weakening_map<M, W>& b) -> bool
+    {
+        return a.generic() != b.generic();
+    }
 }
 #endif

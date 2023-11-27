@@ -45,7 +45,7 @@ namespace mambatests
     }
 
     // Provides the context object to use in all tests needing it.
-    // Note that this context is setup to handle logigng and signal handling.
+    // Note that this context is setup to handle logging and signal handling.
     inline mamba::Context& context()
     {
         return singletons().context;

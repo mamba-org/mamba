@@ -1893,23 +1893,43 @@ namespace mamba
                                            context.prefix_params.target_prefix / ".mambarc" };
 
         std::vector<fs::u8path> sources;
+        std::set<fs::u8path> known_locations;
+
+        // We only want to insert locations once, with the least precedence
+        // to emulate conda's IndexSet behavior
+
+        // This is especially important when the base env is active
+        // as target_prefix and root_prefix are the same.
+        // If there is a .condarc in the root_prefix, we don't want
+        // to load it twice, once for the root_prefix and once for the
+        // target_prefix with the highest precedence.
+        auto insertIntoSources = [&](const std::vector<fs::u8path>& locations)
+        {
+            for (auto& location : locations)
+            {
+                if (known_locations.insert(location).second)
+                {
+                    sources.emplace_back(location);
+                }
+            }
+        };
 
         if (level >= RCConfigLevel::kSystemDir)
         {
-            sources.insert(sources.end(), system.begin(), system.end());
+            insertIntoSources(system);
         }
         if ((level >= RCConfigLevel::kRootPrefix) && !context.prefix_params.root_prefix.empty())
         {
-            sources.insert(sources.end(), root.begin(), root.end());
+            insertIntoSources(root);
         }
         if (level >= RCConfigLevel::kHomeDir)
         {
-            sources.insert(sources.end(), conda_user.begin(), conda_user.end());
-            sources.insert(sources.end(), mamba_user.begin(), mamba_user.end());
+            insertIntoSources(conda_user);
+            insertIntoSources(mamba_user);
         }
         if ((level >= RCConfigLevel::kTargetPrefix) && !context.prefix_params.target_prefix.empty())
         {
-            sources.insert(sources.end(), prefix.begin(), prefix.end());
+            insertIntoSources(prefix);
         }
 
         // Sort by precedence

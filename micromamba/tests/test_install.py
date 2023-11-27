@@ -7,8 +7,7 @@ from pathlib import Path
 import pytest
 
 # Need to import everything to get fixtures
-from helpers import *  # noqa: F403
-
+from .helpers import *  # noqa: F403
 from . import helpers
 
 

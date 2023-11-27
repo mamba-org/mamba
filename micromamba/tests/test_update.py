@@ -5,16 +5,20 @@ from pathlib import Path
 
 import pytest
 
-from .helpers import *
+from . import helpers
 
 
-@pytest.mark.skipif(dry_run_tests == DryRun.ULTRA_DRY, reason="Running ultra dry tests")
+@pytest.mark.skipif(
+    helpers.dry_run_tests == helpers.DryRun.ULTRA_DRY, reason="Running ultra dry tests"
+)
 class TestUpdate:
     current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
     current_prefix = os.environ["CONDA_PREFIX"]
 
-    env_name = random_string()
-    root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
+    env_name = helpers.random_string()
+    root_prefix = os.path.expanduser(
+        os.path.join("~", "tmproot" + helpers.random_string())
+    )
     prefix = os.path.join(root_prefix, "envs", env_name)
     old_version = "0.21.10"
     medium_old_version = "0.22"
@@ -34,15 +38,15 @@ class TestUpdate:
     @staticmethod
     @pytest.fixture
     def env_created(root):
-        if dry_run_tests == DryRun.OFF:
-            create(
+        if helpers.dry_run_tests == helpers.DryRun.OFF:
+            helpers.create(
                 f"xtensor={TestUpdate.old_version}",
                 "-n",
                 TestUpdate.env_name,
                 "--json",
                 no_dry_run=True,
             )
-        res = umamba_list("xtensor", "-n", TestUpdate.env_name, "--json")
+        res = helpers.umamba_list("xtensor", "-n", TestUpdate.env_name, "--json")
         assert len(res) == 1
         assert res[0]["version"].startswith(TestUpdate.old_version)
 
@@ -51,19 +55,21 @@ class TestUpdate:
         shutil.rmtree(TestUpdate.prefix)
 
     def test_constrained_update(self, env_created):
-        update_res = update(
+        update_res = helpers.update(
             "xtensor<=" + self.medium_old_version, "-n", env_created, "--json"
         )
         xtensor_link = [
-            l for l in update_res["actions"]["LINK"] if l["name"] == "xtensor"
+            to_link
+            for to_link in update_res["actions"]["LINK"]
+            if to_link["name"] == "xtensor"
         ][0]
 
         assert xtensor_link["version"].startswith(self.medium_old_version)
 
     # test that we relink noarch packages
     def test_update_python_noarch(self, root):
-        if dry_run_tests == DryRun.OFF:
-            create(
+        if helpers.dry_run_tests == helpers.DryRun.OFF:
+            helpers.create(
                 "python=3.9",
                 "six",
                 "requests",
@@ -75,12 +81,12 @@ class TestUpdate:
         else:
             return
 
-        res = umamba_list("python", "-n", TestUpdate.env_name, "--json")
+        res = helpers.umamba_list("python", "-n", TestUpdate.env_name, "--json")
         assert len(res) >= 1
         pyelem = [r for r in res if r["name"] == "python"][0]
         assert pyelem["version"].startswith("3.9")
 
-        res = umamba_list("requests", "-n", TestUpdate.env_name, "--json")
+        res = helpers.umamba_list("requests", "-n", TestUpdate.env_name, "--json")
         prev_requests = [r for r in res if r["name"] == "requests"][0]
         assert prev_requests["version"]
 
@@ -92,20 +98,28 @@ class TestUpdate:
 
         assert os.path.exists(site_packages_path("requests/__pycache__", "3.9"))
 
-        prev_six = umamba_list("six", "-n", TestUpdate.env_name, "--json")[0]
+        prev_six = helpers.umamba_list("six", "-n", TestUpdate.env_name, "--json")[0]
 
-        update_res = update("-n", TestUpdate.env_name, "python=3.10", "--json")
+        update_res = helpers.update("-n", TestUpdate.env_name, "python=3.10", "--json")
 
-        six_link = [l for l in update_res["actions"]["LINK"] if l["name"] == "six"][0]
+        six_link = [
+            to_link
+            for to_link in update_res["actions"]["LINK"]
+            if to_link["name"] == "six"
+        ][0]
 
         assert six_link["version"] == prev_six["version"]
         assert six_link["build_string"] == prev_six["build_string"]
 
         requests_link = [
-            l for l in update_res["actions"]["LINK"] if l["name"] == "requests"
+            to_link
+            for to_link in update_res["actions"]["LINK"]
+            if to_link["name"] == "requests"
         ][0]
         requests_unlink = [
-            l for l in update_res["actions"]["UNLINK"] if l["name"] == "requests"
+            to_link
+            for to_link in update_res["actions"]["UNLINK"]
+            if to_link["name"] == "requests"
         ][0]
 
         assert requests_link["version"] == requests_unlink["version"]
@@ -117,31 +131,37 @@ class TestUpdate:
         assert requests_link["build_string"] == prev_requests["build_string"]
 
     def test_further_constrained_update(self, env_created):
-        update_res = update("xtensor==0.21.1=*_0", "--json")
+        update_res = helpers.update("xtensor==0.21.1=*_0", "--json")
         xtensor_link = [
-            l for l in update_res["actions"]["LINK"] if l["name"] == "xtensor"
+            to_link
+            for to_link in update_res["actions"]["LINK"]
+            if to_link["name"] == "xtensor"
         ][0]
 
         assert xtensor_link["version"] == "0.21.1"
         assert xtensor_link["build_number"] == 0
 
     def test_classic_spec(self, env_created):
-        update_res = update("xtensor", "--json", "-n", TestUpdate.env_name)
+        update_res = helpers.update("xtensor", "--json", "-n", TestUpdate.env_name)
 
         xtensor_link = [
-            l for l in update_res["actions"]["LINK"] if l["name"] == "xtensor"
+            to_link
+            for to_link in update_res["actions"]["LINK"]
+            if to_link["name"] == "xtensor"
         ][0]
         assert TestUpdate.old_version != xtensor_link["version"]
 
-        if dry_run_tests == DryRun.OFF:
-            pkg = get_concrete_pkg(update_res, "xtensor")
-            pkg_info = get_concrete_pkg_info(get_env(TestUpdate.env_name), pkg)
+        if helpers.dry_run_tests == helpers.DryRun.OFF:
+            pkg = helpers.get_concrete_pkg(update_res, "xtensor")
+            pkg_info = helpers.get_concrete_phelpers.kg_info(
+                helpers.get_env(TestUpdate.env_name), pkg
+            )
             version = pkg_info["version"]
 
             assert TestUpdate.old_version != version
 
         # This should do nothing since python is not installed!
-        update_res = update("python", "-n", TestUpdate.env_name, "--json")
+        update_res = helpers.update("python", "-n", TestUpdate.env_name, "--json")
 
         # TODO fix this?!
         assert update_res["message"] == "All requested packages already installed"
@@ -149,16 +169,20 @@ class TestUpdate:
         assert "action" not in update_res
 
     def test_update_all(self, env_created):
-        update_res = update("--all", "--json")
+        update_res = helpers.update("--all", "--json")
 
         xtensor_link = [
-            l for l in update_res["actions"]["LINK"] if l["name"] == "xtensor"
+            to_link
+            for to_link in update_res["actions"]["LINK"]
+            if to_link["name"] == "xtensor"
         ][0]
         assert TestUpdate.old_version != xtensor_link["version"]
 
-        if dry_run_tests == DryRun.OFF:
-            pkg = get_concrete_pkg(update_res, "xtensor")
-            pkg_info = get_concrete_pkg_info(get_env(TestUpdate.env_name), pkg)
+        if helpers.dry_run_tests == helpers.DryRun.OFF:
+            pkg = helpers.get_concrete_pkg(update_res, "xtensor")
+            pkg_info = helpers.get_concrete_pkg_info(
+                helpers.get_env(TestUpdate.env_name), pkg
+            )
             version = pkg_info["version"]
 
             assert TestUpdate.old_version != version
@@ -183,7 +207,7 @@ class TestUpdate:
     )
     def test_channel_alias(self, alias, env_created):
         if alias:
-            res = update(
+            res = helpers.update(
                 "-n",
                 TestUpdate.env_name,
                 "xtensor",
@@ -194,20 +218,24 @@ class TestUpdate:
             )
             ca = alias.rstrip("/")
         else:
-            res = update("-n", TestUpdate.env_name, "xtensor", "--json", "--dry-run")
+            res = helpers.update(
+                "-n", TestUpdate.env_name, "xtensor", "--json", "--dry-run"
+            )
             ca = "https://conda.anaconda.org"
 
-        for l in res["actions"]["LINK"]:
-            assert l["channel"].startswith(f"{ca}/conda-forge/")
-            assert l["url"].startswith(f"{ca}/conda-forge/")
+        for to_link in res["actions"]["LINK"]:
+            assert to_link["channel"].startswith(f"{ca}/conda-forge/")
+            assert to_link["url"].startswith(f"{ca}/conda-forge/")
 
 
 class TestUpdateConfig:
     current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
     current_prefix = os.environ["CONDA_PREFIX"]
 
-    env_name = random_string()
-    root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
+    env_name = helpers.random_string()
+    root_prefix = os.path.expanduser(
+        os.path.join("~", "tmproot" + helpers.random_string())
+    )
     prefix = os.path.join(root_prefix, "envs", env_name)
 
     @staticmethod
@@ -215,8 +243,8 @@ class TestUpdateConfig:
     def root(existing_cache):
         os.environ["MAMBA_ROOT_PREFIX"] = TestUpdateConfig.root_prefix
         os.environ["CONDA_PREFIX"] = TestUpdateConfig.prefix
-        create("-n", "base", no_dry_run=True)
-        create("-n", TestUpdateConfig.env_name, "--offline", no_dry_run=True)
+        helpers.create("-n", "base", no_dry_run=True)
+        helpers.create("-n", TestUpdateConfig.env_name, "--offline", no_dry_run=True)
 
         yield
 
@@ -242,10 +270,10 @@ class TestUpdateConfig:
         assert res["target_prefix"] == target_prefix
         assert res["use_target_prefix_fallback"]
         checks = (
-            MAMBA_ALLOW_EXISTING_PREFIX
-            | MAMBA_NOT_ALLOW_MISSING_PREFIX
-            | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX
-            | MAMBA_EXPECT_EXISTING_PREFIX
+            helpers.MAMBA_ALLOW_EXISTING_PREFIX
+            | helpers.MAMBA_NOT_ALLOW_MISSING_PREFIX
+            | helpers.MAMBA_NOT_ALLOW_NOT_ENV_PREFIX
+            | helpers.MAMBA_EXPECT_EXISTING_PREFIX
         )
         assert res["target_prefix_checks"] == checks
 
@@ -270,7 +298,7 @@ class TestUpdateConfig:
             cmd = list(specs)
 
         if source in ("spec_file_only", "both"):
-            f_name = random_string()
+            f_name = helpers.random_string()
             spec_file = os.path.join(TestUpdateConfig.root_prefix, f_name)
 
             if file_type == "classic":
@@ -293,7 +321,7 @@ class TestUpdateConfig:
 
             cmd += ["-f", spec_file]
 
-        res = install(*cmd, "--print-config-only")
+        res = helpers.install(*cmd, "--print-config-only")
 
         TestUpdateConfig.config_tests(res)
         assert res["env_name"] == ""
@@ -345,7 +373,7 @@ class TestUpdateConfig:
             cmd += ["-n", n]
 
         if yaml_name:
-            f_name = random_string() + ".yaml"
+            f_name = helpers.random_string() + ".yaml"
             spec_file = os.path.join(TestUpdateConfig.prefix, f_name)
 
             if yaml_name == "prefix":
@@ -379,10 +407,10 @@ class TestUpdateConfig:
             or (yaml_name == "prefix")
             or not (cli_prefix or cli_env_name or yaml_name or env_var or fallback)
         ):
-            with pytest.raises(subprocess.CalledProcessError):
-                install(*cmd, "--print-config-only")
+            with pytest.raises(helpers.subprocess.CalledProcessError):
+                helpers.install(*cmd, "--print-config-only")
         else:
-            res = install(*cmd, "--print-config-only")
+            res = helpers.install(*cmd, "--print-config-only")
             TestUpdateConfig.config_tests(res, root_prefix=r, target_prefix=expected_p)
 
     @pytest.mark.parametrize("cli", (False, True))
@@ -398,7 +426,7 @@ class TestUpdateConfig:
             expected_channels += ["cli"]
 
         if yaml:
-            f_name = random_string() + ".yaml"
+            f_name = helpers.random_string() + ".yaml"
             spec_file = os.path.join(TestUpdateConfig.prefix, f_name)
 
             file_content = [
@@ -416,7 +444,7 @@ class TestUpdateConfig:
             expected_channels += ["env_var"]
 
         if rc_file:
-            f_name = random_string() + ".yaml"
+            f_name = helpers.random_string() + ".yaml"
             rc_file = os.path.join(TestUpdateConfig.prefix, f_name)
 
             file_content = ["channels: [rc]"]
@@ -426,7 +454,7 @@ class TestUpdateConfig:
             cmd += ["--rc-file", rc_file]
             expected_channels += ["rc"]
 
-        res = install(
+        res = helpers.install(
             *cmd, "--print-config-only", no_rc=not rc_file, default_channel=False
         )
         TestUpdateConfig.config_tests(res)
@@ -445,7 +473,7 @@ class TestUpdateConfig:
         ]
 
         for i in range(2):
-            f_name = random_string()
+            f_name = helpers.random_string()
             file = os.path.join(TestUpdateConfig.prefix, f_name)
 
             if type == "yaml":
@@ -462,16 +490,16 @@ class TestUpdateConfig:
             cmd += ["-f", file]
 
         if type == "yaml":
-            with pytest.raises(subprocess.CalledProcessError):
-                install(*cmd, "--print-config-only")
+            with pytest.raises(helpers.subprocess.CalledProcessError):
+                helpers.install(*cmd, "--print-config-only")
         else:
-            res = install(*cmd, "--print-config-only")
+            res = helpers.install(*cmd, "--print-config-only")
             if type == "classic":
                 assert res["specs"] == specs
             else:  # explicit
                 assert res["specs"] == [explicit_specs[0]]
 
     def test_channel_specific(self, env_created):
-        install("quantstack::sphinx", no_dry_run=True)
-        res = update("quantstack::sphinx", "-c", "conda-forge", "--json")
+        helpers.install("quantstack::sphinx", no_dry_run=True)
+        res = helpers.update("quantstack::sphinx", "-c", "conda-forge", "--json")
         assert "actions" not in res

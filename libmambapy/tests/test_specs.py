@@ -337,3 +337,51 @@ def test_AuthenticationDataBase():
     assert db.contains_weaken("mamba.org")
     assert db.contains_weaken("mamba.org/conda-forge")
     assert db.at_weaken("mamba.org/conda-forge") == auth_1
+
+
+def test_ChannelResolveParams():
+    ChannelResolveParams = libmambapy.specs.ChannelResolveParams
+    CondaURL = libmambapy.specs.CondaURL
+    AuthenticationDataBase = libmambapy.specs.AuthenticationDataBase
+    BearerToken = libmambapy.specs.BearerToken
+
+    # custom_channel and custom_multichannel require creating a Channel to be tested,
+    # so we leave them out for simplicity/isolation here.
+
+    platforms_1 = {"linux-64"}
+    channel_alias_1 = CondaURL.parse("oci://github.com/")
+    db_1 = AuthenticationDataBase({"mamba.org": BearerToken(token="mytoken")})
+    home_dir_1 = "/users/mamba"
+    cwd_1 = "/tmp/workspace"
+
+    params = ChannelResolveParams(
+        platforms=platforms_1,
+        channel_alias=channel_alias_1,
+        #  custom_channels = ,
+        #  custom_multichannels = ,
+        authentication_db=db_1,
+        home_dir=home_dir_1,
+        current_working_dir=cwd_1,
+    )
+    assert params.platforms == platforms_1
+    assert params.channel_alias == channel_alias_1
+    assert params.authentication_db == db_1
+    assert params.home_dir == home_dir_1
+    assert params.current_working_dir == cwd_1
+
+    platforms_2 = {"win-64", "noarch"}
+    channel_alias_2 = CondaURL.parse("ftp://anaconda.com/")
+    db_2 = AuthenticationDataBase({"conda.org": BearerToken(token="tkn")})
+    home_dir_2 = "/users/conda"
+    cwd_2 = "/tmp/elsewhere"
+
+    params.platforms = platforms_2
+    params.channel_alias = channel_alias_2
+    params.authentication_db = db_2
+    params.home_dir = home_dir_2
+    params.current_working_dir = cwd_2
+    assert params.platforms == platforms_2
+    assert params.channel_alias == channel_alias_2
+    assert params.authentication_db == db_2
+    assert params.home_dir == home_dir_2
+    assert params.current_working_dir == cwd_2

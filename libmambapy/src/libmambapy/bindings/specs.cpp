@@ -11,6 +11,7 @@
 #include <pybind11/stl_bind.h>
 
 #include "mamba/specs/authentication_info.hpp"
+#include "mamba/specs/channel.hpp"
 #include "mamba/specs/channel_spec.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/specs/platform.hpp"
@@ -45,6 +46,31 @@ namespace mambapy
     auto hash(const T& x) -> std::size_t
     {
         return std::hash<T>()(x);
+    }
+
+    template <typename Map, typename Py>
+    auto bind_weakening_map(Py& m, const char* klass)
+    {
+        namespace py = pybind11;
+        using key_type = typename Map::key_type;
+        using mapped_type = typename Map::mapped_type;
+
+        return py::bind_map<Map>(m, klass)
+            .def(py::init(
+                [](const py::dict& py_db)
+                {
+                    auto db = Map();
+                    for (auto const& [name, auth] : py_db)
+                    {
+                        db.emplace(py::cast<key_type>(name), py::cast<mapped_type>(auth));
+                    }
+                    return db;
+                }
+            ))
+            .def(py::self == py::self)
+            .def(py::self != py::self)
+            .def("at_weaken", py::overload_cast<const std::string&>(&Map::at_weaken, py::const_))
+            .def("contains_weaken", &Map::contains_weaken);
     }
 
     void bind_submodule_specs(pybind11::module_ m)
@@ -365,22 +391,6 @@ namespace mambapy
             .def("__deepcopy__", &deepcopy<CondaToken>, pybind11::arg("memo"))
             .def("__hash__", &hash<CondaToken>);
 
-        py::bind_map<AuthenticationDataBase>(m, "AuthenticationDataBase")
-            .def(py::init(
-                [](const py::dict& py_db)
-                {
-                    auto db = AuthenticationDataBase();
-                    for (auto const& [name, auth] : py_db)
-                    {
-                        db.emplace(py::cast<std::string>(name), py::cast<AuthenticationInfo>(auth));
-                    }
-                    return db;
-                }
-            ))
-            .def(
-                "at_weaken",
-                py::overload_cast<const std::string&>(&AuthenticationDataBase::at_weaken, py::const_)
-            )
-            .def("contains_weaken", &AuthenticationDataBase::contains_weaken);
+        bind_weakening_map<AuthenticationDataBase>(m, "AuthenticationDataBase");
     }
 }

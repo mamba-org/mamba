@@ -45,7 +45,7 @@ class TestRemove:
     @staticmethod
     @pytest.fixture
     def env_created(root):
-        if helpers.dry_run_thelpers.ests == helpers.DryRun.OFF:
+        if helpers.dry_run_tests == helpers.DryRun.OFF:
             helpers.install("xtensor", "-n", TestRemove.env_name)
 
     @pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
@@ -90,7 +90,7 @@ class TestRemove:
         assert keys.issubset(set(res.keys()))
         assert res["success"]
         assert len(res["actions"]["UNLINK"]) == len(env_pkgs) + (
-            1 if helpers.dry_run_thelpers.ests == helpers.DryRun.DRY else 0
+            1 if helpers.dry_run_tests == helpers.DryRun.DRY else 0
         )
         for p in res["actions"]["UNLINK"]:
             assert p["name"] in env_pkgs

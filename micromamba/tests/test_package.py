@@ -52,21 +52,13 @@ def test_extract(cph_test_file: Path, tmp_path: Path):
         dest_dir=str(tmp_path / "cph" / "cph_test_data-0.0.1-0"),
     )
 
-    conda = set(
-        (p.relative_to(tmp_path / "cph") for p in (tmp_path / "cph").rglob("**/*"))
-    )
-    mamba = set(
-        (p.relative_to(tmp_path / "mm") for p in (tmp_path / "mm").rglob("**/*"))
-    )
+    conda = set((p.relative_to(tmp_path / "cph") for p in (tmp_path / "cph").rglob("**/*")))
+    mamba = set((p.relative_to(tmp_path / "mm") for p in (tmp_path / "mm").rglob("**/*")))
     assert conda == mamba
 
     extracted = cph_test_file.name.removesuffix(".tar.bz2")
     fcmp = filecmp.dircmp(tmp_path / "cph" / extracted, tmp_path / "mm" / extracted)
-    assert (
-        len(fcmp.left_only) == 0
-        and len(fcmp.right_only) == 0
-        and len(fcmp.diff_files) == 0
-    )
+    assert len(fcmp.left_only) == 0 and len(fcmp.right_only) == 0 and len(fcmp.diff_files) == 0
     # fcmp.report_full_closure()
 
 
@@ -131,9 +123,7 @@ def test_extract_compress(cph_test_file: Path, tmp_path: Path):
         ]
     )
 
-    compare_two_tarfiles(
-        tarfile.open(cph_test_file), tarfile.open(tmp_path / "mm" / "out.tar.bz2")
-    )
+    compare_two_tarfiles(tarfile.open(cph_test_file), tarfile.open(tmp_path / "mm" / "out.tar.bz2"))
 
     fout = tarfile.open(tmp_path / "mm" / "out.tar.bz2")
     names = fout.getnames()
@@ -156,9 +146,7 @@ def test_transmute(cph_test_file: Path, tmp_path: Path):
     shutil.copy(tmp_path / cph_test_file.name, tmp_path / "mm")
 
     mamba_exe = helpers.get_umamba()
-    subprocess.call(
-        [mamba_exe, "package", "transmute", str(tmp_path / "mm" / cph_test_file.name)]
-    )
+    subprocess.call([mamba_exe, "package", "transmute", str(tmp_path / "mm" / cph_test_file.name)])
     failed_files = cph.transmute(
         str(tmp_path / cph_test_file.name), ".conda", out_folder=str(tmp_path / "cph")
     )
@@ -176,11 +164,7 @@ def test_transmute(cph_test_file: Path, tmp_path: Path):
         tmp_path / "cph" / "cph_test_data-0.0.1-0",
         tmp_path / "mm" / "cph_test_data-0.0.1-0",
     )
-    assert (
-        len(fcmp.left_only) == 0
-        and len(fcmp.right_only) == 0
-        and len(fcmp.diff_files) == 0
-    )
+    assert len(fcmp.left_only) == 0 and len(fcmp.right_only) == 0 and len(fcmp.diff_files) == 0
     # fcmp.report_full_closure()
 
     # extract zipfile

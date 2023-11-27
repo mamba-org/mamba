@@ -93,9 +93,7 @@ def tmp_clean_env(tmp_environ: None) -> None:
         if k.startswith(("CONDA", "_CONDA", "MAMBA", "_MAMBA", "XDG_")):
             del os.environ[k]
 
-    def keep_in_path(
-        p: str, prefix: Optional[str] = tmp_environ.get("CONDA_PREFIX")
-    ) -> bool:
+    def keep_in_path(p: str, prefix: Optional[str] = tmp_environ.get("CONDA_PREFIX")) -> bool:
         if "condabin" in p:
             return False
         # On windows, PATH is also used for dyanamic libraries.

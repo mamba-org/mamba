@@ -18,9 +18,7 @@ class TestUpdate:
     current_prefix = os.environ["CONDA_PREFIX"]
 
     env_name = helpers.random_string()
-    root_prefix = os.path.expanduser(
-        os.path.join("~", "tmproot" + helpers.random_string())
-    )
+    root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + helpers.random_string()))
     prefix = os.path.join(root_prefix, "envs", env_name)
     old_version = "0.21.10"
     medium_old_version = "0.22"
@@ -61,9 +59,7 @@ class TestUpdate:
             "xtensor<=" + self.medium_old_version, "-n", env_created, "--json"
         )
         xtensor_link = [
-            to_link
-            for to_link in update_res["actions"]["LINK"]
-            if to_link["name"] == "xtensor"
+            to_link for to_link in update_res["actions"]["LINK"] if to_link["name"] == "xtensor"
         ][0]
 
         assert xtensor_link["version"].startswith(self.medium_old_version)
@@ -105,23 +101,17 @@ class TestUpdate:
         update_res = helpers.update("-n", TestUpdate.env_name, "python=3.10", "--json")
 
         six_link = [
-            to_link
-            for to_link in update_res["actions"]["LINK"]
-            if to_link["name"] == "six"
+            to_link for to_link in update_res["actions"]["LINK"] if to_link["name"] == "six"
         ][0]
 
         assert six_link["version"] == prev_six["version"]
         assert six_link["build_string"] == prev_six["build_string"]
 
         requests_link = [
-            to_link
-            for to_link in update_res["actions"]["LINK"]
-            if to_link["name"] == "requests"
+            to_link for to_link in update_res["actions"]["LINK"] if to_link["name"] == "requests"
         ][0]
         requests_unlink = [
-            to_link
-            for to_link in update_res["actions"]["UNLINK"]
-            if to_link["name"] == "requests"
+            to_link for to_link in update_res["actions"]["UNLINK"] if to_link["name"] == "requests"
         ][0]
 
         assert requests_link["version"] == requests_unlink["version"]
@@ -135,9 +125,7 @@ class TestUpdate:
     def test_further_constrained_update(self, env_created):
         update_res = helpers.update("xtensor==0.21.1=*_0", "--json")
         xtensor_link = [
-            to_link
-            for to_link in update_res["actions"]["LINK"]
-            if to_link["name"] == "xtensor"
+            to_link for to_link in update_res["actions"]["LINK"] if to_link["name"] == "xtensor"
         ][0]
 
         assert xtensor_link["version"] == "0.21.1"
@@ -147,9 +135,7 @@ class TestUpdate:
         update_res = helpers.update("xtensor", "--json", "-n", TestUpdate.env_name)
 
         xtensor_link = [
-            to_link
-            for to_link in update_res["actions"]["LINK"]
-            if to_link["name"] == "xtensor"
+            to_link for to_link in update_res["actions"]["LINK"] if to_link["name"] == "xtensor"
         ][0]
         assert TestUpdate.old_version != xtensor_link["version"]
 
@@ -174,17 +160,13 @@ class TestUpdate:
         update_res = helpers.update("--all", "--json")
 
         xtensor_link = [
-            to_link
-            for to_link in update_res["actions"]["LINK"]
-            if to_link["name"] == "xtensor"
+            to_link for to_link in update_res["actions"]["LINK"] if to_link["name"] == "xtensor"
         ][0]
         assert TestUpdate.old_version != xtensor_link["version"]
 
         if helpers.dry_run_tests == helpers.DryRun.OFF:
             pkg = helpers.get_concrete_pkg(update_res, "xtensor")
-            pkg_info = helpers.get_concrete_pkg_info(
-                helpers.get_env(TestUpdate.env_name), pkg
-            )
+            pkg_info = helpers.get_concrete_pkg_info(helpers.get_env(TestUpdate.env_name), pkg)
             version = pkg_info["version"]
 
             assert TestUpdate.old_version != version
@@ -220,9 +202,7 @@ class TestUpdate:
             )
             ca = alias.rstrip("/")
         else:
-            res = helpers.update(
-                "-n", TestUpdate.env_name, "xtensor", "--json", "--dry-run"
-            )
+            res = helpers.update("-n", TestUpdate.env_name, "xtensor", "--json", "--dry-run")
             ca = "https://conda.anaconda.org"
 
         for to_link in res["actions"]["LINK"]:
@@ -235,9 +215,7 @@ class TestUpdateConfig:
     current_prefix = os.environ["CONDA_PREFIX"]
 
     env_name = helpers.random_string()
-    root_prefix = os.path.expanduser(
-        os.path.join("~", "tmproot" + helpers.random_string())
-    )
+    root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + helpers.random_string()))
     prefix = os.path.join(root_prefix, "envs", env_name)
 
     @staticmethod
@@ -350,9 +328,7 @@ class TestUpdateConfig:
         cmd = []
 
         if root_prefix in (None, "cli"):
-            os.environ["MAMBA_DEFAULT_ROOT_PREFIX"] = os.environ.pop(
-                "MAMBA_ROOT_PREFIX"
-            )
+            os.environ["MAMBA_DEFAULT_ROOT_PREFIX"] = os.environ.pop("MAMBA_ROOT_PREFIX")
 
         if root_prefix == "cli":
             cmd += ["-r", TestUpdateConfig.root_prefix]
@@ -383,9 +359,7 @@ class TestUpdateConfig:
             else:
                 yaml_n = n
                 if not (cli_prefix or cli_env_name or target_is_root):
-                    expected_p = os.path.join(
-                        TestUpdateConfig.root_prefix, "envs", yaml_n
-                    )
+                    expected_p = os.path.join(TestUpdateConfig.root_prefix, "envs", yaml_n)
 
             file_content = [
                 f"name: {yaml_n}",
@@ -456,9 +430,7 @@ class TestUpdateConfig:
             cmd += ["--rc-file", rc_file]
             expected_channels += ["rc"]
 
-        res = helpers.install(
-            *cmd, "--print-config-only", no_rc=not rc_file, default_channel=False
-        )
+        res = helpers.install(*cmd, "--print-config-only", no_rc=not rc_file, default_channel=False)
         TestUpdateConfig.config_tests(res)
         if expected_channels:
             assert res["channels"] == expected_channels

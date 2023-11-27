@@ -35,9 +35,7 @@ class DryRun(Enum):
 use_offline = False
 channel = ["-c", "conda-forge"]
 dry_run_tests = DryRun(
-    os.environ["MAMBA_DRY_RUN_TESTS"]
-    if ("MAMBA_DRY_RUN_TESTS" in os.environ)
-    else "OFF"
+    os.environ["MAMBA_DRY_RUN_TESTS"] if ("MAMBA_DRY_RUN_TESTS" in os.environ) else "OFF"
 )
 
 MAMBA_NO_PREFIX_CHECK = 1 << 0

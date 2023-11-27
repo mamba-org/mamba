@@ -16,9 +16,7 @@ class TestInstall:
     current_prefix = os.environ["CONDA_PREFIX"]
 
     env_name = helpers.random_string()
-    root_prefix = os.path.expanduser(
-        os.path.join("~", "tmproot" + helpers.random_string())
-    )
+    root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + helpers.random_string()))
     prefix = os.path.join(root_prefix, "envs", env_name)
 
     @classmethod
@@ -90,10 +88,8 @@ class TestInstall:
             elif file_type == "explicit":
                 channel = "https://conda.anaconda.org/conda-forge/linux-64/"
                 explicit_specs = [
-                    channel
-                    + "xtensor-0.21.5-hc9558a2_0.tar.bz2#d330e02e5ed58330638a24601b7e4887",
-                    channel
-                    + "xsimd-7.4.8-hc9558a2_0.tar.bz2#32d5b7ad7d6511f1faacf87e53a63e5f",
+                    channel + "xtensor-0.21.5-hc9558a2_0.tar.bz2#d330e02e5ed58330638a24601b7e4887",
+                    channel + "xsimd-7.4.8-hc9558a2_0.tar.bz2#32d5b7ad7d6511f1faacf87e53a63e5f",
                 ]
                 file_content = ["@EXPLICIT"] + explicit_specs
                 specs = explicit_specs
@@ -134,9 +130,7 @@ class TestInstall:
         cmd = []
 
         if root_prefix in (None, "cli"):
-            os.environ["MAMBA_DEFAULT_ROOT_PREFIX"] = os.environ.pop(
-                "MAMBA_ROOT_PREFIX"
-            )
+            os.environ["MAMBA_DEFAULT_ROOT_PREFIX"] = os.environ.pop("MAMBA_ROOT_PREFIX")
 
         if root_prefix == "cli":
             cmd += ["-r", TestInstall.root_prefix]
@@ -238,9 +232,7 @@ class TestInstall:
             cmd += ["--rc-file", rc_file]
             expected_channels += ["rc"]
 
-        res = helpers.install(
-            *cmd, "--print-config-only", no_rc=not rc_file, default_channel=False
-        )
+        res = helpers.install(*cmd, "--print-config-only", no_rc=not rc_file, default_channel=False)
         TestInstall.config_tests(res)
         if expected_channels:
             assert res["channels"] == expected_channels
@@ -253,10 +245,8 @@ class TestInstall:
         specs = ["xtensor", "xsimd"]
         channel = "https://conda.anaconda.org/conda-forge/linux-64/"
         explicit_specs = [
-            channel
-            + "xtensor-0.21.5-hc9558a2_0.tar.bz2#d330e02e5ed58330638a24601b7e4887",
-            channel
-            + "linux-64/xsimd-7.4.8-hc9558a2_0.tar.bz2#32d5b7ad7d6511f1faacf87e53a63e5f",
+            channel + "xtensor-0.21.5-hc9558a2_0.tar.bz2#d330e02e5ed58330638a24601b7e4887",
+            channel + "linux-64/xsimd-7.4.8-hc9558a2_0.tar.bz2#32d5b7ad7d6511f1faacf87e53a63e5f",
         ]
 
         for i in range(2):
@@ -289,9 +279,7 @@ class TestInstall:
     @pytest.mark.parametrize("priority", (None, "disabled", "flexible", "strict"))
     @pytest.mark.parametrize("no_priority", (None, True))
     @pytest.mark.parametrize("strict_priority", (None, True))
-    def test_channel_priority(
-        self, priority, no_priority, strict_priority, existing_cache
-    ):
+    def test_channel_priority(self, priority, no_priority, strict_priority, existing_cache):
         cmd = ["-p", TestInstall.prefix, "xtensor"]
         expected_priority = "flexible"
 
@@ -456,9 +444,7 @@ class TestInstall:
         action_keys = {"LINK", "UNLINK", "PREFIX"}
         assert action_keys.issubset(set(res["actions"].keys()))
 
-        expected_link_packages = (
-            {"python"} if os.name == "nt" else {"python", "python_abi"}
-        )
+        expected_link_packages = {"python"} if os.name == "nt" else {"python", "python_abi"}
         link_packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
         assert expected_link_packages.issubset(link_packages)
         unlink_packages = {pkg["name"] for pkg in res["actions"]["UNLINK"]}
@@ -507,9 +493,7 @@ class TestInstall:
         assert res["actions"]["LINK"][0]["version"] == "0.2.0"
 
     def test_channel_specific(self, existing_cache):
-        res = helpers.install(
-            "conda-forge::xtensor", "--json", default_channel=False, no_rc=True
-        )
+        res = helpers.install("conda-forge::xtensor", "--json", default_channel=False, no_rc=True)
 
         keys = {"success", "prefix", "actions", "dry_run"}
         assert keys.issubset(set(res.keys()))
@@ -529,8 +513,7 @@ class TestInstall:
 
         channel = "https://conda.anaconda.org/conda-forge/noarch/"
         explicit_spec = (
-            channel
-            + "appdirs-1.4.4-pyh9f0ad1d_0.tar.bz2#5f095bc6454094e96f146491fd03633b"
+            channel + "appdirs-1.4.4-pyh9f0ad1d_0.tar.bz2#5f095bc6454094e96f146491fd03633b"
         )
         file_content = ["@EXPLICIT", explicit_spec]
 
@@ -550,9 +533,7 @@ class TestInstall:
         assert pkg["build_string"] == "pyh9f0ad1d_0"
 
     def test_broken_package_name(self):
-        non_existing_url = (
-            "https://026e9ab9-6b46-4285-ae0d-427553801720.de/mypackage.tar.bz2"
-        )
+        non_existing_url = "https://026e9ab9-6b46-4285-ae0d-427553801720.de/mypackage.tar.bz2"
         try:
             helpers.install(non_existing_url, default_channel=False)
         except subprocess.CalledProcessError as e:
@@ -611,9 +592,7 @@ def test_track_features(tmp_home, tmp_root_prefix):
         "--strict-channel-priority",
         no_rc=False,
     )
-    res = helpers.umamba_run(
-        "-n", env_name, "python", "-c", "import sys; print(sys.version)"
-    )
+    res = helpers.umamba_run("-n", env_name, "python", "-c", "import sys; print(sys.version)")
     if helpers.platform.system() == "Windows":
         assert res.strip().startswith(version)
         assert "[MSC v." in res.strip()
@@ -634,9 +613,7 @@ def test_track_features(tmp_home, tmp_root_prefix):
             "--strict-channel-priority",
             no_rc=False,
         )
-        res = helpers.umamba_run(
-            "-n", env_name, "python", "-c", "import sys; print(sys.version)"
-        )
+        res = helpers.umamba_run("-n", env_name, "python", "-c", "import sys; print(sys.version)")
 
         assert res.strip().startswith(version)
         assert "[PyPy" in res.strip()
@@ -657,14 +634,10 @@ def test_reinstall_with_new_version(tmp_home, tmp_root_prefix):
         no_rc=False,
     )
 
-    res = helpers.umamba_run(
-        "-n", env_name, "python", "-c", "import sys; print(sys.version)"
-    )
+    res = helpers.umamba_run("-n", env_name, "python", "-c", "import sys; print(sys.version)")
     assert version in res
 
-    res = helpers.umamba_run(
-        "-n", env_name, "python", "-c", "import pip; print(pip.__version__)"
-    )
+    res = helpers.umamba_run("-n", env_name, "python", "-c", "import pip; print(pip.__version__)")
     assert len(res)
 
     # Update python version
@@ -677,12 +650,8 @@ def test_reinstall_with_new_version(tmp_home, tmp_root_prefix):
         no_rc=False,
     )
 
-    res = helpers.umamba_run(
-        "-n", env_name, "python", "-c", "import sys; print(sys.version)"
-    )
+    res = helpers.umamba_run("-n", env_name, "python", "-c", "import sys; print(sys.version)")
     assert version in res
 
-    res = helpers.umamba_run(
-        "-n", env_name, "python", "-c", "import pip; print(pip.__version__)"
-    )
+    res = helpers.umamba_run("-n", env_name, "python", "-c", "import pip; print(pip.__version__)")
     assert len(res)

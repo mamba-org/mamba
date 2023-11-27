@@ -16,9 +16,7 @@ possible_characters_for_process_names = (
 
 
 def generate_label_flags():
-    random_string = "".join(
-        random.choice(possible_characters_for_process_names) for _ in range(16)
-    )
+    random_string = "".join(random.choice(possible_characters_for_process_names) for _ in range(16))
     return ["--label", random_string]
 
 
@@ -79,14 +77,10 @@ class TestRun:
     @pytest.mark.skipif(platform == "win32", reason="requires bash to be available")
     def test_shell_io_routing(self):
         test_script_file_name = "test_run.sh"
-        test_script_path = os.path.join(
-            os.path.dirname(__file__), test_script_file_name
-        )
+        test_script_path = os.path.join(os.path.dirname(__file__), test_script_file_name)
         if not os.path.isfile(test_script_path):
             raise RuntimeError(
-                "missing test script '{}' at '{}".format(
-                    test_script_file_name, test_script_path
-                )
+                "missing test script '{}' at '{}".format(test_script_file_name, test_script_path)
             )
         subprocess_run(test_script_path, shell=True)
 
@@ -95,10 +89,7 @@ class TestRun:
         try:
             umamba_run("-n", env_name, "python")
         except subprocess.CalledProcessError as e:
-            assert (
-                "critical libmamba The given prefix does not exist:"
-                in e.stderr.decode()
-            )
+            assert "critical libmamba The given prefix does not exist:" in e.stderr.decode()
 
 
 @pytest.fixture()
@@ -122,7 +113,5 @@ def temp_env_prefix():
 
 class TestRunVenv:
     def test_classic_specs(self, temp_env_prefix):
-        res = umamba_run(
-            "-p", temp_env_prefix, "python", "-c", "import sys; print(sys.prefix)"
-        )
+        res = umamba_run("-p", temp_env_prefix, "python", "-c", "import sys; print(sys.prefix)")
         assert res.strip() == temp_env_prefix

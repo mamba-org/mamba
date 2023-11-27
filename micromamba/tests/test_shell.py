@@ -16,10 +16,7 @@ def skip_if_shell_incompat(shell_type):
     if (
         (plat_system == "Linux" and shell_type not in ("bash", "posix", "dash"))
         or (plat_system == "Windows" and shell_type not in ("cmd.exe", "powershell"))
-        or (
-            plat_system == "Darwin"
-            and shell_type not in ("zsh", "bash", "posix", "dash")
-        )
+        or (plat_system == "Darwin" and shell_type not in ("zsh", "bash", "posix", "dash"))
     ):
         pytest.skip("Incompatible shell/OS")
 
@@ -103,15 +100,11 @@ def test_auto_detection(tmp_home, tmp_root_prefix):
             print(res.stderr)
         except Exception:
             pass
-        return decode_json_output(
-            subprocess.check_output(cmd, text=True, encoding="utf-8")
-        )
+        return decode_json_output(subprocess.check_output(cmd, text=True, encoding="utf-8"))
 
     if platform.system() == "Windows":
         if "MAMBA_TEST_SHELL_TYPE" not in os.environ:
-            pytest.skip(
-                "'MAMBA_TEST_SHELL_TYPE' env variable needs to be defined to run this test"
-            )
+            pytest.skip("'MAMBA_TEST_SHELL_TYPE' env variable needs to be defined to run this test")
         shell_type = os.environ["MAMBA_TEST_SHELL_TYPE"]
         if shell_type == "bash":
             pytest.skip(
@@ -201,12 +194,8 @@ def test_activate_target_prefix_checks(tmp_home, tmp_root_prefix):
 
 @pytest.mark.parametrize("shell_type", ["bash", "powershell", "cmd.exe"])
 @pytest.mark.parametrize("prefix_selector", [None, "prefix"])
-@pytest.mark.parametrize(
-    "multiple_time,same_prefix", ((False, None), (True, False), (True, True))
-)
-def test_init(
-    tmp_home, tmp_root_prefix, shell_type, prefix_selector, multiple_time, same_prefix
-):
+@pytest.mark.parametrize("multiple_time,same_prefix", ((False, None), (True, False), (True, True)))
+def test_init(tmp_home, tmp_root_prefix, shell_type, prefix_selector, multiple_time, same_prefix):
     skip_if_shell_incompat(shell_type)
 
     if prefix_selector is None:
@@ -223,9 +212,7 @@ def test_init(
                 "Windows long-path support already enabled.",
             ]
         else:
-            assert helpers.shell(
-                "-y", "init", "-s", shell_type, "-r", tmp_root_prefix / "env"
-            )
+            assert helpers.shell("-y", "init", "-s", shell_type, "-r", tmp_root_prefix / "env")
 
     if shell_type == "bash":
         assert (tmp_root_prefix / "etc" / "profile.d").is_dir()

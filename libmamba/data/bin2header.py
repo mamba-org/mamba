@@ -48,17 +48,11 @@ def main():
     parser = argparse.ArgumentParser(description="Generate binary header output")
     parser.add_argument("-i", "--input", required=True, help="Input file", type=Path)
     parser.add_argument("-o", "--out", required=True, help="Output file", type=Path)
-    parser.add_argument(
-        "-v", "--var", required=True, help="Variable name to use in file"
-    )
-    parser.add_argument(
-        "-e", "--extern", action="store_true", help="Add 'extern' declaration"
-    )
+    parser.add_argument("-v", "--var", required=True, help="Variable name to use in file")
+    parser.add_argument("-e", "--extern", action="store_true", help="Add 'extern' declaration")
     args = parser.parse_args()
 
-    argv_pretty = " ".join(
-        Path(arg).name if "/" in arg or "\\" in arg else arg for arg in sys.argv
-    )
+    argv_pretty = " ".join(Path(arg).name if "/" in arg or "\\" in arg else arg for arg in sys.argv)
     comment = f"/* This file was generated using {argv_pretty} */"
 
     out = bin2header(comment, args.input.read_bytes(), args.var, args.extern)

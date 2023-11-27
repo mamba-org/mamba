@@ -19,9 +19,7 @@ class TestLinking:
     current_prefix = os.environ["CONDA_PREFIX"]
 
     env_name = helpers.random_string()
-    root_prefix = os.path.expanduser(
-        os.path.join("~", "tmproot" + helpers.random_string())
-    )
+    root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + helpers.random_string()))
     prefix = os.path.join(root_prefix, "envs", env_name)
 
     @classmethod
@@ -106,9 +104,7 @@ class TestLinking:
             create_args.append("--always-copy")
         helpers.create(*create_args, no_dry_run=True)
 
-        same_device = (
-            existing_cache.stat().st_dev == Path(TestLinking.prefix).stat().st_dev
-        )
+        same_device = existing_cache.stat().st_dev == Path(TestLinking.prefix).stat().st_dev
         is_softlink = not same_device and allow_softlinks and not always_copy
         is_hardlink = same_device and not always_copy
 
@@ -131,6 +127,4 @@ class TestLinking:
         helpers.remove("xtensor", "-n", TestLinking.env_name)
 
     def test_link_missing_scripts_dir(self):  # issue 2808
-        helpers.create(
-            "python=3.7", "pypy", "-n", TestLinking.env_name, "--json", no_dry_run=True
-        )
+        helpers.create("python=3.7", "pypy", "-n", TestLinking.env_name, "--json", no_dry_run=True)

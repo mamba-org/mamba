@@ -23,9 +23,7 @@ class TestRemove:
     cache = os.path.join(current_root_prefix, "pkgs")
 
     env_name = helpers.random_string()
-    root_prefix = os.path.expanduser(
-        os.path.join("~", "tmproot" + helpers.random_string())
-    )
+    root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + helpers.random_string()))
     prefix = os.path.join(root_prefix, "envs", env_name)
 
     @staticmethod
@@ -50,9 +48,7 @@ class TestRemove:
 
     @pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
     def test_remove(self, env_selector, env_created):
-        env_pkgs = [
-            p["name"] for p in helpers.umamba_list("-p", TestRemove.prefix, "--json")
-        ]
+        env_pkgs = [p["name"] for p in helpers.umamba_list("-p", TestRemove.prefix, "--json")]
 
         if env_selector == "prefix":
             res = helpers.remove("xtensor", "-p", TestRemove.prefix, "--json")
@@ -70,9 +66,7 @@ class TestRemove:
         assert res["actions"]["PREFIX"] == TestRemove.prefix
 
     def test_remove_orphaned(self, env_created):
-        env_pkgs = [
-            p["name"] for p in helpers.umamba_list("-p", TestRemove.prefix, "--json")
-        ]
+        env_pkgs = [p["name"] for p in helpers.umamba_list("-p", TestRemove.prefix, "--json")]
         helpers.install("xframe", "-n", TestRemove.env_name, no_dry_run=True)
 
         res = helpers.remove("xframe", "-p", TestRemove.prefix, "--json")
@@ -113,9 +107,7 @@ class TestRemove:
     def test_remove_no_prune_deps(self, env_created):
         helpers.install("xframe", "-n", TestRemove.env_name, no_dry_run=True)
 
-        res = helpers.remove(
-            "xtensor", "-p", TestRemove.prefix, "--json", "--no-prune-deps"
-        )
+        res = helpers.remove("xtensor", "-p", TestRemove.prefix, "--json", "--no-prune-deps")
 
         keys = {"dry_run", "success", "prefix", "actions"}
         assert keys.issubset(set(res.keys()))
@@ -164,9 +156,7 @@ class TestRemove:
                 assert trash_file.exists() is False
                 assert pyexe_trash.exists() is False
             # No change if file still in use
-            helpers.install(
-                "cpp-filesystem", "-n", self.env_name, "--json", no_dry_run=True
-            )
+            helpers.install("cpp-filesystem", "-n", self.env_name, "--json", no_dry_run=True)
 
             if pyexe_trash_exists:
                 assert trash_file.exists()
@@ -200,9 +190,7 @@ class TestRemoveConfig:
     current_prefix = os.environ["CONDA_PREFIX"]
 
     env_name = helpers.random_string()
-    root_prefix = os.path.expanduser(
-        os.path.join("~", "tmproot" + helpers.random_string())
-    )
+    root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + helpers.random_string()))
     prefix = os.path.join(root_prefix, "envs", env_name)
 
     @staticmethod
@@ -280,9 +268,7 @@ class TestRemoveConfig:
         cmd = []
 
         if root_prefix in (None, "cli"):
-            os.environ["MAMBA_DEFAULT_ROOT_PREFIX"] = os.environ.pop(
-                "MAMBA_ROOT_PREFIX"
-            )
+            os.environ["MAMBA_DEFAULT_ROOT_PREFIX"] = os.environ.pop("MAMBA_ROOT_PREFIX")
 
         if root_prefix == "cli":
             cmd += ["-r", TestRemoveConfig.root_prefix]
@@ -310,9 +296,7 @@ class TestRemoveConfig:
         else:
             os.environ["CONDA_PREFIX"] = p
 
-        if (cli_prefix and cli_env_name) or not (
-            cli_prefix or cli_env_name or env_var or fallback
-        ):
+        if (cli_prefix and cli_env_name) or not (cli_prefix or cli_env_name or env_var or fallback):
             with pytest.raises(subprocess.CalledProcessError):
                 helpers.remove(*cmd, "--print-config-only")
         else:

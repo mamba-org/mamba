@@ -51,9 +51,7 @@ def figure_wrapper(directive, node, caption):
         figure_node["align"] = node.attributes.pop("align")
 
     parsed = nodes.Element()
-    directive.state.nested_parse(
-        ViewList([caption], source=""), directive.content_offset, parsed
-    )
+    directive.state.nested_parse(ViewList([caption], source=""), directive.content_offset, parsed)
     caption_node = nodes.caption(parsed[0].rawsource, "", *parsed[0].children)
     caption_node.source = parsed[0].source
     caption_node.line = parsed[0].line
@@ -87,8 +85,7 @@ class Mermaid(Directive):
             if self.content:
                 return [
                     document.reporter.warning(
-                        "Mermaid directive cannot have both content and "
-                        "a filename argument",
+                        "Mermaid directive cannot have both content and " "a filename argument",
                         line=self.lineno,
                     )
                 ]
@@ -102,8 +99,7 @@ class Mermaid(Directive):
             except (IOError, OSError):  # noqa
                 return [
                     document.reporter.warning(
-                        "External Mermaid file %r not found or reading "
-                        "it failed" % filename,
+                        "External Mermaid file %r not found or reading " "it failed" % filename,
                         line=self.lineno,
                     )
                 ]
@@ -144,9 +140,9 @@ def render_mm(self, code, options, fmt, prefix="mermaid"):
         fmt = "png"
 
     mermaid_cmd = self.builder.config.mermaid_cmd
-    hashkey = (
-        code + str(options) + str(self.builder.config.mermaid_sequence_config)
-    ).encode("utf-8")
+    hashkey = (code + str(options) + str(self.builder.config.mermaid_sequence_config)).encode(
+        "utf-8"
+    )
 
     basename = "%s-%s" % (prefix, sha1(hashkey).hexdigest())
     fname = "%s.%s" % (basename, fmt)
@@ -189,8 +185,7 @@ def render_mm(self, code, options, fmt, prefix="mermaid"):
 
     if p.returncode != 0:
         raise MermaidError(
-            "Mermaid exited with error:\n[stderr]\n%s\n"
-            "[stdout]\n%s" % (stderr, stdout)
+            "Mermaid exited with error:\n[stderr]\n%s\n" "[stdout]\n%s" % (stderr, stdout)
         )
     if not os.path.isfile(outfn):
         raise MermaidError(
@@ -200,9 +195,7 @@ def render_mm(self, code, options, fmt, prefix="mermaid"):
     return relfn, outfn
 
 
-def _render_mm_html_raw(
-    self, node, code, options, prefix="mermaid", imgcls=None, alt=None
-):
+def _render_mm_html_raw(self, node, code, options, prefix="mermaid", imgcls=None, alt=None):
     if "align" in node:
         tag_template = """<div align="{align}" class="mermaid align-{align}">
             {code}
@@ -213,9 +206,7 @@ def _render_mm_html_raw(
             {code}
         </div>"""
 
-    self.body.append(
-        tag_template.format(align=node.get("align"), code=self.encode(code))
-    )
+    self.body.append(tag_template.format(align=node.get("align"), code=self.encode(code)))
     raise nodes.SkipNode
 
 
@@ -229,8 +220,7 @@ def render_mm_html(self, node, code, options, prefix="mermaid", imgcls=None, alt
     try:
         if fmt not in ("png", "svg"):
             raise MermaidError(
-                "mermaid_output_format must be one of 'raw', 'png', "
-                "'svg', but is %r" % fmt
+                "mermaid_output_format must be one of 'raw', 'png', " "'svg', but is %r" % fmt
             )
 
         fname, outfn = render_mm(self, code, options, fmt, prefix)
@@ -295,8 +285,7 @@ def render_mm_latex(self, node, code, options, prefix="mermaid"):
 
         if p.returncode != 0:
             raise MermaidError(
-                "PdfCrop exited with error:\n[stderr]\n%s\n"
-                "[stdout]\n%s" % (stderr, stdout)
+                "PdfCrop exited with error:\n[stderr]\n%s\n" "[stdout]\n%s" % (stderr, stdout)
             )
         if not os.path.isfile(outfn):
             raise MermaidError(
@@ -304,9 +293,7 @@ def render_mm_latex(self, node, code, options, prefix="mermaid"):
                 "[stdout]\n%s" % (stderr, stdout)
             )
 
-        fname = "{filename[0]}-crop{filename[1]}".format(
-            filename=os.path.splitext(fname)
-        )
+        fname = "{filename[0]}-crop{filename[1]}".format(filename=os.path.splitext(fname))
 
     is_inline = self.is_inline(node)
     if is_inline:

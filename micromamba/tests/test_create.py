@@ -110,41 +110,31 @@ def test_lockfile(tmp_home, tmp_root_prefix, tmp_path):
     assert res["success"]
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
-    assert any(
-        package["name"] == "zlib" and package["version"] == "1.2.11"
-        for package in packages
-    )
+    assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_lockfile_online(tmp_home, tmp_root_prefix, tmp_path):
     env_prefix = tmp_path / "myenv"
-    spec_file = "https://raw.githubusercontent.com/mamba-org/mamba/main/micromamba/tests/test_env-lock.yaml"
+    spec_file = (
+        "https://raw.githubusercontent.com/mamba-org/mamba/main/micromamba/tests/test_env-lock.yaml"
+    )
 
     res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
     assert res["success"]
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
-    assert any(
-        package["name"] == "zlib" and package["version"] == "1.2.11"
-        for package in packages
-    )
+    assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_env_lockfile_different_install_after_create(
-    tmp_home, tmp_root_prefix, tmp_path
-):
+def test_env_lockfile_different_install_after_create(tmp_home, tmp_root_prefix, tmp_path):
     env_prefix = tmp_path / "myenv"
     create_spec_file = tmp_path / "env-create-lock.yaml"
     install_spec_file = tmp_path / "env-install-lock.yaml"
 
-    shutil.copyfile(
-        __this_dir__ / "envlockfile-check-step-1-lock.yaml", create_spec_file
-    )
-    shutil.copyfile(
-        __this_dir__ / "envlockfile-check-step-2-lock.yaml", install_spec_file
-    )
+    shutil.copyfile(__this_dir__ / "envlockfile-check-step-1-lock.yaml", create_spec_file)
+    shutil.copyfile(__this_dir__ / "envlockfile-check-step-2-lock.yaml", install_spec_file)
 
     res = helpers.create("-p", env_prefix, "-f", create_spec_file, "-y", "--json")
     assert res["success"]
@@ -292,9 +282,7 @@ def test_channels(tmp_home, tmp_root_prefix, tmp_path, cli, yaml, env_var, rc_fi
         cmd += ["--rc-file", rc_file]
         expected_channels += ["rc"]
 
-    res = helpers.create(
-        *cmd, "--print-config-only", no_rc=not rc_file, default_channel=False
-    )
+    res = helpers.create(*cmd, "--print-config-only", no_rc=not rc_file, default_channel=False)
     check_create_result(res, tmp_root_prefix, env_prefix)
     if expected_channels:
         assert res["channels"] == expected_channels
@@ -378,9 +366,7 @@ def test_multiprocessing():
     "already_exists, is_conda_env", ((False, False), (True, False), (True, True))
 )
 @pytest.mark.parametrize("has_specs", (False, True))
-def test_create_base(
-    tmp_home, tmp_root_prefix, already_exists, is_conda_env, has_specs
-):
+def test_create_base(tmp_home, tmp_root_prefix, already_exists, is_conda_env, has_specs):
     if already_exists:
         if is_conda_env:
             (tmp_root_prefix / "conda-meta").mkdir()
@@ -546,9 +532,7 @@ def test_always_yes(tmp_home, tmp_root_prefix, tmp_path, source):
 )
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 @pytest.mark.parametrize("relocate_prefix", ["/home/bob/env", "/"])
-def test_create_with_relocate_prefix(
-    tmp_home, tmp_root_prefix, tmp_path, relocate_prefix
-):
+def test_create_with_relocate_prefix(tmp_home, tmp_root_prefix, tmp_path, relocate_prefix):
     env_prefix = tmp_path / "myenv"
     res = helpers.create(
         "-p",
@@ -719,9 +703,7 @@ def test_pin_applicable(tmp_home, tmp_root_prefix, tmp_path):
     with open(rc_file, "w+") as f:
         f.write(f"""pinned_packages: ["{pin_name}<={pin_max_version}"]""")
 
-    res = helpers.create(
-        "-n", "myenv", f"--rc-file={rc_file}", "--json", spec_name, no_rc=False
-    )
+    res = helpers.create("-n", "myenv", f"--rc-file={rc_file}", "--json", spec_name, no_rc=False)
 
     install_pkg = None
     for p in res["actions"]["LINK"]:
@@ -741,9 +723,7 @@ def test_pin_not_applicable(tmp_home, tmp_root_prefix, tmp_path):
     with open(rc_file, "w+") as f:
         f.write(f"""pinned_packages: ["{pin_name}"]""")
 
-    res = helpers.create(
-        "-n", "myenv", f"--rc-file={rc_file}", "--json", spec_name, no_rc=False
-    )
+    res = helpers.create("-n", "myenv", f"--rc-file={rc_file}", "--json", spec_name, no_rc=False)
     assert res["success"] is True
     helpers.get_concrete_pkg(res, spec_name)  # Not trowing
 
@@ -829,9 +809,7 @@ def test_create_check_dirs(tmp_home, tmp_root_prefix):
     if platform.system() == "Windows":
         assert os.path.isdir(env_prefix / "lib" / "site-packages" / "traitlets")
     else:
-        assert os.path.isdir(
-            env_prefix / "lib" / "python3.8" / "site-packages" / "traitlets"
-        )
+        assert os.path.isdir(env_prefix / "lib" / "python3.8" / "site-packages" / "traitlets")
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -843,9 +821,7 @@ def test_requires_pip_install(tmp_home, tmp_root_prefix, env_file):
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 @pytest.mark.parametrize("env_file", env_files)
-def test_requires_pip_install_prefix_spaces(
-    tmp_home, tmp_root_prefix, tmp_path, env_file
-):
+def test_requires_pip_install_prefix_spaces(tmp_home, tmp_root_prefix, tmp_path, env_file):
     env_prefix = tmp_path / "prefix with space"
     cmd = ["-p", env_prefix, "-f", env_file]
     helpers.create(*cmd)
@@ -886,9 +862,7 @@ def test_pre_commit_compat(tmp_home, tmp_root_prefix, tmp_path):
         helpers.subprocess_run("git", "config", "user.name", "test", cwd=path)
         helpers.subprocess_run("git", "add", ".", cwd=path)
         helpers.subprocess_run("git", "commit", "-m", "Initialize repo", cwd=path)
-        return helpers.subprocess_run(
-            "git", "rev-parse", "HEAD", cwd=path, text=True
-        ).strip()
+        return helpers.subprocess_run("git", "rev-parse", "HEAD", cwd=path, text=True).strip()
 
     hook_repo = tmp_path / "hook_repo"
     caller_repo = tmp_path / "caller_repo"
@@ -994,16 +968,12 @@ def copy_channels_osx():
             )
             with open(__this_dir__ / f"channel_{channel}/osx-64/repodata.json") as f:
                 repodata = f.read()
-            with open(
-                __this_dir__ / f"channel_{channel}/osx-64/repodata.json", "w"
-            ) as f:
+            with open(__this_dir__ / f"channel_{channel}/osx-64/repodata.json", "w") as f:
                 repodata = repodata.replace("linux", "osx")
                 f.write(repodata)
 
 
-def test_dummy_create(
-    add_glibc_virtual_package, copy_channels_osx, tmp_home, tmp_root_prefix
-):
+def test_dummy_create(add_glibc_virtual_package, copy_channels_osx, tmp_home, tmp_root_prefix):
     env_name = "myenv"
 
     channels = [
@@ -1022,8 +992,7 @@ def test_dummy_create(
     res = helpers.create_with_chan_pkg(env_name, channels, package)
 
     assert any(
-        link["name"] == "b" and "channel_a" in link["channel"]
-        for link in res["actions"]["LINK"]
+        link["name"] == "b" and "channel_a" in link["channel"] for link in res["actions"]["LINK"]
     )
 
     channels = channels[::-1]
@@ -1053,9 +1022,7 @@ def test_create_dry_run(tmp_home, tmp_root_prefix, use_json):
 def test_create_with_non_existing_subdir(tmp_home, tmp_root_prefix, tmp_path):
     env_prefix = tmp_path / "myprefix"
     with pytest.raises(subprocess.CalledProcessError):
-        helpers.create(
-            "-p", env_prefix, "--dry-run", "--json", "conda-forge/noarch::xtensor"
-        )
+        helpers.create("-p", env_prefix, "--dry-run", "--json", "conda-forge/noarch::xtensor")
 
 
 def test_create_with_multiple_files(tmp_home, tmp_root_prefix, tmpdir):
@@ -1119,9 +1086,7 @@ def test_create_with_multi_channels(tmp_home, tmp_root_prefix, tmp_path):
         assert pkg["url"].startswith("https://conda.anaconda.org/conda-forge/")
 
 
-def test_create_with_multi_channels_and_non_existing_subdir(
-    tmp_home, tmp_root_prefix, tmp_path
-):
+def test_create_with_multi_channels_and_non_existing_subdir(tmp_home, tmp_root_prefix, tmp_path):
     env_name = "myenv"
     tmp_root_prefix / "envs" / env_name
 

@@ -84,9 +84,7 @@ def test_env_export(export_env, explicit_flag, md5_flag, channel_subdir_flag):
         assert set(ret["channels"]) == {"conda-forge"}
         assert "micromamba=0.24.0=0" in str(ret["dependencies"])
         if md5_flag == "--md5":
-            assert re.search(
-                r"micromamba=0.24.0=0\[md5=[a-f0-9]{32}\]", str(ret["dependencies"])
-            )
+            assert re.search(r"micromamba=0.24.0=0\[md5=[a-f0-9]{32}\]", str(ret["dependencies"]))
         if channel_subdir_flag:
             assert re.search(
                 r"conda-forge/[a-z0-9-]+::micromamba=0.24.0=0", str(ret["dependencies"])
@@ -141,17 +139,13 @@ def test_env_update(tmp_home, tmp_root_prefix, tmp_path, prune):
     env_name = "env-create-update"
 
     # Create env with python=3.6.15 and xtensor=0.20.0
-    helpers.create(
-        "python=3.6.15", "xtensor=0.20.0", "-n", env_name, "--json", no_dry_run=True
-    )
+    helpers.create("python=3.6.15", "xtensor=0.20.0", "-n", env_name, "--json", no_dry_run=True)
     packages = helpers.umamba_list("-n", env_name, "--json")
     assert any(
-        package["name"] == "python" and package["version"] == "3.6.15"
-        for package in packages
+        package["name"] == "python" and package["version"] == "3.6.15" for package in packages
     )
     assert any(
-        package["name"] == "xtensor" and package["version"] == "0.20.0"
-        for package in packages
+        package["name"] == "xtensor" and package["version"] == "0.20.0" for package in packages
     )
     assert any(package["name"] == "xtl" for package in packages)
 
@@ -176,8 +170,7 @@ def test_env_update(tmp_home, tmp_root_prefix, tmp_path, prune):
         assert not any(package["name"] == "xtl" for package in packages)
     else:
         assert any(
-            package["name"] == "xtensor" and package["version"] == "0.20.0"
-            for package in packages
+            package["name"] == "xtensor" and package["version"] == "0.20.0" for package in packages
         )
         assert any(package["name"] == "xtl" for package in packages)
 

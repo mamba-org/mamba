@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from .helpers import *
+from . import helpers
 
 if platform.system() == "Windows":
     xtensor_hpp = "Library/include/xtensor/xtensor.hpp"
@@ -16,8 +16,10 @@ class TestLinking:
     current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
     current_prefix = os.environ["CONDA_PREFIX"]
 
-    env_name = random_string()
-    root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
+    env_name = helpers.random_string()
+    root_prefix = os.path.expanduser(
+        os.path.join("~", "tmproot" + helpers.random_string())
+    )
     prefix = os.path.join(root_prefix, "envs", env_name)
 
     @classmethod
@@ -30,17 +32,17 @@ class TestLinking:
         os.environ["CONDA_PREFIX"] = TestLinking.current_prefix
 
         if Path(TestLinking.root_prefix).exists():
-            rmtree(TestLinking.root_prefix)
+            helpers.rmtree(TestLinking.root_prefix)
 
     @classmethod
     def teardown_method(cls):
         if Path(TestLinking.prefix).exists():
-            rmtree(TestLinking.prefix)
+            helpers.rmtree(TestLinking.prefix)
 
     def test_link(self, existing_cache, test_pkg):
-        create("xtensor", "-n", TestLinking.env_name, "--json", no_dry_run=True)
+        helpers.create("xtensor", "-n", TestLinking.env_name, "--json", no_dry_run=True)
 
-        linked_file = get_env(TestLinking.env_name, xtensor_hpp)
+        linked_file = helpers.get_env(TestLinking.env_name, xtensor_hpp)
         assert linked_file.exists()
         assert not linked_file.is_symlink()
 
@@ -49,7 +51,7 @@ class TestLinking:
         assert cache_file.stat().st_ino == linked_file.stat().st_ino
 
     def test_copy(self, existing_cache, test_pkg):
-        create(
+        helpers.create(
             "xtensor",
             "-n",
             TestLinking.env_name,
@@ -57,7 +59,7 @@ class TestLinking:
             "--always-copy",
             no_dry_run=True,
         )
-        linked_file = get_env(TestLinking.env_name, xtensor_hpp)
+        linked_file = helpers.get_env(TestLinking.env_name, xtensor_hpp)
         assert linked_file.exists()
         assert not linked_file.is_symlink()
 
@@ -70,7 +72,7 @@ class TestLinking:
         reason="Softlinking needs admin privileges on win",
     )
     def test_always_softlink(self, existing_cache, test_pkg):
-        create(
+        helpers.create(
             "xtensor",
             "-n",
             TestLinking.env_name,
@@ -78,7 +80,7 @@ class TestLinking:
             "--always-softlink",
             no_dry_run=True,
         )
-        linked_file = get_env(TestLinking.env_name, xtensor_hpp)
+        linked_file = helpers.get_env(TestLinking.env_name, xtensor_hpp)
 
         assert linked_file.exists()
         assert linked_file.is_symlink()
@@ -100,7 +102,7 @@ class TestLinking:
             create_args.append("--allow-softlinks")
         if always_copy:
             create_args.append("--always-copy")
-        create(*create_args, no_dry_run=True)
+        helpers.create(*create_args, no_dry_run=True)
 
         same_device = (
             existing_cache.stat().st_dev == Path(TestLinking.prefix).stat().st_dev
@@ -108,7 +110,7 @@ class TestLinking:
         is_softlink = not same_device and allow_softlinks and not always_copy
         is_hardlink = same_device and not always_copy
 
-        linked_file = get_env(TestLinking.env_name, xtensor_hpp)
+        linked_file = helpers.get_env(TestLinking.env_name, xtensor_hpp)
         assert linked_file.exists()
 
         cache_file = existing_cache / test_pkg / xtensor_hpp
@@ -117,16 +119,16 @@ class TestLinking:
         assert linked_file.is_symlink() == is_softlink
 
     def test_unlink_missing_file(self):
-        create("xtensor", "-n", TestLinking.env_name, "--json", no_dry_run=True)
+        helpers.create("xtensor", "-n", TestLinking.env_name, "--json", no_dry_run=True)
 
-        linked_file = get_env(TestLinking.env_name, xtensor_hpp)
+        linked_file = helpers.get_env(TestLinking.env_name, xtensor_hpp)
         assert linked_file.exists()
         assert not linked_file.is_symlink()
 
         os.remove(linked_file)
-        remove("xtensor", "-n", TestLinking.env_name)
+        helpers.remove("xtensor", "-n", TestLinking.env_name)
 
     def test_link_missing_scripts_dir(self):  # issue 2808
-        create(
+        helpers.create(
             "python=3.7", "pypy", "-n", TestLinking.env_name, "--json", no_dry_run=True
         )

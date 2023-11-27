@@ -306,3 +306,26 @@ def test_CondaToken():
     other.token = "foo"
     assert auth != other
     assert hash(auth) != 0
+
+
+def test_authentication_data_base():
+    AuthenticationDataBase = libmambapy.specs.AuthenticationDataBase
+    BearerToken = libmambapy.specs.BearerToken
+    BasicHTTPAuthentication = libmambapy.specs.BasicHTTPAuthentication
+
+    auth_1 = BearerToken(token="mytoken")
+    db = AuthenticationDataBase({"mamba.org": auth_1})
+
+    assert "mamba.org" in db
+    assert db["mamba.org"] == auth_1
+
+    auth_2 = BasicHTTPAuthentication(user="user", password="pass")
+    db["anaconda.com"] = auth_2
+    assert db["anaconda.com"] == auth_2
+
+    assert db.contains_weaken("mamba.org")
+    assert db.contains_weaken("mamba.org/conda-forge")
+    assert db.at_weaken("mamba.org/conda-forge") == auth_1
+
+    for key, val in db.items():
+        ...

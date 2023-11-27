@@ -364,5 +364,23 @@ namespace mambapy
             .def("__copy__", &copy<CondaToken>)
             .def("__deepcopy__", &deepcopy<CondaToken>, pybind11::arg("memo"))
             .def("__hash__", &hash<CondaToken>);
+
+        py::bind_map<AuthenticationDataBase>(m, "AuthenticationDataBase")
+            .def(py::init(
+                [](const py::dict& py_db)
+                {
+                    auto db = AuthenticationDataBase();
+                    for (auto const& [name, auth] : py_db)
+                    {
+                        db.emplace(py::cast<std::string>(name), py::cast<AuthenticationInfo>(auth));
+                    }
+                    return db;
+                }
+            ))
+            .def(
+                "at_weaken",
+                py::overload_cast<const std::string&>(&AuthenticationDataBase::at_weaken, py::const_)
+            )
+            .def("contains_weaken", &AuthenticationDataBase::contains_weaken);
     }
 }

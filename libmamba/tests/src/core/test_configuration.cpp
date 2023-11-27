@@ -1119,13 +1119,8 @@ namespace mamba
 
                 std::vector<fs::u8path> sources;
 
-
-
                 auto temp_prefix = std::make_unique<TemporaryDirectory>();
                 auto temp_home = std::make_unique<TemporaryDirectory>();
-
-                auto old_home = util::get_env("HOME");
-                auto old_xdg_home = util::get_env("XDG_CONFIG_HOME");
 
                 util::set_env("MAMBA_ROOT_PREFIX", temp_prefix->path().string());
 

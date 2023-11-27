@@ -89,7 +89,6 @@ class TestRemove:
     def test_remove_force(self, env_created):
         # check that we can remove a package without solving the environment (putting
         # it in a bad state, actually)
-        [p["name"] for p in umamba_list("-p", TestRemove.prefix, "--json")]
         install("xframe", "-n", TestRemove.env_name, no_dry_run=True)
 
         res = remove("xtl", "-p", TestRemove.prefix, "--json", "--force")
@@ -102,7 +101,6 @@ class TestRemove:
         assert res["actions"]["PREFIX"] == TestRemove.prefix
 
     def test_remove_no_prune_deps(self, env_created):
-        [p["name"] for p in umamba_list("-p", TestRemove.prefix, "--json")]
         install("xframe", "-n", TestRemove.env_name, no_dry_run=True)
 
         res = remove("xtensor", "-p", TestRemove.prefix, "--json", "--no-prune-deps")

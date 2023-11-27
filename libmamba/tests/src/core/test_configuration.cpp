@@ -1112,6 +1112,43 @@ namespace mamba
                 }
             }
 
+            // Regression test for https://github.com/mamba-org/mamba/issues/2704
+            TEST_CASE_FIXTURE(Configuration, "deduplicate_rc_files")
+            {
+                using namespace detail;
+
+                std::vector<fs::u8path> sources;
+
+
+
+                auto temp_prefix = std::make_unique<TemporaryDirectory>();
+                auto temp_home = std::make_unique<TemporaryDirectory>();
+
+                auto old_home = util::get_env("HOME");
+                auto old_xdg_home = util::get_env("XDG_CONFIG_HOME");
+
+                util::set_env("MAMBA_ROOT_PREFIX", temp_prefix->path().string());
+
+                // the target_prefix is the same as the root_prefix for the base env
+                util::set_env("MAMBA_TARGET_PREFIX", temp_prefix->path().string());
+                util::set_env("HOME", temp_home->path().string());
+
+                auto root_config_file = temp_prefix->path() / ".condarc";
+                std::ofstream out_root_config(root_config_file.std_path());
+                out_root_config << "channel_alias: http://outer.com\n";
+                out_root_config.close();
+
+                auto user_config_file = temp_home->path() / ".condarc";
+                std::ofstream out_user_config(user_config_file.std_path());
+                out_user_config << "channel_alias: http://inner.com\n";
+                out_user_config.close();
+
+                config.load();
+
+                REQUIRE_EQ(config.sources().size(), 2);
+                REQUIRE_EQ(config.at("channel_alias").value<std::string>(), "http://inner.com");
+            }
+
             TEST_CASE_FIXTURE(Configuration, "print_scalar_node")
             {
                 using namespace detail;

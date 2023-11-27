@@ -89,7 +89,7 @@ class TestRemove:
     def test_remove_force(self, env_created):
         # check that we can remove a package without solving the environment (putting
         # it in a bad state, actually)
-        env_pkgs = [p["name"] for p in umamba_list("-p", TestRemove.prefix, "--json")]
+        [p["name"] for p in umamba_list("-p", TestRemove.prefix, "--json")]
         install("xframe", "-n", TestRemove.env_name, no_dry_run=True)
 
         res = remove("xtl", "-p", TestRemove.prefix, "--json", "--force")
@@ -102,7 +102,7 @@ class TestRemove:
         assert res["actions"]["PREFIX"] == TestRemove.prefix
 
     def test_remove_no_prune_deps(self, env_created):
-        env_pkgs = [p["name"] for p in umamba_list("-p", TestRemove.prefix, "--json")]
+        [p["name"] for p in umamba_list("-p", TestRemove.prefix, "--json")]
         install("xframe", "-n", TestRemove.env_name, no_dry_run=True)
 
         res = remove("xtensor", "-p", TestRemove.prefix, "--json", "--no-prune-deps")
@@ -130,11 +130,11 @@ class TestRemove:
         )
         time.sleep(1)
 
-        res = remove("python", "-v", "-p", self.prefix, no_dry_run=True)
+        remove("python", "-v", "-p", self.prefix, no_dry_run=True)
 
         if platform.system() == "Windows":
             pyexe_trash = Path(str(pyexe) + ".mamba_trash")
-            assert pyexe.exists() == False
+            assert pyexe.exists() is False
             pyexe_trash_exists = pyexe_trash.exists()
             trash_file = Path(self.prefix) / "conda-meta" / "mamba_trash.txt"
 
@@ -151,8 +151,8 @@ class TestRemove:
                     for atf in all_trash_files:
                         assert atf in linesp
             else:
-                assert trash_file.exists() == False
-                assert pyexe_trash.exists() == False
+                assert trash_file.exists() is False
+                assert pyexe_trash.exists() is False
             # No change if file still in use
             install("cpp-filesystem", "-n", self.env_name, "--json", no_dry_run=True)
 
@@ -168,18 +168,18 @@ class TestRemove:
                     for atf in all_trash_files:
                         assert atf in linesp
             else:
-                assert trash_file.exists() == False
-                assert pyexe_trash.exists() == False
+                assert trash_file.exists() is False
+                assert pyexe_trash.exists() is False
 
             subprocess.Popen("TASKKILL /F /PID {pid} /T".format(pid=pyproc.pid))
             # check that another env mod clears lingering trash files
             time.sleep(0.5)
             install("xsimd", "-n", self.env_name, "--json", no_dry_run=True)
-            assert trash_file.exists() == False
-            assert pyexe_trash.exists() == False
+            assert trash_file.exists() is False
+            assert pyexe_trash.exists() is False
 
         else:
-            assert pyexe.exists() == False
+            assert pyexe.exists() is False
             pyproc.kill()
 
 

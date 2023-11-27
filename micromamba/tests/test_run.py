@@ -43,7 +43,7 @@ class TestRun:
         except:
             fails = True
 
-        assert fails == True
+        assert fails is True
 
     @pytest.mark.parametrize("option_flag", common_simple_flags)
     @pytest.mark.parametrize("make_label_flags", next_label_flags)
@@ -57,10 +57,10 @@ class TestRun:
 
         # In detach mode we fork micromamba and don't have a way to know if the executable exists.
         if option_flag == "-d" or option_flag == "--detach":
-            assert fails == False
+            assert fails is False
             return
 
-        assert fails == True
+        assert fails is True
 
     @pytest.mark.parametrize("option_flag", common_simple_flags)
     # @pytest.mark.parametrize("label_flags", naming_flags()) # TODO: reactivate after fixing help flag not disactivating the run
@@ -100,7 +100,7 @@ class TestRun:
     def test_run_non_existing_env(self):
         env_name = random_string()
         try:
-            run_res = umamba_run("-n", env_name, "python")
+            umamba_run("-n", env_name, "python")
         except subprocess.CalledProcessError as e:
             assert (
                 "critical libmamba The given prefix does not exist:"

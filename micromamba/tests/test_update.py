@@ -63,7 +63,7 @@ class TestUpdate:
     # test that we relink noarch packages
     def test_update_python_noarch(self, root):
         if dry_run_tests == DryRun.OFF:
-            res_create = create(
+            create(
                 "python=3.9",
                 "six",
                 "requests",
@@ -145,7 +145,7 @@ class TestUpdate:
 
         # TODO fix this?!
         assert update_res["message"] == "All requested packages already installed"
-        assert update_res["success"] == True
+        assert update_res["success"] is True
         assert "action" not in update_res
 
     def test_update_all(self, env_created):
@@ -453,7 +453,6 @@ class TestUpdateConfig:
                 file_content = [f"dependencies: [{specs[i]}]"]
             elif type == "classic":
                 file_content = [specs[i]]
-                expected_specs = specs
             else:  # explicit
                 file_content = ["@EXPLICIT", explicit_specs[i]]
 

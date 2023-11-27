@@ -264,7 +264,6 @@ class TestInstall:
                 file_content = [f"dependencies: [{specs[i]}]"]
             elif type == "classic":
                 file_content = [specs[i]]
-                expected_specs = specs
             else:  # explicit
                 file_content = ["@EXPLICIT", explicit_specs[i]]
 
@@ -545,7 +544,7 @@ class TestInstall:
             "https://026e9ab9-6b46-4285-ae0d-427553801720.de/mypackage.tar.bz2"
         )
         try:
-            res = install(non_existing_url, default_channel=False)
+            install(non_existing_url, default_channel=False)
         except subprocess.CalledProcessError as e:
             assert "Invalid package filename" in e.stderr.decode("utf-8")
 
@@ -589,7 +588,7 @@ def test_install_check_dirs(tmp_home, tmp_root_prefix):
 
 def test_track_features(tmp_home, tmp_root_prefix):
     env_name = "myenv"
-    env_prefix = tmp_root_prefix / "envs" / env_name
+    tmp_root_prefix / "envs" / env_name
 
     # should install CPython since PyPy has track features
     version = "3.7.9"
@@ -633,7 +632,7 @@ def test_track_features(tmp_home, tmp_root_prefix):
 
 def test_reinstall_with_new_version(tmp_home, tmp_root_prefix):
     env_name = "myenv"
-    env_prefix = tmp_root_prefix / "envs" / env_name
+    tmp_root_prefix / "envs" / env_name
 
     version = "3.8"
     create("-n", env_name, default_channel=False, no_rc=False)

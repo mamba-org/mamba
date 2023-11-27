@@ -645,7 +645,7 @@ def test_spec_with_channel(tmp_home, tmp_root_prefix, tmp_path):
 def test_spec_with_channel_and_subdir():
     env_name = "myenv"
     try:
-        res = helpers.create("-n", env_name, "conda-forge/noarch::xtensor", "--dry-run")
+        helpers.create("-n", env_name, "conda-forge/noarch::xtensor", "--dry-run")
     except subprocess.CalledProcessError as e:
         assert e.stderr.decode() == (
             'critical libmamba The package "conda-forge/noarch::xtensor" is '
@@ -1052,7 +1052,7 @@ def test_create_dry_run(tmp_home, tmp_root_prefix, use_json):
 
 def test_create_with_non_existing_subdir(tmp_home, tmp_root_prefix, tmp_path):
     env_prefix = tmp_path / "myprefix"
-    with pytest.raises(subprocess.CalledProcessError) as e:
+    with pytest.raises(subprocess.CalledProcessError):
         helpers.create(
             "-p", env_prefix, "--dry-run", "--json", "conda-forge/noarch::xtensor"
         )
@@ -1060,7 +1060,7 @@ def test_create_with_non_existing_subdir(tmp_home, tmp_root_prefix, tmp_path):
 
 def test_create_with_multiple_files(tmp_home, tmp_root_prefix, tmpdir):
     env_name = "myenv"
-    env_prefix = tmp_root_prefix / "envs" / env_name
+    tmp_root_prefix / "envs" / env_name
 
     # Check that multiple --file arguments are considered
     (tmpdir / "file_a.txt").write(b"a")
@@ -1097,7 +1097,7 @@ multichannel_config = {
 
 def test_create_with_multi_channels(tmp_home, tmp_root_prefix, tmp_path):
     env_name = "myenv"
-    env_prefix = tmp_root_prefix / "envs" / env_name
+    tmp_root_prefix / "envs" / env_name
 
     rc_file = tmp_path / "config.yaml"
     rc_file.write_text(yaml.dump(multichannel_config))
@@ -1123,13 +1123,13 @@ def test_create_with_multi_channels_and_non_existing_subdir(
     tmp_home, tmp_root_prefix, tmp_path
 ):
     env_name = "myenv"
-    env_prefix = tmp_root_prefix / "envs" / env_name
+    tmp_root_prefix / "envs" / env_name
 
     rc_file = tmp_path / "config.yaml"
     rc_file.write_text(yaml.dump(multichannel_config))
 
-    with pytest.raises(subprocess.CalledProcessError) as e:
-        res = helpers.create(
+    with pytest.raises(subprocess.CalledProcessError):
+        helpers.create(
             "-n",
             env_name,
             "conda-forge2/noarch::xtensor",

@@ -314,7 +314,9 @@ def test_shell_init(
     umamba = helpers.get_umamba()
     run_dir = tmp_path / "rundir"
     run_dir.mkdir()
-    call = lambda s: call_interpreter(s, run_dir, interpreter)
+
+    def call(s):
+        return call_interpreter(s, run_dir, interpreter)
 
     rpv = shvar("MAMBA_ROOT_PREFIX", interpreter)
     s = [f"echo {rpv}"]
@@ -552,7 +554,8 @@ def test_env_activation(tmp_home, winreg_value, tmp_root_prefix, tmp_path, inter
     s = [f"{umamba} shell init -r {tmp_root_prefix}"]
     stdout, stderr = call_interpreter(s, tmp_path, interpreter)
 
-    call = lambda s: call_interpreter(s, tmp_path, interpreter, interactive=True)
+    def call(s):
+        return call_interpreter(s, tmp_path, interpreter, interactive=True)
 
     evars = extract_vars(["CONDA_PREFIX", "CONDA_SHLVL", "PATH"], interpreter)
 
@@ -651,7 +654,8 @@ def test_activation_envvars(
     s = [f"{umamba} shell init -r {tmp_root_prefix}"]
     stdout, stderr = call_interpreter(s, tmp_path, interpreter)
 
-    call = lambda s: call_interpreter(s, tmp_path, interpreter, interactive=True)
+    def call(s):
+        return call_interpreter(s, tmp_path, interpreter, interactive=True)
 
     evars = extract_vars(["CONDA_PREFIX", "CONDA_SHLVL", "PATH"], interpreter)
 
@@ -770,7 +774,8 @@ def test_unicode_activation(
     s = [f"{umamba} shell init -r {tmp_root_prefix}"]
     stdout, stderr = call_interpreter(s, tmp_path, interpreter)
 
-    call = lambda s: call_interpreter(s, tmp_path, interpreter, interactive=True)
+    def call(s):
+        return call_interpreter(s, tmp_path, interpreter, interactive=True)
 
     evars = extract_vars(["CONDA_PREFIX", "CONDA_SHLVL", "PATH"], interpreter)
 

@@ -169,8 +169,8 @@ def test_transmute(cph_test_file: Path, tmp_path: Path):
     cph.extract(str(tmp_path / "cph" / as_conda))
     cph.extract(str(tmp_path / "mm" / as_conda))
 
-    conda = list((tmp_path / "cph").rglob("**/*"))
-    mamba = list((tmp_path / "mm").rglob("**/*"))
+    list((tmp_path / "cph").rglob("**/*"))
+    list((tmp_path / "mm").rglob("**/*"))
 
     fcmp = filecmp.dircmp(
         tmp_path / "cph" / "cph_test_data-0.0.1-0",

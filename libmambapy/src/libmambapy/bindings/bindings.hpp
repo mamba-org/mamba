@@ -4,8 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef LIBMAMBAPY_HPP
-#define LIBMAMBAPY_HPP
+#ifndef LIBMAMBAPY_BINDINGS_HPP
+#define LIBMAMBAPY_BINDINGS_HPP
 
 #include <pybind11/pybind11.h>
 

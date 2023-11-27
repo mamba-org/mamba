@@ -4,8 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <memory>
-
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl_bind.h>
@@ -18,61 +16,12 @@
 
 #include "bindings.hpp"
 #include "flat_set_caster.hpp"
+#include "utils.hpp"
+#include "weakening_map_bind.hpp"
 
 
 namespace mambapy
 {
-
-    template <typename Enum>
-    auto enum_from_str(const pybind11::str& name)
-    {
-        auto pyenum = pybind11::type::of<Enum>();
-        return pyenum.attr("__members__")[name].template cast<Enum>();
-    }
-
-    template <typename T>
-    auto copy(const T& x) -> std::unique_ptr<T>
-    {
-        return std::make_unique<T>(x);
-    }
-
-    template <typename T>
-    auto deepcopy(const T& x, const pybind11::dict& /* memo */) -> std::unique_ptr<T>
-    {
-        return std::make_unique<T>(x);
-    }
-
-    template <typename T>
-    auto hash(const T& x) -> std::size_t
-    {
-        return std::hash<T>()(x);
-    }
-
-    template <typename Map, typename Py>
-    auto bind_weakening_map(Py& m, const char* klass)
-    {
-        namespace py = pybind11;
-        using key_type = typename Map::key_type;
-        using mapped_type = typename Map::mapped_type;
-
-        return py::bind_map<Map>(m, klass)
-            .def(py::init(
-                [](const py::dict& py_db)
-                {
-                    auto db = Map();
-                    for (auto const& [name, auth] : py_db)
-                    {
-                        db.emplace(py::cast<key_type>(name), py::cast<mapped_type>(auth));
-                    }
-                    return db;
-                }
-            ))
-            .def(py::self == py::self)
-            .def(py::self != py::self)
-            .def("at_weaken", py::overload_cast<const std::string&>(&Map::at_weaken, py::const_))
-            .def("contains_weaken", &Map::contains_weaken);
-    }
-
     void bind_submodule_specs(pybind11::module_ m)
     {
         namespace py = pybind11;

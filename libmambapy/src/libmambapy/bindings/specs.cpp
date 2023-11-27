@@ -8,7 +8,9 @@
 
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/stl_bind.h>
 
+#include "mamba/specs/authentication_info.hpp"
 #include "mamba/specs/channel_spec.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/specs/platform.hpp"
@@ -316,5 +318,51 @@ namespace mambapy
                 &ChannelSpec::platform_filters,
                 &ChannelSpec::set_platform_filters
             );
+
+        py::class_<BasicHTTPAuthentication>(m, "BasicHTTPAuthentication")
+            .def(
+                py::init(
+                    [](std::string_view user, std::string_view password) -> BasicHTTPAuthentication
+                    {
+                        return {
+                            /* .user= */ std::string(user),
+                            /* .password= */ std::string(password),
+                        };
+                    }
+                ),
+                py::arg("user"),
+                py::arg("password")
+            )
+            .def_readwrite("user", &BasicHTTPAuthentication::user)
+            .def_readwrite("password", &BasicHTTPAuthentication::password)
+            .def(py::self == py::self)
+            .def(py::self != py::self)
+            .def("__copy__", &copy<BasicHTTPAuthentication>)
+            .def("__deepcopy__", &deepcopy<BasicHTTPAuthentication>, pybind11::arg("memo"))
+            .def("__hash__", &hash<BasicHTTPAuthentication>);
+
+        py::class_<BearerToken>(m, "BearerToken")
+            .def(
+                py::init([](std::string_view token) -> BearerToken { return { std::string(token) }; }),
+                py::arg("token")
+            )
+            .def_readwrite("token", &BearerToken::token)
+            .def(py::self == py::self)
+            .def(py::self != py::self)
+            .def("__copy__", &copy<BearerToken>)
+            .def("__deepcopy__", &deepcopy<BearerToken>, pybind11::arg("memo"))
+            .def("__hash__", &hash<BearerToken>);
+
+        py::class_<CondaToken>(m, "CondaToken")
+            .def(
+                py::init([](std::string_view token) -> CondaToken { return { std::string(token) }; }),
+                py::arg("token")
+            )
+            .def_readwrite("token", &CondaToken::token)
+            .def(py::self == py::self)
+            .def(py::self != py::self)
+            .def("__copy__", &copy<CondaToken>)
+            .def("__deepcopy__", &deepcopy<CondaToken>, pybind11::arg("memo"))
+            .def("__hash__", &hash<CondaToken>);
     }
 }

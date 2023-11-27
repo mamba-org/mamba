@@ -234,3 +234,75 @@ def test_channel_spec():
     #  Copy
     other = copy.deepcopy(spec)
     assert other.location == spec.location
+
+
+def test_BasicHTTPAuthentication():
+    BasicHTTPAuthentication = libmambapy.specs.BasicHTTPAuthentication
+
+    auth = BasicHTTPAuthentication(user="mamba", password="superpass!!")
+
+    # Properties
+    assert auth.user == "mamba"
+    assert auth.password == "superpass!!"
+    auth.user = "conda"
+    auth.password = "awesome#"
+    assert auth.user == "conda"
+    assert auth.password == "awesome#"
+
+    #  Copy
+    other = copy.deepcopy(auth)
+    assert other is not auth
+    assert other.user == auth.user
+
+    # Comparion
+    assert auth == auth
+    assert auth == other
+    other.user = "rattler"
+    assert auth != other
+    assert hash(auth) != 0
+
+
+def test_BearerToken():
+    BearerToken = libmambapy.specs.BearerToken
+
+    auth = BearerToken(token="mytoken")
+
+    # Properties
+    assert auth.token == "mytoken"
+    auth.token = "othertok"
+    assert auth.token == "othertok"
+
+    #  Copy
+    other = copy.deepcopy(auth)
+    assert other is not auth
+    assert other.token == auth.token
+
+    # Comparion
+    assert auth == auth
+    assert auth == other
+    other.token = "foo"
+    assert auth != other
+    assert hash(auth) != 0
+
+
+def test_CondaToken():
+    CondaToken = libmambapy.specs.CondaToken
+
+    auth = CondaToken(token="mytoken")
+
+    # Properties
+    assert auth.token == "mytoken"
+    auth.token = "othertok"
+    assert auth.token == "othertok"
+
+    #  Copy
+    other = copy.deepcopy(auth)
+    assert other is not auth
+    assert other.token == auth.token
+
+    # Comparion
+    assert auth == auth
+    assert auth == other
+    other.token = "foo"
+    assert auth != other
+    assert hash(auth) != 0

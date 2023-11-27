@@ -195,9 +195,9 @@ def test_explicit_export_topologically_sorted(tmp_home, tmp_prefix):
         "pip": 0,
         "jupyterlab": 0,
     }
-    for i, l in enumerate(lines):
+    for i, line in enumerate(lines):
         for pkg in indices.keys():
-            if pkg in l:
+            if pkg in line:
                 indices[pkg] = i
 
     assert indices["libzlib"] < indices["python"]

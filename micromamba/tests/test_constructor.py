@@ -4,11 +4,11 @@ import os
 import shutil
 import subprocess
 
-from .helpers import *
+from . import helpers
 
 
 def constructor(*args, default_channel=True, no_rc=True, no_dry_run=False):
-    umamba = get_umamba()
+    umamba = helpers.get_umamba()
     cmd = [umamba, "constructor"] + [arg for arg in args if arg]
 
     try:
@@ -33,8 +33,10 @@ class TestInstall:
     current_prefix = os.environ["CONDA_PREFIX"]
     cache = os.path.join(current_root_prefix, "pkgs")
 
-    env_name = random_string()
-    root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
+    env_name = helpers.random_string()
+    root_prefix = os.path.expanduser(
+        os.path.join("~", "tmproot" + helpers.random_string())
+    )
     prefix = os.path.join(root_prefix, "envs", env_name)
     new_cache = os.path.join(root_prefix, "pkgs")
 

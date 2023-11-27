@@ -152,7 +152,7 @@ def install(*args, default_channel=True, no_rc=True, no_dry_run=False, **kwargs)
         try:
             j = json.loads(res)
             return j
-        except:
+        except Exception:
             print(res.decode())
             return
     if "--print-config-only" in args:

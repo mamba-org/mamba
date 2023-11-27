@@ -36,14 +36,8 @@ class TestRun:
     @pytest.mark.parametrize("option_flag", common_simple_flags)
     @pytest.mark.parametrize("make_label_flags", next_label_flags)
     def test_fail_without_command(self, option_flag, make_label_flags):
-        fails = True
-        try:
+        with pytest.raises(subprocess.CalledProcessError):
             umamba_run(option_flag, *make_label_flags())
-            fails = False
-        except:
-            fails = True
-
-        assert fails is True
 
     @pytest.mark.parametrize("option_flag", common_simple_flags)
     @pytest.mark.parametrize("make_label_flags", next_label_flags)
@@ -52,15 +46,14 @@ class TestRun:
         try:
             umamba_run(option_flag, *make_label_flags(), "exe-that-does-not-exists")
             fails = False
-        except:
+        except subprocess.CalledProcessError:
             fails = True
 
         # In detach mode we fork micromamba and don't have a way to know if the executable exists.
         if option_flag == "-d" or option_flag == "--detach":
             assert fails is False
-            return
-
-        assert fails is True
+        else:
+            assert fails is True
 
     @pytest.mark.parametrize("option_flag", common_simple_flags)
     # @pytest.mark.parametrize("label_flags", naming_flags()) # TODO: reactivate after fixing help flag not disactivating the run

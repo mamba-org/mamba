@@ -1,15 +1,5 @@
 exclude: libmamba/tests/data/repodata_json_cache*
 repos:
-  - repo: https://github.com/psf/black
-    rev: 23.9.1
-    hooks:
-      - id: black
-        args: [--safe, --quiet]
-  - repo: https://github.com/asottile/blacken-docs
-    rev: 1.16.0
-    hooks:
-      - id: blacken-docs
-        additional_dependencies: [black==22.3.0]
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:
@@ -32,22 +22,11 @@ repos:
       - id: ruff
         args: [ --fix ]
       - id: ruff-format
-  - repo: https://github.com/pre-commit/mirrors-isort
-    rev: v5.10.1
+  - repo: https://github.com/asottile/blacken-docs
+    rev: 1.16.0
     hooks:
-      - id: isort
-        exclude: tests/data
-  - repo: https://github.com/PyCQA/flake8
-    rev: 6.1.0
-    hooks:
-      - id: flake8
-        language_version: python3
-        additional_dependencies:
-          - flake8-typing-imports==1.15.0
-          - flake8-builtins==2.1.0
-          - flake8-bugbear==23.9.16
-          - flake8-isort==6.1.0
-        exclude: libmambapy/src
+      - id: blacken-docs
+        additional_dependencies: [black==22.3.0]
   - repo: https://github.com/pre-commit/mirrors-clang-format
     rev: v16.0.6
     hooks:

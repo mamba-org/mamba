@@ -246,7 +246,7 @@ namespace mamba::specs
             auto old_path = clear_path();
             old_path.erase(std::min(len, old_path.size()));
             Base::set_path(std::move(old_path), Encode::no);
-            Base::append_path(new_path.empty() ? "/" : new_path);
+            Base::append_path(new_path.empty() ? "/" : new_path, Encode::no);
         }
         else
         {

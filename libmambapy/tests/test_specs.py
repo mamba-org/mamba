@@ -5,6 +5,20 @@ import pytest
 import libmambapy
 
 
+def test_import_submodule():
+    import libmambapy.specs as specs
+
+    # Dummy execution
+    _p = specs.Platform.noarch
+
+
+def test_import_recursive():
+    import libmambapy as mamba
+
+    # Dummy execution
+    _p = mamba.specs.Platform.noarch
+
+
 def test_Platform():
     Platform = libmambapy.specs.Platform
 

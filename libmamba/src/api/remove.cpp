@@ -19,11 +19,11 @@ namespace mamba
 {
     void remove(Configuration& config, int flags)
     {
+        auto& ctx = config.context();
+
         bool prune = flags & MAMBA_REMOVE_PRUNE;
         bool force = flags & MAMBA_REMOVE_FORCE;
         bool remove_all = flags & MAMBA_REMOVE_ALL;
-
-        auto& ctx = config.context();
 
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
@@ -54,7 +54,7 @@ namespace mamba
 
         if (!remove_specs.empty())
         {
-            detail::remove_specs(channel_context, remove_specs, prune, force);
+            detail::remove_specs(ctx, channel_context, remove_specs, prune, force);
         }
         else
         {
@@ -65,14 +65,13 @@ namespace mamba
     namespace detail
     {
         void remove_specs(
+            Context& ctx,
             ChannelContext& channel_context,
             const std::vector<std::string>& specs,
             bool prune,
             bool force
         )
         {
-            auto& ctx = channel_context.context();
-
             if (ctx.prefix_params.target_prefix.empty())
             {
                 LOG_ERROR << "No active target prefix.";
@@ -87,7 +86,7 @@ namespace mamba
             }
             PrefixData& prefix_data = exp_prefix_data.value();
 
-            MPool pool{ channel_context };
+            MPool pool{ ctx, channel_context };
             MRepo(pool, prefix_data);
 
             const fs::u8path pkgs_dirs(ctx.prefix_params.root_prefix / "pkgs");

@@ -305,7 +305,10 @@ bind_submodule_impl(pybind11::module_ m)
         .def("conda_build_form", &MatchSpec::conda_build_form);
 
     py::class_<MPool>(m, "Pool")
-        .def(py::init<>([] { return MPool{ mambapy::singletons.channel_context() }; }))
+        .def(py::init<>(
+            []
+            { return MPool{ mambapy::singletons.context(), mambapy::singletons.channel_context() }; }
+        ))
         .def("set_debuglevel", &MPool::set_debuglevel)
         .def("create_whatprovides", &MPool::create_whatprovides)
         .def("select_solvables", &MPool::select_solvables, py::arg("id"), py::arg("sorted") = false)

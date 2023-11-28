@@ -838,7 +838,7 @@ namespace mamba
         {
             FetcherList fetchers;
             auto& channel_context = pool.channel_context();
-            auto& ctx = channel_context.context();
+            auto& ctx = pool.context();
 
             if (ctx.experimental && ctx.validation_params.verify_artifacts)
             {
@@ -1009,7 +1009,7 @@ namespace mamba
 
     bool MTransaction::fetch_extract_packages()
     {
-        auto& ctx = m_pool.channel_context().context();
+        auto& ctx = m_pool.context();
         PackageFetcherSemaphore::set_max(ctx.threads_params.extract_threads);
 
         FetcherList fetchers = build_fetchers(m_pool, m_solution, m_multi_cache);

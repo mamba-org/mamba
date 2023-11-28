@@ -38,7 +38,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     ctx.prefix_params.target_prefix = ctx.prefix_params.root_prefix;
 
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
-    mamba::MPool pool{ channel_context };
+    mamba::MPool pool{ ctx, channel_context };
     mamba::MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
 
     auto exp_loaded = load_channels(pool, package_caches, 0);

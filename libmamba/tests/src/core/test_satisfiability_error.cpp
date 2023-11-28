@@ -5,7 +5,6 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <array>
-#include <random>
 #include <string>
 #include <vector>
 
@@ -143,6 +142,7 @@ namespace
      */
     template <typename PkgRange>
     auto create_problem(
+        Context& ctx,
         ChannelContext& channel_context,
         const PkgRange& packages,
         const std::vector<std::string>& specs
@@ -153,7 +153,7 @@ namespace
         );
         const auto repodata_f = create_repodata_json(tmp_dir.path, packages);
 
-        auto pool = MPool{ channel_context };
+        auto pool = MPool{ ctx, channel_context };
         MRepo(pool, "some-name", repodata_f, RepoMetadata{ /* .url= */ "some-url" });
         auto solver = MSolver(
             std::move(pool),
@@ -167,16 +167,19 @@ namespace
 
 TEST_CASE("Test create_problem utility")
 {
-    auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
-    auto solver = create_problem(channel_context, std::array{ mkpkg("foo", "0.1.0", {}) }, { "foo" });
+    auto& ctx = mambatests::context();
+    auto channel_context = ChannelContext::make_conda_compatible(ctx);
+    auto solver = create_problem(ctx, channel_context, std::array{ mkpkg("foo", "0.1.0", {}) }, { "foo" });
     const auto solved = solver.try_solve();
     REQUIRE(solved);
 }
 
 TEST_CASE("Test empty specs")
 {
-    auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
+    auto& ctx = mambatests::context();
+    auto channel_context = ChannelContext::make_conda_compatible(ctx);
     auto solver = create_problem(
+        ctx,
         channel_context,
         std::array{ mkpkg("foo", "0.1.0", {}), mkpkg("", "", {}) },
         { "foo" }
@@ -187,9 +190,10 @@ TEST_CASE("Test empty specs")
 
 namespace
 {
-    auto create_basic_conflict(ChannelContext& channel_context) -> MSolver
+    auto create_basic_conflict(Context& ctx, ChannelContext& channel_context) -> MSolver
     {
         return create_problem(
+            ctx,
             channel_context,
             std::array{
                 mkpkg("A", "0.1.0"),
@@ -206,9 +210,10 @@ namespace
      * The example given by Natalie Weizenbaum
      * (credits https://nex3.medium.com/pubgrub-2fb6470504f).
      */
-    auto create_pubgrub(ChannelContext& channel_context) -> MSolver
+    auto create_pubgrub(Context& ctx, ChannelContext& channel_context) -> MSolver
     {
         return create_problem(
+            ctx,
             channel_context,
             std::array{
                 mkpkg("menu", "1.5.0", { "dropdown=2.*" }),
@@ -232,7 +237,8 @@ namespace
         );
     }
 
-    auto create_pubgrub_hard_(ChannelContext& channel_context, bool missing_package) -> MSolver
+    auto create_pubgrub_hard_(Context& ctx, ChannelContext& channel_context, bool missing_package)
+        -> MSolver
     {
         auto packages = std::vector{
             mkpkg("menu", "2.1.0", { "dropdown>=2.1", "emoji" }),
@@ -282,6 +288,7 @@ namespace
             packages.push_back(mkpkg("dropdown", "2.9.0", { "libicons>10.0" }));
         }
         return create_problem(
+            ctx,
             channel_context,
             packages,
             { "menu", "pyicons=1.*", "intl=5.*", "intl-mod", "pretty>=1.0" }
@@ -291,17 +298,17 @@ namespace
     /**
      * A harder version of ``create_pubgrub``.
      */
-    auto create_pubgrub_hard(ChannelContext& channel_context) -> MSolver
+    auto create_pubgrub_hard(Context& ctx, ChannelContext& channel_context) -> MSolver
     {
-        return create_pubgrub_hard_(channel_context, false);
+        return create_pubgrub_hard_(ctx, channel_context, false);
     }
 
     /**
      * The hard version of the alternate PubGrub with missing packages.
      */
-    auto create_pubgrub_missing(ChannelContext& channel_context) -> MSolver
+    auto create_pubgrub_missing(Context& ctx, ChannelContext& channel_context) -> MSolver
     {
-        return create_pubgrub_hard_(channel_context, true);
+        return create_pubgrub_hard_(ctx, channel_context, true);
     }
 
     template <typename T, typename E>
@@ -360,6 +367,7 @@ namespace
      * Create a solver and a pool of a conflict from conda-forge packages.
      */
     auto create_conda_forge(
+        Context& ctx,
         ChannelContext& channel_context,
         std::vector<std::string>&& specs,
         const std::vector<PackageInfo>& virtual_packages = { mkpkg("__glibc", "2.17.0") },
@@ -376,17 +384,14 @@ namespace
             PrefixData::create(tmp_dir.path / "prefix", channel_context)
         );
         prefix_data.add_packages(virtual_packages);
-        auto pool = MPool{ channel_context };
+        auto pool = MPool{ ctx, channel_context };
         auto repo = MRepo{ pool, prefix_data };
         repo.set_installed();
 
-        auto cache = MultiPackageCache(
-            { tmp_dir.path / "cache" },
-            channel_context.context().validation_params
-        );
+        auto cache = MultiPackageCache({ tmp_dir.path / "cache" }, ctx.validation_params);
         create_cache_dir(cache.first_writable_path());
 
-        bool prev_progress_bars_value = channel_context.context().graphics_params.no_progress_bars;
+        bool prev_progress_bars_value = ctx.graphics_params.no_progress_bars;
         mambatests::context().graphics_params.no_progress_bars = true;
         load_channels(pool, cache, make_platform_channels(std::move(channels), platforms));
         mambatests::context().graphics_params.no_progress_bars = prev_progress_bars_value;
@@ -403,63 +408,67 @@ namespace
 
 TEST_CASE("Test create_conda_forge utility")
 {
-    auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
-    auto solver = create_conda_forge(channel_context, { "xtensor>=0.7" });
+    auto& ctx = mambatests::context();
+    auto channel_context = ChannelContext::make_conda_compatible(ctx);
+    auto solver = create_conda_forge(ctx, channel_context, { "xtensor>=0.7" });
     const auto solved = solver.try_solve();
     REQUIRE(solved);
 }
 
 namespace
 {
-    auto create_pytorch_cpu(ChannelContext& channel_context) -> MSolver
+    auto create_pytorch_cpu(Context& ctx, ChannelContext& channel_context) -> MSolver
     {
-        return create_conda_forge(channel_context, { "python=2.7", "pytorch=1.12" });
+        return create_conda_forge(ctx, channel_context, { "python=2.7", "pytorch=1.12" });
     }
 
-    auto create_pytorch_cuda(ChannelContext& channel_context) -> MSolver
+    auto create_pytorch_cuda(Context& ctx, ChannelContext& channel_context) -> MSolver
     {
         return create_conda_forge(
+            ctx,
             channel_context,
             { "python=2.7", "pytorch=1.12" },
             { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "10.2.0") }
         );
     }
 
-    auto create_cudatoolkit(ChannelContext& channel_context) -> MSolver
+    auto create_cudatoolkit(Context& ctx, ChannelContext& channel_context) -> MSolver
     {
         return create_conda_forge(
+            ctx,
             channel_context,
             { "python=3.7", "cudatoolkit=11.1", "cudnn=8.0", "pytorch=1.8", "torchvision=0.9=*py37_cu111*" },
             { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "11.1") }
         );
     }
 
-    auto create_jpeg9b(ChannelContext& channel_context) -> MSolver
+    auto create_jpeg9b(Context& ctx, ChannelContext& channel_context) -> MSolver
     {
-        return create_conda_forge(channel_context, { "python=3.7", "jpeg=9b" });
+        return create_conda_forge(ctx, channel_context, { "python=3.7", "jpeg=9b" });
     }
 
-    auto create_r_base(ChannelContext& channel_context) -> MSolver
+    auto create_r_base(Context& ctx, ChannelContext& channel_context) -> MSolver
     {
         return create_conda_forge(
+            ctx,
             channel_context,
             { "r-base=3.5.* ", "pandas=0", "numpy<1.20.0", "matplotlib=2", "r-matchit=4.*" }
         );
     }
 
-    auto create_scip(ChannelContext& channel_context) -> MSolver
+    auto create_scip(Context& ctx, ChannelContext& channel_context) -> MSolver
     {
-        return create_conda_forge(channel_context, { "scip=8.*", "pyscipopt<4.0" });
+        return create_conda_forge(ctx, channel_context, { "scip=8.*", "pyscipopt<4.0" });
     }
 
-    auto create_double_python(ChannelContext& channel_context) -> MSolver
+    auto create_double_python(Context& ctx, ChannelContext& channel_context) -> MSolver
     {
-        return create_conda_forge(channel_context, { "python=3.9.*", "python=3.10.*" });
+        return create_conda_forge(ctx, channel_context, { "python=3.9.*", "python=3.10.*" });
     }
 
-    auto create_numba(ChannelContext& channel_context) -> MSolver
+    auto create_numba(Context& ctx, ChannelContext& channel_context) -> MSolver
     {
-        return create_conda_forge(channel_context, { "python=3.11", "numba<0.56" });
+        return create_conda_forge(ctx, channel_context, { "python=3.11", "numba<0.56" });
     }
 
     template <typename NodeVariant>
@@ -534,12 +543,13 @@ TEST_CASE("Create problem graph")
 
     for (const auto& [name, factory] : issues)
     {
-        auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
+        auto& ctx = mambatests::context();
+        auto channel_context = ChannelContext::make_conda_compatible(ctx);
 
         // Somehow the capture does not work directly on ``name``
         std::string_view name_copy = name;
         CAPTURE(name_copy);
-        auto solver = factory(channel_context);
+        auto solver = factory(ctx, channel_context);
         const auto solved = solver.try_solve();
         REQUIRE_FALSE(solved);
         const auto pbs_init = solver.problems_graph();

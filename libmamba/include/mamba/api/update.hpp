@@ -7,15 +7,11 @@
 #ifndef MAMBA_API_UPDATE_HPP
 #define MAMBA_API_UPDATE_HPP
 
-#include <string>
-#include <vector>
-
-#include "mamba/core/query.hpp"
-#include "mamba/fs/filesystem.hpp"
-
 
 namespace mamba
 {
+    class Configuration;
+
     void update(
         Configuration& config,
         bool update_all = false,

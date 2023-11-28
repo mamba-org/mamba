@@ -30,17 +30,19 @@ namespace mamba
 {
     struct MPool::MPoolData
     {
-        MPoolData(ChannelContext& cc)
-            : channel_context(cc)
+        MPoolData(Context& ctx, ChannelContext& cc)
+            : context(ctx)
+            , channel_context(cc)
         {
         }
 
         solv::ObjPool pool = {};
+        Context& context;
         ChannelContext& channel_context;
     };
 
-    MPool::MPool(ChannelContext& channel_context)
-        : m_data(std::make_shared<MPoolData>(channel_context))
+    MPool::MPool(Context& ctx, ChannelContext& channel_context)
+        : m_data(std::make_shared<MPoolData>(ctx, channel_context))
     {
         pool().set_disttype(DISTTYPE_CONDA);
         set_debuglevel();
@@ -55,7 +57,7 @@ namespace mamba
 
     const Context& MPool::context() const
     {
-        return channel_context().context();
+        return m_data->context;
     }
 
     solv::ObjPool& MPool::pool()
@@ -72,13 +74,12 @@ namespace mamba
     {
         // ensure that debug logging goes to stderr as to not interfere with stdout json output
         pool().raw()->debugmask |= SOLV_DEBUG_TO_STDERR;
-        const auto& context = channel_context().context();
-        if (context.output_params.verbosity > 2)
+        const auto& ctx = context();
+        if (ctx.output_params.verbosity > 2)
         {
-            pool_setdebuglevel(pool().raw(), context.output_params.verbosity - 1);
+            pool_setdebuglevel(pool().raw(), ctx.output_params.verbosity - 1);
             pool().set_debug_callback(
-                [logger = spdlog::get("libsolv"),
-                 &context](::Pool*, int type, std::string_view msg) noexcept
+                [logger = spdlog::get("libsolv"), &ctx](::Pool*, int type, std::string_view msg) noexcept
                 {
                     if (msg.size() == 0 || msg.back() != '\n')
                     {
@@ -94,7 +95,7 @@ namespace mamba
                     {
                         logger->warn(log);
                     }
-                    else if (context.output_params.verbosity > 2)
+                    else if (ctx.output_params.verbosity > 2)
                     {
                         logger->info(log);
                     }

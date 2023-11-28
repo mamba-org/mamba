@@ -40,7 +40,7 @@ load_pool(
 )
 {
     ctx.channels = channels;
-    mamba::MPool pool{ channel_context };
+    mamba::MPool pool{ ctx, channel_context };
     auto exp_load = load_channels(pool, package_caches, false);
     if (!exp_load)
     {

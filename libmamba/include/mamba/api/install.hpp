@@ -40,12 +40,14 @@ namespace mamba
     );
 
     void install_explicit_specs(
+        Context& ctx,
         ChannelContext& channel_context,
         const std::vector<std::string>& specs,
         bool create_env = false,
         bool remove_prefix_on_failure = false
     );
     void install_lockfile_specs(
+        Context& ctx,
         ChannelContext& channel_context,
         const std::string& lockfile_specs,
         const std::vector<std::string>& categories,

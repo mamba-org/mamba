@@ -32,7 +32,7 @@ namespace mamba
         config.load();
 
         auto channel_context = ChannelContext::make_conda_compatible(config.context());
-        detail::print_info(channel_context, config);
+        detail::print_info(config.context(), channel_context, config);
 
         config.operation_teardown();
     }
@@ -88,10 +88,9 @@ namespace mamba
             Console::instance().json_write(items_map);
         }
 
-        void print_info(ChannelContext& channel_context, const Configuration& config)
+        void print_info(Context& ctx, ChannelContext& channel_context, const Configuration& config)
         {
-            assert(&channel_context.context() == &config.context());
-            const auto& ctx = config.context();
+            assert(&ctx == &config.context());
             std::vector<std::tuple<std::string, nlohmann::json>> items;
 
             items.push_back({ "libmamba version", version() });

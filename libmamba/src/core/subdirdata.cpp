@@ -578,7 +578,7 @@ namespace mamba
         LOG_INFO << "Searching index cache file for repo '" << m_repodata_url << "'";
         file_time_point now = fs::file_time_type::clock::now();
 
-        const Context& context = channel_context.context();
+        const Context& context = *p_context;
         const auto cache_paths = without_duplicates(caches.paths());
 
         for (const fs::u8path& cache_path : cache_paths)
@@ -656,7 +656,7 @@ namespace mamba
     void
     MSubdirData::update_metadata_zst(ChannelContext& channel_context, const specs::Channel& channel)
     {
-        const Context& context = channel_context.context();
+        const Context& context = *p_context;
         if (!context.offline || forbid_cache(m_repodata_url))
         {
             m_metadata.set_zst(m_metadata.has_zst() || channel_context.has_zst(channel));

@@ -67,6 +67,7 @@ namespace mambapy
             .def("__deepcopy__", &deepcopy<CondaURL>)
             .def(py::self == py::self)
             .def(py::self != py::self)
+            .def(py::self / std::string_view("other"))
             .def("__hash__", &hash<CondaURL>)
             .def("scheme", [](const CondaURL& self) { return self.scheme(); })
             .def(

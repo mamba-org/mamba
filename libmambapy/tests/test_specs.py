@@ -187,6 +187,10 @@ def test_CondaURL_op():
     other.set_host("somehost.com")
     assert other != url
 
+    # Append
+    url.set_path("/folder")
+    assert (url / "file.txt").path() == "/folder/file.txt"
+
 
 def test_ChannelSpec_Type():
     Type = libmambapy.specs.ChannelSpec.Type
@@ -354,6 +358,7 @@ def test_ChannelResolveParams():
     home_dir_1 = "/users/mamba"
     cwd_1 = "/tmp/workspace"
 
+    # Constructor
     params = ChannelResolveParams(
         platforms=platforms_1,
         channel_alias=channel_alias_1,
@@ -363,6 +368,8 @@ def test_ChannelResolveParams():
         home_dir=home_dir_1,
         current_working_dir=cwd_1,
     )
+
+    # Getters
     assert params.platforms == platforms_1
     assert params.channel_alias == channel_alias_1
     assert params.authentication_db == db_1
@@ -375,6 +382,7 @@ def test_ChannelResolveParams():
     home_dir_2 = "/users/conda"
     cwd_2 = "/tmp/elsewhere"
 
+    # Setters
     params.platforms = platforms_2
     params.channel_alias = channel_alias_2
     params.authentication_db = db_2

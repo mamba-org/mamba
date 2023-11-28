@@ -82,6 +82,7 @@ namespace mamba
         {
             const auto lockfile_path = ctx.env_lockfile.value();
             install_lockfile_specs(
+                ctx,
                 channel_context,
                 lockfile_path,
                 config.at("categories").value<std::vector<std::string>>(),
@@ -93,7 +94,7 @@ namespace mamba
         {
             if (use_explicit)
             {
-                install_explicit_specs(channel_context, create_specs, true, remove_prefix_on_failure);
+                install_explicit_specs(ctx, channel_context, create_specs, true, remove_prefix_on_failure);
             }
             else
             {

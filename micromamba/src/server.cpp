@@ -40,8 +40,8 @@ load_pool(
 )
 {
     ctx.channels = channels;
-    mamba::MPool pool{ channel_context };
-    auto exp_load = load_channels(pool, package_caches, false);
+    mamba::MPool pool{ ctx, channel_context };
+    auto exp_load = load_channels(ctx, pool, package_caches, false);
     if (!exp_load)
     {
         throw std::runtime_error(exp_load.error().what());
@@ -75,7 +75,7 @@ handle_solve_request(
 
     for (const auto& s : specs)
     {
-        if (auto m = MatchSpec{ s, channel_context }; !m.channel.empty())
+        if (auto m = MatchSpec{ s, ctx, channel_context }; !m.channel.empty())
         {
             channels.push_back(m.channel);
         }

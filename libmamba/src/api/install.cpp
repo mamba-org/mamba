@@ -342,8 +342,11 @@ namespace mamba
             return result;
         }
 
-        std::tuple<std::vector<PackageInfo>, std::vector<MatchSpec>>
-        parse_urls_to_package_info(const std::vector<std::string>& urls, ChannelContext& channel_context)
+        std::tuple<std::vector<PackageInfo>, std::vector<MatchSpec>> parse_urls_to_package_info(
+            const std::vector<std::string>& urls,
+            Context& ctx,
+            ChannelContext& channel_context
+        )
         {
             std::vector<PackageInfo> pi_result;
             std::vector<MatchSpec> ms_result;
@@ -354,7 +357,7 @@ namespace mamba
                     continue;
                 }
                 std::size_t hash = u.find_first_of('#');
-                MatchSpec ms(u.substr(0, hash), channel_context);
+                MatchSpec ms(u.substr(0, hash), ctx, channel_context);
                 PackageInfo p(ms.name);
                 p.url = ms.url;
                 p.build_string = ms.build_string;
@@ -381,6 +384,8 @@ namespace mamba
 
     void install(Configuration& config)
     {
+        auto& ctx = config.context();
+
         config.at("create_base").set_value(true);
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
@@ -401,6 +406,7 @@ namespace mamba
             const auto lockfile_path = context.env_lockfile.value();
             LOG_DEBUG << "Lockfile: " << lockfile_path;
             install_lockfile_specs(
+                ctx,
                 channel_context,
                 lockfile_path,
                 config.at("categories").value<std::vector<std::string>>(),
@@ -411,7 +417,7 @@ namespace mamba
         {
             if (use_explicit)
             {
-                install_explicit_specs(channel_context, install_specs, false);
+                install_explicit_specs(ctx, channel_context, install_specs, false);
             }
             else
             {
@@ -464,7 +470,7 @@ namespace mamba
         // add channels from specs
         for (const auto& s : specs)
         {
-            if (auto m = MatchSpec{ s, channel_context }; !m.channel.empty())
+            if (auto m = MatchSpec{ s, ctx, channel_context }; !m.channel.empty())
             {
                 ctx.channels.push_back(m.channel);
             }
@@ -475,7 +481,7 @@ namespace mamba
             LOG_WARNING << "No 'channels' specified";
         }
 
-        MPool pool{ channel_context };
+        MPool pool{ ctx, channel_context };
         // functions implied in 'and_then' coding-styles must return the same type
         // which limits this syntax
         /*auto exp_prefix_data = load_channels(pool, package_caches, is_retry)
@@ -483,7 +489,7 @@ namespace mamba
            PrefixData::create(ctx.prefix_params.target_prefix); } ) .map_error([](const mamba_error&
            err) { throw std::runtime_error(err.what());
                                 });*/
-        auto exp_load = load_channels(pool, package_caches, is_retry);
+        auto exp_load = load_channels(ctx, pool, package_caches, is_retry);
         if (!exp_load)
         {
             throw std::runtime_error(exp_load.error().what());
@@ -538,7 +544,7 @@ namespace mamba
 
         if (!no_py_pin)
         {
-            auto py_pin = python_pin(prefix_data, specs);
+            auto py_pin = python_pin(ctx, channel_context, prefix_data, specs);
             if (!py_pin.empty())
             {
                 solver.add_pin(py_pin);
@@ -636,19 +642,19 @@ namespace mamba
         }
     }
 
-    namespace detail
+    namespace
     {
         // TransactionFunc: (MPool& pool, MultiPackageCache& package_caches) -> MTransaction
         template <typename TransactionFunc>
         void install_explicit_with_transaction(
+            Context& ctx,
             ChannelContext& channel_context,
             TransactionFunc create_transaction,
             bool create_env,
             bool remove_prefix_on_failure
         )
         {
-            MPool pool{ channel_context };
-            auto& ctx = channel_context.context();
+            MPool pool{ ctx, channel_context };
             auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!exp_prefix_data)
             {
@@ -707,13 +713,15 @@ namespace mamba
     }
 
     void install_explicit_specs(
+        Context& ctx,
         ChannelContext& channel_context,
         const std::vector<std::string>& specs,
         bool create_env,
         bool remove_prefix_on_failure
     )
     {
-        detail::install_explicit_with_transaction(
+        install_explicit_with_transaction(
+            ctx,
             channel_context,
             [&](auto& pool, auto& pkg_caches, auto& others)
             { return create_explicit_transaction_from_urls(pool, specs, pkg_caches, others); },
@@ -723,9 +731,9 @@ namespace mamba
     }
 
     void install_lockfile_specs(
+        Context& ctx,
         ChannelContext& channel_context,
         const std::string& lockfile,
-
         const std::vector<std::string>& categories,
         bool create_env,
         bool remove_prefix_on_failure
@@ -739,7 +747,7 @@ namespace mamba
             LOG_INFO << "Downloading lockfile";
             tmp_lock_file = std::make_unique<TemporaryFile>();
             DownloadRequest request("Environment Lockfile", lockfile, tmp_lock_file->path());
-            DownloadResult res = download(std::move(request), channel_context.context());
+            DownloadResult res = download(std::move(request), ctx);
 
             if (!res || res.value().transfer.http_status != 200)
             {
@@ -755,7 +763,8 @@ namespace mamba
             file = lockfile;
         }
 
-        detail::install_explicit_with_transaction(
+        install_explicit_with_transaction(
+            ctx,
             channel_context,
             [&](auto& pool, auto& pkg_caches, auto& others) {
                 return create_explicit_transaction_from_lockfile(pool, file, categories, pkg_caches, others);

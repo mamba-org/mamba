@@ -8,12 +8,12 @@
 #define MAMBA_API_INFO_HPP
 
 #include <string>
-#include <vector>
 
 namespace mamba
 {
     class ChannelContext;
     class Configuration;
+    class Context;
 
     void info(Configuration& config);
 
@@ -21,7 +21,7 @@ namespace mamba
 
     namespace detail
     {
-        void print_info(ChannelContext& channel_context, const Configuration& config);
+        void print_info(Context& ctx, ChannelContext& channel_context, const Configuration& config);
     }
 }
 

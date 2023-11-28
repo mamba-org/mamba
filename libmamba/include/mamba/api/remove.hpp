@@ -14,13 +14,16 @@
 
 namespace mamba
 {
+    class Context;
     class ChannelContext;
+    class Configuration;
 
     void remove(Configuration& config, int flags = MAMBA_REMOVE_PRUNE);
 
     namespace detail
     {
         void remove_specs(
+            Context& ctx,
             ChannelContext& channel_context,
             const std::vector<std::string>& specs,
             bool prune,

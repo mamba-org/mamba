@@ -189,6 +189,7 @@ namespace mambapy
         using iterator = entry_list::const_iterator;
 
         void create(
+            mamba::Context& ctx,
             mamba::ChannelContext& channel_context,
             const mamba::specs::Channel& channel,
             const std::string& platform,
@@ -200,7 +201,7 @@ namespace mambapy
         {
             using namespace mamba;
             m_subdirs.push_back(extract(
-                MSubdirData::create(channel_context, channel, platform, full_url, caches, repodata_fn)
+                MSubdirData::create(ctx, channel_context, channel, platform, full_url, caches, repodata_fn)
             ));
             m_entries.push_back({ nullptr, platform, &channel, url });
             for (size_t i = 0; i < m_subdirs.size(); ++i)
@@ -299,21 +300,29 @@ bind_submodule_impl(pybind11::module_ m)
         .def(py::init<>())
         .def(py::init<>(
             [](const std::string& name) {
-                return MatchSpec{ name, mambapy::singletons.channel_context() };
+                return MatchSpec{ name,
+                                  mambapy::singletons.context(),
+                                  mambapy::singletons.channel_context() };
             }
         ))
         .def("conda_build_form", &MatchSpec::conda_build_form);
 
     py::class_<MPool>(m, "Pool")
-        .def(py::init<>([] { return MPool{ mambapy::singletons.channel_context() }; }))
+        .def(py::init<>(
+            []
+            { return MPool{ mambapy::singletons.context(), mambapy::singletons.channel_context() }; }
+        ))
         .def("set_debuglevel", &MPool::set_debuglevel)
         .def("create_whatprovides", &MPool::create_whatprovides)
         .def("select_solvables", &MPool::select_solvables, py::arg("id"), py::arg("sorted") = false)
         .def("matchspec2id", &MPool::matchspec2id, py::arg("ms"))
         .def(
             "matchspec2id",
-            [](MPool& self, std::string_view ms) {
-                return self.matchspec2id({ ms, mambapy::singletons.channel_context() });
+            [](MPool& self, std::string_view ms)
+            {
+                return self.matchspec2id(
+                    { ms, mambapy::singletons.context(), mambapy::singletons.channel_context() }
+                );
             },
             py::arg("ms")
         )
@@ -490,7 +499,10 @@ bind_submodule_impl(pybind11::module_ m)
                 return History{ path, mambapy::singletons.channel_context() };
             }
         ))
-        .def("get_requested_specs_map", &History::get_requested_specs_map);
+        .def(
+            "get_requested_specs_map",
+            [](History& self) { return self.get_requested_specs_map(mambapy::singletons.context()); }
+        );
 
     /*py::class_<Query>(m, "Query")
         .def(py::init<MPool&>())
@@ -647,6 +659,7 @@ bind_submodule_impl(pybind11::module_ m)
                const std::string& url)
             {
                 self.create(
+                    mambapy::singletons.context(),
                     mambapy::singletons.channel_context(),
                     channel,
                     platform,

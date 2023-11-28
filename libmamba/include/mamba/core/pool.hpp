@@ -37,7 +37,7 @@ namespace mamba
     {
     public:
 
-        MPool(ChannelContext& channel_context);
+        MPool(Context& ctx, ChannelContext& channel_context);
         ~MPool();
 
         void set_debuglevel();

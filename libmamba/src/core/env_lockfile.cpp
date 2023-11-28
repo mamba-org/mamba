@@ -19,7 +19,7 @@ namespace mamba
         using Package = EnvironmentLockFile::Package;
 
         tl::expected<Package, mamba_error>
-        read_package_info(ChannelContext& channel_context, const YAML::Node& package_node)
+        read_package_info(const Context& ctx, ChannelContext& channel_context, const YAML::Node& package_node)
         {
             Package package{
                 /* .info = */ mamba::PackageInfo{ package_node["name"].as<std::string>() },
@@ -57,7 +57,7 @@ namespace mamba
             }
 
             package.info.url = package_node["url"].as<std::string>();
-            const MatchSpec spec{ package.info.url, channel_context };
+            const MatchSpec spec{ package.info.url, ctx, channel_context };
             package.info.fn = spec.fn;
             package.info.build_string = spec.build_string;
             package.info.subdir = spec.subdir;
@@ -144,8 +144,11 @@ namespace mamba
             return metadata;
         }
 
-        tl::expected<EnvironmentLockFile, mamba_error>
-        read_environment_lockfile(ChannelContext& channel_context, const YAML::Node& lockfile_yaml)
+        tl::expected<EnvironmentLockFile, mamba_error> read_environment_lockfile(
+            const Context& ctx,
+            ChannelContext& channel_context,
+            const YAML::Node& lockfile_yaml
+        )
         {
             const auto& maybe_metadata = read_metadata(lockfile_yaml["metadata"]);
             if (!maybe_metadata)
@@ -158,7 +161,7 @@ namespace mamba
             std::vector<Package> packages;
             for (const auto& package_node : lockfile_yaml["package"])
             {
-                if (auto maybe_package = read_package_info(channel_context, package_node))
+                if (auto maybe_package = read_package_info(ctx, channel_context, package_node))
                 {
                     packages.push_back(maybe_package.value());
                 }
@@ -172,8 +175,11 @@ namespace mamba
         }
     }
 
-    tl::expected<EnvironmentLockFile, mamba_error>
-    read_environment_lockfile(ChannelContext& channel_context, const fs::u8path& lockfile_location)
+    tl::expected<EnvironmentLockFile, mamba_error> read_environment_lockfile(
+        const Context& ctx,
+        ChannelContext& channel_context,
+        const fs::u8path& lockfile_location
+    )
     {
         const auto file_path = fs::absolute(lockfile_location);  // Having the complete path helps
                                                                  // with logging and error reports.
@@ -185,7 +191,11 @@ namespace mamba
             switch (lockfile_version)
             {
                 case 1:
-                    return env_lockfile_v1::read_environment_lockfile(channel_context, lockfile_content);
+                    return env_lockfile_v1::read_environment_lockfile(
+                        ctx,
+                        channel_context,
+                        lockfile_content
+                    );
 
                 default:
                 {

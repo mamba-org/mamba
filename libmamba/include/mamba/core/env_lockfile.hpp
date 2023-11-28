@@ -23,6 +23,7 @@
 
 namespace mamba
 {
+    class Context;
     class ChannelContext;
 
     enum class file_parsing_error_code
@@ -112,8 +113,11 @@ namespace mamba
 
     /// Read an environment lock YAML file and returns it's structured content or an error if
     /// failed.
-    tl::expected<EnvironmentLockFile, mamba_error>
-    read_environment_lockfile(ChannelContext& channel_context, const mamba::fs::u8path& lockfile_location);
+    tl::expected<EnvironmentLockFile, mamba_error> read_environment_lockfile(
+        const Context& ctx,
+        ChannelContext& channel_context,
+        const mamba::fs::u8path& lockfile_location
+    );
 
 
     /// Returns `true` if the filename matches names of files which should be interpreted as conda

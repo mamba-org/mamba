@@ -21,17 +21,16 @@ namespace mamba
 {
     namespace
     {
-        auto repoquery_init(Configuration& config, QueryResultFormat format, bool use_local)
+        auto
+        repoquery_init(Context& ctx, Configuration& config, QueryResultFormat format, bool use_local)
         {
-            auto& ctx = config.context();
-
             config.at("use_target_prefix_fallback").set_value(true);
             config.at("target_prefix_checks")
                 .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX);
             config.load();
 
             auto channel_context = ChannelContext::make_conda_compatible(ctx);
-            MPool pool{ channel_context };
+            MPool pool{ ctx, channel_context };
 
             // bool installed = (type == QueryType::kDepends) || (type == QueryType::kWhoneeds);
             MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
@@ -65,7 +64,7 @@ namespace mamba
                 {
                     Console::stream() << "Getting repodata from channels..." << std::endl;
                 }
-                auto exp_load = load_channels(pool, package_caches, 0);
+                auto exp_load = load_channels(ctx, pool, package_caches, 0);
                 if (!exp_load)
                 {
                     throw std::runtime_error(exp_load.error().what());
@@ -84,7 +83,7 @@ namespace mamba
     )
     {
         auto& ctx = config.context();
-        auto pool = repoquery_init(config, format, use_local);
+        auto pool = repoquery_init(ctx, config, format, use_local);
         Query q(pool);
 
         if (type == QueryType::Search)

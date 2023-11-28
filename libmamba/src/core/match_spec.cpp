@@ -31,10 +31,10 @@ namespace mamba
         return split_str;
     }
 
-    MatchSpec::MatchSpec(std::string_view i_spec, ChannelContext& channel_context)
+    MatchSpec::MatchSpec(std::string_view i_spec, const Context& ctx, ChannelContext& channel_context)
         : spec(i_spec)
     {
-        parse(channel_context);
+        parse(ctx, channel_context);
     }
 
     std::tuple<std::string, std::string> MatchSpec::parse_version_and_build(const std::string& s)
@@ -69,7 +69,7 @@ namespace mamba
         }
     }
 
-    void MatchSpec::parse(ChannelContext& channel_context)
+    void MatchSpec::parse(const Context& ctx, ChannelContext& channel_context)
     {
         std::string spec_str = spec;
         if (spec_str.empty())
@@ -200,13 +200,7 @@ namespace mamba
 
         std::string cleaned_url;
         std::string platform;
-        util::split_platform(
-            get_known_platforms(),
-            channel,
-            channel_context.context().platform,
-            channel,
-            platform
-        );
+        util::split_platform(get_known_platforms(), channel, ctx.platform, channel, platform);
         if (!platform.empty())
         {
             subdir = platform;

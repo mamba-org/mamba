@@ -26,7 +26,7 @@ namespace mamba
         config.load();
 
         auto channel_context = ChannelContext::make_conda_compatible(config.context());
-        detail::list_packages(regex, channel_context);
+        detail::list_packages(config.context(), regex, channel_context);
     }
 
     namespace detail
@@ -41,10 +41,8 @@ namespace mamba
             return a.name < b.name;
         }
 
-        void list_packages(std::string regex, ChannelContext& channel_context)
+        void list_packages(const Context& ctx, std::string regex, ChannelContext& channel_context)
         {
-            auto& ctx = channel_context.context();
-
             auto sprefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!sprefix_data)
             {
@@ -97,7 +95,7 @@ namespace mamba
             formatted_pkg formatted_pkgs;
 
             std::vector<formatted_pkg> packages;
-            auto requested_specs = prefix_data.history().get_requested_specs_map();
+            auto requested_specs = prefix_data.history().get_requested_specs_map(ctx);
 
             // order list of packages from prefix_data by alphabetical order
             for (const auto& package : prefix_data.records())

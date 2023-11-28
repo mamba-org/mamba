@@ -395,6 +395,7 @@ namespace mamba
     }
 
     expected_t<MSubdirData> MSubdirData::create(
+        Context& ctx,
         ChannelContext& channel_context,
         const specs::Channel& channel,
         const std::string& platform,
@@ -405,7 +406,7 @@ namespace mamba
     {
         try
         {
-            return MSubdirData(channel_context, channel, platform, url, caches, repodata_fn);
+            return MSubdirData(ctx, channel_context, channel, platform, url, caches, repodata_fn);
         }
         catch (std::exception& e)
         {
@@ -526,6 +527,7 @@ namespace mamba
     }
 
     MSubdirData::MSubdirData(
+        Context& ctx,
         ChannelContext& channel_context,
         const specs::Channel& channel,
         const std::string& platform,
@@ -541,7 +543,7 @@ namespace mamba
         , m_json_fn(cache_fn_url(m_repodata_url))
         , m_solv_fn(m_json_fn.substr(0, m_json_fn.size() - 4) + "solv")
         , m_is_noarch(platform == "noarch")
-        , p_context(&(channel_context.context()))
+        , p_context(&(ctx))
     {
         load(caches, channel_context, channel);
     }
@@ -578,7 +580,7 @@ namespace mamba
         LOG_INFO << "Searching index cache file for repo '" << m_repodata_url << "'";
         file_time_point now = fs::file_time_type::clock::now();
 
-        const Context& context = channel_context.context();
+        const Context& context = *p_context;
         const auto cache_paths = without_duplicates(caches.paths());
 
         for (const fs::u8path& cache_path : cache_paths)
@@ -656,7 +658,7 @@ namespace mamba
     void
     MSubdirData::update_metadata_zst(ChannelContext& channel_context, const specs::Channel& channel)
     {
-        const Context& context = channel_context.context();
+        const Context& context = *p_context;
         if (!context.offline || forbid_cache(m_repodata_url))
         {
             m_metadata.set_zst(m_metadata.has_zst() || channel_context.has_zst(channel));

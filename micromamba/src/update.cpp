@@ -38,10 +38,10 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     ctx.prefix_params.target_prefix = ctx.prefix_params.root_prefix;
 
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
-    mamba::MPool pool{ channel_context };
+    mamba::MPool pool{ ctx, channel_context };
     mamba::MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
 
-    auto exp_loaded = load_channels(pool, package_caches, 0);
+    auto exp_loaded = load_channels(ctx, pool, package_caches, 0);
     if (!exp_loaded)
     {
         throw exp_loaded.error();
@@ -51,11 +51,14 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     std::string matchspec = version ? fmt::format("micromamba={}", version.value())
                                     : fmt::format("micromamba>{}", umamba::version());
 
-    auto solvable_ids = pool.select_solvables(pool.matchspec2id({ matchspec, channel_context }), true);
+    auto solvable_ids = pool.select_solvables(
+        pool.matchspec2id({ matchspec, ctx, channel_context }),
+        true
+    );
 
     if (solvable_ids.empty())
     {
-        if (pool.select_solvables(pool.matchspec2id({ "micromamba", channel_context })).empty())
+        if (pool.select_solvables(pool.matchspec2id({ "micromamba", ctx, channel_context })).empty())
         {
             throw mamba::mamba_error(
                 "No micromamba found in the loaded channels. Add 'conda-forge' to your config file.",

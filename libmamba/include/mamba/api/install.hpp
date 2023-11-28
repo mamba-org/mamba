@@ -40,12 +40,14 @@ namespace mamba
     );
 
     void install_explicit_specs(
+        Context& ctx,
         ChannelContext& channel_context,
         const std::vector<std::string>& specs,
         bool create_env = false,
         bool remove_prefix_on_failure = false
     );
     void install_lockfile_specs(
+        Context& ctx,
         ChannelContext& channel_context,
         const std::string& lockfile_specs,
         const std::vector<std::string>& categories,
@@ -85,8 +87,11 @@ namespace mamba
 
         yaml_file_contents read_yaml_file(fs::u8path yaml_file, const std::string platform);
 
-        std::tuple<std::vector<PackageInfo>, std::vector<MatchSpec>>
-        parse_urls_to_package_info(const std::vector<std::string>& urls, ChannelContext& channel_context);
+        std::tuple<std::vector<PackageInfo>, std::vector<MatchSpec>> parse_urls_to_package_info(
+            const std::vector<std::string>& urls,
+            Context& ctx,
+            ChannelContext& channel_context
+        );
 
         inline void to_json(nlohmann::json&, const other_pkg_mgr_spec&)
         {

@@ -576,6 +576,7 @@ namespace mamba
         {
             specs_to_install.push_back(MatchSpec(
                 fmt::format("{}=={}={}", pkginfo.name, pkginfo.version, pkginfo.build_string),
+                m_pool.context(),
                 m_pool.channel_context()
             ));
         }
@@ -838,7 +839,7 @@ namespace mamba
         {
             FetcherList fetchers;
             auto& channel_context = pool.channel_context();
-            auto& ctx = channel_context.context();
+            auto& ctx = pool.context();
 
             if (ctx.experimental && ctx.validation_params.verify_artifacts)
             {
@@ -888,7 +889,20 @@ namespace mamba
                     //
                     //     LOG_DEBUG << "'" << pkg.name << "' trusted from '" << pkg.channel << "'";
                     // }
-                    fetchers.emplace_back(pkg, channel_context, multi_cache);
+
+                    // FIXME: only do this for micromamba for now
+                    if (ctx.command_params.is_micromamba)
+                    {
+                        auto l_pkg = pkg;
+                        auto channels = channel_context.make_channel(pkg.url);
+                        assert(channels.size() == 1);  // A URL can only resolve to one channel
+                        l_pkg.url = channels.front().platform_urls().at(0).str();
+                        fetchers.emplace_back(l_pkg, multi_cache);
+                    }
+                    else
+                    {
+                        fetchers.emplace_back(pkg, multi_cache);
+                    }
                 }
             );
 
@@ -1009,7 +1023,7 @@ namespace mamba
 
     bool MTransaction::fetch_extract_packages()
     {
-        auto& ctx = m_pool.channel_context().context();
+        auto& ctx = m_pool.context();
         PackageFetcherSemaphore::set_max(ctx.threads_params.extract_threads);
 
         FetcherList fetchers = build_fetchers(m_pool, m_solution, m_multi_cache);
@@ -1359,7 +1373,8 @@ namespace mamba
             }
 
             const auto hash_idx = url.find_first_of('#');
-            specs_to_install.emplace_back(url.substr(0, hash_idx), pool.channel_context());
+            specs_to_install
+                .emplace_back(url.substr(0, hash_idx), pool.context(), pool.channel_context());
             MatchSpec& ms = specs_to_install.back();
 
             if (hash_idx != std::string::npos)
@@ -1386,7 +1401,11 @@ namespace mamba
         std::vector<detail::other_pkg_mgr_spec>& other_specs
     )
     {
-        const auto maybe_lockfile = read_environment_lockfile(pool.channel_context(), env_lockfile_path);
+        const auto maybe_lockfile = read_environment_lockfile(
+            pool.context(),
+            pool.channel_context(),
+            env_lockfile_path
+        );
         if (!maybe_lockfile)
         {
             throw maybe_lockfile.error();  // NOTE: we cannot return an `un/expected` because

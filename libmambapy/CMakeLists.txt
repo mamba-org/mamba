@@ -27,6 +27,7 @@ pybind11_add_module(
     bindings
     src/libmambapy/bindings/longpath.manifest
     src/libmambapy/bindings/bindings.cpp
+    src/libmambapy/bindings/specs.cpp
     src/libmambapy/bindings/legacy.cpp
 )
 

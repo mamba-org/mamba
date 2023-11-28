@@ -17,7 +17,7 @@ namespace PYBIND11_NAMESPACE
     {
         template <typename Key, typename Compare, typename Alloc>
         struct type_caster<mamba::util::flat_set<Key, Compare, Alloc>>
-            : set_caster<std::set<Key, Compare, Alloc>, Key>
+            : set_caster<mamba::util::flat_set<Key, Compare, Alloc>, Key>
         {
         };
     }

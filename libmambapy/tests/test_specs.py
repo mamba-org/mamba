@@ -1,7 +1,517 @@
+import copy
+
+import pytest
+
 import libmambapy
 
 
-def test_version():
-    ver_str = "1.0"
-    ver = libmambapy.Version.parse(ver_str)
-    assert str(ver) == ver_str
+def test_import_submodule():
+    import libmambapy.specs as specs
+
+    # Dummy execution
+    _p = specs.Platform.noarch
+
+
+def test_import_recursive():
+    import libmambapy as mamba
+
+    # Dummy execution
+    _p = mamba.specs.Platform.noarch
+
+
+def test_Platform():
+    Platform = libmambapy.specs.Platform
+
+    assert Platform.noarch.name == "noarch"
+    assert Platform.linux_32.name == "linux_32"
+    assert Platform.linux_64.name == "linux_64"
+    assert Platform.linux_armv6l.name == "linux_armv6l"
+    assert Platform.linux_armv7l.name == "linux_armv7l"
+    assert Platform.linux_aarch64.name == "linux_aarch64"
+    assert Platform.linux_ppc64le.name == "linux_ppc64le"
+    assert Platform.linux_ppc64.name == "linux_ppc64"
+    assert Platform.linux_s390x.name == "linux_s390x"
+    assert Platform.linux_riscv32.name == "linux_riscv32"
+    assert Platform.linux_riscv64.name == "linux_riscv64"
+    assert Platform.osx_64.name == "osx_64"
+    assert Platform.osx_arm64.name == "osx_arm64"
+    assert Platform.win_32.name == "win_32"
+    assert Platform.win_64.name == "win_64"
+    assert Platform.win_arm64.name == "win_arm64"
+    assert Platform.zos_z.name == "zos_z"
+
+    assert len(Platform.__members__) == Platform.count()
+    assert Platform.build_platform() in Platform.__members__.values()
+    assert Platform.parse("linux-64") == Platform.linux_64
+    assert Platform("linux_64") == Platform.linux_64
+
+    with pytest.raises(KeyError):
+        # No parsing, explicit name
+        Platform("linux-64") == Platform.linux_64
+
+
+def test_CondaURL_Credentials():
+    Credentials = libmambapy.specs.CondaURL.Credentials
+
+    assert Credentials.Hide.name == "Hide"
+    assert Credentials.Show.name == "Show"
+    assert Credentials.Remove.name == "Remove"
+    assert Credentials("Show") == Credentials.Show
+
+
+def test_CondaURL_setters():
+    CondaURL = libmambapy.specs.CondaURL
+    url = CondaURL()
+
+    # Scheme
+    assert url.scheme_is_defaulted()
+    url.set_scheme("ftp")
+    assert not url.scheme_is_defaulted()
+    assert url.scheme() == "ftp"
+    assert url.clear_scheme() == "ftp"
+    assert url.scheme() == "https"
+    assert url.scheme_is_defaulted()
+    # User
+    assert url.user() == ""
+    assert not url.has_user()
+    url.set_user("user@email.com")
+    assert url.user() == "user@email.com"
+    url.set_user("none%40email.com", encode=False)
+    assert url.user() == "none@email.com"
+    assert url.clear_user() == "none%40email.com"
+    assert url.user() == ""
+    # Password
+    assert url.password() == ""
+    assert not url.has_password()
+    url.set_password("some#pass")
+    assert url.password() == "some#pass"
+    url.set_password("s%23pass", encode=False)
+    assert url.password() == "s#pass"
+    assert url.clear_password() == "s%23pass"
+    assert url.password() == ""
+    # Host
+    assert url.host_is_defaulted()
+    assert url.host() == "localhost"
+    url.set_host("mamba.org")
+    assert not url.host_is_defaulted()
+    assert url.host() == "mamba.org"
+    assert url.clear_host() == "mamba.org"
+    assert url.host() == "localhost"
+    assert url.host_is_defaulted()
+    # Port
+    assert url.port() == ""
+    url.set_port("33")
+    assert url.port() == "33"
+    assert url.clear_port() == "33"
+    assert url.port() == ""
+    # Path
+    assert url.path() == "/"
+    url.set_path("some path")
+    assert url.path() == "/some path"
+    url.set_path("some%20", encode=False)
+    assert url.path() == "/some "
+    url.append_path(" foo")
+    assert url.path() == "/some / foo"
+    url.append_path("%23", encode=False)
+    assert url.path() == "/some / foo/#"
+    assert url.clear_path() == "/some%20/%20foo/%23"
+    # Token
+    assert not url.has_token()
+    assert url.token() == ""
+    url.set_token("mytoken")
+    assert url.has_token()
+    assert url.token() == "mytoken"
+    assert url.clear_token()
+    assert url.token() == ""
+    # Path without token
+    url.set_token("mytoken")
+    assert url.path_without_token() == "/"
+    url.set_path_without_token("my path")
+    assert url.path_without_token() == "/my path"
+    url.set_path_without_token("bar%20", encode=False)
+    assert url.path_without_token() == "/bar "
+    assert url.clear_path_without_token()
+    # Platform
+    url.set_path_without_token("conda-forge/win-64", encode=False)
+    assert url.platform().name == "win_64"
+    url.set_platform("linux_64")
+    assert url.platform().name == "linux_64"
+    assert url.clear_platform()
+    # Package
+    assert url.package() == ""
+    url.set_package("pkg.conda")
+    assert url.package() == "pkg.conda"
+    assert url.clear_package()
+
+
+def test_CondaURL_parse():
+    CondaURL = libmambapy.specs.CondaURL
+
+    url = CondaURL.parse(
+        "https://user%40mail.com:pas%23@repo.mamba.pm:400/t/xy-12345678-1234/%20conda/linux-64/pkg.conda"
+    )
+    assert url.scheme() == "https"
+    assert url.user() == "user@mail.com"
+    assert url.user(decode=False) == "user%40mail.com"
+    assert url.password() == "pas#"
+    assert url.password(decode=False) == "pas%23"
+    assert url.authentication() == "user%40mail.com:pas%23"
+    assert url.host() == "repo.mamba.pm"
+    assert url.host(decode=False) == "repo.mamba.pm"
+    assert url.port() == "400"
+    assert url.path() == "/t/xy-12345678-1234/ conda/linux-64/pkg.conda"
+    assert url.path(decode=False) == "/t/xy-12345678-1234/%20conda/linux-64/pkg.conda"
+    assert url.token() == "xy-12345678-1234"
+    assert url.path_without_token() == "/ conda/linux-64/pkg.conda"
+    assert url.path_without_token(decode=False) == "/%20conda/linux-64/pkg.conda"
+    assert url.platform().name == "linux_64"
+    assert url.package() == "pkg.conda"
+
+    assert (
+        url.str()
+        == "https://user%40mail.com:*****@repo.mamba.pm:400/t/*****/%20conda/linux-64/pkg.conda"
+    )
+    assert (
+        url.str(credentials="Show")
+        == "https://user%40mail.com:pas%23@repo.mamba.pm:400/t/xy-12345678-1234/%20conda/linux-64/pkg.conda"
+    )
+    assert repr(url) == (
+        "https://user%40mail.com:*****@repo.mamba.pm:400/t/*****/%20conda/linux-64/pkg.conda"
+    )
+    assert (
+        url.pretty_str(strip_scheme=True, credentials="Hide", rstrip_path="/")
+        == "user@mail.com:*****@repo.mamba.pm:400/t/*****/ conda/linux-64/pkg.conda"
+    )
+
+
+def test_CondaURL_op():
+    CondaURL = libmambapy.specs.CondaURL
+    url = CondaURL.parse(
+        "https://user%40mail.com:pas%23@repo.mamba.pm:400/t/xy-12345678-1234/%20conda/linux-64/pkg.conda"
+    )
+
+    #  Copy
+    other = copy.deepcopy(url)
+    assert other.str() == url.str()
+
+    # Comparison
+    assert hash(url) != 0
+    assert url == url
+    assert other == url
+    other.set_host("somehost.com")
+    assert other != url
+
+    # Append
+    url.set_path("/folder")
+    assert (url / "file.txt").path() == "/folder/file.txt"
+
+
+def test_ChannelSpec_Type():
+    Type = libmambapy.specs.ChannelSpec.Type
+
+    assert Type.URL.name == "URL"
+    assert Type.PackageURL.name == "PackageURL"
+    assert Type.Path.name == "Path"
+    assert Type.PackagePath.name == "PackagePath"
+    assert Type.Name.name == "Name"
+    assert Type.Unknown.name == "Unknown"
+    assert Type("Name").name == "Name"
+
+
+def test_ChannelSpec():
+    ChannelSpec = libmambapy.specs.ChannelSpec
+
+    # Constructor
+    spec = ChannelSpec(
+        location="<unknown>",
+        platform_filters=set(),
+        type=ChannelSpec.Type.Unknown,
+    )
+    assert spec.location == "<unknown>"
+    assert spec.platform_filters == set()
+    assert spec.type == ChannelSpec.Type.Unknown
+
+    # Enum cast
+    spec = ChannelSpec(location="conda-forge", platform_filters=set(), type="Name")
+    assert spec.type == ChannelSpec.Type.Name
+
+    #  Parser
+    spec = ChannelSpec.parse("conda-forge[linux-64]")
+    assert spec.location == "conda-forge"
+    assert spec.platform_filters == {"linux-64"}
+    assert spec.type == ChannelSpec.Type.Name
+
+    #  Copy
+    other = copy.deepcopy(spec)
+    assert other.location == spec.location
+
+
+def test_BasicHTTPAuthentication():
+    BasicHTTPAuthentication = libmambapy.specs.BasicHTTPAuthentication
+
+    auth = BasicHTTPAuthentication(user="mamba", password="superpass!!")
+
+    # Properties
+    assert auth.user == "mamba"
+    assert auth.password == "superpass!!"
+    auth.user = "conda"
+    auth.password = "awesome#"
+    assert auth.user == "conda"
+    assert auth.password == "awesome#"
+
+    #  Copy
+    other = copy.deepcopy(auth)
+    assert other is not auth
+    assert other.user == auth.user
+
+    # Comparion
+    assert auth == auth
+    assert auth == other
+    other.user = "rattler"
+    assert auth != other
+    assert hash(auth) != 0
+
+
+def test_BearerToken():
+    BearerToken = libmambapy.specs.BearerToken
+
+    auth = BearerToken(token="mytoken")
+
+    # Properties
+    assert auth.token == "mytoken"
+    auth.token = "othertok"
+    assert auth.token == "othertok"
+
+    #  Copy
+    other = copy.deepcopy(auth)
+    assert other is not auth
+    assert other.token == auth.token
+
+    # Comparion
+    assert auth == auth
+    assert auth == other
+    other.token = "foo"
+    assert auth != other
+    assert hash(auth) != 0
+
+
+def test_CondaToken():
+    CondaToken = libmambapy.specs.CondaToken
+
+    auth = CondaToken(token="mytoken")
+
+    # Properties
+    assert auth.token == "mytoken"
+    auth.token = "othertok"
+    assert auth.token == "othertok"
+
+    #  Copy
+    other = copy.deepcopy(auth)
+    assert other is not auth
+    assert other.token == auth.token
+
+    # Comparison
+    assert auth == auth
+    assert auth == other
+    other.token = "foo"
+    assert auth != other
+    assert hash(auth) != 0
+
+
+def test_AuthenticationDataBase():
+    AuthenticationDataBase = libmambapy.specs.AuthenticationDataBase
+    BearerToken = libmambapy.specs.BearerToken
+    BasicHTTPAuthentication = libmambapy.specs.BasicHTTPAuthentication
+
+    auth_1 = BearerToken(token="mytoken")
+    db = AuthenticationDataBase({"mamba.org": auth_1})
+
+    # Dict style mapping
+    assert "mamba.org" in db
+    assert len(db) == 1
+    assert db["mamba.org"] == auth_1
+
+    auth_2 = BasicHTTPAuthentication(user="user", password="pass")
+    db["anaconda.com"] = auth_2
+    assert db["anaconda.com"] == auth_2
+
+    #  Iteration
+    for key, val in db.items():
+        ...
+
+    # Comparison
+    assert auth_1 == auth_1
+    assert auth_1 != auth_2
+
+    # Special functions
+    assert db.contains_weaken("mamba.org")
+    assert db.contains_weaken("mamba.org/conda-forge")
+    assert db.at_weaken("mamba.org/conda-forge") == auth_1
+
+
+def test_ChannelResolveParams():
+    ChannelResolveParams = libmambapy.specs.ChannelResolveParams
+    CondaURL = libmambapy.specs.CondaURL
+    AuthenticationDataBase = libmambapy.specs.AuthenticationDataBase
+    BearerToken = libmambapy.specs.BearerToken
+
+    # custom_channel and custom_multichannel require creating a Channel to be tested,
+    # so we leave them out for simplicity/isolation here.
+    # See test_Channel_resolve
+
+    platforms_1 = {"linux-64"}
+    channel_alias_1 = CondaURL.parse("oci://github.com/")
+    db_1 = AuthenticationDataBase({"mamba.org": BearerToken(token="mytoken")})
+    home_dir_1 = "/users/mamba"
+    cwd_1 = "/tmp/workspace"
+
+    # Constructor
+    params = ChannelResolveParams(
+        platforms=platforms_1,
+        channel_alias=channel_alias_1,
+        #  custom_channels = ,
+        #  custom_multichannels = ,
+        authentication_db=db_1,
+        home_dir=home_dir_1,
+        current_working_dir=cwd_1,
+    )
+
+    # Getters
+    assert params.platforms == platforms_1
+    assert params.channel_alias == channel_alias_1
+    assert params.authentication_db == db_1
+    assert params.home_dir == home_dir_1
+    assert params.current_working_dir == cwd_1
+
+    platforms_2 = {"win-64", "noarch"}
+    channel_alias_2 = CondaURL.parse("ftp://anaconda.com/")
+    db_2 = AuthenticationDataBase({"conda.org": BearerToken(token="tkn")})
+    home_dir_2 = "/users/conda"
+    cwd_2 = "/tmp/elsewhere"
+
+    # Setters
+    params.platforms = platforms_2
+    params.channel_alias = channel_alias_2
+    params.authentication_db = db_2
+    params.home_dir = home_dir_2
+    params.current_working_dir = cwd_2
+    assert params.platforms == platforms_2
+    assert params.channel_alias == channel_alias_2
+    assert params.authentication_db == db_2
+    assert params.home_dir == home_dir_2
+    assert params.current_working_dir == cwd_2
+
+
+def test_Channel():
+    Channel = libmambapy.specs.Channel
+    CondaURL = libmambapy.specs.CondaURL
+
+    url_1 = CondaURL.parse("https://repo.anaconda.com/conda-forge")
+    platforms_1 = {"osx-64", "noarch"}
+    display_name_1 = "conda-forge"
+
+    # Constructor
+    chan = Channel(url=url_1, platforms=platforms_1, display_name=display_name_1)
+
+    # Gettters
+    assert chan.url == url_1
+    assert chan.platforms == platforms_1
+    assert chan.display_name == display_name_1
+    assert not chan.is_package()
+
+    url_2 = CondaURL.parse("https://mamba.pm/mamba-forge/pkg.conda")
+    platforms_2 = {"win-64"}
+    display_name_2 = "mamba-forge"
+
+    # Setters
+    chan.url = url_2
+    chan.platforms = platforms_2
+    chan.display_name = display_name_2
+    assert chan.url == url_2
+    assert chan.platforms == platforms_2
+    assert chan.display_name == display_name_2
+    assert chan.is_package()
+
+    #  Copy
+    other = copy.deepcopy(chan)
+    assert other is not chan
+    assert chan.display_name == chan.display_name
+
+    # Comparison
+    assert chan == chan
+    assert chan == chan
+    other.platforms = {"neverheard-59"}
+    assert chan != other
+    assert hash(chan) != 0
+
+    # Weak comparison
+    other.url = chan.url
+    other.platforms = chan.platforms | {"human-67"}
+    assert chan.url_equivalent_with(chan)
+    assert chan.url_equivalent_with(other)
+    assert other.url_equivalent_with(chan)
+    assert chan.is_equivalent_to(chan)
+    assert not chan.is_equivalent_to(other)
+    assert not other.is_equivalent_to(chan)
+    assert chan.contains_equivalent(chan)
+    assert other.contains_equivalent(chan)
+    assert not chan.contains_equivalent(other)
+
+
+def test_Channel_resolve():
+    Channel = libmambapy.specs.Channel
+    ChannelSpec = libmambapy.specs.ChannelSpec
+    CondaURL = libmambapy.specs.CondaURL
+    AuthenticationDataBase = libmambapy.specs.AuthenticationDataBase
+    BearerToken = libmambapy.specs.BearerToken
+
+    platforms = {"linux-64"}
+    channel_alias = CondaURL.parse("oci://github.com/")
+    auth_db = AuthenticationDataBase({"mamba.org": BearerToken(token="mytoken")})
+    home_dir = "/users/mamba"
+    cwd = "/tmp/workspace"
+
+    chans = Channel.resolve(
+        spec=ChannelSpec.parse("conda-forge"),
+        platforms=platforms,
+        channel_alias=channel_alias,
+        authentication_db=auth_db,
+        home_dir=home_dir,
+        current_working_dir=cwd,
+    )
+
+    assert len(chans) == 1
+    chan_1 = chans[0]
+    assert chan_1.url == channel_alias / "conda-forge"
+    assert chan_1.platforms == platforms
+    assert chan_1.display_name == "conda-forge"
+
+    # Custom channel match
+    custom_channels = Channel.ChannelMap({"best-forge": chan_1})
+    chans = Channel.resolve(
+        spec=ChannelSpec.parse("best-forge"),
+        platforms=platforms,
+        channel_alias=channel_alias,
+        custom_channels=custom_channels,
+        authentication_db=auth_db,
+        home_dir=home_dir,
+        current_working_dir=cwd,
+    )
+    assert len(chans) == 1
+    chan_2 = chans[0]
+    assert chan_2.display_name == "best-forge"
+
+    # Custom multi channel match
+    custom_multichannels = Channel.MultiChannelMap({"known-forges": [chan_1, chan_2]})
+    chans = Channel.resolve(
+        spec=ChannelSpec.parse("known-forges"),
+        platforms=platforms,
+        channel_alias=channel_alias,
+        custom_channels=custom_channels,
+        custom_multichannels=custom_multichannels,
+        authentication_db=auth_db,
+        home_dir=home_dir,
+        current_working_dir=cwd,
+    )
+    assert len(chans) == 2
+    assert {c.display_name for c in chans} == {"best-forge", "conda-forge"}

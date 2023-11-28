@@ -41,13 +41,14 @@ namespace mamba::util
         template <typename... Args>
         explicit weakening_map(weakener_type weakener, Args&&... args);
 
+        [[nodiscard]] auto generic() const -> const Base&;
+
         using Base::begin;
         using Base::end;
         using Base::cbegin;
         using Base::cend;
 
         using Base::empty;
-        using Base::size;
         using Base::max_size;
 
         using Base::clear;
@@ -64,6 +65,8 @@ namespace mamba::util
         using Base::reserve;
 
         using Base::at;
+
+        [[nodiscard]] auto size() const -> std::size_t;
 
         [[nodiscard]] auto at_weaken(const key_type& key) -> mapped_type&;
         [[nodiscard]] auto at_weaken(const key_type& key) const -> const mapped_type&;
@@ -82,6 +85,11 @@ namespace mamba::util
         Weakener m_weakener = {};
     };
 
+    template <typename M, typename W>
+    auto operator==(const weakening_map<M, W>& a, const weakening_map<M, W>& b) -> bool;
+    template <typename M, typename W>
+    auto operator!=(const weakening_map<M, W>& a, const weakening_map<M, W>& b) -> bool;
+
     /*************************************
      *  Implementation of weakening_map  *
      *************************************/
@@ -98,6 +106,19 @@ namespace mamba::util
         : Base(std::forward<Args>(args)...)
         , m_weakener(std::move(weakener))
     {
+    }
+
+    template <typename M, typename W>
+    auto weakening_map<M, W>::generic() const -> const Base&
+    {
+        return *this;
+    }
+
+    template <typename M, typename W>
+    auto weakening_map<M, W>::size() const -> std::size_t
+    {
+        // https://github.com/pybind/pybind11/pull/4952
+        return Base::size();
     }
 
     template <typename M, typename W>
@@ -156,5 +177,16 @@ namespace mamba::util
         return find_weaken(key) != end();
     }
 
+    template <typename M, typename W>
+    auto operator==(const weakening_map<M, W>& a, const weakening_map<M, W>& b) -> bool
+    {
+        return a.generic() == b.generic();
+    }
+
+    template <typename M, typename W>
+    auto operator!=(const weakening_map<M, W>& a, const weakening_map<M, W>& b) -> bool
+    {
+        return a.generic() != b.generic();
+    }
 }
 #endif

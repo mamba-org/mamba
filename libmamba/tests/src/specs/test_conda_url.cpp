@@ -139,9 +139,20 @@ TEST_SUITE("specs::CondaURL")
         SUBCASE("Encoding")
         {
             url.set_token("mytoken");
-            url.set_path_without_token("some / weird/path %");
-            CHECK_EQ(url.path_without_token(), "/some / weird/path %");
-            CHECK_EQ(url.path_without_token(CondaURL::Decode::no), "/some%20/%20weird/path%20%25");
+
+            SUBCASE("Encode")
+            {
+                url.set_path_without_token("some / weird/path %");
+                CHECK_EQ(url.path_without_token(), "/some / weird/path %");
+                CHECK_EQ(url.path_without_token(CondaURL::Decode::no), "/some%20/%20weird/path%20%25");
+            }
+
+            SUBCASE("Encoded")
+            {
+                url.set_path_without_token("/some%20/%20weird/path%20%25", CondaURL::Encode::no);
+                CHECK_EQ(url.path_without_token(), "/some / weird/path %");
+                CHECK_EQ(url.path_without_token(CondaURL::Decode::no), "/some%20/%20weird/path%20%25");
+            }
         }
     }
 

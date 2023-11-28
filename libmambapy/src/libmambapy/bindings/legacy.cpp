@@ -1306,9 +1306,9 @@ bind_submodule_impl(pybind11::module_ m)
     m.attr("MAMBA_CLEAN_LOCKS") = MAMBA_CLEAN_LOCKS;
 }
 
-namespace mambapy::legacy
+namespace mambapy
 {
-    void bind_submodule(pybind11::module_ m)
+    void bind_submodule_legacy(pybind11::module_ m)
     {
         bind_submodule_impl(std::move(m));
     }

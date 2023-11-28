@@ -6,9 +6,48 @@
 
 #include "mamba/specs/authentication_info.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/tuple_hash.hpp"
 
 namespace mamba::specs
 {
+    namespace
+    {
+        auto attrs(const BasicHTTPAuthentication& auth)
+        {
+            return std::tie(auth.user, auth.password);
+        }
+    }
+
+    auto operator==(const BasicHTTPAuthentication& a, const BasicHTTPAuthentication& b) -> bool
+    {
+        return attrs(a) == attrs(b);
+    }
+
+    auto operator!=(const BasicHTTPAuthentication& a, const BasicHTTPAuthentication& b) -> bool
+    {
+        return !(a == b);
+    }
+
+    auto operator==(const BearerToken& a, const BearerToken& b) -> bool
+    {
+        return a.token == b.token;
+    }
+
+    auto operator!=(const BearerToken& a, const BearerToken& b) -> bool
+    {
+        return !(a == b);
+    }
+
+    auto operator==(const CondaToken& a, const CondaToken& b) -> bool
+    {
+        return a.token == b.token;
+    }
+
+    auto operator!=(const CondaToken& a, const CondaToken& b) -> bool
+    {
+        return !(a == b);
+    }
+
     auto URLWeakener::make_first_key(std::string_view key) const -> std::string
     {
         if (util::ends_with(key, '/'))
@@ -37,4 +76,26 @@ namespace mamba::specs
             return { key.substr(0, pos + 1) };
         }
     }
+}
+
+auto
+std::hash<mamba::specs::BasicHTTPAuthentication>::operator()(
+    const mamba::specs::BasicHTTPAuthentication& auth
+) const -> std::size_t
+{
+    return mamba::util::hash_tuple(mamba::specs::attrs(auth));
+}
+
+auto
+std::hash<mamba::specs::BearerToken>::operator()(const mamba::specs::BearerToken& auth) const
+    -> std::size_t
+{
+    return std::hash<std::string>{}(auth.token);
+}
+
+auto
+std::hash<mamba::specs::CondaToken>::operator()(const mamba::specs::CondaToken& auth) const
+    -> std::size_t
+{
+    return std::hash<std::string>{}(auth.token);
 }

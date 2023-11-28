@@ -113,7 +113,7 @@ namespace mamba::specs
     {
     }
 
-    auto CondaURL::base() const -> const util::URL&
+    auto CondaURL::generic() const -> const util::URL&
     {
         return static_cast<const util::URL&>(*this);
     }
@@ -246,7 +246,7 @@ namespace mamba::specs
             auto old_path = clear_path();
             old_path.erase(std::min(len, old_path.size()));
             Base::set_path(std::move(old_path), Encode::no);
-            Base::append_path(new_path.empty() ? "/" : new_path);
+            Base::append_path(new_path.empty() ? "/" : new_path, Encode::no);
         }
         else
         {
@@ -506,7 +506,7 @@ namespace mamba::specs
 
     auto operator==(const CondaURL& a, const CondaURL& b) -> bool
     {
-        return a.base() == b.base();
+        return a.generic() == b.generic();
     }
 
     auto operator!=(const CondaURL& a, const CondaURL& b) -> bool
@@ -529,5 +529,5 @@ namespace mamba::specs
 auto
 std::hash<mamba::specs::CondaURL>::operator()(const mamba::specs::CondaURL& u) const -> std::size_t
 {
-    return std::hash<mamba::util::URL>()(u.base());
+    return std::hash<mamba::util::URL>()(u.generic());
 }

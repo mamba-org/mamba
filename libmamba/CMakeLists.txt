@@ -541,12 +541,6 @@ macro(libmamba_create_target target_name linkage output_name)
             PUBLIC
                 ${LIBSOLV_LIBRARIES}
                 ${LIBSOLVEXT_LIBRARIES}
-                ${LibArchive_LIBRARIES}
-                zstd::libzstd_shared
-                ${CURL_LIBRARIES}
-                ${OPENSSL_LIBRARIES}
-                zstd::libzstd_shared
-                BZip2::BZip2
                 yaml-cpp::yaml-cpp
                 fmt::fmt
                 # Since conda-forge spdlog is built with a bundled version of fmt we use the header
@@ -555,7 +549,15 @@ macro(libmamba_create_target target_name linkage output_name)
                 spdlog::spdlog_header_only
                 solv::libsolv
                 solv::libsolvext
-            PRIVATE reproc reproc++ simdjson::simdjson
+            PRIVATE
+                ${LibArchive_LIBRARIES}
+                ${CURL_LIBRARIES}
+                ${OPENSSL_LIBRARIES}
+                BZip2::BZip2
+                reproc
+                reproc++
+                simdjson::simdjson
+                zstd::libzstd_shared
         )
     endif()
 

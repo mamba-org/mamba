@@ -69,12 +69,10 @@ TEST_SUITE("specs::channel")
                 CHECK_EQ(chan_b, chan_a);
                 CHECK_EQ(chan_a, chan_b);
 
-                chan_b = chan_a;
-                chan_b.set_platforms({ "linux-64", "noarch" });
+                chan_b = Channel(chan_a.url(), chan_a.display_name(), { "linux-64", "noarch" });
                 CHECK_NE(chan_b, chan_a);
 
-                chan_b = chan_a;
-                chan_b.set_display_name("othername");
+                chan_b = Channel(chan_a.url(), "othername", chan_a.platforms());
                 CHECK_NE(chan_b, chan_a);
             }
         }
@@ -111,12 +109,12 @@ TEST_SUITE("specs::channel")
                 CHECK(chan_a.contains_equivalent(chan_b));
                 CHECK(chan_b.contains_equivalent(chan_a));
 
-                chan_a.set_platforms({ "noarch", "linux-64" });
+                chan_a = Channel(chan_a.url(), chan_a.display_name(), { "noarch", "linux-64" });
                 CHECK(chan_a.contains_equivalent(chan_a));
                 CHECK(chan_a.contains_equivalent(chan_b));
                 CHECK_FALSE(chan_b.contains_equivalent(chan_a));
 
-                chan_b.set_platforms({ "osx-64" });
+                chan_b = Channel(chan_b.url(), chan_b.display_name(), { "ox-64" });
                 CHECK_FALSE(chan_a.contains_equivalent(chan_b));
                 CHECK_FALSE(chan_b.contains_equivalent(chan_a));
             }

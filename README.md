@@ -68,7 +68,7 @@ See the [documentation on `micromamba`](https://mamba.readthedocs.io/en/latest/u
 
 ## Development installation
 
-Please refer to the instructions given by the [official documentation](https://mamba.readthedocs.io/en/latest/developer_zone/build_locally.html#).
+Please refer to the instructions given by the [official documentation](https://mamba.readthedocs.io/en/latest/developer_zone/dev_environment.html).
 
 ## Support us
 

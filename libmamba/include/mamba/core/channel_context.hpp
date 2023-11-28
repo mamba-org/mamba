@@ -7,7 +7,6 @@
 #ifndef MAMBA_CORE_CHANNEL_HPP
 #define MAMBA_CORE_CHANNEL_HPP
 
-#include <functional>
 #include <string>
 #include <string_view>
 
@@ -32,7 +31,7 @@ namespace mamba
          * Custom channels are treated as aliases rather than the Conda way (the name is not
          * added at the end of the URL if absent).
          */
-        [[nodiscard]] static auto make_simple(Context& ctx) -> ChannelContext;
+        [[nodiscard]] static auto make_simple(const Context& ctx) -> ChannelContext;
 
         /**
          * Create a ChannelContext while applying all of Conda context options.
@@ -43,27 +42,20 @@ namespace mamba
          * be added.
          * The function will ensure custom channels names are added at the end of the URLs.
          */
-        [[nodiscard]] static auto make_conda_compatible(Context& ctx) -> ChannelContext;
+        [[nodiscard]] static auto make_conda_compatible(const Context& ctx) -> ChannelContext;
 
         /**
          * Initialize channel with the parameters as they are.
          *
          * The Context is not parsed.
          */
-        ChannelContext(Context& ctx, ChannelResolveParams params, std::vector<Channel> has_zst);
+        ChannelContext(ChannelResolveParams params, std::vector<Channel> has_zst);
 
         auto make_channel(std::string_view name) -> const channel_list&;
 
         [[nodiscard]] auto params() const -> const specs::ChannelResolveParams&;
 
         [[nodiscard]] auto has_zst(const Channel& chan) const -> bool;
-
-        /**
-         * Return the context.
-         *
-         * @deprecated We aim to remove the capture of the Context.
-         */
-        [[nodiscard, deprecated]] auto context() const -> const Context&;
 
     private:
 
@@ -72,7 +64,6 @@ namespace mamba
         ChannelResolveParams m_channel_params;
         ChannelCache m_channel_cache;
         std::vector<Channel> m_has_zst;
-        std::reference_wrapper<const Context> m_context;
     };
 }
 #endif

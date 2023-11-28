@@ -190,29 +190,28 @@ namespace mamba
         }
     }
 
-    ChannelContext::ChannelContext(Context& ctx, ChannelResolveParams params, std::vector<Channel> has_zst)
+    ChannelContext::ChannelContext(ChannelResolveParams params, std::vector<Channel> has_zst)
         : m_channel_params(std::move(params))
-        , m_has_zst(has_zst)
-        , m_context(ctx)
+        , m_has_zst(std::move(has_zst))
     {
     }
 
-    auto ChannelContext::make_simple(Context& ctx) -> ChannelContext
+    auto ChannelContext::make_simple(const Context& ctx) -> ChannelContext
     {
         auto params = make_simple_params_base(ctx);
         add_simple_params_custom_channel(params, ctx);
         add_simple_params_custom_multichannel(params, ctx);
         auto has_zst = create_zstd(ctx, params);
-        return { ctx, std::move(params), std::move(has_zst) };
+        return { std::move(params), std::move(has_zst) };
     }
 
-    auto ChannelContext::make_conda_compatible(Context& ctx) -> ChannelContext
+    auto ChannelContext::make_conda_compatible(const Context& ctx) -> ChannelContext
     {
         auto params = make_simple_params_base(ctx);
         add_conda_params_custom_channel(params, ctx);
         add_conda_params_custom_multichannel(params, ctx);
         auto has_zst = create_zstd(ctx, params);
-        return { ctx, std::move(params), has_zst };
+        return { std::move(params), has_zst };
     }
 
     auto ChannelContext::make_channel(std::string_view name) -> const channel_list&
@@ -245,10 +244,5 @@ namespace mamba
             }
         }
         return false;
-    }
-
-    auto ChannelContext::context() const -> const Context&
-    {
-        return m_context;
     }
 }

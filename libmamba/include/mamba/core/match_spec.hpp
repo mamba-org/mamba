@@ -14,6 +14,7 @@
 
 namespace mamba
 {
+    class Context;
     class ChannelContext;
 
     class MatchSpec
@@ -22,9 +23,9 @@ namespace mamba
 
         MatchSpec() = default;
 
-        MatchSpec(std::string_view i_spec, ChannelContext& channel_context);
+        MatchSpec(std::string_view i_spec, const Context& ctx, ChannelContext& channel_context);
 
-        void parse(ChannelContext& channel_context);
+        void parse(const Context& ctx, ChannelContext& channel_context);
         std::string conda_build_form() const;
         std::string str() const;
 

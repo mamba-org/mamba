@@ -114,7 +114,7 @@ namespace mamba
                     specs.end(),
                     std::back_inserter(mspecs),
                     [&](const auto& spec_str) {
-                        return MatchSpec{ spec_str, channel_context };
+                        return MatchSpec{ spec_str, ctx, channel_context };
                     }
                 );
                 auto transaction = MTransaction(pool, mspecs, {}, package_caches);
@@ -133,7 +133,7 @@ namespace mamba
                 );
 
                 History history(ctx.prefix_params.target_prefix, channel_context);
-                auto hist_map = history.get_requested_specs_map();
+                auto hist_map = history.get_requested_specs_map(ctx);
                 std::vector<std::string> keep_specs;
                 for (auto& it : hist_map)
                 {

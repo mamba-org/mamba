@@ -576,6 +576,7 @@ namespace mamba
         {
             specs_to_install.push_back(MatchSpec(
                 fmt::format("{}=={}={}", pkginfo.name, pkginfo.version, pkginfo.build_string),
+                m_pool.context(),
                 m_pool.channel_context()
             ));
         }
@@ -1359,7 +1360,8 @@ namespace mamba
             }
 
             const auto hash_idx = url.find_first_of('#');
-            specs_to_install.emplace_back(url.substr(0, hash_idx), pool.channel_context());
+            specs_to_install
+                .emplace_back(url.substr(0, hash_idx), pool.context(), pool.channel_context());
             MatchSpec& ms = specs_to_install.back();
 
             if (hash_idx != std::string::npos)
@@ -1386,7 +1388,11 @@ namespace mamba
         std::vector<detail::other_pkg_mgr_spec>& other_specs
     )
     {
-        const auto maybe_lockfile = read_environment_lockfile(pool.channel_context(), env_lockfile_path);
+        const auto maybe_lockfile = read_environment_lockfile(
+            pool.context(),
+            pool.channel_context(),
+            env_lockfile_path
+        );
         if (!maybe_lockfile)
         {
             throw maybe_lockfile.error();  // NOTE: we cannot return an `un/expected` because

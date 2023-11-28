@@ -136,7 +136,7 @@ set_env_command(CLI::App* com, Configuration& config)
             {
                 // TODO: handle error
                 auto pd = PrefixData::create(ctx.prefix_params.target_prefix, channel_context).value();
-                auto records = pd.sorted_records();
+                auto records = pd.sorted_records(ctx);
                 std::cout << "# This file may be used to create an environment using:\n"
                           << "# $ conda create --name <env> --file <this file>\n"
                           << "# platform: " << ctx.platform << "\n"
@@ -163,7 +163,7 @@ set_env_command(CLI::App* com, Configuration& config)
                 std::cout << "name: " << get_env_name(ctx, ctx.prefix_params.target_prefix) << "\n";
                 std::cout << "channels:\n";
 
-                auto requested_specs_map = hist.get_requested_specs_map();
+                auto requested_specs_map = hist.get_requested_specs_map(ctx);
                 std::stringstream dependencies;
                 std::set<std::string> channels;
                 for (const auto& [k, v] : versions_map)

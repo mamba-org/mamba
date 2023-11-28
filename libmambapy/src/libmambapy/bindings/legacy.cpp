@@ -300,7 +300,9 @@ bind_submodule_impl(pybind11::module_ m)
         .def(py::init<>())
         .def(py::init<>(
             [](const std::string& name) {
-                return MatchSpec{ name, mambapy::singletons.channel_context() };
+                return MatchSpec{ name,
+                                  mambapy::singletons.context(),
+                                  mambapy::singletons.channel_context() };
             }
         ))
         .def("conda_build_form", &MatchSpec::conda_build_form);
@@ -316,8 +318,11 @@ bind_submodule_impl(pybind11::module_ m)
         .def("matchspec2id", &MPool::matchspec2id, py::arg("ms"))
         .def(
             "matchspec2id",
-            [](MPool& self, std::string_view ms) {
-                return self.matchspec2id({ ms, mambapy::singletons.channel_context() });
+            [](MPool& self, std::string_view ms)
+            {
+                return self.matchspec2id(
+                    { ms, mambapy::singletons.context(), mambapy::singletons.channel_context() }
+                );
             },
             py::arg("ms")
         )
@@ -494,7 +499,10 @@ bind_submodule_impl(pybind11::module_ m)
                 return History{ path, mambapy::singletons.channel_context() };
             }
         ))
-        .def("get_requested_specs_map", &History::get_requested_specs_map);
+        .def(
+            "get_requested_specs_map",
+            [](History& self) { return self.get_requested_specs_map(mambapy::singletons.context()); }
+        );
 
     /*py::class_<Query>(m, "Query")
         .def(py::init<MPool&>())

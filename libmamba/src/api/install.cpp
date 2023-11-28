@@ -342,8 +342,11 @@ namespace mamba
             return result;
         }
 
-        std::tuple<std::vector<PackageInfo>, std::vector<MatchSpec>>
-        parse_urls_to_package_info(const std::vector<std::string>& urls, ChannelContext& channel_context)
+        std::tuple<std::vector<PackageInfo>, std::vector<MatchSpec>> parse_urls_to_package_info(
+            const std::vector<std::string>& urls,
+            Context& ctx,
+            ChannelContext& channel_context
+        )
         {
             std::vector<PackageInfo> pi_result;
             std::vector<MatchSpec> ms_result;
@@ -354,7 +357,7 @@ namespace mamba
                     continue;
                 }
                 std::size_t hash = u.find_first_of('#');
-                MatchSpec ms(u.substr(0, hash), channel_context);
+                MatchSpec ms(u.substr(0, hash), ctx, channel_context);
                 PackageInfo p(ms.name);
                 p.url = ms.url;
                 p.build_string = ms.build_string;
@@ -467,7 +470,7 @@ namespace mamba
         // add channels from specs
         for (const auto& s : specs)
         {
-            if (auto m = MatchSpec{ s, channel_context }; !m.channel.empty())
+            if (auto m = MatchSpec{ s, ctx, channel_context }; !m.channel.empty())
             {
                 ctx.channels.push_back(m.channel);
             }
@@ -541,7 +544,7 @@ namespace mamba
 
         if (!no_py_pin)
         {
-            auto py_pin = python_pin(prefix_data, specs);
+            auto py_pin = python_pin(ctx, channel_context, prefix_data, specs);
             if (!py_pin.empty())
             {
                 solver.add_pin(py_pin);

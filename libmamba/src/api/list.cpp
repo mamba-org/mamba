@@ -95,7 +95,7 @@ namespace mamba
             formatted_pkg formatted_pkgs;
 
             std::vector<formatted_pkg> packages;
-            auto requested_specs = prefix_data.history().get_requested_specs_map();
+            auto requested_specs = prefix_data.history().get_requested_specs_map(ctx);
 
             // order list of packages from prefix_data by alphabetical order
             for (const auto& package : prefix_data.records())

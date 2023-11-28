@@ -77,7 +77,7 @@ namespace mamba
         return m_package_records;
     }
 
-    std::vector<PackageInfo> PrefixData::sorted_records() const
+    std::vector<PackageInfo> PrefixData::sorted_records(const Context& ctx) const
     {
         // TODO add_pip_as_python_dependency
 
@@ -100,7 +100,7 @@ namespace mamba
                 for (const auto& dep : record->depends)
                 {
                     // Creating a matchspec to parse the name (there may be a channel)
-                    auto ms = MatchSpec{ dep, m_channel_context };
+                    auto ms = MatchSpec{ dep, ctx, m_channel_context };
                     // Ignoring unmatched dependencies, the environment could be broken
                     // or it could be a matchspec
                     const auto from_iter = name_to_node_id.find(ms.name);

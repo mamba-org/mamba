@@ -75,7 +75,7 @@ handle_solve_request(
 
     for (const auto& s : specs)
     {
-        if (auto m = MatchSpec{ s, channel_context }; !m.channel.empty())
+        if (auto m = MatchSpec{ s, ctx, channel_context }; !m.channel.empty())
         {
             channels.push_back(m.channel);
         }

@@ -108,6 +108,7 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
 
         auto [package_details, _] = detail::parse_urls_to_package_info(
             read_lines(urls_file),
+            config.context(),
             channel_context
         );
 

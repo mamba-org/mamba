@@ -135,7 +135,8 @@ namespace mamba
     {
         for (const auto& job : jobs)
         {
-            MatchSpec ms{ job, m_pool.channel_context() };
+            const auto& ctx = m_pool.context();
+            MatchSpec ms{ job, ctx, m_pool.channel_context() };
             int job_type = job_flag & SOLVER_JOBMASK;
 
             if (ms.conda_build_form().empty())
@@ -145,16 +146,16 @@ namespace mamba
 
             if (job_type & SOLVER_INSTALL)
             {
-                m_install_specs.emplace_back(job, m_pool.channel_context());
+                m_install_specs.emplace_back(job, ctx, m_pool.channel_context());
             }
             else if (job_type == SOLVER_ERASE)
             {
-                m_remove_specs.emplace_back(job, m_pool.channel_context());
+                m_remove_specs.emplace_back(job, ctx, m_pool.channel_context());
             }
             else if (job_type == SOLVER_LOCK)
             {
-                m_neuter_specs.emplace_back(job, m_pool.channel_context());  // not used for the
-                                                                             // moment
+                m_neuter_specs.emplace_back(job, ctx, m_pool.channel_context());  // not used for
+                                                                                  // the moment
             }
 
             const ::Id job_id = m_pool.matchspec2id(ms);
@@ -186,7 +187,7 @@ namespace mamba
     {
         m_jobs->push_back(
             SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
-            m_pool.matchspec2id({ job, m_pool.channel_context() })
+            m_pool.matchspec2id({ job, m_pool.context(), m_pool.channel_context() })
         );
     }
 
@@ -218,7 +219,7 @@ namespace mamba
         // as one of its constrains.
         // Then we lock this solvable and force the re-checking of its dependencies.
 
-        const auto pin_ms = MatchSpec{ pin, m_pool.channel_context() };
+        const auto pin_ms = MatchSpec{ pin, m_pool.context(), m_pool.channel_context() };
         m_pinned_specs.push_back(pin_ms);
 
         auto& pool = m_pool.pool();
@@ -630,9 +631,9 @@ namespace mamba
                         );
                         node_id cons_id = add_solvable(
                             problem.dep_id,
-                            ConstraintNode{ { dep.value(), channel_context } }
+                            ConstraintNode{ { dep.value(), m_pool.context(), channel_context } }
                         );
-                        MatchSpec edge(dep.value(), channel_context);
+                        MatchSpec edge(dep.value(), m_pool.context(), channel_context);
                         m_graph.add_edge(src_id, cons_id, std::move(edge));
                         add_conflict(cons_id, tgt_id);
                         break;
@@ -652,7 +653,7 @@ namespace mamba
                             problem.source_id,
                             PackageNode{ std::move(source).value() }
                         );
-                        MatchSpec edge(dep.value(), channel_context);
+                        MatchSpec edge(dep.value(), m_pool.context(), channel_context);
                         bool added = add_expanded_deps_edges(src_id, problem.dep_id, edge);
                         if (!added)
                         {
@@ -671,7 +672,7 @@ namespace mamba
                             warn_unexpected_problem(problem);
                             break;
                         }
-                        MatchSpec edge(dep.value(), channel_context);
+                        MatchSpec edge(dep.value(), m_pool.context(), channel_context);
                         bool added = add_expanded_deps_edges(m_root_node, problem.dep_id, edge);
                         if (!added)
                         {
@@ -690,10 +691,11 @@ namespace mamba
                             warn_unexpected_problem(problem);
                             break;
                         }
-                        MatchSpec edge(dep.value(), channel_context);
+                        MatchSpec edge(dep.value(), m_pool.context(), channel_context);
                         node_id dep_id = add_solvable(
                             problem.dep_id,
-                            UnresolvedDependencyNode{ { std::move(dep).value(), channel_context } }
+                            UnresolvedDependencyNode{
+                                { std::move(dep).value(), m_pool.context(), channel_context } }
                         );
                         m_graph.add_edge(m_root_node, dep_id, std::move(edge));
                         break;
@@ -709,14 +711,15 @@ namespace mamba
                             warn_unexpected_problem(problem);
                             break;
                         }
-                        MatchSpec edge(dep.value(), channel_context);
+                        MatchSpec edge(dep.value(), m_pool.context(), channel_context);
                         node_id src_id = add_solvable(
                             problem.source_id,
                             PackageNode{ std::move(source).value() }
                         );
                         node_id dep_id = add_solvable(
                             problem.dep_id,
-                            UnresolvedDependencyNode{ { std::move(dep).value(), channel_context } }
+                            UnresolvedDependencyNode{
+                                { std::move(dep).value(), m_pool.context(), channel_context } }
                         );
                         m_graph.add_edge(src_id, dep_id, std::move(edge));
                         break;
@@ -759,7 +762,7 @@ namespace mamba
                         // how the solver is handling this package, as this is resolved in term of
                         // installed packages and solver flags (allow downgrade...) rather than a
                         // dependency.
-                        MatchSpec edge(source.value().name, channel_context);
+                        MatchSpec edge(source.value().name, m_pool.context(), channel_context);
                         // The package cannot exist without its name in the pool
                         assert(m_pool.pool().find_string(edge.name).has_value());
                         const auto dep_id = m_pool.pool().find_string(edge.name).value();

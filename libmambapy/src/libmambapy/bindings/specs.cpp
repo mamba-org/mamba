@@ -287,13 +287,9 @@ namespace mambapy
             )
             .def("__copy__", &copy<ChannelSpec>)
             .def("__deepcopy__", &deepcopy<ChannelSpec>, pybind11::arg("memo"))
-            .def_property("type", &ChannelSpec::type, &ChannelSpec::set_type)
-            .def_property("location", &ChannelSpec::location, &ChannelSpec::set_location)
-            .def_property(
-                "platform_filters",
-                &ChannelSpec::platform_filters,
-                &ChannelSpec::set_platform_filters
-            );
+            .def_property_readonly("type", &ChannelSpec::type)
+            .def_property_readonly("location", &ChannelSpec::location)
+            .def_property_readonly("platform_filters", &ChannelSpec::platform_filters);
 
         py::class_<BasicHTTPAuthentication>(m, "BasicHTTPAuthentication")
             .def(

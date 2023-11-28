@@ -9,7 +9,6 @@
 
 #include <functional>
 
-#include "mamba/core/channel_context.hpp"
 #include "mamba/core/download.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/package_handling.hpp"
@@ -79,11 +78,7 @@ namespace mamba
         using post_download_success_t = std::function<void(std::size_t)>;
         using progress_callback_t = std::function<void(PackageExtractEvent)>;
 
-        PackageFetcher(
-            const PackageInfo& pkg_info,
-            ChannelContext& channel_context,
-            MultiPackageCache& caches
-        );
+        PackageFetcher(const PackageInfo& pkg_info, MultiPackageCache& caches);
 
         const std::string& name() const;
 
@@ -127,7 +122,6 @@ namespace mamba
         void update_monitor(progress_callback_t* cb, PackageExtractEvent event) const;
 
         PackageInfo m_package_info;
-        std::string m_url = "";
 
         fs::u8path m_tarball_path;
         fs::u8path m_cache_path;

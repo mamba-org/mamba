@@ -889,7 +889,20 @@ namespace mamba
                     //
                     //     LOG_DEBUG << "'" << pkg.name << "' trusted from '" << pkg.channel << "'";
                     // }
-                    fetchers.emplace_back(pkg, channel_context, multi_cache);
+
+                    // FIXME: only do this for micromamba for now
+                    if (ctx.command_params.is_micromamba)
+                    {
+                        auto l_pkg = pkg;
+                        auto channels = channel_context.make_channel(pkg.url);
+                        assert(channels.size() == 1);  // A URL can only resolve to one channel
+                        l_pkg.url = channels.front().platform_urls().at(0).str();
+                        fetchers.emplace_back(l_pkg, multi_cache);
+                    }
+                    else
+                    {
+                        fetchers.emplace_back(pkg, multi_cache);
+                    }
                 }
             );
 

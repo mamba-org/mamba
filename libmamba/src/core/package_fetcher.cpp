@@ -70,23 +70,12 @@ namespace mamba
 
     PackageFetcher::PackageFetcher(
         const PackageInfo& pkg_info,
-        ChannelContext& channel_context,
+        // ChannelContext& channel_context,
         MultiPackageCache& caches
     )
+
         : m_package_info(pkg_info)
     {
-        // FIXME: only do this for micromamba for now
-        if (channel_context.context().command_params.is_micromamba)
-        {
-            auto channels = channel_context.make_channel(pkg_info.url);
-            assert(channels.size() == 1);  // A URL can only resolve to one channel
-            m_url = channels.front().platform_urls().at(0).str();
-        }
-        else
-        {
-            m_url = pkg_info.url;
-        }
-
         const fs::u8path extracted_cache = caches.get_extracted_dir_path(m_package_info);
         if (extracted_cache.empty())
         {
@@ -314,7 +303,7 @@ namespace mamba
 
     const std::string& PackageFetcher::url() const
     {
-        return m_url;
+        return m_package_info.url;
     }
 
     const std::string& PackageFetcher::sha256() const
@@ -393,7 +382,7 @@ namespace mamba
         std::lock_guard<std::mutex> lock(urls_txt_mutex);
         const auto urls_file_path = m_cache_path / "urls.txt";
         std::ofstream urls_txt(urls_file_path.std_path(), std::ios::app);
-        urls_txt << m_url << std::endl;
+        urls_txt << url() << std::endl;
     }
 
     void PackageFetcher::update_monitor(progress_callback_t* cb, PackageExtractEvent event) const

@@ -32,7 +32,6 @@
 #include <fmt/ostream.h>
 #include <reproc++/run.hpp>
 
-#include "mamba/core/environment.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/util/build.hpp"

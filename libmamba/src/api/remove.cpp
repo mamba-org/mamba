@@ -6,7 +6,7 @@
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/remove.hpp"
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/pool.hpp"
@@ -19,11 +19,11 @@ namespace mamba
 {
     void remove(Configuration& config, int flags)
     {
+        auto& ctx = config.context();
+
         bool prune = flags & MAMBA_REMOVE_PRUNE;
         bool force = flags & MAMBA_REMOVE_FORCE;
         bool remove_all = flags & MAMBA_REMOVE_ALL;
-
-        auto& ctx = config.context();
 
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
@@ -35,7 +35,7 @@ namespace mamba
 
         auto remove_specs = config.at("specs").value<std::vector<std::string>>();
 
-        ChannelContext channel_context{ ctx };
+        auto channel_context = ChannelContext::make_conda_compatible(ctx);
 
         if (remove_all)
         {
@@ -54,7 +54,7 @@ namespace mamba
 
         if (!remove_specs.empty())
         {
-            detail::remove_specs(channel_context, remove_specs, prune, force);
+            detail::remove_specs(ctx, channel_context, remove_specs, prune, force);
         }
         else
         {
@@ -65,14 +65,13 @@ namespace mamba
     namespace detail
     {
         void remove_specs(
+            Context& ctx,
             ChannelContext& channel_context,
             const std::vector<std::string>& specs,
             bool prune,
             bool force
         )
         {
-            auto& ctx = channel_context.context();
-
             if (ctx.prefix_params.target_prefix.empty())
             {
                 LOG_ERROR << "No active target prefix.";
@@ -87,7 +86,7 @@ namespace mamba
             }
             PrefixData& prefix_data = exp_prefix_data.value();
 
-            MPool pool{ channel_context };
+            MPool pool{ ctx, channel_context };
             MRepo(pool, prefix_data);
 
             const fs::u8path pkgs_dirs(ctx.prefix_params.root_prefix / "pkgs");
@@ -115,7 +114,7 @@ namespace mamba
                     specs.end(),
                     std::back_inserter(mspecs),
                     [&](const auto& spec_str) {
-                        return MatchSpec{ spec_str, channel_context };
+                        return MatchSpec{ spec_str, ctx, channel_context };
                     }
                 );
                 auto transaction = MTransaction(pool, mspecs, {}, package_caches);
@@ -134,7 +133,7 @@ namespace mamba
                 );
 
                 History history(ctx.prefix_params.target_prefix, channel_context);
-                auto hist_map = history.get_requested_specs_map();
+                auto hist_map = history.get_requested_specs_map(ctx);
                 std::vector<std::string> keep_specs;
                 for (auto& it : hist_map)
                 {

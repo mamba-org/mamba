@@ -10,7 +10,7 @@ extern "C"
 }
 
 #include "mamba/api/configuration.hpp"
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"

@@ -37,7 +37,7 @@ namespace mamba
     {
     public:
 
-        MPool(ChannelContext& channel_context);
+        MPool(Context& ctx, ChannelContext& channel_context);
         ~MPool();
 
         void set_debuglevel();
@@ -60,7 +60,7 @@ namespace mamba
         void remove_repo(::Id repo_id, bool reuse_ids);
 
         ChannelContext& channel_context() const;
-        Context& context() const;
+        const Context& context() const;
 
     private:
 

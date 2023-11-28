@@ -6,6 +6,7 @@
 
 #include <doctest/doctest.h>
 
+#include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
 
 #include "mambatests.hpp"
@@ -127,5 +128,136 @@ TEST_SUITE("util::environment")
         CHECK_EQ(get_env(key_inexistant), std::nullopt);
         CHECK_EQ(get_env(key_unchanged), std::nullopt);  // Difference with update_env_map
         CHECK_EQ(get_env(key_changed), val_set_2);
+    }
+
+    TEST_CASE("user_home_dir")
+    {
+        const auto restore = mambatests::EnvironmentCleaner();
+
+        SUBCASE("default")
+        {
+            [[maybe_unused]] const auto home = user_home_dir();  // Must not raise error
+
+            if (!on_win)
+            {
+                unset_env("HOME");
+                CHECK_EQ(user_home_dir(), home);  // Fallback does not need $HOME
+            }
+        }
+
+        SUBCASE("explicit")
+        {
+            if (on_win)
+            {
+                set_env("USERPROFILE", R"(D:\user\mamba)");
+                CHECK_EQ(user_home_dir(), R"(D:\user\mamba)");
+
+                unset_env("USERPROFILE");
+                set_env("HOMEDRIVE", R"(D:\user\)");
+                set_env("HOMEPATH", "mamba");
+                CHECK_EQ(user_home_dir(), R"(D:\user\mamba)");
+            }
+            else
+            {
+                set_env("HOME", "/user/mamba");
+                CHECK_EQ(user_home_dir(), "/user/mamba");
+            }
+        }
+    }
+
+    TEST_CASE("user_xdg")
+    {
+        const auto restore = mambatests::EnvironmentCleaner();
+
+        SUBCASE("XDG environment variables")
+        {
+            update_env_map({
+                { "XDG_CONFIG_HOME", "xconfig" },
+                { "XDG_DATA_HOME", "xdata" },
+                { "XDG_CACHE_HOME", "xcache" },
+            });
+            CHECK_EQ(user_config_dir(), "xconfig");
+            CHECK_EQ(user_data_dir(), "xdata");
+            CHECK_EQ(user_cache_dir(), "xcache");
+        }
+
+        SUBCASE("Defaults")
+        {
+            if (!on_win)
+            {
+                set_env_map({ { "HOME", "/user/mamba" } });
+                CHECK_EQ(user_config_dir(), "/user/mamba/.config");
+                CHECK_EQ(user_data_dir(), "/user/mamba/.local/share");
+                CHECK_EQ(user_cache_dir(), "/user/mamba/.cache");
+            }
+        }
+    }
+
+    TEST_CASE("which_in")
+    {
+        SUBCASE("Inexistant search dirs")
+        {
+            CHECK_EQ(which_in("echo", "/obviously/does/not/exist"), "");
+        }
+
+        SUBCASE("testing_libmamba_lock")
+        {
+            const auto test_exe = which_in(
+                "testing_libmamba_lock",
+                mambatests::testing_libmamba_lock_exe.parent_path()
+            );
+            CHECK_EQ(test_exe.stem(), "testing_libmamba_lock");
+            CHECK(mamba::fs::exists(test_exe));
+        }
+
+        SUBCASE("testing_libmamba_lock.exe")
+        {
+            if (on_win)
+            {
+                const auto test_exe = which_in(
+                    "testing_libmamba_lock.exe",
+                    mambatests::testing_libmamba_lock_exe.parent_path()
+                );
+                CHECK_EQ(test_exe.stem(), "testing_libmamba_lock");
+                CHECK(mamba::fs::exists(test_exe));
+            }
+        }
+    }
+
+    TEST_CASE("which")
+    {
+        SUBCASE("echo")
+        {
+            const auto echo = which("echo");
+            CHECK_EQ(echo.stem(), "echo");
+            CHECK(mamba::fs::exists(echo));
+
+            if (!on_win)
+            {
+                const auto dir = echo.parent_path();
+                constexpr auto reasonable_locations = std::array{
+                    "/bin",
+                    "/sbin",
+                    "/usr/bin",
+                    "/usr/sbin",
+                };
+                CHECK(starts_with_any(echo.string(), reasonable_locations));
+            }
+        }
+
+        SUBCASE("echo.exe")
+        {
+            if (on_win)
+            {
+                const auto echo = which("echo.exe");
+                CHECK_EQ(echo.stem(), "echo");
+                CHECK(mamba::fs::exists(echo));
+            }
+        }
+
+        SUBCASE("Inexistant path")
+        {
+            CHECK_EQ(which("obvisously-does-not-exist"), "");
+        }
     }
 }

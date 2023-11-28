@@ -1,4 +1,4 @@
-// Copyright (c) 2019, QuantStack and Mamba Contributors
+// Copyright (c) 2023, QuantStack and Mamba Contributors
 //
 // Distributed under the terms of the BSD 3-Clause License.
 //
@@ -10,47 +10,78 @@
 
 using namespace mamba::specs;
 
-TEST_SUITE("specs::AuthticationDataBase")
+TEST_SUITE("specs::authentication_info")
 {
-    TEST_CASE("mamba.org")
+    TEST_CASE("URLWeakener")
     {
-        auto db = AuthenticationDataBase{ { "mamba.org", BearerToken{ "mytoken" } } };
+        const auto weakener = URLWeakener();
 
-        CHECK(db.contains("mamba.org"));
-        CHECK_FALSE(db.contains("mamba.org/"));
+        SUBCASE("mamba.org/private/chan")
+        {
+            CHECK_EQ(weakener.make_first_key("mamba.org/private/chan"), "mamba.org/private/chan/");
 
-        CHECK(db.contains_compatible("mamba.org"));
-        CHECK(db.contains_compatible("mamba.org/"));
-        CHECK(db.contains_compatible("mamba.org/channel"));
-        CHECK_FALSE(db.contains_compatible("repo.mamba.org"));
-        CHECK_FALSE(db.contains_compatible("/folder"));
+            auto maybe_key = weakener.weaken_key("mamba.org/private/chan/");
+            CHECK_EQ(maybe_key, "mamba.org/private/chan");
+            maybe_key = weakener.weaken_key(maybe_key.value());
+            CHECK_EQ(maybe_key, "mamba.org/private/");
+            maybe_key = weakener.weaken_key(maybe_key.value());
+            CHECK_EQ(maybe_key, "mamba.org/private");
+            maybe_key = weakener.weaken_key(maybe_key.value());
+            CHECK_EQ(maybe_key, "mamba.org/");
+            maybe_key = weakener.weaken_key(maybe_key.value());
+            CHECK_EQ(maybe_key, "mamba.org");
+            maybe_key = weakener.weaken_key(maybe_key.value());
+            CHECK_EQ(maybe_key, std::nullopt);
+        }
+
+        SUBCASE("mamba.org/private/chan/")
+        {
+            CHECK_EQ(weakener.make_first_key("mamba.org/private/chan"), "mamba.org/private/chan/");
+        }
     }
 
-    TEST_CASE("mamba.org/")
+    TEST_CASE("AuthticationDataBase")
     {
-        auto db = AuthenticationDataBase{ { "mamba.org/", BearerToken{ "mytoken" } } };
+        SUBCASE("mamba.org")
+        {
+            auto db = AuthenticationDataBase{ { "mamba.org", BearerToken{ "mytoken" } } };
 
-        CHECK(db.contains("mamba.org/"));
-        CHECK_FALSE(db.contains("mamba.org"));
+            CHECK(db.contains("mamba.org"));
+            CHECK_FALSE(db.contains("mamba.org/"));
 
-        CHECK(db.contains_compatible("mamba.org"));
-        CHECK(db.contains_compatible("mamba.org/"));
-        CHECK(db.contains_compatible("mamba.org/channel"));
-        CHECK_FALSE(db.contains_compatible("repo.mamba.org/"));
-        CHECK_FALSE(db.contains_compatible("/folder"));
-    }
+            CHECK(db.contains_weaken("mamba.org"));
+            CHECK(db.contains_weaken("mamba.org/"));
+            CHECK(db.contains_weaken("mamba.org/channel"));
+            CHECK_FALSE(db.contains_weaken("repo.mamba.org"));
+            CHECK_FALSE(db.contains_weaken("/folder"));
+        }
 
-    TEST_CASE("mamba.org/channel")
-    {
-        auto db = AuthenticationDataBase{ { "mamba.org/channel", BearerToken{ "mytoken" } } };
+        SUBCASE("mamba.org/")
+        {
+            auto db = AuthenticationDataBase{ { "mamba.org/", BearerToken{ "mytoken" } } };
 
-        CHECK(db.contains("mamba.org/channel"));
-        CHECK_FALSE(db.contains("mamba.org"));
+            CHECK(db.contains("mamba.org/"));
+            CHECK_FALSE(db.contains("mamba.org"));
 
-        CHECK_FALSE(db.contains_compatible("mamba.org"));
-        CHECK_FALSE(db.contains_compatible("mamba.org/"));
-        CHECK(db.contains_compatible("mamba.org/channel"));
-        CHECK_FALSE(db.contains_compatible("repo.mamba.org/"));
-        CHECK_FALSE(db.contains_compatible("/folder"));
+            CHECK(db.contains_weaken("mamba.org"));
+            CHECK(db.contains_weaken("mamba.org/"));
+            CHECK(db.contains_weaken("mamba.org/channel"));
+            CHECK_FALSE(db.contains_weaken("repo.mamba.org/"));
+            CHECK_FALSE(db.contains_weaken("/folder"));
+        }
+
+        SUBCASE("mamba.org/channel")
+        {
+            auto db = AuthenticationDataBase{ { "mamba.org/channel", BearerToken{ "mytoken" } } };
+
+            CHECK(db.contains("mamba.org/channel"));
+            CHECK_FALSE(db.contains("mamba.org"));
+
+            CHECK_FALSE(db.contains_weaken("mamba.org"));
+            CHECK_FALSE(db.contains_weaken("mamba.org/"));
+            CHECK(db.contains_weaken("mamba.org/channel"));
+            CHECK_FALSE(db.contains_weaken("repo.mamba.org/"));
+            CHECK_FALSE(db.contains_weaken("/folder"));
+        }
     }
 }

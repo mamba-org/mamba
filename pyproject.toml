@@ -2,3 +2,9 @@
 minversion = "6.0"
 tmp_path_retention_policy = "failed"
 addopts = "--color=yes"
+
+[tool.ruff]
+line-length = 100
+target-version = "py37"
+[tool.ruff.format]
+line-ending = "lf"

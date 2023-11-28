@@ -6,14 +6,14 @@
 
 #include <regex>
 
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/core/environment.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/specs/archive.hpp"
 #include "mamba/specs/platform.hpp"
+#include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
@@ -31,10 +31,10 @@ namespace mamba
         return split_str;
     }
 
-    MatchSpec::MatchSpec(std::string_view i_spec, ChannelContext& channel_context)
+    MatchSpec::MatchSpec(std::string_view i_spec, const Context& ctx, ChannelContext& channel_context)
         : spec(i_spec)
     {
-        parse(channel_context);
+        parse(ctx, channel_context);
     }
 
     std::tuple<std::string, std::string> MatchSpec::parse_version_and_build(const std::string& s)
@@ -69,7 +69,7 @@ namespace mamba
         }
     }
 
-    void MatchSpec::parse(ChannelContext& channel_context)
+    void MatchSpec::parse(const Context& ctx, ChannelContext& channel_context)
     {
         std::string spec_str = spec;
         if (spec_str.empty())
@@ -89,12 +89,15 @@ namespace mamba
             if (!util::url_has_scheme(spec_str))
             {
                 LOG_INFO << "need to expand path!";
-                spec_str = util::path_or_url_to_url(fs::absolute(env::expand_user(spec_str)).string());
+                spec_str = util::path_or_url_to_url(fs::absolute(util::expand_home(spec_str)).string()
+                );
             }
 
-            const auto& parsed_channel = channel_context.make_channel(spec_str);
+            auto channels = channel_context.make_channel(spec_str);
 
-            if (auto pkg = parsed_channel.url().package(); !pkg.empty())
+            // TODO we are not handling the custom_multichannel case where `channels` can have
+            // more than one element.
+            if (auto pkg = channels.front().url().package(); !pkg.empty())
             {
                 auto dist = parse_legacy_dist(pkg);
 
@@ -102,9 +105,9 @@ namespace mamba
                 version = dist[1];
                 build_string = dist[2];
 
-                channel = parsed_channel.display_name();
+                channel = channels.front().display_name();
                 // TODO how to handle this with multiple platforms?
-                if (const auto& plats = parsed_channel.platforms(); !plats.empty())
+                if (const auto& plats = channels.front().platforms(); !plats.empty())
                 {
                     subdir = plats.front();
                 }
@@ -197,13 +200,7 @@ namespace mamba
 
         std::string cleaned_url;
         std::string platform;
-        util::split_platform(
-            get_known_platforms(),
-            channel,
-            channel_context.context().platform,
-            channel,
-            platform
-        );
+        util::split_platform(get_known_platforms(), channel, ctx.platform, channel, platform);
         if (!platform.empty())
         {
             subdir = platform;

@@ -121,9 +121,7 @@ class RepoSigner:
             fout.write(root_md_serialized_unsigned)
 
         # This overwrites the file with a signed version of the file.
-        cct_root_signing.sign_root_metadata_via_gpg(
-            root_filepath, root_keys[0]["fingerprint"]
-        )
+        cct_root_signing.sign_root_metadata_via_gpg(root_filepath, root_keys[0]["fingerprint"])
 
         # Load untrusted signed root metadata.
         signed_root_md = cct_common.load_metadata_from_file(root_filepath)
@@ -133,9 +131,7 @@ class RepoSigner:
         print("[reposigner] Root metadata signed & verified!")
 
     def create_key_mgr(self, keys):
-        private_key_key_mgr = cct_common.PrivateKey.from_hex(
-            keys["key_mgr"][0]["private"]
-        )
+        private_key_key_mgr = cct_common.PrivateKey.from_hex(keys["key_mgr"][0]["private"])
         pkg_mgr_pub_keys = [k["public"] for k in keys["pkg_mgr"]]
         key_mgr = cct_metadata_construction.build_delegating_metadata(
             metadata_type="key_mgr",  # 'root' or 'key_mgr'
@@ -156,9 +152,7 @@ class RepoSigner:
 
         # let's run a verification
         root_metadata = cct_common.load_metadata_from_file(self.folder / "1.root.json")
-        key_mgr_metadata = cct_common.load_metadata_from_file(
-            self.folder / "key_mgr.json"
-        )
+        key_mgr_metadata = cct_common.load_metadata_from_file(self.folder / "key_mgr.json")
 
         cct_common.checkformat_signable(root_metadata)
 
@@ -168,9 +162,7 @@ class RepoSigner:
         root_delegations = root_metadata["signed"]["delegations"]  # for brevity
         cct_common.checkformat_delegations(root_delegations)
         if "key_mgr" not in root_delegations:
-            raise ValueError(
-                'Missing expected delegation to "key_mgr" in root metadata.'
-            )
+            raise ValueError('Missing expected delegation to "key_mgr" in root metadata.')
         cct_common.checkformat_delegation(root_delegations["key_mgr"])
 
         # Doing delegation processing.
@@ -283,14 +275,10 @@ class ChannelHandler(SimpleHTTPRequestHandler):
         self.wfile.write(b"no valid api key received")
 
 
-global_parser = argparse.ArgumentParser(
-    description="Start a multi-channel conda package server."
-)
+global_parser = argparse.ArgumentParser(description="Start a multi-channel conda package server.")
 global_parser.add_argument("-p", "--port", type=int, default=8000, help="Port to use.")
 
-channel_parser = argparse.ArgumentParser(
-    description="Start a simple conda package server."
-)
+channel_parser = argparse.ArgumentParser(description="Start a simple conda package server.")
 channel_parser.add_argument(
     "-d",
     "--directory",

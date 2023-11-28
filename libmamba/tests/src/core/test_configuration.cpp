@@ -8,9 +8,9 @@
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/core/environment.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/util/environment.hpp"
+#include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 
 #include "mambatests.hpp"
@@ -90,7 +90,7 @@ namespace mamba
 
             std::string shrink_source(std::size_t position)
             {
-                return env::shrink_user(config.valid_sources()[position]).string();
+                return util::shrink_home(config.valid_sources()[position].string());
             }
             std::unique_ptr<TemporaryFile> tempfile_ptr = std::make_unique<TemporaryFile>(
                 "mambarc",
@@ -137,13 +137,13 @@ namespace mamba
                     channels:
                         - test1)");
                 load_test_config(rc);
-                const auto src = env::shrink_user(tempfile_ptr->path());
+                const auto src = util::shrink_home(tempfile_ptr->path().string());
                 CHECK_EQ(config.sources().size(), 1);
                 CHECK_EQ(config.valid_sources().size(), 1);
                 CHECK_EQ(config.dump(), "channels:\n  - test1");
                 CHECK_EQ(
                     config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                    "channels:\n  - test1  # '" + src.string() + "'"
+                    "channels:\n  - test1  # '" + src + "'"
                 );
 
                 // ill-formed config file
@@ -305,7 +305,7 @@ namespace mamba
                 REQUIRE_EQ(config.sources().size(), 2);
                 REQUIRE_EQ(config.valid_sources().size(), 2);
                 std::string src1 = shrink_source(0);
-                std::string src2 = env::shrink_user(shrink_source(1)).string();
+                std::string src2 = util::shrink_home(shrink_source(1));
 
                 std::string res = config.dump();
                 // Unexpected/handled keys are dropped
@@ -520,8 +520,8 @@ namespace mamba
 
             TEST_CASE_FIXTURE(Configuration, "pkgs_dirs")
             {
-                std::string cache1 = (env::home_directory() / "foo").string();
-                std::string cache2 = (env::home_directory() / "bar").string();
+                std::string cache1 = util::path_concat(util::user_home_dir(), "foo");
+                std::string cache2 = util::path_concat(util::user_home_dir(), "bar");
 
                 std::string rc1 = "pkgs_dirs:\n  - " + cache1;
                 std::string rc2 = "pkgs_dirs:\n  - " + cache2;
@@ -532,7 +532,7 @@ namespace mamba
                 load_test_config({ rc2, rc1 });
                 CHECK_EQ(config.dump(), "pkgs_dirs:\n  - " + cache2 + "\n  - " + cache1);
 
-                std::string cache3 = (env::home_directory() / "baz").string();
+                std::string cache3 = util::path_concat(util::user_home_dir(), "baz");
                 util::set_env("CONDA_PKGS_DIRS", cache3);
                 load_test_config(rc1);
                 CHECK_EQ(config.dump(), "pkgs_dirs:\n  - " + cache3 + "\n  - " + cache1);
@@ -555,7 +555,7 @@ namespace mamba
                 util::unset_env("CONDA_PKGS_DIRS");
 
                 std::string empty_rc = "";
-                std::string root_prefix_str = (env::home_directory() / "any_prefix").string();
+                std::string root_prefix_str = util::path_concat(util::user_home_dir(), "any_prefix");
                 util::set_env("MAMBA_ROOT_PREFIX", root_prefix_str);
                 load_test_config(empty_rc);
 
@@ -578,13 +578,13 @@ namespace mamba
                                       - )"
                               + (fs::u8path(root_prefix_str) / "pkgs").string() + R"(  # 'fallback'
                                       - )"
-                              + (env::home_directory() / ".mamba" / "pkgs").string()
+                              + (fs::u8path(util::user_home_dir()) / ".mamba" / "pkgs").string()
                               + R"(  # 'fallback')" + extra_cache)
                                  .c_str())
                 );
                 CHECK_EQ(ctx.pkgs_dirs, config.at("pkgs_dirs").value<std::vector<fs::u8path>>());
 
-                std::string cache4 = (env::home_directory() / "babaz").string();
+                std::string cache4 = util::path_concat(util::user_home_dir(), "babaz");
                 util::set_env("CONDA_PKGS_DIRS", cache4);
                 load_test_config(empty_rc);
                 CHECK_EQ(
@@ -1110,6 +1110,39 @@ namespace mamba
                 {
                     CHECK_FALSE(is_config_file(wp));
                 }
+            }
+
+            // Regression test for https://github.com/mamba-org/mamba/issues/2704
+            TEST_CASE_FIXTURE(Configuration, "deduplicate_rc_files")
+            {
+                using namespace detail;
+
+                std::vector<fs::u8path> sources;
+
+                auto temp_prefix = std::make_unique<TemporaryDirectory>();
+                auto temp_home = std::make_unique<TemporaryDirectory>();
+
+                util::set_env("MAMBA_ROOT_PREFIX", temp_prefix->path().string());
+
+                // the target_prefix is the same as the root_prefix for the base env
+                util::set_env("MAMBA_TARGET_PREFIX", temp_prefix->path().string());
+                util::set_env("HOME", temp_home->path().string());
+                util::set_env("USERPROFILE", temp_home->path().string());
+
+                auto root_config_file = temp_prefix->path() / ".condarc";
+                std::ofstream out_root_config(root_config_file.std_path());
+                out_root_config << "channel_alias: http://outer.com\n";
+                out_root_config.close();
+
+                auto user_config_file = temp_home->path() / ".condarc";
+                std::ofstream out_user_config(user_config_file.std_path());
+                out_user_config << "channel_alias: http://inner.com\n";
+                out_user_config.close();
+
+                config.load();
+
+                REQUIRE_EQ(config.sources().size(), 2);
+                REQUIRE_EQ(config.at("channel_alias").value<std::string>(), "http://inner.com");
             }
 
             TEST_CASE_FIXTURE(Configuration, "print_scalar_node")

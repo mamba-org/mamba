@@ -12,12 +12,12 @@
 #include "mamba/api/create.hpp"
 #include "mamba/api/remove.hpp"
 #include "mamba/api/update.hpp"
-#include "mamba/core/channel.hpp"
-#include "mamba/core/environment.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/environments_manager.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/specs/conda_url.hpp"
+#include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 
 #include "common_options.hpp"
@@ -131,12 +131,12 @@ set_env_command(CLI::App* com, Configuration& config)
             auto& ctx = config.context();
             config.load();
 
-            mamba::ChannelContext channel_context{ ctx };
+            auto channel_context = mamba::ChannelContext::make_conda_compatible(ctx);
             if (explicit_format)
             {
                 // TODO: handle error
                 auto pd = PrefixData::create(ctx.prefix_params.target_prefix, channel_context).value();
-                auto records = pd.sorted_records();
+                auto records = pd.sorted_records(ctx);
                 std::cout << "# This file may be used to create an environment using:\n"
                           << "# $ conda create --name <env> --file <this file>\n"
                           << "# platform: " << ctx.platform << "\n"
@@ -144,11 +144,8 @@ set_env_command(CLI::App* com, Configuration& config)
 
                 for (const auto& record : records)
                 {
-                    auto url = specs::CondaURL::parse(record.url);
-                    url.clear_token();
-                    url.clear_password();
-                    url.clear_user();
-                    std::cout << url.str();
+                    using Credentials = typename specs::CondaURL::Credentials;
+                    std::cout << specs::CondaURL::parse(record.url).str(Credentials::Hide);
                     if (no_md5 != 1)
                     {
                         std::cout << "#" << record.md5;
@@ -166,7 +163,7 @@ set_env_command(CLI::App* com, Configuration& config)
                 std::cout << "name: " << get_env_name(ctx, ctx.prefix_params.target_prefix) << "\n";
                 std::cout << "channels:\n";
 
-                auto requested_specs_map = hist.get_requested_specs_map();
+                auto requested_specs_map = hist.get_requested_specs_map(ctx);
                 std::stringstream dependencies;
                 std::set<std::string> channels;
                 for (const auto& [k, v] : versions_map)
@@ -176,7 +173,7 @@ set_env_command(CLI::App* com, Configuration& config)
                         continue;
                     }
 
-                    const Channel& channel = channel_context.make_channel(v.channel);
+                    auto chans = channel_context.make_channel(v.channel);
 
                     if (from_history)
                     {
@@ -187,7 +184,10 @@ set_env_command(CLI::App* com, Configuration& config)
                         dependencies << "- ";
                         if (channel_subdir)
                         {
-                            dependencies << channel.display_name() << "/" << v.subdir << "::";
+                            dependencies
+                                // If the size is not one, it's a custom mutli channel
+                                << ((chans.size() == 1) ? chans.front().display_name() : v.channel)
+                                << "/" << v.subdir << "::";
                         }
                         dependencies << v.name << "=" << v.version;
                         if (!no_build)
@@ -201,7 +201,10 @@ set_env_command(CLI::App* com, Configuration& config)
                         dependencies << "\n";
                     }
 
-                    channels.insert(channel.display_name());
+                    for (auto const& chan : chans)
+                    {
+                        channels.insert(chan.display_name());
+                    }
                 }
 
                 for (const auto& c : channels)
@@ -230,11 +233,11 @@ set_env_command(CLI::App* com, Configuration& config)
             {
                 const auto& prefix = ctx.prefix_params.target_prefix;
                 // Remove env directory or rename it (e.g. if used)
-                remove_or_rename(ctx, env::expand_user(prefix));
+                remove_or_rename(ctx, util::expand_home(prefix.string()));
 
                 EnvironmentsManager env_manager{ ctx };
                 // Unregister environment
-                env_manager.unregister_env(env::expand_user(prefix));
+                env_manager.unregister_env(util::expand_home(prefix.string()));
 
                 Console::instance().print(util::join(
                     "",

@@ -15,13 +15,13 @@
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
-#include "mamba/core/environment.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_fetcher.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
+#include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba
@@ -602,7 +602,10 @@ namespace mamba
 #endif
             if (!prefix.empty())
             {
-                prefix = util::rstrip(fs::weakly_canonical(env::expand_user(prefix)).string(), sep);
+                prefix = util::rstrip(
+                    fs::weakly_canonical(util::expand_home(prefix.string())).string(),
+                    sep
+                );
             }
 
             if ((prefix == root_prefix) && config.at("create_base").value<bool>())
@@ -626,7 +629,7 @@ namespace mamba
                 }
                 else
                 {
-                    prefix = env::home_directory() / "micromamba";
+                    prefix = fs::u8path(util::user_home_dir()) / "micromamba";
                 }
 
                 if (env_name.configured())
@@ -671,7 +674,7 @@ namespace mamba
                 }
             }
 
-            prefix = fs::weakly_canonical(env::expand_user(prefix));
+            prefix = fs::weakly_canonical(util::expand_home(prefix.string()));
         }
 
         void rc_loading_hook(Configuration& config, const RCConfigLevel& level)
@@ -792,7 +795,7 @@ namespace mamba
                 }
                 for (auto& f : files)
                 {
-                    f = env::expand_user(f);
+                    f = util::expand_home(f.string());
                     if (!fs::exists(f))
                     {
                         LOG_ERROR << "Configuration file specified but does not exist at '"
@@ -856,7 +859,7 @@ namespace mamba
         {
             for (auto& d : dirs)
             {
-                d = fs::weakly_canonical(env::expand_user(d)).string();
+                d = fs::weakly_canonical(util::expand_home(d.string())).string();
                 if (fs::exists(d) && !fs::is_directory(d))
                 {
                     LOG_ERROR << "Env dir specified is not a directory: " << d.string();
@@ -867,8 +870,10 @@ namespace mamba
 
         std::vector<fs::u8path> fallback_pkgs_dirs_hook(const Context& context)
         {
-            std::vector<fs::u8path> paths = { context.prefix_params.root_prefix / "pkgs",
-                                              env::home_directory() / ".mamba" / "pkgs" };
+            std::vector<fs::u8path> paths = {
+                context.prefix_params.root_prefix / "pkgs",
+                fs::u8path(util::user_home_dir()) / ".mamba" / "pkgs",
+            };
 #ifdef _WIN32
             auto appdata = util::get_env("APPDATA");
             if (appdata)
@@ -879,48 +884,11 @@ namespace mamba
             return paths;
         }
 
-        void custom_channels_hook(std::map<std::string, std::string>& custom_channels)
-        {
-            // Hard coded Anaconda channels names.
-            // This will not redefine them if the user has already defined these keys.
-            custom_channels.emplace("pkgs/main", "https://repo.anaconda.com/pkgs/main");
-            custom_channels.emplace("pkgs/r", "https://repo.anaconda.com/pkgs/r");
-            custom_channels.emplace("pkgs/pro", "https://repo.anaconda.com/pkgs/pro");
-            if (util::on_win)
-            {
-                custom_channels.emplace("pkgs/msys2", "https://repo.anaconda.com/pkgs/msys2");
-            }
-        }
-
-        void custom_multichannels_hook(
-            const Context& context,
-            std::map<std::string, std::vector<std::string>>& custom_multichannels
-        )
-        {
-            custom_multichannels.emplace("defaults", context.default_channels);
-
-            auto local_channels = std::vector<std::string>();
-            local_channels.reserve(3);
-            for (auto p : {
-                     context.prefix_params.target_prefix / "conda-bld",
-                     context.prefix_params.root_prefix / "conda-bld",
-                     env::home_directory() / "conda-bld",
-                 })
-            {
-                if (fs::exists(p))
-                {
-                    local_channels.push_back(std::move(p));
-                }
-            }
-
-            custom_multichannels.emplace("local", std::move(local_channels));
-        }
-
         void pkgs_dirs_hook(std::vector<fs::u8path>& dirs)
         {
             for (auto& d : dirs)
             {
-                d = fs::weakly_canonical(env::expand_user(d)).string();
+                d = fs::weakly_canonical(util::expand_home(d.string())).string();
                 if (fs::exists(d) && !fs::is_directory(d))
                 {
                     LOG_ERROR << "Packages dir specified is not a directory: " << d.string();
@@ -1310,11 +1278,7 @@ namespace mamba
                    .description("Custom channels")
                    .long_description(  //
                        "A dictionary with name: url to use for custom channels.\n"
-                       "If not defined, the Conda special names "
-                       R"("pkgs/main", "pkgs/r", "pkgs/pro", and "pkgs/msys2" (Windows only) )"
-                       "will be added."
-                   )
-                   .set_post_merge_hook(detail::custom_channels_hook));
+                   ));
 
         insert(Configurable("custom_multichannels", &m_context.custom_multichannels)
                    .group("Channels")
@@ -1323,14 +1287,8 @@ namespace mamba
                    .long_description(  //
                        "A dictionary where keys are multi channels names, and values are a list "
                        "of correspinding names / urls / file paths to use.\n"
-                       R"(If not defined, the Conda special mutli channels "defaults" is added )"
-                       R"(with values from the "default_channels" option, and "local" is added )"
-                       R"(with "~/conda-bld" and target and root prefix "conda-bld" subfolders/)"
                    )
-                   .needs({ "default_channels", "target_prefix", "root_prefix" })
-                   .set_post_merge_hook<std::map<std::string, std::vector<std::string>>>(
-                       [this](auto& val) { detail::custom_multichannels_hook(m_context, val); }
-                   ));
+                   .needs({ "default_channels", "target_prefix", "root_prefix" }));
 
         insert(Configurable("override_channels_enabled", &m_context.override_channels_enabled)
                    .group("Channels")
@@ -1902,13 +1860,13 @@ namespace mamba
                                          context.prefix_params.root_prefix / ".mambarc" };
 
         std::vector<fs::u8path> conda_user = {
-            env::user_config_dir() / "../conda/.condarc",
-            env::user_config_dir() / "../conda/condarc",
-            env::user_config_dir() / "../conda/condarc.d",
-            env::home_directory() / ".conda/.condarc",
-            env::home_directory() / ".conda/condarc",
-            env::home_directory() / ".conda/condarc.d",
-            env::home_directory() / ".condarc",
+            fs::u8path(util::user_config_dir()) / "conda/.condarc",
+            fs::u8path(util::user_config_dir()) / "conda/condarc",
+            fs::u8path(util::user_config_dir()) / "conda/condarc.d",
+            fs::u8path(util::user_home_dir()) / ".conda/.condarc",
+            fs::u8path(util::user_home_dir()) / ".conda/condarc",
+            fs::u8path(util::user_home_dir()) / ".conda/condarc.d",
+            fs::u8path(util::user_home_dir()) / ".condarc",
         };
         if (util::get_env("CONDARC"))
         {
@@ -1916,10 +1874,13 @@ namespace mamba
         }
 
         std::vector<fs::u8path> mamba_user = {
-            env::user_config_dir() / ".mambarc",      env::user_config_dir() / "mambarc",
-            env::user_config_dir() / "mambarc.d",     env::home_directory() / ".mamba/.mambarc",
-            env::home_directory() / ".mamba/mambarc", env::home_directory() / ".mamba/mambarc.d",
-            env::home_directory() / ".mambarc",
+            fs::u8path(util::user_config_dir()) / "mamba/.mambarc",
+            fs::u8path(util::user_config_dir()) / "mamba/mambarc",
+            fs::u8path(util::user_config_dir()) / "mamba/mambarc.d",
+            fs::u8path(util::user_home_dir()) / ".mamba/.mambarc",
+            fs::u8path(util::user_home_dir()) / ".mamba/mambarc",
+            fs::u8path(util::user_home_dir()) / ".mamba/mambarc.d",
+            fs::u8path(util::user_home_dir()) / ".mambarc",
         };
         if (util::get_env("MAMBARC"))
         {
@@ -1932,23 +1893,43 @@ namespace mamba
                                            context.prefix_params.target_prefix / ".mambarc" };
 
         std::vector<fs::u8path> sources;
+        std::set<fs::u8path> known_locations;
+
+        // We only want to insert locations once, with the least precedence
+        // to emulate conda's IndexSet behavior
+
+        // This is especially important when the base env is active
+        // as target_prefix and root_prefix are the same.
+        // If there is a .condarc in the root_prefix, we don't want
+        // to load it twice, once for the root_prefix and once for the
+        // target_prefix with the highest precedence.
+        auto insertIntoSources = [&](const std::vector<fs::u8path>& locations)
+        {
+            for (auto& location : locations)
+            {
+                if (known_locations.insert(location).second)
+                {
+                    sources.emplace_back(location);
+                }
+            }
+        };
 
         if (level >= RCConfigLevel::kSystemDir)
         {
-            sources.insert(sources.end(), system.begin(), system.end());
+            insertIntoSources(system);
         }
         if ((level >= RCConfigLevel::kRootPrefix) && !context.prefix_params.root_prefix.empty())
         {
-            sources.insert(sources.end(), root.begin(), root.end());
+            insertIntoSources(root);
         }
         if (level >= RCConfigLevel::kHomeDir)
         {
-            sources.insert(sources.end(), conda_user.begin(), conda_user.end());
-            sources.insert(sources.end(), mamba_user.begin(), mamba_user.end());
+            insertIntoSources(conda_user);
+            insertIntoSources(mamba_user);
         }
         if ((level >= RCConfigLevel::kTargetPrefix) && !context.prefix_params.target_prefix.empty())
         {
-            sources.insert(sources.end(), prefix.begin(), prefix.end());
+            insertIntoSources(prefix);
         }
 
         // Sort by precedence
@@ -2234,7 +2215,7 @@ namespace mamba
                         continue;
                     }
 
-                    c.set_rc_yaml_value(yaml[key], env::shrink_user(source).string());
+                    c.set_rc_yaml_value(yaml[key], util::shrink_home(source.string()));
                 }
             }
         }

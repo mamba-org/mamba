@@ -8,9 +8,7 @@ from . import helpers
 @pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])
 @pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-def test_list(
-    tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_selector, quiet_flag
-):
+def test_list(tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, env_selector, quiet_flag):
     if env_selector == "prefix":
         res = helpers.umamba_list("-p", tmp_xtensor_env, "--json", quiet_flag)
     elif env_selector == "name":

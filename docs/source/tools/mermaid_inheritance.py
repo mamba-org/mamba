@@ -208,9 +208,7 @@ class MermaidDiagram(InheritanceDiagram):
             return [figure]
 
 
-def html_visit_mermaid_inheritance(
-    self: HTMLTranslator, node: inheritance_diagram
-) -> None:
+def html_visit_mermaid_inheritance(self: HTMLTranslator, node: inheritance_diagram) -> None:
     """
     Output the graph for HTML.  This will insert a PNG with clickable
     image map.
@@ -233,9 +231,7 @@ def html_visit_mermaid_inheritance(
                 urls[child["reftitle"]] = child.get("refuri")
         elif child.get("refid") is not None:
             if mermaid_output_format == "SVG":
-                urls[child["reftitle"]] = (
-                    "../" + current_filename + "#" + child.get("refid")
-                )
+                urls[child["reftitle"]] = "../" + current_filename + "#" + child.get("refid")
             else:
                 urls[child["reftitle"]] = "#" + child.get("refid")
     dotcode = graph.generate_dot(name, urls, env=self.builder.env)
@@ -251,9 +247,7 @@ def html_visit_mermaid_inheritance(
     raise nodes.SkipNode
 
 
-def latex_visit_mermaid_inheritance(
-    self: LaTeXTranslator, node: inheritance_diagram
-) -> None:
+def latex_visit_mermaid_inheritance(self: LaTeXTranslator, node: inheritance_diagram) -> None:
     """
     Output the graph for LaTeX.  This will insert a PDF.
     """
@@ -271,9 +265,7 @@ def latex_visit_mermaid_inheritance(
     raise nodes.SkipNode
 
 
-def texinfo_visit_mermaid_inheritance(
-    self: TexinfoTranslator, node: inheritance_diagram
-) -> None:
+def texinfo_visit_mermaid_inheritance(self: TexinfoTranslator, node: inheritance_diagram) -> None:
     """
     Output the graph for Texinfo.  This will insert a PNG.
     """

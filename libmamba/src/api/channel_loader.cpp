@@ -5,7 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "mamba/api/channel_loader.hpp"
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/download.hpp"
 #include "mamba/core/download_progress_bar.hpp"
 #include "mamba/core/output.hpp"
@@ -45,56 +45,56 @@ namespace mamba
     }
 
     expected_t<void, mamba_aggregated_error>
-    load_channels(MPool& pool, MultiPackageCache& package_caches, int is_retry)
+    load_channels(Context& ctx, MPool& pool, MultiPackageCache& package_caches, int is_retry)
     {
         int RETRY_SUBDIR_FETCH = 1 << 0;
-
-        auto& ctx = pool.context();
-
-        std::vector<std::string> channel_urls = ctx.channels;
 
         std::vector<MSubdirData> subdirs;
 
         std::vector<std::pair<int, int>> priorities;
-        int max_prio = static_cast<int>(channel_urls.size());
+        int max_prio = static_cast<int>(ctx.channels.size());
         auto prev_channel_url = specs::CondaURL();
 
         Console::instance().init_progress_bar_manager(ProgressBarMode::multi);
 
         std::vector<mamba_error> error_list;
 
-        for (auto channel : pool.channel_context().get_channels(channel_urls))
+        for (const auto& location : ctx.channels)
         {
-            for (auto& [platform, url] : channel.platform_urls(true))
+            for (auto channel : pool.channel_context().make_channel(location))
             {
-                auto sdires = MSubdirData::create(
-                    pool.channel_context(),
-                    channel,
-                    platform,
-                    url,
-                    package_caches,
-                    "repodata.json"
-                );
-                if (!sdires.has_value())
+                for (const auto& platform : channel.platforms())
                 {
-                    error_list.push_back(std::move(sdires).error());
-                    continue;
-                }
-                auto sdir = std::move(sdires).value();
-                subdirs.push_back(std::move(sdir));
-                if (ctx.channel_priority == ChannelPriority::Disabled)
-                {
-                    priorities.push_back(std::make_pair(0, 0));
-                }
-                else
-                {
-                    // Consider 'flexible' and 'strict' the same way
-                    if (channel.url() != prev_channel_url)
+                    auto sdires = MSubdirData::create(
+                        ctx,
+                        pool.channel_context(),
+                        channel,
+                        platform,
+                        channel.platform_url(platform).str(),
+                        package_caches,
+                        "repodata.json"
+                    );
+                    if (!sdires.has_value())
                     {
-                        max_prio--;
-                        prev_channel_url = channel.url();
+                        error_list.push_back(std::move(sdires).error());
+                        continue;
                     }
-                    priorities.push_back(std::make_pair(max_prio, 0));
+                    auto sdir = std::move(sdires).value();
+                    subdirs.push_back(std::move(sdir));
+                    if (ctx.channel_priority == ChannelPriority::Disabled)
+                    {
+                        priorities.push_back(std::make_pair(0, 0));
+                    }
+                    else
+                    {
+                        // Consider 'flexible' and 'strict' the same way
+                        if (channel.url() != prev_channel_url)
+                        {
+                            max_prio--;
+                            prev_channel_url = channel.url();
+                        }
+                        priorities.push_back(std::make_pair(max_prio, 0));
+                    }
                 }
             }
         }
@@ -177,7 +177,7 @@ namespace mamba
             if (!ctx.offline && !(is_retry & RETRY_SUBDIR_FETCH))
             {
                 LOG_WARNING << "Encountered malformed repodata.json cache. Redownloading.";
-                return load_channels(pool, package_caches, is_retry | RETRY_SUBDIR_FETCH);
+                return load_channels(ctx, pool, package_caches, is_retry | RETRY_SUBDIR_FETCH);
             }
             error_list.push_back(mamba_error(
                 "Could not load repodata. Cache corrupted?",

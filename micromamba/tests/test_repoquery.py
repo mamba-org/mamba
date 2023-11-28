@@ -63,9 +63,7 @@ def test_depends_not_installed_with_channel(yaml_env: Path, with_platform):
         )
         assert res["result"]["pkgs"][0]["subdir"] == "win-64"
     else:
-        res = helpers.umamba_repoquery(
-            "depends", "-c", "conda-forge", "xtensor=0.24.5", "--json"
-        )
+        res = helpers.umamba_repoquery("depends", "-c", "conda-forge", "xtensor=0.24.5", "--json")
 
     assert res["query"]["query"] == "xtensor=0.24.5"
     assert res["query"]["type"] == "depends"
@@ -85,9 +83,7 @@ def test_depends_not_installed_with_channel(yaml_env: Path, with_platform):
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_depends_recursive(yaml_env: Path):
-    res = helpers.umamba_repoquery(
-        "depends", "-c", "conda-forge", "xtensor=0.24.5", "--recursive"
-    )
+    res = helpers.umamba_repoquery("depends", "-c", "conda-forge", "xtensor=0.24.5", "--recursive")
 
     if platform.system() == "Linux":
         assert "libzlib" in res
@@ -99,9 +95,7 @@ def test_depends_recursive(yaml_env: Path):
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_depends_tree(yaml_env: Path):
-    res = helpers.umamba_repoquery(
-        "depends", "-c", "conda-forge", "xtensor=0.24.5", "--tree"
-    )
+    res = helpers.umamba_repoquery("depends", "-c", "conda-forge", "xtensor=0.24.5", "--tree")
 
     if platform.system() == "Linux":
         assert "libzlib" in res
@@ -151,9 +145,7 @@ def test_whoneeds_not_installed_with_channel(yaml_env: Path, with_platform):
         )
         assert res["result"]["pkgs"][0]["subdir"] == "osx-64"
     else:
-        res = helpers.umamba_repoquery(
-            "whoneeds", "-c", "conda-forge", "xtensor=0.24.5", "--json"
-        )
+        res = helpers.umamba_repoquery("whoneeds", "-c", "conda-forge", "xtensor=0.24.5", "--json")
 
     assert res["query"]["query"] == "xtensor=0.24.5"
     assert res["query"]["type"] == "whoneeds"
@@ -167,9 +159,7 @@ def test_whoneeds_not_installed_with_channel(yaml_env: Path, with_platform):
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_whoneeds_tree(yaml_env: Path):
-    res = helpers.umamba_repoquery(
-        "whoneeds", "-c", "conda-forge", "xtensor=0.24.5", "--tree"
-    )
+    res = helpers.umamba_repoquery("whoneeds", "-c", "conda-forge", "xtensor=0.24.5", "--tree")
 
     assert "cppcolormap" in res
     assert "pyxtensor" in res
@@ -191,9 +181,7 @@ def test_search(yaml_env: Path, with_platform):
         )
         assert res["result"]["pkgs"][0]["subdir"] == "linux-64"
     else:
-        res = helpers.umamba_repoquery(
-            "search", "-c", "conda-forge", "xtensor*", "--json"
-        )
+        res = helpers.umamba_repoquery("search", "-c", "conda-forge", "xtensor*", "--json")
 
     assert res["query"]["query"] == "xtensor*"
     assert res["query"]["type"] == "search"
@@ -229,9 +217,7 @@ def test_local_search_installed_pkg(yaml_env: Path):
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_remote_search_not_installed_pkg(yaml_env: Path):
-    res = helpers.umamba_repoquery(
-        "search", "-c", "conda-forge", "xtensor=0.24.5", "--json"
-    )
+    res = helpers.umamba_repoquery("search", "-c", "conda-forge", "xtensor=0.24.5", "--json")
 
     assert res["query"]["query"] == "xtensor=0.24.5"
     assert res["query"]["type"] == "search"

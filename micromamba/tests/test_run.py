@@ -16,9 +16,7 @@ possible_characters_for_process_names = (
 
 
 def generate_label_flags():
-    random_string = "".join(
-        random.choice(possible_characters_for_process_names) for _ in range(16)
-    )
+    random_string = "".join(random.choice(possible_characters_for_process_names) for _ in range(16))
     return ["--label", random_string]
 
 
@@ -36,14 +34,8 @@ class TestRun:
     @pytest.mark.parametrize("option_flag", common_simple_flags)
     @pytest.mark.parametrize("make_label_flags", next_label_flags)
     def test_fail_without_command(self, option_flag, make_label_flags):
-        fails = True
-        try:
+        with pytest.raises(subprocess.CalledProcessError):
             umamba_run(option_flag, *make_label_flags())
-            fails = False
-        except:
-            fails = True
-
-        assert fails == True
 
     @pytest.mark.parametrize("option_flag", common_simple_flags)
     @pytest.mark.parametrize("make_label_flags", next_label_flags)
@@ -52,15 +44,14 @@ class TestRun:
         try:
             umamba_run(option_flag, *make_label_flags(), "exe-that-does-not-exists")
             fails = False
-        except:
+        except subprocess.CalledProcessError:
             fails = True
 
         # In detach mode we fork micromamba and don't have a way to know if the executable exists.
         if option_flag == "-d" or option_flag == "--detach":
-            assert fails == False
-            return
-
-        assert fails == True
+            assert fails is False
+        else:
+            assert fails is True
 
     @pytest.mark.parametrize("option_flag", common_simple_flags)
     # @pytest.mark.parametrize("label_flags", naming_flags()) # TODO: reactivate after fixing help flag not disactivating the run
@@ -86,26 +77,19 @@ class TestRun:
     @pytest.mark.skipif(platform == "win32", reason="requires bash to be available")
     def test_shell_io_routing(self):
         test_script_file_name = "test_run.sh"
-        test_script_path = os.path.join(
-            os.path.dirname(__file__), test_script_file_name
-        )
+        test_script_path = os.path.join(os.path.dirname(__file__), test_script_file_name)
         if not os.path.isfile(test_script_path):
             raise RuntimeError(
-                "missing test script '{}' at '{}".format(
-                    test_script_file_name, test_script_path
-                )
+                "missing test script '{}' at '{}".format(test_script_file_name, test_script_path)
             )
         subprocess_run(test_script_path, shell=True)
 
     def test_run_non_existing_env(self):
         env_name = random_string()
         try:
-            run_res = umamba_run("-n", env_name, "python")
+            umamba_run("-n", env_name, "python")
         except subprocess.CalledProcessError as e:
-            assert (
-                "critical libmamba The given prefix does not exist:"
-                in e.stderr.decode()
-            )
+            assert "critical libmamba The given prefix does not exist:" in e.stderr.decode()
 
 
 @pytest.fixture()
@@ -129,7 +113,5 @@ def temp_env_prefix():
 
 class TestRunVenv:
     def test_classic_specs(self, temp_env_prefix):
-        res = umamba_run(
-            "-p", temp_env_prefix, "python", "-c", "import sys; print(sys.prefix)"
-        )
+        res = umamba_run("-p", temp_env_prefix, "python", "-c", "import sys; print(sys.prefix)")
         assert res.strip() == temp_env_prefix

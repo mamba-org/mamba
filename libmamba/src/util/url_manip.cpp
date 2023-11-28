@@ -6,16 +6,12 @@
 
 #include <array>
 #include <cassert>
-#include <optional>
-#include <regex>
-#include <stdexcept>
 #include <string>
 #include <string_view>
 
 #include <fmt/format.h>
 #include <openssl/evp.h>
 
-#include "mamba/core/environment.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/path_manip.hpp"
@@ -237,7 +233,7 @@ namespace mamba::util
 
     auto path_to_url(std::string_view path) -> std::string
     {
-        return abs_path_to_url(fs::absolute(env::expand_user(path)).lexically_normal().string());
+        return abs_path_to_url(fs::absolute(expand_home(path)).lexically_normal().string());
     }
 
     auto path_or_url_to_url(std::string_view path) -> std::string
@@ -249,7 +245,7 @@ namespace mamba::util
         return path_to_url(path);
     }
 
-    std::string file_uri_unc2_to_unc4(std::string_view uri)
+    auto file_uri_unc2_to_unc4(std::string_view uri) -> std::string
     {
         static constexpr std::string_view file_scheme = "file:";
 

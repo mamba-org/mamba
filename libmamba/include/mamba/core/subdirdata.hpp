@@ -12,18 +12,22 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-#include "mamba/core/channel.hpp"
-#include "mamba/core/context.hpp"
 #include "mamba/core/download.hpp"
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/package_cache.hpp"
-#include "mamba/core/pool.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/fs/filesystem.hpp"
 
 namespace mamba
 {
+    namespace specs
+    {
+        class Channel;
+    }
+    class MPool;
+    class Context;
+    class ChannelContext;
     class DownloadMonitor;
 
     class MSubdirMetadata
@@ -98,8 +102,9 @@ namespace mamba
     public:
 
         static expected_t<MSubdirData> create(
+            Context& ctx,
             ChannelContext& channel_context,
-            const Channel& channel,
+            const specs::Channel& channel,
             const std::string& platform,
             const std::string& url,
             MultiPackageCache& caches,
@@ -133,17 +138,19 @@ namespace mamba
     private:
 
         MSubdirData(
+            Context& ctx,
             ChannelContext& channel_context,
-            const Channel& channel,
+            const specs::Channel& channel,
             const std::string& platform,
             const std::string& url,
             MultiPackageCache& caches,
             const std::string& repodata_fn = "repodata.json"
         );
 
-        void load(MultiPackageCache& caches, ChannelContext& channel_context, const Channel& channel);
+        void
+        load(MultiPackageCache& caches, ChannelContext& channel_context, const specs::Channel& channel);
         void load_cache(MultiPackageCache& caches, ChannelContext& channel_context);
-        void update_metadata_zst(ChannelContext& context, const Channel& channel);
+        void update_metadata_zst(ChannelContext& context, const specs::Channel& channel);
 
         MultiDownloadRequest build_check_requests();
         DownloadRequest build_index_request();
@@ -168,7 +175,7 @@ namespace mamba
 
         MSubdirMetadata m_metadata;
         std::unique_ptr<TemporaryFile> m_temp_file;
-        Context* p_context;
+        const Context* p_context;
     };
 
     // Contrary to conda original function, this one expects a full url

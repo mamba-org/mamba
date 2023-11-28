@@ -7,9 +7,13 @@
 #ifndef MAMBA_SPECS_AUTHENTICATION_INFO_HPP
 #define MAMBA_SPECS_AUTHENTICATION_INFO_HPP
 
+#include <optional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <variant>
+
+#include "mamba/util/weakening_map.hpp"
 
 namespace mamba::specs
 {
@@ -37,6 +41,27 @@ namespace mamba::specs
     using AuthenticationInfo = std::variant<BasicHTTPAuthentication, BearerToken, CondaToken>;
 
     /**
+     * The weakener for @ref AuthenticationDataBase.
+     */
+    struct URLWeakener
+    {
+        /**
+         * Add a trailing '/' if abscent.
+         *
+         * This lets "mamba.org/" be found by "mamba.org" key.
+         */
+        [[nodiscard]] auto make_first_key(std::string_view key) const -> std::string;
+
+        /**
+         * Remove the last part of the URL path, or simply the trailing slash.
+         *
+         * For instance, iterations mya follow
+         * "mamba.org/p/chan" > "mamba.org/p/" > "mamba.org/p" > "mamba.org/" > "mamba.org".
+         */
+        [[nodiscard]] auto weaken_key(std::string_view key) const -> std::optional<std::string_view>;
+    };
+
+    /**
      * A class that holds the authentication info stored by users.
      *
      * Essentially a map, except that some keys can match mutliple queries.
@@ -51,56 +76,7 @@ namespace mamba::specs
      * Possibly, a string reprensentation such as "*.mamba.org/private/channel*" could be added
      * to parse users intentions, rather than relying on the assumptions made here.
      */
-    class AuthenticationDataBase : private std::unordered_map<std::string, AuthenticationInfo>
-    {
-    public:
-
-        using Base = std::unordered_map<std::string, AuthenticationInfo>;
-
-        using typename Base::key_type;
-        using typename Base::mapped_type;
-        using typename Base::value_type;
-        using typename Base::size_type;
-        using typename Base::iterator;
-        using typename Base::const_iterator;
-
-        using Base::Base;
-
-        using Base::begin;
-        using Base::end;
-        using Base::cbegin;
-        using Base::cend;
-
-        using Base::empty;
-        using Base::size;
-        using Base::max_size;
-
-        using Base::clear;
-        using Base::insert;
-        using Base::insert_or_assign;
-        using Base::emplace;
-        using Base::emplace_hint;
-        using Base::try_emplace;
-        using Base::erase;
-        using Base::swap;
-        using Base::extract;
-        using Base::merge;
-
-        using Base::reserve;
-
-        using Base::at;
-
-        [[nodiscard]] auto at_compatible(const key_type& key) -> mapped_type&;
-        [[nodiscard]] auto at_compatible(const key_type& key) const -> const mapped_type&;
-
-        using Base::find;
-
-        auto find_compatible(const key_type& key) -> iterator;
-        auto find_compatible(const key_type& key) const -> const_iterator;
-
-        [[nodiscard]] auto contains(const key_type& key) const -> bool;
-
-        [[nodiscard]] auto contains_compatible(const key_type& key) const -> bool;
-    };
+    using AuthenticationDataBase = util::
+        weakening_map<std::unordered_map<std::string, AuthenticationInfo>, URLWeakener>;
 }
 #endif

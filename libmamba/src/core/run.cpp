@@ -31,7 +31,6 @@ extern "C"
 #include <spdlog/spdlog.h>
 
 #include "mamba/core/context.hpp"
-#include "mamba/core/environment.hpp"
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
@@ -112,7 +111,7 @@ namespace mamba
 
     const fs::u8path& proc_dir()
     {
-        static auto path = env::user_cache_dir() / "proc";
+        static auto path = fs::u8path(util::user_cache_dir()) / "mamba" / "proc";
         return path;
     }
 

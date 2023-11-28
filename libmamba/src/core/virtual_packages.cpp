@@ -16,7 +16,6 @@
 #include <reproc++/run.hpp>
 
 #include "mamba/core/context.hpp"
-#include "mamba/core/environment.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/virtual_packages.hpp"
@@ -85,7 +84,7 @@ namespace mamba
                 // Windows fallback
                 bool may_exist = false;
                 std::string path = util::get_env("PATH").value_or("");
-                std::vector<std::string> paths = util::split(path, env::pathsep());
+                std::vector<std::string> paths = util::split(path, util::pathsep());
 
                 for (auto& p : paths)
                 {
@@ -191,6 +190,29 @@ namespace mamba
 #endif
             return "x86_64";
         }
+
+        std::string get_archspec(const std::string& arch)
+        {
+            auto override_version = util::get_env("CONDA_OVERRIDE_ARCHSPEC");
+            if (override_version)
+            {
+                return override_version.value();
+            }
+
+            if (arch == "64")
+            {
+                return get_archspec_x86_64();
+            }
+            else if (arch == "32")
+            {
+                return "x86";
+            }
+            else
+            {
+                return arch;
+            }
+        }
+
         std::vector<PackageInfo> dist_packages(const Context& context)
         {
             LOG_DEBUG << "Loading distribution virtual packages";
@@ -248,15 +270,7 @@ namespace mamba
                 }
             }
 
-            if (arch == "64")
-            {
-                arch = get_archspec_x86_64();
-            }
-            else if (arch == "32")
-            {
-                arch = "x86";
-            }
-            res.push_back(make_virtual_package("__archspec", platform, "1", arch));
+            res.push_back(make_virtual_package("__archspec", platform, "1", get_archspec(arch)));
 
             return res;
         }

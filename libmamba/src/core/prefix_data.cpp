@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <utility>
 
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/util.hpp"
@@ -77,7 +77,7 @@ namespace mamba
         return m_package_records;
     }
 
-    std::vector<PackageInfo> PrefixData::sorted_records() const
+    std::vector<PackageInfo> PrefixData::sorted_records(const Context& ctx) const
     {
         // TODO add_pip_as_python_dependency
 
@@ -100,7 +100,7 @@ namespace mamba
                 for (const auto& dep : record->depends)
                 {
                     // Creating a matchspec to parse the name (there may be a channel)
-                    auto ms = MatchSpec{ dep, m_channel_context };
+                    auto ms = MatchSpec{ dep, ctx, m_channel_context };
                     // Ignoring unmatched dependencies, the environment could be broken
                     // or it could be a matchspec
                     const auto from_iter = name_to_node_id.find(ms.name);
@@ -164,8 +164,12 @@ namespace mamba
         // and conda-meta json files with channel names while mamba expects
         // PackageInfo channels to be platform urls. This fixes the issue described
         // in https://github.com/mamba-org/mamba/issues/2665
-        const Channel& channel = m_channel_context.make_channel(prec.channel);
-        prec.channel = channel.platform_url(prec.subdir);
+
+        auto channels = m_channel_context.make_channel(prec.channel);
+        // If someone wrote multichannel names in repodata_record, we don't know which one is the
+        // correct URL. This is must never happen!
+        assert(channels.size() == 1);
+        prec.channel = channels.front().platform_url(prec.subdir).str();
         m_package_records.insert({ prec.name, std::move(prec) });
     }
 }  // namespace mamba

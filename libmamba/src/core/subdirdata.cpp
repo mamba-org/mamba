@@ -7,11 +7,13 @@
 #include <regex>
 #include <stdexcept>
 
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/specs/channel.hpp"
 #include "mamba/util/json.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
@@ -376,18 +378,6 @@ namespace mamba
             return max_age;
         }
 
-        bool check_zst(ChannelContext& channel_context, const Channel& channel)
-        {
-            for (const auto& c : channel_context.context().repodata_has_zst)
-            {
-                if (channel_context.make_channel(c).base_url() == channel.base_url())
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
         fs::u8path get_cache_dir(const fs::u8path& cache_path)
         {
             return cache_path / "cache";
@@ -405,8 +395,9 @@ namespace mamba
     }
 
     expected_t<MSubdirData> MSubdirData::create(
+        Context& ctx,
         ChannelContext& channel_context,
-        const Channel& channel,
+        const specs::Channel& channel,
         const std::string& platform,
         const std::string& url,
         MultiPackageCache& caches,
@@ -415,7 +406,7 @@ namespace mamba
     {
         try
         {
-            return MSubdirData(channel_context, channel, platform, url, caches, repodata_fn);
+            return MSubdirData(ctx, channel_context, channel, platform, url, caches, repodata_fn);
         }
         catch (std::exception& e)
         {
@@ -536,8 +527,9 @@ namespace mamba
     }
 
     MSubdirData::MSubdirData(
+        Context& ctx,
         ChannelContext& channel_context,
-        const Channel& channel,
+        const specs::Channel& channel,
         const std::string& platform,
         const std::string& url,
         MultiPackageCache& caches,
@@ -551,13 +543,16 @@ namespace mamba
         , m_json_fn(cache_fn_url(m_repodata_url))
         , m_solv_fn(m_json_fn.substr(0, m_json_fn.size() - 4) + "solv")
         , m_is_noarch(platform == "noarch")
-        , p_context(&(channel_context.context()))
+        , p_context(&(ctx))
     {
         load(caches, channel_context, channel);
     }
 
-    void
-    MSubdirData::load(MultiPackageCache& caches, ChannelContext& channel_context, const Channel& channel)
+    void MSubdirData::load(
+        MultiPackageCache& caches,
+        ChannelContext& channel_context,
+        const specs::Channel& channel
+    )
     {
         if (!forbid_cache(m_repodata_url))
         {
@@ -585,7 +580,7 @@ namespace mamba
         LOG_INFO << "Searching index cache file for repo '" << m_repodata_url << "'";
         file_time_point now = fs::file_time_type::clock::now();
 
-        Context& context = channel_context.context();
+        const Context& context = *p_context;
         const auto cache_paths = without_duplicates(caches.paths());
 
         for (const fs::u8path& cache_path : cache_paths)
@@ -660,20 +655,13 @@ namespace mamba
         }
     }
 
-    void MSubdirData::update_metadata_zst(ChannelContext& channel_context, const Channel& channel)
+    void
+    MSubdirData::update_metadata_zst(ChannelContext& channel_context, const specs::Channel& channel)
     {
-        const Context& context = channel_context.context();
+        const Context& context = *p_context;
         if (!context.offline || forbid_cache(m_repodata_url))
         {
-            if (context.repodata_use_zst)
-            {
-                bool has_zst = m_metadata.has_zst();
-                if (!has_zst)
-                {
-                    has_zst = check_zst(channel_context, channel);
-                    m_metadata.set_zst(has_zst);
-                }
-            }
+            m_metadata.set_zst(m_metadata.has_zst() || channel_context.has_zst(channel));
         }
     }
 
@@ -688,8 +676,8 @@ namespace mamba
                 m_name + " (check zst)",
                 m_repodata_url + ".zst",
                 "",
-                /*head_only = */ true,
-                /*ignore_failure = */ true
+                /* lhead_only = */ true,
+                /* lignore_failure = */ true
             ));
 
             request.back().on_success = [this](const DownloadSuccess& success)
@@ -750,7 +738,7 @@ namespace mamba
             }
         };
 
-        request.on_failure = [this](const DownloadError& error)
+        request.on_failure = [](const DownloadError& error)
         {
             if (error.transfer.has_value())
             {

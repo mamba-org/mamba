@@ -9,7 +9,7 @@
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/list.hpp"
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/prefix_data.hpp"
 
@@ -25,8 +25,8 @@ namespace mamba
             );
         config.load();
 
-        ChannelContext channel_context{ config.context() };
-        detail::list_packages(regex, channel_context);
+        auto channel_context = ChannelContext::make_conda_compatible(config.context());
+        detail::list_packages(config.context(), regex, channel_context);
     }
 
     namespace detail
@@ -41,10 +41,8 @@ namespace mamba
             return a.name < b.name;
         }
 
-        void list_packages(std::string regex, ChannelContext& channel_context)
+        void list_packages(const Context& ctx, std::string regex, ChannelContext& channel_context)
         {
-            auto& ctx = channel_context.context();
-
             auto sprefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!sprefix_data)
             {
@@ -73,11 +71,13 @@ namespace mamba
 
                     if (regex.empty() || std::regex_search(pkg_info.name, spec_pat))
                     {
-                        auto& channel = channel_context.make_channel(pkg_info.url);
-                        obj["base_url"] = channel.base_url();
+                        auto channels = channel_context.make_channel(pkg_info.url);
+                        assert(channels.size() == 1);  // A URL can only resolve to one channel
+                        obj["base_url"] = channels.front().url().str(specs::CondaURL::Credentials::Remove
+                        );
                         obj["build_number"] = pkg_info.build_number;
                         obj["build_string"] = pkg_info.build_string;
-                        obj["channel"] = channel.display_name();
+                        obj["channel"] = channels.front().display_name();
                         obj["dist_name"] = pkg_info.str();
                         obj["name"] = pkg_info.name;
                         obj["platform"] = pkg_info.subdir;
@@ -95,7 +95,7 @@ namespace mamba
             formatted_pkg formatted_pkgs;
 
             std::vector<formatted_pkg> packages;
-            auto requested_specs = prefix_data.history().get_requested_specs_map();
+            auto requested_specs = prefix_data.history().get_requested_specs_map(ctx);
 
             // order list of packages from prefix_data by alphabetical order
             for (const auto& package : prefix_data.records())
@@ -111,8 +111,9 @@ namespace mamba
                     }
                     else
                     {
-                        const Channel& channel = channel_context.make_channel(package.second.url);
-                        formatted_pkgs.channel = channel.display_name();
+                        auto channels = channel_context.make_channel(package.second.url);
+                        assert(channels.size() == 1);  // A URL can only resolve to one channel
+                        formatted_pkgs.channel = channels.front().display_name();
                     }
                     packages.push_back(formatted_pkgs);
                 }

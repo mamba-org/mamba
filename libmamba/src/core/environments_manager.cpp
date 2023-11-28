@@ -8,11 +8,11 @@
 #include <vector>
 
 #include "mamba/core/context.hpp"
-#include "mamba/core/environment.hpp"
 #include "mamba/core/environments_manager.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/util/environment.hpp"
 
 namespace mamba
 {
@@ -33,7 +33,7 @@ namespace mamba
             return;
         }
 
-        fs::u8path env_txt_file = get_environments_txt_file(env::home_directory());
+        fs::u8path env_txt_file = get_environments_txt_file(util::user_home_dir());
         fs::u8path final_location = fs::absolute(location);
         fs::u8path folder = final_location.parent_path();
 
@@ -106,7 +106,7 @@ namespace mamba
             }
         }
 
-        clean_environments_txt(get_environments_txt_file(env::home_directory()), location);
+        clean_environments_txt(get_environments_txt_file(util::user_home_dir()), location);
     }
 
     std::set<fs::u8path> EnvironmentsManager::list_all_known_prefixes()
@@ -131,7 +131,7 @@ namespace mamba
         // }
         // else
         {
-            search_dirs = std::vector<fs::u8path>{ env::home_directory() };
+            search_dirs = std::vector<fs::u8path>{ util::user_home_dir() };
         }
 
         std::set<fs::u8path> all_env_paths;

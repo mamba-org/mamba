@@ -13,17 +13,19 @@
 #include <reproc++/reproc.hpp>
 #include <reproc++/run.hpp>
 
-#include "mamba/core/environment.hpp"
 #include "mamba/core/link.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/menuinst.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/transaction_context.hpp"
-#include "mamba/core/util_os.hpp"
 #include "mamba/core/validate.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/string.hpp"
+
+#ifdef __APPLE__
+#include "mamba/core/util_os.hpp"
+#endif
 
 #if _WIN32
 #include "../data/conda_exe.hpp"
@@ -384,10 +386,10 @@ namespace mamba
         else
         {
             // shell_path = 'sh' if 'bsd' in sys.platform else 'bash'
-            fs::u8path shell_path = env::which("bash");
+            fs::u8path shell_path = util::which("bash");
             if (shell_path.empty())
             {
-                shell_path = env::which("sh");
+                shell_path = util::which("sh");
             }
 
             if (activate)
@@ -418,7 +420,7 @@ namespace mamba
         envmap["PKG_BUILDNUM"] = std::to_string(pkg_info.build_number);
 
         std::string PATH = util::get_env("PATH").value_or("");
-        envmap["PATH"] = util::concat(path.parent_path().string(), env::pathsep(), PATH);
+        envmap["PATH"] = util::concat(path.parent_path().string(), util::pathsep(), PATH);
 
         std::string cargs = util::join(" ", command_args);
         LOG_DEBUG << "For " << pkg_info.name << " at " << envmap["PREFIX"]

@@ -6,6 +6,8 @@
 
 #include <string>
 
+#include "mamba/util/path_manip.hpp"
+
 #ifdef _WIN32
 #include <shlobj.h>
 #include <windows.h>
@@ -212,12 +214,7 @@ namespace mamba
             distribution_name[0] = util::to_upper(distribution_name[0]);
         }
 
-        auto to_forward_slash = [](const fs::u8path& p)
-        {
-            std::string ps = p.string();
-            util::replace_all(ps, "\\", "/");
-            return ps;
-        };
+        auto to_forward_slash = [](const fs::u8path& p) { return util::path_to_posix(p.string()); };
 
         auto platform_split = util::split(ctx.platform, "-");
         std::string platform_bitness;
@@ -242,10 +239,10 @@ namespace mamba
         };
 
 #ifdef _WIN32
-        vars["${PERSONALDIR}"] = to_forward_slash(
+        vars["${PERSONALDIR}"] = util::path_to_posix(
             util::get_windows_known_user_folder(util::WindowsKnowUserFolder::Documents)
         );
-        vars["${USERPROFILE}"] = to_forward_slash(
+        vars["${USERPROFILE}"] = util::path_to_posix(
             util::get_windows_known_user_folder(util::WindowsKnowUserFolder::Profile)
         );
 #endif
@@ -310,10 +307,10 @@ namespace mamba
                 { cwp_path.string(), target_prefix.string(), env_pyw.string() }
             );
 
-            fs::u8path target_dir = util::get_windows_known_user_folder(
-                                        util::WindowsKnowUserFolder::Programs
-                                    )
-                                    / menu_name;
+            auto target_dir = fs::u8path(util::get_windows_known_user_folder(
+                                  util::WindowsKnowUserFolder::Programs
+                              ))
+                              / menu_name;
 
             if (!fs::exists(target_dir))
             {

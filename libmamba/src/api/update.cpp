@@ -9,9 +9,10 @@
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/update.hpp"
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/pinning.hpp"
+#include "mamba/core/solver.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/util/string.hpp"
@@ -32,12 +33,12 @@ namespace mamba
 
         auto update_specs = config.at("specs").value<std::vector<std::string>>();
 
-        ChannelContext channel_context{ ctx };
+        auto channel_context = ChannelContext::make_conda_compatible(ctx);
 
         // add channels from specs
         for (const auto& s : update_specs)
         {
-            if (auto m = MatchSpec{ s, channel_context }; !m.channel.empty())
+            if (auto m = MatchSpec{ s, ctx, channel_context }; !m.channel.empty())
             {
                 ctx.channels.push_back(m.channel);
             }
@@ -45,10 +46,10 @@ namespace mamba
 
         int solver_flag = SOLVER_UPDATE;
 
-        MPool pool{ channel_context };
+        MPool pool{ ctx, channel_context };
         MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
 
-        auto exp_loaded = load_channels(pool, package_caches, 0);
+        auto exp_loaded = load_channels(ctx, pool, package_caches, 0);
         if (!exp_loaded)
         {
             throw std::runtime_error(exp_loaded.error().what());
@@ -92,7 +93,7 @@ namespace mamba
 
         if (!no_py_pin)
         {
-            auto py_pin = python_pin(prefix_data, update_specs);
+            auto py_pin = python_pin(ctx, channel_context, prefix_data, update_specs);
             if (!py_pin.empty())
             {
                 solver.add_pin(py_pin);
@@ -113,7 +114,7 @@ namespace mamba
 
         if (update_all)
         {
-            auto hist_map = prefix_data.history().get_requested_specs_map();
+            auto hist_map = prefix_data.history().get_requested_specs_map(ctx);
             std::vector<std::string> keep_specs;
             for (auto& it : hist_map)
             {
@@ -131,7 +132,7 @@ namespace mamba
         {
             if (remove_not_specified)
             {
-                auto hist_map = prefix_data.history().get_requested_specs_map();
+                auto hist_map = prefix_data.history().get_requested_specs_map(ctx);
                 std::vector<std::string> remove_specs;
                 for (auto& it : hist_map)
                 {

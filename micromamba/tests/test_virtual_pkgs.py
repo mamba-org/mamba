@@ -1,8 +1,6 @@
 import os
 import platform
 
-import pytest
-
 from .helpers import info
 
 

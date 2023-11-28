@@ -36,7 +36,7 @@ The ecosystem also consists of `quetz`, an open source `conda` package server an
 
 ## Installation
 
-Please refer to the [`mamba` and `micromamba` installation guide](https://mamba.readthedocs.io/en/latest/installation.html) in the documentation.
+Please refer to the [mamba](https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html) and [micromamba](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html) installation guide in the documentation.
 
 ## Additional features in Mamba and Micromamba
 
@@ -68,7 +68,7 @@ See the [documentation on `micromamba`](https://mamba.readthedocs.io/en/latest/u
 
 ## Development installation
 
-Please refer to the instructions given by the [official documentation](https://mamba.readthedocs.io/en/latest/developer_zone/build_locally.html#).
+Please refer to the instructions given by the [official documentation](https://mamba.readthedocs.io/en/latest/developer_zone/dev_environment.html).
 
 ## Support us
 

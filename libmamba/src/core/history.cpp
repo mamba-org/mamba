@@ -190,7 +190,7 @@ namespace mamba
         return res;
     }
 
-    std::unordered_map<std::string, MatchSpec> History::get_requested_specs_map()
+    std::unordered_map<std::string, MatchSpec> History::get_requested_specs_map(const Context& ctx)
     {
         std::unordered_map<std::string, MatchSpec> map;
 
@@ -200,7 +200,7 @@ namespace mamba
             v.reserve(sv.size());
             for (const auto& el : sv)
             {
-                v.emplace_back(el, m_channel_context);
+                v.emplace_back(el, ctx, m_channel_context);
             }
             return v;
         };

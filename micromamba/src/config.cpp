@@ -10,10 +10,11 @@
 
 #include "mamba/api/config.hpp"
 #include "mamba/api/configuration.hpp"
-#include "mamba/core/environment.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/util/build.hpp"
+#include "mamba/util/environment.hpp"
+#include "mamba/util/path_manip.hpp"
 
 #include "common_options.hpp"
 
@@ -62,11 +63,13 @@ compute_config_path(Configuration& config, bool touch_if_not_exists)
     auto& env_path = config.at("config_set_env_path");
     auto& system_path = config.at("config_set_system_path");
 
-    fs::u8path rc_source = env::expand_user(env::home_directory() / ".condarc");
+    fs::u8path rc_source = util::expand_home(
+        mamba::util::path_concat(mamba::util::user_home_dir(), ".condarc")
+    );
 
     if (file_path.configured())
     {
-        rc_source = env::expand_user(file_path.value<fs::u8path>()).string();
+        rc_source = util::expand_home(file_path.value<fs::u8path>().string());
     }
     else if (env_path.configured())
     {

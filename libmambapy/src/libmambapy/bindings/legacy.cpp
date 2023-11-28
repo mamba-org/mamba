@@ -18,7 +18,7 @@
 
 #include "mamba/api/clean.hpp"
 #include "mamba/api/configuration.hpp"
-#include "mamba/core/channel.hpp"
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/download_progress_bar.hpp"
 #include "mamba/core/execution.hpp"
@@ -126,7 +126,10 @@ namespace mambapy
         }
         mamba::ChannelContext& channel_context()
         {
-            return init_once(p_channel_context, m_context);
+            return init_once(
+                p_channel_context,
+                [&]() { return mamba::ChannelContext::make_conda_compatible(m_context); }
+            );
         }
 
         mamba::Configuration& config()
@@ -136,11 +139,11 @@ namespace mambapy
 
     private:
 
-        template <class T, class D>
-        T& init_once(std::unique_ptr<T, D>& ptr, mamba::Context& context)
+        template <class T, class D, class Factory>
+        T& init_once(std::unique_ptr<T, D>& ptr, Factory&& factory)
         {
             static std::once_flag init_flag;
-            std::call_once(init_flag, [&] { ptr = std::make_unique<T>(context); });
+            std::call_once(init_flag, [&] { ptr = std::make_unique<T>(factory()); });
             if (!ptr)
             {
                 throw mamba::mamba_error(
@@ -178,7 +181,7 @@ namespace mambapy
         {
             mamba::MSubdirData* p_subdirdata = nullptr;
             std::string m_platform = "";
-            const mamba::Channel* p_channel = nullptr;
+            const mamba::specs::Channel* p_channel = nullptr;
             std::string m_url = "";
         };
 
@@ -186,8 +189,9 @@ namespace mambapy
         using iterator = entry_list::const_iterator;
 
         void create(
+            mamba::Context& ctx,
             mamba::ChannelContext& channel_context,
-            const mamba::Channel& channel,
+            const mamba::specs::Channel& channel,
             const std::string& platform,
             const std::string& full_url,
             mamba::MultiPackageCache& caches,
@@ -197,7 +201,7 @@ namespace mambapy
         {
             using namespace mamba;
             m_subdirs.push_back(extract(
-                MSubdirData::create(channel_context, channel, platform, full_url, caches, repodata_fn)
+                MSubdirData::create(ctx, channel_context, channel, platform, full_url, caches, repodata_fn)
             ));
             m_entries.push_back({ nullptr, platform, &channel, url });
             for (size_t i = 0; i < m_subdirs.size(); ++i)
@@ -269,7 +273,6 @@ bind_submodule_impl(pybind11::module_ m)
 
 
     // declare earlier to avoid C++ types in docstrings
-    auto pyChannel = py::class_<Channel, std::unique_ptr<Channel, py::nodelete>>(m, "Channel");
     auto pyPackageInfo = py::class_<PackageInfo>(m, "PackageInfo");
     auto pyPrefixData = py::class_<PrefixData>(m, "PrefixData");
     auto pySolver = py::class_<MSolver>(m, "Solver");
@@ -297,21 +300,29 @@ bind_submodule_impl(pybind11::module_ m)
         .def(py::init<>())
         .def(py::init<>(
             [](const std::string& name) {
-                return MatchSpec{ name, mambapy::singletons.channel_context() };
+                return MatchSpec{ name,
+                                  mambapy::singletons.context(),
+                                  mambapy::singletons.channel_context() };
             }
         ))
         .def("conda_build_form", &MatchSpec::conda_build_form);
 
     py::class_<MPool>(m, "Pool")
-        .def(py::init<>([] { return MPool{ mambapy::singletons.channel_context() }; }))
+        .def(py::init<>(
+            []
+            { return MPool{ mambapy::singletons.context(), mambapy::singletons.channel_context() }; }
+        ))
         .def("set_debuglevel", &MPool::set_debuglevel)
         .def("create_whatprovides", &MPool::create_whatprovides)
         .def("select_solvables", &MPool::select_solvables, py::arg("id"), py::arg("sorted") = false)
         .def("matchspec2id", &MPool::matchspec2id, py::arg("ms"))
         .def(
             "matchspec2id",
-            [](MPool& self, std::string_view ms) {
-                return self.matchspec2id({ ms, mambapy::singletons.channel_context() });
+            [](MPool& self, std::string_view ms)
+            {
+                return self.matchspec2id(
+                    { ms, mambapy::singletons.context(), mambapy::singletons.channel_context() }
+                );
             },
             py::arg("ms")
         )
@@ -513,7 +524,10 @@ bind_submodule_impl(pybind11::module_ m)
                 return History{ path, mambapy::singletons.channel_context() };
             }
         ))
-        .def("get_requested_specs_map", &History::get_requested_specs_map);
+        .def(
+            "get_requested_specs_map",
+            [](History& self) { return self.get_requested_specs_map(mambapy::singletons.context()); }
+        );
 
     /*py::class_<Query>(m, "Query")
         .def(py::init<MPool&>())
@@ -662,7 +676,7 @@ bind_submodule_impl(pybind11::module_ m)
         .def(
             "create",
             [](SubdirIndex& self,
-               const Channel& channel,
+               const specs::Channel& channel,
                const std::string& platform,
                const std::string& full_url,
                MultiPackageCache& caches,
@@ -670,6 +684,7 @@ bind_submodule_impl(pybind11::module_ m)
                const std::string& url)
             {
                 self.create(
+                    mambapy::singletons.context(),
                     mambapy::singletons.channel_context(),
                     channel,
                     platform,
@@ -1172,46 +1187,7 @@ bind_submodule_impl(pybind11::module_ m)
             py::arg("json_str")
         );
 
-    pyChannel
-        .def(py::init(
-            [](const std::string& value) {
-                return const_cast<Channel*>(&mambapy::singletons.channel_context().make_channel(value)
-                );
-            }
-        ))
-        .def_property_readonly("platforms", &Channel::platforms)
-        .def_property_readonly("canonical_name", &Channel::display_name)
-        .def("urls", &Channel::urls, py::arg("with_credentials") = true)
-        .def("platform_urls", &Channel::platform_urls, py::arg("with_credentials") = true)
-        .def("platform_url", &Channel::platform_url, py::arg("platform"), py::arg("with_credentials") = true)
-        .def(
-            "__repr__",
-            [](const Channel& c)
-            {
-                auto s = c.display_name();
-                s += "[";
-                bool first = true;
-                for (const auto& platform : c.platforms())
-                {
-                    if (!first)
-                    {
-                        s += ",";
-                    }
-                    s += platform;
-                    first = false;
-                }
-                s += "]";
-                return s;
-            }
-        );
-
     m.def("clean", [](int flags) { return clean(mambapy::singletons.config(), flags); });
-
-    m.def(
-        "get_channels",
-        [](const std::vector<std::string>& channel_names)
-        { return mambapy::singletons.channel_context().get_channels(channel_names); }
-    );
 
     m.def(
         "transmute",

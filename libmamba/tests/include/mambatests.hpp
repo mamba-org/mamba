@@ -24,6 +24,11 @@ namespace mambatests
 #endif
     inline static const mamba::fs::u8path test_data_dir = MAMBA_TEST_DATA_DIR;
 
+#ifndef MAMBA_TEST_LOCK_EXE
+#error "MAMBA_TEST_LOCK_EXE must be defined pointing to testing_libmamba_lock"
+#endif
+    inline static const mamba::fs::u8path testing_libmamba_lock_exe = MAMBA_TEST_LOCK_EXE;
+
     struct Singletons
     {
         // mamba::MainExecutor main_executor; // FIXME: reactivate once the tests are not indirectly
@@ -40,7 +45,7 @@ namespace mambatests
     }
 
     // Provides the context object to use in all tests needing it.
-    // Note that this context is setup to handle logigng and signal handling.
+    // Note that this context is setup to handle logging and signal handling.
     inline mamba::Context& context()
     {
         return singletons().context;

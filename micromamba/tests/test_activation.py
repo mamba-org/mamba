@@ -46,9 +46,7 @@ class WindowsProfiles:
                 "-Command",
                 "$PROFILE.CurrentUserAllHosts",
             ]
-            res = subprocess.run(
-                args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True
-            )
+            res = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
             return res.stdout.decode("utf-8").strip()
         elif shell == "cmd.exe":
             return None
@@ -159,9 +157,7 @@ def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
     if interpreter == "cmd.exe":
         mods = ["@chcp 65001>nul"]
         for x in s:
-            if x.startswith("micromamba activate") or x.startswith(
-                "micromamba deactivate"
-            ):
+            if x.startswith("micromamba activate") or x.startswith("micromamba deactivate"):
                 mods.append("call " + x)
             else:
                 mods.append(x)
@@ -306,15 +302,15 @@ def test_shell_init(
     interpreter,
 ):
     # TODO enable these tests also on win + bash!
-    if interpreter not in valid_interpreters or (
-        plat == "win" and interpreter == "bash"
-    ):
+    if interpreter not in valid_interpreters or (plat == "win" and interpreter == "bash"):
         pytest.skip(f"{interpreter} not available")
 
     umamba = helpers.get_umamba()
     run_dir = tmp_path / "rundir"
     run_dir.mkdir()
-    call = lambda s: call_interpreter(s, run_dir, interpreter)
+
+    def call(s):
+        return call_interpreter(s, run_dir, interpreter)
 
     rpv = shvar("MAMBA_ROOT_PREFIX", interpreter)
     s = [f"echo {rpv}"]
@@ -407,9 +403,7 @@ def test_shell_init_deinit_root_prefix_files(
     tmp_path,
     interpreter,
 ):
-    if interpreter not in valid_interpreters or (
-        plat == "win" and interpreter == "bash"
-    ):
+    if interpreter not in valid_interpreters or (plat == "win" and interpreter == "bash"):
         pytest.skip(f"{interpreter} not available")
 
     umamba = helpers.get_umamba()
@@ -495,9 +489,7 @@ def test_shell_init_deinit_contents(
     tmp_path,
     interpreter,
 ):
-    if interpreter not in valid_interpreters or (
-        plat == "win" and interpreter == "bash"
-    ):
+    if interpreter not in valid_interpreters or (plat == "win" and interpreter == "bash"):
         pytest.skip(f"{interpreter} not available")
 
     umamba = helpers.get_umamba()
@@ -542,9 +534,7 @@ def test_shell_init_deinit_contents(
 
 @pytest.mark.parametrize("interpreter", get_interpreters())
 def test_env_activation(tmp_home, winreg_value, tmp_root_prefix, tmp_path, interpreter):
-    if interpreter not in valid_interpreters or (
-        plat == "win" and interpreter == "bash"
-    ):
+    if interpreter not in valid_interpreters or (plat == "win" and interpreter == "bash"):
         pytest.skip(f"{interpreter} not available")
 
     umamba = helpers.get_umamba()
@@ -552,7 +542,8 @@ def test_env_activation(tmp_home, winreg_value, tmp_root_prefix, tmp_path, inter
     s = [f"{umamba} shell init -r {tmp_root_prefix}"]
     stdout, stderr = call_interpreter(s, tmp_path, interpreter)
 
-    call = lambda s: call_interpreter(s, tmp_path, interpreter, interactive=True)
+    def call(s):
+        return call_interpreter(s, tmp_path, interpreter, interactive=True)
 
     evars = extract_vars(["CONDA_PREFIX", "CONDA_SHLVL", "PATH"], interpreter)
 
@@ -641,9 +632,7 @@ def test_activation_envvars(
     tmp_path,
     interpreter,
 ):
-    if interpreter not in valid_interpreters or (
-        plat == "win" and interpreter == "bash"
-    ):
+    if interpreter not in valid_interpreters or (plat == "win" and interpreter == "bash"):
         pytest.skip(f"{interpreter} not available")
 
     umamba = helpers.get_umamba()
@@ -651,7 +640,8 @@ def test_activation_envvars(
     s = [f"{umamba} shell init -r {tmp_root_prefix}"]
     stdout, stderr = call_interpreter(s, tmp_path, interpreter)
 
-    call = lambda s: call_interpreter(s, tmp_path, interpreter, interactive=True)
+    def call(s):
+        return call_interpreter(s, tmp_path, interpreter, interactive=True)
 
     evars = extract_vars(["CONDA_PREFIX", "CONDA_SHLVL", "PATH"], interpreter)
 
@@ -760,9 +750,7 @@ def test_unicode_activation(
     tmp_path,
     interpreter,
 ):
-    if interpreter not in valid_interpreters or (
-        plat == "win" and interpreter == "bash"
-    ):
+    if interpreter not in valid_interpreters or (plat == "win" and interpreter == "bash"):
         pytest.skip(f"{interpreter} not available")
 
     umamba = helpers.get_umamba()
@@ -770,7 +758,8 @@ def test_unicode_activation(
     s = [f"{umamba} shell init -r {tmp_root_prefix}"]
     stdout, stderr = call_interpreter(s, tmp_path, interpreter)
 
-    call = lambda s: call_interpreter(s, tmp_path, interpreter, interactive=True)
+    def call(s):
+        return call_interpreter(s, tmp_path, interpreter, interactive=True)
 
     evars = extract_vars(["CONDA_PREFIX", "CONDA_SHLVL", "PATH"], interpreter)
 
@@ -865,9 +854,7 @@ def test_unicode_activation(
 
 @pytest.mark.parametrize("interpreter", get_interpreters())
 def test_activate_path(tmp_empty_env, tmp_env_name, interpreter, tmp_path):
-    if interpreter not in valid_interpreters or (
-        plat == "win" and interpreter == "bash"
-    ):
+    if interpreter not in valid_interpreters or (plat == "win" and interpreter == "bash"):
         pytest.skip(f"{interpreter} not available")
 
     # Activate env name

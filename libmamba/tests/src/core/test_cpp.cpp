@@ -10,8 +10,8 @@
 
 #include <doctest/doctest.h>
 
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/core/environment.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/history.hpp"
 #include "mamba/core/link.hpp"
@@ -19,6 +19,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/util/build.hpp"
+#include "mamba/util/path_manip.hpp"
 
 #include "mambatests.hpp"
 
@@ -87,36 +88,37 @@ namespace mamba
 
         TEST_CASE("parse")
         {
-            ChannelContext channel_context{ mambatests::context() };
+            auto& ctx = mambatests::context();
+            auto channel_context = ChannelContext::make_conda_compatible(ctx);
             {
-                MatchSpec ms("xtensor==0.12.3", channel_context);
+                MatchSpec ms("xtensor==0.12.3", ctx, channel_context);
                 CHECK_EQ(ms.version, "0.12.3");
                 CHECK_EQ(ms.name, "xtensor");
             }
             {
-                MatchSpec ms("", channel_context);
+                MatchSpec ms("", ctx, channel_context);
                 CHECK_EQ(ms.version, "");
                 CHECK_EQ(ms.name, "");
             }
             {
-                MatchSpec ms("ipykernel", channel_context);
+                MatchSpec ms("ipykernel", ctx, channel_context);
                 CHECK_EQ(ms.version, "");
                 CHECK_EQ(ms.name, "ipykernel");
             }
             {
-                MatchSpec ms("ipykernel ", channel_context);
+                MatchSpec ms("ipykernel ", ctx, channel_context);
                 CHECK_EQ(ms.version, "");
                 CHECK_EQ(ms.name, "ipykernel");
             }
             {
-                MatchSpec ms("numpy 1.7*", channel_context);
+                MatchSpec ms("numpy 1.7*", ctx, channel_context);
                 CHECK_EQ(ms.version, "1.7*");
                 CHECK_EQ(ms.name, "numpy");
                 CHECK_EQ(ms.conda_build_form(), "numpy 1.7*");
                 CHECK_EQ(ms.str(), "numpy=1.7");
             }
             {
-                MatchSpec ms("numpy[version='1.7|1.8']", channel_context);
+                MatchSpec ms("numpy[version='1.7|1.8']", ctx, channel_context);
                 // TODO!
                 // CHECK_EQ(ms.version, "1.7|1.8");
                 CHECK_EQ(ms.name, "numpy");
@@ -124,14 +126,14 @@ namespace mamba
                 CHECK_EQ(ms.str(), "numpy[version='1.7|1.8']");
             }
             {
-                MatchSpec ms("conda-forge/linux64::xtensor==0.12.3", channel_context);
+                MatchSpec ms("conda-forge/linux64::xtensor==0.12.3", ctx, channel_context);
                 CHECK_EQ(ms.version, "0.12.3");
                 CHECK_EQ(ms.name, "xtensor");
                 CHECK_EQ(ms.channel, "conda-forge/linux64");
                 CHECK_EQ(ms.optional, false);
             }
             {
-                MatchSpec ms("conda-forge::foo[build=3](target=blarg,optional)", channel_context);
+                MatchSpec ms("conda-forge::foo[build=3](target=blarg,optional)", ctx, channel_context);
                 CHECK_EQ(ms.version, "");
                 CHECK_EQ(ms.name, "foo");
                 CHECK_EQ(ms.channel, "conda-forge");
@@ -140,13 +142,13 @@ namespace mamba
                 CHECK_EQ(ms.optional, true);
             }
             {
-                MatchSpec ms("python[build_number=3]", channel_context);
+                MatchSpec ms("python[build_number=3]", ctx, channel_context);
                 CHECK_EQ(ms.name, "python");
                 CHECK_EQ(ms.brackets["build_number"], "3");
                 CHECK_EQ(ms.build_number, "3");
             }
             {
-                MatchSpec ms("python[build_number='<=3']", channel_context);
+                MatchSpec ms("python[build_number='<=3']", ctx, channel_context);
                 CHECK_EQ(ms.name, "python");
                 CHECK_EQ(ms.brackets["build_number"], "<=3");
                 CHECK_EQ(ms.build_number, "<=3");
@@ -154,6 +156,7 @@ namespace mamba
             {
                 MatchSpec ms(
                     "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2",
+                    ctx,
                     channel_context
                 );
                 CHECK_EQ(ms.name, "_libgcc_mutex");
@@ -168,6 +171,7 @@ namespace mamba
             {
                 MatchSpec ms(
                     "/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2",
+                    ctx,
                     channel_context
                 );
                 CHECK_EQ(ms.name, "_libgcc_mutex");
@@ -192,6 +196,7 @@ namespace mamba
                 MatchSpec ms(
                     "xtensor[url=file:///home/wolfv/Downloads/"
                     "xtensor-0.21.4-hc9558a2_0.tar.bz2]",
+                    ctx,
                     channel_context
                 );
                 CHECK_EQ(ms.name, "xtensor");
@@ -202,13 +207,14 @@ namespace mamba
                 CHECK_EQ(ms.url, "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2");
             }
             {
-                MatchSpec ms("foo=1.0=2", channel_context);
+                MatchSpec ms("foo=1.0=2", ctx, channel_context);
                 CHECK_EQ(ms.conda_build_form(), "foo 1.0 2");
                 CHECK_EQ(ms.str(), "foo==1.0=2");
             }
             {
                 MatchSpec ms(
                     "foo=1.0=2[md5=123123123, license=BSD-3, fn='test 123.tar.bz2']",
+                    ctx,
                     channel_context
                 );
                 CHECK_EQ(ms.conda_build_form(), "foo 1.0 2");
@@ -217,77 +223,79 @@ namespace mamba
             {
                 MatchSpec ms(
                     "foo=1.0=2[md5=123123123, license=BSD-3, fn='test 123.tar.bz2', url='abcdef']",
+                    ctx,
                     channel_context
                 );
                 CHECK_EQ(ms.conda_build_form(), "foo 1.0 2");
                 CHECK_EQ(ms.str(), "foo==1.0=2[url=abcdef,md5=123123123,license=BSD-3]");
             }
             {
-                MatchSpec ms("libblas=*=*mkl", channel_context);
+                MatchSpec ms("libblas=*=*mkl", ctx, channel_context);
                 CHECK_EQ(ms.conda_build_form(), "libblas * *mkl");
                 // CHECK_EQ(ms.str(), "foo==1.0=2");
             }
             {
-                MatchSpec ms("libblas=0.15*", channel_context);
+                MatchSpec ms("libblas=0.15*", ctx, channel_context);
                 CHECK_EQ(ms.conda_build_form(), "libblas 0.15*");
             }
             {
-                MatchSpec ms("xtensor =0.15*", channel_context);
+                MatchSpec ms("xtensor =0.15*", ctx, channel_context);
                 CHECK_EQ(ms.conda_build_form(), "xtensor 0.15*");
                 CHECK_EQ(ms.str(), "xtensor=0.15");
             }
             {
-                MatchSpec ms("numpy=1.20", channel_context);
+                MatchSpec ms("numpy=1.20", ctx, channel_context);
                 CHECK_EQ(ms.str(), "numpy=1.20");
             }
 
             {
-                MatchSpec ms("conda-forge::tzdata", channel_context);
+                MatchSpec ms("conda-forge::tzdata", ctx, channel_context);
                 CHECK_EQ(ms.str(), "conda-forge::tzdata");
             }
             {
-                MatchSpec ms("conda-forge::noarch/tzdata", channel_context);
+                MatchSpec ms("conda-forge::noarch/tzdata", ctx, channel_context);
                 CHECK_EQ(ms.str(), "conda-forge::noarch/tzdata");
             }
             {
-                MatchSpec ms("pkgs/main::tzdata", channel_context);
+                MatchSpec ms("pkgs/main::tzdata", ctx, channel_context);
                 CHECK_EQ(ms.str(), "pkgs/main::tzdata");
             }
             {
-                MatchSpec ms("pkgs/main/noarch::tzdata", channel_context);
+                MatchSpec ms("pkgs/main/noarch::tzdata", ctx, channel_context);
                 CHECK_EQ(ms.str(), "pkgs/main/noarch::tzdata");
             }
             {
-                MatchSpec ms("conda-forge/noarch::tzdata[subdir=linux64]", channel_context);
+                MatchSpec ms("conda-forge/noarch::tzdata[subdir=linux64]", ctx, channel_context);
                 CHECK_EQ(ms.str(), "conda-forge/noarch::tzdata");
             }
             {
-                MatchSpec ms("conda-forge::tzdata[subdir=linux64]", channel_context);
+                MatchSpec ms("conda-forge::tzdata[subdir=linux64]", ctx, channel_context);
                 CHECK_EQ(ms.str(), "conda-forge/linux64::tzdata");
             }
         }
 
         TEST_CASE("is_simple")
         {
-            ChannelContext channel_context{ mambatests::context() };
+            auto& ctx = mambatests::context();
+            auto channel_context = ChannelContext::make_conda_compatible(ctx);
             {
-                MatchSpec ms("libblas", channel_context);
+                MatchSpec ms("libblas", ctx, channel_context);
                 CHECK(ms.is_simple());
             }
             {
-                MatchSpec ms("libblas=12.9=abcdef", channel_context);
+                MatchSpec ms("libblas=12.9=abcdef", ctx, channel_context);
                 CHECK_FALSE(ms.is_simple());
             }
             {
-                MatchSpec ms("libblas=0.15*", channel_context);
+                MatchSpec ms("libblas=0.15*", ctx, channel_context);
                 CHECK_FALSE(ms.is_simple());
             }
             {
-                MatchSpec ms("libblas[version=12.2]", channel_context);
+                MatchSpec ms("libblas[version=12.2]", ctx, channel_context);
                 CHECK_FALSE(ms.is_simple());
             }
             {
-                MatchSpec ms("xtensor =0.15*", channel_context);
+                MatchSpec ms("xtensor =0.15*", ctx, channel_context);
                 CHECK_FALSE(ms.is_simple());
             }
         }
@@ -396,18 +404,11 @@ namespace mamba
         {
             if (util::on_linux)
             {
-                auto home = env::expand_user("~");
+                auto home = fs::u8path(util::expand_home("~"));
                 CHECK_EQ(path::starts_with_home(home / "test" / "file.txt"), true);
                 CHECK_EQ(path::starts_with_home("~"), true);
                 CHECK_EQ(path::starts_with_home("/opt/bin"), false);
             }
-        }
-
-        TEST_CASE("expand_user")
-        {
-            fs::u8path pbefore = "/tmp/test/xyz.txt";
-            fs::u8path p = env::expand_user(pbefore);
-            CHECK_EQ(p, pbefore);
         }
 
         TEST_CASE("touch")

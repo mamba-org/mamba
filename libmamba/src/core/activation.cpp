@@ -6,7 +6,6 @@
 
 #include "mamba/core/activation.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/core/environment.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/shell_init.hpp"
 #include "mamba/core/util.hpp"
@@ -230,7 +229,7 @@ namespace mamba
         std::vector<fs::u8path> path;
         if (m_env.find("PATH") != m_env.end())
         {
-            auto strings = util::split(m_env["PATH"], env::pathsep());
+            auto strings = util::split(m_env["PATH"], util::pathsep());
             for (auto& s : strings)
             {
                 path.push_back(s);
@@ -268,7 +267,7 @@ namespace mamba
         final_path.insert(final_path.end(), path_list.begin(), path_list.end());
         final_path.erase(std::unique(final_path.begin(), final_path.end()), final_path.end());
 
-        std::string result = util::join(env::pathsep(), final_path).string();
+        std::string result = util::join(util::pathsep(), final_path).string();
         return result;
     }
 
@@ -311,7 +310,7 @@ namespace mamba
 
             // remove duplicates
             final_path.erase(std::unique(final_path.begin(), final_path.end()), final_path.end());
-            std::string result = util::join(env::pathsep(), final_path).string();
+            std::string result = util::join(util::pathsep(), final_path).string();
             return result;
         }
         else
@@ -320,7 +319,7 @@ namespace mamba
                 std::unique(current_path.begin(), current_path.end()),
                 current_path.end()
             );
-            std::string result = util::join(env::pathsep(), current_path).string();
+            std::string result = util::join(util::pathsep(), current_path).string();
             return result;
         }
     }

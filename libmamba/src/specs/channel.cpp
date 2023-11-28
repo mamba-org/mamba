@@ -36,7 +36,7 @@ namespace mamba::specs
      *  Implementation of Channel  *
      *******************************/
 
-    Channel::Channel(CondaURL url, std::string display_name, util::flat_set<std::string> platforms)
+    Channel::Channel(CondaURL url, std::string display_name, platform_list platforms)
         : m_url(std::move(url))
         , m_display_name(std::move(display_name))
         , m_platforms(std::move(platforms))
@@ -139,6 +139,11 @@ namespace mamba::specs
             // Removing potential trailing '/'
             && (util::rstrip(this_url.path_without_token(Decode::no), '/')
                 == util::rstrip(other_url.path_without_token(Decode::no), '/'));
+    }
+
+    auto Channel::is_equivalent_to(const Channel& other) const -> bool
+    {
+        return url_equivalent_with(other) && (platforms() == other.platforms());
     }
 
     auto Channel::contains_equivalent(const Channel& other) const -> bool

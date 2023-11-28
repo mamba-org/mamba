@@ -87,7 +87,7 @@ namespace mamba::specs
             ChannelResolveParamsView params
         ) -> channel_list;
 
-        Channel(CondaURL url, std::string display_name, util::flat_set<std::string> platforms = {});
+        Channel(CondaURL url, std::string display_name, platform_list platforms = {});
 
         [[nodiscard]] auto is_package() const -> bool;
 

@@ -390,5 +390,77 @@ namespace mambapy
             .def_readwrite("current_working_dir", &ChannelResolveParams::current_working_dir)
             .def("__copy__", &copy<BasicHTTPAuthentication>)
             .def("__deepcopy__", &deepcopy<BasicHTTPAuthentication>, pybind11::arg("memo"));
+
+        py_channel  //
+            .def_property_readonly_static(
+                "ChannelMap",
+                [](py::handle) { return py::type::of<ChannelResolveParams::channel_map>(); }
+            )
+            .def_property_readonly_static(
+                "MultiChannelMap",
+                [](py::handle) { return py::type::of<ChannelResolveParams::multichannel_map>(); }
+            )
+            .def(
+                py::init<CondaURL, std::string, Channel::platform_list>(),
+                py::arg("url"),
+                py::arg("display_name"),
+                py::arg("platforms")
+            )
+            .def_static(
+                "resolve",
+                py::overload_cast<ChannelSpec, const ChannelResolveParams&>(&Channel::resolve),
+                py::arg("spec"),
+                py::arg("params")
+            )
+            .def_static(
+                "resolve",
+                [](const ChannelSpec& spec,
+                   const ChannelResolveParams::platform_list& platforms,
+                   const CondaURL& channel_alias,
+                   const ChannelResolveParams::channel_map& custom_channels,
+                   const ChannelResolveParams::multichannel_map& custom_multichannels,
+                   const AuthenticationDataBase& authentication_db,
+                   std::string_view home_dir,
+                   std::string_view current_working_dir  //
+                )
+                {
+                    return Channel::resolve(
+                        spec,
+                        ChannelResolveParamsView{
+                            /* .platforms= */ platforms,
+                            /* .channel_alias= */ channel_alias,
+                            /* .custom_channels= */ custom_channels,
+                            /* .custom_multichannels= */ custom_multichannels,
+                            /* .authentication_db= */ authentication_db,
+                            /* .home_dir= */ home_dir,
+                            /* .current_working_dir= */ current_working_dir,
+                        }
+                    );
+                },
+                // Not really meant to provide sensible defaults, the ChannelContext does that.
+                py::arg("spec"),
+                py::arg("platforms") = ChannelResolveParams::platform_list{},
+                py::arg("channel_alias") = CondaURL{},
+                py::arg("custom_channels") = ChannelResolveParams::channel_map{},
+                py::arg("custom_multichannels") = ChannelResolveParams::multichannel_map{},
+                py::arg("authentication_db") = AuthenticationDataBase{},
+                py::arg("home_dir") = std::string{},
+                py::arg("current_working_dir") = std::string{}
+            )
+            .def("is_package", &Channel::is_package)
+            .def_property("url", &Channel::url, &Channel::set_url)
+            .def_property("platforms", &Channel::platforms, &Channel::set_platforms)
+            .def_property("display_name", &Channel::display_name, &Channel::set_display_name)
+            .def("platform_url", &Channel::platform_url)
+            .def("platform_urls", &Channel::platform_urls)
+            .def("url_equivalent_with", &Channel::url_equivalent_with)
+            .def("is_equivalent_to", &Channel::is_equivalent_to)
+            .def("contains_equivalent", &Channel::contains_equivalent)
+            .def(py::self == py::self)
+            .def(py::self != py::self)
+            .def(py::self != py::self)
+            .def("__hash__", &hash<Channel>)
+            .def("__copy__", &copy<Channel>)
+            .def("__deepcopy__", &deepcopy<Channel>, pybind11::arg("memo"));
     }
 }

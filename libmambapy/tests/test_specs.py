@@ -351,6 +351,7 @@ def test_ChannelResolveParams():
 
     # custom_channel and custom_multichannel require creating a Channel to be tested,
     # so we leave them out for simplicity/isolation here.
+    # See test_Channel_resolve
 
     platforms_1 = {"linux-64"}
     channel_alias_1 = CondaURL.parse("oci://github.com/")
@@ -393,3 +394,118 @@ def test_ChannelResolveParams():
     assert params.authentication_db == db_2
     assert params.home_dir == home_dir_2
     assert params.current_working_dir == cwd_2
+
+
+def test_Channel():
+    Channel = libmambapy.specs.Channel
+    CondaURL = libmambapy.specs.CondaURL
+
+    url_1 = CondaURL.parse("https://repo.anaconda.com/conda-forge")
+    platforms_1 = {"osx-64", "noarch"}
+    display_name_1 = "conda-forge"
+
+    # Constructor
+    chan = Channel(url=url_1, platforms=platforms_1, display_name=display_name_1)
+
+    # Gettters
+    assert chan.url == url_1
+    assert chan.platforms == platforms_1
+    assert chan.display_name == display_name_1
+    assert not chan.is_package()
+
+    url_2 = CondaURL.parse("https://mamba.pm/mamba-forge/pkg.conda")
+    platforms_2 = {"win-64"}
+    display_name_2 = "mamba-forge"
+
+    # Setters
+    chan.url = url_2
+    chan.platforms = platforms_2
+    chan.display_name = display_name_2
+    assert chan.url == url_2
+    assert chan.platforms == platforms_2
+    assert chan.display_name == display_name_2
+    assert chan.is_package()
+
+    #  Copy
+    other = copy.deepcopy(chan)
+    assert other is not chan
+    assert chan.display_name == chan.display_name
+
+    # Comparison
+    assert chan == chan
+    assert chan == chan
+    other.platforms = {"neverheard-59"}
+    assert chan != other
+    assert hash(chan) != 0
+
+    # Weak comparison
+    other.url = chan.url
+    other.platforms = chan.platforms | {"human-67"}
+    assert chan.url_equivalent_with(chan)
+    assert chan.url_equivalent_with(other)
+    assert other.url_equivalent_with(chan)
+    assert chan.is_equivalent_to(chan)
+    assert not chan.is_equivalent_to(other)
+    assert not other.is_equivalent_to(chan)
+    assert chan.contains_equivalent(chan)
+    assert other.contains_equivalent(chan)
+    assert not chan.contains_equivalent(other)
+
+
+def test_Channel_resolve():
+    Channel = libmambapy.specs.Channel
+    ChannelSpec = libmambapy.specs.ChannelSpec
+    CondaURL = libmambapy.specs.CondaURL
+    AuthenticationDataBase = libmambapy.specs.AuthenticationDataBase
+    BearerToken = libmambapy.specs.BearerToken
+
+    platforms = {"linux-64"}
+    channel_alias = CondaURL.parse("oci://github.com/")
+    auth_db = AuthenticationDataBase({"mamba.org": BearerToken(token="mytoken")})
+    home_dir = "/users/mamba"
+    cwd = "/tmp/workspace"
+
+    chans = Channel.resolve(
+        spec=ChannelSpec.parse("conda-forge"),
+        platforms=platforms,
+        channel_alias=channel_alias,
+        authentication_db=auth_db,
+        home_dir=home_dir,
+        current_working_dir=cwd,
+    )
+
+    assert len(chans) == 1
+    chan_1 = chans[0]
+    assert chan_1.url == channel_alias / "conda-forge"
+    assert chan_1.platforms == platforms
+    assert chan_1.display_name == "conda-forge"
+
+    # Custom channel match
+    custom_channels = Channel.ChannelMap({"best-forge": chan_1})
+    chans = Channel.resolve(
+        spec=ChannelSpec.parse("best-forge"),
+        platforms=platforms,
+        channel_alias=channel_alias,
+        custom_channels=custom_channels,
+        authentication_db=auth_db,
+        home_dir=home_dir,
+        current_working_dir=cwd,
+    )
+    assert len(chans) == 1
+    chan_2 = chans[0]
+    assert chan_2.display_name == "best-forge"
+
+    # Custom multi channel match
+    custom_multichannels = Channel.MultiChannelMap({"known-forges": [chan_1, chan_2]})
+    chans = Channel.resolve(
+        spec=ChannelSpec.parse("known-forges"),
+        platforms=platforms,
+        channel_alias=channel_alias,
+        custom_channels=custom_channels,
+        custom_multichannels=custom_multichannels,
+        authentication_db=auth_db,
+        home_dir=home_dir,
+        current_working_dir=cwd,
+    )
+    assert len(chans) == 2
+    assert {c.display_name for c in chans} == {"best-forge", "conda-forge"}

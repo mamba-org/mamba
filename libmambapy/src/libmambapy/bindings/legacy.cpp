@@ -189,6 +189,7 @@ namespace mambapy
         using iterator = entry_list::const_iterator;
 
         void create(
+            mamba::Context& ctx,
             mamba::ChannelContext& channel_context,
             const mamba::specs::Channel& channel,
             const std::string& platform,
@@ -200,7 +201,7 @@ namespace mambapy
         {
             using namespace mamba;
             m_subdirs.push_back(extract(
-                MSubdirData::create(channel_context, channel, platform, full_url, caches, repodata_fn)
+                MSubdirData::create(ctx, channel_context, channel, platform, full_url, caches, repodata_fn)
             ));
             m_entries.push_back({ nullptr, platform, &channel, url });
             for (size_t i = 0; i < m_subdirs.size(); ++i)
@@ -650,6 +651,7 @@ bind_submodule_impl(pybind11::module_ m)
                const std::string& url)
             {
                 self.create(
+                    mambapy::singletons.context(),
                     mambapy::singletons.channel_context(),
                     channel,
                     platform,

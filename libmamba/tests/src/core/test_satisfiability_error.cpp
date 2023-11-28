@@ -334,7 +334,8 @@ namespace
     /**
      * Mock of channel_loader.hpp:load_channels that takes a list of channels.
      */
-    auto load_channels(MPool& pool, MultiPackageCache& cache, std::vector<std::string>&& channels)
+    auto
+    load_channels(Context& ctx, MPool& pool, MultiPackageCache& cache, std::vector<std::string>&& channels)
     {
         auto sub_dirs = std::vector<MSubdirData>();
         for (const auto& location : channels)
@@ -344,6 +345,7 @@ namespace
                 for (const auto& platform : chan.platforms())
                 {
                     auto sub_dir = expected_value_or_throw(MSubdirData::create(
+                        ctx,
                         pool.channel_context(),
                         chan,
                         platform,
@@ -392,9 +394,9 @@ namespace
         create_cache_dir(cache.first_writable_path());
 
         bool prev_progress_bars_value = ctx.graphics_params.no_progress_bars;
-        mambatests::context().graphics_params.no_progress_bars = true;
-        load_channels(pool, cache, make_platform_channels(std::move(channels), platforms));
-        mambatests::context().graphics_params.no_progress_bars = prev_progress_bars_value;
+        ctx.graphics_params.no_progress_bars = true;
+        load_channels(ctx, pool, cache, make_platform_channels(std::move(channels), platforms));
+        ctx.graphics_params.no_progress_bars = prev_progress_bars_value;
 
         auto solver = MSolver(
             std::move(pool),

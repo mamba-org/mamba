@@ -102,6 +102,7 @@ namespace mamba
     public:
 
         static expected_t<MSubdirData> create(
+            Context& ctx,
             ChannelContext& channel_context,
             const specs::Channel& channel,
             const std::string& platform,
@@ -137,6 +138,7 @@ namespace mamba
     private:
 
         MSubdirData(
+            Context& ctx,
             ChannelContext& channel_context,
             const specs::Channel& channel,
             const std::string& platform,

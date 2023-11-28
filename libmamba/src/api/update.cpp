@@ -49,7 +49,7 @@ namespace mamba
         MPool pool{ ctx, channel_context };
         MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
 
-        auto exp_loaded = load_channels(pool, package_caches, 0);
+        auto exp_loaded = load_channels(ctx, pool, package_caches, 0);
         if (!exp_loaded)
         {
             throw std::runtime_error(exp_loaded.error().what());

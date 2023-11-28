@@ -486,7 +486,7 @@ namespace mamba
            PrefixData::create(ctx.prefix_params.target_prefix); } ) .map_error([](const mamba_error&
            err) { throw std::runtime_error(err.what());
                                 });*/
-        auto exp_load = load_channels(pool, package_caches, is_retry);
+        auto exp_load = load_channels(ctx, pool, package_caches, is_retry);
         if (!exp_load)
         {
             throw std::runtime_error(exp_load.error().what());

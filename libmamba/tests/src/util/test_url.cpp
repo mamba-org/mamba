@@ -514,11 +514,23 @@ TEST_SUITE("util::URL")
 
             CHECK_EQ(
                 url.str(),
+                "https://user:*****@mamba.org:8080/folder/file.html?param=value#fragment"
+            );
+            CHECK_EQ(
+                url.str(URL::Credentials::Show),
                 "https://user:password@mamba.org:8080/folder/file.html?param=value#fragment"
             );
             CHECK_EQ(
+                url.str(URL::Credentials::Hide),
+                "https://user:*****@mamba.org:8080/folder/file.html?param=value#fragment"
+            );
+            CHECK_EQ(
+                url.str(URL::Credentials::Remove),
+                "https://mamba.org:8080/folder/file.html?param=value#fragment"
+            );
+            CHECK_EQ(
                 url.pretty_str(),
-                "https://user:password@mamba.org:8080/folder/file.html?param=value#fragment"
+                "https://user:*****@mamba.org:8080/folder/file.html?param=value#fragment"
             );
         }
 
@@ -527,9 +539,19 @@ TEST_SUITE("util::URL")
             URL url{};
             url.set_host("mamba.org");
             url.set_user("user");
-            CHECK_EQ(url.pretty_str(), "https://user@mamba.org/");
-            CHECK_EQ(url.str(), "https://user@mamba.org/");
-            CHECK_EQ(url.pretty_str(URL::StripScheme::yes), "user@mamba.org/");
+            CHECK_EQ(url.str(URL::Credentials::Show), "https://user@mamba.org/");
+            CHECK_EQ(url.str(URL::Credentials::Hide), "https://user:*****@mamba.org/");
+            CHECK_EQ(url.pretty_str(), "https://user:*****@mamba.org/");
+            CHECK_EQ(url.pretty_str(URL::StripScheme::yes), "user:*****@mamba.org/");
+            CHECK_EQ(
+                url.pretty_str(URL::StripScheme::yes, '\0', URL::Credentials::Hide),
+                "user:*****@mamba.org/"
+            );
+            CHECK_EQ(
+                url.pretty_str(URL::StripScheme::yes, '\0', URL::Credentials::Show),
+                "user@mamba.org/"
+            );
+            CHECK_EQ(url.pretty_str(URL::StripScheme::yes, '\0', URL::Credentials::Remove), "mamba.org/");
         }
 
         SUBCASE("https://mamba.org")
@@ -594,8 +616,14 @@ TEST_SUITE("util::URL")
             url.set_user("user@email.com");
             url.set_password("pw%rd");
             url.set_path("/some /path$/");
-            CHECK_EQ(url.str(), "https://user%40email.com:pw%25rd@mamba.org/some%20/path%24/");
-            CHECK_EQ(url.pretty_str(), "https://user@email.com:pw%rd@mamba.org/some /path$/");
+            CHECK_EQ(
+                url.str(URL::Credentials::Show),
+                "https://user%40email.com:pw%25rd@mamba.org/some%20/path%24/"
+            );
+            CHECK_EQ(
+                url.pretty_str(URL::StripScheme::no, '/', URL::Credentials::Show),
+                "https://user@email.com:pw%rd@mamba.org/some /path$"
+            );
         }
     }
 
@@ -629,13 +657,13 @@ TEST_SUITE("util::URL")
         CHECK_EQ(url.authority(URL::Credentials::Remove), "mamba.org:8000");
 
         url.set_user("user@email.com");
-        CHECK_EQ(url.authority(), "user%40email.com@mamba.org:8000");
+        CHECK_EQ(url.authority(), "user%40email.com:*****@mamba.org:8000");
         CHECK_EQ(url.authority(URL::Credentials::Show), "user%40email.com@mamba.org:8000");
         CHECK_EQ(url.authority(URL::Credentials::Hide), "user%40email.com:*****@mamba.org:8000");
         CHECK_EQ(url.authority(URL::Credentials::Remove), "mamba.org:8000");
 
         url.set_password("pass");
-        CHECK_EQ(url.authority(), "user%40email.com:pass@mamba.org:8000");
+        CHECK_EQ(url.authority(), "user%40email.com:*****@mamba.org:8000");
         CHECK_EQ(url.authority(URL::Credentials::Show), "user%40email.com:pass@mamba.org:8000");
         CHECK_EQ(url.authority(URL::Credentials::Hide), "user%40email.com:*****@mamba.org:8000");
         CHECK_EQ(url.authority(URL::Credentials::Remove), "mamba.org:8000");

@@ -222,7 +222,7 @@ namespace mamba::specs
         [[nodiscard]] auto pretty_str(
             StripScheme strip_scheme = StripScheme::no,
             char rstrip_path = 0,
-            Credentials credentials = Credentials::Show
+            Credentials credentials = Credentials::Hide
         ) const -> std::string;
 
 

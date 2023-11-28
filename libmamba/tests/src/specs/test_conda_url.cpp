@@ -463,7 +463,7 @@ TEST_SUITE("specs::CondaURL")
             );
             CHECK_EQ(
                 url.pretty_str(),
-                "https://user:password@mamba.org:8080/folder/file.html?param=value#fragment"
+                "https://user:*****@mamba.org:8080/folder/file.html?param=value#fragment"
             );
         }
 
@@ -476,7 +476,7 @@ TEST_SUITE("specs::CondaURL")
             url.set_password("pw%rd");
             url.set_path("/some /path$/");
             CHECK_EQ(url.str(), "https://user%40email.com:pw%25rd@mamba.org/some%20/path%24/");
-            CHECK_EQ(url.pretty_str(), "https://user@email.com:pw%rd@mamba.org/some /path$/");
+            CHECK_EQ(url.pretty_str(), "https://user@email.com:*****@mamba.org/some /path$/");
         }
     }
 }

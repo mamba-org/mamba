@@ -28,14 +28,14 @@ namespace mamba::validation
     bool md5(const fs::u8path& path, const std::string& validation);
     bool file_size(const fs::u8path& path, std::uintmax_t validation);
 
-    const std::size_t MAMBA_SHA256_SIZE_HEX = 64;
-    const std::size_t MAMBA_SHA256_SIZE_BYTES = 32;
-    const std::size_t MAMBA_MD5_SIZE_HEX = 32;
-    const std::size_t MAMBA_MD5_SIZE_BYTES = 16;
-    const std::size_t MAMBA_ED25519_KEYSIZE_HEX = 64;
-    const std::size_t MAMBA_ED25519_KEYSIZE_BYTES = 32;
-    const std::size_t MAMBA_ED25519_SIGSIZE_HEX = 128;
-    const std::size_t MAMBA_ED25519_SIGSIZE_BYTES = 64;
+    inline constexpr std::size_t MAMBA_SHA256_SIZE_HEX = 64;
+    inline constexpr std::size_t MAMBA_SHA256_SIZE_BYTES = 32;
+    inline constexpr std::size_t MAMBA_MD5_SIZE_HEX = 32;
+    inline constexpr std::size_t MAMBA_MD5_SIZE_BYTES = 16;
+    inline constexpr std::size_t MAMBA_ED25519_KEYSIZE_HEX = 64;
+    inline constexpr std::size_t MAMBA_ED25519_KEYSIZE_BYTES = 32;
+    inline constexpr std::size_t MAMBA_ED25519_SIGSIZE_HEX = 128;
+    inline constexpr std::size_t MAMBA_ED25519_SIGSIZE_BYTES = 64;
 
     int generate_ed25519_keypair(unsigned char* pk, unsigned char* sk);
     std::pair<

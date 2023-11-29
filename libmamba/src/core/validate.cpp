@@ -235,10 +235,8 @@ namespace mamba::validation
         }
     }
 
-
     std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES>
     ed25519_sig_hex_to_bytes(const std::string& sig_hex) noexcept
-
     {
         return hex_to_bytes<MAMBA_ED25519_SIGSIZE_BYTES>(sig_hex);
     }

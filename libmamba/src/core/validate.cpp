@@ -140,11 +140,35 @@ namespace mamba::validation
     {
     }
 
+    namespace
+    {
+        struct EVPContextDeleter
+        {
+            using value_type = ::EVP_MD_CTX;
+            using pointer_type = value_type*;
+
+            void operator()(pointer_type ptr) const
+            {
+                if (ptr)
+                {
+                    ::EVP_MD_CTX_destroy(ptr);
+                }
+            }
+        };
+
+        auto make_EVP_context()
+        {
+            auto ptr = std::unique_ptr<::EVP_MD_CTX, EVPContextDeleter>();
+            ptr.reset(::EVP_MD_CTX_create());
+            return ptr;
+        }
+    }
+
     std::string sha256sum(const fs::u8path& path)
     {
         unsigned char hash[MAMBA_SHA256_SIZE_BYTES];
-        EVP_MD_CTX* mdctx = EVP_MD_CTX_create();
-        EVP_DigestInit_ex(mdctx, EVP_sha256(), nullptr);
+        auto mdctx = make_EVP_context();
+        EVP_DigestInit_ex(mdctx.get(), EVP_sha256(), nullptr);
 
         std::ifstream infile = mamba::open_ifstream(path);
 
@@ -159,11 +183,10 @@ namespace mamba::validation
             {
                 break;
             }
-            EVP_DigestUpdate(mdctx, buffer.data(), count);
+            EVP_DigestUpdate(mdctx.get(), buffer.data(), count);
         }
 
-        EVP_DigestFinal_ex(mdctx, hash, nullptr);
-        EVP_MD_CTX_destroy(mdctx);
+        EVP_DigestFinal_ex(mdctx.get(), hash, nullptr);
 
         return ::mamba::util::hex_string(hash, MAMBA_SHA256_SIZE_BYTES);
     }
@@ -172,8 +195,8 @@ namespace mamba::validation
     {
         unsigned char hash[MAMBA_MD5_SIZE_BYTES];
 
-        EVP_MD_CTX* mdctx = EVP_MD_CTX_create();
-        EVP_DigestInit_ex(mdctx, EVP_md5(), nullptr);
+        auto mdctx = make_EVP_context();
+        EVP_DigestInit_ex(mdctx.get(), EVP_md5(), nullptr);
 
         std::ifstream infile = mamba::open_ifstream(path);
 
@@ -188,11 +211,10 @@ namespace mamba::validation
             {
                 break;
             }
-            EVP_DigestUpdate(mdctx, buffer.data(), count);
+            EVP_DigestUpdate(mdctx.get(), buffer.data(), count);
         }
 
-        EVP_DigestFinal_ex(mdctx, hash, nullptr);
-        EVP_MD_CTX_destroy(mdctx);
+        EVP_DigestFinal_ex(mdctx.get(), hash, nullptr);
 
         return ::mamba::util::hex_string(hash, MAMBA_MD5_SIZE_BYTES);
     }
@@ -487,17 +509,15 @@ namespace mamba::validation
 
         std::array<unsigned char, MAMBA_SHA256_SIZE_BYTES> hash;
 
-        EVP_MD_CTX* mdctx;
-        mdctx = EVP_MD_CTX_create();
-        EVP_DigestInit_ex(mdctx, EVP_sha256(), nullptr);
+        auto mdctx = make_EVP_context();
+        EVP_DigestInit_ex(mdctx.get(), EVP_sha256(), nullptr);
 
-        EVP_DigestUpdate(mdctx, data_bin, data_len);
-        EVP_DigestUpdate(mdctx, pgp_trailer_bin.data(), pgp_trailer_bin.size());
-        EVP_DigestUpdate(mdctx, final_trailer_bin.data(), final_trailer_bin.size());
-        EVP_DigestUpdate(mdctx, reinterpret_cast<unsigned char*>(&trailer_bin_len_big_endian), 4);
+        EVP_DigestUpdate(mdctx.get(), data_bin, data_len);
+        EVP_DigestUpdate(mdctx.get(), pgp_trailer_bin.data(), pgp_trailer_bin.size());
+        EVP_DigestUpdate(mdctx.get(), final_trailer_bin.data(), final_trailer_bin.size());
+        EVP_DigestUpdate(mdctx.get(), reinterpret_cast<unsigned char*>(&trailer_bin_len_big_endian), 4);
 
-        EVP_DigestFinal_ex(mdctx, hash.data(), nullptr);
-        EVP_MD_CTX_destroy(mdctx);
+        EVP_DigestFinal_ex(mdctx.get(), hash.data(), nullptr);
 
         return verify_gpg_hashed_msg(hash.data(), pk_bin.data(), signature_bin.data());
     }

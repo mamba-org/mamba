@@ -8,7 +8,6 @@
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
-#include "mamba/core/fsutil.hpp"
 #include "mamba/core/validate.hpp"
 #include "mamba/util/string.hpp"
 
@@ -20,13 +19,14 @@ TEST_SUITE("Validate")
 {
     TEST_CASE("sha256sum")
     {
-        auto f = mamba::open_ofstream("sometestfile.txt");
+        auto tmp = TemporaryFile();
+        auto f = mamba::open_ofstream(tmp.path());
         f << "test";
         f.close();
-        auto sha256 = sha256sum("sometestfile.txt");
+        auto sha256 = sha256sum(tmp.path());
         CHECK_EQ(sha256, "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
 
-        auto md5 = md5sum("sometestfile.txt");
+        auto md5 = md5sum(tmp.path());
         CHECK_EQ(md5, "098f6bcd4621d373cade4e832627b4f6");
     }
 

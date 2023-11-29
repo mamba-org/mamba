@@ -17,11 +17,13 @@
 
 #include "mambatests.hpp"
 
+using namespace mamba::validation;
+namespace nl = nlohmann;
+
 namespace mamba::validation
 {
     namespace testing
     {
-        using nlohmann::json;
 
         TEST_SUITE("Validate")
         {
@@ -146,7 +148,7 @@ namespace mamba::validation
 
             VerifyGPGMsg()
             {
-                json j = R"({
+                nl::json j = R"({
                             "delegations": {
                             "key_mgr": {
                                 "pubkeys": [
@@ -223,7 +225,7 @@ namespace mamba::validation
                     sign_root();
                 }
 
-                fs::u8path trusted_root_file(const json& j)
+                fs::u8path trusted_root_file(const nl::json& j)
                 {
                     fs::u8path p = channel_dir->path() / "root.json";
 
@@ -244,16 +246,16 @@ namespace mamba::validation
                     return trusted_root_file(root1_pgp_json);
                 }
 
-                json create_root_update_json(const json& patch)
+                nl::json create_root_update_json(const nl::json& patch)
                 {
-                    json new_root = root1_json;
+                    nl::json new_root = root1_json;
 
                     if (!patch.empty())
                     {
                         new_root = new_root.patch(patch);
                     }
 
-                    json sig_patch = json::parse(
+                    nl::json sig_patch = nl::json::parse(
                         R"([
                                         { "op": "replace", "path": "/signatures", "value":)"
                         + sign_root_meta(new_root.at("signed")).dump() + R"( }
@@ -262,7 +264,8 @@ namespace mamba::validation
                     return new_root.patch(sig_patch);
                 }
 
-                fs::u8path create_root_update(const fs::u8path& name, const json& patch = json())
+                fs::u8path
+                create_root_update(const fs::u8path& name, const nl::json& patch = nl::json())
                 {
                     fs::u8path p = channel_dir->path() / name;
                     std::ofstream out_file(p.std_path(), std::ofstream::out | std::ofstream::trunc);
@@ -302,7 +305,7 @@ namespace mamba::validation
                     i >> root1_pgp_json;
                 }
 
-                json sign_root_meta(const json& root_meta)
+                nl::json sign_root_meta(const nl::json& root_meta)
                 {
                     std::map<std::string, std::map<std::string, std::string>> signatures;
 
@@ -319,7 +322,7 @@ namespace mamba::validation
                     return signatures;
                 }
 
-                json upgrade_to_v1(const RootImpl& root, const json& patch = json())
+                nl::json upgrade_to_v1(const RootImpl& root, const nl::json& patch = nl::json())
                 {
                     auto root_meta = root.upgraded_signable();
                     if (!patch.empty())
@@ -335,7 +338,7 @@ namespace mamba::validation
                         );
                     }
 
-                    json upgraded_root;
+                    nl::json upgraded_root;
                     upgraded_root["signed"] = root_meta;
                     upgraded_root["signatures"] = signatures;
 
@@ -345,7 +348,7 @@ namespace mamba::validation
             protected:
 
                 fs::u8path root1_pgp = mambatests::test_data_dir / "validation/1.sv0.6.root.json";
-                json root1_json, root1_pgp_json;
+                nl::json root1_json, root1_pgp_json;
 
                 secrets_type secrets;
 
@@ -441,7 +444,7 @@ namespace mamba::validation
                     auto f = trusted_root_file_raw_key();
                     RootImpl root(f);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])"_json;
                     auto updated_root = root.update(create_root_update("2.root.json", patch));
@@ -457,7 +460,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                         { "op": "replace", "path": "/signed/version", "value": 3 }
                         ])"_json;
 
@@ -471,7 +474,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                         { "op": "replace", "path": "/signed/version", "value": 2 },
                         { "op": "replace", "path": "/signed/metadata_spec_version", "value": "0.6.1" }
                         ])"_json;
@@ -487,7 +490,7 @@ namespace mamba::validation
                 {
                     v06::RootImpl root(root1_json);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                         { "op": "replace", "path": "/signed/version", "value": 2 },
                         { "op": "replace", "path": "/signed/metadata_spec_version", "value": "1.0.0" }
                         ])"_json;
@@ -497,7 +500,7 @@ namespace mamba::validation
                         spec_version_error
                     );
 
-                    json signable_patch = json::parse(
+                    nl::json signable_patch = nl::json::parse(
                         R"([
                         { "op": "replace", "path": "/version", "value": 2 },
                         { "op": "replace", "path": "/expires", "value": ")"
@@ -520,7 +523,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json signable_patch = R"([
+                    nl::json signable_patch = R"([
                         { "op": "add", "path": "/keys/dummy_value", "value": { "keytype": "ed25519", "scheme": "ed25519", "keyval": "dummy_value" } },
                         { "op": "add", "path": "/roles/snapshot/keyids", "value": ["dummy_value"] },
                         { "op": "add", "path": "/roles/timestamp/keyids", "value": ["dummy_value"] }
@@ -535,7 +538,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                         { "op": "replace", "path": "/signed/version", "value": 2 },
                         { "op": "replace", "path": "/signed/metadata_spec_version", "value": "1.0.0" }
                         ])"_json;
@@ -575,7 +578,7 @@ namespace mamba::validation
                     v06::RootImpl root(root1_json);
 
                     // "2.sv1.root.json" is upgradable spec version (spec version N+1)
-                    json signable_patch = R"([
+                    nl::json signable_patch = R"([
                         { "op": "replace", "path": "/version", "value": 2 },
                         { "op": "replace", "path": "/spec_version", "value": "1.0.0" },
                         { "op": "add", "path": "/keys/dummy_value", "value": { "keytype": "ed25519", "scheme": "ed25519", "keyval": "dummy_value" } },
@@ -588,7 +591,7 @@ namespace mamba::validation
                     CHECK_EQ(testing_root->spec_version(), SpecImpl("1.0.0"));
 
                     // "2.sv2.root.json" is not upgradable spec version (spec version N+1)
-                    json patch = R"([
+                    nl::json patch = R"([
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])"_json;
                     CHECK_THROWS_AS(
@@ -610,7 +613,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                         { "op": "replace", "path": "/signed/version", "value": 1 }
                         ])"_json;
 
@@ -624,7 +627,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                         { "op": "replace", "path": "/signed/type", "value": "timestamp" },
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])"_json;
@@ -639,7 +642,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                         { "op": "remove", "path": "/signed/type" },
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])"_json;
@@ -654,7 +657,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                         { "op": "remove", "path": "/signed/delegations" },
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])"_json;
@@ -669,7 +672,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                                     { "op": "remove", "path": "/signed/delegations/root" },
                                     { "op": "replace", "path": "/signed/version", "value": 2 }
                                     ])"_json;
@@ -684,7 +687,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                                     { "op": "replace", "path": "/signed/delegations/root/pubkeys", "value": [] },
                                     { "op": "replace", "path": "/signed/version", "value": 2 }
                                     ])"_json;
@@ -699,7 +702,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                                     { "op": "replace", "path": "/signed/delegations/root/threshold", "value": 0 },
                                     { "op": "replace", "path": "/signed/version", "value": 2 }
                                     ])"_json;
@@ -714,7 +717,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                                     { "op": "add", "path": "/signed/delegations/some_wrong_role",
                                         "value": { "pubkeys": ["c"], "threshold": 1 } },
                                     { "op": "replace", "path": "/signed/version", "value": 2 }
@@ -744,7 +747,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                         { "op": "replace", "path": "/signed/version", "value": 2 },
                         { "op": "replace", "path": "/signed/delegations/root/threshold", "value": 2 }
                         ])"_json;
@@ -763,7 +766,7 @@ namespace mamba::validation
                     time_ref.set(utc_time_now() + 7200);
                     CHECK(root.expired(time_ref));
 
-                    json patch = json::parse(
+                    nl::json patch = nl::json::parse(
                         R"([
                         { "op": "replace", "path": "/signed/expiration", "value": ")"
                         + timestamp(utc_time_now() + 10800) + R"(" },
@@ -780,9 +783,9 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch;
+                    nl::json patch;
 
-                    patch = json::parse(R"([
+                    patch = nl::json::parse(R"([
                         { "op": "replace", "path": "/signed/timestamp", "value": "2021-09-20T07:07:09+0030" },
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])");
@@ -791,7 +794,7 @@ namespace mamba::validation
                         role_metadata_error
                     );
 
-                    patch = json::parse(R"([
+                    patch = nl::json::parse(R"([
                         { "op": "replace", "path": "/signed/timestamp", "value": "2021-09-20T07:07:09D" },
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])");
@@ -800,7 +803,7 @@ namespace mamba::validation
                         role_metadata_error
                     );
 
-                    patch = json::parse(R"([
+                    patch = nl::json::parse(R"([
                         { "op": "replace", "path": "/signed/timestamp", "value": "2021-09-20T07:07:09.000" },
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])");
@@ -820,7 +823,7 @@ namespace mamba::validation
                     CHECK(update_f[2].string().c_str() == doctest::Contains("2.sv0.6.root.json"));
                     CHECK(update_f[3].string().c_str() == doctest::Contains("2.root.json"));
 
-                    json patch = json::parse(R"([
+                    nl::json patch = nl::json::parse(R"([
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])");
                     auto updated_root = root.update(create_root_update("2.root.json", patch));
@@ -916,7 +919,7 @@ namespace mamba::validation
 
                 TEST_CASE_FIXTURE(SpecImplT_v06, "signatures")
                 {
-                    json j = R"({
+                    nl::json j = R"({
                                     "signatures":
                                     {
                                         "foo":
@@ -963,16 +966,16 @@ namespace mamba::validation
                     key_mgr_json["signatures"] = sign_key_mgr_meta(key_mgr_json["signed"]);
                 }
 
-                json patched_key_mgr_json(const json& patch = json())
+                nl::json patched_key_mgr_json(const nl::json& patch = nl::json())
                 {
-                    json update_key_mgr = key_mgr_json;
+                    nl::json update_key_mgr = key_mgr_json;
 
                     if (!patch.empty())
                     {
                         update_key_mgr = update_key_mgr.patch(patch);
                     }
 
-                    json sig_patch = json::parse(
+                    nl::json sig_patch = nl::json::parse(
                         R"([
                             { "op": "replace", "path": "/signatures", "value": )"
                         + sign_key_mgr_meta(update_key_mgr.at("signed")).dump() + R"( }
@@ -982,7 +985,7 @@ namespace mamba::validation
                 }
 
                 fs::u8path
-                write_key_mgr_file(const json& j, const std::string& filename = "key_mgr.json")
+                write_key_mgr_file(const nl::json& j, const std::string& filename = "key_mgr.json")
                 {
                     fs::u8path p = channel_dir->path() / filename;
 
@@ -995,9 +998,9 @@ namespace mamba::validation
 
             protected:
 
-                json key_mgr_json;
+                nl::json key_mgr_json;
 
-                json sign_key_mgr_meta(const json& meta)
+                nl::json sign_key_mgr_meta(const nl::json& meta)
                 {
                     std::map<std::string, std::map<std::string, std::string>> signatures;
 
@@ -1044,7 +1047,7 @@ namespace mamba::validation
                     RootImpl root(root1_json);
 
                     {
-                        json key_mgr_patch = R"([
+                        nl::json key_mgr_patch = R"([
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])"_json;
                         auto key_mgr = root.create_key_mgr(patched_key_mgr_json(key_mgr_patch));
@@ -1054,7 +1057,7 @@ namespace mamba::validation
                     }
 
                     {  // Any version is valid, without chaining required
-                        json key_mgr_patch = R"([
+                        nl::json key_mgr_patch = R"([
                         { "op": "replace", "path": "/signed/version", "value": 20 }
                         ])"_json;
                         auto key_mgr = root.create_key_mgr(patched_key_mgr_json(key_mgr_patch));
@@ -1069,7 +1072,7 @@ namespace mamba::validation
                     RootImpl root(root1_json);
 
                     {
-                        json key_mgr_patch = R"([
+                        nl::json key_mgr_patch = R"([
                         { "op": "replace", "path": "/signed/metadata_spec_version", "value": "0.6.0" }
                         ])"_json;
                         auto key_mgr = root.create_key_mgr(patched_key_mgr_json(key_mgr_patch));
@@ -1079,7 +1082,7 @@ namespace mamba::validation
                     }
 
                     {  // is compatible but not strictly the same as 'root' one
-                        json key_mgr_patch = R"([
+                        nl::json key_mgr_patch = R"([
                         { "op": "replace", "path": "/signed/metadata_spec_version", "value": "0.6.1" }
                         ])"_json;
 
@@ -1090,7 +1093,7 @@ namespace mamba::validation
                     }
 
                     {  // wrong type
-                        json key_mgr_patch = R"([
+                        nl::json key_mgr_patch = R"([
                         { "op": "replace", "path": "/signed/metadata_spec_version", "value": 0.6 }
                         ])"_json;
 
@@ -1150,7 +1153,7 @@ namespace mamba::validation
                     CHECK(key_mgr.expired(time_ref));
                     CHECK(root.expired(time_ref));
 
-                    json patch = json::parse(
+                    nl::json patch = nl::json::parse(
                         R"([
                         { "op": "replace", "path": "/signed/expiration", "value": ")"
                         + timestamp(utc_time_now() + 10800) + R"(" }
@@ -1166,9 +1169,9 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch;
+                    nl::json patch;
 
-                    patch = json::parse(R"([
+                    patch = nl::json::parse(R"([
                         { "op": "replace", "path": "/signed/timestamp", "value": "2021-09-20T07:07:09+0030" },
                         { "op": "replace", "path": "/signed/version", "value": 1 }
                         ])");
@@ -1178,7 +1181,7 @@ namespace mamba::validation
                         role_metadata_error
                     );
 
-                    patch = json::parse(R"([
+                    patch = nl::json::parse(R"([
                         { "op": "replace", "path": "/signed/timestamp", "value": "2021-09-20T07:07:09D" },
                         { "op": "replace", "path": "/signed/version", "value": 1 }
                         ])");
@@ -1187,7 +1190,7 @@ namespace mamba::validation
                         role_metadata_error
                     );
 
-                    patch = json::parse(R"([
+                    patch = nl::json::parse(R"([
                         { "op": "replace", "path": "/signed/timestamp", "value": "2021-09-20T07:07:09.000" },
                         { "op": "replace", "path": "/signed/version", "value": 1 }
                         ])");
@@ -1210,18 +1213,18 @@ namespace mamba::validation
                     root = std::make_unique<RootImpl>(root1_json);
                 };
 
-                json sign_repodata(const json& patch = json())
+                nl::json sign_repodata(const nl::json& patch = nl::json())
                 {
-                    json updated_repodata = repodata_json;
+                    nl::json updated_repodata = repodata_json;
 
                     if (!patch.empty())
                     {
                         updated_repodata = updated_repodata.patch(patch);
                     }
 
-                    for (auto& it : updated_repodata.at("packages").get<json::object_t>())
+                    for (auto& it : updated_repodata.at("packages").get<nl::json::object_t>())
                     {
-                        json sig_patch = json::parse(
+                        nl::json sig_patch = nl::json::parse(
                             R"({
                                 "signatures": { ")"
                             + it.first + "\":" + sign_repodata_meta(it.second).dump() + R"(
@@ -1240,7 +1243,7 @@ namespace mamba::validation
                     {
                         pkg_mgr_pks.push_back(secret.first);
                     }
-                    pkg_mgr_json["signed"]["delegations"] = json::object();
+                    pkg_mgr_json["signed"]["delegations"] = nl::json::object();
 
                     pkg_mgr_json["signed"]["version"] = 1;
                     pkg_mgr_json["signed"]["metadata_spec_version"] = "0.6.0";
@@ -1251,16 +1254,16 @@ namespace mamba::validation
                     pkg_mgr_json["signatures"] = sign_pkg_mgr_meta(pkg_mgr_json["signed"]);
                 }
 
-                json patched_pkg_mgr_json(const json& patch = json())
+                nl::json patched_pkg_mgr_json(const nl::json& patch = nl::json())
                 {
-                    json update_pkg_mgr = pkg_mgr_json;
+                    nl::json update_pkg_mgr = pkg_mgr_json;
 
                     if (!patch.empty())
                     {
                         update_pkg_mgr = update_pkg_mgr.patch(patch);
                     }
 
-                    json sig_patch = json::parse(
+                    nl::json sig_patch = nl::json::parse(
                         R"([
                             { "op": "replace", "path": "/signatures", "value": )"
                         + sign_pkg_mgr_meta(update_pkg_mgr.at("signed")).dump() + R"( }
@@ -1270,7 +1273,7 @@ namespace mamba::validation
                 }
 
                 fs::u8path
-                write_pkg_mgr_file(const json& j, const std::string& filename = "pkg_mgr.json")
+                write_pkg_mgr_file(const nl::json& j, const std::string& filename = "pkg_mgr.json")
                 {
                     fs::u8path p = channel_dir->path() / filename;
 
@@ -1283,11 +1286,11 @@ namespace mamba::validation
 
             protected:
 
-                json pkg_mgr_json, repodata_json, signed_repodata_json;
+                nl::json pkg_mgr_json, repodata_json, signed_repodata_json;
 
                 std::unique_ptr<RootImpl> root;
 
-                json sign_pkg_mgr_meta(const json& meta)
+                nl::json sign_pkg_mgr_meta(const nl::json& meta)
                 {
                     std::map<std::string, std::map<std::string, std::string>> signatures;
 
@@ -1335,7 +1338,7 @@ namespace mamba::validation
                     signed_repodata_json = sign_repodata();
                 }
 
-                json sign_repodata_meta(const json& meta)
+                nl::json sign_repodata_meta(const nl::json& meta)
                 {
                     std::map<std::string, std::map<std::string, std::string>> signatures;
 
@@ -1368,7 +1371,7 @@ namespace mamba::validation
                     auto key_mgr = root->create_key_mgr(key_mgr_json);
                     auto pkg_mgr = key_mgr.create_pkg_mgr(pkg_mgr_json);
 
-                    json wrong_pkg_patch = R"([
+                    nl::json wrong_pkg_patch = R"([
                                 { "op": "replace", "path": "/packages/test-package1-0.1-0.tar.bz2/version", "value": "0.1.1" }
                                 ])"_json;
                     CHECK_THROWS_AS(
@@ -1382,7 +1385,7 @@ namespace mamba::validation
                     auto key_mgr = root->create_key_mgr(key_mgr_json);
                     auto pkg_mgr = key_mgr.create_pkg_mgr(pkg_mgr_json);
 
-                    json illformed_pkg_patch = R"([
+                    nl::json illformed_pkg_patch = R"([
                                 { "op": "remove", "path": "/signatures"}
                                 ])"_json;
                     CHECK_THROWS_AS(
@@ -1405,7 +1408,7 @@ namespace mamba::validation
 
                     write_role(root1_json, channel_dir->path() / "root.json");
 
-                    json patch = json::parse(R"([
+                    nl::json patch = nl::json::parse(R"([
                             { "op": "replace", "path": "/signed/version", "value": 2 }
                     ])");
                     write_role(create_root_update_json(patch), channel_dir->path() / "2.root.json");
@@ -1425,7 +1428,7 @@ namespace mamba::validation
 
                 std::string m_ref_path, m_repo_base_url;
 
-                void write_role(const json& j, const fs::u8path& p)
+                void write_role(const nl::json& j, const fs::u8path& p)
                 {
                     fs::u8path expanded_p = util::expand_home(p.string());
                     path::touch(expanded_p, true);
@@ -1456,7 +1459,7 @@ namespace mamba::validation
 
                 TEST_CASE_FIXTURE(RepoCheckerT, "root_freeze_attack")
                 {
-                    json patch = json::parse(
+                    nl::json patch = nl::json::parse(
                         R"([
                                         { "op": "replace", "path": "/signed/version", "value": 2 },
                                         { "op": "replace", "path": "/signed/expiration", "value": ")"
@@ -1470,7 +1473,7 @@ namespace mamba::validation
 
                 TEST_CASE_FIXTURE(RepoCheckerT, "key_mgr_freeze_attack")
                 {
-                    json patch = json::parse(
+                    nl::json patch = nl::json::parse(
                         R"([
                                         { "op": "replace", "path": "/signed/expiration", "value": ")"
                         + timestamp(utc_time_now() - 10) + R"(" }
@@ -1492,7 +1495,7 @@ namespace mamba::validation
                 {
                     RepoChecker checker(mambatests::context(), m_repo_base_url, m_ref_path);
 
-                    json wrong_pkg_patch = R"([
+                    nl::json wrong_pkg_patch = R"([
                                 { "op": "replace", "path": "/packages/test-package1-0.1-0.tar.bz2/version", "value": "0.1.1" }
                                 ])"_json;
                     checker.generate_index_checker();
@@ -1506,7 +1509,7 @@ namespace mamba::validation
                 {
                     RepoChecker checker(mambatests::context(), m_repo_base_url, m_ref_path);
 
-                    json illformed_pkg_patch = R"([
+                    nl::json illformed_pkg_patch = R"([
                                 { "op": "remove", "path": "/signatures"}
                                 ])"_json;
                     checker.generate_index_checker();
@@ -1552,20 +1555,21 @@ namespace mamba::validation
                     return p;
                 }
 
-                fs::u8path create_root_update(const fs::u8path& name, const json& patch = json())
+                fs::u8path
+                create_root_update(const fs::u8path& name, const nl::json& patch = nl::json())
                 {
                     fs::u8path p = channel_dir->path() / name;
 
                     std::ofstream out_file(p.std_path(), std::ofstream::out | std::ofstream::trunc);
 
-                    json new_root = root1_json;
+                    nl::json new_root = root1_json;
 
                     if (!patch.empty())
                     {
                         new_root = new_root.patch(patch);
                     }
 
-                    json sig_patch = json::parse(
+                    nl::json sig_patch = nl::json::parse(
                         R"([
                                         { "op": "replace", "path": "/signatures", "value":)"
                         + sign_root_meta(new_root.at("signed")).dump() + R"(}
@@ -1612,7 +1616,7 @@ namespace mamba::validation
                     root1_json["signatures"] = sign_root_meta(root1_json["signed"]);
                 }
 
-                json sign_root_meta(const json& root_meta)
+                nl::json sign_root_meta(const nl::json& root_meta)
                 {
                     std::vector<RoleSignature> signatures;
                     unsigned char sig_bin[MAMBA_ED25519_SIGSIZE_BYTES];
@@ -1631,7 +1635,7 @@ namespace mamba::validation
             protected:
 
                 fs::u8path root1 = mambatests::test_data_dir / "validation/root.json";
-                json root1_json;
+                nl::json root1_json;
 
                 std::unique_ptr<TemporaryDirectory> channel_dir;
 
@@ -1684,7 +1688,7 @@ namespace mamba::validation
 
                     RootImpl root(trusted_root_file());
 
-                    json patch = R"([
+                    nl::json patch = R"([
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])"_json;
                     auto updated_root = root.update(create_root_update("2.root.json", patch));
@@ -1712,7 +1716,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                         { "op": "replace", "path": "/signed/version", "value": 3 }
                         ])"_json;
 
@@ -1726,7 +1730,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                         { "op": "replace", "path": "/signed/version", "value": 2 },
                         { "op": "replace", "path": "/signed/spec_version", "value": "1.30.10" }
                         ])"_json;
@@ -1742,7 +1746,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                         { "op": "replace", "path": "/signed/spec_version", "value": "2.0.0" }
                         ])"_json;
 
@@ -1756,7 +1760,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([])"_json;
+                    nl::json patch = R"([])"_json;
 
                     CHECK_THROWS_AS(
                         root.update(create_root_update("2.rooot.json", patch)),
@@ -1768,7 +1772,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([])"_json;
+                    nl::json patch = R"([])"_json;
 
                     CHECK_THROWS_AS(
                         root.update(create_root_update("3.root.json", patch)),
@@ -1798,7 +1802,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([])"_json;
+                    nl::json patch = R"([])"_json;
 
                     CHECK_THROWS_AS(
                         root.update(create_root_update("wrong.root.json", patch)),
@@ -1810,7 +1814,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                         { "op": "replace", "path": "/signed/version", "value": 1 }
                         ])"_json;
 
@@ -1824,7 +1828,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                         { "op": "replace", "path": "/signed/_type", "value": "timestamp" },
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])"_json;
@@ -1839,7 +1843,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                         { "op": "remove", "path": "/signed/_type" },
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])"_json;
@@ -1854,7 +1858,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                         { "op": "remove", "path": "/signed/keys" },
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])"_json;
@@ -1869,7 +1873,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                         { "op": "remove", "path": "/signed/roles" },
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])"_json;
@@ -1884,7 +1888,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                         { "op": "remove", "path": "/signed/roles/timestamp" },
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])"_json;
@@ -1899,7 +1903,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                                     { "op": "replace", "path": "/signed/roles/snapshot/keyids", "value": [] },
                                     { "op": "replace", "path": "/signed/version", "value": 2 }
                                     ])"_json;
@@ -1914,7 +1918,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                                     { "op": "replace", "path": "/signed/roles/snapshot/threshold", "value": 0 },
                                     { "op": "replace", "path": "/signed/version", "value": 2 }
                                     ])"_json;
@@ -1929,7 +1933,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                         { "op": "add", "path": "/signed/roles/some_wrong_role", "value": { "keyids": ["c"], "threshold": 1 } },
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])"_json;
@@ -1944,7 +1948,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                         { "op": "add", "path": "/signed/roles/snapshot/keyids/-", "value": "c" },
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])"_json;
@@ -1957,7 +1961,7 @@ namespace mamba::validation
 
                 TEST_CASE_FIXTURE(RootImplT_v1, "mirrors_role")
                 {
-                    json patch = R"([
+                    nl::json patch = R"([
                         { "op": "add", "path": "/signed/roles/mirrors", "value": { "keyids": ["c"], "threshold": 1 } },
                         { "op": "add", "path": "/signed/keys/c", "value": { "scheme": "ed25519", "keytype": "ed25519", "keyval": "c"} },
                         { "op": "replace", "path": "/signed/version", "value": 2 }
@@ -1973,7 +1977,7 @@ namespace mamba::validation
                 {
                     RootImpl root(root1_json);
 
-                    json patch = R"([
+                    nl::json patch = R"([
                         { "op": "replace", "path": "/signed/version", "value": 2 },
                         { "op": "replace", "path": "/signed/roles/root/threshold", "value": 2 }
                         ])"_json;
@@ -1992,7 +1996,7 @@ namespace mamba::validation
                     time_ref.set(utc_time_now() + 7200);
                     CHECK(root.expired(time_ref));
 
-                    json patch = json::parse(
+                    nl::json patch = nl::json::parse(
                         R"([
                         { "op": "replace", "path": "/signed/expires", "value": ")"
                         + timestamp(utc_time_now() + 10800) + R"(" },
@@ -2004,7 +2008,7 @@ namespace mamba::validation
                     auto testing_root = static_cast<RootImpl*>(updated_root.get());
                     CHECK_FALSE(testing_root->expired(time_ref));
 
-                    patch = json::parse(R"([
+                    patch = nl::json::parse(R"([
                         { "op": "replace", "path": "/signed/expires", "value": "2051-10-08T07:07:09+0030" },
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])");
@@ -2013,7 +2017,7 @@ namespace mamba::validation
                         role_metadata_error
                     );
 
-                    patch = json::parse(R"([
+                    patch = nl::json::parse(R"([
                         { "op": "replace", "path": "/signed/expires", "value": "2051-10-08T07:07:09D" },
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])");
@@ -2022,7 +2026,7 @@ namespace mamba::validation
                         role_metadata_error
                     );
 
-                    patch = json::parse(R"([
+                    patch = nl::json::parse(R"([
                         { "op": "replace", "path": "/signed/expires", "value": "2051-10-08T07:07:09.000" },
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])");
@@ -2041,7 +2045,7 @@ namespace mamba::validation
                     CHECK(update_f[1].string().c_str() == doctest::Contains("2.sv1.root.json"));
                     CHECK(update_f[2].string().c_str() == doctest::Contains("2.root.json"));
 
-                    json patch = json::parse(R"([
+                    nl::json patch = nl::json::parse(R"([
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])");
                     auto updated_root = root.update(create_root_update("2.root.json", patch));
@@ -2132,7 +2136,7 @@ namespace mamba::validation
 
                 TEST_CASE_FIXTURE(SpecImplT_v1, "signatures")
                 {
-                    json j = R"({
+                    nl::json j = R"({
                                     "signatures":
                                     [
                                         {
@@ -2156,12 +2160,12 @@ namespace mamba::validation
                 TEST_CASE("to_json")
                 {
                     RoleSignature s{ "some_key_id", "some_signature", "" };
-                    json j = R"({"keyid": "some_key_id", "sig": "some_signature"})"_json;
-                    CHECK_EQ(j, json(s));
+                    nl::json j = R"({"keyid": "some_key_id", "sig": "some_signature"})"_json;
+                    CHECK_EQ(j, nl::json(s));
 
                     s = { "some_key_id", "some_signature", "some_pgp_trailer" };
                     j = R"({"keyid": "some_key_id", "other_headers": "some_pgp_trailer", "sig": "some_signature"})"_json;
-                    CHECK_EQ(j, json(s));
+                    CHECK_EQ(j, nl::json(s));
                 }
             }
         }  // namespace testing

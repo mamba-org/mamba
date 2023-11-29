@@ -24,6 +24,7 @@ set(
     # Utility library
     src/util/test_cast.cpp
     src/util/test_compare.cpp
+    src/util/test_cryptography.cpp
     src/util/test_environment.cpp
     src/util/test_flat_bool_expr_tree.cpp
     src/util/test_flat_set.cpp

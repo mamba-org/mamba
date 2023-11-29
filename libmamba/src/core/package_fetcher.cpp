@@ -68,11 +68,7 @@ namespace mamba
      * PatckageFetcher *
      *******************/
 
-    PackageFetcher::PackageFetcher(
-        const PackageInfo& pkg_info,
-        // ChannelContext& channel_context,
-        MultiPackageCache& caches
-    )
+    PackageFetcher::PackageFetcher(const PackageInfo& pkg_info, MultiPackageCache& caches)
 
         : m_package_info(pkg_info)
     {

@@ -207,7 +207,7 @@ namespace mamba::specs
         auto clear_package() -> bool;
 
         /** Return the full, exact, encoded URL. */
-        [[nodiscard]] auto str(Credentials credentials = Credentials::Show) const -> std::string;
+        [[nodiscard]] auto str(Credentials credentials = Credentials::Hide) const -> std::string;
 
         /**
          * Return the full decoded url.

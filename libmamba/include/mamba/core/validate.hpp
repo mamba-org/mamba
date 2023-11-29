@@ -101,9 +101,9 @@ namespace mamba::validation
     {
     public:
 
-        trust_error(const std::string& message) noexcept;
-        virtual ~trust_error() = default;
-        virtual const char* what() const noexcept override;
+        trust_error(std::string_view message);
+        ~trust_error() override = default;
+        [[nodiscard]] auto what() const noexcept -> const char* override;
 
     private:
 
@@ -120,8 +120,8 @@ namespace mamba::validation
     {
     public:
 
-        threshold_error() noexcept;
-        virtual ~threshold_error() = default;
+        threshold_error();
+        ~threshold_error() override = default;
     };
 
     /**
@@ -132,8 +132,8 @@ namespace mamba::validation
     {
     public:
 
-        role_metadata_error() noexcept;
-        virtual ~role_metadata_error() = default;
+        role_metadata_error();
+        ~role_metadata_error() override = default;
     };
 
 
@@ -145,8 +145,8 @@ namespace mamba::validation
     {
     public:
 
-        role_file_error() noexcept;
-        virtual ~role_file_error() = default;
+        role_file_error();
+        ~role_file_error() override = default;
     };
 
 
@@ -158,8 +158,8 @@ namespace mamba::validation
     {
     public:
 
-        rollback_error() noexcept;
-        virtual ~rollback_error() = default;
+        rollback_error();
+        ~rollback_error() override = default;
     };
 
 
@@ -171,8 +171,8 @@ namespace mamba::validation
     {
     public:
 
-        freeze_error() noexcept;
-        virtual ~freeze_error() = default;
+        freeze_error();
+        ~freeze_error() override = default;
     };
 
 
@@ -184,8 +184,8 @@ namespace mamba::validation
     {
     public:
 
-        spec_version_error() noexcept;
-        virtual ~spec_version_error() = default;
+        spec_version_error();
+        ~spec_version_error() override = default;
     };
 
 
@@ -197,8 +197,8 @@ namespace mamba::validation
     {
     public:
 
-        fetching_error() noexcept;
-        virtual ~fetching_error() = default;
+        fetching_error();
+        ~fetching_error() override = default;
     };
 
 
@@ -210,8 +210,8 @@ namespace mamba::validation
     {
     public:
 
-        package_error() noexcept;
-        virtual ~package_error() = default;
+        package_error();
+        ~package_error() override = default;
     };
 
     /**
@@ -222,8 +222,8 @@ namespace mamba::validation
     {
     public:
 
-        role_error() noexcept;
-        virtual ~role_error() = default;
+        role_error();
+        ~role_error() override = default;
     };
 
     /**
@@ -234,8 +234,8 @@ namespace mamba::validation
     {
     public:
 
-        index_error() noexcept;
-        virtual ~index_error() = default;
+        index_error();
+        ~index_error() override = default;
     };
 
     void check_timestamp_metadata_format(const std::string& ts);

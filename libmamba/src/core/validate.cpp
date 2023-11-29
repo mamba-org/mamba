@@ -24,63 +24,62 @@
 namespace mamba::validation
 {
 
-    trust_error::trust_error(const std::string& message) noexcept
-        : m_message("Content trust error. " + message + ". Aborting.")
+    trust_error::trust_error(std::string_view message)
+        : m_message(util::concat("Content trust error. ", message, ". Aborting."))
     {
-        mamba::Console::stream() << this->m_message << '\n';
     }
 
-    const char* trust_error::what() const noexcept
+    auto trust_error::what() const noexcept -> const char*
     {
         return this->m_message.c_str();
     }
 
-    threshold_error::threshold_error() noexcept
+    threshold_error::threshold_error()
         : trust_error("Signatures threshold not met")
     {
     }
 
-    role_metadata_error::role_metadata_error() noexcept
+    role_metadata_error::role_metadata_error()
         : trust_error("Invalid role metadata")
     {
     }
 
-    rollback_error::rollback_error() noexcept
+    rollback_error::rollback_error()
         : trust_error("Possible rollback attack")
     {
     }
 
-    freeze_error::freeze_error() noexcept
+    freeze_error::freeze_error()
         : trust_error("Possible freeze attack")
     {
     }
 
-    role_file_error::role_file_error() noexcept
+    role_file_error::role_file_error()
         : trust_error("Invalid role file")
     {
     }
 
-    spec_version_error::spec_version_error() noexcept
+    spec_version_error::spec_version_error()
         : trust_error("Unsupported specification version")
     {
     }
 
-    fetching_error::fetching_error() noexcept
+    fetching_error::fetching_error()
         : trust_error("Failed to fetch role metadata")
     {
     }
 
-    package_error::package_error() noexcept
+    package_error::package_error()
         : trust_error("Invalid package")
     {
     }
 
-    role_error::role_error() noexcept
+    role_error::role_error()
         : trust_error("Invalid role")
     {
     }
 
-    index_error::index_error() noexcept
+    index_error::index_error()
         : trust_error("Invalid package index metadata")
     {
     }

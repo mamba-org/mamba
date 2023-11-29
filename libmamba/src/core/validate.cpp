@@ -206,7 +206,7 @@ namespace mamba::validation
         }
 
         template <size_t S, class B>
-        std::array<unsigned char, S> hex_to_bytes(const B& buffer, int& error_code)
+        std::array<unsigned char, S> hex_to_bytes(const B& buffer, int& error_code) noexcept
         {
             std::array<unsigned char, S> res{};
             if (buffer.size() != (S * 2))
@@ -221,7 +221,7 @@ namespace mamba::validation
             std::size_t i = 0;
             for (auto pos = buffer.cbegin(); pos < buffer.cend(); pos += 2)
             {
-                extract.assign(pos, pos + 2);
+                extract.assign(pos, pos + 2);  // noexcept SSO
                 res[i] = static_cast<unsigned char>(std::stoi(extract, nullptr, 16));
                 ++i;
             }

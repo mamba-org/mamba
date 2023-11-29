@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <array>
 #include <iostream>
 #include <regex>
 #include <set>
@@ -11,6 +12,7 @@
 #include <string>
 #include <vector>
 
+#include <nlohmann/json.hpp>
 #include <openssl/evp.h>
 
 #include "mamba/core/context.hpp"
@@ -20,131 +22,98 @@
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
 
-namespace mamba
-{
-    template <class B>
-    std::vector<unsigned char> hex_to_bytes(const B& buffer, std::size_t size) noexcept
-    {
-        std::vector<unsigned char> res;
-        if (size % 2 != 0)
-        {
-            return res;
-        }
-
-        std::string extract;
-        for (auto pos = buffer.cbegin(); pos < buffer.cend(); pos += 2)
-        {
-            extract.assign(pos, pos + 2);
-            res.push_back(static_cast<unsigned char>(std::stoi(extract, nullptr, 16)));
-        }
-        return res;
-    }
-
-    template <class B>
-    std::vector<unsigned char> hex_to_bytes(const B& buffer) noexcept
-    {
-        return hex_to_bytes(buffer, buffer.size());
-    }
-
-    template <size_t S, class B>
-    std::array<unsigned char, S> hex_to_bytes(const B& buffer, int& error_code) noexcept
-    {
-        std::array<unsigned char, S> res{};
-        if (buffer.size() != (S * 2))
-        {
-            LOG_DEBUG << "Wrong size for hexadecimal buffer, expected " << S * 2 << " but is "
-                      << buffer.size();
-            error_code = 1;
-            return res;
-        }
-
-        std::string extract;
-        std::size_t i = 0;
-        for (auto pos = buffer.cbegin(); pos < buffer.cend(); pos += 2)
-        {
-            extract.assign(pos, pos + 2);
-            res[i] = static_cast<unsigned char>(std::stoi(extract, nullptr, 16));
-            ++i;
-        }
-        return res;
-    }
-
-    template <size_t S, class B>
-    std::array<unsigned char, S> hex_to_bytes(const B& buffer) noexcept
-    {
-        int ec;
-        return hex_to_bytes<S>(buffer, ec);
-    }
-}
-
 namespace mamba::validation
 {
-    trust_error::trust_error(const std::string& message) noexcept
-        : m_message("Content trust error. " + message + ". Aborting.")
+
+    trust_error::trust_error(std::string_view message)
+        : m_message(util::concat("Content trust error. ", message, ". Aborting."))
     {
-        mamba::Console::stream() << this->m_message << '\n';
     }
 
-    const char* trust_error::what() const noexcept
+    auto trust_error::what() const noexcept -> const char*
     {
         return this->m_message.c_str();
     }
 
-    threshold_error::threshold_error() noexcept
+    threshold_error::threshold_error()
         : trust_error("Signatures threshold not met")
     {
     }
 
-    role_metadata_error::role_metadata_error() noexcept
+    role_metadata_error::role_metadata_error()
         : trust_error("Invalid role metadata")
     {
     }
 
-    rollback_error::rollback_error() noexcept
+    rollback_error::rollback_error()
         : trust_error("Possible rollback attack")
     {
     }
 
-    freeze_error::freeze_error() noexcept
+    freeze_error::freeze_error()
         : trust_error("Possible freeze attack")
     {
     }
 
-    role_file_error::role_file_error() noexcept
+    role_file_error::role_file_error()
         : trust_error("Invalid role file")
     {
     }
 
-    spec_version_error::spec_version_error() noexcept
+    spec_version_error::spec_version_error()
         : trust_error("Unsupported specification version")
     {
     }
 
-    fetching_error::fetching_error() noexcept
+    fetching_error::fetching_error()
         : trust_error("Failed to fetch role metadata")
     {
     }
 
-    package_error::package_error() noexcept
+    package_error::package_error()
         : trust_error("Invalid package")
     {
     }
 
-    role_error::role_error() noexcept
+    role_error::role_error()
         : trust_error("Invalid role")
     {
     }
 
-    index_error::index_error() noexcept
+    index_error::index_error()
         : trust_error("Invalid package index metadata")
     {
     }
 
+    namespace
+    {
+        struct EVPContextDeleter
+        {
+            using value_type = ::EVP_MD_CTX;
+            using pointer_type = value_type*;
+
+            void operator()(pointer_type ptr) const
+            {
+                if (ptr)
+                {
+                    ::EVP_MD_CTX_destroy(ptr);
+                }
+            }
+        };
+
+        auto make_EVP_context()
+        {
+            auto ptr = std::unique_ptr<::EVP_MD_CTX, EVPContextDeleter>();
+            ptr.reset(::EVP_MD_CTX_create());
+            return ptr;
+        }
+    }
+
     std::string sha256sum(const fs::u8path& path)
     {
-        unsigned char hash[MAMBA_SHA256_SIZE_BYTES];
-        EVP_MD_CTX* mdctx = EVP_MD_CTX_create();
-        EVP_DigestInit_ex(mdctx, EVP_sha256(), nullptr);
+        auto hash = std::array<unsigned char, MAMBA_SHA256_SIZE_BYTES>{};
+        auto mdctx = make_EVP_context();
+        EVP_DigestInit_ex(mdctx.get(), EVP_sha256(), nullptr);
 
         std::ifstream infile = mamba::open_ifstream(path);
 
@@ -159,21 +128,20 @@ namespace mamba::validation
             {
                 break;
             }
-            EVP_DigestUpdate(mdctx, buffer.data(), count);
+            EVP_DigestUpdate(mdctx.get(), buffer.data(), count);
         }
 
-        EVP_DigestFinal_ex(mdctx, hash, nullptr);
-        EVP_MD_CTX_destroy(mdctx);
+        EVP_DigestFinal_ex(mdctx.get(), hash.data(), nullptr);
 
         return ::mamba::util::hex_string(hash, MAMBA_SHA256_SIZE_BYTES);
     }
 
     std::string md5sum(const fs::u8path& path)
     {
-        unsigned char hash[MAMBA_MD5_SIZE_BYTES];
+        auto hash = std::array<unsigned char, MAMBA_SHA256_SIZE_BYTES>{};
 
-        EVP_MD_CTX* mdctx = EVP_MD_CTX_create();
-        EVP_DigestInit_ex(mdctx, EVP_md5(), nullptr);
+        auto mdctx = make_EVP_context();
+        EVP_DigestInit_ex(mdctx.get(), EVP_md5(), nullptr);
 
         std::ifstream infile = mamba::open_ifstream(path);
 
@@ -188,11 +156,10 @@ namespace mamba::validation
             {
                 break;
             }
-            EVP_DigestUpdate(mdctx, buffer.data(), count);
+            EVP_DigestUpdate(mdctx.get(), buffer.data(), count);
         }
 
-        EVP_DigestFinal_ex(mdctx, hash, nullptr);
-        EVP_MD_CTX_destroy(mdctx);
+        EVP_DigestFinal_ex(mdctx.get(), hash.data(), nullptr);
 
         return ::mamba::util::hex_string(hash, MAMBA_MD5_SIZE_BYTES);
     }
@@ -212,32 +179,88 @@ namespace mamba::validation
         return fs::file_size(path) == validation;
     }
 
+    namespace
+    {
+        template <class B>
+        std::vector<unsigned char> hex_to_bytes(const B& buffer, std::size_t size)
+        {
+            std::vector<unsigned char> res;
+            if (size % 2 != 0)
+            {
+                return res;
+            }
+
+            std::string extract;
+            for (auto pos = buffer.cbegin(); pos < buffer.cend(); pos += 2)
+            {
+                extract.assign(pos, pos + 2);
+                res.push_back(static_cast<unsigned char>(std::stoi(extract, nullptr, 16)));
+            }
+            return res;
+        }
+
+        template <class B>
+        std::vector<unsigned char> hex_to_bytes(const B& buffer)
+        {
+            return hex_to_bytes(buffer, buffer.size());
+        }
+
+        template <size_t S, class B>
+        std::array<unsigned char, S> hex_to_bytes(const B& buffer, int& error_code) noexcept
+        {
+            std::array<unsigned char, S> res{};
+            if (buffer.size() != (S * 2))
+            {
+                LOG_DEBUG << "Wrong size for hexadecimal buffer, expected " << S * 2 << " but is "
+                          << buffer.size();
+                error_code = 1;
+                return res;
+            }
+
+            std::string extract;
+            std::size_t i = 0;
+            for (auto pos = buffer.cbegin(); pos < buffer.cend(); pos += 2)
+            {
+                extract.assign(pos, pos + 2);  // noexcept SSO
+                res[i] = static_cast<unsigned char>(std::stoi(extract, nullptr, 16));
+                ++i;
+            }
+            return res;
+        }
+
+        template <size_t S, class B>
+        std::array<unsigned char, S> hex_to_bytes(const B& buffer)
+        {
+            int ec;
+            return hex_to_bytes<S>(buffer, ec);
+        }
+    }
+
     std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES>
     ed25519_sig_hex_to_bytes(const std::string& sig_hex) noexcept
-
     {
-        return ::mamba::hex_to_bytes<MAMBA_ED25519_SIGSIZE_BYTES>(sig_hex);
+        return hex_to_bytes<MAMBA_ED25519_SIGSIZE_BYTES>(sig_hex);
     }
 
     std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES>
     ed25519_sig_hex_to_bytes(const std::string& sig_hex, int& error_code) noexcept
 
     {
-        return ::mamba::hex_to_bytes<MAMBA_ED25519_SIGSIZE_BYTES>(sig_hex, error_code);
+        return hex_to_bytes<MAMBA_ED25519_SIGSIZE_BYTES>(sig_hex, error_code);
     }
 
     std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>
     ed25519_key_hex_to_bytes(const std::string& key_hex) noexcept
 
     {
-        return ::mamba::hex_to_bytes<MAMBA_ED25519_KEYSIZE_BYTES>(key_hex);
+        return hex_to_bytes<MAMBA_ED25519_KEYSIZE_BYTES>(key_hex);
     }
 
     std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>
     ed25519_key_hex_to_bytes(const std::string& key_hex, int& error_code) noexcept
 
     {
-        return ::mamba::hex_to_bytes<MAMBA_ED25519_KEYSIZE_BYTES>(key_hex, error_code);
+        return hex_to_bytes<MAMBA_ED25519_KEYSIZE_BYTES>(key_hex, error_code);
     }
 
     int generate_ed25519_keypair(unsigned char* pk, unsigned char* sk)
@@ -440,7 +463,7 @@ namespace mamba::validation
     int
     verify_gpg_hashed_msg(const std::string& data, const unsigned char* pk, const unsigned char* signature)
     {
-        auto data_bin = ::mamba::hex_to_bytes<MAMBA_SHA256_SIZE_BYTES>(data);
+        auto data_bin = hex_to_bytes<MAMBA_SHA256_SIZE_BYTES>(data);
 
         return verify(data_bin.data(), MAMBA_SHA256_SIZE_BYTES, pk, signature);
     }
@@ -474,8 +497,8 @@ namespace mamba::validation
             return 0;
         }
 
-        auto pgp_trailer_bin = ::mamba::hex_to_bytes(pgp_v4_trailer);
-        auto final_trailer_bin = ::mamba::hex_to_bytes<2>(std::string("04ff"));
+        auto pgp_trailer_bin = hex_to_bytes(pgp_v4_trailer);
+        auto final_trailer_bin = hex_to_bytes<2>(std::string("04ff"));
 
         uint32_t trailer_bin_len_big_endian = static_cast<uint32_t>(pgp_trailer_bin.size());
 
@@ -487,17 +510,15 @@ namespace mamba::validation
 
         std::array<unsigned char, MAMBA_SHA256_SIZE_BYTES> hash;
 
-        EVP_MD_CTX* mdctx;
-        mdctx = EVP_MD_CTX_create();
-        EVP_DigestInit_ex(mdctx, EVP_sha256(), nullptr);
+        auto mdctx = make_EVP_context();
+        EVP_DigestInit_ex(mdctx.get(), EVP_sha256(), nullptr);
 
-        EVP_DigestUpdate(mdctx, data_bin, data_len);
-        EVP_DigestUpdate(mdctx, pgp_trailer_bin.data(), pgp_trailer_bin.size());
-        EVP_DigestUpdate(mdctx, final_trailer_bin.data(), final_trailer_bin.size());
-        EVP_DigestUpdate(mdctx, reinterpret_cast<unsigned char*>(&trailer_bin_len_big_endian), 4);
+        EVP_DigestUpdate(mdctx.get(), data_bin, data_len);
+        EVP_DigestUpdate(mdctx.get(), pgp_trailer_bin.data(), pgp_trailer_bin.size());
+        EVP_DigestUpdate(mdctx.get(), final_trailer_bin.data(), final_trailer_bin.size());
+        EVP_DigestUpdate(mdctx.get(), reinterpret_cast<unsigned char*>(&trailer_bin_len_big_endian), 4);
 
-        EVP_DigestFinal_ex(mdctx, hash.data(), nullptr);
-        EVP_MD_CTX_destroy(mdctx);
+        EVP_DigestFinal_ex(mdctx.get(), hash.data(), nullptr);
 
         return verify_gpg_hashed_msg(hash.data(), pk_bin.data(), signature_bin.data());
     }
@@ -606,7 +627,7 @@ namespace mamba::validation
             else
             {
                 std::ifstream i(p.std_path());
-                json j;
+                nlohmann::json j;
                 i >> j;
                 return is_compatible(j);
             }
@@ -622,7 +643,7 @@ namespace mamba::validation
         return ::mamba::util::starts_with(version, compatible_prefix() + ".");
     }
 
-    bool SpecBase::is_compatible(const json& j) const
+    bool SpecBase::is_compatible(const nlohmann::json& j) const
     {
         auto spec_version = get_json_value(j);
         if (!spec_version.empty())
@@ -648,7 +669,7 @@ namespace mamba::validation
         return ::mamba::util::starts_with_any(version, possible_upgrades);
     }
 
-    bool SpecBase::is_upgrade(const json& j) const
+    bool SpecBase::is_upgrade(const nlohmann::json& j) const
     {
         auto spec_version = get_json_value(j);
         if (!spec_version.empty())
@@ -661,13 +682,13 @@ namespace mamba::validation
         }
     }
 
-    std::string SpecBase::get_json_value(const json& j) const
+    std::string SpecBase::get_json_value(const nlohmann::json& j) const
     {
         try
         {
             return j.at("signed").at(json_key()).get<std::string>();
         }
-        catch (const json::exception& e)
+        catch (const nlohmann::json::exception& e)
         {
             LOG_DEBUG << "Invalid 'root' metadata, impossible to check spec version compatibility: "
                       << e.what();
@@ -675,7 +696,7 @@ namespace mamba::validation
         }
     }
 
-    std::string SpecBase::canonicalize(const json& j) const
+    std::string SpecBase::canonicalize(const nlohmann::json& j) const
     {
         return j.dump();
     }
@@ -738,12 +759,12 @@ namespace mamba::validation
         return time_reference.timestamp().compare(m_expires) < 0 ? false : true;
     }
 
-    std::string RoleBase::canonicalize(const json& j) const
+    std::string RoleBase::canonicalize(const nlohmann::json& j) const
     {
         return p_spec->canonicalize(j);
     }
 
-    std::set<RoleSignature> RoleBase::signatures(const json& j) const
+    std::set<RoleSignature> RoleBase::signatures(const nlohmann::json& j) const
     {
         return p_spec->signatures(j);
     }
@@ -859,7 +880,7 @@ namespace mamba::validation
         m_expires = expires;
     }
 
-    json RoleBase::read_json_file(const fs::u8path& p, bool update) const
+    nlohmann::json RoleBase::read_json_file(const fs::u8path& p, bool update) const
     {
         if (!fs::exists(p))
         {
@@ -968,13 +989,13 @@ namespace mamba::validation
         }
 
         std::ifstream i(p.std_path());
-        json j;
+        nlohmann::json j;
         i >> j;
 
         return j;
     }
 
-    void RoleBase::check_role_signatures(const json& data, const RoleBase& role)
+    void RoleBase::check_role_signatures(const nlohmann::json& data, const RoleBase& role)
     {
         std::string signed_data = role.canonicalize(data["signed"]);
         auto signatures = role.signatures(data);
@@ -1084,7 +1105,7 @@ namespace mamba::validation
     // `update(fs::u8path)`) if we decide to specify the spec version in the file name.
     // The filename would take the form VERSION_NUMBER.SPECVERSION.FILENAME.EXT
     // To disambiguate version and spec version: 1.sv0.6.root.json or 1.sv1.root.json
-    std::unique_ptr<RootRole> RootRole::update(json j)
+    std::unique_ptr<RootRole> RootRole::update(nlohmann::json j)
     {
         // TUF spec 5.3.4 - Check for an arbitrary software attack
         // Check signatures against current keyids and threshold in 'RootImpl' constructor
@@ -1129,7 +1150,7 @@ namespace mamba::validation
             return "expires";
         }
 
-        std::set<RoleSignature> SpecImpl::signatures(const json& j) const
+        std::set<RoleSignature> SpecImpl::signatures(const nlohmann::json& j) const
         {
             auto sigs = j.at("signatures").get<std::vector<RoleSignature>>();
             std::set<RoleSignature> unique_sigs(sigs.cbegin(), sigs.cend());
@@ -1137,7 +1158,7 @@ namespace mamba::validation
             return unique_sigs;
         }
 
-        RootImpl::RootImpl(const json& j)
+        RootImpl::RootImpl(const nlohmann::json& j)
             : RootRole(std::make_shared<SpecImpl>())
 
         {
@@ -1151,7 +1172,7 @@ namespace mamba::validation
             load_from_json(j);
         }
 
-        std::unique_ptr<RootRole> RootImpl::create_update(const json& j)
+        std::unique_ptr<RootRole> RootImpl::create_update(const nlohmann::json& j)
         {
             if (v1::SpecImpl().is_compatible(j))
             {
@@ -1164,7 +1185,7 @@ namespace mamba::validation
             }
         }
 
-        void RootImpl::load_from_json(const json& j)
+        void RootImpl::load_from_json(const nlohmann::json& j)
         {
             from_json(j, *this);
 
@@ -1224,12 +1245,12 @@ namespace mamba::validation
             return ptr;
         }
 
-        void to_json(json& j, const RootImpl& r)
+        void to_json(nlohmann::json& j, const RootImpl& r)
         {
             to_json(j, static_cast<const RoleBase*>(&r));
         }
 
-        void from_json(const json& j, RootImpl& role)
+        void from_json(const nlohmann::json& j, RootImpl& role)
         {
             auto j_signed = j.at("signed");
             try
@@ -1252,7 +1273,7 @@ namespace mamba::validation
                 auto roles = j_signed.at("roles").get<std::map<std::string, RoleKeys>>();
                 role.set_defined_roles(keys, roles);
             }
-            catch (const json::exception& e)
+            catch (const nlohmann::json::exception& e)
             {
                 LOG_ERROR << "Invalid 'root' metadata: " << e.what();
                 throw role_metadata_error();
@@ -1281,7 +1302,7 @@ namespace mamba::validation
             return "expiration";
         }
 
-        std::set<RoleSignature> SpecImpl::signatures(const json& j) const
+        std::set<RoleSignature> SpecImpl::signatures(const nlohmann::json& j) const
         {
             auto sigs = j.at("signatures")
                             .get<std::map<std::string, std::map<std::string, std::string>>>();
@@ -1306,7 +1327,7 @@ namespace mamba::validation
             return true;
         };
 
-        std::string SpecImpl::canonicalize(const json& j) const
+        std::string SpecImpl::canonicalize(const nlohmann::json& j) const
         {
             return j.dump(2);
         }
@@ -1333,7 +1354,7 @@ namespace mamba::validation
             load_from_json(j);
         }
 
-        RootImpl::RootImpl(const json& j)
+        RootImpl::RootImpl(const nlohmann::json& j)
             : RootRole(std::make_shared<SpecImpl>())
         {
             load_from_json(j);
@@ -1342,10 +1363,10 @@ namespace mamba::validation
         RootImpl::RootImpl(const std::string& json_str)
             : RootRole(std::make_shared<SpecImpl>())
         {
-            load_from_json(json::parse(json_str));
+            load_from_json(nlohmann::json::parse(json_str));
         }
 
-        std::unique_ptr<RootRole> RootImpl::create_update(const json& j)
+        std::unique_ptr<RootRole> RootImpl::create_update(const nlohmann::json& j)
         {
             if (v06::SpecImpl().is_compatible(j))
             {
@@ -1362,7 +1383,7 @@ namespace mamba::validation
             }
         }
 
-        void RootImpl::load_from_json(const json& j)
+        void RootImpl::load_from_json(const nlohmann::json& j)
         {
             from_json(j, *this);
 
@@ -1371,9 +1392,9 @@ namespace mamba::validation
             check_role_signatures(j, *this);
         }
 
-        json RootImpl::upgraded_signable() const
+        nlohmann::json RootImpl::upgraded_signable() const
         {
-            json v1_equivalent_root;
+            nlohmann::json v1_equivalent_root;
 
             v1_equivalent_root["roles"]["root"] = m_defined_roles.at("root").to_roles();
             v1_equivalent_root["roles"]["targets"] = m_defined_roles.at("key_mgr").to_roles();
@@ -1393,8 +1414,11 @@ namespace mamba::validation
             return v1_equivalent_root;
         }
 
-        RoleSignature
-        RootImpl::upgraded_signature(const json& j, const std::string& pk, const unsigned char* sk) const
+        RoleSignature RootImpl::upgraded_signature(
+            const nlohmann::json& j,
+            const std::string& pk,
+            const unsigned char* sk
+        ) const
         {
             std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> sig_bin;
             sign(j.dump(), sk, sig_bin.data());
@@ -1494,17 +1518,17 @@ namespace mamba::validation
             return KeyMgrRole(p, all_keys()["key_mgr"], spec_impl());
         }
 
-        KeyMgrRole RootImpl::create_key_mgr(const json& j) const
+        KeyMgrRole RootImpl::create_key_mgr(const nlohmann::json& j) const
         {
             return KeyMgrRole(j, all_keys()["key_mgr"], spec_impl());
         }
 
-        void to_json(json& j, const RootImpl& r)
+        void to_json(nlohmann::json& j, const RootImpl& r)
         {
             to_json(j, static_cast<const RoleBase*>(&r));
         }
 
-        void from_json(const json& j, RootImpl& role)
+        void from_json(const nlohmann::json& j, RootImpl& role)
         {
             auto j_signed = j.at("signed");
             try
@@ -1529,7 +1553,7 @@ namespace mamba::validation
                     j_signed.at("delegations").get<std::map<std::string, RolePubKeys>>()
                 );
             }
-            catch (const json::exception& e)
+            catch (const nlohmann::json::exception& e)
             {
                 LOG_ERROR << "Invalid 'root' metadata: " << e.what();
                 throw role_metadata_error();
@@ -1552,7 +1576,11 @@ namespace mamba::validation
             load_from_json(j);
         }
 
-        KeyMgrRole::KeyMgrRole(const json& j, const RoleFullKeys& keys, const std::shared_ptr<SpecBase> spec)
+        KeyMgrRole::KeyMgrRole(
+            const nlohmann::json& j,
+            const RoleFullKeys& keys,
+            const std::shared_ptr<SpecBase> spec
+        )
             : RoleBase("key_mgr", spec)
             , m_keys(keys)
         {
@@ -1567,10 +1595,10 @@ namespace mamba::validation
             : RoleBase("key_mgr", spec)
             , m_keys(keys)
         {
-            load_from_json(json::parse(json_str));
+            load_from_json(nlohmann::json::parse(json_str));
         }
 
-        void KeyMgrRole::load_from_json(const json& j)
+        void KeyMgrRole::load_from_json(const nlohmann::json& j)
         {
             from_json(j, *this);
             // Check signatures against keyids and threshold
@@ -1587,7 +1615,7 @@ namespace mamba::validation
             return PkgMgrRole(p, all_keys()["pkg_mgr"], spec_impl());
         }
 
-        PkgMgrRole KeyMgrRole::create_pkg_mgr(const json& j) const
+        PkgMgrRole KeyMgrRole::create_pkg_mgr(const nlohmann::json& j) const
         {
             return PkgMgrRole(j, all_keys()["pkg_mgr"], spec_impl());
         }
@@ -1673,12 +1701,12 @@ namespace mamba::validation
             }
         }
 
-        void to_json(json& j, const KeyMgrRole& r)
+        void to_json(nlohmann::json& j, const KeyMgrRole& r)
         {
             to_json(j, static_cast<const RoleBase*>(&r));
         }
 
-        void from_json(const json& j, KeyMgrRole& role)
+        void from_json(const nlohmann::json& j, KeyMgrRole& role)
         {
             auto j_signed = j.at("signed");
             try
@@ -1708,7 +1736,7 @@ namespace mamba::validation
                     j_signed.at("delegations").get<std::map<std::string, RolePubKeys>>()
                 );
             }
-            catch (const json::exception& e)
+            catch (const nlohmann::json::exception& e)
             {
                 LOG_ERROR << "Invalid 'key_mgr' metadata: " << e.what();
                 throw role_metadata_error();
@@ -1737,7 +1765,11 @@ namespace mamba::validation
             load_from_json(j);
         }
 
-        PkgMgrRole::PkgMgrRole(const json& j, const RoleFullKeys& keys, const std::shared_ptr<SpecBase> spec)
+        PkgMgrRole::PkgMgrRole(
+            const nlohmann::json& j,
+            const RoleFullKeys& keys,
+            const std::shared_ptr<SpecBase> spec
+        )
             : RoleBase("pkg_mgr", spec)
             , m_keys(keys)
         {
@@ -1752,10 +1784,10 @@ namespace mamba::validation
             : RoleBase("pkg_mgr", spec)
             , m_keys(keys)
         {
-            load_from_json(json::parse(json_str));
+            load_from_json(nlohmann::json::parse(json_str));
         }
 
-        void PkgMgrRole::load_from_json(const json& j)
+        void PkgMgrRole::load_from_json(const nlohmann::json& j)
         {
             from_json(j, *this);
             // Check signatures against keyids and threshold
@@ -1776,12 +1808,12 @@ namespace mamba::validation
             }
         }
 
-        void to_json(json& j, const PkgMgrRole& r)
+        void to_json(nlohmann::json& j, const PkgMgrRole& r)
         {
             to_json(j, static_cast<const RoleBase*>(&r));
         }
 
-        void from_json(const json& j, PkgMgrRole& role)
+        void from_json(const nlohmann::json& j, PkgMgrRole& role)
         {
             auto j_signed = j.at("signed");
             try
@@ -1811,7 +1843,7 @@ namespace mamba::validation
                     j_signed.at("delegations").get<std::map<std::string, RolePubKeys>>()
                 );
             }
-            catch (const json::exception& e)
+            catch (const nlohmann::json::exception& e)
             {
                 LOG_ERROR << "Invalid 'pkg_mgr' metadata: " << e.what();
                 throw role_metadata_error();
@@ -1827,7 +1859,7 @@ namespace mamba::validation
             return m_keys;
         }
 
-        std::set<RoleSignature> PkgMgrRole::pkg_signatures(const json& j) const
+        std::set<RoleSignature> PkgMgrRole::pkg_signatures(const nlohmann::json& j) const
         {
             auto sigs = j.get<std::map<std::string, std::map<std::string, std::string>>>();
             std::set<RoleSignature> unique_sigs;
@@ -1846,7 +1878,10 @@ namespace mamba::validation
             return unique_sigs;
         }
 
-        void PkgMgrRole::check_pkg_signatures(const json& metadata, const json& signatures) const
+        void PkgMgrRole::check_pkg_signatures(
+            const nlohmann::json& metadata,
+            const nlohmann::json& signatures
+        ) const
         {
             std::string signed_data = canonicalize(metadata);
             auto sigs = pkg_signatures(signatures);
@@ -1855,18 +1890,18 @@ namespace mamba::validation
             check_signatures(signed_data, sigs, k);
         }
 
-        void PkgMgrRole::verify_index(const json& j) const
+        void PkgMgrRole::verify_index(const nlohmann::json& j) const
         {
             try
             {
-                auto packages = j.at("packages").get<json::object_t>();
-                auto sigs = j.at("signatures").get<json::object_t>();
+                auto packages = j.at("packages").get<nlohmann::json::object_t>();
+                auto sigs = j.at("signatures").get<nlohmann::json::object_t>();
 
                 for (auto& it : packages)
                 {
                     auto pkg_name = it.first;
                     auto pkg_meta = it.second;
-                    auto pkg_sigs = sigs.at(pkg_name).get<json::object_t>();
+                    auto pkg_sigs = sigs.at(pkg_name).get<nlohmann::json::object_t>();
 
                     try
                     {
@@ -1880,7 +1915,7 @@ namespace mamba::validation
                     }
                 }
             }
-            catch (const json::exception& e)
+            catch (const nlohmann::json::exception& e)
             {
                 LOG_ERROR << "Invalid package index metadata: " << e.what();
                 throw index_error();
@@ -1896,7 +1931,7 @@ namespace mamba::validation
             }
 
             std::ifstream i(p.std_path());
-            json j;
+            nlohmann::json j;
             i >> j;
 
             try
@@ -1910,7 +1945,8 @@ namespace mamba::validation
                 throw index_error();
             }
         }
-        void PkgMgrRole::verify_package(const json& signed_data, const json& signatures) const
+        void
+        PkgMgrRole::verify_package(const nlohmann::json& signed_data, const nlohmann::json& signatures) const
         {
             try
             {
@@ -1925,66 +1961,66 @@ namespace mamba::validation
         }
     }  // namespace v06
 
-    void to_json(json& j, const Key& key)
+    void to_json(nlohmann::json& j, const Key& key)
     {
-        j = json{ { "keytype", key.keytype }, { "scheme", key.scheme }, { "keyval", key.keyval } };
+        j = { { "keytype", key.keytype }, { "scheme", key.scheme }, { "keyval", key.keyval } };
     }
 
-    void to_json(json& j, const RoleKeys& role_keys)
+    void to_json(nlohmann::json& j, const RoleKeys& role_keys)
     {
-        j = json{ { "keyids", role_keys.keyids }, { "threshold", role_keys.threshold } };
+        j = { { "keyids", role_keys.keyids }, { "threshold", role_keys.threshold } };
     }
 
-    void to_json(json& j, const RolePubKeys& role_keys)
+    void to_json(nlohmann::json& j, const RolePubKeys& role_keys)
     {
-        j = json{ { "pubkeys", role_keys.pubkeys }, { "threshold", role_keys.threshold } };
+        j = { { "pubkeys", role_keys.pubkeys }, { "threshold", role_keys.threshold } };
     }
 
-    void to_json(json& j, const RoleFullKeys& k)
+    void to_json(nlohmann::json& j, const RoleFullKeys& k)
     {
-        j = json{ { "keys", k.keys }, { "threshold", k.threshold } };
+        j = { { "keys", k.keys }, { "threshold", k.threshold } };
     }
 
-    void to_json(json& j, const RoleSignature& role_sig)
+    void to_json(nlohmann::json& j, const RoleSignature& role_sig)
     {
-        j = json{ { "keyid", role_sig.keyid }, { "sig", role_sig.sig } };
+        j = { { "keyid", role_sig.keyid }, { "sig", role_sig.sig } };
         if (!role_sig.pgp_trailer.empty())
         {
             j["other_headers"] = role_sig.pgp_trailer;
         }
     }
 
-    void to_json(json& j, const RoleBase* role)
+    void to_json(nlohmann::json& j, const RoleBase* role)
     {
-        j = json{ { "version", role->version() }, { "expires", role->expires() } };
+        j = { { "version", role->version() }, { "expires", role->expires() } };
     }
 
-    void from_json(const json& j, Key& key)
+    void from_json(const nlohmann::json& j, Key& key)
     {
         j.at("keytype").get_to(key.keytype);
         j.at("scheme").get_to(key.scheme);
         j.at("keyval").get_to(key.keyval);
     }
 
-    void from_json(const json& j, RoleKeys& role_keys)
+    void from_json(const nlohmann::json& j, RoleKeys& role_keys)
     {
         j.at("keyids").get_to(role_keys.keyids);
         j.at("threshold").get_to(role_keys.threshold);
     }
 
-    void from_json(const json& j, RolePubKeys& role_keys)
+    void from_json(const nlohmann::json& j, RolePubKeys& role_keys)
     {
         j.at("pubkeys").get_to(role_keys.pubkeys);
         j.at("threshold").get_to(role_keys.threshold);
     }
 
-    void from_json(const json& j, RoleFullKeys& k)
+    void from_json(const nlohmann::json& j, RoleFullKeys& k)
     {
         j.at("keys").get_to(k.keys);
         j.at("threshold").get_to(k.threshold);
     }
 
-    void from_json(const json& j, RoleSignature& role_sig)
+    void from_json(const nlohmann::json& j, RoleSignature& role_sig)
     {
         j.at("keyid").get_to(role_sig.keyid);
         j.at("sig").get_to(role_sig.sig);
@@ -1994,7 +2030,7 @@ namespace mamba::validation
         }
     }
 
-    void from_json(const json& j, RoleBase* role)
+    void from_json(const nlohmann::json& j, RoleBase* role)
     {
         role->m_version = j.at("version");
         role->set_expiration(j.at(role->spec_version().expiration_json_key()));
@@ -2040,7 +2076,7 @@ namespace mamba::validation
         }
     }
 
-    void RepoChecker::verify_index(const json& j) const
+    void RepoChecker::verify_index(const nlohmann::json& j) const
     {
         p_index_checker->verify_index(j);
     }
@@ -2050,7 +2086,8 @@ namespace mamba::validation
         p_index_checker->verify_index(p);
     }
 
-    void RepoChecker::verify_package(const json& signed_data, const json& signatures) const
+    void
+    RepoChecker::verify_package(const nlohmann::json& signed_data, const nlohmann::json& signatures) const
     {
         p_index_checker->verify_package(signed_data, signatures);
     }

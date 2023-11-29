@@ -8,7 +8,6 @@
 #define MAMBA_CORE_VALIDATE_HPP
 
 #include <set>
-#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -20,22 +19,20 @@
 
 namespace mamba::validation
 {
-    using nlohmann::json;
-
     std::string sha256sum(const fs::u8path& path);
     std::string md5sum(const fs::u8path& path);
     bool sha256(const fs::u8path& path, const std::string& validation);
     bool md5(const fs::u8path& path, const std::string& validation);
     bool file_size(const fs::u8path& path, std::uintmax_t validation);
 
-    const std::size_t MAMBA_SHA256_SIZE_HEX = 64;
-    const std::size_t MAMBA_SHA256_SIZE_BYTES = 32;
-    const std::size_t MAMBA_MD5_SIZE_HEX = 32;
-    const std::size_t MAMBA_MD5_SIZE_BYTES = 16;
-    const std::size_t MAMBA_ED25519_KEYSIZE_HEX = 64;
-    const std::size_t MAMBA_ED25519_KEYSIZE_BYTES = 32;
-    const std::size_t MAMBA_ED25519_SIGSIZE_HEX = 128;
-    const std::size_t MAMBA_ED25519_SIGSIZE_BYTES = 64;
+    inline constexpr std::size_t MAMBA_SHA256_SIZE_HEX = 64;
+    inline constexpr std::size_t MAMBA_SHA256_SIZE_BYTES = 32;
+    inline constexpr std::size_t MAMBA_MD5_SIZE_HEX = 32;
+    inline constexpr std::size_t MAMBA_MD5_SIZE_BYTES = 16;
+    inline constexpr std::size_t MAMBA_ED25519_KEYSIZE_HEX = 64;
+    inline constexpr std::size_t MAMBA_ED25519_KEYSIZE_BYTES = 32;
+    inline constexpr std::size_t MAMBA_ED25519_SIGSIZE_HEX = 128;
+    inline constexpr std::size_t MAMBA_ED25519_SIGSIZE_BYTES = 64;
 
     int generate_ed25519_keypair(unsigned char* pk, unsigned char* sk);
     std::pair<
@@ -104,9 +101,9 @@ namespace mamba::validation
     {
     public:
 
-        trust_error(const std::string& message) noexcept;
-        virtual ~trust_error() = default;
-        virtual const char* what() const noexcept override;
+        trust_error(std::string_view message);
+        ~trust_error() override = default;
+        [[nodiscard]] auto what() const noexcept -> const char* override;
 
     private:
 
@@ -123,8 +120,8 @@ namespace mamba::validation
     {
     public:
 
-        threshold_error() noexcept;
-        virtual ~threshold_error() = default;
+        threshold_error();
+        ~threshold_error() override = default;
     };
 
     /**
@@ -135,8 +132,8 @@ namespace mamba::validation
     {
     public:
 
-        role_metadata_error() noexcept;
-        virtual ~role_metadata_error() = default;
+        role_metadata_error();
+        ~role_metadata_error() override = default;
     };
 
 
@@ -148,8 +145,8 @@ namespace mamba::validation
     {
     public:
 
-        role_file_error() noexcept;
-        virtual ~role_file_error() = default;
+        role_file_error();
+        ~role_file_error() override = default;
     };
 
 
@@ -161,8 +158,8 @@ namespace mamba::validation
     {
     public:
 
-        rollback_error() noexcept;
-        virtual ~rollback_error() = default;
+        rollback_error();
+        ~rollback_error() override = default;
     };
 
 
@@ -174,8 +171,8 @@ namespace mamba::validation
     {
     public:
 
-        freeze_error() noexcept;
-        virtual ~freeze_error() = default;
+        freeze_error();
+        ~freeze_error() override = default;
     };
 
 
@@ -187,8 +184,8 @@ namespace mamba::validation
     {
     public:
 
-        spec_version_error() noexcept;
-        virtual ~spec_version_error() = default;
+        spec_version_error();
+        ~spec_version_error() override = default;
     };
 
 
@@ -200,8 +197,8 @@ namespace mamba::validation
     {
     public:
 
-        fetching_error() noexcept;
-        virtual ~fetching_error() = default;
+        fetching_error();
+        ~fetching_error() override = default;
     };
 
 
@@ -213,8 +210,8 @@ namespace mamba::validation
     {
     public:
 
-        package_error() noexcept;
-        virtual ~package_error() = default;
+        package_error();
+        ~package_error() override = default;
     };
 
     /**
@@ -225,8 +222,8 @@ namespace mamba::validation
     {
     public:
 
-        role_error() noexcept;
-        virtual ~role_error() = default;
+        role_error();
+        ~role_error() override = default;
     };
 
     /**
@@ -237,8 +234,8 @@ namespace mamba::validation
     {
     public:
 
-        index_error() noexcept;
-        virtual ~index_error() = default;
+        index_error();
+        ~index_error() override = default;
     };
 
     void check_timestamp_metadata_format(const std::string& ts);
@@ -259,8 +256,8 @@ namespace mamba::validation
         }
     };
 
-    void to_json(json& j, const Key& k);
-    void from_json(const json& j, Key& k);
+    void to_json(nlohmann::json& j, const Key& k);
+    void from_json(const nlohmann::json& j, Key& k);
 
 
     /**
@@ -276,8 +273,8 @@ namespace mamba::validation
         std::string pgp_trailer = "";
     };
 
-    void to_json(json& j, const RoleSignature& rs);
-    void from_json(const json& j, RoleSignature& rs);
+    void to_json(nlohmann::json& j, const RoleSignature& rs);
+    void from_json(const nlohmann::json& j, RoleSignature& rs);
 
     bool operator<(const RoleSignature& rs1, const RoleSignature& rs2);
 
@@ -293,8 +290,8 @@ namespace mamba::validation
         std::size_t threshold;
     };
 
-    void to_json(json& j, const RoleKeys& rk);
-    void from_json(const json& j, RoleKeys& rk);
+    void to_json(nlohmann::json& j, const RoleKeys& rk);
+    void from_json(const nlohmann::json& j, RoleKeys& rk);
 
 
     /**
@@ -309,8 +306,8 @@ namespace mamba::validation
         RoleKeys to_role_keys() const;
     };
 
-    void to_json(json& j, const RolePubKeys& rk);
-    void from_json(const json& j, RolePubKeys& rk);
+    void to_json(nlohmann::json& j, const RolePubKeys& rk);
+    void from_json(const nlohmann::json& j, RolePubKeys& rk);
 
 
     /**
@@ -328,8 +325,8 @@ namespace mamba::validation
         RoleKeys to_roles() const;
     };
 
-    void to_json(json& j, const RoleFullKeys& r);
-    void from_json(const json& j, RoleFullKeys& r);
+    void to_json(nlohmann::json& j, const RoleFullKeys& r);
+    void from_json(const nlohmann::json& j, RoleFullKeys& r);
 
 
     /**
@@ -343,16 +340,16 @@ namespace mamba::validation
 
         std::string version_str() const;
 
-        virtual std::string canonicalize(const json& j) const;
+        virtual std::string canonicalize(const nlohmann::json& j) const;
 
         std::string compatible_prefix() const;
         std::vector<std::string> upgrade_prefix() const;
 
         bool is_compatible(const fs::u8path& p) const;
-        bool is_compatible(const json& j) const;
+        bool is_compatible(const nlohmann::json& j) const;
         bool is_compatible(const std::string& version) const;
 
-        bool is_upgrade(const json& j) const;
+        bool is_upgrade(const nlohmann::json& j) const;
         bool is_upgrade(const std::string& version) const;
 
         virtual bool upgradable() const;
@@ -360,14 +357,14 @@ namespace mamba::validation
         virtual std::string json_key() const = 0;
         virtual std::string expiration_json_key() const = 0;
 
-        virtual std::set<RoleSignature> signatures(const json& j) const = 0;
+        virtual std::set<RoleSignature> signatures(const nlohmann::json& j) const = 0;
 
     protected:
 
         SpecBase(const std::string& spec_version);
         SpecBase() = delete;
 
-        std::string get_json_value(const json& j) const;
+        std::string get_json_value(const nlohmann::json& j) const;
 
     private:
 
@@ -398,17 +395,17 @@ namespace mamba::validation
         bool expired(const TimeRef& time_reference) const;
 
         std::set<std::string> roles() const;
-        std::set<RoleSignature> signatures(const json& j) const;
+        std::set<RoleSignature> signatures(const nlohmann::json& j) const;
 
         virtual RoleFullKeys self_keys() const = 0;
         std::map<std::string, RoleFullKeys> all_keys() const;
 
-        friend void to_json(json& j, const RoleBase* r);
-        friend void from_json(const json& j, RoleBase* r);
+        friend void to_json(nlohmann::json& j, const RoleBase* r);
+        friend void from_json(const nlohmann::json& j, RoleBase* r);
 
     protected:
 
-        json read_json_file(const fs::u8path& p, bool update = false) const;
+        nlohmann::json read_json_file(const fs::u8path& p, bool update = false) const;
 
         /**
          * Check that a threshold of valid signatures is met
@@ -417,7 +414,7 @@ namespace mamba::validation
          * Both signed and signatures metadata are contained
          * in 'data'.
          */
-        void check_role_signatures(const json& data, const RoleBase& role);
+        void check_role_signatures(const nlohmann::json& data, const RoleBase& role);
         /**
          * Check that a threshold of valid signatures is met
          * for the signed metadata, using a set of keys.
@@ -432,7 +429,7 @@ namespace mamba::validation
         void set_expiration(const std::string& expires);
 
         // Forwarding to spec implementation
-        std::string canonicalize(const json& j) const;
+        std::string canonicalize(const nlohmann::json& j) const;
         // Return the spec implementation
         std::shared_ptr<SpecBase> spec_impl() const;
 
@@ -470,7 +467,7 @@ namespace mamba::validation
         virtual ~RootRole() = default;
 
         std::unique_ptr<RootRole> update(fs::u8path path);
-        std::unique_ptr<RootRole> update(json j);
+        std::unique_ptr<RootRole> update(nlohmann::json j);
 
         std::vector<fs::u8path> possible_update_files();
 
@@ -483,7 +480,7 @@ namespace mamba::validation
 
     private:
 
-        virtual std::unique_ptr<RootRole> create_update(const json& j) = 0;
+        virtual std::unique_ptr<RootRole> create_update(const nlohmann::json& j) = 0;
     };
 
 
@@ -496,9 +493,9 @@ namespace mamba::validation
     public:
 
         virtual ~RepoIndexChecker() = default;
-        virtual void verify_index(const json& j) const = 0;
+        virtual void verify_index(const nlohmann::json& j) const = 0;
         virtual void verify_index(const fs::u8path& p) const = 0;
-        virtual void verify_package(const json& signed_data, const json& signatures) const = 0;
+        virtual void verify_package(const nlohmann::json& signed_data, const nlohmann::json& signatures) const = 0;
 
     protected:
 
@@ -529,9 +526,10 @@ namespace mamba::validation
         );
 
         // Forwarding to a ``RepoIndexChecker`` implementation
-        void verify_index(const json& j) const;
+        void verify_index(const nlohmann::json& j) const;
         void verify_index(const fs::u8path& p) const;
-        void verify_package(const json& signed_data, const json& signatures) const;
+        void
+        verify_package(const nlohmann::json& signed_data, const nlohmann::json& signatures) const;
 
         void generate_index_checker();
 
@@ -573,7 +571,7 @@ namespace mamba::validation
             std::string json_key() const override;
             std::string expiration_json_key() const override;
 
-            std::set<RoleSignature> signatures(const json& j) const override;
+            std::set<RoleSignature> signatures(const nlohmann::json& j) const override;
         };
 
 
@@ -587,7 +585,7 @@ namespace mamba::validation
         public:
 
             RootImpl(const fs::u8path& p);
-            RootImpl(const json& j);
+            RootImpl(const nlohmann::json& j);
 
             RoleFullKeys self_keys() const override;
 
@@ -598,16 +596,16 @@ namespace mamba::validation
                 const fs::u8path& cache_path
             ) const override;
 
-            friend void to_json(json& j, const RootImpl& r);
-            friend void from_json(const json& j, RootImpl& r);
+            friend void to_json(nlohmann::json& j, const RootImpl& r);
+            friend void from_json(const nlohmann::json& j, RootImpl& r);
 
         private:
 
             RootImpl() = delete;
 
-            void load_from_json(const json& j);
+            void load_from_json(const nlohmann::json& j);
 
-            std::unique_ptr<RootRole> create_update(const json& j) override;
+            std::unique_ptr<RootRole> create_update(const nlohmann::json& j) override;
 
             std::set<std::string> mandatory_defined_roles() const override;
             std::set<std::string> optionally_defined_roles() const override;
@@ -632,9 +630,9 @@ namespace mamba::validation
             std::string json_key() const override;
             std::string expiration_json_key() const override;
 
-            std::set<RoleSignature> signatures(const json& j) const override;
+            std::set<RoleSignature> signatures(const nlohmann::json& j) const override;
 
-            std::string canonicalize(const json& j) const override;
+            std::string canonicalize(const nlohmann::json& j) const override;
             bool upgradable() const override;
         };
 
@@ -667,7 +665,7 @@ namespace mamba::validation
         public:
 
             RootImpl(const fs::u8path& p);
-            RootImpl(const json& j);
+            RootImpl(const nlohmann::json& j);
             RootImpl(const std::string& json_str);
 
             /**
@@ -683,23 +681,24 @@ namespace mamba::validation
 
             RoleFullKeys self_keys() const override;
 
-            json upgraded_signable() const;
+            nlohmann::json upgraded_signable() const;
             RoleSignature
-            upgraded_signature(const json& j, const std::string& pk, const unsigned char* sk) const;
+            upgraded_signature(const nlohmann::json& j, const std::string& pk, const unsigned char* sk)
+                const;
 
             KeyMgrRole create_key_mgr(const fs::u8path& p) const;
-            KeyMgrRole create_key_mgr(const json& j) const;
+            KeyMgrRole create_key_mgr(const nlohmann::json& j) const;
 
-            friend void to_json(json& j, const RootImpl& r);
-            friend void from_json(const json& j, RootImpl& r);
+            friend void to_json(nlohmann::json& j, const RootImpl& r);
+            friend void from_json(const nlohmann::json& j, RootImpl& r);
 
         private:
 
             RootImpl() = delete;
 
-            void load_from_json(const json& j);
+            void load_from_json(const nlohmann::json& j);
 
-            std::unique_ptr<RootRole> create_update(const json& j) override;
+            std::unique_ptr<RootRole> create_update(const nlohmann::json& j) override;
 
             std::set<std::string> mandatory_defined_roles() const override;
             std::set<std::string> optionally_defined_roles() const override;
@@ -721,7 +720,11 @@ namespace mamba::validation
         public:
 
             KeyMgrRole(const fs::u8path& p, const RoleFullKeys& keys, const std::shared_ptr<SpecBase> spec);
-            KeyMgrRole(const json& j, const RoleFullKeys& keys, const std::shared_ptr<SpecBase> spec);
+            KeyMgrRole(
+                const nlohmann::json& j,
+                const RoleFullKeys& keys,
+                const std::shared_ptr<SpecBase> spec
+            );
             KeyMgrRole(
                 const std::string& json_str,
                 const RoleFullKeys& keys,
@@ -732,7 +735,7 @@ namespace mamba::validation
             RoleFullKeys self_keys() const override;
 
             PkgMgrRole create_pkg_mgr(const fs::u8path& p) const;
-            PkgMgrRole create_pkg_mgr(const json& j) const;
+            PkgMgrRole create_pkg_mgr(const nlohmann::json& j) const;
 
             /**
              * Return a ``RepoIndexChecker`` implementation (derived class)
@@ -745,14 +748,14 @@ namespace mamba::validation
                 const fs::u8path& cache_path
             ) const;
 
-            friend void to_json(json& j, const KeyMgrRole& r);
-            friend void from_json(const json& j, KeyMgrRole& r);
+            friend void to_json(nlohmann::json& j, const KeyMgrRole& r);
+            friend void from_json(const nlohmann::json& j, KeyMgrRole& r);
 
         private:
 
             KeyMgrRole() = delete;
 
-            void load_from_json(const json& j);
+            void load_from_json(const nlohmann::json& j);
 
             RoleFullKeys m_keys;
             std::map<std::string, RolePubKeys> m_delegations;
@@ -779,7 +782,11 @@ namespace mamba::validation
 
             PkgMgrRole(const RoleFullKeys& keys, const std::shared_ptr<SpecBase> spec);
             PkgMgrRole(const fs::u8path& p, const RoleFullKeys& keys, const std::shared_ptr<SpecBase> spec);
-            PkgMgrRole(const json& j, const RoleFullKeys& keys, const std::shared_ptr<SpecBase> spec);
+            PkgMgrRole(
+                const nlohmann::json& j,
+                const RoleFullKeys& keys,
+                const std::shared_ptr<SpecBase> spec
+            );
             PkgMgrRole(
                 const std::string& json_str,
                 const RoleFullKeys& keys,
@@ -787,21 +794,23 @@ namespace mamba::validation
             );
 
             void verify_index(const fs::u8path& p) const override;
-            void verify_index(const json& j) const override;
-            void verify_package(const json& signed_data, const json& signatures) const override;
+            void verify_index(const nlohmann::json& j) const override;
+            void verify_package(const nlohmann::json& signed_data, const nlohmann::json& signatures)
+                const override;
 
-            friend void to_json(json& j, const PkgMgrRole& r);
-            friend void from_json(const json& j, PkgMgrRole& r);
+            friend void to_json(nlohmann::json& j, const PkgMgrRole& r);
+            friend void from_json(const nlohmann::json& j, PkgMgrRole& r);
 
         private:
 
             PkgMgrRole() = delete;
 
-            void load_from_json(const json& j);
+            void load_from_json(const nlohmann::json& j);
 
             RoleFullKeys self_keys() const override;
-            std::set<RoleSignature> pkg_signatures(const json& j) const;
-            void check_pkg_signatures(const json& signed_data, const json& signatures) const;
+            std::set<RoleSignature> pkg_signatures(const nlohmann::json& j) const;
+            void
+            check_pkg_signatures(const nlohmann::json& signed_data, const nlohmann::json& signatures) const;
 
             void set_defined_roles(std::map<std::string, RolePubKeys> keys);
 

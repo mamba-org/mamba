@@ -64,7 +64,9 @@ set(
     src/core/test_progress_bar.cpp
     src/core/test_shell_init.cpp
     src/core/test_thread_utils.cpp
-    src/core/test_validate.cpp
+    src/core/test_validate_common.cpp
+    src/core/test_validate_v06.cpp
+    src/core/test_validate_v1.cpp
     src/core/test_virtual_packages.cpp
     src/core/test_util.cpp
     src/core/test_env_lockfile.cpp

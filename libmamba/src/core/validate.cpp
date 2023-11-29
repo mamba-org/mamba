@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <array>
 #include <iostream>
 #include <regex>
 #include <set>
@@ -110,7 +111,7 @@ namespace mamba::validation
 
     std::string sha256sum(const fs::u8path& path)
     {
-        unsigned char hash[MAMBA_SHA256_SIZE_BYTES];
+        auto hash = std::array<unsigned char, MAMBA_SHA256_SIZE_BYTES>{};
         auto mdctx = make_EVP_context();
         EVP_DigestInit_ex(mdctx.get(), EVP_sha256(), nullptr);
 
@@ -130,14 +131,14 @@ namespace mamba::validation
             EVP_DigestUpdate(mdctx.get(), buffer.data(), count);
         }
 
-        EVP_DigestFinal_ex(mdctx.get(), hash, nullptr);
+        EVP_DigestFinal_ex(mdctx.get(), hash.data(), nullptr);
 
         return ::mamba::util::hex_string(hash, MAMBA_SHA256_SIZE_BYTES);
     }
 
     std::string md5sum(const fs::u8path& path)
     {
-        unsigned char hash[MAMBA_MD5_SIZE_BYTES];
+        auto hash = std::array<unsigned char, MAMBA_SHA256_SIZE_BYTES>{};
 
         auto mdctx = make_EVP_context();
         EVP_DigestInit_ex(mdctx.get(), EVP_md5(), nullptr);
@@ -158,7 +159,7 @@ namespace mamba::validation
             EVP_DigestUpdate(mdctx.get(), buffer.data(), count);
         }
 
-        EVP_DigestFinal_ex(mdctx.get(), hash, nullptr);
+        EVP_DigestFinal_ex(mdctx.get(), hash.data(), nullptr);
 
         return ::mamba::util::hex_string(hash, MAMBA_MD5_SIZE_BYTES);
     }

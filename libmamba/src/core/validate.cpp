@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 
+#include <nlohmann/json.hpp>
 #include <openssl/evp.h>
 
 #include "mamba/core/context.hpp"

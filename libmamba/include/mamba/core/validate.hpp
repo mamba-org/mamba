@@ -8,7 +8,6 @@
 #define MAMBA_CORE_VALIDATE_HPP
 
 #include <set>
-#include <stdexcept>
 #include <string>
 #include <vector>
 

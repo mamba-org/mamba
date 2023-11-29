@@ -166,7 +166,7 @@ namespace mamba::util
         auto clear_port() -> std::string;
 
         /** Return the encoded autority part of the URL. */
-        [[nodiscard]] auto authority(Credentials = Credentials::Show) const -> std::string;
+        [[nodiscard]] auto authority(Credentials = Credentials::Hide) const -> std::string;
 
         /** Return the encoded path, always starts with a '/'. */
         [[nodiscard]] auto path(Decode::no_type) const -> const std::string&;
@@ -233,7 +233,7 @@ namespace mamba::util
         auto clear_fragment() -> std::string;
 
         /** Return the full, exact, encoded URL. */
-        [[nodiscard]] auto str(Credentials credentials = Credentials::Show) const -> std::string;
+        [[nodiscard]] auto str(Credentials credentials = Credentials::Hide) const -> std::string;
 
         /**
          * Return the full decoded url.
@@ -246,7 +246,7 @@ namespace mamba::util
         [[nodiscard]] auto pretty_str(
             StripScheme strip_scheme = StripScheme::no,
             char rstrip_path = 0,
-            Credentials credentials = Credentials::Show
+            Credentials credentials = Credentials::Hide
         ) const -> std::string;
 
     protected:

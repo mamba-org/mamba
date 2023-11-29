@@ -893,10 +893,11 @@ namespace mamba
                     // FIXME: only do this for micromamba for now
                     if (ctx.command_params.is_micromamba)
                     {
+                        using Credentials = typename specs::CondaURL::Credentials;
                         auto l_pkg = pkg;
                         auto channels = channel_context.make_channel(pkg.url);
                         assert(channels.size() == 1);  // A URL can only resolve to one channel
-                        l_pkg.url = channels.front().platform_urls().at(0).str();
+                        l_pkg.url = channels.front().platform_urls().at(0).str(Credentials::Show);
                         fetchers.emplace_back(l_pkg, multi_cache);
                     }
                     else

@@ -161,6 +161,7 @@ namespace mamba
 
             // Always append context channels
             std::vector<std::string> channel_urls;
+            using Credentials = specs::CondaURL::Credentials;
             channel_urls.reserve(ctx.channels.size() * 2);  // Lower bound * (platform + noarch)
             for (const auto& loc : ctx.channels)
             {
@@ -168,7 +169,7 @@ namespace mamba
                 {
                     for (auto url : channel.platform_urls())
                     {
-                        channel_urls.push_back(std::move(url).str());
+                        channel_urls.push_back(std::move(url).str(Credentials::Remove));
                     }
                 }
             }

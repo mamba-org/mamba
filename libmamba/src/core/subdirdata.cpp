@@ -556,7 +556,7 @@ namespace mamba
     {
         if (!forbid_cache(m_repodata_url))
         {
-            load_cache(caches, channel_context);
+            load_cache(caches);
         }
 
         if (m_loaded)
@@ -575,7 +575,7 @@ namespace mamba
         }
     }
 
-    void MSubdirData::load_cache(MultiPackageCache& caches, ChannelContext& channel_context)
+    void MSubdirData::load_cache(MultiPackageCache& caches)
     {
         LOG_INFO << "Searching index cache file for repo '" << m_repodata_url << "'";
         file_time_point now = fs::file_time_type::clock::now();

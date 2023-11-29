@@ -21,17 +21,13 @@ namespace mamba
     {
         bool compare_cleaned_url(std::string_view url_str1, std::string_view url_str2)
         {
+            using Credentials = specs::CondaURL::Credentials;
             auto url1 = specs::CondaURL::parse(url_str1);
             url1.set_scheme("https");
-            url1.clear_token();
-            url1.clear_password();
-            url1.clear_user();
             auto url2 = specs::CondaURL::parse(url_str2);
             url2.set_scheme("https");
-            url2.clear_token();
-            url2.clear_password();
-            url2.clear_user();
-            return util::rstrip(url1.str(), '/') == util::rstrip(url2.str(), '/');
+            return util::rstrip(url1.str(Credentials::Remove), '/')
+                   == util::rstrip(url2.str(Credentials::Remove), '/');
         }
     }
 

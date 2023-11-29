@@ -13,6 +13,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/specs/conda_url.hpp"
 #include "mamba/util/graph.hpp"
 #include "mamba/util/string.hpp"
 
@@ -169,7 +170,8 @@ namespace mamba
         // If someone wrote multichannel names in repodata_record, we don't know which one is the
         // correct URL. This is must never happen!
         assert(channels.size() == 1);
-        prec.channel = channels.front().platform_url(prec.subdir).str();
+        using Credentials = specs::CondaURL::Credentials;
+        prec.channel = channels.front().platform_url(prec.subdir).str(Credentials::Remove);
         m_package_records.insert({ prec.name, std::move(prec) });
     }
 }  // namespace mamba

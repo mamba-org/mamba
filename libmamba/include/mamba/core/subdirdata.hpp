@@ -149,7 +149,7 @@ namespace mamba
 
         void
         load(MultiPackageCache& caches, ChannelContext& channel_context, const specs::Channel& channel);
-        void load_cache(MultiPackageCache& caches, ChannelContext& channel_context);
+        void load_cache(MultiPackageCache& caches);
         void update_metadata_zst(ChannelContext& context, const specs::Channel& channel);
 
         MultiDownloadRequest build_check_requests();

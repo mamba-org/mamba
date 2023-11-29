@@ -20,65 +20,9 @@
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
 
-namespace mamba
-{
-    template <class B>
-    std::vector<unsigned char> hex_to_bytes(const B& buffer, std::size_t size) noexcept
-    {
-        std::vector<unsigned char> res;
-        if (size % 2 != 0)
-        {
-            return res;
-        }
-
-        std::string extract;
-        for (auto pos = buffer.cbegin(); pos < buffer.cend(); pos += 2)
-        {
-            extract.assign(pos, pos + 2);
-            res.push_back(static_cast<unsigned char>(std::stoi(extract, nullptr, 16)));
-        }
-        return res;
-    }
-
-    template <class B>
-    std::vector<unsigned char> hex_to_bytes(const B& buffer) noexcept
-    {
-        return hex_to_bytes(buffer, buffer.size());
-    }
-
-    template <size_t S, class B>
-    std::array<unsigned char, S> hex_to_bytes(const B& buffer, int& error_code) noexcept
-    {
-        std::array<unsigned char, S> res{};
-        if (buffer.size() != (S * 2))
-        {
-            LOG_DEBUG << "Wrong size for hexadecimal buffer, expected " << S * 2 << " but is "
-                      << buffer.size();
-            error_code = 1;
-            return res;
-        }
-
-        std::string extract;
-        std::size_t i = 0;
-        for (auto pos = buffer.cbegin(); pos < buffer.cend(); pos += 2)
-        {
-            extract.assign(pos, pos + 2);
-            res[i] = static_cast<unsigned char>(std::stoi(extract, nullptr, 16));
-            ++i;
-        }
-        return res;
-    }
-
-    template <size_t S, class B>
-    std::array<unsigned char, S> hex_to_bytes(const B& buffer) noexcept
-    {
-        int ec;
-        return hex_to_bytes<S>(buffer, ec);
-    }
-}
-
 namespace mamba::validation
 {
+
     trust_error::trust_error(const std::string& message) noexcept
         : m_message("Content trust error. " + message + ". Aborting.")
     {
@@ -234,32 +178,90 @@ namespace mamba::validation
         return fs::file_size(path) == validation;
     }
 
+    namespace
+    {
+        template <class B>
+        std::vector<unsigned char> hex_to_bytes(const B& buffer, std::size_t size)
+        {
+            std::vector<unsigned char> res;
+            if (size % 2 != 0)
+            {
+                return res;
+            }
+
+            std::string extract;
+            for (auto pos = buffer.cbegin(); pos < buffer.cend(); pos += 2)
+            {
+                extract.assign(pos, pos + 2);
+                res.push_back(static_cast<unsigned char>(std::stoi(extract, nullptr, 16)));
+            }
+            return res;
+        }
+
+        template <class B>
+        std::vector<unsigned char> hex_to_bytes(const B& buffer)
+        {
+            return hex_to_bytes(buffer, buffer.size());
+        }
+
+        template <size_t S, class B>
+        std::array<unsigned char, S> hex_to_bytes(const B& buffer, int& error_code)
+        {
+            std::array<unsigned char, S> res{};
+            if (buffer.size() != (S * 2))
+            {
+                LOG_DEBUG << "Wrong size for hexadecimal buffer, expected " << S * 2 << " but is "
+                          << buffer.size();
+                error_code = 1;
+                return res;
+            }
+
+            std::string extract;
+            std::size_t i = 0;
+            for (auto pos = buffer.cbegin(); pos < buffer.cend(); pos += 2)
+            {
+                extract.assign(pos, pos + 2);
+                res[i] = static_cast<unsigned char>(std::stoi(extract, nullptr, 16));
+                ++i;
+            }
+            return res;
+        }
+
+        template <size_t S, class B>
+        std::array<unsigned char, S> hex_to_bytes(const B& buffer)
+        {
+            int ec;
+            return hex_to_bytes<S>(buffer, ec);
+        }
+    }
+
+
     std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES>
     ed25519_sig_hex_to_bytes(const std::string& sig_hex) noexcept
 
     {
-        return ::mamba::hex_to_bytes<MAMBA_ED25519_SIGSIZE_BYTES>(sig_hex);
+        return hex_to_bytes<MAMBA_ED25519_SIGSIZE_BYTES>(sig_hex);
     }
 
     std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES>
     ed25519_sig_hex_to_bytes(const std::string& sig_hex, int& error_code) noexcept
 
     {
-        return ::mamba::hex_to_bytes<MAMBA_ED25519_SIGSIZE_BYTES>(sig_hex, error_code);
+        return hex_to_bytes<MAMBA_ED25519_SIGSIZE_BYTES>(sig_hex, error_code);
     }
 
     std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>
     ed25519_key_hex_to_bytes(const std::string& key_hex) noexcept
 
     {
-        return ::mamba::hex_to_bytes<MAMBA_ED25519_KEYSIZE_BYTES>(key_hex);
+        return hex_to_bytes<MAMBA_ED25519_KEYSIZE_BYTES>(key_hex);
     }
 
     std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>
     ed25519_key_hex_to_bytes(const std::string& key_hex, int& error_code) noexcept
 
     {
-        return ::mamba::hex_to_bytes<MAMBA_ED25519_KEYSIZE_BYTES>(key_hex, error_code);
+        return hex_to_bytes<MAMBA_ED25519_KEYSIZE_BYTES>(key_hex, error_code);
     }
 
     int generate_ed25519_keypair(unsigned char* pk, unsigned char* sk)
@@ -462,7 +464,7 @@ namespace mamba::validation
     int
     verify_gpg_hashed_msg(const std::string& data, const unsigned char* pk, const unsigned char* signature)
     {
-        auto data_bin = ::mamba::hex_to_bytes<MAMBA_SHA256_SIZE_BYTES>(data);
+        auto data_bin = hex_to_bytes<MAMBA_SHA256_SIZE_BYTES>(data);
 
         return verify(data_bin.data(), MAMBA_SHA256_SIZE_BYTES, pk, signature);
     }
@@ -496,8 +498,8 @@ namespace mamba::validation
             return 0;
         }
 
-        auto pgp_trailer_bin = ::mamba::hex_to_bytes(pgp_v4_trailer);
-        auto final_trailer_bin = ::mamba::hex_to_bytes<2>(std::string("04ff"));
+        auto pgp_trailer_bin = hex_to_bytes(pgp_v4_trailer);
+        auto final_trailer_bin = hex_to_bytes<2>(std::string("04ff"));
 
         uint32_t trailer_bin_len_big_endian = static_cast<uint32_t>(pgp_trailer_bin.size());
 

@@ -30,6 +30,14 @@ namespace mamba::util
         }
     }
 
+    // TODO(C++20): use std::span
+    auto bytes_to_hex_str(const std::byte* first, const std::byte* last) -> std::string
+    {
+        auto out = std::string(static_cast<std::size_t>(last - first) * 2, 'x');
+        bytes_to_hex_to(first, last, out.data());
+        return out;
+    }
+
     namespace
     {
         auto url_is_unreserved_char(char c) -> bool

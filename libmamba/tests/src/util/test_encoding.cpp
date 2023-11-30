@@ -28,10 +28,10 @@ TEST_SUITE("util::encoding")
             std::byte{ 0xEF }, std::byte{ 0xFF },
         };
 
-        auto hex = std::array<char, bytes.size() * 2>{};
-        bytes_to_hex_to(bytes.data(), bytes.data() + bytes.size(), hex.data());
-        const auto hex_str = std::string_view(hex.data(), hex.size());
-        CHECK_EQ(hex_str, "000103090a0d0fad1030a0d0f0ada94eefff");
+        CHECK_EQ(
+            bytes_to_hex_str(bytes.data(), bytes.data() + bytes.size()),
+            "000103090a0d0fad1030a0d0f0ada94eefff"
+        );
     }
 
     TEST_CASE("precent")

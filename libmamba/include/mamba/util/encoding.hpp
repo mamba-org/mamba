@@ -19,7 +19,17 @@ namespace mamba::util
     {
     };
 
+    /**
+     * Convert a buffer of bytes to a hexadecimal string written in the @p out paremeter.
+     *
+     * The @p out parameter must be allocated with twice the size of the input byte buffer.
+     */
     void bytes_to_hex_to(const std::byte* first, const std::byte* last, char* out);
+
+    /**
+     * Convert a buffer of bytes to a hexadecimal string.
+     */
+    [[nodiscard]] auto bytes_to_hex_str(const std::byte* first, const std::byte* last) -> std::string;
 
     /**
      * Escape reserved URL reserved characters with '%' encoding.
@@ -41,9 +51,15 @@ namespace mamba::util
      */
     [[nodiscard]] auto decode_percent(std::string_view url) -> std::string;
 
+    /**
+     * Convert a string to base64 encoding.
+     */
     [[nodiscard]] auto encode_base64(std::string_view input)
         -> tl::expected<std::string, EncodingError>;
 
+    /**
+     * Convert a string from base64 back to its original representation.
+     */
     [[nodiscard]] auto decode_base64(std::string_view input)
         -> tl::expected<std::string, EncodingError>;
 }

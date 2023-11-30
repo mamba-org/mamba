@@ -93,7 +93,7 @@ TEST_SUITE("util::cryptography")
                 {
                     auto tmp = mamba::TemporaryFile();
                     {
-                        auto file = std::fstream(tmp.path());
+                        auto file = std::fstream(tmp.path().std_path());
                         REQUIRE(file.good());
                         file << data;
                         file.close();
@@ -111,7 +111,7 @@ TEST_SUITE("util::cryptography")
                 {
                     auto tmp = mamba::TemporaryFile();
                     {
-                        auto file = std::fstream(tmp.path());
+                        auto file = std::fstream(tmp.path().std_path());
                         REQUIRE(file.good());
                         file << data;
                         file.close();

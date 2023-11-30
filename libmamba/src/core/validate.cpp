@@ -19,6 +19,7 @@
 #include "mamba/core/download.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/validate.hpp"
+#include "mamba/util/cryptography.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
 
@@ -111,57 +112,20 @@ namespace mamba::validation
 
     std::string sha256sum(const fs::u8path& path)
     {
-        auto hash = std::array<unsigned char, MAMBA_SHA256_SIZE_BYTES>{};
-        auto mdctx = make_EVP_context();
-        EVP_DigestInit_ex(mdctx.get(), EVP_sha256(), nullptr);
-
+        // TODO deprecate, hasher should be reused between calls.
         std::ifstream infile = mamba::open_ifstream(path);
-
-        static constexpr std::size_t BUFSIZE = 32768;
-        std::vector<char> buffer(BUFSIZE);
-
-        while (infile)
-        {
-            infile.read(buffer.data(), BUFSIZE);
-            auto count = static_cast<std::size_t>(infile.gcount());
-            if (!count)
-            {
-                break;
-            }
-            EVP_DigestUpdate(mdctx.get(), buffer.data(), count);
-        }
-
-        EVP_DigestFinal_ex(mdctx.get(), hash.data(), nullptr);
-
-        return ::mamba::util::hex_string(hash, MAMBA_SHA256_SIZE_BYTES);
+        auto hasher = util::Sha256Hasher();
+        auto hash = hasher.file_hex(infile);
+        return { hash.data(), hash.size() };
     }
 
     std::string md5sum(const fs::u8path& path)
     {
-        auto hash = std::array<unsigned char, MAMBA_SHA256_SIZE_BYTES>{};
-
-        auto mdctx = make_EVP_context();
-        EVP_DigestInit_ex(mdctx.get(), EVP_md5(), nullptr);
-
+        // TODO deprecate, hasher should be reused between calls.
         std::ifstream infile = mamba::open_ifstream(path);
-
-        constexpr std::size_t BUFSIZE = 32768;
-        std::vector<char> buffer(BUFSIZE);
-
-        while (infile)
-        {
-            infile.read(buffer.data(), BUFSIZE);
-            auto count = static_cast<std::size_t>(infile.gcount());
-            if (!count)
-            {
-                break;
-            }
-            EVP_DigestUpdate(mdctx.get(), buffer.data(), count);
-        }
-
-        EVP_DigestFinal_ex(mdctx.get(), hash.data(), nullptr);
-
-        return ::mamba::util::hex_string(hash, MAMBA_MD5_SIZE_BYTES);
+        auto hasher = util::Md5Hasher();
+        auto hash = hasher.file_hex(infile);
+        return { hash.data(), hash.size() };
     }
 
     bool sha256(const fs::u8path& path, const std::string& validation)

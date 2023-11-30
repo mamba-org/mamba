@@ -6,9 +6,7 @@
 
 #include <array>
 #include <cassert>
-#include <fstream>
 #include <memory>
-#include <vector>
 
 #include <openssl/evp.h>
 
@@ -31,81 +29,49 @@ namespace mamba::util
         }
     }
 
-    namespace
+    namespace detail
     {
-        struct EVPContextDeleter
+        void EVPDigester::EVPContextDeleter::operator()(::EVP_MD_CTX* ptr) const
         {
-            using value_type = ::EVP_MD_CTX;
-            using pointer_type = value_type*;
-
-            void operator()(pointer_type ptr) const
+            if (ptr)
             {
-                if (ptr)
+                ::EVP_MD_CTX_destroy(ptr);
+            }
+        }
+
+        EVPDigester::EVPDigester(Algorithm algo)
+            : m_algorithm(algo)
+        {
+            m_ctx.reset(::EVP_MD_CTX_create());
+        }
+
+        void EVPDigester::digest_start()
+        {
+            [[maybe_unused]] int status = 0;
+            switch (m_algorithm)
+            {
+                case (Algorithm::sha256):
                 {
-                    ::EVP_MD_CTX_destroy(ptr);
+                    status = ::EVP_DigestInit_ex(m_ctx.get(), EVP_sha256(), nullptr);
+                    break;
+                }
+                case (Algorithm::md5):
+                {
+                    status = ::EVP_DigestInit_ex(m_ctx.get(), EVP_md5(), nullptr);
+                    break;
                 }
             }
-        };
-
-        auto make_EVP_context()
-        {
-            auto ptr = std::unique_ptr<::EVP_MD_CTX, EVPContextDeleter>();
-            ptr.reset(::EVP_MD_CTX_create());
-            return ptr;
+            assert(status != 0);
         }
 
-    }
-
-    void
-    sha256bytes_file_to(std::ifstream& infile, std::byte* out, std::vector<std::byte>& tmp_buffer)
-    {
-        assert(infile.good());
-
-        static constexpr std::size_t EVP_BUFSIZE = 32768;
-        tmp_buffer.assign(EVP_BUFSIZE, std::byte(0));
-
-        auto mdctx = make_EVP_context();
-        ::EVP_DigestInit_ex(mdctx.get(), EVP_sha256(), nullptr);
-
-        while (infile)
+        void EVPDigester::digest_update(std::byte* buffer, std::size_t count)
         {
-            infile.read(reinterpret_cast<char*>(tmp_buffer.data()), EVP_BUFSIZE);
-            const auto count = static_cast<std::size_t>(infile.gcount());
-            if (!count)
-            {
-                break;
-            }
-            ::EVP_DigestUpdate(mdctx.get(), tmp_buffer.data(), count);
+            ::EVP_DigestUpdate(m_ctx.get(), buffer, count);
         }
 
-        ::EVP_DigestFinal_ex(mdctx.get(), reinterpret_cast<unsigned char*>(out), nullptr);
-    }
-
-    void sha256bytes_file_to(std::ifstream& infile, std::byte* out)
-    {
-        auto buffer = std::vector<std::byte>();
-        return sha256bytes_file_to(infile, out, buffer);
-    }
-
-    auto sha256bytes_file(std::ifstream& infile) -> sha256bytes_array
-    {
-        auto out = sha256bytes_array{};
-        sha256bytes_file_to(infile, out.data());
-        return out;
-    }
-
-    auto sha256hex_file(std::ifstream& infile) -> sha256hex_array
-    {
-        auto out = sha256hex_array{};
-
-        // Reusing the output array to write the temprary bytes
-        assert(out.size() == 2 * SHA256_SIZE_BYTES);
-        auto bytes_first = reinterpret_cast<std::byte*>(out.data()) + SHA256_SIZE_BYTES;
-        auto bytes_last = bytes_first + SHA256_SIZE_BYTES;
-
-        sha256bytes_file_to(infile, bytes_first);
-
-        bytes_to_hex_to(bytes_first, bytes_last, out.data());
-        return out;
+        void EVPDigester::digest_finalize_to(std::byte* hash)
+        {
+            ::EVP_DigestFinal_ex(m_ctx.get(), reinterpret_cast<unsigned char*>(hash), nullptr);
+        }
     }
 }

@@ -86,30 +86,6 @@ namespace mamba::validation
     {
     }
 
-    namespace
-    {
-        struct EVPContextDeleter
-        {
-            using value_type = ::EVP_MD_CTX;
-            using pointer_type = value_type*;
-
-            void operator()(pointer_type ptr) const
-            {
-                if (ptr)
-                {
-                    ::EVP_MD_CTX_destroy(ptr);
-                }
-            }
-        };
-
-        auto make_EVP_context()
-        {
-            auto ptr = std::unique_ptr<::EVP_MD_CTX, EVPContextDeleter>();
-            ptr.reset(::EVP_MD_CTX_create());
-            return ptr;
-        }
-    }
-
     std::string sha256sum(const fs::u8path& path)
     {
         // TODO deprecate, hasher should be reused between calls.
@@ -439,6 +415,30 @@ namespace mamba::validation
         auto pk_bin = ed25519_key_hex_to_bytes(pk);
 
         return verify_gpg_hashed_msg(data, pk_bin.data(), signature_bin.data());
+    }
+
+    namespace
+    {
+        struct EVPContextDeleter
+        {
+            using value_type = ::EVP_MD_CTX;
+            using pointer_type = value_type*;
+
+            void operator()(pointer_type ptr) const
+            {
+                if (ptr)
+                {
+                    ::EVP_MD_CTX_destroy(ptr);
+                }
+            }
+        };
+
+        auto make_EVP_context()
+        {
+            auto ptr = std::unique_ptr<::EVP_MD_CTX, EVPContextDeleter>();
+            ptr.reset(::EVP_MD_CTX_create());
+            return ptr;
+        }
     }
 
     int verify_gpg(

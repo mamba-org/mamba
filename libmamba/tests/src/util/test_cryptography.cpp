@@ -98,7 +98,7 @@ TEST_SUITE("util::cryptography")
                         file << data;
                         file.close();
                     }
-                    auto file = std::ifstream(tmp.path());
+                    auto file = std::ifstream(tmp.path().std_path());
                     REQUIRE(file.good());
                     CHECK_EQ(hasher.file_hex_str(file), hash);
                 }
@@ -116,7 +116,7 @@ TEST_SUITE("util::cryptography")
                         file << data;
                         file.close();
                     }
-                    auto file = std::ifstream(tmp.path());
+                    auto file = std::ifstream(tmp.path().std_path());
                     REQUIRE(file.good());
                     CHECK_EQ(hasher.file_hex_str(file), hash);
                 }

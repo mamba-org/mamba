@@ -4,9 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-
 #include <array>
-#include <string_view>
+#include <utility>
 
 #include <doctest/doctest.h>
 
@@ -22,35 +21,105 @@ TEST_SUITE("util::cryptography")
 {
     TEST_CASE("Hasher")
     {
+        const auto known_sha256 = std::array<std::pair<std::string, std::string>, 5>{ {
+            {
+                "test",
+                "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+            },
+            {
+                "test",
+                "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+            },
+            {
+                "This is a string !",
+                "4cad2018bf50bdc5c00a0dafdc53e15867c46c8d6cd6dec04302707a5892854e",
+            },
+            {
+                std::string(Sha256Digester::digest_size, 'y'),
+                "65be48e7ef751399d65711c5c053c6cec0c412ea22fae85872c867336b955a46",
+            },
+            {
+                std::string(Sha256Digester::digest_size * 2 + 10, 'z'),
+                "5fb97842061800e4140e9bb07e161a47d327f023a1e4410ea5af2132449a5b0c",
+            },
+        } };
+
+        const auto known_md5 = std::array<std::pair<std::string, std::string>, 5>{ {
+            { "test", "098f6bcd4621d373cade4e832627b4f6" },
+            { "test", "098f6bcd4621d373cade4e832627b4f6" },
+            { "This is a string !", "ffadac0192824b39afda20319ba016b6" },
+            {
+                std::string(Md5Digester::digest_size, 'y'),
+                "358b0ef0cd11424177adb11be4b43269",
+            },
+            {
+                std::string(Md5Digester::digest_size * 2 + 10, 'z'),
+                "43856e090ea42b2862bcf4b49aeda79f",
+            },
+
+        } };
+
+        SUBCASE("Hash string")
+        {
+            SUBCASE("sha256")
+            {
+                auto reused_hasher = Sha256Hasher();
+                for (auto [data, hash] : known_sha256)
+                {
+                    CHECK_EQ(reused_hasher.str_hex_str(data), hash);
+                    auto new_hasher = Sha256Hasher();
+                    CHECK_EQ(new_hasher.str_hex_str(data), hash);
+                }
+            }
+
+            SUBCASE("md5")
+            {
+                auto reused_hasher = Md5Hasher();
+                for (auto [data, hash] : known_md5)
+                {
+                    CHECK_EQ(reused_hasher.str_hex_str(data), hash);
+                    auto new_hasher = Md5Hasher();
+                    CHECK_EQ(new_hasher.str_hex_str(data), hash);
+                }
+            }
+        }
+
         SUBCASE("Hash file")
         {
-            auto tmp = mamba::TemporaryFile();
-            {
-                auto file = std::fstream(tmp.path());
-                REQUIRE(file.good());
-                file << "test";
-                file.close();
-            }
-            auto file = std::ifstream(tmp.path());
-            REQUIRE(file.good());
-
             SUBCASE("sha256")
             {
                 auto hasher = Sha256Hasher();
-                auto hash_hex = hasher.file_hex(file);
-                auto hash_hex_str = std::string_view(hash_hex.data(), hash_hex.size());
-                CHECK_EQ(
-                    hash_hex_str,
-                    "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
-                );
+                for (auto [data, hash] : known_sha256)
+                {
+                    auto tmp = mamba::TemporaryFile();
+                    {
+                        auto file = std::fstream(tmp.path());
+                        REQUIRE(file.good());
+                        file << data;
+                        file.close();
+                    }
+                    auto file = std::ifstream(tmp.path());
+                    REQUIRE(file.good());
+                    CHECK_EQ(hasher.file_hex_str(file), hash);
+                }
             }
 
             SUBCASE("md5")
             {
                 auto hasher = Md5Hasher();
-                auto hash_hex = hasher.file_hex(file);
-                auto hash_hex_str = std::string_view(hash_hex.data(), hash_hex.size());
-                CHECK_EQ(hash_hex_str, "098f6bcd4621d373cade4e832627b4f6");
+                for (auto [data, hash] : known_md5)
+                {
+                    auto tmp = mamba::TemporaryFile();
+                    {
+                        auto file = std::fstream(tmp.path());
+                        REQUIRE(file.good());
+                        file << data;
+                        file.close();
+                    }
+                    auto file = std::ifstream(tmp.path());
+                    REQUIRE(file.good());
+                    CHECK_EQ(hasher.file_hex_str(file), hash);
+                }
             }
         }
     }

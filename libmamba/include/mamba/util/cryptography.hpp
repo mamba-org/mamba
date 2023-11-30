@@ -7,10 +7,12 @@
 #ifndef MAMBA_UTIL_CRYPTOGRAPHY_HPP
 #define MAMBA_UTIL_CRYPTOGRAPHY_HPP
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <fstream>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "mamba/util/encoding.hpp"
@@ -33,11 +35,42 @@ namespace mamba::util
         using bytes_array = std::array<std::byte, bytes_size>;
         using hex_array = std::array<char, hex_size>;
 
+        // TODO(C++20): use std::span<std::byte>
+        struct blob_type
+        {
+            const std::byte* data;
+            std::size_t size;
+        };
+
+        void blob_bytes_to(blob_type blob, std::byte* out);
+
+        [[nodiscard]] auto blob_bytes(blob_type blob) -> bytes_array;
+
+        void blob_hex_to(blob_type blob, char* out);
+
+        [[nodiscard]] auto blob_hex(blob_type blob) -> hex_array;
+
+        [[nodiscard]] auto blob_hex_str(blob_type blob) -> std::string;
+
+        void str_bytes_to(std::string_view data, std::byte* out);
+
+        [[nodiscard]] auto str_bytes(std::string_view data) -> bytes_array;
+
+        void str_hex_to(std::string_view data, char* out);
+
+        [[nodiscard]] auto str_hex(std::string_view data) -> hex_array;
+
+        [[nodiscard]] auto str_hex_str(std::string_view data) -> std::string;
+
         void file_bytes_to(std::ifstream& file, std::byte* out);
 
         [[nodiscard]] auto file_bytes(std::ifstream& file) -> bytes_array;
 
+        void file_hex_to(std::ifstream& infile, char* out);
+
         [[nodiscard]] auto file_hex(std::ifstream& file) -> hex_array;
+
+        [[nodiscard]] auto file_hex_str(std::ifstream& file) -> std::string;
 
     private:
 
@@ -110,6 +143,88 @@ namespace mamba::util
      ************************************/
 
     template <typename D>
+    void DigestHasher<D>::blob_bytes_to(blob_type blob, std::byte* out)
+    {
+        m_digester.digest_start();
+
+        auto [iter, remaining] = blob;
+        while (remaining > 0)
+        {
+            const auto taken = std::min(remaining, digest_size);
+            m_digester.digest_update(const_cast<std::byte*>(iter), taken);
+            remaining -= taken;
+            iter += taken;
+        }
+        return m_digester.digest_finalize_to(out);
+    }
+
+    template <typename D>
+    auto DigestHasher<D>::blob_bytes(blob_type blob) -> bytes_array
+    {
+        auto out = bytes_array{};
+        blob_bytes_to(blob, out.data());
+        return out;
+    }
+
+    template <typename D>
+    void DigestHasher<D>::blob_hex_to(blob_type blob, char* out)
+    {
+        // Reusing the output array to write the temporary bytes
+        static_assert(hex_size >= 2 * bytes_size);
+        static_assert(sizeof(std::byte) == sizeof(char));
+        auto bytes_first = reinterpret_cast<std::byte*>(out) + bytes_size;
+        auto bytes_last = bytes_first + bytes_size;
+        blob_bytes_to(blob, bytes_first);
+        bytes_to_hex_to(bytes_first, bytes_last, out);
+    }
+
+    template <typename D>
+    auto DigestHasher<D>::blob_hex(blob_type blob) -> hex_array
+    {
+        auto out = hex_array{};
+        blob_hex_to(blob, out.data());
+        return out;
+    }
+
+    template <typename D>
+    auto DigestHasher<D>::blob_hex_str(blob_type blob) -> std::string
+    {
+        auto out = std::string(hex_size, 'x');  // An invalid character
+        blob_hex_to(blob, out.data());
+        return out;
+    }
+
+    template <typename D>
+    void DigestHasher<D>::str_bytes_to(std::string_view data, std::byte* out)
+    {
+        blob_bytes_to({ reinterpret_cast<const std::byte*>(data.data()), data.size() }, out);
+    }
+
+    template <typename D>
+    auto DigestHasher<D>::str_bytes(std::string_view data) -> bytes_array
+    {
+        return blob_bytes({ reinterpret_cast<const std::byte*>(data.data()), data.size() });
+    }
+
+    template <typename D>
+    void DigestHasher<D>::str_hex_to(std::string_view data, char* out)
+    {
+        blob_hex_to({ reinterpret_cast<const std::byte*>(data.data()), data.size() }, out);
+    }
+
+    template <typename D>
+    auto DigestHasher<D>::str_hex(std::string_view data) -> hex_array
+    {
+        return blob_hex({ reinterpret_cast<const std::byte*>(data.data()), data.size() });
+    }
+
+    template <typename D>
+    auto DigestHasher<D>::str_hex_str(std::string_view data) -> std::string
+    {
+        return blob_hex_str({ reinterpret_cast<const std::byte*>(data.data()), data.size() });
+    }
+
+    template <typename D>
     void DigestHasher<D>::file_bytes_to(std::ifstream& infile, std::byte* out)
     {
         m_digest_buffer.assign(digest_size, std::byte(0));
@@ -137,17 +252,30 @@ namespace mamba::util
     }
 
     template <typename D>
+    void DigestHasher<D>::file_hex_to(std::ifstream& infile, char* out)
+    {
+        // Reusing the output array to write the temporary bytes
+        static_assert(hex_size >= 2 * bytes_size);
+        static_assert(sizeof(std::byte) == sizeof(char));
+        auto bytes_first = reinterpret_cast<std::byte*>(out) + bytes_size;
+        auto bytes_last = bytes_first + bytes_size;
+        file_bytes_to(infile, bytes_first);
+        bytes_to_hex_to(bytes_first, bytes_last, out);
+    }
+
+    template <typename D>
     auto DigestHasher<D>::file_hex(std::ifstream& infile) -> hex_array
     {
         auto out = hex_array{};
+        file_hex_to(infile, out.data());
+        return out;
+    }
 
-        // Reusing the output array to write the temporary bytes
-        static_assert(hex_size >= 2 * bytes_size);
-        auto bytes_first = reinterpret_cast<std::byte*>(out.data()) + bytes_size;
-        auto bytes_last = bytes_first + bytes_size;
-        file_bytes_to(infile, bytes_first);
-
-        bytes_to_hex_to(bytes_first, bytes_last, out.data());
+    template <typename D>
+    auto DigestHasher<D>::file_hex_str(std::ifstream& infile) -> std::string
+    {
+        auto out = std::string(hex_size, 'x');  // An invalid character
+        file_hex_to(infile, out.data());
         return out;
     }
 }

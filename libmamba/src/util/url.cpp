@@ -16,6 +16,7 @@
 #include <fmt/format.h>
 
 #include "mamba/util/build.hpp"
+#include "mamba/util/encoding.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/tuple_hash.hpp"
@@ -235,12 +236,12 @@ namespace mamba::util
 
     auto URL::user(Decode::yes_type) const -> std::string
     {
-        return url_decode(user(Decode::no));
+        return decode_percent(user(Decode::no));
     }
 
     void URL::set_user(std::string_view user, Encode::yes_type)
     {
-        return set_user(url_encode(user), Encode::no);
+        return set_user(encode_percent(user), Encode::no);
     }
 
     void URL::set_user(std::string user, Encode::no_type)
@@ -265,12 +266,12 @@ namespace mamba::util
 
     auto URL::password(Decode::yes_type) const -> std::string
     {
-        return url_decode(password(Decode::no));
+        return decode_percent(password(Decode::no));
     }
 
     void URL::set_password(std::string_view password, Encode::yes_type)
     {
-        return set_password(url_encode(password), Encode::no);
+        return set_password(encode_percent(password), Encode::no);
     }
 
     void URL::set_password(std::string password, Encode::no_type)
@@ -359,12 +360,12 @@ namespace mamba::util
 
     auto URL::host(Decode::yes_type) const -> std::string
     {
-        return url_decode(host(Decode::no));
+        return decode_percent(host(Decode::no));
     }
 
     void URL::set_host(std::string_view host, Encode::yes_type)
     {
-        return set_host(url_encode(host), Encode::no);
+        return set_host(encode_percent(host), Encode::no);
     }
 
     void URL::set_host(std::string host, Encode::no_type)
@@ -460,7 +461,7 @@ namespace mamba::util
 
     auto URL::path(Decode::yes_type) const -> std::string
     {
-        return url_decode(path(Decode::no));
+        return decode_percent(path(Decode::no));
     }
 
     void URL::set_path(std::string_view path, Encode::yes_type)
@@ -475,13 +476,13 @@ namespace mamba::util
                     concat(
                         slashes.empty() ? "/" : slashes,
                         no_slash_path.substr(0, 2),
-                        url_encode(no_slash_path.substr(2), '/')
+                        encode_percent(no_slash_path.substr(2), '/')
                     ),
                     Encode::no
                 );
             }
         }
-        return set_path(url_encode(path, '/'), Encode::no);
+        return set_path(encode_percent(path, '/'), Encode::no);
     }
 
     void URL::set_path(std::string path, Encode::no_type)
@@ -504,13 +505,13 @@ namespace mamba::util
         if (on_win && scheme() == "file")
         {
             assert(util::starts_with(m_path, '/'));
-            auto path_no_slash = url_decode(std::string_view(m_path).substr(1));
+            auto path_no_slash = decode_percent(std::string_view(m_path).substr(1));
             if (path_has_drive_letter(path_no_slash))
             {
                 return path_no_slash;
             }
         }
-        return url_decode(m_path);
+        return decode_percent(m_path);
     }
 
     void URL::append_path(std::string_view subpath, Encode::yes_type)
@@ -520,7 +521,7 @@ namespace mamba::util
             // Allow handling of Windows drive letter encoding
             return set_path(std::string(subpath), Encode::yes);
         }
-        return append_path(url_encode(subpath, '/'), Encode::no);
+        return append_path(encode_percent(subpath, '/'), Encode::no);
     }
 
     void URL::append_path(std::string_view subpath, Encode::no_type)

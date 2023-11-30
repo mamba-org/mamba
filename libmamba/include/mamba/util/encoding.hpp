@@ -21,6 +21,26 @@ namespace mamba::util
 
     void bytes_to_hex_to(const std::byte* first, const std::byte* last, char* out);
 
+    /**
+     * Escape reserved URL reserved characters with '%' encoding.
+     *
+     * The secons argument can be used to specify characters to exclude from encoding,
+     * so that for instance path can be encoded without splitting them (if they have no '/' other
+     * than separators).
+     *
+     * @see url_decode
+     */
+    [[nodiscard]] auto encode_percent(std::string_view url) -> std::string;
+    [[nodiscard]] auto encode_percent(std::string_view url, std::string_view exclude) -> std::string;
+    [[nodiscard]] auto encode_percent(std::string_view url, char exclude) -> std::string;
+
+    /**
+     * Unescape percent encoded string to their URL reserved characters.
+     *
+     * @see encode_percent
+     */
+    [[nodiscard]] auto decode_percent(std::string_view url) -> std::string;
+
     [[nodiscard]] auto encode_base64(std::string_view input)
         -> tl::expected<std::string, EncodingError>;
 

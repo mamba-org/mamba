@@ -20,34 +20,6 @@ using namespace mamba::util;
 
 TEST_SUITE("util::url_manip")
 {
-    TEST_CASE("encoding")
-    {
-        CHECK_EQ(url_encode(""), "");
-        CHECK_EQ(url_encode("page"), "page");
-        CHECK_EQ(url_encode(" /word%"), "%20%2Fword%25");
-        CHECK_EQ(url_encode("user@email.com"), "user%40email.com");
-        CHECK_EQ(
-            url_encode(R"(#!$&'"(ab23)*+,/:;=?@[])"),
-            "%23%21%24%26%27%22%28ab23%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D"
-        );
-        // Does NOT parse URL
-        CHECK_EQ(url_encode("https://foo/"), "https%3A%2F%2Ffoo%2F");
-
-        // Exclude characters
-        CHECK_EQ(url_encode(" /word%", '/'), "%20/word%25");
-
-        CHECK_EQ(url_decode(""), "");
-        CHECK_EQ(url_decode("page"), "page");
-        CHECK_EQ(url_decode("%20%2Fword%25"), " /word%");
-        CHECK_EQ(url_decode(" /word%25"), " /word%");
-        CHECK_EQ(url_decode("user%40email.com"), "user@email.com");
-        CHECK_EQ(url_decode("https%3A%2F%2Ffoo%2F"), "https://foo/");
-        CHECK_EQ(
-            url_decode("%23%21%24%26%27%22%28ab23%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D"),
-            R"(#!$&'"(ab23)*+,/:;=?@[])"
-        );
-    }
-
     TEST_CASE("split_platform")
     {
         std::string platform_found, cleaned_url;

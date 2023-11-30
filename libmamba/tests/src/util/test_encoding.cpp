@@ -34,6 +34,40 @@ TEST_SUITE("util::encoding")
         CHECK_EQ(hex_str, "000103090a0d0fad1030a0d0f0ada94eefff");
     }
 
+    TEST_CASE("precent")
+    {
+        SUBCASE("encode")
+        {
+            CHECK_EQ(encode_percent(""), "");
+            CHECK_EQ(encode_percent("page"), "page");
+            CHECK_EQ(encode_percent(" /word%"), "%20%2Fword%25");
+            CHECK_EQ(encode_percent("user@email.com"), "user%40email.com");
+            CHECK_EQ(
+                encode_percent(R"(#!$&'"(ab23)*+,/:;=?@[])"),
+                "%23%21%24%26%27%22%28ab23%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D"
+            );
+            // Does NOT parse URL
+            CHECK_EQ(encode_percent("https://foo/"), "https%3A%2F%2Ffoo%2F");
+
+            // Exclude characters
+            CHECK_EQ(encode_percent(" /word%", '/'), "%20/word%25");
+        }
+
+        SUBCASE("decode")
+        {
+            CHECK_EQ(decode_percent(""), "");
+            CHECK_EQ(decode_percent("page"), "page");
+            CHECK_EQ(decode_percent("%20%2Fword%25"), " /word%");
+            CHECK_EQ(decode_percent(" /word%25"), " /word%");
+            CHECK_EQ(decode_percent("user%40email.com"), "user@email.com");
+            CHECK_EQ(decode_percent("https%3A%2F%2Ffoo%2F"), "https://foo/");
+            CHECK_EQ(
+                decode_percent("%23%21%24%26%27%22%28ab23%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D"),
+                R"(#!$&'"(ab23)*+,/:;=?@[])"
+            );
+        }
+    }
+
     TEST_CASE("base64")
     {
         SUBCASE("encode")

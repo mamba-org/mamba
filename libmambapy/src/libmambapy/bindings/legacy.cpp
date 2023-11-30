@@ -349,7 +349,32 @@ bind_submodule_impl(pybind11::module_ m)
     py::class_<MRepo>(m, "Repo")
         .def(py::init(
             [](MPool& pool, const std::string& name, const std::string& filename, const std::string& url
-            ) { return MRepo(pool, name, filename, RepoMetadata{ /* .url=*/url }); }
+            ) {
+                return MRepo(
+                    pool,
+                    name,
+                    filename,
+                    RepoMetadata{ /* .url=*/url },
+                    MRepo::RepodataParser::mamba
+                );
+            }
+        ))
+        .def(py::init(
+            [](MPool& pool,
+               const std::string& name,
+               const std::string& filename,
+               const std::string overlay,
+               const std::string& url)
+            {
+                return MRepo(
+                    pool,
+                    name,
+                    filename,
+                    overlay,
+                    RepoMetadata{ /* .url=*/url },
+                    MRepo::RepodataParser::mamba
+                );
+            }
         ))
         .def(py::init<MPool&, const PrefixData&>())
         .def("add_extra_pkg_info", &MRepo::py_add_extra_pkg_info)
@@ -698,8 +723,9 @@ bind_submodule_impl(pybind11::module_ m)
 
     py::class_<Context, std::unique_ptr<Context, py::nodelete>> ctx(m, "Context");
     ctx.def(py::init(
-                [] { return std::unique_ptr<Context, py::nodelete>(&mambapy::singletons.context()); }
-            ))
+            [] { return std::unique_ptr<Context, py::nodelete>(&mambapy::singletons.context()); }
+        ))
+        .def_static("use_default_signal_handler", &Context::use_default_signal_handler)
         .def_readwrite("offline", &Context::offline)
         .def_readwrite("local_repodata_ttl", &Context::local_repodata_ttl)
         .def_readwrite("use_index_cache", &Context::use_index_cache)

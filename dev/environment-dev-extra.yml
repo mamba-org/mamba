@@ -10,9 +10,8 @@ dependencies:
   - lld
   - cmake-format
   # C++ Debugging
-  - sel(linux): gdb
-  - sel(osx): lldb
-  - sel(linux): valgrind  # Out of date on MacOS
+  #  - gdb
+  # - valgrind
   # Python LSP support
   - ruff
   - python-lsp-server-base
@@ -23,6 +22,6 @@ dependencies:
   # Python Debugging
   - ipdb
   # Github CLI tool
-  - gh
+  # - gh
   # Taskfile for running scripts
-  - go-task
+  # - go-task

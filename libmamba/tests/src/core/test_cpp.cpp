@@ -25,6 +25,14 @@
 
 namespace mamba
 {
+
+    TEST_CASE("cache_name_from_url")
+    {
+        CHECK_EQ(cache_name_from_url("http://test.com/1234/"), "302f0a61");
+        CHECK_EQ(cache_name_from_url("http://test.com/1234/repodata.json"), "302f0a61");
+        CHECK_EQ(cache_name_from_url("http://test.com/1234/current_repodata.json"), "78a8cce9");
+    }
+
     // TEST(cpp_install, install)
     // {
     //     mambatests::context().output_params.verbosity = 3;

@@ -279,11 +279,4 @@ TEST_SUITE("util::url_manip")
         CHECK_FALSE(url_has_scheme("f#gre://"));
         CHECK_FALSE(url_has_scheme(""));
     }
-
-    TEST_CASE("cache_name_from_url")
-    {
-        CHECK_EQ(cache_name_from_url("http://test.com/1234/"), "302f0a61");
-        CHECK_EQ(cache_name_from_url("http://test.com/1234/repodata.json"), "302f0a61");
-        CHECK_EQ(cache_name_from_url("http://test.com/1234/current_repodata.json"), "78a8cce9");
-    }
 }

@@ -9,9 +9,6 @@
 #include <string>
 #include <string_view>
 
-#include <fmt/format.h>
-#include <openssl/evp.h>
-
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/path_manip.hpp"
@@ -290,33 +287,5 @@ namespace mamba::util
         }
 
         return util::concat("file:////", rest);
-    }
-
-    std::string cache_name_from_url(const std::string& url)
-    {
-        std::string u = url;
-        if (u.empty() || (u.back() != '/' && !util::ends_with(u, ".json")))
-        {
-            u += '/';
-        }
-
-        // mimicking conda's behavior by special handling repodata.json
-        // todo support .zst
-        if (util::ends_with(u, "/repodata.json"))
-        {
-            u = u.substr(0, u.size() - 13);
-        }
-
-        unsigned char hash[16];
-
-        EVP_MD_CTX* mdctx;
-        mdctx = EVP_MD_CTX_create();
-        EVP_DigestInit_ex(mdctx, EVP_md5(), nullptr);
-        EVP_DigestUpdate(mdctx, u.c_str(), u.size());
-        EVP_DigestFinal_ex(mdctx, hash, nullptr);
-        EVP_MD_CTX_destroy(mdctx);
-
-        std::string hex_digest = util::hex_string(hash, 16);
-        return hex_digest.substr(0u, 8u);
     }
 }

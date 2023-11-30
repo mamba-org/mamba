@@ -102,10 +102,7 @@ namespace mamba::util
      * @see https://learn.microsoft.com/en-us/dotnet/standard/io/file-path-formats#unc-paths
      * @see https://en.wikipedia.org/wiki/File_URI_scheme
      */
-    std::string file_uri_unc2_to_unc4(std::string_view url);
-
-    // Only returns a cache name without extension
-    std::string cache_name_from_url(const std::string& url);
+    [[nodiscard]] auto file_uri_unc2_to_unc4(std::string_view url) -> std::string;
 
     namespace detail
     {

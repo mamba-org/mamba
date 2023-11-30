@@ -33,4 +33,31 @@ TEST_SUITE("util::encoding")
         const auto hex_str = std::string_view(hex.data(), hex.size());
         CHECK_EQ(hex_str, "000103090a0d0fad1030a0d0f0ada94eefff");
     }
+
+    TEST_CASE("base64")
+    {
+        SUBCASE("encode")
+        {
+            CHECK_EQ(encode_base64("Hello").value(), "SGVsbG8=");
+            CHECK_EQ(encode_base64("Hello World!").value(), "SGVsbG8gV29ybGQh");
+            CHECK_EQ(encode_base64("!@#$%^U&I*O").value(), "IUAjJCVeVSZJKk8=");
+            CHECK_EQ(
+                encode_base64(u8"_私のにほHelloわへたです").value(),
+                "X+engeOBruOBq+OBu0hlbGxv44KP44G444Gf44Gn44GZ"
+            );
+            CHECK_EQ(encode_base64("xyzpass").value(), "eHl6cGFzcw==");
+        }
+
+        SUBCASE("decode")
+        {
+            CHECK_EQ(decode_base64("SGVsbG8=").value(), "Hello");
+            CHECK_EQ(decode_base64("SGVsbG8gV29ybGQh").value(), "Hello World!");
+            CHECK_EQ(decode_base64("IUAjJCVeVSZJKk8=").value(), "!@#$%^U&I*O");
+            CHECK_EQ(
+                decode_base64(u8"X+engeOBruOBq+OBu0hlbGxv44KP44G444Gf44Gn44GZ").value(),
+                "_私のにほHelloわへたです"
+            );
+            CHECK_EQ(decode_base64("eHl6cGFzcw==").value(), "xyzpass");
+        }
+    }
 }

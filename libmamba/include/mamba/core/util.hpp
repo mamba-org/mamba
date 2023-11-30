@@ -331,9 +331,6 @@ namespace mamba
     void split_package_extension(const std::string& file, std::string& name, std::string& extension);
     fs::u8path strip_package_extension(const std::string& file);
 
-    tl::expected<std::string, mamba_error> encode_base64(std::string_view input);
-    tl::expected<std::string, mamba_error> decode_base64(std::string_view input);
-
     std::string
     quote_for_shell(const std::vector<std::string>& arguments, const std::string& shell = "");
 

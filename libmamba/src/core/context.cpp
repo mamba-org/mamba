@@ -18,6 +18,7 @@
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/util/encoding.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
@@ -256,7 +257,7 @@ namespace mamba
                     else if (type == "BasicHTTPAuthentication")
                     {
                         const auto& user = el.value("user", "");
-                        auto pass = decode_base64(el["password"].get<std::string>());
+                        auto pass = util::decode_base64(el["password"].get<std::string>());
                         if (pass)
                         {
                             info = specs::BasicHTTPAuthentication{

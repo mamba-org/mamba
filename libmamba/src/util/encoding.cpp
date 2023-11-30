@@ -6,7 +6,11 @@
 
 #include <array>
 #include <cstdint>
+#include <cstring>
 
+#include <openssl/evp.h>
+
+#include "mamba/util/compare.hpp"
 #include "mamba/util/encoding.hpp"
 
 namespace mamba::util
@@ -23,5 +27,44 @@ namespace mamba::util
             *out++ = hex_chars[byte & 0xF];
             ++first;
         }
+    }
+
+    auto encode_base64(std::string_view input) -> tl::expected<std::string, EncodingError>
+    {
+        const auto expected_size = 4 * ((input.size() + 2) / 3);
+        auto out = std::string(expected_size, '#');  // Invalid char
+        const auto written_size = ::EVP_EncodeBlock(
+            reinterpret_cast<unsigned char*>(out.data()),
+            reinterpret_cast<const unsigned char*>(input.data()),
+            static_cast<int>(input.size())
+        );
+
+        if (util::cmp_not_equal(expected_size, written_size))
+        {
+            return tl::make_unexpected(EncodingError());
+        }
+        return { std::move(out) };
+    }
+
+    auto decode_base64(std::string_view input) -> tl::expected<std::string, EncodingError>
+    {
+        const auto max_expected_size = 3 * input.size() / 4;
+        auto out = std::string(max_expected_size, 'x');
+        // Writes the string and the null terminator
+        const auto max_possible_written_size = ::EVP_DecodeBlock(
+            reinterpret_cast<unsigned char*>(out.data()),
+            reinterpret_cast<const unsigned char*>(input.data()),
+            static_cast<int>(input.size())
+        );
+        if (util::cmp_not_equal(max_expected_size, max_possible_written_size))
+        {
+            return tl::make_unexpected(EncodingError());
+        }
+
+        // Sometimes the number reported/computed is smaller than the actual length.
+        auto min_expected_size = static_cast<std::size_t>(std::max(max_possible_written_size, 4) - 4);
+        auto extra = std::strlen(out.c_str() + min_expected_size);
+        out.resize(min_expected_size + extra);
+        return { std::move(out) };
     }
 }

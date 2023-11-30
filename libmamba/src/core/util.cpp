@@ -49,7 +49,6 @@ extern "C"
 #endif
 
 #include <nlohmann/json.hpp>
-#include <openssl/evp.h>
 #include <tl/expected.hpp>
 
 #include "mamba/core/context.hpp"
@@ -1568,43 +1567,6 @@ namespace mamba
     {
         return util::ends_with(filename, ".yml") || util::ends_with(filename, ".yaml");
     }
-
-    tl::expected<std::string, mamba_error> encode_base64(std::string_view input)
-    {
-        const auto pl = 4 * ((input.size() + 2) / 3);
-        std::vector<unsigned char> output(pl + 1);
-        const auto ol = EVP_EncodeBlock(
-            output.data(),
-            reinterpret_cast<const unsigned char*>(input.data()),
-            static_cast<int>(input.size())
-        );
-
-        if (util::cmp_not_equal(pl, ol))
-        {
-            return make_unexpected("Could not encode base64 string", mamba_error_code::openssl_failed);
-        }
-
-        return std::string(reinterpret_cast<const char*>(output.data()));
-    }
-
-    tl::expected<std::string, mamba_error> decode_base64(std::string_view input)
-    {
-        const auto pl = 3 * input.size() / 4;
-
-        std::vector<unsigned char> output(pl + 1);
-        const auto ol = EVP_DecodeBlock(
-            output.data(),
-            reinterpret_cast<const unsigned char*>(input.data()),
-            static_cast<int>(input.size())
-        );
-        if (util::cmp_not_equal(pl, ol))
-        {
-            return make_unexpected("Could not decode base64 string", mamba_error_code::openssl_failed);
-        }
-
-        return std::string(reinterpret_cast<const char*>(output.data()));
-    }
-
 
     std::optional<std::string>
     proxy_match(const std::string& url, const std::map<std::string, std::string>& proxy_servers)

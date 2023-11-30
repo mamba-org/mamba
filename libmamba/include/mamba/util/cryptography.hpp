@@ -13,12 +13,12 @@
 #include <memory>
 #include <vector>
 
+#include "mamba/util/encoding.hpp"
+
 using EVP_MD_CTX = struct evp_md_ctx_st;
 
 namespace mamba::util
 {
-    void bytes_to_hex_to(const std::byte* first, const std::byte* last, char* out);
-
     template <typename Digester>
     class DigestHasher
     {

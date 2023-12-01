@@ -17,10 +17,13 @@
 
 #include "mamba/util/encoding.hpp"
 
-using EVP_MD_CTX = struct evp_md_ctx_st;
+using EVP_MD_CTX = struct evp_md_ctx_st;  // OpenSSL impl
 
 namespace mamba::util
 {
+    /**
+     * Provide high-level hashing functions over a digest hashing algorithm.
+     */
     template <typename Digester>
     class DigestHasher
     {
@@ -42,34 +45,82 @@ namespace mamba::util
             std::size_t size;
         };
 
+        /**
+         * Hash a blob of data and write the hashed bytes to the provided ouput.
+         */
         void blob_bytes_to(blob_type blob, std::byte* out);
 
+        /**
+         * Hash a blob of data and return the hashed bytes as an array.
+         */
         [[nodiscard]] auto blob_bytes(blob_type blob) -> bytes_array;
 
+        /**
+         * Hash a blob of data and write the hashed bytes with hexadecimal encoding to the output.
+         */
         void blob_hex_to(blob_type blob, char* out);
 
+        /**
+         * Hash a blob of data and return the hashed bytes with hexadecimal encoding as an array.
+         */
         [[nodiscard]] auto blob_hex(blob_type blob) -> hex_array;
 
+        /**
+         * Hash a blob of data and return the hashed bytes with hexadecimal encoding as a string.
+         */
         [[nodiscard]] auto blob_hex_str(blob_type blob) -> std::string;
 
+        /**
+         * Hash a string and write the hashed bytes to the provided ouput.
+         */
         void str_bytes_to(std::string_view data, std::byte* out);
 
+        /**
+         * Hash a string and return the hashed bytes as an array.
+         */
         [[nodiscard]] auto str_bytes(std::string_view data) -> bytes_array;
 
+        /**
+         * Hash a string and write the hashed bytes with hexadecimal encoding to the output.
+         */
         void str_hex_to(std::string_view data, char* out);
 
+        /**
+         * Hash a string and return the hashed bytes with hexadecimal encoding as an array.
+         */
         [[nodiscard]] auto str_hex(std::string_view data) -> hex_array;
 
+        /**
+         * Hash a string and return the hashed bytes with hexadecimal encoding as a string.
+         */
         [[nodiscard]] auto str_hex_str(std::string_view data) -> std::string;
 
+        /**
+         * Incrementally hash a file and write the hashed bytes to the provided ouput.
+         */
         void file_bytes_to(std::ifstream& file, std::byte* out);
 
+        /**
+         * Incrementally hash a file and return the hashed bytes as an array.
+         */
         [[nodiscard]] auto file_bytes(std::ifstream& file) -> bytes_array;
 
+        /**
+         * Incrementally hash a file and write the hashed bytes with hexadecimal encoding to the
+         * output.
+         */
         void file_hex_to(std::ifstream& infile, char* out);
 
+        /**
+         * Incrementally hash a file and return the hashed bytes with hexadecimal encoding as an
+         * array.
+         */
         [[nodiscard]] auto file_hex(std::ifstream& file) -> hex_array;
 
+        /**
+         * Incrementally hash a file and return the hashed bytes with hexadecimal encoding as a
+         * string.
+         */
         [[nodiscard]] auto file_hex_str(std::ifstream& file) -> std::string;
 
     private:

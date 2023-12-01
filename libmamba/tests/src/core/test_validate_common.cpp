@@ -9,11 +9,20 @@
 #include <spdlog/spdlog.h>
 
 #include "mamba/core/validate.hpp"
-#include "mamba/util/string.hpp"
+#include "mamba/util/encoding.hpp"
 
 using namespace mamba;
 using namespace mamba::validation;
 namespace nl = nlohmann;
+
+// TODO validate API should move to std::byte
+template <std::size_t size>
+auto
+hex_str(const std::array<unsigned char, size>& bytes)
+{
+    auto data = reinterpret_cast<const std::byte*>(bytes.data());
+    return util::bytes_to_hex_str(data, data + bytes.size());
+}
 
 TEST_SUITE("Validate")
 {
@@ -35,21 +44,21 @@ TEST_SUITE("Validate")
         std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> pk, sk;
         generate_ed25519_keypair(pk.data(), sk.data());
 
-        auto pk_hex = ::mamba::util::hex_string(pk);
+        auto pk_hex = hex_str(pk);
         auto pk_bytes = ed25519_key_hex_to_bytes(pk_hex);
-        CHECK_EQ(pk_hex, ::mamba::util::hex_string(pk_bytes));
+        CHECK_EQ(pk_hex, hex_str(pk_bytes));
 
         spdlog::set_level(spdlog::level::debug);
 
         std::array<unsigned char, 5> not_even_key;
-        pk_hex = ::mamba::util::hex_string(not_even_key);
+        pk_hex = hex_str(not_even_key);
         pk_bytes = ed25519_key_hex_to_bytes(pk_hex);
-        CHECK_FALSE(pk_hex == ::mamba::util::hex_string(pk_bytes));
+        CHECK_FALSE(pk_hex == hex_str(pk_bytes));
 
         std::array<unsigned char, 6> wrong_size_key;
-        pk_hex = ::mamba::util::hex_string(wrong_size_key);
+        pk_hex = hex_str(wrong_size_key);
         pk_bytes = ed25519_key_hex_to_bytes(pk_hex);
-        CHECK_FALSE(pk_hex == ::mamba::util::hex_string(pk_bytes));
+        CHECK_FALSE(pk_hex == hex_str(pk_bytes));
 
         spdlog::set_level(spdlog::level::info);
     }
@@ -62,21 +71,21 @@ TEST_SUITE("Validate")
         std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> sig;
         sign("Some text.", sk.data(), sig.data());
 
-        auto sig_hex = ::mamba::util::hex_string(sig);
+        auto sig_hex = hex_str(sig);
         auto sig_bytes = ed25519_sig_hex_to_bytes(sig_hex);
-        CHECK_EQ(sig_hex, ::mamba::util::hex_string(sig_bytes));
+        CHECK_EQ(sig_hex, hex_str(sig_bytes));
 
         spdlog::set_level(spdlog::level::debug);
 
         std::array<unsigned char, 5> not_even_sig;
-        sig_hex = ::mamba::util::hex_string(not_even_sig);
+        sig_hex = hex_str(not_even_sig);
         sig_bytes = ed25519_sig_hex_to_bytes(sig_hex);
-        CHECK_FALSE(sig_hex == ::mamba::util::hex_string(sig_bytes));
+        CHECK_FALSE(sig_hex == hex_str(sig_bytes));
 
         std::array<unsigned char, 6> wrong_size_sig;
-        sig_hex = ::mamba::util::hex_string(wrong_size_sig);
+        sig_hex = hex_str(wrong_size_sig);
         sig_bytes = ed25519_sig_hex_to_bytes(sig_hex);
-        CHECK_FALSE(sig_hex == ::mamba::util::hex_string(sig_bytes));
+        CHECK_FALSE(sig_hex == hex_str(sig_bytes));
 
         spdlog::set_level(spdlog::level::info);
     }
@@ -88,28 +97,28 @@ public:
 
     VerifyMsg()
     {
-        generate_ed25519_keypair(pk, sk);
-        sign("Some text.", sk, signature);
+        generate_ed25519_keypair(pk.data(), sk.data());
+        sign("Some text.", sk.data(), signature.data());
     }
 
 protected:
 
-    unsigned char pk[MAMBA_ED25519_KEYSIZE_BYTES];
-    unsigned char sk[MAMBA_ED25519_KEYSIZE_BYTES];
-    unsigned char signature[MAMBA_ED25519_SIGSIZE_BYTES];
+    std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> pk;
+    std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> sk;
+    std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> signature;
 };
 
 TEST_SUITE("VerifyMsg")
 {
     TEST_CASE_FIXTURE(VerifyMsg, "from_bytes")
     {
-        CHECK_EQ(verify("Some text.", pk, signature), 1);
+        CHECK_EQ(verify("Some text.", pk.data(), signature.data()), 1);
     }
 
     TEST_CASE_FIXTURE(VerifyMsg, "from_hex")
     {
-        auto signature_hex = ::mamba::util::hex_string(signature, MAMBA_ED25519_SIGSIZE_BYTES);
-        auto pk_hex = ::mamba::util::hex_string(pk, MAMBA_ED25519_KEYSIZE_BYTES);
+        auto signature_hex = hex_str(signature);
+        auto pk_hex = hex_str(pk);
 
         CHECK_EQ(verify("Some text.", pk_hex, signature_hex), 1);
     }
@@ -117,7 +126,7 @@ TEST_SUITE("VerifyMsg")
     TEST_CASE_FIXTURE(VerifyMsg, "wrong_signature")
     {
         spdlog::set_level(spdlog::level::debug);
-        auto pk_hex = ::mamba::util::hex_string(pk, MAMBA_ED25519_KEYSIZE_BYTES);
+        auto pk_hex = hex_str(pk);
 
         CHECK_EQ(verify("Some text.", pk_hex, "signature_hex"), 0);
         spdlog::set_level(spdlog::level::info);
@@ -126,7 +135,7 @@ TEST_SUITE("VerifyMsg")
     TEST_CASE_FIXTURE(VerifyMsg, "wrong_public_key")
     {
         spdlog::set_level(spdlog::level::debug);
-        auto signature_hex = ::mamba::util::hex_string(signature, MAMBA_ED25519_SIGSIZE_BYTES);
+        auto signature_hex = hex_str(signature);
 
         CHECK_EQ(verify("Some text.", "pk_hex", signature_hex), 0);
         spdlog::set_level(spdlog::level::info);

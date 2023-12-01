@@ -261,8 +261,14 @@ namespace mamba::validation
 
     std::pair<std::string, std::string> generate_ed25519_keypair_hex()
     {
-        auto pair = generate_ed25519_keypair();
-        return { ::mamba::util::hex_string(pair.first), ::mamba::util::hex_string(pair.second) };
+        auto [first, second] = generate_ed25519_keypair();
+        // TODO change function signature to use std::byte
+        const auto first_data = reinterpret_cast<const std::byte*>(first.data());
+        const auto second_data = reinterpret_cast<const std::byte*>(second.data());
+        return {
+            util::bytes_to_hex_str(first_data, first_data + first.size()),
+            util::bytes_to_hex_str(second_data, second_data + second.size()),
+        };
     }
 
     int sign(const std::string& data, const unsigned char* sk, unsigned char* signature)
@@ -318,7 +324,10 @@ namespace mamba::validation
         std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> sig;
 
         error_code = sign(data, bin_sk.data(), sig.data());
-        signature = ::mamba::util::hex_string(sig, MAMBA_ED25519_SIGSIZE_BYTES);
+
+        // TODO change function signature to use std::byte
+        const auto sig_data = reinterpret_cast<const std::byte*>(sig.data());
+        signature = util::bytes_to_hex_str(sig_data, sig_data + sig.size());
 
         return error_code;
     }
@@ -1386,7 +1395,10 @@ namespace mamba::validation
         {
             std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> sig_bin;
             sign(j.dump(), sk, sig_bin.data());
-            auto sig_hex = ::mamba::util::hex_string(sig_bin);
+
+            // TODO change function signatures to use std::byte
+            const auto sig_bin_data = reinterpret_cast<const std::byte*>(sig_bin.data());
+            auto sig_hex = util::bytes_to_hex_str(sig_bin_data, sig_bin_data + sig_bin.size());
 
             return { pk, sig_hex };
         }

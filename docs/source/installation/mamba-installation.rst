@@ -15,7 +15,7 @@ After successful installation, you can use the mamba commands as described in :r
 
 .. note::
 
-   1. After installation, please :ref`make sure <defaults_channels>` that you do not have the Anaconda default channels configured.
+   1. After installation, please :ref:`make sure <defaults_channels>` that you do not have the Anaconda default channels configured.
    2. Do not install anything into the `base` environment as this might break your installation. See :ref:`here <base_packages>` for details.
 
 

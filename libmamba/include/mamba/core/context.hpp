@@ -63,6 +63,8 @@ namespace mamba
     {
     public:
 
+        static void use_default_signal_handler(bool val);
+
         struct RemoteFetchParams
         {
             // ssl_verify can be either an empty string (regular SSL verification),

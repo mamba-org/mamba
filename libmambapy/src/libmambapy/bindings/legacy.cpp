@@ -726,6 +726,7 @@ bind_submodule_impl(pybind11::module_ m)
                 );
             }
         ))
+        .def_static("use_default_signal_handler", &Context::use_default_signal_handler)
         .def_readwrite("offline", &Context::offline)
         .def_readwrite("local_repodata_ttl", &Context::local_repodata_ttl)
         .def_readwrite("use_index_cache", &Context::use_index_cache)

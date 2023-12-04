@@ -64,7 +64,7 @@ namespace mamba::util
         return hex_chars[static_cast<std::uint8_t>(low_nibble(b))];
     }
 
-    // TODO(C++20): use std::span
+    // TODO(C++20): use std::span and iterators
     void bytes_to_hex_to(const std::byte* first, const std::byte* last, char* out) noexcept
     {
         while (first != last)
@@ -76,7 +76,7 @@ namespace mamba::util
         }
     }
 
-    // TODO(C++20): use std::span
+    // TODO(C++20): use std::span and iterators
     auto bytes_to_hex_str(const std::byte* first, const std::byte* last) -> std::string
     {
         auto out = std::string(static_cast<std::size_t>(last - first) * 2, 'x');
@@ -143,6 +143,7 @@ namespace mamba::util
         return b;
     }
 
+    // TODO(C++20): use iterators return type
     void hex_to_bytes_to(std::string_view hex, std::byte* out, EncodingError& error) noexcept
     {
         if (hex.size() % 2 == 0)
@@ -160,6 +161,7 @@ namespace mamba::util
         }
     }
 
+    // TODO(C++20): use iterators return type
     auto hex_to_bytes_to(std::string_view hex, std::byte* out) noexcept
         -> tl::expected<void, EncodingError>
     {

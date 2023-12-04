@@ -45,13 +45,7 @@ namespace mamba::validation
     int sign(const std::string& data, const std::string& sk, std::string& signature);
 
     std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES>
-    ed25519_sig_hex_to_bytes(const std::string& sig_hex) noexcept;
-
-    std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES>
     ed25519_sig_hex_to_bytes(const std::string& sig_hex, int& error_code) noexcept;
-
-    std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>
-    ed25519_key_hex_to_bytes(const std::string& key_hex) noexcept;
 
     std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>
     ed25519_key_hex_to_bytes(const std::string& key_hex, int& error_code) noexcept;

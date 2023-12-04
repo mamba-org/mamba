@@ -45,19 +45,23 @@ TEST_SUITE("Validate")
         generate_ed25519_keypair(pk.data(), sk.data());
 
         auto pk_hex = hex_str(pk);
-        auto pk_bytes = ed25519_key_hex_to_bytes(pk_hex);
+        int error = 0;
+        auto pk_bytes = ed25519_key_hex_to_bytes(pk_hex, error);
+        REQUIRE_EQ(error, 0);
         CHECK_EQ(pk_hex, hex_str(pk_bytes));
 
         spdlog::set_level(spdlog::level::debug);
 
         std::array<unsigned char, 5> not_even_key;
         pk_hex = hex_str(not_even_key);
-        pk_bytes = ed25519_key_hex_to_bytes(pk_hex);
+        pk_bytes = ed25519_key_hex_to_bytes(pk_hex, error);
+        REQUIRE_EQ(error, 0);
         CHECK_FALSE(pk_hex == hex_str(pk_bytes));
 
         std::array<unsigned char, 6> wrong_size_key;
         pk_hex = hex_str(wrong_size_key);
-        pk_bytes = ed25519_key_hex_to_bytes(pk_hex);
+        pk_bytes = ed25519_key_hex_to_bytes(pk_hex, error);
+        REQUIRE_EQ(error, 0);
         CHECK_FALSE(pk_hex == hex_str(pk_bytes));
 
         spdlog::set_level(spdlog::level::info);
@@ -71,20 +75,24 @@ TEST_SUITE("Validate")
         std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> sig;
         sign("Some text.", sk.data(), sig.data());
 
+        int error = 0;
         auto sig_hex = hex_str(sig);
-        auto sig_bytes = ed25519_sig_hex_to_bytes(sig_hex);
+        auto sig_bytes = ed25519_sig_hex_to_bytes(sig_hex, error);
+        REQUIRE_EQ(error, 0);
         CHECK_EQ(sig_hex, hex_str(sig_bytes));
 
         spdlog::set_level(spdlog::level::debug);
 
         std::array<unsigned char, 5> not_even_sig;
         sig_hex = hex_str(not_even_sig);
-        sig_bytes = ed25519_sig_hex_to_bytes(sig_hex);
+        sig_bytes = ed25519_sig_hex_to_bytes(sig_hex, error);
+        REQUIRE_EQ(error, 0);
         CHECK_FALSE(sig_hex == hex_str(sig_bytes));
 
         std::array<unsigned char, 6> wrong_size_sig;
         sig_hex = hex_str(wrong_size_sig);
-        sig_bytes = ed25519_sig_hex_to_bytes(sig_hex);
+        sig_bytes = ed25519_sig_hex_to_bytes(sig_hex, error);
+        REQUIRE_EQ(error, 0);
         CHECK_FALSE(sig_hex == hex_str(sig_bytes));
 
         spdlog::set_level(spdlog::level::info);
@@ -185,8 +193,11 @@ TEST_SUITE("VerifyGPGMsg")
 {
     TEST_CASE_FIXTURE(VerifyGPGMsg, "verify_gpg_hashed_msg_from_bin")
     {
-        auto bin_signature = ed25519_sig_hex_to_bytes(signature);
-        auto bin_pk = ed25519_key_hex_to_bytes(pk);
+        int error = 0;
+        auto bin_signature = ed25519_sig_hex_to_bytes(signature, error);
+        REQUIRE_EQ(error, 0);
+        auto bin_pk = ed25519_key_hex_to_bytes(pk, error);
+        REQUIRE_EQ(error, 0);
 
         CHECK_EQ(verify_gpg_hashed_msg(hash, bin_pk.data(), bin_signature.data()), 1);
     }

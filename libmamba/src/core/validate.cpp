@@ -121,86 +121,41 @@ namespace mamba::validation
 
     namespace
     {
-        template <class B>
-        std::vector<unsigned char> hex_to_bytes(const B& buffer, std::size_t size)
+        template <size_t S, class B>
+        [[nodiscard]] std::array<unsigned char, S>
+        hex_to_bytes_arr(const B& buffer, int& error_code) noexcept
         {
-            std::vector<unsigned char> res;
-            if (size % 2 != 0)
-            {
-                return res;
-            }
-
-            std::string extract;
-            for (auto pos = buffer.cbegin(); pos < buffer.cend(); pos += 2)
-            {
-                extract.assign(pos, pos + 2);
-                res.push_back(static_cast<unsigned char>(std::stoi(extract, nullptr, 16)));
-            }
-            return res;
+            auto out = std::array<unsigned char, S>{};
+            auto err = util::EncodingError::Ok;
+            util::hex_to_bytes_to(buffer, reinterpret_cast<std::byte*>(out.data()), err);
+            error_code = err != util::EncodingError::Ok;
+            return out;
         }
 
         template <class B>
-        std::vector<unsigned char> hex_to_bytes(const B& buffer)
+        [[nodiscard]] std::vector<unsigned char>
+        hex_to_bytes_vec(const B& buffer, int& error_code) noexcept
         {
-            return hex_to_bytes(buffer, buffer.size());
+            auto out = std::vector<unsigned char>(buffer.size() / 2);
+            auto err = util::EncodingError::Ok;
+            util::hex_to_bytes_to(buffer, reinterpret_cast<std::byte*>(out.data()), err);
+            error_code = err != util::EncodingError::Ok;
+            return out;
         }
-
-        template <size_t S, class B>
-        std::array<unsigned char, S> hex_to_bytes(const B& buffer, int& error_code) noexcept
-        {
-            std::array<unsigned char, S> res{};
-            if (buffer.size() != (S * 2))
-            {
-                LOG_DEBUG << "Wrong size for hexadecimal buffer, expected " << S * 2 << " but is "
-                          << buffer.size();
-                error_code = 1;
-                return res;
-            }
-
-            std::string extract;
-            std::size_t i = 0;
-            for (auto pos = buffer.cbegin(); pos < buffer.cend(); pos += 2)
-            {
-                extract.assign(pos, pos + 2);  // noexcept SSO
-                res[i] = static_cast<unsigned char>(std::stoi(extract, nullptr, 16));
-                ++i;
-            }
-            return res;
-        }
-
-        template <size_t S, class B>
-        std::array<unsigned char, S> hex_to_bytes(const B& buffer)
-        {
-            int ec;
-            return hex_to_bytes<S>(buffer, ec);
-        }
-    }
-
-    std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES>
-    ed25519_sig_hex_to_bytes(const std::string& sig_hex) noexcept
-    {
-        return hex_to_bytes<MAMBA_ED25519_SIGSIZE_BYTES>(sig_hex);
     }
 
     std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES>
     ed25519_sig_hex_to_bytes(const std::string& sig_hex, int& error_code) noexcept
 
     {
-        return hex_to_bytes<MAMBA_ED25519_SIGSIZE_BYTES>(sig_hex, error_code);
-    }
-
-    std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>
-    ed25519_key_hex_to_bytes(const std::string& key_hex) noexcept
-
-    {
-        return hex_to_bytes<MAMBA_ED25519_KEYSIZE_BYTES>(key_hex);
+        return hex_to_bytes_arr<MAMBA_ED25519_SIGSIZE_BYTES>(sig_hex, error_code);
     }
 
     std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>
     ed25519_key_hex_to_bytes(const std::string& key_hex, int& error_code) noexcept
 
     {
-        return hex_to_bytes<MAMBA_ED25519_KEYSIZE_BYTES>(key_hex, error_code);
+        return hex_to_bytes_arr<MAMBA_ED25519_KEYSIZE_BYTES>(key_hex, error_code);
     }
 
     int generate_ed25519_keypair(unsigned char* pk, unsigned char* sk)
@@ -412,16 +367,26 @@ namespace mamba::validation
     int
     verify_gpg_hashed_msg(const std::string& data, const unsigned char* pk, const unsigned char* signature)
     {
-        auto data_bin = hex_to_bytes<MAMBA_SHA256_SIZE_BYTES>(data);
+        int error = 0;
+        auto data_bin = hex_to_bytes_arr<MAMBA_SHA256_SIZE_BYTES>(data, error);
 
-        return verify(data_bin.data(), MAMBA_SHA256_SIZE_BYTES, pk, signature);
+        return verify(data_bin.data(), MAMBA_SHA256_SIZE_BYTES, pk, signature) + error;
     }
 
     int
     verify_gpg_hashed_msg(const std::string& data, const std::string& pk, const std::string& signature)
     {
-        auto signature_bin = ed25519_sig_hex_to_bytes(signature);
-        auto pk_bin = ed25519_key_hex_to_bytes(pk);
+        int error = 0;
+        auto signature_bin = ed25519_sig_hex_to_bytes(signature, error);
+        if (error)
+        {
+            return error;
+        }
+        auto pk_bin = ed25519_key_hex_to_bytes(pk, error);
+        if (error)
+        {
+            return error;
+        }
 
         return verify_gpg_hashed_msg(data, pk_bin.data(), signature_bin.data());
     }
@@ -460,8 +425,17 @@ namespace mamba::validation
         unsigned long long data_len = data.size();
         auto data_bin = reinterpret_cast<const unsigned char*>(data.c_str());
 
-        auto signature_bin = ed25519_sig_hex_to_bytes(signature);
-        auto pk_bin = ed25519_key_hex_to_bytes(pk);
+        int error = 0;
+        auto signature_bin = ed25519_sig_hex_to_bytes(signature, error);
+        if (error)
+        {
+            return error;
+        }
+        auto pk_bin = ed25519_key_hex_to_bytes(pk, error);
+        if (error)
+        {
+            return error;
+        }
 
         std::size_t trailer_hex_size = pgp_v4_trailer.size();
         if (trailer_hex_size % 2 != 0)
@@ -470,8 +444,13 @@ namespace mamba::validation
             return 0;
         }
 
-        auto pgp_trailer_bin = hex_to_bytes(pgp_v4_trailer);
-        auto final_trailer_bin = hex_to_bytes<2>(std::string("04ff"));
+        auto pgp_trailer_bin = hex_to_bytes_vec(pgp_v4_trailer, error);
+        if (error)
+        {
+            return error;
+        }
+        auto final_trailer_bin = hex_to_bytes_arr<2>(std::string_view("04ff"), error);
+        assert(!error);
 
         uint32_t trailer_bin_len_big_endian = static_cast<uint32_t>(pgp_trailer_bin.size());
 
@@ -493,7 +472,7 @@ namespace mamba::validation
 
         EVP_DigestFinal_ex(mdctx.get(), hash.data(), nullptr);
 
-        return verify_gpg_hashed_msg(hash.data(), pk_bin.data(), signature_bin.data());
+        return verify_gpg_hashed_msg(hash.data(), pk_bin.data(), signature_bin.data()) + error;
     }
 
     bool operator<(const RoleSignature& rs1, const RoleSignature& rs2)

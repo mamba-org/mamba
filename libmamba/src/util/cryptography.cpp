@@ -46,7 +46,7 @@ namespace mamba::util::detail
         assert(status != 0);
     }
 
-    void EVPDigester::digest_update(std::byte* buffer, std::size_t count)
+    void EVPDigester::digest_update(const std::byte* buffer, std::size_t count)
     {
         ::EVP_DigestUpdate(m_ctx.get(), buffer, count);
     }

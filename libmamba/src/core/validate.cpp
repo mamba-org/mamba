@@ -379,30 +379,6 @@ namespace mamba::validation
         return verify_gpg_hashed_msg(data, pk_bin.data(), signature_bin.data());
     }
 
-    namespace
-    {
-        struct EVPContextDeleter
-        {
-            using value_type = ::EVP_MD_CTX;
-            using pointer_type = value_type*;
-
-            void operator()(pointer_type ptr) const
-            {
-                if (ptr)
-                {
-                    ::EVP_MD_CTX_destroy(ptr);
-                }
-            }
-        };
-
-        auto make_EVP_context()
-        {
-            auto ptr = std::unique_ptr<::EVP_MD_CTX, EVPContextDeleter>();
-            ptr.reset(::EVP_MD_CTX_create());
-            return ptr;
-        }
-    }
-
     int verify_gpg(
         const std::string& data,
         const std::string& pgp_v4_trailer,
@@ -450,15 +426,19 @@ namespace mamba::validation
 
         std::array<unsigned char, MAMBA_SHA256_SIZE_BYTES> hash;
 
-        auto mdctx = make_EVP_context();
-        EVP_DigestInit_ex(mdctx.get(), EVP_sha256(), nullptr);
-
-        EVP_DigestUpdate(mdctx.get(), data_bin, data_len);
-        EVP_DigestUpdate(mdctx.get(), pgp_trailer_bin.data(), pgp_trailer_bin.size());
-        EVP_DigestUpdate(mdctx.get(), final_trailer_bin.data(), final_trailer_bin.size());
-        EVP_DigestUpdate(mdctx.get(), reinterpret_cast<unsigned char*>(&trailer_bin_len_big_endian), 4);
-
-        EVP_DigestFinal_ex(mdctx.get(), hash.data(), nullptr);
+        auto digester = util::Sha256Digester();
+        digester.digest_start();
+        digester.digest_update(reinterpret_cast<const std::byte*>(data_bin), data_len);
+        digester.digest_update(
+            reinterpret_cast<const std::byte*>(pgp_trailer_bin.data()),
+            pgp_trailer_bin.size()
+        );
+        digester.digest_update(
+            reinterpret_cast<const std::byte*>(final_trailer_bin.data()),
+            final_trailer_bin.size()
+        );
+        digester.digest_update(reinterpret_cast<const std::byte*>(&trailer_bin_len_big_endian), 4);
+        digester.digest_finalize_to(reinterpret_cast<std::byte*>(hash.data()));
 
         return verify_gpg_hashed_msg(hash.data(), pk_bin.data(), signature_bin.data()) + error;
     }

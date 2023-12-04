@@ -144,7 +144,7 @@ namespace mamba::util
             EVPDigester(Algorithm algo);
 
             void digest_start();
-            void digest_update(std::byte* buffer, std::size_t count);
+            void digest_update(const std::byte* buffer, std::size_t count);
             void digest_finalize_to(std::byte* hash);
 
         private:

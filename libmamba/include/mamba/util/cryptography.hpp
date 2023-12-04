@@ -159,12 +159,16 @@ namespace mamba::util
         };
     }
 
-    class Sha256Digester : public detail::EVPDigester
+    class Sha256Digester : private detail::EVPDigester
     {
     public:
 
         inline static constexpr std::size_t bytes_size = 32;
         inline static constexpr std::size_t digest_size = 32768;
+
+        using detail::EVPDigester::digest_start;
+        using detail::EVPDigester::digest_update;
+        using detail::EVPDigester::digest_finalize_to;
 
         Sha256Digester()
             : EVPDigester(detail::EVPDigester::Algorithm::sha256)
@@ -174,12 +178,16 @@ namespace mamba::util
 
     using Sha256Hasher = DigestHasher<Sha256Digester>;
 
-    class Md5Digester : public detail::EVPDigester
+    class Md5Digester : private detail::EVPDigester
     {
     public:
 
         inline static constexpr std::size_t bytes_size = 16;
         inline static constexpr std::size_t digest_size = 32768;
+
+        using detail::EVPDigester::digest_start;
+        using detail::EVPDigester::digest_update;
+        using detail::EVPDigester::digest_finalize_to;
 
         Md5Digester()
             : EVPDigester(detail::EVPDigester::Algorithm::md5)

@@ -882,7 +882,7 @@ namespace mamba
                         }
                     }
                     if (full_validation && !is_invalid && p.path_type != PathType::SOFTLINK
-                        && !validation::sha256(full_path, p.sha256))
+                        && !(validation::sha256sum(full_path) == p.sha256))
                     {
                         LOG_WARNING << "Invalid package cache, file '" << full_path.string()
                                     << "' has incorrect SHA-256 checksum";

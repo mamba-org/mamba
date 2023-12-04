@@ -19,10 +19,10 @@
 
 namespace mamba::validation
 {
-    std::string sha256sum(const fs::u8path& path);
-    std::string md5sum(const fs::u8path& path);
-    bool sha256(const fs::u8path& path, const std::string& validation);
-    bool md5(const fs::u8path& path, const std::string& validation);
+    [[nodiscard]] auto sha256sum(const fs::u8path& path) -> std::string_view;
+
+    [[nodiscard]] auto md5sum(const fs::u8path& path) -> std::string_view;
+
     bool file_size(const fs::u8path& path, std::uintmax_t validation);
 
     inline constexpr std::size_t MAMBA_SHA256_SIZE_HEX = 64;
@@ -45,13 +45,7 @@ namespace mamba::validation
     int sign(const std::string& data, const std::string& sk, std::string& signature);
 
     std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES>
-    ed25519_sig_hex_to_bytes(const std::string& sig_hex) noexcept;
-
-    std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES>
     ed25519_sig_hex_to_bytes(const std::string& sig_hex, int& error_code) noexcept;
-
-    std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>
-    ed25519_key_hex_to_bytes(const std::string& key_hex) noexcept;
 
     std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>
     ed25519_key_hex_to_bytes(const std::string& key_hex, int& error_code) noexcept;

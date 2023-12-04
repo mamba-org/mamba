@@ -5,123 +5,18 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <array>
-#include <cassert>
 #include <string>
 #include <string_view>
 
-#include <fmt/format.h>
-#include <openssl/evp.h>
-
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/util/build.hpp"
+#include "mamba/util/encoding.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
 namespace mamba::util
 {
-    namespace
-    {
-        auto url_is_unreserved_char(char c) -> bool
-        {
-            // https://github.com/curl/curl/blob/67e9e3cb1ea498cb94071dddb7653ab5169734b2/lib/escape.c#L45
-            return util::is_alphanum(c) || (c == '-') || (c == '.') || (c == '_') || (c == '~');
-        }
-
-        auto url_encode_char(char c) -> std::array<char, 3>
-        {
-            // https://github.com/curl/curl/blob/67e9e3cb1ea498cb94071dddb7653ab5169734b2/lib/escape.c#L107
-            static constexpr auto hex = std::array{
-                '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F',
-            };
-            return std::array{
-                '%',
-                hex[static_cast<unsigned char>(c) >> 4],
-                hex[c & 0xf],
-            };
-        }
-
-        auto url_is_hex_char(char c) -> bool
-        {
-            return util::is_digit(c) || (('A' <= c) && (c <= 'F')) || (('a' <= c) && (c <= 'f'));
-        }
-
-        auto url_decode_char(char d10, char d1) -> char
-        {
-            // https://github.com/curl/curl/blob/67e9e3cb1ea498cb94071dddb7653ab5169734b2/lib/escape.c#L147
-            // Offset from char '0', contains '0' padding for incomplete values.
-            static constexpr std::array<unsigned char, 55> hex_offset = {
-                0, 1,  2,  3,  4,  5,  6,  7, 8, 9, 0, 0, 0, 0, 0, 0, /* 0x30 - 0x3f */
-                0, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 0x40 - 0x4f */
-                0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, /* 0x50 - 0x5f */
-                0, 10, 11, 12, 13, 14, 15                             /* 0x60 - 0x66 */
-            };
-            assert('0' <= d10);
-            assert('0' <= d1);
-            unsigned char idx10 = static_cast<unsigned char>(d10 - '0');
-            unsigned char idx1 = static_cast<unsigned char>(d1 - '0');
-            assert(idx10 < hex_offset.size());
-            assert(idx1 < hex_offset.size());
-            return static_cast<char>((hex_offset[idx10] << 4) | hex_offset[idx1]);
-        }
-
-        template <typename Str>
-        auto url_encode_impl(std::string_view url, Str exclude) -> std::string
-        {
-            std::string out = {};
-            out.reserve(url.size());
-            for (char c : url)
-            {
-                if (url_is_unreserved_char(c) || contains(exclude, c))
-                {
-                    out += c;
-                }
-                else
-                {
-                    const auto encoding = url_encode_char(c);
-                    out += std::string_view(encoding.data(), encoding.size());
-                }
-            }
-            return out;
-        }
-    }
-
-    auto url_encode(std::string_view url) -> std::string
-    {
-        return url_encode_impl(url, 'a');  // Already not encoded
-    }
-
-    auto url_encode(std::string_view url, std::string_view exclude) -> std::string
-    {
-        return url_encode_impl(url, exclude);
-    }
-
-    auto url_encode(std::string_view url, char exclude) -> std::string
-    {
-        return url_encode_impl(url, exclude);
-    }
-
-    auto url_decode(std::string_view url) -> std::string
-    {
-        std::string out = {};
-        out.reserve(url.size());
-        const auto end = url.cend();
-        for (auto iter = url.cbegin(); iter < end; ++iter)
-        {
-            if (((iter + 2) < end) && (iter[0] == '%') && url_is_hex_char(iter[1])
-                && url_is_hex_char(iter[2]))
-            {
-                out.push_back(url_decode_char(iter[1], iter[2]));
-                iter += 2;
-            }
-            else
-            {
-                out.push_back(*iter);
-            }
-        }
-        return out;
-    }
-
     void split_platform(
         const std::vector<std::string>& known_platforms,
         const std::string& url,
@@ -214,12 +109,12 @@ namespace mamba::util
                 return concat(
                     file_scheme,
                     path.substr(0, 2),
-                    url_encode(path_to_posix(std::string(path.substr(2))), '/')
+                    encode_percent(path_to_posix(std::string(path.substr(2))), '/')
                 );
             }
-            return util::concat(file_scheme, url_encode(path_to_posix(std::string(path)), '/'));
+            return util::concat(file_scheme, encode_percent(path_to_posix(std::string(path)), '/'));
         }
-        return util::concat(file_scheme, url_encode(path, '/'));
+        return util::concat(file_scheme, encode_percent(path, '/'));
     }
 
     auto abs_path_or_url_to_url(std::string_view path) -> std::string
@@ -290,33 +185,5 @@ namespace mamba::util
         }
 
         return util::concat("file:////", rest);
-    }
-
-    std::string cache_name_from_url(const std::string& url)
-    {
-        std::string u = url;
-        if (u.empty() || (u.back() != '/' && !util::ends_with(u, ".json")))
-        {
-            u += '/';
-        }
-
-        // mimicking conda's behavior by special handling repodata.json
-        // todo support .zst
-        if (util::ends_with(u, "/repodata.json"))
-        {
-            u = u.substr(0, u.size() - 13);
-        }
-
-        unsigned char hash[16];
-
-        EVP_MD_CTX* mdctx;
-        mdctx = EVP_MD_CTX_create();
-        EVP_DigestInit_ex(mdctx, EVP_md5(), nullptr);
-        EVP_DigestUpdate(mdctx, u.c_str(), u.size());
-        EVP_DigestFinal_ex(mdctx, hash, nullptr);
-        EVP_MD_CTX_destroy(mdctx);
-
-        std::string hex_digest = util::hex_string(hash, 16);
-        return hex_digest.substr(0u, 8u);
     }
 }

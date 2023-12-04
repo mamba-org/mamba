@@ -14,6 +14,7 @@
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/channel.hpp"
+#include "mamba/util/cryptography.hpp"
 #include "mamba/util/json.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
@@ -881,9 +882,26 @@ namespace mamba
         m_metadata.write(state_file);
     }
 
+    std::string cache_name_from_url(std::string_view url)
+    {
+        auto u = std::string(url);
+        if (u.empty() || (u.back() != '/' && !util::ends_with(u, ".json")))
+        {
+            u += '/';
+        }
+
+        // mimicking conda's behavior by special handling repodata.json
+        // todo support .zst
+        if (util::ends_with(u, "/repodata.json"))
+        {
+            u = u.substr(0, u.size() - 13);
+        }
+        return util::Md5Hasher().str_hex_str(u).substr(0, 8u);
+    }
+
     std::string cache_fn_url(const std::string& url)
     {
-        return util::cache_name_from_url(url) + ".json";
+        return cache_name_from_url(url) + ".json";
     }
 
     std::string create_cache_dir(const fs::u8path& cache_path)

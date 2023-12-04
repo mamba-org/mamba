@@ -99,13 +99,7 @@ namespace mamba
 
     private:
 
-        struct CheckSumParams
-        {
-            std::string expected;
-            std::string actual;
-            std::string name;
-            ValidationResult error;
-        };
+        struct CheckSumParams;
 
         const std::string& filename() const;
         const std::string& url() const;
@@ -114,7 +108,7 @@ namespace mamba
         std::size_t expected_size() const;
 
         ValidationResult validate_size(std::size_t downloaded_size) const;
-        ValidationResult validate_checksum(CheckSumParams params) const;
+        ValidationResult validate_checksum(const CheckSumParams& params) const;
 
         void write_repodata_record(const fs::u8path& base_path) const;
         void update_urls_txt() const;

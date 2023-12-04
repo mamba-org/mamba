@@ -14,34 +14,6 @@
 namespace mamba::util
 {
     /**
-     * Escape reserved URL reserved characters with '%' encoding.
-     *
-     * The secons argument can be used to specify characters to exclude from encoding,
-     * so that for instance path can be encoded without splitting them (if they have no '/' other
-     * than separators).
-     *
-     * @see url_decode
-     */
-    [[nodiscard]] auto url_encode(std::string_view url) -> std::string;
-    [[nodiscard]] auto url_encode(std::string_view url, std::string_view exclude) -> std::string;
-    [[nodiscard]] auto url_encode(std::string_view url, char exclude) -> std::string;
-
-    /**
-     * Unescape percent encoded string to their URL reserved characters.
-     *
-     * @see url_encode
-     */
-    [[nodiscard]] auto url_decode(std::string_view url) -> std::string;
-
-    void split_platform(
-        const std::vector<std::string>& known_platforms,
-        const std::string& url,
-        const std::string& context_platform,
-        std::string& cleaned_url,
-        std::string& platform
-    );
-
-    /**
      * If @p url starts with a scheme, return it, otherwise return empty string.
      *
      * Does not include "://"
@@ -82,6 +54,14 @@ namespace mamba::util
      */
     [[nodiscard]] auto path_or_url_to_url(std::string_view path) -> std::string;
 
+    void split_platform(
+        const std::vector<std::string>& known_platforms,
+        const std::string& url,
+        const std::string& context_platform,
+        std::string& cleaned_url,
+        std::string& platform
+    );
+
     template <class S, class... Args>
     std::string join_url(const S& s, const Args&... args);
 
@@ -102,10 +82,7 @@ namespace mamba::util
      * @see https://learn.microsoft.com/en-us/dotnet/standard/io/file-path-formats#unc-paths
      * @see https://en.wikipedia.org/wiki/File_URI_scheme
      */
-    std::string file_uri_unc2_to_unc4(std::string_view url);
-
-    // Only returns a cache name without extension
-    std::string cache_name_from_url(const std::string& url);
+    [[nodiscard]] auto file_uri_unc2_to_unc4(std::string_view url) -> std::string;
 
     namespace detail
     {

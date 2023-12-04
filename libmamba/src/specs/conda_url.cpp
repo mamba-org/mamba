@@ -13,8 +13,8 @@
 
 #include "mamba/specs/archive.hpp"
 #include "mamba/specs/conda_url.hpp"
+#include "mamba/util/encoding.hpp"
 #include "mamba/util/string.hpp"
-#include "mamba/util/url_manip.hpp"
 
 namespace mamba::specs
 {
@@ -236,7 +236,7 @@ namespace mamba::specs
 
     auto CondaURL::path_without_token(Decode::yes_type) const -> std::string
     {
-        return util::url_decode(path_without_token(Decode::no));
+        return util::decode_percent(path_without_token(Decode::no));
     }
 
     void CondaURL::set_path_without_token(std::string_view new_path, Encode::no_type)
@@ -341,7 +341,7 @@ namespace mamba::specs
 
     auto CondaURL::package(Decode::yes_type) const -> std::string
     {
-        return util::url_decode(package(Decode::no));
+        return util::decode_percent(package(Decode::no));
     }
 
     auto CondaURL::package(Decode::no_type) const -> std::string_view
@@ -358,7 +358,7 @@ namespace mamba::specs
 
     void CondaURL::set_package(std::string_view pkg, Encode::yes_type)
     {
-        return set_package(util::url_encode(pkg), Encode::no);
+        return set_package(util::encode_percent(pkg), Encode::no);
     }
 
     void CondaURL::set_package(std::string_view pkg, Encode::no_type)

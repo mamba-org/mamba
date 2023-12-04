@@ -147,11 +147,11 @@ namespace mamba
             valid = s.size == 0 || validation::file_size(tarball_path, s.size);
             if (!s.md5.empty())
             {
-                valid = valid && validation::md5(tarball_path, s.md5);
+                valid = valid && (validation::md5sum(tarball_path) == s.md5);
             }
             else if (!s.sha256.empty())
             {
-                valid = valid && validation::sha256(tarball_path, s.md5);
+                valid = valid && (validation::sha256sum(tarball_path) == s.sha256);
             }
             else
             {

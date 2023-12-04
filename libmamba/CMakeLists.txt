@@ -153,6 +153,8 @@ set(
     # Filesystem library
     ${LIBMAMBA_SOURCE_DIR}/fs/filesystem.cpp
     # C++ utility library
+    ${LIBMAMBA_SOURCE_DIR}/util/cryptography.cpp
+    ${LIBMAMBA_SOURCE_DIR}/util/encoding.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/environment.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/os_win.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/path_manip.cpp
@@ -252,7 +254,9 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/build.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cast.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/compare.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cryptography.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/deprecation.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/encoding.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/environment.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/flat_binary_tree.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/flat_bool_expr_tree.hpp

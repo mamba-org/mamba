@@ -656,25 +656,6 @@ namespace mamba::util
         ((result += args), ...);
         return result;
     }
-
-    template <class B>
-    std::string hex_string(const B& buffer, std::size_t size)
-    {
-        std::ostringstream oss;
-        oss << std::hex;
-        for (std::size_t i = 0; i < size; ++i)
-        {
-            oss << std::setw(2) << std::setfill('0') << static_cast<int>(buffer[i]);
-        }
-        return oss.str();
-    }
-
-    template <class B>
-    std::string hex_string(const B& buffer)
-    {
-        return hex_string(buffer, buffer.size());
-    }
-
 }
 
 #endif

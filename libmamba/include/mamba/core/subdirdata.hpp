@@ -178,6 +178,8 @@ namespace mamba
         const Context* p_context;
     };
 
+    [[nodiscard]] std::string cache_name_from_url(std::string_view url);
+
     // Contrary to conda original function, this one expects a full url
     // (that is channel url + / + repodata_fn). It is not the
     // responsibility of this function to decide whether it should

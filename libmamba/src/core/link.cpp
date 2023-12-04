@@ -608,7 +608,7 @@ namespace mamba
             // Sometimes we might want to raise here ...
             m_clobber_warnings.push_back(rel_dst.string());
 #ifdef _WIN32
-            return std::make_tuple(validation::sha256sum(dst), rel_dst.string());
+            return std::make_tuple(std::string(validation::sha256sum(dst)), rel_dst.string());
 #endif
             fs::remove(dst);
         }
@@ -700,7 +700,7 @@ namespace mamba
                         fo << launcher << shebang << (buffer.c_str() + arc_pos);
                         fo.close();
                     }
-                    return std::make_tuple(validation::sha256sum(dst), rel_dst.string());
+                    return std::make_tuple(std::string(validation::sha256sum(dst)), rel_dst.string());
                 }
 #else
                 std::size_t padding_size = (path_data.prefix_placeholder.size() > new_prefix.size())

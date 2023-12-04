@@ -68,6 +68,14 @@ namespace mamba
      * PatckageFetcher *
      *******************/
 
+    struct PackageFetcher::CheckSumParams
+    {
+        std::string_view expected;
+        std::string_view actual;
+        std::string_view name;
+        ValidationResult error;
+    };
+
     PackageFetcher::PackageFetcher(const PackageInfo& pkg_info, MultiPackageCache& caches)
 
         : m_package_info(pkg_info)
@@ -172,16 +180,21 @@ namespace mamba
 
         if (!sha256().empty())
         {
-            res = validate_checksum({ sha256(),
-                                      validation::sha256sum(m_tarball_path),
-                                      "SHA256",
-                                      ValidationResult::SHA256_ERROR });
+            res = validate_checksum({
+                /* .expected= */ sha256(),
+                /* .actual= */ validation::sha256sum(m_tarball_path),
+                /* .name= */ "SHA256",
+                /* .error= */ ValidationResult::SHA256_ERROR,
+            });
         }
         else if (!md5().empty())
         {
-            res = validate_checksum(
-                { md5(), validation::md5sum(m_tarball_path), "MD5", ValidationResult::MD5SUM_ERROR }
-            );
+            res = validate_checksum({
+                /* .expected= */ md5(),
+                /* .actual= */ validation::md5sum(m_tarball_path),
+                /* .name= */ "MD5",
+                /* .error= */ ValidationResult::MD5SUM_ERROR,
+            });
         }
 
         auto event = res == ValidationResult::VALID ? PackageExtractEvent::validate_success
@@ -331,7 +344,7 @@ namespace mamba
         return res;
     }
 
-    auto PackageFetcher::validate_checksum(CheckSumParams params) const -> ValidationResult
+    auto PackageFetcher::validate_checksum(const CheckSumParams& params) const -> ValidationResult
     {
         auto res = ValidationResult::VALID;
         if (params.actual != params.expected)
@@ -340,7 +353,8 @@ namespace mamba
             LOG_ERROR << "File not valid: " << params.name << " doesn't match expectation "
                       << m_tarball_path << "\nExpected: " << params.expected
                       << "\nActual: " << params.actual << "\n";
-            Console::instance().print(filename() + " tarball has incorrect " + params.name);
+            Console::instance().print(util::concat(filename(), " tarball has incorrect ", params.name)
+            );
             // TODO: terminate monitor
         }
         return res;

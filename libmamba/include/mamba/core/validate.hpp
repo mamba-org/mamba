@@ -19,10 +19,10 @@
 
 namespace mamba::validation
 {
-    std::string sha256sum(const fs::u8path& path);
-    std::string md5sum(const fs::u8path& path);
-    bool sha256(const fs::u8path& path, const std::string& validation);
-    bool md5(const fs::u8path& path, const std::string& validation);
+    [[nodiscard]] auto sha256sum(const fs::u8path& path) -> std::string_view;
+
+    [[nodiscard]] auto md5sum(const fs::u8path& path) -> std::string_view;
+
     bool file_size(const fs::u8path& path, std::uintmax_t validation);
 
     inline constexpr std::size_t MAMBA_SHA256_SIZE_HEX = 64;

@@ -86,32 +86,20 @@ namespace mamba::validation
     {
     }
 
-    std::string sha256sum(const fs::u8path& path)
+    auto sha256sum(const fs::u8path& path) -> std::string_view
     {
-        // TODO deprecate, hasher should be reused between calls.
         std::ifstream infile = mamba::open_ifstream(path);
-        auto hasher = util::Sha256Hasher();
-        auto hash = hasher.file_hex(infile);
+        thread_local auto hasher = util::Sha256Hasher();
+        thread_local auto hash = hasher.file_hex(infile);
         return { hash.data(), hash.size() };
     }
 
-    std::string md5sum(const fs::u8path& path)
+    auto md5sum(const fs::u8path& path) -> std::string_view
     {
-        // TODO deprecate, hasher should be reused between calls.
         std::ifstream infile = mamba::open_ifstream(path);
-        auto hasher = util::Md5Hasher();
-        auto hash = hasher.file_hex(infile);
+        thread_local auto hasher = util::Md5Hasher();
+        thread_local auto hash = hasher.file_hex(infile);
         return { hash.data(), hash.size() };
-    }
-
-    bool sha256(const fs::u8path& path, const std::string& validation)
-    {
-        return sha256sum(path) == validation;
-    }
-
-    bool md5(const fs::u8path& path, const std::string& validation)
-    {
-        return md5sum(path) == validation;
     }
 
     bool file_size(const fs::u8path& path, std::uintmax_t validation)

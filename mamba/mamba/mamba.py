@@ -709,6 +709,9 @@ def clean(args, parser):
 def do_call(args, parser):
     if hasattr(args, "func"):
         relative_mod, func_name = args.func.rsplit(".", 1)
+        # make module relative following https://github.com/conda/conda/pull/13173
+        if relative_mod.startswith("conda.cli."):
+            relative_mod = f'.{relative_mod.split(".")[-1]}'
     elif hasattr(args, "_plugin_subcommand"):
         action = args._plugin_subcommand.action
         relative_mod = f'.{action.__module__.split(".")[-1]}'
@@ -763,7 +766,7 @@ def do_call(args, parser):
         exit_code = update(args, parser)
     elif relative_mod == ".main_init":
         exit_code = shell_init(args)
-    elif relative_mod == ".main_repoquery":
+    elif relative_mod in (".main_repoquery", "repoquery"):
         exit_code = repoquery(args, parser)
     else:
         print(

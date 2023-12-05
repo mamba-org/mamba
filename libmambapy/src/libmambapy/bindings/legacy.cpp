@@ -696,6 +696,24 @@ bind_submodule_impl(pybind11::module_ m)
         .value("CRITICAL", mamba::log_level::critical)
         .value("OFF", mamba::log_level::off);
 
+    py::class_<ChannelContext>(m, "ChannelContext")
+        .def_static(
+            // Still need a singleton as long as mambatest::singleton::channel_context is used
+            "instance",
+            []() -> auto& { return mambapy::singletons.channel_context(); },
+            py::return_value_policy::reference
+        )
+        .def_static("make_simple", &ChannelContext::make_simple)
+        .def_static("make_conda_compatible", &ChannelContext::make_conda_compatible)
+        .def(
+            py::init<specs::ChannelResolveParams, std::vector<specs::Channel>>(),
+            py::arg("params"),
+            py::arg("has_zst")
+        )
+        .def("make_channel", &ChannelContext::make_channel)
+        .def("params", &ChannelContext::params)
+        .def("has_zst", &ChannelContext::has_zst);
+
     py::class_<Context, std::unique_ptr<Context, py::nodelete>> ctx(m, "Context");
     ctx.def(py::init(
                 [] { return std::unique_ptr<Context, py::nodelete>(&mambapy::singletons.context()); }

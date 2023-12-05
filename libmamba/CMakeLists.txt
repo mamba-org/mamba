@@ -178,6 +178,8 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/specs/repo_data.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/version.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/version_spec.cpp
+    # Artifacts validation
+    ${LIBMAMBA_SOURCE_DIR}/validation/errors.cpp
     # C++ wrapping of libcurl
     ${LIBMAMBA_SOURCE_DIR}/core/curl.cpp
     # C++ wrapping of compression libs (zstd and bzlib)
@@ -283,6 +285,8 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/repo_data.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version_spec.hpp
+    # Artifacts validation
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/errors.hpp
     # Core API (low-level)
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/activation.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/channel_context.hpp

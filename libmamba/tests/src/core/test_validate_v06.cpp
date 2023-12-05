@@ -14,6 +14,7 @@
 #include "mamba/core/validate.hpp"
 #include "mamba/util/encoding.hpp"
 #include "mamba/util/path_manip.hpp"
+#include "mamba/validation/errors.hpp"
 
 #include "mambatests.hpp"
 

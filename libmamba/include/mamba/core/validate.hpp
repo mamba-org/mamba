@@ -34,29 +34,23 @@ namespace mamba::validation
     inline constexpr std::size_t MAMBA_ED25519_SIGSIZE_HEX = 128;
     inline constexpr std::size_t MAMBA_ED25519_SIGSIZE_BYTES = 64;
 
-    int generate_ed25519_keypair(unsigned char* pk, unsigned char* sk);
-    std::pair<
-        std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>,
-        std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>>
+    int generate_ed25519_keypair(std::byte* pk, std::byte* sk);
+    std::pair<std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>, std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>>
     generate_ed25519_keypair();
     std::pair<std::string, std::string> generate_ed25519_keypair_hex();
 
-    int sign(const std::string& data, const unsigned char* sk, unsigned char* signature);
+    int sign(const std::string& data, const std::byte* sk, std::byte* signature);
     int sign(const std::string& data, const std::string& sk, std::string& signature);
 
-    std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES>
+    std::array<std::byte, MAMBA_ED25519_SIGSIZE_BYTES>
     ed25519_sig_hex_to_bytes(const std::string& sig_hex, int& error_code) noexcept;
 
-    std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>
+    std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>
     ed25519_key_hex_to_bytes(const std::string& key_hex, int& error_code) noexcept;
 
-    int verify(
-        const unsigned char* data,
-        std::size_t data_len,
-        const unsigned char* pk,
-        const unsigned char* signature
-    );
-    int verify(const std::string& data, const unsigned char* pk, const unsigned char* signature);
+    int
+    verify(const std::byte* data, std::size_t data_len, const std::byte* pk, const std::byte* signature);
+    int verify(const std::string& data, const std::byte* pk, const std::byte* signature);
     int verify(const std::string& data, const std::string& pk_hex, const std::string& signature_hex);
 
     /**
@@ -65,13 +59,9 @@ namespace mamba::validation
      * See RFC4880, section 5.2.4 https://datatracker.ietf.org/doc/html/rfc4880#section-5.2.4
      * This method assumes hash function to be SHA-256
      */
-    int verify_gpg_hashed_msg(
-        const unsigned char* data,
-        const unsigned char* pk,
-        const unsigned char* signature
-    );
+    int verify_gpg_hashed_msg(const std::byte* data, const std::byte* pk, const std::byte* signature);
     int
-    verify_gpg_hashed_msg(const std::string& data, const unsigned char* pk, const unsigned char* signature);
+    verify_gpg_hashed_msg(const std::string& data, const std::byte* pk, const std::byte* signature);
     int
     verify_gpg_hashed_msg(const std::string& data, const std::string& pk, const std::string& signature);
 
@@ -677,8 +667,7 @@ namespace mamba::validation
 
             nlohmann::json upgraded_signable() const;
             RoleSignature
-            upgraded_signature(const nlohmann::json& j, const std::string& pk, const unsigned char* sk)
-                const;
+            upgraded_signature(const nlohmann::json& j, const std::string& pk, const std::byte* sk) const;
 
             KeyMgrRole create_key_mgr(const fs::u8path& p) const;
             KeyMgrRole create_key_mgr(const nlohmann::json& j) const;

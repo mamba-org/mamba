@@ -124,13 +124,6 @@ namespace mambapy
         {
             return m_console;
         }
-        mamba::ChannelContext& channel_context()
-        {
-            return init_once(
-                p_channel_context,
-                [&]() { return mamba::ChannelContext::make_conda_compatible(m_context); }
-            );
-        }
 
         mamba::Configuration& config()
         {
@@ -298,33 +291,37 @@ bind_submodule_impl(pybind11::module_ m)
 
     py::class_<MatchSpec>(m, "MatchSpec")
         .def(py::init<>())
-        .def(py::init<>(
-            [](const std::string& name) {
-                return MatchSpec{ name,
-                                  mambapy::singletons.context(),
-                                  mambapy::singletons.channel_context() };
-            }
-        ))
+        .def(
+            py::init<>(
+                [](const std::string& name, ChannelContext& channel_context) {
+                    return MatchSpec{ name, mambapy::singletons.context(), channel_context };
+                }
+            ),
+            py::arg("spec"),
+            py::arg("channel_context")
+        )
         .def("conda_build_form", &MatchSpec::conda_build_form);
 
     py::class_<MPool>(m, "Pool")
-        .def(py::init<>(
-            []
-            { return MPool{ mambapy::singletons.context(), mambapy::singletons.channel_context() }; }
-        ))
+        .def(
+            py::init<>(
+                [](ChannelContext& channel_context) {
+                    return MPool{ mambapy::singletons.context(), channel_context };
+                }
+            ),
+            py::arg("channel_context")
+        )
         .def("set_debuglevel", &MPool::set_debuglevel)
         .def("create_whatprovides", &MPool::create_whatprovides)
         .def("select_solvables", &MPool::select_solvables, py::arg("id"), py::arg("sorted") = false)
         .def("matchspec2id", &MPool::matchspec2id, py::arg("ms"))
         .def(
             "matchspec2id",
-            [](MPool& self, std::string_view ms)
-            {
-                return self.matchspec2id(
-                    { ms, mambapy::singletons.context(), mambapy::singletons.channel_context() }
-                );
+            [](MPool& self, std::string_view spec, ChannelContext& channel_context) {
+                return self.matchspec2id({ spec, mambapy::singletons.context(), channel_context });
             },
-            py::arg("ms")
+            py::arg("spec"),
+            py::arg("channel_context")
         )
         .def("id2pkginfo", &MPool::id2pkginfo, py::arg("id"));
 
@@ -494,11 +491,15 @@ bind_submodule_impl(pybind11::module_ m)
         .def("tree_message", [](const CpPbGraph& self) { return problem_tree_msg(self); });
 
     py::class_<History>(m, "History")
-        .def(py::init(
-            [](const fs::u8path& path) {
-                return History{ path, mambapy::singletons.channel_context() };
-            }
-        ))
+        .def(
+            py::init(
+                [](const fs::u8path& path, ChannelContext& channel_context) {
+                    return History{ path, channel_context };
+                }
+            ),
+            py::arg("path"),
+            py::arg("channel_context")
+        )
         .def(
             "get_requested_specs_map",
             [](History& self) { return self.get_requested_specs_map(mambapy::singletons.context()); }
@@ -651,6 +652,7 @@ bind_submodule_impl(pybind11::module_ m)
         .def(
             "create",
             [](SubdirIndex& self,
+               ChannelContext& channel_context,
                const specs::Channel& channel,
                const std::string& platform,
                const std::string& full_url,
@@ -660,7 +662,7 @@ bind_submodule_impl(pybind11::module_ m)
             {
                 self.create(
                     mambapy::singletons.context(),
-                    mambapy::singletons.channel_context(),
+                    channel_context,
                     channel,
                     platform,
                     full_url,
@@ -668,7 +670,14 @@ bind_submodule_impl(pybind11::module_ m)
                     repodata_fn,
                     url
                 );
-            }
+            },
+            py::arg("channel_context"),
+            py::arg("channel"),
+            py::arg("platform"),
+            py::arg("full_url"),
+            py::arg("caches"),
+            py::arg("repodata_fn"),
+            py::arg("url")
         )
         .def("download", &SubdirIndex::download)
         .def("__len__", &SubdirIndex::size)
@@ -696,10 +705,36 @@ bind_submodule_impl(pybind11::module_ m)
         .value("CRITICAL", mamba::log_level::critical)
         .value("OFF", mamba::log_level::off);
 
+    py::class_<ChannelContext>(m, "ChannelContext")
+        .def_static("make_simple", &ChannelContext::make_simple)
+        .def_static("make_conda_compatible", &ChannelContext::make_conda_compatible)
+        .def(
+            py::init<specs::ChannelResolveParams, std::vector<specs::Channel>>(),
+            py::arg("params"),
+            py::arg("has_zst")
+        )
+        .def("make_channel", &ChannelContext::make_channel)
+        .def("params", &ChannelContext::params)
+        .def("has_zst", &ChannelContext::has_zst);
+
     py::class_<Context, std::unique_ptr<Context, py::nodelete>> ctx(m, "Context");
-    ctx.def(py::init(
-                [] { return std::unique_ptr<Context, py::nodelete>(&mambapy::singletons.context()); }
-            ))
+    ctx  //
+        .def_static(
+            // Still need a singleton as long as mambatest::singleton::context is used
+            "instance",
+            []() -> auto& { return mambapy::singletons.context(); },
+            py::return_value_policy::reference
+        )
+        .def(py::init(
+            // Deprecating would lead to confusing error. Better to make sure people stop using it.
+            []() -> std::unique_ptr<Context, py::nodelete>
+            {
+                throw std::invalid_argument(  //
+                    "Context() will create a new Context object in the future.\n"
+                    "Use Context.instance() to access the global singleton."
+                );
+            }
+        ))
         .def_readwrite("offline", &Context::offline)
         .def_readwrite("local_repodata_ttl", &Context::local_repodata_ttl)
         .def_readwrite("use_index_cache", &Context::use_index_cache)
@@ -996,20 +1031,24 @@ bind_submodule_impl(pybind11::module_ m)
     ////////////////////////////////////////////
 
     pyPrefixData
-        .def(py::init(
-            [](const fs::u8path& prefix_path) -> PrefixData
-            {
-                auto sres = PrefixData::create(prefix_path, mambapy::singletons.channel_context());
-                if (sres.has_value())
+        .def(
+            py::init(
+                [](const fs::u8path& prefix_path, ChannelContext& channel_context) -> PrefixData
                 {
-                    return std::move(sres.value());
+                    auto sres = PrefixData::create(prefix_path, channel_context);
+                    if (sres.has_value())
+                    {
+                        return std::move(sres.value());
+                    }
+                    else
+                    {
+                        throw sres.error();
+                    }
                 }
-                else
-                {
-                    throw sres.error();
-                }
-            }
-        ))
+            ),
+            py::arg("path"),
+            py::arg("channel_context")
+        )
         .def_property_readonly("package_records", &PrefixData::records)
         .def("add_packages", &PrefixData::add_packages);
 

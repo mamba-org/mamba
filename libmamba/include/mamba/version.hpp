@@ -26,8 +26,7 @@
     (LIBMAMBA_VERSION_MAJOR * 10000 + LIBMAMBA_VERSION_MINOR * 100 + LIBMAMBA_VERSION_PATCH)
 #define LIBMAMBA_VERSION_STRING                                                                    \
     __LIBMAMBA_STRINGIZE(LIBMAMBA_VERSION_MAJOR)                                                   \
-    "." __LIBMAMBA_STRINGIZE(LIBMAMBA_VERSION_MINOR) "." __LIBMAMBA_STRINGIZE(                     \
-        LIBMAMBA_VERSION_PATCH)
+    "." __LIBMAMBA_STRINGIZE(LIBMAMBA_VERSION_MINOR) "." __LIBMAMBA_STRINGIZE(LIBMAMBA_VERSION_PATCH)
 
 namespace mamba
 {

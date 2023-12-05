@@ -45,6 +45,7 @@ namespace mamba::specs
     Channel::Channel(std::vector<CondaURL> mirror_urls, std::string display_name, platform_list platforms)
         : m_mirror_urls(std::move(mirror_urls))
         , m_display_name(std::move(display_name))
+        , m_id(m_display_name)
         , m_platforms(std::move(platforms))
     {
         for (auto& url : m_mirror_urls)
@@ -153,6 +154,11 @@ namespace mamba::specs
     void Channel::set_platforms(platform_list platforms)
     {
         m_platforms = std::move(platforms);
+    }
+
+    auto Channel::id() const -> const std::string&
+    {
+        return m_id;
     }
 
     auto Channel::display_name() const -> const std::string&

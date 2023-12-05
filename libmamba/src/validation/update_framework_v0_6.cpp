@@ -7,9 +7,9 @@
 #include <fstream>
 #include <utility>
 
-#include "mamba/core/download.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/download/downloader.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/util/encoding.hpp"
 #include "mamba/validation/errors.hpp"
@@ -205,10 +205,11 @@ namespace mamba::validation::v0_6
         {
             DownloadRequest request(
                 "key_mgr.json",
+                "",
                 url.str(util::URL::Credentials::Show),
                 tmp_metadata_path.string()
             );
-            DownloadResult res = download(std::move(request), context);
+            DownloadResult res = download(std::move(request), context.mirrors, context);
             if (res)
             {
                 KeyMgrRole key_mgr = create_key_mgr(tmp_metadata_path);
@@ -363,8 +364,8 @@ namespace mamba::validation::v0_6
 
         if (check_resource_exists(url.pretty_str(), context))
         {
-            DownloadRequest request("pkg_mgr.json", url.pretty_str(), tmp_metadata_path.string());
-            DownloadResult res = download(std::move(request), context);
+            DownloadRequest request("pkg_mgr.json", "", url.pretty_str(), tmp_metadata_path.string());
+            DownloadResult res = download(std::move(request), context.mirrors, context);
 
             if (res)
             {

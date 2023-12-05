@@ -757,7 +757,7 @@ namespace mamba
             PackageDownloadMonitor* monitor
         )
         {
-            auto result = download(std::move(requests), context, options, monitor);
+            auto result = download(std::move(requests), context.mirrors, context, options, monitor);
             bool all_downloaded = std::all_of(
                 result.begin(),
                 result.end(),

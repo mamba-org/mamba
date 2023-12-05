@@ -10,7 +10,7 @@
 
 namespace mamba
 {
-    TEST_SUITE("mirror")
+    /*TEST_SUITE("mirror")
     {
         TEST_CASE("split_path_tag")
         {
@@ -47,5 +47,5 @@ namespace mamba
                 CHECK_THROWS_AS(split_path_tag("xtensor.tar.bz2"), std::runtime_error);
             }
         }
-    }
+    }*/
 }

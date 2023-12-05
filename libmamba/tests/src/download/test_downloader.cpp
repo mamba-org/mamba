@@ -19,6 +19,7 @@ namespace mamba
 #ifdef __linux__
             DownloadRequest request(
                 "test",
+                "",
                 "file:///nonexistent/repodata.json",
                 "test_download_repodata.json",
                 false,
@@ -30,7 +31,7 @@ namespace mamba
 
             MultiDownloadRequest dl_request{ std::vector{ std::move(request) } };
             context.output_params.quiet = true;
-            MultiDownloadResult res = download(dl_request, context);
+            MultiDownloadResult res = download(dl_request, context.mirrors, context);
             CHECK_EQ(res.size(), std::size_t(1));
             CHECK(!res[0]);
             CHECK_EQ(res[0].error().attempt_number, std::size_t(1));
@@ -42,6 +43,7 @@ namespace mamba
 #ifdef __linux__
             DownloadRequest request(
                 "test",
+                "",
                 "file:///nonexistent/repodata.json",
                 "test_download_repodata.json"
             );
@@ -50,7 +52,7 @@ namespace mamba
             const auto previous_quiet = context.output_params.quiet;
             auto _ = on_scope_exit([&] { context.output_params.quiet = previous_quiet; });
             context.output_params.quiet = true;
-            CHECK_THROWS_AS(download(dl_request, context), std::runtime_error);
+            CHECK_THROWS_AS(download(dl_request, context.mirrors, context), std::runtime_error);
 #endif
         }
     }

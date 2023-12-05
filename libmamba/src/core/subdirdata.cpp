@@ -512,7 +512,7 @@ namespace mamba
                 std::move(check_list.begin(), check_list.end(), std::back_inserter(check_requests));
             }
         }
-        download(std::move(check_requests), context, {}, check_monitor);
+        download(std::move(check_requests), context.mirrors, context, {}, check_monitor);
 
         if (is_sig_interrupted())
         {
@@ -533,7 +533,7 @@ namespace mamba
 
             try
             {
-                download(std::move(index_requests), context, { /*fail_fast=*/true }, download_monitor);
+                download(std::move(index_requests), context.mirrors, context, { /*fail_fast=*/true }, download_monitor);
             }
             catch (const std::runtime_error& e)
             {
@@ -689,6 +689,7 @@ namespace mamba
         {
             request.push_back(DownloadRequest(
                 m_name + " (check zst)",
+                "",
                 m_repodata_url + ".zst",
                 "",
                 /* lhead_only = */ true,
@@ -730,6 +731,7 @@ namespace mamba
 
         DownloadRequest request(
             m_name,
+            "",
             m_repodata_url + (use_zst ? ".zst" : ""),
             m_temp_file->path().string(),
             /*head_only*/ false,

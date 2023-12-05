@@ -8,24 +8,21 @@
 #define MAMBA_DL_DOWNLOADER_IMPL_HPP
 
 #include <chrono>
+#include <optional>
 #include <unordered_map>
 
 #include "mamba/download/downloader.hpp"
+#include "mamba/download/mirror_map.hpp"
+#include "mamba/util/flat_set.hpp"
 
 #include "compression.hpp"
 #include "curl.hpp"
 
 namespace mamba
 {
-    enum class DownloadState
-    {
-        WAITING,
-        PREPARING,
-        RUNNING,
-        FINISHED,
-        FAILED
-    };
-
+    /*
+     * DownloadAttempt
+     */
     class DownloadAttempt
     {
     public:
@@ -38,7 +35,7 @@ namespace mamba
 
         DownloadAttempt(
             CURLHandle& handle,
-            const DownloadRequest& request,
+            const MirrorDownloadRequest& request,
             CURLMultiHandle& downloader,
             const Context& context,
             on_success_callback success,
@@ -56,7 +53,7 @@ namespace mamba
         {
             Impl(
                 CURLHandle& handle,
-                const DownloadRequest& request,
+                const MirrorDownloadRequest& request,
                 CURLMultiHandle& downloader,
                 const Context& context,
                 on_success_callback success,
@@ -91,12 +88,13 @@ namespace mamba
             DownloadSuccess build_download_success(TransferData data) const;
 
             CURLHandle* p_handle = nullptr;
-            const DownloadRequest* p_request = nullptr;
+            const MirrorDownloadRequest* p_request = nullptr;
             on_success_callback m_success_callback;
             on_failure_callback m_failure_callback;
             std::size_t m_retry_wait_seconds = std::size_t(0);
             std::unique_ptr<CompressionStream> p_stream = nullptr;
             std::ofstream m_file;
+            mutable std::string m_response = "";
             std::string m_cache_control;
             std::string m_etag;
             std::string m_last_modified;
@@ -105,9 +103,76 @@ namespace mamba
         std::unique_ptr<Impl> p_impl = nullptr;
     };
 
+    /*
+     * MirrorAttempt
+     *
+     * Manages the sequence of requests required to download an artifact
+     * on a mirror.
+     *
+     */
+    class MirrorAttempt
+    {
+    public:
+
+        using completion_function = DownloadAttempt::completion_function;
+        using on_success_callback = DownloadAttempt::on_success_callback;
+        using on_failure_callback = DownloadAttempt::on_failure_callback;
+
+        MirrorAttempt() = default;
+        explicit MirrorAttempt(Mirror* mirror);
+
+        void prepare_request(const DownloadRequest& initial_request);
+        auto prepare_attempt(
+            CURLHandle& handle,
+            CURLMultiHandle& downloader,
+            const Context& context,
+            on_success_callback success,
+            on_failure_callback error
+        ) -> completion_function;
+
+        bool can_start_transfer() const;
+        bool has_failed() const;
+        bool has_finished() const;
+
+        void set_transfer_started();
+        void set_state(bool success);
+        void set_state(const DownloadError& res);
+        void update_last_content(const DownloadContent* content);
+
+    private:
+
+        enum class State
+        {
+            WAITING_SEQUENCE_START,
+            PREPARING_DOWNLOAD,
+            RUNNING_DOWNLOAD,
+            LAST_REQUEST_FINISHED,
+            LAST_REQUEST_FAILED,
+            SEQUENCE_FINISHED,
+            SEQUENCE_FAILED,
+        };
+
+        bool can_retry() const;
+
+        Mirror* p_mirror = nullptr;
+        State m_state = State::WAITING_SEQUENCE_START;
+
+        using request_generator_list = Mirror::request_generator_list;
+        request_generator_list m_request_generators;
+        size_t m_step = 0;
+        
+        std::optional<MirrorDownloadRequest> m_request;
+        DownloadAttempt m_attempt;
+        const DownloadContent* p_last_content = nullptr;
+        
+        using time_point_t = std::chrono::steady_clock::time_point;
+        std::optional<time_point_t> m_next_retry;
+        size_t m_retries = 0;
+    };
+
     struct DownloadTrackerOptions
     {
-        std::size_t max_retries = 0;
+        std::size_t max_mirror_tries = 0;
         bool fail_fast = false;
     };
 
@@ -118,11 +183,16 @@ namespace mamba
         using completion_function = DownloadAttempt::completion_function;
         using completion_map_entry = std::pair<CURLId, completion_function>;
 
-        DownloadTracker(const DownloadRequest& request, DownloadTrackerOptions options);
+        DownloadTracker(
+            const DownloadRequest& request,
+            const mirror_set_view& mirror_set,
+            DownloadTrackerOptions options
+        );
 
         auto prepare_new_attempt(CURLMultiHandle& handle, const Context& context)
             -> completion_map_entry;
 
+        bool has_failed() const;
         bool can_start_transfer() const;
         void set_transfer_started();
 
@@ -130,13 +200,24 @@ namespace mamba
 
     private:
 
+        enum class State
+        {
+            WAITING,
+            PREPARING,
+            RUNNING,
+            FINISHED,
+            FAILED
+        };
+        
         expected_t<void> invoke_on_success(const DownloadSuccess&) const;
         void invoke_on_failure(const DownloadError&) const;
 
         bool is_waiting() const;
+        bool can_try_other_mirror() const;
 
         void set_state(bool success);
         void set_state(const DownloadError& res);
+        void set_error_state();
 
         /**
          * Invoked when the download succeeded but the download callback
@@ -152,21 +233,32 @@ namespace mamba
         void save(DownloadSuccess&&);
         void save(DownloadError&&);
 
+        void prepare_mirror_attempt();
+        Mirror* select_new_mirror() const;
+        bool has_tried_mirror(Mirror* mirror) const;
+        bool is_bad_mirror(Mirror* mirror) const;
+
         CURLHandle m_handle;
-        const DownloadRequest* p_request;
+        const DownloadRequest* p_initial_request;
+        mirror_set_view m_mirror_set;
         DownloadTrackerOptions m_options;
-        DownloadAttempt m_attempt;
+
+        State m_state;
         std::vector<DownloadResult> m_attempt_results;
-        DownloadState m_state;
-        using time_point_t = std::chrono::steady_clock::time_point;
-        std::optional<time_point_t> m_next_retry;
+        util::flat_set<MirrorID> m_tried_mirrors;
+        MirrorAttempt m_mirror_attempt;
     };
 
     class Downloader
     {
     public:
 
-        explicit Downloader(MultiDownloadRequest requests, DownloadOptions options, const Context& context);
+        explicit Downloader(
+            MultiDownloadRequest requests,
+            const mirror_map& mirrors,
+            DownloadOptions options,
+            const Context& context
+        );
 
         MultiDownloadResult download();
 
@@ -179,6 +271,7 @@ namespace mamba
         void invoke_unexpected_termination() const;
 
         MultiDownloadRequest m_requests;
+        const mirror_map* p_mirrors;
         DownloadOptions m_options;
         const Context* p_context;
         CURLMultiHandle m_curl_handle;

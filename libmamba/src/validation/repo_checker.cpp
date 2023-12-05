@@ -6,10 +6,10 @@
 
 #include <string>
 
-#include "mamba/core/download.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/timeref.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/download/downloader.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/validation/errors.hpp"
 #include "mamba/validation/repo_checker.hpp"
@@ -174,8 +174,8 @@ namespace mamba::validation
 
                 if (check_resource_exists(url, m_context))
                 {
-                    DownloadRequest request(f.string(), url, tmp_file_path.string());
-                    DownloadResult res = download(std::move(request), m_context);
+                    DownloadRequest request(f.string(), "", url, tmp_file_path.string());
+                    DownloadResult res = download(std::move(request), m_context.mirrors, m_context);
 
                     if (res)
                     {

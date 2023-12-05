@@ -196,13 +196,16 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/validation/update_framework_v0_6.cpp
     ${LIBMAMBA_SOURCE_DIR}/validation/update_framework_v1.cpp
     ${LIBMAMBA_SOURCE_DIR}/validation/repo_checker.cpp
-    # Implementation of downloaders and mirrors
+    # Downloaders and mirrors
     ${LIBMAMBA_SOURCE_DIR}/download/compression.hpp
     ${LIBMAMBA_SOURCE_DIR}/download/compression.cpp
     ${LIBMAMBA_SOURCE_DIR}/download/curl.hpp
     ${LIBMAMBA_SOURCE_DIR}/download/curl.cpp
     ${LIBMAMBA_SOURCE_DIR}/download/downloader_impl.hpp
     ${LIBMAMBA_SOURCE_DIR}/download/downloader.cpp
+    ${LIBMAMBA_SOURCE_DIR}/download/mirror.cpp
+    ${LIBMAMBA_SOURCE_DIR}/download/mirror_map.cpp
+    ${LIBMAMBA_SOURCE_DIR}/download/request.cpp
     # Core API (low-level)
     ${LIBMAMBA_SOURCE_DIR}/core/singletons.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/activation.cpp
@@ -215,7 +218,6 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/core/link.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/history.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/menuinst.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/mirror.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/output.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_handling.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_cache.cpp
@@ -322,6 +324,11 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/update_framework_v0_6.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/update_framework_v1.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/repo_checker.hpp
+    # Downloaders and mirrors
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/download/downloader.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/download/mirror.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/download/mirror_map.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/download/request.hpp
     # Core API (low-level)
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/activation.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/channel_context.hpp

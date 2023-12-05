@@ -110,43 +110,43 @@ namespace mamba::validation
     namespace
     {
         template <size_t S, class B>
-        [[nodiscard]] std::array<unsigned char, S>
+        [[nodiscard]] std::array<std::byte, S>
         hex_to_bytes_arr(const B& buffer, int& error_code) noexcept
         {
-            auto out = std::array<unsigned char, S>{};
+            auto out = std::array<std::byte, S>{};
             auto err = util::EncodingError::Ok;
-            util::hex_to_bytes_to(buffer, reinterpret_cast<std::byte*>(out.data()), err);
+            util::hex_to_bytes_to(buffer, out.data(), err);
             error_code = err != util::EncodingError::Ok;
             return out;
         }
 
         template <class B>
-        [[nodiscard]] std::vector<unsigned char>
+        [[nodiscard]] std::vector<std::byte>
         hex_to_bytes_vec(const B& buffer, int& error_code) noexcept
         {
-            auto out = std::vector<unsigned char>(buffer.size() / 2);
+            auto out = std::vector<std::byte>(buffer.size() / 2);
             auto err = util::EncodingError::Ok;
-            util::hex_to_bytes_to(buffer, reinterpret_cast<std::byte*>(out.data()), err);
+            util::hex_to_bytes_to(buffer, out.data(), err);
             error_code = err != util::EncodingError::Ok;
             return out;
         }
     }
 
-    std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES>
+    std::array<std::byte, MAMBA_ED25519_SIGSIZE_BYTES>
     ed25519_sig_hex_to_bytes(const std::string& sig_hex, int& error_code) noexcept
 
     {
         return hex_to_bytes_arr<MAMBA_ED25519_SIGSIZE_BYTES>(sig_hex, error_code);
     }
 
-    std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>
+    std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>
     ed25519_key_hex_to_bytes(const std::string& key_hex, int& error_code) noexcept
 
     {
         return hex_to_bytes_arr<MAMBA_ED25519_KEYSIZE_BYTES>(key_hex, error_code);
     }
 
-    int generate_ed25519_keypair(unsigned char* pk, unsigned char* sk)
+    int generate_ed25519_keypair(std::byte* pk, std::byte* sk)
     {
         std::size_t key_len = MAMBA_ED25519_KEYSIZE_BYTES;
         EVP_PKEY* pkey = NULL;
@@ -176,13 +176,21 @@ namespace mamba::validation
             return gen_status;
         }
 
-        int storage_status = EVP_PKEY_get_raw_public_key(pkey, pk, &key_len);
+        int storage_status = EVP_PKEY_get_raw_public_key(
+            pkey,
+            reinterpret_cast<unsigned char*>(pk),
+            &key_len
+        );
         if (storage_status != 1)
         {
             LOG_DEBUG << "Failed to store public key of generated ED25519 key pair";
             return storage_status;
         }
-        storage_status = EVP_PKEY_get_raw_private_key(pkey, sk, &key_len);
+        storage_status = EVP_PKEY_get_raw_private_key(
+            pkey,
+            reinterpret_cast<unsigned char*>(sk),
+            &key_len
+        );
         if (storage_status != 1)
         {
             LOG_DEBUG << "Failed to store private key of generated ED25519 key pair";
@@ -192,12 +200,10 @@ namespace mamba::validation
         return 1;
     }
 
-    std::pair<
-        std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>,
-        std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>>
+    std::pair<std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>, std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>>
     generate_ed25519_keypair()
     {
-        std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> pk, sk;
+        std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES> pk, sk;
         generate_ed25519_keypair(pk.data(), sk.data());
         return { pk, sk };
     }
@@ -214,16 +220,12 @@ namespace mamba::validation
         };
     }
 
-    int sign(const std::string& data, const unsigned char* sk, unsigned char* signature)
+    int sign(const std::string& data, const std::byte* sk, std::byte* signature)
     {
-        std::size_t msg_len = data.size();
-        std::size_t sig_len = MAMBA_ED25519_SIGSIZE_BYTES;
-        auto msg = reinterpret_cast<const unsigned char*>(data.c_str());
-
         EVP_PKEY* ed_key = EVP_PKEY_new_raw_private_key(
             EVP_PKEY_ED25519,
             NULL,
-            sk,
+            reinterpret_cast<const unsigned char*>(sk),
             MAMBA_ED25519_KEYSIZE_BYTES
         );
         EVP_MD_CTX* md_ctx = EVP_MD_CTX_new();
@@ -242,7 +244,14 @@ namespace mamba::validation
             return init_status;
         }
 
-        sign_status = EVP_DigestSign(md_ctx, signature, &sig_len, msg, msg_len);
+        std::size_t sig_len = MAMBA_ED25519_SIGSIZE_BYTES;
+        sign_status = EVP_DigestSign(
+            md_ctx,
+            reinterpret_cast<unsigned char*>(signature),
+            &sig_len,
+            reinterpret_cast<const unsigned char*>(data.data()),
+            data.size()
+        );
         if (sign_status != 1)
         {
             LOG_DEBUG << "Failed to sign the data";
@@ -264,30 +273,23 @@ namespace mamba::validation
             return 0;
         }
 
-        std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> sig;
+        std::array<std::byte, MAMBA_ED25519_SIGSIZE_BYTES> sig;
 
         error_code = sign(data, bin_sk.data(), sig.data());
 
-        // TODO change function signature to use std::byte
         const auto sig_data = reinterpret_cast<const std::byte*>(sig.data());
         signature = util::bytes_to_hex_str(sig_data, sig_data + sig.size());
 
         return error_code;
     }
 
-    int verify(
-        const unsigned char* data,
-        std::size_t data_len,
-        const unsigned char* pk,
-        const unsigned char* signature
-    )
+    int
+    verify(const std::byte* data, std::size_t data_len, const std::byte* pk, const std::byte* signature)
     {
-        std::size_t sig_len = MAMBA_ED25519_SIGSIZE_BYTES;
-
         EVP_PKEY* ed_key = EVP_PKEY_new_raw_public_key(
             EVP_PKEY_ED25519,
             NULL,
-            pk,
+            reinterpret_cast<const unsigned char*>(pk),
             MAMBA_ED25519_KEYSIZE_BYTES
         );
         EVP_MD_CTX* md_ctx = EVP_MD_CTX_new();
@@ -306,7 +308,14 @@ namespace mamba::validation
             return init_status;
         }
 
-        verif_status = EVP_DigestVerify(md_ctx, signature, sig_len, data, data_len);
+        std::size_t sig_len = MAMBA_ED25519_SIGSIZE_BYTES;
+        verif_status = EVP_DigestVerify(
+            md_ctx,
+            reinterpret_cast<const unsigned char*>(signature),
+            sig_len,
+            reinterpret_cast<const unsigned char*>(data),
+            data_len
+        );
         if (verif_status != 1)
         {
             LOG_DEBUG << "Failed to verify the data signature";
@@ -317,10 +326,10 @@ namespace mamba::validation
         return 1;
     }
 
-    int verify(const std::string& data, const unsigned char* pk, const unsigned char* signature)
+    int verify(const std::string& data, const std::byte* pk, const std::byte* signature)
     {
         unsigned long long data_len = data.size();
-        auto raw_data = reinterpret_cast<const unsigned char*>(data.c_str());
+        auto raw_data = reinterpret_cast<const std::byte*>(data.data());
 
         return verify(raw_data, data_len, pk, signature);
     }
@@ -345,15 +354,14 @@ namespace mamba::validation
         return verify(data, bin_pk.data(), bin_signature.data());
     }
 
-    int
-    verify_gpg_hashed_msg(const unsigned char* data, const unsigned char* pk, const unsigned char* signature)
+    int verify_gpg_hashed_msg(const std::byte* data, const std::byte* pk, const std::byte* signature)
     {
         return verify(data, MAMBA_SHA256_SIZE_BYTES, pk, signature);
     }
 
 
     int
-    verify_gpg_hashed_msg(const std::string& data, const unsigned char* pk, const unsigned char* signature)
+    verify_gpg_hashed_msg(const std::string& data, const std::byte* pk, const std::byte* signature)
     {
         int error = 0;
         auto data_bin = hex_to_bytes_arr<MAMBA_SHA256_SIZE_BYTES>(data, error);
@@ -387,7 +395,7 @@ namespace mamba::validation
     )
     {
         unsigned long long data_len = data.size();
-        auto data_bin = reinterpret_cast<const unsigned char*>(data.c_str());
+        auto data_bin = reinterpret_cast<const std::byte*>(data.data());
 
         int error = 0;
         auto signature_bin = ed25519_sig_hex_to_bytes(signature, error);
@@ -424,21 +432,15 @@ namespace mamba::validation
         trailer_bin_len_big_endian = __builtin_bswap32(trailer_bin_len_big_endian);
 #endif
 
-        std::array<unsigned char, MAMBA_SHA256_SIZE_BYTES> hash;
+        std::array<std::byte, MAMBA_SHA256_SIZE_BYTES> hash;
 
         auto digester = util::Sha256Digester();
         digester.digest_start();
-        digester.digest_update(reinterpret_cast<const std::byte*>(data_bin), data_len);
-        digester.digest_update(
-            reinterpret_cast<const std::byte*>(pgp_trailer_bin.data()),
-            pgp_trailer_bin.size()
-        );
-        digester.digest_update(
-            reinterpret_cast<const std::byte*>(final_trailer_bin.data()),
-            final_trailer_bin.size()
-        );
+        digester.digest_update(data_bin, data_len);
+        digester.digest_update(pgp_trailer_bin.data(), pgp_trailer_bin.size());
+        digester.digest_update(final_trailer_bin.data(), final_trailer_bin.size());
         digester.digest_update(reinterpret_cast<const std::byte*>(&trailer_bin_len_big_endian), 4);
-        digester.digest_finalize_to(reinterpret_cast<std::byte*>(hash.data()));
+        digester.digest_finalize_to(hash.data());
 
         return verify_gpg_hashed_msg(hash.data(), pk_bin.data(), signature_bin.data()) + error;
     }
@@ -1334,17 +1336,13 @@ namespace mamba::validation
             return v1_equivalent_root;
         }
 
-        RoleSignature RootImpl::upgraded_signature(
-            const nlohmann::json& j,
-            const std::string& pk,
-            const unsigned char* sk
-        ) const
+        RoleSignature
+        RootImpl::upgraded_signature(const nlohmann::json& j, const std::string& pk, const std::byte* sk) const
         {
-            std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> sig_bin;
+            std::array<std::byte, MAMBA_ED25519_SIGSIZE_BYTES> sig_bin;
             sign(j.dump(), sk, sig_bin.data());
 
-            // TODO change function signatures to use std::byte
-            const auto sig_bin_data = reinterpret_cast<const std::byte*>(sig_bin.data());
+            const auto sig_bin_data = sig_bin.data();
             auto sig_hex = util::bytes_to_hex_str(sig_bin_data, sig_bin_data + sig_bin.size());
 
             return { pk, sig_hex };

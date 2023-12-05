@@ -18,7 +18,7 @@ namespace nl = nlohmann;
 // TODO validate API should move to std::byte
 template <std::size_t size>
 auto
-hex_str(const std::array<unsigned char, size>& bytes)
+hex_str(const std::array<std::byte, size>& bytes)
 {
     auto data = reinterpret_cast<const std::byte*>(bytes.data());
     return util::bytes_to_hex_str(data, data + bytes.size());
@@ -41,7 +41,7 @@ TEST_SUITE("Validate")
 
     TEST_CASE("ed25519_key_hex_to_bytes")
     {
-        std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> pk, sk;
+        std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES> pk, sk;
         generate_ed25519_keypair(pk.data(), sk.data());
 
         auto pk_hex = hex_str(pk);
@@ -52,13 +52,13 @@ TEST_SUITE("Validate")
 
         spdlog::set_level(spdlog::level::debug);
 
-        std::array<unsigned char, 5> not_even_key;
+        std::array<std::byte, 5> not_even_key;
         pk_hex = hex_str(not_even_key);
         pk_bytes = ed25519_key_hex_to_bytes(pk_hex, error);
         REQUIRE_EQ(error, 0);
         CHECK_FALSE(pk_hex == hex_str(pk_bytes));
 
-        std::array<unsigned char, 6> wrong_size_key;
+        std::array<std::byte, 6> wrong_size_key;
         pk_hex = hex_str(wrong_size_key);
         pk_bytes = ed25519_key_hex_to_bytes(pk_hex, error);
         REQUIRE_EQ(error, 0);
@@ -69,10 +69,10 @@ TEST_SUITE("Validate")
 
     TEST_CASE("ed25519_sig_hex_to_bytes")
     {
-        std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> pk, sk;
+        std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES> pk, sk;
         generate_ed25519_keypair(pk.data(), sk.data());
 
-        std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> sig;
+        std::array<std::byte, MAMBA_ED25519_SIGSIZE_BYTES> sig;
         sign("Some text.", sk.data(), sig.data());
 
         int error = 0;
@@ -83,13 +83,13 @@ TEST_SUITE("Validate")
 
         spdlog::set_level(spdlog::level::debug);
 
-        std::array<unsigned char, 5> not_even_sig;
+        std::array<std::byte, 5> not_even_sig;
         sig_hex = hex_str(not_even_sig);
         sig_bytes = ed25519_sig_hex_to_bytes(sig_hex, error);
         REQUIRE_EQ(error, 0);
         CHECK_FALSE(sig_hex == hex_str(sig_bytes));
 
-        std::array<unsigned char, 6> wrong_size_sig;
+        std::array<std::byte, 6> wrong_size_sig;
         sig_hex = hex_str(wrong_size_sig);
         sig_bytes = ed25519_sig_hex_to_bytes(sig_hex, error);
         REQUIRE_EQ(error, 0);
@@ -111,9 +111,9 @@ public:
 
 protected:
 
-    std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> pk;
-    std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> sk;
-    std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> signature;
+    std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES> pk;
+    std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES> sk;
+    std::array<std::byte, MAMBA_ED25519_SIGSIZE_BYTES> signature;
 };
 
 TEST_SUITE("VerifyMsg")

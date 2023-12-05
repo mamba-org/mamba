@@ -26,7 +26,7 @@ class RootImplT_v06
 {
 public:
 
-    using role_secrets_type = std::map<std::string, std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>>;
+    using role_secrets_type = std::map<std::string, std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>>;
     using secrets_type = std::map<std::string, role_secrets_type>;
 
     RootImplT_v06()
@@ -120,7 +120,7 @@ public:
     {
         std::map<std::string, std::map<std::string, std::string>> signatures;
 
-        unsigned char sig_bin[MAMBA_ED25519_SIGSIZE_BYTES];
+        std::byte sig_bin[MAMBA_ED25519_SIGSIZE_BYTES];
 
         for (auto& secret : secrets.at("root"))
         {
@@ -169,12 +169,12 @@ protected:
     std::unique_ptr<TemporaryDirectory> channel_dir;
 
     auto generate_role_secrets(int count)
-        -> std::map<std::string, std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>>
+        -> std::map<std::string, std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>>
     {
-        std::map<std::string, std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>> role_secrets;
+        std::map<std::string, std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>> role_secrets;
 
-        unsigned char pk[MAMBA_ED25519_KEYSIZE_BYTES];
-        std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> sk;
+        std::byte pk[MAMBA_ED25519_KEYSIZE_BYTES];
+        std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES> sk;
 
         for (int i = 0; i < count; ++i)
         {
@@ -773,7 +773,7 @@ protected:
     {
         std::map<std::string, std::map<std::string, std::string>> signatures;
 
-        unsigned char sig_bin[MAMBA_ED25519_SIGSIZE_BYTES];
+        std::byte sig_bin[MAMBA_ED25519_SIGSIZE_BYTES];
 
         for (auto& secret : secrets.at("key_mgr"))
         {
@@ -1051,7 +1051,7 @@ protected:
     {
         std::map<std::string, std::map<std::string, std::string>> signatures;
 
-        unsigned char sig_bin[MAMBA_ED25519_SIGSIZE_BYTES];
+        std::byte sig_bin[MAMBA_ED25519_SIGSIZE_BYTES];
 
         for (auto& secret : secrets.at("pkg_mgr"))
         {
@@ -1102,7 +1102,7 @@ protected:
     {
         std::map<std::string, std::map<std::string, std::string>> signatures;
 
-        unsigned char sig_bin[MAMBA_ED25519_SIGSIZE_BYTES];
+        std::byte sig_bin[MAMBA_ED25519_SIGSIZE_BYTES];
 
         for (auto& secret : secrets.at("pkg_mgr"))
         {

@@ -715,9 +715,23 @@ bind_submodule_impl(pybind11::module_ m)
         .def("has_zst", &ChannelContext::has_zst);
 
     py::class_<Context, std::unique_ptr<Context, py::nodelete>> ctx(m, "Context");
-    ctx.def(py::init(
-                [] { return std::unique_ptr<Context, py::nodelete>(&mambapy::singletons.context()); }
-            ))
+    ctx  //
+        .def_static(
+            // Still need a singleton as long as mambatest::singleton::context is used
+            "instance",
+            []() -> auto& { return mambapy::singletons.context(); },
+            py::return_value_policy::reference
+        )
+        .def(py::init(
+            // Deprecating would lead to confusing error. Better to make sure people stop using it.
+            []() -> std::unique_ptr<Context, py::nodelete>
+            {
+                throw std::invalid_argument(  //
+                    "Context() will create a new Context object in the future.\n"
+                    "Use Context.instance() to access the global singleton."
+                );
+            }
+        ))
         .def_readwrite("offline", &Context::offline)
         .def_readwrite("local_repodata_ttl", &Context::local_repodata_ttl)
         .def_readwrite("use_index_cache", &Context::use_index_cache)

@@ -1,6 +1,12 @@
 import libmambapy
 
 
+def test_context_singleton():
+    libmambapy.Context.instance().platform = "mambaos-64"
+    ctx = libmambapy.Context.instance()
+    assert ctx.platform == "mambaos-64"
+
+
 def test_channel_context():
     ctx = libmambapy.Context.instance()
 

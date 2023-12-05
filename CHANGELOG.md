@@ -1,3 +1,18 @@
+2023.10.05
+==========
+
+Releases:  libmamba 1.5.4, libmambapy 1.5.4, mamba 1.5.4, micromamba 1.5.4
+
+Enhancement:
+
+- [libmamba] Backport: Further improve search output by @delsner in https://github.com/mamba-org/mamba/pull/3006
+
+Bug fixes:
+
+- [micromamba] Backport: pytest.skip fix by @delsner in https://github.com/mamba-org/mamba/pull/3007
+- [libmamba] Fix libmamba cmake version file by @opoplawski in https://github.com/mamba-org/mamba/pull/3023
+- [mamba] Convert absolute import path to relative for better compatibility by @jezdez in https://github.com/mamba-org/mamba/pull/3036
+
 2023.10.30
 ==========
 

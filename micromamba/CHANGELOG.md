@@ -1,3 +1,11 @@
+micromamba 1.5.4 (December 05, 2023)
+====================================
+
+
+Bug fixes:
+
+- Backport: pytest.skip fix by @delsner in https://github.com/mamba-org/mamba/pull/3007
+
 micromamba 1.5.3 (October 30, 2023)
 ===================================
 

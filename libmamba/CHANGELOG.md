@@ -1,3 +1,14 @@
+libmamba 1.5.4 (December 05, 2023)
+==================================
+
+Enhancement:
+
+- Backport: Further improve search output by @delsner in https://github.com/mamba-org/mamba/pull/3006
+
+Bug fixes:
+
+- Fix libmamba cmake version file by @opoplawski in https://github.com/mamba-org/mamba/pull/3023
+
 libmamba 1.5.3 (October 30, 2023)
 =================================
 

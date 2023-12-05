@@ -108,16 +108,13 @@ public:
     auto sign_root_meta(const nl::json& root_meta) -> nl::json
     {
         std::vector<RoleSignature> signatures;
-        std::byte sig_bin[MAMBA_ED25519_SIGSIZE_BYTES];
+        auto sig_bin = std::array<std::byte, MAMBA_ED25519_SIGSIZE_BYTES>{};
 
         for (auto& secret : secrets.at("root"))
         {
-            sign(root_meta.dump(), secret.second.data(), sig_bin);
+            sign(root_meta.dump(), secret.second.data(), sig_bin.data());
 
-            auto sig_hex = util::bytes_to_hex_str(
-                reinterpret_cast<const std::byte*>(sig_bin),
-                reinterpret_cast<const std::byte*>(sig_bin) + MAMBA_ED25519_SIGSIZE_BYTES
-            );
+            auto sig_hex = util::bytes_to_hex_str(sig_bin.data(), sig_bin.data() + sig_bin.size());
             signatures.push_back({ secret.first, sig_hex });
         }
 
@@ -138,17 +135,14 @@ protected:
     {
         std::map<std::string, std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>> role_secrets;
 
-        std::byte pk[MAMBA_ED25519_KEYSIZE_BYTES];
+        auto pk = std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>{};
         std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES> sk;
 
         for (int i = 0; i < count; ++i)
         {
-            generate_ed25519_keypair(pk, sk.data());
+            generate_ed25519_keypair(pk.data(), sk.data());
 
-            auto pk_hex = util::bytes_to_hex_str(
-                reinterpret_cast<const std::byte*>(pk),
-                reinterpret_cast<const std::byte*>(pk) + MAMBA_ED25519_KEYSIZE_BYTES
-            );
+            auto pk_hex = util::bytes_to_hex_str(pk.data(), pk.data() + pk.size());
             role_secrets.insert({ pk_hex, sk });
         }
         return role_secrets;

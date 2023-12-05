@@ -14,7 +14,6 @@
 #include "mamba/core/validate.hpp"
 #include "mamba/util/encoding.hpp"
 #include "mamba/util/path_manip.hpp"
-#include "mamba/util/string.hpp"
 
 #include "mambatests.hpp"
 
@@ -120,16 +119,13 @@ public:
     {
         std::map<std::string, std::map<std::string, std::string>> signatures;
 
-        std::byte sig_bin[MAMBA_ED25519_SIGSIZE_BYTES];
+        auto sig_bin = std::array<std::byte, MAMBA_ED25519_SIGSIZE_BYTES>{};
 
         for (auto& secret : secrets.at("root"))
         {
-            sign(root_meta.dump(2), secret.second.data(), sig_bin);
+            sign(root_meta.dump(2), secret.second.data(), sig_bin.data());
 
-            auto sig_hex = util::bytes_to_hex_str(
-                reinterpret_cast<const std::byte*>(sig_bin),
-                reinterpret_cast<const std::byte*>(sig_bin) + MAMBA_ED25519_SIGSIZE_BYTES
-            );
+            auto sig_hex = util::bytes_to_hex_str(sig_bin.data(), sig_bin.data() + sig_bin.size());
             signatures[secret.first].insert({ "signature", sig_hex });
         }
 
@@ -173,16 +169,13 @@ protected:
     {
         std::map<std::string, std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>> role_secrets;
 
-        std::byte pk[MAMBA_ED25519_KEYSIZE_BYTES];
+        auto pk = std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>{};
         std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES> sk;
 
         for (int i = 0; i < count; ++i)
         {
-            generate_ed25519_keypair(pk, sk.data());
-            auto pk_hex = util::bytes_to_hex_str(
-                reinterpret_cast<const std::byte*>(pk),
-                reinterpret_cast<const std::byte*>(pk) + MAMBA_ED25519_KEYSIZE_BYTES
-            );
+            generate_ed25519_keypair(pk.data(), sk.data());
+            auto pk_hex = util::bytes_to_hex_str(pk.data(), pk.data() + pk.size());
 
             role_secrets.insert({ pk_hex, sk });
         }
@@ -773,16 +766,13 @@ protected:
     {
         std::map<std::string, std::map<std::string, std::string>> signatures;
 
-        std::byte sig_bin[MAMBA_ED25519_SIGSIZE_BYTES];
+        auto sig_bin = std::array<std::byte, MAMBA_ED25519_SIGSIZE_BYTES>{};
 
         for (auto& secret : secrets.at("key_mgr"))
         {
-            sign(meta.dump(2), secret.second.data(), sig_bin);
+            sign(meta.dump(2), secret.second.data(), sig_bin.data());
 
-            auto sig_hex = util::bytes_to_hex_str(
-                reinterpret_cast<const std::byte*>(sig_bin),
-                reinterpret_cast<const std::byte*>(sig_bin) + MAMBA_ED25519_SIGSIZE_BYTES
-            );
+            auto sig_hex = util::bytes_to_hex_str(sig_bin.data(), sig_bin.data() + sig_bin.size());
             signatures[secret.first].insert({ "signature", sig_hex });
         }
 
@@ -1051,16 +1041,13 @@ protected:
     {
         std::map<std::string, std::map<std::string, std::string>> signatures;
 
-        std::byte sig_bin[MAMBA_ED25519_SIGSIZE_BYTES];
+        auto sig_bin = std::array<std::byte, MAMBA_ED25519_SIGSIZE_BYTES>{};
 
         for (auto& secret : secrets.at("pkg_mgr"))
         {
-            sign(meta.dump(2), secret.second.data(), sig_bin);
+            sign(meta.dump(2), secret.second.data(), sig_bin.data());
 
-            auto sig_hex = util::bytes_to_hex_str(
-                reinterpret_cast<const std::byte*>(sig_bin),
-                reinterpret_cast<const std::byte*>(sig_bin) + MAMBA_ED25519_SIGSIZE_BYTES
-            );
+            auto sig_hex = util::bytes_to_hex_str(sig_bin.data(), sig_bin.data() + sig_bin.size());
             signatures[secret.first].insert({ "signature", sig_hex });
         }
 
@@ -1102,16 +1089,13 @@ protected:
     {
         std::map<std::string, std::map<std::string, std::string>> signatures;
 
-        std::byte sig_bin[MAMBA_ED25519_SIGSIZE_BYTES];
+        auto sig_bin = std::array<std::byte, MAMBA_ED25519_SIGSIZE_BYTES>{};
 
         for (auto& secret : secrets.at("pkg_mgr"))
         {
-            sign(meta.dump(2), secret.second.data(), sig_bin);
+            sign(meta.dump(2), secret.second.data(), sig_bin.data());
 
-            auto sig_hex = util::bytes_to_hex_str(
-                reinterpret_cast<const std::byte*>(sig_bin),
-                reinterpret_cast<const std::byte*>(sig_bin) + MAMBA_ED25519_SIGSIZE_BYTES
-            );
+            auto sig_hex = util::bytes_to_hex_str(sig_bin.data(), sig_bin.data() + sig_bin.size());
             signatures[secret.first].insert({ "signature", sig_hex });
         }
 

@@ -24,7 +24,7 @@ namespace mamba::validation
 
     [[nodiscard]] auto md5sum(const fs::u8path& path) -> std::string_view;
 
-    bool file_size(const fs::u8path& path, std::uintmax_t validation);
+    auto file_size(const fs::u8path& path, std::uintmax_t validation) -> bool;
 
     inline constexpr std::size_t MAMBA_SHA256_SIZE_HEX = 64;
     inline constexpr std::size_t MAMBA_SHA256_SIZE_BYTES = 32;
@@ -35,24 +35,27 @@ namespace mamba::validation
     inline constexpr std::size_t MAMBA_ED25519_SIGSIZE_HEX = 128;
     inline constexpr std::size_t MAMBA_ED25519_SIGSIZE_BYTES = 64;
 
-    int generate_ed25519_keypair(std::byte* pk, std::byte* sk);
-    std::pair<std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>, std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>>
-    generate_ed25519_keypair();
-    std::pair<std::string, std::string> generate_ed25519_keypair_hex();
+    auto generate_ed25519_keypair(std::byte* pk, std::byte* sk) -> int;
+    auto generate_ed25519_keypair() -> std::pair<
+        std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>,
+        std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>>;
+    auto generate_ed25519_keypair_hex() -> std::pair<std::string, std::string>;
 
-    int sign(const std::string& data, const std::byte* sk, std::byte* signature);
-    int sign(const std::string& data, const std::string& sk, std::string& signature);
+    auto sign(const std::string& data, const std::byte* sk, std::byte* signature) -> int;
+    auto sign(const std::string& data, const std::string& sk, std::string& signature) -> int;
 
-    std::array<std::byte, MAMBA_ED25519_SIGSIZE_BYTES>
-    ed25519_sig_hex_to_bytes(const std::string& sig_hex, int& error_code) noexcept;
+    auto ed25519_sig_hex_to_bytes(const std::string& sig_hex, int& error_code) noexcept
+        -> std::array<std::byte, MAMBA_ED25519_SIGSIZE_BYTES>;
 
-    std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>
-    ed25519_key_hex_to_bytes(const std::string& key_hex, int& error_code) noexcept;
+    auto ed25519_key_hex_to_bytes(const std::string& key_hex, int& error_code) noexcept
+        -> std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>;
 
-    int
-    verify(const std::byte* data, std::size_t data_len, const std::byte* pk, const std::byte* signature);
-    int verify(const std::string& data, const std::byte* pk, const std::byte* signature);
-    int verify(const std::string& data, const std::string& pk_hex, const std::string& signature_hex);
+    auto
+    verify(const std::byte* data, std::size_t data_len, const std::byte* pk, const std::byte* signature)
+        -> int;
+    auto verify(const std::string& data, const std::byte* pk, const std::byte* signature) -> int;
+    auto verify(const std::string& data, const std::string& pk_hex, const std::string& signature_hex)
+        -> int;
 
     /**
      * Verify a GPG/PGP signature against the hash of the binary data and
@@ -60,11 +63,14 @@ namespace mamba::validation
      * See RFC4880, section 5.2.4 https://datatracker.ietf.org/doc/html/rfc4880#section-5.2.4
      * This method assumes hash function to be SHA-256
      */
-    int verify_gpg_hashed_msg(const std::byte* data, const std::byte* pk, const std::byte* signature);
-    int
-    verify_gpg_hashed_msg(const std::string& data, const std::byte* pk, const std::byte* signature);
-    int
-    verify_gpg_hashed_msg(const std::string& data, const std::string& pk, const std::string& signature);
+    auto verify_gpg_hashed_msg(const std::byte* data, const std::byte* pk, const std::byte* signature)
+        -> int;
+    auto
+    verify_gpg_hashed_msg(const std::string& data, const std::byte* pk, const std::byte* signature)
+        -> int;
+    auto
+    verify_gpg_hashed_msg(const std::string& data, const std::string& pk, const std::string& signature)
+        -> int;
 
     /**
      * Verify a GPG/PGP signature against the binary data and
@@ -72,12 +78,12 @@ namespace mamba::validation
      * See RFC4880, section 5.2.4 https://datatracker.ietf.org/doc/html/rfc4880#section-5.2.4
      * This method assumes hash function to be SHA-256
      */
-    int verify_gpg(
+    auto verify_gpg(
         const std::string& data,
         const std::string& gpg_v4_trailer,
         const std::string& pk,
         const std::string& signature
-    );
+    ) -> int;
 
     void check_timestamp_metadata_format(const std::string& ts);
 
@@ -90,41 +96,42 @@ namespace mamba::validation
 
         virtual ~SpecBase() = default;
 
-        std::string version_str() const;
+        [[nodiscard]] auto version_str() const -> std::string;
 
-        virtual std::string canonicalize(const nlohmann::json& j) const;
+        [[nodiscard]] virtual auto canonicalize(const nlohmann::json& j) const -> std::string;
 
-        std::string compatible_prefix() const;
-        std::vector<std::string> upgrade_prefix() const;
+        [[nodiscard]] auto compatible_prefix() const -> std::string;
+        [[nodiscard]] auto upgrade_prefix() const -> std::vector<std::string>;
 
-        bool is_compatible(const fs::u8path& p) const;
-        bool is_compatible(const nlohmann::json& j) const;
-        bool is_compatible(const std::string& version) const;
+        [[nodiscard]] auto is_compatible(const fs::u8path& p) const -> bool;
+        [[nodiscard]] auto is_compatible(const nlohmann::json& j) const -> bool;
+        [[nodiscard]] auto is_compatible(const std::string& version) const -> bool;
 
-        bool is_upgrade(const nlohmann::json& j) const;
-        bool is_upgrade(const std::string& version) const;
+        [[nodiscard]] auto is_upgrade(const nlohmann::json& j) const -> bool;
+        [[nodiscard]] auto is_upgrade(const std::string& version) const -> bool;
 
-        virtual bool upgradable() const;
+        [[nodiscard]] virtual auto upgradable() const -> bool;
 
-        virtual std::string json_key() const = 0;
-        virtual std::string expiration_json_key() const = 0;
+        [[nodiscard]] virtual auto json_key() const -> std::string = 0;
+        [[nodiscard]] virtual auto expiration_json_key() const -> std::string = 0;
 
-        virtual std::set<RoleSignature> signatures(const nlohmann::json& j) const = 0;
+        [[nodiscard]] virtual auto signatures(const nlohmann::json& j) const
+            -> std::set<RoleSignature>
+            = 0;
 
     protected:
 
         SpecBase(std::string spec_version);
-        SpecBase() = delete;
 
-        std::string get_json_value(const nlohmann::json& j) const;
+        [[nodiscard]] auto get_json_value(const nlohmann::json& j) const -> std::string;
 
     private:
 
         std::string m_spec_version;
     };
 
-    bool operator==(const SpecBase& sv1, const SpecBase& sv2);
-    bool operator!=(const SpecBase& sv1, const SpecBase& sv2);
+    auto operator==(const SpecBase& sv1, const SpecBase& sv2) -> bool;
+    auto operator!=(const SpecBase& sv1, const SpecBase& sv2) -> bool;
 
 
     /**
@@ -134,30 +141,31 @@ namespace mamba::validation
     {
     public:
 
-        RoleBase(const std::string& type, std::shared_ptr<SpecBase> sv);
+        RoleBase(std::string type, std::shared_ptr<SpecBase> sv);
 
         virtual ~RoleBase() = 0;
 
-        std::string type() const;
-        SpecBase& spec_version() const;
-        std::size_t version() const;
-        std::string file_ext() const;
-        std::string expires() const;
+        [[nodiscard]] auto type() const -> std::string;
+        [[nodiscard]] auto spec_version() const -> SpecBase&;
+        [[nodiscard]] auto version() const -> std::size_t;
+        [[nodiscard]] auto file_ext() const -> std::string;
+        [[nodiscard]] auto expires() const -> std::string;
 
-        bool expired(const TimeRef& time_reference) const;
+        [[nodiscard]] auto expired(const TimeRef& time_reference) const -> bool;
 
-        std::set<std::string> roles() const;
-        std::set<RoleSignature> signatures(const nlohmann::json& j) const;
+        [[nodiscard]] auto roles() const -> std::set<std::string>;
+        [[nodiscard]] auto signatures(const nlohmann::json& j) const -> std::set<RoleSignature>;
 
-        virtual RoleFullKeys self_keys() const = 0;
-        std::map<std::string, RoleFullKeys> all_keys() const;
+        [[nodiscard]] virtual auto self_keys() const -> RoleFullKeys = 0;
+        [[nodiscard]] auto all_keys() const -> std::map<std::string, RoleFullKeys>;
 
         friend void to_json(nlohmann::json& j, const RoleBase* r);
         friend void from_json(const nlohmann::json& j, RoleBase* r);
 
     protected:
 
-        nlohmann::json read_json_file(const fs::u8path& p, bool update = false) const;
+        [[nodiscard]] auto read_json_file(const fs::u8path& p, bool update = false) const
+            -> nlohmann::json;
 
         /**
          * Check that a threshold of valid signatures is met
@@ -181,14 +189,14 @@ namespace mamba::validation
         void set_expiration(const std::string& expires);
 
         // Forwarding to spec implementation
-        std::string canonicalize(const nlohmann::json& j) const;
+        [[nodiscard]] auto canonicalize(const nlohmann::json& j) const -> std::string;
         // Return the spec implementation
-        std::shared_ptr<SpecBase> spec_impl() const;
+        [[nodiscard]] auto spec_impl() const -> std::shared_ptr<SpecBase>;
 
         // Mandatory roles defined by the current role
-        virtual std::set<std::string> mandatory_defined_roles() const;
+        [[nodiscard]] virtual auto mandatory_defined_roles() const -> std::set<std::string>;
         // Optional roles defined by the current role
-        virtual std::set<std::string> optionally_defined_roles() const;
+        [[nodiscard]] virtual auto optionally_defined_roles() const -> std::set<std::string>;
 
         // Check role
         void check_expiration_format() const;
@@ -216,15 +224,20 @@ namespace mamba::validation
     {
     public:
 
-        virtual ~RootRole() = default;
+        ~RootRole() override = default;
 
-        std::unique_ptr<RootRole> update(fs::u8path path);
-        std::unique_ptr<RootRole> update(nlohmann::json j);
+        auto update(fs::u8path path) -> std::unique_ptr<RootRole>;
+        auto update(nlohmann::json j) -> std::unique_ptr<RootRole>;
 
-        std::vector<fs::u8path> possible_update_files();
+        auto possible_update_files() -> std::vector<fs::u8path>;
 
-        virtual std::unique_ptr<RepoIndexChecker>
-        build_index_checker(Context& context, const TimeRef& time_reference, const std::string& url, const fs::u8path& cache_path) const = 0;
+        virtual auto build_index_checker(
+            Context& context,
+            const TimeRef& time_reference,
+            const std::string& url,
+            const fs::u8path& cache_path
+        ) const -> std::unique_ptr<RepoIndexChecker>
+            = 0;
 
     protected:
 
@@ -232,7 +245,7 @@ namespace mamba::validation
 
     private:
 
-        virtual std::unique_ptr<RootRole> create_update(const nlohmann::json& j) = 0;
+        virtual auto create_update(const nlohmann::json& j) -> std::unique_ptr<RootRole> = 0;
     };
 
 
@@ -270,12 +283,7 @@ namespace mamba::validation
          * @param ref_path Path to the reference directory, hosting trusted root metadata
          * @param cache_path Path to the cache directory
          */
-        RepoChecker(
-            Context& context,
-            const std::string& base_url,
-            const fs::u8path& ref_path,
-            const fs::u8path& cache_path = ""
-        );
+        RepoChecker(Context& context, std::string base_url, fs::u8path ref_path, fs::u8path cache_path = "");
 
         // Forwarding to a ``RepoIndexChecker`` implementation
         void verify_index(const nlohmann::json& j) const;
@@ -285,9 +293,9 @@ namespace mamba::validation
 
         void generate_index_checker();
 
-        const fs::u8path& cache_path();
+        auto cache_path() -> const fs::u8path&;
 
-        std::size_t root_version();
+        auto root_version() -> std::size_t;
 
     private:
 
@@ -297,15 +305,15 @@ namespace mamba::validation
         fs::u8path m_cache_path;
         Context& m_context;
 
-        fs::u8path initial_trusted_root();
-        fs::u8path ref_root();
-        fs::u8path cached_root();
+        auto initial_trusted_root() -> fs::u8path;
+        auto ref_root() -> fs::u8path;
+        auto cached_root() -> fs::u8path;
 
         void persist_file(const fs::u8path& file_path);
 
         std::unique_ptr<RepoIndexChecker> p_index_checker;
 
-        std::unique_ptr<RootRole> get_root_role(const TimeRef& time_reference);
+        auto get_root_role(const TimeRef& time_reference) -> std::unique_ptr<RootRole>;
     };
 }
 #endif

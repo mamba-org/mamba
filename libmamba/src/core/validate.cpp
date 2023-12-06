@@ -9,6 +9,7 @@
 #include <regex>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <nlohmann/json.hpp>
@@ -43,7 +44,7 @@ namespace mamba::validation
         return { hash.data(), hash.size() };
     }
 
-    bool file_size(const fs::u8path& path, std::uintmax_t validation)
+    auto file_size(const fs::u8path& path, std::uintmax_t validation) -> bool
     {
         return fs::file_size(path) == validation;
     }
@@ -51,8 +52,8 @@ namespace mamba::validation
     namespace
     {
         template <size_t S, class B>
-        [[nodiscard]] std::array<std::byte, S>
-        hex_to_bytes_arr(const B& buffer, int& error_code) noexcept
+        [[nodiscard]] auto hex_to_bytes_arr(const B& buffer, int& error_code) noexcept
+            -> std::array<std::byte, S>
         {
             auto out = std::array<std::byte, S>{};
             auto err = util::EncodingError::Ok;
@@ -62,8 +63,8 @@ namespace mamba::validation
         }
 
         template <class B>
-        [[nodiscard]] std::vector<std::byte>
-        hex_to_bytes_vec(const B& buffer, int& error_code) noexcept
+        [[nodiscard]] auto hex_to_bytes_vec(const B& buffer, int& error_code) noexcept
+            -> std::vector<std::byte>
         {
             auto out = std::vector<std::byte>(buffer.size() / 2);
             auto err = util::EncodingError::Ok;
@@ -73,27 +74,27 @@ namespace mamba::validation
         }
     }
 
-    std::array<std::byte, MAMBA_ED25519_SIGSIZE_BYTES>
-    ed25519_sig_hex_to_bytes(const std::string& sig_hex, int& error_code) noexcept
+    auto ed25519_sig_hex_to_bytes(const std::string& sig_hex, int& error_code) noexcept
+        -> std::array<std::byte, MAMBA_ED25519_SIGSIZE_BYTES>
 
     {
         return hex_to_bytes_arr<MAMBA_ED25519_SIGSIZE_BYTES>(sig_hex, error_code);
     }
 
-    std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>
-    ed25519_key_hex_to_bytes(const std::string& key_hex, int& error_code) noexcept
+    auto ed25519_key_hex_to_bytes(const std::string& key_hex, int& error_code) noexcept
+        -> std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>
 
     {
         return hex_to_bytes_arr<MAMBA_ED25519_KEYSIZE_BYTES>(key_hex, error_code);
     }
 
-    int generate_ed25519_keypair(std::byte* pk, std::byte* sk)
+    auto generate_ed25519_keypair(std::byte* pk, std::byte* sk) -> int
     {
         std::size_t key_len = MAMBA_ED25519_KEYSIZE_BYTES;
-        EVP_PKEY* pkey = NULL;
+        EVP_PKEY* pkey = nullptr;
         struct EVPContext
         {
-            EVP_PKEY_CTX* pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_ED25519, NULL);
+            EVP_PKEY_CTX* pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_ED25519, nullptr);
 
             ~EVPContext()
             {
@@ -141,15 +142,16 @@ namespace mamba::validation
         return 1;
     }
 
-    std::pair<std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>, std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>>
-    generate_ed25519_keypair()
+    auto generate_ed25519_keypair() -> std::pair<
+        std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>,
+        std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>>
     {
         std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES> pk, sk;
         generate_ed25519_keypair(pk.data(), sk.data());
         return { pk, sk };
     }
 
-    std::pair<std::string, std::string> generate_ed25519_keypair_hex()
+    auto generate_ed25519_keypair_hex() -> std::pair<std::string, std::string>
     {
         auto [first, second] = generate_ed25519_keypair();
         // TODO change function signature to use std::byte
@@ -161,11 +163,11 @@ namespace mamba::validation
         };
     }
 
-    int sign(const std::string& data, const std::byte* sk, std::byte* signature)
+    auto sign(const std::string& data, const std::byte* sk, std::byte* signature) -> int
     {
         EVP_PKEY* ed_key = EVP_PKEY_new_raw_private_key(
             EVP_PKEY_ED25519,
-            NULL,
+            nullptr,
             reinterpret_cast<const unsigned char*>(sk),
             MAMBA_ED25519_KEYSIZE_BYTES
         );
@@ -178,7 +180,7 @@ namespace mamba::validation
         }
 
         int init_status, sign_status;
-        init_status = EVP_DigestSignInit(md_ctx, NULL, NULL, NULL, ed_key);
+        init_status = EVP_DigestSignInit(md_ctx, nullptr, nullptr, nullptr, ed_key);
         if (init_status != 1)
         {
             LOG_DEBUG << "Failed to init signing step";
@@ -203,7 +205,7 @@ namespace mamba::validation
         return 1;
     }
 
-    int sign(const std::string& data, const std::string& sk, std::string& signature)
+    auto sign(const std::string& data, const std::string& sk, std::string& signature) -> int
     {
         int error_code = 0;
 
@@ -224,12 +226,13 @@ namespace mamba::validation
         return error_code;
     }
 
-    int
+    auto
     verify(const std::byte* data, std::size_t data_len, const std::byte* pk, const std::byte* signature)
+        -> int
     {
         EVP_PKEY* ed_key = EVP_PKEY_new_raw_public_key(
             EVP_PKEY_ED25519,
-            NULL,
+            nullptr,
             reinterpret_cast<const unsigned char*>(pk),
             MAMBA_ED25519_KEYSIZE_BYTES
         );
@@ -242,7 +245,7 @@ namespace mamba::validation
         }
 
         int init_status, verif_status;
-        init_status = EVP_DigestVerifyInit(md_ctx, NULL, NULL, NULL, ed_key);
+        init_status = EVP_DigestVerifyInit(md_ctx, nullptr, nullptr, nullptr, ed_key);
         if (init_status != 1)
         {
             LOG_DEBUG << "Failed to init verification step";
@@ -267,7 +270,7 @@ namespace mamba::validation
         return 1;
     }
 
-    int verify(const std::string& data, const std::byte* pk, const std::byte* signature)
+    auto verify(const std::string& data, const std::byte* pk, const std::byte* signature) -> int
     {
         unsigned long long data_len = data.size();
         auto raw_data = reinterpret_cast<const std::byte*>(data.data());
@@ -275,7 +278,7 @@ namespace mamba::validation
         return verify(raw_data, data_len, pk, signature);
     }
 
-    int verify(const std::string& data, const std::string& pk, const std::string& signature)
+    auto verify(const std::string& data, const std::string& pk, const std::string& signature) -> int
     {
         int error_code = 0;
         auto bin_signature = ed25519_sig_hex_to_bytes(signature, error_code);
@@ -295,14 +298,16 @@ namespace mamba::validation
         return verify(data, bin_pk.data(), bin_signature.data());
     }
 
-    int verify_gpg_hashed_msg(const std::byte* data, const std::byte* pk, const std::byte* signature)
+    auto verify_gpg_hashed_msg(const std::byte* data, const std::byte* pk, const std::byte* signature)
+        -> int
     {
         return verify(data, MAMBA_SHA256_SIZE_BYTES, pk, signature);
     }
 
 
-    int
+    auto
     verify_gpg_hashed_msg(const std::string& data, const std::byte* pk, const std::byte* signature)
+        -> int
     {
         int error = 0;
         auto data_bin = hex_to_bytes_arr<MAMBA_SHA256_SIZE_BYTES>(data, error);
@@ -310,8 +315,9 @@ namespace mamba::validation
         return verify(data_bin.data(), MAMBA_SHA256_SIZE_BYTES, pk, signature) + error;
     }
 
-    int
+    auto
     verify_gpg_hashed_msg(const std::string& data, const std::string& pk, const std::string& signature)
+        -> int
     {
         int error = 0;
         auto signature_bin = ed25519_sig_hex_to_bytes(signature, error);
@@ -328,12 +334,12 @@ namespace mamba::validation
         return verify_gpg_hashed_msg(data, pk_bin.data(), signature_bin.data());
     }
 
-    int verify_gpg(
+    auto verify_gpg(
         const std::string& data,
         const std::string& pgp_v4_trailer,
         const std::string& pk,
         const std::string& signature
-    )
+    ) -> int
     {
         unsigned long long data_len = data.size();
         auto data_bin = reinterpret_cast<const std::byte*>(data.data());
@@ -365,7 +371,7 @@ namespace mamba::validation
         auto final_trailer_bin = hex_to_bytes_arr<2>(std::string_view("04ff"), error);
         assert(!error);
 
-        uint32_t trailer_bin_len_big_endian = static_cast<uint32_t>(pgp_trailer_bin.size());
+        auto trailer_bin_len_big_endian = static_cast<uint32_t>(pgp_trailer_bin.size());
 
 #ifdef _WIN32
         trailer_bin_len_big_endian = _byteswap_ulong(trailer_bin_len_big_endian);
@@ -404,12 +410,12 @@ namespace mamba::validation
     {
     }
 
-    std::string SpecBase::version_str() const
+    auto SpecBase::version_str() const -> std::string
     {
         return m_spec_version;
     }
 
-    std::string SpecBase::compatible_prefix() const
+    auto SpecBase::compatible_prefix() const -> std::string
     {
         auto split_spec_version = ::mamba::util::split(m_spec_version, ".", 2);
         auto spec_version_major = std::stoi(split_spec_version[0]);
@@ -423,7 +429,7 @@ namespace mamba::validation
         }
     }
 
-    std::vector<std::string> SpecBase::upgrade_prefix() const
+    auto SpecBase::upgrade_prefix() const -> std::vector<std::string>
     {
         auto split_spec_version = ::mamba::util::split(m_spec_version, ".", 2);
         auto spec_version_major = std::stoi(split_spec_version[0]);
@@ -439,7 +445,7 @@ namespace mamba::validation
         }
     }
 
-    bool SpecBase::is_compatible(const fs::u8path& p) const
+    auto SpecBase::is_compatible(const fs::u8path& p) const -> bool
     {
         std::regex name_re;
         std::smatch matches;
@@ -448,7 +454,7 @@ namespace mamba::validation
         std::string f_name = p.filename().string();
         std::string f_spec_version_str, f_version_str, f_type, f_ext;
 
-        name_re = "^(?:[1-9]+\\d*.)?(?:sv([1-9]\\d*|0\\.[1-9]\\d*).)?(\\w+)\\.(\\w+)$";
+        name_re = R"(^(?:[1-9]+\d*.)?(?:sv([1-9]\d*|0\.[1-9]\d*).)?(\w+)\.(\w+)$)";
         min_match_size = 3;
 
         if (std::regex_search(f_name, matches, name_re) && (min_match_size <= matches.size()))
@@ -472,12 +478,12 @@ namespace mamba::validation
         }
     }
 
-    bool SpecBase::is_compatible(const std::string& version) const
+    auto SpecBase::is_compatible(const std::string& version) const -> bool
     {
         return ::mamba::util::starts_with(version, compatible_prefix() + ".");
     }
 
-    bool SpecBase::is_compatible(const nlohmann::json& j) const
+    auto SpecBase::is_compatible(const nlohmann::json& j) const -> bool
     {
         auto spec_version = get_json_value(j);
         if (!spec_version.empty())
@@ -490,7 +496,7 @@ namespace mamba::validation
         }
     }
 
-    bool SpecBase::is_upgrade(const std::string& version) const
+    auto SpecBase::is_upgrade(const std::string& version) const -> bool
     {
         auto upgrade_prefixes = upgrade_prefix();
         std::vector<std::string_view> possible_upgrades;
@@ -503,7 +509,7 @@ namespace mamba::validation
         return ::mamba::util::starts_with_any(version, possible_upgrades);
     }
 
-    bool SpecBase::is_upgrade(const nlohmann::json& j) const
+    auto SpecBase::is_upgrade(const nlohmann::json& j) const -> bool
     {
         auto spec_version = get_json_value(j);
         if (!spec_version.empty())
@@ -516,7 +522,7 @@ namespace mamba::validation
         }
     }
 
-    std::string SpecBase::get_json_value(const nlohmann::json& j) const
+    auto SpecBase::get_json_value(const nlohmann::json& j) const -> std::string
     {
         try
         {
@@ -530,80 +536,80 @@ namespace mamba::validation
         }
     }
 
-    std::string SpecBase::canonicalize(const nlohmann::json& j) const
+    auto SpecBase::canonicalize(const nlohmann::json& j) const -> std::string
     {
         return j.dump();
     }
 
-    bool SpecBase::upgradable() const
+    auto SpecBase::upgradable() const -> bool
     {
         return false;
     };
 
-    bool operator==(const SpecBase& sv1, const SpecBase& sv2)
+    auto operator==(const SpecBase& sv1, const SpecBase& sv2) -> bool
     {
         return sv1.version_str() == sv2.version_str();
     }
 
-    bool operator!=(const SpecBase& sv1, const SpecBase& sv2)
+    auto operator!=(const SpecBase& sv1, const SpecBase& sv2) -> bool
     {
         return sv1.version_str() != sv2.version_str();
     }
 
-    RoleBase::RoleBase(const std::string& type, std::shared_ptr<SpecBase> sv)
-        : m_type(type)
+    RoleBase::RoleBase(std::string type, std::shared_ptr<SpecBase> sv)
+        : m_type(std::move(type))
     {
         p_spec = std::move(sv);
     };
 
-    RoleBase::~RoleBase(){};
+    RoleBase::~RoleBase() = default;
 
-    std::string RoleBase::type() const
+    auto RoleBase::type() const -> std::string
     {
         return m_type;
     }
 
-    std::size_t RoleBase::version() const
+    auto RoleBase::version() const -> std::size_t
     {
         return m_version;
     }
 
-    std::string RoleBase::expires() const
+    auto RoleBase::expires() const -> std::string
     {
         return m_expires;
     }
 
-    std::string RoleBase::file_ext() const
+    auto RoleBase::file_ext() const -> std::string
     {
         return m_ext;
     }
 
-    SpecBase& RoleBase::spec_version() const
+    auto RoleBase::spec_version() const -> SpecBase&
     {
         return *p_spec;
     }
 
-    std::shared_ptr<SpecBase> RoleBase::spec_impl() const
+    auto RoleBase::spec_impl() const -> std::shared_ptr<SpecBase>
     {
         return p_spec;
     }
 
-    bool RoleBase::expired(const TimeRef& time_reference) const
+    auto RoleBase::expired(const TimeRef& time_reference) const -> bool
     {
         return time_reference.timestamp().compare(m_expires) < 0 ? false : true;
     }
 
-    std::string RoleBase::canonicalize(const nlohmann::json& j) const
+    auto RoleBase::canonicalize(const nlohmann::json& j) const -> std::string
     {
         return p_spec->canonicalize(j);
     }
 
-    std::set<RoleSignature> RoleBase::signatures(const nlohmann::json& j) const
+    auto RoleBase::signatures(const nlohmann::json& j) const -> std::set<RoleSignature>
     {
         return p_spec->signatures(j);
     }
 
-    std::set<std::string> RoleBase::roles() const
+    auto RoleBase::roles() const -> std::set<std::string>
     {
         std::set<std::string> r;
         for (auto& it : m_defined_roles)
@@ -613,12 +619,12 @@ namespace mamba::validation
         return r;
     }
 
-    std::set<std::string> RoleBase::mandatory_defined_roles() const
+    auto RoleBase::mandatory_defined_roles() const -> std::set<std::string>
     {
         return {};
     }
 
-    std::set<std::string> RoleBase::optionally_defined_roles() const
+    auto RoleBase::optionally_defined_roles() const -> std::set<std::string>
     {
         return {};
     }
@@ -688,7 +694,7 @@ namespace mamba::validation
         }
     }
 
-    std::map<std::string, RoleFullKeys> RoleBase::all_keys() const
+    auto RoleBase::all_keys() const -> std::map<std::string, RoleFullKeys>
     {
         return m_defined_roles;
     }
@@ -714,7 +720,7 @@ namespace mamba::validation
         m_expires = expires;
     }
 
-    nlohmann::json RoleBase::read_json_file(const fs::u8path& p, bool update) const
+    auto RoleBase::read_json_file(const fs::u8path& p, bool update) const -> nlohmann::json
     {
         if (!fs::exists(p))
         {
@@ -738,12 +744,12 @@ namespace mamba::validation
         //   - VERSION_NUMBER.svSPEC_VERSION_MAJOR.FILENAME.EXT
         if (update)
         {
-            name_re = "^(?:([1-9]+\\d*).)(?:sv([1-9]\\d*|0\\.[1-9]\\d*).)?(\\w+)\\.(\\w+)$";
+            name_re = R"(^(?:([1-9]+\d*).)(?:sv([1-9]\d*|0\.[1-9]\d*).)?(\w+)\.(\w+)$)";
             min_match_size = 4;
         }
         else
         {
-            name_re = "^(?:[1-9]+\\d*.)?(?:sv([1-9]\\d*|0\\.[1-9]\\d*).)?(\\w+)\\.(\\w+)$";
+            name_re = R"(^(?:[1-9]+\d*.)?(?:sv([1-9]\d*|0\.[1-9]\d*).)?(\w+)\.(\w+)$)";
             min_match_size = 3;
         }
 
@@ -903,7 +909,7 @@ namespace mamba::validation
     {
     }
 
-    std::vector<fs::u8path> RootRole::possible_update_files()
+    auto RootRole::possible_update_files() -> std::vector<fs::u8path>
     {
         auto new_v = std::to_string(version() + 1);
         auto compat_spec = spec_impl()->compatible_prefix();
@@ -913,22 +919,22 @@ namespace mamba::validation
         // upgrade first
         for (auto& s : upgrade_spec)
         {
-            files.push_back(
+            files.emplace_back(
                 ::mamba::util::join(".", std::vector<std::string>({ new_v, "sv" + s, "root.json" }))
             );
         }
         // compatible next
-        files.push_back(::mamba::util::join(
+        files.emplace_back(::mamba::util::join(
             ".",
             std::vector<std::string>({ new_v, "sv" + compat_spec, "root.json" })
         ));
         // then finally undefined spec
-        files.push_back(::mamba::util::join(".", std::vector<std::string>({ new_v, "root.json" })));
+        files.emplace_back(::mamba::util::join(".", std::vector<std::string>({ new_v, "root.json" })));
 
         return files;
     }
 
-    std::unique_ptr<RootRole> RootRole::update(fs::u8path path)
+    auto RootRole::update(fs::u8path path) -> std::unique_ptr<RootRole>
     {
         auto j = read_json_file(path, true);
         return update(j);
@@ -939,7 +945,7 @@ namespace mamba::validation
     // `update(fs::u8path)`) if we decide to specify the spec version in the file name.
     // The filename would take the form VERSION_NUMBER.SPECVERSION.FILENAME.EXT
     // To disambiguate version and spec version: 1.sv0.6.root.json or 1.sv1.root.json
-    std::unique_ptr<RootRole> RootRole::update(nlohmann::json j)
+    auto RootRole::update(nlohmann::json j) -> std::unique_ptr<RootRole>
     {
         // TUF spec 5.3.4 - Check for an arbitrary software attack
         // Check signatures against current keyids and threshold in 'RootImpl' constructor
@@ -979,20 +985,15 @@ namespace mamba::validation
         role->set_expiration(j.at(role->spec_version().expiration_json_key()));
     }
 
-    RepoChecker::RepoChecker(
-        Context& context,
-        const std::string& base_url,
-        const fs::u8path& ref_path,
-        const fs::u8path& cache_path
-    )
-        : m_base_url(base_url)
-        , m_ref_path(ref_path)
-        , m_cache_path(cache_path)
+    RepoChecker::RepoChecker(Context& context, std::string base_url, fs::u8path ref_path, fs::u8path cache_path)
+        : m_base_url(std::move(base_url))
+        , m_ref_path(std::move(ref_path))
+        , m_cache_path(std::move(cache_path))
         , m_context(context)
     {
     }
 
-    const fs::u8path& RepoChecker::cache_path()
+    auto RepoChecker::cache_path() -> const fs::u8path&
     {
         return m_cache_path;
     }
@@ -1035,17 +1036,17 @@ namespace mamba::validation
         p_index_checker->verify_package(signed_data, signatures);
     }
 
-    std::size_t RepoChecker::root_version()
+    auto RepoChecker::root_version() -> std::size_t
     {
         return m_root_version;
     }
 
-    fs::u8path RepoChecker::ref_root()
+    auto RepoChecker::ref_root() -> fs::u8path
     {
         return m_ref_path / "root.json";
     }
 
-    fs::u8path RepoChecker::cached_root()
+    auto RepoChecker::cached_root() -> fs::u8path
     {
         if (cache_path().empty())
         {
@@ -1069,7 +1070,7 @@ namespace mamba::validation
         }
     }
 
-    fs::u8path RepoChecker::initial_trusted_root()
+    auto RepoChecker::initial_trusted_root() -> fs::u8path
     {
         if (fs::exists(cached_root()))
         {
@@ -1089,7 +1090,7 @@ namespace mamba::validation
         }
     }
 
-    std::unique_ptr<RootRole> RepoChecker::get_root_role(const TimeRef& time_reference)
+    auto RepoChecker::get_root_role(const TimeRef& time_reference) -> std::unique_ptr<RootRole>
     {
         // TUF spec 5.3 - Update the root role
         // https://theupdateframework.github.io/specification/latest/#update-root

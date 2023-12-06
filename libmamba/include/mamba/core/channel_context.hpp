@@ -51,7 +51,8 @@ namespace mamba
          */
         ChannelContext(ChannelResolveParams params, std::vector<Channel> has_zst);
 
-        auto make_channel(std::string_view name) -> const channel_list&;
+        [[nodiscard]] auto make_channel(specs::ChannelSpec spec) -> const channel_list&;
+        [[nodiscard]] auto make_channel(std::string_view name) -> const channel_list&;
 
         [[nodiscard]] auto params() const -> const specs::ChannelResolveParams&;
 

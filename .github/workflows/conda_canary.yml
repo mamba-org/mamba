@@ -27,7 +27,9 @@ jobs:
   conda_nightly:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        with:
+          ref: '1.x'  # Conda latest is on 1.x version
       - name: create mamba build environment
         uses: mamba-org/setup-micromamba@v1
         with:

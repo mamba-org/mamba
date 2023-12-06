@@ -385,35 +385,6 @@ namespace mamba::validation
         return verify_gpg_hashed_msg(hash.data(), pk_bin.data(), signature_bin.data()) + error;
     }
 
-    bool operator<(const RoleSignature& rs1, const RoleSignature& rs2)
-    {
-        return rs1.keyid < rs2.keyid;
-    };
-
-    RoleKeys RolePubKeys::to_role_keys() const
-    {
-        return { pubkeys, threshold };
-    }
-
-    RoleFullKeys::RoleFullKeys(const std::map<std::string, Key>& keys_, const std::size_t& threshold_)
-        : keys(keys_)
-        , threshold(threshold_){};
-
-    std::map<std::string, Key> RoleFullKeys::to_keys() const
-    {
-        return keys;
-    }
-
-    RoleKeys RoleFullKeys::to_roles() const
-    {
-        std::vector<std::string> keyids;
-        for (auto& k : keys)
-        {
-            keyids.push_back(k.first);
-        }
-        return { keyids, threshold };
-    }
-
     void check_timestamp_metadata_format(const std::string& ts)
     {
         std::regex timestamp_re("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$");
@@ -1822,73 +1793,9 @@ namespace mamba::validation
         }
     }  // namespace v06
 
-    void to_json(nlohmann::json& j, const Key& key)
-    {
-        j = { { "keytype", key.keytype }, { "scheme", key.scheme }, { "keyval", key.keyval } };
-    }
-
-    void to_json(nlohmann::json& j, const RoleKeys& role_keys)
-    {
-        j = { { "keyids", role_keys.keyids }, { "threshold", role_keys.threshold } };
-    }
-
-    void to_json(nlohmann::json& j, const RolePubKeys& role_keys)
-    {
-        j = { { "pubkeys", role_keys.pubkeys }, { "threshold", role_keys.threshold } };
-    }
-
-    void to_json(nlohmann::json& j, const RoleFullKeys& k)
-    {
-        j = { { "keys", k.keys }, { "threshold", k.threshold } };
-    }
-
-    void to_json(nlohmann::json& j, const RoleSignature& role_sig)
-    {
-        j = { { "keyid", role_sig.keyid }, { "sig", role_sig.sig } };
-        if (!role_sig.pgp_trailer.empty())
-        {
-            j["other_headers"] = role_sig.pgp_trailer;
-        }
-    }
-
     void to_json(nlohmann::json& j, const RoleBase* role)
     {
         j = { { "version", role->version() }, { "expires", role->expires() } };
-    }
-
-    void from_json(const nlohmann::json& j, Key& key)
-    {
-        j.at("keytype").get_to(key.keytype);
-        j.at("scheme").get_to(key.scheme);
-        j.at("keyval").get_to(key.keyval);
-    }
-
-    void from_json(const nlohmann::json& j, RoleKeys& role_keys)
-    {
-        j.at("keyids").get_to(role_keys.keyids);
-        j.at("threshold").get_to(role_keys.threshold);
-    }
-
-    void from_json(const nlohmann::json& j, RolePubKeys& role_keys)
-    {
-        j.at("pubkeys").get_to(role_keys.pubkeys);
-        j.at("threshold").get_to(role_keys.threshold);
-    }
-
-    void from_json(const nlohmann::json& j, RoleFullKeys& k)
-    {
-        j.at("keys").get_to(k.keys);
-        j.at("threshold").get_to(k.threshold);
-    }
-
-    void from_json(const nlohmann::json& j, RoleSignature& role_sig)
-    {
-        j.at("keyid").get_to(role_sig.keyid);
-        j.at("sig").get_to(role_sig.sig);
-        if (j.find("other_headers") != j.end())
-        {
-            j.at("other_headers").get_to(role_sig.pgp_trailer);
-        }
     }
 
     void from_json(const nlohmann::json& j, RoleBase* role)

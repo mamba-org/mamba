@@ -14,6 +14,9 @@ using namespace mamba::specs;
 
 TEST_SUITE("specs::channel_spec")
 {
+    using PlatformSet = typename util::flat_set<std::string>;
+    using Type = typename ChannelSpec::Type;
+
     TEST_CASE("Constructor")
     {
         SUBCASE("Default")
@@ -29,15 +32,12 @@ TEST_SUITE("specs::channel_spec")
             const auto spec = ChannelSpec("hello", { "linux-78" }, ChannelSpec::Type::Unknown);
             CHECK_EQ(spec.type(), ChannelSpec::Type::Unknown);
             CHECK_EQ(spec.location(), "<unknown>");
-            CHECK(spec.platform_filters().empty());
+            CHECK_EQ(spec.platform_filters(), PlatformSet{ "linux-78" });
         }
     }
 
     TEST_CASE("Parsing")
     {
-        using Type = typename ChannelSpec::Type;
-        using PlatformSet = typename util::flat_set<std::string>;
-
         SUBCASE("Invalid channels")
         {
             for (std::string_view str : { "", "<unknown>", ":///<unknown>", "none" })
@@ -219,5 +219,14 @@ TEST_SUITE("specs::channel_spec")
             CHECK_EQ(spec.location(), "conda-forge/label/foo_dev");
             CHECK_EQ(spec.platform_filters(), PlatformSet{ "linux-64" });
         }
+    }
+
+    TEST_CASE("str")
+    {
+        CHECK_EQ(ChannelSpec("location", {}, Type::Name).str(), "location");
+        CHECK_EQ(
+            ChannelSpec("location", { "linux-64", "noarch" }, Type::Name).str(),
+            "location[linux-64,noarch]"
+        );
     }
 }

@@ -181,6 +181,8 @@ set(
     # Artifacts validation
     ${LIBMAMBA_SOURCE_DIR}/validation/errors.cpp
     ${LIBMAMBA_SOURCE_DIR}/validation/keys.cpp
+    ${LIBMAMBA_SOURCE_DIR}/validation/update_framework_v0_6.cpp
+    ${LIBMAMBA_SOURCE_DIR}/validation/update_framework_v1.cpp
     # C++ wrapping of libcurl
     ${LIBMAMBA_SOURCE_DIR}/core/curl.cpp
     # C++ wrapping of compression libs (zstd and bzlib)
@@ -289,6 +291,8 @@ set(
     # Artifacts validation
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/errors.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/keys.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/update_framework_v0_6.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/update_framework_v1.hpp
     # Core API (low-level)
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/activation.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/channel_context.hpp

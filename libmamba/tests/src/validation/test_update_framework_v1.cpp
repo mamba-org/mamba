@@ -11,9 +11,9 @@
 #include <spdlog/spdlog.h>
 
 #include "mamba/core/fsutil.hpp"
-#include "mamba/core/validate.hpp"
 #include "mamba/util/encoding.hpp"
 #include "mamba/validation/errors.hpp"
+#include "mamba/validation/update_framework_v1.hpp"
 
 #include "mambatests.hpp"
 
@@ -150,7 +150,7 @@ protected:
     }
 };
 
-TEST_SUITE("RootImplT_v1")
+TEST_SUITE("validation::v1::RootImpl")
 {
     TEST_CASE_FIXTURE(RootImplT_v1, "ctor_from_path")
     {
@@ -496,7 +496,7 @@ protected:
     v1::SpecImpl spec;
 };
 
-TEST_SUITE("SpecImplT_v1")
+TEST_SUITE("validation::v1::SpecImpl")
 {
     TEST_CASE_FIXTURE(SpecImplT_v1, "ctore")
     {
@@ -582,7 +582,7 @@ TEST_SUITE("SpecImplT_v1")
     }
 }
 
-TEST_SUITE("RoleSignature")
+TEST_SUITE("validation::v1::RoleSignature")
 {
     // Test serialization/deserialization
     TEST_CASE("to_json")

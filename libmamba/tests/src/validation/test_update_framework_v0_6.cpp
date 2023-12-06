@@ -11,10 +11,11 @@
 #include <spdlog/spdlog.h>
 
 #include "mamba/core/fsutil.hpp"
-#include "mamba/core/validate.hpp"
 #include "mamba/util/encoding.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/validation/errors.hpp"
+#include "mamba/validation/update_framework_v0_6.hpp"
+#include "mamba/validation/update_framework_v1.hpp"
 
 #include "mambatests.hpp"
 
@@ -22,14 +23,14 @@ using namespace mamba;
 using namespace mamba::validation;
 namespace nl = nlohmann;
 
-class RootImplT_v06
+class RootImplT_v0_6
 {
 public:
 
     using role_secrets_type = std::map<std::string, std::array<std::byte, MAMBA_ED25519_KEYSIZE_BYTES>>;
     using secrets_type = std::map<std::string, role_secrets_type>;
 
-    RootImplT_v06()
+    RootImplT_v0_6()
     {
         channel_dir = std::make_unique<mamba::TemporaryDirectory>();
 
@@ -133,7 +134,7 @@ public:
         return signatures;
     }
 
-    auto upgrade_to_v1(const v06::RootImpl& root, const nl::json& patch = nl::json()) -> nl::json
+    auto upgrade_to_v1(const v0_6::RootImpl& root, const nl::json& patch = nl::json()) -> nl::json
     {
         auto root_meta = root.upgraded_signable();
         if (!patch.empty())
@@ -184,59 +185,59 @@ protected:
     }
 };
 
-TEST_SUITE("RootImplT_v06")
+TEST_SUITE("validation::v0_6::RootImpl")
 {
-    TEST_CASE_FIXTURE(RootImplT_v06, "ctor_from_path")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "ctor_from_path")
     {
-        v06::RootImpl root(trusted_root_file_raw_key());
+        v0_6::RootImpl root(trusted_root_file_raw_key());
 
         CHECK_EQ(root.type(), "root");
         CHECK_EQ(root.file_ext(), "json");
-        CHECK_EQ(root.spec_version(), v06::SpecImpl("0.6.0"));
+        CHECK_EQ(root.spec_version(), v0_6::SpecImpl("0.6.0"));
         CHECK_EQ(root.version(), 1);
     }
 
-    TEST_CASE_FIXTURE(RootImplT_v06, "ctor_from_path_pgp_signed")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "ctor_from_path_pgp_signed")
     {
-        v06::RootImpl root(trusted_root_file_pgp());
+        v0_6::RootImpl root(trusted_root_file_pgp());
 
         CHECK_EQ(root.type(), "root");
         CHECK_EQ(root.file_ext(), "json");
-        CHECK_EQ(root.spec_version(), v06::SpecImpl("0.6.0"));
+        CHECK_EQ(root.spec_version(), v0_6::SpecImpl("0.6.0"));
         CHECK_EQ(root.version(), 1);
     }
 
-    TEST_CASE_FIXTURE(RootImplT_v06, "ctor_from_json")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "ctor_from_json")
     {
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
 
         CHECK_EQ(root.type(), "root");
         CHECK_EQ(root.file_ext(), "json");
-        CHECK_EQ(root.spec_version(), v06::SpecImpl("0.6.0"));
+        CHECK_EQ(root.spec_version(), v0_6::SpecImpl("0.6.0"));
         CHECK_EQ(root.version(), 1);
     }
 
-    TEST_CASE_FIXTURE(RootImplT_v06, "ctor_from_json_str")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "ctor_from_json_str")
     {
-        v06::RootImpl root(root1_json.dump());
+        v0_6::RootImpl root(root1_json.dump());
 
         CHECK_EQ(root.type(), "root");
         CHECK_EQ(root.file_ext(), "json");
-        CHECK_EQ(root.spec_version(), v06::SpecImpl("0.6.0"));
+        CHECK_EQ(root.spec_version(), v0_6::SpecImpl("0.6.0"));
         CHECK_EQ(root.version(), 1);
     }
 
-    TEST_CASE_FIXTURE(RootImplT_v06, "ctor_from_json_pgp_signed")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "ctor_from_json_pgp_signed")
     {
-        v06::RootImpl root(root1_pgp_json);
+        v0_6::RootImpl root(root1_pgp_json);
 
         CHECK_EQ(root.type(), "root");
         CHECK_EQ(root.file_ext(), "json");
-        CHECK_EQ(root.spec_version(), v06::SpecImpl("0.6.0"));
+        CHECK_EQ(root.spec_version(), v0_6::SpecImpl("0.6.0"));
         CHECK_EQ(root.version(), 1);
     }
 
-    TEST_CASE_FIXTURE(RootImplT_v06, "ctor_wrong_filename_spec_version")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "ctor_wrong_filename_spec_version")
     {
         fs::u8path p = channel_dir->path() / "2.sv1.root.json";
 
@@ -245,31 +246,31 @@ TEST_SUITE("RootImplT_v06")
         out_file.close();
 
         // "2.sv1.root.json" is not compatible spec version (spec version N)
-        CHECK_THROWS_AS(v06::RootImpl root(p), role_file_error);
+        CHECK_THROWS_AS(v0_6::RootImpl root(p), role_file_error);
     }
 
-    TEST_CASE_FIXTURE(RootImplT_v06, "update_from_path")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "update_from_path")
     {
         using namespace mamba;
 
         auto f = trusted_root_file_raw_key();
-        v06::RootImpl root(f);
+        v0_6::RootImpl root(f);
 
         nl::json patch = R"([
                         { "op": "replace", "path": "/signed/version", "value": 2 }
                         ])"_json;
         auto updated_root = root.update(create_root_update("2.root.json", patch));
 
-        auto testing_root = static_cast<v06::RootImpl*>(updated_root.get());
+        auto testing_root = static_cast<v0_6::RootImpl*>(updated_root.get());
         CHECK_EQ(testing_root->type(), "root");
         CHECK_EQ(testing_root->file_ext(), "json");
-        CHECK_EQ(testing_root->spec_version(), v06::SpecImpl("0.6.0"));
+        CHECK_EQ(testing_root->spec_version(), v0_6::SpecImpl("0.6.0"));
         CHECK_EQ(testing_root->version(), 2);
     }
 
-    TEST_CASE_FIXTURE(RootImplT_v06, "wrong_version")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "wrong_version")
     {
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
 
         nl::json patch = R"([
                         { "op": "replace", "path": "/signed/version", "value": 3 }
@@ -278,9 +279,9 @@ TEST_SUITE("RootImplT_v06")
         CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
-    TEST_CASE_FIXTURE(RootImplT_v06, "spec_version")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "spec_version")
     {
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
 
         nl::json patch = R"([
                         { "op": "replace", "path": "/signed/version", "value": 2 },
@@ -288,15 +289,15 @@ TEST_SUITE("RootImplT_v06")
                         ])"_json;
         auto updated_root = root.update(create_root_update("2.root.json", patch));
 
-        auto testing_root = static_cast<v06::RootImpl*>(updated_root.get());
-        CHECK_EQ(testing_root->spec_version(), v06::SpecImpl("0.6.1"));
+        auto testing_root = static_cast<v0_6::RootImpl*>(updated_root.get());
+        CHECK_EQ(testing_root->spec_version(), v0_6::SpecImpl("0.6.1"));
         CHECK_EQ(testing_root->version(), 2);
         CHECK_EQ(testing_root->expires(), root.expires());
     }
 
-    TEST_CASE_FIXTURE(RootImplT_v06, "upgraded_spec_version")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "upgraded_spec_version")
     {
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
 
         nl::json patch = R"([
                         { "op": "replace", "path": "/signed/version", "value": 2 },
@@ -319,14 +320,14 @@ TEST_SUITE("RootImplT_v06")
 
         auto testing_root = dynamic_cast<v1::RootImpl*>(updated_root.get());
         REQUIRE_NE(testing_root, nullptr);
-        CHECK_EQ(testing_root->spec_version(), v06::SpecImpl("1.0.17"));
+        CHECK_EQ(testing_root->spec_version(), v0_6::SpecImpl("1.0.17"));
         CHECK_EQ(testing_root->version(), 2);
         CHECK_LT(testing_root->expires(), root.expires());
     }
 
-    TEST_CASE_FIXTURE(RootImplT_v06, "equivalent_upgraded_spec_version")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "equivalent_upgraded_spec_version")
     {
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
 
         nl::json signable_patch = R"([
                         { "op": "add", "path": "/keys/dummy_value", "value": { "keytype": "ed25519", "scheme": "ed25519", "keyval": "dummy_value" } },
@@ -339,9 +340,9 @@ TEST_SUITE("RootImplT_v06")
         CHECK_EQ(updated_root.version(), 1);
     }
 
-    TEST_CASE_FIXTURE(RootImplT_v06, "wrong_spec_version")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "wrong_spec_version")
     {
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
 
         nl::json patch = R"([
                         { "op": "replace", "path": "/signed/version", "value": 2 },
@@ -358,23 +359,23 @@ TEST_SUITE("RootImplT_v06")
         CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), spec_version_error);
     }
 
-    TEST_CASE_FIXTURE(RootImplT_v06, "wrong_filename_role")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "wrong_filename_role")
     {
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
 
         CHECK_THROWS_AS(root.update(create_root_update("2.rooot.json")), role_file_error);
     }
 
-    TEST_CASE_FIXTURE(RootImplT_v06, "wrong_filename_version")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "wrong_filename_version")
     {
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
 
         CHECK_THROWS_AS(root.update(create_root_update("3.root.json")), role_file_error);
     }
 
-    TEST_CASE_FIXTURE(RootImplT_v06, "wrong_filename_spec_version")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "wrong_filename_spec_version")
     {
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
 
         // "2.sv1.root.json" is upgradable spec version (spec version N+1)
         nl::json signable_patch = R"([
@@ -387,7 +388,7 @@ TEST_SUITE("RootImplT_v06")
         auto updated_root = root.update(upgrade_to_v1(root, signable_patch));
         auto testing_root = dynamic_cast<v1::RootImpl*>(updated_root.get());
         REQUIRE_NE(testing_root, nullptr);
-        CHECK_EQ(testing_root->spec_version(), v06::SpecImpl("1.0.0"));
+        CHECK_EQ(testing_root->spec_version(), v0_6::SpecImpl("1.0.0"));
 
         // "2.sv2.root.json" is not upgradable spec version (spec version N+1)
         nl::json patch = R"([
@@ -396,18 +397,18 @@ TEST_SUITE("RootImplT_v06")
         CHECK_THROWS_AS(root.update(create_root_update("2.sv2.root.json", patch)), role_file_error);
     }
 
-    TEST_CASE_FIXTURE(RootImplT_v06, "illformed_filename_version")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "illformed_filename_version")
     {
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
 
         CHECK_THROWS_AS(root.update(create_root_update("wrong.root.json")), role_file_error);
         CHECK_THROWS_AS(root.update(create_root_update("2..root.json")), role_file_error);
         CHECK_THROWS_AS(root.update(create_root_update("2.sv04.root.json")), role_file_error);
     }
 
-    TEST_CASE_FIXTURE(RootImplT_v06, "rollback_attack")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "rollback_attack")
     {
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
 
         nl::json patch = R"([
                         { "op": "replace", "path": "/signed/version", "value": 1 }
@@ -416,9 +417,9 @@ TEST_SUITE("RootImplT_v06")
         CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), rollback_error);
     }
 
-    TEST_CASE_FIXTURE(RootImplT_v06, "wrong_type")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "wrong_type")
     {
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
 
         nl::json patch = R"([
                         { "op": "replace", "path": "/signed/type", "value": "timestamp" },
@@ -428,9 +429,9 @@ TEST_SUITE("RootImplT_v06")
         CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
-    TEST_CASE_FIXTURE(RootImplT_v06, "missing_type")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "missing_type")
     {
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
 
         nl::json patch = R"([
                         { "op": "remove", "path": "/signed/type" },
@@ -440,9 +441,9 @@ TEST_SUITE("RootImplT_v06")
         CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
-    TEST_CASE_FIXTURE(RootImplT_v06, "missing_delegations")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "missing_delegations")
     {
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
 
         nl::json patch = R"([
                         { "op": "remove", "path": "/signed/delegations" },
@@ -452,9 +453,9 @@ TEST_SUITE("RootImplT_v06")
         CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
-    TEST_CASE_FIXTURE(RootImplT_v06, "missing_delegation")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "missing_delegation")
     {
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
 
         nl::json patch = R"([
                                     { "op": "remove", "path": "/signed/delegations/root" },
@@ -464,9 +465,9 @@ TEST_SUITE("RootImplT_v06")
         CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
-    TEST_CASE_FIXTURE(RootImplT_v06, "empty_delegation_pubkeys")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "empty_delegation_pubkeys")
     {
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
 
         nl::json patch = R"([
                                     { "op": "replace", "path": "/signed/delegations/root/pubkeys", "value": [] },
@@ -476,9 +477,9 @@ TEST_SUITE("RootImplT_v06")
         CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
-    TEST_CASE_FIXTURE(RootImplT_v06, "null_role_threshold")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "null_role_threshold")
     {
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
 
         nl::json patch = R"([
                                     { "op": "replace", "path": "/signed/delegations/root/threshold", "value": 0 },
@@ -488,9 +489,9 @@ TEST_SUITE("RootImplT_v06")
         CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
-    TEST_CASE_FIXTURE(RootImplT_v06, "extra_roles")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "extra_roles")
     {
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
 
         nl::json patch = R"([
                                     { "op": "add", "path": "/signed/delegations/some_wrong_role",
@@ -515,9 +516,9 @@ TEST_SUITE("RootImplT_v06")
         CHECK(mirrors_role_found);
     }
     */
-    TEST_CASE_FIXTURE(RootImplT_v06, "threshold_not_met")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "threshold_not_met")
     {
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
 
         nl::json patch = R"([
                         { "op": "replace", "path": "/signed/version", "value": 2 },
@@ -527,9 +528,9 @@ TEST_SUITE("RootImplT_v06")
         CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_error);
     }
 
-    TEST_CASE_FIXTURE(RootImplT_v06, "expires")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "expires")
     {
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
 
         // expiration is set to now+3600s in 'sign_root'
         TimeRef time_ref;
@@ -547,13 +548,13 @@ TEST_SUITE("RootImplT_v06")
         );
         auto updated_root = root.update(create_root_update("2.root.json", patch));
 
-        auto testing_root = static_cast<v06::RootImpl*>(updated_root.get());
+        auto testing_root = static_cast<v0_6::RootImpl*>(updated_root.get());
         CHECK_FALSE(testing_root->expired(time_ref));
     }
 
-    TEST_CASE_FIXTURE(RootImplT_v06, "timestamp")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "timestamp")
     {
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
 
         nl::json patch;
 
@@ -576,9 +577,9 @@ TEST_SUITE("RootImplT_v06")
         CHECK_THROWS_AS(root.update(create_root_update("2.root.json", patch)), role_metadata_error);
     }
 
-    TEST_CASE_FIXTURE(RootImplT_v06, "possible_update_files")
+    TEST_CASE_FIXTURE(RootImplT_v0_6, "possible_update_files")
     {
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
 
         auto update_f = root.possible_update_files();
         CHECK(update_f[0].string().c_str() == doctest::Contains("2.sv1.root.json"));
@@ -606,14 +607,14 @@ public:
 
 protected:
 
-    v06::SpecImpl spec;
+    v0_6::SpecImpl spec;
 };
 
-TEST_SUITE("SpecImplT_v06")
+TEST_SUITE("validation::v0_6::SpecImpl")
 {
     TEST_CASE_FIXTURE(SpecImplT_v06, "ctor")
     {
-        v06::SpecImpl new_spec("0.6.1");
+        v0_6::SpecImpl new_spec("0.6.1");
         CHECK_EQ(new_spec.version_str(), "0.6.1");
     }
 
@@ -701,12 +702,12 @@ TEST_SUITE("SpecImplT_v06")
 }
 
 
-class KeyMgrT_v06 : public RootImplT_v06
+class KeyMgrT_v06 : public RootImplT_v0_6
 {
 public:
 
     KeyMgrT_v06()
-        : RootImplT_v06()
+        : RootImplT_v0_6()
     {
         sign_key_mgr();
     }
@@ -781,33 +782,33 @@ protected:
     }
 };
 
-TEST_SUITE("KeyMgrT_v06")
+TEST_SUITE("validation::v0_6::KeyMgr")
 {
     TEST_CASE_FIXTURE(KeyMgrT_v06, "ctor_from_json")
     {
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
         auto key_mgr = root.create_key_mgr(key_mgr_json);
 
-        CHECK_EQ(key_mgr.spec_version(), v06::SpecImpl("0.6.0"));
+        CHECK_EQ(key_mgr.spec_version(), v0_6::SpecImpl("0.6.0"));
         CHECK_EQ(key_mgr.version(), 1);
     }
 
     TEST_CASE_FIXTURE(KeyMgrT_v06, "ctor_from_json_str")
     {
-        v06::RootImpl root(root1_json);
-        auto key_mgr = v06::KeyMgrRole(
+        v0_6::RootImpl root(root1_json);
+        auto key_mgr = v0_6::KeyMgrRole(
             key_mgr_json.dump(),
             root.all_keys()["key_mgr"],
-            std::make_shared<v06::SpecImpl>(v06::SpecImpl())
+            std::make_shared<v0_6::SpecImpl>(v0_6::SpecImpl())
         );
 
-        CHECK_EQ(key_mgr.spec_version(), v06::SpecImpl("0.6.0"));
+        CHECK_EQ(key_mgr.spec_version(), v0_6::SpecImpl("0.6.0"));
         CHECK_EQ(key_mgr.version(), 1);
     }
 
     TEST_CASE_FIXTURE(KeyMgrT_v06, "version")
     {
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
 
         {
             nl::json key_mgr_patch = R"([
@@ -815,7 +816,7 @@ TEST_SUITE("KeyMgrT_v06")
                         ])"_json;
             auto key_mgr = root.create_key_mgr(patched_key_mgr_json(key_mgr_patch));
 
-            CHECK_EQ(key_mgr.spec_version(), v06::SpecImpl("0.6.0"));
+            CHECK_EQ(key_mgr.spec_version(), v0_6::SpecImpl("0.6.0"));
             CHECK_EQ(key_mgr.version(), 2);
         }
 
@@ -825,14 +826,14 @@ TEST_SUITE("KeyMgrT_v06")
                         ])"_json;
             auto key_mgr = root.create_key_mgr(patched_key_mgr_json(key_mgr_patch));
 
-            CHECK_EQ(key_mgr.spec_version(), v06::SpecImpl("0.6.0"));
+            CHECK_EQ(key_mgr.spec_version(), v0_6::SpecImpl("0.6.0"));
             CHECK_EQ(key_mgr.version(), 20);
         }
     }
 
     TEST_CASE_FIXTURE(KeyMgrT_v06, "spec_version")
     {  // spec version as to match exactly 'root' spec version
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
 
         {
             nl::json key_mgr_patch = R"([
@@ -840,7 +841,7 @@ TEST_SUITE("KeyMgrT_v06")
                         ])"_json;
             auto key_mgr = root.create_key_mgr(patched_key_mgr_json(key_mgr_patch));
 
-            CHECK_EQ(key_mgr.spec_version(), v06::SpecImpl("0.6.0"));
+            CHECK_EQ(key_mgr.spec_version(), v0_6::SpecImpl("0.6.0"));
             CHECK_EQ(key_mgr.version(), 1);
         }
 
@@ -866,15 +867,15 @@ TEST_SUITE("KeyMgrT_v06")
 
     TEST_CASE_FIXTURE(KeyMgrT_v06, "ctor_from_path")
     {
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
 
         auto key_mgr = root.create_key_mgr(write_key_mgr_file(key_mgr_json));
-        CHECK_EQ(key_mgr.spec_version(), v06::SpecImpl("0.6.0"));
+        CHECK_EQ(key_mgr.spec_version(), v0_6::SpecImpl("0.6.0"));
         CHECK_EQ(key_mgr.version(), 1);
 
         // TODO: enforce consistency between spec version in filename and metadata
         key_mgr = root.create_key_mgr(write_key_mgr_file(key_mgr_json, "20.sv0.6.key_mgr.json"));
-        CHECK_EQ(key_mgr.spec_version(), v06::SpecImpl("0.6.0"));
+        CHECK_EQ(key_mgr.spec_version(), v0_6::SpecImpl("0.6.0"));
         CHECK_EQ(key_mgr.version(), 1);
 
 
@@ -898,7 +899,7 @@ TEST_SUITE("KeyMgrT_v06")
 
     TEST_CASE_FIXTURE(KeyMgrT_v06, "expires")
     {
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
         auto key_mgr = root.create_key_mgr(key_mgr_json);
 
         // expiration is set to now+3600s in 'sign_key_mgr'
@@ -924,7 +925,7 @@ TEST_SUITE("KeyMgrT_v06")
 
     TEST_CASE_FIXTURE(KeyMgrT_v06, "timestamp")
     {
-        v06::RootImpl root(root1_json);
+        v0_6::RootImpl root(root1_json);
 
         nl::json patch;
 
@@ -958,7 +959,7 @@ public:
     {
         sign_pkg_mgr();
         generate_index_checkerdata();
-        root = std::make_unique<v06::RootImpl>(root1_json);
+        root = std::make_unique<v0_6::RootImpl>(root1_json);
     };
 
     auto sign_repodata(const nl::json& patch = nl::json()) -> nl::json
@@ -1036,7 +1037,7 @@ protected:
 
     nl::json pkg_mgr_json, repodata_json, signed_repodata_json;
 
-    std::unique_ptr<v06::RootImpl> root;
+    std::unique_ptr<v0_6::RootImpl> root;
 
     auto sign_pkg_mgr_meta(const nl::json& meta) -> nl::json
     {
@@ -1104,7 +1105,7 @@ protected:
     }
 };
 
-TEST_SUITE("PkgMgrT_v06")
+TEST_SUITE("validation::v0_6::PkgMgr")
 {
     TEST_CASE_FIXTURE(PkgMgrT_v06, "verify_index")
     {
@@ -1183,7 +1184,7 @@ protected:
     }
 };
 
-TEST_SUITE("RepoCheckerT")
+TEST_SUITE("validation::v0_6::RepoChecker")
 {
     TEST_CASE_FIXTURE(RepoCheckerT, "ctor")
     {

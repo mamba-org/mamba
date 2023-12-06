@@ -37,6 +37,7 @@
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/specs/version.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/validation/update_framework_v0_6.hpp"
 
 #include "bindings.hpp"
 #include "flat_set_caster.hpp"
@@ -1150,53 +1151,53 @@ bind_submodule_impl(pybind11::module_ m)
         .def_property_readonly("expired", &validation::RoleBase::expired)
         .def("all_keys", &validation::RoleBase::all_keys);
 
-    py::class_<validation::v06::V06RoleBaseExtension, std::shared_ptr<validation::v06::V06RoleBaseExtension>>(
+    py::class_<validation::v0_6::V06RoleBaseExtension, std::shared_ptr<validation::v0_6::V06RoleBaseExtension>>(
         m,
         "RoleBaseExtension"
     )
-        .def_property_readonly("timestamp", &validation::v06::V06RoleBaseExtension::timestamp);
+        .def_property_readonly("timestamp", &validation::v0_6::V06RoleBaseExtension::timestamp);
 
-    py::class_<validation::v06::SpecImpl, validation::SpecBase, std::shared_ptr<validation::v06::SpecImpl>>(
+    py::class_<validation::v0_6::SpecImpl, validation::SpecBase, std::shared_ptr<validation::v0_6::SpecImpl>>(
         m,
         "SpecImpl"
     )
         .def(py::init<>());
 
     py::class_<
-        validation::v06::KeyMgrRole,
+        validation::v0_6::KeyMgrRole,
         validation::RoleBase,
-        validation::v06::V06RoleBaseExtension,
-        std::shared_ptr<validation::v06::KeyMgrRole>>(m, "KeyMgr")
+        validation::v0_6::V06RoleBaseExtension,
+        std::shared_ptr<validation::v0_6::KeyMgrRole>>(m, "KeyMgr")
         .def(py::init<
              const std::string&,
              const validation::RoleFullKeys&,
              const std::shared_ptr<validation::SpecBase>>());
 
     py::class_<
-        validation::v06::PkgMgrRole,
+        validation::v0_6::PkgMgrRole,
         validation::RoleBase,
-        validation::v06::V06RoleBaseExtension,
-        std::shared_ptr<validation::v06::PkgMgrRole>>(m, "PkgMgr")
+        validation::v0_6::V06RoleBaseExtension,
+        std::shared_ptr<validation::v0_6::PkgMgrRole>>(m, "PkgMgr")
         .def(py::init<
              const std::string&,
              const validation::RoleFullKeys&,
              const std::shared_ptr<validation::SpecBase>>());
 
     py::class_<
-        validation::v06::RootImpl,
+        validation::v0_6::RootImpl,
         validation::RoleBase,
-        validation::v06::V06RoleBaseExtension,
-        std::shared_ptr<validation::v06::RootImpl>>(m, "RootImpl")
+        validation::v0_6::V06RoleBaseExtension,
+        std::shared_ptr<validation::v0_6::RootImpl>>(m, "RootImpl")
         .def(py::init<const std::string&>(), py::arg("json_str"))
         .def(
             "update",
-            [](validation::v06::RootImpl& role, const std::string& json_str)
+            [](validation::v0_6::RootImpl& role, const std::string& json_str)
             { return role.update(nlohmann::json::parse(json_str)); },
             py::arg("json_str")
         )
         .def(
             "create_key_mgr",
-            [](validation::v06::RootImpl& role, const std::string& json_str)
+            [](validation::v0_6::RootImpl& role, const std::string& json_str)
             { return role.create_key_mgr(nlohmann::json::parse(json_str)); },
             py::arg("json_str")
         );

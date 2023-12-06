@@ -4,8 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef MAMBA_CORE_VALIDATION_HPP
-#define MAMBA_CORE_VALIDATION_HPP
+#ifndef MAMBA_VALIDATION_ERRORS_HPP
+#define MAMBA_VALIDATION_ERRORS_HPP
 
 #include <exception>
 #include <string>

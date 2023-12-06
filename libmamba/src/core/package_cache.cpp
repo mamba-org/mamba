@@ -10,10 +10,10 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/package_handling.hpp"
-#include "mamba/core/validate.hpp"
+#include "mamba/core/util.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/util/string.hpp"
-#include "mamba/util/url_manip.hpp"
+#include "mamba/validation/tools.hpp"
 
 namespace mamba
 {

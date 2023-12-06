@@ -5,8 +5,6 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 
-#include <sstream>
-
 #include <archive.h>
 #include <archive_entry.h>
 #include <reproc++/run.hpp>
@@ -17,8 +15,8 @@
 #include "mamba/core/package_paths.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util_os.hpp"
-#include "mamba/core/validate.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/validation/tools.hpp"
 
 #include "nlohmann/json.hpp"
 

@@ -49,6 +49,10 @@ set(
     src/specs/test_repo_data.cpp
     src/specs/test_version.cpp
     src/specs/test_version_spec.cpp
+    # Artifacts validation
+    src/validation/test_tools.cpp
+    src/validation/test_update_framework_v0_6.cpp
+    src/validation/test_update_framework_v1.cpp
     # The un-triaged rest
     ../longpath.manifest
     src/core/test_activation.cpp
@@ -66,9 +70,6 @@ set(
     src/core/test_progress_bar.cpp
     src/core/test_shell_init.cpp
     src/core/test_thread_utils.cpp
-    src/core/test_validate_common.cpp
-    src/core/test_validate_v06.cpp
-    src/core/test_validate_v1.cpp
     src/core/test_virtual_packages.cpp
     src/core/test_util.cpp
     src/core/test_env_lockfile.cpp

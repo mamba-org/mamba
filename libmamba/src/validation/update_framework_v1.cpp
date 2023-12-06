@@ -124,7 +124,7 @@ namespace mamba::validation::v1
 
     void to_json(nlohmann::json& j, const RootImpl& r)
     {
-        to_json(j, static_cast<const RoleBase*>(&r));
+        to_json(j, static_cast<const RoleBase&>(r));
     }
 
     void from_json(const nlohmann::json& j, RootImpl& role)
@@ -132,7 +132,7 @@ namespace mamba::validation::v1
         auto j_signed = j.at("signed");
         try
         {
-            from_json(j_signed, static_cast<RoleBase*>(&role));
+            from_json(j_signed, static_cast<RoleBase&>(role));
 
             auto type = j_signed.at("_type").get<std::string>();
             if (type != role.type())

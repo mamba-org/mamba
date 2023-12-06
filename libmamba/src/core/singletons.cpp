@@ -8,6 +8,8 @@
 #include <cassert>
 #include <mutex>
 
+#include "mamba/util/build.hpp"
+
 extern "C"
 {
 #include <curl/urlapi.h>

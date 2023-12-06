@@ -330,19 +330,6 @@ namespace mamba
         }
     }
 
-    fs::u8path strip_package_extension(const std::string& file)
-    {
-        std::string name, extension;
-        split_package_extension(file, name, extension);
-
-        if (extension == "")
-        {
-            throw std::runtime_error("Cannot strip file extension from: " + file);
-        }
-
-        return name;
-    }
-
     std::string quote_for_shell(const std::vector<std::string>& arguments, const std::string& shell)
     {
         if ((shell.empty() && util::on_win) || shell == "cmdexe")

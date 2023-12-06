@@ -1,6 +1,7 @@
 #include "mamba/core/invoke.hpp"
 #include "mamba/core/package_fetcher.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/specs/archive.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/validation/tools.hpp"
 
@@ -297,7 +298,7 @@ namespace mamba
     void PackageFetcher::clear_cache() const
     {
         fs::remove_all(m_tarball_path);
-        const fs::u8path dest_dir = strip_package_extension(m_tarball_path.string());
+        const fs::u8path dest_dir = specs::strip_archive_extension(m_tarball_path.string());
         fs::remove_all(dest_dir);
     }
 

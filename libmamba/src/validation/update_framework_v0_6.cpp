@@ -4,13 +4,16 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <fstream>
 #include <utility>
 
 #include "mamba/core/download.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/util.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/util/encoding.hpp"
 #include "mamba/validation/errors.hpp"
+#include "mamba/validation/tools.hpp"
 #include "mamba/validation/update_framework_v0_6.hpp"
 #include "mamba/validation/update_framework_v1.hpp"
 
@@ -193,8 +196,8 @@ namespace mamba::validation::v0_6
     {
         fs::u8path metadata_path = cache_path / "key_mgr.json";
 
-        auto tmp_dir = std::make_unique<mamba::TemporaryDirectory>();
-        auto tmp_metadata_path = tmp_dir->path() / "key_mgr.json";
+        auto tmp_dir = TemporaryDirectory();
+        auto tmp_metadata_path = tmp_dir.path() / "key_mgr.json";
 
         const auto url = specs::CondaURL::parse(base_url) / "key_mgr.json";
 
@@ -353,8 +356,8 @@ namespace mamba::validation::v0_6
     {
         fs::u8path metadata_path = cache_path / "pkg_mgr.json";
 
-        auto tmp_dir = std::make_unique<mamba::TemporaryDirectory>();
-        auto tmp_metadata_path = tmp_dir->path() / "pkg_mgr.json";
+        auto tmp_dir = TemporaryDirectory();
+        auto tmp_metadata_path = tmp_dir.path() / "pkg_mgr.json";
 
         const auto url = mamba::util::URL::parse(base_url + "/pkg_mgr.json");
 

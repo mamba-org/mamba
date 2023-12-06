@@ -11,9 +11,12 @@
 #include <spdlog/spdlog.h>
 
 #include "mamba/core/fsutil.hpp"
+#include "mamba/core/util.hpp"
 #include "mamba/util/encoding.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/validation/errors.hpp"
+#include "mamba/validation/repo_checker.hpp"
+#include "mamba/validation/tools.hpp"
 #include "mamba/validation/update_framework_v0_6.hpp"
 #include "mamba/validation/update_framework_v1.hpp"
 

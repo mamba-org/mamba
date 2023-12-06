@@ -1,24 +1,20 @@
+// Copyright (c) 2023, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
 
 #include <atomic>
 #include <cassert>
 #include <mutex>
-#include <regex>
 
 extern "C"
 {
 #include <curl/urlapi.h>
 }
 
-#include "mamba/api/configuration.hpp"
-#include "mamba/core/channel_context.hpp"
-#include "mamba/core/context.hpp"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/validate.hpp"
-#include "mamba/util/build.hpp"
-
-#include "spdlog/spdlog.h"
-
 
 namespace mamba
 {
@@ -181,5 +177,4 @@ namespace mamba
     {
         main_console = nullptr;
     }
-
 }

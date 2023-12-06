@@ -8,23 +8,22 @@
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
-#include "mamba/core/validate.hpp"
+#include "mamba/core/util.hpp"
 #include "mamba/util/encoding.hpp"
+#include "mamba/validation/tools.hpp"
 
 using namespace mamba;
 using namespace mamba::validation;
 namespace nl = nlohmann;
 
-// TODO validate API should move to std::byte
 template <std::size_t size>
 auto
 hex_str(const std::array<std::byte, size>& bytes)
 {
-    auto data = reinterpret_cast<const std::byte*>(bytes.data());
-    return util::bytes_to_hex_str(data, data + bytes.size());
+    return util::bytes_to_hex_str(bytes.data(), bytes.data() + bytes.size());
 }
 
-TEST_SUITE("Validate")
+TEST_SUITE("validation::tools")
 {
     TEST_CASE("sha256sum")
     {
@@ -116,7 +115,7 @@ protected:
     std::array<std::byte, MAMBA_ED25519_SIGSIZE_BYTES> signature;
 };
 
-TEST_SUITE("VerifyMsg")
+TEST_SUITE("validation::VerifyMsg")
 {
     TEST_CASE_FIXTURE(VerifyMsg, "from_bytes")
     {
@@ -189,7 +188,7 @@ protected:
     std::string data;
 };
 
-TEST_SUITE("VerifyGPGMsg")
+TEST_SUITE("validation::VerifyGPGMsg")
 {
     TEST_CASE_FIXTURE(VerifyGPGMsg, "verify_gpg_hashed_msg_from_bin")
     {

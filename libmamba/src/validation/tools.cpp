@@ -1,29 +1,20 @@
-// Copyright (c) 2019, QuantStack and Mamba Contributors
+// Copyright (c) 2023, QuantStack and Mamba Contributors
 //
 // Distributed under the terms of the BSD 3-Clause License.
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <array>
-#include <iostream>
 #include <regex>
-#include <string>
 #include <utility>
-#include <vector>
 
-#include <nlohmann/json.hpp>
 #include <openssl/evp.h>
 
-#include "mamba/core/context.hpp"
-#include "mamba/core/download.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/validate.hpp"
+#include "mamba/core/util.hpp"
+#include "mamba/fs/filesystem.hpp"
 #include "mamba/util/cryptography.hpp"
-#include "mamba/util/string.hpp"
 #include "mamba/validation/errors.hpp"
-#include "mamba/validation/update_framework_v0_6.hpp"
-#include "mamba/validation/update_framework_v1.hpp"
-
+#include "mamba/validation/tools.hpp"
 
 namespace mamba::validation
 {
@@ -90,34 +81,34 @@ namespace mamba::validation
     auto generate_ed25519_keypair(std::byte* pk, std::byte* sk) -> int
     {
         std::size_t key_len = MAMBA_ED25519_KEYSIZE_BYTES;
-        EVP_PKEY* pkey = nullptr;
+        ::EVP_PKEY* pkey = nullptr;
         struct EVPContext
         {
-            EVP_PKEY_CTX* pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_ED25519, nullptr);
+            ::EVP_PKEY_CTX* pctx = ::EVP_PKEY_CTX_new_id(EVP_PKEY_ED25519, nullptr);
 
             ~EVPContext()
             {
-                EVP_PKEY_CTX_free(pctx);
+                ::EVP_PKEY_CTX_free(pctx);
             }
 
         } evp_context;
 
 
-        int gen_status = EVP_PKEY_keygen_init(evp_context.pctx);
+        int gen_status = ::EVP_PKEY_keygen_init(evp_context.pctx);
         if (gen_status != 1)
         {
             LOG_DEBUG << "Failed to initialize ED25519 key pair generation";
             return gen_status;
         }
 
-        gen_status = EVP_PKEY_keygen(evp_context.pctx, &pkey);
+        gen_status = ::EVP_PKEY_keygen(evp_context.pctx, &pkey);
         if (gen_status != 1)
         {
             LOG_DEBUG << "Failed to generate ED25519 key pair";
             return gen_status;
         }
 
-        int storage_status = EVP_PKEY_get_raw_public_key(
+        int storage_status = ::EVP_PKEY_get_raw_public_key(
             pkey,
             reinterpret_cast<unsigned char*>(pk),
             &key_len
@@ -127,7 +118,7 @@ namespace mamba::validation
             LOG_DEBUG << "Failed to store public key of generated ED25519 key pair";
             return storage_status;
         }
-        storage_status = EVP_PKEY_get_raw_private_key(
+        storage_status = ::EVP_PKEY_get_raw_private_key(
             pkey,
             reinterpret_cast<unsigned char*>(sk),
             &key_len
@@ -164,13 +155,13 @@ namespace mamba::validation
 
     auto sign(const std::string& data, const std::byte* sk, std::byte* signature) -> int
     {
-        EVP_PKEY* ed_key = EVP_PKEY_new_raw_private_key(
+        ::EVP_PKEY* ed_key = ::EVP_PKEY_new_raw_private_key(
             EVP_PKEY_ED25519,
             nullptr,
             reinterpret_cast<const unsigned char*>(sk),
             MAMBA_ED25519_KEYSIZE_BYTES
         );
-        EVP_MD_CTX* md_ctx = EVP_MD_CTX_new();
+        ::EVP_MD_CTX* md_ctx = ::EVP_MD_CTX_new();
 
         if (ed_key == nullptr)
         {
@@ -179,7 +170,7 @@ namespace mamba::validation
         }
 
         int init_status, sign_status;
-        init_status = EVP_DigestSignInit(md_ctx, nullptr, nullptr, nullptr, ed_key);
+        init_status = ::EVP_DigestSignInit(md_ctx, nullptr, nullptr, nullptr, ed_key);
         if (init_status != 1)
         {
             LOG_DEBUG << "Failed to init signing step";
@@ -187,7 +178,7 @@ namespace mamba::validation
         }
 
         std::size_t sig_len = MAMBA_ED25519_SIGSIZE_BYTES;
-        sign_status = EVP_DigestSign(
+        sign_status = ::EVP_DigestSign(
             md_ctx,
             reinterpret_cast<unsigned char*>(signature),
             &sig_len,
@@ -200,7 +191,7 @@ namespace mamba::validation
             return sign_status;
         }
 
-        EVP_MD_CTX_free(md_ctx);
+        ::EVP_MD_CTX_free(md_ctx);
         return 1;
     }
 
@@ -229,13 +220,13 @@ namespace mamba::validation
     verify(const std::byte* data, std::size_t data_len, const std::byte* pk, const std::byte* signature)
         -> int
     {
-        EVP_PKEY* ed_key = EVP_PKEY_new_raw_public_key(
+        ::EVP_PKEY* ed_key = ::EVP_PKEY_new_raw_public_key(
             EVP_PKEY_ED25519,
             nullptr,
             reinterpret_cast<const unsigned char*>(pk),
             MAMBA_ED25519_KEYSIZE_BYTES
         );
-        EVP_MD_CTX* md_ctx = EVP_MD_CTX_new();
+        ::EVP_MD_CTX* md_ctx = ::EVP_MD_CTX_new();
 
         if (ed_key == nullptr)
         {
@@ -244,7 +235,7 @@ namespace mamba::validation
         }
 
         int init_status, verif_status;
-        init_status = EVP_DigestVerifyInit(md_ctx, nullptr, nullptr, nullptr, ed_key);
+        init_status = ::EVP_DigestVerifyInit(md_ctx, nullptr, nullptr, nullptr, ed_key);
         if (init_status != 1)
         {
             LOG_DEBUG << "Failed to init verification step";
@@ -252,7 +243,7 @@ namespace mamba::validation
         }
 
         std::size_t sig_len = MAMBA_ED25519_SIGSIZE_BYTES;
-        verif_status = EVP_DigestVerify(
+        verif_status = ::EVP_DigestVerify(
             md_ctx,
             reinterpret_cast<const unsigned char*>(signature),
             sig_len,
@@ -265,7 +256,7 @@ namespace mamba::validation
             return verif_status;
         }
 
-        EVP_MD_CTX_free(md_ctx);
+        ::EVP_MD_CTX_free(md_ctx);
         return 1;
     }
 
@@ -403,200 +394,4 @@ namespace mamba::validation
             throw role_metadata_error();
         }
     }
-
-    RepoChecker::RepoChecker(Context& context, std::string base_url, fs::u8path ref_path, fs::u8path cache_path)
-        : m_base_url(std::move(base_url))
-        , m_ref_path(std::move(ref_path))
-        , m_cache_path(std::move(cache_path))
-        , m_context(context)
-    {
-    }
-
-    auto RepoChecker::cache_path() -> const fs::u8path&
-    {
-        return m_cache_path;
-    }
-
-    void RepoChecker::generate_index_checker()
-    {
-        if (p_index_checker == nullptr)
-        {
-            // TUF spec 5.1 - Record fixed update start time
-            // Expiration computations will be done against
-            // this reference
-            // https://theupdateframework.github.io/specification/latest/#fix-time
-            const TimeRef time_reference;
-
-            auto root = get_root_role(time_reference);
-            p_index_checker = root->build_index_checker(
-                m_context,
-                time_reference,
-                m_base_url,
-                cache_path()
-            );
-
-            LOG_INFO << "Index checker successfully generated for '" << m_base_url << "'";
-        }
-    }
-
-    void RepoChecker::verify_index(const nlohmann::json& j) const
-    {
-        p_index_checker->verify_index(j);
-    }
-
-    void RepoChecker::verify_index(const fs::u8path& p) const
-    {
-        p_index_checker->verify_index(p);
-    }
-
-    void
-    RepoChecker::verify_package(const nlohmann::json& signed_data, const nlohmann::json& signatures) const
-    {
-        p_index_checker->verify_package(signed_data, signatures);
-    }
-
-    auto RepoChecker::root_version() -> std::size_t
-    {
-        return m_root_version;
-    }
-
-    auto RepoChecker::ref_root() -> fs::u8path
-    {
-        return m_ref_path / "root.json";
-    }
-
-    auto RepoChecker::cached_root() -> fs::u8path
-    {
-        if (cache_path().empty())
-        {
-            return "";
-        }
-        else
-        {
-            return cache_path() / "root.json";
-        }
-    }
-
-    void RepoChecker::persist_file(const fs::u8path& file_path)
-    {
-        if (fs::exists(cached_root()))
-        {
-            fs::remove(cached_root());
-        }
-        if (!cached_root().empty())
-        {
-            fs::copy(file_path, cached_root());
-        }
-    }
-
-    auto RepoChecker::initial_trusted_root() -> fs::u8path
-    {
-        if (fs::exists(cached_root()))
-        {
-            LOG_DEBUG << "Using cache for 'root' initial trusted file";
-            return cached_root();
-        }
-
-        if (!fs::exists(m_ref_path))
-        {
-            LOG_ERROR << "'root' initial trusted file not found at '" << m_ref_path.string()
-                      << "' for repo '" << m_base_url << "'";
-            throw role_file_error();
-        }
-        else
-        {
-            return ref_root();
-        }
-    }
-
-    auto RepoChecker::get_root_role(const TimeRef& time_reference) -> std::unique_ptr<RootRole>
-    {
-        // TUF spec 5.3 - Update the root role
-        // https://theupdateframework.github.io/specification/latest/#update-root
-
-        std::unique_ptr<RootRole> updated_root;
-
-        LOG_DEBUG << "Loading 'root' metadata for repo '" << m_base_url << "'";
-        auto trusted_root = initial_trusted_root();
-
-        if (v0_6::SpecImpl().is_compatible(trusted_root))
-        {
-            updated_root = std::make_unique<v0_6::RootImpl>(trusted_root);
-        }
-        else if (v1::SpecImpl().is_compatible(trusted_root))
-        {
-            updated_root = std::make_unique<v1::RootImpl>(trusted_root);
-        }
-        else
-        {
-            LOG_ERROR << "Invalid 'root' initial trusted file '" << trusted_root.string()
-                      << "' for repo '" << m_base_url << "'";
-            throw role_file_error();
-        }
-
-        if (trusted_root != cached_root())
-        {
-            persist_file(trusted_root);
-        }
-
-        auto update_files = updated_root->possible_update_files();
-        auto tmp_dir = std::make_unique<mamba::TemporaryDirectory>();
-        auto tmp_dir_path = tmp_dir->path();
-
-        // do chained updates
-        LOG_DEBUG << "Starting updates of 'root' metadata";
-        do
-        {
-            fs::u8path tmp_file_path;
-
-            // Update from the most recent spec supported by this client
-            for (auto& f : update_files)
-            {
-                auto url = ::mamba::util::concat(m_base_url, "/", f.string());
-                tmp_file_path = tmp_dir_path / f;
-
-                if (check_resource_exists(url, m_context))
-                {
-                    DownloadRequest request(f.string(), url, tmp_file_path.string());
-                    DownloadResult res = download(std::move(request), m_context);
-
-                    if (res)
-                    {
-                        break;
-                    }
-                }
-                tmp_file_path = "";
-            }
-
-            if (tmp_file_path.empty())
-            {
-                break;
-            }
-
-            updated_root = updated_root->update(tmp_file_path);
-            // TUF spec 5.3.8 - Persist root metadata
-            // Updated 'root' metadata are persisted in a cache directory
-            persist_file(tmp_file_path);
-
-            // Set the next possible files
-            update_files = updated_root->possible_update_files();
-        }
-        // TUF spec 5.3.9 - Repeat steps 5.3.2 to 5.3.9
-        while (true);
-
-        m_root_version = updated_root->version();
-        LOG_DEBUG << "Latest 'root' metadata has version " << m_root_version;
-
-        // TUF spec 5.3.10 - Check for a freeze attack
-        // Updated 'root' role should not be expired
-        // https://theupdateframework.github.io/specification/latest/#update-root
-        if (updated_root->expired(time_reference))
-        {
-            LOG_ERROR << "Possible freeze attack of 'root' metadata.\nExpired: "
-                      << updated_root->expires();
-            throw freeze_error();
-        }
-
-        return updated_root;
-    };
-}  // namespace validate
+}

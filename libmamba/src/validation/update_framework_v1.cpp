@@ -4,7 +4,10 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <nlohmann/json.hpp>
+
 #include "mamba/core/output.hpp"
+#include "mamba/fs/filesystem.hpp"
 #include "mamba/validation/errors.hpp"
 #include "mamba/validation/update_framework_v1.hpp"
 

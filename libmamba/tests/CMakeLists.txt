@@ -50,7 +50,7 @@ set(
     src/specs/test_version.cpp
     src/specs/test_version_spec.cpp
     # Artifacts validation
-    src/core/test_validate_common.cpp
+    src/validation/test_tools.cpp
     src/validation/test_update_framework_v0_6.cpp
     src/validation/test_update_framework_v1.cpp
     # The un-triaged rest

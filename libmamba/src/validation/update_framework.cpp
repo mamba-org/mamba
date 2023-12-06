@@ -13,10 +13,10 @@
 #include <nlohmann/json.hpp>
 
 #include "mamba/core/output.hpp"
-#include "mamba/core/validate.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/validation/errors.hpp"
+#include "mamba/validation/tools.hpp"
 #include "mamba/validation/update_framework.hpp"
 
 namespace mamba::validation

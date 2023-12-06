@@ -1,8 +1,8 @@
 #include "mamba/core/invoke.hpp"
 #include "mamba/core/package_fetcher.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/core/validate.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/validation/tools.hpp"
 
 namespace mamba
 {

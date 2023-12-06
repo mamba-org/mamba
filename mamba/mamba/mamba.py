@@ -697,6 +697,9 @@ def clean(args, parser):
         from importlib import import_module
 
         relative_mod, func_name = args.func.rsplit(".", 1)
+        # make module relative following https://github.com/conda/conda/pull/13173
+        if relative_mod.startswith("conda.cli."):
+            relative_mod = f'.{relative_mod.split(".")[-1]}'
 
         module = import_module("conda.cli" + relative_mod, __name__.rsplit(".", 1)[0])
         exit_code = getattr(module, func_name)(args, parser)

@@ -12,7 +12,7 @@
 
 namespace mamba
 {
-    void repoquery(
+    bool repoquery(
         Configuration& config,
         QueryType type,
         QueryResultFormat format,

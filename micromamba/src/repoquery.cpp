@@ -4,126 +4,194 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <solv/solver.h>
+#include <iostream>
+#include <string>
+#include <vector>
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/repoquery.hpp"
 
 #include "common_options.hpp"
 
-void
-set_common_search(CLI::App* subcom, mamba::Configuration& config, bool is_repoquery)
+namespace
 {
-    init_general_options(subcom, config);
-    init_prefix_options(subcom, config);
-    init_network_options(subcom, config);
-    init_channel_parser(subcom, config);
-
-    static std::string query_type;
-    if (is_repoquery)
+    struct RepoqueryOptions
     {
-        subcom
-            ->add_option("query_type", query_type, "The type of query (search, depends or whoneeds)")
-            ->check(CLI::IsMember(std::vector<std::string>({ "search", "depends", "whoneeds" })))
-            ->required();
-    }
-    else
+        bool show_as_tree = false;
+        bool recursive = false;
+        bool pretty_print = false;
+        std::vector<std::string> specs = {};
+    };
+
+    void
+    init_repoquery_common_options(CLI::App* subcmd, mamba::Configuration& config, RepoqueryOptions& options)
     {
-        // `search` and `repoquery search` are equivalent
-        query_type = "search";
+        subcmd->add_flag("-t,--tree", options.show_as_tree, "Show result as a tree");
+
+        subcmd->add_flag(
+            "--recursive",
+            options.recursive,
+            "Show dependencies recursively, i.e. transitive dependencies (only for `depends`)"
+        );
+
+        subcmd->add_flag("--pretty", options.pretty_print, "Pretty print result (only for search)");
+
+        subcmd->add_option("specs", options.specs, "Specs to search")->required();
+
+        auto& platform = config.at("platform");
+        subcmd->add_option("--platform", platform.get_cli_config<std::string>(), platform.description());
     }
 
-    static bool show_as_tree = false;
-    subcom->add_flag("-t,--tree", show_as_tree, "Show result as a tree");
-
-    static bool recursive = false;
-    subcom->add_flag(
-        "--recursive",
-        recursive,
-        "Show dependencies recursively, i.e. transitive dependencies (only for `depends`)"
-    );
-
-    static bool pretty_print = false;
-    subcom->add_flag("--pretty", pretty_print, "Pretty print result (only for search)");
-
-    static std::vector<std::string> specs;
-    subcom->add_option("specs", specs, "Specs to search")->required();
-
-    static int local = -1;
-    subcom->add_option(
-        "--use-local",
-        local,
-        "Use installed data (--use-local=1, default for `depends` and `whoneeds`) or remote repositories (--use-local=0, default for `search`).\nIf the `-c,--channel` option is set, it has the priority and --use-local is set to 0"
-    );
-
-    auto& platform = config.at("platform");
-    subcom->add_option("--platform", platform.get_cli_config<std::string>(), platform.description());
-
-    auto specs_has_wildcard = [](auto first, auto last) -> bool
+    template <typename Iter>
+    auto specs_has_wildcard(Iter first, Iter last) -> bool
     {
         auto has_wildcard = [](std::string_view spec) -> bool
         { return spec.find('*') != std::string_view::npos; };
         return std::any_of(first, last, has_wildcard);
     };
 
-    subcom->callback(
-        [&]
+    auto
+    compute_format(mamba::QueryType query, mamba::Configuration& config, RepoqueryOptions& options)
+    {
+        auto format = mamba::QueryResultFormat::Table;
+        if (query == mamba::QueryType::Depends && options.recursive)
         {
-            using namespace mamba;
-
-            auto qtype = QueryType_from_name(query_type);
-            QueryResultFormat format = QueryResultFormat::Table;
-            bool use_local = true;
-            switch (qtype)
-            {
-                case QueryType::Search:
-                    format = QueryResultFormat::Table;
-                    use_local = local > 0;  // use remote repodata by default for `search`
-                    break;
-                case QueryType::Depends:
-                case QueryType::WhoNeeds:
-                    format = QueryResultFormat::Table;
-                    use_local = (local == -1) || (local > 0);
-                    break;
-            }
-            if (qtype == QueryType::Depends && recursive)
-            {
-                format = QueryResultFormat::RecursiveTable;
-            }
-
-            if (qtype == QueryType::Depends && show_as_tree)
-            {
-                format = QueryResultFormat::Tree;
-            }
-            // Best guess to detect wildcard search; if there's no wildcard search, we want to show
-            // the pretty single package view.
-            if (qtype == QueryType::Search
-                && (pretty_print || specs_has_wildcard(specs.cbegin(), specs.cend())))
-            {
-                format = QueryResultFormat::Pretty;
-            }
-
-            if (config.at("json").compute().value<bool>())
-            {
-                format = QueryResultFormat::Json;
-            }
-
-            auto& channels = config.at("channels").compute().value<std::vector<std::string>>();
-            use_local = use_local && channels.empty();
-
-            repoquery(config, qtype, format, use_local, specs);
+            format = mamba::QueryResultFormat::RecursiveTable;
         }
-    );
+
+        if (query == mamba::QueryType::Depends && options.show_as_tree)
+        {
+            format = mamba::QueryResultFormat::Tree;
+        }
+        // Best guess to detect wildcard search; if there's no wildcard search, we want to
+        // show the pretty single package view.
+        if (query == mamba::QueryType::Search
+            && (options.pretty_print
+                || specs_has_wildcard(options.specs.cbegin(), options.specs.cend())))
+        {
+            format = mamba::QueryResultFormat::Pretty;
+        }
+
+        if (config.at("json").compute().value<bool>())
+        {
+            format = mamba::QueryResultFormat::Json;
+        }
+        return format;
+    }
+
+    template <mamba::QueryType query>
+    void set_repoquery_subcommand(CLI::App* subcmd, mamba::Configuration& config)
+    {
+        init_general_options(subcmd, config);
+        init_prefix_options(subcmd, config);
+        init_network_options(subcmd, config);
+        init_channel_parser(subcmd, config);
+
+        static auto options = RepoqueryOptions{};
+        init_repoquery_common_options(subcmd, config, options);
+
+        static bool remote = false;
+        subcmd->add_flag("--remote", remote, "Use installed prefix instead of remote repositories.");
+
+        subcmd->callback(
+            [&]()
+            {
+                // Set remote when a channel is passed
+                bool const channel_passed = config.at("channels").cli_configured();
+                auto const format = compute_format(query, config, options);
+                bool const success = repoquery(
+                    config,
+                    query,
+                    format,
+                    !(remote | channel_passed),
+                    options.specs
+                );
+                if (!success && (format != mamba::QueryResultFormat::Json))
+                {
+                    if (!remote)
+                    {
+                        std::cout << "Try looking remotely with '--remote'.\n";
+                    }
+                    if (remote && !channel_passed)
+                    {
+                        std::cout << "Try looking in a different channel with '--channel'.\n";
+                    }
+                }
+            }
+        );
+    }
+
+    template <>
+    void
+    set_repoquery_subcommand<mamba::QueryType::Search>(CLI::App* subcmd, mamba::Configuration& config)
+    {
+        static constexpr auto query = mamba::QueryType::Search;
+
+        init_general_options(subcmd, config);
+        init_prefix_options(subcmd, config);
+        init_network_options(subcmd, config);
+        init_channel_parser(subcmd, config);
+
+        static auto options = RepoqueryOptions{};
+        init_repoquery_common_options(subcmd, config, options);
+
+        static bool use_local = false;
+        subcmd->add_flag("--local", use_local, "Use installed prefix instead of remote repositories.");
+
+        subcmd->callback(
+            [&]()
+            {
+                bool const channel_passed = config.at("channels").cli_configured();
+                auto const format = compute_format(query, config, options);
+                bool const success = repoquery(config, query, format, use_local, options.specs);
+                if (!success && (format != mamba::QueryResultFormat::Json))
+                {
+                    if (!use_local && !channel_passed)
+                    {
+                        std::cout << "Try looking in a different channel with '--channel'.\n";
+                    }
+                }
+            }
+        );
+    }
 }
 
 void
-set_search_command(CLI::App* subcom, mamba::Configuration& config)
+set_repoquery_search_command(CLI::App* subcmd, mamba::Configuration& config)
 {
-    set_common_search(subcom, config, false);
+    set_repoquery_subcommand<mamba::QueryType::Search>(subcmd, config);
 }
 
 void
-set_repoquery_command(CLI::App* subcom, mamba::Configuration& config)
+set_repoquery_whoneeds_command(CLI::App* subcmd, mamba::Configuration& config)
 {
-    set_common_search(subcom, config, true);
+    set_repoquery_subcommand<mamba::QueryType::WhoNeeds>(subcmd, config);
+}
+void
+set_repoquery_depends_command(CLI::App* subcmd, mamba::Configuration& config)
+{
+    set_repoquery_subcommand<mamba::QueryType::Depends>(subcmd, config);
+}
+
+void
+set_repoquery_command(CLI::App* subcmd, mamba::Configuration& config)
+{
+    {
+        auto* search_subsubcmd = subcmd->add_subcommand(
+            "search",
+            "Search for packages matching a given query"
+        );
+        set_repoquery_search_command(search_subsubcmd, config);
+    }
+    {
+        auto* whoneeds_subsubcmd = subcmd->add_subcommand(
+            "whoneeds",
+            "List packages that needs the given query as a dependency"
+        );
+        set_repoquery_whoneeds_command(whoneeds_subsubcmd, config);
+    }
+    {
+        auto* depends_subsubcmd = subcmd->add_subcommand("depends", "List dependencies of a given query");
+        set_repoquery_depends_command(depends_subsubcmd, config);
+    }
 }

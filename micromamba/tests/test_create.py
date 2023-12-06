@@ -287,7 +287,7 @@ def test_channels(tmp_home, tmp_root_prefix, tmp_path, cli, yaml, env_var, rc_fi
     if expected_channels:
         assert res["channels"] == expected_channels
     else:
-        assert res["channels"] is None
+        assert res["channels"] == ["conda-forge"]
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)

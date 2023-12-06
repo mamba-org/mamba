@@ -74,7 +74,7 @@ namespace mamba
         }
     }
 
-    void repoquery(
+    bool repoquery(
         Configuration& config,
         QueryType type,
         QueryResultFormat format,
@@ -86,33 +86,22 @@ namespace mamba
         auto pool = repoquery_init(ctx, config, format, use_local);
         Query q(pool);
 
+
         if (type == QueryType::Search)
         {
-            if (ctx.output_params.json)
+            auto res = q.find(queries);
+            switch (format)
             {
-                std::cout << q.find(queries).groupby("name").json().dump(4);
+                case QueryResultFormat::Json:
+                    std::cout << res.groupby("name").json().dump(4);
+                    break;
+                case QueryResultFormat::Pretty:
+                    res.pretty(std::cout, ctx.output_params);
+                    break;
+                default:
+                    res.groupby("name").table(std::cout);
             }
-            else
-            {
-                std::cout << "\n" << std::endl;
-                auto res = q.find(queries);
-                switch (format)
-                {
-                    case QueryResultFormat::Json:
-                        std::cout << res.json().dump(4);
-                        break;
-                    case QueryResultFormat::Pretty:
-                        res.pretty(std::cout, ctx.output_params);
-                        break;
-                    default:
-                        res.groupby("name").table(std::cout);
-                }
-                if (res.empty())
-                {
-                    std::cout << "Channels may not be configured. Try giving a channel with '-c,--channel' option, or use `--use-local=1` to search for installed packages."
-                              << std::endl;
-                }
-            }
+            return !res.empty();
         }
         else if (type == QueryType::Depends)
         {
@@ -137,12 +126,7 @@ namespace mamba
                 case QueryResultFormat::RecursiveTable:
                     res.sort("name").table(std::cout);
             }
-            if (res.empty() && format != QueryResultFormat::Json)
-            {
-                std::cout << queries.front(
-                ) << " may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery"
-                          << std::endl;
-            }
+            return !res.empty();
         }
         else if (type == QueryType::WhoNeeds)
         {
@@ -177,12 +161,7 @@ namespace mamba
                           "Subdir" }
                     );
             }
-            if (res.empty() && format != QueryResultFormat::Json)
-            {
-                std::cout << queries.front(
-                ) << " may not be installed. Try giving a channel with '-c,--channel' option for remote repoquery"
-                          << std::endl;
-            }
+            return !res.empty();
         }
     }
 }

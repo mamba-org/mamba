@@ -433,7 +433,7 @@ class TestUpdateConfig:
         if expected_channels:
             assert res["channels"] == expected_channels
         else:
-            assert res["channels"] is None
+            assert res["channels"] == ["conda-forge"]
 
     @pytest.mark.parametrize("type", ("yaml", "classic", "explicit"))
     def test_multiple_spec_files(self, type, env_created):

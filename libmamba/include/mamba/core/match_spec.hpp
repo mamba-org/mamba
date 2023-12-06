@@ -31,7 +31,7 @@ namespace mamba
 
         bool is_simple() const;
 
-        static std::tuple<std::string, std::string> parse_version_and_build(const std::string& s);
+        static std::tuple<std::string, std::string> parse_version_and_build(std::string_view s);
         std::string spec;
 
         std::string name;

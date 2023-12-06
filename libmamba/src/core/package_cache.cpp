@@ -4,13 +4,15 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <fstream>
+
 #include <nlohmann/json.hpp>
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/package_handling.hpp"
-#include "mamba/core/util.hpp"
+#include "mamba/specs/archive.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/validation/tools.hpp"
@@ -134,9 +136,9 @@ namespace mamba
         }
 
         assert(!s.fn.empty());
-        auto pkg_name = strip_package_extension(s.fn);
-        LOG_DEBUG << "Verify cache '" << m_path.string() << "' for package tarball '"
-                  << pkg_name.string() << "'";
+        const auto pkg_name = specs::strip_archive_extension(s.fn);
+        LOG_DEBUG << "Verify cache '" << m_path.string() << "' for package tarball '" << pkg_name
+                  << "'";
 
         bool valid = false;
         if (fs::exists(m_path / s.fn))
@@ -184,8 +186,7 @@ namespace mamba
             m_valid_tarballs[pkg] = valid;
         }
 
-        LOG_DEBUG << "'" << pkg_name.string() << "' tarball cache is "
-                  << (valid ? "valid" : "invalid");
+        LOG_DEBUG << "'" << pkg_name << "' tarball cache is " << (valid ? "valid" : "invalid");
         return valid;
     }
 
@@ -200,10 +201,10 @@ namespace mamba
             return m_valid_extracted_dir[pkg];
         }
 
-        auto pkg_name = strip_package_extension(s.fn);
+        auto pkg_name = specs::strip_archive_extension(s.fn);
         fs::u8path extracted_dir = m_path / pkg_name;
         LOG_DEBUG << "Verify cache '" << m_path.string() << "' for package extracted directory '"
-                  << pkg_name.string() << "'";
+                  << pkg_name << "'";
 
         if (fs::exists(extracted_dir))
         {
@@ -346,7 +347,7 @@ namespace mamba
         }
 
         m_valid_extracted_dir[pkg] = valid;
-        LOG_DEBUG << "'" << pkg_name.string() << "' extracted directory cache is "
+        LOG_DEBUG << "'" << pkg_name << "' extracted directory cache is "
                   << (valid ? "valid" : "invalid");
 
         return valid;

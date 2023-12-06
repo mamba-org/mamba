@@ -5,12 +5,13 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <regex>
+#include <string>
+#include <string_view>
 
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/util.hpp"
 #include "mamba/specs/archive.hpp"
 #include "mamba/specs/platform.hpp"
 #include "mamba/util/path_manip.hpp"
@@ -19,16 +20,19 @@
 
 namespace mamba
 {
-    std::vector<std::string> parse_legacy_dist(std::string dist_str)
+    namespace
     {
-        dist_str = strip_package_extension(dist_str).string();
-        auto split_str = util::rsplit(dist_str, "-", 2);
-        if (split_str.size() != 3)
+        std::vector<std::string> parse_legacy_dist(std::string_view dist)
         {
-            LOG_ERROR << "dist_str " << dist_str << " did not split into a correct version info.";
-            throw std::runtime_error("Invalid package filename");
+            auto dist_str = std::string(specs::strip_archive_extension(dist));
+            auto split_str = util::rsplit(dist_str, "-", 2);
+            if (split_str.size() != 3)
+            {
+                LOG_ERROR << "dist_str " << dist_str << " did not split into a correct version info.";
+                throw std::runtime_error("Invalid package filename");
+            }
+            return split_str;
         }
-        return split_str;
     }
 
     MatchSpec::MatchSpec(std::string_view i_spec, const Context& ctx, ChannelContext& channel_context)

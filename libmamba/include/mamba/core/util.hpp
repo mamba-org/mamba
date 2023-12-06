@@ -329,7 +329,6 @@ namespace mamba
 
 
     void split_package_extension(const std::string& file, std::string& name, std::string& extension);
-    fs::u8path strip_package_extension(const std::string& file);
 
     std::string
     quote_for_shell(const std::vector<std::string>& arguments, const std::string& shell = "");

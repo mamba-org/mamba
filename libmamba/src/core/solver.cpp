@@ -108,20 +108,6 @@ namespace mamba
 
         MatchSpec modified_spec(ms);
         modified_spec.channel = specs::ChannelSpec::parse(solvable->channel());
-        // {
-        //     auto channels =
-        //     m_pool.channel_context().make_channel(std::string(solvable->channel())); if
-        //     (channels.size() == 1)
-        //     {
-        //         modified_spec.channel = channels.front().display_name();
-        //     }
-        //     else
-        //     {
-        //         // If there is more than one, it's a custom_multi_channel name.
-        //         // This should never happen.
-        //         modified_spec.channel = solvable->channel();
-        //     }
-        // }
 
         modified_spec.version = solvable->version();
         modified_spec.build_string = solvable->build_string();

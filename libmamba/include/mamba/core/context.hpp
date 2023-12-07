@@ -83,7 +83,7 @@ namespace mamba
             int max_retries{ 3 };    // max number of retries
 
             std::map<std::string, std::string> proxy_servers;
-        };
+        } remote_fetch_params;
 
         struct OutputParams
         {
@@ -95,19 +95,19 @@ namespace mamba
 
             std::string log_pattern{ "%^%-9!l%-8n%$ %v" };
             std::size_t log_backtrace{ 0 };
-        };
+        } output_params;
 
         struct GraphicsParams
         {
             bool no_progress_bars{ false };
             Palette palette;
-        };
+        } graphics_params;
 
         struct SrcParams
         {
             bool no_rc{ false };
             bool no_env{ false };
-        };
+        } src_params;
 
         struct CommandParams
         {
@@ -115,13 +115,13 @@ namespace mamba
             std::string conda_version{ "3.8.0" };
             std::string current_command{ "mamba" };
             bool is_micromamba{ false };
-        };
+        } command_params;
 
         struct ThreadsParams
         {
             std::size_t download_threads{ 5 };
             int extract_threads{ 0 };
-        };
+        } threads_params;
 
         struct PrefixParams
         {
@@ -129,7 +129,9 @@ namespace mamba
             fs::u8path root_prefix;
             fs::u8path conda_prefix;
             fs::u8path relocate_prefix;
-        };
+        } prefix_params;
+
+        ValidationOptions validation_params;
 
         // Configurable
         bool experimental = false;
@@ -168,8 +170,6 @@ namespace mamba
         // add start menu shortcuts on Windows (not implemented on Linux / macOS)
         bool shortcuts = true;
 
-        ValidationOptions validation_params;
-
         // debug helpers
         bool keep_temp_files = false;
         bool keep_temp_directories = false;
@@ -179,14 +179,6 @@ namespace mamba
         bool ascii_only = false;
         // micromamba only
         bool shell_completion = true;
-
-        RemoteFetchParams remote_fetch_params;
-        OutputParams output_params;
-        GraphicsParams graphics_params;
-        SrcParams src_params;
-        CommandParams command_params;
-        ThreadsParams threads_params;
-        PrefixParams prefix_params;
 
         std::size_t lock_timeout = 0;
         bool use_lockfiles = true;

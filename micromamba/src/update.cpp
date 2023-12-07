@@ -51,14 +51,11 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     std::string matchspec = version ? fmt::format("micromamba={}", version.value())
                                     : fmt::format("micromamba>{}", umamba::version());
 
-    auto solvable_ids = pool.select_solvables(
-        pool.matchspec2id({ matchspec, ctx, channel_context }),
-        true
-    );
+    auto solvable_ids = pool.select_solvables(pool.matchspec2id({ matchspec }), true);
 
     if (solvable_ids.empty())
     {
-        if (pool.select_solvables(pool.matchspec2id({ "micromamba", ctx, channel_context })).empty())
+        if (pool.select_solvables(pool.matchspec2id({ "micromamba" })).empty())
         {
             throw mamba::mamba_error(
                 "No micromamba found in the loaded channels. Add 'conda-forge' to your config file.",

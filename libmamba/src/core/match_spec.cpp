@@ -36,10 +36,10 @@ namespace mamba
         }
     }
 
-    MatchSpec::MatchSpec(std::string_view i_spec, const Context& ctx, ChannelContext& channel_context)
+    MatchSpec::MatchSpec(std::string_view i_spec)
         : spec(i_spec)
     {
-        parse(ctx, channel_context);
+        parse();
     }
 
     std::tuple<std::string, std::string> MatchSpec::parse_version_and_build(std::string_view s)
@@ -75,7 +75,7 @@ namespace mamba
         }
     }
 
-    void MatchSpec::parse(const Context& ctx, ChannelContext& channel_context)
+    void MatchSpec::parse()
     {
         std::string spec_str = spec;
         if (spec_str.empty())

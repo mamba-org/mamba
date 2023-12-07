@@ -583,9 +583,7 @@ namespace mamba
         for (const auto& pkginfo : packages)
         {
             specs_to_install.push_back(MatchSpec(
-                fmt::format("{}=={}={}", pkginfo.name, pkginfo.version, pkginfo.build_string),
-                m_pool.context(),
-                m_pool.channel_context()
+                fmt::format("{}=={}={}", pkginfo.name, pkginfo.version, pkginfo.build_string)
             ));
         }
 
@@ -1382,8 +1380,7 @@ namespace mamba
             }
 
             const auto hash_idx = url.find_first_of('#');
-            specs_to_install
-                .emplace_back(url.substr(0, hash_idx), pool.context(), pool.channel_context());
+            specs_to_install.emplace_back(url.substr(0, hash_idx));
             MatchSpec& ms = specs_to_install.back();
 
             if (hash_idx != std::string::npos)

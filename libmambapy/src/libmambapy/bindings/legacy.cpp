@@ -292,15 +292,7 @@ bind_submodule_impl(pybind11::module_ m)
 
     py::class_<MatchSpec>(m, "MatchSpec")
         .def(py::init<>())
-        .def(
-            py::init<>(
-                [](const std::string& name, ChannelContext& channel_context) {
-                    return MatchSpec{ name, mambapy::singletons.context(), channel_context };
-                }
-            ),
-            py::arg("spec"),
-            py::arg("channel_context")
-        )
+        .def(py::init<std::string_view>(), py::arg("spec"))
         .def("conda_build_form", &MatchSpec::conda_build_form);
 
     py::class_<MPool>(m, "Pool")
@@ -318,11 +310,8 @@ bind_submodule_impl(pybind11::module_ m)
         .def("matchspec2id", &MPool::matchspec2id, py::arg("ms"))
         .def(
             "matchspec2id",
-            [](MPool& self, std::string_view spec, ChannelContext& channel_context) {
-                return self.matchspec2id({ spec, mambapy::singletons.context(), channel_context });
-            },
-            py::arg("spec"),
-            py::arg("channel_context")
+            [](MPool& self, std::string_view spec) { return self.matchspec2id({ spec }); },
+            py::arg("spec")
         )
         .def("id2pkginfo", &MPool::id2pkginfo, py::arg("id"));
 

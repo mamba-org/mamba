@@ -200,7 +200,7 @@ namespace mamba
             v.reserve(sv.size());
             for (const auto& el : sv)
             {
-                v.emplace_back(el, ctx, m_channel_context);
+                v.emplace_back(el);
             }
             return v;
         };

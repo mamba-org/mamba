@@ -357,7 +357,7 @@ namespace mamba
                     continue;
                 }
                 std::size_t hash = u.find_first_of('#');
-                MatchSpec ms(u.substr(0, hash), ctx, channel_context);
+                MatchSpec ms(u.substr(0, hash));
                 PackageInfo p(ms.name);
                 p.url = ms.url;
                 p.build_string = ms.build_string;
@@ -479,7 +479,7 @@ namespace mamba
         // add channels from specs
         for (const auto& s : specs)
         {
-            if (auto m = MatchSpec{ s, ctx, channel_context }; m.channel.has_value())
+            if (auto m = MatchSpec{ s }; m.channel.has_value())
             {
                 ctx.channels.push_back(m.channel->str());
             }

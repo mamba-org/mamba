@@ -26,9 +26,9 @@ namespace mamba
 
         MatchSpec() = default;
 
-        MatchSpec(std::string_view i_spec, const Context& ctx, ChannelContext& channel_context);
+        MatchSpec(std::string_view i_spec);
 
-        void parse(const Context& ctx, ChannelContext& channel_context);
+        void parse();
         std::string conda_build_form() const;
         std::string str() const;
 

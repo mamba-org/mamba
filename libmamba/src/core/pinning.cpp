@@ -36,7 +36,7 @@ namespace mamba
 
         for (const auto& spec : specs)
         {
-            MatchSpec ms{ spec, ctx, channel_context };
+            MatchSpec ms{ spec };
             if (ms.name == "python")
             {
                 return "";

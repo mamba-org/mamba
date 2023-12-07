@@ -193,6 +193,7 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/core/activation.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/channel_context.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/context.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/repo_checker_store.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/download.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/download_progress_bar.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/environments_manager.cpp
@@ -301,6 +302,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/channel_context.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/palette.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/context.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/repo_checker_store.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/download.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/download_progress_bar.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/environments_manager.hpp

@@ -68,9 +68,22 @@ namespace mamba
         return static_cast<spdlog::level::level_enum>(l);
     }
 
+    namespace
+    {
+        std::atomic<bool> use_default_signal_handler_val{ true };
+    }
+
+    void Context::use_default_signal_handler(bool val)
+    {
+        use_default_signal_handler_val = val;
+    }
+
     void Context::enable_logging_and_signal_handling(Context& context)
     {
-        set_default_signal_handler();
+        if (use_default_signal_handler_val)
+        {
+            set_default_signal_handler();
+        }
 
         context.logger = std::make_shared<Logger>("libmamba", context.output_params.log_pattern, "\n");
         MainExecutor::instance().on_close(

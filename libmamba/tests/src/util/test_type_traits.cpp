@@ -12,7 +12,6 @@
 
 using namespace mamba::util;
 
-
 TEST_SUITE("util::type_traits")
 {
     struct NotOStreamable
@@ -22,6 +21,7 @@ TEST_SUITE("util::type_traits")
     struct OStreamable
     {
     };
+
     auto operator<<(std::ostream& s, const OStreamable&)->std::ostream&;
 
     TEST_CASE("ostreamable")

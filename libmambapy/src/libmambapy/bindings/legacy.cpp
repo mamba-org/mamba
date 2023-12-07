@@ -117,10 +117,12 @@ namespace mambapy
         {
             return m_main_executor;
         }
+
         mamba::Context& context()
         {
             return m_context;
         }
+
         mamba::Console& console()
         {
             return m_console;

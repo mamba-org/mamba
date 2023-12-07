@@ -18,7 +18,6 @@
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/util/environment.hpp"
 
-
 namespace mamba
 {
     class Configuration;
@@ -407,6 +406,7 @@ namespace mamba
         {
             return m_context;
         }
+
         const Context& context() const
         {
             return m_context;

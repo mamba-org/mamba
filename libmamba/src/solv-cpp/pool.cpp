@@ -47,7 +47,6 @@ namespace mamba::solv
         return m_pool.get();
     }
 
-
     auto ObjPool::disttype() const -> DistType
     {
         return raw()->disttype;

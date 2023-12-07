@@ -146,7 +146,6 @@ namespace mamba::solv
         }
     }
 
-
     void ObjSolver::SolverDeleter::operator()(::Solver* ptr)
     {
         ::solver_free(ptr);

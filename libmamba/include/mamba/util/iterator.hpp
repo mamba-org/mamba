@@ -67,7 +67,6 @@ namespace mamba::util
         using difference_type = D;
         using iterator_category = std::bidirectional_iterator_tag;
 
-
         friend derived_type operator--(derived_type& d, int)
         {
             derived_type tmp(d);
@@ -216,7 +215,6 @@ namespace mamba::util
 
     template <class Predicate, class Iterator>
     using select_filter_iterator_base_t = typename select_filter_iterator_base<Predicate, Iterator>::type;
-
 
     template <class Predicate, class Iterator>
     class filter_iterator : public select_filter_iterator_base_t<Predicate, Iterator>

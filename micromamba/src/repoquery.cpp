@@ -167,6 +167,7 @@ set_repoquery_whoneeds_command(CLI::App* subcmd, mamba::Configuration& config)
 {
     set_repoquery_subcommand<mamba::QueryType::WhoNeeds>(subcmd, config);
 }
+
 void
 set_repoquery_depends_command(CLI::App* subcmd, mamba::Configuration& config)
 {

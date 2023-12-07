@@ -11,7 +11,6 @@
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/util/string.hpp"
 
-
 namespace mamba
 {
     std::string python_pin(PrefixData& prefix_data, const std::vector<std::string>& specs)

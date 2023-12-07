@@ -100,6 +100,7 @@ namespace mamba
         {
             return m_packages;
         }
+
         const Meta& get_metadata() const
         {
             return m_metadata;

@@ -16,7 +16,6 @@ namespace mamba
     class Configuration;
 }
 
-
 void
 set_clean_command(CLI::App* subcom, mamba::Configuration& config);
 

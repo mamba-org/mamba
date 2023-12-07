@@ -92,6 +92,7 @@ namespace mamba
             {
                 return util::shrink_home(config.valid_sources()[position].string());
             }
+
             std::unique_ptr<TemporaryFile> tempfile_ptr = std::make_unique<TemporaryFile>(
                 "mambarc",
                 ".yaml"

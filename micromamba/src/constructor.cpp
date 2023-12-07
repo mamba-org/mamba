@@ -65,7 +65,6 @@ set_constructor_command(CLI::App* subcom, mamba::Configuration& config)
     );
 }
 
-
 void
 construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pkgs, bool extract_tarball)
 {
@@ -186,7 +185,6 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
         fs::remove(extract_tarball_path);
     }
 }
-
 
 void
 read_binary_from_stdin_and_write_to_file(fs::u8path& filename)

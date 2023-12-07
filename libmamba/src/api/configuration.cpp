@@ -74,7 +74,6 @@ namespace mamba
             return m_rc_configured && !m_config->context().src_params.no_rc;
         }
 
-
         bool ConfigurableImplBase::is_config_loading() const
         {
             return m_config == nullptr || m_config->is_loading();

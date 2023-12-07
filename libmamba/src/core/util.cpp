@@ -80,6 +80,7 @@ namespace mamba
     {
         return persist_temporary_files;
     }
+
     bool set_persist_temporary_files(bool new_value)
     {
         return persist_temporary_files.exchange(new_value);
@@ -89,6 +90,7 @@ namespace mamba
     {
         return persist_temporary_directories;
     }
+
     bool set_persist_temporary_directories(bool new_value)
     {
         return persist_temporary_directories.exchange(new_value);
@@ -654,7 +656,6 @@ namespace mamba
         return prepend(p.c_str(), start, newline);
     }
 
-
     class LockFileOwner
     {
     public:
@@ -985,6 +986,7 @@ namespace mamba
             {
                 return m_is_file_locking_allowed;
             }
+
             bool allow_file_locking(bool allow)
             {
                 return m_is_file_locking_allowed.exchange(allow);
@@ -994,6 +996,7 @@ namespace mamba
             {
                 return m_default_lock_timeout;
             }
+
             std::chrono::seconds set_file_locking_timeout(const std::chrono::seconds& new_timeout)
             {
                 return m_default_lock_timeout.exchange(new_timeout);
@@ -1109,6 +1112,7 @@ namespace mamba
     {
         return files_locked_by_this_process.default_file_locking_timeout();
     }
+
     std::chrono::seconds set_file_locking_timeout(const std::chrono::seconds& new_timeout)
     {
         return files_locked_by_this_process.set_file_locking_timeout(new_timeout);
@@ -1329,7 +1333,6 @@ namespace mamba
 
         return infile;
     }
-
 
     WrappedCallOptions WrappedCallOptions::from_context(const Context& context)
     {

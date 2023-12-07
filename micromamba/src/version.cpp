@@ -6,7 +6,6 @@
 
 #include "version.hpp"
 
-
 namespace umamba
 {
     std::string version()

@@ -22,6 +22,7 @@ namespace mamba
     LockFile lock_proc_dir();
 
     void daemonize();
+
     class ScopedProcFile
     {
         const fs::u8path location;

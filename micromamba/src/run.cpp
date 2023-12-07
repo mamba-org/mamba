@@ -41,7 +41,6 @@ extern "C"
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
-
 void
 set_ps_command(CLI::App* subcom, Context& context)
 {

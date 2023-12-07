@@ -169,7 +169,6 @@ namespace mamba::specs
      */
     void from_json(const nlohmann::json& j, RepoDataPackage& p);
 
-
     /** Information about subdirectory of channel in the Conda RepoData. */
     struct ChannelInfo
     {

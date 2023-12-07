@@ -31,7 +31,6 @@ init_rc_options(CLI::App* subcom, Configuration& config)
     subcom->add_flag("--no-env", no_env.get_cli_config<bool>(), no_env.description())->group(cli_group);
 }
 
-
 void
 init_general_options(CLI::App* subcom, Configuration& config)
 {
@@ -129,7 +128,6 @@ init_prefix_options(CLI::App* subcom, Configuration& config)
         ->group(cli_group);
 }
 
-
 void
 init_network_options(CLI::App* subcom, Configuration& config)
 {
@@ -172,7 +170,6 @@ init_network_options(CLI::App* subcom, Configuration& config)
         )
         ->group(cli_group);
 }
-
 
 void
 init_channel_parser(CLI::App* subcom, Configuration& config)

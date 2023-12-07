@@ -248,9 +248,7 @@ namespace mamba
         void sort_bars(bool max_height_exceeded);
     };
 
-
     std::unique_ptr<ProgressBarManager> make_progress_bar_manager(ProgressBarMode);
-
 
     /*********************************
      * Internal use of progress bars *

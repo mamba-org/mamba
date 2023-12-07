@@ -150,7 +150,6 @@ namespace mamba::util
         return static_cast<wchar_t>(std::towupper(static_cast<wint_t>(c)));
     }
 
-
     /***************************************************
      *  Implementation of to_lower to_upper functions  *
      ***************************************************/
@@ -405,6 +404,7 @@ namespace mamba::util
         using Char = decltype(input)::value_type;
         return rstrip_if(input, [](Char c) { return !is_graphic(c); });
     }
+
     std::wstring_view rstrip(std::wstring_view input)
     {
         using Char = decltype(input)::value_type;
@@ -544,14 +544,17 @@ namespace mamba::util
     {
         return strip_parts_impl(input, c);
     }
+
     std::array<std::wstring_view, 3> strip_parts(std::wstring_view input, wchar_t c)
     {
         return strip_parts_impl(input, c);
     }
+
     std::array<std::string_view, 3> strip_parts(std::string_view input, std::string_view chars)
     {
         return strip_parts_impl(input, chars);
     }
+
     std::array<std::wstring_view, 3> strip_parts(std::wstring_view input, std::wstring_view chars)
     {
         return strip_parts_impl(input, chars);
@@ -614,7 +617,6 @@ namespace mamba::util
     {
         return rsplit_once_impl(str, sep);
     }
-
 
     /***************************************
      *  Implementation of split functions  *
@@ -909,14 +911,17 @@ namespace mamba::util
         {
             return std::strlen(s);
         }
+
         std::size_t length(const wchar_t* s)
         {
             return std::wcslen(s);
         }
+
         std::size_t length(const char /*c*/)
         {
             return 1;
         }
+
         std::size_t length(const wchar_t /*c*/)
         {
             return 1;

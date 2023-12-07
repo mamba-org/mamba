@@ -50,6 +50,7 @@ namespace mamba::solv
             nullptr
         ) };
     }
+
     namespace
     {
         void

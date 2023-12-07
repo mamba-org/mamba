@@ -704,7 +704,6 @@ TEST_SUITE("validation::v0_6::SpecImpl")
     }
 }
 
-
 class KeyMgrT_v06 : public RootImplT_v0_6
 {
 public:
@@ -1143,7 +1142,6 @@ TEST_SUITE("validation::v0_6::PkgMgr")
         );
     }
 }
-
 
 class RepoCheckerT : public PkgMgrT_v06
 {

@@ -15,7 +15,6 @@
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/util/string.hpp"
 
-
 void
 complete_options(
     CLI::App* app,
@@ -194,7 +193,6 @@ add_ps_completion(
         }
     );
 }
-
 
 void
 get_completions(CLI::App* app, mamba::Configuration& config, int argc, char** argv)

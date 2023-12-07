@@ -163,7 +163,6 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     return ec ? ec.value() : status;
 }
 
-
 void
 set_update_command(CLI::App* subcom, Configuration& config)
 {

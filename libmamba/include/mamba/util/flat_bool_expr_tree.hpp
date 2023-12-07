@@ -105,9 +105,11 @@ namespace mamba::util
     private:
 
         using postfix_parser_type = PostfixParser<variable_type, operator_type>;
+
         struct LeftParenthesis
         {
         };
+
         using operator_or_parenthesis_type = std::variant<operator_type, LeftParenthesis>;
         using operator_stack_type = std::vector<operator_or_parenthesis_type>;
 

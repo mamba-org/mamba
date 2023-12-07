@@ -445,7 +445,6 @@ namespace mamba
         }
     }
 
-
     fs::u8path MultiPackageCache::get_extracted_dir_path(const PackageInfo& s, bool return_empty)
     {
         const std::string pkg(s.str());

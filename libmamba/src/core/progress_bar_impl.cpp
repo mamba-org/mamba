@@ -174,7 +174,6 @@ namespace mamba
         return o.str();
     }
 
-
     namespace
     {
         void print_formatted_field_repr(

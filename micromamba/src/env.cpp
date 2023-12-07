@@ -43,7 +43,6 @@ get_env_name(const Context& ctx, const mamba::fs::u8path& px)
     }
 }
 
-
 void
 set_env_command(CLI::App* com, Configuration& config)
 {

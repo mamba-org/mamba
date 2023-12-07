@@ -837,6 +837,7 @@ namespace mamba
     namespace
     {
         using FetcherList = std::vector<PackageFetcher>;
+
         // Free functions instead of private method to avoid exposing downloaders
         // and package fetchers in the header. Ideally we may want a pimpl or
         // a private implementation header when we refactor this class.

@@ -77,7 +77,6 @@ namespace mamba::validation
     auto operator==(const SpecBase& sv1, const SpecBase& sv2) -> bool;
     auto operator!=(const SpecBase& sv1, const SpecBase& sv2) -> bool;
 
-
     /**
      * Base class for role implementation.
      */
@@ -191,7 +190,6 @@ namespace mamba::validation
 
         virtual auto create_update(const nlohmann::json& j) -> std::unique_ptr<RootRole> = 0;
     };
-
 
     /**
      * Interface that performs validity checks

@@ -34,7 +34,6 @@ namespace mamba
         };
     }
 
-
     class extraction_guard
     {
     public:
@@ -76,6 +75,7 @@ namespace mamba
 
         scoped_archive_read()
             : scoped_archive_read(archive_read_new()){};
+
         static scoped_archive_read read_disk()
         {
             return scoped_archive_read(archive_read_disk_new());
@@ -170,7 +170,6 @@ namespace mamba
 
         archive_entry* m_entry;
     };
-
 
     void stream_extract_archive(
         scoped_archive_read& a,
@@ -610,7 +609,6 @@ namespace mamba
         fs::current_path(prev_path);
     }
 
-
     static la_ssize_t file_read(archive*, void* client_data, const void** buff)
     {
         conda_extract_context* mine = static_cast<conda_extract_context*>(client_data);
@@ -633,7 +631,6 @@ namespace mamba
         archive_read_set_callback_data(a, ctx);
         return archive_read_open1(a);
     }
-
 
     void extract_conda(
         const fs::u8path& file,
@@ -823,7 +820,6 @@ namespace mamba
         create_package(extract_dir, target, compression_level, compression_threads);
         return true;
     }
-
 
     bool validate(const fs::u8path& pkg_folder, const ValidationOptions& options)
     {

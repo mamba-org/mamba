@@ -19,7 +19,6 @@
 #include "utils.hpp"
 #include "weakening_map_bind.hpp"
 
-
 namespace mambapy
 {
     void bind_submodule_specs(pybind11::module_ m)

@@ -29,7 +29,6 @@ namespace mamba::validation
     void to_json(nlohmann::json& j, const Key& k);
     void from_json(const nlohmann::json& j, Key& k);
 
-
     /**
      * Representation of a role signature.
      *
@@ -48,7 +47,6 @@ namespace mamba::validation
 
     [[nodiscard]] auto operator<(const RoleSignature& rs1, const RoleSignature& rs2) -> bool;
 
-
     /**
      * Store key IDs and threshold for a role.
      *
@@ -63,7 +61,6 @@ namespace mamba::validation
     void to_json(nlohmann::json& j, const RoleKeys& rk);
     void from_json(const nlohmann::json& j, RoleKeys& rk);
 
-
     /**
      * Store key values and threshold for role. Assumes key scheme/type is `ed25519`.
      */
@@ -77,7 +74,6 @@ namespace mamba::validation
 
     void to_json(nlohmann::json& j, const RolePubKeys& rk);
     void from_json(const nlohmann::json& j, RolePubKeys& rk);
-
 
     /**
      * Store full keys and threshold for role.

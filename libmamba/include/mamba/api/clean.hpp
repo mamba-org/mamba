@@ -7,7 +7,6 @@
 #ifndef MAMBA_API_CLEAN_HPP
 #define MAMBA_API_CLEAN_HPP
 
-
 namespace mamba
 {
     const int MAMBA_CLEAN_ALL = 1 << 0;

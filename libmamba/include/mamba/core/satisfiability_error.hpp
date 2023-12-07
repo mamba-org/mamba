@@ -76,12 +76,15 @@ namespace mamba
         struct RootNode
         {
         };
+
         struct PackageNode : PackageInfo
         {
         };
+
         struct UnresolvedDependencyNode : MatchSpec
         {
         };
+
         struct ConstraintNode : MatchSpec
         {
         };

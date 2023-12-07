@@ -55,7 +55,6 @@ namespace mamba
         std::string description;
     };
 
-
     class MSolver
     {
     public:

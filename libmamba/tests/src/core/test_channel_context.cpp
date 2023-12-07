@@ -18,7 +18,6 @@
 
 #include "mambatests.hpp"
 
-
 TEST_SUITE("ChannelContext")
 {
     using namespace mamba;

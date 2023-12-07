@@ -36,6 +36,7 @@ namespace mamba::util
             inline static constexpr struct yes_type
             {
             } yes = {};
+
             inline static constexpr struct no_type
             {
             } no = {};
@@ -46,6 +47,7 @@ namespace mamba::util
             inline static constexpr struct yes_type
             {
             } yes = {};
+
             inline static constexpr struct no_type
             {
             } no = {};

@@ -51,6 +51,7 @@ namespace mamba
     struct ZstdStream
     {
         static constexpr size_t BUFFER_SIZE = 256000;
+
         ZstdStream(curl_write_callback lwrite_callback, void* write_callback_data)
             : stream(ZSTD_createDCtx())
             , m_write_callback(lwrite_callback)

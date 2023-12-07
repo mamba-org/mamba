@@ -329,7 +329,6 @@ namespace mamba
             }
         }
 
-
         void set_solvables_url(solv::ObjRepoView repo, const std::string& repo_url)
         {
             // WARNING cannot call ``url()`` at this point because it has not been internalized.

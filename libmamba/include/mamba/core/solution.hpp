@@ -27,29 +27,35 @@ namespace mamba
         {
             PackageInfo what;
         };
+
         struct Upgrade
         {
             PackageInfo remove;
             PackageInfo install;
         };
+
         struct Downgrade
         {
             PackageInfo remove;
             PackageInfo install;
         };
+
         struct Change
         {
             PackageInfo remove;
             PackageInfo install;
         };
+
         struct Reinstall
         {
             PackageInfo what;
         };
+
         struct Remove
         {
             PackageInfo remove;
         };
+
         struct Install
         {
             PackageInfo install;

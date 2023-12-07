@@ -17,25 +17,18 @@
 
 namespace mamba
 {
-    class Context;
-    class ChannelContext;
-
     class MatchSpec
     {
     public:
 
-        MatchSpec() = default;
+        [[nodiscard]] static auto parse_version_and_build(std::string_view s)
+            -> std::tuple<std::string, std::string>;
+        [[nodiscard]] static auto parse(std::string_view spec) -> MatchSpec;
 
-        MatchSpec(std::string_view i_spec);
+        [[nodiscard]] auto conda_build_form() const -> std::string;
+        [[nodiscard]] auto str() const -> std::string;
 
-        void parse();
-        std::string conda_build_form() const;
-        std::string str() const;
-
-        bool is_simple() const;
-
-        static std::tuple<std::string, std::string> parse_version_and_build(std::string_view s);
-        std::string spec;
+        [[nodiscard]] auto is_simple() const -> bool;
 
         std::optional<specs::ChannelSpec> channel;
         std::string name;
@@ -51,6 +44,5 @@ namespace mamba
         std::unordered_map<std::string, std::string> brackets;
         std::unordered_map<std::string, std::string> parens;
     };
-}  // namespace mamba
-
+}
 #endif

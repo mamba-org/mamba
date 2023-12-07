@@ -75,7 +75,7 @@ handle_solve_request(
 
     for (const auto& s : specs)
     {
-        if (auto m = MatchSpec{ s }; m.channel.has_value())
+        if (auto m = MatchSpec::parse(s); m.channel.has_value())
         {
             channels.push_back(m.channel->str());
         }

@@ -291,8 +291,19 @@ bind_submodule_impl(pybind11::module_ m)
     py::add_ostream_redirect(m, "ostream_redirect");
 
     py::class_<MatchSpec>(m, "MatchSpec")
+        .def_static("parse", &MatchSpec::parse)
         .def(py::init<>())
-        .def(py::init<std::string_view>(), py::arg("spec"))
+        .def(
+            // Deprecating would lead to confusing error. Better to make sure people stop using it.
+            py::init(
+                [](std::string_view) -> MatchSpec {
+                    throw std::invalid_argument(
+                        "Use 'MatchSpec.parse' to create a new object from a string"
+                    );
+                }
+            ),
+            py::arg("spec")
+        )
         .def("conda_build_form", &MatchSpec::conda_build_form);
 
     py::class_<MPool>(m, "Pool")
@@ -307,12 +318,7 @@ bind_submodule_impl(pybind11::module_ m)
         .def("set_debuglevel", &MPool::set_debuglevel)
         .def("create_whatprovides", &MPool::create_whatprovides)
         .def("select_solvables", &MPool::select_solvables, py::arg("id"), py::arg("sorted") = false)
-        .def("matchspec2id", &MPool::matchspec2id, py::arg("ms"))
-        .def(
-            "matchspec2id",
-            [](MPool& self, std::string_view spec) { return self.matchspec2id({ spec }); },
-            py::arg("spec")
-        )
+        .def("matchspec2id", &MPool::matchspec2id, py::arg("spec"))
         .def("id2pkginfo", &MPool::id2pkginfo, py::arg("id"));
 
     py::class_<MultiPackageCache>(m, "MultiPackageCache")
@@ -490,10 +496,7 @@ bind_submodule_impl(pybind11::module_ m)
             py::arg("path"),
             py::arg("channel_context")
         )
-        .def(
-            "get_requested_specs_map",
-            [](History& self) { return self.get_requested_specs_map(mambapy::singletons.context()); }
-        );
+        .def("get_requested_specs_map", &History::get_requested_specs_map);
 
     /*py::class_<Query>(m, "Query")
         .def(py::init<MPool&>())

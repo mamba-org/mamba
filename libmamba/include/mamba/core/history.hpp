@@ -52,7 +52,7 @@ namespace mamba
         std::vector<ParseResult> parse();
         bool parse_comment_line(const std::string& line, UserRequest& req);
         std::vector<UserRequest> get_user_requests();
-        std::unordered_map<std::string, MatchSpec> get_requested_specs_map(const Context& ctx);
+        std::unordered_map<std::string, MatchSpec> get_requested_specs_map();
         void add_entry(const History::UserRequest& entry);
 
         fs::u8path m_prefix;

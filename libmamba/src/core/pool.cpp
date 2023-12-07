@@ -241,7 +241,7 @@ namespace mamba
                     throw std::runtime_error(fmt::format(
                         R"(The package "{}" is not available for the specified platform{} ({}))"
                         R"( but is available on {}.)",
-                        ms.spec,
+                        ms.str(),
                         filters.size() > 1 ? "s" : "",
                         fmt::join(filters, ", "),
                         other_subdir_match
@@ -252,7 +252,7 @@ namespace mamba
                     throw std::runtime_error(fmt::format(
                         R"(The package "{}" is not found in any loaded channels.)"
                         R"( Try adding more channels or subdirs.)",
-                        ms.spec
+                        ms.str()
                     ));
                 }
             }

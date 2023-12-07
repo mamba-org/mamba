@@ -8,6 +8,8 @@
 
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/match_spec.hpp"
+#include "mamba/util/build.hpp"
+#include "mamba/util/string.hpp"
 
 #include "mambatests.hpp"
 
@@ -156,16 +158,26 @@ TEST_SUITE("MatchSpec")
             CHECK_EQ(ms.name, "_libgcc_mutex");
             CHECK_EQ(ms.version, "0.1");
             CHECK_EQ(ms.build_string, "conda_forge");
-#ifdef _WIN32
-            std::string driveletter = fs::absolute(fs::u8path("/")).string().substr(0, 1);
-            CHECK_EQ(
-                ms.url,
-                std::string("file://") + driveletter
-                    + ":/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
-            );
-#else
-            CHECK_EQ(ms.url, "/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2");
-#endif
+            if (util::on_win)
+            {
+                std::string driveletter = fs::absolute(fs::u8path("/")).string().substr(0, 1);
+                CHECK_EQ(
+                    ms.url,
+                    util::concat(
+                        "file://",
+                        driveletter,
+                        ":/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
+                    )
+                );
+            }
+            else
+            {
+                CHECK_EQ(
+                    ms.url,
+                    "file:///home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
+                );
+            }
+
             CHECK_EQ(ms.fn, "_libgcc_mutex-0.1-conda_forge.tar.bz2");
         }
         {

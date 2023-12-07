@@ -44,7 +44,6 @@ namespace mamba::util
         return !url_get_scheme(url).empty();
     }
 
-
     auto abs_path_to_url(std::string_view path) -> std::string
     {
         static constexpr std::string_view file_scheme = "file://";

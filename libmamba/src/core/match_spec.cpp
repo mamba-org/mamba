@@ -17,6 +17,7 @@
 #include "mamba/specs/archive.hpp"
 #include "mamba/specs/platform.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/url_manip.hpp"
 
 namespace mamba
 {
@@ -98,7 +99,7 @@ namespace mamba
             version = dist[1];
             build_string = dist[2];
             fn = std::string(pkg);
-            url = spec_str;
+            url = util::path_or_url_to_url(spec_str);
             is_file = true;
             return;
         }

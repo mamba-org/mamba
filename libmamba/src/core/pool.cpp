@@ -22,7 +22,6 @@ extern "C"  // Incomplete header
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
-#include "mamba/util/string.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
 
@@ -183,8 +182,9 @@ namespace mamba
             const MatchSpec& ms
         ) -> solv::DependencyId
         {
+            assert(ms.channel.has_value());
             // Poor man's ms repr to match waht the user provided
-            const std::string repr = fmt::format("{}::{}", ms.channel, ms.conda_build_form());
+            const std::string repr = fmt::format("{}::{}", *ms.channel, ms.conda_build_form());
 
             // Already added, return that id
             if (const auto maybe_id = pool.find_string(repr))
@@ -198,27 +198,21 @@ namespace mamba
                 ms.conda_build_form().c_str()
             );
 
+            auto ms_channel = channel_context.make_channel(*ms.channel);
+
             solv::ObjQueue selected_pkgs = {};
-            bool found_partial_matches = false;
+            auto other_subdir_match = std::string();
             pool.for_each_whatprovides(
                 match,
                 [&](solv::ObjSolvableViewConst s)
                 {
+                    assert(ms.channel.has_value());
                     // TODO this does not work with s.url(), we need to proper channel class
                     // to properly manage this.
                     auto repo = solv::ObjRepoView(*s.raw()->repo);
-                    // TODO Replace MatchSpec channel and subdir with a ChannelSpec
-                    const auto chan_spec = [&]() -> std::string
-                    {
-                        if (ms.subdir.empty())
-                        {
-                            return ms.channel;
-                        }
-                        return util::concat(ms.channel, '[', ms.subdir, ']');
-                    }();
                     const auto match = channel_match(
                         channel_context.make_channel(repo.url()),
-                        channel_context.make_channel(chan_spec)
+                        ms_channel
                     );
                     switch (match)
                     {
@@ -229,7 +223,7 @@ namespace mamba
                         }
                         case (ChannelMatch::ChannelOnly):
                         {
-                            found_partial_matches = true;
+                            other_subdir_match = s.subdir();
                             break;
                         }
                         case (ChannelMatch::None):
@@ -239,12 +233,28 @@ namespace mamba
                 }
             );
 
-            if (selected_pkgs.empty() && found_partial_matches)
+            if (selected_pkgs.empty())
             {
-                throw std::runtime_error(fmt::format(
-                    R"(The package "{}" is not available for the specified platform)",
-                    ms.spec
-                ));
+                if (!other_subdir_match.empty())
+                {
+                    const auto& filters = ms.channel->platform_filters();
+                    throw std::runtime_error(fmt::format(
+                        R"(The package "{}" is not available for the specified platform{} ({}))"
+                        R"( but is available on {}.)",
+                        ms.spec,
+                        filters.size() > 1 ? "s" : "",
+                        fmt::join(filters, ", "),
+                        other_subdir_match
+                    ));
+                }
+                else
+                {
+                    throw std::runtime_error(fmt::format(
+                        R"(The package "{}" is not found in any loaded channels.)"
+                        R"( Try adding more channels or subdirs.)",
+                        ms.spec
+                    ));
+                }
             }
 
             const solv::StringId repr_id = pool.add_string(repr);
@@ -259,7 +269,7 @@ namespace mamba
     ::Id MPool::matchspec2id(const MatchSpec& ms)
     {
         ::Id id = 0;
-        if (ms.channel.empty())
+        if (!ms.channel.has_value())
         {
             id = pool_conda_matchspec(pool().raw(), ms.conda_build_form().c_str());
         }

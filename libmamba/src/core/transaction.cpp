@@ -74,9 +74,17 @@ namespace mamba
                 p.url = ms.url;
                 p.build_string = ms.build_string;
                 p.version = ms.version;
-                p.channel = ms.channel;
+                if (ms.channel.has_value())
+                {
+                    p.channel = ms.channel->location();
+                    if (!ms.channel->platform_filters().empty())
+                    {
+                        // There must be only one since we are expecting URLs
+                        assert(ms.channel->platform_filters().size() == 1);
+                        p.subdir = ms.channel->platform_filters().front();
+                    }
+                }
                 p.fn = ms.fn;
-                p.subdir = ms.subdir;
                 if (ms.brackets.find("md5") != ms.brackets.end())
                 {
                     p.md5 = ms.brackets.at("md5");
@@ -575,9 +583,7 @@ namespace mamba
         for (const auto& pkginfo : packages)
         {
             specs_to_install.push_back(MatchSpec(
-                fmt::format("{}=={}={}", pkginfo.name, pkginfo.version, pkginfo.build_string),
-                m_pool.context(),
-                m_pool.channel_context()
+                fmt::format("{}=={}={}", pkginfo.name, pkginfo.version, pkginfo.build_string)
             ));
         }
 
@@ -1374,8 +1380,7 @@ namespace mamba
             }
 
             const auto hash_idx = url.find_first_of('#');
-            specs_to_install
-                .emplace_back(url.substr(0, hash_idx), pool.context(), pool.channel_context());
+            specs_to_install.emplace_back(url.substr(0, hash_idx));
             MatchSpec& ms = specs_to_install.back();
 
             if (hash_idx != std::string::npos)

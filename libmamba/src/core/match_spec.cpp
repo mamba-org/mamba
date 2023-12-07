@@ -8,13 +8,14 @@
 #include <string>
 #include <string_view>
 
+#include <fmt/format.h>
+
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/specs/archive.hpp"
 #include "mamba/specs/platform.hpp"
-#include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
@@ -35,15 +36,15 @@ namespace mamba
         }
     }
 
-    MatchSpec::MatchSpec(std::string_view i_spec, const Context& ctx, ChannelContext& channel_context)
+    MatchSpec::MatchSpec(std::string_view i_spec)
         : spec(i_spec)
     {
-        parse(ctx, channel_context);
+        parse();
     }
 
     std::tuple<std::string, std::string> MatchSpec::parse_version_and_build(std::string_view s)
     {
-        std::size_t const pos = s.find_last_of(" =");
+        const std::size_t pos = s.find_last_of(" =");
         if (pos == s.npos || pos == 0)
         {
             std::string tmp = std::string(s);
@@ -74,7 +75,7 @@ namespace mamba
         }
     }
 
-    void MatchSpec::parse(const Context& ctx, ChannelContext& channel_context)
+    void MatchSpec::parse()
     {
         std::string spec_str = spec;
         if (spec_str.empty())
@@ -91,35 +92,15 @@ namespace mamba
 
         if (specs::has_archive_extension(spec_str))
         {
-            if (!util::url_has_scheme(spec_str))
-            {
-                LOG_INFO << "need to expand path!";
-                spec_str = util::path_or_url_to_url(fs::absolute(util::expand_home(spec_str)).string()
-                );
-            }
-
-            auto channels = channel_context.make_channel(spec_str);
-
-            // TODO we are not handling the custom_multichannel case where `channels` can have
-            // more than one element.
-            if (auto pkg = channels.front().url().package(); !pkg.empty())
-            {
-                auto dist = parse_legacy_dist(pkg);
-
-                name = dist[0];
-                version = dist[1];
-                build_string = dist[2];
-
-                channel = channels.front().display_name();
-                // TODO how to handle this with multiple platforms?
-                if (const auto& plats = channels.front().platforms(); !plats.empty())
-                {
-                    subdir = plats.front();
-                }
-                fn = std::move(pkg);
-                url = spec_str;
-                is_file = true;
-            }
+            channel = specs::ChannelSpec::parse(spec_str);
+            auto [path, pkg] = util::rsplit_once(channel->location(), '/');
+            auto dist = parse_legacy_dist(pkg);
+            name = dist[0];
+            version = dist[1];
+            build_string = dist[2];
+            fn = std::string(pkg);
+            url = util::path_or_url_to_url(spec_str);
+            is_file = true;
             return;
         }
 
@@ -179,7 +160,7 @@ namespace mamba
         std::string channel_str;
         if (m5_len == 3)
         {
-            channel = m5[0];
+            channel = specs::ChannelSpec::parse(m5[0]);
             ns = m5[1];
             spec_str = m5[2];
         }
@@ -202,14 +183,6 @@ namespace mamba
             auto plats = specs::known_platform_names();
             return { plats.begin(), plats.end() };
         };
-
-        std::string cleaned_url;
-        std::string platform;
-        util::split_platform(get_known_platforms(), channel, ctx.platform, channel, platform);
-        if (!platform.empty())
-        {
-            subdir = platform;
-        }
 
         // support faulty conda matchspecs such as `libblas=[build=*mkl]`, which is
         // the repr of `libblas=*=*mkl`
@@ -281,6 +254,7 @@ namespace mamba
 
         // TODO think about using a hash function here, (and elsewhere), like:
         // https://hbfs.wordpress.com/2017/01/10/strings-in-c-switchcase-statements/
+
         for (auto& [k, v] : brackets)
         {
             if (k == "build_number")
@@ -297,13 +271,35 @@ namespace mamba
             }
             else if (k == "channel")
             {
-                channel = v;
+                if (!channel.has_value())
+                {
+                    channel = specs::ChannelSpec::parse(v);
+                }
+                else
+                {
+                    // Subdirs might have been set with a previous subdir key
+                    auto subdirs = channel->clear_platform_filters();
+                    channel = specs::ChannelSpec::parse(v);
+                    if (!subdirs.empty())
+                    {
+                        channel = specs::ChannelSpec(
+                            channel->clear_location(),
+                            std::move(subdirs),
+                            channel->type()
+                        );
+                    }
+                }
             }
             else if (k == "subdir")
             {
-                if (platform.empty())
+                if (!channel.has_value())
                 {
-                    subdir = v;
+                    channel = specs::ChannelSpec("", { v }, specs::ChannelSpec::Type::Unknown);
+                }
+                // Subdirs specified in the channel part have higher precedence
+                else if (channel->platform_filters().empty())
+                {
+                    channel = specs::ChannelSpec(channel->clear_location(), { v }, channel->type());
                 }
             }
             else if (k == "url")
@@ -354,14 +350,9 @@ namespace mamba
         //     else:
         //         brackets.append("subdir=%s" % subdir_matcher)
 
-        if (!channel.empty())
+        if (channel.has_value())
         {
-            res << channel;
-            if (!subdir.empty())
-            {
-                res << "/" << subdir;
-            }
-            res << "::";
+            res << fmt::format("{}::", *channel);
         }
         // TODO when namespaces are implemented!
         // if (!ns.empty())
@@ -428,9 +419,9 @@ namespace mamba
         {
             if (is_complex_relation(build_string))
             {
-                formatted_brackets.push_back(util::concat("build='", build_string, "'"));
+                formatted_brackets.push_back(util::concat("build='", build_string, '\''));
             }
-            else if (build_string.find("*") != build_string.npos)
+            else if (build_string.find('*') != build_string.npos)
             {
                 formatted_brackets.push_back(util::concat("build=", build_string));
             }

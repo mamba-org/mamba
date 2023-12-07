@@ -113,9 +113,7 @@ namespace mamba
                     specs.begin(),
                     specs.end(),
                     std::back_inserter(mspecs),
-                    [&](const auto& spec_str) {
-                        return MatchSpec{ spec_str, ctx, channel_context };
-                    }
+                    [&](const auto& spec_str) { return MatchSpec{ spec_str }; }
                 );
                 auto transaction = MTransaction(pool, mspecs, {}, package_caches);
                 execute_transaction(transaction);

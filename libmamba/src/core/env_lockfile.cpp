@@ -57,11 +57,19 @@ namespace mamba
             }
 
             package.info.url = package_node["url"].as<std::string>();
-            const MatchSpec spec{ package.info.url, ctx, channel_context };
+            const MatchSpec spec{ package.info.url };
             package.info.fn = spec.fn;
             package.info.build_string = spec.build_string;
-            package.info.subdir = spec.subdir;
-            package.info.channel = spec.channel;
+            if (spec.channel.has_value())
+            {
+                package.info.channel = spec.channel->location();
+                if (!spec.channel->platform_filters().empty())
+                {
+                    // There must be only one since we are expecting URLs
+                    assert(spec.channel->platform_filters().size() == 1);
+                    package.info.subdir = spec.channel->platform_filters().front();
+                }
+            }
 
             for (const auto& dependency : package_node["dependencies"])
             {

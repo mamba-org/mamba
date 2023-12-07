@@ -33,7 +33,7 @@ namespace mamba
 
         History& history();
         const fs::u8path& path() const;
-        std::vector<PackageInfo> sorted_records(const Context& ctx) const;
+        std::vector<PackageInfo> sorted_records() const;
 
         ChannelContext& channel_context() const
         {

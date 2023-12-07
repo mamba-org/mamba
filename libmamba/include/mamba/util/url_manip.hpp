@@ -9,7 +9,6 @@
 
 #include <string>
 #include <string_view>
-#include <vector>
 
 namespace mamba::util
 {
@@ -53,14 +52,6 @@ namespace mamba::util
      * Does nothing if the input is already has a URL scheme.
      */
     [[nodiscard]] auto path_or_url_to_url(std::string_view path) -> std::string;
-
-    void split_platform(
-        const std::vector<std::string>& known_platforms,
-        const std::string& url,
-        const std::string& context_platform,
-        std::string& cleaned_url,
-        std::string& platform
-    );
 
     template <class S, class... Args>
     std::string join_url(const S& s, const Args&... args);

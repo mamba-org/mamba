@@ -22,18 +22,11 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR};${CMAKE_MODULE_PATH}")
 @LIBMAMBA_CONFIG_CODE@
 
 include(CMakeFindDependencyMacro)
-find_dependency(CURL)
-find_dependency(LibArchive)
-find_dependency(zstd)
-find_dependency(BZip2)
-find_dependency(OpenSSL)
 find_dependency(fmt)
 find_dependency(spdlog)
 find_dependency(tl-expected)
 find_dependency(nlohmann_json)
-find_dependency(simdjson)
 find_dependency(yaml-cpp)
-find_dependency(reproc)
 find_dependency(reproc++)
 find_dependency(Libsolv MODULE)
 

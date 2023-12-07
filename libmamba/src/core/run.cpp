@@ -40,7 +40,6 @@ extern "C"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/string.hpp"
 
-
 namespace mamba
 {
 

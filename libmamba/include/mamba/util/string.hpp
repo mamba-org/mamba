@@ -522,11 +522,13 @@ namespace mamba::util
         struct has_reserve : std::false_type
         {
         };
+
         template <class T>
         struct has_reserve<T, std::void_t<decltype(std::declval<T>().reserve(std::size_t()))>>
             : std::true_type
         {
         };
+
         template <typename T>
         inline constexpr bool has_reserve_v = has_reserve<T>::value;
 
@@ -534,6 +536,7 @@ namespace mamba::util
         std::size_t length(const wchar_t* s);
         std::size_t length(const char c);
         std::size_t length(const wchar_t c);
+
         template <class T>
         std::size_t length(const T& s)
         {

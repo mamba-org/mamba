@@ -11,7 +11,6 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/util.hpp"
 
-
 namespace mamba
 {
     void create(Configuration& config)

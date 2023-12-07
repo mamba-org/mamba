@@ -168,7 +168,6 @@ handle_solve_request(
     pool_set_installed(*cache_entry.pool, nullptr);
 }
 
-
 int
 run_server(int port, mamba::Context& ctx, mamba::ChannelContext& channel_context, Configuration& config)
 {

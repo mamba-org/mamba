@@ -20,7 +20,6 @@
 #include "mamba/core/transaction_context.hpp"
 #include "mamba/util/string.hpp"
 
-
 namespace mamba
 {
     namespace detail

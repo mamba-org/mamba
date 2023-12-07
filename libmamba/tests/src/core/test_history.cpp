@@ -45,6 +45,7 @@ namespace mamba
                     fs::remove(aux_file_path);
                     fs::copy(history_file_path, aux_file_path);
                 }
+
                 ~ScopedHistoryFileBackup()
                 {
                     fs::remove(history_file_path);

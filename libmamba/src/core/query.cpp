@@ -798,9 +798,11 @@ namespace mamba
         void tree_edge(node_id, node_id, const graph_type&)
         {
         }
+
         void back_edge(node_id, node_id, const graph_type&)
         {
         }
+
         void forward_or_cross_edge(node_id, node_id to, const graph_type& g)
         {
             print_prefix(to);

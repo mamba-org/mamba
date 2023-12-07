@@ -7,7 +7,6 @@
 #ifndef MAMBA_API_UPDATE_HPP
 #define MAMBA_API_UPDATE_HPP
 
-
 namespace mamba
 {
     class Configuration;

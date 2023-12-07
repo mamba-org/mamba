@@ -561,7 +561,6 @@ namespace mamba
         p_handle = nullptr;
     }
 
-
     CURLMultiHandle::CURLMultiHandle(CURLMultiHandle&& rhs)
         : p_handle(rhs.p_handle)
         , m_max_parallel_downloads(rhs.m_max_parallel_downloads)

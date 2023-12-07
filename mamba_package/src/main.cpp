@@ -16,7 +16,6 @@
 
 #include "package.hpp"
 
-
 int
 main(int argc, char** argv)
 {

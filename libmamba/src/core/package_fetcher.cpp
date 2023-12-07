@@ -403,6 +403,7 @@ namespace mamba
             safe_invoke(*cb, event);
         }
     }
+
     /***************************
      * PackageFetcherSemaphore *
      ***************************/

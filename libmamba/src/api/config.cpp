@@ -9,7 +9,6 @@
 #include "mamba/api/configuration.hpp"
 #include "mamba/util/path_manip.hpp"
 
-
 namespace mamba
 {
     void config_describe(Configuration& config)

@@ -82,6 +82,7 @@ namespace mamba::validation
     {
         std::size_t key_len = MAMBA_ED25519_KEYSIZE_BYTES;
         ::EVP_PKEY* pkey = nullptr;
+
         struct EVPContext
         {
             ::EVP_PKEY_CTX* pctx = ::EVP_PKEY_CTX_new_id(EVP_PKEY_ED25519, nullptr);
@@ -92,7 +93,6 @@ namespace mamba::validation
             }
 
         } evp_context;
-
 
         int gen_status = ::EVP_PKEY_keygen_init(evp_context.pctx);
         if (gen_status != 1)
@@ -293,7 +293,6 @@ namespace mamba::validation
     {
         return verify(data, MAMBA_SHA256_SIZE_BYTES, pk, signature);
     }
-
 
     auto
     verify_gpg_hashed_msg(const std::string& data, const std::byte* pk, const std::byte* signature)

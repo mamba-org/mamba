@@ -283,7 +283,6 @@ namespace mamba
         }
     }
 
-
     std::string
     rcfile_content(const fs::u8path& env_prefix, const std::string& shell, const fs::u8path& mamba_exe)
     {

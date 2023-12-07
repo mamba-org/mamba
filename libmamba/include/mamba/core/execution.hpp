@@ -99,7 +99,6 @@ namespace mamba
             }
         }
 
-
         // Closes this executor:
         // Only returns once all tasks scheduled before this call are finished
         // and all owned execution resources (aka threads) are released.

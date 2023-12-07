@@ -58,7 +58,6 @@ namespace mamba::solv
         return const_cast<::Solvable*>(ObjSolvableViewConst::raw());
     }
 
-
     /******************************************
      *  Implementation of getter and setters  *
      ******************************************/

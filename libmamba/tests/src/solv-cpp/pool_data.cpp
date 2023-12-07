@@ -17,6 +17,7 @@ namespace mamba::test
             return std::tie(p.name, p.version, p.dependencies);
         }
     }
+
     auto operator==(const SimplePkg& a, const SimplePkg& b) -> bool
     {
         return attrs(a) == attrs(b);

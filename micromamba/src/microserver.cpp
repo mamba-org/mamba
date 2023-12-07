@@ -107,6 +107,7 @@ namespace microserver
             : m_logger(logger)
         {
         }
+
         void get(std::string, callback_function_t);
         void post(std::string, callback_function_t);
         void all(std::string, callback_function_t);

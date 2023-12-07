@@ -295,7 +295,6 @@ namespace mamba::fs
             return *this;
         }
 
-
         //---- Conversions ----
 
         // Returns an utf-8 string.
@@ -518,7 +517,6 @@ namespace mamba::fs
         {
             return left.m_path != right;
         }
-
 
         //---- State ----
 
@@ -763,6 +761,7 @@ namespace mamba::fs
     {
         return iter;
     }
+
     inline directory_iterator end(directory_iterator) noexcept
     {
         return {};
@@ -934,7 +933,6 @@ namespace mamba::fs
         return std::filesystem::create_directory(path, attributes, std::forward<OtherArgs>(args)...);
     }
 
-
     // void create_directory_symlink(const path& to, const path& new_symlink);
     // void create_directory_symlink(const path& to, const path& new_symlink, error_code& ec)
     // noexcept;
@@ -979,7 +977,6 @@ namespace mamba::fs
     {
         std::filesystem::current_path(path, std::forward<OtherArgs>(args)...);
     }
-
 
     // bool equivalent(const path& p1, const path& p2);
     // bool equivalent(const path& p1, const path& p2, error_code& ec) noexcept;

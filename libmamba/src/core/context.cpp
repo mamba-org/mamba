@@ -294,7 +294,6 @@ namespace mamba
         m_authentication_infos_loaded = true;
     }
 
-
     std::string env_name(const Context& context, const fs::u8path& prefix)
     {
         if (prefix.empty())
@@ -320,7 +319,6 @@ namespace mamba
     {
         return env_name(context, context.prefix_params.target_prefix);
     }
-
 
     void Context::debug_print() const
     {

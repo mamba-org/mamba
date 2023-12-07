@@ -353,6 +353,7 @@ namespace mamba
             }
         }
     }
+
     EnvironmentTransform Activator::build_reactivate()
     {
         std::string conda_prefix;
@@ -910,7 +911,6 @@ namespace mamba
         return { "prompt", conda_prompt_modifier + prompt };
     }
 
-
     std::string CshActivator::shell_extension()
     {
         return ".csh";
@@ -935,7 +935,6 @@ namespace mamba
     {
         return m_context.prefix_params.root_prefix / "etc" / "profile.d" / "micromamba.csh";
     }
-
 
     std::string CmdExeActivator::shell_extension()
     {

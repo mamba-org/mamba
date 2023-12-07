@@ -15,7 +15,6 @@
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
 
-
 std::string
 read_stdin()
 {

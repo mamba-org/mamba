@@ -91,6 +91,7 @@ namespace
         {
             fs::create_directories(path);
         }
+
         ~dir_guard()
         {
             fs::remove_all(path);
@@ -109,7 +110,6 @@ namespace
         pkg.build_string = "bld";
         return pkg;
     }
-
 
     /**
      * Create the repodata.json file containing the package information.

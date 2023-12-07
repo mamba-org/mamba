@@ -13,7 +13,6 @@
 
 using namespace mamba::util;
 
-
 TEST_SUITE("util::compare")
 {
     TEST_CASE("equal")

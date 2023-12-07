@@ -32,12 +32,14 @@ namespace mamba::util
 
         using branch_type = Branch;
         using leaf_type = Leaf;
+
         struct branch_node
         {
             branch_type data;
             std::size_t left_child = 0;
             std::size_t right_child = 0;
         };
+
         using leaf_node = leaf_type;
         using node_type = std::variant<branch_node, leaf_node>;
         using node_list = std::vector<node_type>;

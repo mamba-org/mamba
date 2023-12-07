@@ -112,6 +112,7 @@ namespace mamba
             : Activator(context)
         {
         }
+
         virtual ~PosixActivator() = default;
 
         std::string script(const EnvironmentTransform& env_transform) override;
@@ -133,6 +134,7 @@ namespace mamba
             : Activator(context)
         {
         }
+
         virtual ~CshActivator() = default;
 
         std::string script(const EnvironmentTransform& env_transform) override;
@@ -154,6 +156,7 @@ namespace mamba
             : Activator(context)
         {
         }
+
         virtual ~CmdExeActivator() = default;
 
         std::string script(const EnvironmentTransform& env_transform) override;
@@ -175,6 +178,7 @@ namespace mamba
             : Activator(context)
         {
         }
+
         virtual ~PowerShellActivator() = default;
 
         std::string script(const EnvironmentTransform& env_transform) override;
@@ -196,6 +200,7 @@ namespace mamba
             : Activator(context)
         {
         }
+
         virtual ~XonshActivator() = default;
 
         std::string script(const EnvironmentTransform& env_transform) override;
@@ -217,6 +222,7 @@ namespace mamba
             : Activator(context)
         {
         }
+
         virtual ~FishActivator() = default;
 
         std::string script(const EnvironmentTransform& env_transform) override;
@@ -238,6 +244,7 @@ namespace mamba
             : Activator(context)
         {
         }
+
         virtual ~NuActivator() = default;
 
         std::string script(const EnvironmentTransform& env_transform) override;

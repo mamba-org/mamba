@@ -13,7 +13,6 @@
 
 using namespace mamba::util;
 
-
 TEST_SUITE("util::tuple_hash")
 {
     TEST_CASE("hash_tuple")

@@ -91,7 +91,6 @@ namespace mamba::specs
         return (url() / platform);
     }
 
-
     auto Channel::platforms() const -> const platform_list&
     {
         return m_platforms;
@@ -384,7 +383,6 @@ namespace mamba::specs
             return { resolve_name_from_alias(std::move(spec), params) };
         }
     }
-
 
     auto Channel::resolve(ChannelSpec spec, ChannelResolveParamsView params) -> channel_list
     {

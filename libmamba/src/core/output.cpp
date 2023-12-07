@@ -312,12 +312,10 @@ namespace mamba
         clear_singleton();
     }
 
-
     const Context& Console::context() const
     {
         return p_data->m_context;
     }
-
 
     ConsoleStream Console::stream()
     {

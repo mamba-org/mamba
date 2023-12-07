@@ -6,7 +6,6 @@
 
 #include "mamba/version.hpp"
 
-
 namespace mamba
 {
     std::string version()

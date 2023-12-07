@@ -660,6 +660,7 @@ namespace mamba::validation::v0_6
             throw index_error();
         }
     }
+
     void
     PkgMgrRole::verify_package(const nlohmann::json& signed_data, const nlohmann::json& signatures) const
     {

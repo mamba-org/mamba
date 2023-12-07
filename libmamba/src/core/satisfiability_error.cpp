@@ -272,11 +272,13 @@ namespace mamba
         struct has_name : std::false_type
         {
         };
+
         template <class T>
         struct has_name<T, std::void_t<decltype(std::invoke(&T::name, std::declval<T>()))>>
             : std::true_type
         {
         };
+
         template <typename T>
         inline constexpr bool has_name_v = has_name<T>::value;
 
@@ -1103,7 +1105,6 @@ namespace mamba
             ongoing.status = out_status.second;
             return out_status;
         }
-
 
         auto TreeDFS::visit_node_impl(node_id id, const TreeNode& ongoing, TreeNodeIter out)
             -> std::pair<TreeNodeIter, Status>

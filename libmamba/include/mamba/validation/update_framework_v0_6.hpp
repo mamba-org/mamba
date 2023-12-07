@@ -39,7 +39,6 @@ namespace mamba::validation::v0_6
         [[nodiscard]] auto upgradable() const -> bool override;
     };
 
-
     class V06RoleBaseExtension
     {
     public:
@@ -153,7 +152,6 @@ namespace mamba::validation::v0_6
 
         void set_defined_roles(std::map<std::string, RolePubKeys> keys);
     };
-
 
     /**
      * The Update Framework 'pkg_mgr' role implementation.

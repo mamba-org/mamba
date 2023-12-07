@@ -56,7 +56,6 @@ namespace mamba
             }
         };
 
-
         TEST_SUITE("LockDirTest")
         {
             TEST_CASE_FIXTURE(LockDirTest, "basics")

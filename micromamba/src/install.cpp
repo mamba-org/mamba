@@ -6,7 +6,6 @@
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
-
 void
 set_install_command(CLI::App* subcom, Configuration& config)
 {

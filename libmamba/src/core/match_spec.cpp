@@ -41,14 +41,14 @@ namespace mamba
         parse(ctx, channel_context);
     }
 
-    std::tuple<std::string, std::string> MatchSpec::parse_version_and_build(const std::string& s)
+    std::tuple<std::string, std::string> MatchSpec::parse_version_and_build(std::string_view s)
     {
-        std::size_t pos = s.find_last_of(" =");
+        std::size_t const pos = s.find_last_of(" =");
         if (pos == s.npos || pos == 0)
         {
-            std::string tmp = s;
+            std::string tmp = std::string(s);
             util::replace_all(tmp, " ", "");
-            return { tmp, "" };
+            return { std::move(tmp), "" };
         }
         else
         {
@@ -59,17 +59,18 @@ namespace mamba
                 char d = s[pm1];
                 if (d == '=' || d == '!' || d == '|' || d == ',' || d == '<' || d == '>' || d == '~')
                 {
-                    std::string tmp = s;
+                    auto tmp = std::string(s);
                     util::replace_all(tmp, " ", "");
                     return { tmp, "" };
                 }
             }
             // c is either ' ' or pm1 is none of the forbidden chars
 
-            std::string v = s.substr(0, pos), b = s.substr(pos + 1);
+            auto v = std::string(s.substr(0, pos));
+            auto b = std::string(s.substr(pos + 1));
             util::replace_all(v, " ", "");
             util::replace_all(b, " ", "");
-            return { v, b };
+            return { std::move(v), std::move(b) };
         }
     }
 
@@ -124,7 +125,7 @@ namespace mamba
 
         auto extract_kv = [&spec_str](const std::string& kv_string, auto& map)
         {
-            static std::regex kv_re("([a-zA-Z0-9_-]+?)=([\"\']?)([^\'\"]*?)(\\2)(?:[\'\", ]|$)");
+            static const std::regex kv_re("([a-zA-Z0-9_-]+?)=([\"\']?)([^\'\"]*?)(\\2)(?:[\'\", ]|$)");
             std::cmatch kv_match;
             const char* text_iter = kv_string.c_str();
 

@@ -214,6 +214,22 @@ namespace mamba
         return { std::move(params), has_zst };
     }
 
+    auto ChannelContext::make_channel(specs::ChannelSpec spec) -> const channel_list&
+    {
+        auto str = spec.str();
+        if (const auto it = m_channel_cache.find(str); it != m_channel_cache.end())
+        {
+            return it->second;
+        }
+
+        auto [it, inserted] = m_channel_cache.emplace(
+            std::move(str),
+            Channel::resolve(std::move(spec), params())
+        );
+        assert(inserted);
+        return it->second;
+    }
+
     auto ChannelContext::make_channel(std::string_view name) -> const channel_list&
     {
         if (const auto it = m_channel_cache.find(std::string(name)); it != m_channel_cache.end())

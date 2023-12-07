@@ -163,7 +163,7 @@ namespace mamba::specs
         if (m_type == Type::Unknown)
         {
             m_location = unknown_channel;
-            m_platform_filters = {};
+            // Allowing in any platform filters for unkown type can be useful in MatchSpec
         }
         if (m_location.empty())
         {
@@ -208,4 +208,21 @@ namespace mamba::specs
     {
         return std::exchange(m_platform_filters, {});
     }
+
+    auto ChannelSpec::str() const -> std::string
+    {
+        return fmt::format("{}", *this);
+    }
+}
+
+auto
+fmt::formatter<mamba::specs::ChannelSpec>::format(const ChannelSpec& spec, format_context& ctx) const
+    -> format_context::iterator
+{
+    auto out = fmt::format_to(ctx.out(), "{}", spec.location());
+    if (!spec.platform_filters().empty())
+    {
+        out = fmt::format_to(ctx.out(), "[{}]", fmt::join(spec.platform_filters(), ","));
+    }
+    return out;
 }

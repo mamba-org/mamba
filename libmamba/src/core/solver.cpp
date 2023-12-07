@@ -96,36 +96,38 @@ namespace mamba
             return m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, m_pool.matchspec2id(ms));
         }
 
-        if (!ms.channel.empty() || !ms.version.empty() || !ms.build_string.empty())
+        if (ms.channel.has_value() || !ms.version.empty() || !ms.build_string.empty())
         {
             Console::stream() << ms.conda_build_form()
                               << ": overriding channel, version and build from "
                                  "installed packages due to --force-reinstall.";
-            ms.channel = "";
+            ms.channel = std::nullopt;
             ms.version = "";
             ms.build_string = "";
         }
 
         MatchSpec modified_spec(ms);
-        {
-            auto channels = m_pool.channel_context().make_channel(std::string(solvable->channel()));
-            if (channels.size() == 1)
-            {
-                modified_spec.channel = channels.front().display_name();
-            }
-            else
-            {
-                // If there is more than one, it's a custom_multi_channel name.
-                // This should never happen.
-                modified_spec.channel = solvable->channel();
-            }
-        }
+        modified_spec.channel = specs::ChannelSpec::parse(solvable->channel());
+        // {
+        //     auto channels =
+        //     m_pool.channel_context().make_channel(std::string(solvable->channel())); if
+        //     (channels.size() == 1)
+        //     {
+        //         modified_spec.channel = channels.front().display_name();
+        //     }
+        //     else
+        //     {
+        //         // If there is more than one, it's a custom_multi_channel name.
+        //         // This should never happen.
+        //         modified_spec.channel = solvable->channel();
+        //     }
+        // }
 
         modified_spec.version = solvable->version();
         modified_spec.build_string = solvable->build_string();
 
         LOG_INFO << "Reinstall " << modified_spec.conda_build_form() << " from channel "
-                 << modified_spec.channel;
+                 << modified_spec.channel->str();
         // TODO Fragile! The only reason why this works is that with a channel specific matchspec
         // the job will always be reinstalled.
         m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, m_pool.matchspec2id(modified_spec));

@@ -38,9 +38,9 @@ namespace mamba
         // add channels from specs
         for (const auto& s : update_specs)
         {
-            if (auto m = MatchSpec{ s, ctx, channel_context }; !m.channel.empty())
+            if (auto m = MatchSpec{ s, ctx, channel_context }; m.channel.has_value())
             {
-                ctx.channels.push_back(m.channel);
+                ctx.channels.push_back(m.channel->str());
             }
         }
 

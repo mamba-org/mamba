@@ -22,7 +22,6 @@ extern "C"  // Incomplete header
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
-#include "mamba/util/string.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
 
@@ -183,8 +182,9 @@ namespace mamba
             const MatchSpec& ms
         ) -> solv::DependencyId
         {
+            assert(ms.channel.has_value());
             // Poor man's ms repr to match waht the user provided
-            const std::string repr = fmt::format("{}::{}", ms.channel, ms.conda_build_form());
+            const std::string repr = fmt::format("{}::{}", *ms.channel, ms.conda_build_form());
 
             // Already added, return that id
             if (const auto maybe_id = pool.find_string(repr))
@@ -204,21 +204,13 @@ namespace mamba
                 match,
                 [&](solv::ObjSolvableViewConst s)
                 {
+                    assert(ms.channel.has_value());
                     // TODO this does not work with s.url(), we need to proper channel class
                     // to properly manage this.
                     auto repo = solv::ObjRepoView(*s.raw()->repo);
-                    // TODO Replace MatchSpec channel and subdir with a ChannelSpec
-                    const auto chan_spec = [&]() -> std::string
-                    {
-                        if (ms.subdir.empty())
-                        {
-                            return ms.channel;
-                        }
-                        return util::concat(ms.channel, '[', ms.subdir, ']');
-                    }();
                     const auto match = channel_match(
                         channel_context.make_channel(repo.url()),
-                        channel_context.make_channel(chan_spec)
+                        channel_context.make_channel(*ms.channel)
                     );
                     switch (match)
                     {
@@ -259,7 +251,7 @@ namespace mamba
     ::Id MPool::matchspec2id(const MatchSpec& ms)
     {
         ::Id id = 0;
-        if (ms.channel.empty())
+        if (!ms.channel.has_value())
         {
             id = pool_conda_matchspec(pool().raw(), ms.conda_build_form().c_str());
         }

@@ -15,6 +15,8 @@ using namespace mamba;
 
 TEST_SUITE("MatchSpec")
 {
+    using PlatformSet = typename util::flat_set<std::string>;
+
     TEST_CASE("parse_version_build")
     {
         std::string v, b;
@@ -100,17 +102,20 @@ TEST_SUITE("MatchSpec")
             CHECK_EQ(ms.str(), "numpy[version='1.7|1.8']");
         }
         {
-            MatchSpec ms("conda-forge/linux64::xtensor==0.12.3", ctx, channel_context);
+            MatchSpec ms("conda-forge/linux-64::xtensor==0.12.3", ctx, channel_context);
             CHECK_EQ(ms.version, "0.12.3");
             CHECK_EQ(ms.name, "xtensor");
-            CHECK_EQ(ms.channel, "conda-forge/linux64");
+            REQUIRE(ms.channel.has_value());
+            CHECK_EQ(ms.channel->location(), "conda-forge");
+            CHECK_EQ(ms.channel->platform_filters(), PlatformSet{ "linux-64" });
             CHECK_EQ(ms.optional, false);
         }
         {
             MatchSpec ms("conda-forge::foo[build=3](target=blarg,optional)", ctx, channel_context);
             CHECK_EQ(ms.version, "");
             CHECK_EQ(ms.name, "foo");
-            CHECK_EQ(ms.channel, "conda-forge");
+            REQUIRE(ms.channel.has_value());
+            CHECK_EQ(ms.channel->location(), "conda-forge");
             CHECK_EQ(ms.brackets["build"], "3");
             CHECK_EQ(ms.parens["target"], "blarg");
             CHECK_EQ(ms.optional, true);
@@ -159,10 +164,7 @@ TEST_SUITE("MatchSpec")
                     + ":/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
             );
 #else
-            CHECK_EQ(
-                ms.url,
-                "file:///home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
-            );
+            CHECK_EQ(ms.url, "/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2");
 #endif
             CHECK_EQ(ms.fn, "_libgcc_mutex-0.1-conda_forge.tar.bz2");
         }
@@ -236,15 +238,15 @@ TEST_SUITE("MatchSpec")
         }
         {
             MatchSpec ms("pkgs/main/noarch::tzdata", ctx, channel_context);
-            CHECK_EQ(ms.str(), "pkgs/main/noarch::tzdata");
+            CHECK_EQ(ms.str(), "pkgs/main[noarch]::tzdata");
         }
         {
-            MatchSpec ms("conda-forge/noarch::tzdata[subdir=linux64]", ctx, channel_context);
-            CHECK_EQ(ms.str(), "conda-forge/noarch::tzdata");
+            MatchSpec ms("conda-forge[noarch]::tzdata[subdir=linux64]", ctx, channel_context);
+            CHECK_EQ(ms.str(), "conda-forge[noarch]::tzdata");
         }
         {
-            MatchSpec ms("conda-forge::tzdata[subdir=linux64]", ctx, channel_context);
-            CHECK_EQ(ms.str(), "conda-forge/linux64::tzdata");
+            MatchSpec ms("conda-forge::tzdata[subdir=mamba-37]", ctx, channel_context);
+            CHECK_EQ(ms.str(), "conda-forge[mamba-37]::tzdata");
         }
     }
 

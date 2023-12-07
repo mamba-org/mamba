@@ -362,7 +362,16 @@ namespace mamba
                 p.url = ms.url;
                 p.build_string = ms.build_string;
                 p.version = ms.version;
-                p.channel = ms.channel;
+                if (ms.channel.has_value())
+                {
+                    p.channel = ms.channel->location();
+                    if (!ms.channel->platform_filters().empty())
+                    {
+                        // There must be only one since we are expecting URLs
+                        assert(ms.channel->platform_filters().size() == 1);
+                        p.subdir = ms.channel->platform_filters().front();
+                    }
+                }
                 p.fn = ms.fn;
 
                 if (hash != std::string::npos)
@@ -470,9 +479,9 @@ namespace mamba
         // add channels from specs
         for (const auto& s : specs)
         {
-            if (auto m = MatchSpec{ s, ctx, channel_context }; !m.channel.empty())
+            if (auto m = MatchSpec{ s, ctx, channel_context }; m.channel.has_value())
             {
-                ctx.channels.push_back(m.channel);
+                ctx.channels.push_back(m.channel->str());
             }
         }
 

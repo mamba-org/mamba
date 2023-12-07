@@ -7,10 +7,13 @@
 #ifndef MAMBA_CORE_MATCH_SPEC
 #define MAMBA_CORE_MATCH_SPEC
 
+#include <optional>
 #include <string>
 #include <string_view>
 #include <tuple>
 #include <unordered_map>
+
+#include "mamba/specs/channel_spec.hpp"
 
 namespace mamba
 {
@@ -34,11 +37,10 @@ namespace mamba
         static std::tuple<std::string, std::string> parse_version_and_build(std::string_view s);
         std::string spec;
 
+        std::optional<specs::ChannelSpec> channel;
         std::string name;
         std::string version;
-        std::string channel;
         std::string ns;
-        std::string subdir;
         std::string build_string;
         std::string fn;
         std::string url;

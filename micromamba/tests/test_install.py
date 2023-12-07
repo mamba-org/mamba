@@ -266,15 +266,11 @@ class TestInstall:
 
             cmd += ["-f", file]
 
-        if type == "yaml":
-            with pytest.raises(subprocess.CalledProcessError):
-                helpers.install(*cmd, "--print-config-only")
-        else:
-            res = helpers.install(*cmd, "--print-config-only")
-            if type == "classic":
-                assert res["specs"] == specs
-            else:  # explicit
-                assert res["specs"] == [explicit_specs[0]]
+        res = helpers.install(*cmd, "--print-config-only")
+        if type == "yaml" or type == "classic":
+            assert res["specs"] == specs
+        else:  # explicit
+            assert res["specs"] == [explicit_specs[0]]
 
     @pytest.mark.parametrize("priority", (None, "disabled", "flexible", "strict"))
     @pytest.mark.parametrize("no_priority", (None, True))

@@ -10,7 +10,6 @@
 #include <doctest/doctest.h>
 
 #include "mamba/fs/filesystem.hpp"
-#include "mamba/specs/platform.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
@@ -20,83 +19,6 @@ using namespace mamba::util;
 
 TEST_SUITE("util::url_manip")
 {
-    TEST_CASE("split_platform")
-    {
-        std::string platform_found, cleaned_url;
-        split_platform(
-            { "noarch", "linux-64" },
-            "https://mamba.com/linux-64/package.tar.bz2",
-            std::string(mamba::specs::build_platform_name()),
-            cleaned_url,
-            platform_found
-        );
-
-        CHECK_EQ(platform_found, "linux-64");
-        CHECK_EQ(cleaned_url, "https://mamba.com/package.tar.bz2");
-
-        split_platform(
-            { "noarch", "linux-64" },
-            "https://mamba.com/linux-64/noarch-package.tar.bz2",
-            std::string(mamba::specs::build_platform_name()),
-            cleaned_url,
-            platform_found
-        );
-        CHECK_EQ(platform_found, "linux-64");
-        CHECK_EQ(cleaned_url, "https://mamba.com/noarch-package.tar.bz2");
-
-        split_platform(
-            { "linux-64", "osx-arm64", "noarch" },
-            "https://mamba.com/noarch/kernel_linux-64-package.tar.bz2",
-            std::string(mamba::specs::build_platform_name()),
-            cleaned_url,
-            platform_found
-        );
-        CHECK_EQ(platform_found, "noarch");
-        CHECK_EQ(cleaned_url, "https://mamba.com/kernel_linux-64-package.tar.bz2");
-
-        split_platform(
-            { "noarch", "linux-64" },
-            "https://mamba.com/linux-64",
-            std::string(mamba::specs::build_platform_name()),
-            cleaned_url,
-            platform_found
-        );
-
-        CHECK_EQ(platform_found, "linux-64");
-        CHECK_EQ(cleaned_url, "https://mamba.com");
-
-        split_platform(
-            { "noarch", "linux-64" },
-            "https://mamba.com/noarch",
-            std::string(mamba::specs::build_platform_name()),
-            cleaned_url,
-            platform_found
-        );
-
-        CHECK_EQ(platform_found, "noarch");
-        CHECK_EQ(cleaned_url, "https://mamba.com");
-
-        split_platform(
-            { "noarch", "linux-64" },
-            "https://conda.anaconda.org/conda-forge/noarch",
-            std::string(mamba::specs::build_platform_name()),
-            cleaned_url,
-            platform_found
-        );
-        CHECK_EQ(platform_found, "noarch");
-        CHECK_EQ(cleaned_url, "https://conda.anaconda.org/conda-forge");
-
-        split_platform(
-            { "noarch", "linux-64" },
-            "https://conda.anaconda.org/pkgs/main/noarch",
-            std::string(mamba::specs::build_platform_name()),
-            cleaned_url,
-            platform_found
-        );
-        CHECK_EQ(platform_found, "noarch");
-        CHECK_EQ(cleaned_url, "https://conda.anaconda.org/pkgs/main");
-    }
-
     TEST_CASE("abs_path_to_url")
     {
         SUBCASE("/users/test/miniconda3")

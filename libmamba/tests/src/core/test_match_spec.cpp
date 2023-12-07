@@ -65,34 +65,34 @@ TEST_SUITE("MatchSpec")
     TEST_CASE("parse")
     {
         {
-            MatchSpec ms("xtensor==0.12.3");
+            auto ms = MatchSpec::parse("xtensor==0.12.3");
             CHECK_EQ(ms.version, "0.12.3");
             CHECK_EQ(ms.name, "xtensor");
         }
         {
-            MatchSpec ms("");
+            auto ms = MatchSpec::parse("");
             CHECK_EQ(ms.version, "");
             CHECK_EQ(ms.name, "");
         }
         {
-            MatchSpec ms("ipykernel");
+            auto ms = MatchSpec::parse("ipykernel");
             CHECK_EQ(ms.version, "");
             CHECK_EQ(ms.name, "ipykernel");
         }
         {
-            MatchSpec ms("ipykernel ");
+            auto ms = MatchSpec::parse("ipykernel ");
             CHECK_EQ(ms.version, "");
             CHECK_EQ(ms.name, "ipykernel");
         }
         {
-            MatchSpec ms("numpy 1.7*");
+            auto ms = MatchSpec::parse("numpy 1.7*");
             CHECK_EQ(ms.version, "1.7*");
             CHECK_EQ(ms.name, "numpy");
             CHECK_EQ(ms.conda_build_form(), "numpy 1.7*");
             CHECK_EQ(ms.str(), "numpy=1.7");
         }
         {
-            MatchSpec ms("numpy[version='1.7|1.8']");
+            auto ms = MatchSpec::parse("numpy[version='1.7|1.8']");
             // TODO!
             // CHECK_EQ(ms.version, "1.7|1.8");
             CHECK_EQ(ms.name, "numpy");
@@ -100,7 +100,7 @@ TEST_SUITE("MatchSpec")
             CHECK_EQ(ms.str(), "numpy[version='1.7|1.8']");
         }
         {
-            MatchSpec ms("conda-forge/linux-64::xtensor==0.12.3");
+            auto ms = MatchSpec::parse("conda-forge/linux-64::xtensor==0.12.3");
             CHECK_EQ(ms.version, "0.12.3");
             CHECK_EQ(ms.name, "xtensor");
             REQUIRE(ms.channel.has_value());
@@ -109,7 +109,7 @@ TEST_SUITE("MatchSpec")
             CHECK_EQ(ms.optional, false);
         }
         {
-            MatchSpec ms("conda-forge::foo[build=3](target=blarg,optional)");
+            auto ms = MatchSpec::parse("conda-forge::foo[build=3](target=blarg,optional)");
             CHECK_EQ(ms.version, "");
             CHECK_EQ(ms.name, "foo");
             REQUIRE(ms.channel.has_value());
@@ -119,19 +119,19 @@ TEST_SUITE("MatchSpec")
             CHECK_EQ(ms.optional, true);
         }
         {
-            MatchSpec ms("python[build_number=3]");
+            auto ms = MatchSpec::parse("python[build_number=3]");
             CHECK_EQ(ms.name, "python");
             CHECK_EQ(ms.brackets["build_number"], "3");
             CHECK_EQ(ms.build_number, "3");
         }
         {
-            MatchSpec ms("python[build_number='<=3']");
+            auto ms = MatchSpec::parse("python[build_number='<=3']");
             CHECK_EQ(ms.name, "python");
             CHECK_EQ(ms.brackets["build_number"], "<=3");
             CHECK_EQ(ms.build_number, "<=3");
         }
         {
-            MatchSpec ms(
+            auto ms = MatchSpec::parse(
                 "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
             );
             CHECK_EQ(ms.name, "_libgcc_mutex");
@@ -144,7 +144,9 @@ TEST_SUITE("MatchSpec")
             CHECK_EQ(ms.fn, "_libgcc_mutex-0.1-conda_forge.tar.bz2");
         }
         {
-            MatchSpec ms("/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2");
+            auto ms = MatchSpec::parse(
+                "/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
+            );
             CHECK_EQ(ms.name, "_libgcc_mutex");
             CHECK_EQ(ms.version, "0.1");
             CHECK_EQ(ms.build_string, "conda_forge");
@@ -171,7 +173,8 @@ TEST_SUITE("MatchSpec")
             CHECK_EQ(ms.fn, "_libgcc_mutex-0.1-conda_forge.tar.bz2");
         }
         {
-            MatchSpec ms("xtensor[url=file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2]"
+            auto ms = MatchSpec::parse(
+                "xtensor[url=file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2]"
             );
             CHECK_EQ(ms.name, "xtensor");
             CHECK_EQ(
@@ -181,62 +184,64 @@ TEST_SUITE("MatchSpec")
             CHECK_EQ(ms.url, "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2");
         }
         {
-            MatchSpec ms("foo=1.0=2");
+            auto ms = MatchSpec::parse("foo=1.0=2");
             CHECK_EQ(ms.conda_build_form(), "foo 1.0 2");
             CHECK_EQ(ms.str(), "foo==1.0=2");
         }
         {
-            MatchSpec ms("foo=1.0=2[md5=123123123, license=BSD-3, fn='test 123.tar.bz2']");
+            auto ms = MatchSpec::parse("foo=1.0=2[md5=123123123, license=BSD-3, fn='test 123.tar.bz2']"
+            );
             CHECK_EQ(ms.conda_build_form(), "foo 1.0 2");
             CHECK_EQ(ms.str(), "foo==1.0=2[md5=123123123,license=BSD-3,fn='test 123.tar.bz2']");
         }
         {
-            MatchSpec ms("foo=1.0=2[md5=123123123, license=BSD-3, fn='test 123.tar.bz2', url='abcdef']"
+            auto ms = MatchSpec::parse(
+                "foo=1.0=2[md5=123123123, license=BSD-3, fn='test 123.tar.bz2', url='abcdef']"
             );
             CHECK_EQ(ms.conda_build_form(), "foo 1.0 2");
             CHECK_EQ(ms.str(), "foo==1.0=2[url=abcdef,md5=123123123,license=BSD-3]");
         }
         {
-            MatchSpec ms("libblas=*=*mkl");
+            auto ms = MatchSpec::parse("libblas=*=*mkl");
             CHECK_EQ(ms.conda_build_form(), "libblas * *mkl");
             // CHECK_EQ(ms.str(), "foo==1.0=2");
         }
         {
-            MatchSpec ms("libblas=0.15*");
+            auto ms = MatchSpec::parse("libblas=0.15*");
             CHECK_EQ(ms.conda_build_form(), "libblas 0.15*");
         }
         {
-            MatchSpec ms("xtensor =0.15*");
+            auto ms = MatchSpec::parse("xtensor =0.15*");
             CHECK_EQ(ms.conda_build_form(), "xtensor 0.15*");
             CHECK_EQ(ms.str(), "xtensor=0.15");
         }
         {
-            MatchSpec ms("numpy=1.20");
+            auto ms = MatchSpec::parse("numpy=1.20");
             CHECK_EQ(ms.str(), "numpy=1.20");
         }
 
         {
-            MatchSpec ms("conda-forge::tzdata");
+            auto ms = MatchSpec::parse("conda-forge::tzdata");
             CHECK_EQ(ms.str(), "conda-forge::tzdata");
         }
         {
-            MatchSpec ms("conda-forge::noarch/tzdata");
+            auto ms = MatchSpec::parse("conda-forge::noarch/tzdata");
             CHECK_EQ(ms.str(), "conda-forge::noarch/tzdata");
         }
         {
-            MatchSpec ms("pkgs/main::tzdata");
+            auto ms = MatchSpec::parse("pkgs/main::tzdata");
             CHECK_EQ(ms.str(), "pkgs/main::tzdata");
         }
         {
-            MatchSpec ms("pkgs/main/noarch::tzdata");
+            auto ms = MatchSpec::parse("pkgs/main/noarch::tzdata");
             CHECK_EQ(ms.str(), "pkgs/main[noarch]::tzdata");
         }
         {
-            MatchSpec ms("conda-forge[noarch]::tzdata[subdir=linux64]");
+            auto ms = MatchSpec::parse("conda-forge[noarch]::tzdata[subdir=linux64]");
             CHECK_EQ(ms.str(), "conda-forge[noarch]::tzdata");
         }
         {
-            MatchSpec ms("conda-forge::tzdata[subdir=mamba-37]");
+            auto ms = MatchSpec::parse("conda-forge::tzdata[subdir=mamba-37]");
             CHECK_EQ(ms.str(), "conda-forge[mamba-37]::tzdata");
         }
     }
@@ -244,23 +249,23 @@ TEST_SUITE("MatchSpec")
     TEST_CASE("is_simple")
     {
         {
-            MatchSpec ms("libblas");
+            auto ms = MatchSpec::parse("libblas");
             CHECK(ms.is_simple());
         }
         {
-            MatchSpec ms("libblas=12.9=abcdef");
+            auto ms = MatchSpec::parse("libblas=12.9=abcdef");
             CHECK_FALSE(ms.is_simple());
         }
         {
-            MatchSpec ms("libblas=0.15*");
+            auto ms = MatchSpec::parse("libblas=0.15*");
             CHECK_FALSE(ms.is_simple());
         }
         {
-            MatchSpec ms("libblas[version=12.2]");
+            auto ms = MatchSpec::parse("libblas[version=12.2]");
             CHECK_FALSE(ms.is_simple());
         }
         {
-            MatchSpec ms("xtensor =0.15*");
+            auto ms = MatchSpec::parse("xtensor =0.15*");
             CHECK_FALSE(ms.is_simple());
         }
     }

@@ -20,13 +20,7 @@ namespace mamba
     {
         TEST_CASE("absent_file_fails")
         {
-            auto& ctx = mambatests::context();
-            auto channel_context = ChannelContext::make_conda_compatible(ctx);
-            const auto maybe_lockfile = read_environment_lockfile(
-                ctx,
-                channel_context,
-                "this/file/does/not/exists"
-            );
+            const auto maybe_lockfile = read_environment_lockfile("this/file/does/not/exists");
             REQUIRE_FALSE(maybe_lockfile);
             const auto error = maybe_lockfile.error();
             REQUIRE_EQ(mamba_error_code::env_lockfile_parsing_failed, error.error_code());
@@ -45,15 +39,9 @@ namespace mamba
 
         TEST_CASE("invalid_version_fails")
         {
-            auto& ctx = mambatests::context();
-            auto channel_context = ChannelContext::make_conda_compatible(ctx);
             const fs::u8path invalid_version_lockfile_path{ mambatests::test_data_dir
                                                             / "env_lockfile/bad_version-lock.yaml" };
-            const auto maybe_lockfile = read_environment_lockfile(
-                ctx,
-                channel_context,
-                invalid_version_lockfile_path
-            );
+            const auto maybe_lockfile = read_environment_lockfile(invalid_version_lockfile_path);
             REQUIRE_FALSE(maybe_lockfile);
             const auto error = maybe_lockfile.error();
             REQUIRE_EQ(mamba_error_code::env_lockfile_parsing_failed, error.error_code());
@@ -63,11 +51,9 @@ namespace mamba
 
         TEST_CASE("valid_no_package_succeed")
         {
-            auto& ctx = mambatests::context();
-            auto channel_context = ChannelContext::make_conda_compatible(ctx);
             const fs::u8path lockfile_path{ mambatests::test_data_dir
                                             / "env_lockfile/good_no_package-lock.yaml" };
-            const auto maybe_lockfile = read_environment_lockfile(ctx, channel_context, lockfile_path);
+            const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
             REQUIRE_MESSAGE(maybe_lockfile, maybe_lockfile.error().what());
             const auto lockfile = maybe_lockfile.value();
             CHECK(lockfile.get_all_packages().empty());
@@ -75,11 +61,9 @@ namespace mamba
 
         TEST_CASE("invalid_package_fails")
         {
-            auto& ctx = mambatests::context();
-            auto channel_context = ChannelContext::make_conda_compatible(ctx);
             const fs::u8path lockfile_path{ mambatests::test_data_dir
                                             / "env_lockfile/bad_package-lock.yaml" };
-            const auto maybe_lockfile = read_environment_lockfile(ctx, channel_context, lockfile_path);
+            const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
             REQUIRE_FALSE(maybe_lockfile);
             const auto error = maybe_lockfile.error();
             REQUIRE_EQ(mamba_error_code::env_lockfile_parsing_failed, error.error_code());
@@ -89,11 +73,9 @@ namespace mamba
 
         TEST_CASE("valid_one_package_succeed")
         {
-            auto& ctx = mambatests::context();
-            auto channel_context = ChannelContext::make_conda_compatible(ctx);
             const fs::u8path lockfile_path{ mambatests::test_data_dir
                                             / "env_lockfile/good_one_package-lock.yaml" };
-            const auto maybe_lockfile = read_environment_lockfile(ctx, channel_context, lockfile_path);
+            const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
             REQUIRE_MESSAGE(maybe_lockfile, maybe_lockfile.error().what());
             const auto lockfile = maybe_lockfile.value();
             CHECK_EQ(lockfile.get_all_packages().size(), 1);
@@ -101,12 +83,10 @@ namespace mamba
 
         TEST_CASE("valid_one_package_implicit_category")
         {
-            auto& ctx = mambatests::context();
-            auto channel_context = ChannelContext::make_conda_compatible(ctx);
             const fs::u8path lockfile_path{
                 mambatests::test_data_dir / "env_lockfile/good_one_package_missing_category-lock.yaml"
             };
-            const auto maybe_lockfile = read_environment_lockfile(ctx, channel_context, lockfile_path);
+            const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
             REQUIRE_MESSAGE(maybe_lockfile, maybe_lockfile.error().what());
             const auto lockfile = maybe_lockfile.value();
             CHECK_EQ(lockfile.get_all_packages().size(), 1);
@@ -114,11 +94,9 @@ namespace mamba
 
         TEST_CASE("valid_multiple_packages_succeed")
         {
-            auto& ctx = mambatests::context();
-            auto channel_context = ChannelContext::make_conda_compatible(ctx);
             const fs::u8path lockfile_path{ mambatests::test_data_dir
                                             / "env_lockfile/good_multiple_packages-lock.yaml" };
-            const auto maybe_lockfile = read_environment_lockfile(ctx, channel_context, lockfile_path);
+            const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
             REQUIRE_MESSAGE(maybe_lockfile, maybe_lockfile.error().what());
             const auto lockfile = maybe_lockfile.value();
             CHECK_GT(lockfile.get_all_packages().size(), 1);
@@ -126,11 +104,9 @@ namespace mamba
 
         TEST_CASE("get_specific_packages")
         {
-            auto& ctx = mambatests::context();
-            auto channel_context = ChannelContext::make_conda_compatible(ctx);
             const fs::u8path lockfile_path{ mambatests::test_data_dir
                                             / "env_lockfile/good_multiple_packages-lock.yaml" };
-            const auto lockfile = read_environment_lockfile(ctx, channel_context, lockfile_path).value();
+            const auto lockfile = read_environment_lockfile(lockfile_path).value();
             CHECK(lockfile.get_packages_for("", "", "").empty());
             {
                 const auto packages = lockfile.get_packages_for("main", "linux-64", "conda");

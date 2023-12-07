@@ -6,6 +6,7 @@
 
 #include <regex>
 
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/history.hpp"
@@ -190,7 +191,7 @@ namespace mamba
         return res;
     }
 
-    std::unordered_map<std::string, MatchSpec> History::get_requested_specs_map(const Context& ctx)
+    std::unordered_map<std::string, MatchSpec> History::get_requested_specs_map()
     {
         std::unordered_map<std::string, MatchSpec> map;
 
@@ -200,7 +201,7 @@ namespace mamba
             v.reserve(sv.size());
             for (const auto& el : sv)
             {
-                v.emplace_back(el);
+                v.emplace_back(MatchSpec::parse(el));
             }
             return v;
         };

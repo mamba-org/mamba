@@ -38,7 +38,7 @@ namespace mamba
         // add channels from specs
         for (const auto& s : update_specs)
         {
-            if (auto m = MatchSpec{ s }; m.channel.has_value())
+            if (auto m = MatchSpec::parse(s); m.channel.has_value())
             {
                 ctx.channels.push_back(m.channel->str());
             }
@@ -93,7 +93,7 @@ namespace mamba
 
         if (!no_py_pin)
         {
-            auto py_pin = python_pin(ctx, channel_context, prefix_data, update_specs);
+            auto py_pin = python_pin(prefix_data, update_specs);
             if (!py_pin.empty())
             {
                 solver.add_pin(py_pin);
@@ -114,7 +114,7 @@ namespace mamba
 
         if (update_all)
         {
-            auto hist_map = prefix_data.history().get_requested_specs_map(ctx);
+            auto hist_map = prefix_data.history().get_requested_specs_map();
             std::vector<std::string> keep_specs;
             for (auto& it : hist_map)
             {
@@ -132,7 +132,7 @@ namespace mamba
         {
             if (remove_not_specified)
             {
-                auto hist_map = prefix_data.history().get_requested_specs_map(ctx);
+                auto hist_map = prefix_data.history().get_requested_specs_map();
                 std::vector<std::string> remove_specs;
                 for (auto& it : hist_map)
                 {

@@ -163,7 +163,7 @@ set_env_command(CLI::App* com, Configuration& config)
                 std::cout << "name: " << get_env_name(ctx, ctx.prefix_params.target_prefix) << "\n";
                 std::cout << "channels:\n";
 
-                auto requested_specs_map = hist.get_requested_specs_map(ctx);
+                auto requested_specs_map = hist.get_requested_specs_map();
                 std::stringstream dependencies;
                 std::set<std::string> channels;
                 for (const auto& [k, v] : versions_map)

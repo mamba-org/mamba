@@ -10,8 +10,6 @@
 
 #include <fmt/format.h>
 
-#include "mamba/core/channel_context.hpp"
-#include "mamba/core/context.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/specs/archive.hpp"
@@ -23,7 +21,7 @@ namespace mamba
 {
     namespace
     {
-        std::vector<std::string> parse_legacy_dist(std::string_view dist)
+        auto parse_legacy_dist(std::string_view dist) -> std::vector<std::string>
         {
             auto dist_str = std::string(specs::strip_archive_extension(dist));
             auto split_str = util::rsplit(dist_str, "-", 2);
@@ -36,13 +34,8 @@ namespace mamba
         }
     }
 
-    MatchSpec::MatchSpec(std::string_view i_spec)
-        : spec(i_spec)
-    {
-        parse();
-    }
-
-    std::tuple<std::string, std::string> MatchSpec::parse_version_and_build(std::string_view s)
+    auto MatchSpec::parse_version_and_build(std::string_view s)
+        -> std::tuple<std::string, std::string>
     {
         const std::size_t pos = s.find_last_of(" =");
         if (pos == s.npos || pos == 0)
@@ -75,16 +68,16 @@ namespace mamba
         }
     }
 
-    void MatchSpec::parse()
+    auto MatchSpec::parse(std::string_view spec) -> MatchSpec
     {
-        std::string spec_str = spec;
+        auto spec_str = std::string(spec);
+        auto out = MatchSpec();
         if (spec_str.empty())
         {
-            return;
+            return out;
         }
-        LOG_INFO << "Parsing MatchSpec " << spec;
-        std::size_t idx = spec_str.find('#');
-        if (idx != std::string::npos)
+
+        if (std::size_t idx = spec_str.find('#'); idx != std::string::npos)
         {
             spec_str = spec_str.substr(0, idx);
         }
@@ -92,16 +85,16 @@ namespace mamba
 
         if (specs::has_archive_extension(spec_str))
         {
-            channel = specs::ChannelSpec::parse(spec_str);
-            auto [path, pkg] = util::rsplit_once(channel->location(), '/');
+            out.channel = specs::ChannelSpec::parse(spec_str);
+            auto [path, pkg] = util::rsplit_once(out.channel->location(), '/');
             auto dist = parse_legacy_dist(pkg);
-            name = dist[0];
-            version = dist[1];
-            build_string = dist[2];
-            fn = std::string(pkg);
-            url = util::path_or_url_to_url(spec_str);
-            is_file = true;
-            return;
+            out.name = dist[0];
+            out.version = dist[1];
+            out.build_string = dist[2];
+            out.fn = std::string(pkg);
+            out.url = util::path_or_url_to_url(spec_str);
+            out.is_file = true;
+            return out;
         }
 
         auto extract_kv = [&spec_str](const std::string& kv_string, auto& map)
@@ -116,7 +109,9 @@ namespace mamba
                 auto value = kv_match[3].str();
                 if (key.size() == 0 || value.size() == 0)
                 {
-                    throw std::runtime_error("key-value mismatch in brackets " + spec_str);
+                    throw std::runtime_error(
+                        util::concat(R"(key-value mismatch in brackets ")", spec_str, '"')
+                    );
                 }
                 text_iter += kv_match.position() + kv_match.length();
                 map[key] = value;
@@ -131,7 +126,7 @@ namespace mamba
         {
             auto brackets_str = match[1].str();
             brackets_str = brackets_str.substr(1, brackets_str.size() - 2);
-            extract_kv(brackets_str, brackets);
+            extract_kv(brackets_str, out.brackets);
             spec_str.erase(
                 static_cast<std::size_t>(match.position(1)),
                 static_cast<std::size_t>(match.length(1))
@@ -144,10 +139,10 @@ namespace mamba
         {
             auto parens_str = match[1].str();
             parens_str = parens_str.substr(1, parens_str.size() - 2);
-            extract_kv(parens_str, this->parens);
+            extract_kv(parens_str, out.parens);
             if (parens_str.find("optional") != parens_str.npos)
             {
-                optional = true;
+                out.optional = true;
             }
             spec_str.erase(
                 static_cast<std::size_t>(match.position(1)),
@@ -160,13 +155,13 @@ namespace mamba
         std::string channel_str;
         if (m5_len == 3)
         {
-            channel = specs::ChannelSpec::parse(m5[0]);
-            ns = m5[1];
+            out.channel = specs::ChannelSpec::parse(m5[0]);
+            out.ns = m5[1];
             spec_str = m5[2];
         }
         else if (m5_len == 2)
         {
-            ns = m5[0];
+            out.ns = m5[0];
             spec_str = m5[1];
         }
         else if (m5_len == 1)
@@ -195,9 +190,9 @@ namespace mamba
         std::smatch vb_match;
         if (std::regex_match(spec_str, vb_match, version_build_re))
         {
-            name = vb_match[1].str();
-            version = util::strip(vb_match[2].str());
-            if (name.size() == 0)
+            out.name = vb_match[1].str();
+            out.version = util::strip(vb_match[2].str());
+            if (out.name.size() == 0)
             {
                 throw std::runtime_error("Invalid spec, no package name found: " + spec_str);
             }
@@ -209,113 +204,120 @@ namespace mamba
 
         // # Step 7. otherwise sort out version + build
         // spec_str = spec_str and spec_str.strip()
-        if (!version.empty())
+        if (!out.version.empty())
         {
-            if (version.find("[") != version.npos)
+            if (out.version.find('[') != out.version.npos)
             {
-                throw std::runtime_error(
-                    "Invalid match spec: multiple bracket sections not allowed " + spec
-                );
+                throw std::runtime_error(util::concat(
+                    R"(Invalid match spec: multiple bracket sections not allowed ")",
+                    spec,
+                    '"'
+                ));
             }
 
-            version = std::string(util::strip(version));
-            auto [pv, pb] = parse_version_and_build(std::string(util::strip(version)));
+            out.version = std::string(util::strip(out.version));
+            auto [pv, pb] = parse_version_and_build(std::string(util::strip(out.version)));
 
-            version = pv;
-            build_string = pb;
+            out.version = pv;
+            out.build_string = pb;
 
             // translate version '=1.2.3' to '1.2.3*'
             // is it a simple version starting with '='? i.e. '=1.2.3'
-            if (version.size() >= 2 && version[0] == '=')
+            if (out.version.size() >= 2 && out.version[0] == '=')
             {
-                auto rest = version.substr(1);
-                if (version[1] == '=' && build_string.empty())
+                auto rest = out.version.substr(1);
+                if (out.version[1] == '=' && out.build_string.empty())
                 {
-                    version = version.substr(2);
+                    out.version = out.version.substr(2);
                 }
                 else if (rest.find_first_of("=,|") == rest.npos)
                 {
-                    if (build_string.empty() && version.back() != '*')
+                    if (out.build_string.empty() && out.version.back() != '*')
                     {
-                        version = util::concat(version, "*");
+                        out.version = util::concat(out.version, "*");
                     }
                     else
                     {
-                        version = rest;
+                        out.version = rest;
                     }
                 }
             }
         }
         else
         {
-            version = "";
-            build_string = "";
+            out.version = "";
+            out.build_string = "";
         }
 
         // TODO think about using a hash function here, (and elsewhere), like:
         // https://hbfs.wordpress.com/2017/01/10/strings-in-c-switchcase-statements/
 
-        for (auto& [k, v] : brackets)
+        for (auto& [k, v] : out.brackets)
         {
             if (k == "build_number")
             {
-                build_number = v;
+                out.build_number = v;
             }
             else if (k == "build")
             {
-                build_string = v;
+                out.build_string = v;
             }
             else if (k == "version")
             {
-                version = v;
+                out.version = v;
             }
             else if (k == "channel")
             {
-                if (!channel.has_value())
+                if (!out.channel.has_value())
                 {
-                    channel = specs::ChannelSpec::parse(v);
+                    out.channel = specs::ChannelSpec::parse(v);
                 }
                 else
                 {
                     // Subdirs might have been set with a previous subdir key
-                    auto subdirs = channel->clear_platform_filters();
-                    channel = specs::ChannelSpec::parse(v);
+                    auto subdirs = out.channel->clear_platform_filters();
+                    out.channel = specs::ChannelSpec::parse(v);
                     if (!subdirs.empty())
                     {
-                        channel = specs::ChannelSpec(
-                            channel->clear_location(),
+                        out.channel = specs::ChannelSpec(
+                            out.channel->clear_location(),
                             std::move(subdirs),
-                            channel->type()
+                            out.channel->type()
                         );
                     }
                 }
             }
             else if (k == "subdir")
             {
-                if (!channel.has_value())
+                if (!out.channel.has_value())
                 {
-                    channel = specs::ChannelSpec("", { v }, specs::ChannelSpec::Type::Unknown);
+                    out.channel = specs::ChannelSpec("", { v }, specs::ChannelSpec::Type::Unknown);
                 }
                 // Subdirs specified in the channel part have higher precedence
-                else if (channel->platform_filters().empty())
+                else if (out.channel->platform_filters().empty())
                 {
-                    channel = specs::ChannelSpec(channel->clear_location(), { v }, channel->type());
+                    out.channel = specs::ChannelSpec(
+                        out.channel->clear_location(),
+                        { v },
+                        out.channel->type()
+                    );
                 }
             }
             else if (k == "url")
             {
-                is_file = true;
-                url = v;
+                out.is_file = true;
+                out.url = v;
             }
             else if (k == "fn")
             {
-                is_file = true;
-                fn = v;
+                out.is_file = true;
+                out.fn = v;
             }
         }
+        return out;
     }
 
-    std::string MatchSpec::conda_build_form() const
+    auto MatchSpec::conda_build_form() const -> std::string
     {
         std::stringstream res;
         res << name;
@@ -331,7 +333,7 @@ namespace mamba
         return res.str();
     }
 
-    std::string MatchSpec::str() const
+    auto MatchSpec::str() const -> std::string
     {
         std::stringstream res;
         // builder = []
@@ -478,7 +480,7 @@ namespace mamba
         return res.str();
     }
 
-    bool MatchSpec::is_simple() const
+    auto MatchSpec::is_simple() const -> bool
     {
         return version.empty() && build_string.empty() && build_number.empty();
     }

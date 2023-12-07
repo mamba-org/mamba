@@ -632,7 +632,7 @@ def test_spec_with_channel_and_subdir():
         helpers.create("-n", env_name, "conda-forge/noarch::xtensor", "--dry-run")
     except subprocess.CalledProcessError as e:
         assert (
-            'critical libmamba The package "conda-forge/noarch::xtensor" is '
+            'critical libmamba The package "conda-forge[noarch]::xtensor" is '
             "not available for the specified platform (noarch) but is available on"
         ) in e.stderr.decode()
 
@@ -648,7 +648,7 @@ def test_spec_with_slash_in_channel(tmp_home, tmp_root_prefix):
         helpers.create("-n", "env1", "pkgs/main/noarch::python", "--dry-run")
 
     assert info.value.stderr.decode() == (
-        'critical libmamba The package "pkgs/main/noarch::python" is '
+        'critical libmamba The package "pkgs/main[noarch]::python" is '
         "not found in any loaded channels. Try adding more channels or subdirs.\n"
     )
 

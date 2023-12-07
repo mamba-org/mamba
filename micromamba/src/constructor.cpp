@@ -9,8 +9,6 @@
 #include "constructor.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
-#include "mamba/core/channel_context.hpp"
-#include "mamba/core/match_spec.hpp"
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/subdirdata.hpp"
@@ -80,8 +78,6 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
 
     std::map<std::string, nlohmann::json> repodatas;
 
-    auto channel_context = ChannelContext::make_conda_compatible(config.context());
-
     if (extract_conda_pkgs)
     {
         auto find_package = [](nlohmann::json& j, const std::string& fn) -> nlohmann::json
@@ -106,11 +102,7 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
         fs::u8path pkgs_dir = prefix / "pkgs";
         fs::u8path urls_file = pkgs_dir / "urls";
 
-        auto [package_details, _] = detail::parse_urls_to_package_info(
-            read_lines(urls_file),
-            config.context(),
-            channel_context
-        );
+        auto [package_details, _] = detail::parse_urls_to_package_info(read_lines(urls_file));
 
         for (const auto& pkg_info : package_details)
         {

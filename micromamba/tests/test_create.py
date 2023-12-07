@@ -318,15 +318,34 @@ def test_multiple_spec_files(tmp_home, tmp_root_prefix, tmp_path, type):
 
         cmd += ["-f", spec_file]
 
-    if type == "yaml":
-        with pytest.raises(subprocess.CalledProcessError):
-            helpers.create(*cmd, "--print-config-only")
-    else:
+    res = helpers.create(*cmd, "--print-config-only")
+    if type == "yaml" or type == "classic":
+        assert res["specs"] == specs
+    else:  # explicit
+        assert res["specs"] == [explicit_specs[0]]
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_multiple_spec_files_different_types(tmp_home, tmp_root_prefix, tmp_path):
+    env_prefix = tmp_path / "myenv"
+
+    cmd = ["-p", env_prefix]
+
+    spec_file_1 = tmp_path / f"env1.yaml"
+    file_content = ["dependencies: [xtensor]"]
+    with open(spec_file_1, "w") as f:
+        f.write("\n".join(file_content))
+
+    spec_file_2 = tmp_path / f"env2.txt"
+    file_content = ["xsimd"]
+    with open(spec_file_2, "w") as f:
+        f.write("\n".join(file_content))
+
+    cmd += ["-f", spec_file_1, "-f", spec_file_2]
+
+    with pytest.raises(subprocess.CalledProcessError) as info:
         res = helpers.create(*cmd, "--print-config-only")
-        if type == "classic":
-            assert res["specs"] == specs
-        else:  # explicit
-            assert res["specs"] == [explicit_specs[0]]
+    assert "found multiple spec file types" in info.value.stderr.decode()
 
 
 def test_multiprocessing():

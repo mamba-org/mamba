@@ -48,7 +48,11 @@ namespace mamba::validation
             fs::u8path ref_path,
             fs::u8path cache_path = ""
         );
+
         ~RepoChecker();
+
+        RepoChecker(RepoChecker&&) noexcept;
+        auto operator=(RepoChecker&&) noexcept -> RepoChecker&;
 
         // Forwarding to a ``RepoIndexChecker`` implementation
         void verify_index(const nlohmann::json& j) const;

@@ -34,6 +34,10 @@ namespace mamba::validation
 
     RepoChecker::~RepoChecker() = default;
 
+    RepoChecker::RepoChecker(RepoChecker&&) noexcept = default;
+
+    auto RepoChecker::operator=(RepoChecker&&) noexcept -> RepoChecker& = default;
+
     auto RepoChecker::cache_path() -> const fs::u8path&
     {
         return m_cache_path;

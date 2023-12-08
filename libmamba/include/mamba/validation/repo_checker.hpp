@@ -7,6 +7,7 @@
 #ifndef MAMBA_VALIDATION_REPO_CHECKER_HPP
 #define MAMBA_VALIDATION_REPO_CHECKER_HPP
 
+#include <functional>
 #include <memory>
 #include <string>
 
@@ -67,15 +68,14 @@ namespace mamba::validation
         std::size_t m_root_version = 0;
         fs::u8path m_ref_path;
         fs::u8path m_cache_path;
-        const Context& m_context;
+        std::unique_ptr<RepoIndexChecker> p_index_checker;
+        std::reference_wrapper<const Context> m_context;
 
         auto initial_trusted_root() -> fs::u8path;
         auto ref_root() -> fs::u8path;
         auto cached_root() -> fs::u8path;
 
         void persist_file(const fs::u8path& file_path);
-
-        std::unique_ptr<RepoIndexChecker> p_index_checker;
 
         auto get_root_role(const TimeRef& time_reference) -> std::unique_ptr<RootRole>;
     };

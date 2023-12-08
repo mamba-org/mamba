@@ -335,9 +335,7 @@ def test_multiple_spec_files_different_types(tmp_home, tmp_root_prefix, tmp_path
     spec_file_1.write_text("dependencies: [xtensor]")
 
     spec_file_2 = tmp_path / f"env2.txt"
-    file_content = ["xsimd"]
-    with open(spec_file_2, "w") as f:
-        f.write("\n".join(file_content))
+    spec_file_2.write_text("xsimd")
 
     cmd += ["-f", spec_file_1, "-f", spec_file_2]
 

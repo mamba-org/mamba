@@ -94,8 +94,8 @@ namespace mamba::fs
         u8path& operator=(const u8path& other) = default;
 
         // Move is allowed.
-        u8path(u8path&& other) = default;
-        u8path& operator=(u8path&& other) = default;
+        u8path(u8path&& other) noexcept = default;
+        u8path& operator=(u8path&& other) noexcept = default;
 
         //---- Construction ----
 

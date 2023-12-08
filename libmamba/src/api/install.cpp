@@ -813,11 +813,33 @@ namespace mamba
 
             auto& context = config.context();
 
-            mamba::detail::SpecType spec_type = mamba::detail::unknown;
-
             if (file_specs.size() == 0)
             {
                 return;
+            }
+
+            mamba::detail::SpecType spec_type = mamba::detail::unknown;
+            for (auto& file : file_specs)
+            {
+                mamba::detail::SpecType current_file_spec_type = mamba::detail::unknown;
+                if (is_env_lockfile_name(file))
+                {
+                    current_file_spec_type = mamba::detail::env_lockfile;
+                }
+                else if (is_yaml_file_name(file))
+                {
+                    current_file_spec_type = mamba::detail::yaml;
+                }
+                else
+                {
+                    current_file_spec_type = mamba::detail::other;
+                }
+
+                if (spec_type != mamba::detail::unknown && spec_type != current_file_spec_type) {
+                    throw std::runtime_error("found multiple spec file types, all spec files must be of same format (yaml, txt, explicit spec, etc.)");
+                }
+
+                spec_type = current_file_spec_type;
             }
 
             for (auto& file : file_specs)
@@ -825,12 +847,6 @@ namespace mamba
                 // read specs from file :)
                 if (is_env_lockfile_name(file))
                 {
-                    if (spec_type != mamba::detail::unknown && spec_type != mamba::detail::env_lockfile) {
-                        throw std::runtime_error("found multiple spec file types, all spec files must be of same format (yaml, txt, explicit spec, etc.)");
-                    }
-
-                    spec_type = mamba::detail::env_lockfile;
-
                     if (util::starts_with(file, "http"))
                     {
                         context.env_lockfile = file;
@@ -844,12 +860,6 @@ namespace mamba
                 }
                 else if (is_yaml_file_name(file))
                 {
-                    if (spec_type != mamba::detail::unknown && spec_type != mamba::detail::yaml) {
-                        throw std::runtime_error("found multiple spec file types, all spec files must be of same format (yaml, txt, explicit spec, etc.)");
-                    }
-
-                    spec_type = mamba::detail::yaml;
-
                     const auto parse_result = read_yaml_file(file, context.platform);
 
                     if (parse_result.channels.size() != 0)
@@ -893,12 +903,6 @@ namespace mamba
                 }
                 else
                 {
-                    if (spec_type != mamba::detail::unknown && spec_type != mamba::detail::other) {
-                        throw std::runtime_error("found multiple spec file types, all spec files must be of same format (yaml, txt, explicit spec, etc.)");
-                    }
-
-                    spec_type = mamba::detail::other;
-
                     const std::vector<std::string> file_contents = read_lines(file);
                     if (file_contents.size() == 0)
                     {

@@ -16,6 +16,8 @@
 namespace mamba
 {
     class Context;
+    class ChannelContext;
+    class MultiPackageCache;
 
     class RepoCheckerStore
     {
@@ -23,8 +25,15 @@ namespace mamba
 
         using Channel = specs::Channel;
         using RepoChecker = validation::RepoChecker;
+        using repo_checker_list = std::vector<std::pair<Channel, RepoChecker>>;
 
-        explicit RepoCheckerStore(const Context& ctx);
+        [[nodiscard]] static auto make(  //
+            const Context& ctx,
+            ChannelContext& cc,
+            MultiPackageCache& caches
+        ) -> RepoCheckerStore;
+
+        explicit RepoCheckerStore(repo_checker_list checkers);
 
         [[nodiscard]] auto find_checker(const Channel& chan) const -> const RepoChecker*;
 
@@ -33,8 +42,6 @@ namespace mamba
         [[nodiscard]] auto at_checker(const Channel& chan) const -> const RepoChecker&;
 
     private:
-
-        using repo_checker_list = std::vector<std::pair<Channel, RepoChecker>>;
 
         repo_checker_list m_repo_checkers = {};
     };

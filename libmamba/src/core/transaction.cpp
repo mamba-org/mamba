@@ -848,10 +848,10 @@ namespace mamba
             auto& channel_context = pool.channel_context();
             auto& ctx = pool.context();
 
-            if (ctx.experimental && ctx.validation_params.verify_artifacts)
-            {
-                LOG_INFO << "Content trust is enabled, package(s) signatures will be verified";
-            }
+            // if (ctx.experimental && ctx.validation_params.verify_artifacts)
+            // {
+            //     LOG_INFO << "Content trust is enabled, package(s) signatures will be verified";
+            // }
             for_each_to_install(
                 solution.actions,
                 [&](const auto& pkg)
@@ -914,16 +914,16 @@ namespace mamba
                 }
             );
 
-            if (ctx.experimental && ctx.validation_params.verify_artifacts)
-            {
-                auto out = Console::stream();
-                fmt::print(
-                    out,
-                    "Content trust verifications successful, {} ",
-                    fmt::styled("package(s) are trusted", ctx.graphics_params.palette.safe)
-                );
-                LOG_INFO << "All package(s) are trusted";
-            }
+            // if (ctx.experimental && ctx.validation_params.verify_artifacts)
+            // {
+            //     auto out = Console::stream();
+            //     fmt::print(
+            //         out,
+            //         "Content trust verifications successful, {} ",
+            //         fmt::styled("package(s) are trusted", ctx.graphics_params.palette.safe)
+            //     );
+            //     LOG_INFO << "All package(s) are trusted";
+            // }
             return fetchers;
         }
 

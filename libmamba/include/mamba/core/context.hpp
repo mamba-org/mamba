@@ -35,7 +35,8 @@ namespace mamba
     {
         VerificationLevel safety_checks = VerificationLevel::Warn;
         bool extra_safety_checks = false;
-        bool verify_artifacts = false;
+        VerificationLevel verify_artifacts = VerificationLevel::Disabled;
+        std::vector<std::string> trusted_channels = {};
     };
 
 

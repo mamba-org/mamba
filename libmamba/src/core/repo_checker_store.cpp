@@ -4,12 +4,57 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "mamba/core/channel_context.hpp"
+#include "mamba/core/context.hpp"
+#include "mamba/core/package_cache.hpp"
 #include "mamba/core/repo_checker_store.hpp"
+#include "mamba/core/subdirdata.hpp"
 
 namespace mamba
 {
 
-    RepoCheckerStore::RepoCheckerStore(const Context& ctx)
+    auto RepoCheckerStore::make(  //
+        const Context& ctx,
+        ChannelContext& cc,
+        MultiPackageCache& caches
+    ) -> RepoCheckerStore
+    {
+        if (ctx.validation_params.verify_artifacts ==
+
+            VerificationLevel::Disabled)
+        {
+            return RepoCheckerStore({});
+        }
+
+        auto repo_checkers = repo_checker_list();
+        repo_checkers.reserve(ctx.validation_params.trusted_channels.size());
+        for (const auto& location : ctx.validation_params.trusted_channels)
+        {
+            for (auto& chan : cc.make_channel(location))
+            {
+                // Parametrization
+                auto url = chan.url().str(specs::CondaURL::Credentials::Show);
+                auto url_id = cache_name_from_url(url);
+                auto ref_path = ctx.prefix_params.root_prefix / "etc" / "trusted-repos" / url_id;
+                auto checker = RepoChecker(
+                    ctx,
+                    std::move(url),
+                    std::move(ref_path),
+                    caches.first_writable_path() / "cache" / url_id
+                );
+
+                // Initialization
+                fs::create_directories(checker.cache_path());
+                checker.generate_index_checker();
+
+                repo_checkers.emplace_back(std::move(chan), std::move(checker));
+            }
+        }
+        return RepoCheckerStore(std::move(repo_checkers));
+    }
+
+    RepoCheckerStore::RepoCheckerStore(repo_checker_list checkers)
+        : m_repo_checkers(std::move(checkers))
     {
     }
 

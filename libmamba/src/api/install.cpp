@@ -782,7 +782,13 @@ namespace mamba
 
     namespace detail
     {
-        enum SpecType { unknown, env_lockfile, yaml, other };
+        enum SpecType
+        {
+            unknown,
+            env_lockfile,
+            yaml,
+            other
+        };
 
         void create_empty_target(const Context& context, const fs::u8path& prefix)
         {
@@ -835,8 +841,11 @@ namespace mamba
                     current_file_spec_type = mamba::detail::other;
                 }
 
-                if (spec_type != mamba::detail::unknown && spec_type != current_file_spec_type) {
-                    throw std::runtime_error("found multiple spec file types, all spec files must be of same format (yaml, txt, explicit spec, etc.)");
+                if (spec_type != mamba::detail::unknown && spec_type != current_file_spec_type)
+                {
+                    throw std::runtime_error(
+                        "found multiple spec file types, all spec files must be of same format (yaml, txt, explicit spec, etc.)"
+                    );
                 }
 
                 spec_type = current_file_spec_type;
@@ -882,7 +891,8 @@ namespace mamba
                     }
                     else if (parse_result.name.size() != 0 && parse_result.name != env_name.value<std::string>())
                     {
-                        LOG_WARNING << "YAML specs have different environment names. Using " << env_name.value<std::string>();
+                        LOG_WARNING << "YAML specs have different environment names. Using "
+                                    << env_name.value<std::string>();
                     }
 
                     if (parse_result.dependencies.size() != 0)

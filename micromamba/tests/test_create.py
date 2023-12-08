@@ -351,17 +351,13 @@ def test_multiple_yaml_specs_only_one_has_channels(tmp_home, tmp_root_prefix, tm
     cmd = ["-p", env_prefix]
 
     spec_file_1 = tmp_path / f"env1.yaml"
-    file_content = ["dependencies: [xtensor]"]
-    with open(spec_file_1, "w") as f:
-        f.write("\n".join(file_content))
+    spec_file_1.write_text("dependencies: [xtensor]")
 
     spec_file_2 = tmp_path / f"env2.yaml"
-    file_content = [
-        "dependencies: [xsimd]",
+    spec_file_2.write_text(
+        "dependencies: [xsimd]\n"
         "channels: [bioconda]",
-    ]
-    with open(spec_file_2, "w") as f:
-        f.write("\n".join(file_content))
+    )
 
     cmd += ["-f", spec_file_1, "-f", spec_file_2]
 

@@ -41,7 +41,12 @@ namespace mamba::validation
          * @param ref_path Path to the reference directory, hosting trusted root metadata
          * @param cache_path Path to the cache directory
          */
-        RepoChecker(Context& context, std::string base_url, fs::u8path ref_path, fs::u8path cache_path = "");
+        RepoChecker(
+            const Context& context,
+            std::string base_url,
+            fs::u8path ref_path,
+            fs::u8path cache_path = ""
+        );
         ~RepoChecker();
 
         // Forwarding to a ``RepoIndexChecker`` implementation
@@ -62,7 +67,7 @@ namespace mamba::validation
         std::size_t m_root_version = 0;
         fs::u8path m_ref_path;
         fs::u8path m_cache_path;
-        Context& m_context;
+        const Context& m_context;
 
         auto initial_trusted_root() -> fs::u8path;
         auto ref_root() -> fs::u8path;

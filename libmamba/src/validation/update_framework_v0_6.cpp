@@ -188,7 +188,7 @@ namespace mamba::validation::v0_6
     }
 
     auto RootImpl::build_index_checker(
-        Context& context,
+        const Context& context,
         const TimeRef& time_reference,
         const std::string& base_url,
         const fs::u8path& cache_path
@@ -348,7 +348,7 @@ namespace mamba::validation::v0_6
     }
 
     auto KeyMgrRole::build_index_checker(
-        Context& context,
+        const Context& context,
         const TimeRef& time_reference,
         const std::string& base_url,
         const fs::u8path& cache_path

@@ -175,7 +175,7 @@ namespace mamba::validation
         auto possible_update_files() -> std::vector<fs::u8path>;
 
         virtual auto build_index_checker(
-            Context& context,
+            const Context& context,
             const TimeRef& time_reference,
             const std::string& url,
             const fs::u8path& cache_path

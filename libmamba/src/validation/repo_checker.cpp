@@ -19,7 +19,12 @@
 
 namespace mamba::validation
 {
-    RepoChecker::RepoChecker(Context& context, std::string base_url, fs::u8path ref_path, fs::u8path cache_path)
+    RepoChecker::RepoChecker(
+        const Context& context,
+        std::string base_url,
+        fs::u8path ref_path,
+        fs::u8path cache_path
+    )
         : m_base_url(std::move(base_url))
         , m_ref_path(std::move(ref_path))
         , m_cache_path(std::move(cache_path))

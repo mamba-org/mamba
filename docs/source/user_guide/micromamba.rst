@@ -6,9 +6,9 @@ Micromamba User Guide
 
 Micromamba is a fully statically-linked, self-contained, executable written in C++.
 
-Micromamba is not require Conda to be installed on your system; it is entirely self-contained.
+Micromamba does not require Conda to be installed on your system; it is entirely self-contained.
 
-Thus, ``base`` environment is completely empty and it does not ship Python by default.
+Thus, its ``base`` environment is completely empty and it does not ship Python by default.
 
 The configuration for Micromamba is slighly different from Conda:
 

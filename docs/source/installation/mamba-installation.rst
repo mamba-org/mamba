@@ -4,11 +4,23 @@
 Mamba Installation
 ==================
 
-Fresh install (recommended)
-***************************
+.. warning::
+   With the release of Conda 23.10, **Mamba is deprecated**.
 
-We recommend that you start with the `Miniforge distribution <https://github.com/conda-forge/miniforge>`_ >= `Miniforge3-22.3.1-0`.
-If you need an older version of Mamba, please use the Mambaforge distribution.
+   Please do not create any new installations of Mamba.
+
+   Please use :ref:`Micromamba <umamba-install>` or `Miniforge <https://github.com/conda-forge/miniforge>`_ >= `23.3.1-0` instead.
+
+
+Legacy installation methods (not recommended)
+---------------------------------------------
+
+Mambaforge/Miniforge
+*********************
+
+You can use the `Miniforge distribution <https://github.com/conda-forge/miniforge>`_ >= `Miniforge3-23.3.1-0` to install Mamba.
+If you need an older version of Mamba, please use the Mambaforge distribution instead.
+
 Miniforge comes with the popular ``conda-forge`` channel preconfigured, but you can modify the configuration to use any channel you like.
 
 After successful installation, you can use the mamba commands as described in :ref:`mamba user guide<mamba>`.

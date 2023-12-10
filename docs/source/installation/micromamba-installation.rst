@@ -9,13 +9,6 @@ Micromamba is a fully statically-linked, self-contained, executable written in C
 
 Micromamba is not require Conda to be installed on your system; it is entirely self-contained.
 
-The ``base`` environment is completely empty.
-
-The configuration for Micromamba is slighly different from Conda:
-
-- All environments and cache will be created by default under the ``MAMBA_ROOT_PREFIX`` environment variable.
-- There is no pre-configured ``.condarc``/``.mambarc`` shipped with micromamba (they are however still read if present).
-
 .. _umamba-install-automatic-installation:
 
 Homebrew

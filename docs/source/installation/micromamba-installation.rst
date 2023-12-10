@@ -5,19 +5,21 @@
 Micromamba Installation
 =======================
 
-``micromamba`` is a fully statically-linked, self-contained, executable.
-This means that the ``base`` environment is completely empty.
-The configuration for ``micromamba`` is slighly different, namely all environments and cache will be
-created by default under the ``MAMBA_ROOT_PREFIX`` environment variable.
-There is also no pre-configured ``.condarc``/``.mambarc`` shipped with micromamba
-(they are however still read if present).
+Micromamba is a fully statically-linked, self-contained, executable written in C++.
+
+Micromamba is not require Conda to be installed on your system; it is entirely self-contained.
+
+The ``base`` environment is completely empty.
+
+The configuration for Micromamba is slighly different from Conda:
+
+- All environments and cache will be created by default under the ``MAMBA_ROOT_PREFIX`` environment variable.
+- There is no pre-configured ``.condarc``/``.mambarc`` shipped with micromamba (they are however still read if present).
 
 .. _umamba-install-automatic-installation:
 
-Operating System package managers
-*********************************
 Homebrew
-^^^^^^^^
+********
 
 On macOS, you can install ``micromamba`` from `Homebrew <https://brew.sh/>`_:
 
@@ -158,24 +160,14 @@ Windows
   micromamba activate yourenv
 
 Nightly builds
-**************
+~~~~~~~~~~~~~~
 
 You can download fully statically linked builds for each commit to ``main`` on GitHub
 (scroll to the bottom of the "Summary" page):
 https://github.com/mamba-org/mamba/actions/workflows/static_build.yml?query=is%3Asuccess
 
-Docker images
-*************
-
-The `mambaorg/micromamba <https://hub.docker.com/r/mambaorg/micromamba>`_ docker
-image can be used to run ``micromamba`` without installing it:
-
-.. code-block:: bash
-
-  docker run -it --rm mambaorg/micromamba:latest micromamba info
-
 Build from source
-*****************
+~~~~~~~~~~~~~~~~~
 
 .. note::
 
@@ -213,6 +205,16 @@ The executable can be striped to remove its size:
 
 
 .. _shell_completion:
+
+Docker images
+*************
+
+The `mambaorg/micromamba <https://hub.docker.com/r/mambaorg/micromamba>`_ docker
+image can be used to run ``micromamba`` without installing it:
+
+.. code-block:: bash
+
+  docker run -it --rm mambaorg/micromamba:latest micromamba info
 
 Shell completion
 ****************

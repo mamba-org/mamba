@@ -52,14 +52,14 @@ The *root prefix* also provide a convenient structure to store *environments* ``
 Base environment
 ================
 
+.. note::
+  This section does not apply to Micromamba.
+
 The *base* environment is the environment located at the *root prefix*.
 
 | This is a legacy *environment* from ``conda`` implementation that is still heavily used.
 | The *base* environment contains the ``conda`` and ``mamba`` installation alongside a Python installation (since ``mamba`` and ``conda`` require Python to run).
 | ``mamba`` and ``conda``, being themselves Python packages, are installed in the *base* environment, making the CLIs available in all *activated* environments *based* on this *base* environment.
-
-.. note::
-  You can't ``create`` the *base* environment because it's already part of the *root prefix* structure. Directly ``install`` in *base* instead.
 
 
 Activation/Deactivation

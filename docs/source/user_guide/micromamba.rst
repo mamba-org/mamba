@@ -4,116 +4,43 @@
 Micromamba User Guide
 =====================
 
-``micromamba`` is a tiny version of the ``mamba`` package manager.
-It is a statically linked C++ executable with a separate command line interface.
-It does not need a ``base`` environment and does not come with a default version of Python.
+Micromamba is a fully statically-linked, self-contained, executable written in C++.
+
+Micromamba is not require Conda to be installed on your system; it is entirely self-contained.
+
+Thus, ``base`` environment is completely empty and it does not ship Python by default.
+
+The configuration for Micromamba is slighly different from Conda:
+
+- All environments and cache will be created by default under the ``MAMBA_ROOT_PREFIX`` environment variable.
+- There is no pre-configured ``.condarc``/``.mambarc`` shipped with micromamba (they are however still read if present).
 
 
 Quickstarts
 ===========
 
-| ``micromamba`` supports a subset of all ``mamba`` or ``conda`` commands and implements a command line interface from scratch.
-| You can see all implemented commands with ``micromamba --help``:
+Micromamba's CLI interface is similar to Conda's:
 
-.. code::
+Creating environments
+---------------------
 
-  $ micromamba --help
+Use ``micromamba create -f environment.yml`` to create an environment, similar to ``conda env create``.
 
-  Subcommands:
-    shell                       Generate shell init scripts
-    create                      Create new environment
-    install                     Install packages in active environment
-    update                      Update packages in active environment
-    repoquery                   Find and analyze packages in active environment or channels
-    remove                      Remove packages from active environment
-    list                        List packages in active environment
-    package                     Extract a package or bundle files into an archive
-    clean                       Clean package cache
-    config                      Configuration of micromamba
-    info                        Information about micromamba
-    constructor                 Commands to support using micromamba in constructor
-    env                         List environments
-    activate                    Activate an environment
-    run                         Run an executable in an environment
-    ps                          Show, inspect or kill running processes
-    auth                        Login or logout of a given host
-    search                      Find packages in active environment or channels
+You can also start with an empty environment and add new packages later (see below): ``micromamba create -n myenv``.
+
+Activating environments
+-----------------------
+
+Use ``micromamba activate -n myenv`` or ``micromamba activate -p /path/to/myenv`` to :ref:`activate <activation>` an environment.
+
+Installing packages
+-------------------
+
+Use ``micromamba install mypackage`` to install a new package to the activated environment, or ``micromamba install -n myenv mypackage`` to install a new package to any other environment.
 
 
-To activate an environment just call ``micromamba activate /path/to/env`` or, when it's a named environment in your :ref:`root prefix<root-prefix>`, then you can also use ``micromamba activate myenv``.
-
-``micromamba`` expects to find the *root prefix* set by ``$MAMBA_ROOT_PREFIX`` environment variable. You can also provide it using CLI option ``-r,--root-prefix``.
-
- | Named environments then live in ``$MAMBA_ROOT_PREFIX/envs/``.
-
-For more details, please read about :ref:`configuration<configuration>`.
-
-After :ref:`activation<activation>`, you can run ``install`` to add new packages to the environment.
-
-.. code::
-
-  $ micromamba install xtensor -c conda-forge
-
-
-Using ``create``, you can also create environments:
-
-.. code::
-
-  $ micromamba create -n xtensor_env xtensor xsimd -c conda-forge
-                                             __
-            __  ______ ___  ____ _____ ___  / /_  ____ _
-           / / / / __ `__ \/ __ `/ __ `__ \/ __ \/ __ `/
-          / /_/ / / / / / / /_/ / / / / / / /_/ / /_/ /
-         / .___/_/ /_/ /_/\__,_/_/ /_/ /_/_.___/\__,_/
-        /_/
-
-  conda-forge/noarch       [====================] (00m:01s) Done
-  conda-forge/linux-64     [====================] (00m:04s) Done
-
-  Transaction
-
-    Prefix: /home/wolfv/miniconda3/envs/xtensor_env
-
-    Updating specs:
-
-    - xtensor
-    - xsimd
-
-
-    Package        Version  Build        Channel                    Size
-  ────────────────────────────────────────────────────────────────────────
-    Install:
-  ────────────────────────────────────────────────────────────────────────
-
-    _libgcc_mutex      0.1  conda_forge  conda-forge/linux-64     Cached
-    _openmp_mutex      4.5  1_gnu        conda-forge/linux-64     Cached
-    libgcc-ng        9.3.0  h5dbcf3e_17  conda-forge/linux-64     Cached
-    libgomp          9.3.0  h5dbcf3e_17  conda-forge/linux-64     Cached
-    libstdcxx-ng     9.3.0  h2ae2ef3_17  conda-forge/linux-64     Cached
-    xsimd            7.4.9  hc9558a2_0   conda-forge/linux-64     102 KB
-    xtensor         0.21.9  h0efe328_0   conda-forge/linux-64     183 KB
-    xtl             0.6.21  h0efe328_0   conda-forge/linux-64     Cached
-
-    Summary:
-
-    Install: 8 packages
-
-    Total download: 285 KB
-
-  ────────────────────────────────────────────────────────────────────────
-
-  Confirm changes: [Y/n] ...
-
-
-After the installation is finished, the environment can be :ref:`activated<activation>` with:
-
-.. code::
-
-  $ micromamba activate xtensor_env
-
-
-Specification files
-===================
+Environment specification files
+===============================
 
 The ``create`` syntax also allows you to use specification or environment files (also called *spec files*) to easily re-create environments.
 

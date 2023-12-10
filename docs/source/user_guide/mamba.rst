@@ -3,6 +3,13 @@
 Mamba User Guide
 ----------------
 
+.. warning::
+   With the release of Conda 23.10, **Mamba is deprecated**.
+
+   Please do not create any new installations of Mamba.
+
+   Please use :ref:`Micromamba <umamba-install>` or `Miniforge <https://github.com/conda-forge/miniforge>`_ >= `23.3.1-0` instead.
+
 ``mamba`` is a CLI tool to manage ``conda`` s environments.
 
 If you already know ``conda``, great, you already know ``mamba``!

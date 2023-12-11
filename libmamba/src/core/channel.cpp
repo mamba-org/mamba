@@ -749,7 +749,7 @@ namespace mamba
             if (fs::is_directory(p))
             {
                 std::string url = util::path_to_url(p);
-                auto channel = make_simple_channel(m_channel_alias, url, "", LOCAL_CHANNELS_NAME);
+                auto channel = make_simple_channel(m_channel_alias, url, url, LOCAL_CHANNELS_NAME);
                 std::string name = channel.name();
                 auto res = m_custom_channels.emplace(std::move(name), std::move(channel));
                 local_names.push_back(res.first->first);

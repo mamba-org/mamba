@@ -1,3 +1,12 @@
+2023.12.11
+==========
+
+Releases:  libmamba 1.5.5, libmambapy 1.5.5, mamba 1.5.5, micromamba 1.5.5
+
+Bug fixes:
+
+- [mamba] Backport: Convert absolute import path to relative for better compatibility by @mbargull in https://github.com/mamba-org/mamba/pull/3040
+
 2023.12.05
 ==========
 

@@ -1,3 +1,10 @@
+mamba 1.5.5 (December 11, 2023)
+===============================
+
+Bug fixes:
+
+- Backport: Convert absolute import path to relative for better compatibility by @mbargull in https://github.com/mamba-org/mamba/pull/3040
+
 mamba 1.5.4 (December 05, 2023)
 ===============================
 

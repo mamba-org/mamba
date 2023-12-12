@@ -105,8 +105,8 @@ jobs:
         run: |
           python -m pytest libmambapy/tests/ ${{ runner.debug == 'true' && '-v' || '--exitfirst' }}
 
-  umamba_integration_tests_unix:
-    name: Test integration micromamba
+  mamba_integration_tests_unix:
+    name: Test integration mamba
     needs: ["build_shared_unix"]
     runs-on: ${{ inputs.os }}
     steps:
@@ -131,9 +131,9 @@ jobs:
         if: startsWith(inputs.os, 'macos')
         run: |
           brew install fish xonsh
-      - name: micromamba python based tests
+      - name: mamba python based tests
         run: |
-          export TEST_MAMBA_EXE=$(pwd)/build/micromamba/micromamba
+          export TEST_MAMBA_EXE=$(pwd)/build/micromamba/mamba
           unset CONDARC  # Interferes with tests
           python -m pytest micromamba/tests/ \
             ${{ runner.debug == 'true' && '-v --capture=tee-sys' || '--exitfirst' }}

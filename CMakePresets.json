@@ -4,7 +4,7 @@
       "displayName": "Mamba Unix Shared Debug",
       "inherits": [
         "conda-unix",
-        "mamba-all",
+        "libmamba-all",
         "mamba-shared",
         "mamba-debug"
       ],
@@ -14,7 +14,7 @@
       "displayName": "Mamba Unix Shared Release",
       "inherits": [
         "conda-unix",
-        "mamba-all",
+        "libmamba-all",
         "mamba-shared",
         "mamba-release"
       ],
@@ -31,7 +31,7 @@
     {
       "displayName": "Mamba Win Shared Release",
       "inherits": [
-        "mamba-all",
+        "libmamba-all",
         "mamba-shared",
         "mamba-release"
       ],

@@ -113,8 +113,8 @@ jobs:
         run: |
           python -m pytest libmambapy/tests/ ${{ runner.debug == 'true' && '-v' || '--exitfirst' }}
 
-  umamba_integration_tests_win:
-    name: Test integration micromamba
+  mamba_integration_tests_win:
+    name: Test integration mamba
     needs: ["build_shared_win"]
     runs-on: ${{ inputs.os }}
     steps:
@@ -132,16 +132,16 @@ jobs:
           environment-file: ./build/environment.lock
           environment-name: build_env
           init-shell: bash cmd.exe powershell
-      - name: Install micromamba
+      - name: Install mamba
         shell: bash -elo pipefail {0}
         run: |
           cmake --install build/ --prefix local/
-      - name: micromamba python based tests with pwsh
+      - name: mamba python based tests with pwsh
         shell: pwsh
         run: |
           $env:PYTHONIOENCODING='UTF-8'
           $env:MAMBA_ROOT_PREFIX = Join-Path -Path $pwd -ChildPath 'mambaroot'
-          $env:TEST_MAMBA_EXE = Join-Path -Path $pwd -ChildPath 'local\bin\micromamba.exe'
+          $env:TEST_MAMBA_EXE = Join-Path -Path $pwd -ChildPath 'local\bin\mamba.exe'
           $env:MAMBA_TEST_SHELL_TYPE='powershell'
           Remove-Item -Path "env:CONDARC"
           python -m pytest micromamba/tests/ `

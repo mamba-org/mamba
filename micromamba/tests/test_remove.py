@@ -83,6 +83,7 @@ class TestRemove:
         keys = {"dry_run", "success", "prefix", "actions"}
         assert keys.issubset(set(res.keys()))
         assert res["success"]
+        print(json.dumps(res["actions"]["UNLINK"]))
         assert len(res["actions"]["UNLINK"]) == len(env_pkgs) + (
             1 if helpers.dry_run_tests == helpers.DryRun.DRY else 0
         )

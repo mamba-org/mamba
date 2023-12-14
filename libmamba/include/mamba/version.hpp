@@ -10,9 +10,9 @@
 #include <array>
 #include <string>
 
-#define LIBMAMBA_VERSION_MAJOR 1
-#define LIBMAMBA_VERSION_MINOR 5
-#define LIBMAMBA_VERSION_PATCH 1
+#define LIBMAMBA_VERSION_MAJOR 2
+#define LIBMAMBA_VERSION_MINOR 0
+#define LIBMAMBA_VERSION_PATCH 0
 
 // Binary version
 #define LIBMAMBA_BINARY_CURRENT 2

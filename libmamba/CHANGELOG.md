@@ -1,3 +1,199 @@
+libmamba 2.0.0alpha0 (December 14, 2023)
+========================================
+
+Enhancements:
+
+- Context: not a singleton by @Klaim in https://github.com/mamba-org/mamba/pull/2615
+- Add CondaURL by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2805
+- No ugly kenum by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2831
+- Add Nushell activation support by cvanelteren in https://github.com/mamba-org/mamba/pull/2693
+- Support $var syntax in .condarc by @jonashaag in https://github.com/mamba-org/mamba/pull/2833
+- Handle null and false noarch values by @gabrielsimoes in https://github.com/mamba-org/mamba/pull/2835
+- Add CondaURL::pretty_str by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2830
+- Channel cleanup by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2832
+- Authenfitication split user and password by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2849
+- Improved static build error message by @JohanMabille in https://github.com/mamba-org/mamba/pull/2850
+- Add local channels test by @Hind-M in https://github.com/mamba-org/mamba/pull/2853
+- Don't force MSVC_RUNTIME by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2861
+- Build micromamba with /MD by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2862
+- Fix Posix shell on Windows by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2803
+- Further improve micromamba search output by @delsner in https://github.com/mamba-org/mamba/pull/2823
+- Minor Channel refactoring by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2852
+- path_to_url percent encoding by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2867
+- Change libsolv static lib name by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2876
+- Download by @JohanMabille in https://github.com/mamba-org/mamba/pull/2844
+- Use CMake targets for reproc by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2883
+- Add FindLibsolv.cmake by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2886
+- Read repodata.json using nl::json (rerun) by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2753
+- Filesystem library by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2879
+- Header cleanup filesystem follow-up by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2894
+- Add multiple queries to repoquery search by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2897
+- Add ChannelSpec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2870
+- Print error code if run fails by @jonashaag in https://github.com/mamba-org/mamba/pull/2848
+- Added PackageFetcher by @JohanMabille in https://github.com/mamba-org/mamba/pull/2917
+- return architecture levels for micromamba by @isuruf in https://github.com/mamba-org/mamba/pull/2921
+- Resolve ChannelSpec into a Channel by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2899
+- Factorize Win user folder function between files by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2925
+- Combine dev environments by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2937
+- Refactor win encoding conversion by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2939
+- Dev workflow by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2948
+- Add refactor getenv setenv unsetenv by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2944
+- Explicit and smart CMake target by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2935
+- Rename env functions by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2954
+- Environment map by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2967
+- Add envrionment cleaner test fixtures by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2973
+- Update dependencies on OSX by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2976
+- Channel initialization by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2953
+- Add weakening_map by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2981
+- Refactor env directories by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2983
+- Enable new repodata parser by default by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2989
+- Allow overriding archspec by @isuruf in https://github.com/mamba-org/mamba/pull/2966
+- Add Python-like set operations to flat_set by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2557
+- Migrate expand/shrink_home by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2990
+- Refactor env::which by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2997
+- Migrate Channel::make_channel to resolve multi channels by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2986
+- Move core/channel > specs/channel by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3000
+- Remove ChannelContext ctor by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3002
+- Improve ChannelContext and Channel by @AntoinePrv in xhttps://github.com/mamba-org/mamba/pull/3003
+- Remove ChanelContext context capture by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3015
+- Bind Channel by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3001
+- Default to hide credentials by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3017
+- Validation QA by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3022
+- Refactor (some) OpenSSL functions by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3024
+- Use std::array<std::byte, ...> by @AntoinePRv in https://github.com/mamba-org/mamba/pull/3037
+- Default to conda-forge channel by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3035
+- Remove duplicate function by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3042
+- MatchSpec small improvements by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3043
+- Plug ChannelSpec in MatchSpec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3046
+- Drop unneeded dependencies by @opoplawski in https://github.com/mamba-org/mamba/pull/3016
+- Change MatchSpec::parse to named constructor by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3048
+- restore use_default_signal_handler flag for libmambapy by @dholth in https://github.com/mamba-org/mamba/pull/3028
+
+Bug fixes:
+
+- Fix linking on Windows when Scripts folder is missing by @dalcinl in https://github.com/mamba-org/mamba/pull/2825
+- added support for empty lines in dependency file in txt format by @rmittal87 in https://github.com/mamba-org/mamba/pull/2812
+- Fix local channels location by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2851
+- Fixed libmamba tests static build by @JohanMabille in https://github.com/mamba-org/mamba/pull/2855
+- Add CI test for local channels by @Hind-M in https://github.com/mamba-org/mamba/pull/2854
+- Nushell hotfix by @cvanelteren https://github.com/mamba-org/mamba/pull/2841
+- Added missing dependency in libmambaConfig.cmake.in by @JohanMabille in https://github.com/mamba-org/mamba/pull/2916
+- Allow defaults::* spec by @isuruf in https://github.com/mamba-org/mamba/pull/2927
+- https://github.com/mamba-org/mamba/pull/2929 by @bruchim-cisco in https://github.com/mamba-org/mamba/pull/2929
+- Fix channels with slashes regression by @isuruf in https://github.com/mamba-org/mamba/pull/2926
+- fix: Parse remote_connect_timeout_secs as a double by @jjerphan in https://github.com/mamba-org/mamba/pull/2949
+- Add mirrors by @Hind-M in https://github.com/mamba-org/mamba/pull/2795
+- Add cmake-format by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2962
+- Fixed move semantics of DownloadAttempt by @JohanMabille in https://github.com/mamba-org/mamba/pull/2963
+- Nu 0.87.0 by @cvanelteren in https://github.com/mamba-org/mamba/pull/2984
+- fix config precedence for base env by @0xbe7a in https://github.com/mamba-org/mamba/pull/3009
+- Fix libmamba cmake version file by @opoplawski in https://github.com/mamba-org/mamba/pull/3013
+
+CI fixes and doc:
+
+- Simplify and correct development documention by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2975
+- Add install from source instructions by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2977
+- update readme install link by @artifical-agent in https://github.com/mamba-org/mamba/pull/2980
+- Fail fast except on debug runs by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2985
+
+libmamba 2.0.0alpha0 (December 14, 2023)
+========================================
+
+Enhancements:
+
+- Context: not a singleton by @Klaim in https://github.com/mamba-org/mamba/pull/2615
+- Add CondaURL by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2805
+- No ugly kenum by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2831
+- Add Nushell activation support by cvanelteren in https://github.com/mamba-org/mamba/pull/2693
+- Support $var syntax in .condarc by @jonashaag in https://github.com/mamba-org/mamba/pull/2833
+- Handle null and false noarch values by @gabrielsimoes in https://github.com/mamba-org/mamba/pull/2835
+- Add CondaURL::pretty_str by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2830
+- Channel cleanup by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2832
+- Authenfitication split user and password by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2849
+- Improved static build error message by @JohanMabille in https://github.com/mamba-org/mamba/pull/2850
+- Add local channels test by @Hind-M in https://github.com/mamba-org/mamba/pull/2853
+- Don't force MSVC_RUNTIME by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2861
+- Build micromamba with /MD by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2862
+- Fix Posix shell on Windows by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2803
+- Further improve micromamba search output by @delsner in https://github.com/mamba-org/mamba/pull/2823
+- Minor Channel refactoring by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2852
+- path_to_url percent encoding by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2867
+- Change libsolv static lib name by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2876
+- Download by @JohanMabille in https://github.com/mamba-org/mamba/pull/2844
+- Use CMake targets for reproc by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2883
+- Add FindLibsolv.cmake by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2886
+- Read repodata.json using nl::json (rerun) by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2753
+- Filesystem library by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2879
+- Header cleanup filesystem follow-up by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2894
+- Add multiple queries to repoquery search by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2897
+- Add ChannelSpec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2870
+- Print error code if run fails by @jonashaag in https://github.com/mamba-org/mamba/pull/2848
+- Added PackageFetcher by @JohanMabille in https://github.com/mamba-org/mamba/pull/2917
+- return architecture levels for micromamba by @isuruf in https://github.com/mamba-org/mamba/pull/2921
+- Resolve ChannelSpec into a Channel by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2899
+- Factorize Win user folder function between files by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2925
+- Combine dev environments by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2937
+- Refactor win encoding conversion by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2939
+- Dev workflow by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2948
+- Add refactor getenv setenv unsetenv by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2944
+- Explicit and smart CMake target by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2935
+- Rename env functions by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2954
+- Environment map by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2967
+- Add envrionment cleaner test fixtures by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2973
+- Update dependencies on OSX by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2976
+- Channel initialization by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2953
+- Add weakening_map by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2981
+- Refactor env directories by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2983
+- Enable new repodata parser by default by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2989
+- Allow overriding archspec by @isuruf in https://github.com/mamba-org/mamba/pull/2966
+- Add Python-like set operations to flat_set by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2557
+- Migrate expand/shrink_home by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2990
+- Refactor env::which by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2997
+- Migrate Channel::make_channel to resolve multi channels by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2986
+- Move core/channel > specs/channel by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3000
+- Remove ChannelContext ctor by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3002
+- Improve ChannelContext and Channel by @AntoinePrv in xhttps://github.com/mamba-org/mamba/pull/3003
+- Remove ChanelContext context capture by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3015
+- Bind Channel by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3001
+- Default to hide credentials by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3017
+- Validation QA by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3022
+- Refactor (some) OpenSSL functions by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3024
+- Use std::array<std::byte, ...> by @AntoinePRv in https://github.com/mamba-org/mamba/pull/3037
+- Default to conda-forge channel by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3035
+- Remove duplicate function by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3042
+- MatchSpec small improvements by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3043
+- Plug ChannelSpec in MatchSpec by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3046
+- Drop unneeded dependencies by @opoplawski in https://github.com/mamba-org/mamba/pull/3016
+- Change MatchSpec::parse to named constructor by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3048
+- restore use_default_signal_handler flag for libmambapy by @dholth in https://github.com/mamba-org/mamba/pull/3028
+
+Bug fixes:
+
+- Fix linking on Windows when Scripts folder is missing by @dalcinl in https://github.com/mamba-org/mamba/pull/2825
+- added support for empty lines in dependency file in txt format by @rmittal87 in https://github.com/mamba-org/mamba/pull/2812
+- Fix local channels location by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2851
+- Fixed libmamba tests static build by @JohanMabille in https://github.com/mamba-org/mamba/pull/2855
+- Add CI test for local channels by @Hind-M in https://github.com/mamba-org/mamba/pull/2854
+- Nushell hotfix by @cvanelteren https://github.com/mamba-org/mamba/pull/2841
+- Added missing dependency in libmambaConfig.cmake.in by @JohanMabille in https://github.com/mamba-org/mamba/pull/2916
+- Allow defaults::* spec by @isuruf in https://github.com/mamba-org/mamba/pull/2927
+- https://github.com/mamba-org/mamba/pull/2929 by @bruchim-cisco in https://github.com/mamba-org/mamba/pull/2929
+- Fix channels with slashes regression by @isuruf in https://github.com/mamba-org/mamba/pull/2926
+- fix: Parse remote_connect_timeout_secs as a double by @jjerphan in https://github.com/mamba-org/mamba/pull/2949
+- Add mirrors by @Hind-M in https://github.com/mamba-org/mamba/pull/2795
+- Add cmake-format by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2962
+- Fixed move semantics of DownloadAttempt by @JohanMabille in https://github.com/mamba-org/mamba/pull/2963
+- Nu 0.87.0 by @cvanelteren in https://github.com/mamba-org/mamba/pull/2984
+- fix config precedence for base env by @0xbe7a in https://github.com/mamba-org/mamba/pull/3009
+- Fix libmamba cmake version file by @opoplawski in https://github.com/mamba-org/mamba/pull/3013
+
+CI fixes and doc:
+
+- Simplify and correct development documention by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2975
+- Add install from source instructions by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2977
+- update readme install link by @artifical-agent in https://github.com/mamba-org/mamba/pull/2980
+- Fail fast except on debug runs by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2985
+
 libmamba 1.5.1 (September 05, 2023)
 ===================================
 

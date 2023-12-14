@@ -5,17 +5,16 @@
         "BUILD_LIBMAMBA": "ON",
         "BUILD_LIBMAMBAPY": "ON",
         "BUILD_LIBMAMBA_TESTS": "ON",
-        "BUILD_MAMBA_PACKAGE": "ON",
-        "BUILD_MICROMAMBA": "ON",
-        "BUILD_MICROMAMBA_SERVER": "ON"
+        "BUILD_MAMBA_PACKAGE": "ON"
       },
-      "description": "Base profile for building everything in Mamba",
-      "displayName": "Mamba All",
+      "description": "Base profile for building libmamba and related",
+      "displayName": "libmamba All",
       "hidden": true,
-      "name": "mamba-all"
+      "name": "libmamba-all"
     },
     {
       "cacheVariables": {
+        "BUILD_MAMBA": "ON",
         "BUILD_SHARED": "ON"
       },
       "hidden": true,
@@ -23,6 +22,8 @@
     },
     {
       "cacheVariables": {
+        "BUILD_MICROMAMBA": "ON",
+        "BUILD_MICROMAMBA_SERVER": "ON",
         "BUILD_STATIC": "ON"
       },
       "hidden": true,

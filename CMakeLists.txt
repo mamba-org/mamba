@@ -13,9 +13,12 @@ project(mamba)
 # Build options
 # =============
 
+option(BUILD_SHARED "Build shared libmamba library" OFF)
+option(BUILD_STATIC "Build static libmamba library with static linkage to its dependencies" OFF)
 option(BUILD_LIBMAMBA "Build libmamba library" OFF)
 option(BUILD_LIBMAMBAPY "Build libmamba Python bindings" OFF)
 option(BUILD_LIBMAMBA_TESTS "Build libmamba C++ tests" OFF)
+option(BUILD_MAMBA "Build mamba" OFF)
 option(BUILD_MICROMAMBA "Build micromamba" OFF)
 option(BUILD_MAMBA_PACKAGE "Build mamba package utility" OFF)
 option(MAMBA_WARNING_AS_ERROR "Treat compiler warnings as errors" OFF)
@@ -59,6 +62,16 @@ endif()
 # Variants
 # ========
 
+# mamba is a dynamic build of micromamba
+if(BUILD_MAMBA)
+    set(BUILD_SHARED ON)
+endif()
+
+# micromamba requires static linkage
+if(BUILD_MICROMAMBA)
+    set(BUILD_STATIC ON)
+endif()
+
 # libmamba library and tests
 if(BUILD_LIBMAMBA)
     add_subdirectory(libmamba)
@@ -70,7 +83,7 @@ if(BUILD_LIBMAMBAPY)
 endif()
 
 # micromamba
-if(BUILD_MICROMAMBA)
+if(BUILD_MICROMAMBA OR BUILD_MAMBA)
     add_subdirectory(micromamba)
 endif()
 

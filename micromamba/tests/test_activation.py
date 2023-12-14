@@ -329,7 +329,7 @@ def test_shell_init(
         path = Path(paths[plat][interpreter]).expanduser()
         with open(path) as fi:
             x = fi.read()
-            assert "micromamba" in x
+            assert "mamba" in x
             assert find_path_in_str(tmp_root_prefix, x)
             prev_text = x
 

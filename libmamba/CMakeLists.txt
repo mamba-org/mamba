@@ -58,9 +58,6 @@ message(STATUS "libmamba binary version: v${LIBMAMBA_BINARY_VERSION}")
 # Build options
 # =============
 
-option(BUILD_TESTS "Build libmamba C++ tests" OFF)
-option(BUILD_SHARED "Build shared libmamba library" OFF)
-option(BUILD_STATIC "Build static libmamba library with static linkage to its dependencies" OFF)
 set(
     BUILD_LOG_LEVEL
     "TRACE"
@@ -74,6 +71,7 @@ if(NOT ${BUILD_LOG_LEVEL} MATCHES "^(TRACE|DEBUG|INFO|WARN|ERROR|CRITICAL|OFF)$"
     )
 endif()
 
+# TODO: move this into the mamba_create_target macro
 if(BUILD_STATIC)
     add_definitions("-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${BUILD_LOG_LEVEL}")
     add_definitions(-DLIBMAMBA_STATIC_DEPS)

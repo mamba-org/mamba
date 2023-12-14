@@ -1,4 +1,4 @@
-name: Tests
+name: Mamba
 
 on:
   push:
@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   unix_tests:
-    name: Unix tests
+    name: Unix
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
@@ -29,7 +29,7 @@ jobs:
       build_type: ${{ matrix.build_type }}
 
   win_tests:
-    name: Windows tests
+    name: Windows
     strategy:
       matrix:
         os: [windows-2019]

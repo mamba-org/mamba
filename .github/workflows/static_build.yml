@@ -1,4 +1,4 @@
-name: Micromamba static builds
+name: Micromamba
 
 on:
   push:
@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   micromamba-static-unix:
-    name: "micromamba - ${{ matrix.platform }}-${{ matrix.arch }}"
+    name: "${{ matrix.platform }}-${{ matrix.arch }}"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -104,7 +104,7 @@ jobs:
           path: ${{ github.workspace }}/artifacts/micromamba
 
   micromamba-static-win:
-    name: "micromamba - win-64"
+    name: "win-64"
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v3

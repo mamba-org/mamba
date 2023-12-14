@@ -61,7 +61,7 @@ jobs:
           key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
 
   libmamba_tests_win:
-    name: Test libmamba
+    name: libmamba tests
     needs: ["build_shared_win"]
     runs-on: ${{ inputs.os }}
     steps:
@@ -86,7 +86,7 @@ jobs:
           cd ./build/libmamba && ./tests/test_libmamba
 
   libmambapy_tests_win:
-    name: Test libmamba Python bindings
+    name: libmambapy tests
     needs: ["build_shared_win"]
     runs-on: ${{ inputs.os }}
     steps:
@@ -114,7 +114,7 @@ jobs:
           python -m pytest libmambapy/tests/ ${{ runner.debug == 'true' && '-v' || '--exitfirst' }}
 
   mamba_integration_tests_win:
-    name: Test integration mamba
+    name: mamba integration tests
     needs: ["build_shared_win"]
     runs-on: ${{ inputs.os }}
     steps:

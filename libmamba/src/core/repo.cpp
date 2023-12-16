@@ -576,6 +576,7 @@ namespace mamba
 
         if (!util::on_win && (name() != "installed"))
         {
+            const auto lock = LockFile(solv_file);
             write_solv(solv_file);
         }
     }

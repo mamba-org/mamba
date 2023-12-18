@@ -41,12 +41,16 @@ jobs:
           repository: AntoinePrv/micromamba-feedstock
           ref: tmp-mamba-ci
           path: micromamba-feedstock
-      - name: Clear micromamba-feedstock git directory
-        run: rm -rf "micromamba-feedstock/.git"
       - name: Checkout mamba branch
         uses: actions/checkout@v3
         with:
-          path: micromamba-feedstock/source
+          path: mamba
+      - name: Clear mamba git directory and link source
+        # `source` subfolder is the special location looked-up by our feedstock.
+        # Due to Docker, we can only put it as a subfolder of `micromamba-feedstock`,
+        run: |
+          rm -rf "mamba/.git"
+          mv mamba/ micromamba-feedstock/source
       - uses: mamba-org/setup-micromamba@v1
         with:
           environment-name: mambabuild

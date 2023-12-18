@@ -366,6 +366,11 @@ namespace mamba
         logger->dump_backtrace_no_guards();
     }
 
+    void Context::set_conda_build_local_paths(const std::vector<std::string>& vec)
+    {
+        conda_build_local_paths = vec;
+    }
+
     std::vector<std::string> Context::get_conda_build_local_paths() const
     {
         if (conda_build_local_paths.empty())

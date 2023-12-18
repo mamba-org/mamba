@@ -81,6 +81,8 @@ jobs:
             apt-get install -y python3 docker.io
           run: |
             cd micromamba-feedstock/
+            # Prevent irrelevant file permission error
+            git config --local --add safe.directory '*'
             # Special values for running the feedstock with a local source
             export FEEDSTOCK_ROOT="${PWD}"
             export CI="local"

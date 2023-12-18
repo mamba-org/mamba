@@ -736,12 +736,7 @@ namespace mamba
         m_custom_multichannels.emplace(DEFAULT_CHANNELS_NAME, std::move(default_names));
 
         // Local channels
-        std::vector<std::string> local_channels = {
-            Context::instance().prefix_params.target_prefix.string() + "/conda-bld",
-            Context::instance().prefix_params.root_prefix.string() + "/conda-bld",
-            "~/conda-bld"
-        };
-
+        std::vector<std::string> local_channels = Context::instance().get_conda_build_local_paths();
         std::vector<std::string> local_names;
         local_names.reserve(local_channels.size());
         for (const auto& p : local_channels)

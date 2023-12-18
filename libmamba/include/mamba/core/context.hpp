@@ -248,6 +248,9 @@ namespace mamba
         void set_verbosity(int lvl);
         void set_log_level(log_level level);
 
+        std::vector<std::string> conda_build_local_paths;
+        std::vector<std::string> get_conda_build_local_paths() const;
+
     protected:
 
         Context();

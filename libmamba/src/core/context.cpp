@@ -366,4 +366,18 @@ namespace mamba
         logger->dump_backtrace_no_guards();
     }
 
+    std::vector<std::string> Context::get_conda_build_local_paths() const
+    {
+        if (conda_build_local_paths.empty())
+        {
+            return { prefix_params.target_prefix.string() + "/conda-bld",
+                     prefix_params.root_prefix.string() + "/conda-bld",
+                     "~/conda-bld" };
+        }
+        else
+        {
+            return conda_build_local_paths;
+        }
+    }
+
 }  // namespace mamba

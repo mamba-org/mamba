@@ -51,6 +51,8 @@ jobs:
         run: |
           rm -rf "mamba/.git"
           mv mamba/ micromamba-feedstock/source
+          # Prevent irrelevant file permission error
+          git -C micromamba-feedstock/ config --local --add safe.directory '*'
       - uses: mamba-org/setup-micromamba@v1
         with:
           environment-name: mambabuild
@@ -81,8 +83,6 @@ jobs:
             apt-get install -y python3 docker.io
           run: |
             cd micromamba-feedstock/
-            # Prevent irrelevant file permission error
-            git config --local --add safe.directory '*'
             # Special values for running the feedstock with a local source
             export FEEDSTOCK_ROOT="${PWD}"
             export CI="local"

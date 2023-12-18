@@ -11,6 +11,9 @@ vars:
   CMAKE_PRESET: 'mamba-unix-shared-debug-dev'
   CACHE_DIR: '{{.BUILD_DIR}}/pkgs'
   DOCS_DIR: '{{.BUILD_DIR}}/docs'
+  MAMBA_NAME: 'mamba'  # Depend on preset...
+  TEST_MAMBA_EXE:
+    sh: 'realpath {{.CMAKE_BUILD_DIR}}/micromamba/{{.MAMBA_NAME}}'
   CPU_PERCENTAGE: 75
   CPU_TOTAL:
     sh: >-
@@ -147,9 +150,9 @@ tasks:
       An example run could look like:
 
           task micromamba -- create -n env -c conda-forge python=3.11
-    deps: [{task: '_build', vars: {target: 'micromamba'}}]
+    deps: [{task: '_build', vars: {target: '{{.MAMBA_NAME}}'}}]
     cmds:
-      - '"{{.CMAKE_BUILD_DIR}}/micromamba/micromamba" {{.CLI_ARGS}}'
+      - '"{{.TEST_MAMBA_EXE}}" {{.CLI_ARGS}}'
 
   _test-libmamba:
     internal: true
@@ -169,10 +172,9 @@ tasks:
 
   _test-micromamba:
     internal: true
-    deps: [{task: '_build', vars: {target: 'micromamba'}}]
+    deps: [{task: '_build', vars: {target: '{{.MAMBA_NAME}}'}}]
     env:
-      TEST_MAMBA_EXE:
-        sh: 'realpath {{.CMAKE_BUILD_DIR}}/micromamba/micromamba'
+      TEST_MAMBA_EXE: '{{.TEST_MAMBA_EXE}}'
     cmds:
       - >-
         {{.DEV_RUN}} python -m pytest micromamba/tests/
@@ -197,10 +199,9 @@ tasks:
 
   _test-reposerver:
     internal: true
-    deps: [{task: '_build', vars: {target: 'micromamba'}}]
+    deps: [{task: '_build', vars: {target: '{{.MAMBA_NAME'}}]
     env:
-      TEST_MAMBA_EXE:
-        sh: 'realpath {{.CMAKE_BUILD_DIR}}/micromamba/micromamba'
+      TEST_MAMBA_EXE: '{{.TEST_MAMBA_EXE}}'
     # Explicitly using this as var since env does not override shell environment
     vars:
       GNUPGHOME: '{{.BUILD_DIR}}/gnupg'

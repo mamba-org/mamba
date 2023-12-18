@@ -75,20 +75,18 @@ def test_env_export(export_env, explicit_flag, md5_flag, channel_subdir_flag):
     flags = filter(None, [explicit_flag, md5_flag, channel_subdir_flag])
     output = helpers.run_env("export", "-n", export_env, *flags)
     if explicit_flag:
-        assert "/micromamba-0.24.0-0." in output
+        assert "/xtl-0.7.5-0." in output
         if md5_flag != "--no-md5":
             assert re.search("#[a-f0-9]{32}$", output.replace("\r", ""))
     else:
         ret = yaml.safe_load(output)
         assert ret["name"] == export_env
         assert set(ret["channels"]) == {"conda-forge"}
-        assert "micromamba=0.24.0=0" in str(ret["dependencies"])
+        assert "xtl=0.7.5=0" in str(ret["dependencies"])
         if md5_flag == "--md5":
-            assert re.search(r"micromamba=0.24.0=0\[md5=[a-f0-9]{32}\]", str(ret["dependencies"]))
+            assert re.search(r"xtl=0.7.5=0\[md5=[a-f0-9]{32}\]", str(ret["dependencies"]))
         if channel_subdir_flag:
-            assert re.search(
-                r"conda-forge/[a-z0-9-]+::micromamba=0.24.0=0", str(ret["dependencies"])
-            )
+            assert re.search(r"conda-forge/[a-z0-9-]+::xtl=0.7.5=0", str(ret["dependencies"]))
 
 
 def test_create():

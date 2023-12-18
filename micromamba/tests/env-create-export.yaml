@@ -1,4 +1,4 @@
 channels:
   - https://conda.anaconda.org/conda-forge
 dependencies:
-  - micromamba=0.24.0
+  - xtl=0.7.5

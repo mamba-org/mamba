@@ -1072,16 +1072,7 @@ bind_submodule_impl(pybind11::module_ m)
         .def_readwrite("timestamp", &PackageInfo::timestamp)
         .def_readwrite("md5", &PackageInfo::md5)
         .def_readwrite("sha256", &PackageInfo::sha256)
-        .def_property(
-            "track_features",
-            [](const PackageInfo& self)
-            {
-                static_assert(LIBMAMBA_VERSION_MAJOR == 1, "Version 1 compatibility.");
-                return fmt::format("{}", fmt::join(self.track_features, ","));
-            },
-            [](PackageInfo& self, std::string_view val)
-            { self.track_features = util::split(val, ","); }
-        )
+        .def_readwrite("track_features", &PackageInfo::track_features)
         .def_readwrite("depends", &PackageInfo::depends)
         .def_readwrite("constrains", &PackageInfo::constrains)
         .def_readwrite("signatures", &PackageInfo::signatures)

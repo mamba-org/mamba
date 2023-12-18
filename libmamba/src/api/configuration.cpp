@@ -1225,16 +1225,6 @@ namespace mamba
                         The list of channel names and/or urls used for the 'defaults'
                         multichannel.)")));
 
-        insert(Configurable("conda_build_local_paths", &ctx.conda_build_local_paths)
-                   .group("Channels")
-                   .description("Locations of conda-bld artifacts")
-                   .long_description(unindent(R"(
-                        The list of locations where conda-bld artifacts may be located.
-                        This list will create a multichannel with the name 'local'.
-                        This is configurable only from the API and is intended to be
-                        used by applications to configure conda-bld paths and not by
-                        users of mamba.)")));
-
         insert(Configurable("custom_channels", &ctx.custom_channels)
                    .group("Channels")
                    .set_rc_configurable()

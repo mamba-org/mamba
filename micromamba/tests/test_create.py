@@ -318,15 +318,51 @@ def test_multiple_spec_files(tmp_home, tmp_root_prefix, tmp_path, type):
 
         cmd += ["-f", spec_file]
 
-    if type == "yaml":
-        with pytest.raises(subprocess.CalledProcessError):
-            helpers.create(*cmd, "--print-config-only")
-    else:
-        res = helpers.create(*cmd, "--print-config-only")
-        if type == "classic":
-            assert res["specs"] == specs
-        else:  # explicit
-            assert res["specs"] == [explicit_specs[0]]
+    res = helpers.create(*cmd, "--print-config-only")
+    if type == "yaml" or type == "classic":
+        assert res["specs"] == specs
+    else:  # explicit
+        assert res["specs"] == [explicit_specs[0]]
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_multiple_spec_files_different_types(tmp_home, tmp_root_prefix, tmp_path):
+    env_prefix = tmp_path / "myenv"
+
+    cmd = ["-p", env_prefix]
+
+    spec_file_1 = tmp_path / "env1.yaml"
+    spec_file_1.write_text("dependencies: [xtensor]")
+
+    spec_file_2 = tmp_path / "env2.txt"
+    spec_file_2.write_text("xsimd")
+
+    cmd += ["-f", spec_file_1, "-f", spec_file_2]
+
+    with pytest.raises(subprocess.CalledProcessError) as info:
+        helpers.create(*cmd, "--print-config-only")
+    assert "found multiple spec file types" in info.value.stderr.decode()
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_multiple_yaml_specs_only_one_has_channels(tmp_home, tmp_root_prefix, tmp_path):
+    env_prefix = tmp_path / "myenv"
+
+    cmd = ["-p", env_prefix]
+
+    spec_file_1 = tmp_path / "env1.yaml"
+    spec_file_1.write_text("dependencies: [xtensor]")
+
+    spec_file_2 = tmp_path / "env2.yaml"
+    spec_file_2.write_text(
+        "dependencies: [xsimd]\nchannels: [bioconda]",
+    )
+
+    cmd += ["-f", spec_file_1, "-f", spec_file_2]
+
+    res = helpers.create(*cmd, "--print-config-only", default_channel=False)
+    assert res["channels"] == ["bioconda"]
+    assert res["specs"] == ["xtensor", "xsimd"]
 
 
 def test_multiprocessing():

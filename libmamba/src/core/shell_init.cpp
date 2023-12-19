@@ -292,7 +292,7 @@ namespace mamba
         std::string cyg_mamba_exe = native_path_to_unix(mamba_exe.string());
         std::string cyg_env_prefix = native_path_to_unix(env_prefix.string());
         content << "\n# >>> mamba initialize >>>\n";
-        content << "# !! Contents within this block are managed by 'mamba init' !!\n";
+        content << "# !! Contents within this block are managed by 'micromamba shell init' !!\n";
         content << "export MAMBA_EXE=" << std::quoted(cyg_mamba_exe, '\'') << ";\n";
         content << "export MAMBA_ROOT_PREFIX=" << std::quoted(cyg_env_prefix, '\'') << ";\n";
         content << "eval \"$(\"$MAMBA_EXE\" shell hook --shell " << shell
@@ -308,7 +308,7 @@ namespace mamba
         return fmt::format(
             "\n"
             "# >>> mamba initialize >>>\n"
-            "# !! Contents within this block are managed by 'mamba init' !!\n"
+            "# !! Contents within this block are managed by 'micromamba shell init' !!\n"
             "export MAMBA_EXE={mamba_exe_path};\n"
             "export MAMBA_ROOT_PREFIX={root_prefix};\n"
             R"sh(__mamba_setup="$("$MAMBA_EXE" shell hook --shell {shell} --root-prefix "$MAMBA_ROOT_PREFIX" 2> /dev/null)")sh"
@@ -316,7 +316,7 @@ namespace mamba
             "if [ $? -eq 0 ]; then\n"
             "    eval \"$__mamba_setup\"\n"
             "else\n"
-            R"sh(    alias {mamba_exe_name}="$MAMBA_EXE"  # Fallback on help from mamba activate)sh"
+            R"sh(    alias {mamba_exe_name}="$MAMBA_EXE"  # Fallback on help from micromamba activate)sh"
             "\n"
             "fi\n"
             "unset __mamba_setup\n"
@@ -346,7 +346,7 @@ namespace mamba
         }
 
         content << "\n# >>> mamba initialize >>>\n";
-        content << "# !! Contents within this block are managed by 'mamba init' !!\n";
+        content << "# !! Contents within this block are managed by 'micromamba shell init' !!\n";
         content << "$MAMBA_EXE = " << mamba_exe << "\n";
         content << "$MAMBA_ROOT_PREFIX = " << env_prefix << "\n";
         content << "import sys as _sys\n";
@@ -378,7 +378,7 @@ namespace mamba
         }
 
         content << "\n# >>> mamba initialize >>>\n";
-        content << "# !! Contents within this block are managed by 'mamba init' !!\n";
+        content << "# !! Contents within this block are managed by 'micromamba shell init' !!\n";
         content << "set -gx MAMBA_EXE " << mamba_exe << "\n";
         content << "set -gx MAMBA_ROOT_PREFIX " << env_prefix << "\n";
         content << "$MAMBA_EXE shell hook --shell fish --root-prefix $MAMBA_ROOT_PREFIX | source\n";
@@ -401,7 +401,7 @@ namespace mamba
         }
 
         content << "\n# >>> mamba initialize >>>\n";
-        content << "# !! Contents within this block are managed by 'mamba init' !!\n";
+        content << "# !! Contents within this block are managed by 'micromamba shell init' !!\n";
         content << "$env.MAMBA_EXE = " << mamba_exe << "\n";
         content << "$env.MAMBA_ROOT_PREFIX = " << env_prefix << "\n";
         content << "$env.PATH = ($env.PATH | append ([$env.MAMBA_ROOT_PREFIX bin] | path join) | uniq)\n";
@@ -468,7 +468,7 @@ def --env "micromamba deactivate" [] {
         }
 
         content << "\n# >>> mamba initialize >>>\n";
-        content << "# !! Contents within this block are managed by 'mamba init' !!\n";
+        content << "# !! Contents within this block are managed by 'micromamba shell init' !!\n";
         content << "setenv MAMBA_EXE " << mamba_exe << ";\n";
         content << "setenv MAMBA_ROOT_PREFIX " << env_prefix << ";\n";
         content << "source $MAMBA_ROOT_PREFIX/etc/profile.d/micromamba.csh;\n";

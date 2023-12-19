@@ -13,6 +13,8 @@ cmake_policy(SET CMP0057 NEW)
 
 project(libmambapy)
 
+message(STATUS "CMAKE_GENERATOR=${CMAKE_GENERATOR}")
+
 if(NOT TARGET mamba::libmamba)
     find_package(libmamba REQUIRED)
     set(libmamba_target mamba::libmamba-dyn)

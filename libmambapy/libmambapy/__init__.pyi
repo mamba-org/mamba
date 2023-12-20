@@ -569,7 +569,7 @@ class Context:
         :type: typing.List[str]
         """
     @conda_build_local_paths.setter
-    def conda_build_local_paths(self, arg0: typing.List[str]) -> None:
+    def conda_build_local_paths(self, arg1: typing.List[str]) -> None:
         pass
     @property
     def conda_prefix(self) -> Path:

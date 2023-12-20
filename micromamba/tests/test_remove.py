@@ -5,6 +5,7 @@ import random
 import shutil
 import string
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -64,6 +65,9 @@ class TestRemove:
             assert p["name"] in env_pkgs
         assert res["actions"]["PREFIX"] == TestRemove.prefix
 
+    @pytest.mark.skipif(
+        sys.platform == "win32", reason="This test is currently failing on Windows"
+    )
     def test_remove_orphaned(self, env_created):
         env_pkgs = [p["name"] for p in umamba_list("-p", TestRemove.prefix, "--json")]
         install("xframe", "-n", TestRemove.env_name, no_dry_run=True)

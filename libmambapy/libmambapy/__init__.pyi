@@ -564,6 +564,14 @@ class Context:
     def channels(self, arg0: typing.List[str]) -> None:
         pass
     @property
+    def conda_build_local_paths(self) -> typing.List[str]:
+        """
+        :type: typing.List[str]
+        """
+    @conda_build_local_paths.setter
+    def conda_build_local_paths(self, arg1: typing.List[str]) -> None:
+        pass
+    @property
     def conda_prefix(self) -> Path:
         """
         :type: Path

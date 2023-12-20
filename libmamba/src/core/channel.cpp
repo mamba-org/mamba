@@ -736,12 +736,7 @@ namespace mamba
         m_custom_multichannels.emplace(DEFAULT_CHANNELS_NAME, std::move(default_names));
 
         // Local channels
-        std::vector<std::string> local_channels = {
-            Context::instance().prefix_params.target_prefix.string() + "/conda-bld",
-            Context::instance().prefix_params.root_prefix.string() + "/conda-bld",
-            "~/conda-bld"
-        };
-
+        std::vector<std::string> local_channels = Context::instance().get_conda_build_local_paths();
         std::vector<std::string> local_names;
         local_names.reserve(local_channels.size());
         for (const auto& p : local_channels)
@@ -749,7 +744,7 @@ namespace mamba
             if (fs::is_directory(p))
             {
                 std::string url = util::path_to_url(p);
-                auto channel = make_simple_channel(m_channel_alias, url, "", LOCAL_CHANNELS_NAME);
+                auto channel = make_simple_channel(m_channel_alias, url, url, LOCAL_CHANNELS_NAME);
                 std::string name = channel.name();
                 auto res = m_custom_channels.emplace(std::move(name), std::move(channel));
                 local_names.push_back(res.first->first);

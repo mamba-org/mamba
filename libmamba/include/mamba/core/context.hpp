@@ -248,6 +248,9 @@ namespace mamba
         void set_verbosity(int lvl);
         void set_log_level(log_level level);
 
+        std::vector<std::string> get_conda_build_local_paths() const;
+        void set_conda_build_local_paths(const std::vector<std::string>&);
+
     protected:
 
         Context();
@@ -258,6 +261,8 @@ namespace mamba
 
         // Used internally
         bool on_ci = false;
+
+        std::vector<std::string> conda_build_local_paths;
 
         void load_authentication_info();
         std::map<std::string, AuthenticationInfo> m_authentication_info;

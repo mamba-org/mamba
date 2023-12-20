@@ -1153,6 +1153,19 @@ def test_create_with_unicode(tmp_home, tmp_root_prefix):
     assert any(pkg["name"] == "xtl" for pkg in res["actions"]["FETCH"])
 
 
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_create_package_with_non_url_char(tmp_home, tmp_root_prefix):
+    """Specific filename char are properly URL encoded.
+
+    Version with epoch such as `x264-1!164.3095-h166bdaf_2.tar.bz2` are not properly URL encoded.
+
+    https://github.com/mamba-org/mamba/issues/3072
+    """
+    res = helpers.create("-n", "myenv", "-c", "conda-forge", "x264>=1!0", "--json")
+
+    assert any(pkg["name"] == "x264" for pkg in res["actions"]["LINK"])
+
+
 def download(url: str, out: Path):
     response = requests.get(url)
     if response.status_code == 200:

@@ -88,3 +88,108 @@ By default, it will hide all credentials
 
 Similarily the ``CondaURL.pretty_str`` returns a more user-friendly string, but that may not be
 parsed back.
+
+
+ChannelSpec
+-----------
+A ``ChannelSpec`` is a lightweight object to represent a channel string, as in passed in the CLI
+or configuration.
+It does minimal parsing and can detect the type of ressource (an unresolved name, a URL, a file)
+and the platform filters.
+
+.. code:: python
+
+   import libmambapy.specs as specs
+
+   cs = specs.ChannelSpec.parse("https://conda.anaconda.org/conda-forge/linux-64")
+
+   assert cs.location == "https://conda.anaconda.org/conda-forge"
+   assert cs.platform_filters == {"linux-64"}
+   assert cs.type == specs.ChannelSpec.Type.URL
+
+Dynamic platforms (as in not known by Mamba) can only be detected with the ``[]`` syntax.
+
+.. code:: python
+
+   import libmambapy.specs as specs
+
+   cs = specs.ChannelSpec.parse("conda-forge[prius-avx42]")
+
+   assert cs.location == "conda-forge"
+   assert cs.platform_filters == {"prius-avx42"}
+   assert cs.type == specs.ChannelSpec.Type.Name
+
+
+Channel
+-------
+The ``Channel`` are represented by a ``CondaURL`` and a set of platform filters.
+A display name is also available, but is not considered a stable identifiaction form of the
+channel, since it depends on the many configuration parameters, such as the channel alias.
+
+We construct a ``Channel`` by *resolving* a ``ChannelSpec``.
+All parameters that influence this resolution must be provided explicitly
+
+.. code:: python
+
+   import libmambapy.specs as specs
+
+   cs = specs.ChannelSpec.parse("conda-forge[prius-avx42]")
+   chan, *_ = specs.Channel.resolve(
+       spec=cs,
+       channel_alias="https://repo.mamba.pm"
+       # ...
+   )
+
+   assert chan.url.str() == "https://repo.mamba.pm/conda-forge"
+   assert cs.platforms == {"prius-avx42"}
+   assert chan.display_name == "conda-forge[prius-avx42]"
+
+There are no hard-coded names:
+
+.. code:: python
+
+   import libmambapy.specs as specs
+
+   cs = specs.ChannelSpec.parse("defaults")
+   chan, *_ = specs.Channel.resolve(
+       spec=cs,
+       channel_alias="https://repo.mamba.pm"
+       # ...
+   )
+
+   assert chan.url.str() == "https://repo.mamba.pm/defaults"
+
+You may have noticed that ``Channel.resolve`` returns multiple channels.
+This is because of custom multichannel, a single name can return mutliple channels.
+
+
+.. code:: python
+
+   import libmambapy.specs as specs
+
+   chan_main, *_ = specs.Channel.resolve(
+       spec=specs.ChannelSpec.parse("pkgs/main"),
+       # ...
+   )
+   chan_r, *_ = specs.Channel.resolve(
+       spec=specs.ChannelSpec.parse("pkgs/r"),
+       # ...
+   )
+
+   defaults = specs.Channel.resolve(
+       spec=specs.ChannelSpec.parse("defaults"),
+       custom_multichannels=specs.Channel.MultiChannelMap(
+           {"defaults": [chan_main, chan_r]}
+       ),
+       # ...
+   )
+
+   assert defaults == [chan_main, chan_r]
+
+.. note::
+
+   Creating ``Channel`` objects this way, while highly customizable, can be very verbose.
+   In practice, one can create a ``ChannelContext`` with ``ChannelContext.make_simple`` or
+   ``ChannelContext.make_conda_compatible`` to compute and hold all these parameters from a
+   ``Context`` (itself getting its values from all the configuration sources).
+   ``ChannelContext.make_channel`` can then directly construct a ``Channel`` from a string.

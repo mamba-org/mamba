@@ -64,13 +64,13 @@ namespace mamba::specs
     }
 
     template <typename Char>
-    VersionPartAtom::VersionPartAtom(std::size_t numeral, std::basic_string<Char>&& literal)
+    VersionPartAtom::VersionPartAtom(std::size_t numeral, std::basic_string<Char> literal)
         : m_literal{ util::to_lower(std::move(literal)) }
         , m_numeral{ numeral }
     {
     }
 
-    template VersionPartAtom::VersionPartAtom(std::size_t, std::string&&);
+    template VersionPartAtom::VersionPartAtom(std::size_t, std::string);
 
     auto VersionPartAtom::numeral() const noexcept -> std::size_t
     {
@@ -179,7 +179,7 @@ namespace mamba::specs
      *  Implementation of Version  *
      *******************************/
 
-    Version::Version(std::size_t epoch, CommonVersion&& version, CommonVersion&& local) noexcept
+    Version::Version(std::size_t epoch, CommonVersion version, CommonVersion local) noexcept
         : m_version{ std::move(version) }
         , m_local{ std::move(local) }
         , m_epoch{ epoch }

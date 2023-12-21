@@ -32,13 +32,13 @@ namespace mamba::specs
         VersionPartAtom(std::size_t numeral, std::string_view literal);
         // The use of a template is only meant to prevent ambiguous conversions
         template <typename Char>
-        VersionPartAtom(std::size_t numeral, std::basic_string<Char>&& literal);
+        VersionPartAtom(std::size_t numeral, std::basic_string<Char> literal);
 
-        auto numeral() const noexcept -> std::size_t;
-        auto literal() const& noexcept -> const std::string&;
+        [[nodiscard]] auto numeral() const noexcept -> std::size_t;
+        [[nodiscard]] auto literal() const& noexcept -> const std::string&;
         auto literal() && noexcept -> std::string;
 
-        auto str() const -> std::string;
+        [[nodiscard]] auto str() const -> std::string;
 
         auto operator==(const VersionPartAtom& other) const -> bool;
         auto operator!=(const VersionPartAtom& other) const -> bool;
@@ -54,7 +54,7 @@ namespace mamba::specs
         std::size_t m_numeral = 0;
     };
 
-    extern template VersionPartAtom::VersionPartAtom(std::size_t, std::string&&);
+    extern template VersionPartAtom::VersionPartAtom(std::size_t, std::string);
 
     /**
      * A sequence of VersionPartAtom meant to represent a part of a version (e.g. major, minor).
@@ -104,7 +104,7 @@ namespace mamba::specs
 
         /** Construct version ``0.0``. */
         Version() noexcept = default;
-        Version(std::size_t epoch, CommonVersion&& version, CommonVersion&& local = {}) noexcept;
+        Version(std::size_t epoch, CommonVersion version, CommonVersion local = {}) noexcept;
 
         [[nodiscard]] auto epoch() const noexcept -> std::size_t;
         [[nodiscard]] auto version() const noexcept -> const CommonVersion&;

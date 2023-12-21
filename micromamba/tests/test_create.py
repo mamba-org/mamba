@@ -364,7 +364,8 @@ def test_multiple_yaml_specs_only_one_has_channels(tmp_home, tmp_root_prefix, tm
     assert res["specs"] == ["xtensor", "xsimd"]
 
 
-def test_multiprocessing():
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_multiprocessing(tmp_home, tmp_root_prefix):
     if platform.system() == "Windows":
         return
 
@@ -420,6 +421,7 @@ def test_create_base(tmp_home, tmp_root_prefix, already_exists, is_conda_env, ha
         assert (tmp_root_prefix / "conda-meta").exists()
 
 
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 @pytest.mark.skipif(
     helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
     reason="Running only ultra-dry tests",
@@ -672,6 +674,7 @@ def test_spec_with_channel_and_subdir():
         ) in e.stderr.decode()
 
 
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_spec_with_multichannel(tmp_home, tmp_root_prefix):
     "https://github.com/mamba-org/mamba/pull/2927"
     helpers.create("-n", "myenv", "defaults::zlib", "--dry-run")
@@ -833,6 +836,7 @@ def test_pyc_compilation(tmp_home, tmp_root_prefix, version, build, cache_tag):
     assert pyc_fn.name in six_meta
 
 
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_create_check_dirs(tmp_home, tmp_root_prefix):
     env_name = "myenv"
     env_prefix = tmp_root_prefix / "envs" / env_name
@@ -1008,6 +1012,7 @@ def copy_channels_osx():
                 f.write(repodata)
 
 
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_dummy_create(add_glibc_virtual_package, copy_channels_osx, tmp_home, tmp_root_prefix):
     env_name = "myenv"
 
@@ -1060,6 +1065,7 @@ def test_create_with_non_existing_subdir(tmp_home, tmp_root_prefix, tmp_path):
         helpers.create("-p", env_prefix, "--dry-run", "--json", "conda-forge/noarch::xtensor")
 
 
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_create_with_multiple_files(tmp_home, tmp_root_prefix, tmpdir):
     env_name = "myenv"
     tmp_root_prefix / "envs" / env_name
@@ -1087,7 +1093,7 @@ def test_create_with_multiple_files(tmp_home, tmp_root_prefix, tmpdir):
         no_rc=False,
     )
 
-    names = {x["name"] for x in res["actions"]["FETCH"]}
+    names = {x["name"] for x in res["actions"]["LINK"]}
     assert names == {"a", "b"}
 
 
@@ -1097,6 +1103,7 @@ multichannel_config = {
 }
 
 
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_create_with_multi_channels(tmp_home, tmp_root_prefix, tmp_path):
     env_name = "myenv"
     tmp_root_prefix / "envs" / env_name
@@ -1115,12 +1122,11 @@ def test_create_with_multi_channels(tmp_home, tmp_root_prefix, tmp_path):
         no_rc=False,
     )
 
-    for pkg in res["actions"]["FETCH"]:
-        assert pkg["channel"].startswith("https://conda.anaconda.org/conda-forge/")
     for pkg in res["actions"]["LINK"]:
         assert pkg["url"].startswith("https://conda.anaconda.org/conda-forge/")
 
 
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_create_with_multi_channels_and_non_existing_subdir(tmp_home, tmp_root_prefix, tmp_path):
     env_name = "myenv"
     tmp_root_prefix / "envs" / env_name
@@ -1141,6 +1147,7 @@ def test_create_with_multi_channels_and_non_existing_subdir(tmp_home, tmp_root_p
         )
 
 
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_create_with_unicode(tmp_home, tmp_root_prefix):
     env_name = "320 áγђß家固êôōçñ한"
     env_prefix = tmp_root_prefix / "envs" / env_name
@@ -1148,8 +1155,8 @@ def test_create_with_unicode(tmp_home, tmp_root_prefix):
     res = helpers.create("-n", env_name, "--json", "xtensor", no_rc=False)
 
     assert res["actions"]["PREFIX"] == str(env_prefix)
-    assert any(pkg["name"] == "xtensor" for pkg in res["actions"]["FETCH"])
-    assert any(pkg["name"] == "xtl" for pkg in res["actions"]["FETCH"])
+    assert any(pkg["name"] == "xtensor" for pkg in res["actions"]["LINK"])
+    assert any(pkg["name"] == "xtl" for pkg in res["actions"]["LINK"])
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)

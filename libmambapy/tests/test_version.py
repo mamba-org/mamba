@@ -2,6 +2,5 @@ import libmambapy
 
 
 def test_version():
-    ver_str = "1.0"
-    ver = libmambapy.Version.parse(ver_str)
-    assert str(ver) == ver_str
+    assert isinstance(libmambapy.__version__, str)
+    assert libmambapy.version.__version__ == libmambapy.__version__

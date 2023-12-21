@@ -525,3 +525,101 @@ def test_Channel_resolve():
     )
     assert len(chans) == 2
     assert {c.display_name for c in chans} == {"best-forge", "conda-forge"}
+
+
+def test_VersionPartAtom():
+    VersionPartAtom = libmambapy.specs.VersionPartAtom
+
+    a = VersionPartAtom(numeral=1, literal="alpha")
+
+    # Getters
+    assert a.numeral == 1
+    assert a.literal == "alpha"
+    assert str(a) == "1alpha"
+
+    # Comparison
+    b = VersionPartAtom(2)
+    assert a == a
+    assert a != b
+    assert a <= a
+    assert a <= b
+    assert a < b
+    assert a >= a
+    assert b >= a
+    assert b > a
+
+    # Copy
+    assert copy.deepcopy(a) == a
+
+
+def test_VersionPart():
+    VersionPartAtom = libmambapy.specs.VersionPartAtom
+    VersionPart = libmambapy.specs.VersionPart
+
+    p = VersionPart([VersionPartAtom(1, "a"), VersionPartAtom(3)])
+    assert len(p) == 2
+
+
+def test_CommonVersion():
+    VersionPartAtom = libmambapy.specs.VersionPartAtom
+    VersionPart = libmambapy.specs.VersionPart
+    CommonVersion = libmambapy.specs.CommonVersion
+
+    p = VersionPart([VersionPartAtom(1, "a"), VersionPartAtom(3)])
+    v = CommonVersion([p, p])
+    assert len(v) == 2
+
+
+def test_Version():
+    VersionPartAtom = libmambapy.specs.VersionPartAtom
+    VersionPart = libmambapy.specs.VersionPart
+    CommonVersion = libmambapy.specs.CommonVersion
+    Version = libmambapy.specs.Version
+
+    # Static data
+    assert isinstance(Version.epoch_delim, str)
+    assert isinstance(Version.local_delim, str)
+    assert isinstance(Version.part_delim, str)
+    assert isinstance(Version.part_delim_alt, str)
+    assert isinstance(Version.part_delim_special, str)
+
+    # Parse
+    v = Version.parse("3!1.3ab2.4+42.0alpha")
+
+    # Getters
+    assert v.epoch == 3
+    assert v.version == CommonVersion(
+        [
+            VersionPart([VersionPartAtom(1)]),
+            VersionPart([VersionPartAtom(3, "ab"), VersionPartAtom(2)]),
+            VersionPart([VersionPartAtom(4)]),
+        ]
+    )
+    assert v.local == CommonVersion(
+        [
+            VersionPart([VersionPartAtom(42)]),
+            VersionPart([VersionPartAtom(0, "alpha")]),
+        ]
+    )
+
+    # str
+    assert str(v) == "3!1.3ab2.4+42.0alpha"
+
+    # Copy
+    assert copy.deepcopy(v) == v
+
+    # Comparison
+    v1 = Version.parse("1.0.1")
+    v2 = Version.parse("1.2.3alpha2")
+    assert v1 == v1
+    assert v1 != v2
+    assert v1 <= v1
+    assert v1 <= v2
+    assert v2 >= v1
+    assert v2 >= v2
+    assert v2 > v1
+    assert v1.starts_with(Version.parse("1.0"))
+    assert not v1.starts_with(v2)
+    assert v2.compatible_with(older=v1, level=1)
+    assert not v2.compatible_with(older=v1, level=2)
+    assert not v1.compatible_with(older=v2, level=1)

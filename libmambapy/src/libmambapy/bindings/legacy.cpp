@@ -263,11 +263,6 @@ bind_submodule_impl(pybind11::module_ m)
 {
     using namespace mamba;
 
-    py::class_<specs::Version>(m, "Version")
-        .def_static("parse", &specs::Version::parse)
-        .def("__str__", &specs::Version::str);
-
-
     // declare earlier to avoid C++ types in docstrings
     auto pyPackageInfo = py::class_<PackageInfo>(m, "PackageInfo");
     auto pyPrefixData = py::class_<PrefixData>(m, "PrefixData");

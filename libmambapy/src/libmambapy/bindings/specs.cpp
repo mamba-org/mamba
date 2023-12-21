@@ -14,11 +14,15 @@
 #include "mamba/specs/channel_spec.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/specs/platform.hpp"
+#include "mamba/specs/version.hpp"
 
 #include "bindings.hpp"
 #include "flat_set_caster.hpp"
 #include "utils.hpp"
 #include "weakening_map_bind.hpp"
+
+PYBIND11_MAKE_OPAQUE(mamba::specs::VersionPart);
+PYBIND11_MAKE_OPAQUE(mamba::specs::CommonVersion);
 
 namespace mambapy
 {
@@ -474,9 +478,60 @@ namespace mambapy
             .def("contains_equivalent", &Channel::contains_equivalent)
             .def(py::self == py::self)
             .def(py::self != py::self)
-            .def(py::self != py::self)
             .def("__hash__", &hash<Channel>)
             .def("__copy__", &copy<Channel>)
             .def("__deepcopy__", &deepcopy<Channel>, pybind11::arg("memo"));
+
+        py::class_<VersionPartAtom>(m, "VersionPartAtom")
+            .def(py::init<>())
+            .def(py::init<std::size_t, std::string_view>(), py::arg("numeral"), py::arg("literal") = "")
+            .def_property_readonly("numeral", &VersionPartAtom::numeral)
+            .def_property_readonly(
+                "literal",
+                [](const VersionPartAtom& atom) { return atom.literal(); }
+            )
+            .def("__str__", &VersionPartAtom::str)
+            .def(py::self == py::self)
+            .def(py::self != py::self)
+            .def(py::self < py::self)
+            .def(py::self <= py::self)
+            .def(py::self > py::self)
+            .def(py::self >= py::self)
+            .def("__copy__", &copy<VersionPartAtom>)
+            .def("__deepcopy__", &deepcopy<VersionPartAtom>, pybind11::arg("memo"));
+
+        // Type made opaque at the top of this file
+        py::bind_vector<VersionPart>(m, "VersionPart");
+
+        // Type made opaque at the top of this file
+        py::bind_vector<CommonVersion>(m, "CommonVersion");
+
+        py::class_<Version>(m, "Version")
+            .def_readonly_static("epoch_delim", &Version::epoch_delim)
+            .def_readonly_static("local_delim", &Version::local_delim)
+            .def_readonly_static("part_delim", &Version::part_delim)
+            .def_readonly_static("part_delim_alt", &Version::part_delim_alt)
+            .def_readonly_static("part_delim_special", &Version::part_delim_special)
+            .def_static("parse", &Version::parse, py::arg("str"))
+            .def(
+                py::init<std::size_t, CommonVersion, CommonVersion>(),
+                py::arg("epoch") = 0,
+                py::arg("version") = CommonVersion(),
+                py::arg("local") = CommonVersion()
+            )
+            .def_property_readonly("epoch", &Version::epoch)
+            .def_property_readonly("version", &Version::version)
+            .def_property_readonly("local", &Version::local)
+            .def("starts_with", &Version::starts_with, py::arg("prefix"))
+            .def("compatible_with", &Version::compatible_with, py::arg("older"), py::arg("level"))
+            .def("__str__", &Version::str)
+            .def(py::self == py::self)
+            .def(py::self != py::self)
+            .def(py::self < py::self)
+            .def(py::self <= py::self)
+            .def(py::self > py::self)
+            .def(py::self >= py::self)
+            .def("__copy__", &copy<Version>)
+            .def("__deepcopy__", &deepcopy<Version>, pybind11::arg("memo"));
     }
 }

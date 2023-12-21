@@ -311,7 +311,7 @@ namespace mambapy
                 py::arg("type") = ChannelSpec::Type::Unknown
             )
             .def("__copy__", &copy<ChannelSpec>)
-            .def("__deepcopy__", &deepcopy<ChannelSpec>, pybind11::arg("memo"))
+            .def("__deepcopy__", &deepcopy<ChannelSpec>, py::arg("memo"))
             .def_property_readonly("type", &ChannelSpec::type)
             .def_property_readonly("location", &ChannelSpec::location)
             .def_property_readonly("platform_filters", &ChannelSpec::platform_filters);
@@ -335,7 +335,7 @@ namespace mambapy
             .def(py::self == py::self)
             .def(py::self != py::self)
             .def("__copy__", &copy<BasicHTTPAuthentication>)
-            .def("__deepcopy__", &deepcopy<BasicHTTPAuthentication>, pybind11::arg("memo"))
+            .def("__deepcopy__", &deepcopy<BasicHTTPAuthentication>, py::arg("memo"))
             .def("__hash__", &hash<BasicHTTPAuthentication>);
 
         py::class_<BearerToken>(m, "BearerToken")
@@ -347,7 +347,7 @@ namespace mambapy
             .def(py::self == py::self)
             .def(py::self != py::self)
             .def("__copy__", &copy<BearerToken>)
-            .def("__deepcopy__", &deepcopy<BearerToken>, pybind11::arg("memo"))
+            .def("__deepcopy__", &deepcopy<BearerToken>, py::arg("memo"))
             .def("__hash__", &hash<BearerToken>);
 
         py::class_<CondaToken>(m, "CondaToken")
@@ -359,7 +359,7 @@ namespace mambapy
             .def(py::self == py::self)
             .def(py::self != py::self)
             .def("__copy__", &copy<CondaToken>)
-            .def("__deepcopy__", &deepcopy<CondaToken>, pybind11::arg("memo"))
+            .def("__deepcopy__", &deepcopy<CondaToken>, py::arg("memo"))
             .def("__hash__", &hash<CondaToken>);
 
         bind_weakening_map<AuthenticationDataBase>(m, "AuthenticationDataBase");
@@ -410,7 +410,7 @@ namespace mambapy
             .def_readwrite("home_dir", &ChannelResolveParams::home_dir)
             .def_readwrite("current_working_dir", &ChannelResolveParams::current_working_dir)
             .def("__copy__", &copy<BasicHTTPAuthentication>)
-            .def("__deepcopy__", &deepcopy<BasicHTTPAuthentication>, pybind11::arg("memo"));
+            .def("__deepcopy__", &deepcopy<BasicHTTPAuthentication>, py::arg("memo"));
 
         py_channel  //
             .def_property_readonly_static(
@@ -481,7 +481,7 @@ namespace mambapy
             .def(py::self != py::self)
             .def("__hash__", &hash<Channel>)
             .def("__copy__", &copy<Channel>)
-            .def("__deepcopy__", &deepcopy<Channel>, pybind11::arg("memo"));
+            .def("__deepcopy__", &deepcopy<Channel>, py::arg("memo"));
 
         py::class_<VersionPartAtom>(m, "VersionPartAtom")
             .def(py::init<>())
@@ -499,7 +499,7 @@ namespace mambapy
             .def(py::self > py::self)
             .def(py::self >= py::self)
             .def("__copy__", &copy<VersionPartAtom>)
-            .def("__deepcopy__", &deepcopy<VersionPartAtom>, pybind11::arg("memo"));
+            .def("__deepcopy__", &deepcopy<VersionPartAtom>, py::arg("memo"));
 
         // Type made opaque at the top of this file
         py::bind_vector<VersionPart>(m, "VersionPart");
@@ -533,7 +533,7 @@ namespace mambapy
             .def(py::self > py::self)
             .def(py::self >= py::self)
             .def("__copy__", &copy<Version>)
-            .def("__deepcopy__", &deepcopy<Version>, pybind11::arg("memo"));
+            .def("__deepcopy__", &deepcopy<Version>, py::arg("memo"));
 
         // Bindings for VersionSpec currently ignores VersionPredicate and flat_bool_expr_tree
         // which would be tedious to bind, and even more to make extendable through Python
@@ -556,6 +556,6 @@ namespace mambapy
             .def_static("parse", &VersionSpec::parse, py::arg("str"))
             .def("contains", &VersionSpec::contains, py::arg("point"))
             .def("__copy__", &copy<VersionSpec>)
-            .def("__deepcopy__", &deepcopy<VersionSpec>, pybind11::arg("memo"));
+            .def("__deepcopy__", &deepcopy<VersionSpec>, py::arg("memo"));
     }
 }

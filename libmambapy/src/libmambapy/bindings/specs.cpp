@@ -8,6 +8,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl_bind.h>
 
+#include "mamba/specs/archive.hpp"
 #include "mamba/specs/authentication_info.hpp"
 #include "mamba/specs/channel.hpp"
 #include "mamba/specs/channel_spec.hpp"
@@ -25,6 +26,26 @@ namespace mambapy
     {
         namespace py = pybind11;
         using namespace mamba::specs;
+
+        m.def("archive_extensions", []() { return ARCHIVE_EXTENSIONS; });
+
+        m.def(
+            "has_archive_extension",
+            [](std::string_view str) { return has_archive_extension(str); }
+        );
+        m.def(
+            "has_archive_extension",
+            [](const mamba::fs::u8path& p) { return has_archive_extension(p); }
+        );
+
+        m.def(
+            "strip_archive_extension",
+            [](std::string_view str) { return strip_archive_extension(str); }
+        );
+        m.def(
+            "strip_archive_extension",
+            [](const mamba::fs::u8path& p) { return strip_archive_extension(p); }
+        );
 
         py::enum_<Platform>(m, "Platform")
             .value("noarch", Platform::noarch)

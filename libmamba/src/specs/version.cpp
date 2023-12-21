@@ -11,7 +11,6 @@
 #include <optional>
 #include <tuple>
 
-#include "mamba/core/error_handling.hpp"
 #include "mamba/specs/version.hpp"
 #include "mamba/util/cast.hpp"
 #include "mamba/util/string.hpp"

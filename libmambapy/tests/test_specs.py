@@ -19,6 +19,16 @@ def test_import_recursive():
     _p = mamba.specs.Platform.noarch
 
 
+def test_archive_extension():
+    assert libmambapy.specs.archive_extensions() == [".tar.bz2", ".conda"]
+
+    assert libmambapy.specs.has_archive_extension("pkg.conda")
+    assert not libmambapy.specs.has_archive_extension("conda.pkg")
+
+    assert libmambapy.specs.strip_archive_extension("pkg.conda") == "pkg"
+    assert libmambapy.specs.strip_archive_extension("conda.pkg") == "conda.pkg"
+
+
 def test_Platform():
     Platform = libmambapy.specs.Platform
 

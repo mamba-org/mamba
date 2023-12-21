@@ -4,10 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <algorithm>
 #include <array>
-#include <fstream>
-#include <map>
 #include <string_view>
 #include <tuple>
 
@@ -30,6 +27,7 @@ extern "C"  // Incomplete header
 #include "mamba/core/repo.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/specs/conda_url.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
@@ -142,22 +140,20 @@ namespace mamba
             return util::lstrip_if_parts(tail, [&](char c) { return !is_sep(c); });
         }
 
-        [[nodiscard]] bool set_solvable(
+        [[nodiscard]] auto set_solvable(
             MPool& pool,
+            const std::string& repo_url_str,
+            const specs::CondaURL& repo_url,
             solv::ObjSolvableView solv,
-            std::string_view repo_url,
-            std::string_view filename,
-            const std::string& default_subdir,
+            const std::string& filename,
             const simdjson::dom::element& pkg,
-            std::string& tmp_buffer
-        )
+            const std::string& default_subdir
+        ) -> bool
         {
             // Not available from RepoDataPackage
-            tmp_buffer = filename;
-            solv.set_file_name(tmp_buffer);
-            tmp_buffer = repo_url;
-            solv.set_url(util::join_url(tmp_buffer, filename));
-            solv.set_channel(tmp_buffer);
+            solv.set_file_name(filename);
+            solv.set_url((repo_url / filename).str(specs::CondaURL::Credentials::Show));
+            solv.set_channel(repo_url_str);
 
             if (auto name = pkg["name"].get_string(); !name.error())
             {
@@ -307,16 +303,26 @@ namespace mamba
         void set_repo_solvables(
             MPool& pool,
             solv::ObjRepoView repo,
-            std::string_view repo_url,
+            const std::string& repo_url_str,
+            const specs::CondaURL& repo_url,
             const std::string& default_subdir,
-            const simdjson::dom::object& packages,
-            std::string& tmp_buffer
+            const simdjson::dom::object& packages
         )
         {
+            std::string filename = {};
             for (const auto& [fn, pkg] : packages)
             {
                 auto [id, solv] = repo.add_solvable();
-                const bool parsed = set_solvable(pool, solv, repo_url, fn, default_subdir, pkg, tmp_buffer);
+                filename = fn;
+                const bool parsed = set_solvable(
+                    pool,
+                    repo_url_str,
+                    repo_url,
+                    solv,
+                    filename,
+                    pkg,
+                    default_subdir
+                );
                 if (parsed)
                 {
                     LOG_DEBUG << "Adding package record to repo " << fn;
@@ -334,12 +340,14 @@ namespace mamba
             // WARNING cannot call ``url()`` at this point because it has not been internalized.
             // Setting the channel url on where the solvable so that we can retrace
             // where it came from
+            const auto url = specs::CondaURL::parse(repo_url);
             repo.for_each_solvable(
                 [&](solv::ObjSolvableView s)
                 {
                     // The solvable url, this is not set in libsolv parsing so we set it manually
                     // while we still rely on libsolv for parsing
-                    s.set_url(util::join_url(repo_url, s.file_name()));
+                    // TODO
+                    s.set_url((url / s.file_name()).str(specs::CondaURL::Credentials::Show));
                     // The name of the channel where it came from, may be different from repo name
                     // for instance with the installed repo
                     s.set_channel(repo_url);
@@ -472,18 +480,31 @@ namespace mamba
             default_subdir = std::string(subdir.value_unsafe());
         }
 
-        // An temporary buffer for managing null terminated strings
-        std::string tmp_buffer = {};
+        const auto repo_url = specs::CondaURL::parse(m_metadata.url);
 
         if (auto pkgs = repodata["packages"].get_object(); !pkgs.error())
         {
-            set_repo_solvables(m_pool, srepo(*this), m_metadata.url, default_subdir, pkgs.value(), tmp_buffer);
+            set_repo_solvables(
+                m_pool,
+                srepo(*this),
+                m_metadata.url,
+                repo_url,
+                default_subdir,
+                pkgs.value()
+            );
         }
 
         if (auto pkgs = repodata["packages.conda"].get_object();
             !pkgs.error() && !m_pool.context().use_only_tar_bz2)
         {
-            set_repo_solvables(m_pool, srepo(*this), m_metadata.url, default_subdir, pkgs.value(), tmp_buffer);
+            set_repo_solvables(
+                m_pool,
+                srepo(*this),
+                m_metadata.url,
+                repo_url,
+                default_subdir,
+                pkgs.value()
+            );
         }
     }
 

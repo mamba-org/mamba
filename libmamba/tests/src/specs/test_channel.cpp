@@ -731,5 +731,23 @@ TEST_SUITE("specs::channel")
             CHECK_EQ(chan.platforms(), platform_list());
             CHECK_EQ(chan.display_name(), "<unknown>");
         }
+
+        SUBCASE("https://conda.anaconda.org/conda-forge/linux-64/x264-1%21164.3095-h166bdaf_2.tar.bz2")
+        {
+            // Version 1!164.3095 is URL encoded
+            const auto url = "https://conda.anaconda.org/conda-forge/linux-64/x264-1%21164.3095-h166bdaf_2.tar.bz2"sv;
+            auto specs = ChannelSpec(std::string(url), {}, ChannelSpec::Type::PackageURL);
+
+            SUBCASE("Typical parameters")
+            {
+                auto params = make_typical_params();
+                auto channels = Channel::resolve(specs, params);
+                REQUIRE_EQ(channels.size(), 1);
+                const auto& chan = channels.front();
+                CHECK_EQ(chan.url(), CondaURL::parse(url));
+                CHECK_EQ(chan.platforms(), platform_list());  // Empty because package
+                CHECK_EQ(chan.display_name(), "conda-forge/linux-64/x264-1!164.3095-h166bdaf_2.tar.bz2");
+            }
+        }
     }
 }

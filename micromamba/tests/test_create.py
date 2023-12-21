@@ -5,7 +5,6 @@ import subprocess
 from pathlib import Path
 
 import pytest
-import requests
 import yaml
 
 from . import helpers
@@ -1164,12 +1163,3 @@ def test_create_package_with_non_url_char(tmp_home, tmp_root_prefix):
     res = helpers.create("-n", "myenv", "-c", "conda-forge", "x264>=1!0", "--json")
 
     assert any(pkg["name"] == "x264" for pkg in res["actions"]["LINK"])
-
-
-def download(url: str, out: Path):
-    response = requests.get(url)
-    if response.status_code == 200:
-        with open(out, "wb") as file:
-            file.write(response.content)
-    else:
-        raise Exception(f'Failed to download URL "{url}"')

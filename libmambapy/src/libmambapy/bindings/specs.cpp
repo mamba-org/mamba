@@ -15,6 +15,7 @@
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/specs/platform.hpp"
 #include "mamba/specs/version.hpp"
+#include "mamba/specs/version_spec.hpp"
 
 #include "bindings.hpp"
 #include "flat_set_caster.hpp"
@@ -533,5 +534,28 @@ namespace mambapy
             .def(py::self >= py::self)
             .def("__copy__", &copy<Version>)
             .def("__deepcopy__", &deepcopy<Version>, pybind11::arg("memo"));
+
+        // Bindings for VersionSpec currently ignores VersionPredicate and flat_bool_expr_tree
+        // which would be tedious to bind, and even more to make extendable through Python
+
+        py::class_<VersionSpec>(m, "VersionSpec")
+            .def_readonly_static("and_token", &VersionSpec::and_token)
+            .def_readonly_static("or_token", &VersionSpec::or_token)
+            .def_readonly_static("left_parenthesis_token", &VersionSpec::left_parenthesis_token)
+            .def_readonly_static("right_parenthesis_token", &VersionSpec::right_parenthesis_token)
+            .def_readonly_static("starts_with_str", &VersionSpec::starts_with_str)
+            .def_readonly_static("equal_str", &VersionSpec::equal_str)
+            .def_readonly_static("not_equal_str", &VersionSpec::not_equal_str)
+            .def_readonly_static("greater_str", &VersionSpec::greater_str)
+            .def_readonly_static("greater_equal_str", &VersionSpec::greater_equal_str)
+            .def_readonly_static("less_str", &VersionSpec::less_str)
+            .def_readonly_static("less_equal_str", &VersionSpec::less_equal_str)
+            .def_readonly_static("compatible_str", &VersionSpec::compatible_str)
+            .def_readonly_static("glob_suffix_str", &VersionSpec::glob_suffix_str)
+            .def_readonly_static("glob_suffix_token", &VersionSpec::glob_suffix_token)
+            .def_static("parse", &VersionSpec::parse, py::arg("str"))
+            .def("contains", &VersionSpec::contains, py::arg("point"))
+            .def("__copy__", &copy<VersionSpec>)
+            .def("__deepcopy__", &deepcopy<VersionSpec>, pybind11::arg("memo"));
     }
 }

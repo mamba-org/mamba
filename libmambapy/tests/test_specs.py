@@ -623,3 +623,32 @@ def test_Version():
     assert v2.compatible_with(older=v1, level=1)
     assert not v2.compatible_with(older=v1, level=2)
     assert not v1.compatible_with(older=v2, level=1)
+
+
+def test_VersionSpec():
+    Version = libmambapy.specs.Version
+    VersionSpec = libmambapy.specs.VersionSpec
+
+    # Static data
+    assert isinstance(VersionSpec.and_token, str)
+    assert isinstance(VersionSpec.or_token, str)
+    assert isinstance(VersionSpec.left_parenthesis_token, str)
+    assert isinstance(VersionSpec.right_parenthesis_token, str)
+    assert isinstance(VersionSpec.starts_with_str, str)
+    assert isinstance(VersionSpec.equal_str, str)
+    assert isinstance(VersionSpec.not_equal_str, str)
+    assert isinstance(VersionSpec.greater_str, str)
+    assert isinstance(VersionSpec.greater_equal_str, str)
+    assert isinstance(VersionSpec.less_str, str)
+    assert isinstance(VersionSpec.less_equal_str, str)
+    assert isinstance(VersionSpec.compatible_str, str)
+    assert isinstance(VersionSpec.glob_suffix_str, str)
+    assert isinstance(VersionSpec.glob_suffix_token, str)
+
+    vs = VersionSpec.parse(">2.0,<3.0")
+
+    assert not vs.contains(Version.parse("1.1"))
+    assert vs.contains(Version.parse("2.1"))
+
+    # Copy
+    copy.deepcopy(vs)  # No easy comaprison

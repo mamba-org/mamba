@@ -1,3 +1,10 @@
+libmamba 1.5.6 (December 21, 2023)
+==================================
+
+Bug fixes:
+
+- Fix canonical name for local channels by @isuruf in https://github.com/mamba-org/mamba/pull/3056
+
 libmamba 1.5.5 (December 11, 2023)
 ==================================
 

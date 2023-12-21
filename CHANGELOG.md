@@ -1,3 +1,12 @@
+2023.12.21
+==========
+
+Releases:  libmamba 1.5.6, libmambapy 1.5.6, mamba 1.5.6, micromamba 1.5.6
+
+Bug fixes:
+
+- [libmamba, libmambapy] Fix canonical name for local channels by @isuruf in https://github.com/mamba-org/mamba/pull/3056
+
 2023.12.11
 ==========
 

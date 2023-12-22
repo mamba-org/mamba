@@ -27,6 +27,8 @@ namespace mamba
 
         [[nodiscard]] auto name() const -> const std::string&;
 
+        [[nodiscard]] auto filename() const -> const std::string&;
+
         [[nodiscard]] auto conda_build_form() const -> std::string;
         [[nodiscard]] auto str() const -> std::string;
 
@@ -37,7 +39,6 @@ namespace mamba
         std::string version;
         std::string ns;
         std::string build_string;
-        std::string fn;
         std::string url;
         std::string build_number;
 
@@ -50,6 +51,7 @@ namespace mamba
     private:
 
         std::string m_name;
+        std::string m_filename;
     };
 }
 #endif

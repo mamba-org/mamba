@@ -141,7 +141,7 @@ TEST_SUITE("MatchSpec")
                 ms.url,
                 "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
             );
-            CHECK_EQ(ms.fn, "_libgcc_mutex-0.1-conda_forge.tar.bz2");
+            CHECK_EQ(ms.filename(), "_libgcc_mutex-0.1-conda_forge.tar.bz2");
         }
         {
             auto ms = MatchSpec::parse(
@@ -170,7 +170,7 @@ TEST_SUITE("MatchSpec")
                 );
             }
 
-            CHECK_EQ(ms.fn, "_libgcc_mutex-0.1-conda_forge.tar.bz2");
+            CHECK_EQ(ms.filename(), "_libgcc_mutex-0.1-conda_forge.tar.bz2");
         }
         {
             auto ms = MatchSpec::parse(

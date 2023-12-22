@@ -84,7 +84,7 @@ namespace mamba
                         p.subdir = ms.channel->platform_filters().front();
                     }
                 }
-                p.fn = ms.fn;
+                p.fn = ms.filename();
                 if (ms.brackets.find("md5") != ms.brackets.end())
                 {
                     p.md5 = ms.brackets.at("md5");

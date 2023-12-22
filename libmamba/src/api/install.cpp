@@ -369,7 +369,7 @@ namespace mamba
                         p.subdir = ms.channel->platform_filters().front();
                     }
                 }
-                p.fn = ms.fn;
+                p.fn = ms.filename();
 
                 if (hash != std::string::npos)
                 {

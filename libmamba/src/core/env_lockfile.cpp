@@ -57,7 +57,7 @@ namespace mamba
 
             package.info.url = package_node["url"].as<std::string>();
             const auto spec = MatchSpec::parse(package.info.url);
-            package.info.fn = spec.fn;
+            package.info.fn = spec.filename();
             package.info.build_string = spec.build_string;
             if (spec.channel.has_value())
             {

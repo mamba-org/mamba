@@ -91,7 +91,7 @@ namespace mamba
             out.m_name = dist[0];
             out.version = dist[1];
             out.build_string = dist[2];
-            out.fn = std::string(pkg);
+            out.m_filename = std::string(pkg);
             out.url = util::path_or_url_to_url(spec_str);
             out.is_file = true;
             return out;
@@ -311,7 +311,7 @@ namespace mamba
             else if (k == "fn")
             {
                 out.is_file = true;
-                out.fn = v;
+                out.m_filename = v;
             }
         }
         return out;
@@ -320,6 +320,11 @@ namespace mamba
     auto MatchSpec::name() const -> const std::string&
     {
         return m_name;
+    }
+
+    auto MatchSpec::filename() const -> const std::string&
+    {
+        return m_filename;
     }
 
     auto MatchSpec::conda_build_form() const -> std::string

@@ -561,6 +561,7 @@ namespace mambapy
             .def_readonly_static("glob_suffix_token", &VersionSpec::glob_suffix_token)
             .def_static("parse", &VersionSpec::parse, py::arg("str"))
             .def("contains", &VersionSpec::contains, py::arg("point"))
+            .def("__str__", &VersionSpec::str)
             .def("__copy__", &copy<VersionSpec>)
             .def("__deepcopy__", &deepcopy<VersionSpec>, py::arg("memo"));
     }

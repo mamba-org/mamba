@@ -29,42 +29,49 @@ TEST_SUITE("specs::version_spec")
         CHECK(free.contains(v2));
         CHECK(free.contains(v3));
         CHECK(free.contains(v4));
+        CHECK_EQ(free.str(), "=*");
 
         const auto eq = VersionPredicate::make_equal_to(v2);
         CHECK_FALSE(eq.contains(v1));
         CHECK(eq.contains(v2));
         CHECK_FALSE(eq.contains(v3));
         CHECK_FALSE(eq.contains(v4));
+        CHECK_EQ(eq.str(), "==2.0");
 
         const auto ne = VersionPredicate::make_not_equal_to(v2);
         CHECK(ne.contains(v1));
         CHECK_FALSE(ne.contains(v2));
         CHECK(ne.contains(v3));
         CHECK(ne.contains(v4));
+        CHECK_EQ(ne.str(), "!=2.0");
 
         const auto gt = VersionPredicate::make_greater(v2);
         CHECK_FALSE(gt.contains(v1));
         CHECK_FALSE(gt.contains(v2));
         CHECK(gt.contains(v3));
         CHECK(gt.contains(v4));
+        CHECK_EQ(gt.str(), ">2.0");
 
         const auto ge = VersionPredicate::make_greater_equal(v2);
         CHECK_FALSE(ge.contains(v1));
         CHECK(ge.contains(v2));
         CHECK(ge.contains(v3));
         CHECK(ge.contains(v4));
+        CHECK_EQ(ge.str(), ">=2.0");
 
         const auto lt = VersionPredicate::make_less(v2);
         CHECK(lt.contains(v1));
         CHECK_FALSE(lt.contains(v2));
         CHECK_FALSE(lt.contains(v3));
         CHECK_FALSE(lt.contains(v4));
+        CHECK_EQ(lt.str(), "<2.0");
 
         const auto le = VersionPredicate::make_less_equal(v2);
         CHECK(le.contains(v1));
         CHECK(le.contains(v2));
         CHECK_FALSE(le.contains(v3));
         CHECK_FALSE(le.contains(v4));
+        CHECK_EQ(le.str(), "<=2.0");
 
         const auto sw = VersionPredicate::make_starts_with(v2);
         CHECK_FALSE(sw.contains(v1));
@@ -72,6 +79,7 @@ TEST_SUITE("specs::version_spec")
         CHECK(sw.contains(v201));
         CHECK_FALSE(sw.contains(v3));
         CHECK_FALSE(sw.contains(v4));
+        CHECK_EQ(sw.str(), "=2.0");
 
         const auto nsw = VersionPredicate::make_not_starts_with(v2);
         CHECK(nsw.contains(v1));
@@ -79,6 +87,7 @@ TEST_SUITE("specs::version_spec")
         CHECK_FALSE(nsw.contains(v201));
         CHECK(nsw.contains(v3));
         CHECK(nsw.contains(v4));
+        CHECK_EQ(nsw.str(), "!=2.0.*");
 
         const auto cp2 = VersionPredicate::make_compatible_with(v2, 2);
         CHECK_FALSE(cp2.contains(v1));
@@ -86,6 +95,7 @@ TEST_SUITE("specs::version_spec")
         CHECK(cp2.contains(v201));
         CHECK_FALSE(cp2.contains(v3));
         CHECK_FALSE(cp2.contains(v4));
+        CHECK_EQ(cp2.str(), "~=2.0");
 
         const auto cp3 = VersionPredicate::make_compatible_with(v2, 3);
         CHECK_FALSE(cp3.contains(v1));
@@ -93,6 +103,7 @@ TEST_SUITE("specs::version_spec")
         CHECK_FALSE(cp3.contains(v201));
         CHECK_FALSE(cp3.contains(v3));
         CHECK_FALSE(cp3.contains(v4));
+        CHECK_EQ(cp3.str(), "~=2.0.0");
 
         const auto predicates = std::array{ free, eq, ne, lt, le, gt, ge, sw, cp2, cp3 };
         for (std::size_t i = 0; i < predicates.size(); ++i)
@@ -140,6 +151,10 @@ TEST_SUITE("specs::version_spec")
             CHECK_FALSE(spec.contains(Version(0, { { { 2 } }, { { 0 } }, { { 0 } } })));  // 2.0.0
             CHECK_FALSE(spec.contains(Version(0, { { { 2 } }, { { 1 } } })));             // 2.1
             CHECK_FALSE(spec.contains(Version(0, { { { 2 } }, { { 3 } } })));             // 2.3
+
+            // Note this won't always be the same as the parsed string because of the tree
+            // serialization
+            CHECK_EQ(spec.str(), "<2.0|(>2.3,<=2.8.0)");
         }
     }
 

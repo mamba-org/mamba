@@ -11,11 +11,16 @@
 #include <string_view>
 #include <variant>
 
+#include <fmt/format.h>
+
 #include "mamba/specs/version.hpp"
 #include "mamba/util/flat_bool_expr_tree.hpp"
 
 namespace mamba::specs
 {
+    /**
+     * A stateful unary boolean function on the Version space.
+     */
     class VersionPredicate
     {
     public:
@@ -35,7 +40,12 @@ namespace mamba::specs
         /** Construct an free interval. */
         VersionPredicate() = default;
 
+        /**
+         * True if the predicate contains the given version.
+         */
         [[nodiscard]] auto contains(const Version& point) const -> bool;
+
+        [[nodiscard]] auto str() const -> std::string;
 
     private:
 
@@ -90,11 +100,23 @@ namespace mamba::specs
         friend auto operator==(not_starts_with, not_starts_with) -> bool;
         friend auto operator==(compatible_with, compatible_with) -> bool;
         friend auto operator==(const VersionPredicate& lhs, const VersionPredicate& rhs) -> bool;
+        friend class ::fmt::formatter<VersionPredicate>;
     };
 
     auto operator==(const VersionPredicate& lhs, const VersionPredicate& rhs) -> bool;
     auto operator!=(const VersionPredicate& lhs, const VersionPredicate& rhs) -> bool;
 
+    /**
+     * Represent a set of versions.
+     *
+     * Internally, a VersionSpec is a binary expression tree of union (or) or intersections (and)
+     * of the sets represented by VersionPredicate.
+     *
+     * The VersionSpec can itself be considered a complex predicate on the space of Version.
+     *
+     * Due to the complex nature of the expression system (comutativity, associativity, etc.), there
+     * is no easy way to say if two VersionSpecs are equal.
+     */
     class VersionSpec
     {
     public:
@@ -123,12 +145,24 @@ namespace mamba::specs
         VersionSpec() = default;
         explicit VersionSpec(tree_type&& tree) noexcept;
 
+        /**
+         * A string representation of the version spec.
+         *
+         * May not always be the same as the parsed string (due to reconstruction) but reparsing
+         * this string will give the same version spec.
+         */
         [[nodiscard]] auto str() const -> std::string;
+
+        /**
+         * True if the set described by the VersionSpec contains the given version.
+         */
         [[nodiscard]] auto contains(const Version& point) const -> bool;
 
     private:
 
         tree_type m_tree;
+
+        friend class ::fmt::formatter<VersionSpec>;
     };
 
     namespace version_spec_literals
@@ -137,4 +171,20 @@ namespace mamba::specs
     }
 }
 
+template <>
+struct fmt::formatter<mamba::specs::VersionPredicate>
+{
+    auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
+
+    auto format(const ::mamba::specs::VersionPredicate& pred, format_context& ctx)
+        -> decltype(ctx.out());
+};
+
+template <>
+struct fmt::formatter<mamba::specs::VersionSpec>
+{
+    auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
+
+    auto format(const ::mamba::specs::VersionSpec& spec, format_context& ctx) -> decltype(ctx.out());
+};
 #endif

@@ -174,6 +174,31 @@ namespace mamba::specs
     {
         return compare_three_way(*this, other) != strong_ordering::less;
     }
+}
+
+auto
+fmt::formatter<mamba::specs::VersionPartAtom>::parse(format_parse_context& ctx)
+    -> decltype(ctx.begin())
+{
+    // make sure that range is empty
+    if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
+    {
+        throw fmt::format_error("Invalid format");
+    }
+    return ctx.begin();
+}
+
+auto
+fmt::formatter<mamba::specs::VersionPartAtom>::format(
+    const ::mamba::specs::VersionPartAtom atom,
+    format_context& ctx
+) -> decltype(ctx.out())
+{
+    return fmt::format_to(ctx.out(), "{}{}", atom.numeral(), atom.literal());
+}
+
+namespace mamba::specs
+{
 
     /*******************************
      *  Implementation of Version  *
@@ -204,6 +229,15 @@ namespace mamba::specs
     auto Version::str() const -> std::string
     {
         return fmt::format("{}", *this);
+    }
+
+    auto Version::str(std::size_t level) const -> std::string
+    {
+        // We should be able to do, as it works with numbers but it is not clear how this works
+        // with the cusotm parser
+        // return fmt::format("{:{}}", *this, level);
+        auto fmt = fmt::format("{{:{}}}", level);
+        return fmt::format(fmt, *this);
     }
 
     namespace
@@ -712,4 +746,65 @@ namespace mamba::specs
             return Version::parse(std::literals::string_view_literals::operator""sv(str, len));
         }
     }
+}
+
+auto
+fmt::formatter<mamba::specs::Version>::parse(format_parse_context& ctx) -> decltype(ctx.begin())
+{
+    // make sure that range is not empty
+    if (ctx.begin() == ctx.end() || *ctx.begin() == '}')
+    {
+        return ctx.begin();
+    }
+    std::size_t val = 0;
+    auto [ptr, ec] = std::from_chars(ctx.begin(), ctx.end(), val);
+    if (ec != std::errc())
+    {
+        throw fmt::format_error("Invalid format" + std::string(ctx.begin(), ctx.end()));
+    }
+    m_level = val;
+    return ptr;
+}
+
+auto
+fmt::formatter<mamba::specs::Version>::format(const ::mamba::specs::Version v, format_context& ctx)
+    -> decltype(ctx.out())
+{
+    auto out = ctx.out();
+    if (v.epoch() != 0)
+    {
+        out = fmt::format_to(ctx.out(), "{}!", v.epoch());
+    }
+
+
+    auto format_version_to = [this](auto l_out, const auto& version)
+    {
+        auto const n_levels = m_level.value_or(version.size());
+        for (std::size_t i = 0; i < n_levels; ++i)
+        {
+            if (i != 0)
+            {
+                l_out = fmt::format_to(l_out, ".");
+            }
+            if (i < version.size())
+            {
+                for (const auto& atom : version[i])
+                {
+                    l_out = fmt::format_to(l_out, "{}", atom);
+                }
+            }
+            else
+            {
+                l_out = fmt::format_to(l_out, "0");
+            }
+        }
+        return l_out;
+    };
+    out = format_version_to(out, v.version());
+    if (!v.local().empty())
+    {
+        out = fmt::format_to(out, "+");
+        out = format_version_to(out, v.local());
+    }
+    return out;
 }

@@ -604,6 +604,7 @@ def test_Version():
 
     # str
     assert str(v) == "3!1.3ab2.4+42.0alpha"
+    assert v.str(level=1) == "3!1+42"
 
     # Copy
     assert copy.deepcopy(v) == v
@@ -650,5 +651,8 @@ def test_VersionSpec():
     assert not vs.contains(Version.parse("1.1"))
     assert vs.contains(Version.parse("2.1"))
 
-    # Copy
-    copy.deepcopy(vs)  # No easy comaprison
+    # str
+    assert str(vs) == ">2.0,<3.0"
+
+    # Copy, no easy comparison, this may not work for all specs
+    assert str(copy.deepcopy(vs)) == str(vs)

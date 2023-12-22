@@ -27,6 +27,8 @@ namespace mamba
 
         [[nodiscard]] auto name() const -> const std::string&;
 
+        [[nodiscard]] auto name_space() const -> const std::string&;
+
         [[nodiscard]] auto filename() const -> const std::string&;
 
         [[nodiscard]] auto url() const -> const std::string&;
@@ -41,7 +43,6 @@ namespace mamba
 
         std::optional<specs::ChannelSpec> channel;
         std::string version;
-        std::string ns;
         std::string build_string;
         std::string build_number;
 
@@ -53,6 +54,7 @@ namespace mamba
     private:
 
         std::string m_name;
+        std::string m_name_space;
         // TODO can put inside channel spec
         std::string m_filename;
         std::string m_url;

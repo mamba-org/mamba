@@ -155,12 +155,12 @@ namespace mamba
         if (m5_len == 3)
         {
             out.channel = specs::ChannelSpec::parse(m5[0]);
-            out.ns = m5[1];
+            out.m_name_space = m5[1];
             spec_str = m5[2];
         }
         else if (m5_len == 2)
         {
-            out.ns = m5[0];
+            out.m_name_space = m5[0];
             spec_str = m5[1];
         }
         else if (m5_len == 1)
@@ -317,6 +317,11 @@ namespace mamba
     auto MatchSpec::name() const -> const std::string&
     {
         return m_name;
+    }
+
+    auto MatchSpec::name_space() const -> const std::string&
+    {
+        return m_name_space;
     }
 
     auto MatchSpec::filename() const -> const std::string&

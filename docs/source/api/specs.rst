@@ -193,3 +193,110 @@ This is because of custom multichannel, a single name can return mutliple channe
    ``ChannelContext.make_conda_compatible`` to compute and hold all these parameters from a
    ``Context`` (itself getting its values from all the configuration sources).
    ``ChannelContext.make_channel`` can then directly construct a ``Channel`` from a string.
+
+
+Version
+-------
+In the conda ecosystem, a version is an epoch and a pair of arbitrary length sequences of arbitrary
+length sequences of string and integer pairs.
+Let's unpack this with an example.
+The version ``1.2.3`` is the outer sequence, it can actually contain as many elements as needed
+so ``1.2.3.4.5.6.7`` is also a valid version.
+For alpha version, we sometimes see something like ``1.0.0alpha1``.
+That's the inner sequence of pairs, for the last part ``[(0, "alpha"), (1, "")]``.
+There can also be any number, such as in ``1.0.0alpha1dev3``.
+We can specify another *"local"* version, that we can separate with a ``+``, as in ``1.9.0+2.0.0``,
+but that is not widely used.
+Finally, there is also an epoch, similar to `PEP440 <https://peps.python.org/pep-0440/>`_, to
+accomodate for change in the versioning scheme.
+For instance, in ``1!2.0.3``, the epoch is ``1``.
+
+To sum up, a version like ``7!1.2a3.5b4dev+1.3.0``, can be parsed as:
+
+- **epoch**: ``7``,
+- **version**: ``[[(1, "")], [(2, "a"), (3, "")], [(5, "b"), (4, "dev")]]``
+- **local version**: ``[[(1, "")], [(3, "")], [(0, "")]]``
+
+Finally, all versions are considered equal to the same version with any number of trailing zeros,
+so ``1.2``, ``1.2.0``, and ``1.2.0.0`` are all considered equal.
+
+.. warning::
+
+   The flexibility of conda versions (arguably too flexible) is meant to accomodate differences
+   in various ecosystems.
+   Library authors should stick to well defined version schemes such as
+   `semantic versioning <https://semver.org/>`_,
+   `calendar versioning <https://calver.org/>`_, or
+   `PEP440 <https://peps.python.org/pep-0440/>`_.
+
+A ``Version`` can be created by parsing a string with ``Version.parse``.
+
+.. code:: python
+
+   import libmambapy.specs as specs
+
+   v = specs.Version.parse("7!1.2a3.5b4dev+1.3.0")
+
+
+The most useful operations on versions is to compare them.
+All comparison operators are available:
+
+.. code:: python
+
+   import libmambapy.specs as specs
+
+   assert specs.Version.parse("1.2.0") == specs.Version.parse("1.2.0.0")
+   assert specs.Version.parse("1.2.0") < specs.Version.parse("1.3")
+   assert specs.Version.parse("2!4.0.0") >= specs.Version.parse("1.8")
+
+
+VersionSpec
+-----------
+A version spec is a way to describe a set of versions.
+We have the following primitives:
+
+- ``*`` matches all versions (unrestricted).
+- ``==`` for **equal** states matches versions equal to the given one (a singleton).
+  For instance ``==1.2.4`` matches ``1.2.4`` only, and not ``1.2.4.1`` or ``1.2``.
+  Note that since ``1.2.4.0`` is the same as ``1.2.4``, this is also matched.
+- ``!=`` for ``not equal`` is the opposite, it matches all but the given version.
+  For instance ``=!1.2.4`` matches ``1.2.5`` and ``1!1.2.4`` but not ``1.2.4``.
+- ``>`` for **greater** matches versions stricly greater than the current one, for instance
+  ``>1.2.4`` matches ``2.0.0``, ``1!1.0.0``, but not ``1.1.0`` or ``1.2.4``.
+- ``>=`` for **greater or equal**.
+- ``<`` for **less**.
+- ``<-`` for **less or equal**.
+- ``=`` for **starts with** matches versions that start with the same non zero parts of the version.
+  For instance ``=1.7`` matches ``1.7.8``, and ``1.7.0alpha1`` (beware since this is smaller
+  than ``1.7.0``).
+  This spec can equivalently be written ``1.7`` (bare), ``1.7.*``, or ``=1.7.*``.
+- ``=!``  with ``.*`` for **not starts with** matches all versions but the one that starts with
+  the non zero parts specified.
+  For instance ``!=1.7.*`` matches ``1.8.3`` but not ``1.7.2``.
+- ``~=`` for **compatible with** matches versions that are greater or equal and starting with the
+  all but the last parts specified, including zeros.
+  For instance `~=2.0` matches ``2.0.0``, ``2.1.3``, but not ``3.0.1`` or ``2.0.0alpha``.
+
+All version spec can be combine using a boolean grammar where ``|`` means **or** and ``,`` means
+**and**.
+For instance, ``(>2.1.0,<3.0)|==2.0.1`` means:
+
+- Either
+   - equal to ``2.0.1``,
+   - or, both
+     - greater that ``2.1.0``
+     - and less than ``3.0``.
+
+To create a ``VersionSpec`` from a string, we parse it with ``VersionSpec.parse``.
+To check if a given version matches a version spec, we use ``VersionSpec.contains``.
+
+
+.. code:: python
+
+   import libmambapy.specs as specs
+
+   vs = specs.VersionSpec.parse("(>2.1.0,<3.0)|==2.0.1")
+
+   assert vs.contains(specs.Version.parse("2.4.0"))
+   assert vs.contains(specs.Version.parse("2.0.1"))
+   assert not vs.contains(specs.Version.parse("3.0.1"))

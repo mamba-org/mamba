@@ -93,7 +93,6 @@ namespace mamba
             out.build_string = dist[2];
             out.m_filename = std::string(pkg);
             out.m_url = util::path_or_url_to_url(spec_str);
-            out.is_file = true;
             return out;
         }
 
@@ -305,12 +304,10 @@ namespace mamba
             }
             else if (k == "url")
             {
-                out.is_file = true;
                 out.m_url = v;
             }
             else if (k == "fn")
             {
-                out.is_file = true;
                 out.m_filename = v;
             }
         }
@@ -499,4 +496,9 @@ namespace mamba
     {
         return version.empty() && build_string.empty() && build_number.empty();
     }
-}  // namespace mamba
+
+    auto MatchSpec::is_file() const -> bool
+    {
+        return (!m_filename.empty()) || (!m_url.empty());
+    }
+}

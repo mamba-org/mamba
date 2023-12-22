@@ -36,6 +36,8 @@ namespace mamba
 
         [[nodiscard]] auto is_simple() const -> bool;
 
+        [[nodiscard]] auto is_file() const -> bool;
+
 
         std::optional<specs::ChannelSpec> channel;
         std::string version;
@@ -43,7 +45,6 @@ namespace mamba
         std::string build_string;
         std::string build_number;
 
-        bool is_file = false;
         bool optional = false;
         std::unordered_map<std::string, std::string> brackets;
 
@@ -52,6 +53,7 @@ namespace mamba
     private:
 
         std::string m_name;
+        // TODO can put inside channel spec
         std::string m_filename;
         std::string m_url;
     };

@@ -92,7 +92,7 @@ namespace mamba
             out.version = dist[1];
             out.build_string = dist[2];
             out.m_filename = std::string(pkg);
-            out.url = util::path_or_url_to_url(spec_str);
+            out.m_url = util::path_or_url_to_url(spec_str);
             out.is_file = true;
             return out;
         }
@@ -306,7 +306,7 @@ namespace mamba
             else if (k == "url")
             {
                 out.is_file = true;
-                out.url = v;
+                out.m_url = v;
             }
             else if (k == "fn")
             {
@@ -325,6 +325,11 @@ namespace mamba
     auto MatchSpec::filename() const -> const std::string&
     {
         return m_filename;
+    }
+
+    auto MatchSpec::url() const -> const std::string&
+    {
+        return m_url;
     }
 
     auto MatchSpec::conda_build_form() const -> std::string
@@ -452,7 +457,7 @@ namespace mamba
             "md5",          "license",        "license_family", "fn"
         };
 
-        if (!url.empty())
+        if (!m_url.empty())
         {
             // erase "fn" when we have a URL
             check.pop_back();

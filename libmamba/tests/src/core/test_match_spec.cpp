@@ -138,7 +138,7 @@ TEST_SUITE("MatchSpec")
             CHECK_EQ(ms.version, "0.1");
             CHECK_EQ(ms.build_string, "conda_forge");
             CHECK_EQ(
-                ms.url,
+                ms.url(),
                 "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
             );
             CHECK_EQ(ms.filename(), "_libgcc_mutex-0.1-conda_forge.tar.bz2");
@@ -154,7 +154,7 @@ TEST_SUITE("MatchSpec")
             {
                 std::string driveletter = fs::absolute(fs::u8path("/")).string().substr(0, 1);
                 CHECK_EQ(
-                    ms.url,
+                    ms.url(),
                     util::concat(
                         "file://",
                         driveletter,
@@ -165,7 +165,7 @@ TEST_SUITE("MatchSpec")
             else
             {
                 CHECK_EQ(
-                    ms.url,
+                    ms.url(),
                     "file:///home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
                 );
             }
@@ -181,7 +181,7 @@ TEST_SUITE("MatchSpec")
                 ms.brackets["url"],
                 "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2"
             );
-            CHECK_EQ(ms.url, "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2");
+            CHECK_EQ(ms.url(), "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2");
         }
         {
             auto ms = MatchSpec::parse("foo=1.0=2");

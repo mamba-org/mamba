@@ -604,6 +604,7 @@ def test_Version():
 
     # str
     assert str(v) == "3!1.3ab2.4+42.0alpha"
+    assert v.str(level=1) == "3!1+42"
 
     # Copy
     assert copy.deepcopy(v) == v

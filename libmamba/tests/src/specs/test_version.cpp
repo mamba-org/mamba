@@ -6,7 +6,6 @@
 
 #include <algorithm>
 #include <array>
-#include <string>
 #include <vector>
 
 #include <doctest/doctest.h>
@@ -306,20 +305,40 @@ TEST_SUITE("specs::version")
 
     TEST_CASE("version_format")
     {
-        // clang-format off
-            CHECK_EQ(
-                Version(0, {{{11, "a"}, {0, "post"}}, {{3}}, {{4, "dev"}}}).str(),
-                "11a0post.3.4dev"
+        SUBCASE("11a0post.3.4dev")
+        {
+            auto v = Version(0, { { { 11, "a" }, { 0, "post" } }, { { 3 } }, { { 4, "dev" } } });
+            CHECK_EQ(v.str(), "11a0post.3.4dev");
+            CHECK_EQ(v.str(1), "11a0post");
+            CHECK_EQ(v.str(2), "11a0post.3");
+            CHECK_EQ(v.str(3), "11a0post.3.4dev");
+            CHECK_EQ(v.str(4), "11a0post.3.4dev.0");
+            CHECK_EQ(v.str(5), "11a0post.3.4dev.0.0");
+        }
+
+        SUBCASE("1!11a0.3.4dev")
+        {
+            auto v = Version(1, { { { 11, "a" }, { 0 } }, { { 3 } }, { { 4, "dev" } } });
+            CHECK_EQ(v.str(), "1!11a0.3.4dev");
+            CHECK_EQ(v.str(1), "1!11a0");
+            CHECK_EQ(v.str(2), "1!11a0.3");
+            CHECK_EQ(v.str(3), "1!11a0.3.4dev");
+            CHECK_EQ(v.str(4), "1!11a0.3.4dev.0");
+        }
+
+        SUBCASE("1!11a0.3.4dev+1.2")
+        {
+            auto v = Version(
+                1,
+                { { { 11, "a" }, { 0 } }, { { 3 } }, { { 4, "dev" } } },
+                { { { 1 } }, { { 2 } } }
             );
-            CHECK_EQ(
-                Version(1, {{{11, "a"}, {0}}, {{3}}, {{4, "dev"}}}).str(),
-                "1!11a0.3.4dev"
-            );
-            CHECK_EQ(
-                Version(1, {{{11, "a"}, {0}}, {{3}}, {{4, "dev"}}}, {{{1}}, {{2}}}).str(),
-                "1!11a0.3.4dev+1.2"
-            );
-        // clang-format on
+            CHECK_EQ(v.str(), "1!11a0.3.4dev+1.2");
+            CHECK_EQ(v.str(1), "1!11a0+1");
+            CHECK_EQ(v.str(2), "1!11a0.3+1.2");
+            CHECK_EQ(v.str(3), "1!11a0.3.4dev+1.2.0");
+            CHECK_EQ(v.str(4), "1!11a0.3.4dev.0+1.2.0.0");
+        }
     }
 
     /**

@@ -525,7 +525,13 @@ namespace mambapy
             .def_property_readonly("local", &Version::local)
             .def("starts_with", &Version::starts_with, py::arg("prefix"))
             .def("compatible_with", &Version::compatible_with, py::arg("older"), py::arg("level"))
-            .def("__str__", &Version::str)
+            .def("__str__", [](const Version& v) { return v.str(); })
+            .def("str", [](const Version& v) { return v.str(); })
+            .def(
+                "str",
+                [](const Version& v, std::size_t level) { return v.str(level); },
+                py::arg("level")
+            )
             .def(py::self == py::self)
             .def(py::self != py::self)
             .def(py::self < py::self)

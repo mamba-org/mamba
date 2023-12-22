@@ -135,4 +135,4 @@ Here is an example usage of ``libmambapy``:
             t = libmambapy.Transaction(api_solver, package_cache)
             return t
 
-.. _boa: https://www.github.com/mamba-org/boa/blob/main/boa/core/solver.py
+.. _boa: https://github.com/mamba-org/boa/blob/main/boa/core/solver.py

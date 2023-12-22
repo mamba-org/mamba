@@ -69,7 +69,7 @@ namespace mamba
 
             for (auto& ms : specs)
             {
-                out.emplace_back(ms.name);
+                out.emplace_back(ms.name());
                 auto& p = out.back();
                 p.url = ms.url;
                 p.build_string = ms.build_string;
@@ -110,7 +110,7 @@ namespace mamba
                 to_install_specs.cbegin(),
                 to_install_specs.cend(),
                 std::back_inserter(to_install_names),
-                [](const auto& spec) { return spec.name; }
+                [](const auto& spec) { return spec.name(); }
             );
 
             const auto& to_remove_specs = solver.remove_specs();
@@ -120,7 +120,7 @@ namespace mamba
                 to_remove_specs.cbegin(),
                 to_remove_specs.cend(),
                 std::back_inserter(to_remove_names),
-                [](const auto& spec) { return spec.name; }
+                [](const auto& spec) { return spec.name(); }
             );
 
             auto specs = util::flat_set<std::string>{};

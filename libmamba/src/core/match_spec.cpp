@@ -88,7 +88,7 @@ namespace mamba
             out.channel = specs::ChannelSpec::parse(spec_str);
             auto [path, pkg] = util::rsplit_once(out.channel->location(), '/');
             auto dist = parse_legacy_dist(pkg);
-            out.name = dist[0];
+            out.m_name = dist[0];
             out.version = dist[1];
             out.build_string = dist[2];
             out.fn = std::string(pkg);
@@ -190,9 +190,9 @@ namespace mamba
         std::smatch vb_match;
         if (std::regex_match(spec_str, vb_match, version_build_re))
         {
-            out.name = vb_match[1].str();
+            out.m_name = vb_match[1].str();
             out.version = util::strip(vb_match[2].str());
-            if (out.name.size() == 0)
+            if (out.m_name.size() == 0)
             {
                 throw std::runtime_error("Invalid spec, no package name found: " + spec_str);
             }
@@ -317,10 +317,15 @@ namespace mamba
         return out;
     }
 
+    auto MatchSpec::name() const -> const std::string&
+    {
+        return m_name;
+    }
+
     auto MatchSpec::conda_build_form() const -> std::string
     {
         std::stringstream res;
-        res << name;
+        res << m_name;
         if (!version.empty())
         {
             res << " " << version;
@@ -362,7 +367,7 @@ namespace mamba
         //     res << ns;
         //     res << ":";
         // }
-        res << (!name.empty() ? name : "*");
+        res << (!m_name.empty() ? m_name : "*");
         std::vector<std::string> formatted_brackets;
         bool version_exact = false;
 

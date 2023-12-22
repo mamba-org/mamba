@@ -118,7 +118,7 @@ namespace mamba
             std::vector<std::string> keep_specs;
             for (auto& it : hist_map)
             {
-                keep_specs.push_back(it.second.name);
+                keep_specs.push_back(it.second.name());
             }
             solver_flag |= SOLVER_SOLVABLE_ALL;
             if (prune_deps)
@@ -136,10 +136,10 @@ namespace mamba
                 std::vector<std::string> remove_specs;
                 for (auto& it : hist_map)
                 {
-                    if (std::find(update_specs.begin(), update_specs.end(), it.second.name)
+                    if (std::find(update_specs.begin(), update_specs.end(), it.second.name())
                         == update_specs.end())
                     {
-                        remove_specs.push_back(it.second.name);
+                        remove_specs.push_back(it.second.name());
                     }
                 }
                 solver.add_jobs(remove_specs, SOLVER_ERASE | SOLVER_CLEANDEPS);

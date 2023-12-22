@@ -25,13 +25,15 @@ namespace mamba
             -> std::tuple<std::string, std::string>;
         [[nodiscard]] static auto parse(std::string_view spec) -> MatchSpec;
 
+        [[nodiscard]] auto name() const -> const std::string&;
+
         [[nodiscard]] auto conda_build_form() const -> std::string;
         [[nodiscard]] auto str() const -> std::string;
 
         [[nodiscard]] auto is_simple() const -> bool;
 
+
         std::optional<specs::ChannelSpec> channel;
-        std::string name;
         std::string version;
         std::string ns;
         std::string build_string;
@@ -42,7 +44,12 @@ namespace mamba
         bool is_file = false;
         bool optional = false;
         std::unordered_map<std::string, std::string> brackets;
+
         std::unordered_map<std::string, std::string> parens;
+
+    private:
+
+        std::string m_name;
     };
 }
 #endif

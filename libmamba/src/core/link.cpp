@@ -996,7 +996,7 @@ namespace mamba
         MatchSpec* requested_spec = nullptr;
         for (auto& ms : m_context->requested_specs)
         {
-            if (ms.name == m_pkg_info.name)
+            if (ms.name() == m_pkg_info.name)
             {
                 requested_spec = &ms;
             }

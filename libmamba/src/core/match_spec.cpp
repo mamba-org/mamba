@@ -255,7 +255,7 @@ namespace mamba
         {
             if (k == "build_number")
             {
-                out.build_number = v;
+                out.m_build_number = v;
             }
             else if (k == "build")
             {
@@ -322,6 +322,11 @@ namespace mamba
     auto MatchSpec::name_space() const -> const std::string&
     {
         return m_name_space;
+    }
+
+    auto MatchSpec::build_number() const -> const std::string&
+    {
+        return m_build_number;
     }
 
     auto MatchSpec::filename() const -> const std::string&
@@ -499,7 +504,7 @@ namespace mamba
 
     auto MatchSpec::is_simple() const -> bool
     {
-        return version.empty() && build_string.empty() && build_number.empty();
+        return version.empty() && build_string.empty() && m_build_number.empty();
     }
 
     auto MatchSpec::is_file() const -> bool

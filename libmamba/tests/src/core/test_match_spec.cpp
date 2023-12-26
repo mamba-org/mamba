@@ -122,13 +122,13 @@ TEST_SUITE("MatchSpec")
             auto ms = MatchSpec::parse("python[build_number=3]");
             CHECK_EQ(ms.name(), "python");
             CHECK_EQ(ms.brackets["build_number"], "3");
-            CHECK_EQ(ms.build_number, "3");
+            CHECK_EQ(ms.build_number(), "3");
         }
         {
             auto ms = MatchSpec::parse("python[build_number='<=3']");
             CHECK_EQ(ms.name(), "python");
             CHECK_EQ(ms.brackets["build_number"], "<=3");
-            CHECK_EQ(ms.build_number, "<=3");
+            CHECK_EQ(ms.build_number(), "<=3");
         }
         {
             auto ms = MatchSpec::parse(

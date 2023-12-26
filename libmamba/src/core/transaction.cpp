@@ -73,7 +73,7 @@ namespace mamba
                 auto& p = out.back();
                 p.url = ms.url();
                 p.build_string = ms.build_string;
-                p.version = ms.version;
+                p.version = ms.version();
                 if (ms.channel.has_value())
                 {
                     p.channel = ms.channel->location();

@@ -28,9 +28,12 @@ namespace mamba
 
         [[nodiscard]] static auto parse_url(std::string_view spec) -> MatchSpec;
 
+        [[nodiscard]] auto name_space() const -> const std::string&;
+
         [[nodiscard]] auto name() const -> const std::string&;
 
-        [[nodiscard]] auto name_space() const -> const std::string&;
+        [[nodiscard]] auto version() const -> const std::string&;
+        void set_version(std::string ver);
 
         [[nodiscard]] auto build_number() const -> const std::string&;
 
@@ -49,7 +52,6 @@ namespace mamba
 
 
         std::optional<specs::ChannelSpec> channel;
-        std::string version;
         std::string build_string;
 
         std::unordered_map<std::string, std::string> brackets;
@@ -58,8 +60,9 @@ namespace mamba
 
     private:
 
-        std::string m_name;
         std::string m_name_space;
+        std::string m_name;
+        std::string m_version;
         std::string m_build_number;
         // TODO can put inside channel spec
         std::string m_filename;

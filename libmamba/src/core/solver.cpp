@@ -96,7 +96,7 @@ namespace mamba
             return m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, m_pool.matchspec2id(ms));
         }
 
-        if (ms.channel.has_value() || !ms.version.empty() || !ms.build_string.empty())
+        if (ms.channel.has_value() || !ms.version().empty() || !ms.build_string.empty())
         {
             Console::stream() << ms.conda_build_form()
                               << ": overriding channel, version and build from "
@@ -105,7 +105,7 @@ namespace mamba
 
         auto ms_modified = ms;
         ms_modified.channel = specs::ChannelSpec::parse(solvable->channel());
-        ms_modified.version = solvable->version();
+        ms_modified.set_version(std::string(solvable->version()));
         ms_modified.build_string = solvable->build_string();
 
         LOG_INFO << "Reinstall " << ms_modified.conda_build_form() << " from channel "

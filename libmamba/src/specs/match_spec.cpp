@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <regex>
+#include <sstream>
 #include <string>
 #include <string_view>
 

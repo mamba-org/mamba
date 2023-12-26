@@ -357,7 +357,7 @@ namespace mamba
                 auto ms = MatchSpec::parse(u.substr(0, hash));
                 PackageInfo p(ms.name());
                 p.url = ms.url();
-                p.build_string = ms.build_string;
+                p.build_string = ms.build_string();
                 p.version = ms.version();
                 if (ms.channel.has_value())
                 {

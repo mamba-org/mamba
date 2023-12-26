@@ -68,7 +68,7 @@ namespace mamba
 
         // Build string
         auto [head, tail] = util::rsplit_once(specs::strip_archive_extension(pkg), '-');
-        out.build_string = tail;
+        out.m_build_string = tail;
         if (!head.has_value())
         {
             fail_parse();
@@ -224,20 +224,20 @@ namespace mamba
             auto [pv, pb] = parse_version_and_build(std::string(util::strip(out.m_version)));
 
             out.m_version = pv;
-            out.build_string = pb;
+            out.m_build_string = pb;
 
             // translate version '=1.2.3' to '1.2.3*'
             // is it a simple version starting with '='? i.e. '=1.2.3'
             if (out.m_version.size() >= 2 && out.m_version[0] == '=')
             {
                 auto rest = out.m_version.substr(1);
-                if (out.m_version[1] == '=' && out.build_string.empty())
+                if (out.m_version[1] == '=' && out.m_build_string.empty())
                 {
                     out.m_version = out.m_version.substr(2);
                 }
                 else if (rest.find_first_of("=,|") == rest.npos)
                 {
-                    if (out.build_string.empty() && out.m_version.back() != '*')
+                    if (out.m_build_string.empty() && out.m_version.back() != '*')
                     {
                         out.m_version = util::concat(out.m_version, "*");
                     }
@@ -251,7 +251,7 @@ namespace mamba
         else
         {
             out.m_version = "";
-            out.build_string = "";
+            out.m_build_string = "";
         }
 
         // TODO think about using a hash function here, (and elsewhere), like:
@@ -265,7 +265,7 @@ namespace mamba
             }
             else if (k == "build")
             {
-                out.build_string = v;
+                out.m_build_string = v;
             }
             else if (k == "version")
             {
@@ -345,6 +345,16 @@ namespace mamba
         return m_build_number;
     }
 
+    auto MatchSpec::build_string() const -> const std::string&
+    {
+        return m_build_string;
+    }
+
+    void MatchSpec::set_build_string(std::string bs)
+    {
+        m_build_string = std::move(bs);
+    }
+
     auto MatchSpec::filename() const -> const std::string&
     {
         return m_filename;
@@ -368,9 +378,9 @@ namespace mamba
         {
             res << " " << m_version;
             // if (!build.empty() && (build != "*"))
-            if (!build_string.empty())
+            if (!m_build_string.empty())
             {
-                res << " " << build_string;
+                res << " " << m_build_string;
             }
         }
         return res.str();
@@ -420,7 +430,7 @@ namespace mamba
             }
             else if (util::starts_with(m_version, "!=") || util::starts_with(m_version, "~="))
             {
-                if (!build_string.empty())
+                if (!m_build_string.empty())
                 {
                     formatted_brackets.push_back(util::concat("version='", m_version, "'"));
                 }
@@ -460,23 +470,23 @@ namespace mamba
             }
         }
 
-        if (!build_string.empty())
+        if (!m_build_string.empty())
         {
-            if (is_complex_relation(build_string))
+            if (is_complex_relation(m_build_string))
             {
-                formatted_brackets.push_back(util::concat("build='", build_string, '\''));
+                formatted_brackets.push_back(util::concat("build='", m_build_string, '\''));
             }
-            else if (build_string.find('*') != build_string.npos)
+            else if (m_build_string.find('*') != m_build_string.npos)
             {
-                formatted_brackets.push_back(util::concat("build=", build_string));
+                formatted_brackets.push_back(util::concat("build=", m_build_string));
             }
             else if (version_exact)
             {
-                res << "=" << build_string;
+                res << "=" << m_build_string;
             }
             else
             {
-                formatted_brackets.push_back(util::concat("build=", build_string));
+                formatted_brackets.push_back(util::concat("build=", m_build_string));
             }
         }
 
@@ -525,7 +535,7 @@ namespace mamba
 
     auto MatchSpec::is_simple() const -> bool
     {
-        return m_version.empty() && build_string.empty() && m_build_number.empty();
+        return m_version.empty() && m_build_string.empty() && m_build_number.empty();
     }
 
     auto MatchSpec::is_file() const -> bool

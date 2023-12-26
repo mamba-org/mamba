@@ -28,6 +28,9 @@ namespace mamba
 
         [[nodiscard]] static auto parse_url(std::string_view spec) -> MatchSpec;
 
+        [[nodiscard]] auto channel() const -> const std::optional<specs::ChannelSpec>&;
+        void set_channel(std::optional<specs::ChannelSpec> chan);
+
         [[nodiscard]] auto name_space() const -> const std::string&;
 
         [[nodiscard]] auto name() const -> const std::string&;
@@ -54,14 +57,13 @@ namespace mamba
         [[nodiscard]] auto is_file() const -> bool;
 
 
-        std::optional<specs::ChannelSpec> channel;
-
         std::unordered_map<std::string, std::string> brackets;
 
         std::unordered_map<std::string, std::string> parens;
 
     private:
 
+        std::optional<specs::ChannelSpec> m_channel;
         std::string m_name_space;
         std::string m_name;
         std::string m_version;

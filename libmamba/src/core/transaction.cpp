@@ -74,14 +74,14 @@ namespace mamba
                 p.url = ms.url();
                 p.build_string = ms.build_string();
                 p.version = ms.version();
-                if (ms.channel.has_value())
+                if (ms.channel().has_value())
                 {
-                    p.channel = ms.channel->location();
-                    if (!ms.channel->platform_filters().empty())
+                    p.channel = ms.channel()->location();
+                    if (!ms.channel()->platform_filters().empty())
                     {
                         // There must be only one since we are expecting URLs
-                        assert(ms.channel->platform_filters().size() == 1);
-                        p.subdir = ms.channel->platform_filters().front();
+                        assert(ms.channel()->platform_filters().size() == 1);
+                        p.subdir = ms.channel()->platform_filters().front();
                     }
                 }
                 p.fn = ms.filename();

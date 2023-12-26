@@ -359,14 +359,14 @@ namespace mamba
                 p.url = ms.url();
                 p.build_string = ms.build_string();
                 p.version = ms.version();
-                if (ms.channel.has_value())
+                if (ms.channel().has_value())
                 {
-                    p.channel = ms.channel->location();
-                    if (!ms.channel->platform_filters().empty())
+                    p.channel = ms.channel()->location();
+                    if (!ms.channel()->platform_filters().empty())
                     {
                         // There must be only one since we are expecting URLs
-                        assert(ms.channel->platform_filters().size() == 1);
-                        p.subdir = ms.channel->platform_filters().front();
+                        assert(ms.channel()->platform_filters().size() == 1);
+                        p.subdir = ms.channel()->platform_filters().front();
                     }
                 }
                 p.fn = ms.filename();
@@ -476,9 +476,9 @@ namespace mamba
         // add channels from specs
         for (const auto& s : specs)
         {
-            if (auto ms = MatchSpec::parse(s); ms.channel.has_value())
+            if (auto ms = MatchSpec::parse(s); ms.channel().has_value())
             {
-                ctx.channels.push_back(ms.channel->str());
+                ctx.channels.push_back(ms.channel()->str());
             }
         }
 

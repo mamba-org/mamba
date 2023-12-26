@@ -103,17 +103,17 @@ TEST_SUITE("MatchSpec")
             auto ms = MatchSpec::parse("conda-forge/linux-64::xtensor==0.12.3");
             CHECK_EQ(ms.version(), "0.12.3");
             CHECK_EQ(ms.name(), "xtensor");
-            REQUIRE(ms.channel.has_value());
-            CHECK_EQ(ms.channel->location(), "conda-forge");
-            CHECK_EQ(ms.channel->platform_filters(), PlatformSet{ "linux-64" });
+            REQUIRE(ms.channel().has_value());
+            CHECK_EQ(ms.channel()->location(), "conda-forge");
+            CHECK_EQ(ms.channel()->platform_filters(), PlatformSet{ "linux-64" });
             CHECK_EQ(ms.optional(), false);
         }
         {
             auto ms = MatchSpec::parse("conda-forge::foo[build=3](target=blarg,optional)");
             CHECK_EQ(ms.version(), "");
             CHECK_EQ(ms.name(), "foo");
-            REQUIRE(ms.channel.has_value());
-            CHECK_EQ(ms.channel->location(), "conda-forge");
+            REQUIRE(ms.channel().has_value());
+            CHECK_EQ(ms.channel()->location(), "conda-forge");
             CHECK_EQ(ms.brackets["build"], "3");
             CHECK_EQ(ms.parens["target"], "blarg");
             CHECK_EQ(ms.optional(), true);

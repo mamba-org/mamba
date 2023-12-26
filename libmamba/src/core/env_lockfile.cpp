@@ -59,14 +59,14 @@ namespace mamba
             const auto spec = MatchSpec::parse(package.info.url);
             package.info.fn = spec.filename();
             package.info.build_string = spec.build_string();
-            if (spec.channel.has_value())
+            if (spec.channel().has_value())
             {
-                package.info.channel = spec.channel->location();
-                if (!spec.channel->platform_filters().empty())
+                package.info.channel = spec.channel()->location();
+                if (!spec.channel()->platform_filters().empty())
                 {
                     // There must be only one since we are expecting URLs
-                    assert(spec.channel->platform_filters().size() == 1);
-                    package.info.subdir = spec.channel->platform_filters().front();
+                    assert(spec.channel()->platform_filters().size() == 1);
+                    package.info.subdir = spec.channel()->platform_filters().front();
                 }
             }
 

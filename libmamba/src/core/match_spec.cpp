@@ -61,8 +61,8 @@ namespace mamba
         };
 
         auto out = MatchSpec();
-        out.channel = specs::ChannelSpec::parse(spec);
-        auto [_, pkg] = util::rsplit_once(out.channel->location(), '/');
+        out.m_channel = specs::ChannelSpec::parse(spec);
+        auto [_, pkg] = util::rsplit_once(out.m_channel->location(), '/');
         out.m_filename = std::string(pkg);
         out.m_url = util::path_or_url_to_url(spec);
 
@@ -166,7 +166,7 @@ namespace mamba
         std::string channel_str;
         if (m5_len == 3)
         {
-            out.channel = specs::ChannelSpec::parse(m5[0]);
+            out.m_channel = specs::ChannelSpec::parse(m5[0]);
             out.m_name_space = m5[1];
             spec_str = m5[2];
         }
@@ -273,38 +273,38 @@ namespace mamba
             }
             else if (k == "channel")
             {
-                if (!out.channel.has_value())
+                if (!out.m_channel.has_value())
                 {
-                    out.channel = specs::ChannelSpec::parse(v);
+                    out.m_channel = specs::ChannelSpec::parse(v);
                 }
                 else
                 {
                     // Subdirs might have been set with a previous subdir key
-                    auto subdirs = out.channel->clear_platform_filters();
-                    out.channel = specs::ChannelSpec::parse(v);
+                    auto subdirs = out.m_channel->clear_platform_filters();
+                    out.m_channel = specs::ChannelSpec::parse(v);
                     if (!subdirs.empty())
                     {
-                        out.channel = specs::ChannelSpec(
-                            out.channel->clear_location(),
+                        out.m_channel = specs::ChannelSpec(
+                            out.m_channel->clear_location(),
                             std::move(subdirs),
-                            out.channel->type()
+                            out.m_channel->type()
                         );
                     }
                 }
             }
             else if (k == "subdir")
             {
-                if (!out.channel.has_value())
+                if (!out.m_channel.has_value())
                 {
-                    out.channel = specs::ChannelSpec("", { v }, specs::ChannelSpec::Type::Unknown);
+                    out.m_channel = specs::ChannelSpec("", { v }, specs::ChannelSpec::Type::Unknown);
                 }
                 // Subdirs specified in the channel part have higher precedence
-                else if (out.channel->platform_filters().empty())
+                else if (out.m_channel->platform_filters().empty())
                 {
-                    out.channel = specs::ChannelSpec(
-                        out.channel->clear_location(),
+                    out.m_channel = specs::ChannelSpec(
+                        out.m_channel->clear_location(),
                         { v },
-                        out.channel->type()
+                        out.m_channel->type()
                     );
                 }
             }
@@ -318,6 +318,16 @@ namespace mamba
             }
         }
         return out;
+    }
+
+    auto MatchSpec::channel() const -> const std::optional<specs::ChannelSpec>&
+    {
+        return m_channel;
+    }
+
+    void MatchSpec::set_channel(std::optional<specs::ChannelSpec> chan)
+    {
+        m_channel = std::move(chan);
     }
 
     auto MatchSpec::name_space() const -> const std::string&
@@ -405,9 +415,9 @@ namespace mamba
         //     else:
         //         brackets.append("subdir=%s" % subdir_matcher)
 
-        if (channel.has_value())
+        if (m_channel.has_value())
         {
-            res << fmt::format("{}::", *channel);
+            res << fmt::format("{}::", *m_channel);
         }
         // TODO when namespaces are implemented!
         // if (!ns.empty())

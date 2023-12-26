@@ -23,7 +23,10 @@ namespace mamba
 
         [[nodiscard]] static auto parse_version_and_build(std::string_view s)
             -> std::tuple<std::string, std::string>;
+
         [[nodiscard]] static auto parse(std::string_view spec) -> MatchSpec;
+
+        [[nodiscard]] static auto parse_url(std::string_view spec) -> MatchSpec;
 
         [[nodiscard]] auto name() const -> const std::string&;
 

@@ -11,28 +11,12 @@
 #include <fmt/format.h>
 
 #include "mamba/core/match_spec.hpp"
-#include "mamba/core/output.hpp"
 #include "mamba/specs/archive.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
 namespace mamba
 {
-    namespace
-    {
-        auto parse_legacy_dist(std::string_view dist) -> std::vector<std::string>
-        {
-            auto dist_str = std::string(specs::strip_archive_extension(dist));
-            auto split_str = util::rsplit(dist_str, "-", 2);
-            if (split_str.size() != 3)
-            {
-                LOG_ERROR << "dist_str " << dist_str << " did not split into a correct version info.";
-                throw std::runtime_error("Invalid package filename");
-            }
-            return split_str;
-        }
-    }
-
     auto MatchSpec::parse_version_and_build(std::string_view s)
         -> std::tuple<std::string, std::string>
     {
@@ -67,6 +51,48 @@ namespace mamba
         }
     }
 
+    auto MatchSpec::parse_url(std::string_view spec) -> MatchSpec
+    {
+        auto fail_parse = [&]()
+        {
+            throw std::invalid_argument(
+                util::concat(R"(Fail to parse MatchSpec ditribution ")", spec, '"')
+            );
+        };
+
+        auto out = MatchSpec();
+        out.channel = specs::ChannelSpec::parse(spec);
+        auto [_, pkg] = util::rsplit_once(out.channel->location(), '/');
+        out.m_filename = std::string(pkg);
+        out.m_url = util::path_or_url_to_url(spec);
+
+        // Name
+        auto [head, tail] = util::split_once(specs::strip_archive_extension(pkg), '-');
+        out.m_name = head;
+        if (!tail.has_value())
+        {
+            fail_parse();
+        }
+
+        // Version
+        std::tie(head, tail) = util::split_once(tail.value(), '-');
+        out.version = head;
+        if (!tail.has_value())
+        {
+            fail_parse();
+        }
+
+        // Build string
+        std::tie(head, tail) = util::split_once(tail.value(), '-');
+        out.build_string = head;
+        if (tail.has_value())  // Exactly three expected
+        {
+            fail_parse();
+        }
+
+        return out;
+    }
+
     auto MatchSpec::parse(std::string_view spec) -> MatchSpec
     {
         auto spec_str = std::string(spec);
@@ -84,15 +110,7 @@ namespace mamba
 
         if (specs::has_archive_extension(spec_str))
         {
-            out.channel = specs::ChannelSpec::parse(spec_str);
-            auto [path, pkg] = util::rsplit_once(out.channel->location(), '/');
-            auto dist = parse_legacy_dist(pkg);
-            out.m_name = dist[0];
-            out.version = dist[1];
-            out.build_string = dist[2];
-            out.m_filename = std::string(pkg);
-            out.m_url = util::path_or_url_to_url(spec_str);
-            return out;
+            return MatchSpec::parse_url(spec_str);
         }
 
         auto extract_kv = [&spec_str](const std::string& kv_string, auto& map)

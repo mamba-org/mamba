@@ -130,7 +130,7 @@ namespace mamba
         Flags m_flags = {};
         bool m_is_solved;
 
-        void add_reinstall_job(MatchSpec& ms, int job_flag);
+        void add_reinstall_job(const MatchSpec& ms, int job_flag);
         void apply_libsolv_flags();
     };
 }  // namespace mamba

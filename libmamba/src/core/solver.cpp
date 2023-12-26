@@ -70,7 +70,7 @@ namespace mamba
         m_jobs->push_back(job_flag, 0);
     }
 
-    void MSolver::add_reinstall_job(MatchSpec& ms, int job_flag)
+    void MSolver::add_reinstall_job(const MatchSpec& ms, int job_flag)
     {
         auto solvable = std::optional<solv::ObjSolvableViewConst>{};
 
@@ -101,22 +101,18 @@ namespace mamba
             Console::stream() << ms.conda_build_form()
                               << ": overriding channel, version and build from "
                                  "installed packages due to --force-reinstall.";
-            ms.channel = std::nullopt;
-            ms.version = "";
-            ms.build_string = "";
         }
 
-        MatchSpec modified_spec(ms);
-        modified_spec.channel = specs::ChannelSpec::parse(solvable->channel());
+        auto ms_modified = ms;
+        ms_modified.channel = specs::ChannelSpec::parse(solvable->channel());
+        ms_modified.version = solvable->version();
+        ms_modified.build_string = solvable->build_string();
 
-        modified_spec.version = solvable->version();
-        modified_spec.build_string = solvable->build_string();
-
-        LOG_INFO << "Reinstall " << modified_spec.conda_build_form() << " from channel "
-                 << modified_spec.channel->str();
+        LOG_INFO << "Reinstall " << ms_modified.conda_build_form() << " from channel "
+                 << ms_modified.channel->str();
         // TODO Fragile! The only reason why this works is that with a channel specific matchspec
         // the job will always be reinstalled.
-        m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, m_pool.matchspec2id(modified_spec));
+        m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, m_pool.matchspec2id(ms_modified));
     }
 
     void MSolver::add_jobs(const std::vector<std::string>& jobs, int job_flag)

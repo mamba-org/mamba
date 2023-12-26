@@ -14,10 +14,10 @@
 #include <reproc++/run.hpp>
 
 #include "mamba/core/link.hpp"
-#include "mamba/core/match_spec.hpp"
 #include "mamba/core/menuinst.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/transaction_context.hpp"
+#include "mamba/specs/match_spec.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/string.hpp"
@@ -993,7 +993,7 @@ namespace mamba
         out_json["paths_data"] = paths_json;
         out_json["files"] = files_record;
 
-        MatchSpec* requested_spec = nullptr;
+        specs::MatchSpec* requested_spec = nullptr;
         for (auto& ms : m_context->requested_specs)
         {
             if (ms.name() == m_pkg_info.name)

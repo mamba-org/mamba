@@ -6,14 +6,15 @@
 
 #include <doctest/doctest.h>
 
-#include "mamba/core/match_spec.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/specs/match_spec.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 
 using namespace mamba;
+using namespace mamba::specs;
 
-TEST_SUITE("MatchSpec")
+TEST_SUITE("specs::match_spec")
 {
     using PlatformSet = typename util::flat_set<std::string>;
 

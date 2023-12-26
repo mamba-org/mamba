@@ -191,17 +191,17 @@ namespace mamba
         return res;
     }
 
-    std::unordered_map<std::string, MatchSpec> History::get_requested_specs_map()
+    std::unordered_map<std::string, specs::MatchSpec> History::get_requested_specs_map()
     {
-        std::unordered_map<std::string, MatchSpec> map;
+        std::unordered_map<std::string, specs::MatchSpec> map;
 
         auto to_specs = [&](const std::vector<std::string>& sv)
         {
-            std::vector<MatchSpec> v;
+            std::vector<specs::MatchSpec> v;
             v.reserve(sv.size());
             for (const auto& el : sv)
             {
-                v.emplace_back(MatchSpec::parse(el));
+                v.emplace_back(specs::MatchSpec::parse(el));
             }
             return v;
         };

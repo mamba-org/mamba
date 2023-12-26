@@ -556,7 +556,7 @@ namespace mamba
     template struct CompressedProblemsGraph::RoughCompare<ProblemsGraph::PackageNode>;
     template struct CompressedProblemsGraph::RoughCompare<ProblemsGraph::UnresolvedDependencyNode>;
     template struct CompressedProblemsGraph::RoughCompare<ProblemsGraph::ConstraintNode>;
-    template struct CompressedProblemsGraph::RoughCompare<MatchSpec>;
+    template struct CompressedProblemsGraph::RoughCompare<specs::MatchSpec>;
 
     /**********************************************************
      *  Implementation of CompressedProblemsGraph::NamedList  *
@@ -746,7 +746,7 @@ namespace mamba
     template class CompressedProblemsGraph::NamedList<ProblemsGraph::PackageNode>;
     template class CompressedProblemsGraph::NamedList<ProblemsGraph::UnresolvedDependencyNode>;
     template class CompressedProblemsGraph::NamedList<ProblemsGraph::ConstraintNode>;
-    template class CompressedProblemsGraph::NamedList<MatchSpec>;
+    template class CompressedProblemsGraph::NamedList<specs::MatchSpec>;
 
     /***********************************
      *  Implementation of summary_msg  *

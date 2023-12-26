@@ -102,7 +102,7 @@ namespace mamba
         const Context& context,
         const fs::u8path& ltarget_prefix,
         const std::pair<std::string, std::string>& py_versions,
-        const std::vector<MatchSpec>& lrequested_specs
+        const std::vector<specs::MatchSpec>& lrequested_specs
     )
         : has_python(py_versions.first.size() != 0)
         , target_prefix(ltarget_prefix)
@@ -145,7 +145,7 @@ namespace mamba
         const fs::u8path& ltarget_prefix,
         const fs::u8path& lrelocate_prefix,
         const std::pair<std::string, std::string>& py_versions,
-        const std::vector<MatchSpec>& lrequested_specs
+        const std::vector<specs::MatchSpec>& lrequested_specs
     )
         : TransactionContext(context, ltarget_prefix, py_versions, lrequested_specs)
     {

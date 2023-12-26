@@ -19,9 +19,9 @@ extern "C"  // Incomplete header
 
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
+#include "mamba/specs/match_spec.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
 
@@ -179,7 +179,7 @@ namespace mamba
         auto add_channel_specific_matchspec(
             ChannelContext& channel_context,
             solv::ObjPool& pool,
-            const MatchSpec& ms
+            const specs::MatchSpec& ms
         ) -> solv::DependencyId
         {
             assert(ms.channel().has_value());
@@ -266,7 +266,7 @@ namespace mamba
         }
     }
 
-    ::Id MPool::matchspec2id(const MatchSpec& ms)
+    ::Id MPool::matchspec2id(const specs::MatchSpec& ms)
     {
         ::Id id = 0;
         if (!ms.channel().has_value())

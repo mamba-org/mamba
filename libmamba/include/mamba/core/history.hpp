@@ -12,9 +12,9 @@
 #include <unordered_map>
 #include <vector>
 
+#include "mamba/core/channel_context.hpp"
 #include "mamba/fs/filesystem.hpp"
-
-#include "match_spec.hpp"
+#include "mamba/specs/match_spec.hpp"
 
 namespace mamba
 {
@@ -52,7 +52,7 @@ namespace mamba
         std::vector<ParseResult> parse();
         bool parse_comment_line(const std::string& line, UserRequest& req);
         std::vector<UserRequest> get_user_requests();
-        std::unordered_map<std::string, MatchSpec> get_requested_specs_map();
+        std::unordered_map<std::string, specs::MatchSpec> get_requested_specs_map();
         void add_entry(const History::UserRequest& entry);
 
         fs::u8path m_prefix;

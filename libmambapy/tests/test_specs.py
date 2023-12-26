@@ -656,3 +656,12 @@ def test_VersionSpec():
 
     # Copy, no easy comparison, this may not work for all specs
     assert str(copy.deepcopy(vs)) == str(vs)
+
+
+def test_MatchSpec():
+    MatchSpec = libmambapy.specs.MatchSpec
+
+    ms = MatchSpec.parse("conda-forge::python=3.7=*pypy")
+
+    # str
+    assert str(ms) == "conda-forge::python==3.7[build=*pypy]"

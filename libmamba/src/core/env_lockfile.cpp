@@ -8,8 +8,8 @@
 #include <yaml-cpp/yaml.h>
 
 #include "mamba/core/env_lockfile.hpp"
-#include "mamba/core/match_spec.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/specs/match_spec.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba
@@ -56,7 +56,7 @@ namespace mamba
             }
 
             package.info.url = package_node["url"].as<std::string>();
-            const auto spec = MatchSpec::parse(package.info.url);
+            const auto spec = specs::MatchSpec::parse(package.info.url);
             package.info.fn = spec.filename();
             package.info.build_string = spec.build_string();
             if (spec.channel().has_value())

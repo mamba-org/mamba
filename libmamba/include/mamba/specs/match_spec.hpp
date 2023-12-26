@@ -15,7 +15,7 @@
 
 #include "mamba/specs/channel_spec.hpp"
 
-namespace mamba
+namespace mamba::specs
 {
     class MatchSpec
     {
@@ -28,8 +28,8 @@ namespace mamba
 
         [[nodiscard]] static auto parse_url(std::string_view spec) -> MatchSpec;
 
-        [[nodiscard]] auto channel() const -> const std::optional<specs::ChannelSpec>&;
-        void set_channel(std::optional<specs::ChannelSpec> chan);
+        [[nodiscard]] auto channel() const -> const std::optional<ChannelSpec>&;
+        void set_channel(std::optional<ChannelSpec> chan);
 
         [[nodiscard]] auto name_space() const -> const std::string&;
         void set_name_space(std::string ns);
@@ -66,7 +66,7 @@ namespace mamba
 
     private:
 
-        std::optional<specs::ChannelSpec> m_channel;
+        std::optional<ChannelSpec> m_channel;
         std::string m_name_space;
         std::string m_name;
         std::string m_version;

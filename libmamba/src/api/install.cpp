@@ -342,11 +342,11 @@ namespace mamba
             return result;
         }
 
-        std::tuple<std::vector<PackageInfo>, std::vector<MatchSpec>>
+        std::tuple<std::vector<PackageInfo>, std::vector<specs::MatchSpec>>
         parse_urls_to_package_info(const std::vector<std::string>& urls)
         {
             std::vector<PackageInfo> pi_result;
-            std::vector<MatchSpec> ms_result;
+            std::vector<specs::MatchSpec> ms_result;
             for (auto& u : urls)
             {
                 if (util::strip(u).size() == 0)
@@ -354,7 +354,7 @@ namespace mamba
                     continue;
                 }
                 std::size_t hash = u.find_first_of('#');
-                auto ms = MatchSpec::parse(u.substr(0, hash));
+                auto ms = specs::MatchSpec::parse(u.substr(0, hash));
                 PackageInfo p(ms.name());
                 p.url = ms.url();
                 p.build_string = ms.build_string();
@@ -476,7 +476,7 @@ namespace mamba
         // add channels from specs
         for (const auto& s : specs)
         {
-            if (auto ms = MatchSpec::parse(s); ms.channel().has_value())
+            if (auto ms = specs::MatchSpec::parse(s); ms.channel().has_value())
             {
                 ctx.channels.push_back(ms.channel()->str());
             }

@@ -16,12 +16,12 @@
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/error_handling.hpp"
-#include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/satisfiability_error.hpp"
 #include "mamba/core/solver.hpp"
+#include "mamba/specs/match_spec.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
 #include "solv-cpp/solver.hpp"
@@ -70,7 +70,7 @@ namespace mamba
         m_jobs->push_back(job_flag, 0);
     }
 
-    void MSolver::add_reinstall_job(const MatchSpec& ms, int job_flag)
+    void MSolver::add_reinstall_job(const specs::MatchSpec& ms, int job_flag)
     {
         auto solvable = std::optional<solv::ObjSolvableViewConst>{};
 
@@ -119,7 +119,7 @@ namespace mamba
     {
         for (const auto& job : jobs)
         {
-            auto ms = MatchSpec::parse(job);
+            auto ms = specs::MatchSpec::parse(job);
             int job_type = job_flag & SOLVER_JOBMASK;
 
             if (ms.conda_build_form().empty())
@@ -129,15 +129,16 @@ namespace mamba
 
             if (job_type & SOLVER_INSTALL)
             {
-                m_install_specs.emplace_back(MatchSpec::parse(job));
+                m_install_specs.emplace_back(specs::MatchSpec::parse(job));
             }
             else if (job_type == SOLVER_ERASE)
             {
-                m_remove_specs.emplace_back(MatchSpec::parse(job));
+                m_remove_specs.emplace_back(specs::MatchSpec::parse(job));
             }
             else if (job_type == SOLVER_LOCK)
             {
-                m_neuter_specs.emplace_back(MatchSpec::parse(job));  // not used for the moment
+                m_neuter_specs.emplace_back(specs::MatchSpec::parse(job));  // not used for the
+                                                                            // moment
             }
 
             const ::Id job_id = m_pool.matchspec2id(ms);
@@ -169,7 +170,7 @@ namespace mamba
     {
         m_jobs->push_back(
             SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
-            m_pool.matchspec2id(MatchSpec::parse(job))
+            m_pool.matchspec2id(specs::MatchSpec::parse(job))
         );
     }
 
@@ -201,7 +202,7 @@ namespace mamba
         // as one of its constrains.
         // Then we lock this solvable and force the re-checking of its dependencies.
 
-        const auto pin_ms = MatchSpec::parse(pin);
+        const auto pin_ms = specs::MatchSpec::parse(pin);
         m_pinned_specs.push_back(pin_ms);
 
         auto& pool = m_pool.pool();
@@ -313,22 +314,22 @@ namespace mamba
         return std::move(m_pool);
     }
 
-    const std::vector<MatchSpec>& MSolver::install_specs() const
+    const std::vector<specs::MatchSpec>& MSolver::install_specs() const
     {
         return m_install_specs;
     }
 
-    const std::vector<MatchSpec>& MSolver::remove_specs() const
+    const std::vector<specs::MatchSpec>& MSolver::remove_specs() const
     {
         return m_remove_specs;
     }
 
-    const std::vector<MatchSpec>& MSolver::neuter_specs() const
+    const std::vector<specs::MatchSpec>& MSolver::neuter_specs() const
     {
         return m_neuter_specs;
     }
 
-    const std::vector<MatchSpec>& MSolver::pinned_specs() const
+    const std::vector<specs::MatchSpec>& MSolver::pinned_specs() const
     {
         return m_pinned_specs;
     }
@@ -612,9 +613,9 @@ namespace mamba
                         );
                         node_id cons_id = add_solvable(
                             problem.dep_id,
-                            ConstraintNode{ MatchSpec::parse(dep.value()) }
+                            ConstraintNode{ specs::MatchSpec::parse(dep.value()) }
                         );
-                        MatchSpec edge(MatchSpec::parse(dep.value()));
+                        auto edge = specs::MatchSpec::parse(dep.value());
                         m_graph.add_edge(src_id, cons_id, std::move(edge));
                         add_conflict(cons_id, tgt_id);
                         break;
@@ -634,7 +635,7 @@ namespace mamba
                             problem.source_id,
                             PackageNode{ std::move(source).value() }
                         );
-                        MatchSpec edge(MatchSpec::parse(dep.value()));
+                        auto edge = specs::MatchSpec::parse(dep.value());
                         bool added = add_expanded_deps_edges(src_id, problem.dep_id, edge);
                         if (!added)
                         {
@@ -653,7 +654,7 @@ namespace mamba
                             warn_unexpected_problem(problem);
                             break;
                         }
-                        MatchSpec edge(MatchSpec::parse(dep.value()));
+                        auto edge = specs::MatchSpec::parse(dep.value());
                         bool added = add_expanded_deps_edges(m_root_node, problem.dep_id, edge);
                         if (!added)
                         {
@@ -672,10 +673,10 @@ namespace mamba
                             warn_unexpected_problem(problem);
                             break;
                         }
-                        MatchSpec edge(MatchSpec::parse(dep.value()));
+                        auto edge = specs::MatchSpec::parse(dep.value());
                         node_id dep_id = add_solvable(
                             problem.dep_id,
-                            UnresolvedDependencyNode{ MatchSpec::parse(dep.value()) }
+                            UnresolvedDependencyNode{ specs::MatchSpec::parse(dep.value()) }
                         );
                         m_graph.add_edge(m_root_node, dep_id, std::move(edge));
                         break;
@@ -691,14 +692,14 @@ namespace mamba
                             warn_unexpected_problem(problem);
                             break;
                         }
-                        MatchSpec edge(MatchSpec::parse(dep.value()));
+                        auto edge = specs::MatchSpec::parse(dep.value());
                         node_id src_id = add_solvable(
                             problem.source_id,
                             PackageNode{ std::move(source).value() }
                         );
                         node_id dep_id = add_solvable(
                             problem.dep_id,
-                            UnresolvedDependencyNode{ MatchSpec::parse(dep.value()) }
+                            UnresolvedDependencyNode{ specs::MatchSpec::parse(dep.value()) }
                         );
                         m_graph.add_edge(src_id, dep_id, std::move(edge));
                         break;
@@ -741,7 +742,7 @@ namespace mamba
                         // how the solver is handling this package, as this is resolved in term of
                         // installed packages and solver flags (allow downgrade...) rather than a
                         // dependency.
-                        MatchSpec edge(MatchSpec::parse(source.value().name));
+                        auto edge = specs::MatchSpec::parse(source.value().name);
                         // The package cannot exist without its name in the pool
                         assert(m_pool.pool().find_string(edge.name()).has_value());
                         const auto dep_id = m_pool.pool().find_string(edge.name()).value();

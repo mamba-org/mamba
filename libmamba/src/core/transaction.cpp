@@ -27,13 +27,13 @@ extern "C"  // Incomplete header
 #include "mamba/core/env_lockfile.hpp"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/link.hpp"
-#include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_fetcher.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/solver.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
+#include "mamba/specs/match_spec.hpp"
 #include "mamba/util/flat_set.hpp"
 #include "mamba/util/string.hpp"
 #include "solv-cpp/pool.hpp"
@@ -298,8 +298,8 @@ namespace mamba
 
     MTransaction::MTransaction(
         MPool& pool,
-        const std::vector<MatchSpec>& specs_to_remove,
-        const std::vector<MatchSpec>& specs_to_install,
+        const std::vector<specs::MatchSpec>& specs_to_remove,
+        const std::vector<specs::MatchSpec>& specs_to_install,
         MultiPackageCache& caches
     )
         : MTransaction(pool, caches)
@@ -414,7 +414,8 @@ namespace mamba
 
         if (solver.flags().keep_specs)
         {
-            auto to_string_vec = [](const std::vector<MatchSpec>& vec) -> std::vector<std::string>
+            auto to_string_vec = [](const std::vector<specs::MatchSpec>& vec
+                                 ) -> std::vector<std::string>
             {
                 std::vector<std::string> res = {};
                 res.reserve(vec.size());
@@ -579,10 +580,10 @@ namespace mamba
 
         m_solution = transaction_to_solution(m_pool, trans);
 
-        std::vector<MatchSpec> specs_to_install;
+        std::vector<specs::MatchSpec> specs_to_install;
         for (const auto& pkginfo : packages)
         {
-            specs_to_install.push_back(MatchSpec::parse(
+            specs_to_install.push_back(specs::MatchSpec::parse(
                 fmt::format("{}=={}={}", pkginfo.name, pkginfo.version, pkginfo.build_string)
             ));
         }
@@ -1370,7 +1371,7 @@ namespace mamba
     MTransaction
     create_explicit_transaction_from_urls(MPool& pool, const std::vector<std::string>& urls, MultiPackageCache& package_caches, std::vector<detail::other_pkg_mgr_spec>&)
     {
-        std::vector<MatchSpec> specs_to_install = {};
+        std::vector<specs::MatchSpec> specs_to_install = {};
         specs_to_install.reserve(urls.size());
         for (auto& raw_url : urls)
         {
@@ -1381,8 +1382,8 @@ namespace mamba
             }
 
             const auto hash_idx = url.find_first_of('#');
-            specs_to_install.emplace_back(MatchSpec::parse(url.substr(0, hash_idx)));
-            MatchSpec& ms = specs_to_install.back();
+            specs_to_install.emplace_back(specs::MatchSpec::parse(url.substr(0, hash_idx)));
+            specs::MatchSpec& ms = specs_to_install.back();
 
             if (hash_idx != std::string::npos)
             {

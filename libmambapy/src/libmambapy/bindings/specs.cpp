@@ -13,6 +13,7 @@
 #include "mamba/specs/channel.hpp"
 #include "mamba/specs/channel_spec.hpp"
 #include "mamba/specs/conda_url.hpp"
+#include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/platform.hpp"
 #include "mamba/specs/version.hpp"
 #include "mamba/specs/version_spec.hpp"
@@ -564,5 +565,24 @@ namespace mambapy
             .def("__str__", &VersionSpec::str)
             .def("__copy__", &copy<VersionSpec>)
             .def("__deepcopy__", &deepcopy<VersionSpec>, py::arg("memo"));
+
+        // WIP MatchSpec class
+        py::class_<MatchSpec>(m, "MatchSpec")
+            .def_static("parse", &MatchSpec::parse)
+            .def(
+                // Hard deperecation since errors would be hard to track.
+                py::init(
+                    [](std::string_view) -> MatchSpec {
+                        throw std::invalid_argument(
+                            "Use 'MatchSpec.parse' to create a new object from a string"
+                        );
+                    }
+                ),
+                py::arg("spec")
+            )
+            .def("conda_build_form", &MatchSpec::conda_build_form)
+            .def("__str__", &MatchSpec::str)
+            .def("__copy__", &copy<MatchSpec>)
+            .def("__deepcopy__", &deepcopy<MatchSpec>, py::arg("memo"));
     }
 }

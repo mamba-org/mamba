@@ -10,12 +10,12 @@
 
 #include <fmt/format.h>
 
-#include "mamba/core/match_spec.hpp"
 #include "mamba/specs/archive.hpp"
+#include "mamba/specs/match_spec.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
-namespace mamba
+namespace mamba::specs
 {
     auto MatchSpec::parse_version_and_build(std::string_view s)
         -> std::tuple<std::string, std::string>
@@ -61,13 +61,13 @@ namespace mamba
         };
 
         auto out = MatchSpec();
-        out.m_channel = specs::ChannelSpec::parse(spec);
+        out.m_channel = ChannelSpec::parse(spec);
         auto [_, pkg] = util::rsplit_once(out.m_channel->location(), '/');
         out.m_filename = std::string(pkg);
         out.m_url = util::path_or_url_to_url(spec);
 
         // Build string
-        auto [head, tail] = util::rsplit_once(specs::strip_archive_extension(pkg), '-');
+        auto [head, tail] = util::rsplit_once(strip_archive_extension(pkg), '-');
         out.m_build_string = tail;
         if (!head.has_value())
         {
@@ -103,7 +103,7 @@ namespace mamba
         }
         spec_str = util::strip(spec_str);
 
-        if (specs::has_archive_extension(spec_str))
+        if (has_archive_extension(spec_str))
         {
             return MatchSpec::parse_url(spec_str);
         }
@@ -166,7 +166,7 @@ namespace mamba
         std::string channel_str;
         if (m5_len == 3)
         {
-            out.m_channel = specs::ChannelSpec::parse(m5[0]);
+            out.m_channel = ChannelSpec::parse(m5[0]);
             out.m_name_space = m5[1];
             spec_str = m5[2];
         }
@@ -275,16 +275,16 @@ namespace mamba
             {
                 if (!out.m_channel.has_value())
                 {
-                    out.m_channel = specs::ChannelSpec::parse(v);
+                    out.m_channel = ChannelSpec::parse(v);
                 }
                 else
                 {
                     // Subdirs might have been set with a previous subdir key
                     auto subdirs = out.m_channel->clear_platform_filters();
-                    out.m_channel = specs::ChannelSpec::parse(v);
+                    out.m_channel = ChannelSpec::parse(v);
                     if (!subdirs.empty())
                     {
-                        out.m_channel = specs::ChannelSpec(
+                        out.m_channel = ChannelSpec(
                             out.m_channel->clear_location(),
                             std::move(subdirs),
                             out.m_channel->type()
@@ -296,12 +296,12 @@ namespace mamba
             {
                 if (!out.m_channel.has_value())
                 {
-                    out.m_channel = specs::ChannelSpec("", { v }, specs::ChannelSpec::Type::Unknown);
+                    out.m_channel = ChannelSpec("", { v }, ChannelSpec::Type::Unknown);
                 }
                 // Subdirs specified in the channel part have higher precedence
                 else if (out.m_channel->platform_filters().empty())
                 {
-                    out.m_channel = specs::ChannelSpec(
+                    out.m_channel = ChannelSpec(
                         out.m_channel->clear_location(),
                         { v },
                         out.m_channel->type()
@@ -320,12 +320,12 @@ namespace mamba
         return out;
     }
 
-    auto MatchSpec::channel() const -> const std::optional<specs::ChannelSpec>&
+    auto MatchSpec::channel() const -> const std::optional<ChannelSpec>&
     {
         return m_channel;
     }
 
-    void MatchSpec::set_channel(std::optional<specs::ChannelSpec> chan)
+    void MatchSpec::set_channel(std::optional<ChannelSpec> chan)
     {
         m_channel = std::move(chan);
     }

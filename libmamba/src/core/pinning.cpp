@@ -9,6 +9,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/pinning.hpp"
 #include "mamba/core/prefix_data.hpp"
+#include "mamba/specs/match_spec.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba
@@ -30,7 +31,7 @@ namespace mamba
 
         for (const auto& spec : specs)
         {
-            if (MatchSpec::parse(spec).name() == "python")
+            if (specs::MatchSpec::parse(spec).name() == "python")
             {
                 return "";
             }

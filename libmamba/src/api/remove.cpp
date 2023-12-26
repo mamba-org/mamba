@@ -107,13 +107,13 @@ namespace mamba
 
             if (force)
             {
-                std::vector<MatchSpec> mspecs;
+                std::vector<specs::MatchSpec> mspecs;
                 mspecs.reserve(specs.size());
                 std::transform(
                     specs.begin(),
                     specs.end(),
                     std::back_inserter(mspecs),
-                    [&](const auto& spec_str) { return MatchSpec::parse(spec_str); }
+                    [&](const auto& spec_str) { return specs::MatchSpec::parse(spec_str); }
                 );
                 auto transaction = MTransaction(pool, mspecs, {}, package_caches);
                 execute_transaction(transaction);

@@ -141,7 +141,7 @@ namespace mamba
             extract_kv(parens_str, out.parens);
             if (parens_str.find("optional") != parens_str.npos)
             {
-                out.optional = true;
+                out.m_optional = true;
             }
             spec_str.erase(
                 static_cast<std::size_t>(match.position(1)),
@@ -337,6 +337,11 @@ namespace mamba
     auto MatchSpec::url() const -> const std::string&
     {
         return m_url;
+    }
+
+    auto MatchSpec::optional() const -> bool
+    {
+        return m_optional;
     }
 
     auto MatchSpec::conda_build_form() const -> std::string

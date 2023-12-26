@@ -35,6 +35,8 @@ namespace mamba
 
         [[nodiscard]] auto url() const -> const std::string&;
 
+        [[nodiscard]] auto optional() const -> bool;
+
         [[nodiscard]] auto conda_build_form() const -> std::string;
         [[nodiscard]] auto str() const -> std::string;
 
@@ -47,7 +49,6 @@ namespace mamba
         std::string version;
         std::string build_string;
 
-        bool optional = false;
         std::unordered_map<std::string, std::string> brackets;
 
         std::unordered_map<std::string, std::string> parens;
@@ -60,6 +61,7 @@ namespace mamba
         // TODO can put inside channel spec
         std::string m_filename;
         std::string m_url;
+        bool m_optional = false;
     };
 }
 #endif

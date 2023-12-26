@@ -106,7 +106,7 @@ TEST_SUITE("MatchSpec")
             REQUIRE(ms.channel.has_value());
             CHECK_EQ(ms.channel->location(), "conda-forge");
             CHECK_EQ(ms.channel->platform_filters(), PlatformSet{ "linux-64" });
-            CHECK_EQ(ms.optional, false);
+            CHECK_EQ(ms.optional(), false);
         }
         {
             auto ms = MatchSpec::parse("conda-forge::foo[build=3](target=blarg,optional)");
@@ -116,7 +116,7 @@ TEST_SUITE("MatchSpec")
             CHECK_EQ(ms.channel->location(), "conda-forge");
             CHECK_EQ(ms.brackets["build"], "3");
             CHECK_EQ(ms.parens["target"], "blarg");
-            CHECK_EQ(ms.optional, true);
+            CHECK_EQ(ms.optional(), true);
         }
         {
             auto ms = MatchSpec::parse("python[build_number=3]");

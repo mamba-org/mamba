@@ -32,22 +32,26 @@ namespace mamba
         void set_channel(std::optional<specs::ChannelSpec> chan);
 
         [[nodiscard]] auto name_space() const -> const std::string&;
+        void set_name_space(std::string ns);
 
         [[nodiscard]] auto name() const -> const std::string&;
+        void set_name(std::string name);
 
         [[nodiscard]] auto version() const -> const std::string&;
         void set_version(std::string ver);
 
         [[nodiscard]] auto build_number() const -> const std::string&;
+        void set_build_number(std::string num);
 
         [[nodiscard]] auto build_string() const -> const std::string&;
         void set_build_string(std::string bs);
 
+        [[nodiscard]] auto optional() const -> bool;
+        void set_optional(bool opt);
+
         [[nodiscard]] auto filename() const -> const std::string&;
 
         [[nodiscard]] auto url() const -> const std::string&;
-
-        [[nodiscard]] auto optional() const -> bool;
 
         [[nodiscard]] auto conda_build_form() const -> std::string;
         [[nodiscard]] auto str() const -> std::string;
@@ -55,7 +59,6 @@ namespace mamba
         [[nodiscard]] auto is_simple() const -> bool;
 
         [[nodiscard]] auto is_file() const -> bool;
-
 
         std::unordered_map<std::string, std::string> brackets;
 

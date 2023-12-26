@@ -335,9 +335,19 @@ namespace mamba
         return m_name_space;
     }
 
+    void MatchSpec::set_name_space(std::string ns)
+    {
+        m_name_space = std::move(ns);
+    }
+
     auto MatchSpec::name() const -> const std::string&
     {
         return m_name;
+    }
+
+    void MatchSpec::set_name(std::string name)
+    {
+        m_name = std::move(name);
     }
 
     auto MatchSpec::version() const -> const std::string&
@@ -355,9 +365,24 @@ namespace mamba
         return m_build_number;
     }
 
+    void MatchSpec::set_build_number(std::string bn)
+    {
+        m_build_number = std::move(bn);
+    }
+
     auto MatchSpec::build_string() const -> const std::string&
     {
         return m_build_string;
+    }
+
+    auto MatchSpec::optional() const -> bool
+    {
+        return m_optional;
+    }
+
+    void MatchSpec::set_optional(bool opt)
+    {
+        m_optional = opt;
     }
 
     void MatchSpec::set_build_string(std::string bs)
@@ -373,11 +398,6 @@ namespace mamba
     auto MatchSpec::url() const -> const std::string&
     {
         return m_url;
-    }
-
-    auto MatchSpec::optional() const -> bool
-    {
-        return m_optional;
     }
 
     auto MatchSpec::conda_build_form() const -> std::string

@@ -14,12 +14,12 @@
 #include <solv/solver.h>
 #include <yaml-cpp/yaml.h>
 
-#include "mamba/core/match_spec.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/specs/match_spec.hpp"
 
 namespace mamba
 {
@@ -88,7 +88,7 @@ namespace mamba
 
         yaml_file_contents read_yaml_file(fs::u8path yaml_file, const std::string platform);
 
-        std::tuple<std::vector<PackageInfo>, std::vector<MatchSpec>>
+        std::tuple<std::vector<PackageInfo>, std::vector<specs::MatchSpec>>
         parse_urls_to_package_info(const std::vector<std::string>& urls);
 
         inline void to_json(nlohmann::json&, const other_pkg_mgr_spec&)

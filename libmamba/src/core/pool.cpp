@@ -19,9 +19,9 @@ extern "C"  // Incomplete header
 
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
+#include "mamba/specs/match_spec.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
 
@@ -179,12 +179,12 @@ namespace mamba
         auto add_channel_specific_matchspec(
             ChannelContext& channel_context,
             solv::ObjPool& pool,
-            const MatchSpec& ms
+            const specs::MatchSpec& ms
         ) -> solv::DependencyId
         {
-            assert(ms.channel.has_value());
+            assert(ms.channel().has_value());
             // Poor man's ms repr to match waht the user provided
-            const std::string repr = fmt::format("{}::{}", *ms.channel, ms.conda_build_form());
+            const std::string repr = fmt::format("{}::{}", *ms.channel(), ms.conda_build_form());
 
             // Already added, return that id
             if (const auto maybe_id = pool.find_string(repr))
@@ -198,7 +198,7 @@ namespace mamba
                 ms.conda_build_form().c_str()
             );
 
-            auto ms_channel = channel_context.make_channel(*ms.channel);
+            auto ms_channel = channel_context.make_channel(*ms.channel());
 
             solv::ObjQueue selected_pkgs = {};
             auto other_subdir_match = std::string();
@@ -206,7 +206,7 @@ namespace mamba
                 match,
                 [&](solv::ObjSolvableViewConst s)
                 {
-                    assert(ms.channel.has_value());
+                    assert(ms.channel().has_value());
                     // TODO this does not work with s.url(), we need to proper channel class
                     // to properly manage this.
                     auto repo = solv::ObjRepoView(*s.raw()->repo);
@@ -237,7 +237,7 @@ namespace mamba
             {
                 if (!other_subdir_match.empty())
                 {
-                    const auto& filters = ms.channel->platform_filters();
+                    const auto& filters = ms.channel()->platform_filters();
                     throw std::runtime_error(fmt::format(
                         R"(The package "{}" is not available for the specified platform{} ({}))"
                         R"( but is available on {}.)",
@@ -266,10 +266,10 @@ namespace mamba
         }
     }
 
-    ::Id MPool::matchspec2id(const MatchSpec& ms)
+    ::Id MPool::matchspec2id(const specs::MatchSpec& ms)
     {
         ::Id id = 0;
-        if (!ms.channel.has_value())
+        if (!ms.channel().has_value())
         {
             id = pool_conda_matchspec(pool().raw(), ms.conda_build_form().c_str());
         }

@@ -16,13 +16,17 @@
 
 namespace mamba
 {
-    class MatchSpec;
     class ChannelContext;
     class Context;
 
     namespace solv
     {
         class ObjPool;
+    }
+
+    namespace specs
+    {
+        class MatchSpec;
     }
 
     /**
@@ -44,7 +48,7 @@ namespace mamba
         void create_whatprovides();
 
         std::vector<Id> select_solvables(Id id, bool sorted = false) const;
-        Id matchspec2id(const MatchSpec& ms);
+        Id matchspec2id(const specs::MatchSpec& ms);
 
         std::optional<PackageInfo> id2pkginfo(Id solv_id) const;
         std::optional<std::string> dep2str(Id dep_id) const;

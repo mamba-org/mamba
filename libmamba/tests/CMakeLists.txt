@@ -49,6 +49,7 @@ set(
     src/specs/test_repo_data.cpp
     src/specs/test_version.cpp
     src/specs/test_version_spec.cpp
+    src/specs/test_match_spec.cpp
     # Artifacts validation
     src/validation/test_tools.cpp
     src/validation/test_update_framework_v0_6.cpp
@@ -58,7 +59,6 @@ set(
     src/core/test_activation.cpp
     src/core/test_channel_context.cpp
     src/core/test_configuration.cpp
-    src/core/test_match_spec.cpp
     src/core/test_cpp.cpp
     src/core/test_downloader.cpp
     src/core/test_env_file_reading.cpp

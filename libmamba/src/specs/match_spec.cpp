@@ -10,30 +10,13 @@
 
 #include <fmt/format.h>
 
-#include "mamba/core/match_spec.hpp"
-#include "mamba/core/output.hpp"
 #include "mamba/specs/archive.hpp"
-#include "mamba/specs/platform.hpp"
+#include "mamba/specs/match_spec.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
-namespace mamba
+namespace mamba::specs
 {
-    namespace
-    {
-        auto parse_legacy_dist(std::string_view dist) -> std::vector<std::string>
-        {
-            auto dist_str = std::string(specs::strip_archive_extension(dist));
-            auto split_str = util::rsplit(dist_str, "-", 2);
-            if (split_str.size() != 3)
-            {
-                LOG_ERROR << "dist_str " << dist_str << " did not split into a correct version info.";
-                throw std::runtime_error("Invalid package filename");
-            }
-            return split_str;
-        }
-    }
-
     auto MatchSpec::parse_version_and_build(std::string_view s)
         -> std::tuple<std::string, std::string>
     {
@@ -68,6 +51,43 @@ namespace mamba
         }
     }
 
+    auto MatchSpec::parse_url(std::string_view spec) -> MatchSpec
+    {
+        auto fail_parse = [&]()
+        {
+            throw std::invalid_argument(
+                util::concat(R"(Fail to parse MatchSpec ditribution ")", spec, '"')
+            );
+        };
+
+        auto out = MatchSpec();
+        out.m_channel = ChannelSpec::parse(spec);
+        auto [_, pkg] = util::rsplit_once(out.m_channel->location(), '/');
+        out.m_filename = std::string(pkg);
+        out.m_url = util::path_or_url_to_url(spec);
+
+        // Build string
+        auto [head, tail] = util::rsplit_once(strip_archive_extension(pkg), '-');
+        out.m_build_string = tail;
+        if (!head.has_value())
+        {
+            fail_parse();
+        }
+
+        // Version
+        std::tie(head, tail) = util::rsplit_once(head.value(), '-');
+        out.m_version = tail;
+        if (!head.has_value())
+        {
+            fail_parse();
+        }
+
+        // Name
+        out.m_name = head.value();  // There may be '-' in the name
+
+        return out;
+    }
+
     auto MatchSpec::parse(std::string_view spec) -> MatchSpec
     {
         auto spec_str = std::string(spec);
@@ -83,18 +103,9 @@ namespace mamba
         }
         spec_str = util::strip(spec_str);
 
-        if (specs::has_archive_extension(spec_str))
+        if (has_archive_extension(spec_str))
         {
-            out.channel = specs::ChannelSpec::parse(spec_str);
-            auto [path, pkg] = util::rsplit_once(out.channel->location(), '/');
-            auto dist = parse_legacy_dist(pkg);
-            out.name = dist[0];
-            out.version = dist[1];
-            out.build_string = dist[2];
-            out.fn = std::string(pkg);
-            out.url = util::path_or_url_to_url(spec_str);
-            out.is_file = true;
-            return out;
+            return MatchSpec::parse_url(spec_str);
         }
 
         auto extract_kv = [&spec_str](const std::string& kv_string, auto& map)
@@ -142,7 +153,7 @@ namespace mamba
             extract_kv(parens_str, out.parens);
             if (parens_str.find("optional") != parens_str.npos)
             {
-                out.optional = true;
+                out.m_optional = true;
             }
             spec_str.erase(
                 static_cast<std::size_t>(match.position(1)),
@@ -155,13 +166,13 @@ namespace mamba
         std::string channel_str;
         if (m5_len == 3)
         {
-            out.channel = specs::ChannelSpec::parse(m5[0]);
-            out.ns = m5[1];
+            out.m_channel = ChannelSpec::parse(m5[0]);
+            out.m_name_space = m5[1];
             spec_str = m5[2];
         }
         else if (m5_len == 2)
         {
-            out.ns = m5[0];
+            out.m_name_space = m5[0];
             spec_str = m5[1];
         }
         else if (m5_len == 1)
@@ -172,12 +183,6 @@ namespace mamba
         {
             throw std::runtime_error("Parsing of channel / namespace / subdir failed.");
         }
-
-        auto get_known_platforms = []() -> std::vector<std::string>
-        {
-            auto plats = specs::known_platform_names();
-            return { plats.begin(), plats.end() };
-        };
 
         // support faulty conda matchspecs such as `libblas=[build=*mkl]`, which is
         // the repr of `libblas=*=*mkl`
@@ -190,9 +195,9 @@ namespace mamba
         std::smatch vb_match;
         if (std::regex_match(spec_str, vb_match, version_build_re))
         {
-            out.name = vb_match[1].str();
-            out.version = util::strip(vb_match[2].str());
-            if (out.name.size() == 0)
+            out.m_name = vb_match[1].str();
+            out.m_version = util::strip(vb_match[2].str());
+            if (out.m_name.size() == 0)
             {
                 throw std::runtime_error("Invalid spec, no package name found: " + spec_str);
             }
@@ -204,9 +209,9 @@ namespace mamba
 
         // # Step 7. otherwise sort out version + build
         // spec_str = spec_str and spec_str.strip()
-        if (!out.version.empty())
+        if (!out.m_version.empty())
         {
-            if (out.version.find('[') != out.version.npos)
+            if (out.m_version.find('[') != out.m_version.npos)
             {
                 throw std::runtime_error(util::concat(
                     R"(Invalid match spec: multiple bracket sections not allowed ")",
@@ -215,38 +220,38 @@ namespace mamba
                 ));
             }
 
-            out.version = std::string(util::strip(out.version));
-            auto [pv, pb] = parse_version_and_build(std::string(util::strip(out.version)));
+            out.m_version = std::string(util::strip(out.m_version));
+            auto [pv, pb] = parse_version_and_build(std::string(util::strip(out.m_version)));
 
-            out.version = pv;
-            out.build_string = pb;
+            out.m_version = pv;
+            out.m_build_string = pb;
 
             // translate version '=1.2.3' to '1.2.3*'
             // is it a simple version starting with '='? i.e. '=1.2.3'
-            if (out.version.size() >= 2 && out.version[0] == '=')
+            if (out.m_version.size() >= 2 && out.m_version[0] == '=')
             {
-                auto rest = out.version.substr(1);
-                if (out.version[1] == '=' && out.build_string.empty())
+                auto rest = out.m_version.substr(1);
+                if (out.m_version[1] == '=' && out.m_build_string.empty())
                 {
-                    out.version = out.version.substr(2);
+                    out.m_version = out.m_version.substr(2);
                 }
                 else if (rest.find_first_of("=,|") == rest.npos)
                 {
-                    if (out.build_string.empty() && out.version.back() != '*')
+                    if (out.m_build_string.empty() && out.m_version.back() != '*')
                     {
-                        out.version = util::concat(out.version, "*");
+                        out.m_version = util::concat(out.m_version, "*");
                     }
                     else
                     {
-                        out.version = rest;
+                        out.m_version = rest;
                     }
                 }
             }
         }
         else
         {
-            out.version = "";
-            out.build_string = "";
+            out.m_version = "";
+            out.m_build_string = "";
         }
 
         // TODO think about using a hash function here, (and elsewhere), like:
@@ -256,78 +261,156 @@ namespace mamba
         {
             if (k == "build_number")
             {
-                out.build_number = v;
+                out.m_build_number = v;
             }
             else if (k == "build")
             {
-                out.build_string = v;
+                out.m_build_string = v;
             }
             else if (k == "version")
             {
-                out.version = v;
+                out.m_version = v;
             }
             else if (k == "channel")
             {
-                if (!out.channel.has_value())
+                if (!out.m_channel.has_value())
                 {
-                    out.channel = specs::ChannelSpec::parse(v);
+                    out.m_channel = ChannelSpec::parse(v);
                 }
                 else
                 {
                     // Subdirs might have been set with a previous subdir key
-                    auto subdirs = out.channel->clear_platform_filters();
-                    out.channel = specs::ChannelSpec::parse(v);
+                    auto subdirs = out.m_channel->clear_platform_filters();
+                    out.m_channel = ChannelSpec::parse(v);
                     if (!subdirs.empty())
                     {
-                        out.channel = specs::ChannelSpec(
-                            out.channel->clear_location(),
+                        out.m_channel = ChannelSpec(
+                            out.m_channel->clear_location(),
                             std::move(subdirs),
-                            out.channel->type()
+                            out.m_channel->type()
                         );
                     }
                 }
             }
             else if (k == "subdir")
             {
-                if (!out.channel.has_value())
+                if (!out.m_channel.has_value())
                 {
-                    out.channel = specs::ChannelSpec("", { v }, specs::ChannelSpec::Type::Unknown);
+                    out.m_channel = ChannelSpec("", { v }, ChannelSpec::Type::Unknown);
                 }
                 // Subdirs specified in the channel part have higher precedence
-                else if (out.channel->platform_filters().empty())
+                else if (out.m_channel->platform_filters().empty())
                 {
-                    out.channel = specs::ChannelSpec(
-                        out.channel->clear_location(),
+                    out.m_channel = ChannelSpec(
+                        out.m_channel->clear_location(),
                         { v },
-                        out.channel->type()
+                        out.m_channel->type()
                     );
                 }
             }
             else if (k == "url")
             {
-                out.is_file = true;
-                out.url = v;
+                out.m_url = v;
             }
             else if (k == "fn")
             {
-                out.is_file = true;
-                out.fn = v;
+                out.m_filename = v;
             }
         }
         return out;
     }
 
+    auto MatchSpec::channel() const -> const std::optional<ChannelSpec>&
+    {
+        return m_channel;
+    }
+
+    void MatchSpec::set_channel(std::optional<ChannelSpec> chan)
+    {
+        m_channel = std::move(chan);
+    }
+
+    auto MatchSpec::name_space() const -> const std::string&
+    {
+        return m_name_space;
+    }
+
+    void MatchSpec::set_name_space(std::string ns)
+    {
+        m_name_space = std::move(ns);
+    }
+
+    auto MatchSpec::name() const -> const std::string&
+    {
+        return m_name;
+    }
+
+    void MatchSpec::set_name(std::string name)
+    {
+        m_name = std::move(name);
+    }
+
+    auto MatchSpec::version() const -> const std::string&
+    {
+        return m_version;
+    }
+
+    void MatchSpec::set_version(std::string ver)
+    {
+        m_version = std::move(ver);
+    }
+
+    auto MatchSpec::build_number() const -> const std::string&
+    {
+        return m_build_number;
+    }
+
+    void MatchSpec::set_build_number(std::string bn)
+    {
+        m_build_number = std::move(bn);
+    }
+
+    auto MatchSpec::build_string() const -> const std::string&
+    {
+        return m_build_string;
+    }
+
+    auto MatchSpec::optional() const -> bool
+    {
+        return m_optional;
+    }
+
+    void MatchSpec::set_optional(bool opt)
+    {
+        m_optional = opt;
+    }
+
+    void MatchSpec::set_build_string(std::string bs)
+    {
+        m_build_string = std::move(bs);
+    }
+
+    auto MatchSpec::filename() const -> const std::string&
+    {
+        return m_filename;
+    }
+
+    auto MatchSpec::url() const -> const std::string&
+    {
+        return m_url;
+    }
+
     auto MatchSpec::conda_build_form() const -> std::string
     {
         std::stringstream res;
-        res << name;
-        if (!version.empty())
+        res << m_name;
+        if (!m_version.empty())
         {
-            res << " " << version;
+            res << " " << m_version;
             // if (!build.empty() && (build != "*"))
-            if (!build_string.empty())
+            if (!m_build_string.empty())
             {
-                res << " " << build_string;
+                res << " " << m_build_string;
             }
         }
         return res.str();
@@ -352,9 +435,9 @@ namespace mamba
         //     else:
         //         brackets.append("subdir=%s" % subdir_matcher)
 
-        if (channel.has_value())
+        if (m_channel.has_value())
         {
-            res << fmt::format("{}::", *channel);
+            res << fmt::format("{}::", *m_channel);
         }
         // TODO when namespaces are implemented!
         // if (!ns.empty())
@@ -362,78 +445,78 @@ namespace mamba
         //     res << ns;
         //     res << ":";
         // }
-        res << (!name.empty() ? name : "*");
+        res << (!m_name.empty() ? m_name : "*");
         std::vector<std::string> formatted_brackets;
         bool version_exact = false;
 
         auto is_complex_relation = [](const std::string& s)
         { return s.find_first_of("><$^|,") != s.npos; };
 
-        if (!version.empty())
+        if (!m_version.empty())
         {
-            if (is_complex_relation(version))
+            if (is_complex_relation(m_version))
             {
-                formatted_brackets.push_back(util::concat("version='", version, "'"));
+                formatted_brackets.push_back(util::concat("version='", m_version, "'"));
             }
-            else if (util::starts_with(version, "!=") || util::starts_with(version, "~="))
+            else if (util::starts_with(m_version, "!=") || util::starts_with(m_version, "~="))
             {
-                if (!build_string.empty())
+                if (!m_build_string.empty())
                 {
-                    formatted_brackets.push_back(util::concat("version='", version, "'"));
+                    formatted_brackets.push_back(util::concat("version='", m_version, "'"));
                 }
                 else
                 {
-                    res << " " << version;
+                    res << " " << m_version;
                 }
             }
-            else if (util::ends_with(version, ".*"))
+            else if (util::ends_with(m_version, ".*"))
             {
-                res << "=" + version.substr(0, version.size() - 2);
+                res << "=" + m_version.substr(0, m_version.size() - 2);
             }
-            else if (version.back() == '*')
+            else if (m_version.back() == '*')
             {
-                if (version.size() == 1)
+                if (m_version.size() == 1)
                 {
                     res << "=*";
                 }
-                else if (util::starts_with(version, "="))
+                else if (util::starts_with(m_version, "="))
                 {
-                    res << version.substr(0, version.size() - 1);
+                    res << m_version.substr(0, m_version.size() - 1);
                 }
                 else
                 {
-                    res << "=" + version.substr(0, version.size() - 1);
+                    res << "=" + m_version.substr(0, m_version.size() - 1);
                 }
             }
-            else if (util::starts_with(version, "=="))
+            else if (util::starts_with(m_version, "=="))
             {
-                res << version;
+                res << m_version;
                 version_exact = true;
             }
             else
             {
-                res << "==" << version;
+                res << "==" << m_version;
                 version_exact = true;
             }
         }
 
-        if (!build_string.empty())
+        if (!m_build_string.empty())
         {
-            if (is_complex_relation(build_string))
+            if (is_complex_relation(m_build_string))
             {
-                formatted_brackets.push_back(util::concat("build='", build_string, '\''));
+                formatted_brackets.push_back(util::concat("build='", m_build_string, '\''));
             }
-            else if (build_string.find('*') != build_string.npos)
+            else if (m_build_string.find('*') != m_build_string.npos)
             {
-                formatted_brackets.push_back(util::concat("build=", build_string));
+                formatted_brackets.push_back(util::concat("build=", m_build_string));
             }
             else if (version_exact)
             {
-                res << "=" << build_string;
+                res << "=" << m_build_string;
             }
             else
             {
-                formatted_brackets.push_back(util::concat("build=", build_string));
+                formatted_brackets.push_back(util::concat("build=", m_build_string));
             }
         }
 
@@ -442,7 +525,7 @@ namespace mamba
             "md5",          "license",        "license_family", "fn"
         };
 
-        if (!url.empty())
+        if (!m_url.empty())
         {
             // erase "fn" when we have a URL
             check.pop_back();
@@ -482,6 +565,11 @@ namespace mamba
 
     auto MatchSpec::is_simple() const -> bool
     {
-        return version.empty() && build_string.empty() && build_number.empty();
+        return m_version.empty() && m_build_string.empty() && m_build_number.empty();
     }
-}  // namespace mamba
+
+    auto MatchSpec::is_file() const -> bool
+    {
+        return (!m_filename.empty()) || (!m_url.empty());
+    }
+}

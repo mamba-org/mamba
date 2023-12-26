@@ -34,7 +34,6 @@
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/virtual_packages.hpp"
-#include "mamba/specs/version.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/validation/tools.hpp"
 #include "mamba/validation/update_framework_v0_6.hpp"
@@ -287,21 +286,6 @@ bind_submodule_impl(pybind11::module_ m)
 
     py::add_ostream_redirect(m, "ostream_redirect");
 
-    py::class_<MatchSpec>(m, "MatchSpec")
-        .def_static("parse", &MatchSpec::parse)
-        .def(py::init<>())
-        .def(
-            // Deprecating would lead to confusing error. Better to make sure people stop using it.
-            py::init(
-                [](std::string_view) -> MatchSpec {
-                    throw std::invalid_argument(
-                        "Use 'MatchSpec.parse' to create a new object from a string"
-                    );
-                }
-            ),
-            py::arg("spec")
-        )
-        .def("conda_build_form", &MatchSpec::conda_build_form);
 
     py::class_<MPool>(m, "Pool")
         .def(
@@ -406,8 +390,11 @@ bind_submodule_impl(pybind11::module_ m)
 
     py::class_<PbGraph::RootNode>(pyPbGraph, "RootNode").def(py::init<>());
     py::class_<PbGraph::PackageNode, PackageInfo>(pyPbGraph, "PackageNode");
-    py::class_<PbGraph::UnresolvedDependencyNode, MatchSpec>(pyPbGraph, "UnresolvedDependencyNode");
-    py::class_<PbGraph::ConstraintNode, MatchSpec>(pyPbGraph, "ConstraintNode");
+    py::class_<PbGraph::UnresolvedDependencyNode, specs::MatchSpec>(
+        pyPbGraph,
+        "UnresolvedDependencyNode"
+    );
+    py::class_<PbGraph::ConstraintNode, specs::MatchSpec>(pyPbGraph, "ConstraintNode");
 
     py::class_<PbGraph::conflicts_t>(pyPbGraph, "ConflictMap")
         .def(py::init([]() { return PbGraph::conflicts_t(); }))

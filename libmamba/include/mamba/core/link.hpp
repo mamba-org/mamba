@@ -8,17 +8,15 @@
 #define MAMBA_CORE_LINK
 
 #include <regex>
-#include <stack>
 #include <string>
 #include <tuple>
 #include <vector>
 
+#include "mamba/core/package_info.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/util/build.hpp"
 
-#include "match_spec.hpp"
 #include "package_paths.hpp"
-#include "transaction.hpp"
 #include "transaction_context.hpp"
 
 namespace mamba

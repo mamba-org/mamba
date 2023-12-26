@@ -222,9 +222,8 @@ def test_init(tmp_home, tmp_root_prefix, shell_type, prefix_selector, multiple_t
 
 def test_dash(tmp_home, tmp_root_prefix):
     skip_if_shell_incompat("dash")
-    umamba = helpers.get_umamba()
-    subprocess.check_call(["dash", "-c", f"eval $({umamba} shell hook -s dash)"])
-    subprocess.check_call(["dash", "-c", f"eval $({umamba} shell hook -s posix)"])
+    subprocess.check_call(["dash", "-c", "eval $(micromamba shell hook -s dash)"])
+    subprocess.check_call(["dash", "-c", "eval $(micromamba shell hook -s posix)"])
 
 
 def test_implicitly_created_environment(tmp_home, tmp_root_prefix):

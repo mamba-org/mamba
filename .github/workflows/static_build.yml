@@ -39,19 +39,14 @@ jobs:
           # Running a fork until we can merge the changes in micromamba-feedstock
           # https://github.com/conda-forge/micromamba-feedstock/pull/154
           repository: AntoinePrv/micromamba-feedstock
+          ref: tmp-mamba-ci
           path: micromamba-feedstock
+      - name: Clear micromamba-feedstock git directory
+        run: rm -rf "micromamba-feedstock/.git"
       - name: Checkout mamba branch
         uses: actions/checkout@v3
         with:
-          path: mamba
-      - name: Clear mamba git directory and link source
-        # `source` subfolder is the special location looked-up by our feedstock.
-        # Due to Docker, we can only put it as a subfolder of `micromamba-feedstock`,
-        run: |
-          rm -rf "mamba/.git"
-          mv mamba/ micromamba-feedstock/source
-          # Prevent irrelevant file permission error
-          git -C micromamba-feedstock/ config --local --add safe.directory '*'
+          path: micromamba-feedstock/source
       - uses: mamba-org/setup-micromamba@v1
         with:
           environment-name: mambabuild
@@ -82,8 +77,6 @@ jobs:
             apt-get install -y python3 docker.io
           run: |
             cd micromamba-feedstock/
-            # Prevent irrelevant file permission error
-            chown -R $(whoami) .
             # Special values for running the feedstock with a local source
             export FEEDSTOCK_ROOT="${PWD}"
             export CI="local"

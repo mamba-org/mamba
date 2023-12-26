@@ -219,13 +219,14 @@ namespace mamba
                 std::type_index{ typeid(err) }
             ));
         }
-        catch (...)
+        catch (const std::exception& e)
         {
             return tl::unexpected(EnvLockFileError::make_error(
                 file_parsing_error_code::parsing_failure,
                 fmt::format(
-                    "unknown error while reading environment lockfile located at '{}'",
-                    file_path.string()
+                    "Error while reading environment lockfile located at '{}': {}",
+                    file_path.string(),
+                    e.what()
                 )
             ));
         }

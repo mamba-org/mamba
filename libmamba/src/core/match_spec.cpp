@@ -66,29 +66,24 @@ namespace mamba
         out.m_filename = std::string(pkg);
         out.m_url = util::path_or_url_to_url(spec);
 
-        // Name
-        auto [head, tail] = util::split_once(specs::strip_archive_extension(pkg), '-');
-        out.m_name = head;
-        if (!tail.has_value())
+        // Build string
+        auto [head, tail] = util::rsplit_once(specs::strip_archive_extension(pkg), '-');
+        out.build_string = tail;
+        if (!head.has_value())
         {
             fail_parse();
         }
 
         // Version
-        std::tie(head, tail) = util::split_once(tail.value(), '-');
-        out.version = head;
-        if (!tail.has_value())
+        std::tie(head, tail) = util::rsplit_once(head.value(), '-');
+        out.version = tail;
+        if (!head.has_value())
         {
             fail_parse();
         }
 
-        // Build string
-        std::tie(head, tail) = util::split_once(tail.value(), '-');
-        out.build_string = head;
-        if (tail.has_value())  // Exactly three expected
-        {
-            fail_parse();
-        }
+        // Name
+        out.m_name = head.value();  // There may be '-' in the name
 
         return out;
     }

@@ -145,6 +145,19 @@ TEST_SUITE("MatchSpec")
         }
         {
             auto ms = MatchSpec::parse(
+                "https://conda.anaconda.org/conda-forge/linux-64/libgcc-ng-11.2.0-h1d223b6_13.tar.bz2"
+            );
+            CHECK_EQ(ms.name(), "libgcc-ng");
+            CHECK_EQ(ms.version, "11.2.0");
+            CHECK_EQ(ms.build_string, "h1d223b6_13");
+            CHECK_EQ(
+                ms.url(),
+                "https://conda.anaconda.org/conda-forge/linux-64/libgcc-ng-11.2.0-h1d223b6_13.tar.bz2"
+            );
+            CHECK_EQ(ms.filename(), "libgcc-ng-11.2.0-h1d223b6_13.tar.bz2");
+        }
+        {
+            auto ms = MatchSpec::parse(
                 "/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
             );
             CHECK_EQ(ms.name(), "_libgcc_mutex");

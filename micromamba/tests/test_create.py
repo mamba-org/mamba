@@ -365,6 +365,28 @@ def test_multiple_yaml_specs_only_one_has_channels(tmp_home, tmp_root_prefix, tm
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_multiple_yaml_specs_different_names(tmp_home, tmp_root_prefix, tmp_path):
+    env_prefix = tmp_path / "myenv"
+
+    cmd = ["-p", env_prefix]
+
+    spec_file_1 = tmp_path / "env1.yaml"
+    spec_file_1.write_text("name: env1\ndependencies: [xtensor]")
+
+    spec_file_2 = tmp_path / "env2.yaml"
+    spec_file_2.write_text(
+        "name: env2\ndependencies: [xsimd]\nchannels: [bioconda]",
+    )
+
+    cmd += ["-f", spec_file_1, "-f", spec_file_2]
+
+    res = helpers.create(*cmd, "--print-config-only", default_channel=False)
+    assert res["spec_file_env_name"] == "env1"
+    assert res["channels"] == ["bioconda"]
+    assert res["specs"] == ["xtensor", "xsimd"]
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_multiprocessing(tmp_home, tmp_root_prefix):
     if platform.system() == "Windows":
         return

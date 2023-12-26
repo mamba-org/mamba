@@ -13,7 +13,6 @@
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/specs/archive.hpp"
-#include "mamba/specs/platform.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
@@ -171,12 +170,6 @@ namespace mamba
         {
             throw std::runtime_error("Parsing of channel / namespace / subdir failed.");
         }
-
-        auto get_known_platforms = []() -> std::vector<std::string>
-        {
-            auto plats = specs::known_platform_names();
-            return { plats.begin(), plats.end() };
-        };
 
         // support faulty conda matchspecs such as `libblas=[build=*mkl]`, which is
         // the repr of `libblas=*=*mkl`

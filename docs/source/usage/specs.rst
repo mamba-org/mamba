@@ -3,12 +3,13 @@ Describing Conda Objects
 
 The ``libmambapy.specs`` submodule contains object to *describe* abstraction in the Conda ecosystem.
 They are purely functional and do not have any observable impact on the user system.
-For instance ``libmambapy.specs.Channel`` is used to describe a channel but does not download any file.
+For instance :cpp:type:`libmambapy.specs.Channel <mamba::specs::Channel>` is used to describe a
+channel but does not download any file.
 
 CondaURL
 --------
-The ``CondaURL`` is a rich URL object that has additional capabilities for dealing with tokens,
-platforms, and packages.
+The :cpp:type:`CondaURL <mamba::specs::CondaURL>` is a rich URL object that has additional
+capabilities for dealing with tokens, platforms, and packages.
 
 To parse a string into a ``CondaURL``, use ``CondaURL.parse`` as follows:
 
@@ -23,12 +24,12 @@ To parse a string into a ``CondaURL``, use ``CondaURL.parse`` as follows:
    assert url.package() == "x264-1!164.3095-h166bdaf_2.tar.bz2"
    assert url.package(decode=False) == "x264-1%21164.3095-h166bdaf_2.tar.bz2"
 
-The ``CondaURL.parse`` method assumes that the URL is properly
-`percent encoded <https://en.wikipedia.org/wiki/Percent-encoding>`_.
+The :cpp:func:`CondaURL.parse <mamba::specs::CondaURL::parse>` method assumes that the URL is
+properly `percent encoded <https://en.wikipedia.org/wiki/Percent-encoding>`_.
 For instance, here the character ``!`` in the file name ``x264-1!164.3095-h166bdaf_2.tar.bz2`` had
 to be replaced with ``%21``.
-The getter functions, such as ``CondaURL.package`` automatically decoded it for us, but we can
-specify ``decode=False`` to keep the raw representation.
+The getter functions, such as :cpp:func:`CondaURL.package <mamba::specs::CondaURL::package>`
+automatically decoded it for us, but we can specify ``decode=False`` to keep the raw representation.
 The setters follow the same logic, as described bellow.
 
 .. code:: python
@@ -45,8 +46,8 @@ The setters follow the same logic, as described bellow.
    assert url.password() == "n&#4d!3gfsd"
    assert url.password(decode=False) == "n%26%234d%213gfsd"
 
-Path manipulation is handled automatically, either with ``CondaURL.append_path`` or the ``/``
-operator.
+Path manipulation is handled automatically, either with
+:cpp:func:`CondaURL.append_path <mamba::specs::CondaURL::append_path>` or the ``/`` operator.
 
 .. code:: python
 
@@ -67,8 +68,8 @@ As always, encoding and decoding options are available.
    Contrary to ``pathlib.Path``, the ``/`` operator will always append, even when the sub-path
    starts with a ``/``.
 
-The function ``CondaURL.str`` can be used to get a raw representation of the string.
-By default, it will hide all credentials
+The function :cpp:func:`CondaURL.str <mamba::specs::CondaURL::str>` can be used to get a raw
+representation of the string. By default, it will hide all credentials
 
 .. code:: python
 
@@ -86,14 +87,15 @@ By default, it will hide all credentials
    )
    assert url.str(credentials="Remove") == "https://mamba.pm/"
 
-Similarily the ``CondaURL.pretty_str`` returns a more user-friendly string, but that may not be
-parsed back.
+Similarily the :cpp:func:`CondaURL.pretty_str <mamba::specs::CondaURL::pretty_str>` returns a more
+user-friendly string, but that may not be parsed back.
 
 
 ChannelSpec
 -----------
-A ``ChannelSpec`` is a lightweight object to represent a channel string, as in passed in the CLI
-or configuration.
+
+A :cpp:type:`ChannelSpec <mamba::specs::ChannelSpec>` is a lightweight object to represent a
+channel string, as in passed in the CLI or configuration.
 It does minimal parsing and can detect the type of ressource (an unresolved name, a URL, a file)
 and the platform filters.
 
@@ -122,12 +124,15 @@ Dynamic platforms (as in not known by Mamba) can only be detected with the ``[]`
 
 Channel
 -------
-The ``Channel`` are represented by a ``CondaURL`` and a set of platform filters.
+The :cpp:type:`Channel <mamba::specs::Channel>` are represented by a
+:cpp:type:`CondaURL <mamba::specs::CondaURL>` and a set of platform filters.
 A display name is also available, but is not considered a stable identifiaction form of the
 channel, since it depends on the many configuration parameters, such as the channel alias.
 
-We construct a ``Channel`` by *resolving* a ``ChannelSpec``.
-All parameters that influence this resolution must be provided explicitly
+We construct a :cpp:type:`Channel <mamba::specs::Channel>` by *resolving* a
+:cpp:type:`ChannelSpec <mamba::specs::ChannelSpec>`.
+All parameters that influence this resolution must be provided explicitly.
+
 
 .. code:: python
 
@@ -159,7 +164,8 @@ There are no hard-coded names:
 
    assert chan.url.str() == "https://repo.mamba.pm/defaults"
 
-You may have noticed that ``Channel.resolve`` returns multiple channels.
+You may have noticed that :cpp:func:`Channel.resolve <mamba::specs::Channel::resolve>` returns
+multiple channels.
 This is because of custom multichannel, a single name can return mutliple channels.
 
 
@@ -188,11 +194,13 @@ This is because of custom multichannel, a single name can return mutliple channe
 
 .. note::
 
-   Creating ``Channel`` objects this way, while highly customizable, can be very verbose.
+   Creating :cpp:type:`Channel <mamba::specs::Channel>` objects this way, while highly
+   customizable, can be very verbose.
    In practice, one can create a ``ChannelContext`` with ``ChannelContext.make_simple`` or
    ``ChannelContext.make_conda_compatible`` to compute and hold all these parameters from a
    ``Context`` (itself getting its values from all the configuration sources).
-   ``ChannelContext.make_channel`` can then directly construct a ``Channel`` from a string.
+   ``ChannelContext.make_channel`` can then directly construct a
+   :cpp:type:`Channel <mamba::specs::Channel>` from a string.
 
 
 Version
@@ -229,7 +237,8 @@ so ``1.2``, ``1.2.0``, and ``1.2.0.0`` are all considered equal.
    `calendar versioning <https://calver.org/>`_, or
    `PEP440 <https://peps.python.org/pep-0440/>`_.
 
-A ``Version`` can be created by parsing a string with ``Version.parse``.
+A :cpp:type:`Version <mamba::specs::Version>` can be created by parsing a string with
+:cpp:func:`Version.parse <mamba::specs::Version::parse>`.
 
 .. code:: python
 
@@ -287,9 +296,10 @@ For instance, ``(>2.1.0,<3.0)|==2.0.1`` means:
      - greater that ``2.1.0``
      - and less than ``3.0``.
 
-To create a ``VersionSpec`` from a string, we parse it with ``VersionSpec.parse``.
-To check if a given version matches a version spec, we use ``VersionSpec.contains``.
-
+To create a :cpp:type:`VersionSpec <mamba::specs::VersionSpec>` from a string, we parse it with
+:cpp:type:`VersionSpec.parse <mamba::specs::VersionSpec::parse>`.
+To check if a given version matches a version spec, we use
+:cpp:type:`VersionSpec.contains <mamba::specs::VersionSpec::contains>`.
 
 .. code:: python
 

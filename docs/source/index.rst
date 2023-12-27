@@ -59,6 +59,13 @@ You can try Mamba now by visiting the installation for
    usage/specs
 
 .. toctree::
+   :caption: API REFERENCE
+   :maxdepth: 2
+   :hidden:
+
+   api/specs
+
+.. toctree::
    :caption: DEVELOPER ZONE
    :maxdepth: 2
    :hidden:

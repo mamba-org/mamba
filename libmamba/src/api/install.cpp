@@ -889,10 +889,10 @@ namespace mamba
                     {
                         env_name.set_cli_yaml_value(parse_result.name);
                     }
-                    else if (parse_result.name.size() != 0 && parse_result.name != env_name.value<std::string>())
+                    else if (parse_result.name.size() != 0 && parse_result.name != env_name.cli_value<std::string>())
                     {
                         LOG_WARNING << "YAML specs have different environment names. Using "
-                                    << env_name.value<std::string>();
+                                    << env_name.cli_value<std::string>();
                     }
 
                     if (parse_result.dependencies.size() != 0)

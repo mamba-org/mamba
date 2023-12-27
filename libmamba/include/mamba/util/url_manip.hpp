@@ -53,8 +53,15 @@ namespace mamba::util
      */
     [[nodiscard]] auto path_or_url_to_url(std::string_view path) -> std::string;
 
-    template <class S, class... Args>
-    std::string join_url(const S& s, const Args&... args);
+    /**
+     * Join folder elements of a URL.
+     *
+     * Concatenate arguments making sure they are separated by a unique slash separator.
+     *
+     * @see path_concat
+     */
+    template <typename... Args>
+    [[nodiscard]] auto url_concat(const Args&... args) -> std::string;
 
     /**
      * Convert UNC2 file URI to UNC4.
@@ -75,50 +82,54 @@ namespace mamba::util
      */
     [[nodiscard]] auto file_uri_unc2_to_unc4(std::string_view url) -> std::string;
 
+    /********************
+     *  Implementation  *
+     ********************/
+
     namespace detail
     {
-        inline std::string join_url_impl(std::string& s)
+        inline auto as_string_view(std::string_view str) -> std::string_view
         {
-            return s;
+            return str;
         }
 
-        template <class S, class... Args>
-        inline std::string join_url_impl(std::string& s1, const S& s2, const Args&... args)
+        inline auto as_string_view(const char& c) -> std::string_view
         {
-            if (!s2.empty())
+            return { &c, 1 };
+        }
+
+        template <typename... Args>
+        auto url_concat_impl(const Args&... args) -> std::string
+        {
+            auto join_two = [](std::string& out, std::string_view to_add)
             {
-                if (s1.empty() || s1.back() != '/')
+                if (!out.empty() && !to_add.empty())
                 {
-                    s1 += '/';
+                    bool const out_has_slash = out.back() == '/';
+                    bool const to_add_has_slash = to_add.front() == '/';
+                    if (out_has_slash && to_add_has_slash)
+                    {
+                        to_add = to_add.substr(1);
+                    }
+                    if (!out_has_slash && !to_add_has_slash)
+                    {
+                        out += '/';
+                    }
                 }
-                s1 += s2;
-            }
-            return join_url_impl(s1, args...);
-        }
+                out += to_add;
+            };
 
-        template <class... Args>
-        inline std::string join_url_impl(std::string& s1, const char* s2, const Args&... args)
-        {
-            if (s1.size() && s1.back() != '/')
-            {
-                s1 += '/';
-            }
-            s1 += s2;
-            return join_url_impl(s1, args...);
+            std::string result;
+            result.reserve(((args.size() + 1) + ...));
+            (join_two(result, args), ...);
+            return result;
         }
-    }  // namespace detail
-
-    inline std::string join_url()
-    {
-        return "";
     }
 
-    template <class S, class... Args>
-    inline std::string join_url(const S& s, const Args&... args)
+    template <typename... Args>
+    auto url_concat(const Args&... args) -> std::string
     {
-        std::string res = s;
-        return detail::join_url_impl(res, args...);
+        return detail::url_concat_impl(detail::as_string_view(args)...);
     }
-}  // namespace mamba
-
+}
 #endif

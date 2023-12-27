@@ -540,7 +540,7 @@ namespace mamba
         , m_expired_cache_path("")
         , m_writable_pkgs_dir(caches.first_writable_path())
         , m_repodata_url(util::concat(url, "/", repodata_fn))
-        , m_name(util::join_url(channel.display_name(), platform))
+        , m_name(util::url_concat(channel.display_name(), platform))
         , m_json_fn(cache_fn_url(m_repodata_url))
         , m_solv_fn(m_json_fn.substr(0, m_json_fn.size() - 4) + "solv")
         , m_is_noarch(platform == "noarch")

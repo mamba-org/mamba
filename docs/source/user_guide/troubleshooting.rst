@@ -47,9 +47,9 @@ To check if you have any Anaconda default channels in your configuration, use::
 
 Please change your configuration to use only ``conda-forge`` using one of the following methods.
 
-Disable the default channels in your install command::
+Disable the default channels in your install commands::
 
-  mamba create --override-channels ...
+  mamba install --override-channels ...
 
 Or your :file:`environment.yml` file:
 

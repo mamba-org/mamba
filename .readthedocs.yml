@@ -6,7 +6,12 @@ build:
     python: "mambaforge-22.9"
   jobs:
     pre_build:
-      - doxygen
+      - |
+        (
+          cat docs/Doxyfile;
+          echo "INPUT=libmamba/include";
+          echo "XML_OUTPUT=docs/xml"
+        ) | doxygen -
 
 conda:
   environment: docs/environment.yml

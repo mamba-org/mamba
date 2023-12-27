@@ -133,6 +133,24 @@ TEST_SUITE("util::url_manip")
         }
     }
 
+    TEST_CASE("url_concat")
+    {
+        CHECK_EQ(url_concat("", ""), "");
+        CHECK_EQ(url_concat("", "/"), "/");
+        CHECK_EQ(url_concat("/", ""), "/");
+        CHECK_EQ(url_concat("/", "/"), "/");
+
+        CHECK_EQ(url_concat("mamba.org", "folder"), "mamba.org/folder");
+        CHECK_EQ(url_concat("mamba.org", "/folder"), "mamba.org/folder");
+        CHECK_EQ(url_concat("mamba.org/", "folder"), "mamba.org/folder");
+        CHECK_EQ(url_concat("mamba.org/", "/folder"), "mamba.org/folder");
+
+        CHECK_EQ(
+            url_concat("mamba.org", 't', std::string("/sometoken/"), std::string_view("conda-forge")),
+            "mamba.org/t/sometoken/conda-forge"
+        );
+    }
+
     TEST_CASE("file_uri_unc2_to_unc4")
     {
         for (const std::string uri : {

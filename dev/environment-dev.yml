@@ -48,6 +48,8 @@ dependencies:
   # dev dependencies
   - pre-commit
   # Documentation dependencies
+  - doxygen
+  - breathe
   - sphinx
   - sphinx-book-theme
   - myst-parser

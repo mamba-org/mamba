@@ -6,3 +6,5 @@ dependencies:
   - six
   - sphinx
   - sphinx-book-theme
+  - doxygen
+  - breathe

@@ -11,6 +11,7 @@ vars:
   CMAKE_PRESET: 'mamba-unix-shared-debug-dev'
   CACHE_DIR: '{{.BUILD_DIR}}/pkgs'
   DOCS_DIR: '{{.BUILD_DIR}}/docs'
+  DOCS_DOXYGEN_XML_DIR: '{{.DOCS_DIR}}/doxygen-xml'
   MAMBA_NAME: 'mamba'  # Depend on preset...
   TEST_MAMBA_EXE:
     sh: 'realpath {{.CMAKE_BUILD_DIR}}/micromamba/{{.MAMBA_NAME}}'
@@ -251,11 +252,32 @@ tasks:
       - cp "{{.BUILD_DIR}}/stubs/libmambapy/core/bindings-stubs/__init__.pyi" libmambapy/src/libmambapy/__init__.pyi
       - '{{.DEV_RUN}} pre-commit run --files libmambapy/src/libmambapy/__init__.pyi'
 
+  build-doxygen-xml:
+    desc: Build the XML summary of libmamba C++ API
+    summary: |
+      Build the XML summary of libmamba C++ API using Doxygen
+      This is passed on to Sphinx through the Breathe extension for building the reference API.
+    deps: [create-dev-env]
+    cmds:
+      - >-
+        (
+          cat docs/Doxyfile;
+          echo "INPUT=libmamba/include";
+          echo "XML_OUTPUT={{.DOCS_DOXYGEN_XML_DIR}}"
+        ) | {{.DEV_RUN}} doxygen -
+    sources:
+      - libmamba/include/**/*.hpp'
+    generates:
+      - '{{.DOCS_DOXYGEN_XML_DIR}}/**/*'
+
   build-docs:
     desc: Build the documentation.
     summary: |
       Build Mamba documentation using Sphinx.
-    deps: [create-dev-env]
+    deps: [build-doxygen-xml]
+    env:
+      MAMBA_DEV_DOXYGEN_XML_DIR:
+        sh: realpath '{{.DOCS_DOXYGEN_XML_DIR}}'
     cmds:
       - '{{.DEV_RUN}} python -m sphinx -b html docs/source {{.DOCS_DIR}}'
 
@@ -264,6 +286,9 @@ tasks:
     summary: |
       Run documentation tests, checking for dead links.
     deps: [create-dev-env]
+    env:
+      MAMBA_DEV_DOXYGEN_XML_DIR:
+        sh: realpath '{{.DOCS_DOXYGEN_XML_DIR}}'
     cmds:
       - '{{.DEV_RUN}} python -m sphinx -W -b linkcheck docs/source {{.DOCS_DIR}}'
 

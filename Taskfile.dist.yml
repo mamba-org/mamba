@@ -11,10 +11,11 @@ vars:
   CMAKE_PRESET: 'mamba-unix-shared-debug-dev'
   CACHE_DIR: '{{.BUILD_DIR}}/pkgs'
   DOCS_DIR: '{{.BUILD_DIR}}/docs'
-  DOCS_DOXYGEN_XML_DIR: '{{.DOCS_DIR}}/doxygen-xml'
+  DOCS_DOXYGEN_XML_DIR:
+    sh: realpath -m '{{.DOCS_DIR}}/doxygen-xml'
   MAMBA_NAME: 'mamba'  # Depend on preset...
   TEST_MAMBA_EXE:
-    sh: 'realpath {{.CMAKE_BUILD_DIR}}/micromamba/{{.MAMBA_NAME}}'
+    sh: 'realpath -m {{.CMAKE_BUILD_DIR}}/micromamba/{{.MAMBA_NAME}}'
   CPU_PERCENTAGE: 75
   CPU_TOTAL:
     sh: >-
@@ -259,6 +260,7 @@ tasks:
       This is passed on to Sphinx through the Breathe extension for building the reference API.
     deps: [create-dev-env]
     cmds:
+      - mkdir -p echo "{{.DOCS_DOXYGEN_XML_DIR}}"
       - >-
         (
           cat docs/Doxyfile;
@@ -266,7 +268,7 @@ tasks:
           echo "XML_OUTPUT={{.DOCS_DOXYGEN_XML_DIR}}"
         ) | {{.DEV_RUN}} doxygen -
     sources:
-      - libmamba/include/**/*.hpp'
+      - libmamba/include/**/*.hpp
     generates:
       - '{{.DOCS_DOXYGEN_XML_DIR}}/**/*'
 
@@ -276,8 +278,7 @@ tasks:
       Build Mamba documentation using Sphinx.
     deps: [build-doxygen-xml]
     env:
-      MAMBA_DEV_DOXYGEN_XML_DIR:
-        sh: realpath '{{.DOCS_DOXYGEN_XML_DIR}}'
+      MAMBA_DEV_DOXYGEN_XML_DIR: '{{.DOCS_DOXYGEN_XML_DIR}}'
     cmds:
       - '{{.DEV_RUN}} python -m sphinx -b html docs/source {{.DOCS_DIR}}'
 
@@ -287,8 +288,7 @@ tasks:
       Run documentation tests, checking for dead links.
     deps: [create-dev-env]
     env:
-      MAMBA_DEV_DOXYGEN_XML_DIR:
-        sh: realpath '{{.DOCS_DOXYGEN_XML_DIR}}'
+        MAMBA_DEV_DOXYGEN_XML_DIR: '{{.DOCS_DOXYGEN_XML_DIR}}'
     cmds:
       - '{{.DEV_RUN}} python -m sphinx -W -b linkcheck docs/source {{.DOCS_DIR}}'
 

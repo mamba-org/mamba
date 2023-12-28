@@ -635,6 +635,8 @@ def test_VersionSpec():
     assert isinstance(VersionSpec.or_token, str)
     assert isinstance(VersionSpec.left_parenthesis_token, str)
     assert isinstance(VersionSpec.right_parenthesis_token, str)
+    assert isinstance(VersionSpec.prefered_free_str, str)
+    assert isinstance(VersionSpec.all_free_strs, list)
     assert isinstance(VersionSpec.starts_with_str, str)
     assert isinstance(VersionSpec.equal_str, str)
     assert isinstance(VersionSpec.not_equal_str, str)

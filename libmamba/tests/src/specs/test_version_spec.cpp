@@ -122,6 +122,7 @@ TEST_SUITE("specs::version_spec")
         {
             auto spec = VersionSpec();
             CHECK(spec.contains(Version()));
+            CHECK_EQ(spec.str(), "=*");
         }
 
         SUBCASE("<2.0|(>2.3,<=2.8.0)")
@@ -167,6 +168,9 @@ TEST_SUITE("specs::version_spec")
         {
             CHECK(""_vs.contains("1.6"_v));
             CHECK(""_vs.contains("0.6+0.7"_v));
+
+            CHECK("*"_vs.contains("1.4"_v));
+            CHECK("=*"_vs.contains("1.4"_v));
 
             CHECK("1.7"_vs.contains("1.7"_v));
             CHECK("1.7"_vs.contains("1.7.0.0"_v));

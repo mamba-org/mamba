@@ -290,16 +290,17 @@ namespace mamba::specs
 
     namespace
     {
-        auto is_char(std::string_view str, char c) -> bool
+        template <typename Val, typename Range>
+        constexpr auto equal_any(const Val& val, const Range& range) -> bool
         {
-            return (str.size() == 1) && (str.front() == c);
+            return std::find(range.cbegin(), range.cend(), val) != range.cend();
         }
 
         auto parse_op_and_version(std::string_view str) -> VersionPredicate
         {
             str = util::strip(str);
             // WARNING order is important since some operator are prefix of others.
-            if (str.empty() || is_char(str, VersionSpec::glob_suffix_token))
+            if (str.empty() || equal_any(str, VersionSpec::all_free_strs))
             {
                 return VersionPredicate::make_free();
             }
@@ -331,7 +332,7 @@ namespace mamba::specs
             {
                 auto ver = Version::parse(str.substr(VersionSpec::compatible_str.size()));
                 // in ``~=1.1`` level is assumed to be 1, in ``~=1.1.1`` level 2, etc.
-                static constexpr std::size_t one = std::size_t(1);  // MSVC
+                static constexpr auto one = std::size_t(1);  // MSVC
                 const std::size_t level = std::max(ver.version().size(), one) - one;
                 return VersionPredicate::make_compatible_with(std::move(ver), level);
             }
@@ -381,7 +382,7 @@ namespace mamba::specs
                 if (util::ends_with(str, VersionSpec::glob_suffix_token))
                 {
                     // either ".*" or "*"
-                    static constexpr std::size_t one = std::size_t(1);  // MSVC
+                    static constexpr auto one = std::size_t(1);  // MSVC
                     const std::size_t len = str.size() - std::max(glob_len, one);
                     return VersionPredicate::make_starts_with(Version::parse(str.substr(0, len)));
                 }
@@ -409,6 +410,15 @@ namespace mamba::specs
 
         auto parser = util::InfixParser<VersionPredicate, util::BoolOperator>();
         str = util::lstrip(str);
+
+        // Explicit short-circuiting for "free" spec
+        // This case would be handled anyway but we can avoid allocating a tree in this
+        // likely case.
+        if (str.empty() || equal_any(str, VersionSpec::all_free_strs))
+        {
+            return {};
+        }
+
         while (!str.empty())
         {
             if (str.front() == VersionSpec::and_token)
@@ -468,11 +478,16 @@ fmt::formatter<mamba::specs::VersionSpec>::format(
     format_context& ctx
 ) -> decltype(ctx.out())
 {
+    using VersionSpec = typename mamba::specs::VersionSpec;
+
     auto out = ctx.out();
+    if (spec.m_tree.empty())
+    {
+        return fmt::format_to(out, "{}", VersionSpec::prefered_free_str);
+    }
     spec.m_tree.infix_for_each(
         [&](const auto& token)
         {
-            using VersionSpec = typename mamba::specs::VersionSpec;
             using tree_type = typename VersionSpec::tree_type;
             using Token = std::decay_t<decltype(token)>;
             if constexpr (std::is_same_v<Token, tree_type::LeftParenthesis>)

@@ -7,6 +7,7 @@
 #ifndef MAMBA_SPECS_VERSION_SPEC_HPP
 #define MAMBA_SPECS_VERSION_SPEC_HPP
 
+#include <array>
 #include <functional>
 #include <string_view>
 #include <variant>
@@ -128,6 +129,8 @@ namespace mamba::specs
         static constexpr char left_parenthesis_token = '(';
         static constexpr char right_parenthesis_token = ')';
 
+        static constexpr std::string_view prefered_free_str = "=*";
+        static constexpr std::array<std::string_view, 4> all_free_strs = { "", "*", "=*", "==*" };
         static constexpr std::string_view starts_with_str = "=";
         static constexpr std::string_view equal_str = "==";
         static constexpr std::string_view not_equal_str = "!=";

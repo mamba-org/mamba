@@ -295,6 +295,13 @@ namespace mamba::specs
         return m_tree.evaluate([&point](const auto& node) { return node.contains(point); });
     }
 
+    auto VersionSpec::is_explicitly_free() const -> bool
+    {
+        const auto free_pred = VersionPredicate::make_free();
+        const auto is_free_pred = [&free_pred](const auto& node) { return node == free_pred; };
+        return m_tree.empty() || ((m_tree.size() == 1) && m_tree.evaluate(is_free_pred));
+    }
+
     auto VersionSpec::str() const -> std::string
     {
         return fmt::format("{}", *this);

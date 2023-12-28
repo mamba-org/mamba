@@ -415,4 +415,25 @@ TEST_SUITE("specs::version_spec")
             CHECK_EQ(vs.str_conda_build(), "2.3.*,<3.0");
         }
     }
+
+    TEST_CASE("VersionSpec::is_free")
+    {
+        {
+            using namespace mamba::util;
+
+            auto parser = InfixParser<VersionPredicate, BoolOperator>{};
+            parser.push_variable(VersionPredicate::make_free());
+            parser.finalize();
+            auto spec = VersionSpec(std::move(parser).tree());
+
+            CHECK(spec.is_explicitly_free());
+        }
+
+        CHECK(VersionSpec().is_explicitly_free());
+        CHECK(VersionSpec::parse("*").is_explicitly_free());
+        CHECK(VersionSpec::parse("").is_explicitly_free());
+
+        CHECK_FALSE(VersionSpec::parse("==2.3|!=2.3").is_explicitly_free());
+        CHECK_FALSE(VersionSpec::parse("=2.3,<3.0").is_explicitly_free());
+    }
 }

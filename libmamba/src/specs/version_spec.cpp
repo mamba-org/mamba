@@ -160,6 +160,11 @@ namespace mamba::specs
         return fmt::format("{}", *this);
     }
 
+    auto VersionPredicate::str_conda_build() const -> std::string
+    {
+        return fmt::format("{:b}", *this);
+    }
+
     VersionPredicate::VersionPredicate(Version ver, BinaryOperator op)
         : m_version(std::move(ver))
         , m_operator(std::move(op))
@@ -181,10 +186,10 @@ auto
 fmt::formatter<mamba::specs::VersionPredicate>::parse(format_parse_context& ctx)
     -> decltype(ctx.begin())
 {
-    // make sure that range is empty
-    if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
+    if (auto it = std::find(ctx.begin(), ctx.end(), 'b'); it < ctx.end())
     {
-        throw fmt::format_error("Invalid format");
+        conda_build_form = true;
+        return ++it;
     }
     return ctx.begin();
 }
@@ -239,7 +244,14 @@ fmt::formatter<mamba::specs::VersionPredicate>::format(
             }
             if constexpr (std::is_same_v<Op, VersionPredicate::starts_with>)
             {
-                out = fmt::format_to(out, "{}{}", VersionSpec::starts_with_str, pred.m_version);
+                if (conda_build_form)
+                {
+                    out = fmt::format_to(out, "{}{}", pred.m_version, VersionSpec::glob_suffix_str);
+                }
+                else
+                {
+                    out = fmt::format_to(out, "{}{}", VersionSpec::starts_with_str, pred.m_version);
+                }
             }
             if constexpr (std::is_same_v<Op, VersionPredicate::not_starts_with>)
             {
@@ -286,6 +298,11 @@ namespace mamba::specs
     auto VersionSpec::str() const -> std::string
     {
         return fmt::format("{}", *this);
+    }
+
+    auto VersionSpec::str_conda_build() const -> std::string
+    {
+        return fmt::format("{:b}", *this);
     }
 
     namespace
@@ -464,10 +481,10 @@ namespace mamba::specs
 auto
 fmt::formatter<mamba::specs::VersionSpec>::parse(format_parse_context& ctx) -> decltype(ctx.begin())
 {
-    // make sure that range is empty
-    if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
+    if (auto it = std::find(ctx.begin(), ctx.end(), 'b'); it < ctx.end())
     {
-        throw fmt::format_error("Invalid format");
+        conda_build_form = true;
+        return ++it;
     }
     return ctx.begin();
 }
@@ -511,7 +528,7 @@ fmt::formatter<mamba::specs::VersionSpec>::format(
             }
             if constexpr (std::is_same_v<Token, tree_type::variable_type>)
             {
-                out = fmt::format_to(out, "{}", token);
+                out = fmt::format_to(out, conda_build_form ? "{:b}" : "{}", token);
             }
         }
     );

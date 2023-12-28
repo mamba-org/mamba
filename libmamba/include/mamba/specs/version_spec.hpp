@@ -48,6 +48,13 @@ namespace mamba::specs
 
         [[nodiscard]] auto str() const -> std::string;
 
+        /**
+         * An alternative string representation of the version spec.
+         *
+         * Attempts to be compatible with conda-build/libsolv.
+         */
+        [[nodiscard]] auto str_conda_build() const -> std::string;
+
     private:
 
         struct free_interval
@@ -157,6 +164,13 @@ namespace mamba::specs
         [[nodiscard]] auto str() const -> std::string;
 
         /**
+         * An alternative string representation of the version spec.
+         *
+         * Attempts to be compatible with conda-build/libsolv.
+         */
+        [[nodiscard]] auto str_conda_build() const -> std::string;
+
+        /**
          * True if the set described by the VersionSpec contains the given version.
          */
         [[nodiscard]] auto contains(const Version& point) const -> bool;
@@ -177,6 +191,11 @@ namespace mamba::specs
 template <>
 struct fmt::formatter<mamba::specs::VersionPredicate>
 {
+    /**
+     * Change the representation of some predicates not understood by conda-build/libsolv.
+     */
+    bool conda_build_form = false;
+
     auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
 
     auto format(const ::mamba::specs::VersionPredicate& pred, format_context& ctx)
@@ -186,6 +205,11 @@ struct fmt::formatter<mamba::specs::VersionPredicate>
 template <>
 struct fmt::formatter<mamba::specs::VersionSpec>
 {
+    /**
+     * Change the representation of some predicates not understood by conda-build/libsolv.
+     */
+    bool conda_build_form = false;
+
     auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
 
     auto format(const ::mamba::specs::VersionSpec& spec, format_context& ctx) -> decltype(ctx.out());

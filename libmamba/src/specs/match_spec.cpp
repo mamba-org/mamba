@@ -192,12 +192,14 @@ namespace mamba::specs
             spec_str.push_back('*');
         }
         // This is #6 of the spec parsing
+        // Look for version *and* build string and separator
+        auto version_and_build = std::string();
         static std::regex version_build_re("([^ =<>!~]+)?([><!=~ ].+)?");
         std::smatch vb_match;
         if (std::regex_match(spec_str, vb_match, version_build_re))
         {
             out.m_name = vb_match[1].str();
-            out.m_version = util::strip(vb_match[2].str());
+            version_and_build = util::strip(vb_match[2].str());
             if (out.m_name.size() == 0)
             {
                 throw std::runtime_error("Invalid spec, no package name found: " + spec_str);
@@ -210,9 +212,9 @@ namespace mamba::specs
 
         // # Step 7. otherwise sort out version + build
         // spec_str = spec_str and spec_str.strip()
-        if (!out.m_version.empty())
+        if (!version_and_build.empty())
         {
-            if (out.m_version.find('[') != out.m_version.npos)
+            if (version_and_build.find('[') != std::string::npos)
             {
                 throw std::runtime_error(util::concat(
                     R"(Invalid match spec: multiple bracket sections not allowed ")",
@@ -221,8 +223,7 @@ namespace mamba::specs
                 ));
             }
 
-            out.m_version = std::string(util::strip(out.m_version));
-            auto [pv, pb] = parse_version_and_build(std::string(util::strip(out.m_version)));
+            auto [pv, pb] = parse_version_and_build(version_and_build);
 
             out.m_version = pv;
             out.m_build_string = pb;

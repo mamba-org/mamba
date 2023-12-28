@@ -77,7 +77,7 @@ namespace mamba::specs
 
         // Version
         std::tie(head, tail) = util::rsplit_once(head.value(), '-');
-        out.m_version = tail;
+        out.m_version = VersionSpec::parse(tail);
         if (!head.has_value())
         {
             fail_parse();
@@ -225,35 +225,13 @@ namespace mamba::specs
 
             auto [pv, pb] = parse_version_and_build(version_and_build);
 
-            out.m_version = pv;
+            out.m_version = VersionSpec::parse(pv);
             out.m_build_string = pb;
-
-            // translate version '=1.2.3' to '1.2.3*'
-            // is it a simple version starting with '='? i.e. '=1.2.3'
-            if (out.m_version.size() >= 2 && out.m_version[0] == '=')
-            {
-                auto rest = out.m_version.substr(1);
-                if (out.m_version[1] == '=' && out.m_build_string.empty())
-                {
-                    out.m_version = out.m_version.substr(2);
-                }
-                else if (rest.find_first_of("=,|") == rest.npos)
-                {
-                    if (out.m_build_string.empty() && out.m_version.back() != '*')
-                    {
-                        out.m_version = util::concat(out.m_version, "*");
-                    }
-                    else
-                    {
-                        out.m_version = rest;
-                    }
-                }
-            }
         }
-        else
+        else  // no-op
         {
-            out.m_version = "";
-            out.m_build_string = "";
+            out.m_version = {};
+            out.m_build_string = {};
         }
 
         // TODO think about using a hash function here, (and elsewhere), like:
@@ -271,7 +249,7 @@ namespace mamba::specs
             }
             else if (k == "version")
             {
-                out.m_version = v;
+                out.m_version = VersionSpec::parse(v);
             }
             else if (k == "channel")
             {
@@ -352,14 +330,14 @@ namespace mamba::specs
         m_name = std::move(name);
     }
 
-    auto MatchSpec::version() const -> const std::string&
+    auto MatchSpec::version() const -> std::string
     {
-        return m_version;
+        return m_version.str();
     }
 
     void MatchSpec::set_version(std::string ver)
     {
-        m_version = std::move(ver);
+        m_version = VersionSpec::parse(std::move(ver));
     }
 
     auto MatchSpec::build_number() const -> const std::string&
@@ -406,9 +384,9 @@ namespace mamba::specs
     {
         std::stringstream res;
         res << m_name;
-        if (!m_version.empty())
+        if (!m_version.is_explicitly_free())
         {
-            res << " " << m_version;
+            res << " " << m_version.str_conda_build();
             // if (!build.empty() && (build != "*"))
             if (!m_build_string.empty())
             {
@@ -454,50 +432,16 @@ namespace mamba::specs
         auto is_complex_relation = [](const std::string& s)
         { return s.find_first_of("><$^|,") != s.npos; };
 
-        if (!m_version.empty())
+        if (!m_version.is_explicitly_free())
         {
-            if (is_complex_relation(m_version))
+            auto ver = m_version.str();
+            if (is_complex_relation(ver))  // TODO do on VersionSpec
             {
-                formatted_brackets.push_back(util::concat("version='", m_version, "'"));
-            }
-            else if (util::starts_with(m_version, "!=") || util::starts_with(m_version, "~="))
-            {
-                if (!m_build_string.empty())
-                {
-                    formatted_brackets.push_back(util::concat("version='", m_version, "'"));
-                }
-                else
-                {
-                    res << " " << m_version;
-                }
-            }
-            else if (util::ends_with(m_version, ".*"))
-            {
-                res << "=" + m_version.substr(0, m_version.size() - 2);
-            }
-            else if (m_version.back() == '*')
-            {
-                if (m_version.size() == 1)
-                {
-                    res << "=*";
-                }
-                else if (util::starts_with(m_version, "="))
-                {
-                    res << m_version.substr(0, m_version.size() - 1);
-                }
-                else
-                {
-                    res << "=" + m_version.substr(0, m_version.size() - 1);
-                }
-            }
-            else if (util::starts_with(m_version, "=="))
-            {
-                res << m_version;
-                version_exact = true;
+                formatted_brackets.push_back(util::concat("version='", ver, "'"));
             }
             else
             {
-                res << "==" << m_version;
+                res << ver;
                 version_exact = true;
             }
         }
@@ -567,7 +511,7 @@ namespace mamba::specs
 
     auto MatchSpec::is_simple() const -> bool
     {
-        return m_version.empty() && m_build_string.empty() && m_build_number.empty();
+        return m_version.is_explicitly_free() && m_build_string.empty() && m_build_number.empty();
     }
 
     auto MatchSpec::is_file() const -> bool

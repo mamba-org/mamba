@@ -550,6 +550,8 @@ namespace mambapy
             .def_readonly_static("or_token", &VersionSpec::or_token)
             .def_readonly_static("left_parenthesis_token", &VersionSpec::left_parenthesis_token)
             .def_readonly_static("right_parenthesis_token", &VersionSpec::right_parenthesis_token)
+            .def_readonly_static("prefered_free_str", &VersionSpec::prefered_free_str)
+            .def_readonly_static("all_free_strs", &VersionSpec::all_free_strs)
             .def_readonly_static("starts_with_str", &VersionSpec::starts_with_str)
             .def_readonly_static("equal_str", &VersionSpec::equal_str)
             .def_readonly_static("not_equal_str", &VersionSpec::not_equal_str)

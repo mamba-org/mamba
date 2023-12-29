@@ -8,6 +8,7 @@
 
 #include "mamba/util/conditional.hpp"
 #include "mamba/util/parsers.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba::util
 {
@@ -112,7 +113,7 @@ namespace mamba::util
         const auto tokens_str = std::string_view(tokens.data(), tokens.size());
 
         auto depth = int(0);
-        auto last_val_pos = npos;
+        auto first_val_pos = npos;
         auto pos = text.find_first_of(tokens_str);
         while (pos != npos)
         {
@@ -123,7 +124,7 @@ namespace mamba::util
             );
             // Set error but sill try to find the value
             err = if_else(depth < 0, ParseError::InvalidInput, err);
-            last_val_pos = if_else(text[pos] == c, pos, last_val_pos);
+            first_val_pos = if_else((text[pos] == c) && (pos == npos), pos, first_val_pos);
             if ((depth == 0) && (text[pos] == c))
             {
                 return pos;
@@ -135,7 +136,54 @@ namespace mamba::util
             if_else(depth == 0, ParseError::NotFound, ParseError::InvalidInput),
             err
         );
-        return last_val_pos;
+        return first_val_pos;
+    }
+
+    auto find_not_in_parentheses(  //
+        std::string_view text,
+        std::string_view val,
+        ParseError& err,
+        char open,
+        char close
+    ) noexcept -> std::size_t
+    {
+        static constexpr auto npos = std::string_view::npos;
+
+        if (val.empty())
+        {
+            err = ParseError::InvalidInput;
+            return npos;
+        }
+
+        const auto tokens = std::array{ val.front(), open, close };
+        const auto tokens_str = std::string_view(tokens.data(), tokens.size());
+
+        auto depth = int(0);
+        auto first_val_pos = npos;
+        auto pos = text.find_first_of(tokens_str);
+        while (pos != npos)
+        {
+            depth = if_else(
+                (open == close) && (text[pos] == open),
+                if_else(depth > 0, 0, 1),  // swap 0 and 1
+                depth + int(text[pos] == open) - int(text[pos] == close)
+            );
+            // Set error but sill try to find the value
+            err = if_else(depth < 0, ParseError::InvalidInput, err);
+            const bool match = starts_with(text.substr(pos), val);
+            first_val_pos = if_else(match && (pos == npos), pos, first_val_pos);
+            if ((depth == 0) && match)
+            {
+                return pos;
+            }
+            pos = text.find_first_of(tokens_str, pos + 1);
+        }
+        err = if_else(
+            err == ParseError::Ok,
+            if_else(depth == 0, ParseError::NotFound, ParseError::InvalidInput),
+            err
+        );
+        return first_val_pos;
     }
 
     auto find_not_in_parentheses(  //
@@ -147,6 +195,22 @@ namespace mamba::util
     {
         auto err = ParseError::Ok;
         const auto pos = find_not_in_parentheses(text, c, err, open, close);
+        if (err != ParseError::Ok)
+        {
+            return tl::make_unexpected(err);
+        }
+        return { pos };
+    }
+
+    auto find_not_in_parentheses(  //
+        std::string_view text,
+        std::string_view val,
+        char open,
+        char close
+    ) noexcept -> tl::expected<std::size_t, ParseError>
+    {
+        auto err = ParseError::Ok;
+        const auto pos = find_not_in_parentheses(text, val, err, open, close);
         if (err != ParseError::Ok)
         {
             return tl::make_unexpected(err);

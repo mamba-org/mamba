@@ -77,9 +77,24 @@ namespace mamba::util
         char close = ')'
     ) noexcept -> std::size_t;
 
+    auto find_not_in_parentheses(  //
+        std::string_view text,
+        std::string_view val,
+        ParseError& err,
+        char open = '(',
+        char close = ')'
+    ) noexcept -> std::size_t;
+
     [[nodiscard]] auto find_not_in_parentheses(  //
         std::string_view text,
         char c,
+        char open = '(',
+        char close = ')'
+    ) noexcept -> tl::expected<std::size_t, ParseError>;
+
+    [[nodiscard]] auto find_not_in_parentheses(  //
+        std::string_view text,
+        std::string_view val,
         char open = '(',
         char close = ')'
     ) noexcept -> tl::expected<std::size_t, ParseError>;

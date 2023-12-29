@@ -98,5 +98,11 @@ namespace mamba::util
         char open = '(',
         char close = ')'
     ) noexcept -> tl::expected<std::size_t, ParseError>;
+
+    /**
+     * Test wether the glob pattern @p pattern matches the string @p str.
+     */
+    [[nodiscard]] auto glob_match(std::string_view pattern, std::string_view str, char glob = '*')
+        -> bool;
 }
 #endif

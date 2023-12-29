@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <array>
+#include <cassert>
 
 #include "mamba/util/conditional.hpp"
 #include "mamba/util/parsers.hpp"
@@ -216,5 +217,51 @@ namespace mamba::util
             return tl::make_unexpected(err);
         }
         return { pos };
+    }
+
+    namespace
+    {
+        auto glob_match_impl(std::string_view pattern, std::string_view str, char glob) -> bool
+        {
+            static constexpr auto npos = std::string_view::npos;
+
+            assert(starts_with(pattern, glob));
+            pattern = lstrip(pattern, glob);  // Drop leading '*'
+            if (pattern.empty())              // input pattern was "*"
+            {
+                return true;
+            }
+
+            const auto next_glob = pattern.find(glob);
+            const auto word = pattern.substr(0, next_glob);
+            if (const auto wpos = str.find(word); wpos != npos)
+            {
+                if (next_glob == npos)
+                {
+                    // Return ends_with(str, word);
+                    return (wpos + word.size()) == str.size();
+                }
+                return glob_match_impl(pattern.substr(next_glob), str.substr(wpos + word.size()), glob);
+            }
+            return false;
+        }
+    }
+
+    auto glob_match(std::string_view pattern, std::string_view str, char glob) -> bool
+    {
+        static constexpr auto npos = std::string_view::npos;
+
+        if (starts_with(pattern, glob))
+        {
+            return glob_match_impl(pattern, str, glob);
+        }
+        if (const auto next_glob = pattern.find(glob); next_glob != npos)
+        {
+            const auto word = pattern.substr(0, next_glob);
+            return starts_with(str, word)
+                   && glob_match_impl(pattern.substr(next_glob), remove_prefix(str, word), glob);
+            ;
+        }
+        return str == pattern;
     }
 }

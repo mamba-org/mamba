@@ -111,4 +111,41 @@ TEST_SUITE("util::parsers")
             );
         }
     }
+
+    TEST_CASE("glob_match")
+    {
+        CHECK(glob_match("python", "python"));
+        CHECK_FALSE(glob_match("cpython", "python"));
+        CHECK_FALSE(glob_match("python", "cpython"));
+        CHECK_FALSE(glob_match("python", ""));
+
+        CHECK(glob_match("py*", "py"));
+        CHECK(glob_match("py*", "py"));
+        CHECK(glob_match("py*", "python"));
+        CHECK_FALSE(glob_match("py*", "cpython"));
+        CHECK_FALSE(glob_match("py*", ""));
+
+        CHECK(glob_match("*37", "python37"));
+        CHECK(glob_match("*37", "37"));
+        CHECK_FALSE(glob_match("*37", "python37-linux64"));
+        CHECK_FALSE(glob_match("*37", ""));
+
+        CHECK(glob_match("*py*", "python"));
+        CHECK(glob_match("*py*", "cpython"));
+        CHECK(glob_match("*py*", "cpy"));
+        CHECK_FALSE(glob_match("*py*", "linux"));
+        CHECK_FALSE(glob_match("*py*", ""));
+
+        CHECK(glob_match("*py*-3*-*-64", "cpython-37-linux-64"));
+        CHECK(glob_match("*py*-3*-*-64", "python-37-more-linux-64"));
+        CHECK_FALSE(glob_match("*py*-3*-*-64", "cpython-37-linux-64-more"));
+        CHECK_FALSE(glob_match("*py*-3*-*-64", ""));
+
+        CHECK(glob_match("py**", "python"));
+        CHECK_FALSE(glob_match("py**", "cpython"));
+        CHECK(glob_match("**37", "python37"));
+        CHECK_FALSE(glob_match("**37", "python37-linux64"));
+        CHECK(glob_match("**py**", "python"));
+        CHECK_FALSE(glob_match("**py**", "linux"));
+    }
 }

@@ -33,6 +33,7 @@ set(
     src/util/test_iterator.cpp
     src/util/test_os_win.cpp
     src/util/test_path_manip.cpp
+    src/util/test_parsers.cpp
     src/util/test_string.cpp
     src/util/test_tuple_hash.cpp
     src/util/test_type_traits.cpp

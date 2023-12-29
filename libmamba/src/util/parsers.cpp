@@ -6,6 +6,7 @@
 
 #include <array>
 
+#include "mamba/util/conditional.hpp"
 #include "mamba/util/parsers.hpp"
 
 namespace mamba::util
@@ -95,5 +96,61 @@ namespace mamba::util
             return tl::make_unexpected(err);
         }
         return { (start == std::string_view::npos) ? "" : text.substr(start, end) };
+    }
+
+    auto find_not_in_parentheses(  //
+        std::string_view text,
+        char c,
+        ParseError& err,
+        char open,
+        char close
+    ) noexcept -> std::size_t
+    {
+        static constexpr auto npos = std::string_view::npos;
+
+        const auto tokens = std::array{ c, open, close };
+        const auto tokens_str = std::string_view(tokens.data(), tokens.size());
+
+        auto depth = int(0);
+        auto last_val_pos = npos;
+        auto pos = text.find_first_of(tokens_str);
+        while (pos != npos)
+        {
+            depth = if_else(
+                (open == close) && (text[pos] == open),
+                if_else(depth > 0, 0, 1),  // swap 0 and 1
+                depth + int(text[pos] == open) - int(text[pos] == close)
+            );
+            // Set error but sill try to find the value
+            err = if_else(depth < 0, ParseError::InvalidInput, err);
+            last_val_pos = if_else(text[pos] == c, pos, last_val_pos);
+            if ((depth == 0) && (text[pos] == c))
+            {
+                return pos;
+            }
+            pos = text.find_first_of(tokens_str, pos + 1);
+        }
+        err = if_else(
+            err == ParseError::Ok,
+            if_else(depth == 0, ParseError::NotFound, ParseError::InvalidInput),
+            err
+        );
+        return last_val_pos;
+    }
+
+    auto find_not_in_parentheses(  //
+        std::string_view text,
+        char c,
+        char open,
+        char close
+    ) noexcept -> tl::expected<std::size_t, ParseError>
+    {
+        auto err = ParseError::Ok;
+        const auto pos = find_not_in_parentheses(text, c, err, open, close);
+        if (err != ParseError::Ok)
+        {
+            return tl::make_unexpected(err);
+        }
+        return { pos };
     }
 }

@@ -44,4 +44,39 @@ TEST_SUITE("util::parsers")
             );
         }
     }
+
+    TEST_CASE("find_not_in_parentheses")
+    {
+        SUBCASE("Different open/close pair")
+        {
+            CHECK_EQ(find_not_in_parentheses("", ',').error(), ParseError::NotFound);
+            CHECK_EQ(find_not_in_parentheses("Nothing to see here", ',').error(), ParseError::NotFound);
+            CHECK_EQ(find_not_in_parentheses("(hello, world)", ',').error(), ParseError::NotFound);
+
+            CHECK_EQ(find_not_in_parentheses("hello, world", ','), 5);
+            CHECK_EQ(find_not_in_parentheses("hello, world, welcome", ','), 5);
+            CHECK_EQ(find_not_in_parentheses("(hello, world), (welcome, here),", ','), 14);
+            CHECK_EQ(find_not_in_parentheses("(hello, world), (welcome, here),", ',', '[', ']'), 6);
+            CHECK_EQ(find_not_in_parentheses("[hello, world](welcome, here),", ',', '[', ']'), 22);
+
+            CHECK_EQ(find_not_in_parentheses("(hello, world,", ',').error(), ParseError::InvalidInput);
+            CHECK_EQ(find_not_in_parentheses("(hello", ',').error(), ParseError::InvalidInput);
+        }
+
+        SUBCASE("Similar open/close pair")
+        {
+            CHECK_EQ(
+                find_not_in_parentheses(R"("some, csv")", ',', '"', '"').error(),
+                ParseError::NotFound
+            );
+
+            CHECK_EQ(find_not_in_parentheses(R"("some, csv",value)", ',', '"', '"'), 11);
+            CHECK_EQ(find_not_in_parentheses(R"("some, csv""value","here")", ',', '"', '"'), 18);
+
+            CHECK_EQ(
+                find_not_in_parentheses(R"("some, csv)", ',', '"', '"').error(),
+                ParseError::InvalidInput
+            );
+        }
+    }
 }

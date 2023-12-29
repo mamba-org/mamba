@@ -60,6 +60,19 @@ namespace mamba::util
         char close = ')'
     ) noexcept -> tl::expected<std::string_view, ParseError>;
 
+    auto find_not_in_parentheses(  //
+        std::string_view text,
+        char c,
+        ParseError& err,
+        char open = '(',
+        char close = ')'
+    ) noexcept -> std::size_t;
 
+    [[nodiscard]] auto find_not_in_parentheses(  //
+        std::string_view text,
+        char c,
+        char open = '(',
+        char close = ')'
+    ) noexcept -> tl::expected<std::size_t, ParseError>;
 }
 #endif

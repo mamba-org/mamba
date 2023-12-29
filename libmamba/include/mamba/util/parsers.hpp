@@ -25,7 +25,8 @@ namespace mamba::util
     /**
      * Find the next matching parenthesese pair.
      *
-     * Correctly matches parenteses together so that inner parenthesese pairs are skipped.
+     * Correctly matches parenteses together so that inner parentheses pairs are skipped.
+     * Open and closing pairs need not be differents.
      * If an error is encountered, @p err is modified to contain the error, otherwise it is left
      * as it is.
      */
@@ -39,7 +40,8 @@ namespace mamba::util
     /**
      * Find the next matching parenthesese pair.
      *
-     * Correctly matches parenteses together so that inner parenthesese pairs are skipped.
+     * Correctly matches parentheses together so that inner parentheses pairs are skipped.
+     * Open and closing pairs need not be differents.
      */
     [[nodiscard]] auto find_matching_parentheses_idx(  //
         std::string_view text,
@@ -60,6 +62,13 @@ namespace mamba::util
         char close = ')'
     ) noexcept -> tl::expected<std::string_view, ParseError>;
 
+    /**
+     * Find a character, except in mathcing parentheses pairs.
+     *
+     * Find the first occurence of the given character, except if such character is inside a valid
+     * pair of parentheses.
+     * Open and closing pairs need not be differents.
+     */
     auto find_not_in_parentheses(  //
         std::string_view text,
         char c,

@@ -7,11 +7,11 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
-#include <type_traits>
 
 #include <openssl/evp.h>
 
 #include "mamba/util/compare.hpp"
+#include "mamba/util/conditional.hpp"
 #include "mamba/util/encoding.hpp"
 #include "mamba/util/string.hpp"
 
@@ -36,24 +36,6 @@ namespace mamba::util
             high <<= 4;
             high |= low & nibble_low_mask;
             return high;
-        }
-
-        template <typename Int>
-        [[nodiscard]] auto if_else(bool condition, Int true_val, Int false_val) noexcept -> Int
-        {
-            if constexpr (std::is_enum_v<Int>)
-            {
-                using int_t = std::underlying_type_t<Int>;
-                return static_cast<Int>(
-                    if_else(condition, static_cast<int_t>(true_val), static_cast<int_t>(false_val))
-                );
-            }
-            else
-            {
-                using int_t = Int;
-                return static_cast<int_t>(condition) * true_val
-                       + (int_t(1) - static_cast<int_t>(condition)) * false_val;
-            }
         }
     }
 

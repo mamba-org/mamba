@@ -38,8 +38,8 @@ namespace mamba::specs
         [[nodiscard]] auto name() const -> const std::string&;
         void set_name(std::string name);
 
-        [[nodiscard]] auto version() const -> std::string;
-        void set_version(std::string ver);
+        [[nodiscard]] auto version() const -> const VersionSpec&;
+        void set_version(VersionSpec ver);
 
         [[nodiscard]] auto build_number() const -> const std::string&;
         void set_build_number(std::string num);

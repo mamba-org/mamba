@@ -330,14 +330,14 @@ namespace mamba::specs
         m_name = std::move(name);
     }
 
-    auto MatchSpec::version() const -> std::string
+    auto MatchSpec::version() const -> const VersionSpec&
     {
-        return m_version.str();
+        return m_version;
     }
 
-    void MatchSpec::set_version(std::string ver)
+    void MatchSpec::set_version(VersionSpec ver)
     {
-        m_version = VersionSpec::parse(std::move(ver));
+        m_version = std::move(ver);
     }
 
     auto MatchSpec::build_number() const -> const std::string&

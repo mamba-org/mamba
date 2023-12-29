@@ -25,7 +25,7 @@ namespace mamba::util
         const auto open_or_close = std::array{ open, close };
         const auto open_or_close_str = std::string_view(open_or_close.data(), open_or_close.size());
 
-        auto depth = int(0);
+        int depth = 0;
 
         const auto start = text.find_first_of(open_or_close_str);
         if (start == npos)
@@ -113,7 +113,7 @@ namespace mamba::util
         const auto tokens = std::array{ c, open, close };
         const auto tokens_str = std::string_view(tokens.data(), tokens.size());
 
-        auto depth = int(0);
+        int depth = 0;
         auto first_val_pos = npos;
         auto pos = text.find_first_of(tokens_str);
         while (pos != npos)
@@ -159,7 +159,7 @@ namespace mamba::util
         const auto tokens = std::array{ val.front(), open, close };
         const auto tokens_str = std::string_view(tokens.data(), tokens.size());
 
-        auto depth = int(0);
+        int depth = 0;
         auto first_val_pos = npos;
         auto pos = text.find_first_of(tokens_str);
         while (pos != npos)

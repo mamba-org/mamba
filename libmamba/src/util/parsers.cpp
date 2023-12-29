@@ -4,9 +4,96 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <array>
+
 #include "mamba/util/parsers.hpp"
 
 namespace mamba::util
 {
+    auto find_matching_parentheses_idx(  //
+        std::string_view text,
+        ParseError& err,
+        char open,
+        char close
+    ) noexcept -> std::pair<std::size_t, std::size_t>
+    {
+        static constexpr auto npos = std::string_view::npos;
 
+        const auto open_or_close = std::array{ open, close };
+        const auto open_or_close_str = std::string_view(open_or_close.data(), open_or_close.size());
+
+        auto depth = int(0);
+
+        const auto start = text.find_first_of(open_or_close_str);
+        if (start == npos)
+        {
+            err = ParseError::NotFound;
+            return { npos, npos };
+        }
+        depth += int(text[start] == open) - int(text[start] == close);
+        if (depth < 0)
+        {
+            err = ParseError::InvalidInput;
+            return {};
+        }
+
+        auto end = text.find_first_of(open_or_close_str, start + 1);
+        while (end != npos)
+        {
+            depth += int(text[end] == open) - int(text[end] == close);
+            if (depth == 0)
+            {
+                return { start, end + 1 };
+            }
+            if (depth < 0)
+            {
+                err = ParseError::InvalidInput;
+                return {};
+            }
+            end = text.find_first_of(open_or_close_str, end + 1);
+        }
+        err = ParseError::InvalidInput;
+        return {};
+    }
+
+    auto find_matching_parentheses_idx(  //
+        std::string_view text,
+        char open,
+        char close
+    ) noexcept -> tl::expected<std::pair<std::size_t, std::size_t>, ParseError>
+    {
+        auto err = ParseError::Ok;
+        auto out = find_matching_parentheses_idx(text, err, open, close);
+        if (err != ParseError::Ok)
+        {
+            return tl::make_unexpected(err);
+        }
+        return { out };
+    }
+
+    auto find_matching_parentheses_str(  //
+        std::string_view text,
+        ParseError& err,
+        char open,
+        char close
+    ) noexcept -> std::string_view
+    {
+        const auto [start, end] = find_matching_parentheses_idx(text, err, open, close);
+        return (start == std::string_view::npos) ? "" : text.substr(start, end);
+    }
+
+    auto find_matching_parentheses_str(  //
+        std::string_view text,
+        char open,
+        char close
+    ) noexcept -> tl::expected<std::string_view, ParseError>
+    {
+        auto err = ParseError::Ok;
+        const auto [start, end] = find_matching_parentheses_idx(text, err, open, close);
+        if (err != ParseError::Ok)
+        {
+            return tl::make_unexpected(err);
+        }
+        return { (start == std::string_view::npos) ? "" : text.substr(start, end) };
+    }
 }

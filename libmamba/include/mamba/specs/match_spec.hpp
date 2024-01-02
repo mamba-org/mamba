@@ -4,8 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef MAMBA_CORE_MATCH_SPEC
-#define MAMBA_CORE_MATCH_SPEC
+#ifndef MAMBA_SPECS_MATCH_SPEC
+#define MAMBA_SPECS_MATCH_SPEC
 
 #include <optional>
 #include <string>

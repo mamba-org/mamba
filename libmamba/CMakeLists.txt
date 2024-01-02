@@ -173,11 +173,12 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/specs/channel.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/channel_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/conda_url.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/glob_spec.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/match_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/platform.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/repo_data.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/version.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/version_spec.cpp
-    ${LIBMAMBA_SOURCE_DIR}/specs/match_spec.cpp
     # Artifacts validation
     ${LIBMAMBA_SOURCE_DIR}/validation/tools.cpp
     ${LIBMAMBA_SOURCE_DIR}/validation/errors.cpp
@@ -287,11 +288,12 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/channel.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/channel_spec.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/conda_url.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/glob_spec.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/match_spec.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/platform.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/repo_data.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version_spec.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/match_spec.hpp
     # Artifacts validation
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/tools.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/errors.hpp

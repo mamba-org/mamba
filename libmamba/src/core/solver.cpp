@@ -97,7 +97,7 @@ namespace mamba
         }
 
         if (ms.channel().has_value() || !ms.version().is_explicitly_free()
-            || !ms.build_string().empty())
+            || !ms.build_string().is_free())
         {
             Console::stream() << ms.conda_build_form()
                               << ": overriding channel, version and build from "
@@ -107,7 +107,7 @@ namespace mamba
         auto ms_modified = ms;
         ms_modified.set_channel(specs::ChannelSpec::parse(solvable->channel()));
         ms_modified.set_version(specs::VersionSpec::parse(solvable->version()));
-        ms_modified.set_build_string(std::string(solvable->build_string()));
+        ms_modified.set_build_string(specs::GlobSpec(std::string(solvable->build_string())));
 
         LOG_INFO << "Reinstall " << ms_modified.conda_build_form() << " from channel "
                  << ms_modified.channel()->str();

@@ -69,7 +69,7 @@ namespace mamba::specs
 
         // Build string
         auto [head, tail] = util::rsplit_once(strip_archive_extension(pkg), '-');
-        out.m_build_string = tail;
+        out.m_build_string = BuildStringSpec(std::string(tail));
         if (!head.has_value())
         {
             fail_parse();
@@ -226,7 +226,7 @@ namespace mamba::specs
             auto [pv, pb] = parse_version_and_build(version_and_build);
 
             out.m_version = VersionSpec::parse(pv);
-            out.m_build_string = pb;
+            out.m_build_string = BuildStringSpec(std::string(pb));
         }
         else  // no-op
         {
@@ -245,7 +245,7 @@ namespace mamba::specs
             }
             else if (k == "build")
             {
-                out.m_build_string = v;
+                out.m_build_string = MatchSpec::BuildStringSpec(std::string(v));
             }
             else if (k == "version")
             {
@@ -350,7 +350,7 @@ namespace mamba::specs
         m_build_number = std::move(bn);
     }
 
-    auto MatchSpec::build_string() const -> const std::string&
+    auto MatchSpec::build_string() const -> const BuildStringSpec&
     {
         return m_build_string;
     }
@@ -365,7 +365,7 @@ namespace mamba::specs
         m_optional = opt;
     }
 
-    void MatchSpec::set_build_string(std::string bs)
+    void MatchSpec::set_build_string(BuildStringSpec bs)
     {
         m_build_string = std::move(bs);
     }
@@ -388,13 +388,13 @@ namespace mamba::specs
         {
             res << " " << m_version.str_conda_build();
         }
-        else if (!m_build_string.empty())
+        else if (!m_build_string.is_free())
         {
             res << " *";
         }
-        if (!m_build_string.empty())
+        if (!m_build_string.is_free())
         {
-            res << " " << m_build_string;
+            res << " " << m_build_string.str();
         }
         return res.str();
     }
@@ -449,23 +449,15 @@ namespace mamba::specs
             }
         }
 
-        if (!m_build_string.empty())
+        if (!m_build_string.is_free())
         {
-            if (is_complex_relation(m_build_string))
+            if (m_build_string.is_exact())
             {
-                formatted_brackets.push_back(util::concat("build='", m_build_string, '\''));
-            }
-            else if (m_build_string.find('*') != m_build_string.npos)
-            {
-                formatted_brackets.push_back(util::concat("build=", m_build_string));
-            }
-            else if (version_exact)
-            {
-                res << "=" << m_build_string;
+                res << "=" << m_build_string.str();
             }
             else
             {
-                formatted_brackets.push_back(util::concat("build=", m_build_string));
+                formatted_brackets.push_back(util::concat("build='", m_build_string.str(), '\''));
             }
         }
 
@@ -514,7 +506,7 @@ namespace mamba::specs
 
     auto MatchSpec::is_simple() const -> bool
     {
-        return m_version.is_explicitly_free() && m_build_string.empty() && m_build_number.empty();
+        return m_version.is_explicitly_free() && m_build_string.is_free() && m_build_number.empty();
     }
 
     auto MatchSpec::is_file() const -> bool

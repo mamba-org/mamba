@@ -72,7 +72,7 @@ namespace mamba
                 out.emplace_back(ms.name());
                 auto& p = out.back();
                 p.url = ms.url();
-                p.build_string = ms.build_string();
+                p.build_string = ms.build_string().str();
                 p.version = ms.version().str_conda_build();
                 if (ms.channel().has_value())
                 {

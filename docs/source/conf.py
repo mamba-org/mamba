@@ -9,8 +9,8 @@
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#
-# import os
+
+import os
 import sys
 from pathlib import Path
 
@@ -35,7 +35,13 @@ sys.path.insert(0, str(Path.cwd().resolve() / "tools"))
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ["mermaid", "mermaid_inheritance", "myst_parser"]
+extensions = ["mermaid", "mermaid_inheritance", "myst_parser", "breathe"]
+
+# Configuration of Breathe Doxygen interopt
+breathe_projects = {"libmamba": os.environ.get("MAMBA_DEV_DOXYGEN_XML_DIR", "../xml")}
+breathe_default_project = "libmamba"
+breathe_default_members = ("members", "undoc-members")
+breathe_show_include = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]

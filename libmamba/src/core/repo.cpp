@@ -30,12 +30,11 @@ extern "C"  // Incomplete header
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
-#include "mamba/util/url_manip.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/repo.hpp"
 
 
-#define MAMBA_TOOL_VERSION "1.3"
+#define MAMBA_TOOL_VERSION "2.0"
 
 #define MAMBA_SOLV_VERSION MAMBA_TOOL_VERSION "_" LIBSOLV_VERSION_STRING
 

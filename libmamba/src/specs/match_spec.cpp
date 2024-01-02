@@ -387,11 +387,14 @@ namespace mamba::specs
         if (!m_version.is_explicitly_free())
         {
             res << " " << m_version.str_conda_build();
-            // if (!build.empty() && (build != "*"))
-            if (!m_build_string.empty())
-            {
-                res << " " << m_build_string;
-            }
+        }
+        else if (!m_build_string.empty())
+        {
+            res << " *";
+        }
+        if (!m_build_string.empty())
+        {
+            res << " " << m_build_string;
         }
         return res.str();
     }

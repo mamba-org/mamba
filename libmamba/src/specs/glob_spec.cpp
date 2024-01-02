@@ -59,5 +59,5 @@ auto
 fmt::formatter<mamba::specs::GlobSpec>::format(const ::mamba::specs::GlobSpec& spec, format_context& ctx)
     -> decltype(ctx.out())
 {
-    return fmt::format_to(ctx.out(), "{}", spec);
+    return fmt::format_to(ctx.out(), "{}", spec.str());
 }

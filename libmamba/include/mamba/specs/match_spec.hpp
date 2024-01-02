@@ -23,6 +23,7 @@ namespace mamba::specs
     {
     public:
 
+        using NameSpec = GlobSpec;
         using BuildStringSpec = GlobSpec;
 
         [[nodiscard]] static auto parse_version_and_build(std::string_view s)
@@ -38,8 +39,8 @@ namespace mamba::specs
         [[nodiscard]] auto name_space() const -> const std::string&;
         void set_name_space(std::string ns);
 
-        [[nodiscard]] auto name() const -> const std::string&;
-        void set_name(std::string name);
+        [[nodiscard]] auto name() const -> const NameSpec&;
+        void set_name(NameSpec name);
 
         [[nodiscard]] auto version() const -> const VersionSpec&;
         void set_version(VersionSpec ver);
@@ -72,9 +73,9 @@ namespace mamba::specs
 
         std::optional<ChannelSpec> m_channel;
         VersionSpec m_version;
+        NameSpec m_name;
         BuildStringSpec m_build_string;
         std::string m_name_space;
-        std::string m_name;
         std::string m_build_number;
         // TODO can put inside channel spec
         std::string m_filename;

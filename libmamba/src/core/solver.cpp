@@ -78,7 +78,7 @@ namespace mamba
         m_pool.pool().for_each_installed_solvable(
             [&](solv::ObjSolvableViewConst s)
             {
-                if (s.name() == ms.name())
+                if (ms.name().contains(s.name()))
                 {
                     solvable = s;
                     return solv::LoopControl::Break;
@@ -745,8 +745,8 @@ namespace mamba
                         // dependency.
                         auto edge = specs::MatchSpec::parse(source.value().name);
                         // The package cannot exist without its name in the pool
-                        assert(m_pool.pool().find_string(edge.name()).has_value());
-                        const auto dep_id = m_pool.pool().find_string(edge.name()).value();
+                        assert(m_pool.pool().find_string(edge.name().str()).has_value());
+                        const auto dep_id = m_pool.pool().find_string(edge.name().str()).value();
                         const bool added = add_expanded_deps_edges(m_root_node, dep_id, edge);
                         if (!added)
                         {

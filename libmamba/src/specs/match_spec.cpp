@@ -84,7 +84,7 @@ namespace mamba::specs
         }
 
         // Name
-        out.m_name = head.value();  // There may be '-' in the name
+        out.m_name = NameSpec(std::string(head.value()));  // There may be '-' in the name
 
         return out;
     }
@@ -198,12 +198,8 @@ namespace mamba::specs
         std::smatch vb_match;
         if (std::regex_match(spec_str, vb_match, version_build_re))
         {
-            out.m_name = vb_match[1].str();
+            out.m_name = NameSpec(vb_match[1].str());
             version_and_build = util::strip(vb_match[2].str());
-            if (out.m_name.size() == 0)
-            {
-                throw std::runtime_error("Invalid spec, no package name found: " + spec_str);
-            }
         }
         else
         {
@@ -320,12 +316,12 @@ namespace mamba::specs
         m_name_space = std::move(ns);
     }
 
-    auto MatchSpec::name() const -> const std::string&
+    auto MatchSpec::name() const -> const NameSpec&
     {
         return m_name;
     }
 
-    void MatchSpec::set_name(std::string name)
+    void MatchSpec::set_name(NameSpec name)
     {
         m_name = std::move(name);
     }
@@ -382,21 +378,24 @@ namespace mamba::specs
 
     auto MatchSpec::conda_build_form() const -> std::string
     {
-        std::stringstream res;
-        res << m_name;
-        if (!m_version.is_explicitly_free())
+        const bool has_version = !m_version.is_explicitly_free();
+        const bool has_build_str = !m_build_string.is_free();
+        if (has_version)
         {
-            res << " " << m_version.str_conda_build();
+            if (has_build_str)
+            {
+                return fmt::format("{} {:b} {}", m_name, m_version, m_build_string);
+            }
+            else
+            {
+                return fmt::format("{} {:b}", m_name, m_version);
+            }
         }
-        else if (!m_build_string.is_free())
+        if (has_build_str)
         {
-            res << " *";
+            return fmt::format("{} * {}", m_name, m_build_string);
         }
-        if (!m_build_string.is_free())
-        {
-            res << " " << m_build_string.str();
-        }
-        return res.str();
+        return fmt::format("{}", m_name);
     }
 
     auto MatchSpec::str() const -> std::string
@@ -428,9 +427,8 @@ namespace mamba::specs
         //     res << ns;
         //     res << ":";
         // }
-        res << (!m_name.empty() ? m_name : "*");
+        res << m_name.str();
         std::vector<std::string> formatted_brackets;
-        bool version_exact = false;
 
         auto is_complex_relation = [](const std::string& s)
         { return s.find_first_of("><$^|,") != s.npos; };
@@ -445,7 +443,7 @@ namespace mamba::specs
             else
             {
                 res << ver;
-                version_exact = true;
+                // version_exact = true;
             }
         }
 

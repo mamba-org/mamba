@@ -666,4 +666,4 @@ def test_MatchSpec():
     ms = MatchSpec.parse("conda-forge::python=3.7=*pypy")
 
     # str
-    assert str(ms) == "conda-forge::python==3.7[build=*pypy]"
+    assert str(ms) == "conda-forge::python=3.7[build=*pypy]"

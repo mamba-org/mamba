@@ -14,6 +14,7 @@
 #include <unordered_map>
 
 #include "mamba/specs/channel_spec.hpp"
+#include "mamba/specs/version_spec.hpp"
 
 namespace mamba::specs
 {
@@ -37,8 +38,8 @@ namespace mamba::specs
         [[nodiscard]] auto name() const -> const std::string&;
         void set_name(std::string name);
 
-        [[nodiscard]] auto version() const -> const std::string&;
-        void set_version(std::string ver);
+        [[nodiscard]] auto version() const -> const VersionSpec&;
+        void set_version(VersionSpec ver);
 
         [[nodiscard]] auto build_number() const -> const std::string&;
         void set_build_number(std::string num);
@@ -67,9 +68,9 @@ namespace mamba::specs
     private:
 
         std::optional<ChannelSpec> m_channel;
+        VersionSpec m_version;
         std::string m_name_space;
         std::string m_name;
-        std::string m_version;
         std::string m_build_number;
         std::string m_build_string;
         // TODO can put inside channel spec

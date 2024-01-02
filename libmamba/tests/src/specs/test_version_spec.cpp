@@ -80,6 +80,7 @@ TEST_SUITE("specs::version_spec")
         CHECK_FALSE(sw.contains(v3));
         CHECK_FALSE(sw.contains(v4));
         CHECK_EQ(sw.str(), "=2.0");
+        CHECK_EQ(sw.str_conda_build(), "2.0.*");
 
         const auto nsw = VersionPredicate::make_not_starts_with(v2);
         CHECK(nsw.contains(v1));
@@ -396,5 +397,43 @@ TEST_SUITE("specs::version_spec")
                 CHECK_THROWS_AS(parse(spec), std::invalid_argument);
             }
         }
+    }
+
+    TEST_CASE("VersionSpec::str")
+    {
+        SUBCASE("2.3")
+        {
+            auto vs = VersionSpec::parse("2.3");
+            CHECK_EQ(vs.str(), "==2.3");
+            CHECK_EQ(vs.str_conda_build(), "==2.3");
+        }
+
+        SUBCASE("=2.3,<3.0")
+        {
+            auto vs = VersionSpec::parse("=2.3,<3.0");
+            CHECK_EQ(vs.str(), "=2.3,<3.0");
+            CHECK_EQ(vs.str_conda_build(), "2.3.*,<3.0");
+        }
+    }
+
+    TEST_CASE("VersionSpec::is_free")
+    {
+        {
+            using namespace mamba::util;
+
+            auto parser = InfixParser<VersionPredicate, BoolOperator>{};
+            parser.push_variable(VersionPredicate::make_free());
+            parser.finalize();
+            auto spec = VersionSpec(std::move(parser).tree());
+
+            CHECK(spec.is_explicitly_free());
+        }
+
+        CHECK(VersionSpec().is_explicitly_free());
+        CHECK(VersionSpec::parse("*").is_explicitly_free());
+        CHECK(VersionSpec::parse("").is_explicitly_free());
+
+        CHECK_FALSE(VersionSpec::parse("==2.3|!=2.3").is_explicitly_free());
+        CHECK_FALSE(VersionSpec::parse("=2.3,<3.0").is_explicitly_free());
     }
 }

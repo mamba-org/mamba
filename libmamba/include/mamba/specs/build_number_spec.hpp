@@ -7,7 +7,9 @@
 #ifndef MAMBA_SPECS_BUILD_NUMBER_SPEC_HPP
 #define MAMBA_SPECS_BUILD_NUMBER_SPEC_HPP
 
+#include <array>
 #include <functional>
+#include <string_view>
 #include <variant>
 
 #include <fmt/format.h>

@@ -228,6 +228,7 @@ namespace mamba::specs
         }
 
         auto [op_str, num_str] = util::lstrip_if_parts(str, [](char c) { return !util::is_digit(c); });
+        op_str = util::strip(op_str);
 
         auto build_number = BuildNumber{};
         const auto [ptr, ec] = std::from_chars(

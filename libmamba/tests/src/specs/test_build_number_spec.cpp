@@ -104,6 +104,8 @@ TEST_SUITE("specs::build_number_spec")
             CHECK("<=1"_bs.contains(0));
             CHECK("<=1"_bs.contains(1));
             CHECK_FALSE("<=1"_bs.contains(2));
+
+            CHECK(" <= 1 "_bs.contains(0));
         }
 
         SUBCASE("Unsuccessful")

@@ -18,40 +18,6 @@
 
 namespace mamba::specs
 {
-    auto MatchSpec::parse_version_and_build(std::string_view s)
-        -> std::tuple<std::string, std::string>
-    {
-        const std::size_t pos = s.find_last_of(" =");
-        if (pos == s.npos || pos == 0)
-        {
-            std::string tmp = std::string(s);
-            util::replace_all(tmp, " ", "");
-            return { std::move(tmp), "" };
-        }
-        else
-        {
-            char c = s[pos];
-            if (c == '=')
-            {
-                std::size_t pm1 = pos - 1;
-                char d = s[pm1];
-                if (d == '=' || d == '!' || d == '|' || d == ',' || d == '<' || d == '>' || d == '~')
-                {
-                    auto tmp = std::string(s);
-                    util::replace_all(tmp, " ", "");
-                    return { tmp, "" };
-                }
-            }
-            // c is either ' ' or pm1 is none of the forbidden chars
-
-            auto v = std::string(s.substr(0, pos));
-            auto b = std::string(s.substr(pos + 1));
-            util::replace_all(v, " ", "");
-            util::replace_all(b, " ", "");
-            return { std::move(v), std::move(b) };
-        }
-    }
-
     auto MatchSpec::parse_url(std::string_view spec) -> MatchSpec
     {
         auto fail_parse = [&]()
@@ -87,6 +53,41 @@ namespace mamba::specs
         out.m_name = NameSpec(std::string(head.value()));  // There may be '-' in the name
 
         return out;
+    }
+
+    namespace
+    {
+        auto parse_version_and_build(std::string_view s)
+            -> std::pair<VersionSpec, MatchSpec::BuildStringSpec>
+        {
+            const std::size_t pos = s.find_last_of(" =");
+            if (pos == s.npos || pos == 0)
+            {
+                return {
+                    VersionSpec::parse(s),
+                    MatchSpec::BuildStringSpec(),
+                };
+            }
+
+            if (char c = s[pos]; c == '=')
+            {
+                std::size_t pm1 = pos - 1;
+                char d = s[pm1];
+                if (d == '=' || d == '!' || d == '|' || d == ',' || d == '<' || d == '>' || d == '~')
+                {
+                    return {
+                        VersionSpec::parse(s),
+                        MatchSpec::BuildStringSpec(),
+                    };
+                }
+            }
+            // c is either ' ' or pm1 is none of the forbidden chars
+
+            return {
+                VersionSpec::parse(s.substr(0, pos)),
+                MatchSpec::BuildStringSpec(std::string(s.substr(pos + 1))),
+            };
+        }
     }
 
     auto MatchSpec::parse(std::string_view spec) -> MatchSpec
@@ -219,10 +220,7 @@ namespace mamba::specs
                 ));
             }
 
-            auto [pv, pb] = parse_version_and_build(version_and_build);
-
-            out.m_version = VersionSpec::parse(pv);
-            out.m_build_string = BuildStringSpec(std::string(pb));
+            std::tie(out.m_version, out.m_build_string) = parse_version_and_build(version_and_build);
         }
         else  // no-op
         {

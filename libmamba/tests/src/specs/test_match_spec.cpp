@@ -18,51 +18,6 @@ TEST_SUITE("specs::match_spec")
 {
     using PlatformSet = typename util::flat_set<std::string>;
 
-    TEST_CASE("parse_version_build")
-    {
-        std::string v, b;
-        // >>> _parse_version_plus_build("=1.2.3 0")
-        // ('=1.2.3', '0')
-        // >>> _parse_version_plus_build("1.2.3=0")
-        // ('1.2.3', '0')
-        // >>> _parse_version_plus_build(">=1.0 , < 2.0 py34_0")
-        // ('>=1.0,<2.0', 'py34_0')
-        // >>> _parse_version_plus_build(">=1.0 , < 2.0 =py34_0")
-        // ('>=1.0,<2.0', 'py34_0')
-        // >>> _parse_version_plus_build("=1.2.3 ")
-        // ('=1.2.3', None)
-        // >>> _parse_version_plus_build(">1.8,<2|==1.7")
-        // ('>1.8,<2|==1.7', None)
-        // >>> _parse_version_plus_build("* openblas_0")
-        // ('*', 'openblas_0')
-        // >>> _parse_version_plus_build("* *")
-        // ('*', '*')
-        std::tie(v, b) = MatchSpec::parse_version_and_build("=1.2.3 0");
-        CHECK_EQ(v, "=1.2.3");
-        CHECK_EQ(b, "0");
-        std::tie(v, b) = MatchSpec::parse_version_and_build("=1.2.3=0");
-        CHECK_EQ(v, "=1.2.3");
-        CHECK_EQ(b, "0");
-        std::tie(v, b) = MatchSpec::parse_version_and_build(">=1.0 , < 2.0 py34_0");
-        CHECK_EQ(v, ">=1.0,<2.0");
-        CHECK_EQ(b, "py34_0");
-        std::tie(v, b) = MatchSpec::parse_version_and_build(">=1.0 , < 2.0 =py34_0");
-        CHECK_EQ(v, ">=1.0,<2.0");
-        CHECK_EQ(b, "py34_0");
-        std::tie(v, b) = MatchSpec::parse_version_and_build("=1.2.3 ");
-        CHECK_EQ(v, "=1.2.3");
-        CHECK_EQ(b, "");
-        std::tie(v, b) = MatchSpec::parse_version_and_build(">1.8,<2|==1.7");
-        CHECK_EQ(v, ">1.8,<2|==1.7");
-        CHECK_EQ(b, "");
-        std::tie(v, b) = MatchSpec::parse_version_and_build("* openblas_0");
-        CHECK_EQ(v, "*");
-        CHECK_EQ(b, "openblas_0");
-        std::tie(v, b) = MatchSpec::parse_version_and_build("* *");
-        CHECK_EQ(v, "*");
-        CHECK_EQ(b, "*");
-    }
-
     TEST_CASE("parse")
     {
         {

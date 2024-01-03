@@ -155,7 +155,7 @@ namespace mamba::specs
             extract_kv(parens_str, out.parens);
             if (parens_str.find("optional") != parens_str.npos)
             {
-                out.m_optional = true;
+                out.extra().optional = true;
             }
             spec_str.erase(
                 static_cast<std::size_t>(match.position(1)),
@@ -351,12 +351,12 @@ namespace mamba::specs
 
     auto MatchSpec::optional() const -> bool
     {
-        return m_optional;
+        return m_extra.has_value() && m_extra->optional;
     }
 
     void MatchSpec::set_optional(bool opt)
     {
-        m_optional = opt;
+        extra().optional = opt;
     }
 
     void MatchSpec::set_build_string(BuildStringSpec bs)
@@ -509,5 +509,14 @@ namespace mamba::specs
     auto MatchSpec::is_file() const -> bool
     {
         return (!m_filename.empty()) || (!m_url.empty());
+    }
+
+    auto MatchSpec::extra() -> ExtraMembers&
+    {
+        if (!m_extra.has_value())
+        {
+            m_extra.emplace();
+        }
+        return *m_extra;
     }
 }

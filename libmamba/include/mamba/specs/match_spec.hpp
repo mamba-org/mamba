@@ -10,13 +10,13 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <tuple>
 #include <unordered_map>
 
 #include "mamba/specs/build_number_spec.hpp"
 #include "mamba/specs/channel_spec.hpp"
 #include "mamba/specs/glob_spec.hpp"
 #include "mamba/specs/version_spec.hpp"
+#include "mamba/util/heap_optional.hpp"
 
 namespace mamba::specs
 {
@@ -69,16 +69,23 @@ namespace mamba::specs
 
     private:
 
+        struct ExtraMembers
+        {
+            bool optional = false;
+        };
+
         std::optional<ChannelSpec> m_channel;
         VersionSpec m_version;
         NameSpec m_name;
         BuildStringSpec m_build_string;
         std::string m_name_space;
         BuildNumberSpec m_build_number;
+        util::heap_optional<ExtraMembers> m_extra = {};  // unlikely data
         // TODO can put inside channel spec
         std::string m_filename;
         std::string m_url;
-        bool m_optional = false;
+
+        auto extra() -> ExtraMembers&;
     };
 }
 #endif

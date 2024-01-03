@@ -160,7 +160,7 @@ TEST_SUITE("specs::version_spec")
         }
     }
 
-    TEST_CASE("Parsing")
+    TEST_CASE("VersionSpec::parse")
     {
         using namespace mamba::specs::version_literals;
         using namespace mamba::specs::version_spec_literals;
@@ -416,7 +416,7 @@ TEST_SUITE("specs::version_spec")
         }
     }
 
-    TEST_CASE("VersionSpec::is_free")
+    TEST_CASE("VersionSpec::is_explicitly_free")
     {
         {
             using namespace mamba::util;

@@ -355,9 +355,9 @@ namespace mamba
                 }
                 std::size_t hash = u.find_first_of('#');
                 auto ms = specs::MatchSpec::parse(u.substr(0, hash));
-                PackageInfo p(ms.name());
+                PackageInfo p(ms.name().str());
                 p.url = ms.url();
-                p.build_string = ms.build_string();
+                p.build_string = ms.build_string().str();
                 p.version = ms.version().str();
                 if (ms.channel().has_value())
                 {

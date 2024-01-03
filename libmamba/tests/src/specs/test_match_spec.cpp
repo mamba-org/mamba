@@ -68,27 +68,27 @@ TEST_SUITE("specs::match_spec")
         {
             auto ms = MatchSpec::parse("xtensor==0.12.3");
             CHECK_EQ(ms.version().str(), "==0.12.3");
-            CHECK_EQ(ms.name(), "xtensor");
+            CHECK_EQ(ms.name().str(), "xtensor");
         }
         {
             auto ms = MatchSpec::parse("");
             CHECK_EQ(ms.version().str(), "=*");
-            CHECK_EQ(ms.name(), "");
+            CHECK_EQ(ms.name().str(), "*");
         }
         {
             auto ms = MatchSpec::parse("ipykernel");
             CHECK_EQ(ms.version().str(), "=*");
-            CHECK_EQ(ms.name(), "ipykernel");
+            CHECK_EQ(ms.name().str(), "ipykernel");
         }
         {
             auto ms = MatchSpec::parse("ipykernel ");
             CHECK_EQ(ms.version().str(), "=*");
-            CHECK_EQ(ms.name(), "ipykernel");
+            CHECK_EQ(ms.name().str(), "ipykernel");
         }
         {
             auto ms = MatchSpec::parse("numpy 1.7*");
             CHECK_EQ(ms.version().str(), "=1.7");
-            CHECK_EQ(ms.name(), "numpy");
+            CHECK_EQ(ms.name().str(), "numpy");
             CHECK_EQ(ms.conda_build_form(), "numpy 1.7.*");
             CHECK_EQ(ms.str(), "numpy=1.7");
         }
@@ -96,14 +96,14 @@ TEST_SUITE("specs::match_spec")
             auto ms = MatchSpec::parse("numpy[version='1.7|1.8']");
             // TODO!
             // CHECK_EQ(ms.version, "1.7|1.8");
-            CHECK_EQ(ms.name(), "numpy");
+            CHECK_EQ(ms.name().str(), "numpy");
             CHECK_EQ(ms.brackets["version"], "1.7|1.8");
             CHECK_EQ(ms.str(), "numpy[version='==1.7|==1.8']");
         }
         {
             auto ms = MatchSpec::parse("conda-forge/linux-64::xtensor==0.12.3");
             CHECK_EQ(ms.version().str(), "==0.12.3");
-            CHECK_EQ(ms.name(), "xtensor");
+            CHECK_EQ(ms.name().str(), "xtensor");
             REQUIRE(ms.channel().has_value());
             CHECK_EQ(ms.channel()->location(), "conda-forge");
             CHECK_EQ(ms.channel()->platform_filters(), PlatformSet{ "linux-64" });
@@ -112,7 +112,7 @@ TEST_SUITE("specs::match_spec")
         {
             auto ms = MatchSpec::parse("conda-forge::foo[build=3](target=blarg,optional)");
             CHECK_EQ(ms.version().str(), "=*");
-            CHECK_EQ(ms.name(), "foo");
+            CHECK_EQ(ms.name().str(), "foo");
             REQUIRE(ms.channel().has_value());
             CHECK_EQ(ms.channel()->location(), "conda-forge");
             CHECK_EQ(ms.brackets["build"], "3");
@@ -121,13 +121,13 @@ TEST_SUITE("specs::match_spec")
         }
         {
             auto ms = MatchSpec::parse("python[build_number=3]");
-            CHECK_EQ(ms.name(), "python");
+            CHECK_EQ(ms.name().str(), "python");
             CHECK_EQ(ms.brackets["build_number"], "3");
             CHECK_EQ(ms.build_number(), "3");
         }
         {
             auto ms = MatchSpec::parse("python[build_number='<=3']");
-            CHECK_EQ(ms.name(), "python");
+            CHECK_EQ(ms.name().str(), "python");
             CHECK_EQ(ms.brackets["build_number"], "<=3");
             CHECK_EQ(ms.build_number(), "<=3");
         }
@@ -135,9 +135,9 @@ TEST_SUITE("specs::match_spec")
             auto ms = MatchSpec::parse(
                 "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
             );
-            CHECK_EQ(ms.name(), "_libgcc_mutex");
+            CHECK_EQ(ms.name().str(), "_libgcc_mutex");
             CHECK_EQ(ms.version().str(), "==0.1");
-            CHECK_EQ(ms.build_string(), "conda_forge");
+            CHECK_EQ(ms.build_string().str(), "conda_forge");
             CHECK_EQ(
                 ms.url(),
                 "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
@@ -148,9 +148,9 @@ TEST_SUITE("specs::match_spec")
             auto ms = MatchSpec::parse(
                 "https://conda.anaconda.org/conda-forge/linux-64/libgcc-ng-11.2.0-h1d223b6_13.tar.bz2"
             );
-            CHECK_EQ(ms.name(), "libgcc-ng");
+            CHECK_EQ(ms.name().str(), "libgcc-ng");
             CHECK_EQ(ms.version().str(), "==11.2.0");
-            CHECK_EQ(ms.build_string(), "h1d223b6_13");
+            CHECK_EQ(ms.build_string().str(), "h1d223b6_13");
             CHECK_EQ(
                 ms.url(),
                 "https://conda.anaconda.org/conda-forge/linux-64/libgcc-ng-11.2.0-h1d223b6_13.tar.bz2"
@@ -161,9 +161,9 @@ TEST_SUITE("specs::match_spec")
             auto ms = MatchSpec::parse(
                 "/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
             );
-            CHECK_EQ(ms.name(), "_libgcc_mutex");
+            CHECK_EQ(ms.name().str(), "_libgcc_mutex");
             CHECK_EQ(ms.version().str(), "==0.1");
-            CHECK_EQ(ms.build_string(), "conda_forge");
+            CHECK_EQ(ms.build_string().str(), "conda_forge");
             if (util::on_win)
             {
                 std::string driveletter = fs::absolute(fs::u8path("/")).string().substr(0, 1);
@@ -190,7 +190,7 @@ TEST_SUITE("specs::match_spec")
             auto ms = MatchSpec::parse(
                 "xtensor[url=file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2]"
             );
-            CHECK_EQ(ms.name(), "xtensor");
+            CHECK_EQ(ms.name().str(), "xtensor");
             CHECK_EQ(
                 ms.brackets["url"],
                 "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2"

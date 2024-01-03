@@ -104,7 +104,7 @@ namespace mamba
                     auto ms = specs::MatchSpec::parse(dep);
                     // Ignoring unmatched dependencies, the environment could be broken
                     // or it could be a matchspec
-                    const auto from_iter = name_to_node_id.find(ms.name());
+                    const auto from_iter = name_to_node_id.find(ms.name().str());
                     if (from_iter != name_to_node_id.cend())
                     {
                         dep_graph.add_edge(from_iter->second, to_id);

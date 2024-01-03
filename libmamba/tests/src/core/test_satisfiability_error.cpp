@@ -479,12 +479,19 @@ namespace
         return std::visit(
             [](const auto& n) -> bool
             {
-                using Node = std::remove_const_t<std::remove_reference_t<decltype(n)>>;
-                if constexpr (!std::is_same_v<Node, ProblemsGraph::RootNode>)
+                using Node = std::decay_t<decltype(n)>;
+                if constexpr (std::is_same_v<Node, ProblemsGraph::RootNode>)
+                {
+                    return false;
+                }
+                else if constexpr (std::is_same_v<Node, ProblemsGraph::UnresolvedDependencyNode> || std::is_same_v<Node, ProblemsGraph::ConstraintNode>)
+                {
+                    return util::starts_with(std::invoke(&Node::name, n).str(), "__");
+                }
+                else
                 {
                     return util::starts_with(std::invoke(&Node::name, n), "__");
                 }
-                return false;
             },
             node
         );

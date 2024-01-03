@@ -4,8 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef MAMBA_CORE_MATCH_SPEC
-#define MAMBA_CORE_MATCH_SPEC
+#ifndef MAMBA_SPECS_MATCH_SPEC
+#define MAMBA_SPECS_MATCH_SPEC
 
 #include <optional>
 #include <string>
@@ -14,6 +14,7 @@
 #include <unordered_map>
 
 #include "mamba/specs/channel_spec.hpp"
+#include "mamba/specs/glob_spec.hpp"
 #include "mamba/specs/version_spec.hpp"
 
 namespace mamba::specs
@@ -21,6 +22,9 @@ namespace mamba::specs
     class MatchSpec
     {
     public:
+
+        using NameSpec = GlobSpec;
+        using BuildStringSpec = GlobSpec;
 
         [[nodiscard]] static auto parse_version_and_build(std::string_view s)
             -> std::tuple<std::string, std::string>;
@@ -35,8 +39,8 @@ namespace mamba::specs
         [[nodiscard]] auto name_space() const -> const std::string&;
         void set_name_space(std::string ns);
 
-        [[nodiscard]] auto name() const -> const std::string&;
-        void set_name(std::string name);
+        [[nodiscard]] auto name() const -> const NameSpec&;
+        void set_name(NameSpec name);
 
         [[nodiscard]] auto version() const -> const VersionSpec&;
         void set_version(VersionSpec ver);
@@ -44,8 +48,8 @@ namespace mamba::specs
         [[nodiscard]] auto build_number() const -> const std::string&;
         void set_build_number(std::string num);
 
-        [[nodiscard]] auto build_string() const -> const std::string&;
-        void set_build_string(std::string bs);
+        [[nodiscard]] auto build_string() const -> const BuildStringSpec&;
+        void set_build_string(BuildStringSpec bs);
 
         [[nodiscard]] auto optional() const -> bool;
         void set_optional(bool opt);
@@ -69,10 +73,10 @@ namespace mamba::specs
 
         std::optional<ChannelSpec> m_channel;
         VersionSpec m_version;
+        NameSpec m_name;
+        BuildStringSpec m_build_string;
         std::string m_name_space;
-        std::string m_name;
         std::string m_build_number;
-        std::string m_build_string;
         // TODO can put inside channel spec
         std::string m_filename;
         std::string m_url;

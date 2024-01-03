@@ -265,6 +265,54 @@ namespace mamba
             return CompressedProblemsGraph::NamedList<O>(tmp.begin(), tmp.end());
         }
 
+        template <typename T>
+        auto invoke_version(T&& e) -> decltype(auto)
+        {
+            using TT = std::remove_cv_t<std::remove_reference_t<T>>;
+            using Ver = decltype(std::invoke(&TT::version, std::forward<T>(e)));
+            Ver v = std::invoke(&TT::version, std::forward<T>(e));
+            if constexpr (std::is_same_v<std::decay_t<decltype(v)>, specs::VersionSpec>)
+            {
+                return std::forward<Ver>(v).str();
+            }
+            else
+            {
+                return v;
+            }
+        }
+
+        template <typename T>
+        auto invoke_build_string(T&& e) -> decltype(auto)
+        {
+            using TT = std::remove_cv_t<std::remove_reference_t<T>>;
+            using Build = decltype(std::invoke(&TT::build_string, std::forward<T>(e)));
+            Build bld = std::invoke(&TT::build_string, std::forward<T>(e));
+            if constexpr (std::is_same_v<std::decay_t<decltype(bld)>, specs::GlobSpec>)
+            {
+                return std::forward<Build>(bld).str();
+            }
+            else
+            {
+                return bld;
+            }
+        }
+
+        template <typename T>
+        auto invoke_name(T&& e) -> decltype(auto)
+        {
+            using TT = std::remove_cv_t<std::remove_reference_t<T>>;
+            using Name = decltype(std::invoke(&TT::name, std::forward<T>(e)));
+            Name name = std::invoke(&TT::name, std::forward<T>(e));
+            if constexpr (std::is_same_v<std::decay_t<decltype(name)>, specs::GlobSpec>)
+            {
+                return std::forward<Name>(name).str();
+            }
+            else
+            {
+                return name;
+            }
+        }
+
         /**
          * Detect if a type has a ``name`` member (function).
          */
@@ -287,7 +335,7 @@ namespace mamba
         {
             if constexpr (has_name_v<T>)
             {
-                return std::invoke(&T::name, obj);
+                return invoke_name(obj);
             }
             else
             {
@@ -538,32 +586,6 @@ namespace mamba
      *  Implementation of CompressedProblemsGraph::RoughCompare  *
      *************************************************************/
 
-    namespace
-    {
-        template <typename T>
-        auto invoke_name(T&& e) -> decltype(auto)
-        {
-            using TT = std::remove_cv_t<std::remove_reference_t<T>>;
-            return std::invoke(&TT::name, std::forward<T>(e));
-        }
-
-        template <typename T>
-        auto invoke_version(T&& e) -> decltype(auto)
-        {
-            using TT = std::remove_cv_t<std::remove_reference_t<T>>;
-            using Ver = decltype(std::invoke(&TT::version, std::forward<T>(e)));
-            Ver v = std::invoke(&TT::version, std::forward<T>(e));
-            if constexpr (std::is_same_v<std::decay_t<decltype(v)>, specs::VersionSpec>)
-            {
-                return std::forward<Ver>(v).str();
-            }
-            else
-            {
-                return v;
-            }
-        }
-    }
-
     template <typename T>
     auto CompressedProblemsGraph::RoughCompare<T>::operator()(const T& a, const T& b) const -> bool
     {
@@ -573,12 +595,12 @@ namespace mamba
                 decltype(invoke_name(x)),
                 decltype(invoke_version(x)),
                 decltype(std::invoke(&T::build_number, x)),
-                decltype(std::invoke(&T::build_string, x))>;
+                decltype(invoke_build_string(x))>;
             return Attrs(
                 invoke_name(x),
                 invoke_version(x),
                 std::invoke(&T::build_number, x),
-                std::invoke(&T::build_string, x)
+                invoke_build_string(x)
             );
         };
         return attrs(a) < attrs(b);
@@ -694,13 +716,13 @@ namespace mamba
     ) const -> std::pair<std::string, std::size_t>
     {
         auto builds = std::vector<std::string>(size());
-        auto invoke_build_string = [](auto&& v) -> decltype(auto)
-        {
-            using TT = std::remove_cv_t<std::remove_reference_t<decltype(v)>>;
-            return std::invoke(&TT::build_string, std::forward<decltype(v)>(v));
-        };
         // TODO(C++20) *this | std::ranges::transform(invoke_buid_string) | ranges::unique
-        std::transform(begin(), end(), builds.begin(), invoke_build_string);
+        std::transform(
+            begin(),
+            end(),
+            builds.begin(),
+            [](const auto& p) { return invoke_build_string(p); }
+        );
         if (remove_duplicates)
         {
             builds.erase(std::unique(builds.begin(), builds.end()), builds.end());
@@ -718,14 +740,7 @@ namespace mamba
     {
         auto versions_builds = std::vector<std::string>(size());
         auto invoke_version_builds = [](auto&& v) -> decltype(auto)
-        {
-            using TT = std::remove_cv_t<std::remove_reference_t<decltype(v)>>;
-            return fmt::format(
-                "{} {}",
-                std::invoke(&TT::version, std::forward<decltype(v)>(v)),
-                std::invoke(&TT::build_string, std::forward<decltype(v)>(v))
-            );
-        };
+        { return fmt::format("{} {}", invoke_version(v), invoke_build_string(v)); };
         // TODO(C++20) *this | std::ranges::transform(invoke_version) | ranges::unique
         std::transform(begin(), end(), versions_builds.begin(), invoke_version_builds);
         if (remove_duplicates)

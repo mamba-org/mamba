@@ -46,11 +46,12 @@ set(
     src/specs/test_channel.cpp
     src/specs/test_channel_spec.cpp
     src/specs/test_conda_url.cpp
+    src/specs/test_glob_spec.cpp
+    src/specs/test_match_spec.cpp
     src/specs/test_platform.cpp
     src/specs/test_repo_data.cpp
     src/specs/test_version.cpp
     src/specs/test_version_spec.cpp
-    src/specs/test_match_spec.cpp
     # Artifacts validation
     src/validation/test_tools.cpp
     src/validation/test_update_framework_v0_6.cpp

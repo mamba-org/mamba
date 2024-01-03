@@ -78,7 +78,7 @@ namespace mamba
         m_pool.pool().for_each_installed_solvable(
             [&](solv::ObjSolvableViewConst s)
             {
-                if (s.name() == ms.name())
+                if (ms.name().contains(s.name()))
                 {
                     solvable = s;
                     return solv::LoopControl::Break;
@@ -97,7 +97,7 @@ namespace mamba
         }
 
         if (ms.channel().has_value() || !ms.version().is_explicitly_free()
-            || !ms.build_string().empty())
+            || !ms.build_string().is_free())
         {
             Console::stream() << ms.conda_build_form()
                               << ": overriding channel, version and build from "
@@ -107,7 +107,7 @@ namespace mamba
         auto ms_modified = ms;
         ms_modified.set_channel(specs::ChannelSpec::parse(solvable->channel()));
         ms_modified.set_version(specs::VersionSpec::parse(solvable->version()));
-        ms_modified.set_build_string(std::string(solvable->build_string()));
+        ms_modified.set_build_string(specs::GlobSpec(std::string(solvable->build_string())));
 
         LOG_INFO << "Reinstall " << ms_modified.conda_build_form() << " from channel "
                  << ms_modified.channel()->str();
@@ -745,8 +745,8 @@ namespace mamba
                         // dependency.
                         auto edge = specs::MatchSpec::parse(source.value().name);
                         // The package cannot exist without its name in the pool
-                        assert(m_pool.pool().find_string(edge.name()).has_value());
-                        const auto dep_id = m_pool.pool().find_string(edge.name()).value();
+                        assert(m_pool.pool().find_string(edge.name().str()).has_value());
+                        const auto dep_id = m_pool.pool().find_string(edge.name().str()).value();
                         const bool added = add_expanded_deps_edges(m_root_node, dep_id, edge);
                         if (!added)
                         {

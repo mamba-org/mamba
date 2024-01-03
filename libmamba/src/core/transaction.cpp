@@ -69,10 +69,10 @@ namespace mamba
 
             for (auto& ms : specs)
             {
-                out.emplace_back(ms.name());
+                out.emplace_back(ms.name().str());
                 auto& p = out.back();
                 p.url = ms.url();
-                p.build_string = ms.build_string();
+                p.build_string = ms.build_string().str();
                 p.version = ms.version().str_conda_build();
                 if (ms.channel().has_value())
                 {
@@ -110,7 +110,7 @@ namespace mamba
                 to_install_specs.cbegin(),
                 to_install_specs.cend(),
                 std::back_inserter(to_install_names),
-                [](const auto& spec) { return spec.name(); }
+                [](const auto& spec) { return spec.name().str(); }
             );
 
             const auto& to_remove_specs = solver.remove_specs();
@@ -120,7 +120,7 @@ namespace mamba
                 to_remove_specs.cbegin(),
                 to_remove_specs.cend(),
                 std::back_inserter(to_remove_names),
-                [](const auto& spec) { return spec.name(); }
+                [](const auto& spec) { return spec.name().str(); }
             );
 
             auto specs = util::flat_set<std::string>{};

@@ -43,6 +43,7 @@ set(
     # Implementation of version and matching specs
     src/specs/test_archive.cpp
     src/specs/test_authentication_info.cpp
+    src/specs/test_build_number_spec.cpp
     src/specs/test_channel.cpp
     src/specs/test_channel_spec.cpp
     src/specs/test_conda_url.cpp

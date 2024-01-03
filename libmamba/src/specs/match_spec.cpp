@@ -237,7 +237,7 @@ namespace mamba::specs
         {
             if (k == "build_number")
             {
-                out.m_build_number = v;
+                out.m_build_number = BuildNumberSpec::parse(v);
             }
             else if (k == "build")
             {
@@ -336,12 +336,12 @@ namespace mamba::specs
         m_version = std::move(ver);
     }
 
-    auto MatchSpec::build_number() const -> const std::string&
+    auto MatchSpec::build_number() const -> const BuildNumberSpec&
     {
         return m_build_number;
     }
 
-    void MatchSpec::set_build_number(std::string bn)
+    void MatchSpec::set_build_number(BuildNumberSpec bn)
     {
         m_build_number = std::move(bn);
     }
@@ -504,7 +504,8 @@ namespace mamba::specs
 
     auto MatchSpec::is_simple() const -> bool
     {
-        return m_version.is_explicitly_free() && m_build_string.is_free() && m_build_number.empty();
+        return m_version.is_explicitly_free() && m_build_string.is_free()
+               && m_build_number.is_explicitly_free();
     }
 
     auto MatchSpec::is_file() const -> bool

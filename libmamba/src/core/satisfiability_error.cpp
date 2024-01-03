@@ -282,6 +282,22 @@ namespace mamba
         }
 
         template <typename T>
+        auto invoke_build_number(T&& e) -> decltype(auto)
+        {
+            using TT = std::remove_cv_t<std::remove_reference_t<T>>;
+            using Num = decltype(std::invoke(&TT::build_number, std::forward<T>(e)));
+            Num num = std::invoke(&TT::build_number, std::forward<T>(e));
+            if constexpr (std::is_same_v<std::decay_t<decltype(num)>, specs::BuildNumberSpec>)
+            {
+                return std::forward<Num>(num).str();
+            }
+            else
+            {
+                return num;
+            }
+        }
+
+        template <typename T>
         auto invoke_build_string(T&& e) -> decltype(auto)
         {
             using TT = std::remove_cv_t<std::remove_reference_t<T>>;
@@ -594,12 +610,12 @@ namespace mamba
             using Attrs = std::tuple<
                 decltype(invoke_name(x)),
                 decltype(invoke_version(x)),
-                decltype(std::invoke(&T::build_number, x)),
+                decltype(invoke_build_number(x)),
                 decltype(invoke_build_string(x))>;
             return Attrs(
                 invoke_name(x),
                 invoke_version(x),
-                std::invoke(&T::build_number, x),
+                invoke_build_number(x),
                 invoke_build_string(x)
             );
         };

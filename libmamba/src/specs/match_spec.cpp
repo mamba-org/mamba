@@ -231,66 +231,57 @@ namespace mamba::specs
         // TODO think about using a hash function here, (and elsewhere), like:
         // https://hbfs.wordpress.com/2017/01/10/strings-in-c-switchcase-statements/
 
-        for (auto& [k, v] : out.m_brackets)
+        auto at_or = [](const auto& map, const auto& key, const auto& def)
         {
-            if (k == "build_number")
+            using Val = typename std::decay_t<decltype(map)>::mapped_type;
+            if (auto it = map.find(key); it != map.cend())
             {
-                out.m_build_number = BuildNumberSpec::parse(v);
+                return Val(it->second);
             }
-            else if (k == "build")
+            return Val(def);
+        };
+
+        if (const auto& val = at_or(out.m_brackets, "build_number", ""); !val.empty())
+        {
+            out.set_build_number(BuildNumberSpec::parse(val));
+        }
+        if (const auto& val = at_or(out.m_brackets, "build", ""); !val.empty())
+        {
+            out.set_build_string(MatchSpec::BuildStringSpec(std::string(val)));
+        }
+        if (const auto& val = at_or(out.m_brackets, "version", ""); !val.empty())
+        {
+            out.set_version(VersionSpec::parse(val));
+        }
+        if (const auto& val = at_or(out.m_brackets, "channel", ""); !val.empty())
+        {
+            out.set_channel(ChannelSpec::parse(val));
+        }
+        if (const auto& val = at_or(out.m_brackets, "subdir", ""); !val.empty())
+        {
+            if (!out.m_channel.has_value())
             {
-                out.m_build_string = MatchSpec::BuildStringSpec(std::string(v));
+                out.m_channel = ChannelSpec("", { val }, ChannelSpec::Type::Unknown);
             }
-            else if (k == "version")
+            // Subdirs specified in the channel part have higher precedence
+            else if (out.m_channel->platform_filters().empty())
             {
-                out.m_version = VersionSpec::parse(v);
-            }
-            else if (k == "channel")
-            {
-                if (!out.m_channel.has_value())
-                {
-                    out.m_channel = ChannelSpec::parse(v);
-                }
-                else
-                {
-                    // Subdirs might have been set with a previous subdir key
-                    auto subdirs = out.m_channel->clear_platform_filters();
-                    out.m_channel = ChannelSpec::parse(v);
-                    if (!subdirs.empty())
-                    {
-                        out.m_channel = ChannelSpec(
-                            out.m_channel->clear_location(),
-                            std::move(subdirs),
-                            out.m_channel->type()
-                        );
-                    }
-                }
-            }
-            else if (k == "subdir")
-            {
-                if (!out.m_channel.has_value())
-                {
-                    out.m_channel = ChannelSpec("", { v }, ChannelSpec::Type::Unknown);
-                }
-                // Subdirs specified in the channel part have higher precedence
-                else if (out.m_channel->platform_filters().empty())
-                {
-                    out.m_channel = ChannelSpec(
-                        out.m_channel->clear_location(),
-                        { v },
-                        out.m_channel->type()
-                    );
-                }
-            }
-            else if (k == "url")
-            {
-                out.m_url = v;
-            }
-            else if (k == "fn")
-            {
-                out.m_filename = v;
+                out.m_channel = ChannelSpec(
+                    out.m_channel->clear_location(),
+                    { val },
+                    out.m_channel->type()
+                );
             }
         }
+        if (const auto& val = at_or(out.m_brackets, "url", ""); !val.empty())
+        {
+            out.m_url = val;
+        }
+        if (const auto& val = at_or(out.m_brackets, "fn", ""); !val.empty())
+        {
+            out.m_filename = val;
+        }
+
         return out;
     }
 
@@ -541,43 +532,66 @@ namespace mamba::specs
             }
         }
 
-        std::vector<std::string> check = {
-            "build_number", "track_features", "features",       "url",
-            "md5",          "license",        "license_family", "fn"
+        auto maybe_quote = [](std::string_view data) -> std::string_view
+        {
+            if (auto pos = data.find_first_of(R"( =")"); pos != std::string_view::npos)
+            {
+                if (util::contains(data.substr(pos), '"'))
+                {
+                    return "'";
+                }
+                return R"(")";
+            }
+            return "";
         };
 
-        if (!m_url.empty())
+        if (const auto& num = build_number(); !num.is_explicitly_free())
         {
-            // erase "fn" when we have a URL
-            check.pop_back();
+            formatted_brackets.push_back(util::concat("build_number=", num.str()));
         }
-        for (const auto& key : check)
+        if (const auto& tf = track_features(); !tf.empty())
         {
-            if (m_brackets.find(key) != m_brackets.end())
-            {
-                if (m_brackets.at(key).find_first_of("= ,") != std::string::npos)
-                {
-                    // need quoting
-                    formatted_brackets.push_back(util::concat(key, "='", m_brackets.at(key), "'"));
-                }
-                else
-                {
-                    formatted_brackets.push_back(util::concat(key, "=", m_brackets.at(key)));
-                }
-            }
+            const auto& q = maybe_quote(tf);
+            formatted_brackets.push_back(util::concat("track_features=", q, tf, q));
         }
-        // for key in self.FIELD_NAMES:
-        //     if key not in _skip and key in self._match_components:
-        //         if key == 'url' and channel_matcher:
-        //             # skip url in canonical str if channel already included
-        //             continue
-        //         value = text_type(self._match_components[key])
-        //         if any(s in value for s in ', ='):
-        //             brackets.append("%s='%s'" % (key, value))
-        //         else:
-        //             brackets.append("%s=%s" % (key, value))
+        if (const auto& feats = features(); !feats.empty())
+        {
+            const auto& q = maybe_quote(feats);
+            formatted_brackets.push_back(util::concat("features=", q, feats, q));
+        }
+        if (const auto& u = url(); !u.empty())
+        {
+            const auto& q = maybe_quote(u);
+            formatted_brackets.push_back(util::concat("url=", q, u, q));
+        }
+        else if (const auto& fn = filename(); !fn.empty())
+        {
+            // No "fn" when we have a URL
+            const auto& q = maybe_quote(fn);
+            formatted_brackets.push_back(util::concat("fn=", q, fn, q));
+        }
+        if (const auto& hash = md5(); !hash.empty())
+        {
+            formatted_brackets.push_back(util::concat("md5=", hash));
+        }
+        if (const auto& hash = sha256(); !hash.empty())
+        {
+            formatted_brackets.push_back(util::concat("sha256=", hash));
+        }
+        if (const auto& l = license(); !l.empty())
+        {
+            formatted_brackets.push_back(util::concat("license=", l));
+        }
+        if (const auto& lf = license_family(); !lf.empty())
+        {
+            formatted_brackets.push_back(util::concat("license_family=", lf));
+        }
+        if (optional())
+        {
+            formatted_brackets.emplace_back("optional");
+        }
 
-        if (formatted_brackets.size())
+        if (!formatted_brackets.empty())
         {
             res << "[" << util::join(",", formatted_brackets) << "]";
         }

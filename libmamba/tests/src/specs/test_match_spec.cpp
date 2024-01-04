@@ -152,14 +152,14 @@ TEST_SUITE("specs::match_spec")
             auto ms = MatchSpec::parse("foo=1.0=2[md5=123123123, license=BSD-3, fn='test 123.tar.bz2']"
             );
             CHECK_EQ(ms.conda_build_form(), "foo 1.0.* 2");
-            CHECK_EQ(ms.str(), "foo=1.0=2[md5=123123123,license=BSD-3,fn='test 123.tar.bz2']");
+            CHECK_EQ(ms.str(), R"ms(foo=1.0=2[fn="test 123.tar.bz2",md5=123123123,license=BSD-3])ms");
         }
         {
             auto ms = MatchSpec::parse(
                 "foo=1.0=2[md5=123123123, license=BSD-3, fn='test 123.tar.bz2', url='abcdef']"
             );
             CHECK_EQ(ms.conda_build_form(), "foo 1.0.* 2");
-            CHECK_EQ(ms.str(), "foo=1.0=2[url=abcdef,md5=123123123,license=BSD-3]");
+            CHECK_EQ(ms.str(), R"ms(foo=1.0=2[url=abcdef,md5=123123123,license=BSD-3])ms");
         }
         {
             auto ms = MatchSpec::parse("libblas=*=*mkl");

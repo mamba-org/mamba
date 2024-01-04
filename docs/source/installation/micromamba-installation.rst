@@ -137,25 +137,47 @@ Windows
 | ``micromamba`` also has Windows support! For Windows, we recommend powershell.
 | Below are the commands to get micromamba installed in ``PowerShell``.
 
-.. code-block:: powershell
+Save this in `micromamba_1.ps1`, run it, then save the next as `micromamba_2.ps1` and run that.
 
-  Invoke-Webrequest -URI https://micro.mamba.pm/api/micromamba/win-64/latest -OutFile micromamba.tar.bz2
+.. code-block:: powershell
+  # Create temporary directory
+  New-Item -ItemType Directory -Force -Path MicroMambaTemp
+  cd MicroMambaTemp
+
+  # Downloading micromamba latest version
+  Invoke-WebRequest -URI https://micro.mamba.pm/api/micromamba/win-64/latest -OutFile micromamba.tar.bz2
+
+  # Extracting the downloaded file
   tar xf micromamba.tar.bz2
 
-  MOVE -Force Library\bin\micromamba.exe micromamba.exe
-  .\micromamba.exe --help
+  # Moving the micromamba executable
+  $targetDir = "C:\Program Files\micromamba"
+  New-Item -ItemType Directory -Force -Path $targetDir
+  Move-Item -Force Library\bin\micromamba.exe $targetDir\micromamba.exe
 
-  # You can use e.g. $HOME\micromambaenv as your base prefix
-  $Env:MAMBA_ROOT_PREFIX="C:\Your\Root\Prefix"
+  # Adding micromamba to system PATH
+  $path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+  $newPath = "$path;$targetDir"
+  [System.Environment]::SetEnvironmentVariable("Path", $newPath, "Machine")
 
-  # Invoke the hook
-  .\micromamba.exe shell hook -s powershell | Out-String | Invoke-Expression
+  # Setting up the MAMBA_ROOT_PREFIX environment variable
+  $Env:MAMBA_ROOT_PREFIX="$HOME\micromambaenv"
 
-  # ... or initialize the shell
-  .\micromamba.exe shell init -s powershell -p C:\Your\Root\Prefix
-  # and use micromamba directly
-  micromamba create -f ./test/env_win.yaml -y
-  micromamba activate yourenv
+  # Remove temporary files
+  cd ..
+  Remove-Item -Force -Recurse -Path MicroMambaTemp
+
+  echo "Restart PowerShell and run micromamba_2.ps1 to complete the installation."
+
+.. code-block:: powershell
+  # Displaying micromamba help
+  micromamba --help
+
+  # Invoking the shell hook
+  micromamba shell hook -s powershell | Out-String | Invoke-Expression
+
+  # Initializing the shell
+  micromamba shell init -s powershell -p $Env:MAMBA_ROOT_PREFIX
 
 Nightly builds
 **************

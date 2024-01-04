@@ -13,6 +13,7 @@
 #include <tuple>
 #include <unordered_map>
 
+#include "mamba/specs/build_number_spec.hpp"
 #include "mamba/specs/channel_spec.hpp"
 #include "mamba/specs/glob_spec.hpp"
 #include "mamba/specs/version_spec.hpp"
@@ -45,8 +46,8 @@ namespace mamba::specs
         [[nodiscard]] auto version() const -> const VersionSpec&;
         void set_version(VersionSpec ver);
 
-        [[nodiscard]] auto build_number() const -> const std::string&;
-        void set_build_number(std::string num);
+        [[nodiscard]] auto build_number() const -> const BuildNumberSpec&;
+        void set_build_number(BuildNumberSpec num);
 
         [[nodiscard]] auto build_string() const -> const BuildStringSpec&;
         void set_build_string(BuildStringSpec bs);
@@ -76,7 +77,7 @@ namespace mamba::specs
         NameSpec m_name;
         BuildStringSpec m_build_string;
         std::string m_name_space;
-        std::string m_build_number;
+        BuildNumberSpec m_build_number;
         // TODO can put inside channel spec
         std::string m_filename;
         std::string m_url;

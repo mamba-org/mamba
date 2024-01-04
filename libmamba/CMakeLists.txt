@@ -170,6 +170,7 @@ set(
     # Implementation of version and matching specs
     ${LIBMAMBA_SOURCE_DIR}/specs/archive.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/authentication_info.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/build_number_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/channel.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/channel_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/conda_url.cpp
@@ -285,6 +286,7 @@ set(
     # Implementation of version and matching specs
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/archive.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/authentication_info.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/build_number_spec.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/channel.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/channel_spec.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/conda_url.hpp

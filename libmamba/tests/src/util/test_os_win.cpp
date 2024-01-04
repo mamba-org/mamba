@@ -14,9 +14,9 @@
 
 using namespace mamba::util;
 
-TEST_SUITE("uti::os_win")
+TEST_SUITE("util::os_win")
 {
-    TEST_CASE("")
+    TEST_CASE("utf8")
     {
         const std::wstring text_utf16 = L"Hello, I am Joël. 私のにほんごわへたです";
         const std::string text_utf8 = u8"Hello, I am Joël. 私のにほんごわへたです";

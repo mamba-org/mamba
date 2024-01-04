@@ -374,7 +374,7 @@ namespace mamba
                 if (hash != std::string::npos)
                 {
                     p.md5 = u.substr(hash + 1);
-                    ms.brackets["md5"] = u.substr(hash + 1);
+                    ms.set_md5(std::string(u.substr(hash + 1)));
                 }
                 pi_result.push_back(p);
                 ms_result.push_back(ms);

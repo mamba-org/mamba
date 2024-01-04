@@ -8,6 +8,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 
 #include <fmt/format.h>
 
@@ -18,40 +19,6 @@
 
 namespace mamba::specs
 {
-    auto MatchSpec::parse_version_and_build(std::string_view s)
-        -> std::tuple<std::string, std::string>
-    {
-        const std::size_t pos = s.find_last_of(" =");
-        if (pos == s.npos || pos == 0)
-        {
-            std::string tmp = std::string(s);
-            util::replace_all(tmp, " ", "");
-            return { std::move(tmp), "" };
-        }
-        else
-        {
-            char c = s[pos];
-            if (c == '=')
-            {
-                std::size_t pm1 = pos - 1;
-                char d = s[pm1];
-                if (d == '=' || d == '!' || d == '|' || d == ',' || d == '<' || d == '>' || d == '~')
-                {
-                    auto tmp = std::string(s);
-                    util::replace_all(tmp, " ", "");
-                    return { tmp, "" };
-                }
-            }
-            // c is either ' ' or pm1 is none of the forbidden chars
-
-            auto v = std::string(s.substr(0, pos));
-            auto b = std::string(s.substr(pos + 1));
-            util::replace_all(v, " ", "");
-            util::replace_all(b, " ", "");
-            return { std::move(v), std::move(b) };
-        }
-    }
-
     auto MatchSpec::parse_url(std::string_view spec) -> MatchSpec
     {
         auto fail_parse = [&]()
@@ -87,6 +54,41 @@ namespace mamba::specs
         out.m_name = NameSpec(std::string(head.value()));  // There may be '-' in the name
 
         return out;
+    }
+
+    namespace
+    {
+        auto parse_version_and_build(std::string_view s)
+            -> std::pair<VersionSpec, MatchSpec::BuildStringSpec>
+        {
+            const std::size_t pos = s.find_last_of(" =");
+            if (pos == s.npos || pos == 0)
+            {
+                return {
+                    VersionSpec::parse(s),
+                    MatchSpec::BuildStringSpec(),
+                };
+            }
+
+            if (char c = s[pos]; c == '=')
+            {
+                std::size_t pm1 = pos - 1;
+                char d = s[pm1];
+                if (d == '=' || d == '!' || d == '|' || d == ',' || d == '<' || d == '>' || d == '~')
+                {
+                    return {
+                        VersionSpec::parse(s),
+                        MatchSpec::BuildStringSpec(),
+                    };
+                }
+            }
+            // c is either ' ' or pm1 is none of the forbidden chars
+
+            return {
+                VersionSpec::parse(s.substr(0, pos)),
+                MatchSpec::BuildStringSpec(std::string(s.substr(pos + 1))),
+            };
+        }
     }
 
     auto MatchSpec::parse(std::string_view spec) -> MatchSpec
@@ -131,6 +133,7 @@ namespace mamba::specs
         };
 
         std::smatch match;
+        std::unordered_map<std::string, std::string> extra;
 
         // Step 3. strip off brackets portion
         static std::regex brackets_re(".*(?:(\\[.*\\]))");
@@ -138,7 +141,7 @@ namespace mamba::specs
         {
             auto brackets_str = match[1].str();
             brackets_str = brackets_str.substr(1, brackets_str.size() - 2);
-            extract_kv(brackets_str, out.brackets);
+            extract_kv(brackets_str, extra);
             spec_str.erase(
                 static_cast<std::size_t>(match.position(1)),
                 static_cast<std::size_t>(match.length(1))
@@ -151,10 +154,10 @@ namespace mamba::specs
         {
             auto parens_str = match[1].str();
             parens_str = parens_str.substr(1, parens_str.size() - 2);
-            extract_kv(parens_str, out.parens);
+            extract_kv(parens_str, extra);
             if (parens_str.find("optional") != parens_str.npos)
             {
-                out.m_optional = true;
+                out.extra().optional = true;
             }
             spec_str.erase(
                 static_cast<std::size_t>(match.position(1)),
@@ -219,10 +222,7 @@ namespace mamba::specs
                 ));
             }
 
-            auto [pv, pb] = parse_version_and_build(version_and_build);
-
-            out.m_version = VersionSpec::parse(pv);
-            out.m_build_string = BuildStringSpec(std::string(pb));
+            std::tie(out.m_version, out.m_build_string) = parse_version_and_build(version_and_build);
         }
         else  // no-op
         {
@@ -233,66 +233,81 @@ namespace mamba::specs
         // TODO think about using a hash function here, (and elsewhere), like:
         // https://hbfs.wordpress.com/2017/01/10/strings-in-c-switchcase-statements/
 
-        for (auto& [k, v] : out.brackets)
+        auto at_or = [](const auto& map, const auto& key, const auto& def)
         {
-            if (k == "build_number")
+            using Val = typename std::decay_t<decltype(map)>::mapped_type;
+            if (auto it = map.find(key); it != map.cend())
             {
-                out.m_build_number = BuildNumberSpec::parse(v);
+                return Val(it->second);
             }
-            else if (k == "build")
+            return Val(def);
+        };
+
+        if (const auto& val = at_or(extra, "build_number", ""); !val.empty())
+        {
+            out.set_build_number(BuildNumberSpec::parse(val));
+        }
+        if (const auto& val = at_or(extra, "build", ""); !val.empty())
+        {
+            out.set_build_string(MatchSpec::BuildStringSpec(std::string(val)));
+        }
+        if (const auto& val = at_or(extra, "version", ""); !val.empty())
+        {
+            out.set_version(VersionSpec::parse(val));
+        }
+        if (const auto& val = at_or(extra, "channel", ""); !val.empty())
+        {
+            out.set_channel(ChannelSpec::parse(val));
+        }
+        if (const auto& val = at_or(extra, "subdir", ""); !val.empty())
+        {
+            if (!out.m_channel.has_value())
             {
-                out.m_build_string = MatchSpec::BuildStringSpec(std::string(v));
+                out.m_channel = ChannelSpec("", { val }, ChannelSpec::Type::Unknown);
             }
-            else if (k == "version")
+            // Subdirs specified in the channel part have higher precedence
+            else if (out.m_channel->platform_filters().empty())
             {
-                out.m_version = VersionSpec::parse(v);
-            }
-            else if (k == "channel")
-            {
-                if (!out.m_channel.has_value())
-                {
-                    out.m_channel = ChannelSpec::parse(v);
-                }
-                else
-                {
-                    // Subdirs might have been set with a previous subdir key
-                    auto subdirs = out.m_channel->clear_platform_filters();
-                    out.m_channel = ChannelSpec::parse(v);
-                    if (!subdirs.empty())
-                    {
-                        out.m_channel = ChannelSpec(
-                            out.m_channel->clear_location(),
-                            std::move(subdirs),
-                            out.m_channel->type()
-                        );
-                    }
-                }
-            }
-            else if (k == "subdir")
-            {
-                if (!out.m_channel.has_value())
-                {
-                    out.m_channel = ChannelSpec("", { v }, ChannelSpec::Type::Unknown);
-                }
-                // Subdirs specified in the channel part have higher precedence
-                else if (out.m_channel->platform_filters().empty())
-                {
-                    out.m_channel = ChannelSpec(
-                        out.m_channel->clear_location(),
-                        { v },
-                        out.m_channel->type()
-                    );
-                }
-            }
-            else if (k == "url")
-            {
-                out.m_url = v;
-            }
-            else if (k == "fn")
-            {
-                out.m_filename = v;
+                out.m_channel = ChannelSpec(
+                    out.m_channel->clear_location(),
+                    { val },
+                    out.m_channel->type()
+                );
             }
         }
+        if (const auto& val = at_or(extra, "url", ""); !val.empty())
+        {
+            out.m_url = val;
+        }
+        if (const auto& val = at_or(extra, "fn", ""); !val.empty())
+        {
+            out.m_filename = val;
+        }
+        if (const auto& val = at_or(extra, "md5", ""); !val.empty())
+        {
+            out.set_md5(val);
+        }
+        if (const auto& val = at_or(extra, "sha256", ""); !val.empty())
+        {
+            out.set_sha256(val);
+        }
+        if (const auto& val = at_or(extra, "license", ""); !val.empty())
+        {
+            out.set_license(val);
+        }
+        if (const auto& val = at_or(extra, "license_family", ""); !val.empty())
+        {
+            out.set_license_family(val);
+        }
+        if (const auto& val = at_or(extra, "features", ""); !val.empty())
+        {
+            out.set_features(val);
+        }
+        if (const auto& val = at_or(extra, "track_features", ""); !val.empty())
+        {
+            out.set_track_features(val);
+        }
+
         return out;
     }
 
@@ -351,14 +366,98 @@ namespace mamba::specs
         return m_build_string;
     }
 
+    auto MatchSpec::md5() const -> std::string_view
+    {
+        if (m_extra.has_value())
+        {
+            return m_extra->md5;
+        }
+        return "";
+    }
+
+    void MatchSpec::set_md5(std::string val)
+    {
+        extra().md5 = std::move(val);
+    }
+
+    auto MatchSpec::sha256() const -> std::string_view
+    {
+        if (m_extra.has_value())
+        {
+            return m_extra->sha256;
+        }
+        return "";
+    }
+
+    void MatchSpec::set_sha256(std::string val)
+    {
+        extra().sha256 = std::move(val);
+    }
+
+    auto MatchSpec::license() const -> std::string_view
+    {
+        if (m_extra.has_value())
+        {
+            return m_extra->license;
+        }
+        return "";
+    }
+
+    void MatchSpec::set_license(std::string val)
+    {
+        extra().license = std::move(val);
+    }
+
+    auto MatchSpec::license_family() const -> std::string_view
+    {
+        if (m_extra.has_value())
+        {
+            return m_extra->license_family;
+        }
+        return "";
+    }
+
+    void MatchSpec::set_license_family(std::string val)
+    {
+        extra().license_family = std::move(val);
+    }
+
+    auto MatchSpec::features() const -> std::string_view
+    {
+        if (m_extra.has_value())
+        {
+            return m_extra->features;
+        }
+        return "";
+    }
+
+    void MatchSpec::set_features(std::string val)
+    {
+        extra().features = std::move(val);
+    }
+
+    auto MatchSpec::track_features() const -> std::string_view
+    {
+        if (m_extra.has_value())
+        {
+            return m_extra->track_features;
+        }
+        return "";
+    }
+
+    void MatchSpec::set_track_features(std::string val)
+    {
+        extra().track_features = std::move(val);
+    }
+
     auto MatchSpec::optional() const -> bool
     {
-        return m_optional;
+        return m_extra.has_value() && m_extra->optional;
     }
 
     void MatchSpec::set_optional(bool opt)
     {
-        m_optional = opt;
+        extra().optional = opt;
     }
 
     void MatchSpec::set_build_string(BuildStringSpec bs)
@@ -459,43 +558,66 @@ namespace mamba::specs
             }
         }
 
-        std::vector<std::string> check = {
-            "build_number", "track_features", "features",       "url",
-            "md5",          "license",        "license_family", "fn"
+        auto maybe_quote = [](std::string_view data) -> std::string_view
+        {
+            if (auto pos = data.find_first_of(R"( =")"); pos != std::string_view::npos)
+            {
+                if (util::contains(data.substr(pos), '"'))
+                {
+                    return "'";
+                }
+                return R"(")";
+            }
+            return "";
         };
 
-        if (!m_url.empty())
+        if (const auto& num = build_number(); !num.is_explicitly_free())
         {
-            // erase "fn" when we have a URL
-            check.pop_back();
+            formatted_brackets.push_back(util::concat("build_number=", num.str()));
         }
-        for (const auto& key : check)
+        if (const auto& tf = track_features(); !tf.empty())
         {
-            if (brackets.find(key) != brackets.end())
-            {
-                if (brackets.at(key).find_first_of("= ,") != std::string::npos)
-                {
-                    // need quoting
-                    formatted_brackets.push_back(util::concat(key, "='", brackets.at(key), "'"));
-                }
-                else
-                {
-                    formatted_brackets.push_back(util::concat(key, "=", brackets.at(key)));
-                }
-            }
+            const auto& q = maybe_quote(tf);
+            formatted_brackets.push_back(util::concat("track_features=", q, tf, q));
         }
-        // for key in self.FIELD_NAMES:
-        //     if key not in _skip and key in self._match_components:
-        //         if key == 'url' and channel_matcher:
-        //             # skip url in canonical str if channel already included
-        //             continue
-        //         value = text_type(self._match_components[key])
-        //         if any(s in value for s in ', ='):
-        //             brackets.append("%s='%s'" % (key, value))
-        //         else:
-        //             brackets.append("%s=%s" % (key, value))
+        if (const auto& feats = features(); !feats.empty())
+        {
+            const auto& q = maybe_quote(feats);
+            formatted_brackets.push_back(util::concat("features=", q, feats, q));
+        }
+        if (const auto& u = url(); !u.empty())
+        {
+            const auto& q = maybe_quote(u);
+            formatted_brackets.push_back(util::concat("url=", q, u, q));
+        }
+        else if (const auto& fn = filename(); !fn.empty())
+        {
+            // No "fn" when we have a URL
+            const auto& q = maybe_quote(fn);
+            formatted_brackets.push_back(util::concat("fn=", q, fn, q));
+        }
+        if (const auto& hash = md5(); !hash.empty())
+        {
+            formatted_brackets.push_back(util::concat("md5=", hash));
+        }
+        if (const auto& hash = sha256(); !hash.empty())
+        {
+            formatted_brackets.push_back(util::concat("sha256=", hash));
+        }
+        if (const auto& l = license(); !l.empty())
+        {
+            formatted_brackets.push_back(util::concat("license=", l));
+        }
+        if (const auto& lf = license_family(); !lf.empty())
+        {
+            formatted_brackets.push_back(util::concat("license_family=", lf));
+        }
+        if (optional())
+        {
+            formatted_brackets.emplace_back("optional");
+        }
 
-        if (formatted_brackets.size())
+        if (!formatted_brackets.empty())
         {
             res << "[" << util::join(",", formatted_brackets) << "]";
         }
@@ -511,5 +633,14 @@ namespace mamba::specs
     auto MatchSpec::is_file() const -> bool
     {
         return (!m_filename.empty()) || (!m_url.empty());
+    }
+
+    auto MatchSpec::extra() -> ExtraMembers&
+    {
+        if (!m_extra.has_value())
+        {
+            m_extra.emplace();
+        }
+        return *m_extra;
     }
 }

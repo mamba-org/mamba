@@ -85,14 +85,8 @@ namespace mamba
                     }
                 }
                 p.fn = ms.filename();
-                if (ms.brackets.find("md5") != ms.brackets.end())
-                {
-                    p.md5 = ms.brackets.at("md5");
-                }
-                if (ms.brackets.find("sha256") != ms.brackets.end())
-                {
-                    p.sha256 = ms.brackets.at("sha256");
-                }
+                p.md5 = ms.md5();
+                p.sha256 = ms.sha256();
             }
             return out;
         }
@@ -1390,11 +1384,15 @@ namespace mamba
                 std::string_view hash = url.substr(hash_idx + 1);
                 if (util::starts_with(hash, "sha256:"))
                 {
-                    ms.brackets["sha256"] = hash.substr(7);
+                    ms.set_sha256(std::string(hash.substr(7)));
+                }
+                if (util::starts_with(hash, "md5:"))
+                {
+                    ms.set_sha256(std::string(hash.substr(4)));
                 }
                 else
                 {
-                    ms.brackets["md5"] = hash;
+                    ms.set_md5(std::string(hash));
                 }
             }
         }

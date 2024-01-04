@@ -10,13 +10,12 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <tuple>
-#include <unordered_map>
 
 #include "mamba/specs/build_number_spec.hpp"
 #include "mamba/specs/channel_spec.hpp"
 #include "mamba/specs/glob_spec.hpp"
 #include "mamba/specs/version_spec.hpp"
+#include "mamba/util/heap_optional.hpp"
 
 namespace mamba::specs
 {
@@ -26,9 +25,6 @@ namespace mamba::specs
 
         using NameSpec = GlobSpec;
         using BuildStringSpec = GlobSpec;
-
-        [[nodiscard]] static auto parse_version_and_build(std::string_view s)
-            -> std::tuple<std::string, std::string>;
 
         [[nodiscard]] static auto parse(std::string_view spec) -> MatchSpec;
 
@@ -52,6 +48,24 @@ namespace mamba::specs
         [[nodiscard]] auto build_string() const -> const BuildStringSpec&;
         void set_build_string(BuildStringSpec bs);
 
+        [[nodiscard]] auto md5() const -> std::string_view;
+        void set_md5(std::string val);
+
+        [[nodiscard]] auto sha256() const -> std::string_view;
+        void set_sha256(std::string val);
+
+        [[nodiscard]] auto license() const -> std::string_view;
+        void set_license(std::string val);
+
+        [[nodiscard]] auto license_family() const -> std::string_view;
+        void set_license_family(std::string val);
+
+        [[nodiscard]] auto features() const -> std::string_view;
+        void set_features(std::string val);
+
+        [[nodiscard]] auto track_features() const -> std::string_view;
+        void set_track_features(std::string val);
+
         [[nodiscard]] auto optional() const -> bool;
         void set_optional(bool opt);
 
@@ -66,11 +80,18 @@ namespace mamba::specs
 
         [[nodiscard]] auto is_file() const -> bool;
 
-        std::unordered_map<std::string, std::string> brackets;
-
-        std::unordered_map<std::string, std::string> parens;
-
     private:
+
+        struct ExtraMembers
+        {
+            std::string md5 = {};
+            std::string sha256 = {};
+            std::string license = {};
+            std::string license_family = {};
+            std::string features = {};
+            std::string track_features = {};
+            bool optional = false;
+        };
 
         std::optional<ChannelSpec> m_channel;
         VersionSpec m_version;
@@ -78,10 +99,12 @@ namespace mamba::specs
         BuildStringSpec m_build_string;
         std::string m_name_space;
         BuildNumberSpec m_build_number;
+        util::heap_optional<ExtraMembers> m_extra = {};  // unlikely data
         // TODO can put inside channel spec
         std::string m_filename;
         std::string m_url;
-        bool m_optional = false;
+
+        auto extra() -> ExtraMembers&;
     };
 }
 #endif

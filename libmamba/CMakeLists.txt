@@ -272,6 +272,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/flat_set.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/functional.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/graph.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/heap_optional.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/iterator.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/json.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/os_win.hpp

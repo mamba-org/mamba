@@ -30,6 +30,7 @@ set(
     src/util/test_flat_bool_expr_tree.cpp
     src/util/test_flat_set.cpp
     src/util/test_graph.cpp
+    src/util/test_heap_optional.cpp
     src/util/test_iterator.cpp
     src/util/test_os_win.cpp
     src/util/test_path_manip.cpp

@@ -49,6 +49,24 @@ namespace mamba::specs
         [[nodiscard]] auto build_string() const -> const BuildStringSpec&;
         void set_build_string(BuildStringSpec bs);
 
+        [[nodiscard]] auto md5() const -> std::string_view;
+        void set_md5(std::string val);
+
+        [[nodiscard]] auto sha256() const -> std::string_view;
+        void set_sha256(std::string val);
+
+        [[nodiscard]] auto license() const -> std::string_view;
+        void set_license(std::string val);
+
+        [[nodiscard]] auto license_family() const -> std::string_view;
+        void set_license_family(std::string val);
+
+        [[nodiscard]] auto features() const -> std::string_view;
+        void set_features(std::string val);
+
+        [[nodiscard]] auto track_features() const -> std::string_view;
+        void set_track_features(std::string val);
+
         [[nodiscard]] auto optional() const -> bool;
         void set_optional(bool opt);
 
@@ -62,10 +80,6 @@ namespace mamba::specs
         [[nodiscard]] auto is_simple() const -> bool;
 
         [[nodiscard]] auto is_file() const -> bool;
-
-        std::unordered_map<std::string, std::string> brackets;
-
-        std::unordered_map<std::string, std::string> parens;
 
     private:
 
@@ -84,6 +98,8 @@ namespace mamba::specs
         // TODO can put inside channel spec
         std::string m_filename;
         std::string m_url;
+
+        std::unordered_map<std::string, std::string> m_brackets = {};
 
         auto extra() -> ExtraMembers&;
     };

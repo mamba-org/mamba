@@ -139,7 +139,7 @@ namespace mamba::specs
         {
             auto brackets_str = match[1].str();
             brackets_str = brackets_str.substr(1, brackets_str.size() - 2);
-            extract_kv(brackets_str, out.brackets);
+            extract_kv(brackets_str, out.m_brackets);
             spec_str.erase(
                 static_cast<std::size_t>(match.position(1)),
                 static_cast<std::size_t>(match.length(1))
@@ -152,7 +152,7 @@ namespace mamba::specs
         {
             auto parens_str = match[1].str();
             parens_str = parens_str.substr(1, parens_str.size() - 2);
-            extract_kv(parens_str, out.parens);
+            extract_kv(parens_str, out.m_brackets);
             if (parens_str.find("optional") != parens_str.npos)
             {
                 out.extra().optional = true;
@@ -231,7 +231,7 @@ namespace mamba::specs
         // TODO think about using a hash function here, (and elsewhere), like:
         // https://hbfs.wordpress.com/2017/01/10/strings-in-c-switchcase-statements/
 
-        for (auto& [k, v] : out.brackets)
+        for (auto& [k, v] : out.m_brackets)
         {
             if (k == "build_number")
             {
@@ -347,6 +347,90 @@ namespace mamba::specs
     auto MatchSpec::build_string() const -> const BuildStringSpec&
     {
         return m_build_string;
+    }
+
+    auto MatchSpec::md5() const -> std::string_view
+    {
+        if (auto it = m_brackets.find("md5"); it != m_brackets.cend())
+        {
+            return it->second;
+        }
+        return "";
+    }
+
+    void MatchSpec::set_md5(std::string val)
+    {
+        m_brackets["md5"] = std::move(val);
+    }
+
+    auto MatchSpec::sha256() const -> std::string_view
+    {
+        if (auto it = m_brackets.find("sha256"); it != m_brackets.cend())
+        {
+            return it->second;
+        }
+        return "";
+    }
+
+    void MatchSpec::set_sha256(std::string val)
+    {
+        m_brackets["sha256"] = std::move(val);
+    }
+
+    auto MatchSpec::license() const -> std::string_view
+    {
+        if (auto it = m_brackets.find("license"); it != m_brackets.cend())
+        {
+            return it->second;
+        }
+        return "";
+    }
+
+    void MatchSpec::set_license(std::string val)
+    {
+        m_brackets["license"] = std::move(val);
+    }
+
+    auto MatchSpec::license_family() const -> std::string_view
+    {
+        if (auto it = m_brackets.find("license_family"); it != m_brackets.cend())
+        {
+            return it->second;
+        }
+        return "";
+    }
+
+    void MatchSpec::set_license_family(std::string val)
+    {
+        m_brackets["license_family"] = std::move(val);
+    }
+
+    auto MatchSpec::features() const -> std::string_view
+    {
+        if (auto it = m_brackets.find("features"); it != m_brackets.cend())
+        {
+            return it->second;
+        }
+        return "";
+    }
+
+    void MatchSpec::set_features(std::string val)
+    {
+        m_brackets["features"] = std::move(val);
+    }
+
+    auto MatchSpec::track_features() const -> std::string_view
+    {
+        if (auto it = m_brackets.find("track_features"); it != m_brackets.cend())
+        {
+            return it->second;
+        }
+        return "";
+    }
+
+    void MatchSpec::set_track_features(std::string val)
+    {
+        m_brackets["track_features"] = std::move(val);
     }
 
     auto MatchSpec::optional() const -> bool
@@ -469,16 +553,16 @@ namespace mamba::specs
         }
         for (const auto& key : check)
         {
-            if (brackets.find(key) != brackets.end())
+            if (m_brackets.find(key) != m_brackets.end())
             {
-                if (brackets.at(key).find_first_of("= ,") != std::string::npos)
+                if (m_brackets.at(key).find_first_of("= ,") != std::string::npos)
                 {
                     // need quoting
-                    formatted_brackets.push_back(util::concat(key, "='", brackets.at(key), "'"));
+                    formatted_brackets.push_back(util::concat(key, "='", m_brackets.at(key), "'"));
                 }
                 else
                 {
-                    formatted_brackets.push_back(util::concat(key, "=", brackets.at(key)));
+                    formatted_brackets.push_back(util::concat(key, "=", m_brackets.at(key)));
                 }
             }
         }

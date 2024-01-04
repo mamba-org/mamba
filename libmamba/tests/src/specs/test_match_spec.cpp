@@ -49,10 +49,8 @@ TEST_SUITE("specs::match_spec")
         }
         {
             auto ms = MatchSpec::parse("numpy[version='1.7|1.8']");
-            // TODO!
-            // CHECK_EQ(ms.version, "1.7|1.8");
             CHECK_EQ(ms.name().str(), "numpy");
-            CHECK_EQ(ms.brackets["version"], "1.7|1.8");
+            CHECK_EQ(ms.version().str(), "==1.7|==1.8");
             CHECK_EQ(ms.str(), "numpy[version='==1.7|==1.8']");
         }
         {
@@ -70,20 +68,17 @@ TEST_SUITE("specs::match_spec")
             CHECK_EQ(ms.name().str(), "foo");
             REQUIRE(ms.channel().has_value());
             CHECK_EQ(ms.channel()->location(), "conda-forge");
-            CHECK_EQ(ms.brackets["build"], "3");
-            CHECK_EQ(ms.parens["target"], "blarg");
+            CHECK_EQ(ms.build_string().str(), "3");
             CHECK_EQ(ms.optional(), true);
         }
         {
             auto ms = MatchSpec::parse("python[build_number=3]");
             CHECK_EQ(ms.name().str(), "python");
-            CHECK_EQ(ms.brackets["build_number"], "3");
             CHECK_EQ(ms.build_number().str(), "=3");
         }
         {
             auto ms = MatchSpec::parse("python[build_number='<=3']");
             CHECK_EQ(ms.name().str(), "python");
-            CHECK_EQ(ms.brackets["build_number"], "<=3");
             CHECK_EQ(ms.build_number().str(), "<=3");
         }
         {
@@ -146,10 +141,6 @@ TEST_SUITE("specs::match_spec")
                 "xtensor[url=file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2]"
             );
             CHECK_EQ(ms.name().str(), "xtensor");
-            CHECK_EQ(
-                ms.brackets["url"],
-                "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2"
-            );
             CHECK_EQ(ms.url(), "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2");
         }
         {

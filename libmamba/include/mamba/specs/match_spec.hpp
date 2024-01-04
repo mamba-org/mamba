@@ -10,7 +10,6 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 
 #include "mamba/specs/build_number_spec.hpp"
 #include "mamba/specs/channel_spec.hpp"
@@ -85,6 +84,12 @@ namespace mamba::specs
 
         struct ExtraMembers
         {
+            std::string md5 = {};
+            std::string sha256 = {};
+            std::string license = {};
+            std::string license_family = {};
+            std::string features = {};
+            std::string track_features = {};
             bool optional = false;
         };
 
@@ -98,8 +103,6 @@ namespace mamba::specs
         // TODO can put inside channel spec
         std::string m_filename;
         std::string m_url;
-
-        std::unordered_map<std::string, std::string> m_brackets = {};
 
         auto extra() -> ExtraMembers&;
     };

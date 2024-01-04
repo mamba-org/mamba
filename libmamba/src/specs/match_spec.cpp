@@ -8,6 +8,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 
 #include <fmt/format.h>
 
@@ -132,6 +133,7 @@ namespace mamba::specs
         };
 
         std::smatch match;
+        std::unordered_map<std::string, std::string> extra;
 
         // Step 3. strip off brackets portion
         static std::regex brackets_re(".*(?:(\\[.*\\]))");
@@ -139,7 +141,7 @@ namespace mamba::specs
         {
             auto brackets_str = match[1].str();
             brackets_str = brackets_str.substr(1, brackets_str.size() - 2);
-            extract_kv(brackets_str, out.m_brackets);
+            extract_kv(brackets_str, extra);
             spec_str.erase(
                 static_cast<std::size_t>(match.position(1)),
                 static_cast<std::size_t>(match.length(1))
@@ -152,7 +154,7 @@ namespace mamba::specs
         {
             auto parens_str = match[1].str();
             parens_str = parens_str.substr(1, parens_str.size() - 2);
-            extract_kv(parens_str, out.m_brackets);
+            extract_kv(parens_str, extra);
             if (parens_str.find("optional") != parens_str.npos)
             {
                 out.extra().optional = true;
@@ -241,23 +243,23 @@ namespace mamba::specs
             return Val(def);
         };
 
-        if (const auto& val = at_or(out.m_brackets, "build_number", ""); !val.empty())
+        if (const auto& val = at_or(extra, "build_number", ""); !val.empty())
         {
             out.set_build_number(BuildNumberSpec::parse(val));
         }
-        if (const auto& val = at_or(out.m_brackets, "build", ""); !val.empty())
+        if (const auto& val = at_or(extra, "build", ""); !val.empty())
         {
             out.set_build_string(MatchSpec::BuildStringSpec(std::string(val)));
         }
-        if (const auto& val = at_or(out.m_brackets, "version", ""); !val.empty())
+        if (const auto& val = at_or(extra, "version", ""); !val.empty())
         {
             out.set_version(VersionSpec::parse(val));
         }
-        if (const auto& val = at_or(out.m_brackets, "channel", ""); !val.empty())
+        if (const auto& val = at_or(extra, "channel", ""); !val.empty())
         {
             out.set_channel(ChannelSpec::parse(val));
         }
-        if (const auto& val = at_or(out.m_brackets, "subdir", ""); !val.empty())
+        if (const auto& val = at_or(extra, "subdir", ""); !val.empty())
         {
             if (!out.m_channel.has_value())
             {
@@ -273,13 +275,37 @@ namespace mamba::specs
                 );
             }
         }
-        if (const auto& val = at_or(out.m_brackets, "url", ""); !val.empty())
+        if (const auto& val = at_or(extra, "url", ""); !val.empty())
         {
             out.m_url = val;
         }
-        if (const auto& val = at_or(out.m_brackets, "fn", ""); !val.empty())
+        if (const auto& val = at_or(extra, "fn", ""); !val.empty())
         {
             out.m_filename = val;
+        }
+        if (const auto& val = at_or(extra, "md5", ""); !val.empty())
+        {
+            out.set_md5(val);
+        }
+        if (const auto& val = at_or(extra, "sha256", ""); !val.empty())
+        {
+            out.set_sha256(val);
+        }
+        if (const auto& val = at_or(extra, "license", ""); !val.empty())
+        {
+            out.set_license(val);
+        }
+        if (const auto& val = at_or(extra, "license_family", ""); !val.empty())
+        {
+            out.set_license_family(val);
+        }
+        if (const auto& val = at_or(extra, "features", ""); !val.empty())
+        {
+            out.set_features(val);
+        }
+        if (const auto& val = at_or(extra, "track_features", ""); !val.empty())
+        {
+            out.set_track_features(val);
         }
 
         return out;
@@ -342,86 +368,86 @@ namespace mamba::specs
 
     auto MatchSpec::md5() const -> std::string_view
     {
-        if (auto it = m_brackets.find("md5"); it != m_brackets.cend())
+        if (m_extra.has_value())
         {
-            return it->second;
+            return m_extra->md5;
         }
         return "";
     }
 
     void MatchSpec::set_md5(std::string val)
     {
-        m_brackets["md5"] = std::move(val);
+        extra().md5 = std::move(val);
     }
 
     auto MatchSpec::sha256() const -> std::string_view
     {
-        if (auto it = m_brackets.find("sha256"); it != m_brackets.cend())
+        if (m_extra.has_value())
         {
-            return it->second;
+            return m_extra->sha256;
         }
         return "";
     }
 
     void MatchSpec::set_sha256(std::string val)
     {
-        m_brackets["sha256"] = std::move(val);
+        extra().sha256 = std::move(val);
     }
 
     auto MatchSpec::license() const -> std::string_view
     {
-        if (auto it = m_brackets.find("license"); it != m_brackets.cend())
+        if (m_extra.has_value())
         {
-            return it->second;
+            return m_extra->license;
         }
         return "";
     }
 
     void MatchSpec::set_license(std::string val)
     {
-        m_brackets["license"] = std::move(val);
+        extra().license = std::move(val);
     }
 
     auto MatchSpec::license_family() const -> std::string_view
     {
-        if (auto it = m_brackets.find("license_family"); it != m_brackets.cend())
+        if (m_extra.has_value())
         {
-            return it->second;
+            return m_extra->license_family;
         }
         return "";
     }
 
     void MatchSpec::set_license_family(std::string val)
     {
-        m_brackets["license_family"] = std::move(val);
+        extra().license_family = std::move(val);
     }
 
     auto MatchSpec::features() const -> std::string_view
     {
-        if (auto it = m_brackets.find("features"); it != m_brackets.cend())
+        if (m_extra.has_value())
         {
-            return it->second;
+            return m_extra->features;
         }
         return "";
     }
 
     void MatchSpec::set_features(std::string val)
     {
-        m_brackets["features"] = std::move(val);
+        extra().features = std::move(val);
     }
 
     auto MatchSpec::track_features() const -> std::string_view
     {
-        if (auto it = m_brackets.find("track_features"); it != m_brackets.cend())
+        if (m_extra.has_value())
         {
-            return it->second;
+            return m_extra->track_features;
         }
         return "";
     }
 
     void MatchSpec::set_track_features(std::string val)
     {
-        m_brackets["track_features"] = std::move(val);
+        extra().track_features = std::move(val);
     }
 
     auto MatchSpec::optional() const -> bool

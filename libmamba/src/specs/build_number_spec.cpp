@@ -25,71 +25,6 @@ namespace mamba::specs
         return true;
     }
 
-    auto equal(BuildNumberPredicate::free_interval, BuildNumberPredicate::free_interval) -> bool
-    {
-        return true;
-    }
-
-    namespace
-    {
-        // Cannot specialize operator== in std namespace (UB) so we have to reinvent the wheel.
-
-        auto
-        equal(std::equal_to<BuildNumberPredicate::BuildNumber>, std::equal_to<BuildNumberPredicate::BuildNumber>)
-            -> bool
-        {
-            return true;
-        }
-
-        auto
-        equal(std::not_equal_to<BuildNumberPredicate::BuildNumber>, std::not_equal_to<BuildNumberPredicate::BuildNumber>)
-            -> bool
-        {
-            return true;
-        }
-
-        auto
-        equal(std::greater<BuildNumberPredicate::BuildNumber>, std::greater<BuildNumberPredicate::BuildNumber>)
-            -> bool
-        {
-            return true;
-        }
-
-        auto
-        equal(std::greater_equal<BuildNumberPredicate::BuildNumber>, std::greater_equal<BuildNumberPredicate::BuildNumber>)
-            -> bool
-        {
-            return true;
-        }
-
-        auto
-        equal(std::less<BuildNumberPredicate::BuildNumber>, std::less<BuildNumberPredicate::BuildNumber>)
-            -> bool
-        {
-            return true;
-        }
-
-        auto
-        equal(std::less_equal<BuildNumberPredicate::BuildNumber>, std::less_equal<BuildNumberPredicate::BuildNumber>)
-            -> bool
-        {
-            return true;
-        }
-
-        template <typename U, typename... T>
-        auto equal_with(const std::variant<T...>& lhs, const std::variant<T...>& rhs) -> bool
-        {
-            return std::holds_alternative<U>(lhs) && std::holds_alternative<U>(rhs)
-                   && equal(std::get<U>(lhs), std::get<U>(rhs));
-        }
-
-        template <typename... T>
-        auto equal(const std::variant<T...>& lhs, const std::variant<T...>& rhs) -> bool
-        {
-            return (equal_with<T>(lhs, rhs) || ...);
-        }
-    }
-
     /*****************************************
      *  BuildNumberPredicate Implementation  *
      *****************************************/
@@ -147,7 +82,13 @@ namespace mamba::specs
 
     auto operator==(const BuildNumberPredicate& lhs, const BuildNumberPredicate& rhs) -> bool
     {
-        return (lhs.m_build_number == rhs.m_build_number) && equal(lhs.m_operator, rhs.m_operator);
+        return (lhs.m_build_number == rhs.m_build_number)
+               // WARNING: the following is intended as an easy substitute for variant comparison.
+               // It is not possible to specialize ``operator==`` for std::equal_to and the
+               // like in ``namespace std`` (undefined behaviour).
+               // But since none of the variant types currently have any attributes, simply
+               // comparing the types does the same as the variant ``operator==``.
+               && (lhs.m_operator.index() == rhs.m_operator.index());
     }
 
     auto operator!=(const BuildNumberPredicate& lhs, const BuildNumberPredicate& rhs) -> bool

@@ -308,7 +308,7 @@ namespace mamba
 
     const std::string& PackageFetcher::filename() const
     {
-        return m_package_info.fn;
+        return m_package_info.filename;
     }
 
     const std::string& PackageFetcher::url() const
@@ -366,11 +366,11 @@ namespace mamba
         const fs::u8path repodata_record_path = base_path / "info" / "repodata_record.json";
         const fs::u8path index_path = base_path / "info" / "index.json";
 
-        nlohmann::json index, solvable_json;
+        nlohmann::json index;
         std::ifstream index_file = open_ifstream(index_path);
         index_file >> index;
 
-        solvable_json = m_package_info.json_record();
+        const nlohmann::json solvable_json = m_package_info;
         index.insert(solvable_json.cbegin(), solvable_json.cend());
 
         if (index.find("size") == index.end() || index["size"] == 0)

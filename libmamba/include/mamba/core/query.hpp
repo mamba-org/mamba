@@ -87,8 +87,8 @@ namespace mamba
         QueryType query_type() const;
         const std::string& query() const;
 
-        query_result& sort(std::string field);
-        query_result& groupby(std::string field);
+        query_result& sort(std::string_view field);
+        query_result& groupby(std::string_view field);
         query_result& reset();
 
         std::ostream& table(std::ostream&) const;

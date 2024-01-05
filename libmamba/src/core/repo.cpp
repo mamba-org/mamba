@@ -99,7 +99,7 @@ namespace mamba
             solv.set_channel(pkg.channel);
             solv.set_url(pkg.url);
             solv.set_subdir(pkg.subdir);
-            solv.set_file_name(pkg.fn);
+            solv.set_file_name(pkg.filename);
             solv.set_license(pkg.license);
             solv.set_size(pkg.size);
             // TODO conda timestamp are not Unix timestamp.

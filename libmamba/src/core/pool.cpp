@@ -301,7 +301,7 @@ namespace mamba
             out.channel = s.channel();
             out.url = s.url();
             out.subdir = s.subdir();
-            out.fn = s.file_name();
+            out.filename = s.file_name();
             out.license = s.license();
             out.size = s.size();
             out.timestamp = s.timestamp();

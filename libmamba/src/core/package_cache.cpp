@@ -135,15 +135,15 @@ namespace mamba
             return m_valid_tarballs[pkg];
         }
 
-        assert(!s.fn.empty());
-        const auto pkg_name = specs::strip_archive_extension(s.fn);
+        assert(!s.filename.empty());
+        const auto pkg_name = specs::strip_archive_extension(s.filename);
         LOG_DEBUG << "Verify cache '" << m_path.string() << "' for package tarball '" << pkg_name
                   << "'";
 
         bool valid = false;
-        if (fs::exists(m_path / s.fn))
+        if (fs::exists(m_path / s.filename))
         {
-            fs::u8path tarball_path = m_path / s.fn;
+            fs::u8path tarball_path = m_path / s.filename;
             // validate that this tarball has the right size and MD5 sum
             // we handle the case where s.size == 0 (explicit packages) or md5 is unknown
             valid = s.size == 0 || validation::file_size(tarball_path, s.size);
@@ -201,7 +201,7 @@ namespace mamba
             return m_valid_extracted_dir[pkg];
         }
 
-        auto pkg_name = specs::strip_archive_extension(s.fn);
+        auto pkg_name = specs::strip_archive_extension(s.filename);
         fs::u8path extracted_dir = m_path / pkg_name;
         LOG_DEBUG << "Verify cache '" << m_path.string() << "' for package extracted directory '"
                   << pkg_name << "'";
@@ -440,7 +440,7 @@ namespace mamba
         }
         else
         {
-            LOG_ERROR << "Cannot find tarball cache for '" << s.fn << "'";
+            LOG_ERROR << "Cannot find tarball cache for '" << s.filename << "'";
             throw std::runtime_error("Package cache error.");
         }
     }
@@ -469,7 +469,7 @@ namespace mamba
         }
         else
         {
-            LOG_ERROR << "Cannot find a valid extracted directory cache for '" << s.fn << "'";
+            LOG_ERROR << "Cannot find a valid extracted directory cache for '" << s.filename << "'";
             throw std::runtime_error("Package cache error.");
         }
     }

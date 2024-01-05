@@ -6,11 +6,12 @@
 
 #include <algorithm>
 #include <functional>
-#include <iterator>
-#include <map>
 #include <tuple>
+#include <type_traits>
 
+#include <fmt/core.h>
 #include <fmt/format.h>
+#include <nlohmann/json.hpp>
 
 #include "mamba/core/package_info.hpp"
 #include "mamba/specs/archive.hpp"
@@ -18,126 +19,6 @@
 
 namespace mamba
 {
-    namespace
-    {
-        template <class T>
-        std::string get_package_info_field(const PackageInfo&, T PackageInfo::*field);
-
-        template <>
-        std::string
-        get_package_info_field<std::string>(const PackageInfo& pkg, std::string PackageInfo::*field)
-        {
-            return pkg.*field;
-        }
-
-        template <>
-        std::string
-        get_package_info_field<std::size_t>(const PackageInfo& pkg, std::size_t PackageInfo::*field)
-        {
-            return std::to_string(pkg.*field);
-        }
-
-        template <class T>
-        PackageInfo::field_getter build_field_getter(T PackageInfo::*field)
-        {
-            return std::bind(get_package_info_field<T>, std::placeholders::_1, field);
-        }
-
-        using field_getter_map = std::map<std::string_view, PackageInfo::field_getter>;
-
-        field_getter_map build_field_getter_map()
-        {
-            field_getter_map res;
-            res["name"] = build_field_getter(&PackageInfo::name);
-            res["version"] = build_field_getter(&PackageInfo::version);
-            res["build_string"] = build_field_getter(&PackageInfo::build_string);
-            res["build_number"] = build_field_getter(&PackageInfo::build_number);
-            res["noarch"] = build_field_getter(&PackageInfo::noarch);
-            res["channel"] = build_field_getter(&PackageInfo::channel);
-            res["url"] = build_field_getter(&PackageInfo::url);
-            res["subdir"] = build_field_getter(&PackageInfo::subdir);
-            res["fn"] = build_field_getter(&PackageInfo::fn);
-            res["license"] = build_field_getter(&PackageInfo::license);
-            res["size"] = build_field_getter(&PackageInfo::size);
-            res["timestamp"] = build_field_getter(&PackageInfo::timestamp);
-            return res;
-        }
-
-        const field_getter_map& get_field_getter_map()
-        {
-            static field_getter_map m = build_field_getter_map();
-            return m;
-        }
-    }  // namespace
-
-    PackageInfo::field_getter PackageInfo::get_field_getter(std::string_view field_name)
-    {
-        auto it = get_field_getter_map().find(field_name);
-        if (it == get_field_getter_map().end())
-        {
-            throw std::runtime_error("field_getter function not found");
-        }
-        return it->second;
-    }
-
-    PackageInfo::compare_fun PackageInfo::less(std::string_view member)
-    {
-        auto getter = get_field_getter(member);
-        return [getter](const PackageInfo& lhs, const PackageInfo& rhs)
-        { return getter(lhs) < getter(rhs); };
-    }
-
-    PackageInfo::compare_fun PackageInfo::equal(std::string_view member)
-    {
-        auto getter = get_field_getter(member);
-        return [getter](const PackageInfo& lhs, const PackageInfo& rhs)
-        { return getter(lhs) == getter(rhs); };
-    }
-
-    PackageInfo::PackageInfo(nlohmann::json&& j)
-    {
-        name = j.value("name", "");
-        version = j.value("version", "");
-        channel = j.value("channel", "");
-        url = j.value("url", "");
-        subdir = j.value("subdir", "");
-        fn = j.value("fn", "");
-        size = j.value("size", std::size_t(0));
-        timestamp = j.value("timestamp", std::size_t(0));
-        if (std::string build = j.value("build", "<UNKNOWN>"); build != "<UNKNOWN>")
-        {
-            build_string = std::move(build);
-        }
-        else
-        {
-            build_string = j.value("build_string", "");
-        }
-        build_number = j.value("build_number", std::size_t(0));
-        license = j.value("license", "");
-        md5 = j.value("md5", "");
-        sha256 = j.value("sha256", "");
-        if (std::string feat = j.value("track_features", ""); !feat.empty())
-        {
-            // Split empty string would have an empty element
-            track_features = util::split(feat, ",");
-        }
-
-        // add the noarch type if we know it (only known for installed packages)
-        if (j.contains("noarch"))
-        {
-            if (j["noarch"].type() == nlohmann::json::value_t::boolean)
-            {
-                noarch = "generic_v1";
-            }
-            else
-            {
-                noarch = j.value("noarch", "");
-            }
-        }
-
-        depends = j.value("depends", std::vector<std::string>());
-        constrains = j.value("constrains", std::vector<std::string>());
-    }
 
     PackageInfo::PackageInfo(std::string n)
         : name(std::move(n))
@@ -152,84 +33,16 @@ namespace mamba
     {
     }
 
-    bool PackageInfo::operator==(const PackageInfo& other) const
+    namespace
     {
-        auto attrs = [](const PackageInfo& p)
+        template <typename T, typename U>
+        auto contains(const std::vector<T>& v, const U& val)
         {
-            return std::tie(
-                p.name,
-                p.version,
-                p.build_string,
-                p.noarch,
-                p.build_number,
-                p.channel,
-                p.url,
-                p.subdir,
-                p.fn,
-                p.license,
-                p.size,
-                p.timestamp,
-                p.md5,
-                p.sha256,
-                p.track_features,
-                p.depends,
-                p.constrains,
-                p.signatures,
-                p.defaulted_keys
-            );
-        };
-        return attrs(*this) == attrs(other);
+            return std::find(v.cbegin(), v.cend(), val) != v.cend();
+        }
     }
 
-    nlohmann::json PackageInfo::json_record() const
-    {
-        nlohmann::json j;
-        j["name"] = name;
-        j["version"] = version;
-        j["channel"] = channel;
-        j["url"] = url;
-        j["subdir"] = subdir;
-        j["fn"] = fn;
-        j["size"] = size;
-        j["timestamp"] = timestamp;
-        j["build"] = build_string;
-        j["build_string"] = build_string;
-        j["build_number"] = build_number;
-        if (!noarch.empty())
-        {
-            j["noarch"] = noarch;
-        }
-        j["license"] = license;
-        j["track_features"] = fmt::format("{}", fmt::join(track_features, ","));
-        if (!md5.empty())
-        {
-            j["md5"] = md5;
-        }
-        if (!sha256.empty())
-        {
-            j["sha256"] = sha256;
-        }
-        if (depends.empty())
-        {
-            j["depends"] = nlohmann::json::array();
-        }
-        else
-        {
-            j["depends"] = depends;
-        }
-
-        if (constrains.empty())
-        {
-            j["constrains"] = nlohmann::json::array();
-        }
-        else
-        {
-            j["constrains"] = constrains;
-        }
-        return j;
-    }
-
-    nlohmann::json PackageInfo::json_signable() const
+    auto PackageInfo::json_signable() const -> nlohmann::json
     {
         nlohmann::json j;
 
@@ -252,7 +65,7 @@ namespace mamba
         // Defaulted keys to empty arrays
         if (depends.empty())
         {
-            if (defaulted_keys.find("depends") == defaulted_keys.end())
+            if (!contains(defaulted_keys, "depends"))
             {
                 j["depends"] = nlohmann::json::array();
             }
@@ -263,7 +76,7 @@ namespace mamba
         }
         if (constrains.empty())
         {
-            if (defaulted_keys.find("constrains") == defaulted_keys.end())
+            if (!contains(defaulted_keys, "constrains"))
             {
                 j["constrains"] = nlohmann::json::array();
             }
@@ -276,14 +89,232 @@ namespace mamba
         return j;
     }
 
-    std::string PackageInfo::str() const
+    auto PackageInfo::str() const -> std::string
     {
-        return std::string(specs::strip_archive_extension(fn));
+        if (!filename.empty())
+        {
+            return std::string(specs::strip_archive_extension(filename));
+        }
+        return fmt::format("{}-{}-{}", name, version, build_string);
     }
 
-    std::string PackageInfo::long_str() const
+    auto PackageInfo::long_str() const -> std::string
     {
         // TODO channel contains subdir right now?!
         return util::concat(channel, "::", str());
     }
-}  // namespace mamba
+
+    namespace
+    {
+        template <typename Func>
+        auto invoke_field_string(const PackageInfo& p, Func&& field) -> std::string
+        {
+            using Out = std::decay_t<std::invoke_result_t<Func, PackageInfo>>;
+
+            if constexpr (std::is_same_v<Out, const char*>)
+            {
+                return std::string{ std::invoke(field, p) };
+            }
+            else if constexpr (std::is_integral_v<Out> || std::is_floating_point_v<Out>)
+            {
+                return std::to_string(std::invoke(field, p));
+            }
+            else if constexpr (std::is_convertible_v<Out, std::string>)
+            {
+                return static_cast<std::string>(std::invoke(field, p));
+            }
+            else if constexpr (std::is_constructible_v<Out, std::string>)
+            {
+                return std::string(std::invoke(field, p));
+            }
+            else if constexpr (fmt::is_formattable<Out>::value)
+            {
+                return fmt::format("{}", std::invoke(field, p));
+            }
+            return "";
+        }
+    }
+
+    auto PackageInfo::field(std::string_view field_name) const -> std::string
+    {
+        field_name = util::strip(field_name);
+        if (field_name == "name")
+        {
+            return invoke_field_string(*this, &PackageInfo::name);
+        }
+        if (field_name == "version")
+        {
+            return invoke_field_string(*this, &PackageInfo::version);
+        }
+        if (field_name == "build_string")
+        {
+            return invoke_field_string(*this, &PackageInfo::build_string);
+        }
+        if (field_name == "build_number")
+        {
+            return invoke_field_string(*this, &PackageInfo::build_number);
+        }
+        if (field_name == "noarch")
+        {
+            return invoke_field_string(*this, &PackageInfo::noarch);
+        }
+        if (field_name == "channel")
+        {
+            return invoke_field_string(*this, &PackageInfo::channel);
+        }
+        if (field_name == "url")
+        {
+            return invoke_field_string(*this, &PackageInfo::url);
+        }
+        if (field_name == "subdir")
+        {
+            return invoke_field_string(*this, &PackageInfo::subdir);
+        }
+        if (field_name == "fn" || field_name == "filename")
+        {
+            return invoke_field_string(*this, &PackageInfo::filename);
+        }
+        if (field_name == "license")
+        {
+            return invoke_field_string(*this, &PackageInfo::license);
+        }
+        if (field_name == "size")
+        {
+            return invoke_field_string(*this, &PackageInfo::size);
+        }
+        if (field_name == "timestamp")
+        {
+            return invoke_field_string(*this, &PackageInfo::timestamp);
+        }
+        throw std::invalid_argument(fmt::format(R"(Invalid field "{}")", field_name));
+    }
+
+    namespace
+    {
+        auto attrs(const PackageInfo& p)
+        {
+            return std::tie(
+                p.name,
+                p.version,
+                p.build_string,
+                p.noarch,
+                p.build_number,
+                p.channel,
+                p.url,
+                p.subdir,
+                p.filename,
+                p.license,
+                p.size,
+                p.timestamp,
+                p.md5,
+                p.sha256,
+                p.track_features,
+                p.depends,
+                p.constrains,
+                p.signatures,
+                p.defaulted_keys
+            );
+        }
+    }
+
+    auto operator==(const PackageInfo& lhs, const PackageInfo& rhs) -> bool
+    {
+        return attrs(lhs) == attrs(rhs);
+    }
+
+    auto operator!=(const PackageInfo& lhs, const PackageInfo& rhs) -> bool
+    {
+        return !(lhs == rhs);
+    }
+
+    void to_json(nlohmann::json& j, const PackageInfo& pkg)
+    {
+        j["name"] = pkg.name;
+        j["version"] = pkg.version;
+        j["channel"] = pkg.channel;
+        j["url"] = pkg.url;
+        j["subdir"] = pkg.subdir;
+        j["fn"] = pkg.filename;
+        j["size"] = pkg.size;
+        j["timestamp"] = pkg.timestamp;
+        j["build"] = pkg.build_string;
+        j["build_string"] = pkg.build_string;
+        j["build_number"] = pkg.build_number;
+        if (!pkg.noarch.empty())
+        {
+            j["noarch"] = pkg.noarch;
+        }
+        j["license"] = pkg.license;
+        j["track_features"] = fmt::format("{}", fmt::join(pkg.track_features, ","));
+        if (!pkg.md5.empty())
+        {
+            j["md5"] = pkg.md5;
+        }
+        if (!pkg.sha256.empty())
+        {
+            j["sha256"] = pkg.sha256;
+        }
+        if (pkg.depends.empty())
+        {
+            j["depends"] = nlohmann::json::array();
+        }
+        else
+        {
+            j["depends"] = pkg.depends;
+        }
+
+        if (pkg.constrains.empty())
+        {
+            j["constrains"] = nlohmann::json::array();
+        }
+        else
+        {
+            j["constrains"] = pkg.constrains;
+        }
+    }
+
+    void from_json(const nlohmann::json& j, PackageInfo& pkg)
+    {
+        pkg.name = j.value("name", "");
+        pkg.version = j.value("version", "");
+        pkg.channel = j.value("channel", "");
+        pkg.url = j.value("url", "");
+        pkg.subdir = j.value("subdir", "");
+        pkg.filename = j.value("fn", "");
+        pkg.size = j.value("size", std::size_t(0));
+        pkg.timestamp = j.value("timestamp", std::size_t(0));
+        if (std::string build = j.value("build", "<UNKNOWN>"); build != "<UNKNOWN>")
+        {
+            pkg.build_string = std::move(build);
+        }
+        else
+        {
+            pkg.build_string = j.value("build_string", "");
+        }
+        pkg.build_number = j.value("build_number", std::size_t(0));
+        pkg.license = j.value("license", "");
+        pkg.md5 = j.value("md5", "");
+        pkg.sha256 = j.value("sha256", "");
+        if (std::string feat = j.value("track_features", ""); !feat.empty())
+        {
+            // Split empty string would have an empty element
+            pkg.track_features = util::split(feat, ",");
+        }
+
+        // add the noarch type if we know it (only known for installed packages)
+        if (j.contains("noarch"))
+        {
+            if (j["noarch"].type() == nlohmann::json::value_t::boolean)
+            {
+                pkg.noarch = "generic_v1";
+            }
+            else
+            {
+                pkg.noarch = j.value("noarch", "");
+            }
+        }
+
+        pkg.depends = j.value("depends", std::vector<std::string>());
+        pkg.constrains = j.value("constrains", std::vector<std::string>());
+    }
+}

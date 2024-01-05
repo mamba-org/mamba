@@ -159,7 +159,7 @@ namespace mamba
             res.channel = "@";
             res.subdir = subdir;
             res.md5 = "12345678901234567890123456789012";
-            res.fn = name;
+            res.filename = name;
             return res;
         }
 

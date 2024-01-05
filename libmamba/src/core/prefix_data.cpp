@@ -160,7 +160,8 @@ namespace mamba
         auto infile = open_ifstream(path);
         nlohmann::json j;
         infile >> j;
-        auto prec = PackageInfo(std::move(j));
+        auto prec = j.get<PackageInfo>();
+
         // Some versions of micromamba constructor generate repodata_record.json
         // and conda-meta json files with channel names while mamba expects
         // PackageInfo channels to be platform urls. This fixes the issue described

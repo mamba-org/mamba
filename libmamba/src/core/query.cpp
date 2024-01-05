@@ -178,7 +178,7 @@ namespace mamba
             fmt::print(out, " {:<15} {} kB\n", "Size", pkg.size / 1000);
             fmt::print(out, fmtstring, "License", pkg.license);
             fmt::print(out, fmtstring, "Subdir", pkg.subdir);
-            fmt::print(out, fmtstring, "File Name", pkg.fn);
+            fmt::print(out, fmtstring, "File Name", pkg.filename);
 
             using CondaURL = typename specs::CondaURL;
             auto url = CondaURL::parse(pkg.url);
@@ -527,10 +527,10 @@ namespace mamba
         return m_query;
     }
 
-    query_result& query_result::sort(std::string field)
+    query_result& query_result::sort(std::string_view field)
     {
-        auto compare_ids = [&, fun = PackageInfo::less(field)](node_id lhs, node_id rhs)
-        { return fun(m_dep_graph.node(lhs), m_dep_graph.node(rhs)); };
+        auto compare_ids = [&](node_id lhs, node_id rhs)
+        { return m_dep_graph.node(lhs).field(field) < m_dep_graph.node(rhs).field(field); };
 
         if (!m_ordered_pkg_id_list.empty())
         {
@@ -547,14 +547,13 @@ namespace mamba
         return *this;
     }
 
-    query_result& query_result::groupby(std::string field)
+    query_result& query_result::groupby(std::string_view field)
     {
-        auto fun = PackageInfo::get_field_getter(field);
         if (m_ordered_pkg_id_list.empty())
         {
             for (auto& id : m_pkg_id_list)
             {
-                m_ordered_pkg_id_list[fun(m_dep_graph.node(id))].push_back(id);
+                m_ordered_pkg_id_list[m_dep_graph.node(id).field(field)].push_back(id);
             }
         }
         else
@@ -564,7 +563,7 @@ namespace mamba
             {
                 for (auto& id : entry.second)
                 {
-                    std::string key = entry.first + '/' + fun(m_dep_graph.node(id));
+                    std::string key = entry.first + '/' + m_dep_graph.node(id).field(field);
                     tmp[std::move(key)].push_back(id);
                 }
             }
@@ -882,7 +881,7 @@ namespace mamba
         j["result"]["pkgs"] = nlohmann::json::array();
         for (size_t i = 0; i < m_pkg_id_list.size(); ++i)
         {
-            auto pkg_info_json = m_dep_graph.node(m_pkg_id_list[i]).json_record();
+            nlohmann::json pkg_info_json = m_dep_graph.node(m_pkg_id_list[i]);
             // We want the cannonical channel name here.
             // We do not know what is in the `channel` field so we need to make sure.
             // This is most likely legacy and should be updated on the next major release.
@@ -897,7 +896,7 @@ namespace mamba
             j["result"]["graph_roots"] = nlohmann::json::array();
             if (!m_dep_graph.successors(0).empty())
             {
-                auto pkg_info_json = m_dep_graph.node(0).json_record();
+                nlohmann::json pkg_info_json = m_dep_graph.node(0);
                 // We want the cannonical channel name here.
                 // We do not know what is in the `channel` field so we need to make sure.
                 // This is most likely legacy and should be updated on the next major release.

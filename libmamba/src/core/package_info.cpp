@@ -11,6 +11,7 @@
 
 #include <fmt/core.h>
 #include <fmt/format.h>
+#include <nlohmann/json.hpp>
 
 #include "mamba/core/package_info.hpp"
 #include "mamba/specs/archive.hpp"
@@ -18,50 +19,6 @@
 
 namespace mamba
 {
-    PackageInfo::PackageInfo(nlohmann::json&& j)
-    {
-        name = j.value("name", "");
-        version = j.value("version", "");
-        channel = j.value("channel", "");
-        url = j.value("url", "");
-        subdir = j.value("subdir", "");
-        fn = j.value("fn", "");
-        size = j.value("size", std::size_t(0));
-        timestamp = j.value("timestamp", std::size_t(0));
-        if (std::string build = j.value("build", "<UNKNOWN>"); build != "<UNKNOWN>")
-        {
-            build_string = std::move(build);
-        }
-        else
-        {
-            build_string = j.value("build_string", "");
-        }
-        build_number = j.value("build_number", std::size_t(0));
-        license = j.value("license", "");
-        md5 = j.value("md5", "");
-        sha256 = j.value("sha256", "");
-        if (std::string feat = j.value("track_features", ""); !feat.empty())
-        {
-            // Split empty string would have an empty element
-            track_features = util::split(feat, ",");
-        }
-
-        // add the noarch type if we know it (only known for installed packages)
-        if (j.contains("noarch"))
-        {
-            if (j["noarch"].type() == nlohmann::json::value_t::boolean)
-            {
-                noarch = "generic_v1";
-            }
-            else
-            {
-                noarch = j.value("noarch", "");
-            }
-        }
-
-        depends = j.value("depends", std::vector<std::string>());
-        constrains = j.value("constrains", std::vector<std::string>());
-    }
 
     PackageInfo::PackageInfo(std::string n)
         : name(std::move(n))
@@ -312,5 +269,54 @@ namespace mamba
     auto operator!=(const PackageInfo& lhs, const PackageInfo& rhs) -> bool
     {
         return !(lhs == rhs);
+    }
+
+    void to_json(nlohmann::json& j, const PackageInfo& pkg)
+    {
+    }
+
+    void from_json(const nlohmann::json& j, PackageInfo& pkg)
+    {
+        pkg.name = j.value("name", "");
+        pkg.version = j.value("version", "");
+        pkg.channel = j.value("channel", "");
+        pkg.url = j.value("url", "");
+        pkg.subdir = j.value("subdir", "");
+        pkg.fn = j.value("fn", "");
+        pkg.size = j.value("size", std::size_t(0));
+        pkg.timestamp = j.value("timestamp", std::size_t(0));
+        if (std::string build = j.value("build", "<UNKNOWN>"); build != "<UNKNOWN>")
+        {
+            pkg.build_string = std::move(build);
+        }
+        else
+        {
+            pkg.build_string = j.value("build_string", "");
+        }
+        pkg.build_number = j.value("build_number", std::size_t(0));
+        pkg.license = j.value("license", "");
+        pkg.md5 = j.value("md5", "");
+        pkg.sha256 = j.value("sha256", "");
+        if (std::string feat = j.value("track_features", ""); !feat.empty())
+        {
+            // Split empty string would have an empty element
+            pkg.track_features = util::split(feat, ",");
+        }
+
+        // add the noarch type if we know it (only known for installed packages)
+        if (j.contains("noarch"))
+        {
+            if (j["noarch"].type() == nlohmann::json::value_t::boolean)
+            {
+                pkg.noarch = "generic_v1";
+            }
+            else
+            {
+                pkg.noarch = j.value("noarch", "");
+            }
+        }
+
+        pkg.depends = j.value("depends", std::vector<std::string>());
+        pkg.constrains = j.value("constrains", std::vector<std::string>());
     }
 }

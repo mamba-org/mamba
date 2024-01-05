@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mamba
 {
@@ -44,7 +44,6 @@ namespace mamba
         std::vector<std::string> defaulted_keys = {};
 
         PackageInfo() = default;
-        explicit PackageInfo(nlohmann::json&& j);
         explicit PackageInfo(std::string name);
         PackageInfo(std::string name, std::string version, std::string build_string, std::size_t build_number);
 
@@ -60,6 +59,9 @@ namespace mamba
     };
 
     auto operator==(const PackageInfo& lhs, const PackageInfo& rhs) -> bool;
+
     auto operator!=(const PackageInfo& lhs, const PackageInfo& rhs) -> bool;
+
+    void from_json(const nlohmann::json& j, PackageInfo& pkg);
 }
 #endif

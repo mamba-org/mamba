@@ -69,7 +69,7 @@ namespace mamba
                     auto obj = nlohmann::json();
                     const auto& pkg_info = prefix_data.records().find(key)->second;
 
-                    if (regex.empty() || std::regex_search(pkg_info.name, spec_pat))
+                    if (regex.empty() || std::regex_search(pkg_info.name(), spec_pat))
                     {
                         auto channels = channel_context.make_channel(pkg_info.url);
                         assert(channels.size() == 1);  // A URL can only resolve to one channel
@@ -79,7 +79,7 @@ namespace mamba
                         obj["build_string"] = pkg_info.build_string;
                         obj["channel"] = channels.front().display_name();
                         obj["dist_name"] = pkg_info.str();
-                        obj["name"] = pkg_info.name;
+                        obj["name"] = pkg_info.name();
                         obj["platform"] = pkg_info.subdir;
                         obj["version"] = pkg_info.version;
                         jout.push_back(obj);
@@ -100,9 +100,9 @@ namespace mamba
             // order list of packages from prefix_data by alphabetical order
             for (const auto& package : prefix_data.records())
             {
-                if (regex.empty() || std::regex_search(package.second.name, spec_pat))
+                if (regex.empty() || std::regex_search(package.second.name(), spec_pat))
                 {
-                    formatted_pkgs.name = package.second.name;
+                    formatted_pkgs.name = package.second.name();
                     formatted_pkgs.version = package.second.version;
                     formatted_pkgs.build = package.second.build_string;
                     if (package.second.channel.find("https://repo.anaconda.com/pkgs/") == 0)

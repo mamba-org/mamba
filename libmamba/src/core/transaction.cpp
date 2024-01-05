@@ -169,7 +169,7 @@ namespace mamba
 
                     // keep_only ? specs.contains(...) : !specs.contains(...);
                     // TODO ideally we should use Matchspecs::contains(pkginfo)
-                    if (keep_only == specs.contains(pkginfo.name))
+                    if (keep_only == specs.contains(pkginfo.name()))
                     {
                         LOG_DEBUG << "Solution: Omit " << pkginfo.str();
                         out.push_back(Solution::Omit{ std::move(pkginfo) });
@@ -272,7 +272,7 @@ namespace mamba
                 solution.actions,
                 [&](const auto& pkg)
                 {
-                    if (pkg.name == "python")
+                    if (pkg.name() == "python")
                     {
                         new_py_ver = pkg.version;
                         LOG_INFO << "Found python version in packages to be installed " << new_py_ver;
@@ -480,7 +480,7 @@ namespace mamba
                                 SOLVER_SOLVABLE_PROVIDES,
                                 pool.add_conda_dependency(fmt::format(
                                     "{} {} {}",
-                                    pkg_info.name,
+                                    pkg_info.name(),
                                     pkg_info.version,
                                     pkg_info.build_string
                                 )),
@@ -504,7 +504,7 @@ namespace mamba
                                     "To upgrade python we need to reinstall noarch",
                                     " package {} {} {} but we could not find it in",
                                     " any of the loaded channels.",
-                                    pkg_info.name,
+                                    pkg_info.name(),
                                     pkg_info.version,
                                     pkg_info.build_string
                                 );
@@ -580,7 +580,7 @@ namespace mamba
         for (const auto& pkginfo : packages)
         {
             specs_to_install.push_back(specs::MatchSpec::parse(
-                fmt::format("{}=={}={}", pkginfo.name, pkginfo.version, pkginfo.build_string)
+                fmt::format("{}=={}={}", pkginfo.name(), pkginfo.version, pkginfo.build_string)
             ));
         }
 
@@ -1228,7 +1228,7 @@ namespace mamba
                 }
             }
             printers::FormattedString name;
-            name.s = fmt::format("{} {}", diff, s.name);
+            name.s = fmt::format("{} {}", diff, s.name());
             if (status == Status::install)
             {
                 name.style = ctx.graphics_params.palette.addition;
@@ -1460,7 +1460,7 @@ namespace mamba
                 pip_packages.cend(),
                 std::back_inserter(pip_specs),
                 [](const PackageInfo& pkg)
-                { return fmt::format("{} @ {}#sha256={}", pkg.name, pkg.url, pkg.sha256); }
+                { return fmt::format("{} @ {}#sha256={}", pkg.name(), pkg.url, pkg.sha256); }
             );
             other_specs.push_back(
                 { "pip --no-deps", pip_specs, fs::absolute(env_lockfile_path.parent_path()).string() }

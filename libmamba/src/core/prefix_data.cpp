@@ -67,9 +67,9 @@ namespace mamba
     {
         for (const auto& pkg : packages)
         {
-            LOG_DEBUG << "Adding virtual package: " << pkg.name << "=" << pkg.version << "="
+            LOG_DEBUG << "Adding virtual package: " << pkg.name() << "=" << pkg.version << "="
                       << pkg.build_string;
-            m_package_records.insert({ pkg.name, std::move(pkg) });
+            m_package_records.insert({ pkg.name(), std::move(pkg) });
         }
     }
 
@@ -173,6 +173,6 @@ namespace mamba
         assert(channels.size() == 1);
         using Credentials = specs::CondaURL::Credentials;
         prec.channel = channels.front().platform_url(prec.subdir).str(Credentials::Remove);
-        m_package_records.insert({ prec.name, std::move(prec) });
+        m_package_records.insert({ prec.name(), std::move(prec) });
     }
 }  // namespace mamba

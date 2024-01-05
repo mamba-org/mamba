@@ -188,7 +188,7 @@ set_env_command(CLI::App* com, Configuration& config)
                                 << ((chans.size() == 1) ? chans.front().display_name() : v.channel)
                                 << "/" << v.subdir << "::";
                         }
-                        dependencies << v.name << "=" << v.version;
+                        dependencies << v.name() << "=" << v.version;
                         if (!no_build)
                         {
                             dependencies << "=" << v.build_string;

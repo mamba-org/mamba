@@ -327,17 +327,17 @@ namespace mamba
         if (util::on_win)
         {
             path = prefix / get_bin_directory_short_path()
-                   / util::concat(".", pkg_info.name, "-", action, ".bat");
+                   / util::concat(".", pkg_info.name(), "-", action, ".bat");
         }
         else
         {
             path = prefix / get_bin_directory_short_path()
-                   / util::concat(".", pkg_info.name, "-", action, ".sh");
+                   / util::concat(".", pkg_info.name(), "-", action, ".sh");
         }
 
         if (!fs::exists(path))
         {
-            LOG_DEBUG << action << " script for '" << pkg_info.name << "' does not exist ('"
+            LOG_DEBUG << action << " script for '" << pkg_info.name() << "' does not exist ('"
                       << path.string() << "')";
             return true;
         }
@@ -360,7 +360,7 @@ namespace mamba
             auto comspec = util::get_env("COMSPEC");
             if (!comspec)
             {
-                LOG_ERROR << "Failed to run " << action << " for " << pkg_info.name
+                LOG_ERROR << "Failed to run " << action << " for " << pkg_info.name()
                           << " due to COMSPEC not set in env vars.";
                 return false;
             }
@@ -415,7 +415,7 @@ namespace mamba
 
         envmap["ROOT_PREFIX"] = context.prefix_params.root_prefix.string();
         envmap["PREFIX"] = env_prefix.size() ? env_prefix : prefix.string();
-        envmap["PKG_NAME"] = pkg_info.name;
+        envmap["PKG_NAME"] = pkg_info.name();
         envmap["PKG_VERSION"] = pkg_info.version;
         envmap["PKG_BUILDNUM"] = std::to_string(pkg_info.build_number);
 
@@ -423,7 +423,7 @@ namespace mamba
         envmap["PATH"] = util::concat(path.parent_path().string(), util::pathsep(), PATH);
 
         std::string cargs = util::join(" ", command_args);
-        LOG_DEBUG << "For " << pkg_info.name << " at " << envmap["PREFIX"]
+        LOG_DEBUG << "For " << pkg_info.name() << " at " << envmap["PREFIX"]
                   << ", executing script: $ " << cargs;
         LOG_TRACE << "Calling " << cargs;
 
@@ -463,7 +463,7 @@ namespace mamba
             {
                 LOG_ERROR << "CONDA_TEST_SAVE_TEMPS :: retaining run_script" << script_file->path();
             }
-            throw std::runtime_error("failed to execute pre/post link script for " + pkg_info.name);
+            throw std::runtime_error("failed to execute pre/post link script for " + pkg_info.name());
         }
         return true;
     }
@@ -996,7 +996,7 @@ namespace mamba
         specs::MatchSpec* requested_spec = nullptr;
         for (auto& ms : m_context->requested_specs)
         {
-            if (ms.name().contains(m_pkg_info.name))
+            if (ms.name().contains(m_pkg_info.name()))
             {
                 requested_spec = &ms;
             }

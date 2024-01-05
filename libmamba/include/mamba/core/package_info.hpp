@@ -18,7 +18,6 @@ namespace mamba
     {
     public:
 
-        std::string name = {};
         std::string version = {};
         std::string build_string = {};
         std::string noarch = {};
@@ -47,6 +46,10 @@ namespace mamba
         explicit PackageInfo(std::string name);
         PackageInfo(std::string name, std::string version, std::string build_string, std::size_t build_number);
 
+        [[nodiscard]] auto name() const -> const std::string&;
+
+        void set_name(std::string name);
+
         [[nodiscard]] auto json_signable() const -> nlohmann::json;
         [[nodiscard]] auto str() const -> std::string;
         [[nodiscard]] auto long_str() const -> std::string;
@@ -55,6 +58,10 @@ namespace mamba
          * Dynamically get a field (e.g. name, version) as a string.
          */
         [[nodiscard]] auto field(std::string_view name) const -> std::string;
+
+    private:
+
+        std::string m_name = {};
     };
 
     auto operator==(const PackageInfo& lhs, const PackageInfo& rhs) -> bool;

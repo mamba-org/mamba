@@ -36,14 +36,14 @@ namespace mamba
                 const auto& context = mambatests::context();
                 const auto pkg = detail::make_virtual_package("test", context.platform, "0.1.5", "abcd");
 
-                CHECK_EQ(pkg.name, "test");
+                CHECK_EQ(pkg.name(), "test");
                 CHECK_EQ(pkg.version, "0.1.5");
                 CHECK_EQ(pkg.build_string, "abcd");
                 CHECK_EQ(pkg.build_number, 0);
                 CHECK_EQ(pkg.channel, "@");
                 CHECK_EQ(pkg.subdir, context.platform);
                 CHECK_EQ(pkg.md5, "12345678901234567890123456789012");
-                CHECK_EQ(pkg.filename, pkg.name);
+                CHECK_EQ(pkg.filename, pkg.name());
             }
 
             TEST_CASE("dist_packages")
@@ -54,23 +54,23 @@ namespace mamba
                 if (util::on_win)
                 {
                     REQUIRE_EQ(pkgs.size(), 2);
-                    CHECK_EQ(pkgs[0].name, "__win");
+                    CHECK_EQ(pkgs[0].name(), "__win");
                 }
                 if (util::on_linux)
                 {
                     REQUIRE_EQ(pkgs.size(), 4);
-                    CHECK_EQ(pkgs[0].name, "__unix");
-                    CHECK_EQ(pkgs[1].name, "__linux");
-                    CHECK_EQ(pkgs[2].name, "__glibc");
+                    CHECK_EQ(pkgs[0].name(), "__unix");
+                    CHECK_EQ(pkgs[1].name(), "__linux");
+                    CHECK_EQ(pkgs[2].name(), "__glibc");
                 }
                 if (util::on_mac)
                 {
                     REQUIRE_EQ(pkgs.size(), 3);
-                    CHECK_EQ(pkgs[0].name, "__unix");
-                    CHECK_EQ(pkgs[1].name, "__osx");
+                    CHECK_EQ(pkgs[0].name(), "__unix");
+                    CHECK_EQ(pkgs[1].name(), "__osx");
                 }
 #if __x86_64__ || defined(_WIN64)
-                CHECK_EQ(pkgs.back().name, "__archspec");
+                CHECK_EQ(pkgs.back().name(), "__archspec");
                 CHECK_EQ(pkgs.back().build_string.find("x86_64"), 0);
 #endif
 
@@ -83,10 +83,10 @@ namespace mamba
                 util::set_env("CONDA_OVERRIDE_OSX", "12.1");
                 pkgs = detail::dist_packages(ctx);
                 REQUIRE_EQ(pkgs.size(), 3);
-                CHECK_EQ(pkgs[0].name, "__unix");
-                CHECK_EQ(pkgs[1].name, "__osx");
+                CHECK_EQ(pkgs[0].name(), "__unix");
+                CHECK_EQ(pkgs[1].name(), "__osx");
                 CHECK_EQ(pkgs[1].version, "12.1");
-                CHECK_EQ(pkgs[2].name, "__archspec");
+                CHECK_EQ(pkgs[2].name(), "__archspec");
                 CHECK_EQ(pkgs[2].build_string, "arm");
 
                 util::unset_env("CONDA_OVERRIDE_OSX");
@@ -95,12 +95,12 @@ namespace mamba
                 util::set_env("CONDA_OVERRIDE_GLIBC", "2.15");
                 pkgs = detail::dist_packages(ctx);
                 REQUIRE_EQ(pkgs.size(), 4);
-                CHECK_EQ(pkgs[0].name, "__unix");
-                CHECK_EQ(pkgs[1].name, "__linux");
+                CHECK_EQ(pkgs[0].name(), "__unix");
+                CHECK_EQ(pkgs[1].name(), "__linux");
                 CHECK_EQ(pkgs[1].version, "5.7");
-                CHECK_EQ(pkgs[2].name, "__glibc");
+                CHECK_EQ(pkgs[2].name(), "__glibc");
                 CHECK_EQ(pkgs[2].version, "2.15");
-                CHECK_EQ(pkgs[3].name, "__archspec");
+                CHECK_EQ(pkgs[3].name(), "__archspec");
                 CHECK_EQ(pkgs[3].build_string, "x86");
                 util::unset_env("CONDA_OVERRIDE_GLIBC");
                 util::unset_env("CONDA_OVERRIDE_LINUX");
@@ -108,7 +108,7 @@ namespace mamba
                 ctx.platform = "lin-850";
                 pkgs = detail::dist_packages(ctx);
                 REQUIRE_EQ(pkgs.size(), 1);
-                CHECK_EQ(pkgs[0].name, "__archspec");
+                CHECK_EQ(pkgs[0].name(), "__archspec");
                 CHECK_EQ(pkgs[0].build_string, "850");
                 util::unset_env("CONDA_SUBDIR");
 
@@ -141,7 +141,7 @@ namespace mamba
 
                 ++pkgs_count;
                 REQUIRE_EQ(pkgs.size(), pkgs_count);
-                CHECK_EQ(pkgs.back().name, "__cuda");
+                CHECK_EQ(pkgs.back().name(), "__cuda");
                 CHECK_EQ(pkgs.back().version, "9.0");
 
                 util::unset_env("CONDA_OVERRIDE_CUDA");

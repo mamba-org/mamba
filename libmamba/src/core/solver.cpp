@@ -743,7 +743,7 @@ namespace mamba
                         // how the solver is handling this package, as this is resolved in term of
                         // installed packages and solver flags (allow downgrade...) rather than a
                         // dependency.
-                        auto edge = specs::MatchSpec::parse(source.value().name);
+                        auto edge = specs::MatchSpec::parse(source.value().name());
                         // The package cannot exist without its name in the pool
                         assert(m_pool.pool().find_string(edge.name().str()).has_value());
                         const auto dep_id = m_pool.pool().find_string(edge.name().str()).value();

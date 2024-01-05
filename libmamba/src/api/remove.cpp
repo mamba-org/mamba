@@ -48,7 +48,7 @@ namespace mamba
             PrefixData& prefix_data = sprefix_data.value();
             for (const auto& package : prefix_data.records())
             {
-                remove_specs.push_back(package.second.name);
+                remove_specs.push_back(package.second.name());
             }
         }
 

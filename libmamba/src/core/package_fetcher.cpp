@@ -114,7 +114,7 @@ namespace mamba
 
     const std::string& PackageFetcher::name() const
     {
-        return m_package_info.name;
+        return m_package_info.name();
     }
 
     bool PackageFetcher::needs_download() const

@@ -122,7 +122,7 @@ namespace
         auto packages_j = nl::json::object();
         for (const auto& pkg : packages)
         {
-            auto fname = fmt::format("{}-{}-{}.tar.bz2", pkg.name, pkg.version, pkg.build_string);
+            auto fname = fmt::format("{}-{}-{}.tar.bz2", pkg.name(), pkg.version, pkg.build_string);
             packages_j[std::move(fname)] = nl::json(pkg);
         }
         auto repodata_j = nl::json::object();

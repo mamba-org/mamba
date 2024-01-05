@@ -172,7 +172,7 @@ namespace mamba
         auto print_metadata(std::ostream& out, const PackageInfo& pkg)
         {
             static constexpr const char* fmtstring = " {:<15} {}\n";
-            fmt::print(out, fmtstring, "Name", pkg.name);
+            fmt::print(out, fmtstring, "Name", pkg.name());
             fmt::print(out, fmtstring, "Version", pkg.version);
             fmt::print(out, fmtstring, "Build", pkg.build_string);
             fmt::print(out, " {:<15} {} kB\n", "Size", pkg.size / 1000);
@@ -338,7 +338,7 @@ namespace mamba
             {
                 additionalBuilds = fmt::format(" (+ {} builds)", numOtherBuildsForLatestVersion);
             }
-            std::string header = fmt::format("{} {} {}", pkg.name, pkg.version, pkg.build_string)
+            std::string header = fmt::format("{} {} {}", pkg.name(), pkg.version, pkg.build_string)
                                  + additionalBuilds;
             fmt::print(out, "{:^40}\n{:─^{}}\n\n", header, "", header.size() > 40 ? header.size() : 40);
 
@@ -662,7 +662,7 @@ namespace mamba
                 const auto& cmd = cmds[i];
                 if (cmd == "Name")
                 {
-                    row.push_back(pkg.name);
+                    row.push_back(pkg.name());
                 }
                 else if (cmd == "Version")
                 {
@@ -721,7 +721,7 @@ namespace mamba
                     auto package = m_dep_graph.node(id);
                     if (distinctBuildSHAs.insert(package.sha256).second)
                     {
-                        packageBuildsByVersion[package.name][package.version].push_back(package);
+                        packageBuildsByVersion[package.name()][package.version].push_back(package);
                     }
                 }
             }
@@ -805,7 +805,7 @@ namespace mamba
         void forward_or_cross_edge(node_id, node_id to, const graph_type& g)
         {
             print_prefix(to);
-            m_out << g.node(to).name << fmt::format(m_graphics.palette.shown, " already visited\n");
+            m_out << g.node(to).name() << fmt::format(m_graphics.palette.shown, " already visited\n");
         }
 
         void finish_edge(node_id /*from*/, node_id to, const graph_type& /*g*/)
@@ -837,7 +837,7 @@ namespace mamba
 
         std::string get_package_repr(const PackageInfo& pkg) const
         {
-            return pkg.version.empty() ? pkg.name : pkg.name + '[' + pkg.version + ']';
+            return pkg.version.empty() ? pkg.name() : pkg.name() + '[' + pkg.version + ']';
         }
 
         std::stack<node_id> m_last_stack;
@@ -926,7 +926,7 @@ namespace mamba
             for (const auto& id : m_pkg_id_list)
             {
                 auto package = m_dep_graph.node(id);
-                packages[package.name].push_back(package);
+                packages[package.name()].push_back(package);
             }
 
             auto out = Console::stream();
@@ -957,6 +957,6 @@ namespace mamba
 
     std::string query_result::get_package_repr(const PackageInfo& pkg) const
     {
-        return pkg.version.empty() ? pkg.name : fmt::format("{}[{}]", pkg.name, pkg.version);
+        return pkg.version.empty() ? pkg.name() : fmt::format("{}[{}]", pkg.name(), pkg.version);
     }
 }  // namespace mamba

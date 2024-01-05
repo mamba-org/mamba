@@ -293,7 +293,7 @@ namespace mamba
         {
             PackageInfo out = {};
 
-            out.name = s.name();
+            out.set_name(std::string(s.name()));
             out.version = s.version();
             out.build_string = s.build_string();
             out.noarch = s.noarch();

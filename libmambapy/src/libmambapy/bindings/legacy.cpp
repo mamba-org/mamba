@@ -1040,7 +1040,7 @@ bind_submodule_impl(pybind11::module_ m)
             py::arg("build_string"),
             py::arg("build_number")
         )
-        .def_readwrite("name", &PackageInfo::name)
+        .def_property("name", &PackageInfo::name, &PackageInfo::set_name)
         .def_readwrite("version", &PackageInfo::version)
         .def_readwrite("build_string", &PackageInfo::build_string)
         .def_readwrite("build_number", &PackageInfo::build_number)

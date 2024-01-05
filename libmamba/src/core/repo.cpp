@@ -91,7 +91,7 @@ namespace mamba
 
         void set_solvable(MPool& pool, solv::ObjSolvableView solv, const PackageInfo& pkg)
         {
-            solv.set_name(pkg.name);
+            solv.set_name(pkg.name());
             solv.set_version(pkg.version);
             solv.set_build_string(pkg.build_string);
             solv.set_noarch(pkg.noarch);
@@ -381,7 +381,7 @@ namespace mamba
         m_repo = repo.raw();
         for (auto& info : package_infos)
         {
-            LOG_INFO << "Adding package record to repo " << info.name;
+            LOG_INFO << "Adding package record to repo " << info.name();
             auto [id, solv] = srepo(*this).add_solvable();
             set_solvable(m_pool, solv, info);
         }
@@ -396,7 +396,7 @@ namespace mamba
 
         for (auto& [name, record] : prefix_data.records())
         {
-            LOG_INFO << "Adding package record to repo " << record.name;
+            LOG_INFO << "Adding package record to repo " << record.name();
             auto [id, solv] = srepo(*this).add_solvable();
             set_solvable(m_pool, solv, record);
         }

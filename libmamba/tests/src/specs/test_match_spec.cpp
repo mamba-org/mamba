@@ -83,6 +83,21 @@ TEST_SUITE("specs::match_spec")
         }
         {
             auto ms = MatchSpec::parse(
+                "https://conda.anaconda.org/conda-forge/linux-64/ncurses-6.4-h59595ed_2.conda"
+                "#7dbaa197d7ba6032caf7ae7f32c1efa0"
+            );
+            CHECK_EQ(ms.name().str(), "ncurses");
+            CHECK_EQ(ms.version().str(), "==6.4");
+            CHECK_EQ(ms.build_string().str(), "h59595ed_2");
+            CHECK_EQ(
+                ms.url(),
+                "https://conda.anaconda.org/conda-forge/linux-64/ncurses-6.4-h59595ed_2.conda"
+            );
+            CHECK_EQ(ms.filename(), "ncurses-6.4-h59595ed_2.conda");
+            CHECK_EQ(ms.md5(), "7dbaa197d7ba6032caf7ae7f32c1efa0");
+        }
+        {
+            auto ms = MatchSpec::parse(
                 "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
             );
             CHECK_EQ(ms.name().str(), "_libgcc_mutex");

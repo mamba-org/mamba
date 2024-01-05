@@ -26,6 +26,15 @@ namespace mamba::specs
         using NameSpec = GlobSpec;
         using BuildStringSpec = GlobSpec;
 
+        inline static constexpr char url_md5_sep = '#';
+        inline static constexpr char prefered_list_open = '[';
+        inline static constexpr char prefered_list_close = ']';
+        inline static constexpr char alt_list_open = '(';
+        inline static constexpr char alt_list_close = ')';
+        inline static constexpr char prefered_quote = '"';
+        inline static constexpr char alt_quote = '\'';
+
+
         [[nodiscard]] static auto parse(std::string_view spec) -> MatchSpec;
 
         [[nodiscard]] static auto parse_url(std::string_view spec) -> MatchSpec;

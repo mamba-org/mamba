@@ -42,7 +42,7 @@ namespace mamba
         }
     }
 
-    nlohmann::json PackageInfo::json_signable() const
+    auto PackageInfo::json_signable() const -> nlohmann::json
     {
         nlohmann::json j;
 
@@ -89,12 +89,16 @@ namespace mamba
         return j;
     }
 
-    std::string PackageInfo::str() const
+    auto PackageInfo::str() const -> std::string
     {
-        return std::string(specs::strip_archive_extension(fn));
+        if (!fn.empty())
+        {
+            return std::string(specs::strip_archive_extension(fn));
+        }
+        return fmt::format("{}-{}-{}", name, version, build_string);
     }
 
-    std::string PackageInfo::long_str() const
+    auto PackageInfo::long_str() const -> std::string
     {
         // TODO channel contains subdir right now?!
         return util::concat(channel, "::", str());

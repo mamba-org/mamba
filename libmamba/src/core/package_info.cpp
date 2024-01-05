@@ -5,9 +5,10 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <functional>
-#include <map>
 #include <tuple>
+#include <type_traits>
 
+#include <fmt/core.h>
 #include <fmt/format.h>
 
 #include "mamba/core/package_info.hpp"
@@ -16,82 +17,6 @@
 
 namespace mamba
 {
-    namespace
-    {
-        template <class T>
-        std::string get_package_info_field(const PackageInfo&, T PackageInfo::*field);
-
-        template <>
-        std::string
-        get_package_info_field<std::string>(const PackageInfo& pkg, std::string PackageInfo::*field)
-        {
-            return pkg.*field;
-        }
-
-        template <>
-        std::string
-        get_package_info_field<std::size_t>(const PackageInfo& pkg, std::size_t PackageInfo::*field)
-        {
-            return std::to_string(pkg.*field);
-        }
-
-        template <class T>
-        PackageInfo::field_getter build_field_getter(T PackageInfo::*field)
-        {
-            return std::bind(get_package_info_field<T>, std::placeholders::_1, field);
-        }
-
-        using field_getter_map = std::map<std::string_view, PackageInfo::field_getter>;
-
-        field_getter_map build_field_getter_map()
-        {
-            field_getter_map res;
-            res["name"] = build_field_getter(&PackageInfo::name);
-            res["version"] = build_field_getter(&PackageInfo::version);
-            res["build_string"] = build_field_getter(&PackageInfo::build_string);
-            res["build_number"] = build_field_getter(&PackageInfo::build_number);
-            res["noarch"] = build_field_getter(&PackageInfo::noarch);
-            res["channel"] = build_field_getter(&PackageInfo::channel);
-            res["url"] = build_field_getter(&PackageInfo::url);
-            res["subdir"] = build_field_getter(&PackageInfo::subdir);
-            res["fn"] = build_field_getter(&PackageInfo::fn);
-            res["license"] = build_field_getter(&PackageInfo::license);
-            res["size"] = build_field_getter(&PackageInfo::size);
-            res["timestamp"] = build_field_getter(&PackageInfo::timestamp);
-            return res;
-        }
-
-        const field_getter_map& get_field_getter_map()
-        {
-            static field_getter_map m = build_field_getter_map();
-            return m;
-        }
-    }  // namespace
-
-    PackageInfo::field_getter PackageInfo::get_field_getter(std::string_view field_name)
-    {
-        auto it = get_field_getter_map().find(field_name);
-        if (it == get_field_getter_map().end())
-        {
-            throw std::runtime_error("field_getter function not found");
-        }
-        return it->second;
-    }
-
-    PackageInfo::compare_fun PackageInfo::less(std::string_view member)
-    {
-        auto getter = get_field_getter(member);
-        return [getter](const PackageInfo& lhs, const PackageInfo& rhs)
-        { return getter(lhs) < getter(rhs); };
-    }
-
-    PackageInfo::compare_fun PackageInfo::equal(std::string_view member)
-    {
-        auto getter = get_field_getter(member);
-        return [getter](const PackageInfo& lhs, const PackageInfo& rhs)
-        { return getter(lhs) == getter(rhs); };
-    }
-
     PackageInfo::PackageInfo(nlohmann::json&& j)
     {
         name = j.value("name", "");
@@ -254,6 +179,91 @@ namespace mamba
     {
         // TODO channel contains subdir right now?!
         return util::concat(channel, "::", str());
+    }
+
+    namespace
+    {
+        template <typename Func>
+        auto invoke_field_string(const PackageInfo& p, Func&& field) -> std::string
+        {
+            using Out = std::decay_t<std::invoke_result_t<Func, PackageInfo>>;
+
+            if constexpr (std::is_same_v<Out, const char*>)
+            {
+                return std::string{ std::invoke(field, p) };
+            }
+            else if constexpr (std::is_integral_v<Out> || std::is_floating_point_v<Out>)
+            {
+                return std::to_string(std::invoke(field, p));
+            }
+            else if constexpr (std::is_convertible_v<Out, std::string>)
+            {
+                return static_cast<std::string>(std::invoke(field, p));
+            }
+            else if constexpr (std::is_constructible_v<Out, std::string>)
+            {
+                return std::string(std::invoke(field, p));
+            }
+            else if constexpr (fmt::is_formattable<Out>::value)
+            {
+                return fmt::format("{}", std::invoke(field, p));
+            }
+            return "";
+        }
+    }
+
+    auto PackageInfo::field(std::string_view field_name) const -> std::string
+    {
+        field_name = util::strip(field_name);
+        if (field_name == "name")
+        {
+            return invoke_field_string(*this, &PackageInfo::name);
+        }
+        if (field_name == "version")
+        {
+            return invoke_field_string(*this, &PackageInfo::version);
+        }
+        if (field_name == "build_string")
+        {
+            return invoke_field_string(*this, &PackageInfo::build_string);
+        }
+        if (field_name == "build_number")
+        {
+            return invoke_field_string(*this, &PackageInfo::build_number);
+        }
+        if (field_name == "noarch")
+        {
+            return invoke_field_string(*this, &PackageInfo::noarch);
+        }
+        if (field_name == "channel")
+        {
+            return invoke_field_string(*this, &PackageInfo::channel);
+        }
+        if (field_name == "url")
+        {
+            return invoke_field_string(*this, &PackageInfo::url);
+        }
+        if (field_name == "subdir")
+        {
+            return invoke_field_string(*this, &PackageInfo::subdir);
+        }
+        if (field_name == "fn" || field_name == "filename")
+        {
+            return invoke_field_string(*this, &PackageInfo::fn);
+        }
+        if (field_name == "license")
+        {
+            return invoke_field_string(*this, &PackageInfo::license);
+        }
+        if (field_name == "size")
+        {
+            return invoke_field_string(*this, &PackageInfo::size);
+        }
+        if (field_name == "timestamp")
+        {
+            return invoke_field_string(*this, &PackageInfo::timestamp);
+        }
+        throw std::invalid_argument(fmt::format(R"(Invalid field "{}")", field_name));
     }
 
     namespace

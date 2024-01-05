@@ -19,13 +19,6 @@ namespace mamba
     {
     public:
 
-        using field_getter = std::function<std::string(const PackageInfo&)>;
-        using compare_fun = std::function<bool(const PackageInfo&, const PackageInfo&)>;
-
-        static field_getter get_field_getter(std::string_view field_name);
-        static compare_fun less(std::string_view member);
-        static compare_fun equal(std::string_view member);
-
         PackageInfo() = default;
         explicit PackageInfo(nlohmann::json&& j);
         explicit PackageInfo(std::string name);
@@ -35,6 +28,11 @@ namespace mamba
         nlohmann::json json_signable() const;
         std::string str() const;
         std::string long_str() const;
+
+        /**
+         * Dynamically get a field (e.g. name, version) as a string.
+         */
+        [[nodiscard]] auto field(std::string_view name) const -> std::string;
 
         std::string name = {};
         std::string version = {};

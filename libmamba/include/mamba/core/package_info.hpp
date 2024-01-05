@@ -7,7 +7,6 @@
 #ifndef MAMBA_CORE_PACKAGE_INFO
 #define MAMBA_CORE_PACKAGE_INFO
 
-#include <set>
 #include <string>
 #include <vector>
 
@@ -42,7 +41,7 @@ namespace mamba
         std::vector<std::string> depends = {};
         std::vector<std::string> constrains = {};
         std::string signatures = {};
-        std::set<std::string> defaulted_keys = {};
+        std::vector<std::string> defaulted_keys = {};
 
         PackageInfo() = default;
         explicit PackageInfo(nlohmann::json&& j);

@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
 #include <functional>
 #include <tuple>
 #include <type_traits>
@@ -123,6 +124,15 @@ namespace mamba
         return j;
     }
 
+    namespace
+    {
+        template <typename T, typename U>
+        auto contains(const std::vector<T>& v, const U& val)
+        {
+            return std::find(v.cbegin(), v.cend(), val) != v.cend();
+        }
+    }
+
     nlohmann::json PackageInfo::json_signable() const
     {
         nlohmann::json j;
@@ -146,7 +156,7 @@ namespace mamba
         // Defaulted keys to empty arrays
         if (depends.empty())
         {
-            if (defaulted_keys.find("depends") == defaulted_keys.end())
+            if (!contains(defaulted_keys, "depends"))
             {
                 j["depends"] = nlohmann::json::array();
             }
@@ -157,7 +167,7 @@ namespace mamba
         }
         if (constrains.empty())
         {
-            if (defaulted_keys.find("constrains") == defaulted_keys.end())
+            if (!contains(defaulted_keys, "constrains"))
             {
                 j["constrains"] = nlohmann::json::array();
             }

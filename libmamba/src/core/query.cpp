@@ -178,7 +178,7 @@ namespace mamba
             fmt::print(out, " {:<15} {} kB\n", "Size", pkg.size / 1000);
             fmt::print(out, fmtstring, "License", pkg.license);
             fmt::print(out, fmtstring, "Subdir", pkg.subdir);
-            fmt::print(out, fmtstring, "File Name", pkg.fn);
+            fmt::print(out, fmtstring, "File Name", pkg.filename);
 
             using CondaURL = typename specs::CondaURL;
             auto url = CondaURL::parse(pkg.url);

@@ -86,7 +86,7 @@ namespace mamba
                         p.subdir = ms.channel()->platform_filters().front();
                     }
                 }
-                p.fn = ms.filename();
+                p.filename = ms.filename();
                 p.md5 = ms.md5();
                 p.sha256 = ms.sha256();
             }
@@ -768,7 +768,7 @@ namespace mamba
             m_solution.actions,
             [&](const auto& pkg)
             {
-                to_remove_structured.emplace_back(pkg.channel, pkg.fn);  //
+                to_remove_structured.emplace_back(pkg.channel, pkg.filename);  //
             }
         );
 
@@ -778,7 +778,7 @@ namespace mamba
             m_solution.actions,
             [&](const auto& pkg)
             {
-                to_install_structured.emplace_back(pkg.channel, pkg.fn, nl::json(pkg).dump(4));  //
+                to_install_structured.emplace_back(pkg.channel, pkg.filename, nl::json(pkg).dump(4));  //
             }
         );
 
@@ -1247,7 +1247,7 @@ namespace mamba
             {
                 if (str == "explicit_specs")
                 {
-                    chan_name = s.fn;
+                    chan_name = s.filename;
                 }
                 else
                 {

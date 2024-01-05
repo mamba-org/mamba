@@ -105,9 +105,9 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
 
         for (const auto& pkg_info : package_details)
         {
-            fs::u8path entry = pkgs_dir / pkg_info.fn;
-            LOG_TRACE << "Extracting " << pkg_info.fn << std::endl;
-            std::cout << "Extracting " << pkg_info.fn << std::endl;
+            fs::u8path entry = pkgs_dir / pkg_info.filename;
+            LOG_TRACE << "Extracting " << pkg_info.filename << std::endl;
+            std::cout << "Extracting " << pkg_info.filename << std::endl;
 
             fs::u8path base_path = extract(entry, ExtractOptions::from_context(config.context()));
 
@@ -115,9 +115,9 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
             fs::u8path index_path = base_path / "info" / "index.json";
 
             std::string channel_url;
-            if (pkg_info.url.size() > pkg_info.fn.size())
+            if (pkg_info.url.size() > pkg_info.filename.size())
             {
-                channel_url = pkg_info.url.substr(0, pkg_info.url.size() - pkg_info.fn.size());
+                channel_url = pkg_info.url.substr(0, pkg_info.url.size() - pkg_info.filename.size());
             }
             std::string repodata_cache_name = util::concat(cache_name_from_url(channel_url), ".json");
             fs::u8path repodata_location = pkgs_dir / "cache" / repodata_cache_name;
@@ -133,7 +133,7 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
                     repodatas[repodata_cache_name] = j;
                 }
                 auto& j = repodatas[repodata_cache_name];
-                repodata_record = find_package(j, pkg_info.fn);
+                repodata_record = find_package(j, pkg_info.filename);
             }
 
             nlohmann::json index;
@@ -162,7 +162,7 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
                 }
             }
 
-            repodata_record["fn"] = pkg_info.fn;
+            repodata_record["fn"] = pkg_info.filename;
             repodata_record["url"] = pkg_info.url;
             repodata_record["channel"] = pkg_info.channel;
 

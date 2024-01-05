@@ -91,9 +91,9 @@ namespace mamba
 
     auto PackageInfo::str() const -> std::string
     {
-        if (!fn.empty())
+        if (!filename.empty())
         {
-            return std::string(specs::strip_archive_extension(fn));
+            return std::string(specs::strip_archive_extension(filename));
         }
         return fmt::format("{}-{}-{}", name, version, build_string);
     }
@@ -172,7 +172,7 @@ namespace mamba
         }
         if (field_name == "fn" || field_name == "filename")
         {
-            return invoke_field_string(*this, &PackageInfo::fn);
+            return invoke_field_string(*this, &PackageInfo::filename);
         }
         if (field_name == "license")
         {
@@ -202,7 +202,7 @@ namespace mamba
                 p.channel,
                 p.url,
                 p.subdir,
-                p.fn,
+                p.filename,
                 p.license,
                 p.size,
                 p.timestamp,
@@ -234,7 +234,7 @@ namespace mamba
         j["channel"] = pkg.channel;
         j["url"] = pkg.url;
         j["subdir"] = pkg.subdir;
-        j["fn"] = pkg.fn;
+        j["fn"] = pkg.filename;
         j["size"] = pkg.size;
         j["timestamp"] = pkg.timestamp;
         j["build"] = pkg.build_string;
@@ -280,7 +280,7 @@ namespace mamba
         pkg.channel = j.value("channel", "");
         pkg.url = j.value("url", "");
         pkg.subdir = j.value("subdir", "");
-        pkg.fn = j.value("fn", "");
+        pkg.filename = j.value("fn", "");
         pkg.size = j.value("size", std::size_t(0));
         pkg.timestamp = j.value("timestamp", std::size_t(0));
         if (std::string build = j.value("build", "<UNKNOWN>"); build != "<UNKNOWN>")

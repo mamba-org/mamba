@@ -31,7 +31,7 @@ namespace mamba
         std::string channel = {};
         std::string url = {};
         std::string subdir = {};
-        std::string fn = {};
+        std::string filename = {};
         std::string license = {};
         std::size_t size = 0;
         std::size_t timestamp = 0;

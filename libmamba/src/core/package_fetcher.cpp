@@ -308,7 +308,7 @@ namespace mamba
 
     const std::string& PackageFetcher::filename() const
     {
-        return m_package_info.fn;
+        return m_package_info.filename;
     }
 
     const std::string& PackageFetcher::url() const

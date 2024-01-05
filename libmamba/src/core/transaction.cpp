@@ -75,7 +75,7 @@ namespace mamba
                 auto& p = out.back();
                 p.url = ms.url();
                 p.build_string = ms.build_string().str();
-                p.version = ms.version().str_conda_build();
+                p.set_version(ms.version().str_conda_build());
                 if (ms.channel().has_value())
                 {
                     p.channel = ms.channel()->location();
@@ -274,7 +274,7 @@ namespace mamba
                 {
                     if (pkg.name() == "python")
                     {
-                        new_py_ver = pkg.version;
+                        new_py_ver = pkg.version();
                         LOG_INFO << "Found python version in packages to be installed " << new_py_ver;
                         // Could break but not supported with for_each API
                     }
@@ -481,7 +481,7 @@ namespace mamba
                                 pool.add_conda_dependency(fmt::format(
                                     "{} {} {}",
                                     pkg_info.name(),
-                                    pkg_info.version,
+                                    pkg_info.version(),
                                     pkg_info.build_string
                                 )),
                             };
@@ -505,7 +505,7 @@ namespace mamba
                                     " package {} {} {} but we could not find it in",
                                     " any of the loaded channels.",
                                     pkg_info.name(),
-                                    pkg_info.version,
+                                    pkg_info.version(),
                                     pkg_info.build_string
                                 );
                             }
@@ -580,7 +580,7 @@ namespace mamba
         for (const auto& pkginfo : packages)
         {
             specs_to_install.push_back(specs::MatchSpec::parse(
-                fmt::format("{}=={}={}", pkginfo.name(), pkginfo.version, pkginfo.build_string)
+                fmt::format("{}=={}={}", pkginfo.name(), pkginfo.version(), pkginfo.build_string)
             ));
         }
 
@@ -1272,7 +1272,7 @@ namespace mamba
             }
 
             r.push_back({ name,
-                          printers::FormattedString(s.version),
+                          printers::FormattedString(s.version()),
                           printers::FormattedString(s.build_string),
                           printers::FormattedString(cut_repo_name(chan_name)),
                           dlsize_s });

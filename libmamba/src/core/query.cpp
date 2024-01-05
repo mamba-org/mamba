@@ -173,7 +173,7 @@ namespace mamba
         {
             static constexpr const char* fmtstring = " {:<15} {}\n";
             fmt::print(out, fmtstring, "Name", pkg.name());
-            fmt::print(out, fmtstring, "Version", pkg.version);
+            fmt::print(out, fmtstring, "Version", pkg.version());
             fmt::print(out, fmtstring, "Build", pkg.build_string);
             fmt::print(out, " {:<15} {} kB\n", "Size", pkg.size / 1000);
             fmt::print(out, fmtstring, "License", pkg.license);
@@ -267,7 +267,7 @@ namespace mamba
                 }
 
                 std::vector<FormattedString> row;
-                row.push_back(it->second.front().version);
+                row.push_back(it->second.front().version());
                 row.push_back(it->second.front().build_string);
                 if (it->second.size() > 1)
                 {
@@ -309,7 +309,7 @@ namespace mamba
                 {
                     if (p.sha256 != pkg.sha256)
                     {
-                        groupedOtherBuilds[p.version + p.sha256].push_back(p);
+                        groupedOtherBuilds[p.version() + p.sha256].push_back(p);
                     }
                 }
             }
@@ -320,9 +320,9 @@ namespace mamba
                 {
                     if (distinctBuildSHAs.insert(p.sha256).second)
                     {
-                        if (p.version != pkg.version)
+                        if (p.version() != pkg.version())
                         {
-                            groupedOtherBuilds[p.version].push_back(p);
+                            groupedOtherBuilds[p.version()].push_back(p);
                         }
                         else
                         {
@@ -338,7 +338,7 @@ namespace mamba
             {
                 additionalBuilds = fmt::format(" (+ {} builds)", numOtherBuildsForLatestVersion);
             }
-            std::string header = fmt::format("{} {} {}", pkg.name(), pkg.version, pkg.build_string)
+            std::string header = fmt::format("{} {} {}", pkg.name(), pkg.version(), pkg.build_string)
                                  + additionalBuilds;
             fmt::print(out, "{:^40}\n{:─^{}}\n\n", header, "", header.size() > 40 ? header.size() : 40);
 
@@ -666,7 +666,7 @@ namespace mamba
                 }
                 else if (cmd == "Version")
                 {
-                    row.push_back(pkg.version);
+                    row.push_back(pkg.version());
                 }
                 else if (cmd == "Build")
                 {
@@ -721,7 +721,7 @@ namespace mamba
                     auto package = m_dep_graph.node(id);
                     if (distinctBuildSHAs.insert(package.sha256).second)
                     {
-                        packageBuildsByVersion[package.name()][package.version].push_back(package);
+                        packageBuildsByVersion[package.name()][package.version()].push_back(package);
                     }
                 }
             }
@@ -837,7 +837,8 @@ namespace mamba
 
         std::string get_package_repr(const PackageInfo& pkg) const
         {
-            return pkg.version.empty() ? pkg.name() : pkg.name() + '[' + pkg.version + ']';
+            return pkg.version().empty() ? pkg.name()
+                                         : util::concat(pkg.name(), '[', pkg.version(), ']');
         }
 
         std::stack<node_id> m_last_stack;
@@ -957,6 +958,6 @@ namespace mamba
 
     std::string query_result::get_package_repr(const PackageInfo& pkg) const
     {
-        return pkg.version.empty() ? pkg.name() : fmt::format("{}[{}]", pkg.name(), pkg.version);
+        return pkg.version().empty() ? pkg.name() : fmt::format("{}[{}]", pkg.name(), pkg.version());
     }
 }  // namespace mamba

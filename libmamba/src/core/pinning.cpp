@@ -22,7 +22,7 @@ namespace mamba
         auto iter = prefix_data.records().find("python");
         if (iter != prefix_data.records().end())
         {
-            py_version = iter->second.version;
+            py_version = iter->second.version();
         }
         else
         {

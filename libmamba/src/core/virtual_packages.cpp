@@ -153,7 +153,7 @@ namespace mamba
         )
         {
             PackageInfo res(name);
-            res.version = version.size() ? version : "0";
+            res.set_version(version.empty() ? "0" : version);
             res.build_string = build_string.size() ? build_string : "0";
             res.build_number = 0;
             res.channel = "@";

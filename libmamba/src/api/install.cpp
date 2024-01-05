@@ -358,7 +358,7 @@ namespace mamba
                 PackageInfo p(ms.name().str());
                 p.url = ms.url();
                 p.build_string = ms.build_string().str();
-                p.version = ms.version().str();
+                p.set_version(ms.version().str());
                 if (ms.channel().has_value())
                 {
                     p.channel = ms.channel()->location();

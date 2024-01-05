@@ -155,7 +155,7 @@ namespace mamba
             for (auto pkg : get_virtual_packages(ctx))
             {
                 virtual_pkgs.push_back(
-                    util::concat(pkg.name(), "=", pkg.version, "=", pkg.build_string)
+                    util::concat(pkg.name(), "=", pkg.version(), "=", pkg.build_string)
                 );
             }
             items.push_back({ "virtual packages", virtual_pkgs });

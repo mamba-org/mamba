@@ -294,7 +294,7 @@ namespace mamba
             PackageInfo out = {};
 
             out.set_name(std::string(s.name()));
-            out.version = s.version();
+            out.set_version(std::string(s.version()));
             out.build_string = s.build_string();
             out.noarch = s.noarch();
             out.build_number = s.build_number();

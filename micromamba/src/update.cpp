@@ -85,7 +85,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     Console::stream() << fmt::format(
         fg(fmt::terminal_color::green),
         "\n  Installing micromamba version: {} (currently installed {})",
-        latest_micromamba.value().version,
+        latest_micromamba.value().version(),
         umamba::version()
     );
 

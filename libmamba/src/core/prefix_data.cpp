@@ -67,7 +67,7 @@ namespace mamba
     {
         for (const auto& pkg : packages)
         {
-            LOG_DEBUG << "Adding virtual package: " << pkg.name() << "=" << pkg.version << "="
+            LOG_DEBUG << "Adding virtual package: " << pkg.name() << "=" << pkg.version() << "="
                       << pkg.build_string;
             m_package_records.insert({ pkg.name(), std::move(pkg) });
         }

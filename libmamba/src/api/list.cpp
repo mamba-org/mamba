@@ -81,7 +81,7 @@ namespace mamba
                         obj["dist_name"] = pkg_info.str();
                         obj["name"] = pkg_info.name();
                         obj["platform"] = pkg_info.subdir;
-                        obj["version"] = pkg_info.version;
+                        obj["version"] = pkg_info.version();
                         jout.push_back(obj);
                     }
                 }
@@ -103,7 +103,7 @@ namespace mamba
                 if (regex.empty() || std::regex_search(package.second.name(), spec_pat))
                 {
                     formatted_pkgs.name = package.second.name();
-                    formatted_pkgs.version = package.second.version;
+                    formatted_pkgs.version = package.second.version();
                     formatted_pkgs.build = package.second.build_string;
                     if (package.second.channel.find("https://repo.anaconda.com/pkgs/") == 0)
                     {

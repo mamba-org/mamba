@@ -105,7 +105,7 @@ namespace
         -> PackageInfo
     {
         auto pkg = PackageInfo(std::move(name));
-        pkg.version = std::move(version);
+        pkg.set_version(std::move(version));
         pkg.depends = std::move(dependencies);
         pkg.build_string = "bld";
         return pkg;
@@ -122,7 +122,7 @@ namespace
         auto packages_j = nl::json::object();
         for (const auto& pkg : packages)
         {
-            auto fname = fmt::format("{}-{}-{}.tar.bz2", pkg.name(), pkg.version, pkg.build_string);
+            auto fname = fmt::format("{}-{}-{}.tar.bz2", pkg.name(), pkg.version(), pkg.build_string);
             packages_j[std::move(fname)] = nl::json(pkg);
         }
         auto repodata_j = nl::json::object();

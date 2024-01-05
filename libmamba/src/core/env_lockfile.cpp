@@ -37,7 +37,7 @@ namespace mamba
                 /* .platform = */ package_node["platform"].as<std::string>(),
             };
 
-            package.info.version = package_node["version"].as<std::string>();
+            package.info.set_version(package_node["version"].as<std::string>());
             const auto& hash_node = package_node["hash"];
             if (const auto& md5_node = hash_node["md5"])
             {

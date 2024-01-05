@@ -92,7 +92,7 @@ namespace mamba
         void set_solvable(MPool& pool, solv::ObjSolvableView solv, const PackageInfo& pkg)
         {
             solv.set_name(pkg.name());
-            solv.set_version(pkg.version);
+            solv.set_version(pkg.version());
             solv.set_build_string(pkg.build_string);
             solv.set_noarch(pkg.noarch);
             solv.set_build_number(pkg.build_number);

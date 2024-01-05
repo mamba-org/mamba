@@ -27,7 +27,7 @@ namespace mamba
 
     PackageInfo::PackageInfo(std::string n, std::string v, std::string b, std::size_t bn)
         : m_name(std::move(n))
-        , version(std::move(v))
+        , m_version(std::move(v))
         , build_string(std::move(b))
         , build_number(std::move(bn))
     {
@@ -41,6 +41,16 @@ namespace mamba
     void PackageInfo::set_name(std::string name)
     {
         m_name = std::move(name);
+    }
+
+    auto PackageInfo::version() const -> const std::string&
+    {
+        return m_version;
+    }
+
+    void PackageInfo::set_version(std::string ver)
+    {
+        m_version = std::move(ver);
     }
 
     namespace
@@ -58,7 +68,7 @@ namespace mamba
 
         // Mandatory keys
         j["name"] = m_name;
-        j["version"] = version;
+        j["version"] = m_version;
         j["subdir"] = subdir;
         j["size"] = size;
         j["timestamp"] = timestamp;
@@ -105,7 +115,7 @@ namespace mamba
         {
             return std::string(specs::strip_archive_extension(filename));
         }
-        return fmt::format("{}-{}-{}", m_name, version, build_string);
+        return fmt::format("{}-{}-{}", m_name, m_version, build_string);
     }
 
     auto PackageInfo::long_str() const -> std::string
@@ -154,7 +164,7 @@ namespace mamba
         }
         if (field_name == "version")
         {
-            return invoke_field_string(*this, &PackageInfo::version);
+            return invoke_field_string(*this, &PackageInfo::m_version);
         }
         if (field_name == "build_string")
         {
@@ -205,7 +215,7 @@ namespace mamba
         {
             return std::tie(
                 p.name(),
-                p.version,
+                p.version(),
                 p.build_string,
                 p.noarch,
                 p.build_number,
@@ -240,7 +250,7 @@ namespace mamba
     void to_json(nlohmann::json& j, const PackageInfo& pkg)
     {
         j["name"] = pkg.name();
-        j["version"] = pkg.version;
+        j["version"] = pkg.version();
         j["channel"] = pkg.channel;
         j["url"] = pkg.url;
         j["subdir"] = pkg.subdir;
@@ -286,7 +296,7 @@ namespace mamba
     void from_json(const nlohmann::json& j, PackageInfo& pkg)
     {
         pkg.set_name(j.value("name", ""));
-        pkg.version = j.value("version", "");
+        pkg.set_version(j.value("version", ""));
         pkg.channel = j.value("channel", "");
         pkg.url = j.value("url", "");
         pkg.subdir = j.value("subdir", "");

@@ -47,7 +47,6 @@ namespace mamba
         explicit PackageInfo(std::string name);
         PackageInfo(std::string name, std::string version, std::string build_string, std::size_t build_number);
 
-        [[nodiscard]] auto json_record() const -> nlohmann::json;
         [[nodiscard]] auto json_signable() const -> nlohmann::json;
         [[nodiscard]] auto str() const -> std::string;
         [[nodiscard]] auto long_str() const -> std::string;
@@ -61,6 +60,8 @@ namespace mamba
     auto operator==(const PackageInfo& lhs, const PackageInfo& rhs) -> bool;
 
     auto operator!=(const PackageInfo& lhs, const PackageInfo& rhs) -> bool;
+
+    void to_json(nlohmann::json& j, const PackageInfo& pkg);
 
     void from_json(const nlohmann::json& j, PackageInfo& pkg);
 }

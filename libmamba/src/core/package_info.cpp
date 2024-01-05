@@ -33,54 +33,6 @@ namespace mamba
     {
     }
 
-    nlohmann::json PackageInfo::json_record() const
-    {
-        nlohmann::json j;
-        j["name"] = name;
-        j["version"] = version;
-        j["channel"] = channel;
-        j["url"] = url;
-        j["subdir"] = subdir;
-        j["fn"] = fn;
-        j["size"] = size;
-        j["timestamp"] = timestamp;
-        j["build"] = build_string;
-        j["build_string"] = build_string;
-        j["build_number"] = build_number;
-        if (!noarch.empty())
-        {
-            j["noarch"] = noarch;
-        }
-        j["license"] = license;
-        j["track_features"] = fmt::format("{}", fmt::join(track_features, ","));
-        if (!md5.empty())
-        {
-            j["md5"] = md5;
-        }
-        if (!sha256.empty())
-        {
-            j["sha256"] = sha256;
-        }
-        if (depends.empty())
-        {
-            j["depends"] = nlohmann::json::array();
-        }
-        else
-        {
-            j["depends"] = depends;
-        }
-
-        if (constrains.empty())
-        {
-            j["constrains"] = nlohmann::json::array();
-        }
-        else
-        {
-            j["constrains"] = constrains;
-        }
-        return j;
-    }
-
     namespace
     {
         template <typename T, typename U>
@@ -273,6 +225,48 @@ namespace mamba
 
     void to_json(nlohmann::json& j, const PackageInfo& pkg)
     {
+        j["name"] = pkg.name;
+        j["version"] = pkg.version;
+        j["channel"] = pkg.channel;
+        j["url"] = pkg.url;
+        j["subdir"] = pkg.subdir;
+        j["fn"] = pkg.fn;
+        j["size"] = pkg.size;
+        j["timestamp"] = pkg.timestamp;
+        j["build"] = pkg.build_string;
+        j["build_string"] = pkg.build_string;
+        j["build_number"] = pkg.build_number;
+        if (!pkg.noarch.empty())
+        {
+            j["noarch"] = pkg.noarch;
+        }
+        j["license"] = pkg.license;
+        j["track_features"] = fmt::format("{}", fmt::join(pkg.track_features, ","));
+        if (!pkg.md5.empty())
+        {
+            j["md5"] = pkg.md5;
+        }
+        if (!pkg.sha256.empty())
+        {
+            j["sha256"] = pkg.sha256;
+        }
+        if (pkg.depends.empty())
+        {
+            j["depends"] = nlohmann::json::array();
+        }
+        else
+        {
+            j["depends"] = pkg.depends;
+        }
+
+        if (pkg.constrains.empty())
+        {
+            j["constrains"] = nlohmann::json::array();
+        }
+        else
+        {
+            j["constrains"] = pkg.constrains;
+        }
     }
 
     void from_json(const nlohmann::json& j, PackageInfo& pkg)

@@ -881,7 +881,7 @@ namespace mamba
         j["result"]["pkgs"] = nlohmann::json::array();
         for (size_t i = 0; i < m_pkg_id_list.size(); ++i)
         {
-            auto pkg_info_json = m_dep_graph.node(m_pkg_id_list[i]).json_record();
+            nlohmann::json pkg_info_json = m_dep_graph.node(m_pkg_id_list[i]);
             // We want the cannonical channel name here.
             // We do not know what is in the `channel` field so we need to make sure.
             // This is most likely legacy and should be updated on the next major release.
@@ -896,7 +896,7 @@ namespace mamba
             j["result"]["graph_roots"] = nlohmann::json::array();
             if (!m_dep_graph.successors(0).empty())
             {
-                auto pkg_info_json = m_dep_graph.node(0).json_record();
+                nlohmann::json pkg_info_json = m_dep_graph.node(0);
                 // We want the cannonical channel name here.
                 // We do not know what is in the `channel` field so we need to make sure.
                 // This is most likely legacy and should be updated on the next major release.

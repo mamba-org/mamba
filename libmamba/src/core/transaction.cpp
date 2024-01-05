@@ -46,6 +46,8 @@ extern "C"  // Incomplete header
 
 namespace mamba
 {
+    namespace nl = nlohmann;
+
     namespace
     {
         bool need_pkg_download(const PackageInfo& pkg_info, MultiPackageCache& caches)
@@ -776,7 +778,7 @@ namespace mamba
             m_solution.actions,
             [&](const auto& pkg)
             {
-                to_install_structured.emplace_back(pkg.channel, pkg.fn, pkg.json_record().dump(4));  //
+                to_install_structured.emplace_back(pkg.channel, pkg.fn, nl::json(pkg).dump(4));  //
             }
         );
 
@@ -789,7 +791,7 @@ namespace mamba
 
     void MTransaction::log_json()
     {
-        std::vector<nlohmann::json> to_fetch, to_link, to_unlink;
+        std::vector<nl::json> to_fetch, to_link, to_unlink;
 
         for_each_to_install(
             m_solution.actions,
@@ -797,9 +799,9 @@ namespace mamba
             {
                 if (need_pkg_download(pkg, m_multi_cache))
                 {
-                    to_fetch.push_back(pkg.json_record());
+                    to_fetch.push_back(nl::json(pkg));
                 }
-                to_link.push_back(pkg.json_record());
+                to_link.push_back(nl::json(pkg));
             }
         );
 
@@ -807,7 +809,7 @@ namespace mamba
             m_solution.actions,
             [&](const auto& pkg)
             {
-                to_unlink.push_back(pkg.json_record());  //
+                to_unlink.push_back(nl::json(pkg));  //
             }
         );
 
@@ -816,7 +818,7 @@ namespace mamba
             if (!jlist.empty())
             {
                 Console::instance().json_down(s);
-                for (nlohmann::json j : jlist)
+                for (nl::json j : jlist)
                 {
                     Console::instance().json_append(j);
                 }

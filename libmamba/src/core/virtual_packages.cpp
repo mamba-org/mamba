@@ -155,7 +155,7 @@ namespace mamba
             PackageInfo res(name);
             res.set_version(version.empty() ? "0" : version);
             res.set_build_string(build_string.size() ? build_string : "0");
-            res.build_number = 0;
+            res.set_build_number(0);
             res.channel = "@";
             res.subdir = subdir;
             res.md5 = "12345678901234567890123456789012";

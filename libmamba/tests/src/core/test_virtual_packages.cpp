@@ -39,7 +39,7 @@ namespace mamba
                 CHECK_EQ(pkg.name(), "test");
                 CHECK_EQ(pkg.version(), "0.1.5");
                 CHECK_EQ(pkg.build_string(), "abcd");
-                CHECK_EQ(pkg.build_number, 0);
+                CHECK_EQ(pkg.build_number(), 0);
                 CHECK_EQ(pkg.channel, "@");
                 CHECK_EQ(pkg.subdir, context.platform);
                 CHECK_EQ(pkg.md5, "12345678901234567890123456789012");

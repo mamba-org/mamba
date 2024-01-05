@@ -75,7 +75,7 @@ namespace mamba
                         assert(channels.size() == 1);  // A URL can only resolve to one channel
                         obj["base_url"] = channels.front().url().str(specs::CondaURL::Credentials::Remove
                         );
-                        obj["build_number"] = pkg_info.build_number;
+                        obj["build_number"] = pkg_info.build_number();
                         obj["build_string"] = pkg_info.build_string();
                         obj["channel"] = channels.front().display_name();
                         obj["dist_name"] = pkg_info.str();

@@ -29,7 +29,7 @@ namespace mamba
         : m_name(std::move(n))
         , m_version(std::move(v))
         , m_build_string(std::move(b))
-        , build_number(std::move(bn))
+        , m_build_number(std::move(bn))
     {
     }
 
@@ -63,6 +63,16 @@ namespace mamba
         m_build_string = std::move(bld);
     }
 
+    auto PackageInfo::build_number() const -> std::size_t
+    {
+        return m_build_number;
+    }
+
+    void PackageInfo::set_build_number(std::size_t num)
+    {
+        m_build_number = num;
+    }
+
     namespace
     {
         template <typename T, typename U>
@@ -83,7 +93,7 @@ namespace mamba
         j["size"] = size;
         j["timestamp"] = timestamp;
         j["build"] = m_build_string;
-        j["build_number"] = build_number;
+        j["build_number"] = m_build_number;
         if (!noarch.empty())
         {
             j["noarch"] = noarch;
@@ -182,7 +192,7 @@ namespace mamba
         }
         if (field_name == "build_number")
         {
-            return invoke_field_string(*this, &PackageInfo::build_number);
+            return invoke_field_string(*this, &PackageInfo::m_build_number);
         }
         if (field_name == "noarch")
         {
@@ -223,12 +233,32 @@ namespace mamba
     {
         auto attrs(const PackageInfo& p)
         {
-            return std::tie(
+            return std::tuple<
+                decltype(p.name()),
+                decltype(p.version()),
+                decltype(p.build_string()),
+                decltype(p.noarch),
+                decltype(p.build_number()),
+                decltype(p.channel),
+                decltype(p.url),
+                decltype(p.subdir),
+                decltype(p.filename),
+                decltype(p.license),
+                decltype(p.size),
+                decltype(p.timestamp),
+                decltype(p.md5),
+                decltype(p.sha256),
+                decltype(p.track_features),
+                decltype(p.depends),
+                decltype(p.constrains),
+                decltype(p.signatures),
+                decltype(p.defaulted_keys)  //
+                >{
                 p.name(),
                 p.version(),
                 p.build_string(),
                 p.noarch,
-                p.build_number,
+                p.build_number(),
                 p.channel,
                 p.url,
                 p.subdir,
@@ -242,8 +272,8 @@ namespace mamba
                 p.depends,
                 p.constrains,
                 p.signatures,
-                p.defaulted_keys
-            );
+                p.defaulted_keys,
+            };
         }
     }
 
@@ -269,7 +299,7 @@ namespace mamba
         j["timestamp"] = pkg.timestamp;
         j["build"] = pkg.build_string();
         j["build_string"] = pkg.build_string();
-        j["build_number"] = pkg.build_number;
+        j["build_number"] = pkg.build_number();
         if (!pkg.noarch.empty())
         {
             j["noarch"] = pkg.noarch;
@@ -321,7 +351,7 @@ namespace mamba
         {
             pkg.set_build_string(j.value("build_string", ""));
         }
-        pkg.build_number = j.value("build_number", std::size_t(0));
+        pkg.set_build_number(j.value("build_number", std::size_t(0)));
         pkg.license = j.value("license", "");
         pkg.md5 = j.value("md5", "");
         pkg.sha256 = j.value("sha256", "");

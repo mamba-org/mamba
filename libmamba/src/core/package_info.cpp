@@ -152,35 +152,6 @@ namespace mamba
     {
     }
 
-    bool PackageInfo::operator==(const PackageInfo& other) const
-    {
-        auto attrs = [](const PackageInfo& p)
-        {
-            return std::tie(
-                p.name,
-                p.version,
-                p.build_string,
-                p.noarch,
-                p.build_number,
-                p.channel,
-                p.url,
-                p.subdir,
-                p.fn,
-                p.license,
-                p.size,
-                p.timestamp,
-                p.md5,
-                p.sha256,
-                p.track_features,
-                p.depends,
-                p.constrains,
-                p.signatures,
-                p.defaulted_keys
-            );
-        };
-        return attrs(*this) == attrs(other);
-    }
-
     nlohmann::json PackageInfo::json_record() const
     {
         nlohmann::json j;
@@ -286,4 +257,42 @@ namespace mamba
         // TODO channel contains subdir right now?!
         return util::concat(channel, "::", str());
     }
-}  // namespace mamba
+
+    namespace
+    {
+        auto attrs(const PackageInfo& p)
+        {
+            return std::tie(
+                p.name,
+                p.version,
+                p.build_string,
+                p.noarch,
+                p.build_number,
+                p.channel,
+                p.url,
+                p.subdir,
+                p.fn,
+                p.license,
+                p.size,
+                p.timestamp,
+                p.md5,
+                p.sha256,
+                p.track_features,
+                p.depends,
+                p.constrains,
+                p.signatures,
+                p.defaulted_keys
+            );
+        }
+    }
+
+    auto operator==(const PackageInfo& lhs, const PackageInfo& rhs) -> bool
+    {
+        return attrs(lhs) == attrs(rhs);
+    }
+
+    auto operator!=(const PackageInfo& lhs, const PackageInfo& rhs) -> bool
+    {
+        return !(lhs == rhs);
+    }
+}

@@ -31,8 +31,6 @@ namespace mamba
         explicit PackageInfo(std::string name);
         PackageInfo(std::string name, std::string version, std::string build_string, std::size_t build_number);
 
-        bool operator==(const PackageInfo& other) const;
-
         nlohmann::json json_record() const;
         nlohmann::json json_signable() const;
         std::string str() const;
@@ -63,6 +61,8 @@ namespace mamba
         std::string signatures = {};
         std::set<std::string> defaulted_keys = {};
     };
-}  // namespace mamba
 
+    auto operator==(const PackageInfo& lhs, const PackageInfo& rhs) -> bool;
+    auto operator!=(const PackageInfo& lhs, const PackageInfo& rhs) -> bool;
+}
 #endif

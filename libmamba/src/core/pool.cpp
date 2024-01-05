@@ -295,7 +295,7 @@ namespace mamba
 
             out.set_name(std::string(s.name()));
             out.set_version(std::string(s.version()));
-            out.build_string = s.build_string();
+            out.set_build_string(std::string(s.build_string()));
             out.noarch = s.noarch();
             out.build_number = s.build_number();
             out.channel = s.channel();

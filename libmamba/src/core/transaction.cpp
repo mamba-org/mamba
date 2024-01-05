@@ -74,7 +74,7 @@ namespace mamba
                 out.emplace_back(ms.name().str());
                 auto& p = out.back();
                 p.url = ms.url();
-                p.build_string = ms.build_string().str();
+                p.set_build_string(ms.build_string().str());
                 p.set_version(ms.version().str_conda_build());
                 if (ms.channel().has_value())
                 {
@@ -482,7 +482,7 @@ namespace mamba
                                     "{} {} {}",
                                     pkg_info.name(),
                                     pkg_info.version(),
-                                    pkg_info.build_string
+                                    pkg_info.build_string()
                                 )),
                             };
 
@@ -506,7 +506,7 @@ namespace mamba
                                     " any of the loaded channels.",
                                     pkg_info.name(),
                                     pkg_info.version(),
-                                    pkg_info.build_string
+                                    pkg_info.build_string()
                                 );
                             }
                             else
@@ -580,7 +580,7 @@ namespace mamba
         for (const auto& pkginfo : packages)
         {
             specs_to_install.push_back(specs::MatchSpec::parse(
-                fmt::format("{}=={}={}", pkginfo.name(), pkginfo.version(), pkginfo.build_string)
+                fmt::format("{}=={}={}", pkginfo.name(), pkginfo.version(), pkginfo.build_string())
             ));
         }
 
@@ -1273,7 +1273,7 @@ namespace mamba
 
             r.push_back({ name,
                           printers::FormattedString(s.version()),
-                          printers::FormattedString(s.build_string),
+                          printers::FormattedString(s.build_string()),
                           printers::FormattedString(cut_repo_name(chan_name)),
                           dlsize_s });
         };

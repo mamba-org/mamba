@@ -191,7 +191,7 @@ set_env_command(CLI::App* com, Configuration& config)
                         dependencies << v.name() << "=" << v.version();
                         if (!no_build)
                         {
-                            dependencies << "=" << v.build_string;
+                            dependencies << "=" << v.build_string();
                         }
                         if (no_md5 == -1)
                         {

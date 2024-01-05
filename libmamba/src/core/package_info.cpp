@@ -28,7 +28,7 @@ namespace mamba
     PackageInfo::PackageInfo(std::string n, std::string v, std::string b, std::size_t bn)
         : m_name(std::move(n))
         , m_version(std::move(v))
-        , build_string(std::move(b))
+        , m_build_string(std::move(b))
         , build_number(std::move(bn))
     {
     }
@@ -53,6 +53,16 @@ namespace mamba
         m_version = std::move(ver);
     }
 
+    auto PackageInfo::build_string() const -> const std::string&
+    {
+        return m_build_string;
+    }
+
+    void PackageInfo::set_build_string(std::string bld)
+    {
+        m_build_string = std::move(bld);
+    }
+
     namespace
     {
         template <typename T, typename U>
@@ -72,7 +82,7 @@ namespace mamba
         j["subdir"] = subdir;
         j["size"] = size;
         j["timestamp"] = timestamp;
-        j["build"] = build_string;
+        j["build"] = m_build_string;
         j["build_number"] = build_number;
         if (!noarch.empty())
         {
@@ -115,7 +125,7 @@ namespace mamba
         {
             return std::string(specs::strip_archive_extension(filename));
         }
-        return fmt::format("{}-{}-{}", m_name, m_version, build_string);
+        return fmt::format("{}-{}-{}", m_name, m_version, m_build_string);
     }
 
     auto PackageInfo::long_str() const -> std::string
@@ -168,7 +178,7 @@ namespace mamba
         }
         if (field_name == "build_string")
         {
-            return invoke_field_string(*this, &PackageInfo::build_string);
+            return invoke_field_string(*this, &PackageInfo::m_build_string);
         }
         if (field_name == "build_number")
         {
@@ -216,7 +226,7 @@ namespace mamba
             return std::tie(
                 p.name(),
                 p.version(),
-                p.build_string,
+                p.build_string(),
                 p.noarch,
                 p.build_number,
                 p.channel,
@@ -257,8 +267,8 @@ namespace mamba
         j["fn"] = pkg.filename;
         j["size"] = pkg.size;
         j["timestamp"] = pkg.timestamp;
-        j["build"] = pkg.build_string;
-        j["build_string"] = pkg.build_string;
+        j["build"] = pkg.build_string();
+        j["build_string"] = pkg.build_string();
         j["build_number"] = pkg.build_number;
         if (!pkg.noarch.empty())
         {
@@ -305,11 +315,11 @@ namespace mamba
         pkg.timestamp = j.value("timestamp", std::size_t(0));
         if (std::string build = j.value("build", "<UNKNOWN>"); build != "<UNKNOWN>")
         {
-            pkg.build_string = std::move(build);
+            pkg.set_build_string(std::move(build));
         }
         else
         {
-            pkg.build_string = j.value("build_string", "");
+            pkg.set_build_string(j.value("build_string", ""));
         }
         pkg.build_number = j.value("build_number", std::size_t(0));
         pkg.license = j.value("license", "");

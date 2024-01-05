@@ -76,7 +76,7 @@ namespace mamba
                         obj["base_url"] = channels.front().url().str(specs::CondaURL::Credentials::Remove
                         );
                         obj["build_number"] = pkg_info.build_number;
-                        obj["build_string"] = pkg_info.build_string;
+                        obj["build_string"] = pkg_info.build_string();
                         obj["channel"] = channels.front().display_name();
                         obj["dist_name"] = pkg_info.str();
                         obj["name"] = pkg_info.name();
@@ -104,7 +104,7 @@ namespace mamba
                 {
                     formatted_pkgs.name = package.second.name();
                     formatted_pkgs.version = package.second.version();
-                    formatted_pkgs.build = package.second.build_string;
+                    formatted_pkgs.build = package.second.build_string();
                     if (package.second.channel.find("https://repo.anaconda.com/pkgs/") == 0)
                     {
                         formatted_pkgs.channel = "";

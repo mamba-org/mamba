@@ -18,7 +18,6 @@ namespace mamba
     {
     public:
 
-        std::string build_string = {};
         std::string noarch = {};
         std::size_t build_number = 0;
         /**
@@ -53,6 +52,10 @@ namespace mamba
 
         void set_version(std::string ver);
 
+        [[nodiscard]] auto build_string() const -> const std::string&;
+
+        void set_build_string(std::string bld);
+
         [[nodiscard]] auto json_signable() const -> nlohmann::json;
         [[nodiscard]] auto str() const -> std::string;
         [[nodiscard]] auto long_str() const -> std::string;
@@ -66,6 +69,7 @@ namespace mamba
 
         std::string m_name = {};
         std::string m_version = {};
+        std::string m_build_string = {};
     };
 
     auto operator==(const PackageInfo& lhs, const PackageInfo& rhs) -> bool;

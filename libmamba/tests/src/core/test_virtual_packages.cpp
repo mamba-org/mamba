@@ -38,7 +38,7 @@ namespace mamba
 
                 CHECK_EQ(pkg.name(), "test");
                 CHECK_EQ(pkg.version(), "0.1.5");
-                CHECK_EQ(pkg.build_string, "abcd");
+                CHECK_EQ(pkg.build_string(), "abcd");
                 CHECK_EQ(pkg.build_number, 0);
                 CHECK_EQ(pkg.channel, "@");
                 CHECK_EQ(pkg.subdir, context.platform);
@@ -71,7 +71,7 @@ namespace mamba
                 }
 #if __x86_64__ || defined(_WIN64)
                 CHECK_EQ(pkgs.back().name(), "__archspec");
-                CHECK_EQ(pkgs.back().build_string.find("x86_64"), 0);
+                CHECK_EQ(pkgs.back().build_string().find("x86_64"), 0);
 #endif
 
                 // This is bad design, tests should not interfer
@@ -87,7 +87,7 @@ namespace mamba
                 CHECK_EQ(pkgs[1].name(), "__osx");
                 CHECK_EQ(pkgs[1].version(), "12.1");
                 CHECK_EQ(pkgs[2].name(), "__archspec");
-                CHECK_EQ(pkgs[2].build_string, "arm");
+                CHECK_EQ(pkgs[2].build_string(), "arm");
 
                 util::unset_env("CONDA_OVERRIDE_OSX");
                 ctx.platform = "linux-32";
@@ -101,7 +101,7 @@ namespace mamba
                 CHECK_EQ(pkgs[2].name(), "__glibc");
                 CHECK_EQ(pkgs[2].version(), "2.15");
                 CHECK_EQ(pkgs[3].name(), "__archspec");
-                CHECK_EQ(pkgs[3].build_string, "x86");
+                CHECK_EQ(pkgs[3].build_string(), "x86");
                 util::unset_env("CONDA_OVERRIDE_GLIBC");
                 util::unset_env("CONDA_OVERRIDE_LINUX");
 
@@ -109,7 +109,7 @@ namespace mamba
                 pkgs = detail::dist_packages(ctx);
                 REQUIRE_EQ(pkgs.size(), 1);
                 CHECK_EQ(pkgs[0].name(), "__archspec");
-                CHECK_EQ(pkgs[0].build_string, "850");
+                CHECK_EQ(pkgs[0].build_string(), "850");
                 util::unset_env("CONDA_SUBDIR");
 
                 ctx.platform = "linux";

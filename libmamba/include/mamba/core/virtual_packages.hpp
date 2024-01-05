@@ -14,6 +14,8 @@
 
 namespace mamba
 {
+    class Context;
+
     std::vector<PackageInfo> get_virtual_packages(const Context& context);
 
     namespace detail

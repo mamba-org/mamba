@@ -174,7 +174,7 @@ namespace mamba
             static constexpr const char* fmtstring = " {:<15} {}\n";
             fmt::print(out, fmtstring, "Name", pkg.name());
             fmt::print(out, fmtstring, "Version", pkg.version());
-            fmt::print(out, fmtstring, "Build", pkg.build_string);
+            fmt::print(out, fmtstring, "Build", pkg.build_string());
             fmt::print(out, " {:<15} {} kB\n", "Size", pkg.size / 1000);
             fmt::print(out, fmtstring, "License", pkg.license);
             fmt::print(out, fmtstring, "Subdir", pkg.subdir);
@@ -268,7 +268,7 @@ namespace mamba
 
                 std::vector<FormattedString> row;
                 row.push_back(it->second.front().version());
-                row.push_back(it->second.front().build_string);
+                row.push_back(it->second.front().build_string());
                 if (it->second.size() > 1)
                 {
                     row.push_back("(+");
@@ -338,7 +338,7 @@ namespace mamba
             {
                 additionalBuilds = fmt::format(" (+ {} builds)", numOtherBuildsForLatestVersion);
             }
-            std::string header = fmt::format("{} {} {}", pkg.name(), pkg.version(), pkg.build_string)
+            std::string header = fmt::format("{} {} {}", pkg.name(), pkg.version(), pkg.build_string())
                                  + additionalBuilds;
             fmt::print(out, "{:^40}\n{:─^{}}\n\n", header, "", header.size() > 40 ? header.size() : 40);
 
@@ -670,7 +670,7 @@ namespace mamba
                 }
                 else if (cmd == "Build")
                 {
-                    row.push_back(pkg.build_string);
+                    row.push_back(pkg.build_string());
                     if (builds.size() > 1)
                     {
                         row.push_back("(+");

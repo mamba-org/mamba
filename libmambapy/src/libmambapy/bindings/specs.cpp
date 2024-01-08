@@ -77,6 +77,15 @@ namespace mambapy
             .def_static("build_platform", &build_platform);
         py::implicitly_convertible<py::str, Platform>();
 
+        py::enum_<NoArchType>(m, "NoArchType")
+            .value("No", NoArchType::No)
+            .value("Generic", NoArchType::Generic)
+            .value("Python", NoArchType::Python)
+            .def(py::init(&enum_from_str<NoArchType>))
+            .def_static("parse", &noarch_parse)
+            .def_static("count", &known_noarch_count);
+        py::implicitly_convertible<py::str, NoArchType>();
+
         auto py_conda_url = py::class_<CondaURL>(m, "CondaURL");
 
         py::enum_<CondaURL::Credentials>(py_conda_url, "Credentials")

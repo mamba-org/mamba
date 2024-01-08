@@ -57,7 +57,23 @@ def test_Platform():
 
     with pytest.raises(KeyError):
         # No parsing, explicit name
-        Platform("linux-64") == Platform.linux_64
+        Platform("linux-64")
+
+
+def test_NoArchType():
+    NoArchType = libmambapy.specs.NoArchType
+
+    assert NoArchType.No.name == "No"
+    assert NoArchType.Generic.name == "Generic"
+    assert NoArchType.Python.name == "Python"
+
+    assert len(NoArchType.__members__) == NoArchType.count()
+    assert NoArchType.parse(" Python") == NoArchType.Python
+    assert NoArchType("Generic") == NoArchType.Generic
+
+    with pytest.raises(KeyError):
+        # No parsing, explicit name, needs "Generic"
+        NoArchType("generic")
 
 
 def test_CondaURL_Credentials():

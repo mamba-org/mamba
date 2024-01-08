@@ -81,6 +81,69 @@ namespace mamba::specs
      */
     void from_json(const nlohmann::json& j, Platform& p);
 
+    /**
+     * Noarch packages are packages that are not architecture specific.
+     *
+     * Noarch packages only have to be built once.
+     */
+    enum struct NoArchType
+    {
+        /** Not a noarch type. */
+        No,
+
+        /** Noarch generic packages allow users to distribute docs, datasets, and source code. */
+        Generic,
+
+        /**
+         * A noarch python package is a python package without any precompiled python files.
+         *
+         * Normally, precompiled files (`.pyc` or `__pycache__`) are bundled with the package.
+         * However, these files are tied to a specific version of Python and must therefore be
+         * generated for every target platform and architecture.
+         * This complicates the build process.
+         * For noarch Python packages these files are generated when installing the package by
+         * invoking the compilation process through the python binary that is installed in the
+         * same environment.
+         *
+         * @see https://www.anaconda.com/blog/condas-new-noarch-packages
+         * @see
+         * https://docs.conda.io/projects/conda/en/latest/user-guide/concepts/packages.html#noarch-python
+         */
+        Python,
+
+        // For reflexion purposes only
+        count_,
+    };
+
+    constexpr auto known_noarch_count() -> std::size_t
+    {
+        return static_cast<std::size_t>(NoArchType::count_);
+    }
+
+    constexpr auto known_noarch() -> std::array<NoArchType, known_noarch_count()>;
+
+    constexpr auto known_noarch_names() -> std::array<std::string_view, known_noarch_count()>;
+
+    /**
+     * Convert the enumeration to its conda string.
+     */
+    constexpr auto noarch_name(NoArchType noarch) -> std::string_view;
+
+    /**
+     * Return the enum matching the noarch name.
+     */
+    auto noarch_parse(std::string_view str) -> std::optional<NoArchType>;
+
+    /**
+     * Serialize to JSON string.
+     */
+    void to_json(nlohmann::json& j, const NoArchType& noarch);
+
+    /**
+     * Deserialize from JSON string.
+     */
+    void from_json(const nlohmann::json& j, NoArchType& noarch);
+
     /********************
      *  Implementation  *
      ********************/
@@ -149,5 +212,40 @@ namespace mamba::specs
         return out;
     }
 
+    constexpr auto noarch_name(NoArchType noarch) -> std::string_view
+    {
+        switch (noarch)
+        {
+            case NoArchType::No:
+                return "no";
+            case NoArchType::Generic:
+                return "generic";
+            case NoArchType::Python:
+                return "python";
+            default:
+                return "";
+        }
+    }
+
+    constexpr auto known_noarch() -> std::array<NoArchType, known_noarch_count()>
+    {
+        auto out = std::array<NoArchType, known_noarch_count()>{};
+        for (std::size_t idx = 0; idx < out.size(); ++idx)
+        {
+            out[idx] = static_cast<NoArchType>(idx);
+        }
+        return out;
+    }
+
+    constexpr auto known_noarch_names() -> std::array<std::string_view, known_noarch_count()>
+    {
+        auto out = std::array<std::string_view, known_noarch_count()>{};
+        auto iter = out.begin();
+        for (auto p : known_noarch())
+        {
+            *(iter++) = noarch_name(p);
+        }
+        return out;
+    }
 }
 #endif

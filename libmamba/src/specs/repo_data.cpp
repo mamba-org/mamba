@@ -13,14 +13,6 @@
 
 namespace mamba::specs
 {
-    NLOHMANN_JSON_SERIALIZE_ENUM(
-        NoArchType,
-        {
-            { NoArchType::Generic, "generic" },
-            { NoArchType::Python, "python" },
-        }
-    )
-
     void to_json(nlohmann::json& j, const RepoDataPackage& p)
     {
         j["name"] = p.name;

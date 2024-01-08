@@ -16,33 +16,6 @@
 
 namespace mamba::specs
 {
-    /**
-     * Noarch packages are packages that are not architecture specific.
-     *
-     * Noarch packages only have to be built once.
-     */
-    enum struct NoArchType
-    {
-        /** Noarch generic packages allow users to distribute docs, datasets, and source code. */
-        Generic,
-
-        /**
-         * A noarch python package is a python package without any precompiled python files.
-         *
-         * Normally, precompiled files (`.pyc` or `__pycache__`) are bundled with the package.
-         * However, these files are tied to a specific version of Python and must therefore be
-         * generated for every target platform and architecture.
-         * This complicates the build process.
-         * For noarch Python packages these files are generated when installing the package by
-         * invoking the compilation process through the python binary that is installed in the
-         * same environment.
-         *
-         * @see https://www.anaconda.com/blog/condas-new-noarch-packages
-         * @see
-         * https://docs.conda.io/projects/conda/en/latest/user-guide/concepts/packages.html#noarch-python
-         */
-        Python,
-    };
 
     /**
      * A single record in the Conda ``repodata.json``.

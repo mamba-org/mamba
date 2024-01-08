@@ -4,8 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <algorithm>
-#include <cassert>
 #include <string>
 
 #include <fmt/format.h>
@@ -18,7 +16,7 @@ namespace mamba::specs
 {
     auto platform_parse(std::string_view str) -> std::optional<Platform>
     {
-        std::string const str_clean = util::to_lower(util::strip(str));
+        const std::string str_clean = util::to_lower(util::strip(str));
         for (const auto p : known_platforms())
         {
             if (str_clean == platform_name(p))
@@ -114,6 +112,47 @@ namespace mamba::specs
         else
         {
             throw std::invalid_argument(fmt::format("Invalid platform: {}", j_str));
+        }
+    }
+
+    auto noarch_parse(std::string_view str) -> std::optional<NoArchType>
+    {
+        const std::string str_clean = util::to_lower(util::strip(str));
+        for (const auto p : known_noarch())
+        {
+            if (str_clean == noarch_name(p))
+            {
+                return { p };
+            }
+        }
+        return {};
+    }
+
+    void to_json(nlohmann::json& j, const NoArchType& noarch)
+    {
+        if (noarch != NoArchType::No)
+        {
+            j = noarch_name(noarch);
+        }
+    }
+
+    void from_json(const nlohmann::json& j, NoArchType& noarch)
+    {
+        // Legacy deserilization
+        if (j.is_boolean())
+        {
+            noarch = j.get<bool>() ? NoArchType::Generic : NoArchType::No;
+            return;
+        }
+
+        const auto str = j.get<std::string_view>();
+        if (const auto maybe = noarch_parse(str))
+        {
+            noarch = *maybe;
+        }
+        else
+        {
+            throw std::invalid_argument(fmt::format("Invalid noarch: {}", str));
         }
     }
 }

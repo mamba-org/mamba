@@ -74,7 +74,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
         }
     }
 
-    std::optional<PackageInfo> latest_micromamba = pool.id2pkginfo(solvable_ids[0]);
+    std::optional<specs::PackageInfo> latest_micromamba = pool.id2pkginfo(solvable_ids[0]);
     if (!latest_micromamba)
     {
         throw mamba::mamba_error(

@@ -50,13 +50,13 @@ namespace mamba
 
     namespace
     {
-        bool need_pkg_download(const PackageInfo& pkg_info, MultiPackageCache& caches)
+        bool need_pkg_download(const specs::PackageInfo& pkg_info, MultiPackageCache& caches)
         {
             return caches.get_extracted_dir_path(pkg_info).empty()
                    && caches.get_tarball_path(pkg_info).empty();
         }
 
-        auto mk_pkginfo(const MPool& pool, solv::ObjSolvableViewConst s) -> PackageInfo
+        auto mk_pkginfo(const MPool& pool, solv::ObjSolvableViewConst s) -> specs::PackageInfo
         {
             const auto pkginfo = pool.id2pkginfo(s.id());
             assert(pkginfo.has_value());  // There is Solvable so the optional must no be empty
@@ -66,7 +66,7 @@ namespace mamba
         template <typename Range>
         auto make_pkg_info_from_explicit_match_specs(Range&& specs)
         {
-            std::vector<PackageInfo> out = {};
+            std::vector<specs::PackageInfo> out = {};
             out.reserve(specs.size());
 
             for (auto& ms : specs)
@@ -431,7 +431,7 @@ namespace mamba
             // The specs to install become all the dependencies of the non intstalled specs
             for_each_to_omit(
                 m_solution.actions,
-                [&](const PackageInfo& pkg)
+                [&](const specs::PackageInfo& pkg)
                 {
                     for (const auto& dep : pkg.depends)
                     {
@@ -557,7 +557,7 @@ namespace mamba
 
     MTransaction::MTransaction(
         MPool& pool,
-        const std::vector<PackageInfo>& packages,
+        const std::vector<specs::PackageInfo>& packages,
         MultiPackageCache& caches
     )
         : MTransaction(pool, caches)
@@ -677,7 +677,7 @@ namespace mamba
         {
             using Action = std::decay_t<decltype(act)>;
 
-            auto const link = [&](PackageInfo const& pkg)
+            auto const link = [&](specs::PackageInfo const& pkg)
             {
                 const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg, false));
                 LinkPackage lp(pkg, cache_path, &m_transaction_context);
@@ -685,7 +685,7 @@ namespace mamba
                 rollback.record(lp);
                 m_history_entry.link_dists.push_back(pkg.long_str());
             };
-            auto const unlink = [&](PackageInfo const& pkg)
+            auto const unlink = [&](specs::PackageInfo const& pkg)
             {
                 const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg));
                 UnlinkPackage up(pkg, cache_path, &m_transaction_context);
@@ -1197,7 +1197,9 @@ namespace mamba
             remove
         };
         auto format_row =
-            [this, &ctx, &total_size](rows& r, const PackageInfo& s, Status status, std::string diff)
+            [this,
+             &ctx,
+             &total_size](rows& r, const specs::PackageInfo& s, Status status, std::string diff)
         {
             const std::size_t dlsize = s.size;
             printers::FormattedString dlsize_s;
@@ -1418,13 +1420,13 @@ namespace mamba
 
         const auto lockfile_data = maybe_lockfile.value();
 
-        std::vector<PackageInfo> conda_packages = {};
-        std::vector<PackageInfo> pip_packages = {};
+        std::vector<specs::PackageInfo> conda_packages = {};
+        std::vector<specs::PackageInfo> pip_packages = {};
 
         const auto& context = pool.context();
         for (const auto& category : categories)
         {
-            std::vector<PackageInfo> selected_packages = lockfile_data.get_packages_for(
+            std::vector<specs::PackageInfo> selected_packages = lockfile_data.get_packages_for(
                 category,
                 context.platform,
                 "conda"
@@ -1459,7 +1461,7 @@ namespace mamba
                 pip_packages.cbegin(),
                 pip_packages.cend(),
                 std::back_inserter(pip_specs),
-                [](const PackageInfo& pkg)
+                [](const specs::PackageInfo& pkg)
                 { return fmt::format("{} @ {}#sha256={}", pkg.name, pkg.url, pkg.sha256); }
             );
             other_specs.push_back(

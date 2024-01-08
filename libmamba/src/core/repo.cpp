@@ -21,13 +21,13 @@ extern "C"  // Incomplete header
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/conda_url.hpp"
+#include "mamba/specs/package_info.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 #include "solv-cpp/pool.hpp"
@@ -89,7 +89,7 @@ namespace mamba
             return solv::ObjRepoView{ *r.repo() };
         }
 
-        void set_solvable(MPool& pool, solv::ObjSolvableView solv, const PackageInfo& pkg)
+        void set_solvable(MPool& pool, solv::ObjSolvableView solv, const specs::PackageInfo& pkg)
         {
             solv.set_name(pkg.name);
             solv.set_version(pkg.version);
@@ -374,7 +374,7 @@ namespace mamba
         repo.internalize();
     }
 
-    MRepo::MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& package_infos)
+    MRepo::MRepo(MPool& pool, const std::string& name, const std::vector<specs::PackageInfo>& package_infos)
         : m_pool(pool)
     {
         auto [_, repo] = pool.pool().add_repo(name);

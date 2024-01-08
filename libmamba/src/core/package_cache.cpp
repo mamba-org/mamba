@@ -78,7 +78,7 @@ namespace mamba
         return m_path;
     }
 
-    void PackageCacheData::clear_query_cache(const PackageInfo& s)
+    void PackageCacheData::clear_query_cache(const specs::PackageInfo& s)
     {
         m_valid_tarballs.erase(s.str());
         m_valid_extracted_dir.erase(s.str());
@@ -127,7 +127,8 @@ namespace mamba
         }
     }
 
-    bool PackageCacheData::has_valid_tarball(const PackageInfo& s, const ValidationOptions& options)
+    bool
+    PackageCacheData::has_valid_tarball(const specs::PackageInfo& s, const ValidationOptions& options)
     {
         std::string pkg = s.str();
         if (m_valid_tarballs.find(pkg) != m_valid_tarballs.end())
@@ -191,7 +192,7 @@ namespace mamba
     }
 
     bool
-    PackageCacheData::has_valid_extracted_dir(const PackageInfo& s, const ValidationOptions& options)
+    PackageCacheData::has_valid_extracted_dir(const specs::PackageInfo& s, const ValidationOptions& options)
     {
         bool valid = false, can_validate = false;
 
@@ -416,7 +417,7 @@ namespace mamba
         return fs::u8path();
     }
 
-    fs::u8path MultiPackageCache::get_tarball_path(const PackageInfo& s, bool return_empty)
+    fs::u8path MultiPackageCache::get_tarball_path(const specs::PackageInfo& s, bool return_empty)
     {
         const std::string pkg(s.str());
         const auto cache_iter(m_cached_tarballs.find(pkg));
@@ -445,7 +446,8 @@ namespace mamba
         }
     }
 
-    fs::u8path MultiPackageCache::get_extracted_dir_path(const PackageInfo& s, bool return_empty)
+    fs::u8path
+    MultiPackageCache::get_extracted_dir_path(const specs::PackageInfo& s, bool return_empty)
     {
         const std::string pkg(s.str());
         const auto cache_iter(m_cached_extracted_dirs.find(pkg));
@@ -485,7 +487,7 @@ namespace mamba
         return paths;
     }
 
-    void MultiPackageCache::clear_query_cache(const PackageInfo& s)
+    void MultiPackageCache::clear_query_cache(const specs::PackageInfo& s)
     {
         for (auto& c : m_caches)
         {

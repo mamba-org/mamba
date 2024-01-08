@@ -289,9 +289,10 @@ namespace mamba
 
     namespace
     {
-        auto make_package_info(const solv::ObjPool& pool, solv::ObjSolvableViewConst s) -> PackageInfo
+        auto make_package_info(const solv::ObjPool& pool, solv::ObjSolvableViewConst s)
+            -> specs::PackageInfo
         {
-            PackageInfo out = {};
+            specs::PackageInfo out = {};
 
             out.name = s.name();
             out.version = s.version();
@@ -337,7 +338,7 @@ namespace mamba
         }
     }
 
-    std::optional<PackageInfo> MPool::id2pkginfo(Id solv_id) const
+    std::optional<specs::PackageInfo> MPool::id2pkginfo(Id solv_id) const
     {
         if (const auto solv = pool().get_solvable(solv_id))
         {

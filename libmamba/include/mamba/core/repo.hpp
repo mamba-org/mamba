@@ -10,13 +10,12 @@
 #include <string>
 #include <string_view>
 #include <tuple>
-#include <utility>
 #include <vector>
 
 #include <nlohmann/json_fwd.hpp>
 #include <solv/pooltypes.h>
 
-#include "pool.hpp"
+#include "mamba/core/pool.hpp"
 
 extern "C"
 {
@@ -32,7 +31,11 @@ namespace mamba
         class u8path;
     }
 
-    class PackageInfo;
+    namespace specs
+    {
+        class PackageInfo;
+    }
+
     class PrefixData;
 
     /**
@@ -85,7 +88,7 @@ namespace mamba
             LibsolvCache use_cache = LibsolvCache::yes
         );
         MRepo(MPool& pool, const PrefixData& prefix_data);
-        MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& uris);
+        MRepo(MPool& pool, const std::string& name, const std::vector<specs::PackageInfo>& uris);
 
         MRepo(const MRepo&) = delete;
         MRepo(MRepo&&) = default;

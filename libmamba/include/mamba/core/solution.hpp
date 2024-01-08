@@ -11,7 +11,7 @@
 #include <variant>
 #include <vector>
 
-#include "package_info.hpp"
+#include "mamba/specs/package_info.hpp"
 
 namespace mamba
 {
@@ -25,40 +25,40 @@ namespace mamba
     {
         struct Omit
         {
-            PackageInfo what;
+            specs::PackageInfo what;
         };
 
         struct Upgrade
         {
-            PackageInfo remove;
-            PackageInfo install;
+            specs::PackageInfo remove;
+            specs::PackageInfo install;
         };
 
         struct Downgrade
         {
-            PackageInfo remove;
-            PackageInfo install;
+            specs::PackageInfo remove;
+            specs::PackageInfo install;
         };
 
         struct Change
         {
-            PackageInfo remove;
-            PackageInfo install;
+            specs::PackageInfo remove;
+            specs::PackageInfo install;
         };
 
         struct Reinstall
         {
-            PackageInfo what;
+            specs::PackageInfo what;
         };
 
         struct Remove
         {
-            PackageInfo remove;
+            specs::PackageInfo remove;
         };
 
         struct Install
         {
-            PackageInfo install;
+            specs::PackageInfo install;
         };
 
         template <typename T>
@@ -97,7 +97,8 @@ namespace mamba
         template <typename Action>
         auto to_remove_ptr(Action& action)
         {
-            using PackageInfoPtr = std::conditional_t<std::is_const_v<Action>, const PackageInfo*, PackageInfo*>;
+            using PackageInfoPtr = std::
+                conditional_t<std::is_const_v<Action>, const specs::PackageInfo*, specs::PackageInfo*>;
             return std::visit(
                 [](auto& a) -> PackageInfoPtr
                 {
@@ -140,7 +141,8 @@ namespace mamba
         template <typename Action>
         auto to_install_ptr(Action& action)
         {
-            using PackageInfoPtr = std::conditional_t<std::is_const_v<Action>, const PackageInfo*, PackageInfo*>;
+            using PackageInfoPtr = std::
+                conditional_t<std::is_const_v<Action>, const specs::PackageInfo*, specs::PackageInfo*>;
             return std::visit(
                 [](auto& a) -> PackageInfoPtr
                 {
@@ -183,7 +185,8 @@ namespace mamba
         template <typename Action>
         auto to_omit_ptr(Action& action)
         {
-            using PackageInfoPtr = std::conditional_t<std::is_const_v<Action>, const PackageInfo*, PackageInfo*>;
+            using PackageInfoPtr = std::
+                conditional_t<std::is_const_v<Action>, const specs::PackageInfo*, specs::PackageInfo*>;
             return std::visit(
                 [](auto& a) -> PackageInfoPtr
                 {

@@ -19,8 +19,8 @@
 
 #include <fmt/color.h>
 
-#include "mamba/core/package_info.hpp"
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/specs/package_info.hpp"
 #include "mamba/util/flat_set.hpp"
 #include "mamba/util/graph.hpp"
 
@@ -75,7 +75,7 @@ namespace mamba
         {
         };
 
-        struct PackageNode : PackageInfo
+        struct PackageNode : specs::PackageInfo
         {
         };
 

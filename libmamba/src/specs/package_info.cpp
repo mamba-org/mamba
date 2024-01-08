@@ -13,11 +13,11 @@
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
-#include "mamba/core/package_info.hpp"
 #include "mamba/specs/archive.hpp"
+#include "mamba/specs/package_info.hpp"
 #include "mamba/util/string.hpp"
 
-namespace mamba
+namespace mamba::specs
 {
 
     PackageInfo::PackageInfo(std::string n)

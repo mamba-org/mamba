@@ -10,7 +10,6 @@
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
 #include "mamba/core/package_handling.hpp"
-#include "mamba/core/package_info.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/util/string.hpp"

@@ -12,7 +12,7 @@
 
 #include <solv/pooltypes.h>
 
-#include "mamba/core/package_info.hpp"
+#include "mamba/specs/package_info.hpp"
 
 namespace mamba
 {
@@ -50,7 +50,7 @@ namespace mamba
         std::vector<Id> select_solvables(Id id, bool sorted = false) const;
         Id matchspec2id(const specs::MatchSpec& ms);
 
-        std::optional<PackageInfo> id2pkginfo(Id solv_id) const;
+        std::optional<specs::PackageInfo> id2pkginfo(Id solv_id) const;
         std::optional<std::string> dep2str(Id dep_id) const;
 
         // TODO: (TMP) This is not meant to exist but is needed for a transition period

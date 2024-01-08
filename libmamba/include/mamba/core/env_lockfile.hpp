@@ -15,11 +15,10 @@
 
 #include <tl/expected.hpp>
 
+#include "mamba/core/error_handling.hpp"
+#include "mamba/core/fsutil.hpp"
 #include "mamba/fs/filesystem.hpp"
-
-#include "error_handling.hpp"
-#include "fsutil.hpp"
-#include "package_info.hpp"
+#include "mamba/specs/package_info.hpp"
 
 namespace mamba
 {
@@ -79,7 +78,7 @@ namespace mamba
 
         struct Package
         {
-            mamba::PackageInfo info;
+            specs::PackageInfo info;
             bool is_optional = false;
             std::string category;
             std::string manager;
@@ -92,7 +91,7 @@ namespace mamba
         {
         }
 
-        std::vector<PackageInfo>
+        std::vector<specs::PackageInfo>
         get_packages_for(std::string_view category, std::string_view platform, std::string_view manager)
             const;
 

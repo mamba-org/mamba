@@ -63,7 +63,7 @@ namespace mamba
         }
     }
 
-    void PrefixData::add_packages(const std::vector<PackageInfo>& packages)
+    void PrefixData::add_packages(const std::vector<specs::PackageInfo>& packages)
     {
         for (const auto& pkg : packages)
         {
@@ -78,11 +78,11 @@ namespace mamba
         return m_package_records;
     }
 
-    std::vector<PackageInfo> PrefixData::sorted_records() const
+    std::vector<specs::PackageInfo> PrefixData::sorted_records() const
     {
         // TODO add_pip_as_python_dependency
 
-        auto dep_graph = util::DiGraph<const PackageInfo*>();
+        auto dep_graph = util::DiGraph<const specs::PackageInfo*>();
         using node_id = typename decltype(dep_graph)::node_id;
 
         {
@@ -134,7 +134,7 @@ namespace mamba
             }
         }
 
-        auto sorted = std::vector<PackageInfo>();
+        auto sorted = std::vector<specs::PackageInfo>();
         sorted.reserve(dep_graph.number_of_nodes());
         util::topological_sort_for_each_node_id(
             dep_graph,
@@ -160,11 +160,11 @@ namespace mamba
         auto infile = open_ifstream(path);
         nlohmann::json j;
         infile >> j;
-        auto prec = j.get<PackageInfo>();
+        auto prec = j.get<specs::PackageInfo>();
 
         // Some versions of micromamba constructor generate repodata_record.json
         // and conda-meta json files with channel names while mamba expects
-        // PackageInfo channels to be platform urls. This fixes the issue described
+        // specs::PackageInfo channels to be platform urls. This fixes the issue described
         // in https://github.com/mamba-org/mamba/issues/2665
 
         auto channels = m_channel_context.make_channel(prec.channel);

@@ -17,11 +17,11 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/satisfiability_error.hpp"
 #include "mamba/core/solver.hpp"
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/specs/package_info.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
 #include "solv-cpp/solver.hpp"
@@ -586,8 +586,8 @@ namespace mamba
         {
             for (auto& problem : m_solver.all_problems_structured())
             {
-                std::optional<PackageInfo>& source = problem.source;
-                std::optional<PackageInfo>& target = problem.target;
+                std::optional<specs::PackageInfo>& source = problem.source;
+                std::optional<specs::PackageInfo>& target = problem.target;
                 std::optional<std::string>& dep = problem.dep;
                 SolverRuleinfo type = problem.type;
 

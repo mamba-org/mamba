@@ -12,7 +12,7 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-namespace mamba
+namespace mamba::specs
 {
     class PackageInfo
     {

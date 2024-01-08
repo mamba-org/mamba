@@ -14,7 +14,6 @@
 #include <solv/solver.h>
 
 #include "mamba/core/channel_context.hpp"
-#include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/repo.hpp"
@@ -24,6 +23,7 @@
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_random.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/specs/package_info.hpp"
 #include "mamba/util/string.hpp"
 
 #include "mambatests.hpp"
@@ -99,12 +99,12 @@ namespace
     };
 
     /**
-     * Simple factory for building a PackageInfo.
+     * Simple factory for building a specs::PackageInfo.
      */
     auto mkpkg(std::string name, std::string version, std::vector<std::string> dependencies = {})
-        -> PackageInfo
+        -> specs::PackageInfo
     {
-        auto pkg = PackageInfo(std::move(name));
+        auto pkg = specs::PackageInfo(std::move(name));
         pkg.version = std::move(version);
         pkg.depends = std::move(dependencies);
         pkg.build_string = "bld";
@@ -372,7 +372,7 @@ namespace
         Context& ctx,
         ChannelContext& channel_context,
         std::vector<std::string>&& specs,
-        const std::vector<PackageInfo>& virtual_packages = { mkpkg("__glibc", "2.17.0") },
+        const std::vector<specs::PackageInfo>& virtual_packages = { mkpkg("__glibc", "2.17.0") },
         std::vector<std::string>&& channels = { "conda-forge" },
         const std::vector<std::string>& platforms = { "linux-64", "noarch" }
     ) -> MSolver

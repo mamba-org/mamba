@@ -342,10 +342,10 @@ namespace mamba
             return result;
         }
 
-        std::tuple<std::vector<PackageInfo>, std::vector<specs::MatchSpec>>
+        std::tuple<std::vector<specs::PackageInfo>, std::vector<specs::MatchSpec>>
         parse_urls_to_package_info(const std::vector<std::string>& urls)
         {
-            std::vector<PackageInfo> pi_result;
+            std::vector<specs::PackageInfo> pi_result;
             std::vector<specs::MatchSpec> ms_result;
             for (auto& u : urls)
             {
@@ -355,7 +355,7 @@ namespace mamba
                 }
                 std::size_t hash = u.find_first_of('#');
                 auto ms = specs::MatchSpec::parse(u.substr(0, hash));
-                PackageInfo p(ms.name().str());
+                specs::PackageInfo p(ms.name().str());
                 p.url = ms.url();
                 p.build_string = ms.build_string().str();
                 p.version = ms.version().str();

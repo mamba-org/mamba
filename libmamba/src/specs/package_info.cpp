@@ -238,13 +238,13 @@ namespace mamba::specs
         }
         if (field_name == "noarch")
         {
-            return invoke_field_string(*this, &PackageInfo::noarch);
+            return std::string(noarch_name(noarch));
         }
         if (field_name == "channel")
         {
             return invoke_field_string(*this, &PackageInfo::channel);
         }
-        if (field_name == "url")
+        if (field_name == "package_url" || field_name == "url")
         {
             return invoke_field_string(*this, &PackageInfo::package_url);
         }
@@ -314,9 +314,9 @@ namespace mamba::specs
         j["name"] = pkg.name;
         j["version"] = pkg.version;
         j["channel"] = pkg.channel;
-        j["url"] = pkg.package_url;
+        j["url"] = pkg.package_url;  // The conda key name
         j["subdir"] = pkg.subdir;
-        j["fn"] = pkg.filename;
+        j["fn"] = pkg.filename;  // The conda key name
         j["size"] = pkg.size;
         j["timestamp"] = pkg.timestamp;
         j["build"] = pkg.build_string;
@@ -327,7 +327,7 @@ namespace mamba::specs
             j["noarch"] = pkg.noarch;
         }
         j["license"] = pkg.license;
-        j["track_features"] = fmt::format("{}", fmt::join(pkg.track_features, ","));
+        j["track_features"] = fmt::format("{}", fmt::join(pkg.track_features, ","));  // Conda fmt
         if (!pkg.md5.empty())
         {
             j["md5"] = pkg.md5;
@@ -377,10 +377,21 @@ namespace mamba::specs
         pkg.license = j.value("license", "");
         pkg.md5 = j.value("md5", "");
         pkg.sha256 = j.value("sha256", "");
-        if (std::string feat = j.value("track_features", ""); !feat.empty())
+        if (auto it = j.find("track_features"); it != j.end())
         {
-            // Split empty string would have an empty element
-            pkg.track_features = util::split(feat, ",");
+            if (it->is_string() && !it->get<std::string_view>().empty())
+            {
+                // Split empty string would have an empty element
+                pkg.track_features = util::split(it->get<std::string_view>(), ",");
+            }
+            if (it->is_array())
+            {
+                pkg.track_features.reserve(it->size());
+                for (const auto& elem : *it)
+                {
+                    pkg.track_features.emplace_back(elem);
+                }
+            }
         }
 
         // add the noarch type if we know it (only known for installed packages)

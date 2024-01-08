@@ -8,6 +8,7 @@
 #define MAMBA_CORE_PACKAGE_INFO
 
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <nlohmann/json_fwd.hpp>
@@ -44,6 +45,8 @@ namespace mamba::specs
         NoArchType noarch = NoArchType::No;
         std::size_t size = 0;
         std::size_t timestamp = 0;
+
+        [[nodiscard]] static auto from_url(std::string_view url) -> PackageInfo;
 
         PackageInfo() = default;
         explicit PackageInfo(std::string name);

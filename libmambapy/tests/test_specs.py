@@ -687,6 +687,7 @@ def test_VersionSpec():
 
 def test_PackageInfo():
     PackageInfo = libmambapy.specs.PackageInfo
+    NoArchType = libmambapy.specs.NoArchType
 
     pkg = PackageInfo(name="pkg", version="1.0", build_string="bld", build_number=2)
 
@@ -707,8 +708,8 @@ def test_PackageInfo():
     assert pkg.build_string == "mybld"
     pkg.build_number = 5
     assert pkg.build_number == 5
-    pkg.noarch = "generic"
-    assert pkg.noarch == "generic"
+    pkg.noarch = "Generic"
+    assert pkg.noarch == NoArchType.Generic
     pkg.channel = "conda-forge"
     assert pkg.channel == "conda-forge"
     pkg.package_url = "https://repo.mamba.pm/conda-forge/linux-64/foo-4.0-mybld.conda"

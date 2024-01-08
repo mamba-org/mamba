@@ -94,7 +94,11 @@ namespace mamba
             solv.set_name(pkg.name);
             solv.set_version(pkg.version);
             solv.set_build_string(pkg.build_string);
-            solv.set_noarch(pkg.noarch);
+            if (pkg.noarch != specs::NoArchType::No)
+            {
+                auto noarch = std::string(specs::noarch_name(pkg.noarch));  // SSO
+                solv.set_noarch(noarch);
+            }
             solv.set_build_number(pkg.build_number);
             solv.set_channel(pkg.channel);
             solv.set_url(pkg.package_url);

@@ -297,7 +297,7 @@ namespace mamba
             out.name = s.name();
             out.version = s.version();
             out.build_string = s.build_string();
-            out.noarch = s.noarch();
+            out.noarch = specs::noarch_parse(s.noarch()).value_or(specs::NoArchType::No);
             out.build_number = s.build_number();
             out.channel = s.channel();
             out.package_url = s.url();

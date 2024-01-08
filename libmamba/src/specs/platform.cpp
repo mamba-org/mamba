@@ -134,11 +134,20 @@ namespace mamba::specs
         {
             j = noarch_name(noarch);
         }
+        else
+        {
+            j = nullptr;
+        }
     }
 
     void from_json(const nlohmann::json& j, NoArchType& noarch)
     {
         // Legacy deserilization
+        if (j.is_null())
+        {
+            noarch = NoArchType::No;
+            return;
+        }
         if (j.is_boolean())
         {
             noarch = j.get<bool>() ? NoArchType::Generic : NoArchType::No;

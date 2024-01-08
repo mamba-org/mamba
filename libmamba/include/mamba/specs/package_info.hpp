@@ -12,6 +12,8 @@
 
 #include <nlohmann/json_fwd.hpp>
 
+#include "mamba/specs/platform.hpp"
+
 namespace mamba::specs
 {
     class PackageInfo
@@ -21,7 +23,6 @@ namespace mamba::specs
         std::string name = {};
         std::string version = {};
         std::string build_string = {};
-        std::string noarch = {};
         std::size_t build_number = 0;
         /**
          * Could contain "conda-forge", "conda-forge/linux-64", or a url.
@@ -33,15 +34,16 @@ namespace mamba::specs
         std::string subdir = {};
         std::string filename = {};
         std::string license = {};
-        std::size_t size = 0;
-        std::size_t timestamp = 0;
         std::string md5 = {};
         std::string sha256 = {};
+        std::string signatures = {};
         std::vector<std::string> track_features = {};
         std::vector<std::string> depends = {};
         std::vector<std::string> constrains = {};
-        std::string signatures = {};
         std::vector<std::string> defaulted_keys = {};
+        NoArchType noarch = NoArchType::No;
+        std::size_t size = 0;
+        std::size_t timestamp = 0;
 
         PackageInfo() = default;
         explicit PackageInfo(std::string name);

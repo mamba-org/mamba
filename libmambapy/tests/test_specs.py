@@ -745,6 +745,18 @@ def test_PackageInfo():
     assert other is not pkg
 
 
+def test_PackageInfo_V2Migrator():
+    """Explicit migration help added from v1 to v2."""
+    import libmambapy
+
+    with pytest.raises(Exception, match=r"libmambapy\.specs"):
+        libmambapy.PackageInfo()
+
+    pkg = libmambapy.specs.PackageInfo()
+    with pytest.raises(Exception, match=r"filename"):
+        pkg.fn
+
+
 def test_MatchSpec():
     MatchSpec = libmambapy.specs.MatchSpec
 

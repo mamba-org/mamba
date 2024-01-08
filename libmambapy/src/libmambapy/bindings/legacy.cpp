@@ -268,9 +268,10 @@ bind_submodule_impl(pybind11::module_ m)
 
     py::class_<PackageInfoV2Migrator>(m, "PackageInfo")
         .def(py::init(
-            [](py::args, py::kwargs) -> PackageInfoV2Migrator {
+            [](py::args, py::kwargs) -> PackageInfoV2Migrator
+            {
                 throw std::runtime_error(
-                    "libmamba.PackageInfo has been moved to libmamba.specs.PackageInfo"
+                    "libmambapy.PackageInfo has been moved to libmambapy.specs.PackageInfo"
                 );
             }
         ));

@@ -1,4 +1,17 @@
-2023.12.??
+2023.12.18
+==========
+
+Releases: libmamba 2.0.0alpha1, libmambapy 2.0.0alpha1, micromamba 2.0.0alpha1
+
+Bug fixes:
+
+- [libmambapy] Fix 2.0 alpha by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3067
+
+CI fixes and doc:
+
+- [all] Add CI merge groups by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3068
+
+2023.12.14
 ==========
 
 Releases: libmamba 2.0.0alpha0, libmambapy 2.0.0alpha0, micromamba 2.0.0alpha0

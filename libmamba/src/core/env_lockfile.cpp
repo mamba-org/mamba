@@ -8,8 +8,8 @@
 #include <yaml-cpp/yaml.h>
 
 #include "mamba/core/env_lockfile.hpp"
-#include "mamba/core/match_spec.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/specs/match_spec.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba
@@ -21,7 +21,7 @@ namespace mamba
         tl::expected<Package, mamba_error> read_package_info(const YAML::Node& package_node)
         {
             Package package{
-                /* .info = */ mamba::PackageInfo{ package_node["name"].as<std::string>() },
+                /* .info = */ specs::PackageInfo{ package_node["name"].as<std::string>() },
                 /* .is_optional = */
                 [&]
                 {
@@ -55,18 +55,18 @@ namespace mamba
                 ));
             }
 
-            package.info.url = package_node["url"].as<std::string>();
-            const auto spec = MatchSpec::parse(package.info.url);
-            package.info.fn = spec.fn;
-            package.info.build_string = spec.build_string;
-            if (spec.channel.has_value())
+            package.info.package_url = package_node["url"].as<std::string>();
+            const auto spec = specs::MatchSpec::parse(package.info.package_url);
+            package.info.filename = spec.filename();
+            package.info.build_string = spec.build_string().str();
+            if (spec.channel().has_value())
             {
-                package.info.channel = spec.channel->location();
-                if (!spec.channel->platform_filters().empty())
+                package.info.channel = spec.channel()->location();
+                if (!spec.channel()->platform_filters().empty())
                 {
                     // There must be only one since we are expecting URLs
-                    assert(spec.channel->platform_filters().size() == 1);
-                    package.info.subdir = spec.channel->platform_filters().front();
+                    assert(spec.channel()->platform_filters().size() == 1);
+                    package.info.subdir = spec.channel()->platform_filters().front();
                 }
             }
 
@@ -219,25 +219,26 @@ namespace mamba
                 std::type_index{ typeid(err) }
             ));
         }
-        catch (...)
+        catch (const std::exception& e)
         {
             return tl::unexpected(EnvLockFileError::make_error(
                 file_parsing_error_code::parsing_failure,
                 fmt::format(
-                    "unknown error while reading environment lockfile located at '{}'",
-                    file_path.string()
+                    "Error while reading environment lockfile located at '{}': {}",
+                    file_path.string(),
+                    e.what()
                 )
             ));
         }
     }
 
-    std::vector<PackageInfo> EnvironmentLockFile::get_packages_for(
+    std::vector<specs::PackageInfo> EnvironmentLockFile::get_packages_for(
         std::string_view category,
         std::string_view platform,
         std::string_view manager
     ) const
     {
-        std::vector<PackageInfo> results;
+        std::vector<specs::PackageInfo> results;
 
         // TODO: c++20 - rewrite this with ranges
         const auto package_predicate = [&](const auto& package)

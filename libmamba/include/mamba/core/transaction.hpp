@@ -12,15 +12,14 @@
 #include <vector>
 
 #include "mamba/api/install.hpp"
+#include "mamba/core/package_cache.hpp"
+#include "mamba/core/pool.hpp"
+#include "mamba/core/prefix_data.hpp"
+#include "mamba/core/solution.hpp"
+#include "mamba/core/transaction_context.hpp"
 #include "mamba/fs/filesystem.hpp"
-
-#include "match_spec.hpp"
-#include "package_cache.hpp"
-#include "package_info.hpp"
-#include "pool.hpp"
-#include "prefix_data.hpp"
-#include "solution.hpp"
-#include "transaction_context.hpp"
+#include "mamba/specs/match_spec.hpp"
+#include "mamba/specs/package_info.hpp"
 
 namespace mamba
 {
@@ -33,14 +32,14 @@ namespace mamba
 
         MTransaction(
             MPool& pool,
-            const std::vector<MatchSpec>& specs_to_remove,
-            const std::vector<MatchSpec>& specs_to_install,
+            const std::vector<specs::MatchSpec>& specs_to_remove,
+            const std::vector<specs::MatchSpec>& specs_to_install,
             MultiPackageCache& caches
         );
         MTransaction(MPool& pool, MSolver& solver, MultiPackageCache& caches);
 
         // Only use if the packages have been solved previously already.
-        MTransaction(MPool& pool, const std::vector<PackageInfo>& packages, MultiPackageCache& caches);
+        MTransaction(MPool& pool, const std::vector<specs::PackageInfo>& packages, MultiPackageCache& caches);
 
         MTransaction(const MTransaction&) = delete;
         MTransaction(MTransaction&&) = delete;
@@ -72,7 +71,7 @@ namespace mamba
 
         History::UserRequest m_history_entry;
 
-        std::vector<MatchSpec> m_requested_specs;
+        std::vector<specs::MatchSpec> m_requested_specs;
 
         MTransaction(MPool&, MultiPackageCache&);
     };

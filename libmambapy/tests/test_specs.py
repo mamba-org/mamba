@@ -19,6 +19,16 @@ def test_import_recursive():
     _p = mamba.specs.Platform.noarch
 
 
+def test_archive_extension():
+    assert libmambapy.specs.archive_extensions() == [".tar.bz2", ".conda"]
+
+    assert libmambapy.specs.has_archive_extension("pkg.conda")
+    assert not libmambapy.specs.has_archive_extension("conda.pkg")
+
+    assert libmambapy.specs.strip_archive_extension("pkg.conda") == "pkg"
+    assert libmambapy.specs.strip_archive_extension("conda.pkg") == "conda.pkg"
+
+
 def test_Platform():
     Platform = libmambapy.specs.Platform
 
@@ -47,7 +57,23 @@ def test_Platform():
 
     with pytest.raises(KeyError):
         # No parsing, explicit name
-        Platform("linux-64") == Platform.linux_64
+        Platform("linux-64")
+
+
+def test_NoArchType():
+    NoArchType = libmambapy.specs.NoArchType
+
+    assert NoArchType.No.name == "No"
+    assert NoArchType.Generic.name == "Generic"
+    assert NoArchType.Python.name == "Python"
+
+    assert len(NoArchType.__members__) == NoArchType.count()
+    assert NoArchType.parse(" Python") == NoArchType.Python
+    assert NoArchType("Generic") == NoArchType.Generic
+
+    with pytest.raises(KeyError):
+        # No parsing, explicit name, needs "Generic"
+        NoArchType("generic")
 
 
 def test_CondaURL_Credentials():
@@ -193,6 +219,7 @@ def test_CondaURL_op():
     #  Copy
     other = copy.deepcopy(url)
     assert other.str() == url.str()
+    assert other is not url
 
     # Comparison
     assert hash(url) != 0
@@ -244,6 +271,7 @@ def test_ChannelSpec():
     #  Copy
     other = copy.deepcopy(spec)
     assert other.location == spec.location
+    assert other is not spec
 
 
 def test_BasicHTTPAuthentication():
@@ -263,6 +291,7 @@ def test_BasicHTTPAuthentication():
     other = copy.deepcopy(auth)
     assert other is not auth
     assert other.user == auth.user
+    assert other is not auth
 
     # Comparion
     assert auth == auth
@@ -515,3 +544,240 @@ def test_Channel_resolve():
     )
     assert len(chans) == 2
     assert {c.display_name for c in chans} == {"best-forge", "conda-forge"}
+
+
+def test_VersionPartAtom():
+    VersionPartAtom = libmambapy.specs.VersionPartAtom
+
+    a = VersionPartAtom(numeral=1, literal="alpha")
+
+    # Getters
+    assert a.numeral == 1
+    assert a.literal == "alpha"
+    assert str(a) == "1alpha"
+
+    # Comparison
+    b = VersionPartAtom(2)
+    assert a == a
+    assert a != b
+    assert a <= a
+    assert a <= b
+    assert a < b
+    assert a >= a
+    assert b >= a
+    assert b > a
+
+    # Copy
+    other = copy.deepcopy(a)
+    assert other == a
+    assert other is not a
+
+
+def test_VersionPart():
+    VersionPartAtom = libmambapy.specs.VersionPartAtom
+    VersionPart = libmambapy.specs.VersionPart
+
+    p = VersionPart([VersionPartAtom(1, "a"), VersionPartAtom(3)])
+    assert len(p) == 2
+
+
+def test_CommonVersion():
+    VersionPartAtom = libmambapy.specs.VersionPartAtom
+    VersionPart = libmambapy.specs.VersionPart
+    CommonVersion = libmambapy.specs.CommonVersion
+
+    p = VersionPart([VersionPartAtom(1, "a"), VersionPartAtom(3)])
+    v = CommonVersion([p, p])
+    assert len(v) == 2
+
+
+def test_Version():
+    VersionPartAtom = libmambapy.specs.VersionPartAtom
+    VersionPart = libmambapy.specs.VersionPart
+    CommonVersion = libmambapy.specs.CommonVersion
+    Version = libmambapy.specs.Version
+
+    # Static data
+    assert isinstance(Version.epoch_delim, str)
+    assert isinstance(Version.local_delim, str)
+    assert isinstance(Version.part_delim, str)
+    assert isinstance(Version.part_delim_alt, str)
+    assert isinstance(Version.part_delim_special, str)
+
+    # Parse
+    v = Version.parse("3!1.3ab2.4+42.0alpha")
+
+    # Getters
+    assert v.epoch == 3
+    assert v.version == CommonVersion(
+        [
+            VersionPart([VersionPartAtom(1)]),
+            VersionPart([VersionPartAtom(3, "ab"), VersionPartAtom(2)]),
+            VersionPart([VersionPartAtom(4)]),
+        ]
+    )
+    assert v.local == CommonVersion(
+        [
+            VersionPart([VersionPartAtom(42)]),
+            VersionPart([VersionPartAtom(0, "alpha")]),
+        ]
+    )
+
+    # str
+    assert str(v) == "3!1.3ab2.4+42.0alpha"
+    assert v.str(level=1) == "3!1+42"
+
+    # Copy
+    other = copy.deepcopy(v)
+    assert other == v
+    assert other is not v
+
+    # Comparison
+    v1 = Version.parse("1.0.1")
+    v2 = Version.parse("1.2.3alpha2")
+    assert v1 == v1
+    assert v1 != v2
+    assert v1 <= v1
+    assert v1 <= v2
+    assert v2 >= v1
+    assert v2 >= v2
+    assert v2 > v1
+    assert v1.starts_with(Version.parse("1.0"))
+    assert not v1.starts_with(v2)
+    assert v2.compatible_with(older=v1, level=1)
+    assert not v2.compatible_with(older=v1, level=2)
+    assert not v1.compatible_with(older=v2, level=1)
+
+
+def test_VersionSpec():
+    Version = libmambapy.specs.Version
+    VersionSpec = libmambapy.specs.VersionSpec
+
+    # Static data
+    assert isinstance(VersionSpec.and_token, str)
+    assert isinstance(VersionSpec.or_token, str)
+    assert isinstance(VersionSpec.left_parenthesis_token, str)
+    assert isinstance(VersionSpec.right_parenthesis_token, str)
+    assert isinstance(VersionSpec.prefered_free_str, str)
+    assert isinstance(VersionSpec.all_free_strs, list)
+    assert isinstance(VersionSpec.starts_with_str, str)
+    assert isinstance(VersionSpec.equal_str, str)
+    assert isinstance(VersionSpec.not_equal_str, str)
+    assert isinstance(VersionSpec.greater_str, str)
+    assert isinstance(VersionSpec.greater_equal_str, str)
+    assert isinstance(VersionSpec.less_str, str)
+    assert isinstance(VersionSpec.less_equal_str, str)
+    assert isinstance(VersionSpec.compatible_str, str)
+    assert isinstance(VersionSpec.glob_suffix_str, str)
+    assert isinstance(VersionSpec.glob_suffix_token, str)
+
+    vs = VersionSpec.parse(">2.0,<3.0")
+
+    assert not vs.contains(Version.parse("1.1"))
+    assert vs.contains(Version.parse("2.1"))
+
+    # str
+    assert str(vs) == ">2.0,<3.0"
+
+    # Copy, no easy comparison, this may not work for all specs
+    other = copy.deepcopy(vs)
+    assert str(other) == str(vs)
+    assert other is not vs
+
+
+def test_PackageInfo():
+    PackageInfo = libmambapy.specs.PackageInfo
+    NoArchType = libmambapy.specs.NoArchType
+
+    pkg = PackageInfo(name="pkg", version="1.0", build_string="bld", build_number=2)
+
+    assert pkg.name == "pkg"
+    assert pkg.version == "1.0"
+    assert pkg.build_string == "bld"
+    assert pkg.build_number == 2
+
+    # str
+    assert str(pkg) == "pkg-1.0-bld"
+
+    # getters and setters
+    pkg.name = "foo"
+    assert pkg.name == "foo"
+    pkg.version = "4.0"
+    assert pkg.version == "4.0"
+    pkg.build_string = "mybld"
+    assert pkg.build_string == "mybld"
+    pkg.build_number = 5
+    assert pkg.build_number == 5
+    pkg.noarch = "Generic"
+    assert pkg.noarch == NoArchType.Generic
+    pkg.channel = "conda-forge"
+    assert pkg.channel == "conda-forge"
+    pkg.package_url = "https://repo.mamba.pm/conda-forge/linux-64/foo-4.0-mybld.conda"
+    assert pkg.package_url == "https://repo.mamba.pm/conda-forge/linux-64/foo-4.0-mybld.conda"
+    pkg.subdir = "linux-64"
+    assert pkg.subdir == "linux-64"
+    pkg.filename = "foo-4.0-mybld.conda"
+    assert pkg.filename == "foo-4.0-mybld.conda"
+    pkg.license = "MIT"
+    assert pkg.license == "MIT"
+    pkg.size = 3200
+    assert pkg.size == 3200
+    pkg.timestamp = 4532
+    assert pkg.timestamp == 4532
+    pkg.sha256 = "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    assert pkg.sha256 == "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    pkg.md5 = "68b329da9893e34099c7d8ad5cb9c940"
+    assert pkg.md5 == "68b329da9893e34099c7d8ad5cb9c940"
+    pkg.track_features = ["mkl"]
+    assert pkg.track_features == ["mkl"]
+    pkg.depends = ["python>=3.7"]
+    assert pkg.depends == ["python>=3.7"]
+    pkg.constrains = ["pip>=2.1"]
+    assert pkg.constrains == ["pip>=2.1"]
+
+    # Equality
+    assert PackageInfo() == PackageInfo()
+    assert pkg == pkg
+    assert pkg != PackageInfo()
+
+    # Copy
+    other = copy.deepcopy(pkg)
+    assert other == pkg
+    assert other is not pkg
+
+
+def test_PackageInfo_V2Migrator():
+    """Explicit migration help added from v1 to v2."""
+    import libmambapy
+
+    with pytest.raises(Exception, match=r"libmambapy\.specs"):
+        libmambapy.PackageInfo()
+
+    pkg = libmambapy.specs.PackageInfo()
+
+    with pytest.raises(Exception, match=r"filename"):
+        pkg.fn
+    with pytest.raises(Exception, match=r"filename"):
+        pkg.fn = "foo"
+
+    with pytest.raises(Exception, match=r"package_url"):
+        pkg.url
+    with pytest.raises(Exception, match=r"package_url"):
+        pkg.url = "https://repo.mamba.pm/conda-forge/linux-64/foo-4.0-mybld.conda"
+
+
+def test_MatchSpec():
+    MatchSpec = libmambapy.specs.MatchSpec
+
+    ms = MatchSpec.parse("conda-forge::python=3.7=*pypy")
+
+    # str
+    assert str(ms) == "conda-forge::python=3.7[build='*pypy']"
+
+
+def test_MatchSpec_V2Migrator():
+    """Explicit migration help added from v1 to v2."""
+    import libmambapy
+
+    with pytest.raises(Exception, match=r"libmambapy\.specs"):
+        libmambapy.MatchSpec()

@@ -188,7 +188,7 @@ To build from source, install the development dependencies, using a Conda compat
 
 .. code-block:: bash
 
-  micromamba create -n mamba --file dev/environment-static.yml
+  micromamba create -n mamba --file dev/environment-micromamba-static.yml
   micromamba activate -n mamba
 
 Use CMake from this environment to drive the build:

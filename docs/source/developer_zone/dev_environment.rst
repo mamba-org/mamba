@@ -35,6 +35,13 @@ You can follow the installation instructions there, or install it via `conda-for
     micromamba create -n mamba -c conda-forge go-task
     micromamba activate -n mamba
 
+If you're running on an OSX machine, you'll need to install GNU coreutils as well for the Taskfile to work.
+
+.. code:: bash
+
+    micromamba create -n mamba -c conda-forge go-task coreutils
+    micromamba activate -n mamba
+
 Running commands
 ****************
 

@@ -78,7 +78,7 @@ namespace mamba
         return m_path;
     }
 
-    void PackageCacheData::clear_query_cache(const PackageInfo& s)
+    void PackageCacheData::clear_query_cache(const specs::PackageInfo& s)
     {
         m_valid_tarballs.erase(s.str());
         m_valid_extracted_dir.erase(s.str());
@@ -127,7 +127,8 @@ namespace mamba
         }
     }
 
-    bool PackageCacheData::has_valid_tarball(const PackageInfo& s, const ValidationOptions& options)
+    bool
+    PackageCacheData::has_valid_tarball(const specs::PackageInfo& s, const ValidationOptions& options)
     {
         std::string pkg = s.str();
         if (m_valid_tarballs.find(pkg) != m_valid_tarballs.end())
@@ -135,15 +136,15 @@ namespace mamba
             return m_valid_tarballs[pkg];
         }
 
-        assert(!s.fn.empty());
-        const auto pkg_name = specs::strip_archive_extension(s.fn);
+        assert(!s.filename.empty());
+        const auto pkg_name = specs::strip_archive_extension(s.filename);
         LOG_DEBUG << "Verify cache '" << m_path.string() << "' for package tarball '" << pkg_name
                   << "'";
 
         bool valid = false;
-        if (fs::exists(m_path / s.fn))
+        if (fs::exists(m_path / s.filename))
         {
-            fs::u8path tarball_path = m_path / s.fn;
+            fs::u8path tarball_path = m_path / s.filename;
             // validate that this tarball has the right size and MD5 sum
             // we handle the case where s.size == 0 (explicit packages) or md5 is unknown
             valid = s.size == 0 || validation::file_size(tarball_path, s.size);
@@ -191,7 +192,7 @@ namespace mamba
     }
 
     bool
-    PackageCacheData::has_valid_extracted_dir(const PackageInfo& s, const ValidationOptions& options)
+    PackageCacheData::has_valid_extracted_dir(const specs::PackageInfo& s, const ValidationOptions& options)
     {
         bool valid = false, can_validate = false;
 
@@ -201,7 +202,7 @@ namespace mamba
             return m_valid_extracted_dir[pkg];
         }
 
-        auto pkg_name = specs::strip_archive_extension(s.fn);
+        auto pkg_name = specs::strip_archive_extension(s.filename);
         fs::u8path extracted_dir = m_path / pkg_name;
         LOG_DEBUG << "Verify cache '" << m_path.string() << "' for package extracted directory '"
                   << pkg_name << "'";
@@ -298,7 +299,10 @@ namespace mamba
                     {
                         if (!repodata_record["url"].get<std::string>().empty())
                         {
-                            if (!compare_cleaned_url(repodata_record["url"].get<std::string>(), s.url))
+                            if (!compare_cleaned_url(
+                                    repodata_record["url"].get<std::string>(),
+                                    s.package_url
+                                ))
                             {
                                 LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
                                             << "' has invalid url";
@@ -416,7 +420,7 @@ namespace mamba
         return fs::u8path();
     }
 
-    fs::u8path MultiPackageCache::get_tarball_path(const PackageInfo& s, bool return_empty)
+    fs::u8path MultiPackageCache::get_tarball_path(const specs::PackageInfo& s, bool return_empty)
     {
         const std::string pkg(s.str());
         const auto cache_iter(m_cached_tarballs.find(pkg));
@@ -440,12 +444,13 @@ namespace mamba
         }
         else
         {
-            LOG_ERROR << "Cannot find tarball cache for '" << s.fn << "'";
+            LOG_ERROR << "Cannot find tarball cache for '" << s.filename << "'";
             throw std::runtime_error("Package cache error.");
         }
     }
 
-    fs::u8path MultiPackageCache::get_extracted_dir_path(const PackageInfo& s, bool return_empty)
+    fs::u8path
+    MultiPackageCache::get_extracted_dir_path(const specs::PackageInfo& s, bool return_empty)
     {
         const std::string pkg(s.str());
         const auto cache_iter(m_cached_extracted_dirs.find(pkg));
@@ -469,7 +474,7 @@ namespace mamba
         }
         else
         {
-            LOG_ERROR << "Cannot find a valid extracted directory cache for '" << s.fn << "'";
+            LOG_ERROR << "Cannot find a valid extracted directory cache for '" << s.filename << "'";
             throw std::runtime_error("Package cache error.");
         }
     }
@@ -485,7 +490,7 @@ namespace mamba
         return paths;
     }
 
-    void MultiPackageCache::clear_query_cache(const PackageInfo& s)
+    void MultiPackageCache::clear_query_cache(const specs::PackageInfo& s)
     {
         for (auto& c : m_caches)
         {

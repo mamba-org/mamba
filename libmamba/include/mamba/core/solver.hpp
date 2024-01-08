@@ -19,11 +19,10 @@
 // Incomplete header
 #include <solv/rules.h>
 
-#include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/satisfiability_error.hpp"
-
-#include "match_spec.hpp"
+#include "mamba/specs/match_spec.hpp"
+#include "mamba/specs/package_info.hpp"
 
 #define PY_MAMBA_NO_DEPS 0b0001
 #define PY_MAMBA_ONLY_DEPS 0b0010
@@ -49,8 +48,8 @@ namespace mamba
         Id source_id;
         Id target_id;
         Id dep_id;
-        std::optional<PackageInfo> source;
-        std::optional<PackageInfo> target;
+        std::optional<specs::PackageInfo> source;
+        std::optional<specs::PackageInfo> target;
         std::optional<std::string> dep;
         std::string description;
     };
@@ -105,10 +104,10 @@ namespace mamba
         [[nodiscard]] MPool& pool() &;
         [[nodiscard]] MPool&& pool() &&;
 
-        [[nodiscard]] const std::vector<MatchSpec>& install_specs() const;
-        [[nodiscard]] const std::vector<MatchSpec>& remove_specs() const;
-        [[nodiscard]] const std::vector<MatchSpec>& neuter_specs() const;
-        [[nodiscard]] const std::vector<MatchSpec>& pinned_specs() const;
+        [[nodiscard]] const std::vector<specs::MatchSpec>& install_specs() const;
+        [[nodiscard]] const std::vector<specs::MatchSpec>& remove_specs() const;
+        [[nodiscard]] const std::vector<specs::MatchSpec>& neuter_specs() const;
+        [[nodiscard]] const std::vector<specs::MatchSpec>& pinned_specs() const;
 
         operator const Solver*() const;
         operator Solver*();
@@ -118,10 +117,10 @@ namespace mamba
     private:
 
         std::vector<std::pair<int, int>> m_libsolv_flags;
-        std::vector<MatchSpec> m_install_specs;
-        std::vector<MatchSpec> m_remove_specs;
-        std::vector<MatchSpec> m_neuter_specs;
-        std::vector<MatchSpec> m_pinned_specs;
+        std::vector<specs::MatchSpec> m_install_specs;
+        std::vector<specs::MatchSpec> m_remove_specs;
+        std::vector<specs::MatchSpec> m_neuter_specs;
+        std::vector<specs::MatchSpec> m_pinned_specs;
         // Order of m_pool and m_solver is critical since m_pool must outlive m_solver.
         MPool m_pool;
         // Temporary Pimpl all libsolv to keep it private
@@ -130,7 +129,7 @@ namespace mamba
         Flags m_flags = {};
         bool m_is_solved;
 
-        void add_reinstall_job(MatchSpec& ms, int job_flag);
+        void add_reinstall_job(const specs::MatchSpec& ms, int job_flag);
         void apply_libsolv_flags();
     };
 }  // namespace mamba

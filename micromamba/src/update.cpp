@@ -51,11 +51,14 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     std::string matchspec = version ? fmt::format("micromamba={}", version.value())
                                     : fmt::format("micromamba>{}", umamba::version());
 
-    auto solvable_ids = pool.select_solvables(pool.matchspec2id(MatchSpec::parse(matchspec)), true);
+    auto solvable_ids = pool.select_solvables(
+        pool.matchspec2id(specs::MatchSpec::parse(matchspec)),
+        true
+    );
 
     if (solvable_ids.empty())
     {
-        if (pool.select_solvables(pool.matchspec2id(MatchSpec::parse("micromamba"))).empty())
+        if (pool.select_solvables(pool.matchspec2id(specs::MatchSpec::parse("micromamba"))).empty())
         {
             throw mamba::mamba_error(
                 "No micromamba found in the loaded channels. Add 'conda-forge' to your config file.",
@@ -71,7 +74,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
         }
     }
 
-    std::optional<PackageInfo> latest_micromamba = pool.id2pkginfo(solvable_ids[0]);
+    std::optional<specs::PackageInfo> latest_micromamba = pool.id2pkginfo(solvable_ids[0]);
     if (!latest_micromamba)
     {
         throw mamba::mamba_error(
@@ -87,7 +90,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     );
 
     Console::instance().print(
-        fmt::format("  Fetching micromamba from {}\n", latest_micromamba.value().url)
+        fmt::format("  Fetching micromamba from {}\n", latest_micromamba.value().package_url)
     );
 
     ctx.download_only = true;

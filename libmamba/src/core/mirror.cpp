@@ -108,7 +108,7 @@ namespace mamba
 
     std::string Mirror::format_url(const std::string& path) const
     {
-        return util::join_url(m_url, path);
+        return util::url_concat(m_url, path);
     }
 
     std::string Mirror::get_auth_header(const std::string&) const

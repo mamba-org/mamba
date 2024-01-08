@@ -10,19 +10,17 @@
 #include <array>
 #include <functional>
 #include <initializer_list>
-#include <optional>
 #include <ostream>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <variant>
-#include <vector>
 
 #include <fmt/color.h>
 
-#include "mamba/core/match_spec.hpp"
-#include "mamba/core/package_info.hpp"
+#include "mamba/specs/match_spec.hpp"
+#include "mamba/specs/package_info.hpp"
 #include "mamba/util/flat_set.hpp"
 #include "mamba/util/graph.hpp"
 
@@ -77,21 +75,21 @@ namespace mamba
         {
         };
 
-        struct PackageNode : PackageInfo
+        struct PackageNode : specs::PackageInfo
         {
         };
 
-        struct UnresolvedDependencyNode : MatchSpec
+        struct UnresolvedDependencyNode : specs::MatchSpec
         {
         };
 
-        struct ConstraintNode : MatchSpec
+        struct ConstraintNode : specs::MatchSpec
         {
         };
 
         using node_t = std::variant<RootNode, PackageNode, UnresolvedDependencyNode, ConstraintNode>;
 
-        using edge_t = MatchSpec;
+        using edge_t = specs::MatchSpec;
 
         using graph_t = util::DiGraph<node_t, edge_t>;
         using node_id = graph_t::node_id;
@@ -213,7 +211,7 @@ namespace mamba
             UnresolvedDependencyListNode,
             ConstraintListNode>;
 
-        using edge_t = NamedList<MatchSpec>;
+        using edge_t = NamedList<specs::MatchSpec>;
 
         using graph_t = util::DiGraph<node_t, edge_t>;
         using node_id = graph_t::node_id;

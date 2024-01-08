@@ -1,3 +1,9 @@
+// Copyright (c) 2023, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
+
 #include "mamba/core/invoke.hpp"
 #include "mamba/core/package_fetcher.hpp"
 #include "mamba/core/util.hpp"
@@ -77,7 +83,7 @@ namespace mamba
         ValidationResult error;
     };
 
-    PackageFetcher::PackageFetcher(const PackageInfo& pkg_info, MultiPackageCache& caches)
+    PackageFetcher::PackageFetcher(const specs::PackageInfo& pkg_info, MultiPackageCache& caches)
 
         : m_package_info(pkg_info)
     {
@@ -308,12 +314,12 @@ namespace mamba
 
     const std::string& PackageFetcher::filename() const
     {
-        return m_package_info.fn;
+        return m_package_info.filename;
     }
 
     const std::string& PackageFetcher::url() const
     {
-        return m_package_info.url;
+        return m_package_info.package_url;
     }
 
     const std::string& PackageFetcher::sha256() const
@@ -366,11 +372,11 @@ namespace mamba
         const fs::u8path repodata_record_path = base_path / "info" / "repodata_record.json";
         const fs::u8path index_path = base_path / "info" / "index.json";
 
-        nlohmann::json index, solvable_json;
+        nlohmann::json index;
         std::ifstream index_file = open_ifstream(index_path);
         index_file >> index;
 
-        solvable_json = m_package_info.json_record();
+        const nlohmann::json solvable_json = m_package_info;
         index.insert(solvable_json.cbegin(), solvable_json.cend());
 
         if (index.find("size") == index.end() || index["size"] == 0)

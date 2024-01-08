@@ -191,17 +191,17 @@ namespace mamba
         return res;
     }
 
-    std::unordered_map<std::string, MatchSpec> History::get_requested_specs_map()
+    std::unordered_map<std::string, specs::MatchSpec> History::get_requested_specs_map()
     {
-        std::unordered_map<std::string, MatchSpec> map;
+        std::unordered_map<std::string, specs::MatchSpec> map;
 
         auto to_specs = [&](const std::vector<std::string>& sv)
         {
-            std::vector<MatchSpec> v;
+            std::vector<specs::MatchSpec> v;
             v.reserve(sv.size());
             for (const auto& el : sv)
             {
-                v.emplace_back(MatchSpec::parse(el));
+                v.emplace_back(specs::MatchSpec::parse(el));
             }
             return v;
         };
@@ -211,17 +211,17 @@ namespace mamba
             auto remove_specs = to_specs(request.remove);
             for (auto& spec : remove_specs)
             {
-                map.erase(spec.name);
+                map.erase(spec.name().str());
             }
             auto update_specs = to_specs(request.update);
             for (auto& spec : update_specs)
             {
-                map[spec.name] = spec;
+                map[spec.name().str()] = spec;
             }
             auto neutered_specs = to_specs(request.neutered);
             for (auto& spec : neutered_specs)
             {
-                map[spec.name] = spec;
+                map[spec.name().str()] = spec;
             }
         }
 

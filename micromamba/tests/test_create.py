@@ -5,7 +5,6 @@ import subprocess
 from pathlib import Path
 
 import pytest
-import requests
 import yaml
 
 from . import helpers
@@ -318,18 +317,77 @@ def test_multiple_spec_files(tmp_home, tmp_root_prefix, tmp_path, type):
 
         cmd += ["-f", spec_file]
 
-    if type == "yaml":
-        with pytest.raises(subprocess.CalledProcessError):
-            helpers.create(*cmd, "--print-config-only")
-    else:
-        res = helpers.create(*cmd, "--print-config-only")
-        if type == "classic":
-            assert res["specs"] == specs
-        else:  # explicit
-            assert res["specs"] == [explicit_specs[0]]
+    res = helpers.create(*cmd, "--print-config-only")
+    if type == "yaml" or type == "classic":
+        assert res["specs"] == specs
+    else:  # explicit
+        assert res["specs"] == [explicit_specs[0]]
 
 
-def test_multiprocessing():
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_multiple_spec_files_different_types(tmp_home, tmp_root_prefix, tmp_path):
+    env_prefix = tmp_path / "myenv"
+
+    cmd = ["-p", env_prefix]
+
+    spec_file_1 = tmp_path / "env1.yaml"
+    spec_file_1.write_text("dependencies: [xtensor]")
+
+    spec_file_2 = tmp_path / "env2.txt"
+    spec_file_2.write_text("xsimd")
+
+    cmd += ["-f", spec_file_1, "-f", spec_file_2]
+
+    with pytest.raises(subprocess.CalledProcessError) as info:
+        helpers.create(*cmd, "--print-config-only")
+    assert "found multiple spec file types" in info.value.stderr.decode()
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_multiple_yaml_specs_only_one_has_channels(tmp_home, tmp_root_prefix, tmp_path):
+    env_prefix = tmp_path / "myenv"
+
+    cmd = ["-p", env_prefix]
+
+    spec_file_1 = tmp_path / "env1.yaml"
+    spec_file_1.write_text("dependencies: [xtensor]")
+
+    spec_file_2 = tmp_path / "env2.yaml"
+    spec_file_2.write_text(
+        "dependencies: [xsimd]\nchannels: [bioconda]",
+    )
+
+    cmd += ["-f", spec_file_1, "-f", spec_file_2]
+
+    res = helpers.create(*cmd, "--print-config-only", default_channel=False)
+    assert res["channels"] == ["bioconda"]
+    assert res["specs"] == ["xtensor", "xsimd"]
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_multiple_yaml_specs_different_names(tmp_home, tmp_root_prefix, tmp_path):
+    env_prefix = tmp_path / "myenv"
+
+    cmd = ["-p", env_prefix]
+
+    spec_file_1 = tmp_path / "env1.yaml"
+    spec_file_1.write_text("name: env1\ndependencies: [xtensor]")
+
+    spec_file_2 = tmp_path / "env2.yaml"
+    spec_file_2.write_text(
+        "name: env2\ndependencies: [xsimd]\nchannels: [bioconda]",
+    )
+
+    cmd += ["-f", spec_file_1, "-f", spec_file_2]
+
+    res = helpers.create(*cmd, "--print-config-only", default_channel=False)
+    assert res["spec_file_env_name"] == "env1"
+    assert res["channels"] == ["bioconda"]
+    assert res["specs"] == ["xtensor", "xsimd"]
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_multiprocessing(tmp_home, tmp_root_prefix):
     if platform.system() == "Windows":
         return
 
@@ -385,6 +443,7 @@ def test_create_base(tmp_home, tmp_root_prefix, already_exists, is_conda_env, ha
         assert (tmp_root_prefix / "conda-meta").exists()
 
 
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 @pytest.mark.skipif(
     helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
     reason="Running only ultra-dry tests",
@@ -637,6 +696,7 @@ def test_spec_with_channel_and_subdir():
         ) in e.stderr.decode()
 
 
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_spec_with_multichannel(tmp_home, tmp_root_prefix):
     "https://github.com/mamba-org/mamba/pull/2927"
     helpers.create("-n", "myenv", "defaults::zlib", "--dry-run")
@@ -798,6 +858,7 @@ def test_pyc_compilation(tmp_home, tmp_root_prefix, version, build, cache_tag):
     assert pyc_fn.name in six_meta
 
 
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_create_check_dirs(tmp_home, tmp_root_prefix):
     env_name = "myenv"
     env_prefix = tmp_root_prefix / "envs" / env_name
@@ -973,6 +1034,7 @@ def copy_channels_osx():
                 f.write(repodata)
 
 
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_dummy_create(add_glibc_virtual_package, copy_channels_osx, tmp_home, tmp_root_prefix):
     env_name = "myenv"
 
@@ -1025,6 +1087,7 @@ def test_create_with_non_existing_subdir(tmp_home, tmp_root_prefix, tmp_path):
         helpers.create("-p", env_prefix, "--dry-run", "--json", "conda-forge/noarch::xtensor")
 
 
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_create_with_multiple_files(tmp_home, tmp_root_prefix, tmpdir):
     env_name = "myenv"
     tmp_root_prefix / "envs" / env_name
@@ -1052,7 +1115,7 @@ def test_create_with_multiple_files(tmp_home, tmp_root_prefix, tmpdir):
         no_rc=False,
     )
 
-    names = {x["name"] for x in res["actions"]["FETCH"]}
+    names = {x["name"] for x in res["actions"]["LINK"]}
     assert names == {"a", "b"}
 
 
@@ -1062,6 +1125,7 @@ multichannel_config = {
 }
 
 
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_create_with_multi_channels(tmp_home, tmp_root_prefix, tmp_path):
     env_name = "myenv"
     tmp_root_prefix / "envs" / env_name
@@ -1080,12 +1144,11 @@ def test_create_with_multi_channels(tmp_home, tmp_root_prefix, tmp_path):
         no_rc=False,
     )
 
-    for pkg in res["actions"]["FETCH"]:
-        assert pkg["channel"].startswith("https://conda.anaconda.org/conda-forge/")
     for pkg in res["actions"]["LINK"]:
         assert pkg["url"].startswith("https://conda.anaconda.org/conda-forge/")
 
 
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_create_with_multi_channels_and_non_existing_subdir(tmp_home, tmp_root_prefix, tmp_path):
     env_name = "myenv"
     tmp_root_prefix / "envs" / env_name
@@ -1106,6 +1169,7 @@ def test_create_with_multi_channels_and_non_existing_subdir(tmp_home, tmp_root_p
         )
 
 
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_create_with_unicode(tmp_home, tmp_root_prefix):
     env_name = "320 áγђß家固êôōçñ한"
     env_prefix = tmp_root_prefix / "envs" / env_name
@@ -1113,14 +1177,18 @@ def test_create_with_unicode(tmp_home, tmp_root_prefix):
     res = helpers.create("-n", env_name, "--json", "xtensor", no_rc=False)
 
     assert res["actions"]["PREFIX"] == str(env_prefix)
-    assert any(pkg["name"] == "xtensor" for pkg in res["actions"]["FETCH"])
-    assert any(pkg["name"] == "xtl" for pkg in res["actions"]["FETCH"])
+    assert any(pkg["name"] == "xtensor" for pkg in res["actions"]["LINK"])
+    assert any(pkg["name"] == "xtl" for pkg in res["actions"]["LINK"])
 
 
-def download(url: str, out: Path):
-    response = requests.get(url)
-    if response.status_code == 200:
-        with open(out, "wb") as file:
-            file.write(response.content)
-    else:
-        raise Exception(f'Failed to download URL "{url}"')
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_create_package_with_non_url_char(tmp_home, tmp_root_prefix):
+    """Specific filename char are properly URL encoded.
+
+    Version with epoch such as `x264-1!164.3095-h166bdaf_2.tar.bz2` are not properly URL encoded.
+
+    https://github.com/mamba-org/mamba/issues/3072
+    """
+    res = helpers.create("-n", "myenv", "-c", "conda-forge", "x264>=1!0", "--json")
+
+    assert any(pkg["name"] == "x264" for pkg in res["actions"]["LINK"])

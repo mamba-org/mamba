@@ -1,3 +1,11 @@
+micromamba 2.0.0alpha1 (December 18, 2023)
+==========================================
+
+
+CI fixes and doc:
+
+- Add CI merge groups by @AntoinePrv in https://github.com/mamba-org/mamba/pull/3068
+
 micromamba 2.0.0alpha0 (December 14, 2023)
 ==========================================
 

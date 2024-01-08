@@ -8,7 +8,7 @@
 #include <functional>
 #include <limits>
 #include <map>
-#include <regex>
+#include <sstream>
 #include <stdexcept>
 #include <string_view>
 #include <tuple>
@@ -148,7 +148,7 @@ namespace mamba
 
             std::vector<old_node_id_list> groups{};
 
-            std::size_t const n_nodes = node_indices.size();
+            const std::size_t n_nodes = node_indices.size();
             std::vector<bool> node_added_to_a_group(n_nodes, false);
             for (std::size_t i = 0; i < n_nodes; ++i)
             {
@@ -265,6 +265,70 @@ namespace mamba
             return CompressedProblemsGraph::NamedList<O>(tmp.begin(), tmp.end());
         }
 
+        template <typename T>
+        auto invoke_version(T&& e) -> decltype(auto)
+        {
+            using TT = std::remove_cv_t<std::remove_reference_t<T>>;
+            using Ver = decltype(std::invoke(&TT::version, std::forward<T>(e)));
+            Ver v = std::invoke(&TT::version, std::forward<T>(e));
+            if constexpr (std::is_same_v<std::decay_t<decltype(v)>, specs::VersionSpec>)
+            {
+                return std::forward<Ver>(v).str();
+            }
+            else
+            {
+                return v;
+            }
+        }
+
+        template <typename T>
+        auto invoke_build_number(T&& e) -> decltype(auto)
+        {
+            using TT = std::remove_cv_t<std::remove_reference_t<T>>;
+            using Num = decltype(std::invoke(&TT::build_number, std::forward<T>(e)));
+            Num num = std::invoke(&TT::build_number, std::forward<T>(e));
+            if constexpr (std::is_same_v<std::decay_t<decltype(num)>, specs::BuildNumberSpec>)
+            {
+                return std::forward<Num>(num).str();
+            }
+            else
+            {
+                return num;
+            }
+        }
+
+        template <typename T>
+        auto invoke_build_string(T&& e) -> decltype(auto)
+        {
+            using TT = std::remove_cv_t<std::remove_reference_t<T>>;
+            using Build = decltype(std::invoke(&TT::build_string, std::forward<T>(e)));
+            Build bld = std::invoke(&TT::build_string, std::forward<T>(e));
+            if constexpr (std::is_same_v<std::decay_t<decltype(bld)>, specs::GlobSpec>)
+            {
+                return std::forward<Build>(bld).str();
+            }
+            else
+            {
+                return bld;
+            }
+        }
+
+        template <typename T>
+        auto invoke_name(T&& e) -> decltype(auto)
+        {
+            using TT = std::remove_cv_t<std::remove_reference_t<T>>;
+            using Name = decltype(std::invoke(&TT::name, std::forward<T>(e)));
+            Name name = std::invoke(&TT::name, std::forward<T>(e));
+            if constexpr (std::is_same_v<std::decay_t<decltype(name)>, specs::GlobSpec>)
+            {
+                return std::forward<Name>(name).str();
+            }
+            else
+            {
+                return name;
+            }
+        }
+
         /**
          * Detect if a type has a ``name`` member (function).
          */
@@ -287,7 +351,7 @@ namespace mamba
         {
             if constexpr (has_name_v<T>)
             {
-                return std::invoke(&T::name, obj);
+                return invoke_name(obj);
             }
             else
             {
@@ -539,15 +603,20 @@ namespace mamba
      *************************************************************/
 
     template <typename T>
-    bool CompressedProblemsGraph::RoughCompare<T>::operator()(const T& a, const T& b) const
+    auto CompressedProblemsGraph::RoughCompare<T>::operator()(const T& a, const T& b) const -> bool
     {
         auto attrs = [](const auto& x)
         {
-            return std::tie(
-                std::invoke(&T::name, x),
-                std::invoke(&T::version, x),
-                std::invoke(&T::build_number, x),
-                std::invoke(&T::build_string, x)
+            using Attrs = std::tuple<
+                decltype(invoke_name(x)),
+                decltype(invoke_version(x)),
+                decltype(invoke_build_number(x)),
+                decltype(invoke_build_string(x))>;
+            return Attrs(
+                invoke_name(x),
+                invoke_version(x),
+                invoke_build_number(x),
+                invoke_build_string(x)
             );
         };
         return attrs(a) < attrs(b);
@@ -556,21 +625,11 @@ namespace mamba
     template struct CompressedProblemsGraph::RoughCompare<ProblemsGraph::PackageNode>;
     template struct CompressedProblemsGraph::RoughCompare<ProblemsGraph::UnresolvedDependencyNode>;
     template struct CompressedProblemsGraph::RoughCompare<ProblemsGraph::ConstraintNode>;
-    template struct CompressedProblemsGraph::RoughCompare<MatchSpec>;
+    template struct CompressedProblemsGraph::RoughCompare<specs::MatchSpec>;
 
     /**********************************************************
      *  Implementation of CompressedProblemsGraph::NamedList  *
      **********************************************************/
-
-    namespace
-    {
-        template <typename T>
-        decltype(auto) invoke_name(T&& e)
-        {
-            using TT = std::remove_cv_t<std::remove_reference_t<T>>;
-            return std::invoke(&TT::name, std::forward<T>(e));
-        }
-    }
 
     template <typename T, typename A>
     template <typename InputIterator>
@@ -650,13 +709,13 @@ namespace mamba
     ) const -> std::pair<std::string, std::size_t>
     {
         auto versions = std::vector<std::string>(size());
-        auto invoke_version = [](auto&& v) -> decltype(auto)
-        {
-            using TT = std::remove_cv_t<std::remove_reference_t<decltype(v)>>;
-            return std::invoke(&TT::version, std::forward<decltype(v)>(v));
-        };
         // TODO(C++20) *this | std::ranges::transform(invoke_version) | ranges::unique
-        std::transform(begin(), end(), versions.begin(), invoke_version);
+        std::transform(
+            begin(),
+            end(),
+            versions.begin(),
+            [](const auto& x) { return invoke_version(x); }
+        );
         if (remove_duplicates)
         {
             versions.erase(std::unique(versions.begin(), versions.end()), versions.end());
@@ -673,13 +732,13 @@ namespace mamba
     ) const -> std::pair<std::string, std::size_t>
     {
         auto builds = std::vector<std::string>(size());
-        auto invoke_build_string = [](auto&& v) -> decltype(auto)
-        {
-            using TT = std::remove_cv_t<std::remove_reference_t<decltype(v)>>;
-            return std::invoke(&TT::build_string, std::forward<decltype(v)>(v));
-        };
         // TODO(C++20) *this | std::ranges::transform(invoke_buid_string) | ranges::unique
-        std::transform(begin(), end(), builds.begin(), invoke_build_string);
+        std::transform(
+            begin(),
+            end(),
+            builds.begin(),
+            [](const auto& p) { return invoke_build_string(p); }
+        );
         if (remove_duplicates)
         {
             builds.erase(std::unique(builds.begin(), builds.end()), builds.end());
@@ -697,14 +756,7 @@ namespace mamba
     {
         auto versions_builds = std::vector<std::string>(size());
         auto invoke_version_builds = [](auto&& v) -> decltype(auto)
-        {
-            using TT = std::remove_cv_t<std::remove_reference_t<decltype(v)>>;
-            return fmt::format(
-                "{} {}",
-                std::invoke(&TT::version, std::forward<decltype(v)>(v)),
-                std::invoke(&TT::build_string, std::forward<decltype(v)>(v))
-            );
-        };
+        { return fmt::format("{} {}", invoke_version(v), invoke_build_string(v)); };
         // TODO(C++20) *this | std::ranges::transform(invoke_version) | ranges::unique
         std::transform(begin(), end(), versions_builds.begin(), invoke_version_builds);
         if (remove_duplicates)
@@ -746,7 +798,7 @@ namespace mamba
     template class CompressedProblemsGraph::NamedList<ProblemsGraph::PackageNode>;
     template class CompressedProblemsGraph::NamedList<ProblemsGraph::UnresolvedDependencyNode>;
     template class CompressedProblemsGraph::NamedList<ProblemsGraph::ConstraintNode>;
-    template class CompressedProblemsGraph::NamedList<MatchSpec>;
+    template class CompressedProblemsGraph::NamedList<specs::MatchSpec>;
 
     /***********************************
      *  Implementation of summary_msg  *
@@ -1036,7 +1088,7 @@ namespace mamba
 
             const TreeNodeIter children_begin = out;
             // TODO(C++20) an enumerate view ``views::zip(views::iota(), children_ids)``
-            std::size_t const n_children = children_ids.size();
+            const std::size_t n_children = children_ids.size();
             for (std::size_t i = 0; i < n_children; ++i)
             {
                 const bool last = (i == n_children - 1);
@@ -1228,7 +1280,7 @@ namespace mamba
 
         void TreeExplainer::write_ancestry(const std::vector<SiblingNumber>& ancestry)
         {
-            std::size_t const size = ancestry.size();
+            const std::size_t size = ancestry.size();
             const auto indents = m_format.indents;
             if (size > 0)
             {
@@ -1434,7 +1486,7 @@ namespace mamba
 
         void TreeExplainer::write_path(const std::vector<TreeNode>& path)
         {
-            std::size_t const length = path.size();
+            const std::size_t length = path.size();
             for (std::size_t i = 0; i < length; ++i)
             {
                 const bool last = (i == length - 1);

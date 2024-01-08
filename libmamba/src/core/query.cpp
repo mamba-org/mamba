@@ -26,9 +26,9 @@ extern "C"  // Incomplete header
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/package_info.hpp"
 #include "mamba/core/query.hpp"
 #include "mamba/specs/conda_url.hpp"
+#include "mamba/specs/package_info.hpp"
 #include "mamba/util/string.hpp"
 #include "solv-cpp/queue.hpp"
 
@@ -97,7 +97,7 @@ namespace mamba
                         if (it == not_found.end())
                         {
                             auto dep_id = dep_graph.add_node(
-                                PackageInfo(util::concat(name, " >>> NOT FOUND <<<"))
+                                specs::PackageInfo(util::concat(name, " >>> NOT FOUND <<<"))
                             );
                             dep_graph.add_edge(parent, dep_id);
                             not_found.insert(std::make_pair(name, dep_id));
@@ -169,7 +169,7 @@ namespace mamba
         /**
          * Prints metadata for a given package.
          */
-        auto print_metadata(std::ostream& out, const PackageInfo& pkg)
+        auto print_metadata(std::ostream& out, const specs::PackageInfo& pkg)
         {
             static constexpr const char* fmtstring = " {:<15} {}\n";
             fmt::print(out, fmtstring, "Name", pkg.name);
@@ -178,10 +178,10 @@ namespace mamba
             fmt::print(out, " {:<15} {} kB\n", "Size", pkg.size / 1000);
             fmt::print(out, fmtstring, "License", pkg.license);
             fmt::print(out, fmtstring, "Subdir", pkg.subdir);
-            fmt::print(out, fmtstring, "File Name", pkg.fn);
+            fmt::print(out, fmtstring, "File Name", pkg.filename);
 
             using CondaURL = typename specs::CondaURL;
-            auto url = CondaURL::parse(pkg.url);
+            auto url = CondaURL::parse(pkg.package_url);
             fmt::print(
                 out,
                 " {:<15} {}\n",
@@ -223,8 +223,8 @@ namespace mamba
          */
         auto print_other_builds(
             std::ostream& out,
-            const PackageInfo& pkg,
-            const std::map<std::string, std::vector<PackageInfo>> groupedOtherBuilds,
+            const specs::PackageInfo& pkg,
+            const std::map<std::string, std::vector<specs::PackageInfo>> groupedOtherBuilds,
             bool showAllBuilds
         )
         {
@@ -295,13 +295,13 @@ namespace mamba
          */
         auto print_solvable(
             std::ostream& out,
-            const PackageInfo& pkg,
-            const std::vector<PackageInfo>& otherBuilds,
+            const specs::PackageInfo& pkg,
+            const std::vector<specs::PackageInfo>& otherBuilds,
             bool showAllBuilds
         )
         {
             // Filter and group builds/versions.
-            std::map<std::string, std::vector<PackageInfo>> groupedOtherBuilds;
+            std::map<std::string, std::vector<specs::PackageInfo>> groupedOtherBuilds;
             auto numOtherBuildsForLatestVersion = 0;
             if (showAllBuilds)
             {
@@ -527,10 +527,10 @@ namespace mamba
         return m_query;
     }
 
-    query_result& query_result::sort(std::string field)
+    query_result& query_result::sort(std::string_view field)
     {
-        auto compare_ids = [&, fun = PackageInfo::less(field)](node_id lhs, node_id rhs)
-        { return fun(m_dep_graph.node(lhs), m_dep_graph.node(rhs)); };
+        auto compare_ids = [&](node_id lhs, node_id rhs)
+        { return m_dep_graph.node(lhs).field(field) < m_dep_graph.node(rhs).field(field); };
 
         if (!m_ordered_pkg_id_list.empty())
         {
@@ -547,14 +547,13 @@ namespace mamba
         return *this;
     }
 
-    query_result& query_result::groupby(std::string field)
+    query_result& query_result::groupby(std::string_view field)
     {
-        auto fun = PackageInfo::get_field_getter(field);
         if (m_ordered_pkg_id_list.empty())
         {
             for (auto& id : m_pkg_id_list)
             {
-                m_ordered_pkg_id_list[fun(m_dep_graph.node(id))].push_back(id);
+                m_ordered_pkg_id_list[m_dep_graph.node(id).field(field)].push_back(id);
             }
         }
         else
@@ -564,7 +563,7 @@ namespace mamba
             {
                 for (auto& id : entry.second)
                 {
-                    std::string key = entry.first + '/' + fun(m_dep_graph.node(id));
+                    std::string key = entry.first + '/' + m_dep_graph.node(id).field(field);
                     tmp[std::move(key)].push_back(id);
                 }
             }
@@ -655,7 +654,8 @@ namespace mamba
             alignments.push_back(printers::alignment::left);
         }
 
-        auto format_row = [&](const PackageInfo& pkg, const std::vector<PackageInfo>& builds)
+        auto format_row =
+            [&](const specs::PackageInfo& pkg, const std::vector<specs::PackageInfo>& builds)
         {
             std::vector<mamba::printers::FormattedString> row;
             for (std::size_t i = 0; i < cmds.size(); ++i)
@@ -713,7 +713,8 @@ namespace mamba
 
         if (!m_ordered_pkg_id_list.empty())
         {
-            std::map<std::string, std::map<std::string, std::vector<PackageInfo>>> packageBuildsByVersion;
+            std::map<std::string, std::map<std::string, std::vector<specs::PackageInfo>>>
+                packageBuildsByVersion;
             std::unordered_set<std::string> distinctBuildSHAs;
             for (auto& entry : m_ordered_pkg_id_list)
             {
@@ -836,7 +837,7 @@ namespace mamba
             }
         }
 
-        std::string get_package_repr(const PackageInfo& pkg) const
+        std::string get_package_repr(const specs::PackageInfo& pkg) const
         {
             return pkg.version.empty() ? pkg.name : pkg.name + '[' + pkg.version + ']';
         }
@@ -882,7 +883,7 @@ namespace mamba
         j["result"]["pkgs"] = nlohmann::json::array();
         for (size_t i = 0; i < m_pkg_id_list.size(); ++i)
         {
-            auto pkg_info_json = m_dep_graph.node(m_pkg_id_list[i]).json_record();
+            nlohmann::json pkg_info_json = m_dep_graph.node(m_pkg_id_list[i]);
             // We want the cannonical channel name here.
             // We do not know what is in the `channel` field so we need to make sure.
             // This is most likely legacy and should be updated on the next major release.
@@ -897,7 +898,7 @@ namespace mamba
             j["result"]["graph_roots"] = nlohmann::json::array();
             if (!m_dep_graph.successors(0).empty())
             {
-                auto pkg_info_json = m_dep_graph.node(0).json_record();
+                nlohmann::json pkg_info_json = m_dep_graph.node(0);
                 // We want the cannonical channel name here.
                 // We do not know what is in the `channel` field so we need to make sure.
                 // This is most likely legacy and should be updated on the next major release.
@@ -923,7 +924,7 @@ namespace mamba
         }
         else
         {
-            std::map<std::string, std::vector<PackageInfo>> packages;
+            std::map<std::string, std::vector<specs::PackageInfo>> packages;
             for (const auto& id : m_pkg_id_list)
             {
                 auto package = m_dep_graph.node(id);
@@ -956,7 +957,7 @@ namespace mamba
         m_dep_graph.for_each_node_id([&](node_id id) { m_pkg_id_list.push_back(id); });
     }
 
-    std::string query_result::get_package_repr(const PackageInfo& pkg) const
+    std::string query_result::get_package_repr(const specs::PackageInfo& pkg) const
     {
         return pkg.version.empty() ? pkg.name : fmt::format("{}[{}]", pkg.name, pkg.version);
     }

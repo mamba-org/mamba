@@ -6,11 +6,11 @@
 
 #include <cassert>
 #include <cctype>
+#include <cstddef>
 #include <cwchar>
 #include <cwctype>
+#include <iterator>
 #include <stdexcept>
-
-#include <stddef.h>
 
 #include "mamba/util/string.hpp"
 
@@ -20,132 +20,132 @@ namespace mamba::util
      *  Implementation of cctype functions  *
      ****************************************/
 
-    bool is_control(char c)
+    auto is_control(char c) -> bool
     {
         return std::iscntrl(static_cast<unsigned char>(c)) != 0;
     }
 
-    bool is_control(wchar_t c)
+    auto is_control(wchar_t c) -> bool
     {
         return std::iswcntrl(static_cast<wint_t>(c)) != 0;
     }
 
-    bool is_print(char c)
+    auto is_print(char c) -> bool
     {
         return std::isprint(static_cast<unsigned char>(c)) != 0;
     }
 
-    bool is_print(wchar_t c)
+    auto is_print(wchar_t c) -> bool
     {
         return std::iswprint(static_cast<wint_t>(c)) != 0;
     }
 
-    bool is_space(char c)
+    auto is_space(char c) -> bool
     {
         return std::isspace(static_cast<unsigned char>(c)) != 0;
     }
 
-    bool is_space(wchar_t c)
+    auto is_space(wchar_t c) -> bool
     {
         return std::iswspace(static_cast<wint_t>(c)) != 0;
     }
 
-    bool is_blank(char c)
+    auto is_blank(char c) -> bool
     {
         return std::isblank(static_cast<unsigned char>(c)) != 0;
     }
 
-    bool is_blank(wchar_t c)
+    auto is_blank(wchar_t c) -> bool
     {
         return std::iswblank(static_cast<wint_t>(c)) != 0;
     }
 
-    bool is_graphic(char c)
+    auto is_graphic(char c) -> bool
     {
         return std::isgraph(static_cast<unsigned char>(c)) != 0;
     }
 
-    bool is_graphic(wchar_t c)
+    auto is_graphic(wchar_t c) -> bool
     {
         return std::iswgraph(static_cast<wint_t>(c)) != 0;
     }
 
-    bool is_digit(char c)
+    auto is_digit(char c) -> bool
     {
         return std::isdigit(static_cast<unsigned char>(c)) != 0;
     }
 
-    bool is_digit(wchar_t c)
+    auto is_digit(wchar_t c) -> bool
     {
         return std::iswdigit(static_cast<wint_t>(c)) != 0;
     }
 
-    bool is_punct(char c)
+    auto is_punct(char c) -> bool
     {
         return std::ispunct(static_cast<unsigned char>(c)) != 0;
     }
 
-    bool is_punct(wchar_t c)
+    auto is_punct(wchar_t c) -> bool
     {
         return std::iswpunct(static_cast<wint_t>(c)) != 0;
     }
 
-    bool is_alpha(char c)
+    auto is_alpha(char c) -> bool
     {
         return std::isalpha(static_cast<unsigned char>(c)) != 0;
     }
 
-    bool is_alpha(wchar_t c)
+    auto is_alpha(wchar_t c) -> bool
     {
         return std::iswalpha(static_cast<wint_t>(c)) != 0;
     }
 
-    bool is_alphanum(char c)
+    auto is_alphanum(char c) -> bool
     {
         return std::isalnum(static_cast<unsigned char>(c)) != 0;
     }
 
-    bool is_alphanum(wchar_t c)
+    auto is_alphanum(wchar_t c) -> bool
     {
         return std::iswalnum(static_cast<wint_t>(c)) != 0;
     }
 
-    bool is_lower(char c)
+    auto is_lower(char c) -> bool
     {
         return std::islower(static_cast<unsigned char>(c)) != 0;
     }
 
-    bool is_lower(wchar_t c)
+    auto is_lower(wchar_t c) -> bool
     {
         return std::iswlower(static_cast<wint_t>(c)) != 0;
     }
 
-    bool is_upper(char c)
+    auto is_upper(char c) -> bool
     {
         return std::isupper(static_cast<unsigned char>(c)) != 0;
     }
 
-    bool is_upper(wchar_t c)
+    auto is_upper(wchar_t c) -> bool
     {
         return std::iswupper(static_cast<wint_t>(c)) != 0;
     }
 
-    char to_lower(char c)
+    auto to_lower(char c) -> char
     {
         return static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     }
 
-    wchar_t to_lower(wchar_t c)
+    auto to_lower(wchar_t c) -> wchar_t
     {
         return static_cast<wchar_t>(std::towlower(static_cast<wint_t>(c)));
     }
 
-    char to_upper(char c)
+    auto to_upper(char c) -> char
     {
         return static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
     }
 
-    wchar_t to_upper(wchar_t c)
+    auto to_upper(wchar_t c) -> wchar_t
     {
         return static_cast<wchar_t>(std::towupper(static_cast<wint_t>(c)));
     }
@@ -157,7 +157,7 @@ namespace mamba::util
     namespace
     {
         template <typename Char>
-        std::basic_string<Char> to_lower_impl(std::basic_string_view<Char> str)
+        auto to_lower_impl(std::basic_string_view<Char> str) -> std::basic_string<Char>
         {
             auto out = std::basic_string<Char>();
             std::transform(
@@ -170,18 +170,18 @@ namespace mamba::util
         }
     }
 
-    std::string to_lower(std::string_view str)
+    auto to_lower(std::string_view str) -> std::string
     {
         return to_lower_impl(str);
     }
 
-    std::wstring to_lower(std::wstring_view str)
+    auto to_lower(std::wstring_view str) -> std::wstring
     {
         return to_lower_impl(str);
     }
 
     template <typename Char>
-    std::basic_string<Char> to_lower(std::basic_string<Char>&& str)
+    auto to_lower(std::basic_string<Char>&& str) -> std::basic_string<Char>
     {
         std::transform(str.cbegin(), str.cend(), str.begin(), [](auto c) { return to_lower(c); });
         return str;
@@ -193,7 +193,7 @@ namespace mamba::util
     namespace
     {
         template <typename Char>
-        std::basic_string<Char> to_upper_impl(std::basic_string_view<Char> str)
+        auto to_upper_impl(std::basic_string_view<Char> str) -> std::basic_string<Char>
         {
             auto out = std::basic_string<Char>();
             std::transform(
@@ -206,18 +206,18 @@ namespace mamba::util
         }
     }
 
-    std::string to_upper(std::string_view str)
+    auto to_upper(std::string_view str) -> std::string
     {
         return to_upper_impl(str);
     }
 
-    std::wstring to_upper(std::wstring_view str)
+    auto to_upper(std::wstring_view str) -> std::wstring
     {
         return to_upper_impl(str);
     }
 
     template <typename Char>
-    std::basic_string<Char> to_upper(std::basic_string<Char>&& str)
+    auto to_upper(std::basic_string<Char>&& str) -> std::basic_string<Char>
     {
         std::transform(str.cbegin(), str.cend(), str.begin(), [](auto c) { return to_upper(c); });
         return str;
@@ -231,42 +231,42 @@ namespace mamba::util
      *******************************************/
 
     // TODO(C++20) This is a method of string_view
-    bool contains(std::string_view str, std::string_view sub_str)
+    auto contains(std::string_view str, std::string_view sub_str) -> bool
     {
         return str.find(sub_str) != std::string::npos;
     }
 
     // TODO(C++20) This is a method of string_view
-    bool contains(std::string_view str, char c)
+    auto contains(std::string_view str, char c) -> bool
     {
         return str.find(c) != std::string::npos;
     }
 
-    bool contains(char c1, char c2)
+    auto contains(char c1, char c2) -> bool
     {
         return c1 == c2;
     }
 
     // TODO(C++20) This is a method of string_view
-    bool ends_with(std::string_view str, std::string_view suffix)
+    auto ends_with(std::string_view str, std::string_view suffix) -> bool
     {
         return str.size() >= suffix.size()
                && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
     }
 
-    bool ends_with(std::string_view str, std::string_view::value_type c)
+    auto ends_with(std::string_view str, std::string_view::value_type c) -> bool
     {
         return (!str.empty()) && (str.back() == c);
     }
 
     // TODO(C++20) This is a method of string_view
-    bool starts_with(std::string_view str, std::string_view prefix)
+    auto starts_with(std::string_view str, std::string_view prefix) -> bool
     {
         return str.size() >= prefix.size() && 0 == str.compare(0, prefix.size(), prefix);
     }
 
     // TODO(C++20) This is a method of string_view
-    bool starts_with(std::string_view str, std::string_view::value_type c)
+    auto starts_with(std::string_view str, std::string_view::value_type c) -> bool
     {
         return (!str.empty()) && (str.front() == c);
     }
@@ -285,7 +285,8 @@ namespace mamba::util
      *  Implementation of remove prefix/suffix functions  *
      ******************************************************/
 
-    std::array<std::string_view, 2> split_prefix(std::string_view str, std::string_view prefix)
+    auto split_prefix(std::string_view str, std::string_view prefix)
+        -> std::array<std::string_view, 2>
     {
         if (starts_with(str, prefix))
         {
@@ -294,7 +295,8 @@ namespace mamba::util
         return { std::string_view(), str };
     }
 
-    std::array<std::string_view, 2> split_prefix(std::string_view str, std::string_view::value_type c)
+    auto split_prefix(std::string_view str, std::string_view::value_type c)
+        -> std::array<std::string_view, 2>
     {
         if (starts_with(str, c))
         {
@@ -303,17 +305,18 @@ namespace mamba::util
         return { std::string_view(), str };
     }
 
-    std::string_view remove_prefix(std::string_view str, std::string_view prefix)
+    auto remove_prefix(std::string_view str, std::string_view prefix) -> std::string_view
     {
         return std::get<1>(split_prefix(str, prefix));
     }
 
-    std::string_view remove_prefix(std::string_view str, std::string_view::value_type c)
+    auto remove_prefix(std::string_view str, std::string_view::value_type c) -> std::string_view
     {
         return std::get<1>(split_prefix(str, c));
     }
 
-    std::array<std::string_view, 2> split_suffix(std::string_view str, std::string_view suffix)
+    auto split_suffix(std::string_view str, std::string_view suffix)
+        -> std::array<std::string_view, 2>
     {
         if (ends_with(str, suffix))
         {
@@ -323,7 +326,8 @@ namespace mamba::util
         return { str, std::string_view() };
     }
 
-    std::array<std::string_view, 2> split_suffix(std::string_view str, std::string_view::value_type c)
+    auto split_suffix(std::string_view str, std::string_view::value_type c)
+        -> std::array<std::string_view, 2>
     {
         if (ends_with(str, c))
         {
@@ -333,12 +337,12 @@ namespace mamba::util
         return { str, std::string_view() };
     }
 
-    std::string_view remove_suffix(std::string_view str, std::string_view suffix)
+    auto remove_suffix(std::string_view str, std::string_view suffix) -> std::string_view
     {
         return std::get<0>(split_suffix(str, suffix));
     }
 
-    std::string_view remove_suffix(std::string_view str, std::string_view::value_type c)
+    auto remove_suffix(std::string_view str, std::string_view::value_type c) -> std::string_view
     {
         return std::get<0>(split_suffix(str, c));
     }
@@ -347,97 +351,97 @@ namespace mamba::util
      *  Implementation of strip functions  *
      ***************************************/
 
-    std::string_view lstrip(std::string_view input, char c)
+    auto lstrip(std::string_view input, char c) -> std::string_view
     {
         return lstrip_parts(input, c)[1];
     }
 
-    std::wstring_view lstrip(std::wstring_view input, wchar_t c)
+    auto lstrip(std::wstring_view input, wchar_t c) -> std::wstring_view
     {
         return lstrip_parts(input, c)[1];
     }
 
-    std::string_view lstrip(std::string_view input, std::string_view chars)
+    auto lstrip(std::string_view input, std::string_view chars) -> std::string_view
     {
         return lstrip_parts(input, chars)[1];
     }
 
-    std::wstring_view lstrip(std::wstring_view input, std::wstring_view chars)
+    auto lstrip(std::wstring_view input, std::wstring_view chars) -> std::wstring_view
     {
         return lstrip_parts(input, chars)[1];
     }
 
-    std::string_view lstrip(std::string_view input)
+    auto lstrip(std::string_view input) -> std::string_view
     {
         using Char = decltype(input)::value_type;
         return lstrip_if(input, [](Char c) { return !is_graphic(c); });
     }
 
-    std::wstring_view lstrip(std::wstring_view input)
+    auto lstrip(std::wstring_view input) -> std::wstring_view
     {
         using Char = decltype(input)::value_type;
         return lstrip_if(input, [](Char c) { return !is_graphic(c); });
     }
 
-    std::string_view rstrip(std::string_view input, char c)
+    auto rstrip(std::string_view input, char c) -> std::string_view
     {
         return rstrip_parts(input, c)[0];
     }
 
-    std::wstring_view rstrip(std::wstring_view input, wchar_t c)
+    auto rstrip(std::wstring_view input, wchar_t c) -> std::wstring_view
     {
         return rstrip_parts(input, c)[0];
     }
 
-    std::string_view rstrip(std::string_view input, std::string_view chars)
+    auto rstrip(std::string_view input, std::string_view chars) -> std::string_view
     {
         return rstrip_parts(input, chars)[0];
     }
 
-    std::wstring_view rstrip(std::wstring_view input, std::wstring_view chars)
+    auto rstrip(std::wstring_view input, std::wstring_view chars) -> std::wstring_view
     {
         return rstrip_parts(input, chars)[0];
     }
 
-    std::string_view rstrip(std::string_view input)
+    auto rstrip(std::string_view input) -> std::string_view
     {
         using Char = decltype(input)::value_type;
         return rstrip_if(input, [](Char c) { return !is_graphic(c); });
     }
 
-    std::wstring_view rstrip(std::wstring_view input)
+    auto rstrip(std::wstring_view input) -> std::wstring_view
     {
         using Char = decltype(input)::value_type;
         return rstrip_if(input, [](Char c) { return !is_graphic(c); });
     }
 
-    std::string_view strip(std::string_view input, char c)
+    auto strip(std::string_view input, char c) -> std::string_view
     {
         return strip_parts(input, c)[1];
     }
 
-    std::wstring_view strip(std::wstring_view input, wchar_t c)
+    auto strip(std::wstring_view input, wchar_t c) -> std::wstring_view
     {
         return strip_parts(input, c)[1];
     }
 
-    std::string_view strip(std::string_view input, std::string_view chars)
+    auto strip(std::string_view input, std::string_view chars) -> std::string_view
     {
         return strip_parts(input, chars)[1];
     }
 
-    std::wstring_view strip(std::wstring_view input, std::wstring_view chars)
+    auto strip(std::wstring_view input, std::wstring_view chars) -> std::wstring_view
     {
         return strip_parts(input, chars)[1];
     }
 
-    std::string_view strip(std::string_view input)
+    auto strip(std::string_view input) -> std::string_view
     {
         using Char = decltype(input)::value_type;
         return strip_if(input, [](Char c) { return !is_graphic(c); });
     }
 
-    std::wstring_view strip(std::wstring_view input)
+    auto strip(std::wstring_view input) -> std::wstring_view
     {
         using Char = decltype(input)::value_type;
         return strip_if(input, [](Char c) { return !is_graphic(c); });
@@ -452,8 +456,8 @@ namespace mamba::util
         // string_view has a different overload for ``find(char)`` and ``find(string_view)``
         // so we want to leverage that.
         template <typename Char, typename CharOrStrView>
-        std::array<std::basic_string_view<Char>, 2>
-        lstrip_parts_impl(std::basic_string_view<Char> input, CharOrStrView chars)
+        auto lstrip_parts_impl(std::basic_string_view<Char> input, CharOrStrView chars)
+            -> std::array<std::basic_string_view<Char>, 2>
         {
             const std::size_t start = input.find_first_not_of(chars);
             if (start == std::basic_string_view<Char>::npos)
@@ -464,22 +468,24 @@ namespace mamba::util
         }
     }
 
-    std::array<std::string_view, 2> lstrip_parts(std::string_view input, char c)
+    auto lstrip_parts(std::string_view input, char c) -> std::array<std::string_view, 2>
     {
         return lstrip_parts_impl(input, c);
     }
 
-    std::array<std::wstring_view, 2> lstrip_parts(std::wstring_view input, wchar_t c)
+    auto lstrip_parts(std::wstring_view input, wchar_t c) -> std::array<std::wstring_view, 2>
     {
         return lstrip_parts_impl(input, c);
     }
 
-    std::array<std::string_view, 2> lstrip_parts(std::string_view input, std::string_view chars)
+    auto lstrip_parts(std::string_view input, std::string_view chars)
+        -> std::array<std::string_view, 2>
     {
         return lstrip_parts_impl(input, chars);
     }
 
-    std::array<std::wstring_view, 2> lstrip_parts(std::wstring_view input, std::wstring_view chars)
+    auto lstrip_parts(std::wstring_view input, std::wstring_view chars)
+        -> std::array<std::wstring_view, 2>
     {
         return lstrip_parts_impl(input, chars);
     }
@@ -489,8 +495,8 @@ namespace mamba::util
         // string_view has a different overload for ``find(char)`` and ``find(string_view)``
         // so we want to leverage that.
         template <typename Char, typename CharOrStrView>
-        std::array<std::basic_string_view<Char>, 2>
-        rstrip_parts_impl(std::basic_string_view<Char> input, CharOrStrView chars)
+        auto rstrip_parts_impl(std::basic_string_view<Char> input, CharOrStrView chars)
+            -> std::array<std::basic_string_view<Char>, 2>
         {
             const std::size_t end = input.find_last_not_of(chars);
             if (end == std::basic_string_view<Char>::npos)
@@ -501,22 +507,24 @@ namespace mamba::util
         }
     }
 
-    std::array<std::string_view, 2> rstrip_parts(std::string_view input, char c)
+    auto rstrip_parts(std::string_view input, char c) -> std::array<std::string_view, 2>
     {
         return rstrip_parts_impl(input, c);
     }
 
-    std::array<std::wstring_view, 2> rstrip_parts(std::wstring_view input, wchar_t c)
+    auto rstrip_parts(std::wstring_view input, wchar_t c) -> std::array<std::wstring_view, 2>
     {
         return rstrip_parts_impl(input, c);
     }
 
-    std::array<std::string_view, 2> rstrip_parts(std::string_view input, std::string_view chars)
+    auto rstrip_parts(std::string_view input, std::string_view chars)
+        -> std::array<std::string_view, 2>
     {
         return rstrip_parts_impl(input, chars);
     }
 
-    std::array<std::wstring_view, 2> rstrip_parts(std::wstring_view input, std::wstring_view chars)
+    auto rstrip_parts(std::wstring_view input, std::wstring_view chars)
+        -> std::array<std::wstring_view, 2>
     {
         return rstrip_parts_impl(input, chars);
     }
@@ -526,8 +534,8 @@ namespace mamba::util
         // string_view has a different overload for ``find(char)`` and ``find(string_view)``
         // so we want to leverage that.
         template <typename Char, typename CharOrStrView>
-        std::array<std::basic_string_view<Char>, 3>
-        strip_parts_impl(std::basic_string_view<Char> input, CharOrStrView chars)
+        auto strip_parts_impl(std::basic_string_view<Char> input, CharOrStrView chars)
+            -> std::array<std::basic_string_view<Char>, 3>
         {
             const std::size_t start = input.find_first_not_of(chars);
             if (start == std::basic_string_view<Char>::npos)
@@ -540,22 +548,24 @@ namespace mamba::util
         }
     }
 
-    std::array<std::string_view, 3> strip_parts(std::string_view input, char c)
+    auto strip_parts(std::string_view input, char c) -> std::array<std::string_view, 3>
     {
         return strip_parts_impl(input, c);
     }
 
-    std::array<std::wstring_view, 3> strip_parts(std::wstring_view input, wchar_t c)
+    auto strip_parts(std::wstring_view input, wchar_t c) -> std::array<std::wstring_view, 3>
     {
         return strip_parts_impl(input, c);
     }
 
-    std::array<std::string_view, 3> strip_parts(std::string_view input, std::string_view chars)
+    auto strip_parts(std::string_view input, std::string_view chars)
+        -> std::array<std::string_view, 3>
     {
         return strip_parts_impl(input, chars);
     }
 
-    std::array<std::wstring_view, 3> strip_parts(std::wstring_view input, std::wstring_view chars)
+    auto strip_parts(std::wstring_view input, std::wstring_view chars)
+        -> std::array<std::wstring_view, 3>
     {
         return strip_parts_impl(input, chars);
     }
@@ -625,11 +635,11 @@ namespace mamba::util
     namespace
     {
         template <class Char>
-        std::vector<std::basic_string<Char>> split(
+        auto split(
             const std::basic_string_view<Char> input,
             const std::basic_string_view<Char> sep,
             std::size_t max_split = SIZE_MAX
-        )
+        ) -> std::vector<std::basic_string<Char>>
         {
             if (sep.size() < 1)
             {
@@ -664,11 +674,11 @@ namespace mamba::util
         }
 
         template <class Char>
-        std::vector<std::basic_string<Char>> rsplit(
+        auto rsplit(
             const std::basic_string_view<Char> input,
             const std::basic_string_view<Char> sep,
             std::size_t max_split = SIZE_MAX
-        )
+        ) -> std::vector<std::basic_string<Char>>
         {
             if (max_split == SIZE_MAX)
             {
@@ -710,56 +720,58 @@ namespace mamba::util
     }
 
     // TODO(C++20) lazy_split_view is a range
-    std::vector<std::string>
-    split(std::string_view input, std::string_view sep, std::size_t max_split)
+    auto split(std::string_view input, std::string_view sep, std::size_t max_split)
+        -> std::vector<std::string>
     {
         return split<decltype(input)::value_type>(input, sep, max_split);
     }
 
     // TODO(C++20) lazy_split_view is a range
-    std::vector<std::string> split(std::string_view input, char sep, std::size_t max_split)
+    auto split(std::string_view input, char sep, std::size_t max_split) -> std::vector<std::string>
     {
         const auto sep_arr = std::array<char, 2>{ sep, '\0' };
         return split<decltype(input)::value_type>(input, sep_arr.data(), max_split);
     }
 
     // TODO(C++20) lazy_split_view is a range
-    std::vector<std::wstring>
-    split(std::wstring_view input, std::wstring_view sep, std::size_t max_split)
+    auto split(std::wstring_view input, std::wstring_view sep, std::size_t max_split)
+        -> std::vector<std::wstring>
     {
         return split<decltype(input)::value_type>(input, sep, max_split);
     }
 
     // TODO(C++20) lazy_split_view is a range
-    std::vector<std::wstring> split(std::wstring_view input, wchar_t sep, std::size_t max_split)
+    auto split(std::wstring_view input, wchar_t sep, std::size_t max_split)
+        -> std::vector<std::wstring>
     {
         const auto sep_arr = std::array<wchar_t, 2>{ sep, L'\0' };
         return split<decltype(input)::value_type>(input, sep_arr.data(), max_split);
     }
 
     // TODO(C++20) lazy_split_view is a range
-    std::vector<std::string>
-    rsplit(std::string_view input, std::string_view sep, std::size_t max_split)
+    auto rsplit(std::string_view input, std::string_view sep, std::size_t max_split)
+        -> std::vector<std::string>
     {
         return rsplit<decltype(input)::value_type>(input, sep, max_split);
     }
 
     // TODO(C++20) lazy_split_view is a range
-    std::vector<std::string> rsplit(std::string_view input, char sep, std::size_t max_split)
+    auto rsplit(std::string_view input, char sep, std::size_t max_split) -> std::vector<std::string>
     {
         const auto sep_arr = std::array<char, 2>{ sep, '\0' };
         return rsplit<decltype(input)::value_type>(input, sep_arr.data(), max_split);
     }
 
     // TODO(C++20) lazy_split_view is a range
-    std::vector<std::wstring>
-    rsplit(std::wstring_view input, std::wstring_view sep, std::size_t max_split)
+    auto rsplit(std::wstring_view input, std::wstring_view sep, std::size_t max_split)
+        -> std::vector<std::wstring>
     {
         return rsplit<decltype(input)::value_type>(input, sep, max_split);
     }
 
     // TODO(C++20) lazy_split_view is a range
-    std::vector<std::wstring> rsplit(std::wstring_view input, wchar_t sep, std::size_t max_split)
+    auto rsplit(std::wstring_view input, wchar_t sep, std::size_t max_split)
+        -> std::vector<std::wstring>
     {
         const auto sep_arr = std::array<wchar_t, 2>{ sep, L'\0' };
         return rsplit<decltype(input)::value_type>(input, sep_arr.data(), max_split);
@@ -854,13 +866,13 @@ namespace mamba::util
         }
     }
 
-    std::string concat_dedup_splits(std::string_view str1, std::string_view str2, char sep)
+    auto concat_dedup_splits(std::string_view str1, std::string_view str2, char sep) -> std::string
     {
         return concat_dedup_splits_impl(str1, str2, sep);
     }
 
-    std::string
-    concat_dedup_splits(std::string_view str1, std::string_view str2, std::string_view sep)
+    auto concat_dedup_splits(std::string_view str1, std::string_view str2, std::string_view sep)
+        -> std::string
     {
         return concat_dedup_splits_impl(str1, str2, sep);
     }
@@ -907,22 +919,22 @@ namespace mamba::util
 
     namespace detail
     {
-        std::size_t length(const char* s)
+        auto length(const char* s) -> std::size_t
         {
             return std::strlen(s);
         }
 
-        std::size_t length(const wchar_t* s)
+        auto length(const wchar_t* s) -> std::size_t
         {
             return std::wcslen(s);
         }
 
-        std::size_t length(const char /*c*/)
+        auto length(const char /*c*/) -> std::size_t
         {
             return 1;
         }
 
-        std::size_t length(const wchar_t /*c*/)
+        auto length(const wchar_t /*c*/) -> std::size_t
         {
             return 1;
         }

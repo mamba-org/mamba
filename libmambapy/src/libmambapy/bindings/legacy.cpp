@@ -34,7 +34,6 @@
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/virtual_packages.hpp"
-#include "mamba/specs/version.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/validation/tools.hpp"
 #include "mamba/validation/update_framework_v0_6.hpp"
@@ -263,13 +262,34 @@ bind_submodule_impl(pybind11::module_ m)
 {
     using namespace mamba;
 
-    py::class_<specs::Version>(m, "Version")
-        .def_static("parse", &specs::Version::parse)
-        .def("__str__", &specs::Version::str);
+    struct PackageInfoV2Migrator
+    {
+    };
 
+    py::class_<PackageInfoV2Migrator>(m, "PackageInfo")
+        .def(py::init(
+            [](py::args, py::kwargs) -> PackageInfoV2Migrator
+            {
+                throw std::runtime_error(
+                    "libmambapy.PackageInfo has been moved to libmambapy.specs.PackageInfo"
+                );
+            }
+        ));
+
+    struct MatchSpecV2Migrator
+    {
+    };
+
+    py::class_<MatchSpecV2Migrator>(m, "MatchSpec")
+        .def(py::init(
+            [](py::args, py::kwargs) -> MatchSpecV2Migrator {
+                throw std::runtime_error(
+                    "libmambapy.MatchSpec has been moved to libmambapy.specs.MatchSpec"
+                );
+            }
+        ));
 
     // declare earlier to avoid C++ types in docstrings
-    auto pyPackageInfo = py::class_<PackageInfo>(m, "PackageInfo");
     auto pyPrefixData = py::class_<PrefixData>(m, "PrefixData");
     auto pySolver = py::class_<MSolver>(m, "Solver");
 
@@ -292,21 +312,6 @@ bind_submodule_impl(pybind11::module_ m)
 
     py::add_ostream_redirect(m, "ostream_redirect");
 
-    py::class_<MatchSpec>(m, "MatchSpec")
-        .def_static("parse", &MatchSpec::parse)
-        .def(py::init<>())
-        .def(
-            // Deprecating would lead to confusing error. Better to make sure people stop using it.
-            py::init(
-                [](std::string_view) -> MatchSpec {
-                    throw std::invalid_argument(
-                        "Use 'MatchSpec.parse' to create a new object from a string"
-                    );
-                }
-            ),
-            py::arg("spec")
-        )
-        .def("conda_build_form", &MatchSpec::conda_build_form);
 
     py::class_<MPool>(m, "Pool")
         .def(
@@ -410,9 +415,12 @@ bind_submodule_impl(pybind11::module_ m)
     auto pyPbGraph = py::class_<PbGraph>(m, "ProblemsGraph");
 
     py::class_<PbGraph::RootNode>(pyPbGraph, "RootNode").def(py::init<>());
-    py::class_<PbGraph::PackageNode, PackageInfo>(pyPbGraph, "PackageNode");
-    py::class_<PbGraph::UnresolvedDependencyNode, MatchSpec>(pyPbGraph, "UnresolvedDependencyNode");
-    py::class_<PbGraph::ConstraintNode, MatchSpec>(pyPbGraph, "ConstraintNode");
+    py::class_<PbGraph::PackageNode, specs::PackageInfo>(pyPbGraph, "PackageNode");
+    py::class_<PbGraph::UnresolvedDependencyNode, specs::MatchSpec>(
+        pyPbGraph,
+        "UnresolvedDependencyNode"
+    );
+    py::class_<PbGraph::ConstraintNode, specs::MatchSpec>(pyPbGraph, "ConstraintNode");
 
     py::class_<PbGraph::conflicts_t>(pyPbGraph, "ConflictMap")
         .def(py::init([]() { return PbGraph::conflicts_t(); }))
@@ -1048,44 +1056,6 @@ bind_submodule_impl(pybind11::module_ m)
         )
         .def_property_readonly("package_records", &PrefixData::records)
         .def("add_packages", &PrefixData::add_packages);
-
-    pyPackageInfo  //
-        .def(py::init<const std::string&>(), py::arg("name"))
-        .def(
-            py::init<const std::string&, const std::string&, const std::string&, std::size_t>(),
-            py::arg("name"),
-            py::arg("version"),
-            py::arg("build_string"),
-            py::arg("build_number")
-        )
-        .def_readwrite("name", &PackageInfo::name)
-        .def_readwrite("version", &PackageInfo::version)
-        .def_readwrite("build_string", &PackageInfo::build_string)
-        .def_readwrite("build_number", &PackageInfo::build_number)
-        .def_readwrite("noarch", &PackageInfo::noarch)
-        .def_readwrite("channel", &PackageInfo::channel)
-        .def_readwrite("url", &PackageInfo::url)
-        .def_readwrite("subdir", &PackageInfo::subdir)
-        .def_readwrite("fn", &PackageInfo::fn)
-        .def_readwrite("license", &PackageInfo::license)
-        .def_readwrite("size", &PackageInfo::size)
-        .def_readwrite("timestamp", &PackageInfo::timestamp)
-        .def_readwrite("md5", &PackageInfo::md5)
-        .def_readwrite("sha256", &PackageInfo::sha256)
-        .def_property(
-            "track_features",
-            [](const PackageInfo& self)
-            {
-                static_assert(LIBMAMBA_VERSION_MAJOR == 1, "Version 1 compatibility.");
-                return fmt::format("{}", fmt::join(self.track_features, ","));
-            },
-            [](PackageInfo& self, std::string_view val)
-            { self.track_features = util::split(val, ","); }
-        )
-        .def_readwrite("depends", &PackageInfo::depends)
-        .def_readwrite("constrains", &PackageInfo::constrains)
-        .def_readwrite("signatures", &PackageInfo::signatures)
-        .def_readwrite("defaulted_keys", &PackageInfo::defaulted_keys);
 
     // Content trust - Package signature and verification
     m.def("generate_ed25519_keypair", &validation::generate_ed25519_keypair_hex);

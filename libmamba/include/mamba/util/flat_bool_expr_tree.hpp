@@ -9,9 +9,7 @@
 
 #include <cassert>
 #include <functional>
-#include <iterator>
 #include <stdexcept>
-#include <type_traits>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -150,6 +148,14 @@ namespace mamba::util
         using tree_type = flat_binary_tree<operator_type, variable_type>;
         using size_type = typename tree_type::size_type;
 
+        struct LeftParenthesis
+        {
+        };
+
+        struct RightParenthesis
+        {
+        };
+
         flat_bool_expr_tree() = default;
         flat_bool_expr_tree(const flat_bool_expr_tree&) = default;
         flat_bool_expr_tree(flat_bool_expr_tree&&) = default;
@@ -169,6 +175,9 @@ namespace mamba::util
         [[nodiscard]] auto evaluate(UnaryFunc&& var_evaluator = {}, bool empty_val = true) const
             -> bool;
 
+        template <typename UnaryFunc>
+        void infix_for_each(UnaryFunc&& func) const;
+
     private:
 
         using idx_type = typename tree_type::idx_type;
@@ -178,6 +187,42 @@ namespace mamba::util
 
         tree_type m_tree = {};
     };
+
+    template <typename V>
+    constexpr auto operator==(
+        typename flat_bool_expr_tree<V>::LeftParenthesis,
+        typename flat_bool_expr_tree<V>::LeftParenthesis
+    ) -> bool
+    {
+        return true;
+    }
+
+    template <typename V>
+    constexpr auto operator!=(
+        typename flat_bool_expr_tree<V>::LeftParenthesis,
+        typename flat_bool_expr_tree<V>::LeftParenthesis
+    ) -> bool
+    {
+        return false;
+    }
+
+    template <typename V>
+    constexpr auto operator==(
+        typename flat_bool_expr_tree<V>::RightParenthesis,
+        typename flat_bool_expr_tree<V>::RightParenthesis
+    ) -> bool
+    {
+        return true;
+    }
+
+    template <typename V>
+    constexpr auto operator!=(
+        typename flat_bool_expr_tree<V>::RightParenthesis,
+        typename flat_bool_expr_tree<V>::RightParenthesis
+    ) -> bool
+    {
+        return false;
+    }
 
     /*************************************
      *  Implementation of PostfixParser  *
@@ -550,6 +595,55 @@ namespace mamba::util
             return evaluate_impl(var_eval, m_tree.left(idx))
                    || evaluate_impl(var_eval, m_tree.right(idx));
         }
+    }
+
+    template <typename V>
+    template <typename UnaryFunc>
+    void flat_bool_expr_tree<V>::infix_for_each(UnaryFunc&& func) const
+    {
+        struct TreeVisitor
+        {
+            using idx_type = typename tree_type::idx_type;
+
+            void on_leaf(const tree_type& tree, idx_type idx)
+            {
+                m_func(tree.leaf(idx));
+            }
+
+            void on_branch_left_before(const tree_type& tree, idx_type, idx_type left_idx)
+            {
+                if (!tree.is_leaf(left_idx))
+                {
+                    m_func(LeftParenthesis{});
+                }
+            }
+
+            void
+            on_branch_infix(const tree_type& tree, idx_type branch_idx, idx_type left_idx, idx_type right_idx)
+            {
+                if (!tree.is_leaf(left_idx))
+                {
+                    m_func(RightParenthesis{});
+                }
+                m_func(tree.branch(branch_idx));
+                if (!tree.is_leaf(right_idx))
+                {
+                    m_func(LeftParenthesis{});
+                }
+            }
+
+            void on_branch_right_after(const tree_type& tree, idx_type, idx_type right_idx)
+            {
+                if (!tree.is_leaf(right_idx))
+                {
+                    m_func(RightParenthesis{});
+                }
+            }
+
+            UnaryFunc m_func;
+        } tree_visitor{ std::forward<UnaryFunc>(func) };
+
+        m_tree.dfs_raw(tree_visitor, m_tree.root());
     }
 }
 #endif

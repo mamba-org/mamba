@@ -30,9 +30,11 @@ set(
     src/util/test_flat_bool_expr_tree.cpp
     src/util/test_flat_set.cpp
     src/util/test_graph.cpp
+    src/util/test_heap_optional.cpp
     src/util/test_iterator.cpp
     src/util/test_os_win.cpp
     src/util/test_path_manip.cpp
+    src/util/test_parsers.cpp
     src/util/test_string.cpp
     src/util/test_tuple_hash.cpp
     src/util/test_type_traits.cpp
@@ -42,9 +44,12 @@ set(
     # Implementation of version and matching specs
     src/specs/test_archive.cpp
     src/specs/test_authentication_info.cpp
+    src/specs/test_build_number_spec.cpp
     src/specs/test_channel.cpp
     src/specs/test_channel_spec.cpp
     src/specs/test_conda_url.cpp
+    src/specs/test_glob_spec.cpp
+    src/specs/test_match_spec.cpp
     src/specs/test_platform.cpp
     src/specs/test_repo_data.cpp
     src/specs/test_version.cpp
@@ -58,7 +63,6 @@ set(
     src/core/test_activation.cpp
     src/core/test_channel_context.cpp
     src/core/test_configuration.cpp
-    src/core/test_match_spec.cpp
     src/core/test_cpp.cpp
     src/core/test_downloader.cpp
     src/core/test_env_file_reading.cpp

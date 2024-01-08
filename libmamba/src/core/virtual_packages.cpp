@@ -145,21 +145,21 @@ namespace mamba
             return "";
         }
 
-        PackageInfo make_virtual_package(
+        specs::PackageInfo make_virtual_package(
             const std::string& name,
             const std::string& subdir,
             const std::string& version,
             const std::string& build_string
         )
         {
-            PackageInfo res(name);
+            specs::PackageInfo res(name);
             res.version = version.size() ? version : "0";
             res.build_string = build_string.size() ? build_string : "0";
             res.build_number = 0;
             res.channel = "@";
             res.subdir = subdir;
             res.md5 = "12345678901234567890123456789012";
-            res.fn = name;
+            res.filename = name;
             return res;
         }
 
@@ -213,11 +213,11 @@ namespace mamba
             }
         }
 
-        std::vector<PackageInfo> dist_packages(const Context& context)
+        std::vector<specs::PackageInfo> dist_packages(const Context& context)
         {
             LOG_DEBUG << "Loading distribution virtual packages";
 
-            std::vector<PackageInfo> res;
+            std::vector<specs::PackageInfo> res;
             const auto platform = context.platform;
             const auto split_platform = util::split(platform, "-", 1);
 
@@ -276,7 +276,7 @@ namespace mamba
         }
     }
 
-    std::vector<PackageInfo> get_virtual_packages(const Context& context)
+    std::vector<specs::PackageInfo> get_virtual_packages(const Context& context)
     {
         LOG_DEBUG << "Loading virtual packages";
         auto res = detail::dist_packages(context);

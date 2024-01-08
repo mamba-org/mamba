@@ -2,45 +2,30 @@
 Python API of ``mamba``
 =======================
 
-High-level Python API
----------------------
-
-Mamba provides high-level Python APIs for creating environments and installing packages:
-
-.. code::
-
-    from mamba.api import create, install
-
-    # create(env_name, packages, channels)
-    create('my-custom-env', ('matplotlib=3', 'ipympl'), ('conda-forge', ))
-
-    # install(env_name, packages, channels)
-    install('my-custom-env', ('matplotlib=3', 'ipympl'), ('conda-forge', ))
-
-These call internal ``mamba`` APIs under the hood, which are discussed below.
-
 Using internal mamba APIs
 -------------------------
 
-The core of ``mamba`` is written in C++, but we expose the internals of mamba with a Python API (using ``pybind11``).
+The core of ``mamba`` is written in C++, but we expose the internals of mamba with a Python API
+(using ``pybind11``).
 
 You can import ``libmambapy`` containing the Python API using ``import libmambapy`` without having ``mamba`` installed.
 
-These bindings expose the following objects (`boa_` has a full example):
+These bindings expose the following objects (`boa`_ has a full example):
 
 - ``Context``: a singleton configuration object. All global configuration goes through this. From Python you can use the context object like so:
 
-.. code::
+.. code:: python
 
    import libmambapy
-   libmambapy.Context().conda_prefix = "/home/wolfv/conda"
-   ctx = libmambapy.Context()
+
+   ctx = libmambapy.Context.instance()
+   ctx.conda_prefix = "/home/wolfv/conda"
    print(ctx.root_prefix)
 
 
-Here is an example usage of the libmambapy:
+Here is an example usage of ``libmambapy``:
 
-.. code::
+.. code:: python
 
     def get_index(
         channel_urls=(),
@@ -81,6 +66,7 @@ Here is an example usage of the libmambapy:
             raise RuntimeError("Error downloading repodata.")
 
         return index
+
 
     class MambaSolver:
         def __init__(self, prefix, channels, platform):
@@ -149,7 +135,4 @@ Here is an example usage of the libmambapy:
             t = libmambapy.Transaction(api_solver, package_cache)
             return t
 
-``mamba.api`` also has a default implementation of ``MambaSolver`` which can be
-customized with ``Context`` objects.
-
-.. _boa: https://www.github.com/mamba-org/boa/blob/main/boa/core/solver.py
+.. _boa: https://github.com/mamba-org/boa/blob/main/boa/core/solver.py

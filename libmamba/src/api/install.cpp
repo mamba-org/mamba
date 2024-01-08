@@ -342,11 +342,11 @@ namespace mamba
             return result;
         }
 
-        std::tuple<std::vector<PackageInfo>, std::vector<MatchSpec>>
+        std::tuple<std::vector<specs::PackageInfo>, std::vector<specs::MatchSpec>>
         parse_urls_to_package_info(const std::vector<std::string>& urls)
         {
-            std::vector<PackageInfo> pi_result;
-            std::vector<MatchSpec> ms_result;
+            std::vector<specs::PackageInfo> pi_result;
+            std::vector<specs::MatchSpec> ms_result;
             for (auto& u : urls)
             {
                 if (util::strip(u).size() == 0)
@@ -354,27 +354,27 @@ namespace mamba
                     continue;
                 }
                 std::size_t hash = u.find_first_of('#');
-                auto ms = MatchSpec::parse(u.substr(0, hash));
-                PackageInfo p(ms.name);
-                p.url = ms.url;
-                p.build_string = ms.build_string;
-                p.version = ms.version;
-                if (ms.channel.has_value())
+                auto ms = specs::MatchSpec::parse(u.substr(0, hash));
+                specs::PackageInfo p(ms.name().str());
+                p.package_url = ms.url();
+                p.build_string = ms.build_string().str();
+                p.version = ms.version().str();
+                if (ms.channel().has_value())
                 {
-                    p.channel = ms.channel->location();
-                    if (!ms.channel->platform_filters().empty())
+                    p.channel = ms.channel()->location();
+                    if (!ms.channel()->platform_filters().empty())
                     {
                         // There must be only one since we are expecting URLs
-                        assert(ms.channel->platform_filters().size() == 1);
-                        p.subdir = ms.channel->platform_filters().front();
+                        assert(ms.channel()->platform_filters().size() == 1);
+                        p.subdir = ms.channel()->platform_filters().front();
                     }
                 }
-                p.fn = ms.fn;
+                p.filename = ms.filename();
 
                 if (hash != std::string::npos)
                 {
                     p.md5 = u.substr(hash + 1);
-                    ms.brackets["md5"] = u.substr(hash + 1);
+                    ms.set_md5(std::string(u.substr(hash + 1)));
                 }
                 pi_result.push_back(p);
                 ms_result.push_back(ms);
@@ -476,9 +476,9 @@ namespace mamba
         // add channels from specs
         for (const auto& s : specs)
         {
-            if (auto ms = MatchSpec::parse(s); ms.channel.has_value())
+            if (auto ms = specs::MatchSpec::parse(s); ms.channel().has_value())
             {
-                ctx.channels.push_back(ms.channel->str());
+                ctx.channels.push_back(ms.channel()->str());
             }
         }
 
@@ -782,6 +782,14 @@ namespace mamba
 
     namespace detail
     {
+        enum SpecType
+        {
+            unknown,
+            env_lockfile,
+            yaml,
+            other
+        };
+
         void create_empty_target(const Context& context, const fs::u8path& prefix)
         {
             detail::create_target_directory(context, prefix);
@@ -816,12 +824,31 @@ namespace mamba
                 return;
             }
 
-            for (const auto& file : file_specs)
+            mamba::detail::SpecType spec_type = mamba::detail::unknown;
+            for (auto& file : file_specs)
             {
-                if (is_yaml_file_name(file) && file_specs.size() != 1)
+                mamba::detail::SpecType current_file_spec_type = mamba::detail::unknown;
+                if (is_env_lockfile_name(file))
                 {
-                    throw std::runtime_error("Can only handle 1 yaml file!");
+                    current_file_spec_type = mamba::detail::env_lockfile;
                 }
+                else if (is_yaml_file_name(file))
+                {
+                    current_file_spec_type = mamba::detail::yaml;
+                }
+                else
+                {
+                    current_file_spec_type = mamba::detail::other;
+                }
+
+                if (spec_type != mamba::detail::unknown && spec_type != current_file_spec_type)
+                {
+                    throw std::runtime_error(
+                        "found multiple spec file types, all spec files must be of same format (yaml, txt, explicit spec, etc.)"
+                    );
+                }
+
+                spec_type = current_file_spec_type;
             }
 
             for (auto& file : file_specs)
@@ -858,9 +885,14 @@ namespace mamba
                         channels.set_cli_value(updated_channels);
                     }
 
-                    if (parse_result.name.size() != 0)
+                    if (parse_result.name.size() != 0 && !env_name.configured())
                     {
                         env_name.set_cli_yaml_value(parse_result.name);
+                    }
+                    else if (parse_result.name.size() != 0 && parse_result.name != env_name.cli_value<std::string>())
+                    {
+                        LOG_WARNING << "YAML specs have different environment names. Using "
+                                    << env_name.cli_value<std::string>();
                     }
 
                     if (parse_result.dependencies.size() != 0)

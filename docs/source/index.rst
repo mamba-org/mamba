@@ -51,14 +51,22 @@ You can try Mamba now by visiting the installation for
    advanced_usage/package_resolution
 
 .. toctree::
-   :caption: API reference
+   :caption: LIBMAMBA USAGE
    :maxdepth: 2
    :hidden:
 
    python_api
+   usage/specs
 
 .. toctree::
-   :caption: developer zone
+   :caption: API REFERENCE
+   :maxdepth: 2
+   :hidden:
+
+   api/specs
+
+.. toctree::
+   :caption: DEVELOPER ZONE
    :maxdepth: 2
    :hidden:
 

@@ -38,9 +38,9 @@ namespace mamba
         // add channels from specs
         for (const auto& s : update_specs)
         {
-            if (auto m = MatchSpec::parse(s); m.channel.has_value())
+            if (auto m = specs::MatchSpec::parse(s); m.channel().has_value())
             {
-                ctx.channels.push_back(m.channel->str());
+                ctx.channels.push_back(m.channel()->str());
             }
         }
 
@@ -118,7 +118,7 @@ namespace mamba
             std::vector<std::string> keep_specs;
             for (auto& it : hist_map)
             {
-                keep_specs.push_back(it.second.name);
+                keep_specs.push_back(it.second.name().str());
             }
             solver_flag |= SOLVER_SOLVABLE_ALL;
             if (prune_deps)
@@ -136,10 +136,10 @@ namespace mamba
                 std::vector<std::string> remove_specs;
                 for (auto& it : hist_map)
                 {
-                    if (std::find(update_specs.begin(), update_specs.end(), it.second.name)
+                    if (std::find(update_specs.begin(), update_specs.end(), it.second.name().str())
                         == update_specs.end())
                     {
-                        remove_specs.push_back(it.second.name);
+                        remove_specs.push_back(it.second.name().str());
                     }
                 }
                 solver.add_jobs(remove_specs, SOLVER_ERASE | SOLVER_CLEANDEPS);

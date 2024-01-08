@@ -90,6 +90,9 @@ namespace mamba::util
         [[nodiscard]] auto right(idx_type idx) const -> idx_type;
         [[nodiscard]] auto root() const -> idx_type;
 
+        template <typename Visitor>
+        void dfs_raw(Visitor&& visitor, idx_type start) const;
+
     private:
 
         node_list m_nodes;
@@ -244,6 +247,29 @@ namespace mamba::util
         -> idx_type
     {
         return add_branch_impl(std::move(branch), left_child, right_child);
+    }
+
+    template <typename B, typename L>
+    template <typename Visitor>
+    void flat_binary_tree<B, L>::dfs_raw(Visitor&& visitor, idx_type start_idx) const
+    {
+        if (is_leaf(start_idx))
+        {
+            visitor.on_leaf(*this, start_idx);
+        }
+        else
+        {
+            const auto left_idx = left(start_idx);
+            const auto right_idx = right(start_idx);
+
+            visitor.on_branch_left_before(*this, start_idx, left_idx);
+            dfs_raw(visitor, left_idx);
+
+            visitor.on_branch_infix(*this, start_idx, left_idx, right_idx);
+
+            dfs_raw(visitor, right_idx);
+            visitor.on_branch_right_after(*this, start_idx, right_idx);
+        }
     }
 }
 #endif

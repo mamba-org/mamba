@@ -6,7 +6,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cassert>
 #include <stdexcept>
 #include <type_traits>
 
@@ -156,6 +155,16 @@ namespace mamba::specs
         return VersionPredicate(std::move(ver), compatible_with{ level });
     }
 
+    auto VersionPredicate::str() const -> std::string
+    {
+        return fmt::format("{}", *this);
+    }
+
+    auto VersionPredicate::str_conda_build() const -> std::string
+    {
+        return fmt::format("{:b}", *this);
+    }
+
     VersionPredicate::VersionPredicate(Version ver, BinaryOperator op)
         : m_version(std::move(ver))
         , m_operator(std::move(op))
@@ -171,6 +180,106 @@ namespace mamba::specs
     {
         return !(lhs == rhs);
     }
+}
+
+auto
+fmt::formatter<mamba::specs::VersionPredicate>::parse(format_parse_context& ctx)
+    -> decltype(ctx.begin())
+{
+    if (auto it = std::find(ctx.begin(), ctx.end(), 'b'); it < ctx.end())
+    {
+        conda_build_form = true;
+        return ++it;
+    }
+    return ctx.begin();
+}
+
+auto
+fmt::formatter<mamba::specs::VersionPredicate>::format(
+    const ::mamba::specs::VersionPredicate& pred,
+    format_context& ctx
+) -> decltype(ctx.out())
+{
+    using VersionPredicate = typename mamba::specs::VersionPredicate;
+    using VersionSpec = typename mamba::specs::VersionSpec;
+    using Version = typename mamba::specs::Version;
+
+    auto out = ctx.out();
+    std::visit(
+        [&](const auto& op)
+        {
+            using Op = std::decay_t<decltype(op)>;
+            if constexpr (std::is_same_v<Op, VersionPredicate::free_interval>)
+            {
+                out = fmt::format_to(
+                    out,
+                    "{}{}",
+                    VersionSpec::starts_with_str,
+                    VersionSpec::glob_suffix_token
+                );
+            }
+            if constexpr (std::is_same_v<Op, std::equal_to<Version>>)
+            {
+                out = fmt::format_to(out, "{}{}", VersionSpec::equal_str, pred.m_version);
+            }
+            if constexpr (std::is_same_v<Op, std::not_equal_to<Version>>)
+            {
+                out = fmt::format_to(out, "{}{}", VersionSpec::not_equal_str, pred.m_version);
+            }
+            if constexpr (std::is_same_v<Op, std::greater<Version>>)
+            {
+                out = fmt::format_to(out, "{}{}", VersionSpec::greater_str, pred.m_version);
+            }
+            if constexpr (std::is_same_v<Op, std::greater_equal<Version>>)
+            {
+                out = fmt::format_to(out, "{}{}", VersionSpec::greater_equal_str, pred.m_version);
+            }
+            if constexpr (std::is_same_v<Op, std::less<Version>>)
+            {
+                out = fmt::format_to(out, "{}{}", VersionSpec::less_str, pred.m_version);
+            }
+            if constexpr (std::is_same_v<Op, std::less_equal<Version>>)
+            {
+                out = fmt::format_to(out, "{}{}", VersionSpec::less_equal_str, pred.m_version);
+            }
+            if constexpr (std::is_same_v<Op, VersionPredicate::starts_with>)
+            {
+                if (conda_build_form)
+                {
+                    out = fmt::format_to(out, "{}{}", pred.m_version, VersionSpec::glob_suffix_str);
+                }
+                else
+                {
+                    out = fmt::format_to(out, "{}{}", VersionSpec::starts_with_str, pred.m_version);
+                }
+            }
+            if constexpr (std::is_same_v<Op, VersionPredicate::not_starts_with>)
+            {
+                out = fmt::format_to(
+                    out,
+                    "{}{}{}",
+                    VersionSpec::not_equal_str,
+                    pred.m_version,
+                    VersionSpec::glob_suffix_str
+                );
+            }
+            if constexpr (std::is_same_v<Op, VersionPredicate::compatible_with>)
+            {
+                out = fmt::format_to(
+                    out,
+                    "{}{}",
+                    VersionSpec::compatible_str,
+                    pred.m_version.str(op.level)
+                );
+            }
+        },
+        pred.m_operator
+    );
+    return out;
+}
+
+namespace mamba::specs
+{
 
     /********************************
      *  VersionSpec Implementation  *
@@ -186,18 +295,36 @@ namespace mamba::specs
         return m_tree.evaluate([&point](const auto& node) { return node.contains(point); });
     }
 
+    auto VersionSpec::is_explicitly_free() const -> bool
+    {
+        const auto free_pred = VersionPredicate::make_free();
+        const auto is_free_pred = [&free_pred](const auto& node) { return node == free_pred; };
+        return m_tree.empty() || ((m_tree.size() == 1) && m_tree.evaluate(is_free_pred));
+    }
+
+    auto VersionSpec::str() const -> std::string
+    {
+        return fmt::format("{}", *this);
+    }
+
+    auto VersionSpec::str_conda_build() const -> std::string
+    {
+        return fmt::format("{:b}", *this);
+    }
+
     namespace
     {
-        auto is_char(std::string_view str, char c) -> bool
+        template <typename Val, typename Range>
+        constexpr auto equal_any(const Val& val, const Range& range) -> bool
         {
-            return (str.size() == 1) && (str.front() == c);
+            return std::find(range.cbegin(), range.cend(), val) != range.cend();
         }
 
         auto parse_op_and_version(std::string_view str) -> VersionPredicate
         {
             str = util::strip(str);
             // WARNING order is important since some operator are prefix of others.
-            if (str.empty() || is_char(str, VersionSpec::glob_suffix_token))
+            if (str.empty() || equal_any(str, VersionSpec::all_free_strs))
             {
                 return VersionPredicate::make_free();
             }
@@ -229,15 +356,15 @@ namespace mamba::specs
             {
                 auto ver = Version::parse(str.substr(VersionSpec::compatible_str.size()));
                 // in ``~=1.1`` level is assumed to be 1, in ``~=1.1.1`` level 2, etc.
-                static std::size_t constexpr one = std::size_t(1);  // MSVC
+                static constexpr auto one = std::size_t(1);  // MSVC
                 const std::size_t level = std::max(ver.version().size(), one) - one;
                 return VersionPredicate::make_compatible_with(std::move(ver), level);
             }
             const bool has_glob_suffix = util::ends_with(str, VersionSpec::glob_suffix_str);
-            std::size_t const glob_len = has_glob_suffix * VersionSpec::glob_suffix_str.size();
+            const std::size_t glob_len = has_glob_suffix * VersionSpec::glob_suffix_str.size();
             if (util::starts_with(str, VersionSpec::equal_str))
             {
-                std::size_t const start = VersionSpec::equal_str.size();
+                const std::size_t start = VersionSpec::equal_str.size();
                 // Glob suffix changes meaning for ==1.3.*
                 if (has_glob_suffix)
                 {
@@ -252,7 +379,7 @@ namespace mamba::specs
             }
             if (util::starts_with(str, VersionSpec::not_equal_str))
             {
-                std::size_t const start = VersionSpec::not_equal_str.size();
+                const std::size_t start = VersionSpec::not_equal_str.size();
                 // Glob suffix changes meaning for !=1.3.*
                 if (has_glob_suffix)
                 {
@@ -267,7 +394,7 @@ namespace mamba::specs
             }
             if (util::starts_with(str, VersionSpec::starts_with_str))
             {
-                std::size_t const start = VersionSpec::starts_with_str.size();
+                const std::size_t start = VersionSpec::starts_with_str.size();
                 // Glob suffix does not change meaning for =1.3.*
                 return VersionPredicate::make_starts_with(
                     Version::parse(str.substr(start, str.size() - glob_len - start))
@@ -279,8 +406,8 @@ namespace mamba::specs
                 if (util::ends_with(str, VersionSpec::glob_suffix_token))
                 {
                     // either ".*" or "*"
-                    static std::size_t constexpr one = std::size_t(1);  // MSVC
-                    std::size_t const len = str.size() - std::max(glob_len, one);
+                    static constexpr auto one = std::size_t(1);  // MSVC
+                    const std::size_t len = str.size() - std::max(glob_len, one);
                     return VersionPredicate::make_starts_with(Version::parse(str.substr(0, len)));
                 }
                 else
@@ -307,6 +434,15 @@ namespace mamba::specs
 
         auto parser = util::InfixParser<VersionPredicate, util::BoolOperator>();
         str = util::lstrip(str);
+
+        // Explicit short-circuiting for "free" spec
+        // This case would be handled anyway but we can avoid allocating a tree in this
+        // likely case.
+        if (str.empty() || equal_any(str, VersionSpec::all_free_strs))
+        {
+            return {};
+        }
+
         while (!str.empty())
         {
             if (str.front() == VersionSpec::and_token)
@@ -347,4 +483,61 @@ namespace mamba::specs
             return VersionSpec::parse(std::literals::string_view_literals::operator""sv(str, len));
         }
     }
+}
+
+auto
+fmt::formatter<mamba::specs::VersionSpec>::parse(format_parse_context& ctx) -> decltype(ctx.begin())
+{
+    if (auto it = std::find(ctx.begin(), ctx.end(), 'b'); it < ctx.end())
+    {
+        conda_build_form = true;
+        return ++it;
+    }
+    return ctx.begin();
+}
+
+auto
+fmt::formatter<mamba::specs::VersionSpec>::format(
+    const ::mamba::specs::VersionSpec& spec,
+    format_context& ctx
+) -> decltype(ctx.out())
+{
+    using VersionSpec = typename mamba::specs::VersionSpec;
+
+    auto out = ctx.out();
+    if (spec.m_tree.empty())
+    {
+        return fmt::format_to(out, "{}", VersionSpec::prefered_free_str);
+    }
+    spec.m_tree.infix_for_each(
+        [&](const auto& token)
+        {
+            using tree_type = typename VersionSpec::tree_type;
+            using Token = std::decay_t<decltype(token)>;
+            if constexpr (std::is_same_v<Token, tree_type::LeftParenthesis>)
+            {
+                out = fmt::format_to(out, "{}", VersionSpec::left_parenthesis_token);
+            }
+            if constexpr (std::is_same_v<Token, tree_type::RightParenthesis>)
+            {
+                out = fmt::format_to(out, "{}", VersionSpec::right_parenthesis_token);
+            }
+            if constexpr (std::is_same_v<Token, tree_type::operator_type>)
+            {
+                if (token == tree_type::operator_type::logical_or)
+                {
+                    out = fmt::format_to(out, "{}", VersionSpec::or_token);
+                }
+                else
+                {
+                    out = fmt::format_to(out, "{}", VersionSpec::and_token);
+                }
+            }
+            if constexpr (std::is_same_v<Token, tree_type::variable_type>)
+            {
+                out = fmt::format_to(out, conda_build_form ? "{:b}" : "{}", token);
+            }
+        }
+    );
+    return out;
 }

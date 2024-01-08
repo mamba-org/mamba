@@ -4,10 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <algorithm>
 #include <array>
-#include <fstream>
-#include <map>
 #include <string_view>
 #include <tuple>
 
@@ -24,20 +21,20 @@ extern "C"  // Incomplete header
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/specs/conda_url.hpp"
+#include "mamba/specs/package_info.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
-#include "mamba/util/url_manip.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/repo.hpp"
 
 
-#define MAMBA_TOOL_VERSION "1.3"
+#define MAMBA_TOOL_VERSION "2.0"
 
 #define MAMBA_SOLV_VERSION MAMBA_TOOL_VERSION "_" LIBSOLV_VERSION_STRING
 
@@ -92,17 +89,21 @@ namespace mamba
             return solv::ObjRepoView{ *r.repo() };
         }
 
-        void set_solvable(MPool& pool, solv::ObjSolvableView solv, const PackageInfo& pkg)
+        void set_solvable(MPool& pool, solv::ObjSolvableView solv, const specs::PackageInfo& pkg)
         {
             solv.set_name(pkg.name);
             solv.set_version(pkg.version);
             solv.set_build_string(pkg.build_string);
-            solv.set_noarch(pkg.noarch);
+            if (pkg.noarch != specs::NoArchType::No)
+            {
+                auto noarch = std::string(specs::noarch_name(pkg.noarch));  // SSO
+                solv.set_noarch(noarch);
+            }
             solv.set_build_number(pkg.build_number);
             solv.set_channel(pkg.channel);
-            solv.set_url(pkg.url);
+            solv.set_url(pkg.package_url);
             solv.set_subdir(pkg.subdir);
-            solv.set_file_name(pkg.fn);
+            solv.set_file_name(pkg.filename);
             solv.set_license(pkg.license);
             solv.set_size(pkg.size);
             // TODO conda timestamp are not Unix timestamp.
@@ -142,22 +143,20 @@ namespace mamba
             return util::lstrip_if_parts(tail, [&](char c) { return !is_sep(c); });
         }
 
-        [[nodiscard]] bool set_solvable(
+        [[nodiscard]] auto set_solvable(
             MPool& pool,
+            const std::string& repo_url_str,
+            const specs::CondaURL& repo_url,
             solv::ObjSolvableView solv,
-            std::string_view repo_url,
-            std::string_view filename,
-            const std::string& default_subdir,
+            const std::string& filename,
             const simdjson::dom::element& pkg,
-            std::string& tmp_buffer
-        )
+            const std::string& default_subdir
+        ) -> bool
         {
             // Not available from RepoDataPackage
-            tmp_buffer = filename;
-            solv.set_file_name(tmp_buffer);
-            tmp_buffer = repo_url;
-            solv.set_url(util::join_url(tmp_buffer, filename));
-            solv.set_channel(tmp_buffer);
+            solv.set_file_name(filename);
+            solv.set_url((repo_url / filename).str(specs::CondaURL::Credentials::Show));
+            solv.set_channel(repo_url_str);
 
             if (auto name = pkg["name"].get_string(); !name.error())
             {
@@ -307,16 +306,26 @@ namespace mamba
         void set_repo_solvables(
             MPool& pool,
             solv::ObjRepoView repo,
-            std::string_view repo_url,
+            const std::string& repo_url_str,
+            const specs::CondaURL& repo_url,
             const std::string& default_subdir,
-            const simdjson::dom::object& packages,
-            std::string& tmp_buffer
+            const simdjson::dom::object& packages
         )
         {
+            std::string filename = {};
             for (const auto& [fn, pkg] : packages)
             {
                 auto [id, solv] = repo.add_solvable();
-                const bool parsed = set_solvable(pool, solv, repo_url, fn, default_subdir, pkg, tmp_buffer);
+                filename = fn;
+                const bool parsed = set_solvable(
+                    pool,
+                    repo_url_str,
+                    repo_url,
+                    solv,
+                    filename,
+                    pkg,
+                    default_subdir
+                );
                 if (parsed)
                 {
                     LOG_DEBUG << "Adding package record to repo " << fn;
@@ -334,12 +343,14 @@ namespace mamba
             // WARNING cannot call ``url()`` at this point because it has not been internalized.
             // Setting the channel url on where the solvable so that we can retrace
             // where it came from
+            const auto url = specs::CondaURL::parse(repo_url);
             repo.for_each_solvable(
                 [&](solv::ObjSolvableView s)
                 {
                     // The solvable url, this is not set in libsolv parsing so we set it manually
                     // while we still rely on libsolv for parsing
-                    s.set_url(util::join_url(repo_url, s.file_name()));
+                    // TODO
+                    s.set_url((url / s.file_name()).str(specs::CondaURL::Credentials::Show));
                     // The name of the channel where it came from, may be different from repo name
                     // for instance with the installed repo
                     s.set_channel(repo_url);
@@ -367,7 +378,7 @@ namespace mamba
         repo.internalize();
     }
 
-    MRepo::MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& package_infos)
+    MRepo::MRepo(MPool& pool, const std::string& name, const std::vector<specs::PackageInfo>& package_infos)
         : m_pool(pool)
     {
         auto [_, repo] = pool.pool().add_repo(name);
@@ -472,18 +483,31 @@ namespace mamba
             default_subdir = std::string(subdir.value_unsafe());
         }
 
-        // An temporary buffer for managing null terminated strings
-        std::string tmp_buffer = {};
+        const auto repo_url = specs::CondaURL::parse(m_metadata.url);
 
         if (auto pkgs = repodata["packages"].get_object(); !pkgs.error())
         {
-            set_repo_solvables(m_pool, srepo(*this), m_metadata.url, default_subdir, pkgs.value(), tmp_buffer);
+            set_repo_solvables(
+                m_pool,
+                srepo(*this),
+                m_metadata.url,
+                repo_url,
+                default_subdir,
+                pkgs.value()
+            );
         }
 
         if (auto pkgs = repodata["packages.conda"].get_object();
             !pkgs.error() && !m_pool.context().use_only_tar_bz2)
         {
-            set_repo_solvables(m_pool, srepo(*this), m_metadata.url, default_subdir, pkgs.value(), tmp_buffer);
+            set_repo_solvables(
+                m_pool,
+                srepo(*this),
+                m_metadata.url,
+                repo_url,
+                default_subdir,
+                pkgs.value()
+            );
         }
     }
 

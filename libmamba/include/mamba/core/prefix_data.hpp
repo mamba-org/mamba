@@ -10,9 +10,9 @@
 #include <map>
 #include <string>
 
-#include "error_handling.hpp"
-#include "history.hpp"
-#include "package_info.hpp"
+#include "mamba/core/error_handling.hpp"
+#include "mamba/core/history.hpp"
+#include "mamba/specs/package_info.hpp"
 
 namespace mamba
 {
@@ -22,18 +22,18 @@ namespace mamba
     {
     public:
 
-        using package_map = std::map<std::string, PackageInfo>;
+        using package_map = std::map<std::string, specs::PackageInfo>;
 
         static expected_t<PrefixData>
         create(const fs::u8path& prefix_path, ChannelContext& channel_context);
 
-        void add_packages(const std::vector<PackageInfo>& packages);
+        void add_packages(const std::vector<specs::PackageInfo>& packages);
         const package_map& records() const;
         void load_single_record(const fs::u8path& path);
 
         History& history();
         const fs::u8path& path() const;
-        std::vector<PackageInfo> sorted_records() const;
+        std::vector<specs::PackageInfo> sorted_records() const;
 
         ChannelContext& channel_context() const
         {

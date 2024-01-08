@@ -8,7 +8,6 @@
 #include <array>
 #include <stdexcept>
 #include <string>
-#include <variant>
 #include <vector>
 
 #include <doctest/doctest.h>
@@ -466,6 +465,7 @@ TEST_SUITE("util::flat_bool_expr_tree")
     {
         const auto reference_eval = [](std::array<bool, 5> x) -> bool
         { return (x[0] || x[1]) && (x[2] && (x[3] || x[4])); };
+        // Infix:     ((x3 or x4) and x2) and (x0 or x1)
         // Postfix:   x0 x1 or x2 x3 x4 or and and
         auto parser = PostfixParser<std::size_t, BoolOperator>{};
         parser.push_variable(0);
@@ -493,6 +493,7 @@ TEST_SUITE("util::flat_bool_expr_tree")
         const auto reference_eval = [](std::array<bool, 7> x) -> bool
         { return ((x[0] || x[1]) && (x[2] || x[3] || x[4]) && x[5]) || x[6]; };
         auto parser = InfixParser<std::size_t, BoolOperator>{};
+        // Infix:  ((x0 or x1) and (x2 or x3 or x4) and x5) or x6
         parser.push_left_parenthesis();
         parser.push_left_parenthesis();
         parser.push_variable(0);
@@ -523,5 +524,60 @@ TEST_SUITE("util::flat_bool_expr_tree")
             const auto eval = [&values](std::size_t idx) { return values[idx]; };
             CHECK_EQ(tree.evaluate(eval), reference_eval(values));
         }
+    }
+
+    TEST_CASE("Infix traversal")
+    {
+        auto parser = InfixParser<std::size_t, BoolOperator>{};
+        // Infix:  ((x0 or x1) and (x2 or x3 or x4) and x5) or x6
+        parser.push_left_parenthesis();
+        parser.push_left_parenthesis();
+        parser.push_variable(0);
+        parser.push_operator(BoolOperator::logical_or);
+        parser.push_variable(1);
+        parser.push_right_parenthesis();
+        parser.push_operator(BoolOperator::logical_and);
+        parser.push_left_parenthesis();
+        parser.push_variable(2);
+        parser.push_operator(BoolOperator::logical_or);
+        parser.push_variable(3);
+        parser.push_operator(BoolOperator::logical_or);
+        parser.push_variable(4);
+        parser.push_right_parenthesis();
+        parser.push_operator(BoolOperator::logical_and);
+        parser.push_variable(5);
+        parser.push_right_parenthesis();
+        parser.push_operator(BoolOperator::logical_or);
+        parser.push_variable(6);
+        parser.finalize();
+        auto tree = flat_bool_expr_tree(std::move(parser).tree());
+
+        auto result = std::string();
+        tree.infix_for_each(
+            [&](const auto& token)
+            {
+                using tree_type = decltype(tree);
+                using Token = std::decay_t<decltype(token)>;
+                if constexpr (std::is_same_v<Token, tree_type::LeftParenthesis>)
+                {
+                    result += '(';
+                }
+                if constexpr (std::is_same_v<Token, tree_type::RightParenthesis>)
+                {
+                    result += ')';
+                }
+                if constexpr (std::is_same_v<Token, BoolOperator>)
+                {
+                    result += (token == BoolOperator::logical_or) ? " or " : " and ";
+                }
+                if constexpr (std::is_same_v<Token, tree_type::variable_type>)
+                {
+                    result += 'x';
+                    result += std::to_string(token);
+                }
+            }
+        );
+        // There could be many representations, here is one
+        CHECK_EQ(result, "((x0 or x1) and ((x2 or (x3 or x4)) and x5)) or x6");
     }
 }

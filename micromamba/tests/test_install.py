@@ -266,15 +266,11 @@ class TestInstall:
 
             cmd += ["-f", file]
 
-        if type == "yaml":
-            with pytest.raises(subprocess.CalledProcessError):
-                helpers.install(*cmd, "--print-config-only")
-        else:
-            res = helpers.install(*cmd, "--print-config-only")
-            if type == "classic":
-                assert res["specs"] == specs
-            else:  # explicit
-                assert res["specs"] == [explicit_specs[0]]
+        res = helpers.install(*cmd, "--print-config-only")
+        if type == "yaml" or type == "classic":
+            assert res["specs"] == specs
+        else:  # explicit
+            assert res["specs"] == [explicit_specs[0]]
 
     @pytest.mark.parametrize("priority", (None, "disabled", "flexible", "strict"))
     @pytest.mark.parametrize("no_priority", (None, True))
@@ -537,7 +533,7 @@ class TestInstall:
         try:
             helpers.install(non_existing_url, default_channel=False)
         except subprocess.CalledProcessError as e:
-            assert "Invalid package filename" in e.stderr.decode("utf-8")
+            assert " Fail to parse MatchSpec" in e.stderr.decode("utf-8")
 
     def test_no_reinstall(self, existing_cache):
         """Reinstalling is a no op."""

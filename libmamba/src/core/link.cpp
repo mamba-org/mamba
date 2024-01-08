@@ -14,10 +14,10 @@
 #include <reproc++/run.hpp>
 
 #include "mamba/core/link.hpp"
-#include "mamba/core/match_spec.hpp"
 #include "mamba/core/menuinst.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/transaction_context.hpp"
+#include "mamba/specs/match_spec.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/string.hpp"
@@ -317,7 +317,7 @@ namespace mamba
     bool run_script(
         const Context& context,
         const fs::u8path& prefix,
-        const PackageInfo& pkg_info,
+        const specs::PackageInfo& pkg_info,
         const std::string& action = "post-link",
         const std::string& env_prefix = "",
         bool activate = false
@@ -469,7 +469,7 @@ namespace mamba
     }
 
     UnlinkPackage::UnlinkPackage(
-        const PackageInfo& pkg_info,
+        const specs::PackageInfo& pkg_info,
         const fs::u8path& cache_path,
         TransactionContext* context
     )
@@ -567,7 +567,7 @@ namespace mamba
     }
 
     LinkPackage::LinkPackage(
-        const PackageInfo& pkg_info,
+        const specs::PackageInfo& pkg_info,
         const fs::u8path& cache_path,
         TransactionContext* context
     )
@@ -993,10 +993,10 @@ namespace mamba
         out_json["paths_data"] = paths_json;
         out_json["files"] = files_record;
 
-        MatchSpec* requested_spec = nullptr;
+        specs::MatchSpec* requested_spec = nullptr;
         for (auto& ms : m_context->requested_specs)
         {
-            if (ms.name == m_pkg_info.name)
+            if (ms.name().contains(m_pkg_info.name))
             {
                 requested_spec = &ms;
             }

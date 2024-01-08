@@ -155,6 +155,7 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/util/encoding.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/environment.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/os_win.cpp
+    ${LIBMAMBA_SOURCE_DIR}/util/parsers.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/path_manip.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/string.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/url.cpp
@@ -169,9 +170,13 @@ set(
     # Implementation of version and matching specs
     ${LIBMAMBA_SOURCE_DIR}/specs/archive.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/authentication_info.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/build_number_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/channel.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/channel_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/conda_url.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/glob_spec.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/match_spec.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/package_info.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/platform.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/repo_data.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/version.cpp
@@ -200,7 +205,6 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/core/transaction_context.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/link.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/history.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/match_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/menuinst.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/mirror.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/output.cpp
@@ -213,7 +217,6 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/core/progress_bar_impl.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/pinning.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_fetcher.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/package_info.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_paths.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/query.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/repo.cpp
@@ -259,6 +262,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/build.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cast.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/compare.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/conditional.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cryptography.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/deprecation.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/encoding.hpp
@@ -268,9 +272,11 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/flat_set.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/functional.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/graph.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/heap_optional.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/iterator.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/json.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/os_win.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/parsers.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/path_manip.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/string.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/tuple_hash.hpp
@@ -281,9 +287,13 @@ set(
     # Implementation of version and matching specs
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/archive.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/authentication_info.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/build_number_spec.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/channel.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/channel_spec.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/conda_url.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/glob_spec.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/match_spec.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/package_info.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/platform.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/repo_data.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version.hpp
@@ -308,14 +318,12 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/satisfiability_error.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/history.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/link.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/match_spec.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/menuinst.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/mirror.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/output.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_cache.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_fetcher.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_handling.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_info.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_paths.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/pool.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/prefix_data.hpp

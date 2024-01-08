@@ -13,8 +13,8 @@
 #include <vector>
 
 #include "mamba/core/context.hpp"
-#include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
+#include "mamba/specs/package_info.hpp"
 #include "mamba/util/graph.hpp"
 
 typedef struct s_Solvable Solvable;
@@ -73,7 +73,7 @@ namespace mamba
     {
     public:
 
-        using dependency_graph = util::DiGraph<PackageInfo>;
+        using dependency_graph = util::DiGraph<specs::PackageInfo>;
 
         query_result(QueryType type, const std::string& query, dependency_graph&& dep_graph);
 
@@ -87,8 +87,8 @@ namespace mamba
         QueryType query_type() const;
         const std::string& query() const;
 
-        query_result& sort(std::string field);
-        query_result& groupby(std::string field);
+        query_result& sort(std::string_view field);
+        query_result& groupby(std::string_view field);
         query_result& reset();
 
         std::ostream& table(std::ostream&) const;
@@ -107,7 +107,7 @@ namespace mamba
         using ordered_package_list = std::map<std::string, package_id_list>;
 
         void reset_pkg_view_list();
-        std::string get_package_repr(const PackageInfo& pkg) const;
+        std::string get_package_repr(const specs::PackageInfo& pkg) const;
 
         QueryType m_type;
         std::string m_query;

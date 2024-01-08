@@ -8,16 +8,24 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl_bind.h>
 
+#include "mamba/specs/archive.hpp"
 #include "mamba/specs/authentication_info.hpp"
 #include "mamba/specs/channel.hpp"
 #include "mamba/specs/channel_spec.hpp"
 #include "mamba/specs/conda_url.hpp"
+#include "mamba/specs/match_spec.hpp"
+#include "mamba/specs/package_info.hpp"
 #include "mamba/specs/platform.hpp"
+#include "mamba/specs/version.hpp"
+#include "mamba/specs/version_spec.hpp"
 
 #include "bindings.hpp"
 #include "flat_set_caster.hpp"
 #include "utils.hpp"
 #include "weakening_map_bind.hpp"
+
+PYBIND11_MAKE_OPAQUE(mamba::specs::VersionPart);
+PYBIND11_MAKE_OPAQUE(mamba::specs::CommonVersion);
 
 namespace mambapy
 {
@@ -25,6 +33,26 @@ namespace mambapy
     {
         namespace py = pybind11;
         using namespace mamba::specs;
+
+        m.def("archive_extensions", []() { return ARCHIVE_EXTENSIONS; });
+
+        m.def(
+            "has_archive_extension",
+            [](std::string_view str) { return has_archive_extension(str); }
+        );
+        m.def(
+            "has_archive_extension",
+            [](const mamba::fs::u8path& p) { return has_archive_extension(p); }
+        );
+
+        m.def(
+            "strip_archive_extension",
+            [](std::string_view str) { return strip_archive_extension(str); }
+        );
+        m.def(
+            "strip_archive_extension",
+            [](const mamba::fs::u8path& p) { return strip_archive_extension(p); }
+        );
 
         py::enum_<Platform>(m, "Platform")
             .value("noarch", Platform::noarch)
@@ -49,6 +77,15 @@ namespace mambapy
             .def_static("count", &known_platforms_count)
             .def_static("build_platform", &build_platform);
         py::implicitly_convertible<py::str, Platform>();
+
+        py::enum_<NoArchType>(m, "NoArchType")
+            .value("No", NoArchType::No)
+            .value("Generic", NoArchType::Generic)
+            .value("Python", NoArchType::Python)
+            .def(py::init(&enum_from_str<NoArchType>))
+            .def_static("parse", &noarch_parse)
+            .def_static("count", &known_noarch_count);
+        py::implicitly_convertible<py::str, NoArchType>();
 
         auto py_conda_url = py::class_<CondaURL>(m, "CondaURL");
 
@@ -285,7 +322,7 @@ namespace mambapy
                 py::arg("type") = ChannelSpec::Type::Unknown
             )
             .def("__copy__", &copy<ChannelSpec>)
-            .def("__deepcopy__", &deepcopy<ChannelSpec>, pybind11::arg("memo"))
+            .def("__deepcopy__", &deepcopy<ChannelSpec>, py::arg("memo"))
             .def_property_readonly("type", &ChannelSpec::type)
             .def_property_readonly("location", &ChannelSpec::location)
             .def_property_readonly("platform_filters", &ChannelSpec::platform_filters);
@@ -309,7 +346,7 @@ namespace mambapy
             .def(py::self == py::self)
             .def(py::self != py::self)
             .def("__copy__", &copy<BasicHTTPAuthentication>)
-            .def("__deepcopy__", &deepcopy<BasicHTTPAuthentication>, pybind11::arg("memo"))
+            .def("__deepcopy__", &deepcopy<BasicHTTPAuthentication>, py::arg("memo"))
             .def("__hash__", &hash<BasicHTTPAuthentication>);
 
         py::class_<BearerToken>(m, "BearerToken")
@@ -321,7 +358,7 @@ namespace mambapy
             .def(py::self == py::self)
             .def(py::self != py::self)
             .def("__copy__", &copy<BearerToken>)
-            .def("__deepcopy__", &deepcopy<BearerToken>, pybind11::arg("memo"))
+            .def("__deepcopy__", &deepcopy<BearerToken>, py::arg("memo"))
             .def("__hash__", &hash<BearerToken>);
 
         py::class_<CondaToken>(m, "CondaToken")
@@ -333,7 +370,7 @@ namespace mambapy
             .def(py::self == py::self)
             .def(py::self != py::self)
             .def("__copy__", &copy<CondaToken>)
-            .def("__deepcopy__", &deepcopy<CondaToken>, pybind11::arg("memo"))
+            .def("__deepcopy__", &deepcopy<CondaToken>, py::arg("memo"))
             .def("__hash__", &hash<CondaToken>);
 
         bind_weakening_map<AuthenticationDataBase>(m, "AuthenticationDataBase");
@@ -384,7 +421,7 @@ namespace mambapy
             .def_readwrite("home_dir", &ChannelResolveParams::home_dir)
             .def_readwrite("current_working_dir", &ChannelResolveParams::current_working_dir)
             .def("__copy__", &copy<BasicHTTPAuthentication>)
-            .def("__deepcopy__", &deepcopy<BasicHTTPAuthentication>, pybind11::arg("memo"));
+            .def("__deepcopy__", &deepcopy<BasicHTTPAuthentication>, py::arg("memo"));
 
         py_channel  //
             .def_property_readonly_static(
@@ -453,9 +490,158 @@ namespace mambapy
             .def("contains_equivalent", &Channel::contains_equivalent)
             .def(py::self == py::self)
             .def(py::self != py::self)
-            .def(py::self != py::self)
             .def("__hash__", &hash<Channel>)
             .def("__copy__", &copy<Channel>)
-            .def("__deepcopy__", &deepcopy<Channel>, pybind11::arg("memo"));
+            .def("__deepcopy__", &deepcopy<Channel>, py::arg("memo"));
+
+        py::class_<VersionPartAtom>(m, "VersionPartAtom")
+            .def(py::init<>())
+            .def(py::init<std::size_t, std::string_view>(), py::arg("numeral"), py::arg("literal") = "")
+            .def_property_readonly("numeral", &VersionPartAtom::numeral)
+            .def_property_readonly(
+                "literal",
+                [](const VersionPartAtom& atom) { return atom.literal(); }
+            )
+            .def("__str__", &VersionPartAtom::str)
+            .def(py::self == py::self)
+            .def(py::self != py::self)
+            .def(py::self < py::self)
+            .def(py::self <= py::self)
+            .def(py::self > py::self)
+            .def(py::self >= py::self)
+            .def("__copy__", &copy<VersionPartAtom>)
+            .def("__deepcopy__", &deepcopy<VersionPartAtom>, py::arg("memo"));
+
+        // Type made opaque at the top of this file
+        py::bind_vector<VersionPart>(m, "VersionPart");
+
+        // Type made opaque at the top of this file
+        py::bind_vector<CommonVersion>(m, "CommonVersion");
+
+        py::class_<Version>(m, "Version")
+            .def_readonly_static("epoch_delim", &Version::epoch_delim)
+            .def_readonly_static("local_delim", &Version::local_delim)
+            .def_readonly_static("part_delim", &Version::part_delim)
+            .def_readonly_static("part_delim_alt", &Version::part_delim_alt)
+            .def_readonly_static("part_delim_special", &Version::part_delim_special)
+            .def_static("parse", &Version::parse, py::arg("str"))
+            .def(
+                py::init<std::size_t, CommonVersion, CommonVersion>(),
+                py::arg("epoch") = 0,
+                py::arg("version") = CommonVersion(),
+                py::arg("local") = CommonVersion()
+            )
+            .def_property_readonly("epoch", &Version::epoch)
+            .def_property_readonly("version", &Version::version)
+            .def_property_readonly("local", &Version::local)
+            .def("starts_with", &Version::starts_with, py::arg("prefix"))
+            .def("compatible_with", &Version::compatible_with, py::arg("older"), py::arg("level"))
+            .def("__str__", [](const Version& v) { return v.str(); })
+            .def("str", [](const Version& v) { return v.str(); })
+            .def(
+                "str",
+                [](const Version& v, std::size_t level) { return v.str(level); },
+                py::arg("level")
+            )
+            .def(py::self == py::self)
+            .def(py::self != py::self)
+            .def(py::self < py::self)
+            .def(py::self <= py::self)
+            .def(py::self > py::self)
+            .def(py::self >= py::self)
+            .def("__copy__", &copy<Version>)
+            .def("__deepcopy__", &deepcopy<Version>, py::arg("memo"));
+
+        // Bindings for VersionSpec currently ignores VersionPredicate and flat_bool_expr_tree
+        // which would be tedious to bind, and even more to make extendable through Python
+
+        py::class_<VersionSpec>(m, "VersionSpec")
+            .def_readonly_static("and_token", &VersionSpec::and_token)
+            .def_readonly_static("or_token", &VersionSpec::or_token)
+            .def_readonly_static("left_parenthesis_token", &VersionSpec::left_parenthesis_token)
+            .def_readonly_static("right_parenthesis_token", &VersionSpec::right_parenthesis_token)
+            .def_readonly_static("prefered_free_str", &VersionSpec::prefered_free_str)
+            .def_readonly_static("all_free_strs", &VersionSpec::all_free_strs)
+            .def_readonly_static("starts_with_str", &VersionSpec::starts_with_str)
+            .def_readonly_static("equal_str", &VersionSpec::equal_str)
+            .def_readonly_static("not_equal_str", &VersionSpec::not_equal_str)
+            .def_readonly_static("greater_str", &VersionSpec::greater_str)
+            .def_readonly_static("greater_equal_str", &VersionSpec::greater_equal_str)
+            .def_readonly_static("less_str", &VersionSpec::less_str)
+            .def_readonly_static("less_equal_str", &VersionSpec::less_equal_str)
+            .def_readonly_static("compatible_str", &VersionSpec::compatible_str)
+            .def_readonly_static("glob_suffix_str", &VersionSpec::glob_suffix_str)
+            .def_readonly_static("glob_suffix_token", &VersionSpec::glob_suffix_token)
+            .def_static("parse", &VersionSpec::parse, py::arg("str"))
+            .def("contains", &VersionSpec::contains, py::arg("point"))
+            .def("__str__", &VersionSpec::str)
+            .def("__copy__", &copy<VersionSpec>)
+            .def("__deepcopy__", &deepcopy<VersionSpec>, py::arg("memo"));
+
+        py::class_<PackageInfo>(m, "PackageInfo")
+            .def(
+                py::init<std::string, std::string, std::string, std::size_t>(),
+                py::arg("name") = "",
+                py::arg("version") = "",
+                py::arg("build_string") = "",
+                py::arg("build_number") = 0
+            )
+            .def_readwrite("name", &PackageInfo::name)
+            .def_readwrite("version", &PackageInfo::version)
+            .def_readwrite("build_string", &PackageInfo::build_string)
+            .def_readwrite("build_number", &PackageInfo::build_number)
+            .def_readwrite("noarch", &PackageInfo::noarch)
+            .def_readwrite("channel", &PackageInfo::channel)
+            .def_readwrite("package_url", &PackageInfo::package_url)
+            .def_property(
+                // V2 migration helper
+                "url",
+                [](py::handle) { throw std::runtime_error("'url' has been renamed 'package_url'"); },
+                [](py::handle, py::handle)
+                { throw std::runtime_error("'url' has been renamed 'package_url'"); }
+            )
+            .def_readwrite("subdir", &PackageInfo::subdir)
+            .def_readwrite("filename", &PackageInfo::filename)
+            .def_property(
+                // V2 migration helper
+                "fn",
+                [](py::handle) { throw std::runtime_error("'fn' has been renamed 'filename'"); },
+                [](py::handle, py::handle)
+                { throw std::runtime_error("'fn' has been renamed 'filename'"); }
+            )
+            .def_readwrite("license", &PackageInfo::license)
+            .def_readwrite("size", &PackageInfo::size)
+            .def_readwrite("timestamp", &PackageInfo::timestamp)
+            .def_readwrite("md5", &PackageInfo::md5)
+            .def_readwrite("sha256", &PackageInfo::sha256)
+            .def_readwrite("track_features", &PackageInfo::track_features)
+            .def_readwrite("depends", &PackageInfo::depends)
+            .def_readwrite("constrains", &PackageInfo::constrains)
+            .def_readwrite("signatures", &PackageInfo::signatures)
+            .def_readwrite("defaulted_keys", &PackageInfo::defaulted_keys)
+            .def(py::self == py::self)
+            .def(py::self != py::self)
+            .def("__str__", &PackageInfo::str)
+            .def("__copy__", &copy<PackageInfo>)
+            .def("__deepcopy__", &deepcopy<PackageInfo>, py::arg("memo"));
+
+        // WIP MatchSpec class
+        py::class_<MatchSpec>(m, "MatchSpec")
+            .def_static("parse", &MatchSpec::parse)
+            .def(
+                // Hard deperecation since errors would be hard to track.
+                py::init(
+                    [](std::string_view) -> MatchSpec {
+                        throw std::invalid_argument(
+                            "Use 'MatchSpec.parse' to create a new object from a string"
+                        );
+                    }
+                ),
+                py::arg("spec")
+            )
+            .def("conda_build_form", &MatchSpec::conda_build_form)
+            .def("__str__", &MatchSpec::str)
+            .def("__copy__", &copy<MatchSpec>)
+            .def("__deepcopy__", &deepcopy<MatchSpec>, py::arg("memo"));
     }
 }

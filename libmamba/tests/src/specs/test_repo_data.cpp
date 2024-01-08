@@ -15,7 +15,7 @@
 using namespace mamba::specs;
 namespace nl = nlohmann;
 
-TEST_SUITE("repo_data")
+TEST_SUITE("specs::repo_data")
 {
     TEST_CASE("RepoDataPackage_to_json")
     {

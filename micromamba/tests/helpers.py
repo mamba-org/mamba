@@ -71,7 +71,7 @@ def get_umamba(cwd=os.getcwd()):
             umamba_bin = "micromamba"
         umamba = os.path.join(cwd, "build", "micromamba", umamba_bin)
     if not Path(umamba).exists():
-        print("MICROMAMBA NOT FOUND!")
+        raise RuntimeError("Micromamba not found! Set TEST_MAMBA_EXE env variable")
     return umamba
 
 

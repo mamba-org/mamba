@@ -167,8 +167,8 @@ They are used the same way as text files:
 .. note::
   CLI options will keep :ref:`precedence<precedence-resolution>` over *target prefix* or *channels* specified in spec files.
 
-.. warning::
-  ``YAML`` spec files do not allow multiple files.
+.. note::
+  You can pass multiple ``YAML`` spec files by repeating the ``-f,--file`` argument.
 
 Explicit spec files
 *******************

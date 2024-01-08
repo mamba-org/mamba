@@ -43,7 +43,7 @@ namespace mamba::specs
     {
         auto p = m_url.clear_path();
         p = util::rstrip(p, '/');
-        m_url.set_path(std::move(p));
+        m_url.set_path(std::move(p), CondaURL::Encode::no);
     }
 
     auto Channel::is_package() const -> bool

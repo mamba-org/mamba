@@ -319,7 +319,7 @@ namespace mamba
 
     const std::string& PackageFetcher::url() const
     {
-        return m_package_info.url;
+        return m_package_info.package_url;
     }
 
     const std::string& PackageFetcher::sha256() const

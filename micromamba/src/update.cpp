@@ -90,7 +90,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
     );
 
     Console::instance().print(
-        fmt::format("  Fetching micromamba from {}\n", latest_micromamba.value().url)
+        fmt::format("  Fetching micromamba from {}\n", latest_micromamba.value().package_url)
     );
 
     ctx.download_only = true;

@@ -97,7 +97,7 @@ namespace mamba
             solv.set_noarch(pkg.noarch);
             solv.set_build_number(pkg.build_number);
             solv.set_channel(pkg.channel);
-            solv.set_url(pkg.url);
+            solv.set_url(pkg.package_url);
             solv.set_subdir(pkg.subdir);
             solv.set_file_name(pkg.filename);
             solv.set_license(pkg.license);

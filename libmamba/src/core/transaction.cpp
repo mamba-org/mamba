@@ -73,7 +73,7 @@ namespace mamba
             {
                 out.emplace_back(ms.name().str());
                 auto& p = out.back();
-                p.url = ms.url();
+                p.package_url = ms.url();
                 p.build_string = ms.build_string().str();
                 p.version = ms.version().str_conda_build();
                 if (ms.channel().has_value())
@@ -899,9 +899,10 @@ namespace mamba
                     {
                         using Credentials = typename specs::CondaURL::Credentials;
                         auto l_pkg = pkg;
-                        auto channels = channel_context.make_channel(pkg.url);
+                        auto channels = channel_context.make_channel(pkg.package_url);
                         assert(channels.size() == 1);  // A URL can only resolve to one channel
-                        l_pkg.url = channels.front().platform_urls().at(0).str(Credentials::Show);
+                        l_pkg.package_url = channels.front().platform_urls().at(0).str(Credentials::Show
+                        );
                         fetchers.emplace_back(l_pkg, multi_cache);
                     }
                     else
@@ -1462,7 +1463,7 @@ namespace mamba
                 pip_packages.cend(),
                 std::back_inserter(pip_specs),
                 [](const specs::PackageInfo& pkg)
-                { return fmt::format("{} @ {}#sha256={}", pkg.name, pkg.url, pkg.sha256); }
+                { return fmt::format("{} @ {}#sha256={}", pkg.name, pkg.package_url, pkg.sha256); }
             );
             other_specs.push_back(
                 { "pip --no-deps", pip_specs, fs::absolute(env_lockfile_path.parent_path()).string() }

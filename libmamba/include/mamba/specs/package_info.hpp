@@ -29,7 +29,7 @@ namespace mamba::specs
          * @todo need to use a proper type for channels
          */
         std::string channel = {};
-        std::string url = {};
+        std::string package_url = {};
         std::string subdir = {};
         std::string filename = {};
         std::string license = {};

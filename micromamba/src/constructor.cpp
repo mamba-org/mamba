@@ -114,9 +114,12 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
             fs::u8path index_path = base_path / "info" / "index.json";
 
             std::string channel_url;
-            if (pkg_info.url.size() > pkg_info.filename.size())
+            if (pkg_info.package_url.size() > pkg_info.filename.size())
             {
-                channel_url = pkg_info.url.substr(0, pkg_info.url.size() - pkg_info.filename.size());
+                channel_url = pkg_info.package_url.substr(
+                    0,
+                    pkg_info.package_url.size() - pkg_info.filename.size()
+                );
             }
             std::string repodata_cache_name = util::concat(cache_name_from_url(channel_url), ".json");
             fs::u8path repodata_location = pkgs_dir / "cache" / repodata_cache_name;
@@ -147,7 +150,7 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
             }
             else
             {
-                LOG_WARNING << "Did not find a repodata record for " << pkg_info.url;
+                LOG_WARNING << "Did not find a repodata record for " << pkg_info.package_url;
                 repodata_record = index;
 
                 repodata_record["size"] = fs::file_size(entry);
@@ -162,7 +165,7 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
             }
 
             repodata_record["fn"] = pkg_info.filename;
-            repodata_record["url"] = pkg_info.url;
+            repodata_record["url"] = pkg_info.package_url;
             repodata_record["channel"] = pkg_info.channel;
 
             if (repodata_record.find("size") == repodata_record.end() || repodata_record["size"] == 0)

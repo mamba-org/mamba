@@ -300,7 +300,7 @@ namespace mamba
             out.noarch = s.noarch();
             out.build_number = s.build_number();
             out.channel = s.channel();
-            out.url = s.url();
+            out.package_url = s.url();
             out.subdir = s.subdir();
             out.filename = s.file_name();
             out.license = s.license();

@@ -711,8 +711,8 @@ def test_PackageInfo():
     assert pkg.noarch == "generic"
     pkg.channel = "conda-forge"
     assert pkg.channel == "conda-forge"
-    pkg.url = "https://repo.mamba.pm/conda-forge/linux-64/foo-4.0-mybld.conda"
-    assert pkg.url == "https://repo.mamba.pm/conda-forge/linux-64/foo-4.0-mybld.conda"
+    pkg.package_url = "https://repo.mamba.pm/conda-forge/linux-64/foo-4.0-mybld.conda"
+    assert pkg.package_url == "https://repo.mamba.pm/conda-forge/linux-64/foo-4.0-mybld.conda"
     pkg.subdir = "linux-64"
     assert pkg.subdir == "linux-64"
     pkg.filename = "foo-4.0-mybld.conda"
@@ -753,8 +753,16 @@ def test_PackageInfo_V2Migrator():
         libmambapy.PackageInfo()
 
     pkg = libmambapy.specs.PackageInfo()
+
     with pytest.raises(Exception, match=r"filename"):
         pkg.fn
+    with pytest.raises(Exception, match=r"filename"):
+        pkg.fn = "foo"
+
+    with pytest.raises(Exception, match=r"package_url"):
+        pkg.url
+    with pytest.raises(Exception, match=r"package_url"):
+        pkg.url = "https://repo.mamba.pm/conda-forge/linux-64/foo-4.0-mybld.conda"
 
 
 def test_MatchSpec():

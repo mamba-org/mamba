@@ -164,7 +164,7 @@ namespace mamba::specs
         }
         if (field_name == "url")
         {
-            return invoke_field_string(*this, &PackageInfo::url);
+            return invoke_field_string(*this, &PackageInfo::package_url);
         }
         if (field_name == "subdir")
         {
@@ -200,7 +200,7 @@ namespace mamba::specs
                 p.noarch,
                 p.build_number,
                 p.channel,
-                p.url,
+                p.package_url,
                 p.subdir,
                 p.filename,
                 p.license,
@@ -232,7 +232,7 @@ namespace mamba::specs
         j["name"] = pkg.name;
         j["version"] = pkg.version;
         j["channel"] = pkg.channel;
-        j["url"] = pkg.url;
+        j["url"] = pkg.package_url;
         j["subdir"] = pkg.subdir;
         j["fn"] = pkg.filename;
         j["size"] = pkg.size;
@@ -278,7 +278,7 @@ namespace mamba::specs
         pkg.name = j.value("name", "");
         pkg.version = j.value("version", "");
         pkg.channel = j.value("channel", "");
-        pkg.url = j.value("url", "");
+        pkg.package_url = j.value("url", "");
         pkg.subdir = j.value("subdir", "");
         pkg.filename = j.value("fn", "");
         pkg.size = j.value("size", std::size_t(0));

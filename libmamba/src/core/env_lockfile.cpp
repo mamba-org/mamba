@@ -55,8 +55,8 @@ namespace mamba
                 ));
             }
 
-            package.info.url = package_node["url"].as<std::string>();
-            const auto spec = specs::MatchSpec::parse(package.info.url);
+            package.info.package_url = package_node["url"].as<std::string>();
+            const auto spec = specs::MatchSpec::parse(package.info.package_url);
             package.info.filename = spec.filename();
             package.info.build_string = spec.build_string().str();
             if (spec.channel().has_value())

@@ -299,7 +299,10 @@ namespace mamba
                     {
                         if (!repodata_record["url"].get<std::string>().empty())
                         {
-                            if (!compare_cleaned_url(repodata_record["url"].get<std::string>(), s.url))
+                            if (!compare_cleaned_url(
+                                    repodata_record["url"].get<std::string>(),
+                                    s.package_url
+                                ))
                             {
                                 LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
                                             << "' has invalid url";

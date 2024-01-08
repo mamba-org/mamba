@@ -592,11 +592,18 @@ namespace mambapy
             .def_readwrite("build_number", &PackageInfo::build_number)
             .def_readwrite("noarch", &PackageInfo::noarch)
             .def_readwrite("channel", &PackageInfo::channel)
-            .def_readwrite("url", &PackageInfo::url)
+            .def_readwrite("package_url", &PackageInfo::package_url)
+            .def_property(
+                // V2 migration helper
+                "url",
+                [](py::handle) { throw std::runtime_error("'url' has been renamed 'package_url'"); },
+                [](py::handle, py::handle)
+                { throw std::runtime_error("'url' has been renamed 'package_url'"); }
+            )
             .def_readwrite("subdir", &PackageInfo::subdir)
             .def_readwrite("filename", &PackageInfo::filename)
             .def_property(
-                // V2 migrator helper
+                // V2 migration helper
                 "fn",
                 [](py::handle) { throw std::runtime_error("'fn' has been renamed 'filename'"); },
                 [](py::handle, py::handle)

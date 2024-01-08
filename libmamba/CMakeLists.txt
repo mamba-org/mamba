@@ -176,6 +176,7 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/specs/conda_url.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/glob_spec.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/match_spec.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/package_info.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/platform.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/repo_data.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/version.cpp
@@ -216,7 +217,6 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/core/progress_bar_impl.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/pinning.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_fetcher.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/package_info.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_paths.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/query.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/repo.cpp
@@ -293,6 +293,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/conda_url.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/glob_spec.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/match_spec.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/package_info.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/platform.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/repo_data.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version.hpp
@@ -323,7 +324,6 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_cache.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_fetcher.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_handling.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_info.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_paths.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/pool.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/prefix_data.hpp

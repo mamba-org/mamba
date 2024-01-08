@@ -21,7 +21,7 @@ namespace mamba
         tl::expected<Package, mamba_error> read_package_info(const YAML::Node& package_node)
         {
             Package package{
-                /* .info = */ mamba::PackageInfo{ package_node["name"].as<std::string>() },
+                /* .info = */ specs::PackageInfo{ package_node["name"].as<std::string>() },
                 /* .is_optional = */
                 [&]
                 {
@@ -55,8 +55,8 @@ namespace mamba
                 ));
             }
 
-            package.info.url = package_node["url"].as<std::string>();
-            const auto spec = specs::MatchSpec::parse(package.info.url);
+            package.info.package_url = package_node["url"].as<std::string>();
+            const auto spec = specs::MatchSpec::parse(package.info.package_url);
             package.info.filename = spec.filename();
             package.info.build_string = spec.build_string().str();
             if (spec.channel().has_value())
@@ -232,13 +232,13 @@ namespace mamba
         }
     }
 
-    std::vector<PackageInfo> EnvironmentLockFile::get_packages_for(
+    std::vector<specs::PackageInfo> EnvironmentLockFile::get_packages_for(
         std::string_view category,
         std::string_view platform,
         std::string_view manager
     ) const
     {
-        std::vector<PackageInfo> results;
+        std::vector<specs::PackageInfo> results;
 
         // TODO: c++20 - rewrite this with ranges
         const auto package_predicate = [&](const auto& package)

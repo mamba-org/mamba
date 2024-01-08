@@ -71,7 +71,7 @@ namespace mamba
 
                     if (regex.empty() || std::regex_search(pkg_info.name, spec_pat))
                     {
-                        auto channels = channel_context.make_channel(pkg_info.url);
+                        auto channels = channel_context.make_channel(pkg_info.package_url);
                         assert(channels.size() == 1);  // A URL can only resolve to one channel
                         obj["base_url"] = channels.front().url().str(specs::CondaURL::Credentials::Remove
                         );
@@ -111,7 +111,7 @@ namespace mamba
                     }
                     else
                     {
-                        auto channels = channel_context.make_channel(package.second.url);
+                        auto channels = channel_context.make_channel(package.second.package_url);
                         assert(channels.size() == 1);  // A URL can only resolve to one channel
                         formatted_pkgs.channel = channels.front().display_name();
                     }

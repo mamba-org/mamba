@@ -1,3 +1,9 @@
+// Copyright (c) 2023, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
+
 #include "mamba/core/invoke.hpp"
 #include "mamba/core/package_fetcher.hpp"
 #include "mamba/core/util.hpp"
@@ -77,7 +83,7 @@ namespace mamba
         ValidationResult error;
     };
 
-    PackageFetcher::PackageFetcher(const PackageInfo& pkg_info, MultiPackageCache& caches)
+    PackageFetcher::PackageFetcher(const specs::PackageInfo& pkg_info, MultiPackageCache& caches)
 
         : m_package_info(pkg_info)
     {
@@ -313,7 +319,7 @@ namespace mamba
 
     const std::string& PackageFetcher::url() const
     {
-        return m_package_info.url;
+        return m_package_info.package_url;
     }
 
     const std::string& PackageFetcher::sha256() const

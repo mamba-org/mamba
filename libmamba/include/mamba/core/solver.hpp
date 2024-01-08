@@ -19,10 +19,10 @@
 // Incomplete header
 #include <solv/rules.h>
 
-#include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/satisfiability_error.hpp"
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/specs/package_info.hpp"
 
 #define PY_MAMBA_NO_DEPS 0b0001
 #define PY_MAMBA_ONLY_DEPS 0b0010
@@ -48,8 +48,8 @@ namespace mamba
         Id source_id;
         Id target_id;
         Id dep_id;
-        std::optional<PackageInfo> source;
-        std::optional<PackageInfo> target;
+        std::optional<specs::PackageInfo> source;
+        std::optional<specs::PackageInfo> target;
         std::optional<std::string> dep;
         std::string description;
     };

@@ -317,7 +317,7 @@ namespace mamba
     bool run_script(
         const Context& context,
         const fs::u8path& prefix,
-        const PackageInfo& pkg_info,
+        const specs::PackageInfo& pkg_info,
         const std::string& action = "post-link",
         const std::string& env_prefix = "",
         bool activate = false
@@ -469,7 +469,7 @@ namespace mamba
     }
 
     UnlinkPackage::UnlinkPackage(
-        const PackageInfo& pkg_info,
+        const specs::PackageInfo& pkg_info,
         const fs::u8path& cache_path,
         TransactionContext* context
     )
@@ -567,7 +567,7 @@ namespace mamba
     }
 
     LinkPackage::LinkPackage(
-        const PackageInfo& pkg_info,
+        const specs::PackageInfo& pkg_info,
         const fs::u8path& cache_path,
         TransactionContext* context
     )

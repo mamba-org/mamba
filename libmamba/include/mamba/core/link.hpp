@@ -12,12 +12,11 @@
 #include <tuple>
 #include <vector>
 
-#include "mamba/core/package_info.hpp"
+#include "mamba/core/package_paths.hpp"
+#include "mamba/core/transaction_context.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/specs/package_info.hpp"
 #include "mamba/util/build.hpp"
-
-#include "package_paths.hpp"
-#include "transaction_context.hpp"
 
 namespace mamba
 {
@@ -45,7 +44,11 @@ namespace mamba
     {
     public:
 
-        UnlinkPackage(const PackageInfo& pkg_info, const fs::u8path& cache_path, TransactionContext* context);
+        UnlinkPackage(
+            const specs::PackageInfo& pkg_info,
+            const fs::u8path& cache_path,
+            TransactionContext* context
+        );
 
         bool execute();
         bool undo();
@@ -54,7 +57,7 @@ namespace mamba
 
         bool unlink_path(const nlohmann::json& path_data);
 
-        PackageInfo m_pkg_info;
+        specs::PackageInfo m_pkg_info;
         fs::u8path m_cache_path;
         std::string m_specifier;
         TransactionContext* m_context;
@@ -64,7 +67,11 @@ namespace mamba
     {
     public:
 
-        LinkPackage(const PackageInfo& pkg_info, const fs::u8path& cache_path, TransactionContext* context);
+        LinkPackage(
+            const specs::PackageInfo& pkg_info,
+            const fs::u8path& cache_path,
+            TransactionContext* context
+        );
 
         bool execute();
         bool undo();
@@ -81,7 +88,7 @@ namespace mamba
             const fs::u8path& python_full_path
         );
 
-        PackageInfo m_pkg_info;
+        specs::PackageInfo m_pkg_info;
         fs::u8path m_cache_path;
         fs::u8path m_source;
         std::vector<std::string> m_clobber_warnings;

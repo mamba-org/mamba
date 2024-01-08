@@ -262,8 +262,34 @@ bind_submodule_impl(pybind11::module_ m)
 {
     using namespace mamba;
 
+    struct PackageInfoV2Migrator
+    {
+    };
+
+    py::class_<PackageInfoV2Migrator>(m, "PackageInfo")
+        .def(py::init(
+            [](py::args, py::kwargs) -> PackageInfoV2Migrator
+            {
+                throw std::runtime_error(
+                    "libmambapy.PackageInfo has been moved to libmambapy.specs.PackageInfo"
+                );
+            }
+        ));
+
+    struct MatchSpecV2Migrator
+    {
+    };
+
+    py::class_<MatchSpecV2Migrator>(m, "MatchSpec")
+        .def(py::init(
+            [](py::args, py::kwargs) -> MatchSpecV2Migrator {
+                throw std::runtime_error(
+                    "libmambapy.MatchSpec has been moved to libmambapy.specs.MatchSpec"
+                );
+            }
+        ));
+
     // declare earlier to avoid C++ types in docstrings
-    auto pyPackageInfo = py::class_<PackageInfo>(m, "PackageInfo");
     auto pyPrefixData = py::class_<PrefixData>(m, "PrefixData");
     auto pySolver = py::class_<MSolver>(m, "Solver");
 
@@ -389,7 +415,7 @@ bind_submodule_impl(pybind11::module_ m)
     auto pyPbGraph = py::class_<PbGraph>(m, "ProblemsGraph");
 
     py::class_<PbGraph::RootNode>(pyPbGraph, "RootNode").def(py::init<>());
-    py::class_<PbGraph::PackageNode, PackageInfo>(pyPbGraph, "PackageNode");
+    py::class_<PbGraph::PackageNode, specs::PackageInfo>(pyPbGraph, "PackageNode");
     py::class_<PbGraph::UnresolvedDependencyNode, specs::MatchSpec>(
         pyPbGraph,
         "UnresolvedDependencyNode"
@@ -1030,35 +1056,6 @@ bind_submodule_impl(pybind11::module_ m)
         )
         .def_property_readonly("package_records", &PrefixData::records)
         .def("add_packages", &PrefixData::add_packages);
-
-    pyPackageInfo  //
-        .def(py::init<const std::string&>(), py::arg("name"))
-        .def(
-            py::init<const std::string&, const std::string&, const std::string&, std::size_t>(),
-            py::arg("name"),
-            py::arg("version"),
-            py::arg("build_string"),
-            py::arg("build_number")
-        )
-        .def_readwrite("name", &PackageInfo::name)
-        .def_readwrite("version", &PackageInfo::version)
-        .def_readwrite("build_string", &PackageInfo::build_string)
-        .def_readwrite("build_number", &PackageInfo::build_number)
-        .def_readwrite("noarch", &PackageInfo::noarch)
-        .def_readwrite("channel", &PackageInfo::channel)
-        .def_readwrite("url", &PackageInfo::url)
-        .def_readwrite("subdir", &PackageInfo::subdir)
-        .def_readwrite("fn", &PackageInfo::filename)
-        .def_readwrite("license", &PackageInfo::license)
-        .def_readwrite("size", &PackageInfo::size)
-        .def_readwrite("timestamp", &PackageInfo::timestamp)
-        .def_readwrite("md5", &PackageInfo::md5)
-        .def_readwrite("sha256", &PackageInfo::sha256)
-        .def_readwrite("track_features", &PackageInfo::track_features)
-        .def_readwrite("depends", &PackageInfo::depends)
-        .def_readwrite("constrains", &PackageInfo::constrains)
-        .def_readwrite("signatures", &PackageInfo::signatures)
-        .def_readwrite("defaulted_keys", &PackageInfo::defaulted_keys);
 
     // Content trust - Package signature and verification
     m.def("generate_ed25519_keypair", &validation::generate_ed25519_keypair_hex);

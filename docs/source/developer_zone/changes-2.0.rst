@@ -67,6 +67,9 @@ Changes inlcude:
 - ``MatchSpec`` has been redesigned and moved to ``libmambapy.specs``.
   The module also includes a platform enumeration, an implementation of ordered ``Version``, and a
   ``VersionSpec`` to match versions.
+- ``PackageInfo`` has been moved to ``libmambapy.specs``.
+  Some attributes have been given a more explicit name ``fn`` > ``filename``,
+  ``url`` > ``package_url``.
 
 .. TODO include final decision for Channels as URLs.
 

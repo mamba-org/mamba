@@ -58,7 +58,7 @@ namespace mamba
                 pin = python_pin(prefix_data, specs);
                 CHECK_EQ(pin, "");
 
-                PackageInfo pkg_info("python", "3.7.10", "abcde", 0);
+                specs::PackageInfo pkg_info("python", "3.7.10", "abcde", 0);
                 prefix_data.add_packages({ pkg_info });
                 REQUIRE_EQ(prefix_data.records().size(), 1);
 

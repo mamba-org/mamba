@@ -14,6 +14,7 @@
 #include "mamba/specs/channel_spec.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/specs/package_info.hpp"
 #include "mamba/specs/platform.hpp"
 #include "mamba/specs/version.hpp"
 #include "mamba/specs/version_spec.hpp"
@@ -576,6 +577,53 @@ namespace mambapy
             .def("__str__", &VersionSpec::str)
             .def("__copy__", &copy<VersionSpec>)
             .def("__deepcopy__", &deepcopy<VersionSpec>, py::arg("memo"));
+
+        py::class_<PackageInfo>(m, "PackageInfo")
+            .def(
+                py::init<std::string, std::string, std::string, std::size_t>(),
+                py::arg("name") = "",
+                py::arg("version") = "",
+                py::arg("build_string") = "",
+                py::arg("build_number") = 0
+            )
+            .def_readwrite("name", &PackageInfo::name)
+            .def_readwrite("version", &PackageInfo::version)
+            .def_readwrite("build_string", &PackageInfo::build_string)
+            .def_readwrite("build_number", &PackageInfo::build_number)
+            .def_readwrite("noarch", &PackageInfo::noarch)
+            .def_readwrite("channel", &PackageInfo::channel)
+            .def_readwrite("package_url", &PackageInfo::package_url)
+            .def_property(
+                // V2 migration helper
+                "url",
+                [](py::handle) { throw std::runtime_error("'url' has been renamed 'package_url'"); },
+                [](py::handle, py::handle)
+                { throw std::runtime_error("'url' has been renamed 'package_url'"); }
+            )
+            .def_readwrite("subdir", &PackageInfo::subdir)
+            .def_readwrite("filename", &PackageInfo::filename)
+            .def_property(
+                // V2 migration helper
+                "fn",
+                [](py::handle) { throw std::runtime_error("'fn' has been renamed 'filename'"); },
+                [](py::handle, py::handle)
+                { throw std::runtime_error("'fn' has been renamed 'filename'"); }
+            )
+            .def_readwrite("license", &PackageInfo::license)
+            .def_readwrite("size", &PackageInfo::size)
+            .def_readwrite("timestamp", &PackageInfo::timestamp)
+            .def_readwrite("md5", &PackageInfo::md5)
+            .def_readwrite("sha256", &PackageInfo::sha256)
+            .def_readwrite("track_features", &PackageInfo::track_features)
+            .def_readwrite("depends", &PackageInfo::depends)
+            .def_readwrite("constrains", &PackageInfo::constrains)
+            .def_readwrite("signatures", &PackageInfo::signatures)
+            .def_readwrite("defaulted_keys", &PackageInfo::defaulted_keys)
+            .def(py::self == py::self)
+            .def(py::self != py::self)
+            .def("__str__", &PackageInfo::str)
+            .def("__copy__", &copy<PackageInfo>)
+            .def("__deepcopy__", &deepcopy<PackageInfo>, py::arg("memo"));
 
         // WIP MatchSpec class
         py::class_<MatchSpec>(m, "MatchSpec")

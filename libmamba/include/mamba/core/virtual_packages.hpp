@@ -10,25 +10,27 @@
 #include <string>
 #include <vector>
 
-#include "mamba/core/package_info.hpp"
+#include "mamba/specs/package_info.hpp"
 
 namespace mamba
 {
-    std::vector<PackageInfo> get_virtual_packages(const Context& context);
+    class Context;
+
+    std::vector<specs::PackageInfo> get_virtual_packages(const Context& context);
 
     namespace detail
     {
         std::string cuda_version();
         std::string get_arch();
 
-        PackageInfo make_virtual_package(
+        specs::PackageInfo make_virtual_package(
             const std::string& name,
             const std::string& subdir,
             const std::string& version = "",
             const std::string& build_string = ""
         );
 
-        std::vector<PackageInfo> dist_packages(const Context& context);
+        std::vector<specs::PackageInfo> dist_packages(const Context& context);
     }
 }
 

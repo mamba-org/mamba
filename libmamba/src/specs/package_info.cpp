@@ -54,7 +54,7 @@ namespace mamba::specs
         j["timestamp"] = timestamp;
         j["build"] = build_string;
         j["build_number"] = build_number;
-        if (!noarch.empty())
+        if (noarch != NoArchType::No)
         {
             j["noarch"] = noarch;
         }
@@ -240,7 +240,7 @@ namespace mamba::specs
         j["build"] = pkg.build_string;
         j["build_string"] = pkg.build_string;
         j["build_number"] = pkg.build_number;
-        if (!pkg.noarch.empty())
+        if (pkg.noarch != NoArchType::No)
         {
             j["noarch"] = pkg.noarch;
         }
@@ -302,16 +302,9 @@ namespace mamba::specs
         }
 
         // add the noarch type if we know it (only known for installed packages)
-        if (j.contains("noarch"))
+        if (auto it = j.find("noarch"); it != j.end())
         {
-            if (j["noarch"].type() == nlohmann::json::value_t::boolean)
-            {
-                pkg.noarch = "generic_v1";
-            }
-            else
-            {
-                pkg.noarch = j.value("noarch", "");
-            }
+            pkg.noarch = *it;
         }
 
         pkg.depends = j.value("depends", std::vector<std::string>());

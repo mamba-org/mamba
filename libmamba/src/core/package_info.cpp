@@ -73,6 +73,16 @@ namespace mamba
         m_build_number = num;
     }
 
+    auto PackageInfo::noarch() const -> std::string
+    {
+        return m_noarch;
+    }
+
+    void PackageInfo::set_noarch(std::string no_arch)
+    {
+        m_noarch = std::move(no_arch);
+    }
+
     namespace
     {
         template <typename T, typename U>
@@ -94,9 +104,9 @@ namespace mamba
         j["timestamp"] = timestamp;
         j["build"] = m_build_string;
         j["build_number"] = m_build_number;
-        if (!noarch.empty())
+        if (!m_noarch.empty())
         {
-            j["noarch"] = noarch;
+            j["noarch"] = m_noarch;
         }
         j["license"] = license;
         j["md5"] = md5;
@@ -196,7 +206,7 @@ namespace mamba
         }
         if (field_name == "noarch")
         {
-            return invoke_field_string(*this, &PackageInfo::noarch);
+            return invoke_field_string(*this, &PackageInfo::m_noarch);
         }
         if (field_name == "channel")
         {
@@ -237,8 +247,8 @@ namespace mamba
                 decltype(p.name()),
                 decltype(p.version()),
                 decltype(p.build_string()),
-                decltype(p.noarch),
                 decltype(p.build_number()),
+                decltype(p.noarch()),
                 decltype(p.channel),
                 decltype(p.url),
                 decltype(p.subdir),
@@ -257,8 +267,8 @@ namespace mamba
                 p.name(),
                 p.version(),
                 p.build_string(),
-                p.noarch,
                 p.build_number(),
+                p.noarch(),
                 p.channel,
                 p.url,
                 p.subdir,
@@ -300,9 +310,9 @@ namespace mamba
         j["build"] = pkg.build_string();
         j["build_string"] = pkg.build_string();
         j["build_number"] = pkg.build_number();
-        if (!pkg.noarch.empty())
+        if (!pkg.noarch().empty())
         {
-            j["noarch"] = pkg.noarch;
+            j["noarch"] = pkg.noarch();
         }
         j["license"] = pkg.license;
         j["track_features"] = fmt::format("{}", fmt::join(pkg.track_features, ","));
@@ -366,11 +376,11 @@ namespace mamba
         {
             if (j["noarch"].type() == nlohmann::json::value_t::boolean)
             {
-                pkg.noarch = "generic_v1";
+                pkg.set_noarch("generic_v1");
             }
             else
             {
-                pkg.noarch = j.value("noarch", "");
+                pkg.set_noarch(j.value("noarch", ""));
             }
         }
 

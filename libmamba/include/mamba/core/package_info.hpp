@@ -18,7 +18,6 @@ namespace mamba
     {
     public:
 
-        std::string noarch = {};
         /**
          * Could contain "conda-forge", "conda-forge/linux-64", or a url.
          *
@@ -59,6 +58,10 @@ namespace mamba
 
         void set_build_number(std::size_t num);
 
+        [[nodiscard]] auto noarch() const -> std::string;
+
+        void set_noarch(std::string no_arch);
+
         [[nodiscard]] auto json_signable() const -> nlohmann::json;
         [[nodiscard]] auto str() const -> std::string;
         [[nodiscard]] auto long_str() const -> std::string;
@@ -74,6 +77,7 @@ namespace mamba
         std::string m_version = {};
         std::string m_build_string = {};
         std::size_t m_build_number = 0;
+        std::string m_noarch = {};
     };
 
     auto operator==(const PackageInfo& lhs, const PackageInfo& rhs) -> bool;

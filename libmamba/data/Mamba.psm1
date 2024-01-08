@@ -162,7 +162,7 @@ if ($MambaModuleArgs.ChangePs1) {
     }
 
     function global:prompt() {
-        if ($Env:CONDA_PROMPT_MODIFIER) {
+        if ($Env:CONDA_PROMPT_MODIFIER -ne "False") {
             $Env:CONDA_PROMPT_MODIFIER | Write-Host -NoNewline
         }
         MambaPromptBackup;

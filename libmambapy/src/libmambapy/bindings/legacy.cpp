@@ -276,6 +276,19 @@ bind_submodule_impl(pybind11::module_ m)
             }
         ));
 
+    struct MatchSpecV2Migrator
+    {
+    };
+
+    py::class_<MatchSpecV2Migrator>(m, "MatchSpec")
+        .def(py::init(
+            [](py::args, py::kwargs) -> MatchSpecV2Migrator {
+                throw std::runtime_error(
+                    "libmambapy.MatchSpec has been moved to libmambapy.specs.MatchSpec"
+                );
+            }
+        ));
+
     // declare earlier to avoid C++ types in docstrings
     auto pyPrefixData = py::class_<PrefixData>(m, "PrefixData");
     auto pySolver = py::class_<MSolver>(m, "Solver");

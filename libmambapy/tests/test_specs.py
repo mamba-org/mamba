@@ -734,7 +734,7 @@ def test_PackageInfo():
     pkg.constrains = ["pip>=2.1"]
     assert pkg.constrains == ["pip>=2.1"]
 
-    # Euality
+    # Equality
     assert PackageInfo() == PackageInfo()
     assert pkg == pkg
     assert pkg != PackageInfo()
@@ -772,3 +772,11 @@ def test_MatchSpec():
 
     # str
     assert str(ms) == "conda-forge::python=3.7[build='*pypy']"
+
+
+def test_MatchSpec_V2Migrator():
+    """Explicit migration help added from v1 to v2."""
+    import libmambapy
+
+    with pytest.raises(Exception, match=r"libmambapy\.specs"):
+        libmambapy.MatchSpec()

@@ -91,10 +91,10 @@ Similarily the :cpp:func:`CondaURL.pretty_str <mamba::specs::CondaURL::pretty_st
 user-friendly string, but that may not be parsed back.
 
 
-UndefinedChannel
+UnresolvedChannel
 ----------------
 
-A :cpp:type:`UndefinedChannel <mamba::specs::UndefinedChannel>` is a lightweight object to represent
+A :cpp:type:`UnresolvedChannel <mamba::specs::UnresolvedChannel>` is a lightweight object to represent
 a channel string, as in passed in the CLI or configuration.
 Since channels rely heavily on configuration options, this type can be used as a placeholder for a
 channel that has not been fully "resolved" to a specific location.
@@ -105,11 +105,11 @@ and the platform filters.
 
    import libmambapy.specs as specs
 
-   uc = specs.UndefinedChannel.parse("https://conda.anaconda.org/conda-forge/linux-64")
+   uc = specs.UnresolvedChannel.parse("https://conda.anaconda.org/conda-forge/linux-64")
 
    assert uc.location == "https://conda.anaconda.org/conda-forge"
    assert uc.platform_filters == {"linux-64"}
-   assert uc.type == specs.UndefinedChannel.Type.URL
+   assert uc.type == specs.UnresolvedChannel.Type.URL
 
 Dynamic platforms (as in not known by Mamba) can only be detected with the ``[]`` syntax.
 
@@ -117,11 +117,11 @@ Dynamic platforms (as in not known by Mamba) can only be detected with the ``[]`
 
    import libmambapy.specs as specs
 
-   uc = specs.UndefinedChannel.parse("conda-forge[prius-avx42]")
+   uc = specs.UnresolvedChannel.parse("conda-forge[prius-avx42]")
 
    assert uc.location == "conda-forge"
    assert uc.platform_filters == {"prius-avx42"}
-   assert uc.type == specs.UndefinedChannel.Type.Name
+   assert uc.type == specs.UnresolvedChannel.Type.Name
 
 
 Channel
@@ -132,7 +132,7 @@ A display name is also available, but is not considered a stable identifiaction 
 channel, since it depends on the many configuration parameters, such as the channel alias.
 
 We construct a :cpp:type:`Channel <mamba::specs::Channel>` by *resolving* a
-:cpp:type:`UndefinedChannel <mamba::specs::UndefinedChannel>`.
+:cpp:type:`UnresolvedChannel <mamba::specs::UnresolvedChannel>`.
 All parameters that influence this resolution must be provided explicitly.
 
 
@@ -140,7 +140,7 @@ All parameters that influence this resolution must be provided explicitly.
 
    import libmambapy.specs as specs
 
-   uc = specs.UndefinedChannel.parse("conda-forge[prius-avx42]")
+   uc = specs.UnresolvedChannel.parse("conda-forge[prius-avx42]")
    chan, *_ = specs.Channel.resolve(
        uc,
        channel_alias="https://repo.mamba.pm"
@@ -157,7 +157,7 @@ There are no hard-coded names:
 
    import libmambapy.specs as specs
 
-   uc = specs.UndefinedChannel.parse("defaults")
+   uc = specs.UnresolvedChannel.parse("defaults")
    chan, *_ = specs.Channel.resolve(
        uc,
        channel_alias="https://repo.mamba.pm"
@@ -176,16 +176,16 @@ This is because of custom multichannel, a single name can return mutliple channe
    import libmambapy.specs as specs
 
    chan_main, *_ = specs.Channel.resolve(
-       specs.UndefinedChannel.parse("pkgs/main"),
+       specs.UnresolvedChannel.parse("pkgs/main"),
        # ...
    )
    chan_r, *_ = specs.Channel.resolve(
-       specs.UndefinedChannel.parse("pkgs/r"),
+       specs.UnresolvedChannel.parse("pkgs/r"),
        # ...
    )
 
    defaults = specs.Channel.resolve(
-       specs.UndefinedChannel.parse("defaults"),
+       specs.UnresolvedChannel.parse("defaults"),
        custom_multichannels=specs.Channel.MultiChannelMap(
            {"defaults": [chan_main, chan_r]}
        ),

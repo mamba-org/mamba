@@ -178,7 +178,7 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/specs/package_info.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/platform.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/repo_data.cpp
-    ${LIBMAMBA_SOURCE_DIR}/specs/undefined_channel.cpp
+    ${LIBMAMBA_SOURCE_DIR}/specs/unresolved_channel.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/version.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/version_spec.cpp
     # Artifacts validation
@@ -295,7 +295,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/package_info.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/platform.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/repo_data.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/undefined_channel.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/unresolved_channel.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version_spec.hpp
     # Artifacts validation

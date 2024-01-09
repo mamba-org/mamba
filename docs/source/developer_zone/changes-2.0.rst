@@ -63,7 +63,7 @@ Changes inlcude:
   and passed explicitly to a few functions.
 - ``Channel`` has been redesigned an moved to a new ``libmambapy.specs``.
   A featureful ``libmambapy.specs.CondaURL`` is used to describe channel URLs.
-  This module also includes ``UndefinedChannel`` used to describe unresolved channel strings.
+  This module also includes ``UnresolvedChannel`` used to describe unresolved channel strings.
 - ``MatchSpec`` has been redesigned and moved to ``libmambapy.specs``.
   The module also includes a platform enumeration, an implementation of ordered ``Version``, and a
   ``VersionSpec`` to match versions.
@@ -82,7 +82,7 @@ The main changes are:
 - Creation of the ``specs::`` with:
     - Implementations of ``Version`` and ``VersionSpec`` for matching versions,
     - A refactoring of a purely funcitonal ``Channel`` class,
-    - Implementaiton of a ``UndefinedChannel`` to describe unresolved ``Channels``,
+    - Implementaiton of a ``UnresolvedChannel`` to describe unresolved ``Channels``,
     - A refactored implementation of ``MatchSpec`` using the components above.
 - A cleanup of ``ChannelContext`` for be a light proxy and parameter holder wrapping the
   ``specs::Channel``.

@@ -15,7 +15,7 @@
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "mamba/specs/platform.hpp"
-#include "mamba/specs/undefined_channel.hpp"
+#include "mamba/specs/unresolved_channel.hpp"
 #include "mamba/specs/version.hpp"
 #include "mamba/specs/version_spec.hpp"
 
@@ -301,31 +301,32 @@ namespace mambapy
                 py::arg("credentials") = CondaURL::Credentials::Hide
             );
 
-        auto py_channel_spec = py::class_<UndefinedChannel>(m, "UndefinedChannel");
+        auto py_channel_spec = py::class_<UnresolvedChannel>(m, "UnresolvedChannel");
 
-        py::enum_<UndefinedChannel::Type>(py_channel_spec, "Type")
-            .value("URL", UndefinedChannel::Type::URL)
-            .value("PackageURL", UndefinedChannel::Type::PackageURL)
-            .value("Path", UndefinedChannel::Type::Path)
-            .value("PackagePath", UndefinedChannel::Type::PackagePath)
-            .value("Name", UndefinedChannel::Type::Name)
-            .value("Unknown", UndefinedChannel::Type::Unknown)
-            .def(py::init(&enum_from_str<UndefinedChannel::Type>));
-        py::implicitly_convertible<py::str, UndefinedChannel::Type>();
+        py::enum_<UnresolvedChannel::Type>(py_channel_spec, "Type")
+            .value("URL", UnresolvedChannel::Type::URL)
+            .value("PackageURL", UnresolvedChannel::Type::PackageURL)
+            .value("Path", UnresolvedChannel::Type::Path)
+            .value("PackagePath", UnresolvedChannel::Type::PackagePath)
+            .value("Name", UnresolvedChannel::Type::Name)
+            .value("Unknown", UnresolvedChannel::Type::Unknown)
+            .def(py::init(&enum_from_str<UnresolvedChannel::Type>));
+        py::implicitly_convertible<py::str, UnresolvedChannel::Type>();
 
         py_channel_spec  //
-            .def_static("parse", UndefinedChannel::parse)
+            .def_static("parse", UnresolvedChannel::parse)
             .def(
-                py::init<std::string, UndefinedChannel::dynamic_platform_set, UndefinedChannel::Type>(),
+                py::init<std::string, UnresolvedChannel::dynamic_platform_set, UnresolvedChannel::Type>(
+                ),
                 py::arg("location"),
                 py::arg("platform_filters"),
-                py::arg("type") = UndefinedChannel::Type::Unknown
+                py::arg("type") = UnresolvedChannel::Type::Unknown
             )
-            .def("__copy__", &copy<UndefinedChannel>)
-            .def("__deepcopy__", &deepcopy<UndefinedChannel>, py::arg("memo"))
-            .def_property_readonly("type", &UndefinedChannel::type)
-            .def_property_readonly("location", &UndefinedChannel::location)
-            .def_property_readonly("platform_filters", &UndefinedChannel::platform_filters);
+            .def("__copy__", &copy<UnresolvedChannel>)
+            .def("__deepcopy__", &deepcopy<UnresolvedChannel>, py::arg("memo"))
+            .def_property_readonly("type", &UnresolvedChannel::type)
+            .def_property_readonly("location", &UnresolvedChannel::location)
+            .def_property_readonly("platform_filters", &UnresolvedChannel::platform_filters);
 
         py::class_<BasicHTTPAuthentication>(m, "BasicHTTPAuthentication")
             .def(
@@ -440,13 +441,13 @@ namespace mambapy
             )
             .def_static(
                 "resolve",
-                py::overload_cast<UndefinedChannel, const ChannelResolveParams&>(&Channel::resolve),
+                py::overload_cast<UnresolvedChannel, const ChannelResolveParams&>(&Channel::resolve),
                 py::arg("what"),
                 py::arg("params")
             )
             .def_static(
                 "resolve",
-                [](const UndefinedChannel& what,
+                [](const UnresolvedChannel& what,
                    const ChannelResolveParams::platform_list& platforms,
                    const CondaURL& channel_alias,
                    const ChannelResolveParams::channel_map& custom_channels,

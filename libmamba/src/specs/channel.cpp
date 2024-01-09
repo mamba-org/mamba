@@ -258,12 +258,12 @@ namespace mamba::specs
             return util::abs_path_to_url(std::move(path).string());
         }
 
-        auto resolve_path(UndefinedChannel&& uc, ChannelResolveParamsView params) -> Channel
+        auto resolve_path(UnresolvedChannel&& uc, ChannelResolveParamsView params) -> Channel
         {
             auto uri = CondaURL::parse(resolve_path_location(uc.clear_location(), params));
             auto display_name = resolve_path_name(uri, params);
             auto platforms = ChannelResolveParams::platform_list{};
-            if (uc.type() == UndefinedChannel::Type::Path)
+            if (uc.type() == UnresolvedChannel::Type::Path)
             {
                 platforms = make_platforms(uc.clear_platform_filters(), params.platforms);
             }
@@ -295,7 +295,7 @@ namespace mamba::specs
             return url.pretty_str(StripScheme::no, '/', Credentials::Remove);
         }
 
-        auto resolve_url(UndefinedChannel&& uc, ChannelResolveParamsView params) -> Channel
+        auto resolve_url(UnresolvedChannel&& uc, ChannelResolveParamsView params) -> Channel
         {
             assert(util::url_has_scheme(uc.location()));
             assert(util::url_get_scheme(uc.location()) != "file");
@@ -304,7 +304,7 @@ namespace mamba::specs
             auto display_name = resolve_url_name(url, params);
             set_fallback_credential_from_db(url, params.authentication_db);
             auto platforms = ChannelResolveParams::platform_list{};
-            if (uc.type() == UndefinedChannel::Type::URL)
+            if (uc.type() == UnresolvedChannel::Type::URL)
             {
                 platforms = make_platforms(uc.clear_platform_filters(), params.platforms);
             }
@@ -313,7 +313,7 @@ namespace mamba::specs
         }
 
         auto resolve_name_in_custom_channel(
-            UndefinedChannel&& uc,
+            UnresolvedChannel&& uc,
             ChannelResolveParamsView params,
             std::string_view match_name,
             const Channel& match_chan
@@ -331,7 +331,7 @@ namespace mamba::specs
         }
 
         auto resolve_name_in_custom_mulitchannels(
-            const UndefinedChannel& uc,
+            const UnresolvedChannel& uc,
             ChannelResolveParamsView params,
             const Channel::channel_list& matches
         ) -> Channel::channel_list
@@ -352,7 +352,8 @@ namespace mamba::specs
             return out;
         }
 
-        auto resolve_name_from_alias(UndefinedChannel&& uc, ChannelResolveParamsView params) -> Channel
+        auto resolve_name_from_alias(UnresolvedChannel&& uc, ChannelResolveParamsView params)
+            -> Channel
         {
             auto url = params.channel_alias;
             url.append_path(uc.location());
@@ -364,7 +365,7 @@ namespace mamba::specs
             };
         }
 
-        auto resolve_name(UndefinedChannel&& uc, ChannelResolveParamsView params)
+        auto resolve_name(UnresolvedChannel&& uc, ChannelResolveParamsView params)
             -> Channel::channel_list
         {
             if (auto it = params.custom_channels.find_weaken(uc.location());
@@ -383,33 +384,33 @@ namespace mamba::specs
         }
     }
 
-    auto Channel::resolve(UndefinedChannel uc, ChannelResolveParamsView params) -> channel_list
+    auto Channel::resolve(UnresolvedChannel uc, ChannelResolveParamsView params) -> channel_list
     {
         switch (uc.type())
         {
-            case UndefinedChannel::Type::PackagePath:
-            case UndefinedChannel::Type::Path:
+            case UnresolvedChannel::Type::PackagePath:
+            case UnresolvedChannel::Type::Path:
             {
                 return { resolve_path(std::move(uc), params) };
             }
-            case UndefinedChannel::Type::PackageURL:
-            case UndefinedChannel::Type::URL:
+            case UnresolvedChannel::Type::PackageURL:
+            case UnresolvedChannel::Type::URL:
             {
                 return { resolve_url(std::move(uc), params) };
             }
-            case UndefinedChannel::Type::Name:
+            case UnresolvedChannel::Type::Name:
             {
                 return resolve_name(std::move(uc), params);
             }
-            case UndefinedChannel::Type::Unknown:
+            case UnresolvedChannel::Type::Unknown:
             {
                 return { { CondaURL{}, uc.clear_location() } };
             }
         }
-        throw std::invalid_argument("Invalid UndefinedChannel::Type");
+        throw std::invalid_argument("Invalid UnresolvedChannel::Type");
     }
 
-    auto Channel::resolve(UndefinedChannel uc, const ChannelResolveParams& params) -> channel_list
+    auto Channel::resolve(UnresolvedChannel uc, const ChannelResolveParams& params) -> channel_list
     {
         return resolve(
             std::move(uc),

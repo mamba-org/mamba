@@ -4,8 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef MAMBA_SPECS_UNDEFINED_CHANNEL_HPP
-#define MAMBA_SPECS_UNDEFINED_CHANNEL_HPP
+#ifndef MAMBA_SPECS_UNRESOLVED_CHANNEL_HPP
+#define MAMBA_SPECS_UNRESOLVED_CHANNEL_HPP
 
 #include <array>
 #include <string>
@@ -19,7 +19,7 @@
 namespace mamba::specs
 {
     /**
-     * Undefined Channel specification.
+     * Unresolved Channel specification.
      *
      * This represent an unverified channel string passed by the user, or written through files.
      * Due the the heavy reliance of channels on configuration options, this placeholder type
@@ -32,7 +32,7 @@ namespace mamba::specs
      * So "repo.anaconda.com" is considered a name, similarily to "conda-forge" and not a URL.
      * This is because otherwise it is not possible to tell names and URL appart.
      */
-    class UndefinedChannel
+    class UnresolvedChannel
     {
     public:
 
@@ -88,10 +88,10 @@ namespace mamba::specs
 
         using dynamic_platform_set = util::flat_set<std::string>;
 
-        [[nodiscard]] static auto parse(std::string_view str) -> UndefinedChannel;
+        [[nodiscard]] static auto parse(std::string_view str) -> UnresolvedChannel;
 
-        UndefinedChannel() = default;
-        UndefinedChannel(std::string location, dynamic_platform_set filters, Type type);
+        UnresolvedChannel() = default;
+        UnresolvedChannel(std::string location, dynamic_platform_set filters, Type type);
 
         [[nodiscard]] auto type() const -> Type;
 
@@ -114,9 +114,9 @@ namespace mamba::specs
 }
 
 template <>
-struct fmt::formatter<mamba::specs::UndefinedChannel>
+struct fmt::formatter<mamba::specs::UnresolvedChannel>
 {
-    using UndefinedChannel = ::mamba::specs::UndefinedChannel;
+    using UnresolvedChannel = ::mamba::specs::UnresolvedChannel;
 
     constexpr auto parse(format_parse_context& ctx) -> format_parse_context::iterator
     {
@@ -128,7 +128,7 @@ struct fmt::formatter<mamba::specs::UndefinedChannel>
         return ctx.begin();
     }
 
-    auto format(const UndefinedChannel& uc, format_context& ctx) const -> format_context::iterator;
+    auto format(const UnresolvedChannel& uc, format_context& ctx) const -> format_context::iterator;
 };
 
 #endif

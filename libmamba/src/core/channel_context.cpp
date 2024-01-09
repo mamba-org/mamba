@@ -13,7 +13,7 @@
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/specs/conda_url.hpp"
-#include "mamba/specs/undefined_channel.hpp"
+#include "mamba/specs/unresolved_channel.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
@@ -36,7 +36,7 @@ namespace mamba
         template <typename Param>
         auto make_unique_chan(std::string_view loc, const Param& params) -> specs::Channel
         {
-            auto uc = specs::UndefinedChannel::parse(loc);
+            auto uc = specs::UnresolvedChannel::parse(loc);
             auto channels = specs::Channel::resolve(std::move(uc), params);
             assert(channels.size() == 1);
             return std::move(channels.front());
@@ -178,7 +178,7 @@ namespace mamba
                 out.reserve(ctx.repodata_has_zst.size());
                 for (const auto& loc : ctx.repodata_has_zst)
                 {
-                    auto uc = specs::UndefinedChannel::parse(loc);
+                    auto uc = specs::UnresolvedChannel::parse(loc);
                     auto channels = specs::Channel::resolve(std::move(uc), params);
                     for (auto& chan : channels)
                     {
@@ -214,7 +214,7 @@ namespace mamba
         return { std::move(params), has_zst };
     }
 
-    auto ChannelContext::make_channel(specs::UndefinedChannel uc) -> const channel_list&
+    auto ChannelContext::make_channel(specs::UnresolvedChannel uc) -> const channel_list&
     {
         auto str = uc.str();
         if (const auto it = m_channel_cache.find(str); it != m_channel_cache.end())
@@ -239,7 +239,7 @@ namespace mamba
 
         auto [it, inserted] = m_channel_cache.emplace(
             name,
-            Channel::resolve(specs::UndefinedChannel::parse(name), params())
+            Channel::resolve(specs::UnresolvedChannel::parse(name), params())
         );
         assert(inserted);
         return it->second;

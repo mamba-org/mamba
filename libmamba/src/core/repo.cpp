@@ -377,6 +377,49 @@ namespace mamba
                 }
             );
         }
+
+        void libsolv_read_json(solv::ObjRepoView repo, const fs::u8path& filename, bool only_tar_bz2)
+        {
+            LOG_INFO << "Reading repodata.json file " << filename << " for repo " << repo.name()
+                     << " using libsolv";
+            // TODO make this as part of options of the repo/pool
+            const int flags = only_tar_bz2 ? CONDA_ADD_USE_ONLY_TAR_BZ2 : 0;
+            repo.legacy_read_conda_repodata(filename, flags);
+        }
+
+        void mamba_read_json(
+            solv::ObjPool& pool,
+            solv::ObjRepoView repo,
+            const fs::u8path& filename,
+            const std::string& repo_url,
+            bool only_tar_bz2
+        )
+        {
+            LOG_INFO << "Reading repodata.json file " << filename << " for repo " << repo.name()
+                     << " using mamba";
+
+            auto parser = simdjson::dom::parser();
+            const auto repodata = parser.load(filename);
+
+            // An override for missing package subdir is found in at the top level
+            auto default_subdir = std::string();
+            if (auto subdir = repodata.at_pointer("/info/subdir").get_string(); subdir.error())
+            {
+                default_subdir = std::string(subdir.value_unsafe());
+            }
+
+            const auto parsed_url = specs::CondaURL::parse(repo_url);
+
+            if (auto pkgs = repodata["packages"].get_object(); !pkgs.error())
+            {
+                set_repo_solvables(pool, repo, repo_url, parsed_url, default_subdir, pkgs.value());
+            }
+
+            if (auto pkgs = repodata["packages.conda"].get_object(); !pkgs.error() && !only_tar_bz2)
+            {
+                set_repo_solvables(pool, repo, repo_url, parsed_url, default_subdir, pkgs.value());
+            }
+        }
     }
 
     MRepo::MRepo(
@@ -459,58 +502,6 @@ namespace mamba
         return m_repo;
     }
 
-    void MRepo::libsolv_read_json(const fs::u8path& filename)
-    {
-        LOG_INFO << "Reading repodata.json file " << filename << " for repo " << name()
-                 << " using libsolv";
-        // TODO make this as part of options of the repo/pool
-        const int flags = m_pool.context().use_only_tar_bz2 ? CONDA_ADD_USE_ONLY_TAR_BZ2 : 0;
-        srepo(*this).legacy_read_conda_repodata(filename, flags);
-    }
-
-    void MRepo::mamba_read_json(const fs::u8path& filename)
-    {
-        LOG_INFO << "Reading repodata.json file " << filename << " for repo " << name()
-                 << " using mamba";
-
-        auto parser = simdjson::dom::parser();
-        const auto repodata = parser.load(filename);
-
-        // An override for missing package subdir is found in at the top level
-        auto default_subdir = std::string();
-        if (auto subdir = repodata.at_pointer("/info/subdir").get_string(); subdir.error())
-        {
-            default_subdir = std::string(subdir.value_unsafe());
-        }
-
-        const auto repo_url = specs::CondaURL::parse(m_metadata.url);
-
-        if (auto pkgs = repodata["packages"].get_object(); !pkgs.error())
-        {
-            set_repo_solvables(
-                m_pool.pool(),
-                srepo(*this),
-                m_metadata.url,
-                repo_url,
-                default_subdir,
-                pkgs.value()
-            );
-        }
-
-        if (auto pkgs = repodata["packages.conda"].get_object();
-            !pkgs.error() && !m_pool.context().use_only_tar_bz2)
-        {
-            set_repo_solvables(
-                m_pool.pool(),
-                srepo(*this),
-                m_metadata.url,
-                repo_url,
-                default_subdir,
-                pkgs.value()
-            );
-        }
-    }
-
     bool MRepo::read_solv(const fs::u8path& filename)
     {
         LOG_INFO << "Attempting to read libsolv solv file " << filename << " for repo " << name();
@@ -583,11 +574,17 @@ namespace mamba
             if ((parser == RepodataParser::Mamba)
                 || (parser == RepodataParser::Automatic && ctx.experimental_repodata_parsing))
             {
-                mamba_read_json(json_file);
+                mamba_read_json(
+                    m_pool.pool(),
+                    repo,
+                    json_file,
+                    m_metadata.url,
+                    m_pool.context().use_only_tar_bz2
+                );
             }
             else
             {
-                libsolv_read_json(json_file);
+                libsolv_read_json(repo, json_file, m_pool.context().use_only_tar_bz2);
                 set_solvables_url(repo, m_metadata.url);
             }
         }

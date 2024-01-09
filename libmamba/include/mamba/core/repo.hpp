@@ -119,8 +119,6 @@ namespace mamba
 
         void clear(bool reuse_ids = true);
         void load_file(const fs::u8path& filename, RepodataParser parser, LibsolvCache use_cache);
-        void libsolv_read_json(const fs::u8path& filename);
-        void mamba_read_json(const fs::u8path& filename);
         bool read_solv(const fs::u8path& filename);
         void write_solv(fs::u8path path);
 

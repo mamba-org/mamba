@@ -7,12 +7,13 @@
 #ifndef MAMBA_CORE_REPO_HPP
 #define MAMBA_CORE_REPO_HPP
 
-#include <string>
 #include <string_view>
 #include <tuple>
 #include <vector>
 
 #include <nlohmann/json_fwd.hpp>
+
+#include "mamba/solver/libsolv/serialization.hpp"
 
 extern "C"
 {
@@ -33,24 +34,6 @@ namespace mamba
     }
 
     class MPool;
-
-    /**
-     * Represents a channel subdirectory
-     * index.
-     */
-    struct RepoMetadata
-    {
-        std::string url = {};
-        std::string etag = {};
-        std::string mod = {};
-        bool pip_added = false;
-    };
-
-    auto operator==(const RepoMetadata& lhs, const RepoMetadata& rhs) -> bool;
-    auto operator!=(const RepoMetadata& lhs, const RepoMetadata& rhs) -> bool;
-
-    void to_json(nlohmann::json& j, const RepoMetadata& m);
-    void from_json(const nlohmann::json& j, RepoMetadata& p);
 
     /**
      * A wrapper class of libsolv Repo.
@@ -87,7 +70,8 @@ namespace mamba
             MPool& pool,
             std::string_view name,
             const fs::u8path& filename,
-            const RepoMetadata& meta,
+            const solver::libsolv::RepodataOrigin& metadata,
+            PipAsPythonDependency add = PipAsPythonDependency::No,
             RepodataParser parser = RepodataParser::Automatic,
             LibsolvCache use_cache = LibsolvCache::Yes
         );
@@ -116,17 +100,20 @@ namespace mamba
 
     private:
 
-        RepoMetadata m_metadata = {};
         Repo* m_repo = nullptr;  // This is a view managed by libsolv pool
 
         auto name() const -> std::string_view;
 
-        void
-        load_file(MPool& pool, const fs::u8path& filename, RepodataParser parser, LibsolvCache use_cache);
+        void load_file(
+            MPool& pool,
+            const fs::u8path& filename,
+            const solver::libsolv::RepodataOrigin& metadata,
+            PipAsPythonDependency add,
+            RepodataParser parser,
+            LibsolvCache use_cache
+        );
 
         friend class MPool;
     };
-
-}  // namespace mamba
-
-#endif  // MAMBA_REPO_HPP
+}
+#endif

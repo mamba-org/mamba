@@ -514,15 +514,21 @@ namespace mamba
     expected_t<MRepo> MSubdirData::create_repo(MPool& pool) const
     {
         using return_type = expected_t<MRepo>;
-        RepoMetadata meta{
+
+        auto meta = solver::libsolv::RepodataOrigin{
             /* .url= */ util::rsplit(m_metadata.url(), "/", 1).front(),
             /* .etag= */ m_metadata.etag(),
             /* .mod= */ m_metadata.last_modified(),
-            /* .pip_added= */ p_context->add_pip_as_python_dependency,
         };
 
         const auto cache = cache_path();
-        return cache ? return_type(MRepo(pool, m_name, *cache, meta))
+        return cache ? return_type(MRepo(
+                   pool,
+                   m_name,
+                   *cache,
+                   meta,
+                   static_cast<MRepo::PipAsPythonDependency>(p_context->add_pip_as_python_dependency)
+               ))
                      : return_type(forward_error(cache));
     }
 

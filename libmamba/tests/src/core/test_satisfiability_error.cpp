@@ -154,7 +154,7 @@ namespace
         const auto repodata_f = create_repodata_json(tmp_dir.path, packages);
 
         auto pool = MPool{ ctx, channel_context };
-        MRepo(pool, "some-name", repodata_f, RepoMetadata{ /* .url= */ "some-url" });
+        MRepo(pool, "some-name", repodata_f, { /* .url= */ "some-url" });
         auto solver = MSolver(
             std::move(pool),
             std::vector{ std::pair{ SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } }

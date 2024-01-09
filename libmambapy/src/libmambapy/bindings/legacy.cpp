@@ -344,7 +344,7 @@ bind_submodule_impl(pybind11::module_ m)
     py::class_<MRepo>(m, "Repo")
         .def(py::init(
             [](MPool& pool, const std::string& name, const std::string& filename, const std::string& url
-            ) { return MRepo(pool, name, filename, RepoMetadata{ /* .url=*/url }); }
+            ) { return MRepo(pool, name, filename, { /* .url=*/url }); }
         ))
         .def("set_priority", &MRepo::set_priority)
         .def("name", &MRepo::py_name)

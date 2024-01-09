@@ -161,13 +161,6 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/util/string.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/url.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/url_manip.cpp
-    # C++ wrapping of libsolv
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/pool.cpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.cpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/repo.cpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solvable.cpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solver.cpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/transaction.cpp
     # Implementation of version and matching specs
     ${LIBMAMBA_SOURCE_DIR}/specs/archive.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/authentication_info.cpp
@@ -182,6 +175,15 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/specs/unresolved_channel.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/version.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/version_spec.cpp
+    # C++ wrapping of libsolv
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/pool.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/repo.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solvable.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solver.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/transaction.cpp
+    # Solver interface
+    ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/serialization.cpp
     # Artifacts validation
     ${LIBMAMBA_SOURCE_DIR}/validation/tools.cpp
     ${LIBMAMBA_SOURCE_DIR}/validation/errors.cpp
@@ -300,6 +302,8 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/unresolved_channel.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version_spec.hpp
+    # Solver Interface
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/serialization.hpp
     # Artifacts validation
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/tools.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/errors.hpp

@@ -39,41 +39,41 @@ extern "C"  // Incomplete header
 
 namespace mamba
 {
-    namespace nl = nlohmann;
+    // namespace nl = nlohmann;
 
-    namespace
-    {
-        auto attrs(const RepoMetadata& m)
-        {
-            return std::tie(m.url, m.etag, m.mod, m.pip_added);
-        }
-    }
-
-    auto operator==(const RepoMetadata& lhs, const RepoMetadata& rhs) -> bool
-    {
-        return attrs(lhs) == attrs(rhs);
-    }
-
-    auto operator!=(const RepoMetadata& lhs, const RepoMetadata& rhs) -> bool
-    {
-        return !(lhs == rhs);
-    }
-
-    void to_json(nlohmann::json& j, const RepoMetadata& m)
-    {
-        j["url"] = m.url;
-        j["etag"] = m.etag;
-        j["mod"] = m.mod;
-        j["pip_added"] = m.pip_added;
-    }
-
-    void from_json(const nlohmann::json& j, RepoMetadata& m)
-    {
-        m.url = j.value("url", m.url);
-        m.etag = j.value("etag", m.etag);
-        m.mod = j.value("mod", m.mod);
-        m.pip_added = j.value("pip_added", m.pip_added);
-    }
+    // namespace
+    // {
+    //     auto attrs(const RepoMetadata& m)
+    //     {
+    //         return std::tie(m.url, m.etag, m.mod, m.pip_added);
+    //     }
+    // }
+    //
+    // auto operator==(const RepoMetadata& lhs, const RepoMetadata& rhs) -> bool
+    // {
+    //     return attrs(lhs) == attrs(rhs);
+    // }
+    //
+    // auto operator!=(const RepoMetadata& lhs, const RepoMetadata& rhs) -> bool
+    // {
+    //     return !(lhs == rhs);
+    // }
+    //
+    // void to_json(nlohmann::json& j, const RepoMetadata& m)
+    // {
+    //     j["url"] = m.url;
+    //     j["etag"] = m.etag;
+    //     j["mod"] = m.mod;
+    //     j["pip_added"] = m.pip_added;
+    // }
+    //
+    // void from_json(const nlohmann::json& j, RepoMetadata& m)
+    // {
+    //     m.url = j.value("url", m.url);
+    //     m.etag = j.value("etag", m.etag);
+    //     m.mod = j.value("mod", m.mod);
+    //     m.pip_added = j.value("pip_added", m.pip_added);
+    // }
 
     namespace
     {
@@ -375,6 +375,7 @@ namespace mamba
                     }
                 }
             );
+            repo.set_pip_added(true);
         }
 
         void libsolv_read_json(solv::ObjRepoView repo, const fs::u8path& filename, bool only_tar_bz2)
@@ -383,6 +384,7 @@ namespace mamba
                      << " using libsolv";
             // TODO make this as part of options of the repo/pool
             const int flags = only_tar_bz2 ? CONDA_ADD_USE_ONLY_TAR_BZ2 : 0;
+            const auto lock = LockFile(filename);
             repo.legacy_read_conda_repodata(filename, flags);
         }
 
@@ -398,6 +400,7 @@ namespace mamba
                      << " using mamba";
 
             auto parser = simdjson::dom::parser();
+            const auto lock = LockFile(filename);
             const auto repodata = parser.load(filename);
 
             // An override for missing package subdir is found in at the top level
@@ -420,41 +423,80 @@ namespace mamba
             }
         }
 
-        [[nodiscard]] auto
-        read_solv(solv::ObjRepoView repo, const fs::u8path& filename, const RepoMetadata& expected)
-            -> bool
+        [[nodiscard]] auto read_solv(
+            solv::ObjPool& pool,
+            solv::ObjRepoView repo,
+            const fs::u8path& filename,
+            const solver::libsolv::RepodataOrigin& expected,
+            bool expected_pip_added
+        ) -> bool
         {
+            using RepodataOrigin = solver::libsolv::RepodataOrigin;
+
+            static constexpr auto expected_binary_version = std::string_view(MAMBA_SOLV_VERSION);
+
             LOG_INFO << "Attempting to read libsolv solv file " << filename << " for repo "
                      << repo.name();
 
-            auto lock = LockFile(filename);
-            repo.read(filename);
-
-            const auto read_metadata = RepoMetadata{
-                /* .url= */ std::string(repo.url()),
-                /* .etag= */ std::string(repo.etag()),
-                /* .mod= */ std::string(repo.mod()),
-                /* .pip_added= */ repo.pip_added(),
-            };
-            const auto tool_version = repo.tool_version();
+            if (!fs::exists(filename))
+            {
+                LOG_INFO << "Solv file " << filename << " does not exist";
+                return false;
+            }
 
             {
                 auto j = nlohmann::json(expected);
-                j["tool_version"] = tool_version;
+                j["tool_version"] = expected_binary_version;
                 LOG_INFO << "Expecting solv metadata : " << j.dump();
             }
+
+            {
+                auto lock = LockFile(filename);
+                repo.read(filename);
+            }
+            auto read_binary_version = repo.tool_version();
+
+            if (read_binary_version != expected_binary_version)
+            {
+                LOG_INFO << "Metadata from solv are binary incompatible, canceling solv file load";
+                repo.clear(/* reuse_ids= */ false);
+                return false;
+            }
+
+            const auto read_metadata = RepodataOrigin{
+                /* .url= */ std::string(repo.url()),
+                /* .etag= */ std::string(repo.etag()),
+                /* .mod= */ std::string(repo.mod()),
+            };
+
             {
                 auto j = nlohmann::json(read_metadata);
-                j["tool_version"] = tool_version;
+                j["tool_version"] = read_binary_version;
                 LOG_INFO << "Loaded solv metadata : " << j.dump();
             }
 
-            if ((tool_version != std::string_view(MAMBA_SOLV_VERSION))
-                || (read_metadata == RepoMetadata{}) || (read_metadata != expected))
+            if ((read_metadata == RepodataOrigin{}) || (read_metadata != expected))
             {
-                LOG_INFO << "Metadata from solv are NOT valid, canceling solv file load";
+                LOG_INFO << "Metadata from solv are outdated, canceling solv file load";
                 repo.clear(/* reuse_ids= */ false);
                 return false;
+            }
+
+            const bool read_pip_added = repo.pip_added();
+            if (expected_pip_added != read_pip_added)
+            {
+                if (expected_pip_added)
+                {
+                    add_pip_as_python_dependency(pool, repo);
+                    LOG_INFO << "Added missing pip dependencies";
+                }
+                else
+                {
+                    LOG_INFO << "Metadata from solv contain extra pip dependencies,"
+                                " canceling solv file load";
+                    repo.clear(/* reuse_ids= */ false);
+                    return false;
+                }
             }
 
             LOG_INFO << "Metadata from solv are valid, loading successful";
@@ -464,7 +506,7 @@ namespace mamba
         void write_solv(
             solv::ObjRepoView repo,
             fs::u8path filename,
-            RepoMetadata metadata,
+            const solver::libsolv::RepodataOrigin& metadata,
             const char* solv_bin_version
         )
         {
@@ -473,10 +515,10 @@ namespace mamba
             repo.set_url(metadata.url);
             repo.set_etag(metadata.etag);
             repo.set_mod(metadata.mod);
-            repo.set_pip_added(metadata.pip_added);
             repo.set_tool_version(solv_bin_version);
             repo.internalize();
 
+            const auto lock = LockFile(filename);
             repo.write(filename);
         }
 
@@ -486,17 +528,17 @@ namespace mamba
         MPool& pool,
         std::string_view name,
         const fs::u8path& index,
-        const RepoMetadata& metadata,
+        const solver::libsolv::RepodataOrigin& metadata,
+        PipAsPythonDependency add,
         RepodataParser parser,
         LibsolvCache use_cache
     )
-        : m_metadata(metadata)
     {
         auto [_, repo] = pool.pool().add_repo(name);
         m_repo = repo.raw();
-        repo.set_url(m_metadata.url);
-        load_file(pool, index, parser, use_cache);
-        if (metadata.pip_added)
+        repo.set_url(metadata.url);
+        load_file(pool, index, metadata, add, parser, use_cache);
+        if (add == PipAsPythonDependency::Yes)
         {
             add_pip_as_python_dependency(pool.pool(), repo);
         }
@@ -546,8 +588,14 @@ namespace mamba
         return m_repo;
     }
 
-    void
-    MRepo::load_file(MPool& pool, const fs::u8path& filename, RepodataParser parser, LibsolvCache use_cache)
+    void MRepo::load_file(
+        MPool& pool,
+        const fs::u8path& filename,
+        const solver::libsolv::RepodataOrigin& metadata,
+        PipAsPythonDependency add,
+        RepodataParser parser,
+        LibsolvCache use_cache
+    )
     {
         auto repo = srepo(*this);
         bool is_solv = filename.extension() == ".solv";
@@ -563,35 +611,25 @@ namespace mamba
         // .solv files are slower to load than simdjson on Windows
         if (!util::on_win && is_solv && (use_cache == LibsolvCache::Yes))
         {
-            const auto lock = LockFile(solv_file);
-            const bool read = read_solv(repo, solv_file, m_metadata);
+            const bool read = read_solv(pool.pool(), repo, solv_file, metadata, static_cast<bool>(add));
             if (read)
             {
-                set_solvables_url(repo, m_metadata.url);
+                set_solvables_url(repo, metadata.url);
                 return;
             }
         }
 
         const auto& ctx = pool.context();
 
+        if ((parser == RepodataParser::Mamba)
+            || (parser == RepodataParser::Automatic && ctx.experimental_repodata_parsing))
         {
-            const auto lock = LockFile(json_file);
-            if ((parser == RepodataParser::Mamba)
-                || (parser == RepodataParser::Automatic && ctx.experimental_repodata_parsing))
-            {
-                mamba_read_json(
-                    pool.pool(),
-                    repo,
-                    json_file,
-                    m_metadata.url,
-                    pool.context().use_only_tar_bz2
-                );
-            }
-            else
-            {
-                libsolv_read_json(repo, json_file, pool.context().use_only_tar_bz2);
-                set_solvables_url(repo, m_metadata.url);
-            }
+            mamba_read_json(pool.pool(), repo, json_file, metadata.url, pool.context().use_only_tar_bz2);
+        }
+        else
+        {
+            libsolv_read_json(repo, json_file, pool.context().use_only_tar_bz2);
+            set_solvables_url(repo, metadata.url);
         }
 
         // TODO move this to a more structured approach for repodata patching?
@@ -602,7 +640,7 @@ namespace mamba
 
         if (!util::on_win && (name() != "installed"))
         {
-            write_solv(repo, solv_file, m_metadata, MAMBA_SOLV_VERSION);
+            write_solv(repo, solv_file, metadata, MAMBA_SOLV_VERSION);
         }
     }
 

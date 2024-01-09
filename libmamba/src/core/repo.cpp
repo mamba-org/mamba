@@ -440,11 +440,11 @@ namespace mamba
         return m_repo;
     }
 
-    void MRepo::add_pip_as_python_dependency()
+    void add_pip_as_python_dependency(::Pool* pool, solv::ObjRepoView repo)
     {
-        const solv::DependencyId python_id = pool_conda_matchspec(m_pool, "python");
-        const solv::DependencyId pip_id = pool_conda_matchspec(m_pool, "pip");
-        srepo(*this).for_each_solvable(
+        const solv::DependencyId python_id = pool_conda_matchspec(pool, "python");
+        const solv::DependencyId pip_id = pool_conda_matchspec(pool, "pip");
+        repo.for_each_solvable(
             [&](solv::ObjSolvableView s)
             {
                 if ((s.name() == "python") && !s.version().empty() && (s.version()[0] >= '2'))
@@ -565,7 +565,7 @@ namespace mamba
                  << ".*' for repo index '" << name() << "'";
 
         // .solv files are slower to load than simdjson on Windows
-        if (!util::on_win && is_solv && (use_cache == LibsolvCache::yes))
+        if (!util::on_win && is_solv && (use_cache == LibsolvCache::Yes))
         {
             const auto lock = LockFile(solv_file);
             const bool read = read_solv(solv_file);
@@ -580,8 +580,8 @@ namespace mamba
 
         {
             const auto lock = LockFile(json_file);
-            if ((parser == RepodataParser::mamba)
-                || (parser == RepodataParser::automatic && ctx.experimental_repodata_parsing))
+            if ((parser == RepodataParser::Mamba)
+                || (parser == RepodataParser::Automatic && ctx.experimental_repodata_parsing))
             {
                 mamba_read_json(json_file);
             }

@@ -13,14 +13,13 @@
 #include <vector>
 
 #include <nlohmann/json_fwd.hpp>
-#include <solv/pooltypes.h>
 
 #include "mamba/core/pool.hpp"
 
 extern "C"
 {
-    typedef struct s_Repo Repo;
-    typedef struct s_Repodata Repodata;
+    using Repo = struct s_Repo;
+    using Repodata = struct s_Repodata;
 }
 
 namespace mamba
@@ -68,15 +67,15 @@ namespace mamba
 
         enum class RepodataParser
         {
-            automatic,
-            mamba,
-            libsolv,
+            Automatic,
+            Mamba,
+            Libsolv,
         };
 
-        enum class LibsolvCache
+        enum class LibsolvCache : bool
         {
-            yes,
-            no,
+            No = false,
+            Yes = true,
         };
 
         MRepo(
@@ -84,8 +83,8 @@ namespace mamba
             const std::string& name,
             const fs::u8path& filename,
             const RepoMetadata& meta,
-            RepodataParser parser = RepodataParser::automatic,
-            LibsolvCache use_cache = LibsolvCache::yes
+            RepodataParser parser = RepodataParser::Automatic,
+            LibsolvCache use_cache = LibsolvCache::Yes
         );
         MRepo(MPool& pool, const PrefixData& prefix_data);
         MRepo(MPool& pool, const std::string& name, const std::vector<specs::PackageInfo>& uris);

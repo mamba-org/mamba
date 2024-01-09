@@ -461,6 +461,26 @@ namespace mamba
             LOG_INFO << "Metadata from solv are valid, loading successful";
             return true;
         }
+
+        void write_solv(
+            solv::ObjRepoView repo,
+            fs::u8path filename,
+            RepoMetadata metadata,
+            const char* solv_bin_version
+        )
+        {
+            LOG_INFO << "Writing libsolv solv file " << filename << " for repo " << repo.name();
+
+            repo.set_url(metadata.url);
+            repo.set_etag(metadata.etag);
+            repo.set_mod(metadata.mod);
+            repo.set_pip_added(metadata.pip_added);
+            repo.set_tool_version(solv_bin_version);
+            repo.internalize();
+
+            repo.write(filename);
+        }
+
     }
 
     MRepo::MRepo(
@@ -598,23 +618,8 @@ namespace mamba
 
         if (!util::on_win && (name() != "installed"))
         {
-            write_solv(solv_file);
+            write_solv(repo, solv_file, m_metadata, MAMBA_SOLV_VERSION);
         }
-    }
-
-    void MRepo::write_solv(fs::u8path filename)
-    {
-        LOG_INFO << "Writing libsolv solv file " << filename << " for repo " << name();
-
-        auto repo = srepo(*this);
-        repo.set_url(m_metadata.url);
-        repo.set_etag(m_metadata.etag);
-        repo.set_mod(m_metadata.mod);
-        repo.set_pip_added(m_metadata.pip_added);
-        repo.set_tool_version(MAMBA_SOLV_VERSION);
-        repo.internalize();
-
-        repo.write(filename);
     }
 
     void MRepo::clear(bool reuse_ids)

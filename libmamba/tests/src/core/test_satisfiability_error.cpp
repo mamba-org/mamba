@@ -387,8 +387,15 @@ namespace
         );
         prefix_data.add_packages(virtual_packages);
         auto pool = MPool{ ctx, channel_context };
-        auto repo = MRepo{ pool, prefix_data };
-        repo.set_installed();
+
+        const auto repo = MRepo(
+            pool,
+            "installed",
+            prefix_data.sorted_records(),
+            MRepo::PipAsPythonDependency::Yes
+        );
+        pool.set_installed_repo(repo);
+
 
         auto cache = MultiPackageCache({ tmp_dir.path / "cache" }, ctx.validation_params);
         create_cache_dir(cache.first_writable_path());

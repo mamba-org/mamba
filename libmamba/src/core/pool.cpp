@@ -21,6 +21,7 @@ extern "C"  // Incomplete header
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
+#include "mamba/core/repo.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
@@ -355,5 +356,10 @@ namespace mamba
     void MPool::remove_repo(::Id repo_id, bool reuse_ids)
     {
         pool().remove_repo(repo_id, reuse_ids);
+    }
+
+    void MPool::set_installed_repo(const MRepo& repo)
+    {
+        pool().set_installed_repo(repo.id());
     }
 }  // namespace mamba

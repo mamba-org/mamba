@@ -40,7 +40,14 @@ namespace mamba
                 }
                 prefix_data.load_single_record(repodata_record_json);
             }
-            return MRepo(pool, prefix_data);
+            auto repo = MRepo(
+                pool,
+                "installed",
+                prefix_data.sorted_records(),
+                MRepo::PipAsPythonDependency::Yes
+            );
+            pool.set_installed_repo(repo);
+            return repo;
         }
 
         void create_subdirs(

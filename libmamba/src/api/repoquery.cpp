@@ -50,7 +50,15 @@ namespace mamba
                     throw std::runtime_error(exp_prefix_data.error().what());
                 }
                 PrefixData& prefix_data = exp_prefix_data.value();
-                MRepo(pool, prefix_data);
+
+                const auto repo = MRepo(
+                    pool,
+                    "installed",
+                    prefix_data.sorted_records(),
+                    MRepo::PipAsPythonDependency::Yes
+                );
+                pool.set_installed_repo(repo);
+
                 if (format != QueryResultFormat::Json)
                 {
                     Console::stream()

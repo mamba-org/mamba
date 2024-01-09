@@ -35,8 +35,6 @@ namespace mamba
         class PackageInfo;
     }
 
-    class PrefixData;
-
     /**
      * Represents a channel subdirectory
      * index.
@@ -78,6 +76,12 @@ namespace mamba
             Yes = true,
         };
 
+        enum class PipAsPythonDependency : bool
+        {
+            No = false,
+            Yes = true,
+        };
+
         MRepo(
             MPool& pool,
             const std::string& name,
@@ -86,15 +90,19 @@ namespace mamba
             RepodataParser parser = RepodataParser::Automatic,
             LibsolvCache use_cache = LibsolvCache::Yes
         );
-        MRepo(MPool& pool, const PrefixData& prefix_data);
-        MRepo(MPool& pool, const std::string& name, const std::vector<specs::PackageInfo>& uris);
+
+        MRepo(
+            MPool& pool,
+            const std::string& name,
+            const std::vector<specs::PackageInfo>& uris,
+            PipAsPythonDependency add = PipAsPythonDependency::No
+        );
 
         MRepo(const MRepo&) = delete;
         MRepo(MRepo&&) = default;
         MRepo& operator=(const MRepo&) = delete;
         MRepo& operator=(MRepo&&) = default;
 
-        void set_installed();
         void set_priority(int priority, int subpriority);
 
         Id id() const;
@@ -115,16 +123,17 @@ namespace mamba
 
     private:
 
+        MPool m_pool;
+        RepoMetadata m_metadata = {};
+        Repo* m_repo = nullptr;  // This is a view managed by libsolv pool
+
         auto name() const -> std::string_view;
 
         void clear(bool reuse_ids = true);
+
         void load_file(const fs::u8path& filename, RepodataParser parser, LibsolvCache use_cache);
 
-        MPool m_pool;
-
-        RepoMetadata m_metadata = {};
-
-        Repo* m_repo = nullptr;  // This is a view managed by libsolv pool
+        friend class MPool;
     };
 
 }  // namespace mamba

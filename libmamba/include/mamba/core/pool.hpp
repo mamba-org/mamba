@@ -19,6 +19,7 @@ namespace mamba
     class ChannelContext;
     class Context;
     class PrefixData;
+    class MRepo;
 
     namespace solv
     {
@@ -63,6 +64,8 @@ namespace mamba
         const solv::ObjPool& pool() const;
 
         void remove_repo(::Id repo_id, bool reuse_ids);
+
+        void set_installed_repo(const MRepo& repo);
 
         ChannelContext& channel_context() const;
         const Context& context() const;

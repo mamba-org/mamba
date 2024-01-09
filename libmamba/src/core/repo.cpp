@@ -22,7 +22,6 @@ extern "C"  // Incomplete header
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
-#include "mamba/core/prefix_data.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/fs/filesystem.hpp"
@@ -501,7 +500,12 @@ namespace mamba
         repo.internalize();
     }
 
-    MRepo::MRepo(MPool& pool, const std::string& name, const std::vector<specs::PackageInfo>& package_infos)
+    MRepo::MRepo(
+        MPool& pool,
+        const std::string& name,
+        const std::vector<specs::PackageInfo>& package_infos,
+        PipAsPythonDependency add
+    )
         : m_pool(pool)
     {
         auto [_, repo] = pool.pool().add_repo(name);
@@ -510,36 +514,13 @@ namespace mamba
         {
             LOG_INFO << "Adding package record to repo " << info.name;
             auto [id, solv] = srepo(*this).add_solvable();
-            set_solvable(m_pool.pool(), solv, info);
+            set_solvable(pool.pool(), solv, info);
         }
-        repo.internalize();
-    }
-
-    MRepo::MRepo(MPool& pool, const PrefixData& prefix_data)
-        : m_pool(pool)
-    {
-        auto [repo_id, repo] = pool.pool().add_repo("installed");
-        m_repo = repo.raw();
-
-        for (auto& [name, record] : prefix_data.records())
-        {
-            LOG_INFO << "Adding package record to repo " << record.name;
-            auto [id, solv] = srepo(*this).add_solvable();
-            set_solvable(m_pool.pool(), solv, record);
-        }
-
-        if (pool.context().add_pip_as_python_dependency)
+        if (add == PipAsPythonDependency::Yes)
         {
             add_pip_as_python_dependency(pool.pool(), repo);
         }
-
         repo.internalize();
-        pool.pool().set_installed_repo(repo_id);
-    }
-
-    void MRepo::set_installed()
-    {
-        m_pool.pool().set_installed_repo(srepo(*this).id());
     }
 
     void MRepo::set_priority(int priority, int subpriority)

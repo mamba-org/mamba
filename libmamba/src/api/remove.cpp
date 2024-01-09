@@ -87,7 +87,13 @@ namespace mamba
             PrefixData& prefix_data = exp_prefix_data.value();
 
             MPool pool{ ctx, channel_context };
-            MRepo(pool, prefix_data);
+            const auto repo = MRepo(
+                pool,
+                "installed",
+                prefix_data.sorted_records(),
+                MRepo::PipAsPythonDependency::Yes
+            );
+            pool.set_installed_repo(repo);
 
             const fs::u8path pkgs_dirs(ctx.prefix_params.root_prefix / "pkgs");
             MultiPackageCache package_caches({ pkgs_dirs }, ctx.validation_params);

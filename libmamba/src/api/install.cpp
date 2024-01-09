@@ -519,7 +519,13 @@ namespace mamba
 
         prefix_data.add_packages(get_virtual_packages(ctx));
 
-        MRepo(pool, prefix_data);
+        const auto repo = MRepo(
+            pool,
+            "installed",
+            prefix_data.sorted_records(),
+            MRepo::PipAsPythonDependency::Yes
+        );
+        pool.set_installed_repo(repo);
 
         MSolver solver(
             pool,
@@ -671,8 +677,14 @@ namespace mamba
 
             MultiPackageCache pkg_caches(ctx.pkgs_dirs, ctx.validation_params);
             prefix_data.add_packages(get_virtual_packages(ctx));
-            MRepo(pool, prefix_data);  // Potentially re-alloc (moves in memory) Solvables
-                                       // in the pool
+
+            const auto repo = MRepo(
+                pool,
+                "installed",
+                prefix_data.sorted_records(),
+                MRepo::PipAsPythonDependency::Yes
+            );
+            pool.set_installed_repo(repo);
 
             std::vector<detail::other_pkg_mgr_spec> others;
             // Note that the Transaction will gather the Solvables,

@@ -496,6 +496,10 @@ namespace mamba
         m_repo = repo.raw();
         repo.set_url(m_metadata.url);
         load_file(pool, index, parser, use_cache);
+        if (metadata.pip_added)
+        {
+            add_pip_as_python_dependency(pool.pool(), repo);
+        }
         repo.internalize();
     }
 

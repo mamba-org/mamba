@@ -117,7 +117,6 @@ namespace mamba
 
         auto name() const -> std::string_view;
 
-        void add_pip_as_python_dependency();
         void clear(bool reuse_ids = true);
         void load_file(const fs::u8path& filename, RepodataParser parser, LibsolvCache use_cache);
         void libsolv_read_json(const fs::u8path& filename);

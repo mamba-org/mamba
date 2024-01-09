@@ -359,6 +359,24 @@ namespace mamba
             );
         }
 
+        void add_pip_as_python_dependency(solv::ObjPool& pool, solv::ObjRepoView repo)
+        {
+            const solv::DependencyId python_id = pool.add_conda_dependency("python");
+            const solv::DependencyId pip_id = pool.add_conda_dependency("pip");
+            repo.for_each_solvable(
+                [&](solv::ObjSolvableView s)
+                {
+                    if ((s.name() == "python") && !s.version().empty() && (s.version()[0] >= '2'))
+                    {
+                        s.add_dependency(pip_id);
+                    }
+                    if (s.name() == "pip")
+                    {
+                        s.add_dependency(python_id, SOLVABLE_PREREQMARKER);
+                    }
+                }
+            );
+        }
     }
 
     MRepo::MRepo(
@@ -408,7 +426,7 @@ namespace mamba
 
         if (pool.context().add_pip_as_python_dependency)
         {
-            add_pip_as_python_dependency();
+            add_pip_as_python_dependency(pool.pool(), repo);
         }
 
         repo.internalize();
@@ -439,25 +457,6 @@ namespace mamba
     Repo* MRepo::repo() const
     {
         return m_repo;
-    }
-
-    void add_pip_as_python_dependency(::Pool* pool, solv::ObjRepoView repo)
-    {
-        const solv::DependencyId python_id = pool_conda_matchspec(pool, "python");
-        const solv::DependencyId pip_id = pool_conda_matchspec(pool, "pip");
-        repo.for_each_solvable(
-            [&](solv::ObjSolvableView s)
-            {
-                if ((s.name() == "python") && !s.version().empty() && (s.version()[0] >= '2'))
-                {
-                    s.add_dependency(pip_id);
-                }
-                if (s.name() == "pip")
-                {
-                    s.add_dependency(python_id, SOLVABLE_PREREQMARKER);
-                }
-            }
-        );
     }
 
     void MRepo::libsolv_read_json(const fs::u8path& filename)
@@ -596,7 +595,7 @@ namespace mamba
         // TODO move this to a more structured approach for repodata patching?
         if (ctx.add_pip_as_python_dependency)
         {
-            add_pip_as_python_dependency();
+            add_pip_as_python_dependency(m_pool.pool(), repo);
         }
 
         if (!util::on_win && (name() != "installed"))

@@ -341,22 +341,15 @@ bind_submodule_impl(pybind11::module_ m)
         .def("get_tarball_path", &MultiPackageCache::get_tarball_path)
         .def_property_readonly("first_writable_path", &MultiPackageCache::first_writable_path);
 
-    py::class_<MRepo::PyExtraPkgInfo>(m, "ExtraPkgInfo")
-        .def(py::init<>())
-        .def_readwrite("noarch", &MRepo::PyExtraPkgInfo::noarch)
-        .def_readwrite("repo_url", &MRepo::PyExtraPkgInfo::repo_url);
-
     py::class_<MRepo>(m, "Repo")
         .def(py::init(
             [](MPool& pool, const std::string& name, const std::string& filename, const std::string& url
             ) { return MRepo(pool, name, filename, RepoMetadata{ /* .url=*/url }); }
         ))
-        .def("add_extra_pkg_info", &MRepo::py_add_extra_pkg_info)
         .def("set_priority", &MRepo::set_priority)
         .def("name", &MRepo::py_name)
         .def("priority", &MRepo::py_priority)
-        .def("size", &MRepo::py_size)
-        .def("clear", &MRepo::py_clear);
+        .def("size", &MRepo::py_size);
 
     py::class_<MTransaction>(m, "Transaction")
         .def(py::init<>(

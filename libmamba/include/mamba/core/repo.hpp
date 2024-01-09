@@ -14,12 +14,9 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-#include "mamba/core/pool.hpp"
-
 extern "C"
 {
     using Repo = struct s_Repo;
-    using Repodata = struct s_Repodata;
 }
 
 namespace mamba
@@ -34,6 +31,8 @@ namespace mamba
     {
         class PackageInfo;
     }
+
+    class MPool;
 
     /**
      * Represents a channel subdirectory
@@ -82,9 +81,11 @@ namespace mamba
             Yes = true,
         };
 
+        using RepoId = int;
+
         MRepo(
             MPool& pool,
-            const std::string& name,
+            std::string_view name,
             const fs::u8path& filename,
             const RepoMetadata& meta,
             RepodataParser parser = RepodataParser::Automatic,
@@ -93,45 +94,35 @@ namespace mamba
 
         MRepo(
             MPool& pool,
-            const std::string& name,
+            const std::string_view name,
             const std::vector<specs::PackageInfo>& uris,
             PipAsPythonDependency add = PipAsPythonDependency::No
         );
 
         MRepo(const MRepo&) = delete;
         MRepo(MRepo&&) = default;
-        MRepo& operator=(const MRepo&) = delete;
-        MRepo& operator=(MRepo&&) = default;
+        auto operator=(const MRepo&) -> MRepo& = delete;
+        auto operator=(MRepo&&) -> MRepo& = default;
 
         void set_priority(int priority, int subpriority);
 
-        Id id() const;
-        Repo* repo() const;
+        [[nodiscard]] auto id() const -> RepoId;
 
-        struct [[deprecated]] PyExtraPkgInfo
-        {
-            std::string noarch;
-            std::string repo_url;
-        };
+        [[nodiscard]] auto repo() const -> Repo*;
 
         [[deprecated]] auto py_name() const -> std::string_view;
         [[deprecated]] auto py_priority() const -> std::tuple<int, int>;
-        [[deprecated]] auto py_clear(bool reuse_ids) -> bool;
         [[deprecated]] auto py_size() const -> std::size_t;
-        [[deprecated]] void
-        py_add_extra_pkg_info(const std::map<std::string, PyExtraPkgInfo>& additional_info);
 
     private:
 
-        MPool m_pool;
         RepoMetadata m_metadata = {};
         Repo* m_repo = nullptr;  // This is a view managed by libsolv pool
 
         auto name() const -> std::string_view;
 
-        void clear(bool reuse_ids = true);
-
-        void load_file(const fs::u8path& filename, RepodataParser parser, LibsolvCache use_cache);
+        void
+        load_file(MPool& pool, const fs::u8path& filename, RepodataParser parser, LibsolvCache use_cache);
 
         friend class MPool;
     };

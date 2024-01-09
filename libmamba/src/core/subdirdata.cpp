@@ -513,7 +513,6 @@ namespace mamba
 
     expected_t<MRepo> MSubdirData::create_repo(MPool& pool) const
     {
-        assert(&pool.context() == p_context);
         using return_type = expected_t<MRepo>;
         RepoMetadata meta{
             /* .url= */ util::rsplit(m_metadata.url(), "/", 1).front(),

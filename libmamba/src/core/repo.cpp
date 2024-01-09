@@ -484,29 +484,27 @@ namespace mamba
 
     MRepo::MRepo(
         MPool& pool,
-        const std::string& name,
+        std::string_view name,
         const fs::u8path& index,
         const RepoMetadata& metadata,
         RepodataParser parser,
         LibsolvCache use_cache
     )
-        : m_pool(pool)
-        , m_metadata(metadata)
+        : m_metadata(metadata)
     {
         auto [_, repo] = pool.pool().add_repo(name);
         m_repo = repo.raw();
         repo.set_url(m_metadata.url);
-        load_file(index, parser, use_cache);
+        load_file(pool, index, parser, use_cache);
         repo.internalize();
     }
 
     MRepo::MRepo(
         MPool& pool,
-        const std::string& name,
+        const std::string_view name,
         const std::vector<specs::PackageInfo>& package_infos,
         PipAsPythonDependency add
     )
-        : m_pool(pool)
     {
         auto [_, repo] = pool.pool().add_repo(name);
         m_repo = repo.raw();
@@ -544,7 +542,8 @@ namespace mamba
         return m_repo;
     }
 
-    void MRepo::load_file(const fs::u8path& filename, RepodataParser parser, LibsolvCache use_cache)
+    void
+    MRepo::load_file(MPool& pool, const fs::u8path& filename, RepodataParser parser, LibsolvCache use_cache)
     {
         auto repo = srepo(*this);
         bool is_solv = filename.extension() == ".solv";
@@ -569,7 +568,7 @@ namespace mamba
             }
         }
 
-        const auto& ctx = m_pool.context();
+        const auto& ctx = pool.context();
 
         {
             const auto lock = LockFile(json_file);
@@ -577,16 +576,16 @@ namespace mamba
                 || (parser == RepodataParser::Automatic && ctx.experimental_repodata_parsing))
             {
                 mamba_read_json(
-                    m_pool.pool(),
+                    pool.pool(),
                     repo,
                     json_file,
                     m_metadata.url,
-                    m_pool.context().use_only_tar_bz2
+                    pool.context().use_only_tar_bz2
                 );
             }
             else
             {
-                libsolv_read_json(repo, json_file, m_pool.context().use_only_tar_bz2);
+                libsolv_read_json(repo, json_file, pool.context().use_only_tar_bz2);
                 set_solvables_url(repo, m_metadata.url);
             }
         }
@@ -594,18 +593,13 @@ namespace mamba
         // TODO move this to a more structured approach for repodata patching?
         if (ctx.add_pip_as_python_dependency)
         {
-            add_pip_as_python_dependency(m_pool.pool(), repo);
+            add_pip_as_python_dependency(pool.pool(), repo);
         }
 
         if (!util::on_win && (name() != "installed"))
         {
             write_solv(repo, solv_file, m_metadata, MAMBA_SOLV_VERSION);
         }
-    }
-
-    void MRepo::clear(bool reuse_ids)
-    {
-        m_pool.remove_repo(id(), reuse_ids);
     }
 
     auto MRepo::py_name() const -> std::string_view
@@ -618,37 +612,8 @@ namespace mamba
         return std::make_tuple(m_repo->priority, m_repo->subpriority);
     }
 
-    auto MRepo::py_clear(bool reuse_ids) -> bool
-    {
-        clear(reuse_ids);
-        return true;
-    }
-
     auto MRepo::py_size() const -> std::size_t
     {
         return srepo(*this).solvable_count();
-    }
-
-    void MRepo::py_add_extra_pkg_info(const std::map<std::string, PyExtraPkgInfo>& extra)
-    {
-        auto repo = srepo(*this);
-
-        repo.for_each_solvable(
-            [&](solv::ObjSolvableView s)
-            {
-                if (auto const it = extra.find(std::string(s.name())); it != extra.cend())
-                {
-                    if (auto const& noarch = it->second.noarch; !noarch.empty())
-                    {
-                        s.set_noarch(noarch);
-                    }
-                    if (auto const& repo_url = it->second.repo_url; !repo_url.empty())
-                    {
-                        s.set_channel(repo_url);
-                    }
-                }
-            }
-        );
-        repo.internalize();
     }
 }  // namespace mamba

@@ -6,13 +6,12 @@
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/core/channel_context.hpp"
-#include "mamba/core/download.hpp"
 #include "mamba/core/download_progress_bar.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/subdirdata.hpp"
-#include "mamba/util/string.hpp"
 
 namespace mamba
 {

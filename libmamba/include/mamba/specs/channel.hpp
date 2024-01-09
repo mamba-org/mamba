@@ -11,8 +11,8 @@
 #include <vector>
 
 #include "mamba/specs/authentication_info.hpp"
-#include "mamba/specs/channel_spec.hpp"
 #include "mamba/specs/conda_url.hpp"
+#include "mamba/specs/undefined_channel.hpp"
 #include "mamba/util/flat_set.hpp"
 #include "mamba/util/weakening_map.hpp"
 
@@ -78,12 +78,12 @@ namespace mamba::specs
         using channel_list = ChannelResolveParams::channel_list;
 
         [[nodiscard]] static auto resolve(  //
-            ChannelSpec spec,
+            UndefinedChannel uc,
             const ChannelResolveParams& params
         ) -> channel_list;
 
         [[nodiscard]] static auto resolve(  //
-            ChannelSpec spec,
+            UndefinedChannel uc,
             ChannelResolveParamsView params
         ) -> channel_list;
 

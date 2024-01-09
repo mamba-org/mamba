@@ -258,14 +258,14 @@ namespace mamba::specs
             return util::abs_path_to_url(std::move(path).string());
         }
 
-        auto resolve_path(ChannelSpec&& spec, ChannelResolveParamsView params) -> Channel
+        auto resolve_path(UndefinedChannel&& uc, ChannelResolveParamsView params) -> Channel
         {
-            auto uri = CondaURL::parse(resolve_path_location(spec.clear_location(), params));
+            auto uri = CondaURL::parse(resolve_path_location(uc.clear_location(), params));
             auto display_name = resolve_path_name(uri, params);
             auto platforms = ChannelResolveParams::platform_list{};
-            if (spec.type() == ChannelSpec::Type::Path)
+            if (uc.type() == UndefinedChannel::Type::Path)
             {
-                platforms = make_platforms(spec.clear_platform_filters(), params.platforms);
+                platforms = make_platforms(uc.clear_platform_filters(), params.platforms);
             }
 
             return { std::move(uri), std::move(display_name), std::move(platforms) };
@@ -295,25 +295,25 @@ namespace mamba::specs
             return url.pretty_str(StripScheme::no, '/', Credentials::Remove);
         }
 
-        auto resolve_url(ChannelSpec&& spec, ChannelResolveParamsView params) -> Channel
+        auto resolve_url(UndefinedChannel&& uc, ChannelResolveParamsView params) -> Channel
         {
-            assert(util::url_has_scheme(spec.location()));
-            assert(util::url_get_scheme(spec.location()) != "file");
+            assert(util::url_has_scheme(uc.location()));
+            assert(util::url_get_scheme(uc.location()) != "file");
 
-            auto url = CondaURL::parse(spec.location());
+            auto url = CondaURL::parse(uc.location());
             auto display_name = resolve_url_name(url, params);
             set_fallback_credential_from_db(url, params.authentication_db);
             auto platforms = ChannelResolveParams::platform_list{};
-            if (spec.type() == ChannelSpec::Type::URL)
+            if (uc.type() == UndefinedChannel::Type::URL)
             {
-                platforms = make_platforms(spec.clear_platform_filters(), params.platforms);
+                platforms = make_platforms(uc.clear_platform_filters(), params.platforms);
             }
 
             return { std::move(url), std::move(display_name), std::move(platforms) };
         }
 
         auto resolve_name_in_custom_channel(
-            ChannelSpec&& spec,
+            UndefinedChannel&& uc,
             ChannelResolveParamsView params,
             std::string_view match_name,
             const Channel& match_chan
@@ -321,17 +321,17 @@ namespace mamba::specs
         ) -> Channel
         {
             auto url = match_chan.url();
-            url.append_path(util::remove_prefix(spec.location(), match_name));
+            url.append_path(util::remove_prefix(uc.location(), match_name));
             set_fallback_credential_from_db(url, params.authentication_db);
             return {
                 /* url= */ std::move(url),
-                /* display_name= */ spec.clear_location(),
-                /* platforms= */ make_platforms(spec.clear_platform_filters(), params.platforms),
+                /* display_name= */ uc.clear_location(),
+                /* platforms= */ make_platforms(uc.clear_platform_filters(), params.platforms),
             };
         }
 
         auto resolve_name_in_custom_mulitchannels(
-            const ChannelSpec& spec,
+            const UndefinedChannel& uc,
             ChannelResolveParamsView params,
             const Channel::channel_list& matches
         ) -> Channel::channel_list
@@ -346,74 +346,73 @@ namespace mamba::specs
                 out.emplace_back(
                     /* url= */ std::move(url),
                     /* display_name= */ chan.display_name(),  // Not using multi_channel name
-                    /* platforms= */ make_platforms(spec.platform_filters(), params.platforms)
+                    /* platforms= */ make_platforms(uc.platform_filters(), params.platforms)
                 );
             }
             return out;
         }
 
-        auto resolve_name_from_alias(ChannelSpec&& spec, ChannelResolveParamsView params) -> Channel
+        auto resolve_name_from_alias(UndefinedChannel&& uc, ChannelResolveParamsView params) -> Channel
         {
             auto url = params.channel_alias;
-            url.append_path(spec.location());
+            url.append_path(uc.location());
             set_fallback_credential_from_db(url, params.authentication_db);
             return {
                 /* url= */ std::move(url),
-                /* display_name= */ spec.clear_location(),
-                /* platforms= */ make_platforms(spec.clear_platform_filters(), params.platforms),
+                /* display_name= */ uc.clear_location(),
+                /* platforms= */ make_platforms(uc.clear_platform_filters(), params.platforms),
             };
         }
 
-        auto resolve_name(ChannelSpec&& spec, ChannelResolveParamsView params) -> Channel::channel_list
+        auto resolve_name(UndefinedChannel&& uc, ChannelResolveParamsView params)
+            -> Channel::channel_list
         {
-            if (auto it = params.custom_channels.find_weaken(spec.location());
+            if (auto it = params.custom_channels.find_weaken(uc.location());
                 it != params.custom_channels.cend())
             {
-                return {
-                    resolve_name_in_custom_channel(std::move(spec), params, it->first, it->second)
-                };
+                return { resolve_name_in_custom_channel(std::move(uc), params, it->first, it->second) };
             }
 
-            if (auto it = params.custom_multichannels.find(spec.location());
+            if (auto it = params.custom_multichannels.find(uc.location());
                 it != params.custom_multichannels.end())
             {
-                return resolve_name_in_custom_mulitchannels(spec, params, it->second);
+                return resolve_name_in_custom_mulitchannels(uc, params, it->second);
             }
 
-            return { resolve_name_from_alias(std::move(spec), params) };
+            return { resolve_name_from_alias(std::move(uc), params) };
         }
     }
 
-    auto Channel::resolve(ChannelSpec spec, ChannelResolveParamsView params) -> channel_list
+    auto Channel::resolve(UndefinedChannel uc, ChannelResolveParamsView params) -> channel_list
     {
-        switch (spec.type())
+        switch (uc.type())
         {
-            case ChannelSpec::Type::PackagePath:
-            case ChannelSpec::Type::Path:
+            case UndefinedChannel::Type::PackagePath:
+            case UndefinedChannel::Type::Path:
             {
-                return { resolve_path(std::move(spec), params) };
+                return { resolve_path(std::move(uc), params) };
             }
-            case ChannelSpec::Type::PackageURL:
-            case ChannelSpec::Type::URL:
+            case UndefinedChannel::Type::PackageURL:
+            case UndefinedChannel::Type::URL:
             {
-                return { resolve_url(std::move(spec), params) };
+                return { resolve_url(std::move(uc), params) };
             }
-            case ChannelSpec::Type::Name:
+            case UndefinedChannel::Type::Name:
             {
-                return resolve_name(std::move(spec), params);
+                return resolve_name(std::move(uc), params);
             }
-            case ChannelSpec::Type::Unknown:
+            case UndefinedChannel::Type::Unknown:
             {
-                return { { CondaURL{}, spec.clear_location() } };
+                return { { CondaURL{}, uc.clear_location() } };
             }
         }
-        throw std::invalid_argument("Invalid ChannelSpec::Type");
+        throw std::invalid_argument("Invalid UndefinedChannel::Type");
     }
 
-    auto Channel::resolve(ChannelSpec spec, const ChannelResolveParams& params) -> channel_list
+    auto Channel::resolve(UndefinedChannel uc, const ChannelResolveParams& params) -> channel_list
     {
         return resolve(
-            std::move(spec),
+            std::move(uc),
             ChannelResolveParamsView{
                 /* .platforms= */ params.platforms,
                 /* .channel_alias= */ params.channel_alias,

@@ -717,7 +717,7 @@ bind_submodule_impl(pybind11::module_ m)
             py::arg("has_zst")
         )
         .def("make_channel", py::overload_cast<std::string_view>(&ChannelContext::make_channel))
-        .def("make_channel", py::overload_cast<specs::ChannelSpec>(&ChannelContext::make_channel))
+        .def("make_channel", py::overload_cast<specs::UndefinedChannel>(&ChannelContext::make_channel))
         .def("params", &ChannelContext::params)
         .def("has_zst", &ChannelContext::has_zst);
 

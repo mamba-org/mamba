@@ -12,8 +12,8 @@
 
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/specs/channel_spec.hpp"
 #include "mamba/specs/conda_url.hpp"
+#include "mamba/specs/undefined_channel.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
@@ -36,8 +36,8 @@ namespace mamba
         template <typename Param>
         auto make_unique_chan(std::string_view loc, const Param& params) -> specs::Channel
         {
-            auto spec = specs::ChannelSpec::parse(loc);
-            auto channels = specs::Channel::resolve(std::move(spec), params);
+            auto uc = specs::UndefinedChannel::parse(loc);
+            auto channels = specs::Channel::resolve(std::move(uc), params);
             assert(channels.size() == 1);
             return std::move(channels.front());
         };
@@ -178,8 +178,8 @@ namespace mamba
                 out.reserve(ctx.repodata_has_zst.size());
                 for (const auto& loc : ctx.repodata_has_zst)
                 {
-                    auto spec = specs::ChannelSpec::parse(loc);
-                    auto channels = specs::Channel::resolve(std::move(spec), params);
+                    auto uc = specs::UndefinedChannel::parse(loc);
+                    auto channels = specs::Channel::resolve(std::move(uc), params);
                     for (auto& chan : channels)
                     {
                         out.push_back(std::move(chan));
@@ -214,9 +214,9 @@ namespace mamba
         return { std::move(params), has_zst };
     }
 
-    auto ChannelContext::make_channel(specs::ChannelSpec spec) -> const channel_list&
+    auto ChannelContext::make_channel(specs::UndefinedChannel uc) -> const channel_list&
     {
-        auto str = spec.str();
+        auto str = uc.str();
         if (const auto it = m_channel_cache.find(str); it != m_channel_cache.end())
         {
             return it->second;
@@ -224,7 +224,7 @@ namespace mamba
 
         auto [it, inserted] = m_channel_cache.emplace(
             std::move(str),
-            Channel::resolve(std::move(spec), params())
+            Channel::resolve(std::move(uc), params())
         );
         assert(inserted);
         return it->second;
@@ -239,7 +239,7 @@ namespace mamba
 
         auto [it, inserted] = m_channel_cache.emplace(
             name,
-            Channel::resolve(specs::ChannelSpec::parse(name), params())
+            Channel::resolve(specs::UndefinedChannel::parse(name), params())
         );
         assert(inserted);
         return it->second;

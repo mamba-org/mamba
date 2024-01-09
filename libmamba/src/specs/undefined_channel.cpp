@@ -16,8 +16,8 @@
 
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/archive.hpp"
-#include "mamba/specs/channel_spec.hpp"
 #include "mamba/specs/platform.hpp"
+#include "mamba/specs/undefined_channel.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
@@ -30,12 +30,12 @@ namespace mamba::specs
 
     namespace
     {
-        using dynamic_platform_set = ChannelSpec::dynamic_platform_set;
+        using dynamic_platform_set = UndefinedChannel::dynamic_platform_set;
 
         auto parse_platform_list(std::string_view plats) -> dynamic_platform_set
         {
             static constexpr auto is_not_sep = [](char c) -> bool
-            { return !util::contains(ChannelSpec::platform_separators, c); };
+            { return !util::contains(UndefinedChannel::platform_separators, c); };
 
             auto out = dynamic_platform_set{};
             auto head_rest = util::lstrip_if_parts(plats, is_not_sep);
@@ -44,7 +44,7 @@ namespace mamba::specs
                 // Accepting all strings, so that user can dynamically register new platforms
                 out.insert(util::to_lower(util::strip(head_rest.front())));
                 head_rest = util::lstrip_if_parts(
-                    util::lstrip(head_rest.back(), ChannelSpec::platform_separators),
+                    util::lstrip(head_rest.back(), UndefinedChannel::platform_separators),
                     is_not_sep
                 );
             }
@@ -114,15 +114,15 @@ namespace mamba::specs
         auto is_unknown_channel(std::string_view str) -> bool
         {
             auto it = std::find(
-                ChannelSpec::invalid_channels_lower.cbegin(),
-                ChannelSpec::invalid_channels_lower.cend(),
+                UndefinedChannel::invalid_channels_lower.cbegin(),
+                UndefinedChannel::invalid_channels_lower.cend(),
                 util::to_lower(str)
             );
-            return str.empty() || (it != ChannelSpec::invalid_channels_lower.cend());
+            return str.empty() || (it != UndefinedChannel::invalid_channels_lower.cend());
         }
     }
 
-    auto ChannelSpec::parse(std::string_view str) -> ChannelSpec
+    auto UndefinedChannel::parse(std::string_view str) -> UndefinedChannel
     {
         str = util::strip(str);
         if (is_unknown_channel(str))
@@ -155,7 +155,7 @@ namespace mamba::specs
         return { std::move(location), std::move(filters), type };
     }
 
-    ChannelSpec::ChannelSpec(std::string location, dynamic_platform_set filters, Type type)
+    UndefinedChannel::UndefinedChannel(std::string location, dynamic_platform_set filters, Type type)
         : m_location(std::move(location))
         , m_platform_filters(std::move(filters))
         , m_type(type)
@@ -174,55 +174,55 @@ namespace mamba::specs
         }
     }
 
-    auto ChannelSpec::type() const -> Type
+    auto UndefinedChannel::type() const -> Type
     {
         return m_type;
     }
 
-    auto ChannelSpec::location() const& -> const std::string&
+    auto UndefinedChannel::location() const& -> const std::string&
     {
         return m_location;
     }
 
-    auto ChannelSpec::location() && -> std::string
+    auto UndefinedChannel::location() && -> std::string
     {
         return std::move(m_location);
     }
 
-    auto ChannelSpec::clear_location() -> std::string
+    auto UndefinedChannel::clear_location() -> std::string
     {
         return std::exchange(m_location, "");
     }
 
-    auto ChannelSpec::platform_filters() const& -> const dynamic_platform_set&
+    auto UndefinedChannel::platform_filters() const& -> const dynamic_platform_set&
     {
         return m_platform_filters;
     }
 
-    auto ChannelSpec::platform_filters() && -> dynamic_platform_set
+    auto UndefinedChannel::platform_filters() && -> dynamic_platform_set
     {
         return std::move(m_platform_filters);
     }
 
-    auto ChannelSpec::clear_platform_filters() -> dynamic_platform_set
+    auto UndefinedChannel::clear_platform_filters() -> dynamic_platform_set
     {
         return std::exchange(m_platform_filters, {});
     }
 
-    auto ChannelSpec::str() const -> std::string
+    auto UndefinedChannel::str() const -> std::string
     {
         return fmt::format("{}", *this);
     }
 }
 
 auto
-fmt::formatter<mamba::specs::ChannelSpec>::format(const ChannelSpec& spec, format_context& ctx) const
+fmt::formatter<mamba::specs::UndefinedChannel>::format(const UndefinedChannel& uc, format_context& ctx) const
     -> format_context::iterator
 {
-    auto out = fmt::format_to(ctx.out(), "{}", spec.location());
-    if (!spec.platform_filters().empty())
+    auto out = fmt::format_to(ctx.out(), "{}", uc.location());
+    if (!uc.platform_filters().empty())
     {
-        out = fmt::format_to(ctx.out(), "[{}]", fmt::join(spec.platform_filters(), ","));
+        out = fmt::format_to(ctx.out(), "[{}]", fmt::join(uc.platform_filters(), ","));
     }
     return out;
 }

@@ -91,11 +91,13 @@ Similarily the :cpp:func:`CondaURL.pretty_str <mamba::specs::CondaURL::pretty_st
 user-friendly string, but that may not be parsed back.
 
 
-ChannelSpec
------------
+UndefinedChannel
+----------------
 
-A :cpp:type:`ChannelSpec <mamba::specs::ChannelSpec>` is a lightweight object to represent a
-channel string, as in passed in the CLI or configuration.
+A :cpp:type:`UndefinedChannel <mamba::specs::UndefinedChannel>` is a lightweight object to represent
+a channel string, as in passed in the CLI or configuration.
+Since channels rely heavily on configuration options, this type can be used as a placeholder for a
+channel that has not been fully "resolved" to a specific location.
 It does minimal parsing and can detect the type of ressource (an unresolved name, a URL, a file)
 and the platform filters.
 
@@ -103,11 +105,11 @@ and the platform filters.
 
    import libmambapy.specs as specs
 
-   cs = specs.ChannelSpec.parse("https://conda.anaconda.org/conda-forge/linux-64")
+   uc = specs.UndefinedChannel.parse("https://conda.anaconda.org/conda-forge/linux-64")
 
-   assert cs.location == "https://conda.anaconda.org/conda-forge"
-   assert cs.platform_filters == {"linux-64"}
-   assert cs.type == specs.ChannelSpec.Type.URL
+   assert uc.location == "https://conda.anaconda.org/conda-forge"
+   assert uc.platform_filters == {"linux-64"}
+   assert uc.type == specs.UndefinedChannel.Type.URL
 
 Dynamic platforms (as in not known by Mamba) can only be detected with the ``[]`` syntax.
 
@@ -115,11 +117,11 @@ Dynamic platforms (as in not known by Mamba) can only be detected with the ``[]`
 
    import libmambapy.specs as specs
 
-   cs = specs.ChannelSpec.parse("conda-forge[prius-avx42]")
+   uc = specs.UndefinedChannel.parse("conda-forge[prius-avx42]")
 
-   assert cs.location == "conda-forge"
-   assert cs.platform_filters == {"prius-avx42"}
-   assert cs.type == specs.ChannelSpec.Type.Name
+   assert uc.location == "conda-forge"
+   assert uc.platform_filters == {"prius-avx42"}
+   assert uc.type == specs.UndefinedChannel.Type.Name
 
 
 Channel
@@ -130,7 +132,7 @@ A display name is also available, but is not considered a stable identifiaction 
 channel, since it depends on the many configuration parameters, such as the channel alias.
 
 We construct a :cpp:type:`Channel <mamba::specs::Channel>` by *resolving* a
-:cpp:type:`ChannelSpec <mamba::specs::ChannelSpec>`.
+:cpp:type:`UndefinedChannel <mamba::specs::UndefinedChannel>`.
 All parameters that influence this resolution must be provided explicitly.
 
 
@@ -138,15 +140,15 @@ All parameters that influence this resolution must be provided explicitly.
 
    import libmambapy.specs as specs
 
-   cs = specs.ChannelSpec.parse("conda-forge[prius-avx42]")
+   uc = specs.UndefinedChannel.parse("conda-forge[prius-avx42]")
    chan, *_ = specs.Channel.resolve(
-       spec=cs,
+       uc,
        channel_alias="https://repo.mamba.pm"
        # ...
    )
 
    assert chan.url.str() == "https://repo.mamba.pm/conda-forge"
-   assert cs.platforms == {"prius-avx42"}
+   assert chan.platforms == {"prius-avx42"}
    assert chan.display_name == "conda-forge[prius-avx42]"
 
 There are no hard-coded names:
@@ -155,9 +157,9 @@ There are no hard-coded names:
 
    import libmambapy.specs as specs
 
-   cs = specs.ChannelSpec.parse("defaults")
+   uc = specs.UndefinedChannel.parse("defaults")
    chan, *_ = specs.Channel.resolve(
-       spec=cs,
+       uc,
        channel_alias="https://repo.mamba.pm"
        # ...
    )
@@ -174,16 +176,16 @@ This is because of custom multichannel, a single name can return mutliple channe
    import libmambapy.specs as specs
 
    chan_main, *_ = specs.Channel.resolve(
-       spec=specs.ChannelSpec.parse("pkgs/main"),
+       specs.UndefinedChannel.parse("pkgs/main"),
        # ...
    )
    chan_r, *_ = specs.Channel.resolve(
-       spec=specs.ChannelSpec.parse("pkgs/r"),
+       specs.UndefinedChannel.parse("pkgs/r"),
        # ...
    )
 
    defaults = specs.Channel.resolve(
-       spec=specs.ChannelSpec.parse("defaults"),
+       specs.UndefinedChannel.parse("defaults"),
        custom_multichannels=specs.Channel.MultiChannelMap(
            {"defaults": [chan_main, chan_r]}
        ),

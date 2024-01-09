@@ -105,7 +105,7 @@ namespace mamba
         }
 
         auto ms_modified = ms;
-        ms_modified.set_channel(specs::ChannelSpec::parse(solvable->channel()));
+        ms_modified.set_channel(specs::UndefinedChannel::parse(solvable->channel()));
         ms_modified.set_version(specs::VersionSpec::parse(solvable->version()));
         ms_modified.set_build_string(specs::GlobSpec(std::string(solvable->build_string())));
 

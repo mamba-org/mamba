@@ -29,7 +29,7 @@ namespace mamba::specs
         };
 
         auto out = MatchSpec();
-        out.m_channel = ChannelSpec::parse(spec);
+        out.m_channel = UndefinedChannel::parse(spec);
         auto [_, pkg] = util::rsplit_once(out.m_channel->location(), '/');
         out.m_filename = std::string(pkg);
         out.m_url = util::path_or_url_to_url(spec);
@@ -170,7 +170,7 @@ namespace mamba::specs
         std::string channel_str;
         if (m5_len == 3)
         {
-            out.m_channel = ChannelSpec::parse(m5[0]);
+            out.m_channel = UndefinedChannel::parse(m5[0]);
             out.m_name_space = m5[1];
             spec_str = m5[2];
         }
@@ -257,18 +257,18 @@ namespace mamba::specs
         }
         if (const auto& val = at_or(extra, "channel", ""); !val.empty())
         {
-            out.set_channel(ChannelSpec::parse(val));
+            out.set_channel(UndefinedChannel::parse(val));
         }
         if (const auto& val = at_or(extra, "subdir", ""); !val.empty())
         {
             if (!out.m_channel.has_value())
             {
-                out.m_channel = ChannelSpec("", { val }, ChannelSpec::Type::Unknown);
+                out.m_channel = UndefinedChannel("", { val }, UndefinedChannel::Type::Unknown);
             }
             // Subdirs specified in the channel part have higher precedence
             else if (out.m_channel->platform_filters().empty())
             {
-                out.m_channel = ChannelSpec(
+                out.m_channel = UndefinedChannel(
                     out.m_channel->clear_location(),
                     { val },
                     out.m_channel->type()
@@ -311,12 +311,12 @@ namespace mamba::specs
         return out;
     }
 
-    auto MatchSpec::channel() const -> const std::optional<ChannelSpec>&
+    auto MatchSpec::channel() const -> const std::optional<UndefinedChannel>&
     {
         return m_channel;
     }
 
-    void MatchSpec::set_channel(std::optional<ChannelSpec> chan)
+    void MatchSpec::set_channel(std::optional<UndefinedChannel> chan)
     {
         m_channel = std::move(chan);
     }

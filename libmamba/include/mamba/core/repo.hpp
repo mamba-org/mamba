@@ -119,7 +119,6 @@ namespace mamba
 
         void clear(bool reuse_ids = true);
         void load_file(const fs::u8path& filename, RepodataParser parser, LibsolvCache use_cache);
-        bool read_solv(const fs::u8path& filename);
         void write_solv(fs::u8path path);
 
         MPool m_pool;

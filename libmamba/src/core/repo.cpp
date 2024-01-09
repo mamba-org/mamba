@@ -420,6 +420,47 @@ namespace mamba
                 set_repo_solvables(pool, repo, repo_url, parsed_url, default_subdir, pkgs.value());
             }
         }
+
+        [[nodiscard]] auto
+        read_solv(solv::ObjRepoView repo, const fs::u8path& filename, const RepoMetadata& expected)
+            -> bool
+        {
+            LOG_INFO << "Attempting to read libsolv solv file " << filename << " for repo "
+                     << repo.name();
+
+            auto lock = LockFile(filename);
+            repo.read(filename);
+
+            const auto read_metadata = RepoMetadata{
+                /* .url= */ std::string(repo.url()),
+                /* .etag= */ std::string(repo.etag()),
+                /* .mod= */ std::string(repo.mod()),
+                /* .pip_added= */ repo.pip_added(),
+            };
+            const auto tool_version = repo.tool_version();
+
+            {
+                auto j = nlohmann::json(expected);
+                j["tool_version"] = tool_version;
+                LOG_INFO << "Expecting solv metadata : " << j.dump();
+            }
+            {
+                auto j = nlohmann::json(read_metadata);
+                j["tool_version"] = tool_version;
+                LOG_INFO << "Loaded solv metadata : " << j.dump();
+            }
+
+            if ((tool_version != std::string_view(MAMBA_SOLV_VERSION))
+                || (read_metadata == RepoMetadata{}) || (read_metadata != expected))
+            {
+                LOG_INFO << "Metadata from solv are NOT valid, canceling solv file load";
+                repo.clear(/* reuse_ids= */ false);
+                return false;
+            }
+
+            LOG_INFO << "Metadata from solv are valid, loading successful";
+            return true;
+        }
     }
 
     MRepo::MRepo(
@@ -502,46 +543,6 @@ namespace mamba
         return m_repo;
     }
 
-    bool MRepo::read_solv(const fs::u8path& filename)
-    {
-        LOG_INFO << "Attempting to read libsolv solv file " << filename << " for repo " << name();
-
-        auto repo = srepo(*this);
-
-        auto lock = LockFile(filename);
-        repo.read(filename);
-
-        const auto read_metadata = RepoMetadata{
-            /* .url= */ std::string(repo.url()),
-            /* .etag= */ std::string(repo.etag()),
-            /* .mod= */ std::string(repo.mod()),
-            /* .pip_added= */ repo.pip_added(),
-        };
-        const auto tool_version = repo.tool_version();
-
-        {
-            auto j = nlohmann::json(m_metadata);
-            j["tool_version"] = tool_version;
-            LOG_INFO << "Expecting solv metadata : " << j.dump();
-        }
-        {
-            auto j = nlohmann::json(read_metadata);
-            j["tool_version"] = tool_version;
-            LOG_INFO << "Loaded solv metadata : " << j.dump();
-        }
-
-        if ((tool_version != std::string_view(MAMBA_SOLV_VERSION))
-            || (read_metadata == RepoMetadata{}) || (read_metadata != m_metadata))
-        {
-            LOG_INFO << "Metadata from solv are NOT valid, canceling solv file load";
-            repo.clear(/* reuse_ids= */ false);
-            return false;
-        }
-
-        LOG_INFO << "Metadata from solv are valid, loading successful";
-        return true;
-    }
-
     void MRepo::load_file(const fs::u8path& filename, RepodataParser parser, LibsolvCache use_cache)
     {
         auto repo = srepo(*this);
@@ -559,7 +560,7 @@ namespace mamba
         if (!util::on_win && is_solv && (use_cache == LibsolvCache::Yes))
         {
             const auto lock = LockFile(solv_file);
-            const bool read = read_solv(solv_file);
+            const bool read = read_solv(repo, solv_file, m_metadata);
             if (read)
             {
                 set_solvables_url(repo, m_metadata.url);

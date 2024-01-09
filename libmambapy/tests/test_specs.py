@@ -699,6 +699,13 @@ def test_PackageInfo():
     # str
     assert str(pkg) == "pkg-1.0-bld"
 
+    # from_url
+    pkg = PackageInfo.from_url("https://repo.mamba.pm/conda-forge/linux-64/bar-5.1-xld.conda#01234")
+    assert pkg.name == "bar"
+    assert pkg.version == "5.1"
+    assert pkg.build_string == "xld"
+    assert pkg.md5 == "01234"
+
     # getters and setters
     pkg.name = "foo"
     assert pkg.name == "foo"

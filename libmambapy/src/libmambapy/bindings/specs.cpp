@@ -579,6 +579,7 @@ namespace mambapy
             .def("__deepcopy__", &deepcopy<VersionSpec>, py::arg("memo"));
 
         py::class_<PackageInfo>(m, "PackageInfo")
+            .def_static("from_url", PackageInfo::from_url)
             .def(
                 py::init<std::string, std::string, std::string, std::size_t>(),
                 py::arg("name") = "",

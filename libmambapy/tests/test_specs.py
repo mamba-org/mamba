@@ -233,8 +233,8 @@ def test_CondaURL_op():
     assert (url / "file.txt").path() == "/folder/file.txt"
 
 
-def test_ChannelSpec_Type():
-    Type = libmambapy.specs.ChannelSpec.Type
+def test_UnresolvedChannel_Type():
+    Type = libmambapy.specs.UnresolvedChannel.Type
 
     assert Type.URL.name == "URL"
     assert Type.PackageURL.name == "PackageURL"
@@ -245,33 +245,33 @@ def test_ChannelSpec_Type():
     assert Type("Name").name == "Name"
 
 
-def test_ChannelSpec():
-    ChannelSpec = libmambapy.specs.ChannelSpec
+def test_UnresolvedChannel():
+    UnresolvedChannel = libmambapy.specs.UnresolvedChannel
 
     # Constructor
-    spec = ChannelSpec(
+    uc = UnresolvedChannel(
         location="<unknown>",
         platform_filters=set(),
-        type=ChannelSpec.Type.Unknown,
+        type=UnresolvedChannel.Type.Unknown,
     )
-    assert spec.location == "<unknown>"
-    assert spec.platform_filters == set()
-    assert spec.type == ChannelSpec.Type.Unknown
+    assert uc.location == "<unknown>"
+    assert uc.platform_filters == set()
+    assert uc.type == UnresolvedChannel.Type.Unknown
 
     # Enum cast
-    spec = ChannelSpec(location="conda-forge", platform_filters=set(), type="Name")
-    assert spec.type == ChannelSpec.Type.Name
+    uc = UnresolvedChannel(location="conda-forge", platform_filters=set(), type="Name")
+    assert uc.type == UnresolvedChannel.Type.Name
 
     #  Parser
-    spec = ChannelSpec.parse("conda-forge[linux-64]")
-    assert spec.location == "conda-forge"
-    assert spec.platform_filters == {"linux-64"}
-    assert spec.type == ChannelSpec.Type.Name
+    uc = UnresolvedChannel.parse("conda-forge[linux-64]")
+    assert uc.location == "conda-forge"
+    assert uc.platform_filters == {"linux-64"}
+    assert uc.type == UnresolvedChannel.Type.Name
 
     #  Copy
-    other = copy.deepcopy(spec)
-    assert other.location == spec.location
-    assert other is not spec
+    other = copy.deepcopy(uc)
+    assert other.location == uc.location
+    assert other is not uc
 
 
 def test_BasicHTTPAuthentication():
@@ -489,7 +489,7 @@ def test_Channel():
 
 def test_Channel_resolve():
     Channel = libmambapy.specs.Channel
-    ChannelSpec = libmambapy.specs.ChannelSpec
+    UnresolvedChannel = libmambapy.specs.UnresolvedChannel
     CondaURL = libmambapy.specs.CondaURL
     AuthenticationDataBase = libmambapy.specs.AuthenticationDataBase
     BearerToken = libmambapy.specs.BearerToken
@@ -501,7 +501,7 @@ def test_Channel_resolve():
     cwd = "/tmp/workspace"
 
     chans = Channel.resolve(
-        spec=ChannelSpec.parse("conda-forge"),
+        what=UnresolvedChannel.parse("conda-forge"),
         platforms=platforms,
         channel_alias=channel_alias,
         authentication_db=auth_db,
@@ -518,7 +518,7 @@ def test_Channel_resolve():
     # Custom channel match
     custom_channels = Channel.ChannelMap({"best-forge": chan_1})
     chans = Channel.resolve(
-        spec=ChannelSpec.parse("best-forge"),
+        what=UnresolvedChannel.parse("best-forge"),
         platforms=platforms,
         channel_alias=channel_alias,
         custom_channels=custom_channels,
@@ -533,7 +533,7 @@ def test_Channel_resolve():
     # Custom multi channel match
     custom_multichannels = Channel.MultiChannelMap({"known-forges": [chan_1, chan_2]})
     chans = Channel.resolve(
-        spec=ChannelSpec.parse("known-forges"),
+        what=UnresolvedChannel.parse("known-forges"),
         platforms=platforms,
         channel_alias=channel_alias,
         custom_channels=custom_channels,

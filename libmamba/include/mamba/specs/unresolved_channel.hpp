@@ -4,8 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef MAMBA_SPECS_CHANNEL_SPEC_HPP
-#define MAMBA_SPECS_CHANNEL_SPEC_HPP
+#ifndef MAMBA_SPECS_UNRESOLVED_CHANNEL_HPP
+#define MAMBA_SPECS_UNRESOLVED_CHANNEL_HPP
 
 #include <array>
 #include <string>
@@ -19,18 +19,20 @@
 namespace mamba::specs
 {
     /**
-     * Channel specification.
+     * Unresolved Channel specification.
      *
-     * This represent the string that is passed by the user to select a channel.
-     * It needs to be resolved in order to get a final URL/path.
-     * This is even true when a full URL or path is given, as some authentification information
+     * This represent an unverified channel string passed by the user, or written through files.
+     * Due the the heavy reliance of channels on configuration options, this placeholder type
+     * can be used to represent channel inputs that have not been "resolved" to s specific
+     * location.
+     * This can even be true when a full URL or path is given, as some authentification information
      * may come from login database.
      *
      * Note that for a string to be considered a URL, it must have an explicit scheme.
      * So "repo.anaconda.com" is considered a name, similarily to "conda-forge" and not a URL.
      * This is because otherwise it is not possible to tell names and URL appart.
      */
-    class ChannelSpec
+    class UnresolvedChannel
     {
     public:
 
@@ -86,10 +88,10 @@ namespace mamba::specs
 
         using dynamic_platform_set = util::flat_set<std::string>;
 
-        [[nodiscard]] static auto parse(std::string_view str) -> ChannelSpec;
+        [[nodiscard]] static auto parse(std::string_view str) -> UnresolvedChannel;
 
-        ChannelSpec() = default;
-        ChannelSpec(std::string location, dynamic_platform_set filters, Type type);
+        UnresolvedChannel() = default;
+        UnresolvedChannel(std::string location, dynamic_platform_set filters, Type type);
 
         [[nodiscard]] auto type() const -> Type;
 
@@ -112,9 +114,9 @@ namespace mamba::specs
 }
 
 template <>
-struct fmt::formatter<mamba::specs::ChannelSpec>
+struct fmt::formatter<mamba::specs::UnresolvedChannel>
 {
-    using ChannelSpec = ::mamba::specs::ChannelSpec;
+    using UnresolvedChannel = ::mamba::specs::UnresolvedChannel;
 
     constexpr auto parse(format_parse_context& ctx) -> format_parse_context::iterator
     {
@@ -126,7 +128,7 @@ struct fmt::formatter<mamba::specs::ChannelSpec>
         return ctx.begin();
     }
 
-    auto format(const ChannelSpec& spec, format_context& ctx) const -> format_context::iterator;
+    auto format(const UnresolvedChannel& uc, format_context& ctx) const -> format_context::iterator;
 };
 
 #endif

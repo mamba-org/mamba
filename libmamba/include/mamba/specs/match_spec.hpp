@@ -12,8 +12,8 @@
 #include <string_view>
 
 #include "mamba/specs/build_number_spec.hpp"
-#include "mamba/specs/channel_spec.hpp"
 #include "mamba/specs/glob_spec.hpp"
+#include "mamba/specs/unresolved_channel.hpp"
 #include "mamba/specs/version_spec.hpp"
 #include "mamba/util/heap_optional.hpp"
 
@@ -30,8 +30,8 @@ namespace mamba::specs
 
         [[nodiscard]] static auto parse_url(std::string_view spec) -> MatchSpec;
 
-        [[nodiscard]] auto channel() const -> const std::optional<ChannelSpec>&;
-        void set_channel(std::optional<ChannelSpec> chan);
+        [[nodiscard]] auto channel() const -> const std::optional<UnresolvedChannel>&;
+        void set_channel(std::optional<UnresolvedChannel> chan);
 
         [[nodiscard]] auto name_space() const -> const std::string&;
         void set_name_space(std::string ns);
@@ -93,14 +93,14 @@ namespace mamba::specs
             bool optional = false;
         };
 
-        std::optional<ChannelSpec> m_channel;
+        std::optional<UnresolvedChannel> m_channel;
         VersionSpec m_version;
         NameSpec m_name;
         BuildStringSpec m_build_string;
         std::string m_name_space;
         BuildNumberSpec m_build_number;
         util::heap_optional<ExtraMembers> m_extra = {};  // unlikely data
-        // TODO can put inside channel spec
+        // TODO can put inside channel
         std::string m_filename;
         std::string m_url;
 

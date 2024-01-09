@@ -89,7 +89,8 @@ namespace mamba
             return solv::ObjRepoView{ *r.repo() };
         }
 
-        void set_solvable(MPool& pool, solv::ObjSolvableView solv, const specs::PackageInfo& pkg)
+        void
+        set_solvable(solv::ObjPool& pool, solv::ObjSolvableView solv, const specs::PackageInfo& pkg)
         {
             solv.set_name(pkg.name);
             solv.set_version(pkg.version);
@@ -118,7 +119,7 @@ namespace mamba
             for (const auto& dep : pkg.depends)
             {
                 // TODO pool's matchspec2id
-                const solv::DependencyId dep_id = pool_conda_matchspec(pool, dep.c_str());
+                const solv::DependencyId dep_id = pool.add_conda_dependency(dep);
                 assert(dep_id);
                 solv.add_dependency(dep_id);
             }
@@ -126,7 +127,7 @@ namespace mamba
             for (const auto& cons : pkg.constrains)
             {
                 // TODO pool's matchspec2id
-                const solv::DependencyId dep_id = pool_conda_matchspec(pool, cons.c_str());
+                const solv::DependencyId dep_id = pool.add_conda_dependency(cons);
                 assert(dep_id);
                 solv.add_constraint(dep_id);
             }
@@ -144,7 +145,7 @@ namespace mamba
         }
 
         [[nodiscard]] auto set_solvable(
-            MPool& pool,
+            solv::ObjPool& pool,
             const std::string& repo_url_str,
             const specs::CondaURL& repo_url,
             solv::ObjSolvableView solv,
@@ -254,7 +255,7 @@ namespace mamba
                 {
                     if (auto dep = elem.get_c_str(); !dep.error())
                     {
-                        if (const auto dep_id = pool_conda_matchspec(pool, dep.value_unsafe()))
+                        if (const auto dep_id = pool.add_conda_dependency(dep.value_unsafe()))
                         {
                             solv.add_dependency(dep_id);
                         }
@@ -268,7 +269,7 @@ namespace mamba
                 {
                     if (auto cons = elem.get_c_str(); !cons.error())
                     {
-                        if (const auto dep_id = pool_conda_matchspec(pool, cons.value_unsafe()))
+                        if (const auto dep_id = pool.add_conda_dependency(cons.value_unsafe()))
                         {
                             solv.add_constraint(dep_id);
                         }
@@ -304,7 +305,7 @@ namespace mamba
         }
 
         void set_repo_solvables(
-            MPool& pool,
+            solv::ObjPool& pool,
             solv::ObjRepoView repo,
             const std::string& repo_url_str,
             const specs::CondaURL& repo_url,
@@ -387,7 +388,7 @@ namespace mamba
         {
             LOG_INFO << "Adding package record to repo " << info.name;
             auto [id, solv] = srepo(*this).add_solvable();
-            set_solvable(m_pool, solv, info);
+            set_solvable(m_pool.pool(), solv, info);
         }
         repo.internalize();
     }
@@ -402,7 +403,7 @@ namespace mamba
         {
             LOG_INFO << "Adding package record to repo " << record.name;
             auto [id, solv] = srepo(*this).add_solvable();
-            set_solvable(m_pool, solv, record);
+            set_solvable(m_pool.pool(), solv, record);
         }
 
         if (pool.context().add_pip_as_python_dependency)
@@ -488,7 +489,7 @@ namespace mamba
         if (auto pkgs = repodata["packages"].get_object(); !pkgs.error())
         {
             set_repo_solvables(
-                m_pool,
+                m_pool.pool(),
                 srepo(*this),
                 m_metadata.url,
                 repo_url,
@@ -501,7 +502,7 @@ namespace mamba
             !pkgs.error() && !m_pool.context().use_only_tar_bz2)
         {
             set_repo_solvables(
-                m_pool,
+                m_pool.pool(),
                 srepo(*this),
                 m_metadata.url,
                 repo_url,

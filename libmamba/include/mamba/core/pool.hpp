@@ -18,6 +18,7 @@ namespace mamba
 {
     class ChannelContext;
     class Context;
+    class PrefixData;
 
     namespace solv
     {
@@ -84,6 +85,8 @@ namespace mamba
          *    - Facilitate (potential) future investigation of parallel solves.
          */
         std::shared_ptr<MPoolData> m_data;
+
+        friend class MPool;
     };
 }  // namespace mamba
 

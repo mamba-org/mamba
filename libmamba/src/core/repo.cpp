@@ -482,6 +482,7 @@ namespace mamba
             repo.set_tool_version(solv_bin_version);
             repo.internalize();
 
+            fs::create_directories(filename.parent_path());
             const auto lock = LockFile(fs::exists(filename) ? filename : filename.parent_path());
             repo.write(filename);
         }

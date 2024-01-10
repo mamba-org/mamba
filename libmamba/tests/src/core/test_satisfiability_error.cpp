@@ -361,7 +361,7 @@ namespace
 
         for (auto& sub_dir : sub_dirs)
         {
-            sub_dir.create_repo(pool);
+            auto repo = load_subdir_in_pool(ctx, pool, sub_dir);
         }
     }
 

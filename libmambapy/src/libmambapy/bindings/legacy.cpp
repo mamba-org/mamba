@@ -622,8 +622,9 @@ bind_submodule_impl(pybind11::module_ m)
     py::class_<MSubdirData>(m, "SubdirData")
         .def(
             "create_repo",
+            // TODO deprecate in favor of `load_subdir in pool`
             [](MSubdirData& subdir, MPool& pool) -> MRepo
-            { return extract(subdir.create_repo(pool)); }
+            { return extract(load_subdir_in_pool(mambapy::singletons.context(), pool, subdir)); }
         )
         .def("loaded", &MSubdirData::is_loaded)
         .def(

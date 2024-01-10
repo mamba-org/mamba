@@ -12,6 +12,7 @@
 
 #include <solv/pooltypes.h>
 
+#include "mamba/core/error_handling.hpp"
 #include "mamba/specs/package_info.hpp"
 
 namespace mamba
@@ -19,6 +20,7 @@ namespace mamba
     class ChannelContext;
     class Context;
     class PrefixData;
+    class MSubdirData;
     class MRepo;
 
     namespace solv
@@ -89,6 +91,10 @@ namespace mamba
          */
         std::shared_ptr<MPoolData> m_data;
     };
-}  // namespace mamba
+
+    // TODO machinery functions in separate files
+    auto load_subdir_in_pool(const Context& ctx, MPool& pool, const MSubdirData& subdir)
+        -> expected_t<MRepo>;
+}
 
 #endif  // MAMBA_POOL_HPP

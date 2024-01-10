@@ -15,7 +15,6 @@
 #include "mamba/core/download.hpp"
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/package_cache.hpp"
-#include "mamba/core/repo.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/fs/filesystem.hpp"
 
@@ -124,6 +123,9 @@ namespace mamba
         void clear_cache();
 
         const std::string& name() const;
+
+        const MSubdirMetadata& metadata() const;
+
         expected_t<std::string> cache_path() const;
 
         static expected_t<void> download_indexes(
@@ -132,8 +134,6 @@ namespace mamba
             DownloadMonitor* check_monitor = nullptr,
             DownloadMonitor* download_monitor = nullptr
         );
-
-        expected_t<MRepo> create_repo(MPool& pool) const;
 
     private:
 

@@ -11,6 +11,9 @@
 #include <solv/pool.h>
 #include <solv/selection.h>
 #include <solv/solver.h>
+
+#include "mamba/core/subdirdata.hpp"
+#include "mamba/util/string.hpp"
 extern "C"  // Incomplete header
 {
 #include <solv/conda.h>
@@ -362,4 +365,28 @@ namespace mamba
     {
         pool().set_installed_repo(repo.id());
     }
-}  // namespace mamba
+
+    // TODO machinery functions in separate files
+    auto load_subdir_in_pool(const Context& ctx, MPool& pool, const MSubdirData& subdir)
+        -> expected_t<MRepo>
+    {
+        auto meta = solver::libsolv::RepodataOrigin{
+            /* .url= */ util::rsplit(subdir.metadata().url(), "/", 1).front(),
+            /* .etag= */ subdir.metadata().etag(),
+            /* .mod= */ subdir.metadata().last_modified(),
+        };
+
+        auto cache = subdir.cache_path();  // Dynamic cache path, either .solv or .json
+        if (!cache)
+        {
+            return forward_error(cache);
+        }
+        return { MRepo(
+            pool,
+            subdir.name(),
+            *cache,
+            meta,
+            static_cast<MRepo::PipAsPythonDependency>(ctx.add_pip_as_python_dependency)
+        ) };
+    }
+}

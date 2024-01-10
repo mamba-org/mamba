@@ -449,6 +449,11 @@ namespace mamba
         return m_name;
     }
 
+    const MSubdirMetadata& MSubdirData::metadata() const
+    {
+        return m_metadata;
+    }
+
     expected_t<std::string> MSubdirData::cache_path() const
     {
         // TODO invalidate solv cache on version updates!!
@@ -509,27 +514,6 @@ namespace mamba
         }
 
         return expected_t<void>();
-    }
-
-    expected_t<MRepo> MSubdirData::create_repo(MPool& pool) const
-    {
-        using return_type = expected_t<MRepo>;
-
-        auto meta = solver::libsolv::RepodataOrigin{
-            /* .url= */ util::rsplit(m_metadata.url(), "/", 1).front(),
-            /* .etag= */ m_metadata.etag(),
-            /* .mod= */ m_metadata.last_modified(),
-        };
-
-        const auto cache = cache_path();
-        return cache ? return_type(MRepo(
-                   pool,
-                   m_name,
-                   *cache,
-                   meta,
-                   static_cast<MRepo::PipAsPythonDependency>(p_context->add_pip_as_python_dependency)
-               ))
-                     : return_type(forward_error(cache));
     }
 
     MSubdirData::MSubdirData(

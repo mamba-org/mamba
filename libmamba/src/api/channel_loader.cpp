@@ -200,7 +200,7 @@ namespace mamba
                 continue;
             }
 
-            auto repo = subdir.create_repo(pool);
+            auto repo = load_subdir_in_pool(ctx, pool, subdir);
             if (repo)
             {
                 auto& prio = priorities[i];

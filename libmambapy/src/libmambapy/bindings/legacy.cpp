@@ -347,9 +347,9 @@ bind_submodule_impl(pybind11::module_ m)
             ) { return MRepo(pool, name, filename, { /* .url=*/url }); }
         ))
         .def("set_priority", &MRepo::set_priority)
-        .def("name", &MRepo::py_name)
+        .def("name", &MRepo::name)
         .def("priority", &MRepo::py_priority)
-        .def("size", &MRepo::py_size);
+        .def("package_count", &MRepo::package_count);
 
     py::class_<MTransaction>(m, "Transaction")
         .def(py::init<>(

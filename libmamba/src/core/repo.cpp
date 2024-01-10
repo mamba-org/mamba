@@ -542,6 +542,16 @@ namespace mamba
         return srepo(*this).name();
     }
 
+    auto MRepo::py_priority() const -> std::tuple<int, int>
+    {
+        return std::make_tuple(m_repo->priority, m_repo->subpriority);
+    }
+
+    auto MRepo::package_count() const -> std::size_t
+    {
+        return srepo(*this).solvable_count();
+    }
+
     Id MRepo::id() const
     {
         return srepo(*this).id();
@@ -606,20 +616,5 @@ namespace mamba
         {
             write_solv(repo, solv_file, metadata, MAMBA_SOLV_VERSION);
         }
-    }
-
-    auto MRepo::py_name() const -> std::string_view
-    {
-        return name();
-    }
-
-    auto MRepo::py_priority() const -> std::tuple<int, int>
-    {
-        return std::make_tuple(m_repo->priority, m_repo->subpriority);
-    }
-
-    auto MRepo::py_size() const -> std::size_t
-    {
-        return srepo(*this).solvable_count();
     }
 }  // namespace mamba

@@ -92,15 +92,15 @@ namespace mamba
 
         [[nodiscard]] auto repo() const -> Repo*;
 
-        [[deprecated]] auto py_name() const -> std::string_view;
+        [[nodiscard]] auto name() const -> std::string_view;
+
+        [[nodiscard]] auto package_count() const -> std::size_t;
+
         [[deprecated]] auto py_priority() const -> std::tuple<int, int>;
-        [[deprecated]] auto py_size() const -> std::size_t;
 
     private:
 
         Repo* m_repo = nullptr;  // This is a view managed by libsolv pool
-
-        auto name() const -> std::string_view;
 
         void load_file(
             MPool& pool,

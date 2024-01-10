@@ -5,7 +5,6 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <array>
-#include <optional>
 #include <string_view>
 #include <tuple>
 
@@ -40,42 +39,6 @@ extern "C"  // Incomplete header
 
 namespace mamba
 {
-    // namespace nl = nlohmann;
-
-    // namespace
-    // {
-    //     auto attrs(const RepoMetadata& m)
-    //     {
-    //         return std::tie(m.url, m.etag, m.mod, m.pip_added);
-    //     }
-    // }
-    //
-    // auto operator==(const RepoMetadata& lhs, const RepoMetadata& rhs) -> bool
-    // {
-    //     return attrs(lhs) == attrs(rhs);
-    // }
-    //
-    // auto operator!=(const RepoMetadata& lhs, const RepoMetadata& rhs) -> bool
-    // {
-    //     return !(lhs == rhs);
-    // }
-    //
-    // void to_json(nlohmann::json& j, const RepoMetadata& m)
-    // {
-    //     j["url"] = m.url;
-    //     j["etag"] = m.etag;
-    //     j["mod"] = m.mod;
-    //     j["pip_added"] = m.pip_added;
-    // }
-    //
-    // void from_json(const nlohmann::json& j, RepoMetadata& m)
-    // {
-    //     m.url = j.value("url", m.url);
-    //     m.etag = j.value("etag", m.etag);
-    //     m.mod = j.value("mod", m.mod);
-    //     m.pip_added = j.value("pip_added", m.pip_added);
-    // }
-
     namespace
     {
         // Keeping the solv-cpp header private
@@ -522,7 +485,6 @@ namespace mamba
             const auto lock = LockFile(fs::exists(filename) ? filename : filename.parent_path());
             repo.write(filename);
         }
-
     }
 
     MRepo::MRepo(

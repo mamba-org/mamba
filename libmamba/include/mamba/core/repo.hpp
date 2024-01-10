@@ -11,8 +11,6 @@
 #include <tuple>
 #include <vector>
 
-#include <nlohmann/json_fwd.hpp>
-
 #include "mamba/solver/libsolv/serialization.hpp"
 
 extern "C"

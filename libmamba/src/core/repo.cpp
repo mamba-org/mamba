@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <array>
+#include <optional>
 #include <string_view>
 #include <tuple>
 
@@ -518,7 +519,7 @@ namespace mamba
             repo.set_tool_version(solv_bin_version);
             repo.internalize();
 
-            const auto lock = LockFile(filename);
+            const auto lock = LockFile(fs::exists(filename) ? filename : filename.parent_path());
             repo.write(filename);
         }
 

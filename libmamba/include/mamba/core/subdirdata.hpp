@@ -126,6 +126,10 @@ namespace mamba
 
         const MSubdirMetadata& metadata() const;
 
+        expected_t<fs::u8path> valid_solv_cache() const;
+        expected_t<fs::u8path> valid_json_cache() const;
+
+        [[deprecated("since version 2.0 use ``valid_solv_cache`` or ``valid_json_cache`` instead")]]
         expected_t<std::string> cache_path() const;
 
         static expected_t<void> download_indexes(

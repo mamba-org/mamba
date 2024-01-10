@@ -13,6 +13,7 @@
 #include <solv/pooltypes.h>
 
 #include "mamba/core/error_handling.hpp"
+#include "mamba/core/repo.hpp"
 #include "mamba/specs/package_info.hpp"
 
 namespace mamba
@@ -21,7 +22,11 @@ namespace mamba
     class Context;
     class PrefixData;
     class MSubdirData;
-    class MRepo;
+
+    namespace fs
+    {
+        class u8path;
+    }
 
     namespace solv
     {
@@ -66,6 +71,21 @@ namespace mamba
         const solv::ObjPool& pool() const;
 
         void remove_repo(::Id repo_id, bool reuse_ids);
+
+        auto add_repo_from_repodata_json(
+            const fs::u8path& path,
+            std::string_view url,
+            std::string_view name = "",
+            MRepo::PipAsPythonDependency add = MRepo::PipAsPythonDependency::No,
+            MRepo::RepodataParser parser = MRepo::RepodataParser::Mamba
+        ) -> expected_t<MRepo>;
+
+        auto add_repo_from_native_serialization(
+            const fs::u8path& path,
+            const solver::libsolv::RepodataOrigin& expected,
+            std::string_view name = "",
+            MRepo::PipAsPythonDependency add = MRepo::PipAsPythonDependency::No
+        ) -> expected_t<MRepo>;
 
         void set_installed_repo(const MRepo& repo);
 

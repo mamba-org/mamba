@@ -454,6 +454,24 @@ namespace mamba
         return m_metadata;
     }
 
+    expected_t<fs::u8path> MSubdirData::valid_solv_cache() const
+    {
+        if (m_json_cache_valid && m_solv_cache_valid)
+        {
+            return (get_cache_dir(m_valid_cache_path) / m_solv_fn).string();
+        }
+        return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
+    }
+
+    expected_t<fs::u8path> MSubdirData::valid_json_cache() const
+    {
+        if (m_json_cache_valid)
+        {
+            return (get_cache_dir(m_valid_cache_path) / m_json_fn).string();
+        }
+        return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
+    }
+
     expected_t<std::string> MSubdirData::cache_path() const
     {
         // TODO invalidate solv cache on version updates!!

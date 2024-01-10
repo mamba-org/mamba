@@ -56,11 +56,12 @@ namespace query
 }
 
 void
-deprecated(const char* message)
+deprecated(std::string_view message, std::string_view since_version = "1.5")
 {
     const auto warnings = py::module_::import("warnings");
     const auto builtins = py::module_::import("builtins");
-    warnings.attr("warn")(message, builtins.attr("DeprecationWarning"), py::arg("stacklevel") = 2);
+    auto total_message = fmt::format("Deprecated since version {}: {}", since_version, message);
+    warnings.attr("warn")(total_message, builtins.attr("DeprecationWarning"), py::arg("stacklevel") = 2);
 }
 
 template <typename PyClass>
@@ -622,15 +623,55 @@ bind_submodule_impl(pybind11::module_ m)
     py::class_<MSubdirData>(m, "SubdirData")
         .def(
             "create_repo",
-            // TODO deprecate in favor of `load_subdir in pool`
             [](MSubdirData& subdir, MPool& pool) -> MRepo
-            { return extract(load_subdir_in_pool(mambapy::singletons.context(), pool, subdir)); }
+            {
+                deprecated("Use `load_subdir_in_pool` instead", "2.0");
+                return extract(load_subdir_in_pool(mambapy::singletons.context(), pool, subdir));
+            }
         )
         .def("loaded", &MSubdirData::is_loaded)
         .def(
+            "valid_solv_cache",
+            // TODO make a proper well tested type caster for expected types.
+            [](const MSubdirData& self) -> std::optional<fs::u8path>
+            {
+                if (auto f = self.valid_solv_cache())
+                {
+                    return { *std::move(f) };
+                }
+                return std::nullopt;
+            }
+        )
+        .def(
+            "valid_json_cache",
+            [](const MSubdirData& self) -> std::optional<fs::u8path>
+            {
+                if (auto f = self.valid_json_cache())
+                {
+                    return { *std::move(f) };
+                }
+                return std::nullopt;
+            }
+        )
+        .def(
             "cache_path",
-            [](const MSubdirData& self) -> std::string { return extract(self.cache_path()); }
+            [](const MSubdirData& self) -> std::string
+            {
+                deprecated(
+                    "Use `SubdirData.valid_solv_path` or `SubdirData.valid_json` path instead",
+                    "2.0"
+                );
+                return extract(self.cache_path());
+            }
         );
+
+    m.def(
+        "load_subdir_in_pool",
+        &load_subdir_in_pool,
+        py::arg("contex"),
+        py::arg("pool"),
+        py::arg("subdir")
+    );
 
     using mambapy::SubdirIndex;
     using SubdirIndexEntry = SubdirIndex::Entry;

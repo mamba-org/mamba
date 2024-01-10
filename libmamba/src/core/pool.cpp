@@ -356,6 +356,41 @@ namespace mamba
         return pool_dep2str(const_cast<::Pool*>(pool().raw()), dep_id);
     }
 
+    auto MPool::add_repo_from_repodata_json(
+        const fs::u8path& path,
+        std::string_view url,
+        std::string_view name,
+        MRepo::PipAsPythonDependency add,
+        MRepo::RepodataParser parser
+    ) -> expected_t<MRepo>
+    {
+        if (!fs::exists(path))
+        {
+            return make_unexpected(
+                fmt::format(R"(File "{}" does not exist)", path),
+                mamba_error_code::repodata_not_loaded
+            );
+        }
+        return { MRepo(*this, name, path, { std::string(url) }, add, parser, MRepo::LibsolvCache::No) };
+    }
+
+    auto MPool::add_repo_from_native_serialization(
+        const fs::u8path& path,
+        const solver::libsolv::RepodataOrigin& expected,
+        std::string_view name,
+        MRepo::PipAsPythonDependency add
+    ) -> expected_t<MRepo>
+    {
+        if (!fs::exists(path))
+        {
+            return make_unexpected(
+                fmt::format(R"(File "{}" does not exist)", path),
+                mamba_error_code::repodata_not_loaded
+            );
+        }
+        return { MRepo(*this, name, path, expected, add, {}, MRepo::LibsolvCache::Yes) };
+    }
+
     void MPool::remove_repo(::Id repo_id, bool reuse_ids)
     {
         pool().remove_repo(repo_id, reuse_ids);
@@ -370,23 +405,35 @@ namespace mamba
     auto load_subdir_in_pool(const Context& ctx, MPool& pool, const MSubdirData& subdir)
         -> expected_t<MRepo>
     {
-        auto meta = solver::libsolv::RepodataOrigin{
-            /* .url= */ util::rsplit(subdir.metadata().url(), "/", 1).front(),
-            /* .etag= */ subdir.metadata().etag(),
-            /* .mod= */ subdir.metadata().last_modified(),
-        };
-
-        auto cache = subdir.cache_path();  // Dynamic cache path, either .solv or .json
-        if (!cache)
+        if (auto solv_file = subdir.valid_solv_cache())
         {
-            return forward_error(cache);
+            auto expected_cache_origin = solver::libsolv::RepodataOrigin{
+                /* .url= */ util::rsplit(subdir.metadata().url(), "/", 1).front(),
+                /* .etag= */ subdir.metadata().etag(),
+                /* .mod= */ subdir.metadata().last_modified(),
+            };
+
+            return pool.add_repo_from_native_serialization(
+                *solv_file,
+                expected_cache_origin,
+                subdir.name(),
+                static_cast<MRepo::PipAsPythonDependency>(ctx.add_pip_as_python_dependency)
+            );
         }
-        return { MRepo(
-            pool,
-            subdir.name(),
-            *cache,
-            meta,
-            static_cast<MRepo::PipAsPythonDependency>(ctx.add_pip_as_python_dependency)
-        ) };
+        const auto repodata_json = subdir.valid_json_cache();
+        if (repodata_json)
+        {
+            return pool.add_repo_from_repodata_json(
+                *repodata_json,
+                util::rsplit(subdir.metadata().url(), "/", 1).front(),
+                subdir.name(),
+                static_cast<MRepo::PipAsPythonDependency>(ctx.add_pip_as_python_dependency),
+                ctx.experimental_repodata_parsing ? MRepo::RepodataParser::Mamba
+                                                  : MRepo::RepodataParser::Libsolv
+            );
+            // TODO binary serialization
+        }
+
+        return forward_error(repodata_json);
     }
 }

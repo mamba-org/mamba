@@ -487,6 +487,8 @@ def test_Channel():
     assert chan.contains_equivalent(chan)
     assert other.contains_equivalent(chan)
     assert not chan.contains_equivalent(other)
+    assert chan.contains_package(chan.url / "noarch/pkg.conda")
+    assert not chan.contains_package(chan.url / "win-64/pkg.conda")
 
 
 def test_Channel_resolve():

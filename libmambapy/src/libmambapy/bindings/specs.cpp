@@ -489,6 +489,7 @@ namespace mambapy
             .def("url_equivalent_with", &Channel::url_equivalent_with)
             .def("is_equivalent_to", &Channel::is_equivalent_to)
             .def("contains_equivalent", &Channel::contains_equivalent)
+            .def("contains_package", &Channel::contains_package)
             .def(py::self == py::self)
             .def(py::self != py::self)
             .def("__hash__", &hash<Channel>)

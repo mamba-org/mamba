@@ -33,6 +33,7 @@ Micromamba
 Micromamba recieves all new features and its CLI remains mostly unchanged.
 
 Breaking changes include:
+
 - ``micromamba shell init`` root prefix parameter ``--prefix`` (``-p``) was renamed
   ``--root-prefix`` (``-r``).
   Both options were supported in version ``1.5``.
@@ -78,6 +79,7 @@ Libmamba (C++)
 The C++ library ``libmamba`` has received significant changes.
 Due to the low usage of the C++ interface, all changes are not listed here.
 The main changes are:
+
 - Refactoring and testing of a large number of utilities into a ``util::`` namespace,
 - Creation of the ``specs::`` with:
     - Implementations of ``Version`` and ``VersionSpec`` for matching versions,

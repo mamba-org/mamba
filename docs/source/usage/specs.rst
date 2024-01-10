@@ -92,7 +92,7 @@ user-friendly string, but that may not be parsed back.
 
 
 UnresolvedChannel
-----------------
+-----------------
 
 A :cpp:type:`UnresolvedChannel <mamba::specs::UnresolvedChannel>` is a lightweight object to represent
 a channel string, as in passed in the CLI or configuration.

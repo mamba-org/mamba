@@ -79,44 +79,138 @@ TEST_SUITE("specs::channel")
 
         SUBCASE("Equivalence")
         {
-            for (auto raw_url : {
-                     "https://repo.mamba.pm/"sv,
-                     "https://repo.mamba.pm/t/mytoken/"sv,
-                     "https://user:pass@repo.mamba.pm/conda-forge/win-64/"sv,
-                     "file:///some/folder/"sv,
-                     "ftp://mamba.org/some/folder"sv,
-                 })
+            SUBCASE("Same platforms")
             {
-                CAPTURE(raw_url);
+                for (auto raw_url : {
+                         "https://repo.mamba.pm/"sv,
+                         "https://repo.mamba.pm/t/mytoken/"sv,
+                         "https://user:pass@repo.mamba.pm/conda-forge/"sv,
+                         "file:///some/folder/"sv,
+                         "ftp://mamba.org/some/folder"sv,
+                     })
+                {
+                    CAPTURE(raw_url);
 
-                auto url_a = CondaURL::parse(raw_url);
-                auto url_b = url_a;
-                url_b.clear_user();
-                url_b.clear_password();
-                url_b.clear_token();
-                auto chan_a = Channel(url_a, "somename", { "linux-64" });
-                auto chan_b = Channel(url_b, "somename", { "linux-64" });
+                    auto url_a = CondaURL::parse(raw_url);
+                    auto url_b = url_a;
+                    url_b.clear_user();
+                    url_b.clear_password();
+                    url_b.clear_token();
+                    auto chan_a = Channel(url_a, "somename", { "linux-64" });
+                    auto chan_b = Channel(url_b, "somename", { "linux-64" });
 
-                // Channel::url_equivalent_with
-                CHECK(chan_a.url_equivalent_with(chan_a));
-                CHECK(chan_b.url_equivalent_with(chan_b));
-                CHECK(chan_a.url_equivalent_with(chan_b));
-                CHECK(chan_b.url_equivalent_with(chan_a));
+                    // Channel::url_equivalent_with
+                    CHECK(chan_a.url_equivalent_with(chan_a));
+                    CHECK(chan_b.url_equivalent_with(chan_b));
+                    CHECK(chan_a.url_equivalent_with(chan_b));
+                    CHECK(chan_b.url_equivalent_with(chan_a));
 
-                // Channel::contains_equivalent
-                CHECK(chan_a.contains_equivalent(chan_a));
-                CHECK(chan_b.contains_equivalent(chan_b));
-                CHECK(chan_a.contains_equivalent(chan_b));
-                CHECK(chan_b.contains_equivalent(chan_a));
+                    // Channel::contains_equivalent
+                    CHECK(chan_a.contains_equivalent(chan_a));
+                    CHECK(chan_b.contains_equivalent(chan_b));
+                    CHECK(chan_a.contains_equivalent(chan_b));
+                    CHECK(chan_b.contains_equivalent(chan_a));
+                }
+            }
 
-                chan_a = Channel(chan_a.url(), chan_a.display_name(), { "noarch", "linux-64" });
-                CHECK(chan_a.contains_equivalent(chan_a));
-                CHECK(chan_a.contains_equivalent(chan_b));
-                CHECK_FALSE(chan_b.contains_equivalent(chan_a));
+            SUBCASE("Platforms superset")
+            {
+                for (auto raw_url : {
+                         "https://repo.mamba.pm/"sv,
+                         "https://repo.mamba.pm/t/mytoken/"sv,
+                         "https://user:pass@repo.mamba.pm/conda-forge/"sv,
+                         "file:///some/folder/"sv,
+                         "ftp://mamba.org/some/folder"sv,
+                     })
+                {
+                    CAPTURE(raw_url);
 
-                chan_b = Channel(chan_b.url(), chan_b.display_name(), { "ox-64" });
-                CHECK_FALSE(chan_a.contains_equivalent(chan_b));
-                CHECK_FALSE(chan_b.contains_equivalent(chan_a));
+                    auto url_a = CondaURL::parse(raw_url);
+                    auto url_b = url_a;
+                    url_a.clear_user();
+                    url_a.clear_password();
+                    url_a.clear_token();
+                    auto chan_a = Channel(url_a, "somename", { "noarch", "linux-64" });
+                    auto chan_b = Channel(url_b, "somename", { "linux-64" });
+
+                    CHECK(chan_a.contains_equivalent(chan_a));
+                    CHECK(chan_a.contains_equivalent(chan_b));
+                    CHECK_FALSE(chan_b.contains_equivalent(chan_a));
+                }
+            }
+
+            SUBCASE("Different platforms")
+            {
+                for (auto raw_url : {
+                         "https://repo.mamba.pm/"sv,
+                         "https://repo.mamba.pm/t/mytoken/"sv,
+                         "https://user:pass@repo.mamba.pm/conda-forge/"sv,
+                         "file:///some/folder/"sv,
+                         "ftp://mamba.org/some/folder"sv,
+                     })
+                {
+                    CAPTURE(raw_url);
+
+                    auto url_a = CondaURL::parse(raw_url);
+                    auto url_b = url_a;
+                    auto chan_a = Channel(url_a, "somename", { "noarch", "linux-64" });
+                    auto chan_b = Channel(url_b, "somename", { "osx-64" });
+
+                    CHECK_FALSE(chan_a.contains_equivalent(chan_b));
+                    CHECK_FALSE(chan_b.contains_equivalent(chan_a));
+                }
+            }
+
+            SUBCASE("Packages")
+            {
+                using namespace conda_url_literals;
+
+                const auto chan = Channel("https://repo.mamba.pm/"_cu, "conda-forge", { "linux-64" });
+                CHECK(chan.contains_equivalent(Channel(chan.url() / "linux-64/pkg.conda", "", {})));
+                CHECK_FALSE(chan.contains_equivalent(Channel(chan.url() / "osx-64/pkg.conda", "", {}))
+                );
+
+                const auto pkg_chan = Channel(chan.url() / "linux-64/foo.tar.bz2", "", {});
+                CHECK(pkg_chan.contains_equivalent(pkg_chan));
+                CHECK_FALSE(pkg_chan.contains_equivalent(chan));
+                CHECK_FALSE(
+                    pkg_chan.contains_equivalent(Channel(chan.url() / "osx-64/pkg.conda", "", {}))
+                );
+            }
+        }
+
+        SUBCASE("Contains package")
+        {
+            using namespace conda_url_literals;
+
+            SUBCASE("https://repo.mamba.pm/")
+            {
+                auto chan = Channel("https://repo.mamba.pm/"_cu, "conda-forge", { "linux-64" });
+                CHECK(chan.contains_package("https://repo.mamba.pm/linux-64/pkg.conda"_cu));
+                CHECK_FALSE(chan.contains_package("https://repo.mamba.pm/win-64/pkg.conda"_cu));
+                CHECK_FALSE(chan.contains_package("https://repo.mamba.pm/pkg.conda"_cu));
+            }
+
+            SUBCASE("https://repo.mamba.pm/osx-64/foo.tar.gz")
+            {
+                auto chan = Channel("https://repo.mamba.pm/osx-64/foo.tar.bz2"_cu, "", {});
+                CHECK(chan.contains_package(chan.url()));
+                CHECK_FALSE(chan.contains_package("https://repo.mamba.pm/win-64/pkg.conda"_cu));
+                CHECK_FALSE(chan.contains_package("https://repo.mamba.pm/pkg.conda"_cu));
+            }
+
+            SUBCASE("https://user:pass@repo.mamba.pm/conda-forge/win-64/")
+            {
+                auto chan = Channel(
+                    "https://user:pass@repo.mamba.pm/conda-forge/"_cu,
+                    "conda-forge",
+                    { "win-64" }
+                );
+                CHECK(chan.contains_package(chan.url() / "win-64/pkg.conda"));
+                CHECK(chan.contains_package("https://repo.mamba.pm/conda-forge/win-64/pkg.conda"_cu));
+                CHECK_FALSE(
+                    chan.contains_package("https://repo.mamba.pm/conda-forge/osx-64/pkg.conda"_cu)
+                );
             }
         }
     }

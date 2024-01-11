@@ -121,23 +121,29 @@ namespace mamba::specs
         m_display_name = std::move(display_name);
     }
 
+    namespace
+    {
+        auto url_equivalent_with_impl(const CondaURL& lhs, const CondaURL& rhs) -> bool
+        {
+            using Decode = typename CondaURL::Decode;
+
+            // Not checking users, passwords, and tokens
+            return
+                // Schemes
+                (lhs.scheme() == rhs.scheme())
+                // Hosts
+                && (lhs.host(Decode::no) == rhs.host(Decode::no))
+                // Different ports are considered different channels
+                && (lhs.port() == rhs.port())
+                // Removing potential trailing '/'
+                && (util::rstrip(lhs.path_without_token(Decode::no), '/')
+                    == util::rstrip(rhs.path_without_token(Decode::no), '/'));
+        }
+    }
+
     auto Channel::url_equivalent_with(const Channel& other) const -> bool
     {
-        using Decode = typename CondaURL::Decode;
-
-        const auto& this_url = url();
-        const auto& other_url = other.url();
-        // Not checking users, passwords, and tokens
-        return
-            // Schemes
-            (this_url.scheme() == other_url.scheme())
-            // Hosts
-            && (this_url.host(Decode::no) == other_url.host(Decode::no))
-            // Different ports are considered different channels
-            && (this_url.port() == other_url.port())
-            // Removing potential trailing '/'
-            && (util::rstrip(this_url.path_without_token(Decode::no), '/')
-                == util::rstrip(other_url.path_without_token(Decode::no), '/'));
+        return url_equivalent_with_impl(url(), other.url());
     }
 
     auto Channel::is_equivalent_to(const Channel& other) const -> bool
@@ -147,7 +153,28 @@ namespace mamba::specs
 
     auto Channel::contains_equivalent(const Channel& other) const -> bool
     {
+        if (other.is_package())
+        {
+            return contains_package(other.url());
+        }
         return url_equivalent_with(other) && util::set_is_superset_of(platforms(), other.platforms());
+    }
+
+    auto Channel::contains_package(const CondaURL& pkg) const -> bool
+    {
+        if (is_package())
+        {
+            return url_equivalent_with_impl(url(), pkg);
+        }
+        if (!platforms().contains(std::string(pkg.platform_name())))
+        {
+            return false;
+        }
+
+        auto pkg_repo = pkg;
+        pkg_repo.clear_platform();
+        pkg_repo.clear_package();
+        return url_equivalent_with_impl(url(), pkg_repo);
     }
 
     /****************************************

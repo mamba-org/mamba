@@ -524,6 +524,14 @@ namespace mamba::specs
         url.append_path(subpath);
         return std::move(url);
     }
+
+    namespace conda_url_literals
+    {
+        auto operator""_cu(const char* str, std::size_t len) -> CondaURL
+        {
+            return CondaURL::parse({ str, len });
+        }
+    }
 }
 
 auto

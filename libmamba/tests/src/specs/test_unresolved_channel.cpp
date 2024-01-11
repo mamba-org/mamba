@@ -12,7 +12,7 @@
 using namespace mamba;
 using namespace mamba::specs;
 
-TEST_SUITE("specs::channel_spec")
+TEST_SUITE("specs::unresolved_channel")
 {
     using PlatformSet = typename util::flat_set<std::string>;
     using Type = typename UnresolvedChannel::Type;

@@ -474,8 +474,10 @@ def test_Channel():
     assert hash(chan) != 0
 
     # Weak comparison
-    other.url = chan.url
-    other.platforms = chan.platforms | {"human-67"}
+    chan = Channel(url=url_1, platforms=platforms_1, display_name=display_name_1)
+    other = Channel(
+        url=url_1, platforms=(chan.platforms | {"human-67"}), display_name=display_name_1
+    )
     assert chan.url_equivalent_with(chan)
     assert chan.url_equivalent_with(other)
     assert other.url_equivalent_with(chan)
@@ -485,6 +487,8 @@ def test_Channel():
     assert chan.contains_equivalent(chan)
     assert other.contains_equivalent(chan)
     assert not chan.contains_equivalent(other)
+    assert chan.contains_package(chan.url / "noarch/pkg.conda")
+    assert not chan.contains_package(chan.url / "win-64/pkg.conda")
 
 
 def test_Channel_resolve():

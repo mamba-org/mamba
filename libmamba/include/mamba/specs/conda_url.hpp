@@ -241,6 +241,11 @@ namespace mamba::specs
     /** A functional equivalent to ``CondaURL::append_path``. */
     auto operator/(const CondaURL& url, std::string_view subpath) -> CondaURL;
     auto operator/(CondaURL&& url, std::string_view subpath) -> CondaURL;
+
+    namespace conda_url_literals
+    {
+        auto operator""_cu(const char* str, std::size_t len) -> CondaURL;
+    }
 }
 
 template <>

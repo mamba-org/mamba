@@ -113,6 +113,8 @@ namespace mamba::specs
 
         [[nodiscard]] auto contains_equivalent(const Channel& other) const -> bool;
 
+        [[nodiscard]] auto contains_package(const CondaURL& pkg) const -> bool;
+
     private:
 
         CondaURL m_url;

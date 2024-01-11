@@ -424,6 +424,13 @@ namespace mambapy
             .def("__copy__", &copy<BasicHTTPAuthentication>)
             .def("__deepcopy__", &deepcopy<BasicHTTPAuthentication>, py::arg("memo"));
 
+        py::enum_<Channel::Match>(py_channel, "Match")
+            .value("No", Channel::Match::No)
+            .value("InOtherPlatform", Channel::Match::InOtherPlatform)
+            .value("Full", Channel::Match::Full)
+            .def(py::init(&enum_from_str<Channel::Match>));
+        py::implicitly_convertible<py::str, Channel::Match>();
+
         py_channel  //
             .def_property_readonly_static(
                 "ChannelMap",

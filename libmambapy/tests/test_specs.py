@@ -433,6 +433,7 @@ def test_ChannelResolveParams():
 
 def test_Channel():
     Channel = libmambapy.specs.Channel
+    Match = libmambapy.specs.Channel.Match
     CondaURL = libmambapy.specs.CondaURL
 
     url_1 = CondaURL.parse("https://repo.anaconda.com/conda-forge")
@@ -487,8 +488,8 @@ def test_Channel():
     assert chan.contains_equivalent(chan)
     assert other.contains_equivalent(chan)
     assert not chan.contains_equivalent(other)
-    assert chan.contains_package(chan.url / "noarch/pkg.conda")
-    assert not chan.contains_package(chan.url / "win-64/pkg.conda")
+    assert chan.contains_package(chan.url / "noarch/pkg.conda") == Match.Full
+    assert chan.contains_package(chan.url / "win-64/pkg.conda") == Match.InOtherPlatform
 
 
 def test_Channel_resolve():

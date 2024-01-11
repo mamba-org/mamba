@@ -359,7 +359,6 @@ namespace mamba
     auto MPool::add_repo_from_repodata_json(
         const fs::u8path& path,
         std::string_view url,
-        std::string_view name,
         MRepo::PipAsPythonDependency add,
         MRepo::RepodataParser parser
     ) -> expected_t<MRepo>
@@ -371,13 +370,12 @@ namespace mamba
                 mamba_error_code::repodata_not_loaded
             );
         }
-        return { MRepo(*this, name, path, { std::string(url) }, add, parser, MRepo::LibsolvCache::No) };
+        return { MRepo(*this, url, path, { std::string(url) }, add, parser, MRepo::LibsolvCache::No) };
     }
 
     auto MPool::add_repo_from_native_serialization(
         const fs::u8path& path,
         const solver::libsolv::RepodataOrigin& expected,
-        std::string_view name,
         MRepo::PipAsPythonDependency add
     ) -> expected_t<MRepo>
     {
@@ -388,7 +386,7 @@ namespace mamba
                 mamba_error_code::repodata_not_loaded
             );
         }
-        return { MRepo(*this, name, path, expected, add, {}, MRepo::LibsolvCache::Yes) };
+        return { MRepo(*this, expected.url, path, expected, add, {}, MRepo::LibsolvCache::Yes) };
     }
 
     void MPool::remove_repo(::Id repo_id, bool reuse_ids)
@@ -416,7 +414,6 @@ namespace mamba
             return pool.add_repo_from_native_serialization(
                 *solv_file,
                 expected_cache_origin,
-                subdir.name(),
                 static_cast<MRepo::PipAsPythonDependency>(ctx.add_pip_as_python_dependency)
             );
         }
@@ -426,7 +423,6 @@ namespace mamba
             return pool.add_repo_from_repodata_json(
                 *repodata_json,
                 util::rsplit(subdir.metadata().url(), "/", 1).front(),
-                subdir.name(),
                 static_cast<MRepo::PipAsPythonDependency>(ctx.add_pip_as_python_dependency),
                 ctx.experimental_repodata_parsing ? MRepo::RepodataParser::Mamba
                                                   : MRepo::RepodataParser::Libsolv

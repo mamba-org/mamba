@@ -75,7 +75,6 @@ namespace mamba
         auto add_repo_from_repodata_json(
             const fs::u8path& path,
             std::string_view url,
-            std::string_view name = "",
             MRepo::PipAsPythonDependency add = MRepo::PipAsPythonDependency::No,
             MRepo::RepodataParser parser = MRepo::RepodataParser::Mamba
         ) -> expected_t<MRepo>;
@@ -83,7 +82,6 @@ namespace mamba
         auto add_repo_from_native_serialization(
             const fs::u8path& path,
             const solver::libsolv::RepodataOrigin& expected,
-            std::string_view name = "",
             MRepo::PipAsPythonDependency add = MRepo::PipAsPythonDependency::No
         ) -> expected_t<MRepo>;
 

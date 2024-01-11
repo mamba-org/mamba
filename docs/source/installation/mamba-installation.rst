@@ -48,3 +48,12 @@ images:
 .. code-block:: bash
 
   docker run -it --rm condaforge/miniforge3:latest mamba info
+
+
+Conda libmamba solver
+*********************
+
+For a totally conda-compatible experience with the fast Mamba solver,
+`conda-libmamba-solver <https://github.com/conda/conda-libmamba-solver>`_ now ships by default with
+Conda.
+Just use an up to date version of Conda to enjoy the speed improvememts.

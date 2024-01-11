@@ -28,8 +28,12 @@ On macOS, you can install ``micromamba`` from `Homebrew <https://brew.sh/>`_:
 
 Mamba-org releases
 ******************
-Install script
-^^^^^^^^^^^^^^
+Automatic install
+^^^^^^^^^^^^^^^^^
+
+.. hint::
+
+   This is the recommended way to install micromamba.
 
 If you are using macOS, Linux, or Git Bash on Windows there is a simple way of installing ``micromamba``.
 Simply execute the installation script in your preferred shell.
@@ -41,6 +45,12 @@ For Linux, macOS, or Git Bash on Windows install with:
 .. code:: bash
 
    "${SHELL}" <(curl -L micro.mamba.pm/install.sh)
+
+On Windows Powershell, use
+
+.. code :: powershell
+
+   Invoke-Expression ((Invoke-WebRequest -Uri https://micro.mamba.pm/install.ps1).Content)
 
 Self updates
 ^^^^^^^^^^^^
@@ -56,10 +66,12 @@ A explicit version can be specified with
 
    micromamba self-update --version 1.4.6
 
-.. _umamba-install-manual-installation:
-
 Manual installation
 ^^^^^^^^^^^^^^^^^^^
+
+.. warning::
+
+   This is for advanced users.
 
 .. _umamba-install-posix:
 
@@ -157,6 +169,7 @@ Windows
   micromamba create -f ./test/env_win.yaml -y
   micromamba activate yourenv
 
+
 Nightly builds
 **************
 
@@ -173,6 +186,7 @@ image can be used to run ``micromamba`` without installing it:
 .. code-block:: bash
 
   docker run -it --rm mambaorg/micromamba:latest micromamba info
+
 
 Build from source
 *****************

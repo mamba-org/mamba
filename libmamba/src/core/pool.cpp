@@ -197,6 +197,15 @@ namespace mamba
                 match,
                 [&](solv::ObjSolvableViewConst s)
                 {
+                    if (s.installed())
+                    {
+                        // This will have the effect that channel-specific MatchSpec will always be
+                        // reinstalled.
+                        // This is not the intended behaviour but an historical artifact on which
+                        // ``--force-reinstall`` currently rely.
+                        return;
+                    }
+
                     assert(ms.channel().has_value());
                     const auto match = channel_match(ms_channels, specs::CondaURL::parse(s.url()));
                     switch (match)

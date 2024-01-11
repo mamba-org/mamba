@@ -140,37 +140,28 @@ namespace mamba
 
     namespace
     {
-        enum struct ChannelMatch
+        auto
+        channel_match(const std::vector<specs::Channel>& ms_channels, const specs::CondaURL& pkg_url)
+            -> specs::Channel::Match
         {
-            None,
-            ChannelOnly,
-            ChannelAndSubdir,
-        };
-
-        auto channel_match(
-            const std::vector<specs::Channel>& repo_channels,
-            const std::vector<specs::Channel>& candidate_channels
-        ) -> ChannelMatch
-        {
-            // More than one element means the channel spec was a custom_multi_channel,
-            // which should never happen for the repo
-            for (const auto& repo_chan : repo_channels)
+            auto match = specs::Channel::Match::No;
+            // More than one element means the channel spec was a custom_multi_channel
+            for (const auto& chan : ms_channels)
             {
-                // More than one element means the channel spec was a custom_multi_channel.
-                // We need to add any repo that matches.
-                for (const auto& cand_chan : candidate_channels)
+                switch (chan.contains_package(pkg_url))
                 {
-                    if (repo_chan.url_equivalent_with(cand_chan))
-                    {
-                        if (util::set_is_subset_of(repo_chan.platforms(), cand_chan.platforms()))
-                        {
-                            return ChannelMatch::ChannelAndSubdir;
-                        }
-                        return ChannelMatch::ChannelOnly;
-                    }
+                    case specs::Channel::Match::Full:
+                        return specs::Channel::Match::Full;
+                    case specs::Channel::Match::InOtherPlatform:
+                        // Keep looking for full matches
+                        match = specs::Channel::Match::InOtherPlatform;
+                        break;
+                    case specs::Channel::Match::No:
+                        // No overriding potential InOtherPlatform match
+                        break;
                 }
             }
-            return ChannelMatch::None;
+            return match;
         }
 
         /**
@@ -198,7 +189,7 @@ namespace mamba
                 ms.conda_build_form().c_str()
             );
 
-            auto ms_channel = channel_context.make_channel(*ms.channel());
+            auto ms_channels = channel_context.make_channel(*ms.channel());
 
             solv::ObjQueue selected_pkgs = {};
             auto other_subdir_match = std::string();
@@ -206,28 +197,32 @@ namespace mamba
                 match,
                 [&](solv::ObjSolvableViewConst s)
                 {
+                    if (s.installed())
+                    {
+                        // This will have the effect that channel-specific MatchSpec will always be
+                        // reinstalled.
+                        // This is not the intended behaviour but an historical artifact on which
+                        // ``--force-reinstall`` currently rely.
+                        return;
+                    }
+
                     assert(ms.channel().has_value());
-                    // TODO this does not work with s.url(), we need to proper channel class
-                    // to properly manage this.
-                    auto repo = solv::ObjRepoView(*s.raw()->repo);
-                    const auto match = channel_match(
-                        channel_context.make_channel(repo.url()),
-                        ms_channel
-                    );
+                    const auto match = channel_match(ms_channels, specs::CondaURL::parse(s.url()));
                     switch (match)
                     {
-                        case (ChannelMatch::ChannelAndSubdir):
+                        case (specs::Channel::Match::Full):
                         {
                             selected_pkgs.push_back(s.id());
                             break;
                         }
-                        case (ChannelMatch::ChannelOnly):
+                        case (specs::Channel::Match::InOtherPlatform):
                         {
                             other_subdir_match = s.subdir();
                             break;
                         }
-                        case (ChannelMatch::None):
+                        case (specs::Channel::Match::No):
                         {
+                            break;
                         }
                     }
                 }

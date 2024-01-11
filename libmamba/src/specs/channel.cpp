@@ -155,26 +155,27 @@ namespace mamba::specs
     {
         if (other.is_package())
         {
-            return contains_package(other.url());
+            return contains_package(other.url()) == Match::Full;
         }
         return url_equivalent_with(other) && util::set_is_superset_of(platforms(), other.platforms());
     }
 
-    auto Channel::contains_package(const CondaURL& pkg) const -> bool
+    auto Channel::contains_package(const CondaURL& pkg) const -> Match
     {
         if (is_package())
         {
-            return url_equivalent_with_impl(url(), pkg);
-        }
-        if (!platforms().contains(std::string(pkg.platform_name())))
-        {
-            return false;
+            return url_equivalent_with_impl(url(), pkg) ? Match::Full : Match::No;
         }
 
         auto pkg_repo = pkg;
-        pkg_repo.clear_platform();
+        const auto plat = std::string(pkg_repo.platform_name());
         pkg_repo.clear_package();
-        return url_equivalent_with_impl(url(), pkg_repo);
+        pkg_repo.clear_platform();
+        if (url_equivalent_with_impl(url(), pkg_repo))
+        {
+            return platforms().contains(plat) ? Match::Full : Match::InOtherPlatform;
+        }
+        return Match::No;
     }
 
     /****************************************

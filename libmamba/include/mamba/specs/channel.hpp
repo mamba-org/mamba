@@ -107,13 +107,20 @@ namespace mamba::specs
         auto clear_display_name() -> std::string;
         void set_display_name(std::string display_name);
 
+        enum struct Match
+        {
+            No,
+            InOtherPlatform,
+            Full,
+        };
+
         [[nodiscard]] auto url_equivalent_with(const Channel& other) const -> bool;
 
         [[nodiscard]] auto is_equivalent_to(const Channel& other) const -> bool;
 
         [[nodiscard]] auto contains_equivalent(const Channel& other) const -> bool;
 
-        [[nodiscard]] auto contains_package(const CondaURL& pkg) const -> bool;
+        [[nodiscard]] auto contains_package(const CondaURL& pkg) const -> Match;
 
     private:
 

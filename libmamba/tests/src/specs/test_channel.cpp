@@ -182,34 +182,48 @@ TEST_SUITE("specs::channel")
         SUBCASE("Contains package")
         {
             using namespace conda_url_literals;
+            using Match = Channel::Match;
 
             SUBCASE("https://repo.mamba.pm/")
             {
                 auto chan = Channel("https://repo.mamba.pm/"_cu, "conda-forge", { "linux-64" });
-                CHECK(chan.contains_package("https://repo.mamba.pm/linux-64/pkg.conda"_cu));
-                CHECK_FALSE(chan.contains_package("https://repo.mamba.pm/win-64/pkg.conda"_cu));
-                CHECK_FALSE(chan.contains_package("https://repo.mamba.pm/pkg.conda"_cu));
+                CHECK_EQ(
+                    chan.contains_package("https://repo.mamba.pm/linux-64/pkg.conda"_cu),
+                    Match::Full
+                );
+                CHECK_EQ(
+                    chan.contains_package("https://repo.mamba.pm/win-64/pkg.conda"_cu),
+                    Match::InOtherPlatform
+                );
+                CHECK_EQ(
+                    chan.contains_package("https://repo.mamba.pm/pkg.conda"_cu),
+                    Match::InOtherPlatform
+                );
             }
 
             SUBCASE("https://repo.mamba.pm/osx-64/foo.tar.gz")
             {
                 auto chan = Channel("https://repo.mamba.pm/osx-64/foo.tar.bz2"_cu, "", {});
-                CHECK(chan.contains_package(chan.url()));
-                CHECK_FALSE(chan.contains_package("https://repo.mamba.pm/win-64/pkg.conda"_cu));
-                CHECK_FALSE(chan.contains_package("https://repo.mamba.pm/pkg.conda"_cu));
+                CHECK_EQ(chan.contains_package(chan.url()), Match::Full);
+                CHECK_EQ(chan.contains_package("https://repo.mamba.pm/win-64/pkg.conda"_cu), Match::No);
+                CHECK_EQ(chan.contains_package("https://repo.mamba.pm/pkg.conda"_cu), Match::No);
             }
 
-            SUBCASE("https://user:pass@repo.mamba.pm/conda-forge/win-64/")
+            SUBCASE("https://user:pass@repo.mamba.pm/conda-forge/")
             {
                 auto chan = Channel(
                     "https://user:pass@repo.mamba.pm/conda-forge/"_cu,
                     "conda-forge",
                     { "win-64" }
                 );
-                CHECK(chan.contains_package(chan.url() / "win-64/pkg.conda"));
-                CHECK(chan.contains_package("https://repo.mamba.pm/conda-forge/win-64/pkg.conda"_cu));
-                CHECK_FALSE(
-                    chan.contains_package("https://repo.mamba.pm/conda-forge/osx-64/pkg.conda"_cu)
+                CHECK_EQ(chan.contains_package(chan.url() / "win-64/pkg.conda"), Match::Full);
+                CHECK_EQ(
+                    chan.contains_package("https://repo.mamba.pm/conda-forge/win-64/pkg.conda"_cu),
+                    Match::Full
+                );
+                CHECK_EQ(
+                    chan.contains_package("https://repo.mamba.pm/conda-forge/osx-64/pkg.conda"_cu),
+                    Match::InOtherPlatform
                 );
             }
         }

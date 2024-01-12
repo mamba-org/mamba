@@ -13,8 +13,6 @@
 #include <fmt/color.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
-
-#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 #ifdef _WIN32
@@ -576,26 +574,26 @@ namespace mamba
         switch (level)
         {
             case log_level::critical:
-                SPDLOG_CRITICAL(prepend(str, "", std::string(4, ' ').c_str()));
+                spdlog::critical(prepend(str, "", std::string(4, ' ').c_str()));
                 if (Console::instance().context().output_params.logging_level != log_level::off)
                 {
                     spdlog::dump_backtrace();
                 }
                 break;
             case log_level::err:
-                SPDLOG_ERROR(prepend(str, "", std::string(4, ' ').c_str()));
+                spdlog::error(prepend(str, "", std::string(4, ' ').c_str()));
                 break;
             case log_level::warn:
-                SPDLOG_WARN(prepend(str, "", std::string(4, ' ').c_str()));
+                spdlog::warn(prepend(str, "", std::string(4, ' ').c_str()));
                 break;
             case log_level::info:
-                SPDLOG_INFO(prepend(str, "", std::string(4, ' ').c_str()));
+                spdlog::info(prepend(str, "", std::string(4, ' ').c_str()));
                 break;
             case log_level::debug:
-                SPDLOG_DEBUG(prepend(str, "", std::string(4, ' ').c_str()));
+                spdlog::debug(prepend(str, "", std::string(4, ' ').c_str()));
                 break;
             case log_level::trace:
-                SPDLOG_TRACE(prepend(str, "", std::string(4, ' ').c_str()));
+                spdlog::trace(prepend(str, "", std::string(4, ' ').c_str()));
                 break;
             default:
                 break;

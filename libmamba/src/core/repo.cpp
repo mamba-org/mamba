@@ -614,7 +614,14 @@ namespace mamba
 
         if (!util::on_win && (name() != "installed"))
         {
-            write_solv(repo, solv_file, metadata, MAMBA_SOLV_VERSION);
+            try
+            {
+                write_solv(repo, solv_file, metadata, MAMBA_SOLV_VERSION);
+            }
+            catch (const std::system_error& e)
+            {
+                LOG_WARNING << R"(Failed to write solv file cache )" << solv_file;
+            }
         }
     }
 }  // namespace mamba

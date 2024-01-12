@@ -215,6 +215,7 @@ namespace mamba
 #endif
         };
 
+        std::map<std::string, std::vector<std::string>> mirrored_channels;
         std::string channel_alias = "https://conda.anaconda.org";
         specs::AuthenticationDataBase& authentication_info();
         const specs::AuthenticationDataBase& authentication_info() const;

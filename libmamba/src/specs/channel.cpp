@@ -37,33 +37,82 @@ namespace mamba::specs
      *******************************/
 
     Channel::Channel(CondaURL url, std::string display_name, platform_list platforms)
-        : m_url(std::move(url))
+        : Channel(std::vector<CondaURL>(1u, std::move(url)), std::move(display_name), std::move(platforms))
+    //: Channel({ std::move(url) }, std::move(display_name), std::move(platforms))
+    {
+    }
+
+    Channel::Channel(std::vector<CondaURL> mirror_urls, std::string display_name, platform_list platforms)
+        : m_mirror_urls(std::move(mirror_urls))
         , m_display_name(std::move(display_name))
         , m_platforms(std::move(platforms))
     {
-        auto p = m_url.clear_path();
-        p = util::rstrip(p, '/');
-        m_url.set_path(std::move(p), CondaURL::Encode::no);
+        for (auto& url : m_mirror_urls)
+        {
+            auto p = url.clear_path();
+            p = util::rstrip(p, '/');
+            url.set_path(std::move(p), CondaURL::Encode::no);
+        }
     }
 
     auto Channel::is_package() const -> bool
     {
-        return !url().package().empty();
+        return (m_mirror_urls.size() == 1u) && !url().package().empty();
+    }
+
+    auto Channel::mirror_urls() const -> const std::vector<CondaURL>&
+    {
+        return m_mirror_urls;
+    }
+
+    auto Channel::platform_mirror_urls() const -> std::vector<CondaURL>
+    {
+        if (is_package())
+        {
+            return { url() };
+        }
+
+        auto out = std::vector<CondaURL>();
+        out.reserve(mirror_urls().size() * platforms().size());
+        for (const auto& url : mirror_urls())
+        {
+            for (const auto& platform : platforms())
+            {
+                out.push_back(platform_url_impl(url, platform));
+            }
+        }
+        return out;
+    }
+
+    auto Channel::platform_mirror_urls(const std::string_view platform) const -> std::vector<CondaURL>
+    {
+        if (is_package())
+        {
+            return { url() };
+        }
+
+        auto out = std::vector<CondaURL>();
+        out.reserve(mirror_urls().size());
+        for (const auto& url : mirror_urls())
+        {
+            out.push_back(platform_url_impl(url, platform));
+        }
+        return out;
     }
 
     auto Channel::url() const -> const CondaURL&
     {
-        return m_url;
+        return m_mirror_urls.front();
     }
 
     auto Channel::clear_url() -> const CondaURL
     {
-        return std::exchange(m_url, {});
+        return std::exchange(m_mirror_urls.front(), {});
     }
 
     void Channel::set_url(CondaURL url)
     {
-        m_url = std::move(url);
+        m_mirror_urls.front() = std::move(url);
     }
 
     auto Channel::platform_urls() const -> std::vector<CondaURL>
@@ -77,7 +126,7 @@ namespace mamba::specs
         out.reserve(platforms().size());
         for (const auto& platform : platforms())
         {
-            out.push_back(platform_url(platform));
+            out.push_back(platform_url_impl(url(), platform));
         }
         return out;
     }
@@ -88,7 +137,7 @@ namespace mamba::specs
         {
             return url();
         }
-        return (url() / platform);
+        return platform_url_impl(url(), platform);
     }
 
     auto Channel::platforms() const -> const platform_list&
@@ -176,6 +225,11 @@ namespace mamba::specs
             return platforms().contains(plat) ? Match::Full : Match::InOtherPlatform;
         }
         return Match::No;
+    }
+
+    CondaURL Channel::platform_url_impl(const CondaURL& url, const std::string_view platform) const
+    {
+        return { url / platform };
     }
 
     /****************************************

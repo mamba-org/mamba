@@ -245,6 +245,29 @@ namespace mamba
         return it->second;
     }
 
+    auto ChannelContext::make_channel(std::string_view name, const std::vector<std::string>& mirrors)
+        -> const channel_list&
+    {
+        if (const auto it = m_channel_cache.find(std::string(name)); it != m_channel_cache.end())
+        {
+            return it->second;
+        }
+
+        std::vector<specs::CondaURL> mirror_urls;
+        mirror_urls.reserve(mirrors.size());
+        for (const auto& mirror : mirrors)
+        {
+            mirror_urls.push_back(specs::CondaURL::parse(mirror));
+        }
+        auto [it, inserted] = m_channel_cache.emplace(
+            name,
+            channel_list{
+                Channel(std::move(mirror_urls), std::string(name), m_channel_params.platforms) }
+        );
+        assert(inserted);
+        return it->second;
+    }
+
     auto ChannelContext::params() const -> const specs::ChannelResolveParams&
     {
         return m_channel_params;

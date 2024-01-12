@@ -519,6 +519,25 @@ namespace mamba
                 util::unset_env("MAMBA_CHANNEL_ALIAS");
             }
 
+            TEST_CASE_FIXTURE(Configuration, "mirrored_channels")
+            {
+                std::string rc1 = unindent(R"(
+                    mirrored_channels:
+                      conda-forge: [https://conda.anaconda.org/conda-forge, https://repo.mamba.pm/conda-forge]
+                      channel1: [https://conda.anaconda.org/channel1]
+                )");
+
+                load_test_config(rc1);
+
+                CHECK_EQ(config.dump(), unindent(R"(
+                          mirrored_channels:
+                            channel1:
+                              - https://conda.anaconda.org/channel1
+                            conda-forge:
+                              - https://conda.anaconda.org/conda-forge
+                              - https://repo.mamba.pm/conda-forge)"));
+            }
+
             TEST_CASE_FIXTURE(Configuration, "pkgs_dirs")
             {
                 std::string cache1 = util::path_concat(util::user_home_dir(), "foo");

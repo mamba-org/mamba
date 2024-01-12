@@ -183,6 +183,7 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solver.cpp
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/transaction.cpp
     # Solver interface
+    ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/helpers.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/serialization.cpp
     # Artifacts validation
     ${LIBMAMBA_SOURCE_DIR}/validation/tools.cpp

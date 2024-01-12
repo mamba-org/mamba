@@ -127,6 +127,7 @@ namespace mamba
         const MSubdirMetadata& metadata() const;
 
         expected_t<fs::u8path> valid_solv_cache() const;
+        fs::u8path writable_solv_cache() const;
         expected_t<fs::u8path> valid_json_cache() const;
 
         [[deprecated("since version 2.0 use ``valid_solv_cache`` or ``valid_json_cache`` instead")]]

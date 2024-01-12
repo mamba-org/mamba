@@ -66,16 +66,6 @@ namespace mamba
 
         MRepo(
             MPool& pool,
-            std::string_view name,
-            const fs::u8path& filename,
-            const solver::libsolv::RepodataOrigin& metadata,
-            PipAsPythonDependency add = PipAsPythonDependency::No,
-            RepodataParser parser = RepodataParser::Automatic,
-            LibsolvCache use_cache = LibsolvCache::Yes
-        );
-
-        MRepo(
-            MPool& pool,
             const std::string_view name,
             const std::vector<specs::PackageInfo>& uris,
             PipAsPythonDependency add = PipAsPythonDependency::No
@@ -100,16 +90,9 @@ namespace mamba
 
     private:
 
-        Repo* m_repo = nullptr;  // This is a view managed by libsolv pool
+        ::Repo* m_repo = nullptr;  // This is a view managed by libsolv pool
 
-        void load_file(
-            MPool& pool,
-            const fs::u8path& filename,
-            const solver::libsolv::RepodataOrigin& metadata,
-            PipAsPythonDependency add,
-            RepodataParser parser,
-            LibsolvCache use_cache
-        );
+        explicit MRepo(::Repo* repo);
 
         friend class MPool;
     };

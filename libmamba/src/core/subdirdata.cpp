@@ -463,6 +463,11 @@ namespace mamba
         return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
     }
 
+    fs::u8path MSubdirData::writable_solv_cache() const
+    {
+        return m_writable_pkgs_dir / "cache" / m_json_fn;
+    }
+
     expected_t<fs::u8path> MSubdirData::valid_json_cache() const
     {
         if (m_json_cache_valid)

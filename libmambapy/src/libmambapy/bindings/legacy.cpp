@@ -283,7 +283,9 @@ bind_submodule_impl(pybind11::module_ m)
 
     py::class_<MatchSpecV2Migrator>(m, "MatchSpec")
         .def(py::init(
-            [](py::args, py::kwargs) -> MatchSpecV2Migrator {
+            [](py::args, py::kwargs) -> MatchSpecV2Migrator
+            {
+                // V2 migration
                 throw std::runtime_error(
                     "libmambapy.MatchSpec has been moved to libmambapy.specs.MatchSpec"
                 );
@@ -312,7 +314,6 @@ bind_submodule_impl(pybind11::module_ m)
     py::register_exception<mamba_error>(m, "MambaNativeException");
 
     py::add_ostream_redirect(m, "ostream_redirect");
-
 
     py::class_<MPool>(m, "Pool")
         .def(
@@ -344,8 +345,17 @@ bind_submodule_impl(pybind11::module_ m)
 
     py::class_<MRepo>(m, "Repo")
         .def(py::init(
-            [](MPool& pool, const std::string& name, const std::string& filename, const std::string& url
-            ) { return MRepo(pool, name, filename, { /* .url=*/url }); }
+            [](py::args, py::kwargs) -> MRepo
+            {
+                // V2 Migration
+                throw std::runtime_error(  //
+                    "Use `Pool.add_repo_from_repodata_json` or"
+                    " `Pool.add_repo_from_native_serialization` instead"
+                    " and cache with `Pool.native_serialize_repo`."
+                    " Also consider `load_subdir_in_pool` for a high_level function to load"
+                    " subdir index and manage cache."
+                );
+            }
         ))
         .def("set_priority", &MRepo::set_priority)
         .def("name", &MRepo::name)

@@ -169,7 +169,7 @@ namespace mamba::solv
             std::FILE* ptr = std::fopen(name.c_str(), mode);
             if (ptr == nullptr)
             {
-                throw std::system_error(errno, std::generic_category());
+                throw std::system_error(errno, std::generic_category(), name);
             }
             return { ptr, std::move(name) };
 #endif

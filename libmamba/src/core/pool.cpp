@@ -468,11 +468,15 @@ namespace mamba
 
         if (auto solv_file = subdir.valid_solv_cache())
         {
-            return pool.add_repo_from_native_serialization(
+            auto maybe_repo = pool.add_repo_from_native_serialization(
                 *solv_file,
                 expected_cache_origin,
                 static_cast<MRepo::PipAsPythonDependency>(ctx.add_pip_as_python_dependency)
             );
+            if (maybe_repo)
+            {
+                return maybe_repo;
+            }
         }
         const auto repodata_json = subdir.valid_json_cache();
         if (repodata_json)

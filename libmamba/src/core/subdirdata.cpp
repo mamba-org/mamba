@@ -184,9 +184,10 @@ namespace mamba
 
     bool MSubdirMetadata::check_valid_metadata(const fs::u8path& file)
     {
-        if (m_stored_file_size != fs::file_size(file))
+        if (const auto new_size = fs::file_size(file); new_size != m_stored_file_size)
         {
-            LOG_INFO << "File size changed, invalidating metadata";
+            LOG_INFO << "File size changed, expected " << m_stored_file_size << " but got "
+                     << new_size << "; invalidating metadata";
             return false;
         }
 #ifndef _WIN32

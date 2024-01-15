@@ -157,6 +157,7 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/util/os_win.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/parsers.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/path_manip.cpp
+    ${LIBMAMBA_SOURCE_DIR}/util/random.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/string.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/url.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/url_manip.cpp
@@ -278,6 +279,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/os_win.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/parsers.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/path_manip.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/random.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/string.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/tuple_hash.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/type_traits.hpp
@@ -342,7 +344,6 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/fsutil.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_os.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_random.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_scope.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/virtual_packages.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/env_lockfile.hpp

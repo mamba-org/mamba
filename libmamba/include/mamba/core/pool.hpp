@@ -85,6 +85,21 @@ namespace mamba
             MRepo::PipAsPythonDependency add = MRepo::PipAsPythonDependency::No
         ) -> expected_t<MRepo>;
 
+        template <typename Iter>
+        auto add_repo_from_packages(
+            Iter first_package,
+            Iter last_package,
+            std::string_view name = "",
+            MRepo::PipAsPythonDependency add = MRepo::PipAsPythonDependency::No
+        ) -> MRepo;
+
+        template <typename Range>
+        auto add_repo_from_packages(
+            const Range& packages,
+            std::string_view name = "",
+            MRepo::PipAsPythonDependency add = MRepo::PipAsPythonDependency::No
+        ) -> MRepo;
+
         auto native_serialize_repo(
             const MRepo& repo,
             const fs::u8path& path,
@@ -114,11 +129,49 @@ namespace mamba
          *    - Facilitate (potential) future investigation of parallel solves.
          */
         std::shared_ptr<MPoolData> m_data;
+
+        auto add_repo_from_packages_impl_pre(std::string_view name) -> MRepo;
+        void add_repo_from_packages_impl_loop(const MRepo& repo, const specs::PackageInfo& pkg);
+        void add_repo_from_packages_impl_post(const MRepo& repo, MRepo::PipAsPythonDependency add);
     };
 
     // TODO machinery functions in separate files
     auto load_subdir_in_pool(const Context& ctx, MPool& pool, const MSubdirData& subdir)
         -> expected_t<MRepo>;
+
+    auto load_installed_packages_in_pool(const Context& ctx, MPool& pool, const PrefixData& prefix)
+        -> MRepo;
+
+    /********************
+     *  Implementation  *
+     ********************/
+
+    template <typename Iter>
+    auto MPool::add_repo_from_packages(
+        Iter first_package,
+        Iter last_package,
+        std::string_view name,
+        MRepo::PipAsPythonDependency add
+    ) -> MRepo
+    {
+        auto repo = add_repo_from_packages_impl_pre(name);
+        for (; first_package != last_package; ++first_package)
+        {
+            add_repo_from_packages_impl_loop(repo, *first_package);
+        }
+        add_repo_from_packages_impl_post(repo, add);
+        return repo;
+    }
+
+    template <typename Range>
+    auto MPool::add_repo_from_packages(
+        const Range& packages,
+        std::string_view name,
+        MRepo::PipAsPythonDependency add
+    ) -> MRepo
+    {
+        return add_repo_from_packages(packages.begin(), packages.end(), name, add);
+    }
 }
 
 #endif  // MAMBA_POOL_HPP

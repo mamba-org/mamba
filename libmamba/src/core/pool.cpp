@@ -12,7 +12,10 @@
 #include <solv/selection.h>
 #include <solv/solver.h>
 
+#include "mamba/core/prefix_data.hpp"
 #include "mamba/core/subdirdata.hpp"
+#include "mamba/core/util_random.hpp"
+#include "mamba/core/virtual_packages.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 
@@ -438,6 +441,32 @@ namespace mamba
             .or_else([&](const auto&) { pool().remove_repo(repo.id(), /* reuse_ids= */ true); });
     }
 
+    auto MPool::add_repo_from_packages_impl_pre(std::string_view name) -> MRepo
+    {
+        if (name.empty())
+        {
+            return MRepo(pool().add_repo(generate_random_alphanumeric_string(20)).second.raw());
+        }
+        return MRepo(pool().add_repo(name).second.raw());
+    }
+
+    void MPool::add_repo_from_packages_impl_loop(const MRepo& repo, const specs::PackageInfo& pkg)
+    {
+        auto s_repo = solv::ObjRepoView(*repo.m_repo);
+        auto [id, solv] = s_repo.add_solvable();
+        solver::libsolv::set_solvable(pool(), solv, pkg);
+    }
+
+    void MPool::add_repo_from_packages_impl_post(const MRepo& repo, MRepo::PipAsPythonDependency add)
+    {
+        auto s_repo = solv::ObjRepoView(*repo.m_repo);
+        if (add == MRepo::PipAsPythonDependency::Yes)
+        {
+            solver::libsolv::add_pip_as_python_dependency(pool(), s_repo);
+        }
+        s_repo.internalize();
+    }
+
     auto MPool::native_serialize_repo(
         const MRepo& repo,
         const fs::u8path& path,
@@ -524,5 +553,21 @@ namespace mamba
                     return std::move(repo);
                 }
             );
+    }
+
+    auto load_installed_packages_in_pool(const Context& ctx, MPool& pool, const PrefixData& prefix)
+        -> MRepo
+    {
+        // TODO(C++20): We could do a PrefixData range that returns packages without storing thems.
+        auto pkgs = prefix.sorted_records();
+        // TODO(C++20): We only need a range that concatenate both
+        for (auto&& pkg : get_virtual_packages(ctx))
+        {
+            pkgs.push_back(std::move(pkg));
+        }
+
+        auto repo = pool.add_repo_from_packages(pkgs, "installed", MRepo::PipAsPythonDependency::No);
+        pool.set_installed_repo(repo);
+        return repo;
     }
 }

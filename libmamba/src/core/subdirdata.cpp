@@ -288,8 +288,12 @@ namespace mamba
     auto MSubdirMetadata::from_repodata_file(const fs::u8path& repodata_file)
         -> expected_subdir_metadata
     {
-        std::ifstream in_file = open_ifstream(repodata_file);
-        const std::string json = extract_subjson(in_file);
+        const std::string json = [](const fs::u8path& file) -> std::string
+        {
+            auto lock = LockFile(file);
+            std::ifstream in_file = open_ifstream(file);
+            return extract_subjson(in_file);
+        }(repodata_file);
 
         try
         {

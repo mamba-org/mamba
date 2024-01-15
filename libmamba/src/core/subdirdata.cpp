@@ -465,7 +465,7 @@ namespace mamba
 
     fs::u8path MSubdirData::writable_solv_cache() const
     {
-        return m_writable_pkgs_dir / "cache" / m_json_fn;
+        return m_writable_pkgs_dir / "cache" / m_solv_fn;
     }
 
     expected_t<fs::u8path> MSubdirData::valid_json_cache() const

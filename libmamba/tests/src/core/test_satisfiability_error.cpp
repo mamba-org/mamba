@@ -21,9 +21,9 @@
 #include "mamba/core/solver.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/core/util_random.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/package_info.hpp"
+#include "mamba/util/random.hpp"
 #include "mamba/util/string.hpp"
 
 #include "mambatests.hpp"
@@ -149,7 +149,7 @@ namespace
     )
     {
         const auto tmp_dir = dir_guard(
-            fs::temp_directory_path() / "mamba/tests" / generate_random_alphanumeric_string(20)
+            fs::temp_directory_path() / "mamba/tests" / util::generate_random_alphanumeric_string(20)
         );
         const auto repodata_f = create_repodata_json(tmp_dir.path, packages);
 
@@ -379,7 +379,7 @@ namespace
     {
         // Reusing the cache for all invocation of this funciton for speedup
         static const auto tmp_dir = dir_guard(
-            fs::temp_directory_path() / "mamba/tests" / generate_random_alphanumeric_string(20)
+            fs::temp_directory_path() / "mamba/tests" / util::generate_random_alphanumeric_string(20)
         );
 
         auto prefix_data = expected_value_or_throw(

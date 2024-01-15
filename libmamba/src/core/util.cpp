@@ -60,11 +60,11 @@ extern "C"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
-#include "mamba/core/util_random.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/compare.hpp"
 #include "mamba/util/environment.hpp"
+#include "mamba/util/random.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
 
@@ -212,7 +212,7 @@ namespace mamba
 
         do
         {
-            std::string random_file_name = mamba::generate_random_alphanumeric_string(10);
+            std::string random_file_name = util::generate_random_alphanumeric_string(10);
             final_path = temp_path / util::concat(prefix, random_file_name, suffix);
         } while (fs::exists(final_path));
 

@@ -19,7 +19,7 @@
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/util_os.hpp"
-#include "mamba/core/util_random.hpp"
+#include "mamba/util/random.hpp"
 
 #include "common_options.hpp"
 

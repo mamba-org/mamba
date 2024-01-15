@@ -278,7 +278,8 @@ namespace mamba::solver::libsolv
         }
     }
 
-    void libsolv_read_json(solv::ObjRepoView repo, const fs::u8path& filename, bool only_tar_bz2)
+    auto libsolv_read_json(solv::ObjRepoView repo, const fs::u8path& filename, bool only_tar_bz2)
+        -> expected_t<solv::ObjRepoView>
     {
         LOG_INFO << "Reading repodata.json file " << filename << " for repo " << repo.name()
                  << " using libsolv";
@@ -286,15 +287,16 @@ namespace mamba::solver::libsolv
         const int flags = only_tar_bz2 ? CONDA_ADD_USE_ONLY_TAR_BZ2 : 0;
         const auto lock = LockFile(filename);
         repo.legacy_read_conda_repodata(filename, flags);
+        return { repo };
     }
 
-    void mamba_read_json(
+    auto mamba_read_json(
         solv::ObjPool& pool,
         solv::ObjRepoView repo,
         const fs::u8path& filename,
         const std::string& repo_url,
         bool only_tar_bz2
-    )
+    ) -> expected_t<solv::ObjRepoView>
     {
         LOG_INFO << "Reading repodata.json file " << filename << " for repo " << repo.name()
                  << " using mamba";
@@ -321,6 +323,8 @@ namespace mamba::solver::libsolv
         {
             set_repo_solvables(pool, repo, repo_url, parsed_url, default_subdir, pkgs.value());
         }
+
+        return { repo };
     }
 
     [[nodiscard]] auto read_solv(
@@ -329,7 +333,7 @@ namespace mamba::solver::libsolv
         const fs::u8path& filename,
         const solver::libsolv::RepodataOrigin& expected,
         bool expected_pip_added
-    ) -> bool
+    ) -> expected_t<solv::ObjRepoView>
     {
         using RepodataOrigin = solver::libsolv::RepodataOrigin;
 
@@ -340,8 +344,10 @@ namespace mamba::solver::libsolv
 
         if (!fs::exists(filename))
         {
-            LOG_INFO << "Solv file " << filename << " does not exist";
-            return false;
+            return make_unexpected(
+                fmt::format(R"(File "{}" does not exist)", filename),
+                mamba_error_code::repodata_not_loaded
+            );
         }
 
         {
@@ -358,9 +364,11 @@ namespace mamba::solver::libsolv
 
         if (read_binary_version != expected_binary_version)
         {
-            LOG_INFO << "Metadata from solv are binary incompatible, canceling solv file load";
             repo.clear(/* reuse_ids= */ false);
-            return false;
+            return make_unexpected(
+                "Metadata from solv are binary incompatible",
+                mamba_error_code::repodata_not_loaded
+            );
         }
 
         const auto read_metadata = RepodataOrigin{
@@ -377,9 +385,11 @@ namespace mamba::solver::libsolv
 
         if ((read_metadata == RepodataOrigin{}) || (read_metadata != expected))
         {
-            LOG_INFO << "Metadata from solv are outdated, canceling solv file load";
             repo.clear(/* reuse_ids= */ false);
-            return false;
+            return make_unexpected(
+                "Metadata from solv are outdated",
+                mamba_error_code::repodata_not_loaded
+            );
         }
 
         const bool read_pip_added = repo.pip_added();
@@ -392,15 +402,16 @@ namespace mamba::solver::libsolv
             }
             else
             {
-                LOG_INFO << "Metadata from solv contain extra pip dependencies,"
-                            " canceling solv file load";
                 repo.clear(/* reuse_ids= */ false);
-                return false;
+                return make_unexpected(
+                    "Metadata from solv contain extra pip dependencies",
+                    mamba_error_code::repodata_not_loaded
+                );
             }
         }
 
         LOG_INFO << "Metadata from solv are valid, loading successful";
-        return true;
+        return { repo };
     }
 
     void

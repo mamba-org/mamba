@@ -7,6 +7,7 @@
 #ifndef MAMBA_SOLVER_LIBSOLV_HERLPERS
 #define MAMBA_SOLVER_LIBSOLV_HERLPERS
 
+#include "mamba/core/error_handling.hpp"
 #include "mamba/solver/libsolv/serialization.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "solv-cpp/pool.hpp"
@@ -22,15 +23,17 @@ namespace mamba::solver::libsolv
 {
     void set_solvable(solv::ObjPool& pool, solv::ObjSolvableView solv, const specs::PackageInfo& pkg);
 
-    void libsolv_read_json(solv::ObjRepoView repo, const fs::u8path& filename, bool only_tar_bz2);
+    [[nodiscard]] auto
+    libsolv_read_json(solv::ObjRepoView repo, const fs::u8path& filename, bool only_tar_bz2)
+        -> expected_t<solv::ObjRepoView>;
 
-    void mamba_read_json(
+    [[nodiscard]] auto mamba_read_json(
         solv::ObjPool& pool,
         solv::ObjRepoView repo,
         const fs::u8path& filename,
         const std::string& repo_url,
         bool only_tar_bz2
-    );
+    ) -> expected_t<solv::ObjRepoView>;
 
     [[nodiscard]] auto read_solv(
         solv::ObjPool& pool,
@@ -38,7 +41,7 @@ namespace mamba::solver::libsolv
         const fs::u8path& filename,
         const RepodataOrigin& expected,
         bool expected_pip_added
-    ) -> bool;
+    ) -> expected_t<solv::ObjRepoView>;
 
     void write_solv(solv::ObjRepoView repo, fs::u8path filename, const RepodataOrigin& metadata);
 

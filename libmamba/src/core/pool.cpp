@@ -373,32 +373,44 @@ namespace mamba
                 mamba_error_code::repodata_not_loaded
             );
         }
-        auto [_, repo] = pool().add_repo(url);
+        auto repo = pool().add_repo(url).second;
         repo.set_url(std::string(url));
 
-        if (parser == MRepo::RepodataParser::Mamba)
+        auto make_repo = [&]() -> expected_t<solv::ObjRepoView>
         {
-            solver::libsolv::mamba_read_json(
-                pool(),
-                repo,
-                path,
-                std::string(url),
-                context().use_only_tar_bz2
-            );
-        }
-        else
-        {
-            solver::libsolv::libsolv_read_json(repo, path, context().use_only_tar_bz2);
-            solver::libsolv::set_solvables_url(repo, std::string(url));
-        }
+            if (parser == MRepo::RepodataParser::Mamba)
+            {
+                return solver::libsolv::mamba_read_json(
+                    pool(),
+                    repo,
+                    path,
+                    std::string(url),
+                    context().use_only_tar_bz2
+                );
+            }
+            return solver::libsolv::libsolv_read_json(repo, path, context().use_only_tar_bz2)
+                .transform(
+                    [&url](solv::ObjRepoView repo)
+                    {
+                        solver::libsolv::set_solvables_url(repo, std::string(url));
+                        return repo;
+                    }
+                );
+        };
 
-        if (add == MRepo::PipAsPythonDependency::Yes)
-        {
-            solver::libsolv::add_pip_as_python_dependency(pool(), repo);
-        }
-        repo.internalize();
-
-        return { MRepo(repo.raw()) };
+        return make_repo()
+            .transform(
+                [&](solv::ObjRepoView repo) -> MRepo
+                {
+                    if (add == MRepo::PipAsPythonDependency::Yes)
+                    {
+                        solver::libsolv::add_pip_as_python_dependency(pool(), repo);
+                    }
+                    repo.internalize();
+                    return MRepo{ repo.raw() };
+                }
+            )
+            .or_else([&](const auto&) { pool().remove_repo(repo.id(), /* reuse_ids= */ true); });
     }
 
     auto MPool::add_repo_from_native_serialization(
@@ -407,34 +419,23 @@ namespace mamba
         MRepo::PipAsPythonDependency add
     ) -> expected_t<MRepo>
     {
-        if (!fs::exists(path))
-        {
-            return make_unexpected(
-                fmt::format(R"(File "{}" does not exist)", path),
-                mamba_error_code::repodata_not_loaded
-            );
-        }
+        auto repo = pool().add_repo(expected.url).second;
 
-        auto [_, repo] = pool().add_repo(expected.url);
-
-        const bool read = solver::libsolv::read_solv(pool(), repo, path, expected, static_cast<bool>(add));
-        if (!read)
-        {
-            return make_unexpected(
-                fmt::format(R"(Error reading solv file "{}")", path),
-                mamba_error_code::repodata_not_loaded
-            );
-        }
-        repo.set_url(expected.url);
-        solver::libsolv::set_solvables_url(repo, expected.url);
-
-        if (add == MRepo::PipAsPythonDependency::Yes)
-        {
-            solver::libsolv::add_pip_as_python_dependency(pool(), repo);
-        }
-        repo.internalize();
-
-        return { MRepo(repo.raw()) };
+        return solver::libsolv::read_solv(pool(), repo, path, expected, static_cast<bool>(add))
+            .transform(
+                [&](solv::ObjRepoView repo) -> MRepo
+                {
+                    repo.set_url(expected.url);
+                    solver::libsolv::set_solvables_url(repo, expected.url);
+                    if (add == MRepo::PipAsPythonDependency::Yes)
+                    {
+                        solver::libsolv::add_pip_as_python_dependency(pool(), repo);
+                    }
+                    repo.internalize();
+                    return MRepo(repo.raw());
+                }
+            )
+            .or_else([&](const auto&) { pool().remove_repo(repo.id(), /* reuse_ids= */ true); });
     }
 
     void MPool::native_serialize_repo(
@@ -507,8 +508,15 @@ namespace mamba
                 [&](MRepo&& repo) -> MRepo
                 {
                     // TODO handle exception errors
-                    pool.native_serialize_repo(repo, subdir.writable_solv_cache(), expected_cache_origin);
-                    return { std::move(repo) };
+                    if (!util::on_win)
+                    {
+                        pool.native_serialize_repo(
+                            repo,
+                            subdir.writable_solv_cache(),
+                            expected_cache_origin
+                        );
+                    }
+                    return std::move(repo);
                 }
             );
     }

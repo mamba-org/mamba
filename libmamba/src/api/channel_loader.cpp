@@ -17,7 +17,7 @@ namespace mamba
 {
     namespace
     {
-        MRepo create_repo_from_pkgs_dir(MPool& pool, const fs::u8path& pkgs_dir)
+        MRepo create_repo_from_pkgs_dir(const Context& ctx, MPool& pool, const fs::u8path& pkgs_dir)
         {
             if (!fs::exists(pkgs_dir))
             {
@@ -39,14 +39,7 @@ namespace mamba
                 }
                 prefix_data.load_single_record(repodata_record_json);
             }
-            auto repo = MRepo(
-                pool,
-                "installed",
-                prefix_data.sorted_records(),
-                MRepo::PipAsPythonDependency::Yes
-            );
-            pool.set_installed_repo(repo);
-            return repo;
+            return load_installed_packages_in_pool(ctx, pool, prefix_data);
         }
 
         void create_subdirs(
@@ -180,7 +173,7 @@ namespace mamba
             LOG_INFO << "Creating repo from pkgs_dir for offline";
             for (const auto& c : ctx.pkgs_dirs)
             {
-                create_repo_from_pkgs_dir(pool, c);
+                create_repo_from_pkgs_dir(ctx, pool, c);
             }
         }
         std::string prev_channel;

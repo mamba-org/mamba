@@ -566,6 +566,8 @@ namespace mamba
             pkgs.push_back(std::move(pkg));
         }
 
+        // Not adding Pip dependency since it might needlessly make the installed/active environment
+        // broken if pip is not already installed (debatable).
         auto repo = pool.add_repo_from_packages(pkgs, "installed", MRepo::PipAsPythonDependency::No);
         pool.set_installed_repo(repo);
         return repo;

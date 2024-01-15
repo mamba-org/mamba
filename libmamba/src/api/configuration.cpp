@@ -1289,6 +1289,16 @@ namespace mamba
                    )
                    .needs({ "default_channels", "target_prefix", "root_prefix" }));
 
+        insert(Configurable("mirrored_channels", &m_context.mirrored_channels)
+                   .group("Channels")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description("Mirrored channels")
+                   .long_description(  //
+                       "A dictionary where keys are channels names, and values are a list "
+                       "of mirrors urls to use.\n"
+                   ));
+
         insert(Configurable("override_channels_enabled", &m_context.override_channels_enabled)
                    .group("Channels")
                    .set_rc_configurable()

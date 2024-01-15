@@ -42,6 +42,53 @@ namespace mamba
             }
             return MRepo(pool, prefix_data);
         }
+
+        void create_subdirs(
+            Context& ctx,
+            ChannelContext& channel_context,
+            const specs::Channel& channel,
+            MultiPackageCache& package_caches,
+            std::vector<MSubdirData>& subdirs,
+            std::vector<mamba_error>& error_list,
+            std::vector<std::pair<int, int>>& priorities,
+            int& max_prio,
+            specs::CondaURL& prev_channel_url
+        )
+        {
+            for (const auto& platform : channel.platforms())
+            {
+                auto sdires = MSubdirData::create(
+                    ctx,
+                    channel_context,
+                    channel,
+                    platform,
+                    channel.platform_url(platform).str(specs::CondaURL::Credentials::Show),
+                    package_caches,
+                    "repodata.json"
+                );
+                if (!sdires.has_value())
+                {
+                    error_list.push_back(std::move(sdires).error());
+                    continue;
+                }
+                auto sdir = std::move(sdires).value();
+                subdirs.push_back(std::move(sdir));
+                if (ctx.channel_priority == ChannelPriority::Disabled)
+                {
+                    priorities.push_back(std::make_pair(0, 0));
+                }
+                else
+                {
+                    // Consider 'flexible' and 'strict' the same way
+                    if (channel.url() != prev_channel_url)
+                    {
+                        max_prio--;
+                        prev_channel_url = channel.url();
+                    }
+                    priorities.push_back(std::make_pair(max_prio, 0));
+                }
+            }
+        }
     }
 
     expected_t<void, mamba_aggregated_error>
@@ -59,42 +106,42 @@ namespace mamba
 
         std::vector<mamba_error> error_list;
 
+        for (const auto& mirror : ctx.mirrored_channels)
+        {
+            for (auto channel : pool.channel_context().make_channel(mirror.first, mirror.second))
+            {
+                create_subdirs(
+                    ctx,
+                    pool.channel_context(),
+                    channel,
+                    package_caches,
+                    subdirs,
+                    error_list,
+                    priorities,
+                    max_prio,
+                    prev_channel_url
+                );
+            }
+        }
+
         for (const auto& location : ctx.channels)
         {
-            for (auto channel : pool.channel_context().make_channel(location))
+            // TODO: C++20, replace with contains
+            if (ctx.mirrored_channels.find(location) == ctx.mirrored_channels.end())
             {
-                for (const auto& platform : channel.platforms())
+                for (auto channel : pool.channel_context().make_channel(location))
                 {
-                    auto sdires = MSubdirData::create(
+                    create_subdirs(
                         ctx,
                         pool.channel_context(),
                         channel,
-                        platform,
-                        channel.platform_url(platform).str(specs::CondaURL::Credentials::Show),
                         package_caches,
-                        "repodata.json"
+                        subdirs,
+                        error_list,
+                        priorities,
+                        max_prio,
+                        prev_channel_url
                     );
-                    if (!sdires.has_value())
-                    {
-                        error_list.push_back(std::move(sdires).error());
-                        continue;
-                    }
-                    auto sdir = std::move(sdires).value();
-                    subdirs.push_back(std::move(sdir));
-                    if (ctx.channel_priority == ChannelPriority::Disabled)
-                    {
-                        priorities.push_back(std::make_pair(0, 0));
-                    }
-                    else
-                    {
-                        // Consider 'flexible' and 'strict' the same way
-                        if (channel.url() != prev_channel_url)
-                        {
-                            max_prio--;
-                            prev_channel_url = channel.url();
-                        }
-                        priorities.push_back(std::make_pair(max_prio, 0));
-                    }
                 }
             }
         }

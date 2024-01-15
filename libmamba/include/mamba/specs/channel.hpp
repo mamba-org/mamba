@@ -88,8 +88,14 @@ namespace mamba::specs
         ) -> channel_list;
 
         Channel(CondaURL url, std::string display_name, platform_list platforms = {});
+        Channel(std::vector<CondaURL> mirror_urls, std::string display_name, platform_list platforms = {});
 
         [[nodiscard]] auto is_package() const -> bool;
+
+        [[nodiscard]] auto mirror_urls() const -> const std::vector<CondaURL>&;
+        [[nodiscard]] auto platform_mirror_urls() const -> std::vector<CondaURL>;
+        [[nodiscard]] auto platform_mirror_urls(const std::string_view platform) const
+            -> std::vector<CondaURL>;
 
         [[nodiscard]] auto url() const -> const CondaURL&;
         auto clear_url() -> const CondaURL;
@@ -124,7 +130,9 @@ namespace mamba::specs
 
     private:
 
-        CondaURL m_url;
+        CondaURL platform_url_impl(const CondaURL& url, const std::string_view platform) const;
+
+        std::vector<CondaURL> m_mirror_urls;
         std::string m_display_name;
         util::flat_set<std::string> m_platforms;
     };

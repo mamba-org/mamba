@@ -438,14 +438,15 @@ namespace mamba
             .or_else([&](const auto&) { pool().remove_repo(repo.id(), /* reuse_ids= */ true); });
     }
 
-    void MPool::native_serialize_repo(
+    auto MPool::native_serialize_repo(
         const MRepo& repo,
         const fs::u8path& path,
         const solver::libsolv::RepodataOrigin& metadata
-    )
+    ) -> expected_t<MRepo>
     {
         assert(repo.m_repo != nullptr);
-        solver::libsolv::write_solv(solv::ObjRepoView(*repo.m_repo), path, metadata);
+        return solver::libsolv::write_solv(solv::ObjRepoView(*repo.m_repo), path, metadata)
+            .transform([](solv::ObjRepoView repo) { return MRepo(repo.raw()); });
     }
 
     void MPool::remove_repo(::Id repo_id, bool reuse_ids)
@@ -507,14 +508,18 @@ namespace mamba
             .transform(
                 [&](MRepo&& repo) -> MRepo
                 {
-                    // TODO handle exception errors
                     if (!util::on_win)
                     {
-                        pool.native_serialize_repo(
-                            repo,
-                            subdir.writable_solv_cache(),
-                            expected_cache_origin
-                        );
+                        pool.native_serialize_repo(repo, subdir.writable_solv_cache(), expected_cache_origin)
+                            .or_else(
+                                [&](const auto& err)
+                                {
+                                    LOG_WARNING << R"(Fail to write native serialization to file ")"
+                                                << subdir.writable_solv_cache() << R"(" for repo ")"
+                                                << subdir.name() << ": " << err.what();
+                                    ;
+                                }
+                            );
                     }
                     return std::move(repo);
                 }

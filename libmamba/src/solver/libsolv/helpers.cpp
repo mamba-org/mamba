@@ -18,6 +18,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/specs/conda_url.hpp"
+#include "mamba/util/cfile.hpp"
 #include "mamba/util/string.hpp"
 
 #include "solver/libsolv/helpers.hpp"
@@ -283,11 +284,26 @@ namespace mamba::solver::libsolv
     {
         LOG_INFO << "Reading repodata.json file " << filename << " for repo " << repo.name()
                  << " using libsolv";
-        // TODO make this as part of options of the repo/pool
         const int flags = only_tar_bz2 ? CONDA_ADD_USE_ONLY_TAR_BZ2 : 0;
         const auto lock = LockFile(filename);
-        repo.legacy_read_conda_repodata(filename, flags);
-        return { repo };
+
+        return util::CFile::try_open(filename, "rb")
+            .transform_error([](std::error_code&& ec) { return ec.message(); })
+            .and_then(
+                [&](util::CFile&& file_ptr) -> tl::expected<void, std::string>
+                {
+                    auto out = repo.legacy_read_conda_repodata(file_ptr.raw(), flags);
+                    file_ptr.try_close().or_else([&](auto const& err) {  //
+                        LOG_WARNING << R"(Fail to close file ")" << filename << R"(": )" << err;
+                    });
+                    return out;
+                }
+            )
+            .transform([&]() { return repo; })
+            .transform_error(
+                [](std::string&& str)
+                { return mamba_error(std::move(str), mamba_error_code::repodata_not_loaded); }
+            );
     }
 
     auto mamba_read_json(
@@ -356,66 +372,86 @@ namespace mamba::solver::libsolv
             LOG_INFO << "Expecting solv metadata : " << j.dump();
         }
 
-        {
-            auto lock = LockFile(filename);
-            repo.read(filename);
-        }
-        auto read_binary_version = repo.tool_version();
+        auto lock = LockFile(filename);
 
-        if (read_binary_version != expected_binary_version)
-        {
-            repo.clear(/* reuse_ids= */ false);
-            return make_unexpected(
-                "Metadata from solv are binary incompatible",
-                mamba_error_code::repodata_not_loaded
+        return util::CFile::try_open(filename, "rb")
+            .transform_error([](std::error_code&& ec) { return ec.message(); })
+            .and_then(
+                [&](util::CFile&& file_ptr) -> tl::expected<void, std::string>
+                {
+                    auto out = repo.read(file_ptr.raw());
+                    file_ptr.try_close().or_else([&](auto const& err) {  //
+                        LOG_WARNING << R"(Fail to close file ")" << filename << R"(": )" << err;
+                    });
+                    return out;
+                }
+            )
+            .transform_error(
+                [](std::string&& str)
+                { return mamba_error(std::move(str), mamba_error_code::repodata_not_loaded); }
+            )
+            .and_then(
+                [&]() -> expected_t<solv::ObjRepoView>
+                {
+                    auto read_binary_version = repo.tool_version();
+
+                    if (read_binary_version != expected_binary_version)
+                    {
+                        repo.clear(/* reuse_ids= */ true);
+                        return make_unexpected(
+                            "Metadata from solv are binary incompatible",
+                            mamba_error_code::repodata_not_loaded
+                        );
+                    }
+
+                    const auto read_metadata = RepodataOrigin{
+                        /* .url= */ std::string(repo.url()),
+                        /* .etag= */ std::string(repo.etag()),
+                        /* .mod= */ std::string(repo.mod()),
+                    };
+
+                    {
+                        auto j = nlohmann::json(read_metadata);
+                        j["tool_version"] = read_binary_version;
+                        LOG_INFO << "Loaded solv metadata : " << j.dump();
+                    }
+
+                    if ((read_metadata == RepodataOrigin{}) || (read_metadata != expected))
+                    {
+                        repo.clear(/* reuse_ids= */ true);
+                        return make_unexpected(
+                            "Metadata from solv are outdated",
+                            mamba_error_code::repodata_not_loaded
+                        );
+                    }
+
+                    const bool read_pip_added = repo.pip_added();
+                    if (expected_pip_added != read_pip_added)
+                    {
+                        if (expected_pip_added)
+                        {
+                            add_pip_as_python_dependency(pool, repo);
+                            LOG_INFO << "Added missing pip dependencies";
+                        }
+                        else
+                        {
+                            repo.clear(/* reuse_ids= */ true);
+                            return make_unexpected(
+                                "Metadata from solv contain extra pip dependencies",
+                                mamba_error_code::repodata_not_loaded
+                            );
+                        }
+                    }
+
+                    LOG_INFO << "Metadata from solv are valid, loading successful";
+                    return { repo };
+                }
             );
-        }
-
-        const auto read_metadata = RepodataOrigin{
-            /* .url= */ std::string(repo.url()),
-            /* .etag= */ std::string(repo.etag()),
-            /* .mod= */ std::string(repo.mod()),
-        };
-
-        {
-            auto j = nlohmann::json(read_metadata);
-            j["tool_version"] = read_binary_version;
-            LOG_INFO << "Loaded solv metadata : " << j.dump();
-        }
-
-        if ((read_metadata == RepodataOrigin{}) || (read_metadata != expected))
-        {
-            repo.clear(/* reuse_ids= */ false);
-            return make_unexpected(
-                "Metadata from solv are outdated",
-                mamba_error_code::repodata_not_loaded
-            );
-        }
-
-        const bool read_pip_added = repo.pip_added();
-        if (expected_pip_added != read_pip_added)
-        {
-            if (expected_pip_added)
-            {
-                add_pip_as_python_dependency(pool, repo);
-                LOG_INFO << "Added missing pip dependencies";
-            }
-            else
-            {
-                repo.clear(/* reuse_ids= */ false);
-                return make_unexpected(
-                    "Metadata from solv contain extra pip dependencies",
-                    mamba_error_code::repodata_not_loaded
-                );
-            }
-        }
-
-        LOG_INFO << "Metadata from solv are valid, loading successful";
-        return { repo };
     }
 
-    void
+    auto
     write_solv(solv::ObjRepoView repo, fs::u8path filename, const solver::libsolv::RepodataOrigin& metadata)
+        -> expected_t<solv::ObjRepoView>
     {
         LOG_INFO << "Writing libsolv solv file " << filename << " for repo " << repo.name();
 
@@ -427,7 +463,24 @@ namespace mamba::solver::libsolv
 
         fs::create_directories(filename.parent_path());
         const auto lock = LockFile(fs::exists(filename) ? filename : filename.parent_path());
-        repo.write(filename);
+
+        return util::CFile::try_open(filename, "wb")
+            .transform_error([](std::error_code&& ec) { return ec.message(); })
+            .and_then(
+                [&](util::CFile&& file_ptr) -> tl::expected<void, std::string>
+                {
+                    auto out = repo.write(file_ptr.raw());
+                    file_ptr.try_close().or_else([&](auto const& err) {  //
+                        LOG_WARNING << R"(Fail to close file ")" << filename << R"(": )" << err;
+                    });
+                    return out;
+                }
+            )
+            .transform([&]() { return repo; })
+            .transform_error(
+                [](std::string&& str)
+                { return mamba_error(std::move(str), mamba_error_code::repodata_not_loaded); }
+            );
     }
 
     void set_solvables_url(solv::ObjRepoView repo, const std::string& repo_url)

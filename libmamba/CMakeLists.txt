@@ -151,6 +151,7 @@ set(
     # Filesystem library
     ${LIBMAMBA_SOURCE_DIR}/fs/filesystem.cpp
     # C++ utility library
+    ${LIBMAMBA_SOURCE_DIR}/util/cfile.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/cryptography.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/encoding.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/environment.cpp
@@ -265,6 +266,7 @@ set(
     # Utility library
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/build.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cast.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cfile.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/compare.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/conditional.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cryptography.hpp

@@ -23,9 +23,11 @@ namespace mamba::solver::libsolv
 {
     void set_solvable(solv::ObjPool& pool, solv::ObjSolvableView solv, const specs::PackageInfo& pkg);
 
-    [[nodiscard]] auto
-    libsolv_read_json(solv::ObjRepoView repo, const fs::u8path& filename, bool only_tar_bz2)
-        -> expected_t<solv::ObjRepoView>;
+    [[nodiscard]] auto libsolv_read_json(  //
+        solv::ObjRepoView repo,
+        const fs::u8path& filename,
+        bool only_tar_bz2
+    ) -> expected_t<solv::ObjRepoView>;
 
     [[nodiscard]] auto mamba_read_json(
         solv::ObjPool& pool,
@@ -43,7 +45,11 @@ namespace mamba::solver::libsolv
         bool expected_pip_added
     ) -> expected_t<solv::ObjRepoView>;
 
-    void write_solv(solv::ObjRepoView repo, fs::u8path filename, const RepodataOrigin& metadata);
+    [[nodiscard]] auto write_solv(  //
+        solv::ObjRepoView repo,
+        fs::u8path filename,
+        const RepodataOrigin& metadata
+    ) -> expected_t<solv::ObjRepoView>;
 
     void set_solvables_url(solv::ObjRepoView repo, const std::string& repo_url);
 

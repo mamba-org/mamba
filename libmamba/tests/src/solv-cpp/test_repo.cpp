@@ -10,10 +10,12 @@
 #include <doctest/doctest.h>
 
 #include "mamba/core/util.hpp"
+#include "mamba/util/cfile.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/repo.hpp"
 
 using namespace mamba::solv;
+using namespace mamba;
 
 TEST_SUITE("solv::ObjRepo")
 {
@@ -158,7 +160,13 @@ TEST_SUITE("solv::ObjRepo")
             {
                 auto dir = mamba::TemporaryDirectory();
                 const auto solv_file = dir.path() / "test-forge.hpp";
-                repo.write(solv_file);
+                {
+                    auto fptr = util::CFile::try_open(solv_file, "wb");
+                    REQUIRE(fptr);
+                    const auto written = repo.write(fptr->raw());
+                    REQUIRE(written);
+                    REQUIRE(fptr->try_close());
+                }
 
                 SUBCASE("Read repo from file")
                 {
@@ -168,7 +176,11 @@ TEST_SUITE("solv::ObjRepo")
 
                     // Create new repo from file
                     auto [repo_id2, repo2] = pool.add_repo("test-forge");
-                    repo2.read(solv_file);
+                    auto fptr = util::CFile::try_open(solv_file, "rb");
+                    REQUIRE(fptr);
+                    const auto read = repo2.read(fptr->raw());
+                    REQUIRE(read);
+                    REQUIRE(fptr->try_close());
 
                     CHECK_EQ(repo2.solvable_count(), n_solvables);
                     // True because we reused ids

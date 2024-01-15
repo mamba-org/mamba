@@ -85,11 +85,11 @@ namespace mamba
             MRepo::PipAsPythonDependency add = MRepo::PipAsPythonDependency::No
         ) -> expected_t<MRepo>;
 
-        void native_serialize_repo(
+        auto native_serialize_repo(
             const MRepo& repo,
             const fs::u8path& path,
             const solver::libsolv::RepodataOrigin& metadata
-        );
+        ) -> expected_t<MRepo>;
 
         void set_installed_repo(const MRepo& repo);
 

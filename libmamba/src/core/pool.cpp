@@ -13,6 +13,7 @@
 #include <solv/solver.h>
 
 #include "mamba/core/subdirdata.hpp"
+#include "mamba/util/build.hpp"
 #include "mamba/util/string.hpp"
 
 #include "solver/libsolv/helpers.hpp"
@@ -466,43 +467,49 @@ namespace mamba
             /* .mod= */ subdir.metadata().last_modified(),
         };
 
-        if (auto solv_file = subdir.valid_solv_cache())
+        const auto add_pip = static_cast<MRepo::PipAsPythonDependency>(ctx.add_pip_as_python_dependency
+        );
+        const auto json_parser = ctx.experimental_repodata_parsing ? MRepo::RepodataParser::Mamba
+                                                                   : MRepo::RepodataParser::Libsolv;
+
+        // Solv files are too slow on Windows.
+        if (!util::on_win)
         {
-            auto maybe_repo = pool.add_repo_from_native_serialization(
-                *solv_file,
-                expected_cache_origin,
-                static_cast<MRepo::PipAsPythonDependency>(ctx.add_pip_as_python_dependency)
+            auto maybe_repo = subdir.valid_solv_cache().and_then(
+                [&](fs::u8path&& solv_file) {
+                    return pool.add_repo_from_native_serialization(
+                        solv_file,
+                        expected_cache_origin,
+                        add_pip
+                    );
+                }
             );
             if (maybe_repo)
             {
                 return maybe_repo;
             }
         }
-        const auto repodata_json = subdir.valid_json_cache();
-        if (repodata_json)
-        {
-            return pool
-                .add_repo_from_repodata_json(
-                    *repodata_json,
-                    util::rsplit(subdir.metadata().url(), "/", 1).front(),
-                    static_cast<MRepo::PipAsPythonDependency>(ctx.add_pip_as_python_dependency),
-                    ctx.experimental_repodata_parsing ? MRepo::RepodataParser::Mamba
-                                                      : MRepo::RepodataParser::Libsolv
-                )
-                .and_then(
-                    [&](MRepo&& repo) -> expected_t<MRepo>
-                    {
-                        // TODO handle exception errors
-                        pool.native_serialize_repo(
-                            repo,
-                            subdir.writable_solv_cache(),
-                            expected_cache_origin
-                        );
-                        return { std::move(repo) };
-                    }
-                );
-        }
 
-        return forward_error(repodata_json);
+        return subdir.valid_json_cache()
+            .and_then(
+                [&](fs::u8path&& repodata_json)
+                {
+                    LOG_INFO << "Trying to load repo from json file " << repodata_json;
+                    return pool.add_repo_from_repodata_json(
+                        repodata_json,
+                        util::rsplit(subdir.metadata().url(), "/", 1).front(),
+                        add_pip,
+                        json_parser
+                    );
+                }
+            )
+            .transform(
+                [&](MRepo&& repo) -> MRepo
+                {
+                    // TODO handle exception errors
+                    pool.native_serialize_repo(repo, subdir.writable_solv_cache(), expected_cache_origin);
+                    return { std::move(repo) };
+                }
+            );
     }
 }

@@ -8,18 +8,12 @@
 
 namespace mamba ::util
 {
-    auto random_generator() -> default_random_generator
-    {
-        return random_generator<default_random_generator>();
-    }
+    template auto random_generator<default_random_generator>() -> default_random_generator;
 
-    auto local_random_generator() -> default_random_generator&
-    {
-        return local_random_generator<default_random_generator>();
-    }
+    template auto local_random_generator<default_random_generator>() -> default_random_generator&;
 
-    auto generate_random_alphanumeric_string(std::size_t len) -> std::string
-    {
-        return generate_random_alphanumeric_string(len, local_random_generator());
-    }
+    template auto generate_random_alphanumeric_string<default_random_generator>(
+        std::size_t len,
+        default_random_generator& generator
+    ) -> std::string;
 }

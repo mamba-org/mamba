@@ -19,23 +19,20 @@ namespace mamba::util
 {
     using default_random_generator = std::mt19937;
 
-    template <typename Generator>
+    template <typename Generator = default_random_generator>
     [[nodiscard]] auto random_generator() -> Generator;
 
-    [[nodiscard]] auto random_generator() -> default_random_generator;
-
-    template <typename Generator>
+    template <typename Generator = default_random_generator>
     auto local_random_generator() -> Generator&;
-
-    auto local_random_generator() -> default_random_generator&;
 
     template <typename T = int, typename Generator = default_random_generator>
     auto random_int(T min, T max, Generator& generator = local_random_generator()) -> T;
 
-    template <typename Generator>
-    auto generate_random_alphanumeric_string(std::size_t len, Generator& generator) -> std::string;
-
-    auto generate_random_alphanumeric_string(std::size_t len) -> std::string;
+    template <typename Generator = default_random_generator>
+    auto generate_random_alphanumeric_string(  //
+        std::size_t len,
+        Generator& generator = local_random_generator()
+    ) -> std::string;
 
     /********************
      *  Implementation  *
@@ -55,12 +52,17 @@ namespace mamba::util
         return Generator{ seed_seq };
     }
 
+    extern template auto random_generator<default_random_generator>() -> default_random_generator;
+
     template <typename Generator>
     auto local_random_generator() -> Generator&
     {
         thread_local auto rng = random_generator<Generator>();
         return rng;
     }
+
+    extern template auto local_random_generator<default_random_generator>()
+        -> default_random_generator&;
 
     template <typename T, typename Generator>
     auto random_int(T min, T max, Generator& generator) -> T
@@ -80,5 +82,10 @@ namespace mamba::util
         std::generate_n(begin(result), len, [&]() { return chars[dist(generator)]; });
         return result;
     }
+
+    extern template auto generate_random_alphanumeric_string<default_random_generator>(
+        std::size_t len,
+        default_random_generator& generator
+    ) -> std::string;
 }
 #endif

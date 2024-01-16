@@ -20,6 +20,7 @@ def yaml_env(tmp_prefix: Path) -> None:
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_depends_local(yaml_env: Path):
+    """Depends with local repository."""
     res = helpers.umamba_repoquery("depends", "yaml", "--json")
 
     assert res["query"]["query"] == "yaml"

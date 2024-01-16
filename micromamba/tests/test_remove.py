@@ -1,7 +1,6 @@
 import os
 import sys
 import platform
-import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -164,120 +163,93 @@ def test_remove_in_use(tmp_home, tmp_root_prefix, tmp_xtensor_env, tmp_env_name)
         pyproc.kill()
 
 
-class TestRemoveConfig:
-    current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
-    current_prefix = os.environ["CONDA_PREFIX"]
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_remove_then_clean(tmp_home, tmp_root_prefix):
+    env_file = __this_dir__ / "env-requires-pip-install.yaml"
+    env_name = "env_to_clean"
+    helpers.create("-n", env_name, "-f", env_file, no_dry_run=True)
+    helpers.remove("-n", env_name, "pip", no_dry_run=True)
+    helpers.clean("-ay", no_dry_run=True)
 
-    env_name = helpers.random_string()
-    root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + helpers.random_string()))
-    prefix = os.path.join(root_prefix, "envs", env_name)
 
-    @staticmethod
-    @pytest.fixture(scope="class")
-    def root(existing_cache):
-        os.environ["MAMBA_ROOT_PREFIX"] = TestRemoveConfig.root_prefix
-        os.environ["CONDA_PREFIX"] = TestRemoveConfig.prefix
-        helpers.create("-n", "base", no_dry_run=True)
-        helpers.create("-n", TestRemoveConfig.env_name, "--offline", no_dry_run=True)
+def remove_config_common_assertions(res, root_prefix, target_prefix):
+    assert res["root_prefix"] == str(root_prefix)
+    assert res["target_prefix"] == str(target_prefix)
+    assert res["use_target_prefix_fallback"]
+    checks = (
+        helpers.MAMBA_ALLOW_EXISTING_PREFIX
+        | helpers.MAMBA_NOT_ALLOW_MISSING_PREFIX
+        | helpers.MAMBA_NOT_ALLOW_NOT_ENV_PREFIX
+        | helpers.MAMBA_EXPECT_EXISTING_PREFIX
+    )
+    assert res["target_prefix_checks"] == checks
 
-        yield
 
-        os.environ["MAMBA_ROOT_PREFIX"] = TestRemoveConfig.current_root_prefix
-        os.environ["CONDA_PREFIX"] = TestRemoveConfig.current_prefix
-        shutil.rmtree(TestRemoveConfig.root_prefix)
+def test_remove_config_specs(tmp_home, tmp_root_prefix, tmp_prefix):
+    specs = ["xframe", "xtl"]
+    cmd = list(specs)
 
-    @staticmethod
-    @pytest.fixture
-    def env_created(root):
-        os.environ["MAMBA_ROOT_PREFIX"] = TestRemoveConfig.root_prefix
-        os.environ["CONDA_PREFIX"] = TestRemoveConfig.prefix
+    res = helpers.remove(*cmd, "--print-config-only")
 
-        yield
+    remove_config_common_assertions(res, root_prefix=tmp_root_prefix, target_prefix=tmp_prefix)
+    assert res["env_name"] == ""
+    assert res["specs"] == specs
 
-        for v in ("CONDA_CHANNELS", "MAMBA_TARGET_PREFIX"):
-            if v in os.environ:
-                os.environ.pop(v)
 
-    @classmethod
-    def common_tests(cls, res, root_prefix=root_prefix, target_prefix=prefix):
-        assert res["root_prefix"] == root_prefix
-        assert res["target_prefix"] == target_prefix
-        assert res["use_target_prefix_fallback"]
-        checks = (
-            helpers.MAMBA_ALLOW_EXISTING_PREFIX
-            | helpers.MAMBA_NOT_ALLOW_MISSING_PREFIX
-            | helpers.MAMBA_NOT_ALLOW_NOT_ENV_PREFIX
-            | helpers.MAMBA_EXPECT_EXISTING_PREFIX
-        )
-        assert res["target_prefix_checks"] == checks
+@pytest.mark.parametrize("use_root_prefix", (None, "env_var", "cli"))
+@pytest.mark.parametrize("target_is_root", (False, True))
+@pytest.mark.parametrize("cli_prefix", (False, True))
+@pytest.mark.parametrize("cli_env_name", (False, True))
+@pytest.mark.parametrize("env_var", (False, True))
+@pytest.mark.parametrize("fallback", (False, True))
+def test_remove_config_target_prefix(
+    tmp_home,
+    tmp_root_prefix,
+    tmp_env_name,
+    tmp_prefix,
+    use_root_prefix,
+    target_is_root,
+    cli_prefix,
+    cli_env_name,
+    env_var,
+    fallback,
+):
+    (tmp_root_prefix / "conda-meta").mkdir(parents=True, exist_ok=True)
 
-    def test_specs(self, env_created):
-        specs = ["xframe", "xtl"]
-        cmd = list(specs)
+    cmd = []
 
+    if use_root_prefix in (None, "cli"):
+        os.environ["MAMBA_DEFAULT_ROOT_PREFIX"] = os.environ.pop("MAMBA_ROOT_PREFIX")
+
+    if use_root_prefix == "cli":
+        cmd += ["-r", str(tmp_root_prefix)]
+
+    r = str(tmp_root_prefix)
+
+    if target_is_root:
+        p = r
+        n = "base"
+    else:
+        p = str(tmp_prefix)
+        n = str(tmp_env_name)
+
+    if cli_prefix:
+        cmd += ["-p", p]
+
+    if cli_env_name:
+        cmd += ["-n", n]
+
+    if env_var:
+        os.environ["MAMBA_TARGET_PREFIX"] = p
+
+    if not fallback:
+        os.environ.pop("CONDA_PREFIX")
+    else:
+        os.environ["CONDA_PREFIX"] = p
+
+    if (cli_prefix and cli_env_name) or not (cli_prefix or cli_env_name or env_var or fallback):
+        with pytest.raises(subprocess.CalledProcessError):
+            helpers.remove(*cmd, "--print-config-only")
+    else:
         res = helpers.remove(*cmd, "--print-config-only")
-
-        TestRemoveConfig.common_tests(res)
-        assert res["env_name"] == ""
-        assert res["specs"] == specs
-
-    def test_remove_then_clean(self, env_created):
-        env_file = __this_dir__ / "env-requires-pip-install.yaml"
-        env_name = "env_to_clean"
-        helpers.create("-n", env_name, "-f", env_file, no_dry_run=True)
-        helpers.remove("-n", env_name, "pip", no_dry_run=True)
-        helpers.clean("-ay", no_dry_run=True)
-
-    @pytest.mark.parametrize("root_prefix", (None, "env_var", "cli"))
-    @pytest.mark.parametrize("target_is_root", (False, True))
-    @pytest.mark.parametrize("cli_prefix", (False, True))
-    @pytest.mark.parametrize("cli_env_name", (False, True))
-    @pytest.mark.parametrize("env_var", (False, True))
-    @pytest.mark.parametrize("fallback", (False, True))
-    def test_target_prefix(
-        self,
-        root_prefix,
-        target_is_root,
-        cli_prefix,
-        cli_env_name,
-        env_var,
-        fallback,
-        env_created,
-    ):
-        cmd = []
-
-        if root_prefix in (None, "cli"):
-            os.environ["MAMBA_DEFAULT_ROOT_PREFIX"] = os.environ.pop("MAMBA_ROOT_PREFIX")
-
-        if root_prefix == "cli":
-            cmd += ["-r", TestRemoveConfig.root_prefix]
-
-        r = TestRemoveConfig.root_prefix
-
-        if target_is_root:
-            p = r
-            n = "base"
-        else:
-            p = TestRemoveConfig.prefix
-            n = TestRemoveConfig.env_name
-
-        if cli_prefix:
-            cmd += ["-p", p]
-
-        if cli_env_name:
-            cmd += ["-n", n]
-
-        if env_var:
-            os.environ["MAMBA_TARGET_PREFIX"] = p
-
-        if not fallback:
-            os.environ.pop("CONDA_PREFIX")
-        else:
-            os.environ["CONDA_PREFIX"] = p
-
-        if (cli_prefix and cli_env_name) or not (cli_prefix or cli_env_name or env_var or fallback):
-            with pytest.raises(subprocess.CalledProcessError):
-                helpers.remove(*cmd, "--print-config-only")
-        else:
-            res = helpers.remove(*cmd, "--print-config-only")
-            TestRemoveConfig.common_tests(res, root_prefix=r, target_prefix=p)
+        remove_config_common_assertions(res, root_prefix=r, target_prefix=p)

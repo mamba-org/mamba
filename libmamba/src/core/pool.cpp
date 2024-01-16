@@ -14,9 +14,9 @@
 
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/subdirdata.hpp"
-#include "mamba/core/util_random.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/util/build.hpp"
+#include "mamba/util/random.hpp"
 #include "mamba/util/string.hpp"
 
 #include "solver/libsolv/helpers.hpp"
@@ -445,7 +445,7 @@ namespace mamba
     {
         if (name.empty())
         {
-            return MRepo(pool().add_repo(generate_random_alphanumeric_string(20)).second.raw());
+            return MRepo(pool().add_repo(util::generate_random_alphanumeric_string(20)).second.raw());
         }
         return MRepo(pool().add_repo(name).second.raw());
     }

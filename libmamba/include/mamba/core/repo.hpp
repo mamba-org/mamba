@@ -8,7 +8,6 @@
 #define MAMBA_CORE_REPO_HPP
 
 #include <string_view>
-#include <tuple>
 
 
 extern "C"
@@ -50,6 +49,12 @@ namespace mamba
             Yes = true,
         };
 
+        struct Priorities
+        {
+            int priority = 0;
+            int subpriority = 0;
+        };
+
         using RepoId = int;
 
         MRepo(const MRepo&) = delete;
@@ -67,7 +72,7 @@ namespace mamba
 
         [[nodiscard]] auto package_count() const -> std::size_t;
 
-        [[deprecated]] auto py_priority() const -> std::tuple<int, int>;
+        [[nodiscard]] auto priority() const -> Priorities;
 
     private:
 

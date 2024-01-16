@@ -343,7 +343,27 @@ bind_submodule_impl(pybind11::module_ m)
         .def("get_tarball_path", &MultiPackageCache::get_tarball_path)
         .def_property_readonly("first_writable_path", &MultiPackageCache::first_writable_path);
 
-    py::class_<MRepo>(m, "Repo")
+    auto py_repo = py::class_<MRepo>(m, "Repo");
+
+    py::class_<MRepo::Priorities>(py_repo, "Priorities")
+        .def(
+            py::init(
+                [](int priority, int subpriority)
+                {
+                    return MRepo::Priorities{
+                        /* priority= */ priority,
+                        /* subpriority= */ subpriority,
+                    };
+                }
+            ),
+            py::arg("priority") = 0,
+            py::arg("subpriority") = 0
+        )
+        .def_readwrite("priority", &MRepo::Priorities::priority)
+        .def_readwrite("subpriority", &MRepo::Priorities::subpriority);
+    // TODO copy and serialization
+
+    py_repo
         .def(py::init(
             [](py::args, py::kwargs) -> MRepo
             {
@@ -359,7 +379,7 @@ bind_submodule_impl(pybind11::module_ m)
         ))
         .def("set_priority", &MRepo::set_priority)
         .def("name", &MRepo::name)
-        .def("priority", &MRepo::py_priority)
+        .def("priority", &MRepo::priority)
         .def("package_count", &MRepo::package_count);
 
     py::class_<MTransaction>(m, "Transaction")

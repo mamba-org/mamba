@@ -5,7 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <string_view>
-#include <tuple>
+#include <type_traits>
 
 #include "mamba/core/repo.hpp"
 #include "solv-cpp/repo.hpp"
@@ -18,11 +18,6 @@ namespace mamba
         auto srepo(const MRepo& r) -> solv::ObjRepoViewConst
         {
             return solv::ObjRepoViewConst{ *const_cast<const ::Repo*>(r.repo()) };
-        }
-
-        auto srepo(MRepo& r) -> solv::ObjRepoView
-        {
-            return solv::ObjRepoView{ *r.repo() };
         }
     }
 
@@ -42,9 +37,9 @@ namespace mamba
         return srepo(*this).name();
     }
 
-    auto MRepo::py_priority() const -> std::tuple<int, int>
+    auto MRepo::priority() const -> Priorities
     {
-        return std::make_tuple(m_repo->priority, m_repo->subpriority);
+        return { /* .priority= */ m_repo->priority, /* .subpriority= */ m_repo->subpriority };
     }
 
     auto MRepo::package_count() const -> std::size_t
@@ -52,12 +47,13 @@ namespace mamba
         return srepo(*this).solvable_count();
     }
 
-    Id MRepo::id() const
+    auto MRepo::id() const -> RepoId
     {
+        static_assert(std::is_same_v<RepoId, ::Id>);
         return srepo(*this).id();
     }
 
-    Repo* MRepo::repo() const
+    auto MRepo::repo() const -> ::Repo*
     {
         return m_repo;
     }

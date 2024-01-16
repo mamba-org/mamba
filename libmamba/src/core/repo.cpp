@@ -26,12 +26,6 @@ namespace mamba
     {
     }
 
-    void MRepo::set_priority(int priority, int subpriority)
-    {
-        m_repo->priority = priority;
-        m_repo->subpriority = subpriority;
-    }
-
     auto MRepo::name() const -> std::string_view
     {
         return srepo(*this).name();

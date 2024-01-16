@@ -109,6 +109,8 @@ namespace mamba
 
         void set_installed_repo(const MRepo& repo);
 
+        void set_repo_priority(const MRepo& repo, MRepo::Priorities);
+
         ChannelContext& channel_context() const;
         const Context& context() const;
 

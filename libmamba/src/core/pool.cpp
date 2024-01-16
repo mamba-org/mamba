@@ -488,6 +488,15 @@ namespace mamba
         pool().set_installed_repo(repo.id());
     }
 
+    void MPool::set_repo_priority(const MRepo& repo, MRepo::Priorities prio)
+    {
+        // NOTE: The Pool is not involved directly in this operations, but since it is needed
+        // in so many repo operations, this setter was put here to keep the Repo class
+        // immutable.
+        repo.m_repo->priority = prio.priority;
+        repo.m_repo->subpriority = prio.subpriority;
+    }
+
     // TODO machinery functions in separate files
     auto load_subdir_in_pool(const Context& ctx, MPool& pool, const MSubdirData& subdir)
         -> expected_t<MRepo>

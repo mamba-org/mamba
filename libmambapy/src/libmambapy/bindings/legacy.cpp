@@ -377,7 +377,7 @@ bind_submodule_impl(pybind11::module_ m)
                 );
             }
         ))
-        .def("set_priority", &MRepo::set_priority)
+        .def("id", &MRepo::id)
         .def("name", &MRepo::name)
         .def("priority", &MRepo::priority)
         .def("package_count", &MRepo::package_count);

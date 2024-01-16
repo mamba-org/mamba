@@ -574,26 +574,26 @@ namespace mamba
         switch (level)
         {
             case log_level::critical:
-                spdlog::critical(prepend(str, "", std::string(4, ' ').c_str()));
+                SPDLOG_CRITICAL(prepend(str, "", std::string(4, ' ').c_str()));
                 if (Console::instance().context().output_params.logging_level != log_level::off)
                 {
                     spdlog::dump_backtrace();
                 }
                 break;
             case log_level::err:
-                spdlog::error(prepend(str, "", std::string(4, ' ').c_str()));
+                SPDLOG_ERROR(prepend(str, "", std::string(4, ' ').c_str()));
                 break;
             case log_level::warn:
-                spdlog::warn(prepend(str, "", std::string(4, ' ').c_str()));
+                SPDLOG_WARN(prepend(str, "", std::string(4, ' ').c_str()));
                 break;
             case log_level::info:
-                spdlog::info(prepend(str, "", std::string(4, ' ').c_str()));
+                SPDLOG_INFO(prepend(str, "", std::string(4, ' ').c_str()));
                 break;
             case log_level::debug:
-                spdlog::debug(prepend(str, "", std::string(4, ' ').c_str()));
+                SPDLOG_DEBUG(prepend(str, "", std::string(4, ' ').c_str()));
                 break;
             case log_level::trace:
-                spdlog::trace(prepend(str, "", std::string(4, ' ').c_str()));
+                SPDLOG_TRACE(prepend(str, "", std::string(4, ' ').c_str()));
                 break;
             default:
                 break;

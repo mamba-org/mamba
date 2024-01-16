@@ -156,6 +156,17 @@ namespace mamba
                 {
                     auto pkginfo = get_pkginfo(id);
 
+                    // In libsolv, system dependencies are provided as a special dependency,
+                    // while in Conda it is implemented as a virtual package.
+                    // Maybe there is a way to tell libsolv to never try to install or remove these
+                    // solvables (SOLVER_LOCK or SOLVER_USERINSTALLED?).
+                    // In the meantime (and probably later for safety) we filter all virtual
+                    // packages out.
+                    if (util::starts_with(pkginfo.name, "__"))  // i.e. is_virtual_package
+                    {
+                        return;
+                    }
+
                     // Artificial packages are packages that were added to implement a feature
                     // (e.g. a pin) but do not represent a Conda package.
                     // They can appear in the transaction depending on libsolv flags.

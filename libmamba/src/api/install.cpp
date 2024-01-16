@@ -668,15 +668,8 @@ namespace mamba
             PrefixData& prefix_data = exp_prefix_data.value();
 
             MultiPackageCache pkg_caches(ctx.pkgs_dirs, ctx.validation_params);
-            prefix_data.add_packages(get_virtual_packages(ctx));
 
-            const auto repo = MRepo(
-                pool,
-                "installed",
-                prefix_data.sorted_records(),
-                MRepo::PipAsPythonDependency::Yes
-            );
-            pool.set_installed_repo(repo);
+            load_installed_packages_in_pool(ctx, pool, prefix_data);
 
             std::vector<detail::other_pkg_mgr_spec> others;
             // Note that the Transaction will gather the Solvables,

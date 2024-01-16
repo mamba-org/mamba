@@ -4,22 +4,11 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <array>
 #include <string_view>
 #include <tuple>
 
-#include "mamba/core/context.hpp"
-#include "mamba/core/output.hpp"
-#include "mamba/core/pool.hpp"
 #include "mamba/core/repo.hpp"
-#include "mamba/core/util.hpp"
-#include "mamba/fs/filesystem.hpp"
-#include "mamba/specs/package_info.hpp"
-#include "mamba/util/build.hpp"
-#include "solv-cpp/pool.hpp"
 #include "solv-cpp/repo.hpp"
-
-#include "solver/libsolv/helpers.hpp"
 
 namespace mamba
 {
@@ -40,28 +29,6 @@ namespace mamba
     MRepo::MRepo(::Repo* repo)
         : m_repo(repo)
     {
-    }
-
-    MRepo::MRepo(
-        MPool& pool,
-        const std::string_view name,
-        const std::vector<specs::PackageInfo>& package_infos,
-        PipAsPythonDependency add
-    )
-    {
-        auto [_, repo] = pool.pool().add_repo(name);
-        m_repo = repo.raw();
-        for (auto& info : package_infos)
-        {
-            LOG_INFO << "Adding package record to repo " << info.name;
-            auto [id, solv] = srepo(*this).add_solvable();
-            solver::libsolv::set_solvable(pool.pool(), solv, info);
-        }
-        if (add == PipAsPythonDependency::Yes)
-        {
-            solver::libsolv::add_pip_as_python_dependency(pool.pool(), repo);
-        }
-        repo.internalize();
     }
 
     void MRepo::set_priority(int priority, int subpriority)

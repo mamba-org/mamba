@@ -69,15 +69,7 @@ namespace mamba
             prefix_pkgs.push_back(it.first);
         }
 
-        prefix_data.add_packages(get_virtual_packages(ctx));
-
-        const auto repo = MRepo(
-            pool,
-            "installed",
-            prefix_data.sorted_records(),
-            MRepo::PipAsPythonDependency::Yes
-        );
-        pool.set_installed_repo(repo);
+        load_installed_packages_in_pool(ctx, pool, prefix_data);
 
         MSolver solver(
             pool,

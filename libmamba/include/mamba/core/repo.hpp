@@ -9,9 +9,7 @@
 
 #include <string_view>
 #include <tuple>
-#include <vector>
 
-#include "mamba/solver/libsolv/serialization.hpp"
 
 extern "C"
 {
@@ -20,18 +18,8 @@ extern "C"
 
 namespace mamba
 {
-
-    namespace fs
-    {
-        class u8path;
-    }
-
-    namespace specs
-    {
-        class PackageInfo;
-    }
-
     class MPool;
+    class MTransaction;
 
     /**
      * A wrapper class of libsolv Repo.
@@ -64,13 +52,6 @@ namespace mamba
 
         using RepoId = int;
 
-        MRepo(
-            MPool& pool,
-            const std::string_view name,
-            const std::vector<specs::PackageInfo>& uris,
-            PipAsPythonDependency add = PipAsPythonDependency::No
-        );
-
         MRepo(const MRepo&) = delete;
         MRepo(MRepo&&) = default;
         auto operator=(const MRepo&) -> MRepo& = delete;
@@ -95,6 +76,7 @@ namespace mamba
         explicit MRepo(::Repo* repo);
 
         friend class MPool;
+        friend class MTransaction;  // As long as MTransaction leaks libsolv impl
     };
 }
 #endif

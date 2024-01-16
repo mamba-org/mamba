@@ -14,6 +14,7 @@
 
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/repo.hpp"
+#include "mamba/solver/libsolv/serialization.hpp"
 #include "mamba/specs/package_info.hpp"
 
 namespace mamba

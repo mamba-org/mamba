@@ -300,9 +300,11 @@ namespace mamba
     )
         : MTransaction(pool, caches)
     {
-        MRepo mrepo{ m_pool,
-                     "__explicit_specs__",
-                     make_pkg_info_from_explicit_match_specs(specs_to_install) };
+        auto mrepo = m_pool.add_repo_from_packages(
+            make_pkg_info_from_explicit_match_specs(specs_to_install),
+            "__explicit_specs__",
+            MRepo::PipAsPythonDependency::No
+        );
 
         m_pool.create_whatprovides();
 
@@ -344,7 +346,7 @@ namespace mamba
         Console::instance().json_write({ { "success", remove_success } });
 
         // find repo __explicit_specs__ and install all packages from it
-        auto repo = solv::ObjRepoView(*mrepo.repo());
+        auto repo = solv::ObjRepoView(*mrepo.m_repo);
         repo.for_each_solvable_id([&](solv::SolvableId id) { decision.push_back(id); });
 
         auto trans = solv::ObjTransaction::from_solvables(m_pool.pool(), decision);
@@ -563,7 +565,11 @@ namespace mamba
         : MTransaction(pool, caches)
     {
         LOG_INFO << "MTransaction::MTransaction - packages already resolved (lockfile)";
-        MRepo mrepo = MRepo(m_pool, "__explicit_specs__", packages);
+        auto mrepo = m_pool.add_repo_from_packages(
+            packages,
+            "__explicit_specs__",
+            MRepo::PipAsPythonDependency::No
+        );
         m_pool.create_whatprovides();
 
         solv::ObjQueue decision = {};

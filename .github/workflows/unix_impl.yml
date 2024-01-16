@@ -127,10 +127,33 @@ jobs:
         if: startsWith(inputs.os, 'ubuntu')
         run: |
           sudo apt-get install zsh xonsh fish tcsh -y
-      - name: install xonsh and fish in mac
+      - name: Install xonsh and fish in mac
         if: startsWith(inputs.os, 'macos')
         run: |
           brew install fish xonsh
+      - name: Diagnose CURL/DNS issue
+        run: |
+          echo 'ping -c 3 conda.anaconda.org'
+          ping -c 3 conda.anaconda.org || echo 'FAILED'
+          echo '--------------------------------------------------'
+          echo 'ping -c 3 repo.mamba.pm'
+          ping -c 3 repo.mamba.pm || echo 'FAILED'
+          echo '--------------------------------------------------'
+          echo 'nslookup conda.anaconda.org'
+          nslookup conda.anaconda.org || echo 'FAILED'
+          echo '--------------------------------------------------'
+          echo 'nslookup repo.mamba.pm'
+          nslookup repo.mamba.pm || echo 'FAILED'
+          echo '--------------------------------------------------'
+          echo 'which curl'
+          which curl  || echo 'FAILED'
+          echo '--------------------------------------------------'
+          echo 'curl -I -vvvv https://conda.anaconda.org/conda-forge/noarch/repodata.json'
+          curl -I -vvv https://conda.anaconda.org/conda-forge/noarch/repodata.json || echo 'FAILED'
+          echo '--------------------------------------------------'
+          echo 'curl -I -vvvv https://repo.mamba.pm/conda-forge/noarch/repodata.json'
+          curl -I -vvv https://repo.mamba.pm/conda-forge/noarch/repodata.json || echo 'FAILED'
+
       - name: mamba python based tests
         run: |
           export TEST_MAMBA_EXE=$(pwd)/build/micromamba/mamba

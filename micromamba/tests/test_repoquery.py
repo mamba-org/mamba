@@ -11,7 +11,6 @@ def yaml_env(tmp_prefix: Path) -> None:
     helpers.install(
         "--channel",
         "conda-forge",
-        "--offline",
         "yaml=0.2.5",
         "pyyaml=6.0.0",
         no_dry_run=True,
@@ -20,6 +19,7 @@ def yaml_env(tmp_prefix: Path) -> None:
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_depends_local(yaml_env: Path):
+    """Depends with local repository."""
     res = helpers.umamba_repoquery("depends", "yaml", "--json")
 
     assert res["query"]["query"] == "yaml"

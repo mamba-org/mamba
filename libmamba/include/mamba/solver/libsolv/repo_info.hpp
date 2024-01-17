@@ -9,6 +9,8 @@
 
 #include <string_view>
 
+#include "mamba/solver/libsolv/parameters.hpp"
+
 
 extern "C"
 {
@@ -37,31 +39,6 @@ namespace mamba::solver::libsolv
     class RepoInfo
     {
     public:
-
-        enum class RepodataParser
-        {
-            Automatic,
-            Mamba,
-            Libsolv,
-        };
-
-        enum class LibsolvCache : bool
-        {
-            No = false,
-            Yes = true,
-        };
-
-        enum class PipAsPythonDependency : bool
-        {
-            No = false,
-            Yes = true,
-        };
-
-        struct Priorities
-        {
-            int priority = 0;
-            int subpriority = 0;
-        };
 
         using RepoId = int;
 

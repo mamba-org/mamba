@@ -343,14 +343,13 @@ bind_submodule_impl(pybind11::module_ m)
         .def("get_tarball_path", &MultiPackageCache::get_tarball_path)
         .def_property_readonly("first_writable_path", &MultiPackageCache::first_writable_path);
 
-    auto py_repo = py::class_<solver::libsolv::RepoInfo>(m, "Repo");
 
-    py::class_<solver::libsolv::RepoInfo::Priorities>(py_repo, "Priorities")
+    py::class_<solver::libsolv::Priorities>(m, "Priorities")
         .def(
             py::init(
                 [](int priority, int subpriority)
                 {
-                    return solver::libsolv::RepoInfo::Priorities{
+                    return solver::libsolv::Priorities{
                         /* priority= */ priority,
                         /* subpriority= */ subpriority,
                     };
@@ -359,11 +358,11 @@ bind_submodule_impl(pybind11::module_ m)
             py::arg("priority") = 0,
             py::arg("subpriority") = 0
         )
-        .def_readwrite("priority", &solver::libsolv::RepoInfo::Priorities::priority)
-        .def_readwrite("subpriority", &solver::libsolv::RepoInfo::Priorities::subpriority);
+        .def_readwrite("priority", &solver::libsolv::Priorities::priority)
+        .def_readwrite("subpriority", &solver::libsolv::Priorities::subpriority);
     // TODO copy and serialization
 
-    py_repo
+    py::class_<solver::libsolv::RepoInfo>(m, "Repo")
         .def(py::init(
             [](py::args, py::kwargs) -> solver::libsolv::RepoInfo
             {

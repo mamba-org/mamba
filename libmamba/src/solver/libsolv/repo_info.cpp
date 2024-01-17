@@ -33,6 +33,7 @@ namespace mamba::solver::libsolv
 
     auto RepoInfo::priority() const -> Priorities
     {
+        static_assert(std::is_same_v<decltype(m_repo->priority), Priorities::value_type>);
         return { /* .priority= */ m_repo->priority, /* .subpriority= */ m_repo->subpriority };
     }
 

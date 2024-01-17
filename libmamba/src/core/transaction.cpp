@@ -314,7 +314,7 @@ namespace mamba
         auto mrepo = m_pool.add_repo_from_packages(
             make_pkg_info_from_explicit_match_specs(specs_to_install),
             "__explicit_specs__",
-            solver::libsolv::RepoInfo::PipAsPythonDependency::No
+            solver::libsolv::PipAsPythonDependency::No
         );
 
         m_pool.create_whatprovides();
@@ -579,7 +579,7 @@ namespace mamba
         auto mrepo = m_pool.add_repo_from_packages(
             packages,
             "__explicit_specs__",
-            solver::libsolv::RepoInfo::PipAsPythonDependency::No
+            solver::libsolv::PipAsPythonDependency::No
         );
         m_pool.create_whatprovides();
 

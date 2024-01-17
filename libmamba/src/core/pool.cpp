@@ -365,8 +365,8 @@ namespace mamba
     auto MPool::add_repo_from_repodata_json(
         const fs::u8path& path,
         std::string_view url,
-        solver::libsolv::RepoInfo::PipAsPythonDependency add,
-        solver::libsolv::RepoInfo::RepodataParser parser
+        solver::libsolv::PipAsPythonDependency add,
+        solver::libsolv::RepodataParser parser
     ) -> expected_t<solver::libsolv::RepoInfo>
     {
         if (!fs::exists(path))
@@ -381,7 +381,7 @@ namespace mamba
 
         auto make_repo = [&]() -> expected_t<solv::ObjRepoView>
         {
-            if (parser == solver::libsolv::RepoInfo::RepodataParser::Mamba)
+            if (parser == solver::libsolv::RepodataParser::Mamba)
             {
                 return solver::libsolv::mamba_read_json(
                     pool(),
@@ -405,7 +405,7 @@ namespace mamba
             .transform(
                 [&](solv::ObjRepoView repo) -> solver::libsolv::RepoInfo
                 {
-                    if (add == solver::libsolv::RepoInfo::PipAsPythonDependency::Yes)
+                    if (add == solver::libsolv::PipAsPythonDependency::Yes)
                     {
                         solver::libsolv::add_pip_as_python_dependency(pool(), repo);
                     }
@@ -419,7 +419,7 @@ namespace mamba
     auto MPool::add_repo_from_native_serialization(
         const fs::u8path& path,
         const solver::libsolv::RepodataOrigin& expected,
-        solver::libsolv::RepoInfo::PipAsPythonDependency add
+        solver::libsolv::PipAsPythonDependency add
     ) -> expected_t<solver::libsolv::RepoInfo>
     {
         auto repo = pool().add_repo(expected.url).second;
@@ -430,7 +430,7 @@ namespace mamba
                 {
                     repo.set_url(expected.url);
                     solver::libsolv::set_solvables_url(repo, expected.url);
-                    if (add == solver::libsolv::RepoInfo::PipAsPythonDependency::Yes)
+                    if (add == solver::libsolv::PipAsPythonDependency::Yes)
                     {
                         solver::libsolv::add_pip_as_python_dependency(pool(), repo);
                     }
@@ -464,11 +464,11 @@ namespace mamba
 
     void MPool::add_repo_from_packages_impl_post(
         const solver::libsolv::RepoInfo& repo,
-        solver::libsolv::RepoInfo::PipAsPythonDependency add
+        solver::libsolv::PipAsPythonDependency add
     )
     {
         auto s_repo = solv::ObjRepoView(*repo.m_repo);
-        if (add == solver::libsolv::RepoInfo::PipAsPythonDependency::Yes)
+        if (add == solver::libsolv::PipAsPythonDependency::Yes)
         {
             solver::libsolv::add_pip_as_python_dependency(pool(), s_repo);
         }
@@ -496,14 +496,13 @@ namespace mamba
         pool().set_installed_repo(repo.id());
     }
 
-    void MPool::set_repo_priority(
-        const solver::libsolv::RepoInfo& repo,
-        solver::libsolv::RepoInfo::Priorities prio
-    )
+    void
+    MPool::set_repo_priority(const solver::libsolv::RepoInfo& repo, solver::libsolv::Priorities prio)
     {
         // NOTE: The Pool is not involved directly in this operations, but since it is needed
         // in so many repo operations, this setter was put here to keep the Repo class
         // immutable.
+        static_assert(std::is_same_v<decltype(repo.m_repo->priority), solver::libsolv::Priorities::value_type>);
         repo.m_repo->priority = prio.priority;
         repo.m_repo->subpriority = prio.subpriority;
     }
@@ -518,12 +517,12 @@ namespace mamba
             /* .mod= */ subdir.metadata().last_modified(),
         };
 
-        const auto add_pip = static_cast<solver::libsolv::RepoInfo::PipAsPythonDependency>(
+        const auto add_pip = static_cast<solver::libsolv::PipAsPythonDependency>(
             ctx.add_pip_as_python_dependency
         );
         const auto json_parser = ctx.experimental_repodata_parsing
-                                     ? solver::libsolv::RepoInfo::RepodataParser::Mamba
-                                     : solver::libsolv::RepoInfo::RepodataParser::Libsolv;
+                                     ? solver::libsolv::RepodataParser::Mamba
+                                     : solver::libsolv::RepodataParser::Libsolv;
 
         // Solv files are too slow on Windows.
         if (!util::on_win)
@@ -593,7 +592,7 @@ namespace mamba
         auto repo = pool.add_repo_from_packages(
             pkgs,
             "installed",
-            solver::libsolv::RepoInfo::PipAsPythonDependency::No
+            solver::libsolv::PipAsPythonDependency::No
         );
         pool.set_installed_repo(repo);
         return repo;

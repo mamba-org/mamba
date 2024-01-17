@@ -22,7 +22,7 @@ namespace mamba
     class ChannelContext;
     class Context;
     class PrefixData;
-    class MSubdirData;
+    class SubdirData;
 
     namespace fs
     {
@@ -146,7 +146,7 @@ namespace mamba
     };
 
     // TODO machinery functions in separate files
-    auto load_subdir_in_pool(const Context& ctx, MPool& pool, const MSubdirData& subdir)
+    auto load_subdir_in_pool(const Context& ctx, MPool& pool, const SubdirData& subdir)
         -> expected_t<solver::libsolv::RepoInfo>;
 
     auto load_installed_packages_in_pool(const Context& ctx, MPool& pool, const PrefixData& prefix)

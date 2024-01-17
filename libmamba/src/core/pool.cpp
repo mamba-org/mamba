@@ -457,7 +457,7 @@ namespace mamba
     }
 
     // TODO machinery functions in separate files
-    auto load_subdir_in_pool(const Context& ctx, MPool& pool, const MSubdirData& subdir)
+    auto load_subdir_in_pool(const Context& ctx, MPool& pool, const SubdirData& subdir)
         -> expected_t<solver::libsolv::RepoInfo>
     {
         const auto expected_cache_origin = solver::libsolv::RepodataOrigin{

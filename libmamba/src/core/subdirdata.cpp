@@ -118,20 +118,20 @@ namespace mamba
      * MSubdirMetadata *
      *******************/
 
-    void to_json(nlohmann::json& j, const MSubdirMetadata::CheckedAt& ca)
+    void to_json(nlohmann::json& j, const SubdirMetadata::CheckedAt& ca)
     {
         j["value"] = ca.value;
         j["last_checked"] = timestamp(ca.last_checked);
     }
 
-    void from_json(const nlohmann::json& j, MSubdirMetadata::CheckedAt& ca)
+    void from_json(const nlohmann::json& j, SubdirMetadata::CheckedAt& ca)
     {
         int err_code = 0;
         ca.value = j["value"].get<bool>();
         ca.last_checked = parse_utc_timestamp(j["last_checked"].get<std::string>(), err_code);
     }
 
-    void to_json(nlohmann::json& j, const MSubdirMetadata& data)
+    void to_json(nlohmann::json& j, const SubdirMetadata& data)
     {
         j["url"] = data.m_http.url;
         j["etag"] = data.m_http.etag;
@@ -146,7 +146,7 @@ namespace mamba
         j["has_zst"] = data.m_has_zst;
     }
 
-    void from_json(const nlohmann::json& j, MSubdirMetadata& data)
+    void from_json(const nlohmann::json& j, SubdirMetadata& data)
     {
         data.m_http.url = j["url"].get<std::string>();
         data.m_http.etag = j["etag"].get<std::string>();
@@ -161,7 +161,7 @@ namespace mamba
         util::deserialize_maybe_missing(j, "has_zst", data.m_has_zst);
     }
 
-    auto MSubdirMetadata::read(const fs::u8path& file) -> expected_subdir_metadata
+    auto SubdirMetadata::read(const fs::u8path& file) -> expected_subdir_metadata
     {
         fs::u8path state_file = file;
         state_file.replace_extension(".state.json");
@@ -175,14 +175,14 @@ namespace mamba
         }
     }
 
-    void MSubdirMetadata::write(const fs::u8path& file)
+    void SubdirMetadata::write(const fs::u8path& file)
     {
         nlohmann::json j = *this;
         std::ofstream out = open_ofstream(file);
         out << j.dump(4);
     }
 
-    bool MSubdirMetadata::check_valid_metadata(const fs::u8path& file)
+    bool SubdirMetadata::check_valid_metadata(const fs::u8path& file)
     {
         if (const auto new_size = fs::file_size(file); new_size != m_stored_file_size)
         {
@@ -202,37 +202,37 @@ namespace mamba
         return last_write_time_valid;
     }
 
-    const std::string& MSubdirMetadata::url() const
+    const std::string& SubdirMetadata::url() const
     {
         return m_http.url;
     }
 
-    const std::string& MSubdirMetadata::etag() const
+    const std::string& SubdirMetadata::etag() const
     {
         return m_http.etag;
     }
 
-    const std::string& MSubdirMetadata::last_modified() const
+    const std::string& SubdirMetadata::last_modified() const
     {
         return m_http.last_modified;
     }
 
-    const std::string& MSubdirMetadata::cache_control() const
+    const std::string& SubdirMetadata::cache_control() const
     {
         return m_http.cache_control;
     }
 
-    bool MSubdirMetadata::has_zst() const
+    bool SubdirMetadata::has_zst() const
     {
         return m_has_zst.has_value() && m_has_zst.value().value && !m_has_zst.value().has_expired();
     }
 
-    void MSubdirMetadata::store_http_metadata(HttpMetadata data)
+    void SubdirMetadata::store_http_metadata(HttpMetadata data)
     {
         m_http = std::move(data);
     }
 
-    void MSubdirMetadata::store_file_metadata(const fs::u8path& file)
+    void SubdirMetadata::store_file_metadata(const fs::u8path& file)
     {
 #ifndef _WIN32
         m_stored_mtime = fs::last_write_time(file);
@@ -243,21 +243,21 @@ namespace mamba
         m_stored_file_size = fs::file_size(file);
     }
 
-    void MSubdirMetadata::set_zst(bool value)
+    void SubdirMetadata::set_zst(bool value)
     {
         m_has_zst = { value, std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) };
     }
 
     auto
-    MSubdirMetadata::from_state_file(const fs::u8path& state_file, const fs::u8path& repodata_file)
+    SubdirMetadata::from_state_file(const fs::u8path& state_file, const fs::u8path& repodata_file)
         -> expected_subdir_metadata
     {
         std::ifstream infile = open_ifstream(state_file);
         nlohmann::json j = nlohmann::json::parse(infile);
-        MSubdirMetadata m;
+        SubdirMetadata m;
         try
         {
-            m = j.get<MSubdirMetadata>();
+            m = j.get<SubdirMetadata>();
         }
         catch (const std::exception& e)
         {
@@ -285,7 +285,7 @@ namespace mamba
         return m;
     }
 
-    auto MSubdirMetadata::from_repodata_file(const fs::u8path& repodata_file)
+    auto SubdirMetadata::from_repodata_file(const fs::u8path& repodata_file)
         -> expected_subdir_metadata
     {
         const std::string json = [](const fs::u8path& file) -> std::string
@@ -298,7 +298,7 @@ namespace mamba
         try
         {
             nlohmann::json result = nlohmann::json::parse(json);
-            MSubdirMetadata m;
+            SubdirMetadata m;
             m.m_http.url = result.value("_url", "");
             m.m_http.etag = result.value("_etag", "");
             m.m_http.last_modified = result.value("_mod", "");
@@ -315,7 +315,7 @@ namespace mamba
         }
     }
 
-    bool MSubdirMetadata::CheckedAt::has_expired() const
+    bool SubdirMetadata::CheckedAt::has_expired() const
     {
         // difference in seconds, check every 14 days
         constexpr double expiration = 60 * 60 * 24 * 14;
@@ -400,7 +400,7 @@ namespace mamba
         }
     }
 
-    expected_t<MSubdirData> MSubdirData::create(
+    expected_t<SubdirData> SubdirData::create(
         Context& ctx,
         ChannelContext& channel_context,
         const specs::Channel& channel,
@@ -412,7 +412,7 @@ namespace mamba
     {
         try
         {
-            return MSubdirData(ctx, channel_context, channel, platform, url, caches, repodata_fn);
+            return SubdirData(ctx, channel_context, channel, platform, url, caches, repodata_fn);
         }
         catch (std::exception& e)
         {
@@ -427,17 +427,17 @@ namespace mamba
         }
     }
 
-    bool MSubdirData::is_noarch() const
+    bool SubdirData::is_noarch() const
     {
         return m_is_noarch;
     }
 
-    bool MSubdirData::is_loaded() const
+    bool SubdirData::is_loaded() const
     {
         return m_loaded;
     }
 
-    void MSubdirData::clear_cache()
+    void SubdirData::clear_cache()
     {
         if (fs::is_regular_file(m_json_fn))
         {
@@ -449,17 +449,17 @@ namespace mamba
         }
     }
 
-    const std::string& MSubdirData::name() const
+    const std::string& SubdirData::name() const
     {
         return m_name;
     }
 
-    const MSubdirMetadata& MSubdirData::metadata() const
+    const SubdirMetadata& SubdirData::metadata() const
     {
         return m_metadata;
     }
 
-    expected_t<fs::u8path> MSubdirData::valid_solv_cache() const
+    expected_t<fs::u8path> SubdirData::valid_solv_cache() const
     {
         if (m_json_cache_valid && m_solv_cache_valid)
         {
@@ -468,12 +468,12 @@ namespace mamba
         return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
     }
 
-    fs::u8path MSubdirData::writable_solv_cache() const
+    fs::u8path SubdirData::writable_solv_cache() const
     {
         return m_writable_pkgs_dir / "cache" / m_solv_fn;
     }
 
-    expected_t<fs::u8path> MSubdirData::valid_json_cache() const
+    expected_t<fs::u8path> SubdirData::valid_json_cache() const
     {
         if (m_json_cache_valid)
         {
@@ -482,7 +482,7 @@ namespace mamba
         return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
     }
 
-    expected_t<std::string> MSubdirData::cache_path() const
+    expected_t<std::string> SubdirData::cache_path() const
     {
         // TODO invalidate solv cache on version updates!!
         if (m_json_cache_valid && m_solv_cache_valid)
@@ -496,8 +496,8 @@ namespace mamba
         return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
     }
 
-    expected_t<void> MSubdirData::download_indexes(
-        std::vector<MSubdirData>& subdirs,
+    expected_t<void> SubdirData::download_indexes(
+        std::vector<SubdirData>& subdirs,
         const Context& context,
         DownloadMonitor* check_monitor,
         DownloadMonitor* download_monitor
@@ -544,7 +544,7 @@ namespace mamba
         return expected_t<void>();
     }
 
-    MSubdirData::MSubdirData(
+    SubdirData::SubdirData(
         Context& ctx,
         ChannelContext& channel_context,
         const specs::Channel& channel,
@@ -566,11 +566,8 @@ namespace mamba
         load(caches, channel_context, channel);
     }
 
-    void MSubdirData::load(
-        MultiPackageCache& caches,
-        ChannelContext& channel_context,
-        const specs::Channel& channel
-    )
+    void
+    SubdirData::load(MultiPackageCache& caches, ChannelContext& channel_context, const specs::Channel& channel)
     {
         if (!forbid_cache(m_repodata_url))
         {
@@ -593,7 +590,7 @@ namespace mamba
         }
     }
 
-    void MSubdirData::load_cache(MultiPackageCache& caches)
+    void SubdirData::load_cache(MultiPackageCache& caches)
     {
         LOG_INFO << "Searching index cache file for repo '" << m_repodata_url << "'";
         file_time_point now = fs::file_time_type::clock::now();
@@ -617,7 +614,7 @@ namespace mamba
                 continue;
             }
 
-            auto metadata_temp = MSubdirMetadata::read(json_file);
+            auto metadata_temp = SubdirMetadata::read(json_file);
             if (!metadata_temp.has_value())
             {
                 LOG_INFO << "Invalid json cache found, ignoring";
@@ -674,7 +671,7 @@ namespace mamba
     }
 
     void
-    MSubdirData::update_metadata_zst(ChannelContext& channel_context, const specs::Channel& channel)
+    SubdirData::update_metadata_zst(ChannelContext& channel_context, const specs::Channel& channel)
     {
         const Context& context = *p_context;
         if (!context.offline || forbid_cache(m_repodata_url))
@@ -683,7 +680,7 @@ namespace mamba
         }
     }
 
-    MultiDownloadRequest MSubdirData::build_check_requests()
+    MultiDownloadRequest SubdirData::build_check_requests()
     {
         MultiDownloadRequest request;
 
@@ -723,7 +720,7 @@ namespace mamba
         return request;
     }
 
-    DownloadRequest MSubdirData::build_index_request()
+    DownloadRequest SubdirData::build_index_request()
     {
         fs::u8path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
         auto lock = LockFile(writable_cache_dir);
@@ -749,10 +746,10 @@ namespace mamba
             }
             else
             {
-                return finalize_transfer(MSubdirMetadata::HttpMetadata{ success.transfer.effective_url,
-                                                                        success.etag,
-                                                                        success.last_modified,
-                                                                        success.cache_control });
+                return finalize_transfer(SubdirMetadata::HttpMetadata{ success.transfer.effective_url,
+                                                                       success.etag,
+                                                                       success.last_modified,
+                                                                       success.cache_control });
             }
         };
 
@@ -777,7 +774,7 @@ namespace mamba
         return request;
     }
 
-    expected_t<void> MSubdirData::use_existing_cache()
+    expected_t<void> SubdirData::use_existing_cache()
     {
         LOG_INFO << "Cache is still valid";
 
@@ -825,7 +822,7 @@ namespace mamba
         return expected_t<void>();
     }
 
-    expected_t<void> MSubdirData::finalize_transfer(MSubdirMetadata::HttpMetadata http_data)
+    expected_t<void> SubdirData::finalize_transfer(SubdirMetadata::HttpMetadata http_data)
     {
         if (m_writable_pkgs_dir.empty())
         {
@@ -871,8 +868,7 @@ namespace mamba
         return expected_t<void>();
     }
 
-    void
-    MSubdirData::refresh_last_write_time(const fs::u8path& json_file, const fs::u8path& solv_file)
+    void SubdirData::refresh_last_write_time(const fs::u8path& json_file, const fs::u8path& solv_file)
     {
         const auto now = fs::file_time_type::clock::now();
 

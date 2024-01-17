@@ -48,7 +48,7 @@ namespace mamba
             ChannelContext& channel_context,
             const specs::Channel& channel,
             MultiPackageCache& package_caches,
-            std::vector<MSubdirData>& subdirs,
+            std::vector<SubdirData>& subdirs,
             std::vector<mamba_error>& error_list,
             std::vector<solver::libsolv::Priorities>& priorities,
             int& max_prio,
@@ -57,7 +57,7 @@ namespace mamba
         {
             for (const auto& platform : channel.platforms())
             {
-                auto sdires = MSubdirData::create(
+                auto sdires = SubdirData::create(
                     ctx,
                     channel_context,
                     channel,
@@ -96,7 +96,7 @@ namespace mamba
     {
         int RETRY_SUBDIR_FETCH = 1 << 0;
 
-        std::vector<MSubdirData> subdirs;
+        std::vector<SubdirData> subdirs;
 
         std::vector<solver::libsolv::Priorities> priorities;
         int max_prio = static_cast<int>(ctx.channels.size());
@@ -151,11 +151,11 @@ namespace mamba
         {
             SubdirDataMonitor check_monitor({ true, true });
             SubdirDataMonitor index_monitor;
-            download_res = MSubdirData::download_indexes(subdirs, ctx, &check_monitor, &index_monitor);
+            download_res = SubdirData::download_indexes(subdirs, ctx, &check_monitor, &index_monitor);
         }
         else
         {
-            download_res = MSubdirData::download_indexes(subdirs, ctx);
+            download_res = SubdirData::download_indexes(subdirs, ctx);
         }
 
         if (!download_res)

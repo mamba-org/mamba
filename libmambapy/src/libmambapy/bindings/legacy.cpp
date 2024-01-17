@@ -263,6 +263,10 @@ bind_submodule_impl(pybind11::module_ m)
 {
     using namespace mamba;
 
+    /***************
+     *  Migrators  *
+     ***************/
+
     struct PackageInfoV2Migrator
     {
     };
@@ -291,6 +295,28 @@ bind_submodule_impl(pybind11::module_ m)
                 );
             }
         ));
+
+    struct RepoV2Migrator
+    {
+    };
+
+    py::class_<RepoV2Migrator>(m, "Repo").def(py::init(
+        [](py::args, py::kwargs) -> RepoV2Migrator
+        {
+            throw std::runtime_error(  //
+                "Use Pool.add_repo_from_repodata_json or Pool.add_repo_from_native_serialization"
+                " instead and cache with Pool.native_serialize_repo."
+                " Also consider load_subdir_in_pool for a high_level function to load"
+                " subdir index and manage cache, and load_installed_packages_in_pool for loading"
+                " prefix packages."
+                "The Repo class itself has been moved to libmambapy.solver.libsolv.RepoInfo."
+            );
+        }
+    ));
+
+    /**************
+     *  Bindings  *
+     **************/
 
     // declare earlier to avoid C++ types in docstrings
     auto pyPrefixData = py::class_<PrefixData>(m, "PrefixData");
@@ -342,44 +368,6 @@ bind_submodule_impl(pybind11::module_ m)
         ))
         .def("get_tarball_path", &MultiPackageCache::get_tarball_path)
         .def_property_readonly("first_writable_path", &MultiPackageCache::first_writable_path);
-
-
-    py::class_<solver::libsolv::Priorities>(m, "Priorities")
-        .def(
-            py::init(
-                [](int priority, int subpriority)
-                {
-                    return solver::libsolv::Priorities{
-                        /* priority= */ priority,
-                        /* subpriority= */ subpriority,
-                    };
-                }
-            ),
-            py::arg("priority") = 0,
-            py::arg("subpriority") = 0
-        )
-        .def_readwrite("priority", &solver::libsolv::Priorities::priority)
-        .def_readwrite("subpriority", &solver::libsolv::Priorities::subpriority);
-    // TODO copy and serialization
-
-    py::class_<solver::libsolv::RepoInfo>(m, "Repo")
-        .def(py::init(
-            [](py::args, py::kwargs) -> solver::libsolv::RepoInfo
-            {
-                // V2 Migration
-                throw std::runtime_error(  //
-                    "Use `Pool.add_repo_from_repodata_json` or"
-                    " `Pool.add_repo_from_native_serialization` instead"
-                    " and cache with `Pool.native_serialize_repo`."
-                    " Also consider `load_subdir_in_pool` for a high_level function to load"
-                    " subdir index and manage cache."
-                );
-            }
-        ))
-        .def("id", &solver::libsolv::RepoInfo::id)
-        .def("name", &solver::libsolv::RepoInfo::name)
-        .def("priority", &solver::libsolv::RepoInfo::priority)
-        .def("package_count", &solver::libsolv::RepoInfo::package_count);
 
     py::class_<MTransaction>(m, "Transaction")
         .def(py::init<>(

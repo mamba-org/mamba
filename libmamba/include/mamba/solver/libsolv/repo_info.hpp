@@ -42,9 +42,9 @@ namespace mamba::solver::libsolv
 
         using RepoId = int;
 
-        RepoInfo(const RepoInfo&) = delete;
+        RepoInfo(const RepoInfo&) = default;
         RepoInfo(RepoInfo&&) = default;
-        auto operator=(const RepoInfo&) -> RepoInfo& = delete;
+        auto operator=(const RepoInfo&) -> RepoInfo& = default;
         auto operator=(RepoInfo&&) -> RepoInfo& = default;
 
         [[nodiscard]] auto id() const -> RepoId;

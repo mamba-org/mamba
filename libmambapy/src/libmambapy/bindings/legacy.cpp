@@ -354,7 +354,66 @@ bind_submodule_impl(pybind11::module_ m)
         .def("create_whatprovides", &MPool::create_whatprovides)
         .def("select_solvables", &MPool::select_solvables, py::arg("id"), py::arg("sorted") = false)
         .def("matchspec2id", &MPool::matchspec2id, py::arg("spec"))
-        .def("id2pkginfo", &MPool::id2pkginfo, py::arg("id"));
+        .def("id2pkginfo", &MPool::id2pkginfo, py::arg("id"))
+        .def(
+            "add_repo_from_repodata_json",
+            &MPool::add_repo_from_repodata_json,
+            py::arg("path"),
+            py::arg("url"),
+            py::arg("add_pip_as_python_dependency") = solver::libsolv::PipAsPythonDependency::No,
+            py::arg("repodata_parsers") = solver::libsolv::RepodataParser::Mamba
+        )
+        .def(
+            "add_repo_from_native_serialization",
+            &MPool::add_repo_from_native_serialization,
+            py::arg("path"),
+            py::arg("expected"),
+            py::arg("add_pip_as_python_dependency") = solver::libsolv::PipAsPythonDependency::No
+        )
+        .def(
+            "add_repo_from_packages",
+            [](MPool& pool,
+               py::iterable packages,
+               std::string_view name,
+               solver::libsolv::PipAsPythonDependency add)
+            {
+                // TODO(C++20): No need to copy in a vector, simply transform the input range.
+                auto pkg_infos = std::vector<specs::PackageInfo>();
+                for (py::handle pkg : packages)
+                {
+                    pkg_infos.push_back(pkg.cast<specs::PackageInfo>());
+                }
+                return pool.add_repo_from_packages(pkg_infos, name, add);
+            },
+            py::arg("packages"),
+            py::arg("name") = "",
+            py::arg("add_pip_as_python_dependency") = solver::libsolv::PipAsPythonDependency::No
+        )
+        .def(
+            "native_serialize_repo",
+            &MPool::native_serialize_repo,
+            py::arg("repo"),
+            py::arg("path"),
+            py::arg("metadata")
+        )
+        .def("set_installed_repo", &MPool::set_installed_repo, py::arg("repo"))
+        .def("set_repo_priority", &MPool::set_repo_priority, py::arg("repo"), py::arg("priorities"));
+
+    m.def(
+        "load_subdir_in_pool",
+        &load_subdir_in_pool,
+        py::arg("context"),
+        py::arg("pool"),
+        py::arg("subdir")
+    );
+
+    m.def(
+        "load_installed_packages_in_pool",
+        &load_installed_packages_in_pool,
+        py::arg("context"),
+        py::arg("pool"),
+        py::arg("prefix_data")
+    );
 
     py::class_<MultiPackageCache>(m, "MultiPackageCache")
         .def(py::init<>(
@@ -681,14 +740,6 @@ bind_submodule_impl(pybind11::module_ m)
                 return extract(self.cache_path());
             }
         );
-
-    m.def(
-        "load_subdir_in_pool",
-        &load_subdir_in_pool,
-        py::arg("contex"),
-        py::arg("pool"),
-        py::arg("subdir")
-    );
 
     using mambapy::SubdirIndex;
     using SubdirIndexEntry = SubdirIndex::Entry;

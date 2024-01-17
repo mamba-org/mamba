@@ -446,14 +446,14 @@ namespace mamba
     }
 
     void
-    MPool::set_repo_priority(const solver::libsolv::RepoInfo& repo, solver::libsolv::Priorities prio)
+    MPool::set_repo_priority(const solver::libsolv::RepoInfo& repo, solver::libsolv::Priorities priorities)
     {
         // NOTE: The Pool is not involved directly in this operations, but since it is needed
         // in so many repo operations, this setter was put here to keep the Repo class
         // immutable.
         static_assert(std::is_same_v<decltype(repo.m_repo->priority), solver::libsolv::Priorities::value_type>);
-        repo.m_repo->priority = prio.priority;
-        repo.m_repo->subpriority = prio.subpriority;
+        repo.m_repo->priority = priorities.priority;
+        repo.m_repo->subpriority = priorities.subpriority;
     }
 
     // TODO machinery functions in separate files

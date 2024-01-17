@@ -71,8 +71,6 @@ namespace mamba
         solv::ObjPool& pool();
         const solv::ObjPool& pool() const;
 
-        void remove_repo(::Id repo_id, bool reuse_ids);
-
         auto add_repo_from_repodata_json(
             const fs::u8path& path,
             std::string_view url,
@@ -109,7 +107,10 @@ namespace mamba
 
         void set_installed_repo(const solver::libsolv::RepoInfo& repo);
 
-        void set_repo_priority(const solver::libsolv::RepoInfo& repo, solver::libsolv::Priorities);
+        void
+        set_repo_priority(const solver::libsolv::RepoInfo& repo, solver::libsolv::Priorities priorities);
+
+        void remove_repo(::Id repo_id, bool reuse_ids);
 
         ChannelContext& channel_context() const;
         const Context& context() const;

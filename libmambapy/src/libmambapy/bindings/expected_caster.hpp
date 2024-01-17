@@ -64,11 +64,11 @@ namespace PYBIND11_NAMESPACE
         {
             using value_type = tl::expected<T, E>;
             using variant_type = std::variant<T, E>;
-            using caster_type = std::decay_t<decltype(make_caster<variant_type>())>;
+            using caster_type = variant_caster<variant_type>;
 
             auto load(handle src, bool convert) -> bool
             {
-                auto caster = make_caster<variant_type>();
+                auto caster = caster_type();
                 if (caster.load(src, convert))
                 {
                     value = variant_to_expected(cast_op<variant_type>(std::move(caster)));

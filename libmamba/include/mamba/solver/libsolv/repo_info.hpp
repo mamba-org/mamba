@@ -4,8 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef MAMBA_CORE_REPO_HPP
-#define MAMBA_CORE_REPO_HPP
+#ifndef MAMBA_SOLVER_LIBSOLV_REPO_INFO_HPP
+#define MAMBA_SOLVER_LIBSOLV_REPO_INFO_HPP
 
 #include <string_view>
 
@@ -19,14 +19,22 @@ namespace mamba
 {
     class MPool;
     class MTransaction;
+}
 
+namespace mamba::solver::libsolv
+{
     /**
-     * A wrapper class of libsolv Repo.
-     * Represents a channel subdirectory and
-     * is built using a ready-to-use index/metadata
-     * file (see ``MSubdirData``).
+     * A libsolv repository descriptor.
+     *
+     * In libsolv, most of the data is help in the Pool, and repo are tightly coupled with them.
+     * This repository class is a lightwight description of a repository returned when creating
+     * a new repository in the Pool.
+     * Some modifications to the repo are possible throught the Pool.
+     * @see MPool::add_repo_from_repodata_json
+     * @see MPool::add_repo_from_packages
+     * @see MPool::remove_repo
      */
-    class MRepo
+    class RepoInfo
     {
     public:
 
@@ -57,12 +65,10 @@ namespace mamba
 
         using RepoId = int;
 
-        MRepo(const MRepo&) = delete;
-        MRepo(MRepo&&) = default;
-        auto operator=(const MRepo&) -> MRepo& = delete;
-        auto operator=(MRepo&&) -> MRepo& = default;
-
-        void set_priority(int priority, int subpriority);
+        RepoInfo(const RepoInfo&) = delete;
+        RepoInfo(RepoInfo&&) = default;
+        auto operator=(const RepoInfo&) -> RepoInfo& = delete;
+        auto operator=(RepoInfo&&) -> RepoInfo& = default;
 
         [[nodiscard]] auto id() const -> RepoId;
 
@@ -78,10 +84,10 @@ namespace mamba
 
         ::Repo* m_repo = nullptr;  // This is a view managed by libsolv pool
 
-        explicit MRepo(::Repo* repo);
+        explicit RepoInfo(::Repo* repo);
 
-        friend class MPool;
-        friend class MTransaction;  // As long as MTransaction leaks libsolv impl
+        friend class ::mamba::MPool;
+        friend class ::mamba::MTransaction;  // As long as MTransaction leaks libsolv impl
     };
 }
 #endif

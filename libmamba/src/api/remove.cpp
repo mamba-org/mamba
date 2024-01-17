@@ -11,9 +11,9 @@
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
-#include "mamba/core/repo.hpp"
 #include "mamba/core/solver.hpp"
 #include "mamba/core/transaction.hpp"
+#include "mamba/solver/libsolv/repo_info.hpp"
 
 namespace mamba
 {

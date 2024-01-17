@@ -7,47 +7,47 @@
 #include <string_view>
 #include <type_traits>
 
-#include "mamba/core/repo.hpp"
+#include "mamba/solver/libsolv/repo_info.hpp"
 #include "solv-cpp/repo.hpp"
 
-namespace mamba
+namespace mamba::solver::libsolv
 {
     namespace
     {
         // Keeping the solv-cpp header private
-        auto srepo(const MRepo& r) -> solv::ObjRepoViewConst
+        auto srepo(const RepoInfo& r) -> solv::ObjRepoViewConst
         {
             return solv::ObjRepoViewConst{ *const_cast<const ::Repo*>(r.repo()) };
         }
     }
 
-    MRepo::MRepo(::Repo* repo)
+    RepoInfo::RepoInfo(::Repo* repo)
         : m_repo(repo)
     {
     }
 
-    auto MRepo::name() const -> std::string_view
+    auto RepoInfo::name() const -> std::string_view
     {
         return srepo(*this).name();
     }
 
-    auto MRepo::priority() const -> Priorities
+    auto RepoInfo::priority() const -> Priorities
     {
         return { /* .priority= */ m_repo->priority, /* .subpriority= */ m_repo->subpriority };
     }
 
-    auto MRepo::package_count() const -> std::size_t
+    auto RepoInfo::package_count() const -> std::size_t
     {
         return srepo(*this).solvable_count();
     }
 
-    auto MRepo::id() const -> RepoId
+    auto RepoInfo::id() const -> RepoId
     {
         static_assert(std::is_same_v<RepoId, ::Id>);
         return srepo(*this).id();
     }
 
-    auto MRepo::repo() const -> ::Repo*
+    auto RepoInfo::repo() const -> ::Repo*
     {
         return m_repo;
     }

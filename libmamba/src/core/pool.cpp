@@ -30,7 +30,7 @@ extern "C"  // Incomplete header
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
-#include "mamba/core/repo.hpp"
+#include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
@@ -365,9 +365,9 @@ namespace mamba
     auto MPool::add_repo_from_repodata_json(
         const fs::u8path& path,
         std::string_view url,
-        MRepo::PipAsPythonDependency add,
-        MRepo::RepodataParser parser
-    ) -> expected_t<MRepo>
+        solver::libsolv::RepoInfo::PipAsPythonDependency add,
+        solver::libsolv::RepoInfo::RepodataParser parser
+    ) -> expected_t<solver::libsolv::RepoInfo>
     {
         if (!fs::exists(path))
         {
@@ -381,7 +381,7 @@ namespace mamba
 
         auto make_repo = [&]() -> expected_t<solv::ObjRepoView>
         {
-            if (parser == MRepo::RepodataParser::Mamba)
+            if (parser == solver::libsolv::RepoInfo::RepodataParser::Mamba)
             {
                 return solver::libsolv::mamba_read_json(
                     pool(),
@@ -403,14 +403,14 @@ namespace mamba
 
         return make_repo()
             .transform(
-                [&](solv::ObjRepoView repo) -> MRepo
+                [&](solv::ObjRepoView repo) -> solver::libsolv::RepoInfo
                 {
-                    if (add == MRepo::PipAsPythonDependency::Yes)
+                    if (add == solver::libsolv::RepoInfo::PipAsPythonDependency::Yes)
                     {
                         solver::libsolv::add_pip_as_python_dependency(pool(), repo);
                     }
                     repo.internalize();
-                    return MRepo{ repo.raw() };
+                    return solver::libsolv::RepoInfo{ repo.raw() };
                 }
             )
             .or_else([&](const auto&) { pool().remove_repo(repo.id(), /* reuse_ids= */ true); });
@@ -419,48 +419,56 @@ namespace mamba
     auto MPool::add_repo_from_native_serialization(
         const fs::u8path& path,
         const solver::libsolv::RepodataOrigin& expected,
-        MRepo::PipAsPythonDependency add
-    ) -> expected_t<MRepo>
+        solver::libsolv::RepoInfo::PipAsPythonDependency add
+    ) -> expected_t<solver::libsolv::RepoInfo>
     {
         auto repo = pool().add_repo(expected.url).second;
 
         return solver::libsolv::read_solv(pool(), repo, path, expected, static_cast<bool>(add))
             .transform(
-                [&](solv::ObjRepoView repo) -> MRepo
+                [&](solv::ObjRepoView repo) -> solver::libsolv::RepoInfo
                 {
                     repo.set_url(expected.url);
                     solver::libsolv::set_solvables_url(repo, expected.url);
-                    if (add == MRepo::PipAsPythonDependency::Yes)
+                    if (add == solver::libsolv::RepoInfo::PipAsPythonDependency::Yes)
                     {
                         solver::libsolv::add_pip_as_python_dependency(pool(), repo);
                     }
                     repo.internalize();
-                    return MRepo(repo.raw());
+                    return solver::libsolv::RepoInfo(repo.raw());
                 }
             )
             .or_else([&](const auto&) { pool().remove_repo(repo.id(), /* reuse_ids= */ true); });
     }
 
-    auto MPool::add_repo_from_packages_impl_pre(std::string_view name) -> MRepo
+    auto MPool::add_repo_from_packages_impl_pre(std::string_view name) -> solver::libsolv::RepoInfo
     {
         if (name.empty())
         {
-            return MRepo(pool().add_repo(util::generate_random_alphanumeric_string(20)).second.raw());
+            return solver::libsolv::RepoInfo(
+                pool().add_repo(util::generate_random_alphanumeric_string(20)).second.raw()
+            );
         }
-        return MRepo(pool().add_repo(name).second.raw());
+        return solver::libsolv::RepoInfo(pool().add_repo(name).second.raw());
     }
 
-    void MPool::add_repo_from_packages_impl_loop(const MRepo& repo, const specs::PackageInfo& pkg)
+    void MPool::add_repo_from_packages_impl_loop(
+        const solver::libsolv::RepoInfo& repo,
+        const specs::PackageInfo& pkg
+    )
     {
         auto s_repo = solv::ObjRepoView(*repo.m_repo);
         auto [id, solv] = s_repo.add_solvable();
         solver::libsolv::set_solvable(pool(), solv, pkg);
     }
 
-    void MPool::add_repo_from_packages_impl_post(const MRepo& repo, MRepo::PipAsPythonDependency add)
+    void MPool::add_repo_from_packages_impl_post(
+        const solver::libsolv::RepoInfo& repo,
+        solver::libsolv::RepoInfo::PipAsPythonDependency add
+    )
     {
         auto s_repo = solv::ObjRepoView(*repo.m_repo);
-        if (add == MRepo::PipAsPythonDependency::Yes)
+        if (add == solver::libsolv::RepoInfo::PipAsPythonDependency::Yes)
         {
             solver::libsolv::add_pip_as_python_dependency(pool(), s_repo);
         }
@@ -468,14 +476,14 @@ namespace mamba
     }
 
     auto MPool::native_serialize_repo(
-        const MRepo& repo,
+        const solver::libsolv::RepoInfo& repo,
         const fs::u8path& path,
         const solver::libsolv::RepodataOrigin& metadata
-    ) -> expected_t<MRepo>
+    ) -> expected_t<solver::libsolv::RepoInfo>
     {
         assert(repo.m_repo != nullptr);
         return solver::libsolv::write_solv(solv::ObjRepoView(*repo.m_repo), path, metadata)
-            .transform([](solv::ObjRepoView repo) { return MRepo(repo.raw()); });
+            .transform([](solv::ObjRepoView repo) { return solver::libsolv::RepoInfo(repo.raw()); });
     }
 
     void MPool::remove_repo(::Id repo_id, bool reuse_ids)
@@ -483,12 +491,15 @@ namespace mamba
         pool().remove_repo(repo_id, reuse_ids);
     }
 
-    void MPool::set_installed_repo(const MRepo& repo)
+    void MPool::set_installed_repo(const solver::libsolv::RepoInfo& repo)
     {
         pool().set_installed_repo(repo.id());
     }
 
-    void MPool::set_repo_priority(const MRepo& repo, MRepo::Priorities prio)
+    void MPool::set_repo_priority(
+        const solver::libsolv::RepoInfo& repo,
+        solver::libsolv::RepoInfo::Priorities prio
+    )
     {
         // NOTE: The Pool is not involved directly in this operations, but since it is needed
         // in so many repo operations, this setter was put here to keep the Repo class
@@ -499,7 +510,7 @@ namespace mamba
 
     // TODO machinery functions in separate files
     auto load_subdir_in_pool(const Context& ctx, MPool& pool, const MSubdirData& subdir)
-        -> expected_t<MRepo>
+        -> expected_t<solver::libsolv::RepoInfo>
     {
         const auto expected_cache_origin = solver::libsolv::RepodataOrigin{
             /* .url= */ util::rsplit(subdir.metadata().url(), "/", 1).front(),
@@ -507,10 +518,12 @@ namespace mamba
             /* .mod= */ subdir.metadata().last_modified(),
         };
 
-        const auto add_pip = static_cast<MRepo::PipAsPythonDependency>(ctx.add_pip_as_python_dependency
+        const auto add_pip = static_cast<solver::libsolv::RepoInfo::PipAsPythonDependency>(
+            ctx.add_pip_as_python_dependency
         );
-        const auto json_parser = ctx.experimental_repodata_parsing ? MRepo::RepodataParser::Mamba
-                                                                   : MRepo::RepodataParser::Libsolv;
+        const auto json_parser = ctx.experimental_repodata_parsing
+                                     ? solver::libsolv::RepoInfo::RepodataParser::Mamba
+                                     : solver::libsolv::RepoInfo::RepodataParser::Libsolv;
 
         // Solv files are too slow on Windows.
         if (!util::on_win)
@@ -544,7 +557,7 @@ namespace mamba
                 }
             )
             .transform(
-                [&](MRepo&& repo) -> MRepo
+                [&](solver::libsolv::RepoInfo&& repo) -> solver::libsolv::RepoInfo
                 {
                     if (!util::on_win)
                     {
@@ -565,7 +578,7 @@ namespace mamba
     }
 
     auto load_installed_packages_in_pool(const Context& ctx, MPool& pool, const PrefixData& prefix)
-        -> MRepo
+        -> solver::libsolv::RepoInfo
     {
         // TODO(C++20): We could do a PrefixData range that returns packages without storing thems.
         auto pkgs = prefix.sorted_records();
@@ -577,7 +590,11 @@ namespace mamba
 
         // Not adding Pip dependency since it might needlessly make the installed/active environment
         // broken if pip is not already installed (debatable).
-        auto repo = pool.add_repo_from_packages(pkgs, "installed", MRepo::PipAsPythonDependency::No);
+        auto repo = pool.add_repo_from_packages(
+            pkgs,
+            "installed",
+            solver::libsolv::RepoInfo::PipAsPythonDependency::No
+        );
         pool.set_installed_repo(repo);
         return repo;
     }

@@ -10,14 +10,15 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
-#include "mamba/core/repo.hpp"
 #include "mamba/core/subdirdata.hpp"
+#include "mamba/solver/libsolv/repo_info.hpp"
 
 namespace mamba
 {
     namespace
     {
-        MRepo create_repo_from_pkgs_dir(const Context& ctx, MPool& pool, const fs::u8path& pkgs_dir)
+        solver::libsolv::RepoInfo
+        create_repo_from_pkgs_dir(const Context& ctx, MPool& pool, const fs::u8path& pkgs_dir)
         {
             if (!fs::exists(pkgs_dir))
             {
@@ -49,7 +50,7 @@ namespace mamba
             MultiPackageCache& package_caches,
             std::vector<MSubdirData>& subdirs,
             std::vector<mamba_error>& error_list,
-            std::vector<MRepo::Priorities>& priorities,
+            std::vector<solver::libsolv::RepoInfo::Priorities>& priorities,
             int& max_prio,
             specs::CondaURL& prev_channel_url
         )
@@ -97,7 +98,7 @@ namespace mamba
 
         std::vector<MSubdirData> subdirs;
 
-        std::vector<MRepo::Priorities> priorities;
+        std::vector<solver::libsolv::RepoInfo::Priorities> priorities;
         int max_prio = static_cast<int>(ctx.channels.size());
         auto prev_channel_url = specs::CondaURL();
 
@@ -194,7 +195,8 @@ namespace mamba
             }
 
             load_subdir_in_pool(ctx, pool, subdir)
-                .transform([&](MRepo&& repo) { pool.set_repo_priority(repo, priorities[i]); })
+                .transform([&](solver::libsolv::RepoInfo&& repo)
+                           { pool.set_repo_priority(repo, priorities[i]); })
                 .or_else(
                     [&](const auto& error)
                     {

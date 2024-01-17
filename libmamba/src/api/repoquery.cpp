@@ -14,7 +14,7 @@
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/prefix_data.hpp"
-#include "mamba/core/repo.hpp"
+#include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba

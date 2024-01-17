@@ -16,8 +16,8 @@
 
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/pool.hpp"
-#include "mamba/core/repo.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
 

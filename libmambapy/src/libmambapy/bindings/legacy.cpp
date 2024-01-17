@@ -27,13 +27,13 @@
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/query.hpp"
-#include "mamba/core/repo.hpp"
 #include "mamba/core/satisfiability_error.hpp"
 #include "mamba/core/solver.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/virtual_packages.hpp"
+#include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/validation/tools.hpp"
 #include "mamba/validation/update_framework_v0_6.hpp"
@@ -343,14 +343,14 @@ bind_submodule_impl(pybind11::module_ m)
         .def("get_tarball_path", &MultiPackageCache::get_tarball_path)
         .def_property_readonly("first_writable_path", &MultiPackageCache::first_writable_path);
 
-    auto py_repo = py::class_<MRepo>(m, "Repo");
+    auto py_repo = py::class_<solver::libsolv::RepoInfo>(m, "Repo");
 
-    py::class_<MRepo::Priorities>(py_repo, "Priorities")
+    py::class_<solver::libsolv::RepoInfo::Priorities>(py_repo, "Priorities")
         .def(
             py::init(
                 [](int priority, int subpriority)
                 {
-                    return MRepo::Priorities{
+                    return solver::libsolv::RepoInfo::Priorities{
                         /* priority= */ priority,
                         /* subpriority= */ subpriority,
                     };
@@ -359,13 +359,13 @@ bind_submodule_impl(pybind11::module_ m)
             py::arg("priority") = 0,
             py::arg("subpriority") = 0
         )
-        .def_readwrite("priority", &MRepo::Priorities::priority)
-        .def_readwrite("subpriority", &MRepo::Priorities::subpriority);
+        .def_readwrite("priority", &solver::libsolv::RepoInfo::Priorities::priority)
+        .def_readwrite("subpriority", &solver::libsolv::RepoInfo::Priorities::subpriority);
     // TODO copy and serialization
 
     py_repo
         .def(py::init(
-            [](py::args, py::kwargs) -> MRepo
+            [](py::args, py::kwargs) -> solver::libsolv::RepoInfo
             {
                 // V2 Migration
                 throw std::runtime_error(  //
@@ -377,10 +377,10 @@ bind_submodule_impl(pybind11::module_ m)
                 );
             }
         ))
-        .def("id", &MRepo::id)
-        .def("name", &MRepo::name)
-        .def("priority", &MRepo::priority)
-        .def("package_count", &MRepo::package_count);
+        .def("id", &solver::libsolv::RepoInfo::id)
+        .def("name", &solver::libsolv::RepoInfo::name)
+        .def("priority", &solver::libsolv::RepoInfo::priority)
+        .def("package_count", &solver::libsolv::RepoInfo::package_count);
 
     py::class_<MTransaction>(m, "Transaction")
         .def(py::init<>(
@@ -653,7 +653,7 @@ bind_submodule_impl(pybind11::module_ m)
     py::class_<MSubdirData>(m, "SubdirData")
         .def(
             "create_repo",
-            [](MSubdirData& subdir, MPool& pool) -> MRepo
+            [](MSubdirData& subdir, MPool& pool) -> solver::libsolv::RepoInfo
             {
                 deprecated("Use `load_subdir_in_pool` instead", "2.0");
                 return extract(load_subdir_in_pool(mambapy::singletons.context(), pool, subdir));

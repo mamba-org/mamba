@@ -186,6 +186,7 @@ set(
     # Solver interface
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/helpers.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/serialization.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/repo_info.cpp
     # Artifacts validation
     ${LIBMAMBA_SOURCE_DIR}/validation/tools.cpp
     ${LIBMAMBA_SOURCE_DIR}/validation/errors.cpp
@@ -224,7 +225,6 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/core/package_fetcher.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_paths.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/query.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/repo.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/run.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/shell_init.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/solver.cpp
@@ -307,6 +307,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version_spec.hpp
     # Solver Interface
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/serialization.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/repo_info.hpp
     # Artifacts validation
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/tools.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/errors.hpp
@@ -339,7 +340,6 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/progress_bar.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/pinning.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/query.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/repo.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/run.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shell_init.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/solution.hpp

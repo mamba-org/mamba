@@ -13,7 +13,7 @@
 #include <solv/pooltypes.h>
 
 #include "mamba/core/error_handling.hpp"
-#include "mamba/core/repo.hpp"
+#include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/solver/libsolv/serialization.hpp"
 #include "mamba/specs/package_info.hpp"
 
@@ -76,40 +76,42 @@ namespace mamba
         auto add_repo_from_repodata_json(
             const fs::u8path& path,
             std::string_view url,
-            MRepo::PipAsPythonDependency add = MRepo::PipAsPythonDependency::No,
-            MRepo::RepodataParser parser = MRepo::RepodataParser::Mamba
-        ) -> expected_t<MRepo>;
+            solver::libsolv::RepoInfo::PipAsPythonDependency add = solver::libsolv::RepoInfo::
+                PipAsPythonDependency::No,
+            solver::libsolv::RepoInfo::RepodataParser parser = solver::libsolv::RepoInfo::RepodataParser::Mamba
+        ) -> expected_t<solver::libsolv::RepoInfo>;
 
         auto add_repo_from_native_serialization(
             const fs::u8path& path,
             const solver::libsolv::RepodataOrigin& expected,
-            MRepo::PipAsPythonDependency add = MRepo::PipAsPythonDependency::No
-        ) -> expected_t<MRepo>;
+            solver::libsolv::RepoInfo::PipAsPythonDependency add = solver::libsolv::RepoInfo::PipAsPythonDependency::No
+        ) -> expected_t<solver::libsolv::RepoInfo>;
 
         template <typename Iter>
         auto add_repo_from_packages(
             Iter first_package,
             Iter last_package,
             std::string_view name = "",
-            MRepo::PipAsPythonDependency add = MRepo::PipAsPythonDependency::No
-        ) -> MRepo;
+            solver::libsolv::RepoInfo::PipAsPythonDependency add = solver::libsolv::RepoInfo::PipAsPythonDependency::No
+        ) -> solver::libsolv::RepoInfo;
 
         template <typename Range>
         auto add_repo_from_packages(
             const Range& packages,
             std::string_view name = "",
-            MRepo::PipAsPythonDependency add = MRepo::PipAsPythonDependency::No
-        ) -> MRepo;
+            solver::libsolv::RepoInfo::PipAsPythonDependency add = solver::libsolv::RepoInfo::PipAsPythonDependency::No
+        ) -> solver::libsolv::RepoInfo;
 
         auto native_serialize_repo(
-            const MRepo& repo,
+            const solver::libsolv::RepoInfo& repo,
             const fs::u8path& path,
             const solver::libsolv::RepodataOrigin& metadata
-        ) -> expected_t<MRepo>;
+        ) -> expected_t<solver::libsolv::RepoInfo>;
 
-        void set_installed_repo(const MRepo& repo);
+        void set_installed_repo(const solver::libsolv::RepoInfo& repo);
 
-        void set_repo_priority(const MRepo& repo, MRepo::Priorities);
+        void
+        set_repo_priority(const solver::libsolv::RepoInfo& repo, solver::libsolv::RepoInfo::Priorities);
 
         ChannelContext& channel_context() const;
         const Context& context() const;
@@ -133,17 +135,23 @@ namespace mamba
          */
         std::shared_ptr<MPoolData> m_data;
 
-        auto add_repo_from_packages_impl_pre(std::string_view name) -> MRepo;
-        void add_repo_from_packages_impl_loop(const MRepo& repo, const specs::PackageInfo& pkg);
-        void add_repo_from_packages_impl_post(const MRepo& repo, MRepo::PipAsPythonDependency add);
+        auto add_repo_from_packages_impl_pre(std::string_view name) -> solver::libsolv::RepoInfo;
+        void add_repo_from_packages_impl_loop(
+            const solver::libsolv::RepoInfo& repo,
+            const specs::PackageInfo& pkg
+        );
+        void add_repo_from_packages_impl_post(
+            const solver::libsolv::RepoInfo& repo,
+            solver::libsolv::RepoInfo::PipAsPythonDependency add
+        );
     };
 
     // TODO machinery functions in separate files
     auto load_subdir_in_pool(const Context& ctx, MPool& pool, const MSubdirData& subdir)
-        -> expected_t<MRepo>;
+        -> expected_t<solver::libsolv::RepoInfo>;
 
     auto load_installed_packages_in_pool(const Context& ctx, MPool& pool, const PrefixData& prefix)
-        -> MRepo;
+        -> solver::libsolv::RepoInfo;
 
     /********************
      *  Implementation  *
@@ -154,8 +162,8 @@ namespace mamba
         Iter first_package,
         Iter last_package,
         std::string_view name,
-        MRepo::PipAsPythonDependency add
-    ) -> MRepo
+        solver::libsolv::RepoInfo::PipAsPythonDependency add
+    ) -> solver::libsolv::RepoInfo
     {
         auto repo = add_repo_from_packages_impl_pre(name);
         for (; first_package != last_package; ++first_package)
@@ -170,8 +178,8 @@ namespace mamba
     auto MPool::add_repo_from_packages(
         const Range& packages,
         std::string_view name,
-        MRepo::PipAsPythonDependency add
-    ) -> MRepo
+        solver::libsolv::RepoInfo::PipAsPythonDependency add
+    ) -> solver::libsolv::RepoInfo
     {
         return add_repo_from_packages(packages.begin(), packages.end(), name, add);
     }

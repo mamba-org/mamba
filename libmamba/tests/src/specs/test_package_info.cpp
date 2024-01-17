@@ -33,6 +33,8 @@ TEST_SUITE("specs::package_info")
             CHECK_EQ(pkg.filename, "pkg-6.4-bld.conda");
             CHECK_EQ(pkg.package_url, url);
             CHECK_EQ(pkg.md5, "");
+            CHECK_EQ(pkg.subdir, "linux-64");
+            CHECK_EQ(pkg.channel, "https://conda.anaconda.org/conda-forge");
         }
 
         SUBCASE("https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda#7dbaa197d7ba6032caf7ae7f32c1efa0"
@@ -48,6 +50,8 @@ TEST_SUITE("specs::package_info")
             CHECK_EQ(pkg.filename, "pkg-6.4-bld.conda");
             CHECK_EQ(pkg.package_url, url.substr(0, url.rfind('#')));
             CHECK_EQ(pkg.md5, url.substr(url.rfind('#') + 1));
+            CHECK_EQ(pkg.subdir, "linux-64");
+            CHECK_EQ(pkg.channel, "https://conda.anaconda.org/conda-forge");
         }
     }
 

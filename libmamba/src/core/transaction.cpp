@@ -357,7 +357,7 @@ namespace mamba
         Console::instance().json_write({ { "success", remove_success } });
 
         // find repo __explicit_specs__ and install all packages from it
-        auto repo = solv::ObjRepoView(*mrepo.m_repo);
+        auto repo = solv::ObjRepoView(*mrepo.m_ptr);
         repo.for_each_solvable_id([&](solv::SolvableId id) { decision.push_back(id); });
 
         auto trans = solv::ObjTransaction::from_solvables(m_pool.pool(), decision);

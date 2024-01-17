@@ -22,7 +22,7 @@ namespace mamba::solver::libsolv
     }
 
     RepoInfo::RepoInfo(::Repo* repo)
-        : m_repo(repo)
+        : m_ptr(repo)
     {
     }
 
@@ -33,8 +33,8 @@ namespace mamba::solver::libsolv
 
     auto RepoInfo::priority() const -> Priorities
     {
-        static_assert(std::is_same_v<decltype(m_repo->priority), Priorities::value_type>);
-        return { /* .priority= */ m_repo->priority, /* .subpriority= */ m_repo->subpriority };
+        static_assert(std::is_same_v<decltype(m_ptr->priority), Priorities::value_type>);
+        return { /* .priority= */ m_ptr->priority, /* .subpriority= */ m_ptr->subpriority };
     }
 
     auto RepoInfo::package_count() const -> std::size_t
@@ -50,12 +50,12 @@ namespace mamba::solver::libsolv
 
     auto RepoInfo::repo() const -> ::Repo*
     {
-        return m_repo;
+        return m_ptr;
     }
 
     auto operator==(RepoInfo lhs, RepoInfo rhs) -> bool
     {
-        return lhs.m_repo == rhs.m_repo;
+        return lhs.m_ptr == rhs.m_ptr;
     }
 
     auto operator!=(RepoInfo lhs, RepoInfo rhs) -> bool

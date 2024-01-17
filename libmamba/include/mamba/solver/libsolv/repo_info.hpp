@@ -59,7 +59,7 @@ namespace mamba::solver::libsolv
 
     private:
 
-        ::Repo* m_repo = nullptr;  // This is a view managed by libsolv pool
+        ::Repo* m_ptr = nullptr;  // This is a view managed by libsolv pool
 
         explicit RepoInfo(::Repo* repo);
 

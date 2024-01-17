@@ -406,7 +406,7 @@ namespace mamba
         const specs::PackageInfo& pkg
     )
     {
-        auto s_repo = solv::ObjRepoView(*repo.m_repo);
+        auto s_repo = solv::ObjRepoView(*repo.m_ptr);
         auto [id, solv] = s_repo.add_solvable();
         solver::libsolv::set_solvable(pool(), solv, pkg);
     }
@@ -416,7 +416,7 @@ namespace mamba
         solver::libsolv::PipAsPythonDependency add
     )
     {
-        auto s_repo = solv::ObjRepoView(*repo.m_repo);
+        auto s_repo = solv::ObjRepoView(*repo.m_ptr);
         if (add == solver::libsolv::PipAsPythonDependency::Yes)
         {
             solver::libsolv::add_pip_as_python_dependency(pool(), s_repo);
@@ -430,8 +430,8 @@ namespace mamba
         const solver::libsolv::RepodataOrigin& metadata
     ) -> expected_t<solver::libsolv::RepoInfo>
     {
-        assert(repo.m_repo != nullptr);
-        return solver::libsolv::write_solv(solv::ObjRepoView(*repo.m_repo), path, metadata)
+        assert(repo.m_ptr != nullptr);
+        return solver::libsolv::write_solv(solv::ObjRepoView(*repo.m_ptr), path, metadata)
             .transform([](solv::ObjRepoView repo) { return solver::libsolv::RepoInfo(repo.raw()); });
     }
 
@@ -451,9 +451,9 @@ namespace mamba
         // NOTE: The Pool is not involved directly in this operations, but since it is needed
         // in so many repo operations, this setter was put here to keep the Repo class
         // immutable.
-        static_assert(std::is_same_v<decltype(repo.m_repo->priority), solver::libsolv::Priorities::value_type>);
-        repo.m_repo->priority = priorities.priority;
-        repo.m_repo->subpriority = priorities.subpriority;
+        static_assert(std::is_same_v<decltype(repo.m_ptr->priority), solver::libsolv::Priorities::value_type>);
+        repo.m_ptr->priority = priorities.priority;
+        repo.m_ptr->subpriority = priorities.subpriority;
     }
 
     // TODO machinery functions in separate files

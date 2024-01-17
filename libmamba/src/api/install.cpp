@@ -909,7 +909,20 @@ namespace mamba
                         specs.set_cli_value(updated_specs);
                     }
 
-                    others_pkg_mgrs_specs.set_value(parse_result.others_pkg_mgrs_specs);
+                    if (parse_result.others_pkg_mgrs_specs.size() != 0)
+                    {
+                        std::vector<mamba::detail::other_pkg_mgr_spec> updated_specs;
+                        if (others_pkg_mgrs_specs.cli_configured())
+                        {
+                            updated_specs = others_pkg_mgrs_specs.cli_value<
+                                std::vector<mamba::detail::other_pkg_mgr_spec>>();
+                        }
+                        for (auto& s : parse_result.others_pkg_mgrs_specs)
+                        {
+                            updated_specs.push_back(s);
+                        }
+                        others_pkg_mgrs_specs.set_cli_value(updated_specs);
+                    }
                 }
                 else
                 {

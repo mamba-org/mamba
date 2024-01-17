@@ -9,6 +9,7 @@
 
 #include "mamba/solver/libsolv/parameters.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
+#include "mamba/solver/libsolv/serialization.hpp"
 
 #include "bindings.hpp"
 #include "utils.hpp"
@@ -38,8 +39,8 @@ namespace mambapy
                     [](int priority, int subpriority) -> Priorities
                     {
                         return {
-                            /* priority= */ priority,
-                            /* subpriority= */ subpriority,
+                            /* .priority= */ priority,
+                            /* .subpriority= */ subpriority,
                         };
                     }
                 ),
@@ -52,6 +53,30 @@ namespace mambapy
             .def(py::self != py::self)
             .def("__copy__", &copy<Priorities>)
             .def("__deepcopy__", &deepcopy<Priorities>, py::arg("memo"));
+
+        py::class_<RepodataOrigin>(m, "RepodataOrigin")
+            .def(
+                py::init(
+                    [](std::string_view url, std::string_view etag, std::string_view mod) -> RepodataOrigin
+                    {
+                        return {
+                            /* .url= */ std::string(url),
+                            /* .etag= */ std::string(etag),
+                            /* .mod= */ std::string(mod),
+                        };
+                    }
+                ),
+                py::arg("url") = "",
+                py::arg("etag") = "",
+                py::arg("mod") = ""
+            )
+            .def_readwrite("url", &RepodataOrigin::url)
+            .def_readwrite("etag", &RepodataOrigin::etag)
+            .def_readwrite("mod", &RepodataOrigin::mod)
+            .def(py::self == py::self)
+            .def(py::self != py::self)
+            .def("__copy__", &copy<RepodataOrigin>)
+            .def("__deepcopy__", &deepcopy<RepodataOrigin>, py::arg("memo"));
 
         py::class_<RepoInfo>(m, "RepoInfo")
             .def("id", &RepoInfo::id)

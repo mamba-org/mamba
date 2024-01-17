@@ -56,3 +56,30 @@ def test_Priorities():
     other = copy.deepcopy(p)
     assert other is not p
     assert other == p
+
+
+def test_RepodataOrigin():
+    orig = libsolv.RepodataOrigin(
+        url="https://conda.anaconda.org/conda-forge", mod="the-mod", etag="the-etag"
+    )
+
+    assert orig.url == "https://conda.anaconda.org/conda-forge"
+    assert orig.etag == "the-etag"
+    assert orig.mod == "the-mod"
+
+    # Setters
+    orig.url = "https://repo.mamba.pm"
+    orig.etag = "other-etag"
+    orig.mod = "other-mod"
+    assert orig.url == "https://repo.mamba.pm"
+    assert orig.etag == "other-etag"
+    assert orig.mod == "other-mod"
+
+    # Operators
+    assert orig == orig
+    assert orig != libsolv.RepodataOrigin()
+
+    # Copy
+    other = copy.deepcopy(orig)
+    assert other is not orig
+    assert other == orig

@@ -82,6 +82,8 @@ namespace mambapy
             .def("name", &RepoInfo::name)
             .def("priority", &RepoInfo::priority)
             .def("package_count", &RepoInfo::package_count)
+            .def(py::self == py::self)
+            .def(py::self != py::self)
             .def("__copy__", &copy<RepoInfo>)
             .def("__deepcopy__", &deepcopy<RepoInfo>, py::arg("memo"));
     }

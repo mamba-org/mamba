@@ -52,4 +52,14 @@ namespace mamba::solver::libsolv
     {
         return m_repo;
     }
+
+    auto operator==(RepoInfo lhs, RepoInfo rhs) -> bool
+    {
+        return lhs.m_repo == rhs.m_repo;
+    }
+
+    auto operator!=(RepoInfo lhs, RepoInfo rhs) -> bool
+    {
+        return !(rhs == lhs);
+    }
 }  // namespace mamba

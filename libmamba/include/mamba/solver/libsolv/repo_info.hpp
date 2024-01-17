@@ -65,6 +65,10 @@ namespace mamba::solver::libsolv
 
         friend class ::mamba::MPool;
         friend class ::mamba::MTransaction;  // As long as MTransaction leaks libsolv impl
+        friend auto operator==(RepoInfo lhs, RepoInfo rhs) -> bool;
     };
+
+    auto operator==(RepoInfo lhs, RepoInfo rhs) -> bool;
+    auto operator!=(RepoInfo lhs, RepoInfo rhs) -> bool;
 }
 #endif

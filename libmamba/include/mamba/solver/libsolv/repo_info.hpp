@@ -49,8 +49,6 @@ namespace mamba::solver::libsolv
 
         [[nodiscard]] auto id() const -> RepoId;
 
-        [[nodiscard]] auto repo() const -> Repo*;
-
         [[nodiscard]] auto name() const -> std::string_view;
 
         [[nodiscard]] auto package_count() const -> std::size_t;

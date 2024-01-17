@@ -12,15 +12,6 @@
 
 namespace mamba::solver::libsolv
 {
-    namespace
-    {
-        // Keeping the solv-cpp header private
-        auto srepo(const RepoInfo& r) -> solv::ObjRepoViewConst
-        {
-            return solv::ObjRepoViewConst{ *const_cast<const ::Repo*>(r.repo()) };
-        }
-    }
-
     RepoInfo::RepoInfo(::Repo* repo)
         : m_ptr(repo)
     {
@@ -28,7 +19,7 @@ namespace mamba::solver::libsolv
 
     auto RepoInfo::name() const -> std::string_view
     {
-        return srepo(*this).name();
+        return solv::ObjRepoViewConst(*m_ptr).name();
     }
 
     auto RepoInfo::priority() const -> Priorities
@@ -39,18 +30,13 @@ namespace mamba::solver::libsolv
 
     auto RepoInfo::package_count() const -> std::size_t
     {
-        return srepo(*this).solvable_count();
+        return solv::ObjRepoViewConst(*m_ptr).solvable_count();
     }
 
     auto RepoInfo::id() const -> RepoId
     {
         static_assert(std::is_same_v<RepoId, ::Id>);
-        return srepo(*this).id();
-    }
-
-    auto RepoInfo::repo() const -> ::Repo*
-    {
-        return m_ptr;
+        return solv::ObjRepoViewConst(*m_ptr).id();
     }
 
     auto operator==(RepoInfo lhs, RepoInfo rhs) -> bool

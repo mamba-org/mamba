@@ -585,7 +585,7 @@ namespace mamba
 
         solv::ObjQueue decision = {};
         // find repo __explicit_specs__ and install all packages from it
-        auto repo = solv::ObjRepoView(*mrepo.repo());
+        auto repo = solv::ObjRepoView(*mrepo.m_ptr);
         repo.for_each_solvable_id([&](solv::SolvableId id) { decision.push_back(id); });
 
         auto trans = solv::ObjTransaction::from_solvables(m_pool.pool(), decision);

@@ -39,6 +39,7 @@
 #include "mamba/validation/update_framework_v0_6.hpp"
 
 #include "bindings.hpp"
+#include "expected_caster.hpp"
 #include "flat_set_caster.hpp"
 
 namespace py = pybind11;

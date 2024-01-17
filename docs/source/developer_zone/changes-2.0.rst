@@ -71,8 +71,16 @@ Changes inlcude:
 - ``PackageInfo`` has been moved to ``libmambapy.specs``.
   Some attributes have been given a more explicit name ``fn`` > ``filename``,
   ``url`` > ``package_url``.
+- ``Repo`` has been redesigned into a lightweight ``RepoInfo`` and moved to
+  ``libmambapy.solver.libsolv``.
+  The creation and modification of repos happens through the ``Pool``, with methods such as
+  ``Pool.add_repo_from_repodata_json`` and ``Pool.add_repo_from_packages``, but also high-level
+  free functions such as ``load_subdir_in_pool`` and ``load_installed_packages_in_pool``.
 
 .. TODO include final decision for Channels as URLs.
+
+For many changes, an exception throwing placeholder has ben kept to advise developpers on the new
+direction to take.
 
 Libmamba (C++)
 **************
@@ -89,6 +97,11 @@ The main changes are:
 - A cleanup of ``ChannelContext`` for be a light proxy and parameter holder wrapping the
   ``specs::Channel``.
 - A new ``repodata.json`` parser using `simdjson <https://simdjson.org/>`_.
+- [WIP] Creation of the ``solver::libsolv`` sub-namespace for full isolation of libsolv, and a
+  solver API without ``Context``.
+  It currently contains:
+    - A refactoring and thinning of ``MRepo`` as a new ``RepoInfo``.
+
 - Improved downloaders.
 
 .. TODO OCI registry

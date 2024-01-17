@@ -23,6 +23,9 @@ namespace mamba::solver::libsolv
 {
     void set_solvable(solv::ObjPool& pool, solv::ObjSolvableView solv, const specs::PackageInfo& pkg);
 
+    auto make_package_info(const solv::ObjPool& pool, solv::ObjSolvableViewConst s)
+        -> specs::PackageInfo;
+
     [[nodiscard]] auto libsolv_read_json(  //
         solv::ObjRepoView repo,
         const fs::u8path& filename,

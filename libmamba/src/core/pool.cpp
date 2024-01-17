@@ -292,62 +292,11 @@ namespace mamba
         return id;
     }
 
-    namespace
-    {
-        auto make_package_info(const solv::ObjPool& pool, solv::ObjSolvableViewConst s)
-            -> specs::PackageInfo
-        {
-            specs::PackageInfo out = {};
-
-            out.name = s.name();
-            out.version = s.version();
-            out.build_string = s.build_string();
-            out.noarch = specs::noarch_parse(s.noarch()).value_or(specs::NoArchType::No);
-            out.build_number = s.build_number();
-            out.channel = s.channel();
-            out.package_url = s.url();
-            out.subdir = s.subdir();
-            out.filename = s.file_name();
-            out.license = s.license();
-            out.size = s.size();
-            out.timestamp = s.timestamp();
-            out.md5 = s.md5();
-            out.sha256 = s.sha256();
-
-            const auto dep_to_str = [&pool](solv::DependencyId id)
-            { return pool.dependency_to_string(id); };
-            {
-                const auto deps = s.dependencies();
-                out.depends.reserve(deps.size());
-                std::transform(deps.cbegin(), deps.cend(), std::back_inserter(out.depends), dep_to_str);
-            }
-            {
-                const auto cons = s.constraints();
-                out.constrains.reserve(cons.size());
-                std::transform(cons.cbegin(), cons.cend(), std::back_inserter(out.constrains), dep_to_str);
-            }
-            {
-                const auto id_to_str = [&pool](solv::StringId id)
-                { return std::string(pool.get_string(id)); };
-                auto feats = s.track_features();
-                out.track_features.reserve(feats.size());
-                std::transform(
-                    feats.begin(),
-                    feats.end(),
-                    std::back_inserter(out.track_features),
-                    id_to_str
-                );
-            }
-
-            return out;
-        }
-    }
-
     std::optional<specs::PackageInfo> MPool::id2pkginfo(Id solv_id) const
     {
         if (const auto solv = pool().get_solvable(solv_id))
         {
-            return { make_package_info(pool(), solv.value()) };
+            return { solver::libsolv::make_package_info(pool(), solv.value()) };
         }
         return std::nullopt;
     }

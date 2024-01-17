@@ -15,12 +15,6 @@ namespace mamba::solver::libsolv
         Libsolv,
     };
 
-    enum class LibsolvCache : bool
-    {
-        No = false,
-        Yes = true,
-    };
-
     enum class PipAsPythonDependency : bool
     {
         No = false,

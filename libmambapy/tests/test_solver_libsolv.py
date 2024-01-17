@@ -1,5 +1,7 @@
 import copy
 
+import pytest
+
 import libmambapy.solver.libsolv as libsolv
 
 
@@ -15,6 +17,23 @@ def test_import_recursive():
 
     # Dummy execution
     _p = mamba.solver.libsolv.Priorities
+
+
+def test_RepodataParser():
+    assert libsolv.RepodataParser.Mamba.name == "Mamba"
+    assert libsolv.RepodataParser.Libsolv.name == "Libsolv"
+
+    assert libsolv.RepodataParser("Libsolv") == libsolv.RepodataParser.Libsolv
+
+    with pytest.raises(KeyError):
+        libsolv.RepodataParser("NoParser")
+
+
+def test_PipASPythonDependency():
+    assert libsolv.PipAsPythonDependency.No.name == "No"
+    assert libsolv.PipAsPythonDependency.Yes.name == "Yes"
+
+    assert libsolv.PipAsPythonDependency(True) == libsolv.PipAsPythonDependency.Yes
 
 
 def test_Priorities():

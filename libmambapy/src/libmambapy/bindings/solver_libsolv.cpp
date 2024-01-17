@@ -20,6 +20,18 @@ namespace mambapy
         namespace py = pybind11;
         using namespace mamba::solver::libsolv;
 
+        py::enum_<RepodataParser>(m, "RepodataParser")
+            .value("Mamba", RepodataParser::Mamba)
+            .value("Libsolv", RepodataParser::Libsolv)
+            .def(py::init(&enum_from_str<RepodataParser>));
+        py::implicitly_convertible<py::str, RepodataParser>();
+
+        py::enum_<PipAsPythonDependency>(m, "PipAsPythonDependency")
+            .value("No", PipAsPythonDependency::No)
+            .value("Yes", PipAsPythonDependency::Yes)
+            .def(py::init([](bool val) { return static_cast<PipAsPythonDependency>(val); }));
+        py::implicitly_convertible<py::bool_, PipAsPythonDependency>();
+
         py::class_<Priorities>(m, "Priorities")
             .def(
                 py::init(

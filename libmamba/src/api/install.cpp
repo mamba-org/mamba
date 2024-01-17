@@ -342,46 +342,6 @@ namespace mamba
             return result;
         }
 
-        std::tuple<std::vector<specs::PackageInfo>, std::vector<specs::MatchSpec>>
-        parse_urls_to_package_info(const std::vector<std::string>& urls)
-        {
-            std::vector<specs::PackageInfo> pi_result;
-            std::vector<specs::MatchSpec> ms_result;
-            for (auto& u : urls)
-            {
-                if (util::strip(u).size() == 0)
-                {
-                    continue;
-                }
-                std::size_t hash = u.find_first_of('#');
-                auto ms = specs::MatchSpec::parse(u.substr(0, hash));
-                specs::PackageInfo p(ms.name().str());
-                p.package_url = ms.url();
-                p.build_string = ms.build_string().str();
-                p.version = ms.version().str();
-                if (ms.channel().has_value())
-                {
-                    p.channel = ms.channel()->location();
-                    if (!ms.channel()->platform_filters().empty())
-                    {
-                        // There must be only one since we are expecting URLs
-                        assert(ms.channel()->platform_filters().size() == 1);
-                        p.subdir = ms.channel()->platform_filters().front();
-                    }
-                }
-                p.filename = ms.filename();
-
-                if (hash != std::string::npos)
-                {
-                    p.md5 = u.substr(hash + 1);
-                    ms.set_md5(std::string(u.substr(hash + 1)));
-                }
-                pi_result.push_back(p);
-                ms_result.push_back(ms);
-            }
-            return std::make_tuple(pi_result, ms_result);
-        }
-
         bool operator==(const other_pkg_mgr_spec& s1, const other_pkg_mgr_spec& s2)
         {
             return (s1.pkg_mgr == s2.pkg_mgr) && (s1.deps == s2.deps) && (s1.cwd == s2.cwd);

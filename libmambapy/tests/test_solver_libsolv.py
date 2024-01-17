@@ -29,5 +29,11 @@ def test_Priorities():
     assert p.priority == 33
     assert p.subpriority == 0
 
+    # Operators
+    assert p == p
+    assert p != libsolv.Priorities()
+
+    # Copy
     other = copy.deepcopy(p)
     assert other is not p
+    assert other == p

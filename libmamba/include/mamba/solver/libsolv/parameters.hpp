@@ -34,5 +34,8 @@ namespace mamba::solver::libsolv
         value_type priority = 0;
         value_type subpriority = 0;
     };
+
+    [[nodiscard]] auto operator==(const Priorities& lhs, const Priorities& rhs) -> bool;
+    [[nodiscard]] auto operator!=(const Priorities& lhs, const Priorities& rhs) -> bool;
 }
 #endif

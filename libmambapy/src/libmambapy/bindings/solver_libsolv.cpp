@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 
 #include "mamba/solver/libsolv/parameters.hpp"
@@ -35,6 +36,8 @@ namespace mambapy
             )
             .def_readwrite("priority", &Priorities::priority)
             .def_readwrite("subpriority", &Priorities::subpriority)
+            .def(py::self == py::self)
+            .def(py::self != py::self)
             .def("__copy__", &copy<Priorities>)
             .def("__deepcopy__", &deepcopy<Priorities>, py::arg("memo"));
 

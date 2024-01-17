@@ -8,7 +8,7 @@
 #define MAMBA_SOLVER_LIBSOLV_HERLPERS
 
 #include "mamba/core/error_handling.hpp"
-#include "mamba/solver/libsolv/serialization.hpp"
+#include "mamba/solver/libsolv/parameters.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/repo.hpp"

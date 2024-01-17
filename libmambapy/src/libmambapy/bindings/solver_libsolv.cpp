@@ -9,7 +9,6 @@
 
 #include "mamba/solver/libsolv/parameters.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
-#include "mamba/solver/libsolv/serialization.hpp"
 
 #include "bindings.hpp"
 #include "utils.hpp"

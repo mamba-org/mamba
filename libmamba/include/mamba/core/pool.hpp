@@ -13,8 +13,8 @@
 #include <solv/pooltypes.h>
 
 #include "mamba/core/error_handling.hpp"
+#include "mamba/solver/libsolv/parameters.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
-#include "mamba/solver/libsolv/serialization.hpp"
 #include "mamba/specs/package_info.hpp"
 
 namespace mamba

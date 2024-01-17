@@ -184,9 +184,10 @@ namespace mamba
 
     bool MSubdirMetadata::check_valid_metadata(const fs::u8path& file)
     {
-        if (m_stored_file_size != fs::file_size(file))
+        if (const auto new_size = fs::file_size(file); new_size != m_stored_file_size)
         {
-            LOG_INFO << "File size changed, invalidating metadata";
+            LOG_INFO << "File size changed, expected " << m_stored_file_size << " but got "
+                     << new_size << "; invalidating metadata";
             return false;
         }
 #ifndef _WIN32
@@ -287,8 +288,12 @@ namespace mamba
     auto MSubdirMetadata::from_repodata_file(const fs::u8path& repodata_file)
         -> expected_subdir_metadata
     {
-        std::ifstream in_file = open_ifstream(repodata_file);
-        const std::string json = extract_subjson(in_file);
+        const std::string json = [](const fs::u8path& file) -> std::string
+        {
+            auto lock = LockFile(file);
+            std::ifstream in_file = open_ifstream(file);
+            return extract_subjson(in_file);
+        }(repodata_file);
 
         try
         {
@@ -449,6 +454,34 @@ namespace mamba
         return m_name;
     }
 
+    const MSubdirMetadata& MSubdirData::metadata() const
+    {
+        return m_metadata;
+    }
+
+    expected_t<fs::u8path> MSubdirData::valid_solv_cache() const
+    {
+        if (m_json_cache_valid && m_solv_cache_valid)
+        {
+            return (get_cache_dir(m_valid_cache_path) / m_solv_fn).string();
+        }
+        return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
+    }
+
+    fs::u8path MSubdirData::writable_solv_cache() const
+    {
+        return m_writable_pkgs_dir / "cache" / m_solv_fn;
+    }
+
+    expected_t<fs::u8path> MSubdirData::valid_json_cache() const
+    {
+        if (m_json_cache_valid)
+        {
+            return (get_cache_dir(m_valid_cache_path) / m_json_fn).string();
+        }
+        return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
+    }
+
     expected_t<std::string> MSubdirData::cache_path() const
     {
         // TODO invalidate solv cache on version updates!!
@@ -509,22 +542,6 @@ namespace mamba
         }
 
         return expected_t<void>();
-    }
-
-    expected_t<MRepo> MSubdirData::create_repo(MPool& pool) const
-    {
-        assert(&pool.context() == p_context);
-        using return_type = expected_t<MRepo>;
-        RepoMetadata meta{
-            /* .url= */ util::rsplit(m_metadata.url(), "/", 1).front(),
-            /* .etag= */ m_metadata.etag(),
-            /* .mod= */ m_metadata.last_modified(),
-            /* .pip_added= */ p_context->add_pip_as_python_dependency,
-        };
-
-        const auto cache = cache_path();
-        return cache ? return_type(MRepo(pool, m_name, *cache, meta))
-                     : return_type(forward_error(cache));
     }
 
     MSubdirData::MSubdirData(

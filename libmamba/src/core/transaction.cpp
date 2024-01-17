@@ -156,6 +156,17 @@ namespace mamba
                 {
                     auto pkginfo = get_pkginfo(id);
 
+                    // In libsolv, system dependencies are provided as a special dependency,
+                    // while in Conda it is implemented as a virtual package.
+                    // Maybe there is a way to tell libsolv to never try to install or remove these
+                    // solvables (SOLVER_LOCK or SOLVER_USERINSTALLED?).
+                    // In the meantime (and probably later for safety) we filter all virtual
+                    // packages out.
+                    if (util::starts_with(pkginfo.name, "__"))  // i.e. is_virtual_package
+                    {
+                        return;
+                    }
+
                     // Artificial packages are packages that were added to implement a feature
                     // (e.g. a pin) but do not represent a Conda package.
                     // They can appear in the transaction depending on libsolv flags.
@@ -300,9 +311,11 @@ namespace mamba
     )
         : MTransaction(pool, caches)
     {
-        MRepo mrepo{ m_pool,
-                     "__explicit_specs__",
-                     make_pkg_info_from_explicit_match_specs(specs_to_install) };
+        auto mrepo = m_pool.add_repo_from_packages(
+            make_pkg_info_from_explicit_match_specs(specs_to_install),
+            "__explicit_specs__",
+            solver::libsolv::PipAsPythonDependency::No
+        );
 
         m_pool.create_whatprovides();
 
@@ -344,7 +357,7 @@ namespace mamba
         Console::instance().json_write({ { "success", remove_success } });
 
         // find repo __explicit_specs__ and install all packages from it
-        auto repo = solv::ObjRepoView(*mrepo.repo());
+        auto repo = solv::ObjRepoView(*mrepo.m_ptr);
         repo.for_each_solvable_id([&](solv::SolvableId id) { decision.push_back(id); });
 
         auto trans = solv::ObjTransaction::from_solvables(m_pool.pool(), decision);
@@ -563,12 +576,16 @@ namespace mamba
         : MTransaction(pool, caches)
     {
         LOG_INFO << "MTransaction::MTransaction - packages already resolved (lockfile)";
-        MRepo mrepo = MRepo(m_pool, "__explicit_specs__", packages);
+        auto mrepo = m_pool.add_repo_from_packages(
+            packages,
+            "__explicit_specs__",
+            solver::libsolv::PipAsPythonDependency::No
+        );
         m_pool.create_whatprovides();
 
         solv::ObjQueue decision = {};
         // find repo __explicit_specs__ and install all packages from it
-        auto repo = solv::ObjRepoView(*mrepo.repo());
+        auto repo = solv::ObjRepoView(*mrepo.m_ptr);
         repo.for_each_solvable_id([&](solv::SolvableId id) { decision.push_back(id); });
 
         auto trans = solv::ObjTransaction::from_solvables(m_pool.pool(), decision);

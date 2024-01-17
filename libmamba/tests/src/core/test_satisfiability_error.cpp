@@ -16,12 +16,12 @@
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
-#include "mamba/core/repo.hpp"
 #include "mamba/core/satisfiability_error.hpp"
 #include "mamba/core/solver.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/random.hpp"
 #include "mamba/util/string.hpp"
@@ -154,7 +154,7 @@ namespace
         const auto repodata_f = create_repodata_json(tmp_dir.path, packages);
 
         auto pool = MPool{ ctx, channel_context };
-        MRepo(pool, "some-name", repodata_f, RepoMetadata{ /* .url= */ "some-url" });
+        pool.add_repo_from_repodata_json(repodata_f, "some-url");
         auto solver = MSolver(
             std::move(pool),
             std::vector{ std::pair{ SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } }
@@ -361,7 +361,7 @@ namespace
 
         for (auto& sub_dir : sub_dirs)
         {
-            sub_dir.create_repo(pool);
+            auto repo = load_subdir_in_pool(ctx, pool, sub_dir);
         }
     }
 
@@ -387,8 +387,8 @@ namespace
         );
         prefix_data.add_packages(virtual_packages);
         auto pool = MPool{ ctx, channel_context };
-        auto repo = MRepo{ pool, prefix_data };
-        repo.set_installed();
+
+        load_installed_packages_in_pool(ctx, pool, prefix_data);
 
         auto cache = MultiPackageCache({ tmp_dir.path / "cache" }, ctx.validation_params);
         create_cache_dir(cache.first_writable_path());

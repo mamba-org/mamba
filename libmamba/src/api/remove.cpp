@@ -11,9 +11,9 @@
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
-#include "mamba/core/repo.hpp"
 #include "mamba/core/solver.hpp"
 #include "mamba/core/transaction.hpp"
+#include "mamba/solver/libsolv/repo_info.hpp"
 
 namespace mamba
 {
@@ -87,7 +87,8 @@ namespace mamba
             PrefixData& prefix_data = exp_prefix_data.value();
 
             MPool pool{ ctx, channel_context };
-            MRepo(pool, prefix_data);
+
+            load_installed_packages_in_pool(ctx, pool, prefix_data);
 
             const fs::u8path pkgs_dirs(ctx.prefix_params.root_prefix / "pkgs");
             MultiPackageCache package_caches({ pkgs_dirs }, ctx.validation_params);

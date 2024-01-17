@@ -517,9 +517,7 @@ namespace mamba
             prefix_pkgs.push_back(it.first);
         }
 
-        prefix_data.add_packages(get_virtual_packages(ctx));
-
-        MRepo(pool, prefix_data);
+        load_installed_packages_in_pool(ctx, pool, prefix_data);
 
         MSolver solver(
             pool,
@@ -670,9 +668,8 @@ namespace mamba
             PrefixData& prefix_data = exp_prefix_data.value();
 
             MultiPackageCache pkg_caches(ctx.pkgs_dirs, ctx.validation_params);
-            prefix_data.add_packages(get_virtual_packages(ctx));
-            MRepo(pool, prefix_data);  // Potentially re-alloc (moves in memory) Solvables
-                                       // in the pool
+
+            load_installed_packages_in_pool(ctx, pool, prefix_data);
 
             std::vector<detail::other_pkg_mgr_spec> others;
             // Note that the Transaction will gather the Solvables,

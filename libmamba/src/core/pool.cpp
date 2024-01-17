@@ -11,6 +11,15 @@
 #include <solv/pool.h>
 #include <solv/selection.h>
 #include <solv/solver.h>
+
+#include "mamba/core/prefix_data.hpp"
+#include "mamba/core/subdirdata.hpp"
+#include "mamba/core/virtual_packages.hpp"
+#include "mamba/util/build.hpp"
+#include "mamba/util/random.hpp"
+#include "mamba/util/string.hpp"
+
+#include "solver/libsolv/helpers.hpp"
 extern "C"  // Incomplete header
 {
 #include <solv/conda.h>
@@ -21,6 +30,7 @@ extern "C"  // Incomplete header
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
+#include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
@@ -282,62 +292,11 @@ namespace mamba
         return id;
     }
 
-    namespace
-    {
-        auto make_package_info(const solv::ObjPool& pool, solv::ObjSolvableViewConst s)
-            -> specs::PackageInfo
-        {
-            specs::PackageInfo out = {};
-
-            out.name = s.name();
-            out.version = s.version();
-            out.build_string = s.build_string();
-            out.noarch = specs::noarch_parse(s.noarch()).value_or(specs::NoArchType::No);
-            out.build_number = s.build_number();
-            out.channel = s.channel();
-            out.package_url = s.url();
-            out.subdir = s.subdir();
-            out.filename = s.file_name();
-            out.license = s.license();
-            out.size = s.size();
-            out.timestamp = s.timestamp();
-            out.md5 = s.md5();
-            out.sha256 = s.sha256();
-
-            const auto dep_to_str = [&pool](solv::DependencyId id)
-            { return pool.dependency_to_string(id); };
-            {
-                const auto deps = s.dependencies();
-                out.depends.reserve(deps.size());
-                std::transform(deps.cbegin(), deps.cend(), std::back_inserter(out.depends), dep_to_str);
-            }
-            {
-                const auto cons = s.constraints();
-                out.constrains.reserve(cons.size());
-                std::transform(cons.cbegin(), cons.cend(), std::back_inserter(out.constrains), dep_to_str);
-            }
-            {
-                const auto id_to_str = [&pool](solv::StringId id)
-                { return std::string(pool.get_string(id)); };
-                auto feats = s.track_features();
-                out.track_features.reserve(feats.size());
-                std::transform(
-                    feats.begin(),
-                    feats.end(),
-                    std::back_inserter(out.track_features),
-                    id_to_str
-                );
-            }
-
-            return out;
-        }
-    }
-
     std::optional<specs::PackageInfo> MPool::id2pkginfo(Id solv_id) const
     {
         if (const auto solv = pool().get_solvable(solv_id))
         {
-            return { make_package_info(pool(), solv.value()) };
+            return { solver::libsolv::make_package_info(pool(), solv.value()) };
         }
         return std::nullopt;
     }
@@ -352,8 +311,239 @@ namespace mamba
         return pool_dep2str(const_cast<::Pool*>(pool().raw()), dep_id);
     }
 
+    auto MPool::add_repo_from_repodata_json(
+        const fs::u8path& path,
+        std::string_view url,
+        solver::libsolv::PipAsPythonDependency add,
+        solver::libsolv::RepodataParser parser
+    ) -> expected_t<solver::libsolv::RepoInfo>
+    {
+        if (!fs::exists(path))
+        {
+            return make_unexpected(
+                fmt::format(R"(File "{}" does not exist)", path),
+                mamba_error_code::repodata_not_loaded
+            );
+        }
+        auto repo = pool().add_repo(url).second;
+        repo.set_url(std::string(url));
+
+        auto make_repo = [&]() -> expected_t<solv::ObjRepoView>
+        {
+            if (parser == solver::libsolv::RepodataParser::Mamba)
+            {
+                return solver::libsolv::mamba_read_json(
+                    pool(),
+                    repo,
+                    path,
+                    std::string(url),
+                    context().use_only_tar_bz2
+                );
+            }
+            return solver::libsolv::libsolv_read_json(repo, path, context().use_only_tar_bz2)
+                .transform(
+                    [&url](solv::ObjRepoView repo)
+                    {
+                        solver::libsolv::set_solvables_url(repo, std::string(url));
+                        return repo;
+                    }
+                );
+        };
+
+        return make_repo()
+            .transform(
+                [&](solv::ObjRepoView repo) -> solver::libsolv::RepoInfo
+                {
+                    if (add == solver::libsolv::PipAsPythonDependency::Yes)
+                    {
+                        solver::libsolv::add_pip_as_python_dependency(pool(), repo);
+                    }
+                    repo.internalize();
+                    return solver::libsolv::RepoInfo{ repo.raw() };
+                }
+            )
+            .or_else([&](const auto&) { pool().remove_repo(repo.id(), /* reuse_ids= */ true); });
+    }
+
+    auto MPool::add_repo_from_native_serialization(
+        const fs::u8path& path,
+        const solver::libsolv::RepodataOrigin& expected,
+        solver::libsolv::PipAsPythonDependency add
+    ) -> expected_t<solver::libsolv::RepoInfo>
+    {
+        auto repo = pool().add_repo(expected.url).second;
+
+        return solver::libsolv::read_solv(pool(), repo, path, expected, static_cast<bool>(add))
+            .transform(
+                [&](solv::ObjRepoView repo) -> solver::libsolv::RepoInfo
+                {
+                    repo.set_url(expected.url);
+                    solver::libsolv::set_solvables_url(repo, expected.url);
+                    if (add == solver::libsolv::PipAsPythonDependency::Yes)
+                    {
+                        solver::libsolv::add_pip_as_python_dependency(pool(), repo);
+                    }
+                    repo.internalize();
+                    return solver::libsolv::RepoInfo(repo.raw());
+                }
+            )
+            .or_else([&](const auto&) { pool().remove_repo(repo.id(), /* reuse_ids= */ true); });
+    }
+
+    auto MPool::add_repo_from_packages_impl_pre(std::string_view name) -> solver::libsolv::RepoInfo
+    {
+        if (name.empty())
+        {
+            return solver::libsolv::RepoInfo(
+                pool().add_repo(util::generate_random_alphanumeric_string(20)).second.raw()
+            );
+        }
+        return solver::libsolv::RepoInfo(pool().add_repo(name).second.raw());
+    }
+
+    void MPool::add_repo_from_packages_impl_loop(
+        const solver::libsolv::RepoInfo& repo,
+        const specs::PackageInfo& pkg
+    )
+    {
+        auto s_repo = solv::ObjRepoView(*repo.m_ptr);
+        auto [id, solv] = s_repo.add_solvable();
+        solver::libsolv::set_solvable(pool(), solv, pkg);
+    }
+
+    void MPool::add_repo_from_packages_impl_post(
+        const solver::libsolv::RepoInfo& repo,
+        solver::libsolv::PipAsPythonDependency add
+    )
+    {
+        auto s_repo = solv::ObjRepoView(*repo.m_ptr);
+        if (add == solver::libsolv::PipAsPythonDependency::Yes)
+        {
+            solver::libsolv::add_pip_as_python_dependency(pool(), s_repo);
+        }
+        s_repo.internalize();
+    }
+
+    auto MPool::native_serialize_repo(
+        const solver::libsolv::RepoInfo& repo,
+        const fs::u8path& path,
+        const solver::libsolv::RepodataOrigin& metadata
+    ) -> expected_t<solver::libsolv::RepoInfo>
+    {
+        assert(repo.m_ptr != nullptr);
+        return solver::libsolv::write_solv(solv::ObjRepoView(*repo.m_ptr), path, metadata)
+            .transform([](solv::ObjRepoView repo) { return solver::libsolv::RepoInfo(repo.raw()); });
+    }
+
     void MPool::remove_repo(::Id repo_id, bool reuse_ids)
     {
         pool().remove_repo(repo_id, reuse_ids);
     }
-}  // namespace mamba
+
+    void MPool::set_installed_repo(const solver::libsolv::RepoInfo& repo)
+    {
+        pool().set_installed_repo(repo.id());
+    }
+
+    void
+    MPool::set_repo_priority(const solver::libsolv::RepoInfo& repo, solver::libsolv::Priorities priorities)
+    {
+        // NOTE: The Pool is not involved directly in this operations, but since it is needed
+        // in so many repo operations, this setter was put here to keep the Repo class
+        // immutable.
+        static_assert(std::is_same_v<decltype(repo.m_ptr->priority), solver::libsolv::Priorities::value_type>);
+        repo.m_ptr->priority = priorities.priority;
+        repo.m_ptr->subpriority = priorities.subpriority;
+    }
+
+    // TODO machinery functions in separate files
+    auto load_subdir_in_pool(const Context& ctx, MPool& pool, const MSubdirData& subdir)
+        -> expected_t<solver::libsolv::RepoInfo>
+    {
+        const auto expected_cache_origin = solver::libsolv::RepodataOrigin{
+            /* .url= */ util::rsplit(subdir.metadata().url(), "/", 1).front(),
+            /* .etag= */ subdir.metadata().etag(),
+            /* .mod= */ subdir.metadata().last_modified(),
+        };
+
+        const auto add_pip = static_cast<solver::libsolv::PipAsPythonDependency>(
+            ctx.add_pip_as_python_dependency
+        );
+        const auto json_parser = ctx.experimental_repodata_parsing
+                                     ? solver::libsolv::RepodataParser::Mamba
+                                     : solver::libsolv::RepodataParser::Libsolv;
+
+        // Solv files are too slow on Windows.
+        if (!util::on_win)
+        {
+            auto maybe_repo = subdir.valid_solv_cache().and_then(
+                [&](fs::u8path&& solv_file) {
+                    return pool.add_repo_from_native_serialization(
+                        solv_file,
+                        expected_cache_origin,
+                        add_pip
+                    );
+                }
+            );
+            if (maybe_repo)
+            {
+                return maybe_repo;
+            }
+        }
+
+        return subdir.valid_json_cache()
+            .and_then(
+                [&](fs::u8path&& repodata_json)
+                {
+                    LOG_INFO << "Trying to load repo from json file " << repodata_json;
+                    return pool.add_repo_from_repodata_json(
+                        repodata_json,
+                        util::rsplit(subdir.metadata().url(), "/", 1).front(),
+                        add_pip,
+                        json_parser
+                    );
+                }
+            )
+            .transform(
+                [&](solver::libsolv::RepoInfo&& repo) -> solver::libsolv::RepoInfo
+                {
+                    if (!util::on_win)
+                    {
+                        pool.native_serialize_repo(repo, subdir.writable_solv_cache(), expected_cache_origin)
+                            .or_else(
+                                [&](const auto& err)
+                                {
+                                    LOG_WARNING << R"(Fail to write native serialization to file ")"
+                                                << subdir.writable_solv_cache() << R"(" for repo ")"
+                                                << subdir.name() << ": " << err.what();
+                                    ;
+                                }
+                            );
+                    }
+                    return std::move(repo);
+                }
+            );
+    }
+
+    auto load_installed_packages_in_pool(const Context& ctx, MPool& pool, const PrefixData& prefix)
+        -> solver::libsolv::RepoInfo
+    {
+        // TODO(C++20): We could do a PrefixData range that returns packages without storing thems.
+        auto pkgs = prefix.sorted_records();
+        // TODO(C++20): We only need a range that concatenate both
+        for (auto&& pkg : get_virtual_packages(ctx))
+        {
+            pkgs.push_back(std::move(pkg));
+        }
+
+        // Not adding Pip dependency since it might needlessly make the installed/active environment
+        // broken if pip is not already installed (debatable).
+        auto repo = pool.add_repo_from_packages(
+            pkgs,
+            "installed",
+            solver::libsolv::PipAsPythonDependency::No
+        );
+        pool.set_installed_repo(repo);
+        return repo;
+    }
+}

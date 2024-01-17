@@ -11,11 +11,9 @@ vars:
   CMAKE_PRESET: 'mamba-unix-shared-debug-dev'
   CACHE_DIR: '{{.BUILD_DIR}}/pkgs'
   DOCS_DIR: '{{.BUILD_DIR}}/docs'
-  DOCS_DOXYGEN_XML_DIR:
-    sh: realpath -m '{{.DOCS_DIR}}/doxygen-xml'
+  DOCS_DOXYGEN_XML_DIR: '{{.PWD}}/{{.DOCS_DIR}}/doxygen-xml'
   MAMBA_NAME: 'mamba'  # Depend on preset...
-  TEST_MAMBA_EXE:
-    sh: 'realpath -m {{.CMAKE_BUILD_DIR}}/micromamba/{{.MAMBA_NAME}}'
+  TEST_MAMBA_EXE: '{{.PWD}}/{{.CMAKE_BUILD_DIR}}/micromamba/{{.MAMBA_NAME}}'
   CPU_PERCENTAGE: 75
   CPU_TOTAL:
     sh: >-

@@ -110,7 +110,7 @@ def test_remove_in_use(tmp_home, tmp_root_prefix, tmp_xtensor_env, tmp_env_name)
     )
     time.sleep(1)
 
-    helpers.remove("python", "-v", "-p", tmp_xtensor_env, no_dry_run=True)
+    helpers.remove("python", "-v", "-p", str(tmp_xtensor_env), no_dry_run=True)
 
     if platform.system() == "Windows":
         pyexe_trash = Path(str(pyexe) + ".mamba_trash")

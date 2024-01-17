@@ -5,15 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <cassert>
-#include <cerrno>
 #include <cstdio>
-#include <exception>
-#include <iostream>
-#include <sstream>
-
-#ifdef _WIN32
-#include <windows.h>
-#endif
 
 #include <solv/pool.h>
 #include <solv/repo.h>
@@ -26,7 +18,6 @@ extern "C"  // Incomplete header in libsolv 0.7.23
 #include <solv/repo_conda.h>
 }
 
-#include "mamba/fs/filesystem.hpp"
 #include "solv-cpp/repo.hpp"
 
 namespace mamba::solv
@@ -99,111 +90,18 @@ namespace mamba::solv
         return std::nullopt;
     }
 
-    namespace
+    auto ObjRepoViewConst::write(std::FILE* solv_file) const -> tl::expected<void, std::string>
     {
-        class CFile
+        const auto write_res = ::repo_write(const_cast<::Repo*>(raw()), solv_file);
+        if (write_res == 0)
         {
-        public:
-
-            /**
-             * Open a file with C API.
-             *
-             * @param path must hae filesystem default encoding.
-             */
-            static auto open(const mamba::fs::u8path& path, const char* mode) -> CFile;
-
-            /**
-             * The destructor will flush and close the file descriptor.
-             *
-             * Like ``std::fstream``, exceptions are ignored.
-             * Explicitly call @ref close to get the exception.
-             */
-            ~CFile();
-
-            void close();
-
-            auto raw() noexcept -> std::FILE*;
-
-        private:
-
-            CFile(std::FILE* ptr, std::string name);
-
-            std::FILE* m_ptr = nullptr;
-            std::string m_name = {};
-        };
-
-        CFile::CFile(std::FILE* ptr, std::string name)
-            : m_ptr{ ptr }
-            , m_name{ name }
-        {
+            return {};
         }
-
-        CFile::~CFile()
+        if (const char* str = ::pool_errstr(raw()->pool))
         {
-            try
-            {
-                close();
-            }
-            catch (const std::exception& e)
-            {
-                std::cerr << "Developer error: "
-                             "uncaught exception in CFile::~CFile, "
-                             "explicitly call CFile::close to handle exception.\n"
-                          << e.what();
-            }
+            return tl::unexpected(std::string(str));
         }
-
-        auto CFile::open(const mamba::fs::u8path& path, const char* mode) -> CFile
-        {
-#ifdef _WIN32
-            // Mode MUST be an ASCII string
-            const auto wmode = std::wstring(mode, mode + std::strlen(mode));
-            auto ptr = ::_wfsopen(path.wstring().c_str(), wmode.c_str(), _SH_DENYNO);
-            if (ptr == nullptr)
-            {
-                throw std::system_error(GetLastError(), std::generic_category());
-            }
-            return { ptr, path.string() };
-#else
-            std::string name = path.string();
-            std::FILE* ptr = std::fopen(name.c_str(), mode);
-            if (ptr == nullptr)
-            {
-                throw std::system_error(errno, std::generic_category());
-            }
-            return { ptr, std::move(name) };
-#endif
-        }
-
-        void CFile::close()
-        {
-            const auto close_res = std::fclose(m_ptr);  // This flush too
-            if (close_res != 0)
-            {
-                // TODO(C++20) fmt::format
-                auto ss = std::stringstream();
-                ss << "Unable to close file " << m_name;
-                throw std::runtime_error(ss.str());
-            }
-        }
-
-        auto CFile::raw() noexcept -> std::FILE*
-        {
-            return m_ptr;
-        }
-    }
-
-    void ObjRepoViewConst::write(const mamba::fs::u8path& solv_file) const
-    {
-        auto file = CFile::open(solv_file, "wb");
-        const auto write_res = ::repo_write(const_cast<::Repo*>(raw()), file.raw());
-        if (write_res != 0)
-        {
-            // TODO(C++20) fmt::format
-            auto ss = std::stringstream();
-            ss << "Unable to write repo '" << name() << "' to file";
-            throw std::runtime_error(ss.str());
-        }
+        return tl::unexpected("Unknow error");
     }
 
     /***********************************
@@ -226,39 +124,33 @@ namespace mamba::solv
         ::repo_empty(raw(), static_cast<int>(reuse_ids));
     }
 
-    void ObjRepoView::read(const mamba::fs::u8path& solv_file) const
+    auto ObjRepoView::read(std::FILE* solv_file) const -> tl::expected<void, std::string>
     {
-        auto file = CFile::open(solv_file, "rb");
-        const auto read_res = ::repo_add_solv(raw(), file.raw(), 0);
-        if (read_res != 0)
+        const auto read_res = ::repo_add_solv(raw(), solv_file, 0);
+        if (read_res == 0)
         {
-            // TODO(C++20) fmt::format
-            auto ss = std::stringstream();
-            ss << "Unable to read repo solv file '" << name() << '\'';
-            if (const char* str = ::pool_errstr(raw()->pool))
-            {
-                ss << ", error was: " << str;
-            }
-            throw std::runtime_error(ss.str());
+            return {};
         }
+        if (const char* str = ::pool_errstr(raw()->pool))
+        {
+            return tl::unexpected(std::string(str));
+        }
+        return tl::unexpected("Unknow error");
     }
 
-    void
-    ObjRepoView::legacy_read_conda_repodata(const mamba::fs::u8path& repodata_file, int flags) const
+    auto ObjRepoView::legacy_read_conda_repodata(std::FILE* repodata_file, int flags) const
+        -> tl::expected<void, std::string>
     {
-        auto file = CFile::open(repodata_file, "rb");
-        const auto res = ::repo_add_conda(raw(), file.raw(), flags);
-        if (res != 0)
+        const auto res = ::repo_add_conda(raw(), repodata_file, flags);
+        if (res == 0)
         {
-            // TODO(C++20) fmt::format
-            auto ss = std::stringstream();
-            ss << "Unable to read repodata JSON file '" << name() << '\'';
-            if (const char* str = ::pool_errstr(raw()->pool))
-            {
-                ss << ", error was: " << str;
-            }
-            throw std::runtime_error(ss.str());
+            return {};
         }
+        if (const char* str = ::pool_errstr(raw()->pool))
+        {
+            return tl::unexpected(std::string(str));
+        }
+        return tl::unexpected("Unknow error");
     }
 
     auto ObjRepoView::add_solvable() const -> std::pair<SolvableId, ObjSolvableView>

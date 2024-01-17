@@ -26,9 +26,13 @@ find_package(pybind11 REQUIRED)
 pybind11_add_module(
     bindings
     src/libmambapy/bindings/longpath.manifest
+    # Entry point to all submodules
     src/libmambapy/bindings/bindings.cpp
-    src/libmambapy/bindings/specs.cpp
+    # All bindings used to live in a global module
     src/libmambapy/bindings/legacy.cpp
+    # Submodules
+    src/libmambapy/bindings/specs.cpp
+    src/libmambapy/bindings/solver_libsolv.cpp
 )
 
 target_include_directories(bindings PRIVATE src/libmambapy/bindings)

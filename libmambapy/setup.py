@@ -25,7 +25,7 @@ def libmambapy_version():
 
 skbuild.setup(
     version=libmambapy_version(),
-    packages=["libmambapy", "libmambapy.bindings"],
+    packages=["libmambapy", "libmambapy.bindings", "libmambapy.solver"],
     package_dir={"": "src"},
     package_data={"libmambapy": ["py.typed", "__init__.pyi"]},
     cmake_languages=["CXX"],

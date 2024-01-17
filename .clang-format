@@ -15,6 +15,7 @@ AllowShortLoopsOnASingleLine: 'false'
 AlwaysBreakTemplateDeclarations: 'true'
 BinPackArguments: false
 BinPackParameters: false
+BreakAfterAttributes: Leave
 BreakBeforeBinaryOperators: All
 BreakBeforeBraces: Allman
 BreakBeforeTernaryOperators: 'true'

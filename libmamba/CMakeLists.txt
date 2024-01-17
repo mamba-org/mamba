@@ -151,6 +151,7 @@ set(
     # Filesystem library
     ${LIBMAMBA_SOURCE_DIR}/fs/filesystem.cpp
     # C++ utility library
+    ${LIBMAMBA_SOURCE_DIR}/util/cfile.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/cryptography.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/encoding.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/environment.cpp
@@ -161,13 +162,6 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/util/string.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/url.cpp
     ${LIBMAMBA_SOURCE_DIR}/util/url_manip.cpp
-    # C++ wrapping of libsolv
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/pool.cpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.cpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/repo.cpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solvable.cpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solver.cpp
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/transaction.cpp
     # Implementation of version and matching specs
     ${LIBMAMBA_SOURCE_DIR}/specs/archive.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/authentication_info.cpp
@@ -182,6 +176,17 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/specs/unresolved_channel.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/version.cpp
     ${LIBMAMBA_SOURCE_DIR}/specs/version_spec.cpp
+    # C++ wrapping of libsolv
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/pool.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/repo.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solvable.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solver.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/transaction.cpp
+    # Solver interface
+    ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/helpers.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/parameters.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/repo_info.cpp
     # Artifacts validation
     ${LIBMAMBA_SOURCE_DIR}/validation/tools.cpp
     ${LIBMAMBA_SOURCE_DIR}/validation/errors.cpp
@@ -220,7 +225,6 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/core/package_fetcher.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_paths.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/query.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/repo.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/run.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/shell_init.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/solver.cpp
@@ -262,6 +266,7 @@ set(
     # Utility library
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/build.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cast.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cfile.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/compare.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/conditional.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cryptography.hpp
@@ -300,6 +305,9 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/unresolved_channel.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version_spec.hpp
+    # Solver Interface
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/parameters.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/repo_info.hpp
     # Artifacts validation
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/tools.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/errors.hpp
@@ -332,7 +340,6 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/progress_bar.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/pinning.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/query.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/repo.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/run.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shell_init.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/solution.hpp

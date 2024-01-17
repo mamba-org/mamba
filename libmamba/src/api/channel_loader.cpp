@@ -6,19 +6,19 @@
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/core/channel_context.hpp"
-#include "mamba/core/download.hpp"
 #include "mamba/core/download_progress_bar.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
-#include "mamba/core/repo.hpp"
 #include "mamba/core/subdirdata.hpp"
-#include "mamba/util/string.hpp"
+#include "mamba/solver/libsolv/repo_info.hpp"
 
 namespace mamba
 {
     namespace
     {
-        MRepo create_repo_from_pkgs_dir(MPool& pool, const fs::u8path& pkgs_dir)
+        solver::libsolv::RepoInfo
+        create_repo_from_pkgs_dir(const Context& ctx, MPool& pool, const fs::u8path& pkgs_dir)
         {
             if (!fs::exists(pkgs_dir))
             {
@@ -40,7 +40,7 @@ namespace mamba
                 }
                 prefix_data.load_single_record(repodata_record_json);
             }
-            return MRepo(pool, prefix_data);
+            return load_installed_packages_in_pool(ctx, pool, prefix_data);
         }
 
         void create_subdirs(
@@ -50,7 +50,7 @@ namespace mamba
             MultiPackageCache& package_caches,
             std::vector<MSubdirData>& subdirs,
             std::vector<mamba_error>& error_list,
-            std::vector<std::pair<int, int>>& priorities,
+            std::vector<solver::libsolv::Priorities>& priorities,
             int& max_prio,
             specs::CondaURL& prev_channel_url
         )
@@ -75,7 +75,7 @@ namespace mamba
                 subdirs.push_back(std::move(sdir));
                 if (ctx.channel_priority == ChannelPriority::Disabled)
                 {
-                    priorities.push_back(std::make_pair(0, 0));
+                    priorities.push_back({ /* .priority= */ 0, /* .subpriority= */ 0 });
                 }
                 else
                 {
@@ -85,7 +85,7 @@ namespace mamba
                         max_prio--;
                         prev_channel_url = channel.url();
                     }
-                    priorities.push_back(std::make_pair(max_prio, 0));
+                    priorities.push_back({ /* .priority= */ max_prio, /* .subpriority= */ 0 });
                 }
             }
         }
@@ -98,7 +98,7 @@ namespace mamba
 
         std::vector<MSubdirData> subdirs;
 
-        std::vector<std::pair<int, int>> priorities;
+        std::vector<solver::libsolv::Priorities> priorities;
         int max_prio = static_cast<int>(ctx.channels.size());
         auto prev_channel_url = specs::CondaURL();
 
@@ -174,7 +174,7 @@ namespace mamba
             LOG_INFO << "Creating repo from pkgs_dir for offline";
             for (const auto& c : ctx.pkgs_dirs)
             {
-                create_repo_from_pkgs_dir(pool, c);
+                create_repo_from_pkgs_dir(ctx, pool, c);
             }
         }
         std::string prev_channel;
@@ -194,29 +194,31 @@ namespace mamba
                 continue;
             }
 
-            auto repo = subdir.create_repo(pool);
-            if (repo)
-            {
-                auto& prio = priorities[i];
-                repo.value().set_priority(prio.first, prio.second);
-            }
-            else
-            {
-                if (is_retry & RETRY_SUBDIR_FETCH)
-                {
-                    std::stringstream ss;
-                    ss << "Could not load repodata.json for " << subdir.name() << " after retry."
-                       << "Please check repodata source. Exiting." << std::endl;
-                    error_list.push_back(mamba_error(ss.str(), mamba_error_code::repodata_not_loaded));
-                }
-                else
-                {
-                    LOG_WARNING << "Could not load repodata.json for " << subdir.name()
-                                << ". Deleting cache, and retrying.";
-                    subdir.clear_cache();
-                    loading_failed = true;
-                }
-            }
+            load_subdir_in_pool(ctx, pool, subdir)
+                .transform([&](solver::libsolv::RepoInfo&& repo)
+                           { pool.set_repo_priority(repo, priorities[i]); })
+                .or_else(
+                    [&](const auto& error)
+                    {
+                        if (is_retry & RETRY_SUBDIR_FETCH)
+                        {
+                            std::stringstream ss;
+                            ss << "Could not load repodata.json for " << subdir.name()
+                               << " after retry."
+                               << "Please check repodata source. Exiting." << std::endl;
+                            error_list.push_back(
+                                mamba_error(ss.str(), mamba_error_code::repodata_not_loaded)
+                            );
+                        }
+                        else
+                        {
+                            LOG_WARNING << "Could not load repodata.json for " << subdir.name()
+                                        << ". Deleting cache, and retrying.";
+                            subdir.clear_cache();
+                            loading_failed = true;
+                        }
+                    }
+                );
         }
 
         if (loading_failed)
@@ -235,5 +237,4 @@ namespace mamba
         return error_list.empty() ? return_type()
                                   : return_type(make_unexpected(std::move(error_list)));
     }
-
 }

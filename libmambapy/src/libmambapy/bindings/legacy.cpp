@@ -27,13 +27,13 @@
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/query.hpp"
-#include "mamba/core/repo.hpp"
 #include "mamba/core/satisfiability_error.hpp"
 #include "mamba/core/solver.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/virtual_packages.hpp"
+#include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/validation/tools.hpp"
 #include "mamba/validation/update_framework_v0_6.hpp"
@@ -57,11 +57,12 @@ namespace query
 }
 
 void
-deprecated(const char* message)
+deprecated(std::string_view message, std::string_view since_version = "1.5")
 {
     const auto warnings = py::module_::import("warnings");
     const auto builtins = py::module_::import("builtins");
-    warnings.attr("warn")(message, builtins.attr("DeprecationWarning"), py::arg("stacklevel") = 2);
+    auto total_message = fmt::format("Deprecated since version {}: {}", since_version, message);
+    warnings.attr("warn")(total_message, builtins.attr("DeprecationWarning"), py::arg("stacklevel") = 2);
 }
 
 template <typename PyClass>
@@ -263,6 +264,10 @@ bind_submodule_impl(pybind11::module_ m)
 {
     using namespace mamba;
 
+    /***************
+     *  Migrators  *
+     ***************/
+
     struct PackageInfoV2Migrator
     {
     };
@@ -283,12 +288,36 @@ bind_submodule_impl(pybind11::module_ m)
 
     py::class_<MatchSpecV2Migrator>(m, "MatchSpec")
         .def(py::init(
-            [](py::args, py::kwargs) -> MatchSpecV2Migrator {
+            [](py::args, py::kwargs) -> MatchSpecV2Migrator
+            {
+                // V2 migration
                 throw std::runtime_error(
                     "libmambapy.MatchSpec has been moved to libmambapy.specs.MatchSpec"
                 );
             }
         ));
+
+    struct RepoV2Migrator
+    {
+    };
+
+    py::class_<RepoV2Migrator>(m, "Repo").def(py::init(
+        [](py::args, py::kwargs) -> RepoV2Migrator
+        {
+            throw std::runtime_error(  //
+                "Use Pool.add_repo_from_repodata_json or Pool.add_repo_from_native_serialization"
+                " instead and cache with Pool.native_serialize_repo."
+                " Also consider load_subdir_in_pool for a high_level function to load"
+                " subdir index and manage cache, and load_installed_packages_in_pool for loading"
+                " prefix packages."
+                "The Repo class itself has been moved to libmambapy.solver.libsolv.RepoInfo."
+            );
+        }
+    ));
+
+    /**************
+     *  Bindings  *
+     **************/
 
     // declare earlier to avoid C++ types in docstrings
     auto pyPrefixData = py::class_<PrefixData>(m, "PrefixData");
@@ -313,7 +342,6 @@ bind_submodule_impl(pybind11::module_ m)
 
     py::add_ostream_redirect(m, "ostream_redirect");
 
-
     py::class_<MPool>(m, "Pool")
         .def(
             py::init<>(
@@ -327,7 +355,66 @@ bind_submodule_impl(pybind11::module_ m)
         .def("create_whatprovides", &MPool::create_whatprovides)
         .def("select_solvables", &MPool::select_solvables, py::arg("id"), py::arg("sorted") = false)
         .def("matchspec2id", &MPool::matchspec2id, py::arg("spec"))
-        .def("id2pkginfo", &MPool::id2pkginfo, py::arg("id"));
+        .def("id2pkginfo", &MPool::id2pkginfo, py::arg("id"))
+        .def(
+            "add_repo_from_repodata_json",
+            &MPool::add_repo_from_repodata_json,
+            py::arg("path"),
+            py::arg("url"),
+            py::arg("add_pip_as_python_dependency") = solver::libsolv::PipAsPythonDependency::No,
+            py::arg("repodata_parsers") = solver::libsolv::RepodataParser::Mamba
+        )
+        .def(
+            "add_repo_from_native_serialization",
+            &MPool::add_repo_from_native_serialization,
+            py::arg("path"),
+            py::arg("expected"),
+            py::arg("add_pip_as_python_dependency") = solver::libsolv::PipAsPythonDependency::No
+        )
+        .def(
+            "add_repo_from_packages",
+            [](MPool& pool,
+               py::iterable packages,
+               std::string_view name,
+               solver::libsolv::PipAsPythonDependency add)
+            {
+                // TODO(C++20): No need to copy in a vector, simply transform the input range.
+                auto pkg_infos = std::vector<specs::PackageInfo>();
+                for (py::handle pkg : packages)
+                {
+                    pkg_infos.push_back(pkg.cast<specs::PackageInfo>());
+                }
+                return pool.add_repo_from_packages(pkg_infos, name, add);
+            },
+            py::arg("packages"),
+            py::arg("name") = "",
+            py::arg("add_pip_as_python_dependency") = solver::libsolv::PipAsPythonDependency::No
+        )
+        .def(
+            "native_serialize_repo",
+            &MPool::native_serialize_repo,
+            py::arg("repo"),
+            py::arg("path"),
+            py::arg("metadata")
+        )
+        .def("set_installed_repo", &MPool::set_installed_repo, py::arg("repo"))
+        .def("set_repo_priority", &MPool::set_repo_priority, py::arg("repo"), py::arg("priorities"));
+
+    m.def(
+        "load_subdir_in_pool",
+        &load_subdir_in_pool,
+        py::arg("context"),
+        py::arg("pool"),
+        py::arg("subdir")
+    );
+
+    m.def(
+        "load_installed_packages_in_pool",
+        &load_installed_packages_in_pool,
+        py::arg("context"),
+        py::arg("pool"),
+        py::arg("prefix_data")
+    );
 
     py::class_<MultiPackageCache>(m, "MultiPackageCache")
         .def(py::init<>(
@@ -341,25 +428,6 @@ bind_submodule_impl(pybind11::module_ m)
         ))
         .def("get_tarball_path", &MultiPackageCache::get_tarball_path)
         .def_property_readonly("first_writable_path", &MultiPackageCache::first_writable_path);
-
-    py::class_<MRepo::PyExtraPkgInfo>(m, "ExtraPkgInfo")
-        .def(py::init<>())
-        .def_readwrite("noarch", &MRepo::PyExtraPkgInfo::noarch)
-        .def_readwrite("repo_url", &MRepo::PyExtraPkgInfo::repo_url);
-
-    py::class_<MRepo>(m, "Repo")
-        .def(py::init(
-            [](MPool& pool, const std::string& name, const std::string& filename, const std::string& url
-            ) { return MRepo(pool, name, filename, RepoMetadata{ /* .url=*/url }); }
-        ))
-        .def(py::init<MPool&, const PrefixData&>())
-        .def("add_extra_pkg_info", &MRepo::py_add_extra_pkg_info)
-        .def("set_installed", &MRepo::set_installed)
-        .def("set_priority", &MRepo::set_priority)
-        .def("name", &MRepo::py_name)
-        .def("priority", &MRepo::py_priority)
-        .def("size", &MRepo::py_size)
-        .def("clear", &MRepo::py_clear);
 
     py::class_<MTransaction>(m, "Transaction")
         .def(py::init<>(
@@ -632,13 +700,46 @@ bind_submodule_impl(pybind11::module_ m)
     py::class_<MSubdirData>(m, "SubdirData")
         .def(
             "create_repo",
-            [](MSubdirData& subdir, MPool& pool) -> MRepo
-            { return extract(subdir.create_repo(pool)); }
+            [](MSubdirData& subdir, MPool& pool) -> solver::libsolv::RepoInfo
+            {
+                deprecated("Use `load_subdir_in_pool` instead", "2.0");
+                return extract(load_subdir_in_pool(mambapy::singletons.context(), pool, subdir));
+            }
         )
         .def("loaded", &MSubdirData::is_loaded)
         .def(
+            "valid_solv_cache",
+            // TODO make a proper well tested type caster for expected types.
+            [](const MSubdirData& self) -> std::optional<fs::u8path>
+            {
+                if (auto f = self.valid_solv_cache())
+                {
+                    return { *std::move(f) };
+                }
+                return std::nullopt;
+            }
+        )
+        .def(
+            "valid_json_cache",
+            [](const MSubdirData& self) -> std::optional<fs::u8path>
+            {
+                if (auto f = self.valid_json_cache())
+                {
+                    return { *std::move(f) };
+                }
+                return std::nullopt;
+            }
+        )
+        .def(
             "cache_path",
-            [](const MSubdirData& self) -> std::string { return extract(self.cache_path()); }
+            [](const MSubdirData& self) -> std::string
+            {
+                deprecated(
+                    "Use `SubdirData.valid_solv_path` or `SubdirData.valid_json` path instead",
+                    "2.0"
+                );
+                return extract(self.cache_path());
+            }
         );
 
     using mambapy::SubdirIndex;

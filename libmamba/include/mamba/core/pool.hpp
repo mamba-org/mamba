@@ -12,12 +12,22 @@
 
 #include <solv/pooltypes.h>
 
+#include "mamba/core/error_handling.hpp"
+#include "mamba/solver/libsolv/parameters.hpp"
+#include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/specs/package_info.hpp"
 
 namespace mamba
 {
     class ChannelContext;
     class Context;
+    class PrefixData;
+    class MSubdirData;
+
+    namespace fs
+    {
+        class u8path;
+    }
 
     namespace solv
     {
@@ -61,6 +71,45 @@ namespace mamba
         solv::ObjPool& pool();
         const solv::ObjPool& pool() const;
 
+        auto add_repo_from_repodata_json(
+            const fs::u8path& path,
+            std::string_view url,
+            solver::libsolv::PipAsPythonDependency add = solver::libsolv::PipAsPythonDependency::No,
+            solver::libsolv::RepodataParser parser = solver::libsolv::RepodataParser::Mamba
+        ) -> expected_t<solver::libsolv::RepoInfo>;
+
+        auto add_repo_from_native_serialization(
+            const fs::u8path& path,
+            const solver::libsolv::RepodataOrigin& expected,
+            solver::libsolv::PipAsPythonDependency add = solver::libsolv::PipAsPythonDependency::No
+        ) -> expected_t<solver::libsolv::RepoInfo>;
+
+        template <typename Iter>
+        auto add_repo_from_packages(
+            Iter first_package,
+            Iter last_package,
+            std::string_view name = "",
+            solver::libsolv::PipAsPythonDependency add = solver::libsolv::PipAsPythonDependency::No
+        ) -> solver::libsolv::RepoInfo;
+
+        template <typename Range>
+        auto add_repo_from_packages(
+            const Range& packages,
+            std::string_view name = "",
+            solver::libsolv::PipAsPythonDependency add = solver::libsolv::PipAsPythonDependency::No
+        ) -> solver::libsolv::RepoInfo;
+
+        auto native_serialize_repo(
+            const solver::libsolv::RepoInfo& repo,
+            const fs::u8path& path,
+            const solver::libsolv::RepodataOrigin& metadata
+        ) -> expected_t<solver::libsolv::RepoInfo>;
+
+        void set_installed_repo(const solver::libsolv::RepoInfo& repo);
+
+        void
+        set_repo_priority(const solver::libsolv::RepoInfo& repo, solver::libsolv::Priorities priorities);
+
         void remove_repo(::Id repo_id, bool reuse_ids);
 
         ChannelContext& channel_context() const;
@@ -84,7 +133,55 @@ namespace mamba
          *    - Facilitate (potential) future investigation of parallel solves.
          */
         std::shared_ptr<MPoolData> m_data;
+
+        auto add_repo_from_packages_impl_pre(std::string_view name) -> solver::libsolv::RepoInfo;
+        void add_repo_from_packages_impl_loop(
+            const solver::libsolv::RepoInfo& repo,
+            const specs::PackageInfo& pkg
+        );
+        void add_repo_from_packages_impl_post(
+            const solver::libsolv::RepoInfo& repo,
+            solver::libsolv::PipAsPythonDependency add
+        );
     };
-}  // namespace mamba
+
+    // TODO machinery functions in separate files
+    auto load_subdir_in_pool(const Context& ctx, MPool& pool, const MSubdirData& subdir)
+        -> expected_t<solver::libsolv::RepoInfo>;
+
+    auto load_installed_packages_in_pool(const Context& ctx, MPool& pool, const PrefixData& prefix)
+        -> solver::libsolv::RepoInfo;
+
+    /********************
+     *  Implementation  *
+     ********************/
+
+    template <typename Iter>
+    auto MPool::add_repo_from_packages(
+        Iter first_package,
+        Iter last_package,
+        std::string_view name,
+        solver::libsolv::PipAsPythonDependency add
+    ) -> solver::libsolv::RepoInfo
+    {
+        auto repo = add_repo_from_packages_impl_pre(name);
+        for (; first_package != last_package; ++first_package)
+        {
+            add_repo_from_packages_impl_loop(repo, *first_package);
+        }
+        add_repo_from_packages_impl_post(repo, add);
+        return repo;
+    }
+
+    template <typename Range>
+    auto MPool::add_repo_from_packages(
+        const Range& packages,
+        std::string_view name,
+        solver::libsolv::PipAsPythonDependency add
+    ) -> solver::libsolv::RepoInfo
+    {
+        return add_repo_from_packages(packages.begin(), packages.end(), name, add);
+    }
+}
 
 #endif  // MAMBA_POOL_HPP

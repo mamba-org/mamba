@@ -13,6 +13,7 @@
 #include <utility>
 
 #include <solv/repo.h>
+#include <tl/expected.hpp>
 
 #include "solv-cpp/ids.hpp"
 #include "solv-cpp/solvable.hpp"
@@ -110,11 +111,11 @@ namespace mamba::solv
         /**
          * Write repository information to file.
          *
-         * @param solv_file A standard path with system encoding.
+         * @param solv_file A file pointer opened in binary mode.
          * @warning This is a binary file that is not portable and may not even remain valid among
          *          different libsolv build, let alone versions.
          */
-        void write(const mamba::fs::u8path& solv_file) const;
+        [[nodiscard]] auto write(std::FILE* solv_file) const -> tl::expected<void, std::string>;
 
     private:
 
@@ -221,10 +222,10 @@ namespace mamba::solv
         /**
          * Read repository information from file.
          *
-         * @param solv_file A standard path with system encoding.
+         * @param solv_file A file pointer opened in binary mode.
          * @see ObjRepoViewConst::write
          */
-        void read(const mamba::fs::u8path& solv_file) const;
+        [[nodiscard]] auto read(std::FILE* solv_file) const -> tl::expected<void, std::string>;
 
         /**
          * Read repository information from a conda repodata.json.
@@ -232,9 +233,10 @@ namespace mamba::solv
          * This function is part of libsolv and does not read all attributes of the repodata.
          * It is meant to be replaced. Parsing should be done by the user and solvables
          * added through the API.
-         * @param repodata_file A standard path with system encoding.
+         * @param repodata_file A file pointer opened in binary mode.
          */
-        void legacy_read_conda_repodata(const mamba::fs::u8path& repodata_file, int flags = 0) const;
+        auto legacy_read_conda_repodata(std::FILE* repodata_file, int flags = 0) const
+            -> tl::expected<void, std::string>;
 
         /** Add an empty solvable to the repository. */
         auto add_solvable() const -> std::pair<SolvableId, ObjSolvableView>;

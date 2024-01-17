@@ -69,9 +69,7 @@ namespace mamba
             prefix_pkgs.push_back(it.first);
         }
 
-        prefix_data.add_packages(get_virtual_packages(ctx));
-
-        MRepo(pool, prefix_data);
+        load_installed_packages_in_pool(ctx, pool, prefix_data);
 
         MSolver solver(
             pool,

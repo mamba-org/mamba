@@ -14,6 +14,7 @@
 #include <nlohmann/json.hpp>
 
 #include "mamba/specs/archive.hpp"
+#include "mamba/specs/conda_url.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
@@ -30,13 +31,23 @@ namespace mamba::specs
                 );
             };
 
+            if (!has_archive_extension(spec))
+            {
+                fail_parse();
+            }
+
             auto out = PackageInfo();
-            auto [_, pkg] = util::rsplit_once(spec, '/');
-            out.filename = pkg;
+            // TODO decide on the bet way to group filename/channel/subdir/package_url all at once
             out.package_url = util::path_or_url_to_url(spec);
+            auto url = CondaURL::parse(out.package_url);
+            out.filename = url.package();
+            url.clear_package();
+            out.subdir = url.platform_name();
+            url.clear_platform();
+            out.channel = util::rstrip(url.str(), '/');
 
             // Build string
-            auto [head, tail] = util::rsplit_once(strip_archive_extension(pkg), '-');
+            auto [head, tail] = util::rsplit_once(strip_archive_extension(out.filename), '-');
             out.build_string = tail;
             if (!head.has_value())
             {

@@ -8,6 +8,7 @@
 #define MAMBA_SOLVER_LIBSOLV_HERLPERS
 
 #include "mamba/core/error_handling.hpp"
+#include "mamba/core/solution.hpp"
 #include "mamba/solver/libsolv/parameters.hpp"
 #include "mamba/specs/channel.hpp"
 #include "mamba/specs/match_spec.hpp"
@@ -15,6 +16,7 @@
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/repo.hpp"
 #include "solv-cpp/solvable.hpp"
+#include "solv-cpp/transaction.hpp"
 
 namespace mamba::fs
 {
@@ -65,5 +67,13 @@ namespace mamba::solver::libsolv
         const specs::MatchSpec& ms,
         const specs::ChannelResolveParams& params
     ) -> expected_t<solv::DependencyId>;
+
+    [[nodiscard]] auto transaction_to_solution(
+        const solv::ObjPool& pool,
+        const solv::ObjTransaction& trans,
+        const util::flat_set<std::string>& specs = {},
+        /** true to filter out specs, false to filter in specs */
+        bool keep_only = true
+    ) -> Solution;
 }
 #endif

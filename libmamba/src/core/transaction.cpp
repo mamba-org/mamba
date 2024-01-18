@@ -16,11 +16,6 @@
 #include <fmt/ostream.h>
 #include <solv/selection.h>
 
-extern "C"  // Incomplete header
-{
-#include <solv/conda.h>
-}
-
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/download_progress_bar.hpp"
@@ -41,6 +36,8 @@ extern "C"  // Incomplete header
 #include "solv-cpp/repo.hpp"
 #include "solv-cpp/solver.hpp"
 #include "solv-cpp/transaction.hpp"
+
+#include "solver/libsolv/helpers.hpp"
 
 #include "progress_bar_impl.hpp"
 
@@ -95,7 +92,7 @@ namespace mamba
 
         auto specs_names(const MSolver& solver) -> util::flat_set<std::string>
         {
-            // TODO C++20
+            // TODO(C++20):
             // to_install_names and to_remove_names need not be allocated, only that
             // flat_set::insert with iterators is more efficient (because it sorts only once).
             // This could be solved with std::range::transform
@@ -125,134 +122,6 @@ namespace mamba
             specs.insert(to_remove_names.cbegin(), to_remove_names.cend());
 
             return specs;
-        }
-
-        auto transaction_to_solution(
-            const MPool& pool,
-            const solv::ObjTransaction& trans,
-            const util::flat_set<std::string>& specs = {},
-            /** true to filter out specs, false to filter in specs */
-            bool keep_only = true
-        ) -> Solution
-        {
-            auto get_pkginfo = [&](solv::SolvableId id)
-            {
-                const auto pkginfo = pool.id2pkginfo(id);
-                assert(pkginfo.has_value());
-                return std::move(pkginfo).value();
-            };
-
-            auto get_newer_pkginfo = [&](solv::SolvableId id)
-            {
-                auto maybe_newer_id = trans.step_newer(pool.pool(), id);
-                assert(maybe_newer_id.has_value());
-                return get_pkginfo(maybe_newer_id.value());
-            };
-
-            auto out = Solution::action_list();
-            out.reserve(trans.size());
-            trans.for_each_step_id(
-                [&](const solv::SolvableId id)
-                {
-                    auto pkginfo = get_pkginfo(id);
-
-                    // In libsolv, system dependencies are provided as a special dependency,
-                    // while in Conda it is implemented as a virtual package.
-                    // Maybe there is a way to tell libsolv to never try to install or remove these
-                    // solvables (SOLVER_LOCK or SOLVER_USERINSTALLED?).
-                    // In the meantime (and probably later for safety) we filter all virtual
-                    // packages out.
-                    if (util::starts_with(pkginfo.name, "__"))  // i.e. is_virtual_package
-                    {
-                        return;
-                    }
-
-                    // here are packages that were added to implement a feature
-                    // (e.g. a pin) but do not represent a Conda package.
-                    // They can appear in the transaction depending on libsolv flags.
-                    // We use this attribute to filter them out.
-                    if (const auto solv = pool.pool().get_solvable(id);
-                        solv.has_value() && (solv->type() != solv::SolvableType::Package))
-                    {
-                        LOG_DEBUG << "Solution: Remove artificial " << pkginfo.str();
-                        return;
-                    }
-
-                    // keep_only ? specs.contains(...) : !specs.contains(...);
-                    // TODO ideally we should use Matchspecs::contains(pkginfo)
-                    if (keep_only == specs.contains(pkginfo.name))
-                    {
-                        LOG_DEBUG << "Solution: Omit " << pkginfo.str();
-                        out.push_back(Solution::Omit{ std::move(pkginfo) });
-                        return;
-                    }
-                    auto const type = trans.step_type(
-                        pool.pool(),
-                        id,
-                        SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE
-                    );
-                    switch (type)
-                    {
-                        case SOLVER_TRANSACTION_UPGRADED:
-                        {
-                            auto newer = get_newer_pkginfo(id);
-                            LOG_DEBUG << "Solution: Upgrade " << pkginfo.str() << " -> "
-                                      << newer.str();
-                            out.push_back(Solution::Upgrade{
-                                /* .remove= */ std::move(pkginfo),
-                                /* .install= */ std::move(newer),
-                            });
-                            break;
-                        }
-                        case SOLVER_TRANSACTION_CHANGED:
-                        {
-                            auto newer = get_newer_pkginfo(id);
-                            LOG_DEBUG << "Solution: Change " << pkginfo.str() << " -> "
-                                      << newer.str();
-                            out.push_back(Solution::Change{
-                                /* .remove= */ std::move(pkginfo),
-                                /* .install= */ std::move(newer),
-                            });
-                            break;
-                        }
-                        case SOLVER_TRANSACTION_REINSTALLED:
-                        {
-                            LOG_DEBUG << "Solution: Reinstall " << pkginfo.str();
-                            out.push_back(Solution::Reinstall{ std::move(pkginfo) });
-                            break;
-                        }
-                        case SOLVER_TRANSACTION_DOWNGRADED:
-                        {
-                            auto newer = get_newer_pkginfo(id);
-                            LOG_DEBUG << "Solution: Downgrade " << pkginfo.str() << " -> "
-                                      << newer.str();
-                            out.push_back(Solution::Downgrade{
-                                /* .remove= */ std::move(pkginfo),
-                                /* .install= */ std::move(newer),
-                            });
-                            break;
-                        }
-                        case SOLVER_TRANSACTION_ERASE:
-                        {
-                            LOG_DEBUG << "Solution: Remove " << pkginfo.str();
-                            out.push_back(Solution::Remove{ std::move(pkginfo) });
-                            break;
-                        }
-                        case SOLVER_TRANSACTION_INSTALL:
-                        {
-                            LOG_DEBUG << "Solution: Install " << pkginfo.str();
-                            out.push_back(Solution::Install{ std::move(pkginfo) });
-                            break;
-                        }
-                        case SOLVER_TRANSACTION_IGNORE:
-                            break;
-                        default:
-                            LOG_WARNING << "solv::ObjTransaction case not handled: " << type;
-                            break;
-                    }
-                }
-            );
-            return { std::move(out) };
         }
 
         auto find_python_version(const Solution& solution, const solv::ObjPool& pool)
@@ -366,7 +235,7 @@ namespace mamba
         // TODO reload dependency information from ``ctx.target_prefix / "conda-meta"`` after
         // ``fetch_extract_packages`` is called.
 
-        m_solution = transaction_to_solution(m_pool, trans);
+        m_solution = solver::libsolv::transaction_to_solution(m_pool.pool(), trans);
 
         m_history_entry.remove.reserve(specs_to_remove.size());
         for (auto& s : specs_to_remove)
@@ -414,11 +283,16 @@ namespace mamba
         const auto& flags = solver.flags();
         if (flags.keep_specs && flags.keep_dependencies)
         {
-            m_solution = transaction_to_solution(m_pool, trans);
+            m_solution = solver::libsolv::transaction_to_solution(m_pool.pool(), trans);
         }
         else
         {
-            m_solution = transaction_to_solution(m_pool, trans, specs_names(solver), !(flags.keep_specs));
+            m_solution = solver::libsolv::transaction_to_solution(
+                m_pool.pool(),
+                trans,
+                specs_names(solver),
+                !(flags.keep_specs)
+            );
         }
 
         if (solver.flags().keep_specs)
@@ -538,12 +412,12 @@ namespace mamba
             // Init solution again...
             if (flags.keep_specs && flags.keep_dependencies)
             {
-                m_solution = transaction_to_solution(m_pool, trans);
+                m_solution = solver::libsolv::transaction_to_solution(m_pool.pool(), trans);
             }
             else
             {
-                m_solution = transaction_to_solution(
-                    m_pool,
+                m_solution = solver::libsolv::transaction_to_solution(
+                    m_pool.pool(),
                     trans,
                     specs_names(solver),
                     !(flags.keep_specs)
@@ -591,7 +465,7 @@ namespace mamba
         auto trans = solv::ObjTransaction::from_solvables(m_pool.pool(), decision);
         trans.order(m_pool.pool());
 
-        m_solution = transaction_to_solution(m_pool, trans);
+        m_solution = solver::libsolv::transaction_to_solution(m_pool.pool(), trans);
 
         std::vector<specs::MatchSpec> specs_to_install;
         for (const auto& pkginfo : packages)

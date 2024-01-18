@@ -24,10 +24,6 @@
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
 
-#define PY_MAMBA_NO_DEPS 0b0001
-#define PY_MAMBA_ONLY_DEPS 0b0010
-#define PY_MAMBA_FORCE_REINSTALL 0b0100
-
 namespace mamba::solv
 {
     class ObjQueue;
@@ -75,8 +71,6 @@ namespace mamba
         void add_jobs(const std::vector<std::string>& jobs, int job_flag);
         void add_pin(const std::string& pin);
         void add_pins(const std::vector<std::string>& pins);
-
-        [[deprecated]] void py_set_postsolve_flags(const std::vector<std::pair<int, int>>& flags);
 
         void set_flags(const Flags& flags);  // TODO temporary Itf meant to be passed in ctor
         [[nodiscard]] auto flags() const -> const Flags&;

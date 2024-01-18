@@ -186,25 +186,6 @@ namespace mamba
         }
     }
 
-    void MSolver::py_set_postsolve_flags(const std::vector<std::pair<int, int>>& flags)
-    {
-        for (const auto& option : flags)
-        {
-            switch (option.first)
-            {
-                case PY_MAMBA_NO_DEPS:
-                    m_flags.keep_dependencies = !option.second;
-                    break;
-                case PY_MAMBA_ONLY_DEPS:
-                    m_flags.keep_specs = !option.second;
-                    break;
-                case PY_MAMBA_FORCE_REINSTALL:
-                    m_flags.force_reinstall = option.second;
-                    break;
-            }
-        }
-    }
-
     void MSolver::set_flags(const Flags& flags)
     {
         m_flags = flags;

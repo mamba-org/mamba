@@ -310,6 +310,10 @@ bind_submodule_impl(pybind11::module_ m)
         }
     ));
 
+    m.attr("MAMBA_NO_DEPS") = "V2 Migration: Use Solver.Flags instead";
+    m.attr("MAMBA_ONLY_DEPS") = "V2 Migration: Use Solver.Flags instead";
+    m.attr("MAMBA_FORCE_REINSTALL") = "V2 Migration: Use Solver.Flags instead";
+
     /**************
      *  Bindings  *
      **************/
@@ -452,12 +456,43 @@ bind_submodule_impl(pybind11::module_ m)
         .def_readwrite("description", &SolverProblem::description)
         .def("__str__", [](const SolverProblem& self) { return self.description; });
 
+    py::class_<MSolver::Flags>(pySolver, "Flags")
+        .def(py::init(
+            [](bool keep_dependencies, bool keep_specs, bool force_reinstall) -> MSolver::Flags
+            {
+                return {
+                    /* .keep_dependencies= */ keep_dependencies,
+                    /* .keep_specs= */ keep_specs,
+                    /* .force_reinstall= */ force_reinstall,
+                };
+            }
+        ))
+        .def_readwrite("keep_dependencies", &MSolver::Flags::keep_dependencies)
+        .def_readwrite("keep_specs", &MSolver::Flags::keep_specs)
+        .def_readwrite("force_reinstall", &MSolver::Flags::force_reinstall);
+
     pySolver.def(py::init<MPool&, std::vector<std::pair<int, int>>>(), py::keep_alive<1, 2>())
         .def("add_jobs", &MSolver::add_jobs)
         .def("add_global_job", &MSolver::add_global_job)
         .def("add_pin", &MSolver::add_pin)
-        .def("set_flags", &MSolver::py_set_libsolv_flags)
-        .def("set_postsolve_flags", &MSolver::py_set_postsolve_flags)
+        .def("set_libsolv_flags", &MSolver::py_set_libsolv_flags)
+        .def(
+            "set_flags",
+            [](MSolver&, const std::vector<std::pair<int, int>>&)
+            {
+                // V2 migrator
+                throw std::runtime_error("Use Solver.set_libsolv_flags instead.");
+            }
+        )
+        .def("set_flags", &MSolver::set_flags)
+        .def(
+            "set_postsolve_flags",
+            [](MSolver&, const std::vector<std::pair<int, int>>&)
+            {
+                // V2 migrator
+                throw std::runtime_error("Use Solver.set_flags with Solver.Flags object instead.");
+            }
+        )
         .def("is_solved", &MSolver::is_solved)
         .def("problems_to_str", &MSolver::problems_to_str)
         .def("all_problems_to_str", &MSolver::all_problems_to_str)
@@ -1394,11 +1429,6 @@ bind_submodule_impl(pybind11::module_ m)
         .value("SOLVER_RULE_RECOMMENDS", SolverRuleinfo::SOLVER_RULE_RECOMMENDS)
         .value("SOLVER_RULE_BLACK", SolverRuleinfo::SOLVER_RULE_BLACK)
         .value("SOLVER_RULE_STRICT_REPO_PRIORITY", SolverRuleinfo::SOLVER_RULE_STRICT_REPO_PRIORITY);
-
-    // INSTALL FLAGS
-    m.attr("MAMBA_NO_DEPS") = PY_MAMBA_NO_DEPS;
-    m.attr("MAMBA_ONLY_DEPS") = PY_MAMBA_ONLY_DEPS;
-    m.attr("MAMBA_FORCE_REINSTALL") = PY_MAMBA_FORCE_REINSTALL;
 
     // CLEAN FLAGS
     m.attr("MAMBA_CLEAN_ALL") = MAMBA_CLEAN_ALL;

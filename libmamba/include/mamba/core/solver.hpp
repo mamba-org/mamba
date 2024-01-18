@@ -28,11 +28,6 @@
 #define PY_MAMBA_ONLY_DEPS 0b0010
 #define PY_MAMBA_FORCE_REINSTALL 0b0100
 
-extern "C"
-{
-    typedef struct s_Solver Solver;
-}
-
 namespace mamba::solv
 {
     class ObjQueue;
@@ -108,8 +103,6 @@ namespace mamba
         [[nodiscard]] const std::vector<specs::MatchSpec>& neuter_specs() const;
         [[nodiscard]] const std::vector<specs::MatchSpec>& pinned_specs() const;
 
-        operator const Solver*() const;
-        operator Solver*();
         auto solver() -> solv::ObjSolver&;
         auto solver() const -> const solv::ObjSolver&;
 

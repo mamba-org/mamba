@@ -5,7 +5,6 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <sstream>
-#include <stdexcept>
 
 #include <fmt/format.h>
 #include <fmt/ostream.h>
@@ -22,7 +21,6 @@
 #include "mamba/core/solver.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
-#include "mamba/util/random.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
 #include "solv-cpp/solver.hpp"
@@ -47,16 +45,6 @@ namespace mamba
     MSolver::MSolver(MSolver&&) = default;
 
     MSolver& MSolver::operator=(MSolver&&) = default;
-
-    MSolver::operator const Solver*() const
-    {
-        return solver().raw();
-    }
-
-    MSolver::operator Solver*()
-    {
-        return solver().raw();
-    }
 
     auto MSolver::solver() -> solv::ObjSolver&
     {
@@ -237,7 +225,7 @@ namespace mamba
         // TODO use new API
         for (const auto& option : m_libsolv_flags)
         {
-            solver_set_flag(*this, option.first, option.second);
+            solver_set_flag(m_solver->raw(), option.first, option.second);
         }
     }
 
@@ -318,7 +306,6 @@ namespace mamba
             Id dep_id
         )
         {
-            const ::Solver* const solver_ptr = solver;
             return {
                 /* .type= */ type,
                 /* .source_id= */ source_id,
@@ -329,7 +316,8 @@ namespace mamba
                 /* .dep= */ pool.dep2str(dep_id),
                 /* .description= */
                 solver_problemruleinfo2str(
-                    const_cast<::Solver*>(solver_ptr),  // Not const because might alloctmp space
+                    const_cast<::Solver*>(solver.solver().raw()),  // Not const because might
+                                                                   // alloctmp space
                     type,
                     source_id,
                     target_id,

@@ -441,16 +441,16 @@ bind_submodule_impl(pybind11::module_ m)
         .def("find_python_version", &MTransaction::py_find_python_version)
         .def("execute", &MTransaction::execute);
 
-    py::class_<MSolverProblem>(m, "SolverProblem")
-        .def_readwrite("type", &MSolverProblem::type)
-        .def_readwrite("source_id", &MSolverProblem::source_id)
-        .def_readwrite("target_id", &MSolverProblem::target_id)
-        .def_readwrite("dep_id", &MSolverProblem::dep_id)
-        .def_readwrite("source", &MSolverProblem::source)
-        .def_readwrite("target", &MSolverProblem::target)
-        .def_readwrite("dep", &MSolverProblem::dep)
-        .def_readwrite("description", &MSolverProblem::description)
-        .def("__str__", [](const MSolverProblem& self) { return self.description; });
+    py::class_<SolverProblem>(m, "SolverProblem")
+        .def_readwrite("type", &SolverProblem::type)
+        .def_readwrite("source_id", &SolverProblem::source_id)
+        .def_readwrite("target_id", &SolverProblem::target_id)
+        .def_readwrite("dep_id", &SolverProblem::dep_id)
+        .def_readwrite("source", &SolverProblem::source)
+        .def_readwrite("target", &SolverProblem::target)
+        .def_readwrite("dep", &SolverProblem::dep)
+        .def_readwrite("description", &SolverProblem::description)
+        .def("__str__", [](const SolverProblem& self) { return self.description; });
 
     pySolver.def(py::init<MPool&, std::vector<std::pair<int, int>>>(), py::keep_alive<1, 2>())
         .def("add_jobs", &MSolver::add_jobs)

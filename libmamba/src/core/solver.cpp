@@ -366,7 +366,7 @@ namespace mamba
     namespace
     {
         // TODO change MSolver problem
-        MSolverProblem make_solver_problem(
+        SolverProblem make_solver_problem(
             const MSolver& solver,
             const MPool& pool,
             SolverRuleinfo type,
@@ -396,9 +396,9 @@ namespace mamba
         }
     }
 
-    std::vector<MSolverProblem> MSolver::all_problems_structured() const
+    std::vector<SolverProblem> MSolver::all_problems_structured() const
     {
-        std::vector<MSolverProblem> res = {};
+        std::vector<SolverProblem> res = {};
         res.reserve(solver().problem_count());  // Lower bound
         solver().for_each_problem_id(
             [&](solv::ProblemId pb)
@@ -482,7 +482,7 @@ namespace mamba
     namespace
     {
 
-        void warn_unexpected_problem(const MSolverProblem& problem)
+        void warn_unexpected_problem(const SolverProblem& problem)
         {
             // TODO: Once the new error message are not experimental, we should consider
             // reducing this level since it is not somethig the user has control over.

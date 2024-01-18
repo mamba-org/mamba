@@ -42,7 +42,7 @@ namespace mamba::solv
 namespace mamba
 {
 
-    struct MSolverProblem
+    struct SolverProblem
     {
         SolverRuleinfo type;
         Id source_id;
@@ -94,7 +94,7 @@ namespace mamba
 
         [[nodiscard]] std::string problems_to_str() const;
         [[nodiscard]] std::vector<std::string> all_problems() const;
-        [[nodiscard]] std::vector<MSolverProblem> all_problems_structured() const;
+        [[nodiscard]] std::vector<SolverProblem> all_problems_structured() const;
         [[nodiscard]] ProblemsGraph problems_graph() const;
         [[nodiscard]] std::string all_problems_to_str() const;
         std::ostream& explain_problems(std::ostream& out) const;

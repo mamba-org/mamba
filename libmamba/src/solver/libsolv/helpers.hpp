@@ -68,6 +68,12 @@ namespace mamba::solver::libsolv
         const specs::ChannelResolveParams& params
     ) -> expected_t<solv::DependencyId>;
 
+    [[nodiscard]] auto pool_add_pin(  //
+        solv::ObjPool& pool,
+        const specs::MatchSpec& pin_ms,
+        const specs::ChannelResolveParams& params
+    ) -> expected_t<solv::ObjSolvableView>;
+
     [[nodiscard]] auto transaction_to_solution(
         const solv::ObjPool& pool,
         const solv::ObjTransaction& trans,

@@ -19,6 +19,7 @@
 #include "mamba/core/util.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/util/cfile.hpp"
+#include "mamba/util/random.hpp"
 #include "mamba/util/string.hpp"
 
 #include "solver/libsolv/helpers.hpp"
@@ -719,6 +720,88 @@ namespace mamba::solver::libsolv
             );
         }
         return id;
+    }
+
+    auto pool_add_pin(  //
+        solv::ObjPool& pool,
+        const specs::MatchSpec& pin,
+        const specs::ChannelResolveParams& params
+    ) -> expected_t<solv::ObjSolvableView>
+    {
+        // In libsolv, locking means that a package keeps the same state: if it is installed,
+        // it remains installed, if not it remains uninstalled.
+        // Locking on a spec applies the lock to all packages matching the spec.
+        // In mamba, we do not want to lock the package because we want to allow other variants
+        // (matching the same spec) to unlock more solutions.
+        // For instance we may pin ``libfmt=8.*`` but allow it to be swaped with a version built
+        // by a more recent compiler.
+        //
+        // A previous version of this function would use ``SOLVER_LOCK`` to lock all packages not
+        // matching the pin.
+        // That played poorly with ``all_problems_structured`` because we could not interpret
+        // the ids that were returned (since they were not associated with a single reldep).
+        //
+        // Another wrong idea is to add the pin as an install job.
+        // This is not what is expected of pins, as they must not be installed if they were not
+        // in the environement.
+        // They can be configure in ``.condarc`` for generally specifying what versions are wanted.
+        //
+        // The idea behind the current version is to add the pin/spec as a constraint that must be
+        // fullfield only if the package is installed.
+        // This is not supported on solver jobs but it is on ``Solvable`` with
+        // ``disttype == DISTYPE_CONDA``.
+        // Therefore, we add a dummy solvable marked as already installed, and add the pin/spec
+        // as one of its constrains.
+        // Then we lock this solvable and force the re-checking of its dependencies.
+
+
+        if (pool.disttype() != DISTTYPE_CONDA)
+        {
+            return make_unexpected(
+                fmt::format(R"(Cannot add pin "{}" to a pool that is not of Conda distype)", pin.str()),
+                mamba_error_code::incorrect_usage
+            );
+        }
+        auto installed = pool.installed_repo();
+        if (!installed.has_value())
+        {
+            return make_unexpected(
+                fmt::format(R"("Cannot add pin "{}" without a repo of installed packages")", pin.str()),
+                mamba_error_code::incorrect_usage
+            );
+        }
+
+        return pool_add_matchspec(pool, pin, params)
+            .transform(
+                [&](solv::DependencyId cons)
+                {
+                    // Add dummy solvable with a constraint on the pin (not installed if not
+                    // present)
+                    auto [cons_solv_id, cons_solv] = installed->add_solvable();
+                    const std::string cons_solv_name = fmt::format(
+                        "pin-{}",
+                        util::generate_random_alphanumeric_string(10)
+                    );
+                    cons_solv.set_name(cons_solv_name);
+                    cons_solv.set_version("1");
+
+                    cons_solv.add_constraint(cons);
+
+                    // Solvable need to provide itself
+                    cons_solv.add_self_provide();
+
+                    // Even if we lock it, libsolv may still try to remove it with
+                    // `SOLVER_FLAG_ALLOW_UNINSTALL`, so we flag it as not a real package to filter
+                    // it out in the transaction
+                    cons_solv.set_type(solv::SolvableType::Pin);
+
+                    // Necessary for attributes to be properly stored
+                    // TODO move this at the end of all job requests
+                    installed->internalize();
+
+                    return cons_solv;
+                }
+            );
     }
 
     auto transaction_to_solution(

@@ -168,14 +168,6 @@ namespace mamba
         }
     }
 
-    void MSolver::add_constraint(const std::string& job)
-    {
-        m_jobs->push_back(
-            SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
-            m_pool.matchspec2id(specs::MatchSpec::parse(job))
-        );
-    }
-
     void MSolver::add_pin(const std::string& pin)
     {
         // In libsolv, locking means that a package keeps the same state: if it is installed,

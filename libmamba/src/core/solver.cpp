@@ -22,6 +22,7 @@
 #include "mamba/core/solver.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
+#include "mamba/util/random.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
 #include "solv-cpp/solver.hpp"
@@ -219,8 +220,10 @@ namespace mamba
 
         // Add dummy solvable with a constraint on the pin (not installed if not present)
         auto [cons_solv_id, cons_solv] = installed->add_solvable();
-        // TODO set some "pin" key on the solvable so that we can retrieve it during error messages
-        const std::string cons_solv_name = fmt::format("pin-{}", m_pinned_specs.size());
+        const std::string cons_solv_name = fmt::format(
+            "pin-{}",
+            util::generate_random_alphanumeric_string(10)
+        );
         cons_solv.set_name(cons_solv_name);
         cons_solv.set_version("1");
         cons_solv.add_constraints(solv::ObjQueue{ m_pool.matchspec2id(pin_ms) });

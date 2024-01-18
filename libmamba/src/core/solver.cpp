@@ -231,7 +231,7 @@ namespace mamba
         // Even if we lock it, libsolv may still try to remove it with
         // `SOLVER_FLAG_ALLOW_UNINSTALL`, so we flag it as not a real package to filter it out in
         // the transaction
-        cons_solv.set_artificial(true);
+        cons_solv.set_type(solv::SolvableType::Pin);
 
         // Necessary for attributes to be properly stored
         installed->internalize();

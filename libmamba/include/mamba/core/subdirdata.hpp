@@ -29,7 +29,7 @@ namespace mamba
     class ChannelContext;
     class DownloadMonitor;
 
-    class MSubdirMetadata
+    class SubdirMetadata
     {
     public:
 
@@ -41,7 +41,7 @@ namespace mamba
             std::string cache_control;
         };
 
-        using expected_subdir_metadata = tl::expected<MSubdirMetadata, mamba_error>;
+        using expected_subdir_metadata = tl::expected<SubdirMetadata, mamba_error>;
 
         static expected_subdir_metadata read(const fs::u8path& file);
         void write(const fs::u8path& file);
@@ -87,8 +87,8 @@ namespace mamba
         friend void to_json(nlohmann::json& j, const CheckedAt& ca);
         friend void from_json(const nlohmann::json& j, CheckedAt& ca);
 
-        friend void to_json(nlohmann::json& j, const MSubdirMetadata& data);
-        friend void from_json(const nlohmann::json& j, MSubdirMetadata& data);
+        friend void to_json(nlohmann::json& j, const SubdirMetadata& data);
+        friend void from_json(const nlohmann::json& j, SubdirMetadata& data);
     };
 
     /**
@@ -96,11 +96,11 @@ namespace mamba
      * packages index. Handles downloading of the index
      * from the server and cache generation as well.
      */
-    class MSubdirData
+    class SubdirData
     {
     public:
 
-        static expected_t<MSubdirData> create(
+        static expected_t<SubdirData> create(
             Context& ctx,
             ChannelContext& channel_context,
             const specs::Channel& channel,
@@ -110,13 +110,13 @@ namespace mamba
             const std::string& repodata_fn = "repodata.json"
         );
 
-        ~MSubdirData() = default;
+        ~SubdirData() = default;
 
-        MSubdirData(const MSubdirData&) = delete;
-        MSubdirData& operator=(const MSubdirData&) = delete;
+        SubdirData(const SubdirData&) = delete;
+        SubdirData& operator=(const SubdirData&) = delete;
 
-        MSubdirData(MSubdirData&&) = default;
-        MSubdirData& operator=(MSubdirData&&) = default;
+        SubdirData(SubdirData&&) = default;
+        SubdirData& operator=(SubdirData&&) = default;
 
         bool is_noarch() const;
         bool is_loaded() const;
@@ -124,7 +124,7 @@ namespace mamba
 
         const std::string& name() const;
 
-        const MSubdirMetadata& metadata() const;
+        const SubdirMetadata& metadata() const;
 
         expected_t<fs::u8path> valid_solv_cache() const;
         fs::u8path writable_solv_cache() const;
@@ -134,7 +134,7 @@ namespace mamba
         expected_t<std::string> cache_path() const;
 
         static expected_t<void> download_indexes(
-            std::vector<MSubdirData>& subdirs,
+            std::vector<SubdirData>& subdirs,
             const Context& context,
             DownloadMonitor* check_monitor = nullptr,
             DownloadMonitor* download_monitor = nullptr
@@ -142,7 +142,7 @@ namespace mamba
 
     private:
 
-        MSubdirData(
+        SubdirData(
             Context& ctx,
             ChannelContext& channel_context,
             const specs::Channel& channel,
@@ -161,7 +161,7 @@ namespace mamba
         DownloadRequest build_index_request();
 
         expected_t<void> use_existing_cache();
-        expected_t<void> finalize_transfer(MSubdirMetadata::HttpMetadata http_data);
+        expected_t<void> finalize_transfer(SubdirMetadata::HttpMetadata http_data);
         void refresh_last_write_time(const fs::u8path& json_file, const fs::u8path& solv_file);
 
         bool m_loaded = false;
@@ -178,7 +178,7 @@ namespace mamba
         std::string m_solv_fn;
         bool m_is_noarch;
 
-        MSubdirMetadata m_metadata;
+        SubdirMetadata m_metadata;
         std::unique_ptr<TemporaryFile> m_temp_file;
         const Context* p_context;
     };

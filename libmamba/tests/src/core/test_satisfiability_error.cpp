@@ -337,14 +337,14 @@ namespace
     auto
     load_channels(Context& ctx, MPool& pool, MultiPackageCache& cache, std::vector<std::string>&& channels)
     {
-        auto sub_dirs = std::vector<MSubdirData>();
+        auto sub_dirs = std::vector<SubdirData>();
         for (const auto& location : channels)
         {
             for (const auto& chan : pool.channel_context().make_channel(location))
             {
                 for (const auto& platform : chan.platforms())
                 {
-                    auto sub_dir = expected_value_or_throw(MSubdirData::create(
+                    auto sub_dir = expected_value_or_throw(SubdirData::create(
                         ctx,
                         pool.channel_context(),
                         chan,
@@ -357,7 +357,7 @@ namespace
             }
         }
 
-        MSubdirData::download_indexes(sub_dirs, mambatests::context());
+        SubdirData::download_indexes(sub_dirs, mambatests::context());
 
         for (auto& sub_dir : sub_dirs)
         {

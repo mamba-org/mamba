@@ -176,7 +176,7 @@ namespace mambapy
 
         struct Entry
         {
-            mamba::MSubdirData* p_subdirdata = nullptr;
+            mamba::SubdirData* p_subdirdata = nullptr;
             std::string m_platform = "";
             const mamba::specs::Channel* p_channel = nullptr;
             std::string m_url = "";
@@ -198,7 +198,7 @@ namespace mambapy
         {
             using namespace mamba;
             m_subdirs.push_back(extract(
-                MSubdirData::create(ctx, channel_context, channel, platform, full_url, caches, repodata_fn)
+                SubdirData::create(ctx, channel_context, channel, platform, full_url, caches, repodata_fn)
             ));
             m_entries.push_back({ nullptr, platform, &channel, url });
             for (size_t i = 0; i < m_subdirs.size(); ++i)
@@ -218,16 +218,11 @@ namespace mambapy
             {
                 SubdirDataMonitor check_monitor({ true, true });
                 SubdirDataMonitor index_monitor;
-                download_res = MSubdirData::download_indexes(
-                    m_subdirs,
-                    ctx,
-                    &check_monitor,
-                    &index_monitor
-                );
+                download_res = SubdirData::download_indexes(m_subdirs, ctx, &check_monitor, &index_monitor);
             }
             else
             {
-                download_res = MSubdirData::download_indexes(m_subdirs, ctx);
+                download_res = SubdirData::download_indexes(m_subdirs, ctx);
             }
             return download_res.has_value();
         }
@@ -254,7 +249,7 @@ namespace mambapy
 
     private:
 
-        std::vector<mamba::MSubdirData> m_subdirs;
+        std::vector<mamba::SubdirData> m_subdirs;
         entry_list m_entries;
     };
 }
@@ -697,20 +692,20 @@ bind_submodule_impl(pybind11::module_ m)
             }
         );
 
-    py::class_<MSubdirData>(m, "SubdirData")
+    py::class_<SubdirData>(m, "SubdirData")
         .def(
             "create_repo",
-            [](MSubdirData& subdir, MPool& pool) -> solver::libsolv::RepoInfo
+            [](SubdirData& subdir, MPool& pool) -> solver::libsolv::RepoInfo
             {
                 deprecated("Use `load_subdir_in_pool` instead", "2.0");
                 return extract(load_subdir_in_pool(mambapy::singletons.context(), pool, subdir));
             }
         )
-        .def("loaded", &MSubdirData::is_loaded)
+        .def("loaded", &SubdirData::is_loaded)
         .def(
             "valid_solv_cache",
             // TODO make a proper well tested type caster for expected types.
-            [](const MSubdirData& self) -> std::optional<fs::u8path>
+            [](const SubdirData& self) -> std::optional<fs::u8path>
             {
                 if (auto f = self.valid_solv_cache())
                 {
@@ -721,7 +716,7 @@ bind_submodule_impl(pybind11::module_ m)
         )
         .def(
             "valid_json_cache",
-            [](const MSubdirData& self) -> std::optional<fs::u8path>
+            [](const SubdirData& self) -> std::optional<fs::u8path>
             {
                 if (auto f = self.valid_json_cache())
                 {
@@ -732,7 +727,7 @@ bind_submodule_impl(pybind11::module_ m)
         )
         .def(
             "cache_path",
-            [](const MSubdirData& self) -> std::string
+            [](const SubdirData& self) -> std::string
             {
                 deprecated(
                     "Use `SubdirData.valid_solv_path` or `SubdirData.valid_json` path instead",

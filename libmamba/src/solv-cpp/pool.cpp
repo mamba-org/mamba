@@ -128,13 +128,7 @@ namespace mamba::solv
 
     auto ObjPool::add_conda_dependency(raw_str_view dep) -> DependencyId
     {
-        if (const auto id = ::pool_conda_matchspec(raw(), dep); id != 0)
-        {
-            return id;
-        }
-        auto msg = std::stringstream{};
-        msg << R"(Invalid conda dependency: ")" << dep << '"';
-        throw std::invalid_argument(msg.str());
+        return ::pool_conda_matchspec(raw(), dep);
     }
 
     auto ObjPool::add_conda_dependency(const std::string& dep) -> DependencyId

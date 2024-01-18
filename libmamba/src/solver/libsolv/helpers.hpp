@@ -9,6 +9,8 @@
 
 #include "mamba/core/error_handling.hpp"
 #include "mamba/solver/libsolv/parameters.hpp"
+#include "mamba/specs/channel.hpp"
+#include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/repo.hpp"
@@ -57,5 +59,11 @@ namespace mamba::solver::libsolv
     void set_solvables_url(solv::ObjRepoView repo, const std::string& repo_url);
 
     void add_pip_as_python_dependency(solv::ObjPool& pool, solv::ObjRepoView repo);
+
+    [[nodiscard]] auto pool_add_matchspec(  //
+        solv::ObjPool& pool,
+        const specs::MatchSpec& ms,
+        const specs::ChannelResolveParams& params
+    ) -> expected_t<solv::DependencyId>;
 }
 #endif

@@ -573,4 +573,154 @@ namespace mamba::solver::libsolv
         );
         repo.set_pip_added(true);
     }
+
+    namespace
+    {
+        auto
+        channel_match(const std::vector<specs::Channel>& ms_channels, const specs::CondaURL& pkg_url)
+            -> specs::Channel::Match
+        {
+            auto match = specs::Channel::Match::No;
+            // More than one element means the channel spec was a custom_multi_channel
+            for (const auto& chan : ms_channels)
+            {
+                switch (chan.contains_package(pkg_url))
+                {
+                    case specs::Channel::Match::Full:
+                        return specs::Channel::Match::Full;
+                    case specs::Channel::Match::InOtherPlatform:
+                        // Keep looking for full matches
+                        match = specs::Channel::Match::InOtherPlatform;
+                        break;
+                    case specs::Channel::Match::No:
+                        // No overriding potential InOtherPlatform match
+                        break;
+                }
+            }
+            return match;
+        }
+
+        /**
+         * Add function to handle matchspec while parsing is done by libsolv.
+         */
+        auto add_channel_specific_matchspec(
+            solv::ObjPool& pool,
+            const specs::MatchSpec& ms,
+            const specs::ChannelResolveParams& params
+        ) -> solv::DependencyId
+        {
+            assert(ms.channel().has_value());
+            const std::string repr = ms.str();
+
+            // Already added, return that id
+            if (const auto maybe_id = pool.find_string(repr))
+            {
+                return maybe_id.value();
+            }
+
+            // conda_build_form does **NOT** contain the channel info
+            const solv::DependencyId match = pool_conda_matchspec(
+                pool.raw(),
+                ms.conda_build_form().c_str()
+            );
+
+            auto ms_channels = specs::Channel::resolve(*ms.channel(), params);
+
+            solv::ObjQueue selected_pkgs = {};
+            auto other_subdir_match = std::string();
+            pool.for_each_whatprovides(
+                match,
+                [&](solv::ObjSolvableViewConst s)
+                {
+                    if (s.installed())
+                    {
+                        // This will have the effect that channel-specific MatchSpec will always be
+                        // reinstalled.
+                        // This is not the intended behaviour but an historical artifact on which
+                        // ``--force-reinstall`` currently rely.
+                        return;
+                    }
+
+                    assert(ms.channel().has_value());
+                    const auto match = channel_match(ms_channels, specs::CondaURL::parse(s.url()));
+                    switch (match)
+                    {
+                        case (specs::Channel::Match::Full):
+                        {
+                            selected_pkgs.push_back(s.id());
+                            break;
+                        }
+                        case (specs::Channel::Match::InOtherPlatform):
+                        {
+                            other_subdir_match = s.subdir();
+                            break;
+                        }
+                        case (specs::Channel::Match::No):
+                        {
+                            break;
+                        }
+                    }
+                }
+            );
+
+            if (selected_pkgs.empty())
+            {
+                if (!other_subdir_match.empty())
+                {
+                    const auto& filters = ms.channel()->platform_filters();
+                    throw std::runtime_error(fmt::format(
+                        R"(The package "{}" is not available for the specified platform{} ({}))"
+                        R"( but is available on {}.)",
+                        ms.str(),
+                        filters.size() > 1 ? "s" : "",
+                        fmt::join(filters, ", "),
+                        other_subdir_match
+                    ));
+                }
+                else
+                {
+                    throw std::runtime_error(fmt::format(
+                        R"(The package "{}" is not found in any loaded channels.)"
+                        R"( Try adding more channels or subdirs.)",
+                        ms.str()
+                    ));
+                }
+            }
+
+            const solv::StringId repr_id = pool.add_string(repr);
+            // FRAGILE This get deleted when calling ``pool_createwhatprovides`` so care
+            // must be taken to do it before
+            // TODO investigate namespace providers
+            pool.add_to_whatprovides(repr_id, pool.add_to_whatprovides_data(selected_pkgs));
+            return repr_id;
+        }
+    }
+
+    [[nodiscard]] auto pool_add_matchspec(  //
+        solv::ObjPool& pool,
+        const specs::MatchSpec& ms,
+        const specs::ChannelResolveParams& params
+    ) -> expected_t<solv::DependencyId>
+    {
+        solv::DependencyId id = 0;
+        if (!ms.channel().has_value())
+        {
+            id = pool.add_conda_dependency(ms.conda_build_form());
+        }
+        else
+        {
+            // Working around shortcomings of ``pool_conda_matchspec``
+            // The channels are not processed.
+            // TODO Fragile! Installing this matchspec will always trigger a reinstall
+            id = add_channel_specific_matchspec(pool, ms, params);
+        }
+        if (id == 0)
+        {
+            make_unexpected(
+                fmt::format(R"(Invalid MatchSpec "{}")", ms.str()),
+                mamba_error_code::invalid_spec
+            );
+        }
+        return id;
+    }
 }

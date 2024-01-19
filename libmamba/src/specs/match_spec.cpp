@@ -643,4 +643,12 @@ namespace mamba::specs
         }
         return *m_extra;
     }
+
+    namespace match_spec_literals
+    {
+        auto operator""_ms(const char* str, std::size_t len) -> MatchSpec
+        {
+            return MatchSpec::parse({ str, len });
+        }
+    }
 }

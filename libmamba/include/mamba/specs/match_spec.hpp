@@ -106,5 +106,10 @@ namespace mamba::specs
 
         auto extra() -> ExtraMembers&;
     };
+
+    namespace match_spec_literals
+    {
+        auto operator""_ms(const char* str, std::size_t len) -> MatchSpec;
+    }
 }
 #endif

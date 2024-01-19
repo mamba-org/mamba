@@ -79,6 +79,8 @@ TEST_SUITE_BEGIN("satisfiability_error");
 
 namespace
 {
+    using namespace mamba::specs::match_spec_literals;
+
     /**
      * A RAII object to ensure a path exists only for the lifetime of the guard.
      */
@@ -173,7 +175,7 @@ TEST_CASE("Test create_problem utility")
         ctx,
         channel_context,
         std::array{ mkpkg("foo", "0.1.0", {}) },
-        { { Request::Install{ specs::MatchSpec::parse("foo") } } }
+        { { Request::Install{ "foo"_ms } } }
     );
     const auto solved = solver.try_solve();
     REQUIRE(solved);
@@ -187,7 +189,7 @@ TEST_CASE("Test empty specs")
         ctx,
         channel_context,
         std::array{ mkpkg("foo", "0.1.0", {}), mkpkg("", "", {}) },
-        { { Request::Install{ specs::MatchSpec::parse("foo") } } }
+        { { Request::Install{ "foo"_ms } } }
     );
     const auto solved = solver.try_solve();
     REQUIRE(solved);
@@ -205,7 +207,7 @@ namespace
                 mkpkg("A", "0.2.0"),
                 mkpkg("A", "0.3.0"),
             },
-            { { Request::Install{ specs::MatchSpec::parse("A=0.4.0") } } }
+            { { Request::Install{ "A=0.4.0"_ms } } }
         );
     }
 
@@ -239,9 +241,9 @@ namespace
                 mkpkg("intl", "3.0.0"),
             },
             { {
-                Request::Install{ specs::MatchSpec::parse("menu") },
-                Request::Install{ specs::MatchSpec::parse("icons=1.*") },
-                Request::Install{ specs::MatchSpec::parse("intl=5.*") },
+                Request::Install{ "menu"_ms },
+                Request::Install{ "icons=1.*"_ms },
+                Request::Install{ "intl=5.*"_ms },
             } }
         );
     }
@@ -301,11 +303,11 @@ namespace
             channel_context,
             packages,
             { {
-                Request::Install{ specs::MatchSpec::parse("menu") },
-                Request::Install{ specs::MatchSpec::parse("pyicons=1.*") },
-                Request::Install{ specs::MatchSpec::parse("intl=5.*") },
-                Request::Install{ specs::MatchSpec::parse("intl-mod") },
-                Request::Install{ specs::MatchSpec::parse("pretty>=1.0") },
+                Request::Install{ "menu"_ms },
+                Request::Install{ "pyicons=1.*"_ms },
+                Request::Install{ "intl=5.*"_ms },
+                Request::Install{ "intl-mod"_ms },
+                Request::Install{ "pretty>=1.0"_ms },
             } }
         );
     }
@@ -386,7 +388,7 @@ namespace
     auto create_conda_forge(
         Context& ctx,
         ChannelContext& channel_context,
-        std::vector<std::string>&& specs,
+        Request&& request,
         const std::vector<specs::PackageInfo>& virtual_packages = { mkpkg("__glibc", "2.17.0") },
         std::vector<std::string>&& channels = { "conda-forge" },
         const std::vector<std::string>& platforms = { "linux-64", "noarch" }
@@ -417,7 +419,7 @@ namespace
             std::move(pool),
             std::vector{ std::pair{ SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } }
         );
-        solver.add_jobs(specs, SOLVER_INSTALL);
+        solver.add_request(request);
 
         return solver;
     }
@@ -427,7 +429,7 @@ TEST_CASE("Test create_conda_forge utility")
 {
     auto& ctx = mambatests::context();
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
-    auto solver = create_conda_forge(ctx, channel_context, { "xtensor>=0.7" });
+    auto solver = create_conda_forge(ctx, channel_context, { { Request::Install{ "xtensor>=0.7"_ms } } });
     const auto solved = solver.try_solve();
     REQUIRE(solved);
 }
@@ -436,7 +438,11 @@ namespace
 {
     auto create_pytorch_cpu(Context& ctx, ChannelContext& channel_context) -> MSolver
     {
-        return create_conda_forge(ctx, channel_context, { "python=2.7", "pytorch=1.12" });
+        return create_conda_forge(
+            ctx,
+            channel_context,
+            { { Request::Install{ "python=2.7"_ms }, Request::Install{ "pytorch=1.12"_ms } } }
+        );
     }
 
     auto create_pytorch_cuda(Context& ctx, ChannelContext& channel_context) -> MSolver
@@ -444,7 +450,7 @@ namespace
         return create_conda_forge(
             ctx,
             channel_context,
-            { "python=2.7", "pytorch=1.12" },
+            { { Request::Install{ "python=2.7"_ms }, Request::Install{ "pytorch=1.12"_ms } } },
             { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "10.2.0") }
         );
     }
@@ -454,14 +460,24 @@ namespace
         return create_conda_forge(
             ctx,
             channel_context,
-            { "python=3.7", "cudatoolkit=11.1", "cudnn=8.0", "pytorch=1.8", "torchvision=0.9=*py37_cu111*" },
+            { {
+                Request::Install{ "python=3.7"_ms },
+                Request::Install{ "cudatoolkit=11.1"_ms },
+                Request::Install{ "cudnn=8.0"_ms },
+                Request::Install{ "pytorch=1.8"_ms },
+                Request::Install{ "torchvision=0.9=*py37_cu111*"_ms },
+            } },
             { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "11.1") }
         );
     }
 
     auto create_jpeg9b(Context& ctx, ChannelContext& channel_context) -> MSolver
     {
-        return create_conda_forge(ctx, channel_context, { "python=3.7", "jpeg=9b" });
+        return create_conda_forge(
+            ctx,
+            channel_context,
+            { { Request::Install{ "python=3.7"_ms }, Request::Install{ "jpeg=9b"_ms } } }
+        );
     }
 
     auto create_r_base(Context& ctx, ChannelContext& channel_context) -> MSolver
@@ -469,23 +485,41 @@ namespace
         return create_conda_forge(
             ctx,
             channel_context,
-            { "r-base=3.5.* ", "pandas=0", "numpy<1.20.0", "matplotlib=2", "r-matchit=4.*" }
+            { {
+                Request::Install{ "r-base=3.5.* "_ms },
+                Request::Install{ "pandas=0"_ms },
+                Request::Install{ "numpy<1.20.0"_ms },
+                Request::Install{ "matplotlib=2"_ms },
+                Request::Install{ "r-matchit=4.*"_ms },
+            } }
         );
     }
 
     auto create_scip(Context& ctx, ChannelContext& channel_context) -> MSolver
     {
-        return create_conda_forge(ctx, channel_context, { "scip=8.*", "pyscipopt<4.0" });
+        return create_conda_forge(
+            ctx,
+            channel_context,
+            { { Request::Install{ "scip=8.*"_ms }, Request::Install{ "pyscipopt<4.0"_ms } } }
+        );
     }
 
     auto create_double_python(Context& ctx, ChannelContext& channel_context) -> MSolver
     {
-        return create_conda_forge(ctx, channel_context, { "python=3.9.*", "python=3.10.*" });
+        return create_conda_forge(
+            ctx,
+            channel_context,
+            { { Request::Install{ "python=3.9.*"_ms }, Request::Install{ "python=3.10.*"_ms } } }
+        );
     }
 
     auto create_numba(Context& ctx, ChannelContext& channel_context) -> MSolver
     {
-        return create_conda_forge(ctx, channel_context, { "python=3.11", "numba<0.56" });
+        return create_conda_forge(
+            ctx,
+            channel_context,
+            { { Request::Install{ "python=3.11"_ms }, Request::Install{ "numba<0.56"_ms } } }
+        );
     }
 
     template <typename NodeVariant>

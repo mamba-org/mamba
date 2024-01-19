@@ -12,6 +12,7 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include <solv/pooltypes.h>
@@ -45,6 +46,35 @@ namespace mamba
         std::string description;
     };
 
+    struct Request
+    {
+        struct Install
+        {
+            specs::MatchSpec spec;
+        };
+
+        struct Remove
+        {
+            specs::MatchSpec spec;
+            bool clean_dependencies = true;
+        };
+
+        struct Update
+        {
+            specs::MatchSpec spec;
+        };
+
+        struct Pin
+        {
+            specs::MatchSpec spec;
+        };
+
+        using Item = std::variant<Install, Remove, Update, Pin>;
+        using item_list = std::vector<Item>;
+
+        item_list items = {};
+    };
+
     class MSolver
     {
     public:
@@ -68,6 +98,7 @@ namespace mamba
         MSolver& operator=(MSolver&&);
 
         void add_global_job(int job_flag);
+        void add_request(const Request& request);
         void add_jobs(const std::vector<std::string>& jobs, int job_flag);
         void add_pin(const specs::MatchSpec& pin);
         void add_pins(const std::vector<std::string>& pins);
@@ -117,6 +148,11 @@ namespace mamba
 
         void add_reinstall_job(const specs::MatchSpec& ms, int job_flag);
         void apply_libsolv_flags();
+
+        void add_job_impl(const Request::Install& job);
+        void add_job_impl(const Request::Remove& job);
+        void add_job_impl(const Request::Update& job);
+        void add_job_impl(const Request::Pin& job);
     };
 }  // namespace mamba
 

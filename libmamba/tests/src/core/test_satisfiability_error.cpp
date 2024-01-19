@@ -145,7 +145,7 @@ namespace
         Context& ctx,
         ChannelContext& channel_context,
         const PkgRange& packages,
-        const std::vector<std::string>& specs
+        const Request& request
     )
     {
         const auto tmp_dir = dir_guard(
@@ -159,7 +159,7 @@ namespace
             std::move(pool),
             std::vector{ std::pair{ SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } }
         );
-        solver.add_jobs(specs, SOLVER_INSTALL);
+        solver.add_request(request);
 
         return solver;
     }
@@ -169,7 +169,12 @@ TEST_CASE("Test create_problem utility")
 {
     auto& ctx = mambatests::context();
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
-    auto solver = create_problem(ctx, channel_context, std::array{ mkpkg("foo", "0.1.0", {}) }, { "foo" });
+    auto solver = create_problem(
+        ctx,
+        channel_context,
+        std::array{ mkpkg("foo", "0.1.0", {}) },
+        { { Request::Install{ specs::MatchSpec::parse("foo") } } }
+    );
     const auto solved = solver.try_solve();
     REQUIRE(solved);
 }
@@ -182,7 +187,7 @@ TEST_CASE("Test empty specs")
         ctx,
         channel_context,
         std::array{ mkpkg("foo", "0.1.0", {}), mkpkg("", "", {}) },
-        { "foo" }
+        { { Request::Install{ specs::MatchSpec::parse("foo") } } }
     );
     const auto solved = solver.try_solve();
     REQUIRE(solved);
@@ -200,7 +205,7 @@ namespace
                 mkpkg("A", "0.2.0"),
                 mkpkg("A", "0.3.0"),
             },
-            { "A=0.4.0" }
+            { { Request::Install{ specs::MatchSpec::parse("A=0.4.0") } } }
         );
     }
 
@@ -233,7 +238,11 @@ namespace
                 mkpkg("intl", "4.0.0"),
                 mkpkg("intl", "3.0.0"),
             },
-            { "menu", "icons=1.*", "intl=5.*" }
+            { {
+                Request::Install{ specs::MatchSpec::parse("menu") },
+                Request::Install{ specs::MatchSpec::parse("icons=1.*") },
+                Request::Install{ specs::MatchSpec::parse("intl=5.*") },
+            } }
         );
     }
 
@@ -291,7 +300,13 @@ namespace
             ctx,
             channel_context,
             packages,
-            { "menu", "pyicons=1.*", "intl=5.*", "intl-mod", "pretty>=1.0" }
+            { {
+                Request::Install{ specs::MatchSpec::parse("menu") },
+                Request::Install{ specs::MatchSpec::parse("pyicons=1.*") },
+                Request::Install{ specs::MatchSpec::parse("intl=5.*") },
+                Request::Install{ specs::MatchSpec::parse("intl-mod") },
+                Request::Install{ specs::MatchSpec::parse("pretty>=1.0") },
+            } }
         );
     }
 

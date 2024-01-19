@@ -131,16 +131,19 @@ namespace mamba
             if (remove_not_specified)
             {
                 auto hist_map = prefix_data.history().get_requested_specs_map();
-                std::vector<std::string> remove_specs;
+                auto request = Request();
                 for (auto& it : hist_map)
                 {
                     if (std::find(update_specs.begin(), update_specs.end(), it.second.name().str())
                         == update_specs.end())
                     {
-                        remove_specs.push_back(it.second.name().str());
+                        request.items.emplace_back(Request::Remove{
+                            specs::MatchSpec::parse(it.second.name().str()),
+                            /* .clean_dependencies= */ true,
+                        });
                     }
                 }
-                solver.add_jobs(remove_specs, SOLVER_ERASE | SOLVER_CLEANDEPS);
+                solver.add_request(request);
             }
             solver.add_jobs(update_specs, solver_flag);
         }

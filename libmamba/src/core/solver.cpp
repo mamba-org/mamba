@@ -107,6 +107,57 @@ namespace mamba
         m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, m_pool.matchspec2id(ms_modified));
     }
 
+    void MSolver::add_request(const Request& request)
+    {
+        for (const auto& item : request.items)
+        {
+            std::visit([&](const auto& r) { add_job_impl(r); }, item);
+        }
+    }
+
+    void MSolver::add_job_impl(const Request::Install& job)
+    {
+        m_install_specs.emplace_back(job.spec);
+        if (m_flags.force_reinstall)
+        {
+            add_reinstall_job(job.spec, SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES);
+        }
+        else
+        {
+            const auto job_id = m_pool.matchspec2id(job.spec);
+            m_jobs->push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, job_id);
+        }
+    }
+
+    void MSolver::add_job_impl(const Request::Remove& job)
+    {
+        m_remove_specs.emplace_back(job.spec);
+        const auto job_id = m_pool.matchspec2id(job.spec);
+        m_jobs->push_back(
+            SOLVER_ERASE | SOLVER_SOLVABLE_PROVIDES
+                | (job.clean_dependencies ? SOLVER_CLEANDEPS : SOLVER_ERASE),
+            job_id
+        );
+    }
+
+    void MSolver::add_job_impl(const Request::Update& job)
+    {
+        m_install_specs.emplace_back(job.spec);
+        m_remove_specs.emplace_back(job.spec);
+        const auto job_id = m_pool.matchspec2id(job.spec);
+        // TODO: ignoring update specs here for now
+        if (!job.spec.is_simple())
+        {
+            m_jobs->push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, job_id);
+        }
+        m_jobs->push_back(SOLVER_UPDATE | SOLVER_SOLVABLE_PROVIDES, job_id);
+    }
+
+    void MSolver::add_job_impl(const Request::Pin& job)
+    {
+        add_pin(job.spec);
+    }
+
     void MSolver::add_jobs(const std::vector<std::string>& jobs, int job_flag)
     {
         for (const auto& job : jobs)

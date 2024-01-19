@@ -92,10 +92,8 @@ namespace mamba
     }
 
     expected_t<void, mamba_aggregated_error>
-    load_channels(Context& ctx, MPool& pool, MultiPackageCache& package_caches, int is_retry)
+    load_channels_impl(Context& ctx, MPool& pool, MultiPackageCache& package_caches, bool is_retry)
     {
-        int RETRY_SUBDIR_FETCH = 1 << 0;
-
         std::vector<SubdirData> subdirs;
 
         std::vector<solver::libsolv::Priorities> priorities;
@@ -200,7 +198,7 @@ namespace mamba
                 .or_else(
                     [&](const auto& error)
                     {
-                        if (is_retry & RETRY_SUBDIR_FETCH)
+                        if (is_retry)
                         {
                             std::stringstream ss;
                             ss << "Could not load repodata.json for " << subdir.name()
@@ -223,10 +221,10 @@ namespace mamba
 
         if (loading_failed)
         {
-            if (!ctx.offline && !(is_retry & RETRY_SUBDIR_FETCH))
+            if (!ctx.offline && !is_retry)
             {
                 LOG_WARNING << "Encountered malformed repodata.json cache. Redownloading.";
-                return load_channels(ctx, pool, package_caches, is_retry | RETRY_SUBDIR_FETCH);
+                return load_channels_impl(ctx, pool, package_caches, true);
             }
             error_list.push_back(mamba_error(
                 "Could not load repodata. Cache corrupted?",
@@ -236,5 +234,11 @@ namespace mamba
         using return_type = expected_t<void, mamba_aggregated_error>;
         return error_list.empty() ? return_type()
                                   : return_type(make_unexpected(std::move(error_list)));
+    }
+
+    expected_t<void, mamba_aggregated_error>
+    load_channels(Context& ctx, MPool& pool, MultiPackageCache& package_caches)
+    {
+        return load_channels_impl(ctx, pool, package_caches, false);
     }
 }

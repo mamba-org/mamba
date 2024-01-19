@@ -36,8 +36,7 @@ namespace mamba
         const std::vector<std::string>& specs,
         bool create_env = false,
         bool remove_prefix_on_failure = false,
-        int solver_flag = SOLVER_INSTALL,
-        int is_retry = 0
+        int solver_flag = SOLVER_INSTALL
     );
 
     void install_explicit_specs(

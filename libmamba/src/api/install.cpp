@@ -396,10 +396,7 @@ namespace mamba
         }
     }
 
-    int RETRY_SUBDIR_FETCH = 1 << 0;
-    int RETRY_SOLVE_ERROR = 1 << 1;
-
-    void install_specs(
+    void install_specs_impl(
         Context& ctx,
         ChannelContext& channel_context,
         const Configuration& config,
@@ -407,7 +404,7 @@ namespace mamba
         bool create_env,
         bool remove_prefix_on_failure,
         int solver_flag,
-        int is_retry
+        bool is_retry
     )
     {
         assert(&config.context() == &ctx);
@@ -450,12 +447,12 @@ namespace mamba
         MPool pool{ ctx, channel_context };
         // functions implied in 'and_then' coding-styles must return the same type
         // which limits this syntax
-        /*auto exp_prefix_data = load_channels(pool, package_caches, is_retry)
+        /*auto exp_prefix_data = load_channels(pool, package_caches)
                                .and_then([&ctx](const auto&) { return
            PrefixData::create(ctx.prefix_params.target_prefix); } ) .map_error([](const mamba_error&
            err) { throw std::runtime_error(err.what());
                                 });*/
-        auto exp_load = load_channels(ctx, pool, package_caches, is_retry);
+        auto exp_load = load_channels(ctx, pool, package_caches);
         if (!exp_load)
         {
             throw std::runtime_error(exp_load.error().what());
@@ -533,10 +530,10 @@ namespace mamba
         if (!success)
         {
             solver.explain_problems(LOG_ERROR);
-            if (retry_clean_cache && !(is_retry & RETRY_SOLVE_ERROR))
+            if (retry_clean_cache && !is_retry)
             {
                 ctx.local_repodata_ttl = 2;
-                return install_specs(
+                return install_specs_impl(
                     ctx,
                     channel_context,
                     config,
@@ -544,7 +541,7 @@ namespace mamba
                     create_env,
                     remove_prefix_on_failure,
                     solver_flag,
-                    is_retry | RETRY_SOLVE_ERROR
+                    true
                 );
             }
             if (freeze_installed)
@@ -604,6 +601,28 @@ namespace mamba
                 fs::remove_all(ctx.prefix_params.target_prefix);
             }
         }
+    }
+
+    void install_specs(
+        Context& ctx,
+        ChannelContext& channel_context,
+        const Configuration& config,
+        const std::vector<std::string>& specs,
+        bool create_env,
+        bool remove_prefix_on_failure,
+        int solver_flag
+    )
+    {
+        return install_specs_impl(
+            ctx,
+            channel_context,
+            config,
+            specs,
+            create_env,
+            remove_prefix_on_failure,
+            solver_flag,
+            false
+        );
     }
 
     namespace

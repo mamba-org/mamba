@@ -523,7 +523,13 @@ namespace mamba
         // FRAGILE this must be called after pins be before jobs in current ``MPool``
         pool.create_whatprovides();
 
-        solver.add_jobs(specs, SOLVER_INSTALL);
+        auto request = Request();
+        request.items.reserve(specs.size());
+        for (const auto& s : specs)
+        {
+            request.items.emplace_back(Request::Install{ specs::MatchSpec::parse(s) });
+        }
+        solver.add_request(std::move(request));
 
         bool success = solver.try_solve();
         if (!success)

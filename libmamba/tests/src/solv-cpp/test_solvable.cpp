@@ -51,7 +51,7 @@ TEST_SUITE("solv::ObjSolvable")
             solv.set_url("https://conda.anaconda.org/conda-forge/linux-64");
             solv.set_channel("conda-forge");
             solv.set_subdir("linux-64");
-            solv.set_artificial(true);
+            solv.set_type(SolvableType::Virtualpackage);
 
             SUBCASE("Empty without internalize")
             {
@@ -67,7 +67,7 @@ TEST_SUITE("solv::ObjSolvable")
                 CHECK_EQ(solv.url(), "");
                 CHECK_EQ(solv.channel(), "");
                 CHECK_EQ(solv.subdir(), "");
-                CHECK_EQ(solv.artificial(), false);
+                CHECK_EQ(solv.type(), SolvableType::Package);
             }
 
             SUBCASE("Internalize and get attributes")
@@ -90,7 +90,7 @@ TEST_SUITE("solv::ObjSolvable")
                 CHECK_EQ(solv.url(), "https://conda.anaconda.org/conda-forge/linux-64");
                 CHECK_EQ(solv.channel(), "conda-forge");
                 CHECK_EQ(solv.subdir(), "linux-64");
-                CHECK_EQ(solv.artificial(), true);
+                CHECK_EQ(solv.type(), SolvableType::Virtualpackage);
 
                 SUBCASE("Override attribute")
                 {
@@ -118,7 +118,7 @@ TEST_SUITE("solv::ObjSolvable")
             CHECK_EQ(solv.url(), "");
             CHECK_EQ(solv.channel(), "");
             CHECK_EQ(solv.subdir(), "");
-            CHECK_EQ(solv.artificial(), false);
+            CHECK_EQ(solv.type(), SolvableType::Package);
         }
 
         SUBCASE("Add dependency")

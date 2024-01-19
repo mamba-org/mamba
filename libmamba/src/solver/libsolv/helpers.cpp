@@ -19,6 +19,7 @@
 #include "mamba/core/util.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/util/cfile.hpp"
+#include "mamba/util/random.hpp"
 #include "mamba/util/string.hpp"
 
 #include "solver/libsolv/helpers.hpp"
@@ -112,6 +113,14 @@ namespace mamba::solver::libsolv
             auto feats = s.track_features();
             out.track_features.reserve(feats.size());
             std::transform(feats.begin(), feats.end(), std::back_inserter(out.track_features), id_to_str);
+        }
+
+        // Pins have a name like "pin-fsej43208fsd" so we set a readable name for them.
+        // This is mainly displayed in the solver error messages.
+        // Perhaps this is not the best place to put this...
+        if (s.type() == solv::SolvableType::Pin)
+        {
+            out.name = fmt::format("pin on {}", fmt::join(out.constrains, " and "));
         }
 
         return out;
@@ -390,12 +399,10 @@ namespace mamba::solver::libsolv
         solv::ObjPool& pool,
         solv::ObjRepoView repo,
         const fs::u8path& filename,
-        const solver::libsolv::RepodataOrigin& expected,
+        const RepodataOrigin& expected,
         bool expected_pip_added
     ) -> expected_t<solv::ObjRepoView>
     {
-        using RepodataOrigin = solver::libsolv::RepodataOrigin;
-
         static constexpr auto expected_binary_version = std::string_view(MAMBA_SOLV_VERSION);
 
         LOG_INFO << "Attempting to read libsolv solv file " << filename << " for repo "
@@ -492,8 +499,7 @@ namespace mamba::solver::libsolv
             );
     }
 
-    auto
-    write_solv(solv::ObjRepoView repo, fs::u8path filename, const solver::libsolv::RepodataOrigin& metadata)
+    auto write_solv(solv::ObjRepoView repo, fs::u8path filename, const RepodataOrigin& metadata)
         -> expected_t<solv::ObjRepoView>
     {
         LOG_INFO << "Writing libsolv solv file " << filename << " for repo " << repo.name();
@@ -564,5 +570,361 @@ namespace mamba::solver::libsolv
             }
         );
         repo.set_pip_added(true);
+    }
+
+    namespace
+    {
+        auto
+        channel_match(const std::vector<specs::Channel>& ms_channels, const specs::CondaURL& pkg_url)
+            -> specs::Channel::Match
+        {
+            auto match = specs::Channel::Match::No;
+            // More than one element means the channel spec was a custom_multi_channel
+            for (const auto& chan : ms_channels)
+            {
+                switch (chan.contains_package(pkg_url))
+                {
+                    case specs::Channel::Match::Full:
+                        return specs::Channel::Match::Full;
+                    case specs::Channel::Match::InOtherPlatform:
+                        // Keep looking for full matches
+                        match = specs::Channel::Match::InOtherPlatform;
+                        break;
+                    case specs::Channel::Match::No:
+                        // No overriding potential InOtherPlatform match
+                        break;
+                }
+            }
+            return match;
+        }
+
+        /**
+         * Add function to handle matchspec while parsing is done by libsolv.
+         */
+        auto add_channel_specific_matchspec(
+            solv::ObjPool& pool,
+            const specs::MatchSpec& ms,
+            const specs::ChannelResolveParams& params
+        ) -> solv::DependencyId
+        {
+            assert(ms.channel().has_value());
+            const std::string repr = ms.str();
+
+            // Already added, return that id
+            if (const auto maybe_id = pool.find_string(repr))
+            {
+                return maybe_id.value();
+            }
+
+            // conda_build_form does **NOT** contain the channel info
+            const solv::DependencyId match = pool_conda_matchspec(
+                pool.raw(),
+                ms.conda_build_form().c_str()
+            );
+
+            auto ms_channels = specs::Channel::resolve(*ms.channel(), params);
+
+            solv::ObjQueue selected_pkgs = {};
+            auto other_subdir_match = std::string();
+            pool.for_each_whatprovides(
+                match,
+                [&](solv::ObjSolvableViewConst s)
+                {
+                    if (s.installed())
+                    {
+                        // This will have the effect that channel-specific MatchSpec will always be
+                        // reinstalled.
+                        // This is not the intended behaviour but an historical artifact on which
+                        // ``--force-reinstall`` currently rely.
+                        return;
+                    }
+
+                    assert(ms.channel().has_value());
+                    const auto match = channel_match(ms_channels, specs::CondaURL::parse(s.url()));
+                    switch (match)
+                    {
+                        case (specs::Channel::Match::Full):
+                        {
+                            selected_pkgs.push_back(s.id());
+                            break;
+                        }
+                        case (specs::Channel::Match::InOtherPlatform):
+                        {
+                            other_subdir_match = s.subdir();
+                            break;
+                        }
+                        case (specs::Channel::Match::No):
+                        {
+                            break;
+                        }
+                    }
+                }
+            );
+
+            if (selected_pkgs.empty())
+            {
+                if (!other_subdir_match.empty())
+                {
+                    const auto& filters = ms.channel()->platform_filters();
+                    throw std::runtime_error(fmt::format(
+                        R"(The package "{}" is not available for the specified platform{} ({}))"
+                        R"( but is available on {}.)",
+                        ms.str(),
+                        filters.size() > 1 ? "s" : "",
+                        fmt::join(filters, ", "),
+                        other_subdir_match
+                    ));
+                }
+                else
+                {
+                    throw std::runtime_error(fmt::format(
+                        R"(The package "{}" is not found in any loaded channels.)"
+                        R"( Try adding more channels or subdirs.)",
+                        ms.str()
+                    ));
+                }
+            }
+
+            const solv::StringId repr_id = pool.add_string(repr);
+            // FRAGILE This get deleted when calling ``pool_createwhatprovides`` so care
+            // must be taken to do it before
+            // TODO investigate namespace providers
+            pool.add_to_whatprovides(repr_id, pool.add_to_whatprovides_data(selected_pkgs));
+            return repr_id;
+        }
+    }
+
+    [[nodiscard]] auto pool_add_matchspec(  //
+        solv::ObjPool& pool,
+        const specs::MatchSpec& ms,
+        const specs::ChannelResolveParams& params
+    ) -> expected_t<solv::DependencyId>
+    {
+        solv::DependencyId id = 0;
+        if (!ms.channel().has_value())
+        {
+            id = pool.add_conda_dependency(ms.conda_build_form());
+        }
+        else
+        {
+            // Working around shortcomings of ``pool_conda_matchspec``
+            // The channels are not processed.
+            // TODO Fragile! Installing this matchspec will always trigger a reinstall
+            id = add_channel_specific_matchspec(pool, ms, params);
+        }
+        if (id == 0)
+        {
+            make_unexpected(
+                fmt::format(R"(Invalid MatchSpec "{}")", ms.str()),
+                mamba_error_code::invalid_spec
+            );
+        }
+        return id;
+    }
+
+    auto pool_add_pin(  //
+        solv::ObjPool& pool,
+        const specs::MatchSpec& pin,
+        const specs::ChannelResolveParams& params
+    ) -> expected_t<solv::ObjSolvableView>
+    {
+        // In libsolv, locking means that a package keeps the same state: if it is installed,
+        // it remains installed, if not it remains uninstalled.
+        // Locking on a spec applies the lock to all packages matching the spec.
+        // In mamba, we do not want to lock the package because we want to allow other variants
+        // (matching the same spec) to unlock more solutions.
+        // For instance we may pin ``libfmt=8.*`` but allow it to be swaped with a version built
+        // by a more recent compiler.
+        //
+        // A previous version of this function would use ``SOLVER_LOCK`` to lock all packages not
+        // matching the pin.
+        // That played poorly with ``all_problems_structured`` because we could not interpret
+        // the ids that were returned (since they were not associated with a single reldep).
+        //
+        // Another wrong idea is to add the pin as an install job.
+        // This is not what is expected of pins, as they must not be installed if they were not
+        // in the environement.
+        // They can be configure in ``.condarc`` for generally specifying what versions are wanted.
+        //
+        // The idea behind the current version is to add the pin/spec as a constraint that must be
+        // fullfield only if the package is installed.
+        // This is not supported on solver jobs but it is on ``Solvable`` with
+        // ``disttype == DISTYPE_CONDA``.
+        // Therefore, we add a dummy solvable marked as already installed, and add the pin/spec
+        // as one of its constrains.
+        // Then we lock this solvable and force the re-checking of its dependencies.
+
+
+        if (pool.disttype() != DISTTYPE_CONDA)
+        {
+            return make_unexpected(
+                fmt::format(R"(Cannot add pin "{}" to a pool that is not of Conda distype)", pin.str()),
+                mamba_error_code::incorrect_usage
+            );
+        }
+        auto installed = pool.installed_repo();
+        if (!installed.has_value())
+        {
+            return make_unexpected(
+                fmt::format(R"("Cannot add pin "{}" without a repo of installed packages")", pin.str()),
+                mamba_error_code::incorrect_usage
+            );
+        }
+
+        return pool_add_matchspec(pool, pin, params)
+            .transform(
+                [&](solv::DependencyId cons)
+                {
+                    // Add dummy solvable with a constraint on the pin (not installed if not
+                    // present)
+                    auto [cons_solv_id, cons_solv] = installed->add_solvable();
+                    const std::string cons_solv_name = fmt::format(
+                        "pin-{}",
+                        util::generate_random_alphanumeric_string(10)
+                    );
+                    cons_solv.set_name(cons_solv_name);
+                    cons_solv.set_version("1");
+
+                    cons_solv.add_constraint(cons);
+
+                    // Solvable need to provide itself
+                    cons_solv.add_self_provide();
+
+                    // Even if we lock it, libsolv may still try to remove it with
+                    // `SOLVER_FLAG_ALLOW_UNINSTALL`, so we flag it as not a real package to filter
+                    // it out in the transaction
+                    cons_solv.set_type(solv::SolvableType::Pin);
+
+                    // Necessary for attributes to be properly stored
+                    // TODO move this at the end of all job requests
+                    installed->internalize();
+
+                    return cons_solv;
+                }
+            );
+    }
+
+    auto transaction_to_solution(
+        const solv::ObjPool& pool,
+        const solv::ObjTransaction& trans,
+        const util::flat_set<std::string>& specs,
+        /** true to filter out specs, false to filter in specs */
+        bool keep_only
+    ) -> Solution
+    {
+        auto get_pkginfo = [&](solv::SolvableId id)
+        {
+            assert(pool.get_solvable(id).has_value());
+            return make_package_info(pool, pool.get_solvable(id).value());
+        };
+
+        auto get_newer_pkginfo = [&](solv::SolvableId id)
+        {
+            auto maybe_newer_id = trans.step_newer(pool, id);
+            assert(maybe_newer_id.has_value());
+            return get_pkginfo(maybe_newer_id.value());
+        };
+
+        auto out = Solution::action_list();
+        out.reserve(trans.size());
+        trans.for_each_step_id(
+            [&](const solv::SolvableId id)
+            {
+                auto pkginfo = get_pkginfo(id);
+
+                // In libsolv, system dependencies are provided as a special dependency,
+                // while in Conda it is implemented as a virtual package.
+                // Maybe there is a way to tell libsolv to never try to install or remove these
+                // solvables (SOLVER_LOCK or SOLVER_USERINSTALLED?).
+                // In the meantime (and probably later for safety) we filter all virtual
+                // packages out.
+                if (util::starts_with(pkginfo.name, "__"))  // i.e. is_virtual_package
+                {
+                    return;
+                }
+
+                // here are packages that were added to implement a feature
+                // (e.g. a pin) but do not represent a Conda package.
+                // They can appear in the transaction depending on libsolv flags.
+                // We use this attribute to filter them out.
+                if (const auto solv = pool.get_solvable(id);
+                    solv.has_value() && (solv->type() != solv::SolvableType::Package))
+                {
+                    LOG_DEBUG << "Solution: Remove artificial " << pkginfo.str();
+                    return;
+                }
+
+                // keep_only ? specs.contains(...) : !specs.contains(...);
+                // TODO ideally we should use Matchspecs::contains(pkginfo)
+                if (keep_only == specs.contains(pkginfo.name))
+                {
+                    LOG_DEBUG << "Solution: Omit " << pkginfo.str();
+                    out.emplace_back(Solution::Omit{ std::move(pkginfo) });
+                    return;
+                }
+                auto const type = trans.step_type(
+                    pool,
+                    id,
+                    SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE
+                );
+                switch (type)
+                {
+                    case SOLVER_TRANSACTION_UPGRADED:
+                    {
+                        auto newer = get_newer_pkginfo(id);
+                        LOG_DEBUG << "Solution: Upgrade " << pkginfo.str() << " -> " << newer.str();
+                        out.emplace_back(Solution::Upgrade{
+                            /* .remove= */ std::move(pkginfo),
+                            /* .install= */ std::move(newer),
+                        });
+                        break;
+                    }
+                    case SOLVER_TRANSACTION_CHANGED:
+                    {
+                        auto newer = get_newer_pkginfo(id);
+                        LOG_DEBUG << "Solution: Change " << pkginfo.str() << " -> " << newer.str();
+                        out.emplace_back(Solution::Change{
+                            /* .remove= */ std::move(pkginfo),
+                            /* .install= */ std::move(newer),
+                        });
+                        break;
+                    }
+                    case SOLVER_TRANSACTION_REINSTALLED:
+                    {
+                        LOG_DEBUG << "Solution: Reinstall " << pkginfo.str();
+                        out.emplace_back(Solution::Reinstall{ std::move(pkginfo) });
+                        break;
+                    }
+                    case SOLVER_TRANSACTION_DOWNGRADED:
+                    {
+                        auto newer = get_newer_pkginfo(id);
+                        LOG_DEBUG << "Solution: Downgrade " << pkginfo.str() << " -> " << newer.str();
+                        out.emplace_back(Solution::Downgrade{
+                            /* .remove= */ std::move(pkginfo),
+                            /* .install= */ std::move(newer),
+                        });
+                        break;
+                    }
+                    case SOLVER_TRANSACTION_ERASE:
+                    {
+                        LOG_DEBUG << "Solution: Remove " << pkginfo.str();
+                        out.emplace_back(Solution::Remove{ std::move(pkginfo) });
+                        break;
+                    }
+                    case SOLVER_TRANSACTION_INSTALL:
+                    {
+                        LOG_DEBUG << "Solution: Install " << pkginfo.str();
+                        out.emplace_back(Solution::Install{ std::move(pkginfo) });
+                        break;
+                    }
+                    case SOLVER_TRANSACTION_IGNORE:
+                        break;
+                    default:
+                        LOG_WARNING << "solv::ObjTransaction case not handled: " << type;
+                        break;
+                }
+            }
+        );
+        return { std::move(out) };
     }
 }

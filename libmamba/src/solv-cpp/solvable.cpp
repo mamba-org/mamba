@@ -466,28 +466,21 @@ namespace mamba::solv
         return (repo != nullptr) && (repo == repo->pool->installed);
     }
 
-    namespace
+    auto ObjSolvableViewConst::type() const -> SolvableType
     {
-        auto solvable_lookup_bool(const ::Solvable* s, ::Id key) -> bool
-        {
-            return ::solvable_lookup_num(const_cast<::Solvable*>(s), key, 0) != 0;
-        }
-
-        void solvable_set_bool(::Solvable* s, ::Id key, bool val)
-        {
-            ::solvable_set_num(s, key, (val ? 1 : 0));
-        }
+        using Num = std::underlying_type_t<SolvableType>;
+        // (Ab)using meaningless key
+        return static_cast<SolvableType>(::solvable_lookup_num(
+            const_cast<::Solvable*>(raw()),
+            SOLVABLE_INSTALLSTATUS,
+            static_cast<Num>(SolvableType::Package)
+        ));
     }
 
-    auto ObjSolvableViewConst::artificial() const -> bool
+    void ObjSolvableView::set_type(SolvableType val) const
     {
+        using Num = std::underlying_type_t<SolvableType>;
         // (Ab)using meaningless key
-        return solvable_lookup_bool(raw(), SOLVABLE_INSTALLSTATUS);
-    }
-
-    void ObjSolvableView::set_artificial(bool val) const
-    {
-        // (Ab)using meaningless key
-        ::solvable_set_num(raw(), SOLVABLE_INSTALLSTATUS, val);
+        ::solvable_set_num(raw(), SOLVABLE_INSTALLSTATUS, static_cast<Num>(val));
     }
 }

@@ -9,7 +9,6 @@
 
 #include <string>
 #include <string_view>
-#include <utility>
 
 #include <solv/pooltypes.h>
 
@@ -23,6 +22,16 @@ extern "C"
 
 namespace mamba::solv
 {
+    /**
+     * We use solvable for all sort of things, including virtual packages and pins.
+     */
+    enum class SolvableType : unsigned long long
+    {
+        Package,
+        Virtualpackage,
+        Pin,
+    };
+
     class ObjSolvableViewConst
     {
     public:
@@ -93,13 +102,8 @@ namespace mamba::solv
         /** Whether the solvable is in the installed repo. */
         auto installed() const -> bool;
 
-        /**
-         * Some artificial packages are added to produce extra features (e.g. pins).
-         *
-         * We flag them as such so that we avoid trying to install them.
-         * This as no effect on libsolv, it must be checked manually.
-         */
-        auto artificial() const -> bool;
+        /** The type for which the solvable is used. */
+        auto type() const -> SolvableType;
 
     private:
 
@@ -403,11 +407,11 @@ namespace mamba::solv
         void add_track_features(const Range& features) const;
 
         /**
-         * Mark package as artificial, i.e. that must not be installed.
+         * Mark mark the package as being of a specific type.
          *
-         * @see ObjSolvableViewConst::artificial
+         * @see ObjSolvableViewConst::type
          */
-        void set_artificial(bool val) const;
+        void set_type(SolvableType val) const;
     };
 
     /***************************************

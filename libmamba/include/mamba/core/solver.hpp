@@ -24,15 +24,6 @@
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
 
-#define PY_MAMBA_NO_DEPS 0b0001
-#define PY_MAMBA_ONLY_DEPS 0b0010
-#define PY_MAMBA_FORCE_REINSTALL 0b0100
-
-extern "C"
-{
-    typedef struct s_Solver Solver;
-}
-
 namespace mamba::solv
 {
     class ObjQueue;
@@ -42,7 +33,7 @@ namespace mamba::solv
 namespace mamba
 {
 
-    struct MSolverProblem
+    struct SolverProblem
     {
         SolverRuleinfo type;
         Id source_id;
@@ -78,11 +69,8 @@ namespace mamba
 
         void add_global_job(int job_flag);
         void add_jobs(const std::vector<std::string>& jobs, int job_flag);
-        void add_constraint(const std::string& job);
         void add_pin(const std::string& pin);
         void add_pins(const std::vector<std::string>& pins);
-
-        [[deprecated]] void py_set_postsolve_flags(const std::vector<std::pair<int, int>>& flags);
 
         void set_flags(const Flags& flags);  // TODO temporary Itf meant to be passed in ctor
         [[nodiscard]] auto flags() const -> const Flags&;
@@ -94,7 +82,7 @@ namespace mamba
 
         [[nodiscard]] std::string problems_to_str() const;
         [[nodiscard]] std::vector<std::string> all_problems() const;
-        [[nodiscard]] std::vector<MSolverProblem> all_problems_structured() const;
+        [[nodiscard]] std::vector<SolverProblem> all_problems_structured() const;
         [[nodiscard]] ProblemsGraph problems_graph() const;
         [[nodiscard]] std::string all_problems_to_str() const;
         std::ostream& explain_problems(std::ostream& out) const;
@@ -109,8 +97,6 @@ namespace mamba
         [[nodiscard]] const std::vector<specs::MatchSpec>& neuter_specs() const;
         [[nodiscard]] const std::vector<specs::MatchSpec>& pinned_specs() const;
 
-        operator const Solver*() const;
-        operator Solver*();
         auto solver() -> solv::ObjSolver&;
         auto solver() const -> const solv::ObjSolver&;
 

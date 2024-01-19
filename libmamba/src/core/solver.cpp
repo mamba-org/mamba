@@ -5,7 +5,6 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <sstream>
-#include <stdexcept>
 
 #include <fmt/format.h>
 #include <fmt/ostream.h>
@@ -26,6 +25,8 @@
 #include "solv-cpp/queue.hpp"
 #include "solv-cpp/solver.hpp"
 
+#include "solver/libsolv/helpers.hpp"
+
 namespace mamba
 {
     MSolver::MSolver(MPool pool, std::vector<std::pair<int, int>> flags)
@@ -44,16 +45,6 @@ namespace mamba
     MSolver::MSolver(MSolver&&) = default;
 
     MSolver& MSolver::operator=(MSolver&&) = default;
-
-    MSolver::operator const Solver*() const
-    {
-        return solver().raw();
-    }
-
-    MSolver::operator Solver*()
-    {
-        return solver().raw();
-    }
 
     auto MSolver::solver() -> solv::ObjSolver&
     {
@@ -167,81 +158,24 @@ namespace mamba
         }
     }
 
-    void MSolver::add_constraint(const std::string& job)
-    {
-        m_jobs->push_back(
-            SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
-            m_pool.matchspec2id(specs::MatchSpec::parse(job))
-        );
-    }
-
     void MSolver::add_pin(const std::string& pin)
     {
-        // In libsolv, locking means that a package keeps the same state: if it is installed,
-        // it remains installed, if not it remains uninstalled.
-        // Locking on a spec applies the lock to all packages matching the spec.
-        // In mamba, we do not want to lock the package because we want to allow other variants
-        // (matching the same spec) to unlock more solutions.
-        // For instance we may pin ``libfmt=8.*`` but allow it to be swaped with a version built
-        // by a more recent compiler.
-        //
-        // A previous version of this function would use ``SOLVER_LOCK`` to lock all packages not
-        // matching the pin.
-        // That played poorly with ``all_problems_structured`` because we could not interpret
-        // the ids that were returned (since they were not associated with a single reldep).
-        //
-        // Another wrong idea is to add the pin as an install job.
-        // This is not what is expected of pins, as they must not be installed if they were not
-        // in the environement.
-        // They can be configure in ``.condarc`` for generally specifying what versions are wanted.
-        //
-        // The idea behind the current version is to add the pin/spec as a constraint that must be
-        // fullfield only if the package is installed.
-        // This is not supported on solver jobs but it is on ``Solvable`` with
-        // ``disttype == DISTYPE_CONDA``.
-        // Therefore, we add a dummy solvable marked as already installed, and add the pin/spec
-        // as one of its constrains.
-        // Then we lock this solvable and force the re-checking of its dependencies.
-
         const auto pin_ms = specs::MatchSpec::parse(pin);
-        m_pinned_specs.push_back(pin_ms);
+        solver::libsolv::pool_add_pin(m_pool.pool(), pin_ms, m_pool.channel_context().params())
+            .transform(
+                [&](solv::ObjSolvableView pin_solv)
+                {
+                    m_pinned_specs.push_back(std::move(pin_ms));
 
-        auto& pool = m_pool.pool();
-        if (pool.disttype() != DISTTYPE_CONDA)
-        {
-            throw std::runtime_error("Cannot add pin to a pool that is not of Conda distype");
-        }
-        auto installed = pool.installed_repo();
-        if (!installed.has_value())
-        {
-            throw std::runtime_error("Cannot add pin without a repo of installed packages");
-        }
-
-        // Add dummy solvable with a constraint on the pin (not installed if not present)
-        auto [cons_solv_id, cons_solv] = installed->add_solvable();
-        // TODO set some "pin" key on the solvable so that we can retrieve it during error messages
-        const std::string cons_solv_name = fmt::format("pin-{}", m_pinned_specs.size());
-        cons_solv.set_name(cons_solv_name);
-        cons_solv.set_version("1");
-        cons_solv.add_constraints(solv::ObjQueue{ m_pool.matchspec2id(pin_ms) });
-
-        // Solvable need to provide itself
-        cons_solv.add_self_provide();
-
-        // Even if we lock it, libsolv may still try to remove it with
-        // `SOLVER_FLAG_ALLOW_UNINSTALL`, so we flag it as not a real package to filter it out in
-        // the transaction
-        cons_solv.set_artificial(true);
-
-        // Necessary for attributes to be properly stored
-        installed->internalize();
-
-        // WARNING keep separate or libsolv does not understand
-        // Force verify the dummy solvable dependencies, as this is not the default for
-        // installed packages.
-        add_jobs({ cons_solv_name }, SOLVER_VERIFY);
-        // Lock the dummy solvable so that it stays install.
-        add_jobs({ cons_solv_name }, SOLVER_LOCK);
+                    // WARNING keep separate or libsolv does not understand
+                    // Force verify the dummy solvable dependencies, as this is not the default for
+                    // installed packages.
+                    add_jobs({ std::string(pin_solv.name()) }, SOLVER_VERIFY);
+                    // Lock the dummy solvable so that it stays install.
+                    add_jobs({ std::string(pin_solv.name()) }, SOLVER_LOCK);
+                }
+            )
+            .or_else([](mamba_error&& error) { throw std::move(error); });
     }
 
     void MSolver::add_pins(const std::vector<std::string>& pins)
@@ -249,25 +183,6 @@ namespace mamba
         for (auto pin : pins)
         {
             add_pin(pin);
-        }
-    }
-
-    void MSolver::py_set_postsolve_flags(const std::vector<std::pair<int, int>>& flags)
-    {
-        for (const auto& option : flags)
-        {
-            switch (option.first)
-            {
-                case PY_MAMBA_NO_DEPS:
-                    m_flags.keep_dependencies = !option.second;
-                    break;
-                case PY_MAMBA_ONLY_DEPS:
-                    m_flags.keep_specs = !option.second;
-                    break;
-                case PY_MAMBA_FORCE_REINSTALL:
-                    m_flags.force_reinstall = option.second;
-                    break;
-            }
         }
     }
 
@@ -291,7 +206,7 @@ namespace mamba
         // TODO use new API
         for (const auto& option : m_libsolv_flags)
         {
-            solver_set_flag(*this, option.first, option.second);
+            solver_set_flag(m_solver->raw(), option.first, option.second);
         }
     }
 
@@ -363,7 +278,7 @@ namespace mamba
     namespace
     {
         // TODO change MSolver problem
-        MSolverProblem make_solver_problem(
+        SolverProblem make_solver_problem(
             const MSolver& solver,
             const MPool& pool,
             SolverRuleinfo type,
@@ -372,7 +287,6 @@ namespace mamba
             Id dep_id
         )
         {
-            const ::Solver* const solver_ptr = solver;
             return {
                 /* .type= */ type,
                 /* .source_id= */ source_id,
@@ -383,7 +297,8 @@ namespace mamba
                 /* .dep= */ pool.dep2str(dep_id),
                 /* .description= */
                 solver_problemruleinfo2str(
-                    const_cast<::Solver*>(solver_ptr),  // Not const because might alloctmp space
+                    const_cast<::Solver*>(solver.solver().raw()),  // Not const because might
+                                                                   // alloctmp space
                     type,
                     source_id,
                     target_id,
@@ -393,9 +308,9 @@ namespace mamba
         }
     }
 
-    std::vector<MSolverProblem> MSolver::all_problems_structured() const
+    std::vector<SolverProblem> MSolver::all_problems_structured() const
     {
-        std::vector<MSolverProblem> res = {};
+        std::vector<SolverProblem> res = {};
         res.reserve(solver().problem_count());  // Lower bound
         solver().for_each_problem_id(
             [&](solv::ProblemId pb)
@@ -479,7 +394,7 @@ namespace mamba
     namespace
     {
 
-        void warn_unexpected_problem(const MSolverProblem& problem)
+        void warn_unexpected_problem(const SolverProblem& problem)
         {
             // TODO: Once the new error message are not experimental, we should consider
             // reducing this level since it is not somethig the user has control over.

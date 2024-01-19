@@ -158,14 +158,13 @@ namespace mamba
         }
     }
 
-    void MSolver::add_pin(const std::string& pin)
+    void MSolver::add_pin(const specs::MatchSpec& pin)
     {
-        const auto pin_ms = specs::MatchSpec::parse(pin);
-        solver::libsolv::pool_add_pin(m_pool.pool(), pin_ms, m_pool.channel_context().params())
+        solver::libsolv::pool_add_pin(m_pool.pool(), pin, m_pool.channel_context().params())
             .transform(
                 [&](solv::ObjSolvableView pin_solv)
                 {
-                    m_pinned_specs.push_back(std::move(pin_ms));
+                    m_pinned_specs.push_back(std::move(pin));
 
                     // WARNING keep separate or libsolv does not understand
                     // Force verify the dummy solvable dependencies, as this is not the default for
@@ -182,7 +181,7 @@ namespace mamba
     {
         for (auto pin : pins)
         {
-            add_pin(pin);
+            add_pin(specs::MatchSpec::parse(pin));
         }
     }
 

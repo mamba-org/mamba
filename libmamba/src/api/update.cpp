@@ -94,7 +94,7 @@ namespace mamba
             auto py_pin = python_pin(prefix_data, update_specs);
             if (!py_pin.empty())
             {
-                solver.add_pin(py_pin);
+                solver.add_pin(specs::MatchSpec::parse(py_pin));
             }
         }
         if (!solver.pinned_specs().empty())

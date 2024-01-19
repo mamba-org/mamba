@@ -403,7 +403,6 @@ namespace mamba
         const std::vector<std::string>& specs,
         bool create_env,
         bool remove_prefix_on_failure,
-        int solver_flag,
         bool is_retry
     )
     {
@@ -524,7 +523,7 @@ namespace mamba
         // FRAGILE this must be called after pins be before jobs in current ``MPool``
         pool.create_whatprovides();
 
-        solver.add_jobs(specs, solver_flag);
+        solver.add_jobs(specs, SOLVER_INSTALL);
 
         bool success = solver.try_solve();
         if (!success)
@@ -540,7 +539,6 @@ namespace mamba
                     specs,
                     create_env,
                     remove_prefix_on_failure,
-                    solver_flag,
                     true
                 );
             }
@@ -609,8 +607,7 @@ namespace mamba
         const Configuration& config,
         const std::vector<std::string>& specs,
         bool create_env,
-        bool remove_prefix_on_failure,
-        int solver_flag
+        bool remove_prefix_on_failure
     )
     {
         return install_specs_impl(
@@ -620,7 +617,6 @@ namespace mamba
             specs,
             create_env,
             remove_prefix_on_failure,
-            solver_flag,
             false
         );
     }

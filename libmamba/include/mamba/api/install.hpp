@@ -35,8 +35,7 @@ namespace mamba
         const Configuration& config,
         const std::vector<std::string>& specs,
         bool create_env = false,
-        bool remove_prefix_on_failure = false,
-        int solver_flag = SOLVER_INSTALL
+        bool remove_prefix_on_failure = false
     );
 
     void install_explicit_specs(

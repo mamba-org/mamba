@@ -31,20 +31,18 @@ namespace mamba
             );
         config.load();
 
-        auto update_specs = config.at("specs").value<std::vector<std::string>>();
+        const auto& raw_update_specs = config.at("specs").value<std::vector<std::string>>();
 
         auto channel_context = ChannelContext::make_conda_compatible(ctx);
 
         // add channels from specs
-        for (const auto& s : update_specs)
+        for (const auto& s : raw_update_specs)
         {
             if (auto m = specs::MatchSpec::parse(s); m.channel().has_value())
             {
                 ctx.channels.push_back(m.channel()->str());
             }
         }
-
-        int solver_flag = SOLVER_UPDATE;
 
         MPool pool{ ctx, channel_context };
         MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
@@ -91,7 +89,7 @@ namespace mamba
 
         if (!no_py_pin)
         {
-            auto py_pin = python_pin(prefix_data, update_specs);
+            auto py_pin = python_pin(prefix_data, raw_update_specs);
             if (!py_pin.empty())
             {
                 solver.add_pin(specs::MatchSpec::parse(py_pin));
@@ -118,7 +116,7 @@ namespace mamba
             {
                 keep_specs.push_back(it.second.name().str());
             }
-            solver_flag |= SOLVER_SOLVABLE_ALL;
+            int solver_flag = SOLVER_UPDATE | SOLVER_SOLVABLE_ALL;
             if (prune_deps)
             {
                 solver_flag |= SOLVER_CLEANDEPS;
@@ -128,14 +126,15 @@ namespace mamba
         }
         else
         {
+            auto request = Request();
+
             if (remove_not_specified)
             {
                 auto hist_map = prefix_data.history().get_requested_specs_map();
-                auto request = Request();
                 for (auto& it : hist_map)
                 {
-                    if (std::find(update_specs.begin(), update_specs.end(), it.second.name().str())
-                        == update_specs.end())
+                    if (std::find(raw_update_specs.begin(), raw_update_specs.end(), it.second.name().str())
+                        == raw_update_specs.end())
                     {
                         request.items.emplace_back(Request::Remove{
                             specs::MatchSpec::parse(it.second.name().str()),
@@ -143,9 +142,16 @@ namespace mamba
                         });
                     }
                 }
-                solver.add_request(request);
             }
-            solver.add_jobs(update_specs, solver_flag);
+
+            for (const auto& raw_ms : raw_update_specs)
+            {
+                request.items.emplace_back(Request::Update{
+                    specs::MatchSpec::parse(raw_ms),
+                });
+            }
+
+            solver.add_request(request);
         }
 
 

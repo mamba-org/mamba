@@ -396,6 +396,89 @@ namespace mamba
         }
     }
 
+    auto
+    create_install_request(PrefixData& prefix_data, std::vector<std::string> specs, bool freeze_installed)
+        -> Request
+    {
+        const auto& prefix_pkgs = prefix_data.records();
+
+        auto request = Request();
+        request.items.reserve(specs.size() + freeze_installed * prefix_pkgs.size());
+
+        // Consider if a FreezeAll type in Request is relevant?
+        if (freeze_installed && !prefix_pkgs.empty())
+        {
+            LOG_INFO << "Locking environment: " << prefix_pkgs.size() << " packages freezed";
+            for (const auto& [name, pkg] : prefix_pkgs)
+            {
+                request.items.emplace_back(Request::Freeze{ specs::MatchSpec::parse(name) });
+            }
+        }
+
+        for (const auto& s : specs)
+        {
+            request.items.emplace_back(Request::Install{ specs::MatchSpec::parse(s) });
+        }
+        return request;
+    }
+
+    void add_pins_to_request(
+        Request& request,
+        const Context& ctx,
+        PrefixData& prefix_data,
+        std::vector<std::string> specs,
+        bool no_pin,
+        bool no_py_pin
+    )
+    {
+        request.items.reserve(
+            request.items.size() + (!no_pin) * ctx.pinned_packages.size() + !no_py_pin
+        );
+        if (!no_pin)
+        {
+            for (const auto& pin : file_pins(prefix_data.path() / "conda-meta" / "pinned"))
+            {
+                request.items.emplace_back(Request::Pin{ specs::MatchSpec::parse(pin) });
+            }
+            for (const auto& pin : ctx.pinned_packages)
+            {
+                request.items.emplace_back(Request::Pin{ specs::MatchSpec::parse(pin) });
+            }
+        }
+
+        if (!no_py_pin)
+        {
+            auto py_pin = python_pin(prefix_data, specs);
+            if (!py_pin.empty())
+            {
+                request.items.emplace_back(Request::Pin{ specs::MatchSpec::parse(py_pin) });
+            }
+        }
+    }
+
+    void print_request_pins_to(const Request& request, std::ostream& out)
+    {
+        for (const auto& req : request.items)
+        {
+            bool first = true;
+            std::visit(
+                [&](const auto& item)
+                {
+                    if constexpr (std::is_same_v<std::decay_t<decltype(item)>, Request::Pin>)
+                    {
+                        if (first)
+                        {
+                            out << "\nPinned packages:\n\n";
+                            first = false;
+                        }
+                        out << "  - " << item.spec.str() << '\n';
+                    }
+                },
+                req
+            );
+        }
+    }
+
     void install_specs_impl(
         Context& ctx,
         ChannelContext& channel_context,
@@ -484,58 +567,15 @@ namespace mamba
             /* .force_reinstall= */ force_reinstall,
         });
 
-        if (!no_pin)
+        auto request = create_install_request(prefix_data, specs, freeze_installed);
+        add_pins_to_request(request, ctx, prefix_data, specs, no_pin, no_py_pin);
+
         {
-            for (const auto& pin : file_pins(prefix_data.path() / "conda-meta" / "pinned"))
-            {
-                solver.add_pin(specs::MatchSpec::parse(pin));
-            }
-            for (const auto& pin : ctx.pinned_packages)
-            {
-                solver.add_pin(specs::MatchSpec::parse(pin));
-            }
+            auto out = Console::stream();
+            print_request_pins_to(request, out);
+            // Console stream prints on destrucion
         }
 
-        if (!no_py_pin)
-        {
-            auto py_pin = python_pin(prefix_data, specs);
-            if (!py_pin.empty())
-            {
-                solver.add_pin(specs::MatchSpec::parse(py_pin));
-            }
-        }
-        if (!solver.pinned_specs().empty())
-        {
-            std::vector<std::string> pinned_str;
-            for (auto& ms : solver.pinned_specs())
-            {
-                pinned_str.push_back("  - " + ms.conda_build_form() + "\n");
-            }
-            Console::instance().print("\nPinned packages:\n" + util::join("", pinned_str));
-        }
-
-        // FRAGILE this must be called after pins be before jobs in current ``MPool``
-        pool.create_whatprovides();
-
-        const auto& prefix_pkgs = prefix_data.records();
-
-        auto request = Request();
-        request.items.reserve(specs.size() + freeze_installed * prefix_pkgs.size());
-
-        // TODO FreezeALL ?
-        if (freeze_installed && !prefix_pkgs.empty())
-        {
-            LOG_INFO << "Locking environment: " << prefix_pkgs.size() << " packages freezed";
-            for (const auto& [name, pkg] : prefix_pkgs)
-            {
-                request.items.emplace_back(Request::Freeze{ specs::MatchSpec::parse(name) });
-            }
-        }
-
-        for (const auto& s : specs)
-        {
-            request.items.emplace_back(Request::Install{ specs::MatchSpec::parse(s) });
-        }
         solver.add_request(std::move(request));
 
         bool success = solver.try_solve();

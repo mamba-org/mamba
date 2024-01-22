@@ -36,8 +36,6 @@ namespace mamba
         , m_jobs(std::make_unique<solv::ObjQueue>())
         , m_is_solved(false)
     {
-        // TODO should we lazyly create solver here? Should we what provides?
-        m_pool.create_whatprovides();
     }
 
     MSolver::~MSolver() = default;
@@ -106,7 +104,33 @@ namespace mamba
     {
         for (const auto& item : request.items)
         {
-            std::visit([&](const auto& r) { add_job_impl(r); }, item);
+            std::visit(
+                [&](const auto& r)
+                {
+                    if constexpr (std::is_same_v<std::decay_t<decltype(r)>, Request::Pin>)
+                    {
+                        add_job_impl(r);
+                    }
+                },
+                item
+            );
+        }
+        // Fragile: Pins add solvables to Pol and hence require a call to create_whatprovides.
+        // Channel specific MatchSpec write to whatprovides and hence require it is not modified
+        // afterwards.
+        m_pool.create_whatprovides();
+        for (const auto& item : request.items)
+        {
+            std::visit(
+                [&](const auto& r)
+                {
+                    if constexpr (!std::is_same_v<std::decay_t<decltype(r)>, Request::Pin>)
+                    {
+                        add_job_impl(r);
+                    }
+                },
+                item
+            );
         }
     }
 

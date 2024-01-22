@@ -83,8 +83,14 @@ namespace mamba
 
         if (!no_pin)
         {
-            solver.add_pins(file_pins(prefix_data.path() / "conda-meta" / "pinned"));
-            solver.add_pins(ctx.pinned_packages);
+            for (const auto& pin : file_pins(prefix_data.path() / "conda-meta" / "pinned"))
+            {
+                solver.add_pin(specs::MatchSpec::parse(pin));
+            }
+            for (const auto& pin : ctx.pinned_packages)
+            {
+                solver.add_pin(specs::MatchSpec::parse(pin));
+            }
         }
 
         if (!no_py_pin)

@@ -195,14 +195,6 @@ namespace mamba
             .or_else([](mamba_error&& error) { throw std::move(error); });
     }
 
-    void MSolver::add_pins(const std::vector<std::string>& pins)
-    {
-        for (auto pin : pins)
-        {
-            add_pin(specs::MatchSpec::parse(pin));
-        }
-    }
-
     void MSolver::set_flags(const Flags& flags)
     {
         m_flags = flags;

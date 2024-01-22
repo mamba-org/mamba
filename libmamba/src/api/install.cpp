@@ -516,6 +516,7 @@ namespace mamba
         auto request = Request();
         request.items.reserve(specs.size() + freeze_installed * prefix_pkgs.size());
 
+        // TODO FreezeALL ?
         if (freeze_installed && !prefix_pkgs.empty())
         {
             LOG_INFO << "Locking environment: " << prefix_pkgs.size() << " packages freezed";

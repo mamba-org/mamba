@@ -473,7 +473,16 @@ bind_submodule_impl(pybind11::module_ m)
 
     pySolver.def(py::init<MPool&, std::vector<std::pair<int, int>>>(), py::keep_alive<1, 2>())
         .def("add_jobs", &MSolver::add_jobs)
-        .def("add_global_job", &MSolver::add_global_job)
+        .def(
+            "add_global_job",
+            [](MSolver&, int)
+            {
+                // V2 migrator
+                throw std::runtime_error(
+                    "Global jobs are removed. All jobs must be provided in the Request."
+                );
+            }
+        )
         .def("add_pin", &MSolver::add_pin)
         .def("set_libsolv_flags", &MSolver::py_set_libsolv_flags)
         .def(

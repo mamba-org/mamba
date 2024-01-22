@@ -56,11 +56,6 @@ namespace mamba
         return *m_solver;
     }
 
-    void MSolver::add_global_job(int job_flag)
-    {
-        m_jobs->push_back(job_flag, 0);
-    }
-
     void MSolver::add_reinstall_job(const specs::MatchSpec& ms, int job_flag)
     {
         auto solvable = std::optional<solv::ObjSolvableViewConst>{};

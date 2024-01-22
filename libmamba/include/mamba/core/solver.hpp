@@ -136,8 +136,6 @@ namespace mamba
 
         [[nodiscard]] const std::vector<specs::MatchSpec>& install_specs() const;
         [[nodiscard]] const std::vector<specs::MatchSpec>& remove_specs() const;
-        [[nodiscard]] const std::vector<specs::MatchSpec>& neuter_specs() const;
-        [[nodiscard]] const std::vector<specs::MatchSpec>& pinned_specs() const;
 
         auto solver() -> solv::ObjSolver&;
         auto solver() const -> const solv::ObjSolver&;
@@ -147,8 +145,6 @@ namespace mamba
         std::vector<std::pair<int, int>> m_libsolv_flags;
         std::vector<specs::MatchSpec> m_install_specs;
         std::vector<specs::MatchSpec> m_remove_specs;
-        std::vector<specs::MatchSpec> m_neuter_specs;
-        std::vector<specs::MatchSpec> m_pinned_specs;
         // Order of m_pool and m_solver is critical since m_pool must outlive m_solver.
         MPool m_pool;
         // Temporary Pimpl all libsolv to keep it private

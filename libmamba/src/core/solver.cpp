@@ -181,7 +181,6 @@ namespace mamba
 
     void MSolver::add_job_impl(const Request::Freeze& job)
     {
-        m_neuter_specs.emplace_back(job.spec);
         const auto job_id = m_pool.matchspec2id(job.spec);
         m_jobs->push_back(SOLVER_LOCK, job_id);
     }
@@ -199,10 +198,7 @@ namespace mamba
             .transform(
                 [&](solv::ObjSolvableView pin_solv)
                 {
-                    m_pinned_specs.push_back(std::move(job.spec));
-
                     auto const name_id = pool.add_string(pin_solv.name());
-
                     // WARNING keep separate or libsolv does not understand
                     // Force verify the dummy solvable dependencies, as this is not the default for
                     // installed packages.
@@ -266,16 +262,6 @@ namespace mamba
     const std::vector<specs::MatchSpec>& MSolver::remove_specs() const
     {
         return m_remove_specs;
-    }
-
-    const std::vector<specs::MatchSpec>& MSolver::neuter_specs() const
-    {
-        return m_neuter_specs;
-    }
-
-    const std::vector<specs::MatchSpec>& MSolver::pinned_specs() const
-    {
-        return m_pinned_specs;
     }
 
     bool MSolver::try_solve()

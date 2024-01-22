@@ -112,20 +112,21 @@ namespace mamba
 
         if (update_all)
         {
-            int solver_flag = SOLVER_UPDATE | SOLVER_SOLVABLE_ALL;
             if (prune_deps)
             {
-                solver_flag |= SOLVER_CLEANDEPS;
-
                 const auto hist_map = prefix_data.history().get_requested_specs_map();
-                request.items.reserve(hist_map.size());
+                request.items.reserve(hist_map.size() + 1);
 
                 for (auto& [name, spec] : hist_map)
                 {
                     request.items.emplace_back(Request::Keep{ std::move(spec) });
                 }
+                request.items.emplace_back(Request::UpdateAll{ /* .clean_dependencies= */ true });
             }
-            solver.add_global_job(solver_flag);
+            else
+            {
+                request.items.emplace_back(Request::UpdateAll{ /* .clean_dependencies= */ false });
+            }
         }
         else
         {

@@ -134,8 +134,7 @@ namespace mamba
         m_remove_specs.emplace_back(job.spec);
         const auto job_id = m_pool.matchspec2id(job.spec);
         m_jobs->push_back(
-            SOLVER_ERASE | SOLVER_SOLVABLE_PROVIDES
-                | (job.clean_dependencies ? SOLVER_CLEANDEPS : SOLVER_ERASE),
+            SOLVER_ERASE | SOLVER_SOLVABLE_PROVIDES | (job.clean_dependencies ? SOLVER_CLEANDEPS : 0),
             job_id
         );
     }
@@ -151,6 +150,14 @@ namespace mamba
             m_jobs->push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, job_id);
         }
         m_jobs->push_back(SOLVER_UPDATE | SOLVER_SOLVABLE_PROVIDES, job_id);
+    }
+
+    void MSolver::add_job_impl(const Request::UpdateAll& job)
+    {
+        m_jobs->push_back(
+            SOLVER_UPDATE | SOLVER_SOLVABLE_ALL | (job.clean_dependencies ? SOLVER_CLEANDEPS : 0),
+            0
+        );
     }
 
     void MSolver::add_job_impl(const Request::Freeze& job)

@@ -62,12 +62,50 @@ namespace mamba
         }
     }
 
+    namespace
+    {
+        template <typename Range>
+        auto build_remove_request(
+            const Context& ctx,
+            ChannelContext& channel_context,
+            const Range& raw_specs,
+            bool prune
+        ) -> Request
+        {
+            auto request = Request();
+            request.items.reserve(raw_specs.size());
+
+            if (prune)
+            {
+                History history(ctx.prefix_params.target_prefix, channel_context);
+                auto hist_map = history.get_requested_specs_map();
+
+                request.items.reserve(request.items.capacity() + hist_map.size());
+
+                for (auto& [name, spec] : hist_map)
+                {
+                    request.items.emplace_back(Request::Keep{ std::move(spec) });
+                }
+            }
+
+            for (const auto& s : raw_specs)
+            {
+                request.items.emplace_back(Request::Remove{
+                    specs::MatchSpec::parse(s),
+                    /* .clean_dependencies= */ prune,
+                });
+            }
+
+            return request;
+        }
+    }
+
     namespace detail
     {
         void remove_specs(
             Context& ctx,
             ChannelContext& channel_context,
-            const std::vector<std::string>& specs,
+            const std::vector<std::string>& raw_specs,
             bool prune,
             bool force
         )
@@ -109,10 +147,10 @@ namespace mamba
             if (force)
             {
                 std::vector<specs::MatchSpec> mspecs;
-                mspecs.reserve(specs.size());
+                mspecs.reserve(raw_specs.size());
                 std::transform(
-                    specs.begin(),
-                    specs.end(),
+                    raw_specs.begin(),
+                    raw_specs.end(),
                     std::back_inserter(mspecs),
                     [&](const auto& spec_str) { return specs::MatchSpec::parse(spec_str); }
                 );
@@ -131,24 +169,8 @@ namespace mamba
                     }
                 );
 
-                History history(ctx.prefix_params.target_prefix, channel_context);
-                auto hist_map = history.get_requested_specs_map();
-                std::vector<std::string> keep_specs;
-                for (auto& it : hist_map)
-                {
-                    keep_specs.push_back(it.second.conda_build_form());
-                }
+                solver.add_request(build_remove_request(ctx, channel_context, raw_specs, prune));
 
-                solver.add_jobs(keep_specs, SOLVER_USERINSTALLED);
-
-                int solver_flag = SOLVER_ERASE;
-
-                if (prune)
-                {
-                    solver_flag |= SOLVER_CLEANDEPS;
-                }
-
-                solver.add_jobs(specs, solver_flag);
                 solver.must_solve();
 
                 MTransaction transaction(pool, solver, package_caches);
@@ -156,4 +178,4 @@ namespace mamba
             }
         }
     }
-}  // mamba
+}

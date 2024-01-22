@@ -114,7 +114,7 @@ namespace mamba
         {
             if (prune_deps)
             {
-                const auto hist_map = prefix_data.history().get_requested_specs_map();
+                auto hist_map = prefix_data.history().get_requested_specs_map();
                 request.items.reserve(hist_map.size() + 1);
 
                 for (auto& [name, spec] : hist_map)

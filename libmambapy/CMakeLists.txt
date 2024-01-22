@@ -32,6 +32,7 @@ pybind11_add_module(
     src/libmambapy/bindings/legacy.cpp
     # Submodules
     src/libmambapy/bindings/specs.cpp
+    src/libmambapy/bindings/solver.cpp
     src/libmambapy/bindings/solver_libsolv.cpp
 )
 

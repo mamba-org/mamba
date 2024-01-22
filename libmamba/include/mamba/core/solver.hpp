@@ -64,6 +64,11 @@ namespace mamba
             specs::MatchSpec spec;
         };
 
+        struct Keep
+        {
+            specs::MatchSpec spec;
+        };
+
         struct Freeze
         {
             specs::MatchSpec spec;
@@ -74,7 +79,7 @@ namespace mamba
             specs::MatchSpec spec;
         };
 
-        using Item = std::variant<Install, Remove, Update, Freeze, Pin>;
+        using Item = std::variant<Install, Remove, Update, Keep, Freeze, Pin>;
         using item_list = std::vector<Item>;
 
         item_list items = {};
@@ -158,6 +163,7 @@ namespace mamba
         void add_job_impl(const Request::Remove& job);
         void add_job_impl(const Request::Update& job);
         void add_job_impl(const Request::Freeze& job);
+        void add_job_impl(const Request::Keep& job);
         void add_job_impl(const Request::Pin& job);
     };
 }  // namespace mamba

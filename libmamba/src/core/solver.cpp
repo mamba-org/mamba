@@ -160,6 +160,12 @@ namespace mamba
         m_jobs->push_back(SOLVER_LOCK, job_id);
     }
 
+    void MSolver::add_job_impl(const Request::Keep& job)
+    {
+        const auto job_id = m_pool.matchspec2id(job.spec);
+        m_jobs->push_back(SOLVER_USERINSTALLED, job_id);
+    }
+
     void MSolver::add_job_impl(const Request::Pin& job)
     {
         add_pin(job.spec);

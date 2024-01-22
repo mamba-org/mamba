@@ -108,26 +108,28 @@ namespace mamba
         // FRAGILE this must be called after pins be before jobs in current ``MPool``
         pool.create_whatprovides();
 
+        auto request = Request();
+
         if (update_all)
         {
-            auto hist_map = prefix_data.history().get_requested_specs_map();
-            std::vector<std::string> keep_specs;
-            for (auto& it : hist_map)
-            {
-                keep_specs.push_back(it.second.name().str());
-            }
             int solver_flag = SOLVER_UPDATE | SOLVER_SOLVABLE_ALL;
             if (prune_deps)
             {
                 solver_flag |= SOLVER_CLEANDEPS;
+
+                const auto hist_map = prefix_data.history().get_requested_specs_map();
+                request.items.reserve(hist_map.size());
+
+                for (auto& [name, spec] : hist_map)
+                {
+                    request.items.emplace_back(Request::Keep{ std::move(spec) });
+                }
             }
-            solver.add_jobs(keep_specs, SOLVER_USERINSTALLED);
             solver.add_global_job(solver_flag);
         }
         else
         {
-            auto request = Request();
-
+            request.items.reserve(raw_update_specs.size());
             if (remove_not_specified)
             {
                 auto hist_map = prefix_data.history().get_requested_specs_map();
@@ -150,10 +152,9 @@ namespace mamba
                     specs::MatchSpec::parse(raw_ms),
                 });
             }
-
-            solver.add_request(request);
         }
 
+        solver.add_request(request);
 
         solver.must_solve();
 

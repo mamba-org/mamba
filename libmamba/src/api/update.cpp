@@ -19,6 +19,67 @@
 
 namespace mamba
 {
+    namespace
+    {
+        auto create_update_request(
+            PrefixData& prefix_data,
+            std::vector<std::string> specs,
+            bool update_all,
+            bool prune_deps,
+            bool remove_not_specified
+        ) -> Request
+        {
+            auto request = Request();
+
+            if (update_all)
+            {
+                if (prune_deps)
+                {
+                    auto hist_map = prefix_data.history().get_requested_specs_map();
+                    request.items.reserve(hist_map.size() + 1);
+
+                    for (auto& [name, spec] : hist_map)
+                    {
+                        request.items.emplace_back(Request::Keep{ std::move(spec) });
+                    }
+                    request.items.emplace_back(Request::UpdateAll{ /* .clean_dependencies= */ true });
+                }
+                else
+                {
+                    request.items.emplace_back(Request::UpdateAll{ /* .clean_dependencies= */ false });
+                }
+            }
+            else
+            {
+                request.items.reserve(specs.size());
+                if (remove_not_specified)
+                {
+                    auto hist_map = prefix_data.history().get_requested_specs_map();
+                    for (auto& it : hist_map)
+                    {
+                        if (std::find(specs.begin(), specs.end(), it.second.name().str())
+                            == specs.end())
+                        {
+                            request.items.emplace_back(Request::Remove{
+                                specs::MatchSpec::parse(it.second.name().str()),
+                                /* .clean_dependencies= */ true,
+                            });
+                        }
+                    }
+                }
+
+                for (const auto& raw_ms : specs)
+                {
+                    request.items.emplace_back(Request::Update{
+                        specs::MatchSpec::parse(raw_ms),
+                    });
+                }
+            }
+
+            return request;
+        }
+    }
+
     void update(Configuration& config, bool update_all, bool prune_deps, bool remove_not_specified)
     {
         auto& ctx = config.context();
@@ -78,87 +139,26 @@ namespace mamba
             }
         );
 
-        auto& no_pin = config.at("no_pin").value<bool>();
-        auto& no_py_pin = config.at("no_py_pin").value<bool>();
+        auto request = create_update_request(
+            prefix_data,
+            raw_update_specs,
+            /* update_all= */ update_all,
+            /* prune_deps= */ prune_deps,
+            /* remove_not_specified= */ remove_not_specified
+        );
+        add_pins_to_request(
+            request,
+            ctx,
+            prefix_data,
+            raw_update_specs,
+            /* no_pin= */ config.at("no_pin").value<bool>(),
+            /* no_py_pin = */ config.at("no_py_pin").value<bool>()
+        );
 
-        if (!no_pin)
         {
-            for (const auto& pin : file_pins(prefix_data.path() / "conda-meta" / "pinned"))
-            {
-                solver.add_pin(specs::MatchSpec::parse(pin));
-            }
-            for (const auto& pin : ctx.pinned_packages)
-            {
-                solver.add_pin(specs::MatchSpec::parse(pin));
-            }
-        }
-
-        if (!no_py_pin)
-        {
-            auto py_pin = python_pin(prefix_data, raw_update_specs);
-            if (!py_pin.empty())
-            {
-                solver.add_pin(specs::MatchSpec::parse(py_pin));
-            }
-        }
-        if (!solver.pinned_specs().empty())
-        {
-            std::vector<std::string> pinned_str;
-            for (auto& ms : solver.pinned_specs())
-            {
-                pinned_str.push_back("  - " + ms.conda_build_form() + "\n");
-            }
-            Console::instance().print("\nPinned packages:\n" + util::join("", pinned_str));
-        }
-
-        // FRAGILE this must be called after pins be before jobs in current ``MPool``
-        pool.create_whatprovides();
-
-        auto request = Request();
-
-        if (update_all)
-        {
-            if (prune_deps)
-            {
-                auto hist_map = prefix_data.history().get_requested_specs_map();
-                request.items.reserve(hist_map.size() + 1);
-
-                for (auto& [name, spec] : hist_map)
-                {
-                    request.items.emplace_back(Request::Keep{ std::move(spec) });
-                }
-                request.items.emplace_back(Request::UpdateAll{ /* .clean_dependencies= */ true });
-            }
-            else
-            {
-                request.items.emplace_back(Request::UpdateAll{ /* .clean_dependencies= */ false });
-            }
-        }
-        else
-        {
-            request.items.reserve(raw_update_specs.size());
-            if (remove_not_specified)
-            {
-                auto hist_map = prefix_data.history().get_requested_specs_map();
-                for (auto& it : hist_map)
-                {
-                    if (std::find(raw_update_specs.begin(), raw_update_specs.end(), it.second.name().str())
-                        == raw_update_specs.end())
-                    {
-                        request.items.emplace_back(Request::Remove{
-                            specs::MatchSpec::parse(it.second.name().str()),
-                            /* .clean_dependencies= */ true,
-                        });
-                    }
-                }
-            }
-
-            for (const auto& raw_ms : raw_update_specs)
-            {
-                request.items.emplace_back(Request::Update{
-                    specs::MatchSpec::parse(raw_ms),
-                });
-            }
+            auto out = Console::stream();
+            print_request_pins_to(request, out);
+            // Console stream prints on destrucion
         }
 
         solver.add_request(request);

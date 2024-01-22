@@ -153,6 +153,13 @@ namespace mamba
         m_jobs->push_back(SOLVER_UPDATE | SOLVER_SOLVABLE_PROVIDES, job_id);
     }
 
+    void MSolver::add_job_impl(const Request::Freeze& job)
+    {
+        m_neuter_specs.emplace_back(job.spec);
+        const auto job_id = m_pool.matchspec2id(job.spec);
+        m_jobs->push_back(SOLVER_LOCK, job_id);
+    }
+
     void MSolver::add_job_impl(const Request::Pin& job)
     {
         add_pin(job.spec);

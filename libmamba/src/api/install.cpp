@@ -467,12 +467,6 @@ namespace mamba
         }
         PrefixData& prefix_data = exp_prefix_data.value();
 
-        std::vector<std::string> prefix_pkgs;
-        for (auto& it : prefix_data.records())
-        {
-            prefix_pkgs.push_back(it.first);
-        }
-
         load_installed_packages_in_pool(ctx, pool, prefix_data);
 
         MSolver solver(
@@ -489,12 +483,6 @@ namespace mamba
             /* .keep_specs= */ !only_deps,
             /* .force_reinstall= */ force_reinstall,
         });
-
-        if (freeze_installed && !prefix_pkgs.empty())
-        {
-            LOG_INFO << "Locking environment: " << prefix_pkgs.size() << " packages freezed";
-            solver.add_jobs(prefix_pkgs, SOLVER_LOCK);
-        }
 
         if (!no_pin)
         {
@@ -523,8 +511,20 @@ namespace mamba
         // FRAGILE this must be called after pins be before jobs in current ``MPool``
         pool.create_whatprovides();
 
+        const auto& prefix_pkgs = prefix_data.records();
+
         auto request = Request();
-        request.items.reserve(specs.size());
+        request.items.reserve(specs.size() + freeze_installed * prefix_pkgs.size());
+
+        if (freeze_installed && !prefix_pkgs.empty())
+        {
+            LOG_INFO << "Locking environment: " << prefix_pkgs.size() << " packages freezed";
+            for (const auto& [name, pkg] : prefix_pkgs)
+            {
+                request.items.emplace_back(Request::Freeze{ specs::MatchSpec::parse(name) });
+            }
+        }
+
         for (const auto& s : specs)
         {
             request.items.emplace_back(Request::Install{ specs::MatchSpec::parse(s) });

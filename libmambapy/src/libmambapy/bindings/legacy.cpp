@@ -477,9 +477,7 @@ bind_submodule_impl(pybind11::module_ m)
             [](MSolver&, int)
             {
                 // V2 migrator
-                throw std::runtime_error(
-                    "Jobs are removed. All jobs must be provided in a single Request."
-                );
+                throw std::runtime_error("All jobs must be provided in a single Request.");
             }
         )
         .def(
@@ -487,12 +485,17 @@ bind_submodule_impl(pybind11::module_ m)
             [](MSolver&, int)
             {
                 // V2 migrator
-                throw std::runtime_error(
-                    "Global jobs are removed. All jobs must be provided in a single Request."
-                );
+                throw std::runtime_error("All jobs must be provided in a single Request.");
             }
         )
-        .def("add_pin", &MSolver::add_pin)
+        .def(
+            "add_pin",
+            [](MSolver&, int)
+            {
+                // V2 migrator
+                throw std::runtime_error("All jobs must be provided in a single Request.");
+            }
+        )
         .def("set_libsolv_flags", &MSolver::py_set_libsolv_flags)
         .def(
             "set_flags",

@@ -194,17 +194,12 @@ namespace mamba
 
     void MSolver::add_job_impl(const Request::Pin& job)
     {
-        add_pin(job.spec);
-    }
-
-    void MSolver::add_pin(const specs::MatchSpec& pin)
-    {
         auto& pool = m_pool.pool();
-        solver::libsolv::pool_add_pin(pool, pin, m_pool.channel_context().params())
+        solver::libsolv::pool_add_pin(pool, job.spec, m_pool.channel_context().params())
             .transform(
                 [&](solv::ObjSolvableView pin_solv)
                 {
-                    m_pinned_specs.push_back(std::move(pin));
+                    m_pinned_specs.push_back(std::move(job.spec));
 
                     auto const name_id = pool.add_string(pin_solv.name());
 

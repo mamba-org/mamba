@@ -113,7 +113,6 @@ namespace mamba
         MSolver& operator=(MSolver&&);
 
         void add_request(const Request& request);
-        void add_pin(const specs::MatchSpec& pin);
 
         void set_flags(const Flags& flags);  // TODO temporary Itf meant to be passed in ctor
         [[nodiscard]] auto flags() const -> const Flags&;

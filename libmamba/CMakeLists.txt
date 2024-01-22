@@ -306,6 +306,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version_spec.hpp
     # Solver Interface
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/request.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/parameters.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/repo_info.hpp
     # Artifacts validation

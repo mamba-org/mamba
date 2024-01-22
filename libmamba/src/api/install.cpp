@@ -398,8 +398,10 @@ namespace mamba
 
     auto
     create_install_request(PrefixData& prefix_data, std::vector<std::string> specs, bool freeze_installed)
-        -> Request
+        -> solver::Request
     {
+        using Request = solver::Request;
+
         const auto& prefix_pkgs = prefix_data.records();
 
         auto request = Request();
@@ -423,7 +425,7 @@ namespace mamba
     }
 
     void add_pins_to_request(
-        Request& request,
+        solver::Request& request,
         const Context& ctx,
         PrefixData& prefix_data,
         std::vector<std::string> specs,
@@ -431,6 +433,8 @@ namespace mamba
         bool no_py_pin
     )
     {
+        using Request = solver::Request;
+
         request.items.reserve(
             request.items.size() + (!no_pin) * ctx.pinned_packages.size() + !no_py_pin
         );
@@ -456,7 +460,7 @@ namespace mamba
         }
     }
 
-    void print_request_pins_to(const Request& request, std::ostream& out)
+    void print_request_pins_to(const solver::Request& request, std::ostream& out)
     {
         for (const auto& req : request.items)
         {
@@ -464,7 +468,7 @@ namespace mamba
             std::visit(
                 [&](const auto& item)
                 {
-                    if constexpr (std::is_same_v<std::decay_t<decltype(item)>, Request::Pin>)
+                    if constexpr (std::is_same_v<std::decay_t<decltype(item)>, solver::Request::Pin>)
                     {
                         if (first)
                         {

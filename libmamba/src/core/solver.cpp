@@ -100,14 +100,14 @@ namespace mamba
         m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, m_pool.matchspec2id(ms_modified));
     }
 
-    void MSolver::add_request(const Request& request)
+    void MSolver::add_request(const solver::Request& request)
     {
         for (const auto& item : request.items)
         {
             std::visit(
                 [&](const auto& r)
                 {
-                    if constexpr (std::is_same_v<std::decay_t<decltype(r)>, Request::Pin>)
+                    if constexpr (std::is_same_v<std::decay_t<decltype(r)>, solver::Request::Pin>)
                     {
                         add_job_impl(r);
                     }
@@ -124,7 +124,7 @@ namespace mamba
             std::visit(
                 [&](const auto& r)
                 {
-                    if constexpr (!std::is_same_v<std::decay_t<decltype(r)>, Request::Pin>)
+                    if constexpr (!std::is_same_v<std::decay_t<decltype(r)>, solver::Request::Pin>)
                     {
                         add_job_impl(r);
                     }
@@ -134,7 +134,7 @@ namespace mamba
         }
     }
 
-    void MSolver::add_job_impl(const Request::Install& job)
+    void MSolver::add_job_impl(const solver::Request::Install& job)
     {
         m_install_specs.emplace_back(job.spec);
         if (m_flags.force_reinstall)
@@ -148,7 +148,7 @@ namespace mamba
         }
     }
 
-    void MSolver::add_job_impl(const Request::Remove& job)
+    void MSolver::add_job_impl(const solver::Request::Remove& job)
     {
         m_remove_specs.emplace_back(job.spec);
         const auto job_id = m_pool.matchspec2id(job.spec);
@@ -158,7 +158,7 @@ namespace mamba
         );
     }
 
-    void MSolver::add_job_impl(const Request::Update& job)
+    void MSolver::add_job_impl(const solver::Request::Update& job)
     {
         m_install_specs.emplace_back(job.spec);
         m_remove_specs.emplace_back(job.spec);
@@ -171,7 +171,7 @@ namespace mamba
         m_jobs->push_back(SOLVER_UPDATE | SOLVER_SOLVABLE_PROVIDES, job_id);
     }
 
-    void MSolver::add_job_impl(const Request::UpdateAll& job)
+    void MSolver::add_job_impl(const solver::Request::UpdateAll& job)
     {
         m_jobs->push_back(
             SOLVER_UPDATE | SOLVER_SOLVABLE_ALL | (job.clean_dependencies ? SOLVER_CLEANDEPS : 0),
@@ -179,19 +179,19 @@ namespace mamba
         );
     }
 
-    void MSolver::add_job_impl(const Request::Freeze& job)
+    void MSolver::add_job_impl(const solver::Request::Freeze& job)
     {
         const auto job_id = m_pool.matchspec2id(job.spec);
         m_jobs->push_back(SOLVER_LOCK, job_id);
     }
 
-    void MSolver::add_job_impl(const Request::Keep& job)
+    void MSolver::add_job_impl(const solver::Request::Keep& job)
     {
         const auto job_id = m_pool.matchspec2id(job.spec);
         m_jobs->push_back(SOLVER_USERINSTALLED, job_id);
     }
 
-    void MSolver::add_job_impl(const Request::Pin& job)
+    void MSolver::add_job_impl(const solver::Request::Pin& job)
     {
         auto& pool = m_pool.pool();
         solver::libsolv::pool_add_pin(pool, job.spec, m_pool.channel_context().params())

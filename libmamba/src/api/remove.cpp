@@ -70,8 +70,10 @@ namespace mamba
             ChannelContext& channel_context,
             const Range& raw_specs,
             bool prune
-        ) -> Request
+        ) -> solver::Request
         {
+            using Request = solver::Request;
+
             auto request = Request();
             request.items.reserve(raw_specs.size());
 

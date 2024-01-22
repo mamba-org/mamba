@@ -15,7 +15,6 @@
 #include "mamba/core/solver.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/virtual_packages.hpp"
-#include "mamba/util/string.hpp"
 
 namespace mamba
 {
@@ -27,8 +26,10 @@ namespace mamba
             bool update_all,
             bool prune_deps,
             bool remove_not_specified
-        ) -> Request
+        ) -> solver::Request
         {
+            using Request = solver::Request;
+
             auto request = Request();
 
             if (update_all)

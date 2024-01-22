@@ -137,6 +137,8 @@ namespace
         return repodata_f;
     }
 
+    using Request = solver::Request;
+
     /**
      * Create a solver and a pool of a conflict.
      *

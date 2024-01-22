@@ -41,10 +41,10 @@ namespace mamba
         PrefixData& prefix_data,
         std::vector<std::string> specs,
         bool freeze_installed
-    ) -> Request;
+    ) -> solver::Request;
 
     void add_pins_to_request(
-        Request& request,
+        solver::Request& request,
         const Context& ctx,
         PrefixData& prefix_data,
         std::vector<std::string> specs,
@@ -52,7 +52,7 @@ namespace mamba
         bool no_py_pin
     );
 
-    void print_request_pins_to(const Request& request, std::ostream& out);
+    void print_request_pins_to(const solver::Request& request, std::ostream& out);
 
     void install_explicit_specs(
         Context& ctx,

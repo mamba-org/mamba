@@ -12,7 +12,6 @@
 #include <optional>
 #include <string>
 #include <utility>
-#include <variant>
 #include <vector>
 
 #include <solv/pooltypes.h>
@@ -22,6 +21,7 @@
 
 #include "mamba/core/pool.hpp"
 #include "mamba/core/satisfiability_error.hpp"
+#include "mamba/solver/request.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
 
@@ -46,50 +46,6 @@ namespace mamba
         std::string description;
     };
 
-    struct Request
-    {
-        struct Install
-        {
-            specs::MatchSpec spec;
-        };
-
-        struct Remove
-        {
-            specs::MatchSpec spec;
-            bool clean_dependencies = true;
-        };
-
-        struct Update
-        {
-            specs::MatchSpec spec;
-        };
-
-        struct UpdateAll
-        {
-            bool clean_dependencies = true;
-        };
-
-        struct Keep
-        {
-            specs::MatchSpec spec;
-        };
-
-        struct Freeze
-        {
-            specs::MatchSpec spec;
-        };
-
-        struct Pin
-        {
-            specs::MatchSpec spec;
-        };
-
-        using Item = std::variant<Install, Remove, Update, UpdateAll, Keep, Freeze, Pin>;
-        using item_list = std::vector<Item>;
-
-        item_list items = {};
-    };
-
     class MSolver
     {
     public:
@@ -112,7 +68,7 @@ namespace mamba
         MSolver(MSolver&&);
         MSolver& operator=(MSolver&&);
 
-        void add_request(const Request& request);
+        void add_request(const solver::Request& request);
 
         void set_flags(const Flags& flags);  // TODO temporary Itf meant to be passed in ctor
         [[nodiscard]] auto flags() const -> const Flags&;
@@ -156,13 +112,13 @@ namespace mamba
         void add_reinstall_job(const specs::MatchSpec& ms, int job_flag);
         void apply_libsolv_flags();
 
-        void add_job_impl(const Request::Install& job);
-        void add_job_impl(const Request::Remove& job);
-        void add_job_impl(const Request::Update& job);
-        void add_job_impl(const Request::UpdateAll& job);
-        void add_job_impl(const Request::Freeze& job);
-        void add_job_impl(const Request::Keep& job);
-        void add_job_impl(const Request::Pin& job);
+        void add_job_impl(const solver::Request::Install& job);
+        void add_job_impl(const solver::Request::Remove& job);
+        void add_job_impl(const solver::Request::Update& job);
+        void add_job_impl(const solver::Request::UpdateAll& job);
+        void add_job_impl(const solver::Request::Freeze& job);
+        void add_job_impl(const solver::Request::Keep& job);
+        void add_job_impl(const solver::Request::Pin& job);
     };
 }  // namespace mamba
 

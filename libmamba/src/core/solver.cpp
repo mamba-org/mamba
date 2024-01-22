@@ -173,71 +173,23 @@ namespace mamba
         add_pin(job.spec);
     }
 
-    void MSolver::add_jobs(const std::vector<std::string>& jobs, int job_flag)
-    {
-        for (const auto& job : jobs)
-        {
-            auto ms = specs::MatchSpec::parse(job);
-            int job_type = job_flag & SOLVER_JOBMASK;
-
-            if (ms.conda_build_form().empty())
-            {
-                return;
-            }
-
-            if (job_type & SOLVER_INSTALL)
-            {
-                m_install_specs.emplace_back(specs::MatchSpec::parse(job));
-            }
-            else if (job_type == SOLVER_ERASE)
-            {
-                m_remove_specs.emplace_back(specs::MatchSpec::parse(job));
-            }
-            else if (job_type == SOLVER_LOCK)
-            {
-                m_neuter_specs.emplace_back(specs::MatchSpec::parse(job));  // not used for the
-                                                                            // moment
-            }
-
-            const ::Id job_id = m_pool.matchspec2id(ms);
-
-            // This is checking if SOLVER_ERASE and SOLVER_INSTALL are set
-            // which are the flags for SOLVER_UPDATE
-            if ((job_flag & SOLVER_UPDATE) == SOLVER_UPDATE)
-            {
-                // ignoring update specs here for now
-                if (!ms.is_simple())
-                {
-                    m_jobs->push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, job_id);
-                }
-                m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, job_id);
-            }
-            else if ((job_flag & SOLVER_INSTALL) && m_flags.force_reinstall)
-            {
-                add_reinstall_job(ms, job_flag);
-            }
-            else
-            {
-                LOG_INFO << "Adding job: " << ms.str();
-                m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, job_id);
-            }
-        }
-    }
-
     void MSolver::add_pin(const specs::MatchSpec& pin)
     {
-        solver::libsolv::pool_add_pin(m_pool.pool(), pin, m_pool.channel_context().params())
+        auto& pool = m_pool.pool();
+        solver::libsolv::pool_add_pin(pool, pin, m_pool.channel_context().params())
             .transform(
                 [&](solv::ObjSolvableView pin_solv)
                 {
                     m_pinned_specs.push_back(std::move(pin));
 
+                    auto const name_id = pool.add_string(pin_solv.name());
+
                     // WARNING keep separate or libsolv does not understand
                     // Force verify the dummy solvable dependencies, as this is not the default for
                     // installed packages.
-                    add_jobs({ std::string(pin_solv.name()) }, SOLVER_VERIFY);
+                    m_jobs->push_back(SOLVER_VERIFY, name_id);
                     // Lock the dummy solvable so that it stays install.
-                    add_jobs({ std::string(pin_solv.name()) }, SOLVER_LOCK);
+                    m_jobs->push_back(SOLVER_LOCK, name_id);
                 }
             )
             .or_else([](mamba_error&& error) { throw std::move(error); });

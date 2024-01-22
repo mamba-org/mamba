@@ -472,14 +472,23 @@ bind_submodule_impl(pybind11::module_ m)
         .def_readwrite("force_reinstall", &MSolver::Flags::force_reinstall);
 
     pySolver.def(py::init<MPool&, std::vector<std::pair<int, int>>>(), py::keep_alive<1, 2>())
-        .def("add_jobs", &MSolver::add_jobs)
+        .def(
+            "add_jobs",
+            [](MSolver&, int)
+            {
+                // V2 migrator
+                throw std::runtime_error(
+                    "Jobs are removed. All jobs must be provided in a single Request."
+                );
+            }
+        )
         .def(
             "add_global_job",
             [](MSolver&, int)
             {
                 // V2 migrator
                 throw std::runtime_error(
-                    "Global jobs are removed. All jobs must be provided in the Request."
+                    "Global jobs are removed. All jobs must be provided in a single Request."
                 );
             }
         )

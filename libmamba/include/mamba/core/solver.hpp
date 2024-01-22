@@ -113,7 +113,6 @@ namespace mamba
         MSolver& operator=(MSolver&&);
 
         void add_request(const Request& request);
-        void add_jobs(const std::vector<std::string>& jobs, int job_flag);
         void add_pin(const specs::MatchSpec& pin);
         void add_pins(const std::vector<std::string>& pins);
 

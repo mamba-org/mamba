@@ -316,8 +316,7 @@ namespace mamba
             solver.install_specs()
         );
 
-        if (auto maybe_installed = pool.installed_repo();
-            m_transaction_context.relink_noarch && maybe_installed.has_value())
+        if (solver::libsolv::solution_needs_python_relink(pool, m_solution))
         {
             m_solution = solver::libsolv::add_noarch_relink_to_solution(
                 std::move(m_solution),

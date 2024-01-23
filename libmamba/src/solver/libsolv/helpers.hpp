@@ -22,6 +22,10 @@
 #include "solv-cpp/solvable.hpp"
 #include "solv-cpp/transaction.hpp"
 
+/**
+ * Solver, repo, and solvable helpers dependent on specifi libsolv logic and objects.
+ */
+
 namespace mamba::fs
 {
     class u8path;
@@ -86,13 +90,19 @@ namespace mamba::solver::libsolv
         bool keep_only = true
     ) -> Solution;
 
-    [[nodiscard]] auto add_noarch_relink_to_solution(
-        solver::Solution solution,
+    [[nodiscard]] auto installed_python(const solv::ObjPool& pool)
+        -> std::optional<solv::ObjSolvableViewConst>;
+
+    [[nodiscard]] auto solution_needs_python_relink(  //
+        const solv::ObjPool& pool,
+        const Solution& solution
+    ) -> bool;
+
+    [[nodiscard]] auto add_noarch_relink_to_solution(  //
+        Solution solution,
         const solv::ObjPool& pool,
         std::string_view noarch_type
     ) -> Solution;
 
-    [[nodiscard]] auto installed_python(const solv::ObjPool& pool)
-        -> std::optional<solv::ObjSolvableViewConst>;
 }
 #endif

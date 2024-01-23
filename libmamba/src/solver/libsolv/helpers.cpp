@@ -22,6 +22,7 @@
 #include "mamba/util/random.hpp"
 #include "mamba/util/string.hpp"
 
+#include "solver/helpers.hpp"
 #include "solver/libsolv/helpers.hpp"
 
 #define MAMBA_TOOL_VERSION "2.0"
@@ -928,6 +929,38 @@ namespace mamba::solver::libsolv
         return { std::move(out) };
     }
 
+    auto installed_python(const solv::ObjPool& pool) -> std::optional<solv::ObjSolvableViewConst>
+    {
+        auto py_id = solv::SolvableId(0);
+        pool.for_each_installed_solvable(
+            [&](solv::ObjSolvableViewConst s)
+            {
+                if (s.name() == "python")
+                {
+                    py_id = s.id();
+                    return solv::LoopControl::Break;
+                }
+                return solv::LoopControl::Continue;
+            }
+        );
+        return pool.get_solvable(py_id);
+    }
+
+    auto solution_needs_python_relink(const solv::ObjPool& pool, const Solution& solution) -> bool
+    {
+        if (auto installed = installed_python(pool))
+        {
+            if (auto newer = find_new_python_in_solution(solution))
+            {
+                return !python_binary_compatible(
+                    specs::Version::parse(installed->version()),
+                    specs::Version::parse(newer->get().version)
+                );
+            }
+        }
+        return false;
+    }
+
     namespace
     {
         auto action_refers_to(const Solution::Action& unknown_action, std::string_view pkg_name)
@@ -995,22 +1028,5 @@ namespace mamba::solver::libsolv
             }
         );
         return solution;
-    }
-
-    auto installed_python(const solv::ObjPool& pool) -> std::optional<solv::ObjSolvableViewConst>
-    {
-        auto py_id = solv::SolvableId(0);
-        pool.for_each_installed_solvable(
-            [&](solv::ObjSolvableViewConst s)
-            {
-                if (s.name() == "python")
-                {
-                    py_id = s.id();
-                    return solv::LoopControl::Break;
-                }
-                return solv::LoopControl::Continue;
-            }
-        );
-        return pool.get_solvable(py_id);
     }
 }

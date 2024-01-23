@@ -11,10 +11,20 @@
 #include <optional>
 
 #include "mamba/solver/solution.hpp"
+#include "mamba/specs/version.hpp"
+
+/**
+ * Solver, repo, and package helpers for solver agnostic code.
+ */
 
 namespace mamba::solver
 {
     [[nodiscard]] auto find_new_python_in_solution(const Solution& solution)
         -> std::optional<std::reference_wrapper<const specs::PackageInfo>>;
+
+    [[nodiscard]] auto python_binary_compatible(  //
+        const specs::Version& older,
+        const specs::Version& newer
+    ) -> bool;
 }
 #endif

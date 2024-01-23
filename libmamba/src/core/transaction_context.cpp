@@ -132,11 +132,6 @@ namespace mamba
         if (!old_python_version.empty())
         {
             old_short_python_version = compute_short_python_version(old_python_version);
-            relink_noarch = (short_python_version != old_short_python_version);
-        }
-        else
-        {
-            relink_noarch = false;
         }
     }
 
@@ -177,7 +172,6 @@ namespace mamba
             short_python_version = other.short_python_version;
             python_path = other.python_path;
             site_packages_path = other.site_packages_path;
-            relink_noarch = other.relink_noarch;
 
             m_context = other.m_context;
         }

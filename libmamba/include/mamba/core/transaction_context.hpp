@@ -68,7 +68,6 @@ namespace mamba
         bool always_softlink = false;
         bool compile_pyc = true;
         // this needs to be done when python version changes
-        bool relink_noarch = false;
         std::vector<specs::MatchSpec> requested_specs;
 
         const Context& context() const

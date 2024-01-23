@@ -16,9 +16,8 @@
 
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/pool.hpp"
+#include "mamba/core/solver.hpp"
 #include "mamba/fs/filesystem.hpp"
-#include "mamba/solver/libsolv/repo_info.hpp"
-#include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
 
 namespace mamba
@@ -35,10 +34,25 @@ namespace mamba
         const Configuration& config,
         const std::vector<std::string>& specs,
         bool create_env = false,
-        bool remove_prefix_on_failure = false,
-        int solver_flag = SOLVER_INSTALL,
-        int is_retry = 0
+        bool remove_prefix_on_failure = false
     );
+
+    auto create_install_request(  //
+        PrefixData& prefix_data,
+        std::vector<std::string> specs,
+        bool freeze_installed
+    ) -> solver::Request;
+
+    void add_pins_to_request(
+        solver::Request& request,
+        const Context& ctx,
+        PrefixData& prefix_data,
+        std::vector<std::string> specs,
+        bool no_pin,
+        bool no_py_pin
+    );
+
+    void print_request_pins_to(const solver::Request& request, std::ostream& out);
 
     void install_explicit_specs(
         Context& ctx,

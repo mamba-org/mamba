@@ -100,7 +100,7 @@ namespace mambapy
             .def_static("parse", &CondaURL::parse)
             .def(py::init())
             .def("__copy__", &copy<CondaURL>)
-            .def("__deepcopy__", &deepcopy<CondaURL>)
+            .def("__deepcopy__", &deepcopy<CondaURL>, py::arg("memo"))
             .def(py::self == py::self)
             .def(py::self != py::self)
             .def(py::self / std::string_view("other"))

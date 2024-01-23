@@ -36,8 +36,6 @@ namespace mamba
         , m_jobs(std::make_unique<solv::ObjQueue>())
         , m_is_solved(false)
     {
-        // TODO should we lazyly create solver here? Should we what provides?
-        m_pool.create_whatprovides();
     }
 
     MSolver::~MSolver() = default;
@@ -54,11 +52,6 @@ namespace mamba
     auto MSolver::solver() const -> const solv::ObjSolver&
     {
         return *m_solver;
-    }
-
-    void MSolver::add_global_job(int job_flag)
-    {
-        m_jobs->push_back(job_flag, 0);
     }
 
     void MSolver::add_reinstall_job(const specs::MatchSpec& ms, int job_flag)
@@ -107,83 +100,114 @@ namespace mamba
         m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, m_pool.matchspec2id(ms_modified));
     }
 
-    void MSolver::add_jobs(const std::vector<std::string>& jobs, int job_flag)
+    void MSolver::add_request(const Request& request)
     {
-        for (const auto& job : jobs)
+        for (const auto& item : request.items)
         {
-            auto ms = specs::MatchSpec::parse(job);
-            int job_type = job_flag & SOLVER_JOBMASK;
-
-            if (ms.conda_build_form().empty())
-            {
-                return;
-            }
-
-            if (job_type & SOLVER_INSTALL)
-            {
-                m_install_specs.emplace_back(specs::MatchSpec::parse(job));
-            }
-            else if (job_type == SOLVER_ERASE)
-            {
-                m_remove_specs.emplace_back(specs::MatchSpec::parse(job));
-            }
-            else if (job_type == SOLVER_LOCK)
-            {
-                m_neuter_specs.emplace_back(specs::MatchSpec::parse(job));  // not used for the
-                                                                            // moment
-            }
-
-            const ::Id job_id = m_pool.matchspec2id(ms);
-
-            // This is checking if SOLVER_ERASE and SOLVER_INSTALL are set
-            // which are the flags for SOLVER_UPDATE
-            if ((job_flag & SOLVER_UPDATE) == SOLVER_UPDATE)
-            {
-                // ignoring update specs here for now
-                if (!ms.is_simple())
+            std::visit(
+                [&](const auto& r)
                 {
-                    m_jobs->push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, job_id);
-                }
-                m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, job_id);
-            }
-            else if ((job_flag & SOLVER_INSTALL) && m_flags.force_reinstall)
-            {
-                add_reinstall_job(ms, job_flag);
-            }
-            else
-            {
-                LOG_INFO << "Adding job: " << ms.str();
-                m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, job_id);
-            }
+                    if constexpr (std::is_same_v<std::decay_t<decltype(r)>, Request::Pin>)
+                    {
+                        add_job_impl(r);
+                    }
+                },
+                item
+            );
+        }
+        // Fragile: Pins add solvables to Pol and hence require a call to create_whatprovides.
+        // Channel specific MatchSpec write to whatprovides and hence require it is not modified
+        // afterwards.
+        m_pool.create_whatprovides();
+        for (const auto& item : request.items)
+        {
+            std::visit(
+                [&](const auto& r)
+                {
+                    if constexpr (!std::is_same_v<std::decay_t<decltype(r)>, Request::Pin>)
+                    {
+                        add_job_impl(r);
+                    }
+                },
+                item
+            );
         }
     }
 
-    void MSolver::add_pin(const std::string& pin)
+    void MSolver::add_job_impl(const Request::Install& job)
     {
-        const auto pin_ms = specs::MatchSpec::parse(pin);
-        solver::libsolv::pool_add_pin(m_pool.pool(), pin_ms, m_pool.channel_context().params())
+        m_install_specs.emplace_back(job.spec);
+        if (m_flags.force_reinstall)
+        {
+            add_reinstall_job(job.spec, SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES);
+        }
+        else
+        {
+            const auto job_id = m_pool.matchspec2id(job.spec);
+            m_jobs->push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, job_id);
+        }
+    }
+
+    void MSolver::add_job_impl(const Request::Remove& job)
+    {
+        m_remove_specs.emplace_back(job.spec);
+        const auto job_id = m_pool.matchspec2id(job.spec);
+        m_jobs->push_back(
+            SOLVER_ERASE | SOLVER_SOLVABLE_PROVIDES | (job.clean_dependencies ? SOLVER_CLEANDEPS : 0),
+            job_id
+        );
+    }
+
+    void MSolver::add_job_impl(const Request::Update& job)
+    {
+        m_install_specs.emplace_back(job.spec);
+        m_remove_specs.emplace_back(job.spec);
+        const auto job_id = m_pool.matchspec2id(job.spec);
+        // TODO: ignoring update specs here for now
+        if (!job.spec.is_simple())
+        {
+            m_jobs->push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, job_id);
+        }
+        m_jobs->push_back(SOLVER_UPDATE | SOLVER_SOLVABLE_PROVIDES, job_id);
+    }
+
+    void MSolver::add_job_impl(const Request::UpdateAll& job)
+    {
+        m_jobs->push_back(
+            SOLVER_UPDATE | SOLVER_SOLVABLE_ALL | (job.clean_dependencies ? SOLVER_CLEANDEPS : 0),
+            0
+        );
+    }
+
+    void MSolver::add_job_impl(const Request::Freeze& job)
+    {
+        const auto job_id = m_pool.matchspec2id(job.spec);
+        m_jobs->push_back(SOLVER_LOCK, job_id);
+    }
+
+    void MSolver::add_job_impl(const Request::Keep& job)
+    {
+        const auto job_id = m_pool.matchspec2id(job.spec);
+        m_jobs->push_back(SOLVER_USERINSTALLED, job_id);
+    }
+
+    void MSolver::add_job_impl(const Request::Pin& job)
+    {
+        auto& pool = m_pool.pool();
+        solver::libsolv::pool_add_pin(pool, job.spec, m_pool.channel_context().params())
             .transform(
                 [&](solv::ObjSolvableView pin_solv)
                 {
-                    m_pinned_specs.push_back(std::move(pin_ms));
-
+                    auto const name_id = pool.add_string(pin_solv.name());
                     // WARNING keep separate or libsolv does not understand
                     // Force verify the dummy solvable dependencies, as this is not the default for
                     // installed packages.
-                    add_jobs({ std::string(pin_solv.name()) }, SOLVER_VERIFY);
+                    m_jobs->push_back(SOLVER_VERIFY, name_id);
                     // Lock the dummy solvable so that it stays install.
-                    add_jobs({ std::string(pin_solv.name()) }, SOLVER_LOCK);
+                    m_jobs->push_back(SOLVER_LOCK, name_id);
                 }
             )
             .or_else([](mamba_error&& error) { throw std::move(error); });
-    }
-
-    void MSolver::add_pins(const std::vector<std::string>& pins)
-    {
-        for (auto pin : pins)
-        {
-            add_pin(pin);
-        }
     }
 
     void MSolver::set_flags(const Flags& flags)
@@ -238,16 +262,6 @@ namespace mamba
     const std::vector<specs::MatchSpec>& MSolver::remove_specs() const
     {
         return m_remove_specs;
-    }
-
-    const std::vector<specs::MatchSpec>& MSolver::neuter_specs() const
-    {
-        return m_neuter_specs;
-    }
-
-    const std::vector<specs::MatchSpec>& MSolver::pinned_specs() const
-    {
-        return m_pinned_specs;
     }
 
     bool MSolver::try_solve()

@@ -472,9 +472,30 @@ bind_submodule_impl(pybind11::module_ m)
         .def_readwrite("force_reinstall", &MSolver::Flags::force_reinstall);
 
     pySolver.def(py::init<MPool&, std::vector<std::pair<int, int>>>(), py::keep_alive<1, 2>())
-        .def("add_jobs", &MSolver::add_jobs)
-        .def("add_global_job", &MSolver::add_global_job)
-        .def("add_pin", &MSolver::add_pin)
+        .def(
+            "add_jobs",
+            [](MSolver&, int)
+            {
+                // V2 migrator
+                throw std::runtime_error("All jobs must be provided in a single Request.");
+            }
+        )
+        .def(
+            "add_global_job",
+            [](MSolver&, int)
+            {
+                // V2 migrator
+                throw std::runtime_error("All jobs must be provided in a single Request.");
+            }
+        )
+        .def(
+            "add_pin",
+            [](MSolver&, int)
+            {
+                // V2 migrator
+                throw std::runtime_error("All jobs must be provided in a single Request.");
+            }
+        )
         .def("set_libsolv_flags", &MSolver::py_set_libsolv_flags)
         .def(
             "set_flags",

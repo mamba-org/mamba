@@ -15,10 +15,72 @@
 #include "mamba/core/solver.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/virtual_packages.hpp"
-#include "mamba/util/string.hpp"
 
 namespace mamba
 {
+    namespace
+    {
+        auto create_update_request(
+            PrefixData& prefix_data,
+            std::vector<std::string> specs,
+            bool update_all,
+            bool prune_deps,
+            bool remove_not_specified
+        ) -> solver::Request
+        {
+            using Request = solver::Request;
+
+            auto request = Request();
+
+            if (update_all)
+            {
+                if (prune_deps)
+                {
+                    auto hist_map = prefix_data.history().get_requested_specs_map();
+                    request.items.reserve(hist_map.size() + 1);
+
+                    for (auto& [name, spec] : hist_map)
+                    {
+                        request.items.emplace_back(Request::Keep{ std::move(spec) });
+                    }
+                    request.items.emplace_back(Request::UpdateAll{ /* .clean_dependencies= */ true });
+                }
+                else
+                {
+                    request.items.emplace_back(Request::UpdateAll{ /* .clean_dependencies= */ false });
+                }
+            }
+            else
+            {
+                request.items.reserve(specs.size());
+                if (remove_not_specified)
+                {
+                    auto hist_map = prefix_data.history().get_requested_specs_map();
+                    for (auto& it : hist_map)
+                    {
+                        if (std::find(specs.begin(), specs.end(), it.second.name().str())
+                            == specs.end())
+                        {
+                            request.items.emplace_back(Request::Remove{
+                                specs::MatchSpec::parse(it.second.name().str()),
+                                /* .clean_dependencies= */ true,
+                            });
+                        }
+                    }
+                }
+
+                for (const auto& raw_ms : specs)
+                {
+                    request.items.emplace_back(Request::Update{
+                        specs::MatchSpec::parse(raw_ms),
+                    });
+                }
+            }
+
+            return request;
+        }
+    }
+
     void update(Configuration& config, bool update_all, bool prune_deps, bool remove_not_specified)
     {
         auto& ctx = config.context();
@@ -31,12 +93,12 @@ namespace mamba
             );
         config.load();
 
-        auto update_specs = config.at("specs").value<std::vector<std::string>>();
+        const auto& raw_update_specs = config.at("specs").value<std::vector<std::string>>();
 
         auto channel_context = ChannelContext::make_conda_compatible(ctx);
 
         // add channels from specs
-        for (const auto& s : update_specs)
+        for (const auto& s : raw_update_specs)
         {
             if (auto m = specs::MatchSpec::parse(s); m.channel().has_value())
             {
@@ -44,12 +106,10 @@ namespace mamba
             }
         }
 
-        int solver_flag = SOLVER_UPDATE;
-
         MPool pool{ ctx, channel_context };
         MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
 
-        auto exp_loaded = load_channels(ctx, pool, package_caches, 0);
+        auto exp_loaded = load_channels(ctx, pool, package_caches);
         if (!exp_loaded)
         {
             throw std::runtime_error(exp_loaded.error().what());
@@ -80,71 +140,29 @@ namespace mamba
             }
         );
 
-        auto& no_pin = config.at("no_pin").value<bool>();
-        auto& no_py_pin = config.at("no_py_pin").value<bool>();
+        auto request = create_update_request(
+            prefix_data,
+            raw_update_specs,
+            /* update_all= */ update_all,
+            /* prune_deps= */ prune_deps,
+            /* remove_not_specified= */ remove_not_specified
+        );
+        add_pins_to_request(
+            request,
+            ctx,
+            prefix_data,
+            raw_update_specs,
+            /* no_pin= */ config.at("no_pin").value<bool>(),
+            /* no_py_pin = */ config.at("no_py_pin").value<bool>()
+        );
 
-        if (!no_pin)
         {
-            solver.add_pins(file_pins(prefix_data.path() / "conda-meta" / "pinned"));
-            solver.add_pins(ctx.pinned_packages);
+            auto out = Console::stream();
+            print_request_pins_to(request, out);
+            // Console stream prints on destrucion
         }
 
-        if (!no_py_pin)
-        {
-            auto py_pin = python_pin(prefix_data, update_specs);
-            if (!py_pin.empty())
-            {
-                solver.add_pin(py_pin);
-            }
-        }
-        if (!solver.pinned_specs().empty())
-        {
-            std::vector<std::string> pinned_str;
-            for (auto& ms : solver.pinned_specs())
-            {
-                pinned_str.push_back("  - " + ms.conda_build_form() + "\n");
-            }
-            Console::instance().print("\nPinned packages:\n" + util::join("", pinned_str));
-        }
-
-        // FRAGILE this must be called after pins be before jobs in current ``MPool``
-        pool.create_whatprovides();
-
-        if (update_all)
-        {
-            auto hist_map = prefix_data.history().get_requested_specs_map();
-            std::vector<std::string> keep_specs;
-            for (auto& it : hist_map)
-            {
-                keep_specs.push_back(it.second.name().str());
-            }
-            solver_flag |= SOLVER_SOLVABLE_ALL;
-            if (prune_deps)
-            {
-                solver_flag |= SOLVER_CLEANDEPS;
-            }
-            solver.add_jobs(keep_specs, SOLVER_USERINSTALLED);
-            solver.add_global_job(solver_flag);
-        }
-        else
-        {
-            if (remove_not_specified)
-            {
-                auto hist_map = prefix_data.history().get_requested_specs_map();
-                std::vector<std::string> remove_specs;
-                for (auto& it : hist_map)
-                {
-                    if (std::find(update_specs.begin(), update_specs.end(), it.second.name().str())
-                        == update_specs.end())
-                    {
-                        remove_specs.push_back(it.second.name().str());
-                    }
-                }
-                solver.add_jobs(remove_specs, SOLVER_ERASE | SOLVER_CLEANDEPS);
-            }
-            solver.add_jobs(update_specs, solver_flag);
-        }
-
+        solver.add_request(request);
 
         solver.must_solve();
 

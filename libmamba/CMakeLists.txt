@@ -281,6 +281,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/heap_optional.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/iterator.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/json.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/loop_control.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/os_win.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/parsers.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/path_manip.hpp

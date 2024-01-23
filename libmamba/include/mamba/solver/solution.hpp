@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "mamba/specs/package_info.hpp"
+#include "mamba/util/loop_control.hpp"
 
 namespace mamba::solver
 {
@@ -118,6 +119,7 @@ namespace mamba::solver
         }
     }
 
+    // TODO(C++20): Poor man's replacement to range filter transform
     template <typename Iter, typename UnaryFunc>
     void for_each_to_remove(Iter first, Iter last, UnaryFunc&& func)
     {
@@ -125,7 +127,17 @@ namespace mamba::solver
         {
             if (auto* const ptr = detail::to_remove_ptr(*first))
             {
-                func(*ptr);
+                if constexpr (std::is_same_v<decltype(func(*ptr)), util::LoopControl>)
+                {
+                    if (func(*ptr) == util::LoopControl::Break)
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    func(*ptr);
+                }
             }
         }
     }
@@ -169,11 +181,22 @@ namespace mamba::solver
         {
             if (auto* const ptr = detail::to_install_ptr(*first))
             {
-                func(*ptr);
+                if constexpr (std::is_same_v<decltype(func(*ptr)), util::LoopControl>)
+                {
+                    if (func(*ptr) == util::LoopControl::Break)
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    func(*ptr);
+                }
             }
         }
     }
 
+    // TODO(C++20): Poor man's replacement to range filter transform
     template <typename Range, typename UnaryFunc>
     void for_each_to_install(Range&& actions, UnaryFunc&& func)
     {
@@ -202,6 +225,7 @@ namespace mamba::solver
         }
     }
 
+    // TODO(C++20): Poor man's replacement to range filter transform
     template <typename Iter, typename UnaryFunc>
     void for_each_to_omit(Iter first, Iter last, UnaryFunc&& func)
     {
@@ -209,7 +233,17 @@ namespace mamba::solver
         {
             if (auto* const ptr = detail::to_omit_ptr(*first))
             {
-                func(*ptr);
+                if constexpr (std::is_same_v<decltype(func(*ptr)), util::LoopControl>)
+                {
+                    if (func(*ptr) == util::LoopControl::Break)
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    func(*ptr);
+                }
             }
         }
     }

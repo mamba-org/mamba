@@ -142,8 +142,9 @@ namespace mamba
                     {
                         new_py_ver = pkg.version;
                         LOG_INFO << "Found python version in packages to be installed " << new_py_ver;
-                        // Could break but not supported with for_each API
+                        return util::LoopControl::Break;
                     }
+                    return util::LoopControl::Continue;
                 }
             );
 

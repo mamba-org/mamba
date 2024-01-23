@@ -124,7 +124,7 @@ namespace mamba
             return specs;
         }
 
-        auto find_python_version(const Solution& solution, const solv::ObjPool& pool)
+        auto find_python_version(const solver::Solution& solution, const solv::ObjPool& pool)
             -> std::pair<std::string, std::string>
         {
             // We need to find the python version that will be there after this
@@ -527,6 +527,8 @@ namespace mamba
 
     bool MTransaction::execute(PrefixData& prefix)
     {
+        using Solution = solver::Solution;
+
         auto& ctx = m_pool.context();
 
         // JSON output
@@ -730,7 +732,7 @@ namespace mamba
         // and package fetchers in the header. Ideally we may want a pimpl or
         // a private implementation header when we refactor this class.
         FetcherList
-        build_fetchers(MPool& pool, const Solution& solution, MultiPackageCache& multi_cache)
+        build_fetchers(MPool& pool, const solver::Solution& solution, MultiPackageCache& multi_cache)
         {
             FetcherList fetchers;
             auto& channel_context = pool.channel_context();
@@ -1009,6 +1011,8 @@ namespace mamba
 
     void MTransaction::print()
     {
+        using Solution = solver::Solution;
+
         const auto& ctx = m_pool.context();
 
         if (ctx.output_params.json)

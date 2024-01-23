@@ -8,32 +8,26 @@
 
 #include <fmt/format.h>
 #include <solv/evr.h>
-#include <solv/pool.h>
 #include <solv/selection.h>
 #include <solv/solver.h>
-
-#include "mamba/core/prefix_data.hpp"
-#include "mamba/core/subdirdata.hpp"
-#include "mamba/core/virtual_packages.hpp"
-#include "mamba/util/build.hpp"
-#include "mamba/util/random.hpp"
-#include "mamba/util/string.hpp"
-
-#include "solver/libsolv/helpers.hpp"
-extern "C"  // Incomplete header
-{
-#include <solv/conda.h>
-}
 #include <spdlog/spdlog.h>
 
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
+#include "mamba/core/prefix_data.hpp"
+#include "mamba/core/subdirdata.hpp"
+#include "mamba/core/virtual_packages.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/util/build.hpp"
+#include "mamba/util/random.hpp"
+#include "mamba/util/string.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
+
+#include "solver/libsolv/helpers.hpp"
 
 namespace mamba
 {

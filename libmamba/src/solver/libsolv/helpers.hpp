@@ -8,8 +8,8 @@
 #define MAMBA_SOLVER_LIBSOLV_HERLPERS
 
 #include "mamba/core/error_handling.hpp"
-#include "mamba/core/solution.hpp"
 #include "mamba/solver/libsolv/parameters.hpp"
+#include "mamba/solver/solution.hpp"
 #include "mamba/specs/channel.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
@@ -80,6 +80,6 @@ namespace mamba::solver::libsolv
         const util::flat_set<std::string>& specs = {},
         /** true to filter out specs, false to filter in specs */
         bool keep_only = true
-    ) -> Solution;
+    ) -> solver::Solution;
 }
 #endif

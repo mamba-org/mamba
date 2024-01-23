@@ -307,6 +307,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version_spec.hpp
     # Solver Interface
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/request.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/solution.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/parameters.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/repo_info.hpp
     # Artifacts validation
@@ -343,7 +344,6 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/query.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/run.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shell_init.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/solution.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/solver.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/subdirdata.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/thread_utils.hpp

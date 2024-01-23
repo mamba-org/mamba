@@ -15,9 +15,9 @@
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/prefix_data.hpp"
-#include "mamba/core/solution.hpp"
 #include "mamba/core/transaction_context.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/solver/solution.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
 
@@ -67,7 +67,7 @@ namespace mamba
         TransactionContext m_transaction_context;
         MultiPackageCache m_multi_cache;
         const fs::u8path m_cache_path;
-        Solution m_solution;
+        solver::Solution m_solution;
 
         History::UserRequest m_history_entry;
 

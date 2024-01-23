@@ -810,7 +810,7 @@ namespace mamba::solver::libsolv
         const util::flat_set<std::string>& specs,
         /** true to filter out specs, false to filter in specs */
         bool keep_only
-    ) -> Solution
+    ) -> solver::Solution
     {
         auto get_pkginfo = [&](solv::SolvableId id)
         {
@@ -825,7 +825,7 @@ namespace mamba::solver::libsolv
             return get_pkginfo(maybe_newer_id.value());
         };
 
-        auto out = Solution::action_list();
+        auto out = solver::Solution::action_list();
         out.reserve(trans.size());
         trans.for_each_step_id(
             [&](const solv::SolvableId id)

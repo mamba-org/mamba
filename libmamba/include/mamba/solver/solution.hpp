@@ -13,7 +13,7 @@
 
 #include "mamba/specs/package_info.hpp"
 
-namespace mamba
+namespace mamba::solver
 {
     namespace detail
     {

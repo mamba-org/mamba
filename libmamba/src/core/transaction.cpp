@@ -340,10 +340,6 @@ namespace mamba
         if (auto maybe_installed = pool.installed_repo();
             m_transaction_context.relink_noarch && maybe_installed.has_value())
         {
-            // TODO could we use the solution instead?
-            solv::ObjQueue decision = {};
-            solver_get_decisionqueue(solver.solver().raw(), decision.raw());
-
             using Solution = solver::Solution;
 
             pool.for_each_installed_solvable(
@@ -400,14 +396,6 @@ namespace mamba
                         }
                     }
                 }
-            );
-
-            m_transaction_context = TransactionContext(
-                context,
-                context.prefix_params.target_prefix,
-                context.prefix_params.relocate_prefix,
-                find_python_version(m_solution, m_pool.pool()),
-                solver.install_specs()
             );
         }
 

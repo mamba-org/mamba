@@ -129,7 +129,7 @@ namespace mamba
             python_path = get_python_short_path(short_python_version);
             site_packages_path = get_python_site_packages_short_path(short_python_version);
         }
-        if (old_python_version.size())
+        if (!old_python_version.empty())
         {
             old_short_python_version = compute_short_python_version(old_python_version);
             relink_noarch = (short_python_version != old_short_python_version);

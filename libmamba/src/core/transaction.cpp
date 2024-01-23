@@ -344,85 +344,63 @@ namespace mamba
             solv::ObjQueue decision = {};
             solver_get_decisionqueue(solver.solver().raw(), decision.raw());
 
+            using Solution = solver::Solution;
+
             pool.for_each_installed_solvable(
                 [&](solv::ObjSolvableViewConst s)
                 {
                     if (s.noarch() == "python")
                     {
-                        auto id = s.id();
-                        auto id_iter = std::find_if(
-                            decision.cbegin(),
-                            decision.cend(),
-                            [id](auto other) { return std::abs(other) == id; }
-                        );
-
-                        // if the installed package is kept, we should relink
-                        if ((id_iter != decision.cend()) && (*id_iter == id))
-                        {
-                            // Remove old linked package
-                            decision.erase(id_iter);
-
-                            const auto pkg_info = mk_pkginfo(m_pool, s);
-                            solv::ObjQueue const job = {
-                                SOLVER_SOLVABLE_PROVIDES,
-                                pool.add_conda_dependency(fmt::format(
-                                    "{} {} {}",
-                                    pkg_info.name,
-                                    pkg_info.version,
-                                    pkg_info.build_string
-                                )),
-                            };
-
-                            const auto matches = pool.select_solvables(job);
-                            const auto reinstall_iter = std::find_if(
-                                matches.cbegin(),
-                                matches.cend(),
-                                [&](solv::SolvableId r)
-                                {
-                                    auto rsolv = pool.get_solvable(r);
-                                    return rsolv.has_value() && !rsolv->installed();
-                                }
-                            );
-                            if (reinstall_iter == matches.cend())
+                        auto const s_name = s.name();
+                        auto s_in_sol = std::find_if(
+                            m_solution.actions.begin(),
+                            m_solution.actions.end(),
+                            [&](auto const& unknown_action) -> bool
                             {
-                                // TODO we should also search the local package cache to make
-                                // offline installs work
-                                LOG_WARNING << fmt::format(
-                                    "To upgrade python we need to reinstall noarch",
-                                    " package {} {} {} but we could not find it in",
-                                    " any of the loaded channels.",
-                                    pkg_info.name,
-                                    pkg_info.version,
-                                    pkg_info.build_string
+                                return std::visit(
+                                    [&](auto const& action)
+                                    {
+                                        using Action = std::decay_t<decltype(action)>;
+                                        if constexpr (Solution::has_remove_v<Action>)
+                                        {
+                                            if (action.remove.name == s_name)
+                                            {
+                                                return true;
+                                            }
+                                        }
+                                        if constexpr (Solution::has_install_v<Action>)
+                                        {
+                                            if (action.install.name == s_name)
+                                            {
+                                                return true;
+                                            }
+                                        }
+                                        if constexpr (std::is_same_v<Action, Solution::Reinstall> || std::is_same_v<Action, Solution::Omit>)
+                                        {
+                                            if (action.what.name == s_name)
+                                            {
+                                                return true;
+                                            }
+                                        }
+                                        return false;
+                                    },
+                                    unknown_action
                                 );
                             }
-                            else
-                            {
-                                decision.push_back(*reinstall_iter);
-                                decision.push_back(-id);
-                            }
+                        );
+
+                        if (s_in_sol == m_solution.actions.end())
+                        {
+                            m_solution.actions.emplace_back(Solution::Reinstall{
+                                mk_pkginfo(m_pool, s) });
+                        }
+                        else if (auto* omit = std::get_if<Solution::Omit>(&(*s_in_sol)))
+                        {
+                            *s_in_sol = { Solution::Reinstall{ std::move(omit->what) } };
                         }
                     }
                 }
             );
-
-            trans = solv::ObjTransaction::from_solvables(m_pool.pool(), decision);
-            trans.order(pool);
-
-            // Init solution again...
-            if (flags.keep_specs && flags.keep_dependencies)
-            {
-                m_solution = solver::libsolv::transaction_to_solution(m_pool.pool(), trans);
-            }
-            else
-            {
-                m_solution = solver::libsolv::transaction_to_solution(
-                    m_pool.pool(),
-                    trans,
-                    specs_names(solver),
-                    !(flags.keep_specs)
-                );
-            }
 
             m_transaction_context = TransactionContext(
                 context,

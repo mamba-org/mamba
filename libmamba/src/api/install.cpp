@@ -483,177 +483,183 @@ namespace mamba
         }
     }
 
-    void install_specs_impl(
-        Context& ctx,
-        ChannelContext& channel_context,
-        const Configuration& config,
-        const std::vector<std::string>& specs,
-        bool create_env,
-        bool remove_prefix_on_failure,
-        bool is_retry
-    )
+    namespace
     {
-        assert(&config.context() == &ctx);
-
-        auto& no_pin = config.at("no_pin").value<bool>();
-        auto& no_py_pin = config.at("no_py_pin").value<bool>();
-        auto& freeze_installed = config.at("freeze_installed").value<bool>();
-        auto& force_reinstall = config.at("force_reinstall").value<bool>();
-        auto& no_deps = config.at("no_deps").value<bool>();
-        auto& only_deps = config.at("only_deps").value<bool>();
-        auto& retry_clean_cache = config.at("retry_clean_cache").value<bool>();
-
-        if (ctx.prefix_params.target_prefix.empty())
+        void install_specs_impl(
+            Context& ctx,
+            ChannelContext& channel_context,
+            const Configuration& config,
+            const std::vector<std::string>& specs,
+            bool create_env,
+            bool remove_prefix_on_failure,
+            bool is_retry
+        )
         {
-            throw std::runtime_error("No active target prefix");
-        }
-        if (!fs::exists(ctx.prefix_params.target_prefix) && create_env == false)
-        {
-            throw std::runtime_error(
-                fmt::format("Prefix does not exist at: {}", ctx.prefix_params.target_prefix.string())
+            assert(&config.context() == &ctx);
+
+            auto& no_pin = config.at("no_pin").value<bool>();
+            auto& no_py_pin = config.at("no_py_pin").value<bool>();
+            auto& freeze_installed = config.at("freeze_installed").value<bool>();
+            auto& force_reinstall = config.at("force_reinstall").value<bool>();
+            auto& no_deps = config.at("no_deps").value<bool>();
+            auto& only_deps = config.at("only_deps").value<bool>();
+            auto& retry_clean_cache = config.at("retry_clean_cache").value<bool>();
+
+            if (ctx.prefix_params.target_prefix.empty())
+            {
+                throw std::runtime_error("No active target prefix");
+            }
+            if (!fs::exists(ctx.prefix_params.target_prefix) && create_env == false)
+            {
+                throw std::runtime_error(fmt::format(
+                    "Prefix does not exist at: {}",
+                    ctx.prefix_params.target_prefix.string()
+                ));
+            }
+
+            MultiPackageCache package_caches{ ctx.pkgs_dirs, ctx.validation_params };
+
+            // add channels from specs
+            for (const auto& s : specs)
+            {
+                if (auto ms = specs::MatchSpec::parse(s); ms.channel().has_value())
+                {
+                    ctx.channels.push_back(ms.channel()->str());
+                }
+            }
+
+            if (ctx.channels.empty() && !ctx.offline)
+            {
+                LOG_WARNING << "No 'channels' specified";
+            }
+
+            MPool pool{ ctx, channel_context };
+            // functions implied in 'and_then' coding-styles must return the same type
+            // which limits this syntax
+            /*auto exp_prefix_data = load_channels(pool, package_caches)
+                                   .and_then([&ctx](const auto&) { return
+               PrefixData::create(ctx.prefix_params.target_prefix); } ) .map_error([](const
+               mamba_error& err) { throw std::runtime_error(err.what());
+                                    });*/
+            auto exp_load = load_channels(ctx, pool, package_caches);
+            if (!exp_load)
+            {
+                throw std::runtime_error(exp_load.error().what());
+            }
+
+            auto exp_prefix_data = PrefixData::create(
+                ctx.prefix_params.target_prefix,
+                pool.channel_context()
             );
-        }
-
-        MultiPackageCache package_caches{ ctx.pkgs_dirs, ctx.validation_params };
-
-        // add channels from specs
-        for (const auto& s : specs)
-        {
-            if (auto ms = specs::MatchSpec::parse(s); ms.channel().has_value())
+            if (!exp_prefix_data)
             {
-                ctx.channels.push_back(ms.channel()->str());
+                throw std::runtime_error(exp_prefix_data.error().what());
             }
-        }
+            PrefixData& prefix_data = exp_prefix_data.value();
 
-        if (ctx.channels.empty() && !ctx.offline)
-        {
-            LOG_WARNING << "No 'channels' specified";
-        }
+            load_installed_packages_in_pool(ctx, pool, prefix_data);
 
-        MPool pool{ ctx, channel_context };
-        // functions implied in 'and_then' coding-styles must return the same type
-        // which limits this syntax
-        /*auto exp_prefix_data = load_channels(pool, package_caches)
-                               .and_then([&ctx](const auto&) { return
-           PrefixData::create(ctx.prefix_params.target_prefix); } ) .map_error([](const mamba_error&
-           err) { throw std::runtime_error(err.what());
-                                });*/
-        auto exp_load = load_channels(ctx, pool, package_caches);
-        if (!exp_load)
-        {
-            throw std::runtime_error(exp_load.error().what());
-        }
+            MSolver solver(
+                pool,
+                {
+                    { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },
+                    { SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade },
+                    { SOLVER_FLAG_STRICT_REPO_PRIORITY,
+                      ctx.channel_priority == ChannelPriority::Strict },
+                }
+            );
 
-        auto exp_prefix_data = PrefixData::create(
-            ctx.prefix_params.target_prefix,
-            pool.channel_context()
-        );
-        if (!exp_prefix_data)
-        {
-            throw std::runtime_error(exp_prefix_data.error().what());
-        }
-        PrefixData& prefix_data = exp_prefix_data.value();
+            solver.set_flags({
+                /* .keep_dependencies= */ !no_deps,
+                /* .keep_specs= */ !only_deps,
+                /* .force_reinstall= */ force_reinstall,
+            });
 
-        load_installed_packages_in_pool(ctx, pool, prefix_data);
+            auto request = create_install_request(prefix_data, specs, freeze_installed);
+            add_pins_to_request(request, ctx, prefix_data, specs, no_pin, no_py_pin);
 
-        MSolver solver(
-            pool,
             {
-                { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },
-                { SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade },
-                { SOLVER_FLAG_STRICT_REPO_PRIORITY, ctx.channel_priority == ChannelPriority::Strict },
+                auto out = Console::stream();
+                print_request_pins_to(request, out);
+                // Console stream prints on destrucion
             }
-        );
 
-        solver.set_flags({
-            /* .keep_dependencies= */ !no_deps,
-            /* .keep_specs= */ !only_deps,
-            /* .force_reinstall= */ force_reinstall,
-        });
+            solver.add_request(std::move(request));
 
-        auto request = create_install_request(prefix_data, specs, freeze_installed);
-        add_pins_to_request(request, ctx, prefix_data, specs, no_pin, no_py_pin);
-
-        {
-            auto out = Console::stream();
-            print_request_pins_to(request, out);
-            // Console stream prints on destrucion
-        }
-
-        solver.add_request(std::move(request));
-
-        bool success = solver.try_solve();
-        if (!success)
-        {
-            solver.explain_problems(LOG_ERROR);
-            if (retry_clean_cache && !is_retry)
+            bool success = solver.try_solve();
+            if (!success)
             {
-                ctx.local_repodata_ttl = 2;
-                return install_specs_impl(
-                    ctx,
-                    channel_context,
-                    config,
-                    specs,
-                    create_env,
-                    remove_prefix_on_failure,
-                    true
+                solver.explain_problems(LOG_ERROR);
+                if (retry_clean_cache && !is_retry)
+                {
+                    ctx.local_repodata_ttl = 2;
+                    return install_specs_impl(
+                        ctx,
+                        channel_context,
+                        config,
+                        specs,
+                        create_env,
+                        remove_prefix_on_failure,
+                        true
+                    );
+                }
+                if (freeze_installed)
+                {
+                    Console::instance().print("Possible hints:\n  - 'freeze_installed' is turned on\n"
+                    );
+                }
+
+                if (ctx.output_params.json)
+                {
+                    Console::instance().json_write({ { "success", false },
+                                                     { "solver_problems", solver.all_problems() } });
+                }
+                throw mamba_error(
+                    "Could not solve for environment specs",
+                    mamba_error_code::satisfiablitity_error
                 );
             }
-            if (freeze_installed)
+
+            std::vector<LockFile> locks;
+
+            for (auto& c : ctx.pkgs_dirs)
             {
-                Console::instance().print("Possible hints:\n  - 'freeze_installed' is turned on\n");
+                locks.push_back(LockFile(c));
             }
+
+            MTransaction trans(pool, solver, package_caches);
 
             if (ctx.output_params.json)
             {
-                Console::instance().json_write({ { "success", false },
-                                                 { "solver_problems", solver.all_problems() } });
-            }
-            throw mamba_error(
-                "Could not solve for environment specs",
-                mamba_error_code::satisfiablitity_error
-            );
-        }
-
-        std::vector<LockFile> locks;
-
-        for (auto& c : ctx.pkgs_dirs)
-        {
-            locks.push_back(LockFile(c));
-        }
-
-        MTransaction trans(pool, solver, package_caches);
-
-        if (ctx.output_params.json)
-        {
-            trans.log_json();
-        }
-
-        Console::stream();
-
-        if (trans.prompt())
-        {
-            if (create_env && !ctx.dry_run)
-            {
-                detail::create_target_directory(ctx, ctx.prefix_params.target_prefix);
+                trans.log_json();
             }
 
-            trans.execute(prefix_data);
+            Console::stream();
 
-            for (auto other_spec :
-                 config.at("others_pkg_mgrs_specs").value<std::vector<detail::other_pkg_mgr_spec>>())
+            if (trans.prompt())
             {
-                install_for_other_pkgmgr(ctx, other_spec);
+                if (create_env && !ctx.dry_run)
+                {
+                    detail::create_target_directory(ctx, ctx.prefix_params.target_prefix);
+                }
+
+                trans.execute(prefix_data);
+
+                for (auto other_spec : config.at("others_pkg_mgrs_specs")
+                                           .value<std::vector<detail::other_pkg_mgr_spec>>())
+                {
+                    install_for_other_pkgmgr(ctx, other_spec);
+                }
             }
-        }
-        else
-        {
-            // Aborting new env creation
-            // but the directory was already created because of `store_platform_config` call
-            // => Remove the created directory
-            if (remove_prefix_on_failure && fs::is_directory(ctx.prefix_params.target_prefix))
+            else
             {
-                fs::remove_all(ctx.prefix_params.target_prefix);
+                // Aborting new env creation
+                // but the directory was already created because of `store_platform_config` call
+                // => Remove the created directory
+                if (remove_prefix_on_failure && fs::is_directory(ctx.prefix_params.target_prefix))
+                {
+                    fs::remove_all(ctx.prefix_params.target_prefix);
+                }
             }
         }
     }

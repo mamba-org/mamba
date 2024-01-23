@@ -1212,6 +1212,21 @@ namespace mamba
             std::visit(format_action, pkg);
         }
 
+        // Sort row to print alphabetically according to first member (the name of the package).
+        // In the absence of a better/alternative solution, such as a tree view of install
+        // requirements, this is more readable than the Solution's order.
+        // WARNING: do not sort the solution as it is topologically sorted for installing
+        // dependencies before dependent.
+        constexpr auto cmp_rows = [](const auto& lhs, const auto& rhs) -> bool
+        { return !lhs.empty() && !rhs.empty() && lhs.front().s < rhs.front().s; };
+        std::sort(installed.begin(), installed.end(), cmp_rows);
+        std::sort(erased.begin(), erased.end(), cmp_rows);
+        std::sort(changed.begin(), changed.end(), cmp_rows);
+        std::sort(reinstalled.begin(), reinstalled.end(), cmp_rows);
+        std::sort(upgraded.begin(), upgraded.end(), cmp_rows);
+        std::sort(downgraded.begin(), downgraded.end(), cmp_rows);
+        std::sort(ignored.begin(), ignored.end(), cmp_rows);
+
         std::stringstream summary;
         summary << "Summary:\n\n";
         if (installed.size())

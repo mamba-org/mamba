@@ -996,4 +996,21 @@ namespace mamba::solver::libsolv
         );
         return solution;
     }
+
+    auto installed_python(const solv::ObjPool& pool) -> std::optional<solv::ObjSolvableViewConst>
+    {
+        auto py_id = solv::SolvableId(0);
+        pool.for_each_installed_solvable(
+            [&](solv::ObjSolvableViewConst s)
+            {
+                if (s.name() == "python")
+                {
+                    py_id = s.id();
+                    return solv::LoopControl::Break;
+                }
+                return solv::LoopControl::Continue;
+            }
+        );
+        return pool.get_solvable(py_id);
+    }
 }

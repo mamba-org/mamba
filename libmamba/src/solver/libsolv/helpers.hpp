@@ -7,6 +7,10 @@
 #ifndef MAMBA_SOLVER_LIBSOLV_HERLPERS
 #define MAMBA_SOLVER_LIBSOLV_HERLPERS
 
+#include <optional>
+#include <string>
+#include <string_view>
+
 #include "mamba/core/error_handling.hpp"
 #include "mamba/solver/libsolv/parameters.hpp"
 #include "mamba/solver/solution.hpp"
@@ -87,5 +91,8 @@ namespace mamba::solver::libsolv
         const solv::ObjPool& pool,
         std::string_view noarch_type
     ) -> Solution;
+
+    [[nodiscard]] auto installed_python(const solv::ObjPool& pool)
+        -> std::optional<solv::ObjSolvableViewConst>;
 }
 #endif

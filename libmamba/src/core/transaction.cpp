@@ -127,18 +127,11 @@ namespace mamba
             // version but keeping the current one.
             // Could also be written in term of PrefixData.
             std::string installed_py_ver = {};
-            pool.for_each_installed_solvable(
-                [&](solv::ObjSolvableViewConst s)
-                {
-                    if (s.name() == "python")
-                    {
-                        installed_py_ver = s.version();
-                        LOG_INFO << "Found python in installed packages " << installed_py_ver;
-                        return solv::LoopControl::Break;
-                    }
-                    return solv::LoopControl::Continue;
-                }
-            );
+            if (auto s = solver::libsolv::installed_python(pool))
+            {
+                installed_py_ver = s->version();
+                LOG_INFO << "Found python in installed packages " << installed_py_ver;
+            }
 
             std::string new_py_ver = installed_py_ver;
             for_each_to_install(

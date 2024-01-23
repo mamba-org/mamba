@@ -53,13 +53,6 @@ namespace mamba
                    && caches.get_tarball_path(pkg_info).empty();
         }
 
-        auto mk_pkginfo(const MPool& pool, solv::ObjSolvableViewConst s) -> specs::PackageInfo
-        {
-            const auto pkginfo = pool.id2pkginfo(s.id());
-            assert(pkginfo.has_value());  // There is Solvable so the optional must no be empty
-            return std::move(pkginfo).value();
-        };
-
         template <typename Range>
         auto make_pkg_info_from_explicit_match_specs(Range&& specs)
         {
@@ -340,62 +333,10 @@ namespace mamba
         if (auto maybe_installed = pool.installed_repo();
             m_transaction_context.relink_noarch && maybe_installed.has_value())
         {
-            using Solution = solver::Solution;
-
-            pool.for_each_installed_solvable(
-                [&](solv::ObjSolvableViewConst s)
-                {
-                    if (s.noarch() == "python")
-                    {
-                        auto const s_name = s.name();
-                        auto s_in_sol = std::find_if(
-                            m_solution.actions.begin(),
-                            m_solution.actions.end(),
-                            [&](auto const& unknown_action) -> bool
-                            {
-                                return std::visit(
-                                    [&](auto const& action)
-                                    {
-                                        using Action = std::decay_t<decltype(action)>;
-                                        if constexpr (Solution::has_remove_v<Action>)
-                                        {
-                                            if (action.remove.name == s_name)
-                                            {
-                                                return true;
-                                            }
-                                        }
-                                        if constexpr (Solution::has_install_v<Action>)
-                                        {
-                                            if (action.install.name == s_name)
-                                            {
-                                                return true;
-                                            }
-                                        }
-                                        if constexpr (std::is_same_v<Action, Solution::Reinstall> || std::is_same_v<Action, Solution::Omit>)
-                                        {
-                                            if (action.what.name == s_name)
-                                            {
-                                                return true;
-                                            }
-                                        }
-                                        return false;
-                                    },
-                                    unknown_action
-                                );
-                            }
-                        );
-
-                        if (s_in_sol == m_solution.actions.end())
-                        {
-                            m_solution.actions.emplace_back(Solution::Reinstall{
-                                mk_pkginfo(m_pool, s) });
-                        }
-                        else if (auto* omit = std::get_if<Solution::Omit>(&(*s_in_sol)))
-                        {
-                            *s_in_sol = { Solution::Reinstall{ std::move(omit->what) } };
-                        }
-                    }
-                }
+            m_solution = solver::libsolv::add_noarch_relink_to_solution(
+                std::move(m_solution),
+                pool,
+                "python"
             );
         }
 

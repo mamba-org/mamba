@@ -927,4 +927,73 @@ namespace mamba::solver::libsolv
         );
         return { std::move(out) };
     }
+
+    namespace
+    {
+        auto action_refers_to(const Solution::Action& unknown_action, std::string_view pkg_name)
+            -> bool
+        {
+            return std::visit(
+                [&](const auto& action)
+                {
+                    using Action = std::decay_t<decltype(action)>;
+                    if constexpr (Solution::has_remove_v<Action>)
+                    {
+                        if (action.remove.name == pkg_name)
+                        {
+                            return true;
+                        }
+                    }
+                    if constexpr (Solution::has_install_v<Action>)
+                    {
+                        if (action.install.name == pkg_name)
+                        {
+                            return true;
+                        }
+                    }
+                    if constexpr (std::is_same_v<Action, Solution::Reinstall> || std::is_same_v<Action, Solution::Omit>)
+                    {
+                        if (action.what.name == pkg_name)
+                        {
+                            return true;
+                        }
+                    }
+                    return false;
+                },
+                unknown_action
+            );
+        }
+    }
+
+    auto add_noarch_relink_to_solution(  //
+        Solution solution,
+        const solv::ObjPool& pool,
+        std::string_view noarch_type
+    ) -> Solution
+    {
+        pool.for_each_installed_solvable(
+            [&](solv::ObjSolvableViewConst s)
+            {
+                if (s.noarch() == noarch_type)
+                {
+                    auto s_in_sol = std::find_if(
+                        solution.actions.begin(),
+                        solution.actions.end(),
+                        [&](auto const& action) { return action_refers_to(action, s.name()); }
+                    );
+
+                    if (s_in_sol == solution.actions.end())
+                    {
+                        solution.actions.emplace_back(Solution::Reinstall{
+                            make_package_info(pool, s) });
+                    }
+                    else if (auto* omit = std::get_if<Solution::Omit>(&(*s_in_sol)))
+                    {
+                        *s_in_sol = { Solution::Reinstall{ std::move(omit->what) } };
+                    }
+                }
+            }
+        );
+        return solution;
+    }
 }

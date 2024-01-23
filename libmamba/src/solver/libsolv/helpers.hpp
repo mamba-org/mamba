@@ -80,6 +80,12 @@ namespace mamba::solver::libsolv
         const util::flat_set<std::string>& specs = {},
         /** true to filter out specs, false to filter in specs */
         bool keep_only = true
-    ) -> solver::Solution;
+    ) -> Solution;
+
+    [[nodiscard]] auto add_noarch_relink_to_solution(
+        solver::Solution solution,
+        const solv::ObjPool& pool,
+        std::string_view noarch_type
+    ) -> Solution;
 }
 #endif

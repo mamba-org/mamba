@@ -37,6 +37,7 @@
 #include "solv-cpp/solver.hpp"
 #include "solv-cpp/transaction.hpp"
 
+#include "solver/helpers.hpp"
 #include "solver/libsolv/helpers.hpp"
 
 #include "progress_bar_impl.hpp"
@@ -134,19 +135,10 @@ namespace mamba
             }
 
             std::string new_py_ver = installed_py_ver;
-            for_each_to_install(
-                solution.actions,
-                [&](const auto& pkg)
-                {
-                    if (pkg.name == "python")
-                    {
-                        new_py_ver = pkg.version;
-                        LOG_INFO << "Found python version in packages to be installed " << new_py_ver;
-                        return util::LoopControl::Break;
-                    }
-                    return util::LoopControl::Continue;
-                }
-            );
+            if (auto py = solver::find_new_python_in_solution(solution))
+            {
+                new_py_ver = py->get().version;
+            }
 
             return { std::move(new_py_ver), std::move(installed_py_ver) };
         }

@@ -184,6 +184,7 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solver.cpp
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/transaction.cpp
     # Solver interface
+    ${LIBMAMBA_SOURCE_DIR}/solver/helpers.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/helpers.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/parameters.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/repo_info.cpp

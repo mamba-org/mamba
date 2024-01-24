@@ -29,7 +29,6 @@
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/specs/match_spec.hpp"
-#include "mamba/util/flat_set.hpp"
 #include "mamba/util/string.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
@@ -82,40 +81,6 @@ namespace mamba
                 p.sha256 = ms.sha256();
             }
             return out;
-        }
-
-        auto specs_names(const MSolver& solver) -> util::flat_set<std::string>
-        {
-            // TODO(C++20):
-            // to_install_names and to_remove_names need not be allocated, only that
-            // flat_set::insert with iterators is more efficient (because it sorts only once).
-            // This could be solved with std::range::transform
-            const auto& to_install_specs = solver.install_specs();
-            auto to_install_names = std::vector<std::string>();
-            to_install_names.reserve(to_install_specs.size());
-            std::transform(
-                to_install_specs.cbegin(),
-                to_install_specs.cend(),
-                std::back_inserter(to_install_names),
-                [](const auto& spec) { return spec.name().str(); }
-            );
-
-            const auto& to_remove_specs = solver.remove_specs();
-            auto to_remove_names = std::vector<std::string>();
-            to_remove_names.reserve(to_remove_specs.size());
-            std::transform(
-                to_remove_specs.cbegin(),
-                to_remove_specs.cend(),
-                std::back_inserter(to_remove_names),
-                [](const auto& spec) { return spec.name().str(); }
-            );
-
-            auto specs = util::flat_set<std::string>{};
-            specs.reserve(to_install_specs.size() + to_remove_specs.size());
-            specs.insert(to_install_names.cbegin(), to_install_names.cend());
-            specs.insert(to_remove_names.cbegin(), to_remove_names.cend());
-
-            return specs;
         }
 
         auto find_python_version(const solver::Solution& solution, const solv::ObjPool& pool)
@@ -269,7 +234,7 @@ namespace mamba
             m_solution = solver::libsolv::transaction_to_solution_no_deps(
                 m_pool.pool(),
                 trans,
-                specs_names(solver)
+                solver.request()
             );
         }
         else if (!flags.keep_specs && flags.keep_dependencies)
@@ -277,7 +242,7 @@ namespace mamba
             m_solution = solver::libsolv::transaction_to_solution_only_deps(
                 m_pool.pool(),
                 trans,
-                specs_names(solver)
+                solver.request()
             );
         }
 

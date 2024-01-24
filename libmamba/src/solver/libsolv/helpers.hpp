@@ -13,6 +13,7 @@
 
 #include "mamba/core/error_handling.hpp"
 #include "mamba/solver/libsolv/parameters.hpp"
+#include "mamba/solver/request.hpp"
 #include "mamba/solver/solution.hpp"
 #include "mamba/specs/channel.hpp"
 #include "mamba/specs/match_spec.hpp"
@@ -90,13 +91,13 @@ namespace mamba::solver::libsolv
     [[nodiscard]] auto transaction_to_solution_only_deps(  //
         const solv::ObjPool& pool,
         const solv::ObjTransaction& trans,
-        const util::flat_set<std::string>& user_specs
+        const Request& request
     ) -> Solution;
 
     [[nodiscard]] auto transaction_to_solution_no_deps(  //
         const solv::ObjPool& pool,
         const solv::ObjTransaction& trans,
-        const util::flat_set<std::string>& user_specs
+        const Request& request
     ) -> Solution;
 
     [[nodiscard]] auto installed_python(const solv::ObjPool& pool)

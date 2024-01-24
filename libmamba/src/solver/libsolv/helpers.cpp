@@ -6,6 +6,8 @@
 
 #include <string>
 #include <string_view>
+#include <type_traits>
+#include <variant>
 
 #include <simdjson.h>
 #include <solv/conda.h>
@@ -944,29 +946,55 @@ namespace mamba::solver::libsolv
         return transaction_to_solution_impl(pool, trans, [](const auto&) { return true; });
     }
 
+    namespace
+    {
+        template <typename T, typename... U>
+        inline constexpr bool is_any_of_v = std::disjunction_v<std::is_same<T, U>...>;
+
+        auto package_is_requested(const Request& request, const specs::PackageInfo& pkg) -> bool
+        {
+            auto job_matches = [&pkg](const auto& job) -> bool
+            {
+                using Job = std::decay_t<decltype(job)>;
+                if constexpr (is_any_of_v<Job, Request::Install, Request::Remove, Request::Update>)
+                {
+                    return job.spec.name().contains(pkg.name);
+                }
+                return false;
+            };
+
+            auto iter = std::find_if(
+                request.items.cbegin(),
+                request.items.cend(),
+                [&](const auto& unknown_job) { return std::visit(job_matches, unknown_job); }
+            );
+            return iter != request.items.cend();
+        }
+    }
+
     auto transaction_to_solution_only_deps(  //
         const solv::ObjPool& pool,
         const solv::ObjTransaction& trans,
-        const util::flat_set<std::string>& user_specs
+        const Request& request
     ) -> Solution
     {
         return transaction_to_solution_impl(
             pool,
             trans,
-            [&](const auto& pkg) -> bool { return !user_specs.contains(pkg.name); }
+            [&](const auto& pkg) -> bool { return !package_is_requested(request, pkg); }
         );
     }
 
     auto transaction_to_solution_no_deps(  //
         const solv::ObjPool& pool,
         const solv::ObjTransaction& trans,
-        const util::flat_set<std::string>& user_specs
+        const Request& request
     ) -> Solution
     {
         return transaction_to_solution_impl(
             pool,
             trans,
-            [&](const auto& pkg) -> bool { return user_specs.contains(pkg.name); }
+            [&](const auto& pkg) -> bool { return package_is_requested(request, pkg); }
         );
     }
 

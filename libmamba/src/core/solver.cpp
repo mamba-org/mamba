@@ -100,7 +100,7 @@ namespace mamba
         m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, m_pool.matchspec2id(ms_modified));
     }
 
-    void MSolver::add_request(const Request& request)
+    void MSolver::set_request(Request request)
     {
         for (const auto& item : request.items)
         {
@@ -132,6 +132,7 @@ namespace mamba
                 item
             );
         }
+        m_request = std::move(request);
     }
 
     void MSolver::add_job_impl(const Request::Install& job)
@@ -262,6 +263,11 @@ namespace mamba
     const std::vector<specs::MatchSpec>& MSolver::remove_specs() const
     {
         return m_remove_specs;
+    }
+
+    auto MSolver::request() const -> const Request&
+    {
+        return m_request;
     }
 
     bool MSolver::try_solve()

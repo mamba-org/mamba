@@ -70,8 +70,6 @@ namespace mamba
         MSolver(MSolver&&);
         MSolver& operator=(MSolver&&);
 
-        void add_request(const Request& request);
-
         void set_flags(const Flags& flags);  // TODO temporary Itf meant to be passed in ctor
         [[nodiscard]] auto flags() const -> const Flags&;
         [[deprecated]] void py_set_libsolv_flags(const std::vector<std::pair<int, int>>& flags);
@@ -95,12 +93,16 @@ namespace mamba
         [[nodiscard]] const std::vector<specs::MatchSpec>& install_specs() const;
         [[nodiscard]] const std::vector<specs::MatchSpec>& remove_specs() const;
 
+        void set_request(Request request);
+        [[nodiscard]] const Request& request() const;
+
         auto solver() -> solv::ObjSolver&;
         auto solver() const -> const solv::ObjSolver&;
 
     private:
 
         std::vector<std::pair<int, int>> m_libsolv_flags;
+        Request m_request;
         std::vector<specs::MatchSpec> m_install_specs;
         std::vector<specs::MatchSpec> m_remove_specs;
         // Order of m_pool and m_solver is critical since m_pool must outlive m_solver.

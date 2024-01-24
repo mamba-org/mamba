@@ -162,7 +162,7 @@ namespace mamba
             // Console stream prints on destrucion
         }
 
-        solver.add_request(request);
+        solver.set_request(std::move(request));
 
         solver.must_solve();
 

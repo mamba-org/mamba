@@ -13,15 +13,10 @@
 
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/loop_control.hpp"
+#include "mamba/util/type_traits.hpp"
 
 namespace mamba::solver
 {
-    namespace detail
-    {
-        template <typename T, typename... U>
-        inline constexpr bool is_any_of_v = std::disjunction_v<std::is_same<T, U>...>;
-    }
-
     struct Solution
     {
         struct Omit
@@ -63,10 +58,10 @@ namespace mamba::solver
         };
 
         template <typename T>
-        inline static constexpr bool has_remove_v = detail::is_any_of_v<T, Upgrade, Downgrade, Change, Remove>;
+        inline static constexpr bool has_remove_v = util::is_any_of_v<T, Upgrade, Downgrade, Change, Remove>;
 
         template <typename T>
-        inline static constexpr bool has_install_v = detail::is_any_of_v<T, Upgrade, Downgrade, Change, Install>;
+        inline static constexpr bool has_install_v = util::is_any_of_v<T, Upgrade, Downgrade, Change, Install>;
 
         using Action = std::variant<Omit, Upgrade, Downgrade, Change, Reinstall, Remove, Install>;
         using action_list = std::vector<Action>;

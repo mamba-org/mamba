@@ -47,5 +47,7 @@ namespace mamba::util
     template <typename T>
     inline constexpr bool is_ostreamable_v = is_ostreamable<T>::value;
 
+    template <typename T, typename... U>
+    inline constexpr bool is_any_of_v = std::disjunction_v<std::is_same<T, U>...>;
 }
 #endif

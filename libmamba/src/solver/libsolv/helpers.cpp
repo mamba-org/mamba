@@ -23,6 +23,7 @@
 #include "mamba/util/cfile.hpp"
 #include "mamba/util/random.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/type_traits.hpp"
 
 #include "solver/helpers.hpp"
 #include "solver/libsolv/helpers.hpp"
@@ -948,15 +949,12 @@ namespace mamba::solver::libsolv
 
     namespace
     {
-        template <typename T, typename... U>
-        inline constexpr bool is_any_of_v = std::disjunction_v<std::is_same<T, U>...>;
-
         auto package_is_requested(const Request& request, const specs::PackageInfo& pkg) -> bool
         {
             auto job_matches = [&pkg](const auto& job) -> bool
             {
                 using Job = std::decay_t<decltype(job)>;
-                if constexpr (is_any_of_v<Job, Request::Install, Request::Remove, Request::Update>)
+                if constexpr (util::is_any_of_v<Job, Request::Install, Request::Remove, Request::Update>)
                 {
                     return job.spec.name().contains(pkg.name);
                 }

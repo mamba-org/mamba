@@ -90,9 +90,6 @@ namespace mamba
         [[nodiscard]] MPool& pool() &;
         [[nodiscard]] MPool&& pool() &&;
 
-        [[nodiscard]] const std::vector<specs::MatchSpec>& install_specs() const;
-        [[nodiscard]] const std::vector<specs::MatchSpec>& remove_specs() const;
-
         void set_request(Request request);
         [[nodiscard]] const Request& request() const;
 
@@ -103,8 +100,6 @@ namespace mamba
 
         std::vector<std::pair<int, int>> m_libsolv_flags;
         Request m_request;
-        std::vector<specs::MatchSpec> m_install_specs;
-        std::vector<specs::MatchSpec> m_remove_specs;
         // Order of m_pool and m_solver is critical since m_pool must outlive m_solver.
         MPool m_pool;
         // Temporary Pimpl all libsolv to keep it private

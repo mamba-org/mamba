@@ -248,21 +248,15 @@ namespace mamba
 
         if (solver.flags().keep_specs)
         {
-            auto to_string_vec = [](const std::vector<specs::MatchSpec>& vec
-                                 ) -> std::vector<std::string>
-            {
-                std::vector<std::string> res = {};
-                res.reserve(vec.size());
-                std::transform(
-                    vec.cbegin(),
-                    vec.cend(),
-                    std::back_inserter(res),
-                    [](auto const& el) { return el.str(); }
-                );
-                return res;
-            };
-            m_history_entry.update = to_string_vec(solver.install_specs());
-            m_history_entry.remove = to_string_vec(solver.remove_specs());
+            using Request = solver::Request;
+            solver::for_each_of<Request::Install, Request::Update>(
+                solver.request(),
+                [&](const auto& item) { m_history_entry.update.push_back(item.spec.str()); }
+            );
+            solver::for_each_of<Request::Remove, Request::Update>(
+                solver.request(),
+                [&](const auto& item) { m_history_entry.remove.push_back(item.spec.str()); }
+            );
         }
         else
         {
@@ -279,13 +273,19 @@ namespace mamba
             );
         }
 
+        auto requested_specs = std::vector<specs::MatchSpec>();
+        using Request = solver::Request;
+        solver::for_each_of<Request::Install, Request::Update>(
+            solver.request(),
+            [&](const auto& item) { requested_specs.push_back(item.spec); }
+        );
         const auto& context = m_pool.context();
         m_transaction_context = TransactionContext(
             context,
             context.prefix_params.target_prefix,
             context.prefix_params.relocate_prefix,
             find_python_version(m_solution, m_pool.pool()),
-            solver.install_specs()
+            std::move(requested_specs)
         );
 
         if (solver::libsolv::solution_needs_python_relink(pool, m_solution))

@@ -149,7 +149,6 @@ namespace mamba
 
     void MSolver::add_job_impl(const Request::Install& job)
     {
-        m_install_specs.emplace_back(job.spec);
         if (m_flags.force_reinstall)
         {
             add_reinstall_job(*m_jobs, m_pool.pool(), job.spec, m_pool.channel_context().params());
@@ -163,7 +162,6 @@ namespace mamba
 
     void MSolver::add_job_impl(const Request::Remove& job)
     {
-        m_remove_specs.emplace_back(job.spec);
         const auto job_id = m_pool.matchspec2id(job.spec);
         m_jobs->push_back(
             SOLVER_ERASE | SOLVER_SOLVABLE_PROVIDES | (job.clean_dependencies ? SOLVER_CLEANDEPS : 0),
@@ -173,8 +171,6 @@ namespace mamba
 
     void MSolver::add_job_impl(const Request::Update& job)
     {
-        m_install_specs.emplace_back(job.spec);
-        m_remove_specs.emplace_back(job.spec);
         const auto job_id = m_pool.matchspec2id(job.spec);
         // TODO: ignoring update specs here for now
         if (!job.spec.is_simple())
@@ -265,16 +261,6 @@ namespace mamba
     MPool&& MSolver::pool() &&
     {
         return std::move(m_pool);
-    }
-
-    const std::vector<specs::MatchSpec>& MSolver::install_specs() const
-    {
-        return m_install_specs;
-    }
-
-    const std::vector<specs::MatchSpec>& MSolver::remove_specs() const
-    {
-        return m_remove_specs;
     }
 
     auto MSolver::request() const -> const Request&

@@ -427,7 +427,7 @@ namespace mamba
                 );
             }
 #endif
-            PID pid;
+            static PID pid;
             std::error_code lec;
             static reproc::process proc;
 
@@ -445,19 +445,21 @@ namespace mamba
             MainExecutor::instance().schedule(
                 []()
                 {
-                    signal(
-                        SIGTERM,
-                        [](int /*signum*/)
+                    auto forward_signal = [](int signum)
+                    {
+                        kill(pid, signum);
+                    };
+
+                    for (int signum = 1; signum < NSIG; signum++)
+                    {
+                        if (signum != SIGCHLD)
                         {
-                            LOG_INFO << "Received SIGTERM on micromamba run - terminating process";
-                            reproc::stop_actions sa;
-                            sa.first = reproc::stop_action{ reproc::stop::terminate,
-                                                            std::chrono::milliseconds(3000) };
-                            sa.second = reproc::stop_action{ reproc::stop::kill,
-                                                             std::chrono::milliseconds(3000) };
-                            proc.stop(sa);
+                            struct sigaction sa;
+                            sa.sa_flags = 0;
+                            sa.sa_handler = forward_signal;
+                            sigaction(signum, &sa, nullptr);
                         }
-                    );
+                    }
                 }
             );
 #endif
@@ -468,9 +470,12 @@ namespace mamba
                 opt.redirect.parent = true;
             }
 
+
             ec = reproc::drain(proc, reproc::sink::null, reproc::sink::null);
 
-            std::tie(status, ec) = proc.stop(opt.stop);
+            do {
+                std::tie(status, ec) = proc.stop(opt.stop);
+            } while (ec.value() == 4); // we get error code 4 in case of a signal; Just call stop again
 
             if (ec)
             {

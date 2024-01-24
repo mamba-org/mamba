@@ -33,7 +33,6 @@ namespace mamba
         : m_libsolv_flags(std::move(flags))
         , m_pool(std::move(pool))
         , m_solver(nullptr)
-        , m_jobs(std::make_unique<solv::ObjQueue>())
         , m_is_solved(false)
     {
     }
@@ -208,39 +207,6 @@ namespace mamba
 
     void MSolver::set_request(Request request)
     {
-        const auto& chan_params = m_pool.channel_context().params();
-        for (const auto& item : request.items)
-        {
-            std::visit(
-                [&](const auto& r)
-                {
-                    if constexpr (std::is_same_v<std::decay_t<decltype(r)>, Request::Pin>)
-                    {
-                        add_job_impl(r, *m_jobs, m_pool.pool(), chan_params, m_flags.force_reinstall)
-                            .or_else([](mamba_error&& error) { throw std::move(error); });
-                    }
-                },
-                item
-            );
-        }
-        // Fragile: Pins add solvables to Pol and hence require a call to create_whatprovides.
-        // Channel specific MatchSpec write to whatprovides and hence require it is not modified
-        // afterwards.
-        m_pool.create_whatprovides();
-        for (const auto& item : request.items)
-        {
-            std::visit(
-                [&](const auto& r)
-                {
-                    if constexpr (!std::is_same_v<std::decay_t<decltype(r)>, Request::Pin>)
-                    {
-                        add_job_impl(r, *m_jobs, m_pool.pool(), chan_params, m_flags.force_reinstall)
-                            .or_else([](mamba_error&& error) { throw std::move(error); });
-                    }
-                },
-                item
-            );
-        }
         m_request = std::move(request);
     }
 
@@ -295,10 +261,46 @@ namespace mamba
 
     bool MSolver::try_solve()
     {
+        auto solv_jobs = solv::ObjQueue();
+
+        const auto& chan_params = m_pool.channel_context().params();
+        for (const auto& item : m_request.items)
+        {
+            std::visit(
+                [&](const auto& r)
+                {
+                    if constexpr (std::is_same_v<std::decay_t<decltype(r)>, Request::Pin>)
+                    {
+                        add_job_impl(r, solv_jobs, m_pool.pool(), chan_params, m_flags.force_reinstall)
+                            .or_else([](mamba_error&& error) { throw std::move(error); });
+                    }
+                },
+                item
+            );
+        }
+        // Fragile: Pins add solvables to Pol and hence require a call to create_whatprovides.
+        // Channel specific MatchSpec write to whatprovides and hence require it is not modified
+        // afterwards.
+        m_pool.create_whatprovides();
+        for (const auto& item : m_request.items)
+        {
+            std::visit(
+                [&](const auto& r)
+                {
+                    if constexpr (!std::is_same_v<std::decay_t<decltype(r)>, Request::Pin>)
+                    {
+                        add_job_impl(r, solv_jobs, m_pool.pool(), chan_params, m_flags.force_reinstall)
+                            .or_else([](mamba_error&& error) { throw std::move(error); });
+                    }
+                },
+                item
+            );
+        }
+
         m_solver = std::make_unique<solv::ObjSolver>(m_pool.pool());
         apply_libsolv_flags();
 
-        const bool success = solver().solve(m_pool.pool(), *m_jobs);
+        const bool success = solver().solve(m_pool.pool(), solv_jobs);
         m_is_solved = true;
         LOG_INFO << "Problem count: " << solver().problem_count();
         Console::instance().json_write({ { "success", success } });

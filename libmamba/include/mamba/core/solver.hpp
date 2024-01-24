@@ -22,12 +22,10 @@
 #include "mamba/core/pool.hpp"
 #include "mamba/core/satisfiability_error.hpp"
 #include "mamba/solver/request.hpp"
-#include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
 
 namespace mamba::solv
 {
-    class ObjQueue;
     class ObjSolver;
 }
 
@@ -104,7 +102,6 @@ namespace mamba
         MPool m_pool;
         // Temporary Pimpl all libsolv to keep it private
         std::unique_ptr<solv::ObjSolver> m_solver;
-        std::unique_ptr<solv::ObjQueue> m_jobs;
         Flags m_flags = {};
         bool m_is_solved;
 

@@ -56,7 +56,7 @@ namespace mamba
 
     namespace
     {
-        auto add_reinstall_job(
+        [[nodiscard]] auto add_reinstall_job(
             solv::ObjQueue& jobs,
             solv::ObjPool& pool,
             const specs::MatchSpec& ms,
@@ -110,6 +110,89 @@ namespace mamba
             return solver::libsolv::pool_add_matchspec(pool, ms_modified, params)
                 .transform([&](auto id) { jobs.push_back(install_flag, id); });
         }
+
+        template <typename Item>
+        void add_job_impl(
+            const Item& item,
+            solv::ObjQueue& jobs,
+            solv::ObjPool& pool,
+            const specs::ChannelResolveParams& params,
+            bool force_reinstall
+        )
+        {
+            if constexpr (std::is_same_v<Item, solver::Request::Install>)
+            {
+                if (force_reinstall)
+                {
+                    add_reinstall_job(jobs, pool, item.spec, params)
+                        .or_else([](mamba_error&& error) { throw std::move(error); });
+                }
+                else
+                {
+                    jobs.push_back(
+                        SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES,
+                        solver::libsolv::pool_add_matchspec(pool, item.spec, params).value()
+                    );
+                }
+            }
+            if constexpr (std::is_same_v<Item, solver::Request::Remove>)
+            {
+                jobs.push_back(
+                    SOLVER_ERASE | SOLVER_SOLVABLE_PROVIDES
+                        | (item.clean_dependencies ? SOLVER_CLEANDEPS : 0),
+                    solver::libsolv::pool_add_matchspec(pool, item.spec, params).value()
+                );
+            }
+            if constexpr (std::is_same_v<Item, solver::Request::Update>)
+            {
+                const auto id = solver::libsolv::pool_add_matchspec(pool, item.spec, params).value();
+                // TODO: ignoring update specs here for now
+                if (!item.spec.is_simple())
+                {
+                    jobs.push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, id);
+                }
+                jobs.push_back(SOLVER_UPDATE | SOLVER_SOLVABLE_PROVIDES, id);
+            }
+            if constexpr (std::is_same_v<Item, solver::Request::UpdateAll>)
+            {
+                jobs.push_back(
+                    SOLVER_UPDATE | SOLVER_SOLVABLE_ALL
+                        | (item.clean_dependencies ? SOLVER_CLEANDEPS : 0),
+                    0
+                );
+            }
+            if constexpr (std::is_same_v<Item, solver::Request::Freeze>)
+            {
+                jobs.push_back(
+                    SOLVER_LOCK,
+                    solver::libsolv::pool_add_matchspec(pool, item.spec, params).value()
+                );
+            }
+            if constexpr (std::is_same_v<Item, solver::Request::Keep>)
+            {
+                jobs.push_back(
+                    SOLVER_USERINSTALLED,
+                    solver::libsolv::pool_add_matchspec(pool, item.spec, params).value()
+                );
+            }
+            if constexpr (std::is_same_v<Item, solver::Request::Pin>)
+            {
+                solver::libsolv::pool_add_pin(pool, item.spec, params)
+                    .transform(
+                        [&](solv::ObjSolvableView pin_solv)
+                        {
+                            auto const name_id = pool.add_string(pin_solv.name());
+                            // WARNING keep separate or libsolv does not understand
+                            // Force verify the dummy solvable dependencies, as this is not the
+                            // default for installed packages.
+                            jobs.push_back(SOLVER_VERIFY, name_id);
+                            // Lock the dummy solvable so that it stays install.
+                            jobs.push_back(SOLVER_LOCK, name_id);
+                        }
+                    )
+                    .or_else([](mamba_error&& error) { throw std::move(error); });
+            }
+        }
     }
 
     void MSolver::set_request(Request request)
@@ -121,7 +204,13 @@ namespace mamba
                 {
                     if constexpr (std::is_same_v<std::decay_t<decltype(r)>, Request::Pin>)
                     {
-                        add_job_impl(r);
+                        add_job_impl(
+                            r,
+                            *m_jobs,
+                            m_pool.pool(),
+                            m_pool.channel_context().params(),
+                            m_flags.force_reinstall
+                        );
                     }
                 },
                 item
@@ -138,85 +227,19 @@ namespace mamba
                 {
                     if constexpr (!std::is_same_v<std::decay_t<decltype(r)>, Request::Pin>)
                     {
-                        add_job_impl(r);
+                        add_job_impl(
+                            r,
+                            *m_jobs,
+                            m_pool.pool(),
+                            m_pool.channel_context().params(),
+                            m_flags.force_reinstall
+                        );
                     }
                 },
                 item
             );
         }
         m_request = std::move(request);
-    }
-
-    void MSolver::add_job_impl(const Request::Install& job)
-    {
-        if (m_flags.force_reinstall)
-        {
-            add_reinstall_job(*m_jobs, m_pool.pool(), job.spec, m_pool.channel_context().params());
-        }
-        else
-        {
-            const auto job_id = m_pool.matchspec2id(job.spec);
-            m_jobs->push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, job_id);
-        }
-    }
-
-    void MSolver::add_job_impl(const Request::Remove& job)
-    {
-        const auto job_id = m_pool.matchspec2id(job.spec);
-        m_jobs->push_back(
-            SOLVER_ERASE | SOLVER_SOLVABLE_PROVIDES | (job.clean_dependencies ? SOLVER_CLEANDEPS : 0),
-            job_id
-        );
-    }
-
-    void MSolver::add_job_impl(const Request::Update& job)
-    {
-        const auto job_id = m_pool.matchspec2id(job.spec);
-        // TODO: ignoring update specs here for now
-        if (!job.spec.is_simple())
-        {
-            m_jobs->push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, job_id);
-        }
-        m_jobs->push_back(SOLVER_UPDATE | SOLVER_SOLVABLE_PROVIDES, job_id);
-    }
-
-    void MSolver::add_job_impl(const Request::UpdateAll& job)
-    {
-        m_jobs->push_back(
-            SOLVER_UPDATE | SOLVER_SOLVABLE_ALL | (job.clean_dependencies ? SOLVER_CLEANDEPS : 0),
-            0
-        );
-    }
-
-    void MSolver::add_job_impl(const Request::Freeze& job)
-    {
-        const auto job_id = m_pool.matchspec2id(job.spec);
-        m_jobs->push_back(SOLVER_LOCK, job_id);
-    }
-
-    void MSolver::add_job_impl(const Request::Keep& job)
-    {
-        const auto job_id = m_pool.matchspec2id(job.spec);
-        m_jobs->push_back(SOLVER_USERINSTALLED, job_id);
-    }
-
-    void MSolver::add_job_impl(const Request::Pin& job)
-    {
-        auto& pool = m_pool.pool();
-        solver::libsolv::pool_add_pin(pool, job.spec, m_pool.channel_context().params())
-            .transform(
-                [&](solv::ObjSolvableView pin_solv)
-                {
-                    auto const name_id = pool.add_string(pin_solv.name());
-                    // WARNING keep separate or libsolv does not understand
-                    // Force verify the dummy solvable dependencies, as this is not the default for
-                    // installed packages.
-                    m_jobs->push_back(SOLVER_VERIFY, name_id);
-                    // Lock the dummy solvable so that it stays install.
-                    m_jobs->push_back(SOLVER_LOCK, name_id);
-                }
-            )
-            .or_else([](mamba_error&& error) { throw std::move(error); });
     }
 
     void MSolver::set_flags(const Flags& flags)

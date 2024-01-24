@@ -109,14 +109,6 @@ namespace mamba
         bool m_is_solved;
 
         void apply_libsolv_flags();
-
-        void add_job_impl(const Request::Install& job);
-        void add_job_impl(const Request::Remove& job);
-        void add_job_impl(const Request::Update& job);
-        void add_job_impl(const Request::UpdateAll& job);
-        void add_job_impl(const Request::Freeze& job);
-        void add_job_impl(const Request::Keep& job);
-        void add_job_impl(const Request::Pin& job);
     };
 }  // namespace mamba
 

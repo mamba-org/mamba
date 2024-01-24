@@ -264,13 +264,20 @@ namespace mamba
         {
             m_solution = solver::libsolv::transaction_to_solution(m_pool.pool(), trans);
         }
-        else
+        else if (flags.keep_specs && !flags.keep_dependencies)
         {
-            m_solution = solver::libsolv::transaction_to_solution(
+            m_solution = solver::libsolv::transaction_to_solution_no_deps(
                 m_pool.pool(),
                 trans,
-                specs_names(solver),
-                !(flags.keep_specs)
+                specs_names(solver)
+            );
+        }
+        else if (!flags.keep_specs && flags.keep_dependencies)
+        {
+            m_solution = solver::libsolv::transaction_to_solution_only_deps(
+                m_pool.pool(),
+                trans,
+                specs_names(solver)
             );
         }
 

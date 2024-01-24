@@ -82,12 +82,21 @@ namespace mamba::solver::libsolv
         const specs::ChannelResolveParams& params
     ) -> expected_t<solv::ObjSolvableView>;
 
-    [[nodiscard]] auto transaction_to_solution(
+    [[nodiscard]] auto transaction_to_solution(  //
+        const solv::ObjPool& pool,
+        const solv::ObjTransaction& trans
+    ) -> Solution;
+
+    [[nodiscard]] auto transaction_to_solution_only_deps(  //
         const solv::ObjPool& pool,
         const solv::ObjTransaction& trans,
-        const util::flat_set<std::string>& specs = {},
-        /** true to filter out specs, false to filter in specs */
-        bool keep_only = true
+        const util::flat_set<std::string>& user_specs
+    ) -> Solution;
+
+    [[nodiscard]] auto transaction_to_solution_no_deps(  //
+        const solv::ObjPool& pool,
+        const solv::ObjTransaction& trans,
+        const util::flat_set<std::string>& user_specs
     ) -> Solution;
 
     [[nodiscard]] auto installed_python(const solv::ObjPool& pool)

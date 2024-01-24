@@ -113,7 +113,6 @@ namespace mamba
         Flags m_flags = {};
         bool m_is_solved;
 
-        void add_reinstall_job(const specs::MatchSpec& ms, int job_flag);
         void apply_libsolv_flags();
 
         void add_job_impl(const Request::Install& job);

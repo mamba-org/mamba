@@ -54,50 +54,62 @@ namespace mamba
         return *m_solver;
     }
 
-    void MSolver::add_reinstall_job(const specs::MatchSpec& ms, int job_flag)
+    namespace
     {
-        auto solvable = std::optional<solv::ObjSolvableViewConst>{};
+        auto add_reinstall_job(
+            solv::ObjQueue& jobs,
+            solv::ObjPool& pool,
+            const specs::MatchSpec& ms,
+            const specs::ChannelResolveParams& params
+        ) -> expected_t<void>
+        {
+            static constexpr int install_flag = SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES;
 
-        // the data about the channel is only in the prefix_data unfortunately
-        m_pool.pool().for_each_installed_solvable(
-            [&](solv::ObjSolvableViewConst s)
-            {
-                if (ms.name().contains(s.name()))
+            auto solvable = std::optional<solv::ObjSolvableViewConst>{};
+
+            // the data about the channel is only in the prefix_data unfortunately
+            pool.for_each_installed_solvable(
+                [&](solv::ObjSolvableViewConst s)
                 {
-                    solvable = s;
-                    return solv::LoopControl::Break;
+                    if (ms.name().contains(s.name()))
+                    {
+                        solvable = s;
+                        return solv::LoopControl::Break;
+                    }
+                    return solv::LoopControl::Continue;
                 }
-                return solv::LoopControl::Continue;
+            );
+
+            if (!solvable.has_value() || solvable->channel().empty())
+            {
+                // We are not reinstalling but simply installing.
+                // Right now, using `--force-reinstall` will send all specs (whether they have
+                // been previously installed or not) down this path, so we need to handle specs
+                // that are not installed.
+                return solver::libsolv::pool_add_matchspec(pool, ms, params)
+                    .transform([&](auto id) { jobs.push_back(install_flag, id); });
             }
-        );
 
-        if (!solvable.has_value() || solvable->channel().empty())
-        {
-            // We are not reinstalling but simply installing.
-            // Right now, using `--force-reinstall` will send all specs (whether they have
-            // been previously installed or not) down this path, so we need to handle specs
-            // that are not installed.
-            return m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, m_pool.matchspec2id(ms));
+            if (ms.channel().has_value() || !ms.version().is_explicitly_free()
+                || !ms.build_string().is_free())
+            {
+                Console::stream() << ms.conda_build_form()
+                                  << ": overriding channel, version and build from "
+                                     "installed packages due to --force-reinstall.";
+            }
+
+            auto ms_modified = ms;
+            ms_modified.set_channel(specs::UnresolvedChannel::parse(solvable->channel()));
+            ms_modified.set_version(specs::VersionSpec::parse(solvable->version()));
+            ms_modified.set_build_string(specs::GlobSpec(std::string(solvable->build_string())));
+
+            LOG_INFO << "Reinstall " << ms_modified.conda_build_form() << " from channel "
+                     << ms_modified.channel()->str();
+            // TODO Fragile! The only reason why this works is that with a channel specific
+            // matchspec the job will always be reinstalled.
+            return solver::libsolv::pool_add_matchspec(pool, ms_modified, params)
+                .transform([&](auto id) { jobs.push_back(install_flag, id); });
         }
-
-        if (ms.channel().has_value() || !ms.version().is_explicitly_free()
-            || !ms.build_string().is_free())
-        {
-            Console::stream() << ms.conda_build_form()
-                              << ": overriding channel, version and build from "
-                                 "installed packages due to --force-reinstall.";
-        }
-
-        auto ms_modified = ms;
-        ms_modified.set_channel(specs::UnresolvedChannel::parse(solvable->channel()));
-        ms_modified.set_version(specs::VersionSpec::parse(solvable->version()));
-        ms_modified.set_build_string(specs::GlobSpec(std::string(solvable->build_string())));
-
-        LOG_INFO << "Reinstall " << ms_modified.conda_build_form() << " from channel "
-                 << ms_modified.channel()->str();
-        // TODO Fragile! The only reason why this works is that with a channel specific matchspec
-        // the job will always be reinstalled.
-        m_jobs->push_back(job_flag | SOLVER_SOLVABLE_PROVIDES, m_pool.matchspec2id(ms_modified));
     }
 
     void MSolver::set_request(Request request)
@@ -140,7 +152,7 @@ namespace mamba
         m_install_specs.emplace_back(job.spec);
         if (m_flags.force_reinstall)
         {
-            add_reinstall_job(job.spec, SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES);
+            add_reinstall_job(*m_jobs, m_pool.pool(), job.spec, m_pool.channel_context().params());
         }
         else
         {

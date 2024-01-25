@@ -1,5 +1,3 @@
-// Copyright (c) 2023, QuantStack and Mamba Contributors
-//
 // Distributed under the terms of the BSD 3-Clause License.
 //
 // The full license is in the file LICENSE, distributed with this software.
@@ -107,10 +105,50 @@ namespace mambapy
         // Type made opaque at the top of this file
         py::bind_vector<Request::item_list>(py_request, "ItemList");
 
+        py::class_<Request::Flags>(py_request, "Flags")
+            .def(
+                py::init(
+                    [](bool keep_dependencies,
+                       bool keep_user_specs,
+                       bool force_reinstall,
+                       bool allow_downgrade,
+                       bool allow_uninstall,
+                       bool strict_repo_priority) -> Request::Flags
+                    {
+                        return {
+                            /* .keep_dependencies= */ keep_dependencies,
+                            /* .keep_user_specs= */ keep_user_specs,
+                            /* .force_reinstall= */ force_reinstall,
+                            /* .allow_downgrade= */ allow_downgrade,
+                            /* .allow_uninstall= */ allow_uninstall,
+                            /* .strict_repo_priority= */ strict_repo_priority,
+                        };
+                    }
+                ),
+                py::arg("keep_dependencies") = true,
+                py::arg("keep_user_specs") = true,
+                py::arg("force_reinstall") = false,
+                py::arg("allow_downgrade") = true,
+                py::arg("allow_uninstall") = true,
+                py::arg("strict_repo_priority") = true
+            )
+            .def_readwrite("keep_dependencies", &Request::Flags::keep_dependencies)
+            .def_readwrite("keep_user_specs", &Request::Flags::keep_user_specs)
+            .def_readwrite("force_reinstall", &Request::Flags::force_reinstall)
+            .def_readwrite("allow_downgrade", &Request::Flags::allow_downgrade)
+            .def_readwrite("allow_uninstall", &Request::Flags::allow_uninstall)
+            .def_readwrite("strict_repo_priority", &Request::Flags::strict_repo_priority)
+            .def("__copy__", &copy<Request::Flags>)
+            .def("__deepcopy__", &deepcopy<Request::Flags>, py::arg("memo"));
+
         py_request
             .def(
                 // Big copy unfortunately
-                py::init([](Request::item_list items) -> Request { return { std::move(items) }; })
+                py::init(
+                    [](Request::Flags flags, Request::item_list items) -> Request {
+                        return { std::move(flags), std::move(items) };
+                    }
+                )
             )
             .def(py::init(
                 [](py::iterable items) -> Request
@@ -124,6 +162,7 @@ namespace mambapy
                     return request;
                 }
             ))
+            .def_readwrite("flags", &Request::flags)
             .def_readwrite("items", &Request::items)
             .def("__copy__", &copy<Request>)
             .def("__deepcopy__", &deepcopy<Request>, py::arg("memo"));

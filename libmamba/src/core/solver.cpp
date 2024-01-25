@@ -28,9 +28,8 @@
 
 namespace mamba
 {
-    MSolver::MSolver(MPool pool, std::vector<std::pair<int, int>> flags)
-        : m_libsolv_flags(std::move(flags))
-        , m_pool(std::move(pool))
+    MSolver::MSolver(MPool pool)
+        : m_pool(std::move(pool))
         , m_solver(nullptr)
         , m_is_solved(false)
     {
@@ -55,30 +54,6 @@ namespace mamba
     void MSolver::set_request(Request request)
     {
         m_request = std::move(request);
-    }
-
-    void MSolver::set_flags(const Flags& flags)
-    {
-        m_flags = flags;
-    }
-
-    auto MSolver::flags() const -> const Flags&
-    {
-        return m_flags;
-    }
-
-    void MSolver::py_set_libsolv_flags(const std::vector<std::pair<int, int>>& flags)
-    {
-        m_libsolv_flags = flags;
-    }
-
-    void MSolver::apply_libsolv_flags()
-    {
-        // TODO use new API
-        for (const auto& option : m_libsolv_flags)
-        {
-            solver_set_flag(m_solver->raw(), option.first, option.second);
-        }
     }
 
     bool MSolver::is_solved() const
@@ -106,13 +81,23 @@ namespace mamba
         return m_request;
     }
 
+    namespace
+    {
+        void set_solver_flags(solv::ObjSolver& solver, const solver::Request::Flags& flags)
+        {
+            ::solver_set_flag(solver.raw(), SOLVER_FLAG_ALLOW_DOWNGRADE, flags.allow_downgrade);
+            ::solver_set_flag(solver.raw(), SOLVER_FLAG_ALLOW_UNINSTALL, flags.allow_uninstall);
+            ::solver_set_flag(solver.raw(), SOLVER_FLAG_STRICT_REPO_PRIORITY, flags.strict_repo_priority);
+        }
+    }
+
     bool MSolver::try_solve()
     {
         auto solv_jobs = solver::libsolv::request_to_decision_queue(
             m_request,
             m_pool.pool(),
             m_pool.channel_context().params(),
-            m_flags.force_reinstall
+            m_request.flags.force_reinstall
         );
         if (!solv_jobs)
         {
@@ -120,7 +105,7 @@ namespace mamba
         }
 
         m_solver = std::make_unique<solv::ObjSolver>(m_pool.pool());
-        apply_libsolv_flags();
+        set_solver_flags(*m_solver, m_request.flags);
 
         const bool success = solver().solve(m_pool.pool(), solv_jobs.value());
         m_is_solved = true;

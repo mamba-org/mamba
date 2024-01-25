@@ -48,29 +48,15 @@ namespace mamba
     {
     public:
 
-        struct Flags
-        {
-            /** Keep the dependencies of the install package in the solution. */
-            bool keep_dependencies = true;
-            /** Keep the original required package in the solution. */
-            bool keep_specs = true;
-            /** Force reinstallation of jobs. */
-            bool force_reinstall = false;
-        };
-
         using Request = solver::Request;
 
-        MSolver(MPool pool, std::vector<std::pair<int, int>> flags = {});
+        MSolver(MPool pool);
         ~MSolver();
 
         MSolver(const MSolver&) = delete;
         MSolver& operator=(const MSolver&) = delete;
         MSolver(MSolver&&);
         MSolver& operator=(MSolver&&);
-
-        void set_flags(const Flags& flags);  // TODO temporary Itf meant to be passed in ctor
-        [[nodiscard]] auto flags() const -> const Flags&;
-        [[deprecated]] void py_set_libsolv_flags(const std::vector<std::pair<int, int>>& flags);
 
         [[nodiscard]] bool try_solve();
         void must_solve();
@@ -96,13 +82,11 @@ namespace mamba
 
     private:
 
-        std::vector<std::pair<int, int>> m_libsolv_flags;
         Request m_request;
         // Order of m_pool and m_solver is critical since m_pool must outlive m_solver.
         MPool m_pool;
         // Temporary Pimpl all libsolv to keep it private
         std::unique_ptr<solv::ObjSolver> m_solver;
-        Flags m_flags = {};
         bool m_is_solved;
 
         void apply_libsolv_flags();

@@ -16,6 +16,7 @@
 #include <solv/repo_solv.h>
 #include <solv/repo_write.h>
 #include <solv/solvable.h>
+#include <solv/solver.h>
 
 #include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
@@ -831,7 +832,7 @@ namespace mamba::solver::libsolv
                 return get_pkginfo(maybe_newer_id.value());
             };
 
-            auto out = solver::Solution::action_list();
+            auto out = Solution::action_list();
             out.reserve(trans.size());
             trans.for_each_step_id(
                 [&](const solv::SolvableId id)
@@ -942,7 +943,7 @@ namespace mamba::solver::libsolv
     }
 
     auto transaction_to_solution(const solv::ObjPool& pool, const solv::ObjTransaction& trans)
-        -> solver::Solution
+        -> Solution
     {
         return transaction_to_solution_impl(pool, trans, [](const auto&) { return true; });
     }
@@ -1095,5 +1096,210 @@ namespace mamba::solver::libsolv
             }
         );
         return solution;
+    }
+
+    namespace
+    {
+        [[nodiscard]] auto add_reinstall_job(
+            solv::ObjQueue& jobs,
+            solv::ObjPool& pool,
+            const specs::MatchSpec& ms,
+            const specs::ChannelResolveParams& params
+        ) -> expected_t<void>
+        {
+            static constexpr int install_flag = SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES;
+
+            auto solvable = std::optional<solv::ObjSolvableViewConst>{};
+
+            // the data about the channel is only in the prefix_data unfortunately
+            pool.for_each_installed_solvable(
+                [&](solv::ObjSolvableViewConst s)
+                {
+                    if (ms.name().contains(s.name()))
+                    {
+                        solvable = s;
+                        return solv::LoopControl::Break;
+                    }
+                    return solv::LoopControl::Continue;
+                }
+            );
+
+            if (!solvable.has_value() || solvable->channel().empty())
+            {
+                // We are not reinstalling but simply installing.
+                // Right now, using `--force-reinstall` will send all specs (whether they have
+                // been previously installed or not) down this path, so we need to handle specs
+                // that are not installed.
+                return pool_add_matchspec(pool, ms, params)
+                    .transform([&](auto id) { jobs.push_back(install_flag, id); });
+            }
+
+            if (ms.channel().has_value() || !ms.version().is_explicitly_free()
+                || !ms.build_string().is_free())
+            {
+                Console::stream() << ms.conda_build_form()
+                                  << ": overriding channel, version and build from "
+                                     "installed packages due to --force-reinstall.";
+            }
+
+            auto ms_modified = ms;
+            ms_modified.set_channel(specs::UnresolvedChannel::parse(solvable->channel()));
+            ms_modified.set_version(specs::VersionSpec::parse(solvable->version()));
+            ms_modified.set_build_string(specs::GlobSpec(std::string(solvable->build_string())));
+
+            LOG_INFO << "Reinstall " << ms_modified.conda_build_form() << " from channel "
+                     << ms_modified.channel()->str();
+            // TODO Fragile! The only reason why this works is that with a channel specific
+            // matchspec the job will always be reinstalled.
+            return pool_add_matchspec(pool, ms_modified, params)
+                .transform([&](auto id) { jobs.push_back(install_flag, id); });
+        }
+
+        template <typename Item>
+        [[nodiscard]] auto add_job(
+            const Item& item,
+            solv::ObjQueue& jobs,
+            solv::ObjPool& pool,
+            const specs::ChannelResolveParams& params,
+            bool force_reinstall
+        ) -> expected_t<void>
+        {
+            if constexpr (std::is_same_v<Item, Request::Install>)
+            {
+                if (force_reinstall)
+                {
+                    return add_reinstall_job(jobs, pool, item.spec, params);
+                }
+                else
+                {
+                    return pool_add_matchspec(pool, item.spec, params)
+                        .transform([&](auto id)
+                                   { jobs.push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, id); }
+                        );
+                }
+            }
+            if constexpr (std::is_same_v<Item, Request::Remove>)
+            {
+                return pool_add_matchspec(pool, item.spec, params)
+                    .transform(
+                        [&](auto id)
+                        {
+                            jobs.push_back(
+                                SOLVER_ERASE | SOLVER_SOLVABLE_PROVIDES
+                                    | (item.clean_dependencies ? SOLVER_CLEANDEPS : 0),
+                                id
+                            );
+                        }
+                    );
+            }
+            if constexpr (std::is_same_v<Item, Request::Update>)
+            {
+                return pool_add_matchspec(pool, item.spec, params)
+                    .transform(
+                        [&](auto id)
+                        {
+                            // TODO: ignoring update specs here for now
+                            if (!item.spec.is_simple())
+                            {
+                                jobs.push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, id);
+                            }
+                            jobs.push_back(SOLVER_UPDATE | SOLVER_SOLVABLE_PROVIDES, id);
+                        }
+                    );
+            }
+            if constexpr (std::is_same_v<Item, Request::UpdateAll>)
+            {
+                jobs.push_back(
+                    SOLVER_UPDATE | SOLVER_SOLVABLE_ALL
+                        | (item.clean_dependencies ? SOLVER_CLEANDEPS : 0),
+                    0
+                );
+                return {};
+            }
+            if constexpr (std::is_same_v<Item, Request::Freeze>)
+            {
+                return pool_add_matchspec(pool, item.spec, params)
+                    .transform([&](auto id) { jobs.push_back(SOLVER_LOCK, id); });
+            }
+            if constexpr (std::is_same_v<Item, Request::Keep>)
+            {
+                jobs.push_back(
+                    SOLVER_USERINSTALLED,
+                    pool_add_matchspec(pool, item.spec, params).value()
+                );
+                return {};
+            }
+            if constexpr (std::is_same_v<Item, Request::Pin>)
+            {
+                return pool_add_pin(pool, item.spec, params)
+                    .transform(
+                        [&](solv::ObjSolvableView pin_solv)
+                        {
+                            auto const name_id = pool.add_string(pin_solv.name());
+                            // WARNING keep separate or libsolv does not understand
+                            // Force verify the dummy solvable dependencies, as this is not the
+                            // default for installed packages.
+                            jobs.push_back(SOLVER_VERIFY, name_id);
+                            // Lock the dummy solvable so that it stays install.
+                            jobs.push_back(SOLVER_LOCK, name_id);
+                        }
+                    );
+            }
+            assert(false);
+            return {};
+        }
+    }
+
+    auto request_to_decision_queue(
+        const Request& request,
+        solv::ObjPool& pool,
+        const specs::ChannelResolveParams& chan_params,
+        bool force_reinstall
+    ) -> expected_t<solv::ObjQueue>
+    {
+        auto solv_jobs = solv::ObjQueue();
+
+        auto error = expected_t<void>();
+        for (const auto& item : request.items)
+        {
+            auto xpt = std::visit(
+                [&](const auto& r) -> expected_t<void>
+                {
+                    if constexpr (std::is_same_v<std::decay_t<decltype(r)>, Request::Pin>)
+                    {
+                        return add_job(r, solv_jobs, pool, chan_params, force_reinstall);
+                    }
+                    return {};
+                },
+                item
+            );
+            if (!xpt)
+            {
+                return forward_error(std::move(xpt));
+            }
+        }
+        // Fragile: Pins add solvables to Pol and hence require a call to create_whatprovides.
+        // Channel specific MatchSpec write to whatprovides and hence require it is not modified
+        // afterwards.
+        pool.create_whatprovides();
+        for (const auto& item : request.items)
+        {
+            auto xpt = std::visit(
+                [&](const auto& r) -> expected_t<void>
+                {
+                    if constexpr (!std::is_same_v<std::decay_t<decltype(r)>, Request::Pin>)
+                    {
+                        return add_job(r, solv_jobs, pool, chan_params, force_reinstall);
+                    }
+                    return {};
+                },
+                item
+            );
+            if (!xpt)
+            {
+                return forward_error(std::move(xpt));
+            }
+        }
+        return { std::move(solv_jobs) };
     }
 }

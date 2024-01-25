@@ -114,5 +114,11 @@ namespace mamba::solver::libsolv
         std::string_view noarch_type
     ) -> Solution;
 
+    [[nodiscard]] auto request_to_decision_queue(
+        const Request& request,
+        solv::ObjPool& pool,
+        const specs::ChannelResolveParams& chan_params,
+        bool force_reinstall
+    ) -> expected_t<solv::ObjQueue>;
 }
 #endif

@@ -33,10 +33,12 @@ namespace mamba
     public:
 
         TransactionContext();
+        TransactionContext(TransactionContext&&) = default;
 
         explicit TransactionContext(const Context& context);
 
-        TransactionContext& operator=(const TransactionContext&);
+        TransactionContext& operator=(TransactionContext&&) = default;
+
         TransactionContext(
             const Context& context,
             const fs::u8path& target_prefix,
@@ -68,7 +70,6 @@ namespace mamba
         bool always_softlink = false;
         bool compile_pyc = true;
         // this needs to be done when python version changes
-        bool relink_noarch = false;
         std::vector<specs::MatchSpec> requested_specs;
 
         const Context& context() const

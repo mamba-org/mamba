@@ -7,9 +7,14 @@
 #ifndef MAMBA_SOLVER_LIBSOLV_HERLPERS
 #define MAMBA_SOLVER_LIBSOLV_HERLPERS
 
+#include <optional>
+#include <string>
+#include <string_view>
+
 #include "mamba/core/error_handling.hpp"
-#include "mamba/core/solution.hpp"
 #include "mamba/solver/libsolv/parameters.hpp"
+#include "mamba/solver/request.hpp"
+#include "mamba/solver/solution.hpp"
 #include "mamba/specs/channel.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
@@ -17,6 +22,10 @@
 #include "solv-cpp/repo.hpp"
 #include "solv-cpp/solvable.hpp"
 #include "solv-cpp/transaction.hpp"
+
+/**
+ * Solver, repo, and solvable helpers dependent on specifi libsolv logic and objects.
+ */
 
 namespace mamba::fs
 {
@@ -74,12 +83,42 @@ namespace mamba::solver::libsolv
         const specs::ChannelResolveParams& params
     ) -> expected_t<solv::ObjSolvableView>;
 
-    [[nodiscard]] auto transaction_to_solution(
+    [[nodiscard]] auto transaction_to_solution(  //
+        const solv::ObjPool& pool,
+        const solv::ObjTransaction& trans
+    ) -> Solution;
+
+    [[nodiscard]] auto transaction_to_solution_only_deps(  //
         const solv::ObjPool& pool,
         const solv::ObjTransaction& trans,
-        const util::flat_set<std::string>& specs = {},
-        /** true to filter out specs, false to filter in specs */
-        bool keep_only = true
+        const Request& request
     ) -> Solution;
+
+    [[nodiscard]] auto transaction_to_solution_no_deps(  //
+        const solv::ObjPool& pool,
+        const solv::ObjTransaction& trans,
+        const Request& request
+    ) -> Solution;
+
+    [[nodiscard]] auto installed_python(const solv::ObjPool& pool)
+        -> std::optional<solv::ObjSolvableViewConst>;
+
+    [[nodiscard]] auto solution_needs_python_relink(  //
+        const solv::ObjPool& pool,
+        const Solution& solution
+    ) -> bool;
+
+    [[nodiscard]] auto add_noarch_relink_to_solution(  //
+        Solution solution,
+        const solv::ObjPool& pool,
+        std::string_view noarch_type
+    ) -> Solution;
+
+    [[nodiscard]] auto request_to_decision_queue(
+        const Request& request,
+        solv::ObjPool& pool,
+        const specs::ChannelResolveParams& chan_params,
+        bool force_reinstall
+    ) -> expected_t<solv::ObjQueue>;
 }
 #endif

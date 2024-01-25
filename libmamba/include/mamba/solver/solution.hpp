@@ -12,15 +12,11 @@
 #include <vector>
 
 #include "mamba/specs/package_info.hpp"
+#include "mamba/util/loop_control.hpp"
+#include "mamba/util/type_traits.hpp"
 
-namespace mamba
+namespace mamba::solver
 {
-    namespace detail
-    {
-        template <typename T, typename... U>
-        inline constexpr bool is_any_of_v = std::disjunction_v<std::is_same<T, U>...>;
-    }
-
     struct Solution
     {
         struct Omit
@@ -62,10 +58,10 @@ namespace mamba
         };
 
         template <typename T>
-        inline static constexpr bool has_remove_v = detail::is_any_of_v<T, Upgrade, Downgrade, Change, Remove>;
+        inline static constexpr bool has_remove_v = util::is_any_of_v<T, Upgrade, Downgrade, Change, Remove>;
 
         template <typename T>
-        inline static constexpr bool has_install_v = detail::is_any_of_v<T, Upgrade, Downgrade, Change, Install>;
+        inline static constexpr bool has_install_v = util::is_any_of_v<T, Upgrade, Downgrade, Change, Install>;
 
         using Action = std::variant<Omit, Upgrade, Downgrade, Change, Reinstall, Remove, Install>;
         using action_list = std::vector<Action>;
@@ -118,6 +114,7 @@ namespace mamba
         }
     }
 
+    // TODO(C++20): Poor man's replacement to range filter transform
     template <typename Iter, typename UnaryFunc>
     void for_each_to_remove(Iter first, Iter last, UnaryFunc&& func)
     {
@@ -125,7 +122,17 @@ namespace mamba
         {
             if (auto* const ptr = detail::to_remove_ptr(*first))
             {
-                func(*ptr);
+                if constexpr (std::is_same_v<decltype(func(*ptr)), util::LoopControl>)
+                {
+                    if (func(*ptr) == util::LoopControl::Break)
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    func(*ptr);
+                }
             }
         }
     }
@@ -169,11 +176,22 @@ namespace mamba
         {
             if (auto* const ptr = detail::to_install_ptr(*first))
             {
-                func(*ptr);
+                if constexpr (std::is_same_v<decltype(func(*ptr)), util::LoopControl>)
+                {
+                    if (func(*ptr) == util::LoopControl::Break)
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    func(*ptr);
+                }
             }
         }
     }
 
+    // TODO(C++20): Poor man's replacement to range filter transform
     template <typename Range, typename UnaryFunc>
     void for_each_to_install(Range&& actions, UnaryFunc&& func)
     {
@@ -202,6 +220,7 @@ namespace mamba
         }
     }
 
+    // TODO(C++20): Poor man's replacement to range filter transform
     template <typename Iter, typename UnaryFunc>
     void for_each_to_omit(Iter first, Iter last, UnaryFunc&& func)
     {
@@ -209,7 +228,17 @@ namespace mamba
         {
             if (auto* const ptr = detail::to_omit_ptr(*first))
             {
-                func(*ptr);
+                if constexpr (std::is_same_v<decltype(func(*ptr)), util::LoopControl>)
+                {
+                    if (func(*ptr) == util::LoopControl::Break)
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    func(*ptr);
+                }
             }
         }
     }

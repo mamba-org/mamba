@@ -6,6 +6,8 @@
 
 #include <string>
 #include <string_view>
+#include <type_traits>
+#include <variant>
 
 #include <simdjson.h>
 #include <solv/conda.h>
@@ -14,6 +16,7 @@
 #include <solv/repo_solv.h>
 #include <solv/repo_write.h>
 #include <solv/solvable.h>
+#include <solv/solver.h>
 
 #include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
@@ -21,7 +24,9 @@
 #include "mamba/util/cfile.hpp"
 #include "mamba/util/random.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/type_traits.hpp"
 
+#include "solver/helpers.hpp"
 #include "solver/libsolv/helpers.hpp"
 
 #define MAMBA_TOOL_VERSION "2.0"
@@ -804,127 +809,497 @@ namespace mamba::solver::libsolv
             );
     }
 
-    auto transaction_to_solution(
+    namespace
+    {
+
+        template <typename Func>
+        auto transaction_to_solution_impl(
+            const solv::ObjPool& pool,
+            const solv::ObjTransaction& trans,
+            Func&& filter
+        ) -> Solution
+        {
+            auto get_pkginfo = [&](solv::SolvableId id)
+            {
+                assert(pool.get_solvable(id).has_value());
+                return make_package_info(pool, pool.get_solvable(id).value());
+            };
+
+            auto get_newer_pkginfo = [&](solv::SolvableId id)
+            {
+                auto maybe_newer_id = trans.step_newer(pool, id);
+                assert(maybe_newer_id.has_value());
+                return get_pkginfo(maybe_newer_id.value());
+            };
+
+            auto out = Solution::action_list();
+            out.reserve(trans.size());
+            trans.for_each_step_id(
+                [&](const solv::SolvableId id)
+                {
+                    auto pkginfo = get_pkginfo(id);
+
+                    // In libsolv, system dependencies are provided as a special dependency,
+                    // while in Conda it is implemented as a virtual package.
+                    // Maybe there is a way to tell libsolv to never try to install or remove these
+                    // solvables (SOLVER_LOCK or SOLVER_USERINSTALLED?).
+                    // In the meantime (and probably later for safety) we filter all virtual
+                    // packages out.
+                    if (util::starts_with(pkginfo.name, "__"))  // i.e. is_virtual_package
+                    {
+                        return;
+                    }
+
+                    // here are packages that were added to implement a feature
+                    // (e.g. a pin) but do not represent a Conda package.
+                    // They can appear in the transaction depending on libsolv flags.
+                    // We use this attribute to filter them out.
+                    if (const auto solv = pool.get_solvable(id);
+                        solv.has_value() && (solv->type() != solv::SolvableType::Package))
+                    {
+                        LOG_DEBUG << "Solution: Remove artificial " << pkginfo.str();
+                        return;
+                    }
+
+                    // We can specifically filter out packages, for things such as deps-only or
+                    // no-deps.
+                    // We add them as ommited anyhow so that downstream code can print them for
+                    // instance.
+                    if (!filter(pkginfo))
+                    {
+                        LOG_DEBUG << "Solution: Omit " << pkginfo.str();
+                        out.emplace_back(Solution::Omit{ std::move(pkginfo) });
+                        return;
+                    }
+
+                    auto const type = trans.step_type(
+                        pool,
+                        id,
+                        SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE
+                    );
+                    switch (type)
+                    {
+                        case SOLVER_TRANSACTION_UPGRADED:
+                        {
+                            auto newer = get_newer_pkginfo(id);
+                            LOG_DEBUG << "Solution: Upgrade " << pkginfo.str() << " -> "
+                                      << newer.str();
+                            out.emplace_back(Solution::Upgrade{
+                                /* .remove= */ std::move(pkginfo),
+                                /* .install= */ std::move(newer),
+                            });
+                            break;
+                        }
+                        case SOLVER_TRANSACTION_CHANGED:
+                        {
+                            auto newer = get_newer_pkginfo(id);
+                            LOG_DEBUG << "Solution: Change " << pkginfo.str() << " -> "
+                                      << newer.str();
+                            out.emplace_back(Solution::Change{
+                                /* .remove= */ std::move(pkginfo),
+                                /* .install= */ std::move(newer),
+                            });
+                            break;
+                        }
+                        case SOLVER_TRANSACTION_REINSTALLED:
+                        {
+                            LOG_DEBUG << "Solution: Reinstall " << pkginfo.str();
+                            out.emplace_back(Solution::Reinstall{ std::move(pkginfo) });
+                            break;
+                        }
+                        case SOLVER_TRANSACTION_DOWNGRADED:
+                        {
+                            auto newer = get_newer_pkginfo(id);
+                            LOG_DEBUG << "Solution: Downgrade " << pkginfo.str() << " -> "
+                                      << newer.str();
+                            out.emplace_back(Solution::Downgrade{
+                                /* .remove= */ std::move(pkginfo),
+                                /* .install= */ std::move(newer),
+                            });
+                            break;
+                        }
+                        case SOLVER_TRANSACTION_ERASE:
+                        {
+                            LOG_DEBUG << "Solution: Remove " << pkginfo.str();
+                            out.emplace_back(Solution::Remove{ std::move(pkginfo) });
+                            break;
+                        }
+                        case SOLVER_TRANSACTION_INSTALL:
+                        {
+                            LOG_DEBUG << "Solution: Install " << pkginfo.str();
+                            out.emplace_back(Solution::Install{ std::move(pkginfo) });
+                            break;
+                        }
+                        case SOLVER_TRANSACTION_IGNORE:
+                            break;
+                        default:
+                            LOG_WARNING << "solv::ObjTransaction case not handled: " << type;
+                            break;
+                    }
+                }
+            );
+            return { std::move(out) };
+        }
+    }
+
+    auto transaction_to_solution(const solv::ObjPool& pool, const solv::ObjTransaction& trans)
+        -> Solution
+    {
+        return transaction_to_solution_impl(pool, trans, [](const auto&) { return true; });
+    }
+
+    namespace
+    {
+        auto package_is_requested(const Request& request, const specs::PackageInfo& pkg) -> bool
+        {
+            auto job_matches = [&pkg](const auto& job) -> bool
+            {
+                using Job = std::decay_t<decltype(job)>;
+                if constexpr (util::is_any_of_v<Job, Request::Install, Request::Remove, Request::Update>)
+                {
+                    return job.spec.name().contains(pkg.name);
+                }
+                return false;
+            };
+
+            auto iter = std::find_if(
+                request.items.cbegin(),
+                request.items.cend(),
+                [&](const auto& unknown_job) { return std::visit(job_matches, unknown_job); }
+            );
+            return iter != request.items.cend();
+        }
+    }
+
+    auto transaction_to_solution_only_deps(  //
         const solv::ObjPool& pool,
         const solv::ObjTransaction& trans,
-        const util::flat_set<std::string>& specs,
-        /** true to filter out specs, false to filter in specs */
-        bool keep_only
+        const Request& request
     ) -> Solution
     {
-        auto get_pkginfo = [&](solv::SolvableId id)
-        {
-            assert(pool.get_solvable(id).has_value());
-            return make_package_info(pool, pool.get_solvable(id).value());
-        };
+        return transaction_to_solution_impl(
+            pool,
+            trans,
+            [&](const auto& pkg) -> bool { return !package_is_requested(request, pkg); }
+        );
+    }
 
-        auto get_newer_pkginfo = [&](solv::SolvableId id)
-        {
-            auto maybe_newer_id = trans.step_newer(pool, id);
-            assert(maybe_newer_id.has_value());
-            return get_pkginfo(maybe_newer_id.value());
-        };
+    auto transaction_to_solution_no_deps(  //
+        const solv::ObjPool& pool,
+        const solv::ObjTransaction& trans,
+        const Request& request
+    ) -> Solution
+    {
+        return transaction_to_solution_impl(
+            pool,
+            trans,
+            [&](const auto& pkg) -> bool { return package_is_requested(request, pkg); }
+        );
+    }
 
-        auto out = Solution::action_list();
-        out.reserve(trans.size());
-        trans.for_each_step_id(
-            [&](const solv::SolvableId id)
+    auto installed_python(const solv::ObjPool& pool) -> std::optional<solv::ObjSolvableViewConst>
+    {
+        auto py_id = solv::SolvableId(0);
+        pool.for_each_installed_solvable(
+            [&](solv::ObjSolvableViewConst s)
             {
-                auto pkginfo = get_pkginfo(id);
-
-                // In libsolv, system dependencies are provided as a special dependency,
-                // while in Conda it is implemented as a virtual package.
-                // Maybe there is a way to tell libsolv to never try to install or remove these
-                // solvables (SOLVER_LOCK or SOLVER_USERINSTALLED?).
-                // In the meantime (and probably later for safety) we filter all virtual
-                // packages out.
-                if (util::starts_with(pkginfo.name, "__"))  // i.e. is_virtual_package
+                if (s.name() == "python")
                 {
-                    return;
+                    py_id = s.id();
+                    return solv::LoopControl::Break;
                 }
+                return solv::LoopControl::Continue;
+            }
+        );
+        return pool.get_solvable(py_id);
+    }
 
-                // here are packages that were added to implement a feature
-                // (e.g. a pin) but do not represent a Conda package.
-                // They can appear in the transaction depending on libsolv flags.
-                // We use this attribute to filter them out.
-                if (const auto solv = pool.get_solvable(id);
-                    solv.has_value() && (solv->type() != solv::SolvableType::Package))
-                {
-                    LOG_DEBUG << "Solution: Remove artificial " << pkginfo.str();
-                    return;
-                }
-
-                // keep_only ? specs.contains(...) : !specs.contains(...);
-                // TODO ideally we should use Matchspecs::contains(pkginfo)
-                if (keep_only == specs.contains(pkginfo.name))
-                {
-                    LOG_DEBUG << "Solution: Omit " << pkginfo.str();
-                    out.emplace_back(Solution::Omit{ std::move(pkginfo) });
-                    return;
-                }
-                auto const type = trans.step_type(
-                    pool,
-                    id,
-                    SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE
+    auto solution_needs_python_relink(const solv::ObjPool& pool, const Solution& solution) -> bool
+    {
+        if (auto installed = installed_python(pool))
+        {
+            if (auto newer = find_new_python_in_solution(solution))
+            {
+                return !python_binary_compatible(
+                    specs::Version::parse(installed->version()),
+                    specs::Version::parse(newer->get().version)
                 );
-                switch (type)
+            }
+        }
+        return false;
+    }
+
+    namespace
+    {
+        auto action_refers_to(const Solution::Action& unknown_action, std::string_view pkg_name)
+            -> bool
+        {
+            return std::visit(
+                [&](const auto& action)
                 {
-                    case SOLVER_TRANSACTION_UPGRADED:
+                    using Action = std::decay_t<decltype(action)>;
+                    if constexpr (Solution::has_remove_v<Action>)
                     {
-                        auto newer = get_newer_pkginfo(id);
-                        LOG_DEBUG << "Solution: Upgrade " << pkginfo.str() << " -> " << newer.str();
-                        out.emplace_back(Solution::Upgrade{
-                            /* .remove= */ std::move(pkginfo),
-                            /* .install= */ std::move(newer),
-                        });
-                        break;
+                        if (action.remove.name == pkg_name)
+                        {
+                            return true;
+                        }
                     }
-                    case SOLVER_TRANSACTION_CHANGED:
+                    if constexpr (Solution::has_install_v<Action>)
                     {
-                        auto newer = get_newer_pkginfo(id);
-                        LOG_DEBUG << "Solution: Change " << pkginfo.str() << " -> " << newer.str();
-                        out.emplace_back(Solution::Change{
-                            /* .remove= */ std::move(pkginfo),
-                            /* .install= */ std::move(newer),
-                        });
-                        break;
+                        if (action.install.name == pkg_name)
+                        {
+                            return true;
+                        }
                     }
-                    case SOLVER_TRANSACTION_REINSTALLED:
+                    if constexpr (std::is_same_v<Action, Solution::Reinstall> || std::is_same_v<Action, Solution::Omit>)
                     {
-                        LOG_DEBUG << "Solution: Reinstall " << pkginfo.str();
-                        out.emplace_back(Solution::Reinstall{ std::move(pkginfo) });
-                        break;
+                        if (action.what.name == pkg_name)
+                        {
+                            return true;
+                        }
                     }
-                    case SOLVER_TRANSACTION_DOWNGRADED:
+                    return false;
+                },
+                unknown_action
+            );
+        }
+    }
+
+    auto add_noarch_relink_to_solution(  //
+        Solution solution,
+        const solv::ObjPool& pool,
+        std::string_view noarch_type
+    ) -> Solution
+    {
+        pool.for_each_installed_solvable(
+            [&](solv::ObjSolvableViewConst s)
+            {
+                if (s.noarch() == noarch_type)
+                {
+                    auto s_in_sol = std::find_if(
+                        solution.actions.begin(),
+                        solution.actions.end(),
+                        [&](auto const& action) { return action_refers_to(action, s.name()); }
+                    );
+
+                    if (s_in_sol == solution.actions.end())
                     {
-                        auto newer = get_newer_pkginfo(id);
-                        LOG_DEBUG << "Solution: Downgrade " << pkginfo.str() << " -> " << newer.str();
-                        out.emplace_back(Solution::Downgrade{
-                            /* .remove= */ std::move(pkginfo),
-                            /* .install= */ std::move(newer),
-                        });
-                        break;
+                        solution.actions.emplace_back(Solution::Reinstall{
+                            make_package_info(pool, s) });
                     }
-                    case SOLVER_TRANSACTION_ERASE:
+                    else if (auto* omit = std::get_if<Solution::Omit>(&(*s_in_sol)))
                     {
-                        LOG_DEBUG << "Solution: Remove " << pkginfo.str();
-                        out.emplace_back(Solution::Remove{ std::move(pkginfo) });
-                        break;
+                        *s_in_sol = { Solution::Reinstall{ std::move(omit->what) } };
                     }
-                    case SOLVER_TRANSACTION_INSTALL:
-                    {
-                        LOG_DEBUG << "Solution: Install " << pkginfo.str();
-                        out.emplace_back(Solution::Install{ std::move(pkginfo) });
-                        break;
-                    }
-                    case SOLVER_TRANSACTION_IGNORE:
-                        break;
-                    default:
-                        LOG_WARNING << "solv::ObjTransaction case not handled: " << type;
-                        break;
                 }
             }
         );
-        return { std::move(out) };
+        return solution;
+    }
+
+    namespace
+    {
+        [[nodiscard]] auto add_reinstall_job(
+            solv::ObjQueue& jobs,
+            solv::ObjPool& pool,
+            const specs::MatchSpec& ms,
+            const specs::ChannelResolveParams& params
+        ) -> expected_t<void>
+        {
+            static constexpr int install_flag = SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES;
+
+            auto solvable = std::optional<solv::ObjSolvableViewConst>{};
+
+            // the data about the channel is only in the prefix_data unfortunately
+            pool.for_each_installed_solvable(
+                [&](solv::ObjSolvableViewConst s)
+                {
+                    if (ms.name().contains(s.name()))
+                    {
+                        solvable = s;
+                        return solv::LoopControl::Break;
+                    }
+                    return solv::LoopControl::Continue;
+                }
+            );
+
+            if (!solvable.has_value() || solvable->channel().empty())
+            {
+                // We are not reinstalling but simply installing.
+                // Right now, using `--force-reinstall` will send all specs (whether they have
+                // been previously installed or not) down this path, so we need to handle specs
+                // that are not installed.
+                return pool_add_matchspec(pool, ms, params)
+                    .transform([&](auto id) { jobs.push_back(install_flag, id); });
+            }
+
+            if (ms.channel().has_value() || !ms.version().is_explicitly_free()
+                || !ms.build_string().is_free())
+            {
+                Console::stream() << ms.conda_build_form()
+                                  << ": overriding channel, version and build from "
+                                     "installed packages due to --force-reinstall.";
+            }
+
+            auto ms_modified = ms;
+            ms_modified.set_channel(specs::UnresolvedChannel::parse(solvable->channel()));
+            ms_modified.set_version(specs::VersionSpec::parse(solvable->version()));
+            ms_modified.set_build_string(specs::GlobSpec(std::string(solvable->build_string())));
+
+            LOG_INFO << "Reinstall " << ms_modified.conda_build_form() << " from channel "
+                     << ms_modified.channel()->str();
+            // TODO Fragile! The only reason why this works is that with a channel specific
+            // matchspec the job will always be reinstalled.
+            return pool_add_matchspec(pool, ms_modified, params)
+                .transform([&](auto id) { jobs.push_back(install_flag, id); });
+        }
+
+        template <typename Item>
+        [[nodiscard]] auto add_job(
+            const Item& item,
+            solv::ObjQueue& jobs,
+            solv::ObjPool& pool,
+            const specs::ChannelResolveParams& params,
+            bool force_reinstall
+        ) -> expected_t<void>
+        {
+            if constexpr (std::is_same_v<Item, Request::Install>)
+            {
+                if (force_reinstall)
+                {
+                    return add_reinstall_job(jobs, pool, item.spec, params);
+                }
+                else
+                {
+                    return pool_add_matchspec(pool, item.spec, params)
+                        .transform([&](auto id)
+                                   { jobs.push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, id); }
+                        );
+                }
+            }
+            if constexpr (std::is_same_v<Item, Request::Remove>)
+            {
+                return pool_add_matchspec(pool, item.spec, params)
+                    .transform(
+                        [&](auto id)
+                        {
+                            jobs.push_back(
+                                SOLVER_ERASE | SOLVER_SOLVABLE_PROVIDES
+                                    | (item.clean_dependencies ? SOLVER_CLEANDEPS : 0),
+                                id
+                            );
+                        }
+                    );
+            }
+            if constexpr (std::is_same_v<Item, Request::Update>)
+            {
+                return pool_add_matchspec(pool, item.spec, params)
+                    .transform(
+                        [&](auto id)
+                        {
+                            // TODO: ignoring update specs here for now
+                            if (!item.spec.is_simple())
+                            {
+                                jobs.push_back(SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, id);
+                            }
+                            jobs.push_back(SOLVER_UPDATE | SOLVER_SOLVABLE_PROVIDES, id);
+                        }
+                    );
+            }
+            if constexpr (std::is_same_v<Item, Request::UpdateAll>)
+            {
+                jobs.push_back(
+                    SOLVER_UPDATE | SOLVER_SOLVABLE_ALL
+                        | (item.clean_dependencies ? SOLVER_CLEANDEPS : 0),
+                    0
+                );
+                return {};
+            }
+            if constexpr (std::is_same_v<Item, Request::Freeze>)
+            {
+                return pool_add_matchspec(pool, item.spec, params)
+                    .transform([&](auto id) { jobs.push_back(SOLVER_LOCK, id); });
+            }
+            if constexpr (std::is_same_v<Item, Request::Keep>)
+            {
+                jobs.push_back(
+                    SOLVER_USERINSTALLED,
+                    pool_add_matchspec(pool, item.spec, params).value()
+                );
+                return {};
+            }
+            if constexpr (std::is_same_v<Item, Request::Pin>)
+            {
+                return pool_add_pin(pool, item.spec, params)
+                    .transform(
+                        [&](solv::ObjSolvableView pin_solv)
+                        {
+                            auto const name_id = pool.add_string(pin_solv.name());
+                            // WARNING keep separate or libsolv does not understand
+                            // Force verify the dummy solvable dependencies, as this is not the
+                            // default for installed packages.
+                            jobs.push_back(SOLVER_VERIFY, name_id);
+                            // Lock the dummy solvable so that it stays install.
+                            jobs.push_back(SOLVER_LOCK, name_id);
+                        }
+                    );
+            }
+            assert(false);
+            return {};
+        }
+    }
+
+    auto request_to_decision_queue(
+        const Request& request,
+        solv::ObjPool& pool,
+        const specs::ChannelResolveParams& chan_params,
+        bool force_reinstall
+    ) -> expected_t<solv::ObjQueue>
+    {
+        auto solv_jobs = solv::ObjQueue();
+
+        auto error = expected_t<void>();
+        for (const auto& item : request.items)
+        {
+            auto xpt = std::visit(
+                [&](const auto& r) -> expected_t<void>
+                {
+                    if constexpr (std::is_same_v<std::decay_t<decltype(r)>, Request::Pin>)
+                    {
+                        return add_job(r, solv_jobs, pool, chan_params, force_reinstall);
+                    }
+                    return {};
+                },
+                item
+            );
+            if (!xpt)
+            {
+                return forward_error(std::move(xpt));
+            }
+        }
+        // Fragile: Pins add solvables to Pol and hence require a call to create_whatprovides.
+        // Channel specific MatchSpec write to whatprovides and hence require it is not modified
+        // afterwards.
+        pool.create_whatprovides();
+        for (const auto& item : request.items)
+        {
+            auto xpt = std::visit(
+                [&](const auto& r) -> expected_t<void>
+                {
+                    if constexpr (!std::is_same_v<std::decay_t<decltype(r)>, Request::Pin>)
+                    {
+                        return add_job(r, solv_jobs, pool, chan_params, force_reinstall);
+                    }
+                    return {};
+                },
+                item
+            );
+            if (!xpt)
+            {
+                return forward_error(std::move(xpt));
+            }
+        }
+        return { std::move(solv_jobs) };
     }
 }

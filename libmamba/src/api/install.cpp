@@ -584,7 +584,7 @@ namespace mamba
                 // Console stream prints on destrucion
             }
 
-            solver.add_request(std::move(request));
+            solver.set_request(std::move(request));
 
             bool success = solver.try_solve();
             if (!success)

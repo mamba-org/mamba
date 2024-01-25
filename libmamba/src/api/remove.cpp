@@ -171,7 +171,7 @@ namespace mamba
                     }
                 );
 
-                solver.add_request(build_remove_request(ctx, channel_context, raw_specs, prune));
+                solver.set_request(build_remove_request(ctx, channel_context, raw_specs, prune));
 
                 solver.must_solve();
 

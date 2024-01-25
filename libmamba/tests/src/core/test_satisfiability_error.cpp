@@ -145,12 +145,8 @@ namespace
      * The underlying packages do not exist, we are onl interested in the conflict.
      */
     template <typename PkgRange>
-    auto create_problem(
-        Context& ctx,
-        ChannelContext& channel_context,
-        const PkgRange& packages,
-        const Request& request
-    )
+    auto
+    create_problem(Context& ctx, ChannelContext& channel_context, const PkgRange& packages, Request request)
     {
         const auto tmp_dir = dir_guard(
             fs::temp_directory_path() / "mamba/tests" / util::generate_random_alphanumeric_string(20)
@@ -163,7 +159,7 @@ namespace
             std::move(pool),
             std::vector{ std::pair{ SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } }
         );
-        solver.add_request(request);
+        solver.set_request(std::move(request));
 
         return solver;
     }
@@ -421,7 +417,7 @@ namespace
             std::move(pool),
             std::vector{ std::pair{ SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } }
         );
-        solver.add_request(request);
+        solver.set_request(std::move(request));
 
         return solver;
     }

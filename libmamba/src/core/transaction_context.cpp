@@ -129,14 +129,9 @@ namespace mamba
             python_path = get_python_short_path(short_python_version);
             site_packages_path = get_python_site_packages_short_path(short_python_version);
         }
-        if (old_python_version.size())
+        if (!old_python_version.empty())
         {
             old_short_python_version = compute_short_python_version(old_python_version);
-            relink_noarch = (short_python_version != old_short_python_version);
-        }
-        else
-        {
-            relink_noarch = false;
         }
     }
 
@@ -157,31 +152,6 @@ namespace mamba
         {
             relocate_prefix = lrelocate_prefix;
         }
-    }
-
-    TransactionContext& TransactionContext::operator=(const TransactionContext& other)
-    {
-        if (this != &other)
-        {
-            has_python = other.has_python;
-            target_prefix = other.target_prefix;
-            relocate_prefix = other.relocate_prefix;
-            python_version = other.python_version;
-            old_python_version = other.old_python_version;
-            requested_specs = other.requested_specs;
-
-            compile_pyc = other.compile_pyc;
-            allow_softlinks = other.allow_softlinks;
-            always_copy = other.always_copy;
-            always_softlink = other.always_softlink;
-            short_python_version = other.short_python_version;
-            python_path = other.python_path;
-            site_packages_path = other.site_packages_path;
-            relink_noarch = other.relink_noarch;
-
-            m_context = other.m_context;
-        }
-        return *this;
     }
 
     TransactionContext::~TransactionContext()

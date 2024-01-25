@@ -184,6 +184,7 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/solver.cpp
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/transaction.cpp
     # Solver interface
+    ${LIBMAMBA_SOURCE_DIR}/solver/helpers.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/helpers.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/parameters.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/repo_info.cpp
@@ -281,6 +282,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/heap_optional.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/iterator.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/json.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/loop_control.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/os_win.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/parsers.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/path_manip.hpp
@@ -307,6 +309,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/version_spec.hpp
     # Solver Interface
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/request.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/solution.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/parameters.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/repo_info.hpp
     # Artifacts validation
@@ -343,7 +346,6 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/query.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/run.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shell_init.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/solution.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/solver.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/subdirdata.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/thread_utils.hpp

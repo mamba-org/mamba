@@ -29,7 +29,6 @@
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/specs/match_spec.hpp"
-#include "mamba/util/flat_set.hpp"
 #include "mamba/util/string.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
@@ -37,6 +36,7 @@
 #include "solv-cpp/solver.hpp"
 #include "solv-cpp/transaction.hpp"
 
+#include "solver/helpers.hpp"
 #include "solver/libsolv/helpers.hpp"
 
 #include "progress_bar_impl.hpp"
@@ -52,13 +52,6 @@ namespace mamba
             return caches.get_extracted_dir_path(pkg_info).empty()
                    && caches.get_tarball_path(pkg_info).empty();
         }
-
-        auto mk_pkginfo(const MPool& pool, solv::ObjSolvableViewConst s) -> specs::PackageInfo
-        {
-            const auto pkginfo = pool.id2pkginfo(s.id());
-            assert(pkginfo.has_value());  // There is Solvable so the optional must no be empty
-            return std::move(pkginfo).value();
-        };
 
         template <typename Range>
         auto make_pkg_info_from_explicit_match_specs(Range&& specs)
@@ -90,41 +83,7 @@ namespace mamba
             return out;
         }
 
-        auto specs_names(const MSolver& solver) -> util::flat_set<std::string>
-        {
-            // TODO(C++20):
-            // to_install_names and to_remove_names need not be allocated, only that
-            // flat_set::insert with iterators is more efficient (because it sorts only once).
-            // This could be solved with std::range::transform
-            const auto& to_install_specs = solver.install_specs();
-            auto to_install_names = std::vector<std::string>();
-            to_install_names.reserve(to_install_specs.size());
-            std::transform(
-                to_install_specs.cbegin(),
-                to_install_specs.cend(),
-                std::back_inserter(to_install_names),
-                [](const auto& spec) { return spec.name().str(); }
-            );
-
-            const auto& to_remove_specs = solver.remove_specs();
-            auto to_remove_names = std::vector<std::string>();
-            to_remove_names.reserve(to_remove_specs.size());
-            std::transform(
-                to_remove_specs.cbegin(),
-                to_remove_specs.cend(),
-                std::back_inserter(to_remove_names),
-                [](const auto& spec) { return spec.name().str(); }
-            );
-
-            auto specs = util::flat_set<std::string>{};
-            specs.reserve(to_install_specs.size() + to_remove_specs.size());
-            specs.insert(to_install_names.cbegin(), to_install_names.cend());
-            specs.insert(to_remove_names.cbegin(), to_remove_names.cend());
-
-            return specs;
-        }
-
-        auto find_python_version(const Solution& solution, const solv::ObjPool& pool)
+        auto find_python_version(const solver::Solution& solution, const solv::ObjPool& pool)
             -> std::pair<std::string, std::string>
         {
             // We need to find the python version that will be there after this
@@ -134,32 +93,17 @@ namespace mamba
             // version but keeping the current one.
             // Could also be written in term of PrefixData.
             std::string installed_py_ver = {};
-            pool.for_each_installed_solvable(
-                [&](solv::ObjSolvableViewConst s)
-                {
-                    if (s.name() == "python")
-                    {
-                        installed_py_ver = s.version();
-                        LOG_INFO << "Found python in installed packages " << installed_py_ver;
-                        return solv::LoopControl::Break;
-                    }
-                    return solv::LoopControl::Continue;
-                }
-            );
+            if (auto s = solver::libsolv::installed_python(pool))
+            {
+                installed_py_ver = s->version();
+                LOG_INFO << "Found python in installed packages " << installed_py_ver;
+            }
 
             std::string new_py_ver = installed_py_ver;
-            for_each_to_install(
-                solution.actions,
-                [&](const auto& pkg)
-                {
-                    if (pkg.name == "python")
-                    {
-                        new_py_ver = pkg.version;
-                        LOG_INFO << "Found python version in packages to be installed " << new_py_ver;
-                        // Could break but not supported with for_each API
-                    }
-                }
-            );
+            if (auto py = solver::find_new_python_in_solution(solution))
+            {
+                new_py_ver = py->get().version;
+            }
 
             return { std::move(new_py_ver), std::move(installed_py_ver) };
         }
@@ -285,33 +229,34 @@ namespace mamba
         {
             m_solution = solver::libsolv::transaction_to_solution(m_pool.pool(), trans);
         }
-        else
+        else if (flags.keep_specs && !flags.keep_dependencies)
         {
-            m_solution = solver::libsolv::transaction_to_solution(
+            m_solution = solver::libsolv::transaction_to_solution_no_deps(
                 m_pool.pool(),
                 trans,
-                specs_names(solver),
-                !(flags.keep_specs)
+                solver.request()
+            );
+        }
+        else if (!flags.keep_specs && flags.keep_dependencies)
+        {
+            m_solution = solver::libsolv::transaction_to_solution_only_deps(
+                m_pool.pool(),
+                trans,
+                solver.request()
             );
         }
 
         if (solver.flags().keep_specs)
         {
-            auto to_string_vec = [](const std::vector<specs::MatchSpec>& vec
-                                 ) -> std::vector<std::string>
-            {
-                std::vector<std::string> res = {};
-                res.reserve(vec.size());
-                std::transform(
-                    vec.cbegin(),
-                    vec.cend(),
-                    std::back_inserter(res),
-                    [](auto const& el) { return el.str(); }
-                );
-                return res;
-            };
-            m_history_entry.update = to_string_vec(solver.install_specs());
-            m_history_entry.remove = to_string_vec(solver.remove_specs());
+            using Request = solver::Request;
+            solver::for_each_of<Request::Install, Request::Update>(
+                solver.request(),
+                [&](const auto& item) { m_history_entry.update.push_back(item.spec.str()); }
+            );
+            solver::for_each_of<Request::Remove, Request::Update>(
+                solver.request(),
+                [&](const auto& item) { m_history_entry.remove.push_back(item.spec.str()); }
+            );
         }
         else
         {
@@ -328,108 +273,27 @@ namespace mamba
             );
         }
 
+        auto requested_specs = std::vector<specs::MatchSpec>();
+        using Request = solver::Request;
+        solver::for_each_of<Request::Install, Request::Update>(
+            solver.request(),
+            [&](const auto& item) { requested_specs.push_back(item.spec); }
+        );
         const auto& context = m_pool.context();
         m_transaction_context = TransactionContext(
             context,
             context.prefix_params.target_prefix,
             context.prefix_params.relocate_prefix,
             find_python_version(m_solution, m_pool.pool()),
-            solver.install_specs()
+            std::move(requested_specs)
         );
 
-        if (auto maybe_installed = pool.installed_repo();
-            m_transaction_context.relink_noarch && maybe_installed.has_value())
+        if (solver::libsolv::solution_needs_python_relink(pool, m_solution))
         {
-            // TODO could we use the solution instead?
-            solv::ObjQueue decision = {};
-            solver_get_decisionqueue(solver.solver().raw(), decision.raw());
-
-            pool.for_each_installed_solvable(
-                [&](solv::ObjSolvableViewConst s)
-                {
-                    if (s.noarch() == "python")
-                    {
-                        auto id = s.id();
-                        auto id_iter = std::find_if(
-                            decision.cbegin(),
-                            decision.cend(),
-                            [id](auto other) { return std::abs(other) == id; }
-                        );
-
-                        // if the installed package is kept, we should relink
-                        if ((id_iter != decision.cend()) && (*id_iter == id))
-                        {
-                            // Remove old linked package
-                            decision.erase(id_iter);
-
-                            const auto pkg_info = mk_pkginfo(m_pool, s);
-                            solv::ObjQueue const job = {
-                                SOLVER_SOLVABLE_PROVIDES,
-                                pool.add_conda_dependency(fmt::format(
-                                    "{} {} {}",
-                                    pkg_info.name,
-                                    pkg_info.version,
-                                    pkg_info.build_string
-                                )),
-                            };
-
-                            const auto matches = pool.select_solvables(job);
-                            const auto reinstall_iter = std::find_if(
-                                matches.cbegin(),
-                                matches.cend(),
-                                [&](solv::SolvableId r)
-                                {
-                                    auto rsolv = pool.get_solvable(r);
-                                    return rsolv.has_value() && !rsolv->installed();
-                                }
-                            );
-                            if (reinstall_iter == matches.cend())
-                            {
-                                // TODO we should also search the local package cache to make
-                                // offline installs work
-                                LOG_WARNING << fmt::format(
-                                    "To upgrade python we need to reinstall noarch",
-                                    " package {} {} {} but we could not find it in",
-                                    " any of the loaded channels.",
-                                    pkg_info.name,
-                                    pkg_info.version,
-                                    pkg_info.build_string
-                                );
-                            }
-                            else
-                            {
-                                decision.push_back(*reinstall_iter);
-                                decision.push_back(-id);
-                            }
-                        }
-                    }
-                }
-            );
-
-            trans = solv::ObjTransaction::from_solvables(m_pool.pool(), decision);
-            trans.order(pool);
-
-            // Init solution again...
-            if (flags.keep_specs && flags.keep_dependencies)
-            {
-                m_solution = solver::libsolv::transaction_to_solution(m_pool.pool(), trans);
-            }
-            else
-            {
-                m_solution = solver::libsolv::transaction_to_solution(
-                    m_pool.pool(),
-                    trans,
-                    specs_names(solver),
-                    !(flags.keep_specs)
-                );
-            }
-
-            m_transaction_context = TransactionContext(
-                context,
-                context.prefix_params.target_prefix,
-                context.prefix_params.relocate_prefix,
-                find_python_version(m_solution, m_pool.pool()),
-                solver.install_specs()
+            m_solution = solver::libsolv::add_noarch_relink_to_solution(
+                std::move(m_solution),
+                pool,
+                "python"
             );
         }
 
@@ -527,6 +391,8 @@ namespace mamba
 
     bool MTransaction::execute(PrefixData& prefix)
     {
+        using Solution = solver::Solution;
+
         auto& ctx = m_pool.context();
 
         // JSON output
@@ -730,7 +596,7 @@ namespace mamba
         // and package fetchers in the header. Ideally we may want a pimpl or
         // a private implementation header when we refactor this class.
         FetcherList
-        build_fetchers(MPool& pool, const Solution& solution, MultiPackageCache& multi_cache)
+        build_fetchers(MPool& pool, const solver::Solution& solution, MultiPackageCache& multi_cache)
         {
             FetcherList fetchers;
             auto& channel_context = pool.channel_context();
@@ -1009,6 +875,8 @@ namespace mamba
 
     void MTransaction::print()
     {
+        using Solution = solver::Solution;
+
         const auto& ctx = m_pool.context();
 
         if (ctx.output_params.json)

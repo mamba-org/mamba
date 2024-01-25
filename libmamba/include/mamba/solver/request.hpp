@@ -7,9 +7,12 @@
 #ifndef MAMBA_SOLVER_REQUEST_HPP
 #define MAMBA_SOLVER_REQUEST_HPP
 
+#include <type_traits>
 #include <variant>
 
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/util/loop_control.hpp"
+#include "mamba/util/type_traits.hpp"
 
 namespace mamba::solver
 {
@@ -63,5 +66,36 @@ namespace mamba::solver
 
         item_list items = {};
     };
+
+    template <typename... Item, typename Func>
+    void for_each_of(const Request& request, Func&& func)
+    {
+        for (const auto& unknown_itm : request.items)
+        {
+            const auto control = std::visit(
+                [&](const auto& itm) -> util::LoopControl
+                {
+                    using Itm = std::decay_t<decltype(itm)>;
+                    if constexpr (util::is_any_of_v<Itm, Item...>)
+                    {
+                        if constexpr (std::is_same_v<decltype(func(itm)), util::LoopControl>)
+                        {
+                            return func(itm);
+                        }
+                        else
+                        {
+                            func(itm);
+                        }
+                    }
+                    return util::LoopControl::Continue;
+                },
+                unknown_itm
+            );
+            if (control == util::LoopControl::Break)
+            {
+                break;
+            }
+        }
+    }
 }
 #endif

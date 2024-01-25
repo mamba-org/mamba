@@ -499,13 +499,6 @@ bind_submodule_impl(pybind11::module_ m)
         .def_property_readonly("first_writable_path", &MultiPackageCache::first_writable_path);
 
     py::class_<MTransaction>(m, "Transaction")
-        .def(py::init<>(
-            [](MSolver& solver, MultiPackageCache& mpc)
-            {
-                deprecated("Use Transaction(Pool, Solver, MultiPackageCache) instead");
-                return std::make_unique<MTransaction>(solver.pool(), solver, mpc);
-            }
-        ))
         .def(py::init<MPool&, MSolver&, MultiPackageCache&>())
         .def("to_conda", &MTransaction::to_conda)
         .def("log_json", &MTransaction::log_json)
@@ -531,7 +524,7 @@ bind_submodule_impl(pybind11::module_ m)
     constexpr auto job_v2_migrator = [](MSolver&, py::args, py::kwargs)
     { throw std::runtime_error("All jobs need to be passed in the libmambapy.solver.Request."); };
 
-    pySolver.def(py::init<MPool&>(), py::keep_alive<1, 2>())
+    pySolver.def(py::init<>())
         .def("add_jobs", job_v2_migrator)
         .def("add_global_job", job_v2_migrator)
         .def("add_pin", job_v2_migrator)
@@ -541,15 +534,12 @@ bind_submodule_impl(pybind11::module_ m)
         .def("is_solved", &MSolver::is_solved)
         .def("problems_to_str", &MSolver::problems_to_str)
         .def("all_problems_to_str", &MSolver::all_problems_to_str)
-        .def("explain_problems", py::overload_cast<>(&MSolver::explain_problems, py::const_))
+        .def("explain_problems", &MSolver::explain_problems_to)
         .def("all_problems_structured", &MSolver::all_problems_structured)
         .def(
+            // TODO figure out a better interface
             "solve",
-            [](MSolver& self)
-            {
-                // TODO figure out a better interface
-                return self.try_solve();
-            }
+            &MSolver::try_solve
         )
         .def("try_solve", &MSolver::try_solve)
         .def("must_solve", &MSolver::must_solve);
@@ -582,16 +572,7 @@ bind_submodule_impl(pybind11::module_ m)
         .def("clear", [](PbGraph::conflicts_t& self) { return self.clear(); })
         .def("add", &PbGraph::conflicts_t::add);
 
-    pyPbGraph
-        .def_static(
-            "from_solver",
-            [](const MSolver& solver, const MPool& /* pool */)
-            {
-                deprecated("Use Solver.problems_graph() instead");
-                return solver.problems_graph();
-            }
-        )
-        .def("root_node", &PbGraph::root_node)
+    pyPbGraph.def("root_node", &PbGraph::root_node)
         .def("conflicts", &PbGraph::conflicts)
         .def(
             "graph",

@@ -171,9 +171,9 @@ namespace mamba
                     /* .strict_repo_priority= */ ctx.channel_priority == ChannelPriority::Strict,
                 };
 
-                auto solver = MSolver(pool);
+                auto solver = MSolver();
                 solver.set_request(std::move(request));
-                solver.must_solve();
+                solver.must_solve(pool);
 
                 MTransaction transaction(pool, solver, package_caches);
                 execute_transaction(transaction);

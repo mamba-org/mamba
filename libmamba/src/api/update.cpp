@@ -161,9 +161,9 @@ namespace mamba
             // Console stream prints on destrucion
         }
 
-        auto solver = MSolver(pool);
+        auto solver = MSolver();
         solver.set_request(std::move(request));
-        solver.must_solve();
+        solver.must_solve(pool);
 
         auto execute_transaction = [&](MTransaction& transaction)
         {

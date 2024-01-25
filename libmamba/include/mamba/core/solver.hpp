@@ -11,15 +11,12 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include <solv/pooltypes.h>
-#include <solv/solvable.h>
 // Incomplete header
 #include <solv/rules.h>
 
-#include "mamba/core/pool.hpp"
 #include "mamba/core/satisfiability_error.hpp"
 #include "mamba/solver/request.hpp"
 #include "mamba/specs/package_info.hpp"
@@ -31,6 +28,7 @@ namespace mamba::solv
 
 namespace mamba
 {
+    class MPool;
 
     struct SolverProblem
     {
@@ -50,29 +48,26 @@ namespace mamba
 
         using Request = solver::Request;
 
-        MSolver(MPool pool);
+        MSolver();
+        MSolver(const MSolver&) = delete;
+        MSolver(MSolver&&);
+
         ~MSolver();
 
-        MSolver(const MSolver&) = delete;
-        MSolver& operator=(const MSolver&) = delete;
-        MSolver(MSolver&&);
-        MSolver& operator=(MSolver&&);
+        auto operator=(const MSolver&) -> MSolver& = delete;
+        auto operator=(MSolver&&) -> MSolver&;
 
-        [[nodiscard]] bool try_solve();
-        void must_solve();
+        [[nodiscard]] bool try_solve(MPool& pool);
+        void must_solve(MPool& pool);
         [[nodiscard]] bool is_solved() const;
 
-        [[nodiscard]] std::string problems_to_str() const;
-        [[nodiscard]] std::vector<std::string> all_problems() const;
-        [[nodiscard]] std::vector<SolverProblem> all_problems_structured() const;
-        [[nodiscard]] ProblemsGraph problems_graph() const;
-        [[nodiscard]] std::string all_problems_to_str() const;
-        std::ostream& explain_problems(std::ostream& out) const;
-        [[nodiscard]] std::string explain_problems() const;
-
-        [[nodiscard]] const MPool& pool() const&;
-        [[nodiscard]] MPool& pool() &;
-        [[nodiscard]] MPool&& pool() &&;
+        [[nodiscard]] std::string problems_to_str(MPool& pool) const;
+        [[nodiscard]] std::vector<std::string> all_problems(MPool& pool) const;
+        [[nodiscard]] std::vector<SolverProblem> all_problems_structured(const MPool& pool) const;
+        [[nodiscard]] ProblemsGraph problems_graph(const MPool& pool) const;
+        [[nodiscard]] std::string all_problems_to_str(MPool& pool) const;
+        std::ostream& explain_problems_to(MPool& pool, std::ostream& out) const;
+        [[nodiscard]] std::string explain_problems(MPool& pool) const;
 
         void set_request(Request request);
         [[nodiscard]] const Request& request() const;
@@ -82,14 +77,10 @@ namespace mamba
 
     private:
 
-        Request m_request;
-        // Order of m_pool and m_solver is critical since m_pool must outlive m_solver.
-        MPool m_pool;
+        Request m_request = {};
         // Temporary Pimpl all libsolv to keep it private
         std::unique_ptr<solv::ObjSolver> m_solver;
-        bool m_is_solved;
-
-        void apply_libsolv_flags();
+        bool m_is_solved = false;
     };
 }  // namespace mamba
 

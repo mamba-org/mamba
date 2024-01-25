@@ -577,13 +577,13 @@ namespace mamba
                 // Console stream prints on destrucion
             }
 
-            auto solver = MSolver(pool);
+            auto solver = MSolver();
             solver.set_request(std::move(request));
 
-            bool success = solver.try_solve();
+            bool success = solver.try_solve(pool);
             if (!success)
             {
-                solver.explain_problems(LOG_ERROR);
+                solver.explain_problems_to(pool, LOG_ERROR);
                 if (retry_clean_cache && !is_retry)
                 {
                     ctx.local_repodata_ttl = 2;
@@ -605,8 +605,9 @@ namespace mamba
 
                 if (ctx.output_params.json)
                 {
-                    Console::instance().json_write({ { "success", false },
-                                                     { "solver_problems", solver.all_problems() } });
+                    Console::instance().json_write(
+                        { { "success", false }, { "solver_problems", solver.all_problems(pool) } }
+                    );
                 }
                 throw mamba_error(
                     "Could not solve for environment specs",

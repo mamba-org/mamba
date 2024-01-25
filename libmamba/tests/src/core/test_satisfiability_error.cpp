@@ -6,6 +6,7 @@
 
 #include <array>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <doctest/doctest.h>
@@ -155,10 +156,10 @@ namespace
 
         auto pool = MPool{ ctx, channel_context };
         pool.add_repo_from_repodata_json(repodata_f, "some-url");
-        auto solver = MSolver(std::move(pool));
+        auto solver = MSolver();
         solver.set_request(std::move(request));
 
-        return solver;
+        return std::pair(std::move(pool), std::move(solver));
     }
 }
 
@@ -166,13 +167,13 @@ TEST_CASE("Test create_problem utility")
 {
     auto& ctx = mambatests::context();
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
-    auto solver = create_problem(
+    auto [pool, solver] = create_problem(
         ctx,
         channel_context,
         std::array{ mkpkg("foo", "0.1.0", {}) },
         { {}, { Request::Install{ "foo"_ms } } }
     );
-    const auto solved = solver.try_solve();
+    const auto solved = solver.try_solve(pool);
     REQUIRE(solved);
 }
 
@@ -180,19 +181,19 @@ TEST_CASE("Test empty specs")
 {
     auto& ctx = mambatests::context();
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
-    auto solver = create_problem(
+    auto [pool, solver] = create_problem(
         ctx,
         channel_context,
         std::array{ mkpkg("foo", "0.1.0", {}), mkpkg("", "", {}) },
         { {}, { Request::Install{ "foo"_ms } } }
     );
-    const auto solved = solver.try_solve();
+    const auto solved = solver.try_solve(pool);
     REQUIRE(solved);
 }
 
 namespace
 {
-    auto create_basic_conflict(Context& ctx, ChannelContext& channel_context) -> MSolver
+    auto create_basic_conflict(Context& ctx, ChannelContext& channel_context)
     {
         return create_problem(
             ctx,
@@ -212,7 +213,7 @@ namespace
      * The example given by Natalie Weizenbaum
      * (credits https://nex3.medium.com/pubgrub-2fb6470504f).
      */
-    auto create_pubgrub(Context& ctx, ChannelContext& channel_context) -> MSolver
+    auto create_pubgrub(Context& ctx, ChannelContext& channel_context)
     {
         return create_problem(
             ctx,
@@ -245,7 +246,6 @@ namespace
     }
 
     auto create_pubgrub_hard_(Context& ctx, ChannelContext& channel_context, bool missing_package)
-        -> MSolver
     {
         auto packages = std::vector{
             mkpkg("menu", "2.1.0", { "dropdown>=2.1", "emoji" }),
@@ -312,7 +312,7 @@ namespace
     /**
      * A harder version of ``create_pubgrub``.
      */
-    auto create_pubgrub_hard(Context& ctx, ChannelContext& channel_context) -> MSolver
+    auto create_pubgrub_hard(Context& ctx, ChannelContext& channel_context)
     {
         return create_pubgrub_hard_(ctx, channel_context, false);
     }
@@ -320,19 +320,9 @@ namespace
     /**
      * The hard version of the alternate PubGrub with missing packages.
      */
-    auto create_pubgrub_missing(Context& ctx, ChannelContext& channel_context) -> MSolver
+    auto create_pubgrub_missing(Context& ctx, ChannelContext& channel_context)
     {
         return create_pubgrub_hard_(ctx, channel_context, true);
-    }
-
-    template <typename T, typename E>
-    auto expected_value_or_throw(tl::expected<T, E>&& ex)
-    {
-        if (!ex.has_value())
-        {
-            throw ex.error();
-        }
-        return std::move(ex).value();
     }
 
     auto
@@ -358,14 +348,15 @@ namespace
             {
                 for (const auto& platform : chan.platforms())
                 {
-                    auto sub_dir = expected_value_or_throw(SubdirData::create(
-                        ctx,
-                        pool.channel_context(),
-                        chan,
-                        platform,
-                        chan.platform_url(platform).str(),
-                        cache
-                    ));
+                    auto sub_dir = SubdirData::create(
+                                       ctx,
+                                       pool.channel_context(),
+                                       chan,
+                                       platform,
+                                       chan.platform_url(platform).str(),
+                                       cache
+                    )
+                                       .value();
                     sub_dirs.push_back(std::move(sub_dir));
                 }
             }
@@ -389,16 +380,14 @@ namespace
         const std::vector<specs::PackageInfo>& virtual_packages = { mkpkg("__glibc", "2.17.0") },
         std::vector<std::string>&& channels = { "conda-forge" },
         const std::vector<std::string>& platforms = { "linux-64", "noarch" }
-    ) -> MSolver
+    )
     {
         // Reusing the cache for all invocation of this funciton for speedup
         static const auto tmp_dir = dir_guard(
             fs::temp_directory_path() / "mamba/tests" / util::generate_random_alphanumeric_string(20)
         );
 
-        auto prefix_data = expected_value_or_throw(
-            PrefixData::create(tmp_dir.path / "prefix", channel_context)
-        );
+        auto prefix_data = PrefixData::create(tmp_dir.path / "prefix", channel_context).value();
         prefix_data.add_packages(virtual_packages);
         auto pool = MPool{ ctx, channel_context };
 
@@ -412,10 +401,10 @@ namespace
         load_channels(ctx, pool, cache, make_platform_channels(std::move(channels), platforms));
         ctx.graphics_params.no_progress_bars = prev_progress_bars_value;
 
-        auto solver = MSolver(std::move(pool));
+        auto solver = MSolver();
         solver.set_request(std::move(request));
 
-        return solver;
+        return std::pair(std::move(pool), std::move(solver));
     }
 }
 
@@ -423,18 +412,18 @@ TEST_CASE("Test create_conda_forge utility")
 {
     auto& ctx = mambatests::context();
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
-    auto solver = create_conda_forge(
+    auto [pool, solver] = create_conda_forge(
         ctx,
         channel_context,
         { {}, { Request::Install{ "xtensor>=0.7"_ms } } }
     );
-    const auto solved = solver.try_solve();
+    const auto solved = solver.try_solve(pool);
     REQUIRE(solved);
 }
 
 namespace
 {
-    auto create_pytorch_cpu(Context& ctx, ChannelContext& channel_context) -> MSolver
+    auto create_pytorch_cpu(Context& ctx, ChannelContext& channel_context)
     {
         return create_conda_forge(
             ctx,
@@ -443,7 +432,7 @@ namespace
         );
     }
 
-    auto create_pytorch_cuda(Context& ctx, ChannelContext& channel_context) -> MSolver
+    auto create_pytorch_cuda(Context& ctx, ChannelContext& channel_context)
     {
         return create_conda_forge(
             ctx,
@@ -453,7 +442,7 @@ namespace
         );
     }
 
-    auto create_cudatoolkit(Context& ctx, ChannelContext& channel_context) -> MSolver
+    auto create_cudatoolkit(Context& ctx, ChannelContext& channel_context)
     {
         return create_conda_forge(
             ctx,
@@ -470,7 +459,7 @@ namespace
         );
     }
 
-    auto create_jpeg9b(Context& ctx, ChannelContext& channel_context) -> MSolver
+    auto create_jpeg9b(Context& ctx, ChannelContext& channel_context)
     {
         return create_conda_forge(
             ctx,
@@ -479,7 +468,7 @@ namespace
         );
     }
 
-    auto create_r_base(Context& ctx, ChannelContext& channel_context) -> MSolver
+    auto create_r_base(Context& ctx, ChannelContext& channel_context)
     {
         return create_conda_forge(
             ctx,
@@ -495,7 +484,7 @@ namespace
         );
     }
 
-    auto create_scip(Context& ctx, ChannelContext& channel_context) -> MSolver
+    auto create_scip(Context& ctx, ChannelContext& channel_context)
     {
         return create_conda_forge(
             ctx,
@@ -504,7 +493,7 @@ namespace
         );
     }
 
-    auto create_double_python(Context& ctx, ChannelContext& channel_context) -> MSolver
+    auto create_double_python(Context& ctx, ChannelContext& channel_context)
     {
         return create_conda_forge(
             ctx,
@@ -513,7 +502,7 @@ namespace
         );
     }
 
-    auto create_numba(Context& ctx, ChannelContext& channel_context) -> MSolver
+    auto create_numba(Context& ctx, ChannelContext& channel_context)
     {
         return create_conda_forge(
             ctx,
@@ -607,10 +596,10 @@ TEST_CASE("Create problem graph")
         // Somehow the capture does not work directly on ``name``
         std::string_view name_copy = name;
         CAPTURE(name_copy);
-        auto solver = factory(ctx, channel_context);
-        const auto solved = solver.try_solve();
+        auto [pool, solver] = factory(ctx, channel_context);
+        const auto solved = solver.try_solve(pool);
         REQUIRE_FALSE(solved);
-        const auto pbs_init = solver.problems_graph();
+        const auto pbs_init = solver.problems_graph(pool);
         const auto& graph_init = pbs_init.graph();
 
         REQUIRE_GE(graph_init.number_of_nodes(), 1);

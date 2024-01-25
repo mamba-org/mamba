@@ -155,10 +155,7 @@ namespace
 
         auto pool = MPool{ ctx, channel_context };
         pool.add_repo_from_repodata_json(repodata_f, "some-url");
-        auto solver = MSolver(
-            std::move(pool),
-            std::vector{ std::pair{ SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } }
-        );
+        auto solver = MSolver(std::move(pool), {});
         solver.set_request(std::move(request));
 
         return solver;
@@ -413,10 +410,7 @@ namespace
         load_channels(ctx, pool, cache, make_platform_channels(std::move(channels), platforms));
         ctx.graphics_params.no_progress_bars = prev_progress_bars_value;
 
-        auto solver = MSolver(
-            std::move(pool),
-            std::vector{ std::pair{ SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } }
-        );
+        auto solver = MSolver(std::move(pool), {});
         solver.set_request(std::move(request));
 
         return solver;

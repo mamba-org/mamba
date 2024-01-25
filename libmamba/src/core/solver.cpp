@@ -28,10 +28,10 @@
 
 namespace mamba
 {
-    MSolver::MSolver(MPool pool, std::vector<std::pair<int, int>> flags)
-        : m_libsolv_flags(std::move(flags))
-        , m_pool(std::move(pool))
+    MSolver::MSolver(MPool pool, Flags flags)
+        : m_pool(std::move(pool))
         , m_solver(nullptr)
+        , m_flags(std::move(flags))
         , m_is_solved(false)
     {
     }
@@ -57,28 +57,16 @@ namespace mamba
         m_request = std::move(request);
     }
 
-    void MSolver::set_flags(const Flags& flags)
-    {
-        m_flags = flags;
-    }
-
     auto MSolver::flags() const -> const Flags&
     {
         return m_flags;
     }
 
-    void MSolver::py_set_libsolv_flags(const std::vector<std::pair<int, int>>& flags)
-    {
-        m_libsolv_flags = flags;
-    }
-
     void MSolver::apply_libsolv_flags()
     {
-        // TODO use new API
-        for (const auto& option : m_libsolv_flags)
-        {
-            solver_set_flag(m_solver->raw(), option.first, option.second);
-        }
+        ::solver_set_flag(m_solver->raw(), SOLVER_FLAG_ALLOW_DOWNGRADE, m_flags.allow_downgrade);
+        ::solver_set_flag(m_solver->raw(), SOLVER_FLAG_ALLOW_UNINSTALL, m_flags.allow_uninstall);
+        ::solver_set_flag(m_solver->raw(), SOLVER_FLAG_STRICT_REPO_PRIORITY, m_flags.strict_repo_priority);
     }
 
     bool MSolver::is_solved() const

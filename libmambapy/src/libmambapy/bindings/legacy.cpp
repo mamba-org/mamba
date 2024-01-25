@@ -314,6 +314,77 @@ bind_submodule_impl(pybind11::module_ m)
     m.attr("MAMBA_ONLY_DEPS") = "V2 Migration: Use Solver.Flags instead";
     m.attr("MAMBA_FORCE_REINSTALL") = "V2 Migration: Use Solver.Flags instead";
 
+    m.attr("SOLVER_SOLVABLE") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_SOLVABLE_NAME") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_SOLVABLE_PROVIDES") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_SOLVABLE_ONE_OF") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_SOLVABLE_REPO") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_SOLVABLE_ALL") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_SELECTMASK") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_NOOP") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_INSTALL") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_ERASE") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_UPDATE") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_WEAKENDEPS") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_MULTIVERSION") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_LOCK") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_DISTUPGRADE") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_VERIFY") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_DROP_ORPHANED") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_USERINSTALLED") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_ALLOWUNINSTALL") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_FAVOR") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_DISFAVOR") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_JOBMASK") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_WEAK") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_ESSENTIAL") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_CLEANDEPS") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_ORUPDATE") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_FORCEBEST") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_TARGETED") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_NOTBYUSER") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_SETEV") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_SETEVR") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_SETARCH") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_SETVENDOR") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_SETREPO") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_NOAUTOSET") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_SETNAME") = "V2 Migration: job types are explicitly set in Request.";
+    m.attr("SOLVER_SETMASK") = "V2 Migration: job types are explicitly set in Request.";
+
+    m.attr("SOLVER_FLAG_ALLOW_DOWNGRADE") = "V2 Migration: Solver flags are passed in the Flags.";
+    m.attr("SOLVER_FLAG_ALLOW_ARCHCHANGE") = "V2 Migration: Solver flags are passed in the Flags.";
+    m.attr("SOLVER_FLAG_ALLOW_VENDORCHANGE") = "V2 Migration: Solver flags are passed in the Flags.";
+    m.attr("SOLVER_FLAG_ALLOW_UNINSTALL") = "V2 Migration: Solver flags are passed in the Flags.";
+    m.attr("SOLVER_FLAG_NO_UPDATEPROVIDE") = "V2 Migration: Solver flags are passed in the Flags.";
+    m.attr("SOLVER_FLAG_SPLITPROVIDES") = "V2 Migration: Solver flags are passed in the Flags.";
+    m.attr("SOLVER_FLAG_IGNORE_RECOMMENDED") = "V2 Migration: Solver flags are passed in the Flags.";
+    m.attr("SOLVER_FLAG_ADD_ALREADY_RECOMMENDED"
+    ) = "V2 Migration: Solver flags are passed in the Flags.";
+    m.attr("SOLVER_FLAG_NO_INFARCHCHECK") = "V2 Migration: Solver flags are passed in the Flags.";
+    m.attr("SOLVER_FLAG_ALLOW_NAMECHANGE") = "V2 Migration: Solver flags are passed in the Flags.";
+    m.attr("SOLVER_FLAG_KEEP_EXPLICIT_OBSOLETES"
+    ) = "V2 Migration: Solver flags are passed in the Flags.";
+    m.attr("SOLVER_FLAG_BEST_OBEY_POLICY") = "V2 Migration: Solver flags are passed in the Flags.";
+    m.attr("SOLVER_FLAG_NO_AUTOTARGET") = "V2 Migration: Solver flags are passed in the Flags.";
+    m.attr("SOLVER_FLAG_DUP_ALLOW_DOWNGRADE") = "V2 Migration: Solver flags are passed in the Flags.";
+    m.attr("SOLVER_FLAG_DUP_ALLOW_ARCHCHANGE") = "V2 Migration: Solver flags are passed in the Flags.";
+    m.attr("SOLVER_FLAG_DUP_ALLOW_VENDORCHANGE"
+    ) = "V2 Migration: Solver flags are passed in the Flags.";
+    m.attr("SOLVER_FLAG_DUP_ALLOW_NAMECHANGE") = "V2 Migration: Solver flags are passed in the Flags.";
+    m.attr("SOLVER_FLAG_KEEP_ORPHANS") = "V2 Migration: Solver flags are passed in the Flags.";
+    m.attr("SOLVER_FLAG_BREAK_ORPHANS") = "V2 Migration: Solver flags are passed in the Flags.";
+    m.attr("SOLVER_FLAG_FOCUS_INSTALLED") = "V2 Migration: Solver flags are passed in the Flags.";
+    m.attr("SOLVER_FLAG_YUM_OBSOLETES") = "V2 Migration: Solver flags are passed in the Flags.";
+    m.attr("SOLVER_FLAG_NEED_UPDATEPROVIDE") = "V2 Migration: Solver flags are passed in the Flags.";
+    m.attr("SOLVER_FLAG_URPM_REORDER") = "V2 Migration: Solver flags are passed in the Flags.";
+    m.attr("SOLVER_FLAG_FOCUS_BEST") = "V2 Migration: Solver flags are passed in the Flags.";
+    m.attr("SOLVER_FLAG_STRONG_RECOMMENDS") = "V2 Migration: Solver flags are passed in the Flags.";
+    m.attr("SOLVER_FLAG_INSTALL_ALSO_UPDATES") = "V2 Migration: Solver flags are passed in the Flags.";
+    m.attr("SOLVER_FLAG_ONLY_NAMESPACE_RECOMMENDED"
+    ) = "V2 Migration: Solver flags are passed in the Flags.";
+    m.attr("SOLVER_FLAG_STRICT_REPO_PRIORITY") = "V2 Migration: Solver flags are passed in the Flags.";
+
     /**************
      *  Bindings  *
      **************/
@@ -458,20 +529,31 @@ bind_submodule_impl(pybind11::module_ m)
 
     py::class_<MSolver::Flags>(pySolver, "Flags")
         .def(py::init(
-            [](bool keep_dependencies, bool keep_specs, bool force_reinstall) -> MSolver::Flags
+            [](bool keep_dependencies,
+               bool keep_specs,
+               bool force_reinstall,
+               bool allow_downgrade,
+               bool allow_uninstall,
+               bool strict_repo_priority) -> MSolver::Flags
             {
                 return {
                     /* .keep_dependencies= */ keep_dependencies,
                     /* .keep_specs= */ keep_specs,
                     /* .force_reinstall= */ force_reinstall,
+                    /* .allow_downgrade= */ allow_downgrade,
+                    /* .allow_uninstall= */ allow_uninstall,
+                    /* .strict_repo_priority= */ strict_repo_priority,
                 };
             }
         ))
         .def_readwrite("keep_dependencies", &MSolver::Flags::keep_dependencies)
         .def_readwrite("keep_specs", &MSolver::Flags::keep_user_specs)
-        .def_readwrite("force_reinstall", &MSolver::Flags::force_reinstall);
+        .def_readwrite("force_reinstall", &MSolver::Flags::force_reinstall)
+        .def_readwrite("allow_downgrade", &MSolver::Flags::allow_downgrade)
+        .def_readwrite("allow_uninstall", &MSolver::Flags::allow_uninstall)
+        .def_readwrite("strict_repo_priority", &MSolver::Flags::strict_repo_priority);
 
-    pySolver.def(py::init<MPool&, std::vector<std::pair<int, int>>>(), py::keep_alive<1, 2>())
+    pySolver.def(py::init<MPool&, MSolver::Flags>(), py::keep_alive<1, 2>())
         .def(
             "add_jobs",
             [](MSolver&, int)
@@ -496,16 +578,30 @@ bind_submodule_impl(pybind11::module_ m)
                 throw std::runtime_error("All jobs must be provided in a single Request.");
             }
         )
-        .def("set_libsolv_flags", &MSolver::py_set_libsolv_flags)
+        .def(
+            "set_libsolv_flags",
+            [](MSolver&, int)
+            {
+                // V2 migrator
+                throw std::runtime_error("All flags have been merged in the Flags class.");
+            }
+        )
         .def(
             "set_flags",
             [](MSolver&, const std::vector<std::pair<int, int>>&)
             {
                 // V2 migrator
-                throw std::runtime_error("Use Solver.set_libsolv_flags instead.");
+                throw std::runtime_error("All flags need to be passed to the constructor.");
             }
         )
-        .def("set_flags", &MSolver::set_flags)
+        .def(
+            "set_flags",
+            [](MSolver&, const std::vector<std::pair<int, int>>&)
+            {
+                // V2 migrator
+                throw std::runtime_error("All flags need to be passed to the constructor.");
+            }
+        )
         .def(
             "set_postsolve_flags",
             [](MSolver&, const std::vector<std::pair<int, int>>&)
@@ -1350,74 +1446,6 @@ bind_submodule_impl(pybind11::module_ m)
     m.def("get_virtual_packages", [] { return get_virtual_packages(mambapy::singletons.context()); });
 
     m.def("cancel_json_output", [] { Console::instance().cancel_json_print(); });
-
-    m.attr("SOLVER_SOLVABLE") = SOLVER_SOLVABLE;
-    m.attr("SOLVER_SOLVABLE_NAME") = SOLVER_SOLVABLE_NAME;
-    m.attr("SOLVER_SOLVABLE_PROVIDES") = SOLVER_SOLVABLE_PROVIDES;
-    m.attr("SOLVER_SOLVABLE_ONE_OF") = SOLVER_SOLVABLE_ONE_OF;
-    m.attr("SOLVER_SOLVABLE_REPO") = SOLVER_SOLVABLE_REPO;
-    m.attr("SOLVER_SOLVABLE_ALL") = SOLVER_SOLVABLE_ALL;
-    m.attr("SOLVER_SELECTMASK") = SOLVER_SELECTMASK;
-    m.attr("SOLVER_NOOP") = SOLVER_NOOP;
-    m.attr("SOLVER_INSTALL") = SOLVER_INSTALL;
-    m.attr("SOLVER_ERASE") = SOLVER_ERASE;
-    m.attr("SOLVER_UPDATE") = SOLVER_UPDATE;
-    m.attr("SOLVER_WEAKENDEPS") = SOLVER_WEAKENDEPS;
-    m.attr("SOLVER_MULTIVERSION") = SOLVER_MULTIVERSION;
-    m.attr("SOLVER_LOCK") = SOLVER_LOCK;
-    m.attr("SOLVER_DISTUPGRADE") = SOLVER_DISTUPGRADE;
-    m.attr("SOLVER_VERIFY") = SOLVER_VERIFY;
-    m.attr("SOLVER_DROP_ORPHANED") = SOLVER_DROP_ORPHANED;
-    m.attr("SOLVER_USERINSTALLED") = SOLVER_USERINSTALLED;
-    m.attr("SOLVER_ALLOWUNINSTALL") = SOLVER_ALLOWUNINSTALL;
-    m.attr("SOLVER_FAVOR") = SOLVER_FAVOR;
-    m.attr("SOLVER_DISFAVOR") = SOLVER_DISFAVOR;
-    m.attr("SOLVER_JOBMASK") = SOLVER_JOBMASK;
-    m.attr("SOLVER_WEAK") = SOLVER_WEAK;
-    m.attr("SOLVER_ESSENTIAL") = SOLVER_ESSENTIAL;
-    m.attr("SOLVER_CLEANDEPS") = SOLVER_CLEANDEPS;
-    m.attr("SOLVER_ORUPDATE") = SOLVER_ORUPDATE;
-    m.attr("SOLVER_FORCEBEST") = SOLVER_FORCEBEST;
-    m.attr("SOLVER_TARGETED") = SOLVER_TARGETED;
-    m.attr("SOLVER_NOTBYUSER") = SOLVER_NOTBYUSER;
-    m.attr("SOLVER_SETEV") = SOLVER_SETEV;
-    m.attr("SOLVER_SETEVR") = SOLVER_SETEVR;
-    m.attr("SOLVER_SETARCH") = SOLVER_SETARCH;
-    m.attr("SOLVER_SETVENDOR") = SOLVER_SETVENDOR;
-    m.attr("SOLVER_SETREPO") = SOLVER_SETREPO;
-    m.attr("SOLVER_NOAUTOSET") = SOLVER_NOAUTOSET;
-    m.attr("SOLVER_SETNAME") = SOLVER_SETNAME;
-    m.attr("SOLVER_SETMASK") = SOLVER_SETMASK;
-
-    // Solver flags
-    m.attr("SOLVER_FLAG_ALLOW_DOWNGRADE") = SOLVER_FLAG_ALLOW_DOWNGRADE;
-    m.attr("SOLVER_FLAG_ALLOW_ARCHCHANGE") = SOLVER_FLAG_ALLOW_ARCHCHANGE;
-    m.attr("SOLVER_FLAG_ALLOW_VENDORCHANGE") = SOLVER_FLAG_ALLOW_VENDORCHANGE;
-    m.attr("SOLVER_FLAG_ALLOW_UNINSTALL") = SOLVER_FLAG_ALLOW_UNINSTALL;
-    m.attr("SOLVER_FLAG_NO_UPDATEPROVIDE") = SOLVER_FLAG_NO_UPDATEPROVIDE;
-    m.attr("SOLVER_FLAG_SPLITPROVIDES") = SOLVER_FLAG_SPLITPROVIDES;
-    m.attr("SOLVER_FLAG_IGNORE_RECOMMENDED") = SOLVER_FLAG_IGNORE_RECOMMENDED;
-    m.attr("SOLVER_FLAG_ADD_ALREADY_RECOMMENDED") = SOLVER_FLAG_ADD_ALREADY_RECOMMENDED;
-    m.attr("SOLVER_FLAG_NO_INFARCHCHECK") = SOLVER_FLAG_NO_INFARCHCHECK;
-    m.attr("SOLVER_FLAG_ALLOW_NAMECHANGE") = SOLVER_FLAG_ALLOW_NAMECHANGE;
-    m.attr("SOLVER_FLAG_KEEP_EXPLICIT_OBSOLETES") = SOLVER_FLAG_KEEP_EXPLICIT_OBSOLETES;
-    m.attr("SOLVER_FLAG_BEST_OBEY_POLICY") = SOLVER_FLAG_BEST_OBEY_POLICY;
-    m.attr("SOLVER_FLAG_NO_AUTOTARGET") = SOLVER_FLAG_NO_AUTOTARGET;
-    m.attr("SOLVER_FLAG_DUP_ALLOW_DOWNGRADE") = SOLVER_FLAG_DUP_ALLOW_DOWNGRADE;
-    m.attr("SOLVER_FLAG_DUP_ALLOW_ARCHCHANGE") = SOLVER_FLAG_DUP_ALLOW_ARCHCHANGE;
-    m.attr("SOLVER_FLAG_DUP_ALLOW_VENDORCHANGE") = SOLVER_FLAG_DUP_ALLOW_VENDORCHANGE;
-    m.attr("SOLVER_FLAG_DUP_ALLOW_NAMECHANGE") = SOLVER_FLAG_DUP_ALLOW_NAMECHANGE;
-    m.attr("SOLVER_FLAG_KEEP_ORPHANS") = SOLVER_FLAG_KEEP_ORPHANS;
-    m.attr("SOLVER_FLAG_BREAK_ORPHANS") = SOLVER_FLAG_BREAK_ORPHANS;
-    m.attr("SOLVER_FLAG_FOCUS_INSTALLED") = SOLVER_FLAG_FOCUS_INSTALLED;
-    m.attr("SOLVER_FLAG_YUM_OBSOLETES") = SOLVER_FLAG_YUM_OBSOLETES;
-    m.attr("SOLVER_FLAG_NEED_UPDATEPROVIDE") = SOLVER_FLAG_NEED_UPDATEPROVIDE;
-    m.attr("SOLVER_FLAG_URPM_REORDER") = SOLVER_FLAG_URPM_REORDER;
-    m.attr("SOLVER_FLAG_FOCUS_BEST") = SOLVER_FLAG_FOCUS_BEST;
-    m.attr("SOLVER_FLAG_STRONG_RECOMMENDS") = SOLVER_FLAG_STRONG_RECOMMENDS;
-    m.attr("SOLVER_FLAG_INSTALL_ALSO_UPDATES") = SOLVER_FLAG_INSTALL_ALSO_UPDATES;
-    m.attr("SOLVER_FLAG_ONLY_NAMESPACE_RECOMMENDED") = SOLVER_FLAG_ONLY_NAMESPACE_RECOMMENDED;
-    m.attr("SOLVER_FLAG_STRICT_REPO_PRIORITY") = SOLVER_FLAG_STRICT_REPO_PRIORITY;
 
     // Solver rule flags
     py::enum_<SolverRuleinfo>(m, "SolverRuleinfo")

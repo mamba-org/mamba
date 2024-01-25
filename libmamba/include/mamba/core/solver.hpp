@@ -56,11 +56,17 @@ namespace mamba
             bool keep_user_specs = true;
             /** Force reinstallation of jobs. */
             bool force_reinstall = false;
+            /** Allow downgrading packages to satisfy requirements. */
+            bool allow_downgrade = true;
+            /** Allow uninstalling packages to satisfy requirements. */
+            bool allow_uninstall = true;
+            /** Prefer packages by repoitory order. */
+            bool strict_repo_priority = true;
         };
 
         using Request = solver::Request;
 
-        MSolver(MPool pool, std::vector<std::pair<int, int>> flags = {});
+        MSolver(MPool pool, Flags flags);
         ~MSolver();
 
         MSolver(const MSolver&) = delete;
@@ -68,9 +74,7 @@ namespace mamba
         MSolver(MSolver&&);
         MSolver& operator=(MSolver&&);
 
-        void set_flags(const Flags& flags);  // TODO temporary Itf meant to be passed in ctor
         [[nodiscard]] auto flags() const -> const Flags&;
-        [[deprecated]] void py_set_libsolv_flags(const std::vector<std::pair<int, int>>& flags);
 
         [[nodiscard]] bool try_solve();
         void must_solve();
@@ -96,7 +100,6 @@ namespace mamba
 
     private:
 
-        std::vector<std::pair<int, int>> m_libsolv_flags;
         Request m_request;
         // Order of m_pool and m_solver is critical since m_pool must outlive m_solver.
         MPool m_pool;

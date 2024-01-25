@@ -131,12 +131,15 @@ namespace mamba
 
         load_installed_packages_in_pool(ctx, pool, prefix_data);
 
-        MSolver solver(
+        auto solver = MSolver(
             pool,
             {
-                { SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade },
-                { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },
-                { SOLVER_FLAG_STRICT_REPO_PRIORITY, ctx.channel_priority == ChannelPriority::Strict },
+                /* .keep_dependencies= */ true,
+                /* .keep_user_specs= */ true,
+                /* .force_reinstall= */ false,
+                /* .allow_downgrade= */ ctx.allow_downgrade,
+                /* .allow_uninstall= */ ctx.allow_uninstall,
+                /* .strict_repo_priority= */ ctx.channel_priority == ChannelPriority::Strict,
             }
         );
 

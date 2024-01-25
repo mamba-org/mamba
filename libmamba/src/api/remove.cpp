@@ -161,13 +161,15 @@ namespace mamba
             }
             else
             {
-                MSolver solver(
+                auto solver = MSolver(
                     pool,
                     {
-                        { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 },
-                        { SOLVER_FLAG_ALLOW_UNINSTALL, 1 },
-                        { SOLVER_FLAG_STRICT_REPO_PRIORITY,
-                          ctx.channel_priority == ChannelPriority::Strict },
+                        /* .keep_dependencies= */ true,
+                        /* .keep_user_specs= */ true,
+                        /* .force_reinstall= */ false,
+                        /* .allow_downgrade= */ true,
+                        /* .allow_uninstall= */ true,
+                        /* .strict_repo_priority= */ ctx.channel_priority == ChannelPriority::Strict,
                     }
                 );
 

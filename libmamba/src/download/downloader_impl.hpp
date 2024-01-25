@@ -4,13 +4,13 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef MAMBA_CORE_DOWNLOAD_IMPL_HPP
-#define MAMBA_CORE_DOWNLOAD_IMPL_HPP
+#ifndef MAMBA_DL_DOWNLOADER_IMPL_HPP
+#define MAMBA_DL_DOWNLOADER_IMPL_HPP
 
 #include <chrono>
 #include <unordered_map>
 
-#include "mamba/core/download.hpp"
+#include "mamba/download/downloader.hpp"
 
 #include "compression.hpp"
 #include "curl.hpp"

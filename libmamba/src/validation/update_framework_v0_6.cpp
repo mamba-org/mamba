@@ -7,9 +7,9 @@
 #include <fstream>
 #include <utility>
 
-#include "mamba/core/download.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/download/downloader.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/util/encoding.hpp"
 #include "mamba/validation/errors.hpp"

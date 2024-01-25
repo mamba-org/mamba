@@ -6,10 +6,10 @@
 
 #include <string>
 
-#include "mamba/core/download.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/timeref.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/download/downloader.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/validation/errors.hpp"
 #include "mamba/validation/repo_checker.hpp"

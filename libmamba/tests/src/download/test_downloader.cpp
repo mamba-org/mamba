@@ -6,7 +6,7 @@
 
 #include <doctest/doctest.h>
 
-#include "mamba/core/download.hpp"
+#include "mamba/download/downloader.hpp"
 
 #include "mambatests.hpp"
 

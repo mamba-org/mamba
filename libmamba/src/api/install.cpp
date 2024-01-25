@@ -559,20 +559,17 @@ namespace mamba
 
             load_installed_packages_in_pool(ctx, pool, prefix_data);
 
-            auto solver = MSolver(
-                pool,
-                {
-                    /* .keep_dependencies= */ !no_deps,
-                    /* .keep_user_specs= */ !only_deps,
-                    /* .force_reinstall= */ force_reinstall,
-                    /* .allow_downgrade= */ ctx.allow_downgrade,
-                    /* .allow_uninstall= */ ctx.allow_uninstall,
-                    /* .strict_repo_priority= */ ctx.channel_priority == ChannelPriority::Strict,
-                }
-            );
 
             auto request = create_install_request(prefix_data, specs, freeze_installed);
             add_pins_to_request(request, ctx, prefix_data, specs, no_pin, no_py_pin);
+            request.flags = {
+                /* .keep_dependencies= */ !no_deps,
+                /* .keep_user_specs= */ !only_deps,
+                /* .force_reinstall= */ force_reinstall,
+                /* .allow_downgrade= */ ctx.allow_downgrade,
+                /* .allow_uninstall= */ ctx.allow_uninstall,
+                /* .strict_repo_priority= */ ctx.channel_priority == ChannelPriority::Strict,
+            };
 
             {
                 auto out = Console::stream();
@@ -580,6 +577,7 @@ namespace mamba
                 // Console stream prints on destrucion
             }
 
+            auto solver = MSolver(pool);
             solver.set_request(std::move(request));
 
             bool success = solver.try_solve();

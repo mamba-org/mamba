@@ -18,6 +18,22 @@ namespace mamba::solver
 {
     struct Request
     {
+        struct Flags
+        {
+            /** Keep the dependencies of the install package in the solution. */
+            bool keep_dependencies = true;
+            /** Keep the original user requested package in the solution. */
+            bool keep_user_specs = true;
+            /** Force reinstallation of jobs. */
+            bool force_reinstall = false;
+            /** Allow downgrading packages to satisfy requirements. */
+            bool allow_downgrade = true;
+            /** Allow uninstalling packages to satisfy requirements. */
+            bool allow_uninstall = true;
+            /** Prefer packages by repoitory order. */
+            bool strict_repo_priority = true;
+        };
+
         /** Instruct to install a package matching the given spec. */
         struct Install
         {
@@ -64,6 +80,7 @@ namespace mamba::solver
         using Item = std::variant<Install, Remove, Update, UpdateAll, Keep, Freeze, Pin>;
         using item_list = std::vector<Item>;
 
+        Flags flags = {};
         item_list items = {};
     };
 

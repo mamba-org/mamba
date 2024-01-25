@@ -161,20 +161,18 @@ namespace mamba
             }
             else
             {
-                auto solver = MSolver(
-                    pool,
-                    {
-                        /* .keep_dependencies= */ true,
-                        /* .keep_user_specs= */ true,
-                        /* .force_reinstall= */ false,
-                        /* .allow_downgrade= */ true,
-                        /* .allow_uninstall= */ true,
-                        /* .strict_repo_priority= */ ctx.channel_priority == ChannelPriority::Strict,
-                    }
-                );
+                auto request = build_remove_request(ctx, channel_context, raw_specs, prune);
+                request.flags = {
+                    /* .keep_dependencies= */ true,
+                    /* .keep_user_specs= */ true,
+                    /* .force_reinstall= */ false,
+                    /* .allow_downgrade= */ true,
+                    /* .allow_uninstall= */ true,
+                    /* .strict_repo_priority= */ ctx.channel_priority == ChannelPriority::Strict,
+                };
 
-                solver.set_request(build_remove_request(ctx, channel_context, raw_specs, prune));
-
+                auto solver = MSolver(pool);
+                solver.set_request(std::move(request));
                 solver.must_solve();
 
                 MTransaction transaction(pool, solver, package_caches);

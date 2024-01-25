@@ -155,7 +155,7 @@ namespace
 
         auto pool = MPool{ ctx, channel_context };
         pool.add_repo_from_repodata_json(repodata_f, "some-url");
-        auto solver = MSolver(std::move(pool), {});
+        auto solver = MSolver(std::move(pool));
         solver.set_request(std::move(request));
 
         return solver;
@@ -170,7 +170,7 @@ TEST_CASE("Test create_problem utility")
         ctx,
         channel_context,
         std::array{ mkpkg("foo", "0.1.0", {}) },
-        { { Request::Install{ "foo"_ms } } }
+        { {}, { Request::Install{ "foo"_ms } } }
     );
     const auto solved = solver.try_solve();
     REQUIRE(solved);
@@ -184,7 +184,7 @@ TEST_CASE("Test empty specs")
         ctx,
         channel_context,
         std::array{ mkpkg("foo", "0.1.0", {}), mkpkg("", "", {}) },
-        { { Request::Install{ "foo"_ms } } }
+        { {}, { Request::Install{ "foo"_ms } } }
     );
     const auto solved = solver.try_solve();
     REQUIRE(solved);
@@ -202,7 +202,7 @@ namespace
                 mkpkg("A", "0.2.0"),
                 mkpkg("A", "0.3.0"),
             },
-            { { Request::Install{ "A=0.4.0"_ms } } }
+            { {}, { Request::Install{ "A=0.4.0"_ms } } }
         );
     }
 
@@ -235,11 +235,12 @@ namespace
                 mkpkg("intl", "4.0.0"),
                 mkpkg("intl", "3.0.0"),
             },
-            { {
-                Request::Install{ "menu"_ms },
-                Request::Install{ "icons=1.*"_ms },
-                Request::Install{ "intl=5.*"_ms },
-            } }
+            { {},
+              {
+                  Request::Install{ "menu"_ms },
+                  Request::Install{ "icons=1.*"_ms },
+                  Request::Install{ "intl=5.*"_ms },
+              } }
         );
     }
 
@@ -297,13 +298,14 @@ namespace
             ctx,
             channel_context,
             packages,
-            { {
-                Request::Install{ "menu"_ms },
-                Request::Install{ "pyicons=1.*"_ms },
-                Request::Install{ "intl=5.*"_ms },
-                Request::Install{ "intl-mod"_ms },
-                Request::Install{ "pretty>=1.0"_ms },
-            } }
+            { {},
+              {
+                  Request::Install{ "menu"_ms },
+                  Request::Install{ "pyicons=1.*"_ms },
+                  Request::Install{ "intl=5.*"_ms },
+                  Request::Install{ "intl-mod"_ms },
+                  Request::Install{ "pretty>=1.0"_ms },
+              } }
         );
     }
 
@@ -410,7 +412,7 @@ namespace
         load_channels(ctx, pool, cache, make_platform_channels(std::move(channels), platforms));
         ctx.graphics_params.no_progress_bars = prev_progress_bars_value;
 
-        auto solver = MSolver(std::move(pool), {});
+        auto solver = MSolver(std::move(pool));
         solver.set_request(std::move(request));
 
         return solver;
@@ -421,7 +423,11 @@ TEST_CASE("Test create_conda_forge utility")
 {
     auto& ctx = mambatests::context();
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
-    auto solver = create_conda_forge(ctx, channel_context, { { Request::Install{ "xtensor>=0.7"_ms } } });
+    auto solver = create_conda_forge(
+        ctx,
+        channel_context,
+        { {}, { Request::Install{ "xtensor>=0.7"_ms } } }
+    );
     const auto solved = solver.try_solve();
     REQUIRE(solved);
 }
@@ -433,7 +439,7 @@ namespace
         return create_conda_forge(
             ctx,
             channel_context,
-            { { Request::Install{ "python=2.7"_ms }, Request::Install{ "pytorch=1.12"_ms } } }
+            { {}, { Request::Install{ "python=2.7"_ms }, Request::Install{ "pytorch=1.12"_ms } } }
         );
     }
 
@@ -442,7 +448,7 @@ namespace
         return create_conda_forge(
             ctx,
             channel_context,
-            { { Request::Install{ "python=2.7"_ms }, Request::Install{ "pytorch=1.12"_ms } } },
+            { {}, { Request::Install{ "python=2.7"_ms }, Request::Install{ "pytorch=1.12"_ms } } },
             { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "10.2.0") }
         );
     }
@@ -452,13 +458,14 @@ namespace
         return create_conda_forge(
             ctx,
             channel_context,
-            { {
-                Request::Install{ "python=3.7"_ms },
-                Request::Install{ "cudatoolkit=11.1"_ms },
-                Request::Install{ "cudnn=8.0"_ms },
-                Request::Install{ "pytorch=1.8"_ms },
-                Request::Install{ "torchvision=0.9=*py37_cu111*"_ms },
-            } },
+            { {},
+              {
+                  Request::Install{ "python=3.7"_ms },
+                  Request::Install{ "cudatoolkit=11.1"_ms },
+                  Request::Install{ "cudnn=8.0"_ms },
+                  Request::Install{ "pytorch=1.8"_ms },
+                  Request::Install{ "torchvision=0.9=*py37_cu111*"_ms },
+              } },
             { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "11.1") }
         );
     }
@@ -468,7 +475,7 @@ namespace
         return create_conda_forge(
             ctx,
             channel_context,
-            { { Request::Install{ "python=3.7"_ms }, Request::Install{ "jpeg=9b"_ms } } }
+            { {}, { Request::Install{ "python=3.7"_ms }, Request::Install{ "jpeg=9b"_ms } } }
         );
     }
 
@@ -477,13 +484,14 @@ namespace
         return create_conda_forge(
             ctx,
             channel_context,
-            { {
-                Request::Install{ "r-base=3.5.* "_ms },
-                Request::Install{ "pandas=0"_ms },
-                Request::Install{ "numpy<1.20.0"_ms },
-                Request::Install{ "matplotlib=2"_ms },
-                Request::Install{ "r-matchit=4.*"_ms },
-            } }
+            { {},
+              {
+                  Request::Install{ "r-base=3.5.* "_ms },
+                  Request::Install{ "pandas=0"_ms },
+                  Request::Install{ "numpy<1.20.0"_ms },
+                  Request::Install{ "matplotlib=2"_ms },
+                  Request::Install{ "r-matchit=4.*"_ms },
+              } }
         );
     }
 
@@ -492,7 +500,7 @@ namespace
         return create_conda_forge(
             ctx,
             channel_context,
-            { { Request::Install{ "scip=8.*"_ms }, Request::Install{ "pyscipopt<4.0"_ms } } }
+            { {}, { Request::Install{ "scip=8.*"_ms }, Request::Install{ "pyscipopt<4.0"_ms } } }
         );
     }
 
@@ -501,7 +509,7 @@ namespace
         return create_conda_forge(
             ctx,
             channel_context,
-            { { Request::Install{ "python=3.9.*"_ms }, Request::Install{ "python=3.10.*"_ms } } }
+            { {}, { Request::Install{ "python=3.9.*"_ms }, Request::Install{ "python=3.10.*"_ms } } }
         );
     }
 
@@ -510,7 +518,7 @@ namespace
         return create_conda_forge(
             ctx,
             channel_context,
-            { { Request::Install{ "python=3.11"_ms }, Request::Install{ "numba<0.56"_ms } } }
+            { {}, { Request::Install{ "python=3.11"_ms }, Request::Install{ "numba<0.56"_ms } } }
         );
     }
 

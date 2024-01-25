@@ -48,33 +48,15 @@ namespace mamba
     {
     public:
 
-        struct Flags
-        {
-            /** Keep the dependencies of the install package in the solution. */
-            bool keep_dependencies = true;
-            /** Keep the original user requested package in the solution. */
-            bool keep_user_specs = true;
-            /** Force reinstallation of jobs. */
-            bool force_reinstall = false;
-            /** Allow downgrading packages to satisfy requirements. */
-            bool allow_downgrade = true;
-            /** Allow uninstalling packages to satisfy requirements. */
-            bool allow_uninstall = true;
-            /** Prefer packages by repoitory order. */
-            bool strict_repo_priority = true;
-        };
-
         using Request = solver::Request;
 
-        MSolver(MPool pool, Flags flags);
+        MSolver(MPool pool);
         ~MSolver();
 
         MSolver(const MSolver&) = delete;
         MSolver& operator=(const MSolver&) = delete;
         MSolver(MSolver&&);
         MSolver& operator=(MSolver&&);
-
-        [[nodiscard]] auto flags() const -> const Flags&;
 
         [[nodiscard]] bool try_solve();
         void must_solve();
@@ -105,7 +87,6 @@ namespace mamba
         MPool m_pool;
         // Temporary Pimpl all libsolv to keep it private
         std::unique_ptr<solv::ObjSolver> m_solver;
-        Flags m_flags = {};
         bool m_is_solved;
 
         void apply_libsolv_flags();

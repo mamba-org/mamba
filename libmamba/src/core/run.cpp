@@ -445,10 +445,7 @@ namespace mamba
             MainExecutor::instance().schedule(
                 []()
                 {
-                    auto forward_signal = [](int signum)
-                    {
-                        kill(pid, signum);
-                    };
+                    auto forward_signal = [](int signum) { kill(pid, signum); };
 
                     for (int signum = 1; signum < NSIG; signum++)
                     {
@@ -473,9 +470,11 @@ namespace mamba
 
             ec = reproc::drain(proc, reproc::sink::null, reproc::sink::null);
 
-            do {
+            do
+            {
                 std::tie(status, ec) = proc.stop(opt.stop);
-            } while (ec.value() == 4); // we get error code 4 in case of a signal; Just call stop again
+            } while (ec.value() == 4);  // we get error code 4 in case of a signal; Just call stop
+                                        // again
 
             if (ec)
             {

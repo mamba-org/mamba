@@ -52,8 +52,8 @@ namespace mamba
         {
             /** Keep the dependencies of the install package in the solution. */
             bool keep_dependencies = true;
-            /** Keep the original required package in the solution. */
-            bool keep_specs = true;
+            /** Keep the original user requested package in the solution. */
+            bool keep_user_specs = true;
             /** Force reinstallation of jobs. */
             bool force_reinstall = false;
         };

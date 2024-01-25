@@ -225,11 +225,11 @@ namespace mamba
         trans.order(pool);
 
         const auto& flags = solver.flags();
-        if (flags.keep_specs && flags.keep_dependencies)
+        if (flags.keep_user_specs && flags.keep_dependencies)
         {
             m_solution = solver::libsolv::transaction_to_solution(m_pool.pool(), trans);
         }
-        else if (flags.keep_specs && !flags.keep_dependencies)
+        else if (flags.keep_user_specs && !flags.keep_dependencies)
         {
             m_solution = solver::libsolv::transaction_to_solution_no_deps(
                 m_pool.pool(),
@@ -237,7 +237,7 @@ namespace mamba
                 solver.request()
             );
         }
-        else if (!flags.keep_specs && flags.keep_dependencies)
+        else if (!flags.keep_user_specs && flags.keep_dependencies)
         {
             m_solution = solver::libsolv::transaction_to_solution_only_deps(
                 m_pool.pool(),
@@ -246,7 +246,7 @@ namespace mamba
             );
         }
 
-        if (solver.flags().keep_specs)
+        if (solver.flags().keep_user_specs)
         {
             using Request = solver::Request;
             solver::for_each_of<Request::Install, Request::Update>(

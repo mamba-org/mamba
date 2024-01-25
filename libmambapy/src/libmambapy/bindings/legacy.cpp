@@ -468,7 +468,7 @@ bind_submodule_impl(pybind11::module_ m)
             }
         ))
         .def_readwrite("keep_dependencies", &MSolver::Flags::keep_dependencies)
-        .def_readwrite("keep_specs", &MSolver::Flags::keep_specs)
+        .def_readwrite("keep_specs", &MSolver::Flags::keep_user_specs)
         .def_readwrite("force_reinstall", &MSolver::Flags::force_reinstall);
 
     pySolver.def(py::init<MPool&, std::vector<std::pair<int, int>>>(), py::keep_alive<1, 2>())

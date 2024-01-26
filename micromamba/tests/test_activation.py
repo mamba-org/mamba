@@ -763,6 +763,8 @@ def test_unicode_activation(
 
     evars = extract_vars(["CONDA_PREFIX", "CONDA_SHLVL", "PATH"], interpreter)
 
+    print("coincoin")
+    
     if interpreter == "cmd.exe":
         x = helpers.read_windows_registry(regkey)
         fp = Path(x[0][1:-1])

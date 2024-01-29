@@ -579,7 +579,7 @@ namespace mamba
 
             auto outcome = MSolver().solve(pool, request).value();
 
-            if (auto* unsolvable = std::get_if<UnSolvable>(&outcome))
+            if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome))
             {
                 unsolvable->explain_problems_to(pool, LOG_ERROR);
                 if (retry_clean_cache && !is_retry)

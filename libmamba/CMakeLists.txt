@@ -188,6 +188,7 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/helpers.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/parameters.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/repo_info.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/unsolvable.cpp
     # Artifacts validation
     ${LIBMAMBA_SOURCE_DIR}/validation/tools.cpp
     ${LIBMAMBA_SOURCE_DIR}/validation/errors.cpp
@@ -316,6 +317,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/solution.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/parameters.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/repo_info.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/unsolvable.hpp
     # Artifacts validation
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/tools.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/errors.hpp
